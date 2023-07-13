@@ -10,6 +10,7 @@
  */
 #include "psslurmpin.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1634,7 +1635,6 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
     return rankgpu;
 }
 
-
 /* This is the entry point to the whole CPU pinning stuff */
 bool setStepSlots(Step_t *step)
 {
@@ -1769,6 +1769,94 @@ error:
     ufree(slots);
     return false;
 
+}
+
+void logHWthreads(const char* func, PSpart_HWThread_t *threads, uint32_t num)
+{
+    if (!(psslurmlogger->mask & PSSLURM_LOG_PART)) return;
+
+    for (size_t t = 0; t < num; t++) {
+	mlog("%s: thread %zu node %hd id %hd timesUsed %hd\n", func, t,
+	     threads[t].node, threads[t].id, threads[t].timesUsed);
+    }
+}
+
+
+/**
+ * @brief Add all threads of slots array to threads array
+ *
+ * This appends the threads of each slot to the end of the threads array.
+ *
+ * @param threads    IN/OUT array to extend (resized using realloc())
+ * @param numThreads OUT Number of entries in threads
+ * @param slots      IN  Slots array to use
+ * @param num        IN  Number of entries in slots
+ *
+ * @return true on success and false on error with errno set
+ */
+static bool addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
+			      PSpart_slot_t *slots, uint32_t num)
+{
+    size_t t = *numThreads; /* index variable */
+
+    for (size_t s = 0; s < num; s++) {
+	*numThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
+    }
+
+    PSpart_HWThread_t *tmp = realloc(*threads, *numThreads * sizeof(**threads));
+    if (!tmp) {
+	errno = ENOMEM;
+	return false;
+    }
+    *threads = tmp;
+
+    for (size_t s = 0; s < num; s++) {
+	for (size_t cpu = 0; cpu < PSCPU_MAX; cpu++) {
+	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
+		(*threads)[t].node = slots[s].node;
+		(*threads)[t].id = cpu;
+		(*threads)[t].timesUsed = 0;
+		t++;
+	    }
+	}
+    }
+    return true;
+}
+
+/**
+ * @brief Generate hardware threads array from slots in step
+ *
+ * This just concatenates the threads of each slot, so iff there are threads
+ * used in multiple slots, they will be multiple times in the resulting array.
+ *
+ * This function distinguish between single job step and job pack step
+ *
+ * @param threads    OUT generated array (use ufree() to free)
+ * @param numThreads OUT Number of entries in threads
+ * @param step       IN  Step to use
+ *
+ * @return true on success and false on error with errno set
+ */
+bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
+		     Step_t *step)
+{
+    *numThreads = 0;
+    *threads = NULL;
+
+    if (step->packJobid == NO_VAL) {
+	return addThreadsToArray(threads, numThreads, step->slots, step->np);
+    }
+
+    /* add slots from each sister pack job
+     * since the list is sorted, the threads will be in correct order */
+    list_t *r;
+    list_for_each(r, &step->jobCompInfos) {
+	JobCompInfo_t *cur = list_entry(r, JobCompInfo_t, next);
+	if (!addThreadsToArray(threads, numThreads, cur->slots, cur->np)) {
+	    return false;
+	}
+    }
+    return true;
 }
 
 static char * printCpuMask(pid_t pid)

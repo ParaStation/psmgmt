@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,7 @@
 
 #include "pscpu.h"
 #include "psenv.h"
+#include "pspartition.h"
 #include "pstask.h"
 
 #include "psslurmstep.h"
@@ -46,6 +47,40 @@ bool initPinning(void);
  * @return Returns true on success and false otherwise
  */
 bool setStepSlots(Step_t *step);
+
+/**
+ * @brief log about HW-threads
+ *
+ * Provide some debug log about usage of the @a num HW-threads within
+ * a partition given via @a threads. Each line of output is prepended
+ * by the string provided in @a func.
+ *
+ * @param func Output prefix
+ *
+ * @param threads Parition's HW-threads to report
+ *
+ * @param num Size of @a threads
+ *
+ * @return No return value
+ */
+void logHWthreads(const char* func, PSpart_HWThread_t *threads, uint32_t num);
+
+/**
+ * @brief Generate hardware threads array from slots in step
+ *
+ * This just concatenates the threads of each slot, so iff there are threads
+ * used in multiple slots, they will be multiple times in the resulting array.
+ *
+ * This function distinguish between single job step and job pack step
+ *
+ * @param threads    OUT generated array (use ufree() to free)
+ * @param numThreads OUT Number of entries in threads
+ * @param step       IN  Step to use
+ *
+ * @return true on success and false on error with errno set
+ */
+bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
+		     Step_t *step);
 
 /**
  * @brief Calculate the GPU pinning for the local rank.
