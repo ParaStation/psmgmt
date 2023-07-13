@@ -703,7 +703,7 @@ static void execForwarder(PStask_t *task)
 
     int round = 1;
     while (!fwShutdown &&
-	  (fw->childRerun == FW_CHILD_INFINITE || round <= fw->childRerun)) {
+	   (fw->childRerun == FW_CHILD_INFINITE || round <= fw->childRerun)) {
 
 	if (fw->childFunc) {
 	    /* setup output/error pipes */

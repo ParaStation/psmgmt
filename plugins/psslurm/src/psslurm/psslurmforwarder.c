@@ -276,7 +276,7 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
 	}
     } else if (step->state == JOB_SPAWNED) {
-	    sendLaunchTasksFailed(step, ALL_NODES, SLURM_ERROR);
+	sendLaunchTasksFailed(step, ALL_NODES, SLURM_ERROR);
     } else {
 	/* send task exit to srun processes */
 	sendTaskExit(step, NULL, NULL);
