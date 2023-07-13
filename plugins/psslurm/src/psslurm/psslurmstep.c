@@ -32,7 +32,7 @@
 /** List of all steps */
 static LIST_HEAD(StepList);
 
-Step_t *Step_add(void)
+Step_t *Step_new(void)
 {
     Step_t *step = ucalloc(sizeof(Step_t));
 
@@ -60,6 +60,15 @@ Step_t *Step_add(void)
     initSlurmMsg(&step->srunIOMsg);
     initSlurmMsg(&step->srunControlMsg);
     initSlurmMsg(&step->srunPTYMsg);
+
+    INIT_LIST_HEAD(&step->next);
+
+    return step;
+}
+
+Step_t *Step_add(void)
+{
+    Step_t *step = Step_new();
     psAccountGetLocalInfo(&step->acctBase);
 
     list_add_tail(&step->next, &StepList);

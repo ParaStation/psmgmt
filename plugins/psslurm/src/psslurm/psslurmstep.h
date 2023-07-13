@@ -204,9 +204,21 @@ typedef struct {
 } Step_t;
 
 /**
- * @brief Add a new step
+ * @brief Create step
  *
- * @return Returns the newly created step
+ * Create and initialize a step structure
+ *
+ * @return Return a pointer to the newly created step structure
+ */
+Step_t *Step_new(void);
+
+/**
+ * @brief Add step
+ *
+ * Create a step structure via @ref Step_new() and append it to the
+ * list of step structures so it can be found again.
+ *
+ * @return Return a pointer to the newly added step structure
  */
 Step_t *Step_add(void);
 
@@ -238,7 +250,7 @@ void Step_addJobCompInfo(Step_t *step, JobCompInfo_t *info);
 /**
  * @brief Delete a step and free used memory
  *
- * Remaing step processes and associated connections will
+ * Remaining step processes and associated connections will
  * *not* be touched. Also see @ref Step_destroy().
  *
  * @param step Step to delete
