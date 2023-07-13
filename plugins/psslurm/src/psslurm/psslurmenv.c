@@ -1336,7 +1336,8 @@ void setStepEnv(Step_t *step)
 
     /* distribute mpiexec service processes */
     dist = getConfValueI(Config, "DIST_START");
-    if (dist) envSet(&step->env, "__MPIEXEC_DIST_START", "1");
+    /* spawn does not provide standard partition handling! */
+    if (dist && !step->spawned) envSet(&step->env, "__MPIEXEC_DIST_START", "1");
 
     /* forward overbook mode */
     if ((val = envGet(&step->env, "SLURM_OVERCOMMIT"))) {
