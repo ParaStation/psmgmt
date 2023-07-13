@@ -21,6 +21,7 @@ NODE_HOSTNAME=$(hostname -s)
 NODE_IP_ADDRESS=$(hostname -I | cut -d ' ' -f 1)
 VERBOSE=0
 PSID_PLUGINS="psslurm"
+DUMPDIR="/opt/parastation/share/doc/psmgmt/psconfig"
 
 # Check if psconfig exists
 function psconfig_exists() {
@@ -44,6 +45,7 @@ function print_usage() {
     echo "-n name         Configure the hostname (default: hostname -s)"
     echo "-i x.x.x.x      Configure the IP address (default: hostname -I | cut -d ' ' -f 1)"
     echo "-p plugin       Comma-separated list of plugins to be loaded by psid (default: psslurm)"
+    echo "-D dumpdir      Directory where to find psconfig dumps"
 }
 
 # Parse command line arguments
@@ -74,6 +76,10 @@ function parse_arg() {
                 PSID_PLUGINS="$2"
                 shift 2
                 ;;
+            -D)
+                DUMPDIR="$2"
+                shift 2
+                ;;
             --)
                 shift
                 break
@@ -94,84 +100,13 @@ function parse_arg() {
 # Configure psid for a single node
 function psconfig_single_node() {
     #
-    # Lock database
+    # Base database structure
     #
-    eval "$($(which --skip-alias --skip-function $PSCONFIG) lock "Database setup")"
+    source "${DUMPDIR}/psmgmt-base.dump"
     #
-    # Object "class:defaults"
+    # Defaults objects
     #
-    $PSCONFIG -- create 'class:defaults'
-    $PSCONFIG -- setParents 'class:defaults' # empty #
-    #
-    # Object "class:host"
-    #
-    $PSCONFIG -- create 'class:host'
-    $PSCONFIG -- setParents 'class:host' # empty #
-    #
-    # Object "class:nodetype"
-    #
-    $PSCONFIG -- create 'class:nodetype'
-    $PSCONFIG -- setParents 'class:nodetype' # empty #
-    #
-    # Object "class:psid"
-    #
-    $PSCONFIG -- create 'class:psid'
-    $PSCONFIG -- setParents 'class:psid' 'defaults:psid'
-    #
-    # Object "defaults:psid"
-    #
-    $PSCONFIG -- create 'defaults:psid'
-    $PSCONFIG -- setParents 'defaults:psid' 'class:defaults'
-    $PSCONFIG -D -- set 'defaults:psid' 'AccountPollInterval' '0'
-    $PSCONFIG -D -- setList 'defaults:psid' 'AdminGroups' 'root'
-    $PSCONFIG -D -- setList 'defaults:psid' 'AdminUsers' 'root'
-    $PSCONFIG -D -- set 'defaults:psid' 'AllowExclusive' 'no'
-    $PSCONFIG -D -- set 'defaults:psid' 'AllowOverbooking' 'no'
-    $PSCONFIG -D -- set 'defaults:psid' 'AllowUserCpuMap' 'no'
-    $PSCONFIG -D -- setList 'defaults:psid' 'AllowedGroups' 'any'
-    $PSCONFIG -D -- setList 'defaults:psid' 'AllowedUsers' 'any'
-    $PSCONFIG -D -- setList 'defaults:psid' 'AvailableHardwareTypes' 'ethernet'
-    $PSCONFIG -D -- set 'defaults:psid' 'BindGpus' 'yes'
-    $PSCONFIG -D -- set 'defaults:psid' 'BindMemory' 'yes'
-    $PSCONFIG -D -- set 'defaults:psid' 'BindNics' 'yes'
-    $PSCONFIG -D -- set 'defaults:psid' 'CoreDirectory' '/tmp'
-    $PSCONFIG -D -- setList 'defaults:psid' 'CpuMap' '0' '1' '2' '3' '4' '5' '6' '7' '8' '9' '10' '11' '12' '13' '14' '15'
-    $PSCONFIG -D -- set 'defaults:psid' 'DeadLimit' '5'
-    $PSCONFIG -D -- set 'defaults:psid' 'EnableRdpStatistics' 'no'
-    $PSCONFIG -D -- set 'defaults:psid' 'FreeOnSuspend' 'no'
-    $PSCONFIG -D -- set 'defaults:psid' 'HandleOldBins' 'no'
-    $PSCONFIG -D -- set 'defaults:psid' 'InstallDirectory' '/opt/parastation'
-    $PSCONFIG -D -- set 'defaults:psid' 'IsStarter' 'yes'
-    $PSCONFIG -D -- set 'defaults:psid' 'KillDelay' '5'
-    $PSCONFIG -D -- setList 'defaults:psid' 'LoadPlugins' 'psslurm'
-    $PSCONFIG -D -- set 'defaults:psid' 'LogDestination' 'LOG_DAEMON'
-    $PSCONFIG -D -- set 'defaults:psid' 'LogMask' '0'
-    $PSCONFIG -D -- set 'defaults:psid' 'MCastDeadInterval' '10'
-    $PSCONFIG -D -- set 'defaults:psid' 'MCastGroup' '237'
-    $PSCONFIG -D -- set 'defaults:psid' 'MCastPort' '1889'
-    $PSCONFIG -D -- set 'defaults:psid' 'MaxNumberOfProcesses' 'any'
-    $PSCONFIG -D -- set 'defaults:psid' 'MaxStatTry' '1'
-    $PSCONFIG -D -- set 'defaults:psid' 'PinProcesses' 'yes'
-    $PSCONFIG -D -- set 'defaults:psid' 'PsiNodesSortStrategy' 'proc'
-    $PSCONFIG -D -- set 'defaults:psid' 'RdpClosedTimeout' '2000'
-    $PSCONFIG -D -- set 'defaults:psid' 'RdpMaxAckPending' '4'
-    $PSCONFIG -D -- set 'defaults:psid' 'RdpMaxRetrans' '32'
-    $PSCONFIG -D -- set 'defaults:psid' 'RdpPort' '886'
-    $PSCONFIG -D -- set 'defaults:psid' 'RdpResendTimeout' '300'
-    $PSCONFIG -D -- set 'defaults:psid' 'RdpTimeout' '100'
-    $PSCONFIG -- setPointerList 'defaults:psid' 'RessourceLimits.' 'defaults:ressourcelimits'
-    $PSCONFIG -D -- set 'defaults:psid' 'RunJobs' 'yes'
-    $PSCONFIG -D -- set 'defaults:psid' 'SelectTime' '2'
-    $PSCONFIG -D -- set 'defaults:psid' 'SetSupplementaryGroups' 'no'
-    $PSCONFIG -D -- set 'defaults:psid' 'StatusBroadcasts' '8'
-    $PSCONFIG -D -- set 'defaults:psid' 'StatusTimeout' '2000'
-    $PSCONFIG -D -- set 'defaults:psid' 'UseMCast' 'no'
-    #
-    # Object "defaults:ressourcelimits"
-    #
-    $PSCONFIG -- create 'defaults:ressourcelimits'
-    $PSCONFIG -- setParents 'defaults:ressourcelimits' 'class:defaults'
-    $PSCONFIG -D -- set 'defaults:ressourcelimits' 'Core' 'unlimited'
+    source "${DUMPDIR}/psmgmt-defaults.dump"
     #
     # Object for this node
     #
