@@ -1844,22 +1844,31 @@ static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
     return true;
 }
 
+static inline Step_t *findStepByPSLogMsg(PSLog_Msg_t *msg)
+{
+    Step_t *step = NULL;
+    if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
+	step = Step_findByTaskEnv(msg->header.sender);
+    }
+    if (!step && PSC_getID(msg->header.dest) == PSC_getMyID()) {
+	step = Step_findByTaskEnv(msg->header.dest);
+    }
+    return step;
+}
+
 static bool handleCC_IO_Msg(PSLog_Msg_t *msg)
 {
-    Step_t *step = Step_findByLogger(msg->header.dest);
-    if (!step) {
-	PStask_t *task;
+    Step_t *step = findStepByPSLogMsg(msg);
+    if (!step || step->state == JOB_COMPLETE || step->state == JOB_EXIT) {
 	if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
-	    if ((task = PStasklist_find(&managedTasks, msg->header.sender))) {
-		if (isPSAdminUser(task->uid, task->gid)) {
-		    return false; // call the old handler if any
-		}
+	    PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+	    if (task && isPSAdminUser(task->uid, task->gid)) {
+		return false; // call the old handler if any
 	    }
 	} else {
-	    if ((task = PStasklist_find(&managedTasks, msg->header.dest))) {
-		if (isPSAdminUser(task->uid, task->gid)) {
-		    return false; // call the old handler if any
-		}
+	    PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
+	    if (task && isPSAdminUser(task->uid, task->gid)) {
+		return false; // call the old handler if any
 	    }
 	}
 
@@ -1905,9 +1914,10 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
     /* msg->sender == rank of the sending process */
     if (msg->sender == -1) {
 	/* message from psilogger to psidforwarder */
+	/* only investigate on psidforwarder side */
 	if (PSC_getID(msg->header.dest) != PSC_getMyID()) return;
-	Step_t *step = Step_findByLogger(msg->header.sender);
-	if (step) {
+	Step_t *step = Step_findByTaskEnv(msg->header.dest);
+	if (step && step->state != JOB_COMPLETE && step->state != JOB_EXIT) {
 	    PS_Tasks_t *task = findTaskByFwd(&step->tasks, msg->header.dest);
 	    if (task) {
 		if (task->childRank < 0) return;
@@ -1927,13 +1937,12 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 	}
     } else if (msg->sender >= 0) {
 	/* message from psidforwarder to psilogger */
-	Step_t *step = Step_findByLogger(msg->header.dest);
-	if (step) {
-	    if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
-		PS_Tasks_t *task = findTaskByFwd(&step->tasks,
-						 msg->header.sender);
-		if (task) verboseCpuPinningOutput(step, task);
-	    }
+	/* only investigate on psidforwarder side */
+	if (PSC_getID(msg->header.sender) != PSC_getMyID()) return;
+	Step_t *step = Step_findByTaskEnv(msg->header.sender);
+	if (step && step->state != JOB_COMPLETE && step->state != JOB_EXIT) {
+	    PS_Tasks_t *task = findTaskByFwd(&step->tasks, msg->header.sender);
+	    if (task) verboseCpuPinningOutput(step, task);
 	}
     }
 }
@@ -1947,8 +1956,8 @@ static bool handleCC_STDIN_Msg(PSLog_Msg_t *msg)
     mdbg(PSSLURM_LOG_IO, "dest %s data len %u\n",
 	 PSC_printTID(msg->header.dest), msgLen);
 
-    Step_t *step = Step_findByLogger(msg->header.sender);
-    if (!step) {
+    Step_t *step = findStepByPSLogMsg(msg);
+    if (!step || step->state == JOB_COMPLETE || step->state == JOB_EXIT) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!task || !isPSAdminUser(task->uid, task->gid)) {
 	    /* no admin task => complain */
@@ -1971,12 +1980,12 @@ static bool handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 
 static bool handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 {
-    if (PSC_getMyID() != PSC_getID(msg->header.sender) || msg->sender < 0) {
+    if (PSC_getID(msg->header.sender) != PSC_getMyID() || msg->sender < 0) {
 	return false; // call the old handler if any
     }
 
-    Step_t *step = Step_findByLogger(msg->header.dest);
-    if (!step) {
+    Step_t *step = Step_findByTaskEnv(msg->header.sender);
+    if (!step || step->state == JOB_COMPLETE || step->state == JOB_EXIT) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!task || !isPSAdminUser(task->uid, task->gid)) {
 	    /* no admin task => complain */
