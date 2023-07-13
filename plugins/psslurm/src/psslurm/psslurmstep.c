@@ -17,6 +17,7 @@
 
 #include "pluginmalloc.h"
 #include "psidsignal.h"
+#include "psidtask.h"
 
 #include "psslurmauth.h"
 #include "psslurmbcast.h"
@@ -234,6 +235,21 @@ Step_t *Step_findByEnv(char **environ, uint32_t *jobidOut, uint32_t *stepidOut)
     return Step_findByStepId(jobid, stepid);
 }
 
+Step_t *Step_findByTaskEnv(PStask_ID_t tid)
+{
+    PStask_t *task = PStasklist_find(&managedTasks, tid);
+    if (!task) return NULL;
+
+    if (task->group == TG_FORWARDER) {
+	/* forwarders own an incomplete environment => use shepherded task */
+	task = list_entry(task->next.prev, PStask_t, next);
+	if (!task->forwarder || task->forwarder->tid != tid) {
+	    flog("managedTasks messed up for %s?\n", PSC_printTID(tid));
+	    return NULL;
+	}
+    }
+    return Step_findByEnv(task->environ, NULL, NULL);
+}
 
 void Step_deleteAll(Step_t *preserve)
 {

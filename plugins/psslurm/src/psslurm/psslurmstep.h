@@ -17,10 +17,10 @@
 #include <sys/types.h>
 
 #include "list.h"
+#include "psaccounthandles.h"
 #include "pscommon.h"
 #include "psenv.h"
 #include "pspartition.h"
-#include "psaccounthandles.h"
 
 #include "pluginforwarder.h"
 
@@ -402,6 +402,20 @@ Step_t *Step_findByPsidTask(pid_t pid);
  * otherwise
  */
 Step_t *Step_findByEnv(char **environ, uint32_t *jobidOut, uint32_t *stepidOut);
+
+/**
+ * @brief Find step from task's environment
+ *
+ * Find a step from the environment of the task identified by its ID
+ * @a tid. If @a tid identifies a task of type TG_FORWARDER (i.e. a
+ * psidforwarder process) instead the environment of the shepherded
+ * task is used.
+ *
+ * @param tid ID of the task to consult
+ *
+ * @return On success a pointer to the step is returned; or NULL otherwise
+ */
+Step_t *Step_findByTaskEnv(PStask_ID_t tid);
 
 /**
  * @brief Get the number of steps
