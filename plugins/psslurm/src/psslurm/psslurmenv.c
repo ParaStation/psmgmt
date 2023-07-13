@@ -1253,10 +1253,8 @@ void setRankEnv(int32_t rank, Step_t *step)
  */
 static void removeSpankOptions(env_t *env)
 {
-    uint32_t i;
-
     /* remove srun/spank options */
-    for (i=0; i<env->cnt; i++) {
+    for (uint32_t i = 0; i < env->cnt; i++) {
 	while (env->vars[i] &&
 		(!(strncmp("_SLURM_SPANK_OPTION", env->vars[i], 19)))) {
 	    envUnsetIndex(env, i);
@@ -1264,22 +1262,40 @@ static void removeSpankOptions(env_t *env)
     }
 }
 
-/**
- * @brief Stripping down environment for mpiexec. The intention is to remove
- *        all environment variables that are not evaluated by mpiexec.
- *        User variables will are transfered by srun and later merged back
- *        into the environment in @a setRankEnv()
- *
- * @param env       The environment to alter
- * @param pmi_type  The PMI type of the job
- */
+pmi_type_t getPMIType(Step_t *step)
+{
+    /* for interactive steps, ignore pmi type and use none */
+    if (step->stepid == SLURM_INTERACTIVE_STEP) {
+	flog("interactive step detected, using PMI type 'none'\n");
+	return PMI_TYPE_NONE;
+    }
+
+    /* PSSLURM_PMI_TYPE can be used to choose PMI environment to be set up */
+    char *pmi = envGet(&step->env, "PSSLURM_PMI_TYPE");
+    if (!pmi) {
+	/* if PSSLURM_PMI_TYPE is not set and srun is called with --mpi=none,
+	 *  do not setup any pmi environment */
+	pmi = envGet(&step->env, "SLURM_MPI_TYPE");
+	if (pmi && !strcmp(pmi, "none")) {
+	    flog("%s SLURM_MPI_TYPE set to 'none'\n", Step_strID(step));
+	    return PMI_TYPE_NONE;
+	}
+	return PMI_TYPE_DEFAULT;
+    }
+
+    flog("%s PSSLURM_PMI_TYPE set to '%s'\n", Step_strID(step), pmi);
+    if (!strcmp(pmi, "none")) return PMI_TYPE_NONE;
+    if (!strcmp(pmi, "pmix")) return PMI_TYPE_PMIX;
+
+    /* if PSSLURM_PMI_TYPE is set to anything else, use default */
+    return PMI_TYPE_DEFAULT;
+}
+
 void removeUserVars(env_t *env, pmi_type_t pmi_type)
 {
-    uint32_t i = 0;
-
     /* get rid of all environment variables which are not needed
      * for spawning of processes via mpiexec */
-    for (i=0; i<env->cnt; i++) {
+    for (uint32_t i = 0; i < env->cnt; i++) {
 	if (!strncmp(env->vars[i], "USER=", 5)) continue;
 	if (!strncmp(env->vars[i], "HOSTNAME=", 9)) continue;
 	if (!strncmp(env->vars[i], "PATH=", 5)) continue;

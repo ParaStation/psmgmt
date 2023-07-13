@@ -795,36 +795,6 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
     }
 }
 
-/* choose PMI layer, default is MPICH's Simple PMI */
-static pmi_type_t getPMIType(Step_t *step)
-{
-    /* for interactive steps, ignore pmi type and use none */
-    if (step->stepid == SLURM_INTERACTIVE_STEP) {
-	flog("interactive step detected, using PMI type 'none'\n");
-	return PMI_TYPE_NONE;
-    }
-
-    /* PSSLURM_PMI_TYPE can be used to choose PMI environment to be set up */
-    char *pmi = envGet(&step->env, "PSSLURM_PMI_TYPE");
-    if (!pmi) {
-	/* if PSSLURM_PMI_TYPE is not set and srun is called with --mpi=none,
-	 *  do not setup any pmi environment */
-	pmi = envGet(&step->env, "SLURM_MPI_TYPE");
-	if (pmi && !strcmp(pmi, "none")) {
-	    flog("%s SLURM_MPI_TYPE set to 'none'\n", Step_strID(step));
-	    return PMI_TYPE_NONE;
-	}
-	return PMI_TYPE_DEFAULT;
-    }
-
-    flog("%s PSSLURM_PMI_TYPE set to '%s'\n", Step_strID(step), pmi);
-    if (!strcmp(pmi, "none")) return PMI_TYPE_NONE;
-    if (!strcmp(pmi, "pmix")) return PMI_TYPE_PMIX;
-
-    /* if PSSLURM_PMI_TYPE is set to anything else, use default */
-    return PMI_TYPE_DEFAULT;
-}
-
 static void debugMpiexecStart(char **argv, char **env)
 {
     mlog("%s:", __func__);

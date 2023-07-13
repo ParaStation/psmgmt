@@ -113,12 +113,29 @@ void setStepEnv(Step_t *step);
 void setRankEnv(int32_t rank, Step_t *step);
 
 /**
+ * @brief Determine PMI layer to use
+ *
+ * Determine which PMI layer to utilize within the step @a step. For
+ * this, the step's environment is investigated. Unless a different
+ * PMI layer is chosen explicitly, the default (MPICH's Simple PMI)
+ * will be used.
+ *
+ * @param step Step to investigate
+ *
+ * @return Return the PMI type chosen for @a step
+ */
+pmi_type_t getPMIType(Step_t *step);
+
+/**
  * @brief Strip environment from user variables
  *
  * Remove all user environment variables which are not relevant
- * for spawning of processes via mpiexec.
+ * for spawning of processes via mpiexec and descendants.
  *
- * @param env The environment to strip
+ * User variables will be transfered by srun and later merged back
+ * into the environment in @a setRankEnv()
+ *
+ * @param env Environment to strip
  *
  * @param pmi_type Type of PMI to use
  */
