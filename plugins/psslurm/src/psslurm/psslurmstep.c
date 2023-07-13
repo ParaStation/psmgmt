@@ -47,6 +47,7 @@ Step_t *Step_add(void)
     step->ioCon = IO_CON_NORM;
     step->startTime = time(0);
     step->leader = false;
+    step->spawned = false;
 
     INIT_LIST_HEAD(&step->tasks);
     INIT_LIST_HEAD(&step->remoteTasks);

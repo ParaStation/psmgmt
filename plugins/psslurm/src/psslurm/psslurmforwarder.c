@@ -1279,7 +1279,7 @@ bool execStepLeader(Step_t *step)
     int grace = getConfValueI(SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
-    bool spawned = envGet(&step->env, "PMI_SPAWNED");
+    step->spawned = envGet(&step->env, "PMI_SPAWNED");
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
     char jobStr[32], titleStr[64];
@@ -1290,7 +1290,7 @@ bool execStepLeader(Step_t *step)
     fwdata->userData = step;
     fwdata->graceTime = grace;
     fwdata->accounted = true;
-    if (spawned) {
+    if (step->spawned) {
 	char *env = envGet(&step->env, "__PSSLURM_SPAWN_PTID");
 	if (env) fwdata->pTid = atoi(env);
 	env = envGet(&step->env, "__PSSLURM_SPAWN_LTID");
@@ -1301,7 +1301,7 @@ bool execStepLeader(Step_t *step)
     fwdata->jailChild = true;
     fwdata->killSession = psAccountSignalSession;
     fwdata->callback = stepCallback;
-    fwdata->childFunc = fwExecStep;
+    if (!step->spawned) fwdata->childFunc = fwExecStep;
     fwdata->hookFWInit = stepForwarderInit;
     fwdata->hookLoop = stepForwarderLoop;
     fwdata->hookChild = handleChildStartStep;

@@ -192,6 +192,7 @@ typedef struct {
     char *tresBind;             /**< TRes binding (currently env set only) */
     char *tresFreq;             /**< TRes frequency (currently env set only) */
     char *tresPerTask;          /**< TRes per task */
+    bool spawned;               /**< step is result of a PMI[x]_spawn */
 /* helper variables, only used temporarily by specific functions */
     uint32_t rcvdPackInfos;	/**< number of received pack infos */
     uint32_t rcvdPackProcs;	/**< number of received pack processes */
