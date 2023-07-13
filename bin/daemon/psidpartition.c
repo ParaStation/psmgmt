@@ -2631,50 +2631,48 @@ static int16_t myUseSpace[myUseSpaceSize];
  * set of parameters and np replaced by the return value will be
  * successful.
  */
-static int createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
-		       uint32_t hwType, PSpart_option_t options,
-		       PStask_t *task, PSpart_slot_t *slots, bool dryRun)
+static uint32_t createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
+			    uint32_t hwType, PSpart_option_t options,
+			    PStask_t *task, PSpart_slot_t *slots, bool dryRun)
 {
-    PSpart_HWThread_t *thread;
-    int16_t *myUse;
-    unsigned int got = 0, roundGot = 0, thrdsGot = 0, t, first = 0;
-    int overbook = options & PART_OPT_OVERBOOK;
-    int nodeFirst = options & PART_OPT_NODEFIRST;
-    int dynamic = options & PART_OPT_DYNAMIC;
-    int nextMinUsed, minUsed;
-    int nodeTPP = 0, maxTPP = 0;
-    bool fullRound = false;
     static uint16_t *procsPerNode = NULL;
+
+    bool overbook = options & PART_OPT_OVERBOOK;
+    bool nodeFirst = options & PART_OPT_NODEFIRST;
+    bool dynamic = options & PART_OPT_DYNAMIC;
 
     PSID_log(PSID_LOG_PART, "%s: np %d ppn %d tpp %d hwType %#x options %#x"
 	     " dryRun %d\n", __func__,np, ppn, tpp, hwType, options, dryRun);
 
     if (!task) return 0;
-    thread = task->partThrds;
-    nextMinUsed = thread[0].timesUsed;
-
-    if (task->totalThreads > myUseSpaceSize) {
-	myUse = malloc(task->totalThreads * sizeof(*myUse));
-	if (!myUse) {
-	    PSID_warn(-1, errno, "%s", __func__);
-	    goto exit;
-	}
-    } else {
-	myUse = myUseSpace;
-    }
 
     if (ppn) {
 	if (!procsPerNode) {
 	    procsPerNode = malloc(PSC_getNrOfNodes() * sizeof(*procsPerNode));
 	    if (!procsPerNode) {
 		PSID_warn(-1, errno, "%s", __func__);
-		goto exit;
+		return 0;
 	    }
 	}
 	memset(procsPerNode, 0, PSC_getNrOfNodes() * sizeof(*procsPerNode));
     }
 
-    for (t = 0; t < task->totalThreads; t++) {
+    int16_t *myUse;
+    if (task->totalThreads > myUseSpaceSize) {
+	myUse = malloc(task->totalThreads * sizeof(*myUse));
+	if (!myUse) {
+	    PSID_warn(-1, errno, "%s", __func__);
+	    return 0;
+	}
+    } else {
+	myUse = myUseSpace;
+    }
+
+    PSpart_HWThread_t *thread = task->partThrds;
+    uint32_t first = 0, got = 0;
+    int16_t nextMinUsed = thread[first].timesUsed;
+    int nodeTPP = 0, maxTPP = 0;
+    for (uint32_t t = 0; t < task->totalThreads; t++) {
 	PSnodes_ID_t node = thread[t].node;
 	myUse[t] = thread[t].timesUsed;
 	if (hwType && (PSIDnodes_getHWStatus(node) & hwType) != hwType) continue;
@@ -2695,7 +2693,7 @@ static int createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
 	PSID_log(dryRun ? PSID_LOG_PART : -1, "%s: No free slots\n", __func__);
 	goto exit;
     }
-    minUsed = nextMinUsed;
+    int16_t minUsed = nextMinUsed;
     if (!nodeFirst && first) nextMinUsed++;
 
     if (tpp > maxTPP) {
@@ -2709,7 +2707,9 @@ static int createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
 	     " maxTPP %d\n", __func__, first, mod, task->totalThreads, minUsed,
 	     maxTPP);
 
-    for (t=first; t < task->totalThreads && got < np; t = (t+1) % mod) {
+    uint32_t roundGot = 0, thrdsGot = 0;
+    bool fullRound = false;
+    for (uint32_t t = first; t < task->totalThreads && got < np; t = (t+1)%mod) {
 	PSnodes_ID_t node = thread[t].node;
 
 	if (!t) {
@@ -2755,8 +2755,7 @@ static int createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
 	if (node != slots[got].node) {
 	    /* Next node, restart collection of threads */
 	    int numToRel = PSCPU_getCPUs(slots[got].CPUset, NULL, PSCPU_MAX);
-	    unsigned int tt;
-	    for (tt = 1; tt < task->totalThreads && numToRel; tt++) {
+	    for (uint32_t tt = 1; tt < task->totalThreads && numToRel; tt++) {
 		int ttt = (t - tt + task->totalThreads) % task->totalThreads;
 		if (slots[got].node == thread[ttt].node
 		    && PSCPU_isSet(slots[got].CPUset, thread[ttt].id)) {
@@ -2793,7 +2792,7 @@ static int createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
     }
 
     if (!dryRun && got == np) {
-	for (t = 0; t < task->totalThreads; t++) {
+	for (uint32_t t = 0; t < task->totalThreads; t++) {
 	    task->usedThreads += myUse[t] - thread[t].timesUsed;
 	    thread[t].timesUsed = myUse[t];
 	}
@@ -2888,8 +2887,8 @@ static bool msg_GETNODES(DDBufferMsg_t *inmsg)
 	    .buf = { 0 } };
 	PSpart_slot_t slots[NODES_CHUNK];
 	int16_t shortNum = num;
-	unsigned int got = createSlots(num, 0, tpp, hwType, option, delegate,
-				       slots, false);
+	uint32_t got = createSlots(num, 0, tpp, hwType, option, delegate,
+				   slots, false);
 
 	if (got < num) {
 	    PSID_log(-1, "%s: Only %d HW-threads for %d processes found"
@@ -3581,29 +3580,25 @@ static bool deqRes(list_t *queue, PSrsrvtn_t *res)
 
 static int PSIDpart_getReservation(PSrsrvtn_t *res)
 {
-    unsigned int got;
-    PSpart_slot_t *s;
-    PStask_t * task, *delegate;
-
     if (!res) return -1;
-    task = PStasklist_find(&managedTasks, res->task);
+
+    PStask_t * task = PStasklist_find(&managedTasks, res->task);
     if (!task) {
 	PSID_log(-1, "%s: No task associated to %#x\n", __func__, res->rid);
 	return -1;
     }
 
-    delegate = task->delegate ? task->delegate : task;
+    PStask_t *delegate = task->delegate ? task->delegate : task;
 
     if (!res->slots) res->slots = malloc(res->nMax * sizeof(*res->slots));
-
     if (!res->slots) {
 	PSID_log(-1, "%s: No memory for slots in %#x\n", __func__, res->rid);
 	return -1;
     }
 
     /* Try dryrun to determine available slots */
-    got = createSlots(res->nMax, res->ppn, res->tpp, res->hwType, res->options,
-		      delegate, res->slots, true);
+    uint32_t got = createSlots(res->nMax, res->ppn, res->tpp, res->hwType,
+			       res->options, delegate, res->slots, true);
 
     if (got < res->nMin) {
 	PSID_log(  (res->options & (PART_OPT_WAIT|PART_OPT_DYNAMIC)) ?
@@ -3655,7 +3650,7 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
     }
 
     if (!(res->options & PART_OPT_DYNAMIC)) {
-	s = realloc(res->slots, got * sizeof(*res->slots));
+	PSpart_slot_t *s = realloc(res->slots, got * sizeof(*res->slots));
 	if (!s) {
 	    PSID_log(-1, "%s: Failed to realloc()\n", __func__);
 	    free(res->slots);
@@ -3964,24 +3959,15 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
  */
 static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 {
+    PSrsrvtn_t *r = NULL;
+    int32_t eno = 0;
+
     PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 	inmsg->header.dest : inmsg->header.sender;
-    PStask_t *task = PStasklist_find(&managedTasks, target), *delegate;
-    PSrsrvtn_t *r = PSrsrvtn_get();
-    size_t used = 0;
-    int32_t eno = 0;
-    int ret;
-
+    PStask_t *task = PStasklist_find(&managedTasks, target);
     if (!task) {
-	PSID_log(-1, "%s: Task %s not found\n", __func__,
-		 PSC_printTID(target));
+	PSID_log(-1, "%s: Task %s not found\n", __func__, PSC_printTID(target));
 	eno = EACCES;
-	goto error;
-    }
-
-    if (!r) {
-	PSID_log(-1, "%s: Unable to get reservation\n", __func__);
-	eno = ENOMEM;
 	goto error;
     }
 
@@ -3995,25 +3981,31 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	    eno = errno;
 	    goto error;
 	}
-	PSrsrvtn_put(r);
 	return true;
     }
 
-    delegate = task->delegate ? task->delegate : task;
-
+    PStask_t *delegate = task->delegate ? task->delegate : task;
     if (!delegate->totalThreads || !delegate->partThrds) {
 	PSID_log(-1, "%s: Create partition first\n", __func__);
 	eno = EBADRQC;
 	goto error;
     }
 
+    r = PSrsrvtn_get();
+    if (!r) {
+	PSID_log(-1, "%s: Unable to get reservation\n", __func__);
+	eno = ENOMEM;
+	goto error;
+    }
+
     r->task = task->tid;
     r->requester = inmsg->header.sender;
+    size_t used = 0;
     PSP_getMsgBuf(inmsg, &used, "nMin", &r->nMin, sizeof(r->nMin));
     PSP_getMsgBuf(inmsg, &used, "nMax", &r->nMax, sizeof(r->nMax));
     PSP_getMsgBuf(inmsg, &used, "tpp", &r->tpp, sizeof(r->tpp));
     PSP_getMsgBuf(inmsg, &used, "hwType", &r->hwType, sizeof(r->hwType));
-    ret = PSP_getMsgBuf(inmsg, &used, "options", &r->options,
+    int ret = PSP_getMsgBuf(inmsg, &used, "options", &r->options,
 			sizeof(r->options));
     PSP_tryGetMsgBuf(inmsg, &used, "ppn", &r->ppn, sizeof(r->ppn));
     if (!ret) {
@@ -4056,9 +4048,9 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 
 	/* Answer is already sent if possible. Otherwise we'll wait anyhow */
 	return true;
-    } else {
-	eno = ENOSPC;
     }
+
+    eno = ENOSPC;
 
 error:
     {
@@ -4067,7 +4059,7 @@ error:
 		.type = PSP_CD_RESERVATIONRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
-		.len = offsetof(DDBufferMsg_t, buf) },
+		.len = 0 },
 	    .buf = { 0 } };
 	uint32_t null = 0;
 	PSP_putMsgBuf(&msg, "error", &null, sizeof(null));
