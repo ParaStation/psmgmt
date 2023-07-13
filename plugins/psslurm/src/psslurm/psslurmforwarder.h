@@ -13,8 +13,11 @@
 
 #include <stdbool.h>
 
+#include "pluginstrv.h"
+
 #include "psslurmalloc.h"
 #include "psslurmbcast.h"
+#include "psslurmenv.h"
 #include "psslurmjob.h"
 #include "psslurmstep.h"
 
@@ -78,6 +81,28 @@ bool execStepFollower(Step_t *step);
  * @return Returns true on success otherwise false is returned
  */
 bool execEpilogueFin(Alloc_t *alloc);
+
+/**
+ * @brief Build up starter argument vector
+ *
+ * Build up the argument vector of the helper utilized in order to
+ * start the actual tasks. Usually mpiexec or one of its descendants
+ * is used and the actual argument vector is mostly based on the
+ * information found in the forwarder data @a fwData. Additionally,
+ * the content of the argument vector will be influence by the chosen
+ * PMI type @a pmiType. The argument vector will be created in @a
+ * argV. The caller is responsible for cleaning up the dynamic memory
+ * in @a argV when it is no longer required.
+ *
+ * @param fwData Forwarder data of the step to investigate
+ *
+ * @param argV Argument vector to build
+ *
+ * @param pmiType Flag to signal which PMI type to use
+ *
+ * @return No return value
+ */
+void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType);
 
 /**
  * @brief Handle hook PSIDHOOK_EXEC_FORWARDER

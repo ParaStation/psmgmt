@@ -46,7 +46,6 @@
 #include "pluginmalloc.h"
 #include "pluginpartition.h"
 #include "pluginpty.h"
-#include "pluginstrv.h"
 #include "psidcomm.h"
 #include "psidhook.h"
 #include "psidscripts.h"
@@ -58,7 +57,6 @@
 #include "psslurm.h"
 #include "psslurmcomm.h"
 #include "psslurmconfig.h"
-#include "psslurmenv.h"
 #include "psslurmfwcomm.h"
 #include "psslurmio.h"
 #include "psslurmjobcred.h"
@@ -806,19 +804,9 @@ static void debugMpiexecStart(char **argv, char **env)
     }
 }
 
-/**
- * @brief Build up mpiexec argument vector
- *
- * @param fwdata Forwarder data of the step
- *
- * @param argV Argument vector to build
- *
- * @param PMIdisabled Flag to signal if PMI is used
- */
-static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
-			     pmi_type_t pmi_type)
+void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType)
 {
-    Step_t *step = fwdata->userData;
+    Step_t *step = fwData->userData;
     char buf[128];
 
     strvInit(argV, NULL, 0);
@@ -843,7 +831,7 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
     if (step->taskFlags & LAUNCH_LABEL_IO) strvAdd(argV, ustrdup("-l"));
 
     /* choose PMI layer, default is MPICH's Simple PMI */
-    switch (pmi_type) {
+    switch (pmiType) {
 	case PMI_TYPE_NONE:
 	    strvAdd(argV, ustrdup("--pmidisable"));
 	    break;
@@ -856,7 +844,7 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
     }
 
     if (step->taskFlags & LAUNCH_MULTI_PROG) {
-	setupArgsFromMultiProg(step, fwdata, argV);
+	setupArgsFromMultiProg(step, fwData, argV);
     } else {
 	if (step->packJobid == NO_VAL) {
 	    /* number of processes */
@@ -955,8 +943,8 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     /* decide which PMI type to use */
     pmi_type = getPMIType(step);
 
-    /* build mpiexec argument vector */
-    buildMpiexecArgs(fwdata, &argV, pmi_type);
+    /* build mpiexec et al. argument vector */
+    buildStartArgv(fwdata, &argV, pmi_type);
 
     /* setup step specific environment */
     setStepEnv(step);
