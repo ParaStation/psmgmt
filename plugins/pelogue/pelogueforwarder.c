@@ -99,6 +99,9 @@ void execPElogueScript(Forwarder_Data_t *fwData, int rerun)
 
     switch (checkPELogueFileStats(fName, root)) {
     case -1:
+	/* give psslurm a change to executed SPANK hooks */
+	PSIDhook_call(PSIDHOOK_PELOGUE_PREPARE, child);
+
 	/* if the prologue file does not exists, everything is fine */
 	exit(0);
     case 1:
