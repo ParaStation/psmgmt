@@ -308,6 +308,7 @@ plugins/jail/jaillog.h \
 plugins/jail/jailtypes.h \
 plugins/jail/scripts/Makefile.am \
 plugins/jail/scripts/Makefile.in \
+plugins/jail/scripts/bpf_cgroup_device.o \
 plugins/jail/scripts/jail-config.inc \
 plugins/jail/scripts/jail-functions.inc \
 plugins/jail/scripts/jail-init.sh \

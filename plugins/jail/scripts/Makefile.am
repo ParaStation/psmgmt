@@ -16,7 +16,7 @@ dist_jaillib_SCRIPTS = jail-config.inc jail-v1-cpuacct.inc		\
 		       jail-term-v1-cpuacct.inc jail-term-v1-cpuset.inc	\
 		       jail-v1-memory.inc jail-v1-devices.inc		\
 		       jail-term-v1-memory.inc jail-term-v1-devices.inc	\
-		       jail-init.sh
+		       jail-init.sh bpf_cgroup_device.o
 
 if BPF_ENABLED
 jaillib_PROGRAMS = bpf_device_loader
