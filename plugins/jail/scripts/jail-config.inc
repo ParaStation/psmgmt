@@ -21,6 +21,12 @@ EXPAND="$CommandPath/../psmgmt/psexpand.py"
 # path to psnamecompress executable
 COMPRESS="$CommandPath/../psmgmt/pscompress.py"
 
+# path to bpf program
+BPF_DEVICE_PROG="$CommandPath/bpf_cgroup_device.o"
+
+# path to bpf loader
+BPF_DEVICE_LOADER="$CommandPath/bpf_device_loader"
+
 # enable debug logging
 DEBUG="0"
 
