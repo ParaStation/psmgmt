@@ -151,6 +151,8 @@ struct __task__ {
     uint32_t totalThreads;         /**< Size of @ref partThreads */
     PSpart_HWThread_t *partThrds;  /**< HW-threads forming the partition */
     int32_t usedThreads;           /**< Number of HW-threads currently in use */
+    list_t sisterParts;            /**< Other partitions in the context of this
+				      job, i.e. with the same loggertid */
     PSrsrvtn_ID_t nextResID;       /**< ID to be used for next reservation */
     list_t reservations;           /**< List of active reservations */
     list_t resRequests;            /**< List of reservation-requestd (FIFO) */

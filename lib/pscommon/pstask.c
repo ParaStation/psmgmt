@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -136,6 +136,7 @@ bool PStask_init(PStask_t* task)
     task->partition = NULL;
     task->totalThreads = 0;
     task->partThrds = NULL;
+    INIT_LIST_HEAD(&task->sisterParts);
     task->usedThreads = -1;
     INIT_LIST_HEAD(&task->reservations);
     INIT_LIST_HEAD(&task->resRequests);
@@ -221,6 +222,8 @@ bool PStask_reinit(PStask_t* task)
     PSsignal_clearList(&task->childList);
     PSsignal_clearList(&task->releasedBefore);
     PSsignal_clearList(&task->deadBefore);
+
+    PSpart_clrQueue(&task->sisterParts);
 
     delReservationList(&task->reservations);
     delReservationList(&task->resRequests);
@@ -394,6 +397,8 @@ PStask_t* PStask_clone(PStask_t* task)
 	       task->totalThreads * sizeof(*task->partThrds));
     }
     clone->usedThreads = task->usedThreads;
+
+    /* Do not clone sister partitions */
 
     /* Do not clone reservations */
 

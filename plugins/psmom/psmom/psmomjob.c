@@ -22,8 +22,9 @@
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "timer.h"
-#include "psidtask.h"
 #include "psidpartition.h"
+#include "psidstatus.h"
+#include "psidtask.h"
 
 #include "psaccounthandles.h"
 
@@ -479,7 +480,7 @@ static void doDelete(Job_t *job)
     if (job->resDelegate) {
 	list_t *t;
 	if (job->resDelegate->partition) {
-	    send_TASKDEAD(job->resDelegate->tid);
+	    send_TASKDEAD(PSC_getTID(getMasterID(), 0), job->resDelegate->tid);
 	}
 	/* Cleanup all references to this delegate */
 	list_for_each(t, &managedTasks) {

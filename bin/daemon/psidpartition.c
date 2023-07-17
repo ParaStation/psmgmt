@@ -485,16 +485,17 @@ static void cleanupReqQueues(void)
     doCleanup = false;
 }
 
-int send_TASKDEAD(PStask_ID_t tid)
+int send_TASKDEAD(PStask_ID_t dest, PStask_ID_t tid)
 {
     DDMsg_t msg = {
 	.type = PSP_DD_TASKDEAD,
 	.sender = tid,
-	.dest = PSC_getTID(getMasterID(), 0),
+	.dest = dest,
 	.len = sizeof(msg) };
 
-    if (!knowMaster()) {
-	errno = EHOSTDOWN;
+    if (PSC_getPID(dest) && PSIDnodes_getDmnProtoV(PSC_getID(dest)) < 416) {
+	PSID_flog("%s does not support sister partitions\n", PSC_printTID(dest));
+	errno = EBADRQC;
 	return -1;
     }
 
@@ -506,8 +507,9 @@ int send_TASKDEAD(PStask_ID_t tid)
  *
  * Drop the message @a msg of type PSP_DD_TASKDEAD.
  *
- * If this type of message is dropped, most probably the master daemon
- * has changed. Thus, inform the new master about the dead task, too.
+ * If this type of message is dropped while sending to a daemon, most
+ * probably the master daemon has changed. Thus, inform the new master
+ * about the dead task, too.
  *
  * @param msg Pointer to message to drop
  *
@@ -515,7 +517,9 @@ int send_TASKDEAD(PStask_ID_t tid)
  */
 static bool drop_TASKDEAD(DDBufferMsg_t *msg)
 {
-    send_TASKDEAD(msg->header.sender);
+    if (!PSC_getPID(msg->header.dest)) {
+	send_TASKDEAD(PSC_getTID(getMasterID(), 0), msg->header.sender);
+    }
     return true;
 }
 
@@ -528,29 +532,62 @@ static bool drop_TASKDEAD(DDBufferMsg_t *msg)
  * the tasks root process. This enables the master to free the
  * resources allocated by the corresponding task.
  *
+ * Furthermore, if this type of message is sent to tasks not
+ * representing a daemon process, it will inform about the release of
+ * sister partitions.
+ *
  * @param inmsg Pointer to message to handle
  *
  * @return Always return true
  */
 static bool msg_TASKDEAD(DDMsg_t *msg)
 {
-    PSpart_request_t *req = findPart(&runReq, msg->sender);
-
-    if (!nodeStat) {
-	PSID_log(-1, "%s: not master\n", __func__);
+    if (PSC_getPID(msg->dest)) {
+	/* sister partition */
+	PStask_t *destTask = PStasklist_find(&managedTasks, msg->dest);
+	if (!destTask) {
+	    PSID_flog("task %s not found\n", PSC_printTID(msg->dest));
+	    return true;
+	}
+	PSpart_request_t *req = findPart(&destTask->sisterParts, msg->sender);
+	if (!req) {
+	    PSID_flog("sister %s not found in", PSC_printTID(msg->sender));
+	    PSID_flog(" %s\n", PSC_printTID(destTask->tid));
+	    return true;
+	}
+	if (!deqPart(&destTask->sisterParts, req)) {
+	    PSID_flog("unable to dequeue sister %s\n", PSC_printTID(req->tid));
+	    PSID_flog(" from %s\n", PSC_printTID(destTask->tid));
+	} else {
+	    PSpart_delReq(req);
+	}
+	if (destTask->tid == destTask->loggertid) {
+	    /* tell other sisters */
+	    list_t *s;
+	    list_for_each(s, &destTask->sisterParts) {
+		PSpart_request_t *sis = list_entry(s, PSpart_request_t, next);
+		if (sis->sizeGot != sis->size) continue; // still incomplete
+		send_TASKDEAD(sis->tid, msg->sender);
+	    }
+	}
 	return true;
     }
 
+    /* we shall be at the master now */
+    if (!nodeStat) {
+	PSID_flog("not master\n");
+	return true;
+    }
+
+    PSpart_request_t *req = findPart(&runReq, msg->sender);
     if (!req) {
-	PSID_log(PSID_LOG_PART, "%s: request %s not runing. Suspended?\n",
-		 __func__, PSC_printTID(msg->sender));
+	PSID_fdbg(PSID_LOG_PART, "request %s not runing. Suspended?\n",
+		  PSC_printTID(msg->sender));
 
 	req = findPart(&suspReq, msg->sender);
     }
-
     if (!req) {
-	PSID_log(-1, "%s: request %s not found\n",
-		 __func__, PSC_printTID(msg->sender));
+	PSID_flog("request %s not found\n", PSC_printTID(msg->sender));
 	return true;
     }
 
@@ -2242,7 +2279,7 @@ static bool msg_PROVIDEPART(DDBufferMsg_t *msg)
 	    PSpart_delReq(task->request);
 	    task->request = NULL;
 	}
-	send_TASKDEAD(msg->header.dest);
+	send_TASKDEAD(PSC_getTID(getMasterID(), 0), msg->header.dest);
 	sendMsg(&answer);
     }
     return true;
@@ -2399,7 +2436,7 @@ static bool msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 	    PSpart_delReq(task->request);
 	    task->request = NULL;
 	}
-	send_TASKDEAD(inmsg->header.dest);
+	send_TASKDEAD(PSC_getTID(getMasterID(), 0), inmsg->header.dest);
 	sendMsg(&msg);
     }
     return true;
@@ -4532,8 +4569,13 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
 	    .type = type,
 	    .sender = task->tid,
 	    .dest = dest,
-	    .len = sizeof(msg.header) },
+	    .len = 0, },
 	.buf = { '\0' }};
+
+    if (PSC_getPID(dest) && PSIDnodes_getDmnProtoV(PSC_getID(dest)) < 416) {
+	PSID_flog("%s does not support sister partitions\n", PSC_printTID(dest));
+	return;
+    }
 
     PSP_putMsgBuf(&msg, "options", &task->options, sizeof(task->options));
     PSP_putMsgBuf(&msg, "partitionSize", &task->partitionSize,
@@ -4556,7 +4598,7 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
 	PSP_DD_PROVIDETASKSL : PSP_DD_REGISTERPARTSL;
     msg.header.len = sizeof(msg.header);
 
-    if (sendSlots(task->partition,task->partitionSize, &msg) < 0) {
+    if (sendSlots(task->partition, task->partitionSize, &msg) < 0) {
 	PSID_warn(-1, errno, "%s: sendSlots()", __func__);
     }
 
@@ -4654,11 +4696,12 @@ static bool msg_GETTASKS(DDBufferMsg_t *msg)
  * slot-list and possibly a PSP_DD_PROVIDETASKRP message containing
  * the port-distribution required for OpenMPI.
  *
- * A PSP_DD_REGISTERPART message is used to inform the master about the
- * decisions of an external batch-system. This mechanism might be used
- * by corresponding plugins like psmom or psslurm. This message will
- * be followed by one or more PSP_DD_REGISTERPARTSL messages containing
- * the slot-list.
+ * A PSP_DD_REGISTERPART message is used to inform the master about
+ * the decisions of an external batch-system. Furthermore, messages of
+ * this type might be used to inform about sister partitions within a
+ * job. Both mechanisms will be used by plugins like psmom or psslurm.
+ * This message will be followed by one or more PSP_DD_REGISTERPARTSL
+ * messages containing the slot-list.
  *
  * The master daemon will store the partition information to the
  * corresponding partition request structure and wait for following
@@ -4670,11 +4713,17 @@ static bool msg_GETTASKS(DDBufferMsg_t *msg)
  */
 static bool msg_PROVIDETASK(DDBufferMsg_t *msg)
 {
-    PSpart_request_t *req;
     int16_t type = msg->header.type;
-    size_t used = 0;
+    list_t *queue = &regisReq;
 
-    if (!knowMaster() || PSC_getMyID() != getMasterID()) return true;
+    if (PSC_getPID(msg->header.dest) && type == PSP_DD_REGISTERPART) {
+	PStask_t *destTask = PStasklist_find(&managedTasks, msg->header.dest);
+	if (!destTask) {
+	    PSID_flog("task %s not found\n", PSC_printTID(msg->header.dest));
+	    return true;
+	}
+	queue = &destTask->sisterParts;
+    } else if (!knowMaster() || PSC_getMyID() != getMasterID()) return true;
 
     if (type == PSP_DD_PROVIDETASK && !PSC_getPID(msg->header.sender)) {
 	/* End of tasks */
@@ -4685,21 +4734,21 @@ static bool msg_PROVIDETASK(DDBufferMsg_t *msg)
 	return true;
     }
 
-    req = PSpart_newReq();
+    PSpart_request_t *req = PSpart_newReq();
     if (!req) {
-	PSID_log(-1, "%s: No memory\n", __func__);
+	PSID_flog("No memory\n");
 	return true;
     }
 
     req->tid = msg->header.sender;
 
+    size_t used = 0;
     PSP_getMsgBuf(msg, &used, "options", &req->options, sizeof(req->options));
 
     PSP_getMsgBuf(msg, &used, "size", &req->size, sizeof(req->size));
 
     if (!req->size) {
-	PSID_log(-1, "%s: Task %s without partition\n", __func__,
-		 PSC_printTID(req->tid));
+	PSID_flog("task %s without partition\n", PSC_printTID(req->tid));
 	PSpart_delReq(req);
 	return true;
     }
@@ -4720,13 +4769,91 @@ static bool msg_PROVIDETASK(DDBufferMsg_t *msg)
 
     req->slots = malloc(req->size * sizeof(*req->slots));
     if (!req->slots) {
-	PSID_log(-1, "%s: No memory\n", __func__);
+	PSID_flog("No memory\n");
 	PSpart_delReq(req);
 	return true;
     }
     req->sizeGot = 0;
-    enqPart(&regisReq, req);
+    enqPart(queue, req);
     return true;
+}
+
+static void handleMasterPart(PSpart_request_t *req, PStask_ID_t sender)
+{
+    /* find out if this is an update to an existing partition */
+    PSpart_request_t *old = findPart(&runReq, sender);
+    if (old) {
+	deqPart(&runReq, old);
+    } else if (req->suspended) {
+	old = findPart(&suspReq, sender);
+	if (old) deqPart(&suspReq, old);
+    }
+    if (old) {
+	if (!old->freed) unregisterReq(old);
+	PSpart_delReq(old);
+    }
+
+    if (!deqPart(&regisReq, req)) {
+	PSID_flog("Unable to dequeue request %s\n", PSC_printTID(req->tid));
+	PSpart_delReq(req);
+    } else if (req->suspended) {
+	if (PSID_config->freeOnSuspend) {
+	    req->freed = true;
+	} else {
+	    registerReq(req);
+	}
+	enqPart(&suspReq, req);
+    } else {
+	registerReq(req);
+	enqPart(&runReq, req);
+    }
+}
+
+static void handleSisterPart(PSpart_request_t *req, PStask_t *task)
+{
+    if (!task || !req) return;
+
+    /* PStask_t stub containing all members used by sendSinglePart() */
+    PStask_t newSister = {
+	.tid = req->tid,
+	.options = req->options,
+	.partitionSize = req->size,
+	.uid = req->uid,
+	.gid = req->gid,
+	.suspended = req->suspended,
+	.started = (struct timeval) { .tv_sec = req->start, .tv_usec = 0 },
+	.partition = req->slots,
+	.resPorts = NULL, };
+
+    if (task->tid == task->loggertid) {
+	sendSinglePart(req->tid, PSP_DD_REGISTERPART, task);
+	list_t *s;
+	list_for_each(s, &task->sisterParts) {
+	    PSpart_request_t *sis = list_entry(s, PSpart_request_t, next);
+	    if (sis->tid == req->tid) continue;         // don't send back
+	    if (sis->sizeGot != sis->size) continue; // still incomplete
+
+	    /* tell other sister about the new sister */
+	    sendSinglePart(sis->tid, PSP_DD_REGISTERPART, &newSister);
+
+	    /* tell new sister about other sister */
+	    /* PStask_t stub containing all members used by sendSinglePart() */
+	    PStask_t otherSister = {
+		.tid = sis->tid,
+		.options = sis->options,
+		.partitionSize = sis->size,
+		.uid = sis->uid,
+		.gid = sis->gid,
+		.suspended = sis->suspended,
+		.started = (struct timeval) { .tv_sec = sis->start, .tv_usec = 0 },
+		.partition = sis->slots,
+		.resPorts = NULL, };
+
+	    sendSinglePart(req->tid, PSP_DD_REGISTERPART, &otherSister);
+	}
+    } else {
+	// @todo tell new sister members about my registrations
+    }
 }
 
 /**
@@ -4745,46 +4872,32 @@ static bool msg_PROVIDETASK(DDBufferMsg_t *msg)
  */
 static bool msg_PROVIDETASKSL(DDBufferMsg_t *msg)
 {
-    PSpart_request_t *req = findPart(&regisReq, msg->header.sender);
+    int16_t type = msg->header.type;
+    list_t *queue = &regisReq;
+    PStask_t *destTask = NULL;
 
-    if (!knowMaster() || PSC_getMyID() != getMasterID()) return true;
+    if (PSC_getPID(msg->header.dest) && type == PSP_DD_REGISTERPARTSL) {
+	destTask = PStasklist_find(&managedTasks, msg->header.dest);
+	if (!destTask) {
+	    PSID_flog("task %s not found\n", PSC_printTID(msg->header.dest));
+	    return true;
+	}
+	queue = &destTask->sisterParts;
+    } else if (!knowMaster() || PSC_getMyID() != getMasterID()) return true;
 
+    PSpart_request_t *req = findPart(queue, msg->header.sender);
     if (!req) {
-	PSID_log(-1, "%s(%s): Unable to find request %s\n", __func__,
-		 PSDaemonP_printMsg(msg->header.type),
-		 PSC_printTID(msg->header.sender));
+	PSID_flog("%s message: no request %s\n", PSDaemonP_printMsg(type),
+		  PSC_printTID(msg->header.sender));
 	return true;
     }
     appendToSlotlist(msg, req);
 
     if (req->sizeGot == req->size) {
-	/* find out if this is an update to an existing partition */
-	PSpart_request_t *old = findPart(&runReq, msg->header.sender);
-	if (old) {
-	    deqPart(&runReq, old);
-	} else if (req->suspended) {
-	    old = findPart(&suspReq, msg->header.sender);
-	    if (old) deqPart(&suspReq, old);
-	}
-	if (old) {
-	    if (!old->freed) unregisterReq(old);
-	    PSpart_delReq(old);
-	}
-
-	if (!deqPart(&regisReq, req)) {
-	    PSID_log(-1, "%s: Unable to dequeue request %s\n",
-		     __func__, PSC_printTID(req->tid));
-	    PSpart_delReq(req);
-	} else if (req->suspended) {
-	    if (PSID_config->freeOnSuspend) {
-		req->freed = true;
-	    } else {
-		registerReq(req);
-	    }
-	    enqPart(&suspReq, req);
+	if (!PSC_getPID(msg->header.dest) || type != PSP_DD_REGISTERPARTSL) {
+	    handleMasterPart(req, msg->header.sender);
 	} else {
-	    registerReq(req);
-	    enqPart(&runReq, req);
+	    handleSisterPart(req, destTask);
 	}
     }
     return true;
@@ -5069,6 +5182,10 @@ void PSIDpart_register(PStask_t *task, PSpart_HWThread_t *threads, uint32_t num)
     if (knowMaster()) {
 	sendSinglePart(PSC_getTID(getMasterID(), 0), PSP_DD_REGISTERPART, task);
 	/* Otherwise we'ld have to wait for a PSP_DD_GETTASKS message */
+    }
+    if (task->loggertid != task->tid) {
+	/* register parition as sister partition at logger */
+	sendSinglePart(task->loggertid, PSP_DD_REGISTERPART, task);
     }
 }
 

@@ -36,7 +36,7 @@
 void initPartition(void);
 
 /**
- * @brief Send a PSP_DD_GETTASKS message.
+ * @brief Send a PSP_DD_GETTASKS message
  *
  * Send a PSP_DD_GETTASKS message to the node with ParaStation ID @a
  * node. This message on the one hand requests a list of all running
@@ -60,23 +60,28 @@ void initPartition(void);
 int send_GETTASKS(PSnodes_ID_t node);
 
 /**
- * @brief Send a PSP_DD_TASKDEAD message.
+ * @brief Send a PSP_DD_TASKDEAD message
  *
- * Send a PSP_DD_TASKDEAD message to the current master node.  This
- * message informs the master node on the exit of the root process
- * with task ID @a tid and thus allows to free the corresponding
- * partition.
+ * Send a PSP_DD_TASKDEAD message to @a dest. If @a dest is the daemon
+ * on the current master node, it informs this master daemon on the
+ * exit of the root process with task ID @a tid and thus allows to
+ * free the corresponding partition.
  *
- * @param tid The task ID of the root process that exited.
+ * If @a dest is a different task ID it shall address a psidlogger or
+ * step forwarder and tell about the release of a sister partition.
+ *
+ * @param dest Destination task ID
+ *
+ * @param tid Task ID of the (sister-)partition to release
  *
  * @return On success, the number of bytes sent within the
  * PSP_DD_TASKDEAD message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
-int send_TASKDEAD(PStask_ID_t tid);
+int send_TASKDEAD(PStask_ID_t dest, PStask_ID_t tid);
 
 /**
- * @brief Send a PSP_DD_TASKSUSPEND message.
+ * @brief Send a PSP_DD_TASKSUSPEND message
  *
  * Send a PSP_DD_TASKSUSPEND message to the current master node. This
  * message informs the master node on the suspension of the root
