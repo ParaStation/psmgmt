@@ -59,12 +59,6 @@ typedef struct {
     size_t ninfo;
 } mycbdata_t;
 
-/** Generic type for callback function */
-typedef struct {
-    pmix_op_cbfunc_t cbfunc;
-    void *cbdata;
-} mycbfunc_t;
-
 /** Setting up data for callback routines */
 #define INIT_CBDATA(d, n) do {		    \
     memset(&(d), 0, sizeof(d));		    \
@@ -80,6 +74,24 @@ typedef struct {
 
 /** Setting up data for callback routines */
 #define DESTROY_CBDATA(d) if ((d).ninfo) PMIX_INFO_FREE((d).info, (d).ninfo)
+
+/** Generic type for callback function */
+typedef struct {
+    pmix_op_cbfunc_t cbfunc;
+    void *cbdata;
+} mycbfunc_t;
+
+/** Setting up callback function object */
+#define INIT_CBFUNC(o, f, d) do {  \
+    (o) = ucalloc(sizeof(*o));     \
+    (o)->cbfunc = (f);             \
+    (o)->cbdata = (d);             \
+} while(0)
+
+/** Setting up data for callback routines */
+#define DESTROY_CBFUNC(d) do {  \
+    ufree(d);                   \
+} while (0)
 
 /** Wrapper for PMIx_Info_list_add() with error checking */
 #define INFO_LIST_ADD(i, key, val, t)					    \
@@ -275,11 +287,7 @@ static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
 	 proc->nspace, proc->rank, clientObject, cbfunc, cbdata);
 
     mycbfunc_t *cb = NULL;
-    if (cbfunc) {
-	cb = umalloc(sizeof(*cb));
-	cb->cbfunc = cbfunc;
-	cb->cbdata = cbdata;
-    }
+    if (cbfunc) INIT_CBFUNC(cb, cbfunc, cbdata);
 
     if (!pspmix_service_clientConnected(proc->nspace, clientObject, cb))
 	return PMIX_ERROR;
@@ -311,11 +319,7 @@ static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 	 proc->nspace, proc->rank, clientObject, cbfunc, cbdata);
 
     mycbfunc_t *cb = NULL;
-    if (cbfunc) {
-	cb = umalloc(sizeof(*cb));
-	cb->cbfunc = cbfunc;
-	cb->cbdata = cbdata;
-    }
+    if (cbfunc) INIT_CBFUNC(cb, cbfunc, cbdata);
 
     if (!pspmix_service_clientFinalized(proc->nspace, clientObject, cb))
 	return PMIX_ERROR;
@@ -324,17 +328,19 @@ static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
     return PMIX_SUCCESS;
 }
 
-void pspmix_server_operationFinished(bool success, void* cb)
+void pspmix_server_operationFinished(pmix_status_t status, void* cb)
 {
     /* check if the server library does provide a callback function */
     if (!cb) return;
 
     mycbfunc_t *callback = cb;
 
-    fdbg(PSPMIX_LOG_CALL, "success %s cbfunc %p cbdata %p\n",
-	 success ? "true" : "false", callback->cbfunc, callback->cbdata);
+    fdbg(PSPMIX_LOG_CALL, "status %s cbfunc %p cbdata %p\n",
+	 PMIx_Error_string(status), callback->cbfunc, callback->cbdata);
 
-    callback->cbfunc(success ? PMIX_SUCCESS : PMIX_ERROR, callback->cbdata);
+    callback->cbfunc(status, callback->cbdata);
+
+    DESTROY_CBFUNC(callback);
 }
 
 /* A local client called PMIx_Abort.

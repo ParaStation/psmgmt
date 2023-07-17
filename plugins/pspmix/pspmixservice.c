@@ -31,7 +31,6 @@
 #include "pspmixcommon.h"
 #include "pspmixconfig.h"
 #include "pspmixlog.h"
-#include "pspmixtypes.h"
 
 /** Pending fence message container */
 typedef struct {
@@ -1280,9 +1279,7 @@ void pspmix_service_handleClientIFResp(bool success, const char *nspace,
 
     RELEASE_LOCK(namespaceList);
 
-    pspmix_server_operationFinished(success, cb);
-
-    ufree(cb);
+    pspmix_server_operationFinished(success ? PMIX_SUCCESS : PMIX_ERROR, cb);
 
     // @todo do we need to save client state in client?
 }

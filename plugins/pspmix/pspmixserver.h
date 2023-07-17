@@ -68,12 +68,14 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
  * function and data to inform the server library about the finishing of
  * the operation asynchronously. In such cases the pmix_server module
  * provides an opaque pointer that can be given back as @a cb to this
- * function to call the underlying callback function of the server library
+ * function to call the underlying callback function of the server library.
  *
- * @param success    True if the operation succeeded, false else
+ * This function takes back ownership of @a cb and destroys it.
+ *
+ * @param status     Return status ob the operation
  * @param cb         Callback pointer passed by another pspmix_server_* func
  */
-void pspmix_server_operationFinished(bool success, void* cb);
+void pspmix_server_operationFinished(pmix_status_t status, void* cb);
 
 /**
  * @brief Register namespace at the server library
