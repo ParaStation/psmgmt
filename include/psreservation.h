@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,22 +36,22 @@ typedef int32_t PSrsrvtn_ID_t;
 typedef struct {
     list_t next;              /**< used to put into reservation-lists */
     PSrsrvtn_state_t state;   /**< flag internal state of structure */
-    PStask_ID_t task;         /**< Task holding the associated partition */
-    PStask_ID_t requester;    /**< The task requesting the registration */
-    uint32_t nMin;            /**< The minimum number of slots requested */
-    uint32_t nMax;            /**< The maximum number of slots requested */
-    uint16_t ppn;             /**< Maximum number of processes per node */
-    uint16_t tpp;             /**< Number of HW-threads per slot */
+    PStask_ID_t task;         /**< task holding the associated partition */
+    PStask_ID_t requester;    /**< task requesting the registration */
+    uint32_t nMin;            /**< minimum number of slots requested */
+    uint32_t nMax;            /**< maximum number of slots requested */
+    uint16_t ppn;             /**< maximum number of processes per node */
+    uint16_t tpp;             /**< number of HW-threads per slot */
     uint32_t hwType;          /**< HW-type to be supported by the HW-threads */
-    PSpart_option_t options;  /**< Options steering reservation creation */
+    PSpart_option_t options;  /**< options steering reservation creation */
     PSrsrvtn_ID_t rid;        /**< unique reservation identifier */
-    uint32_t firstRank;       /**< The first rank foreseen to spawn */
-    uint32_t nSlots;          /**< Number of slots in @ref slots */
-    PSpart_slot_t *slots;     /**< Slots forming the reservation */
-    uint32_t nextSlot;        /**< Number of next slot to use */
-    uint32_t relSlots;        /**< Number of slots already released */
-    bool checked;             /**< Was checked to be completable */
-    bool dynSent;             /**< Dynamic request was sent */
+    uint32_t firstRank;       /**< first rank foreseen to spawn */
+    uint32_t nSlots;          /**< number of slots in @ref slots */
+    PSpart_slot_t *slots;     /**< slots forming the reservation */
+    uint32_t nextSlot;        /**< number of next slot to use */
+    uint32_t relSlots;        /**< number of slots already released */
+    bool checked;             /**< was checked to be completable */
+    bool dynSent;             /**< dynamic request was sent */
 } PSrsrvtn_t;
 
 /** Structure used for the PSIDHOOK_RELS_PART_DYNAMIC hook */
