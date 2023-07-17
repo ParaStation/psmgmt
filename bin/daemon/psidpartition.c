@@ -136,28 +136,6 @@ static bool deqPart(list_t *queue, PSpart_request_t *part)
     return true;
 }
 
-/**
- * @brief Clear queue
- *
- * Remove all partitions from the queue @a queue and delete the
- * dequeued partitions.
- *
- * @param queue The queue to clean up
- *
- * @return No return value
- */
-static void clrPartQueue(list_t *queue)
-{
-    PSID_log(PSID_LOG_PART, "%s(%p)\n", __func__, queue);
-
-    list_t *r, *tmp;
-    list_for_each_safe(r, tmp, queue) {
-	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
-	list_del(&req->next);
-	PSpart_delReq(req);
-    }
-}
-
 /* ---------------------------------------------------------------------- */
 
 /** Structure used to hold node statuses needed to handle partition requests */
@@ -246,10 +224,10 @@ void initPartHandler(void)
 
 void exitPartHandler(void)
 {
-    clrPartQueue(&pendReq);
-    clrPartQueue(&runReq);
-    clrPartQueue(&suspReq);
-    clrPartQueue(&regisReq);
+    PSpart_clrQueue(&pendReq);
+    PSpart_clrQueue(&runReq);
+    PSpart_clrQueue(&suspReq);
+    PSpart_clrQueue(&regisReq);
     cleanupTmpSpace();
     PSIDhook_call(PSIDHOOK_MASTER_EXITPART, NULL);
 }

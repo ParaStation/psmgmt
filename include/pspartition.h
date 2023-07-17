@@ -176,6 +176,18 @@ void PSpart_reinitReq(PSpart_request_t *request);
 bool PSpart_delReq(PSpart_request_t *request);
 
 /**
+ * @brief Clear list of partition request structures
+ *
+ * Remove all partition request from the list @a queue and delete the
+ * dequeued partition request structures.
+ *
+ * @param queue List of partition requests to clean up
+ *
+ * @return No return value
+ */
+void PSpart_clrQueue(list_t *queue);
+
+/**
  * @brief Encode a partition request structure.
  *
  * Encode the partition request structure @a request and store it into
