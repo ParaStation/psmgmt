@@ -2956,7 +2956,7 @@ static bool deqRes(list_t *queue, PSrsrvtn_t *res);
  *
  * @param res Reservation to distribute
  *
- * @return On success, true is returned, or false if an error occurred.
+ * @return On success, true is returned; or false if an error occurred
  */
 static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
 {
@@ -2965,7 +2965,7 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
 	return false;
     }
 
-    /* send message to each node in the partition used */
+    /* send message to each node in the partition */
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_DD_RESCREATED, -1);
     for (uint32_t i = 0; i < task->partitionSize; i++) {
@@ -3029,7 +3029,7 @@ static ssize_t nTSSize = 0;
  *
  * @param res Reservation to distribute
  *
- * @return On success, true is returned, or false if an error occurred.
+ * @return On success, true is returned; or false if an error occurred
  */
 static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 {
@@ -3096,52 +3096,56 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 }
 
 /**
- * @brief Distribute info on released reservation to involved nodes
+ * @brief Distribute info on released reservation to nodes involved in
+ * partition
  *
- * Provide information that a reservation got deleted to all nodes
- * that were part of that reservation. For this, one or more messages
- * of type PSP_DD_RESRELEASED are emitted.
+ * Provide information that reservation @a res got deleted to all
+ * nodes that are part of the partition the reservation is belonging
+ * to. This partition is expected to be associated to the task @a
+ * task. To actually provide the information, one or more messages of
+ * type PSP_DD_RESRELEASED are emitted.
  *
- * @param res ID of the reservation to be released
+ * @param task Task holding the partition the reservation belongs to
  *
- * @return On success, true is returned, or false if an error occurred.
+ * @param res Reservation to be released
+ *
+ * @return On success, true is returned; or false if an error occurred
  */
-static bool send_RESRELEASED(PSrsrvtn_t *res)
+static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
 {
+    if (!task->partition || !task->partitionSize) {
+	PSID_flog("no nodes in partition of reservation %#x\n", res->rid);
+	return false;
+    }
+
     DDBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_DD_RESRELEASED,
 	    .dest = PSC_getTID(-1, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = 0 },
-	.buf = { '\0' }};
-
-    if (!res->slots) {
-	PSID_log(-1, "%s: No slots in reservation %#x\n", __func__, res->rid);
-	return false;
-    }
-
+	    .len = 0 }, };
     PSP_putMsgBuf(&msg, "resID", &res->rid, sizeof(res->rid));
     PSP_putMsgBuf(&msg, "loggerTID", &res->task, sizeof(res->task));
     PSP_putMsgBuf(&msg, "spawnerTID", &res->requester, sizeof(res->requester));
 
-    for (uint32_t i = 0; i < res->nSlots; i++) {
-	PSnodes_ID_t node = res->slots[i].node;
-	if (i > 0 && node == res->slots[i-1].node) continue; // don't send twice
+    /* send message to each node in the partition */
+    bool error = false;
+    for (uint32_t i = 0; i < task->partitionSize; i++) {
+	PSnodes_ID_t node = task->partition[i].node;
+	if (i > 0 && node == task->partition[i-1].node) continue; // don't send twice
 
 	// break on looping nodes (@todo this might not be sufficient!)
-	if (i > 0 && node == res->slots[0].node) break;
+	if (i > 0 && node == task->partition[0].node) break;
 
-	PSID_log(PSID_LOG_PART, "%s: to %hu for resID %#x)\n", __func__,
-		 node, res->rid);
+	PSID_fdbg(PSID_LOG_PART, "to %hu for resID %#x)\n", node, res->rid);
 
-	msg.header.dest =  PSC_getTID(node, 0);
+	msg.header.dest = PSC_getTID(node, 0);
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	    PSID_warn(-1, errno, "%s: sendMsg(%d)", __func__, node);
-	    return false;
+	    error = true;
 	}
     }
-    return true;
+    return !error;
 }
 
 /**
@@ -3240,7 +3244,7 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 	thisRes->relSlots += numSlots;
 	if (thisRes->relSlots >= thisRes->nSlots) {
 	    deqRes(&task->reservations, thisRes);
-	    send_RESRELEASED(thisRes);
+	    send_RESRELEASED(delegate, thisRes);
 	    free(thisRes->slots);
 	    thisRes->slots = NULL;
 	    PSrsrvtn_put(thisRes);
@@ -4110,7 +4114,7 @@ void PSIDpart_cleanupRes(PStask_t *task)
 	}
 
 	deqRes(&task->reservations, res);
-	send_RESRELEASED(res);
+	send_RESRELEASED(delegate, res);
 
 	if (res->slots) {
 	    released += releaseThreads(res->slots + res->nextSlot,
