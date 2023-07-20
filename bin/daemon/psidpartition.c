@@ -562,7 +562,7 @@ static bool msg_TASKDEAD(DDMsg_t *msg)
 	    PSpart_delReq(req);
 	}
 	if (destTask->tid == destTask->loggertid) {
-	    /* tell other sisters */
+	    /* logger tells other sisters */
 	    list_t *s;
 	    list_for_each(s, &destTask->sisterParts) {
 		PSpart_request_t *sis = list_entry(s, PSpart_request_t, next);
@@ -3544,13 +3544,11 @@ static void enqRes(list_t *queue, PSrsrvtn_t *res)
  */
 static PSrsrvtn_t *findRes(list_t *queue, PSrsrvtn_ID_t rid)
 {
-    list_t *r;
-
     PSID_log(PSID_LOG_PART, "%s(%p, %#x)\n", __func__, queue, rid);
 
+    list_t *r;
     list_for_each(r, queue) {
 	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
-
 	if (res->rid == rid) return res;
     }
 
@@ -3721,14 +3719,14 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 	    .type = PSP_CD_RESERVATIONRES,
 	    .dest = r->requester,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDBufferMsg_t, buf) },
+	    .len = 0, },
 	.buf = { 0 } };
-    int got = -1, eno = 0, ret;
+    int got = -1, eno = 0;
 
     if (!r) return -1;  // Omit and handle next request
     PStask_t *task = PStasklist_find(&managedTasks, r->task);
     if (!task) {
-	PSID_log(-1, "%s: No task associated to %#x\n", __func__, r->rid);
+	PSID_flog("no task associated to %#x\n", r->rid);
 	eno = EINVAL;
 	goto no_task_error;
     }
@@ -3755,7 +3753,7 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
      * passed the parameters nSlots and slots are set and that they are
      * compatible to the nThreads and threads in the corresponding task.
      */
-    ret = PSIDhook_call(PSIDHOOK_GETRESERVATION, r);
+    int ret = PSIDhook_call(PSIDHOOK_GETRESERVATION, r);
     if (!ret) {
 	if (task->delegate) {
 	    /* we cannot do the "double entry bookkeeping on delegation"
@@ -3765,9 +3763,8 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 	     * This is no problem since psslurm (the only user of this hook
 	     * for the time being) does not use delegates.
 	     */
-	    PSID_log(-1, "%s: WARNING: Using PSIDHOOK_GETRESERVATION and"
-		    " task->delegate together is currently not supported!\n",
-		    __func__);
+	    PSID_flog("WARNING: Concurrent use of PSIDHOOK_GETRESERVATION and"
+		      " task->delegate is currently unsupported!\n");
 	}
 
 	/* ret == 0 means we got what we requested */
@@ -3811,16 +3808,16 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 	    }
 	} else if (!got) {
 	    if (r->options & PART_OPT_WAIT) {
-		PSID_log(PSID_LOG_PART, "%s: %#x must wait", __func__, r->rid);
+		PSID_fdbg(PSID_LOG_PART, "%#x must wait", r->rid);
 		/* Answer will be sent once reservation is established */
 		return 0; // Do not handle next request
 	    } else {
-		PSID_log(-1, "%s: Insuffcient resources without PART_OPT_WAIT"
-			 " for %#x\n", __func__, r->rid);
+		PSID_flog("Insuffcient resources w/o PART_OPT_WAIT for %#x\n",
+			  r->rid);
 		eno = EBUSY;
 	    }
 	} else if (got < 0) {
-	    PSID_log(-1, "%s: Insuffcient resources\n", __func__);
+	    PSID_flog("Insuffcient resources\n");
 	    eno = ENOSPC;
 	}
     }
@@ -4005,14 +4002,15 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 
     PStask_t *delegate = task->delegate ? task->delegate : task;
     if (!delegate->totalThreads || !delegate->partThrds) {
-	PSID_log(-1, "%s: Create partition first\n", __func__);
+	PSID_flog("Create partition first\n");
 	eno = EBADRQC;
 	goto error;
     }
 
+    /* Peek into the reservation */
     r = PSrsrvtn_get();
     if (!r) {
-	PSID_log(-1, "%s: Unable to get reservation\n", __func__);
+	PSID_flog("unable to get reservation\n");
 	eno = ENOMEM;
 	goto error;
     }

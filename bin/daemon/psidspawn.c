@@ -3014,10 +3014,9 @@ void PSIDspawn_cleanupByNode(PSnodes_ID_t node)
 
 void PSIDspawn_cleanupBySpawner(PStask_ID_t tid)
 {
+    PSID_fdbg(PSID_LOG_SPAWN, "%s\n", PSC_printTID(tid));
+
     list_t *t;
-
-    PSID_log(PSID_LOG_SPAWN, "%s(%s)\n", __func__, PSC_printTID(tid));
-
     list_for_each(t, &spawnTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (task->tid == tid) task->deleted = true;
@@ -3025,24 +3024,23 @@ void PSIDspawn_cleanupBySpawner(PStask_ID_t tid)
     list_for_each(t, &delayedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (task->deleted) continue;
-	if (task->tid == tid) {
-	    DDErrorMsg_t answer = {
-		.header = {
-		    .type = PSP_CD_SPAWNFAILED,
-		    .sender = PSC_getMyTID(),
-		    .dest = task->tid,
-		    .len = sizeof(answer) },
-		.error = ECHILD,
-		.request = task->rank};
-	    task->deleted = true;
-	    sendMsg(&answer);
-	    if (PSCPU_any(task->CPUset, PSCPU_MAX)) {
-		PSCPU_set_t CPUset;
-		PSCPU_copy(CPUset, task->CPUset);
-		PSCPU_clrAll(task->CPUset);
-		sendCHILDRESREL(task->loggertid, task->resID,
-				CPUset, PSC_getMyTID(), true);
-	    }
+	if (task->tid != tid) continue;
+	DDErrorMsg_t answer = {
+	    .header = {
+		.type = PSP_CD_SPAWNFAILED,
+		.sender = PSC_getMyTID(),
+		.dest = task->tid,
+		.len = sizeof(answer) },
+	    .error = ECHILD,
+	    .request = task->rank};
+	task->deleted = true;
+	sendMsg(&answer);
+	if (PSCPU_any(task->CPUset, PSCPU_MAX)) {
+	    PSCPU_set_t CPUset;
+	    PSCPU_copy(CPUset, task->CPUset);
+	    PSCPU_clrAll(task->CPUset);
+	    sendCHILDRESREL(task->loggertid, task->resID,
+			    CPUset, PSC_getMyTID(), true);
 	}
     }
 }

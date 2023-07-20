@@ -403,7 +403,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	session = getSession();
 	if (!session) {
 	    putResinfo(res);
-	    PSID_log(-1, "%s: No memory for session\n", __func__);
+	    PSID_flog("no memory for session\n");
 	    return;
 	}
 	session->loggertid = loggerTID;
@@ -425,22 +425,21 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 		putSession(session);
 	    }
 	    putResinfo(res);
-	    PSID_log(-1, "%s: No memory for job\n", __func__);
+	    PSID_flog("no memory for job\n");
 	    return;
 	}
 	job->spawnertid = spawnerTID;
 	list_add_tail(&job->next, &session->jobs);
 	jobCreated = true;
-	PSID_log(PSID_LOG_SPAWN, "%s: Job created for spawner %s",
-		 __func__, PSC_printTID(spawnerTID));
-	PSID_log(PSID_LOG_SPAWN, "in session with loggertid %s\n",
-		 PSC_printTID(loggerTID));
+	PSID_fdbg(PSID_LOG_SPAWN, "job created for spawner %s in session with",
+		  PSC_printTID(spawnerTID));
+	PSID_log(PSID_LOG_SPAWN, " loggertid %s\n", PSC_printTID(loggerTID));
     }
 
     /* try to add reservation to job */
     addReservationToJob(job, res);
-    PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d added (spawner %s",
-	     __func__, resID, PSC_printTID(spawnerTID));
+    PSID_fdbg(PSID_LOG_SPAWN, "reservation %d added (spawner %s",
+	      resID, PSC_printTID(spawnerTID));
     PSID_log(PSID_LOG_SPAWN, " logger %s)\n", PSC_printTID(loggerTID));
 
     /* Give plugins the option to react on job creation */
@@ -478,16 +477,16 @@ static bool msg_RESCREATED(DDTypedBufferMsg_t *msg)
 
     /* destination is remote */
     if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
-	PSID_log(-1, "%s: unable to forward fragment to %s (node down)\n",
-		 __func__, PSC_printTID(msg->header.dest));
+	PSID_flog("unable to forward fragment to %s (node down)\n",
+		  PSC_printTID(msg->header.dest));
 	return true;
     }
 
-    PSID_log(PSID_LOG_SPAWN, "%s: forward to node %d\n", __func__,
-	     PSC_getID(msg->header.dest));
+    PSID_fdbg(PSID_LOG_SPAWN, "forward to node %d\n",
+	      PSC_getID(msg->header.dest));
     if (sendMsg(msg) < 0) {
-	PSID_log(-1, "%s: unable to forward fragment to %s (sendMsg failed)\n",
-		 __func__, PSC_printTID(msg->header.dest));
+	PSID_flog("unable to forward fragment to %s (sendMsg failed)\n",
+		  PSC_printTID(msg->header.dest));
     }
     return true;
 }
@@ -688,9 +687,9 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PSCPU_inject(res->localSlots[s].CPUset, ptr, nBytes);
 	ptr += nBytes;
 
-	PSID_log(PSID_LOG_PART, "%s: Add cpuset %s for rank %d in res %d\n",
-		 __func__, PSCPU_print_part(res->localSlots[s].CPUset, nBytes),
-		 rank, resID);
+	PSID_fdbg(PSID_LOG_PART, "add cpuset %s for job rank %d in res %d\n",
+		  PSCPU_print_part(res->localSlots[s].CPUset, nBytes),
+		  rank, resID);
     }
 
     /* check for end of message */

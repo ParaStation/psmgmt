@@ -361,10 +361,9 @@ error:
  * of an error, and 2 to signal the caller to create the reservation
  * by itself.
  */
-static int handleGetReservation(void *res) {
-
-    PSrsrvtn_t *r = (PSrsrvtn_t *) res;
-
+static int handleGetReservation(void *res)
+{
+    PSrsrvtn_t *r = res;
     if (!r) return 1;
 
     /* find task */
@@ -402,13 +401,12 @@ static int handleGetReservation(void *res) {
     uint32_t nSlots;
     PSpart_slot_t *slots;
     if (step->packJobid == NO_VAL) {
-
 	/* only for MULTI_PROG steps we expect to get multiple reservation
 	 * requests since an mpiexec call with colons was generated for it */
 	if (!(step->taskFlags & LAUNCH_MULTI_PROG) && (r->nMin != step->np)) {
-	    flog("WARNING: Unexpected reservation request %#x for task %s:"
-		 " Only %u from %d slots requested\n", r->rid,
-		 PSC_printTID(task->tid), r->nMin, step->np);
+	    flog("WARNING: unexpected request %#x for task %s: Only %u of %d"
+		 " slots requested\n", r->rid, PSC_printTID(task->tid),
+		 r->nMin, step->np);
 	}
 
 	nSlots = r->nMin;
