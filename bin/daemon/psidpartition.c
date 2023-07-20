@@ -4144,6 +4144,169 @@ error:
     return true;
 }
 
+/**
+ * @brief Handle a PSP_DD_RESERVATIONRES message
+ *
+ * Handle the message @a msg of type PSP_DD_RESERVATIONRES.
+ *
+ * This kind of message answers a PSP_DD_GETRESERVATION message
+ * requesting a reservation with option PART_OPT_DUMMY. This type of
+ * reservation acts as a placeholder for a range of ranks and the
+ * corresponding reservation ID.
+ *
+ * @param inmsg Pointer to message to handle
+ *
+ * @return Always return true
+ */
+static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
+{
+    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
+    if (!task || task->group != TG_PLUGINFW || !task->partition) {
+	PSID_flog("no matching task for %s\n", PSC_printTID(inmsg->header.dest));
+	return true;
+    }
+
+    /* fetch first reservation from list => find corresponding request */
+    PSrsrvtn_t *r = NULL;
+    if (!list_empty(&task->resRequests)) {
+	r = list_entry(task->resRequests.next, PSrsrvtn_t, next);
+    }
+    if (!r || r->rid || !(r->options & PART_OPT_DUMMY) ) {
+	PSID_flog("no matching reservation in %s\n", PSC_printTID(task->tid));
+	return true;
+    }
+
+    list_del(&r->next);
+    if (!list_empty(&task->resRequests)) {
+	PSID_flog("more requests in %s\n", PSC_printTID(task->tid));
+    }
+
+    size_t used = 0;
+    PSP_getMsgBuf(inmsg, &used, "rid", &r->rid, sizeof(r->rid));
+    if (!r->rid) {
+	/* failed to get dummy reservation => cleanup request */
+	inmsg->header.type = PSP_CD_RESERVATIONRES;
+	inmsg->header.dest = r->requester;
+
+	free(r->slots);
+	r->slots = NULL;
+	PSrsrvtn_put(r);
+
+	return frwdMsg(inmsg);
+    }
+
+    int eno = 0;
+
+    uint32_t got;
+    PSP_getMsgBuf(inmsg, &used, "got", &got, sizeof(got));
+    uint32_t frstRnk;
+    if (!PSP_getMsgBuf(inmsg, &used, "firstRank", &frstRnk, sizeof(frstRnk))) {
+	PSID_flog("missing firstRank in result\n");
+	eno = EINVAL;
+	goto error;
+    }
+
+    if (got != r->nMin) {
+	PSID_flog("wrong # of ranks (%d/%d) in %#x (firstRank %d)\n", got,
+		  r->nMin, r->rid, frstRnk);
+	eno = ENOSPC;
+	goto error;
+    }
+
+    // now build the reservation
+
+    r->options &= ~PART_OPT_DUMMY;
+    if (r->options & PART_OPT_DEFAULT) {
+	r->options = task->options;
+	PSID_fdbg(PSID_LOG_PART, "use default option\n");
+    }
+
+    PSID_fdbg(PSID_LOG_PART,
+	     "nMin %d nMax %d ppn %d tpp %d hwType %#x options %#x\n",
+	      r->nMin, r->nMax, r->ppn, r->tpp, r->hwType, r->options);
+
+    if (task->usedThreads + got * r->tpp > task->totalThreads) {
+	PSID_flog("insufficient threads in %s\n", PSC_printTID(task->tid));
+	eno = EBUSY;
+	goto error;
+    }
+
+    r->firstRank = task->numChild;
+    r->nextSlot = 0;
+    r->relSlots = 0;
+
+    /* This hook is used by plugins like psslurm to override the
+     * generic reservation creation with own mechanisms.
+     * If the plugin has created a valid reservation, it will return 0.
+     * If an error occurred, it will return 1.
+     * If no plugin is registered, the return code will be PSIDHOOK_NOFUNC and
+     * the generic mechanism here will manage the reservation creation.
+     *
+     * Note:
+     * When returning 0 here, the plugin has to assure that in the reservation
+     * passed the parameters nSlots and slots are set and that they are
+     * compatible to the nThreads and threads in the corresponding task.
+     */
+    int ret = PSIDhook_call(PSIDHOOK_GETRESERVATION, r);
+    if (!ret) {
+	if (task->delegate) {
+	    /* we cannot do the "double entry bookkeeping on delegation"
+	     * since we do not have a clue how many used threads were added.
+	     * To fix, we need to create a channel for the plugin to tell us
+	     * the number to added to task->usedThreads.
+	     * This is no problem since psslurm (the only user of this hook
+	     * for the time being) does not use delegates.
+	     */
+	    PSID_flog("WARNING: Concurrent use of PSIDHOOK_GETRESERVATION and"
+		      " task->delegate is currently unsupported!\n");
+	}
+
+	/* ret == 0 means we got what we requested */
+    } else {
+	if (ret == PSIDHOOK_NOFUNC) {
+	    PSID_flog("no one hooks to PSIDHOOK_GETRESERVATION\n");
+	}
+	/* no reservation creation besides plugin hook */
+	eno = ECANCELED;
+    }
+
+error:
+    ;
+    DDBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_RESERVATIONRES,
+	    .dest = r->requester,
+	    .sender = PSC_getMyTID(),
+	    .len = 0, } };
+
+    if (!eno) {
+	task->numChild += got;
+	r->rankOffset = frstRnk - r->firstRank;
+
+	PSID_fdbg(PSID_LOG_PART, "new reservation %#x of %d slots\n",
+		  r->rid, got);
+	enqRes(&task->reservations, r);
+	send_RESCREATED(task, r, NULL);
+	send_RESSLOTS(task, r);
+
+	PSP_putMsgBuf(&msg, "rid", &r->rid, sizeof(r->rid));
+	PSP_putMsgBuf(&msg, "nSlots", &r->nSlots, sizeof(r->nSlots));
+    } else {
+	uint32_t null = 0;
+	PSP_putMsgBuf(&msg, "error", &null, sizeof(null));
+	PSP_putMsgBuf(&msg, "eno", &eno, sizeof(eno));
+
+	/* Reservation no longer used */
+	free(r->slots);
+	r->slots = NULL;
+	PSrsrvtn_put(r);
+    }
+
+    sendMsg(&msg);
+
+    return true;
+}
+
 void PSIDpart_cleanupRes(PStask_t *task)
 {
     if (!task) return;
@@ -5344,6 +5507,7 @@ void initPartition(void)
     PSID_registerMsg(PSP_CD_GETRESERVATION, msg_GETRESERVATION);
     PSID_registerMsg(PSP_DD_GETRESERVATION, msg_GETRESERVATION);
     PSID_registerMsg(PSP_CD_RESERVATIONRES, frwdMsg);
+    PSID_registerMsg(PSP_DD_RESERVATIONRES, msg_RESERVATIONRES);
     PSID_registerMsg(PSP_CD_GETSLOTS, msg_GETSLOTS);
     PSID_registerMsg(PSP_DD_GETSLOTS, msg_GETSLOTS);
     PSID_registerMsg(PSP_DD_SLOTSRES, msg_SLOTSRES);

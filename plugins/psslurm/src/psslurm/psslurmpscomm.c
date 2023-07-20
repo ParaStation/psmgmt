@@ -389,6 +389,11 @@ static int handleGetReservation(void *res)
     /* find step */
     /* first assume task is the logger (child of step forwarder) */
     Step_t *step = Step_findByPsslurmChild(PSC_getPID(task->tid));
+    /* it might be a step forwarder, too  => step is stored there */
+    if (!step && task->group == TG_PLUGINFW && task->info) {
+	Forwarder_Data_t *fw = task->info;
+	step = fw->userData;
+    }
     if (!step) {
 	/* admin users might be allowed => fall back to normal mechanism */
 	if (isPSAdminUser(task->uid, task->gid)) return 2;

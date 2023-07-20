@@ -78,6 +78,9 @@ typedef enum {
     PART_OPT_FULL_LIST = 0x0100, /**< Create partition from the whole list of
 				    nodes/hosts (or hostfile) independent of
 				    actual requirement. */
+    PART_OPT_DUMMY     = 0x0200, /**< Handle partition as a placeholder: no
+				    resources will be allocated, just fetch a
+				    range of ranks and a reservation ID */
 } PSpart_option_t;
 
 /** Options possible for PSP_INFO_QUEUE_PARTITION requests */

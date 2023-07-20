@@ -95,6 +95,7 @@
 #define PSP_DD_GETRESERVATION      0x013C  /**< Forwarded GETRESERVATION msg */
 #define PSP_DD_GETSLOTS            0x013D  /**< Forwarded GETSLOTS msg */
 #define PSP_DD_SLOTSRES            0x013E  /**< Results of GETSLOTS msg */
+#define PSP_DD_RESERVATIONRES      0x013F  /**< Answer dummy GETRESERVATION */
 
 /** Messages for resource passing during spawn and finish */
 #define PSP_DD_SPAWNLOC            0x0140  /**< Resources for spawn */

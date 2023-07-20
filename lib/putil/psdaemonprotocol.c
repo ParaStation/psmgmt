@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -76,6 +76,7 @@ static msgString_t daemonMessages[] = {
     { PSP_DD_GETRESERVATION   , "PSP_DD_GETRESERVATION"   },
     { PSP_DD_GETSLOTS         , "PSP_DD_GETSLOTS"         },
     { PSP_DD_SLOTSRES         , "PSP_DD_SLOTSRES"         },
+    { PSP_DD_RESERVATIONRES   , "PSP_DD_RESERVATIONRES"   },
 
     { PSP_DD_SPAWNLOC         , "PSP_DD_SPAWNLOC"         },
     { PSP_DD_RESCREATED       , "PSP_DD_RESCREATED"       },
