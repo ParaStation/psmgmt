@@ -11,7 +11,9 @@
 #include "psslurmfwcomm.h"
 
 #include <arpa/inet.h>
+#include <errno.h>
 #include <stddef.h>
+#include <stdlib.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -21,12 +23,19 @@
 #include "psserial.h"
 
 #include "pluginmalloc.h"
+#include "pluginstrv.h"
 #include "psidcomm.h"
+#include "psidpartition.h"
+#include "psidspawn.h"
+#include "psidtask.h"
 
 #include "slurmcommon.h"
 #include "psslurmcomm.h"
+#include "psslurmenv.h"
+#include "psslurmforwarder.h"
 #include "psslurmio.h"
 #include "psslurmlog.h"
+#include "psslurmpin.h"
 #include "psslurmproto.h"
 #include "psslurmpscomm.h"
 
@@ -137,7 +146,14 @@ static void handlePrintStepMsg(Forwarder_Data_t *fwdata, char *ptr)
 
 bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
-    if (msg->header.type != PSP_PF_MSG) return false;
+    switch (msg->header.type) {
+    case PSP_PF_MSG:
+	break;
+    case PSP_CD_SPAWNSUCCESS:
+	return true;   // ignore: this might occur in case of PMI[x] spawn
+    default:
+	return false;  // unexpected: error log created in caller
+    }
 
     switch ((PSSLURM_Fw_Cmds_t)msg->type) {
     case CMD_PRINT_CHILD_MSG:
@@ -245,6 +261,134 @@ static void changeEnv(int cmd, DDTypedBufferMsg_t *msg)
     ufree(var);
 }
 
+static bool setupPartition(Step_t *step) {
+    if (!step) return false;
+
+    Forwarder_Data_t *fwData = step->fwdata;
+    if (!fwData) return false;
+
+    PStask_t *fwTask = PStasklist_find(&managedTasks, fwData->tid);
+    if (!fwTask) {
+	flog("no step forwarder task for %s\n", Step_strID(step));
+	return false;
+    }
+
+    if (!step->slots) {
+	flog("invalid slots in %s\n", Step_strID(step));
+	return false;
+    }
+
+    /* generate hardware threads array */
+    if (!genThreadsArray(&fwTask->partThrds, &fwTask->totalThreads, step)) {
+	mwarn(errno, "%s: Could not generate threads array", __func__);
+	return false;
+    }
+
+    logHWthreads(__func__, fwTask->partThrds, fwTask->totalThreads);
+
+    /* further preparations of the task structure */
+    ufree(fwTask->partition);
+    fwTask->partition = NULL;
+    fwTask->options |= PART_OPT_EXACT;
+    fwTask->usedThreads = 0;
+    fwTask->activeChild = 0;
+    fwTask->partitionSize = 0;
+
+    fdbg(PSSLURM_LOG_PART, "Created partition for task %s: threads %u"
+	 " NODEFIRST %d EXCLUSIVE %d OVERBOOK %d WAIT %d EXACT %d\n",
+	 PSC_printTID(fwTask->tid), fwTask->totalThreads,
+	 (fwTask->options & PART_OPT_NODEFIRST) ? 1 : 0,
+	 (fwTask->options & PART_OPT_EXCLUSIVE) ? 1 : 0,
+	 (fwTask->options & PART_OPT_OVERBOOK) ? 1 : 0,
+	 (fwTask->options & PART_OPT_WAIT) ? 1 : 0,
+	 (fwTask->options & PART_OPT_EXACT) ? 1 : 0);
+
+    /* generate slots in partition from HW threads and register
+     * partition to master psid, psilogger and sister steps */
+    PSIDpart_register(fwTask, fwTask->partThrds, fwTask->totalThreads);
+
+    return true;
+}
+
+/**
+ * @brief Start spawner
+ *
+ * Initiate the startup of a spawner process. For this, first a
+ * partition is created and registered to the logger task (and all
+ * sister step forwarder tasks). Once the partition is there the
+ * actual spawner is started (prepended by its kvsprovider for the PMI
+ * case).
+ *
+ * Reservations will be created on the fly triggered by the spawner
+ * similar to the case of standard job startup.
+ *
+ * @param step Structure containing all information on the step to start
+ *
+ * @return No return value
+ */
+static void startSpawner(Step_t *step)
+{
+    Forwarder_Data_t *fwData = step->fwdata;
+    /* No child started under step-forwarder's control. Start it here */
+
+    // - create a parition and tell the logger (and all sister forwarders)
+    if (!setupPartition(step)) shutdownForwarder(fwData);
+
+    // - prepare the task structure like in fwExecStep()
+    PStask_t *task = PStask_new();
+    task->ptid = fwData->tid;
+    task->uid = step->uid;
+    task->gid = step->gid;
+    char *cols = envGet(&step->env, "SLURM_PTY_WIN_COL");
+    char *rows = envGet(&step->env, "SLURM_PTY_WIN_ROW");
+    if (cols && rows) {
+	task->winsize = (struct winsize) {
+	    .ws_col = atoi(cols),
+	    .ws_row =atoi(rows) };
+    }
+    task->group = TG_KVS;
+    task->loggertid = fwData->loggerTid;
+    task->rank = fwData->rank;
+    /* service tasks will not be pinned (i.e. pinned to all HW threads) */
+    PSCPU_setAll(task->CPUset);
+    if (step->cwd) task->workingdir = strdup(step->cwd);
+
+    // - prepare the argument vector according to fwExecStep()
+    pmi_type_t pmi_type = getPMIType(step);
+    strv_t argV;
+    buildStartArgv(fwData, &argV, pmi_type);
+    task->argc = argV.count;
+    task->argv = argV.strings;
+
+    // - do some environment preparation from fwExecStep()
+    Step_t *envStep = Step_new();
+    envClone(&step->env, &envStep->env, NULL);
+    envStep->taskFlags = step->taskFlags;
+    envStep->memBindType = step->memBindType;
+
+    setStepEnv(envStep);
+    removeUserVars(&envStep->env, pmi_type);
+
+    task->environ = envStep->env.vars;
+    task->envSize = envStep->env.cnt;
+
+    envStep->env.vars = NULL;
+    envStep->env.cnt = 0;
+    Step_delete(envStep);
+
+    // - actually start the task
+    int ret = PSIDspawn_localTask(task, NULL, NULL);
+
+    /* return launch success to waiting srun since spawner could be spawned */
+    if (!ret) {
+	flog("launch success for %s to srun sock '%u'\n",
+	     Step_strID(step), step->srunControlMsg.sock);
+	sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
+	step->state = JOB_SPAWNED;
+    }
+}
+
+
 static void handleInitComplete(DDTypedBufferMsg_t *msg)
 {
     char *ptr = msg->buf;
@@ -260,6 +404,7 @@ static void handleInitComplete(DDTypedBufferMsg_t *msg)
 	return;
     }
     releaseDelayedSpawns(step->jobid, step->stepid);
+    if (step->spawned) startSpawner(step);
 }
 
 bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
