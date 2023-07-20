@@ -5108,6 +5108,85 @@ static void handleMasterPart(PSpart_request_t *req, PStask_ID_t sender)
     }
 }
 
+/**
+ * @brief Distribute reservation information to additional nodes
+ *
+ * Provide information on rank distribution within the reservation
+ * associated to the task @a task to the nodes in @a req. @req is
+ * assumed to be the new sister partition extending the partition task
+ * (and therefore the reservations therein) are associated with.
+ *
+ * A filter is used in order to prevent sending the reservation
+ * information to a partition's node again. This filter is created
+ * from the original partition within @a task and all sister
+ * partitions stored there, too. Thus, it is assumed that @a req is
+ * not yet added to the list of sister partitions.
+ *
+ * To actually provide the information, one or more messages of type
+ * PSP_DD_RESCREATED are emitted via calls to @ref send_RESCREATED()
+ *
+ * @param req Sister partition holding the partition's new nodes
+ *
+ * @param task Task holding the original partition, all old sister
+ * partitions and the reservations to distribute
+ *
+ * @return No return value
+ */
+static void send_further_RESCREATED(PSpart_request_t *req, PStask_t *task)
+{
+    /* prepare filter */
+    static ssize_t filterSize = 0;
+    static uint16_t *filter = NULL;
+    if (!filter || filterSize < PSC_getNrOfNodes()) {
+	uint16_t *bak = filter;
+
+	filterSize = PSC_getNrOfNodes();
+	filter = realloc(filter, filterSize * sizeof(*filter));
+	if (!filter) {
+	    free(bak);
+	    filterSize = 0;
+	    PSID_warn(-1, ENOMEM, "%s: realloc()", __func__);
+	    return;
+	}
+    }
+    memset(filter, 0, filterSize * sizeof(*filter));
+
+    /* filter out all nodes in original partition */
+    for (uint32_t i = 0; i < task->partitionSize; i++) {
+	PSnodes_ID_t node = task->partition[i].node;
+	filter[node] = 1;
+    }
+    /* this includes nodes in sister partitions */
+    list_t *p;
+    list_for_each(p, &task->sisterParts) {
+	PSpart_request_t *sister = list_entry(p, PSpart_request_t, next);
+	if (sister->tid == req->tid) {
+	    PSID_flog("duplicate sister %s\n", PSC_printTID(sister->tid));
+	    continue;
+	}
+	if (sister->sizeGot != sister->size) continue;     // still incomplete
+	for (uint32_t s = 0; s < sister->sizeGot; s++) {
+	    PSnodes_ID_t node = sister->slots[s].node;
+	    filter[node] = 1;
+	}
+    }
+
+    /* PStask_t stub containing all members used send_RESCREATED() */
+    PStask_t reqHolder = {
+	.partitionSize = 0,
+	.partition = NULL, };
+    INIT_LIST_HEAD(&reqHolder.sisterParts);
+    enqPart(&reqHolder.sisterParts, req);
+
+    list_t *r;
+    list_for_each(r, &task->reservations) {
+	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
+	send_RESCREATED(&reqHolder, res, filter);
+    }
+
+    deqPart(&reqHolder.sisterParts, req);
+}
+
 static void handleSisterPart(PSpart_request_t *req, PStask_t *task)
 {
     if (!task || !req) return;
@@ -5155,6 +5234,9 @@ static void handleSisterPart(PSpart_request_t *req, PStask_t *task)
 	    sendSinglePart(req->tid, PSP_DD_REGISTERPART, &otherSister);
 	}
     }
+
+    /* tell new sister's members about my reservations */
+    send_further_RESCREATED(req, task);
 
     /* enqueue request again */
     enqPart(&task->sisterParts, req);
