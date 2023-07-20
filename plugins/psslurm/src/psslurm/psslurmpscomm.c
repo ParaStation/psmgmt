@@ -375,19 +375,19 @@ static int handleGetReservation(void *res)
 
     /* with psslurm no delegates are used */
     if (task->delegate) {
-	flog("Unexpected delegate entry found in task %s\n",
-	     PSC_printTID(task->tid));
+	flog("unexpected delegate entry in task %s\n", PSC_printTID(task->tid));
 	return 1;
     }
 
     /* psslurm does not support dynamic reservation requests */
     if (r->nMin != r->nMax) {
-	flog("Unexpected dynamic reservation request %#x for task %s (%d"
-	     " != %d)\n", r->rid, PSC_printTID(task->tid), r->nMin, r->nMax);
+	flog("unexpected dynamic request %#x for task %s (%d != %d)\n", r->rid,
+	     PSC_printTID(task->tid), r->nMin, r->nMax);
 	return 1;
     }
 
     /* find step */
+    /* first assume task is the logger (child of step forwarder) */
     Step_t *step = Step_findByPsslurmChild(PSC_getPID(task->tid));
     if (!step) {
 	/* admin users might be allowed => fall back to normal mechanism */

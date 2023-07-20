@@ -4033,7 +4033,7 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	inmsg->header.dest : inmsg->header.sender;
     PStask_t *task = PStasklist_find(&managedTasks, target);
     if (!task) {
-	PSID_log(-1, "%s: Task %s not found\n", __func__, PSC_printTID(target));
+	PSID_flog("task %s not found\n", PSC_printTID(target));
 	eno = EACCES;
 	goto error;
     }
@@ -4041,8 +4041,8 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
     if (task->ptid) {
 	inmsg->header.type = PSP_DD_GETRESERVATION;
 	inmsg->header.dest = task->ptid;
-	PSID_log(PSID_LOG_PART, "%s: forward to parent process %s\n", __func__,
-		 PSC_printTID(task->ptid));
+	PSID_fdbg(PSID_LOG_PART, "forward to parent %s\n",
+		  PSC_printTID(task->ptid));
 	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    eno = errno;
@@ -4074,10 +4074,10 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
     PSP_getMsgBuf(inmsg, &used, "tpp", &r->tpp, sizeof(r->tpp));
     PSP_getMsgBuf(inmsg, &used, "hwType", &r->hwType, sizeof(r->hwType));
     int ret = PSP_getMsgBuf(inmsg, &used, "options", &r->options,
-			sizeof(r->options));
+			    sizeof(r->options));
     PSP_tryGetMsgBuf(inmsg, &used, "ppn", &r->ppn, sizeof(r->ppn));
     if (!ret) {
-	PSID_log(-1, "%s: some information is missing\n", __func__);
+	PSID_flog("some information is missing\n");
 	eno = EINVAL;
 	goto error;
     }
@@ -4095,14 +4095,14 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 
     if (!list_empty(&delegate->resRequests)) {
 	if (r->options & (PART_OPT_WAIT|PART_OPT_DYNAMIC)) {
-	    PSID_log(PSID_LOG_PART, "%s: %#x must wait", __func__, r->rid);
+	    PSID_fdbg(PSID_LOG_PART, "%#x must wait", r->rid);
 	    enqRes(&delegate->resRequests, r);
 
 	    /* Answer will be sent once reservation is established */
 	    return true;
 	} else {
-	    PSID_log(-1, "%s: queued reservations without PART_OPT_WAIT"
-		     " for %#x\n", __func__, r->rid);
+	    PSID_flog("queued reservations without PART_OPT_WAIT for %#x\n",
+		      r->rid);
 	    eno = EBUSY;
 	    goto error;
 	}
