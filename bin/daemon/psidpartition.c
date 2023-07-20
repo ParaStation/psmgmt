@@ -2970,6 +2970,7 @@ static bool prepNumToSend(uint16_t *preSet)
 }
 
 static void handleResRequests(PStask_t *task);
+static PSrsrvtn_t *findRes(list_t *queue, PSrsrvtn_ID_t rid);
 static bool deqRes(list_t *queue, PSrsrvtn_t *res);
 
 /**
@@ -3262,18 +3263,12 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
     PSID_log(PSID_LOG_PART, " from %s with %d slots for res %#x\n",
 	     PSC_printTID(msg->header.sender), numSlots, dynRes.rid);
 
-    PSrsrvtn_t *thisRes = NULL;
-    if (dynRes.rid) {
-	/* get pointer to the reservation via rid */
-	list_t *r;
-	list_for_each(r, &task->reservations) {
-	    PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
-	    if (res->rid != dynRes.rid) continue;
-	    thisRes = res;
-	    break;
-	}
-    } else {
+    /* first try to get pointer to the reservation via rid */
+    PSrsrvtn_t *thisRes =
+	dynRes.rid ? findRes(&task->reservations, dynRes.rid) : NULL;
+    if (!dynRes.rid) {
 	/* try to identify the affected reservation by received slots*/
+	/* this was required for PSIDnodes_getDmnProtoV() prior to 414 */
 	list_t *r;
 	list_for_each(r, &task->reservations) {
 	    PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
