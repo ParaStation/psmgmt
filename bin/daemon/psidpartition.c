@@ -4011,14 +4011,18 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
  * @brief Handle a PSP_CD_GETRESERVATION/PSP_DD_GETRESERVATION message
  *
  * Handle the message @a inmsg of type PSP_CD_GETRESERVATION or
- * PSP_CD_GETRESERVATION.
+ * PSP_DD_GETRESERVATION.
  *
  * This kind of message is used by clients in order to atomically
- * reserve any number of slots within a given partition. It is answered
- * by a PSP_CD_RESERVATIONRES message that contains providing a unique
+ * reserve any number of slots within a given partition. It is
+ * answered by a PSP_CD_RESERVATIONRES message that provides a unique
  * reservation ID and the number of slots actually reserved. By
  * sending subsequent PSP_CD_GETSLOTS messages the actual slots can be
  * retrieved from the reservation.
+ *
+ * When requesting a reservation with option PART_OPT_DUMMY the answer
+ * will be sent as a single PSP_DD_RESERVATIONRES message without any
+ * further messages.
  *
  * @param inmsg Pointer to message to handle
  *
@@ -4038,7 +4042,7 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    if (task->ptid) {
+    if (task->ptid && !task->partition) {
 	inmsg->header.type = PSP_DD_GETRESERVATION;
 	inmsg->header.dest = task->ptid;
 	PSID_fdbg(PSID_LOG_PART, "forward to parent %s\n",
@@ -4082,16 +4086,89 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    r->rid = PStask_getNextResID(delegate);
+    if (task->tid != task->loggertid) {
+	/* task is not logger but (step-)forwarder */
+	if (task->group != TG_PLUGINFW) {
+	    PSID_flog("task %s has unexpected group %s\n",
+		      PSC_printTID(task->tid), PStask_printGrp(task->group));
+	    eno = EACCES;
+	    goto error;
+	}
 
+	/* request dummy reservation for ID and range of ranks  from logger */
+	DDBufferMsg_t msg = {
+	    .header = {
+		.type = PSP_DD_GETRESERVATION,
+		.dest = task->loggertid,
+		.sender = task->tid,
+		.len = 0 } };
+	PSP_putMsgBuf(&msg, "nMin", &r->nMin, sizeof(r->nMin));
+	PSP_putMsgBuf(&msg, "nMax", &r->nMax, sizeof(r->nMax));
+	PSP_putMsgBuf(&msg, "tpp", &r->tpp, sizeof(r->tpp));
+	PSP_putMsgBuf(&msg, "hwType", &r->hwType, sizeof(r->hwType));
+	PSpart_option_t options = PART_OPT_DUMMY;
+	PSP_putMsgBuf(&msg, "options", &options, sizeof(options));
+	PSP_putMsgBuf(&msg, "ppn", &r->ppn, sizeof(r->ppn));
+
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg(PSP_DD_GETRESERVATION)", __func__);
+	    eno = errno;
+	    goto error;
+	}
+
+	/* store reservation request while waiting for logger's answer */
+	r->options |= PART_OPT_DUMMY;
+	enqRes(&task->resRequests, r);
+
+	return true;
+    }
+
+    /* task is logger */
+    r->rid = PStask_getNextResID(delegate);
     if (r->options & PART_OPT_DEFAULT) {
 	r->options = task->options;
 	PSID_log(PSID_LOG_PART, "%s: Use default option\n", __func__);
     }
 
-    PSID_log(PSID_LOG_PART,
-	     "%s(nMin %d nMax %d ppn %d tpp %d hwType %#x options %#x)\n",
-	     __func__, r->nMin, r->nMax, r->ppn, r->tpp, r->hwType, r->options);
+    PSID_fdbg(PSID_LOG_PART,
+	     "nMin %d nMax %d ppn %d tpp %d hwType %#x options %#x\n",
+	      r->nMin, r->nMax, r->ppn, r->tpp, r->hwType, r->options);
+
+    if (r->options & PART_OPT_DUMMY) {
+	DDBufferMsg_t msg = {
+	    .header = {
+		.type = PSP_DD_RESERVATIONRES,
+		.dest = r->requester,
+		.sender = PSC_getMyTID(),
+		.len = 0 } };
+
+	if (r->nMin != r->nMax) {
+	    /* illegal request */
+	    uint32_t null = 0;
+	    int eno = EINVAL;
+	    PSP_putMsgBuf(&msg, "error", &null, sizeof(null));
+	    PSP_putMsgBuf(&msg, "eno", &eno, sizeof(eno));
+
+	    /* Reservation no longer used */
+	    PSrsrvtn_put(r);
+	} else {
+	    /* create dummy partition and keep it as a reference */
+	    r->firstRank = delegate->numChild;
+	    delegate->numChild += r->nMax;
+
+	    enqRes(&task->reservations, r);
+
+	    PSP_putMsgBuf(&msg, "rid", &r->rid, sizeof(r->rid));
+	    PSP_putMsgBuf(&msg, "nSlots", &r->nMax, sizeof(r->nMax));
+	    PSP_putMsgBuf(&msg, "firstRank", &r->firstRank, sizeof(r->firstRank));
+	}
+
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg(PART_OPT_DUMMY)", __func__);
+	}
+
+	return true;
+    }
 
     if (!list_empty(&delegate->resRequests)) {
 	if (r->options & (PART_OPT_WAIT|PART_OPT_DYNAMIC)) {
