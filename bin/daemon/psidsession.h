@@ -27,14 +27,14 @@
 /** Single node part of a reservation */
 typedef struct {
     PSnodes_ID_t node;         /**< node ID */
-    int32_t firstrank;         /**< first rank designated to this node */
-    int32_t lastrank;          /**< last rank designated to this node */
+    int32_t firstRank;         /**< first job rank designated to this node */
+    int32_t lastRank;          /**< last job rank designated to this node */
 } PSresinfoentry_t;
 
 /** Single rank part of the local reservation information */
 typedef struct {
-    int32_t rank;              /**< Rank the reservation slot belongs to */
-    PSCPU_set_t CPUset;        /**< Set of CPUs the slot occupies */
+    int32_t rank;              /**< job rank the reservation slot belongs to */
+    PSCPU_set_t CPUset;        /**< set of CPUs the slot occupies */
 } PSresslot_t;
 
 /** Compact reservation information structure, used in non-logger deamons */
@@ -42,11 +42,12 @@ typedef struct {
     list_t next;               /**< used to put into PSjob_t.resInfos */
     PSrsrvtn_ID_t resID;       /**< unique reservation identifier */
     time_t creation;           /**< creation time of this info item */
-    int32_t minRank;           /**< minimum rank in this reservation */
-    int32_t maxRank;           /**< maximum rank in this reservation */
+    uint32_t rankOffset;       /**< global rank offset for this reservation */
+    int32_t minRank;           /**< minimum job rank in this reservation */
+    int32_t maxRank;           /**< maximum job rank in this reservation */
     uint32_t nEntries;         /**< Number of entries in @ref entries */
-    PSresinfoentry_t *entries; /**< Slots forming the reservation */
-    uint16_t nLocalSlots;      /**< Number of entries in @ref localSlots */
+    PSresinfoentry_t *entries; /**< slots forming the reservation */
+    uint16_t nLocalSlots;      /**< number of entries in @ref localSlots */
     PSresslot_t *localSlots;   /**< local reservation information */
 } PSresinfo_t;
 

@@ -45,7 +45,8 @@ typedef struct {
     uint32_t hwType;          /**< HW-type to be supported by the HW-threads */
     PSpart_option_t options;  /**< options steering reservation creation */
     PSrsrvtn_ID_t rid;        /**< unique reservation identifier */
-    uint32_t firstRank;       /**< first rank foreseen to spawn */
+    uint32_t firstRank;       /**< first (job-)rank foreseen to spawn */
+    uint32_t rankOffset;      /**< global rank offset for this reservation */
     uint32_t nSlots;          /**< number of slots in @ref slots */
     PSpart_slot_t *slots;     /**< slots forming the reservation */
     uint32_t nextSlot;        /**< number of next slot to use */

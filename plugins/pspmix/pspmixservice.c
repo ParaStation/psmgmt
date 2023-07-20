@@ -442,11 +442,11 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		vectorInit(&node->procs, 10, 10, PspmixProcess_t);
 		list_add_tail(&node->next, &ns->procMap);
 	    }
-	    for (int32_t r = entry->firstrank; r <= entry->lastrank; r++) {
+	    for (int32_t r = entry->firstRank; r <= entry->lastRank; r++) {
 		/* fill process information */
 		PspmixProcess_t proc = {
 		    .rank = r,
-		    .grank = r,   /* XXX change for spawn support */
+		    .grank = r + resInfo->rankOffset,
 		    .arank = apprank++,
 		    .app = ns->apps + a,
 		    .reinc = 0 };
@@ -605,9 +605,8 @@ void pspmix_service_cleanupNamespace(void *nspace, bool error,
  */
 static PSnodes_ID_t getNodeFromRank(PspmixNamespace_t *ns, int32_t rank)
 {
-
     //TODO: translate namespace rank to parastation rank ?!?
-
+    // for the time being ranks in reservation are (psid-)job local
     if (list_empty(&ns->job->resInfos)) return -1;
 
     list_t *r;
@@ -615,7 +614,7 @@ static PSnodes_ID_t getNodeFromRank(PspmixNamespace_t *ns, int32_t rank)
 	PSresinfo_t *resInfo = list_entry(r, PSresinfo_t, next);
 	for (uint32_t i = 0; i < resInfo->nEntries; i++) {
 	    PSresinfoentry_t *entry = &resInfo->entries[i];
-	    if (rank >= entry->firstrank && rank <= entry->lastrank) {
+	    if (rank >= entry->firstRank && rank <= entry->lastRank) {
 		return entry->node;
 	    }
 	}
@@ -672,6 +671,11 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 	return false;
     }
 
+    /* adapt rank from global (psid-)rank to namespace rank (psid job-rank) */
+    client->rank -= resInfo->rankOffset;
+    mdbg(PSPMIX_LOG_CALL, "%s:   global rank %d -> ns rank %d\n", __func__,
+	 client->rank + resInfo->rankOffset, client->rank);
+
     /* remember some information to be used outside the lock */
     uint32_t universeSize = ns->universeSize;
     uint32_t jobSize = ns->jobSize;
@@ -686,7 +690,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
      * Cleanup is done together with the namespace's all other clients
      * in pspmix_service_removeNamespace()/pspmix_service_cleanupNamespace()*/
     if (!pspmix_server_registerClient(nsname, client->rank, client->uid,
-		client->gid, (void*)client)) {
+				      client->gid, (void*)client)) {
 	ulog("r%d: failed to register client to PMIx server\n", client->rank);
 	return false;
     }
@@ -734,14 +738,14 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 	    nrank = (cur->node == resInfo->entries[0].node) ? 0 : nrank + 1;
 	}
 	if (cur->node == nodeId) {
-	    if (cur->firstrank <= (signed)client->rank
-		    && cur->lastrank >= (signed)client->rank) {
-		lrank += found ? 0 : client->rank - cur->firstrank + 1;
+	    if (cur->firstRank <= (int32_t)client->rank
+		&& cur->lastRank >= (int32_t)client->rank) {
+		lrank += found ? 0 : client->rank - cur->firstRank + 1;
 		found = true;
 	    } else {
-		lrank += found ? 0 : cur->lastrank - cur->firstrank + 1;
+		lrank += found ? 0 : cur->lastRank - cur->firstRank + 1;
 	    }
-	    lsize += cur->lastrank - cur->firstrank + 1;
+	    lsize += cur->lastRank - cur->firstRank + 1;
 	}
     }
     snprintf(tmp, sizeof(tmp), "%d", found ? lrank : -1);

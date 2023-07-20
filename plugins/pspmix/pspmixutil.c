@@ -44,8 +44,8 @@ static void printSessions(PspmixServer_t *server)
 		     __func__, res->resID, res->nEntries);
 		for (unsigned int i = 0; i < res->nEntries; i++) {
 		    mlog("(%hd:%d-%d)", res->entries[i].node,
-			 res->entries[i].firstrank,
-			 res->entries[i].lastrank);
+			 res->entries[i].firstRank,
+			 res->entries[i].lastRank);
 		}
 		mlog("]\n");
 	    }

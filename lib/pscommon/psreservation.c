@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,6 +34,7 @@ PSrsrvtn_t *PSrsrvtn_get(void)
     rp->options = 0;
     rp->rid = 0;
     rp->firstRank = 0;
+    rp->rankOffset = 0;
     rp->nSlots = 0;
     rp->slots = NULL;
     rp->nextSlot = 0;
@@ -71,6 +72,7 @@ static bool relocPSrsrvtn(void *item)
     repl->options = orig->options;
     repl->rid = orig->rid;
     repl->firstRank = orig->firstRank;
+    repl->rankOffset = orig->rankOffset;
     repl->nSlots = orig->nSlots;
     repl->slots = orig->slots;
     orig->slots = NULL;

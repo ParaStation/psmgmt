@@ -4178,27 +4178,20 @@ static bool msg_GETSLOTS(DDBufferMsg_t *inmsg)
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(DDBufferMsg_t, buf) },
 	.buf = { 0 } };
+    int32_t rank, eno = 0;
+
     PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 	inmsg->header.dest : inmsg->header.sender;
     PStask_t *task = PStasklist_find(&managedTasks, target);
-    PSrsrvtn_t *res;
-    PSrsrvtn_ID_t resID;
-    uint16_t num;
-    int32_t rank;
-    size_t used = 0;
-    int32_t eno = 0;
-    int ret;
-
     if (!task) {
-	PSID_log(-1, "%s: Task %s not found\n", __func__,
-		 PSC_printTID(target));
+	PSID_flog("task %s not found\n", PSC_printTID(target));
 	eno = EACCES;
 	goto error;
     }
 
-    if (task->ptid) {
-	PSID_log(PSID_LOG_PART, "%s: forward to root process %s\n",
-		 __func__, PSC_printTID(task->ptid));
+    if (task->ptid && !task->partition) {
+	PSID_fdbg(PSID_LOG_PART, "forward to parent process %s\n",
+		  PSC_printTID(task->ptid));
 	inmsg->header.type = PSP_DD_GETSLOTS;
 	inmsg->header.dest = task->ptid;
 	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
@@ -4209,35 +4202,38 @@ static bool msg_GETSLOTS(DDBufferMsg_t *inmsg)
 	return true;
     }
 
+    size_t used = 0;
+    PSrsrvtn_ID_t resID;
     PSP_getMsgBuf(inmsg, &used, "resID", &resID, sizeof(resID));
-    ret = PSP_getMsgBuf(inmsg, &used, "num", &num, sizeof(num));
+    uint16_t num;
+    int ret = PSP_getMsgBuf(inmsg, &used, "num", &num, sizeof(num));
     if (!ret) {
-	PSID_log(-1, "%s: some information is missing\n", __func__);
+	PSID_flog("some information is missing\n");
 	eno = EINVAL;
 	goto error;
     }
     PSID_log(PSID_LOG_PART, "%s(%d, %#x)\n", __func__, num, resID);
 
-    res = findRes(&task->reservations, resID);
+    PSrsrvtn_t *res = findRes(&task->reservations, resID);
     if (!res || !res->slots) {
-	PSID_log(-1, "%s: %s\n", __func__, res ? "no slots" : "no reservation");
+	PSID_flog("%s\n", res ? "no slots" : "no reservation");
 	eno = EBADRQC;
 	goto error;
     }
 
     if (num > NODES_CHUNK) {
-	PSID_log(-1, "%s: too many slots requested\n", __func__);
+	PSID_flog("too many slots requested\n");
 	eno = EINVAL;
 	goto error;
     }
 
     if (res->nextSlot + num > res->nSlots) {
-	PSID_log(-1, "%s: not enough slots\n", __func__);
+	PSID_flog("not enough slots\n");
 	eno = ENOSPC;
 	goto error;
     }
 
-    rank = res->firstRank + res->nextSlot;
+    rank = res->rankOffset + res->firstRank + res->nextSlot;
     PSP_putMsgBuf(&msg, "rank", &rank, sizeof(rank));
     PSP_putMsgBuf(&msg, "num", &num, sizeof(num));
 

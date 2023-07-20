@@ -2481,8 +2481,6 @@ static int fillFromSPAWNLOC(PStask_t *task, PendingRes_t *res)
 
 int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res)
 {
-    int32_t rank = task->rank;
-
     /* we depend on PSP_DD_RESCREATED and PSP_DD_RESSLOTS message */
     if (!res || !res->nLocalSlots) {
 	/* Resinfo not yet complete => delay task */
@@ -2490,9 +2488,9 @@ int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res)
 	return 0;
     }
 
-    if (task->rank < res->minRank || task->rank > res->maxRank) {
-	PSID_log(-1, "%s: res %d rank %d out of range\n", __func__,
-		 res->resID, rank);
+    int32_t jobRank = task->rank - res->rankOffset;
+    if (jobRank < res->minRank || jobRank > res->maxRank) {
+	PSID_flog("res %d rank %d out of range\n", res->resID, task->rank);
 	return EADDRNOTAVAIL;
     }
 
@@ -2503,24 +2501,24 @@ int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res)
 
     /* try to fill the CPUset */
     for (uint16_t s = 0; s < res->nLocalSlots; s++) {
-	if (task->rank != res->localSlots[s].rank) continue;
+	if (jobRank != res->localSlots[s].rank) continue;
 
 	/* local slot found for rank */
 	memcpy(task->CPUset, res->localSlots[s].CPUset, sizeof(task->CPUset));
 
 	if (!PSCPU_any(task->CPUset, PSCPU_MAX)) {
-	    PSID_log(-1, "%s: res %d rank %d exhausted\n", __func__,
-		     res->resID, rank);
+	    PSID_flog("res %d rank %d exhausted\n", res->resID, jobRank);
 	    return EADDRINUSE;
 	}
 
-	PSID_log(PSID_LOG_SPAWN, "%s: res %d rank %d got cores: ...%s\n",
-		 __func__, res->resID, rank, PSCPU_print_part(task->CPUset, 8));
+	PSID_fdbg(PSID_LOG_SPAWN, "res %d rank %d got cores: ...%s\n",
+		  res->resID, jobRank, PSCPU_print_part(task->CPUset, 8));
 	return 0;
     }
 
     /* we missed the resource for the requested rank ?! */
-    PSID_log(-1, "%s: res %d rank %d not found\n", __func__, res->resID, rank);
+    PSID_flog("res %d rank %d (global %d) not found\n", res->resID, jobRank,
+	      task->rank);
     return EADDRNOTAVAIL;
 }
 

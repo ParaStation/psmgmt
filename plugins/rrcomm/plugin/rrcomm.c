@@ -122,8 +122,8 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 	    bool found = false;
 	    if (hdr->dest < res->minRank || hdr->dest > res->maxRank) continue;
 	    for (uint32_t e = 0; e < res->nEntries; e++) {
-		if (hdr->dest < res->entries[e].firstrank
-		    || hdr->dest > res->entries[e].lastrank) continue;
+		if (hdr->dest < res->entries[e].firstRank
+		    || hdr->dest > res->entries[e].lastRank) continue;
 		if (ineptNode(res->entries[e].node)) {
 		    return PSID_dropMsg((DDBufferMsg_t *)msg);
 		}

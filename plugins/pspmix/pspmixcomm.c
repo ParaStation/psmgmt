@@ -142,18 +142,18 @@ static void handleRemoveJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 */
 static void handleRegisterClient(DDTypedBufferMsg_t *msg)
 {
-    size_t used = 0;
-
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    PStask_ID_t loggertid, spawnertid;
     PspmixClient_t *client = ucalloc(sizeof(*client));
 
-    PSP_getTypedMsgBuf(msg, &used, "loggertid", &loggertid, sizeof(loggertid));
-    PSP_getTypedMsgBuf(msg, &used, "spawnertid", &spawnertid,
-		       sizeof(spawnertid));
+    size_t used = 0;
+    PStask_ID_t logTID, spawnTID;
+    PSP_getTypedMsgBuf(msg, &used, "loggertid", &logTID, sizeof(logTID));
+    PSP_getTypedMsgBuf(msg, &used, "spawnertid", &spawnTID, sizeof(spawnTID));
     PSP_getTypedMsgBuf(msg, &used, "resID", &client->resID,
 		       sizeof(client->resID));
+    /* (psid-)rank must be adjusted to namespace rank before adding
+     * the client struct to a namespace */
     PSP_getTypedMsgBuf(msg, &used, "rank", &client->rank, sizeof(client->rank));
     PSP_getTypedMsgBuf(msg, &used, "uid", &client->uid, sizeof(client->uid));
     PSP_getTypedMsgBuf(msg, &used, "gid", &client->gid, sizeof(client->gid));
@@ -163,10 +163,9 @@ static void handleRegisterClient(DDTypedBufferMsg_t *msg)
     mdbg(PSPMIX_LOG_COMM, "%s: received %s from %s", __func__,
 	 pspmix_getMsgTypeString(msg->type), PSC_printTID(msg->header.sender));
     mdbg(PSPMIX_LOG_COMM, " (%s rank %u reservation %d)\n",
-	 pspmix_jobIDsStr(loggertid, spawnertid), client->rank, client->resID);
+	 pspmix_jobIDsStr(logTID, spawnTID), client->rank, client->resID);
 
-    if (!pspmix_service_registerClientAndSendEnv(loggertid, spawnertid,
-						 client)) {
+    if (!pspmix_service_registerClientAndSendEnv(logTID, spawnTID, client)) {
 	ufree(client);
     }
 }

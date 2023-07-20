@@ -44,6 +44,7 @@ PSresinfo_t *getResinfo(void)
 {
     PSresinfo_t *resinfo = PSitems_getItem(resinfoPool);
     resinfo->creation = time(NULL);
+    resinfo->rankOffset = 0;
     resinfo->minRank = 0;
     resinfo->maxRank = 0;
     resinfo->nEntries = 0;
@@ -159,6 +160,7 @@ static bool relocResinfo(void *item)
 
     /* copy content */
     repl->resID = orig->resID;
+    repl->rankOffset = orig->rankOffset;
     repl->minRank = orig->minRank;
     repl->maxRank = orig->maxRank;
     repl->nEntries = orig->nEntries;
@@ -254,14 +256,13 @@ static void addReservationToJob(PSjob_t *job, PSresinfo_t *res)
 	PSresinfo_t *cur = list_entry(r, PSresinfo_t, next);
 	if (cur->resID != res->resID) continue;
 
-	PSID_log(-1, "%s: Drop remnant reservation %d created at %s,"
-		 " this should never happen:\n", __func__, cur->resID,
-		 ctime(&cur->creation));
+	PSID_flog("drop remnant reservation %d created at %s, this should"
+		 " never happen:\n", cur->resID, ctime(&cur->creation));
 	PSID_log(-1, "\tminRank %d maxRank %d with %u entries:", cur->minRank,
 		 cur->maxRank, cur->nEntries);
 	for (uint32_t i = 0; i < cur->nEntries; i++) {
 	    PSID_log(-1, " (%d, %d, %d)", cur->entries[i].node,
-		     cur->entries[i].firstrank, cur->entries[i].lastrank);
+		     cur->entries[i].firstRank, cur->entries[i].lastRank);
 	}
 	PSID_log(-1, "\n\tbelonging to job %s created at %s\n",
 		 PSC_printTID(job->spawnertid), ctime(&job->creation));
@@ -345,19 +346,22 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getTaskId(&ptr, &loggerTID);
     getTaskId(&ptr, &spawnerTID);
 
+    uint32_t rankOffset = 0;
+
     /* create reservation info */
     PSresinfo_t *res = getResinfo();
     if (!res) {
-	PSID_log(-1, "%s: No memory for reservation info\n", __func__);
+	PSID_flog("no memory for reservation info\n");
 	return;
     }
 
     /* set this early to enable putResinfo(res) to cleanup delayed tasks */
     res->resID = resID;
+    res->rankOffset = rankOffset;
 
     /* calculate size of one entry in the message */
     size_t entrysize = sizeof(res->entries->node)
-	+ sizeof(res->entries->firstrank) + sizeof(res->entries->lastrank);
+	+ sizeof(res->entries->firstRank) + sizeof(res->entries->lastRank);
 
     /* calculate number of entries */
     res->nEntries = (rData->buf + rData->used - ptr) / entrysize;
@@ -365,30 +369,30 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     res->entries = calloc(res->nEntries, sizeof(*res->entries));
     if (!res->entries) {
 	putResinfo(res);
-	PSID_log(-1, "%s: No memory for reservation info entries\n", __func__);
+	PSID_flog("no memory for reservation info entries\n");
 	return;
     }
 
     /* get entries */
     for (size_t i = 0; i < res->nEntries; i++) {
 	getNodeId(&ptr, &res->entries[i].node);
-	getInt32(&ptr, &res->entries[i].firstrank);
-	getInt32(&ptr, &res->entries[i].lastrank);
+	getInt32(&ptr, &res->entries[i].firstRank);
+	getInt32(&ptr, &res->entries[i].lastRank);
 	/* adapt minRank / maxRank */
 	if (!i) {
-	    res->minRank = res->entries[i].firstrank;
-	    res->maxRank = res->entries[i].lastrank;
+	    res->minRank = res->entries[i].firstRank;
+	    res->maxRank = res->entries[i].lastRank;
 	} else {
-	    if (res->entries[i].firstrank < res->minRank)
-		res->minRank = res->entries[i].firstrank;
-	    if (res->entries[i].lastrank > res->maxRank)
-		res->maxRank = res->entries[i].lastrank;
+	    if (res->entries[i].firstRank < res->minRank)
+		res->minRank = res->entries[i].firstRank;
+	    if (res->entries[i].lastRank > res->maxRank)
+		res->maxRank = res->entries[i].lastRank;
 	}
 
 	/* add to reservation */
-	PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d: Adding node %hd:"
-		 " ranks %d-%d\n", __func__, resID, res->entries[i].node,
-		 res->entries[i].firstrank, res->entries[i].lastrank);
+	PSID_fdbg(PSID_LOG_SPAWN, "reservation %d: add node %hd: ranks %d-%d\n",
+		  resID, res->entries[i].node,
+		  res->entries[i].firstRank, res->entries[i].lastRank);
     }
 
     /* try to find existing session */
