@@ -347,6 +347,9 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getTaskId(&ptr, &spawnerTID);
 
     uint32_t rankOffset = 0;
+    if (PSIDnodes_getDmnProtoV(PSC_getID(msg->header.sender)) >= 416) {
+	getUint32(&ptr, &rankOffset);
+    }
 
     /* create reservation info */
     PSresinfo_t *res = getResinfo();

@@ -3035,6 +3035,8 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
     addTaskIdToMsg(res->task, &msg);       // logger's task ID
     addTaskIdToMsg(res->requester, &msg);  // spawners's task ID
 
+    addUint32ToMsg(res->rankOffset, &msg); // global rank offset
+
     /* compress information into message, optimized for pack nodes first */
     int32_t firstrank = res->firstRank;
     for (uint32_t i = 0; i < res->nSlots; i++) {
