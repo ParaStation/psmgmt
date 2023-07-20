@@ -3290,6 +3290,16 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 	    if (thisRes) break;
 	}
     }
+
+    if (thisRes && thisRes->options & PART_OPT_DUMMY && thisRes->requester) {
+	/* reservation is a placeholder => forward to real reservation */
+	msg->header.dest = thisRes->requester;
+	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	}
+	return true;
+    }
+
     bool resDone = false;
     if (thisRes) {
 	thisRes->relSlots += numSlots;
