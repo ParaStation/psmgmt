@@ -646,9 +646,9 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* identify reservation info */
     PSresinfo_t *res = PSID_findResInfo(loggerTID, spawnerTID, resID);
     if (!res) {
-	PSID_log(-1, "%s: No reservation info for logger %s", __func__,
+	PSID_flog("no reservation info for logger %s",
 		 PSC_printTID(loggerTID));
-	PSID_log(-1, "spawner %s and resID %d\n", PSC_printTID(spawnerTID),
+	PSID_log(-1, " spawner %s and resID %d\n", PSC_printTID(spawnerTID),
 		 resID);
 	/* we might have to cleanup delayed tasks */
 	res = getResinfo();
