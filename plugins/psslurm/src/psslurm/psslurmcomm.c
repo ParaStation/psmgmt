@@ -22,6 +22,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "list.h"
 #include "pscio.h"
@@ -940,17 +941,41 @@ int openSlurmctldCon(void *info)
 
 int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 {
+
     char *port = getConfValueC(SlurmConfig, "SlurmctldPort");
+
+    char *range[2];
+    range[0] = strtok(port, "-");
+    if (range[0]) range[1] = strtok(NULL, "-");
+    else return -1;
 
     int sock = -1;
     for (int i = 0; i < ctlHostsCount; i++) {
 	char *addr = (ctlHosts[i].addr) ? ctlHosts[i].addr : ctlHosts[i].host;
 
-	sock = tcpConnect(addr, port);
-	if (sock > -1) {
-	    fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
-		 "connected to %s socket %i\n", addr, sock);
-	    break;
+	if (!range[1]) {
+	    sock = tcpConnect(addr, range[0]);
+	    if (sock > -1) {
+		fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
+		     "connected to %s socket %i\n", addr, sock);
+		break;
+	    }
+	} else {
+	    int first = atoi(range[0]);
+	    int last = atoi(range[1]);
+	    int offset = PSC_getMyID() % (last - first + 1);
+	    for (int p = 0; p < last - first + 1; p++) {
+		char cur[10];
+		snprintf(cur, 10, "%d",
+			 first + (p + offset) % (last - first + 1));
+		sock = tcpConnect(addr, cur);
+		if (sock > -1) {
+		    fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
+			 "connected to %s socket %i\n", addr, sock);
+		    break;
+		}
+	    }
+	    if (sock > -1) break;
 	}
     }
 
