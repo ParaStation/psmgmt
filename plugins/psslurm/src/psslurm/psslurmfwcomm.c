@@ -331,7 +331,7 @@ static void startSpawner(Step_t *step)
     Forwarder_Data_t *fwData = step->fwdata;
     /* No child started under step-forwarder's control. Start it here */
 
-    // - create a parition and tell the logger (and all sister forwarders)
+    // - create a partition and tell the logger (and all sister forwarders)
     if (!setupPartition(step)) shutdownForwarder(fwData);
 
     // - prepare the task structure like in fwExecStep()

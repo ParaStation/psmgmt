@@ -100,7 +100,7 @@ The GPU devices identified are:
   "10de:1db6"	NVIDIA V100 PCIe 32GB as found on e.g. the DEEP-EST DAM and ESB
   "10de:1db4"	NVIDIA V100 PCIe 16GB as found on e.g. JUSUF
   "10de:1db1"	NVIDIA V100-SXM2 16GB as found on e.g. JUWELS-Cluster
-  "10de:102d"	NVIDIA K80 PCIe as found on e.g. JURECA's old GPU parition
+  "10de:102d"	NVIDIA K80 PCIe as found on e.g. JURECA's old GPU partition
   "10de:1021"	NVIDIA K20X PCIe as found on e.g. JUROPA3
 
 GPUs are sorted in PCI-bus order as expected by CUDA

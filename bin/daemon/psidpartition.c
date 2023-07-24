@@ -4935,7 +4935,7 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
 /**
  * @brief Send existing partitions
  *
- * Send all existing paritions known to the local daemon to the task
+ * Send all existing partitions known to the local daemon to the task
  * @a dest. Typically @a dest is the new master that has requested to
  * get all partitions by sending a message of type PSP_DD_GETTASKS to
  * all daemons being up and running.
@@ -5586,7 +5586,7 @@ void PSIDpart_register(PStask_t *task, PSpart_HWThread_t *threads, uint32_t num)
     free(partSlots);
 
     if (PSID_getDebugMask() & PSID_LOG_PART) {
-	PSID_flog("\tparition is (");
+	PSID_flog("\tpartition is (");
 	for (uint32_t s = 0; s < task->partitionSize; s++) {
 	    PSpart_slot_t slot = task->partition[s];
 	    short nThrds = PSIDnodes_getNumThrds(slot.node);
@@ -5601,7 +5601,7 @@ void PSIDpart_register(PStask_t *task, PSpart_HWThread_t *threads, uint32_t num)
 	/* Otherwise we'ld have to wait for a PSP_DD_GETTASKS message */
     }
     if (task->loggertid != task->tid) {
-	/* register parition as sister partition at logger */
+	/* register partition as sister partition at logger */
 	sendSinglePart(task->loggertid, PSP_DD_REGISTERPART, task);
     }
 }
