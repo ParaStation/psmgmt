@@ -1154,14 +1154,22 @@ static bool verifySlurmConf(void)
 	boards = 1;
     }
 
+    bool skipCoreCheck = getConfValueI(Config, "SKIP_CORE_VERIFICATION");
+
+    char buf[20];
+
     int sockets = getConfValueI(Config, "SLURM_SOCKETS");
     if (sockets == -1) {
-	/* set default socket */
-	addConfigEntry(Config, "SLURM_SOCKETS", "1");
-	sockets = 1;
+	if (skipCoreCheck) {
+	    sockets = PSIDnodes_numNUMADoms(PSC_getMyID());
+	    flog("taking sockets from hwloc: %d\n", sockets);
+	} else {
+	    /* set default socket */
+	    sockets = 1;
+	}
+	snprintf(buf, sizeof(buf), "%d", sockets);
+	addConfigEntry(Config, "SLURM_SOCKETS", buf);
     }
-
-    bool skipCoreCheck = getConfValueI(Config, "SKIP_CORE_VERIFICATION");
 
     int cores = getConfValueI(Config, "SLURM_CORES_PER_SOCKET");
     if (cores == -1) {
@@ -1173,6 +1181,8 @@ static bool verifySlurmConf(void)
 	    flog("invalid SLURM_CORES_PER_SOCKET\n");
 	    return false;
 	}
+	snprintf(buf, sizeof(buf), "%d", cores);
+	addConfigEntry(Config, "SLURM_CORES_PER_SOCKET", buf);
     }
 
     int threads = getConfValueI(Config, "SLURM_THREADS_PER_CORE");
@@ -1185,6 +1195,8 @@ static bool verifySlurmConf(void)
 	    flog("invalid SLURM_THREADS_PER_CORE\n");
 	    return false;
 	}
+	snprintf(buf, sizeof(buf), "%d", threads);
+	addConfigEntry(Config, "SLURM_THREADS_PER_CORE", buf);
     }
 
     int slurmCPUs = getConfValueI(Config, "SLURM_CPUS");
