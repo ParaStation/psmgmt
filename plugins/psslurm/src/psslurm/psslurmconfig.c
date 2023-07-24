@@ -26,6 +26,7 @@
 
 #include "pluginmalloc.h"
 #include "psidhw.h"
+#include "psidnodes.h"
 #include "jailhandles.h"
 
 #include "psslurmlog.h"
@@ -1161,16 +1162,29 @@ static bool verifySlurmConf(void)
     }
 
     bool skipCoreCheck = getConfValueI(Config, "SKIP_CORE_VERIFICATION");
+
     int cores = getConfValueI(Config, "SLURM_CORES_PER_SOCKET");
-    if (!skipCoreCheck && cores == -1) {
-	flog("invalid SLURM_CORES_PER_SOCKET\n");
-	return false;
+    if (cores == -1) {
+	if (skipCoreCheck) {
+	    cores = PSIDnodes_getNumCores(PSC_getMyID())
+		    / PSIDnodes_numNUMADoms(PSC_getMyID());
+	    flog("taking cores per socket from hwloc: %d\n", cores);
+	} else {
+	    flog("invalid SLURM_CORES_PER_SOCKET\n");
+	    return false;
+	}
     }
 
     int threads = getConfValueI(Config, "SLURM_THREADS_PER_CORE");
-    if (!skipCoreCheck && threads == -1) {
-	flog("invalid SLURM_THREADS_PER_CORE\n");
-	return false;
+    if (threads == -1) {
+	if (skipCoreCheck) {
+	    threads = PSIDnodes_getNumThrds(PSC_getMyID())
+		    / PSIDnodes_getNumCores(PSC_getMyID());
+	    flog("taking threads per core from hwloc: %d\n", threads);
+	} else {
+	    flog("invalid SLURM_THREADS_PER_CORE\n");
+	    return false;
+	}
     }
 
     int slurmCPUs = getConfValueI(Config, "SLURM_CPUS");
@@ -1193,8 +1207,15 @@ static bool verifySlurmConf(void)
     }
 
     if (!skipCoreCheck && boards * sockets * cores != PSIDhw_getCores()) {
-	flog("Slurm cores %i mismatching psid cores %i\n", sockets * cores,
-	     PSIDhw_getCores());
+	flog("Slurm cores %i mismatching psid cores %i\n",
+	     boards * sockets * cores, PSIDhw_getCores());
+	return false;
+    }
+
+    if (!skipCoreCheck
+	&& boards * sockets * cores * threads != PSIDhw_getHWthreads()) {
+	flog("Slurm threads %i mismatching psid threads %i\n",
+	     boards * sockets * cores * threads, PSIDhw_getHWthreads());
 	return false;
     }
 
