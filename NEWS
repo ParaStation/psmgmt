@@ -6,6 +6,19 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.56-2:
+=================
+Bugfixes:
+ - Ensure cached PSP_PACK_INFO info is handled (#131)
+ - Execute SPANK prologue/epilogue hooks without the presence of
+   a prologue/epilogue script
+ - Let doGetMsgBuf() (behind PSP_getMsgBuf() et al.) warn even if header.len is 0
+Enhancements:
+ - Ensure cores is not used in gres.conf
+ - Include UID in PMIx' temp session dir name to help with node sharing
+ - Add sentence on ParaStation ID -1 to psiadmin's inline help
+
+
 Version 5.1.56-1:
 =================
 Bugfixes:

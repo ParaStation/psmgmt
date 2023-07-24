@@ -1,3 +1,41 @@
+Version 5.1.56-2:
+=================
+------------------------------------------------------------------------
+2ef2abec6 | Michael Rauh | Thu, 13 Jul 2023 17:30:20 +0200
+
+Bugfix: execute SPANK prologue/epilogue hooks without the presence of
+a prologue/epilogue script
+------------------------------------------------------------------------
+c68bde9f8 | Stephan Krempel | Fri, 14 Jul 2023 01:47:46 +0200
+
+pspmix: Include UID in temp session dir name
+
+In node sharing case this prevents multiple users from trying
+to access /tmp/pspmix which will only be allowed to the first
+one being the creator of that directory.
+------------------------------------------------------------------------
+e46f015b0 | Norbert Eicker | Sat, 22 Jul 2023 18:07:15 +0200
+
+Bugfix: let doGetMsgBuf() warn even if header.len is 0
+------------------------------------------------------------------------
+5e61b6e31 | Norbert Eicker | Mon, 10 Jul 2023 22:07:56 +0200
+
+Add sentence on ParaStation ID -1 to psiadmin's inline help
+------------------------------------------------------------------------
+c7f1fe006 | Norbert Eicker | Thu, 6 Jul 2023 18:19:45 +0200
+
+Bugfix: Ensure cached PSP_PACK_INFO info is handled (#131)
+------------------------------------------------------------------------
+1d3909cbe | Michael Rauh | Wed, 5 Jul 2023 18:29:38 +0200
+
+Ensure cores is not used in gres.conf
+------------------------------------------------------------------------
+41484497e | Norbert Eicker | Wed, 5 Jul 2023 20:04:19 +0200
+
+Fix typo in comments
+------------------------------------------------------------------------
+
+
 Version 5.1.56-1:
 =================
 ------------------------------------------------------------------------
