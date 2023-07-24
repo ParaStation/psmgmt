@@ -906,8 +906,8 @@ static int startProcs(Conf_t *conf)
 
 	if ((unsigned)got != exec[i].np * sizeof(*nodeList)) {
 	    fprintf(stderr, "%s: Unable to get nodes in reservation %#x for"
-		    "app %d. Got %d expected %zu\n", __func__, exec[i].resID,
-		    i, got, exec[i].np * sizeof(*nodeList));
+		    " app %d. Got %zu expected %d\n", __func__, exec[i].resID,
+		    i, got / sizeof(*nodeList), exec[i].np);
 	    if (getenv("PMI_SPAWNED")) sendPMIFail();
 
 	    return -1;
