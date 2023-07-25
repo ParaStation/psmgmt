@@ -3040,7 +3040,7 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
     }
 
     addInt32ToMsg(res->rid, &msg);         // reservation ID
-    addTaskIdToMsg(res->task, &msg);       // logger's task ID
+    addTaskIdToMsg(task->loggertid, &msg); // logger's task ID
     addTaskIdToMsg(res->requester, &msg);  // spawners's task ID
 
     addUint32ToMsg(res->rankOffset, &msg); // global rank offset
@@ -3118,7 +3118,7 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 	setFragDest(&msg, PSC_getTID(node, 0));
 	PSID_fdbg(PSID_LOG_PART, "send PSP_DD_RESSLOTS to node %d\n", node);
 
-	addTaskIdToMsg(res->task, &msg);       // logger's task ID
+	addTaskIdToMsg(task->loggertid, &msg); // logger's task ID
 	addTaskIdToMsg(res->requester, &msg);  // spawners's task ID
 	addInt32ToMsg(res->rid, &msg);         // reservation ID
 
@@ -3187,7 +3187,7 @@ static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
 	    .sender = PSC_getMyTID(),
 	    .len = 0 }, };
     PSP_putMsgBuf(&msg, "resID", &res->rid, sizeof(res->rid));
-    PSP_putMsgBuf(&msg, "loggerTID", &res->task, sizeof(res->task));
+    PSP_putMsgBuf(&msg, "loggerTID", &task->loggertid, sizeof(task->loggertid));
     PSP_putMsgBuf(&msg, "spawnerTID", &res->requester, sizeof(res->requester));
 
     /* send message to each node in the partition */
@@ -5215,6 +5215,7 @@ static void send_further_RESCREATED(PSpart_request_t *req, PStask_t *task)
 
     /* PStask_t stub containing all members used send_RESCREATED() */
     PStask_t reqHolder = {
+	.loggertid = task->loggertid,
 	.partitionSize = 0,
 	.partition = NULL, };
     INIT_LIST_HEAD(&reqHolder.sisterParts);
