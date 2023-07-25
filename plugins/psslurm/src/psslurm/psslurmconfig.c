@@ -1162,14 +1162,15 @@ static bool verifySlurmConf(void)
     if (sockets == -1) {
 	if (skipCoreCheck) {
 	    sockets = PSIDnodes_numNUMADoms(PSC_getMyID());
-	    flog("taking sockets from hwloc: %d\n",
-		 getConfValueI(Config, "SLURM_SOCKETS"));
+	    flog("taking sockets from hwloc: ");
 	} else {
 	    /* set default socket */
 	    sockets = 1;
+	    flog("setting default sockets: ");
 	}
 	snprintf(buf, sizeof(buf), "%d", sockets);
 	addConfigEntry(Config, "SLURM_SOCKETS", buf);
+	mlog("%d\n", getConfValueI(Config, "SLURM_SOCKETS"));
     }
 
     int cores = getConfValueI(Config, "SLURM_CORES_PER_SOCKET");
@@ -1553,7 +1554,7 @@ int initPSSlurmConfig(char *filename)
     /* make logging with debug mask available */
     int mask = getConfValueI(Config, "DEBUG_MASK");
     if (mask) {
-	mlog("%s: set psslurm debug mask '%i'\n", __func__, mask);
+	mlog("%s: set psslurm debug mask '0x%x'\n", __func__, mask);
 	maskLogger(mask);
     }
 

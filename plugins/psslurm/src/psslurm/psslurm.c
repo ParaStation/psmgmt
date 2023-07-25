@@ -581,7 +581,7 @@ static void setConfOpt(void)
     /* plugin library debug */
     int mask = getConfValueI(Config, "PLUGIN_DEBUG_MASK");
     if (mask) {
-	mlog("%s: set plugin debug mask '%i'\n", __func__, mask);
+	mlog("%s: set plugin debug mask '0x%x'\n", __func__, mask);
 	maskPluginLogger(mask);
     }
 
