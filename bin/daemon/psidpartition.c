@@ -4291,7 +4291,7 @@ static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
 	list_t *t;
 	list_for_each(t, &task->resRequests) {
 	    PSrsrvtn_t *res = list_entry(t, PSrsrvtn_t, next);
-	    PSID_flog("\trid %d task %s", res->rid, PSC_printTID(res->task));
+	    PSID_flog("\trid %#x task %s", res->rid, PSC_printTID(res->task));
 	    PSID_log(-1, " n %d options %#x requester %s %p\n", res->nMax,
 		     res->options, PSC_printTID(res->requester), res);
 	}
@@ -4304,7 +4304,7 @@ static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
 	list_t *t;
 	list_for_each(t, &task->resRequests) {
 	    PSrsrvtn_t *res = list_entry(t, PSrsrvtn_t, next);
-	    PSID_flog("\trid %d task %s", res->rid, PSC_printTID(res->task));
+	    PSID_flog("\trid %#x task %s", res->rid, PSC_printTID(res->task));
 	    PSID_log(-1, " n %d options %#x requester %s %p\n", res->nMax,
 		     res->options, PSC_printTID(res->requester), res);
 	}

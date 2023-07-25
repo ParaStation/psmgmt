@@ -256,7 +256,7 @@ static void addReservationToJob(PSjob_t *job, PSresinfo_t *res)
 	PSresinfo_t *cur = list_entry(r, PSresinfo_t, next);
 	if (cur->resID != res->resID) continue;
 
-	PSID_flog("drop remnant reservation %d created at %s, this should"
+	PSID_flog("drop remnant reservation %#x created at %s, this should"
 		 " never happen:\n", cur->resID, ctime(&cur->creation));
 	PSID_log(-1, "\tminRank %d maxRank %d with %u entries:", cur->minRank,
 		 cur->maxRank, cur->nEntries);
@@ -393,7 +393,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	}
 
 	/* add to reservation */
-	PSID_fdbg(PSID_LOG_SPAWN, "reservation %d: add node %hd: ranks %d-%d\n",
+	PSID_fdbg(PSID_LOG_SPAWN, "reservation %#x: add node %hd: ranks %d-%d\n",
 		  resID, res->entries[i].node,
 		  res->entries[i].firstRank, res->entries[i].lastRank);
     }
@@ -441,7 +441,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* try to add reservation to job */
     addReservationToJob(job, res);
-    PSID_fdbg(PSID_LOG_SPAWN, "reservation %d added (spawner %s",
+    PSID_fdbg(PSID_LOG_SPAWN, "reservation %#x added (spawner %s",
 	      resID, PSC_printTID(spawnerTID));
     PSID_log(PSID_LOG_SPAWN, " logger %s)\n", PSC_printTID(loggerTID));
 
@@ -519,7 +519,7 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     /* try to find corresponding session */
     PSsession_t *session = PSID_findSessionByLoggerTID(logTID);
     if (!session) {
-	PSID_log(-1, "%s: No session (%s) expected to hold resID %d\n",
+	PSID_log(-1, "%s: No session (%s) expected to hold resID %#x\n",
 		 __func__, PSC_printTID(logTID), resID);
 	return true;
     }
@@ -527,7 +527,7 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     /* try to find corresponding job within the session */
     PSjob_t* job = PSID_findJobInSession(session, spawnTID);
     if (!job) {
-	PSID_log(-1, "%s: No job (%s) expected to hold resID %d",
+	PSID_log(-1, "%s: No job (%s) expected to hold resID %#x",
 		 __func__, PSC_printTID(spawnTID), resID);
 	PSID_log(-1, " in session (%s)\n", PSC_printTID(logTID));
 	return true;
@@ -547,8 +547,8 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     }
 
     if (!found) {
-	PSID_log(-1, "%s: No reservation (%d) in session (%s)\n", __func__,
-		 resID, PSC_printTID(logTID));
+	PSID_flog("no reservation %#x in session %s\n", resID,
+		  PSC_printTID(logTID));
     }
 
     /* if job has no reservations left, delete it */
@@ -648,7 +648,7 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     if (!res) {
 	PSID_flog("no reservation info for logger %s",
 		 PSC_printTID(loggerTID));
-	PSID_log(-1, " spawner %s and resID %d\n", PSC_printTID(spawnerTID),
+	PSID_log(-1, " spawner %s and resID %#x\n", PSC_printTID(spawnerTID),
 		 resID);
 	/* we might have to cleanup delayed tasks */
 	res = getResinfo();
@@ -658,7 +658,7 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	return;
     }
     if (res->localSlots) {
-	PSID_log(-1, "%s: reservation %d has localSlots?!\n", __func__, resID);
+	PSID_flog("reservation %#x has localSlots?!\n", resID);
 	return;
     }
 
@@ -678,7 +678,7 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     for (uint32_t s = 0; s < num; s++) {
 	getInt32(&ptr, &rank);
 	if (rank < 0 || rank < res->minRank || rank > res->maxRank) {
-	    PSID_log(-1, "%s: invalid rank %d @ %ud in resID %d (%d,%d)\n",
+	    PSID_log(-1, "%s: invalid rank %d @ %ud in resID %#x (%d,%d)\n",
 		     __func__, rank, s, resID, res->minRank, res->maxRank);
 	    free(res->localSlots);
 	    res->localSlots = NULL;
@@ -690,7 +690,7 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PSCPU_inject(res->localSlots[s].CPUset, ptr, nBytes);
 	ptr += nBytes;
 
-	PSID_fdbg(PSID_LOG_PART, "add cpuset %s for job rank %d in res %d\n",
+	PSID_fdbg(PSID_LOG_PART, "add cpuset %s for job rank %d to res %#x\n",
 		  PSCPU_print_part(res->localSlots[s].CPUset, nBytes),
 		  rank, resID);
     }
