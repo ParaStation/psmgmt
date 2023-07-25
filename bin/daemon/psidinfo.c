@@ -377,7 +377,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	}
 
-	if (task->ptid) {
+	if (task->ptid && !task->partition) {
 	    PSID_log(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
 		     PSC_printTID(task->ptid));
 	    msg.header.type = inmsg->header.type;
@@ -421,9 +421,9 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	}
 
-	if (task->ptid) {
-	    PSID_log(PSID_LOG_INFO, "%s: forward to root process %s\n",
-		     funcStr, PSC_printTID(task->ptid));
+	if (task->ptid && !task->resPorts) {
+	    PSID_log(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
+		     PSC_printTID(task->ptid));
 	    msg.header.type = inmsg->header.type;
 	    msg.header.sender = inmsg->header.sender;
 	    msg.header.dest = task->ptid;
@@ -478,9 +478,9 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	}
 
-	if (task->ptid) {
-	    PSID_log(PSID_LOG_INFO, "%s: forward to root process %s\n",
-		     funcStr, PSC_printTID(task->ptid));
+	if (task->ptid && list_empty(&task->reservations)) {
+	    PSID_log(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
+		     PSC_printTID(task->ptid));
 	    msg.header.type = inmsg->header.type;
 	    msg.header.sender = inmsg->header.sender;
 	    msg.header.dest = task->ptid;

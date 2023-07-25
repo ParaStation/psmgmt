@@ -3415,9 +3415,9 @@ static bool msg_GETRANKNODE(DDBufferMsg_t *msg)
 	goto error;
     }
 
-    if (task->ptid) {
-	PSID_log(PSID_LOG_PART, "%s: forward to root process %s\n",
-		 __func__, PSC_printTID(task->ptid));
+    if (task->ptid && (!task->totalThreads || !task->partThrds)) {
+	PSID_fdbg(PSID_LOG_PART, "forward to parent %s\n",
+		  PSC_printTID(task->ptid));
 	msg->header.type = PSP_DD_GETRANKNODE;
 	msg->header.dest = task->ptid;
 	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
