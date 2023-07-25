@@ -679,11 +679,19 @@ int handleLastChildGone(void *data)
     if (!task) return -1;
 
     Forwarder_Data_t *fw = task->info;
-    if (!fw || fw->callback != stepCallback) return 0;
+    if (!fw || fw->callback != stepCallback) {
+	flog("task %s not step forwarder\n", PSC_printTID(task->tid));
+	return 0;
+    }
 
     Step_t *step = fw->userData;
-    if (!step || !step->spawned) return 0;
+    if (!step || !step->spawned) {
+	flog("step %s not spawned\n", Step_strID(step));
+	return 0;
+    }
 
+    flog("shutdown step forwarder %s %s\n", PSC_printTID(task->tid),
+	 Step_strID(step));
     shutdownForwarder(fw);
     return 0;
 }

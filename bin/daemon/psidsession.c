@@ -412,8 +412,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	session->loggertid = loggerTID;
 	list_add_tail(&session->next, &localSessions);
 	sessionCreated = true;
-	PSID_log(PSID_LOG_SPAWN, "%s: Session created for logger %s\n",
-		 __func__, PSC_printTID(loggerTID));
+	PSID_fdbg(PSID_LOG_SPAWN, "add session %s\n", PSC_printTID(loggerTID));
     }
 
     /* try to find existing job */
@@ -434,16 +433,15 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	job->spawnertid = spawnerTID;
 	list_add_tail(&job->next, &session->jobs);
 	jobCreated = true;
-	PSID_fdbg(PSID_LOG_SPAWN, "job created for spawner %s in session with",
-		  PSC_printTID(spawnerTID));
-	PSID_log(PSID_LOG_SPAWN, " loggertid %s\n", PSC_printTID(loggerTID));
+	PSID_fdbg(PSID_LOG_SPAWN, "add job %s to", PSC_printTID(spawnerTID));
+	PSID_log(PSID_LOG_SPAWN, " session %s\n", PSC_printTID(loggerTID));
     }
 
     /* try to add reservation to job */
     addReservationToJob(job, res);
-    PSID_fdbg(PSID_LOG_SPAWN, "reservation %#x added (spawner %s",
+    PSID_fdbg(PSID_LOG_SPAWN, "add reservation %#x to job %s",
 	      resID, PSC_printTID(spawnerTID));
-    PSID_log(PSID_LOG_SPAWN, " logger %s)\n", PSC_printTID(loggerTID));
+    PSID_log(PSID_LOG_SPAWN, " (session %s)\n", PSC_printTID(loggerTID));
 
     /* Give plugins the option to react on job creation */
     if (jobCreated) PSIDhook_call(PSIDHOOK_LOCALJOBCREATED, job);
@@ -519,17 +517,17 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     /* try to find corresponding session */
     PSsession_t *session = PSID_findSessionByLoggerTID(logTID);
     if (!session) {
-	PSID_log(-1, "%s: No session (%s) expected to hold resID %#x\n",
-		 __func__, PSC_printTID(logTID), resID);
+	PSID_flog("no session %s expected to hold %#x\n",
+		  PSC_printTID(logTID), resID);
 	return true;
     }
 
     /* try to find corresponding job within the session */
     PSjob_t* job = PSID_findJobInSession(session, spawnTID);
     if (!job) {
-	PSID_log(-1, "%s: No job (%s) expected to hold resID %#x",
-		 __func__, PSC_printTID(spawnTID), resID);
-	PSID_log(-1, " in session (%s)\n", PSC_printTID(logTID));
+	PSID_flog("no job %s expected to hold resID %#x",
+		  PSC_printTID(spawnTID), resID);
+	PSID_log(-1, " in session %s\n", PSC_printTID(logTID));
 	return true;
     }
 
@@ -549,12 +547,20 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     if (!found) {
 	PSID_flog("no reservation %#x in session %s\n", resID,
 		  PSC_printTID(logTID));
+    } else {
+	PSID_fdbg(PSID_LOG_SPAWN, "remove reservation %#x from job %s", resID,
+		  PSC_printTID(spawnTID));
+	PSID_log(PSID_LOG_SPAWN, " in session %s)\n", PSC_printTID(logTID));
     }
+
 
     /* if job has no reservations left, delete it */
     if (list_empty(&job->resInfos)) {
 	/* Give plugins the option to react on job removal */
 	PSIDhook_call(PSIDHOOK_LOCALJOBREMOVED, job);
+
+	PSID_fdbg(PSID_LOG_SPAWN, "remove job %s", PSC_printTID(spawnTID));
+	PSID_log(PSID_LOG_SPAWN, " from session %s\n", PSC_printTID(logTID));
 
 	list_del(&job->next);
 	putJob(job);
@@ -562,6 +568,8 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
 
     /* if session has no jobs left, delete it */
     if (list_empty(&session->jobs)) {
+	PSID_fdbg(PSID_LOG_SPAWN, "remove session %s\n", PSC_printTID(logTID));
+
 	list_del(&session->next);
 	putSession(session);
     }
@@ -646,9 +654,9 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* identify reservation info */
     PSresinfo_t *res = PSID_findResInfo(loggerTID, spawnerTID, resID);
     if (!res) {
-	PSID_flog("no reservation info for logger %s",
+	PSID_flog("no reservation info for session %s",
 		 PSC_printTID(loggerTID));
-	PSID_log(-1, " spawner %s and resID %#x\n", PSC_printTID(spawnerTID),
+	PSID_log(-1, " job %s and resID %#x\n", PSC_printTID(spawnerTID),
 		 resID);
 	/* we might have to cleanup delayed tasks */
 	res = getResinfo();
@@ -658,14 +666,14 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	return;
     }
     if (res->localSlots) {
-	PSID_flog("reservation %#x has localSlots?!\n", resID);
+	PSID_flog("reservation %#x already has localSlots?!\n", resID);
 	return;
     }
 
     uint16_t nBytes;
     getUint16(&ptr, &nBytes);
     if (nBytes != PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()))) {
-	PSID_log(-1, "%s: CPU-set size mismatch %ud", __func__, nBytes);
+	PSID_flog("CPU-set size mismatch %ud", nBytes);
 	return;
     }
 
@@ -678,8 +686,8 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     for (uint32_t s = 0; s < num; s++) {
 	getInt32(&ptr, &rank);
 	if (rank < 0 || rank < res->minRank || rank > res->maxRank) {
-	    PSID_log(-1, "%s: invalid rank %d @ %ud in resID %#x (%d,%d)\n",
-		     __func__, rank, s, resID, res->minRank, res->maxRank);
+	    PSID_flog("invalid rank %d @ %ud in resID %#x (%d,%d)\n",
+		      rank, s, resID, res->minRank, res->maxRank);
 	    free(res->localSlots);
 	    res->localSlots = NULL;
 	    return;
@@ -690,7 +698,7 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PSCPU_inject(res->localSlots[s].CPUset, ptr, nBytes);
 	ptr += nBytes;
 
-	PSID_fdbg(PSID_LOG_PART, "add cpuset %s for job rank %d to res %#x\n",
+	PSID_fdbg(PSID_LOG_SPAWN, "add cpuset %s for job rank %d to res %#x\n",
 		  PSCPU_print_part(res->localSlots[s].CPUset, nBytes),
 		  rank, resID);
     }
@@ -698,7 +706,7 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* check for end of message */
     getInt32(&ptr, &rank);
     if (rank != -1)
-	PSID_log(-1, "%s: trailing slot for rank %d", __func__, rank);
+	PSID_flog("trailing slot for rank %d", rank);
 
     /* there might be delayed tasks that are capable to start now */
     PSIDspawn_startDelayedTasks(startFilter, res);
@@ -735,16 +743,16 @@ static bool msg_RESSLOTS(DDTypedBufferMsg_t *msg)
 
     /* destination is remote */
     if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
-	PSID_log(-1, "%s: unable to forward fragment to %s (node down)\n",
-		 __func__, PSC_printTID(msg->header.dest));
+	PSID_flog("unable to forward fragment to %s (node down)\n",
+		  PSC_printTID(msg->header.dest));
 	return true;
     }
 
-    PSID_log(PSID_LOG_SPAWN, "%s: forward to node %d\n", __func__,
-	     PSC_getID(msg->header.dest));
+    PSID_fdbg(PSID_LOG_SPAWN, "forward to node %d\n",
+	      PSC_getID(msg->header.dest));
     if (sendMsg(msg) < 0) {
-	PSID_log(-1, "%s: unable to forward fragment to %s (sendMsg failed)\n",
-		 __func__, PSC_printTID(msg->header.dest));
+	PSID_flog("unable to forward fragment to %s (sendMsg failed)\n",
+		  PSC_printTID(msg->header.dest));
     }
     return true;
 }
@@ -795,31 +803,31 @@ bool PSIDsession_init(void)
     /* initialize various item pools */
     resinfoPool = PSitems_new(sizeof(PSresinfo_t), "resinfoPool");
     if (!resinfoPool) {
-	PSID_log(-1, "%s: cannot get resinfo items\n", __func__);
+	PSID_flog("cannot get resinfo items\n");
 	return false;
     }
 
     jobPool = PSitems_new(sizeof(PSjob_t), "jobPool");
     if (!jobPool) {
-	PSID_log(-1, "%s: cannot get job items\n", __func__);
+	PSID_flog("cannot get job items\n");
 	return false;
     }
 
     sessionPool = PSitems_new(sizeof(PSsession_t), "sessionPool");
     if (!sessionPool) {
-	PSID_log(-1, "%s: cannot get session items\n", __func__);
+	PSID_flog("cannot get session items\n");
 	return false;
     }
     PSID_registerLoopAct(PSIDsession_gc);
 
     if (!PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem)) {
-	PSID_log(-1, "%s: cannot register to PSIDHOOK_CLEARMEM\n", __func__);
+	PSID_flog("cannot register to PSIDHOOK_CLEARMEM\n");
 	return false;
     }
 
     /* init fragmentation layer used for PSP_DD_RESCREATED messages */
     if (!initSerial(0, sendMsg)) {
-	PSID_log(-1, "%s: initSerial() failed\n", __func__);
+	PSID_flog("initSerial() failed\n");
 	return false;
     }
 
@@ -832,16 +840,16 @@ bool PSIDsession_init(void)
 
 void PSIDsession_printStat(void)
 {
-    PSID_log(-1, "%s: Sessions %d/%d (used/avail)", __func__,
-	     PSitems_getUsed(sessionPool), PSitems_getAvail(sessionPool));
+    PSID_flog("Sessions %d/%d (used/avail)", PSitems_getUsed(sessionPool),
+	      PSitems_getAvail(sessionPool));
     PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(sessionPool),
 	     PSitems_getDynamics(sessionPool));
-    PSID_log(-1, "%s: Jobs %d/%d (used/avail)", __func__,
-	     PSitems_getUsed(jobPool), PSitems_getAvail(jobPool));
+    PSID_flog("Jobs %d/%d (used/avail)", PSitems_getUsed(jobPool),
+	      PSitems_getAvail(jobPool));
     PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(jobPool),
 	     PSitems_getDynamics(jobPool));
-    PSID_log(-1, "%s: ResInfos %d/%d (used/avail)", __func__,
-	     PSitems_getUsed(resinfoPool), PSitems_getAvail(resinfoPool));
+    PSID_flog("ResInfos %d/%d (used/avail)", PSitems_getUsed(resinfoPool),
+	      PSitems_getAvail(resinfoPool));
     PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(resinfoPool),
 	     PSitems_getDynamics(resinfoPool));
 }

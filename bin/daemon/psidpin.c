@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -532,8 +532,8 @@ void PSIDpin_doClamps(PStask_t *task)
 	    PSCPU_print_part(task->CPUset, PSCPU_bytesForCPUs(numThrd)), 1);
 
     if (!PSCPU_any(task->CPUset, numThrd)) {
-	fprintf(stderr, "CPU slots not set. Old executable? "
-		"You might want to relink your program.\n");
+	fprintf(stderr, "No CPU slots in rank %d/%d. Old executable? You might"
+		" want to relink your program.\n", task->jobRank, task->rank);
     } else if (PSCPU_all(task->CPUset, numThrd)) {
 	/* No mapping */
     } else if (PSIDnodes_pinProcs(PSC_getMyID())
@@ -554,7 +554,8 @@ void PSIDpin_doClamps(PStask_t *task)
 
 	if (PSIDnodes_pinProcs(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_PINPROC")) {
-		fprintf(stderr, "Pinning suppressed for rank %d\n", task->rank);
+		fprintf(stderr, "Pinning suppressed for rank %d/%d\n",
+			task->jobRank, task->rank);
 	    } else {
 		pinToCPUs(physSet);
 	    }
@@ -562,8 +563,8 @@ void PSIDpin_doClamps(PStask_t *task)
 	if (PSIDnodes_bindMem(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_MEMBIND")) {
 		if (!getenv("SLURM_JOBID")) {
-		    fprintf(stderr, "Binding suppressed for rank %d\n",
-			    task->rank);
+		    fprintf(stderr, "Binding suppressed for rank %d/%d\n",
+			    task->jobRank, task->rank);
 		}
 	    } else {
 		bindToNodes(physSet);
@@ -571,14 +572,16 @@ void PSIDpin_doClamps(PStask_t *task)
 	}
 	if (PSIDnodes_bindGPUs(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_GPUBIND")) {
-		fprintf(stderr, "No GPU-binding for rank %d\n", task->rank);
+		fprintf(stderr, "No GPU-binding for rank %d/%d\n",
+			task->jobRank, task->rank);
 	    } else {
 		bindToDevs(physSet, PSPIN_DEV_TYPE_GPU, NULL);
 	    }
 	}
 	if (PSIDnodes_bindNICs(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_NICBIND")) {
-		fprintf(stderr, "No NIC-binding for rank %d\n", task->rank);
+		fprintf(stderr, "No NIC-binding for rank %d/%d\n",
+			task->jobRank, task->rank);
 	    } else {
 		bindToDevs(physSet, PSPIN_DEV_TYPE_NIC, mapNIC);
 	    }
