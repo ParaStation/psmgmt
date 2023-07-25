@@ -1162,7 +1162,8 @@ static bool verifySlurmConf(void)
     if (sockets == -1) {
 	if (skipCoreCheck) {
 	    sockets = PSIDnodes_numNUMADoms(PSC_getMyID());
-	    flog("taking sockets from hwloc: %d\n", sockets);
+	    flog("taking sockets from hwloc: %d\n",
+		 getConfValueI(Config, "SLURM_SOCKETS"));
 	} else {
 	    /* set default socket */
 	    sockets = 1;
@@ -1173,30 +1174,30 @@ static bool verifySlurmConf(void)
 
     int cores = getConfValueI(Config, "SLURM_CORES_PER_SOCKET");
     if (cores == -1) {
-	if (skipCoreCheck) {
-	    cores = PSIDnodes_getNumCores(PSC_getMyID())
-		    / PSIDnodes_numNUMADoms(PSC_getMyID());
-	    flog("taking cores per socket from hwloc: %d\n", cores);
-	} else {
+	if (!skipCoreCheck) {
 	    flog("invalid SLURM_CORES_PER_SOCKET\n");
 	    return false;
 	}
+	cores = PSIDnodes_getNumCores(PSC_getMyID())
+		/ PSIDnodes_numNUMADoms(PSC_getMyID());
 	snprintf(buf, sizeof(buf), "%d", cores);
 	addConfigEntry(Config, "SLURM_CORES_PER_SOCKET", buf);
+	flog("taking cores per socket from hwloc: %d\n",
+	     getConfValueI(Config, "SLURM_CORES_PER_SOCKET"));
     }
 
     int threads = getConfValueI(Config, "SLURM_THREADS_PER_CORE");
     if (threads == -1) {
-	if (skipCoreCheck) {
-	    threads = PSIDnodes_getNumThrds(PSC_getMyID())
-		    / PSIDnodes_getNumCores(PSC_getMyID());
-	    flog("taking threads per core from hwloc: %d\n", threads);
-	} else {
+	if (!skipCoreCheck) {
 	    flog("invalid SLURM_THREADS_PER_CORE\n");
 	    return false;
 	}
+	threads = PSIDnodes_getNumThrds(PSC_getMyID())
+		/ PSIDnodes_getNumCores(PSC_getMyID());
 	snprintf(buf, sizeof(buf), "%d", threads);
 	addConfigEntry(Config, "SLURM_THREADS_PER_CORE", buf);
+	flog("taking threads per core from hwloc: %d\n",
+	     getConfValueI(Config, "SLURM_THREADS_PER_CORE"));
     }
 
     int slurmCPUs = getConfValueI(Config, "SLURM_CPUS");
