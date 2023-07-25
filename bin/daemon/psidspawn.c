@@ -2942,6 +2942,8 @@ static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
 void PSIDspawn_delayTask(PStask_t *task)
 {
+    PSID_fdbg(PSID_LOG_SPAWN, "ptid %s reason %#x \n", PSC_printTID(task->ptid),
+	      task->delayReasons);
     PStasklist_dequeue(task);
     list_add_tail(&task->next, &delayedTasks);
 }
@@ -3564,6 +3566,10 @@ int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
 			Selector_CB_t *msgHandler)
 {
     if (!task) return EINVAL;
+
+    char tasktxt[256];
+    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+    PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
 
     /* now try to start the task */
     int err = buildSandboxAndStart(creator ? creator : execForwarder, task);

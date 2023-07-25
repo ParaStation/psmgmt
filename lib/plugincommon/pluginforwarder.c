@@ -961,13 +961,14 @@ bool startForwarder(Forwarder_Data_t *fw)
     task->gid = fw->gID;
     task->info = fw;
     task->argc = 1 + !!fw->jobID;
-    task->argv = malloc(task->argc * sizeof(*task->argv));
+    task->argv = malloc((task->argc + 1) * sizeof(*task->argv));
     if (!task->argv) {
 	pluginlog("%s: out of memory\n", __func__);
 	goto ERROR;
     }
     task->argv[0] = strdup(fw->pTitle);
     if (fw->jobID) task->argv[1] = strdup(fw->jobID);
+    task->argv[task->argc] = NULL;
     task->sigChldCB = sigChldCB;
 
     /* start the new forwarder */

@@ -367,7 +367,7 @@ static bool connectLogger(PStask_ID_t tid)
 	ssize_t ret = recvDaemonMsg(&msg, &timeout);
 
 	if (ret <= 0) {
-	    PSID_warn(-1, errno, "%s(%s): Connection refused\n",
+	    PSID_warn(-1, errno, "%s(%s): Connection refused",
 		      __func__, PSC_printTID(tid));
 	    break;
 	}

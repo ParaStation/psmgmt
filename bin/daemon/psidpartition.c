@@ -2998,8 +2998,16 @@ static bool deqRes(list_t *queue, PSrsrvtn_t *res);
  */
 static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
 {
+    if (!res) {
+	PSID_flog("no reservation\n");
+	return false;
+    }
+    if (!task) {
+	PSID_flog("no task for reservation %#x\n", res->rid);
+	return false;
+    }
     if (res->nSlots < 1) {
-	PSID_log(-1, "%s: No slots in reservation %#x\n", __func__, res->rid);
+	PSID_flog("no slots in reservation %#x\n", res->rid);
 	return false;
     }
 
@@ -3055,7 +3063,7 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
     }
 
     if (sendFragMsg(&msg) == -1) {
-	PSID_log(-1, "%s: sending failed\n", __func__);
+	PSID_flog("sending failed\n");
 	return false;
     }
 
@@ -3082,8 +3090,16 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
  */
 static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 {
+    if (!res) {
+	PSID_flog("no reservation\n");
+	return false;
+    }
+    if (!task) {
+	PSID_flog("no task for reservation %#x\n", res->rid);
+	return false;
+    }
     if (res->nSlots < 1) {
-	PSID_log(-1, "%s: No slots in reservation %#x\n", __func__, res->rid);
+	PSID_flog("no slots in reservation %#x\n", res->rid);
 	return false;
     }
 
@@ -3100,8 +3116,7 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 
 	initFragBuffer(&msg, PSP_DD_RESSLOTS, -1);
 	setFragDest(&msg, PSC_getTID(node, 0));
-	PSID_log(PSID_LOG_PART, "%s: send PSP_DD_RESSLOTS to node %d\n",
-		 __func__, node);
+	PSID_fdbg(PSID_LOG_PART, "send PSP_DD_RESSLOTS to node %d\n", node);
 
 	addTaskIdToMsg(res->task, &msg);       // logger's task ID
 	addTaskIdToMsg(res->requester, &msg);  // spawners's task ID
@@ -3124,7 +3139,7 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 	addInt32ToMsg(-1, &msg);               // end of pairs
 
 	if (sendFragMsg(&msg) == -1) {
-	    PSID_log(-1, "%s: sendFragMs() failed\n", __func__);
+	    PSID_flog("sendFragMs() failed\n");
 	    return false;
 	}
     }
@@ -3150,6 +3165,14 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
  */
 static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
 {
+    if (!res) {
+	PSID_flog("no reservation\n");
+	return false;
+    }
+    if (!task) {
+	PSID_flog("no task for reservation %#x\n", res->rid);
+	return false;
+    }
     if (!task->partition || !task->partitionSize) {
 	PSID_flog("no nodes in partition of reservation %#x\n", res->rid);
 	return false;
