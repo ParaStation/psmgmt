@@ -2390,6 +2390,13 @@ bool __packRespDaemonStatus(PS_SendDB_t *data, Resp_Daemon_Status_t *stat,
     /* version */
     addStringToMsg(stat->verStr, data);
 
+    fdbg(PSSLURM_LOG_PACK, "debug %hx cpus %hu boards %hu sockets %hu"
+	 " coresPerSocket %hu threadsPerCore %hu realMem %lu tmpDisk %u pid %u"
+	 " hostname '%s' logfile '%s' stepList '%s' verStr '%s'\n", stat->debug,
+	 stat->cpus, stat->boards, stat->sockets, stat->coresPerSocket,
+	 stat->threadsPerCore, stat->realMem, stat->tmpDisk, stat->pid,
+	 stat->hostname, stat->logfile, stat->stepList, stat->verStr);
+
     return true;
 }
 
