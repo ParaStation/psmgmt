@@ -21,5 +21,5 @@ dist_jaillib_SCRIPTS = jail-config.inc jail-v1-cpuacct.inc		\
 if BPF_ENABLED
 jaillib_PROGRAMS = bpf_device_loader
 bpf_device_loader_SOURCES = load_bpf.c
-bpf_device_loader_LDADD = -lbpf
+bpf_device_loader_LDADD = -lbpf -lpopt
 endif
