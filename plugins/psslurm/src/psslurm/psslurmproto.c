@@ -3115,6 +3115,12 @@ void sendNodeRegStatus(bool startup)
 	stat.config = getSlurmConfHash();
     }
 
+    fdbg(PSSLURM_LOG_DEBUG, "nodeName '%s' arch '%s' sysname '%s' cpus %hu"
+	 " boards %hu sockets %hu coresPerSocket %hu threadsPerCore %hu"
+	 " realMem %lu tmpDisk %u\n", stat.nodeName, stat.arch, stat.sysname,
+	 stat.cpus, stat.boards, stat.sockets, stat.coresPerSocket,
+	 stat.threadsPerCore, stat.realMem, stat.tmpDisk);
+
     /* job id infos (count, array (jobid/stepid) */
     Job_getInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
     Step_getInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
