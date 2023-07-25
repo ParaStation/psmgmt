@@ -533,8 +533,8 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 {
     char line[4096], buffer[4096];
 
-    flog("starting task prologue '%s' for rank %u of job %u\n",
-	 taskPrologue, task->rank, step->jobid);
+    flog("starting task prologue '%s' for rank %u (global %u) of job %u\n",
+	 taskPrologue, task->jobRank, task->rank, step->jobid);
 
     /* handle relative paths */
     if (taskPrologue[0] != '/') {
@@ -579,8 +579,9 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 
 	/* Execute task prologue */
 	execvp(child_argv[0], child_argv);
-	mwarn(errno, "%s: exec task prologue '%s' failed in rank %d of job %d",
-	      __func__, taskPrologue, task->rank, step->jobid);
+	mwarn(errno, "%s: exec task prologue '%s' failed for rank %d (global %d)"
+	      " of job %d", __func__, taskPrologue, task->jobRank, task->rank,
+	      step->jobid);
 	return -1;
     }
 
@@ -602,8 +603,8 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 	if (!key) continue;
 
 	if (!strcmp(key, "export")) {
-	    fdbg(PSSLURM_LOG_PELOG, "setting '%s' for rank %d of job %d\n",
-		 saveptr, task->rank, step->jobid);
+	    fdbg(PSSLURM_LOG_PELOG, "setting '%s' for rank %d (global %d)"
+		 " of job %d\n", saveptr, task->jobRank, task->rank, step->jobid);
 
 	    char *env = ustrdup(saveptr);
 	    if (putenv(env) != 0) {
@@ -684,7 +685,7 @@ int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 	    putenv(step->env.vars[i]);
 	}
 
-	setRankEnv(task->rank, step);
+	setRankEnv(task->jobRank, step);
 
 	if (chdir(step->cwd) != 0) {
 	    mwarn(errno, "cannot change to working direktory '%s'", step->cwd);
@@ -695,12 +696,13 @@ int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 	argv[1] = NULL;
 
 	/* execute task epilogue */
-	flog("starting task epilogue '%s' for rank %u of job %u\n",
-	     taskEpilogue, task->rank, step->jobid);
+	flog("starting task epilogue '%s' for rank %u (global %u) of job %u\n",
+	     taskEpilogue, task->jobRank, task->rank, step->jobid);
 
 	execvp(argv[0], argv);
-	mwarn(errno, "%s: exec task epilogue '%s' failed for rank %u of job %u",
-	      __func__, taskEpilogue, task->rank, step->jobid);
+	mwarn(errno, "%s: exec task epilogue '%s' failed for rank %u (global %u)"
+	      " of job %u", __func__, taskEpilogue, task->jobRank, task->rank,
+	      step->jobid);
 	exit(-1);
     }
 

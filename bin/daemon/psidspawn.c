@@ -2488,8 +2488,8 @@ int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res)
 	return 0;
     }
 
-    int32_t jobRank = task->rank - res->rankOffset;
-    if (jobRank < res->minRank || jobRank > res->maxRank) {
+    task->jobRank = task->rank - res->rankOffset;
+    if (task->jobRank < res->minRank || task->jobRank > res->maxRank) {
 	PSID_flog("res %d rank %d out of range\n", res->resID, task->rank);
 	return EADDRNOTAVAIL;
     }
@@ -2501,24 +2501,24 @@ int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res)
 
     /* try to fill the CPUset */
     for (uint16_t s = 0; s < res->nLocalSlots; s++) {
-	if (jobRank != res->localSlots[s].rank) continue;
+	if (task->jobRank != res->localSlots[s].rank) continue;
 
 	/* local slot found for rank */
 	memcpy(task->CPUset, res->localSlots[s].CPUset, sizeof(task->CPUset));
 
 	if (!PSCPU_any(task->CPUset, PSCPU_MAX)) {
-	    PSID_flog("res %d rank %d exhausted\n", res->resID, jobRank);
+	    PSID_flog("res %d rank %d exhausted\n", res->resID, task->jobRank);
 	    return EADDRINUSE;
 	}
 
 	PSID_fdbg(PSID_LOG_SPAWN, "res %d rank %d got cores: ...%s\n",
-		  res->resID, jobRank, PSCPU_print_part(task->CPUset, 8));
+		  res->resID, task->jobRank, PSCPU_print_part(task->CPUset, 8));
 	return 0;
     }
 
     /* we missed the resource for the requested rank ?! */
-    PSID_flog("res %d rank %d (global %d) not found\n", res->resID, jobRank,
-	      task->rank);
+    PSID_flog("res %d rank %d (global %d) not found\n", res->resID,
+	      task->jobRank, task->rank);
     return EADDRNOTAVAIL;
 }
 

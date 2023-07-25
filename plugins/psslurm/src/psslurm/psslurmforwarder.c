@@ -458,7 +458,8 @@ int handleForwarderInit(void * data)
 	}
     } else {
 	if (!isPSAdminUser(task->uid, task->gid)) {
-	    flog("rank %i failed to find my step\n", task->rank);
+	    flog("rank %d (global %d) failed to find my step\n", task->jobRank,
+		 task->rank);
 	}
     }
 
@@ -491,7 +492,8 @@ int handleForwarderClientStatus(void * data)
     initFwPtr(task);
     if (!fwStep) {
 	if (!isPSAdminUser(task->uid, task->gid)) {
-	    flog("rank %i failed to find my step\n", task->rank);
+	    flog("rank %d (global %d) failed to find my step\n", task->jobRank,
+		 task->rank);
 	}
 	return IDLE;
     }
@@ -568,9 +570,9 @@ int handleExecClientPrep(void *data)
 	    setgroups(fwStep->gidsLen, fwStep->gids);
 	}
 
-	if (!IO_redirectRank(fwStep, task->rank)) return -1;
+	if (!IO_redirectRank(fwStep, task->jobRank)) return -1;
 
-	setRankEnv(task->rank, fwStep);
+	setRankEnv(task->jobRank, fwStep);
 
 	/* adjust BCast executable name */
 	char *newExe = BCast_adjustExe(task->argv[0], fwStep->jobid,
@@ -583,7 +585,8 @@ int handleExecClientPrep(void *data)
 	}
     } else {
 	if (!isPSAdminUser(task->uid, task->gid)) {
-	    flog("rank %i failed to find my step\n", task->rank);
+	    flog("rank %d (global %d) failed to find my step\n", task->jobRank,
+		 task->rank);
 	}
     }
 
@@ -624,7 +627,8 @@ int handleExecClientUser(void *data)
 	verboseMemPinningOutput(fwStep, task);
     } else {
 	if (!isPSAdminUser(task->uid, task->gid)) {
-	    flog("rank %i failed to find my step\n", task->rank);
+	    flog("rank %d (global %d) failed to find my step\n", task->jobRank,
+		 task->rank);
 	}
     }
 
