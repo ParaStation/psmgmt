@@ -44,6 +44,7 @@ PSresinfo_t *getResinfo(void)
 {
     PSresinfo_t *resinfo = PSitems_getItem(resinfoPool);
     resinfo->creation = time(NULL);
+    resinfo->partHolder = 0;
     resinfo->rankOffset = 0;
     resinfo->minRank = 0;
     resinfo->maxRank = 0;
@@ -160,6 +161,7 @@ static bool relocResinfo(void *item)
 
     /* copy content */
     repl->resID = orig->resID;
+    repl->partHolder = orig->partHolder;
     repl->rankOffset = orig->rankOffset;
     repl->minRank = orig->minRank;
     repl->maxRank = orig->maxRank;
@@ -347,8 +349,10 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getTaskId(&ptr, &spawnerTID);
 
     uint32_t rankOffset = 0;
+    PStask_ID_t partHolderTID = 0;
     if (PSIDnodes_getDmnProtoV(PSC_getID(msg->header.sender)) >= 416) {
 	getUint32(&ptr, &rankOffset);
+	getTaskId(&ptr, &partHolderTID);
     }
 
     /* create reservation info */
@@ -361,6 +365,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* set this early to enable putResinfo(res) to cleanup delayed tasks */
     res->resID = resID;
     res->rankOffset = rankOffset;
+    res->partHolder = partHolderTID;
 
     /* calculate size of one entry in the message */
     size_t entrysize = sizeof(res->entries->node)

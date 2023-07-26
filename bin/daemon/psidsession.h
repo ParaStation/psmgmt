@@ -42,6 +42,7 @@ typedef struct {
     list_t next;               /**< used to put into PSjob_t.resInfos */
     PSrsrvtn_ID_t resID;       /**< unique reservation identifier */
     time_t creation;           /**< creation time of this info item */
+    PStask_ID_t partHolder;    /**< task holding the associated partition part */
     uint32_t rankOffset;       /**< global rank offset for this reservation */
     int32_t minRank;           /**< minimum job rank in this reservation */
     int32_t maxRank;           /**< maximum job rank in this reservation */
