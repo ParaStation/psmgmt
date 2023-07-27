@@ -9,12 +9,13 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <errno.h>
+#include <netinet/in.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
-#include <netinet/in.h>
+#include <sys/socket.h>
 
 #include "list.h"
 #include "psattribute.h"
@@ -26,15 +27,16 @@
 #include "mcast.h"
 #include "rdp.h"
 
-#include "psidutil.h"
 #include "psidcomm.h"
-#include "psidnodes.h"
-#include "psidtask.h"
-#include "psidstatus.h"
-#include "psidpartition.h"
-#include "psidhw.h"
-#include "psidplugin.h"
 #include "psidenv.h"
+#include "psidhook.h"
+#include "psidhw.h"
+#include "psidnodes.h"
+#include "psidpartition.h"
+#include "psidplugin.h"
+#include "psidstatus.h"
+#include "psidtask.h"
+#include "psidutil.h"
 
 #include "psidinfo.h"
 
@@ -124,9 +126,21 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	msg.header.len += strlen(msg.buf)+1;
 	break;
     case PSP_INFO_HOST:
-	*(PSnodes_ID_t *)msg.buf =
-	    PSIDnodes_lookupHost(*(unsigned int *) inmsg->buf);
-	msg.header.len += sizeof(PSnodes_ID_t);
+	;
+	in_addr_t inAddr = *(in_addr_t *) inmsg->buf;
+	PSnodes_ID_t nodeID = PSIDnodes_lookupHost(inAddr);
+	if (!PSC_validNode(nodeID)) {
+	    struct sockaddr_in sin = {
+		.sin_family = AF_INET,
+		.sin_addr.s_addr = inAddr,
+	    };
+	    int ret = PSIDhook_call(PSIDHOOK_SENDER_UNKNOWN, &sin);
+	    if (ret != PSIDHOOK_NOFUNC) {
+		nodeID = PSIDnodes_lookupHost(inAddr);
+	    }
+	}
+	*(PSnodes_ID_t *)msg.buf = nodeID;
+	msg.header.len += sizeof(nodeID);
 	break;
     case PSP_INFO_NODE:
     {
