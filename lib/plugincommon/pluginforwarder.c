@@ -985,8 +985,8 @@ bool startForwarder(Forwarder_Data_t *fw)
 		.dest =fw->pTid,
 		.sender = task->tid,
 		.len = sizeof(msg) },
-	    .error = 0,
-	    .request = task->rank,};
+	    .request = task->rank,
+	    .error = task->jobRank, };
 	/* this message might need to be handled locally */
 	if (PSC_getID(msg.header.dest) == PSC_getMyID()) {
 	    PSID_handleMsg((DDBufferMsg_t *)&msg);

@@ -316,7 +316,7 @@ static int handleAnswer(unsigned int firstRank, int count,
     case PSP_CD_SPAWNSUCCESS:
 	rank = errMsg->request - firstRank;
 	if (rank >= 0 && rank < count) {
-	    errors[rank] = errMsg->error;
+	    errors[rank] = 0; /* no error on success */
 	    if (tids) tids[rank] = answer.header.sender;
 	} else {
 	    PSI_log(-1, "%s: %s from illegal rank %d at node %d\n", __func__,

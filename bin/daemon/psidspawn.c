@@ -3347,7 +3347,7 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
     msg->header.sender = child->tid;
     msg->header.dest = succMsgDest ? succMsgDest : child->ptid;
     msg->request = child->rank;
-    msg->error = 0;
+    msg->error = child->jobRank;
 
     sendMsg(msg);
     return true;

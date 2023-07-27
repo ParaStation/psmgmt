@@ -1996,6 +1996,7 @@ static bool handleSpawnSuccess(DDErrorMsg_t *msg)
     if (getJobIDbyForwarder(msg->header.dest, &forwarder, &jobid, &stepid)) {
 	Step_t *step = Step_findByStepId(jobid, stepid);
 	if (step) {
+	    /* msg->request holds global rank, msg->error holds jobRank */
 	    addTask(&step->remoteTasks, msg->header.sender, forwarder->tid,
 		    forwarder, forwarder->childGroup, msg->request);
 	}
