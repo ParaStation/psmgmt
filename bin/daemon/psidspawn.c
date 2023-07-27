@@ -1647,38 +1647,40 @@ static int clearMemPendCRR(void *info)
 /**
  * @brief Send a PSP_DD_CHILDRESREL message
  *
- * Send a message of type PSP_DD_CHILDRESREL to the logger with task
- * ID @a logger concerning the set of HW-threads @a set being part of
- * the reservation with ID @a resID. This will release the now unused
- * resources and enable them to be reused. The task ID @a sender will
- * act as the messenger reporting the released resources.
+ * Send a message of type PSP_DD_CHILDRESREL to a partition
+ * holder. The partition is determined from the reservation that is
+ * used by the task @a task. @a task also determines the HW-threads to
+ * be reported to the partition holder.
+ *
+ * This will release the now unused resources and enable them to be
+ * reused. The task ID @a sender will act as the messenger reporting
+ * the released resources.
  *
  * Unless the flag @a combine is set, this message will be sent
  * immediately. If @a combine is set, it is tried to merge subsequent
  * calls to this function to reduce the total number of messages sent
- * to @a logger and to limit the effort on the receiving side.
+ * to the partition holder and to limit the effort on the receiving
+ * side.
  *
  * The strategy applied is as follows:
  *
- * - Identify a pending messages to @a logger concerning @a resID and
- *   merge the new request. Send the message if no further requests
- *   are expected for this combination
+ * - Identify a pending messages to the partition holder concerning
+ *   the reservation used by @a task and merge the new request. Send
+ *   the message if no further requests are expected for this
+ *   combination
  *
- * - If no pending message was found and the logger is capable to
- *   receive combined requests (i.e. its PSDaemonProtocolVersion is at
- *   least 414), identify the maximum number of expected requests for
- *   the combination of @a logger and @a resID (i.e. number of
- *   processes in managedTasks for this combination) and created a
- *   pending message; otherwise send the message immediately
+ * - If no pending message was found and the partition holder is
+ *   capable to receive combined requests (i.e. its
+ *   PSDaemonProtocolVersion is at least 414), identify the maximum
+ *   number of expected requests for the combination of partition
+ *   holder and the reservation used by @a task (i.e. number of tasks
+ *   in managedTasks for this combination) and created a pending
+ *   message if necessary; otherwise send the message immediately
  *
  * - From time to time (i.e. in the loop-action) send all pending
  *   messages via @ref sendAllPendCRR()
  *
- * @param logger Destination of the message to send
- *
- * @param resID Reservation the to be release HW-threads were part of
- *
- * @param set Set of HW-threads to be released
+ * @param task Task describing resources to report, destination, etc.
  *
  * @param sender Messenger reporting about the resources to be released
  *
@@ -1686,68 +1688,95 @@ static int clearMemPendCRR(void *info)
  *
  * @return No return value
  */
-static void sendCHILDRESREL(PStask_ID_t logger, PSrsrvtn_ID_t resID,
-			    PSCPU_set_t set, PStask_ID_t sender, bool combine)
+static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
 {
-    DDBufferMsg_t resRelMsg = {
+    if (!task || task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
+	|| task->group == TG_ADMINTASK || task->group == TG_KVS
+	|| task->group == TG_PLUGINFW) {
+	PSID_fdbg(PSID_LOG_PART, "nothing to send for task %s from %s\n",
+		  task ? PStask_printGrp(task->group) : "(none)",
+		  PSC_printTID(sender));
+	return;
+    }
+
+    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()));
+    if (!PSCPU_any(task->CPUset, nBytes * 8)) {
+	PSID_fdbg(PSID_LOG_PART, "no HW threads to send in task %s",
+		  PSC_printTID(task->tid));
+	PSID_log(PSID_LOG_PART, " from %s\n", PSC_printTID(sender));
+	return;
+    }
+
+    PStask_ID_t dest = task->loggertid;
+    PSresinfo_t *res = PSID_findResInfo(task->loggertid, task->spawnertid,
+					task->resID);
+    if (!res) {
+	PSID_flog("no reservation %#x (job %s", task->resID,
+		  PSC_printTID(task->spawnertid));
+	PSID_log(-1, " session %s)", PSC_printTID(task->spawnertid));
+	PSID_log(-1, " for task %s\n", PSC_printTID(task->tid));
+    }
+    if (res && res->partHolder) dest = res->partHolder;
+
+
+    DDBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_DD_CHILDRESREL,
-	    .dest = logger,
+	    .dest = dest,
 	    .sender = sender,
-	    .len = 0 },
-	.buf = { 0 } };
-    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()));
+	    .len = 0 } };
 
-    if (PSIDnodes_getDmnProtoV(PSC_getID(logger)) < 414) {
+    if (PSIDnodes_getDmnProtoV(PSC_getID(dest)) < 414) {
 	/* keep compatibility with older daemons */
-	PSP_putMsgBuf(&resRelMsg, "nBytes", &nBytes, sizeof(nBytes));
-	PSP_putMsgBuf(&resRelMsg, "CPUset", set, nBytes);
+	PSP_putMsgBuf(&msg, "nBytes", &nBytes, sizeof(nBytes));
+	PSP_putMsgBuf(&msg, "CPUset", task->CPUset, nBytes);
     } else if (combine) {
-	PendCRR_t *crr = findPendCRR(logger, resID);
+	PendCRR_t *crr = findPendCRR(dest, task->resID);
 	if (!crr) {
 	    crr = newPendCRR();
 	    if (!crr) {
-		PSID_warn(-1, ENOMEM, "%s: newPendCRR(%s, %d)", __func__,
-			  PSC_printTID(logger), resID);
+		PSID_warn(-1, ENOMEM, "%s: newPendCRR(%s, %#x)", __func__,
+			  PSC_printTID(dest), task->resID);
 		return;
 	    }
 
-	    crr->dest = logger;
-	    crr->resID = resID;
+	    crr->dest = dest;
+	    crr->resID = task->resID;
 	    crr->sender = sender;
 	    /* determine total number of calls expected */
 	    crr->pendSlots = 1; // this call
 	    list_t *t;
 	    list_for_each(t, &managedTasks) {
-		PStask_t *task = list_entry(t, PStask_t, next);
-		if (task->deleted || task->group == TG_FORWARDER) continue;
-		if (task->loggertid != logger || task->resID != resID) continue;
-		if (!PSCPU_any(task->CPUset, nBytes * 8)) continue;
+		PStask_t *thisT = list_entry(t, PStask_t, next);
+		if (thisT->deleted || thisT->group == TG_FORWARDER) continue;
+		if (thisT->loggertid != task->loggertid
+		    || thisT->resID != task->resID) continue;
+		if (!PSCPU_any(thisT->CPUset, nBytes * 8)) continue;
 		crr->pendSlots++;
 	    }
-	    PSID_log(PSID_LOG_PART, "%s: miss %d\n", __func__, crr->pendSlots);
+	    PSID_fdbg(PSID_LOG_PART, "miss %d\n", crr->pendSlots);
 	    list_add_tail(&crr->next, &pendCRRList);
 	}
 
 	/* fit this call into crr */
 	uint16_t s = 0;
 	while (s < NUM_CPUSETS
-	       && PSCPU_overlap(set, crr->sets[s], 8 * nBytes)) s++;
+	       && PSCPU_overlap(task->CPUset, crr->sets[s], 8 * nBytes)) s++;
 	if (s == NUM_CPUSETS) {
 	    /* no space for this call => send now and reset */
-	    PSID_log(PSID_LOG_PART, "%s: no sets left\n", __func__);
+	    PSID_fdbg(PSID_LOG_PART, "no sets left\n");
 	    sendPendCRR(crr);
 	    /* reset crr */
 	    for (s = 0; s < NUM_CPUSETS; s++) PSCPU_clrAll(crr->sets[s]);
 	    crr->numSlots = 0;
 	    s = 0;
 	}
-	PSCPU_addCPUs(crr->sets[s], set);
+	PSCPU_addCPUs(crr->sets[s], task->CPUset);
 	crr->numSlots++;
 	crr->pendSlots--;
 	if (!crr->pendSlots) {
 	    /* all slots included => lets send */
-	    PSID_log(PSID_LOG_PART, "%s: pending slots filled\n", __func__);
+	    PSID_fdbg(PSID_LOG_PART, "pending slots filled\n");
 	    sendPendCRR(crr);
 	    list_del(&crr->next);
 	    delPendCRR(crr);
@@ -1755,18 +1784,19 @@ static void sendCHILDRESREL(PStask_ID_t logger, PSrsrvtn_ID_t resID,
 	return;
     } else {
 	/* send message immediately */
-	PSP_putMsgBuf(&resRelMsg, "nBytes", &nBytes, sizeof(nBytes));
-	PSP_putMsgBuf(&resRelMsg, "CPUset", set, nBytes);
+	PSP_putMsgBuf(&msg, "nBytes", &nBytes, sizeof(nBytes));
+	PSP_putMsgBuf(&msg, "CPUset", task->CPUset, nBytes);
 	uint16_t one = 1;
-	PSP_putMsgBuf(&resRelMsg, "numSlots", &one, sizeof(one));
-	PSP_putMsgBuf(&resRelMsg, "resID", &resID, sizeof(resID));
+	PSP_putMsgBuf(&msg, "numSlots", &one, sizeof(one));
+	PSP_putMsgBuf(&msg, "resID", &task->resID, sizeof(task->resID));
     }
-    PSID_log(PSID_LOG_PART, "%s: PSP_DD_CHILDRESREL to %s with CPUs %s of",
-	     __func__, PSC_printTID(logger), PSCPU_print_part(set, nBytes));
-    PSID_log(PSID_LOG_PART, " res %d from %s\n", resID, PSC_printTID(sender));
+    PSID_fdbg(PSID_LOG_PART, "PSP_DD_CHILDRESREL to %s with CPUs %s of",
+	      PSC_printTID(dest), PSCPU_print_part(task->CPUset, nBytes));
+    PSID_log(PSID_LOG_PART, " res %#x from %s\n", task->resID,
+	     PSC_printTID(sender));
 
-    if (sendMsg(&resRelMsg) < 0) {
-	PSID_warn(-1, errno, "%s: sendMsg(%s)", __func__, PSC_printTID(logger));
+    if (sendMsg(&msg) < 0) {
+	PSID_warn(-1, errno, "%s: sendMsg(%s)", __func__, PSC_printTID(dest));
     }
 }
 
@@ -2161,13 +2191,8 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     }
 
     if (msg->type == PSP_SPAWN_END) {
-	PStask_ID_t loggerTID = task->loggertid;
-	PSrsrvtn_ID_t resID = task->resID;
-	PSCPU_set_t CPUset;
-	PSCPU_copy(CPUset, task->CPUset);
-
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
+	PSID_fdbg(PSID_LOG_SPAWN, "Spawning %s\n", tasktxt);
 
 	PStasklist_dequeue(task);
 	if (task->deleted) {
@@ -2179,7 +2204,7 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	if (answer.error) {
 	    /* send only on failure. success reported by forwarder */
 	    sendMsg(&answer);
-	    sendCHILDRESREL(loggerTID, resID, CPUset, PSC_getMyTID(), false);
+	    sendCHILDRESREL(task, PSC_getMyTID(), false);
 
 	    PStask_delete(task);
 	}
@@ -2620,16 +2645,10 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    }
 	}
 
-	// Now clone might be used for actual spawn
-	// Save some data since clone will disappear if spawnTask() fails
-	PStask_ID_t loggerTID = clone->loggertid;
-	PSrsrvtn_ID_t resID = clone->resID;
-	PSCPU_set_t CPUset;
-	PSCPU_copy(CPUset, clone->CPUset);
-
+	/* Now clone might be used for actual spawn */
 	char tasktxt[256];
 	PStask_snprintf(tasktxt, sizeof(tasktxt), clone);
-	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
+	PSID_fdbg(PSID_LOG_SPAWN, "Spawning %s\n", tasktxt);
 
 	if (clone->delayReasons) {
 	    /* PSIDHOOK_RECV_SPAWNREQ may delay spawning */
@@ -2641,7 +2660,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	if (answer.error) {
 	    /* send only on failure. success reported by forwarder */
 	    sendMsg(&answer);
-	    sendCHILDRESREL(loggerTID, resID, CPUset, PSC_getMyTID(), false);
+	    sendCHILDRESREL(clone, PSC_getMyTID(), false);
 
 	    PStask_delete(clone);
 	}
@@ -2953,7 +2972,10 @@ void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info)
     list_t *t, *tmp;
     list_for_each_safe(t, tmp, &delayedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
-	char tasktxt[128];
+	if (task->deleted) continue;
+	if (filter && !filter(task, info)) continue;
+	if (task->delayReasons) continue;
+
 	DDErrorMsg_t answer = {
 	    .header = {
 		.type = PSP_CD_SPAWNFAILED,
@@ -2962,17 +2984,10 @@ void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info)
 		.len = sizeof(answer) },
 	    .error = 0,
 	    .request = task->rank};
-	PStask_ID_t loggerTID = task->loggertid;
-	PSrsrvtn_ID_t resID = task->resID;
-	PSCPU_set_t CPUset;
-	PSCPU_copy(CPUset, task->CPUset);
 
-	if (task->deleted) continue;
-	if (filter && !filter(task, info)) continue;
-	if (task->delayReasons) continue;
-
+	char tasktxt[256];
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
+	PSID_fdbg(PSID_LOG_SPAWN, "Spawning %s\n", tasktxt);
 
 	PStasklist_dequeue(task);
 	answer.error = spawnTask(task);
@@ -2980,7 +2995,7 @@ void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info)
 	if (answer.error) {
 	    /* send only on failure. success reported by forwarder */
 	    sendMsg(&answer);
-	    sendCHILDRESREL(loggerTID, resID, CPUset, PSC_getMyTID(), false);
+	    sendCHILDRESREL(task, PSC_getMyTID(), false);
 
 	    PStask_delete(task);
 	}
@@ -3029,6 +3044,7 @@ void PSIDspawn_cleanupBySpawner(PStask_ID_t tid)
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (task->deleted) continue;
 	if (task->tid != tid) continue;
+
 	DDErrorMsg_t answer = {
 	    .header = {
 		.type = PSP_CD_SPAWNFAILED,
@@ -3037,14 +3053,12 @@ void PSIDspawn_cleanupBySpawner(PStask_ID_t tid)
 		.len = sizeof(answer) },
 	    .error = ECHILD,
 	    .request = task->rank};
+
 	task->deleted = true;
 	sendMsg(&answer);
 	if (PSCPU_any(task->CPUset, PSCPU_MAX)) {
-	    PSCPU_set_t CPUset;
-	    PSCPU_copy(CPUset, task->CPUset);
+	    sendCHILDRESREL(task, PSC_getMyTID(), true);
 	    PSCPU_clrAll(task->CPUset);
-	    sendCHILDRESREL(task->loggertid, task->resID,
-			    CPUset, PSC_getMyTID(), true);
 	}
     }
 }
@@ -3149,16 +3163,14 @@ static bool msg_SPAWNFAILED(DDErrorMsg_t *msg)
 	     PSC_printTID(msg->header.dest));
 
     if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
-	/* Forwader will disappear immediately, release it. */
+	/* Forwarder will disappear immediately, release it. */
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 
 	if (!task) {
-	    PSID_log(-1, "%s: task %s not found\n", __func__,
-		     PSC_printTID(msg->header.sender));
+	    PSID_flog("task %s not found\n", PSC_printTID(msg->header.sender));
 	} else {
 	    task->released = true;
-	    sendCHILDRESREL(task->loggertid, task->resID,
-			    task->CPUset, msg->header.sender, false);
+	    sendCHILDRESREL(task, msg->header.sender, false);
 	    PSIDclient_delete(task->fd);
 	}
     }
@@ -3249,8 +3261,7 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
 	msg->error = ENOMEM;
 	msg->request = forwarder->rank;
 	sendMsg(msg);
-	sendCHILDRESREL(forwarder->loggertid, forwarder->resID,
-			forwarder->CPUset, PSC_getMyTID(), false);
+	sendCHILDRESREL(forwarder, PSC_getMyTID(), false);
 
 	return true;
     }
@@ -3477,16 +3488,9 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 		 PSC_printTID(msg->header.sender));
 	PSID_log(-1, " %s any more\n", PSC_printTID(msg->request));
     } else {
-	if (task->group != TG_SERVICE && task->group != TG_SERVICE_SIG
-	    && task->group != TG_ADMINTASK && task->group != TG_KVS
-	    && task->group != TG_PLUGINFW) {
-	    /** Create and send PSP_DD_CHILDRESREL message */
-	    PSCPU_set_t CPUset;
-	    PSCPU_copy(CPUset, task->CPUset);
-	    PSCPU_clrAll(task->CPUset);
-	    sendCHILDRESREL(task->loggertid, task->resID,
-			    CPUset, msg->request, true);
-	}
+	/** Create and send PSP_DD_CHILDRESREL message */
+	sendCHILDRESREL(task, msg->request, true);
+	PSCPU_clrAll(task->CPUset);
 
 	/* Prepare CHILDDEAD msg here. Task might be removed in next step */
 	if (!task->released) {
