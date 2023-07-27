@@ -1541,8 +1541,6 @@ static int spawnTask(PStask_t *task)
 	incJobs(1, 0);
     } else {
 	PSID_warn(PSID_LOG_SPAWN, err, "%s: buildSandboxAndStart()", __func__);
-
-	PStask_delete(task);
     }
 
     return err;
@@ -2184,6 +2182,8 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    /* send only on failure. success reported by forwarder */
 	    sendMsg(&answer);
 	    sendCHILDRESREL(loggerTID, resID, CPUset, PSC_getMyTID(), false);
+
+	    PStask_delete(task);
 	}
     }
     return true;
@@ -2644,6 +2644,8 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    /* send only on failure. success reported by forwarder */
 	    sendMsg(&answer);
 	    sendCHILDRESREL(loggerTID, resID, CPUset, PSC_getMyTID(), false);
+
+	    PStask_delete(clone);
 	}
     }
 
@@ -2981,6 +2983,8 @@ void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info)
 	    /* send only on failure. success reported by forwarder */
 	    sendMsg(&answer);
 	    sendCHILDRESREL(loggerTID, resID, CPUset, PSC_getMyTID(), false);
+
+	    PStask_delete(task);
 	}
     }
 }
