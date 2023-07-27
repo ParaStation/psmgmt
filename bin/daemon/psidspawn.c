@@ -1551,7 +1551,7 @@ static int spawnTask(PStask_t *task)
 /** Structure to store information on pending PSP_DD_CHILDRESREL messages */
 typedef struct {
     list_t next;         /**< used to put into reservation-lists */
-    PStask_ID_t logger;  /**< logger task ID of this pending release message */
+    PStask_ID_t dest;    /**< destination task ID of this pending message */
     PSrsrvtn_ID_t resID; /**< reservation ID of this pending release message */
     PStask_ID_t sender;  /**< sender task ID to send this pending message */
     int16_t pendSlots;   /**< number of slots missing until (full) send */
@@ -1577,12 +1577,12 @@ static void delPendCRR(PendCRR_t *crr)
     free(crr);
 }
 
-static PendCRR_t *findPendCRR(PStask_ID_t logger, PSrsrvtn_ID_t resID)
+static PendCRR_t *findPendCRR(PStask_ID_t dest, PSrsrvtn_ID_t resID)
 {
     list_t *c;
     list_for_each(c, &pendCRRList) {
 	PendCRR_t * crr = list_entry(c, PendCRR_t, next);
-	if (crr->logger == logger && crr->resID == resID) return crr;
+	if (crr->dest == dest && crr->resID == resID) return crr;
     }
     return NULL;
 }
@@ -1594,10 +1594,9 @@ static void sendPendCRR(PendCRR_t *crr)
     DDBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_DD_CHILDRESREL,
-	    .dest = crr->logger,
+	    .dest = crr->dest,
 	    .sender = crr->sender,
-	    .len = 0 },
-	.buf = { 0 } };
+	    .len = 0 } };
     uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()));
 
     PSP_putMsgBuf(&msg, "nBytes", &nBytes, sizeof(nBytes));
@@ -1612,14 +1611,13 @@ static void sendPendCRR(PendCRR_t *crr)
 	nCPUs += PSCPU_getCPUs(crr->sets[s], NULL, nBytes * 8);
     }
 
-    PSID_log(PSID_LOG_PART, "%s(%s): %d CPUs in %d slots of res %#x in %d sets",
-	     __func__, PSC_printTID(crr->logger), nCPUs, crr->numSlots,
-	     crr->resID, s);
+    PSID_fdbg(PSID_LOG_PART, "%d CPUs in %d slots of res %#x in %d sets to %s",
+	      nCPUs, crr->numSlots, crr->resID, s, PSC_printTID(crr->dest));
     PSID_log(PSID_LOG_PART, " from %s (%d pending)\n",
 	     PSC_printTID(crr->sender), crr->pendSlots);
     if (sendMsg(&msg) < 0) {
 	PSID_warn(-1, errno, "%s: sendMsg(%s)", __func__,
-		  PSC_printTID(crr->logger));
+		  PSC_printTID(crr->dest));
     }
 }
 
@@ -1714,7 +1712,7 @@ static void sendCHILDRESREL(PStask_ID_t logger, PSrsrvtn_ID_t resID,
 		return;
 	    }
 
-	    crr->logger = logger;
+	    crr->dest = logger;
 	    crr->resID = resID;
 	    crr->sender = sender;
 	    /* determine total number of calls expected */
