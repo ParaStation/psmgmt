@@ -43,7 +43,7 @@ if [ "$CGROUP_VERSION" == "v2" ]; then
     BASE="$CGROUP_BASE/$PREFIX-$PSID_PID"
     CG_USER="$BASE/$USER"
     CG_JOB="$CG_USER/job-$JOBID"
-    CG_STEP="$CG_JOB/step-$JOBID:$STEPID"
+    CG_STEP="$CG_JOB/step-$STEPID"
 fi
 
 for modName in ${MODULES//,/$IFS}; do
