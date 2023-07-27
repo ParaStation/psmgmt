@@ -1,6 +1,6 @@
 CFLAGS = -Wall
 
-TARGETS =  getSizes putGet
+TARGETS =  getSizes putGet log
 
 all: $(TARGETS)
 
