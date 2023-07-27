@@ -147,34 +147,37 @@ void loadBPF(void)
     struct bpf_object *obj;
     if (bpf_prog_load(bpfProg, BPF_PROG_TYPE_CGROUP_DEVICE, &obj,
 	&prog_fd) != 0) {
-        fprintf(stderr, "Failed to load BPF program %s\n", bpfProg);
+        fprintf(stderr, "Failed to load BPF program %s: %s\n", bpfProg,
+		strerror(errno));
 	exit(1);
     }
 
     /* open BPF map */
     struct bpf_map *map = bpf_object__find_map_by_name(obj, "device_map");
     if (!map) {
-	fprintf(stderr, "BPF device_map not found\n");
+	fprintf(stderr, "open BPF device_map failed: %s\n", strerror(errno));
 	exit(1);
     }
 
     mapFD = bpf_map__fd(map);
     if (mapFD < 0) {
-        fprintf(stderr, "Failed to get file descriptor for BPF map\n");
+        fprintf(stderr, "Failed to get file descriptor for BPF map: %s\n",
+		strerror(errno));
 	exit(1);
     }
 
     /* attach BPF prog to cgroup */
     int cgroup_fd = open(attachPath, O_DIRECTORY);
     if (cgroup_fd < 0) {
-        fprintf(stderr, "Failed to open cgroup %s\n", attachPath);
+        fprintf(stderr, "Failed to open cgroup %s: %s\n", attachPath,
+		strerror(errno));
 	exit(1);
     }
 
     int ret = bpf_prog_attach(prog_fd, cgroup_fd, BPF_CGROUP_DEVICE, 0);
     if (ret < 0) {
-        fprintf(stderr, "Failed to attach BPF program to cgroup %s\n",
-		attachPath);
+        fprintf(stderr, "Failed to attach BPF program to cgroup %s: %s\n",
+		attachPath, strerror(errno));
 	exit(1);
     }
 
@@ -223,7 +226,8 @@ static void reopenMap()
     snprintf(pinPath, sizeof(pinPath), "%s/%s_map", BPF_PSID_PATH, progID);
     mapFD = bpf_obj_get(pinPath);
     if (mapFD == -1) {
-	fprintf(stderr, "Failed to open map %s\n", pinPath);
+	fprintf(stderr, "Failed to open map %s: %s\n", pinPath,
+		strerror(errno));
 	exit(1);
     }
 }
