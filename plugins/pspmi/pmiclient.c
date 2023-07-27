@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2144,7 +2144,7 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_SERVICE_RANK=%i",
-	     serviceRank - 2);
+	     serviceRank - 3);
     strvAdd(&env, ustrdup(buffer));
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 

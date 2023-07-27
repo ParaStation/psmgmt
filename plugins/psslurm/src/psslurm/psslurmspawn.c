@@ -278,7 +278,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     envSet(&newenv, "__PSSLURM_SPAWN_PTID", nStr);
     snprintf(nStr, sizeof(nStr), "%d", task->loggertid);
     envSet(&newenv, "__PSSLURM_SPAWN_LTID", nStr);
-    snprintf(nStr, sizeof(nStr), "%d", task->rank);
+    snprintf(nStr, sizeof(nStr), "%d", task->rank - 1);
     envSet(&newenv, "__PSSLURM_SPAWN_RANK", nStr);
 
     /* XXX: Do we need to set further variables as in setRankEnv()
