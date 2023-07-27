@@ -96,7 +96,7 @@ int resolveUnknownNode(void *id)
     PSnodes_ID_t nodeID = *(PSnodes_ID_t *)id;
     const char *host = PSIDnodes_getHostname(nodeID);
     if (!host) {
-	flog("get hostname for node ID %u failed", nodeID);
+	flog("get hostname for node ID %u failed\n", nodeID);
 	return 0;
     }
 
@@ -104,7 +104,7 @@ int resolveUnknownNode(void *id)
 
     int rc = PSC_traverseHostInfo(host, nodeVisitor, &nodeID, NULL);
     if (rc) {
-	flog("getaddrinfo(%s) failed: %s", host, gai_strerror(rc));
+	flog("getaddrinfo(%s) failed: %s\n", host, gai_strerror(rc));
     }
 
     return 0;
