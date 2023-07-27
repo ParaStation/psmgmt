@@ -12,6 +12,7 @@
 #include "psidcomm.h"
 
 #include <errno.h>
+#include <netinet/in.h>
 #include <stdio.h>
 
 #include "list.h"
