@@ -5594,6 +5594,8 @@ void PSIDpart_register(PStask_t *task, PSpart_HWThread_t *threads, uint32_t num)
     /* extend (or create) partition */
     PSpart_slot_t *bak = task->partition;
 
+    PSID_fdbg(PSID_LOG_PART, "add %d slots to %s partition of size %d\n",
+	      numSlots, PSC_printTID(task->tid), task->partitionSize);
     task->partitionSize += numSlots;
     task->partition = realloc(task->partition,
 			      task->partitionSize * sizeof(*task->partition));
