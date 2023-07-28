@@ -20,13 +20,14 @@
 
 typedef struct {
     list_t next;                /**< used to put into some task-lists */
-    PStask_ID_t childTID;	/** PS task ID of the child */
-    PStask_ID_t forwarderTID;	/** PS task ID of the psidforwarder */
-    PStask_t *forwarder;	/** PS task structure of the psidforwarder */
-    PStask_group_t childGroup;	/** PS task group of the child */
-    int32_t childRank;		/** PS child rank */
-    int exitCode;		/** exit code of the child */
-    bool sentExit;		/** track the sending of the exit status */
+    PStask_ID_t childTID;	/**< PS task ID of the child */
+    PStask_ID_t forwarderTID;	/**< PS task ID of the psidforwarder */
+    PStask_t *forwarder;	/**< PS task structure of the psidforwarder */
+    PStask_group_t childGroup;	/**< PS task group of the child */
+    int32_t jobRank;            /**< PS rank w/in job (tasks w/ same spawner) */
+    int32_t globalRank;		/**< PS rank */
+    int exitCode;		/**< exit code of the child */
+    bool sentExit;		/**< track the sending of the exit status */
 } PS_Tasks_t;
 
 /**
@@ -42,13 +43,16 @@ typedef struct {
  *
  * @param childGroup The PS task group of the child
  *
- * @param childRank The PS child rank
+ * @param jobRank The PS job rank, i.e. within task with same spawner
+ *
+ * @param globalRank The PS global rank, i.e. within task with same logger
  *
  * @return Returns a pointer to the added task
  */
 PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
 		    PStask_ID_t forwarderTID, PStask_t *forwarder,
-		    PStask_group_t childGroup, int32_t rank);
+		    PStask_group_t childGroup,
+		    int32_t jobRank, int32_t globalRank);
 
 /**
  * @brief Signal a list of tasks
@@ -112,7 +116,7 @@ int killChild(pid_t pid, int signal, uid_t uid);
  *
  * @return Returns the found task or NULL on error
  */
-PS_Tasks_t *findTaskByRank(list_t *taskList, int32_t rank);
+PS_Tasks_t *findTaskByJobRank(list_t *taskList, int32_t rank);
 
 /**
  * @brief Find a task identified by its forwarders TID

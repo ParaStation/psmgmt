@@ -226,9 +226,9 @@ static bool addTaskInfo(Step_t *step, const void *info)
 	snprintf(line, sizeof(line), "child %s ", PSC_printTID(task->childTID));
 	addStrBuf(line, strBuf);
 
-	snprintf(line, sizeof(line), "forwarder %s rank %i exit %i sent "
-		 "exit %u\n", PSC_printTID(task->forwarderTID), task->childRank,
-		 task->exitCode, task->sentExit);
+	snprintf(line, sizeof(line), "forwarder %s jobRank %i globalRank %i"
+		 " exit %i sent exit %u\n", PSC_printTID(task->forwarderTID),
+		 task->jobRank, task->globalRank, task->exitCode, task->sentExit);
 	addStrBuf(line, strBuf);
     }
 

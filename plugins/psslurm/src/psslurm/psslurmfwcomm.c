@@ -66,9 +66,9 @@ static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
     PS_Tasks_t *task = getDataM(&ptr, NULL);
     list_add_tail(&task->next, &step->tasks);
 
-    fdbg(PSSLURM_LOG_PROCESS, "%s child %s rank %i task %u from %u\n",
-	 Step_strID(step), PSC_printTID(task->childTID), task->childRank,
-	 countRegTasks(step->tasks.next),
+    fdbg(PSSLURM_LOG_PROCESS, "%s child %s job rank %d global rank %d task %u"
+	 " from %u\n", Step_strID(step), PSC_printTID(task->childTID),
+	 task->jobRank, task->globalRank, countRegTasks(step->tasks.next),
 	 step->globalTaskIdsLen[step->localNodeId]);
 
     if (step->globalTaskIdsLen[step->localNodeId] ==

@@ -23,7 +23,8 @@
 
 PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
 		    PStask_ID_t forwarderTID, PStask_t *forwarder,
-		    PStask_group_t childGroup, int32_t rank)
+		    PStask_group_t childGroup,
+		    int32_t jobRank, int32_t globalRank)
 {
     PS_Tasks_t *task = ucalloc(sizeof(*task));
 
@@ -31,13 +32,15 @@ PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
     task->forwarderTID = forwarderTID;
     task->forwarder = forwarder;
     task->childGroup = childGroup;
-    task->childRank = rank;
+    task->jobRank = jobRank;
+    task->globalRank = globalRank;
     task->exitCode = 0;
     task->sentExit = 0;
 
     fdbg(PSSLURM_LOG_PROCESS, "childTID %s ", PSC_printTID(childTID));
-    mdbg(PSSLURM_LOG_PROCESS, "forwarderTID %s childGroup %i rank %i\n",
-	 PSC_printTID(forwarderTID), childGroup, rank);
+    mdbg(PSSLURM_LOG_PROCESS, "forwarderTID %s childGroup %i jobRank %d"
+	 " globalRank %d\n", PSC_printTID(forwarderTID), childGroup, jobRank,
+	globalRank);
 
     list_add_tail(&task->next, list);
 
@@ -61,13 +64,13 @@ void clearTasks(list_t *taskList)
     }
 }
 
-PS_Tasks_t *findTaskByRank(list_t *taskList, int32_t rank)
+PS_Tasks_t *findTaskByJobRank(list_t *taskList, int32_t rank)
 {
     if (!taskList) return NULL;
     list_t *t;
     list_for_each(t, taskList) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	if (task->childRank == rank) return task;
+	if (task->jobRank == rank) return task;
     }
     return NULL;
 }
@@ -122,7 +125,7 @@ unsigned int countRegTasks(list_t *taskList)
     if (!taskList) return 0;
     list_for_each(t, taskList) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	if (task->childRank < 0) continue;
+	if (task->jobRank < 0) continue;
 	count++;
     }
     return count;
@@ -157,7 +160,7 @@ int __signalTasks(uint32_t jobid, uint32_t stepid, uid_t uid, list_t *taskList,
 		&& child->forwarder->tid == task->forwarderTID
 		&& child->uid == uid) {
 		fdbg(PSSLURM_LOG_PROCESS, "(%s:%i) rank %i/%i kill(%i) "
-		     "signal %i group %i %s\n", caller, line, task->childRank,
+		     "signal %i group %i %s\n", caller, line, task->jobRank,
 		     child->rank, PSC_getPID(child->tid), signal, child->group,
 		     Step_strID(&s));
 		PSID_kill(PSC_getPID(child->tid), signal, child->uid);

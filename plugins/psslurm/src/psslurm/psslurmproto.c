@@ -881,7 +881,7 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg)
     list_t *t;
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	if (task->childRank >= 0) {
+	if (task->globalRank >= 0) {
 	    countPIDS++;
 	    addUint32ToMsg(PSC_getPID(task->childTID), reply);
 	}
@@ -3297,7 +3297,7 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     list_t *t;
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	if (task->sentExit || task->childRank < 0) continue;
+	if (task->sentExit || task->jobRank < 0) continue;
 	if (task->exitCode == exitCode) {
 	    msg.exitCount++;
 	}
@@ -3314,13 +3314,13 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     uint32_t exitCount2 = 0;
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	if (task->sentExit || task->childRank < 0) continue;
+	if (task->sentExit || task->jobRank < 0) continue;
 	if (task->exitCode == exitCode) {
-	    msg.taskRanks[exitCount2++] = task->childRank;
+	    msg.taskRanks[exitCount2++] = task->jobRank;
 	    task->sentExit = 1;
 	    /*
-	    mlog("%s: tasks childRank:%i exit:%i exitCount:%i\n", __func__,
-		    task->childRank, task->exitCode, msg.exitCount);
+	    mlog("%s: tasks jobRank:%i exit:%i exitCount:%i\n", __func__,
+		    task->jobRank, task->exitCode, msg.exitCount);
 	    */
 	}
     }
@@ -3377,8 +3377,9 @@ static void addMissingTasks(Step_t *step)
 {
     for (uint32_t i = 0; i < step->globalTaskIdsLen[step->localNodeId]; i++) {
 	int32_t rank = step->globalTaskIds[step->localNodeId][i];
-	if (!findTaskByRank(&step->tasks, rank)) {
-	    PS_Tasks_t *task = addTask(&step->tasks, -1, -1, NULL, TG_ANY, rank);
+	if (!findTaskByJobRank(&step->tasks, rank)) {
+	    PS_Tasks_t *task = addTask(&step->tasks, -1, -1, NULL, TG_ANY, rank,
+				       rank /* no handle on global rank */);
 	    task->exitCode = -1;
 	}
     }
@@ -3400,7 +3401,7 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 	list_t *t;
 	list_for_each(t, &step->tasks) {
 	    PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	    if (task->childRank < 0) continue;
+	    if (task->jobRank < 0) continue;
 	    if (!task->sentExit) {
 		exitCode = task->exitCode;
 		break;
@@ -3491,7 +3492,7 @@ void sendTaskPids(Step_t *step)
     /* count of PIDs */
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	if (task->childRank < 0) continue;
+	if (task->jobRank < 0) continue;
 	countPIDs++;
     }
     resp.countPIDs = countPIDs;
@@ -3501,7 +3502,7 @@ void sendTaskPids(Step_t *step)
 
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	if (task->childRank < 0) continue;
+	if (task->jobRank < 0) continue;
 	if (countLocalPIDs >=countPIDs) break;
 	resp.localPIDs[countLocalPIDs++] = PSC_getPID(task->childTID);
     }
@@ -3512,9 +3513,9 @@ void sendTaskPids(Step_t *step)
 
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	if (task->childRank < 0) continue;
+	if (task->jobRank < 0) continue;
 	if (countGTIDs >=countPIDs) break;
-	resp.globalTIDs[countGTIDs++] = task->childRank;
+	resp.globalTIDs[countGTIDs++] = task->jobRank;
     }
     resp.countGlobalTIDs = countGTIDs;
 

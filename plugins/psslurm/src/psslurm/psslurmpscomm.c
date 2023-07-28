@@ -1835,7 +1835,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 	if (step && step->state != JOB_COMPLETE && step->state != JOB_EXIT) {
 	    PS_Tasks_t *task = findTaskByFwd(&step->tasks, msg->header.dest);
 	    if (task) {
-		if (task->childRank < 0) return;
+		if (task->jobRank < 0) return;
 		step->fwInitCount++;
 
 		if (step->tasksToLaunch[step->localNodeId] ==
@@ -1998,7 +1998,7 @@ static bool handleSpawnSuccess(DDErrorMsg_t *msg)
 	if (step) {
 	    /* msg->request holds global rank, msg->error holds jobRank */
 	    addTask(&step->remoteTasks, msg->header.sender, forwarder->tid,
-		    forwarder, forwarder->childGroup, msg->request);
+		    forwarder, forwarder->childGroup, msg->error, msg->request);
 	}
     }
     return false; // call the old handler if any
@@ -2028,6 +2028,7 @@ static bool handleSpawnFailed(DDErrorMsg_t *msg)
     if (step) {
 	PS_Tasks_t *task = addTask(&step->tasks, msg->request, forwarder->tid,
 				   forwarder, forwarder->childGroup,
+				   forwarder->jobRank - step->packTaskOffset,
 				   forwarder->rank - step->packTaskOffset);
 
 	switch (msg->error) {
@@ -2255,7 +2256,7 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
 	    return false; // fallback to old handler
 	}
 	addTask(&job->tasks, msg->request, forwarder->tid, forwarder,
-		forwarder->childGroup, forwarder->rank);
+		forwarder->childGroup, forwarder->jobRank, forwarder->rank);
     } else {
 	Step_t *step = Step_findByStepId(jobid, stepid);
 	if (!step) {
@@ -2267,6 +2268,7 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
 	}
 	PS_Tasks_t *task = addTask(&step->tasks, msg->request, forwarder->tid,
 				   forwarder, forwarder->childGroup,
+				   forwarder->jobRank - step->packTaskOffset,
 				   forwarder->rank - step->packTaskOffset);
 
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;

@@ -2005,10 +2005,10 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task)
 	snprintf(vStr, sizeof(vStr),
 		 "cpu_bind%s=%s - %s, task %2d %2u [%d]: mask %s%s\n", units,
 		 bind_type, getConfValueC(Config, "SLURM_HOSTNAME"),
-		 task->childRank, getLocalRankID(task->childRank, step),
+		 task->jobRank, getLocalRankID(task->jobRank, step),
 		 pid, printCpuMask(pid), action);
 
-	fwCMD_printMsg(NULL, step, vStr, strlen(vStr), STDERR, task->childRank);
+	fwCMD_printMsg(NULL, step, vStr, strlen(vStr), STDERR, task->jobRank);
     }
 }
 
