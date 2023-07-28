@@ -46,6 +46,8 @@ static int clearMap = 0;
 /* file descriptor of the BPF map */
 static int mapFD = -1;
 
+/* only report errors */
+static int quiet = -1;
 
 /**
  * @brief Ensure argument has the correct device format
@@ -90,6 +92,8 @@ void parseArgs(int argc, const char *argv[]) {
 	  "Show access to devices", NULL },
         { "clear", 'c', POPT_ARG_NONE, &clearMap, 0,
 	  "Cleanup BPF map after use", NULL },
+        { "quiet", 'q', POPT_ARG_NONE, &quiet, 0,
+	  "Be quiet", NULL },
 	POPT_AUTOHELP {NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
 
@@ -144,7 +148,9 @@ void parseArgs(int argc, const char *argv[]) {
  */
 void loadBPF(void)
 {
-    printf("Attaching BPF program %s to %s\n", bpfProg, attachPath);
+    if (!quiet) {
+	printf("Attaching BPF program %s to %s\n", bpfProg, attachPath);
+    }
 
     int prog_fd;
     struct bpf_object *obj;
@@ -201,6 +207,11 @@ void loadBPF(void)
 		strerror(errno));
 	exit(1);
     }
+
+    if (!quiet) {
+	printf("BPF program %s successful attached to %s\n", bpfProg,
+	       attachPath);
+    }
 }
 
 /**
@@ -214,7 +225,10 @@ void updateMap()
 	exit(1);
     }
 
-    printf("Saved access to device %i:%i in map\n", bpfKey.major, bpfKey.minor);
+    if (!quiet) {
+	printf("Saved access to device %i:%i in map\n", bpfKey.major,
+	       bpfKey.minor);
+    }
 }
 
 /**
