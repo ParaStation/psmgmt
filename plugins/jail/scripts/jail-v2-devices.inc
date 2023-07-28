@@ -26,10 +26,20 @@ function loadBPF()
 {
     local BPF_PATH=$1
     local BPF_ID=$2
+
+    local QUIET=""
+    [ "$DEBUG" == "0" ] && QUIET="-q"
     
-    "$BPF_DEVICE_LOADER -l $BPF_DEVICE_PROG -p $BPF_PATH -i $BPF_ID" || {
-	elog "attaching $BPF_DEVICE_PROG to $BPF_PATH failed"
+    "$BPF_DEVICE_LOADER" -s -i "$BPF_ID" "$QUIET" 1>/dev/null 2>&1 && {
+	dlog "skip loading for $BPF_PATH with ID $BPF_ID"
+	return
     }
+
+    "$BPF_DEVICE_LOADER" -l "$BPF_DEVICE_PROG" -p "$BPF_PATH" -i "$BPF_ID" || {
+	elog "attaching $BPF_DEVICE_PROG to $BPF_PATH with ID $BPF_ID failed"
+    }
+
+    dlog "attached $BPF_DEVICE_PROG to $BPF_PATH with ID $BPF_ID"
 }
 
 function initDevices()
@@ -37,22 +47,18 @@ function initDevices()
     [ -n "$USER" ] || elog "no user env variable for job $JOBID"
 
     getLock
-    [ -d "$CG_USER" ] || {
-	mdsave "$CG_USER"
-	loadBPF "$CG_USER" "USER_$USER"
-    }
 
-    [ -d "$CG_JOB" ] || {
-	mdsave "$CG_JOB"
-	loadBPF "$CG_JOB" "JOB_$JOBID"
-    }
+    mdsave "$CG_USER"
+    loadBPF "$CG_USER/tasks" USER_"$USER"
+
+    mdsave "$CG_JOB"
+    loadBPF "$CG_JOB/tasks" JOB_"$JOBID"
 
     [ -n "$STEPID" ] && {
-	[ -d "$CG_JOB" ] || {
-	    mdsave "$CG_STEP"
-	    loadBPF "$CG_STEP" "STEP_$JOBID_$STEPID"
-	}
+	mdsave "$CG_STEP"
+	loadBPF "$CG_STEP/tasks" STEP_"$JOBID"_"$STEPID"
     }
+
     rmLock
 
     dlog "adding child $CHILD to $CG_JOB/tasks/cgroup.procs"
@@ -67,17 +73,21 @@ function initDevices()
 function setDev()
 {
     local ACTION=$1
-    local DEV=$2
+    local DEV=${2#* }
+    DEV=${DEV% *}
+
+    local QUIET=""
+    [ "$DEBUG" == "0" ] && QUIET="-q"
 
     dlog "Set $ACTION for $DEV $JOBID"
-    "$BPF_DEVICE_LOADER -i JOB_$JOBID $ACTION $DEV" || {
+    "$BPF_DEVICE_LOADER" -i JOB_"$JOBID" "$ACTION" "$DEV" "$QUIET" || {
 	elog "set JOB access for device $DEV failed"
     }
 
     # step cgroup
     [ -n "$STEPID" ] && {
 	dlog "Set $ACTION for $DEV $STEPID"
-	"$BPF_DEVICE_LOADER -i STEP_$JOBID_$STEPID $ACTION $DEV" || {
+	"$BPF_DEVICE_LOADER" -i STEP_"$JOBID"_"$STEPID" "$ACTION" "$DEV" "$QUIET" || {
 	    elog "set STEP access for device $DEV failed"
 	}
     }
