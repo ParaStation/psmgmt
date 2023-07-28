@@ -14,13 +14,19 @@
 
 #define BPF_PSID_PATH "/sys/fs/bpf/psid"
 
-#define MAX_MAP_ENTRIES 1024
+#define MAX_MAP_ENTRIES 4096
 
+/* used as hash to store BPF access */
 typedef struct {
-  int allow;	    /** flag to grant or deny access */
   int major;	    /** device major */
   int minor;	    /** device minor */
-} BPF_access_t;
+} BPF_key_t;
+
+/* BPF key to save access type in BPF map */
+static BPF_key_t bpfKey = { -1, -1 };
+
+/* devices access type saved in BPF map */
+static int bpfAccess = -1;
 
 /* path to BPF program to load */
 static char *bpfProg = NULL;
@@ -40,9 +46,6 @@ static int clearMap = 0;
 /* file descriptor of the BPF map */
 static int mapFD = -1;
 
-/* devices access type saved into BPF map */
-static BPF_access_t bpfAccess = { -1, -1, -1 };
-
 
 /**
  * @brief Ensure argument has the correct device format
@@ -50,14 +53,14 @@ static BPF_access_t bpfAccess = { -1, -1, -1 };
 void verifyDev(const char *arg) {
     char *endptr;
 
-    bpfAccess.major = strtol(arg, &endptr, 10);
+    bpfKey.major = strtol(arg, &endptr, 10);
     if (*endptr != ':') {
         fprintf(stderr, "Invalid format for device specification. "
 		"Use MAJOR:MINOR\n");
         exit(1);
     }
 
-    bpfAccess.minor = strtol(endptr + 1, &endptr, 10);
+    bpfKey.minor = strtol(endptr + 1, &endptr, 10);
     if (*endptr != '\0') {
         fprintf(stderr, "Invalid format for device specification. "
 		"Use MAJOR:MINOR\n");
@@ -124,10 +127,10 @@ void parseArgs(int argc, const char *argv[]) {
 
     if (allow_dev) {
         verifyDev(allow_dev);
-	bpfAccess.allow = true;
+	bpfAccess = true;
     } else if (deny_dev) {
         verifyDev(deny_dev);
-	bpfAccess.allow = false;
+	bpfAccess = false;
     }
 
     poptFreeContext(optCon);
@@ -203,16 +206,15 @@ void loadBPF(void)
 /**
  * @brief Add or update an element in the BPF map
  */
-void updateMap(int *key, BPF_access_t *value)
+void updateMap()
 {
-    if (bpf_map_update_elem(mapFD, key, value, BPF_ANY) != 0) {
-	fprintf(stderr, "Failed to update BPF map %i fd %i: %s\n", *key,
-		mapFD, strerror(errno));
+    if (bpf_map_update_elem(mapFD, &bpfKey, &bpfAccess, BPF_ANY) != 0) {
+	fprintf(stderr, "Failed to update BPF map with key %i:%i fd %i: %s\n",
+		bpfKey.major, bpfKey.minor, mapFD, strerror(errno));
 	exit(1);
     }
 
-    printf("Saved access to device %i:%i in map element %i\n", value->major,
-	   value->minor, *key);
+    printf("Saved access to device %i:%i in map\n", bpfKey.major, bpfKey.minor);
 }
 
 /**
@@ -229,64 +231,6 @@ static void reopenMap()
 	fprintf(stderr, "Failed to open map %s: %s\n", pinPath,
 		strerror(errno));
 	exit(1);
-    }
-}
-
-/**
- * @brief Find a specified devices in the BPF map
- */
-static int findDev()
-{
-    /* try to find device in BPF map to update */
-    int key = -1, nextKey;
-    while (!bpf_map_get_next_key(mapFD, &key, &nextKey)) {
-	key = nextKey;
-	BPF_access_t value;
-	if (!bpf_map_lookup_elem(mapFD, &key, &value)) {
-	    if (value.major == bpfAccess.major &&
-		value.minor == bpfAccess.minor) {
-		return key;
-	    }
-	}
-    }
-
-    return -1;
-}
-
-/**
- * @brief Save access to a devices in the BPF map
- * */
-void setBPFAccess(void)
-{
-    if (mapFD != -1) {
-	/* BPF program was loaded therefore the mapFD is already
-	 * attached. Save device access in empty BPF map */
-	int key = 0;
-	updateMap(&key, &bpfAccess);
-	return;
-    }
-
-    /* open existing BPF map */
-    reopenMap();
-
-    int key = findDev();
-    if (key != -1) {
-	/* update access rights in map */
-	updateMap(&key, &bpfAccess);
-	return;
-    }
-
-    /* add new device to an empty slot in BPF map */
-    for (int i=0; i<MAX_MAP_ENTRIES; i++) {
-	BPF_access_t value;
-	if (bpf_map_lookup_elem(mapFD, &i, &value) == -1) {
-	    if (errno == ENOENT) {
-		updateMap(&i, &bpfAccess);
-		break;
-	    }
-	    fprintf(stderr, "Failed to lookup element %i in map: %s\n",
-		    i, strerror(errno));
-	}
     }
 }
 
@@ -311,13 +255,14 @@ int main(int argc, const char *argv[]) {
 	reopenMap();
 
 	/* show all configured devices */
-	int key = -1, nextKey;
+	BPF_key_t key = { -1, -1}, nextKey;
 	while (!bpf_map_get_next_key(mapFD, &key, &nextKey)) {
-	    key = nextKey;
-	    BPF_access_t value;
+	    key.major = nextKey.major;
+	    key.minor = nextKey.minor;
+	    int value;
 	    if (!bpf_map_lookup_elem(mapFD, &key, &value)) {
-		fprintf(stdout, "Access to device %i:%i is %s\n", value.major,
-			value.minor, (value.allow ? "allowed" : "denied"));
+		fprintf(stdout, "Access to device %i:%i is %s\n", key.major,
+			key.minor, (value ? "allowed" : "denied"));
 	    }
 	}
 	return 0;
@@ -329,9 +274,12 @@ int main(int argc, const char *argv[]) {
 	loadBPF();
     }
 
-    if (bpfAccess.allow != -1) {
-	/* change access to a devices */
-	setBPFAccess();
+    /* if access was specified save it to BPF map */
+    if (bpfAccess != -1) {
+	if (mapFD == -1) reopenMap();
+
+	/* update access rights in map */
+	updateMap();
     }
 
     return 0;
