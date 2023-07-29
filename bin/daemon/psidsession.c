@@ -40,7 +40,7 @@ static LIST_HEAD(localSessions);
 /**
  * Fetch a new resinfo from the corresponding pool and initialize it
  */
-PSresinfo_t *getResinfo(void)
+static PSresinfo_t *getResinfo(void)
 {
     PSresinfo_t *resinfo = PSitems_getItem(resinfoPool);
     resinfo->creation = time(NULL);
@@ -96,7 +96,7 @@ static void putResinfo(PSresinfo_t *resinfo)
 /**
  * Fetch a new job from the corresponding pool and initialize it
  */
-PSjob_t *getJob(void)
+static PSjob_t *getJob(void)
 {
     PSjob_t *job = PSitems_getItem(jobPool);
     job->creation = time(NULL);
@@ -125,7 +125,7 @@ static void putJob(PSjob_t *job)
 /**
  * Fetch a new session from the corresponding pool and initialize it
  */
-PSsession_t *getSession(void)
+static PSsession_t *getSession(void)
 {
     PSsession_t *session = PSitems_getItem(sessionPool);
     session->creation = time(NULL);
