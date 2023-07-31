@@ -347,6 +347,52 @@ static inline void checkSession(PSsession_t *session, const char *caller)
     }
 }
 
+static inline bool otherSister(PStask_ID_t holderTID)
+{
+    list_t *t;
+    list_for_each(t, &managedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+	if (task->removeIt) continue;
+
+	list_t *p;
+	list_for_each(p, &task->sisterParts) {
+	    PSpart_request_t *sister = list_entry(p, PSpart_request_t, next);
+	    if (sister->tid == holderTID) {
+		PSID_flog("other sister %s\n", PSC_printTID(sister->tid));
+		return true;
+	    }
+	}
+    }
+
+    return false;
+}
+
+void PSIDsession_cleanupByHolder(PStask_ID_t sessID, PStask_ID_t holderTID)
+{
+    PSsession_t *session = PSID_findSessionByLoggerTID(sessID);
+    if (!session) return;
+
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &session->jobs) {
+	PSjob_t *job = list_entry(j, PSjob_t, next);
+
+	list_t *r, *tmp2;
+	list_for_each_safe(r, tmp2, &job->resInfos) {
+	    PSresinfo_t *resinfo = list_entry(r, PSresinfo_t, next);
+	    if (resinfo->partHolder != holderTID) continue;
+	    if (otherSister(holderTID)) continue;
+
+	    PSID_fdbg(PSID_LOG_SPAWN, "remove reservation %#x from job %s",
+		      resinfo->resID, PSC_printTID(job->spawnertid));
+	    PSID_log(PSID_LOG_SPAWN, " in session %s)\n", PSC_printTID(sessID));
+	    list_del(&resinfo->next);
+	    putResinfo(resinfo);
+	}
+	checkJob(job, sessID, __func__);
+    }
+    checkSession(session, __func__);
+}
+
 /**
  * @brief Store reservation information
  *

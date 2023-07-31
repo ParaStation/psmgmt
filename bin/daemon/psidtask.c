@@ -21,11 +21,12 @@
 #include "pscommon.h"
 #include "psdaemonprotocol.h"
 
-#include "psidutil.h"
+#include "psidcomm.h"
+#include "psidpartition.h"
+#include "psidsession.h"
 #include "psidsignal.h"
 #include "psidstatus.h"
-#include "psidpartition.h"
-#include "psidcomm.h"
+#include "psidutil.h"
 
 LIST_HEAD(managedTasks);
 
@@ -380,7 +381,7 @@ void PSIDtask_cleanup(PStask_t *task)
 	return;
     }
 
-    PSID_log(PSID_LOG_TASK, "%s(%s)\n", __func__, PSC_printTID(task->tid));
+    PSID_fdbg(PSID_LOG_TASK, "%s\n", PSC_printTID(task->tid));
 
     if (!task->removeIt) {
 	/* first call for this task */
@@ -409,6 +410,15 @@ void PSIDtask_cleanup(PStask_t *task)
 		/* this is a sister partition => tell the logger */
 		send_TASKDEAD(task->loggertid, task->tid);
 	    }
+	}
+	/* cleanup reservations associated to sisters */
+	list_t *s, *tmp;
+	list_for_each_safe(s, tmp, &task->sisterParts) {
+	    PSpart_request_t *sis = list_entry(s, PSpart_request_t, next);
+	    if (sis->sizeGot != sis->size) continue;    // still incomplete
+	    PSID_fdbg(PSID_LOG_TASK, "cleanup sister %s\n",
+		      PSC_printTID(sis->tid));
+	    PSIDsession_cleanupByHolder(task->loggertid, sis->tid);
 	}
 
 	if (task->group == TG_FORWARDER && !task->released) {
