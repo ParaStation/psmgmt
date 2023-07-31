@@ -888,7 +888,7 @@ void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType)
 
 	    /* executable and arguments */
 	    for (uint32_t i = 0; i < step->argc; i++) {
-		strvAdd(argV, step->argv[i]);
+		strvAdd(argV, ustrdup(step->argv[i]));
 	    }
 	} else {
 	    /* executables from job pack */
@@ -897,7 +897,7 @@ void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType)
 	    list_for_each(c, &step->jobCompInfos) {
 		JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
 
-		if (!first) strvAdd(argV, ":");
+		if (!first) strvAdd(argV, ustrdup(":"));
 		first = false;
 
 		/* number of processes */
@@ -915,7 +915,7 @@ void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType)
 
 		/* executable and arguments */
 		for (uint32_t j = 0; j < cur->argc; j++) {
-		    strvAdd(argV, cur->argv[j]);
+		    strvAdd(argV, ustrdup(cur->argv[j]));
 		}
 	    }
 	}
