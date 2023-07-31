@@ -680,13 +680,13 @@ int handleLastChildGone(void *data)
 
     Forwarder_Data_t *fw = task->info;
     if (!fw || fw->callback != stepCallback) {
-	flog("task %s not step forwarder\n", PSC_printTID(task->tid));
+	fdbg(PSSLURM_LOG_JOB, "%s not step forwarder\n", PSC_printTID(task->tid));
 	return 0;
     }
 
     Step_t *step = fw->userData;
     if (!step || !step->spawned) {
-	flog("step %s not spawned\n", Step_strID(step));
+	fdbg(PSSLURM_LOG_JOB, "step %s not spawned\n", Step_strID(step));
 	return 0;
     }
 
@@ -979,7 +979,8 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     /* setup X11 forwarding */
     if (step->x11forward) initX11Forward(step);
 
-    flog("exec %s via %s mypid %u\n", Step_strID(step), argV.strings[0], getpid());
+    fdbg(PSSLURM_LOG_JOB, "exec %s via %s mypid %u\n", Step_strID(step),
+	 argV.strings[0], getpid());
 
     /* set RLimits */
     setRlimitsFromEnv(&step->env, 1);
