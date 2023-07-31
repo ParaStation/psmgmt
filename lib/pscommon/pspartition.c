@@ -91,6 +91,7 @@ void PSpart_clrQueue(list_t *queue)
     list_for_each_safe(r, tmp, queue) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
 	list_del(&req->next);
+	PSC_log(PSC_LOG_PART, "%s: %s\n", __func__, PSC_printTID(req->tid));
 	PSpart_delReq(req);
     }
 }

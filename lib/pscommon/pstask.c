@@ -165,6 +165,8 @@ static void delReservationList(list_t *list)
     list_t *r, *tmp;
     list_for_each_safe(r, tmp, list) {
 	PSrsrvtn_t *reservation = list_entry(r, PSrsrvtn_t, next);
+	PSC_log(PSC_LOG_TASK, "%s: put(rid %d, slots %p, state %d)\n", __func__,
+		reservation->rid, reservation->slots, reservation->state);
 	free(reservation->slots);
 	reservation->slots = NULL;
 	list_del(&reservation->next);
@@ -224,6 +226,10 @@ bool PStask_reinit(PStask_t* task)
     PSsignal_clearList(&task->releasedBefore);
     PSsignal_clearList(&task->deadBefore);
 
+    if (!list_empty(&task->sisterParts)) {
+	PSC_log(PSC_LOG_TASK, "%s(%s): cleanup sisters\n", __func__,
+		PSC_printTID(task->tid));
+    }
     PSpart_clrQueue(&task->sisterParts);
 
     delReservationList(&task->reservations);
