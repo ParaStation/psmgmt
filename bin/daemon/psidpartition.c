@@ -3764,6 +3764,7 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
     PStask_t *task = PStasklist_find(&managedTasks, r->task);
     if (!task) {
 	PSID_flog("no task associated to %#x\n", r->rid);
+	list_del(&r->next);
 	eno = EINVAL;
 	goto no_task_error;
     }
