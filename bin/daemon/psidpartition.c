@@ -1838,16 +1838,16 @@ cleanup:
     }
 
 error:
-    {
-	DDTypedMsg_t msg = {
-	    .header = {
-		.type = PSP_CD_PARTITIONRES,
-		.dest = inmsg->header.sender,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg) },
-	    .type = errno};
-	sendMsg(&msg);
-    }
+    ;
+    DDTypedMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PARTITIONRES,
+	    .dest = inmsg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.type = errno};
+    sendMsg(&msg);
+
     return true;
 }
 
@@ -2037,16 +2037,16 @@ static bool msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
     }
     return true;
  error:
-    {
-	DDTypedMsg_t msg = {
-	    .header = {
-		.type = PSP_CD_PARTITIONRES,
-		.dest = inmsg->header.sender,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg) },
-	    .type = errno};
-	sendMsg(&msg);
-    }
+    ;
+    DDTypedMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PARTITIONRES,
+	    .dest = inmsg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.type = errno};
+    sendMsg(&msg);
+
     return true;
 }
 
@@ -2101,16 +2101,16 @@ static bool msg_GETPARTNL(DDBufferMsg_t *inmsg)
     }
     return true;
  error:
-    {
-	DDTypedMsg_t msg = {
-	    .header = {
-		.type = PSP_CD_PARTITIONRES,
-		.dest = inmsg->header.sender,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg) },
-	    .type = errno};
-	sendMsg(&msg);
-    }
+    ;
+    DDTypedMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PARTITIONRES,
+	    .dest = inmsg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.type = errno};
+    sendMsg(&msg);
+
     return true;
 }
 
@@ -2882,17 +2882,17 @@ static bool msg_GETNODES(DDBufferMsg_t *inmsg)
 	return true;
     }
 
-    error:
-    {
-	DDTypedMsg_t msg = {
-	    .header = {
-		.type = PSP_CD_NODESRES,
-		.dest = inmsg->header.sender,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg) },
-	    .type = -1 };
-	sendMsg(&msg);
-    }
+error:
+    ;
+    DDTypedMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_NODESRES,
+	    .dest = inmsg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.type = -1 };
+    sendMsg(&msg);
+
     return true;
 }
 
@@ -3437,17 +3437,17 @@ static bool msg_GETRANKNODE(DDBufferMsg_t *msg)
 	return true;
     }
 
-    error:
-    {
-	DDTypedMsg_t answer = {
-	    .header = {
-		.type = PSP_CD_NODESRES,
-		.dest = msg->header.sender,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(answer) },
-	    .type = -1 };
-	sendMsg(&answer);
-    }
+error:
+    ;
+    DDTypedMsg_t answer = {
+	.header = {
+	    .type = PSP_CD_NODESRES,
+	    .dest = msg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(answer) },
+	.type = -1 };
+    sendMsg(&answer);
+
     return true;
 }
 
@@ -4186,26 +4186,26 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
     eno = ENOSPC;
 
 error:
-    {
-	DDBufferMsg_t msg = {
-	    .header = {
-		.type = PSP_CD_RESERVATIONRES,
-		.dest = inmsg->header.sender,
-		.sender = PSC_getMyTID(),
-		.len = 0 },
-	    .buf = { 0 } };
-	uint32_t null = 0;
-	PSP_putMsgBuf(&msg, "error", &null, sizeof(null));
-	PSP_putMsgBuf(&msg, "eno", &eno, sizeof(eno));
+    ;
+    DDBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_RESERVATIONRES,
+	    .dest = inmsg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = 0 },
+	.buf = { 0 } };
+    uint32_t null = 0;
+    PSP_putMsgBuf(&msg, "error", &null, sizeof(null));
+    PSP_putMsgBuf(&msg, "eno", &eno, sizeof(eno));
 
-	if (r) {
-	    free(r->slots);
-	    r->slots = NULL;
-	    PSrsrvtn_put(r);
-	}
-
-	sendMsg(&msg);
+    if (r) {
+	free(r->slots);
+	r->slots = NULL;
+	PSrsrvtn_put(r);
     }
+
+    sendMsg(&msg);
+
     return true;
 }
 
