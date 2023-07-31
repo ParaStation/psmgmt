@@ -320,6 +320,33 @@ PSresinfo_t* PSID_findResInfo(PStask_ID_t loggerTID, PStask_ID_t spawnerTID,
     return NULL;
 }
 
+static inline void checkJob(PSjob_t *job, PStask_ID_t sessID, const char *caller)
+{
+    /* if job has no reservations left, delete it */
+    if (list_empty(&job->resInfos)) {
+	/* Give plugins the option to react on job removal */
+	PSIDhook_call(PSIDHOOK_LOCALJOBREMOVED, job);
+
+	PSID_log(PSID_LOG_SPAWN, "%s: remove job %s", caller,
+		 PSC_printTID(job->spawnertid));
+	PSID_log(PSID_LOG_SPAWN, " from session %s\n", PSC_printTID(sessID));
+
+	list_del(&job->next);
+	putJob(job);
+    }
+}
+
+static inline void checkSession(PSsession_t *session, const char *caller)
+{
+    /* if session has no jobs left, delete it */
+    if (list_empty(&session->jobs)) {
+	PSID_log(PSID_LOG_SPAWN, "%s: remove session %s\n", caller,
+		 PSC_printTID(session->loggertid));
+	list_del(&session->next);
+	putSession(session);
+    }
+}
+
 /**
  * @brief Store reservation information
  *
@@ -558,26 +585,8 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
 	PSID_log(PSID_LOG_SPAWN, " in session %s)\n", PSC_printTID(logTID));
     }
 
-
-    /* if job has no reservations left, delete it */
-    if (list_empty(&job->resInfos)) {
-	/* Give plugins the option to react on job removal */
-	PSIDhook_call(PSIDHOOK_LOCALJOBREMOVED, job);
-
-	PSID_fdbg(PSID_LOG_SPAWN, "remove job %s", PSC_printTID(spawnTID));
-	PSID_log(PSID_LOG_SPAWN, " from session %s\n", PSC_printTID(logTID));
-
-	list_del(&job->next);
-	putJob(job);
-    }
-
-    /* if session has no jobs left, delete it */
-    if (list_empty(&session->jobs)) {
-	PSID_fdbg(PSID_LOG_SPAWN, "remove session %s\n", PSC_printTID(logTID));
-
-	list_del(&session->next);
-	putSession(session);
-    }
+    checkJob(job, logTID, __func__);
+    checkSession(session, __func__);
 
     return true;
 }
