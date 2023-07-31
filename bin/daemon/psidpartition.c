@@ -2965,14 +2965,19 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
 	PSID_flog("no slots in reservation %#x\n", res->rid);
 	return false;
     }
+    PStask_t *delegate = task->delegate ? task->delegate : task;
+    if (!delegate->partition || !delegate->partitionSize) {
+	PSID_flog("no nodes in partition of reservation %#x\n", res->rid);
+	return false;
+    }
 
     if (!prepNumToSend(filter)) return false;
 
     /* send message to each node in the partition */
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_DD_RESCREATED, -1);
-    for (uint32_t i = 0; i < task->partitionSize; i++) {
-	PSnodes_ID_t node = task->partition[i].node;
+    for (uint32_t i = 0; i < delegate->partitionSize; i++) {
+	PSnodes_ID_t node = delegate->partition[i].node;
 	if (numToSend[node]) continue;                   // don't send twice
 	numToSend[node] = 1;
 
@@ -3109,9 +3114,9 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
  *
  * Provide information that reservation @a res got deleted to all
  * nodes that are part of the partition the reservation is belonging
- * to. This partition is expected to be associated to the task @a
- * task. To actually provide the information, one or more messages of
- * type PSP_DD_RESRELEASED are emitted.
+ * to. This partition is expected to be associated to the task @a task
+ * or its delegate. To actually provide the information, one or more
+ * messages of type PSP_DD_RESRELEASED are emitted.
  *
  * @param task Task holding the partition the reservation belongs to
  *
@@ -3129,7 +3134,8 @@ static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
 	PSID_flog("no task for reservation %#x\n", res->rid);
 	return false;
     }
-    if (!task->partition || !task->partitionSize) {
+    PStask_t *delegate = task->delegate ? task->delegate : task;
+    if (!delegate->partition || !delegate->partitionSize) {
 	PSID_flog("no nodes in partition of reservation %#x\n", res->rid);
 	return false;
     }
@@ -3148,8 +3154,8 @@ static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
 
     /* send message to each node in the partition */
     bool error = false;
-    for (uint32_t i = 0; i < task->partitionSize; i++) {
-	PSnodes_ID_t node = task->partition[i].node;
+    for (uint32_t i = 0; i < delegate->partitionSize; i++) {
+	PSnodes_ID_t node = delegate->partition[i].node;
 	if (numToSend[node]) continue;                   // don't send twice
 	numToSend[node] = 1;
 
@@ -3287,7 +3293,7 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 	thisRes->relSlots += numSlots;
 	if (thisRes->relSlots >= thisRes->nSlots) {
 	    deqRes(&task->reservations, thisRes);
-	    send_RESRELEASED(delegate, thisRes);
+	    send_RESRELEASED(task, thisRes);
 	    free(thisRes->slots);
 	    thisRes->slots = NULL;
 	    PSrsrvtn_put(thisRes);
@@ -3909,6 +3915,13 @@ static void handleResRequests(PStask_t *task)
 int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 		       uint32_t got, PSpart_slot_t *slots)
 {
+    /*
+     * @attention This mechanism is outdated. The modern realization
+     * requires sister partitions in order to provide all information
+     * to psidsession. Those sister partitions are generated and
+     * distributed on the fly in the case of psslurm as long as enough
+     * resources are available within the allocation.
+     */
     DDBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_CD_RESERVATIONRES,
@@ -4095,13 +4108,13 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 
 	/* store reservation request while waiting for logger's answer */
 	r->options |= PART_OPT_DUMMY;
-	enqRes(&task->resRequests, r);
+	enqRes(&delegate->resRequests, r);
 
 	return true;
     }
 
     /* task is logger */
-    r->rid = PStask_getNextResID(delegate);
+    r->rid = PStask_getNextResID(task);
     if (r->options & PART_OPT_DEFAULT) {
 	r->options = task->options;
 	PSID_log(PSID_LOG_PART, "%s: Use default option\n", __func__);
@@ -4130,8 +4143,8 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	    PSrsrvtn_put(r);
 	} else {
 	    /* create dummy partition and keep it as a reference */
-	    r->firstRank = delegate->numChild;
-	    delegate->numChild += r->nMax;
+	    r->firstRank = task->numChild;
+	    task->numChild += r->nMax;
 
 	    enqRes(&task->reservations, r);
 
@@ -4224,16 +4237,16 @@ static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
 	return true;
     }
 
+    PStask_t *delegate = task->delegate ? task->delegate : task;
     /* fetch first reservation from list => find corresponding request */
     PSrsrvtn_t *r = NULL;
-    if (!list_empty(&task->resRequests)) {
-	r = list_entry(task->resRequests.next, PSrsrvtn_t, next);
+    if (!list_empty(&delegate->resRequests)) {
+	r = list_entry(delegate->resRequests.next, PSrsrvtn_t, next);
     }
     if (!r || r->rid || !(r->options & PART_OPT_DUMMY) ) {
-	PSID_flog("no matching reservation in %s\n", PSC_printTID(task->tid));
-	PSID_flog("requests in %s:\n", PSC_printTID(task->tid));
+	PSID_flog("no matching reservation in %s:\n", PSC_printTID(delegate->tid));
 	list_t *t;
-	list_for_each(t, &task->resRequests) {
+	list_for_each(t, &delegate->resRequests) {
 	    PSrsrvtn_t *res = list_entry(t, PSrsrvtn_t, next);
 	    PSID_flog("\trid %#x task %s", res->rid, PSC_printTID(res->task));
 	    PSID_log(-1, " n %d options %#x requester %s %p\n", res->nMax,
@@ -4242,11 +4255,11 @@ static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
 	return true;
     }
 
-    list_del(&r->next);
-    if (!list_empty(&task->resRequests)) {
-	PSID_flog("more requests in %s:\n", PSC_printTID(task->tid));
+    deqRes(&delegate->resRequests, r);
+    if (!list_empty(&delegate->resRequests)) {
+	PSID_flog("more requests in %s:\n", PSC_printTID(delegate->tid));
 	list_t *t;
-	list_for_each(t, &task->resRequests) {
+	list_for_each(t, &delegate->resRequests) {
 	    PSrsrvtn_t *res = list_entry(t, PSrsrvtn_t, next);
 	    PSID_flog("\trid %#x task %s", res->rid, PSC_printTID(res->task));
 	    PSID_log(-1, " n %d options %#x requester %s %p\n", res->nMax,
@@ -4298,8 +4311,8 @@ static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
 	     "nMin %d nMax %d ppn %d tpp %d hwType %#x options %#x\n",
 	      r->nMin, r->nMax, r->ppn, r->tpp, r->hwType, r->options);
 
-    if (task->usedThreads + got * r->tpp > task->totalThreads) {
-	PSID_flog("insufficient threads in %s\n", PSC_printTID(task->tid));
+    if (delegate->usedThreads + got * r->tpp > delegate->totalThreads) {
+	PSID_flog("insufficient threads in %s\n", PSC_printTID(delegate->tid));
 	eno = EBUSY;
 	goto error;
     }
@@ -4399,7 +4412,7 @@ void PSIDpart_cleanupRes(PStask_t *task)
 	}
 
 	deqRes(&task->reservations, res);
-	send_RESRELEASED(delegate, res);
+	send_RESRELEASED(task, res);
 
 	if (res->slots) {
 	    released += releaseThreads(res->slots + res->nextSlot,

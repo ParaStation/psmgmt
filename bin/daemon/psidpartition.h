@@ -352,6 +352,12 @@ int PSIDpart_contSlts(PSpart_slot_t *slot, unsigned int nSlots, PStask_t *task);
 /**
  * @brief Extend reservation
  *
+ * @attention This mechanism is outdated. The modern realization requires
+ * sister partitions in order to provide all information to
+ * psidsession. Those sister partitions are generated and distributed
+ * on the fly in the case of psslurm as long as enough resources are
+ * available within the allocation.
+ *
  * Extend the reservation identified by the ID @a resID and associated
  * to the task with ID @a tid by @a got slots given in the array @a
  * slots. The latter is expected to have at least @a got entries.
