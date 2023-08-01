@@ -941,7 +941,6 @@ int openSlurmctldCon(void *info)
 
 int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 {
-
     char *port = getConfValueC(SlurmConfig, "SlurmctldPort");
 
     char *range[2];

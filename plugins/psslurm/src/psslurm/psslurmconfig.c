@@ -1554,7 +1554,7 @@ int initPSSlurmConfig(char *filename)
     /* make logging with debug mask available */
     int mask = getConfValueI(Config, "DEBUG_MASK");
     if (mask) {
-	mlog("%s: set psslurm debug mask '0x%x'\n", __func__, mask);
+	flog("set psslurm debug mask %#x\n", mask);
 	maskLogger(mask);
     }
 
