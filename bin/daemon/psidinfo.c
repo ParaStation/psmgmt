@@ -135,9 +135,10 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		.sin_addr.s_addr = inAddr,
 	    };
 	    int ret = PSIDhook_call(PSIDHOOK_SENDER_UNKNOWN, &sin);
-	    if (ret != PSIDHOOK_NOFUNC) {
-		nodeID = PSIDnodes_lookupHost(inAddr);
-	    }
+	    /* resolving might have been successful */
+	    if (ret != PSIDHOOK_NOFUNC) nodeID = PSIDnodes_lookupHost(inAddr);
+	    /* connect to new node (might be required soon anyhow) */
+	    if (PSC_validNode(nodeID)) send_DAEMONCONNECT(nodeID);
 	}
 	*(PSnodes_ID_t *)msg.buf = nodeID;
 	msg.header.len += sizeof(nodeID);
