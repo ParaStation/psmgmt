@@ -55,7 +55,7 @@ typedef struct {
 /** Job: reservations involving this node requested by the same spawner */
 typedef struct {
     list_t next;             /**< used to put into PSsession_t.jobs */
-    PStask_ID_t spawnertid;  /**< spawner's tid, unique job identifier */
+    PStask_ID_t ID;          /**< unique job identifier (spawner's TID) */
     time_t creation;         /**< creation time of this job */
     list_t resInfos;         /**< reservations in this job (PSresinfo_t) */
 } PSjob_t;
@@ -63,46 +63,51 @@ typedef struct {
 /** Session: jobs involving this node with a common logger */
 typedef struct {
     list_t next;             /**< used to put into localSessions */
-    PStask_ID_t loggertid;   /**< logger's tid, unique session identifier */
+    PStask_ID_t ID;          /**< unique session identifier (logger's TID) */
     time_t creation;         /**< creation time of this session */
     list_t jobs;             /**< jobs in this session (PSjob_t) */
 } PSsession_t;
 
 /**
- * @brief Find local session by logger TID
+ * @brief Find local session by ID
  *
- * Find information on a local session by its logger's task ID @a loggerTID.
+ * Find a local session by its ID @a sessionID. A session is
+ * identified by the task ID of the logger that is the root of all its
+ * member processes.
  *
- * @param loggerTID Task ID of logger identifying the session
+ * @param sessionID Task ID of logger identifying the session
  *
  * @return Return pointer to the session information or NULL if none was found
  */
-PSsession_t* PSID_findSessionByLoggerTID(PStask_ID_t loggerTID);
+PSsession_t* PSID_findSessionByID(PStask_ID_t sessionID);
 
 /**
- * @brief Find job in session by spawner TID
+ * @brief Find job in session by ID
  *
- * Find information on a local job by its spawner's task ID @a
- * spawnerTID in the list of jobs in session @a session.
+ * Find a job within the session @a session by its ID @a jobID. A job
+ * is identified by the task ID of the spawner that created its member
+ * processes.
  *
- * @param session      Session to search in
+ * @param session Session to search in
  *
- * @param spawnerTID   Task ID of spawner identifying the job
+ * @param jobID Task ID of spawner identifying the job
  *
  * @return Returns the job or NULL if none found
  */
-PSjob_t* PSID_findJobInSession(PSsession_t *session, PStask_ID_t spawnerTID);
+PSjob_t* PSID_findJobInSession(PSsession_t *session, PStask_ID_t jobID);
 
 /**
  * @brief Find reservation info by session and job identifier
  *
- * @param loggerTID    Task ID of logger identifying the session
- * @param spawnerTID   Task ID of spawner identifying the job
- * @param resID        ID of the reservation to get the info object for
+ * @param sessionID Task ID of logger identifying the session
+ *
+ * @param jobID Task ID of spawner identifying the job
+ *
+ * @param resID ID of the reservation to get the info object for
  *
  * @return Returns the reservation or NULL if none found
  */
-PSresinfo_t* PSID_findResInfo(PStask_ID_t loggerTID, PStask_ID_t spawnerTID,
+PSresinfo_t* PSID_findResInfo(PStask_ID_t sessionID, PStask_ID_t jobID,
 			      PSrsrvtn_ID_t resID);
 
 /**

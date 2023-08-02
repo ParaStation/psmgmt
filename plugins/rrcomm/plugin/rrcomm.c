@@ -104,7 +104,7 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 
     if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
 	/* determine destination node */
-	PSsession_t *session = PSID_findSessionByLoggerTID(hdr->loggerTID);
+	PSsession_t *session = PSID_findSessionByID(hdr->loggerTID);
 	if (!session) {
 	    flog("no session for %s!?\n", PSC_printTID(hdr->loggerTID));
 	    return PSID_dropMsg((DDBufferMsg_t *)msg);

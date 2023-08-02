@@ -603,9 +603,9 @@ static bool addJobToServer(PspmixServer_t *server, PStask_ID_t loggertid,
     }
 
     /* check if the user's server already knows this job */
-    if (findJobInList(psjob->spawnertid, &session->jobs)) {
+    if (findJobInList(psjob->ID, &session->jobs)) {
 	mdbg(PSPMIX_LOG_VERBOSE, "%s: job already known (uid %d spawner %s)\n",
-	     __func__, server->uid, PSC_printTID(psjob->spawnertid));
+	     __func__, server->uid, PSC_printTID(psjob->ID));
 	return true;
     }
 
@@ -619,7 +619,7 @@ static bool addJobToServer(PspmixServer_t *server, PStask_ID_t loggertid,
 	return false;
     }
 
-    job->spawnertid = psjob->spawnertid;
+    job->spawnertid = psjob->ID;
     job->session = session;
     INIT_LIST_HEAD(&job->resInfos); /* init even if never used */
 
@@ -928,7 +928,7 @@ static int hookSpawnTask(void *data)
 
     /* find ParaStation session */
     PStask_ID_t loggertid = task->loggertid;
-    PSsession_t *pssession = PSID_findSessionByLoggerTID(loggertid);
+    PSsession_t *pssession = PSID_findSessionByID(loggertid);
     if (!pssession) {
 	mlog("%s: no session (logger %s)\n", __func__, PSC_printTID(loggertid));
 	return -1;
@@ -1052,16 +1052,15 @@ static int hookLocalJobRemoved(void *data)
 {
     PSjob_t *psjob = data;
 
-    mdbg(PSPMIX_LOG_CALL, "%s(spawner %s)\n", __func__,
-	 PSC_printTID(psjob->spawnertid));
+    mdbg(PSPMIX_LOG_CALL, "%s(spawner %s)\n", __func__, PSC_printTID(psjob->ID));
 
     if (mset(PSPMIX_LOG_VERBOSE)) printServers();
 
-    PspmixJob_t *job = findJob(psjob->spawnertid);
+    PspmixJob_t *job = findJob(psjob->ID);
     if (!job) {
 	mlog("%s: job not found in any PMIx server (spawner %s)"
 	     " (This is fine for jobs not configured to use PMIx.)\n",
-	     __func__, PSC_printTID(psjob->spawnertid));
+	     __func__, PSC_printTID(psjob->ID));
 	return -1;
     }
 
