@@ -36,6 +36,7 @@
 #include "pscommon.h"
 #include "pscio.h"
 #include "psenv.h"
+#include "pslog.h"
 #include "psprotocolenv.h"
 #include "psserial.h"
 #include "selector.h"
@@ -677,6 +678,23 @@ int handleLastChildGone(void *data)
 {
     PStask_t *task = data;
     if (!task) return -1;
+
+    if (task->group == TG_KVS && task->ptid != task->loggertid
+	&& task->forwarder) {
+	/* kvsprovider of a PMI_spawn()ed job => send SERV_EXT to forwarder */
+	PSLog_Msg_t msg = {
+	    .header = {
+		.type = PSP_CC_MSG,
+		.sender = PSC_getTID(-1,0),
+		.dest = task->forwarder->tid,
+		.len = offsetof(PSLog_Msg_t, buf) },
+	    .version = 2,
+	.type = SERV_EXT,
+	.sender = -1 };
+
+	sendMsg(&msg);
+	fdbg(PSSLURM_LOG_JOB, "stop KVSprovider %s\n", PSC_printTID(task->tid));
+    }
 
     Forwarder_Data_t *fw = task->info;
     if (!fw || fw->callback != stepCallback) {
