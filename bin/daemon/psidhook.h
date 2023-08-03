@@ -256,8 +256,11 @@ typedef enum {
 				 point's to sender's struct
 				 sockaddr_in */
     PSIDHOOK_LAST_CHILD_GONE, /**< Task's last child has released itself,
-				 i.e. there are no further children of this
-				 task; arg points to the task */
+				i.e. there are no further children of this
+				task; arg points to the task */
+    PSIDHOOK_LAST_RESRELEASED,/**< Reservation was released, i.e. all resource
+				usage was canceled by PSP_DD_CHILDRESREL
+				messages; arg points to the reservation */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

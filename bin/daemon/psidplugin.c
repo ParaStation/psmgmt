@@ -167,7 +167,7 @@ static LIST_HEAD(pluginList);
  *
  * 139: new hooks PSIDHOOK_NODE_UNKNOWN, PSIDHOOK_SENDER_UNKNOWN
  *
- * 140: new hook PSIDHOOK_LAST_CHILD_GONE
+ * 140: new hooks PSIDHOOK_LAST_CHILD_GONE, PSIDHOOK_LAST_RESRELEASED
  */
 static int pluginAPIVersion = 140;
 

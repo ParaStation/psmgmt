@@ -86,7 +86,7 @@ int oldExceptions = -1;
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 117;
-int requiredAPI =136;
+int requiredAPI =140;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 5 },
     { .name = "psaccount", .version = 30 },

@@ -3294,6 +3294,9 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 	if (thisRes->relSlots >= thisRes->nSlots) {
 	    deqRes(&task->reservations, thisRes);
 	    send_RESRELEASED(task, thisRes);
+	    if (list_empty(&task->reservations)) {
+		PSIDhook_call(PSIDHOOK_LAST_RESRELEASED, thisRes);
+	    }
 	    free(thisRes->slots);
 	    thisRes->slots = NULL;
 	    PSrsrvtn_put(thisRes);
