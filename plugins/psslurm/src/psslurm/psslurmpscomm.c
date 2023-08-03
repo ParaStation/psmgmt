@@ -1796,20 +1796,25 @@ static bool handleCC_IO_Msg(PSLog_Msg_t *msg)
 	return true; // drop message
     }
 
-    int32_t rank = msg->sender - step->packTaskOffset;
+    /* tweak the rank */
+    PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+    int32_t sendRank = msg->sender;
+    int32_t jobRank = (task && sendRank==task->rank) ? task->jobRank : sendRank;
+    int32_t slurmRank = jobRank - step->packTaskOffset;
 
     if (psslurmlogger->mask & PSSLURM_LOG_IO) {
-	flog("sender %s msgLen %zi type %i PS-rank %i Slurm-rank %i\n",
-	     PSC_printTID(msg->header.sender),
-	     msg->header.len - PSLog_headerSize, msg->type, msg->sender, rank);
+	flog("sender %s msgLen %zi type %i sender-rank %i job-rank %i"
+	     " Slurm-rank %i\n", PSC_printTID(msg->header.sender),
+	     msg->header.len - PSLog_headerSize, msg->type,
+	     sendRank, jobRank, slurmRank);
 	flog("msg %.*s\n", (int)(msg->header.len - PSLog_headerSize), msg->buf);
     }
 
     /* filter stdout/stderr messages */
     if ((msg->type == STDOUT && step->stdOutRank > -1
-	 && rank != step->stdOutRank)
+	 && slurmRank != step->stdOutRank)
 	|| (msg->type == STDERR && step->stdErrRank > -1
-	    && rank != step->stdErrRank)) {
+	    && slurmRank != step->stdErrRank)) {
 	return true; // drop message
     }
 
@@ -1819,7 +1824,7 @@ static bool handleCC_IO_Msg(PSLog_Msg_t *msg)
 	return false; // call the old handler if any
     }
 
-    fwCMD_msgSrunProxy(step, msg, msg->sender);
+    fwCMD_msgSrunProxy(step, msg, jobRank);
 
     return true; // message is fully handled
 }
@@ -1925,8 +1930,19 @@ static bool handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     task->exitCode = *(int *) msg->buf;
 
     if (step->fwdata) {
+	/* tweak the rank */
+	int32_t rank = msg->sender;
+	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+	if (task) {
+	    if (rank == task->rank) {
+		rank = task->jobRank;
+	    } else {
+		flog("task %s sender %d rank %d jobRank %d\n",
+		     PSC_printTID(task->tid), rank, task->rank, task->jobRank);
+	    }
+	}
 	/* step forwarder should close I/O */
-	fwCMD_finalize(step->fwdata, msg);
+	fwCMD_finalize(step->fwdata, msg, rank);
 	/* shutdown I/O forwarder if all local processes exited */
 	step->fwFinCount++;
 	if (!step->leader &&

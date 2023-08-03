@@ -81,6 +81,8 @@ static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
 static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
 {
     Step_t *step = fwdata->userData;
+    uint32_t grank;
+    getUint32(&ptr, &grank);
     PSLog_Msg_t *msg = getDataM(&ptr, NULL);
     PStask_ID_t sender = msg->header.sender;
 
@@ -88,7 +90,6 @@ static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
 
     if (!(step->taskFlags & LAUNCH_PTY)) {
 	/* close stdout/stderr */
-	uint32_t grank = msg->sender;
 	IO_closeChannel(fwdata, grank, STDOUT);
 	IO_closeChannel(fwdata, grank, STDERR);
     }
@@ -693,7 +694,7 @@ void fwCMD_reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
     sendMsg(&msg);
 }
 
-void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg)
+void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg, int32_t rank)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -707,6 +708,8 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg)
     if (!fwdata) return;
 
     /* Shall be okay since PSLog_Msg_t always fits DDTypedBufferMsg_t buf */
+    uint32_t nRank = htonl(rank);
+    PSP_putTypedMsgBuf(&msg, "rank", &nRank, sizeof(nRank));
     /* Add data including its length mimicking addData */
     uint32_t len = htonl(plMsg->header.len);
     PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));

@@ -84,8 +84,10 @@ void fwCMD_brokeIOcon(Step_t *step);
  * @param fwdata The forwarder management structure
  *
  * @param msg The PSLog finalize message to forward
+ *
+ * @param rank Rank adapted to the job as required by Slurm
  */
-void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *msg);
+void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *msg, int32_t rank);
 
 /**
  * @brief Clear job/step forwarder message queue
