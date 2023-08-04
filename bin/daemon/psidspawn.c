@@ -1711,10 +1711,10 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
     PSresinfo_t *res = PSID_findResInfo(task->loggertid, task->spawnertid,
 					task->resID);
     if (!res) {
-	PSID_flog("no reservation %#x (job %s", task->resID,
+	PSID_fdbg(PSID_LOG_PART, "no reservation %#x (job %s", task->resID,
 		  PSC_printTID(task->spawnertid));
-	PSID_log(-1, " session %s)", PSC_printTID(task->spawnertid));
-	PSID_log(-1, " for task %s\n", PSC_printTID(task->tid));
+	PSID_log(PSID_LOG_PART, " session %s)", PSC_printTID(task->loggertid));
+	PSID_log(PSID_LOG_PART, " for task %s\n", PSC_printTID(task->tid));
     }
     if (res && res->partHolder) dest = res->partHolder;
 

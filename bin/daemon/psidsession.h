@@ -111,26 +111,6 @@ PSresinfo_t* PSID_findResInfo(PStask_ID_t sessionID, PStask_ID_t jobID,
 			      PSrsrvtn_ID_t resID);
 
 /**
- * @brief Cleanup reservation infos by holder
- *
- * Cleanup all reservation infos from the session @a sessID that are
- * created from the partition managed by the task identified by @a
- * holderTID. For this all reservation infos within the session are
- * reviewed if they stem from the corresponding partition
- * holder. Those reservation infos will only removed if no other local
- * tasks still depend on this info, i.e. if no other local task
- * (usually a step forwarder) will hold a sister partition from the
- * same partition holder.
- *
- * @param sessID Task ID of logger identifying the session
- *
- * @param holderTID Task ID of partition holder
- *
- * @return No return value
- */
-void PSIDsession_cleanupByHolder(PStask_ID_t sessID, PStask_ID_t holderTID);
-
-/**
  * @brief Initialize session stuff
  *
  * Initialize the session framework. This registers the necessary

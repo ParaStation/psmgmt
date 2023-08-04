@@ -102,6 +102,7 @@
 #define PSP_DD_RESCREATED          0x0141  /**< Reservation created with info */
 #define PSP_DD_RESRELEASED         0x0142  /**< Reservation released */
 #define PSP_DD_RESSLOTS            0x0143  /**< Node's reservation slots */
+#define PSP_DD_RESCLEANUP          0x0144  /**< Cleanup reservations */
 
     /***********************************************************/
     /* The IDs from 0x0200 on are reserved for plugin messages */

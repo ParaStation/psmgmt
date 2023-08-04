@@ -516,6 +516,8 @@ static bool drop_TASKDEAD(DDBufferMsg_t *msg)
     return true;
 }
 
+static bool send_RESCLEANUP(PStask_t *task, PSpart_request_t *sister);
+
 /**
  * @brief Handle a PSP_DD_TASKDEAD message
  *
@@ -551,10 +553,7 @@ static bool msg_TASKDEAD(DDMsg_t *msg)
 	if (!deqPart(&destTask->sisterParts, req)) {
 	    PSID_flog("unable to dequeue sister %s\n", PSC_printTID(req->tid));
 	    PSID_flog(" from %s\n", PSC_printTID(destTask->tid));
-	} else {
-	    PSID_fdbg(PSID_LOG_PART, "remove sister %s\n",
-		      PSC_printTID(req->tid));
-	    PSpart_delReq(req);
+	    req = NULL;  // forget about further handling of req
 	}
 	if (destTask->tid == destTask->loggertid) {
 	    /* logger tells other sisters */
@@ -566,6 +565,13 @@ static bool msg_TASKDEAD(DDMsg_t *msg)
 						     PSC_printTID(msg->dest));
 		send_TASKDEAD(sis->tid, msg->sender);
 	    }
+	    /* tell sister parition's members to clean up if necessary */
+	    if (req) send_RESCLEANUP(destTask, req);
+	}
+	if (req) {
+	    PSID_fdbg(PSID_LOG_PART, "remove sister %s\n",
+		      PSC_printTID(req->tid));
+	    PSpart_delReq(req);
 	}
 	return true;
     }
@@ -2895,7 +2901,10 @@ error:
     return true;
 }
 
-/** helper array for send_RESCREATED(), send_RESSLOTS(), and send_RESRELEASED() */
+/**
+ * helper array for send_RESCREATED(), send_RESSLOTS(),
+ * send_RESRELEASED(), and send_RESCLEANUP()
+ */
 static uint16_t *numToSend = NULL;
 
 static bool prepNumToSend(uint16_t *preSet)
@@ -2965,17 +2974,13 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
 	PSID_flog("no slots in reservation %#x\n", res->rid);
 	return false;
     }
-    PStask_t *delegate = task->delegate ? task->delegate : task;
-    if (!delegate->partition || !delegate->partitionSize) {
-	PSID_flog("no nodes in partition of reservation %#x\n", res->rid);
-	return false;
-    }
 
     if (!prepNumToSend(filter)) return false;
 
-    /* send message to each node in the partition */
+    /* send message to each node in the partition if any */
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_DD_RESCREATED, -1);
+    PStask_t *delegate = task->delegate ? task->delegate : task;
     for (uint32_t i = 0; i < delegate->partitionSize; i++) {
 	PSnodes_ID_t node = delegate->partition[i].node;
 	if (numToSend[node]) continue;                   // don't send twice
@@ -2989,7 +2994,7 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
     list_for_each(p, &task->sisterParts) {
 	PSpart_request_t *sister = list_entry(p, PSpart_request_t, next);
 	if (sister->sizeGot != sister->size) continue;   // still incomplete
-	for (uint32_t s = 0; s < sister->sizeGot; s++) {
+	for (uint32_t s = 0; s < sister->size; s++) {
 	    PSnodes_ID_t node = sister->slots[s].node;
 	    if (numToSend[node]) continue;               // don't send twice
 	    numToSend[node] = 1;
@@ -2998,6 +3003,12 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
 	    PSID_fdbg(PSID_LOG_PART, "to node %d\n", node);
 	}
     }
+    if (!msg.numDest) {
+	PSID_fdbg(PSID_LOG_PART, "%#x all targets filtered out\n", res->rid);
+	return true;
+    }
+    PSID_fdbg(PSID_LOG_PART, "%#x sends %d slots to %d destinations\n",
+	      res->rid, res->nSlots, msg.numDest);
 
     addInt32ToMsg(res->rid, &msg);         // reservation ID
     addTaskIdToMsg(task->loggertid, &msg); // logger's task ID
@@ -3172,7 +3183,7 @@ static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
     list_for_each(p, &task->sisterParts) {
 	PSpart_request_t *sister = list_entry(p, PSpart_request_t, next);
 	if (sister->sizeGot != sister->size) continue;   // still incomplete
-	for (uint32_t s = 0; s < sister->sizeGot; s++) {
+	for (uint32_t s = 0; s < sister->size; s++) {
 	    PSnodes_ID_t node = sister->slots[s].node;
 	    if (numToSend[node]) continue;               // don't send twice
 	    numToSend[node] = 1;
@@ -3184,6 +3195,96 @@ static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
 		PSID_warn(-1, errno, "%s: sendMsg(%d)", __func__, node);
 		error = true;
 	    }
+	}
+    }
+
+    return !error;
+}
+
+/**
+ * @brief Trigger reservation cleanup on nodes leaving the partition
+ *
+ * Send messages of type PSP_DD_RESCLEANUP to each node leaving the
+ * partition as members of the sister partition @a sister. Those nodes
+ * might still hold reservation information from active reservations
+ * created from the original partition or other sister
+ * partitions. Since the nodes of @a sister leave the overall
+ * partition, they will not receive any further messages of type
+ * PSP_DD_RESRELEASED and, thus, leaving their reservation information
+ * untouched.
+ *
+ * Since the nodes in @a sister might be members via other sisters or
+ * the original partition in @a task, too, a corresponding filter has
+ * to be applied to @a sister.
+ *
+ * @a sister shall be removed from the @ref sisterParts list of @a
+ * task before calling this function.
+ *
+ * @param task (Logger) task holding the original partition and all
+ * other sisters of the leaving sister partition
+ *
+ * @param sister Sister partition to be removed
+ *
+ * @return On success, true is returned; or false if an error occurred
+ */
+static bool send_RESCLEANUP(PStask_t *task, PSpart_request_t *sister)
+{
+    if (!sister) {
+	PSID_flog("no sister\n");
+	return false;
+    }
+    if (!task) {
+	PSID_flog("no task for partition and sisters\n");
+	return false;
+    }
+    PStask_t *delegate = task->delegate ? task->delegate : task;
+    if (!delegate->partition || !delegate->partitionSize) {
+	PSID_flog("no nodes in partition of %s\n", PSC_printTID(delegate->tid));
+	return false;
+    }
+
+    if (!prepNumToSend(NULL)) return false;
+
+    /* do not send message to nodes in the partition */
+    for (uint32_t i = 0; i < delegate->partitionSize; i++) {
+	PSnodes_ID_t node = delegate->partition[i].node;
+	numToSend[node] = 1;
+    }
+    /* this includes nodes in sister partitions */
+    list_t *s;
+    list_for_each(s, &task->sisterParts) {
+	PSpart_request_t *sis = list_entry(s, PSpart_request_t, next);
+	if (sis->sizeGot != sis->size) continue;   // still incomplete
+	for (uint32_t s = 0; s < sis->size; s++) {
+	    PSnodes_ID_t node = sis->slots[s].node;
+	    numToSend[node] = 1;
+	}
+    }
+
+    /* now send to sister's nodes not filtered out */
+    DDMsg_t msg = {
+	.type = PSP_DD_RESCLEANUP,
+	.sender = task->loggertid,
+	.dest = 0,
+	.len = sizeof(msg) };
+
+    bool error = false;
+    for (uint32_t s = 0; s < sister->size; s++) {
+	PSnodes_ID_t node = sister->slots[s].node;
+	if (numToSend[node]) continue;          // filtered or don't send twice
+	numToSend[node] = 1;
+
+	if (PSIDnodes_getDmnProtoV(node) < 416) {
+	    PSID_flog("unsupported on node %hu\n", node);
+	    continue;
+	}
+
+	PSID_fdbg(PSID_LOG_PART, "to %hu\n", node);
+
+	msg.dest = PSC_getTID(node, 0);
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg(%d)", __func__, node);
+	    error = true;
 	}
     }
 
@@ -5160,7 +5261,7 @@ static void send_further_RESCREATED(PSpart_request_t *req, PStask_t *task)
 	    continue;
 	}
 	if (sister->sizeGot != sister->size) continue;     // still incomplete
-	for (uint32_t s = 0; s < sister->sizeGot; s++) {
+	for (uint32_t s = 0; s < sister->size; s++) {
 	    PSnodes_ID_t node = sister->slots[s].node;
 	    filter[node] = 1;
 	}
@@ -5177,6 +5278,8 @@ static void send_further_RESCREATED(PSpart_request_t *req, PStask_t *task)
     list_t *r;
     list_for_each(r, &task->reservations) {
 	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
+	/* ignore placeholder reservation */
+	if ((res->options & PART_OPT_DUMMY) && !res->nSlots) continue;
 	send_RESCREATED(&reqHolder, res, filter);
     }
 

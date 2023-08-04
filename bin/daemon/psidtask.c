@@ -411,15 +411,6 @@ void PSIDtask_cleanup(PStask_t *task)
 		send_TASKDEAD(task->loggertid, task->tid);
 	    }
 	}
-	/* cleanup reservations associated to sisters */
-	list_t *s, *tmp;
-	list_for_each_safe(s, tmp, &task->sisterParts) {
-	    PSpart_request_t *sis = list_entry(s, PSpart_request_t, next);
-	    if (sis->sizeGot != sis->size) continue;    // still incomplete
-	    PSID_fdbg(PSID_LOG_TASK, "cleanup sister %s\n",
-		      PSC_printTID(sis->tid));
-	    PSIDsession_cleanupByHolder(task->loggertid, sis->tid);
-	}
 
 	if (task->group == TG_FORWARDER && !task->released) {
 	    /* cleanup children */

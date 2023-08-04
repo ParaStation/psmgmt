@@ -345,52 +345,6 @@ static inline void checkSession(PSsession_t *session, const char *caller)
     }
 }
 
-static inline bool otherSister(PStask_ID_t holderTID)
-{
-    list_t *t;
-    list_for_each(t, &managedTasks) {
-	PStask_t *task = list_entry(t, PStask_t, next);
-	if (task->removeIt) continue;
-
-	list_t *p;
-	list_for_each(p, &task->sisterParts) {
-	    PSpart_request_t *sister = list_entry(p, PSpart_request_t, next);
-	    if (sister->tid == holderTID) {
-		PSID_flog("other sister %s\n", PSC_printTID(sister->tid));
-		return true;
-	    }
-	}
-    }
-
-    return false;
-}
-
-void PSIDsession_cleanupByHolder(PStask_ID_t sessID, PStask_ID_t holderTID)
-{
-    PSsession_t *session = PSID_findSessionByID(sessID);
-    if (!session) return;
-
-    list_t *j, *tmp;
-    list_for_each_safe(j, tmp, &session->jobs) {
-	PSjob_t *job = list_entry(j, PSjob_t, next);
-
-	list_t *r, *tmp2;
-	list_for_each_safe(r, tmp2, &job->resInfos) {
-	    PSresinfo_t *resinfo = list_entry(r, PSresinfo_t, next);
-	    if (resinfo->partHolder != holderTID) continue;
-	    if (otherSister(holderTID)) continue;
-
-	    PSID_fdbg(PSID_LOG_SPAWN, "remove reservation %#x from job %s",
-		      resinfo->resID, PSC_printTID(job->ID));
-	    PSID_log(PSID_LOG_SPAWN, " in session %s)\n", PSC_printTID(sessID));
-	    list_del(&resinfo->next);
-	    putResinfo(resinfo);
-	}
-	checkJob(job, sessID, __func__);
-    }
-    checkSession(session, __func__);
-}
-
 /**
  * @brief Store reservation information
  *
@@ -593,8 +547,9 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     /* try to find corresponding session */
     PSsession_t *session = PSID_findSessionByID(sessionID);
     if (!session) {
-	PSID_flog("no session %s expected to hold %#x\n",
+	PSID_fdbg(PSID_LOG_PART, "no session %s expected to hold %#x",
 		  PSC_printTID(sessionID), resID);
+	PSID_log(PSID_LOG_PART, " from %s\n", PSC_printTID(msg->header.sender));
 	return true;
     }
 
@@ -631,6 +586,36 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
 
     checkJob(job, sessionID, __func__);
     checkSession(session, __func__);
+
+    return true;
+}
+
+/**
+ * @brief Handle a PSP_DD_RESCLEANUP message
+ *
+ * Handle the message @a msg of type PSP_DD_RESCLEANUP.
+ *
+ * This will cleanup all information on a session stored on the local
+ * node. This type of message is sent by the session leader (i.e. the
+ * logger process) to all nodes of a leaving sister partitions if they
+ * are not utilized by the partition itself or any other sister
+ * partition. This will guarantee that no remnant reservation
+ * information is left on those nodes.
+ *
+ * @param msg Pointer to message to handle
+ *
+ * @return Always return true
+ */
+static bool msg_RESCLEANUP(DDBufferMsg_t *msg)
+{
+    PSID_fdbg(PSID_LOG_SPAWN, "session %s", PSC_printTID(msg->header.sender));
+    PSsession_t *session = PSID_findSessionByID(msg->header.sender);
+    if (session) {
+	list_del(&session->next);
+	putSession(session, __func__);
+    } else {
+	PSID_log(PSID_LOG_SPAWN, " already gone\n");
+    }
 
     return true;
 }
@@ -890,6 +875,7 @@ bool PSIDsession_init(void)
     PSID_registerMsg(PSP_DD_RESCREATED, (handlerFunc_t) msg_RESCREATED);
     PSID_registerMsg(PSP_DD_RESRELEASED, msg_RESRELEASED);
     PSID_registerMsg(PSP_DD_RESSLOTS, (handlerFunc_t) msg_RESSLOTS);
+    PSID_registerMsg(PSP_DD_RESCLEANUP, msg_RESCLEANUP);
 
     return true;
 }
