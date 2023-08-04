@@ -46,7 +46,6 @@ function initDevices()
 {
     [ -n "$USER" ] || elog "no user env variable for job $JOBID"
 
-    getLock
 
     mdsave "$CG_USER"
     loadBPF "$CG_USER/tasks" USER_"$USER"
@@ -59,7 +58,6 @@ function initDevices()
 	loadBPF "$CG_STEP/tasks" STEP_"$JOBID"_"$STEPID"
     }
 
-    rmLock
 
     dlog "adding child $CHILD to $CG_JOB/tasks/cgroup.procs"
     cgWrite "$CHILD" "$CG_JOB/tasks/cgroup.procs"
@@ -73,48 +71,36 @@ function initDevices()
 function setDev()
 {
     local ACTION=$1
-    local DEV=${2#* }
-    DEV=${DEV% *}
+    local DEV=$2
+    local ID=$3
 
     local QUIET=""
     [ "$DEBUG" == "0" ] && QUIET="-q"
 
-    dlog "Set $ACTION for $DEV $JOBID"
-    "$BPF_DEVICE_LOADER" -i JOB_"$JOBID" "$ACTION" "$DEV" "$QUIET" || {
-	elog "set JOB access for device $DEV failed"
-    }
+    dlog "Set '$ACTION' dev $DEV id $ID"
 
-    # step cgroup
-    [ -n "$STEPID" ] && {
-	dlog "Set $ACTION for $DEV $STEPID"
-	"$BPF_DEVICE_LOADER" -i STEP_"$JOBID"_"$STEPID" "$ACTION" "$DEV" "$QUIET" || {
-	    elog "set STEP access for device $DEV failed"
-	}
+    "$BPF_DEVICE_LOADER" -i "$ID" "$ACTION" "$DEV" "$QUIET" || {
+	elog "set JOB access for device $DEV id $ID failed"
     }
 }
 
 function setDevices()
 {
+    local ACCESS=$1
+    local ACTION=$2
+    local ID=$3
+
     # set allowed devices
     cnt=0
     while true; do
-	next="__PSJAIL_DEV_ALLOW_$cnt"
+	next="__PSJAIL_DEV_"$ACCESS"_$cnt"
 	[ -z "${!next}" ] && break
-	dlog "allow device$cnt = ${!next}"
+	local DEV=${!next}
+	DEV=${DEV#* }
+	DEV=${DEV% *}
 
-	setDev "-a" "${!next}"
-
-	cnt=$(( cnt + 1 ))
-    done
-
-    # set denied devices
-    cnt=0
-    while true; do
-	next="__PSJAIL_DEV_DENY_$cnt"
-	[ -z "${!next}" ] && break
-	dlog "deny device$cnt = ${!next}"
-
-	setDev "-d" "${!next}"
+	dlog "$ACTION device$cnt = $DEV id $ID"
+	setDev "$ACTION" "$DEV" "$ID"
 
 	cnt=$(( cnt + 1 ))
     done
@@ -140,7 +126,33 @@ else
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainSingleUser
     else
+	getLock
 	initDevices
-	setDevices
+
+	# set step cgroup access
+	ID="JOB_$JOBID"
+	BPF_SET=$("$BPF_DEVICE_LOADER" -s -i $ID 2>/dev/null)
+
+	if [ ${#BPF_SET} -lt 4 ]; then
+	    setDevices "ALLOW" "-a" "$ID"
+	    setDevices "DENY" "-d" "$ID"
+	else
+	    dlog "job $JOBID cgroup id $ID already set"
+	fi
+
+	# set step cgroup access
+	if [ -n "$STEPID" ]; then
+	    ID=STEP_"$JOBID"_"$STEPID"
+	    BPF_SET=$("$BPF_DEVICE_LOADER" -s -i $ID 2>/dev/null)
+
+	    if [ ${#BPF_SET} -lt 4 ]; then
+		setDevices "ALLOW" "-a" "$ID"
+		setDevices "DENY" "-d" "$ID"
+	    else
+		dlog "step $JOBID:$STEPID cgroup id $ID already set"
+	    fi
+	fi
+
+	rmLock
     fi
 fi
