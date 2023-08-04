@@ -27,6 +27,9 @@ BPF_DEVICE_PROG="$CommandPath/bpf_cgroup_device.o"
 # path to bpf loader
 BPF_DEVICE_LOADER="$CommandPath/bpf_device_loader"
 
+# path to psid bpf maps
+BPF_PSID_MAPS="/sys/fs/bpf/psid"
+
 # enable debug logging
 DEBUG="0"
 
