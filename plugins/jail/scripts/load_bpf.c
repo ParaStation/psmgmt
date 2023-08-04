@@ -120,8 +120,17 @@ void parseArgs(int argc, const char *argv[]) {
     }
 
     if (!progID) {
-	fprintf(stderr, "--progID is manditory\n");
+	fprintf(stderr, "--progID is mandatory\n");
 	exit(1);
+    } else {
+	/* remove additional map suffix */
+	const char *suffix = "_map";
+	size_t sufLen = strlen(suffix);
+	size_t len = strlen(progID);
+	if (len > sufLen) {
+	    char *end = progID + (len - sufLen);
+	    if (!strcmp(end, suffix)) end[0] = '\0';
+	}
     }
 
     if (allow_dev && deny_dev) {
@@ -175,7 +184,7 @@ void loadBPF(void)
 	exit(1);
     }
 
-    /* attach BPF prog to cgroup */
+    /* attach BPF program to cgroup */
     int cgroup_fd = open(attachPath, O_DIRECTORY);
     if (cgroup_fd < 0) {
         fprintf(stderr, "Failed to open cgroup %s: %s\n", attachPath,
