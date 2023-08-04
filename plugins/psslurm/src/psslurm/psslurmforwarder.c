@@ -50,6 +50,7 @@
 #include "psidcomm.h"
 #include "psidhook.h"
 #include "psidscripts.h"
+#include "psidtask.h"
 
 #include "peloguehandles.h"
 #include "psaccounthandles.h"
@@ -694,6 +695,19 @@ int handleLastChildGone(void *data)
 
 	sendMsg(&msg);
 	fdbg(PSSLURM_LOG_JOB, "stop KVSprovider %s\n", PSC_printTID(task->tid));
+    }
+    return 0;
+}
+
+int handleResReleased(void *data)
+{
+    PSrsrvtn_t *res = data;
+    if (!res) return -1;
+
+    PStask_t *task = PStasklist_find(&managedTasks, res->task);
+    if (!task) {
+	flog("task %s not found\n", PSC_printTID(res->task));
+	return -1;
     }
 
     Forwarder_Data_t *fw = task->info;

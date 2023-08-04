@@ -189,13 +189,26 @@ int handleExecClientPrep(void *data);
 /**
  * @brief Handle hook PSIDHOOK_LAST_CHILD_GONE
  *
- * Tell step forwarders resulting from a spawn to cease operation.
+ * Tell KVS provider resulting from a spawn to cease operation.
  *
  * @param data Points to task structure without children left
  *
  * @return Returns -1 in case of error (data == NULL) or 0 otherwise
  */
 int handleLastChildGone(void *data);
+
+/**
+ * @brief Handle hook PSIDHOOK_LAST_RESRELEASED
+ *
+ * Tell step forwarders resulting from a spawn to possibly cease
+ * operation.
+ *
+ * @param data Points to reservation structure with all utilized
+ * resources released
+ *
+ * @return Returns -1 in case of error (data == NULL) or 0 otherwise
+ */
+int handleResReleased(void *data);
 
 
 #endif
