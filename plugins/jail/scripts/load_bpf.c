@@ -49,6 +49,9 @@ static int mapFD = -1;
 /* only report errors */
 static int quiet = -1;
 
+/* remove allowed devices from BPF map */
+static char *removeAllowed = NULL;
+
 /**
  * @brief Ensure argument has the correct device format
  */
@@ -94,6 +97,8 @@ void parseArgs(int argc, const char *argv[]) {
 	  "Cleanup BPF map after use", NULL },
         { "quiet", 'q', POPT_ARG_NONE, &quiet, 0,
 	  "Be quiet", NULL },
+        { "remove_allowed", '\0', POPT_ARG_STRING, &removeAllowed, 0,
+	  "Remove allowed devices from given BPF map", "ID" },
 	POPT_AUTOHELP {NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
 
@@ -241,20 +246,29 @@ void updateMap()
 }
 
 /**
- * @brief Reopen the BPF map from its pinned location
+ * @brief Open a BPF map from its pinned location
  */
-static void reopenMap()
+static int openMap(const char *id)
 {
-    if (mapFD != -1) return;
-
     char pinPath[PATH_MAX];
-    snprintf(pinPath, sizeof(pinPath), "%s/%s_map", BPF_PSID_PATH, progID);
-    mapFD = bpf_obj_get(pinPath);
-    if (mapFD == -1) {
+    snprintf(pinPath, sizeof(pinPath), "%s/%s_map", BPF_PSID_PATH, id);
+    int fd = bpf_obj_get(pinPath);
+    if (fd == -1) {
 	fprintf(stderr, "Failed to open map %s: %s\n", pinPath,
 		strerror(errno));
 	exit(1);
     }
+
+    return fd;
+}
+
+/**
+ * @brief Reopen the BPF map from its pinned location
+ */
+static void reopenMap(void)
+{
+    if (mapFD != -1) return;
+    mapFD = openMap(progID);
 }
 
 int main(int argc, const char *argv[]) {
@@ -273,19 +287,38 @@ int main(int argc, const char *argv[]) {
 	return 0;
     }
 
-    if (showDev) {
+    if (showDev || removeAllowed) {
 	/* open existing BPF map */
 	reopenMap();
 
-	/* show all configured devices */
+	int destMap = -1;
+	if (removeAllowed) destMap = openMap(removeAllowed);
+
+	/* loop over all configured devices */
 	BPF_key_t key = { -1, -1}, nextKey;
 	while (!bpf_map_get_next_key(mapFD, &key, &nextKey)) {
 	    key.major = nextKey.major;
 	    key.minor = nextKey.minor;
 	    int value;
 	    if (!bpf_map_lookup_elem(mapFD, &key, &value)) {
-		fprintf(stdout, "Access to device %i:%i is %s\n", key.major,
-			key.minor, (value ? "allowed" : "denied"));
+		if (showDev) {
+		    /* print output only */
+		    fprintf(stdout, "Access to device %i:%i is %s\n", key.major,
+			    key.minor, (value ? "allowed" : "denied"));
+		} else {
+		    /* remove access */
+		    if (removeAllowed && !value) continue;
+
+		    /* deny access */
+		    value = 0;
+		    if (bpf_map_update_elem(destMap, &key, &value,
+			BPF_ANY) != 0) {
+			fprintf(stderr, "Failed to update BPF map with "
+				"key %i:%i fd %i: %s\n", key.major, key.minor,
+				destMap, strerror(errno));
+			exit(1);
+		    }
+		}
 	    }
 	}
 	return 0;
