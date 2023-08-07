@@ -29,7 +29,7 @@ function loadBPF()
 
     local QUIET=""
     [ "$DEBUG" == "0" ] && QUIET="-q"
-    
+
     "$BPF_DEVICE_LOADER" -s -i "$BPF_ID" "$QUIET" 1>/dev/null 2>&1 && {
 	dlog "skip loading for $BPF_PATH with ID $BPF_ID"
 	return
@@ -58,9 +58,9 @@ function initDevices()
 	loadBPF "$CG_STEP/tasks" STEP_"$JOBID"_"$STEPID"
     }
 
-
     dlog "adding child $CHILD to $CG_JOB/tasks/cgroup.procs"
     cgWrite "$CHILD" "$CG_JOB/tasks/cgroup.procs"
+
     # step cgroup
     [ -n "$STEPID" ] && {
 	dlog "adding child $CHILD to $CG_STEP/tasks/cgroup.procs"
@@ -129,13 +129,23 @@ else
 	getLock
 	initDevices
 
-	# set step cgroup access
+	# set job cgroup access
 	ID="JOB_$JOBID"
 	BPF_SET=$("$BPF_DEVICE_LOADER" -s -i $ID 2>/dev/null)
 
 	if [ ${#BPF_SET} -lt 4 ]; then
 	    setDevices "ALLOW" "-a" "$ID"
 	    setDevices "DENY" "-d" "$ID"
+
+	    # add allowed devices to user cgroup
+	    ID=USER_"$USER"
+	    BPF_SET=$("$BPF_DEVICE_LOADER" -s -i $ID 2>/dev/null)
+
+	    if [ ${#BPF_SET} -lt 4 ]; then
+		# only deny devices if user cgroup is empty
+		setDevices "DENY" "-d" "$ID"
+	    fi
+	    setDevices "ALLOW" "-a" "$ID"
 	else
 	    dlog "job $JOBID cgroup id $ID already set"
 	fi

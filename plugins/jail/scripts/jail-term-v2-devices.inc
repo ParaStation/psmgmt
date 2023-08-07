@@ -28,6 +28,16 @@ function cleanupBPF()
     "$BPF_DEVICE_LOADER" -c -i "$BPF_ID" "$QUIET"
 }
 
+function removeFromUserBPF()
+{
+    local BPF_ID=$1
+
+    local QUIET=""
+    [ "$DEBUG" == "0" ] && QUIET="-q"
+
+    "$BPF_DEVICE_LOADER" -i "$BPF_ID" "$QUIET" --remove_allowed USER_"$USER"
+}
+
 function termDevices()
 {
     [ -n "$USER" ] || elog "no user env variable for job $JOBID"
@@ -49,6 +59,7 @@ function termDevices()
 	dlog "killing job $JOBID with signal $KILL_SIGNAL"
 	killJob "$CG_JOB"
 
+	removeFromUserBPF JOB_"$JOBID"
 	cleanupBPF JOB_"$JOBID"
 
 	BASE="$CG_USER"
