@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,7 +33,7 @@ typedef struct {
     list_t next;                /**< used to put into list of clients */
     bool doAccounting;          /**< flag accounting of this client */
     PS_Acct_job_types_t type;   /**< type of client */
-    PStask_ID_t logger;         /**< logger associated to the client */
+    PStask_ID_t root;           /**< root task identifying the job */
     PStask_ID_t taskid;         /**< client's task ID */
     Job_t *job;                 /**< job associated to the client */
     char *jobid;                /**< job ID associated to the client */
@@ -110,16 +110,21 @@ Client_t *findClientByPID(pid_t clientPID);
 Client_t *findJobscriptInClients(Job_t *job);
 
 /**
- * @brief Get PIDs associated to logger
+ * @brief Get PIDs associated to a job
  *
- * Get the process ID of all clients associated to the logger @a
- * logger and store them to @a pids. Upon return @a pids will point to
- * a memory region allocated via @ref malloc(). It is the obligation
- * of the calling function to release this memory using @ref
- * free(). Furthermore, upon return @a cnt will hold the number of
- * processes found and thus the size of @a pids.
+ * Get the process ID of all clients associated to the job identified
+ * by its root task @a rootTID and store them to @a pids. Upon return
+ * @a pids will point to a memory region allocated via @ref
+ * malloc(). It is the obligation of the calling function to release
+ * this memory using @ref free(). Furthermore, upon return @a cnt will
+ * hold the number of processes found and thus the size of @a pids.
  *
- * @param logger Logger to search for
+ * Typically, a job's root task is the corresponding logger
+ * task. Nevertheless, this might be different for Slurm steps spawned
+ * via PMI(x)_Spawn() when the corresponding step forwarder might be
+ * used.
+ *
+ * @param rootTID Task ID of the job's root task
  *
  * @param pids Pointer to dynamically allocated array of process IDs
  * upon return
@@ -128,7 +133,7 @@ Client_t *findJobscriptInClients(Job_t *job);
  *
  * @return No return value
  */
-void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count);
+void getPidsByRoot(PStask_ID_t rootTID, pid_t **pids, uint32_t *count);
 
 /**
  * @brief Find client by PID and return its logger
@@ -155,8 +160,8 @@ void clearAllClients(void);
  * Update all client's account data for a job. If job is NULL, all
  * clients will be updated. From time to time (in fact after calling
  * this function FORWARD_INTERVAL times) aggregated data is forwarded
- * to the logger's node. Neverthless, forwarding is done anyhow if @a
- * job is different from NULL.
+ * to the root task's node. Nevertheless, forwarding is done anyhow if
+ * @a job is different from NULL.
  *
  * @param job Job to identify the clients to update or NULL for all
  * clients
@@ -177,13 +182,13 @@ void updateClients(Job_t *job);
 bool deleteClient(PStask_ID_t tid);
 
 /**
- * @brief Delete all account clients with the specified logger TID.
+ * @brief Delete all account clients with the specified root TID.
  *
- * @param loggerTID Task ID of the logger to identify clients to delete
+ * @param rootTID Task ID of the root task to identify clients to delete
  *
  * @return No return value
  */
-void deleteClientsByLogger(PStask_ID_t loggerTID);
+void deleteClientsByRoot(PStask_ID_t rootTID);
 
 /**
  * @brief Clean leftover account clients
@@ -215,18 +220,18 @@ char *listClients(char *buf, size_t *bufSize, bool detailed);
 
 /************************* Aggregation *************************/
 
-/** @brief Aggregate data by logger
+/** @brief Aggregate data by root task
  *
- * Aggregate resource data of clients associated to the logger @a
- * logger. Data is accumulated in @a accData.
+ * Aggregate resource data of clients associated to the root task with
+ * ID @a rootTID. Data is accumulated in @a accData.
  *
- * @param logger Logger to identify the clients to be accumulated
+ * @param rootTID Root task to identify the job to be accumulated
  *
  * @param accData Data aggregation acting as the accumulator
  *
  * @return Returns true if any client was found or false otherwise
  */
-bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
+bool aggregateDataByRoot(PStask_ID_t rootTID, AccountDataExt_t *accData);
 
 
 /**
@@ -251,51 +256,53 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
  * @brief Store remote aggregated data
  *
  * Store remote aggregate data to a client structure identified by the
- * task ID @a tid and the logger's task ID @a logger. @a data contains
- * the aggregated accounting data to be storred.
+ * task ID @a tid and the root task's ID @a rootTID. @a data contains
+ * the aggregated accounting data to be stored.
  *
  * @param tid Task ID identifying the client structure to use
  *
- * @param logger Task ID of the logger identifying the client structure to use
+ * @param rootTID Task ID of the root task identifying the client
+ * structure to use
  *
  * @param data Aggregated data on resource usage to be stored
  *
  * @return No return value
  */
-void setAggData(PStask_ID_t tid, PStask_ID_t logger, AccountDataExt_t *data);
+void setAggData(PStask_ID_t tid, PStask_ID_t rootTID, AccountDataExt_t *data);
 
 /**
  * @brief Add endtime to accounting data
  *
  * Add the current time as the endtime to client structure identified
- * by its task ID @a tid and its logger's task ID @a logger.
+ * by its task ID @a tid and its root task's ID @a rootTID.
  *
  * @param tid Task ID identifying the client to modify
  *
- * @param logger Logger's task ID identifying the client to modify
+ * @param rootTID Task ID of the root task identifying the client
+ * structure to modify
  *
  * @return No return value
  */
-void finishAggData(PStask_ID_t tid, PStask_ID_t logger);
+void finishAggData(PStask_ID_t tid, PStask_ID_t rootTID);
 
 /**
  * @brief Forward aggregated accounting data for job
  *
  * Forward the aggregated accounting data for the job @a job to its
  * corresponding destination. Accounting data is aggregated on a per
- * logger basis for all clients that have accounting enabled. If the
- * flag @a force is true, also clients with accounting disabled will
- * be included. This might make sense for the final update of the
+ * root task basis for all clients that have accounting enabled. If
+ * the flag @a force is true, also clients with accounting disabled
+ * will be included. This might make sense for the final update of the
  * resource data when all actual client processes are already gone.
  *
- * In a second step the aggregated data is forwarded to the nodes
- * hosting the logger process.
+ * In a second step the aggregated data is forwarded to the node
+ * hosting the job's root task.
  *
  * @param job The job structure identifying the data to aggregate and
  * forward
  *
  * @param force Flag to force inclusion of clients that are already
- * out of active accounting.
+ * out of active accounting
  *
  * @return No return value
  */

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -60,15 +60,15 @@ int switchAccounting(PStask_ID_t clientTID, bool enable);
  * @brief Send aggregated data
  *
  * Send aggregated data on resource usage of a distinct job collected
- * in @a aggData. The job is identified by its logger's task ID @a
- * logger.
+ * in @a aggData. The job is identified by its root task's ID @a
+ * rootTID.
  *
- * @param logger Task ID of the job's logger for identification
+ * @param rootTID ID of the job's root task for identification
  *
  * @param aggData Aggregated data on resources used by the job
  *
  * @return No return value
  */
-void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData);
+void sendAggData(PStask_ID_t rootTID, AccountDataExt_t *aggData);
 
 #endif  /* __PS_ACCOUNT_COMM */

@@ -28,12 +28,12 @@
 
 static LIST_HEAD(jobList);
 
-Job_t *findJobByLogger(PStask_ID_t loggerTID)
+Job_t *findJobByRoot(PStask_ID_t rootTID)
 {
     list_t *j;
     list_for_each(j, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	if (job->logger == loggerTID) return job;
+	if (job->root == rootTID) return job;
     }
     return NULL;
 }
@@ -44,7 +44,7 @@ Job_t *findJobByJobscript(pid_t js)
     list_for_each(j, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 	if (job->jobscript == js) return job;
-	if (isDescendant(js, job->logger)) {
+	if (isDescendant(js, job->root)) {
 	    job->jobscript = js;
 	    return job;
 	}
@@ -52,12 +52,12 @@ Job_t *findJobByJobscript(pid_t js)
     return NULL;
 }
 
-Job_t *addJob(PStask_ID_t loggerTID)
+Job_t *addJob(PStask_ID_t rootTID)
 {
     Job_t *job = umalloc(sizeof(*job));
 
     job->jobscript = 0;
-    job->logger = loggerTID;
+    job->root = rootTID;
     job->childrenExit = 0;
     job->nrOfChildren = 0;
     job->complete = false;
@@ -77,12 +77,12 @@ Job_t *addJob(PStask_ID_t loggerTID)
     return job;
 }
 
-void deleteJob(PStask_ID_t loggerTID)
+void deleteJob(PStask_ID_t rootTID)
 {
     /* delete all children */
-    deleteClientsByLogger(loggerTID);
+    deleteClientsByRoot(rootTID);
 
-    Job_t *job = findJobByLogger(loggerTID);
+    Job_t *job = findJobByRoot(rootTID);
     if (!job) return;
 
     ufree(job->jobid);
@@ -95,7 +95,7 @@ void deleteJobsByJobscript(pid_t js)
     list_t *j, *tmp;
     list_for_each_safe(j, tmp, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	if (job->jobscript == js) deleteJob(job->logger);
+	if (job->jobscript == js) deleteJob(job->root);
     }
 }
 
@@ -115,8 +115,8 @@ void cleanupJobs(void)
 
 	/* check timeout */
 	if (job->endTime + (60 * grace) < now) {
-	    mlog("%s: %s\n", __func__, PSC_printTID(job->logger));
-	    deleteJob(job->logger);
+	    flog("%s\n", PSC_printTID(job->root));
+	    deleteJob(job->root);
 	}
     }
 }
@@ -211,8 +211,8 @@ static void aggregateDataByJobscript(pid_t js, AccountDataExt_t *accData)
 
 	if (job->jobscript != js) continue;
 
-	if (!aggregateDataByLogger(job->logger, accData)) {
-	    mlog("%s: aggregating by jobscript %i failed\n", __func__, js);
+	if (!aggregateDataByRoot(job->root, accData)) {
+	    flog("aggregating by jobscript %i failed\n", js);
 	}
     }
 }
@@ -246,7 +246,7 @@ void forwardAllData(void)
     list_for_each(j, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 
-	if (job->logger == -1) continue;
+	if (job->root == -1) continue;
 
 	forwardJobData(job, false);
     }
@@ -283,7 +283,7 @@ char *listJobs(char *buf, size_t *bufSize)
 	snprintf(line, sizeof(line), "jobscript %i\n", job->jobscript);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "logger %s\n", PSC_printTID(job->logger));
+	snprintf(line, sizeof(line), "root %s\n", PSC_printTID(job->root));
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "start time %s", ctime(&job->startTime));
@@ -315,7 +315,7 @@ void finalizeJobs(void)
     list_t *j, *tmp;
     list_for_each_safe(j, tmp, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	deleteJob(job->logger);
+	deleteJob(job->root);
     }
 
     if (jobTimerID != -1) {

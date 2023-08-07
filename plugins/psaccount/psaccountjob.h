@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,7 +28,7 @@ typedef struct {
     time_t startTime;           /**< time when job started */
     time_t endTime;             /**< time when job finished */
     time_t latestChildStart;    /**< time when last child started */
-    PStask_ID_t logger;         /**< task ID of the logger */
+    PStask_ID_t root;           /**< ID of job's root task */
     pid_t jobscript;            /**< process ID of the job-script */
     uint64_t energyBase;        /**< base energy consumption when
 				     the job was added */
@@ -46,14 +46,13 @@ typedef struct {
 void finalizeJobs(void);
 
 /**
- * @brief Find a job identified by its logger.
+ * @brief Find a job identified by its root task
  *
- * @param loggerTID The logger taskID of the job to find.
+ * @param rootTID Task ID of the root process identifying the job to find
  *
- * @return On success the job structure is returned or
- * else 0 is returned on error.
+ * @return On success the job structure is returned or NULL otherwise
  */
-Job_t *findJobByLogger(PStask_ID_t loggerTID);
+Job_t *findJobByRoot(PStask_ID_t rootTID);
 
 /**
  * @brief Find a job identified by its jobscript.
@@ -68,24 +67,24 @@ Job_t *findJobByJobscript(pid_t js);
 /**
  * @brief Add new job
  *
- * Add a new job associated to the logger @a loggerTID.
+ * Add a new job associated to the root task with ID @a rootTID.
  *
- * @param loggerTID Task ID of the job's logger
+ * @param rootTID Task ID of the root process identifying the new job
  *
  * @return The newly created job structure is returned
  */
-Job_t *addJob(PStask_ID_t loggerTID);
+Job_t *addJob(PStask_ID_t rootTID);
 
 /**
  * @brief Delete job
  *
- * Delete the job associated to the logger @a loggerTID
+ * Delete the job associated to the root task ID @a rootTID
  *
- * @param loggerTID Task ID of the to be deleted job's logger
+ * @param rootTID Task ID of the root process identifying the job to delete
  *
  * @return No return value
  */
-void deleteJob(PStask_ID_t loggerTID);
+void deleteJob(PStask_ID_t rootTID);
 
 /**
  * @brief Delete all jobs associated to jobscript
@@ -139,8 +138,8 @@ bool getDataByJob(pid_t jobscript, AccountDataExt_t *accData);
  *
  * Forward aggregated accounting data for all jobs to its
  * corresponding destinations. Accounting data is aggregated on a per
- * logger basis. In a second step the aggregated data is forwarded to
- * the nodes hosting the logger's process.
+ * root task basis. In a second step the aggregated data is forwarded
+ * to the nodes hosting the job's root task.
  *
  * @return No return value
  */

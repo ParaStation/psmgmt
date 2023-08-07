@@ -1292,10 +1292,10 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
     struct tm *ptm;
     char ctime[100];
     char chead[300];
-    PStask_ID_t sender = msg->header.sender, logger;
+    PStask_ID_t sender = msg->header.sender, rootTID;
 
-    /* logger's TID, this identifies a task uniquely */
-    logger = *(PStask_ID_t *) ptr;
+    /* root task's TID, this identifies a task uniquely */
+    rootTID = *(PStask_ID_t *) ptr;
 
     /* Create Header for all Msg */
     atime = time(NULL);
@@ -1310,11 +1310,10 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
 	     msg->type == PSP_ACCOUNT_SLOTS ? "S" :
 	     msg->type == PSP_ACCOUNT_DELETE ? "D" :
 	     msg->type == PSP_ACCOUNT_END ? "E" : "?",
-	     PSC_getPID(logger));
+	     PSC_getPID(rootTID));
 
     if (debug & 0x040) {
-	alog("%s: received new acc msg: type:%s, sender: %s, logger:%s\n",
-	     __func__,
+	alog("%s: received new acc msg: type:%s, sender: %s", __func__,
 	     msg->type == PSP_ACCOUNT_QUEUE ? "Queue" :
 	     msg->type == PSP_ACCOUNT_START ? "Start" :
 	     msg->type == PSP_ACCOUNT_SLOTS ? "Slot" :
@@ -1322,7 +1321,8 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
 	     msg->type == PSP_ACCOUNT_CHILD ? "Child" :
 	     msg->type == PSP_ACCOUNT_LOG ? "Log" :
 	     msg->type == PSP_ACCOUNT_END ? "End" : "?",
-	     PSC_printTID(sender), PSC_printTID(logger));
+	     PSC_printTID(sender));
+	alog(", root:%s\n", PSC_printTID(rootTID));
     }
 
     switch (msg->type) {
@@ -1333,7 +1333,7 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
 	handleAccStartMsg(ptr);
 	break;
     case PSP_ACCOUNT_DELETE:
-	handleAccDeleteMsg(chead, logger);
+	handleAccDeleteMsg(chead, rootTID);
 	break;
     case PSP_ACCOUNT_END:
 	handleAccEndMsg(ptr, chead, sender);

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,15 +33,15 @@ int psAccountSwitchAccounting(PStask_ID_t clientTID, bool enable)
     return switchAccounting(clientTID, enable);
 }
 
-void psAccountGetPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *cnt)
+void psAccountGetPidsByLogger(PStask_ID_t rootTID, pid_t **pids, uint32_t *cnt)
 {
-    getPidsByLogger(logger, pids, cnt);
+    getPidsByRoot(rootTID, pids, cnt);
 }
 
-bool psAccountGetDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
+bool psAccountGetDataByLogger(PStask_ID_t rootTID, AccountDataExt_t *accData)
 {
     memset(accData, 0, sizeof(*accData));
-    return aggregateDataByLogger(logger, accData);
+    return aggregateDataByRoot(rootTID, accData);
 }
 
 bool psAccountGetDataByJob(pid_t jobscript, AccountDataExt_t *accData)
@@ -88,10 +88,10 @@ void psAccountRegisterJob(pid_t jsPid, char *jobid)
     client->jobid = ustrdup(jobid);
 }
 
-void psAccountDelJob(PStask_ID_t loggerTID)
+void psAccountDelJob(PStask_ID_t rootTID)
 {
-    deleteJob(loggerTID);
-    deleteClient(loggerTID);
+    deleteJob(rootTID);
+    deleteClient(rootTID);
 }
 
 void psAccountUnregisterJob(pid_t jsPid)

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -171,17 +171,22 @@ typedef void(psAccountRegisterJob_t)(pid_t jsPid, char *jobid);
 /**
  * @brief Deregister job
  *
- * Deregister a job identified by the process ID of its logger @a
- * loggerTID. Unregistration stops accounting of all processes using
- * @a loggerTID as their logger.
+ * Deregister a job identified by the task ID of its root task @a
+ * rootTID. Unregistration stops accounting of all processes having
+ * @a rootTID as their root process.
+ *
+ * Typically, a job's root task is the corresponding logger
+ * task. Nevertheless, this might be different for Slurm steps spawned
+ * via PMI(x)_Spawn() when the corresponding step forwarder might be
+ * used.
  *
  * This one is used by psslurm.
  *
- * @param loggerTID Task ID of the to be deregistered job's logger
+ * @param rootTID Task ID of the to be deregistered job's root task
  *
  * @return No return value
  */
-typedef void(psAccountDelJob_t)(PStask_ID_t loggerTID);
+typedef void(psAccountDelJob_t)(PStask_ID_t rootTID);
 
 /**
  * @brief Deregister batch jobscript
@@ -233,7 +238,7 @@ typedef int(psAccountSwitchAccounting_t)(PStask_ID_t clientTID, bool enable);
  * This function shall be called by batch-system plugins like psmom or
  * psslurm in order to enable the global collection of accounting
  * data. This way all psaccount plugins will automatic forward all
- * necessary information to the node executing to job's logger.
+ * necessary information to the node executing to job's root task.
  *
  * @param active Flag if the global collect mode is switched on (true)
  * or off (false)
@@ -243,19 +248,26 @@ typedef int(psAccountSwitchAccounting_t)(PStask_ID_t clientTID, bool enable);
 typedef void(psAccountSetGlobalCollect_t)(bool active);
 
 /**
- * @brief Get account data for logger
+ * @brief Get account data for job
  *
- * Get accounting data for all processes associated to the logger @a
- * logger and store the resulting data to @a accData. The content of
- * @a accData is cleared before any information is collected.
+ * Get accounting data for all processes associated to a job
+ * identified by its root task @a rootTID and store the resulting data
+ * to @a accData. The content of @a accData is cleared before any
+ * information is collected.
  *
- * @param logger Logger to collect account data for
+ * Typically, a job's root task is the corresponding logger
+ * task. Nevertheless, this might be different for Slurm steps spawned
+ * via PMI(x)_Spawn() when the corresponding step forwarder might be
+ * used.
+ *
+ * @param rootTID Task ID of the job's root task that uniquely
+ * identifies the job to collect account data for
  *
  * @param accData Data structure used to accumulate accounting data
  *
  * @return Return true on success and false on error
  */
-typedef bool(psAccountGetDataByLogger_t)(PStask_ID_t logger,
+typedef bool(psAccountGetDataByLogger_t)(PStask_ID_t rootTID,
 					 AccountDataExt_t *accData);
 
 /**
@@ -312,28 +324,33 @@ typedef void(psAccountGetSessionInfos_t)(int *count, char *buf, size_t bufSize,
 typedef bool(psAccountIsDescendant_t)(pid_t parent, pid_t child);
 
 /**
- * @brief Find account client by PID and return its logger
+ * @brief Find account client by PID and return ID of its root task
  *
- * Find an account client by its process ID @a pid and return the
- * PID of the corresponding logger.
+ * Find an account client by its process ID @a pid and return the ID
+ * of the corresponding root task.
  *
- * @param pid PID of the client to seach for
+ * @param pid PID of the client to search for
  *
- * @return PID of the client's logger or -1 on error
+ * @return Task ID of the client's root task or -1 on error
  */
 typedef PStask_ID_t(psAccountGetLoggerByClient_t)(pid_t pid);
 
 /**
- * @brief Get PIDs associated to logger
+ * @brief Get PIDs associated to a job
  *
- * Get the process ID of all clients associated to the logger @a
- * logger and store them to @a pids. Upon return @a pids will point to
- * a memory region allocated via @ref malloc(). It is the obligation
- * of the calling function to release this memory using @ref
- * free(). Furthermore, upon return @a cnt will hold the number of
- * processes found and thus the size of @a pids.
+ * Get the process ID of all clients associated to the job identified
+ * by its root task @a rootTID and store them to @a pids. Upon return
+ * @a pids will point to a memory region allocated via @ref
+ * malloc(). It is the obligation of the calling function to release
+ * this memory using @ref free(). Furthermore, upon return @a cnt will
+ * hold the number of processes found and thus the size of @a pids.
  *
- * @param logger Logger to search for
+ * Typically, a job's root task is the corresponding logger
+ * task. Nevertheless, this might be different for Slurm steps spawned
+ * via PMI(x)_Spawn() when the corresponding step forwarder might be
+ * used.
+ *
+ * @param rootTID Task ID of the job's root task
  *
  * @param pids Pointer to dynamically allocated array of process IDs
  * upon return
@@ -342,7 +359,7 @@ typedef PStask_ID_t(psAccountGetLoggerByClient_t)(pid_t pid);
  *
  * @return No return value
  */
-typedef void(psAccountGetPidsByLogger_t)(PStask_ID_t logger, pid_t **pids,
+typedef void(psAccountGetPidsByLogger_t)(PStask_ID_t rootTID, pid_t **pids,
 					 uint32_t *cnt);
 
 /**

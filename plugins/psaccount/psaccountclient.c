@@ -68,33 +68,33 @@ Client_t *findClientByPID(pid_t clientPID)
 }
 
 /**
- * @brief Try to find the jobscript for a logger.
+ * @brief Try to find the jobscript for a root task
  *
- * The logger (mpiexec) process must be a child of a jobscript
- * which was started by the psmom. This functions tries to find
- * the correct jobscript for a logger using the /proc filesystem
- * parent-child realtions.
+ * The root process (which is typically a logger (mpiexec) process)
+ * must be a child of a jobscript which was started by the psmom. This
+ * functions tries to find the correct jobscript for a root task using
+ * the /proc filesystem parent-child relations.
  *
- * @param The logger TaskID to find the jobscript for.
+ * @param rootTID The root task's ID to find the jobscript for
  *
- * @return On success the found jobscript is returned. On error
- * NULL is returned.
+ * @return On success the found jobscript is returned: on error
+ * NULL is returned
  */
-static Client_t *findJobscriptByLogger(PStask_ID_t logger)
+static Client_t *findJobscriptByRoot(PStask_ID_t rootTID)
 {
     list_t *c;
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
 
 	if (client->type == ACC_CHILD_JOBSCRIPT) {
-	    /* check if the jobscript is a parent of logger */
-	    if (isDescendant(client->pid, PSC_getPID(logger))) {
-		client->logger = logger;
+	    /* check if the jobscript is a parent of the root task */
+	    if (isDescendant(client->pid, PSC_getPID(rootTID))) {
+		client->root = rootTID;
 		return client;
 	    } else {
 		/*
-		mlog("%s: js %i not parent of logger %i\n", __func__,
-			jobscript->pid, PSC_getPID(logger));
+		flog("js %i not parent of root %i\n",
+			jobscript->pid, PSC_getPID(rootTID));
 		*/
 	    }
 	}
@@ -109,7 +109,7 @@ Client_t *findJobscriptInClients(Job_t *job)
 	Client_t *client = list_entry(c, Client_t, next);
 
 	if (client->job == job && client->type == ACC_CHILD_PSIDCHILD) {
-	    Client_t *js = findJobscriptByLogger(client->logger);
+	    Client_t *js = findJobscriptByRoot(client->root);
 	    if (js) return js;
 	}
     }
@@ -587,7 +587,7 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
 	 srcData->FS_writeBytes, srcData->FS_readBytes);
 }
 
-void setAggData(PStask_ID_t tid, PStask_ID_t logger, AccountDataExt_t *data)
+void setAggData(PStask_ID_t tid, PStask_ID_t rootTID, AccountDataExt_t *data)
 {
     Client_t *client;
     bool found = false;
@@ -595,7 +595,7 @@ void setAggData(PStask_ID_t tid, PStask_ID_t logger, AccountDataExt_t *data)
 
     list_for_each(c, &clientList) {
 	client = list_entry(c, Client_t, next);
-	if (client->taskid == tid &&  client->logger == logger) {
+	if (client->taskid == tid &&  client->root == rootTID) {
 	    found = true;
 	    break;
 	}
@@ -603,36 +603,34 @@ void setAggData(PStask_ID_t tid, PStask_ID_t logger, AccountDataExt_t *data)
 
     if (!found) {
 	client = addClient(tid, ACC_CHILD_REMOTE);
-	client->logger = logger;
+	client->root = rootTID;
 	client->doAccounting = false;
     }
 
     memcpy(&client->data, data, sizeof(client->data));
 }
 
-void finishAggData(PStask_ID_t tid, PStask_ID_t logger)
+void finishAggData(PStask_ID_t tid, PStask_ID_t rootTID)
 {
     list_t *c;
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
-	if (client->taskid == tid && client->logger == logger) {
+	if (client->taskid == tid && client->root == rootTID) {
 	    client->endTime = time(NULL);
 	    break;
 	}
     }
 }
 
-void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count)
+void getPidsByRoot(PStask_ID_t rootTID, pid_t **pids, uint32_t *count)
 {
-    list_t *c;
-    uint32_t index = 0;
-
     *count = 0;
     *pids = NULL;
 
+    list_t *c;
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
-	if (client->logger == logger && client->type == ACC_CHILD_PSIDCHILD) {
+	if (client->root == rootTID && client->type == ACC_CHILD_PSIDCHILD) {
 	    (*count)++;
 	}
     }
@@ -641,9 +639,10 @@ void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count)
 
     *pids = umalloc(sizeof(pid_t) * *count);
 
+    uint32_t index = 0;
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
-	if (client->logger == logger && client->type == ACC_CHILD_PSIDCHILD) {
+	if (client->root == rootTID && client->type == ACC_CHILD_PSIDCHILD) {
 	    if (index == *count) break;
 	    (*pids)[index++] = client->pid;
 	}
@@ -665,31 +664,31 @@ PStask_ID_t getLoggerByClientPID(pid_t pid)
 	Client_t *client = list_entry(c, Client_t, next);
 
 	/* try pid */
-	if (client->pid == pid) return client->logger;
+	if (client->pid == pid) return client->root;
 
 	if (!psOK) continue;
 
 	/* try sid */
 	if (client->data.session && client->data.session == pS.session) {
-	    return client->logger;
+	    return client->root;
 	}
 
 	/* try pgroup */
 	if (client->data.pgroup && client->data.pgroup == pS.pgrp) {
-	    return client->logger;
+	    return client->root;
 	}
     }
 
     /* try all grand-children now */
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
-	if (isDescendant(client->pid, pid)) return client->logger;
+	if (isDescendant(client->pid, pid)) return client->root;
     }
 
     return -1;
 }
 
-bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
+bool aggregateDataByRoot(PStask_ID_t rootTID, AccountDataExt_t *accData)
 {
     bool res = false;
 
@@ -697,7 +696,7 @@ bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
     list_t *c;
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
-	if (client->logger == logger && client->type != ACC_CHILD_JOBSCRIPT) {
+	if (client->root == rootTID && client->type != ACC_CHILD_JOBSCRIPT) {
 	    if (client->type == ACC_CHILD_PSIDCHILD) {
 		addClientToAggData(client, accData, addEnergy);
 		if (client->job) addEnergy = false;
@@ -733,7 +732,7 @@ Client_t *addClient(PStask_ID_t taskID, PS_Acct_job_types_t type)
     client->taskid = taskID;
     client->pid = PSC_getPID(taskID);
     client->status = -1;
-    client->logger = -1;
+    client->root = -1;
     client->doAccounting = true;
     client->type = type;
     client->job = NULL;
@@ -770,12 +769,12 @@ bool deleteClient(PStask_ID_t tid)
     return true;
 }
 
-void deleteClientsByLogger(PStask_ID_t loggerTID)
+void deleteClientsByRoot(PStask_ID_t rootTID)
 {
     list_t *c, *tmp;
     list_for_each_safe(c, tmp, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
-	if (client->logger == loggerTID) doDeleteClient(client);
+	if (client->root == rootTID) doDeleteClient(client);
     }
 }
 
@@ -808,7 +807,7 @@ void cleanupClients(void)
 	Client_t *client = list_entry(c, Client_t, next);
 
 	if (client->doAccounting || !client->endTime) continue;
-	if (findJobByLogger(client->logger)) continue;
+	if (findJobByRoot(client->root)) continue;
 
 	/* check timeout */
 	if (client->endTime + grace * 60 <= now) {
@@ -820,28 +819,28 @@ void cleanupClients(void)
 
 void forwardJobData(Job_t *job, bool force)
 {
-    PStask_ID_t logger = job->logger;
-    if (PSC_getID(logger) == PSC_getMyID()) return;
+    PStask_ID_t rootTID = job->root;
+    if (PSC_getID(rootTID) == PSC_getMyID()) return;
 
-    /* aggregate accounting data on a per logger basis */
+    /* aggregate accounting data on a per root task basis */
     AccountDataExt_t aggData;
     memset(&aggData, 0, sizeof(AccountDataExt_t));
     bool addEnergy = true;
     list_t *c;
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
-	if (client->logger == logger && (client->doAccounting || force)) {
+	if (client->root == rootTID && (client->doAccounting || force)) {
 	    addClientToAggData(client, &aggData, addEnergy);
 	    if (client->job) addEnergy = false;
 	}
     }
 
-    mdbg(PSACC_LOG_ENERGY, "energy aggregation for logger: %s "
-	 "consumption: %zu  base: %zu\n", PSC_printTID(job->logger),
+    mdbg(PSACC_LOG_ENERGY, "energy aggregation for root task: %s "
+	 "consumption: %zu  base: %zu\n", PSC_printTID(job->root),
 	 aggData.energyTot, job->energyBase);
 
     /* send the update */
-    if (aggData.numTasks) sendAggData(logger, &aggData);
+    if (aggData.numTasks) sendAggData(rootTID, &aggData);
 }
 
 void updateClients(Job_t *job)
@@ -894,7 +893,7 @@ char *listClients(char *buf, size_t *bufSize, bool detailed)
 	str2Buf(l, &buf, bufSize);
 	snprintf(l, sizeof(l), "rank %i\n", cl->rank);
 	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "logger %s\n", PSC_printTID(cl->logger));
+	snprintf(l, sizeof(l), "root %s\n", PSC_printTID(cl->root));
 	str2Buf(l, &buf, bufSize);
 	snprintf(l, sizeof(l), "account %i\n", cl->doAccounting);
 	str2Buf(l, &buf, bufSize);

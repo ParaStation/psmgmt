@@ -59,7 +59,7 @@ static const char *getAccountMsgType(int type)
     }
 }
 
-static void sendAggDataFinish(PStask_ID_t logger);
+static void sendAggDataFinish(PStask_ID_t rootTID);
 
 /**
  * @brief Handle a PSP_ACCOUNT_END message.
@@ -69,37 +69,33 @@ static void sendAggDataFinish(PStask_ID_t logger);
  *
  * @param msg The message to handle.
  *
- * @return No return value.
+ * @return No return value
  */
 static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 {
-    PStask_ID_t sender = msg->header.sender, logger, childTID;
+    PStask_ID_t sender = msg->header.sender, rootTID, childTID;
     PSnodes_ID_t childNode;
-    Client_t *client;
-    Job_t *job;
     pid_t child;
     uint64_t avgRss, avgVsize, avgThrds, dummy;
     size_t used = 0;
 
     mdbg(PSACC_LOG_ACC_MSG, "%s(%s)\n", __func__, PSC_printTID(sender));
 
-    PSP_getTypedMsgBuf(msg, &used, "logger", &logger, sizeof(logger));
+    PSP_getTypedMsgBuf(msg, &used, "root", &rootTID, sizeof(rootTID));
 
-    /* end msg from logger */
-    if (sender == logger) {
+    /* end msg from root */
+    if (sender == rootTID) {
 	/* find the job */
-	job = findJobByLogger(logger);
+	Job_t *job = findJobByRoot(rootTID);
 	if (!job) {
-	    mlog("%s: job for logger %s not found\n", __func__,
-		 PSC_printTID(logger));
+	    flog("job for root %s not found\n", PSC_printTID(rootTID));
 	} else {
 	    job->endTime = time(NULL);
 	    job->complete = true;
 
 	    if (job->childrenExit < job->nrOfChildren) {
-		mdbg(PSACC_LOG_VERBOSE, "%s: logger %s exited, but %i"
-		     " children are still alive\n", __func__,
-		     PSC_printTID(logger),
+		fdbg(PSACC_LOG_VERBOSE, "root %s exited, but %i"
+		     " children are still alive\n", PSC_printTID(rootTID),
 		     job->nrOfChildren - job->childrenExit);
 	    }
 	}
@@ -116,17 +112,17 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     childTID = PSC_getTID(childNode, child);
 
     /* find the child exiting */
-    client = findClientByTID(childTID);
+    Client_t *client = findClientByTID(childTID);
     if (!client) {
-	if (!findHist(logger)) {
-	    mlog("%s: end msg for unknown client %s from %s\n", __func__,
-		 PSC_printTID(childTID), PSC_printTID(sender));
+	if (!findHist(rootTID)) {
+	    flog("end msg for unknown client %s", PSC_printTID(childTID));
+	    mlog(" from %s\n", PSC_printTID(sender));
 	}
 	return;
     }
-    if (client->type != ACC_CHILD_JOBSCRIPT && client->logger != logger) {
-	mlog("%s: logger mismatch (%s/", __func__, PSC_printTID(logger));
-	mlog("%s)\n", PSC_printTID(client->logger));
+    if (client->type != ACC_CHILD_JOBSCRIPT && client->root != rootTID) {
+	flog("root mismatch (%s/", PSC_printTID(rootTID));
+	mlog("%s)\n", PSC_printTID(client->root));
     }
     /* stop accounting of dead child */
     client->doAccounting = false;
@@ -141,9 +137,9 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     PSP_getTypedMsgBuf(msg, &used, "status", &client->status,
 		       sizeof(client->status));
 
-    mdbg(PSACC_LOG_VERBOSE, "%s: child rank %i pid %i logger %s uid %i"
-	 " gid %i msg type %s finished\n", __func__, client->rank, child,
-	 PSC_printTID(client->logger), client->uid, client->gid,
+    fdbg(PSACC_LOG_VERBOSE, "child rank %i pid %i root %s uid %i"
+	 " gid %i msg type %s finished\n", client->rank, child,
+	 PSC_printTID(client->root), client->uid, client->gid,
 	 getAccountMsgType(msg->type));
 
     if (client->type == ACC_CHILD_JOBSCRIPT) return; /* drop message */
@@ -187,51 +183,47 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     PSP_putTypedMsgBuf(msg, "avgThrds", &avgThrds, sizeof(avgThrds));
 
     /* find the job */
-    job = findJobByLogger(client->logger);
+    Job_t *job = findJobByRoot(client->root);
     if (!job) {
-	mlog("%s: job for child %i not found\n", __func__, child);
+	flog("no job for child %i\n", child);
     } else {
 	job->childrenExit++;
 	if (job->childrenExit >= job->nrOfChildren) {
 	    /* all children exited */
-	    if (globalCollectMode && PSC_getID(logger) != PSC_getMyID()) {
+	    if (globalCollectMode && PSC_getID(rootTID) != PSC_getMyID()) {
 		forwardJobData(job, true);
-		sendAggDataFinish(logger);
+		sendAggDataFinish(rootTID);
 	    }
 
 	    job->complete = true;
 	    job->endTime = time(NULL);
-	    mdbg(PSACC_LOG_VERBOSE, "%s: job complete [%i:%i]\n", __func__,
-		 job->childrenExit, job->nrOfChildren);
+	    fdbg(PSACC_LOG_VERBOSE, "job complete [%i:%i]\n", job->childrenExit,
+		 job->nrOfChildren);
 
-	    if (PSC_getID(job->logger) != PSC_getMyID()) {
-		deleteJob(job->logger);
-	    }
+	    if (PSC_getID(job->root) != PSC_getMyID()) deleteJob(job->root);
 	}
     }
 }
 
 /**
- * @brief Process a PSP_ACCOUNT_LOG msg.
+ * @brief Process a PSP_ACCOUNT_LOG msg
  *
- * This message is send from the logger with information
- * only the logger knows.
+ * This message is send from the logger with information only the
+ * logger knows.
  *
- * @param msg The msg to handle.
+ * @param msg Message to handle
  *
- * @return No return value.
+ * @return No return value
  */
 static void handleAccountLog(DDTypedBufferMsg_t *msg)
 {
-    PStask_ID_t logger;
-    Job_t *job;
     size_t used = 0;
-
-    PSP_getTypedMsgBuf(msg, &used, "logger", &logger, sizeof(logger));
+    PStask_ID_t rootTID;
+    PSP_getTypedMsgBuf(msg, &used, "root", &rootTID, sizeof(rootTID));
 
     /* get job */
-    job = findJobByLogger(logger);
-    if (!job) job = addJob(logger);
+    Job_t *job = findJobByRoot(rootTID);
+    if (!job) job = addJob(rootTID);
 
     uint64_t dummy;
     PSP_getTypedMsgBuf(msg, &used, "rank(skipped)", &dummy, sizeof(int32_t));
@@ -255,35 +247,33 @@ static void handleAccountLog(DDTypedBufferMsg_t *msg)
  */
 static void handleAccountChild(DDTypedBufferMsg_t *msg)
 {
-    Job_t *job;
-    Client_t *client;
-    PStask_ID_t logger;
     uid_t uid;
     gid_t gid;
     int32_t rank;
-    size_t used = 0;
 
-    /* logger's task ID */
-    PSP_getTypedMsgBuf(msg, &used, "logger", &logger, sizeof(logger));
+    /* root task's ID */
+    size_t used = 0;
+    PStask_ID_t rootTID;
+    PSP_getTypedMsgBuf(msg, &used, "root", &rootTID, sizeof(rootTID));
 
     /* get job information */
-    job = findJobByLogger(logger);
-    if (!job) job = addJob(logger);
+    Job_t *job = findJobByRoot(rootTID);
+    if (!job) job = addJob(rootTID);
 
     PSP_getTypedMsgBuf(msg, &used, "rank", &rank, sizeof(rank));
     PSP_getTypedMsgBuf(msg, &used, "uid", &uid, sizeof(uid));
     PSP_getTypedMsgBuf(msg, &used, "gid", &gid, sizeof(gid));
 
-    client = addClient(msg->header.sender, ACC_CHILD_PSIDCHILD);
+    Client_t *client = addClient(msg->header.sender, ACC_CHILD_PSIDCHILD);
 
     bool triggerMonitor = !job->latestChildStart;
     job->latestChildStart = time(NULL);
     if (triggerMonitor) triggerJobStartMonitor();
 
-    if (!findHist(logger)) saveHist(logger);
+    if (!findHist(rootTID)) saveHist(rootTID);
 
     job->nrOfChildren++;
-    client->logger = logger;
+    client->root = rootTID;
     client->uid = uid;
     client->gid = gid;
     client->job = job;
@@ -348,16 +338,16 @@ static void handleSwitchUpdate(DDTypedBufferMsg_t *msg, bool enable)
     switchClientUpdate(client, enable);
 }
 
-void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData)
+void sendAggData(PStask_ID_t rootTID, AccountDataExt_t *aggData)
 {
     PS_SendDB_t data;
-    PSnodes_ID_t loggerNode = PSC_getID(logger);
+    PSnodes_ID_t rootNode = PSC_getID(rootTID);
 
     initFragBuffer(&data, PSP_PLUG_ACCOUNT, PSP_ACCOUNT_AGG_DATA_UPDATE);
-    setFragDest(&data, PSC_getTID(loggerNode, 0));
+    setFragDest(&data, PSC_getTID(rootNode, 0));
 
-    /* add logger TaskID */
-    addInt32ToMsg(logger, &data);
+    /* add ID of the job's root task */
+    addInt32ToMsg(rootTID, &data);
 
     addUint64ToMsg(aggData->maxThreadsTotal, &data);
     addUint64ToMsg(aggData->maxVsizeTotal, &data);
@@ -434,7 +424,7 @@ void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData)
 	 " cstime %lu minCputime %lu totCputime %lu energyTot %zu"
 	 " powerAvg %zu powerMin %zu powerMax %zu" " IC_recvBytesTot %zu"
 	 " IC_sendBytesTot %zu FS_writeBytes %zu FS_readBytes %zu\n",
-	 loggerNode, aggData->maxThreadsTotal,
+	 rootNode, aggData->maxThreadsTotal,
 	 aggData->maxVsizeTotal, aggData->maxRssTotal, aggData->maxThreads,
 	 aggData->maxVsize, aggData->maxRss, aggData->numTasks,
 	 aggData->avgThreadsTotal, aggData->avgThreadsCount,
@@ -450,13 +440,13 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
     AccountDataExt_t aggData;
-    PStask_ID_t logger;
 
-    /* get logger's task ID */
-    getInt32(&ptr, &logger);
+    /* get root task's ID */
+    PStask_ID_t rootTID;
+    getInt32(&ptr, &rootTID);
 
-    if (!findJobByLogger(logger)) {
-	flog("update unknown logger %s ", PSC_printTID(logger));
+    if (!findJobByRoot(rootTID)) {
+	flog("update unknown root %s ", PSC_printTID(rootTID));
 	mlog("from %s\n", PSC_printTID(msg->header.sender));
 	return;
     }
@@ -528,7 +518,7 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint64(&ptr, &aggData.FS_writeBytes);
     getUint64(&ptr, &aggData.FS_readBytes);
 
-    setAggData(msg->header.sender, logger, &aggData);
+    setAggData(msg->header.sender, rootTID, &aggData);
 
     fdbg(PSACC_LOG_UPDATE_MSG, "from %s maxThreadsTot %lu maxVsizeTot %lu"
 	 " maxRsstot %lu maxThreads %lu maxVsize %lu maxRss %lu numTasks %u"
@@ -546,36 +536,36 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  * @brief Finish data aggregation
  *
  * Trigger to set the @ref endTime in the remote resource aggregation
- * identified by the job's logger task ID @a logger. This is achieved
+ * identified by the job's root task ID @a rootTID. This is achieved
  * by sending a corresponding PSP_ACCOUNT_AGG_DATA_FINISH message to
- * the logger's node.
+ * the root task's node.
  *
- * @param logger Task ID of the job's logger for identification
+ * @param rootTID Task ID of the root task identifying the job
  *
  * @return No return value
  */
-static void sendAggDataFinish(PStask_ID_t logger)
+static void sendAggDataFinish(PStask_ID_t rootTID)
 {
     PS_SendDB_t data;
 
     initFragBuffer(&data, PSP_PLUG_ACCOUNT, PSP_ACCOUNT_AGG_DATA_FINISH);
-    setFragDest(&data, PSC_getTID(PSC_getID(logger), 0));
+    setFragDest(&data, PSC_getTID(PSC_getID(rootTID), 0));
 
-    /* add logger TaskID */
-    addInt32ToMsg(logger, &data);
+    /* add root task's ID */
+    addInt32ToMsg(rootTID, &data);
 
     sendFragMsg(&data);
 }
 
 static void handleAggDataFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    PStask_ID_t logger;
+    PStask_ID_t rootTID;
     char *ptr = data->buf;
 
-    /* get logger's task ID */
-    getInt32(&ptr, &logger);
+    /* get root task's ID */
+    getInt32(&ptr, &rootTID);
 
-    finishAggData(msg->header.sender, logger);
+    finishAggData(msg->header.sender, rootTID);
 }
 
 static bool handleInterAccount(DDTypedBufferMsg_t *msg)
