@@ -134,8 +134,8 @@ else
 	BPF_SET=$("$BPF_DEVICE_LOADER" -s -i $ID 2>/dev/null)
 
 	if [ ${#BPF_SET} -lt 4 ]; then
-	    setDevices "ALLOW" "-a" "$ID"
 	    setDevices "DENY" "-d" "$ID"
+	    setDevices "ALLOW" "-a" "$ID"
 
 	    # add allowed devices to user cgroup
 	    ID=USER_"$USER"
@@ -156,8 +156,8 @@ else
 	    BPF_SET=$("$BPF_DEVICE_LOADER" -s -i $ID 2>/dev/null)
 
 	    if [ ${#BPF_SET} -lt 4 ]; then
-		setDevices "ALLOW" "-a" "$ID"
 		setDevices "DENY" "-d" "$ID"
+		setDevices "ALLOW" "-a" "$ID"
 	    else
 		dlog "step $JOBID:$STEPID cgroup id $ID already set"
 	    fi

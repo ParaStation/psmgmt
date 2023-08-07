@@ -439,23 +439,22 @@ bool devEnvVisitor(GRes_Dev_t *dev, uint32_t id, void *info)
     DevVisitorInfo_t *devInfo = info;
 
     bool isSet = PSCPU_isSet(devInfo->set, dev->slurmIdx);
-    fdbg(PSSLURM_LOG_JAIL, "%s GRes ID %u path %s num %u major %u minor %u\n",
-	 isSet ? "Allow" : "Deny",
-	 id, dev->path, dev->slurmIdx, dev->major, dev->minor);
+    if (!isSet) {
+	fdbg(PSSLURM_LOG_JAIL, "Skipping GRes ID %u path %s num %u major %u "
+	     "minor %u\n", id, dev->path, dev->slurmIdx, dev->major,
+	     dev->minor);
+	return false;
+    }
+
+    fdbg(PSSLURM_LOG_JAIL, "Allow GRes ID %u path %s num %u major %u "
+	 "minor %u\n", id, dev->path, dev->slurmIdx, dev->major, dev->minor);
 
     char val[64];
     snprintf(val, sizeof(val), "%s %u:%u rwm",
 	     dev->isBlock ? "b" : "c", dev->major, dev->minor);
 
-    uint16_t n;
-    if (isSet) {
-	n = devInfo->nAllow++;
-    } else {
-	n = devInfo->nDeny++;
-    }
     char name[128];
-    snprintf(name, sizeof(name), "__PSJAIL_DEV_%s_%u",
-	     isSet ? "ALLOW" : "DENY", n);
+    snprintf(name, sizeof(name), "__PSJAIL_DEV_ALLOW_%u", devInfo->nAllow++);
     setenv(name, val, 1);
 
     return false;
@@ -474,6 +473,8 @@ static void setJailDevEnv(list_t *gresList, uint32_t localNodeId)
     list_for_each(g, gresList) {
 	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
 
+	fdbg(PSSLURM_LOG_JAIL, "test bitAlloc of gres %i\n", gres->id);
+
 	DevVisitorInfo_t devInfo = {
 	    .nAllow = 0,
 	    .nDeny = 0 };
@@ -488,6 +489,36 @@ static void setJailDevEnv(list_t *gresList, uint32_t localNodeId)
 
 	traverseGResDevs(gres->id, devEnvVisitor, &devInfo);
     }
+}
+
+/**
+ * @brief Deny all configured devices
+ *
+ * The allowed devices will overwrite this setting later.
+ *
+ * @param conf gres configuration possible holding devices
+ *
+ * @param info unused
+ *
+ * @return Always returns false to continue
+ */
+bool denyAllDevs(Gres_Conf_t *conf, void *info)
+{
+    list_t *d;
+    int n = 0;
+    list_for_each(d, &conf->devices) {
+	GRes_Dev_t *dev = list_entry(d, GRes_Dev_t, next);
+
+	char val[64];
+	snprintf(val, sizeof(val), "%s %u:%u rwm",
+		 dev->isBlock ? "b" : "c", dev->major, dev->minor);
+
+	char name[128];
+	snprintf(name, sizeof(name), "__PSJAIL_DEV_DENY_%u", n++);
+	setenv(name, val, 1);
+    }
+
+    return false;
 }
 
 void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
@@ -510,7 +541,11 @@ void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
 
     if (user) setenv("__PSJAIL_USER", user, 1);
 
-    if (gresList) setJailDevEnv(gresList, localNodeId);
+    const char *c = getConfValueC(SlurmCgroupConfig, "ConstrainDevices");
+    if (c && !strcasecmp(c, "yes") && gresList) {
+	traverseGresConf(&denyAllDevs, NULL);
+	setJailDevEnv(gresList, localNodeId);
+    }
 
     if (cred) setJailMemEnv(cred, localNodeId);
 }
