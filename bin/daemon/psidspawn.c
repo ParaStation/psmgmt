@@ -2528,14 +2528,16 @@ int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res)
 
 	/* local slot found for rank */
 	memcpy(task->CPUset, res->localSlots[s].CPUset, sizeof(task->CPUset));
+	task->partHolder = res->partHolder;
 
 	if (!PSCPU_any(task->CPUset, PSCPU_MAX)) {
 	    PSID_flog("res %#x rank %d exhausted\n", res->resID, task->jobRank);
 	    return EADDRINUSE;
 	}
 
-	PSID_fdbg(PSID_LOG_SPAWN, "res %#x rank %d got cores: ...%s\n",
-		  res->resID, task->jobRank, PSCPU_print_part(task->CPUset, 8));
+	PSID_fdbg(PSID_LOG_SPAWN, "res %#x rank %d got cores: ...%s from %s\n",
+		  res->resID, task->jobRank, PSCPU_print_part(task->CPUset, 8),
+		  PSC_printTID(task->partHolder));
 	return 0;
     }
 

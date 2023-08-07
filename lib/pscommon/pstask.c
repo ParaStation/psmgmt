@@ -102,6 +102,7 @@ bool PStask_init(PStask_t* task)
     task->forwarder = NULL;
     task->rank = -1;
     PSCPU_clrAll(task->CPUset);
+    task->partHolder = -1;
     task->jobRank = -1;
     task->fd = -1;
     task->workingdir = NULL;
@@ -295,6 +296,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->forwarder = task->forwarder;
     clone->rank = task->rank;
     memcpy(clone->CPUset, task->CPUset, sizeof(clone->CPUset));
+    clone->partHolder = task->partHolder;
     clone->jobRank = task->jobRank;
     /* clone->fd = -1; */
 

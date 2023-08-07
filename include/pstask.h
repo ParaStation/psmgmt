@@ -107,6 +107,7 @@ struct __task__ {
     PStask_t *forwarder;           /**< pointer to forwarder's task struct */
     /*C*/ int32_t rank;            /**< rank of task within task group */
     PSCPU_set_t CPUset;            /**< set of logical CPUs to pin to */
+    PStask_ID_t partHolder;        /**< location of resource management */
     int32_t jobRank;               /**< rank w/in job (tasks w/ same spawner */
     short fd;                      /**< connection fd from/to the psid */
     /*C*/ char *workingdir;        /**< working directory */
