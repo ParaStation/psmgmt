@@ -141,7 +141,7 @@ int killChild(pid_t pid, int signal, uid_t uid)
 }
 
 int __signalTasks(uint32_t jobid, uint32_t stepid, uid_t uid, list_t *taskList,
-	          int signal, int32_t group, const char *caller, const int line)
+		  int signal, int32_t group, const char *caller, const int line)
 {
     list_t *t, *tmp;
     int count = 0;

@@ -3972,7 +3972,8 @@ no_task_error:
 	PSID_fdbg(PSID_LOG_PART, "new reservation %#x of %d slots\n",
 		  r->rid, got);
 	enqRes(&task->reservations, r);
-	send_RESCREATED(task, r, NULL);
+	if (!send_RESCREATED(task, r, NULL))
+	    PSID_flog("send_RESCREATED failed\n");
 	send_RESSLOTS(task, r);
 
 	PSP_putMsgBuf(&msg, "rid", &r->rid, sizeof(r->rid));
@@ -4085,7 +4086,8 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 
     PSID_fdbg(PSID_LOG_PART, "add %d slots to reservation %#x\n", got, res->rid);
     enqRes(&task->reservations, res);
-    send_RESCREATED(task, res, NULL);
+    if (!send_RESCREATED(task, res, NULL))
+	PSID_flog("send_RESCREATED failed\n");
     send_RESSLOTS(task, res);
 
     PSP_putMsgBuf(&msg, "rid", &res->rid, sizeof(res->rid));
@@ -4476,7 +4478,8 @@ error:
 	PSID_fdbg(PSID_LOG_PART, "new reservation %#x of %d slots\n",
 		  r->rid, got);
 	enqRes(&task->reservations, r);
-	send_RESCREATED(task, r, NULL);
+	if (!send_RESCREATED(task, r, NULL))
+	    PSID_flog("send_RESCREATED failed\n");
 	send_RESSLOTS(task, r);
 
 	PSP_putMsgBuf(&msg, "rid", &r->rid, sizeof(r->rid));
@@ -5280,7 +5283,8 @@ static void send_further_RESCREATED(PSpart_request_t *req, PStask_t *task)
 	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
 	/* ignore placeholder reservation */
 	if ((res->options & PART_OPT_DUMMY) && !res->nSlots) continue;
-	send_RESCREATED(&reqHolder, res, filter);
+	if (!send_RESCREATED(&reqHolder, res, filter))
+	    PSID_flog("send_RESCREATED failed\n");
     }
 
     deqPart(&reqHolder.sisterParts, req);

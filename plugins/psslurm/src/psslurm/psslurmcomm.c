@@ -1605,7 +1605,8 @@ int srunOpenControlConnection(Step_t *step)
 
     PSCio_setFDblock(sock, false);
 
-    fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB, "new srun conn %i\n", sock);
+    fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB, "new srun conn %i to %s:%s\n",
+	 sock, inet_ntoa(step->srun.sin_addr), port);
 
     return sock;
 }

@@ -330,7 +330,7 @@ static int flushClientMsgs(int fd, void *info)
     if (list_empty(&clients[fd].msgs) && !clients[fd].pendingACKs) {
 	/* Use the stop-hash to actually send SENDCONT msgs */
 	int num = PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
-	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d msgs\n", __func__, num);
+	PSID_fdbg(PSID_LOG_FLWCNTRL, "sent %d msgs\n", num);
     }
 
     clients[fd].flags &= ~FLUSH;
@@ -513,12 +513,10 @@ static void closeConnection(int fd)
 
 void PSIDclient_delete(int fd)
 {
-    PStask_t *task;
-
     PSID_log(fd<0 ? -1 : PSID_LOG_CLIENT, "%s(%d)\n", __func__, fd);
     if (fd<0) return;
 
-    task = PSIDclient_getTask(fd);
+    PStask_t *task = PSIDclient_getTask(fd);
 
     PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",
 	     __func__, task ? PSC_printTID(task->tid) : "<unknown>");
@@ -726,7 +724,7 @@ void PSIDclient_releaseACK(int fd)
     if (!clients[fd].pendingACKs && list_empty(&clients[fd].msgs)) {
 	/* Use the stop-hash to actually send SENDCONT msgs */
 	int ret = PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
-	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d msgs\n", __func__, ret);
+	PSID_fdbg(PSID_LOG_FLWCNTRL, "sent %d msgs\n", ret);
     }
 }
 

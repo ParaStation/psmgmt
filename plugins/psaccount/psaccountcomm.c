@@ -79,7 +79,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     uint64_t avgRss, avgVsize, avgThrds, dummy;
     size_t used = 0;
 
-    mdbg(PSACC_LOG_ACC_MSG, "%s(%s)\n", __func__, PSC_printTID(sender));
+    fdbg(PSACC_LOG_ACC_MSG, "sender %s", PSC_printTID(sender));
 
     PSP_getTypedMsgBuf(msg, &used, "root", &rootTID, sizeof(rootTID));
 
@@ -88,12 +88,14 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 	/* find the job */
 	Job_t *job = findJobByRoot(rootTID);
 	if (!job) {
+	    mdbg(PSACC_LOG_ACC_MSG, "\n");
 	    flog("job for root %s not found\n", PSC_printTID(rootTID));
 	} else {
 	    job->endTime = time(NULL);
 	    job->complete = true;
 
 	    if (job->childrenExit < job->nrOfChildren) {
+		mdbg(PSACC_LOG_ACC_MSG, "\n");
 		fdbg(PSACC_LOG_VERBOSE, "root %s exited, but %i"
 		     " children are still alive\n", PSC_printTID(rootTID),
 		     job->nrOfChildren - job->childrenExit);
@@ -110,6 +112,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     /* calculate childs TaskID */
     childNode = PSC_getID(sender);
     childTID = PSC_getTID(childNode, child);
+    mdbg(PSACC_LOG_ACC_MSG, " on client %s\n", PSC_printTID(childTID));
 
     /* find the child exiting */
     Client_t *client = findClientByTID(childTID);
@@ -282,6 +285,10 @@ static void handleAccountChild(DDTypedBufferMsg_t *msg)
 
 static bool handlePSMsg(DDTypedBufferMsg_t *msg)
 {
+    fdbg(PSACC_LOG_ACC_MSG, "sender %s type %s",
+	 PSC_printTID(msg->header.sender), getAccountMsgType(msg->type));
+    mdbg(PSACC_LOG_ACC_MSG, " on client %s\n", PSC_printTID(msg->header.dest));
+
     if (msg->header.dest == PSC_getMyTID()) {
 	/* message for me, let's get infos and forward to all accounters */
 
@@ -570,6 +577,10 @@ static void handleAggDataFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 static bool handleInterAccount(DDTypedBufferMsg_t *msg)
 {
+    fdbg(PSACC_LOG_ACC_MSG, "sender %s type %d",
+	 PSC_printTID(msg->header.sender), msg->type);
+    mdbg(PSACC_LOG_ACC_MSG, " on client %s\n", PSC_printTID(msg->header.dest));
+
     switch (msg->type) {
     case PSP_ACCOUNT_ENABLE_UPDATE:
 	handleSwitchUpdate(msg, true);

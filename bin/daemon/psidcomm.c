@@ -211,6 +211,7 @@ ssize_t sendMsg(void *amsg)
 	PSID_warn(key, eno, "%s(type=%s, len=%d) to %s in %s",
 		  __func__, PSDaemonP_printMsg(msg->type), msg->len,
 		  PSC_printTID(msg->dest), sender);
+	PSID_fdbg(key, "sender was %s\n", PSC_printTID(msg->sender));
 	if (msg->len > sizeof(*msg)) {
 	    DDTypedMsg_t *tmsg = amsg;
 	    PSID_log(key, "%s: sub-type might be %d\n", __func__, tmsg->type);
@@ -222,9 +223,9 @@ ssize_t sendMsg(void *amsg)
 						 .dest = msg->sender,
 						 .len = sizeof(DDTypedMsg_t) },
 				     .type = !isRDP };
-
-	    PSID_log(PSID_LOG_FLWCNTRL, "%s: SENDSTOP for %s triggered\n",
-		     __func__, PSC_printTID(stopmsg.header.dest));
+	    PSID_fdbg(PSID_LOG_FLWCNTRL, "SENDSTOP for %s triggered by %s"
+		      " (is%s RDP)\n", PSC_printTID(stopmsg.header.dest),
+		      PSDaemonP_printMsg(msg->type), !isRDP ? " not" : "");
 	    sendMsg(&stopmsg);
 	    ret = 0;
 	}

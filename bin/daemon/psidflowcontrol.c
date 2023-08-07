@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -171,16 +171,13 @@ static bool msg_SENDSTOP(DDTypedMsg_t *msg)
 		       .len = sizeof(ackmsg) };
     if (!task) return true;
 
-    PSID_log(PSID_LOG_FLWCNTRL, "%s: from %s\n",
-	     __func__, PSC_printTID(msg->header.sender));
-
     if (task->group == TG_LOGGER) {
 	msg->header.type = PSP_CD_SENDSTOP;
 	sendMsg(msg);
     } else if (task->fd != -1) {
-	PSID_log(PSID_LOG_FLWCNTRL,
-		 "%s: client %s at %d temporarily disabled\n", __func__,
-		 PSC_printTID(msg->header.dest), task->fd);
+	PSID_fdbg(PSID_LOG_FLWCNTRL, "client %s at %d temporarily disabled",
+		  PSC_printTID(msg->header.dest), task->fd);
+	PSID_log(PSID_LOG_FLWCNTRL, " by %s\n", PSC_printTID(msg->header.sender));
 
 	if (!task->activeStops) Selector_disable(task->fd);
 	task->activeStops++;
@@ -211,8 +208,8 @@ static bool msg_SENDSTOPACK(DDMsg_t *msg)
     PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
     if (!task) return true;
 
-    PSID_log(PSID_LOG_FLWCNTRL, "%s: from %s\n",
-	     __func__, PSC_printTID(msg->sender));
+    PSID_fdbg(PSID_LOG_FLWCNTRL, "from %s", PSC_printTID(msg->sender));
+    PSID_log(PSID_LOG_FLWCNTRL, " to %s\n", PSC_printTID(msg->dest));
 
     if (task->fd != -1) PSIDclient_releaseACK(task->fd);
     return true;
@@ -239,20 +236,16 @@ static bool msg_SENDCONT(DDMsg_t *msg)
     PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
     if (!task) return true;
 
-    PSID_log(PSID_LOG_FLWCNTRL, "%s: from %s\n",
-	     __func__, PSC_printTID(msg->sender));
-
     if (task->group == TG_LOGGER) {
 	msg->type = PSP_CD_SENDCONT;
 	sendMsg(msg);
     } else if (task->fd != -1) {
-	PSID_log(PSID_LOG_FLWCNTRL,
-		 "%s: client %s at %d re-enabled\n", __func__,
-		 PSC_printTID(msg->dest), task->fd);
+	PSID_fdbg(PSID_LOG_FLWCNTRL, "client %s at %d re-enabled",
+		  PSC_printTID(msg->dest), task->fd);
+	PSID_log(PSID_LOG_FLWCNTRL, " by %s\n", PSC_printTID(msg->sender));
 
 	task->activeStops--;
 	if (!task->activeStops) Selector_enable(task->fd);
-
     }
     return true;
 }

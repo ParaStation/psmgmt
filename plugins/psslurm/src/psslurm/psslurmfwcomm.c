@@ -86,7 +86,7 @@ static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
     PSLog_Msg_t *msg = getDataM(&ptr, NULL);
     PStask_ID_t sender = msg->header.sender;
 
-    mdbg(PSSLURM_LOG_IO, "%s from %s\n", __func__, PSC_printTID(sender));
+    fdbg(PSSLURM_LOG_IO, "from %s\n", PSC_printTID(sender));
 
     if (!(step->taskFlags & LAUNCH_PTY)) {
 	/* close stdout/stderr */
@@ -96,7 +96,7 @@ static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
 
     PS_Tasks_t *task = findTaskByFwd(&step->tasks, sender);
     if (!task) {
-	mlog("%s: no task for forwarder %s\n", __func__, PSC_printTID(sender));
+	flog("no task for forwarder %s\n", PSC_printTID(sender));
     } else {
 	task->exitCode = *(int *) msg->buf;
     }
@@ -421,8 +421,7 @@ bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	    sendMsg(msg);
 	    break;
 	default:
-	    mdbg(-1, "%s: Unhandled Log-type %s\n", __func__,
-		 PSLog_printMsgType(lmsg->type));
+	    flog("unhandled Log-type %s\n", PSLog_printMsgType(lmsg->type));
 	    return false;
 	}
     } else if (msg->header.type == PSP_PLUG_PSSLURM) {
@@ -438,8 +437,7 @@ bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	    handleInitComplete(msg);
 	    break;
 	default:
-	    mdbg(PSSLURM_LOG_IO_VERB, "%s: Unhandled type %d\n", __func__,
-		 msg->type);
+	    fdbg(PSSLURM_LOG_IO_VERB, "unhandled type %d\n", msg->type);
 	    return false;
 	}
     } else return false; // do not handle other types of messages
@@ -570,8 +568,7 @@ void fwCMD_enableSrunIO(Step_t *step)
 
     /* might happen that forwarder is already gone */
     if (!step->fwdata) return;
-    mdbg(PSSLURM_LOG_IO, "%s: to %s\n", __func__,
-	 PSC_printTID(step->fwdata->tid));
+    fdbg(PSSLURM_LOG_IO, "to %s\n", PSC_printTID(step->fwdata->tid));
     sendMsg(&msg);
 }
 
@@ -718,7 +715,7 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg, int32_t rank)
     PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
     PSP_putTypedMsgBuf(&msg, "plMsg", plMsg, plMsg->header.len);
 
-    if (msg.header.dest == -1) mlog("%s unknown destination for %s\n", __func__,
+    if (msg.header.dest == -1) flog("unknown destination for %s\n",
 				    PSC_printTID(plMsg->header.sender));
     sendMsg(&msg);
 }

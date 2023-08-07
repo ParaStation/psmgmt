@@ -805,8 +805,7 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	    || task->released || task->group == TG_FORWARDER) continue;
 	found = true;
 
-	PSID_log(PSID_LOG_SIGNAL, "%s: %s: parent",
-		 __func__, PSC_printTID(task->tid));
+	PSID_fdbg(PSID_LOG_SIGNAL, "%s: parent", PSC_printTID(task->tid));
 	PSID_log(PSID_LOG_SIGNAL, " %s released;", PSC_printTID(task->ptid));
 	PSID_log(PSID_LOG_SIGNAL, " new parent is %s\n",
 		 PSC_printTID(msg->request));
@@ -1098,6 +1097,7 @@ static int releaseChild(PStask_ID_t parent, PStask_ID_t child, bool answer)
 	PSID_setSignal(&task->releasedBefore, child, -1);
     } else if (PSID_emptySigList(&task->childList)) {
 	PSIDhook_call(PSIDHOOK_LAST_CHILD_GONE, task);
+	PSID_fdbg(PSID_LOG_SIGNAL, "last child was %s\n", PSC_printTID(child));
     }
 
     return 0;
@@ -1580,13 +1580,13 @@ static bool msg_INHERITDONE(DDBufferMsg_t *msg)
     size_t used = 0;
     PStask_ID_t keptChld;
     if (!PSP_getMsgBuf(msg, &used, "kept child", &keptChld, sizeof(keptChld))) {
-	PSID_log(-1, "%s(%s): truncated\n", __func__, PSC_printTID(tid));
+	PSID_flog("%s: truncated\n", PSC_printTID(tid));
 	return true;
     }
 
     if (!task) {
-	PSID_log(-1, "%s(%s) for %d: no task\n", __func__, PSC_printTID(tid),
-		 PSC_getID(keptChld));
+	PSID_flog("%s", PSC_printTID(tid));
+	PSID_log(-1, " for %s: no task\n", PSC_printTID(keptChld));
 	return true;
     }
 
@@ -1596,8 +1596,8 @@ static bool msg_INHERITDONE(DDBufferMsg_t *msg)
     task->pendingReleaseRes--;
     if (task->pendingReleaseRes
 	|| (!task->parentReleased && !deregisterFromParent(task))) {
-	PSID_log(PSID_LOG_SIGNAL, "%s(%s) still %d pending\n",
-		 __func__, PSC_printTID(tid), task->pendingReleaseRes);
+	PSID_fdbg(PSID_LOG_SIGNAL, "%s still %d pending\n",
+		  PSC_printTID(tid), task->pendingReleaseRes);
     } else {
 	send_RELEASERES(task, msg->header.sender);
     }
