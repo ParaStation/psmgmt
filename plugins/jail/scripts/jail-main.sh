@@ -41,7 +41,7 @@ fi
 
 if [ "$CGROUP_VERSION" == "v2" ]; then
     BASE="$CGROUP_BASE/$PREFIX-$PSID_PID"
-    CG_USER="$BASE/$USER"
+    CG_USER="$BASE/user-$USER"
     CG_JOB="$CG_USER/job-$JOBID"
     CG_STEP="$CG_JOB/step-$STEPID"
 fi
