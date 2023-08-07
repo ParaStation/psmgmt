@@ -31,9 +31,14 @@ if [ ! -d "$CGROUP_BASE" ]; then
     elog "cgroup filesystem $CGROUP_BASE not mounted"
 fi
 
-# cleanup BPF psid directory
+# cleanup leftover BPF psid directory
 if [ -d "$BPF_PSID_MAPS" ]; then
-    rm -r "$BPF_PSID_MAPS"
+    rm -r "$BPF_PSID_MAPS" 2>/dev/null
 fi
+
+# cleanup leftover cgroup psid directory
+for i in "$CGROUP_BASE"/psid-*/; do
+    rmdir -p "$i" 2>/dev/null
+done
 
 exit 0
