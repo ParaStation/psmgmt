@@ -264,7 +264,7 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     /* make sure all processes are gone */
     Step_signal(step, SIGKILL, 0);
-    killChild(PSC_getPID(step->loggerTID), SIGKILL, step->uid);
+    if (step->fwdata->cPid > 0) killChild(step->fwdata->cPid, SIGKILL, step->uid);
 
     freeSlurmMsg(&step->srunIOMsg);
 
@@ -301,10 +301,11 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	}
     }
 
-    step->state = JOB_COMPLETE;
-    fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
+    fdbg(PSSLURM_LOG_JOB, "%s in %s => JOB_COMPLETE\n", Step_strID(step),
 	 Job_strState(step->state));
-    psAccountDelJob(PSC_getTID(-1, fw->cPid));
+    step->state = JOB_COMPLETE;
+    PStask_ID_t jobTID = fw->cPid < 1 ? fw->tid : PSC_getTID(-1, fw->cPid);
+    psAccountDelJob(jobTID);
 
     /* test if we were waiting only for this step to finish */
     if (!Job_findById(step->jobid) && alloc && alloc->terminate &&

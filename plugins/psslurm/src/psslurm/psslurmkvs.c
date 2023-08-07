@@ -566,7 +566,7 @@ static bool addStepInfo(Step_t *step, const void *info)
     addStrBuf(line, strBuf);
 
     snprintf(line, sizeof(line), "logger TID: %s\n",
-	    PSC_printTID(step->loggerTID));
+	     PSC_printTID(step->loggerTID));
     addStrBuf(line, strBuf);
 
     snprintf(line, sizeof(line), "local node ID: %u\n", step->localNodeId);

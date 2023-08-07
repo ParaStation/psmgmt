@@ -1179,10 +1179,11 @@ static void sendAcctChild(PStask_t *task)
 	    .len = 0 },
 	.type = PSP_ACCOUNT_CHILD };
 
-    /* logger's TID identifies a task uniquely */
-    PSP_putTypedMsgBuf(&msg, "loggertid", &task->loggertid,
-		       sizeof(task->loggertid));
-    PSP_putTypedMsgBuf(&msg, "rank", &task->rank, sizeof(task->rank));
+    /* partition holder identifies job uniquely (logger's TID as fallback) */
+    PStask_ID_t acctRoot = task->loggertid;
+    if (task->partHolder != -1) acctRoot = task->partHolder;
+    PSP_putTypedMsgBuf(&msg, "acctRoot", &acctRoot, sizeof(acctRoot));
+    PSP_putTypedMsgBuf(&msg, "rank", &task->jobRank, sizeof(task->jobRank));
     PSP_putTypedMsgBuf(&msg, "uid", &task->uid, sizeof(task->uid));
     PSP_putTypedMsgBuf(&msg, "gid", &task->gid, sizeof(task->gid));
 
@@ -1347,9 +1348,10 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 	    .len = 0 },
 	.type = PSP_ACCOUNT_START };
 
-    /* logger's TID, this identifies a task uniquely */
-    PSP_putTypedMsgBuf(&msg, "loggertid", &task->loggertid,
-		       sizeof(task->loggertid));
+    /* partition holder identifies job uniquely (logger's TID as fallback) */
+    PStask_ID_t acctRoot = task->loggertid;
+    if (task->partHolder != -1) acctRoot = task->partHolder;
+    PSP_putTypedMsgBuf(&msg, "acctRoot", &acctRoot, sizeof(acctRoot));
     PSP_putTypedMsgBuf(&msg, "rank", &task->rank, sizeof(task->rank));
     PSP_putTypedMsgBuf(&msg, "uid", &task->uid, sizeof(task->uid));
     PSP_putTypedMsgBuf(&msg, "gid", &task->gid, sizeof(task->gid));

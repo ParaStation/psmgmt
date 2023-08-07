@@ -110,7 +110,7 @@ typedef struct {
     uint32_t nrOfNodes;		/**< number of nodes */
     PSnodes_ID_t *nodes;	/**< node-list of accounted nodes */
     pid_t childPid;		/**< PID being accounted (e.g. job-script) */
-    PStask_ID_t loggerTID;	/**< task ID of the logger (if any) */
+    PStask_ID_t rootTID;	/**< task ID of step's root task (if any) */
     list_t *tasks;
     list_t *remoteTasks;
     uint32_t localNodeId;
@@ -150,7 +150,7 @@ typedef struct {
 } Resp_Launch_Tasks_t;
 
 typedef struct {
-    uint64_t allocSec; 		/* number of seconds allocated */
+    uint64_t allocSec;		/* number of seconds allocated */
     uint64_t count;		/* count of TRes */
     uint32_t id;		/* database ID */
     char *name;			/* optional name of TRes */

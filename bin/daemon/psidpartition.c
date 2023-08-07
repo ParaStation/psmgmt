@@ -1734,7 +1734,7 @@ static void sendAcctQueueMsg(PStask_t *task)
 	.type = PSP_ACCOUNT_QUEUE };
 
     PSP_putTypedMsgBuf(&msg, "TID", &task->tid, sizeof(task->tid));
-    PSP_putTypedMsgBuf(&msg, "rank", &task->rank, sizeof(task->rank));
+    PSP_putTypedMsgBuf(&msg, "rank", &task->jobRank, sizeof(task->jobRank));
     PSP_putTypedMsgBuf(&msg, "UID", &task->uid, sizeof(task->uid));
     PSP_putTypedMsgBuf(&msg, "GID", &task->gid, sizeof(task->gid));
     PSP_putTypedMsgBuf(&msg, "numChild", &task->request->size,

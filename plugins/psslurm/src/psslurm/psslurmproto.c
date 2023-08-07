@@ -1564,15 +1564,15 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
     if (slurmAccData->childPid) {
 	res = psAccountGetDataByJob(slurmAccData->childPid, accData);
     } else {
-	res = psAccountGetDataByLogger(slurmAccData->loggerTID, accData);
+	res = psAccountGetDataByLogger(slurmAccData->rootTID, accData);
     }
 
     slurmAccData->empty = !res;
 
     if (!res) {
 	/* getting account data failed */
-	flog("getting account data for pid %u logger '%s' failed\n",
-	     slurmAccData->childPid, PSC_printTID(slurmAccData->loggerTID));
+	flog("getting account data for pid %u / root %s failed\n",
+	     slurmAccData->childPid, PSC_printTID(slurmAccData->rootTID));
 	return accData->numTasks;
     }
 
@@ -1581,9 +1581,9 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
     uint64_t avgRss = accData->avgRssCount ?
 		      accData->avgRssTotal / accData->avgRssCount : 0;
 
-    mlog("%s: adding account data: maxVsize %zu maxRss %zu pageSize %lu "
+    flog("adding account data: maxVsize %zu maxRss %zu pageSize %lu "
 	 "u_sec %lu u_usec %lu s_sec %lu s_usec %lu num_tasks %u avgVsize %lu"
-	 " avgRss %lu avg cpufreq %.2fG\n", __func__, accData->maxVsize,
+	 " avgRss %lu avg cpufreq %.2fG\n", accData->maxVsize,
 	 accData->maxRss, accData->pageSize, accData->rusage.ru_utime.tv_sec,
 	 accData->rusage.ru_utime.tv_usec, accData->rusage.ru_stime.tv_sec,
 	 accData->rusage.ru_stime.tv_usec, accData->numTasks, avgVsize, avgRss,
@@ -1662,12 +1662,14 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
     uint32_t numTasksUsed = msg->bufUsed;
     addUint32ToMsg(SLURM_SUCCESS, msg);
     /* account data */
+    PStask_ID_t rootTID =
+	(step->spawned && step->fwdata) ? step->fwdata->tid : step->loggerTID;
     SlurmAccData_t slurmAccData = {
 	.psAcct = { .numTasks = 0 },
 	.type = step->accType,
 	.nodes = step->nodes,
 	.nrOfNodes = step->nrOfNodes,
-	.loggerTID = step->loggerTID,
+	.rootTID = rootTID,
 	.tasks = &step->tasks,
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0,
@@ -1681,7 +1683,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
     /* add step PIDs */
     Slurm_PIDs_t sPID;
     sPID.hostname = getConfValueC(Config, "SLURM_HOSTNAME");
-    psAccountGetPidsByLogger(step->loggerTID, &sPID.pid, &sPID.count);
+    psAccountGetPidsByLogger(rootTID, &sPID.pid, &sPID.count);
     packSlurmPIDs(msg, &sPID);
 
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_STAT);
@@ -1716,11 +1718,13 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     }
 
     /* send step PIDs */
+    PStask_ID_t rootTID =
+	(step->spawned && step->fwdata) ? step->fwdata->tid : step->loggerTID;
     PS_SendDB_t *msg = &sMsg->reply;
     Slurm_PIDs_t sPID;
 
     sPID.hostname = getConfValueC(Config, "SLURM_HOSTNAME");
-    psAccountGetPidsByLogger(step->loggerTID, &sPID.pid, &sPID.count);
+    psAccountGetPidsByLogger(rootTID, &sPID.pid, &sPID.count);
     packSlurmPIDs(msg, &sPID);
 
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_PIDS);
@@ -3236,7 +3240,9 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 	 Step_strID(step), exitStatus);
 
     /* add account data to request */
-    pid_t childPid = (step->fwdata) ? step->fwdata->cPid : 1;
+    PStask_ID_t rootTID = PSC_getTID(-1, 1); // dummy TID pointing nowhere
+    Forwarder_Data_t *fw = step->fwdata;
+    if (fw) rootTID = fw->cPid < 1 ? fw->tid : PSC_getTID(-1, fw->cPid);
     step->accType = (step->leader) ? step->accType : 0;
 
     SlurmAccData_t slurmAccData = {
@@ -3244,7 +3250,7 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 	.type = step->accType,
 	.nodes = step->nodes,
 	.nrOfNodes = step->nrOfNodes,
-	.loggerTID = PSC_getTID(-1, childPid),
+	.rootTID = rootTID,
 	.tasks = &step->tasks,
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0,

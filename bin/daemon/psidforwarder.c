@@ -932,12 +932,14 @@ static void sendAcctData(struct rusage *rusage, int32_t status)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_ACCOUNT_END };
 
-    /* logger's TID, this identifies a task uniquely */
-    PSP_putTypedMsgBuf(&msg, "loggerTID", &childTask->loggertid,
-		       sizeof(childTask->loggertid));
+    /* partition holder identifies job uniquely (logger's TID as fallback) */
+    PStask_ID_t acctRoot = childTask->loggertid;
+    if (childTask->partHolder != -1) acctRoot = childTask->partHolder;
+    PSP_putTypedMsgBuf(&msg, "acctRoot", &acctRoot, sizeof(acctRoot));
 
     /* current rank */
-    PSP_putTypedMsgBuf(&msg, "rank", &childTask->rank, sizeof(childTask->rank));
+    PSP_putTypedMsgBuf(&msg, "rank", &childTask->jobRank,
+		       sizeof(childTask->jobRank));
 
     /* child's uid */
     PSP_putTypedMsgBuf(&msg, "uid", &childTask->uid, sizeof(childTask->uid));

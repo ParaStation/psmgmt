@@ -330,8 +330,11 @@ static bool setupPartition(Step_t *step) {
 static void startSpawner(Step_t *step)
 {
     Forwarder_Data_t *fwData = step->fwdata;
-    /* No child started under step-forwarder's control. Start it here */
 
+    /* due to lack of real logger register the step forwarder instead */
+    psAccountRegisterJob(PSC_getPID(fwData->tid), NULL);
+
+    /* No child started under step-forwarder's control. Start it here */
     // - create a partition and tell the logger (and all sister forwarders)
     if (!setupPartition(step)) shutdownForwarder(fwData);
 
