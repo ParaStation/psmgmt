@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,6 +13,8 @@
  */
 #ifndef __PSIDFLOWCONTROL_H
 #define __PSIDFLOWCONTROL_H
+
+#include <stdbool.h>
 
 #include "list.h"
 #include "psprotocol.h"
@@ -42,10 +45,10 @@ void PSIDFlwCntrl_init(void);
  *
  * @param msg The message to investigate
  *
- * @return If flow-control is applicable to @a msg, 1 is returned. Or
- * 0 in any other case.
+ * @return If flow-control is applicable to @a msg, true is returned; or
+ * false in any other case
  */
-int PSIDFlwCntrl_applicable(DDMsg_t *msg);
+bool PSIDFlwCntrl_applicable(DDMsg_t *msg);
 
 /**
  * @brief Initialize a stopTID-hash

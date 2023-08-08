@@ -10,7 +10,6 @@
  */
 #include "psidflowcontrol.h"
 
-#include <stdbool.h>
 #include <stdlib.h>
 
 #include "selector.h"
@@ -132,15 +131,23 @@ int PSIDFlwCntrl_sendContMsgs(PSIDFlwCntrl_hash_t stops, PStask_ID_t sender)
     return num;
 }
 
-int PSIDFlwCntrl_applicable(DDMsg_t *msg)
+bool PSIDFlwCntrl_applicable(DDMsg_t *msg)
 {
-    return (PSC_getPID(msg->sender)
-	    && msg->type != PSP_CD_ACCOUNT
-	    && msg->type != PSP_CD_SENDCONT
-	    && msg->type != PSP_CD_SENDSTOP
-	    && msg->type != PSP_DD_SENDCONT
-	    && msg->type != PSP_DD_SENDSTOP
-	    && msg->type != PSP_DD_SENDSTOPACK);
+    if (PSC_getPID(msg->sender)) {
+	switch (msg->type) {
+	case PSP_CD_ACCOUNT:
+	case PSP_CD_SENDCONT:
+	case PSP_CD_SENDSTOP:
+	case PSP_DD_SENDCONT:
+	case PSP_DD_SENDSTOP:
+	case PSP_DD_SENDSTOPACK:
+	case PSP_DD_REGISTERPART:
+	case PSP_DD_REGISTERPARTSL:
+	    return false;
+	}
+    }
+
+    return true;
 }
 
 /**
