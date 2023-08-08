@@ -803,6 +803,10 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 
 	if (task->deleted || task->ptid != msg->header.sender
 	    || task->released || task->group == TG_FORWARDER) continue;
+
+	/* Avoid inheritance across step boundaries */
+	if (task->group == TG_PLUGINFW && task->partition) continue;
+
 	found = true;
 
 	PSID_fdbg(PSID_LOG_SIGNAL, "%s: parent", PSC_printTID(task->tid));
@@ -1214,6 +1218,12 @@ static int releaseTask(PStask_t *task)
 
 	    if (task->group == TG_KVS && task->noParricide) {
 		/* Avoid inheritance to prevent parricide */
+		sig = -1;
+		continue;
+	    }
+
+	    if (task->group == TG_PLUGINFW && task->partition) {
+		/* Avoid inheritance across step boundaries */
 		sig = -1;
 		continue;
 	    }
