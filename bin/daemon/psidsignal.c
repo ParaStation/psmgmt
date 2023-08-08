@@ -133,15 +133,18 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
     PSID_fdbg(PSID_LOG_SIGNAL, "pid %d sig %d uid %d)\n", pid, sig, uid);
 
     if (!child) {
-	PSID_log(PSID_LOG_SIGNAL, "%s: child %s not found\n",
-		 __func__, PSC_printTID(childTID));
+	PSID_fdbg(PSID_LOG_SIGNAL, "no child %s\n", PSC_printTID(childTID));
+	errno = ESRCH;
+	return -1;
     } else {
 	if (uid && child->uid != uid) {
 	    /* Task is not allowed to send signal */
-	    PSID_warn(-1, EACCES,
+	    PSID_warn(-1, EPERM,
 		      "%s: kill(%d, %d) uid %d", __func__, pid, sig, uid);
-	    return 0;
+	    errno = EPERM;
+	    return -1;
 	}
+	if (!sig) return 0;
 	if (child->forwarder && child->forwarder->fd != -1
 	    && !child->forwarder->killat) {
 	    /* Try to send signal via forwarder */
