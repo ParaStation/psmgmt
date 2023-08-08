@@ -1040,7 +1040,7 @@ void startGraceTime(Forwarder_Data_t *fw)
     if (!fw || fw->tid == -1 || !PSC_getPID(fw->tid)) return;
 
     PStask_t *fwTask = PStasklist_find(&managedTasks, fw->tid);
-    if (!fwTask || fwTask->fd == -1) return;
+    if (!fwTask || fwTask->fd == -1 || !fwTask->sigChldCB) return;
 
     DDTypedMsg_t msg = {
 	.header = {
