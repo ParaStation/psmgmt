@@ -882,10 +882,6 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 static bool msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
-    PStask_ID_t child, tid;
-    size_t used = 0;
-    bool lastGrandchild = false;
-
     if (!task || !PSIDnodes_isUp(PSC_getID(msg->header.sender))) {
 	PSID_fdbg(PSID_LOG_SIGNAL, "no task %s\n",
 		  PSC_printTID(msg->header.dest));
@@ -893,11 +889,16 @@ static bool msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
 	return true;
     }
 
+    size_t used = 0;
+    PStask_ID_t child;
     if (!PSP_getMsgBuf(msg, &used, "child", &child, sizeof(child))) {
 	PSID_flog("to %s truncated\n", PSC_printTID(task->tid));
 	return true;
     }
 
+    uint32_t count = 0;
+    bool lastGrandchild = false;
+    PStask_ID_t tid;
     while (PSP_tryGetMsgBuf(msg, &used, "tid", &tid, sizeof(tid))) {
 	if (!tid) {
 	    lastGrandchild = true;
@@ -923,6 +924,7 @@ static bool msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
 	} else {
 	    PSID_setSignal(&task->childList, tid, -1);
 	}
+	count++;
     }
 
     if (lastGrandchild) {
@@ -931,11 +933,11 @@ static bool msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
 		.type = PSP_DD_INHERITDONE,
 		.sender = msg->header.dest,
 		.dest = child,
-		.len = offsetof(DDBufferMsg_t, buf) },
-	    .buf = { 0 } };
+		.len = 0, }, };
 
 	PSP_putMsgBuf(&answer, "kept child", &msg->header.sender,
 		      sizeof(msg->header.sender));
+	PSP_putMsgBuf(&answer, "count", &count, sizeof(count));
 
 	sendMsg(&answer);
     }
@@ -1590,10 +1592,14 @@ static bool msg_INHERITDONE(DDBufferMsg_t *msg)
 	PSID_flog("to %s truncated\n", PSC_printTID(tid));
 	return true;
     }
+    uint32_t count = -1;
+    PSP_tryGetMsgBuf(msg, &used, "count", &count, sizeof(count));
 
     if (!task) {
-	PSID_flog("%s", PSC_printTID(tid));
-	PSID_log(-1, " for %s: no task\n", PSC_printTID(keptChld));
+	int32_t key = count ? -1 : PSID_LOG_SIGNAL;
+	PSID_fdbg(key, "from %s", PSC_printTID(msg->header.sender));
+	PSID_log(key, " to %s (not found)", PSC_printTID(tid));
+	PSID_log(key, " on %s (count %d)\n", PSC_printTID(keptChld), count);
 	return true;
     }
 
