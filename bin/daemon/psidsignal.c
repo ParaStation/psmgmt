@@ -93,8 +93,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
 	    PSID_warn((eno == ESRCH) ? PSID_LOG_SIGNAL : -1, eno,
 		      "%s: kill(%d, %d)", __func__, pid, sig);
 	} else {
-	    PSID_log(PSID_LOG_SIGNAL,
-		     "%s: sent signal %d to %d\n", __func__, sig, pid);
+	    PSID_fdbg(PSID_LOG_SIGNAL, "sent signal %d to %d\n", sig, pid);
 	}
 
 	exit(0);
@@ -117,7 +116,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
     close(cntrlfds[0]);
     if (!ret) {
 	/* assume everything worked well */
-	PSID_log(-1, "%s: PSCio_recvBuf() got no data\n", __func__);
+	PSID_flog("PSCio_recvBuf() got no data\n");
     } else {
 	ret = eno ? -1 : 0;
 	errno = eno;
@@ -131,9 +130,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
     PStask_ID_t childTID = PSC_getTID(-1, pid < 0 ? -pid : pid);
     PStask_t *child = PStasklist_find(&managedTasks, childTID);
 
-    PSID_log(PSID_LOG_SIGNAL, "%s(%d, %d, %d)\n", __func__, pid, sig, uid);
-
-    if (!sig) return 0;
+    PSID_fdbg(PSID_LOG_SIGNAL, "pid %d sig %d uid %d)\n", pid, sig, uid);
 
     if (!child) {
 	PSID_log(PSID_LOG_SIGNAL, "%s: child %s not found\n",
@@ -191,8 +188,8 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 
 	sendMsg(&msg);
 
-	PSID_log(PSID_LOG_SIGNAL, "%s: forward signal %d to %s\n",
-		 __func__, signal, PSC_printTID(tid));
+	PSID_fdbg(PSID_LOG_SIGNAL, "forward signal %d to %s\n", signal,
+		  PSC_printTID(tid));
 
 	return;
     }
@@ -208,21 +205,21 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    .len = sizeof(msg) },
 	.request = tid };
 
-    PSID_log(PSID_LOG_SIGNAL, "%s: sending signal %d to %s\n",
-	     __func__, signal, PSC_printTID(tid));
+    PSID_fdbg(PSID_LOG_SIGNAL, "sending signal %d to %s\n", signal,
+	      PSC_printTID(tid));
 
     if (!dest) {
 	msg.error = ESRCH;
 
 	if (signal) {
-	    PSID_log(PSID_LOG_SIGNAL, "%s: tried to send sig %d to %s",
-		     __func__, signal, PSC_printTID(tid));
+	    PSID_fdbg(PSID_LOG_SIGNAL, "tried to send sig %d to %s", signal,
+		      PSC_printTID(tid));
 	    PSID_warn(PSID_LOG_SIGNAL, ESRCH, " sender was %s",
 		      PSC_printTID(sender));
 	}
     } else if (!pid) {
 	msg.error = EACCES;
-	PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
+	PSID_flog("do not send signal to daemon\n");
     } else {
 	/* Check if signal was intended for an obsolete task */
 	PStask_t *obsT = PStasklist_find(&obsoleteTasks, tid);
@@ -231,8 +228,8 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 			    || PSID_findSignal(&obsT->childList, sender, -1)))
 		     ||	PSID_findSignal(&obsT->assignedSigs, sender, signal))) {
 	    msg.error = ESRCH;
-	    PSID_log(-1, "%s: sig %d intended for obsolete tasks %s", __func__,
-		     signal, PSC_printTID(tid));
+	    PSID_flog("sig %d intended for obsolete tasks %s", signal,
+		      PSC_printTID(tid));
 	    PSID_log(-1, " sender was %s", PSC_printTID(sender));
 	} else if (pervasive) {
 	    answer = false;
@@ -308,12 +305,14 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    msg.error = ret;
 
 	    if (ret) {
-		PSID_warn((errno == ESRCH) ? PSID_LOG_SIGNAL : -1,
-			  errno, "%s: tried to send signal %d to %s",
-			  __func__, sig, PSC_printTID(tid));
+		int eno = errno;
+		int32_t key = (eno == ESRCH) ? PSID_LOG_SIGNAL : -1;
+		PSID_fdbg(key, "%s tried to send signal %d",
+			  PSC_printTID(sender), sig);
+		PSID_warn(key, eno, " to %s", PSC_printTID(tid));
 	    } else {
-		PSID_log(PSID_LOG_SIGNAL, "%s: sent signal %d to %s\n",
-			 __func__, sig, PSC_printTID(tid));
+		PSID_fdbg(PSID_LOG_SIGNAL, "sent signal %d to %s\n", sig,
+			  PSC_printTID(tid));
 		PSID_setSignal(&dest->signalSender, sender, sig);
 	    }
 	}
@@ -330,9 +329,8 @@ void PSID_sendAllSignals(PStask_t *task)
     while ((sigtid = PSID_getSignal(&task->signalReceiver, &sig))) {
 	PSID_sendSignal(sigtid, task->uid, task->tid, sig,
 			false /* pervasive */, false /* answer */);
-	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
-	PSID_log(PSID_LOG_SIGNAL,
-		 " sent signal %d to %s\n", sig, PSC_printTID(sigtid));
+	PSID_fdbg(PSID_LOG_SIGNAL, "%s sent signal", PSC_printTID(task->tid));
+	PSID_log(PSID_LOG_SIGNAL, " %d to %s\n", sig, PSC_printTID(sigtid));
 	sig = -1;
     }
 }
@@ -342,9 +340,8 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
     if (task->ptid) {
 	PSID_sendSignal(task->ptid, task->uid, task->tid, -1,
 			false /* pervasive */, false /* answer */);
-	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
-	PSID_log(PSID_LOG_SIGNAL, " sent signal -1 to parent %s\n",
-		 PSC_printTID(task->ptid));
+	PSID_fdbg(PSID_LOG_SIGNAL, "%s sent signal", PSC_printTID(task->tid));
+	PSID_log(PSID_LOG_SIGNAL, " -1 to parent %s\n", PSC_printTID(task->ptid));
     }
 
     /*
@@ -366,10 +363,8 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 	if (PSIDnodes_isUp(PSC_getID(childTID))) {
 	    PSID_sendSignal(childTID, task->uid, task->tid, -1,
 			    false /* pervasive */, false /* answer */);
-	    PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__,
-		     PSC_printTID(task->tid));
-	    PSID_log(PSID_LOG_SIGNAL, " sent signal -1 to %s\n",
-		     PSC_printTID(childTID));
+	    PSID_fdbg(PSID_LOG_SIGNAL, "%s sent signal", PSC_printTID(task->tid));
+	    PSID_log(PSID_LOG_SIGNAL, " -1 to %s\n", PSC_printTID(childTID));
 	}
 	sig = -1;
     }
@@ -889,14 +884,14 @@ static bool msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
     bool lastGrandchild = false;
 
     if (!task || !PSIDnodes_isUp(PSC_getID(msg->header.sender))) {
-	PSID_log(PSID_LOG_SIGNAL, "%s(%s): no task\n", __func__,
-		 PSC_printTID(msg->header.dest));
+	PSID_fdbg(PSID_LOG_SIGNAL, "no task %s\n",
+		  PSC_printTID(msg->header.dest));
 	PSID_dropMsg(msg);
 	return true;
     }
 
     if (!PSP_getMsgBuf(msg, &used, "child", &child, sizeof(child))) {
-	PSID_log(-1, "%s: %s: truncated\n", __func__, PSC_printTID(task->tid));
+	PSID_flog("to %s truncated\n", PSC_printTID(task->tid));
 	return true;
     }
 
@@ -909,19 +904,19 @@ static bool msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
 	PSP_tryGetMsgBuf(msg, &used, "released", &rlsd, sizeof(rlsd));
 	bool deadBefore = PSID_getSignalByTID(&task->deadBefore, tid);
 
-	PSID_log(PSID_LOG_SIGNAL, "%s: %s:", __func__, PSC_printTID(task->tid));
+	PSID_fdbg(PSID_LOG_SIGNAL, "%s inherited", PSC_printTID(task->tid));
 	PSID_log(PSID_LOG_SIGNAL, " new child %s", PSC_printTID(tid));
-	PSID_log(PSID_LOG_SIGNAL, " inherited from %s\n", PSC_printTID(child));
+	PSID_log(PSID_LOG_SIGNAL, " from %s\n", PSC_printTID(child));
 
 	if (PSID_getSignalByTID(&task->releasedBefore, tid)) {
 	    /* RELEASE already received */
-	    PSID_log(PSID_LOG_SIGNAL, "%s: inherit released child %s\n",
-		     __func__, PSC_printTID(tid));
+	    PSID_fdbg(PSID_LOG_SIGNAL, "inherit released child %s\n",
+		      PSC_printTID(tid));
 	}
 	if (deadBefore) {
 	    /* CHILDDEAD already received */
-	    PSID_log(PSID_LOG_SIGNAL, "%s: inherit dead child %s\n",
-		     __func__, PSC_printTID(tid));
+	    PSID_fdbg(PSID_LOG_SIGNAL, "inherit dead child %s\n",
+		      PSC_printTID(tid));
 	} else {
 	    PSID_setSignal(&task->childList, tid, -1);
 	}
@@ -993,8 +988,7 @@ static bool msg_ADOPTFAILED(DDBufferMsg_t *msg)
 
     PStask_ID_t ptid;
     if (!PSP_getMsgBuf(msg, &used, "ptid", &ptid, sizeof(ptid))) {
-	PSID_log(-1, "%s: from %s: truncated\n", __func__,
-		 PSC_printTID(msg->header.sender));
+	PSID_flog("from %s truncated\n", PSC_printTID(msg->header.sender));
 	return true;
     }
 
@@ -1590,7 +1584,7 @@ static bool msg_INHERITDONE(DDBufferMsg_t *msg)
     size_t used = 0;
     PStask_ID_t keptChld;
     if (!PSP_getMsgBuf(msg, &used, "kept child", &keptChld, sizeof(keptChld))) {
-	PSID_flog("%s: truncated\n", PSC_printTID(tid));
+	PSID_flog("to %s truncated\n", PSC_printTID(tid));
 	return true;
     }
 
