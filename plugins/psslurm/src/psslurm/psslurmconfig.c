@@ -1294,7 +1294,7 @@ static bool verifyCgroupConf(char *key, char *value, const void *info)
 	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainDevices=%s\n", value);
 	if (!strcasecmp(value, "yes")) isJailActive = true;
     } else if (!strcasecmp(key, "CgroupPlugin")) {
-	fdbg(PSSLURM_LOG_JAIL, "cgroup pluign=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup plugin=%s\n", value);
     } else if (!strcasecmp(key, "CgroupAutomount")) {
 	flog("warning: ignoring unsupported option CgroupAutomount=%s\n",
 	     value);
