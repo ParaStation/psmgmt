@@ -203,6 +203,18 @@ static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
     }
 }
 
+static Spank_Plugin_t *findPlugin(char *name)
+{
+    if (!name) return NULL;
+
+    list_t *s;
+    list_for_each(s, &SpankList) {
+	Spank_Plugin_t *plugin = list_entry(s, Spank_Plugin_t, next);
+	if (plugin->name && !strcmp(plugin->name, name)) return plugin;
+    }
+    return NULL;
+}
+
 int SpankLoadPlugin(Spank_Plugin_t *sp, bool initialize)
 {
     struct stat sbuf;
@@ -223,14 +235,21 @@ int SpankLoadPlugin(Spank_Plugin_t *sp, bool initialize)
     }
 
     sp->type = dlsym(sp->handle, PLUGIN_TYPE);
-    sp->name = dlsym(sp->handle, PLUGIN_NAME);
+    char *name = dlsym(sp->handle, PLUGIN_NAME);
     uint32_t *version = (uint32_t *) dlsym(sp->handle, PLUGIN_VERSION);
 
-    if (!sp->type || !sp->name || !version) {
+    if (!sp->type || !name || !version) {
 	flog("missing symbols in plugin %s, type %s name %s\n",
-	     sp->path, sp->type, sp->name);
+	     sp->path, sp->type, name);
 	return -1;
     }
+
+    Spank_Plugin_t *loadedSpank = findPlugin(name);
+    if (loadedSpank) {
+	flog("spank plugin %s already loaded\n", name);
+	return -1;
+    }
+    sp->name = name;
     sp->version = *version;
 
     fdbg(PSSLURM_LOG_SPANK, "plugin=%s type=%s version=%u\n", sp->name,
@@ -303,18 +322,6 @@ bool SpankUnloadPlugin(const char *name, bool finalize)
     }
 
     return false;
-}
-
-static Spank_Plugin_t *findPlugin(char *name)
-{
-    if (!name) return NULL;
-
-    list_t *s;
-    list_for_each(s, &SpankList) {
-	Spank_Plugin_t *plugin = list_entry(s, Spank_Plugin_t, next);
-	if (!strcmp(plugin->name, name)) return plugin;
-    }
-    return NULL;
 }
 
 static struct spank_option *findPluginOpt(Spank_Plugin_t *plugin, char *name)
