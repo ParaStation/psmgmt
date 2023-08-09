@@ -430,7 +430,6 @@ static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
 
 typedef struct {
     uint16_t nAllow;
-    uint16_t nDeny;
     PSCPU_set_t set;
 } DevVisitorInfo_t;
 
@@ -475,9 +474,7 @@ static void setJailDevEnv(list_t *gresList, uint32_t localNodeId)
 
 	fdbg(PSSLURM_LOG_JAIL, "test bitAlloc of gres %i\n", gres->id);
 
-	DevVisitorInfo_t devInfo = {
-	    .nAllow = 0,
-	    .nDeny = 0 };
+	DevVisitorInfo_t devInfo = { .nAllow = 0 };
 	PSCPU_clrAll(devInfo.set);
 
 	if (gres->bitAlloc && gres->bitAlloc[localNodeId]
