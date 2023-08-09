@@ -80,13 +80,6 @@ bool tainted = false;
 
 void SpankSavePlugin(Spank_Plugin_t *def)
 {
-    def->handle = NULL;
-    def->name = NULL;
-    def->type = NULL;
-    def->version = 0;
-    def->opt = NULL;
-    def->optCount = 0;
-    def->optSize = 0;
     list_add_tail(&def->next, &SpankList);
 }
 

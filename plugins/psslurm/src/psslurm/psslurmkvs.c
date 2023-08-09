@@ -654,6 +654,48 @@ char *set(char *key, char *value)
     char *buf = NULL;
     size_t bufSize = 0;
 
+    /* load a Spank plugin */
+    if (!strcmp(key, "SPANK_LOAD")) {
+	Spank_Plugin_t *sp = ucalloc(sizeof(*sp));
+	sp->path = value;
+	int ret = SpankLoadPlugin(sp, true);
+
+	switch (ret) {
+	    case -1:
+		snprintf(line, sizeof(line),
+			 "\nerror loading plugin %s\n", sp->name);
+		ufree(sp);
+		break;
+	    case 0:
+		snprintf(line, sizeof(line),
+			 "\nsuccessfully loaded plugin %s\n", sp->name);
+		sp->path = ustrdup(value);
+		SpankSavePlugin(sp);
+		break;
+	    case 1:
+		snprintf(line, sizeof(line),
+			 "\nloading plugin %s was skipped without errors\n",
+			 sp->name);
+		ufree(sp);
+		break;
+	}
+
+	return str2Buf(line, &buf, &bufSize);
+    }
+
+    /* unload a Spank plugin */
+    if (!strcmp(key, "SPANK_UNLOAD") || !strcmp(key, "SPANK_FIN")) {
+	bool fin = !strcmp(key, "SPANK_FIN") ? true : false;
+	if (!SpankUnloadPlugin(value, fin)) {
+	    snprintf(line, sizeof(line), "\nunloading plugin %s failed\n",
+		     value);
+	} else {
+	    snprintf(line, sizeof(line), "\nunloaded plugin %s successfully\n",
+		     value);
+	}
+	return str2Buf(line, &buf, &bufSize);
+    }
+
     if (!strcmp(key, "DEL_ALLOC")) {
 	int id = atoi(value);
 	if (Alloc_delete(id)) {

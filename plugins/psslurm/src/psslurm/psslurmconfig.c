@@ -1054,7 +1054,7 @@ static bool parseSlurmPlugLine(char *key, char *value, const void *info)
     }
 
     char *toksave;
-    Spank_Plugin_t *def = umalloc(sizeof(*def));
+    Spank_Plugin_t *def = ucalloc(sizeof(*def));
 
     /* include/optional/required flag */
     char *flag = strtok_r(key, delimiters, &toksave);
