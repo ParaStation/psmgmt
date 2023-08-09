@@ -11,8 +11,6 @@
 #define _GNU_SOURCE
 #include "psslurmforwarder.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
@@ -20,6 +18,10 @@
 #include <arpa/inet.h>
 #include <pty.h>
 #include <signal.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 #include <sys/ioctl.h>
@@ -37,12 +39,13 @@
 #include "pscio.h"
 #include "psenv.h"
 #include "pslog.h"
+#include "psprotocol.h"
 #include "psprotocolenv.h"
+#include "psreservation.h"
 #include "psserial.h"
 #include "selector.h"
 
 #include "pluginconfig.h"
-#include "pluginforwarder.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pluginpartition.h"

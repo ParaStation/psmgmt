@@ -26,6 +26,7 @@
 #define __USE_GNU
 #include <sched.h>
 
+#include "list.h"
 #include "pscommon.h"
 #include "pslog.h"
 #include "pspartition.h"

@@ -14,11 +14,15 @@
 #include <errno.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
 
 #include "list.h"
 #include "pscommon.h"
+#include "pscpu.h"
 #include "psenv.h"
 #include "pslog.h"
+#include "pspartition.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
 
@@ -29,11 +33,14 @@
 #include "psidspawn.h"
 #include "psidtask.h"
 
+#include "psaccounthandles.h"
 #include "slurmcommon.h"
+#include "slurmerrno.h"
 #include "psslurmcomm.h"
 #include "psslurmenv.h"
 #include "psslurmforwarder.h"
 #include "psslurmio.h"
+#include "psslurmjobcred.h"
 #include "psslurmlog.h"
 #include "psslurmpin.h"
 #include "psslurmproto.h"

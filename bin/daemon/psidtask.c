@@ -23,7 +23,6 @@
 
 #include "psidcomm.h"
 #include "psidpartition.h"
-#include "psidsession.h"
 #include "psidsignal.h"
 #include "psidstatus.h"
 #include "psidutil.h"

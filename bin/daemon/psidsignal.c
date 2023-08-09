@@ -31,7 +31,6 @@
 #include "selector.h"
 #include "rdp.h"
 
-#include "psidtask.h"
 #include "psidutil.h"
 #include "psidcomm.h"
 #include "psidhook.h"
