@@ -106,66 +106,18 @@ static void delSpankPlug(Spank_Plugin_t *sp)
 bool SpankInitPlugins(void)
 {
     list_t *s, *tmp;
-    struct stat sbuf;
     int count = 0;
 
     list_for_each_safe(s, tmp, &SpankList) {
 	Spank_Plugin_t *sp = list_entry(s, Spank_Plugin_t, next);
 
-	if (stat(sp->path, &sbuf) == -1) {
-	    flog("%s plugin %s not found\n",
-		 sp->optional ? "optional" : "required", sp->path);
-	    if (sp->optional) {
-		delSpankPlug(sp);
-		continue;
-	    }
-	    return false;
-	}
+	int ret = SpankLoadPlugin(sp, false);
+	if (ret == -1) return false;
 
-	sp->handle = dlopen(sp->path, RTLD_LAZY);
-	if (!sp->handle) {
-	    flog("%s plugin dlopen(%s) failed: %s\n",
-		 sp->optional ? "optional" : "required", sp->path, dlerror());
-	    if (sp->optional) {
-		delSpankPlug(sp);
-		continue;
-	    }
-	    return false;
-	}
-
-	sp->type = dlsym(sp->handle, PLUGIN_TYPE);
-	sp->name = dlsym(sp->handle, PLUGIN_NAME);
-	uint32_t *version = (uint32_t *) dlsym(sp->handle, PLUGIN_VERSION);
-
-	if (!sp->type || !sp->name || !version) {
-	    flog("missing symbols in plugin %s, type %s name %s\n",
-		 sp->path, sp->type, sp->name);
-	    return false;
-	}
-	sp->version = *version;
-
-	fdbg(PSSLURM_LOG_SPANK, "plugin=%s type=%s version=%u\n", sp->name,
-	     sp->type, sp->version);
-
-	if (strcmp(sp->type, "spank")) {
-	    /* drop non spank plugins */
-	    fdbg(PSSLURM_LOG_SPANK, "Dropping plugin=%s type=%s\n",
-		 sp->name, sp->type);
+	if (ret == 1) {
+	    /* remove optional/non spank plugins */
 	    delSpankPlug(sp);
 	    continue;
-	}
-
-	char *initHook = Spank_Hook_Table[SPANK_SLURMD_INIT].strName;
-	char *exitHook = Spank_Hook_Table[SPANK_SLURMD_EXIT].strName;
-	if (!dlsym(sp->handle, "psid_plugin") &&
-	    (dlsym(sp->handle, initHook) || dlsym(sp->handle, exitHook))) {
-	    if (!tainted) {
-		flog("spank plugin %s taints the psid\n", sp->name);
-	    } else {
-		fdbg(PSSLURM_LOG_SPANK, "spank plugin %s taints the psid\n",
-		     sp->name);
-	    }
-	    tainted = true;
 	}
 
 	count++;
@@ -256,6 +208,108 @@ static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
 	flog("warning: hook %s from spank plugin %s returned %i\n", hook,
 	     plugin->name, res);
     }
+}
+
+int SpankLoadPlugin(Spank_Plugin_t *sp, bool initialize)
+{
+    struct stat sbuf;
+
+    if (stat(sp->path, &sbuf) == -1) {
+	flog("%s plugin %s not found\n",
+	     sp->optional ? "optional" : "required", sp->path);
+	if (sp->optional) return 1;
+	return -1;
+    }
+
+    sp->handle = dlopen(sp->path, RTLD_LAZY);
+    if (!sp->handle) {
+	flog("%s plugin dlopen(%s) failed: %s\n",
+	     sp->optional ? "optional" : "required", sp->path, dlerror());
+	if (sp->optional) return 1;
+	return -1;
+    }
+
+    sp->type = dlsym(sp->handle, PLUGIN_TYPE);
+    sp->name = dlsym(sp->handle, PLUGIN_NAME);
+    uint32_t *version = (uint32_t *) dlsym(sp->handle, PLUGIN_VERSION);
+
+    if (!sp->type || !sp->name || !version) {
+	flog("missing symbols in plugin %s, type %s name %s\n",
+	     sp->path, sp->type, sp->name);
+	return -1;
+    }
+    sp->version = *version;
+
+    fdbg(PSSLURM_LOG_SPANK, "plugin=%s type=%s version=%u\n", sp->name,
+	 sp->type, sp->version);
+
+    if (strcmp(sp->type, "spank")) {
+	/* drop non spank plugins */
+	fdbg(PSSLURM_LOG_SPANK, "Dropping plugin=%s type=%s\n",
+	     sp->name, sp->type);
+	return 1;
+    }
+
+    char *initHook = Spank_Hook_Table[SPANK_SLURMD_INIT].strName;
+    char *exitHook = Spank_Hook_Table[SPANK_SLURMD_EXIT].strName;
+    if (!dlsym(sp->handle, "psid_plugin") &&
+	(dlsym(sp->handle, initHook) || dlsym(sp->handle, exitHook))) {
+	if (!tainted) {
+	    flog("spank plugin %s taints the psid\n", sp->name);
+	} else {
+	    fdbg(PSSLURM_LOG_SPANK, "spank plugin %s taints the psid\n",
+		 sp->name);
+	}
+	tainted = true;
+    }
+
+    if (initialize) {
+	struct spank_handle spank = {
+	    .task = NULL,
+	    .alloc = NULL,
+	    .job = NULL,
+	    .step = NULL,
+	    .hook = SPANK_SLURMD_INIT,
+	    .envSet = NULL,
+	    .envUnset = NULL
+	};
+	fdbg(PSSLURM_LOG_SPANK, "Calling hook SPANK_SLURMD_INIT to "
+	     "initialize %s\n", sp->name);
+	char *strHook = Spank_Hook_Table[spank.hook].strName;
+	doCallHook(sp, &spank, strHook);
+    }
+
+    return 0;
+}
+
+bool SpankUnloadPlugin(const char *name, bool finalize)
+{
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &SpankList) {
+	Spank_Plugin_t *sp = list_entry(s, Spank_Plugin_t, next);
+	if (!strcmp(sp->name, name)) {
+	    flog("unloading spank plugin %s\n", name);
+	    if (finalize && sp->handle) {
+		struct spank_handle spank = {
+		    .task = NULL,
+		    .alloc = NULL,
+		    .job = NULL,
+		    .step = NULL,
+		    .hook = SPANK_SLURMD_EXIT,
+		    .envSet = NULL,
+		    .envUnset = NULL
+		};
+		fdbg(PSSLURM_LOG_SPANK, "Calling hook SPANK_SLURMD_EXIT "
+		     "to finalize %s\n", sp->name);
+		char *strHook = Spank_Hook_Table[spank.hook].strName;
+		doCallHook(sp, &spank, strHook);
+	    }
+	    delSpankPlug(sp);
+	    return true;
+	}
+    }
+
+    return false;
 }
 
 static Spank_Plugin_t *findPlugin(char *name)

@@ -96,6 +96,29 @@ bool SpankInitGlobalSym(void);
 bool SpankInitPlugins(void);
 
 /**
+ * @brief Load a Spank plugin
+ *
+ * @param sp The spank plugin to load
+ *
+ * @param initialize If true SPANK_SLURMD_INIT is called for the plugin
+ *
+ * @return Returns -1 on error and 0 on success. If the plugin
+ * failed to load but is not required 1 is returned.
+ */
+int SpankLoadPlugin(Spank_Plugin_t *sp, bool initialize);
+
+/**
+ * @brief Unload a Spank plugin
+ *
+ * @param name Name of the Spank plugin to unload
+ *
+ * @param finalize If true SPANK_SLURMD_EXIT is called for the plugin
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool SpankUnloadPlugin(const char *name, bool finalize);
+
+/**
  * @brief Test if the Spank module is initialized.
  *
  * Test if the Spank module is initialized, i.e. if SpankInitGlobalSym()
