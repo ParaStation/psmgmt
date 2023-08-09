@@ -433,7 +433,7 @@ typedef struct {
     PSCPU_set_t set;
 } DevVisitorInfo_t;
 
-bool devEnvVisitor(GRes_Dev_t *dev, uint32_t id, void *info)
+static bool devEnvVisitor(GRes_Dev_t *dev, uint32_t id, void *info)
 {
     DevVisitorInfo_t *devInfo = info;
 
@@ -499,10 +499,10 @@ static void setJailDevEnv(list_t *gresList, uint32_t localNodeId)
  *
  * @return Always returns false to continue
  */
-bool denyAllDevs(Gres_Conf_t *conf, void *info)
+static bool denyAllDevs(Gres_Conf_t *conf, void *info)
 {
-    list_t *d;
     int n = 0;
+    list_t *d;
     list_for_each(d, &conf->devices) {
 	GRes_Dev_t *dev = list_entry(d, GRes_Dev_t, next);
 
