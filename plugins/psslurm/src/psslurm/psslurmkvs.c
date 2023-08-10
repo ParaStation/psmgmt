@@ -276,6 +276,15 @@ static bool addSpankInfo(Spank_Plugin_t *sp, const void *info)
 	     (sp->optional ? "true" : false), sp->path);
     addStrBuf(line, strBuf);
 
+    if (sp->argV.count) {
+	addStrBuf("\t", strBuf);
+	for (uint32_t i=0; i<sp->argV.count; i++) {
+	    snprintf(line, sizeof(line), "argv%i %s ", i, sp->argV.strings[i]);
+	    addStrBuf(line, strBuf);
+	}
+	addStrBuf("\n", strBuf);
+    }
+
     return false;
 }
 
