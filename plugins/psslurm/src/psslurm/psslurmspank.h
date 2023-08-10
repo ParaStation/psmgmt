@@ -89,6 +89,21 @@ extern bool tainted;
 bool SpankInitGlobalSym(void);
 
 /**
+ * @brief Initialize a new Spank plugin
+ *
+ * A plugin definition starts with the absolute or relative path to
+ * the shared library. Followed by space separated optional arguments.
+ * If a relative path is specified the plugin will be search in
+ * the Slurm configuration path PluginDir.
+ *
+ * @param spankDef String which specifies the plugin to load
+ *
+ * @return Returns a pointer to new Spank plugin structure
+ * or NULL on error.
+ */
+Spank_Plugin_t *SpankNewPlug(char *spankDef);
+
+/**
  * @brief Initialize all configured spank plugins
  *
  * @return Returns true on success or false otherwise

@@ -665,8 +665,12 @@ char *set(char *key, char *value)
 
     /* load a Spank plugin */
     if (!strcmp(key, "SPANK_LOAD")) {
-	Spank_Plugin_t *sp = ucalloc(sizeof(*sp));
-	sp->path = value;
+	Spank_Plugin_t *sp = SpankNewPlug(value);
+	if (!sp) {
+	    snprintf(line, sizeof(line),
+		    "\nerror loading plugin %s\n", value);
+	    return str2Buf(line, &buf, &bufSize);
+	}
 	int ret = SpankLoadPlugin(sp, true);
 
 	switch (ret) {

@@ -17,6 +17,8 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/types.h>
+#include <dirent.h>
 
 #include "pscommon.h"
 #include "psenv.h"
@@ -28,6 +30,7 @@
 #include "psslurmstep.h"
 #include "psslurmlog.h"
 #include "psslurmproto.h"
+#include "psslurmconfig.h"
 
 #include "spank_api.h"
 
@@ -220,10 +223,99 @@ static Spank_Plugin_t *findPlugin(const char *name)
     return NULL;
 }
 
+#define DEFAULT_PLUG_DIR "/usr/lib64/slurm"
+
+static bool findSpankAbsPath(char *relPath, char *absPath, size_t lenPath)
+{
+    const char delimiters[] =": ";
+    char *toksave;
+    char *plugDir = getConfValueC(SlurmConfig, "PluginDir");
+    if (!plugDir) plugDir = DEFAULT_PLUG_DIR;
+
+    char *dirDup = ustrdup(plugDir);
+    char *dirNext = strtok_r(dirDup, delimiters, &toksave);
+
+    while(dirNext) {
+	struct dirent *dent;
+	DIR *dir = opendir(dirNext);
+
+	if (!dir) {
+	    mwarn(errno, "%s: open directory %s failed :", __func__, dirNext);
+	    ufree(dirDup);
+	    return false;
+	}
+	rewinddir(dir);
+
+	while ((dent = readdir(dir))) {
+	    if (!strcmp(relPath, dent->d_name)) {
+		size_t len = strlen(dirNext);
+		if (dirNext[len-1] == '/') dirNext[len-1] = '\0';
+		snprintf(absPath, lenPath, "%s/%s", dirNext, relPath);
+		ufree(dirDup);
+		return true;
+	    }
+	}
+	closedir(dir);
+
+	dirNext = strtok_r(NULL, delimiters, &toksave);
+    }
+    ufree(dirDup);
+
+    flog("spank plugin %s in PluginDir %s not found\n", relPath, plugDir);
+    return false;
+}
+
+Spank_Plugin_t *SpankNewPlug(char *spankDef)
+{
+    const char delimiters[] =" \t\n";
+    char *toksave;
+
+    if (!spankDef) {
+	flog("error: invalid spank definition\n");
+	return NULL;
+    }
+
+    /* path to plugin */
+    char *path = strtok_r(spankDef, delimiters, &toksave);
+    if (!path) {
+	flog("invalid path to spank plugin '%s'\n", spankDef);
+	return NULL;
+    }
+
+    Spank_Plugin_t *def = ucalloc(sizeof(*def));
+
+    /* find absolute path to plugin */
+    if (path[0] != '/') {
+	char absPath[1024];
+	if (!findSpankAbsPath(path, absPath, sizeof(absPath))) {
+	    flog("path for plugin '%s' not found\n", path);
+	    ufree(def);
+	    return NULL;
+	}
+	def->path = ustrdup(absPath);
+    } else {
+	def->path = ustrdup(path);
+    }
+    fdbg(PSSLURM_LOG_SPANK, "path '%s'", def->path);
+
+    /* additional arguments */
+    strvInit(&def->argV, NULL, 0);
+    char *args = strtok_r(NULL, delimiters, &toksave);
+    while (args) {
+	strvAdd(&def->argV, ustrdup(args));
+	mdbg(PSSLURM_LOG_SPANK, " args: '%s'", args);
+	args = strtok_r(NULL, delimiters, &toksave);
+    }
+
+    mdbg(PSSLURM_LOG_SPANK, "\n");
+
+    return def;
+}
+
 int SpankLoadPlugin(Spank_Plugin_t *sp, bool initialize)
 {
     struct stat sbuf;
-    if (stat(sp->path, &sbuf) == -1) {
+    if (!sp->path || stat(sp->path, &sbuf) == -1) {
 	flog("%s plugin %s not found\n",
 	     sp->optional ? "optional" : "required", sp->path);
 	return sp->optional ? 1 : -1;
