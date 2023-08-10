@@ -10,25 +10,22 @@
  */
 #include "psslurmconfig.h"
 
-#include <dirent.h>
-#include <errno.h>
 #include <glob.h>
 #include <limits.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <time.h>
-#include <malloc.h>
 
 #include "pscommon.h"
 #include "pscomplist.h"
 
 #include "pluginmalloc.h"
-#include "pluginstrv.h"
 #include "psidhw.h"
 #include "jailhandles.h"
 

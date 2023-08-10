@@ -10,18 +10,19 @@
  */
 #include "psslurmspank.h"
 
+#include <dirent.h>
+#include <dlfcn.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <dlfcn.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/types.h>
-#include <dirent.h>
 
 #include "pscommon.h"
 #include "psenv.h"
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
 
 #include "slurmcommon.h"
