@@ -827,6 +827,15 @@ char *help(char *key)
 		"a step\n", &buf, &bufSize);
 	str2Buf(" * Use 'plugin set psslurm CLEAR_CONF_CACHE 1' to clear "
 		"config cache\n", &buf, &bufSize);
+	str2Buf(" * Use 'plugin set psslurm SPANK_LOAD path' to load "
+		"a Spank plugin from absolute path\n", &buf, &bufSize);
+	str2Buf(" * Use 'plugin set psslurm SPANK_UNLOAD name' to unload "
+		"a Spank plugin without calling SLURMD_EXIT hook\n",
+		&buf, &bufSize);
+	str2Buf(" * Use 'plugin set psslurm SPANK_FIN name' to unload "
+		"a Spank plugin and executing SLURMD_EXIT hook\n",
+		&buf, &bufSize);
+
 	return buf;
     }
 
