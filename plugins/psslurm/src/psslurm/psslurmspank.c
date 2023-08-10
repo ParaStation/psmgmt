@@ -243,7 +243,7 @@ int SpankLoadPlugin(Spank_Plugin_t *sp, bool initialize)
     if (!sp->type || !name || !version) {
 	flog("missing symbols in plugin %s, type %s name %s\n",
 	     sp->path, sp->type, name);
-	return -1;
+	return sp->optional ? 1 : -1;
     }
 
     Spank_Plugin_t *loadedSpank = findPlugin(name);
@@ -261,7 +261,7 @@ int SpankLoadPlugin(Spank_Plugin_t *sp, bool initialize)
 	/* drop non spank plugins */
 	fdbg(PSSLURM_LOG_SPANK, "Dropping plugin=%s type=%s\n",
 	     sp->name, sp->type);
-	return 1;
+	return sp->optional ? 1 : -1;
     }
 
     char *initHook = Spank_Hook_Table[SPANK_SLURMD_INIT].strName;
