@@ -943,25 +943,31 @@ int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 {
     char *port = getConfValueC(SlurmConfig, "SlurmctldPort");
 
-    char *range[2];
-    range[0] = strtok(port, "-");
-    if (range[0]) range[1] = strtok(NULL, "-");
-    else return -1;
+    int first, last;
+
+    if (strstr(port, "-")) {
+	/* this is a port range */
+	if (sscanf("%d-%d", port, &first, &last) != 2) {
+	    flog("failed to parse port range '%s'\n", port);
+	    return -1;
+	}
+    } else {
+	/* this cannot fail since at least default is set */
+	first = last = atoi(port);
+    }
 
     int sock = -1;
     for (int i = 0; i < ctlHostsCount; i++) {
 	char *addr = (ctlHosts[i].addr) ? ctlHosts[i].addr : ctlHosts[i].host;
 
-	if (!range[1]) {
-	    sock = tcpConnect(addr, range[0]);
+	if (first == last) {
+	    sock = tcpConnect(addr, port);
 	    if (sock > -1) {
 		fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
 		     "connected to %s socket %i\n", addr, sock);
 		break;
 	    }
 	} else {
-	    int first = atoi(range[0]);
-	    int last = atoi(range[1]);
 	    int offset = PSC_getMyID() % (last - first + 1);
 	    for (int p = 0; p < last - first + 1; p++) {
 		char cur[10];
