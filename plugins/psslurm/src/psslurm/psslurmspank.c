@@ -98,21 +98,25 @@ static void delSpankPlug(Spank_Plugin_t *sp)
 
 bool SpankInitPlugins(void)
 {
-    list_t *s, *tmp;
     int count = 0;
-
+    list_t *s, *tmp;
     list_for_each_safe(s, tmp, &SpankList) {
 	Spank_Plugin_t *sp = list_entry(s, Spank_Plugin_t, next);
 
 	int ret = SpankLoadPlugin(sp, false);
-	if (ret == -1) return false;
-
-	if (ret == 1) {
+	switch (ret) {
+	case -1:
+	    return false;
+	case 0:
+	    break;
+	case 1:
 	    /* remove optional/non spank plugins */
 	    delSpankPlug(sp);
 	    continue;
+	default:
+	    flog("unexpected return %d\n", ret);
+	    return false;
 	}
-
 	count++;
     }
     if (count) flog("successfully loaded %i spank plugin(s)\n", count);
@@ -218,20 +222,17 @@ static Spank_Plugin_t *findPlugin(const char *name)
 int SpankLoadPlugin(Spank_Plugin_t *sp, bool initialize)
 {
     struct stat sbuf;
-
     if (stat(sp->path, &sbuf) == -1) {
 	flog("%s plugin %s not found\n",
 	     sp->optional ? "optional" : "required", sp->path);
-	if (sp->optional) return 1;
-	return -1;
+	return sp->optional ? 1 : -1;
     }
 
     sp->handle = dlopen(sp->path, RTLD_LAZY);
     if (!sp->handle) {
 	flog("%s plugin dlopen(%s) failed: %s\n",
 	     sp->optional ? "optional" : "required", sp->path, dlerror());
-	if (sp->optional) return 1;
-	return -1;
+	return sp->optional ? 1 : -1;
     }
 
     sp->type = dlsym(sp->handle, PLUGIN_TYPE);
