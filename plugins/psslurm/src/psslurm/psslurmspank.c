@@ -76,6 +76,7 @@ static void *globalSym = NULL;
 /** pointer to the spank structure of the executing callback */
 static spank_t current_spank = NULL;
 
+/** flag psid to be tainted by external spank plugins */
 bool tainted = false;
 
 void SpankSavePlugin(Spank_Plugin_t *def)
@@ -267,12 +268,8 @@ int SpankLoadPlugin(Spank_Plugin_t *sp, bool initialize)
     char *exitHook = Spank_Hook_Table[SPANK_SLURMD_EXIT].strName;
     if (!dlsym(sp->handle, "psid_plugin") &&
 	(dlsym(sp->handle, initHook) || dlsym(sp->handle, exitHook))) {
-	if (!tainted) {
-	    flog("spank plugin %s taints the psid\n", sp->name);
-	} else {
-	    fdbg(PSSLURM_LOG_SPANK, "spank plugin %s taints the psid\n",
-		 sp->name);
-	}
+	fdbg(tainted ? PSSLURM_LOG_SPANK : -1,
+	     "spank plugin %s taints the psid\n", sp->name);
 	tainted = true;
     }
 
@@ -286,10 +283,9 @@ int SpankLoadPlugin(Spank_Plugin_t *sp, bool initialize)
 	    .envSet = NULL,
 	    .envUnset = NULL
 	};
-	fdbg(PSSLURM_LOG_SPANK, "Calling hook SPANK_SLURMD_INIT to "
-	     "initialize %s\n", sp->name);
-	char *strHook = Spank_Hook_Table[spank.hook].strName;
-	doCallHook(sp, &spank, strHook);
+	fdbg(PSSLURM_LOG_SPANK,
+	     "call SPANK_SLURMD_INIT to init %s\n", sp->name);
+	doCallHook(sp, &spank, Spank_Hook_Table[spank.hook].strName);
     }
 
     return 0;
