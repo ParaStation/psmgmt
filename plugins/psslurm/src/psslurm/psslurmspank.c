@@ -203,7 +203,7 @@ static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
     }
 }
 
-static Spank_Plugin_t *findPlugin(char *name)
+static Spank_Plugin_t *findPlugin(const char *name)
 {
     if (!name) return NULL;
 
@@ -296,32 +296,26 @@ int SpankLoadPlugin(Spank_Plugin_t *sp, bool initialize)
 
 bool SpankUnloadPlugin(const char *name, bool finalize)
 {
-    list_t *s, *tmp;
-    list_for_each_safe(s, tmp, &SpankList) {
-	Spank_Plugin_t *sp = list_entry(s, Spank_Plugin_t, next);
-	if (!strcmp(sp->name, name)) {
-	    flog("unloading spank plugin %s\n", name);
-	    if (finalize && sp->handle) {
-		struct spank_handle spank = {
-		    .task = NULL,
-		    .alloc = NULL,
-		    .job = NULL,
-		    .step = NULL,
-		    .hook = SPANK_SLURMD_EXIT,
-		    .envSet = NULL,
-		    .envUnset = NULL
-		};
-		fdbg(PSSLURM_LOG_SPANK, "Calling hook SPANK_SLURMD_EXIT "
-		     "to finalize %s\n", sp->name);
-		char *strHook = Spank_Hook_Table[spank.hook].strName;
-		doCallHook(sp, &spank, strHook);
-	    }
-	    delSpankPlug(sp);
-	    return true;
-	}
-    }
+    Spank_Plugin_t *sp = findPlugin(name);
+    if (!sp) return false;
 
-    return false;
+    flog("unloading spank plugin %s\n", name);
+    if (finalize && sp->handle) {
+	struct spank_handle spank = {
+	    .task = NULL,
+	    .alloc = NULL,
+	    .job = NULL,
+	    .step = NULL,
+	    .hook = SPANK_SLURMD_EXIT,
+	    .envSet = NULL,
+	    .envUnset = NULL
+	};
+	fdbg(PSSLURM_LOG_SPANK,
+	     "call SPANK_SLURMD_EXIT to finalize %s\n", sp->name);
+	doCallHook(sp, &spank, Spank_Hook_Table[spank.hook].strName);
+    }
+    delSpankPlug(sp);
+    return true;
 }
 
 static struct spank_option *findPluginOpt(Spank_Plugin_t *plugin, char *name)
