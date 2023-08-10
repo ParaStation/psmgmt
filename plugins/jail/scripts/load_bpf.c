@@ -302,24 +302,23 @@ int main(int argc, const char *argv[])
 	    key.major = nextKey.major;
 	    key.minor = nextKey.minor;
 	    int value;
-	    if (!bpf_map_lookup_elem(mapFD, &key, &value)) {
-		if (showDev) {
-		    /* print output only */
-		    fprintf(stdout, "Access to device %i:%i is %s\n", key.major,
-			    key.minor, (value ? "allowed" : "denied"));
-		} else {
-		    /* remove access */
-		    if (removeAllowed && !value) continue;
+	    if (bpf_map_lookup_elem(mapFD, &key, &value) < 0) continue;
 
-		    /* deny access */
-		    value = 0;
-		    if (bpf_map_update_elem(destMap, &key, &value,
-			BPF_ANY) != 0) {
-			fprintf(stderr, "Failed to update BPF map with "
-				"key %i:%i fd %i: %s\n", key.major, key.minor,
-				destMap, strerror(errno));
-			exit(1);
-		    }
+	    if (showDev) {
+		/* print output only */
+		fprintf(stdout, "Access to device %i:%i is %s\n", key.major,
+			key.minor, (value ? "allowed" : "denied"));
+	    } else {
+		/* remove access */
+		if (removeAllowed && !value) continue;
+
+		/* deny access */
+		value = 0;
+		if (bpf_map_update_elem(destMap, &key, &value, BPF_ANY) != 0) {
+		    fprintf(stderr, "Failed to update BPF map with key %i:%i"
+			    " fd %i: %s\n", key.major, key.minor,
+			    destMap, strerror(errno));
+		    exit(1);
 		}
 	    }
 	}
