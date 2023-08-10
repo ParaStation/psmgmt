@@ -833,7 +833,7 @@ char *help(char *key)
 		"a Spank plugin without calling SLURMD_EXIT hook\n",
 		&buf, &bufSize);
 	str2Buf(" * Use 'plugin set psslurm SPANK_FIN name' to unload "
-		"a Spank plugin and executing SLURMD_EXIT hook\n",
+		"a Spank plugin after executing SLURMD_EXIT hook\n",
 		&buf, &bufSize);
 
 	return buf;
