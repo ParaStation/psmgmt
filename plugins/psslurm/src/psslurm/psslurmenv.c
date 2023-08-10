@@ -16,6 +16,7 @@
 #include <limits.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 #include <unistd.h>
 

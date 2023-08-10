@@ -1,12 +1,13 @@
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <popt.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <popt.h>
-#include <linux/types.h>
+#include <string.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <limits.h>
+#include <unistd.h>
 
 #include <linux/bpf.h>
 #include <bpf/bpf.h>
