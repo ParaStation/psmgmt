@@ -55,49 +55,50 @@ static char *removeAllowed = NULL;
 /**
  * @brief Ensure argument has the correct device format
  */
-void verifyDev(const char *arg) {
+static void verifyDev(const char *arg)
+{
     char *endptr;
-
     bpfKey.major = strtol(arg, &endptr, 10);
     if (*endptr != ':') {
-        fprintf(stderr, "Invalid format for device specification. "
+	fprintf(stderr, "Invalid format for device specification. "
 		"Use MAJOR:MINOR\n");
-        exit(1);
+	exit(1);
     }
 
     bpfKey.minor = strtol(endptr + 1, &endptr, 10);
     if (*endptr != '\0') {
-        fprintf(stderr, "Invalid format for device specification. "
+	fprintf(stderr, "Invalid format for device specification. "
 		"Use MAJOR:MINOR\n");
-        exit(1);
+	exit(1);
     }
 }
 
 /**
  * @brief Parse command line arguments
  */
-void parseArgs(int argc, const char *argv[]) {
+static void parseArgs(int argc, const char *argv[])
+{
     char *allow_dev = NULL;
     char *deny_dev = NULL;
 
     struct poptOption options[] = {
-        { "load_prog", 'l', POPT_ARG_STRING, &bpfProg, 0,
+	{ "load_prog", 'l', POPT_ARG_STRING, &bpfProg, 0,
 	  "Load a BPF program", "OBJ_PATH" },
-        { "attach_path", 'p', POPT_ARG_STRING, &attachPath, 0,
+	{ "attach_path", 'p', POPT_ARG_STRING, &attachPath, 0,
 	  "The path to attach the BPF program", "ATTACH_PATH" },
-        { "prog_id", 'i', POPT_ARG_STRING, &progID, 0,
+	{ "prog_id", 'i', POPT_ARG_STRING, &progID, 0,
 	  "A unique identifier for the program", "UNIQUE_ID" },
-        { "allow_dev", 'a', POPT_ARG_STRING, &allow_dev, 0,
+	{ "allow_dev", 'a', POPT_ARG_STRING, &allow_dev, 0,
 	  "Allow access to devices", "MAJOR:MINOR" },
-        { "deny_dev", 'd', POPT_ARG_STRING, &deny_dev, 0,
+	{ "deny_dev", 'd', POPT_ARG_STRING, &deny_dev, 0,
 	  "Deny access to devices", "MAJOR:MINOR" },
-        { "show_dev", 's', POPT_ARG_NONE, &showDev, 0,
+	{ "show_dev", 's', POPT_ARG_NONE, &showDev, 0,
 	  "Show access to devices", NULL },
-        { "clear", 'c', POPT_ARG_NONE, &clearMap, 0,
+	{ "clear", 'c', POPT_ARG_NONE, &clearMap, 0,
 	  "Cleanup BPF map after use", NULL },
-        { "quiet", 'q', POPT_ARG_NONE, &quiet, 0,
+	{ "quiet", 'q', POPT_ARG_NONE, &quiet, 0,
 	  "Be quiet", NULL },
-        { "remove_allowed", '\0', POPT_ARG_STRING, &removeAllowed, 0,
+	{ "remove_allowed", '\0', POPT_ARG_STRING, &removeAllowed, 0,
 	  "Remove allowed devices from given BPF map", "ID" },
 	POPT_AUTOHELP {NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
@@ -108,10 +109,10 @@ void parseArgs(int argc, const char *argv[]) {
     while ((rc = poptGetNextOpt(optCon)) >= 0) {}
 
     if (rc < -1) {
-        fprintf(stderr, "%s: %s\n",
-                poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
-                poptStrerror(rc));
-        exit(1);
+	fprintf(stderr, "%s: %s\n",
+		poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+		poptStrerror(rc));
+	exit(1);
     }
 
     if (argc < 2) {
@@ -144,10 +145,10 @@ void parseArgs(int argc, const char *argv[]) {
     }
 
     if (allow_dev) {
-        verifyDev(allow_dev);
+	verifyDev(allow_dev);
 	bpfAccess = true;
     } else if (deny_dev) {
-        verifyDev(deny_dev);
+	verifyDev(deny_dev);
 	bpfAccess = false;
     }
 
@@ -160,7 +161,7 @@ void parseArgs(int argc, const char *argv[]) {
  * Load a BPF program and its corresponding map. The program is
  * attached to a cgroup and the map is pinned.
  */
-void loadBPF(void)
+static void loadBPF(void)
 {
     if (!quiet) {
 	printf("Attaching BPF program %s to %s\n", bpfProg, attachPath);
@@ -170,7 +171,7 @@ void loadBPF(void)
     struct bpf_object *obj;
     if (bpf_prog_load(bpfProg, BPF_PROG_TYPE_CGROUP_DEVICE, &obj,
 	&prog_fd) != 0) {
-        fprintf(stderr, "Failed to load BPF program %s: %s\n", bpfProg,
+	fprintf(stderr, "Failed to load BPF program %s: %s\n", bpfProg,
 		strerror(errno));
 	exit(1);
     }
@@ -184,7 +185,7 @@ void loadBPF(void)
 
     mapFD = bpf_map__fd(map);
     if (mapFD < 0) {
-        fprintf(stderr, "Failed to get file descriptor for BPF map: %s\n",
+	fprintf(stderr, "Failed to get file descriptor for BPF map: %s\n",
 		strerror(errno));
 	exit(1);
     }
@@ -192,14 +193,14 @@ void loadBPF(void)
     /* attach BPF program to cgroup */
     int cgroup_fd = open(attachPath, O_DIRECTORY);
     if (cgroup_fd < 0) {
-        fprintf(stderr, "Failed to open cgroup %s: %s\n", attachPath,
+	fprintf(stderr, "Failed to open cgroup %s: %s\n", attachPath,
 		strerror(errno));
 	exit(1);
     }
 
     int ret = bpf_prog_attach(prog_fd, cgroup_fd, BPF_CGROUP_DEVICE, 0);
     if (ret < 0) {
-        fprintf(stderr, "Failed to attach BPF program to cgroup %s: %s\n",
+	fprintf(stderr, "Failed to attach BPF program to cgroup %s: %s\n",
 		attachPath, strerror(errno));
 	exit(1);
     }
@@ -217,7 +218,7 @@ void loadBPF(void)
     snprintf(pinPath, sizeof(pinPath), "%s/%s_map", BPF_PSID_PATH, progID);
 
     if (bpf_obj_pin(mapFD, pinPath) < 0) {
-        fprintf(stderr, "Failed to pin BPF map to %s: %s\n", pinPath,
+	fprintf(stderr, "Failed to pin BPF map to %s: %s\n", pinPath,
 		strerror(errno));
 	exit(1);
     }
@@ -231,7 +232,7 @@ void loadBPF(void)
 /**
  * @brief Add or update an element in the BPF map
  */
-void updateMap()
+static void updateMap()
 {
     if (bpf_map_update_elem(mapFD, &bpfKey, &bpfAccess, BPF_ANY) != 0) {
 	fprintf(stderr, "Failed to update BPF map with key %i:%i fd %i: %s\n",
@@ -271,8 +272,8 @@ static void reopenMap(void)
     mapFD = openMap(progID);
 }
 
-int main(int argc, const char *argv[]) {
-
+int main(int argc, const char *argv[])
+{
     parseArgs(argc, argv);
 
     if (clearMap) {
@@ -325,10 +326,7 @@ int main(int argc, const char *argv[]) {
     }
 
     /* allow to load and modify the map simultaneously */
-    if (bpfProg) {
-	/* load a BPF program */
-	loadBPF();
-    }
+    if (bpfProg) loadBPF();
 
     /* if access was specified save it to BPF map */
     if (bpfAccess != -1) {
