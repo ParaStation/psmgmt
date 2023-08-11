@@ -947,7 +947,7 @@ int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 
     if (strstr(port, "-")) {
 	/* this is a port range */
-	if (sscanf("%d-%d", port, &first, &last) != 2) {
+	if (sscanf(port, "%d-%d", &first, &last) != 2) {
 	    flog("failed to parse port range '%s'\n", port);
 	    return -1;
 	}
