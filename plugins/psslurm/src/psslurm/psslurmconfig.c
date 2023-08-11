@@ -1028,8 +1028,9 @@ static bool parseSlurmPlugLine(char *key, char *value, const void *info)
 	return true; /* an error occurred, return true to stop parsing */
     }
 
-    char *spankDef = PSC_concat(toksave, "=", value);
-    Spank_Plugin_t *def = SpankNewPlug(spankDef);
+    char *spankDef = NULL;
+    if (value && value[0]) spankDef = PSC_concat(toksave, "=", value);
+    Spank_Plugin_t *def = SpankNewPlug(spankDef ? spankDef : toksave);
     free(spankDef);
 
     if (!def) {
