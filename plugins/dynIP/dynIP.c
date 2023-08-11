@@ -104,7 +104,8 @@ int resolveUnknownNode(void *id)
 
     int rc = PSC_traverseHostInfo(host, nodeVisitor, &nodeID, NULL);
     if (rc) {
-	flog("getaddrinfo(%s) failed: %s\n", host, gai_strerror(rc));
+	fdbg(DYNIP_LOG_DEBUG, "getaddrinfo(%s) failed: %s\n", host,
+	     gai_strerror(rc));
     }
 
     return 0;
