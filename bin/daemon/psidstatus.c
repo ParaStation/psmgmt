@@ -263,6 +263,13 @@ static void handleMasterTasks(void)
 	PSnodes_ID_t last = next;
 	do {
 	    if (!PSIDnodes_isUp(next)) {
+		/* reset IP for dynamic nodes in state down */
+		if (PSIDnodes_isDynamic(next)
+		    && PSIDnodes_getAddr(next) != INADDR_NONE) {
+		    PSIDnodes_setAddr(next, INADDR_NONE);
+		    RDP_updateNode(next, INADDR_NONE);
+		}
+
 		errno = 0;
 		if (send_DAEMONCONNECT(next) != -1 || errno != EHOSTUNREACH) {
 		    count--;
