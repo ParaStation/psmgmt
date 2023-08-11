@@ -2491,7 +2491,7 @@ bool __packEnergyData(PS_SendDB_t *data, psAccountEnergy_t *eData,
     addTimeToMsg(eData->lastUpdate, data);
 
     fdbg(PSSLURM_LOG_DEBUG, "base energy %zu average power %u total energy %zu"
-	 " current power %u", eData->energyBase,
+	 " current power %u\n", eData->energyBase,
 	 eData->powerAvg, eData->energyCur - eData->energyBase,
 	 eData->powerCur);
 
