@@ -263,13 +263,6 @@ static void handleMasterTasks(void)
 	PSnodes_ID_t last = next;
 	do {
 	    if (!PSIDnodes_isUp(next)) {
-		/* reset IP for dynamic nodes in state down */
-		if (PSIDnodes_isDynamic(next)
-		    && PSIDnodes_getAddr(next) != INADDR_NONE) {
-		    PSIDnodes_setAddr(next, INADDR_NONE);
-		    RDP_updateNode(next, INADDR_NONE);
-		}
-
 		errno = 0;
 		if (send_DAEMONCONNECT(next) != -1 || errno != EHOSTUNREACH) {
 		    count--;
@@ -754,6 +747,22 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
     if (PSIDnodes_getAddr(id) == INADDR_ANY) {
 	errno = EHOSTUNREACH;
 	return -1;
+    }
+
+    /* reset IP for dynamic nodes not in RDP state ACTIVE */
+    if (RDP_getState(id) != ACTIVE && PSIDnodes_isDynamic(id)
+	&& PSIDnodes_getAddr(id) != INADDR_NONE) {
+	PSIDnodes_setAddr(id, INADDR_NONE);
+	RDP_updateNode(id, INADDR_NONE);
+    }
+
+    if (PSIDnodes_getAddr(id) == INADDR_NONE) {
+	int ret = PSIDhook_call(PSIDHOOK_NODE_UNKNOWN, &id);
+	if (ret == PSIDHOOK_NOFUNC || PSIDnodes_getAddr(id) == INADDR_NONE) {
+	    errno = EHOSTUNREACH;
+	    return -1;
+	}
+	RDP_updateNode(id, PSIDnodes_getAddr(id));
     }
 
     int32_t tmp = PSIDnodes_getNumCores(PSC_getMyID());

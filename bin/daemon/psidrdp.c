@@ -25,7 +25,6 @@
 #include "rdp.h"
 
 #include "psidcomm.h"
-#include "psidhook.h"
 #include "psidmsgbuf.h"
 #include "psidnodes.h"
 #include "psidstatus.h"
@@ -192,15 +191,6 @@ ssize_t sendRDP(DDMsg_t *msg)
 	return -1;
     }
 
-    if (PSIDnodes_getAddr(node) == INADDR_NONE) {
-	int ret = PSIDhook_call(PSIDHOOK_NODE_UNKNOWN, &node);
-	if (ret == PSIDHOOK_NOFUNC || PSIDnodes_getAddr(node) == INADDR_NONE) {
-	    errno = EHOSTUNREACH;
-	    return -1;
-	}
-	RDP_updateNode(node, PSIDnodes_getAddr(node));
-    }
-
     if (node == PSC_getMyID()) {
 	int32_t mask = PSID_getDebugMask();
 
@@ -226,7 +216,7 @@ ssize_t sendRDP(DDMsg_t *msg)
 	     * Ensure PSP_DD_DAEMONCONNECT message goes first as
 	     * required by the serialization layer
 	     */
-	    send_DAEMONCONNECT(node);
+	    if (send_DAEMONCONNECT(node) < 0) return -1;
 	}
 	ret = Rsendto(node, msg, msg->len);
     }
