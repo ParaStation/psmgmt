@@ -429,16 +429,11 @@ static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
     }
 }
 
-typedef struct {
-    uint16_t nAllow;
-    PSCPU_set_t set;
-} DevVisitorInfo_t;
-
 static bool devEnvVisitor(GRes_Dev_t *dev, uint32_t id, void *info)
 {
-    DevVisitorInfo_t *devInfo = info;
+    PSCPU_set_t *set = info;
 
-    bool isSet = PSCPU_isSet(devInfo->set, dev->slurmIdx);
+    bool isSet = PSCPU_isSet(*set, dev->slurmIdx);
     if (!isSet) {
 	fdbg(PSSLURM_LOG_JAIL, "Skipping GRes ID %u path %s num %u major %u "
 	     "minor %u\n", id, dev->path, dev->slurmIdx, dev->major,
@@ -454,7 +449,8 @@ static bool devEnvVisitor(GRes_Dev_t *dev, uint32_t id, void *info)
 	     dev->isBlock ? "b" : "c", dev->major, dev->minor);
 
     char name[128];
-    snprintf(name, sizeof(name), "__PSJAIL_DEV_ALLOW_%u", devInfo->nAllow++);
+    static int count = 0;
+    snprintf(name, sizeof(name), "__PSJAIL_DEV_ALLOW_%u", count++);
     setenv(name, val, 1);
 
     return false;
@@ -475,17 +471,17 @@ static void setJailDevEnv(list_t *gresList, uint32_t localNodeId)
 
 	fdbg(PSSLURM_LOG_JAIL, "test bitAlloc of gres %i\n", gres->id);
 
-	DevVisitorInfo_t devInfo = { .nAllow = 0 };
-	PSCPU_clrAll(devInfo.set);
+	PSCPU_set_t set;
+	PSCPU_clrAll(set);
 
 	if (gres->bitAlloc && gres->bitAlloc[localNodeId]
-	    && !hexBitstr2Set(gres->bitAlloc[localNodeId], devInfo.set)) {
+	    && !hexBitstr2Set(gres->bitAlloc[localNodeId], set)) {
 	    flog("unable to get gres node allocation for nodeId %u\n",
 		 localNodeId);
 	    return;
 	}
 
-	traverseGResDevs(gres->id, devEnvVisitor, &devInfo);
+	traverseGResDevs(gres->id, devEnvVisitor, &set);
     }
 }
 
@@ -502,7 +498,7 @@ static void setJailDevEnv(list_t *gresList, uint32_t localNodeId)
  */
 static bool denyAllDevs(Gres_Conf_t *conf, void *info)
 {
-    int n = 0;
+    static int n = 0;
     list_t *d;
     list_for_each(d, &conf->devices) {
 	GRes_Dev_t *dev = list_entry(d, GRes_Dev_t, next);
