@@ -59,10 +59,20 @@ AC_CHECK_LIB([pam], [pam_open_session],
    [ pam_enabled=true ] ])
 AM_CONDITIONAL([PAM_ENABLED], [test "x$pam_enabled" = xtrue])
 
-AC_CHECK_LIB([bpf], [bpf_prog_attach],
-  [AC_SUBST([BPF_LIBS], [-lbpf])
-   AC_DEFINE([HAVE_BPF_DEVEL])
-   [ bpf_enabled=true ] ])
+
+AC_ARG_ENABLE([bpf], [AS_HELP_STRING([--disable-bpf],
+  [build without bpf support])])
+AM_CONDITIONAL([BUILD_WITHOUT_BPF], [test "x$enable_bpf" = xno])
+
+AM_COND_IF([BUILD_WITHOUT_BPF], [
+  AC_MSG_NOTICE([Building without bpf support])
+  AM_CFLAGS="$AM_CFLAGS -DBUILD_WITHOUT_BPF"
+], [
+    AC_CHECK_LIB([bpf], [bpf_prog_attach],
+      [AC_SUBST([BPF_LIBS], [-lbpf])
+       AC_DEFINE([HAVE_BPF_DEVEL])
+       [ bpf_enabled=true ] ])
+])
 AM_CONDITIONAL([BPF_ENABLED], [test "x$bpf_enabled" = xtrue])
 
 AM_COND_IF([PAM_ENABLED], [

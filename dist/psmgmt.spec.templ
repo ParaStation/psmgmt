@@ -205,7 +205,8 @@ export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
 	   %{?disable_psconfig:--disable-psconfig} \
 	   %{?disable_systemd:--with-unitdir=no} \
 	   %{?disable_spank:--disable-spank} \
-	   %{?disable_testplugins:--disable-testplugins}
+	   %{?disable_testplugins:--disable-testplugins} \
+	   %{?disable_bpf:--disable-bpf}
 make %{?_smp_mflags}
 
 %install
