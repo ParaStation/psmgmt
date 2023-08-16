@@ -99,7 +99,7 @@ function setDevices()
 	DEV=${DEV#* }
 	DEV=${DEV% *}
 
-	dlog "$ACTION device$cnt = $DEV id $ID"
+	dlog "setDevices: $ACTION device$cnt = $DEV id $ID"
 	setDev "$ACTION" "$DEV" "$ID"
 
 	cnt=$(( cnt + 1 ))
