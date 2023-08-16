@@ -24,7 +24,7 @@ function cleanupBPF()
     local QUIET=""
     [ "$DEBUG" == "0" ] && QUIET="-q"
 
-    dlog "$BPF_DEVICE_LOADER \-c \-i $BPF_ID"
+    dlog "$BPF_DEVICE_LOADER -c -i $BPF_ID $QUIET"
     "$BPF_DEVICE_LOADER" -c -i "$BPF_ID" "$QUIET"
 }
 
@@ -35,7 +35,7 @@ function removeFromUserBPF()
     local QUIET=""
     [ "$DEBUG" == "0" ] && QUIET="-q"
 
-    dlog "$BPF_DEVICE_LOADER \-i $BPF_ID \-\-remove_allowed USER_$USER"
+    dlog "$BPF_DEVICE_LOADER -i $BPF_ID $QUIET --remove_allowed USER_$USER"
     "$BPF_DEVICE_LOADER" -i "$BPF_ID" "$QUIET" --remove_allowed USER_"$USER"
 }
 
@@ -63,7 +63,7 @@ function termDevices()
 	removeFromUserBPF JOB_"$JOBID"
 	cleanupBPF JOB_"$JOBID"
 
-	BASE="$CG_USER"
+	local BASE="$CG_USER"
 	for i in "$BASE"/step-*/; do
 	    [ -d "$i" ] || break
 	    dlog "cleanup dev: $i"
