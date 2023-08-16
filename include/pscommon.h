@@ -214,7 +214,7 @@ char *PSC_printTID(PStask_ID_t tid);
  * VERSION_psmgmt"-"RELEASE_psmgmt and describes the situation at
  * compile time.
  *
- * @return Pointer to a static character array decribing the current
+ * @return Pointer to a static character array describing the current
  * version
  */
 const char* PSC_getVersionStr(void);
@@ -225,8 +225,9 @@ const char* PSC_getVersionStr(void);
  * Try to start the ParaStation daemon on the host with IP address @a
  * hostaddr. The IP address has to be given in network byte order.
  *
- * The (x)inetd(8) has to be configured appropriately and must run on
- * the destination node.
+ * The (x)inetd(8) service or the corresponding systemd(8) unit for
+ * the psidstarter socket has to be configured appropriately and must
+ * be enabled on the destination node.
  *
  * @param hostaddr IP address of the node on which to start the daemon
  *
