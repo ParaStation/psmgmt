@@ -1290,8 +1290,7 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
 	/* Get rid of obsolete timers */
 	Timer_init(NULL);
 
-	PSC_setDaemonFlag(0);
-	PSC_resetMyTID();
+	PSC_setDaemonFlag(false);
 
 	task->fd = socketfds[1];
 

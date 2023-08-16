@@ -131,20 +131,35 @@ PSnodes_ID_t PSC_getID(PStask_ID_t tid);
 pid_t PSC_getPID(PStask_ID_t tid);
 
 /**
- * @brief Mark the actual process to be a ParaStation daemon.
+ * @brief Mark the local process to be a ParaStation daemon
  *
  * Mark the actual process to a ParaStation daemon if @a flag is
  * true. If the current process is marked, the determination of @ref
- * PSC_getMyTID() is modified.
+ * PSC_getMyTID() is modified in a way that the process ID part of the
+ * task ID is set to 0.
+ *
+ * Calling this function implies to reset MyTID's cached value via
+ * @ref PSC_resetMyTID().
  *
  * @return No return value
  *
- * @see PSC_getMyTID()
+ * @see PSC_getMyTID(), PSC_resetMyTID(), PSC_isDaemon()
  */
 void PSC_setDaemonFlag(bool flag);
 
 /**
- * @brief Determines the task ID of the actual process.
+ * @brief Check if the local process is marked to be a ParaStation daemon
+ *
+ * Check if the local process was marked to be a ParaStation daemon by
+ * calling @ref PSC_setDaemonFlag() accordingly. This might shortcut
+ * the determination from the process ID part of MyTID.
+ *
+ * @return Returns the last flag passed via @ref PSC_setDaemonFlag()
+ */
+bool PSC_isDaemon(void);
+
+/**
+ * @brief Determines the task ID of the actual process
  *
  * Determines the clusterwide unique task ID of the actual process. If
  * @ref PSC_setDaemonFlag() was called with parameter true before, the
@@ -152,14 +167,14 @@ void PSC_setDaemonFlag(bool flag);
  * within the task ID is set to 0.
  *
  * @return The unique task ID of the actual process is returned; or -1
- * if the cluster is not yet fully initialized.
+ * if the cluster is not yet fully initialized
  *
  * @see PSC_setDaemonFlag()
  */
 PStask_ID_t PSC_getMyTID(void);
 
 /**
- * @brief Reset MyTID.
+ * @brief Reset MyTID
  *
  * MyTID, i.e. the value returned by PSC_getMyTID() is cashed withing
  * that function. Thus, whenever a fork happened, this cashed value
@@ -168,7 +183,7 @@ PStask_ID_t PSC_getMyTID(void);
  * Afterwards the cashed value is deleted and will be renewed with the
  * now correct values during the next call of PSC_getMyTID().
  *
- * @return No return value.
+ * @return No return value
  *
  * @see PSC_getMyTID()
  */

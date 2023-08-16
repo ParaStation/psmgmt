@@ -121,7 +121,7 @@ PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid)
 PSnodes_ID_t PSC_getID(PStask_ID_t tid)
 {
     /* See comment in PSC_getTID() */
-    PSnodes_ID_t node = (tid>>16)&0xFFFF;
+    PSnodes_ID_t node = (tid>>16) & 0xFFFF;
     if (node == -1) return PSC_getMyID();
     return node;
 }
@@ -137,6 +137,13 @@ static bool daemonFlag = false;
 void PSC_setDaemonFlag(bool flag)
 {
     daemonFlag = flag;
+    /* reset my TID => next PSC_getMyTID() will set again */
+    PSC_resetMyTID();
+}
+
+bool PSC_isDaemon(void)
+{
+    return daemonFlag;
 }
 
 void PSC_resetMyTID(void)
