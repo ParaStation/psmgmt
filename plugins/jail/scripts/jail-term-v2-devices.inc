@@ -24,7 +24,7 @@ function cleanupBPF()
     local QUIET=""
     [ "$DEBUG" == "0" ] && QUIET="-q"
 
-    dlog "$BPF_DEVICE_LOADER \-c \-i $BPF_ID $QUIET"
+    dlog "$BPF_DEVICE_LOADER \-c \-i $BPF_ID"
     "$BPF_DEVICE_LOADER" -c -i "$BPF_ID" "$QUIET"
 }
 
@@ -35,6 +35,7 @@ function removeFromUserBPF()
     local QUIET=""
     [ "$DEBUG" == "0" ] && QUIET="-q"
 
+    dlog "$BPF_DEVICE_LOADER \-i $BPF_ID \-\-remove_allowed USER_$USER"
     "$BPF_DEVICE_LOADER" -i "$BPF_ID" "$QUIET" --remove_allowed USER_"$USER"
 }
 
