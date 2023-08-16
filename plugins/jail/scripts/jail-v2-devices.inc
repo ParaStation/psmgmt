@@ -45,11 +45,10 @@ function loadBPF()
 function initDevices()
 {
     [ -n "$USER" ] || elog "no user env variable for job $JOBID"
-
-
     mdsave "$CG_USER"
     loadBPF "$CG_USER/tasks" USER_"$USER"
 
+    [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
     mdsave "$CG_JOB"
     loadBPF "$CG_JOB/tasks" JOB_"$JOBID"
 
