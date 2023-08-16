@@ -327,7 +327,6 @@ fi
 %{_plugindir}/jail.so
 %config(noreplace) %{_plugindir}/jail.conf
 %{_libexecdir}/jail
-%{_libexecdir}/jail/bpf_cgroup_device.o
 %config(noreplace) %{_libexecdir}/jail/jail-config.inc
 %config(noreplace) %{_libexecdir}/jail/jail-functions.inc
 %config(noreplace) %{_libexecdir}/jail/jail-init.sh
@@ -349,6 +348,7 @@ fi
 %config(noreplace) %{_libexecdir}/jail/jail-v2-memory.inc
 %config(noreplace) %{_libexecdir}/jail/jail-v2-oom.inc
 %if !0%{?disable_bpf}
+%{_libexecdir}/jail/bpf_cgroup_device.o
 %{_libexecdir}/jail/bpf_device_loader
 %endif
 %{_plugindir}/nodeinfo.so
