@@ -520,7 +520,10 @@ void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
 		uint32_t localNodeId)
 {
     static bool isInit = false;
-    if (isInit || !PSC_getPID(PSC_getMyTID())) return;
+    if (isInit || !PSC_getPID(PSC_getMyTID())) {
+	flog("do not call within main psid or twice per process\n");
+	return;
+    }
 
     setThreadsBitmapsEnv(stepcpus, jobcpus);
 
