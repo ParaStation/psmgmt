@@ -15,8 +15,6 @@
 
 #define BPF_PSID_PATH "/sys/fs/bpf/psid"
 
-#define MAX_MAP_ENTRIES 4096
-
 /* used as hash to store BPF access */
 typedef struct {
   int major;	    /** device major */
