@@ -46,7 +46,7 @@ static int clearMap = 0;
 static int mapFD = -1;
 
 /* only report errors */
-static int quiet = -1;
+static int quiet = 0;
 
 /* remove allowed devices from BPF map */
 static char *removeAllowed = NULL;
