@@ -79,7 +79,7 @@ function killTasks {
     local PIDS=$(cat "$TASKS" 2>/dev/null)
 
     while [ -n "$PIDS" -a "$count" -le "$MAX_KILL_RETRY" ]; do
-	[ "$TERM_DELAY" != "0" ] && {
+	[ "$TERM_DELAY" -ne "0" -a "$count" -eq "0" ] && {
 	    for child in $PIDS; do
 		[ -d "/proc/$child" ] || continue
 		dlog "killTasks($count): send signal $TERM_SIGNAL to PID $child"
