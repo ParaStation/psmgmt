@@ -519,6 +519,9 @@ void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
 		const PSCPU_set_t *jobcpus, list_t *gresList, JobCred_t *cred,
 		uint32_t localNodeId)
 {
+    static bool isInit = false;
+    if (isInit || !PSC_getPID(PSC_getMyTID())) return;
+
     setThreadsBitmapsEnv(stepcpus, jobcpus);
 
     if (env) {
@@ -542,6 +545,8 @@ void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
     }
 
     if (cred) setJailMemEnv(cred, localNodeId);
+
+    isInit = true;
 }
 
 void setGlobalJailEnvironment(void)
