@@ -310,6 +310,7 @@ plugins/jail/helpers/Makefile.am \
 plugins/jail/helpers/Makefile.in \
 plugins/jail/helpers/bpf_cgroup_device.o \
 plugins/jail/helpers/load_bpf.c \
+plugins/jail/helpers/README.bpf \
 plugins/jail/scripts/Makefile.am \
 plugins/jail/scripts/Makefile.in \
 plugins/jail/scripts/jail-config.inc \
