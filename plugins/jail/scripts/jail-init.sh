@@ -41,4 +41,15 @@ for i in "$CGROUP_BASE"/psid-*/; do
     rmdir -p "$i" 2>/dev/null
 done
 
+for modName in ${MODULES//,/$IFS}; do
+    for i in "$CGROUP_BASE/$modName"/psid-*/; do
+	for job in "$i"/job-*; do
+	    for step in "$job"/step-*; do
+		rmdir -p "$step" 2>/dev/null
+	    done
+        done
+	rmdir -p "$i" 2>/dev/null
+    done
+done
+
 exit 0
