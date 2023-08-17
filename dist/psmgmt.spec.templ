@@ -15,6 +15,9 @@
 %{?_without_spank: %global disable_spank 1}
 %{?_without_testplugins: %global disable_testplugins 1}
 
+# we do not use rpm changelog
+%global source_date_epoch_from_changelog 0
+
 %if ( 0%{?rhel} && 0%{?rhel} < 7 ) || %(pkg-config --exists systemd; echo $?) != 0
 %global disable_systemd 1
 %endif
@@ -157,6 +160,17 @@ applications. It releases the processes from the burden to register
 and distribute addressing information beforehand. This package
 provides a client library hiding all unnecessary technical details
 from the programmer.
+
+%package dynip
+Summary:   Support for dynamically changing IP addresses
+Group:     Productivity/Clustering/Computing
+
+%description dynip
+The dynIP plugin included in this package adds support for IP addresses
+changing during the runtime of the psid network. For example this can
+happen by shutting down and restarting nodes in an environment where
+this leads to the change of the IP address of such a node. It has been
+developed to support running ParaStation on AWS ParallelCluster.
 
 %if !0%{?disable_testplugins}
 %package testplugins
@@ -305,7 +319,6 @@ fi
 %dir %{_plugindir}
 %{_plugindir}/cgroup.so
 %config(noreplace) %{_plugindir}/cgroup.conf
-%{_plugindir}/dynIP.so
 %{_plugindir}/jail.so
 %config(noreplace) %{_plugindir}/jail.conf
 %{_libexecdir}/jail
@@ -485,6 +498,23 @@ fi
 %files rrcomm-devel
 %{_includedir}/rrcomm.h
 %{_libdir}/librrcomm.a
+
+%files dynip
+%defattr(-,root,root,-)
+%doc plugins/dynIP/doc/AWS_ParallelCluster/README
+%doc plugins/dynIP/doc/AWS_ParallelCluster/HeadNode/00-installrpm.sh
+%doc plugins/dynIP/doc/AWS_ParallelCluster/HeadNode/80-setup_psid.sh
+%doc plugins/dynIP/doc/AWS_ParallelCluster/HeadNode/81-setup_slurm_master.sh
+%doc plugins/dynIP/doc/AWS_ParallelCluster/HeadNode/01-setup_psconfig_master.sh
+%doc plugins/dynIP/doc/AWS_ParallelCluster/HeadNode/99-start_services_master.sh
+%doc plugins/dynIP/doc/AWS_ParallelCluster/ComputeNode/00-installrpm.sh
+%doc plugins/dynIP/doc/AWS_ParallelCluster/ComputeNode/01-setup_psconfig_compute.sh
+%doc plugins/dynIP/doc/AWS_ParallelCluster/ComputeNode/05-SetModulePath.sh
+%doc plugins/dynIP/doc/AWS_ParallelCluster/ComputeNode/80-setup_psid.sh
+%doc plugins/dynIP/doc/AWS_ParallelCluster/ComputeNode/81-setup_psslurm_compute.sh
+%doc plugins/dynIP/doc/AWS_ParallelCluster/ComputeNode/99-start_services_compute.sh
+%{_plugindir}/dynIP.so
+
 
 %if !0%{?disable_testplugins}
 %files testplugins

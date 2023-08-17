@@ -9,6 +9,8 @@
 #
 include $(top_srcdir)/common.am
 
+SUBDIRS = doc
+
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
 
