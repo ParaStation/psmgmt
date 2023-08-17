@@ -5,6 +5,27 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  psmgmt 5.1.57-0 introduces support for cgroup v2. Since enhanced   **
+**  cgroup support was moved into the jail-plugin machinery away from  **
+**  the original cgroup-plugin, loading both plugins was useless but   **
+**  not really harmful. This changes with psmgmt 5.1.57-0 when usage   **
+**  of cgroup v2 support is enabled on the system and within Slurm.    **
+**  In this specific case default settings for the cgroup-plugin will  **
+**  clash with the expectations of the jail-plugin's cgroup machinery  **
+**  and the standard setup of cgroups found on the systems             **
+**                                                                     **
+**  Therefore it is highly recommended to:                             **
+**                                                                     **
+**  - properly setup the cgroups machinery of the jail-plugin          **
+**  - disable the use of the old cgroup-plugin                         **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+
 
 Version 5.1.56-2:
 =================
