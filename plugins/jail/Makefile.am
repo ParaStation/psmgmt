@@ -10,7 +10,7 @@
 #
 include $(top_srcdir)/common.am
 
-SUBDIRS = scripts
+SUBDIRS = scripts helpers
 
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon

@@ -19,11 +19,4 @@ dist_jaillib_SCRIPTS = jail-config.inc jail-v1-cpuacct.inc		\
 		       jail-v2-cpuset.inc jail-v2-devices.inc		\
 		       jail-v2-memory.inc jail-v2-oom.inc		\
 		       jail-term-v2-cpuset.inc jail-term-v2-devices.inc \
-		       jail-term-v2-memory.inc jail-init.sh 		\
-		       bpf_cgroup_device.o
-
-if BPF_ENABLED
-jaillib_PROGRAMS = bpf_device_loader
-bpf_device_loader_SOURCES = load_bpf.c
-bpf_device_loader_LDADD = -lbpf -lpopt
-endif
+		       jail-term-v2-memory.inc jail-init.sh
