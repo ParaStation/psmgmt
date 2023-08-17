@@ -1,0 +1,58 @@
+#!/bin/bash -x
+
+exec >>/tmp/slurmctld.prologue 2>&1
+
+env >/tmp/slurmctld.prologue.env
+
+# hack to skip the slurmctld prologue if slurmd is used for testing
+#USE_PSSLURM=$(scontrol show node "$SLURM_JOB_NODELIST" |grep psslurm)
+#[ -z "$USE_PSSLURM" ] && exit 0
+
+# wait until all psslurm are registered at the slurmctld
+if [ -n "$SLURM_HET_JOB_NODELIST" ]
+then
+	nodelist="$SLURM_HET_JOB_NODELIST"
+else
+	nodelist="$SLURM_JOB_NODELIST"
+fi
+
+getNodeState()
+{
+	while read -r token; do
+		while read -r key value; do
+			if [ "${key}" == "State" ]; then
+				echo "${value}"
+			fi
+		done <<< "${token/=/ }"
+	done <<< "$(/opt/slurm/bin/scontrol show node "${1}" | tr -s ' ' | tr ' ' \\n)"
+}
+
+waitForNodes()
+{
+    hostlist=${1}
+    for h in ${hostlist}; do
+        echo -en "Waiting for \"${h}\"\\t"
+        state=UNKNOWN
+        until [[ "${state}#" == "MIXED+CLOUD#" ]] && /usr/bin/host "$h" > /dev/null; do
+	    state="$(getNodeState "${h}")"
+	    sleep 1
+        done
+        echo "=> done as ${state}"
+    done
+}
+
+waitForNodes "$(/opt/slurm/bin/scontrol show hostnames "${nodelist}")"
+
+
+#/opt/parastation/bin/pspelogue -v -d --psconfig_resolve |& ts '[%Y-%m-%d %H:%M:%S]' >>/tmp/slurmctld.prologue 2>&1
+/opt/parastation/bin/pspelogue -v -d |& ts '[%Y-%m-%d %H:%M:%S]'
+
+EXIT_STATUS=$?
+
+# pack job follower will exit here
+if [ -n "$SLURM_PACK_JOB_ID" ] && [ "$SLURM_PACK_JOB_ID" != "$SLURM_JOB_ID" ]; then
+  exit $EXIT_STATUS
+fi
+
+exit $EXIT_STATUS
+

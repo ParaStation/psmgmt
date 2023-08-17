@@ -293,6 +293,7 @@ plugins/dynIP/doc/AWS_ParallelCluster/ComputeNode/80-setup_psid.sh \
 plugins/dynIP/doc/AWS_ParallelCluster/ComputeNode/81-setup_psslurm_compute.sh \
 plugins/dynIP/doc/AWS_ParallelCluster/ComputeNode/99-start_services_compute.sh \
 plugins/dynIP/doc/AWS_ParallelCluster/README \
+plugins/dynIP/doc/AWS_ParallelCluster/slurmctld.prologue \
 plugins/dynIP/doc/Makefile.am \
 plugins/dynIP/doc/Makefile.in \
 plugins/jail/Makefile.am \

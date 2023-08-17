@@ -23,4 +23,7 @@ Assuming you do already have a Parallel Cluster setup on AWS.
 
 4. Power on your head node
 
-5. Run jobs
+5. Put the `slurmctld.prologue` into `/opt/slurm/etc` and check that
+   it is configured to be used in `/opt/slurm/etc/slurm.conf`.
+
+6. Run jobs
