@@ -1,10 +1,22 @@
-The eBPF cgroup device controller implementation consists of two parts. The eBPF program itself
-and an additional eBPF loader.
+The eBPF cgroup device controller implementation consists of two
+parts:
 
-The eBPF program can be compiled into bytecode using clang:
+- The eBPF device controller program itself that will be loaded into
+  kernel space in order to do its work there and
+- an additional eBPF loader that runs in user-space with the sole task
+  to load and configure the eBPF device controller in kernel space
+
+The eBPF loader is a C program using libbpf. It can and will be built
+via the platform's standard tool-chain.
+
+In contrast, the eBPF device controller requires a dedicated compiler
+in order to create the bytecode to be interpreted in the kernel's
+virtual machine. This eBPF program can be compiled into bytecode using
+a version of Clang that supports the corresponding target. It might be
+called via:
 
 clang -O2 -target bpf -c bpf_device_controller.c -o bpf_cgroup_device.o
 
-Since the compiled bytecode is platform independent it will be ship with the psmgmt package.
-
-The eBPF loader is a c program using libbpf.
+Since the compiled bytecode is platform independent, it will be
+shipped as a binary blob with the psmgmt package. Thus, no specific
+eBPF tool-chain is required to build and install psmgmt.
