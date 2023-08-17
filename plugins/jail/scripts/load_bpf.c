@@ -120,12 +120,12 @@ static void parseArgs(int argc, const char *argv[])
     }
 
     if ((bpfProg || attachPath) && (!bpfProg || !attachPath)) {
-	fprintf(stderr, "Use --load_prog in combination with --attachPath\n");
+	fprintf(stderr, "Use --load_prog in combination with --attach_path\n");
 	exit(1);
     }
 
     if (!progID) {
-	fprintf(stderr, "--progID is mandatory\n");
+	fprintf(stderr, "--prog_id is mandatory\n");
 	exit(1);
     } else {
 	/* remove additional map suffix */
