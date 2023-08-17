@@ -13451,6 +13451,8 @@ ac_config_files="$ac_config_files plugins/dynIP/doc/Makefile"
 
 ac_config_files="$ac_config_files plugins/jail/Makefile"
 
+ac_config_files="$ac_config_files plugins/jail/helpers/Makefile"
+
 ac_config_files="$ac_config_files plugins/jail/scripts/Makefile"
 
 ac_config_files="$ac_config_files plugins/nodeinfo/Makefile"
@@ -14639,6 +14641,7 @@ do
     "plugins/dynIP/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/dynIP/Makefile" ;;
     "plugins/dynIP/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/dynIP/doc/Makefile" ;;
     "plugins/jail/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/jail/Makefile" ;;
+    "plugins/jail/helpers/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/jail/helpers/Makefile" ;;
     "plugins/jail/scripts/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/jail/scripts/Makefile" ;;
     "plugins/nodeinfo/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/nodeinfo/Makefile" ;;
     "plugins/pelogue/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pelogue/Makefile" ;;
