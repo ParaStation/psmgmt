@@ -58,18 +58,6 @@ function setDev()
 
 function setDevices()
 {
-    # set allowed devices
-    cnt=0
-    while true; do
-	next="__PSJAIL_DEV_ALLOW_$cnt"
-	[ -z "${!next}" ] && break
-	dlog "allow device$cnt = ${!next}"
-
-	setDev "devices.allow" "${!next}"
-
-	cnt=$(( cnt + 1 ))
-    done
-
     # set denied devices
     cnt=0
     while true; do
@@ -78,6 +66,18 @@ function setDevices()
 	dlog "deny device$cnt = ${!next}"
 
 	setDev "devices.deny" "${!next}"
+
+	cnt=$(( cnt + 1 ))
+    done
+
+    # set allowed devices
+    cnt=0
+    while true; do
+	next="__PSJAIL_DEV_ALLOW_$cnt"
+	[ -z "${!next}" ] && break
+	dlog "allow device$cnt = ${!next}"
+
+	setDev "devices.allow" "${!next}"
 
 	cnt=$(( cnt + 1 ))
     done
