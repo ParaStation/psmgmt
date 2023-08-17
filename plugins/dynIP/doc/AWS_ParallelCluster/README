@@ -1,0 +1,26 @@
+Assuming you do already have a Parallel Cluster setup on AWS.
+
+1. Copy the HeadNode and ComputeNode directories into the right place
+   so all scripts therein are executed in lexical order when a respective
+   node is powered up.
+
+2. Copy or link the following RPMs into the HeadNode directory:
+   - libgit2
+   - psconfig
+   - psconfig-rsyncd
+   - psmgmt
+   - psmgmt-dynip
+   - psmgmt-slurmutils
+
+3. Copy or link the following RPMs into the ComputeNode directory:
+   - libgit2
+   - psconfig
+   - psmgmt
+   - psmgmt-dynip
+   - psmgmt-psslurm
+   - psmgmt-slurmutils
+   - psmgmt-pspmix (optionally)
+
+4. Power on your head node
+
+5. Run jobs
