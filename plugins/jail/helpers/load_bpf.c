@@ -279,8 +279,10 @@ int main(int argc, const char *argv[])
 	char pinPath[PATH_MAX];
 	snprintf(pinPath, sizeof(pinPath), "%s/%s_map", BPF_PSID_PATH, progID);
 	if (unlink(pinPath) == -1) {
-	    fprintf(stderr, "Cleanup of map %s failed: %s\n", pinPath,
-		    strerror(errno));
+	    if (!quiet) {
+		fprintf(stderr, "Cleanup of map %s failed: %s\n", pinPath,
+			strerror(errno));
+	    }
 
 	    return 1;
 	}
