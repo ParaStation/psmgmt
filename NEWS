@@ -5,6 +5,8 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+
+
 *************************************************************************
 *************************************************************************
 **                                                                     **
@@ -25,6 +27,30 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 *************************************************************************
 *************************************************************************
 
+Version 5.1.57:
+===============
+Bugfixes:
+ - Fix jail memory check (#118)
+ - Deny access to all devices not allocated by the user via cgroups
+ - Cleanup leftover cgroupv1 psid directories
+ - Do not let psslurm init fail if optional Spank plugins are broken
+ - Do not overwrite jail information if multiple GRes have devices
+ - Fix inet_ntop()'s second argument
+Enhancements:
+ - Introduce support for cgroup v2
+ - Set default cgroup version to autodetect
+ - Add psslurm set options SPANK_LOAD, SPANK_UNLOAD and SPANK_FIN (#pct:428)
+ - Introduce support for port ranges in SlurmctldPort in psslurm
+ - Send SIGTERM only in the first round of killing cgroup processes
+ - psslurm takes hwloc info as default if SKIP_CORE_VERIFICATION is given
+ - Avoid lapsed constant PMIX_ERR_NOT_IMPLEMENTED in PMIx 4
+ - Mark processes started with PSID_execFunc() as non daemon
+Additional changes:
+ - Add support for changing IP addresses delivered in psmgmt-dynip
+ - Introduce PSC_traverseHostInfo() to avoid getaddrinfo()'s boylerplate code
+ - Introduce PSC_isDaemon() and rework PSC_setDaemonFlag()
+ - Add adjusted psconfig dumps for base and defaults configuration
+ - Refactor and streamline RDP
 
 
 Version 5.1.56-2:

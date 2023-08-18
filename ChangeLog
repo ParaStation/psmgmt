@@ -1,3 +1,638 @@
+Version 5.1.57:
+===============
+------------------------------------------------------------------------
+17494b236 | Norbert Eicker | Fri, 18 Aug 2023 16:53:40 +0200
+
+Ensure bpf bytecode gets only installed with bpf_loader
+------------------------------------------------------------------------
+ce546a100 | Michael Rauh | Fri, 18 Aug 2023 16:40:51 +0200
+
+Let bpf loader be quiet if requested at cleanup
+------------------------------------------------------------------------
+7bdfc8c12 | Michael Rauh | Fri, 18 Aug 2023 16:33:03 +0200
+
+Add additional sanity check for cgroupv2 device controller
+------------------------------------------------------------------------
+2932d4b75 | Michael Rauh | Fri, 18 Aug 2023 15:03:30 +0200
+
+Fix jail memory check
+------------------------------------------------------------------------
+be8e51022 | Michael Rauh | Fri, 18 Aug 2023 14:32:12 +0200
+
+Mark processes started with PSID_execFunc() as non daemon
+------------------------------------------------------------------------
+e02b92459 | Michael Rauh | Fri, 18 Aug 2023 14:19:54 +0200
+
+Make jail callback name more distinguishable
+------------------------------------------------------------------------
+c1ecdb0aa | Michael Rauh | Thu, 17 Aug 2023 17:45:07 +0200
+
+Cleanup leftover cgroupv1 psid directories
+------------------------------------------------------------------------
+e226feee7 | Michael Rauh | Thu, 17 Aug 2023 16:08:00 +0200
+
+Set denied devices in cgroupv1 device controller first
+------------------------------------------------------------------------
+b4e48df1e | Norbert Eicker | Thu, 17 Aug 2023 15:25:29 +0200
+
+Enhance the eBPF README
+------------------------------------------------------------------------
+5b32db002 | Michael Rauh | Thu, 17 Aug 2023 12:23:13 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+9a4304efd | Michael Rauh | Thu, 17 Aug 2023 12:21:57 +0200
+
+Add instructions to compile eBPF program
+------------------------------------------------------------------------
+0c4c717f4 | Norbert Eicker | Thu, 17 Aug 2023 12:49:36 +0200
+
+Add warning on cgroup v2 incompatibility of the cgroup plugin
+------------------------------------------------------------------------
+c54ccd579 | Michael Rauh | Thu, 17 Aug 2023 12:01:49 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+8e9acaabf | Michael Rauh | Thu, 17 Aug 2023 11:31:49 +0200
+
+Move bpf programs to separate folder
+------------------------------------------------------------------------
+8b208fd9a | Michael Rauh | Thu, 17 Aug 2023 11:11:48 +0200
+
+Let bpf loader be more quiet
+------------------------------------------------------------------------
+56710b389 | Michael Rauh | Thu, 17 Aug 2023 10:48:57 +0200
+
+Use PSC_isDaemon() in psslurm
+------------------------------------------------------------------------
+68dea2dbf | Michael Rauh | Thu, 17 Aug 2023 10:44:39 +0200
+
+Give correct options in error message
+------------------------------------------------------------------------
+b036e99b1 | Michael Rauh | Wed, 16 Aug 2023 18:15:29 +0200
+
+Fix quiet option of bpf loader
+------------------------------------------------------------------------
+aa44d2d82 | Norbert Eicker | Wed, 16 Aug 2023 18:13:58 +0200
+
+Fix typo in / improve docu comments
+------------------------------------------------------------------------
+3210715fb | Michael Rauh | Wed, 16 Aug 2023 18:10:53 +0200
+
+Add missing sanity check
+------------------------------------------------------------------------
+cdd76bfb1 | Norbert Eicker | Wed, 16 Aug 2023 18:06:08 +0200
+
+Introduce PSC_isDaemon() and rework PSC_setDaemonFlag()
+------------------------------------------------------------------------
+8b6690a5e | Michael Rauh | Wed, 16 Aug 2023 17:57:39 +0200
+
+Don't confuse syslog logger with unknown options
+------------------------------------------------------------------------
+00f6a1cbd | Michael Rauh | Wed, 16 Aug 2023 17:47:53 +0200
+
+Fix quoting for jail log functions
+------------------------------------------------------------------------
+af245708d | Michael Rauh | Wed, 16 Aug 2023 17:30:22 +0200
+
+Don't spoil global variable
+------------------------------------------------------------------------
+cb6f04a52 | Michael Rauh | Wed, 16 Aug 2023 17:28:54 +0200
+
+Improve debug log
+------------------------------------------------------------------------
+33af09423 | Norbert Eicker | Wed, 16 Aug 2023 17:31:26 +0200
+
+Add warning on setJailEnv() misuse
+------------------------------------------------------------------------
+c51046113 | Michael Rauh | Wed, 16 Aug 2023 17:19:54 +0200
+
+Send SIGTERM only in the first round of killing cgroup processes
+------------------------------------------------------------------------
+e620dcb74 | Michael Rauh | Wed, 16 Aug 2023 17:07:29 +0200
+
+Ensure setJailEnv() is only called once in forwarder
+processes
+------------------------------------------------------------------------
+fed3539ea | Michael Rauh | Wed, 16 Aug 2023 15:35:36 +0200
+
+Remove obsolete MAX_MAP_ENTRIES
+------------------------------------------------------------------------
+e648f2be3 | Michael Rauh | Wed, 16 Aug 2023 15:29:03 +0200
+
+Don't install bpf bytecode if bpf_loader is not build
+------------------------------------------------------------------------
+fa342f704 | Michael Rauh | Wed, 16 Aug 2023 14:59:56 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+cc6168ace | Michael Rauh | Wed, 16 Aug 2023 14:59:09 +0200
+
+Add option --disable-bpf to buildsystem
+------------------------------------------------------------------------
+4e3365e68 | Michael Rauh | Mon, 14 Aug 2023 18:59:52 +0200
+
+Bugfix: don't overwrite device jail information when
+multiple devices are used
+------------------------------------------------------------------------
+02ecc5fce | Norbert Eicker | Thu, 10 Aug 2023 08:30:15 +0200
+
+Improve code readability
+------------------------------------------------------------------------
+5154849bf | Norbert Eicker | Thu, 10 Aug 2023 07:54:06 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+26317dbaa | Norbert Eicker | Thu, 10 Aug 2023 07:48:23 +0200
+
+Streamlining load_bpf.c
+
+ * Mostly whitespace fixes and hiding of local functions
+------------------------------------------------------------------------
+5a56458c4 | Norbert Eicker | Wed, 9 Aug 2023 22:42:02 +0200
+
+Hide visitors from global namespace
+------------------------------------------------------------------------
+b8ade1ccb | Norbert Eicker | Wed, 9 Aug 2023 22:41:31 +0200
+
+Remove obsolete member
+------------------------------------------------------------------------
+8652d33bb | Norbert Eicker | Wed, 9 Aug 2023 22:40:29 +0200
+
+Fix typo in debug log
+------------------------------------------------------------------------
+35f6ef268 | Norbert Eicker | Wed, 9 Aug 2023 01:42:38 +0200
+
+Push to Autoconf 2.69 again
+------------------------------------------------------------------------
+af7ae9646 | Michael Rauh | Mon, 7 Aug 2023 19:09:02 +0200
+
+Ensure to deny access to all devices not allocated by the user
+when cgroups are active
+------------------------------------------------------------------------
+b749529a0 | Michael Rauh | Mon, 7 Aug 2023 16:02:44 +0200
+
+Add user prefix to cgroupv2 tree
+------------------------------------------------------------------------
+2c1dd527d | Michael Rauh | Mon, 7 Aug 2023 15:40:33 +0200
+
+Setup user cgroupv2 device controller
+------------------------------------------------------------------------
+5d08df8b3 | Michael Rauh | Mon, 7 Aug 2023 15:36:30 +0200
+
+Add --remove_allowed option to bpf loader
+------------------------------------------------------------------------
+8509b6a38 | Michael Rauh | Mon, 7 Aug 2023 15:35:23 +0200
+
+Cleanup old psid cgroup entries at startup
+------------------------------------------------------------------------
+5a7aacfd8 | Michael Rauh | Fri, 4 Aug 2023 16:30:13 +0200
+
+Automatically remove BPF map suffix from program ID
+------------------------------------------------------------------------
+531920855 | Michael Rauh | Fri, 4 Aug 2023 16:10:19 +0200
+
+Set devices options once for all process in job/step
+------------------------------------------------------------------------
+476d1de34 | Michael Rauh | Fri, 4 Aug 2023 16:06:31 +0200
+
+Cleanup psid BPF directory at started
+------------------------------------------------------------------------
+dd3cdba86 | Michael Rauh | Tue, 1 Aug 2023 14:21:32 +0200
+
+Add cgroupv2 term device script
+------------------------------------------------------------------------
+e920c5524 | Michael Rauh | Fri, 28 Jul 2023 17:17:00 +0200
+
+Use quiet option in jail devices script and fix quoting
+------------------------------------------------------------------------
+408df5c78 | Michael Rauh | Fri, 28 Jul 2023 17:15:45 +0200
+
+Add quiet option to BPF loader
+------------------------------------------------------------------------
+fee0299b8 | Michael Rauh | Fri, 28 Jul 2023 16:34:34 +0200
+
+Upate BPF device controller bytecode
+------------------------------------------------------------------------
+4fff33eb3 | Michael Rauh | Fri, 28 Jul 2023 16:32:26 +0200
+
+Add BPF device controller
+------------------------------------------------------------------------
+fe7a02662 | Michael Rauh | Fri, 28 Jul 2023 16:30:45 +0200
+
+Rework BPF program loader
+------------------------------------------------------------------------
+790b434c2 | Michael Rauh | Thu, 27 Jul 2023 15:12:09 +0200
+
+Improve BPF loader error logs
+------------------------------------------------------------------------
+6ab20f524 | Michael Rauh | Thu, 27 Jul 2023 14:05:06 +0200
+
+Cleanup cgroupv2 step path
+------------------------------------------------------------------------
+cf8758cc8 | Michael Rauh | Thu, 27 Jul 2023 11:37:45 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+d3e93e698 | Michael Rauh | Thu, 27 Jul 2023 11:36:46 +0200
+
+Add cgroupv2 scripts to buildsystem
+------------------------------------------------------------------------
+86fa6bc86 | Michael Rauh | Thu, 27 Jul 2023 11:28:03 +0200
+
+Add cgroupv2 device controller
+------------------------------------------------------------------------
+993c7509f | Michael Rauh | Tue, 25 Jul 2023 10:30:12 +0200
+
+Rework BPF program loader
+------------------------------------------------------------------------
+87321a4d5 | Michael Rauh | Fri, 14 Jul 2023 17:05:52 +0200
+
+Add bpf program and loader to jail script configuration
+------------------------------------------------------------------------
+8c7d12019 | Michael Rauh | Fri, 14 Jul 2023 16:08:31 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+b315e534b | Michael Rauh | Fri, 14 Jul 2023 16:02:02 +0200
+
+Add bpf cgroup device program
+------------------------------------------------------------------------
+5026ff4f6 | Michael Rauh | Tue, 11 Jul 2023 13:49:58 +0200
+
+Add cgroupv2 memory controller
+------------------------------------------------------------------------
+c7df27c9c | Michael Rauh | Tue, 11 Jul 2023 13:49:20 +0200
+
+Add cgroupv2 cpuset controller
+------------------------------------------------------------------------
+e1264f9a2 | Michael Rauh | Tue, 11 Jul 2023 13:47:27 +0200
+
+Add cgroupv2 support to main jail script
+------------------------------------------------------------------------
+b38975672 | Michael Rauh | Tue, 11 Jul 2023 13:46:25 +0200
+
+Introduce enableController() and enhance process cleanup
+------------------------------------------------------------------------
+e51e20ba7 | Michael Rauh | Tue, 11 Jul 2023 13:35:06 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+6d644952d | Michael Rauh | Tue, 11 Jul 2023 13:18:23 +0200
+
+Add BPF loader
+------------------------------------------------------------------------
+389cd0647 | Michael Rauh | Fri, 16 Jun 2023 13:53:01 +0200
+
+Add oom cgroup v2 script
+------------------------------------------------------------------------
+3d4d92a69 | Michael Rauh | Wed, 14 Jun 2023 17:05:28 +0200
+
+Set default cgroup version to autodetect
+------------------------------------------------------------------------
+e4bf7f72d | Michael Rauh | Wed, 14 Jun 2023 16:43:32 +0200
+
+Add cgroup version to jail scripts log output
+------------------------------------------------------------------------
+e0f46d1b1 | Michael Rauh | Wed, 7 Jun 2023 15:35:54 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+abc00bf4b | Michael Rauh | Fri, 21 Apr 2023 15:56:08 +0200
+
+Start to split jail scripts for cgroup v1 and v2
+------------------------------------------------------------------------
+42d7895d3 | Norbert Eicker | Fri, 18 Aug 2023 14:32:56 +0200
+
+Whitespace fixes
+------------------------------------------------------------------------
+8137f3114 | Norbert Eicker | Thu, 17 Aug 2023 19:21:42 +0200
+
+Push to automake 1.16.5 again
+------------------------------------------------------------------------
+672495d9f | Stephan Krempel | Thu, 17 Aug 2023 17:52:21 +0200
+
+Pack whole AWS_ParallelCluster directory into dynip RPM
+------------------------------------------------------------------------
+33b9cc87c | Stephan Krempel | Thu, 17 Aug 2023 17:24:12 +0200
+
+dynIP: Add slurmctld.prologue for AWS ParallelCluster
+------------------------------------------------------------------------
+4bad72f71 | Stephan Krempel | Thu, 17 Aug 2023 16:34:59 +0200
+
+Put dynIP plugin into it's own RPM psmgmt-dynip
+------------------------------------------------------------------------
+1c988cf3e | Stephan Krempel | Thu, 17 Aug 2023 16:35:56 +0200
+
+dynIP: Add README and example scripts for AWS
+------------------------------------------------------------------------
+96a2beb24 | Norbert Eicker | Mon, 14 Aug 2023 15:52:11 +0200
+
+Move dynamic IP handling to send_DAEMONCONNECT()
+
+ * PSP_DD_DAEMONCONNECT is the first message on a connection anyhow
+------------------------------------------------------------------------
+ad4758610 | Norbert Eicker | Fri, 11 Aug 2023 17:33:24 +0200
+
+Let dynIP not spam the syslog if resolving fails
+------------------------------------------------------------------------
+aa947024e | Stephan Krempel | Fri, 11 Aug 2023 17:06:12 +0200
+
+psslurm: Fix port range support for SlurmctldPort
+------------------------------------------------------------------------
+eadbf460b | Norbert Eicker | Fri, 11 Aug 2023 17:01:03 +0200
+
+Ensure psid forgets about old dynamic IPs
+------------------------------------------------------------------------
+881882fde | Stephan Krempel | Fri, 11 Aug 2023 12:44:08 +0200
+
+psslurm: Fix debugging output
+------------------------------------------------------------------------
+3a10a2260 | Stephan Krempel | Thu, 10 Aug 2023 17:11:56 +0200
+
+psslurm: Rework port range support for SlurmctldPort
+------------------------------------------------------------------------
+070a8eb4e | Norbert Eicker | Tue, 1 Aug 2023 12:05:23 +0200
+
+Let PSI_resolveNodeID() trigger send_DAEMONCONNECT()
+------------------------------------------------------------------------
+e934b0fb5 | Norbert Eicker | Tue, 1 Aug 2023 10:27:36 +0200
+
+Minor cleanup
+------------------------------------------------------------------------
+9c7b56364 | Stephan Krempel | Thu, 27 Jul 2023 15:14:17 +0200
+
+dynIP: Fix error messages
+------------------------------------------------------------------------
+786a97bbd | Norbert Eicker | Thu, 27 Jul 2023 09:03:03 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+55f4ab7ec | Norbert Eicker | Thu, 27 Jul 2023 09:01:18 +0200
+
+Enable PSP_INFO_HOST (PSI_resolveNodeID()) for dynamic IP
+------------------------------------------------------------------------
+9f98a5826 | Stephan Krempel | Tue, 25 Jul 2023 17:51:17 +0200
+
+psslurm: Add more debugging output
+------------------------------------------------------------------------
+71c864f75 | Stephan Krempel | Tue, 25 Jul 2023 12:46:28 +0200
+
+psslurm: Fix logging output
+------------------------------------------------------------------------
+774a12c71 | Stephan Krempel | Tue, 25 Jul 2023 12:32:58 +0200
+
+psslurm: Change debug output channel
+------------------------------------------------------------------------
+4f0d08a61 | Stephan Krempel | Tue, 25 Jul 2023 12:04:07 +0200
+
+psslurm: Add debug output of node status msg packing
+------------------------------------------------------------------------
+7b02e66b4 | Stephan Krempel | Tue, 25 Jul 2023 11:39:15 +0200
+
+psslurm: Streamlining
+------------------------------------------------------------------------
+99b532b6a | Stephan Krempel | Mon, 24 Jul 2023 19:05:26 +0200
+
+psslurm: Take default sockets from hwloc, too
+------------------------------------------------------------------------
+a94fa822b | Stephan Krempel | Mon, 24 Jul 2023 18:33:57 +0200
+
+psslurm: With skipCodeCheck take hwloc info as default
+------------------------------------------------------------------------
+131fc889d | Stephan Krempel | Mon, 24 Jul 2023 15:57:36 +0200
+
+psslurm: Support port range in SlurmctldPort
+------------------------------------------------------------------------
+163c2f25b | Norbert Eicker | Tue, 13 Jun 2023 22:40:15 +0200
+
+Fix typos
+------------------------------------------------------------------------
+dfba299e3 | Norbert Eicker | Tue, 13 Jun 2023 22:32:35 +0200
+
+Suppress warnings of master pings to dynamic nodes
+------------------------------------------------------------------------
+49ce9870c | Norbert Eicker | Tue, 13 Jun 2023 22:17:46 +0200
+
+Improve docu comments
+------------------------------------------------------------------------
+9481288c8 | Norbert Eicker | Tue, 13 Jun 2023 22:10:38 +0200
+
+Streamline
+------------------------------------------------------------------------
+675cbb62f | Norbert Eicker | Wed, 24 May 2023 01:26:39 +0200
+
+Streamline
+------------------------------------------------------------------------
+83dc02086 | Norbert Eicker | Wed, 24 May 2023 00:18:59 +0200
+
+Only reset the IP address for dynamic nodes
+------------------------------------------------------------------------
+c671cf73f | Norbert Eicker | Tue, 23 May 2023 23:53:31 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+2e0af9efc | Norbert Eicker | Tue, 23 May 2023 23:43:27 +0200
+
+Bugfix: Fix inet_ntop()'s second argument
+------------------------------------------------------------------------
+925040724 | Norbert Eicker | Tue, 23 May 2023 23:42:11 +0200
+
+Utilize PSC_traverseHostInfo() where possible
+------------------------------------------------------------------------
+4c28c475c | Norbert Eicker | Tue, 23 May 2023 23:35:38 +0200
+
+Introduce PSC_traverseHostInfo()
+
+ - Deduplicate getaddrinfo()'s boylerplate code
+------------------------------------------------------------------------
+c28375db6 | Norbert Eicker | Tue, 23 May 2023 23:34:04 +0200
+
+Do not spoil the namespace
+------------------------------------------------------------------------
+08791f8ee | Norbert Eicker | Tue, 23 May 2023 19:42:58 +0200
+
+Utilize pluginpsconfig for parameter handling
+------------------------------------------------------------------------
+ee69dd25e | Norbert Eicker | Tue, 23 May 2023 16:04:25 +0200
+
+Ensure PSIDnodes database is always self-consistent
+------------------------------------------------------------------------
+a1fda2a48 | Norbert Eicker | Tue, 23 May 2023 16:00:31 +0200
+
+Enhance syslog message
+------------------------------------------------------------------------
+596e56eb8 | Norbert Eicker | Tue, 23 May 2023 15:59:21 +0200
+
+Booleanize and improve docu comments
+------------------------------------------------------------------------
+6f9862665 | Norbert Eicker | Tue, 23 May 2023 15:56:22 +0200
+
+Fix copyright year
+------------------------------------------------------------------------
+062e15078 | Norbert Eicker | Tue, 23 May 2023 15:54:08 +0200
+
+Fix return value and streamline
+------------------------------------------------------------------------
+54dd85160 | Stephan Krempel | Mon, 22 May 2023 16:03:14 +0200
+
+Fix compiler warning about ignored const qualifier
+------------------------------------------------------------------------
+92c25ad59 | Stephan Krempel | Mon, 22 May 2023 15:35:36 +0200
+
+Add PSID nodes flag for dynamic nodes
+
+This flag marks nodes with dynamic IP address
+------------------------------------------------------------------------
+077d7938f | Stephan Krempel | Mon, 22 May 2023 15:27:56 +0200
+
+psconfig parser: Set resolved IP address of dynamic local node
+------------------------------------------------------------------------
+b29168d0a | Stephan Krempel | Wed, 17 May 2023 10:16:32 +0200
+
+psconfig parser: Handle dynamic local node
+------------------------------------------------------------------------
+1f5d1faed | Stephan Krempel | Wed, 17 May 2023 10:09:01 +0200
+
+Move the self-enclosure test behind the node loop
+------------------------------------------------------------------------
+5a54602c0 | Stephan Krempel | Wed, 17 May 2023 10:06:52 +0200
+
+Fix memory leak
+------------------------------------------------------------------------
+6ec94700c | Stephan Krempel | Tue, 16 May 2023 17:39:26 +0200
+
+Let psconfig parser detect "DYNAMIC" IP address keyword
+------------------------------------------------------------------------
+aefe64482 | Norbert Eicker | Wed, 17 May 2023 01:18:29 +0200
+
+Complete PSIDnodes_setAddr() by updateing hosts hash, too
+------------------------------------------------------------------------
+6ceb35ef5 | Michael Rauh | Fri, 12 May 2023 15:40:01 +0200
+
+Add more debug print and let debug mask be set via psiadmin
+------------------------------------------------------------------------
+861a46536 | Michael Rauh | Fri, 12 May 2023 11:27:25 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+312e31147 | Michael Rauh | Fri, 12 May 2023 10:49:15 +0200
+
+Add plugin dynIP
+
+ - allows dynamic changes of a hosts IP address
+------------------------------------------------------------------------
+8f2ad05e0 | Michael Rauh | Fri, 12 May 2023 10:47:16 +0200
+
+Add PSIDnodes_setAddr() to set the IP address of a node
+------------------------------------------------------------------------
+d3370bc4e | Norbert Eicker | Thu, 6 Apr 2023 18:48:56 +0200
+
+Add hook PSIDHOOK_SENDER_UNKNOWN
+------------------------------------------------------------------------
+ecf4e7330 | Norbert Eicker | Wed, 22 Mar 2023 23:44:30 +0100
+
+Add hook PSIDHOOK_NODE_UNKNOWN
+
+ * bump plugin API version to 139
+------------------------------------------------------------------------
+066132619 | Norbert Eicker | Wed, 22 Mar 2023 23:26:10 +0100
+
+Introduce RDP_updateNode()
+------------------------------------------------------------------------
+d85031fb8 | Norbert Eicker | Wed, 22 Mar 2023 23:25:13 +0100
+
+More docu improvements on RDP
+------------------------------------------------------------------------
+854b9cb8d | Norbert Eicker | Wed, 22 Mar 2023 22:03:43 +0100
+
+Refactor and streamline RDP
+------------------------------------------------------------------------
+8b988e0e4 | Norbert Eicker | Fri, 11 Aug 2023 15:50:33 +0200
+
+Avoid adding a trailing '=' to the path
+------------------------------------------------------------------------
+28fbc8524 | Norbert Eicker | Thu, 10 Aug 2023 18:31:14 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+184342102 | Michael Rauh | Thu, 10 Aug 2023 17:00:37 +0200
+
+Update psslurm kvs help
+------------------------------------------------------------------------
+e72c2dc7c | Michael Rauh | Thu, 10 Aug 2023 16:44:36 +0200
+
+Improve psiadmin SPANK_LOAD command
+ * allow absolute and relative path to the Spank plugin
+ * optional arguments passed to the Spank plugin may be set
+------------------------------------------------------------------------
+64f2cee0d | Michael Rauh | Thu, 10 Aug 2023 15:56:19 +0200
+
+Add Spank arguments to psiadmin show command
+------------------------------------------------------------------------
+94ea5b031 | Michael Rauh | Thu, 10 Aug 2023 13:53:57 +0200
+
+Don't let psslurm init fail if optional Spank plugins are broken
+------------------------------------------------------------------------
+7113e7b68 | Norbert Eicker | Thu, 10 Aug 2023 12:16:16 +0200
+
+Improve messaging
+------------------------------------------------------------------------
+0aabbdad5 | Norbert Eicker | Thu, 10 Aug 2023 11:58:03 +0200
+
+Simplify debug syslog
+------------------------------------------------------------------------
+1cd69bc5b | Norbert Eicker | Thu, 10 Aug 2023 11:56:58 +0200
+
+Streamline Spank plugin's optional handling
+------------------------------------------------------------------------
+fb9edbe9b | Norbert Eicker | Thu, 10 Aug 2023 11:50:44 +0200
+
+Utilize findPlugin() in SpankUnloadPlugin()
+------------------------------------------------------------------------
+82847885b | Michael Rauh | Thu, 10 Aug 2023 10:15:13 +0200
+
+Add help description for SPANK_LOAD, SPANK_UNLOAD and SPANK_FIN
+------------------------------------------------------------------------
+96e62e249 | Michael Rauh | Wed, 9 Aug 2023 17:34:14 +0200
+
+Ensure Spank plugins will not get loaded twice
+------------------------------------------------------------------------
+60ba79c65 | Michael Rauh | Wed, 9 Aug 2023 17:11:30 +0200
+
+Add psslurm set options SPANK_LOAD, SPANK_UNLOAD and SPANK_FIN
+(#pct:428)
+------------------------------------------------------------------------
+6752cafcf | Michael Rauh | Wed, 9 Aug 2023 16:14:01 +0200
+
+Add functions to load/unload a single Spank plugin
+------------------------------------------------------------------------
+ba7417996 | Norbert Eicker | Wed, 14 Jun 2023 14:29:11 +0200
+
+Avoid lapsed constant PMIX_ERR_NOT_IMPLEMENTED in PMIx 4
+------------------------------------------------------------------------
+851e534f3 | Norbert Eicker | Tue, 1 Aug 2023 19:27:32 +0200
+
+Reflect that EnableRdpStatistics is Boolean
+------------------------------------------------------------------------
+3eeed76d9 | Stephan Krempel | Thu, 13 Jul 2023 12:11:34 +0200
+
+single_node_config: Use psconfig dumps
+------------------------------------------------------------------------
+fb6aa94ea | Stephan Krempel | Thu, 13 Jul 2023 11:48:35 +0200
+
+single_node_config: Fix shellcheck issues
+------------------------------------------------------------------------
+ef4390a4d | Stephan Krempel | Wed, 12 Jul 2023 14:10:42 +0200
+
+Add adjusted psconfig dumps for base and defaults configuration
+------------------------------------------------------------------------
+071fa8fd9 | Stephan Krempel | Wed, 12 Jul 2023 14:08:24 +0200
+
+Fix psmgmt vipsconfig example
+------------------------------------------------------------------------
+
+
 Version 5.1.56-2:
 =================
 ------------------------------------------------------------------------
