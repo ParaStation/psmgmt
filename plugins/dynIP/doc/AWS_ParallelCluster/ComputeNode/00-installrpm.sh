@@ -8,15 +8,15 @@ mylog=/parastation/PC_custom_logs/CN_00-installrpm.sh_${aws_lname}_${aws_id}.log
 
 SUDO=''
 if (( $EUID != 0 )); then
-            SUDO='sudo'
-fi 
+    SUDO='sudo'
+fi
 
 rm -f $mylog
 echo "Running 00_installrpm" > $mylog 2>&1
 
 #${SUDO} time yum -y update 1>> $mylog 2>&1
 
-${SUDO} yum localinstall -y *.rpm 1>> $mylog 2>&1 
+${SUDO} yum localinstall -y *.rpm 1>> $mylog 2>&1
 
 echo "Done 00_installrpm" >> $mylog 2>&1
 

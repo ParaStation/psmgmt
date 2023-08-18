@@ -31,13 +31,13 @@ waitForNodes()
 {
     hostlist=${1}
     for h in ${hostlist}; do
-        echo -en "Waiting for \"${h}\"\\t"
-        state=UNKNOWN
-        until [[ "${state}#" == "MIXED+CLOUD#" ]] && /usr/bin/host "$h" > /dev/null; do
+	echo -en "Waiting for \"${h}\"\\t"
+	state=UNKNOWN
+	until [[ "${state}#" == "MIXED+CLOUD#" ]] && /usr/bin/host "$h" > /dev/null; do
 	    state="$(getNodeState "${h}")"
 	    sleep 1
-        done
-        echo "=> done as ${state}"
+	done
+	echo "=> done as ${state}"
     done
 }
 
@@ -55,4 +55,3 @@ if [ -n "$SLURM_PACK_JOB_ID" ] && [ "$SLURM_PACK_JOB_ID" != "$SLURM_JOB_ID" ]; t
 fi
 
 exit $EXIT_STATUS
-

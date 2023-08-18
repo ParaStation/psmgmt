@@ -14,6 +14,6 @@ exec &> $log
 set -x
 
 
-echo "Running 00_installrpm" 
-${SUDO} yum install -y *rpm 
-echo "Done 00_installrpm" 
+echo "Running 00_installrpm"
+${SUDO} yum install -y *rpm
+echo "Done 00_installrpm"

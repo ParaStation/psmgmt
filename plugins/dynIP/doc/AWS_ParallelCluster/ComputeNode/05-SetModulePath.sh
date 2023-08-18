@@ -2,10 +2,12 @@
 
 
 # 27.01.2023 elise.jennings@par-tec.com
-# Sets the Lmod module path for packages installed in /homes/software. 
+# Sets the Lmod module path for packages installed in /homes/software.
 #
-# Admins adding packages (on login node) need to update $SPACK_HOME//etc/spack/defaults/modules.yaml if needed 
-# and fresh the modulefiles $> spack module lmod refresh  -y for any new packages to be visible.
+# Admins adding packages (on login node) need to update
+# $SPACK_HOME/etc/spack/defaults/modules.yaml if needed and fresh the
+# modulefiles $> spack module lmod refresh -y for any new packages to
+# be visible.
 
 
 BASE=/etc/modulefiles:/usr/share/modulefiles

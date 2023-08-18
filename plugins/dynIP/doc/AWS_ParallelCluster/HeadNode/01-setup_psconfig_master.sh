@@ -34,7 +34,7 @@ done
 # fill cluster network
 {
 	obj="network:cluster"
-	$pconfig set "$obj" 
+	$pconfig set "$obj"
 }
 
 # create master host object
