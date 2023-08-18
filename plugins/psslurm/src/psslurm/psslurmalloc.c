@@ -151,7 +151,7 @@ static int termJail(void *info)
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &pid);
 }
 
-static void cbTermJail(int exit, bool tmdOut, int iofd, void *info)
+static void cbTermJailAlloc(int exit, bool tmdOut, int iofd, void *info)
 {
     char errMsg[1024];
     size_t errLen;
@@ -180,7 +180,7 @@ bool Alloc_delete(uint32_t id)
     if (!alloc) return false;
 
     /* terminate cgroup */
-    PSID_execFunc(termJail, NULL, cbTermJail, NULL, alloc);
+    PSID_execFunc(termJail, NULL, cbTermJailAlloc, NULL, alloc);
 
     PSIDhook_call(PSIDHOOK_PSSLURM_FINALLOC, alloc);
 
