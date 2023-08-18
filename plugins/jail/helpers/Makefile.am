@@ -10,11 +10,10 @@
 
 include $(top_srcdir)/common.am
 
-dist_jaillib_SCRIPTS = bpf_cgroup_device.o
-
 dist_noinst_DATA = README.bpf
 
 if BPF_ENABLED
+dist_jaillib_SCRIPTS = bpf_cgroup_device.o
 jaillib_PROGRAMS = bpf_device_loader
 bpf_device_loader_SOURCES = load_bpf.c
 bpf_device_loader_LDADD = -lbpf -lpopt
