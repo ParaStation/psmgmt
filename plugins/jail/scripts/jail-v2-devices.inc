@@ -126,6 +126,14 @@ else
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainSingleUser
     else
+	[ -f "$BPF_DEVICE_LOADER" ] || {
+	    elog "BPF device loader $BPF_DEVICE_LOADER not found"
+	}
+
+	[ -f "$BPF_DEVICE_PROG" ] || {
+	    elog "BPF device program $BPF_DEVICE_PROG not found"
+	}
+
 	getLock
 	initDevices
 
