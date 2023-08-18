@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -193,6 +193,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	PSID_resetSigs();
 	PSID_blockSig(SIGTERM, false);
 	PSID_blockSig(SIGCHLD, false);
+	PSC_setDaemonFlag(false);
 
 	/* Create a new process group for easier cleanup */
 	setpgid(0, 0);
