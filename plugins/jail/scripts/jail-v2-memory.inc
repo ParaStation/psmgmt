@@ -59,7 +59,7 @@ function setJobMem()
 
     [ "$IS_INIT" == "false" ] && initMem;
 
-    if [ -z "$LIMIT" ] || [ "$LIMIT_VAL" -lt 1 ]; then
+    if [ -z "$LIMIT_NAME" ] || [ "$LIMIT_VAL" -lt 1 ]; then
 	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
     else
 	# job cgroup
@@ -77,7 +77,7 @@ function setStepMem()
 
     # step cgroup
     [ -n "$STEPID" ] && {
-	if [ -z "$LIMIT" ] || [ "$LIMIT_VAL" -lt 1 ]; then
+	if [ -z "$LIMIT_NAME" ] || [ "$LIMIT_VAL" -lt 1 ]; then
 	    dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
 	else
 	    dlog "$LIMIT_VAL > $CG_STEP/$LIMIT_NAME"
