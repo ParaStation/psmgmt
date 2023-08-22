@@ -653,6 +653,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	goto ERROR;
     }
     alloc->verified = true;
+    /* ensure a proper cleanup is executed on termination */
+    alloc->state = A_RUNNING;
 
     /* set slots for the step (and number of hardware threads) */
     if (!setStepSlots(step)) {
