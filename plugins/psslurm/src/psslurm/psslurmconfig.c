@@ -1116,7 +1116,7 @@ static bool verifySlurmConf(void)
 {
     /* ensure mandatory prologue is configured */
     char *prologue = getConfValueC(SlurmConfig, "Prolog");
-    if (!prologue || prologue[0] == '\0') {
+    if (true || !prologue || prologue[0] == '\0') {
 
 	prologue = getConfValueC(SlurmConfig, "PrologSlurmctld");
 	if (!prologue || prologue[0] == '\0') {

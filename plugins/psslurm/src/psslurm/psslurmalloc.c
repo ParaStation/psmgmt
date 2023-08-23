@@ -138,6 +138,45 @@ Alloc_t *Alloc_findByPackID(uint32_t packID)
     return NULL;
 }
 
+static void cbInitJail(int exit, bool tmdOut, int iofd, void *info)
+{
+    char errMsg[1024];
+    size_t errLen;
+
+    bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg),&errLen);
+    if (!ret) {
+	flog("getting jail init script callback data failed\n");
+	return;
+    }
+
+    if (exit != PSIDHOOK_NOFUNC && exit != 0) {
+	flog("jail init script failed with exit status %i\n", exit);
+	flog("%s\n", errMsg);
+    }
+}
+
+static int initJail(void *info)
+{
+    Alloc_t *alloc = info;
+    pid_t pid = -1;
+    char buf[1024];
+
+    snprintf(buf, sizeof(buf), "%u", alloc->id);
+    setenv("__PSJAIL_JOBID", buf, 1);
+    setenv("__PSJAIL_USER_INIT", "1", 1);
+
+    setJailEnv(&alloc->env, alloc->username, NULL, &(alloc->hwthreads),
+	       alloc->gresList, alloc->cred, alloc->localNodeId);
+
+    return PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
+}
+
+int Alloc_initJail(Alloc_t *alloc)
+{
+    /* initialize cgroup */
+    return PSID_execFunc(initJail, NULL, cbInitJail, NULL, alloc);
+}
+
 static int termJail(void *info)
 {
     Alloc_t *alloc = info;

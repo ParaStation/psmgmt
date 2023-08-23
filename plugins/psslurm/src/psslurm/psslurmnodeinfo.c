@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -52,7 +52,7 @@ typedef struct {
  *
  * @return Return true on success or false in case of error
  */
-static bool node_iter_init(node_iterator *iter, JobCred_t *cred)
+static bool node_iter_init(node_iterator *iter, const JobCred_t *cred)
 {
     iter->nrOfNodes = cred->jobNumHosts;
     iter->nodes = cred->jobNodes;
@@ -280,7 +280,8 @@ static bool __validate_nodeinfo(size_t node, const nodeinfo_t *nodeinfo,
     return true;
 }
 
-nodeinfo_t *getJobNodeinfo(PSnodes_ID_t id, const Job_t *job)
+nodeinfo_t *getNodeinfo(PSnodes_ID_t id, const JobCred_t *cred,
+		        uint32_t allocID)
 {
     if (!PSIDnodes_isUp(id)) {
 	flog("Node id %hu is down.\n", id);
@@ -288,16 +289,15 @@ nodeinfo_t *getJobNodeinfo(PSnodes_ID_t id, const Job_t *job)
     }
 
     node_iterator iter;
-    if (!node_iter_init(&iter, job->cred)) {
-	flog("Initialization of node iteration for job %u failed.\n",
-	     job->jobid);
+    if (!node_iter_init(&iter, cred)) {
+	flog("Initialization of node iteration for ID %u failed.\n", allocID);
 	return NULL;
     }
 
     nodeinfo_t *nodeinfo = node_iter_to_node(&iter, id);
 
     if (!nodeinfo) {
-	flog("Node id %hu not found in job %u\n", id, job->jobid);
+	flog("Node id %hu not found in ID %u\n", id, allocID);
 	return NULL;
     }
 

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -44,6 +44,7 @@ typedef struct {
     bool verified;	    /**< set to true if the allocation is verified */
     JobCred_t *cred;	    /**< job credentials */
     list_t *gresList;	    /**< list of allocated generic resources */
+    PSCPU_set_t hwthreads;  /**< hwthreads for the allocation on current node */
 } Alloc_t;
 
 typedef enum {
@@ -222,5 +223,14 @@ bool Alloc_isLeader(Alloc_t *alloc);
  * regardless of there age
  */
 void Alloc_verify(bool grace);
+
+/**
+ * @brief Initialize the user cgroup for the allocation
+ *
+ * @param alloc The allocation to initialize
+ *
+ * @return Returns 0 on success otherwise -1 is returned
+ **/
+int Alloc_initJail(Alloc_t *alloc);
 
 #endif  /* __PS_PSSLURM_ALLOC */

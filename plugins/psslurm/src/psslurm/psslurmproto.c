@@ -2012,16 +2012,27 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
     alloc->cred = req->cred;
     alloc->gresList = req->gresList;
 
-    if (alloc->state == A_INIT) {
-	flog("starting local prologue for allocation %u\n", req->jobid);
-	startPElogue(alloc, PELOGUE_PROLOGUE);
-    } else {
-       flog("prologue for allocation %u in state %s already executed\n",
-	    req->jobid, Alloc_strState(alloc->state));
-
-	/* let the slurmctld know the prologue has finished */
-	sendPrologComplete(req->jobid, SLURM_SUCCESS);
+    /* set mask of hardware threads to use */
+    nodeinfo_t *nodeinfo = getNodeinfo(PSC_getMyID(), alloc->cred, alloc->id);
+    if (!nodeinfo) {
+	flog("could not extract nodeinfo from credentials for alloc %u\n",
+	     alloc->id);
+	sendPrologComplete(req->jobid, SLURM_ERROR);
+	goto CLEANUP;
     }
+    PSCPU_copy(alloc->hwthreads, nodeinfo->jobHWthreads);
+    ufree(nodeinfo);
+
+    Alloc_initJail(alloc);
+
+    /* currently the use of the slurmd prologue is to gather more information
+     * about the allocation and initialize the jail environment.
+     *
+     * It is not *yet* used to executed the prologue
+     * itself.
+     */
+    /* let the slurmctld know the prologue has finished */
+    sendPrologComplete(req->jobid, SLURM_SUCCESS);
 
 CLEANUP:
 
@@ -2179,7 +2190,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
 
     /* set mask of hardware threads to use */
-    nodeinfo_t *nodeinfo = getJobNodeinfo(PSC_getMyID(), job);
+    nodeinfo_t *nodeinfo = getNodeinfo(PSC_getMyID(), job->cred, job->jobid);
     if (!nodeinfo) {
 	flog("could not extract nodeinfo from credentials for job %u\n",
 	     job->jobid);
@@ -2222,7 +2233,8 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     Alloc_t *alloc = Alloc_find(job->jobid);
     bool ret = false;
     char *prologue = getConfValueC(SlurmConfig, "Prolog");
-    if (!prologue || prologue[0] == '\0') {
+    /* force slurmctld prologue for now */
+    if (true || !prologue || prologue[0] == '\0') {
 	/* no slurmd prologue configured,
 	 * pspelogue should have added an allocation */
 	if (!alloc) {
