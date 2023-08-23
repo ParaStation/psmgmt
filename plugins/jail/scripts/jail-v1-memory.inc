@@ -65,7 +65,6 @@ function setJobMem()
 	dlog "$LIMIT_VAL > $CG_JOB/$LIMIT_NAME Job: $JOBID:$STEPID"
 	cgWrite "$LIMIT_VAL" "$CG_JOB/$LIMIT_NAME"
     fi
-
 }
 
 function setStepMem()
@@ -107,6 +106,12 @@ function constrainMemSingleUser()
     fi
 }
 
+function initUserMemGroup()
+{
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    mdsave "$CG_USER"
+}
+
 if [ "$CONSTRAIN_RAM" == "no" ]; then
     dlog "constrain RAM *disabled*"
 else
@@ -114,6 +119,8 @@ else
 
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
+    elif [ -n "$USER_INIT" ]; then
+	initUserMemGroup
     else
 	constrainRam
     fi
@@ -124,6 +131,8 @@ else
 	dlog "constrain KMEM enabled"
 	if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	    constrainMemSingleUser
+	elif [ -n "$USER_INIT" ]; then
+	    initUserMemGroup
 	else
 	    setJobMem "$JOB_KMEM" "memory.kmem.limit_in_bytes"
 	    setStepMem "$STEP_KMEM" "memory.kmem.limit_in_bytes"
@@ -137,6 +146,8 @@ else
     dlog "constrain SWAP enabled"
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
+    elif [ -n "$USER_INIT" ]; then
+	initUserMemGroup
     else
 	setJobMem "$JOB_SWAP" "memory.memsw.limit_in_bytes"
 	setStepMem "$STEP_SWAP" "memory.memsw.limit_in_bytes"
@@ -150,6 +161,8 @@ else
 
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
+    elif [ -n "$USER_INIT" ]; then
+	initUserMemGroup
     else
 	setJobMem "$SWAPPINESS" "memory.swappiness"
 	setStepMem "$SWAPPINESS" "memory.swappiness"

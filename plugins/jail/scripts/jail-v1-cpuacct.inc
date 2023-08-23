@@ -32,6 +32,10 @@ if [ -n "$ADD_USER_TO_CGROUP" ]; then
     else
 	elog "error: user cgroup $CG_USER is missing"
     fi
+elif [ -n "$USER_INIT" ]; then
+    # initialize user cgroup only
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    mdsave "$CG_USER"
 else
     [ -n "$USER" ] || elog "no user env variable for job $JOBID"
     mdsave "$CG_USER"

@@ -21,5 +21,7 @@
 # jail-main.sh with the process ID of the process to be jailed in
 # CHILD and configuration like CGROUP_BASE, BASE or SCRIPT set.
 
+[ -n "$USER_INIT" ] && return
+
 # adjust oom killer score for child
 cgWrite 0 /proc/$CHILD/oom_score_adj

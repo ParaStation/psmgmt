@@ -118,6 +118,27 @@ function constrainSingleUser()
     fi
 }
 
+function initUserDevices()
+{
+    getLock
+
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    mdsave "$CG_USER"
+    loadBPF "$CG_USER/tasks" USER_"$USER"
+
+    # add allowed devices to user cgroup
+    ID=USER_"$USER"
+    BPF_SET=$("$BPF_DEVICE_LOADER" -s -i $ID 2>/dev/null)
+
+    if [ ${#BPF_SET} -lt 4 ]; then
+	# only deny devices if user cgroup is empty
+	setDevices "DENY" "-d" "$ID"
+    fi
+    setDevices "ALLOW" "-a" "$ID"
+
+    rmLock
+}
+
 if [ "$CONSTRAIN_DEVICES" == "no" ]; then
     dlog "constrain devices *disabled*"
 else
@@ -125,6 +146,8 @@ else
 
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainSingleUser
+    elif [ -n "$USER_INIT" ]; then
+	initUserDevices
     else
 	[ -f "$BPF_DEVICE_LOADER" ] || {
 	    elog "BPF device loader $BPF_DEVICE_LOADER not found"

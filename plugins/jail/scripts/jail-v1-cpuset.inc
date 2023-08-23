@@ -23,8 +23,51 @@
 # CHILD and configuration like CGROUP_BASE, CG_USER, CG_JOB,
 # CG_STEP, BASE or SCRIPT set.
 
+function setupUserGroup()
+{
+    mdsave "$CG_USER"
+    if [ -z $(cat "$CG_USER/cpuset.cpus") ]; then
+	dlog "empty cpuset.cpus"
+	cgWrite "$JOB_CPUS" "$CG_USER/cpuset.cpus"
+    else
+	OLD_CPU=$(cat "$CG_USER/cpuset.cpus")
+	dlog "old cpuset.cpus is $OLD_CPU"
+	dlog "add cpuset.cpus is $JOB_CPUS"
+
+	if [ "$OLD_CPU" == "JOB_CPUS" ]; then
+	    dlog "using old cpuset: $OLD_CPU"
+	else
+	    NEW_CPU=$($EXPAND [$OLD_CPU],[$JOB_CPUS] |sort -g -u)
+	    COMP_CPU=$($COMPRESS $NEW_CPU | tr -d "\[\]")
+	    dlog "using new cpuset: $COMP_CPU"
+	    cgWrite "$COMP_CPU" "$CG_USER/cpuset.cpus"
+	fi
+    fi
+
+    # set memory nodes from base for now
+    MEM_NODES=$(cat $BASE/cpuset.mems)
+
+    cgWrite "$MEM_NODES" "$CG_USER/cpuset.mems"
+    dlog "user cpuset: " $(cat "$CG_USER/cpuset.cpus")
+}
+
 if [ "$CONSTRAIN_CORES" == "no" ]; then
     dlog "constrain cores *disabled*"
+elif [ -n "$USER_INIT" ]; then
+    dlog "constrain cores enabled"
+
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [ -n "$JOB_CPUS" ] || elog "no CPU cores for job $JOBID"
+
+    getLock
+
+    # initialize user cgroup only
+    mdsave "$CG_USER"
+
+    # add cores to user cgroup
+    setupUserGroup
+
+    rmLock
 elif [ -n "$ADD_USER_TO_CGROUP" ]; then
     dlog "constrain cores enabled"
     getLock
@@ -50,30 +93,9 @@ else
     [ -n "$JOB_CPUS" ] || elog "no CPU cores for job $JOBID"
 
     getLock
-    mdsave "$CG_USER"
-    if [ -z $(cat "$CG_USER/cpuset.cpus") ]; then
-	dlog "empty cpuset.cpus"
-	cgWrite "$JOB_CPUS" "$CG_USER/cpuset.cpus"
-    else
-	OLD_CPU=$(cat "$CG_USER/cpuset.cpus")
-	dlog "old cpuset.cpus is $OLD_CPU"
-	dlog "add cpuset.cpus is $JOB_CPUS"
 
-	if [ "$OLD_CPU" == "JOB_CPUS" ]; then
-	    dlog "using old cpuset: $OLD_CPU"
-	else
-	    NEW_CPU=$($EXPAND [$OLD_CPU],[$JOB_CPUS] |sort -g -u)
-	    COMP_CPU=$($COMPRESS $NEW_CPU | tr -d "\[\]")
-	    dlog "using new cpuset: $COMP_CPU"
-	    cgWrite "$COMP_CPU" "$CG_USER/cpuset.cpus"
-	fi
-    fi
-
-    # set memory nodes from base for now
-    MEM_NODES=$(cat $BASE/cpuset.mems)
-
-    cgWrite "$MEM_NODES" "$CG_USER/cpuset.mems"
-    dlog "user cpuset: " $(cat "$CG_USER/cpuset.cpus")
+    # add cores to user cgroup
+    setupUserGroup
 
     [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
 

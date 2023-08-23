@@ -22,33 +22,8 @@
 # CHILD and configuration like CGROUP_BASE, CG_USER, CG_JOB,
 # CG_STEP, BASE or SCRIPT set.
 
-if [ "$CONSTRAIN_CORES" == "no" ]; then
-    dlog "constrain cores *disabled*"
-elif [ -n "$ADD_USER_TO_CGROUP" ]; then
-    dlog "constrain cores enabled"
-    getLock
-
-    # ssh login via pspam/pspmix server needs an existing user cgroup
-    if [ -d "$CG_USER" ]; then
-	if [ -z $(cat "$CG_USER/cpuset.cpus") ]; then
-	    # error empty cpuset
-	    elog "error: user cgroup $CG_USER has empty cpuset.cpus"
-	fi
-
-	# add user to cgroup
-	mlog "adding child $CHILD to user cgroup $CG_USER"
-	cgWrite "$CHILD" "$CG_USER/tasks/cgroup.procs"
-    else
-	elog "error: user cgroup $CG_USER is missing"
-    fi
-    rmLock
-else
-    dlog "constrain cores enabled"
-
-    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
-    [ -n "$JOB_CPUS" ] || elog "no CPU cores for job $JOBID"
-
-    getLock
+function setUserCores()
+{
     enableController cpuset "$CG_USER"
 
     if [ -z $(cat "$CG_USER/cpuset.cpus") ]; then
@@ -74,6 +49,50 @@ else
 
     cgWrite "$MEM_NODES" "$CG_USER/cpuset.mems"
     dlog "user cpuset: " $(cat "$CG_USER/cpuset.cpus")
+}
+
+if [ "$CONSTRAIN_CORES" == "no" ]; then
+    dlog "constrain cores *disabled*"
+elif [ -n "$USER_INIT" ]; then
+    dlog "constrain cores enabled"
+
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [ -n "$JOB_CPUS" ] || elog "user_init: no CPU cores for job $JOBID"
+
+    getLock
+
+    # setup user cgroup
+    setUserCores
+
+    rmLock
+elif [ -n "$ADD_USER_TO_CGROUP" ]; then
+    dlog "constrain cores enabled"
+    getLock
+
+    # ssh login via pspam/pspmix server needs an existing user cgroup
+    if [ -d "$CG_USER" ]; then
+	if [ -z $(cat "$CG_USER/cpuset.cpus") ]; then
+	    # error empty cpuset
+	    elog "error: user cgroup $CG_USER has empty cpuset.cpus"
+	fi
+
+	# add user to cgroup
+	mlog "adding child $CHILD to user cgroup $CG_USER"
+	cgWrite "$CHILD" "$CG_USER/tasks/cgroup.procs"
+    else
+	elog "error: user cgroup $CG_USER is missing"
+    fi
+    rmLock
+else
+    dlog "constrain cores enabled"
+
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [ -n "$JOB_CPUS" ] || elog "no CPU cores for job $JOBID"
+
+    getLock
+
+    # setup user cgroup
+    setUserCores
 
     [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
 

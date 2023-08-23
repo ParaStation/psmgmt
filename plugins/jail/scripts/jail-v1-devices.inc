@@ -95,6 +95,12 @@ function constrainSingleUser()
     fi
 }
 
+function initUserDevices()
+{
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    mdsave "$CG_USER"
+}
+
 if [ "$CONSTRAIN_DEVICES" == "no" ]; then
     dlog "constrain devices *disabled*"
 else
@@ -102,6 +108,8 @@ else
 
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainSingleUser
+    elif [ -n "$USER_INIT" ]; then
+	initUserDevices
     else
 	initDevices
 	setDevices

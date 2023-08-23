@@ -95,6 +95,12 @@ function constrainRam()
     setStepMem "$STEP_RAM_HARD" "memory.max"
 }
 
+function initUserMemGroup()
+{
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    enableController memory "$CG_USER"
+}
+
 function constrainMemSingleUser()
 {
     # ssh login via pspam/pspmix server needs an existing user cgroup
@@ -114,6 +120,8 @@ else
 
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
+    elif [ -n "$USER_INIT" ]; then
+	initUserMemGroup
     else
 	constrainRam
     fi
@@ -125,6 +133,8 @@ else
     dlog "constrain SWAP enabled"
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
+    elif [ -n "$USER_INIT" ]; then
+	initUserMemGroup
     else
 	setJobMem "$JOB_SWAP" "memory.swap.max"
 	setStepMem "$STEP_SWAP" "memory.swap.max"
