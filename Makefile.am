@@ -13,7 +13,7 @@ include $(top_srcdir)/common.am
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = include lib bin plugins doc scripts
+SUBDIRS = include lib bin plugins doc scripts config
 
 if !BUILD_WITHOUT_TESTPLUGINS
   SUBDIRS += tests/plugins tests/functional
