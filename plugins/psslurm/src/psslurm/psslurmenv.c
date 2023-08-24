@@ -272,12 +272,14 @@ static void setThreadsBitmapsEnv(const PSCPU_set_t *stepcpus,
     if (stepcpus) {
 	getCompactThreadList(&strBuf, *stepcpus);
 	setenv("__PSJAIL_STEP_CPUS", strBuf.buf, 1);
+	fdbg(PSSLURM_LOG_JAIL, "step cpus: %s\n", strBuf.buf);
 	freeStrBuf(&strBuf);
     }
 
     if (jobcpus) {
 	getCompactThreadList(&strBuf, *jobcpus);
 	setenv("__PSJAIL_JOB_CPUS", strBuf.buf, 1);
+	fdbg(PSSLURM_LOG_JAIL, "job cpus: %s\n", strBuf.buf);
 	freeStrBuf(&strBuf);
     }
 }
