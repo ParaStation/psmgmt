@@ -38,6 +38,18 @@ fi
 
 # cleanup leftover cgroup psid directory
 for i in "$CGROUP_BASE"/psid-*/; do
+    for user in "$i"/user-*; do
+	for job in "$user"/job-*; do
+	    for step in "$job"/step-*; do
+		rmdir -p "$step/tasks" 2>/dev/null
+		rmdir -p "$step" 2>/dev/null
+	    done
+	    rmdir -p "$job/tasks" 2>/dev/null
+	    rmdir -p "$job" 2>/dev/null
+	done
+	rmdir -p "$user/tasks" 2>/dev/null
+	rmdir -p "$user" 2>/dev/null
+    done
     rmdir -p "$i" 2>/dev/null
 done
 
@@ -47,6 +59,7 @@ for modName in ${MODULES//,/$IFS}; do
 	    for step in "$job"/step-*; do
 		rmdir -p "$step" 2>/dev/null
 	    done
+	    rmdir -p "$job" 2>/dev/null
         done
 	rmdir -p "$i" 2>/dev/null
     done
