@@ -1,6 +1,7 @@
 CFLAGS = -Wall
 
-TARGETS =  getSizes putGet log spawn abort spawn_jobsize spawn_recursive
+TARGETS = getSizes putGet log spawn abort spawn_jobsize spawn_recursive \
+	query
 
 all: $(TARGETS)
 

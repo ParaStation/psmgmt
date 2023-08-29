@@ -2,6 +2,7 @@ abort
 getSizes
 log
 putGet
+query
 spawn
 spawn_jobsize
 spawn_recursive
