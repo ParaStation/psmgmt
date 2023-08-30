@@ -106,11 +106,54 @@ function constrainMemSingleUser()
     fi
 }
 
-function initUserMemGroup()
+function setUserMem()
 {
+    local LIMIT_VAL=$1
+    local LIMIT_NAME=$2
+
+    if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || \
+       [ "$LIMIT_VAL" -lt 1 ]; then
+	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
+    else
+	# user cgroup
+
+	if [ -n "$ADD_TO_CGROUP" ] && [ "$ADD_TO_CGROUP" == "yes" ]; then
+	    PRE_LIMIT=$(cat "$CG_USER/$LIMIT_NAME")
+	    [ -n "$PRE_LIMIT" ] && [ "$PRE_LIMIT" -gt 1 ] && {
+		NEW_VAL=$((LIMIT_VAL + PRE_LIMIT))
+		[ $NEW_VAL -gt 1 ] && LIMIT_VAL=$NEW_VAL
+	    }
+	fi
+
+	dlog "$LIMIT_VAL > $CG_USER/$LIMIT_NAME User: $USER"
+	cgWrite "$LIMIT_VAL" "$CG_USER/$LIMIT_NAME"
+    fi
+}
+
+function constrainUser()
+{
+    local TYPE=$1
+
     [ -n "$USER" ] || elog "no user env variable for job $JOBID"
     mdsave "$CG_USER"
+
+    if [ "$TYPE" == "RAM" ]; then
+	setUserMem "$JOB_RAM_SOFT" "memory.soft_limit_in_bytes"
+	setUserMem "$JOB_RAM_HARD" "memory.limit_in_bytes"
+    elif [ "$TYPE" == "KMEM" ]; then
+	setUserMem "$JOB_KMEM" "memory.kmem.limit_in_bytes"
+    elif [ "$TYPE" == "SWAP" ]; then
+	setUserMem "$JOB_SWAP" "memory.memsw.limit_in_bytes"
+    elif [ "$TYPE" == "SWAPPINESS" ]; then
+	setUserMem "$SWAPPINESS" "memory.swappiness"
+    else
+	elog "invalid memory type"
+    fi
 }
+
+if [ -d "$CG_USER" ]; then
+    ADD_TO_CGROUP="yes"
+fi
 
 if [ "$CONSTRAIN_RAM" == "no" ]; then
     dlog "constrain RAM *disabled*"
@@ -120,7 +163,7 @@ else
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
     elif [ -n "$USER_INIT" ]; then
-	initUserMemGroup
+	constrainUser "RAM"
     else
 	constrainRam
     fi
@@ -132,7 +175,7 @@ else
 	if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	    constrainMemSingleUser
 	elif [ -n "$USER_INIT" ]; then
-	    initUserMemGroup
+	    constrainUser "KMEM"
 	else
 	    setJobMem "$JOB_KMEM" "memory.kmem.limit_in_bytes"
 	    setStepMem "$STEP_KMEM" "memory.kmem.limit_in_bytes"
@@ -147,7 +190,7 @@ else
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
     elif [ -n "$USER_INIT" ]; then
-	initUserMemGroup
+	constrainUser "SWAP"
     else
 	setJobMem "$JOB_SWAP" "memory.memsw.limit_in_bytes"
 	setStepMem "$STEP_SWAP" "memory.memsw.limit_in_bytes"
@@ -162,7 +205,7 @@ else
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
     elif [ -n "$USER_INIT" ]; then
-	initUserMemGroup
+	constrainUser "SWAPPINESS"
     else
 	setJobMem "$SWAPPINESS" "memory.swappiness"
 	setStepMem "$SWAPPINESS" "memory.swappiness"

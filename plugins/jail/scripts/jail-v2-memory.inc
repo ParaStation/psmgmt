@@ -52,6 +52,23 @@ function initMem()
     IS_INIT="true"
 }
 
+function setUserMem()
+{
+    local LIMIT_VAL=$1
+    local LIMIT_NAME=$2
+
+    if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || [ "$LIMIT_VAL" -lt 1 ]; then
+	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
+    else
+	# user cgroup
+	PRE_LIMIT=$(cat "$CG_USER/$LIMIT_NAME")
+	[ -n "$PRE_LIMIT" ] && [ "$PRE_LIMIT" != "max" ] && LIMIT_VAL=$((LIMIT_VAL + PRE_LIMIT))
+
+	dlog "$LIMIT_VAL > $CG_USER/$LIMIT_NAME User: $USER"
+	cgWrite "$LIMIT_VAL" "$CG_USER/$LIMIT_NAME"
+    fi
+}
+
 function setJobMem()
 {
     local LIMIT_VAL=$1
@@ -59,7 +76,7 @@ function setJobMem()
 
     [ "$IS_INIT" == "false" ] && initMem;
 
-    if [ -z "$LIMIT_NAME" ] || [ "$LIMIT_VAL" -lt 1 ]; then
+    if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || [ "$LIMIT_VAL" -lt 1 ]; then
 	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
     else
 	# job cgroup
@@ -77,7 +94,8 @@ function setStepMem()
 
     # step cgroup
     [ -n "$STEPID" ] && {
-	if [ -z "$LIMIT_NAME" ] || [ "$LIMIT_VAL" -lt 1 ]; then
+	if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] \
+	   || [ "$LIMIT_VAL" -lt 1 ]; then
 	    dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
 	else
 	    dlog "$LIMIT_VAL > $CG_STEP/$LIMIT_NAME"
@@ -95,10 +113,21 @@ function constrainRam()
     setStepMem "$STEP_RAM_HARD" "memory.max"
 }
 
-function initUserMemGroup()
+function constrainUser()
 {
+    local TYPE=$1
+
     [ -n "$USER" ] || elog "no user env variable for job $JOBID"
     enableController memory "$CG_USER"
+
+    if [ "$TYPE" == "RAM" ]; then
+	setUserMem "$JOB_RAM_SOFT" "memory.high"
+	setUserMem "$JOB_RAM_HARD" "memory.max"
+    elif [ "$TYPE" == "SWAP" ]; then
+	setUserMem "$JOB_SWAP" "memory.swap.max"
+    else
+	elog "invalid memory type"
+    fi
 }
 
 function constrainMemSingleUser()
@@ -117,26 +146,33 @@ if [ "$CONSTRAIN_RAM" == "no" ]; then
     dlog "constrain RAM *disabled*"
 else
     dlog "constrain RAM enabled"
+    getLock
 
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
     elif [ -n "$USER_INIT" ]; then
-	initUserMemGroup
+	constrainUser "RAM"
     else
 	constrainRam
     fi
+
+    rmLock
 fi
 
 if [ "$CONSTRAIN_SWAP" == "no" ]; then
     dlog "constrain SWAP *disabled*"
 else
     dlog "constrain SWAP enabled"
+    getLock
+
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
     elif [ -n "$USER_INIT" ]; then
-	initUserMemGroup
+	constrainUser "SWAP"
     else
 	setJobMem "$JOB_SWAP" "memory.swap.max"
 	setStepMem "$STEP_SWAP" "memory.swap.max"
     fi
+
+    rmLock
 fi

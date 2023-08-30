@@ -19,6 +19,26 @@
 
 CLEANUP_DONE="false"
 
+function rmMemFromUser()
+{
+    local MEM_VAL=$1
+    local MEM_NAME=$2
+
+    if [ -n "$MEM_VAL" ] && [ -n "$MEM_NAME" ]; then
+	USER_MEM=$(cat "$CG_USER/$MEM_NAME" 2>/dev/null)
+	if [ -n "$USER_MEM" ] && [ "$USER_NAME" -gt 1 ]; then
+	    NEW_MEM=$((USER_MEM - MEM_VAL))
+
+	    [ $NEW_MEM -lt 0 ] && {
+		mlog "invalid user memory $NEW_MEM for $MEM_NAME"
+		return
+	    }
+	    dlog "$NEW_MEM > $CG_USER/$MEM_NAME User: $USER"
+	    cgWrite "$NEW_MEM" "$CG_USER/$MEM_NAME"
+	fi
+    fi
+}
+
 function termMemory()
 {
     [ $CLEANUP_DONE == "true" ] && return;
@@ -36,6 +56,14 @@ function termMemory()
 
     elif [ -n "$JOBID" ]; then
 	dlog "killing job $JOBID with signal $KILL_SIGNAL"
+
+	# remove memory from user cgroup
+	rmMemFromUser "$JOB_RAM_SOFT" "memory.soft_limit_in_bytes"
+	rmMemFromUser "$JOB_RAM_HARD" "memory.limit_in_bytes"
+	rmMemFromUser "$JOB_KMEM" "memory.kmem.limit_in_bytes"
+	rmMemFromUser "$JOB_SWAP" "memory.memsw.limit_in_bytes"
+	rmMemFromUser "$SWAPPINESS" "memory.swappiness"
+
 	killJob "$CG_JOB"
 
 	BASE="$CG_USER"

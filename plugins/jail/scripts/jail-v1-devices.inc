@@ -45,6 +45,13 @@ function setDev()
 {
     local ACTION=$1
     local DEV=$2
+    local RANGE=$3
+
+    if [ "$RANGE" == "USER" ]; then
+	dlog "$DEV > $CG_USER/$ACTION"
+	cgWrite "$DEV" "$CG_USER/$ACTION"
+	return
+    fi
 
     dlog "$DEV > $CG_JOB/$ACTION"
     cgWrite "$DEV" "$CG_JOB/$ACTION"
@@ -58,29 +65,36 @@ function setDev()
 
 function setDevices()
 {
+    local TYPE=$1
+    local RANGE=$2
+
     # set denied devices
-    cnt=0
-    while true; do
-	next="__PSJAIL_DEV_DENY_$cnt"
-	[ -z "${!next}" ] && break
-	dlog "deny device$cnt = ${!next}"
+    if [ "$TYPE" == "ALL" ] || [ "$TYPE" == "DENY" ]; then
+	cnt=0
+	while true; do
+	    next="__PSJAIL_DEV_DENY_$cnt"
+	    [ -z "${!next}" ] && break
+	    dlog "deny device$cnt = ${!next}"
 
-	setDev "devices.deny" "${!next}"
+	    setDev "devices.deny" "${!next}" "$RANGE"
 
-	cnt=$(( cnt + 1 ))
-    done
+	    cnt=$(( cnt + 1 ))
+	done
+    fi
 
     # set allowed devices
-    cnt=0
-    while true; do
-	next="__PSJAIL_DEV_ALLOW_$cnt"
-	[ -z "${!next}" ] && break
-	dlog "allow device$cnt = ${!next}"
+    if [ "$TYPE" == "ALL" ] || [ "$TYPE" == "ALLOW" ]; then
+	cnt=0
+	while true; do
+	    next="__PSJAIL_DEV_ALLOW_$cnt"
+	    [ -z "${!next}" ] && break
+	    dlog "allow device$cnt = ${!next}"
 
-	setDev "devices.allow" "${!next}"
+	    setDev "devices.allow" "${!next}" "$RANGE"
 
-	cnt=$(( cnt + 1 ))
-    done
+	    cnt=$(( cnt + 1 ))
+	done
+    fi
 }
 
 function constrainSingleUser()
@@ -98,7 +112,16 @@ function constrainSingleUser()
 function initUserDevices()
 {
     [ -n "$USER" ] || elog "no user env variable for job $JOBID"
-    mdsave "$CG_USER"
+
+    if [ ! -d "$CG_USER" ]; then
+	mdsave "$CG_USER"
+
+	# deny all devices only when setup new user cgroup
+	setDevices "DENY" "USER"
+    fi
+
+    # set allowed devices (will overrule previous denied devices)
+    setDevices "ALLOW" "USER"
 }
 
 if [ "$CONSTRAIN_DEVICES" == "no" ]; then
@@ -106,12 +129,16 @@ if [ "$CONSTRAIN_DEVICES" == "no" ]; then
 else
     dlog "constrain devices enabled"
 
+    getLock
+
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainSingleUser
     elif [ -n "$USER_INIT" ]; then
 	initUserDevices
     else
 	initDevices
-	setDevices
+	setDevices "ALL" "JOB"
     fi
+
+    rmLock
 fi

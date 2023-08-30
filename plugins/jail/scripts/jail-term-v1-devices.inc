@@ -17,6 +17,25 @@
 # CHILD and configuration like CGROUP_BASE, CG_USER, CG_JOB,
 # CG_STEP, BASE or SCRIPT set.
 
+function rmFromUser()
+{
+    [ ! -d "$CG_USER" ] && {
+	dlog "no user cgroup $CG_USER"
+	return
+    }
+
+    cnt=0
+    while true; do
+	next="__PSJAIL_DEV_ALLOW_$cnt"
+	[ -z "${!next}" ] && break
+
+	dlog "deny: ${!next} > $CG_USER/devices.deny"
+	cgWrite "${!next}" "$CG_USER/devices.deny"
+
+	cnt=$(( cnt + 1 ))
+    done
+}
+
 function termDevices()
 {
     [ -n "$USER" ] || elog "no user env variable for job $JOBID"
@@ -33,6 +52,9 @@ function termDevices()
     elif [ -n "$JOBID" ]; then
 	dlog "killing job $JOBID with signal $KILL_SIGNAL"
 	killJob "$CG_JOB"
+
+	# remove devices from user cgroup
+	rmFromUser
 
 	BASE="$CG_USER"
 	for i in "$BASE"/job-*/; do
