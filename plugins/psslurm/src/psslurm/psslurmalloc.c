@@ -185,7 +185,9 @@ static int termJail(void *info)
 
     snprintf(buf, sizeof(buf), "%u", alloc->id);
     setenv("__PSJAIL_JOBID", buf, 1);
-    setenv("__PSJAIL_USER", alloc->username, 1);
+
+    setJailEnv(&alloc->env, alloc->username, NULL, &(alloc->hwthreads),
+	       alloc->gresList, alloc->cred, alloc->localNodeId);
 
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &pid);
 }
