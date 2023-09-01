@@ -1135,7 +1135,7 @@ static bool verifySlurmConf(void)
 
 	/* ensure the prologue is run at job allocation */
 	/*
-	if (!confHasOpt(&SlurmConfig, "PrologFlags", "Alloc")) {
+	if (!confHasOpt(SlurmConfig, "PrologFlags", "Alloc")) {
 	    flog("error: option PrologFlags has Alloc not set in slurm.conf\n");
 	    return false;
 	}
@@ -1345,6 +1345,19 @@ static bool testJailConfig(void)
 		" jail scripts are configured\n");
 	return false;
     }
+
+    if (!getConfValueC(SlurmConfig, "Prolog")) {
+	flog("error: cgroup constrains are active, but option "
+	     "Prolog is not set in slurm.conf\n");
+	return false;
+    }
+
+    if (!confHasOpt(SlurmConfig, "PrologFlags", "Alloc")) {
+	flog("error: cgroup constrains are active, but option "
+	     "PrologFlags has Alloc not set in slurm.conf\n");
+	return false;
+    }
+
     return true;
 }
 
