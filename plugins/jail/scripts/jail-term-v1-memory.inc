@@ -26,11 +26,11 @@ function rmMemFromUser()
 
     if [ -n "$MEM_VAL" ] && [ -n "$MEM_NAME" ]; then
 	USER_MEM=$(cat "$CG_USER/$MEM_NAME" 2>/dev/null)
-	if [ -n "$USER_MEM" ] && [ "$USER_NAME" -gt 1 ]; then
+	if [ -n "$USER_MEM" ] && [ "$USER_MEM" -gt 1 ]; then
 	    NEW_MEM=$((USER_MEM - MEM_VAL))
 
 	    [ $NEW_MEM -lt 0 ] && {
-		mlog "invalid user memory $NEW_MEM for $MEM_NAME"
+		dlog "invalid user memory $NEW_MEM for $MEM_NAME"
 		return
 	    }
 	    dlog "$NEW_MEM > $CG_USER/$MEM_NAME User: $USER"

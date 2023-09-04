@@ -58,7 +58,8 @@ function setJobMem()
 
     [ "$IS_INIT" == "false" ] && initMem;
 
-    if [ -z "$LIMIT_NAME" ] || [ "$LIMIT_VAL" -lt 1 ]; then
+    if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || \
+       [ "$LIMIT_VAL" -lt 1 ]; then
 	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
     else
 	# job cgroup
@@ -76,7 +77,8 @@ function setStepMem()
 
     # step cgroup
     [ -n "$STEPID" ] && {
-	if [ -z "$LIMIT_NAME" ] || [ "$LIMIT_VAL" -lt 1 ]; then
+	if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || \
+	   [ "$LIMIT_VAL" -lt 1 ]; then
 	    dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
 	else
 	    dlog "$LIMIT_VAL > $CG_STEP/$LIMIT_NAME"
@@ -138,12 +140,21 @@ function constrainUser()
     mdsave "$CG_USER"
 
     if [ "$TYPE" == "RAM" ]; then
+	# ensure to set swap limit before hard mem limit if smaller
+	SWAP_LIMIT=$(cat "$CG_USER/memory.memsw.limit_in_bytes" 2>/dev/null)
+	if [ -n "$SWAP_LIMIT" ] && [ "$SWAP_LIMIT" -lt "$JOB_RAM_HARD" ]; then
+	    setUserMem "$JOB_SWAP" "memory.memsw.limit_in_bytes"
+	    SET_MEM_SWAP_LIMIT="yes"
+	fi
+
 	setUserMem "$JOB_RAM_SOFT" "memory.soft_limit_in_bytes"
 	setUserMem "$JOB_RAM_HARD" "memory.limit_in_bytes"
     elif [ "$TYPE" == "KMEM" ]; then
 	setUserMem "$JOB_KMEM" "memory.kmem.limit_in_bytes"
     elif [ "$TYPE" == "SWAP" ]; then
-	setUserMem "$JOB_SWAP" "memory.memsw.limit_in_bytes"
+	[ "$SET_MEM_SWAP_LIMIT" != "yes" ] && {
+	    setUserMem "$JOB_SWAP" "memory.memsw.limit_in_bytes"
+	}
     elif [ "$TYPE" == "SWAPPINESS" ]; then
 	setUserMem "$SWAPPINESS" "memory.swappiness"
     else

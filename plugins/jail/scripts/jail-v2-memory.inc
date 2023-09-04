@@ -57,12 +57,15 @@ function setUserMem()
     local LIMIT_VAL=$1
     local LIMIT_NAME=$2
 
-    if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || [ "$LIMIT_VAL" -lt 1 ]; then
+    if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || \
+       [ "$LIMIT_VAL" -lt 1 ]; then
 	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
     else
 	# user cgroup
 	PRE_LIMIT=$(cat "$CG_USER/$LIMIT_NAME")
-	[ -n "$PRE_LIMIT" ] && [ "$PRE_LIMIT" != "max" ] && LIMIT_VAL=$((LIMIT_VAL + PRE_LIMIT))
+	[ -n "$PRE_LIMIT" ] && [ "$PRE_LIMIT" != "max" ] && {
+	    LIMIT_VAL=$((LIMIT_VAL + PRE_LIMIT))
+	}
 
 	dlog "$LIMIT_VAL > $CG_USER/$LIMIT_NAME User: $USER"
 	cgWrite "$LIMIT_VAL" "$CG_USER/$LIMIT_NAME"
@@ -76,7 +79,8 @@ function setJobMem()
 
     [ "$IS_INIT" == "false" ] && initMem;
 
-    if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || [ "$LIMIT_VAL" -lt 1 ]; then
+    if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || \
+       [ "$LIMIT_VAL" -lt 1 ]; then
 	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
     else
 	# job cgroup
