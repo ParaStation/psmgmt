@@ -83,6 +83,8 @@ function termMemory()
     CLEANUP_DONE="true"
 }
 
+getLock
+
 if [ "$CONSTRAIN_KMEM" == "no" ]; then
     dlog "constrain KMEM *disabled*"
 else
@@ -103,3 +105,5 @@ else
     dlog "constrain SWAP enabled"
     termMemory
 fi
+
+rmLock

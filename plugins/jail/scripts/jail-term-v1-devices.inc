@@ -74,5 +74,8 @@ if [ "$CONSTRAIN_DEVICES" == "no" ]; then
     dlog "constrain devices *disabled*"
 else
     dlog "constrain devices enabled"
+
+    getLock
     termDevices
+    rmLock
 fi

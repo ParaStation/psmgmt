@@ -170,6 +170,7 @@ if [ "$CONSTRAIN_RAM" == "no" ]; then
     dlog "constrain RAM *disabled*"
 else
     dlog "constrain RAM enabled"
+    getLock
 
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
@@ -192,12 +193,15 @@ else
 	    setStepMem "$STEP_KMEM" "memory.kmem.limit_in_bytes"
 	fi
     fi
+    rmLock
 fi
 
 if [ "$CONSTRAIN_SWAP" == "no" ]; then
     dlog "constrain SWAP *disabled*"
 else
     dlog "constrain SWAP enabled"
+    getLock
+
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
     elif [ -n "$USER_INIT" ]; then
@@ -206,12 +210,14 @@ else
 	setJobMem "$JOB_SWAP" "memory.memsw.limit_in_bytes"
 	setStepMem "$STEP_SWAP" "memory.memsw.limit_in_bytes"
     fi
+    rmLock
 fi
 
 if [ -z "$SWAPPINESS" ]; then
     dlog "constrain swappiness *disabled*"
 else
     dlog "constrain swappiness enabled"
+    getLock
 
     if [ -n "$ADD_USER_TO_CGROUP" ]; then
 	constrainMemSingleUser
@@ -221,4 +227,5 @@ else
 	setJobMem "$SWAPPINESS" "memory.swappiness"
 	setStepMem "$SWAPPINESS" "memory.swappiness"
     fi
+    rmLock
 fi

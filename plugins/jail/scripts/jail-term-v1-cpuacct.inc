@@ -20,6 +20,8 @@
 
 [ -n "$USER" ] || elog "no user env variable for job $JOBID"
 
+getLock
+
 if [ -n "$STEPID" ]; then
     dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
 
@@ -41,3 +43,5 @@ elif [ -n "$JOBID" ]; then
 else
     elog "missing JOBID"
 fi
+
+rmLock
