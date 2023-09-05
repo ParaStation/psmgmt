@@ -27,7 +27,7 @@ IS_INIT="false"
 function initMem()
 {
     [ -n "$USER" ] || {
-	    elog "no user env variable for job $JOBID"
+	elog "no user env variable for job $JOBID"
     }
 
     enableController memory "$CG_USER"

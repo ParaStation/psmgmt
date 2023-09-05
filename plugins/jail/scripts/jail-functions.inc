@@ -13,6 +13,10 @@
 # daemon psid, i.e. typically with root permissions! Thus, special care
 # has to be taken when changing this script.
 
+modName=${modName-undef}
+CGROUP_VERSION=${CGOUP_VERSION-undef}
+CHILD=${CHILD-0}
+
 function mlog {
     if [ "$LOG_TO_SYSLOG" == 1 ]; then
 	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$1"

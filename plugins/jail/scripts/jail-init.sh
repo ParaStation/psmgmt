@@ -22,8 +22,10 @@ echo "$1" > /run/psid.pid
 
 SELF=$(realpath "$0")
 CommandPath=${SELF%/*}
-source "$CommandPath"/jail-functions.inc
-source "$CommandPath"/jail-config.inc
+# shellcheck source=/dev/null
+source "${CommandPath}/jail-functions.inc"
+# shellcheck source=/dev/null
+source "${CommandPath}/jail-config.inc"
 
 exec 2>>"$LOG_FILE" 1>&2
 

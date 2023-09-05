@@ -21,13 +21,17 @@
 # This script will be called by the jail plugin via system() and get
 # the process ID of the process to be jailed as an argument.
 
+MODULES=${MODULES-undef}
+
 SELF=$(realpath "$0")
 CommandName=${0##*/}
 CommandPath=${SELF%/*}
 CHILD=${1}
 SCRIPT=${CommandName%%.*}
 
+# shellcheck source=/dev/null
 source "$CommandPath"/jail-functions.inc
+# shellcheck source=/dev/null
 source "$CommandPath"/jail-config.inc
 
 initJailEnv
@@ -59,10 +63,12 @@ for modName in ${MODULES//,/$IFS}; do
 	BASE="$CGROUP_BASE/$modName"
 	CG_USER="$BASE/$PREFIX-$PSID_PID-$USER"
 	CG_JOB="$CG_USER/job-$JOBID"
+	# shellcheck disable=SC2034
 	CG_STEP="$CG_JOB/step-$STEPID"
     fi
 
     dlog "Calling module $MODULE for child $CHILD"
+    # shellcheck source=/dev/null
     source "$MODULE"
 done
 
