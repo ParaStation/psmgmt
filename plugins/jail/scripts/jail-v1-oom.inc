@@ -25,6 +25,6 @@
 [ -n "$USER_INIT" ] && return
 
 # adjust oom killer score for child
-cgWrite 0 /proc/$CHILD/oom_score_adj
+cgWrite 0 "/proc/$CHILD/oom_score_adj"
 
 # vim: set filetype=sh ts=8 sw=4 tw=0 sts=4 noet :

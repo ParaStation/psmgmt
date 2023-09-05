@@ -26,7 +26,7 @@ function setUserCores()
 {
     enableController cpuset "$CG_USER"
 
-    if [ -z $(cat "$CG_USER/cpuset.cpus") ]; then
+    if [ -z "$(cat "$CG_USER/cpuset.cpus")" ]; then
 	dlog "empty cpuset.cpus"
 	cgWrite "$JOB_CPUS" "$CG_USER/cpuset.cpus"
     else
@@ -37,18 +37,18 @@ function setUserCores()
 	if [ "$OLD_CPU" == "JOB_CPUS" ]; then
 	    dlog "using old cpuset: $OLD_CPU"
 	else
-	    NEW_CPU=$($EXPAND [$OLD_CPU],[$JOB_CPUS] |sort -g -u)
-	    COMP_CPU=$($COMPRESS $NEW_CPU | tr -d "\[\]")
+	    NEW_CPU=$("$EXPAND" ["$OLD_CPU"],["$JOB_CPUS"] |sort -g -u)
+	    COMP_CPU=$("$COMPRESS" "$NEW_CPU" | tr -d "\[\]")
 	    dlog "using new cpuset: $COMP_CPU"
 	    cgWrite "$COMP_CPU" "$CG_USER/cpuset.cpus"
 	fi
     fi
 
     # set memory nodes from base for now
-    MEM_NODES=$(cat $BASE/cpuset.mems)
+    MEM_NODES="$(cat "$BASE"/cpuset.mems)"
 
     cgWrite "$MEM_NODES" "$CG_USER/cpuset.mems"
-    dlog "user cpuset: " $(cat "$CG_USER/cpuset.cpus")
+    dlog "user cpuset: " "$(cat "$CG_USER/cpuset.cpus")"
 }
 
 if [ "$CONSTRAIN_CORES" == "no" ]; then
@@ -71,7 +71,7 @@ elif [ -n "$ADD_USER_TO_CGROUP" ]; then
 
     # ssh login via pspam/pspmix server needs an existing user cgroup
     if [ -d "$CG_USER" ]; then
-	if [ -z $(cat "$CG_USER/cpuset.cpus") ]; then
+	if [ -z "$(cat "$CG_USER/cpuset.cpus")" ]; then
 	    # error empty cpuset
 	    elog "error: user cgroup $CG_USER has empty cpuset.cpus"
 	fi
@@ -106,7 +106,7 @@ else
 
     dlog "adding child $CHILD to $CG_JOB/tasks/cgroup.procs"
     cgWrite "$CHILD" "$CG_JOB/tasks/cgroup.procs"
-    dlog "job cpuset: " $(cat "$CG_JOB/cpuset.cpus")
+    dlog "job cpuset: " "$(cat "$CG_JOB/cpuset.cpus")"
 
     # step cgroup
     [ -n "$STEPID" ] && {
@@ -117,7 +117,7 @@ else
 
 	dlog "adding child $CHILD to $CG_STEP/tasks/cgroup.procs"
 	cgWrite "$CHILD" "$CG_STEP/tasks/cgroup.procs"
-	dlog "step cpuset: " $(cat "$CG_STEP/cpuset.cpus")
+	dlog "step cpuset: " "$(cat "$CG_STEP/cpuset.cpus")"
     }
     rmLock
 fi

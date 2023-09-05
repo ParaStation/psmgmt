@@ -93,7 +93,7 @@ function setDevices()
     # set allowed devices
     cnt=0
     while true; do
-	next="__PSJAIL_DEV_"$ACCESS"_$cnt"
+	next=__PSJAIL_DEV_"$ACCESS"_"$cnt"
 	[ -z "${!next}" ] && break
 	local DEV=${!next}
 	DEV=${DEV#* }
@@ -128,7 +128,7 @@ function initUserDevices()
 
     # add allowed devices to user cgroup
     ID=USER_"$USER"
-    BPF_SET=$("$BPF_DEVICE_LOADER" -s -i $ID 2>/dev/null)
+    BPF_SET="$("$BPF_DEVICE_LOADER" -s -i "$ID" 2>/dev/null)"
 
     if [ ${#BPF_SET} -lt 4 ]; then
 	# only deny devices if user cgroup is empty
@@ -162,7 +162,7 @@ else
 
 	# set job cgroup access
 	ID="JOB_$JOBID"
-	BPF_SET=$("$BPF_DEVICE_LOADER" -s -i $ID 2>/dev/null)
+	BPF_SET="$("$BPF_DEVICE_LOADER" -s -i "$ID" 2>/dev/null)"
 
 	if [ ${#BPF_SET} -lt 4 ]; then
 	    setDevices "DENY" "-d" "$ID"
@@ -170,7 +170,7 @@ else
 
 	    # add allowed devices to user cgroup
 	    ID=USER_"$USER"
-	    BPF_SET=$("$BPF_DEVICE_LOADER" -s -i $ID 2>/dev/null)
+	    BPF_SET="$("$BPF_DEVICE_LOADER" -s -i "$ID" 2>/dev/null)"
 
 	    if [ ${#BPF_SET} -lt 4 ]; then
 		# only deny devices if user cgroup is empty
@@ -184,7 +184,7 @@ else
 	# set step cgroup access
 	if [ -n "$STEPID" ]; then
 	    ID=STEP_"$JOBID"_"$STEPID"
-	    BPF_SET=$("$BPF_DEVICE_LOADER" -s -i $ID 2>/dev/null)
+	    BPF_SET="$("$BPF_DEVICE_LOADER" -s -i "$ID" 2>/dev/null)"
 
 	    if [ ${#BPF_SET} -lt 4 ]; then
 		setDevices "DENY" "-d" "$ID"

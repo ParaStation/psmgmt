@@ -17,7 +17,7 @@ function mlog {
     if [ "$LOG_TO_SYSLOG" == 1 ]; then
 	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$1"
     else
-	echo $(date) $modName.$CGROUP_VERSION-[$CHILD]: "$1"
+	echo "$(date) $modName.$CGROUP_VERSION-[$CHILD]:" "$1"
     fi
 }
 
@@ -26,7 +26,7 @@ function dlog {
     if [ "$LOG_TO_SYSLOG" == 1 ]; then
 	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$1"
     else
-	echo $(date) $modName.$CGROUP_VERSION-[$CHILD]: "$1"
+	echo "$(date) $modName.$CGROUP_VERSION-[$CHILD]:" "$1"
     fi
 }
 
@@ -34,19 +34,19 @@ function elog {
     if [ "$LOG_TO_SYSLOG" == 1 ]; then
 	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$1"
     else
-	echo $(date) $modName.$CGROUP_VERSION-[$CHILD]: "$1"
+	echo "$(date) $modName.$CGROUP_VERSION-[$CHILD]:" "$1"
     fi
     exit 1
 }
 
 function cgWrite {
-    echo 2>/dev/null $1 > $2 || {
+    echo 2>/dev/null "$1" > "$2" || {
 	mlog "write $1 to $2 failed"
     }
 }
 
 function getLock {
-    exec 100>/dev/shm/psjail-$modName
+    exec 100>/dev/shm/psjail-"$modName"
     flock 100
 }
 
@@ -76,14 +76,15 @@ function killTasks {
     [ "$CGROUP_VERSION" == "v2" ] && TASKS="$DIR/tasks/cgroup.procs"
 
     local -i count=0
-    local PIDS=$(cat "$TASKS" 2>/dev/null)
+    local PIDS
+    PIDS=$(cat "$TASKS" 2>/dev/null)
 
-    while [ -n "$PIDS" -a "$count" -le "$MAX_KILL_RETRY" ]; do
-	[ "$TERM_DELAY" -ne "0" -a "$count" -eq "0" ] && {
+    while [ -n "$PIDS" ] && [ "$count" -le "$MAX_KILL_RETRY" ]; do
+	[ "$TERM_DELAY" -ne "0" ] && [ "$count" -eq "0" ] && {
 	    for child in $PIDS; do
 		[ -d "/proc/$child" ] || continue
 		dlog "killTasks($count): send signal $TERM_SIGNAL to PID $child"
-		kill -"$TERM_SIGNAL" $child
+		kill -"$TERM_SIGNAL" "$child"
 	    done
 	    sleep "$TERM_DELAY"
 	    PIDS=$(cat "$TASKS" 2>/dev/null)
@@ -91,7 +92,7 @@ function killTasks {
 	for child in $PIDS; do
 	    [ -d "/proc/$child" ] || continue
 	    dlog "killTasks($count): killing PID $child with signal $KILL_SIGNAL"
-	    kill -"$KILL_SIGNAL" $child
+	    kill -"$KILL_SIGNAL" "$child"
 	done
 
 	(( count++ ))
@@ -99,7 +100,9 @@ function killTasks {
     done
 
     dlog "killTasks: rmdir $DIR"
-    [ "$CGROUP_VERSION" == "v2" ] && rmdir "$DIR/tasks" 2>/dev/null || dlog "killTasks rmdir $DIR/tasks failed"
+    [ "$CGROUP_VERSION" == "v2" ] && {
+	rmdir "$DIR/tasks" 2>/dev/null || dlog "killTasks rmdir $DIR/tasks failed"
+    }
     rmdir "$DIR" 2>/dev/null || dlog "killTasks: rmdir $DIR failed"
 }
 
@@ -163,7 +166,8 @@ function initJailEnv {
 
     export CONSTRAIN_DEVICES="$__PSJAIL_CONSTRAIN_DEVICES"
 
-    export PSID_PID=$(cat /run/psid.pid)
+    PSID_PID=$(cat /run/psid.pid)
+    export PSID_PID
 
     [ -z "$TERM_SIGNAL" ] && export TERM_SIGNAL="15"
 

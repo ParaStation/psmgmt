@@ -21,18 +21,18 @@
 # This script will be called by the jail plugin via system() and get
 # the process ID of the process to be jailed as an argument.
 
-SELF=$(realpath $0)
+SELF=$(realpath "$0")
 CommandName=${0##*/}
 CommandPath=${SELF%/*}
 CHILD=${1}
 SCRIPT=${CommandName%%.*}
 
-source $CommandPath/jail-functions.inc
-source $CommandPath/jail-config.inc
+source "$CommandPath"/jail-functions.inc
+source "$CommandPath"/jail-config.inc
 
 initJailEnv
 
-exec 2>>$LOG_FILE 1>&2
+exec 2>>"$LOG_FILE" 1>&2
 
 if [ -z "$CHILD" ] || [ "$CHILD" == "0" ]; then
     dlog "Skipping invalid child $CHILD"
@@ -48,8 +48,8 @@ fi
 
 for modName in ${MODULES//,/$IFS}; do
     MODULE="$CommandPath/$SCRIPT-$CGROUP_VERSION-$modName.inc"
-    [ -r $MODULE ] || {
-	[ $SCRIPT != "jail-term" ] && {
+    [ -r "$MODULE" ] || {
+	[ "$SCRIPT" != "jail-term" ] && {
 	    mlog "$SCRIPT module $MODULE not found"
 	}
 	continue
@@ -63,7 +63,7 @@ for modName in ${MODULES//,/$IFS}; do
     fi
 
     dlog "Calling module $MODULE for child $CHILD"
-    source $MODULE
+    source "$MODULE"
 done
 
 exit 0
