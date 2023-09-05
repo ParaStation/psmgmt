@@ -207,3 +207,5 @@ function enableController {
 
     mdsave "$DIR/tasks"
 }
+
+# vim: set filetype=sh ts=8 sw=4 tw=0 sts=4 noet :
