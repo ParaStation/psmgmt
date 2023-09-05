@@ -194,7 +194,7 @@ function enableController {
     fi
 
     mdsave "$BASE"
-    ENABLED="cat $BASE/cgroup.controllers"
+    ENABLED=$(cat "$BASE/cgroup.controllers")
     if [[ ! " $ENABLED " == *" $CONTROLLER "* ]]; then
 	cgWrite "+$CONTROLLER" "$BASE/cgroup.subtree_control"
 	dlog "BASE: cgWrite +$CONTROLLER $BASE/cgroup.subtree_control"
@@ -202,7 +202,7 @@ function enableController {
 
     local DIR=$2
     mdsave "$DIR"
-    ENABLED="cat $DIR/cgroup.controllers"
+    ENABLED=$(cat "$DIR/cgroup.controllers")
 
     if [[ ! " $ENABLED " == *" $CONTROLLER "* ]]; then
 	cgWrite "+$CONTROLLER" "$DIR/cgroup.subtree_control"

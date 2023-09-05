@@ -42,7 +42,7 @@ else
 	BASE="$CG_USER"
 	REMAINING_CPUS=""
 	for i in "$BASE"/job-*/; do
-	    if [ "$i" == "$CG_USER/job-*/" ]; then
+	    if [[ $i == $CG_USER/job-*/ ]]; then
 		dlog "no more jobs, kill user cgroup $CG_USER"
 		killTasks "$CG_USER"
 	    else
