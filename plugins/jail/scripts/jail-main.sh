@@ -38,12 +38,12 @@ initJailEnv
 
 exec 2>>"$LOG_FILE" 1>&2
 
-if [ -z "$CHILD" ] || [ "$CHILD" == "0" ]; then
+if [[ -z $CHILD || $CHILD == 0 ]]; then
     dlog "Skipping invalid child $CHILD"
     exit 0
 fi
 
-if [ "$CGROUP_VERSION" == "v2" ]; then
+if [[ $CGROUP_VERSION == "v2" ]]; then
     BASE="$CGROUP_BASE/$PREFIX-$PSID_PID"
     CG_USER="$BASE/user-$USER"
     CG_JOB="$CG_USER/job-$JOBID"
@@ -52,14 +52,14 @@ fi
 
 for modName in ${MODULES//,/$IFS}; do
     MODULE="$CommandPath/$SCRIPT-$CGROUP_VERSION-$modName.inc"
-    [ -r "$MODULE" ] || {
-	[ "$SCRIPT" != "jail-term" ] && {
+    [[ -r $MODULE ]] || {
+	[[ $SCRIPT != "jail-term" ]] && {
 	    mlog "$SCRIPT module $MODULE not found"
 	}
 	continue
     }
 
-    if [ "$CGROUP_VERSION" == "v1" ]; then
+    if [[ $CGROUP_VERSION == "v1" ]]; then
 	BASE="$CGROUP_BASE/$modName"
 	CG_USER="$BASE/$PREFIX-$PSID_PID-$USER"
 	CG_JOB="$CG_USER/job-$JOBID"

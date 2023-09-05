@@ -19,7 +19,7 @@
 
 function rmFromUser()
 {
-    [ ! -d "$CG_USER" ] && {
+    [[ ! -d $CG_USER ]] && {
 	dlog "no user cgroup $CG_USER"
 	return
     }
@@ -27,7 +27,7 @@ function rmFromUser()
     cnt=0
     while true; do
 	next="__PSJAIL_DEV_ALLOW_$cnt"
-	[ -z "${!next}" ] && break
+	[[ -z ${!next} ]] && break
 
 	dlog "deny: ${!next} > $CG_USER/devices.deny"
 	cgWrite "${!next}" "$CG_USER/devices.deny"
@@ -38,25 +38,25 @@ function rmFromUser()
 
 function termDevices()
 {
-    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
 
-    if [ -n "$STEPID" ]; then
+    if [[ -n $STEPID ]]; then
 	dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
 
-	if [ -d "$CG_STEP" ]; then
+	if [[ -d $CG_STEP ]]; then
 	    killTasks "$CG_STEP"
 	else
 	    dlog "no cgroup step $CG_STEP"
 	fi
 
-    elif [ -n "$JOBID" ]; then
+    elif [[ -n $JOBID ]]; then
 	dlog "killing job $JOBID with signal $KILL_SIGNAL"
 	killJob "$CG_JOB"
 
 	# remove devices from user cgroup
 	rmFromUser
 
-	BASE="$CG_USER"
+	BASE=$CG_USER
 	for i in "$BASE"/job-*/; do
 	    if [[ $i == $CG_USER/job-*/ ]]; then
 		dlog "no more jobs, kill user cgroup $CG_USER"
@@ -70,7 +70,7 @@ function termDevices()
     fi
 }
 
-if [ "$CONSTRAIN_DEVICES" == "no" ]; then
+if [[ $CONSTRAIN_DEVICES == "no" ]]; then
     dlog "constrain devices *disabled*"
 else
     dlog "constrain devices enabled"

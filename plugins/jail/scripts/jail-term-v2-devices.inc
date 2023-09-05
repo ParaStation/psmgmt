@@ -22,7 +22,7 @@ function cleanupBPF()
     local BPF_ID=$1
 
     local QUIET=""
-    [ "$DEBUG" == "0" ] && QUIET="-q"
+    [[ $DEBUG == 0 ]] && QUIET="-q"
 
     dlog "$BPF_DEVICE_LOADER -c -i $BPF_ID $QUIET"
     "$BPF_DEVICE_LOADER" -c -i "$BPF_ID" "$QUIET"
@@ -33,41 +33,41 @@ function removeFromUserBPF()
     local BPF_ID=$1
 
     local QUIET=""
-    [ "$DEBUG" == "0" ] && QUIET="-q"
+    [[ $DEBUG == 0 ]] && QUIET="-q"
 
     dlog "$BPF_DEVICE_LOADER -i $BPF_ID $QUIET --remove_allowed USER_$USER"
-    "$BPF_DEVICE_LOADER" -i "$BPF_ID" "$QUIET" --remove_allowed USER_"$USER"
+    "$BPF_DEVICE_LOADER" -i "$BPF_ID" "$QUIET" --remove_allowed "USER_$USER"
 }
 
 function termDevices()
 {
-    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
 
     getLock
 
-    if [ -n "$STEPID" ]; then
-	dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
+    if [[ -n $STEPID ]]; then
+	dlog "killing step ${JOBID}:$STEPID with signal $KILL_SIGNAL"
 
-	cleanupBPF STEP_"$JOBID"_"$STEPID"
+	cleanupBPF "STEP_${JOBID}_$STEPID"
 
-	if [ -d "$CG_STEP" ]; then
+	if [[ -d $CG_STEP ]]; then
 	    killTasks "$CG_STEP"
 	else
 	    dlog "no cgroup step $CG_STEP"
 	fi
 
-    elif [ -n "$JOBID" ]; then
+    elif [[ -n $JOBID ]]; then
 	dlog "killing job $JOBID with signal $KILL_SIGNAL"
 	killJob "$CG_JOB"
 
-	removeFromUserBPF JOB_"$JOBID"
-	cleanupBPF JOB_"$JOBID"
+	removeFromUserBPF "JOB_$JOBID"
+	cleanupBPF "JOB_$JOBID"
 
 	local BASE="$CG_USER"
 	for i in "$BASE"/step-*/; do
-	    [ -d "$i" ] || break
+	    [[ -d $i ]] || break
 	    dlog "cleanup dev: $i"
-	    cleanupBPF STEP_"$JOBID"_"$i"
+	    cleanupBPF "STEP_${JOBID}_$i"
 	done
 
 	for i in "$BASE"/job-*/; do
@@ -75,7 +75,7 @@ function termDevices()
 		dlog "no more jobs, kill user cgroup $CG_USER"
 		killTasks "$CG_USER"
 
-		cleanupBPF USER_"$USER"
+		cleanupBPF "USER_$USER"
 	    else
 		dlog "leftover job: $i"
 	    fi
@@ -87,7 +87,7 @@ function termDevices()
     rmLock
 }
 
-if [ "$CONSTRAIN_DEVICES" == "no" ]; then
+if [[ $CONSTRAIN_DEVICES == "no" ]]; then
     dlog "constrain devices *disabled*"
 else
     dlog "constrain devices enabled"

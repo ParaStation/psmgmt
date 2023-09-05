@@ -29,12 +29,12 @@ source "${CommandPath}/jail-config.inc"
 
 exec 2>>"$LOG_FILE" 1>&2
 
-if [ ! -d "$CGROUP_BASE" ]; then
+if [[ ! -d $CGROUP_BASE ]]; then
     elog "cgroup filesystem $CGROUP_BASE not mounted"
 fi
 
 # cleanup leftover BPF psid directory
-if [ -d "$BPF_PSID_MAPS" ]; then
+if [[ -d $BPF_PSID_MAPS ]]; then
     rm -r "$BPF_PSID_MAPS" 2>/dev/null
 fi
 

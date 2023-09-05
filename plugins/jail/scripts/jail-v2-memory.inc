@@ -26,18 +26,18 @@ IS_INIT="false"
 
 function initMem()
 {
-    [ -n "$USER" ] || {
+    [[ -n $USER ]] || {
 	elog "no user env variable for job $JOBID"
     }
 
     enableController memory "$CG_USER"
 
 
-    [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
+    [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $USER"
 
     enableController memory "$CG_JOB"
 
-    [ -n "$STEPID" ] && {
+    [[ -n $STEPID ]] && {
 	enableController memory "$CG_STEP"
     }
 
@@ -45,7 +45,7 @@ function initMem()
     cgWrite "$CHILD" "$CG_JOB/tasks/cgroup.procs"
 
     # step cgroup
-    [ -n "$STEPID" ] && {
+    [[ -n $STEPID ]] && {
 	dlog "adding child $CHILD to $CG_STEP/tasks/cgroup.procs"
 	cgWrite "$CHILD" "$CG_STEP/tasks/cgroup.procs"
     }
@@ -57,13 +57,12 @@ function setUserMem()
     local LIMIT_VAL=$1
     local LIMIT_NAME=$2
 
-    if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || \
-       [ "$LIMIT_VAL" -lt 1 ]; then
+    if [[ -z $LIMIT_NAME || -z $LIMIT_VAL || $LIMIT_VAL -lt 1 ]]; then
 	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
     else
 	# user cgroup
 	PRE_LIMIT=$(cat "$CG_USER/$LIMIT_NAME")
-	[ -n "$PRE_LIMIT" ] && [ "$PRE_LIMIT" != "max" ] && {
+	[[ -n $PRE_LIMIT && $PRE_LIMIT != "max" ]] && {
 	    LIMIT_VAL=$((LIMIT_VAL + PRE_LIMIT))
 	}
 
@@ -77,10 +76,9 @@ function setJobMem()
     local LIMIT_VAL=$1
     local LIMIT_NAME=$2
 
-    [ "$IS_INIT" == "false" ] && initMem;
+    [[ $IS_INIT == "false" ]] && initMem;
 
-    if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || \
-       [ "$LIMIT_VAL" -lt 1 ]; then
+    if [[ -z $LIMIT_NAME || -z $LIMIT_VAL || $LIMIT_VAL -lt 1 ]]; then
 	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
     else
 	# job cgroup
@@ -94,12 +92,11 @@ function setStepMem()
     local LIMIT_VAL=$1
     local LIMIT_NAME=$2
 
-    [ "$IS_INIT" == "false" ] && initMem;
+    [[ $IS_INIT == "false" ]] && initMem;
 
     # step cgroup
-    [ -n "$STEPID" ] && {
-	if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] \
-	   || [ "$LIMIT_VAL" -lt 1 ]; then
+    [[ -n $STEPID ]] && {
+	if [[ -z $LIMIT_NAME || -z $LIMIT_VAL || $LIMIT_VAL -lt 1 ]]; then
 	    dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
 	else
 	    dlog "$LIMIT_VAL > $CG_STEP/$LIMIT_NAME"
@@ -121,13 +118,13 @@ function constrainUser()
 {
     local TYPE=$1
 
-    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
     enableController memory "$CG_USER"
 
-    if [ "$TYPE" == "RAM" ]; then
+    if [[ $TYPE == "RAM" ]]; then
 	setUserMem "$JOB_RAM_SOFT" "memory.high"
 	setUserMem "$JOB_RAM_HARD" "memory.max"
-    elif [ "$TYPE" == "SWAP" ]; then
+    elif [[ $TYPE == "SWAP" ]]; then
 	setUserMem "$JOB_SWAP" "memory.swap.max"
     else
 	elog "invalid memory type"
@@ -137,7 +134,7 @@ function constrainUser()
 function constrainMemSingleUser()
 {
     # ssh login via pspam/pspmix server needs an existing user cgroup
-    if [ -d "$CG_USER" ]; then
+    if [[ -d $CG_USER ]]; then
 	    # add user to cgroup
 	    dlog "adding child $CHILD to user cgroup $CG_USER"
 	    cgWrite "$CHILD" "$CG_USER/tasks/cgroup.procs"
@@ -146,15 +143,15 @@ function constrainMemSingleUser()
     fi
 }
 
-if [ "$CONSTRAIN_RAM" == "no" ]; then
+if [[ $CONSTRAIN_RAM == "no" ]]; then
     dlog "constrain RAM *disabled*"
 else
     dlog "constrain RAM enabled"
     getLock
 
-    if [ -n "$ADD_USER_TO_CGROUP" ]; then
+    if [[ -n $ADD_USER_TO_CGROUP ]]; then
 	constrainMemSingleUser
-    elif [ -n "$USER_INIT" ]; then
+    elif [[ -n $USER_INIT ]]; then
 	constrainUser "RAM"
     else
 	constrainRam
@@ -163,15 +160,15 @@ else
     rmLock
 fi
 
-if [ "$CONSTRAIN_SWAP" == "no" ]; then
+if [[ $CONSTRAIN_SWAP == "no" ]]; then
     dlog "constrain SWAP *disabled*"
 else
     dlog "constrain SWAP enabled"
     getLock
 
-    if [ -n "$ADD_USER_TO_CGROUP" ]; then
+    if [[ -n $ADD_USER_TO_CGROUP ]]; then
 	constrainMemSingleUser
-    elif [ -n "$USER_INIT" ]; then
+    elif [[ -n $USER_INIT ]]; then
 	constrainUser "SWAP"
     else
 	setJobMem "$JOB_SWAP" "memory.swap.max"

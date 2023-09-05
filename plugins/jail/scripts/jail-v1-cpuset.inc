@@ -26,7 +26,7 @@
 function setupUserGroup()
 {
     mdsave "$CG_USER"
-    if [ -z "$(cat "$CG_USER/cpuset.cpus")" ]; then
+    if [[ -z $(cat "$CG_USER/cpuset.cpus") ]]; then
 	dlog "empty cpuset.cpus"
 	cgWrite "$JOB_CPUS" "$CG_USER/cpuset.cpus"
     else
@@ -34,11 +34,11 @@ function setupUserGroup()
 	dlog "old cpuset.cpus is $OLD_CPU"
 	dlog "add cpuset.cpus is $JOB_CPUS"
 
-	if [ "$OLD_CPU" == "JOB_CPUS" ]; then
+	if [[ $OLD_CPU == "JOB_CPUS" ]]; then
 	    dlog "using old cpuset: $OLD_CPU"
 	else
-	    NEW_CPU=$("$EXPAND" ["$OLD_CPU"],["$JOB_CPUS"] |sort -g -u)
-	    COMP_CPU=$("$COMPRESS" "$NEW_CPU" | tr -d "\[\]")
+	    NEW_CPU=$("$EXPAND" "[$OLD_CPU],[$JOB_CPUS]" | sort -g -u)
+	    COMP_CPU=$("$COMPRESS" "$NEW_CPU" | tr -d "\[[\]]")
 	    dlog "using new cpuset: $COMP_CPU"
 	    cgWrite "$COMP_CPU" "$CG_USER/cpuset.cpus"
 	fi
@@ -48,16 +48,16 @@ function setupUserGroup()
     MEM_NODES=$(cat "$BASE/cpuset.mems")
 
     cgWrite "$MEM_NODES" "$CG_USER/cpuset.mems"
-    dlog "user cpuset: " "$(cat "$CG_USER/cpuset.cpus")"
+    dlog "user cpuset: $(cat "$CG_USER/cpuset.cpus")"
 }
 
-if [ "$CONSTRAIN_CORES" == "no" ]; then
+if [[ $CONSTRAIN_CORES == "no" ]]; then
     dlog "constrain cores *disabled*"
-elif [ -n "$USER_INIT" ]; then
+elif [[ -n $USER_INIT ]]; then
     dlog "constrain cores enabled"
 
-    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
-    [ -n "$JOB_CPUS" ] || elog "no CPU cores for job $JOBID"
+    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
+    [[ -n $JOB_CPUS ]] || elog "no CPU cores for job $JOBID"
 
     getLock
 
@@ -68,13 +68,13 @@ elif [ -n "$USER_INIT" ]; then
     setupUserGroup
 
     rmLock
-elif [ -n "$ADD_USER_TO_CGROUP" ]; then
+elif [[ -n $ADD_USER_TO_CGROUP ]]; then
     dlog "constrain cores enabled"
     getLock
 
     # ssh login via pspam/pspmix server needs an existing user cgroup
-    if [ -d "$CG_USER" ]; then
-	if [ -z "$(cat "$CG_USER/cpuset.cpus")" ]; then
+    if [[ -d $CG_USER ]]; then
+	if [[ -z $(cat "$CG_USER/cpuset.cpus") ]]; then
 	    # error empty cpuset
 	    elog "error: user cgroup $CG_USER has empty cpuset.cpus"
 	fi
@@ -89,30 +89,30 @@ elif [ -n "$ADD_USER_TO_CGROUP" ]; then
 else
     dlog "constrain cores enabled"
 
-    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
-    [ -n "$JOB_CPUS" ] || elog "no CPU cores for job $JOBID"
+    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
+    [[ -n $JOB_CPUS ]] || elog "no CPU cores for job $JOBID"
 
     getLock
 
     # add cores to user cgroup
     setupUserGroup
 
-    [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
+    [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $USER"
 
     mdsave "$CG_JOB"
 
     # job cgroup
-    dlog "JOB: $JOBID STEP:$STEPID"
+    dlog "JOB: $JOBID STEP: $STEPID"
 
     cgWrite "$JOB_CPUS" "$CG_JOB/cpuset.cpus"
     cgWrite "$MEM_NODES" "$CG_JOB/cpuset.mems"
 
     dlog "adding child $CHILD to $CG_JOB/tasks"
     cgWrite "$CHILD" "$CG_JOB/tasks"
-    dlog "job cpuset: " "$(cat "$CG_JOB/cpuset.cpus")"
+    dlog "job cpuset: $(cat "$CG_JOB/cpuset.cpus")"
 
     # step cgroup
-    [ -n "$STEPID" ] && {
+    [[ -n $STEPID ]] && {
 	mdsave "$CG_STEP"
 
 	cgWrite "$JOB_CPUS" "$CG_STEP/cpuset.cpus"
@@ -120,7 +120,7 @@ else
 
 	dlog "adding child $CHILD to $CG_STEP/tasks"
 	cgWrite "$CHILD" "$CG_STEP/tasks"
-	dlog "step cpuset: " "$(cat "$CG_STEP/cpuset.cpus")"
+	dlog "step cpuset: $(cat "$CG_STEP/cpuset.cpus")"
     }
     rmLock
 fi

@@ -18,28 +18,28 @@
 # CHILD and configuration like CGROUP_BASE, CG_USER, CG_JOB,
 # CG_STEP, BASE or SCRIPT set.
 
-if [ "$CONSTRAIN_CORES" == "no" ]; then
+if [[ $CONSTRAIN_CORES == "no" ]]; then
     dlog "constrain cores *disabled*"
 else
     dlog "constrain cores enabled"
 
-    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
 
     getLock
-    if [ -n "$STEPID" ]; then
+    if [[ -n $STEPID ]]; then
 	dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
 
-	if [ -d "$CG_STEP" ]; then
+	if [[ -d $CG_STEP ]]; then
 	    killTasks "$CG_STEP"
 	else
 	    dlog "no cgroup step $CG_STEP"
 	fi
 
-    elif [ -n "$JOBID" ]; then
+    elif [[ -n $JOBID ]]; then
 	dlog "killing job $JOBID with signal $KILL_SIGNAL"
 	killJob "$CG_JOB"
 
-	BASE="$CG_USER"
+	BASE=$CG_USER
 	REMAINING_CPUS=""
 	for i in "$BASE"/job-*/; do
 	    if [[ $i == $CG_USER/job-*/ ]]; then
@@ -48,7 +48,7 @@ else
 	    else
 		LEFTOVER_JOB_TASKS=$(cat "$i/tasks" 2>/dev/null)
 		LEFTOVER_STEP_TASKS=$(cat "$i"/step-*/tasks 2>/dev/null)
-		if [ -z "$LEFTOVER_JOB_TASKS" ] && [ -z "$LEFTOVER_STEP_TASKS" ]; then
+		if [[ -z "$LEFTOVER_JOB_TASKS" && -z "$LEFTOVER_STEP_TASKS" ]]; then
 		    dlog "removing leftover job $i"
 		    rmdir "$i"/step-* 2>/dev/null
 		    rmdir "$i"
@@ -60,7 +60,7 @@ else
 	    fi
 	done
 
-	[ -n "$REMAINING_CPUS" ] && {
+	[[ -n $REMAINING_CPUS ]] && {
 	    NEW_CPU=$("$EXPAND" "$REMAINING_CPUS" |sort -g -u)
 	    COMP_CPU=$("$COMPRESS" "$NEW_CPU" | tr -d "\[\]")
 	    dlog "set remaining cpus: $COMP_CPU"

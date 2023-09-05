@@ -26,17 +26,17 @@ IS_INIT="false"
 
 function initMem()
 {
-    [ -n "$USER" ] || {
+    [[ -n $USER ]] || {
 	    elog "no user env variable for job $JOBID"
     }
 
     mdsave "$CG_USER"
 
-    [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
+    [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $USER"
 
     mdsave "$CG_JOB"
 
-    [ -n "$STEPID" ] && {
+    [[ -n $STEPID ]] && {
 	    mdsave "$CG_STEP"
     }
 
@@ -44,7 +44,7 @@ function initMem()
     cgWrite "$CHILD" "$CG_JOB/tasks"
 
     # step cgroup
-    [ -n "$STEPID" ] && {
+    [[ -n $STEPID ]] && {
 	dlog "adding child $CHILD to $CG_STEP/tasks"
 	cgWrite "$CHILD" "$CG_STEP/tasks"
     }
@@ -56,10 +56,9 @@ function setJobMem()
     local LIMIT_VAL=$1
     local LIMIT_NAME=$2
 
-    [ "$IS_INIT" == "false" ] && initMem;
+    [[ $IS_INIT == "false" ]] && initMem;
 
-    if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || \
-       [ "$LIMIT_VAL" -lt 1 ]; then
+    if [[ -z $LIMIT_NAME || -z $LIMIT_VAL || $LIMIT_VAL -lt 1 ]]; then
 	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
     else
 	# job cgroup
@@ -73,12 +72,11 @@ function setStepMem()
     local LIMIT_VAL=$1
     local LIMIT_NAME=$2
 
-    [ "$IS_INIT" == "false" ] && initMem;
+    [[ $IS_INIT == "false" ]] && initMem;
 
     # step cgroup
-    [ -n "$STEPID" ] && {
-	if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || \
-	   [ "$LIMIT_VAL" -lt 1 ]; then
+    [[ -n $STEPID ]] && {
+	if [[ -z $LIMIT_NAME || -z $LIMIT_VAL || $LIMIT_VAL -lt 1 ]]; then
 	    dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
 	else
 	    dlog "$LIMIT_VAL > $CG_STEP/$LIMIT_NAME"
@@ -99,7 +97,7 @@ function constrainRam()
 function constrainMemSingleUser()
 {
     # ssh login via pspam/pspmix server needs an existing user cgroup
-    if [ -d "$CG_USER" ]; then
+    if [[ -d $CG_USER ]]; then
 	    # add user to cgroup
 	    dlog "adding child $CHILD to user cgroup $CG_USER"
 	    cgWrite "$CHILD" "$CG_USER/tasks"
@@ -113,17 +111,16 @@ function setUserMem()
     local LIMIT_VAL=$1
     local LIMIT_NAME=$2
 
-    if [ -z "$LIMIT_NAME" ] || [ -z "$LIMIT_VAL" ] || \
-       [ "$LIMIT_VAL" -lt 1 ]; then
+    if [[ -z $LIMIT_NAME || -z $LIMIT_VAL || $LIMIT_VAL -lt 1 ]]; then
 	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
     else
 	# user cgroup
 
-	if [ -n "$ADD_TO_CGROUP" ] && [ "$ADD_TO_CGROUP" == "yes" ]; then
+	if [[ -n $ADD_TO_CGROUP && $ADD_TO_CGROUP == "yes" ]]; then
 	    PRE_LIMIT=$(cat "$CG_USER/$LIMIT_NAME")
-	    [ -n "$PRE_LIMIT" ] && [ "$PRE_LIMIT" -gt 1 ] && {
+	    [[ -n $PRE_LIMIT && $PRE_LIMIT -gt 1 ]] && {
 		NEW_VAL=$((LIMIT_VAL + PRE_LIMIT))
-		[ $NEW_VAL -gt 1 ] && LIMIT_VAL=$NEW_VAL
+		[[ $NEW_VAL -gt 1 ]] && LIMIT_VAL=$NEW_VAL
 	    }
 	fi
 
@@ -136,57 +133,57 @@ function constrainUser()
 {
     local TYPE=$1
 
-    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
     mdsave "$CG_USER"
 
-    if [ "$TYPE" == "RAM" ]; then
+    if [[ $TYPE == "RAM" ]]; then
 	# ensure to set swap limit before hard mem limit if smaller
 	SWAP_LIMIT=$(cat "$CG_USER/memory.memsw.limit_in_bytes" 2>/dev/null)
-	if [ -n "$SWAP_LIMIT" ] && [ "$SWAP_LIMIT" -lt "$JOB_RAM_HARD" ]; then
+	if [[ -n $SWAP_LIMIT && $SWAP_LIMIT -lt $JOB_RAM_HARD ]]; then
 	    setUserMem "$JOB_SWAP" "memory.memsw.limit_in_bytes"
 	    SET_MEM_SWAP_LIMIT="yes"
 	fi
 
 	setUserMem "$JOB_RAM_SOFT" "memory.soft_limit_in_bytes"
 	setUserMem "$JOB_RAM_HARD" "memory.limit_in_bytes"
-    elif [ "$TYPE" == "KMEM" ]; then
+    elif [[ $TYPE == "KMEM" ]]; then
 	setUserMem "$JOB_KMEM" "memory.kmem.limit_in_bytes"
-    elif [ "$TYPE" == "SWAP" ]; then
-	[ "$SET_MEM_SWAP_LIMIT" != "yes" ] && {
+    elif [[ $TYPE == "SWAP" ]]; then
+	[[ $SET_MEM_SWAP_LIMIT != "yes" ]] && {
 	    setUserMem "$JOB_SWAP" "memory.memsw.limit_in_bytes"
 	}
-    elif [ "$TYPE" == "SWAPPINESS" ]; then
+    elif [[ $TYPE == "SWAPPINESS" ]]; then
 	setUserMem "$SWAPPINESS" "memory.swappiness"
     else
 	elog "invalid memory type"
     fi
 }
 
-if [ -d "$CG_USER" ]; then
+if [[ -d $CG_USER ]]; then
     ADD_TO_CGROUP="yes"
 fi
 
-if [ "$CONSTRAIN_RAM" == "no" ]; then
+if [[ $CONSTRAIN_RAM == "no" ]]; then
     dlog "constrain RAM *disabled*"
 else
     dlog "constrain RAM enabled"
     getLock
 
-    if [ -n "$ADD_USER_TO_CGROUP" ]; then
+    if [[ -n $ADD_USER_TO_CGROUP ]]; then
 	constrainMemSingleUser
-    elif [ -n "$USER_INIT" ]; then
+    elif [[ -n $USER_INIT ]]; then
 	constrainUser "RAM"
     else
 	constrainRam
     fi
 
-    if [ "$CONSTRAIN_KMEM" == "no" ]; then
+    if [[ $CONSTRAIN_KMEM == "no" ]]; then
 	dlog "constrain KMEM *disabled*"
     else
 	dlog "constrain KMEM enabled"
-	if [ -n "$ADD_USER_TO_CGROUP" ]; then
+	if [[ -n $ADD_USER_TO_CGROUP ]]; then
 	    constrainMemSingleUser
-	elif [ -n "$USER_INIT" ]; then
+	elif [[ -n $USER_INIT ]]; then
 	    constrainUser "KMEM"
 	else
 	    setJobMem "$JOB_KMEM" "memory.kmem.limit_in_bytes"
@@ -196,15 +193,15 @@ else
     rmLock
 fi
 
-if [ "$CONSTRAIN_SWAP" == "no" ]; then
+if [[ $CONSTRAIN_SWAP == "no" ]]; then
     dlog "constrain SWAP *disabled*"
 else
     dlog "constrain SWAP enabled"
     getLock
 
-    if [ -n "$ADD_USER_TO_CGROUP" ]; then
+    if [[ -n $ADD_USER_TO_CGROUP ]]; then
 	constrainMemSingleUser
-    elif [ -n "$USER_INIT" ]; then
+    elif [[ -n $USER_INIT ]]; then
 	constrainUser "SWAP"
     else
 	setJobMem "$JOB_SWAP" "memory.memsw.limit_in_bytes"
@@ -213,15 +210,15 @@ else
     rmLock
 fi
 
-if [ -z "$SWAPPINESS" ]; then
+if [[ -z $SWAPPINESS ]]; then
     dlog "constrain swappiness *disabled*"
 else
     dlog "constrain swappiness enabled"
     getLock
 
-    if [ -n "$ADD_USER_TO_CGROUP" ]; then
+    if [[ -n $ADD_USER_TO_CGROUP ]]; then
 	constrainMemSingleUser
-    elif [ -n "$USER_INIT" ]; then
+    elif [[ -n $USER_INIT ]]; then
 	constrainUser "SWAPPINESS"
     else
 	setJobMem "$SWAPPINESS" "memory.swappiness"

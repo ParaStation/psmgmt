@@ -24,31 +24,31 @@
 # CG_STEP, BASE or SCRIPT set.
 
 getLock
-if [ -n "$ADD_USER_TO_CGROUP" ]; then
+if [[ -n $ADD_USER_TO_CGROUP ]]; then
     # ssh login via pspam/pspmix server needs an existing user cgroup
-    if [ -d "$CG_USER" ]; then
+    if [[ -d $CG_USER ]]; then
 	# add user to cgroup
 	dlog "adding child $CHILD to user cgroup $CG_USER"
 	cgWrite "$CHILD" "$CG_USER/tasks"
     else
 	elog "error: user cgroup $CG_USER is missing"
     fi
-elif [ -n "$USER_INIT" ]; then
+elif [[ -n $USER_INIT ]]; then
     # initialize user cgroup only
-    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
     mdsave "$CG_USER"
 else
-    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
     mdsave "$CG_USER"
 
-    [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
+    [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $USER"
     mdsave "$CG_JOB"
 
     dlog "adding child $CHILD to $CG_JOB/tasks"
     cgWrite "$CHILD" "$CG_JOB/tasks"
 
     # step cgroup
-    [ -n "$STEPID" ] && {
+    [[ -n $STEPID ]] && {
 	mdsave "$CG_STEP"
 
 	dlog "adding child $CHILD to $CG_STEP/tasks"

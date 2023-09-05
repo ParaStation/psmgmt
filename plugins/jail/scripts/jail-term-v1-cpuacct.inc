@@ -18,26 +18,26 @@
 # CHILD and configuration like CGROUP_BASE, CG_USER, CG_JOB,
 # CG_STEP, BASE or SCRIPT set.
 
-[ -n "$USER" ] || elog "no user env variable for job $JOBID"
+[[ -n $USER ]] || elog "no user env variable for job $JOBID"
 
 getLock
 
-if [ -n "$STEPID" ]; then
+if [[ -n $STEPID ]]; then
     dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
 
-    if [ -d "$CG_STEP" ]; then
+    if [[ -d $CG_STEP ]]; then
 	killTasks "$CG_STEP"
     else
 	dlog "no cgroup step $CG_STEP"
     fi
 
-elif [ -n "$JOBID" ]; then
+elif [[ -n $JOBID ]]; then
     dlog "killing job $JOBID with signal $KILL_SIGNAL"
     killJob "$CG_JOB"
 
     # cleanup user directory
     LEFT_JOBS=$(ls "$CG_USER"/job-*/ 2>/dev/null)
-    if [ -z "$LEFT_JOBS" ]; then
+    if [[ -z $LEFT_JOBS ]]; then
 	killTasks "$CG_USER"
     fi
 else

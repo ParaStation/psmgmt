@@ -24,18 +24,18 @@
 
 function initDevices()
 {
-    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
     mdsave "$CG_USER"
 
-    [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
+    [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $USER"
     mdsave "$CG_JOB"
 
-    [ -n "$STEPID" ] && mdsave "$CG_STEP"
+    [[ -n $STEPID ]] && mdsave "$CG_STEP"
 
     dlog "adding child $CHILD to $CG_JOB/tasks"
     cgWrite "$CHILD" "$CG_JOB/tasks"
     # step cgroup
-    [ -n "$STEPID" ] && {
+    [[ -n $STEPID ]] && {
 	dlog "adding child $CHILD to $CG_STEP/tasks"
 	cgWrite "$CHILD" "$CG_STEP/tasks"
     }
@@ -47,7 +47,7 @@ function setDev()
     local DEV=$2
     local RANGE=$3
 
-    if [ "$RANGE" == "USER" ]; then
+    if [[ $RANGE == "USER" ]]; then
 	dlog "$DEV > $CG_USER/$ACTION"
 	cgWrite "$DEV" "$CG_USER/$ACTION"
 	return
@@ -57,7 +57,7 @@ function setDev()
     cgWrite "$DEV" "$CG_JOB/$ACTION"
 
     # step cgroup
-    [ -n "$STEPID" ] && {
+    [[ -n $STEPID ]] && {
 	dlog "$DEV > $CG_STEP/$ACTION"
 	cgWrite "$DEV" "$CG_STEP/$ACTION"
     }
@@ -69,11 +69,11 @@ function setDevices()
     local RANGE=$2
 
     # set denied devices
-    if [ "$TYPE" == "ALL" ] || [ "$TYPE" == "DENY" ]; then
+    if [[ $TYPE == "ALL" || $TYPE == "DENY" ]]; then
 	cnt=0
 	while true; do
 	    next="__PSJAIL_DEV_DENY_$cnt"
-	    [ -z "${!next}" ] && break
+	    [[ -z ${!next} ]] && break
 	    dlog "deny device$cnt = ${!next}"
 
 	    setDev "devices.deny" "${!next}" "$RANGE"
@@ -83,11 +83,11 @@ function setDevices()
     fi
 
     # set allowed devices
-    if [ "$TYPE" == "ALL" ] || [ "$TYPE" == "ALLOW" ]; then
+    if [[ $TYPE == "ALL" || $TYPE == "ALLOW" ]]; then
 	cnt=0
 	while true; do
 	    next="__PSJAIL_DEV_ALLOW_$cnt"
-	    [ -z "${!next}" ] && break
+	    [[ -z ${!next} ]] && break
 	    dlog "allow device$cnt = ${!next}"
 
 	    setDev "devices.allow" "${!next}" "$RANGE"
@@ -100,7 +100,7 @@ function setDevices()
 function constrainSingleUser()
 {
     # ssh login via pspam/pspmix server needs an existing user cgroup
-    if [ -d "$CG_USER" ]; then
+    if [[ -d $CG_USER ]]; then
 	# add user to cgroup
 	dlog "adding child $CHILD to user cgroup $CG_USER"
 	cgWrite "$CHILD" "$CG_USER/tasks"
@@ -111,9 +111,9 @@ function constrainSingleUser()
 
 function initUserDevices()
 {
-    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
 
-    if [ ! -d "$CG_USER" ]; then
+    if [[ ! -d $CG_USER ]]; then
 	mdsave "$CG_USER"
 
 	# deny all devices only when setup new user cgroup
@@ -124,16 +124,16 @@ function initUserDevices()
     setDevices "ALLOW" "USER"
 }
 
-if [ "$CONSTRAIN_DEVICES" == "no" ]; then
+if [[ $CONSTRAIN_DEVICES == "no" ]]; then
     dlog "constrain devices *disabled*"
 else
     dlog "constrain devices enabled"
 
     getLock
 
-    if [ -n "$ADD_USER_TO_CGROUP" ]; then
+    if [[ -n $ADD_USER_TO_CGROUP ]]; then
 	constrainSingleUser
-    elif [ -n "$USER_INIT" ]; then
+    elif [[ -n $USER_INIT ]]; then
 	initUserDevices
     else
 	initDevices
