@@ -69,7 +69,7 @@ function setDevices()
     local RANGE=$2
 
     # set denied devices
-    if [[ $TYPE == "ALL" || $TYPE == "DENY" ]]; then
+    if [[ $TYPE =~ ^ALL|DENY$ ]]; then
 	cnt=0
 	while true; do
 	    next="__PSJAIL_DEV_DENY_$cnt"
@@ -83,7 +83,7 @@ function setDevices()
     fi
 
     # set allowed devices
-    if [[ $TYPE == "ALL" || $TYPE == "ALLOW" ]]; then
+    if [[ $TYPE =~ ^ALL|ALLOW$ ]]; then
 	cnt=0
 	while true; do
 	    next="__PSJAIL_DEV_ALLOW_$cnt"

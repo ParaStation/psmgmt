@@ -26,7 +26,7 @@ function setUserCores()
 {
     enableController cpuset "$CG_USER"
 
-    if [[ -z $(cat "$CG_USER/cpuset.cpus") ]]; then
+    if [[ ! -s "$CG_USER/cpuset.cpus" ]]; then
 	dlog "empty cpuset.cpus"
 	cgWrite "$JOB_CPUS" "$CG_USER/cpuset.cpus"
     else
