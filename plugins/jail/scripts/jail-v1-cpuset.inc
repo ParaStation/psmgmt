@@ -37,8 +37,8 @@ function setupUserGroup()
 	if [[ $OLD_CPU == "JOB_CPUS" ]]; then
 	    dlog "using old cpuset: $OLD_CPU"
 	else
-	    NEW_CPU=$("$EXPAND" "[$OLD_CPU],[$JOB_CPUS]" | sort -g -u)
-	    COMP_CPU=$("$COMPRESS" "$NEW_CPU" | tr -d "\[[\]]")
+	    NEW_CPU=$("$EXPAND" [$OLD_CPU],[$JOB_CPUS] | sort -g -u)
+	    COMP_CPU=$("$COMPRESS" $NEW_CPU | tr -d "\[[\]]")
 	    dlog "using new cpuset: $COMP_CPU"
 	    cgWrite "$COMP_CPU" "$CG_USER/cpuset.cpus"
 	fi
