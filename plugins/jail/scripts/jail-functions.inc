@@ -191,26 +191,28 @@ function initJailEnv {
 function enableController {
     local CONTROLLER=$1
     [[ -z $CONTROLLER ]] && elog "no controller given"
+    local SUBCTL="cgroup.subtree_control"
 
-    ENABLED="cat $CGROUP_BASE/cgroup.controllers"
+    ENABLED="cat $CGROUP_BASE/$SUBCTL"
     if [[ ! " $ENABLED " == *" $CONTROLLER "* ]]; then
-	cgWrite "+$CONTROLLER" "$CGROUP_BASE/cgroup.subtree_control"
+	cgWrite "+$CONTROLLER" "$CGROUP_BASE/$SUBCTL"
+	dlog "CGROUP_BASE: cgWrite +$CONTROLLER $CGROUP_BASE/$SUBCTL"
     fi
 
     mdsave "$BASE"
-    ENABLED=$(cat "$BASE/cgroup.controllers")
+    ENABLED=$(cat "$BASE/$SUBCTL")
     if [[ ! " $ENABLED " == *" $CONTROLLER "* ]]; then
-	cgWrite "+$CONTROLLER" "$BASE/cgroup.subtree_control"
-	dlog "BASE: cgWrite +$CONTROLLER $BASE/cgroup.subtree_control"
+	cgWrite "+$CONTROLLER" "$BASE/$SUBCTL"
+	dlog "BASE: cgWrite +$CONTROLLER $BASE/$SUBCTL"
     fi
 
     local DIR=$2
     mdsave "$DIR"
-    ENABLED=$(cat "$DIR/cgroup.controllers")
+    ENABLED=$(cat "$DIR/$SUBCTL")
 
     if [[ ! " $ENABLED " == *" $CONTROLLER "* ]]; then
-	cgWrite "+$CONTROLLER" "$DIR/cgroup.subtree_control"
-	dlog "SUB: cgWrite +$CONTROLLER $DIR/cgroup.subtree_control"
+	cgWrite "+$CONTROLLER" "$DIR/$SUBCTL"
+	dlog "SUB: cgWrite +$CONTROLLER $DIR/$SUBCTL"
     fi
 
     mdsave "$DIR/tasks"
