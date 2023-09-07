@@ -57,24 +57,26 @@ function termMemory()
 
     elif [[ -n $JOBID ]]; then
 	dlog "killing job $JOBID with signal $KILL_SIGNAL"
-
-	# remove memory from user cgroup
-	rmMemFromUser "$JOB_RAM_SOFT" "memory.high"
-	rmMemFromUser "$JOB_RAM_HARD" "memory.max"
-	rmMemFromUser "$JOB_SWAP" "memory.swap.max"
-
 	killJob "$CG_JOB"
 
 	BASE=$CG_USER
+	LEFTOVER=0
 	for i in "$BASE"/job-*/; do
 	    if [[ $i == $CG_USER/job-*/ ]]; then
 		dlog "no more jobs, kill user cgroup $CG_USER"
 		killTasks "$CG_USER"
 	    else
 		dlog "leftover job: $i"
+		LEFTOVER=1
 	    fi
 	done
 
+	if [[ $LEFTOVER -eq 1 ]]; then
+	    # remove memory from user cgroup
+	    rmMemFromUser "$JOB_RAM_SOFT" "memory.high"
+	    rmMemFromUser "$JOB_RAM_HARD" "memory.max"
+	    rmMemFromUser "$JOB_SWAP" "memory.swap.max"
+	fi
     else
 	elog "missing JOBID"
     fi
