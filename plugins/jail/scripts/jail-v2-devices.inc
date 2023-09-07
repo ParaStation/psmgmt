@@ -35,6 +35,7 @@ function loadBPF()
 	return
     }
 
+    mdsave "$BPF_PATH"
     "$BPF_DEVICE_LOADER" -l "$BPF_DEVICE_PROG" -p "$BPF_PATH" \
 	-i "$BPF_ID" "$QUIET" || {
 	elog "attaching $BPF_DEVICE_PROG to $BPF_PATH with ID $BPF_ID failed"
