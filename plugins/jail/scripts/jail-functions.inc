@@ -18,27 +18,33 @@ CGROUP_VERSION=${CGOUP_VERSION-undef}
 CHILD=${CHILD-0}
 
 function mlog {
+    local caller
+    caller=$(caller 0 | awk '{print $2}')
     if [[ $LOG_TO_SYSLOG == 1 ]]; then
-	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$1"
+	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$caller: $1"
     else
-	echo "$(date) $modName.$CGROUP_VERSION-[$CHILD]: $1"
+	echo "$(date) $modName.$CGROUP_VERSION-[$CHILD]: $caller: $1"
     fi
 }
 
 function dlog {
     [[ $DEBUG == 1 ]] || return;
+    local caller
+    caller=$(caller 0 | awk '{print $2}')
     if [[ $LOG_TO_SYSLOG == 1 ]]; then
-	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$1"
+	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$caller: $1"
     else
-	echo "$(date) $modName.$CGROUP_VERSION-[$CHILD]: $1"
+	echo "$(date) $modName.$CGROUP_VERSION-[$CHILD]: $caller: $1"
     fi
 }
 
 function elog {
+    local caller
+    caller=$(caller 0 | awk '{print $2}')
     if [[ $LOG_TO_SYSLOG == 1 ]]; then
-	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$1"
+	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$caller: $1"
     else
-	echo "$(date) $modName.$CGROUP_VERSION-[$CHILD]: $1"
+	echo "$(date) $modName.$CGROUP_VERSION-[$CHILD]: $caller: $1"
     fi
     exit 1
 }
