@@ -36,9 +36,11 @@ elif [[ -n $JOBID ]]; then
     killJob "$CG_JOB"
 
     # cleanup user directory
-    LEFT_JOBS=$(ls "$CG_USER"/job-*/ 2>/dev/null)
-    if [[ -z $LEFT_JOBS ]]; then
+    if [[ -n $ALLOC_LIST && $ALLOC_LIST == "$JOBID" ]]; then
+	dlog "no more jobs, kill user cgroup $CG_USER"
 	killTasks "$CG_USER"
+    else
+	dlog "leftover jobs: $ALLOC_LIST"
     fi
 else
     elog "missing JOBID"

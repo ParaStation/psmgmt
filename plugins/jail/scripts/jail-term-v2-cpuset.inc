@@ -18,6 +18,41 @@
 # CHILD and configuration like CGROUP_BASE, CG_USER, CG_JOB,
 # CG_STEP, BASE or SCRIPT set.
 
+function cleaupUserCgroup2()
+{
+    if [[ $ALLOC_LIST == "$JOBID" ]]; then
+	# cleanup user directory
+
+	dlog "no more jobs, kill user cgroup $CG_USER"
+	killTasks "$CG_USER"
+    else
+	# update remaining cpus for user cgroup
+
+	BASE=$CG_USER
+	REMAINING_CPUS=""
+	for i in "$BASE"/job-*/; do
+	    LEFTOVER_JOB_TASKS=$(cat "$i/tasks" 2>/dev/null)
+	    LEFTOVER_STEP_TASKS=$(cat "$i"/step-*/tasks 2>/dev/null)
+	    if [[ -z "$LEFTOVER_JOB_TASKS" && -z "$LEFTOVER_STEP_TASKS" ]]; then
+		dlog "removing leftover job $i"
+		rmdir "$i"/step-* 2>/dev/null
+		rmdir "$i"
+	    else
+		dlog "adding running job: $i"
+		JOB_CPUS=$(cat "$i/cpuset.cpus")
+		REMAINING_CPUS="$REMAINING_CPUS,$JOB_CPUS"
+	    fi
+	done
+
+	if [[ -n $REMAINING_CPUS ]]; then
+	    NEW_CPU=$("$EXPAND" $REMAINING_CPUS |sort -g -u)
+	    COMP_CPU=$("$COMPRESS" $NEW_CPU | tr -d "\[\]")
+	    dlog "set remaining cpus: $COMP_CPU"
+	    cgWrite "$COMP_CPU" "$CG_USER/cpuset.cpus"
+	fi
+    fi
+}
+
 if [[ $CONSTRAIN_CORES == "no" ]]; then
     dlog "constrain cores *disabled*"
 else
@@ -39,33 +74,10 @@ else
 	dlog "killing job $JOBID with signal $KILL_SIGNAL"
 	killJob "$CG_JOB"
 
-	BASE=$CG_USER
-	REMAINING_CPUS=""
-	for i in "$BASE"/job-*/; do
-	    if [[ $i == $CG_USER/job-*/ ]]; then
-		dlog "no more jobs, kill user cgroup $CG_USER"
-		killTasks "$CG_USER"
-	    else
-		LEFTOVER_JOB_TASKS=$(cat "$i/tasks" 2>/dev/null)
-		LEFTOVER_STEP_TASKS=$(cat "$i"/step-*/tasks 2>/dev/null)
-		if [[ -z "$LEFTOVER_JOB_TASKS" && -z "$LEFTOVER_STEP_TASKS" ]]; then
-		    dlog "removing leftover job $i"
-		    rmdir "$i"/step-* 2>/dev/null
-		    rmdir "$i"
-		else
-		    dlog "adding running job: $i"
-		    JOB_CPUS=$(cat "$i/cpuset.cpus")
-		    REMAINING_CPUS="$REMAINING_CPUS,$JOB_CPUS"
-		fi
-	    fi
-	done
+	if [[ -n $ALLOC_LIST ]]; then
+	    cleaupUserCgroup2
+	fi
 
-	[[ -n $REMAINING_CPUS ]] && {
-	    NEW_CPU=$("$EXPAND" $REMAINING_CPUS |sort -g -u)
-	    COMP_CPU=$("$COMPRESS" $NEW_CPU | tr -d "\[\]")
-	    dlog "set remaining cpus: $COMP_CPU"
-	    cgWrite "$COMP_CPU" "$CG_USER/cpuset.cpus"
-	}
     else
 	elog "missing JOBID"
     fi

@@ -57,25 +57,22 @@ function termMemory()
     elif [[ -n $JOBID ]]; then
 	dlog "killing job $JOBID with signal $KILL_SIGNAL"
 
-	# remove memory from user cgroup
-	rmMemFromUser "$JOB_RAM_SOFT" "memory.soft_limit_in_bytes"
-	rmMemFromUser "$JOB_RAM_HARD" "memory.limit_in_bytes"
-	rmMemFromUser "$JOB_KMEM" "memory.kmem.limit_in_bytes"
-	rmMemFromUser "$JOB_SWAP" "memory.memsw.limit_in_bytes"
-	rmMemFromUser "$SWAPPINESS" "memory.swappiness"
-
 	killJob "$CG_JOB"
 
-	BASE="$CG_USER"
-	for i in "$BASE"/job-*/; do
-	    if [[ $i == $CG_USER/job-*/ ]]; then
-		dlog "no more jobs, kill user cgroup $CG_USER"
-		killTasks "$CG_USER"
-	    else
-		dlog "leftover job: $i"
-	    fi
-	done
+	# cleanup user directory
+	if [[ -n $ALLOC_LIST && $ALLOC_LIST == "$JOBID" ]]; then
+	    dlog "no more jobs, kill user cgroup $CG_USER"
+	    killTasks "$CG_USER"
+	else
+	    dlog "leftover jobs: $ALLOC_LIST"
 
+	    # remove memory from user cgroup
+	    rmMemFromUser "$JOB_RAM_SOFT" "memory.soft_limit_in_bytes"
+	    rmMemFromUser "$JOB_RAM_HARD" "memory.limit_in_bytes"
+	    rmMemFromUser "$JOB_KMEM" "memory.kmem.limit_in_bytes"
+	    rmMemFromUser "$JOB_SWAP" "memory.memsw.limit_in_bytes"
+	    rmMemFromUser "$SWAPPINESS" "memory.swappiness"
+	fi
     else
 	elog "missing JOBID"
     fi

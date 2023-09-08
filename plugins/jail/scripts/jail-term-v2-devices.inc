@@ -59,8 +59,6 @@ function termDevices()
     elif [[ -n $JOBID ]]; then
 	dlog "killing job $JOBID with signal $KILL_SIGNAL"
 	killJob "$CG_JOB"
-
-	removeFromUserBPF "JOB_$JOBID"
 	cleanupBPF "JOB_$JOBID"
 
 	local BASE="$CG_USER"
@@ -70,16 +68,15 @@ function termDevices()
 	    cleanupBPF "STEP_${JOBID}_$i"
 	done
 
-	for i in "$BASE"/job-*/; do
-	    if [[ $i == $CG_USER/job-*/ ]]; then
-		dlog "no more jobs, kill user cgroup $CG_USER"
-		killTasks "$CG_USER"
-
-		cleanupBPF "USER_$USER"
-	    else
-		dlog "leftover job: $i"
-	    fi
-	done
+	# cleanup user directory
+	if [[ -n $ALLOC_LIST && $ALLOC_LIST == "$JOBID" ]]; then
+	    dlog "no more jobs, kill user cgroup $CG_USER"
+	    killTasks "$CG_USER"
+	    removeFromUserBPF "JOB_$JOBID"
+	    cleanupBPF "USER_$USER"
+	else
+	    dlog "leftover jobs: $ALLOC_LIST"
+	fi
     else
 	elog "missing JOBID"
     fi

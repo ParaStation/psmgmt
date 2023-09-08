@@ -56,15 +56,13 @@ function termDevices()
 	# remove devices from user cgroup
 	rmFromUser
 
-	BASE=$CG_USER
-	for i in "$BASE"/job-*/; do
-	    if [[ $i == $CG_USER/job-*/ ]]; then
-		dlog "no more jobs, kill user cgroup $CG_USER"
-		killTasks "$CG_USER"
-	    else
-		dlog "leftover job: $i"
-	    fi
-	done
+	# cleanup user directory
+	if [[ -n $ALLOC_LIST && $ALLOC_LIST == "$JOBID" ]]; then
+	    dlog "no more jobs, kill user cgroup $CG_USER"
+	    killTasks "$CG_USER"
+	else
+	    dlog "leftover jobs: $ALLOC_LIST"
+	fi
     else
 	elog "missing JOBID"
     fi
