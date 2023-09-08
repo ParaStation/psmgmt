@@ -186,6 +186,21 @@ static int termJail(void *info)
     snprintf(buf, sizeof(buf), "%u", alloc->id);
     setenv("__PSJAIL_JOBID", buf, 1);
 
+    /* create list of all allocations belonging to the
+     * terminating allocation owner */
+    StrBuffer_t allocList = { .buf = NULL };
+    list_t *a;
+    list_for_each(a, &AllocList) {
+	Alloc_t *nextAlloc = list_entry(a, Alloc_t, next);
+	if (nextAlloc->uid != alloc->uid) continue;
+
+	if (allocList.buf) addStrBuf(",", &allocList);
+	snprintf(buf, sizeof(buf), "%i", nextAlloc->id);
+	addStrBuf(buf, &allocList);
+    }
+
+    setenv("__PSJAIL_ALLOC_LIST", allocList.buf, 1);
+
     setJailEnv(&alloc->env, alloc->username, NULL, &(alloc->hwthreads),
 	       alloc->gresList, alloc->cred, alloc->localNodeId);
 
