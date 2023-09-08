@@ -355,16 +355,11 @@ static void fillDistributionStrategies(pininfo_t *pininfo, uint32_t taskDist)
 }
 
 /*
- * Pin to all hardware threads
- *
- * Using this instead of PSCPU_setAll() avoids unnessary large partition
- * threads arrays (*partThrds) in the task structure.
+ * Pin to all hardware threads allowed by the step
  */
 static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
 {
-    for (uint16_t t = 0; t < nodeinfo->threadCount; t++) {
-	PSCPU_setCPU(*CPUset, t);
-    }
+    PSCPU_copy(*CPUset, nodeinfo->stepHWthreads);
 }
 
 /*
@@ -589,7 +584,7 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  *
  * For CPU_BIND_MASK, CPU_BIND_MAP, CPU_BIND_LDMASK, and CPU_BIND_LDMAP this
  * function (or it's subfunctions) use PSIDnodes_unmapCPU() to create a reverse
- * mapped CPUset since actually the mask should be applied to the* physical
+ * mapped CPUset since actually the mask should be applied to the physical
  * hardware as it is. The unmap here and the map later will negate each other so
  * that at the end we do always have an identity mapping.
  *
@@ -853,7 +848,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	if (start == UINT32_MAX) {
 	    /* there are no threads left */
 	    if (!pininfo->overcommit) {
-		flog("No threads left to start from, pin to all\n");
+		flog("No threads left to start from, pin to all allowed\n");
 		pinToAllThreads(CPUset, nodeinfo);
 		return;
 	    }
@@ -927,7 +922,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	/* there are not enough threads left */
 	if (!pininfo->overcommit) {
-	    flog("No threads left, pin to all\n");
+	    flog("No threads left, pin to all allowed\n");
 	    pinToAllThreads(CPUset, nodeinfo);
 	    break;
 	}
@@ -1077,7 +1072,7 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 
 	/* there are not enough threads left */
 	if (!pininfo->overcommit) {
-	    flog("No threads left, pin to all\n");
+	    flog("No threads left, pin to all allowed\n");
 	    pinToAllThreads(CPUset, nodeinfo);
 	    break;
 	}
