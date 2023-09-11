@@ -47,32 +47,6 @@ static int jailChild(void *info)
     return PSIDhook_call(PSIDHOOK_JAIL_CHILD, &session->pid);
 }
 
-static void cbJailChild(int exit, bool tmdOut, int iofd, void *info)
-{
-    char errMsg[1024];
-    size_t errLen;
-
-    bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg),&errLen);
-    if (!ret) {
-	mlog("%s: getting jail script callback data failed\n", __func__);
-	return;
-    }
-
-    if (exit < 0) {
-	Session_t *session = info;
-
-	mlog("%s: jail script failed with exit status %i\n", __func__, exit);
-	mlog("%s: %s\n", __func__, errMsg);
-
-	if (verifySessionPtr(session)) {
-	    killSessions(session->user);
-	} else {
-	    mlog("%s: invalid session pointer: ssh process cannot be killed\n",
-		 __func__);
-	}
-    }
-}
-
 static PSPAMResult_t handleOpenRequest(char *msgBuf)
 {
     char user[USERNAME_LEN], rhost[HOSTNAME_LEN];
@@ -115,7 +89,19 @@ static PSPAMResult_t handleOpenRequest(char *msgBuf)
 	    Session_t *session = addSession(user, rhost, pid, sid);
 	    if (session) {
 		/* Jail allowed ssh processes */
-		PSID_execFunc(jailChild, NULL, cbJailChild, NULL, session);
+		int ret = PSID_execFunc(jailChild, NULL, NULL, NULL, session);
+		if (ret < 0) {
+		    mlog("%s: jail script failed with exit status %i\n",
+			 __func__, ret);
+		    res = PSPAM_RES_JAIL;
+
+		    if (verifySessionPtr(session)) {
+			killSessions(session->user);
+		    } else {
+			mlog("%s: invalid session pointer: ssh process cannot "
+			     "be killed\n", __func__);
+		    }
+		}
 	    } else {
 		mlog("%s: saving session for user %s failed\n", __func__, user);
 		res = PSPAM_RES_DENY;

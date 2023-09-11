@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -394,6 +394,12 @@ static int checkAllowance(const char *uName, const char *rhost)
 	    ilog("deny access to %s@%s (%s)", uName, rhost,
 		 (res == PSPAM_RES_PROLOG) ? "prologue" : "no job");
 	}
+	break;
+    case PSPAM_RES_JAIL:
+	if (verbose > 0) {
+	    ilog("deny access to %s@%s jail hook failed:", uName, rhost);
+	}
+	break;
     }
 
     if (!quiet) {
@@ -411,6 +417,10 @@ static int checkAllowance(const char *uName, const char *rhost)
 	case PSPAM_RES_PROLOG:
 	    pam_prompt(pamH, PAM_TEXT_INFO, NULL, "\npspam: prologue running on"
 		       " %s, access denied.\n", hName);
+	    break;
+	case PSPAM_RES_JAIL:
+	    pam_prompt(pamH, PAM_TEXT_INFO, NULL, "\npspam: jailing SSH"
+		       " proccesses failed, access denied.\n");
 	    break;
 	default:
 	    pam_prompt(pamH, PAM_TEXT_INFO, NULL, "\npspam: access denied.\n");

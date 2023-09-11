@@ -29,6 +29,7 @@ typedef enum {
     PSPAM_RES_BATCH,      /**< Running batch-job -> grant access */
     PSPAM_RES_ADMIN_USER, /**< Admin user -> grant access */
     PSPAM_RES_PROLOG,     /**< Prologue still running -> deny access */
+    PSPAM_RES_JAIL,	  /**< Jailing SSH processes failed -> deny access */
 } PSPAMResult_t;
 
 typedef enum {
