@@ -9,13 +9,5 @@
 #
 include $(top_srcdir)/common.am
 
-DOCDIR_AWSPC = AWS_ParallelCluster
-EXTRA_DIST = $(DOCDIR_AWSPC)
+dist_noinst_DATA = AWS_ParallelCluster
 
-TARGET_DIR = $(docdir)/dynIP
-
-install-data-local:
-	cd "$(srcdir)"; for dir in $$(find "$(DOCDIR_AWSPC)" -type d); do \
-		test -z "$(TARGET_DIR)/$${dir}" || $(MKDIR_P) "$(TARGET_DIR)/$${dir}" ;\
-		find "$${dir}" -type f -exec $(INSTALL_DATA) {} "$(TARGET_DIR)/$${dir}" \; ;\
-	done
