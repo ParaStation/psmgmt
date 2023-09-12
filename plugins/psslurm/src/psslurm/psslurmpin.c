@@ -596,7 +596,8 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  */
 static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 				 char *cpuBindString,
-				 const nodeinfo_t *nodeinfo, uint32_t lTID)
+				 const nodeinfo_t *nodeinfo, uint32_t lTID,
+				 Step_t *step)
 {
     PSCPU_clrAll(*CPUset);
 
@@ -628,6 +629,8 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	if (cpuBindType & CPU_BIND_MASK) {
 	    if (!myent) {
 		flog("invalid cpu mask string '%s'\n", cpuBindString);
+		char *msg = "Invalid CPU mask string\n";
+		fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
 		goto error;
 	    }
 	    parseCPUmask(CPUset, nodeinfo, myent);
@@ -640,6 +643,8 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	    // cpuBindType & CPU_BIND_LDMASK
 	    if (!myent) {
 		flog("invalid socket mask string '%s'\n", cpuBindString);
+		char *msg = "Invalid local domains mask string\n";
+		fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
 		goto error;
 	    }
 	    parseSocketMask(CPUset, nodeinfo, myent);
@@ -654,6 +659,8 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	long *cpus = parseMapString(cpuBindString, &count, lTID + 1);
 	if (!cpus) {
 	    flog("invalid cpu map string '%s'\n", cpuBindString);
+	    char *msg = "Invalid CPU map string\n";
+	    fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
 	    goto error;
 	}
 
@@ -661,6 +668,9 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	ufree(cpus);
 	if (mycpu >= nodeinfo->threadCount) {
 	    flog("invalid cpu id %ld in cpu map '%s'\n", mycpu, cpuBindString);
+	    char msg[256];
+	    snprintf(msg, 256, "Invalid CPU ID %ld in CPU map string\n", mycpu);
+	    fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
 	    goto error;
 	}
 
@@ -671,6 +681,11 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 		 mycpu, cpuBindString,
 		 PSCPU_print_part(nodeinfo->stepHWthreads,
 				  PSCPU_bytesForCPUs(nodeinfo->threadCount/2)));
+	    char msg[256];
+	    snprintf(msg, 256, "CPU ID %ld is not in step's coremap %s\n",
+		     mycpu, PSCPU_print_part(nodeinfo->stepHWthreads,
+				  PSCPU_bytesForCPUs(nodeinfo->threadCount/2)));
+	    fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
 	    goto error;
 	}
 
@@ -684,6 +699,8 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	long *ldoms = parseMapString(cpuBindString, &count, lTID + 1);
 	if (!ldoms) {
 	    flog("invalid ldom map string '%s'\n", cpuBindString);
+	    char *msg = "Invalid local domains map string\n";
+	    fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
 	    goto error;
 	}
 
@@ -692,6 +709,10 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	if (myldom >= nodeinfo->socketCount) {
 	   flog("invalid ldom id %ld in ldom map string '%s'\n", myldom,
 		   cpuBindString);
+	    char msg[256];
+	    snprintf(msg, 256, "Invalid local domain ID %ld in local domain map"
+		     " string\n", myldom);
+	    fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
 	    goto error;
 	}
 
@@ -1124,7 +1145,7 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 		      char *cpuBindString, const nodeinfo_t *nodeinfo,
 		      int32_t *lastCpu, int *thread, uint32_t tasksPerNode,
 		      uint16_t threadsPerTask, uint32_t lTID,
-		      pininfo_t *pininfo)
+		      pininfo_t *pininfo, Step_t *step)
 {
     PSCPU_clrAll(*CPUset);
 
@@ -1150,7 +1171,7 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK
 				| CPU_BIND_LDMAP | CPU_BIND_LDMASK)) {
 	getBindMapFromString(CPUset, cpuBindType, cpuBindString, nodeinfo,
-		lTID);
+		lTID, step);
 	return;
     }
 
@@ -1793,7 +1814,7 @@ bool setStepSlots(Step_t *step)
 	    /* calc CPUset */
 	    setCPUset(&slots[tid].CPUset, step->cpuBindType, step->cpuBind,
 		    nodeinfo, &lastCpu, &thread, step->globalTaskIdsLen[node],
-		    threadsPerTask, lTID, &pininfo);
+		    threadsPerTask, lTID, &pininfo, step);
 
 	    mdbg(PSSLURM_LOG_PART, "%s: CPUset for task %u: %s\n", __func__,
 		    tid, PSCPU_print_part(slots[tid].CPUset,
@@ -2593,7 +2614,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	    PSCPU_set_t myCPUset;
 	    setCPUset(&myCPUset, CPU_BIND_TO_CORES, "", &fakenodeinfo, &lastCpu,
 		      &thread, tasksPerNode, useCores, local_tid,
-		      &pininfo);
+		      &pininfo, NULL);
 
 	    PSCPU_addCPUs(CPUset, myCPUset);
 	}
@@ -2633,7 +2654,8 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	pininfo.firstThread = UINT32_MAX;
 
 	setCPUset(&CPUset, cpuBindType, cpuBindString, &nodeinfo, &lastCpu,
-		&thread, tasksPerNode, threadsPerTask, local_tid, &pininfo);
+		&thread, tasksPerNode, threadsPerTask, local_tid, &pininfo,
+		NULL);
 
 	PSCPU_set_t mappedSet;
 	PSCPU_clrAll(mappedSet);
