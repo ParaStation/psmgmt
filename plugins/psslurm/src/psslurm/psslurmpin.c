@@ -664,8 +664,18 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	    goto error;
 	}
 
+	long myumapcpu = PSIDnodes_unmapCPU(nodeinfo->id, mycpu);
+
+	if (!PSCPU_isSet(nodeinfo->stepHWthreads, myumapcpu)) {
+	    flog("cpu id %ld in cpu map '%s' is not in step's coremap %s\n",
+		 mycpu, cpuBindString,
+		 PSCPU_print_part(nodeinfo->stepHWthreads,
+				  PSCPU_bytesForCPUs(nodeinfo->threadCount/2)));
+	    goto error;
+	}
+
 	/* mycpu is valid */
-	PSCPU_setCPU(*CPUset, PSIDnodes_unmapCPU(nodeinfo->id, mycpu));
+	PSCPU_setCPU(*CPUset, myumapcpu);
 	fdbg(PSSLURM_LOG_PART, "(bind_map) node %d local task %d bindstr '%s'"
 	     " cpu %ld\n", nodeinfo->id, lTID, cpuBindString, mycpu);
 	return;
