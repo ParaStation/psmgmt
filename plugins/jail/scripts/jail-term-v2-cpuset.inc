@@ -45,10 +45,11 @@ function cleaupUserCgroup2()
 	done
 
 	if [[ -n $REMAINING_CPUS ]]; then
-	    NEW_CPU=$("$EXPAND" $REMAINING_CPUS |sort -g -u)
-	    COMP_CPU=$("$COMPRESS" $NEW_CPU | tr -d "\[\]")
-	    dlog "set remaining cpus: $COMP_CPU"
-	    cgWrite "$COMP_CPU" "$CG_USER/cpuset.cpus"
+	    NEW_CPUS=$("$EXPAND" "$REMAINING_CPUS" |sort -g -u)
+	    # shellcheck disable=SC2086
+	    COMP_CPUS=$("$COMPRESS" $NEW_CPUS | tr -d "\[\]")
+	    dlog "set remaining cpus: $COMP_CPUS"
+	    cgWrite "$COMP_CPUS" "$CG_USER/cpuset.cpus"
 	fi
     fi
 }

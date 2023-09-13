@@ -30,17 +30,18 @@ function setupUserGroup()
 	dlog "empty cpuset.cpus"
 	cgWrite "$JOB_CPUS" "$CG_USER/cpuset.cpus"
     else
-	OLD_CPU=$(cat "$CG_USER/cpuset.cpus")
-	dlog "old cpuset.cpus is $OLD_CPU"
+	OLD_CPUS=$(cat "$CG_USER/cpuset.cpus")
+	dlog "old cpuset.cpus is $OLD_CPUS"
 	dlog "add cpuset.cpus is $JOB_CPUS"
 
-	if [[ $OLD_CPU == "JOB_CPUS" ]]; then
-	    dlog "using old cpuset: $OLD_CPU"
+	if [[ $OLD_CPUS == "JOB_CPUS" ]]; then
+	    dlog "using old cpuset: $OLD_CPUS"
 	else
-	    NEW_CPU=$("$EXPAND" [$OLD_CPU],[$JOB_CPUS] | sort -g -u)
-	    COMP_CPU=$("$COMPRESS" $NEW_CPU | tr -d "\[[\]]")
-	    dlog "using new cpuset: $COMP_CPU"
-	    cgWrite "$COMP_CPU" "$CG_USER/cpuset.cpus"
+	    NEW_CPUS=$("$EXPAND" "[$OLD_CPUS],[$JOB_CPUS]" | sort -g -u)
+	    # shellcheck disable=SC2086
+	    COMP_CPUS=$("$COMPRESS" $NEW_CPUS | tr -d "\[[\]]")
+	    dlog "using new cpuset: $COMP_CPUS"
+	    cgWrite "$COMP_CPUS" "$CG_USER/cpuset.cpus"
 	fi
     fi
 
