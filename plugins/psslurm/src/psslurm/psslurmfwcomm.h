@@ -22,6 +22,15 @@
 #include "psslurmstep.h"
 #include "psslurmtasks.h"
 
+/** holding messages forwarded to user after forwarder started */
+typedef struct {
+    char *msg;			/**< the actual message to send */
+    uint32_t msgLen;		/**< length of the message */
+    uint8_t type;		/**< msg type (stdout/stderr ) */
+    int32_t rank;		/**< sender (Slurm) rank */
+    list_t next;                /**< used to put into some msg-list */
+} FwUserMsgBuf_t;
+
 /**
  * @brief Handle a message from step forwarder sendto mother
  *
@@ -79,10 +88,21 @@ void fwCMD_brokeIOcon(Step_t *step);
 void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *msg);
 
 /**
+ * @brief Clear job/step forwarder message queue
+ *
+ * @param The queue to clear
+ */
+void fwCMD_clearMsgQueue(list_t *queue);
+
+/**
  * @brief Send CMD_PRINT_CHILD_MSG to a forwarder
  *
  * Print a message for a job or a step using the forwarder. The parameters
- * @ref job and @ref step are mutually exclusive.
+ * @ref job and @ref step are mutually exclusive. If no matching forwarder
+ * is present in the given job/step the message is queued and delivered
+ * after the corresponding forwarder was started. The queued messages are
+ * saved in the job/step structure and will get automatically removed
+ * via @ref fwCMD_clearMsgQueue() when the job/step is purged.
  *
  * @param job The job to print the message for
  *
@@ -96,9 +116,12 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *msg);
  *
  * @param rank The rank of the message origin (only
  * used for a step)
+ *
+ * @return Retuns 0 on success and -1 on error. If the messages
+ * was queued and waiting for delivery 1 is returned.
  */
-void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
-		    uint8_t type, int32_t rank);
+int fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
+		   uint8_t type, int32_t rank);
 
 /**
  * @brief Send CMD_REATTACH_TASKS to a forwarder

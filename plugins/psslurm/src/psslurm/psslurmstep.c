@@ -26,6 +26,7 @@
 #include "psslurmlog.h"
 #include "psslurmpscomm.h"
 #include "psslurmtasks.h"
+#include "psslurmfwcomm.h"
 
 /** List of all steps */
 static LIST_HEAD(StepList);
@@ -50,6 +51,7 @@ Step_t *Step_add(void)
     INIT_LIST_HEAD(&step->tasks);
     INIT_LIST_HEAD(&step->remoteTasks);
     INIT_LIST_HEAD(&step->jobCompInfos);
+    INIT_LIST_HEAD(&step->fwMsgQueue);
     envInit(&step->env);
     envInit(&step->spankenv);
     envInit(&step->pelogueEnv);
@@ -310,6 +312,7 @@ bool Step_delete(Step_t *step)
     clearTasks(&step->remoteTasks);
     freeGresCred(&step->gresList);
     freeJobCred(step->cred);
+    fwCMD_clearMsgQueue(&step->fwMsgQueue);
 
     if (step->globalTaskIds) {
 	for (uint32_t i = 0; i < step->nrOfNodes; i++) {

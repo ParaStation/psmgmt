@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -93,6 +93,8 @@ typedef struct {
     PSCPU_set_t hwthreads;  /**< hwthreads to use for job on current node */
     char *container;        /**< container path */
     psAccountInfo_t acctBase;  /**< account base values (e.g. file-system) */
+    list_t fwMsgQueue;	    /**< Queued output/error messages waiting
+				 for forwarder start to be delivered */
 } Job_t;
 
 /**

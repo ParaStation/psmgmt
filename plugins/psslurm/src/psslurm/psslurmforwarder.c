@@ -1221,6 +1221,16 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
 	if (step->stdErrOpt == IO_SRUN) close(fwdata->stdErr[1]);
 	close(fwdata->stdIn[0]);
     }
+
+    /* print queued messages */
+    if (!list_empty(&step->fwMsgQueue)) {
+	list_t *t;
+	list_for_each(t, &step->fwMsgQueue) {
+	    FwUserMsgBuf_t *buf = list_entry(t, FwUserMsgBuf_t, next);
+	    IO_printStepMsg(fwdata, buf->msg, buf->msgLen, buf->rank,
+		            buf->type);
+	}
+    }
 }
 
 static void stepFinalize(Forwarder_Data_t *fwdata)
@@ -1319,6 +1329,15 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
     }
 
     IO_openJobIOfiles(fwdata);
+
+    /* print queued messages */
+    if (!list_empty(&job->fwMsgQueue)) {
+	list_t *t;
+	list_for_each(t, &job->fwMsgQueue) {
+	    FwUserMsgBuf_t *buf = list_entry(t, FwUserMsgBuf_t, next);
+	    IO_printJobMsg(fwdata, buf->msg, buf->msgLen, buf->type);
+	}
+    }
 
     if (switchEffectiveUser("root", 0, 0) == -1) {
 	mlog("%s: switching effective user failed\n", __func__);
@@ -1539,6 +1558,16 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
     }
 
     IO_redirectStep(fwdata, step);
+
+    /* print queued messages */
+    if (!list_empty(&step->fwMsgQueue)) {
+	list_t *t;
+	list_for_each(t, &step->fwMsgQueue) {
+	    FwUserMsgBuf_t *buf = list_entry(t, FwUserMsgBuf_t, next);
+	    IO_printStepMsg(fwdata, buf->msg, buf->msgLen, buf->rank,
+		            buf->type);
+	}
+    }
 
     if (switchEffectiveUser("root", 0, 0) == -1) {
 	mlog("%s: switching effective user failed\n", __func__);

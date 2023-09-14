@@ -426,18 +426,54 @@ void fwCMD_enableSrunIO(Step_t *step)
     sendMsg(&msg);
 }
 
-void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
-		    uint8_t type, int32_t rank)
+void fwCMD_clearMsgQueue(list_t *queue)
 {
-    Forwarder_Data_t *fwdata = job ? job->fwdata : step ? step->fwdata : NULL;
+    if (!queue) return;
+    list_t *t, *tmp;
+    list_for_each_safe(t, tmp, queue) {
+	FwUserMsgBuf_t *buf = list_entry(t, FwUserMsgBuf_t, next);
+	ufree(buf->msg);
+	list_del(&buf->next);
+	ufree(buf);
+    }
+}
 
+static void saveFWMsg(list_t *queue, char *msg, uint32_t msgLen,
+		      uint8_t type, int32_t rank)
+{
+    FwUserMsgBuf_t *buf = umalloc(sizeof *buf);
+    buf->msg = ustrdup(msg);
+    buf->msgLen = msgLen;
+    buf->type = type;
+    buf->rank = rank;
+
+    list_add_tail(&buf->next, queue);
+}
+
+int fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
+		   uint8_t type, int32_t rank)
+{
     if (job && step) {
 	flog("error: job and step are mutually exclusive\n");
-	return;
+	return -1;
     }
 
-    /* might happen that forwarder is already gone */
-    if (!fwdata) return;
+    if (!job && !step) {
+	flog("error: no job or step given\n");
+	return -1;
+    }
+
+    /* msg from service rank, make believe it comes from first task */
+    if (step && rank < 0) rank = step->globalTaskIds[step->localNodeId][0];
+
+    Forwarder_Data_t *fwdata = job ? job->fwdata : step ? step->fwdata : NULL;
+    if (!fwdata) {
+	/* might happen that forwarder is already gone or has not been
+	 * started yet */
+	list_t *queue = job ? &job->fwMsgQueue : &step->fwMsgQueue;
+	saveFWMsg(queue, plMsg, msgLen, type, rank);
+	return 1;
+    }
 
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -454,15 +490,12 @@ void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 	chunkSize -= sizeof(uint32_t);
 
 	/* connection to srun broke */
-	if (step->ioCon == IO_CON_BROKE) return;
+	if (step->ioCon == IO_CON_BROKE) return -1;
 
 	if (step->ioCon == IO_CON_ERROR) {
 	    flog("I/O connection for %s is broken\n", Step_strID(step));
 	    step->ioCon = IO_CON_BROKE;
 	}
-
-	/* msg from service rank, make believe it comes from first task */
-	if (rank < 0) rank = step->globalTaskIds[step->localNodeId][0];
     }
 
     do {
@@ -481,6 +514,8 @@ void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 	sendMsg(&msg);
 	left -= chunk;
     } while (left);
+
+    return 0;
 }
 
 void fwCMD_reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,

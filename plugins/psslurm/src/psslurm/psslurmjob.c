@@ -31,6 +31,7 @@
 #include "psslurmpscomm.h"
 #include "psslurmstep.h"
 #include "psslurmtasks.h"
+#include "psslurmfwcomm.h"
 
 #define MAX_JOBID_LENGTH 128
 
@@ -112,6 +113,7 @@ bool Job_delete(Job_t *job)
 
     clearTasks(&job->tasks);
     freeJobCred(job->cred);
+    fwCMD_clearMsgQueue(&job->fwMsgQueue);
 
     envShred(&job->env);
     envShred(&job->spankenv);
@@ -136,6 +138,7 @@ Job_t *Job_add(uint32_t jobid)
     job->state = JOB_INIT;
     job->startTime = time(0);
     INIT_LIST_HEAD(&job->tasks);
+    INIT_LIST_HEAD(&job->fwMsgQueue);
     envInit(&job->env);
     envInit(&job->spankenv);
     psAccountGetLocalInfo(&job->acctBase);
