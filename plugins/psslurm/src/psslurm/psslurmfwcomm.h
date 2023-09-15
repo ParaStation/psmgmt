@@ -98,11 +98,17 @@ void fwCMD_clearMsgQueue(list_t *queue);
  * @brief Send CMD_PRINT_CHILD_MSG to a forwarder
  *
  * Print a message for a job or a step using the forwarder. The parameters
- * @ref job and @ref step are mutually exclusive. If no matching forwarder
+ * @a job and @a step are mutually exclusive. If no matching forwarder
  * is present in the given job/step the message is queued and delivered
  * after the corresponding forwarder was started. The queued messages are
  * saved in the job/step structure and will get automatically removed
  * via @ref fwCMD_clearMsgQueue() when the job/step is purged.
+ *
+ * The function is able to handle negative ranks from psid service processes
+ * (e.g. psilogger). Since srun only accepts I/O messages from known ranks,
+ * a negative rank will be mapped to the first node local rank of the step.
+ * It is *important* to note that for this mapping to work the
+ * @ref step->localNodeId has to be initialized before use!
  *
  * @param job The job to print the message for
  *
