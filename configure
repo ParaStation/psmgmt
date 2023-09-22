@@ -13069,8 +13069,8 @@ else
   test $ac_status = 0; }; then
 
     if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libbpf <= 1.0.0\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "libbpf <= 1.0.0") 2>&5
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libbpf < 1.0.0\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "libbpf < 1.0.0") 2>&5
   ac_status=$?
   printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then

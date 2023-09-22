@@ -69,7 +69,7 @@ AM_COND_IF([BUILD_WITHOUT_BPF], [
   AM_CFLAGS="$AM_CFLAGS -DBUILD_WITHOUT_BPF"
 ], [
   PKG_CHECK_EXISTS([libbpf], [
-    PKG_CHECK_EXISTS([libbpf <= 1.0.0], [
+    PKG_CHECK_EXISTS([libbpf < 1.0.0], [
       [echo "Found libbpf $(pkg-config --modversion libbpf)"]
       AC_CHECK_LIB([bpf], [bpf_prog_attach], [
 	AC_SUBST([BPF_LIBS], [-lbpf])
