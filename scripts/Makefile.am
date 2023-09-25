@@ -49,9 +49,9 @@ EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py lsf	\
 	psid2cmustatus.in psmgmt.csh.in psmgmt.sh.in			\
 	systemd/munge.conf systemd/psid.service.in			\
 	systemd/psidstarter.socket systemd/psidstarter@.service		\
-	vcversion xinetd.d/psidstarter.in single_node_config
+	vcversion xinetd.d/psidstarter.in single_node_config.in
 
 # clean up generated files
 CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_gm ps_acc		\
 	init.d/parastation xinetd.d/psidstarter systemd/psid.service	\
-	psid2cmustatus
+	psid2cmustatus single_node_config

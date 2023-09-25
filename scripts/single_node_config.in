@@ -21,7 +21,7 @@ NODE_HOSTNAME=$(hostname -s)
 NODE_IP_ADDRESS=$(hostname -I | cut -d ' ' -f 1)
 VERBOSE=0
 PSID_PLUGINS="psslurm"
-DUMPDIR="/usr/share/psconfig/dumps"
+DUMPDIR="@psconfigdumpsdir@"
 
 # Check if psconfig exists
 function psconfig_exists() {

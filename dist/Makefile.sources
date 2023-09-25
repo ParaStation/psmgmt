@@ -798,7 +798,7 @@ scripts/psid2cmustatus.in \
 scripts/psmgmt.csh.in \
 scripts/psmgmt.gdb \
 scripts/psmgmt.sh.in \
-scripts/single_node_config \
+scripts/single_node_config.in \
 scripts/systemd/munge.conf \
 scripts/systemd/psid.service.in \
 scripts/systemd/psidstarter.socket \

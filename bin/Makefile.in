@@ -443,7 +443,8 @@ do_subst = sed \
 	-e 's,[@]sysconfdir[@],$(sysconfdir),g' \
 	-e 's,[@]localstatedir[@],$(localstatedir),g' \
 	-e 's,[@]default_cgroup_root[@],$(default_cgroup_root),g' \
-	-e 's,[@]default_cgroup_name[@],$(default_cgroup_name),g'
+	-e 's,[@]default_cgroup_name[@],$(default_cgroup_name),g' \
+	-e 's,[@]psconfigdumpsdir[@],$(psconfigdumpsdir),g'
 
 pamconfdir = $(sysconfdir)/pam.d
 slurmlibdir = $(libdir)/slurm
