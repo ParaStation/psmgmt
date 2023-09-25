@@ -91,6 +91,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 %global _docdir %{_datadir}/doc
 %global _spooldir %{_localstatedir}/spool/parastation
 %global _pamdir /%{_lib}/security
+%global _psconfigdumpsdir /usr/share/psconfig/dumps
 
 %description
 The ParaStation Process Management Layer.
@@ -207,6 +208,7 @@ Set of psid plugins for debug and testing psmgmt. This includes:
 export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
 %configure --datarootdir=%{_datarootdir} --with-pamdir=%{_pamdir} \
 	   %{?disable_psconfig:--disable-psconfig} \
+	   %{!?disable_psconfig:--with-psconfigdumpsdir=%{_psconfigdumpsdir}} \
 	   %{?disable_systemd:--with-unitdir=no} \
 	   %{?disable_spank:--disable-spank} \
 	   %{?disable_testplugins:--disable-testplugins} \
@@ -323,7 +325,7 @@ fi
 %{_libexecdir}/psmgmt
 %{_configdir}
 %{_scriptsdir}
-%{_datadir}/psconfig/dumps/*
+%{_psconfigdumpsdir}/*
 %{_libdir}/libpse.so*
 %{_libdir}/libpsi.so*
 %dir %{_plugindir}

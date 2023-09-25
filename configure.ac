@@ -132,6 +132,11 @@ AM_COND_IF([BUILD_WITHOUT_PSCONFIG], [
   PKG_CHECK_MODULES([psconfig], [psconfig])
 ])
 
+AC_ARG_WITH([psconfigdumpsdir], [
+  AS_HELP_STRING([--with-psconfigdumpsdir=DIR], [psconfig dumps location])
+], [psconfigdumpsdir=$withval], [psconfigdumpsdir="\${datadir}/psconfig/dumps"])
+AC_SUBST([psconfigdumpsdir], [$psconfigdumpsdir])
+
 AC_ARG_ENABLE([pspmix], [AS_HELP_STRING([--disable-pspmix],
   [do not build pspmix plugin])])
 AM_CONDITIONAL([BUILD_WITHOUT_PSPMIX], [test "x$enable_pspmix" = xno])

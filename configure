@@ -650,6 +650,7 @@ pmix_LIBS
 pmix_CFLAGS
 BUILD_WITHOUT_PSPMIX_FALSE
 BUILD_WITHOUT_PSPMIX_TRUE
+psconfigdumpsdir
 psconfig_LIBS
 psconfig_CFLAGS
 glib2_LIBS
@@ -819,6 +820,7 @@ enable_bpf
 with_pamdir
 enable_spank
 enable_psconfig
+with_psconfigdumpsdir
 enable_pspmix
 enable_testplugins
 with_unitdir
@@ -1493,6 +1495,10 @@ Optional Packages:
   --with-sysroot[=DIR]    Search for dependent libraries within DIR (or the
                           compiler's sysroot if not specified).
   --with-pamdir=DIR       specify pam plugin dir
+
+    --with-psconfigdumpsdir=DIR
+                          psconfig dumps location
+
   --with-unitdir=DIR      directory for systemd service files
 
 Some influential environment variables:
@@ -13003,6 +13009,17 @@ $as_echo "yes" >&6; }
 fi
 
 fi
+
+
+# Check whether --with-psconfigdumpsdir was given.
+if test "${with_psconfigdumpsdir+set}" = set; then :
+  withval=$with_psconfigdumpsdir; psconfigdumpsdir=$withval
+else
+  psconfigdumpsdir="\${datadir}/psconfig/dumps"
+fi
+
+psconfigdumpsdir=$psconfigdumpsdir
+
 
 # Check whether --enable-pspmix was given.
 if test "${enable_pspmix+set}" = set; then :

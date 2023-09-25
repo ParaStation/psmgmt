@@ -308,6 +308,7 @@ prefix = @prefix@
 program_transform_name = @program_transform_name@
 psconfig_CFLAGS = @psconfig_CFLAGS@
 psconfig_LIBS = @psconfig_LIBS@
+psconfigdumpsdir = @psconfigdumpsdir@
 psdir = @psdir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
@@ -350,7 +351,6 @@ slurmlibdir = $(libdir)/slurm
 psgwlibdir = $(libexecdir)/psgw
 psacctlibdir = $(libexecdir)/psaccount
 jaillibdir = $(libexecdir)/jail
-psconfigdumpsdir = $(datadir)/psconfig/dumps
 
 # should be $(libdir)/psmgmt-plugins or similar
 plugindir = $(prefix)/plugins

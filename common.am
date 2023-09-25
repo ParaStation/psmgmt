@@ -43,8 +43,6 @@ psgwlibdir = $(libexecdir)/psgw
 psacctlibdir = $(libexecdir)/psaccount
 jaillibdir = $(libexecdir)/jail
 
-psconfigdumpsdir = $(datadir)/psconfig/dumps
-
 # should be $(libdir)/psmgmt-plugins or similar
 plugindir = $(prefix)/plugins
 
