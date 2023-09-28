@@ -143,7 +143,7 @@ static void cbInitJail(int exit, bool tmdOut, int iofd, void *info)
     char errMsg[1024];
     size_t errLen;
 
-    bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg),&errLen);
+    bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg), &errLen);
     if (!ret) {
 	flog("getting jail init script callback data failed\n");
 	return;
@@ -212,7 +212,7 @@ static void cbTermJailAlloc(int exit, bool tmdOut, int iofd, void *info)
     char errMsg[1024];
     size_t errLen;
 
-    bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg),&errLen);
+    bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg), &errLen);
     if (!ret) {
 	flog("getting jail term script callback data failed\n");
 	return;

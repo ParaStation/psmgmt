@@ -281,7 +281,7 @@ static bool __validate_nodeinfo(size_t node, const nodeinfo_t *nodeinfo,
 }
 
 nodeinfo_t *getNodeinfo(PSnodes_ID_t id, const JobCred_t *cred,
-		        uint32_t allocID)
+			uint32_t allocID)
 {
     if (!PSIDnodes_isUp(id)) {
 	flog("Node id %hu is down.\n", id);
