@@ -62,10 +62,7 @@ elif [[ -n $USER_INIT ]]; then
 
     getLock
 
-    # initialize user cgroup only
-    mdsave "$CG_USER"
-
-    # add cores to user cgroup
+    # initialize user cgroup and add cores to it
     setupUserGroup
 
     rmLock

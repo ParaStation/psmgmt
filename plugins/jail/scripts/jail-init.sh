@@ -62,7 +62,7 @@ for modName in ${MODULES//,/$IFS}; do
 		rmdir -p "$step" 2>/dev/null
 	    done
 	    rmdir -p "$job" 2>/dev/null
-        done
+	done
 	rmdir -p "$i" 2>/dev/null
     done
 done
