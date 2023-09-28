@@ -24,7 +24,6 @@
 #include "pscommon.h"
 #include "psserial.h"
 #include "selector.h"
-#include "pluginhelper.h"
 #include "pluginpartition.h"
 
 #include "psidhook.h"

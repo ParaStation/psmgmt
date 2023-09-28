@@ -16,6 +16,7 @@
 #include <sys/types.h>
 
 #include "list.h"
+#include "pscpu.h"
 #include "psenv.h"
 #include "psnodes.h"
 

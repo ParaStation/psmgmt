@@ -10,10 +10,12 @@
 #ifndef __PS_SLURM_NODEINFO
 #define __PS_SLURM_NODEINFO
 
+#include <stdint.h>
+
 #include "psnodes.h"
 
+#include "psslurmjobcred.h"
 #include "psslurmnodeinfotype.h"  // IWYU pragma: export
-#include "psslurmjob.h"
 #include "psslurmstep.h"
 
 /**
