@@ -227,9 +227,9 @@ void Alloc_verify(bool grace);
 /**
  * @brief Initialize the user cgroup for the allocation
  *
- * @param alloc The allocation to initialize
+ * @param alloc Allocation to initialize
  *
- * @return Returns 0 on success otherwise -1 is returned
+ * @return Return -1 on failure or a positive number otherwise
  **/
 int Alloc_initJail(Alloc_t *alloc);
 
