@@ -324,11 +324,14 @@ bool switchCwd(char *cwd)
 bool __getScriptCBdata(int fd, char *errMsg, size_t errMsgLen, size_t *errLen,
 		       const char *func, const int line)
 {
-    if (!fd) {
+    if (fd <= 0) {
 	pluginlog("%s: invalid iofd from caller %s:%i\n", __func__, func, line);
 	errMsg[0] = '\0';
+	return false;
     }
-    *errLen = PSCio_recvBuf(fd, errMsg, errMsgLen);
+    ssize_t recvd = PSCio_recvBuf(fd, errMsg, errMsgLen);
+    if (recvd < 0) return false;
+    *errLen = recvd;
     errMsg[*errLen] = '\0';
     close(fd);
 
