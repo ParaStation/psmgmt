@@ -159,7 +159,7 @@ static int initJail(void *info)
 {
     Alloc_t *alloc = info;
     pid_t pid = -1;
-    char buf[1024];
+    char buf[64];
 
     snprintf(buf, sizeof(buf), "%u", alloc->id);
     setenv("__PSJAIL_JOBID", buf, 1);
@@ -181,7 +181,7 @@ static int termJail(void *info)
 {
     Alloc_t *alloc = info;
     pid_t pid = -1;
-    char buf[1024];
+    char buf[64];
 
     snprintf(buf, sizeof(buf), "%u", alloc->id);
     setenv("__PSJAIL_JOBID", buf, 1);
