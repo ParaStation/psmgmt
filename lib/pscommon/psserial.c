@@ -586,11 +586,11 @@ bool fetchFragHeader(DDTypedBufferMsg_t *msg, size_t *used, uint8_t *fragType,
 {
     if (!used) return false;
 
-    uint8_t fType;
+    uint8_t fType = 0;
     PSP_getTypedMsgBuf(msg, used, "fragType", &fType, sizeof(fType));
     if (fragType) *fragType = fType;
 
-    uint16_t fNum;
+    uint16_t fNum = -1;
     PSP_getTypedMsgBuf(msg, used, "fragNum", &fNum, sizeof(fNum));
     if (fragNum) *fragNum = fNum;
 
@@ -622,8 +622,8 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     }
 
     size_t used = 0;
-    uint8_t fragType;
-    uint16_t fragNum;
+    uint8_t fragType = 0;
+    uint16_t fragNum = -1;
     fetchFragHeader(msg, &used, &fragType, &fragNum, NULL, NULL);
 
     if (fragType != FRAGMENT_PART && fragType != FRAGMENT_END) {

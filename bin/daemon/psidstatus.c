@@ -895,7 +895,7 @@ static bool msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
-    int32_t pCPUs, vCPUs, proto, dmnProto;
+    int32_t pCPUs, vCPUs = -1, proto, dmnProto;
     PSP_getMsgBuf(msg, &used, "numCores", &pCPUs, sizeof(pCPUs));
     PSP_getMsgBuf(msg, &used, "numThrds", &vCPUs, sizeof(vCPUs));
     if (!PSP_tryGetMsgBuf(msg, &used, "proto", &proto, sizeof(proto)))
@@ -998,7 +998,7 @@ int send_MASTERIS(PSnodes_ID_t dest)
 static bool msg_MASTERIS(DDBufferMsg_t *msg)
 {
     size_t used = 0;
-    PSnodes_ID_t newM;
+    PSnodes_ID_t newM = -1;
 
     PSP_getMsgBuf(msg, &used, "master", &newM, sizeof(newM));
 
@@ -1154,7 +1154,7 @@ static int send_DEADNODE(PSnodes_ID_t deadnode)
  */
 static bool msg_DEADNODE(DDBufferMsg_t *msg)
 {
-    PSnodes_ID_t dead;
+    PSnodes_ID_t dead = -1;
     size_t used = 0;
 
     PSP_getMsgBuf(msg, &used, "deadNode", &dead, sizeof(dead));

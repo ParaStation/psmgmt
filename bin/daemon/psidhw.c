@@ -816,7 +816,7 @@ static void prepCounterEnv(void *info)
     if (info) {
 	DDTypedBufferMsg_t *inmsg = info;
 	size_t used = 0;
-	int32_t hw32;
+	int32_t hw32 = -1;
 	PSP_getTypedMsgBuf(inmsg, &used, "hardware type", &hw32, sizeof(hw32));
 	hw = hw32;
     }
@@ -859,7 +859,7 @@ static void getCounterCB(int result, bool tmdOut, int iofd, void *info)
     if (info) {
 	DDTypedBufferMsg_t *inmsg = info;
 	size_t used = 0;
-	int32_t hw32;
+	int32_t hw32 = 0;
 	PSP_getTypedMsgBuf(inmsg, &used, "hardware type", &hw32, sizeof(hw32));
 	hw = hw32;
 	dest = inmsg->header.sender;
@@ -929,7 +929,7 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 	.buf = { 0 } };
 
     size_t used = 0;
-    int32_t hw32;
+    int32_t hw32 = 0;
     PSP_getTypedMsgBuf(inmsg, &used, "hardware type", &hw32, sizeof(hw32));
     AttrIdx_t hw = hw32;
 
