@@ -24,7 +24,9 @@ if HAVE_SYSTEMD
   unit_DATA += systemd/psidstarter.socket
   unit_DATA += systemd/psidstarter@.service
   systemd_psid_ddir = $(systemdconfdir)/psid.service.d
+if MUNGE_ENABLED
   systemd_psid_d_DATA = systemd/munge.conf
+endif
 else
   init_d_SCRIPTS = init.d/parastation
   nobase_sysconf_DATA = xinetd.d/psidstarter

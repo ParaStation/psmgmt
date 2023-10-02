@@ -385,7 +385,6 @@ fi
 %_unitdir/psid.service
 %_unitdir/psidstarter@.service
 %_unitdir/psidstarter.socket
-%dir %{_systemdconfdir}/psid.service.d
 %else
 %{_sysconfdir}/init.d/parastation
 %config(noreplace) /etc/xinetd.d/psidstarter
@@ -486,6 +485,7 @@ fi
 %if !0%{?disable_munge}
 %{_plugindir}/psmunge.so
 %if !0%{?disable_systemd}
+%dir %{_systemdconfdir}/psid.service.d
 %config(missingok,noreplace) %{_systemdconfdir}/psid.service.d/munge.conf
 %endif
 %endif
