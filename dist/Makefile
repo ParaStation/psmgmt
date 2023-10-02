@@ -57,7 +57,7 @@ $(DISTNAME).src.rpm: $(DISTNAME)/$(DISTNAME).spec $(DISTNAME).tar.gz
 # $(RPMBUILDLOG) as the target because we know the filename.(in opposite to the rpm filename)
 $(RPMBUILDLOG): $(DISTNAME)/$(DISTNAME).spec $(DISTNAME).tar.gz
 	mkdir -p $(RPMBUILDDIR)
-	rpmbuild --clean $(TARGETARGS) \
+	env LT_SYS_LIBRARY_PATH=/usr/lib64 rpmbuild --clean $(TARGETARGS) \
 		-bb --define="_sourcedir $$PWD" --define "_rpmdir $$PWD" \
 		--define="_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
 		--define="_builddir $(RPMBUILDDIR)" $(CONFIGARGS) \
