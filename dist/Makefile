@@ -102,13 +102,15 @@ Makefile.sources:
 	 gawk ' !f{printf "SOURCE_FILES=";f=1} f{gsub("([:%])","\\\\&");printf " \\\n" $$0} END{printf "\n"}' >> $@
 
 ######################################################
-
-SVN_VERSION = $(shell cd $(TOP_SRCDIR) && svnversion -n | tr -c [:alnum:] "_")
-
 .PHONY: version
 version:
 	@echo VERSION="$(VERSION)"
 	@echo RELEASE="$(RELEASE)"
+
+.PHONY: tag
+tag:
+	@echo 'Use "git tag -a <tagname>" to tag a version!'
+	@exit 1
 
 ######################################################
 # get the latest update from the git@git.ccc:psbuild project
