@@ -859,7 +859,7 @@ static void getCounterCB(int result, bool tmdOut, int iofd, void *info)
     if (info) {
 	DDTypedBufferMsg_t *inmsg = info;
 	size_t used = 0;
-	int32_t hw32 = 0;
+	int32_t hw32 = -1;
 	PSP_getTypedMsgBuf(inmsg, &used, "hardware type", &hw32, sizeof(hw32));
 	hw = hw32;
 	dest = inmsg->header.sender;
@@ -929,14 +929,13 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 	.buf = { 0 } };
 
     size_t used = 0;
-    int32_t hw32 = 0;
+    int32_t hw32 = -1;
     PSP_getTypedMsgBuf(inmsg, &used, "hardware type", &hw32, sizeof(hw32));
     AttrIdx_t hw = hw32;
 
-    if (PSIDnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) {
+    if (hw > -1 && (PSIDnodes_getHWStatus(PSC_getMyID()) & (1<<hw))) {
 	int header = (PSP_Info_t) inmsg->type == PSP_INFO_COUNTHEADER;
 	char *script = HW_getScript(hw, header ? HW_HEADERLINE : HW_COUNTER);
-
 	if (script) {
 	    DDTypedBufferMsg_t *info = malloc(inmsg->header.len);
 
@@ -968,9 +967,11 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 	}
     } else {
 	/* No HW, cannot get counter */
-	PSID_log(-1, "%s: no %s hardware available\n", __func__, Attr_name(hw));
+	char *name = Attr_name(hw);
+	if (!name) name = "<unknown>";
+	PSID_log(-1, "%s: no %s hardware available\n", __func__, name);
 	snprintf(msg.buf, sizeof(msg.buf), "%s: no %s hardware available",
-		 __func__, Attr_name(hw));
+		 __func__, name);
     }
 
     sendMsg(&msg);
