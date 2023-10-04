@@ -999,13 +999,12 @@ static bool msg_MASTERIS(DDBufferMsg_t *msg)
 {
     size_t used = 0;
     PSnodes_ID_t newM = -1;
-
     PSP_getMsgBuf(msg, &used, "master", &newM, sizeof(newM));
 
     PSID_log(PSID_LOG_STATUS, "%s: %s says master is %d\n", __func__,
 	     PSC_printTID(msg->header.sender), newM);
 
-    if (newM != getMasterID()) {
+    if (newM != -1 && newM != getMasterID()) {
 	if (newM < getMasterID()) {
 	    send_DAEMONCONNECT(newM);
 	} else {
@@ -1154,14 +1153,13 @@ static int send_DEADNODE(PSnodes_ID_t deadnode)
  */
 static bool msg_DEADNODE(DDBufferMsg_t *msg)
 {
-    PSnodes_ID_t dead = -1;
     size_t used = 0;
-
+    PSnodes_ID_t dead = -1;
     PSP_getMsgBuf(msg, &used, "deadNode", &dead, sizeof(dead));
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, dead);
 
-    send_DAEMONCONNECT(dead);
+    if (dead != -1) send_DAEMONCONNECT(dead);
     return true;
 }
 
