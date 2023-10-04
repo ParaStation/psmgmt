@@ -1277,7 +1277,17 @@ static void server_log_cb(const pmix_proc_t *client,
 			  const pmix_info_t directives[], size_t ndirs,
 			  pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s(client %s:%d ndata %zd ndirs %zd)\n", __func__,
+	 client->nspace, client->rank, ndata, ndirs);
+
+#if PMIX_VERSION_MAJOR >= 4
+    mlog("%s: %s:%d reports:\n", __func__, client->nspace, client->rank);
+    for (size_t i = 0; i < ndata; i++) {
+	char * istr = PMIx_Info_string(data+i);
+	mlog("%s:  %s\n", __func__, istr);
+	free(istr);
+    }
+#endif
 
     // @todo implement
 
