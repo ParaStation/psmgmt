@@ -27,7 +27,7 @@ function cleanupUserCgroup()
     else
 	# calculate remaining cpus for user cgroup
 
-	BASE=$CG_USER
+	local BASE=$CG_USER
 	REMAINING_CPUS=""
 	for i in "$BASE"/job-*/; do
 	    LEFTOVER_JOB_TASKS=$(cat "$i/tasks" 2>/dev/null)
