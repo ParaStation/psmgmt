@@ -1,3 +1,315 @@
+Version 5.1.57-1:
+=================
+------------------------------------------------------------------------
+844a38a17 | Norbert Eicker | Thu, 5 Oct 2023 15:55:40 +0200
+
+Fix typo possibly rendering rmMemFromUser() useless
+------------------------------------------------------------------------
+eb41c614f | Norbert Eicker | Thu, 5 Oct 2023 14:55:33 +0200
+
+Ensure local variable does not influence top level behavior
+------------------------------------------------------------------------
+9e4c104f1 | Norbert Eicker | Thu, 28 Sep 2023 18:31:22 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+42d48f0fb | Norbert Eicker | Thu, 28 Sep 2023 18:19:52 +0200
+
+Add todo
+------------------------------------------------------------------------
+6fadc094a | Norbert Eicker | Thu, 28 Sep 2023 18:19:07 +0200
+
+Fix wrong documentation comment on return value
+------------------------------------------------------------------------
+fd3951d68 | Norbert Eicker | Thu, 28 Sep 2023 18:17:29 +0200
+
+Avoid temporary buffers of excessive size
+------------------------------------------------------------------------
+bfd23cdab | Norbert Eicker | Thu, 28 Sep 2023 18:16:49 +0200
+
+Whitespace fixes
+------------------------------------------------------------------------
+eb90b2a7c | Norbert Eicker | Thu, 28 Sep 2023 18:14:56 +0200
+
+Avoid array boundary violation
+------------------------------------------------------------------------
+ab581bc71 | Norbert Eicker | Thu, 28 Sep 2023 18:12:55 +0200
+
+Avoid superfluous mdsave call
+------------------------------------------------------------------------
+b23c8f6fb | Michael Rauh | Wed, 13 Sep 2023 13:46:50 +0200
+
+Reintroduce quoting for CPU expansion and let
+shellcheck accept no quoting for CPU compression
+------------------------------------------------------------------------
+36022a69c | Michael Rauh | Mon, 11 Sep 2023 14:37:26 +0200
+
+Bugfix: fix race condition and ensure all SSH processes get jailed
+------------------------------------------------------------------------
+2a5d93f12 | Michael Rauh | Fri, 8 Sep 2023 12:48:32 +0200
+
+Use ALLOC_LIST to terminate user cgroup
+------------------------------------------------------------------------
+00923026a | Michael Rauh | Fri, 8 Sep 2023 11:47:42 +0200
+
+Add allocation list to jail terminate environment
+------------------------------------------------------------------------
+f75b418b6 | Michael Rauh | Thu, 7 Sep 2023 18:59:36 +0200
+
+Ensure path to attach BPF program is created
+------------------------------------------------------------------------
+e0a857c2f | Michael Rauh | Thu, 7 Sep 2023 18:33:47 +0200
+
+Fix warnings if memory cgroup is terminated
+------------------------------------------------------------------------
+80c00bf87 | Michael Rauh | Thu, 7 Sep 2023 18:21:47 +0200
+
+Add caller name to jail log functions
+------------------------------------------------------------------------
+97a8e41d9 | Michael Rauh | Thu, 7 Sep 2023 17:50:04 +0200
+
+Ensure cgroupv2 controllers get enabled correctly
+------------------------------------------------------------------------
+f03b6d156 | Michael Rauh | Thu, 7 Sep 2023 17:45:59 +0200
+
+Quoting breaks cpu core calculation
+------------------------------------------------------------------------
+044cfb69c | Stephan Krempel | Wed, 6 Sep 2023 02:25:11 +0200
+
+Jail scripts: Improvement suggestions
+------------------------------------------------------------------------
+f3dda11f9 | Stephan Krempel | Wed, 6 Sep 2023 00:39:16 +0200
+
+Jail scripts: Always use [[ ]] and remove redundant ""
+------------------------------------------------------------------------
+69c4215eb | Stephan Krempel | Wed, 6 Sep 2023 00:33:31 +0200
+
+Jail scripts: Handle shellcheck warnings
+------------------------------------------------------------------------
+bd9cf8a62 | Stephan Krempel | Wed, 6 Sep 2023 00:41:23 +0200
+
+Jail scripts: Fix quoting
+------------------------------------------------------------------------
+b7ea93cb7 | Michael Rauh | Tue, 5 Sep 2023 17:29:07 +0200
+
+Fix errors unveiled by shellcheck
+------------------------------------------------------------------------
+159cb4803 | Michael Rauh | Tue, 5 Sep 2023 16:44:00 +0200
+
+Set vim shell filetype for jail include files
+------------------------------------------------------------------------
+43c53d125 | Michael Rauh | Mon, 4 Sep 2023 16:43:47 +0200
+
+Ensure correct locking in cgroupv1
+------------------------------------------------------------------------
+d7cec1d48 | Michael Rauh | Mon, 4 Sep 2023 14:52:50 +0200
+
+Set the correct sequence when setting cgroup memory limits
+------------------------------------------------------------------------
+451b34885 | Michael Rauh | Fri, 1 Sep 2023 16:14:59 +0200
+
+Ensure slurmd prolog is enabled correctly if cgroup constrains
+are configured
+------------------------------------------------------------------------
+7b5fa760e | Michael Rauh | Wed, 30 Aug 2023 13:28:13 +0200
+
+Forward all available information to jail terminate scripts
+------------------------------------------------------------------------
+a0aa284b9 | Michael Rauh | Wed, 30 Aug 2023 12:25:20 +0200
+
+Initialize various user cgroups via slurmd prolog
+------------------------------------------------------------------------
+6a51a3732 | Michael Rauh | Thu, 24 Aug 2023 15:50:35 +0200
+
+Improve cleanup of leftover cgroupv2 directories
+------------------------------------------------------------------------
+f0427aa8d | Michael Rauh | Thu, 24 Aug 2023 13:56:18 +0200
+
+Add more jail debug log
+------------------------------------------------------------------------
+bf6608000 | Michael Rauh | Wed, 23 Aug 2023 15:59:27 +0200
+
+Adopt jail scripts to support the creation of the
+user cgroup as single action
+------------------------------------------------------------------------
+dcd999141 | Michael Rauh | Wed, 23 Aug 2023 13:57:21 +0200
+
+Use slurmd prolog to setup jail environment and gather additional
+allocation information
+
+ - slurmctld is still executing the parallel prologue and is mandatory
+------------------------------------------------------------------------
+9fd9c3d02 | Norbert Eicker | Wed, 4 Oct 2023 22:17:08 +0200
+
+More careful selection of defaults and checks
+------------------------------------------------------------------------
+f3ee1dea1 | Norbert Eicker | Wed, 4 Oct 2023 14:59:18 +0200
+
+Check if fetching header from fragment worked
+------------------------------------------------------------------------
+918470351 | Norbert Eicker | Wed, 4 Oct 2023 14:39:15 +0200
+
+Actually check if data was unavailable from message
+------------------------------------------------------------------------
+754052d5a | Stephan Krempel | Thu, 27 Jul 2023 15:11:30 +0200
+
+Add PMIx_Log() test program
+------------------------------------------------------------------------
+be1d31816 | Stephan Krempel | Wed, 4 Oct 2023 15:50:15 +0200
+
+pspmix: Print messages from server log interface
+
+Print content of the messages to syslog as a first step to
+enable debugging of problems until the complete implementation
+is in place.
+------------------------------------------------------------------------
+7710e8440 | Stephan Krempel | Wed, 4 Oct 2023 18:42:49 +0200
+
+Merge remote-tracking branch 'psbuild/master'
+
+Skipping .gitignore and doc/Makefile.in
+------------------------------------------------------------------------
+093fa0095 | Thomas Moschny | Wed, 4 Oct 2023 13:52:33 +0000
+
+Merge branch 'set_lt_sys_library_path' into 'master'
+
+Adapt changes done in psmgmt
+
+See merge request parastation/psbuild!2
+------------------------------------------------------------------------
+7f9a48559 | Stephan Krempel | Wed, 4 Oct 2023 13:52:33 +0000
+
+Adapt changes done in psmgmt.
+------------------------------------------------------------------------
+a0703aad8 | Norbert Eicker | Wed, 4 Oct 2023 00:38:05 +0200
+
+Add explaining comment to Makefile
+------------------------------------------------------------------------
+fd379ef1c | Norbert Eicker | Tue, 3 Oct 2023 00:42:07 +0200
+
+Work around rpmbuild setting in Rocky 9
+
+ - rpmbuild will fall back setting LT_SYS_LIBRARY_PATH to %_libdir. As a
+   consequence runpath setting pointing to %_libdir (opt/parastation/lib64)
+   will be omitted from executables. Thus, set LT_SYS_LIBRARY_PATH explicitly
+------------------------------------------------------------------------
+61c7203c0 | Norbert Eicker | Tue, 3 Oct 2023 00:05:54 +0200
+
+Fix gcc-11 warning emitted via rpmbuild on Rocky 9
+------------------------------------------------------------------------
+84d9d52cb | Norbert Eicker | Mon, 2 Oct 2023 23:07:57 +0200
+
+Ensure RPM build works without munge
+------------------------------------------------------------------------
+38844c653 | Norbert Eicker | Fri, 22 Sep 2023 12:28:34 +0200
+
+Push to Autoconf 2.69 again
+------------------------------------------------------------------------
+f1f62bbdc | Stephan Krempel | Fri, 22 Sep 2023 10:20:31 +0200
+
+Fix libbpf version check
+------------------------------------------------------------------------
+14f69e19d | Stephan Krempel | Thu, 7 Sep 2023 02:04:58 +0200
+
+configure: Check libbpf version
+------------------------------------------------------------------------
+927bb73c4 | Stephan Krempel | Tue, 19 Sep 2023 23:02:57 +0200
+
+Build RPM without bpf on RHEL9 and compatible
+------------------------------------------------------------------------
+b7083f07c | Stephan Krempel | Wed, 13 Sep 2023 00:43:25 +0200
+
+dynIP: Do not install AWS scripts
+------------------------------------------------------------------------
+ad9862aac | Michael Rauh | Tue, 22 Aug 2023 11:49:08 +0200
+
+Bugfix: set correct state of allocation to ensure proper
+cleanup of processes
+------------------------------------------------------------------------
+96b8e7f71 | Thomas Moschny | Wed, 23 Mar 2022 13:57:30 +0000
+
+Merge branch 'real-txt2man-1.7.1' into 'master'
+
+Revert txt2man to actual 1.7.1 release version
+
+See merge request parastation/psbuild!1
+------------------------------------------------------------------------
+7e06d1f28 | Stephan Krempel | Wed, 23 Mar 2022 14:38:18 +0100
+
+Revert txt2man to actual 1.7.1 release version
+
+See https://github.com/mvertes/txt2man/issues/37
+------------------------------------------------------------------------
+405afbbc7 | Thomas Moschny | Thu, 9 Sep 2021 20:29:46 +0200
+
+Update txt2man to 1.7.1.
+------------------------------------------------------------------------
+df14c5aa9 | Thomas Moschny | Mon, 22 Jun 2020 22:42:42 +0200
+
+Update txt2man to 1.7.0.
+------------------------------------------------------------------------
+06560742d | Stephan Krempel | Thu, 28 May 2020 14:04:42 +0200
+
+remove redundant escapes causing gawk warnings
+
+see https://github.com/mvertes/txt2man/pull/18
+------------------------------------------------------------------------
+295551a41 | Simon Pickartz | Fri, 6 Sep 2019 17:43:52 +0200
+
+vcversion: support rc[0-9]+ suffix within the version string
+------------------------------------------------------------------------
+531f47764 | Thomas Moschny | Mon, 29 Aug 2016 17:48:30 +0200
+
+Update txt2man to 1.6.0.
+------------------------------------------------------------------------
+b59c4f448 | Thomas Moschny | Fri, 5 Feb 2016 20:06:51 +0100
+
+Pipe the RPM build logfile through tee.
+------------------------------------------------------------------------
+668f2773a | Jens Hauke | Mon, 30 Nov 2015 13:30:36 +0100
+
+vcversion: without .git,.svn and VERSION try the parent dir name.
+------------------------------------------------------------------------
+5b34b0d29 | Thomas Moschny | Tue, 9 Jun 2015 11:51:02 +0200
+
+Merge changes from psmgmt.svn:
+
+r8653: Older xsltproc cannot read from a FIFO.
+r8652: Update authors.
+r8651: - Use xsltproc instead of xmlstarlet.
+       - Call svn in C locale.
+------------------------------------------------------------------------
+4f0e8a143 | Thomas Moschny | Tue, 9 Jun 2015 11:29:56 +0200
+
+Use "_dirty" instead of the "-dirty" default.
+
+Prevent "hash-dirty" being matched in case there is no tag
+matching "?*-?*".
+------------------------------------------------------------------------
+697bff093 | Thomas Moschny | Tue, 9 Jun 2015 11:27:55 +0200
+
+Add --no-dirty switch.
+------------------------------------------------------------------------
+82b5c0831 | Thomas Moschny | Tue, 9 Jun 2015 11:18:06 +0200
+
+Cosmetics.
+------------------------------------------------------------------------
+e42601e04 | Thomas Moschny | Tue, 9 Jun 2015 11:17:29 +0200
+
+Add long version of -n switch, and document -n.
+------------------------------------------------------------------------
+bda6f8f2c | Thomas Moschny | Tue, 25 Nov 2014 16:13:16 +0100
+
+Disable implicit rules.
+
+These could cause make to call e.g. yacc or makeinfo, and mess it all up.
+------------------------------------------------------------------------
+1477028b7 | Jens Hauke | Thu, 20 Nov 2014 17:13:47 +0100
+
+Initial commit (psbuild)
+------------------------------------------------------------------------
+
+
 Version 5.1.57:
 ===============
 ------------------------------------------------------------------------

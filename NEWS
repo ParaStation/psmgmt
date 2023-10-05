@@ -7,6 +7,29 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
 
+Version 5.1.57-1:
+=================
+Bugfixes:
+ - Set correct state of allocation to ensure proper cleanup of processes
+ - Set the correct sequence when setting cgroup memory limits
+ - Ensure correct locking in cgroupv1
+ - Fix race condition and ensure all SSH processes get jailed into cgroups
+ - Ensure cgroupv2 controllers get enabled correctly
+ - Fix quoting and other errors unveiled by shellcheck in jail scripts
+ - Ensure local variable does not influence top level behavior
+ - Various checks if data was unavailable from message
+ - Avoid array boundary violation
+Enhancements:
+ - Print messages from PMIx server log interface
+ - Improve cleanup of leftover cgroupv2 directories
+ - Add caller name to jail log functions
+ - Avoid superfluous mdsave call in cgroup jail script
+ - Avoid temporary buffers of excessive size
+Additional changes:
+ - Various improvements in the build system (e.g. to support Rocky 9)
+ - Fix gcc-11 warning emitted via rpmbuild on Rocky 9
+ - Improvements of documentation comment
+
 *************************************************************************
 *************************************************************************
 **                                                                     **
