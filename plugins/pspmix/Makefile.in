@@ -145,7 +145,7 @@ am__installdirs = "$(DESTDIR)$(plugindir)" "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 pspmix_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(libplugincommon) \
-	$(libpscommon)
+	$(libpscommon) $(libpsi)
 am_pspmix_la_OBJECTS = pspmix_la-pspmixmain.lo pspmix_la-pspmixlog.lo \
 	pspmix_la-pspmixconfig.lo pspmix_la-pspmixcommon.lo \
 	pspmix_la-pspmixdaemon.lo pspmix_la-pspmixforwarder.lo \
@@ -431,6 +431,7 @@ scriptsdir = $(prefix)/scripts
 #psaccount_dir := plugins/psaccount
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
+libpsi = $(top_builddir)/lib/psi/libpsi.la
 plugin_LTLIBRARIES = pspmix.la
 pspmix_la_SOURCES = pspmixmain.c pspmixtypes.h pspmixlog.c		\
 	pspmixlog.h pspmixconfig.c pspmixconfig.h pspmixcommon.c	\
@@ -445,7 +446,7 @@ pspmix_la_CPPFLAGS = $(AM_CPPFLAGS) \
 		     -DPLUGINDIR=\"$(plugindir)\"
 
 pspmix_la_CFLAGS = $(AM_CFLAGS) $(pmix_CFLAGS)
-pspmix_la_LIBADD = $(pmix_LIBS) $(libplugincommon) $(libpscommon)
+pspmix_la_LIBADD = $(pmix_LIBS) $(libplugincommon) $(libpscommon) $(libpsi)
 dist_plugin_DATA = pspmix.conf
 EXTRA_DIST = slurm/mpi_pspmix.c tests/pmix_test_putget.c
 all: all-am

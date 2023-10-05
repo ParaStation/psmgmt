@@ -14,6 +14,7 @@ include $(top_srcdir)/common.am
 
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
+libpsi = $(top_builddir)/lib/psi/libpsi.la
 
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
 #AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon \
@@ -36,7 +37,7 @@ pspmix_la_CPPFLAGS = $(AM_CPPFLAGS) \
 		     -DPLUGINDIR=\"$(plugindir)\"
 
 pspmix_la_CFLAGS = $(AM_CFLAGS) $(pmix_CFLAGS)
-pspmix_la_LIBADD = $(pmix_LIBS) $(libplugincommon) $(libpscommon)
+pspmix_la_LIBADD = $(pmix_LIBS) $(libplugincommon) $(libpscommon) $(libpsi)
 
 dist_plugin_DATA = pspmix.conf
 

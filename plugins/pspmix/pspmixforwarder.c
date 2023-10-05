@@ -42,6 +42,7 @@
 #include "pspluginprotocol.h"
 #include "psserial.h"
 #include "pstask.h"
+#include "psispawn.h"
 
 #include "psidcomm.h"
 #include "psidforwarder.h"
@@ -151,10 +152,193 @@ static bool doSpawn(SpawnRequest_t *req)
     return true;
 }
 
+#if 0 /* currently not used with PMIx */
+/**
+ * @brief Prepare preput keys and values to pass by environment
+ *
+ * Generates an array of strings representing the preput key-value-pairs in the
+ * format "__PMI_<KEY>=<VALUE>" and one variable "__PMI_preput_num=<COUNT>"
+ *
+ * @param preputc Number of key value pairs
+ *
+ * @param preputv Array of key value pairs
+ *
+ * @param envv Where to store the pointer to the array of definitions
+ *
+ * @return No return value
+ */
+static void addPreputToEnv(int preputc, KVP_t *preputv, strv_t *env)
+{
+
+    snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", preputc);
+    strvAdd(env, ustrdup(buffer));
+
+    for (int i = 0; i < preputc; i++) {
+	int esize;
+	char *tmpstr;
+
+	snprintf(buffer, sizeof(buffer), "preput_key_%i", i);
+	esize = 6 + strlen(buffer) + 1 + strlen(preputv[i].key) + 1;
+	tmpstr = umalloc(esize);
+	snprintf(tmpstr, esize, "__PMI_%s=%s", buffer, preputv[i].key);
+	strvAdd(env, tmpstr);
+
+	snprintf(buffer, sizeof(buffer), "preput_val_%i", i);
+	esize = 6 + strlen(buffer) + 1 + strlen(preputv[i].value) + 1;
+	tmpstr = umalloc(esize);
+	snprintf(tmpstr, esize, "__PMI_%s=%s", buffer, preputv[i].value);
+	strvAdd(env, tmpstr);
+    }
+}
+#endif
+
+/**
+ *  fills the passed task structure to spawn processes using mpiexec
+ *
+ *  @param req spawn request
+ *
+ *  @param usize universe size
+ *
+ *  @param task task structure to adjust
+ *
+ *  @return 1 on success, 0 on error (currently unused)
+ */
 static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 {
-    /* @todo implement */
-    return 0;
+    bool noParricide = false;
+
+    SingleSpawn_t *spawn = &(req->spawns[0]);
+
+#if 0 /* currently not used with PMIx */
+    /* put preput key-value-pairs into environment
+     *
+     * We will transport this kv-pairs using the spawn environment. When
+     * our children are starting the pmi_init() call will add them to their
+     * local KVS.
+     *
+     * Only the values of the first single spawn are used. */
+    strv_t env;
+    strvInit(&env, task->environ, task->envSize);
+    addPreputToEnv(spawn->preputc, spawn->preputv, &env);
+
+    ufree(task->environ);
+    task->environ = env.strings;
+    task->envSize = env.count;
+    strvSteal(&env, true);
+#endif
+
+    /* build arguments:
+     * mpiexec -u <UNIVERSE_SIZE> -np <NP> -d <WDIR> -p <PATH> \
+     *  --nodetype=<NODETYPE> --tpp=<TPP> <BINARY> ... */
+    strv_t args;
+    strvInit(&args, NULL, 0);
+
+    /* @todo change to not need to start a kvsprovider any longer */
+    char *tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
+    if (tmpStr) {
+	strvAdd(&args, ustrdup(tmpStr));
+    } else {
+	strvAdd(&args, ustrdup(PKGLIBEXECDIR "/kvsprovider"));
+    }
+    strvAdd(&args, ustrdup("-u"));
+
+    snprintf(buffer, sizeof(buffer), "%d", usize);
+    strvAdd(&args, ustrdup(buffer));
+
+    for (int i = 0; i < req->num; i++) {
+
+	spawn = &(req->spawns[i]);
+
+	/* set the number of processes to spawn */
+	strvAdd(&args, ustrdup("-np"));
+	snprintf(buffer, sizeof(buffer), "%d", spawn->np);
+	strvAdd(&args, ustrdup(buffer));
+
+	/* extract info values and keys
+	 *
+	 * These info variables are implementation dependend and can
+	 * be used for e.g. process placement. All unsupported values
+	 * will be silently ignored.
+	 *
+	 * ParaStation pspmix supports:
+	 *
+	 *  - wdir: The working directory of the spawned processes
+	 *  - hosts: List of hosts to use
+	 *  - hostfile: File containing the list of hosts to use
+	 */
+	for (int j = 0; j < spawn->infoc; j++) {
+	    KVP_t *info = &(spawn->infov[j]);
+
+	    if (!strcmp(info->key, "wdir")) {
+		strvAdd(&args, ustrdup("-d"));
+		strvAdd(&args, ustrdup(info->value));
+	    }
+	    if (!strcmp(info->key, "hosts")) {
+		strvAdd(&args, ustrdup("-H"));
+		char *val = ustrdup(info->value);
+		/* replace all colons with whitespaces */
+		for (char *p = val; (p = strchr(p, ',')) != NULL; *p = ' ');
+		strvAdd(&args, val);
+	    }
+	    if (!strcmp(info->key, "hostfile")) {
+		strvAdd(&args, ustrdup("-f"));
+		strvAdd(&args, ustrdup(info->value));
+	    }
+	}
+
+	/* add binary and argument from spawn request */
+	for (int j = 0; j < spawn->argc; j++) {
+	    strvAdd(&args, ustrdup(spawn->argv[j]));
+	}
+
+	/* add separating colon */
+	if (i < req->num - 1) {
+	    strvAdd(&args, ustrdup(":"));
+	}
+    }
+
+    task->argv = args.strings;
+    task->argc = args.count;
+    strvSteal(&args, true);
+
+    task->noParricide = noParricide;
+
+    return 1;
+}
+
+/**
+ * @brief Filter spawner environment for the spawnee
+ *
+ * Filter out some of the spawners environment variables
+ * when copying the task for the spawnees.
+ *
+ * @param envent  one entry of the task environment in "k=v" notation
+ *
+ * @return Returns true to include and false to exclude @a envent
+ */
+static bool spawnEnvFilter(const char *envent)
+{
+    /* @todo just copied from pspmi, modify */
+
+    /* skip troublesome old env vars */
+    if (!strncmp(envent, "__KVS_PROVIDER_TID=", 19)
+	    || !strncmp(envent, "PMI_ENABLE_SOCKP=", 17)
+	    || !strncmp(envent, "PMI_RANK=", 9)
+	    || !strncmp(envent, "PMI_PORT=", 9)
+	    || !strncmp(envent, "PMI_FD=", 7)
+	    || !strncmp(envent, "PMI_KVS_TMP=", 12)
+	    || !strncmp(envent, "OMP_NUM_THREADS=", 16)) {
+	return false;
+    }
+
+#if 0
+    if (path && !strncmp(cur, "PATH", 4)) {
+	setPath(cur, path, &task->environ[i++]);
+	continue;
+    }
+#endif
+
+    return true;
 }
 
 /**
@@ -173,27 +357,84 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
  *
  * @return True on success, false on error
  */
-bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
+static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
 {
-    int usize = 0;
-    /* @todo calc usize */
+    int usize = 1;
+    char *str = getenv("PMI_UNIVERSE_SIZE");
+    if (str) {
+	usize = atoi(str);
+    }
 
-    PStask_t *task = NULL;
-    /* @todo init task */
+    bool debug = false;
+    str = getenv("PMIX_DEBUG");
+    if (str && atoi(str) > 0) {
+	debug = true;
+    }
 
-    int ret = fillTaskFunction(req, usize, task);
-    if (!ret) {
-	freeSpawnRequest(req);
-	/* @todo make sure freeSpawnRequest does not free stuff in apps */
+    PStask_t *task = initSpawnTask(childTask, spawnEnvFilter);
+    if (!task) {
+	mlog("%s: cannot create a new task\n", __func__);
 	return false;
     }
 
+    task->rank = serviceRank - 1;
 
-    /* @todo spawn task */
+    /* fill the command of the task */
+    int rc = fillTaskFunction(req, usize, task);
 
-    freeSpawnRequest(req);
+    if (rc == -1) {
+	/* function to fill the spawn task tells us not to be responsible */
+	mlog("%s(r%i): Falling back to default PMIx fill spawn function.\n",
+	     __func__, rank);
+	rc = fillWithMpiexec(req, usize, task);
+    }
 
-    return true;
+    if (!rc) {
+	elog("Error with spawning processes.\n");
+	mlog("%s(r%i): Error in PMIx fill spawn function.\n", __func__, rank);
+	PStask_delete(task);
+	return false;
+    }
+
+    /* add additional env vars */
+    strv_t env;
+    strvInit(&env, task->environ, task->envSize);
+
+    strvAdd(&env, ustrdup("PMIX_SPAWNED=1"));
+
+    /* PMI_SIZE should be set my mpiexec @todo right? */
+#if 0
+    /* calc totalProcs */
+    int totalProcs = 0;
+    for (int i = 0; i < req->num; i++) {
+	totalProcs += req->spawns[i].np;
+    }
+
+    snprintf(buffer, sizeof(buffer), "PMIX_SIZE=%d", totalProcs);
+    strvAdd(&env, ustrdup(buffer));
+    if(debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
+#endif
+
+    ufree(task->environ);
+    task->environ = env.strings;
+    task->envSize = env.count;
+    strvSteal(&env, true);
+
+    if (debug) {
+	elog("%s(r%i): Executing '", __func__, rank);
+	for (uint32_t j = 0; j < task->argc; j++) elog(" %s", task->argv[j]);
+	elog("'\n");
+    }
+    mlog("%s(r%i): Executing '", __func__, rank);
+    for (uint32_t j = 0; j < task->argc; j++) mlog(" %s", task->argv[j]);
+    mlog("'\n");
+
+    /* spawn task */
+    bool ret = PSI_sendSpawnMsg(task, false, PSC_getMyID(), sendDaemonMsg);
+
+    PStask_delete(task);
+
+    return ret;
 }
 
 /**
@@ -244,20 +485,22 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
 	return;
     }
 
+    /* uniquely identifies the spawn globally */
     SpawnReqData_t *srdata = pendSpawn->data;
 
     /* try to do the spawn */
     if (tryPMIxSpawn(pendSpawn, serviceRank)) {
-	plog("spaw executed successfully\n");
+	plog("spawn executed successfully\n");
 	sendSpawnResp(srdata->pmixServer, 1, srdata->spawnID);
     } else {
-	plog("spaw failed\n");
+	plog("spawn failed\n");
 	sendSpawnResp(srdata->pmixServer, 0, srdata->spawnID);
     }
 
     /* cleanup */
     ufree(pendSpawn->data);
     freeSpawnRequest(pendSpawn);
+    /* @todo make sure freeSpawnRequest does not free stuff in apps */
     pendSpawn = NULL;
 }
 
