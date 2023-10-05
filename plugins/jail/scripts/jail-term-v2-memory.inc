@@ -26,7 +26,7 @@ function rmMemFromUser()
 
     if [[ -n $MEM_VAL && -n $MEM_NAME ]]; then
 	USER_MEM=$(cat "$CG_USER/$MEM_NAME" 2>/dev/null)
-	if [[ -n $USER_MEM && $USER_NAME != "max" ]]; then
+	if [[ -n $USER_MEM && $USER_MEM != "max" ]]; then
 	    NEW_MEM=$((USER_MEM - MEM_VAL))
 
 	    [[ $NEW_MEM -lt 0 ]] && {
