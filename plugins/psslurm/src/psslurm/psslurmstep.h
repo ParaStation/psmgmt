@@ -77,6 +77,7 @@ typedef struct {
 } Spank_Opt_t;
 
 typedef struct {
+    list_t next;                /**< used to put into some step-lists */
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
     uint32_t stepHetComp;	/**< step het component identifier */
@@ -197,9 +198,8 @@ typedef struct {
     char *container;            /**< container path */
     psAccountInfo_t acctBase;   /**< account base values (e.g. file-system) */
     uint32_t mpiPluginID;	/**< Slurm MPI plugin ID */
-    list_t fwMsgQueue;		/**< Queued output/error messages waiting
-				     for forwarder start to be delivered */
-    list_t next;                /**< used to put into some step-lists */
+    list_t fwMsgQueue;          /**< Queued output/error messages waiting for
+				     delivery after forwarder start */
 } Step_t;
 
 /**

@@ -93,8 +93,8 @@ typedef struct {
     PSCPU_set_t hwthreads;  /**< hwthreads to use for job on current node */
     char *container;        /**< container path */
     psAccountInfo_t acctBase;  /**< account base values (e.g. file-system) */
-    list_t fwMsgQueue;	    /**< Queued output/error messages waiting
-				 for forwarder start to be delivered */
+    list_t fwMsgQueue;	    /**< Queued output/error messages waiting for
+				 delivery after forwarder start */
 } Job_t;
 
 /**
