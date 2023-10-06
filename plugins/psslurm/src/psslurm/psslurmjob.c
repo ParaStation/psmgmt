@@ -26,12 +26,12 @@
 #include "psslurmalloc.h"
 #include "psslurmauth.h"
 #include "psslurmbcast.h"
+#include "psslurmfwcomm.h"
 #include "psslurmgres.h"
 #include "psslurmlog.h"
 #include "psslurmpscomm.h"
 #include "psslurmstep.h"
 #include "psslurmtasks.h"
-#include "psslurmfwcomm.h"
 
 #define MAX_JOBID_LENGTH 128
 
@@ -113,7 +113,7 @@ bool Job_delete(Job_t *job)
 
     clearTasks(&job->tasks);
     freeJobCred(job->cred);
-    fwCMD_clearMsgQueue(&job->fwMsgQueue);
+    clearFwMsgQueue(&job->fwMsgQueue);
 
     envShred(&job->env);
     envShred(&job->spankenv);

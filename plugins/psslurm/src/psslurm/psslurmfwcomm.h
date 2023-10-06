@@ -90,9 +90,9 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *msg);
 /**
  * @brief Clear job/step forwarder message queue
  *
- * @param The queue to clear
+ * @param queue The queue to clear
  */
-void fwCMD_clearMsgQueue(list_t *queue);
+void clearFwMsgQueue(list_t *queue);
 
 /**
  * @brief Send CMD_PRINT_CHILD_MSG to a forwarder

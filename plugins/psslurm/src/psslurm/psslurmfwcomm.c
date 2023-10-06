@@ -426,7 +426,7 @@ void fwCMD_enableSrunIO(Step_t *step)
     sendMsg(&msg);
 }
 
-void fwCMD_clearMsgQueue(list_t *queue)
+void clearFwMsgQueue(list_t *queue)
 {
     if (!queue) return;
     list_t *t, *tmp;
@@ -438,7 +438,7 @@ void fwCMD_clearMsgQueue(list_t *queue)
     }
 }
 
-static void saveFWMsg(list_t *queue, char *msg, uint32_t msgLen,
+static void saveFwMsg(list_t *queue, char *msg, uint32_t msgLen,
 		      uint8_t type, int32_t rank)
 {
     FwUserMsgBuf_t *buf = umalloc(sizeof *buf);
@@ -471,7 +471,7 @@ int fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 	/* might happen that forwarder is already gone or has not been
 	 * started yet */
 	list_t *queue = job ? &job->fwMsgQueue : &step->fwMsgQueue;
-	saveFWMsg(queue, plMsg, msgLen, type, rank);
+	saveFwMsg(queue, plMsg, msgLen, type, rank);
 	return 1;
     }
 

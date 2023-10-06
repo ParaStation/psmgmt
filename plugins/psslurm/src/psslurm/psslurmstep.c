@@ -21,12 +21,12 @@
 #include "psslurmauth.h"
 #include "psslurmbcast.h"
 #include "psslurmcomm.h"
+#include "psslurmfwcomm.h"
 #include "psslurmgres.h"
 #include "psslurmio.h"
 #include "psslurmlog.h"
 #include "psslurmpscomm.h"
 #include "psslurmtasks.h"
-#include "psslurmfwcomm.h"
 
 /** List of all steps */
 static LIST_HEAD(StepList);
@@ -312,7 +312,7 @@ bool Step_delete(Step_t *step)
     clearTasks(&step->remoteTasks);
     freeGresCred(&step->gresList);
     freeJobCred(step->cred);
-    fwCMD_clearMsgQueue(&step->fwMsgQueue);
+    clearFwMsgQueue(&step->fwMsgQueue);
 
     if (step->globalTaskIds) {
 	for (uint32_t i = 0; i < step->nrOfNodes; i++) {
