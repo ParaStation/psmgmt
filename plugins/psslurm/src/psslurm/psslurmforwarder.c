@@ -1222,14 +1222,11 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
 	close(fwdata->stdIn[0]);
     }
 
-    /* print queued messages */
-    if (!list_empty(&step->fwMsgQueue)) {
-	list_t *t;
-	list_for_each(t, &step->fwMsgQueue) {
-	    FwUserMsgBuf_t *buf = list_entry(t, FwUserMsgBuf_t, next);
-	    IO_printStepMsg(fwdata, buf->msg, buf->msgLen, buf->rank,
-		            buf->type);
-	}
+    /* print queued messages if any */
+    list_t *t;
+    list_for_each(t, &step->fwMsgQueue) {
+	FwUserMsgBuf_t *buf = list_entry(t, FwUserMsgBuf_t, next);
+	IO_printStepMsg(fwdata, buf->msg, buf->msgLen, buf->rank, buf->type);
     }
 }
 
@@ -1330,13 +1327,11 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
 
     IO_openJobIOfiles(fwdata);
 
-    /* print queued messages */
-    if (!list_empty(&job->fwMsgQueue)) {
-	list_t *t;
-	list_for_each(t, &job->fwMsgQueue) {
-	    FwUserMsgBuf_t *buf = list_entry(t, FwUserMsgBuf_t, next);
-	    IO_printJobMsg(fwdata, buf->msg, buf->msgLen, buf->type);
-	}
+    /* print queued messages if any */
+    list_t *t;
+    list_for_each(t, &job->fwMsgQueue) {
+	FwUserMsgBuf_t *buf = list_entry(t, FwUserMsgBuf_t, next);
+	IO_printJobMsg(fwdata, buf->msg, buf->msgLen, buf->type);
     }
 
     if (switchEffectiveUser("root", 0, 0) == -1) {
@@ -1559,14 +1554,11 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
 
     IO_redirectStep(fwdata, step);
 
-    /* print queued messages */
-    if (!list_empty(&step->fwMsgQueue)) {
-	list_t *t;
-	list_for_each(t, &step->fwMsgQueue) {
-	    FwUserMsgBuf_t *buf = list_entry(t, FwUserMsgBuf_t, next);
-	    IO_printStepMsg(fwdata, buf->msg, buf->msgLen, buf->rank,
-		            buf->type);
-	}
+    /* print queued messages if any*/
+    list_t *t;
+    list_for_each(t, &step->fwMsgQueue) {
+	FwUserMsgBuf_t *buf = list_entry(t, FwUserMsgBuf_t, next);
+	IO_printStepMsg(fwdata, buf->msg, buf->msgLen, buf->rank, buf->type);
     }
 
     if (switchEffectiveUser("root", 0, 0) == -1) {
