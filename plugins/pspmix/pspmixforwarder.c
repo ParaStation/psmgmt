@@ -139,7 +139,7 @@ static bool doSpawn(SpawnRequest_t *req)
 	return false;
     }
 
-    pendSpawn = copySpawnRequest(req);
+    pendSpawn = req;
 
     plog("trying to spawn job with %d apps\n", pendSpawn->num);
 
@@ -500,7 +500,6 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
     /* cleanup */
     ufree(pendSpawn->data);
     freeSpawnRequest(pendSpawn);
-    /* @todo make sure freeSpawnRequest does not free stuff in apps */
     pendSpawn = NULL;
 }
 
