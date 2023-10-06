@@ -24,11 +24,11 @@
 
 /** holding messages forwarded to user after forwarder started */
 typedef struct {
+    list_t next;		/**< used to put into some msg-list */
     char *msg;			/**< the actual message to send */
     uint32_t msgLen;		/**< length of the message */
     uint8_t type;		/**< msg type (stdout/stderr ) */
     int32_t rank;		/**< sender (Slurm) rank */
-    list_t next;                /**< used to put into some msg-list */
 } FwUserMsgBuf_t;
 
 /**

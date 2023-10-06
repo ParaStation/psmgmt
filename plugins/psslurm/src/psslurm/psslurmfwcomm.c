@@ -441,6 +441,8 @@ void clearFwMsgQueue(list_t *queue)
 static void saveFwMsg(list_t *queue, char *msg, uint32_t msgLen,
 		      uint8_t type, int32_t rank)
 {
+    if (!queue || !msg) return;
+
     FwUserMsgBuf_t *buf = umalloc(sizeof *buf);
     buf->msg = ustrdup(msg);
     buf->msgLen = msgLen;
@@ -466,7 +468,7 @@ int fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
     /* msg from service rank, make believe it comes from first task */
     if (step && rank < 0) rank = step->globalTaskIds[step->localNodeId][0];
 
-    Forwarder_Data_t *fwdata = job ? job->fwdata : step ? step->fwdata : NULL;
+    Forwarder_Data_t *fwdata = job ? job->fwdata : step->fwdata;
     if (!fwdata) {
 	/* might happen that forwarder is already gone or has not been
 	 * started yet */
