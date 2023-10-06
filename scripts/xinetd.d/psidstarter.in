@@ -8,7 +8,7 @@ service psid
 	port		= 888
 	wait		= no
 	user		= root
-	server		= @bindir@/psid
+	server		= @sbindir@/psid
 	log_on_failure	+= USERID
 	disable		= no
 }

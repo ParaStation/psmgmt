@@ -11,7 +11,8 @@
 
 include $(top_srcdir)/common.am
 
-bin_PROGRAMS = psid test_config
+bin_PROGRAMS = test_config
+sbin_PROGRAMS = psid
 
 include_HEADERS = psidcomm.h psidhook.h	psidnodes.h psidplugin.h	\
 	psidscripts.h psidstatus.h psidtask.h psidutil.h

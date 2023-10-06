@@ -27,7 +27,7 @@
 #	starts and monitors processes.
 ### END INIT INFO
 
-PSID="@bindir@/psid"
+PSID="@sbindir@/psid"
 PSIDNAME=`basename $PSID`
 DESC="psid for ParaStation"
 RETVAL=0
