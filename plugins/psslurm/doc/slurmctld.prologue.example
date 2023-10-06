@@ -33,7 +33,7 @@ waitForNodes()
 waitForNodes "`scontrol show hostnames ${SLURM_JOB_NODELIST}`"
 
 env >/tmp/slurmctld.prologue.env
-/opt/parastation/bin/pspelogue -v -d
+/opt/parastation/libexec/psmgmt/pspelogue -v -d
 
 EXIT_STATUS=$?
 

@@ -102,9 +102,8 @@ host_triplet = @host@
 target_triplet = @target@
 bin_PROGRAMS = mlisten$(EXEEXT) psmstart$(EXEEXT) mpirun_chp4$(EXEEXT) \
 	psispawn$(EXEEXT) mpirun_chgm$(EXEEXT) gmspawner$(EXEEXT) \
-	mpirun_openib$(EXEEXT) test_pse$(EXEEXT) pssh$(EXEEXT) \
-	pspelogue$(EXEEXT)
-pkglibexec_PROGRAMS = psaccounter$(EXEEXT)
+	mpirun_openib$(EXEEXT) test_pse$(EXEEXT) pssh$(EXEEXT)
+pkglibexec_PROGRAMS = psaccounter$(EXEEXT) pspelogue$(EXEEXT)
 noinst_PROGRAMS = testacct$(EXEEXT)
 subdir = bin
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4

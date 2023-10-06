@@ -13,8 +13,8 @@ include $(top_srcdir)/common.am
 SUBDIRS = admin daemon logger startup
 
 bin_PROGRAMS = mlisten psmstart mpirun_chp4 psispawn mpirun_chgm	\
-	gmspawner mpirun_openib test_pse pssh pspelogue
-pkglibexec_PROGRAMS = psaccounter
+	gmspawner mpirun_openib test_pse pssh
+pkglibexec_PROGRAMS = psaccounter pspelogue
 noinst_PROGRAMS = testacct
 
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la

@@ -5,5 +5,5 @@ sed -e '/^# SCHEDULING, JOB, AND NODE SETTINGS/ a PrologSlurmctld=/opt/slurm/etc
 cat << EOF > /opt/slurm/etc/slurmctld.prologue
 #!/bin/bash
 
-/opt/parastation/bin/pspelogue -v -d >/tmp/slurmctld.prologue 2>&1
+/opt/parastation/libexec/psmgmt/pspelogue -v -d >/tmp/slurmctld.prologue 2>&1
 EOF
