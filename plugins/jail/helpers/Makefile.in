@@ -386,6 +386,7 @@ do_subst = sed \
 	-e 's,[@]mandir[@],$(mandir),g' \
 	-e 's,[@]prefix[@],$(prefix),g' \
 	-e 's,[@]pkgdatadir[@],$(pkgdatadir),g' \
+	-e 's,[@]pkglibexecdir[@],$(pkglibexecdir),g' \
 	-e 's,[@]sbindir[@],$(sbindir),g' \
 	-e 's,[@]scriptsdir[@],$(scriptsdir),g' \
 	-e 's,[@]sysconfdir[@],$(sysconfdir),g' \
