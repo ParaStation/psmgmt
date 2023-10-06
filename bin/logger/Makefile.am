@@ -11,7 +11,7 @@
 
 include $(top_srcdir)/common.am
 
-bin_PROGRAMS = psilogger
+pkglibexec_PROGRAMS = psilogger
 
 libputil = $(top_builddir)/lib/putil/libputil.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la

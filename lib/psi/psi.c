@@ -727,6 +727,9 @@ static int myexecv( const char *path, char *const argv[])
     return ret;
 }
 
+#define LOGGER_LOCATION PKGLIBEXECDIR
+#define LOGGER "psilogger"
+
 void PSI_execLogger(const char *command)
 {
     /* close all open file-descriptor except my std* and the daemonSock */
@@ -740,12 +743,11 @@ void PSI_execLogger(const char *command)
     if (envStr) {
 	argv[0] = strdup(envStr);
     } else {
-	argv[0] = (char*)malloc(strlen(PSC_lookupInstalldir(NULL)) + 20);
-	sprintf(argv[0],"%s/bin/psilogger", PSC_lookupInstalldir(NULL));
+	argv[0] = PSC_concat(LOGGER_LOCATION, "/", LOGGER);
     }
-    argv[1] = (char*)malloc(10);
+    argv[1] = malloc(10);
     sprintf(argv[1],"%d", daemonSock);
-    argv[2] = (char*)malloc(10);
+    argv[2] = malloc(10);
     sprintf(argv[2],"%d", PSC_getMyID());
     if (command) {
 	argv[3] = strdup(command);
