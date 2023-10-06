@@ -235,7 +235,7 @@ void PSC_startDaemon(in_addr_t hostaddr)
 }
 
 #define DEFAULT_INSTDIR PREFIX
-#define LOGGER "/bin/psilogger"
+#define PSID "/sbin/psid"
 
 char* PSC_lookupInstalldir(char *hint)
 {
@@ -243,7 +243,7 @@ char* PSC_lookupInstalldir(char *hint)
     struct stat fstat;
 
     if (hint || !installdir) {
-	char *name = PSC_concat(hint ? hint : DEFAULT_INSTDIR, LOGGER);
+	char *name = PSC_concat(hint ? hint : DEFAULT_INSTDIR, PSID);
 
 	free(installdir);
 	installdir = NULL;
