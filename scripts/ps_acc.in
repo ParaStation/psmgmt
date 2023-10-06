@@ -13,7 +13,7 @@
 
 case "$1" in
     start)
-	@bindir@/psaccounter -p gzip -e
+	@pkglibexecdir@/psaccounter -p gzip -e
 	;;
 
     stop)
