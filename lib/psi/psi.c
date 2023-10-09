@@ -727,7 +727,6 @@ static int myexecv( const char *path, char *const argv[])
     return ret;
 }
 
-#define LOGGER_LOCATION PKGLIBEXECDIR
 #define LOGGER "psilogger"
 
 void PSI_execLogger(const char *command)
@@ -743,7 +742,7 @@ void PSI_execLogger(const char *command)
     if (envStr) {
 	argv[0] = strdup(envStr);
     } else {
-	argv[0] = PSC_concat(LOGGER_LOCATION, "/", LOGGER);
+	argv[0] = PSC_concat(PKGLIBEXECDIR, "/", LOGGER);
     }
     argv[1] = malloc(10);
     sprintf(argv[1],"%d", daemonSock);

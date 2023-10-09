@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -422,7 +422,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     if (tmpStr) {
 	strvAdd(&args, ustrdup(tmpStr));
     } else {
-	strvAdd(&args, ustrdup(LIBEXECDIR "/kvsprovider"));
+	strvAdd(&args, ustrdup(PKGLIBEXECDIR "/kvsprovider"));
     }
     strvAdd(&args, ustrdup("-u"));
 

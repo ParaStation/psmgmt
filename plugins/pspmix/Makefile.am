@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022 ParTec AG, Munich
+# Copyright (C) 2022-2023 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,7 +32,7 @@ pspmix_la_SOURCES = pspmixmain.c pspmixtypes.h pspmixlog.c		\
 	pspmixserver.c pspmixserver.h pspmixutil.c pspmixutil.h
 
 pspmix_la_CPPFLAGS = $(AM_CPPFLAGS) \
-		     -DLIBEXECDIR=\"$(pkglibexecdir)\" \
+		     -DPKGLIBEXECDIR=\"$(pkglibexecdir)\" \
 		     -DPLUGINDIR=\"$(plugindir)\"
 
 pspmix_la_CFLAGS = $(AM_CFLAGS) $(pmix_CFLAGS)
