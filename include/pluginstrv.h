@@ -61,13 +61,13 @@ void __strvInit(strv_t *strv, char **initstrv, uint32_t initcount,
  * Append the string @a str to the string vector @a strv. The string
  * vector @a strv has to be initialized via @ref strvInit() before.
  *
- * @attention The pointer @a str to the string pointer is stored
- * directly, i.e. a @ref strdup() has to be done explicitly before if
- * intended.
+ * @a strv will not be extended by @a str itself but by a copy of the
+ * string created utilizing @ref strdup(). Thus, "ownership" of @a str
+ * remains where it belonged.
  *
- * @param strv The string vector to be extended
+ * @param strv String vector to be extended
  *
- * @param str The string to add
+ * @param str String to add
  *
  * @param func Function name of the calling function
  *
@@ -75,8 +75,32 @@ void __strvInit(strv_t *strv, char **initstrv, uint32_t initcount,
  *
  * @return No return value
  */
-void __strvAdd(strv_t *strv, char *str, const char *func, const int line);
+void __strvAdd(strv_t *strv, const char *str, const char *func, const int line);
 #define strvAdd(strv, str) __strvAdd(strv, str, __func__, __LINE__)
+
+/**
+ * @brief Link string to string vector
+ *
+ * Append the string @a str itself to the string vector @a strv. The
+ * string vector @a strv has to be initialized via @ref strvInit()
+ * before.
+ *
+ * @attention The pointer @a str to the string pointer is stored
+ * directly, i.e. the "ownership" of @a str is transferred to @a
+ * strv. If this is not intended consider to use of @ref strvAdd.
+ *
+ * @param strv String vector to be extended
+ *
+ * @param str String to add
+ *
+ * @param func Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return No return value
+ */
+void __strvLink(strv_t *strv, const char *str, const char *func, const int line);
+#define strvLink(strv, str) __strvLink(strv, str, __func__, __LINE__)
 
 /**
  * Destroys string vector

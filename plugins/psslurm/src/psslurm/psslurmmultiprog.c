@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -374,10 +374,10 @@ static int addExecutableToArgv(strv_t *argV, const char *lastExe,
     char **tmpArgs;
     char np[128];
 
-    strvAdd(argV, ustrdup("-np"));
+    strvAdd(argV, "-np");
     snprintf(np, sizeof(np), "%u", exeCount);
-    strvAdd(argV, ustrdup(np));
-    strvAdd(argV, ustrdup(lastExe));
+    strvAdd(argV, np);
+    strvAdd(argV, lastExe);
 
 #if 0
     mlog("%s: Adding executable '%s'\n", __func__, lastExe);
@@ -392,7 +392,7 @@ static int addExecutableToArgv(strv_t *argV, const char *lastExe,
 #if 0
 	mlog("%s: Adding argument '%s'\n", __func__, tmpArgs[i]);
 #endif
-	strvAdd(argV, tmpArgs[i]);
+	strvLink(argV, tmpArgs[i]);
 #if 0
 	mlog("%s: argv generated so far: ", __func__);
 	for (j = 0; argV->strings[j]; j++) {
@@ -440,7 +440,7 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
 
 	if (argV->count != startArgc) {
 	    /* this is not the first executable, separate using colon */
-	    strvAdd(argV, ustrdup(":"));
+	    strvAdd(argV, ":");
 	}
 
 	if (addExecutableToArgv(argV, lastExe, exeCount, lastArgs) != 0) {
@@ -461,7 +461,7 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
 
     if (uniqExeCount) {
 	/* we found more than one exe/args combination */
-	strvAdd(argV, ustrdup(":"));
+	strvAdd(argV, ":");
     }
 
     if (addExecutableToArgv(argV, lastExe, exeCount, lastArgs) != 0) {

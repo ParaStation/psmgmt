@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -42,7 +42,7 @@ void __strvInit(strv_t *strv, char **initstrv, uint32_t initcount,
     }
 }
 
-void __strvAdd(strv_t *strv, char *str, const char *func, const int line)
+void __strvLink(strv_t *strv, const char *str, const char *func, const int line)
 {
     assert(strv && (strv->strings || !strv->size));
     assert(strv->size >= strv->count);
@@ -52,9 +52,16 @@ void __strvAdd(strv_t *strv, char *str, const char *func, const int line)
 	strv->strings = __urealloc(strv->strings, strv->size * sizeof(char *),
 				   func, line);
     }
-    strv->strings[strv->count++] = str;
+    strv->strings[strv->count++] = (char *)str;
     strv->strings[strv->count] = NULL;
 }
+
+void __strvAdd(strv_t *strv, const char *str, const char *func, const int line)
+{
+    assert(str);
+    __strvLink(strv, strdup(str), func, line);
+}
+
 
 void __strvDestroy(strv_t *strv, const char *func, const int line)
 {

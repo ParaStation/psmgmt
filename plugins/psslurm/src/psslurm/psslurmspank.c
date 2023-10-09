@@ -303,7 +303,7 @@ Spank_Plugin_t *SpankNewPlug(char *spankDef)
     strvInit(&def->argV, NULL, 0);
     char *args = strtok_r(NULL, delimiters, &toksave);
     while (args) {
-	strvAdd(&def->argV, ustrdup(args));
+	strvAdd(&def->argV, args);
 	mdbg(PSSLURM_LOG_SPANK, " args: '%s'", args);
 	args = strtok_r(NULL, delimiters, &toksave);
     }

@@ -638,7 +638,7 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 
 	/* support mendatory key PMIX_REQUIRED_KEY */
 	if (PMIX_CHECK_KEY(info+i, PMIX_REQUIRED_KEY)) {
-	    strvAdd(&reqKeys, ustrdup(info[i].value.data.string));
+	    strvAdd(&reqKeys, info[i].value.data.string);
 	    continue;
 	}
 

@@ -878,29 +878,29 @@ void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType)
     if (envGet(&step->env, "PMI_SPAWNED")) {
 	char *tmpStr = envGet(&step->env, "__PSI_MPIEXEC_KVSPROVIDER");
 	if (tmpStr) {
-	    strvAdd(argV, ustrdup(tmpStr));
+	    strvAdd(argV, tmpStr);
 	} else {
-	    strvAdd(argV, ustrdup(PKGLIBEXECDIR "/kvsprovider"));
+	    strvAdd(argV, PKGLIBEXECDIR "/kvsprovider");
 	}
     } else {
-	strvAdd(argV, ustrdup(MPIEXEC_BINARY));
+	strvAdd(argV, MPIEXEC_BINARY);
     }
 
     /* always export all environment variables */
-    strvAdd(argV, ustrdup("-x"));
+    strvAdd(argV, "-x");
 
     /* interactive mode */
-    if (step->taskFlags & LAUNCH_PTY) strvAdd(argV, ustrdup("-i"));
+    if (step->taskFlags & LAUNCH_PTY) strvAdd(argV, "-i");
     /* label output */
-    if (step->taskFlags & LAUNCH_LABEL_IO) strvAdd(argV, ustrdup("-l"));
+    if (step->taskFlags & LAUNCH_LABEL_IO) strvAdd(argV, "-l");
 
     /* choose PMI layer, default is MPICH's Simple PMI */
     switch (pmiType) {
 	case PMI_TYPE_NONE:
-	    strvAdd(argV, ustrdup("--pmidisable"));
+	    strvAdd(argV, "--pmidisable");
 	    break;
 	case PMI_TYPE_PMIX:
-	    strvAdd(argV, ustrdup("--pmix"));
+	    strvAdd(argV, "--pmix");
 	    break;
 	case PMI_TYPE_DEFAULT:
 	default:
@@ -912,20 +912,20 @@ void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType)
     } else {
 	if (step->packJobid == NO_VAL) {
 	    /* number of processes */
-	    strvAdd(argV, ustrdup("-np"));
+	    strvAdd(argV, "-np");
 	    snprintf(buf, sizeof(buf), "%u", step->np);
-	    strvAdd(argV, ustrdup(buf));
+	    strvAdd(argV, buf);
 
 	    /* threads per processes */
 	    /* NOTE: Actually it is unnecessary to pass tpp since it is
 	     * ignored by psslurm reservation generation replacement code */
-	    strvAdd(argV, ustrdup("-tpp"));
+	    strvAdd(argV, "-tpp");
 	    snprintf(buf, sizeof(buf), "%u", step->tpp);
-	    strvAdd(argV, ustrdup(buf));
+	    strvAdd(argV, buf);
 
 	    /* executable and arguments */
 	    for (uint32_t i = 0; i < step->argc; i++) {
-		strvAdd(argV, ustrdup(step->argv[i]));
+		strvAdd(argV, step->argv[i]);
 	    }
 	} else {
 	    /* executables from job pack */
@@ -934,25 +934,25 @@ void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType)
 	    list_for_each(c, &step->jobCompInfos) {
 		JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
 
-		if (!first) strvAdd(argV, ustrdup(":"));
+		if (!first) strvAdd(argV, ":");
 		first = false;
 
 		/* number of processes */
-		strvAdd(argV, ustrdup("-np"));
+		strvAdd(argV, "-np");
 		snprintf(buf, sizeof(buf), "%u", cur->np);
-		strvAdd(argV, ustrdup(buf));
+		strvAdd(argV, buf);
 
 		/* threads per processes */
 		/* NOTE: Actually it is unnecessary to pass tpp since it is
 		 * ignored by psslurm reservation generation replacement code */
 		uint16_t tpp = cur->tpp;
-		strvAdd(argV, ustrdup("-tpp"));
+		strvAdd(argV, "-tpp");
 		snprintf(buf, sizeof(buf), "%u", tpp);
-		strvAdd(argV, ustrdup(buf));
+		strvAdd(argV, buf);
 
 		/* executable and arguments */
 		for (uint32_t j = 0; j < cur->argc; j++) {
-		    strvAdd(argV, ustrdup(cur->argv[j]));
+		    strvAdd(argV, cur->argv[j]);
 		}
 	    }
 	}

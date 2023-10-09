@@ -1502,7 +1502,7 @@ static bool getSpawnArgs(char *msg, strv_t *args)
 	mlog("%s(r%i): invalid executable name\n", __func__, rank);
 	return false;
     }
-    strvAdd(args, execname);
+    strvLink(args, execname);
 
     /* add additional arguments */
     for (int i = 1; i <= addArgs; i++) {
@@ -1510,7 +1510,7 @@ static bool getSpawnArgs(char *msg, strv_t *args)
 	snprintf(buffer, sizeof(buffer), "arg%i", i);
 	nextval = getpmivm(buffer, msg);
 	if (nextval) {
-	    strvAdd(args, nextval);
+	    strvLink(args, nextval);
 	} else {
 	    mlog("%s(r%i): extracting arguments failed\n", __func__, rank);
 	    return false;
@@ -1855,7 +1855,7 @@ static void addPreputToEnv(int preputc, KVP_t *preputv, strv_t *env)
     char *tmpstr;
 
     snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", preputc);
-    strvAdd(env, ustrdup(buffer));
+    strvAdd(env, buffer);
 
     for (i = 0; i < preputc; i++) {
 	int esize;
@@ -1864,13 +1864,13 @@ static void addPreputToEnv(int preputc, KVP_t *preputv, strv_t *env)
 	esize = 6 + strlen(buffer) + 1 + strlen(preputv[i].key) + 1;
 	tmpstr = umalloc(esize);
 	snprintf(tmpstr, esize, "__PMI_%s=%s", buffer, preputv[i].key);
-	strvAdd(env, tmpstr);
+	strvLink(env, tmpstr);
 
 	snprintf(buffer, sizeof(buffer), "preput_val_%i", i);
 	esize = 6 + strlen(buffer) + 1 + strlen(preputv[i].value) + 1;
 	tmpstr = umalloc(esize);
 	snprintf(tmpstr, esize, "__PMI_%s=%s", buffer, preputv[i].value);
-	strvAdd(env, tmpstr);
+	strvLink(env, tmpstr);
     }
 }
 
@@ -1917,23 +1917,23 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 
     tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
     if (tmpStr) {
-	strvAdd(&args, ustrdup(tmpStr));
+	strvAdd(&args, tmpStr);
     } else {
-	strvAdd(&args, ustrdup(PKGLIBEXECDIR "/kvsprovider"));
+	strvAdd(&args, PKGLIBEXECDIR "/kvsprovider");
     }
-    strvAdd(&args, ustrdup("-u"));
+    strvAdd(&args, "-u");
 
     snprintf(buffer, sizeof(buffer), "%d", usize);
-    strvAdd(&args, ustrdup(buffer));
+    strvAdd(&args, buffer);
 
     for (i = 0; i < req->num; i++) {
 
 	spawn = &(req->spawns[i]);
 
 	/* set the number of processes to spawn */
-	strvAdd(&args, ustrdup("-np"));
+	strvAdd(&args, "-np");
 	snprintf(buffer, sizeof(buffer), "%d", spawn->np);
-	strvAdd(&args, ustrdup(buffer));
+	strvAdd(&args, buffer);
 
 	/* extract info values and keys
 	 *
@@ -1967,24 +1967,24 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    info = &(spawn->infov[j]);
 
 	    if (!strcmp(info->key, "wdir")) {
-		strvAdd(&args, ustrdup("-d"));
-		strvAdd(&args, ustrdup(info->value));
+		strvAdd(&args, "-d");
+		strvAdd(&args, info->value);
 	    }
 	    if (!strcmp(info->key, "tpp")) {
 		size_t len = strlen(info->value) + 7;
 		tmpStr = umalloc(len);
 		snprintf(tmpStr, len, "--tpp=%s", info->value);
-		strvAdd(&args, tmpStr);
+		strvLink(&args, tmpStr);
 	    }
 	    if (!strcmp(info->key, "nodetype") || !strcmp(info->key, "arch")) {
 		size_t len = strlen(info->value) + 12;
 		tmpStr = umalloc(len);
 		snprintf(tmpStr, len, "--nodetype=%s", info->value);
-		strvAdd(&args, tmpStr);
+		strvLink(&args, tmpStr);
 	    }
 	    if (!strcmp(info->key, "path")) {
-		strvAdd(&args, ustrdup("-p"));
-		strvAdd(&args, ustrdup(info->value));
+		strvAdd(&args, "-p");
+		strvAdd(&args, info->value);
 	    }
 
 	    /* TODO soft spawn
@@ -2010,12 +2010,12 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 
 	/* add binary and argument from spawn request */
 	for (j = 0; j < spawn->argc; j++) {
-	    strvAdd(&args, ustrdup(spawn->argv[j]));
+	    strvAdd(&args, spawn->argv[j]);
 	}
 
 	/* add separating colon */
 	if (i < req->num - 1) {
-	    strvAdd(&args, ustrdup(":"));
+	    strvAdd(&args, ":");
 	}
     }
 
@@ -2107,7 +2107,7 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 	}
 #endif
 
-	strvAdd(&env, ustrdup(cur));
+	strvAdd(&env, cur);
     }
     task->environ = env.strings;
     task->envSize = env.count;
@@ -2140,26 +2140,26 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 
     snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%i_%i",
 	     PSC_getMyTID(), kvs_next++);  /* setup new KVS name */
-    strvAdd(&env, ustrdup(buffer));
+    strvAdd(&env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_SERVICE_RANK=%i",
 	     serviceRank - 3);
-    strvAdd(&env, ustrdup(buffer));
+    strvAdd(&env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_PARENT=%i", PSC_getMyTID());
-    strvAdd(&env, ustrdup(buffer));
+    strvAdd(&env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
-    strvAdd(&env, ustrdup("PMI_SPAWNED=1"));
+    strvAdd(&env, "PMI_SPAWNED=1");
 
     snprintf(buffer, sizeof(buffer), "PMI_SIZE=%d", *totalProcs);
-    strvAdd(&env, ustrdup(buffer));
+    strvAdd(&env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     snprintf(buffer, sizeof(buffer), "__PMI_NO_PARRICIDE=%i",task->noParricide);
-    strvAdd(&env, ustrdup(buffer));
+    strvAdd(&env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     ufree(task->environ);
