@@ -9,6 +9,7 @@
  * file.
  */
 #include "psslurmpin.h"
+#include "pscpu.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -1636,6 +1637,24 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
     return rankgpu;
 }
 
+/* Print core map to srun's stderr */
+static void printCoreMap(char *title, PSCPU_set_t coremap, Step_t *step,
+			 nodeinfo_t *nodeinfo)
+{
+    char vStr[128+nodeinfo->coreCount];
+    char *ptr = vStr;
+    memset(vStr, 0, sizeof(vStr));
+    ptr += snprintf(ptr, sizeof(vStr), "%s: %s: ",
+	     getConfValueC(Config, "SLURM_HOSTNAME"), title);
+    for (uint16_t i = 0; i < nodeinfo->coreCount; i++) {
+	*(ptr++) = PSCPU_isSet(coremap, i) ? '1' : '0';
+    }
+    ptr += snprintf(ptr, sizeof(vStr) - (ptr - vStr), " (%s)\n",
+	     PSCPU_print_part(nodeinfo->jobHWthreads,
+			      PSCPU_bytesForCPUs(nodeinfo->coreCount)));
+    fwCMD_printMsg(NULL, step, vStr, strlen(vStr), STDERR, -1);
+}
+
 /* This is the entry point to the whole CPU pinning stuff */
 bool setStepSlots(Step_t *step)
 {
@@ -1701,6 +1720,14 @@ bool setStepSlots(Step_t *step)
 		flog("CPU %u not included in CPUmap for node %hu\n",
 		     cpu, nodeinfo->id);
 	    }
+	}
+
+	/* print job and step core map to user */
+	if (envGet(&step->env, "PSSLURM_PRINT_COREMAPS")) {
+	    printCoreMap(" job core map", nodeinfo->jobHWthreads, step,
+			 nodeinfo);
+	    printCoreMap("step core map", nodeinfo->stepHWthreads, step,
+			 nodeinfo);
 	}
 
 	/* handle --ntasks-per-socket option
