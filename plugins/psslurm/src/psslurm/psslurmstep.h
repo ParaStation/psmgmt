@@ -78,6 +78,7 @@ typedef struct {
 
 typedef struct {
     list_t next;                /**< used to put into some step-lists */
+    /* next 3 elements are expected in this order by unpackStepHead */
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
     uint32_t stepHetComp;	/**< step het component identifier */

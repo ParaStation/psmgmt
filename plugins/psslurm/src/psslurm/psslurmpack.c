@@ -1284,7 +1284,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     Step_t *step = Step_add();
 
     /* step header */
-    unpackStepHead(ptr, step, msgVer);
+    unpackStepHead(ptr, &step->jobid, msgVer);
     /* uid */
     getUint32(ptr, &step->uid);
     /* gid */

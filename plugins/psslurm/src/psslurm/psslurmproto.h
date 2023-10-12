@@ -31,6 +31,7 @@
 
 /** Holding information for RPC REQUEST_TERMINATE_JOB */
 typedef struct {
+    /* first 3 elements are expected here and in this order by unpackStepHead */
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
     uint32_t stepHetComp;	/**< step het component identifier */
@@ -54,6 +55,7 @@ typedef struct {
 
 /** Structure holding a signal tasks request */
 typedef struct {
+    /* first 3 elements are expected here and in this order by unpackStepHead */
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
     uint32_t stepHetComp;	/**< step het component identifier */
@@ -251,6 +253,7 @@ typedef struct {
 
 /** Holding all information for RPC REQUEST_REATTACH_TASKS */
 typedef struct {
+    /* first 3 elements are expected here and in this order by unpackStepHead */
     uint32_t jobid;	    /**< unique job identifier */
     uint32_t stepid;	    /**< unique step identifier */
     uint32_t stepHetComp;   /**< step het component identifier */
@@ -263,6 +266,7 @@ typedef struct {
 
 /** Holding all information for RPC REQUEST_JOB_NOTIFY */
 typedef struct {
+    /* first 3 elements are expected here and in this order by unpackStepHead */
     uint32_t jobid;	    /**< unique job identifier */
     uint32_t stepid;	    /**< unique step identifier */
     uint32_t stepHetComp;   /**< step het component identifier */
