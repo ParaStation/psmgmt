@@ -335,12 +335,11 @@ bool Alloc_isLeader(Alloc_t *alloc)
 static int verifyJobInfo(Slurm_Msg_t *sMsg, void *info)
 {
     Req_Info_t *req = info;
-    Resp_Job_Info_t *resp = NULL;
 
     Alloc_t *alloc = Alloc_find(req->jobid);
     if (!alloc) {
 	flog("allocation %u to verify not found\n", req->jobid);
-	goto CLEANUP;
+	return 0;
     }
 
     if (!unpackSlurmMsg(sMsg)) {
@@ -350,7 +349,7 @@ static int verifyJobInfo(Slurm_Msg_t *sMsg, void *info)
 	return 0;
     }
 
-    resp = sMsg->unpData;
+    Resp_Job_Info_t *resp = sMsg->unpData;
     if (!resp) {
 	flog("invalid response data for allocation %u\n", req->jobid);
 	alloc->verified = true;
@@ -391,8 +390,7 @@ static int verifyJobInfo(Slurm_Msg_t *sMsg, void *info)
 	}
     }
 
-CLEANUP:
-    if (resp) freeRespJobInfo(resp);
+    freeRespJobInfo(resp);
 
     return 0;
 }
