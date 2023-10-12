@@ -118,15 +118,16 @@ static void packStepHead(void *head, PS_SendDB_t *data)
 /**
  * @brief Unpack a Slurm step header
  *
- * Unpack a Slurm step header from the provided message pointer.
- * The memory is allocated using umalloc(). The caller is responsible
- * to free the memory using ufree().
+ * Unpack a Slurm step header from the provided message pointer @a ptr
+ * into (parts) of the struct addressed by @a head. @a head is
+ * expected to point to the beginning of the sequence of jobID,
+ * stepID, and stepHetComp elements of the struct to manipulate.
  *
- * @param ptr The Slurm message to unpack
+ * @param ptr Slurm message to unpack
  *
  * @param head The header structure holding the result
  *
- * @param msgVer The Slurm protocol version
+ * @param msgVer Slurm protocol version
  *
  * @param caller Function name of the calling function
  *
