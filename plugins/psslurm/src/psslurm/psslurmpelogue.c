@@ -160,11 +160,12 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 	/* Inform allocation leader the epilogue is finished. The leader
 	 * will wait for all epilogue scripts to complete and offline nodes
 	 * which are not responding */
-       send_PS_PElogueRes(alloc, resList[0].epilogue, PELOGUE_EPILOGUE);
-       /* inform slurmctld */
-       sendEpilogueComplete(alloc->id, SLURM_SUCCESS);
-       /* delete allocation */
-       if (alloc->terminate) Alloc_delete(alloc->id);
+	send_PS_PElogueRes(alloc, resList[0].epilogue, PELOGUE_EPILOGUE);
+	/* delete allocation if required */
+	uint32_t allocID = alloc->id;
+	if (alloc->terminate) Alloc_delete(alloc->id);
+	/* inform slurmctld */
+	sendEpilogueComplete(allocID, SLURM_SUCCESS);
     } else {
 	/* Warning: the msg handler function may delete the allocation
 	 * on the leader in finalizeEpilogue(). Don't use the
@@ -299,8 +300,9 @@ bool finalizeEpilogue(Alloc_t *alloc)
 
 	if (!epilogueFinScript(alloc)) {
 	    if (alloc->terminate) {
-		sendEpilogueComplete(alloc->id, SLURM_SUCCESS);
+		uint32_t allocID = alloc->id;
 		Alloc_delete(alloc->id);
+		sendEpilogueComplete(allocID, SLURM_SUCCESS);
 		return true;
 	    }
 	}

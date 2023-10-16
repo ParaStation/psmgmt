@@ -1,3 +1,17 @@
+Version 5.1.57-2:
+=================
+------------------------------------------------------------------------
+073589d21 | Norbert Eicker | Wed, 11 Oct 2023 21:48:41 +0200
+
+Delete allocation before sending MESSAGE_EPILOG_COMPLETE (jwt:#23342)
+
+ - Alloc_delete() will start jail-term.sh (if required).
+   MESSAGE_EPILOG_COMPLETE might trigger the next job to handle which
+   again will trigger jail.sh. Delaying MESSAGE_EPILOG_COMPLETE shall
+   prevent possible race-conditions between jail-term.sh and jail.sh
+------------------------------------------------------------------------
+
+
 Version 5.1.57-1:
 =================
 ------------------------------------------------------------------------

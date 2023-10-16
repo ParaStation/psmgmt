@@ -7,6 +7,11 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
 
+Version 5.1.57-2:
+=================
+Bugfixes:
+ - Delete allocation before sending MESSAGE_EPILOG_COMPLETE (jwt:#23342)
+
 Version 5.1.57-1:
 =================
 Bugfixes:

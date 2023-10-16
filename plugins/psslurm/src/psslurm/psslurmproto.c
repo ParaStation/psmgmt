@@ -2310,8 +2310,9 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	/* ensure jobs will not get stuck forever */
 	flog("force termination of allocation %u in state %s requests %i\n",
 	     alloc->id, Alloc_strState(alloc->state), alloc->terminate);
-	sendEpilogueComplete(alloc->id, SLURM_SUCCESS);
+	uint32_t allocID = alloc->id;
 	Alloc_delete(alloc->id);
+	sendEpilogueComplete(allocID, SLURM_SUCCESS);
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
 	return;
     }
