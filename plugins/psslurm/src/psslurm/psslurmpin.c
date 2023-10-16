@@ -1646,11 +1646,13 @@ static void printCoreMap(char *title, PSCPU_set_t coremap, Step_t *step,
     char *hName = getConfValueC(Config, "SLURM_HOSTNAME");
 
     if (expand) {
-	size_t len = strlen(hName) + strlen(title) + nodeinfo->coreCount + 6;
+	size_t len = strlen(hName) + strlen(title) + nodeinfo->coreCount
+		     + nodeinfo->socketCount - 1 + 6;
 	str = ucalloc(len);
 	char *ptr = str;
 	ptr += snprintf(ptr, len, "%s: %s: ", hName, title);
 	for (uint16_t i = 0; i < nodeinfo->coreCount; i++) {
+	    if (i && i % nodeinfo->coresPerSocket == 0) *(ptr++) = ' ';
 	    *(ptr++) = PSCPU_isSet(coremap, i) ? '1' : '0';
 	}
 	*(ptr++) = '\n';
