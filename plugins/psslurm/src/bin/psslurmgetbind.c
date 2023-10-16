@@ -775,6 +775,47 @@ static logger_t lt;
 logger_t *psslurmlogger = &lt;
 logger_t *pluginlogger = NULL;
 
+logger_t* logger_init(const char* tag, FILE* logfile)
+{
+    logger_t* logger = (logger_t*)malloc(sizeof(*logger));
+    return logger;
+}
+
+void logger_finalize(logger_t* logger)
+{
+    free(logger);
+}
+
+int32_t logger_getMask(logger_t* logger)
+{
+    return 0;
+}
+
+void logger_setMask(logger_t* logger, int32_t mask)
+{
+    return;
+}
+
+void logger_exit(logger_t* logger, int eno, const char* format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    /* @todo print eno */
+    vprintf(format, ap);
+    va_end(ap);
+    exit(-1);
+}
+
+void logger_warn(logger_t* logger, int32_t key, int eno,
+		 const char* format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    /* @todo print eno */
+    vprintf(format, ap);
+    va_end(ap);
+}
+
 void logger_print(logger_t* logger, int32_t key, const char* format, ...)
 {
     if (verbosity != DEBUGOUT) return;
@@ -832,18 +873,6 @@ PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr) {
 }
 
 in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id) {
-    return 0;
-}
-
-char* PSC_printTID(PStask_ID_t tid) {
-    return "<TID>";
-}
-
-pid_t PSC_getPID(PStask_ID_t tid) {
-    return 0;
-}
-
-PSnodes_ID_t PSC_getMyID(void) {
     return 0;
 }
 

@@ -31,6 +31,7 @@
 #include "pscommon.h"
 #include "pslog.h"
 #include "pspartition.h"
+#include "pscommon.h"
 
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
@@ -1639,20 +1640,36 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 
 /* Print core map to srun's stderr */
 static void printCoreMap(char *title, PSCPU_set_t coremap, Step_t *step,
-			 nodeinfo_t *nodeinfo)
+			 nodeinfo_t *nodeinfo, bool expand)
 {
-    char vStr[128+nodeinfo->coreCount];
-    char *ptr = vStr;
-    memset(vStr, 0, sizeof(vStr));
-    ptr += snprintf(ptr, sizeof(vStr), "%s: %s: ",
-	     getConfValueC(Config, "SLURM_HOSTNAME"), title);
-    for (uint16_t i = 0; i < nodeinfo->coreCount; i++) {
-	*(ptr++) = PSCPU_isSet(coremap, i) ? '1' : '0';
+    char *str;
+    char *hName = getConfValueC(Config, "SLURM_HOSTNAME");
+
+    if (expand) {
+	size_t len = strlen(hName) + strlen(title) + nodeinfo->coreCount + 6;
+	str = ucalloc(len);
+	char *ptr = str;
+	ptr += snprintf(ptr, len, "%s: %s: ", hName, title);
+	for (uint16_t i = 0; i < nodeinfo->coreCount; i++) {
+	    *(ptr++) = PSCPU_isSet(coremap, i) ? '1' : '0';
+	}
+	*(ptr++) = '\n';
+    } else {
+        char *cmStr = PSCPU_print_part(coremap,
+				       PSCPU_bytesForCPUs(nodeinfo->coreCount));
+        str = PSC_concat(hName, ": ", title, ": ", cmStr);
+	if (!str) {
+	    flog("PSC_concat() out of memory");
+	    exit(EXIT_FAILURE);
+        }
     }
-    ptr += snprintf(ptr, sizeof(vStr) - (ptr - vStr), " (%s)\n",
-	     PSCPU_print_part(nodeinfo->jobHWthreads,
-			      PSCPU_bytesForCPUs(nodeinfo->coreCount)));
-    fwCMD_printMsg(NULL, step, vStr, strlen(vStr), STDERR, -1);
+
+    fwCMD_printMsg(NULL, step, str, strlen(str), STDERR, -1);
+    if (expand) {
+	ufree(str);
+    } else {
+	free(str);
+    }
 }
 
 /* This is the entry point to the whole CPU pinning stuff */
@@ -1723,11 +1740,13 @@ bool setStepSlots(Step_t *step)
 	}
 
 	/* print job and step core map to user */
-	if (envGet(&step->env, "PSSLURM_PRINT_COREMAPS")) {
+	char *pc;
+	if ((pc = envGet(&step->env, "PSSLURM_PRINT_COREMAPS"))) {
+	    bool expand = (atol(pc) == 2);
 	    printCoreMap(" job core map", nodeinfo->jobHWthreads, step,
-			 nodeinfo);
+			 nodeinfo, expand);
 	    printCoreMap("step core map", nodeinfo->stepHWthreads, step,
-			 nodeinfo);
+			 nodeinfo, expand);
 	}
 
 	/* handle --ntasks-per-socket option
