@@ -1650,9 +1650,9 @@ static void printCoreMap(char *title, PSCPU_set_t coremap, Step_t *step,
 		     + nodeinfo->socketCount - 1 + 6;
 	str = ucalloc(len);
 	char *ptr = str;
-	ptr += snprintf(ptr, len, "%s: %s: ", hName, title);
-	for (uint16_t i = 0; i < nodeinfo->coreCount; i++) {
-	    if (i && i % nodeinfo->coresPerSocket == 0) *(ptr++) = ' ';
+	ptr += snprintf(ptr, len, "%s: %s:", hName, title);
+	for (uint32_t i = 0; i < nodeinfo->coreCount; i++) {
+	    if (i % nodeinfo->coresPerSocket == 0) *(ptr++) = ' ';
 	    *(ptr++) = PSCPU_isSet(coremap, i) ? '1' : '0';
 	}
 	*(ptr++) = '\n';
