@@ -1657,13 +1657,13 @@ static void printCoreMap(char *title, PSCPU_set_t coremap, Step_t *step,
 	}
 	*(ptr++) = '\n';
     } else {
-        char *cmStr = PSCPU_print_part(coremap,
+	char *cmStr = PSCPU_print_part(coremap,
 				       PSCPU_bytesForCPUs(nodeinfo->coreCount));
-        str = PSC_concat(hName, ": ", title, ": ", cmStr);
+	str = PSC_concat(hName, ": ", title, ": ", cmStr);
 	if (!str) {
 	    flog("PSC_concat() out of memory");
 	    exit(EXIT_FAILURE);
-        }
+	}
     }
 
     fwCMD_printMsg(NULL, step, str, strlen(str), STDERR, -1);
