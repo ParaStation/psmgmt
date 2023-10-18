@@ -50,6 +50,12 @@ if [[ $CGROUP_VERSION == "v2" ]]; then
     CG_STEP="$CG_JOB/step-$STEPID"
 fi
 
+if [[ $SCRIPT == "jail-term" ]]; then
+    getSharedUserLock
+else
+    getExclusiveUserLock
+fi
+
 for modName in ${MODULES//,/$IFS}; do
     MODULE="$CommandPath/$SCRIPT-$CGROUP_VERSION-$modName.inc"
     [[ -r $MODULE ]] || {
@@ -71,5 +77,7 @@ for modName in ${MODULES//,/$IFS}; do
     # shellcheck source=/dev/null
     source "$MODULE"
 done
+
+rmUserLock
 
 exit 0

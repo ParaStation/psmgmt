@@ -55,6 +55,20 @@ function cgWrite {
     }
 }
 
+function getExclusiveUserLock {
+    exec 101>"/dev/shm/psjail-$USER"
+    flock -x 101
+}
+
+function getSharedUserLock {
+    exec 101>"/dev/shm/psjail-$USER"
+    flock -s 101
+}
+
+function rmUserLock {
+    flock -u 101
+}
+
 function getLock {
     exec 100>"/dev/shm/psjail-$modName"
     flock 100
