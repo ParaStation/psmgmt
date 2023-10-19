@@ -1508,11 +1508,16 @@ static ssize_t getMinimumIndex(uint32_t *val, uint16_t *subset, size_t num)
     return ret;
 }
 
+/*
+ * Parse the gpu-bind string
+ *
+ * To be called from setRankEnv() inside the user process before execve()
+ * thus using fprintf() to print to the users stderr.
+ */
 static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 			       char **map_gpu, char **mask_gpu,
 			       int *gpus_per_task)
 {
-
     *verbose = false;
     *map_gpu = NULL;
     *mask_gpu = NULL;
@@ -1525,27 +1530,30 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 	if (*gpu_bind == '\0') return true;
 
 	if (*gpu_bind != ',') {
-	    flog("invalid gpu_bind string '%s'\n", gpu_bind - 7);
+	    fprintf(stderr, "Invalid gpu_bind string '%s'\n", gpu_bind - 7);
 	    return false;
 	}
 	gpu_bind++;
     }
 
     if (!strncasecmp(gpu_bind, "single:", 7)) {
-#if 0
 	gpu_bind += 7;
-	tasks_per_gpu = strtol(gpu_bind, NULL, 0);
-	if ((tasks_per_gpu <= 0) || (tasks_per_gpu == LONG_MAX)) {
-	    flog("invalid gpu_bind option single:%s. Using 1 as default.",
-		    gpu_bind);
+	long tasks_per_gpu = strtol(gpu_bind, NULL, 10);
+	if (tasks_per_gpu <= 0) {
+	    fprintf(stderr, "Invalid gpu_bind option single:%ld\n",
+		    tasks_per_gpu);
+	    return false;
 	}
-#endif
-	flog("gpu_bind type \"single\" is not supported by psslurm\n");
-	return false;
+	if (tasks_per_gpu != 1) {
+	    /* @todo think about supporting this */
+	    flog("gpu_bind type \"single\" is not supported by psslurm\n");
+	    fprintf(stderr, "gpu_bind type \"single\" is not supported\n");
+	    return false;
+	}
     }
     if (!strncasecmp(gpu_bind, "closest", 7)) {
-	flog("gpu_bind type\"closest\" is not yet supported by psslurm\n");
-	return false;
+	/* this is the default in pslurm, but only with one GPU per task */
+	return true;
     }
     if (!strncasecmp(gpu_bind, "map_gpu:", 8)) {
 	*map_gpu = gpu_bind + 8;
@@ -1560,10 +1568,19 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 	return true;
     }
 
+    /* @todo can the bind string contain "none" and should we completely
+     * deactivate GPU pinning then? */
+
     flog("gpu_bind type \"%s\" is unknown\n", gpu_bind);
     return false;
 }
 
+/*
+ * Calculate GPU pinning for one rank
+ *
+ * To be called from setRankEnv() inside the user process before execve()
+ * thus using fprintf() to print to the users stderr.
+ */
 int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 			  uint32_t stepNodeId, PSCPU_set_t *assGPUs)
 {
@@ -1589,13 +1606,14 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	size_t count;
 	long *maparray = parseMapString(map_gpu, &count, 0);
 	if (!maparray) {
-	    flog("invalid GPU map string '%s'\n", map_gpu);
+	    flog("invalid map_gpu string '%s'\n", map_gpu);
+	    fprintf(stderr, "Invalid GPU map string '%s'\n", map_gpu);
 	    return -1;
 	}
 	for (size_t i = 0; i < count; i++) {
 	    if (!PSCPU_isSet(*assGPUs, maparray[i])) {
-		flog("GPU %ld included in map_gpu \"%s\" is not assigned to the"
-			" job\n", maparray[i], map_gpu);
+		fprintf(stderr, "GPU %ld included in map_gpu \"%s\" is not"
+			" assigned to the job\n", maparray[i], map_gpu);
 		ufree(maparray);
 		return -1;
 	    }
@@ -1605,11 +1623,13 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	ufree(maparray);
     } else if (mask_gpu) {
 	//TODO we need to support more than one GPU per task to support this
-	flog("gpu_bind type\"mask_gpu\" is not yet supported by psslurm\n");
+	flog("gpu_bind type \"mask_gpu\" is not supported by psslurm\n");
+	fprintf(stderr, "gpu_bind type \"mask_gpu\" is not supported\n");
 	return -1;
     } else if (gpus_per_task > 1) {
 	//@todo we need to support more than one GPU per task to support this
-	flog("psslurm does not support more than one GPU per task\n");
+	flog("unsupported number of gpus_per_task: %d\n", gpus_per_task);
+	fprintf(stderr, "Only one (or all) GPU per task is supported\n");
 	return -1;
     } else {
 	uint16_t gpus[ltnum];
