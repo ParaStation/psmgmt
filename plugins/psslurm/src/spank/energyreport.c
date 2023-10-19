@@ -32,10 +32,8 @@ int slurm_spank_init(spank_t sp, int ac, char **av)
 int slurm_spank_init_post_opt(spank_t sp, int ac, char **av)
 {
     if (_enable_energyreport) {
-	spank_job_control_setenv(sp, "SET_ENERGY_REPORT", "1", 1);
 	spank_job_control_setenv(sp, "SLURM_SPANK_SET_ENERGY_REPORT", "1",1);
     } else {
-	spank_job_control_setenv(sp, "SET_ENERGY_REPORT", "0", 1);
 	spank_job_control_setenv(sp, "SLURM_SPANK_SET_ENERGY_REPORT", "0",1);
     }
 
