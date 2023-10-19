@@ -731,6 +731,7 @@ plugins/psslurm/src/psslurm/psslurmtypes.h \
 plugins/psslurm/src/spank/Makefile.am \
 plugins/psslurm/src/spank/Makefile.in \
 plugins/psslurm/src/spank/cudaspank.c \
+plugins/psslurm/src/spank/energyreport.c \
 plugins/psslurm/src/spank/globresspank.c \
 plugins/psslurm/src/spank/nopshcspank.c \
 plugins/psslurm/src/spank/noturbospank.c \
