@@ -456,7 +456,7 @@ static void parseCPUmask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  * @param last     stop after @a last values (= max array length)
  *                 if 0 then all values are parsed and returned
  *
- * @return gres_bind string or NULL if none included
+ * @return array of numbers or NULL if invalid (includes empty)
  */
 static long * parseMapString(const char *mapstr, size_t *count, size_t last)
 {
@@ -473,7 +473,7 @@ static long * parseMapString(const char *mapstr, size_t *count, size_t last)
 	    ret = urealloc(ret, max * sizeof(*ret));
 	}
 
-	long val = strtoul (ptr, &endptr, 0);
+	long val = strtoul(ptr, &endptr, 0);
 	ret[(*count)++] = val;
 
 	if (endptr == ptr) {
