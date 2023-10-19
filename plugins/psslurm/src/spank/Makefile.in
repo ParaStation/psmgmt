@@ -159,6 +159,9 @@ AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+energyreport_la_LIBADD =
+am_energyreport_la_OBJECTS = energyreport_la-energyreport.lo
+energyreport_la_OBJECTS = $(am_energyreport_la_OBJECTS)
 globresspank_la_LIBADD =
 am_globresspank_la_OBJECTS = globresspank_la-globresspank.lo
 globresspank_la_OBJECTS = $(am_globresspank_la_OBJECTS)
@@ -204,6 +207,7 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/cudaspank_la-cudaspank.Plo \
+	./$(DEPDIR)/energyreport_la-energyreport.Plo \
 	./$(DEPDIR)/globresspank_la-globresspank.Plo \
 	./$(DEPDIR)/nopshcspank_la-nopshcspank.Plo \
 	./$(DEPDIR)/noturbospank_la-noturbospank.Plo \
@@ -232,16 +236,18 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(cudaspank_la_SOURCES) $(globresspank_la_SOURCES) \
-	$(nopshcspank_la_SOURCES) $(noturbospank_la_SOURCES) \
-	$(perfparanoidspank_la_SOURCES) $(perftoolspank_la_SOURCES) \
-	$(showglobresspank_la_SOURCES) $(spank_api_la_SOURCES) \
-	$(visspank_la_SOURCES) $(x11spank_la_SOURCES)
-DIST_SOURCES = $(cudaspank_la_SOURCES) $(globresspank_la_SOURCES) \
-	$(nopshcspank_la_SOURCES) $(noturbospank_la_SOURCES) \
-	$(perfparanoidspank_la_SOURCES) $(perftoolspank_la_SOURCES) \
-	$(showglobresspank_la_SOURCES) $(spank_api_la_SOURCES) \
-	$(visspank_la_SOURCES) $(x11spank_la_SOURCES)
+SOURCES = $(cudaspank_la_SOURCES) $(energyreport_la_SOURCES) \
+	$(globresspank_la_SOURCES) $(nopshcspank_la_SOURCES) \
+	$(noturbospank_la_SOURCES) $(perfparanoidspank_la_SOURCES) \
+	$(perftoolspank_la_SOURCES) $(showglobresspank_la_SOURCES) \
+	$(spank_api_la_SOURCES) $(visspank_la_SOURCES) \
+	$(x11spank_la_SOURCES)
+DIST_SOURCES = $(cudaspank_la_SOURCES) $(energyreport_la_SOURCES) \
+	$(globresspank_la_SOURCES) $(nopshcspank_la_SOURCES) \
+	$(noturbospank_la_SOURCES) $(perfparanoidspank_la_SOURCES) \
+	$(perftoolspank_la_SOURCES) $(showglobresspank_la_SOURCES) \
+	$(spank_api_la_SOURCES) $(visspank_la_SOURCES) \
+	$(x11spank_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -458,14 +464,17 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 psslurm_dir := plugins/psslurm/src
-slurmlib_LTLIBRARIES = cudaspank.la globresspank.la nopshcspank.la	\
-	noturbospank.la perfparanoidspank.la perftoolspank.la		\
-	showglobresspank.la spank_api.la visspank.la x11spank.la
+slurmlib_LTLIBRARIES = cudaspank.la energyreport.la globresspank.la \
+	nopshcspank.la noturbospank.la perfparanoidspank.la \
+	perftoolspank.la showglobresspank.la spank_api.la \
+	visspank.la x11spank.la
 
 spank_api_la_SOURCES = spank_api.c spank_api.h
 spank_api_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 cudaspank_la_SOURCES = cudaspank.c
 cudaspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+energyreport_la_SOURCES = energyreport.c
+energyreport_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 globresspank_la_SOURCES = globresspank.c
 globresspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 nopshcspank_la_SOURCES = nopshcspank.c
@@ -555,6 +564,9 @@ clean-slurmlibLTLIBRARIES:
 cudaspank.la: $(cudaspank_la_OBJECTS) $(cudaspank_la_DEPENDENCIES) $(EXTRA_cudaspank_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(slurmlibdir) $(cudaspank_la_OBJECTS) $(cudaspank_la_LIBADD) $(LIBS)
 
+energyreport.la: $(energyreport_la_OBJECTS) $(energyreport_la_DEPENDENCIES) $(EXTRA_energyreport_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK) -rpath $(slurmlibdir) $(energyreport_la_OBJECTS) $(energyreport_la_LIBADD) $(LIBS)
+
 globresspank.la: $(globresspank_la_OBJECTS) $(globresspank_la_DEPENDENCIES) $(EXTRA_globresspank_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(slurmlibdir) $(globresspank_la_OBJECTS) $(globresspank_la_LIBADD) $(LIBS)
 
@@ -589,6 +601,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cudaspank_la-cudaspank.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/energyreport_la-energyreport.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/globresspank_la-globresspank.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nopshcspank_la-nopshcspank.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/noturbospank_la-noturbospank.Plo@am__quote@ # am--include-marker
@@ -635,6 +648,13 @@ cudaspank_la-cudaspank.lo: cudaspank.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cudaspank.c' object='cudaspank_la-cudaspank.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cudaspank_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cudaspank_la-cudaspank.lo `test -f 'cudaspank.c' || echo '$(srcdir)/'`cudaspank.c
+
+energyreport_la-energyreport.lo: energyreport.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(energyreport_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT energyreport_la-energyreport.lo -MD -MP -MF $(DEPDIR)/energyreport_la-energyreport.Tpo -c -o energyreport_la-energyreport.lo `test -f 'energyreport.c' || echo '$(srcdir)/'`energyreport.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/energyreport_la-energyreport.Tpo $(DEPDIR)/energyreport_la-energyreport.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='energyreport.c' object='energyreport_la-energyreport.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(energyreport_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o energyreport_la-energyreport.lo `test -f 'energyreport.c' || echo '$(srcdir)/'`energyreport.c
 
 globresspank_la-globresspank.lo: globresspank.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(globresspank_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT globresspank_la-globresspank.lo -MD -MP -MF $(DEPDIR)/globresspank_la-globresspank.Tpo -c -o globresspank_la-globresspank.lo `test -f 'globresspank.c' || echo '$(srcdir)/'`globresspank.c
@@ -833,6 +853,7 @@ clean-am: clean-generic clean-libtool clean-slurmlibLTLIBRARIES \
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/cudaspank_la-cudaspank.Plo
+	-rm -f ./$(DEPDIR)/energyreport_la-energyreport.Plo
 	-rm -f ./$(DEPDIR)/globresspank_la-globresspank.Plo
 	-rm -f ./$(DEPDIR)/nopshcspank_la-nopshcspank.Plo
 	-rm -f ./$(DEPDIR)/noturbospank_la-noturbospank.Plo
@@ -888,6 +909,7 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/cudaspank_la-cudaspank.Plo
+	-rm -f ./$(DEPDIR)/energyreport_la-energyreport.Plo
 	-rm -f ./$(DEPDIR)/globresspank_la-globresspank.Plo
 	-rm -f ./$(DEPDIR)/nopshcspank_la-nopshcspank.Plo
 	-rm -f ./$(DEPDIR)/noturbospank_la-noturbospank.Plo
