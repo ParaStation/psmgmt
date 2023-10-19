@@ -18,9 +18,10 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon		\
 	       -I$(top_srcdir)/$(psslurm_dir)/common	\
 	       -I$(top_srcdir)/$(psslurm_dir)/psslurm
 
-slurmlib_LTLIBRARIES = cudaspank.la globresspank.la nopshcspank.la	\
-	noturbospank.la perfparanoidspank.la perftoolspank.la		\
-	showglobresspank.la spank_api.la visspank.la x11spank.la
+slurmlib_LTLIBRARIES = cudaspank.la energyreport.la globresspank.la \
+	nopshcspank.la noturbospank.la perfparanoidspank.la \
+	perftoolspank.la showglobresspank.la spank_api.la \
+	visspank.la x11spank.la
 
 spank_api_la_SOURCES = spank_api.c spank_api.h
 
@@ -29,6 +30,10 @@ spank_api_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 cudaspank_la_SOURCES = cudaspank.c
 
 cudaspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+
+energyreport_la_SOURCES = energyreport.c
+
+energyreport_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 
 globresspank_la_SOURCES = globresspank.c
 
