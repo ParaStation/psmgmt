@@ -91,6 +91,7 @@ typedef struct {
     uint32_t firstThread;     /* first thread assigned for current task */
     bool overcommit;          /* allow overbooking */
     uint16_t maxuse;          /* maximum processes per thread (overbooking) */
+    uint16_t threadsPerTask;  /* #threads to assign to the current task */
     Step_t *step;             /* step pointer for debugging output */
     int32_t rank;             /* rank to be used for debugging output */
 } pininfo_t;
@@ -883,11 +884,11 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
  * @param pininfo          <BOTH> Pinning information structure (for this node)
  */
 static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
-		uint16_t threadsPerTask, uint32_t local_tid, pininfo_t *pininfo)
+			      uint32_t local_tid, pininfo_t *pininfo)
 {
     uint32_t start = 0;
 
-    if (!threadsPerTask) return; // ensure threadsPerTask is > 0
+    if (!pininfo->threadsPerTask) return; // ensure threadsPerTask is > 0
     if (pininfo->lastUsedThread >= 0) {
 	start = getNextStartThread(nodeinfo, pininfo);
 
@@ -906,7 +907,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	}
     }
 
-    uint32_t thread, threadsLeft = threadsPerTask;
+    uint32_t thread, threadsLeft = pininfo->threadsPerTask;
     while (true) {
 	thread_iterator iter;
 	thread_iter_init(&iter, pininfo->threadIterStrategy, nodeinfo, start);
@@ -956,7 +957,9 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 		 thread, core, getSocketByCore(core, nodeinfo));
 
 	    /* this is the first thread assigned to the task so remember */
-	    if (threadsLeft == threadsPerTask) pininfo->firstThread = thread;
+	    if (threadsLeft == pininfo->threadsPerTask) {
+		pininfo->firstThread = thread;
+	    }
 
 	    /* assign hardware thread */
 	    PSCPU_setCPU(*CPUset, thread);
@@ -1070,13 +1073,14 @@ static void bindToCores(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  *
  */
 static void getSocketRankBinding(PSCPU_set_t *CPUset,
-		const nodeinfo_t *nodeinfo, uint16_t threadsPerTask,
-		uint32_t local_tid, pininfo_t *pininfo)
+				 const nodeinfo_t *nodeinfo, uint32_t local_tid,
+				 pininfo_t *pininfo)
 {
     PSCPU_clrAll(*CPUset);
 
     /* handle overbooking */
-    if (!threadsPerTask || threadsPerTask > nodeinfo->threadCount) {
+    if (!pininfo->threadsPerTask
+	    || pininfo->threadsPerTask > nodeinfo->threadCount) {
 	pinToAllThreads(CPUset, nodeinfo);
 	return;
     }
@@ -1087,7 +1091,7 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 	start = getNextSocketStart(pininfo->lastUsedThread, nodeinfo, false);
     }
 
-    uint32_t thread, threadsLeft = threadsPerTask;
+    uint32_t thread, threadsLeft = pininfo->threadsPerTask;
     while (true) {
 	thread_iterator iter;
 	thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo, start);
@@ -1159,8 +1163,7 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 		      char *cpuBindString, const nodeinfo_t *nodeinfo,
 		      int32_t *lastCpu, int *thread, uint32_t tasksPerNode,
-		      uint16_t threadsPerTask, uint32_t lTID,
-		      pininfo_t *pininfo, Step_t *step)
+		      uint32_t lTID, pininfo_t *pininfo)
 {
     PSCPU_clrAll(*CPUset);
 
@@ -1199,25 +1202,26 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     }
 
     /* handle overbooking */
-    if (threadsPerTask > nodeinfo->threadCount) {
+    if (pininfo->threadsPerTask > nodeinfo->threadCount) {
 	pinToAllThreads(CPUset, nodeinfo);
 	return;
     }
 
     /* rank binding */
     if (cpuBindType & CPU_BIND_RANK) {
-	getRankBinding(CPUset, nodeinfo, lastCpu, thread, threadsPerTask, lTID);
+	getRankBinding(CPUset, nodeinfo, lastCpu, thread,
+		       pininfo->threadsPerTask, lTID);
 	return;
     }
 
     /* ldom rank binding */
     if (cpuBindType & CPU_BIND_LDRANK) {
-	getSocketRankBinding(CPUset, nodeinfo, threadsPerTask, lTID, pininfo);
+	getSocketRankBinding(CPUset, nodeinfo, lTID, pininfo);
 	return;
     }
 
     /* default binding to threads */
-    getThreadsBinding(CPUset, nodeinfo, threadsPerTask, lTID, pininfo);
+    getThreadsBinding(CPUset, nodeinfo, lTID, pininfo);
 
     mdbg(PSSLURM_LOG_PART, "%s: %s\n", __func__,
 	    PSCPU_print_part(*CPUset,
@@ -1755,9 +1759,10 @@ bool setStepSlots(Step_t *step)
 {
     pininfo_t pininfo;
 
-    /* make step available everywhere to allow using of printerr() */
+    /* make some read only info available everywhere */
     pininfo.step = step;
     pininfo.rank = -1;
+    pininfo.threadsPerTask = step->tpp; /* explicitly for test function */
 
     /* on interactive steps, always deactivate pinning */
     if (step->stepid == SLURM_INTERACTIVE_STEP) {
@@ -1836,10 +1841,6 @@ bool setStepSlots(Step_t *step)
 	 * With node sharing enabled, this option is handled by the scheduler */
 	fillTasksPerSocket(&pininfo, &step->env, nodeinfo);
 
-
-	/* task parameter */
-	uint16_t threadsPerTask = step->tpp;
-
 	/* handle hint "nomultithreads" */
 	if (hints.nomultithread) {
 	    nodeinfo->threadsPerCore = 1;
@@ -1849,7 +1850,7 @@ bool setStepSlots(Step_t *step)
 	}
 
 	/* inform user about invalid combination of options */
-	if (hints.memory_bound && threadsPerTask > 1) {
+	if (hints.memory_bound && pininfo.threadsPerTask > 1) {
 	    ulog(&pininfo, "incompatible options: Ignoring hint"
 		 " \"memory_bound\" with cpus-per-task !=1");
 	}
@@ -1878,7 +1879,7 @@ bool setStepSlots(Step_t *step)
 	    /* calc CPUset */
 	    setCPUset(&slots[tid].CPUset, step->cpuBindType, step->cpuBind,
 		    nodeinfo, &lastCpu, &thread, step->globalTaskIdsLen[node],
-		    threadsPerTask, lTID, &pininfo, step);
+		    lTID, &pininfo);
 
 	    mdbg(PSSLURM_LOG_PART, "%s: CPUset for task %u: %s\n", __func__,
 		    tid, PSCPU_print_part(slots[tid].CPUset,
@@ -2655,6 +2656,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	uint32_t useCores = (threadsPerTask - 1) / nodeinfo.threadsPerCore + 1;
 	fdbg(PSSLURM_LOG_PART, "Use %u cores per task to fulfill 'exact'\n",
 	     useCores);
+	pininfo.threadsPerTask = useCores;
 
 	nodeinfo_t fakenodeinfo = {
 	    .id = 0, /* for debugging output only */
@@ -2681,8 +2683,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 
 	    PSCPU_set_t myCPUset;
 	    setCPUset(&myCPUset, CPU_BIND_TO_CORES, "", &fakenodeinfo, &lastCpu,
-		      &thread, tasksPerNode, useCores, local_tid,
-		      &pininfo, NULL);
+		      &thread, tasksPerNode, local_tid, &pininfo);
 
 	    PSCPU_addCPUs(CPUset, myCPUset);
 	}
@@ -2703,6 +2704,8 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
     pininfo.overcommit = overcommit;
     pininfo.maxuse = 1;
 
+    pininfo.threadsPerTask = threadsPerTask;
+
     fillDistributionStrategies(&pininfo, taskDist);
     fillTasksPerSocket(&pininfo, env, &nodeinfo);
 
@@ -2721,8 +2724,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	pininfo.firstThread = UINT32_MAX;
 
 	setCPUset(&CPUset, cpuBindType, cpuBindString, &nodeinfo, &lastCpu,
-		&thread, tasksPerNode, threadsPerTask, local_tid, &pininfo,
-		NULL);
+		&thread, tasksPerNode, local_tid, &pininfo);
 
 	PSCPU_set_t mappedSet;
 	PSCPU_clrAll(mappedSet);
