@@ -1776,7 +1776,8 @@ bool setStepSlots(Step_t *step)
     fillHints(&hints, &step->env, &pininfo);
 
     /* reconstruct hint nomultithread */
-    if (step->cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
+    if (step->cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE
+	|| hints.compute_bound) {
 	hints.nomultithread = true;
     }
 
