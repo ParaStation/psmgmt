@@ -1183,6 +1183,14 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	return;
     }
 
+    if (cpuBindType & CPU_BIND_MAP && pininfo->threadsPerTask > 1) {
+	ulog(pininfo, "type map_cpu cannot be used with --cpus-per-task > 1");
+	/* @todo would be best to call return here
+	 * but since this will stop the job imedeately and no step forwarder
+	 * will be created, we will never get the IO channel to srun and so
+	 * the message would not be printed to the user. */
+    }
+
     if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK
 				| CPU_BIND_LDMAP | CPU_BIND_LDMASK)) {
 	getBindMapFromString(CPUset, cpuBindType, cpuBindString, nodeinfo,
