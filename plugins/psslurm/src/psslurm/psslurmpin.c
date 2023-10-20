@@ -608,6 +608,49 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
     ufree(mask);
 }
 
+/* map a whole CPU set */
+void mapCPUset(const PSCPU_set_t *unmapped, PSCPU_set_t *mapped, int num,
+		 PSnodes_ID_t nodeid)
+{
+    PSCPU_clrAll(*mapped);
+    for (uint16_t cpu = 0; cpu < num; cpu++) {
+	if (!PSCPU_isSet(*unmapped, cpu)) continue;
+	PSCPU_setCPU(*mapped, PSIDnodes_mapCPU(nodeid, cpu));
+    }
+}
+
+/* check if CPU mask (from --cpu-bind=mask_cpu) fits all other parameters
+ * remember that CPUset is unmapped */
+bool checkCpuMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
+		  const pininfo_t *pininfo)
+{
+    /* check against threadsPerTask */
+    if (PSCPU_getCPUs(*CPUset, NULL, nodeinfo->threadCount)
+	    < pininfo->threadsPerTask) {
+	PSCPU_set_t orig;
+	mapCPUset(CPUset, &orig, nodeinfo->threadCount, nodeinfo->id);
+	ulog(pininfo, "mask %s does not fit for --cpus-per-task %d",
+	     PSCPU_print_part(orig, PSCPU_bytesForCPUs(nodeinfo->threadCount)),
+	     pininfo->threadsPerTask);
+	return false;
+    }
+
+    /* check against step core map */
+    for (uint16_t cpu = 0; cpu < nodeinfo->threadCount; cpu++) {
+	if (!PSCPU_isSet(*CPUset, cpu)) continue;
+	if (!PSCPU_isSet(nodeinfo->stepHWthreads, getCore(cpu, nodeinfo))) {
+	    PSCPU_set_t orig;
+	    mapCPUset(CPUset, &orig, nodeinfo->threadCount, nodeinfo->id);
+	    ulog(pininfo, "mask %s does not fit into step core map",
+		 PSCPU_print_part(orig,
+				  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
+	    return false;
+	}
+    }
+
+    return true;
+}
+
 /*
  * Sets the @a CPUset according to the string @a cpuBindString
  *
@@ -671,6 +714,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 		 "cpumaskstr '%s' cpumask '%s'\n", nodeinfo->id, lTID, myent,
 		 PSCPU_print(*CPUset));
 	    free(myent);
+	    if (!checkCpuMask(CPUset, nodeinfo, pininfo)) goto error;
 	    return;
 	} else {
 	    // cpuBindType & CPU_BIND_LDMASK
