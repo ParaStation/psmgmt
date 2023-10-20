@@ -660,8 +660,12 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* set slots for the step (and number of hardware threads) */
     if (!setStepSlots(step)) {
 	flog("setting hardware threads for %s failed\n", Step_strID(step));
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	goto ERROR;
+	char msg[40];
+	snprintf(msg, sizeof(msg), "Fatal error in pinning for %s",
+		 Step_strID(step));
+	fwCMD_printMsg(NULL, step, msg, strlen(msg), STDERR, -1);
+	/* exit but not before printing messages to the user */
+	step->termAfterFWmsg = ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     /* sanity check nrOfNodes */

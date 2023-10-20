@@ -1159,8 +1159,9 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
  * @param lTID           <IN>   local task id (current task on this node)
  * @param pininfo        <BOTH> Pinning information structure (for this node)
  *
+ * @return true on success or false if step should be aborted
  */
-static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
+static bool setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 		      char *cpuBindString, const nodeinfo_t *nodeinfo,
 		      int32_t *lastCpu, int *thread, uint32_t tasksPerNode,
 		      uint32_t lTID, pininfo_t *pininfo)
@@ -1176,48 +1177,45 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     if (cpuBindType & CPU_BIND_NONE) {
 	pinToAllThreads(CPUset, nodeinfo);
 	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_none)\n", __func__);
-	return;
+	return true;
     }
 
     if (cpuBindType & CPU_BIND_TO_BOARDS) {
 	/* removed in Slurm 22.05 */
 	pinToAllThreads(CPUset, nodeinfo);
 	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_boards)\n", __func__);
-	return;
+	return true;
     }
 
     if (cpuBindType & CPU_BIND_MAP && pininfo->threadsPerTask > 1) {
 	ulog(pininfo, "type map_cpu cannot be used with --cpus-per-task > 1");
-	/* @todo would be best to call return here
-	 * but since this will stop the job imedeately and no step forwarder
-	 * will be created, we will never get the IO channel to srun and so
-	 * the message would not be printed to the user. */
+	return false;
     }
 
     if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK
 				| CPU_BIND_LDMAP | CPU_BIND_LDMASK)) {
 	getBindMapFromString(CPUset, cpuBindType, cpuBindString, nodeinfo,
 		lTID, pininfo);
-	return;
+	return true;
     }
 
     /* handle overbooking */
     if (pininfo->threadsPerTask > nodeinfo->threadCount) {
 	pinToAllThreads(CPUset, nodeinfo);
-	return;
+	return true;
     }
 
     /* rank binding */
     if (cpuBindType & CPU_BIND_RANK) {
 	getRankBinding(CPUset, nodeinfo, lastCpu, thread,
 		       pininfo->threadsPerTask, lTID);
-	return;
+	return true;
     }
 
     /* ldom rank binding */
     if (cpuBindType & CPU_BIND_LDRANK) {
 	getSocketRankBinding(CPUset, nodeinfo, lTID, pininfo);
-	return;
+	return true;
     }
 
     /* default binding to threads */
@@ -1239,16 +1237,17 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     /* bind to sockets */
     if (cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS)) {
 	bindToSockets(CPUset, nodeinfo, lTID);
-	return;
+	return true;
     }
 
     /* bind to cores */
     if (cpuBindType & CPU_BIND_TO_CORES) {
 	bindToCores(CPUset, nodeinfo, lTID);
-	return;
+	return true;
     }
 
     /* default, CPU_BIND_TO_THREADS */
+    return true;
 }
 
 /* sets the cpu bind type to configured default if not set by the user */
@@ -1877,9 +1876,13 @@ bool setStepSlots(Step_t *step)
 	    pininfo.firstThread = UINT32_MAX;
 
 	    /* calc CPUset */
-	    setCPUset(&slots[tid].CPUset, step->cpuBindType, step->cpuBind,
-		    nodeinfo, &lastCpu, &thread, step->globalTaskIdsLen[node],
-		    lTID, &pininfo);
+	    if (!setCPUset(&slots[tid].CPUset, step->cpuBindType, step->cpuBind,
+			   nodeinfo, &lastCpu, &thread,
+			   step->globalTaskIdsLen[node],
+			   lTID, &pininfo)) {
+		flog("creating CPU set fatally failed, abort step\n");
+		goto error;
+	    }
 
 	    mdbg(PSSLURM_LOG_PART, "%s: CPUset for task %u: %s\n", __func__,
 		    tid, PSCPU_print_part(slots[tid].CPUset,
@@ -1908,7 +1911,6 @@ bool setStepSlots(Step_t *step)
 error:
     ufree(slots);
     return false;
-
 }
 
 void logHWthreads(const char* func, PSpart_HWThread_t *threads, uint32_t num)
@@ -2682,11 +2684,16 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	    pininfo.firstThread = UINT32_MAX;
 
 	    PSCPU_set_t myCPUset;
-	    setCPUset(&myCPUset, CPU_BIND_TO_CORES, "", &fakenodeinfo, &lastCpu,
-		      &thread, tasksPerNode, local_tid, &pininfo);
+	    if (!setCPUset(&myCPUset, CPU_BIND_TO_CORES, "", &fakenodeinfo,
+			   &lastCpu, &thread, tasksPerNode, local_tid,
+			   &pininfo)) {
+		fprintf(stderr, "setCPUset() for --exact returned false\n");
+		return;
+	    }
 
 	    PSCPU_addCPUs(CPUset, myCPUset);
 	}
+
 	fdbg(PSSLURM_LOG_PART, "Using coremap %s\n", PSCPU_print_part(CPUset,
 		PSCPU_bytesForCPUs(nodeinfo.coreCount)));
 
@@ -2723,8 +2730,12 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	/* reset first thread */
 	pininfo.firstThread = UINT32_MAX;
 
-	setCPUset(&CPUset, cpuBindType, cpuBindString, &nodeinfo, &lastCpu,
-		&thread, tasksPerNode, local_tid, &pininfo);
+	if (!setCPUset(&CPUset, cpuBindType, cpuBindString, &nodeinfo, &lastCpu,
+		       &thread, tasksPerNode, local_tid, &pininfo)) {
+		       fprintf(stderr, "%u: Pinning failed, step would abort.\n",
+			       local_tid);
+		goto cleanup;
+	    }
 
 	PSCPU_set_t mappedSet;
 	PSCPU_clrAll(mappedSet);
@@ -2798,6 +2809,8 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	}
 	printf("\n");
     }
+
+cleanup:
 
     ufree(pininfo.usedHwThreads);
 }
