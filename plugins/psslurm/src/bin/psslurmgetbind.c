@@ -878,6 +878,7 @@ in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id) {
 
 void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 		    uint8_t type, int32_t rank) {
+    fprintf(stderr, "%d: CPU binding: %s", rank < 0 ? 0 : rank, plMsg);
     return;
 }
 

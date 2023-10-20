@@ -17,6 +17,7 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #ifdef HAVE_LIBNUMA
 #include <math.h>
@@ -90,6 +91,8 @@ typedef struct {
     uint32_t firstThread;     /* first thread assigned for current task */
     bool overcommit;          /* allow overbooking */
     uint16_t maxuse;          /* maximum processes per thread (overbooking) */
+    Step_t *step;             /* step pointer for debugging output */
+    int32_t rank;             /* rank to be used for debugging output */
 } pininfo_t;
 
 typedef struct {
@@ -355,6 +358,37 @@ static void fillDistributionStrategies(pininfo_t *pininfo, uint32_t taskDist)
 }
 
 /*
+ * Print formated string to strerr of the user
+ * Newline is appended automatically
+ */
+static void printerr(const pininfo_t *pininfo, const char *format, ...)
+{
+    char msg[2048];
+
+    int len = sprintf(msg, "CPU binding: ");
+
+    va_list ap;
+
+    va_start(ap, format);
+    vsnprintf(msg+len, sizeof(msg)-len, format, ap);
+    va_end(ap);
+
+    fwCMD_printMsg(NULL, pininfo->step, msg, strlen(msg), STDERR,
+		   pininfo->rank);
+}
+
+/*
+ * Print formated string to syslog and strerr of the user
+ */
+#define ulog(info, format, ...) do { \
+    flog(format "\n" __VA_OPT__(,) __VA_ARGS__); \
+    char *str = ustrdup(format); \
+    *str = toupper(*str); \
+    printerr(info, str __VA_OPT__(,) __VA_ARGS__); \
+    ufree(str); \
+} while(0)
+
+/*
  * Pin to all hardware threads allowed by the step
  */
 static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
@@ -413,7 +447,7 @@ static void pinToCore(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  * If the sting is not a valid hex number, each bit in @a CPUset becomes set.
  */
 static void parseCPUmask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
-			 char *maskStr)
+			 char *maskStr, const pininfo_t *pininfo)
 {
     char *mask = maskStr;
     if (strncmp(maskStr, "0x", 2) == 0) {
@@ -430,7 +464,8 @@ static void parseCPUmask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	char *endptr;
 	int digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
-	    mlog("%s: invalid digit in cpu mask '%s'\n", __func__, maskStr);
+	    ulog(pininfo, "invalid digit in cpu mask '%s', pinning to all"
+		 " threads allowed\n", maskStr);
 	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
 	    break;
 	}
@@ -478,7 +513,6 @@ static long * parseMapString(const char *mapstr, size_t *count, size_t last)
 
 	if (endptr == ptr) {
 	    /* invalid string */
-	    flog("Invalid bind map string \"%s\"\n", mapstr);
 	    goto error;
 	}
 
@@ -488,7 +522,6 @@ static long * parseMapString(const char *mapstr, size_t *count, size_t last)
 	    long mult = strtoul (ptr, &endptr, 10);
 	    if (endptr == ptr) {
 		/* invalid string */
-		flog("Invalid bind map string \"%s\"\n", mapstr);
 		goto error;
 	    }
 	    if (*count + mult - 1 > max) {
@@ -508,7 +541,7 @@ static long * parseMapString(const char *mapstr, size_t *count, size_t last)
 	}
 
 	if (*endptr != ',') {
-	    flog("Invalid bind map string \"%s\"\n", mapstr);
+	    /* invalid string */
 	    goto error;
 	}
 
@@ -540,7 +573,7 @@ error:
  * If the sting is not a valid hex number, each bit in @a CPUset becomes set.
  */
 static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
-			    char *maskStr)
+			    char *maskStr, const pininfo_t *pininfo)
 {
     char *mask = maskStr;
     if (strncmp(maskStr, "0x", 2) == 0) {
@@ -556,7 +589,8 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	char *endptr;
 	int digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
-	    mlog("%s: invalid digit in cpu mask '%s'\n", __func__, maskStr);
+	    ulog(pininfo, "invalid digit in cpu mask '%s', pinning to all"
+		 " threads allowed", maskStr);
 	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
 	    break;
 	}
@@ -597,7 +631,7 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 				 char *cpuBindString,
 				 const nodeinfo_t *nodeinfo, uint32_t lTID,
-				 Step_t *step)
+				 pininfo_t *pininfo)
 {
     PSCPU_clrAll(*CPUset);
 
@@ -628,12 +662,10 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 
 	if (cpuBindType & CPU_BIND_MASK) {
 	    if (!myent) {
-		flog("invalid cpu mask string '%s'\n", cpuBindString);
-		char *msg = "Invalid CPU mask string\n";
-		fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
+		ulog(pininfo, "invalid cpu mask string '%s'", cpuBindString);
 		goto error;
 	    }
-	    parseCPUmask(CPUset, nodeinfo, myent);
+	    parseCPUmask(CPUset, nodeinfo, myent, pininfo);
 	    fdbg(PSSLURM_LOG_PART, "(bind_mask) node %d local task %d "
 		 "cpumaskstr '%s' cpumask '%s'\n", nodeinfo->id, lTID, myent,
 		 PSCPU_print(*CPUset));
@@ -642,15 +674,13 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	} else {
 	    // cpuBindType & CPU_BIND_LDMASK
 	    if (!myent) {
-		flog("invalid socket mask string '%s'\n", cpuBindString);
-		char *msg = "Invalid local domains mask string\n";
-		fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
+		ulog(pininfo, "invalid ldom mask string '%s'", cpuBindString);
 		goto error;
 	    }
-	    parseSocketMask(CPUset, nodeinfo, myent);
-	    mdbg(PSSLURM_LOG_PART, "%s: (bind_ldmask) node %d local task %d "
-		 "ldommaskstr '%s' cpumask '%s'\n", __func__, nodeinfo->id,
-		 lTID, myent, PSCPU_print(*CPUset));
+	    parseSocketMask(CPUset, nodeinfo, myent, pininfo);
+	    fdbg(PSSLURM_LOG_PART, "(bind_ldmask) node %d local task %d "
+		 "ldommaskstr '%s' cpumask '%s'\n", nodeinfo->id, lTID, myent,
+		 PSCPU_print(*CPUset));
 	    free(myent);
 	    return;
 	}
@@ -658,34 +688,25 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	size_t count;
 	long *cpus = parseMapString(cpuBindString, &count, lTID + 1);
 	if (!cpus) {
-	    flog("invalid cpu map string '%s'\n", cpuBindString);
-	    char *msg = "Invalid CPU map string\n";
-	    fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
+	    ulog(pininfo, "invalid CPU map string '%s'", cpuBindString);
 	    goto error;
 	}
 
 	long mycpu = cpus[lTID % count];
 	ufree(cpus);
 	if (mycpu >= nodeinfo->threadCount) {
-	    flog("invalid cpu id %ld in cpu map '%s'\n", mycpu, cpuBindString);
-	    char msg[256];
-	    snprintf(msg, 256, "Invalid CPU ID %ld in CPU map string\n", mycpu);
-	    fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
+	    ulog(pininfo, "invalid CPU %ld in CPU map '%s'", mycpu,
+		 cpuBindString);
 	    goto error;
 	}
 
 	long myumapcpu = PSIDnodes_unmapCPU(nodeinfo->id, mycpu);
 
 	if (!PSCPU_isSet(nodeinfo->stepHWthreads, myumapcpu)) {
-	    flog("cpu id %ld in cpu map '%s' is not in step's coremap %s\n",
+	    ulog(pininfo, "CPU %ld in CPU map '%s' is not in step's coremap %s",
 		 mycpu, cpuBindString,
 		 PSCPU_print_part(nodeinfo->stepHWthreads,
 				  PSCPU_bytesForCPUs(nodeinfo->threadCount/2)));
-	    char msg[256];
-	    snprintf(msg, 256, "CPU ID %ld is not in step's coremap %s\n",
-		     mycpu, PSCPU_print_part(nodeinfo->stepHWthreads,
-				  PSCPU_bytesForCPUs(nodeinfo->threadCount/2)));
-	    fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
 	    goto error;
 	}
 
@@ -698,21 +719,15 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	size_t count;
 	long *ldoms = parseMapString(cpuBindString, &count, lTID + 1);
 	if (!ldoms) {
-	    flog("invalid ldom map string '%s'\n", cpuBindString);
-	    char *msg = "Invalid local domains map string\n";
-	    fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
+	    ulog(pininfo, "invalid ldom map string '%s'", cpuBindString);
 	    goto error;
 	}
 
 	long myldom = ldoms[lTID % count];
 	ufree(ldoms);
 	if (myldom >= nodeinfo->socketCount) {
-	   flog("invalid ldom id %ld in ldom map string '%s'\n", myldom,
+	   ulog(pininfo, "invalid ldom %ld in ldom map string '%s'", myldom,
 		   cpuBindString);
-	    char msg[256];
-	    snprintf(msg, 256, "Invalid local domain ID %ld in local domain map"
-		     " string\n", myldom);
-	    fwCMD_printMsg(NULL, step,  msg, strlen(msg), STDERR, 0);
 	    goto error;
 	}
 
@@ -879,7 +894,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	if (start == UINT32_MAX) {
 	    /* there are no threads left */
 	    if (!pininfo->overcommit) {
-		flog("No threads left to start from, pin to all allowed\n");
+		ulog(pininfo, "No threads left, pin to all allowed");
 		pinToAllThreads(CPUset, nodeinfo);
 		return;
 	    }
@@ -953,7 +968,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	/* there are not enough threads left */
 	if (!pininfo->overcommit) {
-	    flog("No threads left, pin to all allowed\n");
+	    ulog(pininfo, "not enough threads left, pin to all allowed");
 	    pinToAllThreads(CPUset, nodeinfo);
 	    break;
 	}
@@ -1103,7 +1118,7 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 
 	/* there are not enough threads left */
 	if (!pininfo->overcommit) {
-	    flog("No threads left, pin to all allowed\n");
+	    ulog(pininfo, "Not enough threads left, pin to all allowed\n");
 	    pinToAllThreads(CPUset, nodeinfo);
 	    break;
 	}
@@ -1171,7 +1186,7 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK
 				| CPU_BIND_LDMAP | CPU_BIND_LDMASK)) {
 	getBindMapFromString(CPUset, cpuBindType, cpuBindString, nodeinfo,
-		lTID, step);
+		lTID, pininfo);
 	return;
     }
 
@@ -1396,34 +1411,41 @@ bool initPinning(void)
 }
 
 /* read environment and fill global hints struct */
-static void fillHints(hints_t *hints, env_t *env)
+static void fillHints(hints_t *hints, env_t *env, pininfo_t *pininfo)
 {
     memset(hints, 0, sizeof(*hints));
 
     char *hintstr;
     if ((hintstr = envGet(env, "PSSLURM_HINT"))
 	    || (hintstr = envGet(env, "SLURM_HINT"))) {
+	char *var = envGet(env, "PSSLURM_HINT") ? "PSSLURM_HINT" : "SLURM_HINT";
 	for (char *ptr = hintstr; *ptr != '\0'; ptr++) {
 	    if (!strncmp(ptr, "compute_bound", 13)
 		    && (ptr[13] == ',' || ptr[13] == '\0')) {
 		hints->compute_bound = true;
 		ptr+=13;
-		flog("Valid hint: compute_bound\n");
+		flog("Valid hint in %s: compute_bound\n", var);
 	    }
 	    else if (!strncmp(ptr, "memory_bound", 12)
 		    && (ptr[12] == ',' || ptr[12] == '\0')) {
 		hints->memory_bound = true;
 		ptr+=12;
-		flog("Valid hint: memory_bound\n");
+		flog("Valid hint in %s: memory_bound\n", var);
+	    }
+	    else if (!strncmp(ptr, "multithread", 11)
+		    && (ptr[11] == ',' || ptr[11] == '\0')) {
+		hints->nomultithread = false;
+		ptr+=11;
+		flog("Valid hint %s: multithread\n", var);
 	    }
 	    else if (!strncmp(ptr, "nomultithread", 13)
 		    && (ptr[13] == ',' || ptr[13] == '\0')) {
 		hints->nomultithread = true;
 		ptr+=13;
-		flog("Valid hint: nomultithread\n");
+		flog("Valid hint in %s: nomultithread\n", var);
 	    }
 	    else {
-		flog("Invalid hint: '%s'\n", hintstr);
+		ulog(pininfo, "Invalid hint in %s: '%s'", var, hintstr);
 		break;
 	    }
 	}
@@ -1725,6 +1747,10 @@ bool setStepSlots(Step_t *step)
 {
     pininfo_t pininfo;
 
+    /* make step available everywhere to allow using of printerr() */
+    pininfo.step = step;
+    pininfo.rank = -1;
+
     /* on interactive steps, always deactivate pinning */
     if (step->stepid == SLURM_INTERACTIVE_STEP) {
 	flog("interactive step detected, using CPU pinning style 'none'\n");
@@ -1747,7 +1773,7 @@ bool setStepSlots(Step_t *step)
 
     /* handle hints */
     hints_t hints;
-    fillHints(&hints, &step->env);
+    fillHints(&hints, &step->env, &pininfo);
 
     /* reconstruct hint nomultithread */
     if (step->cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
@@ -1782,8 +1808,8 @@ bool setStepSlots(Step_t *step)
 	/* check cpu mapping */
 	for (uint32_t cpu = 0; cpu < nodeinfo->threadCount; cpu++) {
 	    if (PSIDnodes_unmapCPU(nodeinfo->id, cpu) < 0) {
-		flog("CPU %u not included in CPUmap for node %hu\n",
-		     cpu, nodeinfo->id);
+		flog("CPU %u not included in CPUmap for node %hu\n", cpu,
+		     nodeinfo->id);
 	    }
 	}
 
@@ -1801,6 +1827,10 @@ bool setStepSlots(Step_t *step)
 	 * With node sharing enabled, this option is handled by the scheduler */
 	fillTasksPerSocket(&pininfo, &step->env, nodeinfo);
 
+
+	/* task parameter */
+	uint16_t threadsPerTask = step->tpp;
+
 	/* handle hint "nomultithreads" */
 	if (hints.nomultithread) {
 	    nodeinfo->threadsPerCore = 1;
@@ -1809,10 +1839,19 @@ bool setStepSlots(Step_t *step)
 		 " setting nodeinfo.threadsPerCore = 1\n");
 	}
 
+	/* inform user about invalid combination of options */
+	if (hints.memory_bound && threadsPerTask > 1) {
+	    ulog(&pininfo, "incompatible options: Ignoring hint"
+		 " \"memory_bound\" with cpus-per-task !=1");
+	}
+
 	/* set node and cpuset for every task on this node */
 	for (uint32_t lTID=0; lTID < step->globalTaskIdsLen[node]; lTID++) {
 
 	    uint32_t tid = step->globalTaskIds[node][lTID];
+
+	    /* make tid (rank) available everywhere to allow using printerr() */
+	    pininfo.rank = tid;
 
 	    mdbg(PSSLURM_LOG_PART, "%s: node %u nodeid %u task %u tid %u\n",
 		    __func__, node, nodeinfo->id, lTID, tid);
@@ -1823,10 +1862,6 @@ bool setStepSlots(Step_t *step)
 		     PSC_printTID(tid), slotsSize);
 		goto error;
 	    }
-
-	    /* task parameter */
-	    uint16_t threadsPerTask = step->tpp;
-
 
 	    /* reset first thread */
 	    pininfo.firstThread = UINT32_MAX;
@@ -2565,8 +2600,13 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
     setCpuBindType(&cpuBindType);
     setDistributions(&taskDist);
 
+    /* set values used by printerr() */
+    pininfo_t pininfo;
+    pininfo.step = NULL;
+    pininfo.rank = -1;
+
     hints_t hints;
-    fillHints(&hints, env);
+    fillHints(&hints, env, &pininfo);
 
     /* handle hint "nomultithreads" */
     if (hints.nomultithread) {
@@ -2592,7 +2632,6 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
      * of all processes into one.
      * */
     if (exact) {
-	pininfo_t pininfo;
 	pininfo.usedHwThreads = ucalloc(nodeinfo.coreCount * threadsPerCore
 					  * sizeof(*pininfo.usedHwThreads));
 	pininfo.lastUsedThread = -1;
@@ -2648,7 +2687,6 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
     }
 
     /* prepare pininfo */
-    pininfo_t pininfo;
     pininfo.usedHwThreads = ucalloc(nodeinfo.coreCount * threadsPerCore
 	    * sizeof(*pininfo.usedHwThreads));
     pininfo.lastUsedThread = -1;
