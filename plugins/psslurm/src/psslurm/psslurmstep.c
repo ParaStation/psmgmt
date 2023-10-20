@@ -49,6 +49,7 @@ Step_t *Step_new(void)
     step->startTime = time(0);
     step->leader = false;
     step->spawned = false;
+    step->termAfterFWmsg = false;
 
     INIT_LIST_HEAD(&step->tasks);
     INIT_LIST_HEAD(&step->remoteTasks);

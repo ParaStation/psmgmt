@@ -142,6 +142,7 @@ Job_t *Job_add(uint32_t jobid)
     envInit(&job->env);
     envInit(&job->spankenv);
     psAccountGetLocalInfo(&job->acctBase);
+    job->termAfterFWmsg = false;
 
     list_add_tail(&job->next, &JobList);
 

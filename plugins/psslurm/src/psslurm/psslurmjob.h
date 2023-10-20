@@ -95,6 +95,8 @@ typedef struct {
     psAccountInfo_t acctBase;  /**< account base values (e.g. file-system) */
     list_t fwMsgQueue;	    /**< Queued output/error messages waiting for
 				 delivery after forwarder start */
+    bool termAfterFWmsg;    /**< force job termination after sending
+				 messages waiting in @ref fwMsgQueue */
 } Job_t;
 
 /**

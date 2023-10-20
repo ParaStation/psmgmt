@@ -1169,6 +1169,13 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     /* inform the mother psid */
     fwCMD_initComplete(step);
 
+    /* setup I/O channels soley to send an error message, so prevent
+     * any execution of child tasks */
+    if (step->termAfterFWmsg) {
+	if (fwdata->childFunc) fwdata->childFunc = NULL;
+	fwdata->childRerun = 1;
+    }
+
     return 1;
 }
 
@@ -1218,6 +1225,12 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
     list_for_each(t, &step->fwMsgQueue) {
 	FwUserMsgBuf_t *buf = list_entry(t, FwUserMsgBuf_t, next);
 	IO_printStepMsg(fwdata, buf->msg, buf->msgLen, buf->rank, buf->type);
+    }
+
+    if (step->termAfterFWmsg) {
+	flog("terminating forwarder for %s after sending user message\n",
+	     Step_strID(step));
+	exit(1);
     }
 }
 
@@ -1334,6 +1347,12 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
 	IO_printJobMsg(fwdata, buf->msg, buf->msgLen, buf->type);
     }
 
+    if (job->termAfterFWmsg) {
+	flog("terminating forwarder for job %u after sending user message\n",
+	     job->jobid);
+	exit(1);
+    }
+
     if (switchEffectiveUser("root", 0, 0) == -1) {
 	mlog("%s: switching effective user failed\n", __func__);
 	exit(1);
@@ -1350,6 +1369,13 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     setJailEnv(&job->env, job->username, NULL, &(job->hwthreads),
 	       &job->gresList, job->cred, job->localNodeId);
+
+    /* setup I/O channels soley to send an error message, so prevent
+     * any execution of child tasks */
+    if (job->termAfterFWmsg) {
+	if (fwdata->childFunc) fwdata->childFunc = NULL;
+	fwdata->childRerun = 1;
+    }
 
     return IO_openJobPipes(fwdata);
 }
@@ -1554,11 +1580,17 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
 
     IO_redirectStep(fwdata, step);
 
-    /* print queued messages if any*/
+    /* print queued messages if any */
     list_t *t;
     list_for_each(t, &step->fwMsgQueue) {
 	FwUserMsgBuf_t *buf = list_entry(t, FwUserMsgBuf_t, next);
 	IO_printStepMsg(fwdata, buf->msg, buf->msgLen, buf->rank, buf->type);
+    }
+
+    if (step->termAfterFWmsg) {
+	flog("terminating forwarder for %s after sending user message\n",
+	     Step_strID(step));
+	exit(1);
     }
 
     if (switchEffectiveUser("root", 0, 0) == -1) {
