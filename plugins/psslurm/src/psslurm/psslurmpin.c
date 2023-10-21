@@ -290,25 +290,25 @@ static void fillDistributionStrategies(pininfo_t *pininfo, uint32_t taskDist)
     uint32_t socketDist = taskDist & SLURM_DIST_SOCKMASK;
     uint32_t coreDist = taskDist & SLURM_DIST_COREMASK;
 
-    mdbg(PSSLURM_LOG_PART, "%s: socketDist = 0x%X - coreDist = 0x%X\n",
-	    __func__, socketDist, coreDist);
+    fdbg(PSSLURM_LOG_PART, "socketDist = 0x%X - coreDist = 0x%X\n", socketDist,
+	 coreDist);
 
     switch(socketDist) {
 	case SLURM_DIST_SOCKBLOCK:
 	    switch(coreDist) {
 		case SLURM_DIST_CORECYCLIC:
-		    mdbg(PSSLURM_LOG_PART, "%s: block:cyclic\n", __func__);
+		    fdbg(PSSLURM_LOG_PART, "block:cyclic\n");
 		    pininfo->threadIterStrategy = FILLSOCKETS_FILLCORES;
 		    pininfo->nextStartStrategy = BLOCK_CYCLIC;
 		    break;
 		case SLURM_DIST_CORECFULL:
-		    mdbg(PSSLURM_LOG_PART, "%s: block:fcyclic\n", __func__);
+		    fdbg(PSSLURM_LOG_PART, "block:fcyclic\n");
 		    pininfo->threadIterStrategy = FILLSOCKETS_CYCLECORES;
 		    pininfo->nextStartStrategy = BLOCK_CYCLIC;
 		    break;
 		case SLURM_DIST_COREBLOCK:
 		default:
-		    mdbg(PSSLURM_LOG_PART, "%s: block:block\n", __func__);
+		    fdbg(PSSLURM_LOG_PART, "block:block\n");
 		    pininfo->threadIterStrategy = FILLSOCKETS_FILLCORES;
 		    pininfo->nextStartStrategy = BLOCK_BLOCK;
 		    break;
@@ -317,18 +317,18 @@ static void fillDistributionStrategies(pininfo_t *pininfo, uint32_t taskDist)
 	case SLURM_DIST_SOCKCFULL:
 	    switch(coreDist) {
 		case SLURM_DIST_COREBLOCK:
-		    mdbg(PSSLURM_LOG_PART, "%s: fcyclic:block\n", __func__);
+		    fdbg(PSSLURM_LOG_PART, "fcyclic:block\n");
 		    pininfo->threadIterStrategy = CYCLESOCKETS_FILLCORES;
 		    pininfo->nextStartStrategy = CYCLIC_BLOCK;
 		    break;
 		case SLURM_DIST_CORECYCLIC:
-		    mdbg(PSSLURM_LOG_PART, "%s: fcyclic:cyclic\n", __func__);
+		    fdbg(PSSLURM_LOG_PART, "fcyclic:cyclic\n");
 		    pininfo->threadIterStrategy = CYCLESOCKETS_FILLCORES;
 		    pininfo->nextStartStrategy = CYCLIC_CYCLIC;
 		    break;
 		case SLURM_DIST_CORECFULL:
 		default:
-		    mdbg(PSSLURM_LOG_PART, "%s: fcyclic:fcyclic\n", __func__);
+		    fdbg(PSSLURM_LOG_PART, "fcyclic:fcyclic\n");
 		    pininfo->threadIterStrategy = CYCLESOCKETS_CYCLECORES;
 		    pininfo->nextStartStrategy = CYCLIC_CYCLIC;
 		    break;
@@ -338,18 +338,18 @@ static void fillDistributionStrategies(pininfo_t *pininfo, uint32_t taskDist)
 	default:
 	    switch(coreDist) {
 		case SLURM_DIST_COREBLOCK:
-		    mdbg(PSSLURM_LOG_PART, "%s: cyclic:block\n", __func__);
+		    fdbg(PSSLURM_LOG_PART, "cyclic:block\n");
 		    pininfo->threadIterStrategy = FILLSOCKETS_FILLCORES;
 		    pininfo->nextStartStrategy = CYCLIC_BLOCK;
 		    break;
 		case SLURM_DIST_CORECFULL:
-		    mdbg(PSSLURM_LOG_PART, "%s: cyclic:fcyclic\n", __func__);
+		    fdbg(PSSLURM_LOG_PART, "cyclic:fcyclic\n");
 		    pininfo->threadIterStrategy = FILLSOCKETS_CYCLECORES;
 		    pininfo->nextStartStrategy = CYCLIC_CYCLIC;
 		    break;
 		case SLURM_DIST_CORECYCLIC:
 		default:
-		    mdbg(PSSLURM_LOG_PART, "%s: cyclic:cyclic\n", __func__);
+		    fdbg(PSSLURM_LOG_PART, "cyclic:cyclic\n");
 		    pininfo->threadIterStrategy = FILLSOCKETS_FILLCORES;
 		    pininfo->nextStartStrategy = CYCLIC_CYCLIC;
 		    break;
@@ -411,7 +411,7 @@ static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
 static void pinToSocket(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 			uint16_t socket, bool phys)
 {
-    mdbg(PSSLURM_LOG_PART, "%s: pinning to socket %u\n", __func__, socket);
+    fdbg(PSSLURM_LOG_PART, "pinning to socket %u\n", socket);
 
     for (uint16_t c = 0; c < nodeinfo->coresPerSocket; c++) {
 	for (uint16_t t = 0; t < nodeinfo->threadsPerCore; t++) {
@@ -429,7 +429,7 @@ static void pinToSocket(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 static void pinToCore(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 		      uint16_t core)
 {
-    mdbg(PSSLURM_LOG_PART, "%s: pinning to core %u\n", __func__, core);
+    fdbg(PSSLURM_LOG_PART, "pinning to core %u\n", core);
 
     for (uint16_t t = 0; t < nodeinfo->threadsPerCore; t++) {
 	PSCPU_setCPU(*CPUset, nodeinfo->coreCount * t + core);
@@ -820,9 +820,8 @@ static void getRankBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 		&& PSCPU_isSet(nodeinfo->stepHWthreads, u)) {
 		PSCPU_setCPU(*CPUset,
 			     localCpuCount + (*thread * nodeinfo->coreCount));
-		mdbg(PSSLURM_LOG_PART, "%s: (bind_rank) node %i task %i"
-		     " global_cpu %i local_cpu %i last_cpu %i\n", __func__,
-		     nodeinfo->id, lTID, u,
+		fdbg(PSSLURM_LOG_PART, "(bind_rank) node %hd task %u global_cpu"
+		     " %u local_cpu %d last_cpu %d\n", nodeinfo->id, lTID, u,
 		     localCpuCount + (*thread * nodeinfo->coreCount), *lastCpu);
 		*lastCpu = localCpuCount;
 		if (++found == threadsPerTask) return;
@@ -1214,22 +1213,21 @@ static bool setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 {
     PSCPU_clrAll(*CPUset);
 
-    mdbg(PSSLURM_LOG_PART, "%s: socketCount %hu coresPerSocket %hu"
-	    " threadsPerCore %hu coreCount %u threadCount %u\n", __func__,
-	    nodeinfo->socketCount, nodeinfo->coresPerSocket,
-	    nodeinfo->threadsPerCore, nodeinfo->coreCount,
-	    nodeinfo->threadCount);
+    fdbg(PSSLURM_LOG_PART, "socketCount %hu coresPerSocket %hu"
+	 " threadsPerCore %hu coreCount %u threadCount %u\n",
+	 nodeinfo->socketCount, nodeinfo->coresPerSocket,
+	 nodeinfo->threadsPerCore, nodeinfo->coreCount, nodeinfo->threadCount);
 
     if (cpuBindType & CPU_BIND_NONE) {
 	pinToAllThreads(CPUset, nodeinfo);
-	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_none)\n", __func__);
+	fdbg(PSSLURM_LOG_PART, "(cpu_bind_none)\n");
 	return true;
     }
 
     if (cpuBindType & CPU_BIND_TO_BOARDS) {
 	/* removed in Slurm 22.05 */
 	pinToAllThreads(CPUset, nodeinfo);
-	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_boards)\n", __func__);
+	fdbg(PSSLURM_LOG_PART, "(cpu_bind_boards)\n");
 	return true;
     }
 
@@ -1267,17 +1265,16 @@ static bool setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     /* default binding to threads */
     getThreadsBinding(CPUset, nodeinfo, lTID, pininfo);
 
-    mdbg(PSSLURM_LOG_PART, "%s: %s\n", __func__,
-	    PSCPU_print_part(*CPUset,
-		PSCPU_bytesForCPUs(nodeinfo->threadCount)));
+    fdbg(PSSLURM_LOG_PART, "%s\n",
+	 PSCPU_print_part(*CPUset, PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 
     /* handle --ntasks-per-socket option */
     if (pininfo->tasksPerSocket) {
 	uint16_t socket = getSocketByThread(pininfo->firstThread, nodeinfo);
 	pininfo->tasksPerSocket[socket]--;
-	mdbg(PSSLURM_LOG_PART, "%s: first thread %u is on socket %u (now %d"
-		" tasks left)\n", __func__, pininfo->firstThread, socket,
-		pininfo->tasksPerSocket[socket]);
+	fdbg(PSSLURM_LOG_PART, "first thread %u is on socket %u (now %d tasks"
+	     " left)\n", pininfo->firstThread, socket,
+	     pininfo->tasksPerSocket[socket]);
     }
 
     /* bind to sockets */
@@ -1516,7 +1513,7 @@ static void fillTasksPerSocket(pininfo_t *pininfo, env_t *env,
 
     if (!tmp) {
 	pininfo->tasksPerSocket = NULL;
-	mdbg(PSSLURM_LOG_PART, "%s: tasksPerSocket unset\n", __func__);
+	fdbg(PSSLURM_LOG_PART, "tasksPerSocket unset\n");
 	return;
     }
 
@@ -1524,7 +1521,7 @@ static void fillTasksPerSocket(pininfo_t *pininfo, env_t *env,
 
     if (tasksPerSocket <= 0) {
 	pininfo->tasksPerSocket = NULL;
-	mdbg(PSSLURM_LOG_PART, "%s: tasksPerSocket invalid\n", __func__);
+	fdbg(PSSLURM_LOG_PART, "tasksPerSocket invalid\n");
 	return;
     }
 
@@ -1533,8 +1530,7 @@ static void fillTasksPerSocket(pininfo_t *pininfo, env_t *env,
     for (int i = 0; i < nodeinfo->socketCount; i++) {
 	pininfo->tasksPerSocket[i] = tasksPerSocket;
     }
-    mdbg(PSSLURM_LOG_PART, "%s: tasksPerSocket set to %u\n", __func__,
-	 tasksPerSocket);
+    fdbg(PSSLURM_LOG_PART, "tasksPerSocket set to %u\n", tasksPerSocket);
 }
 
 /**
@@ -1908,13 +1904,13 @@ bool setStepSlots(Step_t *step)
 	    /* make tid (rank) available everywhere to allow using printerr() */
 	    pininfo.rank = tid;
 
-	    mdbg(PSSLURM_LOG_PART, "%s: node %u nodeid %u task %u tid %u\n",
-		    __func__, node, nodeinfo->id, lTID, tid);
+	    fdbg(PSSLURM_LOG_PART, "node %u nodeid %u task %u tid %u\n", node,
+		 nodeinfo->id, lTID, tid);
 
 	    /* sanity check */
 	    if (tid > slotsSize) {
-		mlog("%s: invalid taskid '%s' slotsSize %u\n", __func__,
-		     PSC_printTID(tid), slotsSize);
+		flog("invalid taskid '%s' slotsSize %u\n", PSC_printTID(tid),
+		     slotsSize);
 		goto error;
 	    }
 
@@ -1930,9 +1926,9 @@ bool setStepSlots(Step_t *step)
 		goto error;
 	    }
 
-	    mdbg(PSSLURM_LOG_PART, "%s: CPUset for task %u: %s\n", __func__,
-		    tid, PSCPU_print_part(slots[tid].CPUset,
-			    PSCPU_bytesForCPUs(nodeinfo->threadCount)));
+	    fdbg(PSSLURM_LOG_PART, "CPUset for task %u: %s\n", tid,
+		 PSCPU_print_part(slots[tid].CPUset,
+				  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 
 	    slots[tid].node = step->nodes[node];
 	}
@@ -1946,7 +1942,7 @@ bool setStepSlots(Step_t *step)
 	numThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
     }
     if (numThreads == 0) {
-	mlog("%s: Error: numThreads == 0\n", __func__);
+	flog("Error: numThreads == 0\n");
 	goto error;
     }
     step->numHwThreads = numThreads;
@@ -1964,8 +1960,8 @@ void logHWthreads(const char* func, PSpart_HWThread_t *threads, uint32_t num)
     if (!(psslurmlogger->mask & PSSLURM_LOG_PART)) return;
 
     for (size_t t = 0; t < num; t++) {
-	mlog("%s: thread %zu node %hd id %hd timesUsed %hd\n", func, t,
-	     threads[t].node, threads[t].id, threads[t].timesUsed);
+	flog("thread %zu node %hd id %hd timesUsed %hd\n", t, threads[t].node,
+	     threads[t].id, threads[t].timesUsed);
     }
 }
 
@@ -2261,15 +2257,15 @@ static void parseNUMAmask(struct bitmask *nodemask, char *maskStr, int32_t rank)
 	char *endptr;
 	uint16_t digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
-	    mlog("%s: error parsing memory mask '%s'\n", __func__, maskStr);
+	    flog("error parsing memory mask '%s'\n", maskStr);
 	    goto error;
 	}
 
 	for (uint16_t j = 0; j < 4; j++) {
 	    if (digit & (1 << j)) {
 		if ((long int)(curbit + j) > numa_max_node()) {
-		    mlog("%s: invalid memory mask entry '%s' for rank %d\n",
-			    __func__, maskStr, rank);
+		    flog("invalid memory mask entry '%s' for rank %d\n",
+			 maskStr, rank);
 		    fprintf(stderr, "Invalid memory mask entry '%s' for"
 			    " rank %d\n", maskStr, rank);
 		    goto error;
@@ -2278,8 +2274,8 @@ static void parseNUMAmask(struct bitmask *nodemask, char *maskStr, int32_t rank)
 					  curbit + j)) {
 		    numa_bitmask_setbit(nodemask, curbit + j);
 		} else {
-		    mlog("%s: setting bit %u in memory mask not allowed in"
-			    " rank %d\n", __func__, curbit + j, rank);
+		    flog("setting bit %u in memory mask not allowed in rank"
+			 " %d\n", curbit + j, rank);
 		    fprintf(stderr, "Not allowed to set bit %u in memory mask"
 			    " of rank %d\n", curbit + j, rank);
 		}
@@ -2323,9 +2319,8 @@ static struct bitmask * getMemBindMask(uint32_t localNodeId, uint32_t rank,
 
     if (memBindType & MEM_BIND_RANK) {
 	if (lTID > (unsigned int)numa_max_node()) {
-	    mlog("%s: memory binding to ranks not possible for rank %u."
-		    " (local rank %d > #numa_nodes %d)\n", __func__,
-		    rank, lTID, numa_max_node());
+	    flog("memory binding to ranks not possible for rank %u. (local "
+		 "rank %d > #numa_nodes %d)\n", rank, lTID, numa_max_node());
 	    fprintf(stderr, "Memory binding to ranks not possible for rank %u,"
 		    " local rank %u larger than max numa node %d.",
 		    rank, lTID, numa_max_node());
@@ -2335,8 +2330,8 @@ static struct bitmask * getMemBindMask(uint32_t localNodeId, uint32_t rank,
 	if (numa_bitmask_isbitset(numa_get_mems_allowed(), lTID)) {
 	    numa_bitmask_setbit(nodemask, lTID);
 	} else {
-	    mlog("%s: setting bit %d in memory mask not allowed in rank"
-		    " %d\n", __func__, lTID, rank);
+	    flog("setting bit %d in memory mask not allowed in rank %d\n", lTID,
+		 rank);
 	    fprintf(stderr, "Not allowed to set bit %u in memory mask"
 		    " of rank %u\n", lTID, rank);
 	}
@@ -2365,10 +2360,10 @@ static struct bitmask * getMemBindMask(uint32_t localNodeId, uint32_t rank,
 
     if (!myent) {
 	if (memBindType & MEM_BIND_MASK) {
-	    mlog("%s: invalid mem mask string '%s'\n", __func__, ents);
+	    flog("invalid mem mask string '%s'\n", ents);
 	}
 	else if (memBindType & MEM_BIND_MAP) {
-	    mlog("%s: invalid mem map string '%s'\n", __func__, ents);
+	    flog("invalid mem map string '%s'\n", ents);
 	}
 	numa_bitmask_setall(nodemask);
 	goto cleanup;
@@ -2386,21 +2381,21 @@ static struct bitmask * getMemBindMask(uint32_t localNodeId, uint32_t rank,
 	    if (numa_bitmask_isbitset(numa_get_mems_allowed(), mynode)) {
 		numa_bitmask_setbit(nodemask, mynode);
 	    } else {
-		mlog("%s: setting bit %d in memory mask not allowed in rank"
-			" %u\n", __func__, mynode, rank);
+		flog("setting bit %d in memory mask not allowed in rank %u\n",
+		     mynode, rank);
 		fprintf(stderr, "Not allowed to set bit %d in memory mask"
 			" of rank %u\n", mynode, rank);
 	    }
 	} else {
-	    mlog("%s: invalid memory map entry '%s' (%d) for rank %u\n",
-		    __func__, myent, mynode, rank);
+	    flog("invalid memory map entry '%s' (%d) for rank %u\n", myent,
+		 mynode, rank);
 	    fprintf(stderr, "Invalid memory map entry '%s' for rank %u\n",
 		    myent, rank);
 	    numa_bitmask_setall(nodemask);
 	    goto cleanup;
 	}
-	mdbg(PSSLURM_LOG_PART, "%s: (bind_map) node %i local task %i"
-	     " memstr '%s'\n", __func__, localNodeId, lTID, myent);
+	fdbg(PSSLURM_LOG_PART, "(bind_map) node %u local task %u memstr '%s'\n",
+	     localNodeId, lTID, myent);
 
     } else if (memBindType & MEM_BIND_MASK) {
 	parseNUMAmask(nodemask, myent, rank);
@@ -2419,8 +2414,8 @@ cleanup:
 void doMemBind(Step_t *step, PStask_t *task)
 {
 # ifndef HAVE_NUMA_ALLOCATE_NODEMASK
-    mlog("%s: psslurm does not support memory binding types map_mem, mask_mem"
-	    " and rank with libnuma v1\n", __func__);
+    flog("psslurm does not support memory binding types map_mem, mask_mem and"
+	 " rank with libnuma v1\n", __func__);
     fprintf(stderr, "Memory binding type not supported with used libnuma"
 	   " version");
 # else
@@ -2458,7 +2453,7 @@ void doMemBind(Step_t *step, PStask_t *task)
 #else
 void doMemBind(Step_t *step, PStask_t *task)
 {
-    mlog("%s: No libnuma support: No memory binding\n", __func__);
+    flog("No libnuma support: No memory binding\n");
 }
 #endif
 
