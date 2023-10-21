@@ -784,7 +784,9 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     }
 
 error:
-    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
+    pinToAllThreads(CPUset, nodeinfo); // @todo other result in error case?
+    ulog(pininfo, "bind to all threads allowed: %s",
+	 PSCPU_print_part(*CPUset, PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 
     return;
 }
