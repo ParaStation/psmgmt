@@ -66,6 +66,21 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req);
  * @param req Spawn request to free
  */
 void freeSpawnRequest(SpawnRequest_t *req);
+/**
+ * @brief Create and initialize new task for the spawnee
+ *
+ * This creates a new tast and copies all relevant values
+ * from the spawners task to it.
+ *
+ * @param spawner   task of the process that initialized the spawn
+ *
+ * @param filter    function to filter out environment variables
+ *		    needs to return true for all environment variables that
+ *		    shall be included into the spawnee's environment
+ *
+ *  @returns Returns the spawnee's new task or NULL if PStask_new() failed
+ */
+PStask_t* initSpawnTask(PStask_t *spawner, bool filter(const char*));
 
 /**
  * Prepare task structure for actual spawn

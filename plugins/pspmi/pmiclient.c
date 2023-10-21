@@ -2028,6 +2028,39 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 }
 
 /**
+ * @brief Filter spawner environment for the spawnee
+ *
+ * Filter out some of the spawners environment variables
+ * when copying the task for the spawnees.
+ *
+ * @param envent  one entry of the task environment in "k=v" notation
+ *
+ * @return Returns true to include and false to exclude @a envent
+ */
+static bool spawnEnvFilter(const char *envent)
+{
+    /* skip troublesome old env vars */
+    if (!strncmp(envent, "__KVS_PROVIDER_TID=", 19)
+	    || !strncmp(envent, "PMI_ENABLE_SOCKP=", 17)
+	    || !strncmp(envent, "PMI_RANK=", 9)
+	    || !strncmp(envent, "PMI_PORT=", 9)
+	    || !strncmp(envent, "PMI_FD=", 7)
+	    || !strncmp(envent, "PMI_KVS_TMP=", 12)
+	    || !strncmp(envent, "OMP_NUM_THREADS=", 16)) {
+	return false;
+    }
+
+#if 0
+    if (path && !strncmp(cur, "PATH", 4)) {
+	setPath(cur, path, &task->environ[i++]);
+	continue;
+    }
+#endif
+
+    return true;
+}
+
+/**
  * @brief Parse the spawn request and start a new service process
  *
  * The service process will spawn itself again to start a spawner process
@@ -2062,55 +2095,13 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 	return false;
     }
 
-    PStask_t *task = PStask_new();
+    PStask_t *task = initSpawnTask(cTask, spawnEnvFilter);
     if (!task) {
 	mlog("%s: cannot create a new task\n", __func__);
 	return false;
     }
 
-    /* copy data from my task */
-    task->uid = cTask->uid;
-    task->gid = cTask->gid;
-    task->aretty = cTask->aretty;
-    task->loggertid = cTask->loggertid;
-    task->ptid = cTask->tid;
-    task->group = TG_KVS;
-    task->rank = serviceRank -1;
-    task->winsize = cTask->winsize;
-    task->termios = cTask->termios;
-
-    /* set work dir */
-    if (cTask->workingdir) {
-	task->workingdir = ustrdup(cTask->workingdir);
-    } else {
-	task->workingdir = NULL;
-    }
-
-    /* build environment */
-    strv_t env;
-    strvInit(&env, NULL, 0);
-    for (int i = 0; cTask->environ[i]; i++) {
-	char *cur = cTask->environ[i];
-
-	/* skip troublesome old env vars */
-	if (!strncmp(cur, "__KVS_PROVIDER_TID=", 19)) continue;
-	if (!strncmp(cur, "PMI_ENABLE_SOCKP=", 17)) continue;
-	if (!strncmp(cur, "PMI_RANK=", 9)) continue;
-	if (!strncmp(cur, "PMI_PORT=", 9)) continue;
-	if (!strncmp(cur, "PMI_FD=", 7)) continue;
-	if (!strncmp(cur, "PMI_KVS_TMP=", 12)) continue;
-	if (!strncmp(cur, "OMP_NUM_THREADS=", 16)) continue;
-#if 0
-	if (path && !strncmp(cur, "PATH", 4)) {
-	    setPath(cur, path, &task->environ[i++]);
-	    continue;
-	}
-#endif
-
-	strvAdd(&env, cur);
-    }
-    task->environ = env.strings;
-    task->envSize = env.count;
+    task->rank = serviceRank - 1;
 
     /* calc totalProcs */
     *totalProcs = 0;
@@ -2136,6 +2127,7 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     }
 
     /* add additional env vars */
+    strv_t env;
     strvInit(&env, task->environ, task->envSize);
 
     snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%i_%i",

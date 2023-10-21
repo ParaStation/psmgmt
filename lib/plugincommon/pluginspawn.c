@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "psenv.h"
+#include "pluginstrv.h"
 
 #include "pluginmalloc.h"
 
@@ -115,4 +116,41 @@ void freeSpawnRequest(SpawnRequest_t *req) {
     envDestroy(req->env);
 
     ufree(req->spawns);
+}
+
+PStask_t* initSpawnTask(PStask_t *spawner, bool filter(const char*))
+{
+    PStask_t *task = PStask_new();
+    if (!task) return NULL;
+
+    /* copy data from my task */
+    task->uid = spawner->uid;
+    task->gid = spawner->gid;
+    task->aretty = spawner->aretty;
+    task->loggertid = spawner->loggertid;
+    task->ptid = spawner->tid;
+    task->group = TG_KVS;
+    task->winsize = spawner->winsize;
+    task->termios = spawner->termios;
+
+    /* set work dir */
+    if (spawner->workingdir) {
+	task->workingdir = ustrdup(spawner->workingdir);
+    } else {
+	task->workingdir = NULL;
+    }
+
+    /* build environment */
+    strv_t env;
+    strvInit(&env, NULL, 0);
+    for (int i = 0; spawner->environ[i]; i++) {
+	char *cur = spawner->environ[i];
+
+	if (!filter(cur)) continue;
+	strvAdd(&env, cur);
+    }
+    task->environ = env.strings;
+    task->envSize = env.count;
+
+    return task;
 }
