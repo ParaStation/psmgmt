@@ -302,6 +302,36 @@ static void createAppPSet(const char *name, PspmixNamespace_t *ns,
     }
 }
 
+/**
+ * @brief Get the node rank offset for the next namespace
+ *
+ * The offset is just the number of ranks that are still running in all
+ * namespaces.
+ *
+ * @todo stopgap solution
+ * This needs to be changed to properly support removed namespaces.
+ * Are their ranks to be reused? If so, we would need to get an offset for each
+ * single rank in the new namespace for the case, that in does not completely
+ * fit into the gap left by the removed namespace. If not, we would need a
+ * never decreasing counter instead, maybe on session layer.
+ *
+ * @returns rank offset
+ */
+static uint16_t getNodeRankOffset()
+{
+    uint16_t offset = 0;
+
+    GET_LOCK(namespaceList);
+    list_t *n;
+    list_for_each(n, &namespaceList) {
+	PspmixNamespace_t *ns = list_entry(n, PspmixNamespace_t, next);
+	offset += ns->jobSize;
+    }
+    RELEASE_LOCK(namespaceList);
+
+    return offset;
+}
+
 bool pspmix_service_registerNamespace(PspmixJob_t *job)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
@@ -464,6 +494,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* add node specific ranks to process information and count nodes */
     size_t nodeCount = 0;
+    uint16_t nrankOffset = getNodeRankOffset();
     list_t *n;
     list_for_each(n, &ns->procMap) {
 	nodeCount++;
@@ -471,7 +502,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	for (uint16_t r = 0; r < node->procs.len; r++) {
 	    PspmixProcess_t *proc = vectorGet(&node->procs, r, PspmixProcess_t);
 	    proc->lrank = r;
-	    proc->nrank = r; /* XXX change for spawn support */
+	    proc->nrank = r + nrankOffset;
 	    if (node->id == PSC_getMyID()) ns->localClients++;
 	}
     }
