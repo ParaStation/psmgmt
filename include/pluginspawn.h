@@ -28,8 +28,9 @@ typedef struct {
     int np;         /**< number of processes */
     int argc;       /**< number of arguments */
     char **argv;    /**< array of arguments */
-    int preputc;    /**< number of preput values */
-    KVP_t *preputv; /**< array of preput key-value-pairs */
+    env_t env;      /**< environment variables (only PMIx) */
+    int preputc;    /**< number of preput values (only PMI) */
+    KVP_t *preputv; /**< array of preput key-value-pairs (only PMI) */
     int infoc;      /**< number of info values */
     KVP_t *infov;   /**< array of info key-value-pairs */
 } SingleSpawn_t;
@@ -41,7 +42,7 @@ typedef struct {
 typedef struct {
     int num;               /**< number of single spawns */
     SingleSpawn_t *spawns; /**< array of single spawns */
-    env_t env;             /**< environment variables */
+    env_t env;             /**< environment variables (only PMI) */
     void *data;            /**< custom data pointer */
 } SpawnRequest_t;
 

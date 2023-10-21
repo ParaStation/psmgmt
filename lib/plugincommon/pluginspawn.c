@@ -28,6 +28,8 @@ SpawnRequest_t *initSpawnRequest(int num)
     /* set everything to zero */
     memset(req->spawns, 0, num * sizeof(*req->spawns));
 
+    for (int i = 0; i < num; i++) req->spawns[i].env = envNew(NULL);
+
     req->env = envNew(NULL);
 
     req->data = NULL;
@@ -55,6 +57,11 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req)
 		new->argv[j] = ustrdup(old->argv[j]);
 	    }
 	    new->argv[new->argc] = NULL;
+	}
+	new->env = envClone(old->env, NULL);
+	if (!envInitialized(new->env)) {
+	    freeSpawnRequest(ret);
+	    return NULL;
 	}
 	if (old->preputv) {
 	    new->preputc = old->preputc;
@@ -94,6 +101,7 @@ void freeSpawnRequest(SpawnRequest_t *req)
 	    }
 	    ufree(req->spawns[i].argv);
 	}
+	envDestroy(req->spawns[i].env);
 	if (req->spawns[i].preputv) {
 	    for (int j = 0; j < req->spawns[i].preputc; j++) {
 		ufree(req->spawns[i].preputv[j].key);

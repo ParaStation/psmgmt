@@ -795,17 +795,17 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	/* read and fill np (maxprocs) */
 	getInt32(data, &spawn->np);
 
-	/* read environment */
+	/* read and fill environment */
 	char **env;
 	getStringArrayM(data, &env, &alen);
+	for (size_t i = 0; i < alen; i++) envPut(spawn->env, env[i]);
 
-	/* fill preput */
-	/* @todo put env into preput */
-	/* what is the difference between preput and env?
-	 * we do have a "env" in the SpawnRequest_t that is for all apps
-	 * we do get an env that can be different for each app
-	 * how to support that? */
-
+	/* Note on spawn->preput:
+	 * In PMI "preput" is used to pass KVPs along the PMI_Spawn to be
+	 * prefilled into the KVS.
+	 * This is something we do not need with PMIx, since here the spawn
+	 * parent has to PMIx_put() such values directly to the PMIx servers.
+	 */
 
 	/* get and fill additional info */
 	vector_t infos;
