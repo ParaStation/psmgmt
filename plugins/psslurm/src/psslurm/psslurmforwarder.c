@@ -1169,7 +1169,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     /* inform the mother psid */
     fwCMD_initComplete(step);
 
-    /* setup I/O channels soley to send an error message, so prevent
+    /* setup I/O channels solely to send an error message, so prevent
      * any execution of child tasks */
     if (step->termAfterFWmsg) {
 	if (fwdata->childFunc) fwdata->childFunc = NULL;
@@ -1370,7 +1370,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
     setJailEnv(&job->env, job->username, NULL, &(job->hwthreads),
 	       &job->gresList, job->cred, job->localNodeId);
 
-    /* setup I/O channels soley to send an error message, so prevent
+    /* setup I/O channels solely to send an error message, so prevent
      * any execution of child tasks */
     if (job->termAfterFWmsg) {
 	if (fwdata->childFunc) fwdata->childFunc = NULL;
