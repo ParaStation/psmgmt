@@ -207,7 +207,9 @@ static void stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
     /* send launch error if local processes failed to start */
     unsigned int taskCount = countRegTasks(&step->tasks);
     if (taskCount != step->globalTaskIdsLen[step->localNodeId]) {
-	sendLaunchTasksFailed(step, step->localNodeId, SLURM_ERROR);
+	uint32_t rc = step->termAfterFWmsg != NO_VAL ?
+		      step->termAfterFWmsg : (uint32_t) SLURM_ERROR;
+	sendLaunchTasksFailed(step, step->localNodeId, rc);
     }
 
     /* send task exit to srun processes */
@@ -277,7 +279,9 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	if (fw->codeRcvd && fw->hookExitCode == - ESCRIPT_CHDIR_FAILED) {
 	    sendSlurmRC(&step->srunControlMsg, ESCRIPT_CHDIR_FAILED);
 	} else {
-	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
+	    uint32_t rc = step->termAfterFWmsg != NO_VAL ?
+			  step->termAfterFWmsg : (uint32_t) SLURM_ERROR;
+	    sendSlurmRC(&step->srunControlMsg, rc);
 	}
     } else if (step->state == JOB_SPAWNED) {
 	sendLaunchTasksFailed(step, ALL_NODES, SLURM_ERROR);
@@ -1171,7 +1175,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     /* setup I/O channels solely to send an error message, so prevent
      * any execution of child tasks */
-    if (step->termAfterFWmsg) {
+    if (step->termAfterFWmsg != NO_VAL) {
 	if (fwdata->childFunc) fwdata->childFunc = NULL;
 	fwdata->childRerun = 1;
     }
@@ -1227,7 +1231,7 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
 	IO_printStepMsg(fwdata, buf->msg, buf->msgLen, buf->rank, buf->type);
     }
 
-    if (step->termAfterFWmsg) {
+    if (step->termAfterFWmsg != NO_VAL) {
 	flog("terminating forwarder for %s after sending user message\n",
 	     Step_strID(step));
 	exit(1);
@@ -1587,7 +1591,7 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
 	IO_printStepMsg(fwdata, buf->msg, buf->msgLen, buf->rank, buf->type);
     }
 
-    if (step->termAfterFWmsg) {
+    if (step->termAfterFWmsg != NO_VAL) {
 	flog("terminating forwarder for %s after sending user message\n",
 	     Step_strID(step));
 	exit(1);

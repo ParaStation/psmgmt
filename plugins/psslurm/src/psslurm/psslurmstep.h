@@ -202,8 +202,10 @@ typedef struct {
     uint32_t mpiPluginID;	/**< Slurm MPI plugin ID */
     list_t fwMsgQueue;          /**< Queued output/error messages waiting for
 				     delivery after forwarder start */
-    bool termAfterFWmsg;	/**< force step termination after sending
-				     messages waiting in @ref fwMsgQueue */
+    uint32_t termAfterFWmsg;	/**< force step termination after sending
+				     messages waiting in @ref fwMsgQueue. Slurm
+				     error code in termAfterFWmsg is forwarded
+				     to srun */
 } Step_t;
 
 /**
