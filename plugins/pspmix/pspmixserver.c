@@ -3066,7 +3066,7 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
 
     /* ===== job info array ===== */
     pmix_data_array_t jobInfo;
-    fillJobInfoArray(&jobInfo, nspace, jobSize, univSize, nodelist_s,
+    fillJobInfoArray(&jobInfo, nspace, jobSize, jobSize, nodelist_s,
 		     procMap, numApps);
     PMIX_INFO_LOAD(&data.info[i], PMIX_JOB_INFO_ARRAY, &jobInfo,
 		   PMIX_DATA_ARRAY);
