@@ -248,6 +248,13 @@ Step_t *Step_findByTaskEnv(PStask_ID_t tid)
 	    return NULL;
 	}
     }
+
+    if (!task->environ) {
+	flog("task %s group %i with no environment\n", PSC_printTID(task->tid),
+	     task->group);
+	return NULL;
+    }
+
     return Step_findByEnv(task->environ, NULL, NULL);
 }
 
