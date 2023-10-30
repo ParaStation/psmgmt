@@ -660,7 +660,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* set slots for the step (and number of hardware threads) */
     if (!setStepSlots(step)) {
 	flog("setting hardware threads for %s failed\n", Step_strID(step));
-	char msg[40];
+	char msg[160];
 	snprintf(msg, sizeof(msg), "Fatal error in pinning for %s",
 		 Step_strID(step));
 	fwCMD_printMsg(NULL, step, msg, strlen(msg), STDERR, -1);
