@@ -416,7 +416,10 @@ Step_t *__Step_findByEnv(char **environ, uint32_t *jobidOut,
  *
  * @return On success a pointer to the step is returned; or NULL otherwise
  */
-Step_t *Step_findByTaskEnv(PStask_ID_t tid);
+Step_t *__Step_findByTaskEnv(PStask_ID_t tid, const char *caller,
+			     const int line);
+
+#define Step_findByTaskEnv(tid) __Step_findByTaskEnv(tid, __func__, __LINE__)
 
 /**
  * @brief Get the number of steps

@@ -235,7 +235,8 @@ Step_t *__Step_findByEnv(char **environ, uint32_t *jobidOut,
     return Step_findByStepId(jobid, stepid);
 }
 
-Step_t *Step_findByTaskEnv(PStask_ID_t tid)
+Step_t *__Step_findByTaskEnv(PStask_ID_t tid, const char *caller,
+			     const int line)
 {
     PStask_t *task = PStasklist_find(&managedTasks, tid);
     if (!task) return NULL;
@@ -250,8 +251,8 @@ Step_t *Step_findByTaskEnv(PStask_ID_t tid)
     }
 
     if (!task->environ) {
-	flog("task %s group %i with no environment\n", PSC_printTID(task->tid),
-	     task->group);
+	flog("task %s group %i with no environment, caller %s:%i\n",
+	     PSC_printTID(task->tid), task->group, caller, line);
 	return NULL;
     }
 
