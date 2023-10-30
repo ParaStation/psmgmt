@@ -142,7 +142,8 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 rrcomm_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
-am_rrcomm_la_OBJECTS = rrcomm_la-rrcomm.lo rrcomm_la-rrcommconfig.lo \
+am_rrcomm_la_OBJECTS = rrcomm_la-rrcomm.lo \
+	rrcomm_la-rrcommaddrcache.lo rrcomm_la-rrcommconfig.lo \
 	rrcomm_la-rrcommforwarder.lo rrcomm_la-rrcommlog.lo \
 	rrcomm_la-rrcommproto.lo
 rrcomm_la_OBJECTS = $(am_rrcomm_la_OBJECTS)
@@ -166,6 +167,7 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/rrcomm_la-rrcomm.Plo \
+	./$(DEPDIR)/rrcomm_la-rrcommaddrcache.Plo \
 	./$(DEPDIR)/rrcomm_la-rrcommconfig.Plo \
 	./$(DEPDIR)/rrcomm_la-rrcommforwarder.Plo \
 	./$(DEPDIR)/rrcomm_la-rrcommlog.Plo \
@@ -409,9 +411,10 @@ scriptsdir = $(prefix)/scripts
 plugin_LTLIBRARIES = rrcomm.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
-rrcomm_la_SOURCES = rrcomm.c rrcommconfig.c rrcommconfig.h		\
-	rrcommforwarder.c rrcommforwarder.h rrcommlog.c rrcommlog.h	\
-	rrcommproto.c rrcommproto.h
+rrcomm_la_SOURCES = rrcomm.c rrcommaddrcache.c rrcommaddrcache.h	\
+	rrcommconfig.c rrcommconfig.h rrcommforwarder.c			\
+	rrcommforwarder.h rrcommlog.c rrcommlog.h rrcommproto.c		\
+	rrcommproto.h
 
 rrcomm_la_CPPFLAGS = $(AM_CPPFLAGS)
 rrcomm_la_LIBADD = $(libplugincommon) $(libpscommon)
@@ -495,6 +498,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcomm.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommaddrcache.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommconfig.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommforwarder.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommlog.Plo@am__quote@ # am--include-marker
@@ -536,6 +540,13 @@ rrcomm_la-rrcomm.lo: rrcomm.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rrcomm.c' object='rrcomm_la-rrcomm.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rrcomm_la-rrcomm.lo `test -f 'rrcomm.c' || echo '$(srcdir)/'`rrcomm.c
+
+rrcomm_la-rrcommaddrcache.lo: rrcommaddrcache.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rrcomm_la-rrcommaddrcache.lo -MD -MP -MF $(DEPDIR)/rrcomm_la-rrcommaddrcache.Tpo -c -o rrcomm_la-rrcommaddrcache.lo `test -f 'rrcommaddrcache.c' || echo '$(srcdir)/'`rrcommaddrcache.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/rrcomm_la-rrcommaddrcache.Tpo $(DEPDIR)/rrcomm_la-rrcommaddrcache.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rrcommaddrcache.c' object='rrcomm_la-rrcommaddrcache.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rrcomm_la-rrcommaddrcache.lo `test -f 'rrcommaddrcache.c' || echo '$(srcdir)/'`rrcommaddrcache.c
 
 rrcomm_la-rrcommconfig.lo: rrcommconfig.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rrcomm_la-rrcommconfig.lo -MD -MP -MF $(DEPDIR)/rrcomm_la-rrcommconfig.Tpo -c -o rrcomm_la-rrcommconfig.lo `test -f 'rrcommconfig.c' || echo '$(srcdir)/'`rrcommconfig.c
@@ -699,6 +710,7 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/rrcomm_la-rrcomm.Plo
+	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommaddrcache.Plo
 	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommconfig.Plo
 	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommforwarder.Plo
 	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommlog.Plo
@@ -749,6 +761,7 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/rrcomm_la-rrcomm.Plo
+	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommaddrcache.Plo
 	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommconfig.Plo
 	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommforwarder.Plo
 	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommlog.Plo

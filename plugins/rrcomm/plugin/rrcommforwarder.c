@@ -39,6 +39,7 @@
 #include "psidmsgbuf.h"
 
 #include "rrcomm_common.h"
+#include "rrcommaddrcache.h"
 #include "rrcommlog.h"
 #include "rrcommproto.h"
 
@@ -109,6 +110,9 @@ static int hookExecForwarder(void *data)
     clntHdr.loggerTID = client->loggertid;
     clntHdr.spawnerTID = client->spawnertid;
 
+    /* initialize the address cache */
+    initAddrCache(client->spawnertid);
+
     return 0;
 }
 
@@ -127,31 +131,6 @@ static int hookExecClient(void *data)
 {
     closeListenSock();
     return 0;
-}
-
-/** Cache of destination task IDs */
-static PStask_ID_t *addrCache = NULL;
-
-/** Current size of the address cache */
-static int32_t addrCacheSize = 0;
-
-static void updateAddrCache(int32_t rank, PStask_ID_t taskID)
-{
-    if (rank >= addrCacheSize) {
-	size_t newSize = (rank / 256 + 1) * 256;
-	PStask_ID_t *tmp = realloc(addrCache, sizeof(*tmp) * newSize);
-	if (!tmp) return;
-	for (size_t i = addrCacheSize; i < newSize; i++) tmp[i] = -1;
-	addrCache = tmp;
-	addrCacheSize = newSize;
-    }
-    addrCache[rank] = taskID;
-}
-
-static PStask_ID_t getAddrFromCache(int32_t rank)
-{
-    if (rank >= 0 && rank < addrCacheSize) return addrCache[rank];
-    return -1;
 }
 
 /** Socket connected to current client */
@@ -201,7 +180,7 @@ static int handleClientMsg(int fd, void *data)
     initFragBufferExtra(&fBuf, PSP_PLUG_RRCOMM, RRCOMM_DATA,
 			&clntHdr, sizeof(clntHdr));
 
-    PStask_ID_t dest = getAddrFromCache(clntHdr.dest);
+    PStask_ID_t dest = getAddrFromCache(0, clntHdr.dest);
     setFragDest(&fBuf, dest != -1 ? dest : PSC_getTID(PSC_getMyID(), 0));
 
     /* shovel data in 32 kB chunks */
@@ -352,7 +331,7 @@ static bool sendErrorMsg(PSIDmsgbuf_t *blob)
 	.header = {
 	    .type = PSP_PLUG_RRCOMM,
 	    .sender = PSC_getMyTID(),
-	    .dest = getAddrFromCache(msgHdr.sender),
+	    .dest = getAddrFromCache(0, msgHdr.sender),
 	    .len = 0, /* to be set by PSP_putTypedMsgBuf */ },
 	.type = RRCOMM_ERROR,
 	.buf = { '\0' } };
@@ -568,7 +547,7 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     RRComm_hdr_t *hdr;
     size_t used = 0, hdrSize;
     fetchFragHeader(msg, &used, NULL, NULL, (void **)&hdr, &hdrSize);
-    updateAddrCache(hdr->sender, msg->header.sender);
+    updateAddrCache(0, hdr->sender, msg->header.sender);
 
     fdbg(RRCOMM_LOG_FRWRD, "%d -> %d / size %zd\n",
 	 hdr->sender, hdr->dest, rData->used);
@@ -616,7 +595,7 @@ static void handleRRCommError(DDTypedBufferMsg_t *msg)
     PSP_getTypedMsgBuf(msg, &used, "hdr", &hdr, sizeof(hdr));
 
     /* invalidate cache entry if any */
-    updateAddrCache(hdr.dest, -1);
+    updateAddrCache(0, hdr.dest, -1);
 
     /* pack data into single blob */
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
@@ -753,8 +732,7 @@ static int hookFrwrdExit(void *data)
     }
 
     /* cleanup the address cache */
-    free(addrCache);
-    addrCacheSize = 0;
+    clearAddrCache();
 
     /* cleanup the listening socket */
     closeListenSock();

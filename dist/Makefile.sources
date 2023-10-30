@@ -753,6 +753,8 @@ plugins/rrcomm/lib/rrcomm.c \
 plugins/rrcomm/plugin/Makefile.am \
 plugins/rrcomm/plugin/Makefile.in \
 plugins/rrcomm/plugin/rrcomm.c \
+plugins/rrcomm/plugin/rrcommaddrcache.c \
+plugins/rrcomm/plugin/rrcommaddrcache.h \
 plugins/rrcomm/plugin/rrcommconfig.c \
 plugins/rrcomm/plugin/rrcommconfig.h \
 plugins/rrcomm/plugin/rrcommforwarder.c \
