@@ -397,7 +397,12 @@ Step_t *Step_findByPsidTask(pid_t pid);
  * @return On success a pointer to the step is returned or NULL
  * otherwise
  */
-Step_t *Step_findByEnv(char **environ, uint32_t *jobidOut, uint32_t *stepidOut);
+Step_t *__Step_findByEnv(char **environ, uint32_t *jobidOut,
+		         uint32_t *stepidOut, const char *caller,
+			 const int line);
+
+#define Step_findByEnv(environ, jobidOut, stepidOut) \
+	__Step_findByEnv(environ, jobidOut, stepidOut, __func__, __LINE__)
 
 /**
  * @brief Find step from task's environment
