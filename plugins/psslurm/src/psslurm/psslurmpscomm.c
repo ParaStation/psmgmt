@@ -1759,32 +1759,16 @@ static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
     return true;
 }
 
-static inline Step_t *findStepByPSLogMsg(PSLog_Msg_t *msg)
-{
-    Step_t *step = NULL;
-    if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
-	step = Step_findByTaskEnv(msg->header.sender);
-    }
-    if (!step && PSC_getID(msg->header.dest) == PSC_getMyID()) {
-	step = Step_findByTaskEnv(msg->header.dest);
-    }
-    return step;
-}
-
 static bool handleCC_IO_Msg(PSLog_Msg_t *msg)
 {
-    Step_t *step = findStepByPSLogMsg(msg);
+    /* only handle on node of origin where we might find the step */
+    if (PSC_getID(msg->header.sender) != PSC_getMyID()) return false;
+
+    PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+    Step_t *step = Step_findByTaskEnv(msg->header.sender);
     if (!step || step->state == JOB_COMPLETE || step->state == JOB_EXIT) {
-	if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
-	    PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
-	    if (task && isPSAdminUser(task->uid, task->gid)) {
-		return false; // call the old handler if any
-	    }
-	} else {
-	    PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
-	    if (task && isPSAdminUser(task->uid, task->gid)) {
-		return false; // call the old handler if any
-	    }
+	if (task && isPSAdminUser(task->uid, task->gid)) {
+	    return false; // call the old handler if any
 	}
 
 	static PStask_ID_t noLoggerDest = -1;
@@ -1797,7 +1781,6 @@ static bool handleCC_IO_Msg(PSLog_Msg_t *msg)
     }
 
     /* tweak the rank */
-    PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
     int32_t sendRank = msg->sender;
     int32_t jobRank = (task && sendRank==task->rank) ? task->jobRank : sendRank;
     int32_t slurmRank = jobRank - step->packTaskOffset;
@@ -1876,7 +1859,10 @@ static bool handleCC_STDIN_Msg(PSLog_Msg_t *msg)
     mdbg(PSSLURM_LOG_IO, "dest %s data len %u\n",
 	 PSC_printTID(msg->header.dest), msgLen);
 
-    Step_t *step = findStepByPSLogMsg(msg);
+    /* only handle on node of destination where we might find the step */
+    if (PSC_getID(msg->header.dest) != PSC_getMyID()) return false;
+
+    Step_t *step = Step_findByTaskEnv(msg->header.dest);
     if (!step || step->state == JOB_COMPLETE || step->state == JOB_EXIT) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!task || !isPSAdminUser(task->uid, task->gid)) {
