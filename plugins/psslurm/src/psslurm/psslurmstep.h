@@ -394,11 +394,15 @@ Step_t *Step_findByPsidTask(pid_t pid);
  *
  * @param stepidOut Provide stepid of the step on return if not NULL
  *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
  * @return On success a pointer to the step is returned or NULL
  * otherwise
  */
 Step_t *__Step_findByEnv(char **environ, uint32_t *jobidOut,
-		         uint32_t *stepidOut, const char *caller,
+			 uint32_t *stepidOut, const char *caller,
 			 const int line);
 
 #define Step_findByEnv(environ, jobidOut, stepidOut) \
@@ -413,6 +417,10 @@ Step_t *__Step_findByEnv(char **environ, uint32_t *jobidOut,
  * task is used.
  *
  * @param tid ID of the task to consult
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
  *
  * @return On success a pointer to the step is returned; or NULL otherwise
  */

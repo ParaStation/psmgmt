@@ -214,7 +214,7 @@ Step_t *Step_findByPsidTask(pid_t pid)
 }
 
 Step_t *__Step_findByEnv(char **environ, uint32_t *jobidOut,
-		         uint32_t *stepidOut, const char *caller,
+			 uint32_t *stepidOut, const char *caller,
 			 const int line)
 {
     uint32_t jobid = NO_VAL, stepid = SLURM_BATCH_SCRIPT;
@@ -251,8 +251,8 @@ Step_t *__Step_findByTaskEnv(PStask_ID_t tid, const char *caller,
     }
 
     if (!task->environ) {
-	flog("task %s group %i with no environment, caller %s:%i\n",
-	     PSC_printTID(task->tid), task->group, caller, line);
+	flog("task %s group %s with no environment, caller %s:%i\n",
+	     PSC_printTID(task->tid), PStask_printGrp(task->group), caller, line);
 	return NULL;
     }
 
