@@ -239,7 +239,8 @@ Step_t *__Step_findByTaskEnv(PStask_ID_t tid, const char *caller,
 			     const int line)
 {
     PStask_t *task = PStasklist_find(&managedTasks, tid);
-    if (!task) return NULL;
+    /* logger tasks don't own an environment */
+    if (!task || task->group == TG_LOGGER) return NULL;
 
     if (task->group == TG_FORWARDER) {
 	/* forwarders own an incomplete environment => use shepherded task */
