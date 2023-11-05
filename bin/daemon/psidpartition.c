@@ -4206,15 +4206,16 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	PSP_putMsgBuf(&msg, "options", &options, sizeof(options));
 	PSP_putMsgBuf(&msg, "ppn", &r->ppn, sizeof(r->ppn));
 
-	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg(PSP_DD_GETRESERVATION)", __func__);
-	    eno = errno;
-	    goto error;
-	}
-
 	/* store reservation request while waiting for logger's answer */
 	r->options |= PART_OPT_DUMMY;
 	enqRes(&delegate->resRequests, r);
+
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg(PSP_DD_GETRESERVATION)", __func__);
+	    eno = errno;
+	    deqRes(&delegate->resRequests, r);
+	    goto error;
+	}
 
 	return true;
     }
