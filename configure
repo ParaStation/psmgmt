@@ -12587,13 +12587,6 @@ else
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
 
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libbpf < 1.0.0\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "libbpf < 1.0.0") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-
       echo "Found libbpf $(pkg-config --modversion libbpf)"
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for bpf_prog_attach in -lbpf" >&5
 $as_echo_n "checking for bpf_prog_attach in -lbpf... " >&6; }
@@ -12641,16 +12634,6 @@ if test "x$ac_cv_lib_bpf_bpf_prog_attach" = xyes; then :
 
 fi
 
-
-else
-
-      as_fn_error $? "libbpf >= 1.0.0 is currently not supported, use --disable-bpf" "$LINENO" 5
-
-fi
-
-else
-
-    as_fn_error $? "libbpf < 1.0.0 is needed or use --disable-bpf" "$LINENO" 5
 
 fi
 
