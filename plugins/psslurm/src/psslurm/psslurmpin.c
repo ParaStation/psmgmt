@@ -359,7 +359,7 @@ static void fillDistributionStrategies(pininfo_t *pininfo, uint32_t taskDist)
 }
 
 /*
- * Print formated string to strerr of the user
+ * Print formated string to user's stderr
  * Newline is appended automatically
  */
 static void printerr(const pininfo_t *pininfo, const char *format, ...)
@@ -379,7 +379,7 @@ static void printerr(const pininfo_t *pininfo, const char *format, ...)
 }
 
 /*
- * Print formated string to syslog and strerr of the user
+ * Print formated string to syslog and user's stderr
  */
 #define ulog(info, format, ...) do { \
     flog(format "\n" __VA_OPT__(,) __VA_ARGS__); \
