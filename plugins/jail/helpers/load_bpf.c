@@ -166,12 +166,29 @@ static void loadBPF(void)
 	printf("Attaching BPF program %s to %s\n", bpfProg, attachPath);
     }
 
-    int prog_fd;
-    struct bpf_object *obj;
-    if (bpf_prog_load(bpfProg, BPF_PROG_TYPE_CGROUP_DEVICE, &obj,
-	&prog_fd) != 0) {
-	fprintf(stderr, "Failed to load BPF program %s: %s\n", bpfProg,
-		strerror(errno));
+    /* open bpf program (bytecode) and load it */
+    struct bpf_object *obj = bpf_object__open_file(bpfProg, NULL);
+    if (libbpf_get_error(obj)) {
+	fprintf(stderr, "Failed to open BPF object %s\n", bpfProg);
+	exit(1);
+    }
+
+    if (bpf_object__load(obj)) {
+	fprintf(stderr, "Failed to load BPF object\n");
+	exit(1);
+    }
+
+    /* retrive program file descriptor */
+    struct bpf_program *prog;
+    prog = bpf_object__find_program_by_name(obj, "bpf_prog");
+    if (!prog) {
+        fprintf(stderr, "Failed to find BPF program\n");
+	exit(1);
+    }
+
+    int prog_fd = bpf_program__fd(prog);
+    if (prog_fd < 0) {
+        fprintf(stderr, "Failed to get BPF program FD\n");
 	exit(1);
     }
 

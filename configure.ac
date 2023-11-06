@@ -69,18 +69,12 @@ AM_COND_IF([BUILD_WITHOUT_BPF], [
   AM_CFLAGS="$AM_CFLAGS -DBUILD_WITHOUT_BPF"
 ], [
   PKG_CHECK_EXISTS([libbpf], [
-    PKG_CHECK_EXISTS([libbpf < 1.0.0], [
       [echo "Found libbpf $(pkg-config --modversion libbpf)"]
       AC_CHECK_LIB([bpf], [bpf_prog_attach], [
 	AC_SUBST([BPF_LIBS], [-lbpf])
 	AC_DEFINE([HAVE_BPF_DEVEL])
 	[ bpf_enabled=true ]
       ])
-    ], [
-      AC_MSG_ERROR([libbpf >= 1.0.0 is currently not supported, use --disable-bpf])
-    ])
-  ], [
-    AC_MSG_ERROR([libbpf < 1.0.0 is needed or use --disable-bpf])
   ])
 ])
 AM_CONDITIONAL([BPF_ENABLED], [test "x$bpf_enabled" = xtrue])
