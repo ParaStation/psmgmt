@@ -2154,16 +2154,16 @@ static bool msg_GETPARTNL(DDBufferMsg_t *inmsg)
  * @param request Partition request containing the slot-list used in
  * order to store the slots
  *
- * @return No return value
+ * @return Return true on success or false if message is truncated
  */
-static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
+static bool appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
 {
     PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(request->tid));
 
     size_t used = 0;
     int16_t chunk, nBytes;
     PSP_getMsgBuf(msg, &used, "chunk", &chunk, sizeof(chunk));
-    PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
+    if (!PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes))) return false;
 
     int16_t myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
     if (nBytes > myBytes) {
@@ -2176,11 +2176,12 @@ static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
 	char cpuBuf[nBytes];
 
 	PSP_getMsgBuf(msg, &used, "node", &slots[n].node,sizeof(slots[n].node));
-	PSP_getMsgBuf(msg, &used, "CPUset", cpuBuf, nBytes);
+	if (!PSP_getMsgBuf(msg, &used, "CPUset", cpuBuf, nBytes)) return false;
 	PSCPU_clrAll(slots[n].CPUset);
 	PSCPU_inject(slots[n].CPUset, cpuBuf, nBytes);
     }
     request->sizeGot += chunk;
+    return true;
 }
 
 /**
@@ -2370,7 +2371,11 @@ static bool msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    appendToSlotlist(inmsg, req);
+    if (!appendToSlotlist(inmsg, req)) {
+	PSID_flog("task %s truncated msg\n", PSC_printTID(inmsg->header.dest));
+	errno = EBADMSG;
+	goto error;
+    }
 
     if (req->sizeGot == req->sizeExpected) {
 	/* partition complete, now delete the corresponding request */
@@ -2500,7 +2505,10 @@ static bool msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
     /* get number of ports */
     size_t used = 0;
     uint16_t count;
-    PSP_getMsgBuf(inmsg, &used, "count", &count, sizeof(count));
+    if (!PSP_getMsgBuf(inmsg, &used, "count", &count, sizeof(count))) {
+	PSID_flog("task %s truncated msg\n", PSC_printTID(inmsg->header.dest));
+	return true;
+    }
 
     task->resPorts = malloc((count + 1) * sizeof(uint16_t));
     if (!task->resPorts) {

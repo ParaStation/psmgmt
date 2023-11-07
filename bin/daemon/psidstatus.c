@@ -893,11 +893,14 @@ static bool msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
     PSnodes_ID_t id = PSC_getID(msg->header.sender);
     size_t used = 0;
 
-    PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
+    PSID_fdbg(PSID_LOG_STATUS, "(%d)\n", id);
 
     int32_t pCPUs, vCPUs = -1, proto, dmnProto;
     PSP_getMsgBuf(msg, &used, "numCores", &pCPUs, sizeof(pCPUs));
-    PSP_getMsgBuf(msg, &used, "numThrds", &vCPUs, sizeof(vCPUs));
+    if (!PSP_getMsgBuf(msg, &used, "numThrds", &vCPUs, sizeof(vCPUs))) {
+	PSID_flog("truncated message from node %d\n", id);
+	return true;
+    }
     if (!PSP_tryGetMsgBuf(msg, &used, "proto", &proto, sizeof(proto)))
 	proto = 343;
     if (!PSP_tryGetMsgBuf(msg, &used, "dmnProto", &dmnProto, sizeof(dmnProto)))
