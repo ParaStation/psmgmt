@@ -1605,6 +1605,7 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 	if (*gpu_bind == '\0') return true;
 
 	if (*gpu_bind != ',') {
+	    flog("invalid gpu_bind string '%s'\n", gpu_bind - 7);
 	    fprintf(stderr, "Invalid gpu_bind string '%s'\n", gpu_bind - 7);
 	    return false;
 	}
@@ -1615,6 +1616,7 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 	gpu_bind += 7;
 	long tasks_per_gpu = strtol(gpu_bind, NULL, 10);
 	if (tasks_per_gpu <= 0) {
+	    flog("invalid gpu_bind option single:%ld\n", tasks_per_gpu);
 	    fprintf(stderr, "Invalid gpu_bind option single:%ld\n",
 		    tasks_per_gpu);
 	    return false;
@@ -1687,7 +1689,9 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	}
 	for (size_t i = 0; i < count; i++) {
 	    if (!PSCPU_isSet(*assGPUs, maparray[i])) {
-		fprintf(stderr, "GPU %ld included in map_gpu \"%s\" is not"
+		flog("GPU %ld included in map_gpu '%s' is not assigned to the"
+		     " job\n", maparray[i], map_gpu);
+		fprintf(stderr, "GPU %ld included in map_gpu '%s' is not"
 			" assigned to the job\n", maparray[i], map_gpu);
 		ufree(maparray);
 		return -1;
