@@ -745,7 +745,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	    goto error;
 	}
 
-	long myumapcpu = PSIDnodes_unmapCPU(nodeinfo->id, mycpu);
+	short myumapcpu = PSIDnodes_unmapCPU(nodeinfo->id, mycpu);
 
 	if (!PSCPU_isSet(nodeinfo->stepHWthreads, myumapcpu)) {
 	    ulog(pininfo, "CPU %ld in CPU map '%s' is not in step's coremap %s",
