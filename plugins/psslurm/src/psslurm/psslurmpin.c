@@ -751,7 +751,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	    ulog(pininfo, "CPU %ld in CPU map '%s' is not in step's coremap %s",
 		 mycpu, cpuBindString,
 		 PSCPU_print_part(nodeinfo->stepHWthreads,
-				  PSCPU_bytesForCPUs(nodeinfo->threadCount/2)));
+				  PSCPU_bytesForCPUs(nodeinfo->coreCount)));
 	    goto error;
 	}
 
