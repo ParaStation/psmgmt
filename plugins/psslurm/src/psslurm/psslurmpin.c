@@ -38,6 +38,7 @@
 #include "pluginmalloc.h"
 #include "psidnodes.h"
 #include "psidpin.h"
+#include "psidforwarder.h"
 
 #include "slurmcommon.h"
 #include "psslurmconfig.h"
@@ -1583,11 +1584,24 @@ static ssize_t getMinimumIndex(uint32_t *val, uint16_t *subset, size_t num)
     return ret;
 }
 
+#define uprintf(format, ...) \
+    do { \
+	if (PSIDfwd_inForwarder()) \
+	    PSIDfwd_printMsgf(STDERR, format __VA_OPT__(,) __VA_ARGS__); \
+	else \
+	    fprintf(stderr, format __VA_OPT__(,) __VA_ARGS__); \
+    } while(0)
+
 /*
  * Parse the gpu-bind string
  *
- * To be called from setRankEnv() inside the user process before execve()
- * thus using fprintf() to print to the users stderr.
+ * This function is called from setRankEnv() in two places:
+ * 1. From inside the user process before execve() thus using fprintf() to
+ *    print to the user's stderr.
+ * 2. Via handleForwarderClientStatus()/startTaskEpilogue()/execTaskEpilogue()
+ *    in the PSIDHOOK_FRWRD_CLNT_RLS hook directly from the psidforwarder there
+ *    using PSIDfwd_printMsgf(STDERR,...) for output to the user's stderr
+ * This differentiation is encapsulated in the macro uprintf().
  */
 static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 			       char **map_gpu, char **mask_gpu,
@@ -1606,7 +1620,7 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 
 	if (*gpu_bind != ',') {
 	    flog("invalid gpu_bind string '%s'\n", gpu_bind - 7);
-	    fprintf(stderr, "Invalid gpu_bind string '%s'\n", gpu_bind - 7);
+	    uprintf("Invalid gpu_bind string '%s'\n", gpu_bind - 7);
 	    return false;
 	}
 	gpu_bind++;
@@ -1617,14 +1631,14 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 	long tasks_per_gpu = strtol(gpu_bind, NULL, 10);
 	if (tasks_per_gpu <= 0) {
 	    flog("invalid gpu_bind option single:%ld\n", tasks_per_gpu);
-	    fprintf(stderr, "Invalid gpu_bind option single:%ld\n",
+	    uprintf("Invalid gpu_bind option single:%ld\n",
 		    tasks_per_gpu);
 	    return false;
 	}
 	if (tasks_per_gpu != 1) {
 	    /* @todo think about supporting this */
 	    flog("gpu_bind type \"single\" is not supported by psslurm\n");
-	    fprintf(stderr, "gpu_bind type \"single\" is not supported\n");
+	    uprintf("gpu_bind type \"single\" is not supported\n");
 	    return false;
 	}
     }
@@ -1655,8 +1669,13 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 /*
  * Calculate GPU pinning for one rank
  *
- * To be called from setRankEnv() inside the user process before execve()
- * thus using fprintf() to print to the users stderr.
+ * This function is called from setRankEnv() in two places:
+ * 1. From inside the user process before execve() thus using fprintf() to
+ *    print to the user's stderr.
+ * 2. Via handleForwarderClientStatus()/startTaskEpilogue()/execTaskEpilogue()
+ *    in the PSIDHOOK_FRWRD_CLNT_RLS hook directly from the psidforwarder there
+ *    using PSIDfwd_printMsgf(STDERR,...) for output to the user's stderr
+ * This differentiation is encapsulated in the macro uprintf().
  */
 int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 			  uint32_t stepNodeId, PSCPU_set_t *assGPUs)
@@ -1684,14 +1703,14 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	long *maparray = parseMapString(map_gpu, &count, 0);
 	if (!maparray) {
 	    flog("invalid map_gpu string '%s'\n", map_gpu);
-	    fprintf(stderr, "Invalid GPU map string '%s'\n", map_gpu);
+	    uprintf("Invalid GPU map string '%s'\n", map_gpu);
 	    return -1;
 	}
 	for (size_t i = 0; i < count; i++) {
 	    if (!PSCPU_isSet(*assGPUs, maparray[i])) {
 		flog("GPU %ld included in map_gpu '%s' is not assigned to the"
 		     " job\n", maparray[i], map_gpu);
-		fprintf(stderr, "GPU %ld included in map_gpu '%s' is not"
+		uprintf("GPU %ld included in map_gpu '%s' is not"
 			" assigned to the job\n", maparray[i], map_gpu);
 		ufree(maparray);
 		return -1;
@@ -1703,12 +1722,12 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
     } else if (mask_gpu) {
 	//TODO we need to support more than one GPU per task to support this
 	flog("gpu_bind type \"mask_gpu\" is not supported by psslurm\n");
-	fprintf(stderr, "gpu_bind type \"mask_gpu\" is not supported\n");
+	uprintf("gpu_bind type \"mask_gpu\" is not supported\n");
 	return -1;
     } else if (gpus_per_task > 1) {
 	//@todo we need to support more than one GPU per task to support this
 	flog("unsupported number of gpus_per_task: %d\n", gpus_per_task);
-	fprintf(stderr, "Only one (or all) GPU per task is supported\n");
+	uprintf("Only one (or all) GPU per task is supported\n");
 	return -1;
     } else {
 	uint16_t gpus[ltnum];
@@ -1754,8 +1773,7 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	char localGpuList[10];
 	snprintf(localGpuList, sizeof(localGpuList), "%hu", rankgpu);
 
-	fprintf(stderr,
-		"gpu-bind: usable_gres=0x%X; bit_alloc=0x%X; local_inx=%d;"
+	uprintf("gpu-bind: usable_gres=0x%X; bit_alloc=0x%X; local_inx=%d;"
 		" global_list=%s; local_list=%s\n", procGpuMask, taskGpuMask, 0,
 		globalGpuList, localGpuList);
     }

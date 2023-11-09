@@ -27,6 +27,7 @@
 #include "pscommon.h"  /* typedef of PSnodes_ID_t for stubs */
 #include "pscpu.h"
 #include "psenv.h"
+#include "pslog.h"
 
 #include "pluginconfig.h" /* read configuration file */
 
@@ -873,6 +874,17 @@ PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr) {
 }
 
 in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id) {
+    return 0;
+}
+
+bool PSIDfwd_inForwarder(void) {
+    /* used to decide about using fprintf() or PSIDfw_printMsgf() for output */
+    return false;
+}
+
+int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...) {
+    /* this should never been actually called since PSIDfwd_inForwarder()
+     * always returns false */
     return 0;
 }
 
