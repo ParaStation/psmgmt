@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,7 @@
 #ifndef __PSIDFORWARDER_H
 #define __PSIDFORWARDER_H
 
+#include <stdbool.h>
 #include <sys/types.h>
 
 #include "pstask.h"
@@ -109,5 +110,17 @@ int PSIDfwd_printMsg(PSLog_msg_t type, char *buf);
  */
 int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
 	__attribute__ ((__format__ (__printf__, 2, 3)));
+
+/**
+ * @brief Detect execution within a psidforwarder process
+ *
+ * Allow hooks registered to PSIDHOOK_FRWRD_* or message handlers that
+ * might be registered withing a psidforwarder process to reliably
+ * detect the execution within a psidforwarder process.
+ *
+ * @return Return true if called within a psidforwarder process or
+ * false otherwise
+ */
+bool PSIDfwd_inForwarder(void);
 
 #endif /* __PSIDFORWARDER_H */

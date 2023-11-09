@@ -11,7 +11,6 @@
  */
 #include "psidforwarder.h"
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -142,6 +141,11 @@ int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
 
     if (n >= 0) n = sendLogMsg(type, buf, n);
     return n;
+}
+
+bool PSIDfwd_inForwarder(void)
+{
+    return childTask;
 }
 
 /**
@@ -1308,7 +1312,7 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
     /* Allow to create coredumps */
     prctl(PR_SET_DUMPABLE, 1, /* rest ignored */ 0, 0, 0);
 
-    childTask = task;
+    childTask = task;         // this is used from PSIDfwd_inForwarder(), too
     daemonSock = task->fd;
 
     sigset_t set;
