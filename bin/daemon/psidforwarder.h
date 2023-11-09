@@ -115,7 +115,7 @@ int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
  * @brief Detect execution within a psidforwarder process
  *
  * Allow hooks registered to PSIDHOOK_FRWRD_* or message handlers that
- * might be registered withing a psidforwarder process to reliably
+ * might be registered within a psidforwarder process to reliably
  * detect the execution within a psidforwarder process.
  *
  * @return Return true if called within a psidforwarder process or
