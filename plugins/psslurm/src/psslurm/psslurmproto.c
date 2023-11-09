@@ -633,13 +633,19 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* ensure an allocation exists for the new step */
     Alloc_t *alloc = Alloc_find(step->jobid);
     if (!alloc) {
-	flog("error: no allocation for jobid %u found\n", step->jobid);
-	flog("** ensure slurmctld prologue is setup correctly **\n");
-	return ESLURMD_INVALID_JOB_CREDENTIAL;
+	char buf[128];
+	snprintf(buf, sizeof(buf), "error: no allocation for jobid %u found\n"
+		 "** ensure slurmctld prologue is setup correctly **\n",
+		 step->jobid);
+	flog("%s", buf);
+	/* special service for admins missing to call pspelogue in prologue */
+	fwCMD_printMsg(NULL, step, buf, strlen(buf), STDERR, -1);
+	step->termAfterFWmsg = ESLURMD_INVALID_JOB_CREDENTIAL;
+    } else {
+	alloc->verified = true;
+	/* ensure a proper cleanup is executed on termination */
+	alloc->state = A_RUNNING;
     }
-    alloc->verified = true;
-    /* ensure a proper cleanup is executed on termination */
-    alloc->state = A_RUNNING;
 
     /* set slots for the step (and number of hardware threads) */
     if (!setStepSlots(step)) {
