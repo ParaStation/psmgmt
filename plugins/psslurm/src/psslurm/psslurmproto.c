@@ -2011,6 +2011,7 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
     /* save job credential and GRes in allocation */
     alloc->cred = req->cred;
     alloc->gresList = req->gresList;
+    alloc->verified = true;
 
     /* set mask of hardware threads to use */
     nodeinfo_t *nodeinfo = getNodeinfo(PSC_getMyID(), alloc->cred, alloc->id);
