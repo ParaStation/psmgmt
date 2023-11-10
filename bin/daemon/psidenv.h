@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,7 +22,7 @@
  * Initialize the environment handling framework. This also registers
  * the necessary message handlers.
  *
- * @return No return value.
+ * @return No return value
  */
 void initEnvironment(void);
 
@@ -34,11 +35,11 @@ void initEnvironment(void);
  * string. If @a key is pointing to a character string with value '*'
  * information on all variables is sent.
  *
- * @param dest Task ID of process waiting for answer.
+ * @param dest Task ID of process waiting for answer
  *
  * @param key Name of the environment variable to send info about
  *
- * @return No return value.
+ * @return No return value
  */
 void PSID_sendEnvList(PStask_ID_t dest, char *key);
 
