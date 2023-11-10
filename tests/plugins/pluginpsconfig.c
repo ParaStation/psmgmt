@@ -26,6 +26,9 @@ int version = 100;
 plugin_dep_t dependencies[] = {
     { NULL, 0 } };
 
+#define nlog(...) if (PSID_logger) logger_funcprint(PSID_logger, name,	\
+						    -1, __VA_ARGS__)
+
 pluginConfig_t config;
 
 /** Defintion of the configuration */
@@ -58,7 +61,7 @@ int initialize(FILE *logfile)
     pluginConfig_load(config, "pluginConfig");
     pluginConfig_verify(config);
 
-    PSID_log(-1, "%s: (%i) successfully started\n", name, version);
+    nlog("(%i) successfully started\n", version);
     return 0;
 
 /* INIT_ERROR: */
@@ -68,9 +71,9 @@ int initialize(FILE *logfile)
 
 void cleanup(void)
 {
-    PSID_log(-1, "%s: %s\n", name, __func__);
+    nlog("%s\n", __func__);
     unregisterHooks();
-    PSID_log(-1, "%s: Done\n", name);
+    nlog("Done\n");
 }
 
 char * help(char *key)
@@ -104,7 +107,7 @@ char *set(char *key, char *value)
     if (!strcmp(key, "DebugMask")) {
 	if (pluginConfig_addStr(config, key, value)) {
 	    long mask = pluginConfig_getNum(config, key);
-	    PSID_log(-1, "%s/%s: debugMask now %#lx\n", name, __func__,  mask);
+	    nlog("%s: debugMask now %#lx\n", __func__,  mask);
 	} else {
 	    return strdup(" Illegal value\n");
 	}
@@ -128,7 +131,7 @@ char *unset(char *key)
     if (!strcmp(key, "DebugMask")) {
 	pluginConfig_remove(config, key);
 	long mask = 0;
-	PSID_log(-1, "%s/%s: debugMask now %#lx\n", name, __func__, mask);
+	nlog("%s: debugMask now %#lx\n", __func__, mask);
     } else {
 	pluginConfig_remove(config, key);
     }

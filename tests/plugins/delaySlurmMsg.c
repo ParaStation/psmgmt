@@ -36,6 +36,10 @@ plugin_dep_t dependencies[] = {
     { "psslurm", 115 },
     { NULL, 0 } };
 
+#define nlog(...) if (PSID_logger) logger_funcprint(PSID_logger, name,	\
+						    -1, __VA_ARGS__)
+
+
 static struct timeval timeout = {0, 100*1000}; // 100 msec
 
 #define MSG_TYPE REQUEST_LAUNCH_TASKS
@@ -59,7 +63,7 @@ void releaseMsgs(void)
 	Timer_remove(delayTimer);
 	delayTimer = -1;
     }
-    PSID_log(-1, "%s: %s now\n", name, __func__);
+    nlog("%s now\n", __func__);
 
     /* pass steps to handler */
     list_for_each_safe(m, tmp, &msgList) {
@@ -76,21 +80,21 @@ void delaySlurmMsg(Slurm_Msg_t *sMsg)
     if (delayTimer == -1) delayTimer = Timer_register(&timeout, releaseMsgs);
 
     if (delayTimer == -1) {
-	PSID_log(-1, "%s: Cannot delay message, deliver immediately\n", name);
+	nlog("cannot delay message, deliver immediately\n");
 	if (origHandler) origHandler(sMsg);
     } else {
 	msgContainer_t *mCnt = malloc(sizeof(*mCnt));
 	mCnt->msg = psSlurmDupMsg(sMsg);
 	list_add_tail(&mCnt->next, &msgList);
-	PSID_log(-1, "%s: Delay message of type %d by %ld msec\n", name,
-		 MSG_TYPE, 1000 * timeout.tv_sec +  timeout.tv_usec / 1000);
+	nlog("delay message of type %d by %ld msec\n", MSG_TYPE,
+	     1000 * timeout.tv_sec +  timeout.tv_usec / 1000);
     }
 }
 
 #define getHandle(pHandle, symbol)		\
-    symbol = dlsym(pHandle, #symbol);		\
+    symbol = dlsym(pHandle, #symbol);					\
     if (!symbol) {							\
-	PSID_flog(#symbol "() not found\n");	\
+	nlog(#symbol "() not found\n");					\
 	return 1;							\
     }
 
@@ -100,7 +104,7 @@ int initialize(FILE *logfile)
 
     /* get psslurm function handles */
     if (!handle) {
-	PSID_flog("getting psslurm handle failed\n");
+	nlog("getting psslurm handle failed\n");
 	return 1;
     }
     getHandle(handle, psSlurmRegMsgHandler);

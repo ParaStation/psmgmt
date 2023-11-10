@@ -33,6 +33,9 @@ int version = 100;
 plugin_dep_t dependencies[] = {
     { NULL, 0 } };
 
+#define nlog(...) if (PSID_logger) logger_funcprint(PSID_logger, name,	\
+						    -1, __VA_ARGS__)
+
 typedef struct {
     int16_t type;         /**< message type */
     int32_t subType;      /**< message (sub-)type */
@@ -83,11 +86,11 @@ int initialize(FILE *logfile)
 {
     /* register needed hooks */
     if (!PSIDhook_add(PSIDHOOK_RANDOM_DROP, doRandomDrop)) {
-	PSID_log(-1, "%s: 'PSIDHOOK_RANDOM_DROP' registration failed\n", name);
+	nlog("'PSIDHOOK_RANDOM_DROP' registration failed\n");
 	return 1;
     }
     PSIDcomm_enableDropHook(true);
-    PSID_log(-1, "%s: (%i) successfully started\n", name, version);
+    nlog("(%i) successfully started\n", version);
 
     return 0;
 }

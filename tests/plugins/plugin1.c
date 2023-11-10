@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,6 +38,9 @@ plugin_dep_t dependencies[] = {
     // { "plugin2", 0 },
     { NULL, 0 } };
 
+#define nlog(...) if (PSID_logger) logger_funcprint(PSID_logger, name,	\
+						    -1, __VA_ARGS__)
+
 /* Flag suppressing some messages */
 char *silent = NULL;
 
@@ -46,20 +49,20 @@ char *quiet = NULL;
 
 int nodeUp(void *arg)
 {
-    PSID_log(-1, "%s/%s: ID %d\n", name, __func__, *(PSnodes_ID_t *)arg);
+    nlog("%s: ID %d\n", __func__, *(PSnodes_ID_t *)arg);
     return 0;
 }
 
 int nodeDown(void *arg)
 {
-    PSID_log(-1, "%s/%s: ID %d\n", name, __func__, *(PSnodes_ID_t *)arg);
+    nlog("%s: ID %d\n", __func__, *(PSnodes_ID_t *)arg);
     return 0;
 }
 
 #ifdef EXTENDED_API
 int initialize(FILE *logfile)
 {
-    if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
+    if (!silent && !quiet) nlog("%s\n", __func__);
     PSIDhook_add(PSIDHOOK_NODE_UP, nodeUp);
     PSIDhook_add(PSIDHOOK_NODE_DOWN, nodeDown);
     return 0;
@@ -69,7 +72,7 @@ int myTimer = -1;
 
 void unload(void)
 {
-    if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
+    if (!silent && !quiet) nlog("%s\n", __func__);
     PSIDplugin_unload(name);
 }
 
@@ -77,19 +80,19 @@ void finalize(void)
 {
     struct timeval timeout = {7, 0};
 
-    if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
+    if (!silent && !quiet) nlog("%s\n", __func__);
 
     myTimer = Timer_register(&timeout, unload);
-    if (!silent||!quiet) PSID_log(-1, "%s: timer %d\n", name, myTimer);
+    if (!silent||!quiet) nlog("timer %d\n", myTimer);
 }
 
 void cleanup(void)
 {
-    if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
+    if (!silent && !quiet) nlog("%s\n", __func__);
 
     if (myTimer > -1) {
 	Timer_remove(myTimer);
-	if (!silent||!quiet) PSID_log(-1, "%s: timer %d del\n", name, myTimer);
+	if (!silent||!quiet) nlog("timer %d del\n", myTimer);
 	myTimer = -1;
     }
     PSIDhook_del(PSIDHOOK_NODE_UP, nodeUp);
@@ -252,11 +255,11 @@ void plugin_init(void)
     silent = getenv("PLUGIN_SILENT");
     quiet = getenv("PLUGIN_QUIET");
 
-    if (!quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
+    if (!quiet) nlog("%s\n", __func__);
 }
 
 __attribute__((destructor))
 void plugin_fini(void)
 {
-    if (!quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
+    if (!quiet) nlog("%s\n", __func__);
 }

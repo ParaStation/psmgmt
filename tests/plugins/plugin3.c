@@ -26,6 +26,8 @@ plugin_dep_t dependencies[] = {
     { "plugin4", 0 },
     { NULL, 0 } };
 
+#define nlog(...) if (PSID_logger) logger_funcprint(PSID_logger, name,	\
+						    -1, __VA_ARGS__)
 /* Flag suppressing of all messages */
 char *quiet = NULL;
 
@@ -34,11 +36,11 @@ void plugin_init(void)
 {
     quiet = getenv("PLUGIN_QUIET");
 
-    if (!quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
+    if (!quiet) nlog("%s\n", __func__);
 }
 
 __attribute__((destructor))
 void plugin_fini(void)
 {
-    if (!quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
+    if (!quiet) nlog("%s\n", __func__);
 }
