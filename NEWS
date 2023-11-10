@@ -7,6 +7,13 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
 
+Version 5.1.57-3:
+=================
+Bugfixes:
+ - Various fixes for cgroup v2 (jwt:#23342)
+   * Sanitize calculations of jail limits, especially memory
+   * Prevent race conditions leading to concurrent modifications of cgroup
+
 Version 5.1.57-2:
 =================
 Bugfixes:

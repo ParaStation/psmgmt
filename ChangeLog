@@ -1,3 +1,29 @@
+Version 5.1.57-3:
+=================
+------------------------------------------------------------------------
+ec6209a0d | Michael Rauh | Fri, 10 Nov 2023 13:23:32 +0100
+
+Only use verified allocations to calculate jail limits
+------------------------------------------------------------------------
+695d903a5 | Michael Rauh | Fri, 10 Nov 2023 13:19:01 +0100
+
+An allocation is verified if slurmd prolog is executed
+------------------------------------------------------------------------
+741378c37 | Michael Rauh | Fri, 10 Nov 2023 13:17:13 +0100
+
+Sanity limit for minimal memory set for a user cgroup
+------------------------------------------------------------------------
+79293d3b9 | Michael Rauh | Wed, 18 Oct 2023 11:29:07 +0200
+
+Prevent race condition for concurent modification
+of the user cgroups
+------------------------------------------------------------------------
+00ee051ae | Michael Rauh | Wed, 18 Oct 2023 10:39:06 +0200
+
+Use het jobid if available for jail terminate scripts
+------------------------------------------------------------------------
+
+
 Version 5.1.57-2:
 =================
 ------------------------------------------------------------------------
