@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -122,8 +122,7 @@ static hook_ref_t * findRef(list_t *refList, PSIDhook_func_t *func)
 static void initHookTable(const char *caller)
 {
     if (hookTabInitialized) {
-	PSID_log(-1, "%s: hook table already initialized!", __func__);
-	PSID_log(-1, " Called by %s\n", caller);
+	PSID_flog("hook table already initialized! Caller is %s\n", caller);
 	return;
     }
 
@@ -150,18 +149,17 @@ bool PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func)
     if (!hookTabInitialized) initHookTable(__func__);
 
     if (!checkHook(hook)) {
-	PSID_log(-1, "%s: unknown hook %d\n", __func__, hook);
+	PSID_flog("unknown hook %d\n", hook);
 	return false;
     }
 
     if (hookTab[hook].obsolete) {
-	PSID_log(-1, "%s: hook %d is marked as obsolete\n", __func__, hook);
+	PSID_flog("hook %d is marked as obsolete\n", hook);
 	return false;
     }
 
     if (findRef(&hookTab[hook].list, func)) {
-	PSID_log(-1, "%s: Function %p already registered on hook %d\n",
-		 __func__, func, hook);
+	PSID_flog("function %p already registered on hook %d\n", func, hook);
 	return false;
     }
 
@@ -180,19 +178,18 @@ bool PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func)
 bool PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func)
 {
     if (!hookTabInitialized) {
-	PSID_log(-1, "%s: hook facility uninitialized\n", __func__);
+	PSID_flog("hook facility uninitialized\n");
 	return false;
     }
 
     if (!checkHook(hook)) {
-	PSID_log(-1, "%s: unknown hook %d\n", __func__, hook);
+	PSID_flog("unknown hook %d\n", hook);
 	return false;
     }
 
     hook_ref_t *ref = findRef(&hookTab[hook].list, func);
     if (!ref) {
-	PSID_log(-1, "%s: Function %p not found on hook %d\n",
-		 __func__, func, hook);
+	PSID_flog("function %p not found on hook %d\n", func, hook);
 	return false;
     }
 
@@ -209,7 +206,7 @@ int PSIDhook_call(PSIDhook_t hook, void *arg)
     if (!hookTabInitialized) return 0;
 
     if (!checkHook(hook)) {
-	PSID_log(-1, "%s: unknown hook %d\n", __func__, hook);
+	PSID_flog("unknown hook %d\n", hook);
 	return -1;
     }
 

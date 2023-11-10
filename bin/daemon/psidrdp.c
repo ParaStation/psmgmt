@@ -61,7 +61,7 @@ void clearRDPMsgs(int node)
     list_t *m, *tmp;
 
     if (!PSC_validNode(node)) {
-	PSID_log(-1, "%s: invalid ID %d\n", __func__, node);
+	PSID_flog("invalid ID %d\n", node);
 	return;
     }
 
@@ -148,7 +148,7 @@ ssize_t flushRDPMsgs(int node)
 	if (PSC_getID(dest) == PSC_getMyID()) {
 	    int32_t mask = PSID_getDebugMask();
 
-	    PSID_log(-1, "%s: dest is own node\n", __func__);
+	    PSID_flog("dest is own node\n");
 	    PSID_setDebugMask(mask | PSID_LOG_MSGDUMP);
 	    PSID_dumpMsg(msg);
 	    PSID_setDebugMask(mask);
@@ -194,7 +194,7 @@ ssize_t sendRDP(DDMsg_t *msg)
     if (node == PSC_getMyID()) {
 	int32_t mask = PSID_getDebugMask();
 
-	PSID_log(-1, "%s: dest is own node\n", __func__);
+	PSID_flog("dest is own node\n");
 	PSID_setDebugMask(mask | PSID_LOG_MSGDUMP);
 	PSID_dumpMsg(msg);
 	PSID_setDebugMask(mask);
@@ -260,7 +260,7 @@ static ssize_t recvRDP(DDBufferMsg_t *msg, size_t size)
 	    || msg->header.type == PSP_DD_DAEMONESTABLISHED)
 	&& !PSC_getPID(msg->header.sender)
 	&& PSC_getID(msg->header.sender) != fromnode) {
-	PSID_log(-1, "%s: node %d sends type %s len %d as %d\n", __func__,
+	PSID_flog("node %d sends type %s len %d as %d\n",
 		 fromnode, PSDaemonP_printMsg(msg->header.type),
 		 msg->header.len, PSC_getID(msg->header.sender));
 	errno = ENOTUNIQ;
@@ -278,7 +278,7 @@ void PSIDRDP_handleMsg(void)
     ssize_t msglen = recvRDP(&msg, sizeof(msg));
 
     if (!msglen) {
-	PSID_log(-1, "%s: msglen 0?!\n", __func__);
+	PSID_flog("msglen 0?!\n");
 	return;
     }
     if (msglen == -1) {
@@ -287,20 +287,19 @@ void PSIDRDP_handleMsg(void)
     }
 
     if (msglen != msg.header.len) {
-	PSID_log(-1, "%s: type %s (len=%d) from %s",
-		 __func__, PSDaemonP_printMsg(msg.header.type),
-		 msg.header.len, PSC_printTID(msg.header.sender));
+	PSID_flog("type %s (len=%d) from %s", PSDaemonP_printMsg(msg.header.type),
+		  msg.header.len, PSC_printTID(msg.header.sender));
 	PSID_log(-1, " dest %s only %zd bytes\n",
 		 PSC_printTID(msg.header.dest), msglen);
     } else if (PSID_getDebugMask() & PSID_LOG_COMM) {
-	PSID_log(PSID_LOG_COMM, "%s: type %s (len=%d) from %s",
-		 __func__, PSDaemonP_printMsg(msg.header.type),
-		 msg.header.len, PSC_printTID(msg.header.sender));
-	PSID_log(PSID_LOG_COMM, " dest %s\n", PSC_printTID(msg.header.dest));
+	PSID_fdbg(PSID_LOG_COMM, "type %s (len=%d) from %s",
+		  PSDaemonP_printMsg(msg.header.type),
+		  msg.header.len, PSC_printTID(msg.header.sender));
+	PSID_dbg(PSID_LOG_COMM, " dest %s\n", PSC_printTID(msg.header.dest));
     }
 
     if (msg.header.type == PSP_CD_CLIENTCONNECT) {
-	PSID_log(-1, "%s: PSP_CD_CLIENTCONNECT on RDP?\n", __func__);
+	PSID_flog("PSP_CD_CLIENTCONNECT on RDP?\n");
 	return;
     }
 

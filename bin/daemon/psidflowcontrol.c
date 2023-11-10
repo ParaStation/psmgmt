@@ -184,7 +184,7 @@ static bool msg_SENDSTOP(DDTypedMsg_t *msg)
     } else if (task->fd != -1) {
 	PSID_fdbg(PSID_LOG_FLWCNTRL, "client %s at %d temporarily disabled",
 		  PSC_printTID(msg->header.dest), task->fd);
-	PSID_log(PSID_LOG_FLWCNTRL, " by %s\n", PSC_printTID(msg->header.sender));
+	PSID_dbg(PSID_LOG_FLWCNTRL, " by %s\n", PSC_printTID(msg->header.sender));
 
 	if (!task->activeStops) Selector_disable(task->fd);
 	task->activeStops++;
@@ -216,7 +216,7 @@ static bool msg_SENDSTOPACK(DDMsg_t *msg)
     if (!task) return true;
 
     PSID_fdbg(PSID_LOG_FLWCNTRL, "from %s", PSC_printTID(msg->sender));
-    PSID_log(PSID_LOG_FLWCNTRL, " to %s\n", PSC_printTID(msg->dest));
+    PSID_dbg(PSID_LOG_FLWCNTRL, " to %s\n", PSC_printTID(msg->dest));
 
     if (task->fd != -1) PSIDclient_releaseACK(task->fd);
     return true;
@@ -249,7 +249,7 @@ static bool msg_SENDCONT(DDMsg_t *msg)
     } else if (task->fd != -1) {
 	PSID_fdbg(PSID_LOG_FLWCNTRL, "client %s at %d re-enabled",
 		  PSC_printTID(msg->dest), task->fd);
-	PSID_log(PSID_LOG_FLWCNTRL, " by %s\n", PSC_printTID(msg->sender));
+	PSID_dbg(PSID_LOG_FLWCNTRL, " by %s\n", PSC_printTID(msg->sender));
 
 	task->activeStops--;
 	if (!task->activeStops) Selector_enable(task->fd);
@@ -265,10 +265,9 @@ void PSIDFlwCntrl_clearMem(void)
 
 void PSIDFlwCntrl_printStat(void)
 {
-    PSID_log(-1, "%s: Stops %d/%d (used/avail)", __func__,
-	     PSitems_getUsed(stopTIDs), PSitems_getAvail(stopTIDs));
-    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(stopTIDs),
-	     PSitems_getDynamics(stopTIDs));
+    PSID_flog("Stops %d/%d (used/avail)\t%d/%d (gets/grows)\n",
+	      PSitems_getUsed(stopTIDs), PSitems_getAvail(stopTIDs),
+	      PSitems_getUtilization(stopTIDs), PSitems_getDynamics(stopTIDs));
 }
 
 
@@ -277,7 +276,7 @@ void PSIDFlwCntrl_init(void)
     if (PSitems_isInitialized(stopTIDs)) return;
     stopTIDs = PSitems_new(sizeof(stopTID_t), "stopdTIDs");
     if (!stopTIDs) {
-	PSID_log(-1, "%s: cannot get stopTIDs items\n", __func__);
+	PSID_flog("cannot get stopTIDs items\n");
 	return;
     }
 

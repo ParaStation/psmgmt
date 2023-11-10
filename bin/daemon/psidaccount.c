@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,13 +38,12 @@ void PSID_addAcct(PStask_ID_t acctr)
 {
     list_t *pos;
 
-    PSID_log(PSID_LOG_VERB, "%s: %s\n", __func__, PSC_printTID(acctr));
+    PSID_fdbg(PSID_LOG_VERB, "%s\n", PSC_printTID(acctr));
 
     list_for_each(pos, &PSID_accounters) {
 	PSID_acct_t *acct = list_entry(pos, PSID_acct_t, next);
 	if (acct->acct == acctr) {
-	    PSID_log(PSID_LOG_VERB, "%s: %s found\n", __func__,
-		     PSC_printTID(acctr));
+	    PSID_fdbg(PSID_LOG_VERB, "%s found\n", PSC_printTID(acctr));
 	    return;
 	}
     }
@@ -58,7 +57,7 @@ void PSID_remAcct(PStask_ID_t acctr)
 {
     list_t *pos, *tmp;
 
-    PSID_log(PSID_LOG_VERB, "%s: %s\n", __func__, PSC_printTID(acctr));
+    PSID_fdbg(PSID_LOG_VERB, "%s\n", PSC_printTID(acctr));
 
     list_for_each_safe(pos, tmp, &PSID_accounters) {
 	PSID_acct_t *acct = list_entry(pos, PSID_acct_t, next);
@@ -68,14 +67,14 @@ void PSID_remAcct(PStask_ID_t acctr)
 	    return;
 	}
     }
-    PSID_log(-1, "%s: %s not found\n", __func__, PSC_printTID(acctr));
+    PSID_flog("%s not found\n", PSC_printTID(acctr));
 }
 
 void PSID_cleanAcctFromNode(PSnodes_ID_t node)
 {
     list_t *pos, *tmp;
 
-    PSID_log(PSID_LOG_VERB, "%s: %d\n", __func__, node);
+    PSID_fdbg(PSID_LOG_VERB, "%d\n", node);
 
     list_for_each_safe(pos, tmp, &PSID_accounters) {
 	PSID_acct_t *acct = list_entry(pos, PSID_acct_t, next);
@@ -83,7 +82,7 @@ void PSID_cleanAcctFromNode(PSnodes_ID_t node)
 	    PStask_ID_t tid = acct->acct;
 	    list_del(pos);
 	    free(acct);
-	    PSID_log(-1, "%s: %s removed\n", __func__, PSC_printTID(tid));
+	    PSID_flog("%s removed\n", PSC_printTID(tid));
 	}
     }
 }
@@ -101,7 +100,7 @@ void send_acct_OPTIONS(PStask_ID_t dest, int all)
     PSP_Option_t option = all ? PSP_OP_ACCT : PSP_OP_ADD_ACCT;
     list_t *pos, *tmp;
 
-    PSID_log(PSID_LOG_VERB, "%s: %s %d\n", __func__, PSC_printTID(dest), all);
+    PSID_fdbg(PSID_LOG_VERB, "%s %d\n", PSC_printTID(dest), all);
 
     list_for_each_safe(pos, tmp, &PSID_accounters) {
 	PSID_acct_t *acct = list_entry(pos, PSID_acct_t, next);
@@ -156,8 +155,7 @@ static void localForward_ACCOUNT(DDTypedBufferMsg_t *msg)
     uid = *(uid_t *)ptr;
 
     if (!task) {
-	PSID_log(-1, "%s: '%s' not found\n", __func__,
-		 PSC_printTID(msg->header.dest));
+	PSID_flog("%s not found\n", PSC_printTID(msg->header.dest));
 	return;
     }
 
@@ -195,8 +193,7 @@ static void localForward_ACCOUNT(DDTypedBufferMsg_t *msg)
  */
 static bool msg_ACCOUNT(DDTypedBufferMsg_t *msg)
 {
-    PSID_log(PSID_LOG_VERB, "%s: from %s\n", __func__,
-	     PSC_printTID(msg->header.sender));
+    PSID_fdbg(PSID_LOG_VERB, "from %s\n", PSC_printTID(msg->header.sender));
 
     if (msg->header.dest == PSC_getMyTID()) {
 	/* message for me, let's forward to all authorized accounters */
@@ -236,7 +233,7 @@ int PSID_getNumAcct(void)
 
 void initAccount(void)
 {
-    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+    PSID_fdbg(PSID_LOG_VERB, "\n");
 
     PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t) msg_ACCOUNT);
 }

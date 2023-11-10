@@ -227,7 +227,7 @@ bool PSIDnodes_register(PSnodes_ID_t id, const char *nodename, in_addr_t addr,
     if (id >= PSIDnodes_getNum()
 	&& PSIDnodes_grow(GROW_CHUNK*(id/GROW_CHUNK + 1)) == -1) {
 	/* failed to grow nodes */		\
-	PSID_log(-1, "%s(id=%d): failed to grow nodes\n", __func__, id);
+	PSID_flog("(id=%d): failed to grow nodes\n", id);
 	return false;
     }
 
@@ -603,7 +603,7 @@ void send_CPUMap_OPTIONS(PStask_ID_t dest)
     int mapEntries = (int)myNode->CPUmapSize < myNode->numThrds ?
 	(int)myNode->CPUmapSize : myNode->numThrds;
 
-    PSID_log(PSID_LOG_VERB, "%s: %s", __func__, PSC_printTID(dest));
+    PSID_fdbg(PSID_LOG_VERB, "%s", PSC_printTID(dest));
 
     for (int i = 0; i < mapEntries; i++) {
 	msg.opt[(int) msg.count].option = PSP_OP_CPUMAP;
@@ -788,7 +788,7 @@ static void clear_GUID_list(list_t *list)
 {
     list_t *pos, *tmp;
 
-    PSID_log(PSID_LOG_VERB, "%s(%p)\n", __func__, list);
+    PSID_fdbg(PSID_LOG_VERB, "list %p\n", list);
 
     list_for_each_safe(pos, tmp, list) {
 	PSIDnodes_GUent_t *guent = list_entry(pos, PSIDnodes_GUent_t, next);
@@ -803,7 +803,7 @@ int PSIDnodes_setGUID(PSnodes_ID_t id,
 {
     list_t *list = get_GUID_list(id, what);
 
-    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d)\n", __func__, id, what, guid.u);
+    PSID_fdbg(PSID_LOG_NODES, "(%d, %d, %d)\n", id, what, guid.u);
 
     if (!list) return -1;
 
@@ -819,7 +819,7 @@ int PSIDnodes_addGUID(PSnodes_ID_t id,
     PSIDnodes_guid_t any;
     list_t *list = get_GUID_list(id, what), *pos, *tmp;
 
-    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d)\n", __func__, id, what, guid.u);
+    PSID_fdbg(PSID_LOG_NODES, "(%d, %d, %d)\n", id, what, guid.u);
 
     if (!list) return -1;
 
@@ -839,13 +839,13 @@ int PSIDnodes_addGUID(PSnodes_ID_t id,
     list_for_each_safe(pos, tmp, list) {
 	guent = list_entry(pos, PSIDnodes_GUent_t, next);
 	if (!cmp_GUID(what, guent->id, any)) {
-	    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d): ANY found\n",
-		     __func__, id, what, guid.u);
+	    PSID_fdbg(PSID_LOG_NODES, "(%d, %d, %d): ANY found\n",
+		      id, what, guid.u);
 	    return -1;
 	}
 	if (!cmp_GUID(what, guent->id, guid)) {
-	    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d): already there\n",
-		     __func__, id, what, guid.u);
+	    PSID_fdbg(PSID_LOG_NODES, "(%d, %d, %d): already there\n",
+		      id, what, guid.u);
 	    return -1;
 	}
     }
@@ -863,7 +863,7 @@ int PSIDnodes_remGUID(PSnodes_ID_t id,
 {
     list_t *list = get_GUID_list(id, what), *pos, *tmp;
 
-    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d)\n", __func__, id, what, guid.u);
+    PSID_fdbg(PSID_LOG_NODES, "(%d, %d, %d)\n", id, what, guid.u);
 
     list_for_each_safe(pos, tmp, list) {
 	PSIDnodes_GUent_t *guent = list_entry(pos, PSIDnodes_GUent_t, next);
@@ -874,8 +874,7 @@ int PSIDnodes_remGUID(PSnodes_ID_t id,
 	}
     }
 
-    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d): not found\n", __func__,
-	     id, what, guid.u);
+    PSID_fdbg(PSID_LOG_NODES, "(%d, %d, %d): not found\n", id, what, guid.u);
 
     return -1;
 }
@@ -886,7 +885,7 @@ int PSIDnodes_testGUID(PSnodes_ID_t id,
     list_t *list = get_GUID_list(id, what), *pos;
     PSIDnodes_guid_t any;
 
-    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d)\n", __func__, id, what, guid.u);
+    PSID_fdbg(PSID_LOG_NODES, "(%d, %d, %d)\n", id, what, guid.u);
 
     switch (what) {
     case PSIDNODES_USER:
@@ -921,10 +920,10 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what)
     list_t *list = get_GUID_list(PSC_getMyID(), what), *pos;
     PSP_Option_t option = PSP_OP_UNKNOWN;
 
-    PSID_log(PSID_LOG_VERB, "%s: %s", __func__, PSC_printTID(dest));
+    PSID_fdbg(PSID_LOG_VERB, "%s ", PSC_printTID(dest));
     switch (what) {
     case PSIDNODES_USER:
-	PSID_log(PSID_LOG_VERB, " %s", "PSIDNODES_USER");
+	PSID_dbg(PSID_LOG_VERB, "PSIDNODES_USER\n");
 	if (PSC_getPID(dest)) {
 	    msg.opt[(int) msg.count].option = option = PSP_OP_UID;
 	} else {
@@ -933,7 +932,7 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what)
 	}
 	break;
     case PSIDNODES_GROUP:
-	PSID_log(PSID_LOG_VERB, " %s", "PSIDNODES_GROUP");
+	PSID_dbg(PSID_LOG_VERB, "PSIDNODES_GROUP\n");
 	if (PSC_getPID(dest)) {
 	    msg.opt[(int) msg.count].option = option = PSP_OP_GID;
 	} else {
@@ -942,7 +941,7 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what)
 	}
 	break;
     case PSIDNODES_ADMUSER:
-	PSID_log(PSID_LOG_VERB, " %s", "PSIDNODES_ADMUSER");
+	PSID_dbg(PSID_LOG_VERB, "PSIDNODES_ADMUSER\n");
 	if (PSC_getPID(dest)) {
 	    msg.opt[(int) msg.count].option = option = PSP_OP_ADMUID;
 	} else {
@@ -951,7 +950,7 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what)
 	}
 	break;
     case PSIDNODES_ADMGROUP:
-	PSID_log(PSID_LOG_VERB, " %s", "PSIDNODES_ADMGROUP");
+	PSID_dbg(PSID_LOG_VERB, "PSIDNODES_ADMGROUP\n");
 	if (PSC_getPID(dest)) {
 	    msg.opt[(int) msg.count].option = option = PSP_OP_ADMGID;
 	} else {
@@ -960,7 +959,7 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what)
 	}
 	break;
     default:
-	PSID_log(PSID_LOG_VERB, " unknown");
+	PSID_dbg(PSID_LOG_VERB, "unknown\n");
 	return;
     }
 

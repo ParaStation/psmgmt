@@ -142,15 +142,15 @@ ssize_t sendMsg(void *amsg)
     char *sender;
 
     if (PSID_getDebugMask() & PSID_LOG_COMM) {
-	PSID_log(PSID_LOG_COMM, "%s(type %s (len=%d) to %s\n",
-		 __func__, PSDaemonP_printMsg(msg->type), msg->len,
-		 PSC_printTID(msg->dest));
+	PSID_fdbg(PSID_LOG_COMM, "(type %s (len=%d) to %s\n",
+		  PSDaemonP_printMsg(msg->type), msg->len,
+		  PSC_printTID(msg->dest));
     }
 
     if (randomDrop && PSIDhook_call(PSIDHOOK_RANDOM_DROP, amsg) == 0) {
-	PSID_log(-1, "%s(type %s (len=%d) %s is randomly dropped\n", __func__,
-		 PSDaemonP_printMsg(msg->type), msg->len,
-		 PSC_printTID(msg->dest));
+	PSID_flog("(type %s (len=%d) %s is randomly dropped\n",
+		  PSDaemonP_printMsg(msg->type), msg->len,
+		  PSC_printTID(msg->dest));
 	PSID_dropMsg((DDBufferMsg_t *)msg);
 	errno = EHOSTUNREACH;
 	return -1;
@@ -214,7 +214,7 @@ ssize_t sendMsg(void *amsg)
 	PSID_fdbg(key, "sender was %s\n", PSC_printTID(msg->sender));
 	if (msg->len > sizeof(*msg)) {
 	    DDTypedMsg_t *tmsg = amsg;
-	    PSID_log(key, "%s: sub-type might be %d\n", __func__, tmsg->type);
+	    PSID_fdbg(key, "sub-type might be %d\n", tmsg->type);
 	}
 
 	if (eno == EWOULDBLOCK && PSIDFlwCntrl_applicable(msg)) {
@@ -253,8 +253,8 @@ int broadcastMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *) amsg;
     if (PSID_getDebugMask() & PSID_LOG_COMM) {
-	PSID_log(PSID_LOG_COMM, "%s(type %s len=%d)\n",
-		 __func__, PSDaemonP_printMsg(msg->type), msg->len);
+	PSID_fdbg(PSID_LOG_COMM, "(type %s len=%d)\n",
+		  PSDaemonP_printMsg(msg->type), msg->len);
     }
 
     /* broadcast to every daemon except the sender */
@@ -274,18 +274,17 @@ bool PSID_dropMsg(DDBufferMsg_t *msg)
     if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
     if (!msg) {
-	PSID_log(-1, "%s: msg is NULL\n", __func__);
+	PSID_flog("msg is NULL\n");
 	return false;
     }
 
     if (msg->header.type < 0) {
-	PSID_log(-1, "%s: illegal msgtype %d\n", __func__, msg->header.type);
+	PSID_flog("illegal msgtype %d\n", msg->header.type);
 	return false;
     }
 
-    PSID_log(PSID_LOG_COMM, "%s: dest %s", __func__,
-	     PSC_printTID(msg->header.dest));
-    PSID_log(PSID_LOG_COMM," source %s type %s\n",
+    PSID_fdbg(PSID_LOG_COMM, "dest %s", PSC_printTID(msg->header.dest));
+    PSID_dbg(PSID_LOG_COMM," source %s type %s\n",
 	     PSC_printTID(msg->header.sender),
 	     PSDaemonP_printMsg(msg->header.type));
     if (PSID_getDebugMask() & PSID_LOG_MSGDUMP) PSID_dumpMsg((DDMsg_t *)msg);
@@ -309,13 +308,13 @@ bool PSID_handleMsg(DDBufferMsg_t *msg)
     if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
     if (!msg) {
-	PSID_log(-1, "%s: msg is NULL\n", __func__);
+	PSID_flog("msg is NULL\n");
 	return false;
     }
 
     if (msg->header.type < 0) {
-	PSID_log(-1, "%s: Illegal msgtype %d from %s\n", __func__,
-		 msg->header.type, PSC_printTID(msg->header.sender));
+	PSID_flog("Illegal msgtype %d from %s\n", msg->header.type,
+		  PSC_printTID(msg->header.sender));
 	return false;
     }
 
@@ -327,9 +326,9 @@ bool PSID_handleMsg(DDBufferMsg_t *msg)
 	if (!msgHandler->handler || msgHandler->handler(msg)) return true;
     }
 
-    PSID_log(-1, "%s: no handler for type %#x (%s) from %s\n", __func__,
-	     msg->header.type, PSDaemonP_printMsg(msg->header.type),
-	     PSC_printTID(msg->header.sender));
+    PSID_flog("no handler for type %#x (%s) from %s\n", msg->header.type,
+	      PSDaemonP_printMsg(msg->header.type),
+	      PSC_printTID(msg->header.sender));
 
     /* Emit CD_UNKNOWN messages if not suppressed */
     if (sendMsgFunc) {
@@ -383,8 +382,8 @@ void PSIDcomm_clearMem(void)
 
 void PSIDcomm_printStat(void)
 {
-    PSID_log(-1, "%s: Handlers & Droppers %d/%d (used/avail)", __func__,
-	     PSitems_getUsed(handlerPool), PSitems_getAvail(handlerPool));
+    PSID_flog("Handlers & Droppers %d/%d (used/avail)",
+	      PSitems_getUsed(handlerPool), PSitems_getAvail(handlerPool));
     PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(handlerPool),
 	     PSitems_getDynamics(handlerPool));
 }

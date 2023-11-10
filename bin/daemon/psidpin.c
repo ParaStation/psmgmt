@@ -207,7 +207,7 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 	variables = NICvariables;
 	break;
     default:
-	PSID_log(-1, "%s: unknown type %d\n", __func__, type);
+	PSID_flog("unknown type %d\n", type);
 	return;
     }
 
@@ -255,8 +255,7 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
     }
     val[len ? len-1 : len] = '\0';
 
-    PSID_log(PSID_LOG_SPAWN, "%s: Setup to use %ss '%s'\n", __func__, typename,
-	     val);
+    PSID_fdbg(PSID_LOG_SPAWN, "setup to use %ss '%s'\n", typename, val);
 
     char *prefix = "__AUTO_";
     char name[1024];
@@ -271,8 +270,7 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 	    setenv(variables[i], val, 1);
 	    setenv(name, val, 1);
 	} else {
-	    PSID_log(PSID_LOG_SPAWN, "%s: Not overriding already set '%s'\n",
-		     __func__, variables[i]);
+	    PSID_fdbg(PSID_LOG_SPAWN, "keep already set '%s'\n", variables[i]);
 	}
 
     }
@@ -293,8 +291,8 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 	if (mapFunc) {
 	    char *devstr = mapFunc(closelist[i]);
 	    if (!devstr) {
-		PSID_log(PSID_LOG_SPAWN, "%s: no name found for %s device %d\n",
-			 __func__, typename, closelist[i]);
+		PSID_fdbg(PSID_LOG_SPAWN, "no name found for %s device %d\n",
+			  typename, closelist[i]);
 		break;
 	    }
 	    len += snprintf(val+len, sizeof(val)-len, "%s,", devstr);
@@ -308,13 +306,11 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
      * of the NUMA domains our CPUs are also connected to */
     switch(type) {
     case PSPIN_DEV_TYPE_GPU:
-	PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_LOCAL_GPUS='%s'\n",
-		 __func__, val);
+	PSID_fdbg(PSID_LOG_SPAWN, "set PSID_LOCAL_GPUS='%s'\n", val);
 	setenv("PSID_LOCAL_GPUS", val, 1);
 	break;
     case PSPIN_DEV_TYPE_NIC:
-	PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_LOCAL_NICS='%s'\n",
-		 __func__, val);
+	PSID_fdbg(PSID_LOG_SPAWN, "set PSID_LOCAL_NICS='%s'\n", val);
 	setenv("PSID_LOCAL_NICS", val, 1);
 	break;
     }
@@ -612,18 +608,16 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
 	devsets = PSIDnodes_NICSets(id);
 	break;
     default:
-	PSID_log(-1, "%s: unknown type %d\n", __func__, type);
+	PSID_flog("unknown type %d\n", type);
 	return false;
     }
     if (!devsets) {
-	PSID_log(PSID_LOG_SPAWN, "%s(%d): No %s sets found.\n", __func__, id,
-		typename);
+	PSID_fdbg(PSID_LOG_SPAWN, "no %s sets found for id %d\n", typename, id);
 	return false;
     }
 
     if (!PSCPU_any(*devs, numDevs)) {
-	PSID_log(PSID_LOG_SPAWN, "%s(%d): no %ss provided\n", __func__, id,
-		typename);
+	PSID_fdbg(PSID_LOG_SPAWN, "no %ss provided for id %d\n", typename, id);
 	return false;
     }
 
@@ -640,15 +634,15 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
     bool used[numNUMA];
     memset(used, 0, sizeof(used));
 
-    PSID_log(PSID_LOG_SPAWN, "%s(%d): Analysing mapped cpuset %s\n", __func__,
-	    id, PSCPU_print_part(mappedSet, PSCPU_bytesForCPUs(numThrds)));
+    PSID_fdbg(PSID_LOG_SPAWN, "analysing mapped cpuset %s for id %d\n",
+	      PSCPU_print_part(mappedSet, PSCPU_bytesForCPUs(numThrds)), id);
 
     /* identify NUMA domains this process will run on */
     PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(id);
     for (uint16_t dom = 0; dom < numNUMA; dom++) {
 	if (PSCPU_overlap(mappedSet, CPUSets[dom], numThrds)) {
-	    PSID_log(PSID_LOG_SPAWN, "%s(%d, type=%s): CPUset matches"
-		     " NUMA domain %hu\n", __func__, id, typename, dom);
+	    PSID_fdbg(PSID_LOG_SPAWN, "(%d, type=%s): CPUset matches"
+		      " NUMA domain %hu\n", id, typename, dom);
 	    used[dom] = true;
 	}
     }
@@ -656,9 +650,9 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	for (uint16_t dom = 0; dom < numNUMA; dom++) {
 	    if (used[dom]) {
-		PSID_log(PSID_LOG_SPAWN, "%s(%d): %s mask of NUMA domain"
-			 " %hu: %s\n", __func__, id, typename, dom,
-			 PSCPU_print_part(devsets[dom], (numDevs + 7)/8));
+		PSID_fdbg(PSID_LOG_SPAWN, "(%d): %s mask of NUMA domain"
+			  " %hu: %s\n", id, typename, dom,
+			  PSCPU_print_part(devsets[dom], (numDevs + 7)/8));
 	    }
 	}
     }
@@ -666,8 +660,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
     /* Fill list of local devices if requested */
     if (localDevs) {
 	if (!localCnt) {
-	    PSID_log(-1, "%s(%d, type=%s): localCnt is NULL\n", __func__, id,
-		     typename);
+	    PSID_flog("(%d, type=%s): localCnt is NULL\n", id, typename);
 	    return false;
 	}
 	/* extract into ascending list of unique entries */
@@ -677,8 +670,8 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
 	    for (uint16_t dom = 0; dom < numNUMA; dom++) {
 		if (!used[dom] || !PSCPU_isSet(devsets[dom], dev)) continue;
 		localDevs[(*localCnt)++] = dev;
-		PSID_log(PSID_LOG_SPAWN, "%s(%d): %s %hu local to NUMA"
-			 " domain %hu\n", __func__, id, typename, dev, dom);
+		PSID_fdbg(PSID_LOG_SPAWN, "(%d): %s %hu local to NUMA"
+			 " domain %hu\n", id, typename, dev, dom);
 	    }
 	}
     }
@@ -686,8 +679,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
 	/* no device is closer than a local one => we're done */
 	if (closeDevs) {
 	    if (!closeCnt) {
-		PSID_log(-1, "%s(%d, type=%s): closeCnt is NULL\n", __func__,
-			 id, typename);
+		PSID_flog("(%d, type=%s): closeCnt is NULL\n", id, typename);
 		return false;
 	    }
 	    for (uint16_t dev = 0; dev < *localCnt; dev++) {
@@ -699,8 +691,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
     }
     if (!closeDevs) return true;
     if (!closeCnt) {
-	PSID_log(-1, "%s(%d, type=%s): closeCnt is NULL\n", __func__, id,
-		 typename);
+	PSID_flog("(%d, type=%s): closeCnt is NULL\n", id, typename);
 	return false;
     }
 
@@ -725,14 +716,14 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
     }
 
     if (minDist == UINT32_MAX) {
-	PSID_log(PSID_LOG_SPAWN, "%s(%d, type=%s): No distances found\n",
-		 __func__, id, typename);
+	PSID_fdbg(PSID_LOG_SPAWN, "(%d, type=%s): No distances found\n",
+		  id, typename);
 	free(dists);
 	return false;
     }
 
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
-	PSID_log(-1, "%s(%d): Minimum %s distances:", __func__, id, typename);
+	PSID_flog("(%d): Minimum %s distances:", id, typename);
 	for (uint16_t dev = 0; dev < numDevs; dev++) {
 	    if (!PSCPU_isSet(*devs, dev)) continue;
 	    PSID_log(-1, " %hu=%u", dev, dists[dev]);
@@ -748,7 +739,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
     free(dists);
 
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
-	PSID_log(-1, "%s(%d): Closest %s:", __func__, id, typename);
+	PSID_flog("(%d): Closest %s:", id, typename);
 	for (size_t i = 0; i < *closeCnt; i++) {
 	    PSID_log(-1, " %hu", closeDevs[i]);
 	}

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -104,7 +104,7 @@ char *set(char *key, char *value)
     if (!strcmp(key, "DebugMask")) {
 	if (pluginConfig_addStr(config, key, value)) {
 	    long mask = pluginConfig_getNum(config, key);
-	    PSID_log(-1, "%s: debugMask now %#lx\n", __func__, mask);
+	    PSID_log(-1, "%s/%s: debugMask now %#lx\n", name, __func__,  mask);
 	} else {
 	    return strdup(" Illegal value\n");
 	}
@@ -128,7 +128,7 @@ char *unset(char *key)
     if (!strcmp(key, "DebugMask")) {
 	pluginConfig_remove(config, key);
 	long mask = 0;
-	PSID_log(-1, "%s: debugMask now %#lx\n", __func__, mask);
+	PSID_log(-1, "%s/%s: debugMask now %#lx\n", name, __func__, mask);
     } else {
 	pluginConfig_remove(config, key);
     }

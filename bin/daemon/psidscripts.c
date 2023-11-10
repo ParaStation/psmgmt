@@ -68,12 +68,12 @@ void tmOutHandler(int timerID, void *info)
 
     CBInfo_t *cbInfo = info;
     if (!cbInfo) {
-	PSID_log(-1, "%s: no cbInfo for %d\n", __func__, timerID);
+	PSID_flog("no cbInfo for %d\n", timerID);
 	return;
     }
     if (cbInfo->timerID != timerID) {
-	PSID_log(-1, "%s: timerID mismatch: %d vs %d cleanup anyhow\n",
-		 __func__, cbInfo->timerID, timerID);
+	PSID_flog("timerID mismatch: %d vs %d cleanup anyhow\n",
+		  cbInfo->timerID, timerID);
     }
 
     Selector_remove(cbInfo->cntrlfd);
@@ -107,7 +107,7 @@ void tmOutHandler(int timerID, void *info)
 static int cbWrapper(int fd, void *info)
 {
     if (fd <= 0) {
-	PSID_log(-1, "%s: illegal fd %d\n", __func__, fd);
+	PSID_flog("illegal fd %d\n", fd);
 	/* cleanup via info if any */
 	CBInfo_t *cbInfo = info;
 	if (!cbInfo) return 0;
@@ -125,14 +125,13 @@ static int cbWrapper(int fd, void *info)
 
     CBInfo_t *cbInfo = info;
     if (!cbInfo) {
-	PSID_log(-1, "%s: no cbInfo for %d\n", __func__, fd);
+	PSID_flog("no cbInfo for %d\n", fd);
 	Selector_remove(fd);
 	close(fd);
 	return 0;
     }
     if (cbInfo->cntrlfd != fd) {
-	PSID_log(-1, "%s: fd mismatch: %d vs %d cleanup anyhow\n",
-		 __func__, cbInfo->cntrlfd, fd);
+	PSID_flog("fd mismatch: %d vs %d cleanup anyhow\n", cbInfo->cntrlfd, fd);
     }
 
     Selector_remove(fd);
@@ -140,7 +139,7 @@ static int cbWrapper(int fd, void *info)
     ssize_t num = PSCio_recvBuf(fd, &exit, sizeof(exit));
     close(fd);
     if (num != sizeof(exit)) {
-	PSID_log(-1, "%s: incomplete exit (just %zd bytes)\n", __func__, num);
+	PSID_flog("incomplete exit (just %zd bytes)\n", num);
     }
 
     if (cbInfo->timerID > 0) Timer_remove(cbInfo->timerID);
@@ -162,7 +161,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 		  const char *caller)
 {
     if (!script && !func) {
-	PSID_log(-1, "%s: both, script and func are NULL\n", __func__);
+	PSID_flog("both, script and func are NULL\n");
 	return -1;
     }
 
@@ -350,7 +349,7 @@ int PSID_registerScript(config_t *config, char *type, char *script)
     } else if (strcasecmp(type, "nodedownscript")==0) {
 	scriptStr = &config->nodeDownScript;
     } else {
-	PSID_log(-1, "unknown script type '%s'\n", type);
+	PSID_flog("unknown script type '%s'\n", type);
 	return -1;
     }
 
@@ -372,15 +371,15 @@ int PSID_registerScript(config_t *config, char *type, char *script)
     free(command);
 
     if (!S_ISREG(sb.st_mode) || !(sb.st_mode & S_IXUSR)) {
-	PSID_log(-1, "%s(%s, %s): %s\n", __func__,type, script,
-		 (!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
-		 (sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
+	PSID_flog("(%s, %s): %s\n", type, script,
+		  (!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
+		  (sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
 	return -1;
     }
 
     if (*scriptStr) {
-	PSID_log(PSID_LOG_VERB, "%s: Replace %s '%s' with '%s'\n", __func__,
-		 type, *scriptStr, script);
+	PSID_fdbg(PSID_LOG_VERB, "replace %s '%s' by '%s'\n",
+		  type, *scriptStr, script);
 
 	free(*scriptStr);
     }
@@ -437,20 +436,20 @@ static void cbInfoPool_gc(void)
 bool PSIDscripts_init(void)
 {
     if (!Selector_isInitialized()) {
-	PSID_log(-1, "%s: needs running Selector\n", __func__);
+	PSID_flog("needs running Selector\n");
 	return false;
     }
     if (!Timer_isInitialized()) {
-	PSID_log(-1, "%s: needs running Timer\n", __func__);
+	PSID_flog("needs running Timer\n");
 	return false;
     }
     if (!PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem)) {
-	PSID_log(-1, "%s: cannot register to PSIDHOOK_CLEARMEM\n", __func__);
+	PSID_flog("cannot register to PSIDHOOK_CLEARMEM\n");
 	return false;
     }
     cbInfoPool = PSitems_new(sizeof(CBInfo_t), "cbInfoPool");
     if (!cbInfoPool) {
-	PSID_log(-1, "%s: cannot get cbInfo items\n", __func__);
+	PSID_flog("cannot get cbInfo items\n");
 	return false;
     }
     PSID_registerLoopAct(cbInfoPool_gc);
@@ -460,10 +459,10 @@ bool PSIDscripts_init(void)
 
 void PSIDscripts_printStat(void)
 {
-    PSID_log(-1, "%s: info blobs %d/%d (used/avail)", __func__,
-	     PSitems_getUsed(cbInfoPool), PSitems_getAvail(cbInfoPool));
-    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(cbInfoPool),
-	     PSitems_getDynamics(cbInfoPool));
+    PSID_flog("info blobs %d/%d (used/avail)\t%d/%d (gets/grows)\n",
+	      PSitems_getUsed(cbInfoPool), PSitems_getAvail(cbInfoPool),
+	      PSitems_getUtilization(cbInfoPool),
+	      PSitems_getDynamics(cbInfoPool));
 }
 
 int PSID_cancelCB(pid_t pid)
@@ -485,6 +484,6 @@ int PSID_cancelCB(pid_t pid)
 	}
     }
 
-    PSID_log(-1, "%s: pid %d not found.\n", __func__, pid);
+    PSID_flog("pid %d not found\n", pid);
     return -1;
 }

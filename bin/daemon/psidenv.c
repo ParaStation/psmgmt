@@ -122,12 +122,12 @@ void PSID_sendEnvList(PStask_ID_t dest, char *key)
 static bool msg_ENV(DDTypedBufferMsg_t *inmsg)
 {
     int ret = 0;
-    PSID_log(PSID_LOG_ENV, "%s(%s, %s)\n", __func__,
-	     PSC_printTID(inmsg->header.sender), inmsg->buf);
+    PSID_fdbg(PSID_LOG_ENV, "(%s, %s)\n", PSC_printTID(inmsg->header.sender),
+	      inmsg->buf);
 
     if (!PSID_checkPrivilege(inmsg->header.sender)) {
-	PSID_log(-1, "%s: task %s not allowed to modify environments\n",
-		 __func__, PSC_printTID(inmsg->header.sender));
+	PSID_flog("task %s not allowed to modify environments\n",
+		  PSC_printTID(inmsg->header.sender));
 	ret = EACCES;
     } else {
 	PSnodes_ID_t destID = PSC_getID(inmsg->header.dest);
@@ -175,8 +175,7 @@ static bool msg_ENV(DDTypedBufferMsg_t *inmsg)
 		}
 		break;
 	    default:
-		PSID_log(-1, "%s: Unknown message type %d\n", __func__,
-			 inmsg->type);
+		PSID_flog("unknown message type %d\n", inmsg->type);
 		ret = -1;
 	    }
 	}

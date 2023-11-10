@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -90,7 +90,7 @@ void delaySlurmMsg(Slurm_Msg_t *sMsg)
 #define getHandle(pHandle, symbol)		\
     symbol = dlsym(pHandle, #symbol);		\
     if (!symbol) {							\
-	PSID_log(-1, "%s: " #symbol "() not found\n", __func__);	\
+	PSID_flog(#symbol "() not found\n");	\
 	return 1;							\
     }
 
@@ -100,7 +100,7 @@ int initialize(FILE *logfile)
 
     /* get psslurm function handles */
     if (!handle) {
-	PSID_log(-1, "%s: getting psslurm handle failed\n", __func__);
+	PSID_flog("getting psslurm handle failed\n");
 	return 1;
     }
     getHandle(handle, psSlurmRegMsgHandler);

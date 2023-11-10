@@ -51,7 +51,7 @@ void PSID_shutdown(void)
     int numPlugins;
 
     phase++;
-    PSID_log(-1, "%s(%d)\n", __func__, phase);
+    PSID_flog("phae %d\n", phase);
 
     switch (phase) {
     case 0:
@@ -98,11 +98,11 @@ void PSID_shutdown(void)
 	exitRDP();
 	PSID_unregisterLoopAct(PSID_shutdown);
 	PSID_shutdownMasterSock(); /* used for locking => ALAP */
-	PSID_log(-1, "%s: good bye\n", __func__);
+	PSID_flog("good bye\n");
 	PSID_finalizeLogs();
 	exit(0);
     default:
-	PSID_log(-1, "%s: unknown phase %d\n", __func__, phase);
+	PSID_flog("unknown phase %d\n", phase);
     }
 }
 
@@ -112,12 +112,12 @@ void PSID_reset(void)
     int num;
 
     phase++;
-    PSID_log(-1, "%s(%d)\n", __func__, phase);
+    PSID_flog("phase %d\n", phase);
 
     if (!PSIDclient_getNum(false)) {
 	/* reset the hardware if demanded */
 	if (daemonState & PSID_STATE_RESET_HW) {
-	    PSID_log(-1, "%s: resetting hardware", __func__);
+	    PSID_flog("resetting hardware");
 	    PSID_stopAllHW();
 	    PSID_startAllHW();
 	}
@@ -125,7 +125,7 @@ void PSID_reset(void)
 	daemonState &= ~(PSID_STATE_RESET | PSID_STATE_RESET_HW);
 	if (phase) PSID_unregisterLoopAct(PSID_reset);
 	phase = -1;
-	PSID_log(-1, "%s: done\n", __func__);
+	PSID_flog("done\n");
 	return;
     }
 
@@ -143,7 +143,7 @@ void PSID_reset(void)
     case 2:
 	num = PSIDclient_killAll(SIGKILL, false);
 	if (num) {
-	    PSID_log(-1, "%s: still %d clients\n", __func__, num);
+	    PSID_flog("still %d clients\n", num);
 	    /* Stay in this phase */
 	    phase--;
 	    return;
@@ -151,7 +151,7 @@ void PSID_reset(void)
 	PSID_reset();
 	break;
     default:
-	PSID_log(-1, "%s: unknown phase %d\n", __func__, phase);
+	PSID_flog("unknown phase %d\n", phase);
     }
 }
 
@@ -172,19 +172,18 @@ static bool msg_DAEMONSTART(DDBufferMsg_t *msg)
     PSnodes_ID_t starter = PSC_getID(msg->header.dest);
     PSnodes_ID_t node = *(PSnodes_ID_t *) msg->buf;
 
-    PSID_log(PSID_LOG_STATUS, "%s: received (starter=%d node=%d)\n",
-	     __func__, starter, node);
+    PSID_fdbg(PSID_LOG_STATUS, "starter=%d node=%d\n", starter, node);
 
     if (!PSID_checkPrivilege(msg->header.sender)) {
-	PSID_log(-1, "%s: task %s not allowed to start daemons\n", __func__,
-		 PSC_printTID(msg->header.sender));
+	PSID_flog("task %s not allowed to start daemons\n",
+		  PSC_printTID(msg->header.sender));
     } else if (starter==PSC_getMyID()) {
 	if (PSC_validNode(node)) {
 	    if (!PSIDnodes_isUp(node)) {
 		in_addr_t addr = PSIDnodes_getAddr(node);
 		if (addr != INADDR_ANY)	PSC_startDaemon(addr);
 	    } else {
-		PSID_log(-1, "%s: node %d already up\n", __func__, node);
+		PSID_flog("node %d already up\n", node);
 	    }
 	}
     } else {
@@ -192,7 +191,7 @@ static bool msg_DAEMONSTART(DDBufferMsg_t *msg)
 	    /* forward message */
 	    sendMsg(&msg);
 	} else {
-	    PSID_log(-1, "%s: starter %d is down\n", __func__, starter);
+	    PSID_flog("starter %d is down\n", starter);
 	}
     }
     return true;
@@ -214,8 +213,8 @@ static bool msg_DAEMONSTART(DDBufferMsg_t *msg)
 static bool msg_DAEMONSTOP(DDMsg_t *msg)
 {
     if (!PSID_checkPrivilege(msg->sender)) {
-	PSID_log(-1, "%s: task %s not allowed to stop daemons\n", __func__,
-		 PSC_printTID(msg->sender));
+	PSID_flog("task %s not allowed to stop daemons\n",
+		  PSC_printTID(msg->sender));
     } else if (PSC_getID(msg->dest) == PSC_getMyID()) {
 	if (!(PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) PSID_shutdown();
     } else {
@@ -240,8 +239,8 @@ static bool msg_DAEMONSTOP(DDMsg_t *msg)
 static bool msg_DAEMONRESET(DDBufferMsg_t *msg)
 {
     if (!PSID_checkPrivilege(msg->header.sender)) {
-	PSID_log(-1, "%s: task %s not allowed to reset daemons\n", __func__,
-		 PSC_printTID(msg->header.sender));
+	PSID_flog("task %s not allowed to reset daemons\n",
+		  PSC_printTID(msg->header.sender));
     } else if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	if (*(int *)msg->buf & PSP_RESET_HW) daemonState |= PSID_STATE_RESET_HW;
 	/* Resetting my node */
@@ -254,7 +253,7 @@ static bool msg_DAEMONRESET(DDBufferMsg_t *msg)
 
 void initState(void)
 {
-    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+    PSID_fdbg(PSID_LOG_VERB, "\n");
 
     PSID_registerMsg(PSP_CD_DAEMONSTART, msg_DAEMONSTART);
     PSID_registerMsg(PSP_CD_DAEMONSTOP, (handlerFunc_t) msg_DAEMONSTOP);

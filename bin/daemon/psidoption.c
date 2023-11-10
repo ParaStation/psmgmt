@@ -141,7 +141,7 @@ static PSIDnodes_guid_t getGUID(PSIDnodes_gu_t type, PSP_Optval_t val)
 	guid.g=val;
 	break;
     default:
-	PSID_log(-1, "%s: invalid type %d\n", __func__, type);
+	PSID_flog("invalid type %d\n", type);
 	guid.u = 0;
     }
 
@@ -285,7 +285,7 @@ static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
 	resource = RLIMIT_STACK;
 	break;
     default:
-	PSID_log(-1, "%s: unknown option %d\n", __func__, option);
+	PSID_flog("unknown option %d\n", option);
 	return;
     }
 
@@ -300,7 +300,7 @@ static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
 	switch (resource) {
 	case RLIMIT_NOFILE:
 	    if (limit.rlim_cur == RLIM_INFINITY) {
-		PSID_log(-1, "%s: cannot handle unlimited files\n", __func__);
+		PSID_flog("cannot handle unlimited files\n");
 		break;
 	    }
 	    if (PSIDclient_setMax(value) < 0) {
@@ -337,12 +337,12 @@ static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
  */
 static bool msg_SETOPTION(DDOptionMsg_t *msg)
 {
-    PSID_log(PSID_LOG_OPTION, "%s: from requester %s\n",
-	     __func__, PSC_printTID(msg->header.sender));
+    PSID_fdbg(PSID_LOG_OPTION, "from requester %s\n",
+	      PSC_printTID(msg->header.sender));
 
     if (!PSID_checkPrivilege(msg->header.sender)) {
-	PSID_log(-1, "%s: task %s not allowed to modify options\n",
-		 __func__, PSC_printTID(msg->header.sender));
+	PSID_flog("task %s not allowed to modify options\n",
+		  PSC_printTID(msg->header.sender));
 	return true;
     }
 
@@ -352,8 +352,8 @@ static bool msg_SETOPTION(DDOptionMsg_t *msg)
 	    PSIDnodes_gu_t guType;
 	    PSIDnodes_guid_t guid;
 
-	    PSID_log(PSID_LOG_OPTION, "%s: option %d value 0x%x\n",
-		     __func__, msg->opt[i].option, msg->opt[i].value);
+	    PSID_fdbg(PSID_LOG_OPTION, "option %d value 0x%x\n",
+		      msg->opt[i].option, msg->opt[i].value);
 
 	    switch (msg->opt[i].option) {
 	    case PSP_OP_PSIDSELECTTIME:
@@ -780,8 +780,7 @@ static bool msg_SETOPTION(DDOptionMsg_t *msg)
 		set_rlimit(msg->opt[i].option, msg->opt[i].value);
 		break;
 	    default:
-		PSID_log(-1, "%s: unknown option %d\n", __func__,
-			msg->opt[i].option);
+		PSID_flog("unknown option %d\n", msg->opt[i].option);
 	    }
 	}
     } else {
@@ -809,8 +808,8 @@ static bool msg_GETOPTION(DDOptionMsg_t *msg)
 {
     int id = PSC_getID(msg->header.dest);
 
-    PSID_log(PSID_LOG_OPTION, "%s: from node %d for requester %s\n",
-	     __func__, id, PSC_printTID(msg->header.sender));
+    PSID_fdbg(PSID_LOG_OPTION, "from node %d for requester %s\n",
+	      id, PSC_printTID(msg->header.sender));
 
     if (id!=PSC_getMyID()) {
 	DDErrorMsg_t errmsg = {
@@ -842,8 +841,7 @@ static bool msg_GETOPTION(DDOptionMsg_t *msg)
 	for (in=0, out=0; in<msg->count; in++, out++) {
 	    PSIDnodes_gu_t guType;
 
-	    PSID_log(PSID_LOG_OPTION, "%s: option %d\n",
-		     __func__, msg->opt[in].option);
+	    PSID_fdbg(PSID_LOG_OPTION, "option %d\n", msg->opt[in].option);
 
 	    msg->opt[out].option = msg->opt[in].option;
 
@@ -996,8 +994,7 @@ static bool msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[out].value = PSID_config->nodeListHash;
 		break;
 	    default:
-		PSID_log(-1, "%s: unknown option %d\n", __func__,
-			 msg->opt[in].option);
+		PSID_flog("unknown option %d\n", msg->opt[in].option);
 		msg->opt[out].option = PSP_OP_UNKNOWN;
 	    }
 	}
@@ -1044,7 +1041,7 @@ static bool drop_GETOPTION(DDBufferMsg_t *msg)
 
 void initOptions(void)
 {
-    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+    PSID_fdbg(PSID_LOG_VERB, "\n");
 
     PSID_registerMsg(PSP_CD_SETOPTION, (handlerFunc_t) msg_SETOPTION);
     PSID_registerMsg(PSP_CD_GETOPTION, (handlerFunc_t) msg_GETOPTION);

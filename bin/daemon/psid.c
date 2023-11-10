@@ -93,8 +93,8 @@ static void MCastCallBack(int msgid, void *buf)
     switch(msgid) {
     case MCAST_NEW_CONNECTION:
 	node = *(int*)buf;
-	PSID_log(PSID_LOG_STATUS | PSID_LOG_MCAST,
-		 "%s(MCAST_NEW_CONNECTION,%d)\n", __func__, node);
+	PSID_fdbg(PSID_LOG_STATUS | PSID_LOG_MCAST,
+		  "(MCAST_NEW_CONNECTION,%d)\n", node);
 	if (node!=PSC_getMyID() && !PSIDnodes_isUp(node)) {
 	    if (send_DAEMONCONNECT(node)<0) {
 		PSID_warn(PSID_LOG_STATUS, errno,
@@ -104,9 +104,8 @@ static void MCastCallBack(int msgid, void *buf)
 	break;
     case MCAST_LOST_CONNECTION:
 	node = *(int*)buf;
-	PSID_log(PSID_LOG_STATUS | PSID_LOG_MCAST,
-		 "%s(MCAST_LOST_CONNECTION,%d)\n",
-		 __func__, node);
+	PSID_fdbg(PSID_LOG_STATUS | PSID_LOG_MCAST,
+		  "(MCAST_LOST_CONNECTION,%d)\n", node);
 	if (node != PSC_getMyID()) declareNodeDead(node,
 						   false /* sendDeadNode */,
 						   false /* silent */ );
@@ -117,7 +116,7 @@ static void MCastCallBack(int msgid, void *buf)
 	send_DAEMONCONNECT(node);
 	break;
     default:
-	PSID_log(-1, "%s(%d,%p). Unhandled message\n", __func__, msgid, buf);
+	PSID_flog("(%d,%p): unhandled callback\n", msgid, buf);
     }
 }
 
@@ -159,8 +158,8 @@ static void RDPCallBack(RDP_CB_type_t type, void *buf)
     case RDP_NEW_CONNECTION:
 	if (! (PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) {
 	    int node = *(int*)buf;
-	    PSID_log(PSID_LOG_STATUS | PSID_LOG_RDP,
-		     "%s(RDP_NEW_CONNECTION,%d)\n", __func__, node);
+	    PSID_fdbg(PSID_LOG_STATUS | PSID_LOG_RDP,
+		      "(RDP_NEW_CONNECTION,%d)\n", node);
 	    if (node != PSC_getMyID() && !PSIDnodes_isUp(node)) {
 		if (send_DAEMONCONNECT(node)<0) { // @todo Really necessary ?
 		    PSID_warn(PSID_LOG_STATUS, errno,
@@ -172,10 +171,10 @@ static void RDPCallBack(RDP_CB_type_t type, void *buf)
     case RDP_PKT_UNDELIVERABLE:
     {
 	DDBufferMsg_t *msg = (DDBufferMsg_t*)((RDPDeadbuf*)buf)->buf;
-	PSID_log(PSID_LOG_RDP,
-		 "%s(RDP_PKT_UNDELIVERABLE, dest %x source %x type %s)\n",
-		 __func__, msg->header.dest, msg->header.sender,
-		 PSDaemonP_printMsg(msg->header.type));
+	PSID_fdbg(PSID_LOG_RDP,
+		  "(RDP_PKT_UNDELIVERABLE, dest %x source %x type %s)\n",
+		  msg->header.dest, msg->header.sender,
+		  PSDaemonP_printMsg(msg->header.type));
 
 	if (PSC_getPID(msg->header.sender)) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
@@ -190,8 +189,8 @@ static void RDPCallBack(RDP_CB_type_t type, void *buf)
     case RDP_LOST_CONNECTION:
 	if (! (PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) {
 	    int node = *(int*)buf;
-	    PSID_log(node != PSC_getMyID() ? PSID_LOG_STATUS|PSID_LOG_RDP : -1,
-		     "%s(RDP_LOST_CONNECTION,%d)\n", __func__, node);
+	    PSID_fdbg(node != PSC_getMyID() ? PSID_LOG_STATUS|PSID_LOG_RDP : -1,
+		      "(RDP_LOST_CONNECTION,%d)\n", node);
 	    if (node != PSC_getMyID()) declareNodeDead(node,
 						       true /* sendDeadnode */,
 						       false /* silent */);
@@ -204,7 +203,7 @@ static void RDPCallBack(RDP_CB_type_t type, void *buf)
 	PSIDhook_call(PSIDHOOK_SENDER_UNKNOWN, buf);
 	break;
     default:
-	PSID_log(-1, "%s(%d,%p): unhandled callback\n", __func__, type, buf);
+	PSID_flog("(%d,%p): unhandled callback\n", type, buf);
     }
 }
 
@@ -239,13 +238,13 @@ static int handleSIGCHLD(int fd, void *info)
 	    -1 : PSID_LOG_CLIENT;
 
 	/* I'll just report it to the logfile */
-	PSID_log(logClass,
-		 "Received SIGCHLD for pid %d (%#04x) with status %d",
-		 pid, pid, WEXITSTATUS(estatus));
+	PSID_fdbg(logClass,
+		  "received SIGCHLD for pid %d (%#04x) with status %d",
+		  pid, pid, WEXITSTATUS(estatus));
 	if (WIFSIGNALED(estatus)) {
-	    PSID_log(logClass, " after signal %d", WTERMSIG(estatus));
+	    PSID_dbg(logClass, " after signal %d", WTERMSIG(estatus));
 	}
-	PSID_log(logClass, "\n");
+	PSID_dbg(logClass, "\n");
 
 	PStask_ID_t tid = PSC_getTID(-1, pid); /* tid of the child process */
 
@@ -314,27 +313,25 @@ static void printMallocInfo(void)
 #ifdef HAVE_MALLINFO2
     struct mallinfo2 mi = mallinfo2();
 
-    PSID_log(PSID_LOG_RESET, "%s:\n", __func__);
-    PSID_log(PSID_LOG_RESET, "arena    %zu\n", mi.arena);
-    PSID_log(PSID_LOG_RESET, "ordblks  %zu\n", mi.ordblks);
-    PSID_log(PSID_LOG_RESET, "hblks    %zu\n", mi.hblks);
-    PSID_log(PSID_LOG_RESET, "hblkhd   %zu\n", mi.hblkhd);
-    PSID_log(PSID_LOG_RESET, "uordblks %zu\n", mi.uordblks);
-    PSID_log(PSID_LOG_RESET, "fordblks %zu\n", mi.fordblks);
-    PSID_log(PSID_LOG_RESET, "keepcost %zu\n", mi.keepcost);
-    PSID_log(PSID_LOG_RESET, "====================\n");
+    PSID_fdbg(PSID_LOG_RESET, "\narena    %zu\n", mi.arena);
+    PSID_dbg(PSID_LOG_RESET, "ordblks  %zu\n", mi.ordblks);
+    PSID_dbg(PSID_LOG_RESET, "hblks    %zu\n", mi.hblks);
+    PSID_dbg(PSID_LOG_RESET, "hblkhd   %zu\n", mi.hblkhd);
+    PSID_dbg(PSID_LOG_RESET, "uordblks %zu\n", mi.uordblks);
+    PSID_dbg(PSID_LOG_RESET, "fordblks %zu\n", mi.fordblks);
+    PSID_dbg(PSID_LOG_RESET, "keepcost %zu\n", mi.keepcost);
+    PSID_dbg(PSID_LOG_RESET, "====================\n");
 #else
     struct mallinfo mi = mallinfo();
 
-    PSID_log(PSID_LOG_RESET, "%s:\n", __func__);
-    PSID_log(PSID_LOG_RESET, "arena    %d\n", mi.arena);
-    PSID_log(PSID_LOG_RESET, "ordblks  %d\n", mi.ordblks);
-    PSID_log(PSID_LOG_RESET, "hblks    %d\n", mi.hblks);
-    PSID_log(PSID_LOG_RESET, "hblkhd   %d\n", mi.hblkhd);
-    PSID_log(PSID_LOG_RESET, "uordblks %d\n", mi.uordblks);
-    PSID_log(PSID_LOG_RESET, "fordblks %d\n", mi.fordblks);
-    PSID_log(PSID_LOG_RESET, "keepcost %d\n", mi.keepcost);
-    PSID_log(PSID_LOG_RESET, "====================\n");
+    PSID_fdbg(PSID_LOG_RESET, "\narena    %d\n", mi.arena);
+    PSID_dbg(PSID_LOG_RESET, "ordblks  %d\n", mi.ordblks);
+    PSID_dbg(PSID_LOG_RESET, "hblks    %d\n", mi.hblks);
+    PSID_dbg(PSID_LOG_RESET, "hblkhd   %d\n", mi.hblkhd);
+    PSID_dbg(PSID_LOG_RESET, "uordblks %d\n", mi.uordblks);
+    PSID_dbg(PSID_LOG_RESET, "fordblks %d\n", mi.fordblks);
+    PSID_dbg(PSID_LOG_RESET, "keepcost %d\n", mi.keepcost);
+    PSID_dbg(PSID_LOG_RESET, "====================\n");
 #endif
 }
 
@@ -389,7 +386,7 @@ static int handleSignals(int fd, void *info)
 	errno = eno;
 	return -1;
     } else if (!got) {
-	PSID_log(-1, "%s: fd closed", __func__);
+	PSID_flog("fd %d closed\n", fd);
 	close(fd);
 	Selector_remove(fd);
     } else {
@@ -410,13 +407,13 @@ static int handleSignals(int fd, void *info)
 	case SIGSEGV:
 	case SIGILL:    /* illegal instruction (not reset when caught) */
 	case SIGFPE:    /* floating point exception */
-	    PSID_log(-1, "Received signal '%s'. Shut down hardly.\n",
-		     strsignal(sig));
+	    PSID_flog("received signal '%s'. Shut down hardly.\n",
+		      strsignal(sig));
 	    PSID_finalizeLogs();
 	    exit(-1);
 	    break;
 	default:
-	    PSID_log(-1, "Received signal '%s'. Shut down\n", strsignal(sig));
+	    PSID_flog("received signal '%s'. Shut down\n", strsignal(sig));
 	    if (!(PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) PSID_shutdown();
 	    break;
 	}
@@ -743,7 +740,7 @@ int main(int argc, const char *argv[])
     initPlugins(logfile);
 
     /* Now we start all the hardware -- this might include the accounter */
-    PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);
+    PSID_dbg(PSID_LOG_HW, "starting up the hardware\n");
     PSID_startAllHW();
 
     /*

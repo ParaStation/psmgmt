@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,7 +31,7 @@ plugin_dep_t dependencies[] = {
 
 static bool dummy_handler(DDBufferMsg_t *msg)
 {
-    PSID_log(PSID_LOG_COMM, "%s from %s\n",
+    PSID_dbg(PSID_LOG_COMM, "%s from %s\n",
 	     PSDaemonP_printMsg(msg->header.type),
 	     PSC_printTID(msg->header.sender));
     return true; // no further handling of msg

@@ -224,7 +224,7 @@ static void handleMasterTasks(void)
 {
     static int round = 0;
 
-    PSID_log(PSID_LOG_STATUS, "%s\n", __func__);
+    PSID_fdbg(PSID_LOG_STATUS, "\n");
 
     if (PSID_getDaemonState() & PSID_STATE_SHUTDOWN) return;
 
@@ -236,14 +236,12 @@ static void handleMasterTasks(void)
 	if (PSIDnodes_isUp(n)) {
 	    if (timercmp(&clientStat[n].lastPing, &lastCheck, <)) {
 		/* no ping in the last 'round' */
-		PSID_log(PSID_LOG_STATUS,
-			 "%s: Ping from node %d missing [%d]\n",
-			 __func__, n, clientStat[n].missCounter);
+		PSID_fdbg(PSID_LOG_STATUS, "Ping from %d missing [%d]\n",
+			  n, clientStat[n].missCounter);
 		clientStat[n].missCounter++;
 	    }
 	    if (clientStat[n].missCounter > DeadLimit) {
-		PSID_log(PSID_LOG_STATUS,
-			 "%s: miss-count exceeded to node %d\n", __func__, n);
+		PSID_fdbg(PSID_LOG_STATUS, "miss-count exceeded to %d\n", n);
 		send_DAEMONCONNECT(n);
 	    }
 	} else {
@@ -293,7 +291,7 @@ static void sendRDPPing(void)
     PSID_Load_t load = getLoad();
     PSID_Mem_t mem = getMem();
 
-    PSID_log(PSID_LOG_STATUS, "%s to %d\n", __func__, getMasterID());
+    PSID_fdbg(PSID_LOG_STATUS, "to %d\n", getMasterID());
 
     PSP_putMsgBuf(&msg, "myJobs", &myJobs, sizeof(myJobs));
     PSP_putMsgBuf(&msg, "load", &load, sizeof(load));
@@ -330,14 +328,14 @@ void setStatusTimeout(int timeout)
 	releaseStatusTimer();
 	timerID = Timer_register(&statusTimeout, sendRDPPing);
 	if (timerID < 0) {
-	    PSID_log(-1, "%s: Failed to re-register status timer\n", __func__);
+	    PSID_flog("failed to re-register status timer\n");
 	}
     }
 }
 
 void incJobs(int total, int normal)
 {
-    PSID_log(PSID_LOG_STATUS, "%s(%d,%d)\n", __func__, total, normal);
+    PSID_fdbg(PSID_LOG_STATUS, "total %d normal %d\n", total, normal);
 
     if (total) myJobs.total++;
     if (normal) myJobs.normal++;
@@ -347,7 +345,7 @@ void incJobs(int total, int normal)
 
 void decJobs(int total, int normal)
 {
-    PSID_log(PSID_LOG_STATUS, "%s(%d,%d)\n", __func__, total, normal);
+    PSID_fdbg(PSID_LOG_STATUS, "total %d normal %d\n", total, normal);
 
     if (total) myJobs.total--;
     if (normal) myJobs.normal--;
@@ -357,7 +355,7 @@ void decJobs(int total, int normal)
 
 void decJobsHint(PSnodes_ID_t node)
 {
-    PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, node);
+    PSID_fdbg(PSID_LOG_STATUS, "node %d\n", node);
 
     if (clientStat && clientStat[node].jobs.normal)
 	clientStat[node].jobs.normal--;
@@ -419,7 +417,7 @@ static PSnodes_ID_t masterNode = 0;
 
 void declareMaster(PSnodes_ID_t newMaster)
 {
-    PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, newMaster);
+    PSID_fdbg(PSID_LOG_STATUS, "%d\n", newMaster);
 
     if (knowMaster() && newMaster == getMasterID()) return;
 
@@ -527,8 +525,7 @@ static void stateChangeCB(int result, bool tmdOut, int iofd, void *info)
 		line[num]='\0';
 	    }
 	}
-	PSID_log(-1, "%s: script '%s' returned %d: '%s'\n", __func__,
-		 sName, result, line);
+	PSID_flog("script '%s' returned %d: '%s'\n", sName, result, line);
     }
     if (iofd > -1) close(iofd); /* Discard further output */
 }
@@ -536,7 +533,7 @@ static void stateChangeCB(int result, bool tmdOut, int iofd, void *info)
 bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 {
     if (!PSC_validNode(id)) {
-	PSID_log(-1, "%s: id %d out of range\n", __func__, id);
+	PSID_flog("id %d out of range\n", id);
 	return false;
     }
     if (!PSIDnodes_isUp(id)) {
@@ -545,9 +542,9 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	return true;
     }
 
-    PSID_log(PSID_LOG_STATUS,
-	     "%s: node %d goes down. Will %ssend PSP_DD_DEAD_NODE messages\n",
-	     __func__, id, sendDeadnode ? "" : "not ");
+    PSID_fdbg(PSID_LOG_STATUS,
+	      "node %d goes down. Will %ssend PSP_DD_DEAD_NODE messages\n",
+	      id, sendDeadnode ? "" : "not ");
 
     totNodes--;
     PSIDnodes_bringDown(id);
@@ -590,7 +587,7 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 			    false /* pervasive */, false /* answer */);
 	}
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
-	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
+	    PSID_fdbg(PSID_LOG_TASK, "PSIDtask_cleanup()\n");
 	    PSIDtask_cleanup(task);
 	    continue;
 	}
@@ -613,7 +610,7 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	while (PSID_getSignalByID(&task->childList, id, &sig)) sig = -1;
 
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
-	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
+	    PSID_fdbg(PSID_LOG_TASK, "PSIDtask_cleanup()\n");
 	    PSIDtask_cleanup(task);
 	}
     }
@@ -623,8 +620,7 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
     /* Disable accounters located on dead node */
     PSID_cleanAcctFromNode(id);
 
-    PSID_log(silent ? PSID_LOG_STATUS : -1, "%s: connection lost to node %d\n",
-	     __func__, id);
+    PSID_fdbg(silent ? PSID_LOG_STATUS : -1, "connection lost to %d\n", id);
 
     PSIDhook_call(PSIDHOOK_NODE_DOWN, &id);
 
@@ -637,7 +633,7 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	    node++;
 	}
 
-	PSID_log(PSID_LOG_STATUS, "%s: new master %d\n", __func__, node);
+	PSID_fdbg(PSID_LOG_STATUS, "new master %d\n", node);
 
 	declareMaster(node);
     } else if (PSC_getMyID() == getMasterID()) {
@@ -673,10 +669,10 @@ bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds,
 {
     bool wasUp = PSIDnodes_isUp(id);
 
-    PSID_log(PSID_LOG_STATUS, "%s: node %d\n", __func__, id);
+    PSID_fdbg(PSID_LOG_STATUS, "node %d\n", id);
 
     if (!PSC_validNode(id)) {
-	PSID_log(-1, "%s: id %d out of range\n", __func__, id);
+	PSID_flog("id %d out of range\n", id);
 	return false;
     }
 
@@ -692,18 +688,18 @@ bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds,
 
     if (!knowMaster()) {
 	if (id < PSC_getMyID()) {
-	    PSID_log(PSID_LOG_STATUS, "%s: master %d\n", __func__, id);
+	    PSID_fdbg(PSID_LOG_STATUS, "master %d\n", id);
 	    declareMaster(id);
 	} else if (id > PSC_getMyID()) {
 	    PSnodes_ID_t mID = PSC_getMyID();
-	    PSID_log(PSID_LOG_STATUS, "%s: master %d\n", __func__, mID);
+	    PSID_fdbg(PSID_LOG_STATUS, "master %d\n", mID);
 	    declareMaster(mID);
 	}
     } else if (id < getMasterID()) {
 	/* New node will be master */
 	PSnodes_ID_t oldMaster = getMasterID();
 
-	PSID_log(PSID_LOG_STATUS, "%s: new master %d\n", __func__, id);
+	PSID_fdbg(PSID_LOG_STATUS, "new master %d\n", id);
 
 	declareMaster(id);
 
@@ -742,7 +738,7 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
 	    .len = offsetof(DDBufferMsg_t, buf) },
 	.buf = {'\0'} };
 
-    PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
+    PSID_fdbg(PSID_LOG_STATUS, "to %d\n", id);
 
     if (PSIDnodes_getAddr(id) == INADDR_ANY) {
 	errno = EHOSTUNREACH;
@@ -801,7 +797,7 @@ static bool msg_DAEMONCONNECT(DDBufferMsg_t *msg)
     PSnodes_ID_t id = PSC_getID(msg->header.sender);
     size_t used = 0;
 
-    PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
+    PSID_fdbg(PSID_LOG_STATUS, "from %d\n", id);
 
     int32_t pCPUs, vCPUs, proto, dmnProto;
     PSP_getMsgBuf(msg, &used, "numCores", &pCPUs, sizeof(pCPUs));
@@ -953,8 +949,7 @@ static bool msg_DAEMONSHUTDOWN(DDMsg_t *msg)
 {
     PSnodes_ID_t id = PSC_getID(msg->sender);
 
-    PSID_log(id != PSC_getMyID() ? PSID_LOG_STATUS : -1,
-	     "%s(%d)\n", __func__, id);
+    PSID_fdbg(id != PSC_getMyID() ? PSID_LOG_STATUS : -1, "from %d\n", id);
     declareNodeDead(id, false /* sendDeadNode */, true /* silent */);
     closeConnRDP(id);
     return true;
@@ -972,8 +967,8 @@ int send_MASTERIS(PSnodes_ID_t dest)
     PSnodes_ID_t master = getMasterID();
     PSP_putMsgBuf(&msg, "master", &master, sizeof(master));
 
-    PSID_log(PSID_LOG_STATUS, "%s: tell %s master is %d\n",
-	     __func__, PSC_printTID(msg.header.dest), getMasterID());
+    PSID_fdbg(PSID_LOG_STATUS, "tell %s master is %d\n",
+	      PSC_printTID(msg.header.dest), getMasterID());
 
     return sendMsg(&msg);
 }
@@ -1004,8 +999,8 @@ static bool msg_MASTERIS(DDBufferMsg_t *msg)
     PSnodes_ID_t newM = -1;
     PSP_getMsgBuf(msg, &used, "master", &newM, sizeof(newM));
 
-    PSID_log(PSID_LOG_STATUS, "%s: %s says master is %d\n", __func__,
-	     PSC_printTID(msg->header.sender), newM);
+    PSID_fdbg(PSID_LOG_STATUS, "%s says master is %d\n",
+	      PSC_printTID(msg->header.sender), newM);
 
     if (newM != -1 && newM != getMasterID()) {
 	if (newM < getMasterID()) {
@@ -1090,7 +1085,7 @@ static bool msg_ACTIVENODES(DDBufferMsg_t *msg)
     size_t used = 0;
 
     while (PSP_tryGetMsgBuf(msg, &used, "node", &node, sizeof(node))) {
-	PSID_log(PSID_LOG_STATUS, "%s: check %d\n", __func__, node);
+	PSID_fdbg(PSID_LOG_STATUS, "check %d\n", node);
 	if (node == sender) {
 	    /* Sender is first active node, all previous nodes are down */
 	    for (PSnodes_ID_t n = 0; n < node; n++) {
@@ -1129,10 +1124,10 @@ static int send_DEADNODE(PSnodes_ID_t deadnode)
 
     PSP_putMsgBuf(&msg, "deadnode", &deadnode, sizeof(deadnode));
 
-    PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, deadnode);
+    PSID_fdbg(PSID_LOG_STATUS, "%d is dead\n", deadnode);
 
     if (statusBcasts++ > maxStatusBcasts) {
-	PSID_log(-1, "%s: dropping broadcast\n", __func__);
+	PSID_flog("dropping broadcast\n");
 	return 0;
     }
 
@@ -1157,12 +1152,15 @@ static int send_DEADNODE(PSnodes_ID_t deadnode)
 static bool msg_DEADNODE(DDBufferMsg_t *msg)
 {
     size_t used = 0;
-    PSnodes_ID_t dead = -1;
-    PSP_getMsgBuf(msg, &used, "deadNode", &dead, sizeof(dead));
+    PSnodes_ID_t dead;
 
-    PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, dead);
+    if (!PSP_getMsgBuf(msg, &used, "deadNode", &dead, sizeof(dead))) {
+	PSID_flog("truncated\n");
+    } else {
+	PSID_fdbg(PSID_LOG_STATUS, "%d\n", dead);
+	send_DAEMONCONNECT(dead);
+    }
 
-    if (dead != -1) send_DAEMONCONNECT(dead);
     return true;
 }
 
@@ -1221,7 +1219,7 @@ static bool msg_LOAD(DDBufferMsg_t *msg)
 
 void initStatus(void)
 {
-    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+    PSID_fdbg(PSID_LOG_VERB, "\n");
 
     PSID_registerMsg(PSP_DD_DAEMONCONNECT, msg_DAEMONCONNECT);
     PSID_registerMsg(PSP_DD_DAEMONESTABLISHED, msg_DAEMONESTABLISHED);

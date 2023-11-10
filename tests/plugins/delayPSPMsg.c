@@ -306,8 +306,7 @@ static bool installDelayHandler(uint16_t type, uint32_t subType, uint32_t delay)
     if (!delayContainer) {
 	delayContainer = newDelayContainer();
 	if (!delayContainer) {
-	    PSID_log(-1, "%s: unabled to delay messages of type %d\n",
-		     __func__, type /*, subType*/);
+	    PSID_flog("unable to delay messages of type %d\n", type /*, subType*/);
 	    return false;
 	}
 	delayContainer->type = type;

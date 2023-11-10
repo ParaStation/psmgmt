@@ -93,14 +93,14 @@ static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
     int16_t chunk, nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
     size_t used = 0;
 
-    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(request->tid));
+    PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(request->tid));
 
     PSP_getMsgBuf(msg, &used, "chunk", &chunk, sizeof(chunk));
     PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
 
     if (nBytes > myBytes) {
-	PSID_log(-1, "%s(%s): too many CPUs: %d > %d\n", __func__,
-		 PSC_printTID(request->tid), nBytes*8, myBytes*8);
+	PSID_flog("%s: too many CPUs: %d > %d\n",
+		  PSC_printTID(request->tid), nBytes*8, myBytes*8);
     }
 
     for (int16_t n = 0; n < chunk; n++) {
@@ -123,7 +123,7 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
     }
 
     if (totThreads < 1) {
-	PSID_log(-1, "%s: No HW-threads in slots\n", __func__);
+	PSID_flog("no HW-threads in slots\n");
 	if (threads) {
 	    free(*threads);
 	    *threads = NULL;
@@ -131,12 +131,11 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 	return 0;
     }
 
-    PSID_log(PSID_LOG_PART, "%s: slots %d threads %d\n", __func__, num,
-	     totThreads);
+    PSID_fdbg(PSID_LOG_PART, "slots %d threads %d\n", num, totThreads);
 
     PSpart_HWThread_t *HWThreads = malloc(totThreads * sizeof(*HWThreads));
     if (!HWThreads) {
-	PSID_log(-1, "%s: No memory\n", __func__);
+	PSID_flog("no memory\n");
 	errno = ENOMEM;
 	return -1;
     }

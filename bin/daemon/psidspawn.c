@@ -231,7 +231,7 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
      */
     fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
     if (fd >= 0) {
-	PSID_log(-1, "%s: still connected to controlling tty.\n", __func__);
+	PSID_flog("still connected to controlling tty\n");
 	close(fd);
     }
 
@@ -260,8 +260,7 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
     fd = open(_PATH_TTY, O_WRONLY);
     if (fd < 0) {
 	PSID_warn(-1, errno, "%s: open(%s)", __func__, _PATH_TTY);
-	PSID_log(-1, "%s: unable to set controlling tty: %s\n",
-		 __func__, _PATH_TTY);
+	PSID_flog("unable to set controlling tty: %s\n", _PATH_TTY);
     } else {
 	close(fd);
     }
@@ -670,7 +669,7 @@ static void execClient(PStask_t *task)
 
     if (eno) {
 	fprintf(stderr, "%s: DD_CHILDBORN failed\n", __func__);
-	PSID_log(-1, "%s: DD_CHILDBORN failed\n", __func__);
+	PSID_flog("DD_CHILDBORN failed\n");
 	exit(1);
     }
 
@@ -762,7 +761,7 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
  * @brief Log /proc/@a pid/stat
  *
  * Try to read content of the file /proc/<pid>/stat for <pid> @a pid
- * and log it to PSID_log.
+ * and log it to psid's logging facility.
  *
  * @param pid Process ID of the process to stat
  *
@@ -792,7 +791,7 @@ static void statPID(pid_t pid)
 	return;
     }
 
-    PSID_log(-1, "%s(%d): %s", __func__, pid, statLine);
+    PSID_flog("PID %d: %s", pid, statLine);
     free(statLine);
 }
 
@@ -895,7 +894,7 @@ static void execForwarder(PStask_t *task)
     /* Jail all my children */
     pid_t pid = getpid();
     if (PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid) < 0) {
-	PSID_log(-1, "%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
+	PSID_flog("hook PSIDHOOK_JAIL_CHILD failed\n");
 	eno = EINVAL;
 	goto error;
     }
@@ -1089,7 +1088,7 @@ static void execForwarder(PStask_t *task)
     prctl(PR_SET_DUMPABLE, 1);
 
     /* check for a sign from the client */
-    PSID_log(PSID_LOG_SPAWN, "%s: waiting for my child (%d)\n", __func__, pid);
+    PSID_fdbg(PSID_LOG_SPAWN, "waiting for my child (%d)\n", pid);
 
     /* Pass the client's PID to the forwarder. */
     task->tid = PSC_getTID(-1, pid);
@@ -1128,7 +1127,7 @@ static void execForwarder(PStask_t *task)
 		break;
 	    }
 	} else if (!ret) {
-	    PSID_log(-1, "%s: select(%d) timed out\n", __func__, controlfds[0]);
+	    PSID_flog("select(%d) timed out\n", controlfds[0]);
 	    eno = ETIME;
 	    statPID(pid);
 	    break;
@@ -1144,7 +1143,7 @@ static void execForwarder(PStask_t *task)
 	    eno = errno;
 	    PSID_warn(-1, eno, "%s: PSCio_recvBuf()", __func__);
 	} else if (!ret) {
-	    PSID_log(-1, "%s: ret is %zd\n", __func__, ret);
+	    PSID_flog("ret is %zd\n", ret);
 	    eno = EBADMSG;
 	}
     }
@@ -1244,7 +1243,7 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	char tasktxt[128];
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_log(PSID_LOG_TASK, "%s: task=%s\n", __func__, tasktxt);
+	PSID_fdbg(PSID_LOG_TASK, "task=%s\n", tasktxt);
     }
 
     /* create a socketpair for communication between daemon and forwarder */
@@ -1316,7 +1315,7 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
     task->tid = PSC_getTID(-1, pid);
     task->fd = socketfds[0];
     /* check for a sign of the forwarder */
-    PSID_log(PSID_LOG_SPAWN, "%s: waiting for my child (%d)\n", __func__, pid);
+    PSID_fdbg(PSID_LOG_SPAWN, "waiting for my child (%d)\n", pid);
 
     return 0;
 }
@@ -1367,7 +1366,7 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 	if (cpus > maxCPUs) maxCPUs = cpus;
     }
     if (!pSize || !maxCPUs) {
-	PSID_log(-1, "%s: No CPUs\n", __func__);
+	PSID_flog("no CPUs\n");
 	return;
     }
 
@@ -1430,34 +1429,34 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 
     stask = PStasklist_find(&managedTasks, sender);
     if (!stask) {
-	PSID_log(-1, "%s: sending task not found\n", __func__);
+	PSID_flog("sending task %s not found\n", PSC_printTID(sender));
 	return EACCES;
     }
 
     if (sender != task->ptid && stask->group != TG_FORWARDER) {
 	/* Sender has to be parent or a trusted forwarder */
-	PSID_log(-1, "%s: spawner tries to cheat\n", __func__);
+	PSID_flog("spawner %s tries to cheat\n", PSC_printTID(sender));
 	return EACCES;
     }
 
     ptask = PStasklist_find(&managedTasks, task->ptid);
     if (!ptask) {
 	/* Parent not found */
-	PSID_log(-1, "%s: parent task not found\n", __func__);
+	PSID_flog("parent task %s not found\n", PSC_printTID(task->ptid));
 	return EACCES;
     }
 
-    if (ptask->uid && task->uid!=ptask->uid) {
+    if (ptask->uid && task->uid != ptask->uid) {
 	/* Spawn tries to change uid */
-	PSID_log(-1, "%s: try to setuid() task->uid %d  ptask->uid %d\n",
-		 __func__, task->uid, ptask->uid);
+	PSID_flog("try to setuid() task->uid %d  ptask->uid %d\n",
+		  task->uid, ptask->uid);
 	return EACCES;
     }
 
-    if (ptask->gid && task->gid!=ptask->gid) {
+    if (ptask->gid && task->gid != ptask->gid) {
 	/* Spawn tries to change gid */
-	PSID_log(-1, "%s: try to setgid() task->gid %d  ptask->gid %d\n",
-		 __func__, task->gid, ptask->gid);
+	PSID_flog("try to setgid() task->gid %d  ptask->gid %d\n",
+		  task->gid, ptask->gid);
 	return EACCES;
     }
 
@@ -1465,7 +1464,7 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 	&& (ptask->group == TG_SPAWNER || ptask->group == TG_PSCSPAWNER
 	    || ptask->group == TG_LOGGER)) {
 	/* starting not allowed */
-	PSID_log(-1, "%s: spawning not allowed\n", __func__);
+	PSID_flog("spawning not allowed\n");
 	return EACCES;
     }
 
@@ -1475,19 +1474,18 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 	&& !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
 			       (PSIDnodes_guid_t){.g=ptask->gid})) {
 	/* no permission to start admin task */
-	PSID_log(-1, "%s: no permission to spawn admintask\n", __func__);
+	PSID_flog("no permission to spawn admintask\n");
 	return EACCES;
     }
 
     if ((task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
 	|| task->group == TG_KVS) && task->rank >= -1) {
 	/* wrong rank for service task */
-	PSID_log(-1, "%s: rank %d for service task\n", __func__, task->rank);
+	PSID_flog("rank %d for service task\n", task->rank);
 	return EINVAL;
     }
 
-    PSID_log(PSID_LOG_SPAWN, "%s: request from %s ok\n", __func__,
-	     PSC_printTID(task->ptid));
+    PSID_fdbg(PSID_LOG_SPAWN, "request from %s ok\n", PSC_printTID(task->ptid));
 
     /* Accounting info */
     if (ptask->group == TG_LOGGER && ptask->partitionSize > 0)
@@ -1522,7 +1520,7 @@ static int spawnTask(PStask_t *task)
 
     /* Call hook once per task. */
     if (PSIDhook_call(PSIDHOOK_SPAWN_TASK, task) < 0) {
-	PSID_log(-1, "%s: PSIDHOOK_SPAWN_TASK failed.\n", __func__);
+	PSID_flog("PSIDHOOK_SPAWN_TASK failed\n");
 	return EINVAL;   // most probably some illegal value was passed
     }
 
@@ -1615,7 +1613,7 @@ static void sendPendCRR(PendCRR_t *crr)
 
     PSID_fdbg(PSID_LOG_PART, "%d CPUs in %d slots of res %#x in %d sets to %s",
 	      nCPUs, crr->numSlots, crr->resID, s, PSC_printTID(crr->dest));
-    PSID_log(PSID_LOG_PART, " from %s (%d pending)\n",
+    PSID_dbg(PSID_LOG_PART, " from %s (%d pending)\n",
 	     PSC_printTID(crr->sender), crr->pendSlots);
     if (sendMsg(&msg) < 0) {
 	PSID_warn(-1, errno, "%s: sendMsg(%s)", __func__,
@@ -1705,7 +1703,7 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
     if (!PSCPU_any(task->CPUset, nBytes * 8)) {
 	PSID_fdbg(PSID_LOG_PART, "no HW threads to send in task %s",
 		  PSC_printTID(task->tid));
-	PSID_log(PSID_LOG_PART, " from %s\n", PSC_printTID(sender));
+	PSID_dbg(PSID_LOG_PART, " from %s\n", PSC_printTID(sender));
 	return;
     }
 
@@ -1715,8 +1713,8 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
     if (!res) {
 	PSID_fdbg(PSID_LOG_PART, "no reservation %#x (job %s", task->resID,
 		  PSC_printTID(task->spawnertid));
-	PSID_log(PSID_LOG_PART, " session %s)", PSC_printTID(task->loggertid));
-	PSID_log(PSID_LOG_PART, " for task %s\n", PSC_printTID(task->tid));
+	PSID_dbg(PSID_LOG_PART, " session %s)", PSC_printTID(task->loggertid));
+	PSID_dbg(PSID_LOG_PART, " for task %s\n", PSC_printTID(task->tid));
     }
     if (res && res->partHolder) dest = res->partHolder;
 
@@ -1794,7 +1792,7 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
     }
     PSID_fdbg(PSID_LOG_PART, "PSP_DD_CHILDRESREL to %s with CPUs %s of",
 	      PSC_printTID(dest), PSCPU_print_part(task->CPUset, nBytes));
-    PSID_log(PSID_LOG_PART, " res %#x from %s\n", task->resID,
+    PSID_dbg(PSID_LOG_PART, " res %#x from %s\n", task->resID,
 	     PSC_printTID(sender));
 
     if (sendMsg(&msg) < 0) {
@@ -1861,10 +1859,9 @@ static void cloneEnvFromTasks(PStask_t *task)
 
 
     if (!sibling) {
-	PSID_log(-1, "%s: No sibling for task '%s' rank '%i' ", __func__,
-		 PSC_printTID(task->tid), task->rank);
-	PSID_log(-1, "ptid '%s' ", PSC_printTID(task->ptid));
-	PSID_log(-1, "logger '%s' found\n", PSC_printTID(task->loggertid));
+	PSID_flog("no sibling found for task %s", PSC_printTID(task->tid));
+	PSID_log(-1, " rank %i ptid %s", task->rank, PSC_printTID(task->ptid));
+	PSID_log(-1, " logger %s\n", PSC_printTID(task->loggertid));
 
 	return;
     }
@@ -1886,9 +1883,9 @@ static void cloneEnvFromTasks(PStask_t *task)
     task->environ[envSize] = NULL;
     task->envSize = envSize+1;
 
-    PSID_log(PSID_LOG_SPAWN, "%s(%s): cloned %d entries (size %zd)",
-	     __func__, PSC_printTID(task->tid), envSize, totSize);
-    PSID_log(PSID_LOG_SPAWN, " from sibling %s\n", PSC_printTID(sibling->tid));
+    PSID_fdbg(PSID_LOG_SPAWN, "%s: cloned %d entries (size %zd)",
+	      PSC_printTID(task->tid), envSize, totSize);
+    PSID_dbg(PSID_LOG_SPAWN, " from sibling %s\n", PSC_printTID(sibling->tid));
 
 }
 
@@ -1930,8 +1927,8 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     PStask_group_t group = TG_ANY;
     char tasktxt[128];
 
-    PSID_log(PSID_LOG_SPAWN, "%s: from %s msglen %d\n", __func__,
-	     PSC_printTID(msg->header.sender), msg->header.len);
+    PSID_fdbg(PSID_LOG_SPAWN, "from %s msglen %d\n",
+	      PSC_printTID(msg->header.sender), msg->header.len);
 
     /* If message is from my node, test if everything is okay */
     if (localSender && msg->type == PSP_SPAWN_TASK) {
@@ -1955,7 +1952,7 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	/* Since checkRequest() did not fail, we will find ptask */
 	ptask = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!ptask) {
-	    PSID_log(-1, "%s: no parent task?!\n", __func__);
+	    PSID_flog("no parent task?!\n");
 	    return true;
 	}
     }
@@ -1978,10 +1975,10 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    && group != TG_KVS) {
 
 	    if (!ptask->spawnNodes || rank >= (int)ptask->spawnNum) {
-		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
+		PSID_flog("rank %d out of range\n", rank);
 		answer.error = EADDRNOTAVAIL;
 	    } else if (!PSCPU_any(ptask->spawnNodes[rank].CPUset, PSCPU_MAX)) {
-		PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
+		PSID_flog("rank %d exhausted\n", rank);
 		answer.error = EADDRINUSE;
 	    } else {
 		sendLOC = true;
@@ -1993,8 +1990,8 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    }
 	}
 
-	PSID_log(PSID_LOG_SPAWN, "%s: forwarding to node %d\n",
-		 __func__, PSC_getID(msg->header.dest));
+	PSID_fdbg(PSID_LOG_SPAWN, "forward to node %d\n",
+		  PSC_getID(msg->header.dest));
 	if (sendMsg(msg) < 0) {
 	    answer.error = errno;
 	    sendMsg(&answer);
@@ -2025,8 +2022,8 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    /* Invalidate this entry */
 	    PSCPU_clrAll(*rankSet);
 
-	    PSID_log(PSID_LOG_SPAWN, "%s: send PSP_SPAWN_LOC to node %d\n",
-		     __func__, PSC_getID(locMsg.header.dest));
+	    PSID_fdbg(PSID_LOG_SPAWN, "send PSP_SPAWN_LOC to node %d\n",
+		      PSC_getID(locMsg.header.dest));
 
 	    if (sendMsg(&locMsg) < 0) {
 		PSID_warn(-1, errno, "%s: send PSP_SPAWN_LOC to node %d failed",
@@ -2044,8 +2041,8 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     case PSP_SPAWN_TASK:
 	if (task) {
 	    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	    PSID_log(-1, "%s: from %s task %s already there\n",
-		     __func__, PSC_printTID(msg->header.sender), tasktxt);
+	    PSID_flog("from %s task %s already there\n",
+		      PSC_printTID(msg->header.sender), tasktxt);
 	    return true;
 	}
 	task = PStask_new();
@@ -2060,10 +2057,10 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    PSCPU_setAll(task->CPUset);
 	} else if (localSender) {
 	    if (!ptask->spawnNodes || rank >= (int)ptask->spawnNum) {
-		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
+		PSID_flog("rank %d out of range\n", rank);
 		answer.error = EADDRNOTAVAIL;
 	    } else if (!PSCPU_any(ptask->spawnNodes[rank].CPUset, PSCPU_MAX)) {
-		PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
+		PSID_flog("rank %d exhausted\n", rank);
 		answer.error = EADDRINUSE;
 	    } else {
 		PSCPU_set_t *rankSet = &ptask->spawnNodes[rank].CPUset;
@@ -2083,15 +2080,15 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	}
 
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_log(PSID_LOG_SPAWN, "%s: create %s\n", __func__, tasktxt);
+	PSID_fdbg(PSID_LOG_SPAWN, "create %s\n", tasktxt);
 
 	PStasklist_enqueue(&spawnTasks, task);
 
 	return true;
     case PSP_SPAWN_LOC:
 	if (!task) {
-	    PSID_log(-1, "%s: PSP_SPAWN_LOC from %s: task not found\n",
-		     __func__, PSC_printTID(msg->header.sender));
+	    PSID_flog("PSP_SPAWN_LOC from %s: task not found\n",
+		      PSC_printTID(msg->header.sender));
 	    return true;
 	}
 
@@ -2102,8 +2099,8 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	PSP_getTypedMsgBuf(msg, &usedBytes, "nBytes", &nBytes, sizeof(nBytes));
 
 	if (nBytes > myBytes) {
-	    PSID_log(-1, "%s: PSP_SPAWN_LOC from %s: expecting %d CPUs\n",
-		     __func__, PSC_printTID(msg->header.sender), nBytes*8);
+	    PSID_flog("PSP_SPAWN_LOC from %s: expecting %d CPUs\n",
+		      PSC_printTID(msg->header.sender), nBytes*8);
 	}
 
 	PSP_getTypedMsgBuf(msg, &usedBytes, "CPUset", setBuf, nBytes);
@@ -2112,8 +2109,8 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	break;
     case PSP_SPAWN_WDIRCNTD:
 	if (!task) {
-	    PSID_log(-1, "%s: PSP_SPAWN_WDIRCNTD from %s: task not found\n",
-		     __func__, PSC_printTID(msg->header.sender));
+	    PSID_flog("PSP_SPAWN_WDIRCNTD from %s: task not found\n",
+		      PSC_printTID(msg->header.sender));
 	    return true;
 	}
 
@@ -2131,16 +2128,16 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	break;
     case PSP_SPAWN_ARG:
 	if (!task) {
-	    PSID_log(-1, "%s: PSP_SPAWN_ARG from %s: task not found\n",
-		     __func__, PSC_printTID(msg->header.sender));
+	    PSID_flog("PSP_SPAWN_ARG from %s: task not found\n",
+		      PSC_printTID(msg->header.sender));
 	    return true;
 	}
 	usedBytes = PStask_decodeArgv(msg->buf, task);
 	break;
     case PSP_SPAWN_ARGCNTD:
 	if (!task) {
-	    PSID_log(-1, "%s: PSP_SPAWN_ARGCTND from %s: task not found\n",
-		     __func__, PSC_printTID(msg->header.sender));
+	    PSID_flog("PSP_SPAWN_ARGCTND from %s: task not found\n",
+		      PSC_printTID(msg->header.sender));
 	    return true;
 	}
 	usedBytes = PStask_decodeArgvAppend(msg->buf, task);
@@ -2148,8 +2145,8 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     case PSP_SPAWN_ENV:
     case PSP_SPAWN_END:
 	if (!task) {
-	    PSID_log(-1, "%s: PSP_SPAWN_EN[V|D] from %s: task not found\n",
-		     __func__, PSC_printTID(msg->header.sender));
+	    PSID_flog("PSP_SPAWN_EN[V|D] from %s: task not found\n",
+		      PSC_printTID(msg->header.sender));
 	    if (msg->type == PSP_SPAWN_END) {
 		answer.error = ECHILD;
 		sendMsg(&answer);
@@ -2164,37 +2161,36 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	break;
     case PSP_SPAWN_ENVCNTD:
 	if (!task) {
-	    PSID_log(-1, "%s: PSP_SPAWN_ENVCTND from %s: task not found\n",
-		     __func__, PSC_printTID(msg->header.sender));
+	    PSID_flog("PSP_SPAWN_ENVCTND from %s: task not found\n",
+		      PSC_printTID(msg->header.sender));
 	    return true;
 	}
 	usedBytes = PStask_decodeEnvAppend(msg->buf, task);
 	break;
     case PSP_SPAWN_ENV_CLONE:
 	if (!task) {
-	    PSID_log(-1, "%s: PSP_SPAWN_ENV_CLONE from %s: task not found\n",
-		     __func__, PSC_printTID(msg->header.sender));
+	    PSID_flog("PSP_SPAWN_ENV_CLONE from %s: task not found\n",
+		      PSC_printTID(msg->header.sender));
 	    return true;
 	}
 	cloneEnvFromTasks(task);
 	usedBytes = 0;
 	break;
     default:
-	PSID_log(-1, "%s: Unknown type '%d'\n", __func__, msg->type);
+	PSID_flog("unknown type '%d'\n", msg->type);
 	return true;
     }
 
     if (msg->header.len-sizeof(msg->header)-sizeof(msg->type) != usedBytes) {
-	PSID_log(-1, "%s: problem decoding task %s type %d used %ld of %ld\n",
-		 __func__, PSC_printTID(msg->header.sender), msg->type,
-		 (long) usedBytes,
-		 (long) msg->header.len-sizeof(msg->header)-sizeof(msg->type));
+	PSID_flog("problem decoding task %s type %d used %ld of %ld\n",
+		  PSC_printTID(msg->header.sender), msg->type, (long) usedBytes,
+		  (long) msg->header.len-sizeof(msg->header)-sizeof(msg->type));
 	return true;
     }
 
     if (msg->type == PSP_SPAWN_END) {
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_fdbg(PSID_LOG_SPAWN, "Spawning %s\n", tasktxt);
+	PSID_fdbg(PSID_LOG_SPAWN, "spawning %s\n", tasktxt);
 
 	PStasklist_dequeue(task);
 	if (task->deleted) {
@@ -2251,8 +2247,7 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
 	.buf = { 0 } };
     PSnodes_ID_t destID = PSC_getID(dest);
 
-    PSID_log(PSID_LOG_SPAWN, "%s: send PSP_DD_SPAWNLOC to node %d\n", __func__,
-	     destID);
+    PSID_fdbg(PSID_LOG_SPAWN, "send PSP_DD_SPAWNLOC to node %d\n", destID);
 
     PSP_putMsgBuf(&locMsg, "num", &num, sizeof(num));
     PSP_putMsgBuf(&locMsg, "rank", &rank, sizeof(rank));
@@ -2264,8 +2259,8 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
 
 	memset(&setBuf, 0, sizeof(setBuf));
 	PSCPU_extract(setBuf, ptask->spawnNodes[rank+i].CPUset, nBytes);
-	PSID_log(PSID_LOG_SPAWN, "%s: add %s for rank %d\n", __func__,
-		 PSCPU_print_part(setBuf, nBytes), rank + i);
+	PSID_fdbg(PSID_LOG_SPAWN, "add %s for rank %d\n",
+		  PSCPU_print_part(setBuf, nBytes), rank + i);
 	/* Invalidate this entry */
 	PSCPU_clrAll(ptask->spawnNodes[rank+i].CPUset);
 
@@ -2276,7 +2271,7 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
 		return false;
 	    }
 
-	    PSID_log(PSID_LOG_SPAWN, "%s: next msg...\n", __func__);
+	    PSID_fdbg(PSID_LOG_SPAWN, "next msg...\n");
 
 	    locMsg.header.len = 0;
 	    PSP_putMsgBuf(&locMsg, "num", &num, sizeof(num));
@@ -2347,12 +2342,12 @@ static bool msg_SPAWNLOC(DDBufferMsg_t *msg)
     PSP_getMsgBuf(msg, &used, "rank", &rank, sizeof(rank));
     PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
 
-    PSID_log(PSID_LOG_SPAWN, "%s: got %d from %s for rank %d width %d\n",
-	     __func__, num, PSC_printTID(msg->header.sender), rank, nBytes);
+    PSID_fdbg(PSID_LOG_SPAWN, "got %d from %s for rank %d width %d\n", num,
+	      PSC_printTID(msg->header.sender), rank, nBytes);
 
     if (nBytes > myBytes) {
-	PSID_log(-1, "%s: from %s: expecting %d CPUs\n", __func__,
-		 PSC_printTID(msg->header.sender), nBytes*8);
+	PSID_flog("from %s: expecting %d CPUs\n",
+		  PSC_printTID(msg->header.sender), nBytes*8);
     }
 
     PendingRes_t *newRes = findPendingRes(msg->header.sender, rank);
@@ -2378,8 +2373,8 @@ static bool msg_SPAWNLOC(DDBufferMsg_t *msg)
     while (PSP_tryGetMsgBuf(msg, &used, "CPUset", setBuf, nBytes)) {
 	int32_t off = rank - newRes->rank;
 	if (off >= (int32_t)newRes->num) {
-	    PSID_log(-1, "%s: rank %d out of range (%d)\n", __func__, rank,
-		     newRes->rank + newRes->num -1);
+	    PSID_flog("rank %d out of range (%d)\n", rank,
+		      newRes->rank + newRes->num -1);
 	    break;
 	}
 	PSCPU_clrAll(newRes->CPUsets[off]);
@@ -2463,23 +2458,23 @@ static int fillFromSPAWNLOC(PStask_t *task, PendingRes_t *res)
 	/* local spawner */
 	PStask_t *ptask = PStasklist_find(&managedTasks, task->spawnertid);
 	if (!ptask) {
-	    PSID_log(-1, "%s: no parent task?!\n", __func__);
+	    PSID_flog("no parent task?!\n");
 	    return EACCES;
 	}
 	if (!ptask->spawnNodes || rank >= (int)ptask->spawnNum) {
-	    PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
+	    PSID_flog("rank %d out of range\n", rank);
 	    return EADDRNOTAVAIL;
 	}
 	if (!PSCPU_any(ptask->spawnNodes[rank].CPUset, PSCPU_MAX)) {
-	    PSID_log(-1, "%s: local rank %d exhausted\n", __func__, rank);
+	    PSID_flog("local rank %d exhausted\n", rank);
 	    return EADDRINUSE;
 	}
 
 	PSCPU_set_t *rankSet = &ptask->spawnNodes[rank].CPUset;
 	memcpy(task->CPUset, *rankSet, sizeof(task->CPUset));
 
-	PSID_log(PSID_LOG_SPAWN, "%s: got cores locally: ...%s\n", __func__,
-		 PSCPU_print_part(task->CPUset, 8));
+	PSID_fdbg(PSID_LOG_SPAWN, "got cores locally: ...%s\n",
+		  PSCPU_print_part(task->CPUset, 8));
 
 	/* Invalidate this entry */
 	PSCPU_clrAll(*rankSet);
@@ -2487,19 +2482,19 @@ static int fillFromSPAWNLOC(PStask_t *task, PendingRes_t *res)
     } else {
 	/* we depend on PSP_DD_SPAWNLOC message already received */
 	if (!res || rank - res->rank >= (int32_t)res->num) {
-	    PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
+	    PSID_flog("rank %d out of range\n", rank);
 	    return EADDRNOTAVAIL;
 	}
 	if (!PSCPU_any(res->CPUsets[rank - res->rank], PSCPU_MAX)) {
-	    PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
+	    PSID_flog("rank %d exhausted\n", rank);
 	    return EADDRINUSE;
 	}
 
 	PSCPU_set_t *rankSet = &res->CPUsets[rank - res->rank];
 	memcpy(task->CPUset, *rankSet, sizeof(task->CPUset));
 
-	PSID_log(PSID_LOG_SPAWN, "%s: got cores remotely: ...%s\n", __func__,
-		 PSCPU_print_part(task->CPUset, 8));
+	PSID_fdbg(PSID_LOG_SPAWN, "got cores remotely: ...%s\n",
+		  PSCPU_print_part(task->CPUset, 8));
     }
     return 0;
 }
@@ -2596,7 +2591,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
      * all information shared between all tasks of the spawn but not containing
      * the task specific stuff like rank specific environment. */
     if (PSIDhook_call(PSIDHOOK_RECV_SPAWNREQ, task) < 0) {
-	PSID_log(-1, "%s: PSIDHOOK_RECV_SPAWNREQ failed.\n", __func__);
+	PSID_flog("PSIDHOOK_RECV_SPAWNREQ failed\n");
 	answer.error = EINVAL; // most probably some illegal value was passed
 	/* send one answer per rank */
 	for (uint32_t r = 0; r < num; r++) {
@@ -2733,8 +2728,8 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     uint16_t fragNum;
     fetchFragHeader(msg, &used, NULL, &fragNum, NULL, NULL);
 
-    PSID_log(PSID_LOG_SPAWN, "%s: fragment %d from %s msglen %d\n", __func__,
-	     fragNum, PSC_printTID(msg->header.sender), msg->header.len);
+    PSID_fdbg(PSID_LOG_SPAWN, "fragment %d from %s msglen %d\n", fragNum,
+	      PSC_printTID(msg->header.sender), msg->header.len);
 
     /* First fragment, take a peek if it is from my node */
     if (localSender && fragNum == 0) {
@@ -2772,7 +2767,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	/* Since checkRequest() did not fail, we will find ptask */
 	ptask = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!ptask) {
-	    PSID_log(-1, "%s: no parent task?!\n", __func__);
+	    PSID_flog("no parent task?!\n");
 	    return true;
 	}
 
@@ -2783,8 +2778,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	    && PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest)) >= 415) {
 	    if (ptask->spawnNodes) {
 		if (rank + num - 1 >= ptask->spawnNum) {
-		    PSID_log(-1, "%s: ranks %d-%d  out of range\n", __func__,
-			     rank, rank + num -1);
+		    PSID_flog("ranks %d-%d out of range\n", rank, rank + num -1);
 		    num = ptask->spawnNum - rank;
 		}
 		for (uint32_t r = 0; r < num; r++) {
@@ -2816,8 +2810,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     }
 
     if (!localSender) {
-	PSID_log(-1, "%s: won't relay %s", __func__,
-		 PSC_printTID(msg->header.sender));
+	PSID_flog("won't relay %s", PSC_printTID(msg->header.sender));
 	PSID_log(-1, "->%s\n", PSC_printTID(msg->header.dest));
 	return false;
     }
@@ -2829,8 +2822,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	/* Old protocol */
 	PSpart_slot_t *spawnNodes = ptask->spawnNodes;
 	if (!spawnNodes || rank + num - 1 >= ptask->spawnNum) {
-	    PSID_log(-1, "%s: ranks %d-%d  out of range\n", __func__,
-		     rank, rank + num -1);
+	    PSID_flog("ranks %d-%d out of range\n", rank, rank + num -1);
 	    answer.error = EADDRNOTAVAIL;
 	} else {
 	    bool notAvail = false;
@@ -2839,7 +2831,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 		    || !PSCPU_any(spawnNodes[rank+r].CPUset, PSCPU_MAX);
 	    }
 	    if (notAvail) {
-		PSID_log(-1, "%s: nodes exhausted\n", __func__);
+		PSID_flog("nodes exhausted\n");
 		answer.error = EADDRINUSE;
 	    }
 	}
@@ -2863,8 +2855,8 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	}
     }
 
-    PSID_log(PSID_LOG_SPAWN, "%s: forward to node %d\n", __func__,
-	     PSC_getID(msg->header.dest));
+    PSID_fdbg(PSID_LOG_SPAWN, "forward to node %d\n",
+	      PSC_getID(msg->header.dest));
     if (sendMsg(msg) < 0 && fragNum == 0) {
 	answer.error = errno;
 	for (uint32_t r = 0; r < num; r++) {
@@ -2927,8 +2919,8 @@ static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	.error = EHOSTDOWN,
 	.request = 0,};
 
-    PSID_log(PSID_LOG_SPAWN, "%s: from %s msglen %d\n", __func__,
-	     PSC_printTID(msg->header.sender), msg->header.len);
+    PSID_fdbg(PSID_LOG_SPAWN, "from %s msglen %d\n",
+	      PSC_printTID(msg->header.sender), msg->header.len);
 
     size_t used = 0;
     uint16_t fragNum;
@@ -3023,7 +3015,7 @@ void PSIDspawn_cleanupByNode(PSnodes_ID_t node)
 {
     list_t *t;
 
-    PSID_log(PSID_LOG_SPAWN, "%s(%d)\n", __func__, node);
+    PSID_fdbg(PSID_LOG_SPAWN, "node %d\n", node);
 
     list_for_each(t, &spawnTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
@@ -3080,7 +3072,7 @@ static void cleanupSpawnTasks(void)
 {
     list_t *t, *tmp;
 
-    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+    PSID_fdbg(PSID_LOG_VERB, "\n");
 
     list_for_each_safe(t, tmp, &spawnTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
@@ -3117,8 +3109,8 @@ static bool msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
     PStask_ID_t tid = msg->header.sender;
     PStask_ID_t ptid = msg->header.dest;
 
-    PSID_log(PSID_LOG_SPAWN, "%s(%s)", __func__, PSC_printTID(tid));
-    PSID_log(PSID_LOG_SPAWN, " with parent(%s)\n", PSC_printTID(ptid));
+    PSID_fdbg(PSID_LOG_SPAWN, "from %s", PSC_printTID(tid));
+    PSID_dbg(PSID_LOG_SPAWN, " with parent(%s)\n", PSC_printTID(ptid));
 
     PStask_t *task = PStasklist_find(&managedTasks, ptid);
     if (task && (task->fd > -1 || task->group == TG_ANY)) {
@@ -3126,7 +3118,7 @@ static bool msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	PSID_setSignal(&task->childList, tid, -1);
     } else {
 	/* task not found, it has already died */
-	PSID_log(-1, "%s(%s)", __func__, PSC_printTID(tid));
+	PSID_flog("from %s", PSC_printTID(tid));
 	PSID_log(-1, " with parent(%s) already dead\n", PSC_printTID(ptid));
 	PSID_sendSignal(tid, 0, ptid, -1,
 			false /* pervasive */, false /* answer */);
@@ -3161,9 +3153,9 @@ static bool msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
  */
 static bool msg_SPAWNFAILED(DDErrorMsg_t *msg)
 {
-    PSID_log(PSID_LOG_SPAWN, "%s: %s reports on rank %d", __func__,
-	     PSC_printTID(msg->header.sender), msg->request);
-    PSID_log(PSID_LOG_SPAWN, " error = %d sending to parent %s\n", msg->error,
+    PSID_fdbg(PSID_LOG_SPAWN, "%s reports on rank %d",
+	      PSC_printTID(msg->header.sender), msg->request);
+    PSID_dbg(PSID_LOG_SPAWN, " error = %d sending to parent %s\n", msg->error,
 	     PSC_printTID(msg->header.dest));
 
     if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
@@ -3197,8 +3189,8 @@ static bool msg_SPAWNFAILED(DDErrorMsg_t *msg)
  */
 static bool msg_SPAWNFINISH(DDMsg_t *msg)
 {
-    PSID_log(PSID_LOG_SPAWN, "%s: sending to local parent %s\n",
-	     __func__, PSC_printTID(msg->dest));
+    PSID_fdbg(PSID_LOG_SPAWN, "send to local parent %s\n",
+	      PSC_printTID(msg->dest));
 
     /* send the initiator a finish msg */
     sendMsg(msg);
@@ -3227,17 +3219,15 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
     PStask_t *child = PStasklist_find(&managedTasks, msg->request);
     PStask_ID_t succMsgDest = 0;
 
-    PSID_log(PSID_LOG_SPAWN, "%s: from %s\n", __func__,
-	     PSC_printTID(msg->header.sender));
+    PSID_fdbg(PSID_LOG_SPAWN, "from %s\n", PSC_printTID(msg->header.sender));
     if (!forwarder) {
-	PSID_log(-1, "%s: forwarder %s not found.\n", __func__,
-		 PSC_printTID(msg->header.sender));
+	PSID_flog("forwarder %s not found\n", PSC_printTID(msg->header.sender));
 	return true;
     }
 
     if (child) {
-	PSID_log(-1, "%s: child %s", __func__, PSC_printTID(msg->request));
-	PSID_log(-1, " already there. forwarder %s missed a message\n",
+	PSID_flog("child %s already there.", PSC_printTID(msg->request));
+	PSID_log(-1, " forwarder %s missed a message\n",
 		 PSC_printTID(msg->header.sender));
 	msg->header.type = PSP_DD_CHILDACK;
 	msg->header.dest = msg->header.sender;
@@ -3290,7 +3280,7 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
 
     /* Fix interactive shell's argv[0] */
     if (child->argc == 2 && (!child->argv[0] || !child->argv[1])) {
-	PSID_log(-1, "%s: argv seems to be messed up\n", __func__);
+	PSID_flog("argv seems to be messed up\n");
     } else if (child->argc == 2 && (!strcmp(child->argv[0], "/bin/bash")
 				    && !strcmp(child->argv[1], "-i"))) {
 	free(child->argv[0]);
@@ -3323,8 +3313,7 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
 	PStask_t *parent = PStasklist_find(&managedTasks, child->ptid);
 
 	if (!parent) {
-	    PSID_log(-1, "%s: parent task %s not found\n", __func__,
-		     PSC_printTID(child->ptid));
+	    PSID_flog("parent task %s not found\n", PSC_printTID(child->ptid));
 	} else {
 	    PSID_setSignal(&parent->childList, child->tid, -1);
 
@@ -3374,10 +3363,9 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
  */
 static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 {
-    PSID_log(PSID_LOG_SPAWN, "%s: from %s", __func__,
-	     PSC_printTID(msg->header.sender));
-    PSID_log(PSID_LOG_SPAWN, " to %s", PSC_printTID(msg->header.dest));
-    PSID_log(PSID_LOG_SPAWN, " concerning %s\n", PSC_printTID(msg->request));
+    PSID_fdbg(PSID_LOG_SPAWN, "from %s", PSC_printTID(msg->header.sender));
+    PSID_dbg(PSID_LOG_SPAWN, " to %s", PSC_printTID(msg->header.dest));
+    PSID_dbg(PSID_LOG_SPAWN, " concerning %s\n", PSC_printTID(msg->request));
 
     bool obsoleteSndr = false;
     if (PSC_getID(msg->header.sender) == -2) {
@@ -3403,25 +3391,22 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 		msg->header.dest = task->ptid;
 		msg->header.sender = PSC_getMyTID();
 
-		PSID_log(PSID_LOG_SPAWN,
-			 "%s: forward PSP_DD_CHILDDEAD from %s",
-			 __func__, PSC_printTID(msg->request));
-		PSID_log(PSID_LOG_SPAWN, " dest %s",
-			 PSC_printTID(task->tid));
-		PSID_log(PSID_LOG_SPAWN, "->%s\n",
-			 PSC_printTID(task->ptid));
+		PSID_fdbg(PSID_LOG_SPAWN, "forward PSP_DD_CHILDDEAD from %s",
+			  PSC_printTID(msg->request));
+		PSID_dbg(PSID_LOG_SPAWN, " dest %s", PSC_printTID(task->tid));
+		PSID_dbg(PSID_LOG_SPAWN, "->%s\n", PSC_printTID(task->ptid));
 
 		sendMsg(msg);
 	    }
 	    /* To be sure, mark child as dead */
-	    PSID_log(PSID_LOG_SPAWN, "%s: %s not (yet?) child of",
-		     __func__, PSC_printTID(msg->request));
-	    PSID_log(PSID_LOG_SPAWN, " %s\n", PSC_printTID(task->tid));
+	    PSID_fdbg(PSID_LOG_SPAWN, "%s not (yet?) child of",
+		      PSC_printTID(msg->request));
+	    PSID_dbg(PSID_LOG_SPAWN, " %s\n", PSC_printTID(task->tid));
 	    PSID_setSignal(&task->deadBefore, msg->request, -1);
 	}
 
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
-	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
+	    PSID_fdbg(PSID_LOG_TASK, "PSIDtask_cleanup()\n");
 	    PSIDtask_cleanup(task);
 	    return true;
 	}
@@ -3469,8 +3454,7 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 	}
     } else {
 	/* Forwarder not found */
-	PSID_log(-1, "%s: forwarder task %s not found\n",
-		 __func__, PSC_printTID(msg->header.sender));
+	PSID_flog("forwarder %s not found\n", PSC_printTID(msg->header.sender));
     }
 
     /* Try to find the task */
@@ -3485,11 +3469,11 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
     if (!task) {
 	/* task not found */
 	/* This is not critical. Task has been removed by PSIDclient_delete() */
-	PSID_log(PSID_LOG_SPAWN, "%s: task %s not found\n", __func__,
-		 PSC_printTID(msg->request));
+	PSID_fdbg(PSID_LOG_SPAWN, "task %s not found\n",
+		  PSC_printTID(msg->request));
     } else if (!task->forwarder || task->forwarder != forwarder) {
-	PSID_log(-1, "%s: forwarder %s not responsible for" , __func__,
-		 PSC_printTID(msg->header.sender));
+	PSID_flog("forwarder %s not responsible for" ,
+		  PSC_printTID(msg->header.sender));
 	PSID_log(-1, " %s any more\n", PSC_printTID(msg->request));
     } else {
 	/** Create and send PSP_DD_CHILDRESREL message */
@@ -3506,7 +3490,7 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 	/* If child not connected, remove task from tasklist. This
 	 * will also send all signals */
 	if (task->fd == -1) {
-	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
+	    PSID_fdbg(PSID_LOG_TASK, "PSIDtask_cleanup()\n");
 	    PSIDtask_cleanup(task);
 	}
 
@@ -3579,7 +3563,7 @@ int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
 
     char tasktxt[256];
     PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-    PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
+    PSID_fdbg(PSID_LOG_SPAWN, "spawning %s\n", tasktxt);
 
     /* now try to start the task */
     int err = buildSandboxAndStart(creator ? creator : execForwarder, task);
@@ -3613,7 +3597,7 @@ int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
 
 void PSIDspawn_init(void)
 {
-    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+    PSID_fdbg(PSID_LOG_VERB, "\n");
 
     PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) msg_SPAWNREQ);
     PSID_registerMsg(PSP_CD_SPAWNREQUEST, (handlerFunc_t) msg_SPAWNREQUEST);

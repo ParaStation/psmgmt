@@ -349,9 +349,9 @@ static plugin_t * remTrigger(plugin_t *plugin, plugin_t *trigger)
     removed = remRef(&plugin->triggers, trigger);
 
     if (!removed) {
-	PSID_log(plugin == trigger ? PSID_LOG_PLUGIN : -1,
-		 "%s: trigger '%s' not found in '%s'\n",
-		 __func__, trigger->name, plugin->name);
+	PSID_fdbg(plugin == trigger ? PSID_LOG_PLUGIN : -1,
+		  "trigger '%s' not found in '%s'\n",
+		  trigger->name, plugin->name);
 	return NULL;
     }
 
@@ -381,8 +381,8 @@ static plugin_t * remDepend(plugin_t *plugin, plugin_t *depend)
 
     removed = remRef(&plugin->depends, depend);
     if (!removed) {
-	PSID_log(-1, "%s: dependency '%s' not found in '%s'\n",
-		 __func__, depend->name, plugin->name);
+	PSID_flog("dependency '%s' not found in '%s'\n",
+		  depend->name, plugin->name);
 	return NULL;
     }
 
@@ -469,7 +469,7 @@ static plugin_t * newPlugin(void *handle, char *pName, int pVer)
 {
     plugin_t *plugin;
 
-    PSID_log(PSID_LOG_PLUGIN, "%s(%p, %s, %d)\n",__func__, handle, pName, pVer);
+    PSID_fdbg(PSID_LOG_PLUGIN, "(%p, %s, %d)\n", handle, pName, pVer);
 
     plugin = malloc(sizeof(*plugin));
     if (!plugin) {
@@ -524,19 +524,16 @@ static void delPlugin(plugin_t *plugin)
 
     if (!list_empty(&plugin->triggers)) {
 	printRefList(line, sizeof(line), &plugin->triggers);
-	PSID_log(-1, "%s: '%s' still triggered by: %s\n",
-		 __func__, plugin->name, line);
+	PSID_flog("'%s' still triggered by: %s\n", plugin->name, line);
 	return;
     }
     if (!list_empty(&plugin->depends)) {
 	printRefList(line, sizeof(line), &plugin->depends);
-	PSID_log(-1, "%s: '%s' still depends on: %s\n",
-		 __func__, plugin->name, line);
+	PSID_flog("'%s' still depends on: %s\n", plugin->name, line);
 	return;
     }
     free(plugin->name);
-    if (plugin->handle)
-	PSID_log(-1, "%s: handle %p still exists\n", __func__, plugin->handle);
+    if (plugin->handle) PSID_flog("handle %p still exists\n", plugin->handle);
 
     free(plugin);
 }
@@ -557,11 +554,10 @@ static plugin_t * registerPlugin(plugin_t * new)
 {
     plugin_t *plugin = findPlugin(new->name);
 
-    PSID_log(PSID_LOG_PLUGIN, "%s: '%s' ver %d\n",
-	     __func__, new->name, new->version);
+    PSID_fdbg(PSID_LOG_PLUGIN, "'%s' ver %d\n", new->name, new->version);
     if (plugin) {
-	PSID_log(-1, "%s: '%s' already registered with version %d\n",
-		 __func__, plugin->name, plugin->version);
+	PSID_flog("'%s' already registered with version %d\n",
+		  plugin->name, plugin->version);
 	return plugin;
     }
 
@@ -578,7 +574,7 @@ int PSIDplugin_getUnloadTmout(void)
 void PSIDplugin_setUnloadTmout(int tmout)
 {
     if (tmout < 0) {
-	PSID_log(-1, "%s: Illegal value for timeout: %d\n", __func__, tmout);
+	PSID_flog("illegal value for timeout: %d\n", tmout);
     } else {
 	unloadTimeout = tmout;
     }
@@ -648,25 +644,24 @@ static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger,
     plugin_t *plugin = findPlugin(pName);
 
     if (!pName || ! *pName) {
-	PSID_log(-1, "%s: No name given\n", __func__);
+	PSID_flog("no name given\n");
 	return NULL;
     }
 
-    PSID_log(PSID_LOG_PLUGIN, "%s(%s, %d, %s)\n", __func__,
-	     pName, minVer, trigger ? trigger->name : "<no trigger>");
+    PSID_fdbg(PSID_LOG_PLUGIN, "(%s, %d, %s)\n", pName, minVer,
+	      trigger ? trigger->name : "<no trigger>");
 
     if (plugin) {
-	PSID_log(PSID_LOG_PLUGIN, "%s: version %d already loaded\n",
-		 __func__, plugin->version);
+	PSID_fdbg(PSID_LOG_PLUGIN, "version %d already loaded\n",
+		  plugin->version);
 	if (plugin->version < minVer) {
-	    PSID_log(-1, "%s: version %d of '%s' too small. %d required\n",
-		     __func__, plugin->version, plugin->name, minVer);
+	    PSID_flog("version %d of '%s' too small: %d required\n",
+		      plugin->version, plugin->name, minVer);
 	    return NULL;
 	}
 
 	if (plugin->finalized) {
-	    PSID_log(-1, "%s: plugin '%s' already finalized\n", __func__,
-		     plugin->name);
+	    PSID_flog("plugin '%s' already finalized\n", plugin->name);
 	    return NULL;
 	}
 
@@ -680,15 +675,14 @@ static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger,
     instDir = getenv("PSID_PLUGIN_PATH");
     if (!instDir) instDir = PSC_lookupInstalldir(NULL);
     if (!instDir) {
-	PSID_log(-1, "%s: installation directory not found\n", __func__);
+	PSID_flog("installation directory not found\n");
 	return NULL;
     }
     snprintf(filename, sizeof(filename), "%s/plugins/%s.so", instDir, pName);
     handle = dlopen(filename, RTLD_NOW);
 
     if (!handle) {
-	PSID_log(-1, "%s: dlopen(%s) failed: %s\n", __func__, filename,
-		 dlerror());
+	PSID_flog("dlopen(%s) failed: %s\n", filename, dlerror());
 	return NULL;
     }
 
@@ -698,41 +692,38 @@ static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger,
     plugin_deps = dlsym(handle, "dependencies");
 
     if (!plugin_reqAPI) {
-	PSID_log(PSID_LOG_PLUGIN, "%s: any API accepted\n", __func__);
+	PSID_fdbg(PSID_LOG_PLUGIN, "any API accepted\n");
     } else {
-	PSID_log(PSID_LOG_PLUGIN, "%s: API version %d or above required\n",
-		 __func__, *plugin_reqAPI);
+	PSID_fdbg(PSID_LOG_PLUGIN, "API version %d or above required\n",
+		  *plugin_reqAPI);
     }
     if (plugin_reqAPI && pluginAPIVersion < *plugin_reqAPI) {
-	PSID_log(-1, "%s: '%s' needs API version %d or above. This is %d\n",
-		 __func__, pName, *plugin_reqAPI, pluginAPIVersion);
+	PSID_flog("'%s' needs API version %d or above. This is %d\n", pName,
+		  *plugin_reqAPI, pluginAPIVersion);
 	dlclose(handle);
 	return NULL;
     }
 
     if (!plugin_name || !*plugin_name) {
-	PSID_log(-1, "%s: plugin-file '%s' does not define name\n", __func__,
-		 filename);
+	PSID_flog("plugin-file '%s' does not define name\n", filename);
 	dlclose(handle);
 	return NULL;
     } else if (strcmp(plugin_name, pName)) {
-	PSID_log(-1, "%s: WARNING: plugin_name '%s' and name '%s' differ\n",
-		 __func__, plugin_name, pName);
+	PSID_flog("WARNING: plugin_name '%s' and name '%s' differ\n",
+		  plugin_name, pName);
     }
 
     if (!plugin_version) {
-	PSID_log(-1, "%s: Cannot determine version of '%s'\n",
-		 __func__, pName);
+	PSID_flog("cannot determine version of '%s'\n", pName);
 	dlclose(handle);
 	return NULL;
     }
 
-    PSID_log(PSID_LOG_PLUGIN, "%s: plugin_version is %d\n", __func__,
-	     *plugin_version);
+    PSID_fdbg(PSID_LOG_PLUGIN, "plugin_version is %d\n", *plugin_version);
 
     if (minVer && *plugin_version < minVer) {
-	PSID_log(-1, "%s: 'version %d or above of '%s' required. This is %d\n",
-		 __func__, minVer, pName, *plugin_version);
+	PSID_flog("version %d or above of '%s' required. This is %d\n",
+		  minVer, pName, *plugin_version);
 	dlclose(handle);
 	return NULL;
     }
@@ -746,8 +737,8 @@ static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger,
 	plugin_dep_t *deps = plugin_deps;
 	while (deps->name) {
 	    plugin_t *d;
-	    PSID_log(PSID_LOG_PLUGIN, "%s:   requires '%s' version %d\n",
-		     __func__, deps->name, deps->version);
+	    PSID_fdbg(PSID_LOG_PLUGIN, "  requires '%s' version %d\n",
+		      deps->name, deps->version);
 	    d = loadPlugin(deps->name, deps->version, plugin, logfile);
 	    if (!d || addRef(&plugin->depends, d) < 0) {
 		plugin->finalized = true;
@@ -770,7 +761,7 @@ static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger,
     gettimeofday(&plugin->load, NULL);
 
     if (addRef(&plugin->triggers, trigger ? trigger : plugin) < 0)  {
-	PSID_log(-1, "%s: addTrigger() failed\n", __func__);
+	PSID_flog("addTrigger() failed\n");
 	finalizePlugin(plugin);
 	unloadPlugin(plugin);
 	return NULL;
@@ -862,10 +853,10 @@ static int unloadPlugin(plugin_t *plugin)
 {
     if (!plugin) return -1;
 
-    PSID_log(PSID_LOG_PLUGIN, "%s(%s)\n", __func__, plugin->name);
+    PSID_fdbg(PSID_LOG_PLUGIN, "%s\n", plugin->name);
 
     if (!plugin->finalized) {
-	PSID_log(-1, "%s: plugin '%s' not finalized\n", __func__, plugin->name);
+	PSID_flog("plugin '%s' not finalized\n", plugin->name);
 	finalizePlugin(plugin);
     }
 
@@ -915,17 +906,15 @@ static int finalizePlugin(plugin_t *plugin)
 {
     if (!plugin) return -1;
 
-    PSID_log(PSID_LOG_PLUGIN, "%s(%s)\n", __func__, plugin->name);
+    PSID_fdbg(PSID_LOG_PLUGIN, "%s\n", plugin->name);
 
     if (plugin->finalized) {
-	PSID_log(-1, "%s: plugin '%s' already finalized\n", __func__,
-		 plugin->name);
+	PSID_flog("plugin '%s' already finalized\n", plugin->name);
 	return 0;
     }
 
     if (!list_empty(&plugin->triggers)) {
-	PSID_log(-1, "%s: plugin '%s' still triggered\n", __func__,
-		 plugin->name);
+	PSID_flog("plugin '%s' still triggered\n", plugin->name);
 	return 0;
     }
 
@@ -937,8 +926,7 @@ static int finalizePlugin(plugin_t *plugin)
     if (timerisset(&plugin->grace)) {
 	struct timeval now, grace = {unloadTimeout, 0};
 
-	PSID_log(PSID_LOG_PLUGIN, "%s: setting grace on '%s'\n", __func__,
-		 plugin->name);
+	PSID_fdbg(PSID_LOG_PLUGIN, "setting grace on '%s'\n", plugin->name);
 	gettimeofday(&now, NULL);
 	timeradd(&now, &grace, &plugin->grace);
     }
@@ -995,24 +983,22 @@ static int walkDepGraph(plugin_t *plugin, int distance)
 
     if (!plugin) return -1;
 
-    PSID_log(PSID_LOG_PLUGIN, "%s(%s, %d)\n", __func__, plugin->name, distance);
+    PSID_fdbg(PSID_LOG_PLUGIN, "(%s, %d)\n", plugin->name, distance);
 
     if (plugin->unload) {
-	PSID_log(PSID_LOG_PLUGIN, "%s: %s ready for unload\n", __func__,
-		 plugin->name);
+	PSID_fdbg(PSID_LOG_PLUGIN, "%s ready for unload\n", plugin->name);
 	plugin->cleared = true;
 	return 0;
     }
 
     if (plugin->cleared) {
-	PSID_log(PSID_LOG_PLUGIN, "%s: %s already cleared\n", __func__,
-		 plugin->name);
+	PSID_fdbg(PSID_LOG_PLUGIN, "%s already cleared\n", plugin->name);
 	return 0;
     }
 
     if (plugin->distance && plugin->distance < distance) {
-	PSID_log(PSID_LOG_PLUGIN, "%s: %s already has distance %d\n", __func__,
-		 plugin->name, plugin->distance);
+	PSID_fdbg(PSID_LOG_PLUGIN, "%s already has distance %d\n",
+		  plugin->name, plugin->distance);
 	return 0;
     }
 
@@ -1022,8 +1008,7 @@ static int walkDepGraph(plugin_t *plugin, int distance)
 	if (!timerisset(&plugin->grace)) {
 	    struct timeval now, grace = {unloadTimeout, 0};
 
-	    PSID_log(PSID_LOG_PLUGIN, "%s: setting grace on '%s'\n", __func__,
-		     plugin->name);
+	    PSID_fdbg(PSID_LOG_PLUGIN, "setting grace on '%s'\n", plugin->name);
 	    gettimeofday(&now, NULL);
 	    timeradd(&now, &grace, &plugin->grace);
 	}
@@ -1038,8 +1023,7 @@ static int walkDepGraph(plugin_t *plugin, int distance)
     remTrigger(plugin, plugin);
 
     if (list_empty(&plugin->triggers)) {
-	PSID_log(PSID_LOG_PLUGIN, "%s: root %s reached\n", __func__,
-		 plugin->name);
+	PSID_fdbg(PSID_LOG_PLUGIN, "root %s reached\n", plugin->name);
 	PSIDplugin_finalize(plugin->name);
 
 	plugin->cleared = true;
@@ -1052,8 +1036,7 @@ static int walkDepGraph(plugin_t *plugin, int distance)
 
 	    if (ref->plugin->unload) continue;
 
-	    PSID_log(PSID_LOG_PLUGIN, "%s: forcing %s\n", __func__,
-		     ref->plugin->name);
+	    PSID_fdbg(PSID_LOG_PLUGIN, "forcing %s\n", ref->plugin->name);
 	    walkDepGraph(ref->plugin, distance+1);
 
 	    cleared &= ref->plugin->cleared;
@@ -1087,8 +1070,8 @@ static plugin_t *findMaxDistPlugin(void)
 
     list_for_each(p, &pluginList) {
 	plugin_t *plugin = list_entry(p, plugin_t, next);
-	PSID_log(PSID_LOG_PLUGIN, "%s: %s dist %d cleared %d\n", __func__,
-		 plugin->name, plugin->distance, plugin->cleared);
+	PSID_fdbg(PSID_LOG_PLUGIN, "%s dist %d cleared %d\n",
+		  plugin->name, plugin->distance, plugin->cleared);
 	if (plugin->distance && !plugin->cleared
 	    && (!maxDist || plugin->distance > maxDist->distance)) {
 	    maxDist = plugin;
@@ -1147,12 +1130,12 @@ static int forceUnloadPlugin(char *pName)
 	    list_t *t, *tmp;
 
 	    if (!victim) {
-		PSID_log(-1, "%s: no victim found despite of loop\n", __func__);
+		PSID_flog("no victim found despite of loop\n");
 		return -1;
 	    }
 
-	    PSID_log(-1, "%s: kick out victim '%s' (distance %d) forcefully\n",
-		     __func__, victim->name, victim->distance);
+	    PSID_flog("kick out victim '%s' (distance %d) forcefully\n",
+		      victim->name, victim->distance);
 
 	    list_for_each_safe(t, tmp, &victim->triggers) {
 		plugin_ref_t *ref = list_entry(t, plugin_ref_t, next);
@@ -1165,8 +1148,8 @@ static int forceUnloadPlugin(char *pName)
 	rounds++;
     } while (depLoopDetect);
 
-    PSID_log((rounds > 1) ? -1 : PSID_LOG_PLUGIN,
-	     "%s: %d rounds of graph-walk required\n", __func__, rounds);
+    PSID_fdbg((rounds > 1) ? -1 : PSID_LOG_PLUGIN,
+	      "%d rounds of graph-walk required\n", rounds);
 
     return 0;
 }
@@ -1245,7 +1228,7 @@ static void sendAvail(PStask_ID_t dest)
     instDir = getenv("PSID_PLUGIN_PATH");
     if (!instDir) instDir = PSC_lookupInstalldir(NULL);
     if (!instDir) {
-	PSID_log(-1, "%s: installation directory not found\n", __func__);
+	PSID_flog("installation directory not found\n");
 	snprintf(res, sizeof(res), "installation directory not found\n");
 	goto end;
     }
@@ -1508,8 +1491,8 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 {
     int destID = PSC_getID(inmsg->header.dest), ret = 0;
 
-    PSID_log(PSID_LOG_PLUGIN, "%s(%s, %s)\n", __func__,
-	     PSC_printTID(inmsg->header.sender), inmsg->buf);
+    PSID_fdbg(PSID_LOG_PLUGIN, "(%s, %s)\n",
+	      PSC_printTID(inmsg->header.sender), inmsg->buf);
 
     if (!PSID_checkPrivilege(inmsg->header.sender)) {
 	switch (inmsg->type) {
@@ -1519,8 +1502,8 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 	case PSP_PLUGIN_LOADTIME:
 	    break;
 	default:
-	    PSID_log(-1, "%s: task %s not allowed to touch plugins\n",
-		     __func__, PSC_printTID(inmsg->header.sender));
+	    PSID_flog("task %s not allowed to touch plugins\n",
+		      PSC_printTID(inmsg->header.sender));
 	    ret = EACCES;
 	    goto end;
 	}
@@ -1567,8 +1550,7 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 	    handleLoadTime(inmsg->header.sender, inmsg->buf);
 	    return true;
 	default:
-	    PSID_log(-1, "%s: Unknown message type %d\n", __func__,
-		     inmsg->type);
+	    PSID_flog("nnknown message type %d\n", inmsg->type);
 	    ret = -1;
 	    goto end;
 	}
@@ -1636,18 +1618,16 @@ static int doUnload(plugin_t *plugin)
 
     if (!plugin || !plugin->handle) return 0;
 
-    PSID_log(PSID_LOG_PLUGIN, "%s(%s)\n", __func__, plugin->name);
+    PSID_fdbg(PSID_LOG_PLUGIN, "%s\n", plugin->name);
 
     if (!plugin->unload) {
-	PSID_log(-1, "%s: plugin '%s' not flagged for unload\n", __func__,
-		 plugin->name);
+	PSID_flog("plugin '%s' not flagged for unload\n", plugin->name);
 	return 0;
     }
 
     if (!list_empty(&plugin->triggers)) {
 	printRefList(line, sizeof(line), &plugin->triggers);
-	PSID_log(-1, "%s: '%s' still triggered by: %s\n", __func__,
-		 plugin->name, line);
+	PSID_flog("'%s' still triggered by: %s\n", plugin->name, line);
 	return 0;
     }
 
@@ -1661,11 +1641,9 @@ static int doUnload(plugin_t *plugin)
 
     /* Actual unload */
     if (dlclose(plugin->handle)) {
-	PSID_log(-1, "%s: dlclose(%s): %s\n", __func__, plugin->name,
-		 dlerror());
+	PSID_flog("dlclose(%s): %s\n", plugin->name, dlerror());
     } else {
-	PSID_log(PSID_LOG_PLUGIN, "%s: '%s' successfully unloaded\n", __func__,
-		 plugin->name);
+	PSID_fdbg(PSID_LOG_PLUGIN, "'%s' successfully unloaded\n", plugin->name);
     }
     plugin->handle = NULL;
 
@@ -1699,8 +1677,8 @@ static void handlePlugins(void)
 
 	if (plugin->finalized && (timerisset(&plugin->grace)
 				  && timercmp(&now, &plugin->grace, >))) {
-	    PSID_log(PSID_LOG_PLUGIN, "%s: finalize() timed out for %s\n",
-		     __func__, plugin->name);
+	    PSID_fdbg(PSID_LOG_PLUGIN, "finalize() timed out for %s\n",
+		      plugin->name);
 
 	    unloadPlugin(plugin);
 	}
@@ -1754,14 +1732,14 @@ void initPlugins(FILE *logfile)
 
 	list_del(&ent->next);
 	if (!ent->name || ! *ent->name) {
-	    PSID_log(-1, "%s: No name given\n", __func__);
+	    PSID_flog("no name given\n");
 	    free(ent);
 	    continue;
 	}
 
-	PSID_log(PSID_LOG_PLUGIN, "%s: load '%s'\n", __func__, ent->name);
+	PSID_fdbg(PSID_LOG_PLUGIN, "load '%s'\n", ent->name);
 	if (!loadPlugin(ent->name, 0, NULL, logfile)) {
-	    PSID_log(-1, "%s: loading '%s' failed.\n", __func__, ent->name);
+	    PSID_flog("loading '%s' failed\n", ent->name);
 	}
 	free(ent->name);
 	free(ent);

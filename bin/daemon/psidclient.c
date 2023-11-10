@@ -67,7 +67,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg);
 
 static int handleClientConnectMsg(int fd, void *info)
 {
-    PSID_log(PSID_LOG_COMM, "%s(%d)\n", __func__, fd);
+    PSID_fdbg(PSID_LOG_COMM, "fd %d\n", fd);
 
     /* read the whole msg */
     DDBufferMsg_t msg;
@@ -75,7 +75,7 @@ static int handleClientConnectMsg(int fd, void *info)
 
     if (!msglen) {
 	/* closing connection */
-	PSID_log(PSID_LOG_CLIENT, "%s(%d): close connection\n", __func__, fd);
+	PSID_fdbg(PSID_LOG_CLIENT, "close connection to %d\n", fd);
 	PSIDclient_delete(fd);
     } else if (msglen == -1) {
 	if (errno != EAGAIN) {
@@ -85,8 +85,8 @@ static int handleClientConnectMsg(int fd, void *info)
 	}
     } else {
 	if (msg.header.type != PSP_CD_CLIENTCONNECT) {
-	    PSID_log(-1, "%s: Unexpected message of type %s\n", __func__,
-		     PSP_printMsg(msg.header.type));
+	    PSID_flog("Unexpected message of type %s\n",
+		      PSP_printMsg(msg.header.type));
 	    return 0;
 	}
 	msg_CLIENTCONNECT(fd, &msg);
@@ -141,7 +141,7 @@ PStask_t *PSIDclient_getTask(int fd)
 
 static int handleClientMsg(int fd, void *info)
 {
-    PSID_log(PSID_LOG_COMM, "%s(%d)\n", __func__, fd);
+    PSID_fdbg(PSID_LOG_COMM, "fd %d\n", fd);
 
     /* read the whole msg */
     DDBufferMsg_t msg;
@@ -149,7 +149,7 @@ static int handleClientMsg(int fd, void *info)
 
     if (!msglen) {
 	/* closing connection */
-	PSID_log(PSID_LOG_CLIENT, "%s(%d): close connection\n", __func__, fd);
+	PSID_fdbg(PSID_LOG_CLIENT, "close connection to %d\n", fd);
 	PSIDclient_delete(fd);
     } else if (msglen == -1) {
 	if (errno != EAGAIN) {
@@ -160,8 +160,8 @@ static int handleClientMsg(int fd, void *info)
     } else {
 	PStask_ID_t tid = PSIDclient_getTID(fd);
 	if (msg.header.sender != tid) {
-	    PSID_log(-1, "%s: Got msg from %s on socket %d", __func__,
-		     PSC_printTID(msg.header.sender), fd);
+	    PSID_flog("got msg from %s on socket %d",
+		      PSC_printTID(msg.header.sender), fd);
 	    PSID_log(-1, " assigned to %s\n", PSC_printTID(tid));
 	    /* drop message silently */
 	    return 0;
@@ -175,7 +175,7 @@ static int handleClientMsg(int fd, void *info)
 	    msg.header.sender = PSC_getTID(-2, PSC_getPID(msg.header.sender));
 	}
 	if (!PSID_handleMsg(&msg)) {
-	    PSID_log(-1, "%s: Problem on socket %d\n", __func__, fd);
+	    PSID_flog("unable to handle message on socket %d\n", fd);
 	}
     }
 
@@ -231,7 +231,7 @@ static ssize_t doSend(int fd, DDMsg_t *msg, size_t offset)
 	    /* Make sure we get all pending messages */
 	    Selector_enable(fd);
 	} else {
-	    PSID_log(-1, "%s: No task\n", __func__);
+	    PSID_flog("no task\n");
 	    PSIDclient_delete(fd);
 	}
 	errno = eno;
@@ -346,19 +346,19 @@ static int flushClientMsgs(int fd, void *info)
 
 int PSIDclient_send(DDMsg_t *msg)
 {
-    PSID_log(PSID_LOG_CLIENT, "%s(type %s (len=%d) to %s\n", __func__,
-	     PSDaemonP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
+    PSID_fdbg(PSID_LOG_CLIENT, "(type %s (len=%d) to %s\n",
+	      PSDaemonP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
 
     if (PSC_getID(msg->dest) != PSC_getMyID()) {
 	errno = EHOSTUNREACH;
-	PSID_log(-1, "%s: dest not found\n", __func__);
+	PSID_flog("dest %s not found\n", PSC_printTID(msg->dest));
 	return -1;
     }
 
     PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
     if (!task || task->fd == -1) {
-	PSID_log(PSID_LOG_CLIENT, "%s: no fd for task %s to send%s\n",
-		 __func__, PSC_printTID(msg->dest), task ? "" : " (no task)");
+	PSID_fdbg(PSID_LOG_CLIENT, "no fd for task %s to send%s\n",
+		  PSC_printTID(msg->dest), task ? "" : " (no task)");
 	if (PSID_getDebugMask() & PSID_LOG_MSGDUMP) PSID_dumpMsg(msg);
 	errno = EHOSTUNREACH;
 	return -1;
@@ -373,7 +373,7 @@ int PSIDclient_send(DDMsg_t *msg)
 
     ssize_t sent = 0;
     if (list_empty(&clients[fd].msgs)) {
-	PSID_log(PSID_LOG_CLIENT, "%s: use fd %d\n", __func__, fd);
+	PSID_fdbg(PSID_LOG_CLIENT, "use fd %d\n", fd);
 	sent = doSend(fd, msg, 0);
     }
 
@@ -408,7 +408,7 @@ int PSIDclient_send(DDMsg_t *msg)
 static ssize_t doClientRecv(int fd, DDBufferMsg_t *msg)
 {
     if (!msg) {
-	PSID_log(-1, "%s: invalid msg\n", __func__);
+	PSID_flog("invalid msg\n");
 	errno = EINVAL;
 	return -1;
     }
@@ -420,12 +420,10 @@ static ssize_t doClientRecv(int fd, DDBufferMsg_t *msg)
 	ret = PSCio_recvBufP(fd, msg, sizeof(DDInitMsg_t));
 	if (!ret) {
 	    /* Socket close before initial message was sent */
-	    PSID_log(PSID_LOG_CLIENT,
-		     "%s(%d) socket already closed\n", __func__, fd);
+	    PSID_fdbg(PSID_LOG_CLIENT, "socket %d already closed\n", fd);
 	} else if (ret != msg->header.len) {
 	    /* if wrong msg format initiate a disconnect */
-	    PSID_log(-1, "%zd = %s(%d): initial message of incompatible type\n",
-		     ret, __func__, fd);
+	    PSID_flog("bad initial message on fd %d: got %zd\n", fd, ret);
 	    ret = 0;
 	}
     } else {
@@ -445,18 +443,18 @@ ssize_t PSIDclient_recv(int fd, DDBufferMsg_t *msg)
 	PSID_warn(-1, errno, "%s(%d/%s)", __func__, fd,
 		  PSC_printTID(PSIDclient_getTID(fd)));
     } else if (ret && ret != msg->header.len) {
-	PSID_log(-1, "%s(%d/%s) type %s (len=%d) from %s",
-		 __func__, fd, PSC_printTID(PSIDclient_getTID(fd)),
-		 PSDaemonP_printMsg(msg->header.type), msg->header.len,
-		 PSC_printTID(msg->header.sender));
+	PSID_flog("(%d/%s) type %s (len=%d) from %s", fd,
+		  PSC_printTID(PSIDclient_getTID(fd)),
+		  PSDaemonP_printMsg(msg->header.type), msg->header.len,
+		  PSC_printTID(msg->header.sender));
 	PSID_log(-1, " dest %s only %zd bytes\n",
 		 PSC_printTID(msg->header.dest), ret);
     } else if (PSID_getDebugMask() & PSID_LOG_COMM) {
-	PSID_log(PSID_LOG_COMM, "%s(%d/%s) type %s (len=%d) from %s",
-		 __func__, fd, PSC_printTID(PSIDclient_getTID(fd)),
-		 PSDaemonP_printMsg(msg->header.type), msg->header.len,
-		 PSC_printTID(msg->header.sender));
-	PSID_log(PSID_LOG_COMM, " dest %s\n", PSC_printTID(msg->header.dest));
+	PSID_fdbg(PSID_LOG_COMM, "(%d/%s) type %s (len=%d) from %s", fd,
+		  PSC_printTID(PSIDclient_getTID(fd)),
+		  PSDaemonP_printMsg(msg->header.type), msg->header.len,
+		  PSC_printTID(msg->header.sender));
+	PSID_dbg(PSID_LOG_COMM, " dest %s\n", PSC_printTID(msg->header.dest));
     }
 
     return ret;
@@ -513,25 +511,23 @@ static void closeConnection(int fd)
 
 void PSIDclient_delete(int fd)
 {
-    PSID_log(fd<0 ? -1 : PSID_LOG_CLIENT, "%s(%d)\n", __func__, fd);
+    PSID_fdbg(fd<0 ? -1 : PSID_LOG_CLIENT, "fd %d\n", fd);
     if (fd<0) return;
 
     PStask_t *task = PSIDclient_getTask(fd);
 
-    PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",
-	     __func__, task ? PSC_printTID(task->tid) : "<unknown>");
+    PSID_fdbg(PSID_LOG_CLIENT, "closing connection to %s\n",
+	      task ? PSC_printTID(task->tid) : "<unknown>");
     closeConnection(fd);
 
     if (!task) {
-	PSID_log(-1, "%s: Task %s not found\n", __func__,
-		 PSC_printTID(PSIDclient_getTID(fd)));
+	PSID_flog("task %s not found\n", PSC_printTID(PSIDclient_getTID(fd)));
 	return;
     }
 
     if (task->group == TG_FORWARDER && !task->released) {
 
-	PSID_log(-1, "%s: Unreleased forwarder %s\n",
-		 __func__, PSC_printTID(task->tid));
+	PSID_flog("unreleased forwarder %s\n", PSC_printTID(task->tid));
 
 	/* Tell logger about unreleased forwarders */
 	DDErrorMsg_t msg = {
@@ -546,7 +542,7 @@ void PSIDclient_delete(int fd)
 	int sig = -1;
 	while ((child = PSID_getSignal(&task->childList, &sig))) {
 	    PStask_t *childTask = PStasklist_find(&managedTasks, child);
-	    PSID_log(-1, "%s: kill child %s\n", __func__, PSC_printTID(child));
+	    PSID_flog("kill child %s\n", PSC_printTID(child));
 
 	    if (!childTask || childTask->forwarder != task) {
 		/* Maybe the child's task was obsoleted */
@@ -597,7 +593,7 @@ void PSIDclient_delete(int fd)
 
 	if (parent && parent->removeIt
 	    && PSID_emptySigList(&parent->childList)) {
-	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup(parent)\n", __func__);
+	    PSID_fdbg(PSID_LOG_TASK, "PSIDtask_cleanup(parent)\n");
 	    PSIDtask_cleanup(parent);
 	}
     }
@@ -656,7 +652,7 @@ void PSIDclient_delete(int fd)
 
     /* Cleanup, if no forwarder available; otherwise wait for CHILDDEAD */
     if (!task->forwarder) {
-	PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
+	PSID_fdbg(PSID_LOG_TASK, "PSIDtask_cleanup()\n");
 	PSIDtask_cleanup(task);
     }
 
@@ -684,7 +680,7 @@ int PSIDclient_killAll(int sig, bool killAdmTasks)
 {
     int ret = 0;
 
-    PSID_log(PSID_LOG_CLIENT, "%s(%d, %d)\n", __func__, sig, killAdmTasks);
+    PSID_fdbg(PSID_LOG_CLIENT, "(%d, %d)\n", sig, killAdmTasks);
 
     /* loop over all tasks */
     list_t *t;
@@ -697,8 +693,8 @@ int PSIDclient_killAll(int sig, bool killAdmTasks)
 	if ((task->group==TG_ADMIN || task->group==TG_FORWARDER)
 	    && !killAdmTasks) continue;
 
-	PSID_log(PSID_LOG_CLIENT, "%s: send %s to %s pid %d fd %d\n", __func__,
-		 strsignal(sig), PSC_printTID(task->tid), pid, task->fd);
+	PSID_fdbg(PSID_LOG_CLIENT, "send %s to %s pid %d fd %d\n",
+		  strsignal(sig), PSC_printTID(task->tid), pid, task->fd);
 
 	if (pid > 0) {
 	    if (sig == SIGKILL) kill(pid, SIGCONT);
@@ -707,7 +703,7 @@ int PSIDclient_killAll(int sig, bool killAdmTasks)
 	}
 
 	if (sig==SIGKILL && killAdmTasks && task->fd != -1) {
-	    PSID_log(-1, "%s: PSIDclient_delete()\n", __func__);
+	    PSID_flog("PSIDclient_delete()\n");
 	    PSIDclient_delete(task->fd);
 	}
     }
@@ -776,10 +772,9 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 #endif
     PStask_ID_t tid = PSC_getTID(-1, pid);
 
-    PSID_log(PSID_LOG_CLIENT,
-	     "%s: from %s at fd %d, group=%s, version=%d, uid=%d\n",
-	     __func__, PSC_printTID(tid), fd, PStask_printGrp(msg->group),
-	     msg->version, uid);
+    PSID_fdbg(PSID_LOG_CLIENT, "from %s at fd %d: group=%s version=%d uid=%d\n",
+	      PSC_printTID(tid), fd, PStask_printGrp(msg->group),
+	      msg->version, uid);
     /*
      * first check if it is a reconnection
      * this might happen due to an exec() call.
@@ -795,8 +790,8 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	     * psiadmin never forks. This is another psiadmin started
 	     * from within a shell script. Forget about this task.
 	     */
-	    PSID_log(PSID_LOG_CLIENT, "%s: no reconnection since task is %s\n",
-		     __func__, PStask_printGrp(msg->group));
+	    PSID_fdbg(PSID_LOG_CLIENT, "no reconnection since task is %s\n",
+		      PStask_printGrp(msg->group));
 	    task = NULL;
 	}
 
@@ -807,8 +802,8 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	     * another executable started from within a shell
 	     * script. Forget about this task.
 	     */
-	    PSID_log(PSID_LOG_CLIENT, "%s: no reconnection since parent-task"
-		     " is %s\n", __func__, PStask_printGrp(task->group));
+	    PSID_fdbg(PSID_LOG_CLIENT, "no reconnection since parent-task"
+		      " is %s\n", PStask_printGrp(task->group));
 	    task = NULL;
 	}
 
@@ -817,8 +812,8 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	    /* This might happen due to stuff in PSI_RARG_PRE_0 */
 	    PStask_t *child = PStask_clone(task);
 
-	    PSID_log(PSID_LOG_CLIENT, "%s: reconnection with changed PID"
-		     "%d -> %d\n", __func__, PSC_getPID(task->tid), pid);
+	    PSID_fdbg(PSID_LOG_CLIENT, "reconnection with changed PID"
+		      "%d -> %d\n", PSC_getPID(task->tid), pid);
 
 	    if (child) {
 		child->tid = tid;
@@ -829,8 +824,8 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 		    /* Register new child to its forwarder */
 		    PSID_setSignal(&task->forwarder->childList, child->tid, -1);
 		} else {
-		    PSID_log(-1, "%s: task %s has no forwarder\n",
-			     __func__, PSC_printTID(task->tid));
+		    PSID_flog("task %s has no forwarder\n",
+			      PSC_printTID(task->tid));
 		}
 
 		/* We want to handle the reconnected child now */
@@ -841,8 +836,8 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
     if (task) {
 	/* re-connection */
 	/* use the old task struct but close the old fd */
-	PSID_log(PSID_LOG_CLIENT, "%s: reconnecting task %s, old/new fd ="
-		 " %d/%d\n", __func__, PSC_printTID(task->tid), task->fd, fd);
+	PSID_fdbg(PSID_LOG_CLIENT, "reconnecting task %s, old/new fd = %d/%d\n",
+		  PSC_printTID(task->tid), task->fd, fd);
 
 	/* close the previous socket */
 	if (task->fd > 0) {
@@ -899,8 +894,8 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 		    task->loggertid = tid;
 		    break;
 		default:
-		    PSID_log(-1, "%s: group %s not handled\n",
-			     __func__, PStask_printGrp(msg->group));
+		    PSID_flog("group %s not handled\n",
+			      PStask_printGrp(msg->group));
 		}
 	    } else {
 		/* no parent !? kill the task */
@@ -910,7 +905,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	}
 
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_log(PSID_LOG_CLIENT, "%s: request from: %s\n", __func__, tasktxt);
+	PSID_fdbg(PSID_LOG_CLIENT, "request from %s\n", tasktxt);
 
 	PStasklist_enqueue(&managedTasks, task);
 
@@ -958,22 +953,21 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	PSP_putTypedMsgBuf(&outmsg, "maxProcs", &maxProcs, sizeof(maxProcs));
     } else if (PSID_getDaemonState() & PSID_STATE_NOCONNECT) {
 	outmsg.type = PSP_CONN_ERR_STATENOCONNECT;
-	PSID_log(-1, "%s: daemon state problems: state is %x\n",
-		 __func__, PSID_getDaemonState());
+	PSID_flog("daemon state problems: state is %x\n", PSID_getDaemonState());
     }
 
     if (outmsg.type != PSP_CONN_ERR_NONE || msg->group == TG_RESET) {
 	outmsg.header.type = PSP_CD_CLIENTREFUSED;
 
-	PSID_log(PSID_LOG_CLIENT, "%s: connection refused: group %s task %s"
-		 " version %d vs. %d uid %d gid %d jobs %d %d\n", __func__,
-		 PStask_printGrp(msg->group), PSC_printTID(task->tid),
-		 msg->version, PSProtocolVersion, uid, gid, status.jobs.normal,
-		 PSIDnodes_getProcs(PSC_getMyID()));
+	PSID_fdbg(PSID_LOG_CLIENT, "connection refused: group %s task %s"
+		  " version %d vs. %d uid %d gid %d jobs %d %d\n",
+		  PStask_printGrp(msg->group), PSC_printTID(task->tid),
+		  msg->version, PSProtocolVersion, uid, gid, status.jobs.normal,
+		  PSIDnodes_getProcs(PSC_getMyID()));
 	sendMsg(&outmsg);
 
 	/* clean up */
-	PSID_log(-1, "%s: PSIDclient_delete()\n", __func__);
+	PSID_flog("PSIDclient_delete()\n");
 	PSIDclient_delete(fd);
 
 	if (msg->group == TG_RESET && !uid
@@ -1033,20 +1027,19 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
  */
 static bool msg_CC_MSG(DDBufferMsg_t *msg)
 {
-    PSID_log(PSID_LOG_CLIENT, "%s: from %s", __func__,
-	     PSC_printTID(msg->header.sender));
-    PSID_log(PSID_LOG_CLIENT, " to %s\n", PSC_printTID(msg->header.dest));
+    PSID_fdbg(PSID_LOG_CLIENT, "from %s", PSC_printTID(msg->header.sender));
+    PSID_dbg(PSID_LOG_CLIENT, " to %s\n", PSC_printTID(msg->header.dest));
 
     if (msg->header.dest == PSC_getMyTID()) {
-	PSID_log(-1, "%s: from %s to me?! Dropping...\n", __func__,
-		 PSC_printTID(msg->header.sender));
+	PSID_flog("from %s to me?! Dropping...\n",
+		  PSC_printTID(msg->header.sender));
 	PSID_dropMsg(msg);
 	return true;
     }
 
     /* Forward this message. If this fails, send an error message. */
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_log(PSID_LOG_CLIENT, "%s: sending failed\n", __func__);
+	PSID_fdbg(PSID_LOG_CLIENT, "send failed\n");
 	PSID_dropMsg(msg);
     }
     return true;
@@ -1105,7 +1098,7 @@ void PSIDclient_init(void)
     PSIDMsgbuf_init();
 
     if (clients) {
-	PSID_log(-1, "%s: already initialized\n", __func__);
+	PSID_flog("already initialized\n");
 	return;
     }
 

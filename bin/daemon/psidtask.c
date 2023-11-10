@@ -36,8 +36,7 @@ static void printList(list_t *sigList)
     list_t *s;
     list_for_each(s, sigList) {
 	PSsignal_t *sig = list_entry(s, PSsignal_t, next);
-	PSID_log(PSID_LOG_SIGDBG, " %s/%d",
-		 PSC_printTID(sig->tid), sig->signal);
+	PSID_dbg(PSID_LOG_SIGDBG, " %s/%d", PSC_printTID(sig->tid), sig->signal);
     }
 }
 
@@ -52,14 +51,12 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 	return;
     }
 
-    PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)\n",
-	     __func__, PSC_printTID(tid), signal);
+    PSID_fdbg(PSID_LOG_SIGNAL, "(%s, %d)\n", PSC_printTID(tid), signal);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
-	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
-		 __func__, sigList);
+	PSID_fdbg(PSID_LOG_SIGDBG, "signals before (in %p):", sigList);
 	printList(sigList);
-	PSID_log(PSID_LOG_SIGDBG, "\n");
+	PSID_dbg(PSID_LOG_SIGDBG, "\n");
     }
 
     thissig->signal = signal;
@@ -68,10 +65,9 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
     list_add_tail(&thissig->next, sigList);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
-	PSID_log(PSID_LOG_SIGDBG, "%s: signals after (in %p):",
-		 __func__, sigList);
+	PSID_fdbg(PSID_LOG_SIGDBG, "signals after (in %p):", sigList);
 	printList(sigList);
-	PSID_log(PSID_LOG_SIGDBG, "\n");
+	PSID_dbg(PSID_LOG_SIGDBG, "\n");
     }
 
     RDP_blockTimer(blockedRDP);
@@ -79,8 +75,7 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 
 PSsignal_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
-    PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)\n",
-	     __func__, PSC_printTID(tid), signal);
+    PSID_fdbg(PSID_LOG_SIGNAL, "(%s, %d)\n", PSC_printTID(tid), signal);
 
     int blockedRDP = RDP_blockTimer(true);
 
@@ -103,13 +98,12 @@ bool PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
     int blockedRDP = RDP_blockTimer(true);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
-	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
-		 __func__, sigList);
+	PSID_fdbg(PSID_LOG_SIGDBG, "signals before (in %p):", sigList);
 	printList(sigList);
-	PSID_log(PSID_LOG_SIGDBG, "\n");
+	PSID_dbg(PSID_LOG_SIGDBG, "\n");
     }
 
-    PSID_log(PSID_LOG_SIGNAL,"%s(%s, %d)", __func__, PSC_printTID(tid), signal);
+    PSID_fdbg(PSID_LOG_SIGNAL,"(%s, %d)", PSC_printTID(tid), signal);
 
     bool ret = false;
     PSsignal_t *sig = PSID_findSignal(sigList, tid, signal);
@@ -118,17 +112,16 @@ bool PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 	list_del(&sig->next);
 	PSsignal_put(sig);
 
-	PSID_log(PSID_LOG_SIGNAL, "\n");
+	PSID_fdbg(PSID_LOG_SIGNAL, "\n");
 	if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
-	    PSID_log(PSID_LOG_SIGDBG, "%s: signals after (in %p):",
-		     __func__, sigList);
+	    PSID_fdbg(PSID_LOG_SIGDBG, "signals after (in %p):", sigList);
 	    printList(sigList);
-	    PSID_log(PSID_LOG_SIGDBG, "\n");
+	    PSID_dbg(PSID_LOG_SIGDBG, "\n");
 	}
 
 	ret = true;
     } else {
-	PSID_log(PSID_LOG_SIGNAL, ": Not found\n");
+	PSID_dbg(PSID_LOG_SIGNAL, ": Not found\n");
     }
 
     RDP_blockTimer(blockedRDP);
@@ -259,15 +252,15 @@ static int doEnqueue(list_t *list, PStask_t *task, PStask_t *other,
     PStask_t *old;
 
     if (!task) {
-	PSID_log(-1, "%s: no task given\n", func);
+	PSID_flog("no task\n");
 	return -1;
     }
 
-    PSID_log(PSID_LOG_TASK, "%s(%p", func, list);
-    PSID_log(PSID_LOG_TASK, ",%s(%p)", PSC_printTID(task->tid), task);
-    if (other) PSID_log(PSID_LOG_TASK, ",%s(%p)",
+    PSID_dbg(PSID_LOG_TASK, "%s(%p", func, list);
+    PSID_dbg(PSID_LOG_TASK, ",%s(%p)", PSC_printTID(task->tid), task);
+    if (other) PSID_dbg(PSID_LOG_TASK, ",%s(%p)",
 			PSC_printTID(other->tid), other);
-    PSID_log(PSID_LOG_TASK, ")\n");
+    PSID_dbg(PSID_LOG_TASK, ")\n");
 
     old = PStasklist_find(list, task->tid);
     if (old) {
@@ -294,13 +287,13 @@ int PStasklist_enqueue(list_t *list, PStask_t *task)
 int PStasklist_enqueueBefore(list_t *list, PStask_t *task, PStask_t *other)
 {
     if (!other) {
-	PSID_log(-1, "%s: no other task given\n", __func__);
+	PSID_flog("no other task given\n");
 	return -1;
     }
     PStask_t *o = PStasklist_find(list, other->tid);
     if (!o) {
-	PSID_log(-1, "%s: other task %s(%p) not found in %p\n", __func__,
-		 PSC_printTID(other->tid), other, list);
+	PSID_flog("other task %s(%p) not found in %p\n",
+		  PSC_printTID(other->tid), other, list);
 	return -1;
     }
 
@@ -309,8 +302,8 @@ int PStasklist_enqueueBefore(list_t *list, PStask_t *task, PStask_t *other)
 
 void PStasklist_dequeue(PStask_t *task)
 {
-    PSID_log(PSID_LOG_TASK, "%s(%p, %s)\n", __func__, task,
-	     task ? PSC_printTID(task->tid) : "");
+    PSID_fdbg(PSID_LOG_TASK, "(%p, %s)\n", task,
+	      task ? PSC_printTID(task->tid) : "");
 
     if (!task || list_empty(&task->next)) return;
     list_del_init(&task->next);
@@ -322,7 +315,7 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
     PStask_t *task = NULL;
     bool foundDeleted = false;
 
-    PSID_log(PSID_LOG_TASK, "%s(%p, %s)", __func__, list, PSC_printTID(tid));
+    PSID_fdbg(PSID_LOG_TASK, "(%p, %s)", list, PSC_printTID(tid));
 
     list_for_each(t, list) {
 	PStask_t *tt = list_entry(t, PStask_t, next);
@@ -330,7 +323,7 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
 	    if (tt->deleted) {
 		/* continue to search since we might have duplicates
 		 * of PID due to some problems in flow-control */
-		PSID_log(PSID_LOG_TASK, " found but deleted\n");
+		PSID_dbg(PSID_LOG_TASK, " found but deleted\n");
 		foundDeleted = true;
 	    } else {
 		task = tt;
@@ -339,10 +332,10 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
 	}
     }
 
-    if (task) PSID_log(PSID_LOG_TASK, " is at %p\n", task);
+    if (task) PSID_dbg(PSID_LOG_TASK, " is at %p\n", task);
 
-    if (task && foundDeleted) PSID_log(-1, "%s(%p, %s): found twice!!\n",
-				       __func__, list, PSC_printTID(tid));
+    if (task && foundDeleted) PSID_flog("(%p, %s): found twice!!\n",
+					list, PSC_printTID(tid));
 
     return task;
 }
@@ -376,7 +369,7 @@ void PStasklist_cleanupObsolete(void)
 void PSIDtask_cleanup(PStask_t *task)
 {
     if (!task) {
-	PSID_log(-1, "%s: No task\n", __func__);
+	PSID_flog("no task\n");
 	return;
     }
 
@@ -429,10 +422,10 @@ void PSIDtask_cleanup(PStask_t *task)
 
 		/* somehow we must have missed the CHILDDEAD message */
 		/* how are we called here ? */
-		PSID_log(child ? -1 : PSID_LOG_TASK,
-			 "%s: report child %s of unreleased forwarder%s\n",
-			 __func__, PSC_printTID(childTID),
-			 !child ? " but child is gone" : "");
+		PSID_fdbg(child ? -1 : PSID_LOG_TASK,
+			  "report child %s of unreleased forwarder%s\n",
+			  PSC_printTID(childTID),
+			  !child ? " but child is gone" : "");
 
 		DDErrorMsg_t msg = {
 		    .header = {
@@ -449,8 +442,8 @@ void PSIDtask_cleanup(PStask_t *task)
 
 		if (child && child->fd == -1) {
 		    if (!child->obsolete) {
-			PSID_log(-1, "%s: forwarder kills child %s\n",
-				 __func__, PSC_printTID(child->tid));
+			PSID_flog("forwarder kills child %s\n",
+				  PSC_printTID(child->tid));
 
 			PSID_kill(-PSC_getPID(child->tid), SIGKILL, child->uid);
 		    }

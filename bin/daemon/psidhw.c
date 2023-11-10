@@ -51,8 +51,7 @@ static void initHWloc(void)
     if (hwlocInitialized) return;
 
     if (hwloc_topology_init(&topology) < 0) {
-	PSID_log(-1 ,"%s: Failed to initialize hwloc's topology. Exiting\n",
-		 __func__);
+	PSID_flog("failed to initialize hwloc's topology. Exiting\n");
 	PSID_finalizeLogs();
 	exit(1);
     }
@@ -68,7 +67,7 @@ static void initHWloc(void)
 #endif
 
     if (hwloc_topology_load(topology) < 0) {
-	PSID_log(-1 ,"%s: Failed to load topology. Exiting\n", __func__);
+	PSID_flog("failed to load topology. Exiting\n");
 	PSID_finalizeLogs();
 	exit(1);
     }
@@ -86,19 +85,18 @@ int PSIDhw_getHWthreads(void)
 	hwThreads = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_PU);
 
 	if (!hwThreads) {
-	    PSID_log(-1 ,"%s: No hardware-threads found. This is most probably"
-		     " not true. Exiting\n", __func__);
+	    PSID_flog("No hardware-threads found. This is most probably"
+		      " not true. Exiting\n");
 	    PSID_finalizeLogs();
 	    exit(1);
 	} else if (hwThreads < 0) {
-	    PSID_log(-1 ,"%s: Hardware threads at different topology levels."
-		     " Do not know how to handle this. Exiting\n", __func__);
+	    PSID_flog("Hardware threads at different topology levels."
+		      " Do not know how to handle this. Exiting\n");
 	    PSID_finalizeLogs();
 	    exit(1);
 	}
     }
-    PSID_log(PSID_LOG_VERB, "%s: got %d hardware threads\n", __func__,
-	     hwThreads);
+    PSID_fdbg(PSID_LOG_VERB, "got %d hardware threads\n", hwThreads);
 
     return hwThreads;
 }
@@ -113,18 +111,18 @@ int PSIDhw_getCores(void)
 	physCores = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_CORE);
 
 	if (!physCores) {
-	    PSID_log(-1 ,"%s: No physical cores found. This is most probably"
-		     " not true. Exiting\n", __func__);
+	    PSID_flog("No physical cores found. This is most probably"
+		      " not true. Exiting\n");
 	    PSID_finalizeLogs();
 	    exit(1);
 	} else if (physCores < 0) {
-	    PSID_log(-1 ,"%s: Physical cores at different topology levels."
-		     " Do not know how to handle this. Exiting\n", __func__);
+	    PSID_flog("Physical cores at different topology levels."
+		      " Do not know how to handle this. Exiting\n");
 	    PSID_finalizeLogs();
 	    exit(1);
 	}
     }
-    PSID_log(PSID_LOG_VERB, "%s: got %d physical cores\n", __func__, physCores);
+    PSID_fdbg(PSID_LOG_VERB, "got %d physical cores\n", physCores);
 
     return physCores;
 }
@@ -233,11 +231,11 @@ static uint32_t * getDistances(void)
     int err = hwloc_distances_get_by_depth(topology, HWLOC_TYPE_DEPTH_NUMANODE,
 					   &nr, NULL, 0, 0);
     if (err) {
-	PSID_log(-1, "%s: hwloc_distances_get_by_depth() failed\n", __func__);
+	PSID_flog("hwloc_distances_get_by_depth() failed\n");
 	goto failed;
     }
     if (!nr) {
-	PSID_log(-1, "%s: no distances found\n", __func__);
+	PSID_flog("no distances found\n");
 	goto failed;
     }
     hwlocDists = malloc(nr * sizeof(*hwlocDists));
@@ -245,8 +243,7 @@ static uint32_t * getDistances(void)
     err = hwloc_distances_get_by_depth(topology, HWLOC_TYPE_DEPTH_NUMANODE,
 				       &nr, hwlocDists, 0, 0);
     if (err) {
-	PSID_log(-1, "%s: actual hwloc_distances_get_by_depth() failed\n",
-		 __func__);
+	PSID_flog("actual hwloc_distances_get_by_depth() failed\n");
 	goto failed;
     }
 
@@ -260,7 +257,7 @@ static uint32_t * getDistances(void)
 	}
     }
     if (best == nr) {
-	PSID_log(-1, "%s: try to find other distances...\n", __func__);
+	PSID_flog("try to find other distances...\n");
 	for (unsigned i = 0; i < nr; i++) {
 	    if (hwlocDists[i]->kind & HWLOC_DISTANCES_KIND_FROM_OS
 		&& hwlocDists[i]->kind & HWLOC_DISTANCES_KIND_MEANS_BANDWIDTH) {
@@ -268,13 +265,10 @@ static uint32_t * getDistances(void)
 		break;
 	    }
 	}
-	if (best != nr) {
-	    PSID_log(-1, "%s: at least we found bandwidth distances...\n",
-		     __func__);
-	}
+	if (best != nr) PSID_flog("at least we found bandwidth distances...\n");
     }
     if (best == nr) {
-	PSID_log(-1, "%s: no matching distances found\n", __func__);
+	PSID_flog("no matching distances found\n");
 	for (unsigned i = 0; i < nr; i++) {
 	    hwloc_distances_release(topology, hwlocDists[i]);
 	}
@@ -286,8 +280,7 @@ static uint32_t * getDistances(void)
 	for (unsigned j = 0; j < numNUMA; j++) {
 	    hwloc_uint64_t val = hwlocDists[best]->values[i*numNUMA + j];
 	    if (val > UINT32_MAX) {
-		PSID_log(-1, "%s: distance(%d,%d) = %lu exceeds capacity\n",
-			 __func__, i, j, val);
+		PSID_flog("distance(%d,%d) = %lu exceeds capacity\n", i, j, val);
 		for (unsigned i = 0; i < nr; i++) {
 		    hwloc_distances_release(topology, hwlocDists[i]);
 		}
@@ -305,17 +298,17 @@ static uint32_t * getDistances(void)
     const struct hwloc_distances_s *hwlocDists =
 	hwloc_get_whole_distance_matrix_by_type(topology, HWLOC_OBJ_NUMANODE);
     if (!hwlocDists) {
-	PSID_log(-1, "%s: no distances found\n", __func__);
+	PSID_flog("no distances found\n");
 	goto failed;
     }
     float base = hwlocDists->latency_base;
     if (base == 0.0) {
-	PSID_log(-1, "%s: latency base is %2.3f\n", __func__, base);
+	PSID_flog("latency base is %2.3f\n", base);
 	goto failed;
     }
     if (base * hwlocDists->latency_max > UINT32_MAX) {
-	PSID_log(-1, "%s: distance %2.3f exceeds capacity\n",
-		 __func__, base * hwlocDists->latency_max);
+	PSID_flog("distance %2.3f exceeds capacity\n",
+		  base * hwlocDists->latency_max);
 	goto failed;
     }
 
@@ -440,7 +433,7 @@ static uint16_t * getPCIorderMap(uint16_t numDevs, PCI_ID_t ID_list[])
     }
 
     if (dev != numDevs) {
-	PSID_log(-1, "%s: device mismatch: %d / %d\n", __func__, dev, numDevs);
+	PSID_flog("device mismatch: %d / %d\n", dev, numDevs);
 	return NULL;
     }
 
@@ -473,7 +466,7 @@ PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[],
     if (PCIorder) {
 	map = getPCIorderMap(numDevs, ID_list);
 	if (!map) {
-	    PSID_log(-1, "%s: unable to get PCI device map\n", __func__);
+	    PSID_flog("unable to get PCI device map\n");
 	    PSID_finalizeLogs();
 	    exit(1);
 	}
@@ -481,7 +474,7 @@ PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[],
 
     PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(PSC_getMyID());
     if (!CPUSets) {
-	PSID_log(-1, "%s: unable to get CPU sets\n", __func__);
+	PSID_flog("unable to get CPU sets\n");
 	PSID_finalizeLogs();
 	exit(1);
     }
@@ -491,11 +484,11 @@ PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[],
     while ((pciObj = hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_PCI_DEVICE,
 						pciObj))) {
 	/* Identify PCI device by vendor, device, subvendor and subdevice IDs */
-	PSID_log(PSID_LOG_HW, "%s: Investigate %x:%x\n", __func__,
-		 pciObj->attr->pcidev.vendor_id,
-		 pciObj->attr->pcidev.device_id);
+	PSID_fdbg(PSID_LOG_HW, "investigate %x:%x\n",
+		  pciObj->attr->pcidev.vendor_id,
+		  pciObj->attr->pcidev.device_id);
 	if (!checkPCIDev(&pciObj->attr->pcidev, ID_list)) continue;
-	PSID_log(PSID_LOG_HW, "%s: Match\n", __func__);
+	PSID_fdbg(PSID_LOG_HW, "match\n");
 
 	int mappedIdx = map ? map[idx] : idx;
 
@@ -503,7 +496,7 @@ PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[],
 	if (IOdevs) {
 #if HWLOC_API_VERSION >= 0x00020000 /* hwloc 2.0 */
 	    if (!pciObj->io_arity) {
-		PSID_log(-1, "%s: no io info for device %04x:%04x\n", __func__,
+		PSID_flog("no io info for device %04x:%04x\n",
 			 pciObj->attr->pcidev.vendor_id,
 			 pciObj->attr->pcidev.device_id);
 	    } else {
@@ -562,8 +555,7 @@ PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[],
 	    obj = obj->parent;
 	}
 	if (!obj) {
-	    PSID_log(-1, "%s: unable to get CPU set for PCI device\n",
-		    __func__);
+	    PSID_flog("unable to get CPU set for PCI device\n");
 	    PSID_finalizeLogs();
 	    exit(1);
 	}
@@ -575,9 +567,8 @@ PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[],
 	    for (uint16_t d = 0; d < getNUMADoms(); d++) {
 		if (PSCPU_isSet(CPUSets[d], hwthread)) {
 		    PSCPU_setCPU(sets[d], mappedIdx);
-		    PSID_log(PSID_LOG_HW, "%s: register as %d at %d\n",
-			     __func__, mappedIdx, d);
-
+		    PSID_fdbg(PSID_LOG_HW, "register as %d at %d\n",
+			      mappedIdx, d);
 		    found = true;
 		    break;
 		}
@@ -706,13 +697,12 @@ static void switchHWCB(int result, bool tmdOut, int iofd, void *info)
 		line[num]='\0';
 	    }
 	}
-	PSID_log(-1, "%s: script(%s, %s) returned %d: '%s'\n", __func__,
-		 hwName, hwScript, result, line);
+	PSID_flog("script(%s, %s) returned %d: '%s'\n", hwName, hwScript,
+		  result, line);
     } else if (hw > -1) {
 	AttrMask_t oldState = PSIDnodes_getHWStatus(PSC_getMyID());
 
-	PSID_log(PSID_LOG_HW, "%s: script(%s, %s): success\n", __func__,
-		 hwName, hwScript);
+	PSID_fdbg(PSID_LOG_HW, "script(%s, %s): success\n", hwName, hwScript);
 	if (on) {
 	    PSIDnodes_setHWStatus(PSC_getMyID(), oldState | (1<<hw));
 	} else {
@@ -749,7 +739,7 @@ static void switchHW(AttrIdx_t hw, bool on)
     char *script = HW_getScript(hw, on ? HW_STARTER : HW_STOPPER);
 
     if (hw < 0 || hw > Attr_num()) {
-	PSID_log(-1, "%s: hw = %d out of range\n", __func__, hw);
+	PSID_flog("hw = %d out of range\n", hw);
 	return;
     }
 
@@ -763,15 +753,15 @@ static void switchHW(AttrIdx_t hw, bool on)
 	info->on = on;
 
 	if (PSID_execScript(script, prepSwitchEnv, switchHWCB, NULL,info) < 0) {
-	    PSID_log(-1, "%s: Failed to execute '%s' for hw '%s'\n",
-		     __func__, script, Attr_name(hw));
+	    PSID_flog("failed to execute '%s' for hw '%s'\n",
+		      script, Attr_name(hw));
 	}
     } else {
 	/* No script, assume HW is switched anyhow */
 	AttrMask_t oldState = PSIDnodes_getHWStatus(PSC_getMyID());
 
-	PSID_log(PSID_LOG_HW, "%s: assume %s already %s\n",
-		 __func__, Attr_name(hw), on ? "up" : "down");
+	PSID_fdbg(PSID_LOG_HW, "assume %s already %s\n",
+		  Attr_name(hw), on ? "up" : "down");
 	if (on) {
 	    PSIDnodes_setHWStatus(PSC_getMyID(), oldState | (1<<hw));
 	} else {
@@ -887,7 +877,7 @@ static void getCounterCB(int result, bool tmdOut, int iofd, void *info)
 
     int num, eno = 0;
     if (iofd == -1) {
-	PSID_log(-1, "%s: %s\n", __func__, msg.buf);
+	PSID_flog("%s\n", msg.buf);
 	num = snprintf(msg.buf, sizeof(msg.buf), "<not connected>");
     } else {
 	num = PSCio_recvBuf(iofd, msg.buf, sizeof(msg.buf));
@@ -907,11 +897,11 @@ static void getCounterCB(int result, bool tmdOut, int iofd, void *info)
     msg.header.len += num;
 
     if (result) {
-	PSID_log(-1, "%s: script(%s, %s) returned %d: %s\n",
-		 __func__, hwName, hwScript, result, msg.buf);
+	PSID_flog("script(%s, %s) returned %d: %s\n",
+		  hwName, hwScript, result, msg.buf);
     } else {
-	PSID_log(PSID_LOG_HW, "%s: callScript(%s, %s): success\n",
-		 __func__, hwName, hwScript);
+	PSID_fdbg(PSID_LOG_HW, "callScript(%s, %s): success\n",
+		  hwName, hwScript);
     }
 
     if (dest) sendMsg(&msg);
@@ -947,11 +937,10 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 
 	    if (PSID_execScript(script, prepCounterEnv, getCounterCB,
 				NULL, info)<0) {
-		PSID_log(PSID_LOG_HW,
-			 "%s: Failed to execute '%s' for hw '%s'\n",
-			 __func__, script, Attr_name(hw));
+		PSID_fdbg(PSID_LOG_HW, "failed to execute '%s' for hw '%s'\n",
+			  script, Attr_name(hw));
 		snprintf(msg.buf, sizeof(msg.buf),
-			 "%s: Failed to execute '%s' for hw '%s'\n",
+			 "%s: failed to execute '%s' for hw '%s'\n",
 			 __func__, script, Attr_name(hw));
 	    } else {
 		/* answer created within callback */
@@ -959,8 +948,8 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 	    }
 	} else {
 	    /* No script, cannot get counter */
-	    PSID_log(PSID_LOG_HW, "%s: no %s-script for %s available\n",
-		     __func__, header ? "header" : "counter", Attr_name(hw));
+	    PSID_fdbg(PSID_LOG_HW, "no %s-script for %s available\n",
+		      header ? "header" : "counter", Attr_name(hw));
 	    snprintf(msg.buf, sizeof(msg.buf),
 		     "%s: no %s-script for %s available", __func__,
 		     header ? "header" : "counter", Attr_name(hw));
@@ -969,7 +958,7 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 	/* No HW, cannot get counter */
 	char *name = Attr_name(hw);
 	if (!name) name = "<unknown>";
-	PSID_log(-1, "%s: no %s hardware available\n", __func__, name);
+	PSID_flog("no %s hardware available\n", name);
 	snprintf(msg.buf, sizeof(msg.buf), "%s: no %s hardware available",
 		 __func__, name);
     }
@@ -990,12 +979,11 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
  */
 static bool msg_HWSTART(DDBufferMsg_t *msg)
 {
-    PSID_log(PSID_LOG_HW, "%s: requester %s\n",
-	     __func__, PSC_printTID(msg->header.sender));
+    PSID_fdbg(PSID_LOG_HW, "requester %s\n", PSC_printTID(msg->header.sender));
 
     if (!PSID_checkPrivilege(msg->header.sender)) {
-	PSID_log(-1, "%s: task %s not allowed to start HW\n",
-		 __func__, PSC_printTID(msg->header.sender));
+	PSID_flog("task %s not allowed to start HW\n",
+		  PSC_printTID(msg->header.sender));
     } else if (msg->header.dest == PSC_getMyTID()) {
 	size_t used = 0;
 	int32_t hw32;
@@ -1029,12 +1017,11 @@ static bool msg_HWSTART(DDBufferMsg_t *msg)
  */
 static bool msg_HWSTOP(DDBufferMsg_t *msg)
 {
-    PSID_log(PSID_LOG_HW, "%s: requester %s\n",
-	     __func__, PSC_printTID(msg->header.sender));
+    PSID_fdbg(PSID_LOG_HW, "requester %s\n", PSC_printTID(msg->header.sender));
 
     if (!PSID_checkPrivilege(msg->header.sender)) {
-	PSID_log(-1, "%s: task %s not allowed to stop HW\n", __func__,
-		 PSC_printTID(msg->header.sender));
+	PSID_flog("task %s not allowed to stop HW\n",
+		  PSC_printTID(msg->header.sender));
     } else if (msg->header.dest == PSC_getMyTID()) {
 	size_t used = 0;
 	int32_t hw32;
@@ -1089,7 +1076,7 @@ void PSIDhw_reInit(void)
     /* Determine various HW parameters and feed them into PSIDnodes */
     uint16_t numNUMA = getNUMADoms();
     if (!numNUMA) {
-	PSID_log(-1, "%s: Unable to determine NUMA domains\n", __func__);
+	PSID_flog("Unable to determine NUMA domains\n");
 	PSID_finalizeLogs();
 	exit(1);
     }
@@ -1112,7 +1099,7 @@ void PSIDhw_reInit(void)
 
 void PSIDhw_init(void)
 {
-    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+    PSID_fdbg(PSID_LOG_VERB, "\n");
 
     PSIDhw_reInit();
 

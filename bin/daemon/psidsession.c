@@ -129,9 +129,9 @@ static void putJob(PSjob_t *job, PStask_ID_t sessionID, const char *caller)
 	/* Give plugins the option to react on job removal */
 	PSIDhook_call(PSIDHOOK_LOCALJOBREMOVED, job);
 
-	PSID_log(PSID_LOG_SPAWN, "%s: remove job %s", caller,
+	PSID_dbg(PSID_LOG_SPAWN, "%s: remove job %s", caller,
 		 PSC_printTID(job->ID));
-	PSID_log(PSID_LOG_SPAWN, " from session %s\n", PSC_printTID(sessionID));
+	PSID_dbg(PSID_LOG_SPAWN, " from session %s\n", PSC_printTID(sessionID));
     }
 
     PSitems_putItem(jobPool, job);
@@ -168,7 +168,7 @@ static void putSession(PSsession_t *session, const char *caller)
 	putJob(job, session->ID, caller);
     }
 
-    if (caller) PSID_log(PSID_LOG_SPAWN, "%s: put session %s\n", caller,
+    if (caller) PSID_dbg(PSID_LOG_SPAWN, "%s: put session %s\n", caller,
 			 PSC_printTID(session->ID));
 
     PSitems_putItem(sessionPool, session);
@@ -464,14 +464,14 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	list_add_tail(&job->next, &session->jobs);
 	jobCreated = true;
 	PSID_fdbg(PSID_LOG_SPAWN, "add job %s to", PSC_printTID(jobID));
-	PSID_log(PSID_LOG_SPAWN, " session %s\n", PSC_printTID(sessionID));
+	PSID_dbg(PSID_LOG_SPAWN, " session %s\n", PSC_printTID(sessionID));
     }
 
     /* try to add reservation to job */
     addReservationToJob(job, res);
     PSID_fdbg(PSID_LOG_SPAWN, "add reservation %#x to job %s",
 	      resID, PSC_printTID(jobID));
-    PSID_log(PSID_LOG_SPAWN, " (session %s)\n", PSC_printTID(sessionID));
+    PSID_dbg(PSID_LOG_SPAWN, " (session %s)\n", PSC_printTID(sessionID));
 
     /* Give plugins the option to react on job creation */
     if (jobCreated) PSIDhook_call(PSIDHOOK_LOCALJOBCREATED, job);
@@ -549,7 +549,7 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     if (!session) {
 	PSID_fdbg(PSID_LOG_PART, "no session %s expected to hold %#x",
 		  PSC_printTID(sessionID), resID);
-	PSID_log(PSID_LOG_PART, " from %s\n", PSC_printTID(msg->header.sender));
+	PSID_dbg(PSID_LOG_PART, " from %s\n", PSC_printTID(msg->header.sender));
 	return true;
     }
 
@@ -581,7 +581,7 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     } else {
 	PSID_fdbg(PSID_LOG_SPAWN, "remove reservation %#x from job %s", resID,
 		  PSC_printTID(jobID));
-	PSID_log(PSID_LOG_SPAWN, " in session %s)\n", PSC_printTID(sessionID));
+	PSID_dbg(PSID_LOG_SPAWN, " in session %s)\n", PSC_printTID(sessionID));
     }
 
     checkJob(job, sessionID, __func__);
@@ -614,7 +614,7 @@ static bool msg_RESCLEANUP(DDBufferMsg_t *msg)
 	list_del(&session->next);
 	putSession(session, __func__);
     } else {
-	PSID_log(PSID_LOG_SPAWN, " already gone\n");
+	PSID_dbg(PSID_LOG_SPAWN, " already gone\n");
     }
 
     return true;
@@ -839,7 +839,7 @@ static int clearMem(void *dummy)
 
 bool PSIDsession_init(void)
 {
-    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+    PSID_fdbg(PSID_LOG_VERB, "\n");
 
     /* initialize various item pools */
     resinfoPool = PSitems_new(sizeof(PSresinfo_t), "resinfoPool");
@@ -882,16 +882,15 @@ bool PSIDsession_init(void)
 
 void PSIDsession_printStat(void)
 {
-    PSID_flog("Sessions %d/%d (used/avail)", PSitems_getUsed(sessionPool),
-	      PSitems_getAvail(sessionPool));
-    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(sessionPool),
-	     PSitems_getDynamics(sessionPool));
-    PSID_flog("Jobs %d/%d (used/avail)", PSitems_getUsed(jobPool),
-	      PSitems_getAvail(jobPool));
-    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(jobPool),
-	     PSitems_getDynamics(jobPool));
-    PSID_flog("ResInfos %d/%d (used/avail)", PSitems_getUsed(resinfoPool),
-	      PSitems_getAvail(resinfoPool));
-    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(resinfoPool),
-	     PSitems_getDynamics(resinfoPool));
+    PSID_flog("Sessions %d/%d (used/avail)\t%d/%d (gets/grows)\n",
+	      PSitems_getUsed(sessionPool), PSitems_getAvail(sessionPool),
+	      PSitems_getUtilization(sessionPool),
+	      PSitems_getDynamics(sessionPool));
+    PSID_flog("Jobs %d/%d (used/avail)\t%d/%d (gets/grows)\n",
+	      PSitems_getUsed(jobPool), PSitems_getAvail(jobPool),
+	      PSitems_getUtilization(jobPool), PSitems_getDynamics(jobPool));
+    PSID_flog("ResInfos %d/%d (used/avail)\t%d/%d (gets/grows)\n",
+	      PSitems_getUsed(resinfoPool), PSitems_getAvail(resinfoPool),
+	      PSitems_getUtilization(resinfoPool),
+	      PSitems_getDynamics(resinfoPool));
 }

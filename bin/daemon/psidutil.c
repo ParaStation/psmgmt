@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -79,7 +79,7 @@ bool PSID_blockSig(int sig, bool block)
     sigaddset(&set, sig);
 
     if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, &oldset)) {
-	PSID_log(-1, "%s: sigprocmask()\n", __func__);
+	PSID_flog("sigprocmask()\n");
     }
 
     return sigismember(&oldset, sig);
@@ -170,10 +170,9 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
     PSID_config = parseConfig(logfile, PSID_getDebugMask(), configfile);
     if (! PSID_config) {
 #ifdef BUILD_WITHOUT_PSCONFIG
-	PSID_log(-1, "%s: parsing of <%s> failed\n", __func__, configfile);
+	PSID_flog("parsing of <%s> failed\n", configfile);
 #else
-	PSID_log(-1, "%s: reading configuration from psconfig failed\n",
-		 __func__);
+	PSID_flog("reading configuration from psconfig failed\n");
 #endif
 
 	PSID_finalizeLogs();
@@ -189,7 +188,7 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
 
     /* Try to find out if node is configured */
     if (PSC_getMyID() == -1) {
-	PSID_log(-1, "%s: Node not configured\n", __func__);
+	PSID_flog("node not configured\n");
 	PSID_finalizeLogs();
 	exit(1);
     }
@@ -237,20 +236,14 @@ static int masterSock = -1;
  */
 static int handleMasterSock(int fd, void *info)
 {
-    struct linger linger;
-    socklen_t size;
-    int ssock;
-
     if (fd != masterSock) {
-	PSID_log(-1, "%s: wrong fd %d, %d expected\n",
-		 __func__, fd, masterSock);
+	PSID_flog("wrong fd %d (%d expected)\n", fd, masterSock);
 	return -1;
     }
 
-    PSID_log(PSID_LOG_CLIENT | PSID_LOG_VERB,
-	     "%s: accepting new connection\n", __func__);
+    PSID_fdbg(PSID_LOG_CLIENT | PSID_LOG_VERB, "accepting new connection\n");
 
-    ssock = accept(fd, NULL, 0);
+    int ssock = accept(fd, NULL, 0);
     if (ssock < 0) {
 	PSID_warn(-1, errno, "%s: error while accept", __func__);
 	return -1;
@@ -258,14 +251,14 @@ static int handleMasterSock(int fd, void *info)
 
     PSIDclient_register(ssock, -1, NULL);
 
-    PSID_log(PSID_LOG_CLIENT | PSID_LOG_VERB,
-	     "%s: new socket is %d\n", __func__, ssock);
+    PSID_fdbg(PSID_LOG_CLIENT | PSID_LOG_VERB, "new socket is %d\n", ssock);
 
-    size = sizeof(linger);
+    struct linger linger;
+    socklen_t size = sizeof(linger);
     getsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, &size);
 
-    PSID_log(PSID_LOG_VERB, "%s: linger was (%d,%d), setting it to (1,1)\n",
-	     __func__, linger.l_onoff, linger.l_linger);
+    PSID_fdbg(PSID_LOG_VERB, "linger was (%d,%d), setting it to (1,1)\n",
+	      linger.l_onoff, linger.l_linger);
 
     linger.l_onoff=1;
     linger.l_linger=1;
@@ -310,12 +303,11 @@ void PSID_createMasterSock(char *sName)
 void PSID_enableMasterSock(void)
 {
     if (masterSock < 0) {
-	PSID_log(-1, "%s: Local Service Port not yet opened\n", __func__);
+	PSID_flog("Local Service Port not yet opened\n");
 	PSID_createMasterSock(PSmasterSocketName);
     }
     if (!Selector_isInitialized()) {
-	PSID_log(-1, "%s: Local Service Port needs running Selector\n",
-		 __func__);
+	PSID_flog("Local Service Port needs running Selector\n");
 	PSID_finalizeLogs();
 	exit(-1);
     }
@@ -327,7 +319,7 @@ void PSID_enableMasterSock(void)
 void PSID_disableMasterSock(void)
 {
     if (masterSock == -1) {
-	PSID_log(-1, "%s: master sock already down\n", __func__);
+	PSID_flog("master sock already down\n");
 	return;
     }
 
@@ -337,7 +329,7 @@ void PSID_disableMasterSock(void)
 void PSID_shutdownMasterSock(void)
 {
     if (masterSock == -1) {
-	PSID_log(-1, "%s: master sock already down\n", __func__);
+	PSID_flog("master sock already down\n");
 	return;
     }
 
@@ -371,7 +363,7 @@ void PSID_checkMaxPID(void)
 	goto end;
     }
 
-    PSID_log(PSID_LOG_VERB, "%s: pid_max is %d\n", __func__, maxPID);
+    PSID_fdbg(PSID_LOG_VERB, "pid_max is %d\n", maxPID);
 
     if (maxPID > 65536) {
 	PSID_exit(EINVAL, "%s: cannot handle PIDs larger than 16 bit."
@@ -397,20 +389,20 @@ time_t PSID_getStarttime(void)
 
 void PSID_dumpMsg(DDMsg_t *msg)
 {
-    PSID_log(PSID_LOG_MSGDUMP, "%s: type %s sender %s", __func__,
+    PSID_fdbg(PSID_LOG_MSGDUMP, "type %s sender %s",
 	     PSDaemonP_printMsg(msg->type), PSC_printTID(msg->sender));
-    PSID_log(PSID_LOG_MSGDUMP, " destination %s size %d",
+    PSID_dbg(PSID_LOG_MSGDUMP, " destination %s size %d",
 	     PSC_printTID(msg->dest), msg->len);
 
     switch (msg->type) {
     case PSP_CC_MSG:
-	PSID_log(PSID_LOG_MSGDUMP, " type %d", ((PSLog_Msg_t *)msg)->type);
+	PSID_dbg(PSID_LOG_MSGDUMP, " type %d", ((PSLog_Msg_t *)msg)->type);
 	break;
     default:
 	break;
     }
 
-    PSID_log(PSID_LOG_MSGDUMP, "\n");
+    PSID_dbg(PSID_LOG_MSGDUMP, "\n");
 }
 
 bool PSID_checkPrivilege(PStask_ID_t sender)
@@ -428,8 +420,7 @@ bool PSID_checkPrivilege(PStask_ID_t sender)
     PStask_t *senderTask = PStasklist_find(&managedTasks, sender);
 
     if (!senderTask) {
-	PSID_log(-1, "%s: sender %s not among managed tasks\n", __func__,
-		 PSC_printTID(sender));
+	PSID_flog("sender %s not among managed tasks\n", PSC_printTID(sender));
 	return false;
     }
 
@@ -438,8 +429,7 @@ bool PSID_checkPrivilege(PStask_ID_t sender)
 			       (PSIDnodes_guid_t){.u=senderTask->uid})
 	&& !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
 			       (PSIDnodes_guid_t){.g=senderTask->gid})) {
-	PSID_log(-1, "%s: sender %s not privileged\n", __func__,
-		 PSC_printTID(sender));
+	PSID_flog("sender %s not privileged\n", PSC_printTID(sender));
 	return false;
     }
 
@@ -509,7 +499,7 @@ void PSID_adjustLoginUID(uid_t uid)
 
     fd = fopen(fileName,"w");
     if (!fd) {
-	PSID_log(-1, "%s: open '%s' failed\n", __func__, fileName);
+	PSID_flog("open '%s' failed\n", fileName);
 	return;
     }
     fprintf(fd, "%d", uid);

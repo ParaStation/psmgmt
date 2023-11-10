@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -121,11 +121,11 @@ void PSIDMsgbuf_put(PSIDmsgbuf_t *mp)
 
 void PSIDMsgbuf_printStat(void)
 {
-    PSID_log(-1, "%s: Buffers %d\n", __func__, usedBufs);
-    PSID_log(-1, "%s: Small buffers %d/%d (used/avail)", __func__,
-	     PSitems_getUsed(smallMsgBufs), PSitems_getAvail(smallMsgBufs));
-    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(smallMsgBufs),
-	     PSitems_getDynamics(smallMsgBufs));
+    PSID_flog("Buffers %d\n", usedBufs);
+    PSID_flog("Small buffers %d/%d (used/avail)\t%d/%d (gets/grows)\n",
+	      PSitems_getUsed(smallMsgBufs), PSitems_getAvail(smallMsgBufs),
+	      PSitems_getUtilization(smallMsgBufs),
+	      PSitems_getDynamics(smallMsgBufs));
 
 }
 

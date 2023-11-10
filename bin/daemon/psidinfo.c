@@ -63,9 +63,9 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
     int destID = PSC_getID(inmsg->header.dest);
     char funcStr[80];
 
-    PSID_log(PSID_LOG_INFO, "%s: type %s for %d from requester %s\n",
-	     __func__, PSP_printInfo(inmsg->type), destID,
-	     PSC_printTID(inmsg->header.sender));
+    PSID_fdbg(PSID_LOG_INFO, "type %s for %d from requester %s\n",
+	      PSP_printInfo(inmsg->type), destID,
+	      PSC_printTID(inmsg->header.sender));
 
     snprintf(funcStr, sizeof(funcStr),
 	     "%s(%s)", __func__, PSP_printInfo(inmsg->type));
@@ -195,7 +195,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	}
 
 	if (task->ptid) {
-	    PSID_log(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
+	    PSID_dbg(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
 		     PSC_printTID(task->ptid));
 	    msg.header.type = inmsg->header.type;
 	    msg.header.dest = task->ptid;
@@ -378,7 +378,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	}
 
 	if (task->ptid && !task->partition) {
-	    PSID_log(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
+	    PSID_dbg(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
 		     PSC_printTID(task->ptid));
 	    msg.header.type = inmsg->header.type;
 	    msg.header.sender = inmsg->header.sender;
@@ -422,7 +422,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	}
 
 	if (task->ptid && !task->resPorts) {
-	    PSID_log(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
+	    PSID_dbg(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
 		     PSC_printTID(task->ptid));
 	    msg.header.type = inmsg->header.type;
 	    msg.header.sender = inmsg->header.sender;
@@ -479,7 +479,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	}
 
 	if (task->ptid && list_empty(&task->reservations)) {
-	    PSID_log(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
+	    PSID_dbg(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
 		     PSC_printTID(task->ptid));
 	    msg.header.type = inmsg->header.type;
 	    msg.header.sender = inmsg->header.sender;
@@ -646,7 +646,7 @@ static bool drop_INFOREQUEST(DDBufferMsg_t *msg)
 
 void initInfo(void)
 {
-    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+    PSID_fdbg(PSID_LOG_VERB, "\n");
 
     PSID_registerMsg(PSP_CD_INFOREQUEST, (handlerFunc_t) msg_INFOREQUEST);
 

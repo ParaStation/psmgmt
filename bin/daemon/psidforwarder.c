@@ -106,8 +106,7 @@ static ssize_t sendLogMsg(PSLog_msg_t type, char *buf, size_t len)
     if (loggerTID < 0) {
 	static bool first = true;
 	if (first) {
-	    PSID_log(-1, "%s(%d): not connected\n", __func__, type);
-	    PSID_log(-1, "%s(%d): %s\n", __func__, type, buf);
+	    PSID_flog("(%d) not connected: '%s'\n", type, buf);
 	    first = false;
 	}
 	errno = EPIPE;
@@ -177,12 +176,11 @@ static void sendSignal(pid_t dest, int signal)
 	    pid = -dest;
 	} else if (pid) {
 	    /* Send signal to process-group */
-	    PSID_log(PSID_LOG_SIGNAL, "%s: got from tcgetpgrp()\n", __func__);
+	    PSID_fdbg(PSID_LOG_SIGNAL, "got from tcgetpgrp()\n");
 	    pid = -pid;
 	} else {
 	    pid = -dest;
-	    PSID_log(PSID_LOG_SIGNAL, "%s: tcgetpgrp() said 0, try %d\n",
-		     __func__, pid);
+	    PSID_fdbg(PSID_LOG_SIGNAL, "tcgetpgrp() said 0, try %d\n", pid);
 	}
     }
 
@@ -253,7 +251,7 @@ static void handleSignalMsg(DDBufferMsg_t *msg)
 static ssize_t recvDaemonMsg(DDBufferMsg_t *msg, struct timeval *timeout)
 {
     if (daemonSock < 0) {
-	PSID_log(-1, "%s: not connected\n", __func__);
+	PSID_flog("not connected\n");
 	errno = EPIPE;
 	return -1;
     }
@@ -276,7 +274,7 @@ static ssize_t recvDaemonMsg(DDBufferMsg_t *msg, struct timeval *timeout)
 	    }
 	    errno = eno;
 	} else if (!ret) {
-	    PSID_log(-1, "%s: daemon connection lost\n", __func__);
+	    PSID_flog("daemon connection lost\n");
 	    closeDaemonSock();
 	}
 	break;
@@ -304,7 +302,7 @@ ssize_t sendDaemonMsg(void *amsg)
 	closeDaemonSock();
 	return ret;
     } else if (!ret) {
-	PSID_log(-1, "%s: Lost connection to daemon\n", __func__);
+	PSID_flog("lost connection to daemon\n");
 	closeDaemonSock();
 	return ret;
     }
@@ -378,9 +376,8 @@ static bool connectLogger(PStask_ID_t tid)
 
 	if (lmsg->header.type == PSP_CC_MSG && lmsg->type == INITIALIZE) {
 	    if (msg.header.len < PSLog_headerSize + (int) sizeof(int)) {
-		PSID_log(-1, "%s(%s, rank %i): Message too short (%d)\n",
-			 __func__, PSC_printTID(tid), childTask->rank,
-			 msg.header.len);
+		PSID_flog("(%s, rank %i): message too short (%d)\n",
+			  PSC_printTID(tid), childTask->rank, msg.header.len);
 		break;
 	    }
 
@@ -392,8 +389,8 @@ static bool connectLogger(PStask_ID_t tid)
 		uint32_t verb;
 		PSP_getMsgBuf(&msg, &used, "verb", &verb, sizeof(verb));
 		verbose = verb;
-		PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected\n", __func__,
-			 PSC_printTID(tid));
+		PSID_fdbg(PSID_LOG_SPAWN, "(%s): connected\n",
+			  PSC_printTID(tid));
 
 		/* print this message late (no connection to logger before) */
 		if (illegalTimeoutStr) {
@@ -403,14 +400,14 @@ static bool connectLogger(PStask_ID_t tid)
 		return true;
 	    }
 
-	    PSID_log(-1, "%s(%s): Got INITIALIZE", __func__, PSC_printTID(tid));
+	    PSID_flog("(%s): Got INITIALIZE", PSC_printTID(tid));
 	    PSID_log(-1, " from %s\n", PSC_printTID(msg.header.sender));
 	    break;
 	}
 
 	if (!PSID_handleMsg(&msg)) {
-	    PSID_log(-1 ,"%s(%s): Protocol messed up, got %s\n", __func__,
-		     PSC_printTID(tid), PSDaemonP_printMsg(msg.header.type));
+	    PSID_flog("(%s): Protocol messed up, got %s\n", PSC_printTID(tid),
+		      PSDaemonP_printMsg(msg.header.type));
 	}
     }
 
@@ -445,24 +442,24 @@ static void releaseLogger(int status)
 	    if (ret < 0) {
 		switch (errno) {
 		case EPIPE:
-		    PSID_log(-1, "%s: logger %s already disappeared\n",
-			     __func__, PSC_printTID(childTask->loggertid));
+		    PSID_flog("logger %s already disappeared\n",
+			      PSC_printTID(childTask->loggertid));
 		    return;
 		case ETIME:
-		    PSID_log(-1, "%s: receive timeout. Send again\n", __func__);
+		    PSID_flog("receive timeout. Send again\n");
 		    goto send_again;
 		default:
 		    PSID_warn(-1, errno, "%s: recvDaemonMsg()", __func__);
 		    if (daemonSock < 0) {
-			PSID_log(-1, "%s: connection lost\n", __func__);
+			PSID_flog("connection lost\n");
 			return;
 		    }
 		    continue;
 		}
 	    }
 	    if (lmsg->header.type == PSP_CC_MSG && lmsg->type == EXIT) {
-		PSID_log(PSID_LOG_SPAWN, "%s(%d): Released %s\n", __func__,
-			 status, PSC_printTID(loggerTID));
+		PSID_fdbg(PSID_LOG_SPAWN, "(%d): Released %s\n", status,
+			  PSC_printTID(loggerTID));
 		loggerTID = -1;
 		return;
 	    }
@@ -789,8 +786,8 @@ static bool msgCC_ERROR(DDBufferMsg_t *msg)
 {
     if (msg->header.sender == loggerTID) {
 	PSLog_Msg_t *logMsg = (PSLog_Msg_t *)msg;
-	PSID_log(-1, "%s: logger %s disappeared on '%s'\n", __func__,
-		 PSC_printTID(loggerTID), PSLog_printMsgType(logMsg->type));
+	PSID_flog("logger %s disappeared on '%s'\n", PSC_printTID(loggerTID),
+		  PSLog_printMsgType(logMsg->type));
 	loggerTID = -1;
 	return true;
     }
@@ -1026,7 +1023,7 @@ static void sighandler(int sig)
 	}
 	snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "\n");
 	PSIDfwd_printMsg(STDERR, txt);
-	PSID_log(-1, "%s: %s", __func__, txt);
+	PSID_flog("%s", txt);
 	break;
     case SIGUSR2:
 	PSIDfwd_printMsgf(STDERR, "%s: Got %s\n", tag, strsignal(sig));
@@ -1206,32 +1203,32 @@ send_again:
 	if (ret < 0) {
 	    switch (errno) {
 	    case ETIME:
-		PSID_log(-1, "%s: receive timed out. Send again\n", __func__);
+		PSID_flog("receive timed out. Send again\n");
 		goto send_again;
 	    default:
 		PSID_warn(-1, errno, "%s: recvDaemonMsg()", __func__);
 	    }
 	} else if (!ret) {
-	    PSID_log(-1, "%s: daemon closed connection\n", __func__);
+	    PSID_flog("daemon closed connection\n");
 	} else if (answer.header.type == PSP_DD_CHILDACK) {
 	    if (clientFD > -1) {
 		close(clientFD);
 		return true;
 	    } else {
-		PSID_log(-1, "%s: cannot start child\n", __func__);
+		PSID_flog("cannot start child\n");
 	    }
 	} else if (PSID_handleMsg(&answer)) {
 	    continue;
 	} else {
 	    ssize_t written = 0;
-	    PSID_log(-1, "%s: wrong answer type %s, don't execve() child\n",
-		     __func__, PSDaemonP_printMsg(answer.header.type));
+	    PSID_flog("wrong answer type %s, don't execve() child\n",
+		      PSDaemonP_printMsg(answer.header.type));
 	    if (clientFD > -1) {
 		written = write(clientFD, "x", 1);
 		close(clientFD);
 	    }
 	    if (written != 1) {
-		PSID_log(-1, "%s: cannot stop child, try to kill\n", __func__);
+		PSID_flog("cannot stop child, try to kill\n");
 		sendSignal(PSC_getPID(childTask->tid), SIGKILL);
 	    }
 	}
