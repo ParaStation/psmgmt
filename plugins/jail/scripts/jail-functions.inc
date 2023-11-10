@@ -198,6 +198,8 @@ function initJailEnv {
 
     [[ -z $KILL_SIGNAL ]] && export KILL_SIGNAL=9
 
+    [[ -z $MIN_VALID_MEMORY_LIMIT ]] && export MIN_VALID_MEMORY_LIMIT=100
+
     export CGROUP_VERSION=$__PSJAIL_CGROUP_VERSION
     if [[ -z $CGROUP_VERSION || $CGROUP_VERSION == autodetect ]]; then
 	# auto detect cgroup version
