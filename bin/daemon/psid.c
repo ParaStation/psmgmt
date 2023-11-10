@@ -401,7 +401,7 @@ static int handleSignals(int fd, void *info)
 	case SIGVTALRM: /* virtual time alarm (see setitimer) */
 	case SIGPROF:   /* profiling time alarm (see setitimer) */
 	case SIGWINCH:  /* (+) window size changed */
-	    PSID_log(-1, "Received signal '%s'. Continue\n", strsignal(sig));
+	    PSID_log("Received signal '%s'. Continue\n", strsignal(sig));
 	    break;
 	case SIGABRT:
 	case SIGSEGV:
@@ -461,11 +461,11 @@ static void initSigHandlers(void)
  */
 static void printWelcome(void)
 {
-    PSID_log(-1, "Starting ParaStation DAEMON\n");
-    PSID_log(-1, "RPM Version %s\n", PSC_getVersionStr());
-    PSID_log(-1, "Protocol Version %d\n", PSProtocolVersion);
-    PSID_log(-1, "Daemon-Protocol Version %d\n", PSDaemonProtocolVersion);
-    PSID_log(-1, " (c) ParTec AG, Munich (www.par-tec.com)\n");
+    PSID_log("Starting ParaStation DAEMON\n");
+    PSID_log("RPM Version %s\n", PSC_getVersionStr());
+    PSID_log("Protocol Version %d\n", PSProtocolVersion);
+    PSID_log("Daemon-Protocol Version %d\n", PSDaemonProtocolVersion);
+    PSID_log(" (c) ParTec AG, Munich (www.par-tec.com)\n");
 
     return;
 }
@@ -569,8 +569,7 @@ int main(int argc, const char *argv[])
     if (rc < -1) {
 	/* an error occurred during option processing */
 	poptPrintUsage(optCon, stderr, 0);
-	PSID_log(-1, "%s: %s\n",
-		 poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+	PSID_log("%s: %s\n", poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
 		 poptStrerror(rc));
 	if (!logfile)
 	    fprintf(stderr, "%s: %s\n",
@@ -636,7 +635,7 @@ int main(int argc, const char *argv[])
     if (debugMask) {
 	PSID_setDebugMask(debugMask);
 	PSC_setDebugMask(debugMask);
-	PSID_log(-1, "Debugging mode (mask 0x%x) enabled\n", debugMask);
+	PSID_log("Debugging mode (mask 0x%x) enabled\n", debugMask);
     }
 
     /* Init the Selector facility as soon as possible */
@@ -662,14 +661,14 @@ int main(int argc, const char *argv[])
     {
 	in_addr_t addr;
 
-	PSID_log(-1, "My ID is %d\n", PSC_getMyID());
+	PSID_log("My ID is %d\n", PSC_getMyID());
 
 	addr = PSIDnodes_getAddr(PSC_getMyID());
-	PSID_log(-1, "My IP is %s\n", inet_ntoa(*(struct in_addr *) &addr));
+	PSID_log("My IP is %s\n", inet_ntoa(*(struct in_addr *) &addr));
     }
 
     if (!logfile && PSID_config->logDest!=LOG_DAEMON) {
-	PSID_log(-1, "Changing logging dest from LOG_DAEMON to %s\n",
+	PSID_log("Changing logging dest from LOG_DAEMON to %s\n",
 		 PSID_config->logDest==LOG_KERN ? "LOG_KERN":
 		 PSID_config->logDest==LOG_LOCAL0 ? "LOG_LOCAL0" :
 		 PSID_config->logDest==LOG_LOCAL1 ? "LOG_LOCAL1" :
@@ -692,7 +691,7 @@ int main(int argc, const char *argv[])
 				  NULL, NULL);
 
 	if (ret > 1) {
-	    PSID_log(-1, "startup script '%s' failed. Exiting...\n",
+	    PSID_log("startup script '%s' failed. Exiting...\n",
 		     PSID_config->startupScript);
 	    PSID_finalizeLogs();
 	    exit(1);
@@ -764,7 +763,7 @@ int main(int argc, const char *argv[])
 
 	setDeadLimitMCast(PSID_config->deadInterval);
 
-	PSID_log(-1, "MCast and ");
+	PSID_log("MCast and ");
     } else {
 	setStatusTimeout(PSID_config->statusTimeout);
 	setMaxStatBCast(PSID_config->statusBroadcasts);
@@ -779,7 +778,7 @@ int main(int argc, const char *argv[])
 			     PSIDRDP_handleMsg, RDPCallBack);
     if (RDPSocket < 0) PSID_exit(errno, "Error while trying to initialize RDP");
 
-    PSID_log(-1, "RDP (%d) initialized.\n", RDPSocket);
+    PSID_log("RDP (%d) initialized.\n", RDPSocket);
 
     free(hostlist);
 
@@ -794,7 +793,7 @@ int main(int argc, const char *argv[])
 	close(pipeFD[1]);
     }
 
-    PSID_log(-1, "SelectTime=%d sec    DeadInterval=%d\n",
+    PSID_log("SelectTime=%d sec    DeadInterval=%d\n",
 	     PSID_config->selectTime, PSID_config->deadInterval);
 
     /* Trigger status stuff, if necessary */

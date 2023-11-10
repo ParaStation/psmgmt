@@ -289,7 +289,7 @@ void PSIDRDP_handleMsg(void)
     if (msglen != msg.header.len) {
 	PSID_flog("type %s (len=%d) from %s", PSDaemonP_printMsg(msg.header.type),
 		  msg.header.len, PSC_printTID(msg.header.sender));
-	PSID_log(-1, " dest %s only %zd bytes\n",
+	PSID_log(" dest %s only %zd bytes\n",
 		 PSC_printTID(msg.header.dest), msglen);
     } else if (PSID_getDebugMask() & PSID_LOG_COMM) {
 	PSID_fdbg(PSID_LOG_COMM, "type %s (len=%d) from %s",

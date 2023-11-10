@@ -384,7 +384,7 @@ void PSIDcomm_printStat(void)
 {
     PSID_flog("Handlers & Droppers %d/%d (used/avail)",
 	      PSitems_getUsed(handlerPool), PSitems_getAvail(handlerPool));
-    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(handlerPool),
+    PSID_log("\t%d/%d (gets/grows)\n", PSitems_getUtilization(handlerPool),
 	     PSitems_getDynamics(handlerPool));
 }
 

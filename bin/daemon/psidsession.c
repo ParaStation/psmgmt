@@ -283,13 +283,13 @@ static void addReservationToJob(PSjob_t *job, PSresinfo_t *res)
 
 	PSID_flog("drop remnant reservation %#x created at %s, this should"
 		 " never happen:\n", cur->resID, ctime(&cur->creation));
-	PSID_log(-1, "\tminRank %d maxRank %d with %u entries:", cur->minRank,
+	PSID_log("\tminRank %d maxRank %d with %u entries:", cur->minRank,
 		 cur->maxRank, cur->nEntries);
 	for (uint32_t i = 0; i < cur->nEntries; i++) {
-	    PSID_log(-1, " (%d, %d, %d)", cur->entries[i].node,
+	    PSID_log(" (%d, %d, %d)", cur->entries[i].node,
 		     cur->entries[i].firstRank, cur->entries[i].lastRank);
 	}
-	PSID_log(-1, "\n\tbelonging to job %s created at %s\n",
+	PSID_log("\n\tbelonging to job %s created at %s\n",
 		 PSC_printTID(job->ID), ctime(&job->creation));
 
 	list_del(&cur->next);
@@ -558,7 +558,7 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     if (!job) {
 	PSID_flog("no job %s expected to hold resID %#x",
 		  PSC_printTID(jobID), resID);
-	PSID_log(-1, " in session %s\n", PSC_printTID(sessionID));
+	PSID_log(" in session %s\n", PSC_printTID(sessionID));
 	return true;
     }
 
@@ -697,8 +697,8 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* identify reservation info */
     PSresinfo_t *res = PSID_findResInfo(sessionID, jobID, resID);
     if (!res) {
-	PSID_flog("no reservation info for session %s", PSC_printTID(sessionID));
-	PSID_log(-1, " job %s and resID %#x\n", PSC_printTID(jobID), resID);
+	PSID_flog("no reservation info on session %s", PSC_printTID(sessionID));
+	PSID_log(" job %s and resID %#x\n", PSC_printTID(jobID), resID);
 	/* we might have to cleanup delayed tasks */
 	res = getResinfo();
 	res->resID = resID;

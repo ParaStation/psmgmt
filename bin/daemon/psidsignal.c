@@ -232,7 +232,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    msg.error = ESRCH;
 	    PSID_flog("sig %d intended for obsolete tasks %s", signal,
 		      PSC_printTID(tid));
-	    PSID_log(-1, " sender was %s", PSC_printTID(sender));
+	    PSID_log(" sender was %s", PSC_printTID(sender));
 	} else if (pervasive) {
 	    answer = false;
 
@@ -531,7 +531,7 @@ static bool msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 		}
 	    } else {
 		PSID_flog("sender=%s", PSC_printTID(registrarTid));
-		PSID_log(-1, " tid=%s sig=%d: no task\n",
+		PSID_log(" tid=%s sig=%d: no task\n",
 			 PSC_printTID(tid), msg->signal);
 		msg->param = ESRCH; /* failure */
 	    }
@@ -689,7 +689,7 @@ static bool msg_NEWPARENT(DDErrorMsg_t *msg)
 	answer.param = ESRCH;
     } else if (task->ptid != msg->header.sender) {
 	PSID_flog("sender %s", PSC_printTID(msg->header.sender));
-	PSID_log(-1, " not my parent %s\n", PSC_printTID(task->ptid));
+	PSID_log(" not my parent %s\n", PSC_printTID(task->ptid));
 	answer.param = EACCES;
     } else {
 	PSID_fdbg(PSID_LOG_SIGNAL, "%s: parent", PSC_printTID(task->tid));
@@ -1002,7 +1002,7 @@ static bool msg_ADOPTFAILED(DDBufferMsg_t *msg)
 	if (!task) continue; /* Task already gone */
 
 	PSID_flog("new parent %s is gone:", PSC_printTID(msg->header.sender));
-	PSID_log(-1, " kill %s\n", PSC_printTID(tid));
+	PSID_log(" kill %s\n", PSC_printTID(tid));
 
 	task->ptid = ptid;
 	PSID_sendSignal(task->tid, task->uid, ptid, -1,
@@ -1044,7 +1044,7 @@ static int releaseChild(PStask_ID_t parent, PStask_ID_t child, bool answer)
     PStask_t *task = PStasklist_find(&managedTasks, parent);
     if (!task) {
 	PSID_flog("parent %s", PSC_printTID(parent));
-	PSID_log(-1, " not found for %s\n", PSC_printTID(child));
+	PSID_log(" not found for %s\n", PSC_printTID(child));
 	return ESRCH;
     }
 
@@ -1117,10 +1117,9 @@ static int releaseChild(PStask_ID_t parent, PStask_ID_t child, bool answer)
 static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig)
 {
     PStask_t *task = PStasklist_find(&managedTasks, sigSndr);
-
     if (!task) {
 	PSID_flog("signal %d to %s", sig, PSC_printTID(sigRcvr));
-	PSID_log(-1, " from %s: task not found\n", PSC_printTID(sigSndr));
+	PSID_log(" from %s: no task\n", PSC_printTID(sigSndr));
 	return ESRCH;
     }
 
@@ -1481,7 +1480,7 @@ static bool msg_RELEASERES(DDSignalMsg_t *msg)
     PStask_t *task = PStasklist_find(&managedTasks, tid);
     if (!task) {
 	PSID_flog("%s from ", PSC_printTID(tid));
-	PSID_log(-1, " %s: no task\n", PSC_printTID(msg->header.sender));
+	PSID_log(" %s: no task\n", PSC_printTID(msg->header.sender));
 	return true;
     }
 
@@ -1504,7 +1503,7 @@ static bool msg_RELEASERES(DDSignalMsg_t *msg)
 	msg->param = task->pendingReleaseErr;
 	PSID_flog("sig %d: error = %d from %s", msg->signal, msg->param,
 		  PSC_printTID(msg->header.sender));
-	PSID_log(-1, " forward to local %s\n", PSC_printTID(tid));
+	PSID_log(" forward to local %s\n", PSC_printTID(tid));
     } else {
 	PSID_fdbg(PSID_LOG_SIGNAL, "sig %d: sending msg to local parent %s\n",
 		  msg->signal, PSC_printTID(tid));
@@ -1626,7 +1625,7 @@ static bool msg_INHERITFAILED(DDBufferMsg_t *msg)
 
     if (!task->pendingReleaseErr) task->pendingReleaseErr = EACCES;
     PSID_flog("from %s", PSC_printTID(keptChild));
-    PSID_log(-1, " for local %s\n", PSC_printTID(tid));
+    PSID_log(" for local %s\n", PSC_printTID(tid));
 
     task->pendingReleaseRes--;
     if (task->pendingReleaseRes

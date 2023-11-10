@@ -1108,7 +1108,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	&& (!(request->options & PART_OPT_OVERBOOK) || !canOverbook)) {
 	PSID_flog("unable to ever get sufficient resources for %s",
 		  PSC_printTID(request->tid));
-	PSID_log(-1, " freeHWThreads %zd totHWThreads %d request->tpp %d"
+	PSID_log(" freeHWThreads %zd totHWThreads %d request->tpp %d"
 		 " request->size %d\n", list.freeHWTs, totHWTs, request->tpp,
 		 request->size);
 	if (PSID_getDebugMask() & PSID_LOG_PART) {
@@ -4362,7 +4362,7 @@ static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
 	list_for_each(t, &delegate->resRequests) {
 	    PSrsrvtn_t *res = list_entry(t, PSrsrvtn_t, next);
 	    PSID_flog("\trid %#x task %s", res->rid, PSC_printTID(res->task));
-	    PSID_log(-1, " n %d options %#x requester %s %p\n", res->nMax,
+	    PSID_log(" n %d options %#x requester %s %p\n", res->nMax,
 		     res->options, PSC_printTID(res->requester), res);
 	}
 	return true;
@@ -4375,7 +4375,7 @@ static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
 	list_for_each(t, &delegate->resRequests) {
 	    PSrsrvtn_t *res = list_entry(t, PSrsrvtn_t, next);
 	    PSID_flog("\trid %#x task %s", res->rid, PSC_printTID(res->task));
-	    PSID_log(-1, " n %d options %#x requester %s %p\n", res->nMax,
+	    PSID_log(" n %d options %#x requester %s %p\n", res->nMax,
 		     res->options, PSC_printTID(res->requester), res);
 	}
     }
@@ -5688,10 +5688,10 @@ void PSIDpart_register(PStask_t *task, PSpart_HWThread_t *threads, uint32_t num)
 	for (uint32_t s = 0; s < task->partitionSize; s++) {
 	    PSpart_slot_t slot = task->partition[s];
 	    short nThrds = PSIDnodes_getNumThrds(slot.node);
-	    PSID_log(-1, "%s%d/%s", s?", ":"", slot.node,
+	    PSID_log("%s%d/%s", s?", ":"", slot.node,
 		     PSCPU_print_part(slot.CPUset, PSCPU_bytesForCPUs(nThrds)));
 	}
-	PSID_log(-1, "))\n");
+	PSID_log("))\n");
     }
 
     if (knowMaster()) {

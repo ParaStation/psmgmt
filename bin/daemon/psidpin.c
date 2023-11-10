@@ -726,9 +726,9 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
 	PSID_flog("(%d): Minimum %s distances:", id, typename);
 	for (uint16_t dev = 0; dev < numDevs; dev++) {
 	    if (!PSCPU_isSet(*devs, dev)) continue;
-	    PSID_log(-1, " %hu=%u", dev, dists[dev]);
+	    PSID_log(" %hu=%u", dev, dists[dev]);
 	}
-	PSID_log(-1, "\n");
+	PSID_log("\n");
     }
 
     /* extract into ascending list of unique entries */
@@ -741,9 +741,9 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	PSID_flog("(%d): Closest %s:", id, typename);
 	for (size_t i = 0; i < *closeCnt; i++) {
-	    PSID_log(-1, " %hu", closeDevs[i]);
+	    PSID_log(" %hu", closeDevs[i]);
 	}
-	PSID_log(-1, "\n");
+	PSID_log("\n");
     }
 
     return true;

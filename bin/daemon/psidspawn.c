@@ -309,7 +309,7 @@ static int changeToWorkDir(PStask_t *task)
 	    free(pwBuf);
 	} else {
 	    if (rawIO) {
-		PSID_log(-1, "Cannot determine home directory\n");
+		PSID_log("cannot determine home directory\n");
 	    } else {
 		fprintf(stderr, "Cannot determine home directory\n");
 	    }
@@ -1860,8 +1860,8 @@ static void cloneEnvFromTasks(PStask_t *task)
 
     if (!sibling) {
 	PSID_flog("no sibling found for task %s", PSC_printTID(task->tid));
-	PSID_log(-1, " rank %i ptid %s", task->rank, PSC_printTID(task->ptid));
-	PSID_log(-1, " logger %s\n", PSC_printTID(task->loggertid));
+	PSID_log(" rank %i ptid %s", task->rank, PSC_printTID(task->ptid));
+	PSID_log(" logger %s\n", PSC_printTID(task->loggertid));
 
 	return;
     }
@@ -2811,7 +2811,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
     if (!localSender) {
 	PSID_flog("won't relay %s", PSC_printTID(msg->header.sender));
-	PSID_log(-1, "->%s\n", PSC_printTID(msg->header.dest));
+	PSID_log("->%s\n", PSC_printTID(msg->header.dest));
 	return false;
     }
 
@@ -3119,7 +3119,7 @@ static bool msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
     } else {
 	/* task not found, it has already died */
 	PSID_flog("from %s", PSC_printTID(tid));
-	PSID_log(-1, " with parent(%s) already dead\n", PSC_printTID(ptid));
+	PSID_log(" with parent(%s) already dead\n", PSC_printTID(ptid));
 	PSID_sendSignal(tid, 0, ptid, -1,
 			false /* pervasive */, false /* answer */);
 	return true;
@@ -3227,7 +3227,7 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
 
     if (child) {
 	PSID_flog("child %s already there.", PSC_printTID(msg->request));
-	PSID_log(-1, " forwarder %s missed a message\n",
+	PSID_log(" forwarder %s missed a message\n",
 		 PSC_printTID(msg->header.sender));
 	msg->header.type = PSP_DD_CHILDACK;
 	msg->header.dest = msg->header.sender;
@@ -3474,7 +3474,7 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
     } else if (!task->forwarder || task->forwarder != forwarder) {
 	PSID_flog("forwarder %s not responsible for" ,
 		  PSC_printTID(msg->header.sender));
-	PSID_log(-1, " %s any more\n", PSC_printTID(msg->request));
+	PSID_log(" %s any more\n", PSC_printTID(msg->request));
     } else {
 	/** Create and send PSP_DD_CHILDRESREL message */
 	sendCHILDRESREL(task, msg->request, true);

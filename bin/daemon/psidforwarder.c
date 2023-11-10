@@ -401,7 +401,7 @@ static bool connectLogger(PStask_ID_t tid)
 	    }
 
 	    PSID_flog("(%s): Got INITIALIZE", PSC_printTID(tid));
-	    PSID_log(-1, " from %s\n", PSC_printTID(msg.header.sender));
+	    PSID_log(" from %s\n", PSC_printTID(msg.header.sender));
 	    break;
 	}
 

@@ -241,7 +241,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	PStask_t *task = PStasklist_find(&managedTasks, tid);
 
 	if (!task) {
-	    PSID_log(-1, "%s: task %s not found\n",
+	    PSID_log("%s: task %s not found\n",
 		     funcStr, PSC_printTID(inmsg->header.sender));
 	    /*  Not err=1 ! Send empty message to mark 'task not found'. */
 	    break;
@@ -283,7 +283,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    PStask_t *requester = PStasklist_find(&managedTasks,
 						  inmsg->header.sender);
 	    if (!requester) {
-		PSID_log(-1, "%s: requester %s not found\n",
+		PSID_log("%s: requester %s not found\n",
 			 funcStr, PSC_printTID(inmsg->header.sender));
 		err = 1;
 		break;
@@ -371,7 +371,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	PStask_t *task = PStasklist_find(&managedTasks, target);
 
 	if (!task) {
-	    PSID_log(-1, "%s: task %s not found\n",
+	    PSID_log("%s: task %s not found\n",
 		     funcStr, PSC_printTID(target));
 	    err = 1;
 	    break;
@@ -415,8 +415,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    inmsg->header.dest : inmsg->header.sender;
 	PStask_t *task = PStasklist_find(&managedTasks, target);
 	if (!task) {
-	    PSID_log(-1, "%s: task %s not found\n",
-		     funcStr, PSC_printTID(target));
+	    PSID_log("%s: task %s not found\n", funcStr, PSC_printTID(target));
 	    err = 1;
 	    break;
 	}
@@ -472,8 +471,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    inmsg->header.dest : inmsg->header.sender;
 	PStask_t *task = PStasklist_find(&managedTasks, target);
 	if (!task) {
-	    PSID_log(-1, "%s: task %s not found\n",
-		     funcStr, PSC_printTID(target));
+	    PSID_log("%s: task %s not found\n", funcStr, PSC_printTID(target));
 	    msg.type = PSP_INFO_LIST_END;
 	    break;
 	}

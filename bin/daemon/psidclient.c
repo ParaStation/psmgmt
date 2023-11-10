@@ -98,10 +98,10 @@ static int handleClientConnectMsg(int fd, void *info)
 static bool doCheckClient(int fd, const char *caller)
 {
     if (!clients) {
-	PSID_log(-1, "%s(%d): not initialized\n", caller, fd);
+	PSID_log("%s(%d): not initialized\n", caller, fd);
 	return false;
     }  else if (fd < 0 || fd >= maxClientFD) {
-	PSID_log(-1, "%s(%d): file descriptor out of range\n", caller, fd);
+	PSID_log("%s(%d): file descriptor out of range\n", caller, fd);
 	return false;
     }
     return true;
@@ -162,7 +162,7 @@ static int handleClientMsg(int fd, void *info)
 	if (msg.header.sender != tid) {
 	    PSID_flog("got msg from %s on socket %d",
 		      PSC_printTID(msg.header.sender), fd);
-	    PSID_log(-1, " assigned to %s\n", PSC_printTID(tid));
+	    PSID_log(" assigned to %s\n", PSC_printTID(tid));
 	    /* drop message silently */
 	    return 0;
 	}
@@ -447,7 +447,7 @@ ssize_t PSIDclient_recv(int fd, DDBufferMsg_t *msg)
 		  PSC_printTID(PSIDclient_getTID(fd)),
 		  PSDaemonP_printMsg(msg->header.type), msg->header.len,
 		  PSC_printTID(msg->header.sender));
-	PSID_log(-1, " dest %s only %zd bytes\n",
+	PSID_log(" dest %s only %zd bytes\n",
 		 PSC_printTID(msg->header.dest), ret);
     } else if (PSID_getDebugMask() & PSID_LOG_COMM) {
 	PSID_fdbg(PSID_LOG_COMM, "(%d/%s) type %s (len=%d) from %s", fd,

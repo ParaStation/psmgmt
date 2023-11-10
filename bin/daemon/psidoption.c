@@ -677,10 +677,10 @@ static bool msg_SETOPTION(DDOptionMsg_t *msg)
 		PSC_setDebugMask(msg->opt[i].value);
 
 		if (msg->opt[i].value) {
-		    PSID_log(-1, "Debugging mode with mask 0x%x enabled\n",
+		    PSID_log("Debugging mode with mask 0x%x enabled\n",
 			     msg->opt[i].value);
 		} else {
-		    PSID_log(-1, "Debugging mode disabled\n");
+		    PSID_log("Debugging mode disabled\n");
 		}
 		break;
 	    case PSP_OP_RDPDEBUG:

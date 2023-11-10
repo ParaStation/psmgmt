@@ -319,12 +319,12 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	    PSID_warn(-1, eno, "%s: PSCio_recvBuf(iofd)", caller);
 	} else if (ret) {
 	    if (func) {
-		PSID_log(-1, "%s: function wrote: %s", caller, line);
+		PSID_log("%s: function wrote: %s", caller, line);
 	    } else {
-		PSID_log(-1, "%s: script '%s' wrote: %s", caller, script, line);
+		PSID_log("%s: script '%s' wrote: %s", caller, script, line);
 	    }
-	    if (num == sizeof(line)) PSID_log(-1, "...");
-	    if (line[strlen(line)-1] != '\n') PSID_log(-1, "\n");
+	    if (num == sizeof(line)) PSID_log("...");
+	    if (line[strlen(line)-1] != '\n') PSID_log("\n");
 	}
     }
 

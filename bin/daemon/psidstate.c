@@ -83,7 +83,7 @@ void PSID_shutdown(void)
     case 6:
 	numPlugins = PSIDplugin_getNum();
 	if (numPlugins) {
-	    PSID_log(-1, "    Still %d plugins\n", numPlugins);
+	    PSID_log("    Still %d plugins\n", numPlugins);
 	    /* Stay in this phase */
 	    phase--;
 	    return;

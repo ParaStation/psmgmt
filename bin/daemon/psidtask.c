@@ -267,7 +267,7 @@ static int doEnqueue(list_t *list, PStask_t *task, PStask_t *other,
 	char taskStr[128];
 	PStask_snprintf(taskStr, sizeof(taskStr), old);
 
-	PSID_log(-1, "%s: old task found: %s\n", func, taskStr);
+	PSID_log("%s: old task found: %s\n", func, taskStr);
 	PStasklist_dequeue(old);
 
 	old->obsolete = true;

@@ -297,7 +297,7 @@ void PSID_createMasterSock(char *sName)
 	PSID_exit(errno, "Error while trying to listen");
     }
 
-    PSID_log(-1, "Local Service Port (%d) created.\n", masterSock);
+    PSID_log("Local Service Port (%d) created.\n", masterSock);
 }
 
 void PSID_enableMasterSock(void)
@@ -313,7 +313,7 @@ void PSID_enableMasterSock(void)
     }
     Selector_register(masterSock, handleMasterSock, NULL);
 
-    PSID_log(-1, "Local Service Port (%d) enabled.\n", masterSock);
+    PSID_log("Local Service Port (%d) enabled.\n", masterSock);
 }
 
 void PSID_disableMasterSock(void)

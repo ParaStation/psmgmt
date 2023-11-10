@@ -88,14 +88,14 @@ void PSID_setDebugMask(int32_t mask);
  *
  * @see logger_print()
  */
-#define PSID_log(...) if (PSID_logger) logger_print(PSID_logger, __VA_ARGS__)
+#define PSID_log(...) if (PSID_logger) logger_print(PSID_logger, -1, __VA_ARGS__)
 
 #define PSID_dbg(...) if (PSID_logger) logger_print(PSID_logger, __VA_ARGS__)
 
-#define PSID_flog(...) if (PSID_logger) logger_funcprint(PSID_logger, __func__,\
+#define PSID_flog(...) if (PSID_logger) logger_funcprint(PSID_logger, __func__,	\
 							 -1, __VA_ARGS__)
 
-#define PSID_fdbg(...) if (PSID_logger) logger_funcprint(PSID_logger, __func__,\
+#define PSID_fdbg(...) if (PSID_logger) logger_funcprint(PSID_logger, __func__,	\
 							 __VA_ARGS__)
 
 /**
