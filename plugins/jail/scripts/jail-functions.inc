@@ -55,6 +55,20 @@ function cgWrite {
     }
 }
 
+function getExclusiveUserLock {
+    exec 101>"/dev/shm/psjail-$USER"
+    flock -x 101
+}
+
+function getSharedUserLock {
+    exec 101>"/dev/shm/psjail-$USER"
+    flock -s 101
+}
+
+function rmUserLock {
+    flock -u 101
+}
+
 function getLock {
     exec 100>"/dev/shm/psjail-$modName"
     flock 100
@@ -183,6 +197,8 @@ function initJailEnv {
     [[ -z $TERM_SIGNAL ]] && export TERM_SIGNAL=15
 
     [[ -z $KILL_SIGNAL ]] && export KILL_SIGNAL=9
+
+    [[ -z $MIN_VALID_MEMORY_LIMIT ]] && export MIN_VALID_MEMORY_LIMIT=100
 
     export CGROUP_VERSION=$__PSJAIL_CGROUP_VERSION
     if [[ -z $CGROUP_VERSION || $CGROUP_VERSION == autodetect ]]; then

@@ -52,4 +52,7 @@ LOG_TO_SYSLOG="1"
 # path to logging file
 LOG_FILE="/tmp/jail.log"
 
+# minimal valid memory limit
+MIN_VALID_MEMORY_LIMIT=100
+
 # vim: set filetype=sh ts=8 sw=4 tw=0 sts=4 noet :

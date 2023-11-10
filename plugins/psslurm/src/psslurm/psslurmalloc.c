@@ -161,7 +161,8 @@ static int initJail(void *info)
     pid_t pid = -1;
     char buf[64];
 
-    snprintf(buf, sizeof(buf), "%u", alloc->id);
+    uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->id;
+    snprintf(buf, sizeof(buf), "%u", ID);
     setenv("__PSJAIL_JOBID", buf, 1);
     setenv("__PSJAIL_USER_INIT", "1", 1);
 
@@ -193,6 +194,7 @@ static int termJail(void *info)
     list_for_each(a, &AllocList) {
 	Alloc_t *nextAlloc = list_entry(a, Alloc_t, next);
 	if (nextAlloc->uid != alloc->uid) continue;
+	if (!nextAlloc->verified) continue;
 
 	if (allocList.buf) addStrBuf(",", &allocList);
 	snprintf(buf, sizeof(buf), "%i", nextAlloc->id);
