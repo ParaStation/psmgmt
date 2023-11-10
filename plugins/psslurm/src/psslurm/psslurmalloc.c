@@ -194,6 +194,7 @@ static int termJail(void *info)
     list_for_each(a, &AllocList) {
 	Alloc_t *nextAlloc = list_entry(a, Alloc_t, next);
 	if (nextAlloc->uid != alloc->uid) continue;
+	if (!nextAlloc->verified) continue;
 
 	if (allocList.buf) addStrBuf(",", &allocList);
 	snprintf(buf, sizeof(buf), "%i", nextAlloc->id);
