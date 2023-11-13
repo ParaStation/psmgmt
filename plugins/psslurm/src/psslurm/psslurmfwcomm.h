@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "list.h"
 #include "pslog.h"
 #include "psprotocol.h"
 #include "pluginforwarder.h"

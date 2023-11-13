@@ -12,6 +12,7 @@
 #include "pscpu.h"
 
 #include <errno.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +30,6 @@
 #include <sched.h>
 
 #include "list.h"
-#include "pscommon.h"
 #include "pslog.h"
 #include "pspartition.h"
 #include "pscommon.h"
