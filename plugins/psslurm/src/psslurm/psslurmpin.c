@@ -591,7 +591,7 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	char *endptr;
 	int digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
-	    ulog(pininfo, "invalid digit in cpu mask '%s', pinning to all"
+	    ulog(pininfo, "invalid digit in ldom mask '%s', pinning to all"
 		 " threads allowed", maskStr);
 	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
 	    break;
@@ -620,7 +620,7 @@ void mapCPUset(const PSCPU_set_t *unmapped, PSCPU_set_t *mapped, int num,
     }
 }
 
-/* check if CPU mask (from --cpu-bind=mask_cpu) fits all other parameters
+/* check if CPU mask (from --cpu-bind=mask_{cpu|ldom}) fits all other parameters
  * remember that CPUset is unmapped */
 bool checkCpuMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 		  const pininfo_t *pininfo)
@@ -728,6 +728,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 		 "ldommaskstr '%s' cpumask '%s'\n", nodeinfo->id, lTID, myent,
 		 PSCPU_print(*CPUset));
 	    free(myent);
+	    if (!checkCpuMask(CPUset, nodeinfo, pininfo)) goto error;
 	    return;
 	}
     } else if (cpuBindType & CPU_BIND_MAP) {
