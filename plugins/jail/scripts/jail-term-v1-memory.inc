@@ -30,7 +30,7 @@ function rmMemFromUser()
 	    NEW_MEM=$((USER_MEM - MEM_VAL))
 
 	    [[ $NEW_MEM -lt $MIN_VALID_MEMORY_LIMIT ]] && {
-		dlog "invalid user memory $NEW_MEM for $MEM_NAME"
+		mlog "invalid user memory $NEW_MEM for $MEM_NAME"
 		return
 	    }
 	    dlog "$NEW_MEM > $CG_USER/$MEM_NAME User: $USER"
