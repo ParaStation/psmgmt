@@ -596,7 +596,7 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	int digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
 	    ulog(pininfo, "invalid digit in ldom mask '%s', pinning to all"
-		 " threads allowed", maskStr);
+		 " threads allowed\n", maskStr);
 	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
 	    break;
 	}
@@ -634,7 +634,7 @@ bool checkCpuMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	    < pininfo->threadsPerTask) {
 	PSCPU_set_t orig;
 	mapCPUset(CPUset, &orig, nodeinfo->threadCount, nodeinfo->id);
-	ulog(pininfo, "mask %s does not fit for --cpus-per-task %d",
+	ulog(pininfo, "mask %s does not fit for --cpus-per-task %d\n",
 	     PSCPU_print_part(orig, PSCPU_bytesForCPUs(nodeinfo->threadCount)),
 	     pininfo->threadsPerTask);
 	return false;
@@ -646,7 +646,7 @@ bool checkCpuMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	if (!PSCPU_isSet(nodeinfo->stepHWthreads, getCore(cpu, nodeinfo))) {
 	    PSCPU_set_t orig;
 	    mapCPUset(CPUset, &orig, nodeinfo->threadCount, nodeinfo->id);
-	    ulog(pininfo, "mask %s does not fit into step core map",
+	    ulog(pininfo, "mask %s does not fit into step core map\n",
 		 PSCPU_print_part(orig,
 				  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 	    return false;
@@ -711,7 +711,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 
 	if (cpuBindType & CPU_BIND_MASK) {
 	    if (!myent) {
-		ulog(pininfo, "invalid cpu mask string '%s'", cpuBindString);
+		ulog(pininfo, "invalid cpu mask string '%s'\n", cpuBindString);
 		goto error;
 	    }
 	    parseCPUmask(CPUset, nodeinfo, myent, pininfo);
@@ -724,7 +724,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	} else {
 	    // cpuBindType & CPU_BIND_LDMASK
 	    if (!myent) {
-		ulog(pininfo, "invalid ldom mask string '%s'", cpuBindString);
+		ulog(pininfo, "invalid ldom mask string '%s'\n", cpuBindString);
 		goto error;
 	    }
 	    parseSocketMask(CPUset, nodeinfo, myent, pininfo);
@@ -739,14 +739,14 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	size_t count;
 	long *cpus = parseMapString(cpuBindString, &count, lTID + 1);
 	if (!cpus) {
-	    ulog(pininfo, "invalid CPU map string '%s'", cpuBindString);
+	    ulog(pininfo, "invalid CPU map string '%s'\n", cpuBindString);
 	    goto error;
 	}
 
 	long mycpu = cpus[lTID % count];
 	ufree(cpus);
 	if (mycpu >= nodeinfo->threadCount) {
-	    ulog(pininfo, "invalid CPU %ld in CPU map '%s'", mycpu,
+	    ulog(pininfo, "invalid CPU %ld in CPU map '%s'\n", mycpu,
 		 cpuBindString);
 	    goto error;
 	}
@@ -754,7 +754,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	short myumapcpu = PSIDnodes_unmapCPU(nodeinfo->id, mycpu);
 
 	if (!PSCPU_isSet(nodeinfo->stepHWthreads, myumapcpu)) {
-	    ulog(pininfo, "CPU %ld in CPU map '%s' is not in step's coremap %s",
+	    ulog(pininfo, "CPU %ld in CPU map '%s' not in step's coremap %s\n",
 		 mycpu, cpuBindString,
 		 PSCPU_print_part(nodeinfo->stepHWthreads,
 				  PSCPU_bytesForCPUs(nodeinfo->coreCount)));
@@ -770,15 +770,15 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	size_t count;
 	long *ldoms = parseMapString(cpuBindString, &count, lTID + 1);
 	if (!ldoms) {
-	    ulog(pininfo, "invalid ldom map string '%s'", cpuBindString);
+	    ulog(pininfo, "invalid ldom map string '%s'\n", cpuBindString);
 	    goto error;
 	}
 
 	long myldom = ldoms[lTID % count];
 	ufree(ldoms);
 	if (myldom >= nodeinfo->socketCount) {
-	   ulog(pininfo, "invalid ldom %ld in ldom map string '%s'", myldom,
-		   cpuBindString);
+	    ulog(pininfo, "invalid ldom %ld in ldom map string '%s'\n", myldom,
+		 cpuBindString);
 	    goto error;
 	}
 
@@ -791,7 +791,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 
 error:
     pinToAllThreads(CPUset, nodeinfo); // @todo other result in error case?
-    ulog(pininfo, "bind to all threads allowed: %s",
+    ulog(pininfo, "bind to all threads allowed: %s\n",
 	 PSCPU_print_part(*CPUset, PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 
     return;
@@ -946,7 +946,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	if (start == UINT32_MAX) {
 	    /* there are no threads left */
 	    if (!pininfo->overcommit) {
-		ulog(pininfo, "No threads left, pin to all allowed");
+		ulog(pininfo, "no threads left, pin to all allowed\n");
 		pinToAllThreads(CPUset, nodeinfo);
 		return;
 	    }
@@ -1022,7 +1022,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	/* there are not enough threads left */
 	if (!pininfo->overcommit) {
-	    ulog(pininfo, "not enough threads left, pin to all allowed");
+	    ulog(pininfo, "not enough threads left, pin to all allowed\n");
 	    pinToAllThreads(CPUset, nodeinfo);
 	    break;
 	}
@@ -1173,7 +1173,7 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 
 	/* there are not enough threads left */
 	if (!pininfo->overcommit) {
-	    ulog(pininfo, "Not enough threads left, pin to all allowed\n");
+	    ulog(pininfo, "not enough threads left, pin to all allowed\n");
 	    pinToAllThreads(CPUset, nodeinfo);
 	    break;
 	}
@@ -1238,7 +1238,7 @@ static bool setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     }
 
     if (cpuBindType & CPU_BIND_MAP && pininfo->threadsPerTask > 1) {
-	ulog(pininfo, "type map_cpu cannot be used with --cpus-per-task > 1");
+	ulog(pininfo, "type map_cpu cannot be used with --cpus-per-task > 1\n");
 	return false;
     }
 
@@ -1505,7 +1505,7 @@ static void fillHints(hints_t *hints, env_t *env, pininfo_t *pininfo)
 		flog("Valid hint in %s: nomultithread\n", var);
 	    }
 	    else {
-		ulog(pininfo, "Invalid hint in %s: '%s'", var, hintstr);
+		ulog(pininfo, "invalid hint in %s: '%s'\n", var, hintstr);
 		break;
 	    }
 	}
@@ -1928,7 +1928,7 @@ bool setStepSlots(Step_t *step)
 	/* inform user about invalid combination of options */
 	if (hints.memory_bound && pininfo.threadsPerTask > 1) {
 	    ulog(&pininfo, "incompatible options: Ignoring hint"
-		 " \"memory_bound\" with cpus-per-task !=1");
+		 " \"memory_bound\" with cpus-per-task !=1\n");
 	}
 
 	/* set node and cpuset for every task on this node */
