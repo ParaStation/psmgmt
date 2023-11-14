@@ -534,78 +534,52 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
 }
 
 /**
- * @brief Actually spawn processes.
+ * @brief Create spawn helper task structure
  *
- * Actually spawn @a count processes on the nodes stored within @a
- * dstnodes. The spawned processes will be started within @a
- * workingdir as the current working directory. The @a argc arguments
- * used in order to start the processes are stored within @a argv. The
- * first process spawned -- if not a service process -- will get the
- * unique rank @a rank, all further processes will get successive
- * ranks.
+ * Create and prepare a task structure to be passed to @ref doSpawn()
+ * in order to actually spawn tasks.
  *
- * Service processes always get rank -2. Only a single service-process
- * is allowed to be spawned.
+ * The task structure is prepared in a way that the resulting tasks
+ * will reside in the working directory @a workDir, are of group
+ * type @a taskGroup and belong to the reservation identified by @a
+ * resID.
  *
- * Upon return the array @a errors will hold @a count error codes
- * indicating if the corresponding spawn was successful and if not,
- * what caused the failure.
+ * The task structure's argument vector will be create from @a argv of
+ * size @a argc. These arguments might be prepended by additional
+ * entries depending on the environment variables PSI_USE_VALGRIND and
+ * PSI_USE_CALLGRIND.
  *
- * @param count Number of processes to spawn
+ * Further members of the task structure will be filled by the
+ * corresponding propertis of the calling process, like UID, GID,
+ * logger TID, etc. including a copy of the environment.
  *
- * @param dstnodes Array of node IDs used in order to spawn processes
+ * @param workDir Initial working directory of the spawned tasks
  *
- * @param workingdir The initial working directory of the spawned processes.
+ * @param taskGroup Task-group under which the spawned tasks shall be
+ * created, e.g. TG_ANY or TG_ADMINTASK; the latter is used for
+ * admin-tasks, i.e. unaccounted tasks
  *
- * @param argc The number of arguments used to spawn the processes.
+ * @param resID ID of the reservation holding resources for spawning;
+ * -1 if none
  *
- * @param argv The arguments used to spawn the processes.
+ * @param argc Number of arguments in @a argv
  *
- * @param strictArgv Flag to prevent "smart" replacement of argv[0].
+ * @param argv Arguments vector used to spawn the tasks
  *
- * @param taskGroup Task-group under which the spawned process shall
- * be started. At the time, TG_ANY and TG_ADMINTASK are good
- * values. The latter is used for admin-tasks, i.e. unaccounted tasks.
+ * @param strictArgv Flag to prevent "smart" replacement of argv[0]
  *
- * @param resID ID of the reservation to spawn the task(s) into; -1 if none
- *
- * @param firstRank Rank of the first process to be spawned
- *
- * @param errors Array holding error codes upon return
- *
- * @return Upon success, the number of processes spawned is returned,
- * i.e. usually this is @a count. Otherwise a negative value is
- * returned which indicates the number of answer got from spawn
- * requests.
+ * @return Upon success a prepare task structure is returned or NULL
+ * in case of failure
  */
-static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
-		   int argc, char **argv, bool strictArgv,
-		   PStask_group_t taskGroup, PSrsrvtn_ID_t resID,
-		   unsigned int firstRank, int *errors)
+static PStask_t * createSpawnTask(char *workDir, PStask_group_t taskGroup,
+				  PSrsrvtn_ID_t resID,
+				  int argc, char **argv, bool strictArgv)
 {
-    int ret = 0;    /* return value */
-
-    if (!errors) {
-	PSI_log(-1, "%s: unable to reports errors\n", __func__);
-	return -1;
-    }
-
-    char *valgrind = getenv("PSI_USE_VALGRIND");
-    char *callgrind = getenv("PSI_USE_CALLGRIND");
-
-    if ((taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG
-	|| taskGroup == TG_KVS) && count != 1) {
-	PSI_log(-1, "%s: spawn %d SERVICE tasks not allowed\n", __func__, count);
-	return -1;
-    }
-
-    for (int i = 0; i < count; i++) errors[i] = 0;
-
-    /* setup task structure to store information of the new processes */
-    PStask_t* task = PStask_new();
+    /* setup task structure to store information of processes to be spawned */
+    PStask_t *task = PStask_new();
     if (!task) {
-	PSI_log(-1, "%s: Cannot create task structure\n", __func__);
-	return -1;
+	PSI_log(-1, "%s: cannot create task structure\n", __func__);
+	return NULL;
     }
 
     task->ptid = PSC_getMyTID();
@@ -642,7 +616,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     }
     task->resID = resID;
 
-    char *myWD = PSC_getwd(workingdir);
+    char *myWD = PSC_getwd(workDir);
     if (!myWD) {
 	PSI_warn(-1, errno, "%s: unable to get working directory", __func__);
 	goto cleanup;
@@ -651,6 +625,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     task->workingdir = myWD;
     task->argc = argc;
 
+    char *valgrind = getenv("PSI_USE_VALGRIND");
     if (!valgrind) {
 	 task->argv = malloc(sizeof(char*)*(task->argc+1));
     } else {
@@ -666,9 +641,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     struct stat statbuf;
     if (stat(argv[0], &statbuf) && !strictArgv) {
 	char myexec[PATH_MAX];
-	int length;
-
-	length = readlink("/proc/self/exe", myexec, sizeof(myexec)-1);
+	int length = readlink("/proc/self/exe", myexec, sizeof(myexec)-1);
 	if (length < 0) {
 	    PSI_warn(-1, errno, "%s: readlink", __func__);
 	} else {
@@ -681,6 +654,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     }
 
     /* check for valgrind support and whether this is the actual executable: */
+    int offset = 0;
     if (valgrind && strcmp(basename(argv[0]), "mpiexec")
 	&& strcmp(basename(argv[0]), "kvsprovider")
 	&& strcmp(basename(argv[0]), "spawner")
@@ -690,33 +664,108 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	task->argv[0] = strdup("valgrind");
 	task->argv[1] = strdup("--quiet");
 
-	if (!callgrind) {
-	    if (!strcmp(valgrind, "1")) {
-		task->argv[2]=strdup("--leak-check=no");
-	    } else {
-		task->argv[2]=strdup("--leak-check=full");
-	    }
+	if (getenv("PSI_USE_CALLGRIND")) {
+	    task->argv[2] = strdup("--tool=callgrind");
 	} else {
-	    task->argv[2]=strdup("--tool=callgrind");
+	    if (!strcmp(valgrind, "1")) {
+		task->argv[2] = strdup("--leak-check=no");
+	    } else {
+		task->argv[2] = strdup("--leak-check=full");
+	    }
 	}
-
-	for (uint32_t a = 1; a < task->argc; a++) {
-	    task->argv[a+3]=strdup(argv[a]);
-	    if (!task->argv[a+3]) goto cleanup;
-	}
-	task->argc+=3;
-    } else {
-	for (uint32_t a = 1; a < task->argc; a++) {
-	    task->argv[a]=strdup(argv[a]);
-	    if (!task->argv[a]) goto cleanup;
-	}
+	offset = 3;
     }
+    /* copy arguments */
+    for (uint32_t a = 1; a < task->argc; a++) {
+	task->argv[a + offset] = strdup(argv[a]);
+	if (!task->argv[a + offset]) goto cleanup;
+    }
+    task->argc += offset;
     task->argv[task->argc] = NULL;
 
     task->environ = dumpPSIEnv();
     if (!task->environ) {
 	PSI_log(-1, "%s: cannot dump environment\n", __func__);
 	goto cleanup;
+    }
+    return task;
+
+ cleanup:
+    PStask_delete(task);
+
+    return NULL;
+}
+
+/**
+ * @brief Actually spawn processes
+ *
+ * Actually spawn @a count processes on the nodes stored within @a
+ * dstnodes. The spawned processes will be started within @a
+ * workingdir as the current working directory. The @a argc arguments
+ * used in order to start the processes are stored within @a argv. The
+ * first process spawned -- if not a service process -- will get the
+ * unique rank @a rank, all further processes will get successive
+ * ranks.
+ *
+ * Service processes always get rank -2. Only a single service-process
+ * is allowed to be spawned.
+ *
+ * Upon return the array @a errors will hold @a count error codes
+ * indicating if the corresponding spawn was successful and if not,
+ * what caused the failure.
+ *
+ * @param count Number of processes to spawn
+ *
+ * @param dstnodes Array of node IDs used in order to spawn processes
+ *
+ * @param workingdir The initial working directory of the spawned processes.
+ *
+ * @param argc The number of arguments used to spawn the processes.
+ *
+ * @param argv The arguments used to spawn the processes.
+ *
+ * @param strictArgv Flag to prevent "smart" replacement of argv[0].
+ *
+ * @param taskGroup Task-group under which the spawned process shall
+* be started. At the time, TG_ANY and TG_ADMINTASK are good
+ * values. The latter is used for admin-tasks, i.e. unaccounted tasks.
+ *
+ * @param resID ID of the reservation to spawn the task(s) into; -1 if none
+ *
+ * @param firstRank Rank of the first process to be spawned
+ *
+ * @param errors Array holding error codes upon return
+ *
+ * @return Upon success, the number of processes spawned is returned,
+ * i.e. usually this is @a count. Otherwise a negative value is
+ * returned which indicates the number of answer got from spawn
+ * requests.
+ */
+static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
+		   int argc, char **argv, bool strictArgv,
+		   PStask_group_t taskGroup, PSrsrvtn_ID_t resID,
+		   unsigned int firstRank, int *errors)
+{
+    int ret = 0;    /* return value */
+
+    if ((taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG
+	|| taskGroup == TG_KVS) && count != 1) {
+	PSI_log(-1, "%s: spawn %d SERVICE tasks not allowed\n", __func__, count);
+	return -1;
+    }
+
+    if (!errors) {
+	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	return -1;
+    }
+    for (int i = 0; i < count; i++) errors[i] = 0;
+
+    /* setup task structure to store information of the new processes */
+    PStask_t *task = createSpawnTask(workingdir, taskGroup, resID,
+				     argc, argv, strictArgv);
+    if (!task) {
+	PSI_log(-1, "%s: failed to prepare task structure\n", __func__);
+	return -1;
     }
 
     for (int i = 0; i < count; i++) {
