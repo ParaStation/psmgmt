@@ -3158,8 +3158,8 @@ void sendNodeRegStatus(bool startup)
     stat.protoVersion = version;
 
     /* version string */
-    snprintf(stat.verStr, sizeof(stat.verStr), "psslurm-%i-p%s", version,
-	     slurmProtoStr);
+    snprintf(stat.verStr, sizeof(stat.verStr), "psslurm-%s-p%s",
+	     PSC_getVersionStr(), slurmProtoStr);
 
     /* flags */
     if (needNodeRegResp) stat.flags |= SLURMD_REG_FLAG_RESP;
