@@ -444,7 +444,7 @@ static int sendSpawnReq(PStask_t* task, PSnodes_ID_t *dstnodes, uint32_t max)
     uint32_t num = 0;
     while (num < max && dstnodes[num] == dstnodes[0]) num++;
 
-    PSI_log(PSI_LOG_SPAWN, "%s: %d proc to %d at rank %d\n", __func__, num,
+    PSI_log(PSI_LOG_SPAWN, "%s: %d tasks to %d at rank %d\n", __func__, num,
 	    dstnodes[0], task->rank);
 
     addUint32ToMsg(num, &msg);
@@ -575,7 +575,7 @@ static PStask_t * createSpawnTask(char *workDir, PStask_group_t taskGroup,
 				  PSrsrvtn_ID_t resID,
 				  int argc, char **argv, bool strictArgv)
 {
-    /* setup task structure to store information of processes to be spawned */
+    /* setup task structure to store information of tasks to be spawned */
     PStask_t *task = PStask_new();
     if (!task) {
 	PSI_log(-1, "%s: cannot create task structure\n", __func__);
@@ -961,13 +961,12 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
 		      int argc, char **argv, int *error, int rank)
 {
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
-
     if (!error) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
 	return false;
     }
 
-    /* tell logger about service process */
+    /* tell logger about service tasks */
     /* @todo remove this on the long run since the logger ignores it */
     char *envStr = getenv(ENV_NUM_SERVICE_PROCS);
     if (envStr) {
