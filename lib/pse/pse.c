@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -183,9 +183,6 @@ void PSE_setUID(uid_t uid)
 void PSE_spawnMaster(int argc, char *argv[])
 {
     /* spawn master process (we are going to be logger) */
-    PStask_ID_t spawnedProcess = -1;
-    int error;
-
     logger_print(logger, PSE_LOG_VERB, "%s(%s)\n", __func__, argv[0]);
 
     /* client process? */
@@ -200,7 +197,8 @@ void PSE_spawnMaster(int argc, char *argv[])
     PSI_RemoteArgs(argc, argv, &argc, &argv);
 
     /* spawn master process */
-    if (PSI_spawn(1, ".", argc, argv, &error, &spawnedProcess) < 0 ) {
+    int error;
+    if (PSI_spawn(1, ".", argc, argv, &error) < 0 ) {
 	if (error) {
 	    logger_warn(logger, -1, error,
 			"Could not spawn master process (%s)",argv[0]);
@@ -224,8 +222,6 @@ void PSE_spawnMaster(int argc, char *argv[])
 void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
 {
     /* spawning processes */
-    int i, ret, *errors;
-    PStask_ID_t *spawnedProcesses;
     char envstr[80];
 
     logger_print(logger, PSE_LOG_VERB, "%s(%d, %d, %d, %s)\n",
@@ -248,28 +244,16 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
     snprintf(envstr, sizeof(envstr), "__PSI_MASTERPORT=%d", masterPort);
     putPSIEnv(envstr);
 
-    /* init table of spawned processes */
     myWorldSize = num;
-    spawnedProcesses = malloc(sizeof(*spawnedProcesses) * num);
-    if (!spawnedProcesses) {
-	logger_print(logger, -1,
-		     "%s: malloc(spawnedProcesses) failed\n", __func__);
-	exitAll("No memory", 10);
-    }
-    for (i=0; i<myWorldSize; i++) {
-	spawnedProcesses[i] = -1;
-    }
-
-    errors = malloc(sizeof(int) * myWorldSize);
+    int *errors = malloc(sizeof(int) * myWorldSize);
     if (!errors) {
 	logger_print(logger, -1, "%s: malloc(errors) failed\n", __func__);
 	exitAll("No memory", 10);
     }
 
     /* spawn client processes */
-    ret = PSI_spawn(myWorldSize, ".", argc, argv, errors, spawnedProcesses);
-    if (ret<0) {
-	for (i=0; i<myWorldSize; i++) {
+    if (PSI_spawn(myWorldSize, ".", argc, argv, errors) < 0) {
+	for (int i = 0; i < myWorldSize; i++) {
 	    logger_warn(logger, errors[i] ? -1 : PSE_LOG_SPAWN, errors[i],
 			"Could%s spawn '%s' process %d",
 			errors[i] ? " not" : "", argv[0], i+1);
@@ -277,7 +261,6 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
 	exitAll("Spawn failed", 10);
     }
     free(errors);
-    free(spawnedProcesses);
 
     logger_print(logger, PSE_LOG_SPAWN, "Spawned all processes\n");
 }
@@ -285,14 +268,12 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
 int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
 		   int argc, char *argv[], bool strictArgv)
 {
-    PStask_ID_t spawnedProcess = -1;
-    int error;
-
     logger_print(logger, PSE_LOG_VERB, "%s(%s)\n", __func__, argv[0]);
 
     /* spawn admin process */
-    if (PSI_spawnAdmin(node, NULL, argc, argv, strictArgv, rank,
-		       &error, &spawnedProcess) < 0 && PSE_getRank() == -1) {
+    int error;
+    if (!PSI_spawnAdmin(node, NULL, argc, argv, strictArgv, rank, &error)
+	&& PSE_getRank() == -1) {
 	if (error) {
 	    logger_warn(logger, -1, error,
 			"Could not spawn admin process (%s)",argv[0]);

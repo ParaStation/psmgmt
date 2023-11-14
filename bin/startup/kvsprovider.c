@@ -73,8 +73,6 @@ static void propMoreEnv(void)
 
 int main(int argc, const char *argv[], char** envp)
 {
-    Conf_t *conf;
-    int error, ret, sRank = -3;
     char tmp[PATH_MAX], *envPtr;
     bool distStart = getenv("__MPIEXEC_DIST_START");
 
@@ -86,7 +84,7 @@ int main(int argc, const char *argv[], char** envp)
     PSE_initialize();
 
     /* parse command line options */
-    conf = parseCmdOptions(argc, argv);
+    Conf_t *conf = parseCmdOptions(argc, argv);
 
     /* update sighandler's verbosity */
     setupSighandler(conf->verbose);
@@ -106,6 +104,7 @@ int main(int argc, const char *argv[], char** envp)
 
     /* Identify the rank of the spawner service to start */
     envPtr = getenv("__PMI_SPAWN_SERVICE_RANK");
+    int sRank = -3;
     if (envPtr) sRank = atoi(envPtr);
 
     if (!conf->pmiDisable) {
@@ -130,9 +129,10 @@ int main(int argc, const char *argv[], char** envp)
 
     /* spawn the actual spawner service */
     if (conf->verbose) printf("%s: spawn via %s\n", origArgv0, argv[0]);
-    ret = PSI_spawnService(startNode, TG_SERVICE, pwd, argc, (char **)argv,
-			   &error, NULL, sRank);
-    if (ret < 0 || error) {
+    int error;
+    if (!PSI_spawnService(startNode, TG_SERVICE, pwd, argc, (char **)argv,
+			  &error, sRank)
+	|| error) {
 	fprintf(stderr, "%s: Could not start spawner process (%s)", origArgv0,
 		argv[0]);
 	if (error) {
@@ -152,8 +152,7 @@ int main(int argc, const char *argv[], char** envp)
 
     if (pmiDisable) {
 	/* nothing more to do -- release myself and exit */
-	ret = PSI_release(PSC_getMyTID());
-	if (ret == -1 && errno != ESRCH) {
+	if (PSI_release(PSC_getMyTID()) == -1 && errno != ESRCH) {
 	    fprintf(stderr, "%s: error releasing service process %s\n", argv[0],
 		    PSC_printTID(PSC_getMyTID()));
 	}

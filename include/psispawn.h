@@ -129,24 +129,20 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * PWD environment variable is taken.
  *
  * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks.
+ * resulting execve() call in order to really spawn the tasks
  *
  * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task.
+ * execve() call in order to finally spawn the tasks
  *
- * @param errors Error-codes displaying if an error occurred within
- * PSI_spawn() while spawning the corresponding task.
- *
- * @param tids Array to hold task IDs of the spawned processes upon
- * return. If NULL, no such info will be provided.
+ * @param errors Error-codes displaying if an error occurred while
+ * spawning the corresponding tasks
  *
  * @return On success, the number of tasks spawned is returned, or -1
  * if an error occurred. Then errors is set appropriately.
  *
  * @see PSI_spawnStrict()
  */
-int PSI_spawn(int count, char *workingdir, int argc, char **argv,
-	      int *errors, PStask_ID_t *tids);
+int PSI_spawn(int count, char *workingdir, int argc, char **argv, int *errors);
 
 /**
  * @brief Spawn one or more tasks within the cluster.
@@ -166,19 +162,16 @@ int PSI_spawn(int count, char *workingdir, int argc, char **argv,
  * PWD environment variable is taken.
  *
  * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks.
+ * resulting execve() call in order to really spawn the tasks
  *
  * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task.
+ * execve() call in order to finally spawn the tasks
  *
  * @param strictArgv Flag to disable pseudo-intelligent determination
- * of the executable.
+ * of the executable
  *
- * @param errors Error-codes displaying if an error occurred within
- * PSI_spawn() while spawning the corresponding task.
- *
- * @param tids Array to hold task IDs of the spawned processes upon
- * return. If NULL, no such info will be provided.
+ * @param errors Error-codes displaying if an error occurred while
+ * spawning the corresponding tasks
  *
  * @return On success, the number of tasks spawned is returned, or -1
  * if an error occurred. Then errors is set appropriately.
@@ -186,7 +179,7 @@ int PSI_spawn(int count, char *workingdir, int argc, char **argv,
  * @see PSI_spawnStrict()
  */
 int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
-		    bool strictArgv, int *errors, PStask_ID_t *tids);
+		    bool strictArgv, int *errors);
 
 /**
  * @brief Spawn one or more tasks within the cluster.
@@ -202,10 +195,9 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
  * additional constraints like PART_OPT_NODEFIRST or PART_OPT_OVERBOOK
  * might be raised via the @a options parameter.
  *
- * The unique task IDs of the spawned tasks will be returned within
- * the @a tids array. If an error occurred, @a errors will contain an
- * errno describing the error on the position corresponding to the
- * relative rank of the spawned process.
+ * If an error occurred, @a errors will contain an errno describing
+ * the error on the position corresponding to the relative rank of the
+ * spawned process.
  *
  * Before using this function, PSI_createPartition() has to be called
  * from within any process of the parallel task (which is usually the
@@ -229,20 +221,17 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
  * PWD environment variable is taken.
  *
  * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks.
+ * resulting execve() call in order to really spawn the tasks
  *
  * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task.
+ * execve() call in order to finally spawn the tasks
  *
  * @param strictArgv Flag to disable pseudo-intelligent determination
  * of the executable. If set, argv[0] will be passed to the final
  * exec() call as is.
  *
- * @param errors Error-codes displaying if an error occurred within
- * PSI_spawn() while spawning the corresponding task.
- *
- * @param tids Array to hold task IDs of the spawned processes upon
- * return. If NULL, no such info will be provided.
+ * @param errors Error-codes displaying if an error occurred while
+ * spawning the corresponding tasks
  *
  * @return On success, the number of tasks spawned is returned, or -1
  * if an error occurred. Then errors is set appropriately.
@@ -252,7 +241,7 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 		      PSpart_option_t options,
 		      char *workdir, int argc, char **argv, bool strictArgv,
-		      int *errors, PStask_ID_t *tids);
+		      int *errors);
 
 /**
  * @brief Spawn one or more tasks within the cluster.
@@ -262,10 +251,9 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
  * PSI_getSlots() function. The latter will use the reservation
  * identified by @a resID in order to access the required resources.
  *
- * The unique task IDs of the spawned tasks will be returned within
- * the @a tids array. If an error occurred, @a errors will contain an
- * errno describing the error on the position corresponding to the
- * relative rank of the spawned process.
+ * If an error occurred, @a errors will contain an errno describing
+ * the error on the position corresponding to the relative rank of the
+ * spawned process.
  *
  * Before using this function, PSI_createPartition() has to be called
  * from within any process of the parallel task (which is usually the
@@ -283,20 +271,17 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
  * PWD environment variable is taken.
  *
  * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks.
+ * resulting execve() call in order to really spawn the tasks
  *
  * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task.
+ * execve() call in order to finally spawn the tasks
  *
  * @param strictArgv Flag to disable pseudo-intelligent determination
  * of the executable. If set, argv[0] will be passed to the final
  * exec() call as is.
  *
- * @param errors Error-codes displaying if an error occurred within
- * PSI_spawn() while spawning the corresponding task.
- *
- * @param tids Array to hold task IDs of the spawned processes upon
- * return. If NULL, no such info will be provided.
+ * @param errors Error-codes displaying if an error occurred while
+ * spawning the corresponding tasks
  *
  *
  * @return On success, the number of tasks spawned is returned, or -1
@@ -305,8 +290,7 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
  * @see PSI_createPartition() PSI_getRervation(), PSI_getSlots()
  */
 int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
-		    int argc, char **argv, bool strictArgv,
-		    int *errors, PStask_ID_t *tids);
+		    int argc, char **argv, bool strictArgv, int *errors);
 
 
 /**
@@ -314,13 +298,9 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
  *
  * Spawn the task with rank @a rank described by the @a argc arguments
  * within @a argv. The node used will depend on the rank of the
- * spawned task determined via the INFO_request_rankID() function. The
+ * spawned task determined via the PSI_getRankNode() function. The
  * present working directory of the spawned tasks will be @a
  * workingdir.
- *
- * The unique task ID of the spawned task will be returned. If an
- * error occurred, the returned value will be 0 and @a error will
- * contain an errno describing the error.
  *
  * Before using this function, PSI_createPartition() has to be called
  * from within any process of the parallel task (which is naturally
@@ -338,23 +318,21 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
  * PWD environment variable is taken.
  *
  * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks.
+ * resulting execve() call in order to really spawn the task
  *
  * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task.
+ * execve() call in order to finally spawn the task
  *
- * @param error Error-code displaying if an error occurred within
- * PSI_spawnRank() while spawning the task.
+ * @param error Error-code displaying if an error occurred while
+ * spawning the task
  *
  *
- * @return On success, the unique task ID of the spawned process will
- * be returned, or 0, if an error occurred. Then errors is set
- * appropriately.
+ * @return Return true on success or false if an error occurred; then
+ * @a error is set appropriately
  *
- * @see PSI_createPartition() INFO_request_rankID()
+ * @see PSI_createPartition() PSI_getRankNode()
  */
-PStask_ID_t PSI_spawnRank(int rank, char *workingdir, int argc, char **argv,
-			  int *error);
+bool PSI_spawnRank(int rank, char *workingdir, int argc, char **argv, int *error);
 
 /**
  * @brief Spawn a gmspawner task within the cluster.
@@ -363,12 +341,8 @@ PStask_ID_t PSI_spawnRank(int rank, char *workingdir, int argc, char **argv,
  * argv. The rank used will be @a np, i.e. a rank that is in actual
  * fact unavailable. Thus the node used will be the node the rank 0
  * process will be spawned to. It is determined via
- * INFO_request_rankID(). The present working directory of the spawned
+ * PSI_getRankNode(). The present working directory of the spawned
  * tasks will be @a workingdir.
- *
- * The unique task ID of the spawned task will be returned. If an
- * error occurred, the returned value will be 0 and @a error will
- * contain an errno describing the error.
  *
  * Before using this function, PSI_createPartition() has to be called
  * from within any process of the parallel task (which is naturally
@@ -387,23 +361,22 @@ PStask_ID_t PSI_spawnRank(int rank, char *workingdir, int argc, char **argv,
  * PWD environment variable is taken.
  *
  * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks.
+ * resulting execve() call in order to really spawn the task
  *
  * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task.
+ * execve() call in order to finally spawn the task
  *
- * @param error Error-code displaying if an error occurred within
- * PSI_spawnRank() while spawning the task.
+ * @param error Error-code displaying if an error occurred while
+ * spawning the task
  *
  *
- * @return On success, the unique task ID of the spawned process will
- * be returned, or 0, if an error occurred. Then errors is set
- * appropriately.
+ * @return Return true on success or false if an error occurred; then
+ * @a error is set appropriately
  *
- * @see PSI_createPartition() INFO_request_rankID()
+ * @see PSI_createPartition(), PSI_getRankNode()
  */
-PStask_ID_t PSI_spawnGMSpawner(int np, char *workingdir, int argc, char **argv,
-			       int *error);
+bool PSI_spawnGMSpawner(int np, char *workingdir, int argc, char **argv,
+			int *error);
 
 /**
  * @brief Spawn admin task within the cluster.
@@ -428,28 +401,24 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workingdir, int argc, char **argv,
  * environment variable is taken.
  *
  * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks.
+ * resulting execve() call in order to really spawn the task
  *
  * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task.
+ * execve() call in order to finally spawn the task
  *
  * @param strictArgv Flag to prevent "smart" replacement of argv[0].
  *
  * @param rank The rank of the spawned process. This is mainly used
  * within reconnection to the logger.
  *
- * @param error Error-code displaying if an error occurred within
- * PSI_spawnAdmin() while spawning the corresponding task.
+ * @param error Error-code displaying if an error occurred while
+ * spawning the corresponding task
  *
- * @param tid The task ID of the spawned process.
- *
- *
- * @return On success, 1 is returned, or -1 if an error occurred. Then
- * @a error is set appropriately.
+ * @return Return true on success or false if an error occurred; then
+ * @a error is set appropriately
  */
-int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		   bool strictArgv, unsigned int rank,
-		   int *error, PStask_ID_t *tid);
+bool PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
+		    bool strictArgv, unsigned int rank, int *error);
 
 /**
  * @brief Spawn service task within the cluster.
@@ -458,9 +427,8 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
  * argv to node @a node. The present working directory of the
  * spawned task will be @a wDir.
  *
- * The unique task ID of the spawned task will be returned within @a
- * tid. If an error occurred, @a error will contain an errno
- * describing the error.
+ * If an error occurred, @a error will contain an errno describing the
+ * error.
  *
  * Spawning in general is done within an allocated a partition,
  * nevertheless, service tasks do not use a slot, but are handled as
@@ -478,7 +446,7 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
  *
  * @param node Node to spawn to.
  *
- * @param wDir Present working directory of the spawned tasks on
+ * @param wDir Present working directory of the spawned task on
  * startup. This might be an absolute or relative path. If @a wDir is
  * a relative path, the content of the PWD environment variable is
  * prepended. If @a wDir is NULL, the content of the PWD environment
@@ -490,26 +458,23 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
  * TG_SERVICE_SIG, or TG_KVS.
  *
  * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks.
+ * resulting execve() call in order to really spawn the task
  *
  * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task.
+ * execve() call in order to finally spawn the task
  *
- * @param error Error-code displaying if an error occurred within
- * PSI_spawnAdmin() while spawning the corresponding task.
- *
- * @param tid The task ID of the spawned process.
+ * @param error Error-code displaying if an error occurred while
+ * spawning the corresponding task
  *
  * @param rank The rank of the spawned process. Might be used to
  * overrule the default -2 of service processes. This takes only
  * effect if a value less than -2 is provided.
  *
- * @return On success, 1 is returned, or -1 if an error occurred. Then
- * @a error is set appropriately.
+ * @return Return true on success or false if an error occurred; then
+ * @a error is set appropriately
  */
-int PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
-		     int argc, char **argv, int *error, PStask_ID_t *tid,
-		     int rank);
+bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
+		      int argc, char **argv, int *error, int rank);
 
 /**
  * @brief Create a pg (process group) file for MPIch/P4

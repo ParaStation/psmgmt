@@ -797,7 +797,7 @@ static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
     memset(errors, 0, sizeof(int) * np);
 
     /* spawn client processes */
-    int ret = PSI_spawnRsrvtn(np, resID, wd, argc, argv, true, errors, NULL);
+    int ret = PSI_spawnRsrvtn(np, resID, wd, argc, argv, true, errors);
 
     /* Analyze result, if necessary */
     if (ret < 0) {

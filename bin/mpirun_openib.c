@@ -100,7 +100,7 @@ static void createSpawner(int argc, char *argv[], int np)
 
     if (rank == -1) {
 	PSnodes_ID_t *nds;
-	int error, spawnedProc;
+	int error;
 	char* hwList[] = { "openib", NULL };
 
 	nds = malloc(np*sizeof(*nds));
@@ -122,8 +122,7 @@ static void createSpawner(int argc, char *argv[], int np)
 	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
 		     nds, np*sizeof(*nds), false);
 
-	PSI_spawnService(nds[0], TG_SERVICE_SIG, NULL, argc, argv, &error,
-			 &spawnedProc, 0);
+	PSI_spawnService(nds[0], TG_SERVICE_SIG, NULL, argc, argv, &error, 0);
 
 	free(nds);
 
@@ -286,24 +285,22 @@ static char ** setupNodeEnv(int i, void *info)
  */
 static int startProcs(int np, int argc, char *argv[], bool verbose)
 {
-    int i, ret, *errors;
-
     setupCommonEnv(np);
 
     verboseRankMsg = verbose;
     PSI_registerRankEnvFunc(setupNodeEnv, NULL);
 
-    errors = malloc(sizeof(int) * np);
+    int *errors = malloc(sizeof(int) * np);
     if (!errors) {
 	fprintf(stderr, "%s: malloc() failed\n", __func__);
 	return -1;
     }
 
     /* spawn client processes */
-    ret = PSI_spawnStrict(np, ".", argc, argv, true, errors, NULL);
+    int ret = PSI_spawnStrict(np, ".", argc, argv, true, errors);
     /* Analyze result, if necessary */
-    if (ret<0) {
-	for (i=0; i<np; i++) {
+    if (ret < 0) {
+	for (int i = 0; i < np; i++) {
 	    if (verbose || errors[i]) {
 		fprintf(stderr, "Could%s spawn '%s' process %d",
 			errors[i] ? " not" : "", argv[0], i+1);
@@ -316,7 +313,7 @@ static int startProcs(int np, int argc, char *argv[], bool verbose)
 	}
 	fprintf(stderr, "%s: PSI_spawn() failed.\n", __func__);
     } else {
-	for (i=0; i<np; i++) plist[i].state = P_STARTED;
+	for (int i = 0; i < np; i++) plist[i].state = P_STARTED;
     }
 
     free(errors);

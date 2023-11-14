@@ -93,9 +93,7 @@ static void setupGlobalEnv(Conf_t *conf)
 
 int main(int argc, const char *argv[])
 {
-    Conf_t *conf;
-    int error, ret;
-    char tmp[PATH_MAX], *envPtr;
+    char tmp[PATH_MAX];
 
     setlinebuf(stdout);
 
@@ -118,7 +116,7 @@ int main(int argc, const char *argv[])
     }
 
     /* parse command line options */
-    conf = parseCmdOptions(argc, argv);
+    Conf_t *conf = parseCmdOptions(argc, argv);
 
     /* update sighandler's verbosity */
     setupSighandler(conf->verbose);
@@ -141,7 +139,7 @@ int main(int argc, const char *argv[])
     if (!conf->envTPP) unsetenv("PSI_TPP");
 
     /* determine node the kvsprovider service process shall run on */
-    envPtr = getenv("__MPIEXEC_DIST_START");
+    char *envPtr = getenv("__MPIEXEC_DIST_START");
     PSnodes_ID_t startNode = envPtr ? getIDbyIdx(conf, 1) : PSC_getMyID();
     setPSIEnv("__MPIEXEC_DIST_START", envPtr, 1);
 
@@ -163,9 +161,10 @@ int main(int argc, const char *argv[])
 
     /* spawn the actual KVS provider service */
     if (conf->verbose) printf("%s: provide KVS via %s\n", origArgv0, argv[0]);
-    ret = PSI_spawnService(startNode, TG_KVS, pwd, argc, (char **)argv,
-			   &error, NULL, 0);
-    if (ret < 0 || error) {
+    int error;
+    if (!PSI_spawnService(startNode, TG_KVS, pwd, argc, (char **)argv,
+			  &error, 0)
+	|| error) {
 	fprintf(stderr, "%s: Could not start KVS provider process (%s)",
 		origArgv0, argv[0]);
 	if (error) {

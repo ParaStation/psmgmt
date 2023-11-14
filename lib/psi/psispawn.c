@@ -821,23 +821,21 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     return -1;
 }
 
-int PSI_spawn(int count, char *workdir, int argc, char **argv,
-	      int *errors, PStask_ID_t *tids)
+int PSI_spawn(int count, char *workdir, int argc, char **argv, int *errors)
 {
-    return PSI_spawnStrict(count, workdir, argc, argv, false, errors, tids);
+    return PSI_spawnStrict(count, workdir, argc, argv, false, errors);
 }
 
 int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
-		    bool strictArgv, int *errors, PStask_ID_t *tids)
+		    bool strictArgv, int *errors)
 {
     return PSI_spawnStrictHW(count, 0/*hwType*/, 1/*tpp*/, 0/*options*/,
-			     workdir, argc, argv, strictArgv, errors, tids);
+			     workdir, argc, argv, strictArgv, errors);
 }
 
 int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 		      PSpart_option_t options, char *workdir,
-		      int argc, char **argv, bool strictArgv,
-		      int *errors, PStask_ID_t *tids)
+		      int argc, char **argv, bool strictArgv, int *errors)
 {
     int total = 0;
     PSnodes_ID_t *nodes;
@@ -876,7 +874,7 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
 	ret = dospawn(chunk, nodes, workdir, argc, argv, strictArgv, TG_ANY,
-		-1, rank, errors+total, tids ? tids+total : NULL);
+		      -1, rank, errors+total, NULL);
 	if (ret != chunk) {
 	    free(nodes);
 	    return -1;
@@ -891,8 +889,7 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 }
 
 int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
-		    int argc, char **argv, bool strictArgv,
-		    int *errors, PStask_ID_t *tids)
+		    int argc, char **argv, bool strictArgv, int *errors)
 {
     int total = 0, ret = -1;
     PSnodes_ID_t *nodes = NULL;
@@ -915,7 +912,6 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
     while (count > 0) {
 	int chunk = (count > NODES_CHUNK) ? NODES_CHUNK : count;
 	int rank = PSI_getSlots(chunk, resID, nodes);
-	int i, num;
 
 	if (rank < 0) {
 	    errors[total] = ENXIO;
@@ -923,14 +919,14 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 	}
 
 	PSI_log(PSI_LOG_SPAWN, "%s: will spawn to:", __func__);
-	for (i = 0; i < chunk; i++) {
+	for (int i = 0; i < chunk; i++) {
 	    PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
 	}
 	PSI_log(PSI_LOG_SPAWN, "\n");
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
-	num = dospawn(chunk, nodes, workdir, argc, argv, strictArgv, TG_ANY,
-	       resID, rank, errors+total, tids ? tids+total : NULL);
+	int num = dospawn(chunk, nodes, workdir, argc, argv, strictArgv, TG_ANY,
+			  resID, rank, errors+total, NULL);
 	if (num != chunk) goto exit;
 
 	count -= chunk;
@@ -943,36 +939,30 @@ exit:
     return ret;
 }
 
-int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		   bool strictArgv, unsigned int rank,
-		   int *error, PStask_ID_t *tid)
+bool PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
+		    bool strictArgv, unsigned int rank, int *error)
 {
-    int ret;
-
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
     if (!error) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
-	return -1;
+	return false;
     }
 
     if (node == -1) node = PSC_getMyID();
-    ret = dospawn(1, &node, workdir, argc, argv, strictArgv,
-		  TG_ADMINTASK, -1, rank, error, tid);
-    if (ret != 1) return -1;
-
-    return 1;
+    int ret = dospawn(1, &node, workdir, argc, argv, strictArgv,
+		      TG_ADMINTASK, -1, rank, error, NULL);
+    return ret == 1;
 }
 
-int PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
-		     int argc, char **argv, int *error, PStask_ID_t *tid,
-		     int rank)
+bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
+		      int argc, char **argv, int *error, int rank)
 {
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
     if (!error) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
-	return -1;
+	return false;
     }
 
     /* tell logger about service process */
@@ -999,67 +989,57 @@ int PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
     if (rank >= -1) rank = -2;
 
     int ret = dospawn(1, &node, wDir, argc, argv, false, taskGroup, -1, rank,
-		      error, tid);
-    if (ret != 1) return -1;
-
-    return 1;
+		      error, NULL);
+    return ret == 1;
 }
 
-PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
-			  int *error)
+bool PSI_spawnRank(int rank, char *workdir, int argc, char **argv, int *error)
 {
     PSnodes_ID_t node;
-    int ret, rankGot = PSI_getRankNode(rank, &node);
-    PStask_ID_t tid;
+    int rankGot = PSI_getRankNode(rank, &node);
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, rank);
 
     if (!error) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
-	return -1;
+	return false;
     }
 
     if (rankGot != rank) {
 	*error = ENXIO;
-	return 0;
+	return false;
     }
 
-    PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d  rank %d\n",
-	    __func__, node, rank);
+    PSI_log(PSI_LOG_SPAWN, "%s: will spawn rank %d to %d\n",
+	    __func__, rank, node);
 
-    ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, rank,
-		  error, &tid);
-    if (ret != 1) return 0;
-
-    return tid;
+    int ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, rank,
+		      error, NULL);
+    return ret == 1;
 }
 
-PStask_ID_t PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
-			       int *error)
+bool PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv, int *error)
 {
     PSnodes_ID_t node;
-    int ret, rankGot = PSI_getRankNode(0, &node);
-    PStask_ID_t tid;
+    int rankGot = PSI_getRankNode(0, &node);
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, np);
 
     if (!error) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
-	return -1;
+	return false;
     }
 
     if (rankGot) {
 	*error = ENXIO;
-	return 0;
+	return false;
     }
 
-    PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d", __func__, node);
+    PSI_log(PSI_LOG_SPAWN, "%s: will spawn to %d", __func__, node);
 
-    ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, np,
-		  error, &tid);
-    if (ret != 1) return 0;
-
-    return tid;
+    int ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, np,
+		      error, NULL);
+    return ret == 1;
 }
 
 char *PSI_createPGfile(int num, const char *prog, int local)
