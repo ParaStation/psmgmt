@@ -280,8 +280,7 @@ static bool sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len,
  * Handle pending answers sent by the remote side on spawn
  * requests. The original spawn request asked for spawning @a count
  * processes on the nodes listed in @a dstnodes starting with rank @a
- * firstRank. Errors are logged within @a errors, the resulting task
- * IDs will be stored within @a tids.
+ * firstRank. Errors are logged within @a errors.
  *
  * @param firstRank Rank of the first process to spawn
  *
@@ -291,9 +290,6 @@ static bool sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len,
  *
  * @param errors Array holding error codes upon return.
  *
- * @param tids Array holding unique task IDs upon return. If this is
- * NULL, no such information will be stored.
- *
  * @return Return might be one of four different values:
  * -2: ignore message; from unknown node, answer to "who died" question, etc.
  * -1: fatal error
@@ -301,7 +297,7 @@ static bool sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len,
  *  1: no error
   */
 static int handleAnswer(unsigned int firstRank, int count,
-			PSnodes_ID_t *dstnodes, int *errors, PStask_ID_t *tids)
+			PSnodes_ID_t *dstnodes, int *errors)
 {
     DDBufferMsg_t answer;
     DDErrorMsg_t *errMsg = (DDErrorMsg_t *)&answer;
@@ -317,7 +313,6 @@ static int handleAnswer(unsigned int firstRank, int count,
 	rank = errMsg->request - firstRank;
 	if (rank >= 0 && rank < count) {
 	    errors[rank] = 0; /* no error on success */
-	    if (tids) tids[rank] = answer.header.sender;
 	} else {
 	    PSI_log(-1, "%s: %s from illegal rank %d at node %d\n", __func__,
 		    PSP_printMsg(answer.header.type), errMsg->request,
@@ -333,7 +328,6 @@ static int handleAnswer(unsigned int firstRank, int count,
 	bool found = false;
 	if (errMsg->request == 0 && firstRank == 0
 	    && dstnodes[0] == PSC_getID(answer.header.sender)
-	    && (!tids || tids[0] == 0)
 	    && !errors[0]) {
 	    found = true;
 	}
@@ -341,7 +335,7 @@ static int handleAnswer(unsigned int firstRank, int count,
 	if (errMsg->request == 0 && !found) {
 	    for (rank = 0; rank < count; rank++) {
 		if (dstnodes[rank] == PSC_getID(answer.header.sender)
-		    && (!tids || tids[rank] == 0) && !errors[rank]) {
+		    && !errors[rank]) {
 		    /*
 		     * We have to test for !errors[i], since daemon on node 0
 		     * (which has tid 0) might have returned an error.
@@ -351,10 +345,7 @@ static int handleAnswer(unsigned int firstRank, int count,
 	    }
 	}
 
-	if (rank < count) {
-	    errors[rank] = errMsg->error;
-	    if (tids) tids[rank] = answer.header.sender;
-	}
+	if (rank < count) errors[rank] = errMsg->error;
 
 	if (rank == count) {
 	    if (PSC_getID(answer.header.sender) == PSC_getMyID()
@@ -365,7 +356,6 @@ static int handleAnswer(unsigned int firstRank, int count,
 		PSI_log(-1, "%s: Starting not allowed from node %d\n", __func__,
 			PSC_getID(answer.header.sender));
 		errors[0] = errMsg->error;
-		if (tids) tids[0] = answer.header.sender;
 	    } else {
 		PSI_log(-1, "%s: %s from unknown node %d\n", __func__,
 			PSP_printMsg(answer.header.type),
@@ -559,8 +549,7 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  *
  * Upon return the array @a errors will hold @a count error codes
  * indicating if the corresponding spawn was successful and if not,
- * what cause the failure. The array @a tids will hold the unique task
- * ID of the started processes, if @a tids was different from NULL.
+ * what caused the failure.
  *
  * @param count Number of processes to spawn
  *
@@ -578,14 +567,11 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * be started. At the time, TG_ANY and TG_ADMINTASK are good
  * values. The latter is used for admin-tasks, i.e. unaccounted tasks.
  *
- * @param resID The ID of the reservation to spawn the task into. -1 if none.
+ * @param resID ID of the reservation to spawn the task(s) into; -1 if none
  *
- * @param rank The rank of the first process spawned.
+ * @param firstRank Rank of the first process to be spawned
  *
- * @param errors Array holding error codes upon return.
- *
- * @param tids Array holding unique task IDs upon return. If this is
- * NULL, no such information will be stored.
+ * @param errors Array holding error codes upon return
  *
  * @return Upon success, the number of processes spawned is returned,
  * i.e. usually this is @a count. Otherwise a negative value is
@@ -595,7 +581,7 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
 static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		   int argc, char **argv, bool strictArgv,
 		   PStask_group_t taskGroup, PSrsrvtn_ID_t resID,
-		   unsigned int rank, int *errors, PStask_ID_t *tids)
+		   unsigned int firstRank, int *errors)
 {
     int ret = 0;    /* return value */
 
@@ -609,13 +595,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     if ((taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG
 	|| taskGroup == TG_KVS) && count != 1) {
-	PSI_log(-1, "%s: spawn %d SERVICE tasks not allowed\n",
-		__func__, count);
+	PSI_log(-1, "%s: spawn %d SERVICE tasks not allowed\n", __func__, count);
 	return -1;
     }
 
     for (int i = 0; i < count; i++) errors[i] = 0;
-    if (tids) for (int i = 0; i < count; i++) tids[i] = 0;
 
     /* setup task structure to store information of the new processes */
     PStask_t* task = PStask_new();
@@ -740,7 +724,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	/* check if dstnode is ok */
 	if (!PSC_validNode(dstnodes[i])) {
 	    errors[i] = ENETUNREACH;
-	    if (tids) tids[i] = -1;
 	    goto cleanup;
 	}
     }
@@ -753,10 +736,9 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     /* send actual requests */
     bool error = false;
     int expectedAnswers = 0;
-    unsigned int firstRank = rank;
+    unsigned int rank = firstRank;
     for (int i = 0; i < count && !error;) {
 	task->rank = rank;
-
 	int num = sendSpawnReq(task, &dstnodes[i], count - i);
 	if (num < 0) goto cleanup;
 
@@ -765,7 +747,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	expectedAnswers += num;
 
 	while (PSI_availMsg() > 0 && expectedAnswers) {
-	    int r = handleAnswer(firstRank, count, dstnodes, errors, tids);
+	    int r = handleAnswer(firstRank, count, dstnodes, errors);
 	    switch (r) {
 	    case -2:
 		/* just ignore */
@@ -791,7 +773,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     /* collect expected answers */
     while (expectedAnswers > 0) {
-	int r = handleAnswer(firstRank, count, dstnodes, errors, tids);
+	int r = handleAnswer(firstRank, count, dstnodes, errors);
 	switch (r) {
 	case -2:
 	    /* just ignore */
@@ -864,7 +846,7 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
 	ret = dospawn(chunk, nodes, workdir, argc, argv, strictArgv, TG_ANY,
-		      -1, rank, errors+total, NULL);
+		      -1, rank, errors + total);
 	if (ret != chunk) {
 	    free(nodes);
 	    return -1;
@@ -916,7 +898,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
 	int num = dospawn(chunk, nodes, workdir, argc, argv, strictArgv, TG_ANY,
-			  resID, rank, errors+total, NULL);
+			  resID, rank, errors + total);
 	if (num != chunk) goto exit;
 
 	count -= chunk;
@@ -941,7 +923,7 @@ bool PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 
     if (node == -1) node = PSC_getMyID();
     int ret = dospawn(1, &node, workdir, argc, argv, strictArgv,
-		      TG_ADMINTASK, -1, rank, error, NULL);
+		      TG_ADMINTASK, -1, rank, error);
     return ret == 1;
 }
 
@@ -979,7 +961,7 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
     if (rank >= -1) rank = -2;
 
     int ret = dospawn(1, &node, wDir, argc, argv, false, taskGroup, -1, rank,
-		      error, NULL);
+		      error);
     return ret == 1;
 }
 
@@ -1004,7 +986,7 @@ bool PSI_spawnRank(int rank, char *workdir, int argc, char **argv, int *error)
 	    __func__, rank, node);
 
     int ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, rank,
-		      error, NULL);
+		      error);
     return ret == 1;
 }
 
@@ -1028,7 +1010,7 @@ bool PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv, int *error
     PSI_log(PSI_LOG_SPAWN, "%s: will spawn to %d", __func__, node);
 
     int ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, np,
-		      error, NULL);
+		      error);
     return ret == 1;
 }
 
