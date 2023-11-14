@@ -943,31 +943,6 @@ exit:
     return ret;
 }
 
-int PSI_spawnSingle(char *workdir, int argc, char **argv,
-		    int *error, PStask_ID_t *tid)
-{
-    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
-
-    if (!error) {
-	PSI_log(-1, "%s: unable to reports errors\n", __func__);
-	return -1;
-    }
-
-    PSnodes_ID_t node;
-    int rank = PSI_getNodes(1, 0 /*hwType*/, 1 /*tpp*/, 0 /*options*/, &node);
-    if (rank < 0) {
-	*error = ENXIO;
-	return -1;
-    }
-
-    PSI_log(PSI_LOG_SPAWN, "%s: spawn rank %d to %d\n", __func__, rank, node);
-
-    if (dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, rank,
-		error, tid) != 1) return -1;
-
-    return rank;
-}
-
 int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 		   bool strictArgv, unsigned int rank,
 		   int *error, PStask_ID_t *tid)

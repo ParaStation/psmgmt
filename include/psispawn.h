@@ -406,49 +406,6 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workingdir, int argc, char **argv,
 			       int *error);
 
 /**
- * @brief Spawn a single task within the cluster
- *
- * Spawn a single task described by the @a argc arguments within @a
- * argv. The node and rank used will be determined via the
- * PSI_getNodes() function. The present working directory of the
- * spawned tasks will be @a workingdir.
- *
- * The unique task ID of the spawned task will be returned in @a
- * tid. If an error occurred, @a error will contain an errno
- * describing the error.
- *
- * Before using this function, PSI_createPartition() has to be called
- * from within any process of the parallel task (which is naturally
- * the root process).
- *
- *
- * @param workdir Present working directory of the spawned task on
- * startup. This might be an absolute or relative path. If @a
- * workingdir is a relative path, the content of the PWD environment
- * variable is prepended. If @a workingdir is NULL, the content of the
- * PWD environment variable is taken.
- *
- * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks
- *
- * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task
- *
- * @param error Error-code displaying if an error occurred within
- * PSI_spawnSingle() while spawning the task
- *
- * @param tid The task ID of the spawned process
- *
- * @return On success, the unique rank of the spawned process will be
- * returned; or -1 if an error occurred; then @a error is set
- * appropriately
- *
- * @see PSI_createPartition()
- */
-int PSI_spawnSingle(char *workdir, int argc, char **argv,
-		    int *error, PStask_ID_t *tid);
-
-/**
  * @brief Spawn admin task within the cluster.
  *
  * Spawn an admin task described by the @a argc arguments within @a
