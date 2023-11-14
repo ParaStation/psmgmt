@@ -382,13 +382,17 @@ static void printerr(const pininfo_t *pininfo, const char *format, ...)
 /*
  * Print formated string to syslog and user's stderr
  */
-#define ulog(info, format, ...) do { \
-    flog(format "\n" __VA_OPT__(,) __VA_ARGS__); \
-    char *str = PSC_concat(format, "\n"); \
-    *str = toupper(*str); \
-    printerr(info, str __VA_OPT__(,) __VA_ARGS__); \
-    free(str); \
-} while(0)
+#if defined __GNUC__ && __GNUC__ < 8
+#define ulog(info, format, ...) do {		\
+	flog(format, ##__VA_ARGS__);		\
+	printerr(info, format, ##__VA_ARGS__);	\
+    } while(0)
+#else
+#define ulog(info, format, ...) do {			\
+	flog(format __VA_OPT__(,) __VA_ARGS__);		\
+	printerr(info, format __VA_OPT__(,) __VA_ARGS__);	\
+    } while(0)
+#endif
 
 /*
  * Pin to all hardware threads allowed by the step
@@ -1585,13 +1589,21 @@ static ssize_t getMinimumIndex(uint32_t *val, uint16_t *subset, size_t num)
     return ret;
 }
 
-#define uprintf(format, ...) \
-    do { \
-	if (PSIDfwd_inForwarder()) \
-	    PSIDfwd_printMsgf(STDERR, format __VA_OPT__(,) __VA_ARGS__); \
-	else \
-	    fprintf(stderr, format __VA_OPT__(,) __VA_ARGS__); \
+#if defined __GNUC__ && __GNUC__ < 8
+#define uprintf(format, ...) do {					\
+	if (PSIDfwd_inForwarder())					\
+	    PSIDfwd_printMsgf(STDERR, format, ##__VA_ARGS__);		\
+	else								\
+	    fprintf(stderr, format, ##__VA_ARGS__);			\
     } while(0)
+#else
+#define uprintf(format, ...) do {					\
+	if (PSIDfwd_inForwarder())					\
+	    PSIDfwd_printMsgf(STDERR, format __VA_OPT__(,) __VA_ARGS__); \
+	else								\
+	    fprintf(stderr, format __VA_OPT__(,) __VA_ARGS__);		\
+    } while(0)
+#endif
 
 /*
  * Parse the gpu-bind string
