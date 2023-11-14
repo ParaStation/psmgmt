@@ -743,12 +743,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    if (tids) tids[i] = -1;
 	    goto cleanup;
 	}
-	/* Fill the protocol version cache before sending actual requests */
-	if (PSI_protocolVersion(dstnodes[i]) == -1) {
-	    PSI_log(-1, "%s: unable to get protocol version for node %d\n",
-		    __func__, dstnodes[i]);
-	    goto cleanup;
-	}
     }
 
     if (!initSerial(0, PSI_sendMsg)) {
@@ -762,22 +756,9 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     unsigned int firstRank = rank;
     for (int i = 0; i < count && !error;) {
 	task->rank = rank;
-	int protocolVersion = PSI_protocolVersion(dstnodes[i]);
 
-	int num;
-	if (protocolVersion == -1) {
-	    PSI_log(-1, "%s: unable to get protocol version for node %d\n",
-		    __func__, dstnodes[i]);
-	    goto cleanup;
-	} else if (protocolVersion > 340) {
-	    num = sendSpawnReq(task, &dstnodes[i], count - i);
-	    if (num < 0) goto cleanup;
-	} else {
-	    if (!PSI_sendSpawnMsg(task, true, dstnodes[i], PSI_sendMsg)) {
-		goto cleanup;
-	    }
-	    num = 1;
-	}
+	int num = sendSpawnReq(task, &dstnodes[i], count - i);
+	if (num < 0) goto cleanup;
 
 	i += num;
 	rank += num;
