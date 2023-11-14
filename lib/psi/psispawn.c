@@ -697,59 +697,46 @@ static PStask_t * createSpawnTask(char *workDir, PStask_group_t taskGroup,
 }
 
 /**
- * @brief Actually spawn processes
+ * @brief Actually spawn tasks
  *
- * Actually spawn @a count processes on the nodes stored within @a
- * dstnodes. The spawned processes will be started within @a
- * workingdir as the current working directory. The @a argc arguments
- * used in order to start the processes are stored within @a argv. The
- * first process spawned -- if not a service process -- will get the
- * unique rank @a rank, all further processes will get successive
- * ranks.
+ * Spawn @a count tasks on the nodes in @a dstNodes. The spawned tasks
+ * are created according to the description within the structure @a
+ * task. It is adviced to create @a task by utilizing the @ref
+ * createSpawnTask() function.
  *
- * Service processes always get rank -2. Only a single service-process
- * is allowed to be spawned.
+ * The first task spawned will get the unique rank @a firstRank, all
+ * further tasks will get successive ranks. Only a single service-task
+ * is allowed to be spawned per call!
  *
  * Upon return the array @a errors will hold @a count error codes
- * indicating if the corresponding spawn was successful and if not,
- * what caused the failure.
+ * indicating if the corresponding spawn failed and what caused this
+ * failure.
  *
- * @param count Number of processes to spawn
+ * @param count Number of tasks to spawn
  *
- * @param dstnodes Array of node IDs used in order to spawn processes
+ * @param firstRank Rank of the first tasks to be spawned
  *
- * @param workingdir The initial working directory of the spawned processes.
+ * @param dstNodes Array of node IDs acting as tasks destination nodes
  *
- * @param argc The number of arguments used to spawn the processes.
- *
- * @param argv The arguments used to spawn the processes.
- *
- * @param strictArgv Flag to prevent "smart" replacement of argv[0].
- *
- * @param taskGroup Task-group under which the spawned process shall
-* be started. At the time, TG_ANY and TG_ADMINTASK are good
- * values. The latter is used for admin-tasks, i.e. unaccounted tasks.
- *
- * @param resID ID of the reservation to spawn the task(s) into; -1 if none
- *
- * @param firstRank Rank of the first process to be spawned
+ * @param task Task structure acting as a skeleton for the tasks to spawn
  *
  * @param errors Array holding error codes upon return
  *
- * @return Upon success, the number of processes spawned is returned,
+ * @return Upon success, the number of tasks spawned is returned,
  * i.e. usually this is @a count. Otherwise a negative value is
  * returned which indicates the number of answer got from spawn
  * requests.
  */
-static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
-		   int argc, char **argv, bool strictArgv,
-		   PStask_group_t taskGroup, PSrsrvtn_ID_t resID,
-		   unsigned int firstRank, int *errors)
+static int doSpawn(int count, unsigned int firstRank, PSnodes_ID_t *dstNodes,
+		   PStask_t *task, int *errors)
 {
-    int ret = 0;    /* return value */
+    if (!task) {
+	PSI_log(-1, "%s: no task\n", __func__);
+	return -1;
+    }
 
-    if ((taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG
-	|| taskGroup == TG_KVS) && count != 1) {
+    if ((task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
+	|| task->group == TG_KVS) && count != 1) {
 	PSI_log(-1, "%s: spawn %d SERVICE tasks not allowed\n", __func__, count);
 	return -1;
     }
@@ -760,26 +747,19 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     }
     for (int i = 0; i < count; i++) errors[i] = 0;
 
-    /* setup task structure to store information of the new processes */
-    PStask_t *task = createSpawnTask(workingdir, taskGroup, resID,
-				     argc, argv, strictArgv);
-    if (!task) {
-	PSI_log(-1, "%s: failed to prepare task structure\n", __func__);
+    if (!initSerial(0, PSI_sendMsg)) {
+	PSI_log(-1, "%s: initSerial() failed\n", __func__);
 	return -1;
     }
 
+    int ret = 0;
     for (int i = 0; i < count; i++) {
-	if (i && dstnodes[i] == dstnodes[i-1]) continue; // do not check twice
+	if (i && dstNodes[i] == dstNodes[i-1]) continue; // do not check twice
 	/* check if dstnode is ok */
-	if (!PSC_validNode(dstnodes[i])) {
+	if (!PSC_validNode(dstNodes[i])) {
 	    errors[i] = ENETUNREACH;
-	    goto cleanup;
+	    return -1;
 	}
-    }
-
-    if (!initSerial(0, PSI_sendMsg)) {
-	PSI_log(-1, "%s: initSerial() failed\n", __func__);
-	goto cleanup;
     }
 
     /* send actual requests */
@@ -788,22 +768,21 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     unsigned int rank = firstRank;
     for (int i = 0; i < count && !error;) {
 	task->rank = rank;
-	int num = sendSpawnReq(task, &dstnodes[i], count - i);
-	if (num < 0) goto cleanup;
+	int num = sendSpawnReq(task, &dstNodes[i], count - i);
+	if (num < 0) return -1;
 
 	i += num;
 	rank += num;
 	expectedAnswers += num;
 
 	while (PSI_availMsg() > 0 && expectedAnswers) {
-	    int r = handleAnswer(firstRank, count, dstnodes, errors);
+	    int r = handleAnswer(firstRank, count, dstNodes, errors);
 	    switch (r) {
 	    case -2:
 		/* just ignore */
 		break;
 	    case -1:
-		goto cleanup;
-		break;
+		return -1;
 	    case 0:
 		error = true;
 		__attribute__((fallthrough));
@@ -816,13 +795,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 			__func__, r);
 	    }
 	}
-    }/* for all new processes */
-
-    PStask_delete(task);
+    }/* for all new tasks */
 
     /* collect expected answers */
     while (expectedAnswers > 0) {
-	int r = handleAnswer(firstRank, count, dstnodes, errors);
+	int r = handleAnswer(firstRank, count, dstNodes, errors);
 	switch (r) {
 	case -2:
 	    /* just ignore */
@@ -845,11 +822,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     if (error) ret = -ret;
     return ret;
-
- cleanup:
-    PStask_delete(task);
-
-    return -1;
 }
 
 int PSI_spawn(int count, char *workdir, int argc, char **argv, int *errors)
@@ -861,7 +833,6 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 		    bool strictArgv, int *errors)
 {
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, count);
-
     if (!errors) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
 	return -1;
@@ -869,9 +840,17 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 
     if (count <= 0) return 0;
 
+    PStask_t *task = createSpawnTask(workdir, TG_ANY, -1 /* resID */,
+				     argc, argv, strictArgv);
+    if (!task) {
+	PSI_log(-1, "%s: unable to create helper task\n", __func__);
+	return -1;
+    }
+
     PSnodes_ID_t *nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
     if (!nodes) {
 	*errors = ENOMEM;
+	PStask_delete(task);
 	return -1;
     }
 
@@ -879,100 +858,102 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
     while (count > 0) {
 	int chunk = (count > NODES_CHUNK) ? NODES_CHUNK : count;
 	int rank = PSI_getNodes(chunk, 0/*hwType*/, 1/*tpp*/, 0/*options*/, nodes);
-	int i, ret;
-
 	if (rank < 0) {
 	    errors[total] = ENXIO;
-	    free(nodes);
-	    return -1;
+	    total = -1;
+	    break;
 	}
 
-	PSI_log(PSI_LOG_SPAWN, "%s: will spawn to:", __func__);
-	for (i = 0; i < chunk; i++) {
-	    PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
-	}
+	PSI_log(PSI_LOG_SPAWN, "%s: spawn to:", __func__);
+	for (int i = 0; i < chunk; i++) PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
 	PSI_log(PSI_LOG_SPAWN, "\n");
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
-	ret = dospawn(chunk, nodes, workdir, argc, argv, strictArgv, TG_ANY,
-		      -1, rank, errors + total);
-	if (ret != chunk) {
-	    free(nodes);
-	    return -1;
+	if (doSpawn(chunk, rank, nodes, task, errors + total) != chunk) {
+	    total = -1;
+	    break;
 	}
 
 	count -= chunk;
 	total += chunk;
     }
-
     free(nodes);
+    PStask_delete(task);
     return total;
 }
 
 int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 		    int argc, char **argv, bool strictArgv, int *errors)
 {
-    int total = 0, ret = -1;
-    PSnodes_ID_t *nodes = NULL;
-
     PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, count, resID);
-
     if (!errors) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
-	goto exit;
+	return -1;
     }
 
     if (count <= 0) return 0;
 
-    nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
-    if (!nodes) {
-	*errors = ENOMEM;
-	goto exit;
+    PStask_t *task = createSpawnTask(workdir, TG_ANY, resID,
+				     argc, argv, strictArgv);
+    if (!task) {
+	PSI_log(-1, "%s: unable to create helper task\n", __func__);
+	return -1;
     }
 
+    PSnodes_ID_t *nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
+    if (!nodes) {
+	*errors = ENOMEM;
+	PStask_delete(task);
+	return -1;
+    }
+
+    int total = 0;
     while (count > 0) {
 	int chunk = (count > NODES_CHUNK) ? NODES_CHUNK : count;
 	int rank = PSI_getSlots(chunk, resID, nodes);
-
 	if (rank < 0) {
 	    errors[total] = ENXIO;
-	    goto exit;
+	    total = -1;
+	    break;
 	}
 
-	PSI_log(PSI_LOG_SPAWN, "%s: will spawn to:", __func__);
-	for (int i = 0; i < chunk; i++) {
-	    PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
-	}
+	PSI_log(PSI_LOG_SPAWN, "%s: spawn to:", __func__);
+	for (int i = 0; i < chunk; i++) PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
 	PSI_log(PSI_LOG_SPAWN, "\n");
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
-	int num = dospawn(chunk, nodes, workdir, argc, argv, strictArgv, TG_ANY,
-			  resID, rank, errors + total);
-	if (num != chunk) goto exit;
+	if (doSpawn(chunk, rank, nodes, task, errors + total) != chunk) {
+	    total = -1;
+	    break;
+	}
 
 	count -= chunk;
 	total += chunk;
     }
-    ret = total;
-
-exit:
     free(nodes);
-    return ret;
+    PStask_delete(task);
+    return total;
 }
 
 bool PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 		    bool strictArgv, unsigned int rank, int *error)
 {
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
-
     if (!error) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
 	return false;
     }
 
+    PStask_t *task = createSpawnTask(workdir, TG_ADMINTASK, -1 /* resID */,
+				     argc, argv, strictArgv);
+    if (!task) {
+	PSI_log(-1, "%s: unable to create helper task\n", __func__);
+	return false;
+    }
+
     if (node == -1) node = PSC_getMyID();
-    int ret = dospawn(1, &node, workdir, argc, argv, strictArgv,
-		      TG_ADMINTASK, -1, rank, error);
+    int ret = doSpawn(1, rank, &node, task, error);
+    PStask_delete(task);
     return ret == 1;
 }
 
@@ -1005,61 +986,71 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
 	setenv(ENV_NUM_SERVICE_PROCS, "1", 1);
     }
 
-    if (node == -1) node = PSC_getMyID();
-
     if (rank >= -1) rank = -2;
 
-    int ret = dospawn(1, &node, wDir, argc, argv, false, taskGroup, -1, rank,
-		      error);
+    PStask_t *task = createSpawnTask(wDir, taskGroup, -1, argc, argv, false);
+    if (!task) {
+	PSI_log(-1, "%s: unable to create helper task\n", __func__);
+	return false;
+    }
+
+    if (node == -1) node = PSC_getMyID();
+    int ret = doSpawn(1, rank, &node, task, error);
+    PStask_delete(task);
     return ret == 1;
 }
 
 bool PSI_spawnRank(int rank, char *workdir, int argc, char **argv, int *error)
 {
-    PSnodes_ID_t node;
-    int rankGot = PSI_getRankNode(rank, &node);
-
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, rank);
-
     if (!error) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
 	return false;
     }
 
+    PSnodes_ID_t node;
+    int rankGot = PSI_getRankNode(rank, &node);
     if (rankGot != rank) {
 	*error = ENXIO;
 	return false;
     }
 
-    PSI_log(PSI_LOG_SPAWN, "%s: will spawn rank %d to %d\n",
-	    __func__, rank, node);
+    PStask_t *task = createSpawnTask(workdir, TG_ANY, -1, argc, argv, false);
+    if (!task) {
+	PSI_log(-1, "%s: unable to create helper task\n", __func__);
+	return false;
+    }
 
-    int ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, rank,
-		      error);
+    PSI_log(PSI_LOG_SPAWN, "%s: spawn rank %d to %d\n", __func__, rank, node);
+    int ret = doSpawn(1, rank, &node, task, error);
+    PStask_delete(task);
     return ret == 1;
 }
 
 bool PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv, int *error)
 {
-    PSnodes_ID_t node;
-    int rankGot = PSI_getRankNode(0, &node);
-
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, np);
-
     if (!error) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
 	return false;
     }
 
+    PSnodes_ID_t node;
+    int rankGot = PSI_getRankNode(0, &node);
     if (rankGot) {
 	*error = ENXIO;
 	return false;
     }
 
-    PSI_log(PSI_LOG_SPAWN, "%s: will spawn to %d", __func__, node);
+    PStask_t *task = createSpawnTask(workdir, TG_ANY, -1, argc, argv, false);
+    if (!task) {
+	PSI_log(-1, "%s: unable to create helper task\n", __func__);
+	return false;
+    }
 
-    int ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, np,
-		      error);
+    PSI_log(PSI_LOG_SPAWN, "%s: spawn to %d", __func__, node);
+    int ret = doSpawn(1, np, &node, task, error);
+    PStask_delete(task);
     return ret == 1;
 }
 
