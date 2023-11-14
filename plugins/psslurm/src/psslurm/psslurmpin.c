@@ -384,10 +384,10 @@ static void printerr(const pininfo_t *pininfo, const char *format, ...)
  */
 #define ulog(info, format, ...) do { \
     flog(format "\n" __VA_OPT__(,) __VA_ARGS__); \
-    char *str = ustrdup(format); \
+    char *str = PSC_concat(format, "\n"); \
     *str = toupper(*str); \
     printerr(info, str __VA_OPT__(,) __VA_ARGS__); \
-    ufree(str); \
+    free(str); \
 } while(0)
 
 /*
@@ -1803,7 +1803,7 @@ static void printCoreMap(char *title, PSCPU_set_t coremap, Step_t *step,
     } else {
 	char *cmStr = PSCPU_print_part(coremap,
 				       PSCPU_bytesForCPUs(nodeinfo->coreCount));
-	str = PSC_concat(hName, ": ", title, ": ", cmStr);
+	str = PSC_concat(hName, ": ", title, ": ", cmStr, "\n");
 	if (!str) {
 	    flog("PSC_concat() out of memory");
 	    exit(EXIT_FAILURE);
