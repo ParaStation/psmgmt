@@ -279,14 +279,14 @@ static bool sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len,
  *
  * Handle pending answers sent by the remote side on spawn
  * requests. The original spawn request asked for spawning @a count
- * processes on the nodes listed in @a dstnodes starting with rank @a
+ * tasks to the nodes listed in @a dstnodes starting with rank @a
  * firstRank. Errors are logged within @a errors.
  *
- * @param firstRank Rank of the first process to spawn
+ * @param firstRank Rank of the first task to spawn
  *
- * @param count Number of processes to spawn
+ * @param count Number of tasks to spawn
  *
- * @param dstnodes Array of node IDs used in order to spawn processes
+ * @param dstnodes Array of node IDs used in order to spawn tasks
  *
  * @param errors Array holding error codes upon return.
  *
@@ -405,33 +405,33 @@ static int handleAnswer(unsigned int firstRank, int count,
  * @brief Send spawn request
  *
  * Use the serialization layer in order to send the request to spawn
- * at most @a max processes. The request might be split into multiple
+ * at most @a max tasks. The request might be split into multiple
  * messages depending on the amount of information that needs to be
- * submitted. The task structure @a task describes the processes to be
+ * submitted. The task structure @a task describes the tasks to be
  * spawned containing e.g. the argument vector or the environment. @a
  * dstnodes holds the ID of the destination node (in dstnodes[0]) and
- * the number of processes to spawn (encoded in the number of
- * consecutive elements identical to dstnodes[0]). Nevertheless, @a
- * max limits the number of processes anyhow.
+ * the number of tasks to spawn (encoded in the number of consecutive
+ * elements identical to dstnodes[0]). Nevertheless, @a max limits the
+ * number of tasks anyhow.
  *
  * This function will consider the per rank environment characterized
  * through the function to be registered via @ref
  * PSI_registerRankEnvFunc().
  *
  * A single call to this function might initiate to spawn multiple
- * processes to a remote node. The actual number of processes spawned
- * is returned.
+ * tasks to a remote node. The actual number of tasks spawned is
+ * returned.
  *
  * On the long run this function shall obsolete PSI_sendSpawnMsg().
  *
- * @param task Task structure describing the processes to be spawned
+ * @param task Task structure describing the tasks to be spawned
  *
  * @param dstnodes Destination nodes of the spawn requests
  *
- * @param max Maximum number of processes to spawn -- might be less
+ * @param max Maximum number of tasks to spawn -- might be less
  *
- * @return On success the number of spawned ranks is returned; or
- * -1 in case of an error
+ * @return On success the number of spawned tasks is returned; or -1
+ * in case of an error
  */
 static int sendSpawnReq(PStask_t* task, PSnodes_ID_t *dstnodes, uint32_t max)
 {
