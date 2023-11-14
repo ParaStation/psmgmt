@@ -120,7 +120,7 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * It is identical to calling @ref PSI_spawnStrict() with all the
  * arguments plus @a strictArgv set to false.
  *
- * @param count Number of tasks to spawn.
+ * @param count Number of tasks to spawn
  *
  * @param workingdir Present working directory of the spawned tasks on
  * startup. This might be an absolute or relative path. If @a
@@ -137,82 +137,35 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * @param errors Error-codes displaying if an error occurred while
  * spawning the corresponding tasks
  *
- * @return On success, the number of tasks spawned is returned, or -1
- * if an error occurred. Then errors is set appropriately.
+ * @return On success the number of tasks spawned is returned, or -1
+ * if an error occurred; then errors is set appropriately
  *
  * @see PSI_spawnStrict()
  */
 int PSI_spawn(int count, char *workingdir, int argc, char **argv, int *errors);
 
 /**
- * @brief Spawn one or more tasks within the cluster.
- *
- * This is a wrapper of @ref PSI_spawnStrictHW() held for compatibility
- * reasons.
- *
- * It is identical to calling @ref PSI_spawnStrictHW() with all the
- * arguments plus @a hwType set to 0.
- *
- * @param count Number of tasks to spawn.
- *
- * @param workingdir Present working directory of the spawned tasks on
- * startup. This might be an absolute or relative path. If @a
- * workingdir is a relative path, the content of the PWD environment
- * variable is prepended. If @a workingdir is NULL, the content of the
- * PWD environment variable is taken.
- *
- * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks
- *
- * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the tasks
- *
- * @param strictArgv Flag to disable pseudo-intelligent determination
- * of the executable
- *
- * @param errors Error-codes displaying if an error occurred while
- * spawning the corresponding tasks
- *
- * @return On success, the number of tasks spawned is returned, or -1
- * if an error occurred. Then errors is set appropriately.
- *
- * @see PSI_spawnStrict()
- */
-int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
-		    bool strictArgv, int *errors);
-
-/**
- * @brief Spawn one or more tasks within the cluster.
+ * @brief Spawn one or more tasks within the cluster
  *
  * Spawn @a count tasks described by the @a argc number of arguments
  * within @a argv. The nodes and ranks used will be determined via the
- * PSI_getNodes() function. In order to restrict the nodes to be used
- * @a hwType might be set accordingly. The present working directory
- * of the spawned tasks will be @a workingdir.
+ * PSI_getNodes() function. The present working directory of the
+ * spawned tasks will be @a workingdir.
  *
- * The tasks might occupy a positive number of @a tpp hardware-threads
- * in order to support multi-threaded applications. Furthermore,
- * additional constraints like PART_OPT_NODEFIRST or PART_OPT_OVERBOOK
- * might be raised via the @a options parameter.
+ * The tasks will occupy a single hardware-thread and not support
+ * multi-threaded applications. No additional constraints like
+ * PART_OPT_NODEFIRST or PART_OPT_OVERBOOK or a hardware type are
+ * supported.
  *
  * If an error occurred, @a errors will contain an errno describing
  * the error on the position corresponding to the relative rank of the
  * spawned process.
  *
- * Before using this function, PSI_createPartition() has to be called
+ * Before using this function, PSI_createPartition() must be called
  * from within any process of the parallel task (which is usually the
  * root process).
  *
- * @param count Number of tasks to spawn.
- *
- * @param hwType Hardware-types to be supported by the nodes to use.
- * This bit-field shall be prepared using PSI_resolveHWList(). If it
- * is set to 0, any node will be accepted from the hardware-type point
- * of view.
- *
- * @param tpp Threads per process.
- *
- * @param options Options on how to get the nodes.
+ * @param count Number of tasks to spawn
  *
  * @param workingdir Present working directory of the spawned tasks on
  * startup. This might be an absolute or relative path. If @a
@@ -227,24 +180,22 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
  * execve() call in order to finally spawn the tasks
  *
  * @param strictArgv Flag to disable pseudo-intelligent determination
- * of the executable. If set, argv[0] will be passed to the final
- * exec() call as is.
+ * of the executable; if set, argv[0] will be passed to the final
+ * exec() call as is
  *
  * @param errors Error-codes displaying if an error occurred while
  * spawning the corresponding tasks
  *
- * @return On success, the number of tasks spawned is returned, or -1
- * if an error occurred. Then errors is set appropriately.
+ * @return On success the number of tasks spawned is returned, or -1
+ * if an error occurred; then errors is set appropriately
  *
  * @see PSI_createPartition() PSI_getNodes()
  */
-int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
-		      PSpart_option_t options,
-		      char *workdir, int argc, char **argv, bool strictArgv,
-		      int *errors);
+int PSI_spawnStrict(int count, char *workdir,
+		    int argc, char **argv, bool strictArgv, int *errors);
 
 /**
- * @brief Spawn one or more tasks within the cluster.
+ * @brief Spawn one or more tasks within the cluster
  *
  * Spawn @a count tasks described by the @a argc number of arguments
  * within @a argv. The nodes and ranks used will be determined via the

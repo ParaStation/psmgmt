@@ -829,17 +829,6 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv, int *errors)
 int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 		    bool strictArgv, int *errors)
 {
-    return PSI_spawnStrictHW(count, 0/*hwType*/, 1/*tpp*/, 0/*options*/,
-			     workdir, argc, argv, strictArgv, errors);
-}
-
-int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
-		      PSpart_option_t options, char *workdir,
-		      int argc, char **argv, bool strictArgv, int *errors)
-{
-    int total = 0;
-    PSnodes_ID_t *nodes;
-
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, count);
 
     if (!errors) {
@@ -849,15 +838,16 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 
     if (count <= 0) return 0;
 
-    nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
+    PSnodes_ID_t *nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
     if (!nodes) {
 	*errors = ENOMEM;
 	return -1;
     }
 
+    int total = 0;
     while (count > 0) {
 	int chunk = (count > NODES_CHUNK) ? NODES_CHUNK : count;
-	int rank = PSI_getNodes(chunk, hwType, tpp, options, nodes);
+	int rank = PSI_getNodes(chunk, 0/*hwType*/, 1/*tpp*/, 0/*options*/, nodes);
 	int i, ret;
 
 	if (rank < 0) {
