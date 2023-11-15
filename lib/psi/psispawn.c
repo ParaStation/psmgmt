@@ -295,28 +295,19 @@ static bool sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len,
  * -1: fatal error
  *  0: legitimate error while spawning; permission denied, down node, etc.
  *  1: no error
-  */
-static int handleAnswer(unsigned int firstRank, int count,
-			PSnodes_ID_t *dstnodes, int *errors)
+ */
+static int handleAnswer(DDBufferMsg_t *msg, unsigned int firstRank, int count,
+			int *errors)
 {
-    DDBufferMsg_t answer;
-    DDErrorMsg_t *errMsg = (DDErrorMsg_t *)&answer;
-    DDSignalMsg_t *sigMsg = (DDSignalMsg_t *)&answer;
-    int rank;
+    DDErrorMsg_t *errMsg = (DDErrorMsg_t *)msg;
+    int rank = errMsg->request - firstRank;
 
-    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
-	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
-	return -1;
-    }
-    switch (answer.header.type) {
+    switch (msg->header.type) {
     case PSP_CD_SPAWNSUCCESS:
-	rank = errMsg->request - firstRank;
-	if (rank >= 0 && rank < count) {
-	    errors[rank] = 0; /* no error on success */
-	} else {
+	if (rank < 0 || rank >= count) {
 	    PSI_log(-1, "%s: %s from illegal rank %d at node %d\n", __func__,
-		    PSP_printMsg(answer.header.type), errMsg->request,
-		    PSC_getID(answer.header.sender));
+		    PSP_printMsg(errMsg->header.type), errMsg->request,
+		    PSC_getID(errMsg->header.sender));
 	    return -2; /* Ignore answer */
 	}
 	return 1;
@@ -332,29 +323,30 @@ static int handleAnswer(unsigned int firstRank, int count,
 	    return -2; /* Ignore answer */
 	}
 
-	if (answer.header.len > sizeof(*errMsg)) {
-	    size_t bufUsed = sizeof(*errMsg) - sizeof(answer.header);
-	    char *note = answer.buf + bufUsed;
+	if (errMsg->header.len > sizeof(*errMsg)) {
+	    size_t bufUsed = sizeof(*errMsg) - offsetof(DDBufferMsg_t, buf);
+	    char *note = msg->buf + bufUsed;
 
 	    /* Ensure to only use valid buffer data as string */
-	    if (answer.header.len == sizeof(answer)) {
-		answer.buf[sizeof(answer.buf) - 1] = '\0';
+	    if (msg->header.len == sizeof(*msg)) {
+		msg->buf[sizeof(msg->buf) - 1] = '\0';
 	    } else {
-		answer.buf[answer.header.len
-			   - offsetof(DDBufferMsg_t, buf)] = '\0';
+		msg->buf[msg->header.len - offsetof(DDBufferMsg_t, buf)] = '\0';
 	    }
 
 	    if (note[strlen(note)-1] == '\n') note[strlen(note)-1] = '\0';
 	    if (note[strlen(note)-1] == '\r') note[strlen(note)-1] = '\0';
 
 	    PSI_log(-1, "%s: spawn to node %d failed: \"%s\"\n",
-		    __func__, PSC_getID(answer.header.sender), note);
+		    __func__, PSC_getID(errMsg->header.sender), note);
 	} else {
 	    PSI_warn(-1, errMsg->error, "%s: spawn to node %d failed",
-		     __func__, PSC_getID(answer.header.sender));
+		     __func__, PSC_getID(errMsg->header.sender));
 	}
 	return 0;
     case PSP_CD_WHODIED:
+	;
+	DDSignalMsg_t *sigMsg = (DDSignalMsg_t *)msg;
 	PSI_log(-1, "%s: got signal %d from %s\n", __func__, sigMsg->signal,
 		PSC_printTID(sigMsg->header.sender));
 	__attribute__((fallthrough));
@@ -362,8 +354,9 @@ static int handleAnswer(unsigned int firstRank, int count,
     case PSP_CD_SENDCONT:
 	return -2; /* Ignore answer */
     default:
-	PSI_log(-1, "%s: unexpected answer %s\n", __func__,
-		PSP_printMsg(answer.header.type));
+	PSI_log(-1, "%s: unexpected answer %s from %s\n", __func__,
+		PSP_printMsg(msg->header.type),
+		PSC_printTID(msg->header.sender));
 	return -2; /* Ignore answer */
     }
     return 1;
@@ -744,7 +737,12 @@ static int doSpawn(int count, unsigned int firstRank, PSnodes_ID_t *dstNodes,
 	expectedAnswers += num;
 
 	while (PSI_availMsg() > 0 && expectedAnswers) {
-	    int r = handleAnswer(firstRank, count, dstNodes, errors);
+	    DDBufferMsg_t msg;
+	    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
+		PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+		return -1;
+	    }
+	    int r = handleAnswer(&msg, firstRank, count, errors);
 	    switch (r) {
 	    case -2:
 		/* just ignore */
@@ -767,7 +765,12 @@ static int doSpawn(int count, unsigned int firstRank, PSnodes_ID_t *dstNodes,
 
     /* collect expected answers */
     while (expectedAnswers > 0) {
-	int r = handleAnswer(firstRank, count, dstNodes, errors);
+	DDBufferMsg_t msg;
+	if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
+	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	    return -1;
+	}
+	int r = handleAnswer(&msg, firstRank, count, errors);
 	switch (r) {
 	case -2:
 	    /* just ignore */
