@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -400,33 +400,91 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 				 PSpart_option_t options, uint32_t *got);
 
 /**
+ * @brief Request slots from reservation
+ *
+ * Request @a num slots from the reservation identified by the unique
+ * ID @a resID. This shall result into a message of type
+ * PSP_CD_SLOTSRES containing the rank of the first task to spawn and
+ * the node-part of the slots to be used for spawning. @ref
+ * PSI_extractSlots() shall be used to extract this information from
+ * the message.
+ *
+ * The reservation has to contain sufficiently many slots for this
+ * function to succeed. Otherwise it will fail and no resources are
+ * used. Furthermore, more than NODES_CHUNK slots must not be
+ * requested.
+ *
+ * @param num Number of requested slots
+ *
+ * @param resID Unique reservation ID to get the slots from
+ *
+ * @return On success, i.e. if the request was sent, 0 is returned; or
+ * -1 in case orf error
+ *
+ * @see PSI_getReservation() PSI_extractSlots()
+ */
+int PSI_requestSlots(uint16_t num, PSrsrvtn_ID_t resID);
+
+/**
+ * @brief Extract slot information
+ *
+ * Extract slot information from the message @a msg of type
+ * PSP_CD_SLOTSRES and store the node-part of the slots to the array
+ * @a nodes. The messages is expected to contain @a num slots. The
+ * caller has to ensure that the array @a nodes is sufficiently large.
+ *
+ * In order to request a corresponding message @ref PSI_requestSlots()
+ * shall be used.
+ *
+ * This function will return the rank of the first task to spawn into
+ * the received slots. Further tasks are expected to get successive
+ * ranks assigned.
+ *
+ * @param msg Message of according type to handle
+ *
+ * @param num Expected number of slots
+ *
+ * @param nodes An array sufficiently large to store the node IDs of
+ * @a num slots
+ *
+ * @return On success, the rank of the first task to spawn is
+ * returned; or -1 in case of error
+ *
+ * @see PSI_getReservation() PSI_requestSlots()
+ */
+int PSI_extractSlots(DDBufferMsg_t *msg, uint16_t num, PSnodes_ID_t *nodes);
+
+/**
  * @brief Get slots from reservation
  *
  * Get @a num slots from the reservation identified by the unique ID
  * @a resID. The node-part of the slots will be stored to the array @a
- * nodes. The calling process has to ensure that the array @a nodes is
+ * nodes. The caller has to ensure that the array @a nodes is
  * sufficiently large.
  *
  * The reservation has to contain sufficiently many slots for this
  * function to succeed. Otherwise it will fail an no resources are
  * used.
  *
- * This function will return the rank of the first process to spawn
- * into the received slots. Further processes will are expected to get
- * the successive ranks assigned.
+ * The rank of the first task to spawn into the received slots will be
+ * returned. Further tasks are expected to get the successive ranks
+ * assigned.
  *
- * @param num The number of slots to get
+ * This function is implemented by first requesting the slots via @ref
+ * PSI_requestSlots() and then waiting for a message of type
+ * PSP_CD_SLOTSRES to be exted by @ref PSI_extractSlots().
  *
- * @param resID The unique reservation ID to get the slots from
+ * @param num Number of slots to get
  *
- * @param nodes An array sufficiently large to store the node ID of
- * the received slots.
+ * @param resID Unique reservation ID to get the slots from
  *
- * @return On success, the rank of the first process to spawn is
- * returned. All following processes will have consecutive ranks. In
- * case of an error -1 is returned.
+ * @param nodes An array sufficiently large to store the node IDs of
+ * the received slots
  *
- * @see PSI_getReservation()
+ * @return On success, the rank of the first task to spawn is
+ * returned; or -1 in case of error
+ *
+ * @see PSI_getReservation() PSI_requestSlots() PSI_extractSlots()
  */
 int PSI_getSlots(uint16_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes);
 

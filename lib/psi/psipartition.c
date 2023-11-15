@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1287,67 +1287,85 @@ recv_retry:
     return rid;
 }
 
-int PSI_getSlots(uint16_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
+int PSI_requestSlots(uint16_t num, PSrsrvtn_ID_t resID)
 {
+    if (num > NODES_CHUNK) {
+	PSI_log(-1, "%s: too many slots (%d/%d)\n", __func__, num, NODES_CHUNK);
+	return -1;
+    }
+
     DDBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_CD_GETSLOTS,
 	    .dest = PSC_getTID(-1, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDBufferMsg_t, buf) } };
-    int32_t ret = -1;
-    size_t used = 0;
-
-    if (num > NODES_CHUNK) {
-	PSI_log(-1, "%s: Do not request more than %d nodes\n", __func__,
-		NODES_CHUNK);
-	return -1;
-    }
-
+	    .len = 0, } };
     PSP_putMsgBuf(&msg, "resID", &resID, sizeof(resID));
     PSP_putMsgBuf(&msg, "num", &num, sizeof(num));
 
     PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, num, resID);
 
-    if (PSI_sendMsg(&msg)<0) {
+    if (PSI_sendMsg(&msg) < 0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
 
-recv_retry:
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
-	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+    return 0;
+}
+
+int PSI_extractSlots(DDBufferMsg_t *msg, uint16_t num, PSnodes_ID_t *nodes)
+{
+    if (msg->header.type != PSP_CD_SLOTSRES) {
+	PSI_log(-1, "%s: wrong type %s from %s\n", __func__,
+		PSP_printMsg(msg->header.type),
+		PSC_printTID(msg->header.sender));
 	return -1;
     }
 
-    switch (msg.header.type) {
-    case PSP_CD_SLOTSRES:
-	PSP_getMsgBuf(&msg, &used, "ret", &ret, sizeof(ret));
-	if (ret<0) {
-	    int32_t eno;
-	    if (PSP_getMsgBuf(&msg, &used, "eno", &eno, sizeof(eno))){
-		PSI_warn(-1, eno, "%s: Cannot get %d slots from %#x",
-			 __func__, num, resID);
-	    } else {
-		PSI_log(-1, "%s: Cannot get %d slots from %#x\n", __func__,
-			num, resID);
-	    }
+    size_t used = 0;
+    int32_t ret = -1;
+    PSP_getMsgBuf(msg, &used, "ret", &ret, sizeof(ret));
+    if (ret < 0) {
+	int32_t eno;
+	if (PSP_getMsgBuf(msg, &used, "eno", &eno, sizeof(eno))) {
+	    PSI_warn(-1, eno, "%s: cannot get %d slots from %s", __func__,
+		     num, PSC_printTID(msg->header.sender));
 	} else {
-	    memcpy(nodes, msg.buf + used, num*sizeof(*nodes));
+	    PSI_log(-1, "%s: cannot get %d slots from %s\n", __func__,
+		    num, PSC_printTID(msg->header.sender));
 	}
-	break;
-    case PSP_CD_SENDSTOP:
-    case PSP_CD_SENDCONT:
-	goto recv_retry;
-	break;
-    case PSP_CD_ERROR:
-	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
-		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
-	break;
-    default:
-	PSI_log(-1, "%s: received unexpected msgtype '%s'\n", __func__,
-		PSP_printMsg(msg.header.type));
+    } else {
+	memcpy(nodes, msg->buf + used, num*sizeof(*nodes));
     }
 
     return ret;
+}
+
+int PSI_getSlots(uint16_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
+{
+    int32_t ret = PSI_requestSlots(num, resID);
+    if (ret < 0) return ret;
+
+    while (true) {
+	DDBufferMsg_t msg;
+	if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
+	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	    return -1;
+	}
+	switch (msg.header.type) {
+	case PSP_CD_SLOTSRES:
+	    return PSI_extractSlots(&msg, num, nodes);
+	    break;
+	case PSP_CD_SENDSTOP:
+	case PSP_CD_SENDCONT:
+	    continue;
+	    break;
+	default:
+	    PSI_log(-1, "%s: received unexpected msgtype '%s'\n", __func__,
+		    PSP_printMsg(msg.header.type));
+	    return -1;
+	}
+    }
+
+    return -1;
 }
