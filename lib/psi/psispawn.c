@@ -323,45 +323,13 @@ static int handleAnswer(unsigned int firstRank, int count,
     case PSP_CD_SPAWNFAILED:
 	rank = errMsg->request - firstRank;
 
-	/* find the right task request */
-	/* errMsg->request == 0 might be due to rank == 0 or unknown rank */
-	bool found = false;
-	if (errMsg->request == 0 && firstRank == 0
-	    && dstnodes[0] == PSC_getID(answer.header.sender)
-	    && !errors[0]) {
-	    found = true;
-	}
-
-	if (errMsg->request == 0 && !found) {
-	    for (rank = 0; rank < count; rank++) {
-		if (dstnodes[rank] == PSC_getID(answer.header.sender)
-		    && !errors[rank]) {
-		    /*
-		     * We have to test for !errors[i], since daemon on node 0
-		     * (which has tid 0) might have returned an error.
-		     */
-		    break;
-		}
-	    }
-	}
-
-	if (rank < count) errors[rank] = errMsg->error;
-
-	if (rank == count) {
-	    if (PSC_getID(answer.header.sender) == PSC_getMyID()
-		&& errMsg->error == EACCES && count == 1) {
-		/* This might be due to 'starting not allowed' here */
-		/* @todo is this actually true? IMHO these are always
-		 * sent with the correct (remote) sender */
-		PSI_log(-1, "%s: Starting not allowed from node %d\n", __func__,
-			PSC_getID(answer.header.sender));
-		errors[0] = errMsg->error;
-	    } else {
-		PSI_log(-1, "%s: %s from unknown node %d\n", __func__,
-			PSP_printMsg(answer.header.type),
-			PSC_getID(answer.header.sender));
-		return -2; /* Ignore answer */
-	    }
+	if (rank >= 0 && rank < count) {
+	    errors[rank] = errMsg->error;
+	} else {
+	    PSI_log(-1, "%s: %s from illegal rank %d at node %d\n", __func__,
+		    PSP_printMsg(errMsg->header.type), errMsg->request,
+		    PSC_getID(errMsg->header.sender));
+	    return -2; /* Ignore answer */
 	}
 
 	if (answer.header.len > sizeof(*errMsg)) {
