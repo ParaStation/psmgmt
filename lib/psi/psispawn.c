@@ -274,21 +274,28 @@ static bool sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len,
     return false;
 }
 
+/** Structure containing all information to handle an answer */
+typedef struct {
+    int first;     /**< Rank offset */
+    int num;       /**< Total number of spawn requests sent */
+    int expected;  /**< Count outstanding answers to spawn requests */
+    int *errors;   /**< Array to collect error codes */
+} AnswerBucket_t;
+
 /**
  * @brief Handle answer on spawn requests
  *
- * Handle pending answers sent by the remote side on spawn
- * requests. The original spawn request asked for spawning @a count
- * tasks to the nodes listed in @a dstnodes starting with rank @a
- * firstRank. Errors are logged within @a errors.
+ * Handle a pending answer contained in the message @a msg sent by the
+ * remote side on a spawn requests. The structure @a bucket contains
+ * all information to handle this request including the:
+ * - rank offset of the tasks to be spawned (and thus offset to errors)
+ * - total number of spawn requests sent
+ * - count of answers still expected to be received
+ * - array to store possible error codes to
  *
- * @param firstRank Rank of the first task to spawn
+ * @param msg Message to handle
  *
- * @param count Number of tasks to spawn
- *
- * @param dstnodes Array of node IDs used in order to spawn tasks
- *
- * @param errors Array holding error codes upon return.
+ * @param bucket Structure containing all information to handle answer
  *
  * @return Return might be one of four different values:
  * -2: ignore message; from unknown node, answer to "who died" question, etc.
@@ -296,34 +303,35 @@ static bool sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len,
  *  0: legitimate error while spawning; permission denied, down node, etc.
  *  1: no error
  */
-static int handleAnswer(DDBufferMsg_t *msg, unsigned int firstRank, int count,
-			int *errors)
+static int handleAnswer(DDBufferMsg_t *msg, AnswerBucket_t *bucket)
 {
+    if (!bucket || !bucket->errors) return -1;
+
     DDErrorMsg_t *errMsg = (DDErrorMsg_t *)msg;
-    int rank = errMsg->request - firstRank;
+    int localRank = errMsg->request - bucket->first;
 
     switch (msg->header.type) {
     case PSP_CD_SPAWNSUCCESS:
-	if (rank < 0 || rank >= count) {
+	if (localRank < 0 || localRank >= bucket->num) {
 	    PSI_log(-1, "%s: %s from illegal rank %d at node %d\n", __func__,
 		    PSP_printMsg(errMsg->header.type), errMsg->request,
 		    PSC_getID(errMsg->header.sender));
 	    return -2; /* Ignore answer */
 	}
+	bucket->expected--;
 	return 1;
     case PSP_CD_SPAWNFAILED:
-	rank = errMsg->request - firstRank;
-
-	if (rank >= 0 && rank < count) {
-	    errors[rank] = errMsg->error;
-	} else {
+	if (localRank < 0 || localRank >= bucket->num) {
 	    PSI_log(-1, "%s: %s from illegal rank %d at node %d\n", __func__,
 		    PSP_printMsg(errMsg->header.type), errMsg->request,
 		    PSC_getID(errMsg->header.sender));
 	    return -2; /* Ignore answer */
 	}
+	bucket->errors[localRank] = errMsg->error;
+	bucket->expected--;
 
 	if (errMsg->header.len > sizeof(*errMsg)) {
+	    /* trailing note in message */
 	    size_t bufUsed = sizeof(*errMsg) - offsetof(DDBufferMsg_t, buf);
 	    char *note = msg->buf + bufUsed;
 
@@ -505,13 +513,13 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * type @a taskGroup and belong to the reservation identified by @a
  * resID.
  *
- * The task structure's argument vector will be create from @a argv of
- * size @a argc. These arguments might be prepended by additional
+ * The task structure's argument vector will be created from @a argv of
+ * size @a argc. These arguments might be prefixed by additional
  * entries depending on the environment variables PSI_USE_VALGRIND and
  * PSI_USE_CALLGRIND.
  *
  * Further members of the task structure will be filled by the
- * corresponding propertis of the calling process, like UID, GID,
+ * corresponding properties of the calling process, like UID, GID,
  * logger TID, etc. including a copy of the environment.
  *
  * @param workDir Initial working directory of the spawned tasks
@@ -662,20 +670,33 @@ static PStask_t * createSpawnTask(char *workDir, PStask_group_t taskGroup,
  *
  * Spawn @a count tasks on the nodes in @a dstNodes. The spawned tasks
  * are created according to the description within the structure @a
- * task. It is adviced to create @a task by utilizing the @ref
+ * task. It is advised to create @a task by utilizing the @ref
  * createSpawnTask() function.
  *
- * The first task spawned will get the unique rank @a firstRank, all
+ * The first task spawned will get the unique rank @a first, all
  * further tasks will get successive ranks. Only a single service-task
  * is allowed to be spawned per call!
  *
  * Upon return the array @a errors will hold @a count error codes
  * indicating if the corresponding spawn failed and what caused this
- * failure.
+ * failure. Alternatively a pointer to the AnswerBucket_t @a bucket
+ * might be provided. It will contain all information for a whole
+ * series of calls to this function necessary to handle answers
+ * including the @a errors array.
+ *
+ * Both, @a errors and @a bucket are mutually exclusive and the other
+ * shall be NULL when called. @a errors will be ignored when @a bucket
+ * is given.
+ *
+ * If the flags @a awaitAllAnswers is set, this function will wait for
+ * all outstanding answers before returning, unless a fatal error
+ * occurred before. Otherwise this function will handle all answers
+ * ready for receive but return as soon as all spawn requests are
+ * sent.
  *
  * @param count Number of tasks to spawn
  *
- * @param firstRank Rank of the first tasks to be spawned
+ * @param first Rank of the first tasks spawn
  *
  * @param dstNodes Array of node IDs acting as tasks destination nodes
  *
@@ -683,14 +704,26 @@ static PStask_t * createSpawnTask(char *workDir, PStask_group_t taskGroup,
  *
  * @param errors Array holding error codes upon return
  *
- * @return Upon success, the number of tasks spawned is returned,
- * i.e. usually this is @a count. Otherwise a negative value is
- * returned which indicates the number of answer got from spawn
- * requests.
+ * @param bucket Bucket of information used to handle answers
+ *
+ * @param awaitAllAnswers Flag waiting for all outstanding answers
+ * before return
+ *
+ * @return Upon success, the number of received ansers is returned.
+ * Usually this is @a count unless @a awaitAllAnswers is
+ * set. Otherwise a negative value is returned which indicates the
+ * number of answer got from spawn requests. In case of a fatal error
+ * -1 is returned.
  */
-static int doSpawn(int count, unsigned int firstRank, PSnodes_ID_t *dstNodes,
-		   PStask_t *task, int *errors)
+static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
+		   int *errors, AnswerBucket_t *bucket, bool awaitAllAnswers)
 {
+    AnswerBucket_t myBucket = {
+	.first = first,
+	.num = 0,
+	.expected = 0,
+	.errors = errors };
+
     if (!task) {
 	PSI_log(-1, "%s: no task\n", __func__);
 	return -1;
@@ -702,15 +735,20 @@ static int doSpawn(int count, unsigned int firstRank, PSnodes_ID_t *dstNodes,
 	return -1;
     }
 
-    if (!errors) {
+    if ((!bucket || !bucket->errors) && !errors) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
 	return -1;
     }
-    for (int i = 0; i < count; i++) errors[i] = 0;
 
     if (!initSerial(0, PSI_sendMsg)) {
 	PSI_log(-1, "%s: initSerial() failed\n", __func__);
 	return -1;
+    }
+
+    AnswerBucket_t *thisBucket = bucket;
+    if (!thisBucket) {
+	thisBucket = &myBucket;
+	for (int i = 0; i < count; i++) myBucket.errors[i] = 0;
     }
 
     int ret = 0;
@@ -718,81 +756,73 @@ static int doSpawn(int count, unsigned int firstRank, PSnodes_ID_t *dstNodes,
 	if (i && dstNodes[i] == dstNodes[i-1]) continue; // do not check twice
 	/* check if dstnode is ok */
 	if (!PSC_validNode(dstNodes[i])) {
-	    errors[i] = ENETUNREACH;
+	    thisBucket->errors[first - thisBucket->first + i] = ENETUNREACH;
 	    return -1;
 	}
     }
 
     /* send actual requests */
     bool error = false;
-    int expectedAnswers = 0;
-    unsigned int rank = firstRank;
     for (int i = 0; i < count && !error;) {
-	task->rank = rank;
-	int num = sendSpawnReq(task, &dstNodes[i], count - i);
-	if (num < 0) return -1;
+	task->rank = first + i;
+	int sent = sendSpawnReq(task, &dstNodes[i], count - i);
+	if (sent < 0) return -1;
 
-	i += num;
-	rank += num;
-	expectedAnswers += num;
+	i += sent;
+	thisBucket->num += sent;
+	thisBucket->expected += sent;
 
-	while (PSI_availMsg() > 0 && expectedAnswers) {
+	while (PSI_availMsg() > 0 && thisBucket->expected) {
 	    DDBufferMsg_t msg;
 	    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
 		PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 		return -1;
 	    }
-	    int r = handleAnswer(&msg, firstRank, count, errors);
+	    int r = handleAnswer(&msg, thisBucket);
 	    switch (r) {
-	    case -2:
-		/* just ignore */
+	    case -2:  /* just ignore */
 		break;
-	    case -1:
+	    case -1:  /* fatal error */
 		return -1;
-	    case 0:
+	    case 0:  /* spawn failed */
 		error = true;
 		__attribute__((fallthrough));
-	    case 1:
-		expectedAnswers--;
+	    case 1:  /* spawn success */
 		ret++;
 		break;
 	    default:
-		PSI_log(-1, "%s: unknown return %d, from handleAnswer()\n",
-			__func__, r);
+		PSI_log(-1, "%s: handleAnswer() returns %d\n", __func__, r);
 	    }
 	}
     }/* for all new tasks */
 
+    if (!awaitAllAnswers) return error ? -ret : ret;
+
     /* collect expected answers */
-    while (expectedAnswers > 0) {
+    while (thisBucket->expected > 0) {
 	DDBufferMsg_t msg;
 	if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
 	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	    return -1;
 	}
-	int r = handleAnswer(&msg, firstRank, count, errors);
+	int r = handleAnswer(&msg, thisBucket);
 	switch (r) {
-	case -2:
-	    /* just ignore */
+	case -2:  /* just ignore */
 	    break;
-	case -1:
+	case -1:  /* fatal error */
 	    return -1;
-	    break;
-	case 0:
+	case 0:   /* spawn failed */
 	    error = true;
 	    __attribute__((fallthrough));
-	case 1:
-	    expectedAnswers--;
+	case 1:   /* spawn success */
 	    ret++;
 	    break;
 	default:
-	    PSI_log(-1, "%s: unknown return %d, from handleAnswer()\n",
-		    __func__, r);
+	    PSI_log(-1, "%s: handleAnswer() returns %d\n", __func__, r);
 	}
     }
 
-    if (error) ret = -ret;
-    return ret;
+    return error ? -ret : ret;
 }
 
 int PSI_spawn(int count, char *workdir, int argc, char **argv, int *errors)
@@ -840,7 +870,8 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 	PSI_log(PSI_LOG_SPAWN, "\n");
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
-	if (doSpawn(chunk, rank, nodes, task, errors + total) != chunk) {
+	int ret = doSpawn(chunk, rank, nodes, task, errors + total, NULL, true);
+	if (ret != chunk) {
 	    total = -1;
 	    break;
 	}
@@ -878,13 +909,65 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 	return -1;
     }
 
-    int total = 0;
-    while (count > 0) {
+    AnswerBucket_t bucket = {
+	.first = 0,
+	.num = 0,
+	.expected = 0,
+	.errors = errors };
+
+    bool error = false; /* flag fatal error */
+    while (count > 0 && !error) {
 	int chunk = (count > NODES_CHUNK) ? NODES_CHUNK : count;
-	int rank = PSI_getSlots(chunk, resID, nodes);
-	if (rank < 0) {
-	    errors[total] = ENXIO;
-	    total = -1;
+	if (PSI_requestSlots(chunk, resID) < 0) {
+	    errors[bucket.num] = ENXIO;
+	    error = true;
+	    break;
+	}
+
+	/* wait to receive nodes and first rank while handling answers */
+	int rank = -1;
+	while (rank < 0 && !error) {
+	    DDBufferMsg_t msg;
+	    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
+		PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+		error = true;
+		break;
+	    }
+	    switch (msg.header.type) {
+	    case PSP_CD_SLOTSRES:
+		rank = PSI_extractSlots(&msg, chunk, nodes);
+		if (rank < 0) {
+		    errors[bucket.num] = ENXIO;
+		    error = true;
+		}
+		break;
+	    default:
+		;
+		int r = handleAnswer(&msg, &bucket);
+		switch (r) {
+		case -2:
+		    /* just ignore */
+		    break;
+		case -1:  /* fatal error */
+		case 0:   /* spawn failed */
+		    error = true;
+		    break;
+		case 1:   /* spawn success, just continue */
+		    break;
+		default:
+		    PSI_log(-1, "%s: handleAnswer() returns %d\n", __func__, r);
+		}
+	    }
+	}
+	if (error) break; /* propagate error to next level */
+
+	if (!bucket.num) {
+	    bucket.first = rank;
+	}
+	if (bucket.first + bucket.num != rank) {
+	    PSI_log(-1, "%s: unexpected gap in ranks (%d/%d)\n", __func__,
+		    bucket.first + bucket.num, rank);
+	    error = true;
 	    break;
 	}
 
@@ -893,17 +976,18 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 	PSI_log(PSI_LOG_SPAWN, "\n");
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
-	if (doSpawn(chunk, rank, nodes, task, errors + total) != chunk) {
-	    total = -1;
+	int ret = doSpawn(chunk, rank, nodes, task,
+			  NULL, &bucket, chunk == count);
+	if (ret < 0) {
+	    error = true;
 	    break;
 	}
 
 	count -= chunk;
-	total += chunk;
     }
     free(nodes);
     PStask_delete(task);
-    return total;
+    return error ? -1 : bucket.num;
 }
 
 bool PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
@@ -923,7 +1007,7 @@ bool PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
     }
 
     if (node == -1) node = PSC_getMyID();
-    int ret = doSpawn(1, rank, &node, task, error);
+    int ret = doSpawn(1, rank, &node, task, error, NULL, true);
     PStask_delete(task);
     return ret == 1;
 }
@@ -965,7 +1049,7 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
     }
 
     if (node == -1) node = PSC_getMyID();
-    int ret = doSpawn(1, rank, &node, task, error);
+    int ret = doSpawn(1, rank, &node, task, error, NULL, true);
     PStask_delete(task);
     return ret == 1;
 }
@@ -992,7 +1076,7 @@ bool PSI_spawnRank(int rank, char *workdir, int argc, char **argv, int *error)
     }
 
     PSI_log(PSI_LOG_SPAWN, "%s: spawn rank %d to %d\n", __func__, rank, node);
-    int ret = doSpawn(1, rank, &node, task, error);
+    int ret = doSpawn(1, rank, &node, task, error, NULL, true);
     PStask_delete(task);
     return ret == 1;
 }
@@ -1019,7 +1103,7 @@ bool PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv, int *error
     }
 
     PSI_log(PSI_LOG_SPAWN, "%s: spawn to %d", __func__, node);
-    int ret = doSpawn(1, np, &node, task, error);
+    int ret = doSpawn(1, np, &node, task, error, NULL, true);
     PStask_delete(task);
     return ret == 1;
 }
