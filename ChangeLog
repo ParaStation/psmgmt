@@ -1,3 +1,738 @@
+Version 5.1.58:
+===============
+------------------------------------------------------------------------
+01410ae7d | Norbert Eicker | Tue, 14 Nov 2023 15:07:24 +0100
+
+Add the now missing newlines again
+------------------------------------------------------------------------
+6fc253d7b | Norbert Eicker | Tue, 14 Nov 2023 15:05:19 +0100
+
+Work around unknown __VA_OPT__ in GCC prior 8.0
+
+ - also remove trailing \n from ulog()
+------------------------------------------------------------------------
+1bcf190e0 | Stephan Krempel | Tue, 14 Nov 2023 13:27:54 +0100
+
+psslurmpin: Fix newlines at output to user
+------------------------------------------------------------------------
+3ff570c58 | Michael Rauh | Tue, 14 Nov 2023 12:18:32 +0100
+
+Show psmgmt version instead of psslurm plugin version
+in scontrol node info
+------------------------------------------------------------------------
+21b2196db | Norbert Eicker | Mon, 13 Nov 2023 19:22:47 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+14fad8d10 | Stephan Krempel | Mon, 13 Nov 2023 13:01:47 +0100
+
+psslurmpin: Small fix and check mask also for mask_ldom
+------------------------------------------------------------------------
+96d6e5a64 | Michael Rauh | Mon, 13 Nov 2023 14:32:04 +0100
+
+Improve jail script logging
+------------------------------------------------------------------------
+fc7997c9b | Norbert Eicker | Fri, 10 Nov 2023 20:07:13 +0100
+
+Merge branch '5.1.57' again
+------------------------------------------------------------------------
+0e1241b16 | Stephan Krempel | Thu, 9 Nov 2023 13:23:15 +0100
+
+psslurmpin: Enable error output to user from psidfw
+------------------------------------------------------------------------
+0cb117bb2 | Stephan Krempel | Thu, 9 Nov 2023 12:21:54 +0100
+
+Fix typo
+------------------------------------------------------------------------
+dc56fd4c6 | Norbert Eicker | Thu, 9 Nov 2023 09:30:51 +0100
+
+Introduce PSIDfwd_inForwarder()
+------------------------------------------------------------------------
+d5f0e7278 | Stephan Krempel | Wed, 8 Nov 2023 17:59:48 +0100
+
+psslurmpin: Consolidate error outputs
+------------------------------------------------------------------------
+9632a0e52 | Stephan Krempel | Wed, 8 Nov 2023 16:50:44 +0100
+
+Fix for threadsPerCore != 2
+------------------------------------------------------------------------
+5554c8a6a | Stephan Krempel | Wed, 8 Nov 2023 16:50:13 +0100
+
+Fix type
+------------------------------------------------------------------------
+c2ab91824 | Norbert Eicker | Mon, 6 Nov 2023 19:12:38 +0100
+
+Fix typo in docu comment
+------------------------------------------------------------------------
+72e65f17b | Stephan Krempel | Mon, 30 Oct 2023 14:42:16 +0100
+
+psslurm: Fix buffer size
+------------------------------------------------------------------------
+980cb84b4 | Stephan Krempel | Sat, 21 Oct 2023 04:19:05 +0200
+
+psslurmpin: Consequently use flog() and fdbg()
+------------------------------------------------------------------------
+54ac31bfc | Stephan Krempel | Sat, 21 Oct 2023 03:56:53 +0200
+
+psslurm: Print to user if pinning to all threads
+------------------------------------------------------------------------
+1037b9b6c | Stephan Krempel | Fri, 20 Oct 2023 17:51:41 +0200
+
+psslurm: Check validity of cpu_mask string
+------------------------------------------------------------------------
+9ab81f0b3 | Stephan Krempel | Fri, 20 Oct 2023 16:15:09 +0200
+
+psslurm: Start using termJobAfterMsg mechanism
+------------------------------------------------------------------------
+a3f557349 | Stephan Krempel | Fri, 20 Oct 2023 11:21:49 +0200
+
+psslurm: Include threadsPerTask into pininfo
+------------------------------------------------------------------------
+5e7f7e1cc | Stephan Krempel | Fri, 20 Oct 2023 04:05:16 +0200
+
+psslurm: Warn about cpu_map with cpus-per-task > 1
+
+This is an invalid combination.
+------------------------------------------------------------------------
+98daa1142 | Stephan Krempel | Fri, 20 Oct 2023 03:33:29 +0200
+
+psslurm: Handle hint compute_bound
+------------------------------------------------------------------------
+46f66fc55 | Stephan Krempel | Fri, 20 Oct 2023 03:32:07 +0200
+
+psslurm: Rework pinning error output
+
+Now report pinning problems directly to srun's strerr
+not only to syslog.
+------------------------------------------------------------------------
+36389da5d | Stephan Krempel | Thu, 19 Oct 2023 21:08:37 +0200
+
+psslurm: Fix typo and comment
+------------------------------------------------------------------------
+c43ab0c1c | Stephan Krempel | Thu, 19 Oct 2023 21:07:32 +0200
+
+psslurm: Rework GPU pinning error reporting
+------------------------------------------------------------------------
+d1e50e884 | Stephan Krempel | Wed, 13 Sep 2023 01:36:49 +0200
+
+psslurm: Report invalid bind map and mask to the user
+
+Not only write message into log, but to strerr of the job as well.
+------------------------------------------------------------------------
+dbdb44d61 | Stephan Krempel | Wed, 13 Sep 2023 01:34:59 +0200
+
+psslurm: Check that CPU IDs in bind map are in step coremap
+------------------------------------------------------------------------
+8c807fc87 | Stephan Krempel | Fri, 8 Sep 2023 10:22:38 +0200
+
+psslurm: Pin only to cores allowed by the step
+
+The fallback if no pinning could be found for a process
+was to pin it to all cores, now it is to pin it only to
+all cores allowed by the step core map.
+------------------------------------------------------------------------
+fc48261ac | Norbert Eicker | Tue, 7 Nov 2023 16:38:51 +0100
+
+Check more messages on truncation
+------------------------------------------------------------------------
+b8ac146c0 | Michael Rauh | Mon, 6 Nov 2023 14:47:00 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+86bb85725 | Michael Rauh | Mon, 6 Nov 2023 14:45:27 +0100
+
+Add support for newer libbpf versions 1.0.0 and above
+------------------------------------------------------------------------
+b3e10dde1 | Michael Rauh | Tue, 24 Oct 2023 11:44:23 +0200
+
+Enhance termAfterFWmsg mechanism for steps
+ - allow to specify a Slurm error code which is forwarded to srun
+------------------------------------------------------------------------
+a44720530 | Michael Rauh | Mon, 23 Oct 2023 18:13:47 +0200
+
+Fix typos
+------------------------------------------------------------------------
+ee490d9e8 | Michael Rauh | Fri, 20 Oct 2023 15:57:32 +0200
+
+Add flag termAfterFWmsg to job and step
+
+ - will terminate the job/step immediately after sending queued
+   error messages
+ - prevents the start of any user processes
+------------------------------------------------------------------------
+17fe059f8 | Norbert Eicker | Sun, 5 Nov 2023 23:25:24 +0100
+
+Bugfix: ensure reservation request is queued early enough
+------------------------------------------------------------------------
+562c5935a | Norbert Eicker | Wed, 1 Nov 2023 22:38:45 +0100
+
+Bugfix: only peek into Step where appropriate
+------------------------------------------------------------------------
+b24833ad4 | Norbert Eicker | Wed, 1 Nov 2023 22:37:36 +0100
+
+Do not complain about logger's missing environment
+------------------------------------------------------------------------
+a2fa2df4a | Norbert Eicker | Wed, 1 Nov 2023 22:36:30 +0100
+
+Minor enhancements (whitespace, docu comment, etc)
+------------------------------------------------------------------------
+e63fca32e | Michael Rauh | Mon, 30 Oct 2023 16:06:01 +0100
+
+Improve error message of Step_findByTaskEnv()
+------------------------------------------------------------------------
+304c2e761 | Michael Rauh | Mon, 30 Oct 2023 15:43:34 +0100
+
+Improve error handling of Step_findByTaskEnv()
+------------------------------------------------------------------------
+40160afa2 | Michael Rauh | Mon, 30 Oct 2023 15:15:45 +0100
+
+Improve error message
+------------------------------------------------------------------------
+3ca7d7d87 | Norbert Eicker | Fri, 20 Oct 2023 09:46:50 +0200
+
+Update copyright notice
+------------------------------------------------------------------------
+aef50efe4 | Norbert Eicker | Thu, 19 Oct 2023 19:21:31 +0200
+
+Update build system
+------------------------------------------------------------------------
+b149dfc13 | Peter Niessen | Thu, 19 Oct 2023 15:58:44 +0200
+
+added energyreport.c
+------------------------------------------------------------------------
+bd9170c00 | Peter Niessen | Thu, 19 Oct 2023 15:57:44 +0200
+
+added energyreport.so for the slurmutils package
+------------------------------------------------------------------------
+46ee966e9 | Peter Niessen | Thu, 19 Oct 2023 15:53:08 +0200
+
+removed the setting of SET_ENERGY_REPORT
+------------------------------------------------------------------------
+f62562d5a | Peter Niessen | Thu, 19 Oct 2023 09:47:05 +0200
+
+changes needed for meluxina #1242
+------------------------------------------------------------------------
+9778f0461 | Peter Niessen | Thu, 19 Oct 2023 09:44:55 +0200
+
+changes needed for meluxina #1242
+------------------------------------------------------------------------
+3fd122062 | Norbert Eicker | Mon, 9 Oct 2023 11:31:30 +0200
+
+Rework strv_t behavior
+------------------------------------------------------------------------
+dac2304b0 | Norbert Eicker | Mon, 16 Oct 2023 18:53:30 +0200
+
+Minor fixes
+------------------------------------------------------------------------
+22019838c | Norbert Eicker | Mon, 16 Oct 2023 18:52:56 +0200
+
+Whitespace fixes
+------------------------------------------------------------------------
+0aefc7e14 | Stephan Krempel | Mon, 16 Oct 2023 12:16:34 +0200
+
+psslurm: Add ldom separation to coremap output
+
+Adds whitespace between each NUMA domain in coremap
+printed if PSSLURM_PRINT_COREMAPS = 2 is set.
+------------------------------------------------------------------------
+7ed6d274f | Stephan Krempel | Mon, 16 Oct 2023 11:36:35 +0200
+
+psslurm: Enable format choice for coremaps output
+
+PSSLURM_PRINT_COREMAPS = 2 prints the maps in binary format,
+every other value in hex format.
+------------------------------------------------------------------------
+9897368ee | Stephan Krempel | Wed, 11 Oct 2023 17:16:57 +0200
+
+psslurm: Print coremaps to stderr
+
+Introducing environment variable PSSLURM_PRINT_COREMAPS
+to enable printing of coremaps to strerr.
+
+This is useful for easier debugging pinning issues on
+production systems and to explain them to the user support.
+------------------------------------------------------------------------
+52c282720 | Norbert Eicker | Mon, 16 Oct 2023 16:21:21 +0200
+
+Merge branch '5.1.57'
+------------------------------------------------------------------------
+3e5f5b45d | Norbert Eicker | Thu, 12 Oct 2023 10:43:41 +0200
+
+Avoid uneccesary goto statement
+------------------------------------------------------------------------
+485789507 | Norbert Eicker | Thu, 12 Oct 2023 10:42:20 +0200
+
+Ensure unpackStepHead() unpackst to the right place
+
+ - Add some warnings on the structures unpackStepHead() expects
+------------------------------------------------------------------------
+cc3cd9f9c | Norbert Eicker | Thu, 12 Oct 2023 10:41:11 +0200
+
+Adapt docu comment to changed behavior
+------------------------------------------------------------------------
+8f8c6e25b | Norbert Eicker | Mon, 9 Oct 2023 18:44:40 +0200
+
+Unify use of PKGLIBEXECDIR vs. LIBEXECDIR
+------------------------------------------------------------------------
+d959a1206 | Norbert Eicker | Sat, 7 Oct 2023 01:18:25 +0200
+
+Move pspelgue into libexecdir
+
+ - This will require slurmctld prologue to get adapted!
+------------------------------------------------------------------------
+e6c6e7014 | Norbert Eicker | Sat, 7 Oct 2023 01:07:39 +0200
+
+Adapt ps_acc script to moved psaccounter
+------------------------------------------------------------------------
+a6f8ec894 | Norbert Eicker | Sat, 7 Oct 2023 01:07:11 +0200
+
+Add @pkglibexecdir@ to substituted phrases
+------------------------------------------------------------------------
+399bfc9dd | Norbert Eicker | Sat, 7 Oct 2023 01:00:18 +0200
+
+Move psaccounter into libexecdir
+------------------------------------------------------------------------
+a99c15d1e | Norbert Eicker | Sat, 7 Oct 2023 00:57:06 +0200
+
+Move psilogger into libexecdir
+------------------------------------------------------------------------
+a6f763a45 | Norbert Eicker | Sat, 7 Oct 2023 00:53:17 +0200
+
+Utilize psid to check validity of installation directory
+------------------------------------------------------------------------
+a02fceeee | Norbert Eicker | Sat, 7 Oct 2023 00:50:51 +0200
+
+Move psid to sbin
+------------------------------------------------------------------------
+f88b4fa70 | Norbert Eicker | Wed, 9 Aug 2023 12:56:57 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+4beb8d115 | Norbert Eicker | Wed, 9 Aug 2023 01:18:03 +0200
+
+Add number of inherited children to PSP_DD_INHERITDONE
+------------------------------------------------------------------------
+91744b0b3 | Norbert Eicker | Wed, 9 Aug 2023 01:14:28 +0200
+
+Let PSID_kill() behave more similar to kill()
+------------------------------------------------------------------------
+96f8cee54 | Norbert Eicker | Wed, 9 Aug 2023 01:12:54 +0200
+
+More debug improvements
+------------------------------------------------------------------------
+7320c31f8 | Norbert Eicker | Tue, 8 Aug 2023 16:32:57 +0200
+
+Enhance flow control
+
+ * Avoid to trigger flow control by sister regristration
+------------------------------------------------------------------------
+b9299faf4 | Norbert Eicker | Tue, 8 Aug 2023 16:31:59 +0200
+
+Avoid inheritance across step boundaries
+------------------------------------------------------------------------
+c47e49205 | Norbert Eicker | Tue, 8 Aug 2023 16:24:36 +0200
+
+Bugfix: Do not trigger gracetime if SIGCHLD already received
+------------------------------------------------------------------------
+6976eca7d | Norbert Eicker | Mon, 7 Aug 2023 21:13:14 +0200
+
+Add and improve some more debug
+------------------------------------------------------------------------
+d2a6ec18a | Norbert Eicker | Mon, 7 Aug 2023 20:28:39 +0200
+
+Adapt accounting to steps without own logger
+------------------------------------------------------------------------
+1e3342eb9 | Norbert Eicker | Mon, 7 Aug 2023 16:11:35 +0200
+
+Reflect change of role logger -> root in psaccount
+
+ * no change of functionality but basically renaming
+------------------------------------------------------------------------
+70ca5267f | Norbert Eicker | Mon, 7 Aug 2023 10:11:02 +0200
+
+Introduce partHolder member in PStask_t
+------------------------------------------------------------------------
+a497c2029 | Norbert Eicker | Fri, 4 Aug 2023 10:10:23 +0200
+
+Utilize PSIDHOOK_LAST_RESRELEASED to stop step forwarder
+------------------------------------------------------------------------
+b082b90c1 | Norbert Eicker | Fri, 4 Aug 2023 10:07:41 +0200
+
+Rework cleanup of reservation information
+------------------------------------------------------------------------
+f6018b747 | Norbert Eicker | Thu, 3 Aug 2023 09:03:18 +0200
+
+Introduce PSIDHOOK_LAST_RESRELEASED
+------------------------------------------------------------------------
+6fa8a303f | Norbert Eicker | Thu, 3 Aug 2023 08:49:46 +0200
+
+Adapt Slurm IO handling to spawned tasks
+------------------------------------------------------------------------
+6b35c573e | Norbert Eicker | Thu, 3 Aug 2023 08:20:23 +0200
+
+Tell spawned KVS provider to stop on last child gone
+------------------------------------------------------------------------
+8a753e80d | Norbert Eicker | Wed, 2 Aug 2023 16:53:00 +0200
+
+Rework psidsession
+
+  - Rename PSID_findSessionByLoggerTID() to PSID_findSessionByID()
+  - Replace loggerTID->sessionID and spawnerTID->jobID
+------------------------------------------------------------------------
+0bdc1c6b1 | Norbert Eicker | Tue, 1 Aug 2023 00:32:33 +0200
+
+Bugfix: Ensure step forwarder task owns its strings
+------------------------------------------------------------------------
+c409a24d1 | Norbert Eicker | Tue, 1 Aug 2023 00:18:49 +0200
+
+Make step forwarder handling less verbose
+------------------------------------------------------------------------
+550fb89c9 | Norbert Eicker | Tue, 1 Aug 2023 00:15:06 +0200
+
+Ensure resinfos of obsolete sister partition are cleaned
+------------------------------------------------------------------------
+0969313df | Norbert Eicker | Mon, 31 Jul 2023 23:53:46 +0200
+
+Introduce checkJob() and checkSession() to psidsession
+------------------------------------------------------------------------
+977552051 | Norbert Eicker | Mon, 31 Jul 2023 23:41:22 +0200
+
+Improve handling of delegates
+------------------------------------------------------------------------
+ddc53f225 | Norbert Eicker | Mon, 31 Jul 2023 23:37:09 +0200
+
+Streamlining
+------------------------------------------------------------------------
+fb214d97f | Norbert Eicker | Mon, 31 Jul 2023 23:29:38 +0200
+
+Reformatting
+------------------------------------------------------------------------
+03aa2e5a3 | Norbert Eicker | Mon, 31 Jul 2023 15:03:26 +0200
+
+Bugfix: ensure reservation is dequeued before put back
+------------------------------------------------------------------------
+ad3733d62 | Norbert Eicker | Mon, 31 Jul 2023 14:58:18 +0200
+
+More syslog debug
+------------------------------------------------------------------------
+120112739 | Norbert Eicker | Sat, 29 Jul 2023 16:36:43 +0200
+
+Hide local functionality
+------------------------------------------------------------------------
+1fb19445f | Norbert Eicker | Fri, 28 Jul 2023 12:03:28 +0200
+
+Store jobRank and globalRank in PS_Tasks_t
+------------------------------------------------------------------------
+248f23aa7 | Norbert Eicker | Fri, 28 Jul 2023 11:46:29 +0200
+
+Add syslog debug
+------------------------------------------------------------------------
+133637532 | Norbert Eicker | Thu, 27 Jul 2023 15:30:49 +0200
+
+Abuse PSP_CD_SPAWNSUCCESS error to transport task's job rank
+------------------------------------------------------------------------
+4d418793d | Norbert Eicker | Thu, 27 Jul 2023 15:20:13 +0200
+
+Fix service ranks in spawn
+
+ * An additional service rank will be occupied by the step
+   forwarder
+------------------------------------------------------------------------
+b621edff3 | Norbert Eicker | Thu, 27 Jul 2023 15:08:53 +0200
+
+Rework sendCHILDRESREL()
+------------------------------------------------------------------------
+51c93349d | Norbert Eicker | Thu, 27 Jul 2023 14:06:29 +0200
+
+Rework CRR members
+------------------------------------------------------------------------
+ebce99ecb | Norbert Eicker | Thu, 27 Jul 2023 13:46:37 +0200
+
+Delete task explicitly when if fails
+------------------------------------------------------------------------
+053f5f36b | Norbert Eicker | Wed, 26 Jul 2023 17:38:22 +0200
+
+Pass partition holder to reservation info, too
+------------------------------------------------------------------------
+4c44cefdc | Norbert Eicker | Wed, 26 Jul 2023 00:03:07 +0200
+
+Improve debug output
+------------------------------------------------------------------------
+d9f824eff | Norbert Eicker | Tue, 25 Jul 2023 04:05:21 +0200
+
+Ensure reservations are sent around with the correct logger TID
+------------------------------------------------------------------------
+ffb7a4d53 | Norbert Eicker | Tue, 25 Jul 2023 03:52:58 +0200
+
+Ensure PSP_CD_INFOREQUEST and PSP_CD_GETRANKNODE use the right task
+------------------------------------------------------------------------
+ee6dcadf5 | Norbert Eicker | Tue, 25 Jul 2023 03:48:48 +0200
+
+Unify syslog output on reservation IDs
+------------------------------------------------------------------------
+5f649bb02 | Norbert Eicker | Tue, 25 Jul 2023 03:29:39 +0200
+
+Introduce jobRank member to PStask_t
+------------------------------------------------------------------------
+13947d6f6 | Norbert Eicker | Tue, 25 Jul 2023 03:13:17 +0200
+
+Improve more syslog messages
+------------------------------------------------------------------------
+f32120099 | Norbert Eicker | Mon, 24 Jul 2023 15:27:32 +0200
+
+Fix typo
+------------------------------------------------------------------------
+8179578dd | Norbert Eicker | Mon, 24 Jul 2023 13:51:06 +0200
+
+Fix and enhance error message
+------------------------------------------------------------------------
+92f2e9554 | Norbert Eicker | Sat, 22 Jul 2023 17:47:39 +0200
+
+Improve syslog messages
+------------------------------------------------------------------------
+359913943 | Norbert Eicker | Thu, 20 Jul 2023 12:41:36 +0200
+
+Allow step forwarders to start a spawner
+
+ * CMD_INIT_COMPLETE callback is used to trigger the spawner
+------------------------------------------------------------------------
+cd7cda675 | Norbert Eicker | Thu, 20 Jul 2023 12:32:45 +0200
+
+Tell new sister nodes about existing reservations
+------------------------------------------------------------------------
+633cd473d | Norbert Eicker | Thu, 20 Jul 2023 12:15:13 +0200
+
+Ensure PSP_DD_CHILDRESREL finds its actual destination
+------------------------------------------------------------------------
+7f5030823 | Norbert Eicker | Thu, 20 Jul 2023 12:13:17 +0200
+
+Introduce reservations of type PART_OPT_DUMMY
+
+ * This allows to create reservations at step forwarders
+------------------------------------------------------------------------
+fb99a2124 | Norbert Eicker | Thu, 20 Jul 2023 12:06:42 +0200
+
+Introduce PSP_DD_RESERVATIONRES and handle it
+
+ * But no sending yet
+------------------------------------------------------------------------
+5bff71335 | Norbert Eicker | Thu, 20 Jul 2023 12:00:28 +0200
+
+More debug output rework
+------------------------------------------------------------------------
+220f1df88 | Norbert Eicker | Thu, 20 Jul 2023 11:56:02 +0200
+
+Propagate rankOffset in PSP_DD_RESCREATED
+------------------------------------------------------------------------
+1c7ce56fb | Norbert Eicker | Thu, 20 Jul 2023 11:53:45 +0200
+
+Use findRes() where applicable
+------------------------------------------------------------------------
+f017a64ee | Norbert Eicker | Thu, 20 Jul 2023 11:46:50 +0200
+
+Send reservation information to sister nodes, too
+
+ * add filter parameter to send_RESCREATED()
+ * rework message filtering in send_RESCREATED(), send_RESSLOTS(),
+   and send_RESRELEASED()
+ * add prepNumToSend()
+------------------------------------------------------------------------
+7c3b3561e | Norbert Eicker | Thu, 20 Jul 2023 09:55:56 +0200
+
+Rework debug output, streamline, etc.
+------------------------------------------------------------------------
+9df4ebdc4 | Norbert Eicker | Thu, 20 Jul 2023 09:14:15 +0200
+
+Introduce rankOffset to PSrsrvtn_t and PSresinfo_t
+
+ * Also rename firstrank/lastrank to firstRank/lastRank in
+   PSresinfoentry_t
+------------------------------------------------------------------------
+6d597d704 | Norbert Eicker | Wed, 19 Jul 2023 18:32:15 +0200
+
+Bugfix: release reservation from all nodes in partition
+------------------------------------------------------------------------
+29c8a633a | Norbert Eicker | Tue, 18 Jul 2023 01:09:17 +0200
+
+Rework docu comments
+------------------------------------------------------------------------
+9b36f6078 | Norbert Eicker | Mon, 17 Jul 2023 19:18:11 +0200
+
+Introduce the concept of sister partitions
+
+ * Push PSDaemonProtocolVersion to 416
+------------------------------------------------------------------------
+470a8ae31 | Norbert Eicker | Mon, 17 Jul 2023 15:10:58 +0200
+
+Introduce PSID_flog() and PSID_fdbg()
+------------------------------------------------------------------------
+ccd1c83fd | Norbert Eicker | Mon, 17 Jul 2023 11:18:18 +0200
+
+Move clrPartQueue() to PSpart_clrQueue() and make it public
+------------------------------------------------------------------------
+a280ed32b | Norbert Eicker | Thu, 13 Jul 2023 22:41:38 +0200
+
+Streamlining
+------------------------------------------------------------------------
+21ddd95c9 | Norbert Eicker | Thu, 13 Jul 2023 21:00:53 +0200
+
+Move logHWthreads() and genThreadsArray() to psslurmpin and make them public
+------------------------------------------------------------------------
+806fb58a9 | Norbert Eicker | Thu, 13 Jul 2023 20:59:37 +0200
+
+Prevent distant start of mpiexec helpers in case of spawn
+------------------------------------------------------------------------
+845af1b9f | Norbert Eicker | Thu, 13 Jul 2023 19:31:40 +0200
+
+Add handleLastChildGone() hooking into PSIDHOOK_LAST_CHILD_GONE
+------------------------------------------------------------------------
+64bec88ba | Norbert Eicker | Thu, 13 Jul 2023 18:59:08 +0200
+
+Rename buildMpiexecArgs() to buildStartArgv() and make it public
+------------------------------------------------------------------------
+b5dbfb9d3 | Norbert Eicker | Thu, 13 Jul 2023 18:31:55 +0200
+
+Introduce Step_new() to create steps not in StepList
+------------------------------------------------------------------------
+153dc50c9 | Norbert Eicker | Thu, 13 Jul 2023 18:30:50 +0200
+
+Mode getPMIType() to psslurmenv and make it public
+------------------------------------------------------------------------
+e630f0021 | Norbert Eicker | Thu, 13 Jul 2023 14:51:01 +0200
+
+Remove now obsolete Step_findByLogger()
+------------------------------------------------------------------------
+6e73b8557 | Norbert Eicker | Thu, 13 Jul 2023 14:34:40 +0200
+
+Replace Step_findByLogger() by Step_findByTaskEnv()
+
+ - steps might not be uniquely identified by logger after spawn
+------------------------------------------------------------------------
+0549eeada | Norbert Eicker | Thu, 13 Jul 2023 13:56:58 +0200
+
+Introduce Step_findByTaskEnv()
+------------------------------------------------------------------------
+a351f50e9 | Norbert Eicker | Thu, 13 Jul 2023 13:36:09 +0200
+
+Rework __findStepByEnv() to Step_findByEnv()
+------------------------------------------------------------------------
+58c14a004 | Norbert Eicker | Thu, 13 Jul 2023 12:24:09 +0200
+
+Rework __findStepByEnv()
+------------------------------------------------------------------------
+f09abb362 | Norbert Eicker | Thu, 13 Jul 2023 12:16:12 +0200
+
+Mark step as the result of a spawn
+------------------------------------------------------------------------
+305f1cf35 | Norbert Eicker | Thu, 13 Jul 2023 12:14:37 +0200
+
+Minor whitespace fixes
+------------------------------------------------------------------------
+b3676393d | Norbert Eicker | Wed, 12 Jul 2023 18:04:17 +0200
+
+Spawn step-forwarder in the task tree in case of spawn
+------------------------------------------------------------------------
+d3e3c0fb2 | Norbert Eicker | Wed, 12 Jul 2023 17:34:10 +0200
+
+Propagate parent info through Slurm via the environment
+------------------------------------------------------------------------
+876a3d1ff | Norbert Eicker | Wed, 12 Jul 2023 17:33:08 +0200
+
+Allow to spawn forwarder as part of a task tree
+------------------------------------------------------------------------
+7a58a7c4a | Norbert Eicker | Wed, 12 Jul 2023 10:27:28 +0200
+
+Allow PSIDspawn_localTask() to mimic a spawn message result
+------------------------------------------------------------------------
+6e54a5827 | Norbert Eicker | Tue, 11 Jul 2023 18:58:19 +0200
+
+Allow PSIDpart_register() to extend a partition
+------------------------------------------------------------------------
+c36cbe568 | Norbert Eicker | Mon, 10 Jul 2023 17:45:28 +0200
+
+Enhance docu comments
+------------------------------------------------------------------------
+cb12ea9b3 | Norbert Eicker | Mon, 10 Jul 2023 17:12:46 +0200
+
+Remove obsolete PSI_createMPIhosts()
+------------------------------------------------------------------------
+d460350cf | Norbert Eicker | Mon, 10 Jul 2023 11:31:20 +0200
+
+Refine docu comments
+------------------------------------------------------------------------
+a11c40289 | Norbert Eicker | Sat, 8 Jul 2023 19:07:56 +0200
+
+Minor streamlining
+------------------------------------------------------------------------
+8a699105b | Norbert Eicker | Sat, 8 Jul 2023 18:52:25 +0200
+
+Add hook PSIDHOOK_LAST_CHILD_GONE
+
+ * bump plugin API version to 139
+------------------------------------------------------------------------
+1acbbe9a6 | Norbert Eicker | Wed, 5 Jul 2023 20:17:36 +0200
+
+Use the right environment to check for spawn
+------------------------------------------------------------------------
+87ef10cb8 | Norbert Eicker | Fri, 6 Oct 2023 15:30:07 +0200
+
+Rework documentation comment
+------------------------------------------------------------------------
+888a90804 | Norbert Eicker | Fri, 6 Oct 2023 15:27:23 +0200
+
+Minor streamlining
+------------------------------------------------------------------------
+8336f8537 | Norbert Eicker | Fri, 6 Oct 2023 15:25:47 +0200
+
+Minor renaming of functions
+------------------------------------------------------------------------
+c7caf2b11 | Norbert Eicker | Fri, 6 Oct 2023 13:57:11 +0200
+
+Improve docu comment
+------------------------------------------------------------------------
+d9e66f562 | Norbert Eicker | Fri, 6 Oct 2023 11:13:43 +0200
+
+Looping over empty lists shall be okay
+------------------------------------------------------------------------
+82f663bfa | Michael Rauh | Fri, 15 Sep 2023 17:08:41 +0200
+
+Improve documentation of fwCMD_printMsg()
+------------------------------------------------------------------------
+fee7a6823 | Michael Rauh | Thu, 14 Sep 2023 22:00:02 +0200
+
+Queue messages submitted to fwCMD_printMsg() if no forwarder has
+been started yet
+
+ - messages are queued in the corresponding job/step structure
+ - the forwarder will automatically send queued messages after I/O
+   initialization
+ - queued messages are freed at job/step deletion
+------------------------------------------------------------------------
+dfcc8dbac | Stephan Krempel | Mon, 25 Sep 2023 14:14:01 +0200
+
+Set psconfigdumpsdir as configure option
+------------------------------------------------------------------------
+20974d1f5 | Stephan Krempel | Mon, 25 Sep 2023 13:49:57 +0200
+
+single_node_config: @psconfigdumpsdir@ as default
+
+- Adds psconfigdumpsdir to replaces variables
+- Generate single_node_config from single_node_config.in
+
+Used in single_node
+------------------------------------------------------------------------
+fbeb2a0fd | Norbert Eicker | Thu, 5 Oct 2023 17:08:45 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+be96b17a9 | Stephan Krempel | Thu, 24 Aug 2023 14:44:54 +0200
+
+Use share/psconfig/dumps for main psconfig dumps
+
+This requires psconfig 5.2.10 providing the directory
+------------------------------------------------------------------------
+
+
 Version 5.1.57-3:
 =================
 ------------------------------------------------------------------------

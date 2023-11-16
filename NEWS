@@ -6,6 +6,50 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Since the pspelogue executable was moved, the slurmctld prologue   **
+**  has to be adapted accordingly. The new location is libexecdir,     **
+**  i.e. /opt/parastation/libexec/psmgmt/pspelogue                     **
+**                                                                     **
+**  psmgmt 5.1.58-0 will require psconfig 5.2.10 or later to work      **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 5.1.58:
+===============
+Bugfixes:
+ - Pin only to cores allowed by the step in psslurm
+ - Fix support for spawn in PMI
+ - Ensure step forwarder task owns its strings
+Enhancements:
+ - Add user-facing error messages to psslurm's pinning
+ - Handle hint compute_bound in psslurm
+ - Print coremaps to stderr for debugging if PSSLURM_PRINT_COREMAPS is set
+ - Make energy reporting managable by srun (meluxina #1242)
+ - Cache user-facing messages until connection to srun appears
+ - Add support for libbpf versions 1.0.0 and above (cgroup v2 on Rocky 9)
+Additional changes:
+ - Use share/psconfig/dumps for main psconfig dumps (requires psconfig 5.2.10)
+ - Add flag termAfterFWmsg to job and step to stop immediately after
+   delivery of queued messages to the user
+ - Move psid to sbin directory
+ - Move various helpers (pspelogue,ps_acc,psaccounter,psilogger) to libexecdir
+ - Major rework psidsession (adressing tasks via session/job/app/rank)
+ - Utilize psid (instead of psilogger) to check validity of
+   installation directory
+ - Introduce PSIDHOOK_LAST_RESRELEASED, PSIDHOOK_LAST_CHILD_GONE and
+   bump plugin API version to 140
+ - Introduce the concept of sister partitions and push daemon protocol
+   to version 416
+ - Allow PSIDpart_register() to extend a partition
+ - Introduce PSID_flog() and PSID_fdbg()
+ - Introduce PSIDfwd_inForwarder()
+ - Move clrPartQueue() to PSpart_clrQueue() and make it public
+ - Rework strv_t behavior
+
 
 Version 5.1.57-3:
 =================
