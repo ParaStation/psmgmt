@@ -363,9 +363,9 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
  *
  * Upon success, i.e. if the reservation was created, a unique
  * reservation ID is returned. This reservation ID might be used to
- * request the actual resources via PSI_getSlots(). The actual amount
- * of slots contained in the reservation is passed to the calling
- * process via @a got.
+ * request the actual resources via PSI_requestSlots(). The actual
+ * amount of slots contained in the reservation is passed to the
+ * calling process via @a got.
  *
  * @param nMin Minimum amount of slots in the reservation
  *
@@ -393,7 +393,7 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
  * @return Upon success the unique ID of the created reservation will
  * be returned. Or 0 in case of an error.
  *
- * @see PSI_getSlots()
+ * @see PSI_requestSlots() PSI_extractSlots()
  */
 PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 				 uint16_t tpp, uint32_t hwType,
@@ -453,40 +453,6 @@ int PSI_requestSlots(uint16_t num, PSrsrvtn_ID_t resID);
  * @see PSI_getReservation() PSI_requestSlots()
  */
 int PSI_extractSlots(DDBufferMsg_t *msg, uint16_t num, PSnodes_ID_t *nodes);
-
-/**
- * @brief Get slots from reservation
- *
- * Get @a num slots from the reservation identified by the unique ID
- * @a resID. The node-part of the slots will be stored to the array @a
- * nodes. The caller has to ensure that the array @a nodes is
- * sufficiently large.
- *
- * The reservation has to contain sufficiently many slots for this
- * function to succeed. Otherwise it will fail an no resources are
- * used.
- *
- * The rank of the first task to spawn into the received slots will be
- * returned. Further tasks are expected to get the successive ranks
- * assigned.
- *
- * This function is implemented by first requesting the slots via @ref
- * PSI_requestSlots() and then waiting for a message of type
- * PSP_CD_SLOTSRES to be exted by @ref PSI_extractSlots().
- *
- * @param num Number of slots to get
- *
- * @param resID Unique reservation ID to get the slots from
- *
- * @param nodes An array sufficiently large to store the node IDs of
- * the received slots
- *
- * @return On success, the rank of the first task to spawn is
- * returned; or -1 in case of error
- *
- * @see PSI_getReservation() PSI_requestSlots() PSI_extractSlots()
- */
-int PSI_getSlots(uint16_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes);
 
 /**
  * @brief Get node to spawn process to.

@@ -1340,32 +1340,3 @@ int PSI_extractSlots(DDBufferMsg_t *msg, uint16_t num, PSnodes_ID_t *nodes)
 
     return ret;
 }
-
-int PSI_getSlots(uint16_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
-{
-    int32_t ret = PSI_requestSlots(num, resID);
-    if (ret < 0) return ret;
-
-    while (true) {
-	DDBufferMsg_t msg;
-	if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
-	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
-	    return -1;
-	}
-	switch (msg.header.type) {
-	case PSP_CD_SLOTSRES:
-	    return PSI_extractSlots(&msg, num, nodes);
-	    break;
-	case PSP_CD_SENDSTOP:
-	case PSP_CD_SENDCONT:
-	    continue;
-	    break;
-	default:
-	    PSI_log(-1, "%s: received unexpected msgtype '%s'\n", __func__,
-		    PSP_printMsg(msg.header.type));
-	    return -1;
-	}
-    }
-
-    return -1;
-}
