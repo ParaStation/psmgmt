@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021,2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -158,8 +158,8 @@ pluginConfigVisitor_t pluginConfig_showVisitor;
  * of the embodied objects. In addition to the object's key and value
  * @a info is passed as additional information.
  *
- * If @a visitor returns true, the traversal will be stopped
- * immediately and true is returned to the calling function.
+ * If @a visitor returns false, the traversal will be stopped
+ * immediately and false is returned to the calling function.
  *
  * @param conf Configuration context to be traversed
  *
@@ -168,7 +168,7 @@ pluginConfigVisitor_t pluginConfig_showVisitor;
  * @param info Additional information to be passed to @a visitor while
  * visiting all objects within @a conf
  *
- * @return If a visitor returns false, traversal will be stopped and
+ * @return If @a visitor returns false, traversal will be stopped and
  * false is returned; or true if no visitor returned false during the
  * traversal
  */
