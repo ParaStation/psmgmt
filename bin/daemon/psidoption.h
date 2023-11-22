@@ -33,7 +33,7 @@ void initOptions(void);
  * Send some options upon startup of a daemon-daemon connection to @a
  * destnode's daemon.
  *
- * @param destnode Destionation node the options shall be send to
+ * @param destnode Destination node the options shall be send to
  *
  * @return No return value
  */
