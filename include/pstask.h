@@ -157,7 +157,7 @@ struct __task__ {
 				      job, i.e. with the same loggertid */
     PSrsrvtn_ID_t nextResID;       /**< ID to be used for next reservation */
     list_t reservations;           /**< List of active reservations */
-    list_t resRequests;            /**< List of reservation-requestd (FIFO) */
+    list_t resRequests;            /**< List of reservation requests (FIFO) */
     int32_t activeChild;           /**< # of active children right now */
     int32_t numChild;              /**< Total # of children spawned over time */
     PSpart_slot_t *spawnNodes;     /**< Nodes the task can spawn to */

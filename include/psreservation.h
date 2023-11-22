@@ -65,7 +65,7 @@ typedef struct{
  * @brief Initialize the reservation structure pool
  *
  * Initialize to pool of reservation structure. Must be called before
- * any other function function of this module.
+ * any other function of this module.
  *
  * @return No return value
  */
