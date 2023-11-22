@@ -51,7 +51,7 @@ void PSID_shutdown(void)
     int numPlugins;
 
     phase++;
-    PSID_flog("phae %d\n", phase);
+    PSID_flog("phase %d\n", phase);
 
     switch (phase) {
     case 0:
