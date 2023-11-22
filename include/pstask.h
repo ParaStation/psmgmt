@@ -177,54 +177,32 @@ struct __task__ {
 } /* PStask_t */;
 
 /**
- * @brief Create a new task structure.
+ * @brief Create a new task structure
  *
- * A new task structure is created and initialized via @ref
- * PStask_init(). It may be removed with @ref PStask_delete().
+ * A new task structure is created by allocating the corresponding
+ * memory. Furthermore it is initialized ready for use. It shall be
+ * removed with @ref PStask_delete().
  *
  * @return On success a pointer to the new task structure is
  * returned, or NULL otherwise
  *
- * @see PStask_init(), PStask_delete()
+ * @see PStask_delete()
  */
 PStask_t *PStask_new(void);
-
-/**
- * @brief Initialize a task structure.
- *
- * Initialize the task structure @a task, i.e. set all member to
- * default values.
- *
- * @param task Pointer to the task structure to be initialized.
- *
- * @return On success true is returned; or false in case of error
- */
-bool PStask_init(PStask_t *task);
-
-/**
- * @brief Reinitialize a task structure
- *
- * Reinitialize the task structure @a task that was previously
- * used. All allocated strings and signal-lists shall be removed, all
- * links are reset to NULL.
- *
- * @param task Pointer to the task structure to be reinitialized
- *
- * @return On success true is returned; or false in case of error
- */
-bool PStask_reinit(PStask_t *task);
 
 /**
  * @brief Delete a task structure
  *
  * Delete the task structure @a task created via @ref
  * PStask_new(). First the task is cleaned up by @ref PStask_reinit(),
- * i.e. all allocated strings and signal-lists are removed. Afterward
- * the task itself is removed.
+ * i.e. all allocated strings, signal-lists, etc. are
+ * removed. Afterward the task itself is removed.
  *
  * @param task Pointer to the task structure to be deleted
  *
  * @return On success true is returned; or false in case of error
+ *
+ * @see PStask_new()
  */
 bool PStask_delete(PStask_t *task);
 

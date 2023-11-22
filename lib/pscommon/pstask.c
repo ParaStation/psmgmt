@@ -69,16 +69,17 @@ const char* PStask_printGrp(PStask_group_t tg)
     return "UNKNOWN";
 }
 
-PStask_t* PStask_new(void)
-{
-    PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
-    PStask_t* task = malloc(sizeof(PStask_t));
-    if (task) PStask_init(task);
-
-    return task;
-}
-
-bool PStask_init(PStask_t* task)
+/**
+ * @brief Initialize a task structure
+ *
+ * Initialize the task structure @a task, i.e. set all member to
+ * default values.
+ *
+ * @param task Pointer to the task structure to be initialized
+ *
+ * @return On success true is returned; or false in case of error
+ */
+static bool initTask(PStask_t* task)
 {
     PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
 
@@ -161,6 +162,15 @@ bool PStask_init(PStask_t* task)
     return true;
 }
 
+PStask_t* PStask_new(void)
+{
+    PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
+    PStask_t* task = malloc(sizeof(PStask_t));
+    if (task) initTask(task);
+
+    return task;
+}
+
 static void delReservationList(list_t *list)
 {
     list_t *r, *tmp;
@@ -189,7 +199,7 @@ static void delReservationList(list_t *list)
  *
  * @return No return value
  */
-static void PStask_cleanup(PStask_t* task)
+static void cleanupTask(PStask_t* task)
 {
     free(task->workingdir);
     if (task->argv) {
@@ -213,7 +223,18 @@ static void PStask_cleanup(PStask_t* task)
     free(task->resPorts);
 }
 
-bool PStask_reinit(PStask_t* task)
+/**
+ * @brief Reinitialize a task structure
+ *
+ * Reinitialize the task structure @a task that was previously
+ * used. All allocated strings, signal-lists, etc. shall be removed,
+ * all links are reset to NULL.
+ *
+ * @param task Pointer to the task structure to be reinitialized
+ *
+ * @return On success true is returned; or false in case of error
+ */
+static bool reinitTask(PStask_t* task)
 {
     PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
 
@@ -221,7 +242,7 @@ bool PStask_reinit(PStask_t* task)
 
     if (!list_empty(&task->next)) list_del_init(&task->next);
 
-    PStask_cleanup(task);
+    cleanupTask(task);
 
     PSsignal_clearList(&task->childList);
     PSsignal_clearList(&task->releasedBefore);
@@ -241,7 +262,7 @@ bool PStask_reinit(PStask_t* task)
     PSsignal_clearList(&task->assignedSigs);
     PSsignal_clearList(&task->keptChildren);
 
-    return PStask_init(task);
+    return initTask(task);
 }
 
 bool PStask_delete(PStask_t* task)
@@ -250,7 +271,7 @@ bool PStask_delete(PStask_t* task)
 
     if (!task) return false;
 
-    PStask_reinit(task);
+    reinitTask(task);
     free(task);
 
     return true;
@@ -264,7 +285,7 @@ bool PStask_destroy(PStask_t* task)
 
     if (!list_empty(&task->next)) list_del(&task->next);
 
-    PStask_cleanup(task);
+    cleanupTask(task);
     free(task);
 
     return true;
@@ -579,8 +600,6 @@ bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg)
 
 int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
 {
-    int msglen;
-
     if (!task) {
 	PSC_log(-1, "%s: task is NULL\n", __func__);
 	return 0;
@@ -591,10 +610,10 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
 	PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, buffer, someStr);
     }
 
-    PStask_reinit(task);
+    reinitTask(task);
 
     /* unpack buffer */
-    msglen = sizeof(tmpTask);
+    int msglen = sizeof(tmpTask);
     memcpy(&tmpTask, buffer, sizeof(tmpTask));
 
     task->tid = tmpTask.tid;
