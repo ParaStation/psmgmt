@@ -26,6 +26,7 @@
 #include "pstaskid.h" // IWYU pragma: export
 
 #include "pscpu.h"
+#include "psitems.h"
 #include "pssenddb_t.h"
 
 /**
@@ -42,10 +43,10 @@ const char* PStask_printGrp(PStask_group_t taskgroup);
 /**
  * @brief Print statistics
  *
- * Print statistics concerning the usage of signal and reservation
- * structures.
+ * Print statistics concerning the usage of signal, info, and
+ * reservation structures.
  *
- * @return No return value.
+ * @return No return value
  */
 void PStask_printStat(void);
 
@@ -83,6 +84,15 @@ typedef enum {
  * @return No return value
  */
 typedef void PStask_sigChldCB_t(int status, PStask_t *task);
+
+/** Different types of info items to be attached to a task */
+typedef enum {
+    TASKINFO_DRAINED = PSITEM_DRAINED, /**< Helper type for item handling */
+    TASKINFO_UNUSED = PSITEM_IDLE,     /**< Helper type for item handling */
+    TASKINFO_ALL = 0,                  /**< Helper type to travers all items */
+    TASKINFO_FORWARDER = 1,            /**< Info points to ForwarderData_t */
+    TASKINFO_STEP,                     /**< Info points to psslurm's Step_t */
+} PStask_info_t;
 
 /** Task structure */
 /* Members marked C are handled by PStask_[en|de]code()/PStask_addToMsg() */
@@ -167,7 +177,7 @@ struct __task__ {
     int injectedEnv;               /**< Flag an injected environment into the
 				      current spawn. Used by psmom, etc. */
     PStask_sigChldCB_t *sigChldCB; /**< Callback to be executed on SIGCHLD */
-    void *info;                    /**< Generic info to be used by initiator */
+    list_t info;                   /**< List of extra information items */
 
     list_t signalSender;           /**< Tasks which sent signals */
     list_t signalReceiver;         /**< Tasks which want to receive signals */
@@ -551,6 +561,99 @@ int PStask_decodeEnv(char *buffer, PStask_t *task);
 int PStask_decodeEnvAppend(char *buffer, PStask_t *task);
 
 /**
+ * @brief Add extra information to task
+ *
+ * Add the extra information @a info of type @a type to the task
+ * structure @a task.
+ *
+ * @param task Task structure to add the information to
+ *
+ * @param type Type of information to be added
+ *
+ * @param info Actual information to add
+ *
+ * @return On success true is returned; or false in case of failure
+ */
+bool PStask_infoAdd(PStask_t *task, PStask_info_t type, void *info);
+
+/**
+ * @brief Get extra information from task
+ *
+ * Retrieve the first information of type @a type from the task
+ * structure @a task.
+ *
+ * @param task Task structure to investigate
+ *
+ * @param type Type of information to retrieve
+ *
+ * @return On success, i.e. if a corresponding extra information was
+ * added to @a task, this information is returned; or NULL otherwise
+ */
+void * PStask_infoGet(PStask_t *task, PStask_info_t type);
+
+/**
+ * @brief Remove extra information from task
+ *
+ * Remove the extra information @a info of type @a type from the task
+ * structure @a task. If @a info is NULL, the first occurrence of
+ * extra information of type @a type is removed.
+ *
+ * @param task Task structure to modify
+ *
+ * @param type Type of information to remove
+ *
+ * @param info Actual information to be removed from @a task; might be
+ * NULL to evict the first information of type @a type
+ *
+ * @return On success, i.e. if a corresponding extra information was
+ * removed from @a task, true is returned; or false otherwise
+ */
+bool PStask_infoRemove(PStask_t *task, PStask_info_t type, void *info);
+
+/**
+ * @brief Visitor function
+ *
+ * Visitor function used by @ref PStask_infoTraverse() in order to
+ * visit each information object in a given task structure.
+ *
+ * The parameters are as follows: @a task points to the task structure
+ * whose list of extra information is traversed, @a type provides the
+ * type of information presented, and @a info is the information
+ * itself.
+ *
+ * If the visitor function returns false, the traversal will be
+ * interrupted and @ref PStask_infoTraverse() will return to its
+ * calling function.
+ */
+typedef bool PStask_infoVisitor_t(const PStask_t *task,
+				  const PStask_info_t type, const void *info);
+
+/**
+ * @brief Traverse task's extra information
+ *
+ * Traverse the task structure's @a task extra information by calling
+ * @a visitor for each of the embodied information items of type @a
+ * type. If @a type is TASKINFO_ALL, every extra information is
+ * presented to @a visitor.
+ *
+ * If @a visitor returns false, the traversal will be stopped
+ * immediately and false is returned to the calling function.
+ *
+ * @param task Task structure to investigate
+ *
+ * @param type Type of information to be presented; in case of
+ * TASKINFO_ALL, every information item is presented
+ *
+ * @param visitor Visitor function to be called for each object
+ *
+ * @return If @a visitor returns false, traversal will be stopped and
+ * false is returned; or true if no visitor returned false during the
+ * traversal and no error occurred
+ */
+bool PStask_infoTraverse(PStask_t *task, PStask_info_t type,
+			 PStask_infoVisitor_t visitor);
+
+/**
  * @brief Get reservation ID
  *
  * Get an unused reservation ID for task @a task.
@@ -560,5 +663,31 @@ int PStask_decodeEnvAppend(char *buffer, PStask_t *task);
  * @return The new reservation ID
  */
 PSrsrvtn_ID_t PStask_getNextResID(PStask_t *task);
+
+/**
+ * @brief Garbage collection
+ *
+ * Do garbage collection on unused info structures. Since this module
+ * will keep pre-allocated buffers for info structures its
+ * memory-footprint might have grown after phases of heavy
+ * usage. Thus, this function shall be called regularly in order to
+ * free() info structures no longer required.
+ *
+ * @return No return value
+ */
+void PStask_gc(void);
+
+/**
+ * @brief Initialize the info structure pool
+ *
+ * Initialize to pool of info structures. This must be called before
+ * any function manipulating a task's extra information like @ref
+ * PStask_infoAdd(), or @ref PStask_infoRemove().
+ *
+ * @return No return value
+ *
+ * @see PStask_infoAdd(), PStask_infoRemove()
+ */
+void PStask_init(void);
 
 #endif  /* __PSTASK_H */

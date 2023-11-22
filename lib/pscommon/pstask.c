@@ -24,8 +24,121 @@
 #include "psreservation.h"
 #include "psserial.h"
 
+/** Information structure */
+typedef struct {
+    list_t next;         /**< used to put into info-lists */
+    PStask_info_t type;  /**< type of information */
+    void *info;          /**< actual extra informatin to store */
+} PStask_infoItem_t;
+
+/** data structure to handle a pool of info items */
+static PSitems_t infoPool = NULL;
+
+bool PStask_infoAdd(PStask_t *task, PStask_info_t type, void *info)
+{
+    if (!task || type < 0 || type == TASKINFO_ALL
+	|| !PSitems_isInitialized(infoPool)) return false;
+
+    PStask_infoItem_t *ip = PSitems_getItem(infoPool);
+    if (!ip) return false;
+
+    ip->type = type;
+    ip->info = info;
+    list_add_tail(&ip->next, &task->info);
+
+    return true;
+}
+
+void * PStask_infoGet(PStask_t *task, PStask_info_t type)
+{
+    if (!task || type < 0 || type == TASKINFO_ALL) return NULL;
+
+    list_t *i;
+    list_for_each(i, &task->info) {
+	PStask_infoItem_t *infoItem = list_entry(i, PStask_infoItem_t, next);
+	if (infoItem->type == type) return infoItem->info;
+    }
+
+    return NULL;
+}
+
+bool PStask_infoRemove(PStask_t *task, PStask_info_t type, void *info)
+{
+    if (!task || type < 0 || type == TASKINFO_ALL) return false;
+
+    list_t *i;
+    list_for_each(i, &task->info) {
+	PStask_infoItem_t *infoItem = list_entry(i, PStask_infoItem_t, next);
+	if (infoItem->type != type) continue;
+	if (!info || infoItem->info == info) {
+	    list_del(&infoItem->next);
+	    PSitems_putItem(infoPool, infoItem);
+	    return true;
+	}
+    }
+
+    return false;
+}
+
+static void clearInfoList(list_t *list)
+{
+    list_t *i, *tmp;
+    list_for_each_safe(i, tmp, list) {
+	PStask_infoItem_t *infoItem = list_entry(i, PStask_infoItem_t, next);
+	list_del(&infoItem->next);
+	// TASKINFO_FORWARDER info (Forwarder_Data_t) is owned by the task
+	if (infoItem->type == TASKINFO_FORWARDER) free(infoItem->info);
+	PSitems_putItem(infoPool, infoItem);
+    }
+}
+
+bool PStask_infoTraverse(PStask_t *task, PStask_info_t type,
+			 PStask_infoVisitor_t visitor)
+{
+    if (!task || !visitor) return false;
+
+    list_t *i;
+    list_for_each(i, &task->info) {
+	PStask_infoItem_t *infoItem = list_entry(i, PStask_infoItem_t, next);
+	if (type != TASKINFO_ALL && type != infoItem->type) continue;
+	if (!visitor(task, infoItem->type, infoItem->info)) return false;
+    }
+
+    return true;
+}
+
+static bool relocPStask_infoItem(void *item)
+{
+    PStask_infoItem_t *orig = item, *repl = PSitems_getItem(infoPool);
+    if (!repl) return false;
+
+    /* copy infoItem struct's content */
+    repl->type = orig->type;
+    repl->info = orig->info;
+
+    /* tweak the list */
+    __list_add(&repl->next, orig->next.prev, orig->next.next);
+
+    return true;
+}
+
+void PStask_gc(void)
+{
+    PSitems_gc(infoPool, relocPStask_infoItem);
+}
+
+void PStask_clearMem(void)
+{
+    PSitems_clearMem(infoPool);
+    infoPool = NULL;
+}
+
 void PStask_printStat(void)
 {
+    PSC_log(-1, "%s: Infos %d/%d (used/avail)", __func__,
+	    PSitems_getUsed(infoPool), PSitems_getAvail(infoPool));
+    PSC_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(infoPool),
+	    PSitems_getDynamics(infoPool));
     PSsignal_printStat();
     PSrsrvtn_printStat();
 }
@@ -151,9 +264,9 @@ static bool initTask(PStask_t* task)
     task->delegate = NULL;
     task->injectedEnv = 0;
     task->sigChldCB = NULL;
-    task->info = NULL;
     task->resPorts = NULL;
 
+    INIT_LIST_HEAD(&task->info);
     INIT_LIST_HEAD(&task->signalSender);
     INIT_LIST_HEAD(&task->signalReceiver);
     INIT_LIST_HEAD(&task->assignedSigs);
@@ -218,8 +331,9 @@ static void cleanupTask(PStask_t* task)
     free(task->partition);
     free(task->partThrds);
 
+    clearInfoList(&task->info);
+
     free(task->spawnNodes);
-    free(task->info);
     free(task->resPorts);
 }
 
@@ -995,4 +1109,10 @@ PSrsrvtn_ID_t PStask_getNextResID(PStask_t *task)
     if (task->nextResID == -2) task->nextResID += 3; // prevent resID == [-2..0]
 
     return task->nextResID;
+}
+
+void PStask_init(void)
+{
+    if (PSitems_isInitialized(infoPool)) return;
+    infoPool = PSitems_new(sizeof(PStask_infoItem_t), "PStask_info");
 }

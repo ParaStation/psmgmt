@@ -682,7 +682,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
 static void execForwarder(PStask_t *task)
 {
     fwTask = task;
-    Forwarder_Data_t *fw = task->info;
+    Forwarder_Data_t *fw = PStask_infoGet(task, TASKINFO_FORWARDER);
     fwData = fw;
     int status = 0;
 
@@ -800,7 +800,7 @@ static void execForwarder(PStask_t *task)
 
 static void sigChldCB(int estatus, PStask_t *task)
 {
-    Forwarder_Data_t *fw = task->info;
+    Forwarder_Data_t *fw = PStask_infoGet(task, TASKINFO_FORWARDER);
 
     plugindbg(PLUGIN_LOG_FW, "%s: forwarder", __func__);
     if (fw) plugindbg(PLUGIN_LOG_FW, " %s (jobID %s)", fw->pTitle,
@@ -813,7 +813,7 @@ static void sigChldCB(int estatus, PStask_t *task)
     if (task->fd == -1) {
 	if (fw && fw->callback) fw->callback(fw->fwExitStatus, fw);
 	ForwarderData_delete(fw);
-	task->info = NULL;
+	PStask_infoRemove(task, TASKINFO_FORWARDER, fw);
     } else {
 	/* sigChldCB() to be removed from task in caller */
 	/* wait for connection to close */
@@ -885,7 +885,7 @@ static void handleChildFin(PStask_ID_t sender)
 static int handleFwSock(int fd, void *info)
 {
     PStask_t *task = info;
-    Forwarder_Data_t *fw = task->info;
+    Forwarder_Data_t *fw = PStask_infoGet(task, TASKINFO_FORWARDER);
 
     DDTypedBufferMsg_t msg; /* ensure we'll have enough space */
     if (!PSIDclient_recv(fd, (DDBufferMsg_t *)&msg)) {
@@ -893,7 +893,7 @@ static int handleFwSock(int fd, void *info)
 	    /* SIGCHLD already received */
 	    if (fw && fw->callback) fw->callback(fw->fwExitStatus, fw);
 	    ForwarderData_delete(fw);
-	    task->info = NULL;
+	    PStask_infoRemove(task, TASKINFO_FORWARDER, fw);
 	}
 	PSIDclient_delete(fd);
 	return 0;
@@ -960,7 +960,7 @@ bool startForwarder(Forwarder_Data_t *fw)
     if (fw->rank != -1) task->rank = fw->rank;
     task->uid = fw->uID;
     task->gid = fw->gID;
-    task->info = fw;
+    PStask_infoAdd(task, TASKINFO_FORWARDER, fw);
     task->argc = 1 + !!fw->jobID;
     task->argv = malloc((task->argc + 1) * sizeof(*task->argv));
     if (!task->argv) {
@@ -999,7 +999,7 @@ bool startForwarder(Forwarder_Data_t *fw)
     return true;
 
 ERROR:
-    task->info = NULL;
+    PStask_infoRemove(task, TASKINFO_FORWARDER, fw);
     PStask_delete(task);
     return false;
 }

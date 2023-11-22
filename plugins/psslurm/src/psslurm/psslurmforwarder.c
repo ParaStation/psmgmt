@@ -740,7 +740,7 @@ int handleResReleased(void *data)
 	return -1;
     }
 
-    Forwarder_Data_t *fw = task->info;
+    Forwarder_Data_t *fw = PStask_infoGet(task, TASKINFO_FORWARDER);
     if (!fw || fw->callback != stepCallback) {
 	fdbg(PSSLURM_LOG_JOB, "%s not step forwarder\n", PSC_printTID(task->tid));
 	return 0;
