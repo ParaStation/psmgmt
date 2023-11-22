@@ -29,13 +29,13 @@
 #include "pssenddb_t.h"
 
 /**
- * @brief Get the name of a PStask_group.
+ * @brief Get the name of a PStask_group
  *
  * Get the name of a PStask_group.
  *
- * @param taskgroup The PStask_group the name is wanted for.
+ * @param taskgroup PStask_group the name is wanted for
  *
- * @return The name of the PStask_group or "UNKNOWN".
+ * @return The name of the PStask_group or "UNKNOWN"
  */
 const char* PStask_printGrp(PStask_group_t taskgroup);
 
