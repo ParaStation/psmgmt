@@ -1550,7 +1550,7 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 	    handleLoadTime(inmsg->header.sender, inmsg->buf);
 	    return true;
 	default:
-	    PSID_flog("nnknown message type %d\n", inmsg->type);
+	    PSID_flog("unknown message type %d\n", inmsg->type);
 	    ret = -1;
 	    goto end;
 	}
