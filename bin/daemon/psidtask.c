@@ -467,6 +467,14 @@ void PSIDtask_cleanup(PStask_t *task)
 
 }
 
+void PSIDtask_init(void)
+{
+    PSID_fdbg(PSID_LOG_VERB, "\n");
+
+    PStask_init();
+    PSID_registerLoopAct(PStask_gc);
+}
+
 void PSIDtask_clearMem(void)
 {
     list_t *t, *tmp;

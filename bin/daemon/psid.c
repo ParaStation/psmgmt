@@ -730,6 +730,7 @@ int main(int argc, const char *argv[])
     initOptions();
     initStatus();
     initSignal();
+    PSIDtask_init();
     PSIDspawn_init();
     PSIDsession_init();
     initPartition();
