@@ -22,6 +22,7 @@
 #include "psdaemonprotocol.h"
 
 #include "psidcomm.h"
+#include "psidhook.h"
 #include "psidpartition.h"
 #include "psidsignal.h"
 #include "psidstatus.h"
@@ -467,12 +468,45 @@ void PSIDtask_cleanup(PStask_t *task)
 
 }
 
+/**
+ * @brief Memory cleanup
+ *
+ * If the aggressive flag is given, cleanup all dynamic memory
+ * currently retained in task structures collected in the @ref
+ * managedTasks list. This will very aggressively free() all allocated
+ * memory destroying all information on controlled tasks.
+ *
+ * The memory used to handle PStask's info list will be released in
+ * any case. Thus, the information stored in the tasks' info list will
+ * be gone after @ref PSID_clearMem().
+ *
+ * The purpose of this function is to cleanup before a fork()ed
+ * process is handling other businesses, e.g. becoming a forwarder. It
+ * will be registered to the PSIDHOOK_CLEARMEM hook in order to be
+ * called accordingly.
+ *
+ * @return Always return 0
+ */
+static int clearMem(void *arg)
+{
+    bool aggressive = *(bool *)arg;
+    if (aggressive) PSIDtask_clearMem();
+
+    PStask_clearMem();
+
+    return 0;
+}
+
 void PSIDtask_init(void)
 {
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
     PStask_init();
     PSID_registerLoopAct(PStask_gc);
+
+    if (!PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem)) {
+	PSID_flog("cannot register to PSIDHOOK_CLEARMEM\n");
+    }
 }
 
 void PSIDtask_clearMem(void)

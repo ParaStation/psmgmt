@@ -331,8 +331,6 @@ static void cleanupTask(PStask_t* task)
     free(task->partition);
     free(task->partThrds);
 
-    clearInfoList(&task->info);
-
     free(task->spawnNodes);
     free(task->resPorts);
 }
@@ -370,6 +368,8 @@ static bool reinitTask(PStask_t* task)
 
     delReservationList(&task->reservations);
     delReservationList(&task->resRequests);
+
+    clearInfoList(&task->info);
 
     PSsignal_clearList(&task->signalSender);
     PSsignal_clearList(&task->signalReceiver);

@@ -678,6 +678,21 @@ PSrsrvtn_ID_t PStask_getNextResID(PStask_t *task);
 void PStask_gc(void);
 
 /**
+ * @brief Memory cleanup
+ *
+ * Cleanup all memory currently used by info structures. It will very
+ * aggressively free all allocated memory most likely destroying
+ * existing info lists. Thus, these should have been cleaned up
+ * earlier. Currently this requires PSIDtask to be cleaned up.
+ *
+ * The purpose of this function is to cleanup before a fork()ed
+ * process is handling other tasks, e.g. becoming a forwarder.
+ *
+ * @return No return value.
+ */
+void PStask_clearMem(void);
+
+/**
  * @brief Initialize the info structure pool
  *
  * Initialize to pool of info structures. This must be called before

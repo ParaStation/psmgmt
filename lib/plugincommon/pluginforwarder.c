@@ -682,6 +682,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
 static void execForwarder(PStask_t *task)
 {
     fwTask = task;
+    /* fetch Forwarder_Data_t information before info list gets destructed */
     Forwarder_Data_t *fw = PStask_infoGet(task, TASKINFO_FORWARDER);
     fwData = fw;
     int status = 0;
@@ -812,8 +813,8 @@ static void sigChldCB(int estatus, PStask_t *task)
 
     if (task->fd == -1) {
 	if (fw && fw->callback) fw->callback(fw->fwExitStatus, fw);
-	ForwarderData_delete(fw);
 	PStask_infoRemove(task, TASKINFO_FORWARDER, fw);
+	ForwarderData_delete(fw);
     } else {
 	/* sigChldCB() to be removed from task in caller */
 	/* wait for connection to close */
@@ -892,8 +893,8 @@ static int handleFwSock(int fd, void *info)
 	if (!task->sigChldCB) {
 	    /* SIGCHLD already received */
 	    if (fw && fw->callback) fw->callback(fw->fwExitStatus, fw);
-	    ForwarderData_delete(fw);
 	    PStask_infoRemove(task, TASKINFO_FORWARDER, fw);
+	    ForwarderData_delete(fw);
 	}
 	PSIDclient_delete(fd);
 	return 0;

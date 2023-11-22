@@ -472,7 +472,6 @@ static void printWelcome(void)
 
 void PSID_clearMem(bool aggressive)
 {
-    if (aggressive) PSIDtask_clearMem();
     PSsignal_gc();
     PSrsrvtn_clearMem();
 
@@ -488,7 +487,7 @@ void PSID_clearMem(bool aggressive)
     if (aggressive) PSIDnodes_clearMem();
     RDP_clearMem();
 
-    /* Now call all cleanup functions registered by plugins */
+    /* Now call all cleanup functions registered by other modules and plugins */
     PSIDhook_call(PSIDHOOK_CLEARMEM, &aggressive);
 
     malloc_trim(0);
