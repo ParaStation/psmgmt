@@ -210,16 +210,7 @@ bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
     Slurm_Auth_t *auth = umalloc(sizeof(Slurm_Auth_t));
     uint16_t msgVer = sMsg->head.version;
 
-    if (msgVer >= SLURM_19_05_PROTO_VERSION) {
-	getUint32(ptr, &auth->pluginID);
-    } else {
-	char *method = getStringM(ptr);
-	ufree(method);
-
-	uint32_t version;
-	getUint32(ptr, &version);
-	auth->pluginID = 101;
-    }
+    getUint32(ptr, &auth->pluginID);
     auth->cred = NULL;
 
     *authPtr = auth;

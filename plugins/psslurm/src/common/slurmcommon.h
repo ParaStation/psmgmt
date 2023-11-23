@@ -34,14 +34,13 @@
 
 /* protocol versions */
 #define SLURM_MAX_PROTO_VERSION SLURM_23_02_PROTO_VERSION
-#define SLURM_MIN_PROTO_VERSION SLURM_19_05_PROTO_VERSION
+#define SLURM_MIN_PROTO_VERSION SLURM_20_02_PROTO_VERSION
 
 #define SLURM_23_02_PROTO_VERSION ((39 << 8) | 0) /* 9984 */
 #define SLURM_22_05_PROTO_VERSION ((38 << 8) | 0) /* 9728 */
 #define SLURM_21_08_PROTO_VERSION ((37 << 8) | 0) /* 9472 */
 #define SLURM_20_11_PROTO_VERSION ((36 << 8) | 0) /* 9216 */
 #define SLURM_20_02_PROTO_VERSION ((35 << 8) | 0) /* 8960 */
-#define SLURM_19_05_PROTO_VERSION ((34 << 8) | 0) /* 8704 */
 
 /* maximum step ID of normal step */
 #define SLURM_MAX_NORMAL_STEP_ID (0xfffffff0)

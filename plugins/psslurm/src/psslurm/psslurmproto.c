@@ -1072,10 +1072,7 @@ static void handleReconfigure(Slurm_Msg_t *sMsg)
     /* send new configuration hash to slurmctld */
     sendNodeRegStatus(false);
 
-    /* protocol version SLURM_20_02 and above don't expect an answer */
-    if (slurmProto <= SLURM_19_05_PROTO_VERSION) {
-	sendSlurmRC(sMsg, SLURM_SUCCESS);
-    }
+    /* no response is expected */
 }
 
 /**
@@ -3060,9 +3057,6 @@ bool initSlurmdProto(void)
     } else if (!strncmp(pver, "20.02", 5) || !strncmp(pver, "2002", 4)) {
 	slurmProto = SLURM_20_02_PROTO_VERSION;
 	slurmProtoStr = ustrdup("20.02");
-    } else if (!strncmp(pver, "19.05", 5) || !strncmp(pver, "1905", 4)) {
-	slurmProto = SLURM_19_05_PROTO_VERSION;
-	slurmProtoStr = ustrdup("19.05");
     } else {
 	flog("unsupported Slurm protocol version %s\n", pver);
 	return false;
