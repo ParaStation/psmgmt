@@ -83,7 +83,6 @@ bin/daemon/psidtask.h \
 bin/daemon/psidutil.c \
 bin/daemon/psidutil.h \
 bin/daemon/test_config.c \
-bin/gmspawner.c \
 bin/logger/Makefile.am \
 bin/logger/Makefile.in \
 bin/logger/psilogger.c \
@@ -93,11 +92,7 @@ bin/logger/psiloggerclient.h \
 bin/logger/psiloggermerge.c \
 bin/logger/psiloggermerge.h \
 bin/mlisten.c \
-bin/mpirun_chgm.c \
-bin/mpirun_chp4.c \
-bin/mpirun_openib.c \
 bin/psaccounter.c \
-bin/psispawn.c \
 bin/psmstart.c \
 bin/pspelogue.c \
 bin/pssh.c \

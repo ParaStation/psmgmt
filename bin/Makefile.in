@@ -100,9 +100,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-bin_PROGRAMS = mlisten$(EXEEXT) psmstart$(EXEEXT) mpirun_chp4$(EXEEXT) \
-	psispawn$(EXEEXT) mpirun_chgm$(EXEEXT) gmspawner$(EXEEXT) \
-	mpirun_openib$(EXEEXT) test_pse$(EXEEXT) pssh$(EXEEXT)
+bin_PROGRAMS = mlisten$(EXEEXT) psmstart$(EXEEXT) test_pse$(EXEEXT) \
+	pssh$(EXEEXT)
 pkglibexec_PROGRAMS = psaccounter$(EXEEXT) pspelogue$(EXEEXT)
 noinst_PROGRAMS = testacct$(EXEEXT)
 subdir = bin
@@ -119,35 +118,17 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)"
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS) $(pkglibexec_PROGRAMS)
-gmspawner_SOURCES = gmspawner.c
-gmspawner_OBJECTS = gmspawner-gmspawner.$(OBJEXT)
+mlisten_SOURCES = mlisten.c
+mlisten_OBJECTS = mlisten.$(OBJEXT)
 am__DEPENDENCIES_1 =
-gmspawner_DEPENDENCIES = $(libpsi) $(am__DEPENDENCIES_1)
+mlisten_DEPENDENCIES = $(am__DEPENDENCIES_1) $(libpscommon)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-gmspawner_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(gmspawner_LDFLAGS) $(LDFLAGS) -o $@
-mlisten_SOURCES = mlisten.c
-mlisten_OBJECTS = mlisten.$(OBJEXT)
-mlisten_DEPENDENCIES = $(am__DEPENDENCIES_1) $(libpscommon)
-mpirun_chgm_SOURCES = mpirun_chgm.c
-mpirun_chgm_OBJECTS = mpirun_chgm.$(OBJEXT)
-mpirun_chgm_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-mpirun_chp4_SOURCES = mpirun_chp4.c
-mpirun_chp4_OBJECTS = mpirun_chp4.$(OBJEXT)
-mpirun_chp4_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-mpirun_openib_SOURCES = mpirun_openib.c
-mpirun_openib_OBJECTS = mpirun_openib.$(OBJEXT)
-mpirun_openib_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 psaccounter_SOURCES = psaccounter.c
 psaccounter_OBJECTS = psaccounter-psaccounter.$(OBJEXT)
 psaccounter_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-psispawn_SOURCES = psispawn.c
-psispawn_OBJECTS = psispawn.$(OBJEXT)
-psispawn_DEPENDENCIES = $(libpsi)
 psmstart_SOURCES = psmstart.c
 psmstart_OBJECTS = psmstart.$(OBJEXT)
 psmstart_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
@@ -182,13 +163,10 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/gmspawner-gmspawner.Po \
-	./$(DEPDIR)/mlisten.Po ./$(DEPDIR)/mpirun_chgm.Po \
-	./$(DEPDIR)/mpirun_chp4.Po ./$(DEPDIR)/mpirun_openib.Po \
-	./$(DEPDIR)/psaccounter-psaccounter.Po ./$(DEPDIR)/psispawn.Po \
-	./$(DEPDIR)/psmstart.Po ./$(DEPDIR)/pspelogue-pspelogue.Po \
-	./$(DEPDIR)/pssh.Po ./$(DEPDIR)/test_pse.Po \
-	./$(DEPDIR)/testacct.Po
+am__depfiles_remade = ./$(DEPDIR)/mlisten.Po \
+	./$(DEPDIR)/psaccounter-psaccounter.Po ./$(DEPDIR)/psmstart.Po \
+	./$(DEPDIR)/pspelogue-pspelogue.Po ./$(DEPDIR)/pssh.Po \
+	./$(DEPDIR)/test_pse.Po ./$(DEPDIR)/testacct.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -208,12 +186,10 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = gmspawner.c mlisten.c mpirun_chgm.c mpirun_chp4.c \
-	mpirun_openib.c psaccounter.c psispawn.c psmstart.c \
-	pspelogue.c pssh.c test_pse.c testacct.c
-DIST_SOURCES = gmspawner.c mlisten.c mpirun_chgm.c mpirun_chp4.c \
-	mpirun_openib.c psaccounter.c psispawn.c psmstart.c \
-	pspelogue.c pssh.c test_pse.c testacct.c
+SOURCES = mlisten.c psaccounter.c psmstart.c pspelogue.c pssh.c \
+	test_pse.c testacct.c
+DIST_SOURCES = mlisten.c psaccounter.c psmstart.c pspelogue.c pssh.c \
+	test_pse.c testacct.c
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
 	ctags-recursive dvi-recursive html-recursive info-recursive \
 	install-data-recursive install-dvi-recursive \
@@ -477,13 +453,6 @@ libpse = $(top_builddir)/lib/pse/libpse.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 mlisten_LDADD = $(POPT_LIBS) $(libpscommon)
 psmstart_LDADD = $(libpse) $(POPT_LIBS)
-mpirun_chp4_LDADD = $(libpse) $(POPT_LIBS)
-psispawn_LDADD = $(libpsi)
-mpirun_chgm_LDADD = $(libpse) $(POPT_LIBS)
-gmspawner_CPPFLAGS = $(AM_CPPFLAGS) -pthread
-gmspawner_LDFLAGS = $(AM_LDFLAGS) -pthread
-gmspawner_LDADD = $(libpsi) $(POPT_LIBS)
-mpirun_openib_LDADD = $(libpse) $(POPT_LIBS)
 test_pse_LDADD = $(libpse) $(POPT_LIBS)
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
@@ -635,33 +604,13 @@ clean-pkglibexecPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
-gmspawner$(EXEEXT): $(gmspawner_OBJECTS) $(gmspawner_DEPENDENCIES) $(EXTRA_gmspawner_DEPENDENCIES) 
-	@rm -f gmspawner$(EXEEXT)
-	$(AM_V_CCLD)$(gmspawner_LINK) $(gmspawner_OBJECTS) $(gmspawner_LDADD) $(LIBS)
-
 mlisten$(EXEEXT): $(mlisten_OBJECTS) $(mlisten_DEPENDENCIES) $(EXTRA_mlisten_DEPENDENCIES) 
 	@rm -f mlisten$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(mlisten_OBJECTS) $(mlisten_LDADD) $(LIBS)
 
-mpirun_chgm$(EXEEXT): $(mpirun_chgm_OBJECTS) $(mpirun_chgm_DEPENDENCIES) $(EXTRA_mpirun_chgm_DEPENDENCIES) 
-	@rm -f mpirun_chgm$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(mpirun_chgm_OBJECTS) $(mpirun_chgm_LDADD) $(LIBS)
-
-mpirun_chp4$(EXEEXT): $(mpirun_chp4_OBJECTS) $(mpirun_chp4_DEPENDENCIES) $(EXTRA_mpirun_chp4_DEPENDENCIES) 
-	@rm -f mpirun_chp4$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(mpirun_chp4_OBJECTS) $(mpirun_chp4_LDADD) $(LIBS)
-
-mpirun_openib$(EXEEXT): $(mpirun_openib_OBJECTS) $(mpirun_openib_DEPENDENCIES) $(EXTRA_mpirun_openib_DEPENDENCIES) 
-	@rm -f mpirun_openib$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(mpirun_openib_OBJECTS) $(mpirun_openib_LDADD) $(LIBS)
-
 psaccounter$(EXEEXT): $(psaccounter_OBJECTS) $(psaccounter_DEPENDENCIES) $(EXTRA_psaccounter_DEPENDENCIES) 
 	@rm -f psaccounter$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(psaccounter_OBJECTS) $(psaccounter_LDADD) $(LIBS)
-
-psispawn$(EXEEXT): $(psispawn_OBJECTS) $(psispawn_DEPENDENCIES) $(EXTRA_psispawn_DEPENDENCIES) 
-	@rm -f psispawn$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(psispawn_OBJECTS) $(psispawn_LDADD) $(LIBS)
 
 psmstart$(EXEEXT): $(psmstart_OBJECTS) $(psmstart_DEPENDENCIES) $(EXTRA_psmstart_DEPENDENCIES) 
 	@rm -f psmstart$(EXEEXT)
@@ -689,13 +638,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gmspawner-gmspawner.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mlisten.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpirun_chgm.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpirun_chp4.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpirun_openib.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccounter-psaccounter.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psispawn.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmstart.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspelogue-pspelogue.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pssh.Po@am__quote@ # am--include-marker
@@ -731,20 +675,6 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
-
-gmspawner-gmspawner.o: gmspawner.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(gmspawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gmspawner-gmspawner.o -MD -MP -MF $(DEPDIR)/gmspawner-gmspawner.Tpo -c -o gmspawner-gmspawner.o `test -f 'gmspawner.c' || echo '$(srcdir)/'`gmspawner.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/gmspawner-gmspawner.Tpo $(DEPDIR)/gmspawner-gmspawner.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gmspawner.c' object='gmspawner-gmspawner.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(gmspawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gmspawner-gmspawner.o `test -f 'gmspawner.c' || echo '$(srcdir)/'`gmspawner.c
-
-gmspawner-gmspawner.obj: gmspawner.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(gmspawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gmspawner-gmspawner.obj -MD -MP -MF $(DEPDIR)/gmspawner-gmspawner.Tpo -c -o gmspawner-gmspawner.obj `if test -f 'gmspawner.c'; then $(CYGPATH_W) 'gmspawner.c'; else $(CYGPATH_W) '$(srcdir)/gmspawner.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/gmspawner-gmspawner.Tpo $(DEPDIR)/gmspawner-gmspawner.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gmspawner.c' object='gmspawner-gmspawner.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(gmspawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gmspawner-gmspawner.obj `if test -f 'gmspawner.c'; then $(CYGPATH_W) 'gmspawner.c'; else $(CYGPATH_W) '$(srcdir)/gmspawner.c'; fi`
 
 psaccounter-psaccounter.o: psaccounter.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psaccounter-psaccounter.o -MD -MP -MF $(DEPDIR)/psaccounter-psaccounter.Tpo -c -o psaccounter-psaccounter.o `test -f 'psaccounter.c' || echo '$(srcdir)/'`psaccounter.c
@@ -980,13 +910,8 @@ clean-am: clean-binPROGRAMS clean-generic clean-libtool \
 	clean-noinstPROGRAMS clean-pkglibexecPROGRAMS mostlyclean-am
 
 distclean: distclean-recursive
-		-rm -f ./$(DEPDIR)/gmspawner-gmspawner.Po
-	-rm -f ./$(DEPDIR)/mlisten.Po
-	-rm -f ./$(DEPDIR)/mpirun_chgm.Po
-	-rm -f ./$(DEPDIR)/mpirun_chp4.Po
-	-rm -f ./$(DEPDIR)/mpirun_openib.Po
+		-rm -f ./$(DEPDIR)/mlisten.Po
 	-rm -f ./$(DEPDIR)/psaccounter-psaccounter.Po
-	-rm -f ./$(DEPDIR)/psispawn.Po
 	-rm -f ./$(DEPDIR)/psmstart.Po
 	-rm -f ./$(DEPDIR)/pspelogue-pspelogue.Po
 	-rm -f ./$(DEPDIR)/pssh.Po
@@ -1038,13 +963,8 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-recursive
-		-rm -f ./$(DEPDIR)/gmspawner-gmspawner.Po
-	-rm -f ./$(DEPDIR)/mlisten.Po
-	-rm -f ./$(DEPDIR)/mpirun_chgm.Po
-	-rm -f ./$(DEPDIR)/mpirun_chp4.Po
-	-rm -f ./$(DEPDIR)/mpirun_openib.Po
+		-rm -f ./$(DEPDIR)/mlisten.Po
 	-rm -f ./$(DEPDIR)/psaccounter-psaccounter.Po
-	-rm -f ./$(DEPDIR)/psispawn.Po
 	-rm -f ./$(DEPDIR)/psmstart.Po
 	-rm -f ./$(DEPDIR)/pspelogue-pspelogue.Po
 	-rm -f ./$(DEPDIR)/pssh.Po

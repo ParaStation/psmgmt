@@ -12,8 +12,7 @@ include $(top_srcdir)/common.am
 
 SUBDIRS = admin daemon logger startup
 
-bin_PROGRAMS = mlisten psmstart mpirun_chp4 psispawn mpirun_chgm	\
-	gmspawner mpirun_openib test_pse pssh
+bin_PROGRAMS = mlisten psmstart test_pse pssh
 pkglibexec_PROGRAMS = psaccounter pspelogue
 noinst_PROGRAMS = testacct
 
@@ -24,18 +23,6 @@ libpsi = $(top_builddir)/lib/psi/libpsi.la
 mlisten_LDADD = $(POPT_LIBS) $(libpscommon)
 
 psmstart_LDADD = $(libpse) $(POPT_LIBS)
-
-mpirun_chp4_LDADD = $(libpse) $(POPT_LIBS)
-
-psispawn_LDADD = $(libpsi)
-
-mpirun_chgm_LDADD = $(libpse) $(POPT_LIBS)
-
-gmspawner_CPPFLAGS = $(AM_CPPFLAGS) -pthread
-gmspawner_LDFLAGS = $(AM_LDFLAGS) -pthread
-gmspawner_LDADD = $(libpsi) $(POPT_LIBS)
-
-mpirun_openib_LDADD = $(libpse) $(POPT_LIBS)
 
 test_pse_LDADD = $(libpse) $(POPT_LIBS)
 
