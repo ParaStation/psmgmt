@@ -168,14 +168,14 @@ void PSI_LL(void);
 void PSI_SGE(void);
 
 /**
- * @brief Resolve hardware-type for PSI_spawnStrictHW(),
- * PSI_getNodes(), PSI_createPartition(), PSE_setHWType(), etc.
+ * @brief Resolve hardware-type for PSI_getNodes(),
+ * PSI_createPartition(), PSE_setHWType(), etc.
  *
  * Resolve the the hardware-types provided within @a hwList and create
  * the corresponding hardware-type @a hwType to be used within
  * e.g. PSE_setHWType() in order to influence creating of partitions
- * via PSE_getPartition(), PSI_getNodes(), PSI_createPartition() or
- * PSI_spawnStrictHW(). @a hwType is a bit-field using
+ * via PSE_getPartition(), PSI_getNodes(), or
+ * PSI_createPartition(). @a hwType is a bit-field using
  * INFO_request_hwindex() as the index.
  *
  * If one ore more of the hardware-types passed to this function are
@@ -195,7 +195,7 @@ void PSI_SGE(void);
  * returned. Or 0, if all hardware-types are known. The returned
  * hardware-type @a hwType is set to the known ones in any case.
  *
- * @see PSE_setHWType() PSI_getNodes(), PSI_spawnStrictHW()
+ * @see PSE_setHWType(), PSI_createPartition(), PSI_getNodes()
  */
 int PSI_resolveHWList(char **hwList, uint32_t *hwType);
 
@@ -454,22 +454,5 @@ int PSI_requestSlots(uint16_t num, PSrsrvtn_ID_t resID);
  * @see PSI_getReservation() PSI_requestSlots()
  */
 int PSI_extractSlots(DDBufferMsg_t *msg, uint16_t num, PSnodes_ID_t *nodes);
-
-/**
- * @brief Get node to spawn process to.
- *
- * Get a node in order to spawn the process with rank @a rank to this
- * node and store their ParaStation ID to @a node. This function will
- * only request a single node.
- *
- * @param rank The rank of process the node is requested for.
- *
- * @param node Pointer to memory used to store the ParaStation ID of
- * the requested node.
- *
- * @return On success, the rank of the process (i.e. @a rank) is
- * returned. In case of an error -1 is returned.
- */
-int PSI_getRankNode(int32_t rank, PSnodes_ID_t *node);
 
 #endif /* __PSIPARTITION_H */

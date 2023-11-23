@@ -88,12 +88,6 @@ int PSE_getSize(void);
  *
  * The rank will never change during a process's lifetime.
  *
- * As long as processes are spawned via PSE_spawnTasks() which
- * actually calls PSI_spawn(), the uniqueness of process ranks is
- * secured. If processes are spawned via PSI_spawnRank(), the user
- * itself is responsible for the uniqueness of process ranks within a
- * parallel task.
- *
  * @return On success, the actual rank of the process within the group
  * is returned. If PSE is not yet initialized, some error-message is
  * created and exit() is called.

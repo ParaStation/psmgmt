@@ -827,12 +827,6 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
 
 int PSI_spawn(int count, char *workdir, int argc, char **argv, int *errors)
 {
-    return PSI_spawnStrict(count, workdir, argc, argv, false, errors);
-}
-
-int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
-		    bool strictArgv, int *errors)
-{
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, count);
     if (!errors) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
@@ -842,7 +836,7 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
     if (count <= 0) return 0;
 
     PStask_t *task = createSpawnTask(workdir, TG_ANY, -1 /* resID */,
-				     argc, argv, strictArgv);
+				     argc, argv, false);
     if (!task) {
 	PSI_log(-1, "%s: unable to create helper task\n", __func__);
 	return -1;
@@ -1052,112 +1046,6 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
     int ret = doSpawn(1, rank, &node, task, error, NULL, true);
     PStask_delete(task);
     return ret == 1;
-}
-
-bool PSI_spawnRank(int rank, char *workdir, int argc, char **argv, int *error)
-{
-    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, rank);
-    if (!error) {
-	PSI_log(-1, "%s: unable to reports errors\n", __func__);
-	return false;
-    }
-
-    PSnodes_ID_t node;
-    int rankGot = PSI_getRankNode(rank, &node);
-    if (rankGot != rank) {
-	*error = ENXIO;
-	return false;
-    }
-
-    PStask_t *task = createSpawnTask(workdir, TG_ANY, -1, argc, argv, false);
-    if (!task) {
-	PSI_log(-1, "%s: unable to create helper task\n", __func__);
-	return false;
-    }
-
-    PSI_log(PSI_LOG_SPAWN, "%s: spawn rank %d to %d\n", __func__, rank, node);
-    int ret = doSpawn(1, rank, &node, task, error, NULL, true);
-    PStask_delete(task);
-    return ret == 1;
-}
-
-bool PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv, int *error)
-{
-    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, np);
-    if (!error) {
-	PSI_log(-1, "%s: unable to reports errors\n", __func__);
-	return false;
-    }
-
-    PSnodes_ID_t node;
-    int rankGot = PSI_getRankNode(0, &node);
-    if (rankGot) {
-	*error = ENXIO;
-	return false;
-    }
-
-    PStask_t *task = createSpawnTask(workdir, TG_ANY, -1, argc, argv, false);
-    if (!task) {
-	PSI_log(-1, "%s: unable to create helper task\n", __func__);
-	return false;
-    }
-
-    PSI_log(PSI_LOG_SPAWN, "%s: spawn to %d", __func__, node);
-    int ret = doSpawn(1, np, &node, task, error, NULL, true);
-    PStask_delete(task);
-    return ret == 1;
-}
-
-char *PSI_createPGfile(int num, const char *prog, int local)
-{
-    char *myprog = PSC_getwd(prog);
-    if (!myprog) {
-	PSI_warn(-1, errno, "%s: PSC_getwd", __func__);
-	return NULL;
-    }
-
-    char filename[20];
-    snprintf(filename, sizeof(filename), "PI%d", getpid());
-    FILE *PIfile = fopen(filename, "w+");
-
-    char *PIfilename;
-    if (PIfile) {
-	PIfilename = strdup(filename);
-    } else {
-	/* File open failed, lets try the user's home directory */
-	char *home = getenv("HOME");
-	PIfilename = PSC_concat(home, "/", filename);
-
-	PIfile = fopen(PIfilename, "w+");
-	/* File open failed finally */
-	if (!PIfile) {
-	    PSI_warn(-1, errno, "%s: fopen", __func__);
-	    free(PIfilename);
-	    free(myprog);
-	    return NULL;
-	}
-    }
-
-    for (int i = 0; i < num; i++) {
-	PSnodes_ID_t node;
-	static struct in_addr hostaddr;
-
-	if (!local || !i) {
-	    if (PSI_infoNodeID(-1, PSP_INFO_RANKID, &i, &node, true)
-		|| (node < 0)) {
-		fclose(PIfile);
-		free(PIfilename);
-		free(myprog);
-		return NULL;
-	    }
-	    PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, false);
-	}
-	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), (i != 0), myprog);
-    }
-    fclose(PIfile);
-    free(myprog);
-
-    return PIfilename;
 }
 
 int PSI_kill(PStask_ID_t tid, short signal, int async)

@@ -110,39 +110,6 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
 		      ssize_t (*sendFunc)(void *));
 
 /**
- * @brief Spawn one or more tasks within the cluster.
- *
- * This is a wrapper of @ref PSI_spawnStrict() held for compatibility
- * reasons.
- *
- * It is identical to calling @ref PSI_spawnStrict() with all the
- * arguments plus @a strictArgv set to false.
- *
- * @param count Number of tasks to spawn
- *
- * @param workingdir Present working directory of the spawned tasks on
- * startup. This might be an absolute or relative path. If @a
- * workingdir is a relative path, the content of the PWD environment
- * variable is prepended. If @a workingdir is NULL, the content of the
- * PWD environment variable is taken.
- *
- * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks
- *
- * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the tasks
- *
- * @param errors Error-codes displaying if an error occurred while
- * spawning the corresponding tasks
- *
- * @return On success the number of tasks spawned is returned, or -1
- * if an error occurred; then errors is set appropriately
- *
- * @see PSI_spawnStrict()
- */
-int PSI_spawn(int count, char *workingdir, int argc, char **argv, int *errors);
-
-/**
  * @brief Spawn one or more tasks within the cluster
  *
  * Spawn @a count tasks described by the @a argc number of arguments
@@ -172,14 +139,10 @@ int PSI_spawn(int count, char *workingdir, int argc, char **argv, int *errors);
  * PWD environment variable is taken.
  *
  * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks
+ * resulting execve() call in order to actually spawn the tasks
  *
  * @param argv Array of argument strings passed to the resulting
  * execve() call in order to finally spawn the tasks
- *
- * @param strictArgv Flag to disable pseudo-intelligent determination
- * of the executable; if set, argv[0] will be passed to the final
- * exec() call as is
  *
  * @param errors Error-codes displaying if an error occurred while
  * spawning the corresponding tasks
@@ -189,8 +152,7 @@ int PSI_spawn(int count, char *workingdir, int argc, char **argv, int *errors);
  *
  * @see PSI_createPartition() PSI_getNodes()
  */
-int PSI_spawnStrict(int count, char *workdir,
-		    int argc, char **argv, bool strictArgv, int *errors);
+int PSI_spawn(int count, char *workingdir, int argc, char **argv, int *errors);
 
 /**
  * @brief Spawn one or more tasks within the cluster
@@ -232,100 +194,13 @@ int PSI_spawnStrict(int count, char *workdir,
  * @param errors Error-codes displaying if an error occurred while
  * spawning the corresponding tasks
  *
- *
- * @return On success, the number of tasks spawned is returned, or -1
- * if an error occurred. Then errors is set appropriately.
+ * @return On success the number of tasks spawned is returned, or -1
+ * if an error occurred; then errors is set appropriately
  *
  * @see PSI_createPartition() PSI_getRervation(), PSI_getSlots()
  */
 int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 		    int argc, char **argv, bool strictArgv, int *errors);
-
-
-/**
- * @brief Spawn a special task within the cluster.
- *
- * Spawn the task with rank @a rank described by the @a argc arguments
- * within @a argv. The node used will depend on the rank of the
- * spawned task determined via the PSI_getRankNode() function. The
- * present working directory of the spawned tasks will be @a
- * workingdir.
- *
- * Before using this function, PSI_createPartition() has to be called
- * from within any process of the parallel task (which is naturally
- * the root process).
- *
- * If this function is used in order to spawn processes, the user has
- * to assure that each rank's process is only spawned once.
- *
- * @param rank The rank of the task to spawn.
- *
- * @param workingdir Present working directory of the spawned tasks on
- * startup. This might be an absolute or relative path. If @a
- * workingdir is a relative path, the content of the PWD environment
- * variable is prepended. If @a workingdir is NULL, the content of the
- * PWD environment variable is taken.
- *
- * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the task
- *
- * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task
- *
- * @param error Error-code displaying if an error occurred while
- * spawning the task
- *
- *
- * @return Return true on success or false if an error occurred; then
- * @a error is set appropriately
- *
- * @see PSI_createPartition() PSI_getRankNode()
- */
-bool PSI_spawnRank(int rank, char *workingdir, int argc, char **argv, int *error);
-
-/**
- * @brief Spawn a gmspawner task within the cluster.
- *
- * Spawn a gmspawner task described by the @a argc arguments within @a
- * argv. The rank used will be @a np, i.e. a rank that is in actual
- * fact unavailable. Thus the node used will be the node the rank 0
- * process will be spawned to. It is determined via
- * PSI_getRankNode(). The present working directory of the spawned
- * tasks will be @a workingdir.
- *
- * Before using this function, PSI_createPartition() has to be called
- * from within any process of the parallel task (which is naturally
- * the root process).
- *
- * If this function is used in order to spawn processes, the user has
- * to assure that each rank's process is only spawned once.
- *
- * @param np The total size of the MPIch/gm application and thus the
- * rank used for the spawned process.
- *
- * @param workingdir Present working directory of the spawned tasks on
- * startup. This might be an absolute or relative path. If @a
- * workingdir is a relative path, the content of the PWD environment
- * variable is prepended. If @a workingdir is NULL, the content of the
- * PWD environment variable is taken.
- *
- * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the task
- *
- * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task
- *
- * @param error Error-code displaying if an error occurred while
- * spawning the task
- *
- *
- * @return Return true on success or false if an error occurred; then
- * @a error is set appropriately
- *
- * @see PSI_createPartition(), PSI_getRankNode()
- */
-bool PSI_spawnGMSpawner(int np, char *workingdir, int argc, char **argv,
-			int *error);
 
 /**
  * @brief Spawn admin task within the cluster.
@@ -424,34 +299,6 @@ bool PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
  */
 bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
 		      int argc, char **argv, int *error, int rank);
-
-/**
- * @brief Create a pg (process group) file for MPIch/P4
- *
- * Create a pg (process group) file for @a num nodes used by MPIch/P4
- * in order to startup a parallel task. The file is tried to create in
- * the present working directory. If the user is lacking permission to
- * do so, it is tried to create the file in the user's home directory,
- * i.e. the directory stored within the HOME environment variable.
- *
- * The name of the created file consists if the string "PI" followed
- * by the PID of the current process.
- *
- *
- * @param num Number of entries the created file should contain.
- *
- * @param prog Name of the executable the pg file is created for.
- *
- * @param local Local flag. If different from 0, a pg is created with
- * all processes sitting on the same node.
- *
- *
- * @return On success, a pointer to a string containing the name of
- * the file created is returned. Memory for the string is obtained
- * with malloc(3), and can be freed with free(3). If the creation of
- * the file failed, NULL is returned and errno is set appropriately.
- */
-char *PSI_createPGfile(int num, const char *prog, int local);
 
 /**
  * @brief Send a signal to a task.

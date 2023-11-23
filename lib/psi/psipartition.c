@@ -1138,62 +1138,6 @@ recv_retry:
     return ret;
 }
 
-int PSI_getRankNode(int32_t rank, PSnodes_ID_t *node)
-{
-    DDBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_CD_GETRANKNODE,
-	    .dest = PSC_getTID(-1, 0),
-	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDBufferMsg_t, buf) } };
-    char *ptr = msg.buf;
-    int ret = -1;
-
-    if (rank < 0) {
-	PSI_log(-1, "%s: Rank %d not allowed.\n", __func__, rank);
-	errno = EINVAL;
-	return -1;
-    }
-
-    PSP_putMsgBuf(&msg, "rank", &rank, sizeof(int32_t));
-
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
-	return -1;
-    }
-
-recv_retry:
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
-	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
-	return -1;
-    }
-
-    switch (msg.header.type) {
-    case PSP_CD_NODESRES:
-	ret = *(int32_t*)ptr;
-	ptr += sizeof(int32_t);
-	if (ret<0) {
-	    PSI_log(-1, "%s: Cannot get node for rank %d\n", __func__, rank);
-	} else {
-	    memcpy(node, ptr, sizeof(*node));
-	}
-	break;
-    case PSP_CD_SENDSTOP:
-    case PSP_CD_SENDCONT:
-	goto recv_retry;
-	break;
-    case PSP_CD_ERROR:
-	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
-		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
-	break;
-    default:
-	PSI_log(-1, "%s: received unexpected msgtype '%s'\n", __func__,
-		PSP_printMsg(msg.header.type));
-    }
-
-    return ret;
-}
-
 PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 				 uint16_t tpp, uint32_t hwType,
 				 PSpart_option_t options, uint32_t *got)
