@@ -21,17 +21,15 @@
 #include "psslurmlog.h"
 #include "psslurmstep.h"
 
-PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
-		    PStask_ID_t forwarderTID, PStask_t *forwarder,
-		    PStask_group_t childGroup,
+PS_Tasks_t *addTask(list_t *list, PStask_t *forwarder, PStask_ID_t childTID,
 		    int32_t jobRank, int32_t globalRank)
 {
     PS_Tasks_t *task = ucalloc(sizeof(*task));
 
     task->childTID = childTID;
-    task->forwarderTID = forwarderTID;
+    task->forwarderTID = forwarder ? forwarder->tid : -1;
     task->forwarder = forwarder;
-    task->childGroup = childGroup;
+    task->childGroup = forwarder ? forwarder->childGroup : TG_ANY;
     task->jobRank = jobRank;
     task->globalRank = globalRank;
     task->exitCode = 0;
@@ -39,8 +37,8 @@ PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
 
     fdbg(PSSLURM_LOG_PROCESS, "childTID %s ", PSC_printTID(childTID));
     mdbg(PSSLURM_LOG_PROCESS, "forwarderTID %s childGroup %i jobRank %d"
-	 " globalRank %d\n", PSC_printTID(forwarderTID), childGroup, jobRank,
-	globalRank);
+	 " globalRank %d\n", PSC_printTID(task->forwarderTID), task->childGroup,
+	 jobRank, globalRank);
 
     list_add_tail(&task->next, list);
 

@@ -35,23 +35,17 @@ typedef struct {
  *
  * @param list The list to add the task
  *
- * @param childTID The PS task ID of the child
+ * @param forwarder psidforwarder's PS task structure
  *
- * @param forwarderTID The PS task ID of the psidforwarder
+ * @param childTID Child's PS task ID
  *
- * @param forwarder The PS task structure of the psidforwarder
+ * @param jobRank PS job rank, i.e. within tasks with same spawner
  *
- * @param childGroup The PS task group of the child
- *
- * @param jobRank The PS job rank, i.e. within task with same spawner
- *
- * @param globalRank The PS global rank, i.e. within task with same logger
+ * @param globalRank PS global rank, i.e. within tasks with same logger
  *
  * @return Returns a pointer to the added task
  */
-PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
-		    PStask_ID_t forwarderTID, PStask_t *forwarder,
-		    PStask_group_t childGroup,
+PS_Tasks_t *addTask(list_t *list, PStask_t *forwarder, PStask_ID_t childTID,
 		    int32_t jobRank, int32_t globalRank);
 
 /**

@@ -3433,8 +3433,8 @@ static void addMissingTasks(Step_t *step)
     for (uint32_t i = 0; i < step->globalTaskIdsLen[step->localNodeId]; i++) {
 	int32_t rank = step->globalTaskIds[step->localNodeId][i];
 	if (!findTaskByJobRank(&step->tasks, rank)) {
-	    PS_Tasks_t *task = addTask(&step->tasks, -1, -1, NULL, TG_ANY, rank,
-				       rank /* no handle on global rank */);
+	     /* no handle on global rank, thus globalRank = rank */
+	    PS_Tasks_t *task = addTask(&step->tasks, NULL, -1, rank, rank);
 	    task->exitCode = -1;
 	}
     }

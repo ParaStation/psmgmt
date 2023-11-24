@@ -1999,9 +1999,9 @@ static bool handleSpawnSuccess(DDErrorMsg_t *msg)
     if (getJobIDbyForwarder(msg->header.dest, &forwarder, &jobid, &stepid)) {
 	Step_t *step = Step_findByStepId(jobid, stepid);
 	if (step) {
-	    /* msg->request holds global rank, msg->error holds jobRank */
-	    addTask(&step->remoteTasks, msg->header.sender, forwarder->tid,
-		    forwarder, forwarder->childGroup, msg->error, msg->request);
+	    /* msg->error holds jobRank, msg->request holds global rank */
+	    addTask(&step->remoteTasks, forwarder, msg->header.sender,
+		    msg->error, msg->request);
 	}
     }
     return false; // call the old handler if any
@@ -2029,8 +2029,7 @@ static bool handleSpawnFailed(DDErrorMsg_t *msg)
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (step) {
-	PS_Tasks_t *task = addTask(&step->tasks, msg->request, forwarder->tid,
-				   forwarder, forwarder->childGroup,
+	PS_Tasks_t *task = addTask(&step->tasks, forwarder, msg->request,
 				   forwarder->jobRank - step->packTaskOffset,
 				   forwarder->rank - step->packTaskOffset);
 
@@ -2258,8 +2257,8 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
 	    mlog("%s: job %u not found\n", __func__, jobid);
 	    return false; // fallback to old handler
 	}
-	addTask(&job->tasks, msg->request, forwarder->tid, forwarder,
-		forwarder->childGroup, forwarder->jobRank, forwarder->rank);
+	addTask(&job->tasks, forwarder, msg->request,
+		forwarder->jobRank, forwarder->rank);
     } else {
 	Step_t *step = Step_findByStepId(jobid, stepid);
 	if (!step) {
@@ -2269,8 +2268,7 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
 	    flog("%s not found\n", Step_strID(&s));
 	    return false; // fallback to old handler
 	}
-	PS_Tasks_t *task = addTask(&step->tasks, msg->request, forwarder->tid,
-				   forwarder, forwarder->childGroup,
+	PS_Tasks_t *task = addTask(&step->tasks,  forwarder, msg->request,
 				   forwarder->jobRank - step->packTaskOffset,
 				   forwarder->rank - step->packTaskOffset);
 
