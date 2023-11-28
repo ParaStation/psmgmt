@@ -71,7 +71,7 @@ static int closeListenSock(void)
  *  - Store the name of the socket to the environment
  *  - Store proto-task information on the client to spawn into clntHdr
  *
- * @param data Pointer to the task structure to spawn (ignored)
+ * @param data Pointer to the task structure to spawn
  *
  * @return On success 0 is returned or -1 in case of failure
  */
@@ -495,6 +495,12 @@ static int acceptNewClient(int fd, void *data)
     if (clntVer > RRCOMM_PROTO_VERSION) clntVer = RRCOMM_PROTO_VERSION;
     if (PSCio_sendF(clntSock, &clntVer, sizeof(clntVer)) < 0) {
 	return closeClientSock();
+    }
+    if (clntVer > 1) {
+	PStask_ID_t jobID = clntHdr.spawnerTID;
+	if (PSCio_sendF(clntSock, &jobID, sizeof(jobID)) < 0) {
+	    return closeClientSock();
+	}
     }
     fdbg(RRCOMM_LOG_FRWRD, "version %d @ fd %d\n", clntVer, clntSock);
     hasConnected = true; // track a once connected client

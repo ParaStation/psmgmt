@@ -20,6 +20,8 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include "pstaskid.h"
+
 /**
  * @brief Initialize the RRComm interface
  *
@@ -64,6 +66,21 @@ bool RRC_isInitialized(void);
  * connection was established yet
  */
 uint32_t RRC_getVersion(void);
+
+/**
+ * @brief Get the job ID
+ *
+ * Determine the ID of the job the local process belongs to. This
+ * information is received during the initial connection to the
+ * chaperon forwarder if RRComm protocol version 2 is used. In case of
+ * earlier versions of the protocol this information is not available
+ * and actually useless, since RRComm messages across different jobs
+ * even of the same session is not supported.
+ *
+ * @return The job ID is returned or 0 if no connection was
+ * established yet or protocol version 1 was negotiated
+ */
+PStask_ID_t RRC_getJobID(void);
 
 /**
  * @brief Send a message via the rank routed protocol

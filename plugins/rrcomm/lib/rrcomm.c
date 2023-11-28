@@ -31,6 +31,9 @@ static int frwdSocket = -1;
  */
 static uint32_t currVersion = 0;
 
+/** Job ID this process belongs to */
+static PStask_ID_t currJobID = 0;
+
 /**
  * @brief Close connection to chaperon forwarder
  *
@@ -89,6 +92,11 @@ int RRC_init(void)
 
     ssize_t ret = PSCio_recvBufP(frwdSocket, &currVersion, sizeof(currVersion));
     if (ret <= 0) return closeFrwdSock(ret);
+
+    if (currVersion > 1) {
+	ret = PSCio_recvBufP(frwdSocket, &currJobID, sizeof(currJobID));
+	if (ret <= 0) return closeFrwdSock(ret);
+    }
     errno = 0;   // reset errno -- might have been set in prior RRC_finalize()
 
     return frwdSocket;
@@ -102,6 +110,11 @@ bool RRC_isInitialized(void)
 uint32_t RRC_getVersion(void)
 {
     return currVersion;
+}
+
+PStask_ID_t RRC_getJobID(void)
+{
+    return currJobID;
 }
 
 ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize)
