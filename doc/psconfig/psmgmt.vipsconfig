@@ -74,7 +74,7 @@ Core = "unlimited"
 [+class:psid]
 .parents = ["defaults:psid"]
 AdminUsers = ["root", "+partec"]
-LoadPlugins = ["pspmi", "psaccount", "psresport"]
+LoadPlugins = ["pspmi", "psaccount"]
 ResourceLimits. = ptr(["class:resourcelimits"])
 # Inherited keys:
 # AdminGroups = ["root"]
@@ -210,7 +210,7 @@ Psid.RunJobs = "no"
 ;
 [+nodetype:psslurm]
 .parents = ["class:nodetype"]
-Psid.LoadPlugins = ["pspmi", "psaccount", "psslurm", "psresport"]
+Psid.LoadPlugins = ["pspmi", "psaccount", "psslurm"]
 # Inherited keys:
 # Psid. = ptr(["class:psid"])
 
@@ -225,5 +225,5 @@ NodeName = "node01"
 Psid.NodeId = "1"
 # Inherited keys:
 # Psid. = ptr(["class:psid"])
-# Psid.LoadPlugins = ["pspmi", "psaccount", "psslurm", "psresport"]
+# Psid.LoadPlugins = ["pspmi", "psaccount", "psslurm"]
 

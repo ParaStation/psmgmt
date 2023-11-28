@@ -11,7 +11,7 @@
 
 include $(top_srcdir)/common.am
 
-dist_plugin_DATA = psresport.conf psaccount.conf
+dist_plugin_DATA = psaccount.conf
 
 if HAVE_SYSTEMD
   dist_sysctl_DATA = 99-psid.conf

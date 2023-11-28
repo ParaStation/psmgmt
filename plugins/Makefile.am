@@ -11,7 +11,7 @@
 include $(top_srcdir)/common.am
 
 SUBDIRS = dynIP jail nodeinfo pelogue psaccount psexec psgw psmom	\
-	pspam pspmi psresport psslurm rrcomm
+	pspam pspmi psslurm rrcomm
 
 if MUNGE_ENABLED
 SUBDIRS += psmunge

@@ -133,7 +133,6 @@ doc/psconfig/nodeinfo.dump \
 doc/psconfig/nodeinfo.vipsconfig \
 doc/psconfig/psmgmt.vipsconfig \
 doc/psconfig/update_defaults_5.1.51.sh \
-doc/psresport.conf \
 doc/systemd/psid_service_d_nvidia.conf \
 doc/systemd/psidstarter_socket_d_port.conf \
 include/Makefile.am \
@@ -602,13 +601,6 @@ plugins/pspmix/pspmixutil.c \
 plugins/pspmix/pspmixutil.h \
 plugins/pspmix/slurm/mpi_pspmix.c \
 plugins/pspmix/tests/pmix_test_putget.c \
-plugins/psresport/Makefile.am \
-plugins/psresport/Makefile.in \
-plugins/psresport/psresport.c \
-plugins/psresport/psresportconfig.c \
-plugins/psresport/psresportconfig.h \
-plugins/psresport/psresportlog.c \
-plugins/psresport/psresportlog.h \
 plugins/psslurm/Makefile.am \
 plugins/psslurm/Makefile.in \
 plugins/psslurm/doc/Makefile.am \
