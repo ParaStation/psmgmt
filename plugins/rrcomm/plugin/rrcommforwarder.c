@@ -580,12 +580,12 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     setByteOrder(byteOrder);
 
     if (sendToClient(data.buf, data.bufUsed) < 0) {
-	PSID_dropMsg((DDBufferMsg_t *)msg);
+	dropHelper(msg, sendDaemonMsg);
     }
 
     /* send actual data -- no data sent if rData->used == 0 */
     if (sendToClient(rData->buf, rData->used) < 0) {
-	PSID_dropMsg((DDBufferMsg_t *)msg);
+	dropHelper(msg, sendDaemonMsg);
     } else if (getRRCommLoggerMask() & RRCOMM_LOG_VERBOSE) {
 	fdbg(RRCOMM_LOG_VERBOSE, "Data is");
 	for (size_t i = 0; i < MIN(rData->used, 20); i++)
