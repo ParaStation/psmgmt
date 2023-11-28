@@ -1951,123 +1951,136 @@ static bool handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 }
 
 /**
- * @brief Get jobid by forwarder task ID
+ * @brief Identify step by task's environment
  *
- * Get job ID and step ID by forwarder task ID.
- * As a side effect returns the forwarder task.
+ * Identify the step the task @a task belongs to by its
+ * environment. Once the step is identified a corresponding info is
+ * added to the task structure as a hint for further calls.
  *
- * @param header The header of the message
+ * @param task Task structure to investigate
  *
- * @param fwPtr Pointer to store the forwarder task
+ * @param jobID Pointer to store the job ID
  *
- * @param jobid Pointer to store the job ID
+ * @param stepID Pointer to store the step ID
  *
- * @param stepid Pointer to store the step ID
- *
- * @return Returns true on success or false otherwise
+ * @return Returns the identified step or NULL otherwise
  */
-static bool getJobIDbyForwarder(PStask_ID_t fwTID, PStask_t **fwPtr,
-				uint32_t *jobid, uint32_t *stepid)
+static Step_t * identifyStepByTaskEnv(PStask_t *task,
+				      uint32_t *jobID, uint32_t *stepID)
 {
-    PStask_t *forwarder = PStasklist_find(&managedTasks, fwTID);
-    if (!forwarder) {
-	mlog("%s: could not find forwarder task for sender %s\n",
-	     __func__, PSC_printTID(fwTID));
-	return false;
+    if (!task) {
+	flog("no task\n");
+	return NULL;
     }
-    *fwPtr = forwarder;
 
-    bool isAdmin = isPSAdminUser(forwarder->uid, forwarder->gid);
-    Step_t *step = Step_findByEnv(forwarder->environ, jobid, stepid);
+    /* check if step was identified before */
+    Step_t *step = PStask_infoGet(task, TASKINFO_STEP);
     if (!step) {
-	/* admin users may start jobs directly via mpiexec */
-	if (!isAdmin) {
-	    flog("insufficient jobid/stepid in forwarder task for sender %s\n",
-		 PSC_printTID(fwTID));
+	step = Step_findByEnv(task->environ, jobID, stepID);
+	if (step) {
+	    /* cache for further calls */
+	    PStask_infoAdd(task, TASKINFO_STEP, step);
+	} else if (*stepID != SLURM_BATCH_SCRIPT
+		   && !isPSAdminUser(task->uid, task->gid)) {
+	    /* admin users may start jobs directly via mpiexec */
+	    flog("insufficient info in task %s\n", PSC_printTID(task->tid));
 	}
-	return false;
+    } else {
+	if (jobID) *jobID = step->jobid;
+	if (stepID) *stepID = step->stepid;
     }
-
-    return true;
+    return step;
 }
 
 /**
-* @brief Handle a PSP_CD_SPAWNSUCCESS message
-*
-* Peek into a PSP_CD_SPAWNSUCCESS message and extract information
-* before handing it over to the original handler (if any).
-*
-* @param msg The message to handle
-*/
+ * @brief Handle a PSP_CD_SPAWNSUCCESS message
+ *
+ * Peek into a PSP_CD_SPAWNSUCCESS message to a local spawner and
+ * extract information before handing it over to the original handler
+ * (if any).
+ *
+ * @param msg Message to handle
+ *
+ * @return Always return false to call orgininal handler
+ */
 static bool handleSpawnSuccess(DDErrorMsg_t *msg)
 {
-    PStask_t *forwarder = NULL;
-    uint32_t jobid, stepid;
-    if (getJobIDbyForwarder(msg->header.dest, &forwarder, &jobid, &stepid)) {
-	Step_t *step = Step_findByStepId(jobid, stepid);
-	if (step) {
-	    /* msg->error holds jobRank, msg->request holds global rank */
-	    addTask(&step->remoteTasks, forwarder, msg->header.sender,
-		    msg->error, msg->request);
-	}
+    /* ignore on nodes not the spawning one */
+    if (PSC_getID(msg->header.dest) != PSC_getMyID()) return false;
+
+    PStask_t *dest = PStasklist_find(&managedTasks, msg->header.dest);
+    Step_t *step = identifyStepByTaskEnv(dest, NULL, NULL);
+    if (!step) {
+	flog("no step for %s", PSC_printTID(msg->header.dest));
+	mlog("from %s\n", PSC_printTID(msg->header.sender));
+	return false;
     }
+
+    /* msg->error holds jobRank, msg->request holds global rank */
+    addTask(&step->remoteTasks, dest, msg->header.sender,
+	    msg->error, msg->request); // @todo remoteTasks with packTaskOffset?
+
     return false; // call the old handler if any
 }
 
 /**
-* @brief Handle a PSP_CD_SPAWNFAILED message
-*
-* Peek into a PSP_CD_SPAWNFAILED message and extract information
-* before handing it over to the original handler (if any).
-*
-* @param msg Pointer to message to handle
-*/
+ * @brief Handle a PSP_CD_SPAWNFAILED message
+ *
+ * Peek into a PSP_CD_SPAWNFAILED message from a local forwarder and
+ * extract information before handing it over to the original handler
+ * (if any).
+ *
+ * @param msg Message to handle
+ *
+ * @return Always return false to call orgininal handler
+ */
 static bool handleSpawnFailed(DDErrorMsg_t *msg)
 {
     mwarn(msg->error, "%s: spawn failed: forwarder %s rank %i errno %i",
 	  __func__, PSC_printTID(msg->header.sender),
 	  msg->request, msg->error);
 
-    PStask_t *forwarder = NULL;
-    uint32_t jobid, stepid;
-    if (!getJobIDbyForwarder(msg->header.sender, &forwarder, &jobid, &stepid)) {
-	return false; // call the old handler if any
+    /* ignore on nodes not the spawn destination */
+    if (PSC_getID(msg->header.sender) != PSC_getMyID()) return false;
+
+    PStask_t *frwrdr = PStasklist_find(&managedTasks, msg->header.sender);
+    Step_t *step = identifyStepByTaskEnv(frwrdr, NULL, NULL);
+    if (!step) {
+	flog("no step for %s\n", PSC_printTID(msg->header.sender));
+	mlog("to %s\n", PSC_printTID(msg->header.dest));
+	return false;
     }
 
-    Step_t *step = Step_findByStepId(jobid, stepid);
-    if (step) {
-	PS_Tasks_t *task = addTask(&step->tasks, forwarder, msg->request,
-				   forwarder->jobRank - step->packTaskOffset,
-				   forwarder->rank - step->packTaskOffset);
+    PS_Tasks_t *task = addTask(&step->tasks, frwrdr, -1,
+			       frwrdr->jobRank - step->packTaskOffset,
+			       frwrdr->rank - step->packTaskOffset);
+    switch (msg->error) {
+    case ENOENT:
+	/* No such file or directory */
+	task->exitCode = 0x200;
+	break;
+    case EACCES:
+	/* Permission denied */
+	task->exitCode = 0x0d00;
+	break;
+    default:
+	task->exitCode = 1;
+    }
 
-	switch (msg->error) {
-	    case ENOENT:
-		/* No such file or directory */
-		task->exitCode = 0x200;
-		break;
-	    case EACCES:
-		/* Permission denied */
-		task->exitCode = 0x0d00;
-		break;
-	    default:
-		task->exitCode = 1;
-	}
+    if (!step->loggerTID) step->loggerTID = frwrdr->loggertid;
+    if (step->fwdata) fwCMD_taskInfo(step->fwdata, task);
 
-	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
-	if (step->fwdata) fwCMD_taskInfo(step->fwdata, task);
+    fwCMD_enableSrunIO(step);
 
-	fwCMD_enableSrunIO(step);
+    step->state = JOB_RUNNING;
+    step->exitCode = 0x200;
 
-	step->state = JOB_RUNNING;
-	step->exitCode = 0x200;
-
-	/* don't expect a finalize message */
-	step->fwFinCount++;
-	if (!step->leader && step->fwdata
-	    && step->tasksToLaunch[step->localNodeId] == step->fwFinCount) {
-	    mlog("%s: shutdown I/O forwarder\n", __func__);
-	    shutdownForwarder(step->fwdata);
-	}
+    /* don't expect a finalize message */
+    step->fwFinCount++;
+    if (!step->leader && step->fwdata
+	&& step->tasksToLaunch[step->localNodeId] == step->fwFinCount) {
+	flog("shutdown I/O forwarder\n");
+	shutdownForwarder(step->fwdata);
     }
 
     return false; // call the old handler if any
@@ -2185,8 +2198,7 @@ static bool handleSpawnReq(DDTypedBufferMsg_t *msg)
     /* get jobid and stepid from received environment */
     bool isAdmin = isPSAdminUser(spawnee->uid, spawnee->gid);
     uint32_t jobid, stepid;
-    Step_t *step = Step_findByEnv(spawnee->environ, &jobid, &stepid);
-    if (!step) {
+    if (!Step_findByEnv(spawnee->environ, &jobid, &stepid)) {
 	/* admin users may start jobs directly via mpiexec */
 	if (isAdmin) return false; // call the old handler if any
 
@@ -2247,44 +2259,44 @@ static bool handleCCMsg(PSLog_Msg_t *msg)
 */
 static bool handleChildBornMsg(DDErrorMsg_t *msg)
 {
-    PStask_t *forwarder = NULL;
-    uint32_t jobid = 0, stepid = 0;
-    if (!getJobIDbyForwarder(msg->header.sender, &forwarder, &jobid, &stepid)) {
-	flog("forwarder for sender %s not found\n",
-	     PSC_printTID(msg->header.sender));
+    PStask_t *frwrdr = PStasklist_find(&managedTasks, msg->header.sender);
+    if (!frwrdr) {
+	flog("forwarder %s not found\n", PSC_printTID(msg->header.sender));
 	return false; // fallback to old handler
     }
 
-    fdbg(PSSLURM_LOG_PSCOMM, "from sender %s for jobid %u:%u\n",
-	 PSC_printTID(msg->header.sender), jobid, stepid);
+    uint32_t jobID = 0, stepID = 0;
+    Step_t *step = identifyStepByTaskEnv(frwrdr, &jobID, &stepID);
 
-    if (stepid == SLURM_BATCH_SCRIPT) {
-	Job_t *job = Job_findById(jobid);
+    fdbg(PSSLURM_LOG_PSCOMM, "from sender %s for jobid %u:%u\n",
+	 PSC_printTID(msg->header.sender), jobID, stepID);
+
+    if (stepID == SLURM_BATCH_SCRIPT) {
+	Job_t *job = Job_findById(jobID);
 	if (!job) {
-	    mlog("%s: job %u not found\n", __func__, jobid);
+	    flog("job %u not found\n", jobID);
 	    return false; // fallback to old handler
 	}
-	addTask(&job->tasks, forwarder, msg->request,
-		forwarder->jobRank, forwarder->rank);
+	addTask(&job->tasks, frwrdr, msg->request, frwrdr->jobRank, frwrdr->rank);
+	PStask_infoAdd(frwrdr, TASKINFO_JOB, job);
     } else {
-	Step_t *step = Step_findByStepId(jobid, stepid);
 	if (!step) {
 	    Step_t s = {
-		.jobid = jobid,
-		.stepid = stepid };
+		.jobid = jobID,
+		.stepid = stepID };
 	    flog("%s not found\n", Step_strID(&s));
 	    return false; // fallback to old handler
 	}
-	PS_Tasks_t *task = addTask(&step->tasks,  forwarder, msg->request,
-				   forwarder->jobRank - step->packTaskOffset,
-				   forwarder->rank - step->packTaskOffset);
+	PS_Tasks_t *task = addTask(&step->tasks, frwrdr, msg->request,
+				   frwrdr->jobRank - step->packTaskOffset,
+				   frwrdr->rank - step->packTaskOffset);
 
-	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
+	if (!step->loggerTID) step->loggerTID = frwrdr->loggertid;
 	if (step->fwdata) {
 	    fwCMD_taskInfo(step->fwdata, task);
 	} else {
 	    flog("no forwarder for %s rank %i\n", Step_strID(step),
-		 forwarder->rank - step->packTaskOffset);
+		 frwrdr->rank - step->packTaskOffset);
 	}
     }
 

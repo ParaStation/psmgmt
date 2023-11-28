@@ -92,6 +92,7 @@ typedef enum {
     TASKINFO_ALL = 0,                  /**< Helper type to travers all items */
     TASKINFO_FORWARDER = 1,            /**< Info points to ForwarderData_t */
     TASKINFO_STEP,                     /**< Info points to psslurm's Step_t */
+    TASKINFO_JOB,                      /**< Info points to psslurm's Job_t */
 } PStask_info_t;
 
 /** Task structure */
