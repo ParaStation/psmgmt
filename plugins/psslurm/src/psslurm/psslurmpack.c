@@ -1854,7 +1854,7 @@ static uint64_t getAccRank(SlurmAccData_t *slurmData, int type)
     if (!task) task = findTaskByChildTID(slurmData->remoteTasks,
 					 accData->taskIds[type]);
 
-    if (task) return task->jobRank;
+    if (task) return task->jobRank; // @todo step->packTaskOffset needed here?
 
     return NO_VAL64;
 }
