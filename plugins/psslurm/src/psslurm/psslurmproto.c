@@ -934,10 +934,9 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg)
     list_t *t;
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	if (task->globalRank >= 0) {
-	    countPIDS++;
-	    addUint32ToMsg(PSC_getPID(task->childTID), reply);
-	}
+	if (task->globalRank < 0) continue;
+	countPIDS++;
+	addUint32ToMsg(PSC_getPID(task->childTID), reply);
     }
     *(uint32_t *) (reply->buf + countPos) = htonl(countPIDS);
 
@@ -3366,22 +3365,17 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     msg.taskRanks = umalloc(sizeof(*msg.taskRanks) * msg.exitCount);
 
     /* add all ranks with the specific exit status */
-    uint32_t exitCount2 = 0;
+    uint32_t exitCount = 0;
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (task->sentExit || task->jobRank < 0) continue;
-	if (task->exitCode == exitCode) {
-	    msg.taskRanks[exitCount2++] = task->jobRank;
-	    task->sentExit = 1;
-	    /*
-	    mlog("%s: tasks jobRank:%i exit:%i exitCount:%i\n", __func__,
-		    task->jobRank, task->exitCode, msg.exitCount);
-	    */
-	}
+	if (task->exitCode != exitCode) continue;
+	msg.taskRanks[exitCount++] = task->jobRank;
+	task->sentExit = true;
     }
 
-    if (msg.exitCount != exitCount2) {
-	flog("mismatching exit count %i:%i\n", msg.exitCount, exitCount2);
+    if (msg.exitCount != exitCount) {
+	flog("mismatching exit count %i:%i\n", msg.exitCount, exitCount);
 	ufree(msg.taskRanks);
 	return;
     }
