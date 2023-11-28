@@ -225,7 +225,7 @@ static void logSlots(const char* prefix,
 /**
  * @brief Handle a create partition message
  *
- * @param msg The message to handle.
+ * @param msg Message to handle
  *
  * @return Returns 0 if the request is finally handled
  *   and 1 if it should be further handled by the caller.
@@ -273,6 +273,13 @@ static int handleCreatePart(void *msg)
     }
 
     logHWthreads(__func__, task->partThrds, task->totalThreads);
+
+    /* add step info to logger task */
+    if (PStask_infoGet(task, TASKINFO_STEP)) {
+	flog("unexpected step info in task %s\n", PSC_printTID(task->tid));
+    } else {
+	PStask_infoAdd(task, TASKINFO_STEP, step);
+    }
 
     /* further preparations of the task structure */
     ufree(task->partition);
