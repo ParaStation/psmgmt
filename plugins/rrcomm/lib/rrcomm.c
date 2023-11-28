@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,9 +24,6 @@
 
 /** Socket connecting to the chaperon forwarder */
 static int frwdSocket = -1;
-
-/** Maximum protocol version the lib is capable to handle */
-static uint32_t protoVersion = RRCOMM_PROTO_VERSION;
 
 /**
  * Protocol version the chaperon forwarder is willing to talk;
@@ -84,6 +81,8 @@ int RRC_init(void)
 	return closeFrwdSock(-1);
     }
 
+    /** Maximum protocol version the lib is capable to handle */
+    uint32_t protoVersion = RRCOMM_PROTO_VERSION;
     if (PSCio_sendF(frwdSocket, &protoVersion, sizeof(protoVersion)) < 0) {
 	return closeFrwdSock(-1);
     }
@@ -98,6 +97,11 @@ int RRC_init(void)
 bool RRC_isInitialized(void)
 {
     return frwdSocket != -1;
+}
+
+uint32_t RRC_getVersion(void)
+{
+    return currVersion;
 }
 
 ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize)

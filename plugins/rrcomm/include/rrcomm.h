@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -51,6 +51,19 @@ int RRC_init(void);
  * i.e. true on healthy connection or false otherwise
  */
 bool RRC_isInitialized(void);
+
+/**
+ * @brief Get version of RRComm protocol
+ *
+ * Get the version of the RRComm protocol this library is capable to
+ * talk to its chaperon forwarder. Since this is negotiated during the
+ * first connection to the chaperon forwarder, a reliable result can
+ * only be expected once @ref RRC_init() was called successfully.
+ *
+ * @return The RRComm protocol version is returned or 0 if no
+ * connection was established yet
+ */
+uint32_t RRC_getVersion(void);
 
 /**
  * @brief Send a message via the rank routed protocol
