@@ -356,7 +356,7 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-dist_plugin_DATA = psresport.conf psaccount.conf
+dist_plugin_DATA = psaccount.conf
 @HAVE_SYSTEMD_TRUE@dist_sysctl_DATA = 99-psid.conf
 dist_noinst_DATA = parastation.conf.tmpl README.nodeinfo README.pspam	\
 	README.psgw

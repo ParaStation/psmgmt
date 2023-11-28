@@ -13535,8 +13535,6 @@ if test -z "$BUILD_WITHOUT_PSPMIX_TRUE"; then :
 
 fi
 
-ac_config_files="$ac_config_files plugins/psresport/Makefile"
-
 ac_config_files="$ac_config_files plugins/psslurm/Makefile"
 
 ac_config_files="$ac_config_files plugins/psslurm/doc/Makefile"
@@ -14694,7 +14692,6 @@ do
     "plugins/pspam/service/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/service/Makefile" ;;
     "plugins/pspmi/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmi/Makefile" ;;
     "plugins/pspmix/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmix/Makefile" ;;
-    "plugins/psresport/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psresport/Makefile" ;;
     "plugins/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/Makefile" ;;
     "plugins/psslurm/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/doc/Makefile" ;;
     "plugins/psslurm/src/bin/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/bin/Makefile" ;;

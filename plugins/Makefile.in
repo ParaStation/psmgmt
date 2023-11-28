@@ -166,7 +166,7 @@ am__define_uniq_tagged_files = \
     if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
   done | $(am__uniquify_input)`
 DIST_SUBDIRS = dynIP jail nodeinfo pelogue psaccount psexec psgw psmom \
-	pspam pspmi psresport psslurm rrcomm psmunge pspmix
+	pspam pspmi psslurm rrcomm psmunge pspmix
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
@@ -385,8 +385,7 @@ scriptsdir = $(prefix)/scripts
 # file.
 #
 SUBDIRS = dynIP jail nodeinfo pelogue psaccount psexec psgw psmom \
-	pspam pspmi psresport psslurm rrcomm $(am__append_1) \
-	$(am__append_2)
+	pspam pspmi psslurm rrcomm $(am__append_1) $(am__append_2)
 all: all-recursive
 
 .SUFFIXES:
