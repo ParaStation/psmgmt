@@ -413,27 +413,6 @@ Step_t *__Step_findByEnv(char **environ, uint32_t *jobidOut,
 	__Step_findByEnv(environ, jobidOut, stepidOut, __func__, __LINE__)
 
 /**
- * @brief Find step from task's environment
- *
- * Find a step from the environment of the task identified by its ID
- * @a tid. If @a tid identifies a task of type TG_FORWARDER (i.e. a
- * psidforwarder process) instead the environment of the shepherded
- * task is used.
- *
- * @param tid ID of the task to consult
- *
- * @param caller Function name of the calling function
- *
- * @param line Line number where this function is called
- *
- * @return On success a pointer to the step is returned; or NULL otherwise
- */
-Step_t *__Step_findByTaskEnv(PStask_ID_t tid, const char *caller,
-			     const int line);
-
-#define Step_findByTaskEnv(tid) __Step_findByTaskEnv(tid, __func__, __LINE__)
-
-/**
  * @brief Get the number of steps
  *
  * Returns the number of steps

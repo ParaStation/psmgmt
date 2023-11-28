@@ -237,31 +237,6 @@ Step_t *__Step_findByEnv(char **environ, uint32_t *jobidOut,
     return Step_findByStepId(jobid, stepid);
 }
 
-Step_t *__Step_findByTaskEnv(PStask_ID_t tid, const char *caller,
-			     const int line)
-{
-    PStask_t *task = PStasklist_find(&managedTasks, tid);
-    /* logger tasks don't own an environment */
-    if (!task || task->group == TG_LOGGER) return NULL;
-
-    if (task->group == TG_FORWARDER) {
-	/* forwarders own an incomplete environment => use shepherded task */
-	task = list_entry(task->next.prev, PStask_t, next);
-	if (!task->forwarder || task->forwarder->tid != tid) {
-	    flog("managedTasks messed up for %s?\n", PSC_printTID(tid));
-	    return NULL;
-	}
-    }
-
-    if (!task->environ) {
-	flog("task %s group %s with no environment, caller %s:%i\n",
-	     PSC_printTID(task->tid), PStask_printGrp(task->group), caller, line);
-	return NULL;
-    }
-
-    return Step_findByEnv(task->environ, NULL, NULL);
-}
-
 void Step_deleteAll(Step_t *preserve)
 {
     list_t *s, *tmp;
