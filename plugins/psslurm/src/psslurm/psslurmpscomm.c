@@ -1773,7 +1773,7 @@ static bool handleCC_IO_Msg(PSLog_Msg_t *msg)
     if (PSC_getID(msg->header.sender) != PSC_getMyID()) return false;
 
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
-    Step_t *step = Step_findByTaskEnv(msg->header.sender);
+    Step_t *step = PStask_infoGet(task, TASKINFO_STEP);
     if (!step || step->state == JOB_COMPLETE || step->state == JOB_EXIT) {
 	if (task && isPSAdminUser(task->uid, task->gid)) {
 	    return false; // call the old handler if any
@@ -1827,7 +1827,8 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 	/* message from psilogger to psidforwarder */
 	/* only investigate on psidforwarder side */
 	if (PSC_getID(msg->header.dest) != PSC_getMyID()) return;
-	Step_t *step = Step_findByTaskEnv(msg->header.dest);
+	PStask_t *frwrdr = PStasklist_find(&managedTasks, msg->header.dest);
+	Step_t *step = PStask_infoGet(frwrdr, TASKINFO_STEP);
 	if (step && step->state != JOB_COMPLETE && step->state != JOB_EXIT) {
 	    PS_Tasks_t *task = findTaskByFwd(&step->tasks, msg->header.dest);
 	    if (task) {
@@ -1850,7 +1851,8 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 	/* message from psidforwarder to psilogger */
 	/* only investigate on psidforwarder side */
 	if (PSC_getID(msg->header.sender) != PSC_getMyID()) return;
-	Step_t *step = Step_findByTaskEnv(msg->header.sender);
+	PStask_t *frwrdr = PStasklist_find(&managedTasks, msg->header.sender);
+	Step_t *step = PStask_infoGet(frwrdr, TASKINFO_STEP);
 	if (step && step->state != JOB_COMPLETE && step->state != JOB_EXIT) {
 	    PS_Tasks_t *task = findTaskByFwd(&step->tasks, msg->header.sender);
 	    if (task) verboseCpuPinningOutput(step, task);
@@ -1870,9 +1872,9 @@ static bool handleCC_STDIN_Msg(PSLog_Msg_t *msg)
     /* only handle on node of destination where we might find the step */
     if (PSC_getID(msg->header.dest) != PSC_getMyID()) return false;
 
-    Step_t *step = Step_findByTaskEnv(msg->header.dest);
+    PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
+    Step_t *step = PStask_infoGet(task, TASKINFO_STEP);
     if (!step || step->state == JOB_COMPLETE || step->state == JOB_EXIT) {
-	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!task || !isPSAdminUser(task->uid, task->gid)) {
 	    /* no admin task => complain */
 	    mlog("%s: step for stdin msg from logger %s not found\n", __func__,
@@ -1898,10 +1900,10 @@ static bool handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 	return false; // call the old handler if any
     }
 
-    Step_t *step = Step_findByTaskEnv(msg->header.sender);
+    PStask_t *frwrdr = PStasklist_find(&managedTasks, msg->header.sender);
+    Step_t *step = PStask_infoGet(frwrdr, TASKINFO_STEP);
     if (!step || step->state == JOB_COMPLETE || step->state == JOB_EXIT) {
-	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
-	if (!task || !isPSAdminUser(task->uid, task->gid)) {
+	if (!frwrdr || !isPSAdminUser(frwrdr->uid, frwrdr->gid)) {
 	    /* no admin task => complain */
 	    static PStask_ID_t lastDest = -1;
 	    if (msg->header.dest != lastDest) {
