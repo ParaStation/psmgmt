@@ -475,10 +475,6 @@ fi
 %attr(750,root,root) %{_spooldir}/account
 %attr(750,root,root) %{_spooldir}/backup
 %attr(751,root,root) %{_spooldir}/scripts
-%if !0%{?disable_spank}
-%dir %{_libdir}/slurm
-%{_libdir}/slurm/spank_api.so
-%endif
 %if !0%{?disable_munge}
 %{_plugindir}/psmunge.so
 %if !0%{?disable_systemd}
@@ -499,6 +495,7 @@ fi
 %{_bindir}/psslurmgetbind
 %if !0%{?disable_spank}
 %dir %{_libdir}/slurm
+%{_libdir}/slurm/spank_api.so
 %{_libdir}/slurm/psgw_spank.so
 %{_libdir}/slurm/cudaspank.so
 %{_libdir}/slurm/energyreport.so
