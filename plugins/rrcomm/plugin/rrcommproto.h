@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,9 +27,9 @@
 typedef struct {
     int32_t sender;           /**< Sending rank */
     int32_t dest;             /**< Destination rank */
-    PStask_ID_t loggerTID;    /**< logger's task ID */
-    PStask_ID_t spawnerTID;   /**< spawner's task ID */
-    // @todo we might have to provide namespace information here
+    PStask_ID_t loggerTID;    /**< logger's task ID aka session ID */
+    PStask_ID_t spawnerTID;   /**< spawner's task ID aka job ID */
+    PStask_ID_t destJob;      /**< destination job ID */
 } RRComm_hdr_t;
 
 /**

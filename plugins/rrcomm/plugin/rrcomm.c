@@ -110,9 +110,9 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 	    return PSID_dropMsg((DDBufferMsg_t *)msg);
 	}
 
-	PSjob_t *job = PSID_findJobInSession(session, hdr->spawnerTID);
+	PSjob_t *job = PSID_findJobInSession(session, hdr->destJob);
 	if (!job) {
-	    flog("no job for %s!?\n", PSC_printTID(hdr->spawnerTID));
+	    flog("no job for %s!?\n", PSC_printTID(hdr->destJob));
 	    return PSID_dropMsg((DDBufferMsg_t *)msg);
 	}
 
@@ -147,7 +147,7 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (task->rank != hdr->dest || task->loggertid != hdr->loggerTID
-	    || task->spawnertid != hdr->spawnerTID) continue;
+	    || task->spawnertid != hdr->destJob) continue;
 	if (!task->forwarder || task->deleted) continue;
 	msg->header.dest = task->forwarder->tid;
 	break;

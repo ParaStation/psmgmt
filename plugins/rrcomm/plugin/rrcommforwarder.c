@@ -171,6 +171,13 @@ static int handleClientMsg(int fd, void *data)
     ssize_t ret = PSCio_recvBufP(fd, &clntHdr.dest, sizeof(clntHdr.dest));
     if (ret != sizeof(clntHdr.dest)) return closeClientSock();
 
+    clntHdr.destJob = 0;
+    if (clntVer > 1) {
+	ret = PSCio_recvBufP(fd, &clntHdr.destJob, sizeof(clntHdr.destJob));
+	if (ret != sizeof(clntHdr.destJob)) return closeClientSock();
+    }
+    if (!clntHdr.destJob) clntHdr.destJob = clntHdr.spawnerTID;
+
     size_t msgSize;
     ret = PSCio_recvBufP(fd, &msgSize, sizeof(msgSize));
     if (ret != sizeof(msgSize)) return closeClientSock();
@@ -180,7 +187,7 @@ static int handleClientMsg(int fd, void *data)
     initFragBufferExtra(&fBuf, PSP_PLUG_RRCOMM, RRCOMM_DATA,
 			&clntHdr, sizeof(clntHdr));
 
-    PStask_ID_t dest = getAddrFromCache(0, clntHdr.dest);
+    PStask_ID_t dest = getAddrFromCache(clntHdr.destJob, clntHdr.dest);
     setFragDest(&fBuf, dest != -1 ? dest : PSC_getTID(PSC_getMyID(), 0));
 
     /* shovel data in 32 kB chunks */
@@ -324,6 +331,9 @@ static bool sendErrorMsg(PSIDmsgbuf_t *blob)
     RRComm_hdr_t msgHdr = clntHdr;
     msgHdr.dest = clntHdr.sender;
     getInt32(&data, &msgHdr.sender);
+    msgHdr.destJob = clntHdr.spawnerTID;
+    msgHdr.spawnerTID = clntHdr.spawnerTID; // assume the message was job local
+    if (clntVer > 1) getTaskId(&data, &msgHdr.spawnerTID);
     setByteOrder(byteOrder);
 
     /* send RRCOMM_ERROR to sender */
@@ -331,15 +341,18 @@ static bool sendErrorMsg(PSIDmsgbuf_t *blob)
 	.header = {
 	    .type = PSP_PLUG_RRCOMM,
 	    .sender = PSC_getMyTID(),
-	    .dest = getAddrFromCache(0, msgHdr.sender),
+	    .dest = getAddrFromCache(msgHdr.spawnerTID, msgHdr.sender),
 	    .len = 0, /* to be set by PSP_putTypedMsgBuf */ },
 	.type = RRCOMM_ERROR,
 	.buf = { '\0' } };
     /* Add all information we have concerning the original message */
     PSP_putTypedMsgBuf(&answer, "hdr", &msgHdr, sizeof(msgHdr));
 
-    fdbg(RRCOMM_LOG_FRWRD, "(%d -> %d / size %d) to %s\n",  msgHdr.sender,
-	 msgHdr.dest, len, PSC_printTID(answer.header.dest));
+    fdbg(RRCOMM_LOG_FRWRD, "(%s:%d",
+	 PSC_printTID(msgHdr.spawnerTID), msgHdr.sender);
+    mdbg(RRCOMM_LOG_FRWRD, " -> %s:%d / size %d)",
+	 PSC_printTID(msgHdr.destJob), msgHdr.dest, len);
+    mdbg(RRCOMM_LOG_FRWRD, " to %s\n", PSC_printTID(answer.header.dest));
 
     sendDaemonMsg(&answer);
 
@@ -553,10 +566,11 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     RRComm_hdr_t *hdr;
     size_t used = 0, hdrSize;
     fetchFragHeader(msg, &used, NULL, NULL, (void **)&hdr, &hdrSize);
-    updateAddrCache(0, hdr->sender, msg->header.sender);
+    updateAddrCache(hdr->spawnerTID, hdr->sender, msg->header.sender);
 
-    fdbg(RRCOMM_LOG_FRWRD, "%d -> %d / size %zd\n",
-	 hdr->sender, hdr->dest, rData->used);
+    fdbg(RRCOMM_LOG_FRWRD, "%s:%d", PSC_printTID(hdr->spawnerTID), hdr->sender);
+    mdbg(RRCOMM_LOG_FRWRD, " -> %s:%d / size %zd\n",
+	 PSC_printTID(hdr->destJob), hdr->dest, rData->used);
 
     if (clntSock == -1 && startupTimer == -1) {
 	/* pile up data blobs for some time during startup before dropping */
@@ -577,6 +591,7 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     addUint8ToMsg(RRCOMM_DATA, &data);
     addUint32ToMsg(rData->used, &data);
     addInt32ToMsg(hdr->sender, &data);
+    if (clntVer > 1) addTaskIdToMsg(hdr->spawnerTID, &data);
     setByteOrder(byteOrder);
 
     if (sendToClient(data.buf, data.bufUsed) < 0) {
@@ -601,13 +616,14 @@ static void handleRRCommError(DDTypedBufferMsg_t *msg)
     PSP_getTypedMsgBuf(msg, &used, "hdr", &hdr, sizeof(hdr));
 
     /* invalidate cache entry if any */
-    updateAddrCache(0, hdr.dest, -1);
+    updateAddrCache(hdr.destJob, hdr.dest, -1);
 
     /* pack data into single blob */
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     bool byteOrder = setByteOrder(false); // libRRC does not use byteorder
     addUint8ToMsg(RRCOMM_ERROR, &data);
     addInt32ToMsg(hdr.dest, &data);
+    if (clntVer > 1) addTaskIdToMsg(hdr.destJob, &data);
     setByteOrder(byteOrder);
 
     if (sendToClient(data.buf, data.bufUsed) < 0) {

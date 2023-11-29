@@ -86,8 +86,8 @@ PStask_ID_t RRC_getJobID(void);
  * @brief Send a message via the rank routed protocol
  *
  * Send the message provided in the buffer @a buf of size @a bufSize
- * to the peer process with rank @a rank utilizing the rank routed
- * protocol.
+ * to the peer process with rank @a rank in the job with ID @a jobID
+ * utilizing the rank routed protocol.
  *
  * This function will block until the message is fully delivered to
  * the chaperon forwarder. The situation on the destination side has
@@ -101,7 +101,43 @@ PStask_ID_t RRC_getJobID(void);
  * utilizing an instant error delivered via @ref RRC_recv().
  *
  * Ranks used for routing the messages happen to be identical to the
- * ranks reported by PMI or PMIx.
+ * ranks reported by PMI or PMIx within the local job. This might be
+ * different for sending messages to processes of different jobs
+ * (within the same session).
+ *
+ * In order to send messages to processes within the same job, @a
+ * jobID might be set to 0. This will be replaced by the actual job ID
+ * within the chaperon forwarder.
+ *
+ * @warn Calling this function with @a jobID different from 0 when
+ * RRComm protocol version 1 was negotiated will create an error with
+ * @ref errno set to EINVAL
+ *
+ * @param jobID Destination job the message will be sent to or 0 for
+ * the local job
+ *
+ * @param rank Destination rank the message will be sent to
+ *
+ * @param buf Buffer holding the message to be sent
+ *
+ * @param bufSize Size of the message to be sent
+ *
+ * @return On success the number of bytes sent is returned, i.e. @a
+ * bufSize; in case of error -1 is returned and @ref errno is set
+ * appropriately
+ */
+ssize_t RRC_sendX(PStask_ID_t jobID, int32_t rank, char *buf, size_t bufSize);
+
+/**
+ * @brief Send a message via the rank routed protocol within the local job
+ *
+ * Send the message provided in the buffer @a buf of size @a bufSize
+ * to the peer process with rank @a rank within the same job as the
+ * local process utilizing the rank routed protocol.
+ *
+ * This is basically a wrapper of @ref RRC_sendX() with jobID set to 0
+ * in order to address the local job. It provides backward
+ * compatibility to earlier version of this library.
  *
  * @param rank Destination rank the message will be sent to
  *
@@ -120,47 +156,100 @@ ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize);
  *
  * Receive a message delivered via the rank routed protocol from the
  * chaperon forwarder and store it to the buffer @a buf of size @a
- * bufSize. Upon successful return the sending rank is provided in @a
- * rank.
+ * bufSize. Upon successful return the sending process' job ID is
+ * provided in @a jobID while its rank is presented in @a rank.
+ *
+ * Both @a jobID and @a rank might be NULL resulting in the ability to
+ * receive messages without getting a hint on the origin of the
+ * message.
+ *
+ * If acting on RRComm protocol version 2 and receiving a message from
+ * a process with different job ID, an error will be triggered with
+ * errno set to EPROTOTYPE if @a jobID is NULL.
  *
  * If the size of the buffer is not sufficient to store the whole
- * message, the buffer will be left untouched. Nevertheless, @a rank
- * will still be set and the size of the available message is still
- * reported in the return value of this function. The calling function
- * must adapt the receive buffer @a buf to the appropriate size and
- * call @ref RRC_recv() again. Since major parts of the message remain
- * "on the wire", triggering the repeated call of @ref RRC_recv() can
- * still be realized using the original mechanism of @ref select(),
- * @ref poll() or @ref epoll(). Subsequent calls of this function with
- * insufficient buffer size @a bufSize will lead to identical results.
+ * message, the buffer will be left untouched. Nevertheless, @a jobID
+ * and @a rank will still be set and the size of the available message
+ * is still reported in the return value of this function. The calling
+ * function must adapt the receive buffer @a buf to an appropriate
+ * size and call @ref RRC_recv() again. Since major parts of the
+ * message remain "on the wire", triggering the repeated call of @ref
+ * RRC_recv() can still be realized using the original mechanism of
+ * @ref select(), @ref poll() or @ref epoll(). Subsequent calls of
+ * this function with insufficient buffer size @a bufSize will lead to
+ * identical results.
  *
  * Besides receiving actual data this function might pick up error
  * reports on messages that had to be dropped due to the fact that a
  * delivery to the destination rank was impossible. In this case -1 is
- * returned and @ref errno is set to 0. Furthermore, @a rank will
- * indicate the destination rank of the dropped message. Error reports
- * will *not* be delivered "out of band". I.e. if libRRC is waiting
- * for a sufficiently large buffer to deliver a message via @ref
- * RRC_recv(), this message has to be received first before any error
- * report can be received.
+ * returned and @ref errno is set to 0. Furthermore, @a jobID and @a
+ * rank will indicate the destination job ID and rank of the dropped
+ * message. Error reports will *not* be delivered "out of
+ * band". I.e. if libRRC is waiting for a sufficiently large buffer to
+ * deliver a message via @ref RRC_recv(), this message has to be
+ * received first before any error report can be received.
  *
  * Ranks used for routing the messages happen to be identical to the
- * ranks reported by PMI or PMIx.
+ * ranks reported by PMI or PMIx within the local job. This might be
+ * different for sending messages to processes of different jobs
+ * (within the same session).
+ *
+ * @param jobID Upon return provides the sending job ID of the
+ * received message or the destination job ID of the dropped message
+ * unless an error is indicated by returning -1 and an @ref errno
+ * different from 0; might be NULL
  *
  * @param rank Upon return provides the sending rank of the received
  * message or the destination rank of the dropped message unless an
- * error is indicated by returning -1 and an @ref errno different from
- * 0
+ * error is indicated by returning -1 and an @ref errno set different
+ * from 0; might be NULL
  *
  * @param buf Buffer to store the message to
  *
  * @param bufSize Size of @a buf
  *
  * @return For received data success is indicated by a value not
- * larger than @a bufSize; if the return value is larger than @a
- * bufSize, the buffer must be enlarged sufficiently before calling
- * this function again; in case of error -1 is returned and @ref errno
- * is set appropriately; if @ref errno is 0 while -1 is returned, a
+ * larger than @a bufSize indicating the amount of data available in
+ * @a buf; if the return value is larger than @a bufSize, the buffer
+ * must be enlarged sufficiently before calling this function again;
+ * in case of error -1 is returned and @ref errno is set
+ * appropriately; if @ref errno is 0 while -1 is returned, a
+ * successful receive of an instant error report is indicated and @a
+ * jobID and @a rank report the destination of the dropped message
+ */
+ssize_t RRC_recvX(PStask_ID_t *jobID, int32_t *rank, char *buf, size_t bufSize);
+
+/**
+ * @brief Receive a message from the rank routed protocol
+ *
+ * Receive a message delivered via the rank routed protocol from the
+ * chaperon forwarder and store it to the buffer @a buf of size @a
+ * bufSize. Upon successful return the sending process' rank is
+ * provided in @a rank.
+ *
+ * This is basically a wrapper of @ref RRC_recvX() with jobID set to
+ * NULL in order to address the local job. It provides backward
+ * compatibility to earlier version of this library.
+ *
+ * If acting on RRComm protocol version 2 and receiving a message from
+ * a process with different job ID, an error will be triggered with
+ * errno set to EPROTOTYPE.
+ *
+ * @param rank Upon return provides the sending rank of the received
+ * message or the destination rank of the dropped message unless an
+ * error is indicated by returning -1 and an @ref errno set different
+ * from 0; might be NULL
+ *
+ * @param buf Buffer to store the message to
+ *
+ * @param bufSize Size of @a buf
+ *
+ * @return For received data success is indicated by a value not
+ * larger than @a bufSize indicating the amount of data available in
+ * @a buf; if the return value is larger than @a bufSize, the buffer
+ * must be enlarged sufficiently before calling this function again;
+ * in case of error -1 is returned and @ref errno is set
+ * appropriately; if @ref errno is 0 while -1 is returned, a
  * successful receive of an instant error report is indicated and @a
  * rank reports the destination of the dropped message
  */

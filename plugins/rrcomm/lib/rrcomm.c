@@ -117,7 +117,7 @@ PStask_ID_t RRC_getJobID(void)
     return currJobID;
 }
 
-ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize)
+ssize_t RRC_sendX(PStask_ID_t jobID, int32_t rank, char *buf, size_t bufSize)
 {
     if (frwdSocket == -1) {
 	errno = ENOTCONN;
@@ -129,11 +129,18 @@ ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize)
 	return -1;
     }
 
+    if (currVersion < 2 && (jobID && jobID != currJobID)) {
+	errno = EINVAL;
+	return -1;
+    }
+
     if (PSCio_sendF(frwdSocket, &rank, sizeof(rank)) < 0) {
 	return closeFrwdSock(-1);
     }
 
-    // @todo maybe sent namespace information here for protocol > 1
+    if (currVersion > 1 && PSCio_sendF(frwdSocket, &jobID, sizeof(jobID)) < 0) {
+	return closeFrwdSock(-1);
+    }
 
     if (PSCio_sendF(frwdSocket, &bufSize, sizeof(bufSize)) < 0) {
 	return closeFrwdSock(-1);
@@ -145,22 +152,46 @@ ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize)
     return ret;
 }
 
+ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize)
+{
+    return RRC_sendX(0, rank, buf, bufSize);
+}
+
 /**
  * @brief Handle RRCOMM_ERROR message from chaperon forwarder
  *
  * Handle RRCOMM_ERROR message received from the chaperon
  * forwarder. In order to signal the calling function that everything
- * worked fine locally, -1 is retuned but errno set to 0.
+ * worked fine locally, -1 is retuned but @ref errno set to 0.
+ *
+ * In case of handling RRComm protocol version 2 and receiving an
+ * RRCOMM_ERROR message reporting failed delivery to a process with
+ * foreign job ID, @ref errno will be set to EPROTOTYPE in case of @a
+ * jobID is NULL. The latter means the foreign job ID cannot be
+ * reported to the caller.
+ *
+ * @param jobID Upon return provides the destination job ID of the
+ * message that could not be delivered
  *
  * @param rank Upon return provides the destination rank of the
  * message that could not be delivered
  *
  * @return Always return -1
  */
-static ssize_t recvError(int32_t *rank)
+static ssize_t recvError(PStask_ID_t *jobID, int32_t *rank)
 {
     ssize_t ret = PSCio_recvBufP(frwdSocket, rank, sizeof(*rank));
     if (ret <= 0) return closeFrwdSock(ret);
+    if (currVersion > 1) {
+	PStask_ID_t jID;
+	ret = PSCio_recvBufP(frwdSocket, &jID, sizeof(jID));
+	if (ret <= 0) return closeFrwdSock(ret);
+	if (!jobID && jID != currJobID) {
+	    errno = EPROTOTYPE;
+	    return closeFrwdSock(-1);
+	}
+	if (jobID) *jobID = jID;
+    }
 
     errno = 0;
     return -1;
@@ -175,14 +206,22 @@ static ssize_t recvError(int32_t *rank)
 static uint32_t xpctdSize = 0;
 
 /**
- * Rank of the next message to be expected. This is used to preserve
- * this information between two consecutive calls of @ref RRC_recv()
- * after the first call returned prematurely due to lack of space in
- * the receive-buffer
+ * Sender's job ID of the next message to be expected. This is used to
+ * preserve this information between two consecutive calls of @ref
+ * RRC_recv() after the first call returned prematurely due to lack of
+ * space in the receive-buffer
+ */
+static PStask_ID_t xpctdJob = 0;
+
+/**
+ * Sender's rank of the next message to be expected. This is used to
+ * preserve this information between two consecutive calls of @ref
+ * RRC_recv() after the first call returned prematurely due to lack of
+ * space in the receive-buffer
  */
 static int32_t xpctdRank = -1;
 
-ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize)
+ssize_t RRC_recvX(PStask_ID_t *jobID, int32_t *rank, char *buf, size_t bufSize)
 {
     if (frwdSocket == -1) {
 	errno = ENOTCONN;
@@ -194,7 +233,7 @@ ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize)
 	uint8_t msgType;
 	ssize_t ret = PSCio_recvBufP(frwdSocket, &msgType, sizeof(msgType));
 	if (ret <= 0) return closeFrwdSock(ret);
-	if (msgType == RRCOMM_ERROR) return recvError(rank);
+	if (msgType == RRCOMM_ERROR) return recvError(jobID, rank);
 
 	/* actually data => fetch the size to expect */
 	ret = PSCio_recvBufP(frwdSocket, &xpctdSize, sizeof(xpctdSize));
@@ -206,9 +245,20 @@ ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize)
 	    return closeFrwdSock(ret);
 	}
 
-	// @todo maybe receive namespace information here for protocol > 1
+	if (currVersion > 1) {
+	    ret = PSCio_recvBufP(frwdSocket, &xpctdJob, sizeof(xpctdJob));
+	    if (ret <= 0) {
+		xpctdSize = 0;
+		return closeFrwdSock(ret);
+	    }
+	}
     }
+    if (jobID) *jobID = xpctdJob;
     if (rank) *rank = xpctdRank;
+    if (!jobID && rank && xpctdJob && xpctdJob != currJobID) {
+	errno = EPROTOTYPE;
+	return closeFrwdSock(-1);
+    }
 
     if (!buf || bufSize < xpctdSize) return xpctdSize;
 
@@ -220,6 +270,11 @@ ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize)
     if (ret < 0) return closeFrwdSock(ret);
 
     return ret;
+}
+
+ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize)
+{
+    return RRC_recvX(NULL, rank, buf, bufSize);
 }
 
 void RRC_finalize(void)
