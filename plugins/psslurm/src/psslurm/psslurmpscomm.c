@@ -1156,7 +1156,7 @@ static bool getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
 
 
     for (size_t s = 0; s < *len; s++) {
-	getUint16(ptr, &((*slots)[s].node));
+	getInt16(ptr, &((*slots)[s].node));
 
 	PSCPU_clrAll((*slots)[s].CPUset);
 	PSCPU_inject((*slots)[s].CPUset, *ptr, CPUbytes);

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -176,8 +176,8 @@ static void addCPUData(PS_SendDB_t *data)
 bool handleCPUData(char **ptr, PSnodes_ID_t sender)
 {
     uint16_t numCores, numThrds;
-    getInt16(ptr, &numCores);
-    getInt16(ptr, &numThrds);
+    getUint16(ptr, &numCores);
+    getUint16(ptr, &numThrds);
 
     PSIDnodes_setNumCores(sender, numCores);
     PSIDnodes_setNumThrds(sender, numThrds);
@@ -248,7 +248,7 @@ static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     mdbg(NODEINFO_LOG_VERBOSE, "%s: handle update from %s\n", __func__,
 	 PSC_printTID(msg->header.sender));
 
-    getUint8(&ptr, &type);
+    getUint8(&ptr, (uint8_t *) &type);
     while (type) {
 	mdbg(NODEINFO_LOG_VERBOSE, "%s: update type %d\n", __func__, type);
 	switch (type) {
@@ -281,7 +281,7 @@ static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    return;
 	}
 	/* Peek into next type */
-	getUint8(&ptr, &type);
+	getUint8(&ptr, (uint8_t *) &type);
     }
 }
 

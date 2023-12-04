@@ -155,7 +155,7 @@ static int handlePamRequest(int sock, void *empty)
     char *ptr = buf;
     /* get command */
     PSPAMCmd_t cmd;
-    getInt32(&ptr, &cmd);
+    getInt32(&ptr, (int32_t *) &cmd);
 
     PSPAMResult_t res;
     switch (cmd) {

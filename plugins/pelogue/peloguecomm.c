@@ -415,7 +415,7 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getStringArrayM(&ptr, &child->env.vars, &child->env.cnt);
     child->env.size = child->env.cnt + 1;
 
-    getUint8(&ptr, &child->fwStdOE);
+    getBool(&ptr, &child->fwStdOE);
 
     /* set the script directory */
     char *scriptDir = getPluginConfValueC(plugin, "DIR_SCRIPTS");

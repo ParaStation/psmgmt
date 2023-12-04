@@ -61,7 +61,7 @@ typedef struct {
     char *checkpoint;	    /**< directory for checkpoints (removed in 21.08) */
     char *restartDir;       /**< restart directory (removed in 21.08) */
     char *acctFreq;	    /**< account polling frequency */
-    int16_t cpuBindType;    /**< CPU bind type (unused) */
+    uint16_t cpuBindType;    /**< CPU bind type (unused) */
     int state;		    /**< current state of the job */
     bool signaled;	    /**< true if job received SIGUSR1 */
     uint16_t accType;	    /**< type of accounting */

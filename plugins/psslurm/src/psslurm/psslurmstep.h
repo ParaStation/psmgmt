@@ -93,10 +93,10 @@ typedef struct {
     PSnodes_ID_t *nodes;	/**< IDs of step's participating nodes */
     nodeinfo_t *nodeinfos;      /**< infos on step's participating nodes */
     uint32_t nrOfNodes;		/**< number of nodes */
-    uint32_t numTasksPerBoard;  /**< number of tasks per board */
-    uint32_t numTasksPerCore;   /**< number of tasks per core */
-    uint32_t numTasksPerTRes;   /**< number of tasks per TRes */
-    uint32_t numTasksPerSocket; /**< number of tasks per socket */
+    uint16_t numTasksPerBoard;  /**< number of tasks per board */
+    uint16_t numTasksPerCore;   /**< number of tasks per core */
+    uint16_t numTasksPerTRes;   /**< number of tasks per TRes */
+    uint16_t numTasksPerSocket; /**< number of tasks per socket */
     uint16_t threadsPerCore;    /**< threads per core */
     char *slurmHosts;		/**< Compressed host-list (SLURM_NODELIST) */
     uint64_t jobMemLimit;	/**< memory limit of job */
