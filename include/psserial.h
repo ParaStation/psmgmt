@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -446,38 +446,49 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
 bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
 		size_t size, const char *caller, const int line);
 
-#define getInt8(ptr, val) getFromBuf(ptr, val, PSDATA_INT8,		\
-				     sizeof(int8_t), __func__, __LINE__)
+#define getInt8(ptr, val) { int8_t *_x = val;			    \
+        getFromBuf(ptr, _x, PSDATA_INT8, sizeof(*_x),		    \
+		   __func__, __LINE__); }
 
-#define getInt16(ptr, val) getFromBuf(ptr, val, PSDATA_INT16,		\
-				      sizeof(int16_t), __func__, __LINE__)
+#define getInt16(ptr, val) { int16_t *_x = val;			    \
+        getFromBuf(ptr, _x, PSDATA_INT16, sizeof(*_x),		    \
+		   __func__, __LINE__); }
 
-#define getInt32(ptr, val) getFromBuf(ptr, val, PSDATA_INT32,		\
-				      sizeof(int32_t), __func__, __LINE__)
+#define getInt32(ptr, val) { int32_t *_x = val;			    \
+	getFromBuf(ptr, _x, PSDATA_INT32, sizeof(*_x),		    \
+		   __func__, __LINE__); }
 
-#define getInt64(ptr, val) getFromBuf(ptr, val, PSDATA_INT64,		\
-				      sizeof(int64_t), __func__, __LINE__)
+#define getInt64(ptr, val) { int64_t *_x = val;			    \
+	getFromBuf(ptr, _x, PSDATA_INT64, sizeof(*_x),		    \
+		   __func__, __LINE__); }
 
-#define getUint8(ptr, val) getFromBuf(ptr, val, PSDATA_UINT8,		\
-				      sizeof(uint8_t), __func__, __LINE__)
+#define getUint8(ptr, val) { uint8_t *_x = val;			    \
+	getFromBuf(ptr, _x, PSDATA_UINT8, sizeof(*_x),		    \
+		   __func__, __LINE__); }
 
-#define getUint16(ptr, val) getFromBuf(ptr, val, PSDATA_UINT16,		\
-				       sizeof(uint16_t), __func__, __LINE__)
+#define getUint16(ptr, val) { uint16_t *_x = val;		    \
+	getFromBuf(ptr, _x, PSDATA_UINT16, sizeof(*_x),	    \
+		   __func__, __LINE__); }
 
-#define getUint32(ptr, val) getFromBuf(ptr, val, PSDATA_UINT32,		\
-				       sizeof(uint32_t), __func__, __LINE__)
+#define getUint32(ptr, val) { uint32_t *_x = val;		    \
+	getFromBuf(ptr, _x, PSDATA_UINT32, sizeof(*_x),	    \
+		   __func__, __LINE__); }
 
-#define getUint64(ptr, val) getFromBuf(ptr, val, PSDATA_UINT64,		\
-				       sizeof(uint64_t), __func__, __LINE__)
+#define getUint64(ptr, val) { uint64_t *_x = val;		    \
+	getFromBuf(ptr, _x, PSDATA_UINT64, sizeof(*_x),	    \
+		   __func__, __LINE__); }
 
-#define getDouble(ptr, val) getFromBuf(ptr, val, PSDATA_DOUBLE,		\
-				       sizeof(double), __func__, __LINE__)
+#define getDouble(ptr, val) { double *_x = val;			    \
+	getFromBuf(ptr, _x, PSDATA_DOUBLE, sizeof(*_x),	    \
+		   __func__, __LINE__); }
 
-#define getTime(ptr, val) getFromBuf(ptr, val, PSDATA_TIME,		\
-				     sizeof(time_t), __func__, __LINE__)
+#define getTime(ptr, val) { time_t *_x = val;			    \
+	getFromBuf(ptr, _x, PSDATA_TIME, sizeof(*_x),		    \
+		   __func__, __LINE__); }
 
-#define getPid(ptr, val) getFromBuf(ptr, val, PSDATA_PID,		\
-				    sizeof(pid_t), __func__, __LINE__)
+#define getPid(ptr, val) { pid_t *_x = val;			    \
+	getFromBuf(ptr, _x, PSDATA_PID, sizeof(*_x),		    \
+		   __func__, __LINE__); }
 
 #define getTaskId(ptr, val) getInt32(ptr, val)
 
@@ -576,29 +587,29 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
 bool getArrayFromBuf(char **ptr, void **val, uint32_t *len, PS_DataType_t type,
 		     size_t size, const char *caller, const int line);
 
-#define getUint16Array(ptr, val, len)					\
-    getArrayFromBuf(ptr, (void **)val, len, PSDATA_UINT16, sizeof(uint16_t), \
-		    __func__, __LINE__)
+#define getUint16Array(ptr, val, len) { uint16_t **_x = val;		    \
+	getArrayFromBuf(ptr, (void**)_x, len, PSDATA_UINT16, sizeof(**_x),  \
+			__func__, __LINE__); }
 
-#define getUint32Array(ptr, val, len)					\
-    getArrayFromBuf(ptr, (void **)val, len, PSDATA_UINT32, sizeof(uint32_t), \
-		    __func__, __LINE__)
+#define getUint32Array(ptr, val, len) { uint32_t **_x = val;		    \
+	getArrayFromBuf(ptr, (void **)_x, len, PSDATA_UINT32, sizeof(**_x), \
+			__func__, __LINE__); }
 
-#define getUint64Array(ptr, val, len)					\
-    getArrayFromBuf(ptr, (void **)val, len, PSDATA_UINT64, sizeof(uint64_t), \
-		    __func__, __LINE__)
+#define getUint64Array(ptr, val, len) { uint64_t **_x = val;		    \
+	getArrayFromBuf(ptr, (void **)_x, len, PSDATA_UINT64, sizeof(**_x), \
+			__func__, __LINE__); }
 
-#define getInt16Array(ptr, val, len)					\
-    getArrayFromBuf(ptr, (void **)val, len, PSDATA_INT16, sizeof(int16_t), \
-		    __func__, __LINE__)
+#define getInt16Array(ptr, val, len) { int16_t **_x = val;		    \
+	getArrayFromBuf(ptr, (void **)_x, len, PSDATA_INT16, sizeof(**_x),  \
+			__func__, __LINE__); }
 
-#define getInt32Array(ptr, val, len)					\
-    getArrayFromBuf(ptr, (void **)val, len, PSDATA_INT32, sizeof(int32_t), \
-		    __func__, __LINE__)
+#define getInt32Array(ptr, val, len) { int32_t **_x = val;		    \
+	getArrayFromBuf(ptr, (void **)_x, len, PSDATA_INT32, sizeof(**_x),  \
+			__func__, __LINE__); }
 
-#define getInt64Array(ptr, val, len)					\
-    getArrayFromBuf(ptr, (void **)val, len, PSDATA_INT64, sizeof(int64_t), \
-		    __func__, __LINE__)
+#define getInt64Array(ptr, val, len) { int64_t **_x = val;		    \
+	getArrayFromBuf(ptr, (void **)_x, len, PSDATA_INT64, sizeof(**_x),  \
+			__func__, __LINE__); }
 
 
 /**
@@ -766,29 +777,29 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
 		   PS_DataType_t type, size_t size,
 		   const char *caller, const int line);
 
-#define addUint16ArrayToMsg(val, num, data)				\
-    addArrayToBuf(val, num, data, PSDATA_UINT16, sizeof(uint16_t),	\
-		  __func__, __LINE__)
+#define addUint16ArrayToMsg(val, num, data) { uint16_t *_x = val;	\
+	addArrayToBuf(_x, num, data, PSDATA_UINT16, sizeof(*_x),	\
+		      __func__, __LINE__); }
 
-#define addUint32ArrayToMsg(val, num, data)				\
-    addArrayToBuf(val, num, data, PSDATA_UINT32, sizeof(uint32_t),	\
-		  __func__, __LINE__)
+#define addUint32ArrayToMsg(val, num, data) { uint32_t *_x = val;	\
+	addArrayToBuf(_x, num, data, PSDATA_UINT32, sizeof(*_x),	\
+		      __func__, __LINE__); }
 
-#define addUint64ArrayToMsg(val, num, data)				\
-    addArrayToBuf(val, num, data, PSDATA_UINT64, sizeof(uint64_t),	\
-		  __func__, __LINE__)
+#define addUint64ArrayToMsg(val, num, data) { uint64_t *_x = val;  	\
+	addArrayToBuf(_x, num, data, PSDATA_UINT64, sizeof(*_x),	\
+		      __func__, __LINE__); }
 
-#define addInt16ArrayToMsg(val, num, data)				\
-    addArrayToBuf(val, num, data, PSDATA_INT16, sizeof(int16_t),	\
-		  __func__, __LINE__)
+#define addInt16ArrayToMsg(val, num, data) { int16_t *_x = val;		\
+	addArrayToBuf(_x, num, data, PSDATA_INT16, sizeof(*_x),		\
+		      __func__, __LINE__); }
 
-#define addInt32ArrayToMsg(val, num, data)				\
-    addArrayToBuf(val, num, data, PSDATA_INT32, sizeof(int32_t),	\
-		  __func__, __LINE__)
+#define addInt32ArrayToMsg(val, num, data) { int32_t *_x = val; 	\
+	addArrayToBuf(_x, num, data, PSDATA_INT32, sizeof(*_x),		\
+		      __func__, __LINE__); }
 
-#define addInt64ArrayToMsg(val, num, data)				\
-    addArrayToBuf(val, num, data, PSDATA_INT64, sizeof(int64_t),	\
-		  __func__, __LINE__)
+#define addInt64ArrayToMsg(val, num, data) { int64_t *_x = val;		\
+	addArrayToBuf(_x, num, data, PSDATA_INT64, sizeof(*_x),		\
+		      __func__, __LINE__); }
 
 /**
  * @brief Add array of strings to buffer
