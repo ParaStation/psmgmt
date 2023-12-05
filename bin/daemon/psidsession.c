@@ -50,6 +50,7 @@ static PSresinfo_t *getResinfo(void)
     resinfo->maxRank = 0;
     resinfo->nEntries = 0;
     resinfo->entries = NULL;
+    resinfo->nLocalSlots = 0;
     resinfo->localSlots = NULL;
 
     return resinfo;
