@@ -447,11 +447,11 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
 		size_t size, const char *caller, const int line);
 
 #define getInt8(ptr, val) { int8_t *_x = val;			    \
-        getFromBuf(ptr, _x, PSDATA_INT8, sizeof(*_x),		    \
+	getFromBuf(ptr, _x, PSDATA_INT8, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
 #define getInt16(ptr, val) { int16_t *_x = val;			    \
-        getFromBuf(ptr, _x, PSDATA_INT16, sizeof(*_x),		    \
+	getFromBuf(ptr, _x, PSDATA_INT16, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
 #define getInt32(ptr, val) { int32_t *_x = val;			    \
@@ -467,19 +467,19 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
 		   __func__, __LINE__); }
 
 #define getUint16(ptr, val) { uint16_t *_x = val;		    \
-	getFromBuf(ptr, _x, PSDATA_UINT16, sizeof(*_x),	    \
+	getFromBuf(ptr, _x, PSDATA_UINT16, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
 #define getUint32(ptr, val) { uint32_t *_x = val;		    \
-	getFromBuf(ptr, _x, PSDATA_UINT32, sizeof(*_x),	    \
+	getFromBuf(ptr, _x, PSDATA_UINT32, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
 #define getUint64(ptr, val) { uint64_t *_x = val;		    \
-	getFromBuf(ptr, _x, PSDATA_UINT64, sizeof(*_x),	    \
+	getFromBuf(ptr, _x, PSDATA_UINT64, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
 #define getDouble(ptr, val) { double *_x = val;			    \
-	getFromBuf(ptr, _x, PSDATA_DOUBLE, sizeof(*_x),	    \
+	getFromBuf(ptr, _x, PSDATA_DOUBLE, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
 #define getTime(ptr, val) { time_t *_x = val;			    \
@@ -793,7 +793,7 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
 	addArrayToBuf(_x, num, data, PSDATA_UINT32, sizeof(*_x),	\
 		      __func__, __LINE__); }
 
-#define addUint64ArrayToMsg(val, num, data) { uint64_t *_x = val;  	\
+#define addUint64ArrayToMsg(val, num, data) { uint64_t *_x = val;	\
 	addArrayToBuf(_x, num, data, PSDATA_UINT64, sizeof(*_x),	\
 		      __func__, __LINE__); }
 
@@ -801,7 +801,7 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
 	addArrayToBuf(_x, num, data, PSDATA_INT16, sizeof(*_x),		\
 		      __func__, __LINE__); }
 
-#define addInt32ArrayToMsg(val, num, data) { int32_t *_x = val; 	\
+#define addInt32ArrayToMsg(val, num, data) { int32_t *_x = val;		\
 	addArrayToBuf(_x, num, data, PSDATA_INT32, sizeof(*_x),		\
 		      __func__, __LINE__); }
 
