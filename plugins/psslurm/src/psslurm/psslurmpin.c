@@ -18,7 +18,6 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
-#include <ctype.h>
 
 #ifdef HAVE_LIBNUMA
 #include <math.h>

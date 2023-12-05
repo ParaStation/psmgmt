@@ -12,7 +12,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <sys/resource.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>

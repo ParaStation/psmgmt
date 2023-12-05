@@ -12,6 +12,7 @@
 #include <string.h>
 #include <sys/time.h>
 
+#include "logging.h"
 #include "psattribute.h"
 #include "pscpu.h"
 #include "pspartition.h"

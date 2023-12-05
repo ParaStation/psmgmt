@@ -13,8 +13,8 @@
 #include <arpa/inet.h>
 #include <stdint.h>
 #include <string.h>
-#include <sys/resource.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/wait.h>
 
 #include "pscommon.h"

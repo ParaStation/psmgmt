@@ -14,6 +14,7 @@
 #include <sys/time.h>
 
 #include "list.h"
+#include "logging.h"
 #include "psnodes.h"
 #include "timer.h"
 

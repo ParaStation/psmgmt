@@ -20,8 +20,9 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/resource.h>
+#include <sys/resource.h>    // IWYU pragma: keep
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <termios.h>

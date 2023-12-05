@@ -323,10 +323,12 @@ static unsigned long sizeToBytes(char *string)
     char suf[11];
     int s_word = sizeof(int);
 
-    struct {
+    typedef struct {
 	char *format;
 	uint64_t mult;
-    } conf_table[] = {
+    } confTable_t;
+
+    confTable_t conf_table[] = {
 	{ "b",  1 },
 	{ "kb", 1024 },
 	{ "mb", 1024 * 1024 },

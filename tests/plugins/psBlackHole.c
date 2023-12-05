@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "list.h"
+#include "logging.h"
 #include "psprotocol.h"
 
 #include "plugin.h"

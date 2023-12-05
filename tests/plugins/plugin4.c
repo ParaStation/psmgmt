@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include "logging.h"
 #include "psprotocol.h"
 #include "timer.h"
 

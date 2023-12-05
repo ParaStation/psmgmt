@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,6 +12,7 @@
 #define __PSMOM_JOBINFO
 
 #include <stdbool.h>
+#include <sys/types.h>
 #include <time.h>
 
 #include "list.h"

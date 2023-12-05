@@ -16,10 +16,11 @@
 #ifndef __RDP_H
 #define __RDP_H
 
+#include <netinet/in.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <netinet/in.h>
+#include <sys/types.h>
 
 /**
  * Information container for callback of type @ref RDP_PKT_UNDELIVERABLE.

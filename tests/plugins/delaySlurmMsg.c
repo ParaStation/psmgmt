@@ -15,6 +15,7 @@
 #include <sys/time.h>
 
 #include "list.h"
+#include "logging.h"
 #include "timer.h"
 
 #include "plugin.h"

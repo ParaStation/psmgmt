@@ -16,8 +16,9 @@
 #include <errno.h>
 #include <string.h>
 #include <strings.h>
-#include <sys/stat.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <syslog.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>

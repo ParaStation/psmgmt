@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include "logging.h"
 #include "psnodes.h"
 #include "timer.h"
 

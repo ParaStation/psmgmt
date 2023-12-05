@@ -26,6 +26,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <glib.h>

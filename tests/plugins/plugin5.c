@@ -10,6 +10,7 @@
  */
 #include <stdlib.h>
 
+#include "logging.h"
 #include "psidutil.h"
 
 #include "plugin.h"

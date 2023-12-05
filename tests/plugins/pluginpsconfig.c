@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "logging.h"
 #include "plugin.h"
 #include "pluginlog.h"
 #include "pluginmalloc.h"
