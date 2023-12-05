@@ -494,11 +494,17 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
 	getFromBuf(ptr, _x, PSDATA_UINT8, sizeof(uint8_t),	    \
 		   __func__, __LINE__); }
 
-#define getTaskId(ptr, val) getInt32(ptr, val)
+#define getTaskId(ptr, val) { PStask_ID_t *_x = val;		    \
+	getFromBuf(ptr, _x, PSDATA_INT32, sizeof(PStask_ID_t),	    \
+		   __func__, __LINE__); }
 
-#define getNodeId(ptr, val) getInt16(ptr, val)
+#define getNodeId(ptr, val) { PSnodes_ID_t *_x = val;		    \
+	getFromBuf(ptr, _x, PSDATA_INT16, sizeof(PSnodes_ID_t),	    \
+		   __func__, __LINE__); }
 
-#define getResId(ptr, val) getInt32(ptr, val)
+#define getResId(ptr, val) { PSrsrvtn_ID_t *_x = val;		    \
+	getFromBuf(ptr, _x, PSDATA_INT32, sizeof(PSrsrvtn_ID_t),    \
+		   __func__, __LINE__); }
 
 /**
  * @brief Read data from buffer
