@@ -493,13 +493,11 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
     SpawnReqData_t *srdata = pendSpawn->data;
 
     /* try to do the spawn */
-    if (tryPMIxSpawn(pendSpawn, serviceRank)) {
-	plog("spawn executed successfully\n");
-	sendSpawnResp(srdata->pmixServer, 1, srdata->spawnID);
-    } else {
-	plog("spawn failed\n");
-	sendSpawnResp(srdata->pmixServer, 0, srdata->spawnID);
-    }
+    if (tryPMIxSpawn(pendSpawn, serviceRank)) return;
+
+    /* spawn already failed */
+    plog("spawn failed\n");
+    sendSpawnResp(srdata->pmixServer, 0, srdata->spawnID);
 
     /* cleanup */
     ufree(pendSpawn->data);
@@ -901,6 +899,51 @@ static bool msgCC(DDBufferMsg_t *msg)
     }
 }
 
+/**
+ * @brief Handle spawn result message
+ *
+ * Handle the spawn results message contained in @a msg. Such message
+ * is expected upon the creation of a new service process used to
+ * actually realize the PMIx spawn that was triggered by this forwarders
+ * child.
+ *
+ * @param msg Message to handle
+ *
+ * @return Return true if the message was fully handled or false otherwise
+ */
+static bool msgSPAWNRES(DDBufferMsg_t *msg)
+{
+    int type = msg->header.type;
+    if (type != PSP_CD_SPAWNFAILED && type != PSP_CD_SPAWNSUCCESS) {
+	return false;
+    }
+
+    if (!pendSpawn) {
+	plog("UNEXPECTED: no pending spawn found\n");
+	return false;
+    }
+
+    SpawnReqData_t *srdata = pendSpawn->data;
+
+    switch (type) {
+    case PSP_CD_SPAWNFAILED:
+	plog("spawning service process failed\n");
+	sendSpawnResp(srdata->pmixServer, 0, srdata->spawnID);
+	break;
+    case PSP_CD_SPAWNSUCCESS:
+	/* wait for result of the spawner process */
+	pdbg(PSPMIX_LOG_SPAWN, "spawning service process successful\n");
+	sendSpawnResp(srdata->pmixServer, 1, srdata->spawnID);
+	break;
+    }
+
+    /* cleanup */
+    ufree(pendSpawn->data);
+    freeSpawnRequest(pendSpawn);
+    pendSpawn = NULL;
+    return true;
+}
+
 /* ****************************************************** *
  *                     Hook functions                     *
  * ****************************************************** */
@@ -1007,14 +1050,10 @@ static int hookForwarderSetup(void *data)
     /* register handlers for messages needed for spawn handling */
     if (!PSID_registerMsg(PSP_CC_MSG, msgCC))
 	rlog("failed to register PSP_CC_MSG handler\n");
-#if 0
     if (!PSID_registerMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES))
 	mlog("%s: failed to register PSP_CD_SPAWNSUCCESS handler\n", __func__);
     if (!PSID_registerMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES))
 	mlog("%s: failed to register PSP_CD_SPAWNFAILED handler\n", __func__);
-    if (!PSID_registerMsg(PSP_CC_ERROR, msgCCError))
-	mlog("%s: failed to register PSP_CC_ERROR handler\n", __func__);
-#endif
 
     return 0;
 }
@@ -1112,11 +1151,8 @@ static int hookForwarderExit(void *data)
 
     /* un-register handlers for messages needed for spawn handling */
     PSID_clearMsg(PSP_CC_MSG, msgCC);
-#if 0
     PSID_clearMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES);
     PSID_clearMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES);
-    PSID_clearMsg(PSP_CC_ERROR, msgCCError);
-#endif
 
     finalizeSerial();
 
