@@ -1025,7 +1025,8 @@ static pmix_status_t server_unpublish_cb(const pmix_proc_t *proc, char **keys,
  *
  * This takes back ownership of @a sdata.
  */
-void pspmix_server_spawnRes(bool success, spawndata_t *sdata)
+void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
+			    const char *nspace)
 {
     assert(sdata != NULL);
     assert(sdata->cbfunc != NULL);
@@ -1035,7 +1036,13 @@ void pspmix_server_spawnRes(bool success, spawndata_t *sdata)
 
     pmix_status_t status = success ? PMIX_SUCCESS : PMIX_ERROR;
 
-    sdata->cbfunc(status, sdata->nspace, sdata->cbdata);
+    pmix_nspace_t ns;
+#if PMIX_VERSION < 4
+    if (nspace) memcpy(ns, nspace, strlen(nspace)+1);
+#else
+    if (nspace) PMIX_LOAD_NSPACE(ns->name, spawn->sdata->nspace);
+#endif
+    sdata->cbfunc(status, ns, sdata->cbdata);
     ufree(sdata);
 }
 

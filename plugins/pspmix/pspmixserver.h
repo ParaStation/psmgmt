@@ -41,7 +41,6 @@ typedef struct {
 typedef struct {
     pmix_spawn_cbfunc_t cbfunc;  /**< function to use to pass back data */
     void *cbdata;                /**< pointer to pass back to cbfunc */
-    pmix_nspace_t nspace;        /**< namespace of the spawned processes */
 } spawndata_t;
 
 /**
@@ -242,8 +241,10 @@ bool pspmix_server_requestModexData(modexdata_t *mdata);
  *
  *  @param success  true if successful, false if not
  *  @param sdata    return data (takes full ownership)
+ *  @param nspace   new namespace on success, NULL on fail
  */
-void pspmix_server_spawnRes(bool success, spawndata_t *sdata);
+void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
+			    const char *nspace);
 
 /**
  * @brief Finalize the pmix server library

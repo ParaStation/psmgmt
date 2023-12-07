@@ -80,6 +80,7 @@ typedef struct {
     uint16_t napps;            /**< number of applications, length of arrays */
     PspmixSpawnApp_t *apps;    /**< applications to spawn */
     spawndata_t *sdata;        /**< callback data object */
+    char *nspace;              /**< new namespace */
 } PspmixSpawn_t;
 
 /****** global variable needed to be lock protected ******/
@@ -1847,9 +1848,9 @@ void pspmix_service_spawnRes(uint16_t spawnID, int result)
     list_del(&spawn->next);
     RELEASE_LOCK(spawnList);
 
-    /* @todo set sdata->nspace somewhere */
+    /* @todo set spawn->nspace somewhere */
 
-    pspmix_server_spawnRes(result, spawn->sdata);
+    pspmix_server_spawnRes(result, spawn->sdata, spawn->nspace);
 
     ufree(spawn->apps);
     ufree(spawn);
