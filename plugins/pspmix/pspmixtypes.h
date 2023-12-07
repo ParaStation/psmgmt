@@ -168,7 +168,8 @@ typedef struct {
     PspmixJob_t *job;           /**< job this namespace is implementing */
     uint32_t universeSize;      /**< size of the MPI universe (from mpiexec) */
     uint32_t jobSize;           /**< size of the job (from mpiexec) */
-    bool spawned;               /**< flag if result of an MPI_Spawn call */
+    PStask_ID_t spawner;        /**< spawner if result of an PMIx_Spawn call */
+    uint16_t spawnID;           /**< spawn ID if result of an PMIx_Spawn call */
     char *nodelist_s;           /**< comma sep. nodelist string from mpiexec */
     PspmixApp_t *apps;          /**< applications in this namespace */
     size_t appsCount;           /**< number of applications, length of apps */

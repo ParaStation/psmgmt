@@ -400,20 +400,19 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     strv_t env;
     strvInit(&env, task->environ, task->envSize);
 
-    strvAdd(&env, ustrdup("PMIX_SPAWNED=1"));
+    /* tell the spawnees the spawn id */
+    char tmp[40];
+    snprintf(tmp, sizeof(tmp), "PMIX_SPAWNID=%d", srdata->spawnID);
+    strvAdd(&env, ustrdup(tmp));
 
-    /* PMI_SIZE should be set my mpiexec @todo right? */
-#if 0
-    /* calc totalProcs */
-    int totalProcs = 0;
-    for (int i = 0; i < req->num; i++) {
-	totalProcs += req->spawns[i].np;
-    }
 
-    snprintf(buffer, sizeof(buffer), "PMIX_SIZE=%d", totalProcs);
-    strvAdd(&env, ustrdup(buffer));
-    if(debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
-#endif
+    /* tell the spawnees our tid (that of the forwarder) */
+    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT=%d", PSC_getMyTID());
+    strvAdd(&env, ustrdup(tmp));
+
+    /* tell the spawnees the service rank @todo why - 3 */
+    snprintf(tmp, sizeof(tmp), "__PMI_SPAWN_SERVICE_RANK=%d", serviceRank - 3);
+    strvAdd(&env, ustrdup(tmp));
 
     ufree(task->environ);
     task->environ = env.strings;

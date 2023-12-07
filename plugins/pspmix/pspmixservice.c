@@ -303,6 +303,51 @@ static void createAppPSet(const char *name, PspmixNamespace_t *ns,
 }
 
 /**
+ * @brief Try to get info of the respawn that initiated the namespace
+ *
+ * This checks in the job environment of the namespace if the variables
+ * @a PMIX_SPAWNID and @a __PMIX_SPAWN_PARENT are set, indicating, that the
+ * namespace resulted from a call to PMIx_Spawn. If so, remember them in
+ * @a ns->spawnID and @a ns->spawner.
+ *
+ * @param ns       Namespace to check
+ *
+ * @returns Returns false if an error occured, and true else.
+ */
+bool getSpawnInfo(PspmixNamespace_t *ns)
+{
+    env_t env = ns->job->env;
+    char *spawnID = envGet(env, "PMIX_SPAWNID");
+    if (!spawnID) return true;
+
+    ns->spawnID = atoi(spawnID);
+    if (ns->spawnID <= 0) {
+	ulog("invalid PMIX_SPAWNID: %hd\n", ns->spawnID);
+	return false;
+    }
+
+    /* this is a respawn */
+    char *spawner = envGet(env, "__PMIX_SPAWN_PARENT");
+    if (!spawner) {
+	ulog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_PARENT set\n",
+	     ns->spawnID);
+	return false;
+    }
+
+    ns->spawner = atoi(spawner);
+    if (ns->spawner <= 0) {
+	ulog("invalid __PMIX_SPAWN_PARENT: %s\n", spawner);
+	return false;
+    }
+
+    char *loc = PSC_getID(ns->spawner) == PSC_getMyID() ? "local" : "remote";
+    udbg(PSPMIX_LOG_SPAWN, "%s spawn id %hu initiated by %s\n", loc,
+	 ns->spawnID, PSC_printTID(ns->spawner));
+
+    return true;
+}
+
+/**
  * @brief Get the node rank offset for the next namespace
  *
  * The offset is just the number of ranks that are still running in all
@@ -359,6 +404,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	    ulog("%02zd: %s\n", i, envDumpIndex(job->env, i));
 	}
     }
+
+    /* check if this namespace is spawned out of another one */
+    if (!getSpawnInfo(ns)) goto nscreate_error;
 
     /* set the MPI universe size from environment set by the spawner */
     char *env = envGet(job->env, "PMI_UNIVERSE_SIZE");
@@ -429,9 +477,6 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	ulog("sum of application sizes does not match job size\n");
 	goto nscreate_error;
     }
-
-    /* set if this namespace is spawned out of another one */
-    ns->spawned = envGet(job->env, "PMIX_SPAWNED") ? true : false;
 
     /* set the list of nodes string from environment set by the spawner */
     env = envGet(job->env, "__PMIX_NODELIST");
@@ -513,7 +558,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* register namespace */
     if (!pspmix_server_registerNamespace(ns->name, sessionId, ns->universeSize,
-					 ns->jobSize, ns->spawned, nodeCount,
+					 ns->jobSize, ns->spawnID, nodeCount,
 					 ns->nodelist_s, &ns->procMap,
 					 ns->appsCount, ns->apps,
 					 job->session->tmpdir, nsdir,
@@ -537,7 +582,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     /* create a process set for each reservation (= app) */
     for (size_t a = 0; a < ns->appsCount; a++) {
 	char name[128];
-	snprintf(name, sizeof(name), "pspmix:reservation/%d", ns->apps[a].resID);
+	snprintf(name, sizeof(name), "pspmix:reservation/%d",
+		 ns->apps[a].resID);
 	createAppPSet(name, ns, &ns->apps[a]);
 
 	if (ns->apps[a].name[0] != '\0') {
@@ -554,9 +600,27 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     list_add_tail(&ns->next, &namespaceList);
     RELEASE_LOCK(namespaceList);
 
+    if (ns->spawnID) {
+	udbg(PSPMIX_LOG_SPAWN, "Created namespace '%s' for respawn id %hu as"
+	     " requested by node %hd\n", ns->name, ns->spawnID,
+	     PSC_getID(ns->spawner));
+    }
+
     return true;
 
 nscreate_error:
+    if (ns->spawnID) {
+	/* @todo inform PMIx server on spawner's node */
+
+	/*
+	 * @todo
+	 * Behavior of individual resource managers may differ, but it is expected
+	 * that failure of any application process to start will result in
+	 * termination/cleanup of all processes in the newly spawned job and return
+	 * of an error code to the caller.
+	 */
+    }
+
     ufree(ns->apps);
     freeProcMap(&ns->procMap);
     ufree(ns);
@@ -870,6 +934,14 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
     /* TODO TODO TODO
        if (psAccountSwitchAccounting) psAccountSwitchAccounting(childTask->tid, false);
     */
+
+
+    if (ns->clientsConnected < ns->localClients) return true;
+
+    /* all local clients connected */
+    if (ns->spawnID) {
+	/* @todo inform spawner's node PMIx user server */
+    }
 
     return true;
 }
@@ -1685,12 +1757,25 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status,
 bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 			  PspmixSpawnApp_t *apps, spawndata_t *sdata)
 {
+    mdbg(PSPMIX_LOG_CALL, "%s(%s:%d napps %hu)\n", __func__, caller->nspace,
+	 caller->rank, napps);
+
     /* ID that is uniq local to this user server */
     static uint16_t spawnID = 0;
 
+    if (mset(PSPMIX_LOG_SPAWN)) {
+	for (size_t i = 0; i < napps; i++) {
+	    ulog("Respawning");
+	    for (char **cur = apps->argv; *cur; cur++) {
+		mlog(" %s", *cur);
+	    }
+	    mlog("\n");
+	}
+    }
+
     PspmixSpawn_t *spawn = ucalloc(sizeof(*spawn));
 
-    spawn->id = spawnID++;
+    spawn->id = ++spawnID;  /* first ID is 1, 0 means no ID */
     spawn->caller = caller;
     spawn->napps = napps;
     spawn->apps = apps;

@@ -43,7 +43,9 @@ static void propMoreEnv(void)
 			"PMI_DEBUG_KVS", "PMI_DEBUG_CLIENT", "PMI_SIZE",
 			"PMI_KVS_TMP", "__PMI_SPAWN_PARENT",
 			"PMI_BARRIER_TMOUT", "PMI_BARRIER_ROUNDS",
-			"__MPIEXEC_DIST_START", "PSPMIX_ENV_TMOUT", NULL };
+			"__MPIEXEC_DIST_START", "PSPMIX_ENV_TMOUT",
+			"PMIX_DEBUG", "PMIX_SPAWNID", "__PMIX_SPAWN_PARENT",
+			NULL };
 
     for (char **e = envList; *e; e++) setPSIEnv(*e, getenv(*e), 1);
 

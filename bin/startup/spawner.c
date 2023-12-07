@@ -295,8 +295,11 @@ static void setupCommonEnv(Conf_t *conf)
 	env = getUniqueHostnamesString(conf);
 	setPSIEnv("__PMIX_NODELIST", env, 1);
 
-	/* tag for respawned processes */
-	setPSIEnv("PMIX_SPAWNED", getenv("PMIX_SPAWNED"), 1);
+	/* info about and for respawned processes */
+	if (getenv("PMIX_SPAWNID")) {
+	    setPSIEnv("PMIX_SPAWNID", getenv("PMIX_SPAWNID"), 0);
+	    setPSIEnv("__PMIX_SPAWN_PARENT", getenv("__PMIX_SPAWN_PARENT"), 0);
+	}
 
 	snprintf(tmp, sizeof(tmp), "%d", conf->execCount);
 	setPSIEnv("PMIX_APPCOUNT", tmp, 1);
