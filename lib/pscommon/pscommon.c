@@ -680,9 +680,10 @@ struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf)
     *pwBuf = malloc(pwBufSize);
     static struct passwd result;
     struct passwd *passwd = NULL;
-    while (getpwnam_r(user, &result, *pwBuf, pwBufSize, &passwd)) {
-	if (errno == EINTR) continue;
-	if (errno == ERANGE) {
+    int eno;
+    while ((eno = getpwnam_r(user, &result, *pwBuf, pwBufSize, &passwd))) {
+	if (eno == EINTR) continue;
+	if (eno == ERANGE) {
 	    size_t newLen = 2 * pwBufSize;
 	    char *newBuf = realloc(*pwBuf, newLen);
 	    if (newBuf) {
@@ -691,7 +692,7 @@ struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf)
 		continue;
 	    }
 	}
-	PSC_warn(-1, errno, "%s: unable to query user database", __func__);
+	PSC_warn(-1, eno, "%s: unable to query user database", __func__);
 	free(*pwBuf);
 	*pwBuf = NULL;
 	return NULL;
@@ -746,9 +747,10 @@ struct passwd *PSC_getpwuidBuf(uid_t uid, char **pwBuf)
     *pwBuf = malloc(pwBufSize);
     static struct passwd result;
     struct passwd *passwd = NULL;
-    while (getpwuid_r(uid, &result, *pwBuf, pwBufSize, &passwd)) {
-	if (errno == EINTR) continue;
-	if (errno == ERANGE) {
+    int eno;
+    while ((eno = getpwuid_r(uid, &result, *pwBuf, pwBufSize, &passwd))) {
+	if (eno == EINTR) continue;
+	if (eno == ERANGE) {
 	    size_t newLen = 2 * pwBufSize;
 	    char *newBuf = realloc(*pwBuf, newLen);
 	    if (newBuf) {
@@ -757,7 +759,7 @@ struct passwd *PSC_getpwuidBuf(uid_t uid, char **pwBuf)
 		continue;
 	    }
 	}
-	PSC_warn(-1, errno, "%s: unable to query user database", __func__);
+	PSC_warn(-1, eno, "%s: unable to query user database", __func__);
 	free(*pwBuf);
 	*pwBuf = NULL;
 	return NULL;
@@ -790,9 +792,10 @@ static struct group *getgrgidBuf(gid_t gid, char **grBuf)
     *grBuf = malloc(grBufSize);
     static struct group result;
     struct group *grp = NULL;
-    while (getgrgid_r(gid, &result, *grBuf, grBufSize, &grp)) {
-	if (errno == EINTR) continue;
-	if (errno == ERANGE) {
+    int eno;
+    while ((eno = getgrgid_r(gid, &result, *grBuf, grBufSize, &grp))) {
+	if (eno == EINTR) continue;
+	if (eno == ERANGE) {
 	    size_t newLen = 2 * grBufSize;
 	    char *newBuf = realloc(*grBuf, newLen);
 	    if (newBuf) {
@@ -801,7 +804,7 @@ static struct group *getgrgidBuf(gid_t gid, char **grBuf)
 		continue;
 	    }
 	}
-	PSC_warn(-1, errno, "%s: unable to query group database", __func__);
+	PSC_warn(-1, eno, "%s: unable to query group database", __func__);
 	free(*grBuf);
 	*grBuf = NULL;
 	return NULL;
