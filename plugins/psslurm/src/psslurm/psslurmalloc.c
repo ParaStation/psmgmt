@@ -201,6 +201,13 @@ static int termJail(void *info)
 	addStrBuf(buf, &allocList);
     }
 
+    if (!allocList.buf) {
+	/* if all relevant allocations are unverified, add at least
+	 * the (unverified) alloc */
+	snprintf(buf, sizeof(buf), "%i", alloc->id);
+	addStrBuf(buf, &allocList);
+    }
+
     setenv("__PSJAIL_ALLOC_LIST", allocList.buf, 1);
 
     setJailEnv(&alloc->env, alloc->username, NULL, &(alloc->hwthreads),
