@@ -62,6 +62,23 @@ bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
 				 uint16_t napps, PspmixSpawnApp_t apps[]);
 
 /**
+ * @brief Compose and send a spawn info message
+ *
+ * The message is send to the psid (pid 0) on the destination node and
+ * then forwarded to the pspmix user server running on that node.
+ *
+ * @param dest       node to send this information to
+ * @param spawnID    id of the spawn
+ * @param success    true on success, false on fail
+ * @param nspace     new namespace resulted from the spawn or NULL on fail
+ * @param np         number of processes on success
+ *
+ * @return Returns true on success, false on error
+ */
+bool pspmix_comm_sendSpawnInfo(PSnodes_ID_t dest, uint16_t spawnID, bool success,
+			       const char *nspace, uint32_t np);
+
+/**
  * @brief Compose and send a fence data message if @a nDest != 0
  *
  * Note: It is fine (and used by intention) to call with no destinations and

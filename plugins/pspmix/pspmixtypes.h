@@ -283,6 +283,7 @@ typedef enum {
     PSPMIX_FENCE_DATA,         /**< Fence tree communication */
     PSPMIX_CLIENT_SPAWN,       /**< Request spawn on behalf of the client */
     PSPMIX_CLIENT_SPAWN_RES,   /**< Response to spawn request */
+    PSPMIX_SPAWN_INFO,         /**< Info about respawn succeded or failed */
 } PSP_PSPMIX_t;
 
 

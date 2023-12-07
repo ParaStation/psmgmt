@@ -18,6 +18,7 @@
 #include <pthread.h>
 
 #include "list.h"
+#include "pscommon.h"
 #include "psdaemonprotocol.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
@@ -226,6 +227,21 @@ static void handleClientSpawnResp(DDTypedBufferMsg_t *msg,
     pspmix_service_spawnRes(spawnID, result);
 }
 
+static void handleSpawnInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    uint16_t spawnID;
+    getUint16(data, &spawnID);
+    uint8_t result;
+    getUint8(data, &result);
+    char *nspace = getStringM(data);
+    uint32_t np;
+    getUint32(data, &np);
+    pspmix_service_spawnInfo(spawnID, result, nspace, np,
+			     PSC_getID(msg->header.sender));
+}
+
 /**
 * @brief Handle obsolete PSPMIX_FENCE_IN/PSPMIX_FENCE_OUT message
 *
@@ -375,6 +391,9 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 	break;
     case PSPMIX_CLIENT_SPAWN_RES:
 	recvFragMsg(msg, handleClientSpawnResp);
+	break;
+    case PSPMIX_SPAWN_INFO:
+	recvFragMsg(msg, handleSpawnInfo);
 	break;
     /* message types comming from another PMIx server of the same user */
     case PSPMIX_FENCE_IN:
@@ -528,6 +547,31 @@ bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
     if (ret < 0) {
 	mlog("%s: Sending client spawn request to %s failed.\n", __func__,
 	     PSC_printTID(targetTID));
+	return false;
+    }
+    return true;
+}
+
+bool pspmix_comm_sendSpawnInfo(PSnodes_ID_t dest, uint16_t spawnID,
+			       bool success, const char *nspace, uint32_t np)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__, PSC_printTID(dest));
+
+    PS_SendDB_t msg;
+    pthread_mutex_lock(&send_lock);
+    initFragPspmix(&msg, PSPMIX_SPAWN_INFO);
+    setFragDest(&msg, PSC_getTID(dest, 0));
+
+    addUint16ToMsg(spawnID, &msg);
+    addUint8ToMsg(success, &msg);
+    addStringToMsg(nspace, &msg);
+    addUint32ToMsg(np, &msg);
+
+    int ret = sendFragMsg(&msg);
+    pthread_mutex_unlock(&send_lock);
+    if (ret < 0) {
+	mlog("%s: Sending spawn info to %s failed.\n", __func__,
+	     PSC_printTID(dest));
 	return false;
     }
     return true;

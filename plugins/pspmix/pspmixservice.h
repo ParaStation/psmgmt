@@ -298,15 +298,32 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 /**
  * @brief Handle response to previous spawn requested
  *
- * This actual spawn is managed by the forwarder of the process that
+ * The actual spawn is managed by the forwarder of the process that
  * called PMIx_Spawn. This function basically does report the result
  * of that back to the server library.
  *
  * @param spawnID   local ID of the spawn
- * @param result    result of the spawn
+ * @param success   success state
  */
-void pspmix_service_spawnRes(uint16_t spawnID, int result);
+void pspmix_service_spawnRes(uint16_t spawnID, bool success);
 
+/**
+ * @brief Handle spawn info from node involved in respawn
+ *
+ * All user servers involed in spawning processes for a respawn are sending
+ * information about creation of these processes succeded or failed to the
+ * user server managing the client that called PMIx_Spawn(). This function
+ * handles these information and reports fail and success of the respawn action
+ * back to the server library.
+ *
+ * @param spawnID   local ID of the spawn
+ * @param success   success state
+ * @param nspace    new namespace's name
+ * @param np        number of processes successfully spawned
+ * @param node      source node of this information
+ */
+void pspmix_service_spawnInfo(uint16_t spawnID, bool success, char *nspace,
+			      uint32_t np, PSnodes_ID_t node);
 #endif  /* __PS_PMIX_SERVICE */
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

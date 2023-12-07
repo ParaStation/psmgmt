@@ -71,6 +71,17 @@ typedef struct {
 } PspmixFence_t;
 
 /**
+ * States of PspmixSpawn_t
+ */
+typedef enum {
+    SPAWN_INITIALIZED,          /**< initialized */
+    SPAWN_REQUESTED,            /**< request sent to the forwarder */
+    SPAWN_EXECUTING,            /**< response from fw received, now executing */
+    SPAWN_ALLCONNECTED,         /**< all clients on all nodes are connected */
+    SPAWN_FAILED,               /**< spawn failed at any point */
+} spawn_enum_t;
+
+/**
  * Information needed to execute a call to PMIx_Spawn()
  */
 typedef struct {
@@ -79,7 +90,10 @@ typedef struct {
     const pmix_proc_t *caller; /**< process that called PMIx_Spawn() */
     uint16_t napps;            /**< number of applications, length of arrays */
     PspmixSpawnApp_t *apps;    /**< applications to spawn */
+    uint32_t np;               /**< num of processes to be spawned in total */
     spawndata_t *sdata;        /**< callback data object */
+    spawn_enum_t state;        /**< current state of this spawn */
+    uint32_t ready;            /**< num of processes reported as ready */
     char *nspace;              /**< new namespace */
 } PspmixSpawn_t;
 
@@ -126,6 +140,19 @@ static pthread_mutex_t spawnList_lock = PTHREAD_MUTEX_INITIALIZER;
 	mdbg(PSPMIX_LOG_LOCK, "%s: Lock for "#var" released\n", __func__); \
     } while(0)
 
+
+/**
+ * @brief Free memory used by spawn object
+ *
+ * @param spawn  spawn object
+ */
+static void cleanupSpawn(PspmixSpawn_t *spawn)
+{
+    /* cleanup spawn */
+    ufree(spawn->apps);
+    ufree(spawn);
+}
+
 /**
  * @brief Find namespace by name
  *
@@ -156,6 +183,23 @@ static PspmixNamespace_t* findNamespaceByJobID(PStask_ID_t spawnertid)
     list_for_each(n, &namespaceList) {
 	PspmixNamespace_t *ns = list_entry(n, PspmixNamespace_t, next);
 	if (ns->job->spawnertid == spawnertid) return ns;
+    }
+    return NULL;
+}
+
+/**
+ * @brief Find spawn by id
+ *
+ * @param id  spawn id
+ *
+ * @return Returns the namespace or NULL if not in list
+ */
+static PspmixSpawn_t* findSpawn(uint16_t id)
+{
+    list_t *s;
+    list_for_each(s, &spawnList) {
+	PspmixSpawn_t *spawn = list_entry(s, PspmixSpawn_t, next);
+	if (spawn->id == id) return spawn;
     }
     return NULL;
 }
@@ -382,8 +426,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    /* we are using the loggertid as session ID */
-    /* @todo discuss
+    /* we are using the loggertid as session ID
      * PMIx 4 standard: "Session identifier assigned by the scheduler" */
     uint32_t sessionId = job->session->loggertid;
 
@@ -611,7 +654,11 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
 nscreate_error:
     if (ns->spawnID) {
-	/* @todo inform PMIx server on spawner's node */
+	if (!pspmix_comm_sendSpawnInfo(PSC_getID(ns->spawner), ns->spawnID,
+				       false, NULL, 0)) {
+	    ulog("failed to send failed spawn info for id %hu to node %hd\n",
+		 ns->spawnID, PSC_getID(ns->spawner));
+	}
 
 	/*
 	 * @todo
@@ -930,18 +977,31 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
 
     RELEASE_LOCK(namespaceList);
 
-    pspmix_comm_sendInitNotification(fwtid, nsname, rank, spawnertid);
+    if (!pspmix_comm_sendInitNotification(fwtid, nsname, rank, spawnertid)) {
+	ulog("Sending init notification for %s:%d to %s failed\n",
+	     nsname, rank, PSC_printTID(fwtid));
+    }
 
-    /* TODO TODO TODO
+    /* @todo do we need that?
        if (psAccountSwitchAccounting) psAccountSwitchAccounting(childTask->tid, false);
     */
 
-
     if (ns->clientsConnected < ns->localClients) return true;
 
-    /* all local clients connected */
+    /* all local clients are connected */
     if (ns->spawnID) {
-	/* @todo inform spawner's node PMIx user server */
+	/* inform spawner's node user server if this is a respawn */
+	udbg(PSPMIX_LOG_SPAWN, "All local clients connected in namespace '%s'"
+	     " for respawn id %hu as requested by node %hd\n", ns->name,
+	     ns->spawnID, PSC_getID(ns->spawner));
+	if (!pspmix_comm_sendSpawnInfo(PSC_getID(ns->spawner), ns->spawnID,
+				       true, ns->name, ns->localClients)) {
+	    ulog("failed to send failed spawn info to node %hd\n",
+		 PSC_getID(ns->spawner));
+	}
+	/* @todo take some shortcut when spawner is local?
+	         (PSC_getID(ns->spawner) == PSC_getMyID()) */
+	/* @todo use fence communication scheme here? */
     }
 
     return true;
@@ -1766,7 +1826,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 
     if (mset(PSPMIX_LOG_SPAWN)) {
 	for (size_t i = 0; i < napps; i++) {
-	    ulog("Respawning");
+	    ulog("respawning");
 	    for (char **cur = apps->argv; *cur; cur++) {
 		mlog(" %s", *cur);
 	    }
@@ -1780,6 +1840,11 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     spawn->caller = caller;
     spawn->napps = napps;
     spawn->apps = apps;
+    spawn->state = SPAWN_INITIALIZED;
+    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state INITIALIZED\n", spawn->id);
+
+    /* @todo what means maxprocs, can the spawn be successful with less procs? */
+    for (size_t i = 0; i < napps; i++) spawn->np += apps[i].maxprocs;
 
     GET_LOCK(namespaceList);
 
@@ -1814,46 +1879,143 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     list_add_tail(&spawn->next, &spawnList);
     RELEASE_LOCK(spawnList);
 
+    spawn->state = SPAWN_REQUESTED;
+    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state REQUESTED\n", spawn->id);
+
     return true;
 }
 
-/**
- * @brief Find first matching spawn in spawn list
- *
- * @param spawnID  ID of the spawn to search
- *
- * @return Returns the spawn or NULL if not in list
- */
-static PspmixSpawn_t* findSpawn(uint16_t spawnID)
-{
-    list_t *s;
-    list_for_each(s, &spawnList) {
-	PspmixSpawn_t *spawn = list_entry(s, PspmixSpawn_t, next);
-	if (spawn->id == spawnID) return spawn;
-    }
-    return NULL;
-}
-
 /* main thread */
-void pspmix_service_spawnRes(uint16_t spawnID, int result)
+void pspmix_service_spawnRes(uint16_t spawnID, bool success)
 {
+    mdbg(PSPMIX_LOG_CALL, "%s(spawnID %hu success %s)\n", __func__, spawnID,
+	 success ? "true" : "false");
+
     GET_LOCK(spawnList);
     PspmixSpawn_t *spawn = findSpawn(spawnID);
     if (!spawn) {
 	RELEASE_LOCK(spawnList);
-	ulog("UNEXPECTED: spawn id %hu not found (result %d)", spawnID, result);
+	ulog("UNEXPECTED: spawn id %hu not found (success %s)", spawnID,
+	     success ? "true" : "false");
 	return;
     }
 
+    if (success) {
+	/* success, update state and wait for ready clients */
+
+	udbg(PSPMIX_LOG_SPAWN, "forwarder reported success for spawn id %hu\n",
+	     spawnID);
+
+	/* fine if all clients already reported to be connected, this means that
+	 * the SPAWN requests from the spawner process have been faster than the
+	 * spawn respose from the forwarder which is unlikely, but possible */
+	if (spawn->state == SPAWN_ALLCONNECTED) {
+	    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: all clients already connected,"
+				   " skipping state EXECUTING\n", spawn->id);
+	    pspmix_server_spawnRes(true, spawn->sdata, spawn->nspace);
+	    list_del(&spawn->next);
+	    RELEASE_LOCK(spawnList);
+	    cleanupSpawn(spawn);
+	    return;
+	}
+
+	/* waiting for all clients to be known as connected */
+        if (spawn->state != SPAWN_REQUESTED) {
+		ulog("UNEXPECTED: spawn state is %d", spawn->state);
+	}
+	spawn->state = SPAWN_EXECUTING;
+	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state EXECUTING\n", spawn->id);
+	RELEASE_LOCK(spawnList);
+	return;
+    }
+
+    spawn->state = SPAWN_EXECUTING;
+    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state EXECUTING\n", spawn->id);
+
+    if (spawn->state != SPAWN_REQUESTED) {
+	ulog("UNEXPECTED: spawn state is %d", spawn->state);
+    }
+
+    /* an error happened */
     list_del(&spawn->next);
     RELEASE_LOCK(spawnList);
 
-    /* @todo set spawn->nspace somewhere */
+    ulog("forwarder reported fail for spawn id %hu\n", spawnID);
 
-    pspmix_server_spawnRes(result, spawn->sdata, spawn->nspace);
+    spawn->state = SPAWN_FAILED;
+    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
+    pspmix_server_spawnRes(false, spawn->sdata, NULL);
 
-    ufree(spawn->apps);
-    ufree(spawn);
+    cleanupSpawn(spawn);
+}
+
+/* main thread */
+void pspmix_service_spawnInfo(uint16_t spawnID, bool success, char *nspace,
+			      uint32_t np, PSnodes_ID_t node)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s(spawnID %hu success %s nspace %s np %u node"
+	 " %hd)\n", __func__, spawnID, success ? "true" : "false", nspace, np,
+	 node);
+
+    GET_LOCK(spawnList);
+    PspmixSpawn_t *spawn = findSpawn(spawnID);
+    if (!spawn) {
+	RELEASE_LOCK(spawnList);
+	ulog("UNEXPECTED: spawn id %hu not found (np %u node %hd)\n", spawnID,
+	     np, node);
+	goto failed;
+    }
+
+    /* do some checks with nspace */
+    if (!spawn->ready) {
+	/* first info for this spawn */
+	spawn->nspace = nspace;
+    } else if (!spawn->nspace) {
+	ulog("UNEXPECTED: spawn id %hu: namespace not set\n", spawnID);
+	goto failed;
+    } else if (strcmp(spawn->nspace, nspace)) {
+	ulog("UNEXPECTED: spawn id %hu: different namespaces (%s != %s)\n",
+	     spawnID, nspace, spawn->nspace);
+	goto failed;
+    }
+
+    spawn->ready += np;
+
+    if (spawn->ready < spawn->np) {
+	/* waiting for more processes */
+	RELEASE_LOCK(spawnList);
+	return;
+    }
+
+    if (spawn->ready > spawn->np) {
+	ulog("UNEXPECTED: spawn id %hu: to many processes (%u > %u)\n", spawnID,
+	     spawn->ready, spawn->np);
+	goto cleanup;
+    }
+
+    /* all processes are ready */
+    if (spawn->state == SPAWN_EXECUTING) {
+	/* answer from spawn request already received */
+	spawn->state = SPAWN_ALLCONNECTED;
+	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state ALLCONNECTED\n", spawn->id);
+	pspmix_server_spawnRes(true, spawn->sdata, nspace);
+	goto cleanup;
+    } else {
+	/* still waiting for the answer to the spawn request */
+	spawn->state = SPAWN_ALLCONNECTED;
+	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state ALLCONNECTED\n", spawn->id);
+	return;
+    }
+
+failed:
+    spawn->state = SPAWN_FAILED;
+    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
+    pspmix_server_spawnRes(false, spawn->sdata, NULL);
+
+cleanup:
+    list_del(&spawn->next);
+    RELEASE_LOCK(spawnList);
+    cleanupSpawn(spawn);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
