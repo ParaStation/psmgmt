@@ -132,7 +132,7 @@ static pthread_mutex_t spawnList_lock = PTHREAD_MUTEX_INITIALIZER;
  *
  * @return Returns the namespace or NULL if not in list
  */
-PspmixNamespace_t* findNamespace(const char *nsname)
+static PspmixNamespace_t* findNamespace(const char *nsname)
 {
     list_t *n;
     list_for_each(n, &namespaceList) {
