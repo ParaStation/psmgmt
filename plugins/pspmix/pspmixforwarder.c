@@ -207,29 +207,9 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 {
     bool noParricide = false;
 
-    SingleSpawn_t *spawn = &(req->spawns[0]);
-
-#if 0 /* currently not used with PMIx */
-    /* put preput key-value-pairs into environment
-     *
-     * We will transport this kv-pairs using the spawn environment. When
-     * our children are starting the pmi_init() call will add them to their
-     * local KVS.
-     *
-     * Only the values of the first single spawn are used. */
-    strv_t env;
-    strvInit(&env, task->environ, task->envSize);
-    addPreputToEnv(spawn->preputc, spawn->preputv, &env);
-
-    ufree(task->environ);
-    task->environ = env.strings;
-    task->envSize = env.count;
-    strvSteal(&env, true);
-#endif
-
     /* build arguments:
-     * mpiexec -u <UNIVERSE_SIZE> -np <NP> -d <WDIR> -p <PATH> \
-     *  --nodetype=<NODETYPE> --tpp=<TPP> <BINARY> ... */
+     * mpiexec --pmix -u <UNIVERSE_SIZE> -np <NP> -d <WDIR> -p <PATH> \
+     *  --nodetype=<NODETYPE> --tpp=<TPP> <BINARY> : -np ... */
     strv_t args;
     strvInit(&args, NULL, 0);
 
@@ -240,14 +220,22 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     } else {
 	strvAdd(&args, ustrdup(PKGLIBEXECDIR "/kvsprovider"));
     }
-    strvAdd(&args, ustrdup("-u"));
 
+    /* set PMIx mode */
+    strvAdd(&args, ustrdup("--pmix"));
+
+    /* set universe size */
+    strvAdd(&args, ustrdup("-u"));
     snprintf(buffer, sizeof(buffer), "%d", usize);
     strvAdd(&args, ustrdup(buffer));
 
+    size_t jobsize = 0;
+
     for (int i = 0; i < req->num; i++) {
 
-	spawn = &(req->spawns[i]);
+	SingleSpawn_t *spawn = &(req->spawns[0]);
+
+	jobsize += spawn->np;
 
 	/* set the number of processes to spawn */
 	strvAdd(&args, ustrdup("-np"));
@@ -302,6 +290,16 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     strvSteal(&args, true);
 
     task->noParricide = noParricide;
+
+    /* update environment */
+    strv_t env;
+    strvInit(&env, task->environ, task->envSize);
+    char tmp[64];
+    snprintf(tmp, sizeof(tmp), "PMI_SIZE=%zu", jobsize);
+    strvAdd(&env, tmp);
+    ufree(task->environ);
+    task->environ = env.strings;
+    task->envSize = env.count;
 
     return 1;
 }
@@ -371,6 +369,8 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
 	debug = true;
     }
 
+    SpawnReqData_t *srdata = req->data;
+
     PStask_t *task = initSpawnTask(childTask, spawnEnvFilter);
     if (!task) {
 	mlog("%s: cannot create a new task\n", __func__);
@@ -421,13 +421,18 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     strvSteal(&env, true);
 
     if (debug) {
-	elog("%s(r%i): Executing '", __func__, rank);
-	for (uint32_t j = 0; j < task->argc; j++) elog(" %s", task->argv[j]);
+	elog("%s(r%i): Executing '%s", __func__, rank, task->argv[0]);
+	for (uint32_t j = 1; j < task->argc; j++) elog(" %s", task->argv[j]);
 	elog("'\n");
     }
-    mlog("%s(r%i): Executing '", __func__, rank);
-    for (uint32_t j = 0; j < task->argc; j++) mlog(" %s", task->argv[j]);
+    mlog("%s(r%i): Executing '%s", __func__, rank, task->argv[0]);
+    for (uint32_t j = 1; j < task->argc; j++) mlog(" %s", task->argv[j]);
     mlog("'\n");
+    if (mset(PSPMIX_LOG_ENV)) {
+	for (size_t i = 0; i < task->envSize; i++) {
+	    rlog("%zd: %s\n", i, task->environ[i]);
+	}
+    }
 
     /* spawn task */
     bool ret = PSI_sendSpawnMsg(task, false, PSC_getMyID(), sendDaemonMsg);
