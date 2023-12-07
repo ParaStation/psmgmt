@@ -1019,6 +1019,7 @@ static void execForwarder(PStask_t *task)
 	checkFD(task->fd); // @todo extra check for jwt:#20747
 
 	/* try to start the client */
+	unsetenv("SSS_NSS_USE_MEMCACHE");
 	execClient(task);
 
 	/* Never be here */

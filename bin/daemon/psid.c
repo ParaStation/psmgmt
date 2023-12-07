@@ -515,6 +515,9 @@ int main(int argc, const char *argv[])
 {
     poptContext optCon;   /* context for parsing command-line options */
 
+    /* first of all disable memory cache of sss nss */
+    setenv("SSS_NSS_USE_MEMCACHE", "NO", 1);
+
     int rc, version = 0, debugMask = 0, pipeFD[2] = {-1, -1}, magic = FORKMAGIC;
     char *logdest = NULL, *configfile = "/etc/parastation.conf";
     FILE *logfile = NULL;
