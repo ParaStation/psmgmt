@@ -515,7 +515,6 @@ bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
     addUint16ToMsg(napps, &msg);
 
     for (size_t a = 0; a < napps; a++) {
-	addStringToMsg(apps[a].cmd, &msg);
 	addStringArrayToMsg(apps[a].argv, &msg);
 	addInt32ToMsg(apps[a].maxprocs, &msg);
 	addStringArrayToMsg(apps[a].env, &msg);

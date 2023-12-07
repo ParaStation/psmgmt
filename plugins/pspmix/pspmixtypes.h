@@ -232,13 +232,13 @@ FIND_IN_LIST_FUNC(Client, PspmixClient_t, pmix_rank_t, rank)
  * Information needed to spawn one app from a call to PMIx_Spawn()
  */
 typedef struct {
-    char *cmd;             /**< commandos for the applications */
-    char **argv;           /**< argument vectors for the applications */
-    int32_t maxprocs;      /**< max number of processes for each app */
-    char **env;            /**< environments for the applications */
-    char *wdir;            /**< working dir to be used each application */
-    char *host;            /**< hostlist to be used for each application */
-    char *hostfile;        /**< hostfile to be used for each application */
+    char **argv;           /**< argument vector */
+    int32_t maxprocs;      /**< max number of processes */
+    char **env;            /**< environment */
+    char *wdir;            /**< working dir */
+    char *prefix;          /**< prefix for argv[0] (applied) */
+    char *host;            /**< comma delimited list of hostnames to be used */
+    char *hostfile;        /**< file with hostnames to be used one each line */
 } PspmixSpawnApp_t;
 
 /**

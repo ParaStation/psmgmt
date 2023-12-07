@@ -1201,15 +1201,24 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 
 	SpawnInfo_t si_app = getSpawnInfo(apps[a].info, apps[a].ninfo);
 
-	char *prefix = si_app.prefix ? si_app.prefix : si_job.prefix;
+	/* do not use apps[x].cmd since with openpmix it is always the same
+	 * as apps[x].argv[0] */
 
-	if (prefix) {
-	    /* add prefix to cmd */
-	    sapps[a].cmd = umalloc(strlen(prefix)
-					+ strlen(apps[a].cmd) + 1);
-	    sprintf(sapps[a].cmd, "%s%s", prefix, apps[a].cmd);
+	sapps[a].prefix = si_app.prefix ? si_app.prefix : si_job.prefix;
+
+
+	if (sapps[a].prefix) {
+	    /* add prefix */
+	    strv_t argv;
+	    strvInit(&argv, NULL, 8);
+	    strvAdd(&argv, PSC_concat(sapps[a].prefix, "/", sapps[a].argv[0]));
+	    for (char **cur = apps[a].argv + 1; *cur; cur++) {
+		strvAdd(&argv, *cur);
+	    }
+	    sapps[a].argv = argv.strings;
+	    strvSteal(&argv, true);
 	} else {
-	    sapps[a].cmd = ustrdup(apps[a].cmd);
+	    sapps[a].argv = apps[a].argv;
 	}
 
 	sapps[a].argv = apps[a].argv;
@@ -1231,8 +1240,16 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 
     bool ret = pspmix_service_spawn(proc, napps, sapps, sdata);
 
-    /* Invalidate all data not copied */
+
+
     for (size_t a = 0; a < napps; a++) {
+	if (sapps[a].prefix) {
+	    free(sapps[a].argv[0]); /* allocated by PSC_concat() */
+	    ufree(sapps[a].argv); /* allocated by strv*() */
+	}
+
+	/* Invalidate all data not copied */
+	sapps[a].prefix = NULL;
 	sapps[a].argv = NULL;
 	sapps[a].env = NULL;
 	sapps[a].wdir = NULL;
@@ -1241,7 +1258,6 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
     }
 
     if (!ret) {
-	for (size_t a = 0; a < napps; a++) ufree(sapps[a].cmd);
 	ufree(sdata);
     }
 

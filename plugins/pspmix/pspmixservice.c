@@ -1766,10 +1766,6 @@ void pspmix_service_spawnRes(uint16_t spawnID, int result)
 
     pspmix_server_spawnRes(result, spawn->sdata);
 
-    /* cleanup spawn */
-    for (size_t a = 0; a < spawn->napps; a++) {
-	ufree(spawn->apps[a].cmd);
-    }
     ufree(spawn->apps);
     ufree(spawn);
 }

@@ -766,31 +766,9 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 	size_t len;
 
-	/* read cmd and argv */
-	char *cmd = getStringML(data, &len);
-	if (!len) {
-	    plog("No command in spawn request.\n");
-	    ufree(cmd);
-	    return;
-	}
-
 	uint32_t alen;
-
-	char **argv;
-	getStringArrayM(data, &argv, &alen);
-
-	/* fill argv/argc */
-	strv_t strv;
-	strvInit(&strv, NULL, 16);
-
-	strvAdd(&strv, cmd);
-	for (size_t c = 0; argv[c]; c++) {
-	    strvAdd(&strv, argv[c]);
-	}
-
-	spawn->argc = strv.count;
-	spawn->argv = strv.strings;
-	strvSteal(&strv, true);
+	getStringArrayM(data, &spawn->argv, &alen);
+	spawn->argc = alen;
 
 	/* read and fill np (maxprocs) */
 	getInt32(data, &spawn->np);
