@@ -622,9 +622,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* register namespace */
     if (!pspmix_server_registerNamespace(ns->name, sessionId, ns->universeSize,
-					 ns->jobSize, ns->spawnID, nodeCount,
-					 ns->nodelist_s, &ns->procMap,
-					 ns->appsCount, ns->apps,
+					 ns->jobSize, ns->spawnID, &ns->parent,
+					 nodeCount, ns->nodelist_s,
+					 &ns->procMap, ns->appsCount, ns->apps,
 					 job->session->tmpdir, nsdir,
 					 PSC_getMyID())) {
 	ulog("failed to register namespace at the pspmix server\n");

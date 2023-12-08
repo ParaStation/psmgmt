@@ -93,13 +93,13 @@ void pspmix_server_operationFinished(bool success, void* cb);
  * @param nsdir      full path of temp dir of this namespace (under @a tmpdir)
  * @param nodeID     parastation node id of this node
  */
-bool pspmix_server_registerNamespace(
-	const char *nspace, uint32_t sessionId,	uint32_t univSize,
-	uint32_t jobSize, bool spawned,
-	uint32_t numNodes, const char *nodelist_s, list_t *procMap,
-	uint32_t numApps, PspmixApp_t *apps,
-	const char *tmpdir, const char *nsdir,
-	PSnodes_ID_t nodeID);
+bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
+				     uint32_t univSize, uint32_t jobSize,
+				     bool spawned, pmix_proc_t *parent,
+				     uint32_t numNodes, const char *nodelist_s,
+				     list_t *procMap, uint32_t numApps,
+				     PspmixApp_t *apps, const char *tmpdir,
+				     const char *nsdir, PSnodes_ID_t nodeID);
 
 /**
  * Create a process set

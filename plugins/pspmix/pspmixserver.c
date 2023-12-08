@@ -2814,7 +2814,8 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
 
 static void fillProcDataArray(pmix_data_array_t *procData,
 			      PspmixProcess_t *proc, PSnodes_ID_t nodeID,
-			      bool spawned, const char *nsdir)
+			      bool spawned, pmix_proc_t *parent,
+			      const char *nsdir)
 {
 #if PMIX_VERSION_MAJOR < 4
     uint32_t ninfo = 8;
@@ -2822,6 +2823,9 @@ static void fillProcDataArray(pmix_data_array_t *procData,
     uint32_t ninfo = 9;
     if (nodeID == PSC_getMyID()) ninfo += 3;
 #endif
+
+    if (spawned) ninfo++;
+
     pmix_info_t *infos;
     PMIX_INFO_CREATE(infos, ninfo);
 
@@ -2872,6 +2876,11 @@ static void fillProcDataArray(pmix_data_array_t *procData,
     /* true if this proc resulted from a call to PMIx_Spawn */
     PMIX_INFO_LOAD(&infos[i], PMIX_SPAWNED, &spawned, PMIX_BOOL);
     i++;
+
+    if (spawned) {
+	PMIX_INFO_LOAD(&infos[i], PMIX_PARENT_ID, parent, PMIX_PROC);
+	i++;
+    }
 
 #if PMIX_VERSION_MAJOR >= 4
     /* number of times this process has been re-instantiated
@@ -2999,11 +3008,11 @@ static void registerNamespace_cb(pmix_status_t status, void *cbdata)
 
 bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
 				     uint32_t univSize, uint32_t jobSize,
-				     bool spawned, uint32_t numNodes,
-				     const char *nodelist_s, list_t *procMap,
-				     uint32_t numApps, PspmixApp_t *apps,
-				     const char *tmpdir, const char *nsdir,
-				     PSnodes_ID_t nodeID)
+				     bool spawned, pmix_proc_t *parent,
+				     uint32_t numNodes, const char *nodelist_s,
+				     list_t *procMap, uint32_t numApps,
+				     PspmixApp_t *apps, const char *tmpdir,
+				     const char *nsdir, PSnodes_ID_t nodeID)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(nspace '%s' sessionId %u univSize %u jobSize %u"
 	 " spawned %d numNodes %d nodelist_s '%s' numApps %u tmpdir '%s' nsdir '%s'"
@@ -3129,7 +3138,7 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
 	for (size_t j = 0; j < node->procs.len; j++) {
 	    PspmixProcess_t *proc = vectorGet(&node->procs, j, PspmixProcess_t);
 	    pmix_data_array_t procData;
-	    fillProcDataArray(&procData, proc, node->id, spawned, nsdir);
+	    fillProcDataArray(&procData, proc, node->id, spawned, parent, nsdir);
 
 	    PMIX_INFO_LOAD(&data.info[i], PMIX_PROC_DATA, &procData,
 			   PMIX_DATA_ARRAY);
