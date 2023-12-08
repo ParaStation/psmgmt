@@ -142,8 +142,13 @@ static bool doSpawn(SpawnRequest_t *req)
     }
 
     pendSpawn = req;
+    SpawnReqData_t *srdata = req->data;
 
     plog("trying to spawn job with %d apps\n", pendSpawn->num);
+
+    pdbg(PSPMIX_LOG_SPAWN, "Requesting service rank for spawn %s:%d triggered"
+	 " by nspace %s rank %u\n", PSC_printTID(srdata->pmixServer),
+	 srdata->spawnID, srdata->pnspace, srdata->prank);
 
     /* get next service rank from logger */
     if (PSLog_write(childTask->loggertid, SERV_TID, NULL, 0) < 0) {
@@ -501,6 +506,9 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
 
     /* uniquely identifies the spawn globally */
     SpawnReqData_t *srdata = pendSpawn->data;
+
+    pdbg(PSPMIX_LOG_SPAWN, "Trying spawn %s:%d with service rank %d\n",
+	 PSC_printTID(srdata->pmixServer), srdata->spawnID, serviceRank);
 
     /* try to do the spawn */
     if (tryPMIxSpawn(pendSpawn, serviceRank)) return;
@@ -940,12 +948,15 @@ static bool msgSPAWNRES(DDBufferMsg_t *msg)
 
     switch (type) {
     case PSP_CD_SPAWNFAILED:
-	plog("spawning service process failed\n");
+	plog("spawn %s:%d: spawning service process failed\n",
+	     PSC_printTID(srdata->pmixServer), srdata->spawnID);
 	sendSpawnResp(srdata->pmixServer, 0, srdata->spawnID);
 	break;
     case PSP_CD_SPAWNSUCCESS:
 	/* wait for result of the spawner process */
-	pdbg(PSPMIX_LOG_SPAWN, "spawning service process successful\n");
+	pdbg(PSPMIX_LOG_SPAWN, "spawn %s:%d: service process spawn"
+	     " successful\n", PSC_printTID(srdata->pmixServer),
+	     srdata->spawnID);
 	sendSpawnResp(srdata->pmixServer, 1, srdata->spawnID);
 	break;
     }
