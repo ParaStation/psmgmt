@@ -351,9 +351,9 @@ static void createAppPSet(const char *name, PspmixNamespace_t *ns,
  * @brief Try to get info of the respawn that initiated the namespace
  *
  * This checks in the job environment of the namespace if the variables
- * @a PMIX_SPAWNID and @a __PMIX_SPAWN_PARENT are set, indicating, that the
- * namespace resulted from a call to PMIx_Spawn. If so, remember them in
- * @a ns->spawnID and @a ns->spawner.
+ * @a PMIX_SPAWNID and @a __PMIX_SPAWN_PARENT_FWTID are set, indicating,
+ * that the namespace resulted from a call to PMIx_Spawn. If so, remember
+ * them in @a ns->spawnID and @a ns->spawner.
  *
  * @param ns       Namespace to check
  *
@@ -372,9 +372,9 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
     }
 
     /* this is a respawn */
-    char *spawner = envGet(env, "__PMIX_SPAWN_PARENT");
+    char *spawner = envGet(env, "__PMIX_SPAWN_PARENT_FWTID");
     if (!spawner) {
-	ulog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_PARENT set\n",
+	ulog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_PARENT_FWTID set\n",
 	     ns->spawnID);
 	return false;
     }

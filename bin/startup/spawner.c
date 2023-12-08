@@ -298,7 +298,8 @@ static void setupCommonEnv(Conf_t *conf)
 	/* info about and for respawned processes */
 	if (getenv("PMIX_SPAWNID")) {
 	    setPSIEnv("PMIX_SPAWNID", getenv("PMIX_SPAWNID"), 0);
-	    setPSIEnv("__PMIX_SPAWN_PARENT", getenv("__PMIX_SPAWN_PARENT"), 0);
+	    setPSIEnv("__PMIX_SPAWN_PARENT_FWTID",
+		    getenv("__PMIX_SPAWN_PARENT_FWTID"), 0);
 	}
 
 	snprintf(tmp, sizeof(tmp), "%d", conf->execCount);

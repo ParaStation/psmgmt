@@ -405,9 +405,8 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     snprintf(tmp, sizeof(tmp), "PMIX_SPAWNID=%d", srdata->spawnID);
     strvAdd(&env, ustrdup(tmp));
 
-
     /* tell the spawnees our tid (that of the forwarder) */
-    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT=%d", PSC_getMyTID());
+    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_FWTID=%d", PSC_getMyTID());
     strvAdd(&env, ustrdup(tmp));
 
     /* tell the spawnees the service rank @todo why - 3 */
