@@ -1,3 +1,32 @@
+Version 5.1.58-1:
+=================
+------------------------------------------------------------------------
+fce12898b | Norbert Eicker | Thu, 7 Dec 2023 18:12:13 +0100
+
+Bugfix: sss-nss re-uses closed fd (#159/jwt:#20747)
+
+ - When sssd's memory cache is enabled it might step upon a replaced
+   file-descriptor and destroy in some cases the connection between the
+   psidforwarder and the to become client process
+------------------------------------------------------------------------
+73cb981e9 | Norbert Eicker | Thu, 7 Dec 2023 12:57:26 +0100
+
+Man-pages of getpwuid_r() et al. do not guarantee that errno is set
+------------------------------------------------------------------------
+86da8a327 | Norbert Eicker | Thu, 7 Dec 2023 18:33:04 +0100
+
+Bugfix: prevent segfault from termJail() (jwt:#24361)
+------------------------------------------------------------------------
+771774d52 | Norbert Eicker | Wed, 6 Dec 2023 21:30:33 +0100
+
+librrcomm needs -fPIC to be linked into libpscom
+------------------------------------------------------------------------
+5539b3a26 | Norbert Eicker | Wed, 6 Dec 2023 00:32:02 +0100
+
+Bugfix: Ensure nLocalSlots is initialized (#162/jwt:#24377)
+------------------------------------------------------------------------
+
+
 Version 5.1.58:
 ===============
 ------------------------------------------------------------------------
