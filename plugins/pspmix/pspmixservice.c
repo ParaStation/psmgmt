@@ -87,7 +87,7 @@ typedef enum {
 typedef struct {
     list_t next;               /**< list head to put into SpawnList */
     uint16_t id;               /**< identifier of this spawn */
-    const pmix_proc_t *caller; /**< process that called PMIx_Spawn() */
+    pmix_proc_t caller;        /**< process that called PMIx_Spawn() */
     uint16_t napps;            /**< number of applications, length of arrays */
     PspmixSpawnApp_t *apps;    /**< applications to spawn */
     uint32_t np;               /**< num of processes to be spawned in total */
@@ -1837,7 +1837,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     PspmixSpawn_t *spawn = ucalloc(sizeof(*spawn));
 
     spawn->id = ++spawnID;  /* first ID is 1, 0 means no ID */
-    spawn->caller = caller;
+    PMIX_PROC_LOAD(&spawn->caller, caller->nspace, caller->rank);
     spawn->napps = napps;
     spawn->apps = apps;
     spawn->state = SPAWN_INITIALIZED;
@@ -1869,7 +1869,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     if (!pspmix_comm_sendClientSpawn(client->fwtid, spawn->id, spawn->napps,
 				     spawn->apps)) {
 	ulog("sending spawn req to forwarder failed (namespace %s rank %d)\n",
-	     spawn->caller->nspace, spawn->caller->rank);
+	     spawn->caller.nspace, spawn->caller.rank);
 	return false;
     }
 
