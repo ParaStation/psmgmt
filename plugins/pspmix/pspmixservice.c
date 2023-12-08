@@ -350,10 +350,13 @@ static void createAppPSet(const char *name, PspmixNamespace_t *ns,
 /**
  * @brief Try to get info of the respawn that initiated the namespace
  *
- * This checks in the job environment of the namespace if the variables
- * @a PMIX_SPAWNID and @a __PMIX_SPAWN_PARENT_FWTID are set, indicating,
- * that the namespace resulted from a call to PMIx_Spawn. If so, remember
- * them in @a ns->spawnID and @a ns->spawner.
+ * This checks in the job environment of the namespace if all the variables
+ * - @a PMIX_SPAWNID
+ * - @a __PMIX_SPAWN_PARENT_FWTID
+ * - @a __PMIX_SPAWN_PARENT_NSPACE
+ * - @a __PMIX_SPAWN_PARENT_RANK
+ * are set, indicating, that the namespace resulted from a call to PMIx_Spawn.
+ * If so, remember them in @a ns->spawnID, @a ns->spawner, and @a ns->parent.
  *
  * @param ns       Namespace to check
  *
@@ -385,9 +388,26 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
 	return false;
     }
 
+    char *nspace = envGet(env, "__PMIX_SPAWN_PARENT_NSPACE");
+    if (!nspace) {
+	ulog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_PARENT_NSPACE set\n",
+	     ns->spawnID);
+	return false;
+    }
+
+    char *rank = envGet(env, "__PMIX_SPAWN_PARENT_RANK");
+    if (!rank) {
+	ulog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_PARENT_RANK set\n",
+	     ns->spawnID);
+	return false;
+    }
+
+    PMIX_PROC_LOAD(&ns->parent, nspace, atoi(rank));
+
     char *loc = PSC_getID(ns->spawner) == PSC_getMyID() ? "local" : "remote";
-    udbg(PSPMIX_LOG_SPAWN, "%s spawn id %hu initiated by %s\n", loc,
-	 ns->spawnID, PSC_printTID(ns->spawner));
+    udbg(PSPMIX_LOG_SPAWN, "%s spawn id %hu initiated by %s (nspace %s"
+	 " rank %u)\n", loc, ns->spawnID, PSC_printTID(ns->spawner),
+	 ns->parent.nspace, ns->parent.rank);
 
     return true;
 }
@@ -1867,7 +1887,8 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 
     /* send PSPMIX_CLIENT_SPAWN message to forwarder of proc */
     if (!pspmix_comm_sendClientSpawn(client->fwtid, spawn->id, spawn->napps,
-				     spawn->apps)) {
+				     spawn->apps, spawn->caller.nspace,
+				     spawn->caller.rank)) {
 	ulog("sending spawn req to forwarder failed (namespace %s rank %d)\n",
 	     spawn->caller.nspace, spawn->caller.rank);
 	return false;

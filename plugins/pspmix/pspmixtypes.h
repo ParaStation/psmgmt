@@ -170,6 +170,7 @@ typedef struct {
     uint32_t jobSize;           /**< size of the job (from mpiexec) */
     PStask_ID_t spawner;        /**< spawner if result of an PMIx_Spawn call */
     uint16_t spawnID;           /**< spawn ID if result of an PMIx_Spawn call */
+    pmix_proc_t parent;         /**< spawn parent if result of PMIx_Spawn */
     char *nodelist_s;           /**< comma sep. nodelist string from mpiexec */
     PspmixApp_t *apps;          /**< applications in this namespace */
     size_t appsCount;           /**< number of applications, length of apps */

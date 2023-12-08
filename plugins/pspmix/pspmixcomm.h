@@ -55,11 +55,14 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t env);
  * @param spawnID    id of the spawn
  * @param napps      number of applications, length of @a apps
  * @param apps       applications to spawn
+ * @param pnspace    parent namespace
+ * @param prank      parent rank
  *
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
-				 uint16_t napps, PspmixSpawnApp_t apps[]);
+				 uint16_t napps, PspmixSpawnApp_t apps[],
+				 const char *pnspace, uint32_t prank);
 
 /**
  * @brief Compose and send a spawn info message

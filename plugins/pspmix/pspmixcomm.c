@@ -521,7 +521,8 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t env)
 }
 
 bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
-				 uint16_t napps, PspmixSpawnApp_t apps[])
+				 uint16_t napps, PspmixSpawnApp_t apps[],
+				 const char *pnspace, uint32_t prank)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__, PSC_printTID(targetTID));
 
@@ -531,6 +532,8 @@ bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
     setFragDest(&msg, targetTID);
 
     addUint16ToMsg(spawnID, &msg);
+    addStringToMsg(pnspace, &msg);
+    addUint32ToMsg(prank, &msg);
     addUint16ToMsg(napps, &msg);
 
     for (size_t a = 0; a < napps; a++) {

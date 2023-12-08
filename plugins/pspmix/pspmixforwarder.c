@@ -73,6 +73,8 @@ PSIDhook_ClntRls_t pmixStatus = IDLE;
 typedef struct {
     PStask_ID_t pmixServer;
     uint16_t spawnID;
+    char * pnspace;
+    uint32_t prank;
 } SpawnReqData_t;
 
 
@@ -401,12 +403,21 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     strvInit(&env, task->environ, task->envSize);
 
     /* tell the spawnees the spawn id */
-    char tmp[40];
+    char tmp[28+PMIX_MAX_NSLEN];
     snprintf(tmp, sizeof(tmp), "PMIX_SPAWNID=%d", srdata->spawnID);
     strvAdd(&env, ustrdup(tmp));
 
     /* tell the spawnees our tid (that of the forwarder) */
     snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_FWTID=%d", PSC_getMyTID());
+    strvAdd(&env, ustrdup(tmp));
+
+    /* tell the spawnees the namespace of the spawner (=> PMIX_PARENT_ID) */
+    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_NSPACE=%s",
+	     srdata->pnspace);
+    strvAdd(&env, ustrdup(tmp));
+
+    /* tell the spawnees the rank of the spawner (=> PMIX_PARENT_ID) */
+    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_RANK=%d", srdata->prank);
     strvAdd(&env, ustrdup(tmp));
 
     /* tell the spawnees the service rank @todo why - 3 */
@@ -499,6 +510,7 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
     sendSpawnResp(srdata->pmixServer, 0, srdata->spawnID);
 
     /* cleanup */
+    ufree(srdata->pnspace);
     ufree(pendSpawn->data);
     freeSpawnRequest(pendSpawn);
     pendSpawn = NULL;
@@ -754,6 +766,8 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     srdata->pmixServer = msg->header.sender;
 
     getUint16(data, &srdata->spawnID);
+    srdata->pnspace = getStringM(data);
+    getUint32(data, &srdata->prank);
 
     uint16_t napps;
     getUint16(data, &napps);
@@ -937,6 +951,7 @@ static bool msgSPAWNRES(DDBufferMsg_t *msg)
     }
 
     /* cleanup */
+    ufree(srdata->pnspace);
     ufree(pendSpawn->data);
     freeSpawnRequest(pendSpawn);
     pendSpawn = NULL;

@@ -83,6 +83,7 @@ void pspmix_server_operationFinished(bool success, void* cb);
  * @param univSize   number of slots in this session
  * @param jobSize    number of processes in this job/namespace
  * @param spawned    true if this job spawn resulted from a call to PMIx_Spawn
+ * @param parent     process that called PMIx_Spawn if resulted from such a call
  * @param numNodes   number of nodes this job/namespace runs at
  * @param nodelist_s string containing comma separated list of nodes in the job
  * @param procMap    process map of the job (which process runs on which node)
