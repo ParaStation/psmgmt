@@ -62,6 +62,16 @@ int main(int argc, char **argv)
 
     if (argc > 1) {
 	/* spawnee */
+        val = NULL;
+        proc.rank = 1;
+        rc = PMIx_Get(&proc, PMIX_PARENT_ID, NULL, 0, &val);
+	if (rc != PMIX_SUCCESS || !val) {
+            print("PMIx_Get parent id failed: %s\n", PMIx_Error_string(rc));
+            goto done;
+        }
+        print("Spawnee of parent nspace %s rank %u\n", val->data.proc->nspace,
+               val->data.proc->rank);
+        PMIX_VALUE_RELEASE(val);
 	goto done;
     }
 
@@ -103,8 +113,8 @@ int main(int argc, char **argv)
             print("PMIx_Get job size failed: %s\n", PMIx_Error_string(rc));
             goto done;
         }
-        fprintf(stderr, "Spawned nspace %s size %u\n", nspace,
-		(uint32_t) val->data.uint32);
+        print("Spawned nspace %s size %u\n", nspace,
+              (uint32_t) val->data.uint32);
         PMIX_VALUE_RELEASE(val);
 
         /* get a proc-specific value */
