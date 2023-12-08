@@ -6,6 +6,17 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.58-1:
+=================
+Bugfixes:
+ - sss-nss re-uses closed fd (#159/jwt:#20747)
+ - prevent segfault from termJail() (jwt:#24361)
+ - ensure nLocalSlots is initialized (#162/jwt:#24377)
+ - POSIX does not guarantee the getpwuid_r() et al. sets errno
+Enhancements:
+ - librrcomm needs -fPIC to be linked into libpscom
+
+
 *************************************************************************
 *************************************************************************
 **                                                                     **

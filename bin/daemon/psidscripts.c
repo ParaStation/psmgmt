@@ -225,6 +225,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 
 	int32_t ret = 0;
 	if (func) {
+	    unsetenv("SSS_NSS_USE_MEMCACHE");
 	    ret = func(info);
 	} else {
 	    char *command, *dir = PSC_lookupInstalldir(NULL);
@@ -243,6 +244,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 			caller, dir);
 		ret = -1;
 	    } else {
+		unsetenv("SSS_NSS_USE_MEMCACHE");
 		ret = system(command);
 		if (ret < 0) {
 		    PSID_warn(-1, errno, "%s: system(%s)", caller, command);
