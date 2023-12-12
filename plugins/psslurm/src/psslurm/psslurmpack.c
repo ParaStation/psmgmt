@@ -1439,8 +1439,14 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* overwrite empty memory limits */
-    if (!step->jobMemLimit) step->jobMemLimit = step->cred->jobMemLimit;
-    if (!step->stepMemLimit) step->stepMemLimit = step->cred->stepMemLimit;
+    if (msgVer < SLURM_21_08_PROTO_VERSION) {
+	if (!step->jobMemLimit) step->jobMemLimit = step->cred->jobMemLimit;
+	if (!step->stepMemLimit) step->stepMemLimit = step->cred->stepMemLimit;
+    } else {
+	/* overwrite it on a per node bases later */
+	step->jobMemLimit = NO_VAL64;
+	step->stepMemLimit = NO_VAL64;
+    }
 
     /* tasks to launch / global task ids */
     unpackStepTaskIds(step, ptr);

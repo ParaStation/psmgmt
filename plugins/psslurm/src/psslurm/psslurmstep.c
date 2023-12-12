@@ -50,6 +50,7 @@ Step_t *Step_new(void)
     step->leader = false;
     step->spawned = false;
     step->termAfterFWmsg = NO_VAL;
+    step->localNodeId = NO_VAL;
 
     INIT_LIST_HEAD(&step->tasks);
     INIT_LIST_HEAD(&step->remoteTasks);

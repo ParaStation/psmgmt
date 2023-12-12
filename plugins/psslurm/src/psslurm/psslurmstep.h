@@ -99,8 +99,8 @@ typedef struct {
     uint32_t numTasksPerSocket; /**< number of tasks per socket */
     uint16_t threadsPerCore;    /**< threads per core */
     char *slurmHosts;		/**< Compressed host-list (SLURM_NODELIST) */
-    uint32_t jobMemLimit;	/**< memory limit of job */
-    uint32_t stepMemLimit;	/**< memory limit of step */
+    uint64_t jobMemLimit;	/**< memory limit of job */
+    uint64_t stepMemLimit;	/**< memory limit of step */
     task_dist_states_t taskDist;/**< task distribution (e.g. cyclic) */
     uint16_t nodeCPUs;          /**< node CPUs (unused) */
     uint32_t profile;           /**< profile (unused) see srun --profile */

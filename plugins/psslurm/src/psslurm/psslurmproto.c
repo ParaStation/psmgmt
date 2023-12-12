@@ -533,6 +533,51 @@ uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
     return NO_VAL;
 }
 
+/**
+ * @brief Set node local memory limits for step
+ *
+ * @param step The step to set the limits for
+ */
+static void setStepMemLimits(Step_t *step)
+{
+    if (step->localNodeId == NO_VAL) {
+	flog("invalid local node ID for %s\n", Step_strID(step));
+	return;
+    }
+
+    JobCred_t *cred = step->cred;
+
+    if (step->jobMemLimit == NO_VAL64 && cred->jobMemAllocSize) {
+	uint32_t i = 0, idx = 0;
+	while (i < cred->jobMemAllocSize
+	       && idx + cred->jobMemAllocRepCount[i] <= step->localNodeId)
+	    idx += cred->jobMemAllocRepCount[i++];
+	if (i < cred->jobMemAllocSize) {
+	    step->jobMemLimit = cred->jobMemAlloc[i];
+	}
+    }
+
+    if (step->jobMemLimit == NO_VAL64) {
+	flog("warning: could not set job memory limit for %s\n",
+	     Step_strID(step));
+    }
+
+    if (step->stepMemLimit == NO_VAL64 && cred->stepMemAllocSize) {
+	uint32_t i = 0, idx = 0;
+	while (i < cred->stepMemAllocSize
+	       && idx + cred->stepMemAllocRepCount[i] <= step->localNodeId)
+	    idx += cred->stepMemAllocRepCount[i++];
+	if (i < cred->stepMemAllocSize) {
+	    step->stepMemLimit = cred->stepMemAlloc[i]*1024*1024;
+	}
+    }
+
+    if (step->stepMemLimit == NO_VAL64) {
+	flog("warning: could not set step memory limit for %s\n",
+	     Step_strID(step));
+    }
+}
+
 static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     if (pluginShutdown) {
@@ -613,6 +658,9 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
+
+    /* set memory limits from credential */
+    setStepMemLimits(step);
 
     step->nodeinfos = getStepNodeinfoArray(step);
     if (!step->nodeinfos) {
