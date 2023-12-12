@@ -1749,8 +1749,12 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 	goto ERROR;
     }
 
-    /* overwrite empty memory limit */
-    if (!job->memLimit) job->memLimit = job->cred->jobMemLimit;
+    if (msgVer < SLURM_21_08_PROTO_VERSION) {
+	/* overwrite empty memory limit */
+	if (!job->memLimit) job->memLimit = job->cred->jobMemLimit;
+    } else {
+	job->memLimit = job->cred->jobMemAlloc[0];
+    }
 
     if (msgVer < SLURM_23_02_PROTO_VERSION) {
 	/* jobinfo plugin id */
