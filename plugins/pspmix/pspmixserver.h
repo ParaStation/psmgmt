@@ -79,11 +79,13 @@ void pspmix_server_operationFinished(bool success, void* cb);
  * @brief Register namespace at the server library
  *
  * @param nspace     name of the namespace to register
+ * @param jobid      name of the job as defined by the scheduler
  * @param sessionId  id of the session
  * @param univSize   number of slots in this session
  * @param jobSize    number of processes in this job/namespace
  * @param spawned    true if this job spawn resulted from a call to PMIx_Spawn
  * @param parent     process that called PMIx_Spawn if resulted from such a call
+ * @param gRankOffset offset to global rank for this job
  * @param numNodes   number of nodes this job/namespace runs at
  * @param nodelist_s string containing comma separated list of nodes in the job
  * @param procMap    process map of the job (which process runs on which node)
@@ -93,9 +95,11 @@ void pspmix_server_operationFinished(bool success, void* cb);
  * @param nsdir      full path of temp dir of this namespace (under @a tmpdir)
  * @param nodeID     parastation node id of this node
  */
-bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
-				     uint32_t univSize, uint32_t jobSize,
-				     bool spawned, pmix_proc_t *parent,
+bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
+				     uint32_t sessionId, uint32_t univSize,
+				     uint32_t jobSize, bool spawned,
+				     pmix_proc_t *parent,
+				     pmix_rank_t grankOffset,
 				     uint32_t numNodes, const char *nodelist_s,
 				     list_t *procMap, uint32_t numApps,
 				     PspmixApp_t *apps, const char *tmpdir,

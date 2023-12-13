@@ -460,6 +460,11 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     strncpy(ns->name, generateNamespaceName(job->spawnertid, singleton),
 	    sizeof(ns->name));
 
+    /* fill jobid
+     * @todo for the moment, use nsname, with Slurm, maybe the slurm job id
+     *       its exprected by clients here */
+    strncpy(ns->jobid, ns->name, sizeof(ns->jobid));
+
     /* get information from spawner set environment */
 
     if (mset(PSPMIX_LOG_ENV)) {
@@ -546,6 +551,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     env = envGet(job->env, "__PMIX_NODELIST");
     ns->nodelist_s = env ? env : "";
 
+    /* will be changed to rankOffest of first application of the job */
+    pmix_rank_t grankOffset = 0;
+
     /* add process information and mapping to namespace */
     for (size_t a = 0; a < ns->appsCount; a++) {
 
@@ -556,6 +564,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		 a);
 	    goto nscreate_error;
 	}
+
+	if (a == 0) grankOffset = resInfo->rankOffset;
 
 	pmix_rank_t apprank = 0;
 	size_t lslotidx = 0;
@@ -621,8 +631,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     char *nsdir = PSC_concat(job->session->tmpdir, "/", ns->name);
 
     /* register namespace */
-    if (!pspmix_server_registerNamespace(ns->name, sessionId, ns->universeSize,
-					 ns->jobSize, ns->spawnID, &ns->parent,
+    if (!pspmix_server_registerNamespace(ns->name, ns->jobid, sessionId,
+					 ns->universeSize, ns->jobSize,
+					 ns->spawnID, &ns->parent, grankOffset,
 					 nodeCount, ns->nodelist_s,
 					 &ns->procMap, ns->appsCount, ns->apps,
 					 job->session->tmpdir, nsdir,

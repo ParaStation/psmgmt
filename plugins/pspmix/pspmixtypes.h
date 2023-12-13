@@ -165,6 +165,7 @@ typedef struct {
 typedef struct {
     list_t next;
     char name[MAX_NSLEN+1];     /**< space for the name of the namespace ;) */
+    char jobid[MAX_NSLEN+1];    /**< scheduler assiged job identificator */
     PspmixJob_t *job;           /**< job this namespace is implementing */
     uint32_t universeSize;      /**< size of the MPI universe (from mpiexec) */
     uint32_t jobSize;           /**< size of the job (from mpiexec) */

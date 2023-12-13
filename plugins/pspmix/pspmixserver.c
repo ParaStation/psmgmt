@@ -2539,17 +2539,27 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
     sessionInfo->array = infos;
 }
 
-static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
+static void fillJobInfoArray(pmix_data_array_t *jobInfo,
+			     const char *nspace, const char *jobId,
 			     uint32_t jobSize, uint32_t maxProcs,
 			     const char *nodelist_s, list_t *procMap,
-			     uint32_t numApps)
+			     uint32_t numApps, pmix_rank_t grankOffset)
 {
-#define JOB_INFO_ARRAY_LEN 6
+#define JOB_INFO_ARRAY_LEN 8
     pmix_info_t *infos;
     PMIX_INFO_CREATE(infos, JOB_INFO_ARRAY_LEN);
 
     size_t i = 0;
-    /* job identifier (this is the name of the namespace */
+    /* hint:
+     * PMIX_SERVER_NSPACE and PMIX_SERVER_RANK are mentioned here in the
+     * standard, but we already pass them with PMIx_server_init() */
+
+    /* namespace identifier (set even if not needed for call to
+     * PMIx_server_register_nspace() as explicitly stated in the standard */
+    PMIX_INFO_LOAD(&infos[i], PMIX_NSPACE, nspace, PMIX_STRING);
+    i++;
+
+    /* job identifier (as assigned by the scheduler) */
     PMIX_INFO_LOAD(&infos[i], PMIX_JOBID, jobId, PMIX_STRING);
     i++;
 
@@ -2584,19 +2594,18 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
     PMIX_INFO_LOAD(&infos[i], PMIX_JOB_NUM_APPS, &numApps, PMIX_UINT32);
     i++;
 
-    /* optional infos (PMIx v3.0):
-     * * PMIX_SERVER_NSPACE "pmix.srv.nspace" (char*)       (mandatory in v4.0?)
-     *     Name of the namespace to use for this PMIx server.
-     *
-     * * PMIX_SERVER_RANK "pmix.srv.rank" (pmix_rank_t)     (mandatory in v4.0?)
-     *     Rank of this PMIx server
-     *
-     * * PMIX_NPROC_OFFSET "pmix.offset" (pmix_rank_t)
-     *     Starting global rank of this job     (XXX: needed for spawn support)
-     *
-     * * PMIX_ALLOCATED_NODELIST "pmix.alist" (char*)   (v4.0: in session realm)
+    /* starting global rank of the job (probably needed for spawn support)
+     * should be the same as PMIX_GLOBAL_RANK of rank 0 of this job */
+    PMIX_INFO_LOAD(&infos[i], PMIX_NPROC_OFFSET, &grankOffset, PMIX_PROC_RANK);
+    i++;
+
+    /* optional infos (PMIx v3.0, v4.1 and v5.0):
+     * * PMIX_ALLOCATED_NODELIST "pmix.alist" (char*)
      *     Comma-delimited list of all nodes in this allocation regardless of
      *     whether or not they currently host processes
+     *     (ambiguous where to put this, in v4.1 and v5.0 it is listed as
+     *      optional in the PMIX_SESSION_INFO_ARRAY but according to the
+     *      description it defaults to the job realm)
      *
      * * PMIX_MAPBY "pmix.mapby" (char*)
      *     Process mapping policy
@@ -2607,9 +2616,12 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
      * * PMIX_BINDTO "pmix.bindto" (char*)
      *     Process binding policy
      *
-     * optional infos (PMIx v4.0):
+     * optional infos (v4.1 and v5.0):
      * * PMIX_HOSTNAME_KEEP_FQDN "pmix.fqdn" (bool)
      *     FQDNs are being retained by the PMIx library.
+     *
+     * * PMIX_ANL_MAP "pmix.anlmap" (char*)
+     *     Process map expressed in ANLs PMI-1/PMI-2 notation.
      *
      * * PMIX_TDIR_RMCLEAN "pmix.tdir.rmclean" (bool)
      *     Resource Manager will cleanup assigned temporary directory trees.
@@ -2622,11 +2634,13 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
     mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)='%s' - %s(%d)=%u - %s(%d)=%u - "
 	 "%s(%d)='%s' - %s(%d)='%s' - %s(%d)=%u\n", __func__,
 	 infos[0].key, infos[0].value.type, infos[0].value.data.string,
-	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32,
+	 infos[1].key, infos[1].value.type, infos[1].value.data.string,
 	 infos[2].key, infos[2].value.type, infos[2].value.data.uint32,
-	 infos[3].key, infos[3].value.type, infos[3].value.data.string,
+	 infos[3].key, infos[3].value.type, infos[3].value.data.uint32,
 	 infos[4].key, infos[4].value.type, infos[4].value.data.string,
-	 infos[5].key, infos[5].value.type, infos[5].value.data.uint32);
+	 infos[5].key, infos[5].value.type, infos[5].value.data.string,
+	 infos[6].key, infos[6].value.type, infos[6].value.data.uint32,
+	 infos[7].key, infos[7].value.type, infos[7].value.data.rank);
 #endif
 
     jobInfo->type = PMIX_INFO;
@@ -3009,9 +3023,11 @@ static void registerNamespace_cb(pmix_status_t status, void *cbdata)
     SET_CBDATA_AVAIL(data);
 }
 
-bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
-				     uint32_t univSize, uint32_t jobSize,
-				     bool spawned, pmix_proc_t *parent,
+bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
+				     uint32_t sessionId, uint32_t univSize,
+				     uint32_t jobSize, bool spawned,
+				     pmix_proc_t *parent,
+				     pmix_rank_t grankOffset,
 				     uint32_t numNodes, const char *nodelist_s,
 				     list_t *procMap, uint32_t numApps,
 				     PspmixApp_t *apps, const char *tmpdir,
@@ -3101,8 +3117,8 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
 
     /* ===== job info array ===== */
     pmix_data_array_t jobInfo;
-    fillJobInfoArray(&jobInfo, nspace, jobSize, jobSize, nodelist_s,
-		     procMap, numApps);
+    fillJobInfoArray(&jobInfo, nspace, jobid, jobSize, jobSize, nodelist_s,
+		     procMap, numApps, grankOffset);
     PMIX_INFO_LOAD(&data.info[i], PMIX_JOB_INFO_ARRAY, &jobInfo,
 		   PMIX_DATA_ARRAY);
     i++;
