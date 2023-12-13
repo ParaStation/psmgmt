@@ -3100,6 +3100,10 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
     /* number of allocated slots in a session (here for historical reasons) */
     PMIX_INFO_LOAD(&data.info[i], PMIX_UNIV_SIZE, &univSize, PMIX_UINT32);
     i++;
+
+    /* total num of processes in this job (here for historical reasons) */
+    PMIX_INFO_LOAD(&data.info[i], PMIX_JOB_SIZE, &jobSize, PMIX_UINT32);
+    i++;
 #endif
 
     /* ===== session info array ===== */
@@ -3108,12 +3112,6 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
     PMIX_INFO_LOAD(&data.info[i], PMIX_SESSION_INFO_ARRAY, &sessionInfo,
 		   PMIX_DATA_ARRAY);
     i++;
-
-#if PMIX_VERSION_MAJOR < 4
-    /* total num of processes in this job (here for historical reasons) */
-    PMIX_INFO_LOAD(&data.info[i], PMIX_JOB_SIZE, &jobSize, PMIX_UINT32);
-    i++;
-#endif
 
     /* ===== job info array ===== */
     pmix_data_array_t jobInfo;
