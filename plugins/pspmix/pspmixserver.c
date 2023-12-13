@@ -2667,6 +2667,14 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
     PMIX_INFO_LOAD(&infos[i], PMIX_APP_SIZE, &app->size, PMIX_UINT32);
     i++;
 
+    /* PMIx v4.1 and v5.0 mentioning PMIX_MAX_PROCS here:
+     * Maximum number of processes that can be executed in the specified realm.
+     * Typically, this is a constraint imposed by a scheduler or by user
+     * settings in a hostfile or other resource description.
+     * Defaults to the job realm. Requires use of the PMIX_APP_INFO attribute
+     * to avoid ambiguity when retrieving it.
+     * @todo Clarify whether this should be set here specifically or each app */
+
     /* lowest rank in this application within the job */
     PMIX_INFO_LOAD(&infos[i], PMIX_APPLDR, &app->firstRank, PMIX_PROC_RANK);
     i++;
@@ -2681,7 +2689,7 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
     i++;
 #endif
 
-    /* optional infos (PMIx v4.0):
+    /* optional infos (PMIx v4.1 and v5.0):
      * * PMIX_PSET_NAMES "pmix.pset.nms" (pmix_data_array_t*)
      *     Returns an array of char* string names of the process sets in which
      *     the given process is a member.
@@ -2766,7 +2774,7 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
     i++;
     ufree(lpeers);
 
-    /* optional infos (PMIx v4.0):
+    /* optional infos (PMIx v4.1 and v5.0):
      * * PMIX_MAX_PROCS "pmix.max.size" (uint32_t)
      *     Maximum number of processes that can be executed in the specified
      *     realm. Typically, this is a constraint imposed by a scheduler or by
