@@ -2505,18 +2505,21 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
     PMIX_INFO_CREATE(infos, SESSION_INFO_ARRAY_LEN);
 
     size_t i = 0;
-    /* first entry needs to be session id */
+    /* session id
+     * (needed to be the first entry
+     *  @todo find out sice which version this is no longer the case) */
     PMIX_INFO_LOAD(&infos[i], PMIX_SESSION_ID, &session_id, PMIX_UINT32);
     i++;
+
+#if PMIX_VERSION_MAJOR >= 4
+    /* same as PMIX_MAX_PROCS below, here for historical reasons */
+    PMIX_INFO_LOAD(&infos[i], PMIX_UNIV_SIZE, &universe_size, PMIX_UINT32);
+    i++;
+#endif
 
     /* number of slots in this session */
     PMIX_INFO_LOAD(&infos[i], PMIX_MAX_PROCS, &universe_size, PMIX_UINT32);
     i++;
-
-#if PMIX_VERSION_MAJOR >= 4
-    PMIX_INFO_LOAD(&infos[i], PMIX_UNIV_SIZE, &universe_size, PMIX_UINT32);
-    i++;
-#endif
 
     /* optional infos (PMIx v4.0):
      * * PMIX_ALLOCATED_NODELIST "pmix.alist" (char*)
