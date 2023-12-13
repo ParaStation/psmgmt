@@ -97,6 +97,7 @@ typedef struct {
 				 delivery after forwarder start */
     bool termAfterFWmsg;    /**< force job termination after sending
 				 messages waiting in @ref fwMsgQueue */
+    int exitCode;	    /**< exit code of the job (used for SPANK) */
 } Job_t;
 
 /**

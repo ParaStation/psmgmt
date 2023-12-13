@@ -749,6 +749,8 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	    pUint64 = va_arg(ap, uint64_t *);
 	    if (spank->step) {
 		*pUint64 = spank->step->stepMemLimit;
+	    } else if (spank->job) {
+		*pUint64 = spank->job->memLimit;
 	    } else {
 		*pUint64 = 0;
 		return ESPANK_NOT_AVAIL;
@@ -845,6 +847,9 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 	    pUint32 = va_arg(ap, uint32_t *);
 	    if (step) {
 		*pUint32 = step->tasksToLaunch[step->localNodeId];
+	    } else if (spank->job) {
+		/* jobscript task */
+		*pUint32 = 1;
 	    } else {
 		*pUint32 = 0;
 		return ESPANK_NOT_AVAIL;
@@ -853,7 +858,14 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 	case S_TASK_EXIT_STATUS:
 	    pInt = va_arg(ap, int *);
 	    if (spank->hook == SPANK_TASK_EXIT) {
-		*pInt = step->exitCode;
+		if (step) {
+		    *pInt = step->exitCode;
+		} else if (spank->job) {
+		    *pInt = spank->job->exitCode;
+		} else {
+		    *pInt = 0;
+		    return ESPANK_NOT_AVAIL;
+		}
 	    } else {
 		*pInt = 0;
 		return ESPANK_NOT_AVAIL;

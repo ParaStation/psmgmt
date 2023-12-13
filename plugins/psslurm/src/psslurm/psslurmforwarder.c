@@ -373,6 +373,19 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 
     PSIDhook_call(PSIDHOOK_PSSLURM_JOB_EXEC, job->username);
 
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = NULL,
+	.alloc = Alloc_find(job->jobid),
+	.job = job,
+	.step = NULL,
+	.hook = SPANK_TASK_INIT_PRIVILEGED,
+	.envSet = NULL,
+	.envUnset = NULL
+    };
+    SpankCallHook(&spank);
+#endif
+
     /* set default RLimits */
     setDefaultRlimits();
 
@@ -392,6 +405,14 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 
     /* redirect output */
     IO_redirectJob(fwdata, job);
+
+#ifdef HAVE_SPANK
+    spank.hook = SPANK_TASK_POST_FORK;
+    SpankCallHook(&spank);
+
+    spank.hook = SPANK_TASK_INIT;
+    SpankCallHook(&spank);
+#endif
 
     /* setup batch specific environment */
     setJobEnv(job);
@@ -1371,6 +1392,38 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     PSIDhook_call(PSIDHOOK_PSSLURM_JOB_FWINIT, job->username);
 
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = NULL,
+	.alloc = Alloc_find(job->jobid),
+	.job = job,
+	.step = NULL,
+	.hook = SPANK_INIT,
+	.envSet = NULL,
+	.envUnset = NULL
+    };
+    SpankCallHook(&spank);
+
+    SpankInitOpt(&spank);
+
+    spank.hook = SPANK_INIT_POST_OPT;
+    SpankCallHook(&spank);
+
+    if (switchEffectiveUser(job->username, job->uid, job->gid) == -1) {
+	flog("switching effective user to %s failed\n", job->username);
+	exit(1);
+    }
+
+    spank.hook = SPANK_USER_INIT;
+    SpankCallHook(&spank);
+
+    if (switchEffectiveUser("root", 0, 0) == -1) {
+	flog("switching effective user to root failed\n");
+	exit(1);
+    }
+
+#endif
+
     setJailEnv(&job->env, job->username, NULL, &(job->hwthreads),
 	       &job->gresList, job->cred, job->localNodeId);
 
@@ -1387,8 +1440,25 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 static void jobForwarderFin(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
+    job->exitCode = fwdata->chldExitStatus;
 
     PSIDhook_call(PSIDHOOK_PSSLURM_JOB_FWFIN, job->username);
+
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = NULL,
+	.alloc = Alloc_find(job->jobid),
+	.job = job,
+	.step = NULL,
+	.hook = SPANK_TASK_EXIT,
+	.envSet = NULL,
+	.envUnset = NULL
+    };
+    SpankCallHook(&spank);
+
+    spank.hook = SPANK_EXIT;
+    SpankCallHook(&spank);
+#endif
 }
 
 bool execBatchJob(Job_t *job)
