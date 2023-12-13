@@ -768,6 +768,7 @@ static void execForwarder(PStask_t *task)
 		sendAccInfo(fw, status, &rusage);
 	    }
 	    sendExitInfo(status);
+	    fw->chldExitStatus = status;
 	}
 	/* check for timeout */
 	if (jobTimeout) {
