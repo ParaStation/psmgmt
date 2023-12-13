@@ -71,7 +71,8 @@ int main(int argc, char **argv)
     } else if (rc == PMIX_SUCCESS && val != NULL) {
         print("spawned\n");
         spawned = 1;
-        PMIX_PROC_LOAD(&parent_proc, val->data.proc->nspace, val->data.proc->rank);
+        PMIX_PROC_LOAD(&parent_proc, val->data.proc->nspace,
+                       val->data.proc->rank);
         PMIX_VALUE_RELEASE(val);
     } else {
         printerr("PMIx_Get parent id failed: %s\n", PMIx_Error_string(rc));
@@ -132,9 +133,11 @@ int main(int argc, char **argv)
         PMIX_LOAD_PROCID(&proc, nspace, PMIX_RANK_WILDCARD);
         rc = PMIx_Get(&proc, PMIX_JOB_SIZE, NULL, 0, &val);
         if (rc != PMIX_SUCCESS || !val) {
-            printerr("PMIx_Get job size for spawned nspace failed: %s\n", PMIx_Error_string(rc));
+            printerr("PMIx_Get job size for spawned nspace failed: %s\n",
+                     PMIx_Error_string(rc));
         } else {
-            print("Spawned nspace %s size %u\n", nspace, (uint32_t) val->data.uint32);
+            print("Spawned nspace %s size %u\n", nspace,
+                  (uint32_t) val->data.uint32);
             PMIX_VALUE_RELEASE(val);
         }
 
@@ -143,10 +146,11 @@ int main(int argc, char **argv)
         proc.rank = 1;
         rc = PMIx_Get(&proc, PMIX_LOCAL_RANK, NULL, 0, &val);
         if (rc != PMIX_SUCCESS || !val) {
-            printerr("PMIx_Get local rank of spawned nspace failed: %s\n", PMIx_Error_string(rc));
+            printerr("PMIx_Get local rank of spawned nspace failed: %s\n",
+                     PMIx_Error_string(rc));
         } else {
-            print("Spawned process %s:%d: local rank %hu\n", proc.nspace, proc.rank,
-                  (uint16_t) val->data.uint16);
+            print("Spawned process %s:%d: local rank %hu\n", proc.nspace,
+                  proc.rank, (uint16_t) val->data.uint16);
             PMIX_VALUE_RELEASE(val);
         }
 
@@ -163,7 +167,8 @@ int main(int argc, char **argv)
         PMIX_INFO_LOAD(&fence_info[1], PMIX_TIMEOUT, &timeout, PMIX_INT);
         rc = PMIx_Fence(proc_sync, 2, fence_info, 2);
         if (rc != PMIX_SUCCESS) {
-            printerr("PMIx Fence of parent with spawned processes failed: %s\n", PMIx_Error_string(rc));
+            printerr("PMIx Fence of parent with spawned processes failed: %s\n",
+                     PMIx_Error_string(rc));
         }
         PMIX_PROC_FREE(proc_sync, 2);
         PMIX_INFO_FREE(fence_info, 2);
@@ -181,8 +186,9 @@ int main(int argc, char **argv)
         PMIX_INFO_LOAD(&fence_info[1], PMIX_TIMEOUT, &timeout, PMIX_INT);
         rc = PMIx_Fence(proc_sync, 2, fence_info, 2);
         if (rc != PMIX_SUCCESS) {
-            printerr("PMIx Fence of spawned process with parent %s:%d failed: %s\n",
-                  parent_proc.nspace, parent_proc.rank, PMIx_Error_string(rc));
+            printerr("PMIx Fence of spawned process with parent %s:%d failed:"
+                     " %s\n", parent_proc.nspace, parent_proc.rank,
+                     PMIx_Error_string(rc));
         }
         PMIX_PROC_FREE(proc_sync, 2);
         PMIX_INFO_FREE(fence_info, 2);
@@ -190,10 +196,12 @@ int main(int argc, char **argv)
         /* Get value from KVS, put there by parent process before spawn*/
         PMIx_Get(&parent_proc, CUSTOM_KEY, NULL, 0, &val);
         if (rc != PMIX_SUCCESS) {
-            printerr("PMIx_Get for value of parent failed: %s\n", PMIx_Error_string(rc));
+            printerr("PMIx_Get for value of parent failed: %s\n",
+                     PMIx_Error_string(rc));
         } else {
             if (strcmp(CUSTOM_VALUE, val->data.string) != 0) {
-                printerr("PMIx_Get: expected value %s, got %s", CUSTOM_VALUE, val->data.string);
+                printerr("PMIx_Get: expected value %s, got %s", CUSTOM_VALUE,
+                         val->data.string);
             } else {
                 print("PMIx_Get OK: %s == %s\n", CUSTOM_KEY, val->data.string);
             }
@@ -203,26 +211,27 @@ int main(int argc, char **argv)
         /* Check environment variable specified on spawning */
         char *env = getenv("PMIX_ENV_VALUE");
         if (!env) {
-            print("Error, environment variable %s not found\n", "PMIX_ENV_VALUE");
+            printerr("Environment variable %s not found\n", "PMIX_ENV_VALUE");
         } else {
             if (strcmp("3", env) != 0) {
-                print("env: expected %s, got %s\n", "3", env);
+                printerr("env: expected %s, got %s\n", "3", env);
             } else {
                 print("env OK: %s = %s\n", "PMIX_ENV_VALUE", env);
             }
         }
     }
 
-    /* Get local rank to make sure this is in place after spawning in all processes */
+    /* Get local rank to make sure this is in place after spawning in all
+     * processes */
     rc = PMIx_Get(&myproc, PMIX_LOCAL_RANK, NULL, 0, &val);
     if (rc != PMIX_SUCCESS || !val) {
-        print("PMIx_Get local rank in spawned process failed: %s\n", PMIx_Error_string(rc));
+        printerr("PMIx_Get local rank in spawned process failed: %s\n",
+                 PMIx_Error_string(rc));
     } else {
         print("local rank %hu\n", (uint16_t) val->data.uint16);
         PMIX_VALUE_RELEASE(val);
     }
 
-done:
     /* sync */
     PMIX_LOAD_PROCID(&proc, myproc.nspace, PMIX_RANK_WILDCARD);
     rc = PMIx_Fence(&proc, 1, NULL, 0);
