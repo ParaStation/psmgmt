@@ -2192,15 +2192,12 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
  *
  * @return No return value
  */
-static void handleServiceInfo(PSLog_Msg_t *msg)
+static bool handleServiceInfo(PSLog_Msg_t *msg)
 {
     int totalProcs, serviceRank = *(int32_t *)msg->buf;
 
-    if (!pendSpawn) {
-	mlog("%s(r%i): spawn failed, no spawn request set\n", __func__, rank);
-	PMI_send("cmd=spawn_result rc=-1\n");
-	return;
-    }
+    /* message might be for other handler (e.g. pspmix) */
+    if (!pendSpawn) return false;
 
     /* try to do the spawn */
     if (tryPMISpawn(pendSpawn, universe_size, serviceRank, &totalProcs)) {
@@ -2214,6 +2211,8 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
     /* cleanup */
     freeSpawnRequest(pendSpawn);
     pendSpawn = NULL;
+
+    return true;
 }
 
 /**
@@ -2458,8 +2457,7 @@ static bool msgCC(DDBufferMsg_t *msg)
 	    handleKVSMessage(lmsg);
 	    return true;
 	case SERV_TID:
-	    handleServiceInfo(lmsg);
-	    return true;
+	    return handleServiceInfo(lmsg);
 	case SERV_EXT:
 	    handleServiceExit(lmsg);
 	    return true;

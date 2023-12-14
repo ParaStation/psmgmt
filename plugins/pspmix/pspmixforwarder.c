@@ -492,17 +492,16 @@ static bool sendSpawnResp(PStask_ID_t targetTID, uint8_t result, uint16_t spawnI
  *
  * @param msg Logger message to handle
  *
- * @return No return value
+ * @return true if message handled, false to pass it to the next handler
  */
-static void handleServiceInfo(PSLog_Msg_t *msg)
+static bool handleServiceInfo(PSLog_Msg_t *msg)
 {
     int serviceRank = *(int32_t *)msg->buf;
 
+    /* message might be for other handler (e.g. pspmi) */
+    if (!pendSpawn) return false;
+
     /* @todo support multiple concurrent pendSpawn? */
-    if (!pendSpawn) {
-	plog("spawn failed, no pending spawn request\n");
-	return;
-    }
 
     /* uniquely identifies the spawn globally */
     SpawnReqData_t *srdata = pendSpawn->data;
@@ -511,7 +510,7 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
 	 PSC_printTID(srdata->pmixServer), srdata->spawnID, serviceRank);
 
     /* try to do the spawn */
-    if (tryPMIxSpawn(pendSpawn, serviceRank)) return;
+    if (tryPMIxSpawn(pendSpawn, serviceRank)) return true;
 
     /* spawn already failed */
     plog("spawn failed\n");
@@ -522,6 +521,8 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
     ufree(pendSpawn->data);
     freeSpawnRequest(pendSpawn);
     pendSpawn = NULL;
+
+    return true;
 }
 
 /* function to be used by other plugins (e.g. psslurm) */
@@ -910,8 +911,7 @@ static bool msgCC(DDBufferMsg_t *msg)
     PSLog_Msg_t *lmsg = (PSLog_Msg_t *)msg;
     switch (lmsg->type) {
 	case SERV_TID:
-	    handleServiceInfo(lmsg);
-	    return true;
+	    return handleServiceInfo(lmsg);
 #if 0
 	case SERV_EXT:
 	    handleServiceExit(lmsg);
