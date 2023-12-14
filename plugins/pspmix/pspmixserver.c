@@ -2756,7 +2756,7 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
     i++;
 
     /* Note: PMIX_NODE_SIZE (processes over all the user's jobs)
-     * managed by pmix_register_resources @todo
+     * managed by PMIx_server_register_resources @todo
      * https://github.com/pmix/pmix-standard/issues/401*/
 
     /* lowest rank on this node within this job/namespace */
@@ -2795,10 +2795,15 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
 	i++;
 
 	/* Array of pmix_proc_t of all processes executing on the local node */
-	//@todo how to implement that, standard ambiguous?
-	//PMIX_LOCAL_PROCS "pmix.lprocs" (pmix_proc_t array)
+	/* @todo how to implement that, standard ambiguous?
+	 *
+	 * PMIX_LOCAL_PROCS "pmix.lprocs" (pmix_proc_t array)
+	 * Array of pmix_proc_t of all processes executing on the local node –
+	 * shortcut for PMIx_Resolve_peers for the local node and a NULL
+	 * namespace argument. The process identifier is ignored for this
+	 * attribute. */
 
-	/* optional infos (PMIx v4.0):
+	/* optional infos (PMIx v4.1 and v5.0):
 	 * * PMIX_LOCAL_CPUSETS "pmix.lcpus" (pmix_data_array_t)
 	 *     (this was required in PMIx v3.0)
 	 *     A pmix_data_array_t array of string representations of the PU
