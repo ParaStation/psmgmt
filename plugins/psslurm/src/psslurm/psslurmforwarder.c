@@ -59,6 +59,7 @@
 #include "peloguehandles.h"
 #include "psaccounthandles.h"
 #include "pspmihandles.h"
+#include "pspmixhandles.h"
 
 #include "psslurm.h"
 #include "psslurmcomm.h"
@@ -517,6 +518,9 @@ int handleForwarderInit(void * data)
 
     /* override spawn task filling function in pspmi */
     psPmiSetFillSpawnTaskFunction(fillSpawnTaskWithSrun);
+
+    /* override spawn task filling function in pspmix */
+    psPmixSetFillSpawnTaskFunction(fillSpawnTaskWithSrun);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
