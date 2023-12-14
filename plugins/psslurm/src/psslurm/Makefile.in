@@ -448,8 +448,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
 	-I$(top_srcdir)/$(psaccount_dir) \
 	-I$(top_srcdir)/$(pelogue_dir) -I$(top_srcdir)/$(psmunge_dir) \
 	-I$(top_srcdir)/$(pspam_dir) -I$(top_srcdir)/$(psexec_dir) \
-	-I$(top_srcdir)/$(pspmi_dir) -I$(top_srcdir)/$(jail_dir) \
-	$(am__append_1)
+	-I$(top_srcdir)/$(pspmi_dir) -I$(top_srcdir)/$(pspmix_dir) \
+	-I$(top_srcdir)/$(jail_dir) $(am__append_1)
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);
@@ -490,6 +490,7 @@ psmunge_dir := plugins/psmunge
 pspam_dir := plugins/pspam/pspam
 psexec_dir := plugins/psexec
 pspmi_dir := plugins/pspmi
+pspmix_dir := plugins/pspmix
 jail_dir := plugins/jail
 plugin_LTLIBRARIES = psslurm.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la

@@ -18,6 +18,7 @@ psmunge_dir   := plugins/psmunge
 pspam_dir     := plugins/pspam/pspam
 psexec_dir    := plugins/psexec
 pspmi_dir     := plugins/pspmi
+pspmix_dir    := plugins/pspmix
 jail_dir      := plugins/jail
 
 AM_CFLAGS += -std=gnu99
@@ -31,6 +32,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 	       -I$(top_srcdir)/$(pspam_dir) \
 	       -I$(top_srcdir)/$(psexec_dir) \
 	       -I$(top_srcdir)/$(pspmi_dir) \
+	       -I$(top_srcdir)/$(pspmix_dir) \
 	       -I$(top_srcdir)/$(jail_dir)
 AM_CFLAGS += -fcommon
 

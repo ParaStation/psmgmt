@@ -40,6 +40,7 @@
 #include "psmungehandles.h"
 #include "pspamhandles.h"
 #include "pspmihandles.h"
+#include "pspmixhandles.h"
 #include "jailhandles.h"
 
 #include "psslurmalloc.h"
@@ -85,7 +86,7 @@ int oldExceptions = -1;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 117;
+int version = 118;
 int requiredAPI =141;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 5 },
@@ -94,6 +95,7 @@ plugin_dep_t dependencies[] = {
     { .name = "pspam", .version = 3 },
     { .name = "psexec", .version = 2 },
     { .name = "pspmi", .version = 4 },
+    { .name = "pspmix", .version = 3 },
     { .name = "nodeinfo", .version = 1 },
     { .name = "jail", .version = 3 },
     { .name = NULL, .version = 0 } };
@@ -564,6 +566,32 @@ static bool regPsPMIHandles(void)
     return true;
 }
 
+static bool regPsPMIxHandles(void)
+{
+    void *pluginHandle = PSIDplugin_getHandle("pspmix");
+
+    if (!pluginHandle) {
+	mlog("%s: getting pspmix handle failed\n", __func__);
+	return false;
+    }
+
+    psPmixSetFillSpawnTaskFunction =
+	dlsym(pluginHandle, "psPmixSetFillSpawnTaskFunction");
+    if (!psPmixSetFillSpawnTaskFunction) {
+	mlog("%s: loading psPmixSetFillSpawnTaskFunction() failed\n", __func__);
+	return false;
+    }
+
+    psPmixResetFillSpawnTaskFunction =
+	dlsym(pluginHandle, "psPmixResetFillSpawnTaskFunction");
+    if (!psPmixResetFillSpawnTaskFunction) {
+	mlog("%s: loading psPmixResetFillSpawnTaskFunction() failed\n",__func__);
+	return false;
+    }
+
+    return true;
+}
+
 static bool regJailHandles(void)
 {
     void *pluginHandle = PSIDplugin_getHandle("jail");
@@ -596,6 +624,9 @@ static bool initPluginHandles(void)
 
     /* get pspmi function handles */
     if (!regPsPMIHandles()) return false;
+
+    /* get pspmix function handles */
+    if (!regPsPMIxHandles()) return false;
 
     /* get jail function handles */
     if (!regJailHandles()) return false;
