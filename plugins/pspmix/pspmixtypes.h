@@ -216,6 +216,11 @@ typedef struct {
 	return NULL;							\
     }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+
 /* generates findNodeInList(PSnodes_ID_t id, list_t *list) */
 FIND_IN_LIST_FUNC(Node, PspmixNode_t, PSnodes_ID_t, id)
 
@@ -230,6 +235,10 @@ FIND_IN_LIST_FUNC(Reservation, PSresinfo_t, PSrsrvtn_ID_t, resID)
 
 /* generates findClientInList(PSpmixClient_t id, list_t *list) */
 FIND_IN_LIST_FUNC(Client, PspmixClient_t, pmix_rank_t, rank)
+
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
+
 
 /**
  * Information needed to spawn one app from a call to PMIx_Spawn()
