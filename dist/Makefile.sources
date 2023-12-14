@@ -403,6 +403,7 @@ plugins/psaccount/psaccountscript.h \
 plugins/psaccount/psaccounttypes.h \
 plugins/psaccount/scripts/Makefile.am \
 plugins/psaccount/scripts/Makefile.in \
+plugins/psaccount/scripts/ipmi_energymeter_integrate.sh \
 plugins/psaccount/scripts/megware_energymeter.sh \
 plugins/psaccount/scripts/monitor_energy.sh \
 plugins/psaccount/scripts/monitor_filesystem.sh \
