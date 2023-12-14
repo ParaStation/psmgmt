@@ -524,13 +524,15 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
     pendSpawn = NULL;
 }
 
-void pspmix_setFillSpawnTaskFunction(fillerFunc_t spawnFunc)
+/* function to be used by other plugins (e.g. psslurm) */
+void psPmixSetFillSpawnTaskFunction(fillerFunc_t spawnFunc)
 {
     mdbg(PSPMIX_LOG_VERBOSE, "Set specific PMIx fill spawn task function\n");
     fillTaskFunction = spawnFunc;
 }
 
-void pspmix_resetFillSpawnTaskFunction(void)
+/* function to be used by other plugins (e.g. psslurm) */
+void psPmixResetFillSpawnTaskFunction(void)
 {
     mdbg(PSPMIX_LOG_VERBOSE, "Reset PMIx fill spawn task function\n");
     fillTaskFunction = fillWithMpiexec;
@@ -1190,7 +1192,7 @@ void pspmix_initForwarderModule(void)
     if (!pspmix_getFillTaskFunction()) {
 	mdbg(PSPMIX_LOG_VERBOSE, "Setting PMIx default fill spawn task function"
 	     " to fillWithMpiexec()\n");
-	pspmix_resetFillSpawnTaskFunction();
+	psPmixResetFillSpawnTaskFunction();
     } else {
 	mdbg(PSPMIX_LOG_VERBOSE, "PMIx fill spawn task function already set\n");
     }

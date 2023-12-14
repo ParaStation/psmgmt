@@ -21,7 +21,7 @@
  * must be executed there.
  */
 
-/* For documentation of the specific funtions refer to pmitypes.h */
+/* For documentation of the specific funtions refer to pmixtypes.h */
 
 psPmixSetFillSpawnTaskFunction_t *psPmixSetFillSpawnTaskFunction;
 psPmixResetFillSpawnTaskFunction_t *psPmixResetFillSpawnTaskFunction;
