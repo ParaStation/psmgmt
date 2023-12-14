@@ -2907,6 +2907,7 @@ static void fillProcDataArray(pmix_data_array_t *procData,
     PMIX_INFO_LOAD(&infos[i], PMIX_SPAWNED, &spawned, PMIX_BOOL);
     i++;
 
+    /* parent process if this is the result of a call to PMIx_Spawn() */
     if (spawned) {
 	PMIX_INFO_LOAD(&infos[i], PMIX_PARENT_ID, parent, PMIX_PROC);
 	i++;
@@ -2919,13 +2920,10 @@ static void fillProcDataArray(pmix_data_array_t *procData,
     PMIX_INFO_LOAD(&infos[i], PMIX_REINCARNATION, &proc->reinc, PMIX_UINT32);
     i++;
 
-    /* optional infos (PMIx v4.0):
+    /* optional infos (PMIx v4.1 and v5.0):
      *
      * * PMIX_HOSTNAME "pmix.hname" (char*)
      *     Name of the host where the specified process is running.
-     *
-     * * PMIX_PROCID "pmix.procid" (pmix_proc_t)
-     *     Process identifier
      *
      * * PMIX_CPUSET "pmix.cpuset" (char*)
      *     A string representation of the PU binding bitmap applied to the
