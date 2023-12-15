@@ -1073,6 +1073,9 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     /* decide which PMI type to use */
     pmi_type = getPMIType(step);
 
+    /* set PSSLURM_PMI_TYPE in forwarder environment for potential respawns */
+    setPMITypeEnv(pmi_type);
+
     /* build mpiexec et al. argument vector */
     strv_t argV = buildStartArgv(fwdata, pmi_type);
     char **argvP = strvStealArray(argV);

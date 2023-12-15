@@ -1292,6 +1292,23 @@ pmi_type_t getPMIType(Step_t *step)
     return PMI_TYPE_DEFAULT;
 }
 
+void setPMITypeEnv(pmi_type_t pmi_type)
+{
+    char *type = "pmi";  /* still the default */
+    switch(pmi_type) {
+	case PMI_TYPE_NONE:
+	    type = "none";
+	    break;
+	case PMI_TYPE_PMIX:
+	    type = "pmix";
+	    break;
+	case PMI_TYPE_DEFAULT:
+	    break;
+    }
+
+    setenv("PSSLURM_PMI_TYPE", type, 1);
+}
+
 /**
  * @brief Filter variable not foreseen to be user-visible
  *

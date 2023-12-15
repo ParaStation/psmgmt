@@ -146,6 +146,13 @@ void setRankEnv(int32_t rank, Step_t *step);
 pmi_type_t getPMIType(Step_t *step);
 
 /**
+ * @brief Set PSSLURM_PMI_TYPE in the environment of the calling process
+ *
+ * @param pmi_type   value to set
+ */
+void setPMITypeEnv(pmi_type_t pmi_type);
+
+/**
  * @brief Strip environment from user variables
  *
  * Remove all user environment variables which are not relevant

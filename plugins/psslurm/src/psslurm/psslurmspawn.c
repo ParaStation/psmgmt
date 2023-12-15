@@ -274,6 +274,10 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     snprintf(nStr, sizeof(nStr), "%d", task->rank - 1);
     envSet(task->env, "__PSSLURM_SPAWN_RANK", nStr);
 
+    /* make sure to use the same PMI */
+    char *pmitype = getenv("PSSLURM_PMI_TYPE");
+    envSet(task->env, "PSSLURM_PMI_TYPE", pmitype);
+
     /* XXX: Do we need to set further variables as in setRankEnv()
      *      in psslurmforwarder.c? */
 
