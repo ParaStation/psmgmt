@@ -1346,8 +1346,8 @@ static bool userVarFilter(const char *envStr, void *info)
 
     if (pmi_type == PMI_TYPE_PMIX && (
 	    !strncmp(envStr, "PMIX_DEBUG", 10)
-	    || !strncmp(envStr, "PMIX_SPAWNED", 12)
-	    || !strncmp(envStr, "PSPMIX_ENV_TMOUT=", 17))) return false;
+	    || !strncmp(envStr, "PSPMIX_ENV_TMOUT=", 17)
+	    || !strncmp(envStr, "__PMIX_", 7) /* @todo required? */)) return false;
 
     return true;
 }
