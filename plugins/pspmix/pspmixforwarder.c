@@ -425,9 +425,12 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_RANK=%d", srdata->prank);
     strvAdd(&env, ustrdup(tmp));
 
-    /* tell the spawnees the service rank @todo why - 3 */
+    /* tell the service rank to the kvsprovider    @todo why - 3 */
     snprintf(tmp, sizeof(tmp), "__PMI_SPAWN_SERVICE_RANK=%d", serviceRank - 3);
     strvAdd(&env, ustrdup(tmp));
+
+    /* set common PMI_SPAWNED used by psslurm to detect respawns */
+    strvAdd(&env, ustrdup("PMI_SPAWNED=1"));
 
     ufree(task->environ);
     task->environ = env.strings;
