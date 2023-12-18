@@ -710,9 +710,8 @@ static PStask_t * createSpawnTask(char *workDir, PStask_group_t taskGroup,
  * before return
  *
  * @return Upon success, the number of received ansers is returned.
- * Usually this is @a count unless @a awaitAllAnswers is
- * set. Otherwise a negative value is returned which indicates the
- * number of answer got from spawn requests. In case of a fatal error
+ * Usually this is @a count if @a awaitAllAnswers is set or the number
+ * of answers received during this call. In case of detecting an error
  * -1 is returned.
  */
 static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
@@ -796,7 +795,7 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
 	}
     }/* for all new tasks */
 
-    if (!awaitAllAnswers) return error ? -ret : ret;
+    if (!awaitAllAnswers) return error ? -1 : ret;
 
     /* collect expected answers */
     while (thisBucket->expected > 0) {
@@ -822,7 +821,7 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
 	}
     }
 
-    return error ? -ret : ret;
+    return error ? -1 : ret;
 }
 
 int PSI_spawn(int count, char *workdir, int argc, char **argv, int *errors)
