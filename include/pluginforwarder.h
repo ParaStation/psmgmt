@@ -53,7 +53,8 @@ typedef struct __fwData__ {
     pid_t cSid;            /**< Session ID of forwarder's child if any */
     int32_t fwExitStatus;  /**< Forwarder's exit status (only available in cb)*/
     bool exitRcvd;         /**< Flag chldExitStatus as valid */
-    int32_t chldExitStatus;/**< Child's exit status */
+    int32_t chldExitStatus;/**< Child's exit status (only available in cb
+			        and hookFinalize in fw) */
     bool codeRcvd;         /**< Flag hookExitCode as valid */
     int32_t hookExitCode;  /**< Child's hook exit code (only available in cb) */
     int stdIn[2];          /**< stdIn provided to forwarder's child */
