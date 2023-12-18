@@ -735,7 +735,7 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
     }
 
     if ((!bucket || !bucket->errors) && !errors) {
-	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	PSI_log(-1, "%s: unable to report errors\n", __func__);
 	return -1;
     }
 
