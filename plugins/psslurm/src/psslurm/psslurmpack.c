@@ -208,7 +208,6 @@ bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
 
     char **ptr = &sMsg->ptr;
     Slurm_Auth_t *auth = umalloc(sizeof(Slurm_Auth_t));
-    uint16_t msgVer = sMsg->head.version;
 
     getUint32(ptr, &auth->pluginID);
     auth->cred = NULL;
@@ -1096,10 +1095,8 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     getUint32(ptr, &req->jobstate);
     /* user ID */
     getUint32(ptr, &req->uid);
-    if (msgVer >= SLURM_20_02_PROTO_VERSION) {
-	/* group ID */
-	getUint32(ptr, &req->gid);
-    }
+    /* group ID */
+    getUint32(ptr, &req->gid);
     /* nodes */
     req->nodes = getStringM(ptr);
 
