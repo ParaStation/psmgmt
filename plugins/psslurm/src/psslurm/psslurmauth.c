@@ -134,7 +134,7 @@ Slurm_Auth_t *getSlurmAuth(Slurm_Msg_Header_t *head, char *body,
 			   uint32_t bodyLen)
 {
     Slurm_Msg_Hash_t credHash = {0};
-    if (slurmProto >= SLURM_22_05_PROTO_VERSION) {
+    if (slurmProto > SLURM_21_08_PROTO_VERSION) {
 	uint16_t msgType = htons(head->type);
 
 	/* calculate k12 hash from message payload */
@@ -208,7 +208,7 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 
     /* verify message hash */
     uint16_t msgType = sMsg->head.type;
-    if (sMsg->head.version >= SLURM_22_05_PROTO_VERSION) {
+    if (sMsg->head.version > SLURM_21_08_PROTO_VERSION) {
 	msgType = htons(msgType);
     }
 

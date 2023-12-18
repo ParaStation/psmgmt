@@ -1055,7 +1055,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 
     Connection_t *con = findConnection(sock);
     Slurm_Auth_t *auth = NULL;
-    if (slurmProto >= SLURM_23_02_PROTO_VERSION &&
+    if (slurmProto > SLURM_22_05_PROTO_VERSION &&
 	sock >= 0 && con && con->authByInMsg) {
 	/* if the connection was verified before, the authentication can
 	 * be skipped for the response */
@@ -1728,7 +1728,7 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
     }
 
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
-    if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_11_PROTO_VERSION) {
 	/* add placeholder for length */
 	addUint32ToMsg(0, &data);
 	/* Slurm protocol */
@@ -1768,7 +1768,7 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 	addUint32ToMsg(step->globalTaskIdsLen[nodeID], &data);
     }
 
-    if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_11_PROTO_VERSION) {
 	/* full signature is now the I/O key */
 	addStringToMsg(sig, &data);
 	/* update length *without* the length itself */

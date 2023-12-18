@@ -105,7 +105,7 @@ static void packStepHead(void *head, PS_SendDB_t *data)
 {
     Slurm_Step_Head_t *stepH = head;
 
-    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
 	addUint32ToMsg(stepH->jobid, data);
 	addUint32ToMsg(stepH->stepid, data);
 	addUint32ToMsg(stepH->stepHetComp, data);
@@ -151,7 +151,7 @@ static bool __unpackStepHead(char **ptr, void *head, uint16_t msgVer,
 	return false;
     }
 
-    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
 	getUint32(ptr, &stepH->jobid);
 	getUint32(ptr, &stepH->stepid);
 	getUint32(ptr, &stepH->stepHetComp);
@@ -346,7 +346,7 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index, uint16_t msgVer)
     /* memory per GRes */
     getUint64(ptr, &gres->memPerGRes);
     /* number of tasks per GRes */
-    if (msgVer >= SLURM_20_11_PROTO_VERSION) {
+    if (msgVer > SLURM_20_02_PROTO_VERSION) {
 	getUint16(ptr, &gres->numTasksPerGres);
     } else {
 	gres->numTasksPerGres = NO_VAL16;
@@ -516,7 +516,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* count of specialized cores */
     getUint16(ptr, &cred->jobCoreSpec);
 
-    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+    if (msgVer > SLURM_21_08_PROTO_VERSION) {
 	cred->jobAccount = getStringM(ptr);
 	cred->jobAliasList = getStringM(ptr);
 	cred->jobComment = getStringM(ptr);
@@ -531,17 +531,17 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* job constraints */
     cred->jobConstraints = getStringM(ptr);
 
-    if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+    if (msgVer > SLURM_22_05_PROTO_VERSION) {
 	getTime(ptr, &cred->jobEndTime);
 	cred->jobExtra = getStringM(ptr);
 	getUint16(ptr, &cred->jobOversubscribe);
     }
 
-    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+    if (msgVer > SLURM_21_08_PROTO_VERSION) {
 	cred->jobPartition = getStringM(ptr);
 	cred->jobReservation = getStringM(ptr);
 	getUint16(ptr, &cred->jobRestartCount);
-	if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+	if (msgVer > SLURM_22_05_PROTO_VERSION) {
 	    getTime(ptr, &cred->jobStartTime);
 	}
 	cred->jobStderr = getStringM(ptr);
@@ -597,7 +597,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 	}
     }
 
-    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+    if (msgVer > SLURM_21_08_PROTO_VERSION) {
 	getUint32(ptr, &cred->cpuArrayCount);
 	if (cred->cpuArrayCount) {
 	    uint32_t len;
@@ -619,7 +619,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* job number of hosts */
     getUint32(ptr, &cred->jobNumHosts);
 
-    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+    if (msgVer > SLURM_21_08_PROTO_VERSION) {
 	/* job number of tasks */
 	getUint32(ptr, &cred->jobNumTasks);
     }
@@ -627,11 +627,11 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* job hostlist */
     cred->jobHostlist = getStringM(ptr);
 
-    if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+    if (msgVer > SLURM_22_05_PROTO_VERSION) {
 	cred->jobLicenses = getStringM(ptr);
     }
 
-    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+    if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	/* job memory allocation size */
 	getUint32(ptr, &cred->jobMemAllocSize);
 
@@ -714,7 +714,7 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     /* pack jobid */
     getUint32(ptr, &cred->packJobid);
 
-    if (msgVer >= SLURM_20_11_PROTO_VERSION) {
+    if (msgVer > SLURM_20_02_PROTO_VERSION) {
 	/* stepid */
 	getUint32(ptr, &cred->stepid);
     } else {
@@ -780,7 +780,7 @@ bool __unpackSlurmHeader(char **ptr, Slurm_Msg_Header_t *head,
     }
     getUint16(ptr, &head->returnList);
 
-    if (head->version >= SLURM_20_11_PROTO_VERSION) {
+    if (head->version > SLURM_20_02_PROTO_VERSION) {
 	getUint16(ptr, &head->addrFamily);
 
 	if(head->addrFamily == AF_INET) {
@@ -902,7 +902,7 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 	}
     }
 
-    if (head->version >= SLURM_20_11_PROTO_VERSION) {
+    if (head->version > SLURM_20_02_PROTO_VERSION) {
 	/* address family to IPv4 for now */
 	addUint16ToMsg(AF_INET, data);
 	/* addr/port */
@@ -1059,7 +1059,7 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     char **ptr = &sMsg->ptr;
 
     INIT_LIST_HEAD(&req->gresJobList);
-    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+    if (msgVer > SLURM_21_08_PROTO_VERSION) {
 	uint8_t hasCred;
 	getUint8(ptr, &hasCred);
 
@@ -1083,7 +1083,7 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     }
 
     /* unpack job/step head */
-    if (msgVer >= SLURM_20_11_PROTO_VERSION) {
+    if (msgVer > SLURM_20_02_PROTO_VERSION) {
 	unpackStepHead(ptr, req, msgVer);
     } else {
 	/* jobid */
@@ -1118,7 +1118,7 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     /* slurmctld request time */
     getTime(ptr, &req->requestTime);
 
-    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+    if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	/* job working directory */
 	req->workDir = getStringM(ptr);
     }
@@ -1154,7 +1154,7 @@ bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
     /* unpack jobid/stepid */
     unpackStepHead(ptr, req, msgVer);
 
-    if (msgVer >= SLURM_20_11_PROTO_VERSION) {
+    if (msgVer > SLURM_20_02_PROTO_VERSION) {
 	/* flags */
 	getUint16(ptr, &req->flags);
     }
@@ -1207,7 +1207,7 @@ static bool unpackStepAddr(Step_t *step, char **ptr, uint16_t msgVer)
     }
 
     /* srun address and port */
-    if (msgVer >= SLURM_20_11_PROTO_VERSION) {
+    if (msgVer > SLURM_20_02_PROTO_VERSION) {
 	/* address family (IPV4/IPV6) */
 	uint16_t addrFamily;
 	getUint16(ptr, &addrFamily);
@@ -1350,7 +1350,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     /* pack nodelist */
     step->packHostlist = getStringM(ptr);
 
-    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+    if (msgVer > SLURM_21_08_PROTO_VERSION) {
 	/* MPI plugin ID */
 	getUint32(ptr, &step->mpiPluginID);
     }
@@ -1361,7 +1361,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     getUint16(ptr, &step->numTasksPerBoard);
     /* number of tasks per core */
     getUint16(ptr, &step->numTasksPerCore);
-    if (msgVer >= SLURM_20_11_PROTO_VERSION) {
+    if (msgVer > SLURM_20_02_PROTO_VERSION) {
 	/* number of tasks per TRes */
 	getUint16(ptr, &step->numTasksPerTRes);
     }
@@ -1385,12 +1385,12 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     /* CPUs per tasks */
     getUint16(ptr, &step->tpp);
 
-    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+    if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	/* TRes per task */
 	step->tresPerTask = getStringM(ptr);
     }
 
-    if (msgVer >= SLURM_20_11_PROTO_VERSION) {
+    if (msgVer > SLURM_20_02_PROTO_VERSION) {
 	/* threads per core */
 	getUint16(ptr, &step->threadsPerCore);
     }
@@ -1404,7 +1404,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     /* accelerator bind type */
     getUint16(ptr, &step->accelBindType);
 
-    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+    if (msgVer > SLURM_21_08_PROTO_VERSION) {
 	/* unkown why there is an extra version field now */
 	uint16_t credVer;
 	getUint16(ptr, &credVer);
@@ -1416,7 +1416,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* job credentials */
-    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+    if (msgVer > SLURM_21_08_PROTO_VERSION) {
 	step->cred = extractJobCred(&step->gresList, sMsg, false);
     } else {
 	step->cred = extractJobCred(&step->gresList, sMsg, true);
@@ -1450,7 +1450,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     /* spank env */
     getStringArrayM(ptr, &step->spankenv.vars, &step->spankenv.cnt);
 
-    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+    if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	/* container path */
 	step->container = getStringM(ptr);
     }
@@ -1662,7 +1662,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* acctg freq */
     job->acctFreq = getStringM(ptr);
 
-    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+    if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	/* container */
 	job->container = getStringM(ptr);
     }
@@ -1721,7 +1721,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     getUint64(ptr, &job->memLimit);
 
 
-    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+    if (msgVer > SLURM_21_08_PROTO_VERSION) {
 	/* unkown why there is an extra version field now */
 	uint16_t credVer;
 	getUint16(ptr, &credVer);
@@ -1733,7 +1733,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
 
     /* job credential */
-    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+    if (msgVer > SLURM_21_08_PROTO_VERSION) {
 	job->cred = extractJobCred(&job->gresList, sMsg, false);
     } else {
 	job->cred = extractJobCred(&job->gresList, sMsg, true);
@@ -2007,7 +2007,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     AccountDataExt_t *accData = &slurmAccData->psAcct;
 
     /* user CPU sec/usec */
-    if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_11_PROTO_VERSION) {
 	addUint64ToMsg(accData->rusage.ru_utime.tv_sec, data);
     } else {
 	if (accData->rusage.ru_utime.tv_sec > NO_VAL) {
@@ -2019,7 +2019,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     addUint32ToMsg(accData->rusage.ru_utime.tv_usec, data);
 
     /* system CPU sec/usec */
-    if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_11_PROTO_VERSION) {
 	addUint64ToMsg(accData->rusage.ru_stime.tv_sec, data);
     } else {
 	if (accData->rusage.ru_stime.tv_sec > NO_VAL) {
@@ -2056,7 +2056,7 @@ bool packGresConf(Gres_Conf_t *gres, void *info)
     addUint32ToMsg(getConfValueI(Config, "SLURM_CPUS"), msg);
 
     /* GRES flags (e.g. GRES_CONF_HAS_FILE) */
-    if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_11_PROTO_VERSION) {
 	addUint32ToMsg(gres->flags, msg);
     } else {
 	addUint8ToMsg(gres->flags, msg);
@@ -2069,7 +2069,7 @@ bool packGresConf(Gres_Conf_t *gres, void *info)
     addStringToMsg(gres->name, msg);
     addStringToMsg(gres->type, msg);
 
-    if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_11_PROTO_VERSION) {
 	/* unique ID (GPU binding with MICs) */
 	addStringToMsg(NULL, msg);
     }
@@ -2132,7 +2132,7 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     addStringToMsg(NULL, data);
     addStringToMsg(NULL, data);
 
-    if (slurmProto >= SLURM_22_05_PROTO_VERSION) {
+    if (slurmProto > SLURM_21_08_PROTO_VERSION) {
 	/* hostname */
 	addStringToMsg(stat->nodeName, data);
     }
@@ -2170,7 +2170,7 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     /* job infos */
     addUint32ToMsg(stat->jobInfoCount, data);
 
-    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
 	for (uint32_t i=0; i<stat->jobInfoCount; i++) {
 	    addUint32ToMsg(stat->jobids[i], data);
 	    addUint32ToMsg(stat->stepids[i], data);
@@ -2201,11 +2201,11 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     /* protocol version */
     addStringToMsg(stat->verStr, data);
 
-    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
 	/* dynamic node */
 	addUint8ToMsg(stat->dynamic, data);
 
-	if (slurmProto >= SLURM_22_05_PROTO_VERSION) {
+	if (slurmProto > SLURM_21_08_PROTO_VERSION) {
 	    /* dynamic node feature */
 	    addStringToMsg(stat->dynamicConf, data);
 	}
@@ -2529,7 +2529,7 @@ static bool unpackExtRespNodeReg(Slurm_Msg_t *sMsg)
     }
 
     uint16_t msgVer = sMsg->head.version;
-    if (msgVer >= SLURM_20_11_PROTO_VERSION) {
+    if (msgVer > SLURM_20_02_PROTO_VERSION) {
 	resp->nodeName = getStringM(ptr);
     }
 
@@ -2584,7 +2584,7 @@ static bool unpackConfigMsg(Slurm_Msg_t *sMsg)
     uint16_t msgVer = sMsg->head.version;
     Config_Msg_t *req = ucalloc(sizeof(*req));
 
-    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+    if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	getUint32(ptr, &req->numFiles);
 
 	if (req->numFiles == NO_VAL) {
@@ -2910,7 +2910,7 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
     /* last update */
     getTime(ptr, &resp->lastUpdate);
 
-    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+    if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	/* last backfill time */
 	getTime(ptr, &resp->lastBackfill);
     }
@@ -2934,7 +2934,7 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 	/* association ID for job */
 	getUint32(ptr, &rec->assocID);
 
-	if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+	if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	    /* job container, will be overwritten later,
 	     * unclear why this was introduced */
 	    char *tmp = getStringM(ptr);
@@ -2942,7 +2942,7 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 	}
 
 	/* container ID */
-	if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+	if (msgVer > SLURM_22_05_PROTO_VERSION) {
 	    rec->containerID = getStringM(ptr);
 	}
 
@@ -2950,7 +2950,7 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 	getUint32(ptr, &rec->delayBoot);
 
 	/* failed node */
-	if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+	if (msgVer > SLURM_22_05_PROTO_VERSION) {
 	    rec->failedNode = getStringM(ptr);
 	}
 
@@ -2974,7 +2974,7 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 	getUint16(ptr, &rec->batchFlag);
 
 	/* state reason */
-	if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+	if (msgVer > SLURM_22_05_PROTO_VERSION) {
 	    getUint32(ptr, &rec->stateReason);
 	} else {
 	    getUint16(ptr, &rec->stateReason);
@@ -3044,7 +3044,7 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 	rec->comment = getStringM(ptr);
 
 	/* extra */
-	if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+	if (msgVer > SLURM_22_05_PROTO_VERSION) {
 	    rec->extra = getStringM(ptr);
 	}
 
@@ -3181,7 +3181,7 @@ static bool packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req)
     /* jobid */
     addUint32ToMsg(req->jobid, data);
 
-    if (slurmProto >= SLURM_22_05_PROTO_VERSION) {
+    if (slurmProto > SLURM_21_08_PROTO_VERSION) {
 	/* node name */
 	addStringToMsg(getConfValueC(Config, "SLURM_HOSTNAME"), data);
     }
@@ -3255,7 +3255,7 @@ bool packReqJobRequeue(PS_SendDB_t *data, Req_Job_Requeue_t *req)
  */
 static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req)
 {
-    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
 	/* step header */
 	packStepHead(req, data);
 	/* jobid as string*/
@@ -3305,14 +3305,14 @@ static bool packReqEpilogComplete(PS_SendDB_t *data, Req_Epilog_Complete_t *req)
  */
 bool packReqUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update)
 {
-    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
 	/* comment */
 	addStringToMsg(update->comment, data);
     }
     /* default cpu bind type */
     addUint32ToMsg(update->cpuBind, data);
 
-    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
+    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
 	/* arbitrary */
 	addStringToMsg(update->extra, data);
     }
