@@ -547,7 +547,7 @@ static void setStepMemLimits(Step_t *step)
 
     JobCred_t *cred = step->cred;
 
-    if (step->jobMemLimit == NO_VAL64 && cred->jobMemAllocSize) {
+    if (step->jobMemLimit == NO_VAL64) {
 	uint32_t i = 0, idx = 0;
 	while (i < cred->jobMemAllocSize
 	       && idx + cred->jobMemAllocRepCount[i] <= step->localNodeId)
@@ -562,7 +562,7 @@ static void setStepMemLimits(Step_t *step)
 	     Step_strID(step));
     }
 
-    if (step->stepMemLimit == NO_VAL64 && cred->stepMemAllocSize) {
+    if (step->stepMemLimit == NO_VAL64) {
 	uint32_t i = 0, idx = 0;
 	while (i < cred->stepMemAllocSize
 	       && idx + cred->stepMemAllocRepCount[i] <= step->localNodeId)
