@@ -1729,7 +1729,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 	mlog("%s: mismatching envc %u : %u\n", __func__, count, job->env.cnt);
 	goto ERROR;
     }
-    /* TODO use job memory limit */
+    /* use job memory limit */
     getUint64(ptr, &job->memLimit);
 
 
@@ -1759,7 +1759,9 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 	/* overwrite empty memory limit */
 	if (!job->memLimit) job->memLimit = job->cred->jobMemLimit;
     } else {
-	job->memLimit = job->cred->jobMemAlloc[0];
+	if (job->cred->jobMemAllocSize) {
+	    job->memLimit = job->cred->jobMemAlloc[0];
+	}
     }
 
     if (msgVer < SLURM_23_02_PROTO_VERSION) {
