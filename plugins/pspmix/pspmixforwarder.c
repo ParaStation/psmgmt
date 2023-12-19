@@ -11,7 +11,7 @@
 /**
  * @file Implementation of all functions running in the forwarders
  *
- * Two jobs are done in the forwarders:
+ * Three jobs are done in the forwarders:
  * - Before forking the client, wait for the environment sent by the
  *   PMIx server and set it for the client.
  * - Manage the initialization state (in PMIx sense) of the client to correctly
@@ -19,9 +19,12 @@
  *   (This task is historically done in the psid forwarder and actually means
  *    an unnecessary indirection (PMIx server <-> PSID Forwarder <-> PSID).
  *    @todo Think about getting rid of that.)
+ * - Handling spawn requests initiated by the client of the forwarder by a call
+ *   of PMIx_Spawn().
  */
 #include "pspmixforwarder.h"
 
+#include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -38,11 +41,15 @@
 #include "psprotocol.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
+#include "pstask.h"
 
 #include "psidcomm.h"
 #include "psidforwarder.h"
 #include "psidhook.h"
+
 #include "pluginconfig.h"
+#include "pluginmalloc.h"
+#include "pluginstrv.h"
 
 #include "pspmixconfig.h"
 #include "pspmixcommon.h"
@@ -51,13 +58,225 @@
 #include "pspmixdaemon.h"
 
 /* psid rank of this forwarder and child */
-static int32_t rank;
+static int32_t rank = -1;
+
+/* PMIx process identifier for the child */
+static pmix_proc_t myproc;
 
 /* task structure of this forwarders child */
 static PStask_t *childTask = NULL;
 
 /* PMIx initialization status of the child */
 PSIDhook_ClntRls_t pmixStatus = IDLE;
+
+typedef struct {
+    PStask_ID_t pmixServer;
+    uint16_t spawnID;
+} SpawnReqData_t;
+
+
+/* convenient logging functions */
+/* These are only meaningful between the client init and finalize messages
+ * so iff pmixStatus == CONNECTED, since myproc needs to be valid */
+#if defined __GNUC__ && __GNUC__ < 8
+#define pdbg(mask, format, ...)						     \
+    mdbg(mask, "%s(%s:%d): " format, __func__, myproc.nspace, myproc.rank,   \
+	 ##__VA_ARGS__)
+#else
+#define pdbg(mask, format, ...)						     \
+    mdbg(mask, "%s(%s:%d): " format, __func__, myproc.nspace, myproc.rank    \
+	  __VA_OPT__(,) __VA_ARGS__)
+#endif
+
+#define plog(...) pdbg(-1, __VA_ARGS__)
+
+/* These can be used always */
+#if defined __GNUC__ && __GNUC__ < 8
+#define rdbg(mask, format, ...)						    \
+    mdbg(mask, "%s(r%d): " format, __func__, rank, ##__VA_ARGS__)
+#define rwarn(eno, format, ...)						    \
+    mwarn(eno, "%s(r%d): " format, __func__, rank, ##__VA_ARGS__)
+#else
+#define rdbg(mask, format, ...)						    \
+    mdbg(mask, "%s(r%d): " format, __func__, rank __VA_OPT__(,) __VA_ARGS__)
+#define rwarn(eno, format, ...)						    \
+    mwarn(eno, "%s(r%d): " format, __func__, rank __VA_OPT__(,) __VA_ARGS__)
+#endif
+
+#define rlog(...) rdbg(-1, __VA_ARGS__)
+
+/* ****************************************************** *
+ *                Spawn handling functions                *
+ * ****************************************************** */
+
+/* spawn functions */
+static fillerFunc_t *fillTaskFunction = NULL;
+
+/** Generic static buffer */
+static char buffer[1024];
+
+/** SpawnRequest to be handled when logger returns service rank */
+static SpawnRequest_t *pendSpawn = NULL;
+
+/**
+ * @brief Spawn one or more processes
+ *
+ * We first need the next rank for the new service process to
+ * start. Only the logger knows that. So we ask it and buffer
+ * the spawn request to wait for an answer.
+ *
+ * @see handleServiceInfo()
+ *
+ * @param req Spawn request data structure (takes ownership)
+ *
+ * @return Returns true on success and false on error
+ */
+static bool doSpawn(SpawnRequest_t *req)
+{
+    if (pendSpawn) {
+	plog("another spawn is pending\n");
+	return false;
+    }
+
+    pendSpawn = copySpawnRequest(req);
+
+    plog("trying to spawn job with %d apps\n", pendSpawn->num);
+
+    /* get next service rank from logger */
+    if (PSLog_write(childTask->loggertid, SERV_TID, NULL, 0) < 0) {
+	plog("writing to logger failed\n");
+	return false;
+    }
+
+    return true;
+}
+
+static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
+{
+    /* @todo implement */
+    return 0;
+}
+
+/**
+ * @brief Actually try to execute the spawn
+ *
+ * This function is called once we received a service rank to use from the
+ * job's logger. It triggers the actual spawn.
+ *
+ * It uses @a fillTaskFunction to setup a command, that will lead to a new
+ * job containing the given applications. Usually this will call @a mpiexec
+ * directly or use a different resource manager command like Slurm's @a srun
+ * which will later trigger @a psslurm to execute @a mpiexec.
+ *
+ * @param req           spawn request to execute
+ * @param serviceRank   service rank to use
+ *
+ * @return True on success, false on error
+ */
+bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
+{
+    int usize = 0;
+    /* @todo calc usize */
+
+    PStask_t *task = NULL;
+    /* @todo init task */
+
+    int ret = fillTaskFunction(req, usize, task);
+    if (!ret) {
+	freeSpawnRequest(req);
+	/* @todo make sure freeSpawnRequest does not free stuff in apps */
+	return false;
+    }
+
+
+    /* @todo spawn task */
+
+    freeSpawnRequest(req);
+
+    return true;
+}
+
+/**
+ * @brief Send message of type PSPMIX_CLIENT_SPAWN_RES back to the PMIx server
+ *
+ * @param targetTID   TID of the PMIx server
+ * @param result      status: 1 means success, 0 means fail
+ * @param spawnID     ID of the spawn transmitted by the PMIx server with the
+ *                    spawn request
+ *
+ * @return Returns true on success, false on error
+ */
+static bool sendSpawnResp(PStask_ID_t targetTID, uint8_t result, uint16_t spawnID)
+{
+    rdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
+	 "(targetTID %s spawnid %hu result %d)\n",
+	 PSC_printTID(targetTID), spawnID, result);
+
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_CLIENT_SPAWN_RES);
+    setFragDest(&msg, targetTID);
+
+    addUint16ToMsg(spawnID, &msg);
+    addUint8ToMsg(result, &msg);
+
+    if (sendFragMsg(&msg) < 0) {
+	plog("Sending PSPMIX_CLIENT_SPAWN_RES (spawnID %hu result %d)"
+	     " to %s failed\n", spawnID, result, PSC_printTID(targetTID));
+	return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Extract the next service rank and try to continue spawning
+ *
+ * @param msg Logger message to handle
+ *
+ * @return No return value
+ */
+static void handleServiceInfo(PSLog_Msg_t *msg)
+{
+    int serviceRank = *(int32_t *)msg->buf;
+
+    /* @todo support multiple concurrent pendSpawn? */
+    if (!pendSpawn) {
+	plog("spawn failed, no pending spawn request\n");
+	return;
+    }
+
+    SpawnReqData_t *srdata = pendSpawn->data;
+
+    /* try to do the spawn */
+    if (tryPMIxSpawn(pendSpawn, serviceRank)) {
+	plog("spaw executed successfully\n");
+	sendSpawnResp(srdata->pmixServer, 1, srdata->spawnID);
+    } else {
+	plog("spaw failed\n");
+	sendSpawnResp(srdata->pmixServer, 0, srdata->spawnID);
+    }
+
+    /* cleanup */
+    ufree(pendSpawn->data);
+    freeSpawnRequest(pendSpawn);
+    pendSpawn = NULL;
+}
+
+void pspmix_setFillSpawnTaskFunction(fillerFunc_t spawnFunc)
+{
+    mdbg(PSPMIX_LOG_VERBOSE, "Set specific PMIx fill spawn task function\n");
+    fillTaskFunction = spawnFunc;
+}
+
+void pspmix_resetFillSpawnTaskFunction(void)
+{
+    mdbg(PSPMIX_LOG_VERBOSE, "Reset PMIx fill spawn task function\n");
+    fillTaskFunction = fillWithMpiexec;
+}
+
+fillerFunc_t * pspmix_getFillTaskFunction(void) {
+    return fillTaskFunction;
+}
+
 
 /* ****************************************************** *
  *                 Send/Receive functions                 *
@@ -72,15 +291,14 @@ PSIDhook_ClntRls_t pmixStatus = IDLE;
  */
 static bool sendRegisterClientMsg(PStask_t *clientTask)
 {
-    mdbg(PSPMIX_LOG_COMM, "%s(r%d): Send register client message for rank %d\n",
-	 __func__, rank, clientTask->rank);
+    rdbg(PSPMIX_LOG_COMM, "Send register client message for rank %d\n",
+	 clientTask->rank);
 
     PStask_ID_t myTID = PSC_getMyTID();
 
     PStask_ID_t serverTID = pspmix_daemon_getServerTID(clientTask->uid);
     if (serverTID < 0) {
-	mlog("%s(r%d): Failed to get PMIx server TID (uid %d)\n", __func__,
-	     rank, clientTask->uid);
+	rlog("Failed to get PMIx server TID (uid %d)\n", clientTask->uid);
 	return false;
     }
 
@@ -104,16 +322,14 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
     PSP_putTypedMsgBuf(&msg, "uid", &clientTask->uid, sizeof(clientTask->uid));
     PSP_putTypedMsgBuf(&msg, "gid", &clientTask->gid, sizeof(clientTask->gid));
 
-    mdbg(PSPMIX_LOG_COMM, "%s(r%d): Send message for %s\n", __func__, rank,
-	 PSC_printTID(serverTID));
+    rdbg(PSPMIX_LOG_COMM, "Send message for %s\n", PSC_printTID(serverTID));
 
     /* Do not use sendDaemonMsg() here since forwarder is not yet initialized */
     ssize_t ret = PSCio_sendF(clientTask->fd, &msg, msg.header.len);
     if (ret < 0) {
-	mwarn(errno, "%s(r%d): Send msg to %s", __func__, rank,
-	      PSC_printTID(serverTID));
+	rwarn(errno, "Send msg to %s", PSC_printTID(serverTID));
     } else if (!ret) {
-	mlog("%s(r%d): Lost connection to daemon\n", __func__, rank);
+	rlog("Lost connection to daemon\n");
     }
     return ret > 0;
 }
@@ -132,14 +348,14 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getStringArrayM(data, &envP, NULL);
     env_t env = envNew(envP);
 
-    mdbg(PSPMIX_LOG_COMM, "%s(r%d): Setting environment:\n", __func__, rank);
+    rdbg(PSPMIX_LOG_COMM, "Setting environment:\n");
     for (uint32_t i = 0; i < envSize(env); i++) {
 	char *envStr = envDumpIndex(env, i);
 	if (putenv(envStr) != 0) {
-	    mwarn(errno, "%s(r%d): set env '%s'", __func__, rank, envStr);
+	    rwarn(errno, "set env '%s'", envStr);
 	    continue;
 	}
-	mdbg(PSPMIX_LOG_COMM, "%s(r%d): %d %s\n", __func__, rank, i, envStr);
+	rdbg(PSPMIX_LOG_COMM, "%d %s\n", i, envStr);
     }
     envSteal(env);
 
@@ -155,25 +371,23 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  */
 static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(r%d timeout %lu us)\n", __func__, rank,
+    rdbg(PSPMIX_LOG_CALL, "(timeout %lu us)\n",
 	 (unsigned long)(timeout.tv_sec * 1000 * 1000 + timeout.tv_usec));
 
     while (!environmentReady) {
 	DDTypedBufferMsg_t msg;
 	ssize_t ret = PSCio_recvMsgT(daemonfd, &msg, &timeout);
 	if (ret < 0) {
-	    mwarn(errno, "%s(r%d): Error receiving environment message",
-		  __func__, rank);
+	    rwarn(errno, "Error receiving environment message");
 	    return false;
 	}
 	else if (ret == 0) {
-	    mlog("%s(r%d): Timeout while receiving environment message\n",
-		 __func__, rank);
+	    rlog("Timeout while receiving environment message\n");
 	    return false;
 	}
 	else if (ret != msg.header.len) {
-	    mlog("%s(r%d): Unknown error receiving environment message: read"
-		    " %ld len %hu\n", __func__, rank, ret, msg.header.len);
+	    rlog("Unknown error receiving environment message: read %ld"
+		 " len %hu\n", ret, msg.header.len);
 	    return false;
 	}
 
@@ -184,11 +398,10 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout)
 }
 
 static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
-				 const char *nspace, pmix_rank_t rank)
+				 const char *nspace, pmix_rank_t pmixrank)
 {
-    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
-	 "%s(r%d targetTID %s type %s nspace %s rank %u)\n", __func__,
-	 rank, PSC_printTID(targetTID), pspmix_getMsgTypeString(type),
+    rdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "(targetTID %s type %s nspace %s"
+	 " rank %u)\n", PSC_printTID(targetTID), pspmix_getMsgTypeString(type),
 	 nspace, rank);
 
     PS_SendDB_t msg;
@@ -197,11 +410,11 @@ static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
 
     addUint8ToMsg(1, &msg);
     addStringToMsg(nspace, &msg);
-    addUint32ToMsg(rank, &msg);
+    addUint32ToMsg(pmixrank, &msg);
 
     if (sendFragMsg(&msg) < 0) {
-	mlog("%s: Sending %s (nspace %s rank %u) to %s failed\n", __func__,
-	     pspmix_getMsgTypeString(type), nspace, rank,
+	plog("Sending %s (nspace %s rank %u) to %s failed\n",
+	     pspmix_getMsgTypeString(type), nspace, pmixrank,
 	     PSC_printTID(targetTID));
 	return false;
     }
@@ -216,22 +429,20 @@ static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
  */
 static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    rdbg(PSPMIX_LOG_CALL, "(msg %p data %p)\n", msg, data);
 
-    pmix_proc_t proc;
-    PMIX_PROC_CONSTRUCT(&proc);
-    getString(data, proc.nspace, sizeof(proc.nspace));
-    getUint32(data, &proc.rank);
+    PMIX_PROC_CONSTRUCT(&myproc);
+    getString(data, myproc.nspace, sizeof(myproc.nspace));
+    getUint32(data, &myproc.rank);
 
-    mdbg(PSPMIX_LOG_COMM, "%s(r%d): Handling client initialized message for"
-	 " %s:%d\n", __func__, rank, proc.nspace, proc.rank);
+    rdbg(PSPMIX_LOG_COMM, "Handling client initialized message for %s:%d\n",
+	 myproc.nspace, myproc.rank);
 
     pmixStatus = CONNECTED;
 
     /* send response */
     sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_INIT_RES,
-			 proc.nspace, proc.rank);
-    PMIX_PROC_DESTRUCT(&proc);
+			 myproc.nspace, myproc.rank);
 }
 
 /**
@@ -247,15 +458,21 @@ static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  */
 static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    rdbg(PSPMIX_LOG_CALL, "(msg %p data %p)\n", msg, data);
 
     pmix_proc_t proc;
     PMIX_PROC_CONSTRUCT(&proc);
     getString(data, proc.nspace, sizeof(proc.nspace));
     getUint32(data, &proc.rank);
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s from namespace %s rank %d\n",
-	 __func__, pspmix_getMsgTypeString(msg->type), proc.nspace, proc.rank);
+    pdbg(PSPMIX_LOG_COMM, "received %s from namespace %s rank %d\n",
+	 pspmix_getMsgTypeString(msg->type), proc.nspace, proc.rank);
+
+    if (strcmp(proc.nspace, myproc.nspace) || proc.rank != myproc.rank) {
+	plog("proc info does not match (%s:%d != %s:%d)\n", proc.nspace,
+	     proc.rank, myproc.nspace, myproc.rank);
+	return;
+    }
 
     pmixStatus = RELEASED;
 
@@ -263,6 +480,133 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES,
 			 proc.nspace, proc.rank);
     PMIX_PROC_DESTRUCT(&proc);
+    PMIX_PROC_DESTRUCT(&myproc);
+}
+
+/**
+ * @brief Handle messages of type PSPMIX_CLIENT_SPAWN
+ *
+ * Handle request to spawn new processes received from the user server. This
+ * function creates a new spawn request and triggers the actual spawn by
+ * requesting a new service rank from the logger. After this service rank has
+ * been received, the spawn request is further handled in @a tryPMIxSpawn()
+ *
+ * @see tryPMIxSpawn()
+ *
+ * @param msg  The last fragment of the message to handle
+ * @param data The defragmented data received
+ *
+ * @return No return value
+ */
+static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    rdbg(PSPMIX_LOG_CALL, "(msg %p data %p\n", msg, data);
+
+    if (pmixStatus != CONNECTED) {
+	rlog("ERROR: client not connected\n");
+	return;
+    }
+
+    SpawnReqData_t *srdata = umalloc(sizeof(*srdata));
+    srdata->pmixServer = msg->header.sender;
+
+    getUint16(data, &srdata->spawnID);
+
+    uint16_t napps;
+    getUint16(data, &napps);
+
+    SpawnRequest_t *req = initSpawnRequest(napps);
+
+    req->data = srdata;
+
+    for (size_t a = 0; a < napps; a++) {
+	SingleSpawn_t *spawn = req->spawns + a;
+
+	size_t len;
+
+	/* read cmd and argv */
+	char *cmd = getStringML(data, &len);
+	if (!len) {
+	    plog("No command in spawn request.\n");
+	    ufree(cmd);
+	    return;
+	}
+
+	uint32_t alen;
+
+	char **argv;
+	getStringArrayM(data, &argv, &alen);
+
+	/* fill argv/argc */
+	strv_t strv;
+	strvInit(&strv, NULL, 16);
+
+	strvAdd(&strv, cmd);
+	for (size_t c = 0; argv[c]; c++) {
+	    strvAdd(&strv, argv[c]);
+	}
+
+	spawn->argc = strv.count;
+	spawn->argv = strv.strings;
+	strvSteal(&strv, true);
+
+	/* read and fill np (maxprocs) */
+	getInt32(data, &spawn->np);
+
+	/* read environment */
+	char **env;
+	getStringArrayM(data, &env, &alen);
+
+	/* fill preput */
+	/* @todo put env into preput */
+	/* what is the difference between preput and env?
+	 * we do have a "env" in the SpawnRequest_t that is for all apps
+	 * we do get an env that can be different for each app
+	 * how to support that? */
+
+
+	/* get and fill additional info */
+	vector_t infos;
+	vectorInit(&infos, 8, 8, KVP_t);
+
+	KVP_t entry;
+	char *wdir = getStringML(data, &len);
+	if (len) {
+	    entry.key = ustrdup("wdir");
+	    entry.value = wdir;
+	    vectorAdd(&infos, &entry);
+	} else {
+	    ufree(wdir);
+	}
+
+	char *host = getStringML(data, &len);
+	if (len) {
+	    entry.key = ustrdup("hosts");
+	    entry.value = host; /* Comma-delimited list */
+	    vectorAdd(&infos, &entry);
+	} else {
+	    ufree(host);
+	}
+
+	char *hostfile = getStringML(data, &len);
+	if (len) {
+	    entry.key = ustrdup("hostfile");
+	    entry.value = hostfile;
+	    vectorAdd(&infos, &entry);
+	} else {
+	    ufree(hostfile);
+	}
+
+	spawn->infov = infos.data;
+	spawn->infoc = infos.len;
+    }
+
+    pdbg(PSPMIX_LOG_COMM, "received %s with napps %hu.\n",
+	 pspmix_getMsgTypeString(msg->type), napps);
+
+    if (!doSpawn(req)) {
+	plog("spawn failed");
+    }
 }
 
 /**
@@ -275,13 +619,13 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @return Always return true
  */
-static bool handlePspmixMsg(DDBufferMsg_t *vmsg) {
-
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+static bool handlePspmixMsg(DDBufferMsg_t *vmsg)
+{
+    rdbg(PSPMIX_LOG_CALL, "(vmsg %p)\n", vmsg);
 
     DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
 
-    mdbg(PSPMIX_LOG_COMM, "%s: msg: type %s length %hu [%s", __func__,
+    rdbg(PSPMIX_LOG_COMM, "msg: type %s length %hu [%s",
 	 pspmix_getMsgTypeString(msg->type), msg->header.len,
 	 PSC_printTID(msg->header.sender));
     mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
@@ -293,14 +637,45 @@ static bool handlePspmixMsg(DDBufferMsg_t *vmsg) {
     case PSPMIX_CLIENT_FINALIZE:
 	recvFragMsg(msg, handleClientFinalize);
 	break;
+    case PSPMIX_CLIENT_SPAWN:
+	recvFragMsg(msg, handleClientSpawn);
+	break;
     default:
-	mlog("%s: unexpected message (sender %s type %s)\n", __func__,
+	rlog("unexpected message (sender %s type %s)\n",
 	     PSC_printTID(msg->header.sender),
 	     pspmix_getMsgTypeString(msg->type));
     }
     return true;
 }
 
+/**
+ * @brief Handle a message from the job's logger
+ *
+ * Handle the CC message @a msg within the forwarder. The message is
+ * received from the job's logger within a (pslog) message of type
+ * PSP_CC_MSG.
+ *
+ * @param msg message to handle in a pslog container
+ *
+ * @return If the message is fully handled, true is returned; or false
+ * if further handlers shall inspect this message
+ */
+static bool msgCC(DDBufferMsg_t *msg)
+{
+    PSLog_Msg_t *lmsg = (PSLog_Msg_t *)msg;
+    switch (lmsg->type) {
+	case SERV_TID:
+	    handleServiceInfo(lmsg);
+	    return true;
+#if 0
+	case SERV_EXT:
+	    handleServiceExit(lmsg);
+	    return true;
+#endif
+	default:
+	    return false; // pass message to next handler if any
+    }
+}
 
 /* ****************************************************** *
  *                     Hook functions                     *
@@ -321,10 +696,13 @@ static bool handlePspmixMsg(DDBufferMsg_t *vmsg) {
  */
 static int hookExecForwarder(void *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    rdbg(PSPMIX_LOG_CALL, "(data %p)\n", data);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     childTask = data;
+
+    /* Remember my rank for debugging and error output */
+    rank = childTask->rank;
 
     if (childTask->group != TG_ANY) {
 	childTask = NULL;
@@ -344,15 +722,12 @@ static int hookExecForwarder(void *data)
 	return 0;
     }
 
-    /* Remember my rank for debugging and error output */
-    rank = childTask->rank;
-
     /* initialize fragmentation layer only to receive environment */
     initSerial(0, NULL);
 
     /* Send client registration request to the PMIx server */
     if (!sendRegisterClientMsg(childTask)) {
-	mlog("%s(r%d): Failed to send register message\n", __func__, rank);
+	rlog("Failed to send register message\n");
 	envStealArray(env);
 	return -1;
     }
@@ -365,7 +740,7 @@ static int hookExecForwarder(void *data)
 	char *end;
 	long tmp = strtol(tmoutStr, &end, 0);
 	if (! *end && tmp >= 0) tmout = tmp;
-	mlog("%s(r%d): timeout is %d\n", __func__, rank, tmout);
+	rlog("timeout is %d\n", tmout);
     }
     struct timeval timeout = { .tv_sec = tmout, .tv_usec = 0 };
     if (!readClientPMIxEnvironment(childTask->fd, timeout)) return -1;
@@ -388,11 +763,11 @@ static int hookForwarderSetup(void *data)
     /* break if this is not a PMIx job and no PMIx singleton */
     if (!childTask) return 0;
 
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    rdbg(PSPMIX_LOG_CALL, "(data %p)\n", data);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
-	mlog("%s: Unexpected child task\n", __func__);
+	rlog("Unexpected child task\n");
 	return -1;
     }
 
@@ -401,9 +776,21 @@ static int hookForwarderSetup(void *data)
 
     /* register handler for notification messages from the PMIx server */
     if (!PSID_registerMsg(PSP_PLUG_PSPMIX, handlePspmixMsg)) {
-	mlog("%s(r%d): Failed to register message handler\n", __func__, rank);
+	rlog("Failed to register message handler\n");
 	return -1;
     }
+
+    /* register handlers for messages needed for spawn handling */
+    if (!PSID_registerMsg(PSP_CC_MSG, msgCC))
+	rlog("failed to register PSP_CC_MSG handler\n");
+#if 0
+    if (!PSID_registerMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES))
+	mlog("%s: failed to register PSP_CD_SPAWNSUCCESS handler\n", __func__);
+    if (!PSID_registerMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES))
+	mlog("%s: failed to register PSP_CD_SPAWNFAILED handler\n", __func__);
+    if (!PSID_registerMsg(PSP_CC_ERROR, msgCCError))
+	mlog("%s: failed to register PSP_CC_ERROR handler\n", __func__);
+#endif
 
     return 0;
 }
@@ -422,11 +809,11 @@ static int hookExecClientUser(void *data)
     /* break if this is not a PMIx job and no PMIx singleton */
     if (!childTask) return 0;
 
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    rdbg(PSPMIX_LOG_CALL, "(data %p)\n", data);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
-	mlog("%s: Unexpected child task\n", __func__);
+	rlog("Unexpected child task\n");
 	return -1;
     }
 
@@ -437,8 +824,7 @@ static int hookExecClientUser(void *data)
     envStealArray(env);
     if (usePMIx) return 0;
 
-    mlog("%s(r%d): Calling PMIx_Init() for singleton support.\n", __func__,
-	 rank);
+    rlog("Calling PMIx_Init() for singleton support.\n");
     /* need to call with proc != NULL since this is buggy until in 4.2.0
      * see https://github.com/openpmix/openpmix/issues/2707
      * @todo subject to change when dropping support for PMIx < 4.2.1 */
@@ -446,8 +832,7 @@ static int hookExecClientUser(void *data)
     PMIX_PROC_CONSTRUCT(&proc);
     pmix_status_t status = PMIx_Init(&proc, NULL, 0);
     if (status != PMIX_SUCCESS) {
-	mlog("%s: PMIX_Init() failed: %s\n", __func__,
-	     PMIx_Error_string(status));
+	rlog("PMIX_Init() failed: %s\n", PMIx_Error_string(status));
 	PMIX_PROC_DESTRUCT(&proc);
 	return -1;
     }
@@ -471,11 +856,11 @@ static int hookForwarderClientRelease(void *data)
     /* break if this is not a PMIx job */
     if (!childTask) return IDLE;
 
-    mdbg(PSPMIX_LOG_CALL, "%s(with childTask set)\n", __func__);
+    rdbg(PSPMIX_LOG_CALL, "(data %p)\n", data);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
-	mlog("%s: Unexpected child task\n", __func__);
+	rlog("Unexpected child task\n");
 	return IDLE;
     }
 
@@ -495,10 +880,19 @@ static int hookForwarderClientRelease(void *data)
  */
 static int hookForwarderExit(void *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(%p)\n", __func__, data);
+    rdbg(PSPMIX_LOG_CALL, "(data %p)\n", data);
 
     /* un-register handler for notification messages from the PMIx userserver */
     PSID_clearMsg(PSP_PLUG_PSPMIX, handlePspmixMsg);
+
+
+    /* un-register handlers for messages needed for spawn handling */
+    PSID_clearMsg(PSP_CC_MSG, msgCC);
+#if 0
+    PSID_clearMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES);
+    PSID_clearMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES);
+    PSID_clearMsg(PSP_CC_ERROR, msgCCError);
+#endif
 
     finalizeSerial();
 
@@ -507,6 +901,15 @@ static int hookForwarderExit(void *data)
 
 void pspmix_initForwarderModule(void)
 {
+    /* set spawn handler if no other plugin (e.g. psslurm) already did */
+    if (!pspmix_getFillTaskFunction()) {
+	mdbg(PSPMIX_LOG_VERBOSE, "Setting PMIx default fill spawn task function"
+	     " to fillWithMpiexec()\n");
+	pspmix_resetFillSpawnTaskFunction();
+    } else {
+	mdbg(PSPMIX_LOG_VERBOSE, "PMIx fill spawn task function already set\n");
+    }
+
     PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
     PSIDhook_add(PSIDHOOK_FRWRD_SETUP, hookForwarderSetup);
     PSIDhook_add(PSIDHOOK_EXEC_CLIENT_USER, hookExecClientUser);

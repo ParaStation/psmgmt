@@ -31,7 +31,7 @@
 #include "pspmixcommon.h"
 #include "pspmixconfig.h"
 #include "pspmixlog.h"
-#include "pspmixservicespawn.h"
+#include "pspmixtypes.h"
 #include "pspmixuserserver.h"
 
 /** Pending fence message container */
@@ -69,6 +69,16 @@ typedef struct {
     size_t len;                 /**< size of local data to share */
     modexdata_t *mdata;         /**< callback data object */
 } PspmixFence_t;
+
+/**
+ * Information needed to execute a call to PMIx_Spawn()
+ */
+typedef struct {
+    uint16_t id;               /**< identifier of this spawn */
+    const pmix_proc_t *caller; /**< process that called PMIx_Spawn() */
+    uint16_t napps;            /**< number of applications, length of arrays */
+    PspmixSpawnApp_t *apps;    /**< applications to spawn */
+} PspmixSpawn_t;
 
 /****** global variable needed to be lock protected ******/
 
@@ -113,7 +123,7 @@ static pthread_mutex_t modexRequestList_lock = PTHREAD_MUTEX_INITIALIZER;
  *
  * @return Returns the namespace or NULL if not in list
  */
-static PspmixNamespace_t* findNamespace(const char *nsname)
+PspmixNamespace_t* findNamespace(const char *nsname)
 {
     list_t *n;
     list_for_each(n, &namespaceList) {
@@ -149,12 +159,6 @@ bool pspmix_service_init(uid_t uid, gid_t gid, char *clusterid)
 	ulog("could not initialize communication\n");
 	return false;
     }
-
-    /* set default spawn handler */
-    mdbg(PSPMIX_LOG_VERBOSE, "Setting PMI default fill spawn task function to"
-	 " fillWithMpiexec()\n");
-    if (!pspmix_getFillTaskFunction()) pspmix_resetFillSpawnTaskFunction();
-
 
     /* generate server namespace name */
     static char nspace[MAX_NSLEN];
@@ -1637,5 +1641,48 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status,
     pspmix_server_returnModexData(status, mdata);
 }
 
+/* library thread */
+bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
+			  PspmixSpawnApp_t *apps)
+{
+    /* ID that is uniq local to this user server */
+    static uint16_t spawnID = 0;
+
+    PspmixSpawn_t *spawn = ucalloc(sizeof(*spawn));
+
+    spawn->id = spawnID++;
+    spawn->caller = caller;
+    spawn->napps = napps;
+    spawn->apps = apps;
+
+    GET_LOCK(namespaceList);
+
+    PspmixNamespace_t *ns = findNamespace(caller->nspace);
+    if (!ns) {
+	ulog("namespace '%s' not found\n", caller->nspace);
+	RELEASE_LOCK(namespaceList);
+	return false;
+    }
+
+    PspmixClient_t *client = findClientInList(caller->rank, &ns->clientList);
+    if (!client) {
+	ulog("client rank %d not found in namespace '%s'\n", caller->rank,
+	     caller->nspace);
+	RELEASE_LOCK(namespaceList);
+	return false;
+    }
+
+    RELEASE_LOCK(namespaceList);
+
+    /* send PSPMIX_CLIENT_SPAWN message to forwarder of proc */
+    if (!pspmix_comm_sendClientSpawn(client->fwtid, spawn->id, spawn->napps,
+				     spawn->apps)) {
+	ulog("sending spawn req to forwarder failed (namespace %s rank %d)\n",
+	     spawn->caller->nspace, spawn->caller->rank);
+	return false;
+    }
+
+    return true;
+}
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

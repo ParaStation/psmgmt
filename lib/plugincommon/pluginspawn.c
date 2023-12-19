@@ -30,6 +30,8 @@ SpawnRequest_t *initSpawnRequest(int num)
 
     req->env = envNew(NULL);
 
+    req->data = NULL;
+
     return req;
 }
 
@@ -77,6 +79,8 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req)
 	freeSpawnRequest(ret);
 	return NULL;
     }
+
+    ret->data = req->data;
 
     return ret;
 }

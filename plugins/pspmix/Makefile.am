@@ -28,8 +28,8 @@ pspmix_la_SOURCES = pspmixmain.c pspmixtypes.h pspmixlog.c		\
 	pspmixcommon.h pspmixdaemon.c pspmixdaemon.h			\
 	pspmixforwarder.c pspmixforwarder.h pspmixuserserver.c		\
 	pspmixuserserver.h pspmixcomm.c pspmixcomm.h pspmixservice.c	\
-	pspmixservice.h pspmixservicespawn.c pspmixservicespawn.h	\
-	pspmixserver.c pspmixserver.h pspmixutil.c pspmixutil.h
+	pspmixservice.h pspmixserver.c pspmixserver.h pspmixutil.c	\
+	pspmixutil.h
 
 pspmix_la_CPPFLAGS = $(AM_CPPFLAGS) \
 		     -DPKGLIBEXECDIR=\"$(pkglibexecdir)\" \

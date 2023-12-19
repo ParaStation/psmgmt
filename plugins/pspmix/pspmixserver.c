@@ -1021,27 +1021,278 @@ static pmix_status_t server_unpublish_cb(const pmix_proc_t *proc, char **keys,
     return __PSPMIX_NOT_IMPLEMENTED;
 }
 
-/* Spawn a set of applications/processes as per the PMIx_Spawn API.
+
+typedef struct {
+    char *wdir;
+    char *prefix;
+    char *host;
+    char *hostfile;
+} SpawnInfo_t;
+
+static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
+{
+    SpawnInfo_t si = { NULL, NULL, NULL, NULL };
+
+    /* handle command directives */
+    /* Host environments are required to support the following attributes when
+       present in either the job_info or the info array of an element of the
+       apps array:
+       PMIX_WDIR "pmix.wdir" (char* )
+         Working directory for spawned processes.
+       PMIX_SET_SESSION_CWD "pmix.ssncwd" (bool)
+         Set the current working directory to the session working directory
+         assigned by the RM - can be assigned to the entire job (by including
+         attribute in the job_info array) or on a per-application basis in
+         the info array for each pmix_app_t.
+       PMIX_PREFIX "pmix.prefix" (char* )
+         Prefix to use for starting spawned processes
+         i.e., the directory where the executables can be found.
+       PMIX_HOST "pmix.host" (char* )
+         Comma-delimited list of hosts to use for spawned processes.
+       PMIX_HOSTFILE "pmix.hostfile" (char* )
+         Hostfile to use for spawned processes.
+     */
+    for (size_t i = 0; i < ninfo; i++) {
+	if (PMIX_CHECK_KEY(info+i, PMIX_WDIR)) {
+	    mdbg(PSPMIX_LOG_SPAWN, "%s: Found %s info [key '%s' value '%s']\n",
+		 __func__,
+		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
+		 info[i].key,
+		 info[i].value.data.string);
+	    si.wdir = info[i].value.data.string;
+	    continue;
+	}
+
+	if (PMIX_CHECK_KEY(info+i, PMIX_SET_SESSION_CWD)) {
+	    mdbg(PSPMIX_LOG_SPAWN, "%s: Found %s info [key '%s' value '%s']\n",
+		 __func__,
+		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
+		 info[i].key,
+		 (PMIX_INFO_TRUE(&info[i])) ? "true" : "false");
+	    /* @todo What is the session cwd? */
+	    continue;
+	}
+
+	if (PMIX_CHECK_KEY(info+i, PMIX_PREFIX)) {
+	    mdbg(PSPMIX_LOG_SPAWN, "%s: Found %s info [key '%s' value '%s']\n",
+		 __func__,
+		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
+		 info[i].key,
+		 info[i].value.data.string);
+	    si.prefix = info[i].value.data.string;
+	    continue;
+	}
+
+	if (PMIX_CHECK_KEY(info+i, PMIX_HOST)) {
+	    mdbg(PSPMIX_LOG_SPAWN, "%s: Found %s info [key '%s' value '%s']\n",
+		 __func__,
+		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
+		 info[i].key,
+		 info[i].value.data.string);
+	    si.host = info[i].value.data.string;
+	    continue;
+	}
+
+	if (PMIX_CHECK_KEY(info+i, PMIX_HOSTFILE)) {
+	    mdbg(PSPMIX_LOG_SPAWN, "%s: Found %s info [key '%s' value '%s']\n",
+		 __func__,
+		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
+		 info[i].key,
+		 info[i].value.data.string);
+	    si.hostfile = info[i].value.data.string;
+	    continue;
+	}
+
+	/* inform about lacking implementation */
+	mlog("%s: Ignoring info [key '%s' flags '%s' value.type '%s']"
+	     " (not implemented)\n", __func__, info[i].key,
+	     PMIx_Info_directives_string(info[i].flags),
+	     PMIx_Data_type_string(info[i].value.type));
+    }
+
+    return si;
+}
+
+/**
+ * @brief Spawn a set of applications/processes as per the PMIx_Spawn API.
+ *
  * Note that applications are not required to be MPI or any other programming
  * model. Thus, the host server cannot make any assumptions as to their required
  * support. The callback function is to be executed once all processes have been
  * started. An error in starting any application or process in this request
  * shall cause all applications and processes in the request to be terminated,
  * and an error returned to the originating caller.
+ *
  * Note that a timeout can be specified in the job_info array to indicate that
  * failure to start the requested job within the given time should result in
- * termination to avoid hangs. */
+ * termination to avoid hangs.
+ *
+ * @param proc      pmix_proc_t structure of the process making the request
+ * @param info      Array of info structures for the whole job
+ * @param ninfo     Number of elements in the job_info array
+ * @param apps      Array of pmix_app_t structure
+ * @param napps     Number of elements in the apps array
+ * @param cbfunc    Callback function
+ * @param cbdata    Data tp be passed to the callback function
+ */
 /* pmix_server_spawn_fn_t  */
 static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 				     const pmix_info_t job_info[], size_t ninfo,
 				     const pmix_app_t apps[], size_t napps,
 				     pmix_spawn_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    assert(proc != NULL);
 
+    if (mset(PSPMIX_LOG_CALL)) {
+	mlog("%s(%s:%d)\n", __func__, proc->nspace, proc->rank);
+
+	for (size_t i = 0; napps < i; i++) {
+	    mlog("%s: cmd='%s' argv='", __func__, apps[i].cmd);
+	    char **tmp = apps[i].argv;
+	    while(*tmp) {
+		mlog("%s ", *tmp);
+		(*tmp)++;
+	    }
+	    mlog("' env='");
+	    tmp = apps[i].env;
+	    while(*tmp) {
+		mlog("%s ", *tmp);
+		(*tmp)++;
+	    }
+	    mlog("' cwd='%s' maxprocs=%d ninfo=%zd\n", apps[i].cwd,
+		 apps[i].maxprocs, apps[i].ninfo);
+	}
+    }
+
+#if PMIX_VERSION_MAJOR >= 4
+
+    SpawnInfo_t si_job = getSpawnInfo(job_info, ninfo);
+
+    /* Restructure information
+     * Note that we need to copy everything that we want to access for
+     * asynchonous processing after this function returned, since the PMIx
+     * standard (v4) does not provide any guaranties about the availability
+     * of any data passed to this function after it returned.
+     * Would be great to have this data available until the cbfunc is called
+     * unless PMIX_OPERATION_SUCCEDED ist returned to avoid data dublication.
+     * To avoid copying everything, we invalidate all data that are only needed
+     * to setup the spawn but not for later processing. */
+    PspmixSpawnApp_t *sapps = umalloc(napps * sizeof(*apps));
+
+    for (size_t a = 0; a < napps; a++) {
+
+	SpawnInfo_t si_app = getSpawnInfo(apps[a].info, apps[a].ninfo);
+
+	char *prefix = si_app.prefix ? si_app.prefix : si_job.prefix;
+
+	if (prefix) {
+	    /* add prefix to cmd */
+	    sapps[a].cmd = umalloc(strlen(prefix)
+					+ strlen(apps[a].cmd) + 1);
+	    sprintf(sapps[a].cmd, "%s%s", prefix, apps[a].cmd);
+	} else {
+	    sapps[a].cmd = ustrdup(apps[a].cmd);
+	}
+
+	sapps[a].argv = apps[a].argv;
+	sapps[a].maxprocs = apps[a].maxprocs;
+	sapps[a].env = apps[a].env;
+
+
+	sapps[a].wdir = apps[a].cwd ? apps[a].cwd :
+			     si_app.wdir ? si_app.wdir : si_job.wdir;
+	sapps[a].host = si_app.host ? si_app.host : si_job.host;
+	sapps[a].hostfile = si_app.hostfile ? si_app.hostfile :
+				 si_job.hostfile;
+    }
+
+    bool ret = pspmix_service_spawn(proc, napps, sapps);
+
+    /* Invalidate all data not copied */
+    for (size_t a = 0; a < napps; a++) {
+	sapps[a].argv = NULL;
+	sapps[a].env = NULL;
+	sapps[a].wdir = NULL;
+	sapps[a].host = NULL;
+	sapps[a].hostfile = NULL;
+    }
+
+    if (!ret) {
+	for (size_t a = 0; a < napps; a++) ufree(sapps[a].cmd);
+    }
+
+    return ret ? PMIX_SUCCESS : PMIX_ERROR;
+
+    /* By default, the spawned processes will be PMIx “connected” to the parent
+       process upon successful launch (see Section 12.3 for details). This
+       includes that (a) the parent process will be given a copy of the new
+       job’s information so it can query job-level info without incurring any
+       communication penalties, (b) newly spawned child processes will receive
+       a copy of the parent processes job-level info, and (c) both the parent
+       process and members of the child job will receive notification of errors
+       from processes in their combined assemblage.
+
+       The PMIx definition of connected solely implies that the host environment
+       should treat the failure of any process in the assemblage as a reportable
+       event, taking action on the assemblage as if it were a single application.
+       For example, if the environment defaults (in the absence of any application
+       directives) to terminating an application upon failure of any process in
+       that application, then the environment should terminate all processes in
+       the connected assemblage upon failure of any member.
+
+       The host environment may choose to assign a new namespace to the connected
+       assemblage and/or assign new ranks for its members for its own internal
+       tracking purposes. However, it is not required to communicate such
+       assignments to the participants (e.g., in response to an appropriate call
+       to PMIx_Query_info_nb). The host environment is required to generate a
+       PMIX_ERR_PROC_TERM_WO_SYNC event should any process in the assemblage
+       terminate or call PMIx_Finalize without first disconnecting from the
+       assemblage. If the job including the process is terminated as a result of
+       that action, then the host environment is required to also generate the
+       PMIX_ERR_JOB_TERM_WO_SYNC for all jobs that were terminated as a result.
+
+       Advice to PMIx server hosts
+       The connect operation does not require the exchange of job-level
+       information nor the inclusion of information posted by participating
+       processes via PMIx_Put. Indeed, the callback function utilized in
+       pmix_server_connect_fn_t cannot pass information back into the PMIx
+       server library. However, host environments are advised that collecting
+       such information at the participating daemons represents an optimization
+       opportunity as participating processes are likely to request such
+       information after the connect operation completes.
+     */
+
+    /* Behavior of individual resource managers may differ, but it is expected
+       that failure of any application process to start will result in
+       termination/cleanup of all processes in the newly spawned job and return
+       of an error code to the caller.
+     */
+
+    /* In addition to the generic error constants, the following spawn-specific
+       error constants may be returned by the spawn APIs:
+       PMIX_ERR_JOB_ALLOC_FAILED
+         The job request could not be executed due to failure to obtain the
+         specified allocation
+       PMIX_ERR_JOB_APP_NOT_EXECUTABLE
+         The specified application executable either could not be found, or
+         lacks execution privileges.
+       PMIX_ERR_JOB_NO_EXE_SPECIFIED
+         The job request did not specify an executable.
+       PMIX_ERR_JOB_FAILED_TO_MAP
+         The launcher was unable to map the processes for the specified job
+         request.
+       PMIX_ERR_JOB_FAILED_TO_LAUNCH
+         One or more processes in the job request failed to launch
+       PMIX_ERR_JOB_EXE_NOT_FOUND (Provisional)
+         Specified executable not found
+       PMIX_ERR_JOB_INSUFFICIENT_RESOURCES (Provisional)
+       PMIX_ERR_JOB_SYS_OP_FAILED (Provisional)
+       PMIX_ERR_JOB_WDIR_NOT_FOUND (Provisional)
+     */
+
+#else
     mlog("%s: NOT IMPLEMENTED\n", __func__);
-
-    // @todo implement at highest priority
+#endif
 
     return __PSPMIX_NOT_IMPLEMENTED;
 }

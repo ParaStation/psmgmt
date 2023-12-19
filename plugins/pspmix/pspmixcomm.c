@@ -206,6 +206,27 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
 }
 
 /**
+* @brief Handle PSPMIX_CLIENT_SPAWN_RES message
+*
+* This message is sent by a client's psid forwarder.
+*
+* @param msg  Last fragment of the message to handle
+* @param data Accumulated data received
+*/
+static void handleClientSpawnResp(DDTypedBufferMsg_t *msg,
+				  PS_DataBuffer_t *data)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    uint16_t spawnID;
+    getUint16(data, &spawnID);
+    uint8_t result;
+    getUint8(data, &result);
+
+    /* @todo implement */
+}
+
+/**
 * @brief Handle obsolete PSPMIX_FENCE_IN/PSPMIX_FENCE_OUT message
 *
 * This obsolete message was sent by an outdated PMIx server of the same user
@@ -352,6 +373,9 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
     case PSPMIX_CLIENT_FINALIZE_RES:
 	recvFragMsg(msg, handleClientNotifyResp);
 	break;
+    case PSPMIX_CLIENT_SPAWN_RES:
+	recvFragMsg(msg, handleClientSpawnResp);
+	break;
     /* message types comming from another PMIx server of the same user */
     case PSPMIX_FENCE_IN:
     case PSPMIX_FENCE_OUT:
@@ -471,6 +495,39 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t env)
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
 	mlog("%s: Sending client PMIx environment to %s failed.\n", __func__,
+	     PSC_printTID(targetTID));
+	return false;
+    }
+    return true;
+}
+
+bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
+				 uint16_t napps, PspmixSpawnApp_t apps[])
+{
+    mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__, PSC_printTID(targetTID));
+
+    PS_SendDB_t msg;
+    pthread_mutex_lock(&send_lock);
+    initFragPspmix(&msg, PSPMIX_CLIENT_SPAWN);
+    setFragDest(&msg, targetTID);
+
+    addUint16ToMsg(spawnID, &msg);
+    addUint16ToMsg(napps, &msg);
+
+    for (size_t a = 0; a < napps; a++) {
+	addStringToMsg(apps[a].cmd, &msg);
+	addStringArrayToMsg(apps[a].argv, &msg);
+	addInt32ToMsg(apps[a].maxprocs, &msg);
+	addStringArrayToMsg(apps[a].env, &msg);
+	addStringToMsg(apps[a].wdir, &msg);
+	addStringToMsg(apps[a].host, &msg);
+	addStringToMsg(apps[a].hostfile, &msg);
+    }
+
+    int ret = sendFragMsg(&msg);
+    pthread_mutex_unlock(&send_lock);
+    if (ret < 0) {
+	mlog("%s: Sending client spawn request to %s failed.\n", __func__,
 	     PSC_printTID(targetTID));
 	return false;
     }

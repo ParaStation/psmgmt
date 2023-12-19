@@ -42,6 +42,7 @@ typedef struct {
     int num;               /**< number of single spawns */
     SingleSpawn_t *spawns; /**< array of single spawns */
     env_t env;             /**< environment variables */
+    void *data;            /**< custom data pointer */
 } SpawnRequest_t;
 
 /**
@@ -56,6 +57,9 @@ SpawnRequest_t *initSpawnRequest(int num);
 /**
  * @brief Copy spawn request and all its contents
  *
+ * The @a data pointer is just copied, so the pointer of the copied struct
+ * will point to the same memory as that in the original struct.
+ *
  * @param req Spawn request to copy
  *
  * @return Returns a duplicate of the spawn request
@@ -64,6 +68,9 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req);
 
 /**
  * @brief Free spawn request
+ *
+ * The @a data pointer is not freed, the caller needs to take care of doing
+ * that in the right way.
  *
  * @param req Spawn request to free
  */

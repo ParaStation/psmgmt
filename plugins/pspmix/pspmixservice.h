@@ -275,6 +275,37 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status,
 					    const char *nspace, uint32_t rank,
 					    void *data, size_t len);
 
+/**
+ * @brief Spawn new processes as requested by a call to PMIx_Spawn()
+ *
+ * This actual spawn is managed by the forwarder of the process that
+ * called PMIx_Spawn. This function manages to put the spawn request
+ * into the list of open spawn requests and sends all the required
+ * information to the forwarder thus triggering the spawn.
+ *
+ * In success case, ownership of @a apps and @a sdata is taken.
+ *
+ * @param caller    process that called PMIx_Spawn()
+ * @param napps     number of applications, length of @a apps
+ * @param apps      applications to spawn
+ *
+ * @return Returns true on success, false on error
+ */
+bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
+			  PspmixSpawnApp_t *apps);
+
+/**
+ * @brief Handle response to previous spawn requested
+ *
+ * This actual spawn is managed by the forwarder of the process that
+ * called PMIx_Spawn. This function basically does report the result
+ * of that back to the server library.
+ *
+ * @param spawnID   local ID of the spawn
+ * @param result    result of the spawn
+ */
+void pspmix_service_spawnRes(uint16_t spawnID, int result);
+
 #endif  /* __PS_PMIX_SERVICE */
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

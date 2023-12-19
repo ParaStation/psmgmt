@@ -26,6 +26,8 @@
 
 #include "pluginforwarder.h"
 
+#include "pspmixtypes.h"
+
 /**
  * @brief Handle messages from our mother psid
  *
@@ -40,12 +42,24 @@ bool pspmix_comm_handleMthrMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw);
  * @brief Compose and send a client PMIx environment message
  *
  * @param targetTID  task id of the forwarder to send the message to
- * @param environ    environment variables
- * @param envsize    size of environ
+ * @param env        environment variables
  *
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t env);
+
+/**
+ * @brief Compose and send a client spawn request message
+ *
+ * @param targetTID  task id of the forwarder to send the message to
+ * @param spawnID    id of the spawn
+ * @param napps      number of applications, length of @a apps
+ * @param apps       applications to spawn
+ *
+ * @return Returns true on success, false on error
+ */
+bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
+				 uint16_t napps, PspmixSpawnApp_t apps[]);
 
 /**
  * @brief Compose and send a fence data message if @a nDest != 0

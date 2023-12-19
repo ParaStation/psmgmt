@@ -228,6 +228,18 @@ FIND_IN_LIST_FUNC(Reservation, PSresinfo_t, PSrsrvtn_ID_t, resID)
 /* generates findClientInList(PSpmixClient_t id, list_t *list) */
 FIND_IN_LIST_FUNC(Client, PspmixClient_t, pmix_rank_t, rank)
 
+/**
+ * Information needed to spawn one app from a call to PMIx_Spawn()
+ */
+typedef struct {
+    char *cmd;             /**< commandos for the applications */
+    char **argv;           /**< argument vectors for the applications */
+    int32_t maxprocs;      /**< max number of processes for each app */
+    char **env;            /**< environments for the applications */
+    char *wdir;            /**< working dir to be used each application */
+    char *host;            /**< hostlist to be used for each application */
+    char *hostfile;        /**< hostfile to be used for each application */
+} PspmixSpawnApp_t;
 
 /**
  * @brief Set task preparation function
@@ -268,6 +280,8 @@ typedef enum {
     PSPMIX_CLIENT_FINALIZE,    /**< Notification of client's finalization */
     PSPMIX_CLIENT_FINALIZE_RES,/**< Response to finalization notification */
     PSPMIX_FENCE_DATA,         /**< Fence tree communication */
+    PSPMIX_CLIENT_SPAWN,       /**< Request spawn on behalf of the client */
+    PSPMIX_CLIENT_SPAWN_RES,   /**< Response to spawn request */
 } PSP_PSPMIX_t;
 
 

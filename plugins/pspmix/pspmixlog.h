@@ -80,6 +80,7 @@ typedef enum {
     PSPMIX_LOG_INFOARR = 0x000080, /**< Log passed info arrays */
     PSPMIX_LOG_CLIENTS = 0x000100, /**< Log clients connected/disconnected */
     PSPMIX_LOG_PSET    = 0x000200, /**< Log pset creation */
+    PSPMIX_LOG_SPAWN   = 0x000400, /**< Log (re)spawn stuff */
     PSPMIX_LOG_VERBOSE = 0x100000, /**< Other verbose stuff */
 } PSPMIX_log_types_t;
 

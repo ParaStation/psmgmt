@@ -597,11 +597,10 @@ plugins/pspmix/pspmixserver.c \
 plugins/pspmix/pspmixserver.h \
 plugins/pspmix/pspmixservice.c \
 plugins/pspmix/pspmixservice.h \
-plugins/pspmix/pspmixservicespawn.c \
-plugins/pspmix/pspmixservicespawn.h \
 plugins/pspmix/pspmixtypes.h \
 plugins/pspmix/pspmixutil.c \
 plugins/pspmix/pspmixutil.h \
+plugins/pspmix/pspmixhandles.h \
 plugins/pspmix/slurm/mpi_pspmix.c \
 plugins/pspmix/tests/pmix_test_putget.c \
 plugins/psslurm/Makefile.am \

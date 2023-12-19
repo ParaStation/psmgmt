@@ -291,6 +291,7 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	case PSPMIX_REGISTER_CLIENT:
 	case PSPMIX_CLIENT_INIT_RES:
 	case PSPMIX_CLIENT_FINALIZE_RES:
+	case PSPMIX_CLIENT_SPAWN_RES:
 	    /* message from forwarder to local pmix server without extra
 	       verify match of user IDs */
 
