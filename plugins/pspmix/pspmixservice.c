@@ -843,8 +843,8 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 
     /* adapt rank from global (psid-)rank to namespace rank (psid job-rank) */
     client->rank -= resInfo->rankOffset;
-    mdbg(PSPMIX_LOG_CALL, "%s:   global rank %d -> ns rank %d\n", __func__,
-	 client->rank + resInfo->rankOffset, client->rank);
+    mdbg(PSPMIX_LOG_CALL | PSPMIX_LOG_SPAWN, "%s:   global rank %d -> ns rank"
+	 " %d\n", __func__, client->rank + resInfo->rankOffset, client->rank);
 
     /* remember some information to be used outside the lock */
     uint32_t universeSize = ns->universeSize;
