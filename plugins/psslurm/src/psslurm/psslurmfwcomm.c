@@ -325,6 +325,18 @@ static bool setupPartition(Step_t *step) {
     return true;
 }
 
+static void debugMpiexecStart(strv_t argv, env_t env)
+{
+    mlog("%s:", __func__);
+    for (char **a = strvGetArray(argv); a && *a; a++) mlog(" %s", *a);
+    mlog("\n");
+
+    int cnt = 0;
+    for (char **e = envGetArray(env); e && *e; e++) {
+	flog("env[%i] '%s'\n", cnt++, *e);
+    }
+}
+
 /**
  * @brief Start spawner
  *
@@ -389,6 +401,10 @@ static void startSpawner(Step_t *step)
     task->env = envStep->env;
     envStep->env = NULL;
     Step_delete(envStep);
+
+    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PROCESS) {
+	debugMpiexecStart(argV, task->env);
+    }
 
     // - actually start the task
     int ret = PSIDspawn_localTask(task, NULL, NULL);
