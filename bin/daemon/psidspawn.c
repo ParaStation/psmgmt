@@ -1253,7 +1253,7 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
     }
 
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
-	char tasktxt[128];
+	char tasktxt[4096];
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	PSID_fdbg(PSID_LOG_TASK, "task=%s\n", tasktxt);
     }
@@ -2676,9 +2676,11 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	}
 
 	/* Now clone might be used for actual spawn */
-	char tasktxt[256];
-	PStask_snprintf(tasktxt, sizeof(tasktxt), clone);
-	PSID_fdbg(PSID_LOG_SPAWN, "Spawning %s\n", tasktxt);
+	if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
+	    char tasktxt[4096];
+	    PStask_snprintf(tasktxt, sizeof(tasktxt), clone);
+	    PSID_fdbg(PSID_LOG_SPAWN, "Spawning %s\n", tasktxt);
+	}
 
 	if (clone->delayReasons) {
 	    /* PSIDHOOK_RECV_SPAWNREQ may delay spawning */
@@ -3596,9 +3598,11 @@ int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
 {
     if (!task) return EINVAL;
 
-    char tasktxt[256];
-    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-    PSID_fdbg(PSID_LOG_SPAWN, "spawning %s\n", tasktxt);
+    if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
+	char tasktxt[4096];
+	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+	PSID_fdbg(PSID_LOG_SPAWN, "spawning %s\n", tasktxt);
+    }
 
     /* now try to start the task */
     int err = buildSandboxAndStart(creator ? creator : execForwarder, task);
