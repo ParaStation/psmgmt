@@ -1326,8 +1326,8 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
 
     task->tid = PSC_getTID(-1, pid);
     task->fd = socketfds[0];
-    /* check for a sign of the forwarder */
-    PSID_fdbg(PSID_LOG_SPAWN, "waiting for my child (%d)\n", pid);
+
+    PSID_fdbg(PSID_LOG_SPAWN, "successfully started my child (%d)\n", pid);
 
     return 0;
 }
