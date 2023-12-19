@@ -490,9 +490,9 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
 	getFromBuf(ptr, _x, PSDATA_PID, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
-#define getBool(ptr, val) { bool *_x = val;			    \
-	getFromBuf(ptr, _x, PSDATA_UINT8, sizeof(uint8_t),	    \
-		   __func__, __LINE__); }
+#define getBool(ptr, val) { bool *_y = val; uint8_t _x;		    \
+	getFromBuf(ptr, &_x, PSDATA_UINT8, sizeof(uint8_t),	    \
+		   __func__, __LINE__);	*_y = _x; }
 
 #define getTaskId(ptr, val) { PStask_ID_t *_x = val;		    \
 	getFromBuf(ptr, _x, PSDATA_INT32, sizeof(PStask_ID_t),	    \
@@ -729,7 +729,7 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
 	addToBuf(&_x, sizeof(_x), data, PSDATA_DOUBLE,		\
 		 __func__, __LINE__); }
 
-#define addBoolToMsg(val, data) { bool _x = val;		\
+#define addBoolToMsg(val, data) { uint8_t _x = val;		\
 	addToBuf(&_x, sizeof(uint8_t), data, PSDATA_UINT8,	\
 		 __func__, __LINE__); }
 
