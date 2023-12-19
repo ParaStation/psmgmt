@@ -812,6 +812,7 @@ static bool startServer(PspmixServer_t *server)
     if (!startForwarder(fwdata)) {
 	mlog("%s: starting PMIx server for user ID %d failed\n", __func__,
 		server->uid);
+	ForwarderData_delete(fwdata);
 	return false;
     }
 

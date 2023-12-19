@@ -1346,6 +1346,7 @@ bool execStepLeader(Step_t *step)
 	flog("%s", msg);
 	setNodeOffline(&step->env, step->jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
+	ForwarderData_delete(fwdata);
 	return false;
     }
 
@@ -1504,6 +1505,7 @@ bool execBatchJob(Job_t *job)
 	flog("%s", msg);
 	setNodeOffline(&job->env, job->jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
+	ForwarderData_delete(fwdata);
 	return false;
     }
 
@@ -1620,6 +1622,7 @@ bool execBCast(BCast_t *bcast)
 	flog("%s", msg);
 	setNodeOffline(bcast->env, bcast->jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
+	ForwarderData_delete(fwdata);
 	return false;
     }
 
@@ -1755,6 +1758,7 @@ bool execStepFollower(Step_t *step)
 	flog("%s", msg);
 	setNodeOffline(&step->env, step->jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
+	ForwarderData_delete(fwdata);
 	return false;
     }
 
@@ -1843,6 +1847,7 @@ bool execEpilogueFin(Alloc_t *alloc)
     if (!startForwarder(fwdata)) {
 	flog("starting epilogue finalize forwarder for alloc '%u' failed\n",
 	     alloc->id);
+	ForwarderData_delete(fwdata);
 	return false;
     }
 

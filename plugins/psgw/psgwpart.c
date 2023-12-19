@@ -384,6 +384,7 @@ bool requestGWnodes(PSGW_Req_t *req, int numNodes)
     if (!startForwarder(fwdata)) {
 	mlog("%s: starting forwarder for request '%s' failed\n",
 		__func__, req->jobid);
+	ForwarderData_delete(fwdata);
 	return false;
     }
     req->fwdata = fwdata;
