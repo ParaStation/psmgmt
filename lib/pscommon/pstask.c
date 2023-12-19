@@ -20,6 +20,7 @@
 
 #include "pscommon.h"
 #include "list.h"
+#include "pluginforwarder.h"
 #include "pssignal.h"
 #include "psreservation.h"
 #include "psserial.h"
@@ -86,8 +87,16 @@ static void clearInfoList(list_t *list)
     list_for_each_safe(i, tmp, list) {
 	PStask_infoItem_t *infoItem = list_entry(i, PStask_infoItem_t, next);
 	list_del(&infoItem->next);
-	// TASKINFO_FORWARDER info (Forwarder_Data_t) is owned by the task
-	if (infoItem->type == TASKINFO_FORWARDER) free(infoItem->info);
+	if (infoItem->type == TASKINFO_FORWARDER) {
+	    // TASKINFO_FORWARDER info (Forwarder_Data_t) is owned by the task
+	    // Do not use ForwarderData_delete() to avoid dependency
+	    Forwarder_Data_t *fw = infoItem->info;
+	    if (!fw) continue;
+	    free(fw->pTitle);
+	    free(fw->jobID);
+	    free(fw->userName);
+	    free(fw);
+	}
 	PSitems_putItem(infoPool, infoItem);
     }
 }
