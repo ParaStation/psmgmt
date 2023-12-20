@@ -510,6 +510,8 @@ static int readSlurmMsg(int sock, void *param)
     }
 
     /* all data read successful */
+    dBuf->unpackPtr = dBuf->buf;
+    dBuf->unpackErr = 0;
     fdbg(PSSLURM_LOG_COMM, "all data read for %u ret %u toread %zu\n",
 	 sock, ret, dBuf->size);
 
@@ -521,7 +523,6 @@ CALLBACK:
 	initSlurmMsg(&sMsg);
 	sMsg.sock = sock;
 	sMsg.data = dBuf;
-	sMsg.ptr = sMsg.data->buf;
 	sMsg.recvTime = con->recvTime = time(NULL);
 	sMsg.authRequired = con->authByInMsg;
 
@@ -815,9 +816,9 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
     }
 
     /* inspect return code */
-    char **ptr = &sMsg->ptr;
+    PS_DataBuffer_t *data = sMsg->data;
     uint32_t rc;
-    getUint32(ptr, &rc);
+    getUint32(data, &rc);
 
     if (rc != SLURM_SUCCESS) {
 	flog("error: response %s rc %s sock %i",
@@ -1474,11 +1475,11 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
     return bufLen;
 }
 
-int handleSrunIOMsg(int sock, void *data)
+int handleSrunIOMsg(int sock, void *stepPtr)
 {
     IO_Slurm_Header_t *ioh = NULL;
 
-    Step_t *step = data;
+    Step_t *step = stepPtr;
     if (!Step_verifyPtr(step)) {
 	/* late answer from srun, associated step is already gone */
 	fdbg(PSSLURM_LOG_IO, "no step for socket %i found\n", sock);
@@ -1499,8 +1500,10 @@ int handleSrunIOMsg(int sock, void *data)
 	goto ERROR;
     }
 
-    char *ptr = buffer;
-    if (!unpackSlurmIOHeader(&ptr, &ioh)) {
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, buffer, sizeof(buffer));
+
+    if (!unpackSlurmIOHeader(&data, &ioh)) {
 	flog("unpack Slurm I/O header for %s failed\n", Step_strID(step));
 	goto ERROR;
     }
@@ -1625,9 +1628,9 @@ static int handleSrunMsg(Slurm_Msg_t *sMsg, void *info)
     }
 
     /* inspect return code */
-    char **ptr = &sMsg->ptr;
+    PS_DataBuffer_t *data = sMsg->data;
     uint32_t rc;
-    getUint32(ptr, &rc);
+    getUint32(data, &rc);
 
     if (rc != SLURM_SUCCESS) {
 	flog("error: srun response %s rc %s sock %i for request %s %s\n",

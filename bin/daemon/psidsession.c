@@ -365,20 +365,18 @@ static inline void checkSession(PSsession_t *session, const char *caller)
  */
 static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
-    char *ptr = rData->buf;
-
     /* get reservation, session and job id */
     int32_t resID;
-    getInt32(&ptr, &resID);
+    getInt32(rData, &resID);
     PStask_ID_t sessionID, jobID;
-    getTaskId(&ptr, &sessionID);
-    getTaskId(&ptr, &jobID);
+    getTaskId(rData, &sessionID);
+    getTaskId(rData, &jobID);
 
     uint32_t rankOffset = 0;
     PStask_ID_t partHolderTID = 0;
     if (PSIDnodes_getDmnProtoV(PSC_getID(msg->header.sender)) >= 416) {
-	getUint32(&ptr, &rankOffset);
-	getTaskId(&ptr, &partHolderTID);
+	getUint32(rData, &rankOffset);
+	getTaskId(rData, &partHolderTID);
     }
 
     /* create reservation info */
@@ -398,7 +396,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	+ sizeof(res->entries->firstRank) + sizeof(res->entries->lastRank);
 
     /* calculate number of entries */
-    res->nEntries = (rData->buf + rData->used - ptr) / entrysize;
+    res->nEntries = (rData->buf + rData->used - rData->unpackPtr) / entrysize;
 
     res->entries = calloc(res->nEntries, sizeof(*res->entries));
     if (!res->entries) {
@@ -409,9 +407,9 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* get entries */
     for (size_t i = 0; i < res->nEntries; i++) {
-	getNodeId(&ptr, &res->entries[i].node);
-	getInt32(&ptr, &res->entries[i].firstRank);
-	getInt32(&ptr, &res->entries[i].lastRank);
+	getNodeId(rData, &res->entries[i].node);
+	getInt32(rData, &res->entries[i].firstRank);
+	getInt32(rData, &res->entries[i].lastRank);
 	/* adapt minRank / maxRank */
 	if (!i) {
 	    res->minRank = res->entries[i].firstRank;
@@ -686,14 +684,12 @@ static bool startFilter(PStask_t *task, void *info)
  */
 static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
-    char *ptr = rData->buf;
-
     /* get logger task id, spawner task id, and reservation */
     PStask_ID_t sessionID, jobID;
-    getTaskId(&ptr, &sessionID);
-    getTaskId(&ptr, &jobID);
+    getTaskId(rData, &sessionID);
+    getTaskId(rData, &jobID);
     int32_t resID;
-    getInt32(&ptr, &resID);
+    getInt32(rData, &resID);
 
     /* identify reservation info */
     PSresinfo_t *res = PSID_findResInfo(sessionID, jobID, resID);
@@ -713,20 +709,20 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
 
     uint16_t nBytes;
-    getUint16(&ptr, &nBytes);
+    getUint16(rData, &nBytes);
     if (nBytes != PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()))) {
 	PSID_flog("CPU-set size mismatch %ud", nBytes);
 	return;
     }
 
     uint16_t num;
-    getUint16(&ptr, &num);
+    getUint16(rData, &num);
     res->localSlots = malloc(num * sizeof(*res->localSlots));
     res->nLocalSlots = num;
 
     int32_t rank;
     for (uint32_t s = 0; s < num; s++) {
-	getInt32(&ptr, &rank);
+	getInt32(rData, &rank);
 	if (rank < 0 || rank < res->minRank || rank > res->maxRank) {
 	    PSID_flog("invalid rank %d @ %ud in resID %#x (%d,%d)\n",
 		      rank, s, resID, res->minRank, res->maxRank);
@@ -737,8 +733,8 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	res->localSlots[s].rank = rank;
 
 	PSCPU_clrAll(res->localSlots[s].CPUset);
-	PSCPU_inject(res->localSlots[s].CPUset, ptr, nBytes);
-	ptr += nBytes;
+	PSCPU_inject(res->localSlots[s].CPUset, rData->unpackPtr, nBytes);
+	rData->unpackPtr += nBytes;
 
 	PSID_fdbg(PSID_LOG_SPAWN, "add cpuset %s for job rank %d to res %#x\n",
 		  PSCPU_print_part(res->localSlots[s].CPUset, nBytes),
@@ -746,7 +742,7 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
 
     /* check for end of message */
-    getInt32(&ptr, &rank);
+    getInt32(rData, &rank);
     if (rank != -1)
 	PSID_flog("trailing slot for rank %d", rank);
 

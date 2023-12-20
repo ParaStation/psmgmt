@@ -58,7 +58,7 @@ void BCast_delete(BCast_t *bcast)
 
 bool BCast_extractCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 {
-    char *credStart = sMsg->ptr, *sigBuf = NULL;
+    char *credStart = sMsg->data->unpackPtr, *sigBuf = NULL;
     BCast_Cred_t cred;
     int eno;
 

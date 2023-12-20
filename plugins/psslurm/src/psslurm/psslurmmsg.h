@@ -56,8 +56,6 @@ typedef struct {
     PS_DataBuffer_t *data;	/**< buffer holding the received (packed)
 				     message */
     PS_SendDB_t reply;		/**< send data buffer used to save a response */
-    char *ptr;			/**< tracking top of unpacked bytes in
-				     @ref data buffer */
     void *unpData;		/**< holding the unpacked message payload */
     time_t recvTime;		/**< time the message was received */
     bool authRequired;		/**< need to verify messages authentification */

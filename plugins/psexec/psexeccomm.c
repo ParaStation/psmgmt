@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -180,11 +180,9 @@ static void callbackScript(int exit, bool tmdOut, int iofd, void *info)
 
 static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
-
     /* verify protocol version */
     uint16_t version;
-    getUint16(&ptr, &version);
+    getUint16(data, &version);
     if (version != PSEXEC_PROTO_VERSION) {
 	mlog("%s: invalid protocol version %u from %s expect %u\n", __func__,
 	     version, PSC_printTID(msg->header.sender),
@@ -193,11 +191,11 @@ static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
     /* remote uID */
     uint16_t uID;
-    getUint16(&ptr, &uID);
+    getUint16(data, &uID);
     /* executable name */
-    char *execName = getStringM(&ptr);
+    char *execName = getStringM(data);
     /* optional path for executable */
-    char *execPath = getStringM(&ptr);
+    char *execPath = getStringM(data);
 
     /* get new script struct */
     Script_t *script = addScript(uID, execName, execPath, NULL);
@@ -206,7 +204,7 @@ static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     script->initiator = msg->header.sender;
 
     /* env */
-    getStringArrayM(&ptr, &script->env.vars, &script->env.cnt);
+    getStringArrayM(data, &script->env.vars, &script->env.cnt);
     script->env.size = script->env.cnt + 1;
 
     if (!execScript(script, callbackScript)) {
@@ -218,21 +216,19 @@ static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 static void handleExecScriptRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
     uint16_t uID;
     int32_t res;
-    Script_t *script;
     char output[MAX_SCRIPT_OUTPUT];
 
     /* uID */
-    getUint16(&ptr, &uID);
+    getUint16(data, &uID);
     /* exit code */
-    getInt32(&ptr, &res);
+    getInt32(data, &res);
     /* output */
-    getString(&ptr, output, sizeof(output));
+    getString(data, output, sizeof(output));
 
     /* callback */
-    script = findScriptByuID(uID);
+    Script_t *script = findScriptByuID(uID);
     if (!script) {
 	mlog("%s: no script for uID %u\n", __func__, uID);
 	return;
@@ -256,11 +252,12 @@ static void dropExecMsg(DDTypedBufferMsg_t *msg)
     /* ignore follow up messages */
     if (fragNum) return;
 
-    char *ptr = msg->buf + used;
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, msg->buf + used, sizeof(msg->buf));
 
     /* uID */
     uint16_t uID;
-    getUint16(&ptr, &uID);
+    getUint16(&data, &uID);
 
     /* return result to callback */
     Script_t *script = findScriptByuID(uID);

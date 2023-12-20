@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -201,11 +201,9 @@ bool __packSlurmIOMsg(PS_SendDB_t *data, IO_Slurm_Header_t *ioh, char *body,
  * The memory is allocated using umalloc(). The caller is responsible
  * to free the memory using ufree().
  *
- * @param ptr The message to unpack the data from
+ * @param sMsg The message to unpack the data from
  *
- * @param head The Slurm message header holding the result
- *
- * @param fw The Slurm forward header holding the result
+ * @param fw The Slurm forward header holding part of the result
  *
  * @param caller Function name of the calling function
  *
@@ -214,11 +212,11 @@ bool __packSlurmIOMsg(PS_SendDB_t *data, IO_Slurm_Header_t *ioh, char *body,
  * @return On success true is returned or false in case of an
  * error. If reading was not successful, @a ptr might be not updated.
  */
-bool __unpackSlurmHeader(char **ptr, Slurm_Msg_Header_t *head,
-			 Msg_Forward_t *fw, const char *caller, const int line);
+bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
+			 const char *caller, const int line);
 
-#define unpackSlurmHeader(ptr, head, fw) \
-    __unpackSlurmHeader(ptr, head, fw, __func__, __LINE__)
+#define unpackSlurmHeader(sMsg, fw) \
+    __unpackSlurmHeader(sMsg, fw, __func__, __LINE__)
 
 /**
  * @brief Unpack a Slurm I/O message header
@@ -227,7 +225,7 @@ bool __unpackSlurmHeader(char **ptr, Slurm_Msg_Header_t *head,
  * The memory is allocated using umalloc(). The caller is responsible
  * to free the memory using ufree().
  *
- * @param ptr The message to unpack the data from
+ * @param data The message to unpack the data from
  *
  * @param iohPtr The Slurm I/O message header holding the result
  *
@@ -238,11 +236,11 @@ bool __unpackSlurmHeader(char **ptr, Slurm_Msg_Header_t *head,
  * @return On success true is returned or false in case of an
  * error. If reading was not successful, @a ptr might be not updated.
  */
-bool __unpackSlurmIOHeader(char **ptr, IO_Slurm_Header_t **iohPtr,
+bool __unpackSlurmIOHeader(PS_DataBuffer_t *data, IO_Slurm_Header_t **iohPtr,
 			   const char *caller, const int line);
 
-#define unpackSlurmIOHeader(ptr, iohPtr) \
-    __unpackSlurmIOHeader(ptr, iohPtr, __func__, __LINE__)
+#define unpackSlurmIOHeader(data, iohPtr) \
+    __unpackSlurmIOHeader(data, iohPtr, __func__, __LINE__)
 
 /**
  * @brief Pack a ping response

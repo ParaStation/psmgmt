@@ -297,16 +297,15 @@ void handleRespUnknown(DDBufferMsg_t *answer)
  */
 static void handlePElogueResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
     int32_t exit_status;
     uint8_t timeout;
 
     /* jobid */
-    char *handledID = getStringM(&ptr);
+    char *handledID = getStringM(data);
     /* exit status */
-    getInt32(&ptr, &exit_status);
+    getInt32(data, &exit_status);
     /* timeout */
-    getUint8(&ptr, &timeout);
+    getUint8(data, &timeout);
 
     if (debug) printf("%s: answer is jobid %s exit %i timeout %u\n", __func__,
 		      handledID, exit_status, timeout);

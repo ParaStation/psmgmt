@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -102,11 +102,9 @@ void sendPSmomVersion(Job_t *job)
 
 static void handleVersion(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
-    char *ptr = rData->buf;
-
     /* get psmom communication version */
     int32_t cVer;
-    getInt32(&ptr, &cVer);
+    getInt32(rData, &cVer);
 
     if (cVer != PSMOM_PSCOMM_VERSION) {
 	char note[100];
@@ -163,20 +161,23 @@ static bool dropPSMsg(DDTypedBufferMsg_t *msg)
 {
     PSnodes_ID_t nodeId = PSC_getID(msg->header.dest);
     const char *hname = getHostnameByNodeId(nodeId);
-    char *ptr = msg->buf, buf[300];
+    char buf[300];
     Job_t *job;
 
     mlog("%s: msg type '%s (%i)' to host '%s(%i)' got dropped\n", __func__,
 	 pspMsgType2Str(msg->type), msg->type, hname, nodeId);
 
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, msg->buf, sizeof(msg->buf));
+
     switch (msg->type) {
     case PSP_PSMOM_PROLOGUE_START:
 	/* hashname */
-	getString(&ptr, buf, sizeof(buf));
+	getString(&data, buf, sizeof(buf));
 	/* user */
-	getString(&ptr, buf, sizeof(buf));
+	getString(&data, buf, sizeof(buf));
 	/* jobid */
-	getString(&ptr, buf, sizeof(buf));
+	getString(&data, buf, sizeof(buf));
 
 	/* ignore broken jobids */
 	if (strlen(buf) < 2) break;
@@ -191,7 +192,7 @@ static bool dropPSMsg(DDTypedBufferMsg_t *msg)
 	stopPElogueExecution(job);
 	break;
     case PSP_PSMOM_EPILOGUE_START:
-	getString(&ptr, buf, sizeof(buf));
+	getString(&data, buf, sizeof(buf));
 
 	/* ignore broken jobids */
 	if (strlen(buf) < 2) break;
@@ -206,7 +207,7 @@ static bool dropPSMsg(DDTypedBufferMsg_t *msg)
 	stopPElogueExecution(job);
 	break;
     case PSP_PSMOM_VERSION:
-	getString(&ptr, buf, sizeof(buf));
+	getString(&data, buf, sizeof(buf));
 
 	/* ignore broken jobids */
 	if (strlen(buf) < 2) break;
@@ -284,10 +285,9 @@ static void handleJobUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     char jobid[JOB_NAME_LEN] = {'\0'};
     int32_t loggerPID, node;
-    char *ptr = rData->buf;
 
     /* get jobid */
-    getString(&ptr, jobid, sizeof(jobid));
+    getString(rData, jobid, sizeof(jobid));
 
     JobInfo_t *jInfo = findJobInfoById(jobid);
     if (!jInfo) {
@@ -296,7 +296,7 @@ static void handleJobUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
 
     /* get mpiexec/logger pid */
-    getInt32(&ptr, &loggerPID);
+    getInt32(rData, &loggerPID);
     node = PSC_getID(msg->header.sender);
 
     jInfo->logger = PSC_getTID(node, loggerPID);
@@ -306,27 +306,26 @@ static void handleJobInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     char jobid[JOB_NAME_LEN] = {'\0'}, username[USER_NAME_LEN] = {'\0'};
     char timeout[100] = {'\0'}, cookie[100] = {'\0'};
-    char *ptr = rData->buf;
     int32_t start;
 
     /* get info type (start/stop) */
-    getInt32(&ptr, &start);
+    getInt32(rData, &start);
 
     /* get jobid */
-    getString(&ptr, jobid, sizeof(jobid));
+    getString(rData, jobid, sizeof(jobid));
 
     /* get username */
-    getString(&ptr, username, sizeof(username));
+    getString(rData, username, sizeof(username));
 
     if (start) {
 	mdbg(PSMOM_LOG_VERBOSE, "%s: job '%s' user '%s' is starting\n",
 		__func__, jobid, username);
 
 	/* get timeout */
-	getString(&ptr, timeout, sizeof(timeout));
+	getString(rData, timeout, sizeof(timeout));
 
 	/* get cookie */
-	getString(&ptr, cookie, sizeof(cookie));
+	getString(rData, cookie, sizeof(cookie));
 
 	/* cleanup old job infos */
 	checkJobInfoTimeouts();

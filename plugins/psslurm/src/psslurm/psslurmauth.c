@@ -221,9 +221,9 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
     } else if (credHash[0] == HASH_PLUGIN_K12) {
 	/* calculate k12 hash from message payload */
 	unsigned char plHash[32] = {0};
-	if (KangarooTwelve((unsigned char *) sMsg->ptr, sMsg->head.bodyLen,
-			   plHash, sizeof(plHash), (unsigned char *) &msgType,
-			   sizeof(msgType))) {
+	if (KangarooTwelve((unsigned char *) sMsg->data->unpackPtr,
+			   sMsg->head.bodyLen, plHash, sizeof(plHash),
+			   (unsigned char *) &msgType, sizeof(msgType))) {
 	    flog("k12 hash calculation failed\n");
 	    goto CLEANUP;
 	}

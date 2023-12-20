@@ -424,23 +424,25 @@ void handlePELogueSignal(DDTypedBufferMsg_t *msg)
 {
     struct stat statbuf;
     char buf[100], signal[100], jobid[JOB_NAME_LEN], reason[100];
-    char *ptr = msg->buf;
     int isignal;
     int32_t finish;
     Child_t *child;
 
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, msg->buf, sizeof(msg->buf));
+
     /* get jobid */
-    getString(&ptr, jobid, sizeof(jobid));
+    getString(&data, jobid, sizeof(jobid));
 
     /* get signal */
-    getString(&ptr, signal, sizeof(signal));
+    getString(&data, signal, sizeof(signal));
     if (!(isignal = string2Signal(signal))) {
 	mlog("%s: got invalid signal '%s'\n", __func__, signal);
 	return;
     }
 
     /* get the finish/slient flag */
-    getInt32(&ptr, &finish);
+    getInt32(&data, &finish);
 
     /* find job */
     if (!(child = findChildByJobid(jobid, PSMOM_CHILD_PROLOGUE))) {
@@ -454,7 +456,7 @@ void handlePELogueSignal(DDTypedBufferMsg_t *msg)
     }
 
     /* get the reason for sending the signal */
-    getString(&ptr, reason, sizeof(reason));
+    getString(&data, reason, sizeof(reason));
 
     /* save the signal we are about to send */
     if (isignal == SIGTERM || isignal == SIGKILL) {
@@ -503,7 +505,6 @@ void handlePELogueSignal(DDTypedBufferMsg_t *msg)
 void handlePELogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     PSnodes_ID_t nodeId = PSC_getID(msg->header.sender);
-    char *ptr = rData->buf;
     char buf[300], *peType;
     int32_t res = 1, signalFlag;
     time_t job_start;
@@ -512,7 +513,7 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     peType = prologue ? "prologue" : "epilogue";
 
     /* get jobid */
-    getString(&ptr, buf, sizeof(buf));
+    getString(rData, buf, sizeof(buf));
 
     Job_t *job = findJobById(buf);
     if (!job) {
@@ -524,7 +525,7 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
 
     /* get job start_time */
-    getTime(&ptr, &job_start);
+    getTime(rData, &job_start);
 
     if (job->start_time != job_start) {
 	/* msg is for previous job, ignore */
@@ -534,7 +535,7 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
 
     /* get result */
-    getInt32(&ptr, &res);
+    getInt32(rData, &res);
 
     Job_Node_List_t *nodeEntry = findJobNodeEntry(job, nodeId);
     if (nodeEntry) {
@@ -546,11 +547,11 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
 
     /* get signal flag */
-    getInt32(&ptr, &signalFlag);
+    getInt32(rData, &signalFlag);
 
     /* on error get errmsg */
     if (res) {
-	getString(&ptr, buf, sizeof(buf));
+	getString(rData, buf, sizeof(buf));
 
 	/* suppress error message if we have killed the pelogue by request */
 	if (!signalFlag) {
@@ -854,24 +855,22 @@ void monitorPELogueTimeout(Job_t *job)
 
 void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 {
-    char *ptr, ctype[20], buf[300], tmpDir[400] = { '\0' };
+    char ctype[20], buf[300], tmpDir[400] = { '\0' };
     char *dirScripts, *confTmpDir;
     int itype, disPE;
     PElogue_Data_t *data;
     PS_SendDB_t ans;
     bool prologue = msg->type == PSP_PSMOM_PROLOGUE_START ? true : false;
 
-    ptr = msgData->buf;
-
     /* fetch job hashname */
-    getString(&ptr, buf, sizeof(buf));
+    getString(msgData, buf, sizeof(buf));
 
     /* set temp dir using hashname */
     confTmpDir = getConfValueC(config, "DIR_TEMP");
     if (confTmpDir) snprintf(tmpDir, sizeof(tmpDir), "%s/%s", confTmpDir, buf);
 
     /* fetch username */
-    getString(&ptr, buf, sizeof(buf));
+    getString(msgData, buf, sizeof(buf));
 
     if (prologue) {
 	struct stat statbuf;
@@ -919,10 +918,10 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 	time_t jobStart;
 
 	/* get jobid from received msg */
-	char *jobid = getStringM(&ptr);
+	char *jobid = getStringM(msgData);
 
 	/* get start_time */
-	getTime(&ptr, &jobStart);
+	getTime(msgData, &jobStart);
 
 	if (prologue) psPamAddUser(buf, jobid, PSPAM_STATE_PROLOGUE);
 
@@ -962,20 +961,20 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     data->dirScripts = ustrdup(dirScripts);
 
     /* set pelogue data structure */
-    data->jobid = getStringM(&ptr);
-    getTime(&ptr, &data->start_time);
-    data->jobname = getStringM(&ptr);
-    data->user = getStringM(&ptr);
-    data->group = getStringM(&ptr);
-    data->limits = getStringM(&ptr);
-    data->queue = getStringM(&ptr);
-    getInt32(&ptr, &data->timeout);
-    data->sessid = getStringM(&ptr);
-    data->nameExt = getStringM(&ptr);
-    data->resources_used = getStringM(&ptr);
-    getInt32(&ptr, &data->exit);
-    data->gpus = getStringM(&ptr);
-    data->server = getStringM(&ptr);
+    data->jobid = getStringM(msgData);
+    getTime(msgData, &data->start_time);
+    data->jobname = getStringM(msgData);
+    data->user = getStringM(msgData);
+    data->group = getStringM(msgData);
+    data->limits = getStringM(msgData);
+    data->queue = getStringM(msgData);
+    getInt32(msgData, &data->timeout);
+    data->sessid = getStringM(msgData);
+    data->nameExt = getStringM(msgData);
+    data->resources_used = getStringM(msgData);
+    getInt32(msgData, &data->exit);
+    data->gpus = getStringM(msgData);
+    data->server = getStringM(msgData);
     data->tmpDir = (confTmpDir != NULL) ? ustrdup(tmpDir) : NULL;
 
     if (prologue) psPamAddUser(data->user, data->jobid, PSPAM_STATE_PROLOGUE);

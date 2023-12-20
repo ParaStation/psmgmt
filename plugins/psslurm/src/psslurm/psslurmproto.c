@@ -1496,10 +1496,10 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
  */
 static void handleJobId(Slurm_Msg_t *sMsg)
 {
-    char **ptr = &sMsg->ptr;
+    PS_DataBuffer_t *data = sMsg->data;
     uint32_t pid = 0;
 
-    getUint32(ptr, &pid);
+    getUint32(data, &pid);
 
     Step_t *step = Step_findByPsidTask(pid);
     if (step) {
@@ -1959,9 +1959,9 @@ static void sendJobKill(uint32_t jobid, uint32_t stepid, uint16_t signal)
 static int handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
 {
     Req_Info_t *req = info;
-    char **ptr = &sMsg->ptr;
+    PS_DataBuffer_t *data = sMsg->data;
     uint32_t rc;
-    getUint32(ptr, &rc);
+    getUint32(data, &rc);
 
     if (rc == ESLURM_DISABLED || rc == ESLURM_BATCH_ONLY) {
 	flog("cancel job %u\n", req->jobid);
@@ -2789,7 +2789,7 @@ void processSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw, Connection_CB_t *cb,
 		     void *info)
 {
     /* extract Slurm message header */
-    if (!unpackSlurmHeader(&sMsg->ptr, &sMsg->head, fw)) {
+    if (!unpackSlurmHeader(sMsg, fw)) {
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return;
     }
@@ -3685,7 +3685,7 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     switch (sMsg->head.type) {
 	case RESPONSE_SLURM_RC:
 	    /* return code */
-	    getUint32(&sMsg->ptr, &rc);
+	    getUint32(sMsg->data, &rc);
 	    flog("configuration request error: reply %s rc %s sock %i\n",
 		 msgType2String(sMsg->head.type), slurmRC2String(rc),
 		 sMsg->sock);

@@ -54,16 +54,16 @@ static void addCPUMapData(PS_SendDB_t *data)
     }
 }
 
-bool handleCPUMapData(char **ptr, PSnodes_ID_t sender)
+bool handleCPUMapData(PS_DataBuffer_t *rData, PSnodes_ID_t sender)
 {
     uint16_t numThrds;
-    getUint16(ptr, &numThrds);
+    getUint16(rData, &numThrds);
 
     if (PSIDnodes_clearCPUMap(sender) < 0) return false;
 
     for (uint16_t thrd = 0; thrd < numThrds; thrd++) {
 	int16_t mappedThrd;
-	getInt16(ptr, &mappedThrd);
+	getInt16(rData, &mappedThrd);
 	if (PSIDnodes_appendCPUMap(sender, mappedThrd) < 0) return false;
     }
 
@@ -89,12 +89,12 @@ static void addSetsData(PSP_NodeInfo_t type, PSCPU_set_t *sets,
     }
 }
 
-static bool handleSetData(char **ptr, PSnodes_ID_t sender,
+static bool handleSetData(PS_DataBuffer_t *rData, PSnodes_ID_t sender,
 			  int setSetSize(PSnodes_ID_t, short),
 			  int setSets(PSnodes_ID_t, PSCPU_set_t *))
 {
     uint16_t numNUMA;
-    getUint16(ptr, &numNUMA);
+    getUint16(rData, &numNUMA);
     if (!PSIDnodes_numNUMADoms(sender)) {
 	PSIDnodes_setNumNUMADoms(sender, numNUMA);
     } else if (PSIDnodes_numNUMADoms(sender) != numNUMA) {
@@ -111,7 +111,7 @@ static bool handleSetData(char **ptr, PSnodes_ID_t sender,
     }
 
     int16_t setSize;
-    getInt16(ptr, &setSize);
+    getInt16(rData, &setSize);
     if (setSetSize) setSetSize(sender, setSize);
 
     if (!setSize) {
@@ -128,7 +128,7 @@ static bool handleSetData(char **ptr, PSnodes_ID_t sender,
 
     for (uint16_t dom = 0; dom < numNUMA; dom++) {
 	uint8_t setBuf[nBytes];
-	for (uint16_t b = 0; b < nBytes; b++) getUint8(ptr, &setBuf[b]);
+	for (uint16_t b = 0; b < nBytes; b++) getUint8(rData, &setBuf[b]);
 	PSCPU_clrAll(sets[dom]);
 	PSCPU_inject(sets[dom], setBuf, nBytes);
     }
@@ -147,12 +147,12 @@ static void addDistanceData(PS_SendDB_t *data)
     addUint32ArrayToMsg(distances, numNUMA * numNUMA, data);
 }
 
-bool handleDistanceData(char **ptr, PSnodes_ID_t sender)
+bool handleDistanceData(PS_DataBuffer_t *rData, PSnodes_ID_t sender)
 {
     uint16_t numNUMA = PSIDnodes_numNUMADoms(sender);
 
     uint32_t *distances, len;
-    getUint32Array(ptr, &distances, &len);
+    getUint32Array(rData, &distances, &len);
     if (len != numNUMA * numNUMA) {
 	mlog("%s: mismatch in numNUMA %d/%d\n", __func__, numNUMA*numNUMA, len);
 	PSIDnodes_setDistances(sender, NULL);
@@ -173,18 +173,17 @@ static void addCPUData(PS_SendDB_t *data)
     addInt16ToMsg(numThrds, data);
 }
 
-bool handleCPUData(char **ptr, PSnodes_ID_t sender)
+bool handleCPUData(PS_DataBuffer_t *rData, PSnodes_ID_t sender)
 {
     uint16_t numCores, numThrds;
-    getUint16(ptr, &numCores);
-    getUint16(ptr, &numThrds);
+    getUint16(rData, &numCores);
+    getUint16(rData, &numThrds);
 
     PSIDnodes_setNumCores(sender, numCores);
     PSIDnodes_setNumThrds(sender, numThrds);
 
     return true;
 }
-
 
 void sendNodeInfoData(PSnodes_ID_t node)
 {
@@ -242,46 +241,45 @@ static void broadcastMapData(void)
 static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     PSnodes_ID_t sender = PSC_getID(msg->header.sender);
-    char *ptr = rData->buf;
     PSP_NodeInfo_t type = 0; // ensure higher bytes are all 0
 
     mdbg(NODEINFO_LOG_VERBOSE, "%s: handle update from %s\n", __func__,
 	 PSC_printTID(msg->header.sender));
 
-    getUint8(&ptr, (uint8_t *) &type);
+    getUint8(rData, (uint8_t *) &type);
     while (type) {
 	mdbg(NODEINFO_LOG_VERBOSE, "%s: update type %d\n", __func__, type);
 	switch (type) {
 	case PSP_NODEINFO_CPUMAP:
-	    if (!handleCPUMapData(&ptr, sender)) return;
+	    if (!handleCPUMapData(rData, sender)) return;
 	    break;
 	case PSP_NODEINFO_NUMANODES:
-	    if (!handleSetData(&ptr, sender, NULL,
+	    if (!handleSetData(rData, sender, NULL,
 			       PSIDnodes_setCPUSets)) return;
 	    break;
 	case PSP_NODEINFO_GPU:
-	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumGPUs,
+	    if (!handleSetData(rData, sender, PSIDnodes_setNumGPUs,
 			       PSIDnodes_setGPUSets)) return;
 	    break;
 	case PSP_NODEINFO_NIC:
-	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumNICs,
+	    if (!handleSetData(rData, sender, PSIDnodes_setNumNICs,
 			       PSIDnodes_setNICSets)) return;
 	    break;
 	case PSP_NODEINFO_REQ:
 	    sendNodeInfoData(sender);
 	    break;
 	case PSP_NODEINFO_DISTANCES:
-	    if (!handleDistanceData(&ptr, sender)) return;
+	    if (!handleDistanceData(rData, sender)) return;
 	    break;
 	case PSP_NODEINFO_CPU:
-	    if (!handleCPUData(&ptr, sender)) return;
+	    if (!handleCPUData(rData, sender)) return;
 	    break;
 	default:
 	    mlog("%s: unknown type %d\n", __func__, type);
 	    return;
 	}
 	/* Peek into next type */
-	getUint8(&ptr, (uint8_t *) &type);
+	getUint8(rData, (uint8_t *) &type);
     }
 }
 

@@ -482,11 +482,11 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
  *
  * @param sock The socket file descriptor
  *
- * @param data Pointer holding the step
+ * @param stepPtr Pointer holding the step
  *
  * @return Always returns 0
  */
-int handleSrunIOMsg(int sock, void *data);
+int handleSrunIOMsg(int sock, void *stepPtr);
 
 /**
  * @brief Close all connections associated

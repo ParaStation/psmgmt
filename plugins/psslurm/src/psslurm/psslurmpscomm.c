@@ -1076,11 +1076,9 @@ static void handle_PElogueRes(DDTypedBufferMsg_t *msg)
  */
 static void handle_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    uint32_t jobid;
-    char *ptr = data->buf;
-
     /* get jobid */
-    getUint32(&ptr, &jobid);
+    uint32_t jobid;
+    getUint32(data, &jobid);
 
     Job_t *job = Job_add(jobid);
     job->state = JOB_QUEUED;
@@ -1089,14 +1087,14 @@ static void handle_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     job->mother = msg->header.sender;
 
     /* get uid/gid */
-    getUint32(&ptr, &job->uid);
-    getUint32(&ptr, &job->gid);
+    getUint32(data, &job->uid);
+    getUint32(data, &job->gid);
 
     /* get username */
-    job->username = getStringM(&ptr);
+    job->username = getStringM(data);
 
     /* get node-list */
-    job->slurmHosts = getStringM(&ptr);
+    job->slurmHosts = getStringM(data);
 
     if (!convHLtoPSnodes(job->slurmHosts, getNodeIDbySlurmHost,
 			 &job->nodes, &job->nrOfNodes)) {
@@ -1121,18 +1119,16 @@ static void handle_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    uint32_t jobid;
-    uint16_t state;
-    Alloc_t *alloc;
-    char *ptr = data->buf;
-
     /* get jobid */
-    getUint32(&ptr, &jobid);
+    uint32_t jobid;
+    getUint32(data, &jobid);
 
     /* get state */
-    getUint16(&ptr, &state);
+    uint16_t state;
+    getUint16(data, &state);
 
-    if (!(alloc = Alloc_find(jobid))) {
+    Alloc_t *alloc = Alloc_find(jobid);
+    if (!alloc) {
 	flog("allocation %u not found\n", jobid);
 	return;
     }
@@ -1143,9 +1139,10 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	 PSC_printTID(msg->header.sender));
 }
 
-static bool getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
+static bool getSlotsFromMsg(PS_DataBuffer_t *data, PSpart_slot_t **slots,
+			    uint32_t *len)
 {
-    getUint32(ptr, len);
+    getUint32(data, len);
     if (*len == 0) {
 	flog("No slots in message\n");
 	*slots = NULL;
@@ -1158,15 +1155,15 @@ static bool getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
     }
 
     uint16_t CPUbytes;
-    getUint16(ptr, &CPUbytes);
+    getUint16(data, &CPUbytes);
     fdbg(PSSLURM_LOG_PACK, "len %u CPUbytes %hd\n", *len, CPUbytes);
 
 
     for (size_t s = 0; s < *len; s++) {
-	getInt16(ptr, &((*slots)[s].node));
+	getInt16(data, &((*slots)[s].node));
 
 	PSCPU_clrAll((*slots)[s].CPUset);
-	PSCPU_inject((*slots)[s].CPUset, *ptr, CPUbytes);
+	PSCPU_inject((*slots)[s].CPUset, data->unpackPtr, CPUbytes);
 
 	if (!PSCPU_any((*slots)[s].CPUset, CPUbytes * 8)) {
 	    flog("invalid message: empty slot found\n");
@@ -1175,7 +1172,7 @@ static bool getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
 	    return false;
 	}
 
-	*ptr += CPUbytes;
+	data->unpackPtr += CPUbytes;
 	fdbg(PSSLURM_LOG_PACK, "slot %zu node %hd cpuset %s\n", s,
 	     (*slots)[s].node, PSCPU_print_part((*slots)[s].CPUset, CPUbytes));
     }
@@ -1196,16 +1193,15 @@ static bool getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
  */
 static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
-    int32_t exitStatus;
     uint32_t packJobid, stepid;
 
     /* packJobid  */
-    getUint32(&ptr, &packJobid);
+    getUint32(data, &packJobid);
     /* stepid */
-    getUint32(&ptr, &stepid);
+    getUint32(data, &stepid);
     /* exit status */
-    getInt32(&ptr, &exitStatus);
+    int32_t exitStatus;
+    getInt32(data, &exitStatus);
 
     fdbg(PSSLURM_LOG_PACK, "packJobid %u stepid %u exitStatus %i\n",
 	 packJobid, stepid, exitStatus);
@@ -1235,15 +1231,14 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  */
 static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
     uint32_t packJobid, stepid, packAllocID, len;
 
     /* packJobid  */
-    getUint32(&ptr, &packJobid);
+    getUint32(data, &packJobid);
     /* stepid */
-    getUint32(&ptr, &stepid);
+    getUint32(data, &stepid);
     /* pack allocation ID */
-    getUint32(&ptr, &packAllocID);
+    getUint32(data, &packAllocID);
 
     if (!Alloc_findByPackID(packAllocID)) {
 	flog("allocation %u not found\n", packAllocID);
@@ -1277,14 +1272,14 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     jobcomp->followerID = PSC_getID(msg->header.sender);
 
     /* job component task offset = first global rank of pack job */
-    getUint32(&ptr, &jobcomp->firstRank);
+    getUint32(data, &jobcomp->firstRank);
     /* np */
-    getUint32(&ptr, &jobcomp->np);
+    getUint32(data, &jobcomp->np);
     step->rcvdPackProcs += jobcomp->np;
     /* tpp */
-    getUint16(&ptr, &jobcomp->tpp);
+    getUint16(data, &jobcomp->tpp);
     /* argc/argv */
-    getStringArrayM(&ptr, &jobcomp->argv, &jobcomp->argc);
+    getStringArrayM(data, &jobcomp->argv, &jobcomp->argc);
 
     /* debug print what we have right now, slots are printed
      *  inside the loop in getSlotsFromMsg() */
@@ -1296,7 +1291,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	    jobcomp->np, jobcomp->tpp, jobcomp->argc);
 
     /* slots */
-    if (!getSlotsFromMsg(&ptr, &jobcomp->slots, &len)) {
+    if (!getSlotsFromMsg(data, &jobcomp->slots, &len)) {
 	flog("Error getting slots from message\n");
 	JobComp_delete(jobcomp);
 	return;
@@ -1350,8 +1345,8 @@ int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
     }
 
     /* add message body */
-    uint32_t len = sMsg->data->used - (sMsg->ptr - sMsg->data->buf);
-    addMemToMsg(sMsg->ptr, len, &msg);
+    uint32_t len = sMsg->data->used - (sMsg->data->unpackPtr - sMsg->data->buf);
+    addMemToMsg(sMsg->data->unpackPtr, len, &msg);
 
     /* send the message(s) */
     return sendFragMsg(&msg);
@@ -1387,20 +1382,18 @@ int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
 static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     Slurm_Msg_t sMsg;
-    char *ptr = data->buf;
-    int16_t socket;
 
     initSlurmMsg(&sMsg);
     sMsg.data = data;
     sMsg.source = msg->header.sender;
 
     /* socket */
-    getInt16(&ptr, &socket);
-    /* receive time */
-    getTime(&ptr, &sMsg.recvTime);
-
+    int16_t socket;
+    getInt16(data, &socket);
     sMsg.sock = socket;
-    sMsg.ptr = ptr;
+    /* receive time */
+    getTime(data, &sMsg.recvTime);
+
 
     mdbg(PSSLURM_LOG_FWD, "%s: sender %s sock %u time %lu datalen %zu\n",
 	 __func__, PSC_printTID(sMsg.source), sMsg.sock, sMsg.recvTime,
@@ -1412,40 +1405,38 @@ static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     Slurm_Msg_t sMsg;
-    char *ptr = data->buf;
     int16_t socket;
 
     initSlurmMsg(&sMsg);
     sMsg.source = msg->header.sender;
 
     /* socket */
-    getInt16(&ptr, &socket);
+    getInt16(data, &socket);
     sMsg.sock = socket;
     /* receive time */
-    getTime(&ptr, &sMsg.recvTime);
+    getTime(data, &sMsg.recvTime);
     /* message type */
-    getUint16(&ptr, &sMsg.head.type);
+    getUint16(data, &sMsg.head.type);
     /* save payload in data buffer */
-    sMsg.reply.bufUsed = data->used - (ptr - data->buf);
-    sMsg.reply.buf = ptr;
+    sMsg.reply.bufUsed = data->used - (data->unpackPtr - data->buf);
+    sMsg.reply.buf = data->unpackPtr;
 
     handleFrwrdMsgReply(&sMsg, SLURM_SUCCESS);
 }
 
 static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
     uint32_t allocID;
     int8_t PElogueType, msgType;
 
     /* allocation ID */
-    getUint32(&ptr, &allocID);
+    getUint32(data, &allocID);
     /* pelogue type */
-    getInt8(&ptr, &PElogueType);
+    getInt8(data, &PElogueType);
     /* output type */
-    getInt8(&ptr, &msgType);
+    getInt8(data, &msgType);
     /* message */
-    char *msgData = getStringM(&ptr);
+    char *msgData = getStringM(data);
     char *logPath = getConfValueC(Config, "PELOGUE_LOG_PATH");
     char buf[2048];
     snprintf(buf, sizeof(buf), "%s/%u", logPath, allocID);
@@ -1670,7 +1661,8 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     /* ignore follow up messages */
     if (fragNum) return;
 
-    char *ptr = msg->buf + used;
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, msg->buf + used, sizeof(msg->buf) - used);
 
     Slurm_Msg_t sMsg;
     initSlurmMsg(&sMsg);
@@ -1679,10 +1671,10 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
 
     /* socket */
     int16_t socket;
-    getInt16(&ptr, &socket);
+    getInt16(&data, &socket);
     sMsg.sock = socket;
     /* receive time */
-    getTime(&ptr, &sMsg.recvTime);
+    getTime(&data, &sMsg.recvTime);
 
     handleFrwrdMsgReply(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
 }

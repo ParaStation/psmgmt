@@ -59,6 +59,8 @@ typedef struct {
     size_t size;         /**< Current size of @ref buf */
     size_t used;         /**< Used bytes of @ref buf */
     uint16_t nextFrag;   /**< Next fragment number to expect */
+    char *unpackPtr;	 /**< Tracking top of unpacked bytes in @ref buf */
+    int8_t unpackErr;	 /**< Holding error code if unpacking of data failed */
 } PS_DataBuffer_t;
 
 /** Prototype of custom sender functions used by @ref initSerial() */
@@ -175,6 +177,17 @@ void initFragBufferExtra(PS_SendDB_t *buffer, int16_t headType, int32_t msgType,
 /** Backward compatibility, no extra data to be added */
 #define initFragBuffer(buffer, headType, msgType)	\
     initFragBufferExtra(buffer, headType, msgType, NULL, 0)
+
+/**
+ * @brief Initialize a data buffer
+ *
+ * @param buffer The data buffer to initialize
+ *
+ * @param mem The actual memory used for the buffer
+ *
+ * @param memSize The size of @ref mem
+ */
+void initPSDataBuffer(PS_DataBuffer_t *buffer, char *mem, size_t memSize);
 
 /**
  * @brief Set an additional destination for fragmented messages
@@ -416,23 +429,25 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
 /**
  * @brief Read data from buffer
  *
- * Read @a size bytes from a memory region addressed by @a ptr and
+ * Read @a size bytes from a memory region addressed by @a data and
  * store it to @a val. Data is expected to be of type @a type. The
  * latter is double-checked if plugincomm's @ref typeInfo flag is
- * true. @a ptr is expected to provide sufficient data and @a val
+ * true. @a data is expected to provide sufficient data and @a val
  * expected to have enough space to store the data read.
  *
- * If reading is successful, @a ptr will be updated to point behind
- * the last data read, i.e. prepared to read the next data from it.
+ * If reading is successful, unpackPtro of @a data will be updated
+ * to point behind the last data read, i.e. prepared to read the
+ * next data from it. Otherwise an error code is saved
+ * in unpackErr of @a data.
  *
  * If the global @ref byteOrder flag is true, byte order of the
  * received data will be adapted form network to host byte-order.
  *
- * @param ptr Data buffer to read from
+ * @param data Data buffer to read from
  *
  * @param val Data buffer holding the result on return
  *
- * @param type Data type to be expected at @a ptr
+ * @param type Data type to be expected at @a data
  *
  * @param size Number of bytes to read
  *
@@ -441,69 +456,69 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
  * @param line Line number where this function is called
  *
  * @return On success true is returned or false in case of an
- * error. If reading was not successful, @a ptr might be not updated.
+ * error. If reading was not successful, @a data might be not updated.
  */
-bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
+bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 		size_t size, const char *caller, const int line);
 
-#define getInt8(ptr, val) { int8_t *_x = val;			    \
-	getFromBuf(ptr, _x, PSDATA_INT8, sizeof(*_x),		    \
+#define getInt8(data, val) { int8_t *_x = val;			    \
+	getFromBuf(data, _x, PSDATA_INT8, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
-#define getInt16(ptr, val) { int16_t *_x = val;			    \
-	getFromBuf(ptr, _x, PSDATA_INT16, sizeof(*_x),		    \
+#define getInt16(data, val) { int16_t *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_INT16, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
-#define getInt32(ptr, val) { int32_t *_x = val;			    \
-	getFromBuf(ptr, _x, PSDATA_INT32, sizeof(*_x),		    \
+#define getInt32(data, val) { int32_t *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_INT32, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
-#define getInt64(ptr, val) { int64_t *_x = val;			    \
-	getFromBuf(ptr, _x, PSDATA_INT64, sizeof(*_x),		    \
+#define getInt64(data, val) { int64_t *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_INT64, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
-#define getUint8(ptr, val) { uint8_t *_x = val;			    \
-	getFromBuf(ptr, _x, PSDATA_UINT8, sizeof(*_x),		    \
+#define getUint8(data, val) { uint8_t *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_UINT8, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
-#define getUint16(ptr, val) { uint16_t *_x = val;		    \
-	getFromBuf(ptr, _x, PSDATA_UINT16, sizeof(*_x),		    \
+#define getUint16(data, val) { uint16_t *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_UINT16, sizeof(*_x),	    \
 		   __func__, __LINE__); }
 
-#define getUint32(ptr, val) { uint32_t *_x = val;		    \
-	getFromBuf(ptr, _x, PSDATA_UINT32, sizeof(*_x),		    \
+#define getUint32(data, val) { uint32_t *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_UINT32, sizeof(*_x),	    \
 		   __func__, __LINE__); }
 
-#define getUint64(ptr, val) { uint64_t *_x = val;		    \
-	getFromBuf(ptr, _x, PSDATA_UINT64, sizeof(*_x),		    \
+#define getUint64(data, val) { uint64_t *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_UINT64, sizeof(*_x),	    \
 		   __func__, __LINE__); }
 
-#define getDouble(ptr, val) { double *_x = val;			    \
-	getFromBuf(ptr, _x, PSDATA_DOUBLE, sizeof(*_x),		    \
+#define getDouble(data, val) { double *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_DOUBLE, sizeof(*_x),	    \
 		   __func__, __LINE__); }
 
-#define getTime(ptr, val) { time_t *_x = val;			    \
-	getFromBuf(ptr, _x, PSDATA_TIME, sizeof(*_x),		    \
+#define getTime(data, val) { time_t *_x = val;			    \
+	getFromBuf(data, _x, PSDATA_TIME, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
-#define getPid(ptr, val) { pid_t *_x = val;			    \
-	getFromBuf(ptr, _x, PSDATA_PID, sizeof(*_x),		    \
+#define getPid(data, val) { pid_t *_x = val;			    \
+	getFromBuf(data, _x, PSDATA_PID, sizeof(*_x),		    \
 		   __func__, __LINE__); }
 
-#define getBool(ptr, val) { bool *_y = val; uint8_t _x;		    \
-	getFromBuf(ptr, &_x, PSDATA_UINT8, sizeof(uint8_t),	    \
+#define getBool(data, val) { bool *_y = val; uint8_t _x;	    \
+	getFromBuf(data, &_x, PSDATA_UINT8, sizeof(uint8_t),	    \
 		   __func__, __LINE__);	*_y = _x; }
 
-#define getTaskId(ptr, val) { int32_t *_x = val;		    \
-	getFromBuf(ptr, _x, PSDATA_INT32, sizeof(int32_t),	    \
+#define getTaskId(data, val) { int32_t *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_INT32, sizeof(int32_t),	    \
 		   __func__, __LINE__); }
 
-#define getNodeId(ptr, val) { int16_t *_x = val;		    \
-	getFromBuf(ptr, _x, PSDATA_INT16, sizeof(int16_t),	    \
+#define getNodeId(data, val) { int16_t *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_INT16, sizeof(int16_t),	    \
 		   __func__, __LINE__); }
 
-#define getResId(ptr, val) { int32_t *_x = val;			    \
-	getFromBuf(ptr, _x, PSDATA_INT32, sizeof(int32_t),	    \
+#define getResId(data, val) { int32_t *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_INT32, sizeof(int32_t),	    \
 		   __func__, __LINE__); }
 
 /**
@@ -546,20 +561,25 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
  * returned; in case of error NULL is returned. If reading was not
  * successful, @a ptr might be not updated.
  */
-void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
-		    PS_DataType_t type, const char *caller, const int line);
+void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
+		    size_t *len, PS_DataType_t type, const char *caller,
+		    const int line);
 
-#define getStringM(ptr)							\
-    getMemFromBuf(ptr, NULL, 0, NULL, PSDATA_STRING, __func__, __LINE__)
+#define getStringM(data)						\
+    getMemFromBuf(data, NULL, 0, NULL, PSDATA_STRING,			\
+	          __func__, __LINE__)
 
-#define getStringML(ptr, len)						\
-    getMemFromBuf(ptr, NULL, 0, len, PSDATA_STRING, __func__, __LINE__)
+#define getStringML(data, len)						\
+    getMemFromBuf(data, NULL, 0, len, PSDATA_STRING,			\
+	          __func__, __LINE__)
 
-#define getDataM(ptr, len)						\
-    getMemFromBuf(ptr, NULL, 0, len, PSDATA_DATA, __func__, __LINE__)
+#define getDataM(data, len)						\
+    getMemFromBuf(data, NULL, 0, len, PSDATA_DATA,			\
+	          __func__, __LINE__)
 
-#define getString(ptr, buf, buflen)					\
-    getMemFromBuf(ptr, buf, buflen, NULL, PSDATA_STRING, __func__, __LINE__)
+#define getString(data, buf, buflen)					\
+    getMemFromBuf(data, buf, buflen, NULL, PSDATA_STRING,		\
+		  __func__, __LINE__)
 
 /**
  * @brief Read data array from buffer
@@ -594,33 +614,33 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
  * @return On success true is returned or false in case of an error.
  * If reading was not successful, @a ptr might be not updated.
  */
-bool getArrayFromBuf(char **ptr, void **val, uint32_t *len, PS_DataType_t type,
-		     size_t size, const char *caller, const int line);
+bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
+		     PS_DataType_t type, size_t size, const char *caller,
+		     const int line);
 
-#define getUint16Array(ptr, val, len) { uint16_t **_x = val;		    \
-	getArrayFromBuf(ptr, (void**)_x, len, PSDATA_UINT16, sizeof(**_x),  \
+#define getUint16Array(data, val, len) { uint16_t **_x = val;		     \
+	getArrayFromBuf(data, (void**)_x, len, PSDATA_UINT16, sizeof(**_x),  \
 			__func__, __LINE__); }
 
-#define getUint32Array(ptr, val, len) { uint32_t **_x = val;		    \
-	getArrayFromBuf(ptr, (void **)_x, len, PSDATA_UINT32, sizeof(**_x), \
+#define getUint32Array(data, val, len) { uint32_t **_x = val;		     \
+	getArrayFromBuf(data, (void **)_x, len, PSDATA_UINT32, sizeof(**_x), \
 			__func__, __LINE__); }
 
-#define getUint64Array(ptr, val, len) { uint64_t **_x = val;		    \
-	getArrayFromBuf(ptr, (void **)_x, len, PSDATA_UINT64, sizeof(**_x), \
+#define getUint64Array(data, val, len) { uint64_t **_x = val;		     \
+	getArrayFromBuf(data, (void **)_x, len, PSDATA_UINT64, sizeof(**_x), \
 			__func__, __LINE__); }
 
-#define getInt16Array(ptr, val, len) { int16_t **_x = val;		    \
-	getArrayFromBuf(ptr, (void **)_x, len, PSDATA_INT16, sizeof(**_x),  \
+#define getInt16Array(data, val, len) { int16_t **_x = val;		     \
+	getArrayFromBuf(data, (void **)_x, len, PSDATA_INT16, sizeof(**_x),  \
 			__func__, __LINE__); }
 
-#define getInt32Array(ptr, val, len) { int32_t **_x = val;		    \
-	getArrayFromBuf(ptr, (void **)_x, len, PSDATA_INT32, sizeof(**_x),  \
+#define getInt32Array(data, val, len) { int32_t **_x = val;		     \
+	getArrayFromBuf(data, (void **)_x, len, PSDATA_INT32, sizeof(**_x),  \
 			__func__, __LINE__); }
 
-#define getInt64Array(ptr, val, len) { int64_t **_x = val;		    \
-	getArrayFromBuf(ptr, (void **)_x, len, PSDATA_INT64, sizeof(**_x),  \
+#define getInt64Array(data, val, len) { int64_t **_x = val;		     \
+	getArrayFromBuf(data, (void **)_x, len, PSDATA_INT64, sizeof(**_x),  \
 			__func__, __LINE__); }
-
 
 /**
  * @brief Read string array from buffer
@@ -654,11 +674,11 @@ bool getArrayFromBuf(char **ptr, void **val, uint32_t *len, PS_DataType_t type,
  * @return On success true is returned or false in case of an error.
  * If reading was not successful, @a ptr might be not updated.
  */
-bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
+bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
 			const char *caller, const int line);
 
-#define getStringArrayM(ptr, array, len)			\
-    __getStringArrayM(ptr, array, len, __func__, __LINE__)
+#define getStringArrayM(data, array, len)			\
+    __getStringArrayM(data, array, len, __func__, __LINE__)
 
 
 /**

@@ -55,25 +55,23 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    char *ptr = data->buf;
-
     PStask_ID_t loggertid;
-    getTaskId(&ptr, &loggertid);
+    getTaskId(data, &loggertid);
 
     PspmixJob_t *job = ucalloc(sizeof(*job));
     INIT_LIST_HEAD(&job->resInfos);
 
-    getTaskId(&ptr, &job->spawnertid);
+    getTaskId(data, &job->spawnertid);
 
     uint32_t numResInfos;
-    getUint32(&ptr, &numResInfos);
+    getUint32(data, &numResInfos);
 
     for (size_t i = 0; i < numResInfos; i++) {
 	PSresinfo_t *resInfo = ucalloc(sizeof(*resInfo));
-	getResId(&ptr, &resInfo->resID);
+	getResId(data, &resInfo->resID);
 
 	size_t len;
-	resInfo->entries = getDataM(&ptr, &len);
+	resInfo->entries = getDataM(data, &len);
 	if (!resInfo->entries) {
 	    mlog("%s: message corrupted, cannot get entries\n", __func__);
 	    return;
@@ -84,7 +82,7 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	}
 	resInfo->nEntries = len / sizeof(*resInfo->entries);
 
-	resInfo->localSlots = getDataM(&ptr, &len);
+	resInfo->localSlots = getDataM(data, &len);
 	if (!resInfo->localSlots) {
 	    mlog("%s: message corrupted, cannot get local slots\n", __func__);
 	    return;
@@ -98,7 +96,7 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	list_add_tail(&resInfo->next, &job->resInfos);
     }
 
-    getStringArrayM(&ptr, &job->env.vars, &job->env.cnt);
+    getStringArrayM(data, &job->env.vars, &job->env.cnt);
     job->env.size = job->env.cnt + 1;
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s with loggertid %s", __func__,
@@ -121,10 +119,8 @@ static void handleRemoveJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    char *ptr = data->buf;
-
     PStask_ID_t spawnertid;
-    getTaskId(&ptr, &spawnertid);
+    getTaskId(data, &spawnertid);
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s with spawnertid %s\n", __func__,
 	 pspmix_getMsgTypeString(msg->type), PSC_printTID(spawnertid));
@@ -183,14 +179,12 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    char *ptr = data->buf;
-
     uint8_t success;
-    getUint8(&ptr, &success);
+    getUint8(data, &success);
 
-    char *nspace = getStringM(&ptr);
+    char *nspace = getStringM(data);
     uint32_t rank;
-    getUint32(&ptr, &rank);
+    getUint32(data, &rank);
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s from %s (success %s namespace %s"
 	 " rank %d)\n", __func__, pspmix_getMsgTypeString(msg->type),
@@ -220,10 +214,8 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
 */
 static void handleFenceObsolete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
-
     uint64_t fenceID;
-    getUint64(&ptr, &fenceID);
+    getUint64(data, &fenceID);
 
     ulog("UNEXPECTED: received %s from %s for fence 0x%016lX\n",
 	 pspmix_getMsgTypeString(msg->type),
@@ -243,16 +235,14 @@ static void handleFenceData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    char *ptr = data->buf;
-
     uint64_t fenceID;
-    getUint64(&ptr, &fenceID);
+    getUint64(data, &fenceID);
     uint16_t senderRank;
-    getUint16(&ptr, &senderRank);
+    getUint16(data, &senderRank);
     uint16_t nBlobs;
-    getUint16(&ptr, &nBlobs);
+    getUint16(data, &nBlobs);
     size_t len;
-    void *mData = getDataM(&ptr, &len);
+    void *mData = getDataM(data, &len);
 
     mdbg(PSPMIX_LOG_COMM, "%s: got %s from %s (rank %u) for fence 0x%016lX"
 	 " (nBlobs %u len %lu)\n", __func__, pspmix_getMsgTypeString(msg->type),
@@ -273,18 +263,16 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    char *ptr = data->buf;
-
-    char *nspace = getStringM(&ptr);
+    char *nspace = getStringM(data);
     uint32_t rank;
-    getUint32(&ptr, &rank);
+    getUint32(data, &rank);
 
     int32_t timeout;
-    getInt32(&ptr, &timeout);
+    getInt32(data, &timeout);
 
     strv_t reqKeys;
     strvInit(&reqKeys, NULL, 0);
-    getStringArrayM(&ptr, &reqKeys.strings, &reqKeys.count);
+    getStringArrayM(data, &reqKeys.strings, &reqKeys.count);
     if (reqKeys.count) reqKeys.size = reqKeys.count + 1;
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s (namespace %s rank %d numReqKeys %u"
@@ -310,17 +298,15 @@ static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    char *ptr = data->buf;
-
     int32_t status;
-    getInt32(&ptr, &status);
+    getInt32(data, &status);
 
-    char *nspace = getStringM(&ptr);
+    char *nspace = getStringM(data);
     uint32_t rank;
-    getUint32(&ptr, &rank);
+    getUint32(data, &rank);
 
     size_t len;
-    void *blob = getDataM(&ptr, &len);
+    void *blob = getDataM(data, &len);
 
     if (!len) {
 	ufree(blob);

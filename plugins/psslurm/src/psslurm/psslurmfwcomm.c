@@ -66,11 +66,11 @@ static void handleStepTimeout(Forwarder_Data_t *fwdata)
     step->timeout = true;
 }
 
-static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
+static void handleInfoTasks(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
 {
     Step_t *step = fwdata->userData;
 
-    PS_Tasks_t *task = getDataM(&ptr, NULL);
+    PS_Tasks_t *task = getDataM(data, NULL);
     list_add_tail(&task->next, &step->tasks);
 
     fdbg(PSSLURM_LOG_PROCESS, "%s child %s job rank %d global rank %d task %u"
@@ -85,12 +85,12 @@ static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
     }
 }
 
-static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
+static void handleFWfinalize(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
 {
     Step_t *step = fwdata->userData;
     uint32_t grank;
-    getUint32(&ptr, &grank);
-    PSLog_Msg_t *msg = getDataM(&ptr, NULL);
+    getUint32(data, &grank);
+    PSLog_Msg_t *msg = getDataM(data, NULL);
     PStask_ID_t sender = msg->header.sender;
 
     fdbg(PSSLURM_LOG_IO, "from %s\n", PSC_printTID(sender));
@@ -120,32 +120,32 @@ static void handleEnableSrunIO(Forwarder_Data_t *fwdata)
     srunEnableIO(step);
 }
 
-static void handleSattachTasks(Forwarder_Data_t *fwdata, char *ptr)
+static void handleSattachTasks(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
 {
     Step_t *step = fwdata->userData;
     uint16_t ioPort, ctlPort;
     uint32_t ioAddr;
 
-    getUint32(&ptr, &ioAddr);
-    getUint16(&ptr, &ioPort);
-    getUint16(&ptr, &ctlPort);
-    char *sig = getStringM(&ptr);
+    getUint32(data, &ioAddr);
+    getUint16(data, &ioPort);
+    getUint16(data, &ctlPort);
+    char *sig = getStringM(data);
 
     IO_sattachTasks(step, ioAddr, ioPort, ctlPort, sig);
 
     ufree(sig);
 }
 
-static void handlePrintStepMsg(Forwarder_Data_t *fwdata, char *ptr)
+static void handlePrintStepMsg(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
 {
     uint8_t type;
     uint32_t rank;
     size_t msglen;
 
     /* read message */
-    getUint8(&ptr, &type);
-    getUint32(&ptr, &rank);
-    char *msg = getDataM(&ptr, &msglen);
+    getUint8(data, &type);
+    getUint32(data, &rank);
+    char *msg = getDataM(data, &msglen);
 
     IO_printStepMsg(fwdata, msg, msglen, rank, type);
 
@@ -163,21 +163,24 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	return false;  // unexpected: error log created in caller
     }
 
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, msg->buf, sizeof(msg->buf));
+
     switch ((PSSLURM_Fw_Cmds_t)msg->type) {
     case CMD_PRINT_CHILD_MSG:
-	handlePrintStepMsg(fwdata, msg->buf);
+	handlePrintStepMsg(fwdata, &data);
 	break;
     case CMD_ENABLE_SRUN_IO:
 	handleEnableSrunIO(fwdata);
 	break;
     case CMD_FW_FINALIZE:
-	handleFWfinalize(fwdata, msg->buf);
+	handleFWfinalize(fwdata, &data);
 	break;
     case CMD_REATTACH_TASKS:
-	handleSattachTasks(fwdata, msg->buf);
+	handleSattachTasks(fwdata, &data);
 	break;
     case CMD_INFO_TASKS:
-	handleInfoTasks(fwdata, msg->buf);
+	handleInfoTasks(fwdata, &data);
 	break;
     case CMD_STEP_TIMEOUT:
 	handleStepTimeout(fwdata);
@@ -191,14 +194,14 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     return true;
 }
 
-static void handlePrintJobMsg(Forwarder_Data_t *fwdata, char *ptr)
+static void handlePrintJobMsg(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
 {
     uint8_t type;
     size_t msglen;
 
     /* read message */
-    getUint8(&ptr, &type);
-    char *msg = getDataM(&ptr, &msglen);
+    getUint8(data, &type);
+    char *msg = getDataM(data, &msglen);
 
     IO_printJobMsg(fwdata, msg, msglen, type);
 
@@ -209,9 +212,12 @@ bool fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     if (msg->header.type != PSP_PF_MSG) return false;
 
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, msg->buf, sizeof(msg->buf));
+
     switch ((PSSLURM_Fw_Cmds_t)msg->type) {
     case CMD_PRINT_CHILD_MSG:
-	handlePrintJobMsg(fwdata, msg->buf);
+	handlePrintJobMsg(fwdata, &data);
 	break;
     default:
 	flog("unexpected msg, type %d from TID %s (%s) jobid %s\n", msg->type,
@@ -237,14 +243,12 @@ static void handleBrokeIOcon(DDTypedBufferMsg_t *msg)
     if (step->ioCon == IO_CON_NORM) step->ioCon = IO_CON_ERROR;
 }
 
-static void changeEnv(int cmd, DDTypedBufferMsg_t *msg)
+static void changeEnv(int cmd, PS_DataBuffer_t *data)
 {
-    char *ptr = msg->buf;
-
     uint32_t jobid;
-    getUint32(&ptr, &jobid);
+    getUint32(data, &jobid);
     uint32_t stepid;
-    getUint32(&ptr, &stepid);
+    getUint32(data, &stepid);
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
@@ -252,10 +256,10 @@ static void changeEnv(int cmd, DDTypedBufferMsg_t *msg)
 	return;
     }
 
-    char *var = getStringM(&ptr);
+    char *var = getStringM(data);
 
     if (cmd == CMD_SETENV) {
-	char *val = getStringM(&ptr);
+	char *val = getStringM(data);
 	fdbg(PSSLURM_LOG_SPANK, "setenv %s:%s for %u:%u\n", var, val,
 	     jobid, stepid);
 	envSet(&step->env, var, val);
@@ -400,14 +404,12 @@ static void startSpawner(Step_t *step)
 }
 
 
-static void handleInitComplete(DDTypedBufferMsg_t *msg)
+static void handleInitComplete(PS_DataBuffer_t *data)
 {
-    char *ptr = msg->buf;
-
     uint32_t jobid;
-    getUint32(&ptr, &jobid);
+    getUint32(data, &jobid);
     uint32_t stepid;
-    getUint32(&ptr, &stepid);
+    getUint32(data, &stepid);
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
@@ -432,16 +434,19 @@ bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	    return false;
 	}
     } else if (msg->header.type == PSP_PLUG_PSSLURM) {
+	PS_DataBuffer_t data;
+	initPSDataBuffer(&data, msg->buf, sizeof(msg->buf));
+
 	switch ((PSSLURM_Fw_Cmds_t)msg->type) {
 	case CMD_BROKE_IO_CON:
 	    handleBrokeIOcon(msg);
 	    break;
 	case CMD_SETENV:
 	case CMD_UNSETENV:
-	    changeEnv((PSSLURM_Fw_Cmds_t)msg->type, msg);
+	    changeEnv((PSSLURM_Fw_Cmds_t)msg->type, &data);
 	    break;
 	case CMD_INIT_COMPLETE:
-	    handleInitComplete(msg);
+	    handleInitComplete(&data);
 	    break;
 	default:
 	    fdbg(PSSLURM_LOG_IO_VERB, "unhandled type %d\n", msg->type);

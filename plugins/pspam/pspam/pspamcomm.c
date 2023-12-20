@@ -46,25 +46,24 @@ static int jailChild(void *info)
     return PSIDhook_call(PSIDHOOK_JAIL_CHILD, &session->pid);
 }
 
-static PSPAMResult_t handleOpenRequest(char *msgBuf)
+static PSPAMResult_t handleOpenRequest(PS_DataBuffer_t *data)
 {
     char user[USERNAME_LEN], rhost[HOSTNAME_LEN];
     pid_t pid, sid;
     User_t *pamUser;
     PSPAMResult_t res = PSPAM_RES_DENY;
-    char *ptr = msgBuf;
 
     /* ensure we use the same byteorder as the PAM module */
     bool byteOrder = setByteOrder(true);
 
     /* get ssh pid */
-    getPid(&ptr, &pid);
+    getPid(data, &pid);
     /* get ssh sid */
-    getPid(&ptr, &sid);
+    getPid(data, &sid);
     /* get pam username */
-    getString(&ptr, user, sizeof(user));
+    getString(data, user, sizeof(user));
     /* get pam rhost */
-    getString(&ptr, rhost, sizeof(rhost));
+    getString(data, rhost, sizeof(rhost));
 
     /* reset psserial's byteorder */
     setByteOrder(byteOrder);
@@ -114,16 +113,15 @@ static PSPAMResult_t handleOpenRequest(char *msgBuf)
     return res;
 }
 
-static void handleCloseRequest(char *msgBuf)
+static void handleCloseRequest(PS_DataBuffer_t *data)
 {
     char user[USERNAME_LEN];
-    char *ptr = msgBuf;
     pid_t pid;
 
     /* get ssh pid */
-    getPid(&ptr, &pid);
+    getPid(data, &pid);
     /* get pam username */
-    getString(&ptr, user, sizeof(user));
+    getString(data, user, sizeof(user));
 
     mdbg(PSPAM_LOG_DEBUG, "%s: got pam close of user: '%s' pid: %i\n", __func__,
 	 user, pid);
@@ -152,19 +150,21 @@ static int handlePamRequest(int sock, void *empty)
 	goto CLEANUP;
     }
 
-    char *ptr = buf;
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, buf, sizeof(buf));
+
     /* get command */
     PSPAMCmd_t cmd;
-    getInt32(&ptr, (int32_t *) &cmd);
+    getInt32(&data, (int32_t *) &cmd);
 
     PSPAMResult_t res;
     switch (cmd) {
     case PSPAM_CMD_SESS_OPEN:
-	res = handleOpenRequest(ptr);
+	res = handleOpenRequest(&data);
 	PSCio_sendP(sock, &res, sizeof(res));
 	break;
     case PSPAM_CMD_SESS_CLOSE:
-	handleCloseRequest(ptr);
+	handleCloseRequest(&data);
 	/* no answer here */
 	break;
     }

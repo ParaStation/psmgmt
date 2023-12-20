@@ -142,8 +142,7 @@ static void CBprologueResp(char *jobid, int exit, bool timeout,
 static void handlePluginConfigDel(DDTypedBufferMsg_t *msg,
 				  PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
-    char *plugin = getStringM(&ptr);
+    char *plugin = getStringM(data);
 
     mdbg(PELOGUE_LOG_VERB, "%s: delete conf for '%s'\n", __func__, plugin);
     delPluginConfig(plugin);
@@ -175,13 +174,12 @@ static void savePluginConfig(char *plugin, uint32_t timeout, uint32_t grace)
 static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
 				  PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
     uint32_t timeout, grace;
 
     /* fetch info from message */
-    char *plugin = getStringM(&ptr);
-    getUint32(&ptr, &timeout);
-    getUint32(&ptr, &grace);
+    char *plugin = getStringM(data);
+    getUint32(data, &timeout);
+    getUint32(data, &grace);
 
     savePluginConfig(plugin, timeout, grace);
 
@@ -286,11 +284,9 @@ ERROR:
 
 static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
-    char *ptr = rData->buf;
-
     /* verify protocol version */
     uint16_t version;
-    getUint16(&ptr, &version);
+    getUint16(rData, &version);
     if (version != PELOGUE_REQUEST_VERSION) {
 	mlog("%s: invalid protocol version %u from %s expect %u\n", __func__,
 	     version, PSC_printTID(msg->header.sender),
@@ -299,28 +295,28 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	return;
     }
     /* fetch info from message */
-    char *requestor = getStringM(&ptr);
+    char *requestor = getStringM(rData);
     RPC_Info_t *info = umalloc(sizeof(*info));
-    getUint8(&ptr, &info->type);
-    getUint32(&ptr, &info->timeout);
-    getUint32(&ptr, &info->grace);
-    char *jobid = getStringM(&ptr);
+    getUint8(rData, &info->type);
+    getUint32(rData, &info->timeout);
+    getUint32(rData, &info->grace);
+    char *jobid = getStringM(rData);
     /* uid/gid */
     uid_t uid;
-    getUint32(&ptr, &uid);
+    getUint32(rData, &uid);
     gid_t gid;
-    getUint32(&ptr, &gid);
+    getUint32(rData, &gid);
     /* nodelist */
     PSnodes_ID_t *nodes;
     uint32_t nrOfNodes;
-    getInt16Array(&ptr, &nodes, &nrOfNodes);
+    getInt16Array(rData, &nodes, &nrOfNodes);
     /* environment */
     env_t *env = umalloc(sizeof(*env));
-    getStringArrayM(&ptr, &env->vars, &env->cnt);
+    getStringArrayM(rData, &env->vars, &env->cnt);
     env->size = env->cnt + 1;
     /* fwPrologueOE */
     uint16_t fwPrologueOE = false;
-    getUint16(&ptr, &fwPrologueOE);
+    getUint16(rData, &fwPrologueOE);
 
     info->sender = msg->header.sender;
     info->requestor = requestor;
@@ -389,12 +385,12 @@ ERROR:
 
 static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
-    char *plugin, *jobid, *ptr = rData->buf;
+    char *plugin, *jobid;
     bool prlg = msg->type == PSP_PROLOGUE_START;
     PElogueChild_t *child;
 
-    plugin = getStringM(&ptr);
-    jobid = getStringM(&ptr);
+    plugin = getStringM(rData);
+    jobid = getStringM(rData);
     child = addChild(plugin, jobid, prlg ? PELOGUE_PROLOGUE : PELOGUE_EPILOGUE);
     if (!child) {
 	mlog("%s: Failed to create a new child\n", __func__);
@@ -404,18 +400,18 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
     child->mainPElogue = PSC_getID(msg->header.sender);
 
-    getInt32(&ptr, (int32_t *)&child->uid);
-    getInt32(&ptr, (int32_t *)&child->gid);
-    getInt32(&ptr, &child->rounds);
-    getInt32(&ptr, &child->timeout);
-    getTime(&ptr, &child->startTime);
+    getInt32(rData, (int32_t *)&child->uid);
+    getInt32(rData, (int32_t *)&child->gid);
+    getInt32(rData, &child->rounds);
+    getInt32(rData, &child->timeout);
+    getTime(rData, &child->startTime);
 
     /* get environment */
     envInit(&child->env);
-    getStringArrayM(&ptr, &child->env.vars, &child->env.cnt);
+    getStringArrayM(rData, &child->env.vars, &child->env.cnt);
     child->env.size = child->env.cnt + 1;
 
-    getBool(&ptr, &child->fwStdOE);
+    getBool(rData, &child->fwStdOE);
 
     /* set the script directory */
     char *scriptDir = getPluginConfValueC(plugin, "DIR_SCRIPTS");
@@ -481,14 +477,13 @@ void sendPElogueSignal(Job_t *job, int sig, char *reason)
 
 static void handlePElogueSignal(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
-    char *ptr = rData->buf;
     int32_t signal;
     PElogueChild_t *child;
 
-    char *plugin = getStringM(&ptr);
-    char *jobid = getStringM(&ptr);
-    getInt32(&ptr, &signal);
-    char *reason = getStringM(&ptr);
+    char *plugin = getStringM(rData);
+    char *jobid = getStringM(rData);
+    getInt32(rData, &signal);
+    char *reason = getStringM(rData);
 
     /* find job */
     child = findChild(plugin, jobid);
@@ -527,7 +522,7 @@ void sendPElogueFinish(PElogueChild_t *child)
 static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     PSnodes_ID_t node = PSC_getID(msg->header.sender);
-    char *ptr = rData->buf, peType[32];
+    char peType[32];
     int32_t res = 1, signalFlag = 0;
     time_t job_start;
     bool prologue = msg->type == PSP_PROLOGUE_FINISH;
@@ -536,8 +531,8 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	     node == PSC_getMyID() ? "local" : "remote",
 	     prologue ? "prologue" : "epilogue");
 
-    char *plugin = getStringM(&ptr);
-    char *jobid = getStringM(&ptr);
+    char *plugin = getStringM(rData);
+    char *jobid = getStringM(rData);
 
     Job_t *job = findJobById(plugin, jobid);
     free(plugin);
@@ -551,7 +546,7 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
     free(jobid);
 
-    getTime(&ptr, &job_start);
+    getTime(rData, &job_start);
     if (job->start_time != job_start) {
 	/* msg is for previous job, ignore */
 	mdbg(PELOGUE_LOG_WARN, "%s: ignore %s finish from previous job %s\n",
@@ -559,10 +554,10 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	return;
     }
 
-    getInt32(&ptr, &res);
+    getInt32(rData, &res);
     setJobNodeStatus(job, node, prologue, res ? PELOGUE_FAILED : PELOGUE_DONE);
 
-    getInt32(&ptr, &signalFlag);
+    getInt32(rData, &signalFlag);
 
     if (res) {
 	/* suppress error message if we have killed the pelogue by request */
@@ -622,10 +617,11 @@ static void dropMsgAndCancel(DDTypedBufferMsg_t *msg)
     /* ignore follow up messages */
     if (fragNum) return;
 
-    char *ptr = msg->buf + used;
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, msg->buf + used, sizeof(msg->buf) - used);
 
-    char *plugin = getStringM(&ptr);
-    char *jobid = getStringM(&ptr);
+    char *plugin = getStringM(&data);
+    char *jobid = getStringM(&data);
 
     Job_t *job = findJobById(plugin, jobid);
     if (!job) {

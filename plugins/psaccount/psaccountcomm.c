@@ -445,12 +445,11 @@ void sendAggData(PStask_ID_t rootTID, AccountDataExt_t *aggData)
 
 static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
     AccountDataExt_t aggData;
 
     /* get root task's ID */
     PStask_ID_t rootTID;
-    getInt32(&ptr, &rootTID);
+    getInt32(data, &rootTID);
 
     if (!findJobByRoot(rootTID)) {
 	flog("update unknown root %s ", PSC_printTID(rootTID));
@@ -458,72 +457,72 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	return;
     }
 
-    getUint64(&ptr, &aggData.maxThreadsTotal);
-    getUint64(&ptr, &aggData.maxVsizeTotal);
-    getUint64(&ptr, &aggData.maxRssTotal);
-    getUint64(&ptr, &aggData.maxThreads);
-    getUint64(&ptr, &aggData.maxVsize);
-    getUint64(&ptr, &aggData.maxRss);
+    getUint64(data, &aggData.maxThreadsTotal);
+    getUint64(data, &aggData.maxVsizeTotal);
+    getUint64(data, &aggData.maxRssTotal);
+    getUint64(data, &aggData.maxThreads);
+    getUint64(data, &aggData.maxVsize);
+    getUint64(data, &aggData.maxRss);
 
-    getUint64(&ptr, &aggData.avgThreadsTotal);
-    getUint64(&ptr, &aggData.avgThreadsCount);
-    getUint64(&ptr, &aggData.avgVsizeTotal);
-    getUint64(&ptr, &aggData.avgVsizeCount);
-    getUint64(&ptr, &aggData.avgRssTotal);
-    getUint64(&ptr, &aggData.avgRssCount);
+    getUint64(data, &aggData.avgThreadsTotal);
+    getUint64(data, &aggData.avgThreadsCount);
+    getUint64(data, &aggData.avgVsizeTotal);
+    getUint64(data, &aggData.avgVsizeCount);
+    getUint64(data, &aggData.avgRssTotal);
+    getUint64(data, &aggData.avgRssCount);
 
-    getUint64(&ptr, &aggData.cutime);
-    getUint64(&ptr, &aggData.cstime);
-    getUint64(&ptr, &aggData.minCputime);
-    getUint64(&ptr, &aggData.pageSize);
-    getUint32(&ptr, &aggData.numTasks);
+    getUint64(data, &aggData.cutime);
+    getUint64(data, &aggData.cstime);
+    getUint64(data, &aggData.minCputime);
+    getUint64(data, &aggData.pageSize);
+    getUint32(data, &aggData.numTasks);
 
-    getUint64(&ptr, &aggData.maxMajflt);
-    getUint64(&ptr, &aggData.totMajflt);
-    getUint64(&ptr, &aggData.totCputime);
-    getUint64(&ptr, &aggData.cpuFreq);
+    getUint64(data, &aggData.maxMajflt);
+    getUint64(data, &aggData.totMajflt);
+    getUint64(data, &aggData.totCputime);
+    getUint64(data, &aggData.cpuFreq);
 
-    getDouble(&ptr, &aggData.maxDiskRead);
-    getDouble(&ptr, &aggData.totDiskRead);
-    getDouble(&ptr, &aggData.maxDiskWrite);
-    getDouble(&ptr, &aggData.totDiskWrite);
+    getDouble(data, &aggData.maxDiskRead);
+    getDouble(data, &aggData.totDiskRead);
+    getDouble(data, &aggData.maxDiskWrite);
+    getDouble(data, &aggData.totDiskWrite);
 
-    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_VSIZE]);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_RSS]);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_PAGES]);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MIN_CPU]);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_DISKREAD]);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_DISKWRITE]);
+    getInt32(data, &aggData.taskIds[ACCID_MAX_VSIZE]);
+    getInt32(data, &aggData.taskIds[ACCID_MAX_RSS]);
+    getInt32(data, &aggData.taskIds[ACCID_MAX_PAGES]);
+    getInt32(data, &aggData.taskIds[ACCID_MIN_CPU]);
+    getInt32(data, &aggData.taskIds[ACCID_MAX_DISKREAD]);
+    getInt32(data, &aggData.taskIds[ACCID_MAX_DISKWRITE]);
 
-    getTime(&ptr, &aggData.rusage.ru_utime.tv_sec);
-    getTime(&ptr, &aggData.rusage.ru_utime.tv_usec);
-    getTime(&ptr, &aggData.rusage.ru_stime.tv_sec);
-    getTime(&ptr, &aggData.rusage.ru_stime.tv_usec);
+    getTime(data, &aggData.rusage.ru_utime.tv_sec);
+    getTime(data, &aggData.rusage.ru_utime.tv_usec);
+    getTime(data, &aggData.rusage.ru_stime.tv_sec);
+    getTime(data, &aggData.rusage.ru_stime.tv_usec);
 
-    getUint64(&ptr, &aggData.energyTot);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MIN_ENERGY]);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_ENERGY]);
+    getUint64(data, &aggData.energyTot);
+    getInt32(data, &aggData.taskIds[ACCID_MIN_ENERGY]);
+    getInt32(data, &aggData.taskIds[ACCID_MAX_ENERGY]);
 
-    getUint64(&ptr, &aggData.powerAvg);
-    getUint64(&ptr, &aggData.powerMin);
-    getUint64(&ptr, &aggData.powerMax);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MIN_POWER]);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_POWER]);
+    getUint64(data, &aggData.powerAvg);
+    getUint64(data, &aggData.powerMin);
+    getUint64(data, &aggData.powerMax);
+    getInt32(data, &aggData.taskIds[ACCID_MIN_POWER]);
+    getInt32(data, &aggData.taskIds[ACCID_MAX_POWER]);
 
-    getUint64(&ptr, &aggData.IC_recvBytesTot);
-    getUint64(&ptr, &aggData.IC_recvBytesMin);
-    getUint64(&ptr, &aggData.IC_recvBytesMax);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MIN_IC_RECV]);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_IC_RECV]);
+    getUint64(data, &aggData.IC_recvBytesTot);
+    getUint64(data, &aggData.IC_recvBytesMin);
+    getUint64(data, &aggData.IC_recvBytesMax);
+    getInt32(data, &aggData.taskIds[ACCID_MIN_IC_RECV]);
+    getInt32(data, &aggData.taskIds[ACCID_MAX_IC_RECV]);
 
-    getUint64(&ptr, &aggData.IC_sendBytesTot);
-    getUint64(&ptr, &aggData.IC_sendBytesMin);
-    getUint64(&ptr, &aggData.IC_sendBytesMax);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MIN_IC_SEND]);
-    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_IC_SEND]);
+    getUint64(data, &aggData.IC_sendBytesTot);
+    getUint64(data, &aggData.IC_sendBytesMin);
+    getUint64(data, &aggData.IC_sendBytesMax);
+    getInt32(data, &aggData.taskIds[ACCID_MIN_IC_SEND]);
+    getInt32(data, &aggData.taskIds[ACCID_MAX_IC_SEND]);
 
-    getUint64(&ptr, &aggData.FS_writeBytes);
-    getUint64(&ptr, &aggData.FS_readBytes);
+    getUint64(data, &aggData.FS_writeBytes);
+    getUint64(data, &aggData.FS_readBytes);
 
     setAggData(msg->header.sender, rootTID, &aggData);
 
@@ -567,10 +566,9 @@ static void sendAggDataFinish(PStask_ID_t rootTID)
 static void handleAggDataFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     PStask_ID_t rootTID;
-    char *ptr = data->buf;
 
     /* get root task's ID */
-    getInt32(&ptr, &rootTID);
+    getInt32(data, &rootTID);
 
     finishAggData(msg->header.sender, rootTID);
 }

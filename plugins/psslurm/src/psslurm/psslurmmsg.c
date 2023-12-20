@@ -202,8 +202,6 @@ Slurm_Msg_t * dupSlurmMsg(Slurm_Msg_t *sMsg)
     memcpy(dupMsg, sMsg, sizeof(*dupMsg));
 
     dupMsg->data = dupDataBuffer(sMsg->data);
-    dupMsg->ptr = dupMsg->data->buf + (sMsg->ptr - sMsg->data->buf);
-
     dupSlurmMsgHead(&dupMsg->head, &sMsg->head);
 
     return dupMsg;

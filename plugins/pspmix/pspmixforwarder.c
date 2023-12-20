@@ -128,11 +128,9 @@ static bool environmentReady = false;
 */
 static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
-
     env_t env;
     envInit(&env);
-    getStringArrayM(&ptr, &env.vars, &env.cnt);
+    getStringArrayM(data, &env.vars, &env.cnt);
     env.size = env.cnt + 1;
 
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Setting environment:\n", __func__, rank);
@@ -221,12 +219,10 @@ static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    char *ptr = data->buf;
-
     pmix_proc_t proc;
     PMIX_PROC_CONSTRUCT(&proc);
-    getString(&ptr, proc.nspace, sizeof(proc.nspace));
-    getUint32(&ptr, &proc.rank);
+    getString(data, proc.nspace, sizeof(proc.nspace));
+    getUint32(data, &proc.rank);
 
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Handling client initialized message for"
 	 " %s:%d\n", __func__, rank, proc.nspace, proc.rank);
@@ -254,12 +250,10 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    char *ptr = data->buf;
-
     pmix_proc_t proc;
     PMIX_PROC_CONSTRUCT(&proc);
-    getString(&ptr, proc.nspace, sizeof(proc.nspace));
-    getUint32(&ptr, &proc.rank);
+    getString(data, proc.nspace, sizeof(proc.nspace));
+    getUint32(data, &proc.rank);
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s from namespace %s rank %d\n",
 	 __func__, pspmix_getMsgTypeString(msg->type), proc.nspace, proc.rank);

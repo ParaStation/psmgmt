@@ -323,14 +323,15 @@ static bool storeData(char *buf, size_t len, int offset)
  */
 static bool sendErrorMsg(PSIDmsgbuf_t *blob)
 {
-    char *ptr = blob->msg;
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, blob->msg, sizeof(blob->size));
 
     if (blob->size < 1) return false;
     uint8_t type;
-    getUint8(&ptr, &type);
+    getUint8(&data, &type);
     if (type != RRCOMM_DATA) {
 	int32_t destRank;
-	getInt32(&ptr, &destRank);
+	getInt32(&data, &destRank);
 	fdbg(RRCOMM_LOG_ERR, "drop type %d from %d (size %d, off %d)\n", type,
 	     destRank, blob->size, blob->offset);
 	return false;
@@ -338,12 +339,12 @@ static bool sendErrorMsg(PSIDmsgbuf_t *blob)
 
     bool byteOrder = setByteOrder(false); // libRRC does not use byteorder
     uint32_t len;
-    getUint32(&ptr, &len);
+    getUint32(&data, &len);
 
     /* reconstruct original fragment's extra header */
     RRComm_hdr_t msgHdr = clntHdr;
     msgHdr.dest = clntHdr.sender;
-    getInt32(&ptr, &msgHdr.sender);
+    getInt32(&data, &msgHdr.sender);
     setByteOrder(byteOrder);
 
     /* send RRCOMM_ERROR to sender */

@@ -2563,7 +2563,6 @@ int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res)
  */
 static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
-    char *ptr = rData->buf;
     DDErrorMsg_t answer = {
 	.header = {
 	    .type = PSP_CD_SPAWNFAILED,
@@ -2578,15 +2577,15 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* fetch info from message */
     uint32_t num;
-    getUint32(&ptr, &num);
+    getUint32(rData, &num);
 
     PStask_t *task = PStask_new();
 
-    ptr += PStask_decodeTask(ptr, task, false);
+    rData->unpackPtr += PStask_decodeTask(rData->unpackPtr, task, false);
     task->spawnertid = msg->header.sender;
-    task->workingdir = getStringM(&ptr);
-    getStringArrayM(&ptr, &task->argv, &task->argc);
-    getStringArrayM(&ptr, &task->environ, &task->envSize);
+    task->workingdir = getStringM(rData);
+    getStringArrayM(rData, &task->argv, &task->argc);
+    getStringArrayM(rData, &task->environ, &task->envSize);
 
     /* Call hook once per PSP_CD_SPAWNREQUEST meaning once per node.
      * Pay attention that the task provided is only a prototype, containing
@@ -2626,7 +2625,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
 	char **extraEnv;
 	uint32_t extraEnvSize;
-	getStringArrayM(&ptr, &extraEnv, &extraEnvSize);
+	getStringArrayM(rData, &extraEnv, &extraEnvSize);
 	if (extraEnvSize) {
 	    appendStrV(&clone->environ, &clone->envSize, extraEnv);
 	    free(extraEnv);
@@ -2735,15 +2734,16 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
     /* First fragment, take a peek if it is from my node */
     if (localSender && fragNum == 0) {
-	char *ptr = msg->buf + used;
+	PS_DataBuffer_t data;
+	initPSDataBuffer(&data, msg->buf + used, sizeof(msg->buf) - used);
 
 	/* ensure we use the same byteorder as libpsi */
 	bool byteOrder = setByteOrder(true);
 
 	/* fetch info from message */
-	getUint32(&ptr, &num);
+	getUint32(&data, &num);
 	PStask_t *task = PStask_new();
-	ptr += PStask_decodeTask(ptr, task, false);
+	data.unpackPtr += PStask_decodeTask(data.unpackPtr, task, false);
 
 	/* reset psserial's byteorder */
 	setByteOrder(byteOrder);
@@ -2932,16 +2932,17 @@ static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     if (fragNum) return true;
 
     /* Extract num and rank from message to drop */
-    char *ptr = msg->buf + used;
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, msg->buf + used, sizeof(msg->buf) - used);
 
     /* ensure we use the same byteorder as libpsi */
     bool byteOrder = setByteOrder(true);
 
     /* fetch info from message */
     uint32_t num;
-    getUint32(&ptr, &num);
+    getUint32(&data, &num);
     PStask_t *task = PStask_new();
-    ptr += PStask_decodeTask(ptr, task, false);
+    data.unpackPtr += PStask_decodeTask(data.unpackPtr, task, false);
 
     /* reset psserial's byteorder */
     setByteOrder(byteOrder);

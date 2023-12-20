@@ -62,17 +62,16 @@ int handlePelogueOE(void *pedata)
 
 static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
     int8_t PElogueType, msgType;
 
     /* allocation ID */
-    char *jobid = getStringM(&ptr);
+    char *jobid = getStringM(data);
     /* pelogue type */
-    getInt8(&ptr, &PElogueType);
+    getInt8(data, &PElogueType);
     /* output type */
-    getInt8(&ptr, &msgType);
+    getInt8(data, &msgType);
     /* message */
-    char *msgData = getStringM(&ptr);
+    char *msgData = getStringM(data);
 
     PSGW_Req_t *req = Request_find(jobid);
     if (!req) {

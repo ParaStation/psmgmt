@@ -789,9 +789,9 @@ int handlePelogueGlobal(void *data)
     return 0;
 }
 
-int handlePelogueDrop(void *data)
+int handlePelogueDrop(void *droppedMsg)
 {
-    DDTypedBufferMsg_t *msg = data;
+    DDTypedBufferMsg_t *msg = droppedMsg;
     if (msg->type != PSP_PELOGUE_RESP) return 0;
 
     size_t used = 0;
@@ -801,10 +801,11 @@ int handlePelogueDrop(void *data)
     /* ignore follow up messages */
     if (fragNum) return 0;
 
-    char *ptr = msg->buf + used;
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, msg->buf + used, sizeof(msg->buf));
 
     /* jobid */
-    char *sJobid = getStringM(&ptr);
+    char *sJobid = getStringM(&data);
     uint32_t jobid = atoi(sJobid);
     ufree(sJobid);
 

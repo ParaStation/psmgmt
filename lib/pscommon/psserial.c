@@ -95,10 +95,7 @@ static inline void *umalloc(size_t size)
 static void resetBuf(PS_DataBuffer_t *b)
 {
     free(b->buf);
-    b->buf = NULL;
-    b->size = 0;
-    b->used = 0;
-    b->nextFrag = 0;
+    memset(b, 0, sizeof(*b));
 }
 
 typedef struct {
@@ -467,6 +464,13 @@ void initFragBufferExtra(PS_SendDB_t *buffer, int16_t headType, int32_t msgType,
     buffer->extraSize = extra ? extraSize : 0;
 }
 
+void initPSDataBuffer(PS_DataBuffer_t *data, char *mem, size_t memSize)
+{
+    memset(data, 0, sizeof(*data));
+    data->buf = data->unpackPtr = mem;
+    data->size = data->used = memSize;
+}
+
 bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid)
 {
     PSnodes_ID_t numNodes = PSC_getNrOfNodes();
@@ -723,6 +727,8 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 		fragNum);
 
 	msg->buf[0] = '\0';
+	recvBuf->unpackPtr = recvBuf->buf;
+	recvBuf->unpackErr = 0;
 	func(msg, recvBuf);
 
 	/* cleanup data if necessary */
@@ -860,6 +866,8 @@ PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data)
     memcpy(dup->buf, data->buf, data->size);
     dup->size = data->size;
     dup->used = data->used;
+    dup->unpackPtr = dup->buf + (data->unpackPtr - data->buf);
+    dup->unpackErr = data->unpackErr;
 
     return dup;
 }
@@ -910,13 +918,13 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
  * type-checking is switched of, i.e. @ref typeInfo is false, true is
  * returned.
  */
-static bool verifyTypeInfo(char **ptr, PS_DataType_t expectedType,
+static bool verifyTypeInfo(PS_DataBuffer_t *data, PS_DataType_t expectedType,
 			   const char *caller, const int line)
 {
     if (!typeInfo) return true;
 
-    uint8_t type = *(uint8_t *) *ptr;
-    *ptr += sizeof(uint8_t);
+    uint8_t type = *(uint8_t *) data->unpackPtr;
+    data->unpackPtr += sizeof(uint8_t);
 
     if (type != expectedType) {
 	PSC_log(-1, "%s(%s@%d): error got type %d should be %d\n", __func__,
@@ -926,11 +934,11 @@ static bool verifyTypeInfo(char **ptr, PS_DataType_t expectedType,
     return true;
 }
 
-bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
+bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 		size_t size, const char *caller, const int line)
 {
-    if (!*ptr) {
-	PSC_log(-1, "%s(%s@%d): invalid ptr\n", __func__, caller, line);
+    if (!data) {
+	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
 	return false;
     }
 
@@ -939,9 +947,9 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
 	return false;
     }
 
-    if (!verifyTypeInfo(ptr, type, caller, line)) return false;
+    if (!verifyTypeInfo(data, type, caller, line)) return false;
 
-    memcpy(val, *ptr, size);
+    memcpy(val, data->unpackPtr, size);
     if (byteOrder) {
 	switch (size) {
 	case 1:
@@ -960,16 +968,16 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
 		    __func__, caller, line, size);
 	}
     }
-    *ptr += size;
+    data->unpackPtr += size;
 
     return true;
 }
 
-bool getArrayFromBuf(char **ptr, void **val, uint32_t *len,
+bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
 		     PS_DataType_t type, size_t size,
 		     const char *caller, const int line)
 {
-    if (!getFromBuf(ptr, len, PSDATA_UINT32, sizeof(*len), caller, line))
+    if (!getFromBuf(data, len, PSDATA_UINT32, sizeof(*len), caller, line))
 	return false;
 
     if (!*len) return true;
@@ -981,44 +989,45 @@ bool getArrayFromBuf(char **ptr, void **val, uint32_t *len,
     }
 
     for (uint32_t i = 0; i < *len; i++) {
-	getFromBuf(ptr, (char *)*val + i*size, type, size, caller, line);
+	getFromBuf(data, (char *)*val + i*size, type, size, caller, line);
     }
 
     return true;
 }
 
-void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
-		    PS_DataType_t type, const char *caller, const int line)
+void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
+		    size_t *len, PS_DataType_t type, const char *caller,
+		    const int line)
 {
-    if (dataSize && !data) {
+    if (destSize && !dest) {
 	PSC_log(-1, "%s(%s@%d): invalid buffer\n", __func__, caller, line);
 	return NULL;
     }
 
-    if (!*ptr) {
-	PSC_log(-1, "%s(%s@%d): invalid ptr\n", __func__, caller, line);
+    if (!data) {
+	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
 	return NULL;
     }
 
-    if (!verifyTypeInfo(ptr, type, caller, line)) return NULL;
+    if (!verifyTypeInfo(data, type, caller, line)) return NULL;
 
     /* data length */
-    uint32_t l = *(uint32_t *) *ptr;
-    *ptr += sizeof(uint32_t);
+    uint32_t l = *(uint32_t *) data->unpackPtr;
+    data->unpackPtr += sizeof(uint32_t);
 
     if (byteOrder) l = ntohl(l);
     if (len) *len = l;
 
-    if (data) {
-	if (l >= dataSize) {
+    if (dest) {
+	if (l >= destSize) {
 	    /* buffer too small */
 	    PSC_log(-1, "%s(%s@%d): buffer (%zu) too small for message (%u)\n",
-		    __func__, caller, line, dataSize, l);
+		    __func__, caller, line, destSize, l);
 	    return NULL;
 	}
     } else {
-	data = umalloc(l);
-	if (!data) {
+	dest = umalloc(l);
+	if (!dest) {
 	    PSC_log(-1, "%s(%s@%d): allocation of %u failed\n", __func__,
 		    caller, line, l);
 	    return NULL;
@@ -1027,21 +1036,21 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
 
     /* extract data */
     if (l > 0) {
-	memcpy(data, *ptr, l);
-	if (type == PSDATA_STRING) data[l-1] = '\0';
-	*ptr += l;
+	memcpy(dest, data->unpackPtr, l);
+	if (type == PSDATA_STRING) dest[l-1] = '\0';
+	data->unpackPtr += l;
     } else if (type == PSDATA_STRING) {
-	data[0] = '\0';
+	dest[0] = '\0';
     }
 
-    return data;
+    return dest;
 }
 
-bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
+bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
 			const char *caller, const int line)
 {
     *array = NULL;
-    if (!getFromBuf(ptr, len, PSDATA_UINT32, sizeof(*len), caller, line))
+    if (!getFromBuf(data, len, PSDATA_UINT32, sizeof(*len), caller, line))
 	return false;
 
     if (!*len) return true;
@@ -1054,7 +1063,7 @@ bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
     }
 
     for (uint32_t i = 0; i < *len; i++) {
-	(*array)[i] = getMemFromBuf(ptr, NULL, 0, NULL, PSDATA_STRING,
+	(*array)[i] = getMemFromBuf(data, NULL, 0, NULL, PSDATA_STRING,
 				    caller, line);
     }
 

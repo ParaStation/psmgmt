@@ -54,18 +54,21 @@ static bool handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 
     if (msg->header.type != PSP_PF_MSG) return false;
 
-    char *ptr = msg->buf, *data;
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, msg->buf, sizeof(msg->buf));
+
+    char *io;
 
     switch (msg->type) {
     case PLGN_STDOUT:
-	data = getStringM(&ptr);
-	script->func(data);
-	ufree(data);
+	io = getStringM(&data);
+	script->func(io);
+	ufree(io);
 	break;
     case PLGN_STDERR:
-	data = getStringM(&ptr);
-	flog("error from %s script: %s\n", fwdata->pTitle, data);
-	ufree(data);
+	io = getStringM(&data);
+	flog("error from %s script: %s\n", fwdata->pTitle, io);
+	ufree(io);
 	break;
     default:
 	flog("unhandled msg type %d\n", msg->type);
@@ -177,12 +180,12 @@ bool Script_test(char *spath, char *title)
  *
  * @param fwdata The forwarder management structure
  *
- * @param ptr Holding the new poll time
+ * @param data Holding the new poll time
  */
-static void handleSetPollTime(Forwarder_Data_t *fwdata, char *ptr)
+static void handleSetPollTime(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
 {
     Collect_Script_t *script = fwdata->userData;
-    getUint32(&ptr, &script->poll);
+    getUint32(data, &script->poll);
 }
 
 /**
@@ -190,15 +193,15 @@ static void handleSetPollTime(Forwarder_Data_t *fwdata, char *ptr)
  *
  * @param fwdata The forwarder management structure
  *
- * @param ptr Holding the environment variable to handle
+ * @param data Holding the environment variable to handle
  *
  * @param action Actual action to execute
  */
-static void handleCtlEnvVar(Forwarder_Data_t *fwdata, char *ptr,
+static void handleCtlEnvVar(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data,
 			    PSACCOUNT_Fw_Cmds_t action)
 {
     Collect_Script_t *script = fwdata->userData;
-    char *envStr = getDataM(&ptr, NULL);
+    char *envStr = getDataM(data, NULL);
 
     switch (action) {
     case CMD_SET_ENV_VAR:
@@ -226,13 +229,16 @@ static bool handleMthrMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     if (msg->header.type != PSP_PF_MSG) return false;
 
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, msg->buf, sizeof(msg->buf));
+
     switch ((PSACCOUNT_Fw_Cmds_t)msg->type) {
     case CMD_SET_POLL_TIME:
-	handleSetPollTime(fwdata, msg->buf);
+	handleSetPollTime(fwdata, &data);
 	break;
     case CMD_SET_ENV_VAR:
     case CMD_UNSET_ENV_VAR:
-	handleCtlEnvVar(fwdata, msg->buf, msg->type);
+	handleCtlEnvVar(fwdata, &data, msg->type);
 	break;
     default:
 	flog("unexpected msg, type %d from TID %s (%s)\n", msg->type,

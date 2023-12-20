@@ -65,7 +65,7 @@ void freeJobCred(JobCred_t *cred)
 
 JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
 {
-    char *credStart = sMsg->ptr, *credEnd, *sigBuf = NULL;
+    char *credStart = sMsg->data->unpackPtr, *credEnd, *sigBuf = NULL;
     JobCred_t *cred = NULL;
     int sigBufLen, credLen;
 

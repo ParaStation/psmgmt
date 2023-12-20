@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -247,7 +247,7 @@ static void fwCallback(int32_t forwStatus, Forwarder_Data_t *fwData)
  * to handle stdout and stderr streams of the prologue/epilogue.
  */
 static void handlePeIO(Forwarder_Data_t *fwdata, PElogue_OEtype_t type,
-		       char *ptr)
+		       DDTypedBufferMsg_t *msg)
 {
     PElogue_OEdata_t oeData = {
 	.type = type,
@@ -255,7 +255,9 @@ static void handlePeIO(Forwarder_Data_t *fwdata, PElogue_OEtype_t type,
     };
 
     /* read message */
-    oeData.msg = getStringM(&ptr);
+    PS_DataBuffer_t data;
+    initPSDataBuffer(&data, msg->buf, sizeof(msg->buf));
+    oeData.msg = getStringM(&data);
 
     /* hook to forward STDOUT/STDERR to psslurm */
     PSIDhook_call(PSIDHOOK_PELOGUE_OE, &oeData);
@@ -272,10 +274,10 @@ static bool handlePeFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 
     switch (msg->type) {
     case PLGN_STDOUT:
-	handlePeIO(fwdata, PELOGUE_OE_STDOUT, msg->buf);
+	handlePeIO(fwdata, PELOGUE_OE_STDOUT, msg);
 	break;
     case PLGN_STDERR:
-	handlePeIO(fwdata, PELOGUE_OE_STDERR, msg->buf);
+	handlePeIO(fwdata, PELOGUE_OE_STDERR, msg);
 	break;
     default:
 	mlog("%s: unexpected msg, type %d from TID %s (%s) jobid %s\n",
