@@ -716,6 +716,8 @@ plugins/psslurm/src/psslurm/psslurmpin.c \
 plugins/psslurm/src/psslurm/psslurmpin.h \
 plugins/psslurm/src/psslurm/psslurmproto.c \
 plugins/psslurm/src/psslurm/psslurmproto.h \
+plugins/psslurm/src/psslurm/psslurmprototypes.h \
+plugins/psslurm/src/psslurm/psslurmprototypes.c \
 plugins/psslurm/src/psslurm/psslurmpscomm.c \
 plugins/psslurm/src/psslurm/psslurmpscomm.h \
 plugins/psslurm/src/psslurm/psslurmspank.c \

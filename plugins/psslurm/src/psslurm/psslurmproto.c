@@ -428,42 +428,6 @@ static bool testSlurmVersion(uint32_t pVer, uint32_t cmd)
     return true;
 }
 
-void freeRespJobInfo(Resp_Job_Info_t *resp)
-{
-    if (!resp) return;
-
-    for (uint32_t i = 0; i < resp->numJobs; i++) {
-	Slurm_Job_Rec_t *rec = &resp->jobs[i];
-
-	ufree(rec->arrayTaskStr);
-	ufree(rec->hetJobIDset);
-	ufree(rec->container);
-	ufree(rec->cluster);
-	ufree(rec->nodes);
-	ufree(rec->schedNodes);
-	ufree(rec->partition);
-	ufree(rec->account);
-	ufree(rec->adminComment);
-	ufree(rec->network);
-	ufree(rec->comment);
-	ufree(rec->batchFeat);
-	ufree(rec->batchHost);
-	ufree(rec->burstBuffer);
-	ufree(rec->burstBufferState);
-	ufree(rec->systemComment);
-	ufree(rec->qos);
-	ufree(rec->licenses);
-	ufree(rec->stateDesc);
-	ufree(rec->resvName);
-	ufree(rec->mcsLabel);
-	ufree(rec->containerID);
-	ufree(rec->failedNode);
-	ufree(rec->extra);
-    }
-    ufree(resp->jobs);
-    ufree(resp);
-}
-
 /**
  * @brief Handle a job info response from slurmctld
  *
