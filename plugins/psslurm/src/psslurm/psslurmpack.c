@@ -198,7 +198,7 @@ bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
 
 
     PS_DataBuffer_t *data = sMsg->data;
-    Slurm_Auth_t *auth = umalloc(sizeof(Slurm_Auth_t));
+    Slurm_Auth_t *auth = umalloc(sizeof(*auth));
 
     getUint32(data, &auth->pluginID);
     auth->cred = NULL;
@@ -472,7 +472,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 	return false;
     }
 
-    JobCred_t *cred = ucalloc(sizeof(JobCred_t));
+    JobCred_t *cred = ucalloc(sizeof(*cred));
     PS_DataBuffer_t *data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
@@ -951,7 +951,7 @@ bool __unpackSlurmIOHeader(PS_DataBuffer_t *data, IO_Slurm_Header_t **iohPtr,
 	return false;
     }
 
-    IO_Slurm_Header_t *ioh = umalloc(sizeof(IO_Slurm_Header_t));
+    IO_Slurm_Header_t *ioh = umalloc(sizeof(*ioh));
     /* type */
     getUint16(data, &ioh->type);
     /* global rank */
@@ -980,7 +980,7 @@ static bool unpackGresJobAlloc(PS_DataBuffer_t *data, list_t *gresList)
     getUint16(data, &count);
 
     for (uint16_t i=0; i<count; i++) {
-	Gres_Job_Alloc_t *gres = ucalloc(sizeof(Gres_Job_Alloc_t));
+	Gres_Job_Alloc_t *gres = ucalloc(sizeof(*gres));
 	INIT_LIST_HEAD(&gres->next);
 
 	/* gres magic */
@@ -1042,7 +1042,7 @@ static bool unpackGresJobAlloc(PS_DataBuffer_t *data, list_t *gresList)
  */
 static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
 {
-    Req_Terminate_Job_t *req = ucalloc(sizeof(Req_Terminate_Job_t));
+    Req_Terminate_Job_t *req = ucalloc(sizeof(*req));
 
     uint16_t msgVer = sMsg->head.version;
     PS_DataBuffer_t *data = sMsg->data;
@@ -1130,7 +1130,7 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
  */
 bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
 {
-    Req_Signal_Tasks_t *req = ucalloc(sizeof(Req_Terminate_Job_t));
+    Req_Signal_Tasks_t *req = ucalloc(sizeof(*req));
 
     PS_DataBuffer_t *data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
