@@ -18,7 +18,7 @@
 # ParaStation
 #
 # Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021-2022 ParTec AG, Munich
+# Copyright (C) 2021-2023 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -173,7 +173,8 @@ am__psslurm_la_SOURCES_DIST = psslurm.c psslurm.h psslurmlog.c \
 	psslurmbcast.h psslurmalloc.c psslurmalloc.h psslurmaccount.h \
 	psslurmaccount.c psslurmfwcomm.c psslurmfwcomm.h \
 	psslurmnodeinfo.c psslurmnodeinfo.h psslurmnodeinfotype.h \
-	psslurmjobcred.c psslurmtopo.c psslurmtopo.h psslurmspank.h \
+	psslurmjobcred.c psslurmtopo.c psslurmtopo.h \
+	psslurmprototypes.c psslurmprototypes.h psslurmspank.h \
 	psslurmspank.c
 @SPANK_ENABLED_TRUE@am__objects_1 = psslurm_la-psslurmspank.lo
 am_psslurm_la_OBJECTS = psslurm_la-psslurm.lo psslurm_la-psslurmlog.lo \
@@ -191,7 +192,7 @@ am_psslurm_la_OBJECTS = psslurm_la-psslurm.lo psslurm_la-psslurmlog.lo \
 	psslurm_la-psslurmalloc.lo psslurm_la-psslurmaccount.lo \
 	psslurm_la-psslurmfwcomm.lo psslurm_la-psslurmnodeinfo.lo \
 	psslurm_la-psslurmjobcred.lo psslurm_la-psslurmtopo.lo \
-	$(am__objects_1)
+	psslurm_la-psslurmprototypes.lo $(am__objects_1)
 psslurm_la_OBJECTS = $(am_psslurm_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -237,6 +238,7 @@ am__depfiles_remade = ./$(DEPDIR)/psslurm_la-psslurm.Plo \
 	./$(DEPDIR)/psslurm_la-psslurmpelogue.Plo \
 	./$(DEPDIR)/psslurm_la-psslurmpin.Plo \
 	./$(DEPDIR)/psslurm_la-psslurmproto.Plo \
+	./$(DEPDIR)/psslurm_la-psslurmprototypes.Plo \
 	./$(DEPDIR)/psslurm_la-psslurmpscomm.Plo \
 	./$(DEPDIR)/psslurm_la-psslurmspank.Plo \
 	./$(DEPDIR)/psslurm_la-psslurmspawn.Plo \
@@ -513,7 +515,8 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h \
 	psslurmbcast.h psslurmalloc.c psslurmalloc.h psslurmaccount.h \
 	psslurmaccount.c psslurmfwcomm.c psslurmfwcomm.h \
 	psslurmnodeinfo.c psslurmnodeinfo.h psslurmnodeinfotype.h \
-	psslurmjobcred.c psslurmtopo.c psslurmtopo.h $(am__append_2)
+	psslurmjobcred.c psslurmtopo.c psslurmtopo.h \
+	psslurmprototypes.c psslurmprototypes.h $(am__append_2)
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 	-DLOCALSTATEDIR=\"$(localstatedir)\"				\
 	-DPKGLIBEXECDIR=\"$(pkglibexecdir)\" -DBINDIR=\"$(bindir)\"	\
@@ -626,6 +629,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmpelogue.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmpin.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmproto.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmprototypes.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmpscomm.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmspank.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmspawn.Plo@am__quote@ # am--include-marker
@@ -873,6 +877,13 @@ psslurm_la-psslurmtopo.lo: psslurmtopo.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psslurm_la-psslurmtopo.lo `test -f 'psslurmtopo.c' || echo '$(srcdir)/'`psslurmtopo.c
 
+psslurm_la-psslurmprototypes.lo: psslurmprototypes.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psslurm_la-psslurmprototypes.lo -MD -MP -MF $(DEPDIR)/psslurm_la-psslurmprototypes.Tpo -c -o psslurm_la-psslurmprototypes.lo `test -f 'psslurmprototypes.c' || echo '$(srcdir)/'`psslurmprototypes.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psslurm_la-psslurmprototypes.Tpo $(DEPDIR)/psslurm_la-psslurmprototypes.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psslurmprototypes.c' object='psslurm_la-psslurmprototypes.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psslurm_la-psslurmprototypes.lo `test -f 'psslurmprototypes.c' || echo '$(srcdir)/'`psslurmprototypes.c
+
 psslurm_la-psslurmspank.lo: psslurmspank.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psslurm_la-psslurmspank.lo -MD -MP -MF $(DEPDIR)/psslurm_la-psslurmspank.Tpo -c -o psslurm_la-psslurmspank.lo `test -f 'psslurmspank.c' || echo '$(srcdir)/'`psslurmspank.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psslurm_la-psslurmspank.Tpo $(DEPDIR)/psslurm_la-psslurmspank.Plo
@@ -1038,6 +1049,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmpelogue.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmpin.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmproto.Plo
+	-rm -f ./$(DEPDIR)/psslurm_la-psslurmprototypes.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmpscomm.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmspank.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmspawn.Plo
@@ -1114,6 +1126,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmpelogue.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmpin.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmproto.Plo
+	-rm -f ./$(DEPDIR)/psslurm_la-psslurmprototypes.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmpscomm.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmspank.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmspawn.Plo
