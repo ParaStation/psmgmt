@@ -47,6 +47,8 @@ BCast_t *BCast_add(void)
 
 void BCast_delete(BCast_t *bcast)
 {
+    if (!bcast) return;
+
     list_del(&bcast->next);
     freeSlurmMsg(&bcast->msg);
     ufree(bcast->username);
