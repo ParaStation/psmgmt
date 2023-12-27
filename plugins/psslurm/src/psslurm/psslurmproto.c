@@ -1460,12 +1460,13 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
  */
 static void handleJobId(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t *data = sMsg->data;
-    uint32_t pid = 0;
+    Req_Job_ID_t *req = sMsg->unpData;
+    if (!req) {
+	flog("unpacking job ID request failed\n");
+	return;
+    }
 
-    getUint32(data, &pid);
-
-    Step_t *step = Step_findByPsidTask(pid);
+    Step_t *step = Step_findByPsidTask(req->pid);
     if (step) {
 	PS_SendDB_t *msg = &sMsg->reply;
 

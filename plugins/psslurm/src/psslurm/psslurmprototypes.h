@@ -388,6 +388,11 @@ typedef struct {
 				 arguments of reboot program */
 } Req_Reboot_Nodes_t;
 
+/** Holding all information for RPC REQUEST_JOB_ID */
+typedef struct {
+    uint32_t pid;	    /**< pid of mpiexec to find step for */
+} Req_Job_ID_t;
+
 /**
  * @brief Free a job info response
  *

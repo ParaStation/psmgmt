@@ -2842,6 +2842,32 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
 }
 
 /**
+ * @brief Unpack a job identification request
+ *
+ * Unpack a job identification request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackReqJobID(Slurm_Msg_t *sMsg)
+{
+    Req_Job_ID_t *req = ucalloc(sizeof(*req));
+    PS_DataBuffer_t *data = sMsg->data;
+
+    /* pid */
+    getUint32(data, &req->pid);
+
+    /* save in sMsg */
+    sMsg->unpData = req;
+
+    return true;
+}
+
+/**
  * @brief Unpack a reboot nodes request
  *
  * Unpack a reboot nodes request from the provided message pointer.
@@ -3124,6 +3150,8 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
 	    return unpackRespJobInfo(sMsg);
 	case REQUEST_REBOOT_NODES:
 	    return unpackRebootNodes(sMsg);
+	case REQUEST_JOB_ID:
+	    return unpackReqJobID(sMsg);
 	    /* nothing to unpack */
 	case REQUEST_COMPLETE_BATCH_SCRIPT:
 	case REQUEST_UPDATE_JOB_TIME:
@@ -3134,7 +3162,6 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
 	case REQUEST_HEALTH_CHECK:
 	case REQUEST_ACCT_GATHER_UPDATE:
 	case REQUEST_ACCT_GATHER_ENERGY:
-	case REQUEST_JOB_ID:
 	case REQUEST_STEP_COMPLETE:
 	case REQUEST_STEP_COMPLETE_AGGR:
 	case REQUEST_DAEMON_STATUS:
