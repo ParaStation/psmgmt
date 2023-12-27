@@ -2506,7 +2506,7 @@ static bool unpackExtRespNodeReg(Slurm_Msg_t *sMsg)
     Ext_Resp_Node_Reg_t *resp = ucalloc(sizeof(*resp));
 
     getUint32(data, &resp->count);
-    resp->entry = umalloc(sizeof(*resp->entry) * resp->count);
+    resp->entry = ucalloc(sizeof(*resp->entry) * resp->count);
 
     uint32_t i;
     for (i=0; i<resp->count; i++) {

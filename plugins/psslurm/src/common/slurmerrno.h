@@ -3,6 +3,7 @@
 
 #define SLURM_SUCCESS 0
 #define SLURM_ERROR -1
+#define SLURM_NO_RC -2
 
 typedef enum {
 	/* General Message error codes */

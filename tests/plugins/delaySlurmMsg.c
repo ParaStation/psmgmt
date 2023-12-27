@@ -23,6 +23,7 @@
 #include "psidplugin.h"
 
 #include "slurmmsg.h"
+#include "slurmerrno.h"
 #include "psslurmhandles.h"
 #include "psslurmmsg.h"
 #include "psslurmtypes.h"
@@ -76,7 +77,7 @@ void releaseMsgs(void)
     }
 }
 
-void delaySlurmMsg(Slurm_Msg_t *sMsg)
+static int delaySlurmMsg(Slurm_Msg_t *sMsg)
 {
     if (delayTimer == -1) delayTimer = Timer_register(&timeout, releaseMsgs);
 
@@ -90,6 +91,7 @@ void delaySlurmMsg(Slurm_Msg_t *sMsg)
 	nlog("delay message of type %d by %ld msec\n", MSG_TYPE,
 	     1000 * timeout.tv_sec +  timeout.tv_usec / 1000);
     }
+    return SLURM_NO_RC;
 }
 
 #define getHandle(pHandle, symbol)		\

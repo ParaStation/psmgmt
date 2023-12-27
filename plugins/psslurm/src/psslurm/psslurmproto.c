@@ -152,7 +152,6 @@ bool checkPrivMsg(Slurm_Msg_t *sMsg)
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
 	flog("request from invalid user %u message %s\n", sMsg->head.uid,
 	     msgType2String(sMsg->head.type));
-	sendSlurmRC(sMsg, ESLURM_ACCESS_DENIED);
 	return false;
     }
     return true;
@@ -166,7 +165,7 @@ bool checkPrivMsg(Slurm_Msg_t *sMsg)
  *
  * @param The ping request message
  */
-static void sendPing(Slurm_Msg_t *sMsg)
+static int sendPing(Slurm_Msg_t *sMsg)
 {
     Resp_Ping_t ping;
     uint32_t unused;
@@ -176,6 +175,7 @@ static void sendPing(Slurm_Msg_t *sMsg)
     PS_SendDB_t *msg = &sMsg->reply;
     packRespPing(msg, &ping);
     sendSlurmReply(sMsg, RESPONSE_PING_SLURMD);
+    return SLURM_NO_RC;
 }
 
 uint32_t __getLocalRankID(uint32_t rank, Step_t *step,
@@ -468,7 +468,7 @@ static int handleJobInfoResp(Slurm_Msg_t *sMsg, void *info)
 	     rec->stateReason, rec->exitCode);
     }
 
-    freeRespJobInfo(resp);
+    freeUnpackMsgData(sMsg);
 
     return 0;
 }
@@ -542,33 +542,29 @@ static void setStepMemLimits(Step_t *step)
     }
 }
 
-static void handleLaunchTasks(Slurm_Msg_t *sMsg)
+static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     if (pluginShutdown) {
 	/* don't accept new steps if a shutdown is in progress */
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	return;
+	return SLURM_ERROR;
     }
 
     Step_t *step = sMsg->unpData;
     if (!step) {
 	flog("unpacking step failed\n");
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	return;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     if (Auth_isDeniedUID(step->uid)) {
 	flog("denied UID %u to start step %s\n", sMsg->head.uid,
 	     Step_strID(step));
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	goto ERROR;
+	return ESLURM_USER_ID_MISSING;
     }
 
     /* verify job credential */
     if (!Step_verifyData(step)) {
 	flog("invalid data for %s\n", Step_strID(step));
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	goto ERROR;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     step->state = JOB_QUEUED;
@@ -603,24 +599,21 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     if (!convHLtoPSnodes(step->slurmHosts, getNodeIDbySlurmHost,
 			 &step->nodes, &count)) {
 	flog("resolving PS nodeIDs from %s failed\n", step->slurmHosts);
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	goto ERROR;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     if (count != step->nrOfNodes) {
 	flog("mismatching number of nodes %u vs %u for %s\n",
 	     count, step->nrOfNodes, Step_strID(step));
 	step->nrOfNodes = count;
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	goto ERROR;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     step->localNodeId = getLocalID(step->nodes, step->nrOfNodes);
     if (step->localNodeId == NO_VAL) {
 	flog("local node ID %i for %s in %s num nodes %i not found\n",
 	     PSC_getMyID(), Step_strID(step), step->slurmHosts, step->nrOfNodes);
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	goto ERROR;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     /* set memory limits from credential */
@@ -629,16 +622,14 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     step->nodeinfos = getStepNodeinfoArray(step);
     if (!step->nodeinfos) {
 	flog("failed to fill nodeinfos of step %s\n", Step_strID(step));
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	goto ERROR;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     /* pack info */
     if (step->packNrOfNodes != NO_VAL) {
 	if (!extractStepPackInfos(step)) {
 	    flog("extracting pack information failed\n");
-	    sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	    goto ERROR;
+	    return ESLURMD_INVALID_JOB_CREDENTIAL;
 	}
     }
 
@@ -662,8 +653,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     if (!alloc) {
 	flog("error: no allocation for jobid %u found\n", step->jobid);
 	flog("** ensure slurmctld prologue is setup correctly **\n");
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	goto ERROR;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
     alloc->verified = true;
     /* ensure a proper cleanup is executed on termination */
@@ -684,9 +674,10 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     if (step->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {
 	flog("invalid nrOfNodes %u known Nodes %u for %s\n",
 	     step->nrOfNodes, PSC_getNrOfNodes(), Step_strID(step));
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	goto ERROR;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
+
+    int ret = SLURM_NO_RC;
 
     if (step->leader) {
 	/* mother superior (pack leader) */
@@ -706,8 +697,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 * the pack follower to send hw threads */
 	if (step->packJobid == NO_VAL) {
 	    if (!execStepLeader(step)) {
-		sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
-		goto ERROR;
+		return ESLURMD_FORK_FAILED;
 	    }
 	} else {
 	    /* Check for cached hw threads */
@@ -721,7 +711,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
 	if (sMsg->sock != -1) {
 	    /* say ok to waiting srun */
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
+	    ret = SLURM_SUCCESS;
 	}
     }
 
@@ -730,15 +720,14 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	/* if this is the pack leader execStepLeader() might be called
 	 * in the handler */
 	if (send_PS_PackInfo(step) == -1) {
-	    sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	    goto ERROR;
+	    return ESLURMD_INVALID_JOB_CREDENTIAL;
 	}
     }
 
-    return;
+    /* prevent step from automatic free */
+    sMsg->unpData = NULL;
 
-ERROR:
-    if (step) Step_destroy(step);
+    return ret;
 }
 
 static int doSignalTasks(Req_Signal_Tasks_t *req)
@@ -817,13 +806,12 @@ static void doSendTermKill(Req_Signal_Tasks_t *req)
  *
  * @param sMsg The message holding the request
  */
-static void handleSignalTasks(Slurm_Msg_t *sMsg)
+static int handleSignalTasks(Slurm_Msg_t *sMsg)
 {
     Req_Signal_Tasks_t *req = sMsg->unpData;
     if (!req) {
 	flog("unpacking request signal tasks failed\n");
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	return;
+	return ESLURM_INVALID_JOB_ID;
     }
 
     req->uid = sMsg->head.uid;
@@ -832,8 +820,7 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
     switch (req->signal) {
 	case SIG_TERM_KILL:
 	    doSendTermKill(req);
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    goto cleanup;
+	    return SLURM_SUCCESS;
 	case SIG_UME:
 	case SIG_REQUEUED:
 	case SIG_PREEMPTED:
@@ -841,20 +828,13 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	case SIG_ABORT:
 	case SIG_NODE_FAIL:
 	case SIG_FAILURE:
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
 	    flog("implement signal %u\n", req->signal);
-	    goto cleanup;
+	    return SLURM_SUCCESS;
     }
 
-    if (!doSignalTasks(req)) {
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	goto cleanup;
-    }
+    if (!doSignalTasks(req)) return ESLURM_INVALID_JOB_ID;
 
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
-
-cleanup:
-    ufree(req);
+    return SLURM_SUCCESS;
 }
 
 static void sendReattachFail(Slurm_Msg_t *sMsg, uint32_t rc)
@@ -912,13 +892,12 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg)
     sendSlurmReply(sMsg, RESPONSE_REATTACH_TASKS);
 }
 
-static void handleReattachTasks(Slurm_Msg_t *sMsg)
+static int handleReattachTasks(Slurm_Msg_t *sMsg)
 {
     Req_Reattach_Tasks_t *req = sMsg->unpData;
     if (!req) {
 	flog("unpacking request reattach tasks failed\n");
-	sendReattachFail(sMsg, ESLURM_INVALID_JOB_ID);
-	return;
+	return ESLURM_INVALID_JOB_ID;
     }
 
     Step_t *step = Step_findByStepId(req->jobid, req->stepid);
@@ -959,21 +938,15 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
 	sendReattchReply(step, sMsg);
     }
 
-    if (req) {
-	freeJobCred(req->cred);
-	ufree(req->ioPorts);
-	ufree(req->ctlPorts);
-	ufree(req);
-    }
+    return SLURM_NO_RC;
 }
 
-static void handleSuspendInt(Slurm_Msg_t *sMsg)
+static int handleSuspendInt(Slurm_Msg_t *sMsg)
 {
     Req_Suspend_Int_t *req = sMsg->unpData;
     if (!req) {
 	flog("unpacking request suspend int failed\n");
-	sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
-	return;
+	return ESLURM_NOT_SUPPORTED;
     }
 
     switch (req->op) {
@@ -987,22 +960,18 @@ static void handleSuspendInt(Slurm_Msg_t *sMsg)
 	    break;
 	default:
 	    flog("unknown suspend_int operation %u\n", req->op);
-	    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
-	    ufree(req);
-	    return;
+	    return ESLURM_NOT_SUPPORTED;
     }
-
-    ufree(req);
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
+    return SLURM_SUCCESS;
 }
 
-static void handleUpdateJobTime(Slurm_Msg_t *sMsg)
+static int handleUpdateJobTime(Slurm_Msg_t *sMsg)
 {
     /* does nothing, since timelimit is not used in slurmd */
 
-    if (!checkPrivMsg(sMsg)) return;
+    if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
+    return SLURM_SUCCESS;
 }
 
 /**
@@ -1013,21 +982,23 @@ static void handleUpdateJobTime(Slurm_Msg_t *sMsg)
  *
  * @param sMsg The Slurm message to handle
  */
-static void handleShutdown(Slurm_Msg_t *sMsg)
+static int handleShutdown(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
-    if (!checkPrivMsg(sMsg)) return;
+    if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
     mlog("%s: shutdown on request from uid %i\n", __func__, sMsg->head.uid);
     PSIDplugin_finalize("psslurm");
+
+    return SLURM_NO_RC;
 }
 
-static void handleReconfigure(Slurm_Msg_t *sMsg)
+static int handleReconfigure(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
-    if (!checkPrivMsg(sMsg)) return;
+    if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
     /* activate the new configuration */
     updateSlurmConf();
@@ -1036,36 +1007,7 @@ static void handleReconfigure(Slurm_Msg_t *sMsg)
     sendNodeRegStatus(false);
 
     /* no response is expected */
-}
-
-/**
- * @brief Free a Slurm configuration message
- *
- * @param config The message to free
- */
-static void freeSlurmConfigMsg(Config_Msg_t *config)
-{
-    /* new configuration message since 21.08 */
-    for (uint32_t i = 0; i < config->numFiles; i++) {
-	ufree(config->files[i].name);
-	ufree(config->files[i].data);
-    }
-    ufree(config->files);
-
-    /* old configuration message */
-    ufree(config->slurm_conf);
-    ufree(config->acct_gather_conf);
-    ufree(config->cgroup_conf);
-    ufree(config->cgroup_allowed_dev_conf);
-    ufree(config->ext_sensor_conf);
-    ufree(config->gres_conf);
-    ufree(config->knl_cray_conf);
-    ufree(config->knl_generic_conf);
-    ufree(config->plugstack_conf);
-    ufree(config->topology_conf);
-    ufree(config->xtra_conf);
-    ufree(config->slurmd_spooldir);
-    ufree(config);
+    return SLURM_NO_RC;
 }
 
 static bool writeFile(const char *name, const char *dir, const char *data)
@@ -1189,30 +1131,26 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
  *
  * @param sMsg The message holding the RPC to handle
  */
-static void handleConfig(Slurm_Msg_t *sMsg)
+static int handleConfig(Slurm_Msg_t *sMsg)
 {
     Config_Msg_t *config = sMsg->unpData;
     if (!config) {
 	flog("unpacking new configuration failed\n");
-	return;
+	return SLURM_NO_RC;
     }
 
     /* check permissions */
-    if (!checkPrivMsg(sMsg)) {
-	freeSlurmConfigMsg(config);
-	return;
-    }
+    if (!checkPrivMsg(sMsg)) return SLURM_NO_RC;
 
     /* update all configuration files */
     char *confDir = getConfValueC(Config, "SLURM_CONF_CACHE");
     flog("updating Slurm configuration files in %s\n", confDir);
 
     bool ret = writeSlurmConfigFiles(config, confDir);
-    freeSlurmConfigMsg(config);
 
     if (!ret) {
 	flog("failed to write Slurm configuration files to %s\n", confDir);
-	return;
+	return SLURM_NO_RC;
     }
 
     /* activate the new configuration */
@@ -1223,6 +1161,7 @@ static void handleConfig(Slurm_Msg_t *sMsg)
 
     /* slurmctld does not require an answer for this RPC and silently ignores
      * any responses */
+    return SLURM_NO_RC;
 }
 
 /**
@@ -1259,20 +1198,12 @@ static void cbRebootProgram(int exit, bool tmdOut, int iofd, void *info)
     }
 }
 
-static void freeReqRebootNodes(Req_Reboot_Nodes_t *req)
-{
-    ufree(req->nodeList);
-    ufree(req->reason);
-    ufree(req->features);
-    ufree(req);
-}
-
-static void handleRebootNodes(Slurm_Msg_t *sMsg)
+static int handleRebootNodes(Slurm_Msg_t *sMsg)
 {
     Req_Reboot_Nodes_t *req = sMsg->unpData;
     if (!req) {
 	flog("unpacking node reboot request failed\n");
-	return;
+	return SLURM_NO_RC;
     }
 
     char *prog = getConfValueC(SlurmConfig, "RebootProgram");
@@ -1297,10 +1228,9 @@ static void handleRebootNodes(Slurm_Msg_t *sMsg)
 	freeStrBuf(&cmdline);
     }
 
-    freeReqRebootNodes(req);
-
     /* slurmctld does not require an answer for this RPC and silently ignores
      * any responses */
+    return SLURM_NO_RC;
 }
 
 uint64_t getSlurmHCRuns(void)
@@ -1409,22 +1339,21 @@ bool runHealthCheck(void)
  *
  * @param sMsg The message holding the RPC to handle
  */
-static void handleHealthCheck(Slurm_Msg_t *sMsg)
+static int handleHealthCheck(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
-    if (!checkPrivMsg(sMsg)) return;
-
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
+    if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
     runHealthCheck();
+    return SLURM_SUCCESS;
 }
 
-static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
+static int handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
 {
     PS_SendDB_t *msg = &sMsg->reply;
 
     /* check permissions */
-    if (!checkPrivMsg(sMsg)) return;
+    if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
     /* pack energy data */
     psAccountInfo_t info;
@@ -1434,14 +1363,15 @@ static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
     packEnergySensor(msg, &info.energy);
 
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_UPDATE);
+    return SLURM_NO_RC;
 }
 
-static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
+static int handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
 {
     PS_SendDB_t *msg = &sMsg->reply;
 
     /* check permissions */
-    if (!checkPrivMsg(sMsg)) return;
+    if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
     /* pack energy data */
     psAccountInfo_t info;
@@ -1451,6 +1381,7 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
     packEnergySensor(msg, &info.energy);
 
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_ENERGY);
+    return SLURM_NO_RC;
 }
 
 /**
@@ -1458,12 +1389,12 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
  *
  * @param sMsg The request message
  */
-static void handleJobId(Slurm_Msg_t *sMsg)
+static int handleJobId(Slurm_Msg_t *sMsg)
 {
     Req_Job_ID_t *req = sMsg->unpData;
     if (!req) {
 	flog("unpacking job ID request failed\n");
-	return;
+	return ESLURM_INVALID_JOB_ID;
     }
 
     Step_t *step = Step_findByPsidTask(req->pid);
@@ -1474,18 +1405,18 @@ static void handleJobId(Slurm_Msg_t *sMsg)
 	addUint32ToMsg(SLURM_SUCCESS, msg);
 
 	sendSlurmReply(sMsg, RESPONSE_JOB_ID);
-    } else {
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	return SLURM_NO_RC;
     }
+
+    return ESLURM_INVALID_JOB_ID;
 }
 
-static void handleFileBCast(Slurm_Msg_t *sMsg)
+static int handleFileBCast(Slurm_Msg_t *sMsg)
 {
     BCast_t *bcast = sMsg->unpData;
     if (!bcast) {
 	flog("unpacking file bcast request failed\n");
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	return;
+	return ESLURM_INVALID_JOB_ID;
     }
     bcast->msg.sock = sMsg->sock;
     /* set correct uid for response message */
@@ -1493,19 +1424,17 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 
     /* unpack credential */
     if (!BCast_extractCred(sMsg, bcast)) {
-	if (!errno) {
-	    sendSlurmRC(sMsg, ESLURM_AUTH_CRED_INVALID);
-	} else {
-	    sendSlurmRC(sMsg, errno);
-	}
 	mlog("%s: extracting bcast credential failed\n", __func__);
-	goto CLEANUP;
+	if (!errno) {
+	    return ESLURM_AUTH_CRED_INVALID;
+	} else {
+	    return errno;
+	}
     }
 
     if (bcast->compress) {
-	mlog("%s: implement compression for bcast\n", __func__);
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	goto CLEANUP;
+	flog("implement compression for bcast\n");
+	return SLURM_ERROR;
     }
 
     /* assign to job/allocation */
@@ -1513,9 +1442,8 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     if (!job) {
 	Alloc_t *alloc = Alloc_find(bcast->jobid);
 	if (!alloc) {
-	    mlog("%s: job %u not found\n", __func__, bcast->jobid);
-	    sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	    goto CLEANUP;
+	    flog("allocation %u not found\n", bcast->jobid);
+	    return ESLURM_INVALID_JOB_ID;
 	}
 	bcast->uid = alloc->uid;
 	bcast->gid = alloc->gid;
@@ -1536,8 +1464,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 
     if (Auth_isDeniedUID(bcast->uid)) {
 	flog("denied UID %u to start bcast\n", sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	goto CLEANUP;
+	return ESLURM_USER_ID_MISSING;
     }
 
     fdbg(PSSLURM_LOG_PROTO, "jobid %u blockNum %u lastBlock %u force %u"
@@ -1557,14 +1484,12 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     }
 
     /* start forwarder to write the file */
-    if (!execBCast(bcast)) {
-	sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
-	goto CLEANUP;
-    }
-    return;
+    if (!execBCast(bcast)) return ESLURMD_FORK_FAILED;
 
-CLEANUP:
-    BCast_delete(bcast);
+    /* prevent bcast from automatic free */
+    sMsg->unpData = NULL;
+
+    return SLURM_NO_RC;
 }
 
 static int addSlurmAccData(SlurmAccData_t *slurmAccData)
@@ -1640,13 +1565,12 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
     return accData->numTasks;
 }
 
-static void handleStepStat(Slurm_Msg_t *sMsg)
+static int handleStepStat(Slurm_Msg_t *sMsg)
 {
     Slurm_Step_Head_t *head = sMsg->unpData;
     if (!head) {
 	flog("unpacking step stat request failed\n");
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	return;
+	return ESLURM_INVALID_JOB_ID;
     }
 
     Step_t *step = Step_findByStepId(head->jobid, head->stepid);
@@ -1655,17 +1579,13 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	    .jobid = head->jobid,
 	    .stepid = head->stepid };
 	flog("%s to signal not found\n", Step_strID(&s));
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	ufree(head);
-	return;
+	return ESLURM_INVALID_JOB_ID;
     }
-    ufree(head);
 
     /* check permissions */
     if (!verifyUserId(sMsg->head.uid, step->uid)) {
 	flog("request from invalid user %u\n", sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	return;
+	return ESLURM_USER_ID_MISSING;
     }
 
     PS_SendDB_t *msg = &sMsg->reply;
@@ -1702,15 +1622,15 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
     packSlurmPIDs(msg, &sPID);
 
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_STAT);
+    return SLURM_NO_RC;
 }
 
-static void handleStepPids(Slurm_Msg_t *sMsg)
+static int handleStepPids(Slurm_Msg_t *sMsg)
 {
     Slurm_Step_Head_t *head = sMsg->unpData;
     if (!head) {
 	flog("unpacking step pids request failed\n");
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	return;
+	return ESLURM_INVALID_JOB_ID;
     }
 
     Step_t *step = Step_findByStepId(head->jobid, head->stepid);
@@ -1719,17 +1639,13 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
 	    .jobid = head->jobid,
 	    .stepid = head->stepid };
 	flog("%s to signal not found\n", Step_strID(&s));
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	ufree(head);
-	return;
+	return ESLURM_INVALID_JOB_ID;
     }
-    ufree(head);
 
     /* check permissions */
     if (!verifyUserId(sMsg->head.uid, step->uid)) {
 	flog("request from invalid user %u\n", sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	return;
+	return ESLURM_USER_ID_MISSING;
     }
 
     /* send step PIDs */
@@ -1743,6 +1659,7 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     packSlurmPIDs(msg, &sPID);
 
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_PIDS);
+    return SLURM_NO_RC;
 }
 
 uint64_t getNodeMem(void)
@@ -1798,7 +1715,7 @@ static uint32_t getTmpDisk(void)
  *
  * @param sMsg The request to handle
  */
-static void handleDaemonStatus(Slurm_Msg_t *sMsg)
+static int handleDaemonStatus(Slurm_Msg_t *sMsg)
 {
     Resp_Daemon_Status_t stat;
     PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
@@ -1843,15 +1760,15 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
     sendSlurmMsg(sMsg->sock, RESPONSE_SLURMD_STATUS, &msg, sMsg->head.uid);
 
     ufree(stat.stepList);
+    return SLURM_NO_RC;
 }
 
-static void handleJobNotify(Slurm_Msg_t *sMsg)
+static int handleJobNotify(Slurm_Msg_t *sMsg)
 {
     Req_Job_Notify_t *req = sMsg->unpData;
     if (!req) {
 	flog("unpacking job notify request failed\n");
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	return;
+	return ESLURM_INVALID_JOB_ID;
     }
 
     Job_t *job = Job_findById(req->jobid);
@@ -1860,16 +1777,14 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
     if (!job && !step) {
 	flog("job/step %u.%u to notify not found, msg %s\n", req->jobid,
 	     req->stepid, req->msg);
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	goto CLEANUP;
+	return ESLURM_INVALID_JOB_ID;
     }
 
     /* check permissions */
     if (!verifyUserId(sMsg->head.uid, job ? job->uid : step->uid)) {
 	flog("request from invalid user %u for job %u stepid %u\n",
 	     sMsg->head.uid, req->jobid, req->stepid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	goto CLEANUP;
+	return ESLURM_USER_ID_MISSING;
     }
 
     flog("notify jobid %u stepid %u msg %s\n", req->jobid, req->stepid,
@@ -1884,22 +1799,16 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
 	fwCMD_printMsg(NULL, step, "\n", strlen("\n"), STDERR, 0);
     }
 
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
-
-CLEANUP:
-    if (req) {
-	ufree(req->msg);
-	ufree(req);
-    }
+    return SLURM_SUCCESS;
 }
 
-static void handleForwardData(Slurm_Msg_t *sMsg)
+static int handleForwardData(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
-    if (!checkPrivMsg(sMsg)) return;
+    if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+    flog("implement me!\n");
+    return ESLURM_NOT_SUPPORTED;
 }
 
 static void sendJobKill(uint32_t jobid, uint32_t stepid, uint16_t signal)
@@ -1983,17 +1892,16 @@ void sendPrologComplete(uint32_t jobid, uint32_t rc)
      }
 }
 
-static void handleLaunchProlog(Slurm_Msg_t *sMsg)
+static int handleLaunchProlog(Slurm_Msg_t *sMsg)
 {
     Req_Launch_Prolog_t *req = sMsg->unpData;
     if (!req) {
 	flog("unpacking launch prolog request failed\n");
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	return;
+	return ESLURM_INVALID_JOB_ID;
     }
 
     /* check permissions */
-    if (!checkPrivMsg(sMsg)) goto CLEANUP;
+    if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
     fdbg(PSSLURM_LOG_PELOG, "jobid %u het-jobid %u uid %u gid %u alias %s"
 	 " nodes=%s partition=%s stdErr='%s' stdOut='%s' work-dir=%s user=%s\n",
@@ -2012,9 +1920,6 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 	     req->spankEnv.vars[i]);
     }
 
-    /* let the slurmctld know we got the request */
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
-
     /* add an allocation if slurmctld prologue did not */
     Alloc_t *alloc = Alloc_find(req->jobid);
     if (!alloc && req->hetJobid != 0 && req->hetJobid != NO_VAL) {
@@ -2027,9 +1932,12 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 	envCat(&alloc->env, &req->spankEnv, envFilter);
     }
 
-    /* save job credential and GRes in allocation */
+    /* move job credential and GRes to allocation */
     alloc->cred = req->cred;
+    req->cred = NULL;
     alloc->gresList = req->gresList;
+    req->gresList = NULL;
+
     alloc->verified = true;
 
     /* set mask of hardware threads to use */
@@ -2038,7 +1946,7 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 	flog("could not extract nodeinfo from credentials for alloc %u\n",
 	     alloc->id);
 	sendPrologComplete(req->jobid, SLURM_ERROR);
-	goto CLEANUP;
+	return SLURM_SUCCESS;
     }
     PSCPU_copy(alloc->hwthreads, nodeinfo->jobHWthreads);
     ufree(nodeinfo);
@@ -2053,23 +1961,7 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
      */
     /* let the slurmctld know the prologue has finished */
     sendPrologComplete(req->jobid, SLURM_SUCCESS);
-
-CLEANUP:
-
-    /* free request with the exception of the job credential and gres list
-     * saved in the allocation */
-    ufree(req->aliasList);
-    ufree(req->nodes);
-    ufree(req->partition);
-    ufree(req->stdErr);
-    ufree(req->stdOut);
-    ufree(req->workDir);
-    ufree(req->x11AllocHost);
-    ufree(req->x11MagicCookie);
-    ufree(req->x11Target);
-    ufree(req->userName);
-    envDestroy(&req->spankEnv);
-    ufree(req);
+    return SLURM_SUCCESS;
 }
 
 /**
@@ -2154,27 +2046,22 @@ static void printJobLaunchInfos(Job_t *job)
     }
 }
 
-static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
+static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 {
     Job_t *job = sMsg->unpData;
     if (!job) {
 	flog("unpacking batch job launch request failed\n");
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	return;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     if (pluginShutdown) {
 	/* don't accept new jobs if a shutdown is in progress */
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	Job_delete(job);
-	return;
+	return SLURM_ERROR;
     }
 
     if (Auth_isDeniedUID(job->uid)) {
 	flog("denied UID %u to start job %u\n", sMsg->head.uid, job->jobid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	Job_delete(job);
-	return;
+	return ESLURM_USER_ID_MISSING;
     }
 
     /* memory cleanup  */
@@ -2185,18 +2072,18 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 			 &job->nodes, &job->nrOfNodes)) {
 	flog("resolving PS nodeIDs from %s for job %u failed\n",
 	     job->slurmHosts, job->jobid);
-	goto ERROR;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     job->localNodeId = getLocalID(job->nodes, job->nrOfNodes);
     if (job->localNodeId == NO_VAL) {
 	flog("could not find my local ID for job %u in %s\n",
 	     job->jobid, job->slurmHosts);
-	goto ERROR;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     /* verify job credential */
-    if (!Job_verifyData(job)) goto ERROR;
+    if (!Job_verifyData(job)) return ESLURMD_INVALID_JOB_CREDENTIAL;
     job->state = JOB_QUEUED;
 
     printJobLaunchInfos(job);
@@ -2206,7 +2093,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     if (!extractJobPackInfos(job)) {
 	flog("invalid job pack information for job %u\n", job->jobid);
-	goto ERROR;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     /* set mask of hardware threads to use */
@@ -2214,7 +2101,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     if (!nodeinfo) {
 	flog("could not extract nodeinfo from credentials for job %u\n",
 	     job->jobid);
-	goto ERROR;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
     PSCPU_copy(job->hwthreads, nodeinfo->jobHWthreads);
     ufree(nodeinfo);
@@ -2228,9 +2115,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 		       getConfValueC(Config, "SLURM_HOSTNAME"),
 			"psslurm: writing jobscript failed");
 	/* need to return success to be able to requeue the job */
-	sendSlurmRC(sMsg, SLURM_SUCCESS);
-	Job_delete(job);
-	return;
+	return SLURM_SUCCESS;
     }
 
     flog("job %u user '%s' np %u nodes '%s' N %u tpp %u pack size %u"
@@ -2241,7 +2126,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     if (job->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {
 	mlog("%s: invalid nrOfNodes %u known Nodes %u\n", __func__,
 	     job->nrOfNodes, PSC_getNrOfNodes());
-	goto ERROR;
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     /* forward job info to other nodes in the job */
@@ -2260,14 +2145,14 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	if (!alloc) {
 	    flog("error: no allocation for job %u found\n", job->jobid);
 	    flog("** ensure slurmctld prologue is setup correctly **\n");
-	    goto ERROR;
+	    return ESLURMD_INVALID_JOB_CREDENTIAL;
 	}
 
 	/* sanity check allocation state */
 	if (alloc->state != A_PROLOGUE_FINISH) {
 	    flog("allocation %u in invalid state %s\n", alloc->id,
 		 Alloc_strState(alloc->state));
-	    goto ERROR;
+	    return ESLURMD_INVALID_JOB_CREDENTIAL;
 	}
 	alloc->verified = true;
 
@@ -2297,13 +2182,13 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* return result to slurmctld */
     if (ret) {
-	sendSlurmRC(sMsg, SLURM_SUCCESS);
-	return;
+	/* prevent job from automatic free */
+	sMsg->unpData = NULL;
+
+	return SLURM_SUCCESS;
     }
 
-ERROR:
-    sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-    Job_delete(job);
+    return ESLURMD_INVALID_JOB_CREDENTIAL;
 }
 
 static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
@@ -2525,13 +2410,12 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
  *
  * @param sMsg The message containing the RPC to handle
  */
-static void handleTerminateReq(Slurm_Msg_t *sMsg)
+static int handleTerminateReq(Slurm_Msg_t *sMsg)
 {
     Req_Terminate_Job_t *req = sMsg->unpData;
     if (!req) {
 	flog("unpacking terminate request failed\n");
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	return;
+	return ESLURM_USER_ID_MISSING;
     }
 
     Step_t s = {
@@ -2539,7 +2423,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	.stepid = req->stepid };
 
     /* check permissions */
-    if (!checkPrivMsg(sMsg)) goto CLEANUP;
+    if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
     flog("%s Slurm-state %u uid %u type %s\n", Step_strID(&s),
 	 req->jobstate, sMsg->head.uid, msgType2String(sMsg->head.type));
@@ -2561,12 +2445,11 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	Step_destroyByJobid(req->jobid);
 	flog("allocation %s not found\n", Step_strID(&s));
 	if (sMsg->head.type == REQUEST_TERMINATE_JOB) {
-	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
+	    return ESLURMD_KILL_JOB_ALREADY_COMPLETE;
 	} else {
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
 	    sendEpilogueComplete(req->jobid, SLURM_SUCCESS);
+	    return SLURM_SUCCESS;
 	}
-	goto CLEANUP;
     }
 
     Kill_Info_t info = {
@@ -2590,25 +2473,17 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	    doTerminateAlloc(sMsg, alloc);
 	    break;
 	default:
-	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
+	    return ESLURMD_KILL_JOB_ALREADY_COMPLETE;
 	    flog("unknown terminate request for %s\n", Step_strID(&s));
     }
 
-CLEANUP:
-    envDestroy(&req->spankEnv);
-    freeGresJobAlloc(&req->gresList);
-    freeJobCred(req->cred);
-    freeGresCred(&req->gresJobList);
-    ufree(req->nodes);
-    ufree(req->workDir);
-    ufree(req->details);
-    ufree(req);
+    return SLURM_NO_RC;
 }
 
-static void handleNetworkCallerID(Slurm_Msg_t *sMsg)
+static int handleNetworkCallerID(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
-    if (!checkPrivMsg(sMsg)) return;
+    if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
     /* IN: */
     /* ip source */
@@ -2617,8 +2492,8 @@ static void handleNetworkCallerID(Slurm_Msg_t *sMsg)
     /* port dest */
     /* af */
 
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+    flog("implement me!\n");
+    return ESLURM_NOT_SUPPORTED;
 
     /* OUT: */
     /* job id */
@@ -2626,10 +2501,10 @@ static void handleNetworkCallerID(Slurm_Msg_t *sMsg)
     /* node name */
 }
 
-static void handleRespMessageComposite(Slurm_Msg_t *sMsg)
+static int handleRespMessageComposite(Slurm_Msg_t *sMsg)
 {
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+    flog("implement me!\n");
+    return ESLURM_NOT_SUPPORTED;
 }
 
 /**
@@ -2639,10 +2514,10 @@ static void handleRespMessageComposite(Slurm_Msg_t *sMsg)
  *
  * @param sMsg The Slurm message to handle
  */
-static void handleRespNodeReg(Slurm_Msg_t *sMsg)
+static int handleRespNodeReg(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
-    if (!checkPrivMsg(sMsg)) return;
+    if (!checkPrivMsg(sMsg)) return SLURM_NO_RC;
 
     /* don't request the additional info again */
     needNodeRegResp = false;
@@ -2650,7 +2525,7 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
     tresDBconfig = sMsg->unpData;
     if (!tresDBconfig) {
 	flog("unpacking response node reg failed\n");
-	return;
+	return SLURM_NO_RC;
     }
 
     /* don't free the data after this function */
@@ -2678,6 +2553,7 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
 	    flog("warning: lustre accounting is disabled\n");
 	}
     }
+    return SLURM_NO_RC;
 }
 
 /**
@@ -2799,28 +2675,29 @@ void processSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw, Connection_CB_t *cb,
     cb(sMsg, info);
 }
 
-static void handleNodeRegStat(Slurm_Msg_t *sMsg)
+static int handleNodeRegStat(Slurm_Msg_t *sMsg)
 {
     sendPing(sMsg);
     sendNodeRegStatus(false);
     Alloc_verify(true);
+    return SLURM_NO_RC;
 }
 
-static void handleInvalid(Slurm_Msg_t *sMsg)
+static int handleInvalid(Slurm_Msg_t *sMsg)
 {
-    mlog("%s: got invalid %s (%i) request\n", __func__,
-	 msgType2String(sMsg->head.type), sMsg->head.type);
+    flog("got invalid %s (%i) request\n", msgType2String(sMsg->head.type),
+	 sMsg->head.type);
 
     switch (sMsg->head.type) {
 	case REQUEST_COMPLETE_BATCH_SCRIPT:
 	case REQUEST_STEP_COMPLETE:
 	case REQUEST_STEP_COMPLETE_AGGR:
-	    sendSlurmRC(sMsg, SLURM_ERROR);
-	    break;
+	    return SLURM_ERROR;
 	case MESSAGE_COMPOSITE:
-	    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
-	    break;
+	    return ESLURM_NOT_SUPPORTED;
     }
+
+    return SLURM_ERROR;
 }
 
 typedef struct {
@@ -2848,6 +2725,12 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
 		     time_start.tv_sec + 1e-6 * time_start.tv_usec);
 	    }
 
+	    if (!msgHandler->handler) {
+		flog("error: no message handler for %s\n",
+		     msgType2String(sMsg->head.type));
+		return 0;
+	    }
+
 	    /* unpack request */
 	    if (!unpackSlurmMsg(sMsg)) {
 		flog("unpacking message %s (%u) failed\n",
@@ -2856,7 +2739,17 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
 		return 0;
 	    }
 
-	    if (msgHandler->handler) msgHandler->handler(sMsg);
+	    /* execute the RPC using the message handler */
+	    int ret = msgHandler->handler(sMsg);
+
+	    /* ensure message type is not overwritten by callback */
+	    sMsg->head.type = msgHandler->msgType;
+
+	    /* free unpacked data */
+	    freeUnpackMsgData(sMsg);
+
+	    /* send optional SLURM response */
+	    if (ret != SLURM_NO_RC) sendSlurmRC(sMsg, ret);
 
 	    if (measure) {
 		gettimeofday(&time_now, NULL);
@@ -3677,7 +3570,9 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 
     char *confCache = getConfValueC(Config, "SLURM_CONF_CACHE");
     bool ret = writeSlurmConfigFiles(config, confCache);
-    freeSlurmConfigMsg(config);
+
+    /* free unpacked data (config) */
+    freeUnpackMsgData(sMsg);
 
     if (!ret) {
 	flog("failed to write Slurm configuration files to %s\n", confCache);

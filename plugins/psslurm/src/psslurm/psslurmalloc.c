@@ -399,7 +399,7 @@ static int verifyJobInfo(Slurm_Msg_t *sMsg, void *info)
 	}
     }
 
-    freeRespJobInfo(resp);
+    freeUnpackMsgData(sMsg);
 
     return 0;
 }

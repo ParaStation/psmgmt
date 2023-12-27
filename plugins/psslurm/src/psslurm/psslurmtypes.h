@@ -23,7 +23,7 @@
 #endif
 
 /** Handler type for SLURMd messages */
-typedef void(*slurmdHandlerFunc_t)(Slurm_Msg_t *);
+typedef int(*slurmdHandlerFunc_t)(Slurm_Msg_t *);
 
 /**
  * @brief Register message handler function
