@@ -30,31 +30,6 @@
 #include "psslurmtypes.h"
 #include "psslurmprototypes.h"
 
-/** Structure holding a Slurm config file */
-typedef struct {
-    bool create;    /**< flag to create/delete the file */
-    char *name;	    /**< file name */
-    char *data;	    /**< file content */
-} Config_File_t;
-
-/** Structure holding all received configuration files */
-typedef struct {
-    Config_File_t *files;	    /**< holding config files (since 21.08) */
-    uint32_t numFiles;		    /**< number of config files (since 21.08) */
-    char *slurm_conf;
-    char *acct_gather_conf;
-    char *cgroup_conf;
-    char *cgroup_allowed_dev_conf;
-    char *ext_sensor_conf;
-    char *gres_conf;
-    char *knl_cray_conf;
-    char *knl_generic_conf;
-    char *plugstack_conf;
-    char *topology_conf;
-    char *xtra_conf;
-    char *slurmd_spooldir;
-} Config_Msg_t;
-
 /** Holding Slurm configuration actions */
 typedef enum {
     CONF_ACT_STARTUP = 0x20,	/**< receive configuration files at startup */

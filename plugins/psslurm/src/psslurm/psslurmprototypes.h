@@ -393,11 +393,43 @@ typedef struct {
     uint32_t pid;	    /**< pid of mpiexec to find step for */
 } Req_Job_ID_t;
 
+/** Structure holding a Slurm config file */
+typedef struct {
+    bool create;    /**< flag to create/delete the file */
+    char *name;	    /**< file name */
+    char *data;	    /**< file content */
+} Config_File_t;
+
+/** Structure holding all received configuration files */
+typedef struct {
+    Config_File_t *files;	    /**< holding config files (since 21.08) */
+    uint32_t numFiles;		    /**< number of config files (since 21.08) */
+    char *slurm_conf;
+    char *acct_gather_conf;
+    char *cgroup_conf;
+    char *cgroup_allowed_dev_conf;
+    char *ext_sensor_conf;
+    char *gres_conf;
+    char *knl_cray_conf;
+    char *knl_generic_conf;
+    char *plugstack_conf;
+    char *topology_conf;
+    char *xtra_conf;
+    char *slurmd_spooldir;
+} Config_Msg_t;
+
 /**
- * @brief Free a job info response
+ * @brief Free unpack buffer of a Slurm message
  *
- * @param resp The job info response to free
+ * Call the appropriate delete function for the specific Slurm
+ * messages type.
+ *
+ * @param sMsg The message containing the buffer to free
+ *
+ * @return Returns true on success otherwise false is returned
  */
-void freeRespJobInfo(Resp_Job_Info_t *resp);
+bool __freeUnpackMsgData(Slurm_Msg_t *sMsg, const char *caller, const int line);
+
+#define freeUnpackMsgData(sMsg) __freeUnpackMsgData(sMsg, __func__, __LINE__);
 
 #endif /* __PSSLURM_PROTO_TYPES */
