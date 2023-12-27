@@ -499,6 +499,31 @@ bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t tid)
     return setFragDest(buffer, tid);
 }
 
+char *serialStrErr(serial_Err_Types_t err)
+{
+    static char buf[128];
+
+    switch(err) {
+	case E_PSSERIAL_SUCCESS:
+	    return "operation successful";
+	case E_PSSERIAL_INSUF:
+	    return "insufficient data in buffer";
+	case E_PSSERIAL_PARAM:
+	    return "invalid parameter";
+	case E_PSSERIAL_TYPE:
+	    return "data type mismatch";
+	case E_PSSERIAL_BUFSIZE:
+	    return "provided buffer to small";
+	case E_PSSERIAL_MEM:
+	    return "out of memory";
+	case E_PSSERIAL_CONV:
+	    return "unknown conversion size";
+	default:
+	    snprintf(buf, sizeof(buf), "unknown error code %i", err);
+	    return buf;
+    }
+}
+
 /**
  * @brief Send a message fragment
  *
@@ -853,6 +878,7 @@ PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data)
     PS_DataBuffer_t *dup = umalloc(sizeof(*dup));
     if (!dup) {
 	PSC_log(-1, "%s: duplication failed\n", __func__);
+	data->unpackErr = E_PSSERIAL_MEM;
 	return NULL;
     }
 
@@ -860,6 +886,7 @@ PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data)
     if (!dup->buf) {
 	PSC_log(-1, "%s: buffer duplication failed\n", __func__);
 	free(dup);
+	data->unpackErr = E_PSSERIAL_MEM;
 	return NULL;
     }
 
@@ -929,6 +956,47 @@ static bool verifyTypeInfo(PS_DataBuffer_t *data, PS_DataType_t expectedType,
     if (type != expectedType) {
 	PSC_log(-1, "%s(%s@%d): error got type %d should be %d\n", __func__,
 		caller, line, type, expectedType);
+	data->unpackErr = E_PSSERIAL_TYPE;
+	return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Verify data buffer
+ *
+ * Make sanity checks to ensure unpacking from the given data buffer is save.
+ * This includes checking for previous unpack errors as well as sufficient
+ * data is left to read.
+ *
+ * @param data The data buffer to verify
+ *
+ * @param size The size of data to read from the buffer
+ *
+ * @param addTypeInfo Wether to take optional type info into account
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return Returns true if it is safe to continue unpacking data from the
+ * buffer. Otherwise false is returned.
+ */
+static inline bool verifyDataBuf(PS_DataBuffer_t *data, size_t size,
+				 bool addTypeInfo, const char *caller,
+				 const int line)
+{
+    if (data->unpackErr) {
+	PSC_log(PSC_LOG_VERB, "%s(%s@%d): previous unpack error %i\n", __func__,
+		caller, line, data->unpackErr);
+
+	return false;
+    }
+
+    size_t toread = (addTypeInfo && typeInfo) ? sizeof(uint8_t) + size : size;
+    if ((data->unpackPtr - data->buf) + toread > data->used) {
+	PSC_log(-1, "%s(%s@%d): insufficient data\n", __func__, caller, line);
+	data->unpackErr = E_PSSERIAL_INSUF;
 	return false;
     }
     return true;
@@ -937,16 +1005,14 @@ static bool verifyTypeInfo(PS_DataBuffer_t *data, PS_DataType_t expectedType,
 bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 		size_t size, const char *caller, const int line)
 {
-    if (!data) {
-	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
+    if (!data || !val) {
+	PSC_log(-1, "%s(%s@%d): invalid %s\n", __func__, caller, line,
+		!data ? "data" : "val");
+	data->unpackErr = E_PSSERIAL_PARAM;
 	return false;
     }
 
-    if (!val) {
-	PSC_log(-1, "%s(%s@%d): invalid val\n", __func__, caller, line);
-	return false;
-    }
-
+    if (!verifyDataBuf(data, size, true, caller, line)) return false;
     if (!verifyTypeInfo(data, type, caller, line)) return false;
 
     memcpy(val, data->unpackPtr, size);
@@ -966,6 +1032,8 @@ bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 	default:
 	    PSC_log(-1, "%s(%s@%d): unknown conversion for size %zd\n",
 		    __func__, caller, line, size);
+	    data->unpackErr = E_PSSERIAL_CONV;
+	    return false;
 	}
     }
     data->unpackPtr += size;
@@ -989,7 +1057,11 @@ bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
     }
 
     for (uint32_t i = 0; i < *len; i++) {
-	getFromBuf(data, (char *)*val + i*size, type, size, caller, line);
+	if (!getFromBuf(data, (char *)*val + i*size, type, size,
+		        caller, line)) {
+	    free(*val);
+	    return false;
+	}
     }
 
     return true;
@@ -1001,14 +1073,19 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
 {
     if (destSize && !dest) {
 	PSC_log(-1, "%s(%s@%d): invalid buffer\n", __func__, caller, line);
+	data->unpackErr = E_PSSERIAL_PARAM;
 	return NULL;
     }
 
     if (!data) {
 	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
+	data->unpackErr = E_PSSERIAL_PARAM;
 	return NULL;
     }
 
+    if (!verifyDataBuf(data, sizeof(uint32_t), true, caller, line)) {
+	return false;
+    }
     if (!verifyTypeInfo(data, type, caller, line)) return NULL;
 
     /* data length */
@@ -1018,11 +1095,14 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
     if (byteOrder) l = ntohl(l);
     if (len) *len = l;
 
+    if (!verifyDataBuf(data, l, false, caller, line)) return false;
+
     if (dest) {
 	if (l >= destSize) {
 	    /* buffer too small */
 	    PSC_log(-1, "%s(%s@%d): buffer (%zu) too small for message (%u)\n",
 		    __func__, caller, line, destSize, l);
+	    data->unpackErr = E_PSSERIAL_BUFSIZE;
 	    return NULL;
 	}
     } else {
@@ -1030,6 +1110,7 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
 	if (!dest) {
 	    PSC_log(-1, "%s(%s@%d): allocation of %u failed\n", __func__,
 		    caller, line, l);
+	    data->unpackErr = E_PSSERIAL_MEM;
 	    return NULL;
 	}
     }
@@ -1059,12 +1140,20 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
     if (!*array) {
 	PSC_log(-1, "%s(%s@%d): allocation of %zd failed\n", __func__,
 		caller, line, sizeof(char *) * (*len + 1));
+	data->unpackErr = E_PSSERIAL_MEM;
 	return false;
     }
 
     for (uint32_t i = 0; i < *len; i++) {
 	(*array)[i] = getMemFromBuf(data, NULL, 0, NULL, PSDATA_STRING,
 				    caller, line);
+	if (data->unpackErr) {
+	    for (uint32_t x=0; x < i; x++) {
+		free((*array)[x]);
+	    }
+	    free(*array);
+	    return false;
+	}
     }
 
     (*array)[*len] = NULL;

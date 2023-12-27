@@ -53,6 +53,17 @@ typedef enum {
     PSDATA_DATA,
 } PS_DataType_t;
 
+/** Error types */
+typedef enum {
+    E_PSSERIAL_SUCCESS = 0, /**< operation successful */
+    E_PSSERIAL_INSUF,	    /**< insufficient data */
+    E_PSSERIAL_PARAM,	    /**< invalid parameter */
+    E_PSSERIAL_TYPE,	    /**< data type mismatch */
+    E_PSSERIAL_BUFSIZE,	    /**< provided buffer to small */
+    E_PSSERIAL_MEM,	    /**< out of memory */
+    E_PSSERIAL_CONV	    /**< unknown conversion size */
+} serial_Err_Types_t;
+
 /** Growing data-buffer to assemble messages */
 typedef struct {
     char *buf;           /**< Actual data-buffer */
@@ -375,6 +386,15 @@ bool setByteOrder(bool flag);
  * @return The old setting of the type-info mode
  */
 bool setTypeInfo(bool flag);
+
+/**
+ * @brief Get string represention of an error code
+ *
+ * @param err The error code to convert
+ *
+ * @return Returns the requested error messages.
+ */
+char *serialStrErr(serial_Err_Types_t err);
 
 /**
  * @brief Free data buffer
