@@ -157,6 +157,12 @@ static bool __unpackStepHead(PS_DataBuffer_t *data, void *head, uint16_t msgVer,
 	    stepH->stepid = SLURM_EXTERN_CONT;
 	}
     }
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
     return true;
 }
 
@@ -196,12 +202,17 @@ bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
 	return false;
     }
 
-
     PS_DataBuffer_t *data = sMsg->data;
     Slurm_Auth_t *auth = umalloc(sizeof(*auth));
 
     getUint32(data, &auth->pluginID);
     auth->cred = NULL;
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	ufree(data);
+	return false;
+    }
 
     *authPtr = auth;
 
@@ -223,6 +234,11 @@ bool __unpackMungeCred(Slurm_Msg_t *sMsg, Slurm_Auth_t *auth,
 
     PS_DataBuffer_t *data = sMsg->data;
     auth->cred = getStringM(data);
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
@@ -301,6 +317,12 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
 	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' bit_alloc '%s'\n", __func__,
 		    i, gres->bitAlloc[i]);
 	}
+    }
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	releaseGresCred(gres);
+	return NULL;
     }
 
     return gres;
@@ -409,6 +431,12 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
 	}
     }
 
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	releaseGresCred(gres);
+	return NULL;
+    }
+
     return gres;
 }
 
@@ -443,6 +471,11 @@ static bool unpackGres(PS_DataBuffer_t *data, list_t *gresList, JobCred_t *cred,
 	    return false;
 	}
 	list_add_tail(&gres->next, gresList);
+    }
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
     }
 
     return true;
@@ -671,8 +704,12 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     *credEnd = data->unpackPtr;
     cred->sig = getStringM(data);
 
-    *credPtr = cred;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	goto ERROR;
+    }
 
+    *credPtr = cred;
     return true;
 
 ERROR:
@@ -728,6 +765,11 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     cred->end = data->unpackPtr;
     /* signature */
     cred->sig = getStringML(data, &cred->sigLen);
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
@@ -825,6 +867,11 @@ bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 	     fw->head.fwNodeList, fw->head.fwTimeout, head->fwTreeWidth);
     }
 #endif
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
@@ -960,6 +1007,13 @@ bool __unpackSlurmIOHeader(PS_DataBuffer_t *data, IO_Slurm_Header_t **iohPtr,
     getUint16(data, &ioh->lrank);
     /* length */
     getUint32(data, &ioh->len);
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	ufree(ioh);
+	return false;
+    }
+
     *iohPtr = ioh;
 
     return true;
@@ -1025,6 +1079,11 @@ static bool unpackGresJobAlloc(PS_DataBuffer_t *data, list_t *gresList)
 	list_add_tail(&gres->next, gresList);
     }
 
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
     return true;
 }
 
@@ -1046,6 +1105,7 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
 
     uint16_t msgVer = sMsg->head.version;
     PS_DataBuffer_t *data = sMsg->data;
+    sMsg->unpData = req;
 
     INIT_LIST_HEAD(&req->gresJobList);
     if (msgVer > SLURM_21_08_PROTO_VERSION) {
@@ -1112,7 +1172,11 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
 	req->workDir = getStringM(data);
     }
 
-    sMsg->unpData = req;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
     return true;
 }
 
@@ -1131,6 +1195,7 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
 bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
 {
     Req_Signal_Tasks_t *req = ucalloc(sizeof(*req));
+    sMsg->unpData = req;
 
     PS_DataBuffer_t *data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
@@ -1151,7 +1216,12 @@ bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
     /* signal */
     getUint16(data, &req->signal);
 
-    sMsg->unpData = req;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n",
+	     serialStrErr(data->unpackErr));
+	return false;
+    }
+
     return true;
 }
 
@@ -1215,6 +1285,13 @@ static bool unpackStepAddr(Step_t *step, PS_DataBuffer_t *data, uint16_t msgVer)
 	getUint32(data, &addr);
 	getUint16(data, &port);
     }
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n",
+	     serialStrErr(data->unpackErr));
+	return false;
+    }
+
     return true;
 }
 
@@ -1553,6 +1630,12 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     /* x11 target port */
     getUint16(data, &step->x11.targetPort);
 
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n",
+	     serialStrErr(data->unpackErr));
+	goto ERROR;
+    }
+
     sMsg->unpData = step;
     return true;
 
@@ -1756,6 +1839,12 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     job->tresBind = getStringM(data);
     job->tresFreq = getStringM(data);
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n",
+	     serialStrErr(data->unpackErr));
+	return false;
+    }
 
     sMsg->unpData = job;
     return true;
@@ -2223,6 +2312,7 @@ static bool unpackReqFileBcast(Slurm_Msg_t *sMsg)
     PS_DataBuffer_t *data = sMsg->data;
     BCast_t *bcast = BCast_add();
     uint16_t msgVer = sMsg->head.version;
+    sMsg->unpData = bcast;
 
     /* block number */
     getUint32(data, &bcast->blockNumber);
@@ -2267,12 +2357,14 @@ static bool unpackReqFileBcast(Slurm_Msg_t *sMsg)
     size_t len;
     bcast->block = getDataM(data, &len);
     if (bcast->blockLen != len) {
-	mlog("%s: blockLen mismatch: %d/%zd\n", __func__, bcast->blockLen, len);
-	BCast_delete(bcast);
+	flog("blockLen mismatch: %d/%zd\n", bcast->blockLen, len);
 	return false;
     }
 
-    sMsg->unpData = bcast;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
@@ -2504,6 +2596,7 @@ static bool unpackExtRespNodeReg(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t *data = sMsg->data;
     Ext_Resp_Node_Reg_t *resp = ucalloc(sizeof(*resp));
+    sMsg->unpData = resp;
 
     getUint32(data, &resp->count);
     resp->entry = ucalloc(sizeof(*resp->entry) * resp->count);
@@ -2522,7 +2615,10 @@ static bool unpackExtRespNodeReg(Slurm_Msg_t *sMsg)
 	resp->nodeName = getStringM(data);
     }
 
-    sMsg->unpData = resp;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
@@ -2543,13 +2639,17 @@ static bool unpackReqSuspendInt(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t *data = sMsg->data;
     Req_Suspend_Int_t *req = umalloc(sizeof(*req));
+    sMsg->unpData = req;
 
     getUint8(data, &req->indefSus);
     getUint16(data, &req->jobCoreSpec);
     getUint32(data, &req->jobid);
     getUint16(data, &req->op);
 
-    sMsg->unpData = req;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
@@ -2571,6 +2671,7 @@ static bool unpackConfigMsg(Slurm_Msg_t *sMsg)
     PS_DataBuffer_t *data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
     Config_Msg_t *req = ucalloc(sizeof(*req));
+    sMsg->unpData = req;
 
     if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	getUint32(data, &req->numFiles);
@@ -2578,7 +2679,6 @@ static bool unpackConfigMsg(Slurm_Msg_t *sMsg)
 	if (req->numFiles == NO_VAL) {
 	    flog("error receiving config files\n");
 	    req->numFiles = 0;
-	    ufree(req);
 	    return false;
 	}
 
@@ -2606,7 +2706,10 @@ static bool unpackConfigMsg(Slurm_Msg_t *sMsg)
 	req->slurmd_spooldir = getStringM(data);
     }
 
-    sMsg->unpData = req;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
@@ -2710,6 +2813,7 @@ static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
     PS_DataBuffer_t *data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
     Req_Reattach_Tasks_t *req = ucalloc(sizeof(*req));
+    sMsg->unpData = req;
 
     /* unpack jobid/stepid */
     unpackStepHead(data, req, msgVer);
@@ -2737,7 +2841,10 @@ static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
     req->cred = extractJobCred(&gresList, sMsg, false);
     freeGresCred(&gresList);
 
-    sMsg->unpData = req;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
@@ -2759,13 +2866,17 @@ static bool unpackReqJobNotify(Slurm_Msg_t *sMsg)
     PS_DataBuffer_t *data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
     Req_Job_Notify_t *req = ucalloc(sizeof(*req));
+    sMsg->unpData = req;
 
     /* unpack jobid/stepid */
     unpackStepHead(data, req, msgVer);
     /* msg */
     req->msg = getStringM(data);
 
-    sMsg->unpData = req;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
@@ -2787,12 +2898,12 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     Req_Launch_Prolog_t *req = ucalloc(sizeof(*req));
     PS_DataBuffer_t *data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
+    sMsg->unpData = req;
 
-    req->gresList = umalloc(sizeof(*req->gresList));
+    req->gresList = ucalloc(sizeof(*req->gresList));
     INIT_LIST_HEAD(req->gresList);
     if (!unpackGresJobAlloc(data, req->gresList)) {
 	flog("unpacking gres job allocation info failed\n");
-	ufree(req);
 	return false;
     }
 
@@ -2835,8 +2946,10 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     /* user name */
     req->userName = getStringM(data);
 
-    /* save in sMsg */
-    sMsg->unpData = req;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
@@ -2883,6 +2996,7 @@ static bool unpackRebootNodes(Slurm_Msg_t *sMsg)
 {
     Req_Reboot_Nodes_t *req = ucalloc(sizeof(*req));
     PS_DataBuffer_t *data = sMsg->data;
+    sMsg->unpData = req;
 
     /* features */
     req->features = getStringM(data);
@@ -2895,8 +3009,10 @@ static bool unpackRebootNodes(Slurm_Msg_t *sMsg)
     /* reason */
     req->reason = getStringM(data);
 
-    /* save in sMsg */
-    sMsg->unpData = req;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
@@ -2918,6 +3034,7 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
     Resp_Job_Info_t *resp = ucalloc(sizeof(*resp));
     PS_DataBuffer_t *data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
+    sMsg->unpData = resp;
 
     /* number of jobs */
     getUint32(data, &resp->numJobs);
@@ -3094,8 +3211,10 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 	getUint32(data, &rec->derivedExitCode);
     }
 
-    /* save in sMsg */
-    sMsg->unpData = resp;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
@@ -3108,50 +3227,61 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
     }
 
     sMsg->unpData = NULL;
+    bool ret = false;
 
     switch (sMsg->head.type) {
 	case REQUEST_JOB_STEP_STAT:
 	case REQUEST_JOB_STEP_PIDS:
 	    sMsg->unpData = ucalloc(sizeof(Slurm_Step_Head_t));
-	    if (!unpackStepHead(sMsg->data, sMsg->unpData, sMsg->head.version)){
-		ufree(sMsg->unpData);
-		sMsg->unpData = NULL;
-		return false;
-	    }
-	    return true;
+	    ret = unpackStepHead(sMsg->data, sMsg->unpData, sMsg->head.version);
+	    break;
 	case REQUEST_LAUNCH_PROLOG:
-	    return unpackReqLaunchProlog(sMsg);
+	    ret = unpackReqLaunchProlog(sMsg);
+	    break;
 	case REQUEST_LAUNCH_TASKS:
-	    return unpackReqLaunchTasks(sMsg);
+	    ret = unpackReqLaunchTasks(sMsg);
+	    break;
 	case REQUEST_BATCH_JOB_LAUNCH:
-	    return unpackReqBatchJobLaunch(sMsg);
+	    ret =  unpackReqBatchJobLaunch(sMsg);
+	    break;
 	case REQUEST_SIGNAL_TASKS:
 	case REQUEST_TERMINATE_TASKS:
-	    return unpackReqSignalTasks(sMsg);
+	    ret = unpackReqSignalTasks(sMsg);
+	    break;
 	case REQUEST_REATTACH_TASKS:
-	    return unpackReqReattachTasks(sMsg);
+	    ret = unpackReqReattachTasks(sMsg);
+	    break;
 	case REQUEST_KILL_PREEMPTED:
 	case REQUEST_KILL_TIMELIMIT:
 	case REQUEST_ABORT_JOB:
 	case REQUEST_TERMINATE_JOB:
-	    return unpackReqTerminate(sMsg);
+	    ret = unpackReqTerminate(sMsg);
+	    break;
 	case REQUEST_SUSPEND_INT:
-	    return unpackReqSuspendInt(sMsg);
+	    ret = unpackReqSuspendInt(sMsg);
+	    break;
 	case REQUEST_RECONFIGURE_WITH_CONFIG:
 	case RESPONSE_CONFIG:
-	    return unpackConfigMsg(sMsg);
+	    ret = unpackConfigMsg(sMsg);
+	    break;
 	case REQUEST_FILE_BCAST:
-	    return unpackReqFileBcast(sMsg);
+	    ret = unpackReqFileBcast(sMsg);
+	    break;
 	case REQUEST_JOB_NOTIFY:
-	    return unpackReqJobNotify(sMsg);
+	    ret = unpackReqJobNotify(sMsg);
+	    break;
 	case RESPONSE_NODE_REGISTRATION:
-	    return unpackExtRespNodeReg(sMsg);
+	    ret = unpackExtRespNodeReg(sMsg);
+	    break;
 	case RESPONSE_JOB_INFO:
-	    return unpackRespJobInfo(sMsg);
+	    ret = unpackRespJobInfo(sMsg);
+	    break;
 	case REQUEST_REBOOT_NODES:
-	    return unpackRebootNodes(sMsg);
+	    ret = unpackRebootNodes(sMsg);
+	    break;
 	case REQUEST_JOB_ID:
-	    return unpackReqJobID(sMsg);
+	    ret = unpackReqJobID(sMsg);
+	    break;
 	    /* nothing to unpack */
 	case REQUEST_COMPLETE_BATCH_SCRIPT:
 	case REQUEST_UPDATE_JOB_TIME:
@@ -3170,12 +3300,17 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
 	case MESSAGE_COMPOSITE:
 	case RESPONSE_MESSAGE_COMPOSITE:
 	    return true;
+	default:
+	    flog("unpack function for message %s not found\n",
+		 msgType2String(sMsg->head.type));
     }
 
-    flog("unpack function for message %s not found\n",
-	 msgType2String(sMsg->head.type));
+    if (!ret && sMsg->unpData) {
+	/* unpacking failed and unpack buffer needs to be freed */
+	freeUnpackMsgData(sMsg);
+    }
 
-    return false;
+    return ret;
 }
 
 /**
