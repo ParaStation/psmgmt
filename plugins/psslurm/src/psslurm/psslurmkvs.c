@@ -665,6 +665,7 @@ char *set(char *key, char *value)
 
     /* load a Spank plugin */
     if (!strcmp(key, "SPANK_LOAD")) {
+#ifdef HAVE_SPANK
 	Spank_Plugin_t *sp = SpankNewPlug(value);
 	if (!sp) {
 	    snprintf(line, sizeof(line),
@@ -692,12 +693,16 @@ char *set(char *key, char *value)
 		ufree(sp);
 		break;
 	}
-
+#else
+	snprintf(line, sizeof(line),
+		 "\npsmgmt was compiled without spank support\n\n");
+#endif
 	return str2Buf(line, &buf, &bufSize);
     }
 
     /* unload a Spank plugin */
     if (!strcmp(key, "SPANK_UNLOAD") || !strcmp(key, "SPANK_FIN")) {
+#ifdef HAVE_SPANK
 	bool fin = !strcmp(key, "SPANK_FIN") ? true : false;
 	if (!SpankUnloadPlugin(value, fin)) {
 	    snprintf(line, sizeof(line), "\nunloading plugin %s failed\n",
@@ -706,6 +711,10 @@ char *set(char *key, char *value)
 	    snprintf(line, sizeof(line), "\nunloaded plugin %s successfully\n",
 		     value);
 	}
+#else
+	snprintf(line, sizeof(line),
+		 "\npsmgmt was compiled without spank support\n\n");
+#endif
 	return str2Buf(line, &buf, &bufSize);
     }
 
