@@ -1188,7 +1188,7 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
  * @return On success true is returned or false in case of an
  * error. If reading was not successful, @a sMsg might be not updated.
  */
-bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
+static bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
 {
     Req_Signal_Tasks_t *req = ucalloc(sizeof(*req));
     sMsg->unpData = req;
