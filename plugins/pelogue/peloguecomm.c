@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -385,13 +385,11 @@ ERROR:
 
 static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
-    char *plugin, *jobid;
     bool prlg = msg->type == PSP_PROLOGUE_START;
-    PElogueChild_t *child;
-
-    plugin = getStringM(rData);
-    jobid = getStringM(rData);
-    child = addChild(plugin, jobid, prlg ? PELOGUE_PROLOGUE : PELOGUE_EPILOGUE);
+    char *plugin = getStringM(rData);
+    char *jobid = getStringM(rData);
+    PElogueChild_t *child = addChild(plugin, jobid,
+				     prlg ? PELOGUE_PROLOGUE : PELOGUE_EPILOGUE);
     if (!child) {
 	mlog("%s: Failed to create a new child\n", __func__);
 	free(plugin);
