@@ -1221,7 +1221,7 @@ bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
     return true;
 }
 
-static void unpackStepTaskIds(Step_t *step, PS_DataBuffer_t *data)
+static void unpackStepTaskIds(PS_DataBuffer_t *data, Step_t *step)
 {
     step->tasksToLaunch = umalloc(step->nrOfNodes * sizeof(uint16_t));
     step->globalTaskIds = umalloc(step->nrOfNodes * sizeof(uint32_t *));
@@ -1245,7 +1245,7 @@ static void unpackStepTaskIds(Step_t *step, PS_DataBuffer_t *data)
     }
 }
 
-static bool unpackStepAddr(Step_t *step, PS_DataBuffer_t *data, uint16_t msgVer)
+static bool unpackStepAddr(PS_DataBuffer_t *data, Step_t *step, uint16_t msgVer)
 {
     /* srun ports */
     getUint16(data, &step->numSrunPorts);
@@ -1288,7 +1288,7 @@ static bool unpackStepAddr(Step_t *step, PS_DataBuffer_t *data, uint16_t msgVer)
     return true;
 }
 
-static void unpackStepIOoptions(Step_t *step, PS_DataBuffer_t *data)
+static void unpackStepIOoptions(PS_DataBuffer_t *data, Step_t *step)
 {
     if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
 	/* stdout options */
@@ -1494,10 +1494,10 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* tasks to launch / global task ids */
-    unpackStepTaskIds(step, data);
+    unpackStepTaskIds(data, step);
 
     /* srun ports/addr */
-    if (!unpackStepAddr(step, data, msgVer)) {
+    if (!unpackStepAddr(data, step, msgVer)) {
 	mlog("%s: extracting step address failed\n", __func__);
 	goto ERROR;
     }
@@ -1525,7 +1525,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     /* task flags */
     getUint32(data, &step->taskFlags);
     /* I/O options */
-    unpackStepIOoptions(step, data);
+    unpackStepIOoptions(data, step);
     /* profile (see srun --profile) */
     getUint32(data, &step->profile);
     /* prologue/epilogue */
@@ -1635,7 +1635,7 @@ ERROR:
     return false;
 }
 
-static void readJobCpuOptions(Job_t *job, PS_DataBuffer_t *data)
+static void readJobCpuOptions(PS_DataBuffer_t *data, Job_t *job)
 {
     /* cpu group count */
     getUint32(data, &job->cpuGroupCount);
@@ -1740,7 +1740,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     getUint16(data, &job->jobCoreSpec);
 
     /* cpusPerNode / cpuCountReps */
-    readJobCpuOptions(job, data);
+    readJobCpuOptions(data, job);
 
     /* node alias */
     job->nodeAlias = getStringM(data);
