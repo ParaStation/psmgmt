@@ -58,24 +58,20 @@ static char *__getBitString(PS_DataBuffer_t *data, const char *func,
 			    const int line)
 {
     uint32_t len;
-    char *bitStr = NULL;
-
     getUint32(data, &len);
-
     if (len == NO_VAL) return NULL;
 
     getUint32(data, &len);
-
     if (len > MAX_PACK_STR_LEN) {
 	mlog("%s(%s:%i): invalid str len %i\n", __func__, func, line, len);
 	return NULL;
     }
+    if (!len) return NULL;
 
-    if (len > 0) {
-	bitStr = umalloc(len);
-	memcpy(bitStr, data->unpackPtr, len);
-	data->unpackPtr += len;
-    }
+    char *bitStr = umalloc(len);
+    memcpy(bitStr, data->unpackPtr, len);
+    data->unpackPtr += len;
+
     return bitStr;
 }
 #define getBitString(data) __getBitString(data, __func__, __LINE__)
@@ -131,7 +127,7 @@ static bool __unpackStepHead(PS_DataBuffer_t *data, void *head, uint16_t msgVer,
 {
     Slurm_Step_Head_t *stepH = head;
 
-    if (!data) {
+    if (!data || !data->unpackPtr) {
 	mlog("%s: invalid data from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
@@ -777,7 +773,7 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
 bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 			 const char *caller, const int line)
 {
-    if (!sMsg) {
+    if (!sMsg | !sMsg->data) {
 	flog("invalid sMsg from '%s' at %i\n", caller, line);
 	return false;
     }
@@ -802,7 +798,7 @@ bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 
     /* get forwarding info */
     getUint16(data, &head->forward);
-    if (head->forward >0) {
+    if (head->forward > 0) {
 	if (!fw) {
 	    flog("invalid fw pointer from '%s' at %i\n", caller, line);
 	    return false;
@@ -1227,13 +1223,11 @@ bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
 
 static void unpackStepTaskIds(Step_t *step, PS_DataBuffer_t *data)
 {
-    uint32_t i, x;
-
     step->tasksToLaunch = umalloc(step->nrOfNodes * sizeof(uint16_t));
     step->globalTaskIds = umalloc(step->nrOfNodes * sizeof(uint32_t *));
     step->globalTaskIdsLen = umalloc(step->nrOfNodes * sizeof(uint32_t));
 
-    for (i=0; i<step->nrOfNodes; i++) {
+    for (uint32_t i = 0; i < step->nrOfNodes; i++) {
 	/* num of tasks per node */
 	getUint16(data, &step->tasksToLaunch[i]);
 
@@ -1243,9 +1237,9 @@ static void unpackStepTaskIds(Step_t *step, PS_DataBuffer_t *data)
 	mdbg(PSSLURM_LOG_PART, "%s: node '%u' tasksToLaunch '%u' "
 		"globalTaskIds: ", __func__, i, step->tasksToLaunch[i]);
 
-	for (x=0; x<step->globalTaskIdsLen[i]; x++) {
-	    mdbg(PSSLURM_LOG_PART, "%u%s", step->globalTaskIds[i][x],
-		 (x+1==step->globalTaskIdsLen[i]) ? "" : ",");
+	for (uint32_t j = 0; j < step->globalTaskIdsLen[i]; j++) {
+	    mdbg(PSSLURM_LOG_PART, "%s%u",
+		 j ? "," : "", step->globalTaskIds[i][j]);
 	}
 	mdbg(PSSLURM_LOG_PART, "\n");
     }
@@ -1253,19 +1247,18 @@ static void unpackStepTaskIds(Step_t *step, PS_DataBuffer_t *data)
 
 static bool unpackStepAddr(Step_t *step, PS_DataBuffer_t *data, uint16_t msgVer)
 {
-    uint32_t i, addr;
-    uint16_t port;
-
     /* srun ports */
     getUint16(data, &step->numSrunPorts);
-    if (step->numSrunPorts >0) {
+    if (step->numSrunPorts > 0) {
 	step->srunPorts = umalloc(step->numSrunPorts * sizeof(uint16_t));
-	for (i=0; i<step->numSrunPorts; i++) {
+	for (uint32_t i = 0; i < step->numSrunPorts; i++) {
 	    getUint16(data, &step->srunPorts[i]);
 	}
     }
 
     /* srun address and port */
+    uint32_t addr;
+    uint16_t port;
     if (msgVer > SLURM_20_02_PROTO_VERSION) {
 	/* address family (IPV4/IPV6) */
 	uint16_t addrFamily;
@@ -1297,8 +1290,6 @@ static bool unpackStepAddr(Step_t *step, PS_DataBuffer_t *data, uint16_t msgVer)
 
 static void unpackStepIOoptions(Step_t *step, PS_DataBuffer_t *data)
 {
-    uint32_t i;
-
     if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
 	/* stdout options */
 	step->stdOut = getStringM(data);
@@ -1308,9 +1299,9 @@ static void unpackStepIOoptions(Step_t *step, PS_DataBuffer_t *data)
 	step->stdIn = getStringM(data);
 	/* I/O Ports */
 	getUint16(data, &step->numIOPort);
-	if (step->numIOPort >0) {
+	if (step->numIOPort > 0) {
 	    step->IOPort = umalloc(sizeof(uint16_t) * step->numIOPort);
-	    for (i=0; i<step->numIOPort; i++) {
+	    for (uint32_t i = 0; i < step->numIOPort; i++) {
 		getUint16(data, &step->IOPort[i]);
 	    }
 	}
@@ -2600,9 +2591,7 @@ static bool unpackExtRespNodeReg(Slurm_Msg_t *sMsg)
 
     getUint32(data, &resp->count);
     resp->entry = ucalloc(sizeof(*resp->entry) * resp->count);
-
-    uint32_t i;
-    for (i=0; i<resp->count; i++) {
+    for (uint32_t i = 0; i < resp->count; i++) {
 	getUint64(data, &resp->entry[i].allocSec);
 	getUint64(data, &resp->entry[i].count);
 	getUint32(data, &resp->entry[i].id);
@@ -2820,7 +2809,7 @@ static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
 
     /* srun control ports */
     getUint16(data, &req->numCtlPorts);
-    if (req->numCtlPorts >0) {
+    if (req->numCtlPorts > 0) {
 	req->ctlPorts = umalloc(req->numCtlPorts * sizeof(uint16_t));
 	for (uint16_t i=0; i<req->numCtlPorts; i++) {
 	    getUint16(data, &req->ctlPorts[i]);
@@ -2829,7 +2818,7 @@ static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
 
     /* I/O ports */
     getUint16(data, &req->numIOports);
-    if (req->numIOports >0) {
+    if (req->numIOports > 0) {
 	req->ioPorts = umalloc(req->numIOports * sizeof(uint16_t));
 	for (uint16_t i=0; i<req->numIOports; i++) {
 	    getUint16(data, &req->ioPorts[i]);
