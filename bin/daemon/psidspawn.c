@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2735,7 +2735,8 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     /* First fragment, take a peek if it is from my node */
     if (localSender && fragNum == 0) {
 	PS_DataBuffer_t data;
-	initPSDataBuffer(&data, msg->buf + used, sizeof(msg->buf) - used);
+	initPSDataBuffer(&data, msg->buf + used,
+			 msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used);
 
 	/* ensure we use the same byteorder as libpsi */
 	bool byteOrder = setByteOrder(true);
@@ -2933,7 +2934,8 @@ static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
     /* Extract num and rank from message to drop */
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf + used, sizeof(msg->buf) - used);
+    initPSDataBuffer(&data, msg->buf + used,
+		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used);
 
     /* ensure we use the same byteorder as libpsi */
     bool byteOrder = setByteOrder(true);

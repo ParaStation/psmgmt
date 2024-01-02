@@ -1517,7 +1517,7 @@ int handleSrunIOMsg(int sock, void *stepPtr)
     }
 
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, buffer, sizeof(buffer));
+    initPSDataBuffer(&data, buffer, rcvd);
 
     if (!unpackSlurmIOHeader(&data, &ioh)) {
 	flog("unpack Slurm I/O header for %s failed\n", Step_strID(step));

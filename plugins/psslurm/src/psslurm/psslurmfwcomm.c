@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -164,7 +164,8 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     }
 
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf, sizeof(msg->buf));
+    initPSDataBuffer(&data, msg->buf,
+		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf));
 
     switch ((PSSLURM_Fw_Cmds_t)msg->type) {
     case CMD_PRINT_CHILD_MSG:
@@ -213,7 +214,8 @@ bool fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     if (msg->header.type != PSP_PF_MSG) return false;
 
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf, sizeof(msg->buf));
+    initPSDataBuffer(&data, msg->buf,
+		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf));
 
     switch ((PSSLURM_Fw_Cmds_t)msg->type) {
     case CMD_PRINT_CHILD_MSG:
@@ -435,7 +437,8 @@ bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	}
     } else if (msg->header.type == PSP_PLUG_PSSLURM) {
 	PS_DataBuffer_t data;
-	initPSDataBuffer(&data, msg->buf, sizeof(msg->buf));
+	initPSDataBuffer(&data, msg->buf,
+			 msg->header.len - offsetof(DDTypedBufferMsg_t, buf));
 
 	switch ((PSSLURM_Fw_Cmds_t)msg->type) {
 	case CMD_BROKE_IO_CON:

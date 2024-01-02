@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -253,7 +253,8 @@ static void dropExecMsg(DDTypedBufferMsg_t *msg)
     if (fragNum) return;
 
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf + used, sizeof(msg->buf));
+    initPSDataBuffer(&data, msg->buf + used,
+		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used);
 
     /* uID */
     uint16_t uID;

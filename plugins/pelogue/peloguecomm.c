@@ -616,7 +616,8 @@ static void dropMsgAndCancel(DDTypedBufferMsg_t *msg)
     if (fragNum) return;
 
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf + used, sizeof(msg->buf) - used);
+    initPSDataBuffer(&data, msg->buf + used,
+		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used);
 
     char *plugin = getStringM(&data);
     char *jobid = getStringM(&data);
