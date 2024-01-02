@@ -108,14 +108,14 @@ static void packStepHead(void *head, PS_SendDB_t *data)
 /**
  * @brief Unpack a Slurm step header
  *
- * Unpack a Slurm step header from the provided message pointer @a data
+ * Unpack a Slurm step header from the provided data buffer @a data
  * into (parts) of the struct addressed by @a head. @a head is
  * expected to point to the beginning of the sequence of jobID,
  * stepID, and stepHetComp elements of the struct to manipulate.
  *
  * @param data Slurm message to unpack
  *
- * @param head The header structure holding the result
+ * @param head Header structure holding the result
  *
  * @param msgVer Slurm protocol version
  *

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -971,16 +971,16 @@ static bool verifyTypeInfo(PS_DataBuffer_t *data, PS_DataType_t expectedType,
  *
  * @param data The data buffer to verify
  *
- * @param size The size of data to read from the buffer
+ * @param size Amount of data to read from @a data
  *
- * @param addTypeInfo Wether to take optional type info into account
+ * @param addTypeInfo Flag to take optional type info into account
  *
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
  *
  * @return Returns true if it is safe to continue unpacking data from the
- * buffer. Otherwise false is returned.
+ * buffer or false otherwise
  */
 static inline bool verifyDataBuf(PS_DataBuffer_t *data, size_t size,
 				 bool addTypeInfo, const char *caller,
@@ -989,7 +989,6 @@ static inline bool verifyDataBuf(PS_DataBuffer_t *data, size_t size,
     if (data->unpackErr) {
 	PSC_log(PSC_LOG_VERB, "%s(%s@%d): previous unpack error %i\n", __func__,
 		caller, line, data->unpackErr);
-
 	return false;
     }
 

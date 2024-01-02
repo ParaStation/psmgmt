@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -197,11 +197,12 @@ bool __packSlurmIOMsg(PS_SendDB_t *data, IO_Slurm_Header_t *ioh, char *body,
 /**
  * @brief Unpack a Slurm message header
  *
- * Unpack a Slurm message header from the provided message pointer.
- * The memory is allocated using umalloc(). The caller is responsible
- * to free the memory using ufree().
+ * Unpack a Slurm message header from the provided message pointer @a
+ * sMsg and store the result to its head part and to @a fw. The memory
+ * is allocated using umalloc(). The caller is responsible to free all
+ * this memory using ufree().
  *
- * @param sMsg The message to unpack the data from
+ * @param sMsg Message to unpack the data from and store the head to
  *
  * @param fw The Slurm forward header holding part of the result
  *
@@ -210,7 +211,8 @@ bool __packSlurmIOMsg(PS_SendDB_t *data, IO_Slurm_Header_t *ioh, char *body,
  * @param line Line number where this function is called
  *
  * @return On success true is returned or false in case of an
- * error. If reading was not successful, @a ptr might be not updated.
+ * error. If reading was not successful, @a sMsg->data might be not
+ * updated.
  */
 bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 			 const char *caller, const int line);

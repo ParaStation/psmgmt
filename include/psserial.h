@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,18 +64,37 @@ typedef enum {
     E_PSSERIAL_CONV	    /**< unknown conversion size */
 } serial_Err_Types_t;
 
-/** Growing data-buffer to assemble messages */
+/** Growing data-buffer to assemble message from fragments and unpack content */
 typedef struct {
     char *buf;           /**< Actual data-buffer */
     size_t size;         /**< Current size of @ref buf */
     size_t used;         /**< Used bytes of @ref buf */
     uint16_t nextFrag;   /**< Next fragment number to expect */
     char *unpackPtr;	 /**< Tracking top of unpacked bytes in @ref buf */
-    int8_t unpackErr;	 /**< Holding error code if unpacking of data failed */
+    int8_t unpackErr;	 /**< Error code if unpacking of content failed */
 } PS_DataBuffer_t;
 
 /** Prototype of custom sender functions used by @ref initSerial() */
 typedef ssize_t Send_Msg_Func_t(void *);
+
+/**
+ * @brief Initialize data-buffer
+ *
+ * Initialize the data-buffer @a buffer and set its internal buffer to
+ * @a mem. @a memSize must denote the actual amount of data within @a
+ * mem. This function aims to setup a data-buffer on the fly that
+ * might be used to unpack the content of @a mem via @ref getFromBuf()
+ * and friends.
+ *
+ * @param buffer Data buffer to initialize
+ *
+ * @param mem Actual memory used for the buffer
+ *
+ * @param memSize Size of @ref mem
+ *
+ * @return No return value
+ */
+void initPSDataBuffer(PS_DataBuffer_t *buffer, char *mem, size_t memSize);
 
 /**
  * @brief Prototype for @ref __recvFragMsg()'s callback
@@ -188,17 +207,6 @@ void initFragBufferExtra(PS_SendDB_t *buffer, int16_t headType, int32_t msgType,
 /** Backward compatibility, no extra data to be added */
 #define initFragBuffer(buffer, headType, msgType)	\
     initFragBufferExtra(buffer, headType, msgType, NULL, 0)
-
-/**
- * @brief Initialize a data buffer
- *
- * @param buffer The data buffer to initialize
- *
- * @param mem The actual memory used for the buffer
- *
- * @param memSize The size of @ref mem
- */
-void initPSDataBuffer(PS_DataBuffer_t *buffer, char *mem, size_t memSize);
 
 /**
  * @brief Set an additional destination for fragmented messages
@@ -360,7 +368,7 @@ int __sendFragMsg(PS_SendDB_t *buffer, const char *caller, const int line);
 /**
  * @brief Set byte-order flag
  *
- * Set plugincomm's byte-order flag to @a flag. This flag steers the
+ * Set the global byte-order flag to @a flag. This flag steers the
  * modules byte-order awareness, i.e. if data is transferred in
  * network byte-order.
  *
@@ -375,9 +383,9 @@ bool setByteOrder(bool flag);
 /**
  * @brief Set type-info flag
  *
- * Set plugincomm's type-info flag to @a flag. This flag steers the
- * inclusion of type information for each individual datum into the
- * transferred messages.
+ * Set the type-info flag to @a flag. This flag steers the inclusion
+ * of type information for each individual datum into the transferred
+ * messages.
  *
  * The default mode is to not include type information.
  *
@@ -388,7 +396,7 @@ bool setByteOrder(bool flag);
 bool setTypeInfo(bool flag);
 
 /**
- * @brief Get string represention of an error code
+ * @brief Get string representation of an error code
  *
  * @param err The error code to convert
  *
@@ -447,18 +455,18 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
     __memToDataBuffer(mem, size, buffer, __func__, __LINE__)
 
 /**
- * @brief Read data from buffer
+ * @brief Fetch data from buffer
  *
- * Read @a size bytes from a memory region addressed by @a data and
- * store it to @a val. Data is expected to be of type @a type. The
- * latter is double-checked if plugincomm's @ref typeInfo flag is
- * true. @a data is expected to provide sufficient data and @a val
+ * Fetch @a size bytes from a memory region addressed by @a data and
+ * store it to @a val. The fetched data is expected to be of type @a
+ * type. The latter is double-checked if the type-info flag is
+ * set. @a data is expected to provide sufficient data and @a val
  * expected to have enough space to store the data read.
  *
- * If reading is successful, unpackPtro of @a data will be updated
- * to point behind the last data read, i.e. prepared to read the
- * next data from it. Otherwise an error code is saved
- * in unpackErr of @a data.
+ * If fetching was successful, the unpackPtr member of @a data will be
+ * updated to point behind the last data read, i.e. prepared to fetch
+ * the next data. Otherwise an error code is saved to the unpackErr
+ * member of @a data.
  *
  * If the global @ref byteOrder flag is true, byte order of the
  * received data will be adapted form network to host byte-order.
@@ -476,7 +484,9 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
  * @param line Line number where this function is called
  *
  * @return On success true is returned or false in case of an
- * error. If reading was not successful, @a data might be not updated.
+ * error. If fetching was not successful, the unpackPtr member of @a
+ * data will not be updated; instead its unpackErr member will be
+ * set.
  */
 bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 		size_t size, const char *caller, const int line);
@@ -542,86 +552,94 @@ bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 		   __func__, __LINE__); }
 
 /**
- * @brief Read data from buffer
+ * @brief Fetch data from buffer
  *
- * Read up to @a dataSize bytes from a memory region addressed by @a
- * ptr and store it to @a data. Data is expected to be of type @a
- * type. The latter is double-checked if plugincomm's @ref typeInfo
- * flag is true. The actual number of bytes read from @a ptr and
- * stored to @a data is provided in @a len.
+ * Fetch up to @a destSize bytes from a memory region addressed by @a
+ * data and store it to @a dest. The fetched data is expected to be of
+ * type @a type. The latter is double-checked if the type-info flag is
+ * set. The actual number of bytes read from @a data and stored to @a
+ * dest is provided in @a len.
  *
- * @a ptr is expected to provide data in the form of a leading item
+ * @a data is expected to provide data in the form of a leading item
  * describing the length of the actual data element followed by the
  * corresponding number of data items.
  *
- * If @a data is NULL and @a dataSize is 0, a buffer is dynamically
- * allocated. It will be big enough to hold all the data-items
+ * If @a dest is NULL and @a destSize is 0, a buffer is dynamically
+ * allocated. It will be large enough to hold all the data-items
  * announced in the length item within the memory region addressed by
- * @a ptr. A pointer to this buffer is returned. The caller has to
- * ensure that this buffer is released if it is no longer needed.
+ * @a data. After fetching a pointer to this buffer is returned. The
+ * caller has to ensure that this buffer is released if it is no
+ * longer needed.
  *
- * If reading is successful, @a ptr will be updated to point behind
- * the last data read, i.e. prepared to read the next data from it.
+ * If fetching was successful, the unpackPtr member of @a data will be
+ * updated to point behind the last data read, i.e. prepared to read
+ * the next data. Otherwise an error code is saved in the unpackErr
+ * member of @a data.
  *
- * @param ptr Data buffer to read from
+ * If the global @ref byteOrder flag is true, byte order of the
+ * received data will be adapted form network to host byte-order.
  *
- * @param data Buffer holding the result on return
+ * @param data Data buffer to read from
  *
- * @param dataSize Size of the given buffer @a data
+ * @param dest Buffer holding the result on return
  *
- * @param len Number of bytes read from @a ptr into @a data
+ * @param destSize Size of the given buffer @a dest
  *
- * @param type Data type to be expected at @a ptr
+ * @param len Number of bytes read from @a data into @a dest
+ *
+ * @param type Data type to be expected at @a data
  *
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
  *
- * @return On success @a data or the newly allocated buffer is
+ * @return On success @a dest or the newly allocated buffer is
  * returned; in case of error NULL is returned. If reading was not
- * successful, @a ptr might be not updated.
+ * successful, the unpackPtr member of @a data might not be updated;
+ * instead its unpackErr member will be set.
  */
 void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
 		    size_t *len, PS_DataType_t type, const char *caller,
 		    const int line);
 
 #define getStringM(data)						\
-    getMemFromBuf(data, NULL, 0, NULL, PSDATA_STRING,			\
-	          __func__, __LINE__)
+    getMemFromBuf(data, NULL, 0, NULL, PSDATA_STRING, __func__, __LINE__)
 
 #define getStringML(data, len)						\
-    getMemFromBuf(data, NULL, 0, len, PSDATA_STRING,			\
-	          __func__, __LINE__)
+    getMemFromBuf(data, NULL, 0, len, PSDATA_STRING, __func__, __LINE__)
 
 #define getDataM(data, len)						\
-    getMemFromBuf(data, NULL, 0, len, PSDATA_DATA,			\
-	          __func__, __LINE__)
+    getMemFromBuf(data, NULL, 0, len, PSDATA_DATA, __func__, __LINE__)
 
 #define getString(data, buf, buflen)					\
-    getMemFromBuf(data, buf, buflen, NULL, PSDATA_STRING,		\
-		  __func__, __LINE__)
+    getMemFromBuf(data, buf, buflen, NULL, PSDATA_STRING, __func__, __LINE__)
 
 /**
- * @brief Read data array from buffer
+ * @brief Fetch data array from buffer
  *
- * Read elements of @a size bytes from a memory region addressed by @a
- * ptr and store them to a dynamically allocated array. The address of
- * the latter is returned via @a val. Data is expected to be of type
- * @a type. The latter is double-checked if plugincomm's @ref typeInfo
- * flag is true. The actual number of elements read from @a ptr and
- * stored to @a val is provided in @a len.
+ * Fetch elements of @a size bytes from a memory region addressed by
+ * @a data and store them to a dynamically allocated array. The
+ * address of the latter is returned via @a val. The fetched data is
+ * expected to be of type @a type. The latter is double-checked if the
+ * global type-info flag is set. The actual number of elements read
+ * from @a data and stored to @a val is provided in @a len.
  *
- * @a ptr is expected to provide data in the form of a leading length
+ * @a data is expected to provide data in the form of a leading length
  * item followed by the corresponding number of data items.
  *
- * If reading is successful, @a ptr will be updated to point behind
- * the last data read, i.e. prepared to read the next data from it.
+ * If fetching was successful, the unpackPtr member of @a data will be
+ * updated to point behind the last data read, i.e. prepared to read
+ * the next data. Otherwise an error code is saved in the unpackErr
+ * member of @a data.
  *
- * @param ptr Data buffer to read from
+ * If the global @ref byteOrder flag is true, byte order of the
+ * received data will be adapted form network to host byte-order.
  *
- * @param val Data buffer holding allocated array on return
+ * @param data Data buffer to read from
  *
- * @param len Number of elements read from @a ptr into the data array
+ * @param val Buffer holding the allocated data array on return
+ *
+ * @param len Number of elements read from @a data into the data array
  *
  * @param type Data type to be expected for the elements to read
  *
@@ -632,7 +650,8 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
  * @param line Line number where this function is called
  *
  * @return On success true is returned or false in case of an error.
- * If reading was not successful, @a ptr might be not updated.
+ * If reading was not successful, the unpackPtr member of @a data
+ * might not be updated; instead its unpackErr member will be set.
  */
 bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
 		     PS_DataType_t type, size_t size, const char *caller,
@@ -663,36 +682,40 @@ bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
 			__func__, __LINE__); }
 
 /**
- * @brief Read string array from buffer
+ * @brief Fetch string array from buffer
  *
- * Read strings from a memory region addressed by @a ptr and store
+ * Fetch strings from a memory region addressed by @a data and store
  * them to a dynamically allocated array. The address of the latter is
- * returned via @a array. In order to store the strings read dynamic
- * memory is allocated for each string. The actual number of elements
- * read from @a ptr and stored to the array is provided in @a len.
+ * returned via @a array. In order to store the fetched strings
+ * dynamic memory is allocated for each string. The actual number of
+ * elements read from @a data and stored to the array is provided in
+ * @a len.
  *
- * @a ptr is expected to provide data in the form of a leading length
+ * @a data is expected to provide data in the form of a leading length
  * item describing the number of strings followed by the corresponding
  * number of string items. Each string item consists of an individual
  * length item and the actual string.
  *
- * If reading is successful, @a ptr will be updated to point behind
- * the last data read, i.e. prepared to read the next data from it.
+ * If fetching was successful, the unpackPtr member of @a data will be
+ * updated to point behind the last data read, i.e. prepared to read
+ * the next data. Otherwise an error code is saved in the unpackErr
+ * member of @a data.
  *
- * If @a len is 0, upon return array will be untouched.
+ * If @a len is 0 upon return, array will be untouched.
  *
- * @param ptr Data buffer to read from
+ * @param data Data buffer to read from
  *
  * @param array Array of pointers addressing the actual strings received
  *
- * @param len Number of strings read from @a ptr
+ * @param len Number of strings read from @a data
  *
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
  *
  * @return On success true is returned or false in case of an error.
- * If reading was not successful, @a ptr might be not updated.
+ * If reading was not successful, the unpackPtr member of @a data
+ * might not be updated; instead its unpackErr member will be set.
  */
 bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
 			const char *caller, const int line);
@@ -705,7 +728,7 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
  * @brief Add element to buffer
  *
  * Add an element of @a size bytes located at @a val to the data
- * buffer @a data. If the global flag @ref typeInfo is true, the
+ * buffer @a data. If the global type-info flag is set, the
  * element will be annotated to be of type @a type.
  *
  * If the data is of type PSDATA_STRING or PSDATA_DATA, it will be
@@ -801,9 +824,8 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
  * @brief Add array of elements to buffer
  *
  * Add an array of @a num individual elements of @a size bytes located
- * at @a val to the data buffer @a data. If the global flag @ref
- * typeInfo is true, each element will be annotated to be of type @a
- * type.
+ * at @a val to the data buffer @a data. If the global type-info flag
+ * is set, each element will be annotated to be of type @a type.
  *
  * The overall data will be annotated by a leading element describing
  * the number of elements provided via @a num.
@@ -861,9 +883,9 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
  * Add an array of strings stored in the NULL terminated @a array to
  * the data buffer @a data.
  *
- * If the global flag @ref typeInfo is true, each element will be
- * annotated to be of type PSDATA_STRING. Generally, each element will
- * be annotated by an additional length item. The overall data will be
+ * If the global type-info flag is set, each element will be annotated
+ * to be of type PSDATA_STRING. Generally, each element will be
+ * annotated by an additional length item. The overall data will be
  * annotated by a leading element describing the number of string
  * elements in the array.
  *
