@@ -1084,9 +1084,7 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
 	return NULL;
     }
 
-    if (!verifyDataBuf(data, sizeof(uint32_t), true, caller, line)) {
-	return false;
-    }
+    if (!verifyDataBuf(data, sizeof(uint32_t), true, caller, line)) return NULL;
     if (!verifyTypeInfo(data, type, caller, line)) return NULL;
 
     /* data length */
@@ -1096,7 +1094,7 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
     if (byteOrder) l = ntohl(l);
     if (len) *len = l;
 
-    if (!verifyDataBuf(data, l, false, caller, line)) return false;
+    if (!verifyDataBuf(data, l, false, caller, line)) return NULL;
 
     if (dest) {
 	if (l >= destSize) {
