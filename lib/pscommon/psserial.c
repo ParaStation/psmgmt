@@ -82,6 +82,13 @@ static inline void *umalloc(size_t size)
     return malloc(size < MIN_MALLOC_SIZE ? MIN_MALLOC_SIZE : size);
 }
 
+void initPSDataBuffer(PS_DataBuffer_t *data, char *mem, size_t memSize)
+{
+    memset(data, 0, sizeof(*data));
+    data->buf = data->unpackPtr = mem;
+    data->size = data->used = memSize;
+}
+
 /**
  * @brief Reset data buffer
  *
@@ -462,13 +469,6 @@ void initFragBufferExtra(PS_SendDB_t *buffer, int16_t headType, int32_t msgType,
     buffer->numDest = 0;
     buffer->extra = extra;
     buffer->extraSize = extra ? extraSize : 0;
-}
-
-void initPSDataBuffer(PS_DataBuffer_t *data, char *mem, size_t memSize)
-{
-    memset(data, 0, sizeof(*data));
-    data->buf = data->unpackPtr = mem;
-    data->size = data->used = memSize;
 }
 
 bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid)
@@ -1004,9 +1004,13 @@ static inline bool verifyDataBuf(PS_DataBuffer_t *data, size_t size,
 bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 		size_t size, const char *caller, const int line)
 {
-    if (!data || !val) {
-	PSC_log(-1, "%s(%s@%d): invalid %s\n", __func__, caller, line,
-		!data ? "data" : "val");
+    if (!data || !data->unpackPtr) {
+	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
+	if (data) data->unpackErr = E_PSSERIAL_PARAM;
+	return false;
+    }
+    if (!val) {
+	PSC_log(-1, "%s(%s@%d): invalid val\n", __func__, caller, line);
 	data->unpackErr = E_PSSERIAL_PARAM;
 	return false;
     }
@@ -1056,8 +1060,7 @@ bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
     }
 
     for (uint32_t i = 0; i < *len; i++) {
-	if (!getFromBuf(data, (char *)*val + i*size, type, size,
-		        caller, line)) {
+	if (!getFromBuf(data, (char *)*val + i*size, type, size, caller, line)) {
 	    free(*val);
 	    return false;
 	}
@@ -1070,14 +1073,13 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
 		    size_t *len, PS_DataType_t type, const char *caller,
 		    const int line)
 {
-    if (destSize && !dest) {
-	PSC_log(-1, "%s(%s@%d): invalid buffer\n", __func__, caller, line);
-	data->unpackErr = E_PSSERIAL_PARAM;
+    if (!data || !data->unpackPtr) {
+	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
+	if (data) data->unpackErr = E_PSSERIAL_PARAM;
 	return NULL;
     }
-
-    if (!data) {
-	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
+    if (destSize && !dest) {
+	PSC_log(-1, "%s(%s@%d): invalid buffer\n", __func__, caller, line);
 	data->unpackErr = E_PSSERIAL_PARAM;
 	return NULL;
     }
@@ -1129,6 +1131,11 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
 bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
 			const char *caller, const int line)
 {
+    if (!array) {
+	PSC_log(-1, "%s(%s@%d): invalid array\n", __func__, caller, line);
+	if (data) data->unpackErr = E_PSSERIAL_PARAM;
+	return false;
+    }
     *array = NULL;
     if (!getFromBuf(data, len, PSDATA_UINT32, sizeof(*len), caller, line))
 	return false;
