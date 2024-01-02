@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -324,7 +324,7 @@ static bool storeData(char *buf, size_t len, int offset)
 static bool sendErrorMsg(PSIDmsgbuf_t *blob)
 {
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, blob->msg, sizeof(blob->size));
+    initPSDataBuffer(&data, blob->msg, blob->size);
 
     if (blob->size < 1) return false;
     uint8_t type;
