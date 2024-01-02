@@ -1389,10 +1389,10 @@ static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* socket */
     int16_t socket;
-    getInt16(data, &socket);
+    getInt16(sMsg.data, &socket);
     sMsg.sock = socket;
     /* receive time */
-    getTime(data, &sMsg.recvTime);
+    getTime(sMsg.data, &sMsg.recvTime);
 
 
     mdbg(PSSLURM_LOG_FWD, "%s: sender %s sock %u time %lu datalen %zu\n",
