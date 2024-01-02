@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -143,24 +143,26 @@ static Connection_t *findConnectionEx(int socket, time_t recvTime)
 /**
  * @brief Reset a connection structure
  *
- * Free used memory and reset management data of a connection.
+ * Free used memory and reset management data of the connection
+ * associated to the socket @a socket.
  *
- * @param socket The socket of the connection to reset
+ * Since connection validity is tracked via @ref connectionList, the
+ * socket is used as an identifier to lookup the connection instead of
+ * the connection itself.
  *
- * @return Returns false if the connection could not be found
- * and true on success
+ * @param socket Socket idenfitying the connection to reset
+ *
+ * @return Return true on success or false on error
  */
 static bool resetConnection(int socket)
 {
     Connection_t *con = findConnection(socket);
-
     if (!con) return false;
+
     fdbg(PSSLURM_LOG_COMM, "for socket %i\n", socket);
 
     ufree(con->data.buf);
-    con->data.buf = NULL;
-    con->data.size = 0;
-    con->data.used = 0;
+    initPSDataBuffer(&con->data, NULL, 0);
     con->readSize = false;
 
     return true;
@@ -213,6 +215,20 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
     return con;
 }
 
+/**
+ * @brief Close connection
+ *
+ * Close the connection and free all used memory of the connection
+ * associated to the socket @a socket.
+ *
+ * Since connection validity is tracked via @ref connectionList, the
+ * socket is used as an identifier to lookup the connection instead of
+ * the connection itself.
+ *
+ * @param socket Socket idenfitying the connection to close
+ *
+ * @return Return true on success or false on error
+ */
 void closeSlurmCon(int socket)
 {
     Connection_t *con = findConnection(socket);
