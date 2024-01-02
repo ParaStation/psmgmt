@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -95,7 +95,7 @@ PS_Tasks_t *findTaskByChildPid(list_t *taskList, pid_t childPid)
     return NULL;
 }
 
-PS_Tasks_t *findTaskByChildTID(list_t *taskList, pid_t childTID)
+PS_Tasks_t *findTaskByChildTID(list_t *taskList, PStask_ID_t childTID)
 {
     if (!taskList) return NULL;
     list_t *t;
