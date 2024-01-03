@@ -894,7 +894,8 @@ static int handleReattachTasks(Slurm_Msg_t *sMsg)
     Req_Reattach_Tasks_t *req = sMsg->unpData;
     if (!req) {
 	flog("unpacking request reattach tasks failed\n");
-	return ESLURM_INVALID_JOB_ID;
+	sendReattachFail(sMsg, ESLURM_INVALID_JOB_ID);
+	return SLURM_NO_RC;
     }
 
     Step_t *step = Step_findByStepId(req->jobid, req->stepid);
