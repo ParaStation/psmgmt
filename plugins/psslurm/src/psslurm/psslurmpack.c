@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1854,7 +1854,8 @@ static uint64_t getAccRank(SlurmAccData_t *slurmData, int type)
     if (!task) task = findTaskByChildTID(slurmData->remoteTasks,
 					 accData->taskIds[type]);
 
-    if (task) return task->jobRank; // @todo step->packTaskOffset needed here?
+    /* slurmctld expects a global task ID including the packTaskOffset */
+    if (task) return task->jobRank + slurmData->packTaskOffset;
 
     return NO_VAL64;
 }

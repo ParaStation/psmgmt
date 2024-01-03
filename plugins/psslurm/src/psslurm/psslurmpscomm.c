@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2020,7 +2020,8 @@ static bool handleSpawnSuccess(DDErrorMsg_t *msg)
 
     /* msg->error holds jobRank, msg->request holds global rank */
     addTask(&step->remoteTasks, dest, msg->header.sender,
-	    msg->error, msg->request); // @todo remoteTasks with packTaskOffset?
+	    msg->error - step->packTaskOffset,
+	    msg->request - step->packTaskOffset);
 
     return false; // call the old handler if any
 }

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -113,9 +113,10 @@ typedef struct {
     PSnodes_ID_t *nodes;	/**< node-list of accounted nodes */
     pid_t childPid;		/**< PID being accounted (e.g. job-script) */
     PStask_ID_t rootTID;	/**< task ID of step's root task (if any) */
-    list_t *tasks;
-    list_t *remoteTasks;
-    uint32_t localNodeId;
+    list_t *tasks;		/**< local task IDs without packTaskOffset */
+    list_t *remoteTasks;	/**< task IDs without packTaskOffset */
+    uint32_t localNodeId;	/**< local node ID for the data */
+    uint32_t packTaskOffset;	/**< pack task offset */
 } SlurmAccData_t;
 
 /** Holding information for RPC RESPONSE_SLURMD_STATUS */

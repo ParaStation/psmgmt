@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1723,6 +1723,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0,
 	.localNodeId = step->localNodeId,
+	.packTaskOffset = step->packTaskOffset,
 	.iBase = &step->acctBase };
     uint32_t numTasks = addSlurmAccData(&slurmAccData);
     packSlurmAccData(msg, &slurmAccData);
@@ -3303,6 +3304,7 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0,
 	.localNodeId = step->localNodeId,
+	.packTaskOffset = step->packTaskOffset,
 	.iBase = &step->acctBase };
     addSlurmAccData(&slurmAccData);
 
