@@ -2468,8 +2468,8 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
 	doTerminateAlloc(sMsg, alloc);
 	break;
     default:
-	return ESLURMD_KILL_JOB_ALREADY_COMPLETE;
 	flog("unknown terminate request for %s\n", Step_strID(&s));
+	return ESLURMD_KILL_JOB_ALREADY_COMPLETE;
     }
 
     return SLURM_NO_RC;
