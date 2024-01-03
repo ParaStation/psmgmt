@@ -1,14 +1,14 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2023 ParTec AG, Munich
+ * Copyright (C) 2023-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef __PSSLURM_PROTO_TYPES
-#define __PSSLURM_PROTO_TYPES
+#ifndef __PSSLURM_PROTOTYPES
+#define __PSSLURM_PROTOTYPES
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -432,4 +432,4 @@ bool __freeUnpackMsgData(Slurm_Msg_t *sMsg, const char *caller, const int line);
 
 #define freeUnpackMsgData(sMsg) __freeUnpackMsgData(sMsg, __func__, __LINE__);
 
-#endif /* __PSSLURM_PROTO_TYPES */
+#endif /* __PSSLURM_PROTOTYPES */
