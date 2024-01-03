@@ -128,7 +128,7 @@ daemon is necessary to integrate compute nodes into a Torque batch system.
 Summary:   The Slurm plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
 Requires:  %{name} = %{version}-%{release}
-Requires:  %{name}-slurmutils = %{version}-%{release}
+Recommends:%{name}-slurmutils = %{version}-%{release}
 
 %description psslurm
 The ParaStation Slurm plugin is a complete replacement of the slurmd on
@@ -142,7 +142,6 @@ Requires:  %{name} = %{version}-%{release}
 %global pmix_version_min %(rpm -q pmix --qf "%{RPMTAG_VERSION}" | awk -v FS="." '{ print $1"."$2".0" }')
 %global pmix_version_top %(rpm -q pmix --qf "%{RPMTAG_VERSION}" | awk -v FS="." '{ print $1"."$2+1".0" }')
 Requires: pmix >= %{pmix_version_min}, pmix < %{pmix_version_top}
-
 
 %description pspmix
 The ParaStation PMIx plugin provides support for PMIx based on the libpmix.
