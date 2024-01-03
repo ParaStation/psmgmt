@@ -877,16 +877,16 @@ PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data)
 {
     PS_DataBuffer_t *dup = umalloc(sizeof(*dup));
     if (!dup) {
-	PSC_log(-1, "%s: duplication failed\n", __func__);
 	data->unpackErr = E_PSSERIAL_MEM;
+	PSC_log(-1, "%s: %s\n", __func__, serialStrErr(data->unpackErr));
 	return NULL;
     }
 
     dup->buf = umalloc(data->size);
     if (!dup->buf) {
-	PSC_log(-1, "%s: buffer duplication failed\n", __func__);
-	free(dup);
 	data->unpackErr = E_PSSERIAL_MEM;
+	PSC_log(-1, "%s: buf: %s\n", __func__, serialStrErr(data->unpackErr));
+	free(dup);
 	return NULL;
     }
 
@@ -954,9 +954,9 @@ static bool verifyTypeInfo(PS_DataBuffer_t *data, PS_DataType_t expectedType,
     data->unpackPtr += sizeof(uint8_t);
 
     if (type != expectedType) {
-	PSC_log(-1, "%s(%s@%d): error got type %d should be %d\n", __func__,
-		caller, line, type, expectedType);
 	data->unpackErr = E_PSSERIAL_TYPE;
+	PSC_log(-1, "%s(%s@%d): (%d vs %d): %s\n", __func__, caller, line,
+		type, expectedType, serialStrErr(data->unpackErr));
 	return false;
     }
     return true;
@@ -987,15 +987,16 @@ static inline bool verifyDataBuf(PS_DataBuffer_t *data, size_t size,
 				 const int line)
 {
     if (data->unpackErr) {
-	PSC_log(PSC_LOG_VERB, "%s(%s@%d): previous unpack error %i\n", __func__,
-		caller, line, data->unpackErr);
+	PSC_log(PSC_LOG_VERB, "%s(%s@%d): previous unpack error: %s\n",
+		__func__, caller, line,	serialStrErr(data->unpackErr));
 	return false;
     }
 
     size_t toread = (addTypeInfo && typeInfo) ? sizeof(uint8_t) + size : size;
     if ((data->unpackPtr - data->buf) + toread > data->used) {
-	PSC_log(-1, "%s(%s@%d): insufficient data\n", __func__, caller, line);
 	data->unpackErr = E_PSSERIAL_INSUF;
+	PSC_log(-1, "%s(%s@%d): %s\n", __func__, caller, line,
+		serialStrErr(data->unpackErr));
 	return false;
     }
     return true;
@@ -1005,13 +1006,15 @@ bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 		size_t size, const char *caller, const int line)
 {
     if (!data || !data->unpackPtr) {
-	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
+	PSC_log(-1, "%s(%s@%d): %s\n", __func__, caller, line,
+		serialStrErr(E_PSSERIAL_PARAM));
 	if (data) data->unpackErr = E_PSSERIAL_PARAM;
 	return false;
     }
     if (!val) {
-	PSC_log(-1, "%s(%s@%d): invalid val\n", __func__, caller, line);
 	data->unpackErr = E_PSSERIAL_PARAM;
+	PSC_log(-1, "%s(%s@%d): val: %s\n", __func__, caller, line,
+		serialStrErr(data->unpackErr));
 	return false;
     }
 
@@ -1033,9 +1036,9 @@ bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 	    *(uint64_t*)val = NTOH64(*(uint64_t*)val);
 	    break;
 	default:
-	    PSC_log(-1, "%s(%s@%d): unknown conversion for size %zd\n",
-		    __func__, caller, line, size);
 	    data->unpackErr = E_PSSERIAL_CONV;
+	    PSC_log(-1, "%s(%s@%d): size %zd: %s\n", __func__, caller, line,
+		    size, serialStrErr(data->unpackErr));
 	    return false;
 	}
     }
@@ -1054,8 +1057,9 @@ bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
     if (!*len) return true;
     *val = umalloc(size * *len);
     if (!*val) {
-	PSC_log(-1, "%s(%s@%d): allocation of %zd failed\n", __func__,
-		caller, line, size * *len);
+	data->unpackErr = E_PSSERIAL_MEM;
+	PSC_log(-1, "%s(%s@%d): size %zd: %s\n", __func__, caller, line,
+		size * *len, serialStrErr(data->unpackErr));
 	return false;
     }
 
@@ -1074,13 +1078,15 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
 		    const int line)
 {
     if (!data || !data->unpackPtr) {
-	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
+	PSC_log(-1, "%s(%s@%d): data: %s\n", __func__, caller, line,
+		serialStrErr(E_PSSERIAL_PARAM));
 	if (data) data->unpackErr = E_PSSERIAL_PARAM;
 	return NULL;
     }
     if (destSize && !dest) {
-	PSC_log(-1, "%s(%s@%d): invalid buffer\n", __func__, caller, line);
 	data->unpackErr = E_PSSERIAL_PARAM;
+	PSC_log(-1, "%s(%s@%d): buffer: %s\n", __func__, caller, line,
+		serialStrErr(data->unpackErr));
 	return NULL;
     }
 
@@ -1099,17 +1105,17 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
     if (dest) {
 	if (l >= destSize) {
 	    /* buffer too small */
-	    PSC_log(-1, "%s(%s@%d): buffer (%zu) too small for message (%u)\n",
-		    __func__, caller, line, destSize, l);
 	    data->unpackErr = E_PSSERIAL_BUFSIZE;
+	    PSC_log(-1, "%s(%s@%d): (%zu vs %u): %s\n", __func__, caller, line,
+		    destSize, l, serialStrErr(data->unpackErr));
 	    return NULL;
 	}
     } else {
 	dest = umalloc(l);
 	if (!dest) {
-	    PSC_log(-1, "%s(%s@%d): allocation of %u failed\n", __func__,
-		    caller, line, l);
 	    data->unpackErr = E_PSSERIAL_MEM;
+	    PSC_log(-1, "%s(%s@%d): size %u: %s\n", __func__, caller, line, l,
+		    serialStrErr(data->unpackErr));
 	    return NULL;
 	}
     }
@@ -1130,7 +1136,8 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
 			const char *caller, const int line)
 {
     if (!array) {
-	PSC_log(-1, "%s(%s@%d): invalid array\n", __func__, caller, line);
+	PSC_log(-1, "%s(%s@%d): array: %s\n", __func__, caller, line,
+		serialStrErr(E_PSSERIAL_PARAM));
 	if (data) data->unpackErr = E_PSSERIAL_PARAM;
 	return false;
     }
@@ -1142,9 +1149,9 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
 
     *array = umalloc(sizeof(char *) * (*len + 1));
     if (!*array) {
-	PSC_log(-1, "%s(%s@%d): allocation of %zd failed\n", __func__,
-		caller, line, sizeof(char *) * (*len + 1));
 	data->unpackErr = E_PSSERIAL_MEM;
+	PSC_log(-1, "%s(%s@%d): size %zd: %s\n", __func__, caller, line,
+		sizeof(char *) * (*len + 1), serialStrErr(data->unpackErr));
 	return false;
     }
 
