@@ -242,14 +242,11 @@ bool __unpackMungeCred(Slurm_Msg_t *sMsg, Slurm_Auth_t *auth,
 static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
 				   uint16_t msgVer)
 {
-    uint32_t magic;
-    uint8_t more;
-    unsigned int i;
-
     Gres_Cred_t *gres = getGresCred();
     gres->credType = GRES_CRED_STEP;
 
     /* GRes magic */
+    uint32_t magic;
     getUint32(data, &magic);
 
     if (magic != GRES_MAGIC) {
@@ -288,6 +285,7 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
 	 gres->totalGres, gres->nodeInUse);
 
     /* additional node allocation */
+    uint8_t more;
     getUint8(data, &more);
     if (more) {
 	uint64_t *nodeAlloc;
@@ -295,7 +293,7 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
 	getUint64Array(data, &nodeAlloc, &gresNodeAllocCount);
 	if (psslurmlogger->mask & PSSLURM_LOG_GRES) {
 	    flog("gres node alloc: ");
-	    for (i=0; i<gresNodeAllocCount; i++) {
+	    for (uint32_t i = 0; i < gresNodeAllocCount; i++) {
 		if (i) mlog(", ");
 		mlog("N%u:%zu", i, nodeAlloc[i]);
 	    }
@@ -308,7 +306,7 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
     getUint8(data, &more);
     if (more) {
 	gres->bitAlloc = umalloc(sizeof(char *) * gres->nodeCount);
-	for (i=0; i<gres->nodeCount; i++) {
+	for (uint32_t i = 0; i < gres->nodeCount; i++) {
 	    gres->bitAlloc[i] = getBitString(data);
 	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' bit_alloc '%s'\n", __func__,
 		    i, gres->bitAlloc[i]);
@@ -439,14 +437,13 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
 static bool unpackGres(PS_DataBuffer_t *data, list_t *gresList, JobCred_t *cred,
 		       uint16_t msgVer)
 {
-    uint16_t count, i;
-
     /* extract gres job data */
+    uint16_t count;
     getUint16(data, &count);
     fdbg(PSSLURM_LOG_GRES, "job data: id %u:%u uid %u gres job count %u\n",
 	 cred->jobid, cred->stepid, cred->uid, count);
 
-    for (i=0; i<count; i++) {
+    for (uint16_t i = 0; i < count; i++) {
 	Gres_Cred_t *gres = unpackGresJob(data, i, msgVer);
 	if (!gres) {
 	    flog("unpacking gres job data %u failed\n", i);
@@ -460,7 +457,7 @@ static bool unpackGres(PS_DataBuffer_t *data, list_t *gresList, JobCred_t *cred,
     fdbg(PSSLURM_LOG_GRES, "step data: id %u:%u uid %u gres step count %u\n",
 	 cred->jobid, cred->stepid, cred->uid, count);
 
-    for (i=0; i<count; i++) {
+    for (uint16_t i = 0; i < count; i++) {
 	Gres_Cred_t *gres = unpackGresStep(data, i, msgVer);
 	if (!gres) {
 	    flog("unpacking gres step data %u failed\n", i);
@@ -3293,10 +3290,8 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
 	flog("no unpack function for %s\n", msgType2String(sMsg->head.type));
     }
 
-    if (!ret && sMsg->unpData) {
-	/* unpacking failed and unpack buffer needs to be freed */
-	freeUnpackMsgData(sMsg);
-    }
+    /* unpacking failed and unpack buffer needs to be freed */
+    if (!ret && sMsg->unpData) freeUnpackMsgData(sMsg);
 
     return ret;
 }

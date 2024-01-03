@@ -544,10 +544,8 @@ static void setStepMemLimits(Step_t *step)
 
 static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
-    if (pluginShutdown) {
-	/* don't accept new steps if a shutdown is in progress */
-	return SLURM_ERROR;
-    }
+    /* don't accept new steps if a shutdown is in progress */
+    if (pluginShutdown) return SLURM_ERROR;
 
     Step_t *step = sMsg->unpData;
     if (!step) {
@@ -696,9 +694,7 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 * However for pack jobs the pack leader has to wait for
 	 * the pack follower to send hw threads */
 	if (step->packJobid == NO_VAL) {
-	    if (!execStepLeader(step)) {
-		return ESLURMD_FORK_FAILED;
-	    }
+	    if (!execStepLeader(step)) return ESLURMD_FORK_FAILED;
 	} else {
 	    /* Check for cached hw threads */
 	    handleCachedMsg(step);
@@ -719,9 +715,7 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	/* forward hw thread infos to pack leader */
 	/* if this is the pack leader execStepLeader() might be called
 	 * in the handler */
-	if (send_PS_PackInfo(step) == -1) {
-	    return ESLURMD_INVALID_JOB_CREDENTIAL;
-	}
+	if (send_PS_PackInfo(step) == -1) return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     /* prevent step from automatic free */
@@ -2053,10 +2047,8 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
-    if (pluginShutdown) {
-	/* don't accept new jobs if a shutdown is in progress */
-	return SLURM_ERROR;
-    }
+    /* don't accept new jobs if a shutdown is in progress */
+    if (pluginShutdown) return SLURM_ERROR;
 
     if (Auth_isDeniedUID(job->uid)) {
 	flog("denied UID %u to start job %u\n", sMsg->head.uid, job->jobid);
@@ -2530,7 +2522,7 @@ static int handleRespNodeReg(Slurm_Msg_t *sMsg)
     /* don't free the data after this function */
     sMsg->unpData = NULL;
 
-    for (uint32_t i=0; i<tresDBconfig->count; i++) {
+    for (uint32_t i = 0; i < tresDBconfig->count; i++) {
 	fdbg(PSSLURM_LOG_ACC, "TRes(%u) alloc %zu count %lu id %u name '%s' "
 	     "type '%s'\n", i, tresDBconfig->entry[i].allocSec,
 	     tresDBconfig->entry[i].count, tresDBconfig->entry[i].id,

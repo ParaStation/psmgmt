@@ -1159,9 +1159,7 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
 	(*array)[i] = getMemFromBuf(data, NULL, 0, NULL, PSDATA_STRING,
 				    caller, line);
 	if (data->unpackErr) {
-	    for (uint32_t x=0; x < i; x++) {
-		free((*array)[x]);
-	    }
+	    for (uint32_t j = 0; j < i; j++) free((*array)[j]);
 	    free(*array);
 	    return false;
 	}
