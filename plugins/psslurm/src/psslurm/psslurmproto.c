@@ -147,7 +147,7 @@ static void getSysInfo(uint32_t *cpuload, uint64_t *freemem, uint32_t *uptime)
  *
  * @return Returns true on success otherwise false is returned.
  */
-bool checkPrivMsg(Slurm_Msg_t *sMsg)
+static bool checkPrivMsg(Slurm_Msg_t *sMsg)
 {
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
 	flog("request from invalid user %u message %s\n", sMsg->head.uid,
