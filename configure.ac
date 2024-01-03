@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021-2023 ParTec AG, Munich
+# Copyright (C) 2021-2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -197,7 +197,6 @@ AC_CONFIG_FILES(lib/pskvs/Makefile)
 AC_CONFIG_FILES(lib/pslog/Makefile)
 AC_CONFIG_FILES(lib/putil/Makefile)
 AC_CONFIG_FILES(plugins/Makefile)
-AC_CONFIG_FILES(plugins/cgroup/Makefile)
 AC_CONFIG_FILES(plugins/dynIP/Makefile)
 AC_CONFIG_FILES(plugins/dynIP/doc/Makefile)
 AC_CONFIG_FILES(plugins/jail/Makefile)

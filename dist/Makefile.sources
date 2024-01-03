@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -129,11 +129,9 @@ doc/99-psid.conf \
 doc/Makefile.am \
 doc/Makefile.in \
 doc/MessageTypes \
-doc/README.cgroup \
 doc/README.nodeinfo \
 doc/README.psgw \
 doc/README.pspam \
-doc/cgroup.conf.in \
 doc/parastation.conf.tmpl \
 doc/psaccount.conf \
 doc/psconfig/nodeinfo.dump \
@@ -271,13 +269,6 @@ m4/ltversion.m4 \
 m4/lt~obsolete.m4 \
 plugins/Makefile.am \
 plugins/Makefile.in \
-plugins/cgroup/Makefile.am \
-plugins/cgroup/Makefile.in \
-plugins/cgroup/cgroup.c \
-plugins/cgroup/cgroupconfig.c \
-plugins/cgroup/cgroupconfig.h \
-plugins/cgroup/cgrouplog.c \
-plugins/cgroup/cgrouplog.h \
 plugins/dynIP/Makefile.am \
 plugins/dynIP/Makefile.in \
 plugins/dynIP/dynIP.c \
