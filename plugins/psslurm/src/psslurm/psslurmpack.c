@@ -207,7 +207,7 @@ bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
 
     if (data->unpackErr) {
 	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
-	ufree(data);
+	ufree(auth);
 	return false;
     }
 
