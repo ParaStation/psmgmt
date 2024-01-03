@@ -13,18 +13,12 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <sys/types.h>
 
-#include "list.h"
 #include "pscommon.h"
-#include "psenv.h"
-
-#include "psaccounttypes.h"
 
 #include "slurmmsg.h"
 #include "psslurmcomm.h"
 #include "psslurmjob.h"
-#include "psslurmjobcred.h"
 #include "psslurmmsg.h"
 #include "psslurmstep.h"
 #include "psslurmtypes.h"

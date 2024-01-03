@@ -10,7 +10,7 @@
 
 #include "psslurmprototypes.h"
 
-#include <ctype.h>
+#include <stddef.h>
 
 #include "pluginmalloc.h"
 #include "slurmmsg.h"

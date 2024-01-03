@@ -15,11 +15,13 @@
 #include <sys/types.h>
 
 #include "list.h"
+#include "pscommon.h"
 #include "psenv.h"
 
 #include "psaccounttypes.h"
 
 #include "psslurmjobcred.h"
+#include "psslurmmsg.h"
 
 /** Holding information for RPC REQUEST_TERMINATE_JOB */
 typedef struct {

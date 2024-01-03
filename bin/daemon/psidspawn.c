@@ -11,17 +11,17 @@
  */
 #include "psidspawn.h"
 
+#include <errno.h>
+#include <fcntl.h>
+#include <grp.h>
+#include <pty.h>
+#include <pwd.h>
+#include <signal.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <pwd.h>
-#include <grp.h>
-#include <pty.h>
-#include <signal.h>
 #include <syslog.h>
 #include <sys/ioctl.h>
 #include <sys/prctl.h>
@@ -33,6 +33,7 @@
 #include <sys/types.h>
 #include <termios.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "list.h"
 #include "pscio.h"

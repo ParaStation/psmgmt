@@ -29,8 +29,10 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "list.h"
 #include "pscomplist.h"
 #include "pscpu.h"
+#include "psenv.h"
 #include "pslog.h"
 #include "psserial.h"
 #include "timer.h"
@@ -58,8 +60,8 @@
 #include "psslurmenv.h"
 #include "psslurmforwarder.h"
 #include "psslurmfwcomm.h"
-#include "psslurmgres.h"
 #include "psslurmio.h"
+#include "psslurmjobcred.h"
 #include "psslurmlog.h"
 #include "psslurmnodeinfo.h"
 #include "psslurmpack.h"

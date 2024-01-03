@@ -11,6 +11,7 @@
 #define _GNU_SOURCE
 #include "psslurmpelogue.h"
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

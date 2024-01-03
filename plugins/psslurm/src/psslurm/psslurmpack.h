@@ -24,7 +24,7 @@
 #include "psslurmio.h"
 #include "psslurmjobcred.h"
 #include "psslurmmsg.h"
-#include "psslurmproto.h"
+#include "psslurmprototypes.h"
 
 /**
  * @brief Pack a Slurm authentication

@@ -30,6 +30,7 @@
 #include "psslurmgres.h"
 #include "psslurmjob.h"
 #include "psslurmlog.h"
+#include "psslurmproto.h"
 #include "psslurmpscomm.h"
 #include "psslurmstep.h"
 #include "psslurmtasks.h"

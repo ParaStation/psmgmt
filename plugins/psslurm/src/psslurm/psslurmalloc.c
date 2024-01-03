@@ -29,16 +29,17 @@
 
 #include "slurmcommon.h"
 #include "psslurmbcast.h"
+#include "psslurmconfig.h"
 #include "psslurmenv.h"
 #include "psslurmgres.h"
 #include "psslurmjob.h"
 #include "psslurmlog.h"
 #include "psslurmmsg.h"
-#include "psslurmpscomm.h"
-#include "psslurmproto.h"
-#include "psslurmstep.h"
 #include "psslurmpack.h"
-#include "psslurmconfig.h"
+#include "psslurmproto.h"
+#include "psslurmprototypes.h"
+#include "psslurmpscomm.h"
+#include "psslurmstep.h"
 
 /* timespan in seconds until an allocation is verified */
 #define ALLOC_VERIFY_TIME 300
