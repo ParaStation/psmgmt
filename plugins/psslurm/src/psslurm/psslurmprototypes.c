@@ -277,6 +277,7 @@ static inline void freeRespNodeReg(Slurm_Msg_t *sMsg)
 
     ufree(resp->nodeName);
     ufree(resp->entry);
+    ufree(resp);
 
     sMsg->unpData = NULL;
 }
