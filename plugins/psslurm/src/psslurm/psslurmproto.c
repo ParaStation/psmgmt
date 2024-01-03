@@ -160,16 +160,17 @@ static bool checkPrivMsg(Slurm_Msg_t *sMsg)
 /**
  * @brief Send a ping response
  *
- * Send a Slurm ping message including the current system
- * load and free memory information.
+ * Send a Slurm ping message including the current system load and
+ * free memory information.
  *
  * @param The ping request message
+ *
+ * @return Always return SLURM_NO_RC
  */
 static int sendPing(Slurm_Msg_t *sMsg)
 {
     Resp_Ping_t ping;
     uint32_t unused;
-
     getSysInfo(&ping.cpuload, &ping.freemem, &unused);
 
     PS_SendDB_t *msg = &sMsg->reply;
