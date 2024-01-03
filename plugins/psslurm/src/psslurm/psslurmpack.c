@@ -1120,7 +1120,6 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     INIT_LIST_HEAD(&req->gresList);
     if (!unpackGresJobAlloc(data, &req->gresList)) {
 	flog("unpacking gres job allocation info failed\n");
-	ufree(req);
 	return false;
     }
 
