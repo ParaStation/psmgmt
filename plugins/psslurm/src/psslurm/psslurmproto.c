@@ -2680,14 +2680,7 @@ static int handleInvalid(Slurm_Msg_t *sMsg)
     flog("got invalid %s (%i) request\n", msgType2String(sMsg->head.type),
 	 sMsg->head.type);
 
-    switch (sMsg->head.type) {
-	case REQUEST_COMPLETE_BATCH_SCRIPT:
-	case REQUEST_STEP_COMPLETE:
-	case REQUEST_STEP_COMPLETE_AGGR:
-	    return SLURM_ERROR;
-	case MESSAGE_COMPOSITE:
-	    return ESLURM_NOT_SUPPORTED;
-    }
+    if (sMsg->head.type == MESSAGE_COMPOSITE) return ESLURM_NOT_SUPPORTED;
 
     return SLURM_ERROR;
 }
