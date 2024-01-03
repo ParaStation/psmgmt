@@ -1317,6 +1317,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     uint32_t tmp;
 
     Step_t *step = Step_add();
+    sMsg->unpData = step;
 
     /* step header */
     unpackStepHead(data, &step->jobid, msgVer);
@@ -1426,8 +1427,8 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     /* number of nodes */
     getUint32(data, &step->nrOfNodes);
     if (!step->nrOfNodes) {
-	mlog("%s: invalid nrOfNodes %u\n", __func__, step->nrOfNodes);
-	goto ERROR;
+	flog("invalid nrOfNodes %u\n", step->nrOfNodes);
+	return false;
     }
     /* CPUs per tasks */
     getUint16(data, &step->tpp);
@@ -1469,8 +1470,8 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 	step->cred = extractJobCred(&step->gresList, sMsg, true);
     }
     if (!step->cred) {
-	mlog("%s: extracting job credential failed\n", __func__);
-	goto ERROR;
+	flog("extracting job credential failed\n");
+	return false;
     }
 
     /* overwrite empty memory limits */
@@ -1488,8 +1489,8 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* srun ports/addr */
     if (!unpackStepAddr(data, step, msgVer)) {
-	mlog("%s: extracting step address failed\n", __func__);
-	goto ERROR;
+	flog("extracting step address failed\n");
+	return false;
     }
 
     /* env */
@@ -1533,7 +1534,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     if (strcmp(jobOptTag, JOB_OPTIONS_TAG)) {
 	flog("invalid spank job options tag '%s'\n", jobOptTag);
 	ufree(jobOptTag);
-	goto ERROR;
+	return false;
     }
     ufree(jobOptTag);
 
@@ -1612,17 +1613,11 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     getUint16(data, &step->x11.targetPort);
 
     if (data->unpackErr) {
-	flog("unpacking message failed: %s\n",
-	     serialStrErr(data->unpackErr));
-	goto ERROR;
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
     }
 
-    sMsg->unpData = step;
     return true;
-
-ERROR:
-    Step_delete(step);
-    return false;
 }
 
 static void readJobCpuOptions(PS_DataBuffer_t *data, Job_t *job)
@@ -1673,6 +1668,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     getUint32(data, &jobid);
 
     Job_t *job = Job_add(jobid);
+    sMsg->unpData = job;
 
     /* pack jobid */
     getUint32(data, &job->packJobid);
@@ -1756,8 +1752,8 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     getUint32(data, &count);
     getStringArrayM(data, &job->argv, &job->argc);
     if (count != job->argc) {
-	mlog("%s: mismatching argc %u : %u\n", __func__, count, job->argc);
-	goto ERROR;
+	flog("mismatching argc %u : %u\n", count, job->argc);
+	return false;
     }
     /* spank env/envc */
     getStringArrayM(data, &job->spankenv.vars, &job->spankenv.cnt);
@@ -1765,8 +1761,8 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     getUint32(data, &count);
     getStringArrayM(data, &job->env.vars, &job->env.cnt);
     if (count != job->env.cnt) {
-	mlog("%s: mismatching envc %u : %u\n", __func__, count, job->env.cnt);
-	goto ERROR;
+	flog("mismatching envc %u : %u\n", count, job->env.cnt);
+	return false;
     }
     /* use job memory limit */
     getUint64(data, &job->memLimit);
@@ -1789,8 +1785,8 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 	job->cred = extractJobCred(&job->gresList, sMsg, true);
     }
     if (!job->cred) {
-	mlog("%s: extracting job credentail failed\n", __func__);
-	goto ERROR;
+	flog("extracting job credentail failed\n");
+	return false;
     }
 
     if (msgVer < SLURM_21_08_PROTO_VERSION) {
@@ -1825,12 +1821,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return false;
     }
 
-    sMsg->unpData = job;
     return true;
-
-ERROR:
-    Job_delete(job);
-    return false;
 }
 
 bool __packRespPing(PS_SendDB_t *data, Resp_Ping_t *ping,
