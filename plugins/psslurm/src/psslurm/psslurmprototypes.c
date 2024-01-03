@@ -394,7 +394,7 @@ bool __freeUnpackMsgData(Slurm_Msg_t *sMsg, const char *caller, const int line)
     }
 
     if (sMsg->unpData) {
-	flog("error: unpacked data of msg %s caller %s:%i was not freed\n",
+	flog("error: pending data in %s, caller %s:%i\n",
 	     msgType2String(sMsg->head.type), caller, line);
 	return false;
     }

@@ -128,12 +128,12 @@ static bool __unpackStepHead(PS_DataBuffer_t *data, void *head, uint16_t msgVer,
     Slurm_Step_Head_t *stepH = head;
 
     if (!data || !data->unpackPtr) {
-	mlog("%s: invalid data from '%s' at %i\n", __func__, caller, line);
+	flog("invalid data from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!head) {
-	mlog("%s: invalid head from '%s' at %i\n", __func__, caller, line);
+	flog("invalid head from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -250,7 +250,7 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
     getUint32(data, &magic);
 
     if (magic != GRES_MAGIC) {
-	mlog("%s: magic error: '%u' : '%u'\n", __func__, magic, GRES_MAGIC);
+	flog("magic error: %u:%u\n", magic, GRES_MAGIC);
 	releaseGresCred(gres);
 	return NULL;
     }
@@ -294,7 +294,7 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
 	if (psslurmlogger->mask & PSSLURM_LOG_GRES) {
 	    flog("gres node alloc: ");
 	    for (uint32_t i = 0; i < gresNodeAllocCount; i++) {
-		if (i) mlog(", ");
+		if (i) mlog(",");
 		mlog("N%u:%zu", i, nodeAlloc[i]);
 	    }
 	    mlog("\n");
@@ -333,7 +333,7 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
     getUint32(data, &magic);
 
     if (magic != GRES_MAGIC) {
-	mlog("%s: magic error '%u' : '%u'\n", __func__, magic, GRES_MAGIC);
+	flog("magic error '%u' : '%u'\n", magic, GRES_MAGIC);
 	releaseGresCred(gres);
 	return NULL;
     }
@@ -377,7 +377,7 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
 	if (psslurmlogger->mask & PSSLURM_LOG_GRES) {
 	    flog("gres node alloc: ");
 	    for (uint32_t i=0; i<gresNodeAllocCount; i++) {
-		if (i) mlog(", ");
+		if (i) mlog(",");
 		mlog("N%u:%zu", i, nodeAlloc[i]);
 	    }
 	    mlog("\n");
@@ -479,22 +479,22 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 		     const int line)
 {
     if (!sMsg) {
-	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
+	flog("invalid sMsg from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!credPtr) {
-	mlog("%s: invalid credPtr from '%s' at %i\n", __func__, caller, line);
+	flog("invalid credPtr from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!gresList) {
-	mlog("%s: invalid gresList from '%s' at %i\n", __func__, caller, line);
+	flog("invalid gresList from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!credEnd) {
-	mlog("%s: invalid credEnd from '%s' at %i\n", __func__, caller, line);
+	flog("invalid credEnd from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -573,7 +573,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* step hostlist */
     cred->stepHL = getStringM(data);
     if (!cred->stepHL) {
-	mlog("%s: empty step hostlist in credential\n", __func__);
+	flog("empty step hostlist in credential\n");
 	goto ERROR;
     }
     /* x11 */
@@ -598,19 +598,18 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 
 	getUint16Array(data, &cred->coresPerSocket, &len);
 	if (len != cred->nodeArraySize) {
-	    mlog("%s: invalid corePerSocket size %u should be %u\n", __func__,
-		 len, cred->nodeArraySize);
+	    flog("invalid corePerSocket size %u:%u\n", len, cred->nodeArraySize);
 	    goto ERROR;
 	}
 	getUint16Array(data, &cred->socketsPerNode, &len);
 	if (len != cred->nodeArraySize) {
-	    mlog("%s: invalid socketsPerNode size %u should be %u\n", __func__,
+	    flog("invalid socketsPerNode size %u:%u\n",
 		 len, cred->nodeArraySize);
 	    goto ERROR;
 	}
 	getUint32Array(data, &cred->nodeRepCount, &len);
 	if (len != cred->nodeArraySize) {
-	    mlog("%s: invalid nodeRepCount size %u should be %u\n", __func__,
+	    flog("invalid nodeRepCount size %u should be %u\n",
 		 len, cred->nodeArraySize);
 	    goto ERROR;
 	}
@@ -714,12 +713,12 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
 		       const char *caller, const int line)
 {
     if (!sMsg) {
-	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
+	flog("invalid sMsg from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!cred) {
-	mlog("%s: invalid cred from '%s' at %i\n", __func__, caller, line);
+	flog("invalid cred from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -876,14 +875,12 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     const char *hn;
 
     if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid data pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!head) {
-	mlog("%s: invalid head pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid head pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -952,14 +949,12 @@ bool __packSlurmIOMsg(PS_SendDB_t *data, IO_Slurm_Header_t *ioh, char *body,
 		      const char *caller, const int line)
 {
     if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid data pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!ioh) {
-	mlog("%s: invalid I/O message pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid I/O message pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -981,13 +976,12 @@ bool __unpackSlurmIOHeader(PS_DataBuffer_t *data, IO_Slurm_Header_t **iohPtr,
 			   const char *caller, const int line)
 {
     if (!data) {
-	mlog("%s: invalid data from '%s' at %i\n", __func__, caller, line);
+	flog("invalid data from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!iohPtr) {
-	mlog("%s: invalid I/O message pointer from '%s' at %i\n",
-		__func__, caller, line);
+	flog("invalid I/O message pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -1642,8 +1636,7 @@ static void readJobCpuOptions(PS_DataBuffer_t *data, Job_t *job)
 	/* cpusPerNode */
 	getUint16Array(data, &job->cpusPerNode, &len);
 	if (len != job->cpuGroupCount) {
-	    mlog("%s: invalid cpu per node array '%u:%u'\n", __func__,
-		    len, job->cpuGroupCount);
+	    flog("invalid cpu per node array %u:%u\n", len, job->cpuGroupCount);
 	    ufree(job->cpusPerNode);
 	    job->cpusPerNode = NULL;
 	}
@@ -1651,8 +1644,7 @@ static void readJobCpuOptions(PS_DataBuffer_t *data, Job_t *job)
 	/* cpuCountReps */
 	getUint32Array(data, &job->cpuCountReps, &len);
 	if (len != job->cpuGroupCount) {
-	    mlog("%s: invalid cpu count reps array '%u:%u'\n", __func__,
-		    len, job->cpuGroupCount);
+	    flog("invalid cpu count reps array %u:%u\n", len, job->cpuGroupCount);
 	    ufree(job->cpuCountReps);
 	    job->cpuCountReps = NULL;
 	}
@@ -1845,14 +1837,12 @@ bool __packRespPing(PS_SendDB_t *data, Resp_Ping_t *ping,
 		    const char *caller, const int line)
 {
     if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid data pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!ping) {
-	mlog("%s: invalid ping pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid ping pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -1868,14 +1858,12 @@ bool __packTResData(PS_SendDB_t *data, TRes_t *tres, const char *caller,
 		    const int line)
 {
     if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid data pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!tres) {
-	mlog("%s: invalid tres pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid tres pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -2050,14 +2038,12 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 			const char *caller, const int line)
 {
     if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid data pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!slurmAccData) {
-	mlog("%s: invalid accData pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid accData pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -2417,14 +2403,12 @@ bool __packRespDaemonStatus(PS_SendDB_t *data, Resp_Daemon_Status_t *stat,
 			    const char *caller, const int line)
 {
     if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid data pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!stat) {
-	mlog("%s: invalid stat pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid stat pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -2475,14 +2459,12 @@ bool __packRespLaunchTasks(PS_SendDB_t *data, Resp_Launch_Tasks_t *ltasks,
     uint32_t i;
 
     if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid data pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!ltasks) {
-	mlog("%s: invalid ltasks pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid ltasks pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
