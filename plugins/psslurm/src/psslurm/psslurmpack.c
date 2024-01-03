@@ -2929,12 +2929,15 @@ static bool unpackReqJobID(Slurm_Msg_t *sMsg)
 {
     Req_Job_ID_t *req = ucalloc(sizeof(*req));
     PS_DataBuffer_t *data = sMsg->data;
+    sMsg->unpData = req;
 
     /* pid */
     getUint32(data, &req->pid);
 
-    /* save in sMsg */
-    sMsg->unpData = req;
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
 
     return true;
 }
