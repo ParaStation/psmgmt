@@ -504,23 +504,23 @@ char *serialStrErr(serial_Err_Types_t err)
     static char buf[128];
 
     switch(err) {
-	case E_PSSERIAL_SUCCESS:
-	    return "operation successful";
-	case E_PSSERIAL_INSUF:
-	    return "insufficient data in buffer";
-	case E_PSSERIAL_PARAM:
-	    return "invalid parameter";
-	case E_PSSERIAL_TYPE:
-	    return "data type mismatch";
-	case E_PSSERIAL_BUFSIZE:
-	    return "provided buffer to small";
-	case E_PSSERIAL_MEM:
-	    return "out of memory";
-	case E_PSSERIAL_CONV:
-	    return "unknown conversion size";
-	default:
-	    snprintf(buf, sizeof(buf), "unknown error code %i", err);
-	    return buf;
+    case E_PSSERIAL_SUCCESS:
+	return "operation successful";
+    case E_PSSERIAL_INSUF:
+	return "insufficient data in buffer";
+    case E_PSSERIAL_PARAM:
+	return "invalid parameter";
+    case E_PSSERIAL_TYPE:
+	return "data type mismatch";
+    case E_PSSERIAL_BUFSIZE:
+	return "provided buffer to small";
+    case E_PSSERIAL_MEM:
+	return "out of memory";
+    case E_PSSERIAL_CONV:
+	return "unknown conversion size";
+    default:
+	snprintf(buf, sizeof(buf), "unknown error code %i", err);
+	return buf;
     }
 }
 

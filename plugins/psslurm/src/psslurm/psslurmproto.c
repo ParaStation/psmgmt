@@ -818,18 +818,18 @@ static int handleSignalTasks(Slurm_Msg_t *sMsg)
 
     /* handle magic Slurm signals */
     switch (req->signal) {
-	case SIG_TERM_KILL:
-	    doSendTermKill(req);
-	    return SLURM_SUCCESS;
-	case SIG_UME:
-	case SIG_REQUEUED:
-	case SIG_PREEMPTED:
-	case SIG_TIME_LIMIT:
-	case SIG_ABORT:
-	case SIG_NODE_FAIL:
-	case SIG_FAILURE:
-	    flog("implement signal %u\n", req->signal);
-	    return SLURM_SUCCESS;
+    case SIG_TERM_KILL:
+	doSendTermKill(req);
+	return SLURM_SUCCESS;
+    case SIG_UME:
+    case SIG_REQUEUED:
+    case SIG_PREEMPTED:
+    case SIG_TIME_LIMIT:
+    case SIG_ABORT:
+    case SIG_NODE_FAIL:
+    case SIG_FAILURE:
+	flog("implement signal %u\n", req->signal);
+	return SLURM_SUCCESS;
     }
 
     if (!doSignalTasks(req)) return ESLURM_INVALID_JOB_ID;
@@ -950,17 +950,17 @@ static int handleSuspendInt(Slurm_Msg_t *sMsg)
     }
 
     switch (req->op) {
-	case SUSPEND_JOB:
-	    flog("suspend job %u\n",req->jobid);
-	    Step_signalByJobid(req->jobid, SIGSTOP, sMsg->head.uid);
-	    break;
-	case RESUME_JOB:
-	    flog("resume job %u\n",req->jobid);
-	    Step_signalByJobid(req->jobid, SIGCONT, sMsg->head.uid);
-	    break;
-	default:
-	    flog("unknown suspend_int operation %u\n", req->op);
-	    return ESLURM_NOT_SUPPORTED;
+    case SUSPEND_JOB:
+	flog("suspend job %u\n",req->jobid);
+	Step_signalByJobid(req->jobid, SIGSTOP, sMsg->head.uid);
+	break;
+    case RESUME_JOB:
+	flog("resume job %u\n",req->jobid);
+	Step_signalByJobid(req->jobid, SIGCONT, sMsg->head.uid);
+	break;
+    default:
+	flog("unknown suspend_int operation %u\n", req->op);
+	return ESLURM_NOT_SUPPORTED;
     }
     return SLURM_SUCCESS;
 }
@@ -1209,7 +1209,6 @@ static int handleRebootNodes(Slurm_Msg_t *sMsg)
     char *prog = getConfValueC(SlurmConfig, "RebootProgram");
     if (!prog) {
 	flog("error: RebootProgram is not set in slurm.conf\n");
-
     } else if (checkPrivMsg(sMsg)) {
 	/* try to execute reboot program */
 	StrBuffer_t cmdline = { .buf = NULL };
@@ -2458,23 +2457,23 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
 	.uid = sMsg->head.uid };
 
     switch (sMsg->head.type) {
-	case REQUEST_KILL_PREEMPTED:
-	    info.timeout = false;
-	    handleKillReq(sMsg, alloc, &info);
-	    break;
-	case REQUEST_KILL_TIMELIMIT:
-	    info.timeout = true;
-	    handleKillReq(sMsg, alloc, &info);
-	    break;
-	case REQUEST_ABORT_JOB:
-	    handleAbortReq(sMsg, req->jobid, req->stepid);
-	    break;
-	case REQUEST_TERMINATE_JOB:
-	    doTerminateAlloc(sMsg, alloc);
-	    break;
-	default:
-	    return ESLURMD_KILL_JOB_ALREADY_COMPLETE;
-	    flog("unknown terminate request for %s\n", Step_strID(&s));
+    case REQUEST_KILL_PREEMPTED:
+	info.timeout = false;
+	handleKillReq(sMsg, alloc, &info);
+	break;
+    case REQUEST_KILL_TIMELIMIT:
+	info.timeout = true;
+	handleKillReq(sMsg, alloc, &info);
+	break;
+    case REQUEST_ABORT_JOB:
+	handleAbortReq(sMsg, req->jobid, req->stepid);
+	break;
+    case REQUEST_TERMINATE_JOB:
+	doTerminateAlloc(sMsg, alloc);
+	break;
+    default:
+	return ESLURMD_KILL_JOB_ALREADY_COMPLETE;
+	flog("unknown terminate request for %s\n", Step_strID(&s));
     }
 
     return SLURM_NO_RC;
@@ -2715,51 +2714,48 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
     list_t *h;
     list_for_each (h, &msgList) {
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
+	if (msgHandler->msgType != sMsg->head.type) continue;
 
-	if (msgHandler->msgType == sMsg->head.type) {
-	    bool measure = measureRPC;
-	    if (measure) {
-		gettimeofday(&time_start, NULL);
-		mlog("%s: exec RPC %s at %.4f\n", __func__,
-		     msgType2String(msgHandler->msgType),
-		     time_start.tv_sec + 1e-6 * time_start.tv_usec);
-	    }
+	bool measure = measureRPC;
+	if (measure) {
+	    gettimeofday(&time_start, NULL);
+	    flog("exec RPC %s at %.4f\n", msgType2String(msgHandler->msgType),
+		 time_start.tv_sec + 1e-6 * time_start.tv_usec);
+	}
 
-	    if (!msgHandler->handler) {
-		flog("error: no message handler for %s\n",
-		     msgType2String(sMsg->head.type));
-		return 0;
-	    }
-
-	    /* unpack request */
-	    if (!unpackSlurmMsg(sMsg)) {
-		flog("unpacking message %s (%u) failed\n",
-		     msgType2String(sMsg->head.type), sMsg->head.version);
-		sendSlurmRC(sMsg, SLURM_ERROR);
-		return 0;
-	    }
-
-	    /* execute the RPC using the message handler */
-	    int ret = msgHandler->handler(sMsg);
-
-	    /* ensure message type is not overwritten by callback */
-	    sMsg->head.type = msgHandler->msgType;
-
-	    /* free unpacked data */
-	    freeUnpackMsgData(sMsg);
-
-	    /* send optional SLURM response */
-	    if (ret != SLURM_NO_RC) sendSlurmRC(sMsg, ret);
-
-	    if (measure) {
-		gettimeofday(&time_now, NULL);
-		timersub(&time_now, &time_start, &time_diff);
-		mlog("%s: exec RPC %s took %.4f seconds\n", __func__,
-		     msgType2String(msgHandler->msgType),
-		     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
-	    }
+	if (!msgHandler->handler) {
+	    flog("error: no handler for %s\n", msgType2String(sMsg->head.type));
 	    return 0;
 	}
+
+	/* unpack request */
+	if (!unpackSlurmMsg(sMsg)) {
+	    flog("unpacking message %s (%u) failed\n",
+		 msgType2String(sMsg->head.type), sMsg->head.version);
+	    sendSlurmRC(sMsg, SLURM_ERROR);
+	    return 0;
+	}
+
+	/* execute the RPC using the message handler */
+	int ret = msgHandler->handler(sMsg);
+
+	/* ensure message type is not overwritten by handler */
+	sMsg->head.type = msgHandler->msgType;
+
+	/* free unpacked data */
+	freeUnpackMsgData(sMsg);
+
+	/* send optional Slurm response */
+	if (ret != SLURM_NO_RC) sendSlurmRC(sMsg, ret);
+
+	if (measure) {
+	    gettimeofday(&time_now, NULL);
+	    timersub(&time_now, &time_start, &time_diff);
+	    flog("exec RPC %s took %.4f seconds\n",
+		 msgType2String(msgHandler->msgType),
+		 time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	}
+	return 0;
     }
 
     sendSlurmRC(sMsg, SLURM_ERROR);
@@ -3583,22 +3579,22 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     addConfigEntry(Config, "SLURM_CONFIG_DIR", confCache);
 
     switch (action) {
-	case CONF_ACT_STARTUP:
-	    /* parse updated configuration files */
-	    if (!parseSlurmConfigFiles()) {
-		flog("fatal: failed to parse configuration\n");
-		PSIDplugin_finalize("psslurm");
-	    } else if (!finalizeInit()) {
-		/* finalize psslurm's startup failed */
-		flog("startup of psslurm failed\n");
-		PSIDplugin_finalize("psslurm");
-	    }
-	    break;
-	case CONF_ACT_RELOAD:
-	    flog("ignoring configuration reload request\n");
-	    break;
-	case CONF_ACT_NONE:
-	    break;
+    case CONF_ACT_STARTUP:
+	/* parse updated configuration files */
+	if (!parseSlurmConfigFiles()) {
+	    flog("fatal: failed to parse configuration\n");
+	    PSIDplugin_finalize("psslurm");
+	} else if (!finalizeInit()) {
+	    /* finalize psslurm's startup failed */
+	    flog("startup of psslurm failed\n");
+	    PSIDplugin_finalize("psslurm");
+	}
+	break;
+    case CONF_ACT_RELOAD:
+	flog("ignoring configuration reload request\n");
+	break;
+    case CONF_ACT_NONE:
+	break;
     }
 
     return 0;

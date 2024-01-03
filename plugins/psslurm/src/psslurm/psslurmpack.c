@@ -3219,79 +3219,78 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
     bool ret = false;
 
     switch (sMsg->head.type) {
-	case REQUEST_JOB_STEP_STAT:
-	case REQUEST_JOB_STEP_PIDS:
-	    sMsg->unpData = ucalloc(sizeof(Slurm_Step_Head_t));
-	    ret = unpackStepHead(sMsg->data, sMsg->unpData, sMsg->head.version);
-	    break;
-	case REQUEST_LAUNCH_PROLOG:
-	    ret = unpackReqLaunchProlog(sMsg);
-	    break;
-	case REQUEST_LAUNCH_TASKS:
-	    ret = unpackReqLaunchTasks(sMsg);
-	    break;
-	case REQUEST_BATCH_JOB_LAUNCH:
-	    ret =  unpackReqBatchJobLaunch(sMsg);
-	    break;
-	case REQUEST_SIGNAL_TASKS:
-	case REQUEST_TERMINATE_TASKS:
-	    ret = unpackReqSignalTasks(sMsg);
-	    break;
-	case REQUEST_REATTACH_TASKS:
-	    ret = unpackReqReattachTasks(sMsg);
-	    break;
-	case REQUEST_KILL_PREEMPTED:
-	case REQUEST_KILL_TIMELIMIT:
-	case REQUEST_ABORT_JOB:
-	case REQUEST_TERMINATE_JOB:
-	    ret = unpackReqTerminate(sMsg);
-	    break;
-	case REQUEST_SUSPEND_INT:
-	    ret = unpackReqSuspendInt(sMsg);
-	    break;
-	case REQUEST_RECONFIGURE_WITH_CONFIG:
-	case RESPONSE_CONFIG:
-	    ret = unpackConfigMsg(sMsg);
-	    break;
-	case REQUEST_FILE_BCAST:
-	    ret = unpackReqFileBcast(sMsg);
-	    break;
-	case REQUEST_JOB_NOTIFY:
-	    ret = unpackReqJobNotify(sMsg);
-	    break;
-	case RESPONSE_NODE_REGISTRATION:
-	    ret = unpackExtRespNodeReg(sMsg);
-	    break;
-	case RESPONSE_JOB_INFO:
-	    ret = unpackRespJobInfo(sMsg);
-	    break;
-	case REQUEST_REBOOT_NODES:
-	    ret = unpackRebootNodes(sMsg);
-	    break;
-	case REQUEST_JOB_ID:
-	    ret = unpackReqJobID(sMsg);
-	    break;
-	    /* nothing to unpack */
-	case REQUEST_COMPLETE_BATCH_SCRIPT:
-	case REQUEST_UPDATE_JOB_TIME:
-	case REQUEST_SHUTDOWN:
-	case REQUEST_RECONFIGURE:
-	case REQUEST_NODE_REGISTRATION_STATUS:
-	case REQUEST_PING:
-	case REQUEST_HEALTH_CHECK:
-	case REQUEST_ACCT_GATHER_UPDATE:
-	case REQUEST_ACCT_GATHER_ENERGY:
-	case REQUEST_STEP_COMPLETE:
-	case REQUEST_STEP_COMPLETE_AGGR:
-	case REQUEST_DAEMON_STATUS:
-	case REQUEST_FORWARD_DATA:
-	case REQUEST_NETWORK_CALLERID:
-	case MESSAGE_COMPOSITE:
-	case RESPONSE_MESSAGE_COMPOSITE:
-	    return true;
-	default:
-	    flog("unpack function for message %s not found\n",
-		 msgType2String(sMsg->head.type));
+    case REQUEST_JOB_STEP_STAT:
+    case REQUEST_JOB_STEP_PIDS:
+	sMsg->unpData = ucalloc(sizeof(Slurm_Step_Head_t));
+	ret = unpackStepHead(sMsg->data, sMsg->unpData, sMsg->head.version);
+	break;
+    case REQUEST_LAUNCH_PROLOG:
+	ret = unpackReqLaunchProlog(sMsg);
+	break;
+    case REQUEST_LAUNCH_TASKS:
+	ret = unpackReqLaunchTasks(sMsg);
+	break;
+    case REQUEST_BATCH_JOB_LAUNCH:
+	ret =  unpackReqBatchJobLaunch(sMsg);
+	break;
+    case REQUEST_SIGNAL_TASKS:
+    case REQUEST_TERMINATE_TASKS:
+	ret = unpackReqSignalTasks(sMsg);
+	break;
+    case REQUEST_REATTACH_TASKS:
+	ret = unpackReqReattachTasks(sMsg);
+	break;
+    case REQUEST_KILL_PREEMPTED:
+    case REQUEST_KILL_TIMELIMIT:
+    case REQUEST_ABORT_JOB:
+    case REQUEST_TERMINATE_JOB:
+	ret = unpackReqTerminate(sMsg);
+	break;
+    case REQUEST_SUSPEND_INT:
+	ret = unpackReqSuspendInt(sMsg);
+	break;
+    case REQUEST_RECONFIGURE_WITH_CONFIG:
+    case RESPONSE_CONFIG:
+	ret = unpackConfigMsg(sMsg);
+	break;
+    case REQUEST_FILE_BCAST:
+	ret = unpackReqFileBcast(sMsg);
+	break;
+    case REQUEST_JOB_NOTIFY:
+	ret = unpackReqJobNotify(sMsg);
+	break;
+    case RESPONSE_NODE_REGISTRATION:
+	ret = unpackExtRespNodeReg(sMsg);
+	break;
+    case RESPONSE_JOB_INFO:
+	ret = unpackRespJobInfo(sMsg);
+	break;
+    case REQUEST_REBOOT_NODES:
+	ret = unpackRebootNodes(sMsg);
+	break;
+    case REQUEST_JOB_ID:
+	ret = unpackReqJobID(sMsg);
+	break;
+	/* nothing to unpack */
+    case REQUEST_COMPLETE_BATCH_SCRIPT:
+    case REQUEST_UPDATE_JOB_TIME:
+    case REQUEST_SHUTDOWN:
+    case REQUEST_RECONFIGURE:
+    case REQUEST_NODE_REGISTRATION_STATUS:
+    case REQUEST_PING:
+    case REQUEST_HEALTH_CHECK:
+    case REQUEST_ACCT_GATHER_UPDATE:
+    case REQUEST_ACCT_GATHER_ENERGY:
+    case REQUEST_STEP_COMPLETE:
+    case REQUEST_STEP_COMPLETE_AGGR:
+    case REQUEST_DAEMON_STATUS:
+    case REQUEST_FORWARD_DATA:
+    case REQUEST_NETWORK_CALLERID:
+    case MESSAGE_COMPOSITE:
+    case RESPONSE_MESSAGE_COMPOSITE:
+	return true;
+    default:
+	flog("no unpack function for %s\n", msgType2String(sMsg->head.type));
     }
 
     if (!ret && sMsg->unpData) {

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -377,25 +377,25 @@ static int verifyJobInfo(Slurm_Msg_t *sMsg, void *info)
 	alloc->verified = true;
 
 	switch (rec->jobState & JOB_STATE_BASE) {
-	    case SLURM_JOB_RUNNING:
-	    case SLURM_JOB_SUSPENDED:
-		/* allocation is in an expected state */
-		break;
-	    case SLURM_JOB_PENDING:
-	    case SLURM_JOB_COMPLETE:
-	    case SLURM_JOB_CANCELLED:
-	    case SLURM_JOB_FAILED:
-	    case SLURM_JOB_TIMEOUT:
-	    case SLURM_JOB_NODE_FAIL:
-	    case SLURM_JOB_PREEMPTED:
-	    case SLURM_JOB_BOOT_FAIL:
-	    case SLURM_JOB_DEADLINE:
-	    case SLURM_JOB_OOM:
-	    case SLURM_JOB_END:
-		flog("deleting allocation %u job state %u\n", rec->jobid,
-		     rec->jobState & JOB_STATE_BASE);
-		send_PS_AllocTerm(alloc);
-		break;
+	case SLURM_JOB_RUNNING:
+	case SLURM_JOB_SUSPENDED:
+	    /* allocation is in an expected state */
+	    break;
+	case SLURM_JOB_PENDING:
+	case SLURM_JOB_COMPLETE:
+	case SLURM_JOB_CANCELLED:
+	case SLURM_JOB_FAILED:
+	case SLURM_JOB_TIMEOUT:
+	case SLURM_JOB_NODE_FAIL:
+	case SLURM_JOB_PREEMPTED:
+	case SLURM_JOB_BOOT_FAIL:
+	case SLURM_JOB_DEADLINE:
+	case SLURM_JOB_OOM:
+	case SLURM_JOB_END:
+	    flog("deleting allocation %u job state %u\n", rec->jobid,
+		 rec->jobState & JOB_STATE_BASE);
+	    send_PS_AllocTerm(alloc);
+	    break;
 	}
     }
 

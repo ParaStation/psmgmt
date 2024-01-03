@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2023 ParTec AG, Munich
+ * Copyright (C) 2023-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -315,83 +315,82 @@ bool __freeUnpackMsgData(Slurm_Msg_t *sMsg, const char *caller, const int line)
     if (!sMsg->unpData) return true;
 
     switch (sMsg->head.type) {
-	case REQUEST_LAUNCH_PROLOG:
-	    freeReqLaunchProlog(sMsg);
-	    break;
-	case REQUEST_JOB_STEP_STAT:
-	case REQUEST_JOB_STEP_PIDS:
-	    freeStepHead(sMsg);
-	    break;
-	case REQUEST_LAUNCH_TASKS:
-	    freeReqLaunchTasks(sMsg);
-	    break;
-	case REQUEST_BATCH_JOB_LAUNCH:
-	    freeReqBatchJobLaunch(sMsg);
-	    break;
-	case REQUEST_SIGNAL_TASKS:
-	case REQUEST_TERMINATE_TASKS:
-	    freeReqSignalTasks(sMsg);
-	    break;
-	case REQUEST_REATTACH_TASKS:
-	    freeReqReattachTasks(sMsg);
-	    break;
-	case REQUEST_KILL_PREEMPTED:
-	case REQUEST_KILL_TIMELIMIT:
-	case REQUEST_ABORT_JOB:
-	case REQUEST_TERMINATE_JOB:
-	    freeReqTermJob(sMsg);
-	    break;
-	case REQUEST_SUSPEND_INT:
-	    freeReqSuspendInt(sMsg);
-	    break;
-	case REQUEST_RECONFIGURE_WITH_CONFIG:
-	case RESPONSE_CONFIG:
-	    freeSlurmConfigMsg(sMsg);
-	    break;
-	case REQUEST_FILE_BCAST:
-	    freeReqFileBCast(sMsg);
-	    break;
-	case REQUEST_JOB_NOTIFY:
-	    freeReqJobNotify(sMsg);
-	    break;
-	case RESPONSE_NODE_REGISTRATION:
-	    freeRespNodeReg(sMsg);
-	    break;
-	case RESPONSE_JOB_INFO:
-	    freeRespJobInfo(sMsg);
-	    break;
-	case REQUEST_JOB_ID:
-	    freeReqJobID(sMsg);
-	    break;
-	case REQUEST_REBOOT_NODES:
-	    freeReqRebootNodes(sMsg);
-	    break;
-	    /* no unpacked data to free */
-	case REQUEST_COMPLETE_BATCH_SCRIPT:
-	case REQUEST_UPDATE_JOB_TIME:
-	case REQUEST_SHUTDOWN:
-	case REQUEST_RECONFIGURE:
-	case REQUEST_NODE_REGISTRATION_STATUS:
-	case REQUEST_PING:
-	case REQUEST_HEALTH_CHECK:
-	case REQUEST_ACCT_GATHER_UPDATE:
-	case REQUEST_ACCT_GATHER_ENERGY:
-	case REQUEST_STEP_COMPLETE:
-	case REQUEST_STEP_COMPLETE_AGGR:
-	case REQUEST_DAEMON_STATUS:
-	case REQUEST_FORWARD_DATA:
-	case REQUEST_NETWORK_CALLERID:
-	case MESSAGE_COMPOSITE:
-	case RESPONSE_MESSAGE_COMPOSITE:
-	case RESPONSE_SLURM_RC:
-	    flog("error: message %s from %s:%i should not have any data to "
-		 "cleanup\n", msgType2String(sMsg->head.type), caller, line);
-	    return false;
-	default:
-	    flog("error: cleanup function for message %s not found, "
-		 "caller: %s:%i\n", msgType2String(sMsg->head.type), caller,
-		 line);
-	    return false;
+    case REQUEST_LAUNCH_PROLOG:
+	freeReqLaunchProlog(sMsg);
+	break;
+    case REQUEST_JOB_STEP_STAT:
+    case REQUEST_JOB_STEP_PIDS:
+	freeStepHead(sMsg);
+	break;
+    case REQUEST_LAUNCH_TASKS:
+	freeReqLaunchTasks(sMsg);
+	break;
+    case REQUEST_BATCH_JOB_LAUNCH:
+	freeReqBatchJobLaunch(sMsg);
+	break;
+    case REQUEST_SIGNAL_TASKS:
+    case REQUEST_TERMINATE_TASKS:
+	freeReqSignalTasks(sMsg);
+	break;
+    case REQUEST_REATTACH_TASKS:
+	freeReqReattachTasks(sMsg);
+	break;
+    case REQUEST_KILL_PREEMPTED:
+    case REQUEST_KILL_TIMELIMIT:
+    case REQUEST_ABORT_JOB:
+    case REQUEST_TERMINATE_JOB:
+	freeReqTermJob(sMsg);
+	break;
+    case REQUEST_SUSPEND_INT:
+	freeReqSuspendInt(sMsg);
+	break;
+    case REQUEST_RECONFIGURE_WITH_CONFIG:
+    case RESPONSE_CONFIG:
+	freeSlurmConfigMsg(sMsg);
+	break;
+    case REQUEST_FILE_BCAST:
+	freeReqFileBCast(sMsg);
+	break;
+    case REQUEST_JOB_NOTIFY:
+	freeReqJobNotify(sMsg);
+	break;
+    case RESPONSE_NODE_REGISTRATION:
+	freeRespNodeReg(sMsg);
+	break;
+    case RESPONSE_JOB_INFO:
+	freeRespJobInfo(sMsg);
+	break;
+    case REQUEST_JOB_ID:
+	freeReqJobID(sMsg);
+	break;
+    case REQUEST_REBOOT_NODES:
+	freeReqRebootNodes(sMsg);
+	break;
+	/* no unpacked data to free */
+    case REQUEST_COMPLETE_BATCH_SCRIPT:
+    case REQUEST_UPDATE_JOB_TIME:
+    case REQUEST_SHUTDOWN:
+    case REQUEST_RECONFIGURE:
+    case REQUEST_NODE_REGISTRATION_STATUS:
+    case REQUEST_PING:
+    case REQUEST_HEALTH_CHECK:
+    case REQUEST_ACCT_GATHER_UPDATE:
+    case REQUEST_ACCT_GATHER_ENERGY:
+    case REQUEST_STEP_COMPLETE:
+    case REQUEST_STEP_COMPLETE_AGGR:
+    case REQUEST_DAEMON_STATUS:
+    case REQUEST_FORWARD_DATA:
+    case REQUEST_NETWORK_CALLERID:
+    case MESSAGE_COMPOSITE:
+    case RESPONSE_MESSAGE_COMPOSITE:
+    case RESPONSE_SLURM_RC:
+	flog("error: unexpected data in %s, caller %s:%i\n",
+	     msgType2String(sMsg->head.type), caller, line);
+	return false;
+    default:
+	flog("error: no cleanup function for %s, caller: %s:%i\n",
+	     msgType2String(sMsg->head.type), caller, line);
+	return false;
     }
 
     if (sMsg->unpData) {
