@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -595,7 +595,7 @@ static int handleChildOE(int fd, void *info)
     /* Add data chunk including its length mimicking addString */
     uint32_t len = htonl(PSP_strLen(buf));
     PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
-    PSP_putTypedMsgBuf(&msg, "data", buf, size);
+    PSP_putTypedMsgBuf(&msg, "data", buf, PSP_strLen(buf));
 
     sendMsgToMother(&msg);
 
