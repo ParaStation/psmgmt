@@ -151,9 +151,11 @@ It works standalone or together with psslurm.
 Summary:   Utilities improving Slurm support (spank, psslurmgetbind, etc.)
 Group:     Productivity/Clustering/Computing
 Obsoletes: %{name}-spank <= 5.1.35-0
+%if !0%{?disable_spank}
 %global Slurm_min %(pkg-config --modversion slurm | awk -F "." '{ print $1"."$2".0" }')
 %global Slurm_next %(pkg-config --modversion slurm | awk -F "." '{ print $1"."$2+1".0" }')
 Conflicts: slurm < %{Slurm_min}, slurm >= %{Slurm_next}
+%endif
 
 %description slurmutils
 Utilities helping to improve Slurm support. This includes spank plugins

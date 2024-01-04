@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2003 ParTec AG, Karlsruhe
 # Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2023 ParTec AG, Munich
+# Copyright (C) 2023-2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -53,7 +53,8 @@ $(DISTNAME).tar.gz: $(patsubst %,$(DISTNAME)/%,$(SOURCE_FILES)) \
 	tar --owner=0 --group=0 -czf $@ $(DISTNAME)
 
 $(DISTNAME).src.rpm: $(DISTNAME)/$(DISTNAME).spec $(DISTNAME).tar.gz
-	rpmbuild -bs --define="_sourcedir $$PWD" --define="_srcrpmdir $$PWD" $<
+	rpmbuild -bs --define="_sourcedir $$PWD" --define="_srcrpmdir $$PWD" \
+		$(CONFIGARGS) $<
 
 # $(RPMBUILDLOG) as the target because we know the filename in
 # contrast to the rpm filename
