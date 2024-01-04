@@ -993,10 +993,11 @@ static inline bool verifyDataBuf(PS_DataBuffer_t *data, size_t size,
     }
 
     size_t toread = (addTypeInfo && typeInfo) ? sizeof(uint8_t) + size : size;
-    if ((data->unpackPtr - data->buf) + toread > data->used) {
+    size_t avail = data->used - (data->unpackPtr - data->buf);
+    if (toread > avail) {
 	data->unpackErr = E_PSSERIAL_INSUF;
-	PSC_log(-1, "%s(%s@%d): %s\n", __func__, caller, line,
-		serialStrErr(data->unpackErr));
+	PSC_log(-1, "%s(%s@%d): %s (%zu < %zu)\n", __func__, caller, line,
+		serialStrErr(data->unpackErr), avail, toread);
 	return false;
     }
     return true;
