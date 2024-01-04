@@ -59,16 +59,15 @@ static bool handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     initPSDataBuffer(&data, msg->buf,
 		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf));
 
-    char *io;
     switch (msg->type) {
     case PLGN_STDOUT:
-	io = getStringM(&data);
+	; char *io = getStringM(&data);
 	script->func(io);
 	ufree(io);
 	break;
     case PLGN_STDERR:
 	io = getStringM(&data);
-	flog("error from %s script: %s\n", fwdata->pTitle, io);
+	flog("error from %s script: %s\n", fwdata->pTitle, io ? io : "<null>");
 	ufree(io);
 	break;
     default:

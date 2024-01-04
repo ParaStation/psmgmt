@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -94,9 +94,8 @@ static void updatePower(uint64_t power)
 static void parseEnergy(char *data)
 {
     unsigned long long power, energy;
-
-    if (sscanf(data, "power:%llu energy:%llu", &power, &energy) != 2) {
-	flog("parsing energy data '%s' from script failed\n", data);
+    if (!data || sscanf(data, "power:%llu energy:%llu", &power, &energy) != 2) {
+	flog("cannot parse energy data '%s'\n", data ? data : "<null>");
 	return;
     }
 

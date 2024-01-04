@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -41,10 +41,10 @@ static void parseFilesys(char *data)
     static bool isInit = false;
     psAccountFS_t new;
 
-    if (sscanf(data, "readBytes:%lu writeBytes:%lu numReads:%lu "
-	       "numWrites:%lu", &new.readBytes, &new.writeBytes,
-	       &new.numReads, &new.numWrites) != 4) {
-	flog("parsing filesystem data '%s' from script failed\n", data);
+    if (!data || sscanf(data, "readBytes:%lu writeBytes:%lu numReads:%lu "
+			"numWrites:%lu", &new.readBytes, &new.writeBytes,
+			&new.numReads, &new.numWrites) != 4) {
+	flog("cannot parse filesystem data '%s'\n", data ? data : "<null>");
 	return;
     }
     new.lastUpdate = time(NULL);

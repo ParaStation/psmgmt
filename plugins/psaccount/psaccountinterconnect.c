@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -41,10 +41,10 @@ static void parseInterconn(char *data)
     static bool isInit = false;
     psAccountIC_t new;
 
-    if (sscanf(data, "RcvData:%lu RcvPkts:%lu Select:%hi XmitData:%lu "
-	       "XmitPkts:%lu", &new.recvBytes, &new.recvPkts,
-	       &new.port, &new.sendBytes, &new.sendPkts) != 5) {
-	flog("parsing interconnect data '%s' from script failed\n",data);
+    if (!data || sscanf(data, "RcvData:%lu RcvPkts:%lu Select:%hi XmitData:%lu "
+			"XmitPkts:%lu", &new.recvBytes, &new.recvPkts,
+			&new.port, &new.sendBytes, &new.sendPkts) != 5) {
+	flog("cannot parsing interconnect data '%s'\n",data ? data : "<null>");
 	return;
     }
     new.lastUpdate = time(NULL);
