@@ -835,7 +835,8 @@ static void statPID(pid_t pid)
  */
 static void execForwarder(PStask_t *task)
 {
-    int stdinfds[2], stdoutfds[2], stderrfds[2], controlfds[2] = {-1, -1};
+    int stdinfds[2] = {-1, -1}, stdoutfds[2] = {-1, -1};
+    int stderrfds[2] = {-1, -1}, controlfds[2] = {-1, -1};
     int eno = 0;
     char *envStr;
     struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 }, stv;
