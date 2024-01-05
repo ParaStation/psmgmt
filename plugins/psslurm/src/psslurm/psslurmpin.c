@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1713,7 +1713,7 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
     if (map_gpu) {
 	size_t count;
 	long *maparray = parseMapString(map_gpu, &count, 0);
-	if (!maparray) {
+	if (!maparray || !count) {
 	    flog("invalid map_gpu string '%s'\n", map_gpu);
 	    uprintf("Invalid GPU map string '%s'\n", map_gpu);
 	    return -1;
