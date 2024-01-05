@@ -770,7 +770,7 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
 bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 			 const char *caller, const int line)
 {
-    if (!sMsg | !sMsg->data) {
+    if (!sMsg || !sMsg->data) {
 	flog("invalid sMsg from '%s' at %i\n", caller, line);
 	return false;
     }
