@@ -236,7 +236,8 @@ bool writeJobscript(Job_t *job)
     ret = true;
 
 CLEANUP:
-    fclose(fp);
+    if (fp) fclose(fp);
+
     strShred(job->jsData);
     job->jsData = NULL;
 
