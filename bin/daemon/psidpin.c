@@ -190,7 +190,7 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 	NULL
     };
 
-    char *typename = "unknown";
+    char *typename;
     uint16_t numDevs = 0;
     char *usable = NULL;
     char **variables = NULL;
@@ -595,7 +595,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
 			  PSIDpin_devType_t type)
 {
     uint16_t numDevs;
-    char *typename = "unknown";
+    char *typename;
     PSCPU_set_t *devsets = NULL;
     switch(type) {
     case PSPIN_DEV_TYPE_GPU:
