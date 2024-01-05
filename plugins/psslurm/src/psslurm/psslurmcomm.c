@@ -1867,6 +1867,10 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
     IO_Slurm_Header_t ioh;
 
     if (sock < 0) return -1;
+    if (!buf) {
+	flog("invalid buffer (null)\n");
+	return -1;
+    }
 
     if (iohead->len > 0) {
 	fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,

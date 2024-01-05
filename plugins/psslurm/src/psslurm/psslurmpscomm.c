@@ -1967,6 +1967,10 @@ static Step_t * identifyStepByTaskEnv(PStask_t *task,
 	flog("no task\n");
 	return NULL;
     }
+    if (!jobID || !stepID) {
+	flog("no jobID or stepID\n");
+	return NULL;
+    }
 
     /* check if step was identified before */
     Step_t *step = PStask_infoGet(task, TASKINFO_STEP);
