@@ -924,10 +924,11 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
 	for (size_t i = 0; gpu_variables[i]; i++) {
 	    snprintf(name, sizeof(name), "%s%s", prefix, gpu_variables[i]);
-	    if (getenv(gpu_variables[i]) && getenv(name)
-			&& !strcmp(getenv(name), getenv(gpu_variables[i]))) {
+	    char *gpuVar = getenv(gpu_variables[i]);
+	    char *nameVar = getenv(name);
+	    if (gpuVar && nameVar && !strcmp(nameVar, gpuVar)) {
 		/* variable not changed by the user */
-		unsetenv(gpu_variables[i]);
+		unsetenv(gpuVar);
 	    }
 
 	    /* automation detection is no longer needed */
@@ -983,14 +984,14 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
     char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
     for (size_t i = 0; gpu_variables[i]; i++) {
 	snprintf(name, sizeof(name), "%s%s", prefix, gpu_variables[i]);
-	if (!getenv(gpu_variables[i])
-		|| (getenv(name)
-		    && !strcmp(getenv(name), getenv(gpu_variables[i])))) {
+	char *gpuVar = getenv(gpu_variables[i]);
+	char *nameVar = getenv(name);
+	if (!gpuVar || (nameVar && !strcmp(nameVar, gpuVar))) {
 	    /* variable is not set at all
 	     * or it had been set automatically and not changed in the meantime,
 	     * so set it */
 #ifndef __clang_analyzer__
-	    setenv(gpu_variables[i], getenv("PSSLURM_BIND_GPUS"), 1);
+	    setenv(gpuVar, getenv("PSSLURM_BIND_GPUS"), 1);
 #endif
 	}
 

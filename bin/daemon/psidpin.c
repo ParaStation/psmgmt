@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -262,9 +262,9 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
     char name[1024];
     for (size_t i = 0; variables[i]; i++) {
 	snprintf(name, sizeof(name), "%s%s", prefix, variables[i]);
-	if (!getenv(variables[i])
-		|| (getenv(name)
-		    && !strcmp(getenv(name), getenv(variables[i])))) {
+	char *gpuVar = getenv(variables[i]);
+        char *nameVar = getenv(name);
+	if (!gpuVar || (nameVar && !strcmp(nameVar, gpuVar))) {
 	    /* variable is not set at all
 	     * or it had been set automatically and not changed in the meantime,
 	     * so set it and add/renew the auto set detection variable */
