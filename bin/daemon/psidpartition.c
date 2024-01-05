@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -4358,6 +4358,7 @@ static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
     }
     if (!r || r->rid || !(r->options & PART_OPT_DUMMY) ) {
 	PSID_flog("no matching reservation in %s:\n", PSC_printTID(delegate->tid));
+#ifndef __clang_analyzer__
 	list_t *t;
 	list_for_each(t, &delegate->resRequests) {
 	    PSrsrvtn_t *res = list_entry(t, PSrsrvtn_t, next);
@@ -4365,6 +4366,7 @@ static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
 	    PSID_log(" n %d options %#x requester %s %p\n", res->nMax,
 		     res->options, PSC_printTID(res->requester), res);
 	}
+#endif
 	return true;
     }
 

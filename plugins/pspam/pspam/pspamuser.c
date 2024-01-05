@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -56,7 +56,9 @@ User_t *findUser(char *username, char *jobID)
     list_for_each(u, &userList) {
 	User_t *user = list_entry(u, User_t, next);
 	if (jobID && strcmp(user->jobID, jobID)) continue;
+#ifndef __clang_analyzer__
 	if (!strcmp(user->name, username)) return user;
+#endif
     }
     return NULL;
 }

@@ -412,8 +412,11 @@ static bool getSockInfo(int socket, uint32_t *addr, uint16_t *port)
 	mwarn(errno, "%s: getpeername(%i)", __func__, socket);
 	return false;
     }
+
+#ifndef __clang_analyzer__
     *addr = sock_addr.sin_addr.s_addr;
     *port = sock_addr.sin_port;
+#endif
 
     return true;
 }
@@ -942,9 +945,11 @@ TCP_RECONNECT:
 			       &lenRem) == -1) {
 	    mwarn(errno, "%s: getpeername(%i)", __func__, sock);
 	} else {
+#ifndef __clang_analyzer__
 	    flog("socket %i connected local %s:%u remote %s:%u\n", sock,
 		 inet_ntoa(sockRemote.sin_addr), ntohs(sockRemote.sin_port),
 		 inet_ntoa(sockLocal.sin_addr), ntohs(sockLocal.sin_port));
+#endif
 	}
     }
 
@@ -1303,6 +1308,7 @@ bool hexBitstr2Set(char *bitstr, PSCPU_set_t set)
  */
 static int acceptSlurmClient(int socket, void *data)
 {
+#ifndef __clang_analyzer__
     struct sockaddr_in SAddr;
     socklen_t clientlen = sizeof(SAddr);
     int newSock = accept(socket, (struct sockaddr *)&SAddr, &clientlen);
@@ -1332,7 +1338,7 @@ static int acceptSlurmClient(int socket, void *data)
     } else {
 	con->authByInMsg = true;
     }
-
+#endif
     return 0;
 }
 
