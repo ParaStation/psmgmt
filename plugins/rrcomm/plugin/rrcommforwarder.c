@@ -110,7 +110,7 @@ static int hookExecForwarder(void *data)
 
     /* setup common header from proto-task information */
     PStask_t *client = (PStask_t *)data;
-    clntHdr.sender = client->rank;
+    clntHdr.sender = client->jobRank;
     clntHdr.loggerTID = client->loggertid;
     clntHdr.spawnerTID = client->spawnertid;
 

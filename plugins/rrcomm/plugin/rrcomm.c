@@ -152,7 +152,7 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
     list_t *t;
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
-	if (task->rank != hdr->dest || task->loggertid != hdr->loggerTID
+	if (task->jobRank != hdr->dest || task->loggertid != hdr->loggerTID
 	    || task->spawnertid != hdr->destJob) continue;
 	if (!task->forwarder || task->deleted) continue;
 	msg->header.dest = task->forwarder->tid;
