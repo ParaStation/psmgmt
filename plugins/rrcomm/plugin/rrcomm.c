@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -116,15 +116,21 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 	    return PSID_dropMsg((DDBufferMsg_t *)msg);
 	}
 
+	fdbg(RRCOMM_LOG_VERBOSE, "lookup rank %d\n", hdr->dest);
 	list_t *r;
 	list_for_each(r, &job->resInfos) {
 	    PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
 	    bool found = false;
+	    fdbg(RRCOMM_LOG_VERBOSE, "res %d min %d max %d offset %d\n",
+		 res->resID, res->minRank, res->maxRank, res->rankOffset);
 	    if (hdr->dest < res->minRank || hdr->dest > res->maxRank) continue;
 	    for (uint32_t e = 0; e < res->nEntries; e++) {
+		fdbg(RRCOMM_LOG_VERBOSE, "  entry %d first %d last %d\n",
+		     e, res->entries[e].firstRank, res->entries[e].lastRank);
 		if (hdr->dest < res->entries[e].firstRank
 		    || hdr->dest > res->entries[e].lastRank) continue;
 		if (ineptNode(res->entries[e].node)) {
+		    flog("inept node %d\n", res->entries[e].node);
 		    return PSID_dropMsg((DDBufferMsg_t *)msg);
 		}
 		msg->header.dest = PSC_getTID(res->entries[e].node, 0);
@@ -161,6 +167,7 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 	    return true;
     }
 
+    flog("no destination for (%d|%d) -> drop\n", hdr->destJob, hdr->dest);
     return PSID_dropMsg((DDBufferMsg_t *)msg);
 }
 
