@@ -77,6 +77,10 @@ static int closeListenSock(void)
  */
 static int hookExecForwarder(void *data)
 {
+    PStask_t *task = data;
+    /* no RRComm in service processes */
+    if (task && (task->rank < 0 || task->group != TG_ANY)) return 0;
+
     listenSock = socket(PF_UNIX, SOCK_STREAM, 0);
     if (listenSock < 0) {
 	mwarn(errno, "%s: socket()", __func__);
@@ -704,6 +708,9 @@ static int hookFrwrdSetup(void *data)
  */
 static int hookFrwrdInit(void *data)
 {
+    /* there might no listening sock due to no RRComm in service processes */
+    if (listenSock == -1) return 0;
+
     /* register the listening socket */
     if (Selector_register(listenSock, acceptNewClient, NULL) != 0) {
 	PSIDfwd_printMsgf(STDERR, "failed to register selector\n");
