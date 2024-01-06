@@ -337,7 +337,8 @@ static bool sendErrorMsg(PSIDmsgbuf_t *blob)
     getInt32(&data, &msgHdr.sender);
     msgHdr.destJob = clntHdr.spawnerTID;
     msgHdr.spawnerTID = clntHdr.spawnerTID; // assume the message was job local
-    if (clntVer > 1) getTaskId(&data, &msgHdr.spawnerTID);
+    // unless we know better
+    if (clntVer > 1 || !clntVer) getTaskId(&data, &msgHdr.spawnerTID);
     setByteOrder(byteOrder);
 
     /* send RRCOMM_ERROR to sender */
@@ -595,7 +596,8 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     addUint8ToMsg(RRCOMM_DATA, &data);
     addUint32ToMsg(rData->used, &data);
     addInt32ToMsg(hdr->sender, &data);
-    if (clntVer > 1) addTaskIdToMsg(hdr->spawnerTID, &data);
+    // Assume client will support protocol version 2 */
+    if (clntVer > 1 || !clntVer) addTaskIdToMsg(hdr->spawnerTID, &data);
     setByteOrder(byteOrder);
 
     if (sendToClient(data.buf, data.bufUsed) < 0) {
@@ -627,7 +629,8 @@ static void handleRRCommError(DDTypedBufferMsg_t *msg)
     bool byteOrder = setByteOrder(false); // libRRC does not use byteorder
     addUint8ToMsg(RRCOMM_ERROR, &data);
     addInt32ToMsg(hdr.dest, &data);
-    if (clntVer > 1) addTaskIdToMsg(hdr.destJob, &data);
+    // Assume client will support protocol version 2 */
+    if (clntVer > 1 || !clntVer) addTaskIdToMsg(hdr.destJob, &data);
     setByteOrder(byteOrder);
 
     if (sendToClient(data.buf, data.bufUsed) < 0) {
