@@ -263,7 +263,7 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
     for (size_t i = 0; variables[i]; i++) {
 	snprintf(name, sizeof(name), "%s%s", prefix, variables[i]);
 	char *gpuVar = getenv(variables[i]);
-        char *nameVar = getenv(name);
+	char *nameVar = getenv(name);
 	if (!gpuVar || (nameVar && !strcmp(nameVar, gpuVar))) {
 	    /* variable is not set at all
 	     * or it had been set automatically and not changed in the meantime,
