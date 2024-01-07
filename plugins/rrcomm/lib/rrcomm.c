@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -57,8 +57,6 @@ static ssize_t closeFrwdSock(ssize_t ret)
 
 int RRC_init(void)
 {
-    PSC_initLog(stderr);
-
     char *envStr = getenv(RRCOMM_SOCKET_ENV);
     if (!envStr) {
 	errno = EBADR;
@@ -69,6 +67,8 @@ int RRC_init(void)
 	errno = EALREADY;
 	return -1;
     }
+
+    if (!PSC_logInitialized()) PSC_initLog(stderr);
 
     frwdSocket = socket(PF_UNIX, SOCK_STREAM, 0);
     if (frwdSocket < 0) return -1;
