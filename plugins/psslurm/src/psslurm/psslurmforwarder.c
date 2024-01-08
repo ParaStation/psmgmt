@@ -77,7 +77,6 @@
 #include "psslurmtasks.h"
 #include "slurmcommon.h"
 #include "slurmerrno.h"
-#include "psslurmfwcomm.h"
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
 #endif
