@@ -599,10 +599,13 @@ void clearFwMsgQueue(list_t *queue)
     }
 }
 
-static void saveFwMsg(list_t *queue, char *msg, uint32_t msgLen,
-		      uint8_t type, int32_t rank)
+void queueFwMsg(list_t *queue, char *msg, uint32_t msgLen,
+		uint8_t type, int32_t rank)
 {
-    if (!queue || !msg) return;
+    if (!queue || !msg) {
+	flog("invalid queue or message\n");
+	return;
+    }
 
     FwUserMsgBuf_t *buf = umalloc(sizeof *buf);
     buf->msg = ustrdup(msg);
@@ -634,7 +637,7 @@ int fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 	/* might happen that forwarder is already gone or has not been
 	 * started yet */
 	list_t *queue = job ? &job->fwMsgQueue : &step->fwMsgQueue;
-	saveFwMsg(queue, plMsg, msgLen, type, rank);
+	queueFwMsg(queue, plMsg, msgLen, type, rank);
 	return 1;
     }
 

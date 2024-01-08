@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -77,6 +77,7 @@
 #include "psslurmtasks.h"
 #include "slurmcommon.h"
 #include "slurmerrno.h"
+#include "psslurmfwcomm.h"
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
 #endif
@@ -276,15 +277,26 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     if (step->state == JOB_PRESTART) {
 	/* spawn failed */
-	if (fw->codeRcvd && fw->hookExitCode == - ESCRIPT_CHDIR_FAILED) {
-	    sendSlurmRC(&step->srunControlMsg, ESCRIPT_CHDIR_FAILED);
-	} else {
-	    uint32_t rc = step->termAfterFWmsg != NO_VAL ?
-			  step->termAfterFWmsg : (uint32_t) SLURM_ERROR;
-	    sendSlurmRC(&step->srunControlMsg, rc);
+	uint32_t rc = (uint32_t) SLURM_ERROR;
+
+	if (fw->codeRcvd) {
+	    switch (fw->hookExitCode) {
+	    case -ESCRIPT_CHDIR_FAILED:
+		rc = ESCRIPT_CHDIR_FAILED;
+		break;
+	    case -ESLURMD_EXECVE_FAILED:
+		rc = ESLURMD_EXECVE_FAILED;
+		break;
+	    }
 	}
+
+	if (rc == (uint32_t) SLURM_ERROR && step->termAfterFWmsg != NO_VAL) {
+	    rc = step->termAfterFWmsg;
+	}
+
+	sendSlurmRC(&step->srunControlMsg, rc);
     } else if (step->state == JOB_SPAWNED) {
-	sendLaunchTasksFailed(step, ALL_NODES, SLURM_ERROR);
+	sendLaunchTasksFailed(step, ALL_NODES, ESLURMD_EXECVE_FAILED);
     } else {
 	/* send task exit to srun processes */
 	sendTaskExit(step, NULL, NULL);
@@ -1161,7 +1173,23 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     if (step->cwd && chdir(step->cwd) == -1) {
 	mwarn(errno, "%s: chdir(%s) for uid %u gid %u", __func__,
 	      step->cwd, step->uid, step->gid);
-	return - ESCRIPT_CHDIR_FAILED;
+	if (slurmProto < SLURM_23_02_PROTO_VERSION) {
+	    return - ESCRIPT_CHDIR_FAILED;
+	}
+
+	char buf[512];
+	snprintf(buf, sizeof(buf), "psslurm: chdir(%s) failed: %s, "
+		 "using /tmp\n", step->cwd, strerror(errno));
+	queueFwMsg(&step->fwMsgQueue, buf, strlen(buf), STDERR, 0);
+
+	if (chdir("/tmp") == -1) {
+	    mwarn(errno, "%s: chdir(/tmp) for uid %u gid %u", __func__,
+		  step->uid, step->gid);
+	    return - ESLURMD_EXECVE_FAILED;
+	}
+
+	ufree(step->cwd);
+	step->cwd = ustrdup("/tmp");
     }
 
     /* redirect stdout/stderr/stdin */

@@ -156,6 +156,7 @@ typedef enum {
 	ESLURMD_STEP_NOTSUSPENDED,
 
 	/* slurmd errors in user batch job */
+	/* tbr with support of 22.05 protocol */
 	ESCRIPT_CHDIR_FAILED =			4100,
 	ESCRIPT_OPEN_OUTPUT_FAILED,
 	ESCRIPT_NON_ZERO_RETURN,

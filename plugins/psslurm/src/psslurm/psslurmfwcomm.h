@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -96,6 +96,22 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *msg, int32_t rank);
  * @param queue The queue to clear
  */
 void clearFwMsgQueue(list_t *queue);
+
+/**
+ * @brief Queue a message to be processed after I/O channels are established
+ *
+ * @param queue The queue to use (usually from job or step structure)
+ *
+ * @param msg The message to queue
+ *
+ * @param msgLen The length of the message
+ *
+ * @param type The message type (stdout or stderr)
+ *
+ * @param rank The rank of the message origin (only used for a step)
+ */
+void queueFwMsg(list_t *queue, char *msg, uint32_t msgLen,
+		uint8_t type, int32_t rank);
 
 /**
  * @brief Send CMD_PRINT_CHILD_MSG to a forwarder
