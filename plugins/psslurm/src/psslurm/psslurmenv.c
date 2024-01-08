@@ -990,9 +990,12 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    /* variable is not set at all
 	     * or it had been set automatically and not changed in the meantime,
 	     * so set it */
-#ifndef __clang_analyzer__
-	    setenv(gpuVar, getenv("PSSLURM_BIND_GPUS"), 1);
-#endif
+	    gpuVar = getenv("PSSLURM_BIND_GPUS");
+	    if (!gpuVar) {
+		flog("expected PSSLURM_BIND_GPUS not found\n");
+		return;
+	    }
+	    setenv(gpu_variables[i], gpuVar, 1);
 	}
 
 	/* automation detection is no longer needed */
