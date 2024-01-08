@@ -79,7 +79,7 @@ static int hookExecForwarder(void *data)
 {
     PStask_t *client = data;
     /* no RRComm in service processes */
-    if (client && (client->rank < 0 || client->group != TG_ANY)) return 0;
+    if (!client || client->rank < 0 || client->group != TG_ANY) return 0;
 
     listenSock = socket(PF_UNIX, SOCK_STREAM, 0);
     if (listenSock < 0) {
