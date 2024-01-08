@@ -1967,10 +1967,6 @@ static Step_t * identifyStepByTaskEnv(PStask_t *task,
 	flog("no task\n");
 	return NULL;
     }
-    if (!jobID || !stepID) {
-	flog("no jobID or stepID\n");
-	return NULL;
-    }
 
     /* check if step was identified before */
     Step_t *step = PStask_infoGet(task, TASKINFO_STEP);
@@ -1979,7 +1975,7 @@ static Step_t * identifyStepByTaskEnv(PStask_t *task,
 	if (step) {
 	    /* cache for further calls */
 	    PStask_infoAdd(task, TASKINFO_STEP, step);
-	} else if (*stepID != SLURM_BATCH_SCRIPT
+	} else if (stepID && *stepID != SLURM_BATCH_SCRIPT
 		   && !isPSAdminUser(task->uid, task->gid)) {
 	    /* admin users may start jobs directly via mpiexec */
 	    flog("insufficient info in task %s\n", PSC_printTID(task->tid));
