@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2023 ParTec AG, Munich
+ * Copyright (C) 2023-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -80,7 +80,7 @@ void updateAddrCache(PStask_ID_t jobID, int32_t rank, PStask_ID_t taskID)
 	thisC->addrCache = tmp;
 	thisC->size = newSize;
     }
-    thisC->addrCache[rank] = taskID;
+    if (rank >= 0) thisC->addrCache[rank] = taskID;
 }
 
 PStask_ID_t getAddrFromCache(PStask_ID_t jobID, int32_t rank)
