@@ -928,7 +928,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    char *nameVar = getenv(name);
 	    if (gpuVar && nameVar && !strcmp(nameVar, gpuVar)) {
 		/* variable not changed by the user */
-		unsetenv(gpuVar);
+		unsetenv(gpu_variables[i]);
 	    }
 
 	    /* automation detection is no longer needed */
