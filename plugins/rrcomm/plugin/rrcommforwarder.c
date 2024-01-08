@@ -77,9 +77,9 @@ static int closeListenSock(void)
  */
 static int hookExecForwarder(void *data)
 {
-    PStask_t *task = data;
+    PStask_t *client = data;
     /* no RRComm in service processes */
-    if (task && (task->rank < 0 || task->group != TG_ANY)) return 0;
+    if (client && (client->rank < 0 || client->group != TG_ANY)) return 0;
 
     listenSock = socket(PF_UNIX, SOCK_STREAM, 0);
     if (listenSock < 0) {
@@ -109,7 +109,6 @@ static int hookExecForwarder(void *data)
 	 listenSock, sa.sun_path + 1);
 
     /* setup common header from proto-task information */
-    PStask_t *client = (PStask_t *)data;
     clntHdr.sender = client->jobRank;
     clntHdr.loggerTID = client->loggertid;
     clntHdr.spawnerTID = client->spawnertid;
