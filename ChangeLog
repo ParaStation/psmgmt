@@ -1,3 +1,639 @@
+Version 5.1.59:
+===============
+------------------------------------------------------------------------
+c4f960a03 | Norbert Eicker | Mon, 8 Jan 2024 19:41:55 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+734e59c54 | Michael Rauh | Mon, 8 Jan 2024 18:17:15 +0100
+
+Adopt new error behavior of Slurm 23.02 (jwt:#24558)
+
+ - use /tmp if changing to working directory failed
+ - error code ESCRIPT_CHDIR_FAILED was removed in 22.05
+------------------------------------------------------------------------
+290251c37 | Norbert Eicker | Mon, 8 Jan 2024 17:49:32 +0100
+
+Make scan-build happy
+------------------------------------------------------------------------
+0e7da8703 | Norbert Eicker | Mon, 8 Jan 2024 17:16:01 +0100
+
+Prevent unprobable out of bound read
+------------------------------------------------------------------------
+23097a478 | Norbert Eicker | Mon, 8 Jan 2024 14:53:22 +0100
+
+Unify two references to hookExecForwarder()'s data
+------------------------------------------------------------------------
+88fd25fed | Norbert Eicker | Sun, 7 Jan 2024 20:03:09 +0100
+
+Avoid unnecessary re-initialization of logger
+------------------------------------------------------------------------
+dae4265d5 | Norbert Eicker | Sun, 7 Jan 2024 17:48:00 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+112de3541 | Norbert Eicker | Sat, 6 Jan 2024 17:37:23 +0100
+
+Add spawn_rrcomm test for hierarchical use of RRComm
+------------------------------------------------------------------------
+d147178b1 | Norbert Eicker | Sat, 6 Jan 2024 17:34:19 +0100
+
+Assume to be connected client supports protocoll version 2
+
+ - Otherwise all piled up messages will be dropped (and sender informed)
+------------------------------------------------------------------------
+2aa39dcbd | Norbert Eicker | Sat, 6 Jan 2024 17:30:35 +0100
+
+RRComm acts on job ranks
+------------------------------------------------------------------------
+274f76de8 | Norbert Eicker | Sat, 6 Jan 2024 17:27:52 +0100
+
+No RRComm in service processes
+
+ - The service srun for spawn will spoil RRCOMM_SOCKET_ENV
+------------------------------------------------------------------------
+45612bc62 | Norbert Eicker | Sat, 6 Jan 2024 17:26:41 +0100
+
+Add more error and debug log to rrcomm plugin
+------------------------------------------------------------------------
+fbb7ac7ac | Norbert Eicker | Wed, 29 Nov 2023 09:58:30 +0100
+
+Add support of cross-job RRComm messages
+
+ - Push RRComm protocoll version to 2
+------------------------------------------------------------------------
+f92f05419 | Norbert Eicker | Tue, 28 Nov 2023 21:13:00 +0100
+
+Bugfix: No dropper for PSP_PLUG_RRCOMM in psidforwarder
+------------------------------------------------------------------------
+308f64fa6 | Norbert Eicker | Tue, 28 Nov 2023 14:47:33 +0100
+
+Introduce RRC_getJobID()
+------------------------------------------------------------------------
+3bbfcb519 | Norbert Eicker | Tue, 28 Nov 2023 14:38:50 +0100
+
+Introduce RRC_getVersion()
+------------------------------------------------------------------------
+c02c20a9d | Norbert Eicker | Mon, 30 Oct 2023 20:05:15 +0100
+
+Move RRComm's address cache into its own sources
+------------------------------------------------------------------------
+0502cd69e | Michael Rauh | Mon, 8 Jan 2024 11:23:07 +0100
+
+Actually fix segmentation fault
+------------------------------------------------------------------------
+3aff80ba5 | Michael Rauh | Mon, 8 Jan 2024 10:50:29 +0100
+
+Actually unset the correct environment variable
+------------------------------------------------------------------------
+95b9b4717 | Michael Rauh | Mon, 8 Jan 2024 10:48:57 +0100
+
+Fix possible segfault
+------------------------------------------------------------------------
+44a3e493a | Norbert Eicker | Sun, 7 Jan 2024 19:35:45 +0100
+
+Whitespace fix
+------------------------------------------------------------------------
+673a9baea | Michael Rauh | Fri, 5 Jan 2024 13:33:35 +0100
+
+Fix logic error unveiled by scan-build
+------------------------------------------------------------------------
+dccdfde90 | Michael Rauh | Fri, 5 Jan 2024 13:33:05 +0100
+
+Add more NULL pointer checks
+------------------------------------------------------------------------
+9ac5a6785 | Michael Rauh | Fri, 5 Jan 2024 13:31:29 +0100
+
+Avoid uninitialized argument values unveiled by scan-build
+------------------------------------------------------------------------
+858b9dd49 | Michael Rauh | Fri, 5 Jan 2024 13:30:27 +0100
+
+Remove dead initialization unveiled by scan-build
+------------------------------------------------------------------------
+40ce7c734 | Michael Rauh | Fri, 5 Jan 2024 13:29:45 +0100
+
+Avoid multiple calls to getenv() and help scan-build understand the code
+------------------------------------------------------------------------
+fa5654d07 | Michael Rauh | Fri, 5 Jan 2024 13:27:31 +0100
+
+Help scan-build understand the code
+------------------------------------------------------------------------
+535ea010c | Michael Rauh | Fri, 5 Jan 2024 13:26:18 +0100
+
+Avoid invalid call to fclose() unveiled by scan-build
+------------------------------------------------------------------------
+a1de70908 | Michael Rauh | Fri, 5 Jan 2024 13:20:31 +0100
+
+Suppress scan-build false positives
+------------------------------------------------------------------------
+38e3df6ed | Norbert Eicker | Sun, 7 Jan 2024 20:07:00 +0100
+
+Prevent memory leak when pscommon's logger is re-initialized
+------------------------------------------------------------------------
+5362323e0 | Norbert Eicker | Thu, 4 Jan 2024 17:16:51 +0100
+
+Prevent segfault when psaccount gets insufficient answer
+------------------------------------------------------------------------
+e559183df | Norbert Eicker | Thu, 4 Jan 2024 17:12:46 +0100
+
+Enhance error log
+------------------------------------------------------------------------
+2802df2d9 | Norbert Eicker | Thu, 4 Jan 2024 17:11:58 +0100
+
+Ensure pluginforwarder sends sufficient data
+------------------------------------------------------------------------
+a9ce2706d | Norbert Eicker | Thu, 4 Jan 2024 13:39:03 +0100
+
+Hide slurmutils' depenency when build w/out SPANK
+------------------------------------------------------------------------
+4a75e7bea | Norbert Eicker | Wed, 3 Jan 2024 21:00:11 +0100
+
+Ensure slurmutils is installed with matching Slurm
+
+ - SPANK API and plugins have a hardcoded version dependency
+------------------------------------------------------------------------
+91cf44981 | Norbert Eicker | Wed, 3 Jan 2024 19:31:50 +0100
+
+Relax psslurm's RPM dependency on slurmutils to Recommends
+------------------------------------------------------------------------
+6bd7a2a6b | Michael Rauh | Tue, 28 Nov 2023 17:33:21 +0100
+
+Move global SPANK API symbols to slurmutils rpm
+------------------------------------------------------------------------
+e722b7ef7 | Norbert Eicker | Wed, 3 Jan 2024 02:53:54 +0100
+
+Update build system
+------------------------------------------------------------------------
+c42bbd608 | Norbert Eicker | Wed, 3 Jan 2024 02:48:19 +0100
+
+Remove the outdated cgroup plugin (#174)
+------------------------------------------------------------------------
+f96c6d107 | Michael Rauh | Wed, 3 Jan 2024 15:09:01 +0100
+
+Add missing check in unpackReqJobID()
+------------------------------------------------------------------------
+184ea6fba | Michael Rauh | Wed, 3 Jan 2024 15:05:43 +0100
+
+Don't free the wrong structure
+------------------------------------------------------------------------
+0212c5d50 | Michael Rauh | Wed, 3 Jan 2024 15:04:09 +0100
+
+Add missing free() in freeRespNodeReg()
+------------------------------------------------------------------------
+88fd607b9 | Michael Rauh | Wed, 3 Jan 2024 14:35:55 +0100
+
+Don't omit syslog error messages
+------------------------------------------------------------------------
+662d22601 | Michael Rauh | Wed, 3 Jan 2024 14:12:33 +0100
+
+Send correct error message for handleReattachTasks()
+------------------------------------------------------------------------
+dc0b4acd4 | Norbert Eicker | Wed, 3 Jan 2024 02:07:01 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+bddccbb3f | Norbert Eicker | Wed, 3 Jan 2024 01:42:12 +0100
+
+Improve readability
+------------------------------------------------------------------------
+29ccb85a1 | Norbert Eicker | Wed, 3 Jan 2024 01:40:51 +0100
+
+Improve naming of include #define
+------------------------------------------------------------------------
+3280ef063 | Norbert Eicker | Wed, 3 Jan 2024 01:40:28 +0100
+
+Avoid goto
+------------------------------------------------------------------------
+d46979fe5 | Norbert Eicker | Wed, 3 Jan 2024 01:38:36 +0100
+
+More use of psslurm's flog()
+------------------------------------------------------------------------
+6da572509 | Norbert Eicker | Wed, 3 Jan 2024 01:17:16 +0100
+
+Bugfix: Avoid double free()
+------------------------------------------------------------------------
+0475fbdb6 | Norbert Eicker | Wed, 3 Jan 2024 01:16:12 +0100
+
+Enhance docu comment
+------------------------------------------------------------------------
+a713900cf | Norbert Eicker | Wed, 3 Jan 2024 01:15:13 +0100
+
+Hide checkPrivMsg()
+------------------------------------------------------------------------
+cb531fb95 | Norbert Eicker | Wed, 3 Jan 2024 01:13:38 +0100
+
+Streamlining
+------------------------------------------------------------------------
+9c6aedc0f | Norbert Eicker | Wed, 3 Jan 2024 01:11:30 +0100
+
+Make more use of serialStrErr()
+------------------------------------------------------------------------
+606a8bb7a | Norbert Eicker | Wed, 3 Jan 2024 01:02:36 +0100
+
+Unify indentation
+------------------------------------------------------------------------
+f49d8356a | Norbert Eicker | Tue, 2 Jan 2024 20:08:27 +0100
+
+Hide unpackReqSignalTasks() from global namespace
+------------------------------------------------------------------------
+6a645cb15 | Norbert Eicker | Tue, 2 Jan 2024 20:02:56 +0100
+
+Improve readability
+------------------------------------------------------------------------
+00f92e84f | Norbert Eicker | Tue, 2 Jan 2024 20:01:18 +0100
+
+Bugfix: Ensure all information can be fetched from blob
+------------------------------------------------------------------------
+0a66d1f80 | Norbert Eicker | Tue, 2 Jan 2024 20:00:00 +0100
+
+Ensure to ignore possible trailing garbage in buffers
+------------------------------------------------------------------------
+eb0e3cfc8 | Norbert Eicker | Tue, 2 Jan 2024 19:57:21 +0100
+
+Unify order of function arguments
+------------------------------------------------------------------------
+784b5f2ee | Norbert Eicker | Tue, 2 Jan 2024 19:56:39 +0100
+
+Streamlining
+------------------------------------------------------------------------
+6bffd15ca | Norbert Eicker | Tue, 2 Jan 2024 19:51:32 +0100
+
+Streamline
+------------------------------------------------------------------------
+ea3574b93 | Norbert Eicker | Tue, 2 Jan 2024 19:49:43 +0100
+
+Fix return type
+------------------------------------------------------------------------
+40c678ac2 | Norbert Eicker | Tue, 2 Jan 2024 19:47:51 +0100
+
+Add additional checks to avoid NULL pointer dereference
+------------------------------------------------------------------------
+bfdfc2b1b | Norbert Eicker | Tue, 2 Jan 2024 19:44:06 +0100
+
+Rework psslurm's resetConnection()
+
+ - This shall ensure that no dangling unpackPtr's will be used
+------------------------------------------------------------------------
+01dd76010 | Norbert Eicker | Tue, 2 Jan 2024 19:42:29 +0100
+
+Update and improve docu comments
+------------------------------------------------------------------------
+eee0396b8 | Michael Rauh | Thu, 28 Dec 2023 10:37:26 +0100
+
+Add more checks for unpacking Slurm messages
+------------------------------------------------------------------------
+54d4d8b0f | Michael Rauh | Wed, 27 Dec 2023 18:08:12 +0100
+
+Bugfix: prevent possible DOS in psserial (#172)
+
+ - add sanity checks to ensure unpacking from the given data buffer is save
+ - check for previous unpack errors as well as that sufficient data is left to read
+ - set meaningful error codes if unpacking fails
+------------------------------------------------------------------------
+045ec0aa2 | Michael Rauh | Wed, 27 Dec 2023 17:17:04 +0100
+
+Now use freeUnpackMsgData() in main psslurm message handler
+
+ - let the main message handler automatically free the unpacked data
+ - remove gotos of various RPC handler
+ - allow RPC handler to return Slurm RC code
+ - let the main message handler automatically send Slurm RC code
+ - introduce SLURM_NO_RC to prevent the automatic sending of a
+   Slurm RC message
+------------------------------------------------------------------------
+f286191f3 | Michael Rauh | Wed, 27 Dec 2023 17:14:24 +0100
+
+Let BCast_delete() handle NULL pointer
+------------------------------------------------------------------------
+b3463d8ae | Michael Rauh | Wed, 27 Dec 2023 17:10:59 +0100
+
+Introduce freeUnpackMsgData()
+
+ - free a unpack buffer by calling the appropriate free functions
+   determined by the Slurm message type
+ - this is analog to the unpack functions
+------------------------------------------------------------------------
+27c8fbf5b | Michael Rauh | Wed, 27 Dec 2023 11:44:17 +0100
+
+Let REQUEST_JOB_ID be handled by common psslurm pack function
+------------------------------------------------------------------------
+efac9d5cb | Michael Rauh | Thu, 21 Dec 2023 16:00:58 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+c200595e7 | Michael Rauh | Thu, 21 Dec 2023 16:00:11 +0100
+
+Introduce psslurmprototypes
+------------------------------------------------------------------------
+f3cfba476 | Michael Rauh | Thu, 21 Dec 2023 14:56:19 +0100
+
+Bugfix: set correct size for Req_Signal_Tasks_t and improve
+some other similar initialisation
+------------------------------------------------------------------------
+16596b9a8 | Michael Rauh | Wed, 20 Dec 2023 14:04:41 +0100
+
+Use PS_DataBuffer for unpacking messages using psserial functions
+------------------------------------------------------------------------
+bc5f4a539 | Michael Rauh | Wed, 3 Jan 2024 14:02:24 +0100
+
+Set correct packTaskOffset for accounting data of pack jobs
+------------------------------------------------------------------------
+677a75162 | Michael Rauh | Tue, 2 Jan 2024 13:01:31 +0100
+
+Fix parameter type for findTaskByChildTID()
+------------------------------------------------------------------------
+4aa4888ea | Norbert Eicker | Tue, 19 Dec 2023 21:29:40 +0100
+
+Fix yet another memory leak
+------------------------------------------------------------------------
+b2ac3292b | Norbert Eicker | Tue, 19 Dec 2023 21:20:40 +0100
+
+Fix various memory leaks
+------------------------------------------------------------------------
+03644a800 | Norbert Eicker | Tue, 28 Nov 2023 10:57:16 +0100
+
+Omit the now obsolete Step_findByTaskEnv()
+------------------------------------------------------------------------
+9e1a058d0 | Norbert Eicker | Tue, 28 Nov 2023 10:56:37 +0100
+
+Make use of the cached step within forwarder tasks
+------------------------------------------------------------------------
+561be01ca | Norbert Eicker | Tue, 28 Nov 2023 10:48:43 +0100
+
+Whitespace fix
+------------------------------------------------------------------------
+c41ef3bcf | Norbert Eicker | Tue, 28 Nov 2023 10:36:53 +0100
+
+Rework getJobIDbyForwarder() to identifyStepByTaskEnv()
+
+ - This will cache the identified step into the task's info list
+------------------------------------------------------------------------
+ef33e55c8 | Norbert Eicker | Tue, 28 Nov 2023 10:02:24 +0100
+
+Add step info to logger's task info list
+------------------------------------------------------------------------
+85ee6335f | Norbert Eicker | Tue, 28 Nov 2023 09:55:19 +0100
+
+Add one todo
+------------------------------------------------------------------------
+954ebe6cf | Norbert Eicker | Tue, 28 Nov 2023 09:54:32 +0100
+
+Revert loop logic
+------------------------------------------------------------------------
+a34e67adb | Norbert Eicker | Fri, 24 Nov 2023 19:01:20 +0100
+
+Simplify psslurm's addTask() interface
+------------------------------------------------------------------------
+5b6cee838 | Norbert Eicker | Wed, 22 Nov 2023 18:57:10 +0100
+
+Rework psidtask's memory cleanup
+
+ - Will init, cleanup and garbage collect info lists
+ - Use hook for cleanup instead of explicit call
+------------------------------------------------------------------------
+4df43787f | Norbert Eicker | Wed, 22 Nov 2023 10:46:42 +0100
+
+PStask_t facility needs initialization for extra info
+------------------------------------------------------------------------
+7248ddd04 | Norbert Eicker | Wed, 22 Nov 2023 10:45:04 +0100
+
+Rework PStask_t's handling of extra information (#156)
+
+ - Move from simple pointer to list of info containers
+------------------------------------------------------------------------
+dd58d80ff | Norbert Eicker | Wed, 22 Nov 2023 09:53:26 +0100
+
+Improve docu comments
+------------------------------------------------------------------------
+64b25258a | Norbert Eicker | Wed, 22 Nov 2023 09:39:56 +0100
+
+Fix typos in docu comments
+------------------------------------------------------------------------
+a3ff43ffa | Norbert Eicker | Wed, 22 Nov 2023 09:27:09 +0100
+
+Make PStask_init() and PStask_reinit() private and rename them
+------------------------------------------------------------------------
+89caa5c2c | Norbert Eicker | Tue, 21 Nov 2023 21:59:29 +0100
+
+Fix typo rendering the documentation wrong
+------------------------------------------------------------------------
+5b79bd41d | Norbert Eicker | Wed, 3 Jan 2024 03:12:40 +0100
+
+Update visible copyrights in psiadmin
+------------------------------------------------------------------------
+11db240e9 | Michael Rauh | Fri, 29 Dec 2023 12:12:41 +0100
+
+Bugfix: allow psmgmt to be built without SPANK support (#171)
+------------------------------------------------------------------------
+d5554acff | Norbert Eicker | Tue, 19 Dec 2023 20:38:46 +0100
+
+Enable compiler to detect changes of derived types
+------------------------------------------------------------------------
+2a985abf5 | Michael Rauh | Tue, 19 Dec 2023 11:18:29 +0100
+
+Fix packing of boolean for big endian
+------------------------------------------------------------------------
+e60e6da6a | Norbert Eicker | Tue, 5 Dec 2023 11:20:31 +0100
+
+More type verifying psserial functions
+------------------------------------------------------------------------
+37280fa3d | Norbert Eicker | Tue, 5 Dec 2023 08:47:13 +0100
+
+Whitespace fixes
+------------------------------------------------------------------------
+4b1804cbe | Michael Rauh | Mon, 4 Dec 2023 15:02:19 +0100
+
+Now resolve stricter compiler type warnings
+------------------------------------------------------------------------
+f7f0cf74b | Michael Rauh | Mon, 4 Dec 2023 14:47:23 +0100
+
+Add psserial pack/unpack functions for bool type
+------------------------------------------------------------------------
+fdda577b4 | Michael Rauh | Mon, 4 Dec 2023 14:34:07 +0100
+
+Enable the compiler to verify types for more psserial functions
+------------------------------------------------------------------------
+fd66dc1ca | Norbert Eicker | Mon, 18 Dec 2023 19:07:55 +0100
+
+Fix typo
+------------------------------------------------------------------------
+e8503aa0e | Norbert Eicker | Mon, 18 Dec 2023 19:04:22 +0100
+
+Simplify doSpawn()'s return value
+------------------------------------------------------------------------
+55a6fb100 | Norbert Eicker | Thu, 16 Nov 2023 19:19:40 +0100
+
+Remove the now obsolete PSI_getSlots()
+------------------------------------------------------------------------
+4237f4c1f | Norbert Eicker | Thu, 16 Nov 2023 19:14:11 +0100
+
+Optimize PSI_spawnRsrvtn() (#155)
+
+ - Do not wait for all answers after NODES_CHUNK tasks were spawned
+   before moving to the next chunk
+------------------------------------------------------------------------
+ad21979fc | Norbert Eicker | Thu, 16 Nov 2023 00:05:28 +0100
+
+Split PSI_getSlots() into PSI_requestSlots() and PSI_extractSlots()
+------------------------------------------------------------------------
+1cf2b6b7c | Norbert Eicker | Wed, 15 Nov 2023 23:29:47 +0100
+
+Do not receive message in handleAnswer() but outside
+------------------------------------------------------------------------
+44257eb32 | Norbert Eicker | Wed, 15 Nov 2023 23:20:10 +0100
+
+Adjust rank for PSP_CD_SPAWNFAILED as soon as possible
+------------------------------------------------------------------------
+89b23a273 | Norbert Eicker | Wed, 15 Nov 2023 23:18:19 +0100
+
+Simplify handleAnswer for PSP_CD_SPAWNFAILED
+
+ - those come in fact always with correct rank
+------------------------------------------------------------------------
+89450ac43 | Norbert Eicker | Wed, 15 Nov 2023 00:51:25 +0100
+
+Use task instead of process where appropriate
+------------------------------------------------------------------------
+65aae6820 | Norbert Eicker | Wed, 15 Nov 2023 00:48:46 +0100
+
+Rework dospawn() to doSpawn()
+
+ - Handling the helper task structure outside doSpawn() allows for reuse
+   of the task in large spawns
+------------------------------------------------------------------------
+4eb8e6b9c | Norbert Eicker | Wed, 15 Nov 2023 00:30:38 +0100
+
+Rework docu comments
+------------------------------------------------------------------------
+427dd40f8 | Norbert Eicker | Tue, 14 Nov 2023 23:04:09 +0100
+
+Extract helper task creation from dospawn()
+
+ - Move this into createSpawnTask()
+------------------------------------------------------------------------
+11057cc1d | Norbert Eicker | Tue, 14 Nov 2023 22:14:29 +0100
+
+Simplify psispawn's internal APIs to get rid of TID arrays
+------------------------------------------------------------------------
+1477a287f | Norbert Eicker | Tue, 14 Nov 2023 22:10:55 +0100
+
+Get rid of PSI_spawnStrictHW()
+------------------------------------------------------------------------
+8c6fe645d | Norbert Eicker | Tue, 14 Nov 2023 21:44:35 +0100
+
+Simplify PSI_spawn*() API
+------------------------------------------------------------------------
+0803d0498 | Norbert Eicker | Tue, 14 Nov 2023 20:43:23 +0100
+
+Remove unused PSI_spawnSingle()
+------------------------------------------------------------------------
+811e19813 | Norbert Eicker | Tue, 14 Nov 2023 19:15:58 +0100
+
+Drop support to spawn to PSProtocolVersion < 341
+
+ - This was for psmgmt versions prior to 2019
+------------------------------------------------------------------------
+556b2d538 | Michael Rauh | Mon, 18 Dec 2023 16:06:52 +0100
+
+Make protocol version checks easier to find
+------------------------------------------------------------------------
+eaa0b517d | Michael Rauh | Mon, 18 Dec 2023 15:40:29 +0100
+
+Drop obsolete version check
+------------------------------------------------------------------------
+9364c386a | Michael Rauh | Thu, 23 Nov 2023 14:44:20 +0100
+
+Drop support for Slurm 19.05 protocol
+------------------------------------------------------------------------
+6148e0ea3 | Norbert Eicker | Tue, 5 Dec 2023 11:24:44 +0100
+
+IWYU fixes (after update to version 0.21)
+------------------------------------------------------------------------
+7fd096b59 | Michael Rauh | Mon, 18 Dec 2023 14:21:07 +0100
+
+Improve comment
+------------------------------------------------------------------------
+5160330b5 | Michael Rauh | Mon, 18 Dec 2023 14:17:04 +0100
+
+Remove unnecessary checks
+------------------------------------------------------------------------
+19c7b46c2 | Michael Rauh | Mon, 18 Dec 2023 14:14:15 +0100
+
+Prevent possible segfault and remove obsolete TODO
+------------------------------------------------------------------------
+691ff6e0b | Michael Rauh | Wed, 13 Dec 2023 09:23:16 +0100
+
+Execute SPANK hooks in batchscript context (deep:#3325)
+------------------------------------------------------------------------
+737825da9 | Michael Rauh | Wed, 13 Dec 2023 09:09:03 +0100
+
+Let hookFinalize access the exit status of the child
+------------------------------------------------------------------------
+4cb116185 | Michael Rauh | Tue, 12 Dec 2023 16:58:17 +0100
+
+Set correct step memory limit for SPANK
+------------------------------------------------------------------------
+bb484b2ab | Michael Rauh | Tue, 12 Dec 2023 13:48:10 +0100
+
+Set correct job memory limit for SPANK
+------------------------------------------------------------------------
+9b556fa36 | Norbert Eicker | Thu, 14 Dec 2023 16:08:35 +0100
+
+Update build system
+------------------------------------------------------------------------
+c8c908fc9 | Peter Niessen | Thu, 14 Dec 2023 14:58:54 +0100
+
+added generic energy readout script
+------------------------------------------------------------------------
+cc0e7101e | Peter Niessen | Thu, 14 Dec 2023 14:58:34 +0100
+
+added generic energy readout script
+------------------------------------------------------------------------
+9b99fde26 | Norbert Eicker | Fri, 8 Dec 2023 15:16:51 +0100
+
+Merge branch '5.1.58'
+------------------------------------------------------------------------
+163b09131 | Michael Rauh | Wed, 22 Nov 2023 16:30:20 +0100
+
+Fix typo
+------------------------------------------------------------------------
+f384715b5 | Michael Rauh | Wed, 22 Nov 2023 15:42:10 +0100
+
+Fix typo
+------------------------------------------------------------------------
+787519dde | Michael Rauh | Wed, 22 Nov 2023 15:08:51 +0100
+
+Fix typo
+------------------------------------------------------------------------
+e85656d36 | Norbert Eicker | Fri, 10 Nov 2023 19:32:27 +0100
+
+Change signature of PSID_log()
+------------------------------------------------------------------------
+f881b2ea6 | Norbert Eicker | Fri, 10 Nov 2023 19:29:12 +0100
+
+Enhance docu comments
+------------------------------------------------------------------------
+0211e6366 | Norbert Eicker | Fri, 10 Nov 2023 19:22:54 +0100
+
+Copyright fixes
+------------------------------------------------------------------------
+aeaff70ba | Norbert Eicker | Fri, 10 Nov 2023 19:12:00 +0100
+
+Do not call PSID_log() in test plugins
+------------------------------------------------------------------------
+50472ceb3 | Norbert Eicker | Fri, 10 Nov 2023 18:08:38 +0100
+
+Replace PSID_log() as much as possible
+------------------------------------------------------------------------
+e0820a05b | Norbert Eicker | Fri, 10 Nov 2023 14:20:51 +0100
+
+Introduce PSID_dbg()
+
+ - This is identical to PSID_log() for the time being but will be will
+   be different one PSID_log() does not need the -1 level any more
+------------------------------------------------------------------------
+
+
 Version 5.1.58-1:
 =================
 ------------------------------------------------------------------------

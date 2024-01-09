@@ -6,6 +6,38 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.59:
+===============
+Bugfixes:
+ - Adopt to new error behavior of Slurm 23.02 (jwt:#24558)
+ - Execute SPANK hooks in batchscript context (deep:#3325)
+ - Prevent possible DOS in psserial (#172)
+ - Ensure pluginforwarder sends sufficient data
+ - Prevent segfault when psaccount gets insufficient answer
+ - Prevent memory leak when pscommon's logger is re-initialized
+ - Set correct size for allocation of Req_Signal_Tasks_t
+ - Fix various memory leaks, double free(), etc. found during development
+ - Various fixes unvealed by scan-build
+Enhancements:
+ - Add a generic energy readout script (psc:#411)
+ - Optimize PSI_spawnRsrvtn() (#155)
+ - Ensure slurmutils is installed with matching Slurm
+ - Set correct job and step memory limits for SPANK
+ - RRComm v2 supporting messages across jobs (created by MPI_Comm_spawn())
+ - Allow psmgmt to be built without SPANK support (#171)
+Additional changes:
+ - Remove the cgroup plugin (obsoleted by jail) (#174)
+ - Rework PStask_t's handling of extra information (#156)
+ - Drop support for Slurm 19.05 protocol
+ - Drop support to spawn to PSProtocolVersion < 341 (before 2019)
+ - Use PS_DataBuffer for unpacking messages using psserial functions
+ - Enable the compiler to verify types for more psserial functions
+ - Introduce PSID_dbg() an replace PSID_log() as much as possible
+ - Introduce psslurmprototypes
+ - Remove unused PSI_spawnSingle()
+ - Various IWYU fixes
+
+
 Version 5.1.58-1:
 =================
 Bugfixes:
