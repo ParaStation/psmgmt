@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -46,10 +46,8 @@
 #define PSP_DD_CHILDRESREL         0x0113  /**< Release a child's resources */
 
 /** Messages used to propagate kinship */
-#define PSP_DD_NEWCHILD            0x0118  /**< Tell task about grandchild
-					      inherited from it's child */
-#define PSP_DD_NEWPARENT           0x0119  /**< Tell task about grandparent
-					      since parent died gracefully */
+#define PSP_DD_NEWCHILD            0x0118  /**< @todo obsolete */
+#define PSP_DD_NEWPARENT           0x0119  /**< @todo obsolete */
 #define PSP_DD_NEWANCESTOR         0x011A  /**< Tell node about released
 					      parent to inherit children
 					       (obsoletes PSP_OP_NEWPARENT) */

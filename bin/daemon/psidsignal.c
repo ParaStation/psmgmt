@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -596,151 +596,6 @@ static bool msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
     return true;
 }
 
-static bool msg_RELEASERES(DDSignalMsg_t *msg);
-
-/**
- * @brief Handle PSP_DD_NEWCHILD message
- *
- * Handle the message @a msg of type PSP_DD_NEWCHILD.
- *
- * This kind of message is sent to a task's parent in order to pass
- * over a child. From now on the receiving task will handle its
- * grandchild as its own child, i.e. it will send and expect signals
- * if one of the corresponding processes dies.
- *
- * In all cases adequate PSP_CD_RELEASERES message are send to the
- * task requesting passing over their child.
- *
- * @param msg Pointer to message to handle
- *
- * @return Always return true
- */
-static bool msg_NEWCHILD(DDErrorMsg_t *msg)
-{
-    PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
-    DDSignalMsg_t answer = {
-	.header = {
-	    .type = PSP_CD_RELEASERES,
-	    .dest = msg->header.sender,
-	    .sender = msg->header.dest,
-	    .len = sizeof(answer) },
-	.signal = -1 };
-
-    if (!task) {
-	PSID_fdbg(PSID_LOG_SIGNAL, "%s: no task\n",
-		  PSC_printTID(msg->header.dest));
-	answer.param = ESRCH;
-    } else {
-	PSID_fdbg(PSID_LOG_SIGNAL, "%s:", PSC_printTID(msg->header.dest));
-	PSID_dbg(PSID_LOG_SIGNAL, " child %s", PSC_printTID(msg->request));
-	PSID_dbg(PSID_LOG_SIGNAL, " inherited from %s\n",
-		 PSC_printTID(msg->header.sender));
-
-	if (PSID_getSignalByTID(&task->releasedBefore, msg->request)) {
-	    /* RELEASE already received */
-	    PSID_fdbg(PSID_LOG_SIGNAL, "inherit released child %s\n",
-		      PSC_printTID(msg->request));
-	}
-	if (PSID_getSignalByTID(&task->deadBefore, msg->request)) {
-	    /* CHILDDEAD already received */
-	    PSID_fdbg(PSID_LOG_SIGNAL, "inherit dead child %s\n",
-		      PSC_printTID(msg->request));
-	} else {
-	    PSID_setSignal(&task->childList, msg->request, -1);
-	}
-
-	answer.param = 0;
-    }
-    return msg_RELEASERES(&answer);
-}
-
-/**
- * @brief Handle PSP_DD_NEWPARENT message
- *
- * Handle the message @a msg of type PSP_DD_NEWPARENT.
- *
- * This kind of message is sent to a task's child in order to update
- * the information concerning the parent task. From now on the
- * receiving task will handle its grandparent as its own parent,
- * i.e. it will send and expect signals if one of the corresponding
- * processes dies.
- *
- * In all cases adequate PSP_CD_RELEASERES message are send to the
- * task requesting passing over their child.
- *
- * @param msg Pointer to message to handle
- *
- * @return Always return true
- */
-static bool msg_NEWPARENT(DDErrorMsg_t *msg)
-{
-    PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
-    DDSignalMsg_t answer = {
-	.header = {
-	    .type = PSP_CD_RELEASERES,
-	    .dest = msg->header.sender,
-	    .sender = msg->header.dest,
-	    .len = sizeof(answer) },
-	.signal = -1 };
-
-    if (!task) {
-	PSID_fdbg(PSID_LOG_SIGNAL, "%s: no task\n",
-		  PSC_printTID(msg->header.dest));
-	answer.param = ESRCH;
-    } else if (task->ptid != msg->header.sender) {
-	PSID_flog("sender %s", PSC_printTID(msg->header.sender));
-	PSID_log(" not my parent %s\n", PSC_printTID(task->ptid));
-	answer.param = EACCES;
-    } else {
-	PSID_fdbg(PSID_LOG_SIGNAL, "%s: parent", PSC_printTID(task->tid));
-	PSID_dbg(PSID_LOG_SIGNAL, " %s released;", PSC_printTID(task->ptid));
-	PSID_dbg(PSID_LOG_SIGNAL, " new parent is %s\n",
-		 PSC_printTID(msg->request));
-
-	if (!PSIDnodes_isUp(PSC_getID(msg->request))) {
-	    /* Node is down, deliver signal now */
-	    PSID_sendSignal(task->tid, task->uid, msg->request, -1,
-			    false /* pervasive */, false /* answer */);
-	} else {
-	    task->ptid = msg->request;
-
-	    /* Also change forwarder's ptid */
-	    if (task->forwarder) task->forwarder->ptid = msg->request;
-	}
-
-	answer.param = 0;
-    }
-    return msg_RELEASERES(&answer);
-}
-
-/**
- * @brief Drop PSP_DD_NEWCHILD or PSP_DD_NEWPARENT message
- *
- * Drop the message @a msg of type PSP_DD_NEWCHILD or PSP_DD_NEWPARENT.
- *
- * Since the requesting daemon waits for a reaction to its request a
- * corresponding answer is created.
- *
- * @param msg Pointer to message to drop
- *
- * @return Always return true
- */
-static bool drop_NEWRELATIVE(DDBufferMsg_t *msg)
-{
-    DDSignalMsg_t sigmsg = {
-	.header = {
-	    .type = PSP_CD_RELEASERES,
-	    .dest = msg->header.sender,
-	    .sender = PSC_getMyTID(),
-	    .len = msg->header.len },
-	.signal = -1,
-	.param = EHOSTUNREACH,
-	.pervasive = 0 };
-
-    sendMsg(&sigmsg);
-    return true;
-}
-
 /**
  * @brief Handle PSP_DD_NEWANCESTOR message
  *
@@ -1185,8 +1040,6 @@ static int releaseTask(PStask_t *task)
 
     if (task->ptid) {
 	/* Reorganize children. They are inherited by the parent task */
-	PSnodes_ID_t parentNode = PSC_getID(task->ptid);
-
 	memset(sentToNode, false, sTNSize * sizeof(*sentToNode));
 
 	int sig = -1;
@@ -1209,51 +1062,21 @@ static int releaseTask(PStask_t *task)
 		continue;
 	    }
 
-	    if (PSIDnodes_getDmnProtoV(childNode) < 412
-		|| PSIDnodes_getDmnProtoV(parentNode) < 412) {
-
-		/* Send child new ptid */
-		DDErrorMsg_t inheritMsg = (DDErrorMsg_t) {
+	    if (!sentToNode[childNode]) {
+		DDErrorMsg_t inheritMsg = {
 		    .header = {
-			.type = PSP_DD_NEWPARENT,
+			.type = PSP_DD_NEWANCESTOR,
+			.sender = task->tid,
 			.dest = child,
-			.sender =  task->tid,
 			.len = sizeof(inheritMsg) },
 		    .request = task->ptid,
-		    .error = 1 };
-
-		task->pendingReleaseRes++;
-		sendMsg(&inheritMsg);
-
-		/* Send parent new child */
-		inheritMsg = (DDErrorMsg_t) {
-		    .header = {
-			.type = PSP_DD_NEWCHILD,
-			.dest =  task->ptid,
-			.sender =  task->tid,
-			.len = sizeof(inheritMsg) },
-		    .request = child,
 		    .error = 0 };
 
 		task->pendingReleaseRes++;
+
 		sendMsg(&inheritMsg);
-	    } else {
-		if (!sentToNode[childNode]) {
-		    DDErrorMsg_t inheritMsg = {
-			.header = {
-			    .type = PSP_DD_NEWANCESTOR,
-			    .sender = task->tid,
-			    .dest = child,
-			    .len = sizeof(inheritMsg) },
-			.request = task->ptid,
-			.error = 0 };
-
-		    task->pendingReleaseRes++;
-
-		    sendMsg(&inheritMsg);
-		    sentToNode[childNode] = true;
-		    PSID_setSignal(&task->keptChildren, child, -1);
-		}
+		sentToNode[childNode] = true;
+		PSID_setSignal(&task->keptChildren, child, -1);
 	    }
 
 	    /* Prepare to get next child */
@@ -1340,6 +1163,82 @@ static bool deregisterFromParent(PStask_t *task)
     task->parentReleased = true;
 
     return !task->pendingReleaseRes;
+}
+
+/**
+ * @brief Handle PSP_CD_RELEASERES message
+ *
+ * Handle the message @a msg of type PSP_CD_RELEASERES.
+ *
+ * The message will be forwarded to its final destination, which
+ * usually is a client of the local daemon, unless there are further
+ * pending PSP_CD_RELEASERES messages to the same client. In this
+ * case, the current message @a msg is thrown away. Only the last
+ * message will be actually delivered to the client requesting for
+ * release.
+ *
+ * Furthermore this client task will be marked to not expect the
+ * corresponding signal any longer.
+ *
+ * @param msg Pointer to message to handle
+ *
+ * @return Always return true
+ */
+static bool msg_RELEASERES(DDSignalMsg_t *msg)
+{
+    PStask_ID_t tid = msg->header.dest;
+    int dbgMask = (msg->param == ESRCH) ? PSID_LOG_SIGNAL : -1;
+
+    if (PSID_getDebugMask() & PSID_LOG_SIGNAL) {
+	PSID_fdbg(PSID_LOG_SIGNAL, "%s", PSC_printTID(msg->header.sender));
+	PSID_dbg(PSID_LOG_SIGNAL, " to %s\n", PSC_printTID(tid));
+    }
+
+    if (PSC_getID(tid) != PSC_getMyID()) {
+	sendMsg(msg);
+	return true;
+    }
+
+    PStask_t *task = PStasklist_find(&managedTasks, tid);
+    if (!task) {
+	PSID_flog("%s from ", PSC_printTID(tid));
+	PSID_log(" %s: no task\n", PSC_printTID(msg->header.sender));
+	return true;
+    }
+
+    if (msg->param) {
+	if (!task->pendingReleaseErr && msg->param != ESRCH) {
+	    task->pendingReleaseErr = msg->param;
+	}
+	PSID_fdbg(dbgMask, "sig %d: error = %d from %s", msg->signal,
+		  msg->param, PSC_printTID(msg->header.sender));
+	PSID_dbg(dbgMask, " for local %s\n", PSC_printTID(tid));
+    }
+
+    task->pendingReleaseRes--;
+    if (task->pendingReleaseRes
+	|| (!task->parentReleased && !deregisterFromParent(task))) {
+	PSID_fdbg(PSID_LOG_SIGNAL, "%s sig %d: still %d pending\n",
+		  PSC_printTID(tid), msg->signal, task->pendingReleaseRes);
+	return true;
+    } else if (task->pendingReleaseErr) {
+	msg->param = task->pendingReleaseErr;
+	PSID_flog("sig %d: error = %d from %s", msg->signal, msg->param,
+		  PSC_printTID(msg->header.sender));
+	PSID_log(" forward to local %s\n", PSC_printTID(tid));
+    } else {
+	PSID_fdbg(PSID_LOG_SIGNAL, "sig %d: sending msg to local parent %s\n",
+		  msg->signal, PSC_printTID(tid));
+    }
+
+    /* If task is not connected, origin of RELEASE message was forwarder */
+    if (task->fd == -1 && task->forwarder) {
+	msg->header.dest = task->forwarder->tid;
+    }
+
+    /* send the initiator a result msg */
+    if (task->releaseAnswer) sendMsg(msg);
+    return true;
 }
 
 /**
@@ -1440,82 +1339,6 @@ static bool msg_RELEASE(DDSignalMsg_t *msg)
 	if (!task || !msg->answer) return true;
     }
     sendMsg(msg);
-    return true;
-}
-
-/**
- * @brief Handle PSP_CD_RELEASERES message
- *
- * Handle the message @a msg of type PSP_CD_RELEASERES.
- *
- * The message will be forwarded to its final destination, which
- * usually is a client of the local daemon, unless there are further
- * pending PSP_CD_RELEASERES messages to the same client. In this
- * case, the current message @a msg is thrown away. Only the last
- * message will be actually delivered to the client requesting for
- * release.
- *
- * Furthermore this client task will be marked to not expect the
- * corresponding signal any longer.
- *
- * @param msg Pointer to message to handle
- *
- * @return Always return true
- */
-static bool msg_RELEASERES(DDSignalMsg_t *msg)
-{
-    PStask_ID_t tid = msg->header.dest;
-    int dbgMask = (msg->param == ESRCH) ? PSID_LOG_SIGNAL : -1;
-
-    if (PSID_getDebugMask() & PSID_LOG_SIGNAL) {
-	PSID_fdbg(PSID_LOG_SIGNAL, "%s", PSC_printTID(msg->header.sender));
-	PSID_dbg(PSID_LOG_SIGNAL, " to %s\n", PSC_printTID(tid));
-    }
-
-    if (PSC_getID(tid) != PSC_getMyID()) {
-	sendMsg(msg);
-	return true;
-    }
-
-    PStask_t *task = PStasklist_find(&managedTasks, tid);
-    if (!task) {
-	PSID_flog("%s from ", PSC_printTID(tid));
-	PSID_log(" %s: no task\n", PSC_printTID(msg->header.sender));
-	return true;
-    }
-
-    if (msg->param) {
-	if (!task->pendingReleaseErr && msg->param != ESRCH) {
-	    task->pendingReleaseErr = msg->param;
-	}
-	PSID_fdbg(dbgMask, "sig %d: error = %d from %s", msg->signal,
-		  msg->param, PSC_printTID(msg->header.sender));
-	PSID_dbg(dbgMask, " for local %s\n", PSC_printTID(tid));
-    }
-
-    task->pendingReleaseRes--;
-    if (task->pendingReleaseRes
-	|| (!task->parentReleased && !deregisterFromParent(task))) {
-	PSID_fdbg(PSID_LOG_SIGNAL, "%s sig %d: still %d pending\n",
-		  PSC_printTID(tid), msg->signal, task->pendingReleaseRes);
-	return true;
-    } else if (task->pendingReleaseErr) {
-	msg->param = task->pendingReleaseErr;
-	PSID_flog("sig %d: error = %d from %s", msg->signal, msg->param,
-		  PSC_printTID(msg->header.sender));
-	PSID_log(" forward to local %s\n", PSC_printTID(tid));
-    } else {
-	PSID_fdbg(PSID_LOG_SIGNAL, "sig %d: sending msg to local parent %s\n",
-		  msg->signal, PSC_printTID(tid));
-    }
-
-    /* If task is not connected, origin of RELEASE message was forwarder */
-    if (task->fd == -1 && task->forwarder) {
-	msg->header.dest = task->forwarder->tid;
-    }
-
-    /* send the initiator a result msg */
-    if (task->releaseAnswer) sendMsg(msg);
     return true;
 }
 
@@ -1734,8 +1557,6 @@ void initSignal(void)
     PSID_registerMsg(PSP_CD_RELEASERES, (handlerFunc_t) msg_RELEASERES);
     PSID_registerMsg(PSP_CD_SIGNAL, (handlerFunc_t) msg_SIGNAL);
     PSID_registerMsg(PSP_CD_WHODIED, (handlerFunc_t) msg_WHODIED);
-    PSID_registerMsg(PSP_DD_NEWCHILD, (handlerFunc_t) msg_NEWCHILD); /* obsol.*/
-    PSID_registerMsg(PSP_DD_NEWPARENT, (handlerFunc_t) msg_NEWPARENT); /* obs.*/
     PSID_registerMsg(PSP_DD_NEWANCESTOR, (handlerFunc_t) msg_NEWANCESTOR);
     PSID_registerMsg(PSP_DD_ADOPTCHILDSET, msg_ADOPTCHILDSET);
     PSID_registerMsg(PSP_DD_ADOPTFAILED, msg_ADOPTFAILED);
@@ -1743,8 +1564,6 @@ void initSignal(void)
     PSID_registerMsg(PSP_DD_INHERITFAILED, msg_INHERITFAILED);
 
     PSID_registerDropper(PSP_CD_SIGNAL, drop_SIGNAL);
-    PSID_registerDropper(PSP_DD_NEWCHILD, drop_NEWRELATIVE); /* obsolete */
-    PSID_registerDropper(PSP_DD_NEWPARENT, drop_NEWRELATIVE); /* obsolete */
     PSID_registerDropper(PSP_CD_NOTIFYDEAD, drop_RELEASE);
     PSID_registerDropper(PSP_CD_RELEASE, drop_RELEASE);
     PSID_registerDropper(PSP_DD_ADOPTCHILDSET, drop_ADOPTCHILDSET);
