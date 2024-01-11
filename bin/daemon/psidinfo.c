@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -405,64 +405,6 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    }
 	    msg.type = PSP_INFO_LIST_END;
 	}
-	break;
-    }
-    case PSP_INFO_LIST_RESPORTS:
-    {
-	char *mPtr = msg.buf;
-
-	PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
-	    inmsg->header.dest : inmsg->header.sender;
-	PStask_t *task = PStasklist_find(&managedTasks, target);
-	if (!task) {
-	    PSID_log("%s: task %s not found\n", funcStr, PSC_printTID(target));
-	    err = 1;
-	    break;
-	}
-
-	if (task->ptid && !task->resPorts) {
-	    PSID_dbg(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
-		     PSC_printTID(task->ptid));
-	    msg.header.type = inmsg->header.type;
-	    msg.header.sender = inmsg->header.sender;
-	    msg.header.dest = task->ptid;
-	    msg_INFOREQUEST(&msg);
-	    return true;
-	}
-
-	size_t len = msg.header.len;
-
-	/* we don't have any reserved ports */
-	if (!task->resPorts) {
-
-	    *(uint16_t *)mPtr = 0;
-	    //mPtr += sizeof(uint16_t);
-	    msg.header.len += sizeof(uint16_t);
-	    sendMsg(&msg);
-
-	    msg.header.len = len;
-	    msg.type = PSP_INFO_LIST_END;
-
-	    break;
-	}
-
-	/* add number of reserved ports */
-	uint16_t count=0;
-	while (task->resPorts[count] != 0) count++;
-	*(uint16_t *)mPtr = count;
-	mPtr += sizeof(uint16_t);
-	msg.header.len += sizeof(uint16_t);
-
-	/* add the reserved ports */
-	for (uint16_t i = 0; i < count; i++) {
-	    *(uint16_t *) mPtr = task->resPorts[i];
-	    mPtr += sizeof(uint16_t);
-	    msg.header.len += sizeof(uint16_t);
-	}
-	sendMsg(&msg);
-
-	msg.header.len = len;
-	msg.type = PSP_INFO_LIST_END;
 	break;
     }
     case PSP_INFO_LIST_RESNODES:

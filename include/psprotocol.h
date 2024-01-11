@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -220,7 +220,6 @@ typedef enum {
 
     PSP_INFO_QUEUE_ENVS,          /**< Queue of environment entries */
     PSP_INFO_RDPCONNSTATUS,       /**< Info on RDP connections */
-    PSP_INFO_LIST_RESPORTS,       /**< Reserved ports for OpenMPI startup */
     PSP_INFO_LIST_RESNODES = 0x0032, /**< Get a reservation's node-list */
 } PSP_Info_t;
 

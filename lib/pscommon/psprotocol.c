@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -153,7 +153,6 @@ static struct {
     { PSP_INFO_LIST_EXCLUSIVE,   "PSP_INFO_LIST_EXCLUSIVE" },
     { PSP_INFO_LIST_PARTITION,   "PSP_INFO_LIST_PARTITION" },
     { PSP_INFO_LIST_MEMORY,      "PSP_INFO_LIST_MEMORY" },
-    { PSP_INFO_LIST_RESPORTS,    "PSP_INFO_LIST_RESPORTS" },
     { PSP_INFO_LIST_RESNODES,    "PSP_INFO_LIST_RESNODES" },
 
     { PSP_INFO_CMDLINE,          "PSP_INFO_CMDLINE" },
