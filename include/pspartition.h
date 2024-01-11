@@ -118,7 +118,6 @@ typedef struct {
     bool deleted;                  /**< Flag to mark request for deletion */
     bool suspended;                /**< Corresponding task is suspended */
     bool freed;                    /**< Resources are freed temporarily */
-    uint16_t *resPorts;		   /**< Reserved ports for OpenMPI startup */
 } PSpart_request_t;
 
 /**

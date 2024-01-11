@@ -61,8 +61,8 @@ static msgString_t daemonMessages[] = {
     { PSP_DD_TASKSUSPEND      , "PSP_DD_TASKSUSPEND"      },
     { PSP_DD_TASKRESUME       , "PSP_DD_TASKRESUME"       },
     { PSP_DD_GETRANKNODE      , "PSP_DD_GETRANKNODE"      },
-    { PSP_DD_PROVIDETASKRP    , "PSP_DD_PROVIDETASKRP"    },
-    { PSP_DD_PROVIDEPARTRP    , "PSP_DD_PROVIDEPARTRP"    },
+    { PSP_DD_PROVIDETASKRP    , "PSP_DD_PROVIDETASKRP(obsolete)"    },
+    { PSP_DD_PROVIDEPARTRP    , "PSP_DD_PROVIDEPARTRP(obsolete)"    },
 
     { PSP_DD_LOAD             , "PSP_DD_LOAD"             },
     { PSP_DD_ACTIVE_NODES     , "PSP_DD_ACTIVE_NODES"     },

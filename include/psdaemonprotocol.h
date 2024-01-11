@@ -75,9 +75,8 @@
 #define PSP_DD_TASKSUSPEND         0x012A  /**< Task got SIGTSTP */
 #define PSP_DD_TASKRESUME          0x012B  /**< Task got SIGCONT */
 #define PSP_DD_GETRANKNODE         0x012C  /**< Forwarded GETRANKNODE msg */
-#define PSP_DD_PROVIDETASKRP       0x012D  /**< Task reply reserved ports */
-#define PSP_DD_PROVIDEPARTRP       0x012E  /**< Partition reply reserved
-					      ports */
+#define PSP_DD_PROVIDETASKRP       0x012D  /**< @todo obsolete */
+#define PSP_DD_PROVIDEPARTRP       0x012E  /**< @todo obsolete */
 
 /** Messages used to find master */
 #define PSP_DD_LOAD                0x0130  /**< Load message to master */
