@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -353,8 +353,6 @@ static void setupPSIEnv(Conf_t *conf)
 	if (verbose) printf("Environment variables to be exported: %s\n", val);
 	free(val);
     }
-
-    if (conf->openMPI) setenv(ENV_PART_OMPI, "1", 1);
 
     /* forward verbosity */
     if (conf->verbose) setPSIEnv("MPIEXEC_VERBOSE", "1", 1);

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -66,9 +66,6 @@ static int *numProcPerNode = NULL;
 static int *jobLocalNodeIDs = NULL;
 /** node local processIDs (aka node local rank) per global rank */
 static int *nodeLocalProcIDs = NULL;
-
-/** openmpi list of reserved port */
-static uint16_t *resPorts = NULL;
 
 /**
  * @brief Malloc with error handling
@@ -215,92 +212,6 @@ static char *getUniqueHostnamesString(Conf_t *conf)
 	buf = str2Buf(getHostByNodeID(jobLocalUniqNodeIDs[i]), buf, &bufSize);
     }
 
-    if (conf->ompiDbg) {
-	fprintf(stderr, "setting host string '%s'\n", buf);
-    }
-    return buf;
-}
-
-/**
- * @brief Generate OpenMPI tasks (processes) per node string.
- *
- * @return Returns the requested string
- */
-static char *ompiGetTasksPerNode(Conf_t *conf)
-{
-    char *buf = NULL;
-    size_t bufSize = 0;
-    int i;
-
-    for (i=0; i<numUniqNodes; i++) {
-	if (i) buf = str2Buf(",", buf, &bufSize);
-
-	char tmp[100];
-	snprintf(tmp, sizeof(tmp), "%i", numProcPerNode[i]);
-	buf = str2Buf(tmp, buf, &bufSize);
-    }
-
-    if (conf->ompiDbg) {
-	fprintf(stderr, "setting ompi tasks '%s'\n", buf);
-    }
-    return buf;
-}
-
-/**
- * @brief Fetch reserved ports for OpenMPI startup.
- *
- * Fetch the reserved ports from the local psid. This information is mandatory
- * for the OpenMPI startup. If no reserved ports are available the startup will
- * be terminated.
- *
- * @return Returns a string holding the requested reserved port range
- */
-static char *opmiGetReservedPorts(Conf_t *conf)
-{
-    char tmp[10];
-    int lastPort = 0, skip = 0, i;
-    char *buf = NULL;
-    size_t bufSize = 0;
-
-    resPorts = umalloc((conf->np + 2) * sizeof(uint16_t));
-
-    PSI_infoList(-1, PSP_INFO_LIST_RESPORTS, NULL,
-		 resPorts, (conf->np + 2) * sizeof(uint16_t), true);
-
-    /* resPorts[0] is holding the number of reserved ports following */
-    if (resPorts[0] == 0) {
-	fprintf(stderr, "%s: no reserved ports found, can't continue\n",
-		    __func__);
-	exit(1);
-    }
-
-    /* generate the port range string */
-    for (i=1; i<=resPorts[0]; i++) {
-	if (resPorts[i] == 0) break;
-
-	if (!lastPort) {
-	    snprintf(tmp, sizeof(tmp), "%i", resPorts[i]);
-	    buf = str2Buf(tmp, buf, &bufSize);
-	    skip = 0;
-	} else if (lastPort +1 == resPorts[i]) {
-	    skip = 1;
-	} else {
-	    if (skip) {
-		snprintf(tmp, sizeof(tmp), "-%i", lastPort);
-		buf = str2Buf(tmp, buf, &bufSize);
-	    }
-	    snprintf(tmp, sizeof(tmp), ",%i", resPorts[i]);
-	    buf = str2Buf(tmp, buf, &bufSize);
-	    skip = 0;
-	}
-	lastPort = resPorts[i];
-    }
-
-    if (skip) {
-	snprintf(tmp, sizeof(tmp), "-%i", lastPort);
-	buf = str2Buf(tmp, buf, &bufSize);
-    }
-
     return buf;
 }
 
@@ -374,48 +285,6 @@ static void setupCommonEnv(Conf_t *conf)
 {
     char *env, tmp[32];
 
-    if (conf->openMPI) {
-	/* The ID of the job step within the job allocation.
-	 * Not important for us, can always be 0.
-	 */
-	setPSIEnv("SLURM_STEPID", "0", 1);
-
-	/* uniq numeric jobid (loggertid) */
-	snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
-	setPSIEnv("SLURM_JOBID", tmp, 1);
-
-	/* number of tasks (processes) */
-	snprintf(tmp, sizeof(tmp), "%d", conf->np);
-	setPSIEnv("SLURM_STEP_NUM_TASKS", tmp, 1);
-
-	if (conf->ompiDbg) {
-	    fprintf(stdout, "using OpenMPI reserved ports '%s'\n",
-		    opmiGetReservedPorts(conf));
-	}
-
-	/* uniq node list */
-	env = getUniqueHostnamesString(conf);
-	setPSIEnv("SLURM_STEP_NODELIST", env, 1);
-	setPSIEnv("SLURM_NODELIST", env, 1);
-
-	/* reserved ports for OpenMPI discovery */
-	setPSIEnv("SLURM_STEP_RESV_PORTS", opmiGetReservedPorts(conf), 1);
-
-	/* processes per node (ppn) */
-	env = ompiGetTasksPerNode(conf);
-	setPSIEnv ("SLURM_STEP_TASKS_PER_NODE", env, 1);
-	setPSIEnv ("SLURM_TASKS_PER_NODE", env, 1);
-
-	/* process distribution algorithm
-	 * OpenMPI currently only supports block and cyclic */
-	if (conf->loopnodesfirst || getPSIEnv(ENV_PART_LOOPNODES)) {
-	    setPSIEnv("SLURM_DISTRIBUTION", "cyclic", 1);
-	    fprintf(stdout, "setting OpenMPI cyclic mode\n");
-	} else {
-	    setPSIEnv("SLURM_DISTRIBUTION", "block", 1);
-	}
-    }
-
     if (conf->PMIx) {
 	/* set the PMIX debug mode */
 	if (conf->pmiDbg || getenv("PMIX_DEBUG")) {
@@ -467,10 +336,7 @@ static void setupCommonEnv(Conf_t *conf)
 	setPSIEnv("PSPMIX_ENV_TMOUT", getenv("PSPMIX_ENV_TMOUT"), 1);
     }
 
-    /* unset PSI_LOOP_NODES_FIRST in PSI env which is only needed for OpenMPI */
     unsetPSIEnv(ENV_PART_LOOPNODES);
-    unsetPSIEnv(ENV_PART_OMPI);
-
     unsetPSIEnv("__PMI_PROVIDER_FD");
 
     if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
@@ -606,11 +472,6 @@ static void setupExecEnv(Conf_t *conf, int execNum)
 {
     char tmp[32];
 
-    if (conf->openMPI) {
-	snprintf(tmp, sizeof(tmp), "%d", conf->exec[execNum].tpp);
-	setPSIEnv("SLURM_CPUS_PER_TASK", tmp, 1);
-    }
-
     snprintf(tmp, sizeof(tmp), "%d", execNum);
     setPSIEnv("PSI_APPNUM", tmp, 1);
     if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
@@ -652,30 +513,6 @@ static char **setupRankEnv(int psRank, void *info)
 		 numProcPerNode[jobLocalNodeIDs[rank]]);
 	env[cur++] = locNum;
     }
-
-    if (conf->openMPI) {
-	/* setup OpenMPI support */
-	static char nodeID[32], procID[32], locID[32];
-
-	/* Node ID relative to other  nodes  in  the  job  step.
-	 * Counting begins at zero. */
-	snprintf(nodeID, sizeof(nodeID), "SLURM_NODEID=%i",
-		 jobLocalNodeIDs[rank]);
-	env[cur++] = nodeID;
-
-	/* Task ID  relative to the other tasks in the job step.
-	 * Counting begins at zero. */
-	snprintf(procID, sizeof(procID), "SLURM_PROCID=%i", rank);
-	env[cur++] = procID;
-
-	/* Task ID relative to the other tasks on the same node which
-	 * belong to the same job step. Counting begins at zero.
-	 * */
-	snprintf(locID, sizeof(locID), "SLURM_LOCALID=%i",
-		 nodeLocalProcIDs[rank]);
-	env[cur++] = locID;
-    }
-
 
     env[cur++] = NULL;
 
@@ -925,14 +762,6 @@ static int startProcs(Conf_t *conf)
 
     /* extract additional node informations (e.g. uniq nodes) */
     extractNodeInformation(nodeList, conf->np);
-
-    if (conf->openMPI && conf->ompiDbg) {
-	for (int i = 0; i < conf->np; i++) {
-	    fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
-		    " node '%s'\n", __func__, i, jobLocalNodeIDs[i],
-		    nodeList[i], getHostByNodeID(nodeList[i]));
-	}
-    }
     free(nodeList);
 
     setupCommonEnv(conf);

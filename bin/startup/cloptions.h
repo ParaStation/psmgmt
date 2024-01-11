@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -61,7 +61,6 @@ typedef struct {
     bool valgrind;      /**< Flag valgrind mode */
     bool memcheck;      /**< Flag use of valgrind's leak-check=full mode */
     bool callgrind;     /**< Flag use of valgrind's callgrind tool */
-    bool openMPI;       /**< Flag OpenMPI support */
     bool mpichComp;     /**< Flag MPIch-1 compatibility */
     bool PMIx;          /**< Flag PMIx support */
     /* PMI options */
@@ -100,7 +99,6 @@ typedef struct {
     bool loggerDbg;     /**< Flag debug output from psilogger */
     bool forwarderDbg;  /**< Flag debug output from forwarder */
     bool PSComDbg;      /**< Flag debug output from PSCom */
-    bool ompiDbg;       /**< Flag debug output on OpenMPI emulation */
     bool loggerrawmode; /**< Flag switching logger to raw-mode */
     unsigned int psiDbgMask;  /**< Set libpsi's debug mask */
     bool verbose;       /**< Flag to be more verbose by oneself */

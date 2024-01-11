@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -53,10 +53,6 @@ static int pmidis = 0;
 
 /* PMIx options */
 static int pmix = 0;
-
-/* OpenMPI options */
-static int openMPI = 0;
-static int ompidebug = 0;
 
 /* process options */
 static int np = -1;
@@ -194,8 +190,6 @@ static struct poptOption poptCommonOptions[] = {
       &usize, 0, "set the universe size", NULL},
     { "pmix", 0, POPT_ARG_NONE,
       &pmix, 0, "enable PMIx support (disables PMI)", NULL},
-    { "openmpi", 0, POPT_ARG_NONE,
-      &openMPI, 0, "enable OpenMPI support", NULL},
     { "timeout", 0, POPT_ARG_INT,
       &maxtime, 0, "maximum number of seconds the job is permitted to run",
       NULL},
@@ -310,8 +304,6 @@ static struct poptOption poptDebugOptions[] = {
       &sigquit, 0, "pscom: output debug information on signal SIGQUIT", NULL},
     { "show", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &dryrun, 0, "show command for remote execution but don`t run it", NULL},
-    { "ompidb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &ompidebug, 0, "set debug mode of openmpi", "num"},
     POPT_TABLEEND
 };
 
@@ -970,10 +962,6 @@ static void checkConsistency(Conf_t *conf)
     msg = PSE_checkAndSetSortEnv(conf->sort, "--", conf->verbose);
     if (msg) errExit(msg);
 
-    if (conf->openMPI && conf->overbook) {
-	errExit("overbooking is unsupported for OpenMPI");
-    }
-
     if (conf->fullPartition && !(conf->nList || conf->hList || conf->hFile)) {
 	errExit("Full partition only with explicit resources");
     }
@@ -1046,8 +1034,6 @@ static void setupConf(Conf_t *conf)
     conf->valgrind = valgrind;
     conf->memcheck = memcheck;
     conf->callgrind = callgrind;
-    conf->openMPI = openMPI;
-    if (getenv(ENV_PART_OMPI)) conf->openMPI = true;
     conf->mpichComp = mpichcom;
     if (getenv("MPIEXEC_BNR")) conf->mpichComp = true;
 
@@ -1096,7 +1082,6 @@ static void setupConf(Conf_t *conf)
     conf->loggerDbg = loggerdb;
     conf->forwarderDbg = forwarderdb;
     conf->PSComDbg = pscomdb;
-    conf->ompiDbg = ompidebug;
     conf->loggerrawmode = loggerrawmode;
     conf->psiDbgMask = psidb;
 }
