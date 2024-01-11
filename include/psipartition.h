@@ -109,12 +109,6 @@
 #define ENV_PART_FULL      "PSI_FULL_PARTITION"
 
 /**
- * Name of the evironment variable used in order to enable a
- * partitions PART_OPT_RESPORTS option.
- */
-#define ENV_PART_OMPI	   "PSI_OPENMPI"
-
-/**
  * @brief Handle LSF environment variables.
  *
  * Handle LSF environment variables. Thus, @a ENV_NODES_HOSTFILE is
