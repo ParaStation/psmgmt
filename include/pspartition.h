@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -69,8 +69,7 @@ typedef enum {
     PART_OPT_WAIT      = 0x0008, /**< If not enough nodes are available, wait
 				    for them (batch mode). */
     PART_OPT_EXACT     = 0x0010, /**< Node-list comes from a batch-system */
-    PART_OPT_RESPORTS  = 0x0020, /**< Request reserved ports for OpenMPI
-				    startup. */
+    PART_OPT_RESPORTS  = 0x0020, /**< Obsolete */
     PART_OPT_DEFAULT   = 0x0040, /**< Use the job's default options */
     PART_OPT_DYNAMIC   = 0x0080, /**< Include dynamic resources, too. This
 				    will require interaction with an external

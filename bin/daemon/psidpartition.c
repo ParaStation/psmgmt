@@ -1643,10 +1643,6 @@ static bool getPartition(PSpart_request_t *request)
 	goto error;
     }
 
-    if (request->options & PART_OPT_RESPORTS) {
-	PSIDhook_call(PSIDHOOK_MASTER_GETPART, request);
-    }
-
     if (!deqPart(&pendReq, request)) {
 	PSID_flog("unable to dequeue request %s\n", PSC_printTID(request->tid));
 	errno = EBUSY;
