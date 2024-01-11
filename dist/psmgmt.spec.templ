@@ -23,10 +23,6 @@
 %global disable_systemd 1
 %endif
 
-%if ( 0%{?rhel} > 8 )
-%global disable_bpf 1
-%endif
-
 %if !0%{?disable_systemd}
 %{!?_unitdir: %global _unitdir %(pkg-config --variable=systemdsystemunitdir systemd)}
 %{!?_systemdconfdir: %global _systemdconfdir %(pkg-config --variable=systemdsystemconfdir systemd)}
