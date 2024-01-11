@@ -115,7 +115,7 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * Spawn @a count tasks described by the @a argc number of arguments
  * within @a argv. The nodes and ranks used will be determined via the
  * PSI_getNodes() function. The present working directory of the
- * spawned tasks will be @a workingdir.
+ * spawned tasks will be @a wDir.
  *
  * The tasks will occupy a single hardware-thread and not support
  * multi-threaded applications. No additional constraints like
@@ -132,11 +132,11 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  *
  * @param count Number of tasks to spawn
  *
- * @param workingdir Present working directory of the spawned tasks on
- * startup. This might be an absolute or relative path. If @a
- * workingdir is a relative path, the content of the PWD environment
- * variable is prepended. If @a workingdir is NULL, the content of the
- * PWD environment variable is taken.
+ * @param wDir Present working directory of the spawned tasks on
+ * startup. This might be an absolute or relative path. If @a wDir is
+ * a relative path, the content of the PWD environment variable is
+ * prepended. If @a wDir is NULL, the content of the PWD environment
+ * variable is taken.
  *
  * @param argc Number of arguments within @a argv used within the
  * resulting execve() call in order to actually spawn the tasks
@@ -152,10 +152,10 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  *
  * @see PSI_createPartition() PSI_getNodes()
  */
-int PSI_spawn(int count, char *workingdir, int argc, char **argv, int *errors);
+int PSI_spawn(int count, char *wDir, int argc, char **argv, int *errors);
 
 /**
- * @brief Spawn one or more tasks within the cluster
+ * @brief Spawn one or more tasks within the cluster into a reservation
  *
  * Spawn @a count tasks described by the @a argc number of arguments
  * within @a argv. The nodes and ranks used will be determined via the
@@ -175,11 +175,11 @@ int PSI_spawn(int count, char *workingdir, int argc, char **argv, int *errors);
  *
  * @param resID Unique ID identifying the reservation to use.
  *
- * @param workingdir Present working directory of the spawned tasks on
- * startup. This might be an absolute or relative path. If @a
- * workingdir is a relative path, the content of the PWD environment
- * variable is prepended. If @a workingdir is NULL, the content of the
- * PWD environment variable is taken.
+ * @param wDir Present working directory of the spawned tasks on
+ * startup. This might be an absolute or relative path. If @a wDir is
+ * a relative path, the content of the PWD environment variable is
+ * prepended. If @a wDir is NULL, the content of the PWD environment
+ * variable is taken.
  *
  * @param argc Number of arguments within @a argv used within the
  * resulting execve() call in order to really spawn the tasks
@@ -199,7 +199,7 @@ int PSI_spawn(int count, char *workingdir, int argc, char **argv, int *errors);
  *
  * @see PSI_createPartition() PSI_getRervation(), PSI_getSlots()
  */
-int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
+int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 		    int argc, char **argv, bool strictArgv, int *errors);
 
 /**
@@ -207,7 +207,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
  *
  * Spawn an admin task described by the @a argc arguments within @a
  * argv to node @a node. The present working directory of the
- * spawned task will be @a workdir.
+ * spawned task will be @a wDir.
  *
  * The unique task ID of the spawned task will be returned within @a
  * tid. If an error occurred, @a error will contain an errno
@@ -218,11 +218,11 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
  *
  * @param node Node to spawn to.
  *
- * @param workdir Present working directory of the spawned tasks on
- * startup. This might be an absolute or relative path. If @a workdir
- * is a relative path, the content of the PWD environment variable is
- * prepended. If @a workdir is NULL, the content of the PWD
- * environment variable is taken.
+ * @param wDir Present working directory of the spawned tasks on
+ * startup. This might be an absolute or relative path. If @a wDir is
+ * a relative path, the content of the PWD environment variable is
+ * prepended. If @a wDir is NULL, the content of the PWD environment
+ * variable is taken.
  *
  * @param argc Number of arguments within @a argv used within the
  * resulting execve() call in order to really spawn the task
@@ -241,7 +241,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
  * @return Return true on success or false if an error occurred; then
  * @a error is set appropriately
  */
-bool PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
+bool PSI_spawnAdmin(PSnodes_ID_t node, char *wDir, int argc, char **argv,
 		    bool strictArgv, unsigned int rank, int *error);
 
 /**

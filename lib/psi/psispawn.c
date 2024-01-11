@@ -510,9 +510,8 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * in order to actually spawn tasks.
  *
  * The task structure is prepared in a way that the resulting tasks
- * will reside in the working directory @a workDir, are of group
- * type @a taskGroup and belong to the reservation identified by @a
- * resID.
+ * will reside in the working directory @a wDir, are of group type @a
+ * taskGroup and belong to the reservation identified by @a resID.
  *
  * The task structure's argument vector will be created from @a argv of
  * size @a argc. These arguments might be prefixed by additional
@@ -523,7 +522,7 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * corresponding properties of the calling process, like UID, GID,
  * logger TID, etc. including a copy of the environment.
  *
- * @param workDir Initial working directory of the spawned tasks
+ * @param wDir Initial working directory of the spawned tasks
  *
  * @param taskGroup Task-group under which the spawned tasks shall be
  * created, e.g. TG_ANY or TG_ADMINTASK; the latter is used for
@@ -541,7 +540,7 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * @return Upon success a prepare task structure is returned or NULL
  * in case of failure
  */
-static PStask_t * createSpawnTask(char *workDir, PStask_group_t taskGroup,
+static PStask_t * createSpawnTask(char *wDir, PStask_group_t taskGroup,
 				  PSrsrvtn_ID_t resID,
 				  int argc, char **argv, bool strictArgv)
 {
@@ -586,7 +585,7 @@ static PStask_t * createSpawnTask(char *workDir, PStask_group_t taskGroup,
     }
     task->resID = resID;
 
-    char *myWD = PSC_getwd(workDir);
+    char *myWD = PSC_getwd(wDir);
     if (!myWD) {
 	PSI_warn(-1, errno, "%s: unable to get working directory", __func__);
 	goto cleanup;
@@ -825,7 +824,7 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
     return error ? -1 : ret;
 }
 
-int PSI_spawn(int count, char *workdir, int argc, char **argv, int *errors)
+int PSI_spawn(int count, char *wDir, int argc, char **argv, int *errors)
 {
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, count);
     if (!errors) {
@@ -835,7 +834,7 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv, int *errors)
 
     if (count <= 0) return 0;
 
-    PStask_t *task = createSpawnTask(workdir, TG_ANY, -1 /* resID */,
+    PStask_t *task = createSpawnTask(wDir, TG_ANY, -1 /* resID */,
 				     argc, argv, false);
     if (!task) {
 	PSI_log(-1, "%s: unable to create helper task\n", __func__);
@@ -878,7 +877,7 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv, int *errors)
     return total;
 }
 
-int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
+int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 		    int argc, char **argv, bool strictArgv, int *errors)
 {
     PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, count, resID);
@@ -889,8 +888,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 
     if (count <= 0) return 0;
 
-    PStask_t *task = createSpawnTask(workdir, TG_ANY, resID,
-				     argc, argv, strictArgv);
+    PStask_t *task = createSpawnTask(wDir, TG_ANY, resID, argc, argv, strictArgv);
     if (!task) {
 	PSI_log(-1, "%s: unable to create helper task\n", __func__);
 	return -1;
@@ -984,7 +982,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
     return error ? -1 : bucket.num;
 }
 
-bool PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
+bool PSI_spawnAdmin(PSnodes_ID_t node, char *wDir, int argc, char **argv,
 		    bool strictArgv, unsigned int rank, int *error)
 {
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
@@ -993,7 +991,7 @@ bool PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 	return false;
     }
 
-    PStask_t *task = createSpawnTask(workdir, TG_ADMINTASK, -1 /* resID */,
+    PStask_t *task = createSpawnTask(wDir, TG_ADMINTASK, -1 /* resID */,
 				     argc, argv, strictArgv);
     if (!task) {
 	PSI_log(-1, "%s: unable to create helper task\n", __func__);
