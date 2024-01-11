@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -73,7 +73,7 @@ typedef enum {
     PSIDHOOK_SHUTDOWN,        /**< Daemon got signaled to shutdown, no arg */
     PSIDHOOK_MASTER_GETPART,  /**< Master is creating a new partition, the arg
 				is a pointer to PSpart_request_t holding the new
-				created request. */
+				created request (obsolete) */
     PSIDHOOK_MASTER_FINJOB,   /**< A job has finished and the master will
 				free the corresponding request. The arg
 				is a pointer to PSpart_request_t holding
