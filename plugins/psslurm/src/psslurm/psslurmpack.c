@@ -2789,12 +2789,7 @@ bool __packSlurmPIDs(PS_SendDB_t *data, Slurm_PIDs_t *pids,
     /* hostname */
     addStringToMsg(pids->hostname, data);
     /* number of PIDs */
-    // @todo might make sense to use addUint32ArrayToMsg() here?
-    addUint32ToMsg(pids->count, data);
-    /* PIDs */
-    for (uint32_t i=0; i<pids->count; i++) {
-	addUint32ToMsg(pids->pid[i], data);
-    }
+    addUint32ArrayToMsg((uint32_t *) pids->pid, pids->count, data);
 
     return true;
 }

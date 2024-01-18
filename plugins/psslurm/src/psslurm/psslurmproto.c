@@ -304,7 +304,7 @@ static void setAccOpts(char *freqString, uint16_t *accType)
     }
 }
 
-/**
+/*
  * @brief Print various step information
  *
  * @param step The step to print the infos from
