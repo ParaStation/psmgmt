@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -226,6 +226,7 @@ void initSlurmMsgHead(Slurm_Msg_Header_t *head)
     head->version = slurmProto;
     head->flags |= SLURM_GLOBAL_AUTH_KEY;
     head->fwTreeWidth = 1;
+    head->addr.family = AF_INET;
 }
 
 void freeSlurmMsgHead(Slurm_Msg_Header_t *head)

@@ -403,7 +403,7 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
  *
  * Returns true on success and false on error
  */
-static bool getSockInfo(int socket, uint32_t *addr, uint16_t *port)
+static bool getSockInfo(int socket, Slurm_Addr_t *slurmAddr)
 {
     struct sockaddr_in sock_addr;
     socklen_t len = sizeof(sock_addr);
@@ -414,8 +414,8 @@ static bool getSockInfo(int socket, uint32_t *addr, uint16_t *port)
     }
 
 #ifndef __clang_analyzer__
-    *addr = sock_addr.sin_addr.s_addr;
-    *port = sock_addr.sin_port;
+    slurmAddr->ip = sock_addr.sin_addr.s_addr;
+    slurmAddr->port = sock_addr.sin_port;
 #endif
 
     return true;
@@ -546,7 +546,7 @@ CALLBACK:
 	sMsg.authRequired = con->authByInMsg;
 
 	/* overwrite empty addr informations */
-	getSockInfo(sock, &sMsg.head.addr, &sMsg.head.port);
+	getSockInfo(sock, &sMsg.head.addr);
 
 	processSlurmMsg(&sMsg, &con->fw, con->cb, con->info);
     }

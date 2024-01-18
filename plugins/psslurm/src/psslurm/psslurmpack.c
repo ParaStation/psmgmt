@@ -77,6 +77,107 @@ static char *__getBitString(PS_DataBuffer_t *data, const char *func,
 }
 #define getBitString(data) __getBitString(data, __func__, __LINE__)
 
+/**
+ * @brief Read a Slurm address from buffer
+ *
+ * @param data Data buffer to read from
+ *
+ * @param func Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+static bool __getSlurmAddr(PS_DataBuffer_t *data, Slurm_Addr_t *addr,
+			   const char *caller, const int line)
+{
+    if (!data) {
+	flog("invalid data from '%s' at %i\n", caller, line);
+	return false;
+    }
+    if (!addr) {
+	flog("invalid addr from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    if (slurmProto < SLURM_20_11_PROTO_VERSION) {
+	/* addr/port */
+	getUint32(data, &addr->ip);
+	getUint16(data, &addr->port);
+	return true;
+    }
+
+    /* address family */
+    getUint16(data, &addr->family);
+
+    if(addr->family == AF_INET) {
+	/* addr/port */
+	getUint32(data, &addr->ip);
+	getUint16(data, &addr->port);
+    } else if (addr->family == AF_INET6) {
+	/* todo: do we need to support IPv6? */
+	flog("error: IPv6 currently unsupported\n");
+	return false;
+    }
+
+    /* if addr->family is does not match, no address was sent.
+     * This is *not* an error */
+
+    return true;
+}
+#define getSlurmAddr(data, addr) __getSlurmAddr(data, addr, __func__, __LINE__)
+
+/**
+ * @brief Write a Slurm address to buffer
+ *
+ * @param addr The Slurm address to write
+ *
+ * @param data Data buffer to write to
+ *
+ * @param func Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+static bool __addSlurmAddr(Slurm_Addr_t *addr, PS_SendDB_t *data,
+			   const char *caller, const int line)
+{
+    if (!data) {
+	flog("invalid data from '%s' at %i\n", caller, line);
+	return false;
+    }
+    if (!addr) {
+	flog("invalid addr from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    if (slurmProto < SLURM_20_11_PROTO_VERSION) {
+	/* addr/port */
+	addUint32ToMsg(addr->ip, data);
+	addUint16ToMsg(addr->port, data);
+	return true;
+    }
+
+    /* address family  */
+    addUint16ToMsg(addr->family, data);
+
+    if(addr->family == AF_INET) {
+	/* addr/port */
+	addUint32ToMsg(addr->ip, data);
+	addUint16ToMsg(addr->port, data);
+    } else if (addr->family == AF_INET6) {
+	flog("error: IPv6 currently unsupported\n");
+	return false;
+    }
+
+    /* if addr->family is null we are not adding additional information.
+     * This is *not* an error */
+
+    return true;
+}
+#define addSlurmAddr(addr, data) __addSlurmAddr(addr, data, __func__, __LINE__)
+
 static void packOldStepID(uint32_t stepid, PS_SendDB_t *data)
 {
     if (stepid == SLURM_BATCH_SCRIPT) {
@@ -806,53 +907,24 @@ bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
     }
     getUint16(data, &head->returnList);
 
-    if (head->version > SLURM_20_02_PROTO_VERSION) {
-	getUint16(data, &head->addrFamily);
-
-	if(head->addrFamily == AF_INET) {
-	    if (!head->addr) {
-		/* addr/port info */
-		getUint32(data, &head->addr);
-		getUint16(data, &head->port);
-	    } else {
-		/* don't overwrite address info set before */
-		uint32_t tmp;
-		getUint32(data, &tmp);
-		uint16_t i;
-		getUint16(data, &i);
-	    }
-	} else if (head->addrFamily == AF_INET6) {
-	    flog("error: IPv6 currently unsupported\n");
-	    return false;
-	} else {
-	    if (!head->addr) {
-		head->addr = head->port = 0;
-	    }
-	}
-
+    if (!head->addr.ip) {
+	getSlurmAddr(data, &head->addr);
     } else {
-	if (!head->addr) {
-	    /* addr/port info */
-	    getUint32(data, &head->addr);
-	    getUint16(data, &head->port);
-	} else {
-	    /* don't overwrite address info set before */
-	    uint32_t tmp;
-	    getUint32(data, &tmp);
-	    uint16_t i;
-	    getUint16(data, &i);
-	}
+	/* don't overwrite address info set before */
+	Slurm_Addr_t tmp;
+	getSlurmAddr(data, &tmp);
     }
 
 #if defined (DEBUG_MSG_HEADER)
+    Slurm_Addr_t *addr = &head->addr;
     flog("version %u flags %u index %u type %u bodyLen %u forward %u"
 	 " treeWidth %u returnList %u, addrFam %u addr %u.%u.%u.%u port %u\n",
 	 head->version, head->flags, head->index, head->type, head->bodyLen,
-	 head->forward, head->fwTreeWidth, head->returnList, head->addrFamily,
-	 (head->addr & 0x000000ff),
-	 (head->addr & 0x0000ff00) >> 8,
-	 (head->addr & 0x00ff0000) >> 16,
-	 (head->addr & 0xff000000) >> 24,
+	 head->forward, head->fwTreeWidth, head->returnList, addr->family,
+	 (addr->ip & 0x000000ff),
+	 (addr->ip & 0x0000ff00) >> 8,
+	 (addr->ip & 0x00ff0000) >> 16,
+	 (addr->ip & 0xff000000) >> 24,
 	 head->port);
 
     if (head->forward) {
@@ -931,17 +1003,8 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 	}
     }
 
-    if (head->version > SLURM_20_02_PROTO_VERSION) {
-	/* address family to IPv4 for now */
-	addUint16ToMsg(AF_INET, data);
-	/* addr/port */
-	addUint32ToMsg(head->addr, data);
-	addUint16ToMsg(head->port, data);
-    } else {
-	/* addr/port */
-	addUint32ToMsg(head->addr, data);
-	addUint16ToMsg(head->port, data);
-    }
+    /* Slurm address */
+    addSlurmAddr(&head->addr, data);
 
     return true;
 }
@@ -1248,27 +1311,8 @@ static bool unpackStepAddr(PS_DataBuffer_t *data, Step_t *step, uint16_t msgVer)
     }
 
     /* srun address and port */
-    uint32_t addr;
-    uint16_t port;
-    if (msgVer > SLURM_20_02_PROTO_VERSION) {
-	/* address family (IPV4/IPV6) */
-	uint16_t addrFamily;
-	getUint16(data, &addrFamily);
-
-	if(addrFamily == AF_INET) {
-	    getUint32(data, &addr);
-	    getUint16(data, &port);
-	} else if (addrFamily == AF_INET6) {
-	    flog("error: IPv6 currently unsupported\n");
-	    return false;
-	} else {
-	    /* no address send */
-	    return true;
-	}
-    } else {
-	getUint32(data, &addr);
-	getUint16(data, &port);
-    }
+    Slurm_Addr_t addr;
+    getSlurmAddr(data, &addr);
 
     if (data->unpackErr) {
 	flog("unpacking message failed: %s\n",

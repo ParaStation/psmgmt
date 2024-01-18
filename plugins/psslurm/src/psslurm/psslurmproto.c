@@ -576,8 +576,8 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     setAccOpts(step->acctFreq, &step->accType);
 
     /* srun addr is always empty, use msg header addr instead */
-    step->srun.sin_addr.s_addr = sMsg->head.addr;
-    step->srun.sin_port = sMsg->head.port;
+    step->srun.sin_addr.s_addr = sMsg->head.addr.ip;
+    step->srun.sin_port = sMsg->head.addr.port;
 
     /* env / spank env */
     step->env.size = step->env.cnt;
@@ -930,7 +930,7 @@ static int handleReattachTasks(Slurm_Msg_t *sMsg)
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_CREDENTIAL);
     } else {
 	/* send message to forwarder */
-	fwCMD_reattachTasks(step->fwdata, sMsg->head.addr,
+	fwCMD_reattachTasks(step->fwdata, sMsg->head.addr.ip,
 			    req->ioPorts[step->localNodeId % req->numIOports],
 			    req->ctlPorts[step->localNodeId % req->numCtlPorts],
 			    req->cred->sig);
@@ -2640,11 +2640,11 @@ void processSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw, Connection_CB_t *cb,
     mdbg(PSSLURM_LOG_PROTO, "%s: msg(%i): %s, version %u addr %u.%u.%u.%u"
 	    " port %u\n", __func__, sMsg->head.type,
 	    msgType2String(sMsg->head.type), sMsg->head.version,
-	    (sMsg->head.addr & 0x000000ff),
-	    (sMsg->head.addr & 0x0000ff00) >> 8,
-	    (sMsg->head.addr & 0x00ff0000) >> 16,
-	    (sMsg->head.addr & 0xff000000) >> 24,
-	    sMsg->head.port);
+	    (sMsg->head.addr.ip & 0x000000ff),
+	    (sMsg->head.addr.ip & 0x0000ff00) >> 8,
+	    (sMsg->head.addr.ip & 0x00ff0000) >> 16,
+	    (sMsg->head.addr.ip & 0xff000000) >> 24,
+	    sMsg->head.addr.port);
 
     /* verify protocol version */
     if (!testSlurmVersion(sMsg->head.version, sMsg->head.type)) {

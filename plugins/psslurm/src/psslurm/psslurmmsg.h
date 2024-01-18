@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,6 +28,12 @@ typedef struct {
     PS_DataBuffer_t body;	/**< message payload */
 } Slurm_Forward_Res_t;
 
+typedef struct {
+    uint32_t ip;		/**< IP */
+    uint16_t port;		/**< port */
+    uint16_t family;		/**< whether to use IPv4 or IPv6 */
+} Slurm_Addr_t;
+
 /** Slurm message header */
 typedef struct {
     uint16_t version;		/**< Slurm protocol version */
@@ -35,9 +41,7 @@ typedef struct {
     uint16_t type;		/**< message type (e.g. REQUEST_LAUNCH_TASKS) */
     uint16_t index;		/**< message index */
     uint32_t bodyLen;		/**< length of the message payload */
-    uint32_t addr;		/**< sender address */
-    uint16_t port;		/**< sender port */
-    uint16_t addrFamily;	/**< whether to use IPv4 or IPv6 */
+    Slurm_Addr_t addr;		/**< senders address */
     uint16_t forward;		/**< message forwarding */
     uint16_t returnList;	/**< number of returned results */
     uint32_t fwTimeout;		/**< forward timeout */
