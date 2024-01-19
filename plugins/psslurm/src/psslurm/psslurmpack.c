@@ -82,6 +82,8 @@ static char *__getBitString(PS_DataBuffer_t *data, const char *func,
  *
  * @param data Data buffer to read from
  *
+ * @param addr Holding the result on success
+ *
  * @param msgVer Slurm protocol version
  *
  * @param caller Function name of the calling function
@@ -134,6 +136,8 @@ static bool __getSlurmAddr(PS_DataBuffer_t *data, Slurm_Addr_t *addr,
  * @brief Write a Slurm address to buffer
  *
  * @param addr The Slurm address to write
+ *
+ * @param data Data buffer to save address to
  *
  * @param msgVer Slurm protocol version
  *
