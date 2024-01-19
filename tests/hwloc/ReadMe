@@ -7,6 +7,7 @@ File		   System
 topo.dp-cn01.xml   DEEP-EST CM
 topo.dp-dam01.xml  DEEP-EST DAM
 topo.dp-esb01.xml  DEEP-EST ESB with EDR IB
+topo.dp-intelmax01.xml	DEEP-SEA with Intel Xeon Max 9462 (utilizing hwloc v2.2)
 topo.j3c053.xml    JUROPA3 GPU node
 topo.jsfc005.xml   JUSUF GPU node
 topo.jsfc070.xml   JUSUF standard node
