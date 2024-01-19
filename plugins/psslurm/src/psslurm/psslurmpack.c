@@ -82,6 +82,8 @@ static char *__getBitString(PS_DataBuffer_t *data, const char *func,
  *
  * @param data Data buffer to read from
  *
+ * @param msgVer Slurm protocol version
+ *
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
@@ -89,7 +91,7 @@ static char *__getBitString(PS_DataBuffer_t *data, const char *func,
  * @return Returns true on success otherwise false is returned
  */
 static bool __getSlurmAddr(PS_DataBuffer_t *data, Slurm_Addr_t *addr,
-			   const char *caller, const int line)
+			   uint16_t msgVer, const char *caller, const int line)
 {
     if (!data) {
 	flog("invalid data from '%s' at %i\n", caller, line);
@@ -100,7 +102,7 @@ static bool __getSlurmAddr(PS_DataBuffer_t *data, Slurm_Addr_t *addr,
 	return false;
     }
 
-    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
+    if (msgVer > SLURM_20_02_PROTO_VERSION) {
 	/* address family */
 	getUint16(data, &addr->family);
 
@@ -125,12 +127,15 @@ static bool __getSlurmAddr(PS_DataBuffer_t *data, Slurm_Addr_t *addr,
 
     return true;
 }
-#define getSlurmAddr(data, addr) __getSlurmAddr(data, addr, __func__, __LINE__)
+#define getSlurmAddr(data, addr, msgVer) \
+    __getSlurmAddr(data, addr, msgVer, __func__, __LINE__)
 
 /**
  * @brief Write a Slurm address to buffer
  *
  * @param addr The Slurm address to write
+ *
+ * @param msgVer Slurm protocol version
  *
  * @param data Data buffer to write to
  *
@@ -141,7 +146,7 @@ static bool __getSlurmAddr(PS_DataBuffer_t *data, Slurm_Addr_t *addr,
  * @return Returns true on success otherwise false is returned
  */
 static bool __addSlurmAddr(Slurm_Addr_t *addr, PS_SendDB_t *data,
-			   const char *caller, const int line)
+			   uint16_t msgVer, const char *caller, const int line)
 {
     if (!data) {
 	flog("invalid data from '%s' at %i\n", caller, line);
@@ -152,7 +157,7 @@ static bool __addSlurmAddr(Slurm_Addr_t *addr, PS_SendDB_t *data,
 	return false;
     }
 
-    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
+    if (msgVer > SLURM_20_02_PROTO_VERSION) {
 	/* address family  */
 	addUint16ToMsg(addr->family, data);
 
@@ -176,7 +181,8 @@ static bool __addSlurmAddr(Slurm_Addr_t *addr, PS_SendDB_t *data,
 
     return true;
 }
-#define addSlurmAddr(addr, data) __addSlurmAddr(addr, data, __func__, __LINE__)
+#define addSlurmAddr(addr, data, msgVer) \
+    __addSlurmAddr(addr, data, msgVer, __func__, __LINE__)
 
 static void packOldStepID(uint32_t stepid, PS_SendDB_t *data)
 {
@@ -908,11 +914,11 @@ bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
     getUint16(data, &head->returnList);
 
     if (!head->addr.ip) {
-	getSlurmAddr(data, &head->addr);
+	getSlurmAddr(data, &head->addr, head->version);
     } else {
 	/* don't overwrite address info set before */
 	Slurm_Addr_t tmp;
-	getSlurmAddr(data, &tmp);
+	getSlurmAddr(data, &tmp, head->version);
     }
 
 #if defined (DEBUG_MSG_HEADER)
@@ -1004,7 +1010,7 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     }
 
     /* Slurm address */
-    addSlurmAddr(&head->addr, data);
+    addSlurmAddr(&head->addr, data, head->version);
 
     return true;
 }
@@ -1312,7 +1318,7 @@ static bool unpackStepAddr(PS_DataBuffer_t *data, Step_t *step, uint16_t msgVer)
 
     /* srun address and port */
     Slurm_Addr_t addr;
-    getSlurmAddr(data, &addr);
+    getSlurmAddr(data, &addr, msgVer);
 
     if (data->unpackErr) {
 	flog("unpacking message failed: %s\n",
