@@ -100,28 +100,28 @@ static bool __getSlurmAddr(PS_DataBuffer_t *data, Slurm_Addr_t *addr,
 	return false;
     }
 
-    if (slurmProto < SLURM_20_11_PROTO_VERSION) {
-	/* addr/port */
-	getUint32(data, &addr->ip);
-	getUint16(data, &addr->port);
+    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
+	/* address family */
+	getUint16(data, &addr->family);
+
+	if(addr->family == AF_INET) {
+	    /* addr/port */
+	    getUint32(data, &addr->ip);
+	    getUint16(data, &addr->port);
+	} else if (addr->family == AF_INET6) {
+	    /* todo: do we need to support IPv6? */
+	    flog("error: IPv6 currently unsupported\n");
+	    return false;
+	}
+
+	/* if addr->family is does not match, no address was sent.
+	 * This is *not* an error */
 	return true;
     }
 
-    /* address family */
-    getUint16(data, &addr->family);
-
-    if(addr->family == AF_INET) {
-	/* addr/port */
-	getUint32(data, &addr->ip);
-	getUint16(data, &addr->port);
-    } else if (addr->family == AF_INET6) {
-	/* todo: do we need to support IPv6? */
-	flog("error: IPv6 currently unsupported\n");
-	return false;
-    }
-
-    /* if addr->family is does not match, no address was sent.
-     * This is *not* an error */
+    /* addr/port */
+    getUint32(data, &addr->ip);
+    getUint16(data, &addr->port);
 
     return true;
 }
@@ -152,27 +152,27 @@ static bool __addSlurmAddr(Slurm_Addr_t *addr, PS_SendDB_t *data,
 	return false;
     }
 
-    if (slurmProto < SLURM_20_11_PROTO_VERSION) {
-	/* addr/port */
-	addUint32ToMsg(addr->ip, data);
-	addUint16ToMsg(addr->port, data);
+    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
+	/* address family  */
+	addUint16ToMsg(addr->family, data);
+
+	if(addr->family == AF_INET) {
+	    /* addr/port */
+	    addUint32ToMsg(addr->ip, data);
+	    addUint16ToMsg(addr->port, data);
+	} else if (addr->family == AF_INET6) {
+	    flog("error: IPv6 currently unsupported\n");
+	    return false;
+	}
+
+	/* if addr->family is null we are not adding additional information.
+	 * This is *not* an error */
 	return true;
     }
 
-    /* address family  */
-    addUint16ToMsg(addr->family, data);
-
-    if(addr->family == AF_INET) {
-	/* addr/port */
-	addUint32ToMsg(addr->ip, data);
-	addUint16ToMsg(addr->port, data);
-    } else if (addr->family == AF_INET6) {
-	flog("error: IPv6 currently unsupported\n");
-	return false;
-    }
-
-    /* if addr->family is null we are not adding additional information.
-     * This is *not* an error */
+    /* addr/port */
+    addUint32ToMsg(addr->ip, data);
+    addUint16ToMsg(addr->port, data);
 
     return true;
 }
