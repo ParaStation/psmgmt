@@ -82,7 +82,7 @@ static char *__getBitString(PS_DataBuffer_t *data, const char *func,
  *
  * @param data Data buffer to read from
  *
- * @param func Function name of the calling function
+ * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
  *
@@ -134,7 +134,7 @@ static bool __getSlurmAddr(PS_DataBuffer_t *data, Slurm_Addr_t *addr,
  *
  * @param data Data buffer to write to
  *
- * @param func Function name of the calling function
+ * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
  *

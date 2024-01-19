@@ -28,6 +28,7 @@ typedef struct {
     PS_DataBuffer_t body;	/**< message payload */
 } Slurm_Forward_Res_t;
 
+/** holding Slurm address (currently only IPv4) */
 typedef struct {
     uint32_t ip;		/**< IP */
     uint16_t port;		/**< port */

@@ -397,9 +397,10 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 /**
  * @brief Get remote address and port of a socket
  *
- * @param addr Pointer to save the remote address
+ * Retrive the address and port of a given socket. On error
+ * @ref slurmAddr will not be updated.
  *
- * @param port Pointer to save the remote port
+ * @param slurmAddr Holding the result on success
  *
  * Returns true on success and false on error
  */
