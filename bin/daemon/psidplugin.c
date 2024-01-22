@@ -1511,13 +1511,13 @@ end:
  */
 static bool drop_PLUGIN(DDBufferMsg_t *msg)
 {
-    DDTypedMsg_t typmsg;
-
-    typmsg.header.type = PSP_CD_PLUGINRES;
-    typmsg.header.dest = msg->header.sender;
-    typmsg.header.sender = PSC_getMyTID();
-    typmsg.header.len = sizeof(typmsg);
-    typmsg.type = -1;
+    DDTypedMsg_t typmsg = {
+	.header = {
+	    .type = PSP_CD_PLUGINRES,
+	    .dest = msg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(typmsg) },
+	.type = -1 };
 
     sendMsg(&typmsg);
     return true;
