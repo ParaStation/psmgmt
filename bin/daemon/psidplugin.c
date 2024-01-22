@@ -1414,8 +1414,6 @@ int PSIDplugin_getAPIversion(void)
  */
 static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 {
-    int destID = PSC_getID(inmsg->header.dest), ret = 0;
-
     PSID_fdbg(PSID_LOG_PLUGIN, "(%s, %s)\n",
 	      PSC_printTID(inmsg->header.sender), inmsg->buf);
 
@@ -1443,6 +1441,7 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 	}
     }
 
+    PSnodes_ID_t destID = PSC_getID(inmsg->header.dest);
     if (destID != PSC_getMyID()) {
 	if (!PSIDnodes_isUp(destID)) {
 	    msg.type = EHOSTDOWN;
