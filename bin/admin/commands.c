@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1857,7 +1857,8 @@ static bool recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
 		   PSC_printTID(src), errStr ? errStr : "Unknown");
 	    break;
 	}
-	if (answer.header.sender != src) {
+	if (answer.header.sender != src
+	    && PSC_getID(answer.header.sender) != PSC_getMyID()) {
 	    printf("%s: wrong partner: %s", __func__,
 		   PSC_printTID(answer.header.sender));
 	    printf(" expected %s\n", PSC_printTID(src));
@@ -1872,10 +1873,7 @@ static bool recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
 	    first = false;
 	}
 
-	if (answer.type == -1) {
-	    printf("Unknown action\n");
-	    break;
-	} else if ((PSP_Plugin_t)answer.type != action) {
+	if ((PSP_Plugin_t)answer.type != action) {
 	    printf("wrong action: %d expected %d\n", answer.type, action);
 	    break;
 	}
