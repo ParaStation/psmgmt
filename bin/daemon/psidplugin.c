@@ -1419,6 +1419,15 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
     PSID_fdbg(PSID_LOG_PLUGIN, "(%s, %s)\n",
 	      PSC_printTID(inmsg->header.sender), inmsg->buf);
 
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PLUGINRES,
+	    .dest = inmsg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = 0,
+	.buf[0] = '\0', };
+
     if (!PSID_checkPrivilege(inmsg->header.sender)) {
 	switch (inmsg->type) {
 	case PSP_PLUGIN_AVAIL:
@@ -1429,70 +1438,80 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 	default:
 	    PSID_flog("task %s not allowed to touch plugins\n",
 		      PSC_printTID(inmsg->header.sender));
-	    ret = EACCES;
+	    msg.type = EACCES;
 	    goto end;
 	}
     }
 
     if (destID != PSC_getMyID()) {
 	if (!PSIDnodes_isUp(destID)) {
-	    ret = EHOSTDOWN;
+	    msg.type = EHOSTDOWN;
 	    goto end;
 	}
 	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	    ret = errno;
-	    PSID_fwarn(errno, "sendMsg()");
+	    msg.type = errno;
+	    PSID_fwarn(msg.type, "sendMsg()");
 	    goto end;
 	}
 	return true; /* destination node will send PLUGINRES message */
-    } else {
-	switch (inmsg->type) {
-	case PSP_PLUGIN_LOAD:
-	    if (!PSIDplugin_load(inmsg->buf, 0, NULL, pluginLogfile)) ret = -1;
-	    break;
-	case PSP_PLUGIN_REMOVE:
-	    if (PSIDplugin_finalize(inmsg->buf) < 0) ret = ENODEV;
-	    break;
-	case PSP_PLUGIN_FORCEREMOVE:
-	    if (forceUnloadPlugin(inmsg->buf) < 0) ret = ENODEV;
-	    break;
-	case PSP_PLUGIN_AVAIL:
-	    sendAvail(inmsg->header.sender);
-	    return true;
-	case PSP_PLUGIN_HELP:
-	    sendHelp(inmsg->header.sender, inmsg->buf);
-	    return true;
-	case PSP_PLUGIN_SET:
-	    handleSetKey(inmsg->header.sender, inmsg->buf);
-	    return true;
-	case PSP_PLUGIN_UNSET:
-	    handleUnsetKey(inmsg->header.sender, inmsg->buf);
-	    return true;
-	case PSP_PLUGIN_SHOW:
-	    handleShowKey(inmsg->header.sender, inmsg->buf);
-	    return true;
-	case PSP_PLUGIN_LOADTIME:
-	    handleLoadTime(inmsg->header.sender, inmsg->buf);
-	    return true;
-	default:
-	    PSID_flog("unknown message type %d\n", inmsg->type);
-	    ret = -1;
-	    goto end;
-	}
+    }
+
+    switch (inmsg->type) {
+    case PSP_PLUGIN_LOAD:
+	if (!PSIDplugin_load(inmsg->buf, 0, NULL, pluginLogfile)) msg.type = -1;
+	break;
+    case PSP_PLUGIN_REMOVE:
+	if (PSIDplugin_finalize(inmsg->buf) < 0) msg.type = ENODEV;
+	break;
+    case PSP_PLUGIN_FORCEREMOVE:
+	if (forceUnloadPlugin(inmsg->buf) < 0) msg.type = ENODEV;
+	break;
+    case PSP_PLUGIN_AVAIL:
+	sendAvail(inmsg->header.sender);
+	return true;
+    case PSP_PLUGIN_HELP:
+	sendHelp(inmsg->header.sender, inmsg->buf);
+	return true;
+    case PSP_PLUGIN_SET:
+	handleSetKey(inmsg->header.sender, inmsg->buf);
+	return true;
+    case PSP_PLUGIN_UNSET:
+	handleUnsetKey(inmsg->header.sender, inmsg->buf);
+	return true;
+    case PSP_PLUGIN_SHOW:
+	handleShowKey(inmsg->header.sender, inmsg->buf);
+	return true;
+    case PSP_PLUGIN_LOADTIME:
+	handleLoadTime(inmsg->header.sender, inmsg->buf);
+	return true;
+    default:
+	PSID_flog("unknown message type %d\n", inmsg->type);
+	msg.type = -1; // flag "Unknown action"
     }
 
 end:
-    {
-	DDTypedMsg_t msg = {
-	    .header = {
-		.type = PSP_CD_PLUGINRES,
-		.dest = inmsg->header.sender,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg) },
-	    .type = ret };
+    /* prepare answer depending on inmsg->type */
+    switch(inmsg->type) {
+    case PSP_PLUGIN_LOAD:
+    case PSP_PLUGIN_REMOVE:
+    case PSP_PLUGIN_FORCEREMOVE:
+	/* msg.type expected to contain error flag */
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	    PSID_fwarn(errno, "sendMsg()");
 	}
+	break;
+    default:
+	/* msg.type expected to contain original type / error in buf */
+	if (msg.type) {
+	    char mBuf[sizeof(msg.buf)];
+	    snprintf(mBuf, sizeof(mBuf), "\tpsid: %.512s\n",
+		     msg.type == -1 ? "Unknown action": strerror(msg.type));
+	    msg.type = inmsg->type;
+	    sendStr(&msg, mBuf, __func__);
+	} else {
+	    msg.type = inmsg->type;
+	}
+	sendStr(&msg, "", __func__);
     }
     return true;
 }
