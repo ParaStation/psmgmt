@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,7 +34,7 @@
 /** magic socket to open a new connection to slurmctld */
 #define SLURMCTLD_SOCK -1
 
-/** magic UID to allow any user to decode the munge credentail */
+/** magic UID to allow any user to decode the munge credential */
 #define RES_UID_ANY -1
 
 /** structure to track message forwarding for a connection */
@@ -232,7 +232,7 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
  *
  * This function will only be used on the root node of the forwarding tree.
  * If a new Slurm RPC message enables forwarding, handleFrwrdMsgReply() will
- * collect and handle the results of the foward process. The sMsg will hold
+ * collect and handle the results of the forward process. The sMsg will hold
  * the information where the RPC was executed and error will hold the result.
  * The forward process is tracked in the connection object from the original
  * RPC request. If all RPC results from the involved nodes were collected the
@@ -312,7 +312,7 @@ bool hexBitstr2List(char *bitstr, StrBuffer_t *strBuf, bool range);
 /**
  * @brief Convert a hex bitstring to a comma separated list.
  *
- * The provided bitstring @a bitstr is converted to a comma seperated
+ * The provided bitstring @a bitstr is converted to a comma separated
  * list to be stored in @a strBuf. The list is initialized at
  * start. If the @a range option is set to true the values are
  * compacted into range syntax. Otherwise every single value will lead

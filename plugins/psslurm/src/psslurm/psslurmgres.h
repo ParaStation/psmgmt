@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -66,7 +66,9 @@ typedef struct {
     char *typeModel;
     uint32_t nodeCount;
     char **bitAlloc;            /**< GRES job bit-string allocation */
+    uint64_t **perBitAlloc;	/**< per bit allocation for shared GRES */
     char **bitStepAlloc;        /**< GRES step bit-string allocation */
+    uint64_t **stepPerBitAlloc;	/**< step per bit allocation for shared GRES */
     char *nodeInUse;            /**< GRES use per node */
     int credType;               /**< credential type (job or step) */
     uint16_t cpusPerGRes;       /**< CPUs per GRES */

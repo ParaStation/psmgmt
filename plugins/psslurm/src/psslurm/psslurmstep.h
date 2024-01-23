@@ -154,7 +154,7 @@ typedef struct {
     Slurm_Msg_t srunPTYMsg;     /**< socket for PTY message to srun */
     uint8_t appendMode;         /**< truncate(=0) or append(=1) stdout/stderr */
     uint16_t accType;		/**< type of accounting */
-    char *nodeAlias;		/**< node alias */
+    char *nodeAlias;		/**< node alias (deprecated in 23.11) */
     char *checkpoint;		/**< checkpoint directory (removed in 21.08) */
     char *restartDir;           /**< restart directory (removed in 21.08) */
     bool x11forward;		/**< X11 forwarding */
@@ -208,6 +208,11 @@ typedef struct {
 				     messages waiting in @ref fwMsgQueue. Slurm
 				     error code in termAfterFWmsg is forwarded
 				     to srun */
+    uint16_t *compCPUsPerTask; /**< Compressed CPUs per task on a per
+				    node basis (unused) */
+    uint32_t numCompCPUsPerTask; /**< number of compCPUsPerTask (unused) */
+    uint32_t *compCPUsPerTaskReps; /**< repetitions of compCPUsPerTask
+				        (unused) */
 } Step_t;
 
 /**

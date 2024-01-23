@@ -94,6 +94,9 @@ typedef struct {
     uint8_t dynamic;		/**< dynamic future node (type) */
     char *dynamicFeat;		/**< dynamic node feature */
     char *dynamicConf;		/**< dynamic node configuration */
+    char *extra;		/**< additional information (unused) */
+    char *cloudID;		/**< cloud instance identifier (unused) */
+    char *cloudType;		/**< cloud instance type (unused) */
 } Resp_Node_Reg_Status_t;
 
 /** Structure holding all infos to pack Slurm accounting data */
@@ -162,8 +165,9 @@ typedef struct {
 
 /** Holding data for RPC REQUEST_SUSPEND_INT */
 typedef struct {
-    uint8_t  indefSus;	    /* indefinitely suspended (switch plugin) */
-    uint16_t jobCoreSpec;   /* number of specialized cores */
+    uint8_t  indefSus;	    /* indefinitely suspended (switch plugin)
+			       (removed in 23.11) */
+    uint16_t jobCoreSpec;   /* number of specialized cores (removed in 23.11) */
     uint32_t jobid;	    /* unique job identifier */
     uint16_t op;	    /* operation (suspend or resume) */
 } Req_Suspend_Int_t;
@@ -183,6 +187,8 @@ typedef struct {
     uint32_t weight;	    /**< new weight */
     char *comment;	    /**< comment (arbitrary string) */
     char *extra;	    /**< extra (arbitrary string) */
+    char *cloudID;	    /**< cloud instance identifier */
+    char *cloudType;	    /**< cloud instance type */
 } Req_Update_Node_t;
 
 /** Holding all information for RPC MESSAGE_TASK_EXIT */
@@ -243,9 +249,9 @@ typedef struct {
     gid_t gid;			/**< unique group identifier */
     char *aliasList;		/**< alias list */
     char *nodes;		/**< node string */
-    char *partition;		/**< partition */
-    char *stdErr;		/**< stderr */
-    char *stdOut;		/**< stdout */
+    char *partition;		/**< partition (removed in 22.05) */
+    char *stdErr;		/**< stderr (removed in 23.11) */
+    char *stdOut;		/**< stdout (removed in 23.11) */
     char *workDir;		/**< working directory */
     uint16_t x11;		/**< x11 flag */
     char *x11AllocHost;		/**< X11 allocated host */
@@ -254,7 +260,7 @@ typedef struct {
     char *x11Target;		/**< X11 target */
     uint16_t x11TargetPort;	/**< X11 target port */
     env_t spankEnv;		/**< spank environment */
-    char *userName;		/**< username */
+    char *userName;		/**< username (removed in 23.11) */
     JobCred_t *cred;		/**< job credentials */
     list_t *gresList;		/**< list of allocated generic resources */
 } Req_Launch_Prolog_t;
@@ -397,9 +403,10 @@ typedef struct {
 
 /** Structure holding a Slurm config file */
 typedef struct {
-    bool create;    /**< flag to create/delete the file */
-    char *name;	    /**< file name */
-    char *data;	    /**< file content */
+    bool create;	/**< flag to create/delete the file */
+    bool executable;	/**< is an executable script */
+    char *name;		/**< file name */
+    char *data;		/**< file content */
 } Config_File_t;
 
 /** Structure holding all received configuration files */

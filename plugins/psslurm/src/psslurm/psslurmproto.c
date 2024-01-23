@@ -2732,7 +2732,7 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
 	if (!unpackSlurmMsg(sMsg)) {
 	    flog("unpacking message %s (%u) failed\n",
 		 msgType2String(sMsg->head.type), sMsg->head.version);
-	    sendSlurmRC(sMsg, SLURM_ERROR);
+	    sendSlurmRC(sMsg, SLURM_COMMUNICATIONS_RECEIVE_ERROR);
 	    return 0;
 	}
 
@@ -2889,14 +2889,18 @@ bool initSlurmdProto(void)
 	if (!autoVer) {
 	    flog("Automatic detection of the Slurm protocol failed, "
 		 "consider setting SLURM_PROTO_VERSION in psslurm.conf\n");
+	    flog("If a configless setup is in use ensure SLURM_CONF_SERVER "
+		 "is correct in psslurm.conf\n");
 	    return false;
 	}
 	slurmVerStr = ustrdup(autoVer);
 	pver = autoVer;
     }
 
-    // TODO  :  make a function which converts protocol version in int to string
-    if (!strncmp(pver, "23.02", 5) || !strncmp(pver, "2302", 4)) {
+    if (!strncmp(pver, "23.11", 5) || !strncmp(pver, "2311", 4)) {
+	slurmProto = SLURM_23_11_PROTO_VERSION;
+	slurmProtoStr = ustrdup("23.11");
+    } else if (!strncmp(pver, "23.02", 5) || !strncmp(pver, "2302", 4)) {
 	slurmProto = SLURM_23_02_PROTO_VERSION;
 	slurmProtoStr = ustrdup("23.02");
     } else if (!strncmp(pver, "22.05", 5) || !strncmp(pver, "2205", 4)) {
@@ -3094,6 +3098,10 @@ void sendNodeRegStatus(bool startup)
     ufree(stat.stepHetComp);
     ufree(stat.dynamicConf);
     ufree(stat.dynamicFeat);
+    /* currently unused */
+    ufree(stat.extra);
+    ufree(stat.cloudID);
+    ufree(stat.cloudType);
 }
 
 int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,

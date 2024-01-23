@@ -73,7 +73,7 @@ typedef struct {
     uint64_t nodeMinMemory; /**< minimum memory per node */
     uint32_t localNodeId;   /**< local node ID for this job */
     time_t startTime;	    /**< the time were the job started */
-    char *nodeAlias;	    /**< node alias */
+    char *nodeAlias;	    /**< node alias (deprecated in 23.11) */
     list_t tasks;	    /**< running tasks for this job */
     Forwarder_Data_t *fwdata;/**< parameters of running job forwarder */
     bool timeout;	    /**< job was cancelled due to time limit */

@@ -241,6 +241,7 @@ void freeSlurmMsgHead(Slurm_Msg_Header_t *head)
     }
 
     ufree(head->fwNodeList);
+    ufree(head->fwAliasNetCred);
     ufree(head->fwRes);
 }
 

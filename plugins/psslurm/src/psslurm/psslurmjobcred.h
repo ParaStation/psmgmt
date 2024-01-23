@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -94,6 +94,8 @@ typedef struct {
     uint16_t jobOversubscribe;  /**< job oversubcribe */
     time_t jobStartTime;	/**< time the job started */
     char *jobLicenses;		/**< the licenses the job reserved */
+    uint32_t numNodeAddr;	/**< number of nodeAddr entries */
+    Slurm_Addr_t *nodeAddr;	/**< node address array */
 } JobCred_t;
 
 /**

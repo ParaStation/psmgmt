@@ -329,6 +329,8 @@ bool Step_delete(Step_t *step)
     ufree(step->tresFreq);
     ufree(step->tresPerTask);
     ufree(step->restartDir);
+    ufree(step->compCPUsPerTask);
+    ufree(step->compCPUsPerTaskReps);
 
     clearTasks(&step->tasks);
     clearTasks(&step->remoteTasks);

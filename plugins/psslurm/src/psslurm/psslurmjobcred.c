@@ -60,6 +60,7 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred->cpuArrayRep);
     ufree(cred->jobExtra);
     ufree(cred->jobLicenses);
+    ufree(cred->nodeAddr);
     ufree(cred);
 }
 

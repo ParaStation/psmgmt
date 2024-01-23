@@ -51,6 +51,7 @@ typedef struct {
     char *fwNodeList;		/**< node-list to forward the message to */
     Slurm_Forward_Res_t *fwRes; /**< returned results on a per node basis */
     uint32_t fwResSize;		/**< size of the forward results */
+    char *fwAliasNetCred;	/** node alias credential (unused) */
     uid_t uid;			/**< user ID of the message sender */
     gid_t gid;			/**< group ID of the message sender */
 } Slurm_Msg_Header_t;

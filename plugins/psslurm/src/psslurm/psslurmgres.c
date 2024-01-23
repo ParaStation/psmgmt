@@ -250,9 +250,25 @@ void releaseGresCred(Gres_Cred_t *gres)
 	ufree(gres->bitAlloc);
     }
 
+    if (gres->perBitAlloc) {
+	for (uint32_t i = 0; i < gres->nodeCount; i++) {
+	    ufree(gres->perBitAlloc[i]);
+	}
+	ufree(gres->perBitAlloc);
+    }
+
     if (gres->bitStepAlloc) {
-	for (uint32_t i = 0; i < gres->nodeCount; i++) ufree(gres->bitStepAlloc[i]);
+	for (uint32_t i = 0; i < gres->nodeCount; i++) {
+	    ufree(gres->bitStepAlloc[i]);
+	}
 	ufree(gres->bitStepAlloc);
+    }
+
+    if (gres->stepPerBitAlloc) {
+	for (uint32_t i = 0; i < gres->nodeCount; i++) {
+	    ufree(gres->stepPerBitAlloc[i]);
+	}
+	ufree(gres->stepPerBitAlloc);
     }
 
     ufree(gres->countStepAlloc);
