@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,6 +32,9 @@ extern Config_t SlurmConfig;
 
 /** The Slurm cgroup configuration list. */
 extern Config_t SlurmCgroupConfig;
+
+/** The Slurm oci configuration list. */
+extern Config_t SlurmOCIConfig;
 
 /** Psslurm configuration options */
 extern const ConfDef_t confDef[];

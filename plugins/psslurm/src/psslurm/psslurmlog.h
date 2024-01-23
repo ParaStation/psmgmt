@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -55,6 +55,7 @@ typedef enum {
     PSSLURM_LOG_SPLUGIN  =      0x0400000, /**< slurm plugins */
     PSSLURM_LOG_TOPO     =      0x0800000, /**< Topology */
     PSSLURM_LOG_JAIL     =      0x1000000, /**< jail/cgroup */
+    PSSLURM_LOG_CONTAIN  =      0x1000000, /**< container */
 } PSSLURM_log_types_t;
 
 #endif  /* __PSSLURM_LOG */

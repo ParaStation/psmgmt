@@ -46,6 +46,9 @@ Config_t SlurmConfig = NULL;
 /** Slurm cgroup configuration list */
 Config_t SlurmCgroupConfig = NULL;
 
+/** Slurm oci configuration list */
+Config_t SlurmOCIConfig = NULL;
+
 /** Hash value of the current Slurm configuration */
 static uint32_t configHash = -1;
 
@@ -111,6 +114,10 @@ const ConfDef_t confDef[] =
 	"file",
 	"cgroup.conf",
 	"Default cgroup configuration file of Slurm" },
+    { "SLURM_OCI_CONF", 0,
+	"file",
+	"oci.conf",
+	"Default oci configuration file of Slurm" },
     { "DIR_SCRIPTS", 0,
 	"path",
 	SPOOL_DIR "/scripts",
@@ -353,6 +360,33 @@ const ConfDef_t cgroupDef[] =
 	"string",
 	"autodetect",
 	"version of cgroup subsystem to use" },
+    { NULL, 0, NULL, NULL, NULL },
+};
+
+/** oci.conf default configuration values */
+const ConfDef_t ociDef[] =
+{
+    { "RunTimeQuery", 0,
+	"string", "",
+	"runtime query command" },
+    { "RunTimeCreate", 0,
+	"string", "",
+	"runtime create command" },
+    { "RunTimeStart", 0,
+	"string", "",
+	"runtime start command" },
+    { "RunTimeKill", 0,
+	"string", "",
+	"runtime kill command" },
+    { "RunTimeDelete", 0,
+	"string", "",
+	"runtime delete command" },
+    { "RunTimeRun", 0,
+	"string", "",
+	"runtime run command" },
+    { "RunTimeEnvExclude", 0,
+	"string", "",
+	"runtime environment excludes" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
@@ -1254,6 +1288,41 @@ static bool verifySlurmConf(void)
 }
 
 /**
+ * @brief Parse a Slurm oci configuration line
+ *
+ * @param key The key of the line to parse
+ *
+ * @param value The value of the line to parse
+ *
+ * @return Returns true on error to stop further parsing
+ * and false otherwise
+ */
+static bool verifyOCIConf(char *key, char *value, const void *info)
+{
+    if (!strcasecmp(key, "RunTimeQuery")) {
+	fdbg(PSSLURM_LOG_CONTAIN, "runtime query cmd: %s\n", value);
+    } else if (!strcasecmp(key, "RunTimeCreate")) {
+	fdbg(PSSLURM_LOG_CONTAIN, "runtime create cmd: %s\n", value);
+    } else if (!strcasecmp(key, "RunTimeStart")) {
+	fdbg(PSSLURM_LOG_CONTAIN, "runtime start cmd: %s\n", value);
+    } else if (!strcasecmp(key, "RunTimeKill")) {
+	fdbg(PSSLURM_LOG_CONTAIN, "runtime kill cmd: %s\n", value);
+    } else if (!strcasecmp(key, "RunTimeDelete")) {
+	fdbg(PSSLURM_LOG_CONTAIN, "runtime delete cmd: %s\n", value);
+    } else if (!strcasecmp(key, "RunTimeRun")) {
+	fdbg(PSSLURM_LOG_CONTAIN, "runtime run cmd: %s\n", value);
+    } else if (!strcasecmp(key, "RunTimeEnvExclude")) {
+	fdbg(PSSLURM_LOG_CONTAIN, "runtime environment excludes: %s\n", value);
+    } else {
+	fdbg(PSSLURM_LOG_WARN, "warning: ignoring unsupported oci.conf "
+	     "value %s\n", key);
+    }
+
+    /* parsing was successful, continue with next line */
+    return false;
+}
+
+/**
  * @brief Parse a Slurm cgroup configuration line
  *
  * @param key The key of the line to parse
@@ -1506,6 +1575,30 @@ bool parseSlurmConfigFiles(void)
     }
     setGlobalJailEnvironment();
 
+    /* parse optional Slurm oci config file */
+    confFile = getConfValueC(Config, "SLURM_OCI_CONF");
+    if (!confFile) {
+	flog("Configuration value SLURM_OCI_CONF not found\n");
+	return false;
+    }
+    snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
+    initSlurmConfig(&SlurmOCIConfig);
+
+    if (stat(cPath, &sbuf) != -1) {
+	if (parseConfigFile(cPath, SlurmOCIConfig) < 0) {
+	    flog("Parsing oci configuration file %s failed\n", cPath);
+	    return false;
+	}
+
+	setConfigDefaults(SlurmOCIConfig, ociDef);
+	if (traverseConfig(SlurmOCIConfig, verifyOCIConf, NULL)) {
+	    flog("Traversing oci configuration failed\n");
+	    return false;
+	}
+    } else {
+	setConfigDefaults(SlurmOCIConfig, ociDef);
+    }
+
 #ifdef HAVE_SPANK
     /* parse optional plugstack.conf holding spank plugins */
     confFile = getConfValueC(SlurmConfig, "PlugStackConfig");
@@ -1725,6 +1818,44 @@ bool updateSlurmConf(void)
 	setConfigDefaults(SlurmCgroupConfig, cgroupDef);
     }
     setGlobalJailEnvironment();
+
+    /* parse optional Slurm oci config file */
+    confFile = getConfValueC(Config, "SLURM_OCI_CONF");
+    if (!confFile) {
+	flog("Configuration value SLURM_OCI_CONF not found\n");
+	return false;
+    }
+    snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
+
+    if (stat(cPath, &sbuf) != -1) {
+	Config_t thisConf = NULL;
+	initSlurmConfig(&thisConf);
+	/* dry run to parse the new oci config */
+	if (parseConfigFile(cPath, thisConf) < 0) {
+	    flog("Parsing oci configuration file %s failed\n", cPath);
+	    freeConfig(thisConf);
+	    return false;
+	}
+	setConfigDefaults(thisConf, ociDef);
+	bool failed = traverseConfig(thisConf, verifyOCIConf, NULL);
+	freeConfig(thisConf);
+	if (failed) {
+	    flog("Traversing oci configuration failed\n");
+	    return false;
+	}
+
+	/* remove old oci configuration and rebuild it */
+	initSlurmConfig(&SlurmOCIConfig);
+	if (parseConfigFile(cPath, SlurmOCIConfig) < 0) {
+	    flog("Parsing oci configuration file %s failed\n", cPath);
+	    return false;
+	}
+	setConfigDefaults(SlurmOCIConfig, ociDef);
+    } else {
+	/* oci.conf may get removed, set default values */
+	initSlurmConfig(&SlurmOCIConfig);
+	setConfigDefaults(SlurmOCIConfig, ociDef);
+    }
 
     return true;
 }
