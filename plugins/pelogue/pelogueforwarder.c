@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -85,14 +85,14 @@ static void execPElogue(PElogueChild_t *child, char *filename, bool root)
 void execPElogueScript(Forwarder_Data_t *fwData, int rerun)
 {
     PElogueChild_t *child = fwData->userData;
-    char fName[PATH_MAX];
     bool root = rerun == 1;
-    uint32_t i;
 
-    for (i=0; i<child->env.cnt; i++) {
-	if (child->env.vars[i]) putenv(child->env.vars[i]);
+    for (uint32_t i = 0; i < envSize(child->env); i++) {
+	char *thisEnv = envDumpIndex(child->env, i);
+	if (thisEnv) putenv(thisEnv);
     }
 
+    char fName[PATH_MAX];
     snprintf(fName, sizeof(fName), "%s/%s%s", child->scriptDir,
 	     child->type == PELOGUE_PROLOGUE ? "prologue" : "epilogue",
 	     root ? "" : ".user");
