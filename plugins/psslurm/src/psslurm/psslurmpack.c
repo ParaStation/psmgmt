@@ -1813,8 +1813,8 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* env/envc */
     getUint32(data, &count);
     getStringArrayM(data, &job->env.vars, &job->env.cnt);
-    if (count != job->env.cnt) {
-	flog("mismatching envc %u : %u\n", count, job->env.cnt);
+    if (count != envSize(&job->env)) {
+	flog("mismatching envc %u : %u\n", count, envSize(&job->env));
 	return false;
     }
     /* use job memory limit */

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -134,7 +134,7 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     env.size = env.cnt + 1;
 
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Setting environment:\n", __func__, rank);
-    for (uint32_t i = 0; i < env.cnt; i++) {
+    for (uint32_t i = 0; i < envSize(&env); i++) {
 	char *envStr = envDumpIndex(&env, i);
 	if (putenv(envStr) != 0) {
 	    mwarn(errno, "%s(r%d): set env '%s'", __func__, rank, envStr);

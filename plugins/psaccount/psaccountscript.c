@@ -102,8 +102,9 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
 	/* This is the child */
 
 	/* update scripts environment */
-	for (uint32_t i = 0; i < script->env.cnt; i++) {
-	    putenv(script->env.vars[i]);
+	for (uint32_t i = 0; i < envSize(&script->env); i++) {
+	    char *thisEnv = envDumpIndex(&script->env, i);
+	    if (thisEnv) putenv(thisEnv);
 	}
 
 	char *argv[2] = { script->path, NULL };

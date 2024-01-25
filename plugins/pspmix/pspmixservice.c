@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -312,8 +312,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     if (mset(PSPMIX_LOG_ENV)) {
 	ulog("job environment:\n");
-	for (size_t i = 0; i < job->env.cnt; i++) {
-	    ulog("%02zd: %s\n", i, job->env.vars[i]);
+	for (size_t i = 0; i < envSize(&job->env); i++) {
+	    ulog("%02zd: %s\n", i, envDumpIndex(&job->env, i));
 	}
     }
 

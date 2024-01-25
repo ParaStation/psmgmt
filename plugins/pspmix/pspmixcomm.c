@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -461,8 +461,8 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t *env)
     setFragDest(&msg, targetTID);
 
     mdbg(PSPMIX_LOG_COMM, "%s: Adding environment to message:\n", __func__);
-    for (uint32_t i = 0; i < env->cnt; i++) {
-	mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, i, (env->vars)[i]);
+    for (uint32_t i = 0; i < envSize(env); i++) {
+	mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, i, envDumpIndex(env, i));
     }
     addStringArrayToMsg(env->vars, &msg);
 

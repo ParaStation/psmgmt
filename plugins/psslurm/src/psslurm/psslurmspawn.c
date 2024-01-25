@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -261,13 +261,13 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     /* we need the DISPLAY variable set by psslurm */
     char *display = getenv("DISPLAY");
 
-    for (size_t i=0; i < step->env.cnt; i++) {
-	if (!(strncmp(step->env.vars[i], "SLURM_RLIMIT_", 13))) continue;
-	if (!(strncmp(step->env.vars[i], "SLURM_UMASK=", 12))) continue;
-	if (!(strncmp(step->env.vars[i], "PWD=", 4))) continue;
-	if (display &&
-	    !(strncmp(step->env.vars[i], "DISPLAY=", 8))) continue;
-	envPut(&newenv, step->env.vars[i]);
+    for (size_t i = 0; i < envSize(&step->env); i++) {
+	char *thisEnv = envDumpIndex(&step->env, i);
+	if (!strncmp(thisEnv, "SLURM_RLIMIT_", 13)) continue;
+	if (!strncmp(thisEnv, "SLURM_UMASK=", 12)) continue;
+	if (!strncmp(thisEnv, "PWD=", 4)) continue;
+	if (display && !strncmp(thisEnv, "DISPLAY=", 8)) continue;
+	envPut(&newenv, thisEnv);
     }
 
     setSlurmConfEnvVar(&newenv);
@@ -298,7 +298,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     for (size_t i = 0; task->environ[i] != NULL; i++) ufree(task->environ[i]);
     ufree(task->environ);
     task->environ = newenv.vars;
-    task->envSize = newenv.cnt;
+    task->envSize = envSize(&newenv);
 
     if (req->num == 1) {
 	return fillCmdForSingleSpawn(req, usize, task);

@@ -87,8 +87,8 @@ void execPElogueScript(Forwarder_Data_t *fwData, int rerun)
     PElogueChild_t *child = fwData->userData;
     bool root = rerun == 1;
 
-    for (uint32_t i = 0; i < envSize(child->env); i++) {
-	char *thisEnv = envDumpIndex(child->env, i);
+    for (uint32_t i = 0; i < envSize(&child->env); i++) {
+	char *thisEnv = envDumpIndex(&child->env, i);
 	if (thisEnv) putenv(thisEnv);
     }
 

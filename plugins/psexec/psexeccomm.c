@@ -97,9 +97,9 @@ static void prepEnv(void *info)
     Script_t *script = info;
     env_t *env = &script->env;
 
-    mlog("%s: setting env %i\n", __func__, env->cnt);
+    mlog("%s: setting env %i\n", __func__, envSize(env));
 
-    for (uint32_t i = 0; i < env->cnt; i++) putenv(envDumpIndex(env, i));
+    for (uint32_t i = 0; i < envSize(env); i++) putenv(envDumpIndex(env, i));
 }
 
 static bool execScript(Script_t *script, PSID_scriptCB_t cb)
@@ -114,7 +114,8 @@ static bool execScript(Script_t *script, PSID_scriptCB_t cb)
 
     mlog("%s: uID %u exec %s", __func__, script->uID, exePath);
     if (initiator != -1) {
-	mlog(" envc %u initiator %s", script->env.cnt, PSC_printTID(initiator));
+	mlog(" envc %u initiator %s",
+	     envSize(&script->env), PSC_printTID(initiator));
     }
     mlog("\n");
     ret = PSID_execScript(exePath, prepEnv, cb, NULL, script);

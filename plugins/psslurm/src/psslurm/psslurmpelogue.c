@@ -684,8 +684,8 @@ int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 	    exit(-1);
 	}
 
-	for (size_t i = 0; i < step->env.cnt; i++) {
-	    putenv(step->env.vars[i]);
+	for (size_t i = 0; i < envSize(&step->env); i++) {
+	    putenv(envDumpIndex(&step->env, i));
 	}
 
 	setRankEnv(task->jobRank, step);
