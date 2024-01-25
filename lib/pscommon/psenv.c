@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -192,6 +192,11 @@ static bool envSetFilter(env_t *env, const char *envstring, char **filter)
 	}
     }
     return true;
+}
+
+char **envGetArray(env_t *env)
+{
+    return env->vars;
 }
 
 bool envClone(const env_t *env, env_t *clone, char **filter)

@@ -464,7 +464,7 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t *env)
     for (uint32_t i = 0; i < envSize(env); i++) {
 	mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, i, envDumpIndex(env, i));
     }
-    addStringArrayToMsg(env->vars, &msg);
+    addStringArrayToMsg(envGetArray(env), &msg);
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);

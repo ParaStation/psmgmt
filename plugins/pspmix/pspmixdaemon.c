@@ -497,7 +497,7 @@ static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
 		     resInfo->nLocalSlots * sizeof(*resInfo->localSlots), &msg);
     }
 
-    addStringArrayToMsg(env->vars, &msg);
+    addStringArrayToMsg(envGetArray(env), &msg);
 
     mdbg(PSPMIX_LOG_COMM, "%s: sending PSPMIX_ADD_JOB to %s", __func__,
 	    PSC_printTID(targetTID));
@@ -889,7 +889,7 @@ static int hookRecvSpawnReq(void *data)
 	envPut(&env, strdup("__USE_PMIX=1")); /* for pspmix_common_usePMIx() */
     }
 
-    prototask->environ = env.vars;
+    prototask->environ = envGetArray(&env);
     prototask->envSize = envSize(&env);
 
     return 0;

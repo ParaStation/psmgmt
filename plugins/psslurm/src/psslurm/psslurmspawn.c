@@ -297,7 +297,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     /* replace task environment */
     for (size_t i = 0; task->environ[i] != NULL; i++) ufree(task->environ[i]);
     ufree(task->environ);
-    task->environ = newenv.vars;
+    task->environ = envGetArray(&newenv);
     task->envSize = envSize(&newenv);
 
     if (req->num == 1) {

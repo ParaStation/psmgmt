@@ -86,7 +86,7 @@ int sendExecScript(Script_t *script, PSnodes_ID_t dest)
     /* add optional executable path */
     addStringToMsg(script->execPath, &data);
     /* add env */
-    addStringArrayToMsg(script->env.vars, &data);
+    addStringArrayToMsg(envGetArray(&script->env), &data);
 
     /* send the messages */
     return sendFragMsg(&data);

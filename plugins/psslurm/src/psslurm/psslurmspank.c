@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -702,11 +702,11 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	case S_JOB_ENV:
 	    pChar3 = va_arg(ap, char ***);
 	    if (spank->step) {
-		*pChar3 = spank->step->env.vars;
+		*pChar3 = envGetArray(&spank->step->env);
 	    } else if (spank->job) {
-		*pChar3 = spank->job->env.vars;
+		*pChar3 = envGetArray(&spank->job->env);
 	    } else if (spank->alloc) {
-		*pChar3 = spank->alloc->env.vars;
+		    *pChar3 = envGetArray(&spank->alloc->env);
 	    } else {
 		*pChar3 = NULL;
 	    }

@@ -86,7 +86,7 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
     job->start_time = time(NULL);
     addTimeToMsg(job->start_time, &data);
 
-    addStringArrayToMsg(env->vars, &data);
+    addStringArrayToMsg(envGetArray(env), &data);
     addUint8ToMsg(job->fwStdOE, &data);
 
     /* start global timeout monitoring */

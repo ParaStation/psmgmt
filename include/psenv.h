@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -187,6 +187,33 @@ bool envGetUint32(const env_t *env, const char *name, uint32_t *val);
  * @return No return value
  */
 void envUnsetIndex(env_t *env, uint32_t idx);
+
+/**
+ * @brief Access environment's string array
+ *
+ * Get a handle on a string array representing the environment @a
+ * env. The string array is NULL terminated and remains in the
+ * ownership of @a env, i.e.
+ *
+ * - it will get obsolete as soon as @a env is destroyed
+ *
+ * - any modification of this array will immediately affect @a env
+ *
+ * - any modifications of @a env will immediately change the returned
+ *   string array
+ *
+ * Thus, it is strongly adviced to not modify the returned string
+ * array and to not rely on the content of it on the long run.
+ *
+ * The main purpose of this function is to feed the content of @a env
+ * into functions like @ref addStringArrayToMsg() or execve().
+ *
+ * @param env Environment to get a string array handle on
+ *
+ * @return Pointer to a NULL terminated string array or NULL if @a env
+ * is still uninitialize or empty
+ */
+char **envGetArray(env_t *env);
 
 /**
  * @brief Clone environment
