@@ -95,6 +95,12 @@ AC_CHECK_LIB([munge], [munge_encode],
    [ munge_enabled=true ] ])
 AM_CONDITIONAL([MUNGE_ENABLED], [test "x$munge_enabled" = xtrue])
 
+AC_CHECK_LIB([json-c], [json_tokener_parse],
+  [AC_SUBST([JSON_C_LIBS], [-ljson-c])
+   AC_DEFINE([HAVE_JSON_C_DEVEL])
+   [ json_c_enabled=true ] ])
+AM_CONDITIONAL([JSON_C_ENABLED], [test "x$json_c_enabled" = xtrue])
+
 AC_ARG_ENABLE([spank], [AS_HELP_STRING([--disable-spank],
   [build without spank support])])
 AM_CONDITIONAL([BUILD_WITHOUT_SPANK], [test "x$enable_spank" = xno])
