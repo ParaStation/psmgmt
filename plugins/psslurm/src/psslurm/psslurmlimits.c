@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -233,61 +233,51 @@ void setDefaultRlimits(void)
 
 void setRlimitsFromEnv(env_t *env, bool psi)
 {
-    struct rlimit limit;
-    unsigned long softLimit;
-    char *val, climit[128], pslimit[128];
-    int i = 0;
-    bool propagate = false;
-
-    while (slurmConfLimits[i].name) {
-
+    for (int i = 0; slurmConfLimits[i].name; i++) {
+	char climit[128];
 	snprintf(climit, sizeof(climit), "SLURM_RLIMIT_%s",
-		    slurmConfLimits[i].name);
-	if ((val = envGet(env, climit))) {
-	    /* user request to propagate value */
-	    if (val[0] == 'U') {
-		val++;
-		propagate = true;
-	    } else {
-		propagate = slurmConfLimits[i].propagate;
-	    }
+		 slurmConfLimits[i].name);
+	char *val = envGet(env, climit);
+	if (!val) continue;
 
-	    if (propagate) {
-		if ((sscanf(val, "%lu", &softLimit)) != 1) {
-		    mlog("%s: invalid %s limit '%s'\n", __func__,
-			    slurmConfLimits[i].name, val);
-		} else {
-		    if (!getrlimit(slurmConfLimits[i].limit, &limit)) {
-			limit.rlim_cur = softLimit;
-			if (softLimit > limit.rlim_max) {
-			    softLimit = limit.rlim_max;
-    			}
-			/*
-			mlog("%s: %s propagate: '%lu'\n", __func__, climit,
-				softLimit);
-			*/
-			if ((setrlimit(slurmConfLimits[i].limit, &limit)) !=0) {
-			    mwarn(errno, "%s: setting '%s' to '%lu' failed: ",
-				    __func__, climit, softLimit);
-			}
-			if (psi) {
-			    if (softLimit == RLIM_INFINITY) {
-				envSet(env, slurmConfLimits[i].psname,
-					    "infinity");
-			    } else {
-				snprintf(pslimit, sizeof(pslimit), "%lx",
-					    softLimit);
-				envSet(env, slurmConfLimits[i].psname,
-					    pslimit);
-			    }
+	bool propagate = false;
+	if (val[0] == 'U') {
+	    /* user request to propagate value */
+	    val++;
+	    propagate = true;
+	} else {
+	    propagate = slurmConfLimits[i].propagate;
+	}
+
+	if (propagate) {
+	    unsigned long softLimit;
+	    if ((sscanf(val, "%lu", &softLimit)) != 1) {
+		flog("invalid %s limit '%s'\n", slurmConfLimits[i].name, val);
+	    } else {
+		struct rlimit limit;
+		if (!getrlimit(slurmConfLimits[i].limit, &limit)) {
+		    limit.rlim_cur = softLimit;
+		    if (softLimit > limit.rlim_max) {
+			softLimit = limit.rlim_max;
+		    }
+		    if (setrlimit(slurmConfLimits[i].limit, &limit) != 0) {
+			mwarn(errno, "%s: setting '%s' to '%lu' failed: ",
+			      __func__, climit, softLimit);
+		    }
+		    if (psi) {
+			if (softLimit == RLIM_INFINITY) {
+			    envSet(env, slurmConfLimits[i].psname, "infinity");
+			} else {
+			    char pslimit[128];
+			    snprintf(pslimit, sizeof(pslimit), "%lx", softLimit);
+			    envSet(env, slurmConfLimits[i].psname, pslimit);
 			}
 		    }
 		}
 	    }
-
-	    /* remove from user env */
-	    envUnset(env, climit);
 	}
-	i++;
+
+	/* remove from user env */
+	envUnset(env, climit);
     }
 }
