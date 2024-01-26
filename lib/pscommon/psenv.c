@@ -143,15 +143,6 @@ char *envDumpIndex(const env_t *env, uint32_t idx)
     return env->vars[idx];
 }
 
-bool envGetUint32(const env_t *env, const char *name, uint32_t *val)
-{
-    char *valc = envGet(env, name);
-
-    if (valc && sscanf(valc, "%u", val) == 1) return true;
-
-    return false;
-}
-
 bool envSet(env_t *env, const char *name, const char *val)
 {
     if (!name || strchr(name, '=')) return false;

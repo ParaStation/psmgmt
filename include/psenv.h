@@ -198,24 +198,6 @@ void __envDestroy(env_t *env, bool shred);
 bool envPut(env_t *env, const char *envString);
 
 /**
- * @brief Get integer from environment
- *
- * Get an unsigned integer indexed by the key @a name from the
- * environment @a env and return it in @a val.
- *
- * @param env Environment to search
- *
- * @param name Key of the entry to look up
- *
- * @param val Pointer to the integer value upon return
- *
- * @return If an entry with key @a name is found and the corresponding
- * value could be converted to an unsigned integer true is
- * returned. Otherwise false is returned.
- */
-bool envGetUint32(const env_t *env, const char *name, uint32_t *val);
-
-/**
  * @brief Remove from environment
  *
  * Remove the entry indexed by @a idx from the environment @a env.
