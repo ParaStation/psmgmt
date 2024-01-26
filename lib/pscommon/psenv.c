@@ -97,11 +97,6 @@ static int getIndex(const env_t *env, const char *name)
     return -1;
 }
 
-void envInit(env_t *env)
-{
-    memset(env, 0, sizeof(*env));
-}
-
 void envUnset(env_t *env, const char *name)
 {
     int idx = getIndex(env, name);

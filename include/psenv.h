@@ -22,17 +22,6 @@ typedef struct {
 } env_t;
 
 /**
- * @brief Initialize environment
- *
- * Initialize the environment structure @a env.
- *
- * @param env Environment to initialize
- *
- * @return No return value
- */
-void envInit(env_t *env);
-
-/**
  * @brief Create an environment
  *
  * Create an environment context in order to hold an arbitrary number
