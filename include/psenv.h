@@ -331,4 +331,14 @@ env_t envClone(const env_t env, char **filter);
  */
 bool envCat(env_t dst, const env_t src, char **filter);
 
+/**
+ * @brief Create an environment from comma separated string
+ *
+ * @param string The string holding the environment to parse
+ *
+ * @return Returns the requested environment on success otherwise
+ * NULL is returned
+ */
+env_t *envFromString(const char *string);
+
 #endif  /* __PSENV_H */
