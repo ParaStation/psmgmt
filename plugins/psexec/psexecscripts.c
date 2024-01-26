@@ -43,9 +43,8 @@ Script_t *addScript(uint32_t id, char *execName, char *execPath,
 	.cb = cb,
 	.execName = ustrdup(execName),
 	.execPath = ustrdup(execPath),
+	.env = envNew(NULL),
 	.uID = nextUID++, };
-
-    envInit(&script->env);
 
     list_add_tail(&script->next, &scriptList);
 

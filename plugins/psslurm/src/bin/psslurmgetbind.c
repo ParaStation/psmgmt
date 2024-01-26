@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -692,8 +692,7 @@ int main(int argc, char *argv[])
     if (!memBindString) memBindString = "";
 
     /* creating env containing hints */
-    env_t env;
-    envInit(&env);
+    env_t env = envNew(NULL);
     if (nomultithread) envSet(&env, "PSSLURM_HINT", "nomultithread");
 
     if (!tasksPerNode) {

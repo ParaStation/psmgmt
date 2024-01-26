@@ -151,7 +151,7 @@ bool Energy_init(void)
     if (!initPowerUnit()) return false;
 
     memset(&eData, 0, sizeof(eData));
-    envInit(&scriptEnv);
+    scriptEnv = envNew(NULL);
 
     /* test energy collect configuration */
     char *energyScript = getConfValueC(config, "ENERGY_SCRIPT");

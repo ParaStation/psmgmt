@@ -579,8 +579,6 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     step->srun.sin_port = sMsg->head.addr.port;
 
     /* env / spank env */
-    step->env.size = step->env.cnt;
-    step->spankenv.size = step->spankenv.cnt;
     for (uint32_t i = 0; i < envSize(&step->spankenv); i++) {
 	if (!strncmp("_SLURM_SPANK_OPTION_x11spank_forward_x",
 		     envDumpIndex(&step->spankenv, i), 38)) {
@@ -2028,13 +2026,11 @@ static void printJobLaunchInfos(Job_t *job)
     }
 
     /* job env */
-    job->env.size = job->env.cnt;
     for (uint32_t i = 0; i < envSize(&job->env); i++) {
 	fdbg(PSSLURM_LOG_ENV, "env%i: '%s'\n", i, envDumpIndex(&job->env, i));
     }
 
     /* spank env */
-    job->spankenv.size = job->spankenv.cnt;
     for (uint32_t i = 0; i < envSize(&job->spankenv); i++) {
 	fdbg(PSSLURM_LOG_ENV, "spankenv%i: '%s'\n", i,
 	     envDumpIndex(&job->spankenv, i));

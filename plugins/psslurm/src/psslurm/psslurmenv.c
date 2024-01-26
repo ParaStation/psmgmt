@@ -1065,8 +1065,7 @@ static void setInteractiveRankEnv(Step_t *step)
 
     /* we need to set the GRes job environment variables
      * for the interactive step */
-    env_t gresEnv;
-    envInit(&gresEnv);
+    env_t gresEnv = envNew(NULL);
     setGResJobEnv(&step->gresList, &gresEnv);
     for (uint32_t i = 0; i < envSize(&gresEnv); i++) {
 	char *thisEnv = envDumpIndex(&gresEnv, i);

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -119,11 +119,11 @@ bool kvs_create(char *name)
 
     /* setup up the env */
     kvs[index].env = malloc(sizeof(*(kvs[index].env)));
+    *kvs[index].env = envNew(NULL);
     if (!kvs[index].env) {
 	mlog("%s: out of memory\n", __func__);
 	exit(1);
     }
-    envInit(kvs[index].env);
 
     /* set the name of the kvs */
     kvs[index].name = strdup(name);
@@ -146,6 +146,7 @@ bool kvs_destroy(char *name)
 
     free(lkvs->name);
     lkvs->name = NULL;
+    envDestroy(lkvs->env);
     free(lkvs->env);
 
     return true;

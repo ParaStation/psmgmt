@@ -282,7 +282,7 @@ Collect_Script_t *Script_start(char *title, char *path,
     script->func = func;
     script->poll = poll;
     if (!env) {
-	envInit(&script->env);
+	script->env = envNew(NULL);
     } else {
 	envClone(env, &script->env, NULL);
     }
@@ -303,6 +303,7 @@ Collect_Script_t *Script_start(char *title, char *path,
 	flog("starting %s script forwarder failed\n", title);
 	ForwarderData_delete(fwdata);
 	ufree(script->path);
+	envDestroy(&script->env);
 	ufree(script);
 	return NULL;
     }
@@ -320,6 +321,7 @@ void Script_finalize(Collect_Script_t *script)
 
     shutdownForwarder(script->fwdata);
     ufree(script->path);
+    envDestroy(&script->env);
     ufree(script);
 }
 

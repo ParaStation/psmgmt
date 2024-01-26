@@ -98,7 +98,7 @@ bool IC_startScript(void)
 bool IC_init(void)
 {
     memset(&icData, 0, sizeof(icData));
-    envInit(&scriptEnv);
+    scriptEnv = envNew(NULL);
 
     char *interScript = getConfValueC(config, "INTERCONNECT_SCRIPT");
     if (!interScript || interScript[0] == '\0') return true;

@@ -55,9 +55,9 @@ Step_t *Step_new(void)
     INIT_LIST_HEAD(&step->remoteTasks);
     INIT_LIST_HEAD(&step->jobCompInfos);
     INIT_LIST_HEAD(&step->fwMsgQueue);
-    envInit(&step->env);
-    envInit(&step->spankenv);
-    envInit(&step->pelogueEnv);
+    step->env = envNew(NULL);
+    step->spankenv = envNew(NULL);
+    step->pelogueEnv = envNew(NULL);
     initSlurmMsg(&step->srunIOMsg);
     initSlurmMsg(&step->srunControlMsg);
     initSlurmMsg(&step->srunPTYMsg);

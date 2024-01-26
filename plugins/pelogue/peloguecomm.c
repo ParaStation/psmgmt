@@ -310,8 +310,9 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getInt16Array(rData, &nodes, &nrOfNodes);
     /* environment */
     env_t *env = umalloc(sizeof(*env));
-    getStringArrayM(rData, &env->vars, &env->cnt);
-    env->size = env->cnt + 1;
+    char **envP = NULL;
+    getStringArrayM(rData, &envP, NULL);
+    *env = envNew(envP);
     /* fwPrologueOE */
     uint16_t fwPrologueOE = false;
     getUint16(rData, &fwPrologueOE);
@@ -366,7 +367,6 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     ufree(jobid);
     envDestroy(env);
-    ufree(env);
     return;
 
 ERROR:
@@ -378,7 +378,6 @@ ERROR:
     ufree(info);
     ufree(jobid);
     envDestroy(env);
-    ufree(env);
 }
 
 static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
@@ -403,9 +402,10 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getTime(rData, &child->startTime);
 
     /* get environment */
-    envInit(&child->env);
-    getStringArrayM(rData, &child->env.vars, &child->env.cnt);
-    child->env.size = child->env.cnt + 1;
+    envDestroy(&child->env);
+    char **envP = NULL;
+    getStringArrayM(rData, &envP, NULL);
+    child->env = envNew(envP);
 
     getBool(rData, &child->fwStdOE);
 

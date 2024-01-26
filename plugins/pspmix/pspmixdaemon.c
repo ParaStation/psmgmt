@@ -573,8 +573,7 @@ static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t spawnertid)
  * @param server    PMIx server to add the job to
  * @param loggertid PMIx session identifier
  * @param psjob     job to add
- * @param environ   environment for the job
- * @param envSize   size of the environment
+ * @param env       environment for the job
  *
  * @returns True on success or if job already known to server, false on error
  */
@@ -882,7 +881,7 @@ static int hookRecvSpawnReq(void *data)
 
     mdbg(PSPMIX_LOG_CALL, "%s(task group TG_ANY)\n", __func__);
 
-    env_t env = { prototask->environ, prototask->envSize, prototask->envSize };
+    env_t env = envNew(prototask->environ);
 
     /* mark environment if mpiexec demands PMIx for this job */
     if (envGet(&env, "__PMIX_NODELIST")) {
@@ -891,6 +890,8 @@ static int hookRecvSpawnReq(void *data)
 
     prototask->environ = envGetArray(&env);
     prototask->envSize = envSize(&env);
+
+    envStealArray(&env);
 
     return 0;
 }
@@ -918,7 +919,7 @@ static int hookSpawnTask(void *data)
 
     mdbg(PSPMIX_LOG_CALL, "%s(task group TG_ANY)\n", __func__);
 
-    env_t env = { task->environ, task->envSize, task->envSize };
+    env_t env = envNew(task->environ); // use of env is read only
 
     /* continue only if PMIx support is requested
      * or singleton support is configured and np == 1 */
@@ -932,6 +933,7 @@ static int hookSpawnTask(void *data)
     PSsession_t *pssession = PSID_findSessionByID(loggertid);
     if (!pssession) {
 	mlog("%s: no session (logger %s)\n", __func__, PSC_printTID(loggertid));
+	envStealArray(&env);
 	return -1;
     }
 
@@ -941,6 +943,7 @@ static int hookSpawnTask(void *data)
     if (!psjob) {
 	mlog("%s: no job (spawner %s", __func__, PSC_printTID(spawnertid));
 	mlog(" logger %s)\n", PSC_printTID(loggertid));
+	envStealArray(&env);
 	return -1;
     }
 
@@ -951,6 +954,7 @@ static int hookSpawnTask(void *data)
 	mlog("%s: no reservation %d (spawner %s", __func__, resID,
 	     PSC_printTID(spawnertid));
 	mlog(" logger %s)\n", PSC_printTID(loggertid));
+	envStealArray(&env);
 	return -1;
     }
 
@@ -966,6 +970,7 @@ static int hookSpawnTask(void *data)
 	    mdbg(PSPMIX_LOG_VERBOSE, "%s: rank %d: job already known (uid %d"
 		 " spawner %s)\n", __func__, task->rank, server->uid,
 		 PSC_printTID(spawnertid));
+	    envStealArray(&env);
 	    return 0;
 	}
     } else {
@@ -980,6 +985,7 @@ static int hookSpawnTask(void *data)
 	if (!startServer(server)) {
 	    mlog("%s: starting PMIx server failed (uid %d)\n", __func__,
 		 server->uid);
+	    envStealArray(&env);
 	    return -1;
 	}
 

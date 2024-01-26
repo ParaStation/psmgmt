@@ -96,8 +96,9 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	list_add_tail(&resInfo->next, &job->resInfos);
     }
 
-    getStringArrayM(data, &job->env.vars, &job->env.cnt);
-    job->env.size = job->env.cnt + 1;
+    char **envP = NULL;
+    getStringArrayM(data, &envP, NULL);
+    job->env = envNew(envP);
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s with loggertid %s", __func__,
 	 pspmix_getMsgTypeString(msg->type), PSC_printTID(loggertid));

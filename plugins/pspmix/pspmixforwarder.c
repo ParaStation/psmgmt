@@ -128,10 +128,9 @@ static bool environmentReady = false;
 */
 static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    env_t env;
-    envInit(&env);
-    getStringArrayM(data, &env.vars, &env.cnt);
-    env.size = env.cnt + 1;
+    char **envP = NULL;
+    getStringArrayM(data, &envP, NULL);
+    env_t env = envNew(envP);
 
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Setting environment:\n", __func__, rank);
     for (uint32_t i = 0; i < envSize(&env); i++) {
@@ -327,11 +326,12 @@ static int hookExecForwarder(void *data)
     /* pointer is assumed to be valid for the life time of the forwarder */
     childTask = data;
 
-    env_t env = {childTask->environ, childTask->envSize, childTask->envSize};
     if (childTask->group != TG_ANY) {
 	childTask = NULL;
 	return 0;
     }
+
+    env_t env = envNew(childTask->environ); // use of env is read only
 
     /* continue only if PMIx support is requested
      * or singleton support is configured and np == 1 */
@@ -340,6 +340,7 @@ static int hookExecForwarder(void *data)
     if (!usePMIx && (!getConfValueI(config, "SUPPORT_MPI_SINGLETON")
 		     || (jobsize ? atoi(jobsize) : 1) != 1)) {
 	childTask = NULL;
+	envStealArray(&env);
 	return 0;
     }
 
@@ -352,12 +353,14 @@ static int hookExecForwarder(void *data)
     /* Send client registration request to the PMIx server */
     if (!sendRegisterClientMsg(childTask)) {
 	mlog("%s(r%d): Failed to send register message\n", __func__, rank);
+	envStealArray(&env);
 	return -1;
     }
 
     /* block until PMIx environment is set with some timeout */
     uint32_t tmout = 3;
     char *tmoutStr = envGet(&env, "PSPMIX_ENV_TMOUT");
+    envStealArray(&env);
     if (tmoutStr && *tmoutStr) {
 	char *end;
 	long tmp = strtol(tmoutStr, &end, 0);
@@ -429,8 +432,11 @@ static int hookExecClientUser(void *data)
 
     /* if this is a singleton case, call PMIx_Init() to prevent the PMIx server
      * lib from deleting the namespace after first use */
-    env_t env = { childTask->environ, childTask->envSize, childTask->envSize };
-    if (pspmix_common_usePMIx(&env)) return 0;
+    env_t env = envNew(childTask->environ); // use of env is read only
+    bool usePMIx = pspmix_common_usePMIx(&env);
+    envStealArray(&env);
+    if (usePMIx) return 0;
+
     mlog("%s(r%d): Calling PMIx_Init() for singleton support.\n", __func__,
 	 rank);
     /* need to call with proc != NULL since this is buggy until in 4.2.0

@@ -108,7 +108,7 @@ PElogueChild_t *addChild(char *plugin, char *jobid, PElogueType_t type)
 	child->hostName = hostName;
 	child->timeout = 0;
 	child->rounds = 1;
-	envInit(&child->env);
+	child->env = envNew(NULL);
 	child->uid = 0;
 	child->gid = 0;
 	child->startTime = 0;

@@ -96,7 +96,7 @@ bool FS_startScript(void)
 bool FS_init(void)
 {
     memset(&fsData, 0, sizeof(fsData));
-    envInit(&scriptEnv);
+    scriptEnv = envNew(NULL);
 
     char *fsPath = getConfValueC(config, "FILESYSTEM_SCRIPT");
     if (!fsPath || fsPath[0] == '\0') return true;

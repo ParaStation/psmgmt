@@ -12,6 +12,7 @@
 
 #include <arpa/inet.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -1214,7 +1215,10 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     }
 
     /* spank env */
-    getStringArrayM(data, &req->spankEnv.vars, &req->spankEnv.cnt);
+    char **envP = NULL;
+    getStringArrayM(data, &envP, NULL);
+    req->spankEnv = envNew(envP);
+
     /* start time */
     getTime(data, &req->startTime);
 
@@ -1547,9 +1551,13 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* env */
-    getStringArrayM(data, &step->env.vars, &step->env.cnt);
+    char **envP = NULL;
+    getStringArrayM(data, &envP, NULL);
+    step->env = envNew(envP);
     /* spank env */
-    getStringArrayM(data, &step->spankenv.vars, &step->spankenv.cnt);
+    envP = NULL;
+    getStringArrayM(data, &envP, NULL);
+    step->spankenv = envNew(envP);
 
     if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	/* container path */
@@ -1809,14 +1817,20 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return false;
     }
     /* spank env/envc */
-    getStringArrayM(data, &job->spankenv.vars, &job->spankenv.cnt);
+    char **envP = NULL;
+    getStringArrayM(data, &envP, NULL);
+    job->spankenv = envNew(envP);
+
     /* env/envc */
     getUint32(data, &count);
-    getStringArrayM(data, &job->env.vars, &job->env.cnt);
+    envP = NULL;
+    getStringArrayM(data, &envP, NULL);
+    job->env = envNew(envP);
     if (count != envSize(&job->env)) {
 	flog("mismatching envc %u : %u\n", count, envSize(&job->env));
 	return false;
     }
+
     /* use job memory limit */
     getUint64(data, &job->memLimit);
 
@@ -2942,7 +2956,9 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     req->x11Target = getStringM(data);
     getUint16(data, &req->x11TargetPort);
     /* spank environment */
-    getStringArrayM(data, &req->spankEnv.vars, &req->spankEnv.cnt);
+    char **envP = NULL;
+    getStringArrayM(data, &envP, NULL);
+    req->spankEnv = envNew(envP);
     /* job credential */
     if (msgVer < SLURM_22_05_PROTO_VERSION) {
 	req->cred = extractJobCred(req->gresList, sMsg, true);
