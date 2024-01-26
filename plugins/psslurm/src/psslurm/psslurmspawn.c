@@ -242,19 +242,13 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
 {
     if (!step) {
-	mlog("%s: There is no slurm step. Assuming this is not a slurm job.\n",
-		__func__);
+	flog("There is no slurm step. Assuming this is not a slurm job.\n");
 	return -1;
     }
 
     /* *** build environment *** */
-    env_t newenv;
-    envInit(&newenv);
-
-    /* start with existing task environment */
-    for (size_t i = 0; task->environ[i] != NULL; i++) {
-	envPut(&newenv, task->environ[i]);
-    }
+    // can use task->environ since it will be replaced later anyhow
+    env_t env = envNew(task->environ);
 
     /* add (filtered) step environment */
 
@@ -267,19 +261,19 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
 	if (!strncmp(thisEnv, "SLURM_UMASK=", 12)) continue;
 	if (!strncmp(thisEnv, "PWD=", 4)) continue;
 	if (display && !strncmp(thisEnv, "DISPLAY=", 8)) continue;
-	envPut(&newenv, thisEnv);
+	envPut(&env, thisEnv);
     }
 
-    setSlurmConfEnvVar(&newenv);
+    setSlurmConfEnvVar(&env);
 
     /* propagate parent TID, logger TID and rank through Slurm */
     char nStr[32];
     snprintf(nStr, sizeof(nStr), "%d", task->ptid);
-    envSet(&newenv, "__PSSLURM_SPAWN_PTID", nStr);
+    envSet(&env, "__PSSLURM_SPAWN_PTID", nStr);
     snprintf(nStr, sizeof(nStr), "%d", task->loggertid);
-    envSet(&newenv, "__PSSLURM_SPAWN_LTID", nStr);
+    envSet(&env, "__PSSLURM_SPAWN_LTID", nStr);
     snprintf(nStr, sizeof(nStr), "%d", task->rank - 1);
-    envSet(&newenv, "__PSSLURM_SPAWN_RANK", nStr);
+    envSet(&env, "__PSSLURM_SPAWN_RANK", nStr);
 
     /* XXX: Do we need to set further variables as in setRankEnv()
      *      in psslurmforwarder.c? */
@@ -292,13 +286,12 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
      *
      * Only the values of the first single spawn are used. */
     SingleSpawn_t *spawn = &(req->spawns[0]);
-    addSpawnPreputToEnv(spawn->preputc, spawn->preputv, &newenv);
+    addSpawnPreputToEnv(spawn->preputc, spawn->preputv, &env);
 
     /* replace task environment */
-    for (size_t i = 0; task->environ[i] != NULL; i++) ufree(task->environ[i]);
-    ufree(task->environ);
-    task->environ = envGetArray(&newenv);
-    task->envSize = envSize(&newenv);
+    task->environ = envGetArray(&env);
+    task->envSize = envSize(&env);
+    envStealArray(&env);
 
     if (req->num == 1) {
 	return fillCmdForSingleSpawn(req, usize, task);

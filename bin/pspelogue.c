@@ -472,7 +472,6 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
 
 int main(const int argc, const char *argv[], char *envp[])
 {
-    env_t env, clone;
     char *filter[] = { "SLURM_SPANK_*", "_SLURM_SPANK_OPTION_*", "SLURM_JOBID",
 		       "SLURM_JOB_ID", "SLURM_JOB_NODELIST", "SLURM_SUBMIT_DIR",
 		       "SLURM_PACK_JOB_ID", "SLURM_PACK_JOB_NODELIST",
@@ -515,19 +514,15 @@ int main(const int argc, const char *argv[], char *envp[])
     }
 
     /* build and filter environment */
-    env.vars = envp;
-    env.cnt = 0;
-    for (uint32_t i = 0; envp[i]; i++) env.cnt++;
-    env.size = env.cnt;
-    envClone(&env, &clone, filter);
-    envSet(&clone, "SLURM_USER", getenv("SLURM_JOB_USER"));
-    envSet(&clone, "SLURM_UID", getenv("SLURM_JOB_UID"));
+    env_t env = envConstruct(envp, filter);
+    envSet(&env, "SLURM_USER", getenv("SLURM_JOB_USER"));
+    envSet(&env, "SLURM_UID", getenv("SLURM_JOB_UID"));
 
     /* remove new "SPANK_" prefix from already prefixed variables
      * pspelogue needs to forward (juwels:#9228) */
     for (uint32_t i = 0; envp[i]; i++) {
 	if (!strncmp("SPANK_SLURM_SPANK_", envp[i], 18)) {
-	    envPut(&clone, envp[i] + 6);
+	    envPut(&env, envp[i] + 6);
 	}
     }
 
@@ -578,8 +573,8 @@ int main(const int argc, const char *argv[], char *envp[])
     }
 
     /* send pelogue start request */
-    sendPElogueReq(jobID, sUid, sGid, nrOfNodes, nodes, &clone);
-    envDestroy(&clone);
+    sendPElogueReq(jobID, sUid, sGid, nrOfNodes, nodes, &env);
+    envDestroy(&env);
 
     /* receive and handle result */
     handleResponse();
