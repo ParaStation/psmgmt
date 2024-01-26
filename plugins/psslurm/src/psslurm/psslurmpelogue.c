@@ -395,8 +395,7 @@ int handleLocalPElogueStart(void *data)
 	    Alloc_t *alloc = Alloc_add(id, packID, slurmHosts, env,
 				      pedata->uid, pedata->gid, user);
 	    if (old) {
-		mdbg(PSSLURM_LOG_PELOG, "%s: removing old allocation %u\n",
-		     __func__, packID);
+		fdbg(PSSLURM_LOG_PELOG, "removing old allocation %u\n", packID);
 		alloc->state = old->state;
 		Alloc_delete(old->id);
 	    }
@@ -440,8 +439,7 @@ int handleLocalPElogueStart(void *data)
 	}
     } else {
 	/* prologue for regular (non pack) job */
-	mdbg(PSSLURM_LOG_PELOG, "%s: non pack job, add allocation %u\n",
-	     __func__, id);
+	fdbg(PSSLURM_LOG_PELOG, "non pack job, add allocation %u\n", id);
 	Alloc_t *alloc = Alloc_add(id, packID, slurmHosts, &pedata->env,
 				  pedata->uid, pedata->gid, user);
 	alloc->state = A_PROLOGUE;

@@ -385,8 +385,8 @@ static bool extractStepPackInfos(Step_t *step)
     }
 
     for (uint32_t i = 0; i < step->packNrOfNodes; i++) {
-	mdbg(PSSLURM_LOG_PACK, "%s: packTaskCount[%u]: %u\n", __func__, i,
-		step->packTaskCounts[i]);
+	fdbg(PSSLURM_LOG_PACK, "packTaskCount[%u]: %u\n", i,
+	     step->packTaskCounts[i]);
     }
 
     /* extract pack size */
@@ -397,7 +397,7 @@ static bool extractStepPackInfos(Step_t *step)
     } else {
 	char *sPackSize = envGet(&step->env, "SLURM_PACK_SIZE");
 	if (!sPackSize) {
-	    mlog("%s: missing SLURM_PACK_SIZE environment\n", __func__);
+	    flog("missing SLURM_PACK_SIZE environment\n");
 	    return false;
 	}
 	step->packSize = atoi(sPackSize);
@@ -406,7 +406,7 @@ static bool extractStepPackInfos(Step_t *step)
     /* extract allocation ID */
     char *sPackID = envGet(&step->env, "SLURM_JOB_ID_PACK_GROUP_0");
     if (!sPackID) {
-	mlog("%s: missing SLURM_JOB_ID_PACK_GROUP_0 environment\n", __func__);
+	flog("missing SLURM_JOB_ID_PACK_GROUP_0 environment\n");
 	return false;
     }
     step->packAllocID = atoi(sPackID);
@@ -1987,8 +1987,7 @@ static bool extractJobPackInfos(Job_t *job)
 
 	char *next = envGet(&job->env, nodeListName);
 	if (!next) {
-	    mlog("%s: %s not found in job environment\n", __func__,
-		 nodeListName);
+	    flog("%s not found in job environment\n", nodeListName);
 	    ufree(job->packHostlist);
 	    job->packHostlist = NULL;
 	    job->packSize = 0;
