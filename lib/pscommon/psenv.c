@@ -113,7 +113,7 @@ static bool envDoSet(env_t *env, char *envstring)
 	return false;
     }
 
-    if (env->cnt + 2 >= env->size) {
+    if (env->cnt + 1 >= env->size) {
 	uint32_t newSize = env->size + 16;
 	char **tmp = realloc(env->vars, newSize * sizeof(*tmp));
 	if (!tmp) {
