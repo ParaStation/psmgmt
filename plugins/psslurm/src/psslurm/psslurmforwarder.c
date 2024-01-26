@@ -441,7 +441,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 
     /* do exec */
     closelog();
-    execve(job->jobscript, job->argv, envGetArray(&job->env));
+    execve(job->jobscript, job->argv, envGetArray(job->env));
     int err = errno;
 
     /* execve() failed */
@@ -1062,12 +1062,12 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     removeUserVars(&step->env, pmi_type);
 
     if (psslurmlogger->mask & PSSLURM_LOG_PROCESS) {
-	debugMpiexecStart(argV.strings, envGetArray(&step->env));
+	debugMpiexecStart(argV.strings, envGetArray(step->env));
     }
 
     /* start mpiexec to spawn the parallel job */
     closelog();
-    execve(argV.strings[0], argV.strings, envGetArray(&step->env));
+    execve(argV.strings[0], argV.strings, envGetArray(step->env));
     int err = errno;
 
     /* execve() failed */
@@ -1303,8 +1303,8 @@ static void stepFinalize(Forwarder_Data_t *fwdata)
     };
 
     /* set environment variables from user */
-    for (uint32_t i = 0; i < envSize(&step->env); i++) {
-	putenv(envDumpIndex(&step->env, i));
+    for (uint32_t i = 0; i < envSize(step->env); i++) {
+	putenv(envDumpIndex(step->env, i));
     }
     SpankCallHook(&spank);
 #endif
@@ -1827,7 +1827,7 @@ static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
 
     argv[0] = script;
     argv[1] = NULL;
-    execve(argv[0], argv, envGetArray(&alloc->env));
+    execve(argv[0], argv, envGetArray(alloc->env));
     int err = errno;
 
     /* execve() failed */

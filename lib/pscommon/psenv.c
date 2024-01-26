@@ -37,9 +37,9 @@ env_t envNew(char **envArray)
     return env;
 }
 
-uint32_t envSize(env_t *env)
+uint32_t envSize(env_t env)
 {
-    return env->cnt;
+    return env.cnt;
 }
 
 void envUnsetIndex(env_t *env, uint32_t idx)
@@ -137,10 +137,10 @@ char *envGet(const env_t *env, const char *name)
     return strchr(env->vars[idx], '=') + 1;
 }
 
-char *envDumpIndex(const env_t *env, uint32_t idx)
+char *envDumpIndex(const env_t env, uint32_t idx)
 {
-    if (idx >= env->cnt) return NULL;
-    return env->vars[idx];
+    if (idx >= env.cnt) return NULL;
+    return env.vars[idx];
 }
 
 bool envSet(env_t *env, const char *name, const char *val)
@@ -221,9 +221,9 @@ error:
     return env;
 }
 
-char **envGetArray(env_t *env)
+char **envGetArray(env_t env)
 {
-    return env->vars;
+    return env.vars;
 }
 
 env_t envClone(const env_t *env, char **filter)

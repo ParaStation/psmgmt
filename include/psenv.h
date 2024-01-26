@@ -62,7 +62,7 @@ env_t envNew(char **envArray);
  *
  * @return Size of the environment
  */
-uint32_t envSize(env_t *env);
+uint32_t envSize(env_t env);
 
 /**
  * @brief Get value from environment
@@ -93,7 +93,7 @@ char *envGet(const env_t *env, const char *name);
  * idx, a string of the format 'name=value' is returned. Otherwise
  * NULL is returned.
  */
-char *envDumpIndex(const env_t *env, uint32_t idx);
+char *envDumpIndex(const env_t env, uint32_t idx);
 
 /**
  * @brief Add to environment
@@ -269,7 +269,7 @@ env_t envConstruct(char **envArray, char **filter);
  * @return Pointer to a NULL terminated string array or NULL if @a env
  * is still uninitialize or empty
  */
-char **envGetArray(env_t *env);
+char **envGetArray(env_t env);
 
 /**
  * @brief Clone environment

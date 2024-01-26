@@ -889,7 +889,7 @@ static void setBindingEnvVars(Step_t *step)
     setenv("SLURM_MEM_BIND_TYPE", val, 1);
 }
 
-static void setPsslurmEnv(env_t *alloc_env, env_t *dest_env)
+static void setPsslurmEnv(env_t alloc_env, env_t *dest_env)
 {
     for (uint32_t i = 0; i < envSize(alloc_env); i++) {
 	char *thisEnv = envDumpIndex(alloc_env, i);
@@ -1067,8 +1067,8 @@ static void setInteractiveRankEnv(Step_t *step)
      * for the interactive step */
     env_t gresEnv = envNew(NULL);
     setGResJobEnv(&step->gresList, &gresEnv);
-    for (uint32_t i = 0; i < envSize(&gresEnv); i++) {
-	char *thisEnv = envDumpIndex(&gresEnv, i);
+    for (uint32_t i = 0; i < envSize(gresEnv); i++) {
+	char *thisEnv = envDumpIndex(gresEnv, i);
 	char *val = strchr(thisEnv, '=');
 	if (!val) continue;
 
@@ -1156,8 +1156,8 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
     char *display = getenv("DISPLAY");
 
     /* set environment variables from user */
-    for (uint32_t i = 0; i < envSize(&step->env); i++) {
-	char *thisEnv = envDumpIndex(&step->env, i);
+    for (uint32_t i = 0; i < envSize(step->env); i++) {
+	char *thisEnv = envDumpIndex(step->env, i);
 	/* protect selected variables from changes */
 	if (!(strncmp(thisEnv, "SLURM_RLIMIT_", 13))) continue;
 	if (!(strncmp(thisEnv, "SLURM_UMASK=", 12))) continue;
@@ -1241,7 +1241,7 @@ void setRankEnv(int32_t rank, Step_t *step)
     setCommonRankEnv(rank, step);
 
     Alloc_t *alloc = Alloc_find(step->jobid);
-    if (alloc) setPsslurmEnv(&alloc->env, NULL);
+    if (alloc) setPsslurmEnv(alloc->env, NULL);
 
     if (step->stepid == SLURM_INTERACTIVE_STEP) {
 	return setInteractiveRankEnv(step);
@@ -1258,11 +1258,11 @@ void setRankEnv(int32_t rank, Step_t *step)
 static void removeSpankOptions(env_t *env)
 {
     /* remove srun/spank options */
-    for (uint32_t i = 0; i < envSize(env); i++) {
-	char *thisEnv = envDumpIndex(env, i);
+    for (uint32_t i = 0; i < envSize(*env); i++) {
+	char *thisEnv = envDumpIndex(*env, i);
 	while (thisEnv && !strncmp("_SLURM_SPANK_OPTION", thisEnv, 19)) {
 	    envUnsetIndex(env, i);
-	    thisEnv = envDumpIndex(env, i);
+	    thisEnv = envDumpIndex(*env, i);
 	}
     }
 }
@@ -1300,8 +1300,8 @@ void removeUserVars(env_t *env, pmi_type_t pmi_type)
 {
     /* get rid of all environment variables which are not needed
      * for spawning of processes via mpiexec */
-    for (uint32_t i = 0; i < envSize(env); i++) {
-	char *thisEnv = envDumpIndex(env, i);
+    for (uint32_t i = 0; i < envSize(*env); i++) {
+	char *thisEnv = envDumpIndex(*env, i);
 	if (!strncmp(thisEnv, "USER=", 5)) continue;
 	if (!strncmp(thisEnv, "HOSTNAME=", 9)) continue;
 	if (!strncmp(thisEnv, "PATH=", 5)) continue;
@@ -1448,5 +1448,5 @@ void setJobEnv(Job_t *job)
     setTopoEnv(&job->env);
 
     Alloc_t *alloc = Alloc_find(job->jobid);
-    if (alloc) setPsslurmEnv(&alloc->env, &job->env);
+    if (alloc) setPsslurmEnv(alloc->env, &job->env);
 }

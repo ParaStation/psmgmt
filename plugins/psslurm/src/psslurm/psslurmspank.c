@@ -702,11 +702,11 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	case S_JOB_ENV:
 	    pChar3 = va_arg(ap, char ***);
 	    if (spank->step) {
-		*pChar3 = envGetArray(&spank->step->env);
+		*pChar3 = envGetArray(spank->step->env);
 	    } else if (spank->job) {
-		*pChar3 = envGetArray(&spank->job->env);
+		*pChar3 = envGetArray(spank->job->env);
 	    } else if (spank->alloc) {
-		    *pChar3 = envGetArray(&spank->alloc->env);
+		    *pChar3 = envGetArray(spank->alloc->env);
 	    } else {
 		*pChar3 = NULL;
 	    }

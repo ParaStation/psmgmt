@@ -86,7 +86,7 @@ int sendExecScript(Script_t *script, PSnodes_ID_t dest)
     /* add optional executable path */
     addStringToMsg(script->execPath, &data);
     /* add env */
-    addStringArrayToMsg(envGetArray(&script->env), &data);
+    addStringArrayToMsg(envGetArray(script->env), &data);
 
     /* send the messages */
     return sendFragMsg(&data);
@@ -95,7 +95,7 @@ int sendExecScript(Script_t *script, PSnodes_ID_t dest)
 static void prepEnv(void *info)
 {
     Script_t *script = info;
-    env_t *env = &script->env;
+    env_t env = script->env;
 
     mlog("%s: setting env %i\n", __func__, envSize(env));
 
@@ -113,7 +113,7 @@ static bool execScript(Script_t *script, PSID_scriptCB_t cb)
     mlog("%s: uID %u exec %s", __func__, script->uID, exePath);
     if (initiator != -1) {
 	mlog(" envc %u initiator %s",
-	     envSize(&script->env), PSC_printTID(initiator));
+	     envSize(script->env), PSC_printTID(initiator));
     }
     mlog("\n");
     int ret = PSID_execScript(exePath, prepEnv, cb, NULL, script);

@@ -255,8 +255,8 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     /* we need the DISPLAY variable set by psslurm */
     char *display = getenv("DISPLAY");
 
-    for (size_t i = 0; i < envSize(&step->env); i++) {
-	char *thisEnv = envDumpIndex(&step->env, i);
+    for (size_t i = 0; i < envSize(step->env); i++) {
+	char *thisEnv = envDumpIndex(step->env, i);
 	if (!strncmp(thisEnv, "SLURM_RLIMIT_", 13)) continue;
 	if (!strncmp(thisEnv, "SLURM_UMASK=", 12)) continue;
 	if (!strncmp(thisEnv, "PWD=", 4)) continue;
@@ -289,9 +289,8 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     addSpawnPreputToEnv(spawn->preputc, spawn->preputv, &env);
 
     /* replace task environment */
-    task->environ = envGetArray(&env);
-    task->envSize = envSize(&env);
-    envStealArray(&env);
+    task->environ = envGetArray(env);
+    task->envSize = envSize(env);
 
     if (req->num == 1) {
 	return fillCmdForSingleSpawn(req, usize, task);

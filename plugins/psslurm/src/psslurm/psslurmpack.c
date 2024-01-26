@@ -1826,8 +1826,8 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     envP = NULL;
     getStringArrayM(data, &envP, NULL);
     job->env = envNew(envP);
-    if (count != envSize(&job->env)) {
-	flog("mismatching envc %u : %u\n", count, envSize(&job->env));
+    if (count != envSize(job->env)) {
+	flog("mismatching envc %u : %u\n", count, envSize(job->env));
 	return false;
     }
 

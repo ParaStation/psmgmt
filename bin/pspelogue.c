@@ -421,7 +421,7 @@ static void handleResponse(void)
  * @param env The environment for the pelogue
  */
 void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
-		   PSnodes_ID_t *nodes, env_t *env)
+		   PSnodes_ID_t *nodes, env_t env)
 {
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_PLUG_PELOGUE, PSP_PELOGUE_REQ);
@@ -573,7 +573,7 @@ int main(const int argc, const char *argv[], char *envp[])
     }
 
     /* send pelogue start request */
-    sendPElogueReq(jobID, sUid, sGid, nrOfNodes, nodes, &env);
+    sendPElogueReq(jobID, sUid, sGid, nrOfNodes, nodes, env);
     envDestroy(&env);
 
     /* receive and handle result */

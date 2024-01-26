@@ -206,7 +206,7 @@ int kvs_count_values(char *kvsname)
 	return -1;
     }
 
-    return envSize(lkvs->env);
+    return envSize(*lkvs->env);
 }
 
 int kvs_count(void)
@@ -230,5 +230,5 @@ char *kvs_getbyidx(char *kvsname, int index)
 	return NULL;
     }
 
-    return envDumpIndex(lkvs->env, index);
+    return envDumpIndex(*lkvs->env, index);
 }

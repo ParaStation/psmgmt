@@ -312,8 +312,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     if (mset(PSPMIX_LOG_ENV)) {
 	ulog("job environment:\n");
-	for (size_t i = 0; i < envSize(&job->env); i++) {
-	    ulog("%02zd: %s\n", i, envDumpIndex(&job->env, i));
+	for (size_t i = 0; i < envSize(job->env); i++) {
+	    ulog("%02zd: %s\n", i, envDumpIndex(job->env, i));
 	}
     }
 

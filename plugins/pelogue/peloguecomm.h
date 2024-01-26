@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -42,7 +42,7 @@
  *
  * @return Returns 0 on succes and -1 on error.
  */
-int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env);
+int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t env);
 
 /**
  * @brief Signal job's pelogues

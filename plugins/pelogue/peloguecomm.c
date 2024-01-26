@@ -53,7 +53,7 @@ typedef struct {
     uint32_t grace;	    /**< Additional grace to of pelogue */
 } RPC_Info_t;
 
-int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
+int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t env)
 {
     PS_SendDB_t data;
     int32_t timeout, msgType;
@@ -188,7 +188,7 @@ static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
 }
 
 static int startPElogueReq(Job_t *job, uint8_t type, uint32_t timeout,
-			   uint32_t grace, env_t *env)
+			   uint32_t grace, env_t env)
 {
     PS_SendDB_t config;
     PSnodes_ID_t myID = PSC_getMyID();
@@ -257,7 +257,7 @@ static void handleResourceCB(char *plugin, char *jobid, uint16_t result)
     mlog("%s: plugin %s jobid %s result %u\n", __func__, plugin, jobid, result);
 
     if (startPElogueReq(job, info->type, info->timeout,
-			info->grace, res->env) <0) {
+			info->grace, *res->env) < 0) {
 	goto ERROR;
     }
 
@@ -361,12 +361,13 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	goto ERROR;
     }
 
-    if (startPElogueReq(job, info->type, info->timeout, info->grace, env) < 0) {
+    if (startPElogueReq(job, info->type, info->timeout, info->grace, *env) < 0) {
 	goto ERROR;
     }
 
     ufree(jobid);
     envDestroy(env);
+    free(env);
     return;
 
 ERROR:
@@ -378,6 +379,7 @@ ERROR:
     ufree(info);
     ufree(jobid);
     envDestroy(env);
+    free(env);
 }
 
 static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)

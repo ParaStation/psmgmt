@@ -133,8 +133,8 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     env_t env = envNew(envP);
 
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Setting environment:\n", __func__, rank);
-    for (uint32_t i = 0; i < envSize(&env); i++) {
-	char *envStr = envDumpIndex(&env, i);
+    for (uint32_t i = 0; i < envSize(env); i++) {
+	char *envStr = envDumpIndex(env, i);
 	if (putenv(envStr) != 0) {
 	    mwarn(errno, "%s(r%d): set env '%s'", __func__, rank, envStr);
 	    continue;

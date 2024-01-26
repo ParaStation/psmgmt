@@ -102,14 +102,14 @@ int HW_getEnvSize(const AttrIdx_t idx)
 {
     if (idx < 0 || idx >= cnt) return 0;
 
-    return envSize(&attributes[idx].environment);
+    return envSize(attributes[idx].environment);
 }
 
 char *HW_dumpEnv(const AttrIdx_t idx, const int num)
 {
     if (idx < 0 || idx >= cnt) return NULL;
 
-    return envDumpIndex(&attributes[idx].environment, num);
+    return envDumpIndex(attributes[idx].environment, num);
 }
 
 char *Attr_print(AttrMask_t attrs)

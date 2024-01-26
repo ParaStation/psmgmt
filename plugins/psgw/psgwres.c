@@ -58,7 +58,7 @@ static void prepEnv(void *reqPtr)
 	return;
     }
 
-    env_t *env = req->res->env;
+    env_t env = *req->res->env;
     for (uint32_t i = 0; i < envSize(env); i++) {
 	fdbg(PSGW_LOG_DEBUG, "%i: %s\n", i, envDumpIndex(env, i));
 	putenv(envDumpIndex(env, i));
@@ -710,8 +710,8 @@ static env_t initPSGWDEnv(PSGW_Req_t *req)
     char *ld = envGet(peEnv, "SLURM_SPANK_PSGWD_LD_LIB");
     if (ld) envSet(&env, "LD_LIBRARY_PATH", ld);
 
-    for (uint32_t i = 0; i < envSize(peEnv); i++) {
-	char *next = envDumpIndex(peEnv, i);
+    for (uint32_t i = 0; i < envSize(*peEnv); i++) {
+	char *next = envDumpIndex(*peEnv, i);
 	if (!strncmp("SLURM_SPANK_PSGWD_PSP_", next, 22)) {
 	    char *val = strchr(next, '=');
 	    if (val) {
