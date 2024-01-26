@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -169,7 +169,7 @@ bool psAccountCtlScript(psAccountCtl_t action, psAccountOpt_t type)
 	case PSACCOUNT_SCRIPT_START:
 	    return IC_startScript();
 	case PSACCOUNT_SCRIPT_STOP:
-	    IC_finalize();
+	    IC_stopScript();
 	    return true;
 	default:
 	    flog("invalid interconnect action %i\n", action);
@@ -180,7 +180,7 @@ bool psAccountCtlScript(psAccountCtl_t action, psAccountOpt_t type)
 	case PSACCOUNT_SCRIPT_START:
 	    return Energy_startScript();
 	case PSACCOUNT_SCRIPT_STOP:
-	    Energy_finalize();
+	    Energy_stopScript();
 	    return true;
 	default:
 	    flog("invalid energy action %i\n", action);
@@ -191,7 +191,7 @@ bool psAccountCtlScript(psAccountCtl_t action, psAccountOpt_t type)
 	case PSACCOUNT_SCRIPT_START:
 	    return FS_startScript();
 	case PSACCOUNT_SCRIPT_STOP:
-	    FS_finalize();
+	    FS_stopScript();
 	    return true;
 	default:
 	    flog("invalid filesystem action %i\n", action);

@@ -180,10 +180,16 @@ bool Energy_init(void)
     return Energy_startScript();
 }
 
-void Energy_finalize(void)
+void Energy_stopScript(void)
 {
     if (eScript) Script_finalize(eScript);
     eScript = NULL;
+}
+
+void Energy_finalize(void)
+{
+    Energy_stopScript();
+    envDestroy(&scriptEnv);
 }
 
 bool Energy_update(void)

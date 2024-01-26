@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,6 +21,11 @@
  * @return Returns true on success or false otherwise
  */
 bool FS_init(void);
+
+/**
+ * @brief Stop filesystem monitoring
+ */
+void FS_stopScript(void);
 
 /**
  * @brief Finalize filesystem monitoring

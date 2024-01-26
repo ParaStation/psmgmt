@@ -115,10 +115,16 @@ bool FS_init(void)
     return FS_startScript();
 }
 
-void FS_finalize(void)
+void FS_stopScript(void)
 {
     if (fsScript) Script_finalize(fsScript);
     fsScript = NULL;
+}
+
+void FS_finalize(void)
+{
+    FS_stopScript();
+    envDestroy(&scriptEnv);
 }
 
 bool FS_setPoll(uint32_t poll)

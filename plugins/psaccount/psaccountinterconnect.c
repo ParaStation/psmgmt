@@ -117,10 +117,16 @@ bool IC_init(void)
     return IC_startScript();
 }
 
-void IC_finalize(void)
+void IC_stopScript(void)
 {
     if (iScript) Script_finalize(iScript);
     iScript = NULL;
+}
+
+void IC_finalize(void)
+{
+    IC_stopScript();
+    envDestroy(&scriptEnv);
 }
 
 bool IC_setPoll(uint32_t poll)
