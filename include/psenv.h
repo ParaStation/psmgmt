@@ -33,6 +33,37 @@ typedef struct {
 void envInit(env_t *env);
 
 /**
+ * @brief Create an environment
+ *
+ * Create an environment context in order to hold an arbitrary number
+ * of entries. If the NULL terminated array of string @a envArray is
+ * given, the environment context will use (and possibly modify) this
+ * array. This implies:
+ *
+ * 1. The initial setting of the environment content is provided
+ * within @a envArray
+ *
+ * 2. The ownership of @a envArray is passed to the environment context
+ *
+ * 3. Any modification of @a envArray later on will directly influence
+ * the content of the environment context created here
+ *
+ * If it is required to avoid these implications, it is suggested to
+ * construct the environment via @ref envConstruct().
+ *
+ * @a envArray is expected to be NULL terminated and each string must
+ * be of the form "<key>=<value>" representing individual environment
+ * entries. Each key is expected to be unique throughout @a envArray.
+ *
+ * @param envArray NULL terminated array of strings defining the
+ * environment; might be NULL
+ *
+ * @return Handle to the environment if it was successfully created or
+ * NULL
+ */
+env_t envNew(char **envArray);
+
+/**
  * @brief Get environment's size
  *
  * Get the actual size, i.e. the number of stored variables, of the

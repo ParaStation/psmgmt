@@ -23,6 +23,20 @@ static inline void *umalloc(size_t size)
     return malloc(size < MIN_MALLOC_SIZE ? MIN_MALLOC_SIZE : size);
 }
 
+env_t envNew(char **envArray)
+{
+    env_t env;
+    memset(&env, 0, sizeof(env));
+    env.vars = envArray;
+    if (envArray) {
+	uint32_t cnt = 0;
+	while (envArray[cnt++]);
+	env.cnt = cnt - 1;
+	env.size = cnt;
+    }
+    return env;
+}
+
 void envUnsetIndex(env_t *env, uint32_t idx)
 {
     free(env->vars[idx]);
