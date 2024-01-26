@@ -246,33 +246,32 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
 		    getConfValueU(Config, "PELOGUE_LOG_OE"));
 
     /* buildup environment */
-    env_t clone;
-    envClone(&alloc->env, &clone, envFilter);
+    env_t env = envClone(&alloc->env, envFilter);
     /* username */
-    envSet(&clone, "SLURM_USER", alloc->username);
+    envSet(&env, "SLURM_USER", alloc->username);
     /* uid */
     snprintf(buf, sizeof(buf), "%u", alloc->uid);
-    envSet(&clone, "SLURM_UID", buf);
+    envSet(&env, "SLURM_UID", buf);
     /* gid */
     snprintf(buf, sizeof(buf), "%u", alloc->gid);
-    envSet(&clone, "SLURM_GID", buf);
+    envSet(&env, "SLURM_GID", buf);
     /* host-list */
-    envSet(&clone, "SLURM_JOB_NODELIST", alloc->slurmHosts);
+    envSet(&env, "SLURM_JOB_NODELIST", alloc->slurmHosts);
     /* start time */
     struct tm *ts = localtime(&alloc->startTime);
     strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", ts);
-    envSet(&clone, "SLURM_JOB_STARTTIME", buf);
+    envSet(&env, "SLURM_JOB_STARTTIME", buf);
     /* pack ID */
     if (alloc->packID != NO_VAL) {
 	snprintf(buf, sizeof(buf), "%u", alloc->packID);
-	envSet(&clone, "SLURM_PACK_JOBID", buf);
+	envSet(&env, "SLURM_PACK_JOBID", buf);
     }
 
     alloc->state = (type == PELOGUE_PROLOGUE) ? A_PROLOGUE : A_EPILOGUE;
 
     /* use pelogue plugin to start */
-    bool ret = psPelogueStartPE("psslurm", sjobid, type, 1, &clone);
-    envDestroy(&clone);
+    bool ret = psPelogueStartPE("psslurm", sjobid, type, 1, &env);
+    envDestroy(&env);
 
     return ret;
 }
@@ -433,7 +432,7 @@ int handleLocalPElogueStart(void *data)
 		    alloc->state = A_PROLOGUE;
 		} else {
 		    envDestroy(&alloc->env);
-		    envClone(&pedata->env, &alloc->env, envFilter);
+		    alloc->env = envClone(&pedata->env, envFilter);
 		}
 	    }
 	}

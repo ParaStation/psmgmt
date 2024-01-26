@@ -31,10 +31,9 @@ int psExecStartScriptEx(uint32_t id, char *execName, char *execPath,
     Script_t *script = addScript(id, execName, execPath, cb);
 
     /* equip local delegate */
-    envClone(env, &script->env, NULL);
+    script->env = envClone(env, NULL);
 
     int ret = sendExecScript(script, dest);
-
     if (ret == -1) deleteScript(script);
 
     return ret;

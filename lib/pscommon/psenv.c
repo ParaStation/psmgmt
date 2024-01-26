@@ -226,19 +226,22 @@ char **envGetArray(env_t *env)
     return env->vars;
 }
 
-bool envClone(const env_t *env, env_t *clone, char **filter)
+env_t envClone(const env_t *env, char **filter)
 {
-    uint32_t i;
+    env_t clone = envNew(NULL);
 
-    clone->cnt = 0;
-    clone->vars = umalloc(sizeof(*clone->vars) * env->size);
-    clone->size = clone->vars ? env->size : 0;
-    if (!clone->vars) return false;
+    clone.vars = umalloc(sizeof(*clone.vars) * env->size);
+    if (!clone.vars) goto error;
+    clone.size = env->size;
 
-    for (i=0; i<env->cnt; i++) {
-	if (!envSetFilter(clone, env->vars[i], filter)) return false;
+    for (uint32_t i = 0; i < env->cnt; i++) {
+	if (!envSetFilter(&clone, env->vars[i], filter)) goto error;
     }
-    return true;
+    return clone;
+
+error:
+    envDestroy(&clone);
+    return clone;
 }
 
 bool envCat(env_t *env1, const env_t *env2, char **filter)

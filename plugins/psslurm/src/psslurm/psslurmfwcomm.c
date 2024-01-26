@@ -379,7 +379,7 @@ static void startSpawner(Step_t *step)
 
     // - do some environment preparation from fwExecStep()
     Step_t *envStep = Step_new();
-    envClone(&step->env, &envStep->env, NULL);
+    envStep->env = envClone(&step->env, NULL);
     envStep->taskFlags = step->taskFlags;
     envStep->memBindType = step->memBindType;
 
@@ -389,8 +389,7 @@ static void startSpawner(Step_t *step)
     task->environ = envGetArray(&envStep->env);
     task->envSize = envSize(&envStep->env);
 
-    envStep->env.vars = NULL;
-    envStep->env.cnt = 0;
+    envStealArray(&envStep->env);
     Step_delete(envStep);
 
     // - actually start the task

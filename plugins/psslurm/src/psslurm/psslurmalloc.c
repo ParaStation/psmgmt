@@ -74,11 +74,7 @@ Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
     alloc->epilogRes = ucalloc(sizeof(bool) * alloc->nrOfNodes);
 
     /* initialize environment */
-    if (env) {
-	envClone(env, &alloc->env, envFilter);
-    } else {
-	alloc->env = envNew(NULL);
-    }
+    alloc->env = env ? envClone(env, envFilter) : envNew(NULL);
 
     list_add_tail(&alloc->next, &AllocList);
 

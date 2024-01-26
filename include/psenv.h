@@ -274,7 +274,7 @@ char **envGetArray(env_t *env);
 /**
  * @brief Clone environment
  *
- * Clone the environment @a env into a new environment @a clone.
+ * Clone the environment @a env into a new environment.
  *
  * If @a filter is given, only those elements of @a env that match the
  * filter are cloned into the new environment. Therefore, the key of
@@ -287,16 +287,13 @@ char **envGetArray(env_t *env);
  *
  * @param env Environment to clone
  *
- * @param clone Cloned environment upon return
- *
  * @param filter Array of strings to match those elements of @a env to
  * clone
  *
- * @return If the environments was successfully clone, true is
- * returned. Or false in case of error. In the latter case @a clone
- * might be incomplete upon return and contain only parts of @a env.
+ * @return If the environments was successfully cloned, the handle to
+ * the cloned environment is returned; or NULL in case of error
  */
-bool envClone(const env_t *env, env_t *clone, char **filter);
+env_t envClone(const env_t *env, char **filter);
 
 /**
  * @brief Concatenate two environments

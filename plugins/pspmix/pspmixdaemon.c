@@ -995,20 +995,18 @@ static int hookSpawnTask(void *data)
 	     "%s)\n", __func__, server->uid, PSC_printTID(server->fwdata->tid));
     }
 
-    /* clone environment so we can modify it in singleton case */
-    env_t jobenv;
-    if (!envClone(&env, &jobenv, NULL)) {
-	mlog("%s: cloning env failed\n", __func__);
-	return -1;
-    }
-
     /* fake environment for one process if MPI singleton support is enabled */
     if (!usePMIx) {
-	envSet(&jobenv, "PMI_UNIVERSE_SIZE", "1");
-	envSet(&jobenv, "PMI_SIZE", "1");
-	envSet(&jobenv, "PMIX_APPCOUNT", "1");
-	envSet(&jobenv, "PMIX_APPSIZE_0", "1");
-	envSet(&jobenv, "PMIX_APPWDIR_0", task->workingdir);
+	/* clone environment so we can modify it */
+	env_t myEnv = envClone(&env, NULL);
+	envStealArray(&env);
+	env = myEnv;
+
+	envSet(&env, "PMI_UNIVERSE_SIZE", "1");
+	envSet(&env, "PMI_SIZE", "1");
+	envSet(&env, "PMIX_APPCOUNT", "1");
+	envSet(&env, "PMIX_APPSIZE_0", "1");
+	envSet(&env, "PMIX_APPWDIR_0", task->workingdir);
 	char **argv = task->argv;
 	int argc = task->argc;
 	size_t sum = 1;
@@ -1017,29 +1015,31 @@ static int hookSpawnTask(void *data)
 	char *ptr = str;
 	for (int j = 0; j < argc; j++) ptr += sprintf(ptr, "%s ", argv[j]);
 	*(ptr-1)='\0';
-	envSet(&jobenv, "PMIX_APPARGV_0", str);
+	envSet(&env, "PMIX_APPARGV_0", str);
 	char var[HOST_NAME_MAX + 1];
 	gethostname(var, sizeof(var));
-	envSet(&jobenv, "__PMIX_NODELIST", var);
+	envSet(&env, "__PMIX_NODELIST", var);
 	snprintf(var, sizeof(var), "%d", resID);
-	envSet(&jobenv, "__PMIX_RESID_0", var);
+	envSet(&env, "__PMIX_RESID_0", var);
     }
 
     /* save job in server (if not yet known) and notify running server */
-    if (!addJobToServer(server, loggertid, psjob, &jobenv)) {
-	mlog("%s: sending job failed (uid %d server %s", __func__, server->uid,
-	     PSC_printTID(server->fwdata->tid));
-	mlog(" logger %s)\n", PSC_printTID(loggertid));
-
-	mlog("%s: stopping PMIx server (uid %d)\n", __func__, server->uid);
-	stopServer(server);
-
-	envDestroy(&jobenv);
-	return -1;
+    bool success = addJobToServer(server, loggertid, psjob, &env);
+    if (!usePMIx) {
+	envDestroy(&env);
+    } else {
+	envStealArray(&env);
     }
+    if (success) return 0;
 
-    envDestroy(&jobenv);
-    return 0;
+    mlog("%s: sending job failed (uid %d server %s", __func__, server->uid,
+	 PSC_printTID(server->fwdata->tid));
+    mlog(" logger %s)\n", PSC_printTID(loggertid));
+
+    mlog("%s: stopping PMIx server (uid %d)\n", __func__, server->uid);
+    stopServer(server);
+
+    return -1;
 }
 
 /**
