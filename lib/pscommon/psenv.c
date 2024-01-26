@@ -211,6 +211,30 @@ static bool envSetFilter(env_t *env, const char *envstring, char **filter)
     return true;
 }
 
+env_t envConstruct(char **envArray, char **filter)
+{
+    env_t env = envNew(NULL);
+    if (!envArray) return env;
+
+    uint32_t cnt = 0;
+    while (envArray[cnt++]);
+    if (cnt) {
+	env.size = cnt;
+	env.vars = umalloc(sizeof(*env.vars) * env.size);
+	if (!env.vars) goto error;
+	env.cnt = 0;
+
+	for (uint32_t i = 0; i < cnt - 1; i++) {
+	    if (!envSetFilter(&env, envArray[i], filter)) goto error;
+	}
+    }
+    return env;
+
+error:
+    envDestroy(&env);
+    return env;
+}
+
 char **envGetArray(env_t *env)
 {
     return env->vars;

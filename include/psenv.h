@@ -240,6 +240,38 @@ bool envGetUint32(const env_t *env, const char *name, uint32_t *val);
 void envUnsetIndex(env_t *env, uint32_t idx);
 
 /**
+ * @brief Construct environment from array
+ *
+ * Construct a new environment from the NULL terminated array of
+ * string @a envArray.
+ *
+ * If @a filter is given, only those elements of @a envArray that match
+ * the filter are added to the new environment. Therefore, the key of
+ * each entry of the array to add is tested against each element of
+ * the filter-array. @a filter consists of a series of strings that
+ * shall either exactly match a key or -- if the string's last
+ * character is '*' -- match the beginning of a key.
+ *
+ * If @a filter is NULL, all elements of @a envArray are added to the
+ * environment.
+ *
+ * @a envArray is expected to be NULL terminated and each string must
+ * be of the form "<key>=<value>" representing individual environment
+ * entries. Each key is expected to be unique throughout @a envArray.
+ *
+ * @param envArray NULL terminated array of character strings to create
+ * the new environment from
+ *
+ * @param filter Array of strings to match those elements of @a array
+ * to put into the environment
+ *
+ * @return If the environments was successfully constructed, the
+ * handle to this new environment is returned; or NULL in case of
+ * error
+ */
+env_t envConstruct(char **envArray, char **filter);
+
+/**
  * @brief Access environment's string array
  *
  * Get a handle on a string array representing the environment @a
