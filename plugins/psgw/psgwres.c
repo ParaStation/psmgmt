@@ -115,17 +115,17 @@ static int cbStopPSGWD(uint32_t id, int32_t exit, PSnodes_ID_t dest,
  */
 static bool stopPSGWD(PSGW_Req_t *req)
 {
-    env_t env;
-    uint32_t i, id = atoi(req->jobid);
+    uint32_t id = atoi(req->jobid);
     char *dir = getConfValueC(config, "DIR_ROUTE_SCRIPTS");
     char buf[1024];
 
+    env_t env;
     envInit(&env);
     snprintf(buf, sizeof(buf), "%u", req->uid);
     envSet(&env, "PSGWD_UID", buf);
     envSet(&env, "PSGWD_USER", req->username);
 
-    for (i=0; i<req->numPSGWD; i++) {
+    for (uint32_t i = 0; i < req->numPSGWD; i++) {
 	if (req->psgwd[i].pid == -1) continue;
 
 	fdbg(PSGW_LOG_PSGWD | PSGW_LOG_DEBUG, "stopping psgwd %u on node %i\n",
@@ -733,8 +733,8 @@ bool startPSGWD(PSGW_Req_t *req)
     initPSGWDEnv(&psgwdEnv, req);
 
     uint32_t gIdx = 0;
-    for (uint32_t i=0; i<req->numGWnodes; i++) {
-	for (uint32_t z=0; z<req->psgwdPerNode; z++) {
+    for (uint32_t i = 0; i < req->numGWnodes; i++) {
+	for (uint32_t z = 0; z < req->psgwdPerNode; z++) {
 	    if (gIdx >= req->numPSGWD) {
 		snprintf(msgBuf, sizeof(msgBuf), "invalid psgwd index %u num "
 			 "psgwd %u\n", gIdx, req->numPSGWD);

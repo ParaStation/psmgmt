@@ -106,8 +106,6 @@ static bool execScript(Script_t *script, PSID_scriptCB_t cb)
 {
     PStask_ID_t initiator = script->initiator;
     char exePath[PATH_MAX];
-    int ret;
-
     snprintf(exePath, sizeof(exePath), "%s/%s",
 	     (script->execPath && script->execPath[0] != '\0') ?
 	     script->execPath : SCRIPT_DIR, script->execName);
@@ -118,7 +116,7 @@ static bool execScript(Script_t *script, PSID_scriptCB_t cb)
 	     envSize(&script->env), PSC_printTID(initiator));
     }
     mlog("\n");
-    ret = PSID_execScript(exePath, prepEnv, cb, NULL, script);
+    int ret = PSID_execScript(exePath, prepEnv, cb, NULL, script);
     if (ret == -1) return false;
 
     script->pid = ret;

@@ -235,7 +235,6 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
 {
     char *sjobid = Job_strID(alloc->id);
     char buf[512];
-    env_t clone;
 
     PSnodes_ID_t myNode = PSC_getMyID();
     /* TODO: if slurmctld prologue is removed, only the prologue
@@ -247,6 +246,7 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
 		    getConfValueU(Config, "PELOGUE_LOG_OE"));
 
     /* buildup environment */
+    env_t clone;
     envClone(&alloc->env, &clone, envFilter);
     /* username */
     envSet(&clone, "SLURM_USER", alloc->username);

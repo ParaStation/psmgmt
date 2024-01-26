@@ -318,28 +318,15 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     }
 
     /* set the MPI universe size from environment set by the spawner */
-    char *env;
-    env = envGet(&job->env, "PMI_UNIVERSE_SIZE");
-    if (env) {
-	ns->universeSize = atoi(env);
-    } else {
-	ns->universeSize = 1;
-    }
+    char *env = envGet(&job->env, "PMI_UNIVERSE_SIZE");
+    ns->universeSize = env ? atoi(env) : 1;
 
     /* set the job size from environment set by the spawner */
     env = envGet(&job->env, "PMI_SIZE");
-    if (env) {
-	ns->jobSize = atoi(env);
-    } else {
-	ns->jobSize = 1;
-    }
+    ns->jobSize = env ? atoi(env) : 1;
 
     env = envGet(&job->env, "PMIX_APPCOUNT");
-    if (env) {
-	ns->appsCount = atoi(env);
-    } else {
-	ns->appsCount = 1;
-    }
+    ns->appsCount = env ? atoi(env) : 1;
     ns->apps = umalloc(ns->appsCount * sizeof(*ns->apps));
 
     uint32_t procCount = 0;
@@ -405,11 +392,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* set the list of nodes string from environment set by the spawner */
     env = envGet(&job->env, "__PMIX_NODELIST");
-    if (env) {
-	ns->nodelist_s = env;
-    } else {
-	ns->nodelist_s = "";
-    }
+    ns->nodelist_s = env ? env : "";
 
     /* add process information and mapping to namespace */
     for (size_t a = 0; a < ns->appsCount; a++) {
@@ -737,16 +720,15 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 	if (!found) {
 	    nrank = (cur->node == resInfo->entries[0].node) ? 0 : nrank + 1;
 	}
-	if (cur->node == nodeId) {
-	    if (cur->firstRank <= (int32_t)client->rank
-		&& cur->lastRank >= (int32_t)client->rank) {
-		lrank += found ? 0 : client->rank - cur->firstRank + 1;
-		found = true;
-	    } else {
-		lrank += found ? 0 : cur->lastRank - cur->firstRank + 1;
-	    }
-	    lsize += cur->lastRank - cur->firstRank + 1;
+	if (cur->node != nodeId) continue;
+	if (cur->firstRank <= (int32_t)client->rank
+	    && cur->lastRank >= (int32_t)client->rank) {
+	    lrank += found ? 0 : client->rank - cur->firstRank + 1;
+	    found = true;
+	} else {
+	    lrank += found ? 0 : cur->lastRank - cur->firstRank + 1;
 	}
+	lsize += cur->lastRank - cur->firstRank + 1;
     }
     snprintf(tmp, sizeof(tmp), "%d", found ? lrank : -1);
     envSet(&env, "OMPI_COMM_WORLD_LOCAL_RANK", tmp);

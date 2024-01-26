@@ -718,12 +718,9 @@ static void setCredEnv(JobCred_t *cred, env_t *env)
 
 void initJobEnv(Job_t *job)
 {
-    if (job->partition) {
-	envSet(&job->env, "SLURM_JOB_PARTITION", job->partition);
-    }
+    if (job->partition) envSet(&job->env, "SLURM_JOB_PARTITION", job->partition);
 
-    envSet(&job->env, "SLURMD_NODENAME",
-	   getConfValueC(Config, "SLURM_HOSTNAME"));
+    envSet(&job->env, "SLURMD_NODENAME", getConfValueC(Config, "SLURM_HOSTNAME"));
 
     envSet(&job->env, "SLURM_JOBID", Job_strID(job->jobid));
     envSet(&job->env, "SLURM_JOB_ID", Job_strID(job->jobid));
@@ -899,12 +896,11 @@ static void setPsslurmEnv(env_t *alloc_env, env_t *dest_env)
 	if (thisEnv && !strncmp("_PSSLURM_ENV_", thisEnv, 13)) {
 	    char *ptr = thisEnv + 13;
 	    fdbg(PSSLURM_LOG_ENV, "set %s\n", ptr);
-	    if (ptr) {
-		if (dest_env) {
-		    envPut(dest_env, ptr);
-		} else {
-		    putenv(ptr);
-		}
+	    if (!*ptr) continue;
+	    if (dest_env) {
+		envPut(dest_env, ptr);
+	    } else {
+		putenv(ptr);
 	    }
 	}
     }

@@ -664,8 +664,7 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
     return 0;
 }
 
-void setNodeOffline(env_t *env, uint32_t id, const char *host,
-		    const char *reason)
+void setNodeOffline(env_t *env, uint32_t id, const char *host, const char *reason)
 {
     if (!host || !reason) {
 	flog("error: empty host or reason\n");

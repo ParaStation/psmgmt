@@ -235,17 +235,14 @@ static int startPElogueReq(Job_t *job, uint8_t type, uint32_t timeout,
 static void handleResourceCB(char *plugin, char *jobid, uint16_t result)
 {
     Job_t *job = findJobById(plugin, jobid);
-    PElogueResource_t *res;
-    RPC_Info_t *info;
-
     if (!job) {
 	mlog("%s: job with id %s from plugin %s not found\n", __func__,
 	     jobid, plugin);
 	return;
     }
 
-    info = (RPC_Info_t *) job->info;
-    res = info->res;
+    RPC_Info_t *info = (RPC_Info_t *) job->info;
+    PElogueResource_t *res = info->res;
     if (!res) {
 	mlog("%s: no resources found in job %s\n", __func__, jobid);
 	goto ERROR;

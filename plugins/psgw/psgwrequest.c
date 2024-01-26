@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,28 +27,30 @@ static LIST_HEAD(ReqList);
 
 PSGW_Req_t *Request_add(PElogueResource_t *res, char *packID)
 {
-    PSGW_Req_t *req = ucalloc(sizeof(*req));
-
-    req->res = res;
-    req->jobid = ustrdup(res->jobid);
-    req->packID = ustrdup(packID);
-    req->uid = res->uid;
-    req->gid = res->gid;
-    req->routeRes = -1;
-    req->routePID = -2;
-    req->timerRouteScript = -1;
-    req->pelogueState = -1;
-    req->cleanup = envGet(res->env, "SLURM_SPANK_PSGW_CLEANUP") ? true : false;
-    req->psgwdPerNode = 1;
-    envClone(res->env, &req->env, NULL);
+    if (!res) return NULL;
 
     char *user = envGet(res->env, "SLURM_USER");
     if (!user) {
 	flog("missing SLURM_USER in environment\n");
-	Request_delete(req);
 	return NULL;
     }
-    req->username = ustrdup(user);
+
+    PSGW_Req_t *req = ucalloc(sizeof(*req));
+    *req = (PSGW_Req_t) {
+	.jobid = ustrdup(res->jobid),
+	.packID = ustrdup(packID),
+	.res = res,
+	.routeRes = -1,
+	.routePID = -2,
+	.pelogueState = -1,
+	.psgwdPerNode = 1,
+	.timerRouteScript = -1,
+	.uid = res->uid,
+	.gid = res->gid,
+	.username = ustrdup(user),
+	.cleanup = envGet(res->env, "SLURM_SPANK_PSGW_CLEANUP") ? true : false, };
+
+    envClone(res->env, &req->env, NULL);
 
     list_add_tail(&req->next, &ReqList);
     return req;
@@ -72,8 +74,6 @@ void Request_setNodes(PSGW_Req_t *req, PSnodes_ID_t *nodes, uint32_t numNodes)
 
 void Request_delete(PSGW_Req_t *req)
 {
-    uint32_t i;
-
     if (!req) return;
 
     if (req->cleanup && req->routeFile) {
@@ -87,13 +87,9 @@ void Request_delete(PSGW_Req_t *req)
     psPelogueDeleteJob("psgw", req->jobid);
 
     /* stop psgw forwarder */
-    if (req->fwdata) {
-	pskill(PSC_getPID(req->fwdata->tid), SIGKILL, 0);
-    }
+    if (req->fwdata) pskill(PSC_getPID(req->fwdata->tid), SIGKILL, 0);
 
-    for(i=0; i<req->numPSGWD; i++) {
-	ufree(req->psgwd[i].addr);
-    }
+    for(uint32_t i = 0; i < req->numPSGWD; i++) ufree(req->psgwd[i].addr);
     ufree(req->psgwd);
 
     ufree(req->jobid);
