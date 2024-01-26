@@ -37,6 +37,11 @@ env_t envNew(char **envArray)
     return env;
 }
 
+uint32_t envSize(env_t *env)
+{
+    return env->cnt;
+}
+
 void envUnsetIndex(env_t *env, uint32_t idx)
 {
     free(env->vars[idx]);
@@ -52,15 +57,19 @@ void envSteal(env_t *env)
     env->cnt = env->size = 0;
 }
 
+void envStealArray(env_t *env)
+{
+    env->vars = NULL;
+    envSteal(env);
+}
+
 void __envDestroy(env_t *env, bool shred)
 {
     for (uint32_t i = 0; i < env->cnt; i++) {
 	if (shred && env->vars[i]) memset(env->vars[i], 0, strlen(env->vars[i]));
 	free(env->vars[i]);
     }
-    free(env->vars);
-    env->vars = NULL;
-    env->cnt = env->size = 0;
+    envSteal(env);
 }
 
 /**
@@ -91,11 +100,6 @@ static int getIndex(const env_t *env, const char *name)
 void envInit(env_t *env)
 {
     memset(env, 0, sizeof(*env));
-}
-
-uint32_t envSize(env_t *env)
-{
-    return env->cnt;
 }
 
 void envUnset(env_t *env, const char *name)
@@ -192,11 +196,10 @@ bool envPut(env_t *env, const char *envstring)
 
 static bool envSetFilter(env_t *env, const char *envstring, char **filter)
 {
-    uint32_t count = 0;
-    const char *ptr;
-
     if (!filter) return envDoSet(env, strdup(envstring));
 
+    uint32_t count = 0;
+    const char *ptr;
     while ((ptr = filter[count++])) {
 	size_t len = strlen(ptr);
 	size_t cmpLen = (ptr[len-1] == '*') ? (len-1) : len;

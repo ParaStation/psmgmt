@@ -141,16 +141,36 @@ void envUnset(env_t *env, const char *name);
 /**
  * @brief Steal strings from the environment
  *
- * Clear the environment @a env but leave the actual strings alone. For this,
- * only the pointer array is free()ed, not the strings memory.
+ * Destroy the environment @a env but leave the actual strings
+ * alone. For this, all memory occupied by the environment is
+ * free()ed, but not the individual string's memory.
  *
- * This is meant to be used after all the environment has been putenv()ed.
+ * This is meant to be used after all the environment has been
+ * putenv()ed.
  *
  * @param env Environment to steal the strings from
  *
  * @return No return value
  */
 void envSteal(env_t *env);
+
+/**
+ * @brief Steal environment's string array
+ *
+ * Destroy the environment @a env but leave the actual string array
+ * alone. For this, all memory occupied by the environment is
+ * free()ed, but not the representing string array's memory that can
+ * be accessed via envGetArray().
+ *
+ * This is meant to be used after a handle to the string array is is
+ * gained through envGetArray() and this is meant to be kept on the
+ * long run.
+ *
+ * @param env Environment to steal the string array from
+ *
+ * @return No return value
+ */
+void envStealArray(env_t *env);
 
 /**
  * @brief Clear environment
@@ -233,8 +253,10 @@ void envUnsetIndex(env_t *env, uint32_t idx);
  * - any modifications of @a env will immediately change the returned
  *   string array
  *
- * Thus, it is strongly adviced to not modify the returned string
- * array and to not rely on the content of it on the long run.
+ * Thus, if it is required to modify the returned string array or to
+ * rely on the content of it on the long run, it is adviced to either
+ * steal it from @a env utilizing envStealArray() or to work on a
+ * clone of @a env created via @ref envClone().
  *
  * The main purpose of this function is to feed the content of @a env
  * into functions like @ref addStringArrayToMsg() or execve().
