@@ -685,11 +685,13 @@ bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
  * @brief Fetch string array from buffer
  *
  * Fetch strings from a memory region addressed by @a data and store
- * them to a dynamically allocated array. The address of the latter is
- * returned via @a array. In order to store the fetched strings
- * dynamic memory is allocated for each string. The actual number of
- * elements read from @a data and stored to the array is provided in
- * @a len.
+ * them to a dynamically allocated, NULL terminated array of
+ * strings. The address of the latter is returned via @a array. In
+ * order to store the fetched strings dynamic memory is allocated for
+ * each string. The actual number of elements read from @a data and
+ * stored to the array is provided in @a len. In the case that @a len
+ * is NULL, no such information is provided. Nevertheless, it might be
+ * reconstructed utilizing the fact that @a array is NULL terminated.
  *
  * @a data is expected to provide data in the form of a leading length
  * item describing the number of strings followed by the corresponding
@@ -707,7 +709,7 @@ bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
  *
  * @param array Array of pointers addressing the actual strings received
  *
- * @param len Number of strings read from @a data
+ * @param len Number of strings read from @a data; might be NULL
  *
  * @param caller Function name of the calling function
  *

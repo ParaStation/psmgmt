@@ -1143,6 +1143,9 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
 	return false;
     }
     *array = NULL;
+
+    uint32_t myLen;
+    if (!len) len = &myLen;
     if (!getFromBuf(data, len, PSDATA_UINT32, sizeof(*len), caller, line))
 	return false;
 
