@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,7 +21,7 @@
 #define DELAY_RANK -1
 
 /* amount of delay before calling RRC_init on rank DELAY_RANK */
-#define DELAY 8
+#define DELAY 3
 
 /* number of bytes to check in buffer */
 #define NUM_CHECK 5
@@ -73,7 +73,8 @@ int main(void)
     uname(&uBuf);
 
     if (rank == DELAY_RANK) {
-	printf("\ndelay RRC_init() on %s by %d sec\n\n", uBuf.nodename, DELAY);
+	printf("\ndelay RRC_init() on %s (rank %d) by %d sec\n\n",
+	       uBuf.nodename, rank, DELAY);
 	fflush(stdout);
 	sleep(DELAY);
     }
@@ -84,7 +85,8 @@ int main(void)
 	return 0;
     }
 
-    printf("Connected on fd %d, my rank is %d of %d\n", fd, rank, num);
+    printf("Connected at %s on fd %d, my rank is %d of %d\n", uBuf.nodename, 
+	   fd, rank, num);
 
     /* setup data to send */
     char sBuf[64*1024];
