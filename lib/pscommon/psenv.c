@@ -244,19 +244,19 @@ error:
     return clone;
 }
 
-bool envCat(env_t *env1, const env_t *env2, char **filter)
+bool envCat(env_t *dst, const env_t *src, char **filter)
 {
-    uint32_t i, count = env1->cnt + env2->cnt + 1;
+    uint32_t count = dst->cnt + src->cnt + 1;
 
-    if (count > env1->size) {
-	char **tmp = realloc(env1->vars, count * sizeof(*tmp));
+    if (count > dst->size) {
+	char **tmp = realloc(dst->vars, count * sizeof(*tmp));
 	if (!tmp) return false;
-	env1->size = count;
-	env1->vars = tmp;
+	dst->size = count;
+	dst->vars = tmp;
     }
 
-    for (i=0; i<env2->cnt; i++) {
-	if (!envSetFilter(env1, env2->vars[i], filter)) return false;
+    for (uint32_t i = 0; i < src->cnt; i++) {
+	if (!envSetFilter(dst, src->vars[i], filter)) return false;
     }
     return true;
 }

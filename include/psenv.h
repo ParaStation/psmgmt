@@ -298,28 +298,28 @@ env_t envClone(const env_t env, char **filter);
 /**
  * @brief Concatenate two environments
  *
- * Add the elements of environment @a env2 to the environment @a env1.
+ * Add the elements of environment @a src to the environment @a dst.
  *
- * If @a filter is given, only those elements of @a env2 that match
- * the filter are added to @a env1. Therefore, the key of each entry
- * of @a env2 is tested against each element of the filter-array. @a
- * filter consists of a series of strings that shall either exactly
- * match a key or -- if the string's last character is '*' -- match
- * the beginning of a key.
+ * If @a filter is given, only those elements of @a src that match the
+ * filter are added to @a dst. Therefore, the key of each entry of @a
+ * src is tested against each element of the filter-array. @a filter
+ * consists of a series of strings that shall either exactly match a
+ * key or -- if the string's last character is '*' -- match the
+ * beginning of a key.
  *
- * If @a filter is NULL, all elements of @a env2 are added.
+ * If @a filter is NULL, all elements of @a src are added.
  *
- * @param env1 Environment to extend
+ * @param dst Environment to extend
  *
- * @param env2 Environment to add to @a env1
+ * @param src Environment to add to @a dst
  *
- * @param filter Array of strings to match those elements of @a env2 to
- * be added to @a env1
+ * @param filter Array of strings to match those elements of @a src to
+ * be added to @a dst
  *
  * @return If both environments were successfully concatenated, true
- * is returned. Or false in case of error. In the latter case @a env1
- * might be modified upon return and contain parts of @a env2.
+ * is returned. Or false in case of error. In the latter case @a dst
+ * might be modified upon return and contain parts of @a src.
  */
-bool envCat(env_t *env1, const env_t *env2, char **filter);
+bool envCat(env_t *dst, const env_t *src, char **filter);
 
 #endif  /* __PSENV_H */
