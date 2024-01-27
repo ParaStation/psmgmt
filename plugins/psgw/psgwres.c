@@ -133,7 +133,7 @@ static bool stopPSGWD(PSGW_Req_t *req)
 	snprintf(buf, sizeof(buf), "%u", req->psgwd[i].pid);
 	envSet(&env, "PSGWD_PID", buf);
 
-	int ret = psExecStartScriptEx(id, "psgwd_stop", dir, &env,
+	int ret = psExecStartScriptEx(id, "psgwd_stop", dir, env,
 				      req->psgwd[i].node, cbStopPSGWD);
 	if (ret == -1) {
 	    flog("stopping psgwd on node %i failed\n", req->psgwd[i].node);
@@ -255,7 +255,7 @@ void __cancelReq(PSGW_Req_t *req, char *reason, const char *func)
 
     /* call script to forward error to slurmctld */
     uint32_t id = atoi(req->jobid);
-    int16_t ret = psExecStartScript(id, "psgw_error", res->env,
+    int16_t ret = psExecStartScript(id, "psgw_error", *res->env,
 				    PSC_getID(res->src), cbPSGWDerror);
     if (ret == -1) {
 	flog("starting psgw_error script for job %s failed\n", req->jobid);
@@ -567,7 +567,7 @@ bool startPElogue(PSGW_Req_t *req, PElogueType_t type)
 	}
     }
 
-    ret = psPelogueStartPE("psgw", req->jobid, type, 1, &req->env);
+    ret = psPelogueStartPE("psgw", req->jobid, type, 1, req->env);
     if (!ret) {
 	snprintf(msgBuf, sizeof(msgBuf), "starting psgw %s for job %s "
 		 "failed\n",
@@ -749,7 +749,7 @@ bool startPSGWD(PSGW_Req_t *req)
 	    snprintf(buf, sizeof(buf), "%u", gIdx);
 	    envSet(&psgwdEnv, "PSGWD_ID", buf);
 	    uint32_t id = atoi(req->jobid);
-	    int ret = psExecStartScriptEx(id, "psgwd_start", dir, &psgwdEnv,
+	    int ret = psExecStartScriptEx(id, "psgwd_start", dir, psgwdEnv,
 					  req->psgwd[gIdx].node, cbStartPSGWD);
 	    if (ret == -1) {
 		snprintf(msgBuf, sizeof(msgBuf), "starting psgwd %u on node %i "

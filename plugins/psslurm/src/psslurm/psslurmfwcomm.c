@@ -379,7 +379,7 @@ static void startSpawner(Step_t *step)
 
     // - do some environment preparation from fwExecStep()
     Step_t *envStep = Step_new();
-    envStep->env = envClone(&step->env, NULL);
+    envStep->env = envClone(step->env, NULL);
     envStep->taskFlags = step->taskFlags;
     envStep->memBindType = step->memBindType;
 

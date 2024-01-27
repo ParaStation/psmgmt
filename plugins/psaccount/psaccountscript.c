@@ -281,7 +281,7 @@ Collect_Script_t *Script_start(char *title, char *path,
     }
     script->func = func;
     script->poll = poll;
-    script->env = env ? envClone(env, NULL) : envNew(NULL);
+    script->env = env ? envClone(*env, NULL) : envNew(NULL);
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
     fwdata->pTitle = ustrdup(title);

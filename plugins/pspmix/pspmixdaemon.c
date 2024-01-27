@@ -998,7 +998,7 @@ static int hookSpawnTask(void *data)
     /* fake environment for one process if MPI singleton support is enabled */
     if (!usePMIx) {
 	/* clone environment so we can modify it */
-	env_t myEnv = envClone(&env, NULL);
+	env_t myEnv = envClone(env, NULL);
 	envStealArray(&env);
 	env = myEnv;
 

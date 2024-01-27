@@ -49,7 +49,7 @@ PSGW_Req_t *Request_add(PElogueResource_t *res, char *packID)
 	.gid = res->gid,
 	.username = ustrdup(user),
 	.cleanup = envGet(*res->env, "SLURM_SPANK_PSGW_CLEANUP") ? true : false,
-	.env = envClone(res->env, NULL), };
+	.env = envClone(*res->env, NULL), };
 
     list_add_tail(&req->next, &ReqList);
     return req;

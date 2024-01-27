@@ -246,7 +246,7 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
 		    getConfValueU(Config, "PELOGUE_LOG_OE"));
 
     /* buildup environment */
-    env_t env = envClone(&alloc->env, envFilter);
+    env_t env = envClone(alloc->env, envFilter);
     /* username */
     envSet(&env, "SLURM_USER", alloc->username);
     /* uid */
@@ -270,7 +270,7 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
     alloc->state = (type == PELOGUE_PROLOGUE) ? A_PROLOGUE : A_EPILOGUE;
 
     /* use pelogue plugin to start */
-    bool ret = psPelogueStartPE("psslurm", sjobid, type, 1, &env);
+    bool ret = psPelogueStartPE("psslurm", sjobid, type, 1, env);
     envDestroy(&env);
 
     return ret;
@@ -432,7 +432,7 @@ int handleLocalPElogueStart(void *data)
 		    alloc->state = A_PROLOGUE;
 		} else {
 		    envDestroy(&alloc->env);
-		    alloc->env = envClone(&pedata->env, envFilter);
+		    alloc->env = envClone(pedata->env, envFilter);
 		}
 	    }
 	}

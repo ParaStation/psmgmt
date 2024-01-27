@@ -83,7 +83,7 @@ typedef int(psExec_Script_CB_t)(uint32_t id, int32_t res, PSnodes_ID_t dest,
  * destination node is returned. Or -1 in case of error.
  */
 typedef int (psExecStartScriptEx_t)(uint32_t id, char *execName, char *execPath,
-				    env_t *env, PSnodes_ID_t dest,
+				    env_t env, PSnodes_ID_t dest,
 				    psExec_Script_CB_t *cb);
 
 /**
@@ -102,7 +102,7 @@ typedef int (psExecStartScriptEx_t)(uint32_t id, char *execName, char *execPath,
  * @return On success the total number of bytes sent to the
  * destination node is returned. Or -1 in case of error.
  */
-typedef int (psExecStartScript_t)(uint32_t id, char *execName, env_t *env,
+typedef int (psExecStartScript_t)(uint32_t id, char *execName, env_t env,
 				  PSnodes_ID_t dest, psExec_Script_CB_t *cb);
 
 /**

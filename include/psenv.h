@@ -293,7 +293,7 @@ char **envGetArray(env_t env);
  * @return If the environments was successfully cloned, the handle to
  * the cloned environment is returned; or NULL in case of error
  */
-env_t envClone(const env_t *env, char **filter);
+env_t envClone(const env_t env, char **filter);
 
 /**
  * @brief Concatenate two environments
