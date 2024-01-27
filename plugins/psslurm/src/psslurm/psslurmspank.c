@@ -578,9 +578,9 @@ spank_err_t psSpankGetenv(spank_t spank, const char *var, char *buf, int len)
     if (!testMagic(spank, __func__)) return ESPANK_BAD_ARG;
     fdbg(PSSLURM_LOG_SPANK, "get %s from %s\n", var, spank->plugin->name);
 
-    if (spank->step) res = envGet(&spank->step->env, var);
-    if (!res && spank->job) res = envGet(&spank->job->env, var);
-    if (!res && spank->alloc) res = envGet(&spank->alloc->env, var);
+    if (spank->step) res = envGet(spank->step->env, var);
+    if (!res && spank->job) res = envGet(spank->job->env, var);
+    if (!res && spank->alloc) res = envGet(spank->alloc->env, var);
     if (!res) res = getenv(var);
 
     if (res) {

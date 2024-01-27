@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,7 +45,7 @@ bool pspmix_comm_handleMthrMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw);
  *
  * @return Returns true on success, false on error
  */
-bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t *env);
+bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t env);
 
 /**
  * @brief Compose and send a fence data message if @a nDest != 0

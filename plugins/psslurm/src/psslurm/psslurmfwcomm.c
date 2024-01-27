@@ -356,8 +356,8 @@ static void startSpawner(Step_t *step)
     task->ptid = fwData->tid;
     task->uid = step->uid;
     task->gid = step->gid;
-    char *cols = envGet(&step->env, "SLURM_PTY_WIN_COL");
-    char *rows = envGet(&step->env, "SLURM_PTY_WIN_ROW");
+    char *cols = envGet(step->env, "SLURM_PTY_WIN_COL");
+    char *rows = envGet(step->env, "SLURM_PTY_WIN_ROW");
     if (cols && rows) {
 	task->winsize = (struct winsize) {
 	    .ws_col = atoi(cols),

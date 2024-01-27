@@ -463,7 +463,7 @@ static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
  * @returns True on success or if job already known to server, false on error
  */
 static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
-		       PStask_ID_t spawnertid, list_t *resInfos, env_t *env)
+		       PStask_ID_t spawnertid, list_t *resInfos, env_t env)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(uid %d spawner %s)\n", __func__,
 	 server->uid, PSC_printTID(spawnertid));
@@ -497,7 +497,7 @@ static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
 		     resInfo->nLocalSlots * sizeof(*resInfo->localSlots), &msg);
     }
 
-    addStringArrayToMsg(envGetArray(*env), &msg);
+    addStringArrayToMsg(envGetArray(env), &msg);
 
     mdbg(PSPMIX_LOG_COMM, "%s: sending PSPMIX_ADD_JOB to %s", __func__,
 	    PSC_printTID(targetTID));
@@ -578,7 +578,7 @@ static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t spawnertid)
  * @returns True on success or if job already known to server, false on error
  */
 static bool addJobToServer(PspmixServer_t *server, PStask_ID_t loggertid,
-			   PSjob_t *psjob, env_t *env)
+			   PSjob_t *psjob, env_t env)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(uid %d loggertid %s)\n", __func__,
 	 server->uid, PSC_printTID(loggertid));
@@ -884,7 +884,7 @@ static int hookRecvSpawnReq(void *data)
     env_t env = envNew(prototask->environ);
 
     /* mark environment if mpiexec demands PMIx for this job */
-    if (envGet(&env, "__PMIX_NODELIST")) {
+    if (envGet(env, "__PMIX_NODELIST")) {
 	envPut(&env, strdup("__USE_PMIX=1")); /* for pspmix_common_usePMIx() */
     }
 
@@ -923,9 +923,9 @@ static int hookSpawnTask(void *data)
 
     /* continue only if PMIx support is requested
      * or singleton support is configured and np == 1 */
-    bool usePMIx = pspmix_common_usePMIx(&env);
+    bool usePMIx = pspmix_common_usePMIx(env);
     if (!usePMIx && !getConfValueI(config, "SUPPORT_MPI_SINGLETON")) return 0;
-    char *jobsize = envGet(&env, "PMI_SIZE");
+    char *jobsize = envGet(env, "PMI_SIZE");
     if (!usePMIx && (jobsize ? atoi(jobsize) : 1) != 1) return 0;
 
     /* find ParaStation session */
@@ -1024,7 +1024,7 @@ static int hookSpawnTask(void *data)
     }
 
     /* save job in server (if not yet known) and notify running server */
-    bool success = addJobToServer(server, loggertid, psjob, &env);
+    bool success = addJobToServer(server, loggertid, psjob, env);
     if (!usePMIx) {
 	envDestroy(&env);
     } else {

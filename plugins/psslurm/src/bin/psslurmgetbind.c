@@ -766,7 +766,7 @@ int main(int argc, char *argv[])
 
     test_pinning(socketCount, coresPerSocket, threadsPerCore, tasksPerNode,
 		 threadsPerTask, cpuBindType, cpuBindString, taskDist,
-		 memBindType, memBindString, &env, humanreadable, printmembind,
+		 memBindType, memBindString, env, humanreadable, printmembind,
 		 overcommit, exact, useThreadsPerCore);
 }
 

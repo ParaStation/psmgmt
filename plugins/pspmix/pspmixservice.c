@@ -304,7 +304,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     ns->job = job;
 
     /* generate my namespace name */
-    bool singleton = !pspmix_common_usePMIx(&job->env);
+    bool singleton = !pspmix_common_usePMIx(job->env);
     strncpy(ns->name, generateNamespaceName(job->spawnertid, singleton),
 	    sizeof(ns->name));
 
@@ -318,14 +318,14 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     }
 
     /* set the MPI universe size from environment set by the spawner */
-    char *env = envGet(&job->env, "PMI_UNIVERSE_SIZE");
+    char *env = envGet(job->env, "PMI_UNIVERSE_SIZE");
     ns->universeSize = env ? atoi(env) : 1;
 
     /* set the job size from environment set by the spawner */
-    env = envGet(&job->env, "PMI_SIZE");
+    env = envGet(job->env, "PMI_SIZE");
     ns->jobSize = env ? atoi(env) : 1;
 
-    env = envGet(&job->env, "PMIX_APPCOUNT");
+    env = envGet(job->env, "PMIX_APPCOUNT");
     ns->appsCount = env ? atoi(env) : 1;
     ns->apps = umalloc(ns->appsCount * sizeof(*ns->apps));
 
@@ -337,7 +337,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	/* set the application size from environment set by the spawner */
 	char var[64];
 	snprintf(var, sizeof(var), "PMIX_APPSIZE_%zu", a);
-	env = envGet(&job->env, var);
+	env = envGet(job->env, var);
 	if (!env) {
 	    ulog("broken environment: '%s' missing\n", var);
 	    goto nscreate_error;
@@ -349,7 +349,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
 	/* set working directory */
 	snprintf(var, sizeof(var), "PMIX_APPWDIR_%zu", a);
-	env = envGet(&job->env, var);
+	env = envGet(job->env, var);
 	if (!env) {
 	    ulog("broken environment: '%s' missing\n", var);
 	    goto nscreate_error;
@@ -358,7 +358,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
 	/* set arguments */
 	snprintf(var, sizeof(var), "PMIX_APPARGV_%zu", a);
-	env = envGet(&job->env, var);
+	env = envGet(job->env, var);
 	if (!env) {
 	    ulog("broken environment: '%s' missing\n", var);
 	    goto nscreate_error;
@@ -367,12 +367,12 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
 	/* set optional name defined by the user */
 	snprintf(var, sizeof(var), "PMIX_APPNAME_%zu", a);
-	env = envGet(&job->env, var);
+	env = envGet(job->env, var);
 	strncpy(ns->apps[a].name, env ? env : "", MAX_APPNAMELEN);
 
 	/* get used reservation from environment set by the spawner */
 	snprintf(var, sizeof(var), "__PMIX_RESID_%zu", a);
-	env = envGet(&job->env, var);
+	env = envGet(job->env, var);
 	if (!env) {
 	    ulog("broken environment: '%s' missing\n", var);
 	    goto nscreate_error;
@@ -388,10 +388,10 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     }
 
     /* set if this namespace is spawned out of another one */
-    ns->spawned = envGet(&job->env, "PMIX_SPAWNED") ? true : false;
+    ns->spawned = envGet(job->env, "PMIX_SPAWNED") ? true : false;
 
     /* set the list of nodes string from environment set by the spawner */
-    env = envGet(&job->env, "__PMIX_NODELIST");
+    env = envGet(job->env, "__PMIX_NODELIST");
     ns->nodelist_s = env ? env : "";
 
     /* add process information and mapping to namespace */
@@ -737,7 +737,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     envSet(&env, "OMPI_COMM_WORLD_NODE_RANK", tmp);
 
     /* send message */
-    bool success = pspmix_comm_sendClientPMIxEnvironment(client->fwtid, &env);
+    bool success = pspmix_comm_sendClientPMIxEnvironment(client->fwtid, env);
     envDestroy(&env);
 
     if (!success) {

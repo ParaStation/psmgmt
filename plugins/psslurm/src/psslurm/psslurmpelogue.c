@@ -82,7 +82,7 @@ static void handleFailedPrologue(Alloc_t *alloc, PElogueResList_t *resList)
 				        "prologue\n");
 	    offline = true;
 	}
-	if (offline) setNodeOffline(&alloc->env, alloc->id,
+	if (offline) setNodeOffline(alloc->env, alloc->id,
 				    getSlurmHostbyNodeID(resList[i].id), msg);
     }
 
@@ -343,7 +343,7 @@ int handleLocalPElogueStart(void *data)
 
     if (pedata->type == PELOGUE_EPILOGUE) return 0;
 
-    char *slurmHosts = envGet(&pedata->env, "SLURM_JOB_NODELIST");
+    char *slurmHosts = envGet(pedata->env, "SLURM_JOB_NODELIST");
     if (!slurmHosts) {
 	flog("missing SLURM_JOB_NODELIST for allocation\n");
 	return -1;
@@ -358,7 +358,7 @@ int handleLocalPElogueStart(void *data)
     }
 
     /* convert optional pack ID */
-    char *sPackID = envGet(&pedata->env, "SLURM_PACK_JOB_ID");
+    char *sPackID = envGet(pedata->env, "SLURM_PACK_JOB_ID");
     if (sPackID) {
 	errno = 0;
 	packID = strtol(sPackID, NULL, 10);
@@ -368,7 +368,7 @@ int handleLocalPElogueStart(void *data)
 	}
     }
 
-    char *userEnv = envGet(&pedata->env, "SLURM_JOB_USER");
+    char *userEnv = envGet(pedata->env, "SLURM_JOB_USER");
     char *user = userEnv ? userEnv : PSC_userFromUID(pedata->uid);
     if (!user) {
 	flog("resolve username for uid %i failed\n", pedata->uid);
@@ -377,13 +377,13 @@ int handleLocalPElogueStart(void *data)
 	snprintf(reason, sizeof(reason),
 		 "psslurm: resolve username for uid %i failed\n", pedata->uid);
 	char *hostname = getConfValueC(Config, "SLURM_HOSTNAME");
-	setNodeOffline(&pedata->env, id, hostname, reason);
+	setNodeOffline(pedata->env, id, hostname, reason);
 	return -1;
     }
 
     int ret = 0;
     if (sPackID) {
-	char *packHosts = envGet(&pedata->env, "SLURM_PACK_JOB_NODELIST");
+	char *packHosts = envGet(pedata->env, "SLURM_PACK_JOB_NODELIST");
 	if (!packHosts) {
 	    /* non leader prologue for pack,
 	     * add allocation but skip the execution of prologue */
@@ -522,7 +522,7 @@ int handleLocalPElogueFinish(void *data)
 		 (pedata->type == PELOGUE_PROLOGUE) ? "prologue" : "epilogue",
 		 pedata->exit);
 
-	setNodeOffline(&alloc->env, alloc->id,
+	setNodeOffline(alloc->env, alloc->id,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
     }
 

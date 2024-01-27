@@ -129,12 +129,12 @@ static bool envDoSet(env_t *env, char *envstring)
     return true;
 }
 
-char *envGet(const env_t *env, const char *name)
+char *envGet(const env_t env, const char *name)
 {
-    int idx = getIndex(env, name);
+    int idx = getIndex(&env, name);
 
     if (idx == -1) return NULL;
-    return strchr(env->vars[idx], '=') + 1;
+    return strchr(env.vars[idx], '=') + 1;
 }
 
 char *envDumpIndex(const env_t env, uint32_t idx)

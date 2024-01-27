@@ -29,7 +29,7 @@ PSGW_Req_t *Request_add(PElogueResource_t *res, char *packID)
 {
     if (!res) return NULL;
 
-    char *user = envGet(res->env, "SLURM_USER");
+    char *user = envGet(*res->env, "SLURM_USER");
     if (!user) {
 	flog("missing SLURM_USER in environment\n");
 	return NULL;
@@ -48,7 +48,7 @@ PSGW_Req_t *Request_add(PElogueResource_t *res, char *packID)
 	.uid = res->uid,
 	.gid = res->gid,
 	.username = ustrdup(user),
-	.cleanup = envGet(res->env, "SLURM_SPANK_PSGW_CLEANUP") ? true : false,
+	.cleanup = envGet(*res->env, "SLURM_SPANK_PSGW_CLEANUP") ? true : false,
 	.env = envClone(res->env, NULL), };
 
     list_add_tail(&req->next, &ReqList);

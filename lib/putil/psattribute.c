@@ -81,7 +81,7 @@ char *HW_getScript(const AttrIdx_t idx, const char *type)
 {
     if (idx < 0 || idx >= cnt) return NULL;
 
-    return envGet(&attributes[idx].scripts, type);
+    return envGet(attributes[idx].scripts, type);
 }
 
 bool HW_setEnv(const AttrIdx_t idx, const char *name, const char *val)
@@ -95,7 +95,7 @@ char *HW_getEnv(const AttrIdx_t idx, const char *name)
 {
     if (idx < 0 || idx >= cnt) return NULL;
 
-    return envGet(&attributes[idx].environment, name);
+    return envGet(attributes[idx].environment, name);
 }
 
 int HW_getEnvSize(const AttrIdx_t idx)

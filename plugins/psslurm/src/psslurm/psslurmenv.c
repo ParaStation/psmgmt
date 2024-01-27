@@ -530,10 +530,10 @@ void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
 
     setThreadsBitmapsEnv(stepcpus, jobcpus);
 
-    if (env) {
-	char *id = envGet(env, "SLURM_JOBID");
+    if (1) {
+	char *id = envGet(*env, "SLURM_JOBID");
 	if (id) setenv("__PSJAIL_JOBID", id, 1);
-	id = envGet(env, "SLURM_STEPID");
+	id = envGet(*env, "SLURM_STEPID");
 	if (id) setenv("__PSJAIL_STEPID", id, 1);
     } else {
 	char *id = getenv("SLURM_JOBID");
@@ -610,7 +610,7 @@ static void setGResJobEnv(list_t *gresList, env_t *env)
 	    char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
 	    for (size_t i = 0; gpu_variables[i]; i++) {
 		/* set variable if not already set by the user */
-		if (!envGet(env, gpu_variables[i])) {
+		if (!envGet(*env, gpu_variables[i])) {
 		    snprintf(name, sizeof(name), "%s%s", prefix,
 			    gpu_variables[i]);
 		    /* append some spaces to help step code to detect whether
@@ -1183,7 +1183,7 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
     }
 
     /* use pwd over cwd if realpath is identical */
-    char *pwd = envGet(&step->env, "PWD");
+    char *pwd = envGet(step->env, "PWD");
     if (pwd) {
 	char *rpath = realpath(pwd, NULL);
 	if (rpath && !strcmp(rpath, step->cwd)) {
@@ -1276,11 +1276,11 @@ pmi_type_t getPMIType(Step_t *step)
     }
 
     /* PSSLURM_PMI_TYPE can be used to choose PMI environment to be set up */
-    char *pmi = envGet(&step->env, "PSSLURM_PMI_TYPE");
+    char *pmi = envGet(step->env, "PSSLURM_PMI_TYPE");
     if (!pmi) {
 	/* if PSSLURM_PMI_TYPE is not set and srun is called with --mpi=none,
 	 *  do not setup any pmi environment */
-	pmi = envGet(&step->env, "SLURM_MPI_TYPE");
+	pmi = envGet(step->env, "SLURM_MPI_TYPE");
 	if (pmi && !strcmp(pmi, "none")) {
 	    flog("%s SLURM_MPI_TYPE set to 'none'\n", Step_strID(step));
 	    return PMI_TYPE_NONE;
@@ -1346,7 +1346,7 @@ void setStepEnv(Step_t *step)
     if (dist && !step->spawned) envSet(&step->env, "__MPIEXEC_DIST_START", "1");
 
     /* forward overbook mode */
-    if ((val = envGet(&step->env, "SLURM_OVERCOMMIT"))) {
+    if ((val = envGet(step->env, "SLURM_OVERCOMMIT"))) {
 	if (!strcmp(val, "1")) {
 	    envSet(&step->env, ENV_PART_OVERBOOK, "1");
 	}
@@ -1364,7 +1364,7 @@ void setStepEnv(Step_t *step)
     }
 
     /* set slurm umask */
-    if ((val = envGet(&step->env, "SLURM_UMASK"))) {
+    if ((val = envGet(step->env, "SLURM_UMASK"))) {
 	slurmUmask = strtol(val, NULL, 8);
 	umask(slurmUmask);
 	envSet(&step->env, "__PSI_UMASK", val);
@@ -1412,14 +1412,14 @@ void setJobEnv(Job_t *job)
     envSet(&job->env, "SLURM_JOB_GID", tmp);
 
     /* forward overbook mode */
-    char *val = envGet(&job->env, "SLURM_OVERCOMMIT");
+    char *val = envGet(job->env, "SLURM_OVERCOMMIT");
 
     if (job->overcommit || (val && !strcmp(val, "1"))) {
 	envSet(&job->env, ENV_PART_OVERBOOK, "1");
     }
 
     /* set slurm umask */
-    if ((val = envGet(&job->env, "SLURM_UMASK"))) {
+    if ((val = envGet(job->env, "SLURM_UMASK"))) {
 	slurmUmask = strtol(val, NULL, 8);
 	umask(slurmUmask);
 	envUnset(&job->env, "SLURM_UMASK");

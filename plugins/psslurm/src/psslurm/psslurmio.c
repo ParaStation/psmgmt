@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -619,7 +619,7 @@ char *IO_replaceStepSymbols(Step_t *step, int rank, char *path)
 	arrayTaskId = job->arrayTaskId;
     }
 
-    char *jobname = envGet(&step->env, "SLURM_JOB_NAME");
+    char *jobname = envGet(step->env, "SLURM_JOB_NAME");
 
     return replaceSymbols(step->jobid, step->stepid, hostname,
 			  step->localNodeId, step->username, arrayJobId,
@@ -628,7 +628,7 @@ char *IO_replaceStepSymbols(Step_t *step, int rank, char *path)
 
 char *IO_replaceJobSymbols(Job_t *job, char *path)
 {
-    char *jobname = envGet(&job->env, "SLURM_JOB_NAME");
+    char *jobname = envGet(job->env, "SLURM_JOB_NAME");
 
     return replaceSymbols(job->jobid, SLURM_BATCH_SCRIPT, job->hostname,
 			  0, job->username, job->arrayJobId, job->arrayTaskId,

@@ -1470,7 +1470,7 @@ bool initPinning(void)
 }
 
 /* read environment and fill global hints struct */
-static void fillHints(hints_t *hints, env_t *env, pininfo_t *pininfo)
+static void fillHints(hints_t *hints, env_t env, pininfo_t *pininfo)
 {
     memset(hints, 0, sizeof(*hints));
 
@@ -1506,7 +1506,7 @@ static void fillHints(hints_t *hints, env_t *env, pininfo_t *pininfo)
     }
 }
 
-static void fillTasksPerSocket(pininfo_t *pininfo, env_t *env,
+static void fillTasksPerSocket(pininfo_t *pininfo, env_t env,
 			       nodeinfo_t *nodeinfo)
 {
     char *tmp = envGet(env, "SLURM_NTASKS_PER_SOCKET");
@@ -1855,7 +1855,7 @@ bool setStepSlots(Step_t *step)
 
     /* handle hints */
     hints_t hints;
-    fillHints(&hints, &step->env, &pininfo);
+    fillHints(&hints, step->env, &pininfo);
 
     /* reconstruct hint nomultithread */
     if (step->cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE
@@ -1864,7 +1864,7 @@ bool setStepSlots(Step_t *step)
     }
 
     /* allow overbooking ? */
-    char *overcommitStr = envGet(&step->env, "SLURM_OVERCOMMIT");
+    char *overcommitStr = envGet(step->env, "SLURM_OVERCOMMIT");
     bool overcommit = overcommitStr && !strcmp(overcommitStr, "1");
 
     for (uint32_t node = 0; node < step->nrOfNodes; node++) {
@@ -1881,7 +1881,6 @@ bool setStepSlots(Step_t *step)
 					* nodeinfo->threadsPerCore
 					* sizeof(*pininfo.usedHwThreads));
 	pininfo.lastUsedThread = -1;
-
 	pininfo.overcommit = overcommit;
 	pininfo.maxuse = 1;
 
@@ -1897,7 +1896,7 @@ bool setStepSlots(Step_t *step)
 	}
 
 	/* print job and step core map to user */
-	char *pc = envGet(&step->env, "PSSLURM_PRINT_COREMAPS");
+	char *pc = envGet(step->env, "PSSLURM_PRINT_COREMAPS");
 	if (pc) {
 	    bool expand = (atol(pc) == 2);
 	    printCoreMap(" job core map", nodeinfo->jobHWthreads, step,
@@ -1908,7 +1907,7 @@ bool setStepSlots(Step_t *step)
 
 	/* handle --ntasks-per-socket option
 	 * With node sharing enabled, this option is handled by the scheduler */
-	fillTasksPerSocket(&pininfo, &step->env, nodeinfo);
+	fillTasksPerSocket(&pininfo, step->env, nodeinfo);
 
 	/* handle hint "nomultithreads" */
 	if (hints.nomultithread) {
@@ -2652,7 +2651,7 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
 void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	uint16_t threadsPerCore, uint32_t tasksPerNode, uint16_t threadsPerTask,
 	uint16_t cpuBindType, char *cpuBindString, uint32_t taskDist,
-	uint16_t memBindType, char *memBindString, env_t *env,
+	uint16_t memBindType, char *memBindString, env_t env,
 	bool humanreadable, bool printmembind, bool overcommit, bool exact,
 	uint16_t useThreadsPerCore)
 {

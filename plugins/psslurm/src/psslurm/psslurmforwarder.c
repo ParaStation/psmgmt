@@ -185,9 +185,9 @@ static int termStepJail(void *info)
     Step_t *step = info;
 
     setJailEnv(&step->env, step->username,
-	    &(step->nodeinfos[step->localNodeId].stepHWthreads),
-	    &(step->nodeinfos[step->localNodeId].jobHWthreads),
-	    &step->gresList, step->cred, step->localNodeId);
+	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
+	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
+	       &step->gresList, step->cred, step->localNodeId);
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &step->fwdata->cPid);
 }
 
@@ -774,23 +774,23 @@ static void initX11Forward(Step_t *step)
     char srunIP[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &step->srun.sin_addr, srunIP, INET_ADDRSTRLEN);
 
-    int port = atoi(envGet(&step->spankenv, "X11_PORT"));
+    int port = atoi(envGet(step->spankenv, "X11_PORT"));
     port -= 6000;
 
-    char *screen = envGet(&step->spankenv, "X11_SCREEN");
+    char *screen = envGet(step->spankenv, "X11_SCREEN");
     char authStr[128], xauthCmd[256];
 
     snprintf(authStr, sizeof(authStr), "%s:%i.%s", srunIP, port, screen);
     envSet(&step->env, "DISPLAY", authStr);
 
     /* xauth needs the correct HOME */
-    setenv("HOME", envGet(&step->env, "HOME"), 1);
+    setenv("HOME", envGet(step->env, "HOME"), 1);
 
     snprintf(xauthCmd, sizeof(xauthCmd), "%s -q -", X11_AUTH_CMD);
     FILE *fp = popen(xauthCmd, "w");
     if (fp != NULL) {
-	char *proto = envGet(&step->spankenv, "X11_PROTO");
-	char *cookie = envGet(&step->spankenv, "X11_COOKIE");
+	char *proto = envGet(step->spankenv, "X11_PROTO");
+	char *cookie = envGet(step->spankenv, "X11_COOKIE");
 	fprintf(fp, "remove %s\n", authStr);
 	fprintf(fp, "add %s %s %s\n", authStr, proto, cookie);
 	pclose(fp);
@@ -823,8 +823,8 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	    exit(1);
 	}
 
-	cols = envGet(&step->env, "SLURM_PTY_WIN_COL");
-	rows = envGet(&step->env, "SLURM_PTY_WIN_ROW");
+	cols = envGet(step->env, "SLURM_PTY_WIN_COL");
+	rows = envGet(step->env, "SLURM_PTY_WIN_ROW");
 
 	if (cols && rows) {
 	    ws.ws_col = atoi(cols);
@@ -911,8 +911,8 @@ void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType)
 
     strvInit(argV, NULL, 0);
 
-    if (envGet(&step->env, "PMI_SPAWNED")) {
-	char *tmpStr = envGet(&step->env, "__PSI_MPIEXEC_KVSPROVIDER");
+    if (envGet(step->env, "PMI_SPAWNED")) {
+	char *tmpStr = envGet(step->env, "__PSI_MPIEXEC_KVSPROVIDER");
 	if (tmpStr) {
 	    strvAdd(argV, tmpStr);
 	} else {
@@ -1025,7 +1025,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
 	cwd = IO_replaceStepSymbols(step, 0, step->cwd);
     }
 
-    char *pwd = envGet(&step->env, "PWD");
+    char *pwd = envGet(step->env, "PWD");
     if (pwd) {
 	char *rpath = realpath(pwd, NULL);
 	if (rpath && !strcmp(rpath, cwd)) {
@@ -1141,9 +1141,9 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     initSerial(0, sendMsg);
     setJailEnv(&step->env, step->username,
-	    &(step->nodeinfos[step->localNodeId].stepHWthreads),
-	    &(step->nodeinfos[step->localNodeId].jobHWthreads),
-	    &step->gresList, step->cred, step->localNodeId);
+	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
+	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
+	       &step->gresList, step->cred, step->localNodeId);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -1335,7 +1335,7 @@ bool execStepLeader(Step_t *step)
     int grace = getConfValueI(SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
-    step->spawned = envGet(&step->env, "PMI_SPAWNED");
+    step->spawned = envGet(step->env, "PMI_SPAWNED");
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
     char jobStr[32], titleStr[64];
@@ -1347,11 +1347,11 @@ bool execStepLeader(Step_t *step)
     fwdata->graceTime = grace;
     fwdata->accounted = true;
     if (step->spawned) {
-	char *env = envGet(&step->env, "__PSSLURM_SPAWN_PTID");
+	char *env = envGet(step->env, "__PSSLURM_SPAWN_PTID");
 	if (env) fwdata->pTid = atoi(env);
-	env = envGet(&step->env, "__PSSLURM_SPAWN_LTID");
+	env = envGet(step->env, "__PSSLURM_SPAWN_LTID");
 	if (env) fwdata->loggerTid = atoi(env);
-	env = envGet(&step->env, "__PSSLURM_SPAWN_RANK");
+	env = envGet(step->env, "__PSSLURM_SPAWN_RANK");
 	if (env) fwdata->rank = atoi(env);
     }
     fwdata->jailChild = true;
@@ -1371,7 +1371,7 @@ bool execStepLeader(Step_t *step)
 	snprintf(msg, sizeof(msg), "starting forwarder for %s failed\n",
 		 Step_strID(step));
 	flog("%s", msg);
-	setNodeOffline(&step->env, step->jobid,
+	setNodeOffline(step->env, step->jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	ForwarderData_delete(fwdata);
 	return false;
@@ -1530,7 +1530,7 @@ bool execBatchJob(Job_t *job)
 	snprintf(msg, sizeof(msg), "starting forwarder for job '%u' failed\n",
 		 job->jobid);
 	flog("%s", msg);
-	setNodeOffline(&job->env, job->jobid,
+	setNodeOffline(job->env, job->jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	ForwarderData_delete(fwdata);
 	return false;
@@ -1647,7 +1647,7 @@ bool execBCast(BCast_t *bcast)
 	snprintf(msg, sizeof(msg), "starting forwarder for bcast '%u' failed\n",
 		 bcast->jobid);
 	flog("%s", msg);
-	setNodeOffline(bcast->env, bcast->jobid,
+	setNodeOffline(*bcast->env, bcast->jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	ForwarderData_delete(fwdata);
 	return false;
@@ -1711,9 +1711,9 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     Step_deleteAll(step);
 
     setJailEnv(&step->env, step->username,
-	    &(step->nodeinfos[step->localNodeId].stepHWthreads),
-	    &(step->nodeinfos[step->localNodeId].jobHWthreads),
-	    &step->gresList, step->cred, step->localNodeId);
+	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
+	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
+	       &step->gresList, step->cred, step->localNodeId);
 
 #ifdef HAVE_SPANK
 
@@ -1783,7 +1783,7 @@ bool execStepFollower(Step_t *step)
 	snprintf(msg, sizeof(msg), "starting step forwarder for %s failed\n",
 		 Step_strID(step));
 	flog("%s", msg);
-	setNodeOffline(&step->env, step->jobid,
+	setNodeOffline(step->env, step->jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	ForwarderData_delete(fwdata);
 	return false;

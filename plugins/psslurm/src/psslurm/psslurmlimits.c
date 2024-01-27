@@ -237,7 +237,7 @@ void setRlimitsFromEnv(env_t *env, bool psi)
 	char climit[128];
 	snprintf(climit, sizeof(climit), "SLURM_RLIMIT_%s",
 		 slurmConfLimits[i].name);
-	char *val = envGet(env, climit);
+	char *val = envGet(*env, climit);
 	if (!val) continue;
 
 	bool propagate = false;

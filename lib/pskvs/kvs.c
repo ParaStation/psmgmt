@@ -190,7 +190,7 @@ char *kvs_get(char *kvsname, char *name)
 	return NULL;
     }
 
-    return envGet(lkvs->env, name);
+    return envGet(*lkvs->env, name);
 }
 
 int kvs_count_values(char *kvsname)

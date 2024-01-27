@@ -452,7 +452,7 @@ static ssize_t sendMsgToDaemon(DDTypedBufferMsg_t *msg)
 }
 
 
-bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t *env)
+bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t env)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__, PSC_printTID(targetTID));
 
@@ -462,10 +462,10 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t *env)
     setFragDest(&msg, targetTID);
 
     mdbg(PSPMIX_LOG_COMM, "%s: Adding environment to message:\n", __func__);
-    for (uint32_t i = 0; i < envSize(*env); i++) {
-	mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, i, envDumpIndex(*env, i));
+    for (uint32_t i = 0; i < envSize(env); i++) {
+	mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, i, envDumpIndex(env, i));
     }
-    addStringArrayToMsg(envGetArray(*env), &msg);
+    addStringArrayToMsg(envGetArray(env), &msg);
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);

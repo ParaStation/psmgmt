@@ -664,7 +664,7 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
     return 0;
 }
 
-void setNodeOffline(env_t *env, uint32_t id, const char *host, const char *reason)
+void setNodeOffline(env_t env, uint32_t id, const char *host, const char *reason)
 {
     if (!host || !reason) {
 	flog("error: empty host or reason\n");
@@ -678,7 +678,7 @@ void setNodeOffline(env_t *env, uint32_t id, const char *host, const char *reaso
 	sendDrainNode(host, reason);
     } else {
 	/* use psexec to drain nodes in Slurm */
-	env_t clone = envClone(env, envFilter);
+	env_t clone = envClone(&env, envFilter);
 	envSet(&clone, "SLURM_HOSTNAME", host);
 	envSet(&clone, "SLURM_REASON", reason);
 
@@ -1030,7 +1030,7 @@ static void handle_PElogueRes(DDTypedBufferMsg_t *msg)
 	    snprintf(reason, sizeof(reason),
 		     "psslurm: %s failed with unknown result %i\n", sType, res);
 	}
-	setNodeOffline(&alloc->env, alloc->id,
+	setNodeOffline(alloc->env, alloc->id,
 		       getSlurmHostbyNodeID(sender), reason);
     } else {
 	fdbg(PSSLURM_LOG_PELOG, "%s success for allocation %u on "
@@ -1707,7 +1707,7 @@ static void handleDroppedEpilogue(DDTypedBufferMsg_t *msg)
     }
 
     flog("node %i for epilogue %u unreachable\n", dest, alloc->id);
-    setNodeOffline(&alloc->env, alloc->id, getSlurmHostbyNodeID(dest),
+    setNodeOffline(alloc->env, alloc->id, getSlurmHostbyNodeID(dest),
 		   "psslurm: node unreachable for epilogue");
 
     finalizeEpilogue(alloc);

@@ -335,8 +335,8 @@ static int hookExecForwarder(void *data)
 
     /* continue only if PMIx support is requested
      * or singleton support is configured and np == 1 */
-    bool usePMIx = pspmix_common_usePMIx(&env);
-    char *jobsize = envGet(&env, "PMI_SIZE");
+    bool usePMIx = pspmix_common_usePMIx(env);
+    char *jobsize = envGet(env, "PMI_SIZE");
     if (!usePMIx && (!getConfValueI(config, "SUPPORT_MPI_SINGLETON")
 		     || (jobsize ? atoi(jobsize) : 1) != 1)) {
 	childTask = NULL;
@@ -359,7 +359,7 @@ static int hookExecForwarder(void *data)
 
     /* block until PMIx environment is set with some timeout */
     uint32_t tmout = 3;
-    char *tmoutStr = envGet(&env, "PSPMIX_ENV_TMOUT");
+    char *tmoutStr = envGet(env, "PSPMIX_ENV_TMOUT");
     envStealArray(&env);
     if (tmoutStr && *tmoutStr) {
 	char *end;
@@ -433,7 +433,7 @@ static int hookExecClientUser(void *data)
     /* if this is a singleton case, call PMIx_Init() to prevent the PMIx server
      * lib from deleting the namespace after first use */
     env_t env = envNew(childTask->environ); // use of env is read only
-    bool usePMIx = pspmix_common_usePMIx(&env);
+    bool usePMIx = pspmix_common_usePMIx(env);
     envStealArray(&env);
     if (usePMIx) return 0;
 

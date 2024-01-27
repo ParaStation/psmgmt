@@ -76,7 +76,7 @@ uint32_t envSize(env_t env);
  * @return If an entry with key @a name is found, the corresponding
  * value is returned. Otherwise NULL is returned.
  */
-char *envGet(const env_t *env, const char *name);
+char *envGet(const env_t env, const char *name);
 
 /**
  * @brief Dump entry from environment

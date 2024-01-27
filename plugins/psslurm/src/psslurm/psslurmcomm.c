@@ -1699,7 +1699,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 
 int srunOpenPTYConnection(Step_t *step)
 {
-    char *port = envGet(&step->env, "SLURM_PTY_PORT");
+    char *port = envGet(step->env, "SLURM_PTY_PORT");
     if (!port) {
 	flog("missing SLURM_PTY_PORT variable\n");
 	return -1;

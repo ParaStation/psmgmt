@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -184,7 +184,7 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
 void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	uint16_t threadsPerCore, uint32_t tasksPerNode, uint16_t threadsPerTask,
 	uint16_t cpuBindType, char *cpuBindString, uint32_t taskDist,
-	uint16_t memBindType, char *memBindString, env_t *env,
+	uint16_t memBindType, char *memBindString, env_t env,
 	bool humanreadable, bool printmembind, bool overcommit, bool exact,
 	uint16_t useThreadsPerCore);
 #endif  /* __PS_SLURM_PIN */

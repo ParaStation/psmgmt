@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -168,7 +168,7 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus);
  *
  * @param reason The reason why the node was set offline
  */
-void setNodeOffline(env_t *env, uint32_t id, const char *host,
+void setNodeOffline(env_t env, uint32_t id, const char *host,
 		    const char *reason);
 
 void requeueBatchJob(Job_t *job, PSnodes_ID_t dest);

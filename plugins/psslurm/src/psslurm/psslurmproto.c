@@ -395,7 +395,7 @@ static bool extractStepPackInfos(Step_t *step)
 	step->packSize = 1;
 	step->packNtasks = 1;
     } else {
-	char *sPackSize = envGet(&step->env, "SLURM_PACK_SIZE");
+	char *sPackSize = envGet(step->env, "SLURM_PACK_SIZE");
 	if (!sPackSize) {
 	    flog("missing SLURM_PACK_SIZE environment\n");
 	    return false;
@@ -404,7 +404,7 @@ static bool extractStepPackInfos(Step_t *step)
     }
 
     /* extract allocation ID */
-    char *sPackID = envGet(&step->env, "SLURM_JOB_ID_PACK_GROUP_0");
+    char *sPackID = envGet(step->env, "SLURM_JOB_ID_PACK_GROUP_0");
     if (!sPackID) {
 	flog("missing SLURM_JOB_ID_PACK_GROUP_0 environment\n");
 	return false;
@@ -1971,7 +1971,7 @@ static bool extractJobPackInfos(Job_t *job)
     size_t nlSize = 0;
 
     /* extract pack size */
-    char *sPackSize = envGet(&job->env, "SLURM_PACK_SIZE");
+    char *sPackSize = envGet(job->env, "SLURM_PACK_SIZE");
     if (!sPackSize) return true;
 
     job->packSize = atoi(sPackSize);
@@ -1983,7 +1983,7 @@ static bool extractJobPackInfos(Job_t *job)
 	snprintf(nodeListName, sizeof(nodeListName),
 		 "SLURM_JOB_NODELIST_PACK_GROUP_%u", i);
 
-	char *next = envGet(&job->env, nodeListName);
+	char *next = envGet(job->env, nodeListName);
 	if (!next) {
 	    flog("%s not found in job environment\n", nodeListName);
 	    ufree(job->packHostlist);
@@ -2100,7 +2100,7 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* write the jobscript */
     if (!writeJobscript(job)) {
 	/* set myself offline and requeue the job */
-	setNodeOffline(&job->env, job->jobid,
+	setNodeOffline(job->env, job->jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"),
 			"psslurm: writing jobscript failed");
 	/* need to return success to be able to requeue the job */
