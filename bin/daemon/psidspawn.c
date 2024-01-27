@@ -792,7 +792,7 @@ static void statPID(pid_t pid)
 	return;
     }
 
-    PSID_flog("PID %d: %s", pid, statLine);
+    PSID_flog("PID %d: %s\n", pid, statLine);
     free(statLine);
 }
 

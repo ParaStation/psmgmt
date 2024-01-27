@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2008-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -117,7 +117,7 @@ void PSID_reset(void)
     if (!PSIDclient_getNum(false)) {
 	/* reset the hardware if demanded */
 	if (daemonState & PSID_STATE_RESET_HW) {
-	    PSID_flog("resetting hardware");
+	    PSID_flog("resetting hardware: ");
 	    PSID_stopAllHW();
 	    PSID_startAllHW();
 	}
@@ -125,7 +125,7 @@ void PSID_reset(void)
 	daemonState &= ~(PSID_STATE_RESET | PSID_STATE_RESET_HW);
 	if (phase) PSID_unregisterLoopAct(PSID_reset);
 	phase = -1;
-	PSID_flog("done\n");
+	PSID_flog(" done\n");
 	return;
     }
 

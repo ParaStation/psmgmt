@@ -232,7 +232,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    msg.error = ESRCH;
 	    PSID_flog("sig %d intended for obsolete tasks %s", signal,
 		      PSC_printTID(tid));
-	    PSID_log(" sender was %s", PSC_printTID(sender));
+	    PSID_log(" sender was %s\n", PSC_printTID(sender));
 	} else if (pervasive) {
 	    answer = false;
 

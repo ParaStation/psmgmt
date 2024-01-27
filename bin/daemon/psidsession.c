@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -711,7 +711,7 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     uint16_t nBytes;
     getUint16(rData, &nBytes);
     if (nBytes != PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()))) {
-	PSID_flog("CPU-set size mismatch %ud", nBytes);
+	PSID_flog("CPU-set size mismatch %ud\n", nBytes);
 	return;
     }
 
@@ -743,8 +743,7 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* check for end of message */
     getInt32(rData, &rank);
-    if (rank != -1)
-	PSID_flog("trailing slot for rank %d", rank);
+    if (rank != -1) PSID_flog("trailing slot for rank %d\n", rank);
 
     /* there might be delayed tasks that are capable to start now */
     PSIDspawn_startDelayedTasks(startFilter, res);
