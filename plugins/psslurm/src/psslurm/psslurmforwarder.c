@@ -429,7 +429,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     setJobEnv(job);
 
     /* set RLimits */
-    setRlimitsFromEnv(job->env, 0);
+    setRlimitsFromEnv(job->env, false);
 
     /* reset FPE exceptions mask */
     if (getConfValueI(Config, "ENABLE_FPE_EXCEPTION") &&
@@ -1056,7 +1056,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
 	 argV.strings[0], getpid());
 
     /* set RLimits */
-    setRlimitsFromEnv(step->env, 1);
+    setRlimitsFromEnv(step->env, true);
 
     /* remove environment variables not evaluated by mpiexec */
     removeUserVars(step->env, pmi_type);
