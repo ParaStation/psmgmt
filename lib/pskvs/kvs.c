@@ -23,7 +23,7 @@
 
 typedef struct {
     char *name;
-    env_t *env;
+    env_t env;
 } KVS_t;
 
 /** The current number of kvs */
@@ -118,9 +118,8 @@ bool kvs_create(char *name)
     index = numKVS++;
 
     /* setup up the env */
-    kvs[index].env = malloc(sizeof(*(kvs[index].env)));
-    *kvs[index].env = envNew(NULL);
-    if (!kvs[index].env) {
+    kvs[index].env = envNew(NULL);
+    if (!envInitialized(&kvs[index].env)) {
 	mlog("%s: out of memory\n", __func__);
 	exit(1);
     }
@@ -146,8 +145,7 @@ bool kvs_destroy(char *name)
 
     free(lkvs->name);
     lkvs->name = NULL;
-    envDestroy(lkvs->env);
-    free(lkvs->env);
+    envDestroy(&lkvs->env);
 
     return true;
 }
@@ -168,7 +166,7 @@ bool kvs_set(char *kvsname, char *name, char *value)
 	return false;
     }
 
-    if (!envSet(lkvs->env, name, value)) {
+    if (!envSet(&lkvs->env, name, value)) {
 	mlog("%s: error in envSet for kvs '%s'\n", __func__, kvsname);
 	return false;
     }
@@ -190,7 +188,7 @@ char *kvs_get(char *kvsname, char *name)
 	return NULL;
     }
 
-    return envGet(*lkvs->env, name);
+    return envGet(lkvs->env, name);
 }
 
 int kvs_count_values(char *kvsname)
@@ -206,7 +204,7 @@ int kvs_count_values(char *kvsname)
 	return -1;
     }
 
-    return envSize(*lkvs->env);
+    return envSize(lkvs->env);
 }
 
 int kvs_count(void)
@@ -230,5 +228,5 @@ char *kvs_getbyidx(char *kvsname, int index)
 	return NULL;
     }
 
-    return envDumpIndex(*lkvs->env, index);
+    return envDumpIndex(lkvs->env, index);
 }
