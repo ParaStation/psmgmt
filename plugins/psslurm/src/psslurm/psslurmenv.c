@@ -530,7 +530,7 @@ void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
 
     setThreadsBitmapsEnv(stepcpus, jobcpus);
 
-    if (1) {
+    if (envInitialized(env)) {
 	char *id = envGet(*env, "SLURM_JOBID");
 	if (id) setenv("__PSJAIL_JOBID", id, 1);
 	id = envGet(*env, "SLURM_STEPID");
@@ -660,7 +660,7 @@ static void doSetEnv(env_t *env, char *key, char *val)
 {
     if (val[0] == '\0') return;
 
-    if (env) {
+    if (envInitialized(env)) {
 	envSet(env, key, val);
     } else {
 	setenv(key, val, 1);
@@ -897,7 +897,7 @@ static void setPsslurmEnv(env_t alloc_env, env_t *dest_env)
 	    char *ptr = thisEnv + 13;
 	    fdbg(PSSLURM_LOG_ENV, "set %s\n", ptr);
 	    if (!*ptr) continue;
-	    if (dest_env) {
+	    if (envInitialized(dest_env)) {
 		envPut(dest_env, ptr);
 	    } else {
 		putenv(ptr);

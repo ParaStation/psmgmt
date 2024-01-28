@@ -1000,6 +1000,10 @@ static int hookSpawnTask(void *data)
 	/* clone environment so we can modify it */
 	env_t myEnv = envClone(env, NULL);
 	envStealArray(&env);
+	if (!envInitialized(&myEnv)) {
+	    mlog("%s: cloning env failed\n", __func__);
+	    return -1;
+	}
 	env = myEnv;
 
 	envSet(&env, "PMI_UNIVERSE_SIZE", "1");

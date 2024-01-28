@@ -515,6 +515,10 @@ int main(const int argc, const char *argv[], char *envp[])
 
     /* build and filter environment */
     env_t env = envConstruct(envp, filter);
+    if (!envInitialized(&env)) {
+	fprintf(stderr, "%s: envConstruct failed for job %s\n", argv[0], jobID);
+	exit(1);
+    }
     envSet(&env, "SLURM_USER", getenv("SLURM_JOB_USER"));
     envSet(&env, "SLURM_UID", getenv("SLURM_JOB_UID"));
 

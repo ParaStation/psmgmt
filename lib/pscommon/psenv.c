@@ -37,13 +37,19 @@ env_t envNew(char **envArray)
     return env;
 }
 
+bool envInitialized(env_t *env)
+{
+    return env;
+}
+
 uint32_t envSize(env_t env)
 {
-    return env.cnt;
+    return envInitialized(&env) ? env.cnt : 0;
 }
 
 void envUnsetIndex(env_t *env, uint32_t idx)
 {
+    if (!envInitialized(env)) return;
     free(env->vars[idx]);
     env->cnt--;
     env->vars[idx] = env->vars[env->cnt]; /* cnt >= 0 because idx != -1 */
@@ -52,6 +58,7 @@ void envUnsetIndex(env_t *env, uint32_t idx)
 
 void envSteal(env_t *env)
 {
+    if (!envInitialized(env)) return;
     free(env->vars);
     env->vars = NULL;
     env->cnt = env->size = 0;
@@ -59,12 +66,14 @@ void envSteal(env_t *env)
 
 void envStealArray(env_t *env)
 {
+    if (!envInitialized(env)) return;
     env->vars = NULL;
     envSteal(env);
 }
 
 void __envDestroy(env_t *env, bool shred)
 {
+    if (!envInitialized(env)) return;
     for (uint32_t i = 0; i < env->cnt; i++) {
 	if (shred && env->vars[i]) memset(env->vars[i], 0, strlen(env->vars[i]));
 	free(env->vars[i]);
@@ -86,7 +95,7 @@ void __envDestroy(env_t *env, bool shred)
  */
 static int getIndex(const env_t *env, const char *name)
 {
-    if (!name || strchr(name,'=')) return -1;
+    if (!envInitialized(env) || !name || strchr(name,'=')) return -1;
 
     size_t len = strlen(name);
     for (uint32_t i = 0; i < env->cnt; i++) {
@@ -108,7 +117,7 @@ void envUnset(env_t *env, const char *name)
 /* takes ownership of @a envstring and frees it in case of error */
 static bool envDoSet(env_t *env, char *envstring)
 {
-    if (!env || !envstring) {
+    if (!envInitialized(env) || !envstring) {
 	free(envstring);
 	return false;
     }
@@ -139,13 +148,13 @@ char *envGet(const env_t env, const char *name)
 
 char *envDumpIndex(const env_t env, uint32_t idx)
 {
-    if (idx >= env.cnt) return NULL;
+    if (!envInitialized(&env) || idx >= env.cnt) return NULL;
     return env.vars[idx];
 }
 
 bool envSet(env_t *env, const char *name, const char *val)
 {
-    if (!name || strchr(name, '=')) return false;
+    if (!envInitialized(env) || !name || strchr(name, '=')) return false;
     if (!val) val = "";
 
     envUnset(env, name);
@@ -161,7 +170,7 @@ bool envSet(env_t *env, const char *name, const char *val)
 
 bool envPut(env_t *env, const char *envstring)
 {
-    if (!envstring) return false;
+    if (!envInitialized(env) || !envstring) return false;
 
     char *value = strchr(envstring, '=');
     if (!value) return false;
@@ -182,6 +191,7 @@ bool envPut(env_t *env, const char *envstring)
 
 static bool envSetFilter(env_t *env, const char *envstring, char **filter)
 {
+    if (!envInitialized(env)) return false;
     if (!filter) return envDoSet(env, strdup(envstring));
 
     uint32_t count = 0;
@@ -223,7 +233,7 @@ error:
 
 char **envGetArray(env_t env)
 {
-    return env.vars;
+    return envInitialized(&env) ? env.vars : NULL;
 }
 
 env_t envClone(const env_t env, char **filter)
@@ -246,8 +256,9 @@ error:
 
 bool envCat(env_t *dst, const env_t *src, char **filter)
 {
-    uint32_t count = dst->cnt + src->cnt + 1;
+    if (!envInitialized(dst) || !envInitialized(src)) return false;
 
+    uint32_t count = dst->cnt + src->cnt + 1;
     if (count > dst->size) {
 	char **tmp = realloc(dst->vars, count * sizeof(*tmp));
 	if (!tmp) return false;

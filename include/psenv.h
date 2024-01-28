@@ -53,6 +53,19 @@ typedef struct {
 env_t envNew(char **envArray);
 
 /**
+ * @brief Check environment for initialization
+ *
+ * Check if the environment represented by @a env is initialized,
+ * i.e. if @ref envNew() was called for this environment before.
+ *
+ * @param env Environment's handle
+ *
+ * @return Return true if the environment is initialized; or false
+ * otherwise
+ */
+bool envInitialized(env_t *env);
+
+/**
  * @brief Get environment's size
  *
  * Get the actual size, i.e. the number of stored variables, of the
