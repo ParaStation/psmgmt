@@ -39,7 +39,7 @@
 
 /** psid plugin requirements */
 char name[] = "rrcomm";
-int version = 1;
+int version = 2;
 int requiredAPI = 138;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
