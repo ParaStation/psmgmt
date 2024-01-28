@@ -187,8 +187,7 @@ static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
     ufree(plugin);
 }
 
-static int startPElogueReq(Job_t *job, uint8_t type, uint32_t timeout,
-			   uint32_t grace, env_t env)
+static int startPElogueReq(Job_t *job, RPC_Info_t *info, env_t env)
 {
     PS_SendDB_t config;
     PSnodes_ID_t myID = PSC_getMyID();
@@ -203,8 +202,8 @@ static int startPElogueReq(Job_t *job, uint8_t type, uint32_t timeout,
 	}
 
 	addStringToMsg(job->plugin, &config);
-	addUint32ToMsg(timeout, &config);
-	addUint32ToMsg(grace, &config);
+	addUint32ToMsg(info->timeout, &config);
+	addUint32ToMsg(info->grace, &config);
 
 	ret = sendFragMsg(&config);
 	if (ret == -1) {
@@ -215,7 +214,7 @@ static int startPElogueReq(Job_t *job, uint8_t type, uint32_t timeout,
     }
 
     /* start the pelogue */
-    if (type == PELOGUE_PROLOGUE) {
+    if (info->type == PELOGUE_PROLOGUE) {
 	job->state = JOB_PROLOGUE;
 	job->prologueTrack = job->numNodes;
     } else {
@@ -223,10 +222,9 @@ static int startPElogueReq(Job_t *job, uint8_t type, uint32_t timeout,
 	job->epilogueTrack = job->numNodes;
     }
 
-    ret = sendPElogueStart(job, type, 1, env);
+    ret = sendPElogueStart(job, info->type, 1, env);
     if (ret == -1) {
 	mlog("%s: sending pelogue request for %s failed\n", __func__, job->id);
-	return ret;
     }
 
     return ret;
@@ -242,8 +240,7 @@ static void handleResourceCB(char *plugin, char *jobid, uint16_t result)
     }
 
     RPC_Info_t *info = (RPC_Info_t *) job->info;
-    PElogueResource_t *res = info->res;
-    if (!res) {
+    if (!info->res) {
 	mlog("%s: no resources found in job %s\n", __func__, jobid);
 	goto ERROR;
     }
@@ -256,22 +253,19 @@ static void handleResourceCB(char *plugin, char *jobid, uint16_t result)
 
     mlog("%s: plugin %s jobid %s result %u\n", __func__, plugin, jobid, result);
 
-    if (startPElogueReq(job, info->type, info->timeout,
-			info->grace, res->env) < 0) {
-	goto ERROR;
-    }
+    if (startPElogueReq(job, info, info->res->env) < 0) goto ERROR;
 
-    envDestroy(res->env);
-    ufree(res->plugin);
-    ufree(res);
+    envDestroy(info->res->env);
+    ufree(info->res->plugin);
+    ufree(info->res);
     return;
 
 ERROR:
     sendPrologueResp(jobid, 1, false, info->sender);
-    if (res) {
-	envDestroy(res->env);
-	ufree(res->plugin);
-	ufree(res);
+    if (info->res) {
+	envDestroy(info->res->env);
+	ufree(info->res->plugin);
+	ufree(info->res);
     }
     deleteJob(job);
     ufree(info->requestor);
@@ -335,13 +329,14 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* let plugins request additional resources */
     PElogueResource_t *res = umalloc(sizeof(*res));
-    res->plugin = ustrdup(requestor);
-    res->jobid = jobid;
-    res->env = env;
-    res->cb = handleResourceCB;
-    res->uid = uid;
-    res->gid = gid;
-    res->src = msg->header.sender;
+    *res = (PElogueResource_t) {
+	.plugin = ustrdup(requestor),
+	.jobid = jobid,
+	.env = env,
+	.uid = uid,
+	.gid = gid,
+	.src = msg->header.sender,
+	.cb = handleResourceCB, };
     info->res = res;
 
     int ret = PSIDhook_call(PSIDHOOK_PELOGUE_RES, res);
@@ -357,7 +352,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	goto ERROR;
     }
 
-    if (startPElogueReq(job, info->type, info->timeout, info->grace, env) < 0) {
+    if (startPElogueReq(job, info, env) < 0) {
 	goto ERROR;
     }
 
