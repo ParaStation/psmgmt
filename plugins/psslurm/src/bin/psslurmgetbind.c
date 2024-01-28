@@ -693,7 +693,7 @@ int main(int argc, char *argv[])
 
     /* creating env containing hints */
     env_t env = envNew(NULL);
-    if (nomultithread) envSet(&env, "PSSLURM_HINT", "nomultithread");
+    if (nomultithread) envSet(env, "PSSLURM_HINT", "nomultithread");
 
     if (!tasksPerNode) {
 	outline(ERROROUT, "Invalid number of tasks per node.");

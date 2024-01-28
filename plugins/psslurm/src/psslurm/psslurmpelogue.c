@@ -248,30 +248,30 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
     /* buildup environment */
     env_t env = envClone(alloc->env, envFilter);
     /* username */
-    envSet(&env, "SLURM_USER", alloc->username);
+    envSet(env, "SLURM_USER", alloc->username);
     /* uid */
     snprintf(buf, sizeof(buf), "%u", alloc->uid);
-    envSet(&env, "SLURM_UID", buf);
+    envSet(env, "SLURM_UID", buf);
     /* gid */
     snprintf(buf, sizeof(buf), "%u", alloc->gid);
-    envSet(&env, "SLURM_GID", buf);
+    envSet(env, "SLURM_GID", buf);
     /* host-list */
-    envSet(&env, "SLURM_JOB_NODELIST", alloc->slurmHosts);
+    envSet(env, "SLURM_JOB_NODELIST", alloc->slurmHosts);
     /* start time */
     struct tm *ts = localtime(&alloc->startTime);
     strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", ts);
-    envSet(&env, "SLURM_JOB_STARTTIME", buf);
+    envSet(env, "SLURM_JOB_STARTTIME", buf);
     /* pack ID */
     if (alloc->packID != NO_VAL) {
 	snprintf(buf, sizeof(buf), "%u", alloc->packID);
-	envSet(&env, "SLURM_PACK_JOBID", buf);
+	envSet(env, "SLURM_PACK_JOBID", buf);
     }
 
     alloc->state = (type == PELOGUE_PROLOGUE) ? A_PROLOGUE : A_EPILOGUE;
 
     /* use pelogue plugin to start */
     bool ret = psPelogueStartPE("psslurm", sjobid, type, 1, env);
-    envDestroy(&env);
+    envDestroy(env);
 
     return ret;
 }
@@ -388,7 +388,7 @@ int handleLocalPElogueStart(void *data)
 	    /* non leader prologue for pack,
 	     * add allocation but skip the execution of prologue */
 	    Alloc_t *old = Alloc_findByPackID(packID);
-	    env_t *env = old ? &old->env : &pedata->env;
+	    env_t env = old ? old->env : pedata->env;
 	    mdbg(PSSLURM_LOG_PELOG, "%s: no pack hosts, add allocation %u skip "
 		 "prologue\n", __func__, id);
 	    Alloc_t *alloc = Alloc_add(id, packID, slurmHosts, env,
@@ -419,7 +419,7 @@ int handleLocalPElogueStart(void *data)
 	    if (localid != NO_VAL) {
 		mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 		     "allocation %u\n", __func__, id);
-		alloc = Alloc_add(id, packID, slurmHosts, &pedata->env,
+		alloc = Alloc_add(id, packID, slurmHosts, pedata->env,
 				 pedata->uid, pedata->gid, user);
 		alloc->state = A_PROLOGUE;
 	    } else {
@@ -427,11 +427,11 @@ int handleLocalPElogueStart(void *data)
 		if (!alloc) {
 		    mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 			 "temporary allocation %u\n", __func__, packID);
-		    alloc = Alloc_add(id, packID, slurmHosts, &pedata->env,
+		    alloc = Alloc_add(id, packID, slurmHosts, pedata->env,
 				     pedata->uid, pedata->gid, user);
 		    alloc->state = A_PROLOGUE;
 		} else {
-		    envDestroy(&alloc->env);
+		    envDestroy(alloc->env);
 		    alloc->env = envClone(pedata->env, envFilter);
 		}
 	    }
@@ -439,7 +439,7 @@ int handleLocalPElogueStart(void *data)
     } else {
 	/* prologue for regular (non pack) job */
 	fdbg(PSSLURM_LOG_PELOG, "non pack job, add allocation %u\n", id);
-	Alloc_t *alloc = Alloc_add(id, packID, slurmHosts, &pedata->env,
+	Alloc_t *alloc = Alloc_add(id, packID, slurmHosts, pedata->env,
 				  pedata->uid, pedata->gid, user);
 	alloc->state = A_PROLOGUE;
     }

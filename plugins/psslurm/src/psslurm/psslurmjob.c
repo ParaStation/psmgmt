@@ -115,8 +115,8 @@ bool Job_delete(Job_t *job)
     freeJobCred(job->cred);
     clearFwMsgQueue(&job->fwMsgQueue);
 
-    envShred(&job->env);
-    envShred(&job->spankenv);
+    envShred(job->env);
+    envShred(job->spankenv);
 
     list_del(&job->next);
     ufree(job);

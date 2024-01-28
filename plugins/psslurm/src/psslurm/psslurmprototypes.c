@@ -82,7 +82,7 @@ static inline void freeReqLaunchProlog(Slurm_Msg_t *sMsg)
     ufree(req->x11AllocHost);
     ufree(req->x11MagicCookie);
     ufree(req->x11Target);
-    envDestroy(&req->spankEnv);
+    envDestroy(req->spankEnv);
     ufree(req->userName);
     freeJobCred(req->cred);
     freeGresJobAlloc(req->gresList);
@@ -157,7 +157,7 @@ static inline void freeReqTermJob(Slurm_Msg_t *sMsg)
 {
     Req_Terminate_Job_t *req = sMsg->unpData;
 
-    envDestroy(&req->spankEnv);
+    envDestroy(req->spankEnv);
     freeGresJobAlloc(&req->gresList);
     freeJobCred(req->cred);
     freeGresCred(&req->gresJobList);

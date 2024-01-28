@@ -14,6 +14,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ENV_MAGIC 0x2718281828459045
+
+/** Structure holding an environment */
+struct env {
+    long magic;
+    char **vars;	/**< Array of variables */
+    uint32_t cnt;       /**< Number of used elements in @ref vars */
+    uint32_t size;      /**< Total amount of elements in @ref vars */
+};
+
 /** Minimum size of any allocation done by psenv */
 #define MIN_MALLOC_SIZE 64
 
@@ -25,29 +35,31 @@ static inline void *umalloc(size_t size)
 
 env_t envNew(char **envArray)
 {
-    env_t env;
-    memset(&env, 0, sizeof(env));
-    env.vars = envArray;
+    env_t env = malloc(sizeof(*env));
+    if (!env) return NULL;
+    memset(env, 0, sizeof(*env));
+    env->magic = ENV_MAGIC;
+    env->vars = envArray;
     if (envArray) {
 	uint32_t cnt = 0;
 	while (envArray[cnt++]);
-	env.cnt = cnt - 1;
-	env.size = cnt;
+	env->cnt = cnt - 1;
+	env->size = cnt;
     }
     return env;
 }
 
-bool envInitialized(env_t *env)
+bool envInitialized(env_t env)
 {
-    return env;
+    return (env && env->magic == ENV_MAGIC);
 }
 
 uint32_t envSize(env_t env)
 {
-    return envInitialized(&env) ? env.cnt : 0;
+    return envInitialized(env) ? env->cnt : 0;
 }
 
-void envUnsetIndex(env_t *env, uint32_t idx)
+void envUnsetIndex(env_t env, uint32_t idx)
 {
     if (!envInitialized(env)) return;
     free(env->vars[idx]);
@@ -56,22 +68,22 @@ void envUnsetIndex(env_t *env, uint32_t idx)
     env->vars[env->cnt] = NULL;
 }
 
-void envSteal(env_t *env)
+void envSteal(env_t env)
 {
     if (!envInitialized(env)) return;
     free(env->vars);
-    env->vars = NULL;
-    env->cnt = env->size = 0;
+    env->magic = 0;
+    free(env);
 }
 
-void envStealArray(env_t *env)
+void envStealArray(env_t env)
 {
     if (!envInitialized(env)) return;
     env->vars = NULL;
     envSteal(env);
 }
 
-void __envDestroy(env_t *env, bool shred)
+void __envDestroy(env_t env, bool shred)
 {
     if (!envInitialized(env)) return;
     for (uint32_t i = 0; i < env->cnt; i++) {
@@ -93,7 +105,7 @@ void __envDestroy(env_t *env, bool shred)
  * @return If an entry with key @a name exists, its index is
  * returned. Otherwise -1 is returned.
  */
-static int getIndex(const env_t *env, const char *name)
+static int getIndex(const env_t env, const char *name)
 {
     if (!envInitialized(env) || !name || strchr(name,'=')) return -1;
 
@@ -106,7 +118,7 @@ static int getIndex(const env_t *env, const char *name)
     return -1;
 }
 
-void envUnset(env_t *env, const char *name)
+void envUnset(env_t env, const char *name)
 {
     int idx = getIndex(env, name);
 
@@ -115,7 +127,7 @@ void envUnset(env_t *env, const char *name)
 }
 
 /* takes ownership of @a envstring and frees it in case of error */
-static bool envDoSet(env_t *env, char *envstring)
+static bool envDoSet(env_t env, char *envstring)
 {
     if (!envInitialized(env) || !envstring) {
 	free(envstring);
@@ -140,19 +152,19 @@ static bool envDoSet(env_t *env, char *envstring)
 
 char *envGet(const env_t env, const char *name)
 {
-    int idx = getIndex(&env, name);
+    int idx = getIndex(env, name);
 
     if (idx == -1) return NULL;
-    return strchr(env.vars[idx], '=') + 1;
+    return strchr(env->vars[idx], '=') + 1;
 }
 
 char *envDumpIndex(const env_t env, uint32_t idx)
 {
-    if (!envInitialized(&env) || idx >= env.cnt) return NULL;
-    return env.vars[idx];
+    if (!envInitialized(env) || idx >= env->cnt) return NULL;
+    return env->vars[idx];
 }
 
-bool envSet(env_t *env, const char *name, const char *val)
+bool envSet(env_t env, const char *name, const char *val)
 {
     if (!envInitialized(env) || !name || strchr(name, '=')) return false;
     if (!val) val = "";
@@ -168,7 +180,7 @@ bool envSet(env_t *env, const char *name, const char *val)
     return envDoSet(env, tmp);
 }
 
-bool envPut(env_t *env, const char *envstring)
+bool envPut(env_t env, const char *envstring)
 {
     if (!envInitialized(env) || !envstring) return false;
 
@@ -189,7 +201,7 @@ bool envPut(env_t *env, const char *envstring)
     return envDoSet(env, strdup(envstring));
 }
 
-static bool envSetFilter(env_t *env, const char *envstring, char **filter)
+static bool envSetFilter(env_t env, const char *envstring, char **filter)
 {
     if (!envInitialized(env)) return false;
     if (!filter) return envDoSet(env, strdup(envstring));
@@ -209,52 +221,54 @@ static bool envSetFilter(env_t *env, const char *envstring, char **filter)
 
 env_t envConstruct(char **envArray, char **filter)
 {
+    if (!envArray) return NULL;
     env_t env = envNew(NULL);
-    if (!envArray) return env;
+    if (!env) return NULL;
 
     uint32_t cnt = 0;
     while (envArray[cnt++]);
     if (cnt) {
-	env.size = cnt;
-	env.vars = umalloc(sizeof(*env.vars) * env.size);
-	if (!env.vars) goto error;
-	env.cnt = 0;
+	env->size = cnt;
+	env->vars = umalloc(sizeof(*env->vars) * env->size);
+	if (!env->vars) goto error;
+	env->cnt = 0;
 
 	for (uint32_t i = 0; i < cnt - 1; i++) {
-	    if (!envSetFilter(&env, envArray[i], filter)) goto error;
+	    if (!envSetFilter(env, envArray[i], filter)) goto error;
 	}
     }
     return env;
 
 error:
-    envDestroy(&env);
-    return env;
+    envDestroy(env);
+    return NULL;
 }
 
 char **envGetArray(env_t env)
 {
-    return envInitialized(&env) ? env.vars : NULL;
+    return envInitialized(env) ? env->vars : NULL;
 }
 
 env_t envClone(const env_t env, char **filter)
 {
     env_t clone = envNew(NULL);
+    if (!clone) return NULL;
 
-    clone.vars = umalloc(sizeof(*clone.vars) * env.size);
-    if (!clone.vars) goto error;
-    clone.size = env.size;
+    clone->vars = umalloc(sizeof(*clone->vars) * env->size);
+    if (!clone->vars) goto error;
+    clone->size = env->size;
 
-    for (uint32_t i = 0; i < env.cnt; i++) {
-	if (!envSetFilter(&clone, env.vars[i], filter)) goto error;
+    for (uint32_t i = 0; i < env->cnt; i++) {
+	if (!envSetFilter(clone, env->vars[i], filter)) goto error;
     }
     return clone;
 
 error:
-    envDestroy(&clone);
-    return clone;
+    envDestroy(clone);
+    return NULL;
 }
 
-bool envCat(env_t *dst, const env_t *src, char **filter)
+bool envCat(env_t dst, const env_t src, char **filter)
 {
     if (!envInitialized(dst) || !envInitialized(src)) return false;
 

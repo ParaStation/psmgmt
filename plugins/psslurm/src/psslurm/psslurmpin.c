@@ -1868,13 +1868,7 @@ bool setStepSlots(Step_t *step)
     bool overcommit = overcommitStr && !strcmp(overcommitStr, "1");
 
     for (uint32_t node = 0; node < step->nrOfNodes; node++) {
-
 	nodeinfo_t *nodeinfo = &(step->nodeinfos[node]);
-
-	int thread = 0;
-
-	/* no cpu assigned yet */
-	int32_t lastCpu = -1;
 
 	/* initialize pininfo struct */
 	pininfo.usedHwThreads = ucalloc(nodeinfo->coreCount
@@ -1924,6 +1918,8 @@ bool setStepSlots(Step_t *step)
 	}
 
 	/* set node and cpuset for every task on this node */
+	int32_t lastCpu = -1;  // no cpu assigned yet
+	int thread = 0;
 	for (uint32_t lTID = 0; lTID < step->globalTaskIdsLen[node]; lTID++) {
 	    uint32_t tid = step->globalTaskIds[node][lTID];
 

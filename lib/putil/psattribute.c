@@ -74,7 +74,7 @@ bool HW_setScript(const AttrIdx_t idx, const char *type, const char *script)
 {
     if (idx < 0 || idx >= cnt) return false;
 
-    return envSet(&attributes[idx].scripts, type, script);
+    return envSet(attributes[idx].scripts, type, script);
 }
 
 char *HW_getScript(const AttrIdx_t idx, const char *type)
@@ -88,7 +88,7 @@ bool HW_setEnv(const AttrIdx_t idx, const char *name, const char *val)
 {
     if (idx < 0 || idx >= cnt) return false;
 
-    return envSet(&attributes[idx].environment, name, val);
+    return envSet(attributes[idx].environment, name, val);
 }
 
 char *HW_getEnv(const AttrIdx_t idx, const char *name)

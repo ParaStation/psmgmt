@@ -692,7 +692,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     /* put into env_t */
     env_t env = envNew(NULL);
     for (size_t i = 0; envp[i]; i++) {
-	envPut(&env, envp[i]);
+	envPut(env, envp[i]);
 	mdbg(PSPMIX_LOG_ENV, "%s: Got '%s'\n", __func__, envp[i]);
 	pmix_free(envp[i]);
     }
@@ -701,11 +701,11 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     /* add custom environment variables */
     char tmp[20];
     snprintf(tmp, sizeof(tmp), "%u", jobSize);
-    envSet(&env, "OMPI_COMM_WORLD_SIZE", tmp);
+    envSet(env, "OMPI_COMM_WORLD_SIZE", tmp);
     snprintf(tmp, sizeof(tmp), "%d", client->rank);
-    envSet(&env, "OMPI_COMM_WORLD_RANK", tmp);
+    envSet(env, "OMPI_COMM_WORLD_RANK", tmp);
     snprintf(tmp, sizeof(tmp), "%u", universeSize);
-    envSet(&env, "OMPI_UNIVERSE_SIZE", tmp);
+    envSet(env, "OMPI_UNIVERSE_SIZE", tmp);
 
     /* since this function is always running in the main thread and resInfo
        is not affected by pspmix_service_registerClientAndSendEnv() it is
@@ -730,15 +730,15 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 	lsize += cur->lastRank - cur->firstRank + 1;
     }
     snprintf(tmp, sizeof(tmp), "%d", found ? lrank : -1);
-    envSet(&env, "OMPI_COMM_WORLD_LOCAL_RANK", tmp);
+    envSet(env, "OMPI_COMM_WORLD_LOCAL_RANK", tmp);
     snprintf(tmp, sizeof(tmp), "%d", lsize);
-    envSet(&env, "OMPI_COMM_WORLD_LOCAL_SIZE", tmp);
+    envSet(env, "OMPI_COMM_WORLD_LOCAL_SIZE", tmp);
     snprintf(tmp, sizeof(tmp), "%d", found ? nrank : -1 );
-    envSet(&env, "OMPI_COMM_WORLD_NODE_RANK", tmp);
+    envSet(env, "OMPI_COMM_WORLD_NODE_RANK", tmp);
 
     /* send message */
     bool success = pspmix_comm_sendClientPMIxEnvironment(client->fwtid, env);
-    envDestroy(&env);
+    envDestroy(env);
 
     if (!success) {
 	ulog("r%d: failed to send the environment to client forwarder %s\n",

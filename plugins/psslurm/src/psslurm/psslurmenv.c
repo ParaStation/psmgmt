@@ -518,7 +518,7 @@ static bool denyAllDevs(Gres_Conf_t *conf, void *info)
     return false;
 }
 
-void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
+void setJailEnv(const env_t env, const char *user, const PSCPU_set_t *stepcpus,
 		const PSCPU_set_t *jobcpus, list_t *gresList, JobCred_t *cred,
 		uint32_t localNodeId)
 {
@@ -531,9 +531,9 @@ void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
     setThreadsBitmapsEnv(stepcpus, jobcpus);
 
     if (envInitialized(env)) {
-	char *id = envGet(*env, "SLURM_JOBID");
+	char *id = envGet(env, "SLURM_JOBID");
 	if (id) setenv("__PSJAIL_JOBID", id, 1);
-	id = envGet(*env, "SLURM_STEPID");
+	id = envGet(env, "SLURM_STEPID");
 	if (id) setenv("__PSJAIL_STEPID", id, 1);
     } else {
 	char *id = getenv("SLURM_JOBID");
@@ -591,7 +591,7 @@ void setGlobalJailEnvironment(void)
  *
  * @param env The environment of the job to change
  */
-static void setGResJobEnv(list_t *gresList, env_t *env)
+static void setGResJobEnv(list_t *gresList, env_t env)
 {
     /* GRes "gpu" plugin */
     Gres_Cred_t *gres = findGresCred(gresList, GRES_PLUGIN_GPU, GRES_CRED_JOB);
@@ -610,7 +610,7 @@ static void setGResJobEnv(list_t *gresList, env_t *env)
 	    char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
 	    for (size_t i = 0; gpu_variables[i]; i++) {
 		/* set variable if not already set by the user */
-		if (!envGet(*env, gpu_variables[i])) {
+		if (!envGet(env, gpu_variables[i])) {
 		    snprintf(name, sizeof(name), "%s%s", prefix,
 			    gpu_variables[i]);
 		    /* append some spaces to help step code to detect whether
@@ -656,7 +656,7 @@ static void setGResJobEnv(list_t *gresList, env_t *env)
     }
 }
 
-static void doSetEnv(env_t *env, char *key, char *val)
+static void doSetEnv(env_t env, char *key, char *val)
 {
     if (val[0] == '\0') return;
 
@@ -672,7 +672,7 @@ static void doSetEnv(env_t *env, char *key, char *val)
  *
  * Already set by srun/slurmctld: SLURM_JOB_ACCOUNT, SLURM_JOB_PARTITION
  */
-static void setCredEnv(JobCred_t *cred, env_t *env)
+static void setCredEnv(JobCred_t *cred, env_t env)
 {
     char tmp[1024];
 
@@ -718,25 +718,25 @@ static void setCredEnv(JobCred_t *cred, env_t *env)
 
 void initJobEnv(Job_t *job)
 {
-    if (job->partition) envSet(&job->env, "SLURM_JOB_PARTITION", job->partition);
+    if (job->partition) envSet(job->env, "SLURM_JOB_PARTITION", job->partition);
 
-    envSet(&job->env, "SLURMD_NODENAME", getConfValueC(Config, "SLURM_HOSTNAME"));
+    envSet(job->env, "SLURMD_NODENAME", getConfValueC(Config, "SLURM_HOSTNAME"));
 
-    envSet(&job->env, "SLURM_JOBID", Job_strID(job->jobid));
-    envSet(&job->env, "SLURM_JOB_ID", Job_strID(job->jobid));
+    envSet(job->env, "SLURM_JOBID", Job_strID(job->jobid));
+    envSet(job->env, "SLURM_JOB_ID", Job_strID(job->jobid));
 
     char tmp[1024];
     snprintf(tmp, sizeof(tmp), "%u", job->nrOfNodes);
-    envSet(&job->env, "SLURM_JOB_NUM_NODES", tmp);
-    envSet(&job->env, "SLURM_NNODES", tmp);
-    envSet(&job->env, "SLURM_GTIDS", "0");
-    envSet(&job->env, "SLURM_JOB_USER", job->username);
+    envSet(job->env, "SLURM_JOB_NUM_NODES", tmp);
+    envSet(job->env, "SLURM_NNODES", tmp);
+    envSet(job->env, "SLURM_GTIDS", "0");
+    envSet(job->env, "SLURM_JOB_USER", job->username);
     snprintf(tmp, sizeof(tmp), "%u", job->uid);
-    envSet(&job->env, "SLURM_JOB_UID", tmp);
-    envSet(&job->env, "SLURM_CPUS_ON_NODE", getConfValueC(Config, "SLURM_CPUS"));
+    envSet(job->env, "SLURM_JOB_UID", tmp);
+    envSet(job->env, "SLURM_CPUS_ON_NODE", getConfValueC(Config, "SLURM_CPUS"));
 
     char *cpus = getCPUsPerNode(job);
-    envSet(&job->env, "SLURM_JOB_CPUS_PER_NODE", cpus);
+    envSet(job->env, "SLURM_JOB_CPUS_PER_NODE", cpus);
     ufree(cpus);
 
     /* set SLURM_TASKS_PER_NODE for intel mpi */
@@ -747,38 +747,38 @@ void initJobEnv(Job_t *job)
     } else {
 	cpus = getCPUsPerNode(job);
     }
-    envSet(&job->env, "SLURM_TASKS_PER_NODE", cpus);
+    envSet(job->env, "SLURM_TASKS_PER_NODE", cpus);
     ufree(cpus);
 
     if (job->arrayTaskId != NO_VAL) {
 	snprintf(tmp, sizeof(tmp), "%u", job->arrayJobId);
-	envSet(&job->env, "SLURM_ARRAY_JOB_ID", tmp);
+	envSet(job->env, "SLURM_ARRAY_JOB_ID", tmp);
 
 	snprintf(tmp, sizeof(tmp), "%u", job->arrayTaskId);
-	envSet(&job->env, "SLURM_ARRAY_TASK_ID", tmp);
+	envSet(job->env, "SLURM_ARRAY_TASK_ID", tmp);
     }
 
-    envSet(&job->env, "SLURM_NODELIST", job->slurmHosts);
-    envSet(&job->env, "SLURM_JOB_NODELIST", job->slurmHosts);
+    envSet(job->env, "SLURM_NODELIST", job->slurmHosts);
+    envSet(job->env, "SLURM_JOB_NODELIST", job->slurmHosts);
 
     if (job->checkpoint) {
 	/* removed in 21.08 */
-	envSet(&job->env, "SLURM_CHECKPOINT_IMAGE_DIR", job->checkpoint);
+	envSet(job->env, "SLURM_CHECKPOINT_IMAGE_DIR", job->checkpoint);
     }
 
     if (!job->nodeAlias || !strlen(job->nodeAlias)) {
-	envSet(&job->env, "SLURM_NODE_ALIASES", "(null)");
+	envSet(job->env, "SLURM_NODE_ALIASES", "(null)");
     } else {
-	envSet(&job->env, "SLURM_NODE_ALIASES", job->nodeAlias);
+	envSet(job->env, "SLURM_NODE_ALIASES", job->nodeAlias);
     }
 
-    if (job->hostname) envSet(&job->env, "HOSTNAME", job->hostname);
+    if (job->hostname) envSet(job->env, "HOSTNAME", job->hostname);
 
     /* set GRes environment */
-    setGResJobEnv(&job->gresList, &job->env);
+    setGResJobEnv(&job->gresList, job->env);
 
     /* set job credential environment */
-    setCredEnv(job->cred, &job->env);
+    setCredEnv(job->cred, job->env);
 }
 
 /**
@@ -889,7 +889,7 @@ static void setBindingEnvVars(Step_t *step)
     setenv("SLURM_MEM_BIND_TYPE", val, 1);
 }
 
-static void setPsslurmEnv(env_t alloc_env, env_t *dest_env)
+static void setPsslurmEnv(env_t alloc_env, env_t dest_env)
 {
     for (uint32_t i = 0; i < envSize(alloc_env); i++) {
 	char *thisEnv = envDumpIndex(alloc_env, i);
@@ -1066,7 +1066,7 @@ static void setInteractiveRankEnv(Step_t *step)
     /* we need to set the GRes job environment variables
      * for the interactive step */
     env_t gresEnv = envNew(NULL);
-    setGResJobEnv(&step->gresList, &gresEnv);
+    setGResJobEnv(&step->gresList, gresEnv);
     for (uint32_t i = 0; i < envSize(gresEnv); i++) {
 	char *thisEnv = envDumpIndex(gresEnv, i);
 	char *val = strchr(thisEnv, '=');
@@ -1075,7 +1075,7 @@ static void setInteractiveRankEnv(Step_t *step)
 	*val = '\0';
 	setenv(thisEnv, ++val, 1);
     }
-    envDestroy(&gresEnv);
+    envDestroy(gresEnv);
 }
 
 /**
@@ -1106,7 +1106,7 @@ static void setOrdinaryRankEnv(uint32_t rank, Step_t *step)
     }
 }
 
-void setSlurmConfEnvVar(env_t *env)
+void setSlurmConfEnvVar(env_t env)
 {
     char *confServer = getConfValueC(Config, "SLURM_CONF_SERVER");
     if (confServer && strcmp(confServer, "none")) {
@@ -1129,7 +1129,7 @@ void setSlurmConfEnvVar(env_t *env)
     }
 }
 
-static void setTopoEnv(env_t *env)
+static void setTopoEnv(env_t env)
 {
     Topology_t *topo = getTopology(getConfValueC(Config, "SLURM_HOSTNAME"));
 
@@ -1194,8 +1194,8 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 
     setSlurmConfEnvVar(NULL);
 
-    if (step->tresBind) envSet(&step->env, "SLURMD_TRES_BIND", step->tresBind);
-    if (step->tresFreq) envSet(&step->env, "SLURMD_TRES_FREQ", step->tresFreq);
+    if (step->tresBind) envSet(step->env, "SLURMD_TRES_BIND", step->tresBind);
+    if (step->tresFreq) envSet(step->env, "SLURMD_TRES_FREQ", step->tresFreq);
 
     setenv("SLURMD_NODENAME", getConfValueC(Config, "SLURM_HOSTNAME"), 1);
     char tmp[128];
@@ -1255,14 +1255,14 @@ void setRankEnv(int32_t rank, Step_t *step)
  *
  * @param env The environment to alter
  */
-static void removeSpankOptions(env_t *env)
+static void removeSpankOptions(env_t env)
 {
     /* remove srun/spank options */
-    for (uint32_t i = 0; i < envSize(*env); i++) {
-	char *thisEnv = envDumpIndex(*env, i);
+    for (uint32_t i = 0; i < envSize(env); i++) {
+	char *thisEnv = envDumpIndex(env, i);
 	while (thisEnv && !strncmp("_SLURM_SPANK_OPTION", thisEnv, 19)) {
 	    envUnsetIndex(env, i);
-	    thisEnv = envDumpIndex(*env, i);
+	    thisEnv = envDumpIndex(env, i);
 	}
     }
 }
@@ -1296,12 +1296,12 @@ pmi_type_t getPMIType(Step_t *step)
     return PMI_TYPE_DEFAULT;
 }
 
-void removeUserVars(env_t *env, pmi_type_t pmi_type)
+void removeUserVars(env_t env, pmi_type_t pmi_type)
 {
     /* get rid of all environment variables which are not needed
      * for spawning of processes via mpiexec */
-    for (uint32_t i = 0; i < envSize(*env); i++) {
-	char *thisEnv = envDumpIndex(*env, i);
+    for (uint32_t i = 0; i < envSize(env); i++) {
+	char *thisEnv = envDumpIndex(env, i);
 	if (!strncmp(thisEnv, "USER=", 5)) continue;
 	if (!strncmp(thisEnv, "HOSTNAME=", 9)) continue;
 	if (!strncmp(thisEnv, "PATH=", 5)) continue;
@@ -1343,32 +1343,32 @@ void setStepEnv(Step_t *step)
     /* distribute mpiexec service processes */
     dist = getConfValueI(Config, "DIST_START");
     /* spawn does not provide standard partition handling! */
-    if (dist && !step->spawned) envSet(&step->env, "__MPIEXEC_DIST_START", "1");
+    if (dist && !step->spawned) envSet(step->env, "__MPIEXEC_DIST_START", "1");
 
     /* forward overbook mode */
     if ((val = envGet(step->env, "SLURM_OVERCOMMIT"))) {
 	if (!strcmp(val, "1")) {
-	    envSet(&step->env, ENV_PART_OVERBOOK, "1");
+	    envSet(step->env, ENV_PART_OVERBOOK, "1");
 	}
     }
 
     /* unbuffered (raw I/O) mode */
     if (!(step->taskFlags & LAUNCH_LABEL_IO) &&
 	!(step->taskFlags & LAUNCH_BUFFERED_IO)) {
-	envSet(&step->env, "__PSI_RAW_IO", "1");
-	envSet(&step->env, "__PSI_LOGGER_UNBUFFERED", "1");
+	envSet(step->env, "__PSI_RAW_IO", "1");
+	envSet(step->env, "__PSI_LOGGER_UNBUFFERED", "1");
     }
 
     if (!(step->taskFlags & LAUNCH_PTY)) {
-	envSet(&step->env, "PSI_INPUTDEST", "all");
+	envSet(step->env, "PSI_INPUTDEST", "all");
     }
 
     /* set slurm umask */
     if ((val = envGet(step->env, "SLURM_UMASK"))) {
 	slurmUmask = strtol(val, NULL, 8);
 	umask(slurmUmask);
-	envSet(&step->env, "__PSI_UMASK", val);
-	envUnset(&step->env, "SLURM_UMASK");
+	envSet(step->env, "__PSI_UMASK", val);
+	envUnset(step->env, "SLURM_UMASK");
     }
 
     /* handle memory mapping */
@@ -1377,14 +1377,14 @@ void setStepEnv(Step_t *step)
 	    (!(step->memBindType & (MEM_BIND_RANK | MEM_BIND_MAP |
 				    MEM_BIND_MASK | MEM_BIND_LOCAL)) &&
 		    (strcmp(val, "none") == 0))) {
-	envSet(&step->env, "__PSI_NO_MEMBIND", "1");
+	envSet(step->env, "__PSI_NO_MEMBIND", "1");
     }
 
     /* prevent mpiexec from resolving the nodelist */
-    envSet(&step->env, ENV_PSID_BATCH, "1");
+    envSet(step->env, ENV_PSID_BATCH, "1");
 
     /* cleanup env */
-    removeSpankOptions(&step->env);
+    removeSpankOptions(step->env);
 }
 
 void setJobEnv(Job_t *job)
@@ -1392,61 +1392,61 @@ void setJobEnv(Job_t *job)
     char tmp[1024];
     mode_t slurmUmask;
 
-    envSet(&job->env, "ENVIRONMENT", "BATCH");
-    envSet(&job->env, "SLURM_NODEID", "0");
-    envSet(&job->env, "SLURM_PROCID", "0");
-    envSet(&job->env, "SLURM_LOCALID", "0");
+    envSet(job->env, "ENVIRONMENT", "BATCH");
+    envSet(job->env, "SLURM_NODEID", "0");
+    envSet(job->env, "SLURM_PROCID", "0");
+    envSet(job->env, "SLURM_LOCALID", "0");
 
     if (job->nodeMinMemory & MEM_PER_CPU) {
 	snprintf(tmp, sizeof(tmp), "%lu", job->nodeMinMemory & (~MEM_PER_CPU));
-	envSet(&job->env, "SLURM_MEM_PER_CPU", tmp);
+	envSet(job->env, "SLURM_MEM_PER_CPU", tmp);
     } else if (job->nodeMinMemory) {
 	snprintf(tmp, sizeof(tmp), "%lu", job->nodeMinMemory);
-	envSet(&job->env, "SLURM_MEM_PER_NODE", tmp);
+	envSet(job->env, "SLURM_MEM_PER_NODE", tmp);
     }
 
     snprintf(tmp, sizeof(tmp), "%u", getpid());
-    envSet(&job->env, "SLURM_TASK_PID", tmp);
+    envSet(job->env, "SLURM_TASK_PID", tmp);
 
     snprintf(tmp, sizeof(tmp), "%u", job->gid);
-    envSet(&job->env, "SLURM_JOB_GID", tmp);
+    envSet(job->env, "SLURM_JOB_GID", tmp);
 
     /* forward overbook mode */
     char *val = envGet(job->env, "SLURM_OVERCOMMIT");
 
     if (job->overcommit || (val && !strcmp(val, "1"))) {
-	envSet(&job->env, ENV_PART_OVERBOOK, "1");
+	envSet(job->env, ENV_PART_OVERBOOK, "1");
     }
 
     /* set slurm umask */
     if ((val = envGet(job->env, "SLURM_UMASK"))) {
 	slurmUmask = strtol(val, NULL, 8);
 	umask(slurmUmask);
-	envUnset(&job->env, "SLURM_UMASK");
+	envUnset(job->env, "SLURM_UMASK");
     }
 
-    if (job->tresBind) envSet(&job->env, "SLURMD_TRES_BIND", job->tresBind);
-    if (job->tresFreq) envSet(&job->env, "SLURMD_TRES_FREQ", job->tresFreq);
+    if (job->tresBind) envSet(job->env, "SLURMD_TRES_BIND", job->tresBind);
+    if (job->tresFreq) envSet(job->env, "SLURMD_TRES_FREQ", job->tresFreq);
 
-    removeSpankOptions(&job->env);
+    removeSpankOptions(job->env);
 
-    setSlurmConfEnvVar(&job->env);
+    setSlurmConfEnvVar(job->env);
 
     char *cname = getConfValueC(SlurmConfig, "ClusterName");
-    if (cname) envSet(&job->env, "SLURM_CLUSTER_NAME", cname);
+    if (cname) envSet(job->env, "SLURM_CLUSTER_NAME", cname);
 
-    if (job->account) envSet(&job->env, "SLURM_JOB_ACCOUNT", job->account);
-    if (job->qos) envSet(&job->env, "SLURM_JOB_QOS", job->qos);
+    if (job->account) envSet(job->env, "SLURM_JOB_ACCOUNT", job->account);
+    if (job->qos) envSet(job->env, "SLURM_JOB_QOS", job->qos);
 
     uint32_t numGPUs = GRes_countDevices(GRES_PLUGIN_GPU);
     if (numGPUs) {
 	snprintf(tmp, sizeof(tmp), "%u", numGPUs);
-	envSet(&job->env, "SLURM_GPUS_ON_NODE", tmp);
+	envSet(job->env, "SLURM_GPUS_ON_NODE", tmp);
     }
 
     /* set topology environment */
-    setTopoEnv(&job->env);
+    setTopoEnv(job->env);
 
     Alloc_t *alloc = Alloc_find(job->jobid);
-    if (alloc) setPsslurmEnv(alloc->env, &job->env);
+    if (alloc) setPsslurmEnv(alloc->env, job->env);
 }

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -48,7 +48,7 @@ typedef struct {
  */
 Collect_Script_t *Script_start(char *title, char *path,
 			       scriptDataHandler_t *func, uint32_t poll,
-			       env_t *env);
+			       env_t env);
 
 /**
  * @brief Finalize a collect script

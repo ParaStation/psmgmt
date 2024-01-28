@@ -47,7 +47,7 @@
 /** List of all allocations */
 static LIST_HEAD(AllocList);
 
-Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
+Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t env,
 		   uid_t uid, gid_t gid, char *username)
 {
     Alloc_t *alloc = Alloc_find(id);
@@ -74,7 +74,7 @@ Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
     alloc->epilogRes = ucalloc(sizeof(bool) * alloc->nrOfNodes);
 
     /* initialize environment */
-    alloc->env = envInitialized(env) ? envClone(*env, envFilter) : envNew(NULL);
+    alloc->env = envInitialized(env) ? envClone(env, envFilter) : envNew(NULL);
 
     list_add_tail(&alloc->next, &AllocList);
 
@@ -163,7 +163,7 @@ static int initJail(void *info)
     setenv("__PSJAIL_JOBID", buf, 1);
     setenv("__PSJAIL_USER_INIT", "1", 1);
 
-    setJailEnv(&alloc->env, alloc->username, NULL, &(alloc->hwthreads),
+    setJailEnv(alloc->env, alloc->username, NULL, &(alloc->hwthreads),
 	       alloc->gresList, alloc->cred, alloc->localNodeId);
 
     return PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
@@ -207,7 +207,7 @@ static int termJail(void *info)
 
     setenv("__PSJAIL_ALLOC_LIST", allocList.buf, 1);
 
-    setJailEnv(&alloc->env, alloc->username, NULL, &(alloc->hwthreads),
+    setJailEnv(alloc->env, alloc->username, NULL, &(alloc->hwthreads),
 	       alloc->gresList, alloc->cred, alloc->localNodeId);
 
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &pid);
@@ -265,7 +265,7 @@ bool Alloc_delete(uint32_t id)
     /* overwrite sensitive data */
     alloc->uid = alloc->gid = 0;
     strShred(alloc->username);
-    envShred(&alloc->env);
+    envShred(alloc->env);
 
     freeJobCred(alloc->cred);
     freeGresJobAlloc(alloc->gresList);

@@ -1442,7 +1442,7 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
 	}
 	bcast->uid = alloc->uid;
 	bcast->gid = alloc->gid;
-	bcast->env = &alloc->env;
+	bcast->env = alloc->env;
 	ufree(bcast->username);
 	bcast->username = ustrdup(alloc->username);
 	Step_t *step = Step_findByJobid(bcast->jobid);
@@ -1451,7 +1451,7 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
     } else {
 	bcast->uid = job->uid;
 	bcast->gid = job->gid;
-	bcast->env = &job->env;
+	bcast->env = job->env;
 	PSCPU_copy(bcast->hwthreads, job->hwthreads);
 	ufree(bcast->username);
 	bcast->username = ustrdup(job->username);
@@ -1921,10 +1921,10 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
 	alloc = Alloc_findByPackID(req->hetJobid);
     }
     if (!alloc) {
-	alloc = Alloc_add(req->jobid, req->hetJobid, req->nodes, &req->spankEnv,
+	alloc = Alloc_add(req->jobid, req->hetJobid, req->nodes, req->spankEnv,
 			 req->uid, req->gid, req->userName);
     } else {
-	envCat(&alloc->env, &req->spankEnv, envFilter);
+	envCat(alloc->env, req->spankEnv, envFilter);
     }
 
     /* move job credential and GRes to allocation */

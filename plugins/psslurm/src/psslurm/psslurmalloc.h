@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -78,7 +78,7 @@ typedef enum {
  * @return Returns the newly created allocation or a existing allocation
  * with the given @a id
  */
-Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
+Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t env,
 		   uid_t uid, gid_t gid, char *username);
 
 /**

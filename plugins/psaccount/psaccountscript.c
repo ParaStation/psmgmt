@@ -206,10 +206,10 @@ static void handleCtlEnvVar(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data,
 
     switch (action) {
     case CMD_SET_ENV_VAR:
-	envPut(&script->env, envStr);
+	envPut(script->env, envStr);
 	break;
     case CMD_UNSET_ENV_VAR:
-	envUnset(&script->env, envStr);
+	envUnset(script->env, envStr);
 	break;
     default:
 	flog("unexpected action %d\n", action);
@@ -253,7 +253,7 @@ static bool handleMthrMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 
 Collect_Script_t *Script_start(char *title, char *path,
 			       scriptDataHandler_t *func, uint32_t poll,
-			       env_t *env)
+			       env_t env)
 {
     if (!title) {
 	flog("invalid title given\n");
@@ -281,7 +281,7 @@ Collect_Script_t *Script_start(char *title, char *path,
     }
     script->func = func;
     script->poll = poll;
-    script->env = envInitialized(env) ? envClone(*env, NULL) : envNew(NULL);
+    script->env = envInitialized(env) ? envClone(env, NULL) : envNew(NULL);
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
     fwdata->pTitle = ustrdup(title);
@@ -299,7 +299,7 @@ Collect_Script_t *Script_start(char *title, char *path,
 	flog("starting %s script forwarder failed\n", title);
 	ForwarderData_delete(fwdata);
 	ufree(script->path);
-	envDestroy(&script->env);
+	envDestroy(script->env);
 	ufree(script);
 	return NULL;
     }
@@ -317,7 +317,7 @@ void Script_finalize(Collect_Script_t *script)
 
     shutdownForwarder(script->fwdata);
     ufree(script->path);
-    envDestroy(&script->env);
+    envDestroy(script->env);
     ufree(script);
 }
 

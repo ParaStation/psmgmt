@@ -14,12 +14,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/** Structure holding an environment */
-typedef struct {
-    char **vars;	/**< Array of variables */
-    uint32_t cnt;       /**< Number of used elements in @ref vars */
-    uint32_t size;      /**< Total amount of elements in @ref vars */
-} env_t;
+/** Environment context to be created via @ref envNew() */
+typedef struct env * env_t;
 
 /**
  * @brief Create an environment
@@ -63,7 +59,7 @@ env_t envNew(char **envArray);
  * @return Return true if the environment is initialized; or false
  * otherwise
  */
-bool envInitialized(env_t *env);
+bool envInitialized(env_t env);
 
 /**
  * @brief Get environment's size
@@ -124,7 +120,7 @@ char *envDumpIndex(const env_t env, uint32_t idx);
  * @return If the entry was added, true is returned. Otherwise false
  * is returned.
  */
-bool envSet(env_t *env, const char *name, const char *val);
+bool envSet(env_t env, const char *name, const char *val);
 
 /**
  * @brief Remove from environment
@@ -138,7 +134,7 @@ bool envSet(env_t *env, const char *name, const char *val);
  *
  * @return No return value
  */
-void envUnset(env_t *env, const char *name);
+void envUnset(env_t env, const char *name);
 
 /**
  * @brief Steal strings from the environment
@@ -154,7 +150,7 @@ void envUnset(env_t *env, const char *name);
  *
  * @return No return value
  */
-void envSteal(env_t *env);
+void envSteal(env_t env);
 
 /**
  * @brief Steal environment's string array
@@ -172,7 +168,7 @@ void envSteal(env_t *env);
  *
  * @return No return value
  */
-void envStealArray(env_t *env);
+void envStealArray(env_t env);
 
 /**
  * @brief Clear environment
@@ -186,7 +182,7 @@ void envStealArray(env_t *env);
  *
  * @return No return value
  */
-void __envDestroy(env_t *env, bool shred);
+void __envDestroy(env_t env, bool shred);
 
 #define envDestroy(env) __envDestroy(env, false);
 #define envShred(env) __envDestroy(env, true);
@@ -208,7 +204,7 @@ void __envDestroy(env_t *env, bool shred);
  * @return If the entry was added, true is returned. Otherwise false
  * is returned.
  */
-bool envPut(env_t *env, const char *envString);
+bool envPut(env_t env, const char *envString);
 
 /**
  * @brief Remove from environment
@@ -221,7 +217,7 @@ bool envPut(env_t *env, const char *envString);
  *
  * @return No return value
  */
-void envUnsetIndex(env_t *env, uint32_t idx);
+void envUnsetIndex(env_t env, uint32_t idx);
 
 /**
  * @brief Construct environment from array
@@ -333,6 +329,6 @@ env_t envClone(const env_t env, char **filter);
  * is returned. Or false in case of error. In the latter case @a dst
  * might be modified upon return and contain parts of @a src.
  */
-bool envCat(env_t *dst, const env_t *src, char **filter);
+bool envCat(env_t dst, const env_t src, char **filter);
 
 #endif  /* __PSENV_H */

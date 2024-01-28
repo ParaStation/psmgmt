@@ -41,7 +41,7 @@ static Collect_Script_t *eScript = NULL;
 static int pollTime = 0;
 
 /** additional script environment */
-static env_t scriptEnv;
+static env_t scriptEnv = NULL;
 
 static uint64_t readEnergyFile(char *path)
 {
@@ -135,7 +135,7 @@ bool Energy_startScript(void)
     /* start forwarder to execute energy collect script */
     char *energyScript = getConfValueC(config, "ENERGY_SCRIPT");
     eScript = Script_start("psaccount-energy", energyScript, parseEnergy,
-			   pollTime, &scriptEnv);
+			   pollTime, scriptEnv);
     if (!eScript) {
 	flog("invalid energy script, cannot continue\n");
 	return false;
@@ -189,7 +189,7 @@ void Energy_stopScript(void)
 void Energy_finalize(void)
 {
     Energy_stopScript();
-    envDestroy(&scriptEnv);
+    envDestroy(scriptEnv);
 }
 
 bool Energy_update(void)
@@ -247,10 +247,10 @@ bool Energy_ctlEnv(psAccountCtl_t action, const char *envStr)
 {
     switch (action) {
 	case PSACCOUNT_SCRIPT_ENV_SET:
-	    envPut(&scriptEnv, envStr);
+	    envPut(scriptEnv, envStr);
 	    break;
 	case PSACCOUNT_SCRIPT_ENV_UNSET:
-	    envUnset(&scriptEnv, envStr);
+	    envUnset(scriptEnv, envStr);
 	    break;
 	default:
 	    flog("invalid action %i\n", action);

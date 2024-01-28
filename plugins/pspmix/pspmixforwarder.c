@@ -141,7 +141,7 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	}
 	mdbg(PSPMIX_LOG_COMM, "%s(r%d): %d %s\n", __func__, rank, i, envStr);
     }
-    envSteal(&env);
+    envSteal(env);
 
     environmentReady = true;
 }
@@ -340,7 +340,7 @@ static int hookExecForwarder(void *data)
     if (!usePMIx && (!getConfValueI(config, "SUPPORT_MPI_SINGLETON")
 		     || (jobsize ? atoi(jobsize) : 1) != 1)) {
 	childTask = NULL;
-	envStealArray(&env);
+	envStealArray(env);
 	return 0;
     }
 
@@ -353,14 +353,14 @@ static int hookExecForwarder(void *data)
     /* Send client registration request to the PMIx server */
     if (!sendRegisterClientMsg(childTask)) {
 	mlog("%s(r%d): Failed to send register message\n", __func__, rank);
-	envStealArray(&env);
+	envStealArray(env);
 	return -1;
     }
 
     /* block until PMIx environment is set with some timeout */
     uint32_t tmout = 3;
     char *tmoutStr = envGet(env, "PSPMIX_ENV_TMOUT");
-    envStealArray(&env);
+    envStealArray(env);
     if (tmoutStr && *tmoutStr) {
 	char *end;
 	long tmp = strtol(tmoutStr, &end, 0);
@@ -434,7 +434,7 @@ static int hookExecClientUser(void *data)
      * lib from deleting the namespace after first use */
     env_t env = envNew(childTask->environ); // use of env is read only
     bool usePMIx = pspmix_common_usePMIx(env);
-    envStealArray(&env);
+    envStealArray(env);
     if (usePMIx) return 0;
 
     mlog("%s(r%d): Calling PMIx_Init() for singleton support.\n", __func__,

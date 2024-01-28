@@ -119,7 +119,7 @@ bool kvs_create(char *name)
 
     /* setup up the env */
     kvs[index].env = envNew(NULL);
-    if (!envInitialized(&kvs[index].env)) {
+    if (!envInitialized(kvs[index].env)) {
 	mlog("%s: out of memory\n", __func__);
 	exit(1);
     }
@@ -145,7 +145,7 @@ bool kvs_destroy(char *name)
 
     free(lkvs->name);
     lkvs->name = NULL;
-    envDestroy(&lkvs->env);
+    envDestroy(lkvs->env);
 
     return true;
 }
@@ -166,7 +166,7 @@ bool kvs_set(char *kvsname, char *name, char *value)
 	return false;
     }
 
-    if (!envSet(&lkvs->env, name, value)) {
+    if (!envSet(lkvs->env, name, value)) {
 	mlog("%s: error in envSet for kvs '%s'\n", __func__, kvsname);
 	return false;
     }

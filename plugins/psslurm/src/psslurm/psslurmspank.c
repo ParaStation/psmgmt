@@ -524,9 +524,9 @@ spank_err_t psSpankUnsetenv(spank_t spank, const char *var)
     if (!testMagic(spank, __func__)) return ESPANK_BAD_ARG;
     fdbg(PSSLURM_LOG_SPANK, "unset %s from %s\n", var, spank->plugin->name);
 
-    if (spank->step) envUnset(&spank->step->env, var);
-    if (spank->job) envUnset(&spank->job->env, var);
-    if (spank->alloc) envUnset(&spank->alloc->env, var);
+    if (spank->step) envUnset(spank->step->env, var);
+    if (spank->job) envUnset(spank->job->env, var);
+    if (spank->alloc) envUnset(spank->alloc->env, var);
 
     switch (spank->hook) {
 	case SPANK_JOB_PROLOG:
@@ -561,9 +561,9 @@ spank_err_t psSpankSetenv(spank_t spank, const char *var, const char *val,
 	    if (setenv(var, val, overwrite) == -1) return ESPANK_BAD_ARG;
     }
 
-    if (spank->step) envSet(&spank->step->env, var, val);
-    if (spank->job) envSet(&spank->job->env, var, val);
-    if (spank->alloc) envSet(&spank->alloc->env, var, val);
+    if (spank->step) envSet(spank->step->env, var, val);
+    if (spank->job) envSet(spank->job->env, var, val);
+    if (spank->alloc) envSet(spank->alloc->env, var, val);
 
     /* let the psslurmforwarder send change to mother */
     if (spank->envSet) spank->envSet(spank->step, var, val);

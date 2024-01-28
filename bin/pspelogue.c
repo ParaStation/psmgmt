@@ -515,18 +515,18 @@ int main(const int argc, const char *argv[], char *envp[])
 
     /* build and filter environment */
     env_t env = envConstruct(envp, filter);
-    if (!envInitialized(&env)) {
+    if (!envInitialized(env)) {
 	fprintf(stderr, "%s: envConstruct failed for job %s\n", argv[0], jobID);
 	exit(1);
     }
-    envSet(&env, "SLURM_USER", getenv("SLURM_JOB_USER"));
-    envSet(&env, "SLURM_UID", getenv("SLURM_JOB_UID"));
+    envSet(env, "SLURM_USER", getenv("SLURM_JOB_USER"));
+    envSet(env, "SLURM_UID", getenv("SLURM_JOB_UID"));
 
     /* remove new "SPANK_" prefix from already prefixed variables
      * pspelogue needs to forward (juwels:#9228) */
     for (uint32_t i = 0; envp[i]; i++) {
 	if (!strncmp("SPANK_SLURM_SPANK_", envp[i], 18)) {
-	    envPut(&env, envp[i] + 6);
+	    envPut(env, envp[i] + 6);
 	}
     }
 
@@ -578,7 +578,7 @@ int main(const int argc, const char *argv[], char *envp[])
 
     /* send pelogue start request */
     sendPElogueReq(jobID, sUid, sGid, nrOfNodes, nodes, env);
-    envDestroy(&env);
+    envDestroy(env);
 
     /* receive and handle result */
     handleResponse();

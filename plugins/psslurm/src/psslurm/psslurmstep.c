@@ -370,9 +370,9 @@ bool Step_delete(Step_t *step)
     }
     ufree(step->spankOpt);
 
-    envShred(&step->env);
-    envShred(&step->spankenv);
-    envShred(&step->pelogueEnv);
+    envShred(step->env);
+    envShred(step->spankenv);
+    envShred(step->pelogueEnv);
 
     list_del(&step->next);
     ufree(step);

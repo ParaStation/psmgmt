@@ -34,7 +34,7 @@ static psAccountIC_t icData, icBase;
 static int pollTime = 0;
 
 /** additional script environment */
-static env_t scriptEnv;
+static env_t scriptEnv = NULL;
 
 static void parseInterconn(char *data)
 {
@@ -84,7 +84,7 @@ bool IC_startScript(void)
     char *interScript = getConfValueC(config, "INTERCONNECT_SCRIPT");
 
     iScript = Script_start("psaccount-interconn", interScript, parseInterconn,
-			   pollTime, &scriptEnv);
+			   pollTime, scriptEnv);
     if (!iScript) {
 	flog("failed to start interconnect script, cannot continue\n");
 	return false;
@@ -126,7 +126,7 @@ void IC_stopScript(void)
 void IC_finalize(void)
 {
     IC_stopScript();
-    envDestroy(&scriptEnv);
+    envDestroy(scriptEnv);
 }
 
 bool IC_setPoll(uint32_t poll)
@@ -145,10 +145,10 @@ bool IC_ctlEnv(psAccountCtl_t action, const char *envStr)
 {
     switch (action) {
 	case PSACCOUNT_SCRIPT_ENV_SET:
-	    envPut(&scriptEnv, envStr);
+	    envPut(scriptEnv, envStr);
 	    break;
 	case PSACCOUNT_SCRIPT_ENV_UNSET:
-	    envUnset(&scriptEnv, envStr);
+	    envUnset(scriptEnv, envStr);
 	    break;
 	default:
 	    flog("invalid action %i\n", action);

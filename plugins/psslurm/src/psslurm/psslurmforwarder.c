@@ -101,7 +101,7 @@ static int termJobJail(void *info)
 {
     Job_t *job = info;
 
-    setJailEnv(&job->env, job->username, NULL, &(job->hwthreads),
+    setJailEnv(job->env, job->username, NULL, &(job->hwthreads),
 	       &job->gresList, job->cred, job->localNodeId);
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &job->fwdata->cPid);
 }
@@ -184,7 +184,7 @@ static int termStepJail(void *info)
 {
     Step_t *step = info;
 
-    setJailEnv(&step->env, step->username,
+    setJailEnv(step->env, step->username,
 	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
 	       &step->gresList, step->cred, step->localNodeId);
@@ -429,7 +429,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     setJobEnv(job);
 
     /* set RLimits */
-    setRlimitsFromEnv(&job->env, 0);
+    setRlimitsFromEnv(job->env, 0);
 
     /* reset FPE exceptions mask */
     if (getConfValueI(Config, "ENABLE_FPE_EXCEPTION") &&
@@ -781,7 +781,7 @@ static void initX11Forward(Step_t *step)
     char authStr[128], xauthCmd[256];
 
     snprintf(authStr, sizeof(authStr), "%s:%i.%s", srunIP, port, screen);
-    envSet(&step->env, "DISPLAY", authStr);
+    envSet(step->env, "DISPLAY", authStr);
 
     /* xauth needs the correct HOME */
     setenv("HOME", envGet(step->env, "HOME"), 1);
@@ -796,7 +796,7 @@ static void initX11Forward(Step_t *step)
 	pclose(fp);
     } else {
 	mlog("%s: open xauth '%s' failed\n", __func__, X11_AUTH_CMD);
-	envUnset(&step->env, "DISPLAY");
+	envUnset(step->env, "DISPLAY");
     }
 }
 
@@ -1056,10 +1056,10 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
 	 argV.strings[0], getpid());
 
     /* set RLimits */
-    setRlimitsFromEnv(&step->env, 1);
+    setRlimitsFromEnv(step->env, 1);
 
     /* remove environment variables not evaluated by mpiexec */
-    removeUserVars(&step->env, pmi_type);
+    removeUserVars(step->env, pmi_type);
 
     if (psslurmlogger->mask & PSSLURM_LOG_PROCESS) {
 	debugMpiexecStart(argV.strings, envGetArray(step->env));
@@ -1140,7 +1140,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     Step_deleteAll(step);
 
     initSerial(0, sendMsg);
-    setJailEnv(&step->env, step->username,
+    setJailEnv(step->env, step->username,
 	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
 	       &step->gresList, step->cred, step->localNodeId);
@@ -1452,7 +1452,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
 #endif
 
-    setJailEnv(&job->env, job->username, NULL, &(job->hwthreads),
+    setJailEnv(job->env, job->username, NULL, &(job->hwthreads),
 	       &job->gresList, job->cred, job->localNodeId);
 
     /* setup I/O channels solely to send an error message, so prevent
@@ -1647,7 +1647,7 @@ bool execBCast(BCast_t *bcast)
 	snprintf(msg, sizeof(msg), "starting forwarder for bcast '%u' failed\n",
 		 bcast->jobid);
 	flog("%s", msg);
-	setNodeOffline(*bcast->env, bcast->jobid,
+	setNodeOffline(bcast->env, bcast->jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	ForwarderData_delete(fwdata);
 	return false;
@@ -1710,7 +1710,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     Step_t *step = fwdata->userData;
     Step_deleteAll(step);
 
-    setJailEnv(&step->env, step->username,
+    setJailEnv(step->env, step->username,
 	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
 	       &step->gresList, step->cred, step->localNodeId);

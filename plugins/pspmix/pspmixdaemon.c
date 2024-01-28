@@ -885,13 +885,13 @@ static int hookRecvSpawnReq(void *data)
 
     /* mark environment if mpiexec demands PMIx for this job */
     if (envGet(env, "__PMIX_NODELIST")) {
-	envPut(&env, strdup("__USE_PMIX=1")); /* for pspmix_common_usePMIx() */
+	envPut(env, strdup("__USE_PMIX=1")); /* for pspmix_common_usePMIx() */
     }
 
     prototask->environ = envGetArray(env);
     prototask->envSize = envSize(env);
 
-    envStealArray(&env);
+    envStealArray(env);
 
     return 0;
 }
@@ -933,7 +933,7 @@ static int hookSpawnTask(void *data)
     PSsession_t *pssession = PSID_findSessionByID(loggertid);
     if (!pssession) {
 	mlog("%s: no session (logger %s)\n", __func__, PSC_printTID(loggertid));
-	envStealArray(&env);
+	envStealArray(env);
 	return -1;
     }
 
@@ -943,7 +943,7 @@ static int hookSpawnTask(void *data)
     if (!psjob) {
 	mlog("%s: no job (spawner %s", __func__, PSC_printTID(spawnertid));
 	mlog(" logger %s)\n", PSC_printTID(loggertid));
-	envStealArray(&env);
+	envStealArray(env);
 	return -1;
     }
 
@@ -954,7 +954,7 @@ static int hookSpawnTask(void *data)
 	mlog("%s: no reservation %d (spawner %s", __func__, resID,
 	     PSC_printTID(spawnertid));
 	mlog(" logger %s)\n", PSC_printTID(loggertid));
-	envStealArray(&env);
+	envStealArray(env);
 	return -1;
     }
 
@@ -970,7 +970,7 @@ static int hookSpawnTask(void *data)
 	    mdbg(PSPMIX_LOG_VERBOSE, "%s: rank %d: job already known (uid %d"
 		 " spawner %s)\n", __func__, task->rank, server->uid,
 		 PSC_printTID(spawnertid));
-	    envStealArray(&env);
+	    envStealArray(env);
 	    return 0;
 	}
     } else {
@@ -985,7 +985,7 @@ static int hookSpawnTask(void *data)
 	if (!startServer(server)) {
 	    mlog("%s: starting PMIx server failed (uid %d)\n", __func__,
 		 server->uid);
-	    envStealArray(&env);
+	    envStealArray(env);
 	    return -1;
 	}
 
@@ -999,18 +999,18 @@ static int hookSpawnTask(void *data)
     if (!usePMIx) {
 	/* clone environment so we can modify it */
 	env_t myEnv = envClone(env, NULL);
-	envStealArray(&env);
-	if (!envInitialized(&myEnv)) {
+	envStealArray(env);
+	if (!envInitialized(myEnv)) {
 	    mlog("%s: cloning env failed\n", __func__);
 	    return -1;
 	}
 	env = myEnv;
 
-	envSet(&env, "PMI_UNIVERSE_SIZE", "1");
-	envSet(&env, "PMI_SIZE", "1");
-	envSet(&env, "PMIX_APPCOUNT", "1");
-	envSet(&env, "PMIX_APPSIZE_0", "1");
-	envSet(&env, "PMIX_APPWDIR_0", task->workingdir);
+	envSet(env, "PMI_UNIVERSE_SIZE", "1");
+	envSet(env, "PMI_SIZE", "1");
+	envSet(env, "PMIX_APPCOUNT", "1");
+	envSet(env, "PMIX_APPSIZE_0", "1");
+	envSet(env, "PMIX_APPWDIR_0", task->workingdir);
 	char **argv = task->argv;
 	int argc = task->argc;
 	size_t sum = 1;
@@ -1019,20 +1019,20 @@ static int hookSpawnTask(void *data)
 	char *ptr = str;
 	for (int j = 0; j < argc; j++) ptr += sprintf(ptr, "%s ", argv[j]);
 	*(ptr-1)='\0';
-	envSet(&env, "PMIX_APPARGV_0", str);
+	envSet(env, "PMIX_APPARGV_0", str);
 	char var[HOST_NAME_MAX + 1];
 	gethostname(var, sizeof(var));
-	envSet(&env, "__PMIX_NODELIST", var);
+	envSet(env, "__PMIX_NODELIST", var);
 	snprintf(var, sizeof(var), "%d", resID);
-	envSet(&env, "__PMIX_RESID_0", var);
+	envSet(env, "__PMIX_RESID_0", var);
     }
 
     /* save job in server (if not yet known) and notify running server */
     bool success = addJobToServer(server, loggertid, psjob, env);
     if (!usePMIx) {
-	envDestroy(&env);
+	envDestroy(env);
     } else {
-	envStealArray(&env);
+	envStealArray(env);
     }
     if (success) return 0;
 

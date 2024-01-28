@@ -257,12 +257,11 @@ static void handleResourceCB(char *plugin, char *jobid, uint16_t result)
     mlog("%s: plugin %s jobid %s result %u\n", __func__, plugin, jobid, result);
 
     if (startPElogueReq(job, info->type, info->timeout,
-			info->grace, *res->env) < 0) {
+			info->grace, res->env) < 0) {
 	goto ERROR;
     }
 
     envDestroy(res->env);
-    ufree(res->env);
     ufree(res->plugin);
     ufree(res);
     return;
@@ -271,7 +270,6 @@ ERROR:
     sendPrologueResp(jobid, 1, false, info->sender);
     if (res) {
 	envDestroy(res->env);
-	ufree(res->env);
 	ufree(res->plugin);
 	ufree(res);
     }
@@ -309,10 +307,9 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     uint32_t nrOfNodes;
     getInt16Array(rData, &nodes, &nrOfNodes);
     /* environment */
-    env_t *env = umalloc(sizeof(*env));
     char **envP = NULL;
     getStringArrayM(rData, &envP, NULL);
-    *env = envNew(envP);
+    env_t env = envNew(envP);
     /* fwPrologueOE */
     uint16_t fwPrologueOE = false;
     getUint16(rData, &fwPrologueOE);
@@ -348,7 +345,6 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     info->res = res;
 
     int ret = PSIDhook_call(PSIDHOOK_PELOGUE_RES, res);
-
     if (ret == 1) {
 	/* pause and wait for plugin execute callback */
 	return;
@@ -361,13 +357,12 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	goto ERROR;
     }
 
-    if (startPElogueReq(job, info->type, info->timeout, info->grace, *env) < 0) {
+    if (startPElogueReq(job, info->type, info->timeout, info->grace, env) < 0) {
 	goto ERROR;
     }
 
     ufree(jobid);
     envDestroy(env);
-    free(env);
     return;
 
 ERROR:
@@ -379,7 +374,6 @@ ERROR:
     ufree(info);
     ufree(jobid);
     envDestroy(env);
-    free(env);
 }
 
 static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
@@ -404,7 +398,7 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getTime(rData, &child->startTime);
 
     /* get environment */
-    envDestroy(&child->env);
+    envDestroy(child->env);
     char **envP = NULL;
     getStringArrayM(rData, &envP, NULL);
     child->env = envNew(envP);

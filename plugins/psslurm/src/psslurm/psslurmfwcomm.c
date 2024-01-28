@@ -264,12 +264,12 @@ static void changeEnv(int cmd, PS_DataBuffer_t *data)
 	char *val = getStringM(data);
 	fdbg(PSSLURM_LOG_SPANK, "setenv %s:%s for %u:%u\n", var, val,
 	     jobid, stepid);
-	envSet(&step->env, var, val);
+	envSet(step->env, var, val);
 
 	ufree(val);
     } else {
 	fdbg(PSSLURM_LOG_SPANK, "unsetenv %s for %u:%u\n", var, jobid, stepid);
-	envUnset(&step->env, var);
+	envUnset(step->env, var);
     }
 
     ufree(var);
@@ -384,12 +384,13 @@ static void startSpawner(Step_t *step)
     envStep->memBindType = step->memBindType;
 
     setStepEnv(envStep);
-    removeUserVars(&envStep->env, pmi_type);
+    removeUserVars(envStep->env, pmi_type);
 
     task->environ = envGetArray(envStep->env);
     task->envSize = envSize(envStep->env);
 
-    envStealArray(&envStep->env);
+    envStealArray(envStep->env);
+    envStep->env = NULL;
     Step_delete(envStep);
 
     // - actually start the task

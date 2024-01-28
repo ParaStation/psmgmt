@@ -87,7 +87,7 @@ typedef void(PElogueResourceCb_t)(char *plugin, char *jobid, uint16_t res);
 typedef struct {
     char *plugin;	    /**< name of the registering plugin */
     char *jobid;	    /**< batch system's job ID */
-    env_t *env;		    /**< environment provided to the pelogue */
+    env_t env;		    /**< environment provided to the pelogue */
     uid_t uid;		    /**< user ID of the job owner */
     gid_t gid;		    /**< group ID of the job owner */
     PStask_ID_t src;	    /**< task ID of RPC source -- used by psgw */

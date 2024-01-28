@@ -58,7 +58,7 @@ static void prepEnv(void *reqPtr)
 	return;
     }
 
-    env_t env = *req->res->env;
+    env_t env = req->res->env;
     for (uint32_t i = 0; i < envSize(env); i++) {
 	fdbg(PSGW_LOG_DEBUG, "%i: %s\n", i, envDumpIndex(env, i));
 	putenv(envDumpIndex(env, i));
@@ -121,8 +121,8 @@ static bool stopPSGWD(PSGW_Req_t *req)
 
     env_t env = envNew(NULL);
     snprintf(buf, sizeof(buf), "%u", req->uid);
-    envSet(&env, "PSGWD_UID", buf);
-    envSet(&env, "PSGWD_USER", req->username);
+    envSet(env, "PSGWD_UID", buf);
+    envSet(env, "PSGWD_USER", req->username);
 
     for (uint32_t i = 0; i < req->numPSGWD; i++) {
 	if (req->psgwd[i].pid == -1) continue;
@@ -131,7 +131,7 @@ static bool stopPSGWD(PSGW_Req_t *req)
 	     i, req->psgwd[i].node);
 
 	snprintf(buf, sizeof(buf), "%u", req->psgwd[i].pid);
-	envSet(&env, "PSGWD_PID", buf);
+	envSet(env, "PSGWD_PID", buf);
 
 	int ret = psExecStartScriptEx(id, "psgwd_stop", dir, env,
 				      req->psgwd[i].node, cbStopPSGWD);
@@ -255,7 +255,7 @@ void __cancelReq(PSGW_Req_t *req, char *reason, const char *func)
 
     /* call script to forward error to slurmctld */
     uint32_t id = atoi(req->jobid);
-    int16_t ret = psExecStartScript(id, "psgw_error", *res->env,
+    int16_t ret = psExecStartScript(id, "psgw_error", res->env,
 				    PSC_getID(res->src), cbPSGWDerror);
     if (ret == -1) {
 	flog("starting psgw_error script for job %s failed\n", req->jobid);
@@ -381,7 +381,7 @@ static void cbRouteScript(int exit, bool tmdOut, int iofd, void *info)
 static bool initRoutingEnv(PSGW_Req_t *req)
 {
     PElogueResource_t *res = req->res;
-    env_t *env = res->env;
+    env_t env = res->env;
     char buf[1024];
 
     snprintf(buf, sizeof(buf), "%u", req->uid);
@@ -401,9 +401,9 @@ static bool initRoutingEnv(PSGW_Req_t *req)
     char *home = passwd->pw_dir;
     envSet(env, "HOME", home);
 
-    char *routeFile = envGet(*env, "SLURM_SPANK_PSGW_ROUTE_FILE");
+    char *routeFile = envGet(env, "SLURM_SPANK_PSGW_ROUTE_FILE");
     if (!routeFile) {
-	char *cwd = envGet(*env, "SLURM_SPANK_PSGW_CWD");
+	char *cwd = envGet(env, "SLURM_SPANK_PSGW_CWD");
 	char *prefix = getConfValueC(config, "DEFAULT_ROUTE_PREFIX");
 	snprintf(buf, sizeof(buf), "%s/%s-%s", (cwd ? cwd : home), prefix,
 		 req->jobid);
@@ -685,30 +685,30 @@ static env_t initPSGWDEnv(PSGW_Req_t *req)
     /* build clean environment for the psgwd */
     env_t env = envNew(NULL);
     char *psgwd = getConfValueC(config, "PSGWD_BINARY");
-    envSet(&env, "PSGWD_BINARY", psgwd);
+    envSet(env, "PSGWD_BINARY", psgwd);
     char buf[64];
     snprintf(buf, sizeof(buf), "%u", req->uid);
-    envSet(&env, "PSGWD_UID", buf);
+    envSet(env, "PSGWD_UID", buf);
 
-    envSet(&env, "PSGWD_USER", req->username);
-    envSet(&env, "SLURM_JOB_ID", req->jobid);
+    envSet(env, "PSGWD_USER", req->username);
+    envSet(env, "SLURM_JOB_ID", req->jobid);
 
-    env_t peEnv = *req->res->env;
+    env_t peEnv = req->res->env;
 
     char *gwEnv = envGet(peEnv, "SLURM_SPANK_PSGW_ENV");
-    if (gwEnv) envSet(&env, "SLURM_SPANK_PSGW_ENV", gwEnv);
+    if (gwEnv) envSet(env, "SLURM_SPANK_PSGW_ENV", gwEnv);
 
     char *gwBinary = envGet(peEnv, "SLURM_SPANK_PSGWD_BINARY");
-    if (gwBinary) envSet(&env, "PSGWD_BINARY", gwBinary);
+    if (gwBinary) envSet(env, "PSGWD_BINARY", gwBinary);
 
     char *gwDebug = envGet(peEnv, "SLURM_SPANK_PSGWD_DEBUG");
-    if (gwDebug) envSet(&env, "PSGWD_DEBUG", gwDebug);
+    if (gwDebug) envSet(env, "PSGWD_DEBUG", gwDebug);
 
     char *cwd = envGet(peEnv, "SLURM_SPANK_PSGW_CWD");
-    envSet(&env, "PSGWD_CWD", cwd);
+    envSet(env, "PSGWD_CWD", cwd);
 
     char *ld = envGet(peEnv, "SLURM_SPANK_PSGWD_LD_LIB");
-    if (ld) envSet(&env, "LD_LIBRARY_PATH", ld);
+    if (ld) envSet(env, "LD_LIBRARY_PATH", ld);
 
     for (uint32_t i = 0; i < envSize(peEnv); i++) {
 	char *next = envDumpIndex(peEnv, i);
@@ -717,7 +717,7 @@ static env_t initPSGWDEnv(PSGW_Req_t *req)
 	    if (val) {
 		char *key = next+18;
 		*val = '\0';
-		envSet(&env, key, val + 1);
+		envSet(env, key, val + 1);
 		*val = '=';
 	    }
 	}
@@ -737,7 +737,7 @@ bool startPSGWD(PSGW_Req_t *req)
 		snprintf(msgBuf, sizeof(msgBuf), "invalid psgwd index %u num "
 			 "psgwd %u\n", gIdx, req->numPSGWD);
 		cancelReq(req, msgBuf);
-		envDestroy(&psgwdEnv);
+		envDestroy(psgwdEnv);
 		return false;
 	    }
 	    req->psgwd[gIdx].node = req->gwNodes[i];
@@ -747,7 +747,7 @@ bool startPSGWD(PSGW_Req_t *req)
 
 	    char buf[64];
 	    snprintf(buf, sizeof(buf), "%u", gIdx);
-	    envSet(&psgwdEnv, "PSGWD_ID", buf);
+	    envSet(psgwdEnv, "PSGWD_ID", buf);
 	    uint32_t id = atoi(req->jobid);
 	    int ret = psExecStartScriptEx(id, "psgwd_start", dir, psgwdEnv,
 					  req->psgwd[gIdx].node, cbStartPSGWD);
@@ -755,7 +755,7 @@ bool startPSGWD(PSGW_Req_t *req)
 		snprintf(msgBuf, sizeof(msgBuf), "starting psgwd %u on node %i "
 			 "failed\n", gIdx, req->psgwd[gIdx].node);
 		cancelReq(req, msgBuf);
-		envDestroy(&psgwdEnv);
+		envDestroy(psgwdEnv);
 		return false;
 	    }
 	    gIdx++;
@@ -764,7 +764,7 @@ bool startPSGWD(PSGW_Req_t *req)
 
     /* set timeout to start the psgwd */
 
-    envDestroy(&psgwdEnv);
+    envDestroy(psgwdEnv);
     return true;
 }
 
@@ -799,12 +799,12 @@ int handlePElogueRes(void *data)
     PElogueResource_t *res = data;
     int numNodes = 0;
 
-    if (!envGet(*res->env, "SLURM_PACK_JOB_NODELIST")) {
+    if (!envGet(res->env, "SLURM_PACK_JOB_NODELIST")) {
 	/* no pack leader prologue, nothing to do */
 	return 0;
     }
 
-    char *psgwNum = envGet(*res->env, "SLURM_SPANK_PSGW_NUM");
+    char *psgwNum = envGet(res->env, "SLURM_SPANK_PSGW_NUM");
     if (psgwNum) numNodes = atoi(psgwNum);
 
     if (!psgwNum || !numNodes) {
@@ -813,7 +813,7 @@ int handlePElogueRes(void *data)
         return 0;
     }
 
-    char *packJobID = envGet(*res->env, "SLURM_PACK_JOB_ID");
+    char *packJobID = envGet(res->env, "SLURM_PACK_JOB_ID");
     if (!packJobID) {
         flog("no job pack ID for job %s found\n", res->jobid);
         return 2;
@@ -827,14 +827,14 @@ int handlePElogueRes(void *data)
     }
 
     /* remove error files from previous startup attempts */
-    char *cwd = envGet(*req->res->env, "SLURM_SPANK_PSGW_CWD");
+    char *cwd = envGet(req->res->env, "SLURM_SPANK_PSGW_CWD");
     if (cwd) {
 	char path[1024];
 	snprintf(path, sizeof(path), "%s/JOB-%s-psgw.err", cwd, req->jobid);
 	unlink(path);
     }
 
-    char *strPsgwdPerNode = envGet(*req->res->env, "SLURM_SPANK_PSGWD_PER_NODE");
+    char *strPsgwdPerNode = envGet(req->res->env, "SLURM_SPANK_PSGWD_PER_NODE");
     if (strPsgwdPerNode) req->psgwdPerNode = atoi(strPsgwdPerNode);
 
     if (!requestGWnodes(req, numNodes)) {

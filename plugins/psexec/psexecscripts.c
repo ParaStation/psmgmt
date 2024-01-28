@@ -65,7 +65,7 @@ static void doDeleteScript(Script_t *script)
 {
     ufree(script->execName);
     ufree(script->execPath);
-    envDestroy(&script->env);
+    envDestroy(script->env);
     list_del(&script->next);
     ufree(script);
 }

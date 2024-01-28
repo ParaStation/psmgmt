@@ -48,7 +48,7 @@ void initSpawnFacility(Step_t *jobstep)
  *
  * @param env      Plugin environment struct to extend.
  */
-static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, env_t *env)
+static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, env_t env)
 {
     snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", preputc);
     envPut(env, buffer);
@@ -261,19 +261,19 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
 	if (!strncmp(thisEnv, "SLURM_UMASK=", 12)) continue;
 	if (!strncmp(thisEnv, "PWD=", 4)) continue;
 	if (display && !strncmp(thisEnv, "DISPLAY=", 8)) continue;
-	envPut(&env, thisEnv);
+	envPut(env, thisEnv);
     }
 
-    setSlurmConfEnvVar(&env);
+    setSlurmConfEnvVar(env);
 
     /* propagate parent TID, logger TID and rank through Slurm */
     char nStr[32];
     snprintf(nStr, sizeof(nStr), "%d", task->ptid);
-    envSet(&env, "__PSSLURM_SPAWN_PTID", nStr);
+    envSet(env, "__PSSLURM_SPAWN_PTID", nStr);
     snprintf(nStr, sizeof(nStr), "%d", task->loggertid);
-    envSet(&env, "__PSSLURM_SPAWN_LTID", nStr);
+    envSet(env, "__PSSLURM_SPAWN_LTID", nStr);
     snprintf(nStr, sizeof(nStr), "%d", task->rank - 1);
-    envSet(&env, "__PSSLURM_SPAWN_RANK", nStr);
+    envSet(env, "__PSSLURM_SPAWN_RANK", nStr);
 
     /* XXX: Do we need to set further variables as in setRankEnv()
      *      in psslurmforwarder.c? */
@@ -286,11 +286,12 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
      *
      * Only the values of the first single spawn are used. */
     SingleSpawn_t *spawn = &(req->spawns[0]);
-    addSpawnPreputToEnv(spawn->preputc, spawn->preputv, &env);
+    addSpawnPreputToEnv(spawn->preputc, spawn->preputv, env);
 
     /* replace task environment */
     task->environ = envGetArray(env);
     task->envSize = envSize(env);
+    envStealArray(env);
 
     if (req->num == 1) {
 	return fillCmdForSingleSpawn(req, usize, task);

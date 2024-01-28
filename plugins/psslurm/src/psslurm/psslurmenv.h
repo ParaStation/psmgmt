@@ -62,7 +62,7 @@ void freeEnvFilter(void);
  * @param cred		job credential holding memory constrains
  * @param localNodeId   local node ID
  */
-void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
+void setJailEnv(const env_t env, const char *user, const PSCPU_set_t *stepcpus,
 		const PSCPU_set_t *jobcpus, list_t *gresList, JobCred_t *cred,
 		uint32_t localNodeId);
 
@@ -139,7 +139,7 @@ pmi_type_t getPMIType(Step_t *step);
  *
  * @param pmi_type Type of PMI to use
  */
-void removeUserVars(env_t *env, pmi_type_t pmi_type);
+void removeUserVars(env_t env, pmi_type_t pmi_type);
 
 /**
  * @brief Set SLURM_CONF environment
@@ -149,6 +149,6 @@ void removeUserVars(env_t *env, pmi_type_t pmi_type);
  * @param env The environment to change, if NULL setenv() is used
  * to change to current environment
  */
-void setSlurmConfEnvVar(env_t *env);
+void setSlurmConfEnvVar(env_t env);
 
 #endif  /* __PS_SLURM_ENV */

@@ -375,7 +375,7 @@ bool deleteChild(PElogueChild_t *child)
     free(child->jobid);
     free(child->scriptDir);
     free(child->tmpDir);
-    envDestroy(&child->env);
+    envDestroy(child->env);
     if (child->fwData) {
 	/* detach from forwarder */
 	child->fwData->callback = NULL;
