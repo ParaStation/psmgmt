@@ -6,6 +6,12 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.59-2:
+=================
+Bugfixes:
+ - Evict false positive warnings from syslog (#178)
+
+
 Version 5.1.59-1:
 =================
 Bugfixes:
