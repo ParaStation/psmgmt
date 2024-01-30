@@ -3,7 +3,7 @@
 # ParaStation
 #
 # Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,7 +26,7 @@ EXPAND="$CommandPath/../psmgmt/psexpand.py"
 COMPRESS="$CommandPath/../psmgmt/pscompress.py"
 
 # path to bpf program
-BPF_DEVICE_PROG="$CommandPath/bpf_cgroup_device.o"
+BPF_DEVICE_PROG="$CommandPath/bpf_cgroup_device"
 
 # path to bpf loader
 BPF_DEVICE_LOADER="$CommandPath/bpf_device_loader"

@@ -15,7 +15,7 @@ virtual machine. This eBPF program can be compiled into bytecode using
 a version of Clang that supports the corresponding target. It might be
 called via:
 
-clang -O2 -target bpf -c bpf_device_controller.c -o bpf_cgroup_device.o
+clang -O2 -target bpf -c bpf_device_controller.c -o bpf_cgroup_device
 
 Since the compiled bytecode is platform independent, it will be
 shipped as a binary blob with the psmgmt package. Thus, no specific
