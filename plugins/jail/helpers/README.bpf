@@ -15,7 +15,15 @@ virtual machine. This eBPF program can be compiled into bytecode using
 a version of Clang that supports the corresponding target. It might be
 called via:
 
-clang -O2 -target bpf -c bpf_device_controller.c -o bpf_cgroup_device
+clang -O2 -target bpf -c bpf_device_controller.c -g -o bpf_cgroup_device
+
+As a requirement libbpf-devel is need. Depending on the system additional
+repositories might be enabled (e.g. for Rocky Linux crb) using the package
+manager.
+
+dnf config-manager --set-enabled crb
+dnf update
+dnf install libbpf-devel
 
 Since the compiled bytecode is platform independent, it will be
 shipped as a binary blob with the psmgmt package. Thus, no specific
