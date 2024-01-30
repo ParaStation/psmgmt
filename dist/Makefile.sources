@@ -151,6 +151,7 @@ include/plugin.h \
 include/pluginconfig.h \
 include/pluginforwarder.h \
 include/pluginhelper.h \
+include/pluginjson.h \
 include/pluginlog.h \
 include/pluginmalloc.h \
 include/pluginpartition.h \
@@ -199,6 +200,7 @@ lib/plugincommon/Makefile.in \
 lib/plugincommon/pluginconfig.c \
 lib/plugincommon/pluginforwarder.c \
 lib/plugincommon/pluginhelper.c \
+lib/plugincommon/pluginjson.c \
 lib/plugincommon/pluginlog.c \
 lib/plugincommon/pluginmalloc.c \
 lib/plugincommon/pluginpartition.c \

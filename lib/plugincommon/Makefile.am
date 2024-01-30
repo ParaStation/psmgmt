@@ -17,9 +17,13 @@ noinst_LTLIBRARIES = libplugincommon.la
 libplugincommon_la_SOURCES = pluginconfig.c pluginforwarder.c		\
 	pluginhelper.c pluginlog.c pluginmalloc.c pluginpartition.c	\
 	pluginpsconfig.c pluginpty.c pluginspawn.c pluginstrv.c		\
-	pluginvector.c
+	pluginvector.c pluginjson.c
 
 pluginpsconfig.lo: AM_CFLAGS += $(glib2_CFLAGS)
 
 pluginforwarder.lo: CPPFLAGS = $(AM_CPPFLAGS) \
 			-DLOCALSTATEDIR=\"$(localstatedir)\"
+
+if JSON_C_ENABLED
+libplugincommon_la_LIBADD = -ljson-c
+endif
