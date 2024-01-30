@@ -113,11 +113,11 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
-libplugincommon_la_LIBADD =
+libplugincommon_la_DEPENDENCIES =
 am_libplugincommon_la_OBJECTS = pluginconfig.lo pluginforwarder.lo \
 	pluginhelper.lo pluginlog.lo pluginmalloc.lo \
 	pluginpartition.lo pluginpsconfig.lo pluginpty.lo \
-	pluginspawn.lo pluginstrv.lo pluginvector.lo
+	pluginspawn.lo pluginstrv.lo pluginvector.lo pluginjson.lo
 libplugincommon_la_OBJECTS = $(am_libplugincommon_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -140,10 +140,11 @@ depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/pluginconfig.Plo \
 	./$(DEPDIR)/pluginforwarder.Plo ./$(DEPDIR)/pluginhelper.Plo \
-	./$(DEPDIR)/pluginlog.Plo ./$(DEPDIR)/pluginmalloc.Plo \
-	./$(DEPDIR)/pluginpartition.Plo ./$(DEPDIR)/pluginpsconfig.Plo \
-	./$(DEPDIR)/pluginpty.Plo ./$(DEPDIR)/pluginspawn.Plo \
-	./$(DEPDIR)/pluginstrv.Plo ./$(DEPDIR)/pluginvector.Plo
+	./$(DEPDIR)/pluginjson.Plo ./$(DEPDIR)/pluginlog.Plo \
+	./$(DEPDIR)/pluginmalloc.Plo ./$(DEPDIR)/pluginpartition.Plo \
+	./$(DEPDIR)/pluginpsconfig.Plo ./$(DEPDIR)/pluginpty.Plo \
+	./$(DEPDIR)/pluginspawn.Plo ./$(DEPDIR)/pluginstrv.Plo \
+	./$(DEPDIR)/pluginvector.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -228,6 +229,7 @@ INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+JSON_C_LIBS = @JSON_C_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
@@ -384,8 +386,9 @@ noinst_LTLIBRARIES = libplugincommon.la
 libplugincommon_la_SOURCES = pluginconfig.c pluginforwarder.c		\
 	pluginhelper.c pluginlog.c pluginmalloc.c pluginpartition.c	\
 	pluginpsconfig.c pluginpty.c pluginspawn.c pluginstrv.c		\
-	pluginvector.c
+	pluginvector.c pluginjson.c
 
+@JSON_C_ENABLED_TRUE@libplugincommon_la_LIBADD = -ljson-c
 all: all-am
 
 .SUFFIXES:
@@ -444,6 +447,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginconfig.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginforwarder.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginhelper.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginjson.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginlog.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginmalloc.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpartition.Plo@am__quote@ # am--include-marker
@@ -616,6 +620,7 @@ distclean: distclean-am
 		-rm -f ./$(DEPDIR)/pluginconfig.Plo
 	-rm -f ./$(DEPDIR)/pluginforwarder.Plo
 	-rm -f ./$(DEPDIR)/pluginhelper.Plo
+	-rm -f ./$(DEPDIR)/pluginjson.Plo
 	-rm -f ./$(DEPDIR)/pluginlog.Plo
 	-rm -f ./$(DEPDIR)/pluginmalloc.Plo
 	-rm -f ./$(DEPDIR)/pluginpartition.Plo
@@ -672,6 +677,7 @@ maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/pluginconfig.Plo
 	-rm -f ./$(DEPDIR)/pluginforwarder.Plo
 	-rm -f ./$(DEPDIR)/pluginhelper.Plo
+	-rm -f ./$(DEPDIR)/pluginjson.Plo
 	-rm -f ./$(DEPDIR)/pluginlog.Plo
 	-rm -f ./$(DEPDIR)/pluginmalloc.Plo
 	-rm -f ./$(DEPDIR)/pluginpartition.Plo
