@@ -6,6 +6,14 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.59-3:
+=================
+Enhancements:
+ - Update bpf_cgroup_device for compatibility with Rocky 9
+Additional changes:
+ - Rename bpf_cgroup_device to prevent automatic removal (#176)
+
+
 Version 5.1.59-2:
 =================
 Bugfixes:
