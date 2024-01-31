@@ -17,6 +17,11 @@ called via:
 
 clang -O2 -target bpf -c bpf_device_controller.c -g -o bpf_cgroup_device
 
+It is important to note that the `-g` flag is mandatory. It
+generates debugging information which in turn is essential for generating
+BTF (BPF Type Format) information. Without it the `.BTF` section of the
+eBPF program will be absent and loading it will fail.
+
 As a requirement libbpf-devel is need. Depending on the system additional
 repositories might be enabled (e.g. for Rocky Linux crb) using the package
 manager.
