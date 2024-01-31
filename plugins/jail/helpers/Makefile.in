@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2023 ParTec AG, Munich
+# Copyright (C) 2023-2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -136,7 +136,7 @@ AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-am__dist_jaillib_SCRIPTS_DIST = bpf_cgroup_device.o
+am__dist_jaillib_SCRIPTS_DIST = bpf_cgroup_device
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -408,7 +408,7 @@ configdir = $(prefix)/config
 # dito
 scriptsdir = $(prefix)/scripts
 dist_noinst_DATA = README.bpf
-@BPF_ENABLED_TRUE@dist_jaillib_SCRIPTS = bpf_cgroup_device.o
+@BPF_ENABLED_TRUE@dist_jaillib_SCRIPTS = bpf_cgroup_device
 @BPF_ENABLED_TRUE@bpf_device_loader_SOURCES = load_bpf.c
 @BPF_ENABLED_TRUE@bpf_device_loader_LDADD = -lbpf -lpopt
 all: all-am
