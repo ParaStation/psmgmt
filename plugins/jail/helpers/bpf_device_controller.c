@@ -9,12 +9,12 @@ typedef struct {
   int minor;	    /** device minor */
 } BPF_key_t;
 
-struct bpf_map_def SEC("maps") device_map = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(BPF_key_t),
-    .value_size = sizeof(int),
-    .max_entries = MAX_MAP_ENTRIES,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, MAX_MAP_ENTRIES);
+    __type(key, BPF_key_t);
+    __type(value, int);
+} device_map SEC(".maps");
 
 SEC("cgroup/dev")
 int bpf_prog(struct bpf_cgroup_dev_ctx *ctx) {
