@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,6 +25,8 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
+#include <sys/mman.h>
 
 #include "pscio.h"
 #include "pscommon.h"
@@ -336,4 +338,41 @@ bool __getScriptCBdata(int fd, char *errMsg, size_t errMsgLen, size_t *errLen,
     close(fd);
 
     return true;
+}
+
+char *mmapFile(const char *filename, size_t *size)
+{
+    if (!filename) {
+	pluginlog("%s: invalid filename given\n", __func__);
+	return NULL;
+    }
+
+    if (!size) {
+	pluginlog("%s: invalid size given\n", __func__);
+	return NULL;
+    }
+
+    int fd = open(filename, O_RDONLY | O_CLOEXEC);
+    if (fd == -1) {
+	pluginwarn(errno, "%s: open(%s)" , __func__, filename);
+	return NULL;
+    }
+
+    struct stat sbuf;
+    if (stat(filename, &sbuf) == -1) {
+	pluginwarn(errno, "%s: stat(%s)" , __func__, filename);
+	close(fd);
+	return NULL;
+    }
+    *size = sbuf.st_size;
+
+    char *data = mmap(NULL, sbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    close(fd);
+
+    if (data == MAP_FAILED) {
+	pluginwarn(errno, "%s: mmap(%s)" , __func__, filename);
+        return NULL;
+    }
+
+    return data;
 }

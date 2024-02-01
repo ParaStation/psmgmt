@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -228,5 +228,20 @@ bool __getScriptCBdata(int fd, char *errMsg, size_t errMsgLen, size_t *errLen,
 
 #define getScriptCBdata(fd, errMsg, errMsgLen, errLen)  \
     __getScriptCBdata(fd, errMsg, errMsgLen, errLen, __func__, __LINE__)
+
+/**
+ * @brief Map file to a memory address
+ *
+ * The mapping is done using mmap(). The caller is responsible to release
+ * the mapping using munmap().
+ *
+ * @param filename The absolute path to the file to map
+ *
+ * @param size The size of the mapped memory region
+ *
+ * @param return On succcess the memory mapped to the given
+ * file is returned, otherwise NULL.
+ */
+char *mmapFile(const char *filename, size_t *size);
 
 #endif  /* __PS_PLUGIN_LIB_HELPER */
