@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -542,10 +542,10 @@ static int p_Barrier_In(char *msg)
 
 void leaveKVS(void)
 {
-    if (succReady && !clientIsInitialized) return;
     if (kvsProvTID == -1) return;
+    if (!initialized) return;
 
-    /* inform the provider that we are leaving the KVS space unexpectedly */
+    /* inform the provider that we are leaving the KVS space */
     char *ptr = buffer;
     size_t len = 0;
     setKVSCmd(&ptr, &len, LEAVE);

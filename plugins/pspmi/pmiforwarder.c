@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -384,9 +384,9 @@ static int hookForwarderClntRes(void *data)
 /**
  * @brief Hook function for PSIDHOOK_FRWRD_EXIT
  *
- * Close all sockets and leave KVS explicitly if necessary. This is
- * mostly needless since the forwarder will exit anyway and done only
- * for symmetry reasons.
+ * Close all sockets and leave the KVS explicitly if necessary. This is
+ * required especially in the case of PMI_Spawn() to prevent left over
+ * kvssproviders waiting for the whole job to finish.
  *
  * @param data Unused parameter
  *
@@ -394,12 +394,13 @@ static int hookForwarderClntRes(void *data)
  */
 static int hookForwarderExit(void *data)
 {
-    /* release the MPI client */
-    if (pmiType != PMI_DISABLED) leaveKVS();
+    /* Since the client has exited it will for sure not reconnect */
+    leaveKVS();
 
     /*close connections */
     closePMIclientSocket();
     closePMIlistenSocket();
+
     return 0;
 }
 
