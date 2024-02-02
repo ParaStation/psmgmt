@@ -1750,6 +1750,7 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
 		if (thisT->loggertid != task->loggertid
 		    || thisT->resID != task->resID) continue;
 		if (!PSCPU_any(thisT->CPUset, nBytes * 8)) continue;
+		if (thisT->tid == task->tid) continue;
 		crr->pendSlots++;
 	    }
 	    PSID_fdbg(PSID_LOG_PART, "%s misses %d\n", PSC_printTID(task->tid),
