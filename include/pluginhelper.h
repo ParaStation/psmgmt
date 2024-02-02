@@ -26,7 +26,7 @@
  *
  * @return Returns 0 on error and 1 on success
  */
-int removeDir(char *directory, int root);
+bool removeDir(char *directory, bool root);
 
 /**
  * @brief Create directories recursively

@@ -37,18 +37,26 @@
 /** time-limit in seconds to warn about a slow name resolver */
 #define RESOLVE_TIME_WARNING 1
 
-int removeDir(char *directory, int root)
+bool removeDir(char *directory, bool root)
 {
+    if (!directory) {
+	pluginlog("%s: invalid directory given\n", __func__);
+	return false;
+    }
+
+    DIR *dir = opendir(directory);
+    if (!dir) {
+	pluginwarn(errno, "%s: opendir(%s):", __func__, directory);
+	return false;
+    }
+
     struct dirent *d;
-    DIR *dir;
-    char buf[400];
-    struct stat sbuf;
-
-    if (!(dir = opendir(directory))) return 0;
-
     while ((d = readdir(dir))) {
 	if ((!strcmp(d->d_name, ".") || !(strcmp(d->d_name, "..")))) continue;
+	char buf[400];
 	snprintf(buf, sizeof(buf), "%s/%s", directory, d->d_name);
+
+	struct stat sbuf;
 	stat(buf, &sbuf);
 
 	if (S_ISDIR(sbuf.st_mode)) {
@@ -60,12 +68,10 @@ int removeDir(char *directory, int root)
     }
 
     /* delete also the root directory */
-    if (root) {
-	remove(directory);
-    }
+    if (root) remove(directory);
 
     closedir(dir);
-    return 1;
+    return true;
 }
 
 static bool doCreateDir(const char *dir, mode_t mode, uid_t uid, gid_t gid)
