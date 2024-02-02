@@ -29,6 +29,25 @@
 int removeDir(char *directory, int root);
 
 /**
+ * @brief Create directories recursively
+ *
+ * Create one or more directories and sets the mode and
+ * owern accordingly. If a directory in the given path
+ * already exists the owner or mode will not be modified.
+ *
+ * @param path One or more directories to create
+ *
+ * @param mode The mode of the directories created
+ *
+ * @param uid The user ID of the directory owner
+ *
+ * @param gid The group ID of the directory owner
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool mkDir(const char *path, mode_t mode, uid_t uid, gid_t gid);
+
+/**
  * @brief Get the ParaStation ID by hostname
  *
  * Resolve the ParaStation ID from the hostname/address @a host using

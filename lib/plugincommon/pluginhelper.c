@@ -32,6 +32,7 @@
 #include "pscommon.h"
 #include "psidnodes.h"
 #include "pluginlog.h"
+#include "pluginmalloc.h"
 
 /** time-limit in seconds to warn about a slow name resolver */
 #define RESOLVE_TIME_WARNING 1
@@ -65,6 +66,51 @@ int removeDir(char *directory, int root)
 
     closedir(dir);
     return 1;
+}
+
+static bool doCreateDir(const char *dir, mode_t mode, uid_t uid, gid_t gid)
+{
+    struct stat sbuf;
+    if (!stat(dir, &sbuf)) return true;
+
+    if (mkdir(dir, mode) == -1) {
+	pluginwarn(errno, "%s: mkdir (%s)", __func__, dir);
+	return false;
+    }
+
+    if (chown(dir, uid, gid) == -1) {
+	pluginwarn(errno, "%s: chown(%s)", __func__, dir);
+	return false;
+    }
+
+    return true;
+}
+
+bool mkDir(const char *path, mode_t mode, uid_t uid, gid_t gid)
+{
+    if (!path) {
+	pluginlog("%s: invalid directory given\n", __func__);
+	return false;
+    }
+
+    char *dup = ustrdup(path);
+    char *ptr = dup;
+
+    /* create predecessor directories */
+    while ((ptr = strchr(ptr + 1, '/'))) {
+	ptr[0] = '\0';
+	if (!doCreateDir(dup, mode, uid, gid)) {
+	    ufree(dup);
+	    return false;
+	}
+	ptr[0] = '/';
+    }
+    ufree(dup);
+
+    /* create last directory */
+    if (!doCreateDir(path, mode, uid, gid)) return false;
+
+    return true;
 }
 
 static bool nodeIdVisitor(struct sockaddr_in *saddr, void *info)
