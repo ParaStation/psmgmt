@@ -1752,7 +1752,8 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
 		if (!PSCPU_any(thisT->CPUset, nBytes * 8)) continue;
 		crr->pendSlots++;
 	    }
-	    PSID_fdbg(PSID_LOG_PART, "miss %d\n", crr->pendSlots);
+	    PSID_fdbg(PSID_LOG_PART, "%s misses %d\n", PSC_printTID(task->tid),
+		      crr->pendSlots);
 	    list_add_tail(&crr->next, &pendCRRList);
 	}
 
@@ -1762,7 +1763,7 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
 	       && PSCPU_overlap(task->CPUset, crr->sets[s], 8 * nBytes)) s++;
 	if (s == NUM_CPUSETS) {
 	    /* no space for this call => send now and reset */
-	    PSID_fdbg(PSID_LOG_PART, "no sets left\n");
+	    PSID_fdbg(PSID_LOG_PART, "%s no sets\n", PSC_printTID(task->tid));
 	    sendPendCRR(crr);
 	    /* reset crr */
 	    for (s = 0; s < NUM_CPUSETS; s++) PSCPU_clrAll(crr->sets[s]);
@@ -1774,7 +1775,7 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
 	crr->pendSlots--;
 	if (!crr->pendSlots) {
 	    /* all slots included => lets send */
-	    PSID_fdbg(PSID_LOG_PART, "pending slots filled\n");
+	    PSID_dbg(PSID_LOG_PART, "%s filled\n", PSC_printTID(task->tid));
 	    sendPendCRR(crr);
 	    list_del(&crr->next);
 	    delPendCRR(crr);
