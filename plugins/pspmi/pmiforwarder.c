@@ -146,12 +146,16 @@ static int readFromPMIClient(int fd, void *data)
 
     clientStatus = CONNECTED;
 
-    mdbg(PSPMI_LOG_RECV, "%s: PMI message received: {%s}\n",
-	 __func__, recvBuf);
+    int rLen = strlen(recvBuf);
+    while (recvBuf[rLen] == '\n') rLen--;
+    mdbg(PSPMI_LOG_RECV, "%s: PMI message received: {%.*s}\n", __func__, rLen,
+	 recvBuf);
 
     while (true) {
-	mdbg(PSPMI_LOG_VERBOSE, "%s: Current message buffer: {%s}\n",
-	     __func__, msgBuf);
+	int mLen = strlen(msgBuf);
+	while (msgBuf[mLen] == '\n') mLen--;
+	mdbg(PSPMI_LOG_VERBOSE, "%s: Current message buffer: {%.*s}\n",
+	     __func__, mLen, msgBuf);
 
 	char *strptr;
 	if (strncmp("cmd=", msgBuf, 4) == 0) {
@@ -160,7 +164,8 @@ static int readFromPMIClient(int fd, void *data)
 	    strptr = strstr(msgBuf, "\nendcmd\n");
 	    if (strptr) strptr += 7;
 	} else {
-	    elog("%s: Invalid PMI message received:\n{%s}\n", __func__, msgBuf);
+	    elog("%s: Invalid PMI message received: '%.*s\n", __func__, mLen,
+		 msgBuf);
 	    goto readFromPMIClient_error;
 	}
 
@@ -180,8 +185,8 @@ static int readFromPMIClient(int fd, void *data)
 	strptr[0] = '\0';
 
 	/* parse and handle the PMI msg */
-	mdbg(PSPMI_LOG_RECV, "%s: PMI message complete: {%s}\n",
-	     __func__, msgBuf);
+	mdbg(PSPMI_LOG_RECV, "%s: PMI message complete: {%.*s}\n", __func__,
+	     mLen, msgBuf);
 	ret = handlePMIclientMsg(msgBuf);
 
 	if (ret != 0) break;
