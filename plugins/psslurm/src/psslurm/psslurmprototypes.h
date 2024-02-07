@@ -406,18 +406,18 @@ typedef struct {
 typedef struct {
     Config_File_t *files;	    /**< holding config files (since 21.08) */
     uint32_t numFiles;		    /**< number of config files (since 21.08) */
-    char *slurm_conf;
-    char *acct_gather_conf;
-    char *cgroup_conf;
-    char *cgroup_allowed_dev_conf;
-    char *ext_sensor_conf;
-    char *gres_conf;
-    char *knl_cray_conf;
-    char *knl_generic_conf;
-    char *plugstack_conf;
-    char *topology_conf;
-    char *xtra_conf;
-    char *slurmd_spooldir;
+    char *slurm_conf;		    /**< tbr with 20.11 */
+    char *acct_gather_conf;         /**< tbr with 20.11 */
+    char *cgroup_conf;		    /**< tbr with 20.11 */
+    char *cgroup_allowed_dev_conf;  /**< tbr with 20.11 */
+    char *ext_sensor_conf;	    /**< tbr with 20.11 */
+    char *gres_conf;		    /**< tbr with 20.11 */
+    char *knl_cray_conf;	    /**< tbr with 20.11 */
+    char *knl_generic_conf;	    /**< tbr with 20.11 */
+    char *plugstack_conf;	    /**< tbr with 20.11 */
+    char *topology_conf;	    /**< tbr with 20.11 */
+    char *xtra_conf;		    /**< tbr with 20.11 */
+    char *slurmd_spooldir;	    /**< tbr with 20.11 */
 } Config_Msg_t;
 
 /**

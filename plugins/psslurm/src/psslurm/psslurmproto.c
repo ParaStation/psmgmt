@@ -1012,30 +1012,15 @@ static int handleReconfigure(Slurm_Msg_t *sMsg)
     return SLURM_NO_RC;
 }
 
-static bool writeFile(const char *name, const char *dir, const char *data)
+/**
+ * @brief Mapper for old configuration format, remove with 20.11
+ */
+static bool oldWrite(const char *name, const char *dir, const char *data)
 {
-    char path[1024];
-
     /* skip empty files */
     if (!data || strlen(data) < 1) return true;
 
-    snprintf(path, sizeof(path), "%s/%s", dir, name);
-
-    FILE *fp = fopen(path, "w+");
-    if (!fp) {
-	mwarn(errno, "%s: fopen(%s)", __func__, path);
-	return false;
-    }
-
-    errno = 0;
-    fwrite(data, strlen(data), 1, fp);
-    if (errno) {
-	mwarn(errno, "%s: fwrite() to '%s'", __func__, path);
-	return false;
-    }
-
-    fclose(fp);
-    return true;
+    return writeFile(name, dir, data, strlen(data));
 }
 
 /**
@@ -1070,35 +1055,39 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 		continue;
 	    }
 
-	    if (!writeFile(file->name, confDir, file->data)) {
+	    /* skip empty files */
+	    if (!file->data || strlen(file->data) < 1) continue;
+
+	    if (!writeFile(file->name, confDir, file->data,
+			   strlen(file->data))) {
 		return false;
 	    }
 	}
     } else {
-	/* old format to write various Slurm configuration files */
-	if (!writeFile("slurm.conf", confDir, config->slurm_conf)) return false;
-	if (!writeFile("acct_gather.conf", confDir, config->acct_gather_conf)) {
+	/* old configuration format, remove with 20.11 */
+	if (!oldWrite("slurm.conf", confDir, config->slurm_conf)) return false;
+	if (!oldWrite("acct_gather.conf", confDir, config->acct_gather_conf)) {
 	    return false;
 	}
-	if (!writeFile("cgroup.conf", confDir, config->cgroup_conf)) return false;
-	if (!writeFile("cgroup_allowd_dev.conf", confDir,
+	if (!oldWrite("cgroup.conf", confDir, config->cgroup_conf)) return false;
+	if (!oldWrite("cgroup_allowd_dev.conf", confDir,
 		       config->cgroup_allowed_dev_conf)) {
 	    return false;
 	}
-	if (!writeFile("ext_sensor.conf", confDir, config->ext_sensor_conf)) {
+	if (!oldWrite("ext_sensor.conf", confDir, config->ext_sensor_conf)) {
 	    return false;
 	}
-	if (!writeFile("gres.conf", confDir, config->gres_conf)) return false;
-	if (!writeFile("knl_cray.conf", confDir, config->knl_cray_conf)) {
+	if (!oldWrite("gres.conf", confDir, config->gres_conf)) return false;
+	if (!oldWrite("knl_cray.conf", confDir, config->knl_cray_conf)) {
 	    return false;
 	}
-	if (!writeFile("knl_generic.conf", confDir, config->knl_generic_conf)) {
+	if (!oldWrite("knl_generic.conf", confDir, config->knl_generic_conf)) {
 	    return false;
 	}
-	if (!writeFile("plugstack.conf", confDir, config->plugstack_conf)) {
+	if (!oldWrite("plugstack.conf", confDir, config->plugstack_conf)) {
 	    return false;
 	}
-	if (!writeFile("topology.conf", confDir, config->topology_conf)) {
+	if (!oldWrite("topology.conf", confDir, config->topology_conf)) {
 	    return false;
 	}
     }
