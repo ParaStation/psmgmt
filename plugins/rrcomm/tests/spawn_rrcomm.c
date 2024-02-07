@@ -58,8 +58,8 @@ static void checkAnswer(int32_t rank, int32_t world, int32_t depth,
 	    printf("(%d/%d/%d) RRC_recv[X](): %m\n", rank, world, depth);
 	    MPI_Abort(MPI_COMM_WORLD, -1);
 	} else {
-	    printf("(%d/%d/%d) RRC_recv[X]: error from %s/%d\n", rank, world, depth,
-		   PSC_printTID(recvJob), recvRank);
+	    printf("(%d/%d/%d) RRC_recv[X]: error from %s/%d\n", rank, world,
+		   depth, PSC_printTID(recvJob), recvRank);
 	    return;
 	}
     }
