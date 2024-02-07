@@ -208,9 +208,7 @@ int main( int argc, char *argv[] )
     MPI_Init(&argc, &argv);
 
     int depth = 1;
-    if (argc > 1) {
-	depth = strtol(argv[1], NULL, 0);
-    }
+    if (argc > 1) depth = strtol(argv[1], NULL, 0);
 
     int worldSize;
     MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
@@ -259,14 +257,9 @@ int main( int argc, char *argv[] )
     if (depth > 0) {
 	char newDepth[16];
 	snprintf(newDepth, sizeof(newDepth), "%d", depth - 1);
-	char childParentJobStr[64];
-	snprintf(childParentJobStr, sizeof(childParentJobStr),
-		 "%d", RRC_getJobID());
-
-	char *newArgV[4] = { newDepth, rootJobStr, childParentJobStr, NULL };
-
-	MPI_Comm spawn_comm;
-	int errcodes[worldSize];
+	char parentJobStr[64];
+	snprintf(parentJobStr, sizeof(parentJobStr), "%d", RRC_getJobID());
+	char *newArgV[4] = { newDepth, rootJobStr, parentJobStr, NULL };
 
 	MPI_Info info;
 	MPI_Info_create(&info);
@@ -274,6 +267,8 @@ int main( int argc, char *argv[] )
 	char *cwd = getcwd(wdir, sizeof(wdir));
 	MPI_Info_set(info, "wdir", cwd);
 
+	MPI_Comm spawn_comm;
+	int errcodes[worldSize];
 	MPI_Comm_spawn(argv[0], newArgV, worldSize, info,
 		       0, MPI_COMM_WORLD, &spawn_comm, errcodes);
 	if (spawn_comm == MPI_COMM_NULL) {
