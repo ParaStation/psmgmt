@@ -428,3 +428,36 @@ char *mmapFile(const char *filename, size_t *size)
 
     return data;
 }
+
+bool writeFile(const char *name, const char *dir, const void *data, size_t len)
+{
+    if (!name) {
+	pluginlog("%s: invalid name given\n", __func__);
+	return false;
+    }
+    if (!dir) {
+	pluginlog("%s: invalid directory given\n", __func__);
+	return false;
+    }
+
+    if (!len) return true;
+
+    char path[FILENAME_MAX];
+    snprintf(path, sizeof(path), "%s/%s", dir, name);
+
+    FILE *fp = fopen(path, "w+");
+    if (!fp) {
+	pluginwarn(errno, "%s: fopen(%s)", __func__, path);
+	return false;
+    }
+
+    fwrite(data, len, 1, fp);
+    if (ferror(fp)) {
+	pluginlog("%s: fwrite(%s) failed\n", __func__, path);
+	fclose(fp);
+	return false;
+    }
+
+    fclose(fp);
+    return true;
+}

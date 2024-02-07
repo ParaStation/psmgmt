@@ -263,4 +263,19 @@ bool __getScriptCBdata(int fd, char *errMsg, size_t errMsgLen, size_t *errLen,
  */
 char *mmapFile(const char *filename, size_t *size);
 
+/**
+ * @brief Write data buffer to file
+ *
+ * @param name The name of the file
+ *
+ * @param dir The directory where the file should be written to
+ *
+ * @param data The data to write
+ *
+ * @param len The size of the data buffer
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool writeFile(const char *name, const char *dir, const void *data, size_t len);
+
 #endif  /* __PS_PLUGIN_LIB_HELPER */
