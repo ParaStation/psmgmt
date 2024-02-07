@@ -3547,6 +3547,39 @@ static PSrsrvtn_t *findRes(list_t *queue, PSrsrvtn_ID_t rid)
 }
 
 /**
+ * @brief Find reservation by requester
+ *
+ * Find a reservation stemming from the requester @a requester within
+ * the queue @a queue.
+ *
+ * There might be multiple reservations of the requester in @a
+ * queue. In this case a pointer to the reservation with the highest
+ * firstRank will be returned.
+ *
+ * @param queue Queue the reservation shall be searched in
+ *
+ * @param requester Task ID of the requester to identify the reservation
+ *
+ * @return On success, i.e. if a corresponding reservation was found, a
+ * pointer to this reservation is returned; or NULL otherwise
+ */
+static PSrsrvtn_t * findResByRequester(list_t *queue, PStask_ID_t requester)
+{
+    PSID_fdbg(PSID_LOG_PART, "%p %s\n", queue, PSC_printTID(requester));
+
+    PSrsrvtn_t *answer = NULL;
+    list_t *r;
+    list_for_each(r, queue) {
+	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
+	if (res->requester != requester) continue;
+	if (answer && answer->firstRank > res->firstRank) continue;
+	answer = res;
+    }
+
+    return answer;
+}
+
+/**
  * @brief Dequeue reservation
  *
  * Remove the reservation @a res from the queue @a queue. The
