@@ -116,7 +116,8 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 	    return PSID_dropMsg((DDBufferMsg_t *)msg);
 	}
 
-	fdbg(RRCOMM_LOG_VERBOSE, "lookup rank %d\n", hdr->dest);
+	fdbg(RRCOMM_LOG_VERBOSE, "lookup job %s rank %d\n",
+	     PSC_printTID(hdr->destJob), hdr->dest);
 	list_t *r;
 	list_for_each(r, &job->resInfos) {
 	    PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
@@ -167,7 +168,8 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 	    return true;
     }
 
-    flog("no destination for (%d|%d) -> drop\n", hdr->destJob, hdr->dest);
+    flog("no destination for (%s|%d) -> drop\n", PSC_printTID(hdr->destJob),
+	 hdr->dest);
     return PSID_dropMsg((DDBufferMsg_t *)msg);
 }
 
