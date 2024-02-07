@@ -274,8 +274,7 @@ int main( int argc, char *argv[] )
 	if (spawn_comm == MPI_COMM_NULL) {
 	    printf("(%d/%d) spawn_comm is NULL?!\n", rank, getpid());
 	} else {
-	    MPI_Comm_free(&spawn_comm);
-	    //printf("(%d/%d) Freed spawn_comm\n", rank, getpid());
+	    MPI_Comm_disconnect(&spawn_comm);
 	}
 	sleep(depth * SLEEP + EXTRA_SLEEP);
     }
@@ -309,9 +308,7 @@ int main( int argc, char *argv[] )
 	PStask_ID_t rootJobID;
 	sscanf(argv[2], "%d", &rootJobID);
 	contactAncestor(rank, worldSize, depth, rootJobID);
-
-	//printf("(%d/%d) Freed spawn_comm\n", rank, getpid());
-	MPI_Comm_free(&parent_comm);
+	MPI_Comm_disconnect(&parent_comm);
     }
 
     MPI_Finalize();
