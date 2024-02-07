@@ -3850,6 +3850,15 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 
 no_task_error:
     if (!eno) {
+	if (!task->numChild) {
+	    /* first reservation => set firstSpawner */
+	    task->firstSpawner = r->requester;
+	} else if (r->requester != task->firstSpawner) {
+	    PSrsrvtn_t *prevRes = findResByRequester(&task->reservations,
+						     r->requester);
+	    r->firstRank = prevRes ? prevRes->firstRank + prevRes->nSlots : 0;
+	    r->rankOffset = task->numChild - r->firstRank;
+	}
 	task->numChild += got;
 
 	PSID_fdbg(PSID_LOG_PART, "new reservation %#x of %d slots first %d"
