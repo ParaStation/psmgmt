@@ -167,6 +167,7 @@ struct __task__ {
     list_t sisterParts;            /**< Other partitions in the context of this
 				      job, i.e. with the same loggertid */
     PSrsrvtn_ID_t nextResID;       /**< ID to be used for next reservation */
+    PStask_ID_t firstSpawner;      /**< first spawner requested a reservation */
     list_t reservations;           /**< List of active reservations */
     list_t resRequests;            /**< List of reservation requests (FIFO) */
     int32_t activeChild;           /**< # of active children right now */

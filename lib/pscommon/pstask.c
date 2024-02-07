@@ -263,6 +263,7 @@ static bool initTask(PStask_t* task)
     task->partThrds = NULL;
     INIT_LIST_HEAD(&task->sisterParts);
     task->usedThreads = -1;
+    task->firstSpawner = -1;
     INIT_LIST_HEAD(&task->reservations);
     INIT_LIST_HEAD(&task->resRequests);
     task->activeChild = 0;
@@ -549,6 +550,7 @@ PStask_t* PStask_clone(PStask_t* task)
 	       task->totalThreads * sizeof(*task->partThrds));
     }
     clone->usedThreads = task->usedThreads;
+    /* do not inherit firstSpawner */
 
     /* do not clone sister partitions */
 
