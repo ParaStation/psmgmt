@@ -3852,8 +3852,8 @@ no_task_error:
     if (!eno) {
 	task->numChild += got;
 
-	PSID_fdbg(PSID_LOG_PART, "new reservation %#x of %d slots\n",
-		  r->rid, got);
+	PSID_fdbg(PSID_LOG_PART, "new reservation %#x of %d slots first %d"
+		  " rankOffset %d\n", r->rid, got, r->firstRank, r->rankOffset);
 	enqRes(&task->reservations, r);
 	if (!send_RESCREATED(task, r, NULL))
 	    PSID_flog("send_RESCREATED failed\n");
@@ -4361,8 +4361,8 @@ error:
 	task->numChild += got;
 	r->rankOffset = frstRnk - r->firstRank;
 
-	PSID_fdbg(PSID_LOG_PART, "new reservation %#x of %d slots\n",
-		  r->rid, got);
+	PSID_fdbg(PSID_LOG_PART, "new reservation %#x of %d slots first %d"
+		  " rankOffset %d\n", r->rid, got, r->firstRank, r->rankOffset);
 	enqRes(&task->reservations, r);
 	if (!send_RESCREATED(task, r, NULL))
 	    PSID_flog("send_RESCREATED failed\n");
