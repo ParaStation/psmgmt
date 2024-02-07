@@ -550,9 +550,9 @@ PStask_t* PStask_clone(PStask_t* task)
     }
     clone->usedThreads = task->usedThreads;
 
-    /* Do not clone sister partitions */
+    /* do not clone sister partitions */
 
-    /* Do not clone reservations */
+    /* do not clone reservations */
 
     clone->activeChild = task->activeChild;
     clone->numChild = task->numChild;

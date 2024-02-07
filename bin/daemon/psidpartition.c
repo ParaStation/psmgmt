@@ -3499,18 +3499,18 @@ static bool msg_NODESRES(DDBufferMsg_t *msg)
 
 /* ---------------------------------------------------------------------- */
 /**
- * @brief Enqueue reservation.
+ * @brief Enqueue reservation
  *
  * Enqueue the reservation @a res to the queue @a queue. The
  * reservation might be incomplete when queued and can be found within
- * this queue via @ref findRes() and should be removed from it using
- * the @ref deqRes() function.
+ * this queue via @ref findRes() or @ref findResByRequester() and
+ * shall be removed from it via @ref deqRes().
  *
- * @param queue The queue the request should be appended to.
+ * @param queue Queue the request will be appended to
  *
- * @param req The request to be appended to the queue.
+ * @param req Request to be appended to the queue
  *
- * @return No return value.
+ * @return No return value
  *
  * @see findRes(), deqRes()
  */
@@ -3522,16 +3522,16 @@ static void enqRes(list_t *queue, PSrsrvtn_t *res)
 }
 
 /**
- * @brief Find reservation.
+ * @brief Find reservation
  *
- * Find the reservation with ID @a rid from within the queue @a queue.
+ * Find the reservation with ID @a rid within the queue @a queue.
  *
- * @param queue The queue the reservation shall be searched in.
+ * @param queue Queue the reservation will be searched in
  *
- * @param rid The reservation ID to search for.
+ * @param rid Reservation ID to search for
  *
  * @return On success, i.e. if a corresponding reservation was found, a
- * pointer to this reservation is returned. Or NULL in case of an error.
+ * pointer to this reservation is returned; or NULL otherwise
  */
 static PSrsrvtn_t *findRes(list_t *queue, PSrsrvtn_ID_t rid)
 {
@@ -3550,10 +3550,10 @@ static PSrsrvtn_t *findRes(list_t *queue, PSrsrvtn_ID_t rid)
  * @brief Dequeue reservation
  *
  * Remove the reservation @a res from the queue @a queue. The
- * reservation has to be created using @ref PSrsrvtn_get() and added
+ * reservation had to be created using @ref PSrsrvtn_get() and added
  * to the list of reservation via @ref enqRes().
  *
- * @param queue The queue the reservation shall be removed from
+ * @param queue Queue the reservation shall be removed from
  *
  * @param res Reservation to be removed from the queue
  *
