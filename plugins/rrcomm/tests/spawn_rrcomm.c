@@ -24,6 +24,9 @@
 #define SLEEP 1
 #define EXTRA_SLEEP 1
 
+/* Number of executable the spawned world will be split into */
+#define N_EX 1
+
 bool verbose = false;
 
 /* Global coordinates */
@@ -242,6 +245,11 @@ int main( int argc, char *argv[] )
     char name[MPI_MAX_PROCESSOR_NAME];
     MPI_Get_processor_name(name, &len);
 
+    if (worldSize % N_EX) {
+	cdbg("worldSize %d not multiple of N_EX %d\n", worldSize, N_EX);
+	MPI_Abort(MPI_COMM_WORLD, -1);
+    }
+
     clog("pid %d on node '%s' pinned to %s\n",
 	 getpid(), name, getenv("__PINNING__"));
     if (depth > 0) cdbg("%d more level(s)\n", depth);
@@ -279,18 +287,32 @@ int main( int argc, char *argv[] )
 	snprintf(newDepth, sizeof(newDepth), "%d", depth - 1);
 	char parentJobStr[64];
 	snprintf(parentJobStr, sizeof(parentJobStr), "%d", RRC_getJobID());
-	char *newArgV[4] = { newDepth, rootJobStr, parentJobStr, NULL };
 
-	MPI_Info info;
-	MPI_Info_create(&info);
+	char *cmds[N_EX];
+	for (int i = 0; i < N_EX; i++) cmds[i] = argv[0];
+	char **argmnts[N_EX];
+	for (int i = 0; i < N_EX; i++) {
+	    argmnts[i] = malloc(sizeof(char *) * 4);
+	    argmnts[i][0] = newDepth;
+	    argmnts[i][1] = rootJobStr;
+	    argmnts[i][2] = parentJobStr;
+	    argmnts[i][3] = NULL;
+	}
+	int nps[N_EX];
+	for (int i = 0; i < N_EX; i++) nps[i] = worldSize / N_EX;
+
 	char wdir[PATH_MAX];
 	char *cwd = getcwd(wdir, sizeof(wdir));
-	MPI_Info_set(info, "wdir", cwd);
+	MPI_Info infos[N_EX];
+	for (int i = 0; i < N_EX; i++) {
+	    MPI_Info_create(&infos[i]);
+	    MPI_Info_set(infos[i], "wdir", cwd);
+	}
 
 	MPI_Comm spawn_comm;
-	int errcodes[worldSize];
-	MPI_Comm_spawn(argv[0], newArgV, worldSize, info,
-		       0, MPI_COMM_WORLD, &spawn_comm, errcodes);
+	int errcds[worldSize];
+	MPI_Comm_spawn_multiple(N_EX, cmds, argmnts, nps, infos, 0,
+				MPI_COMM_WORLD, &spawn_comm, errcds);
 	if (spawn_comm == MPI_COMM_NULL) {
 	    clog("spawn_comm is NULL?!\n");
 	} else {
