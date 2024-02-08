@@ -363,6 +363,34 @@ static void setupPSIEnv(Conf_t *conf)
     setenv("PSI_USIZE_INFO", buf, 1);
 }
 
+static size_t doSetup(Conf_t *conf, char **environ,
+		      char *xprts, size_t xprtsLen, bool dryRun)
+{
+    size_t retLen = 0;
+    char *key = NULL;
+    for (int i = 0; environ[i] != NULL; i++) {
+	char *val = strchr(environ[i], '=');
+	if (!val) continue;
+	free(key);
+	key = strndup(environ[i], val - environ[i]);
+	if ((!strcmp(key, ENV_NODE_NODES) && conf->nList)
+	    || (!strcmp(key, ENV_NODE_HOSTS) && conf->hList)
+	    || (!strcmp(key, ENV_NODE_HOSTFILE) && conf->hFile)) continue;
+	if (getPSIEnv(key)) continue;
+
+	val++;
+	if (!dryRun && xprts && xprtsLen) {
+	    setPSIEnv(key, val, 1);
+	    snprintf(xprts + strlen(xprts), xprtsLen - strlen(xprts),
+		     "%s%s", strlen(xprts) ? "," : "", key);
+	}
+	retLen += strlen(key) + 1;
+    }
+    free(key);
+
+    return retLen;
+}
+
 void setupEnvironment(Conf_t *conf)
 {
     int rank = PSE_getRank();
@@ -377,17 +405,8 @@ void setupEnvironment(Conf_t *conf)
     if ((conf->envall || conf->execEnvall) && !getenv("__PSI_EXPORTS")) {
 	extern char **environ;
 	char *xprts = NULL;
-	size_t xprtsLen = 0;
+	size_t xprtsLen = doSetup(conf, environ, xprts, 0, true);
 
-	/* Determine required length of xprts */
-	for (int i = 0; environ[i] != NULL; i++) {
-	    char *val = strchr(environ[i], '=');
-	    if (val) {
-		char *key = strndup(environ[i], val - environ[i]);
-		if (!getPSIEnv(key)) xprtsLen += strlen(key) + 1;
-		free(key);
-	    }
-	}
 	if (xprtsLen) {
 	    xprts = malloc(xprtsLen);
 	    if (!xprts) {
@@ -395,23 +414,10 @@ void setupEnvironment(Conf_t *conf)
 		exit(EXIT_FAILURE);
 	    }
 	    *xprts = '\0';
-	}
-	/* now setup the actual environment */
-	for (int i = 0; environ[i] != NULL; i++) {
-	    char *val = strchr(environ[i], '=');
-	    if (val) {
-		char *key = strndup(environ[i], val - environ[i]);
-		if (!getPSIEnv(key)) {
-		    val++;
-		    setPSIEnv(key, val, 1);
-		    if (xprtsLen) snprintf(xprts + strlen(xprts),
-					   xprtsLen - strlen(xprts), "%s%s",
-					   strlen(xprts) ? "," : "", key);
-		}
-		free(key);
-	    }
-	}
-	if (xprtsLen) {
+
+	    /* now setup the actual environment */
+	    doSetup(conf, environ, xprts, 0, false);
+
 	    setPSIEnv("__PSI_EXPORTS", xprts, 1);
 	    free(xprts);
 	}
