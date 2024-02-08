@@ -27,16 +27,19 @@
 /* Number of executable the spawned world will be split into */
 #define N_EX 1
 
+/* Switch between direct and twisted ping-pong across jobs*/
+#define TWISTED_PINGPONG false
+
 bool verbose = false;
 
 /* Global coordinates */
 int depth = 1;
-int worldSize = -1;
+int wSize = -1;
 int rank = -1;
 
 #define clog(fmt, ...)					\
     {							\
-	printf("(%d/%d/%d) ", rank, worldSize, depth);	\
+	printf("(%d/%d/%d) ", rank, wSize, depth);	\
 	printf(fmt __VA_OPT__(,) __VA_ARGS__);		\
     }
 
@@ -55,12 +58,10 @@ static bool checkContent(char *msgBuf, PStask_ID_t xpctdJob, int32_t xpctdRank)
     int32_t cntntRank, cntntWorld;
     PStask_ID_t cntntJob;
     sscanf(msgBuf, "%d %d %d", &cntntJob, &cntntRank, &cntntWorld);
-    if (xpctdJob != cntntJob || xpctdRank != cntntRank
-	|| worldSize != cntntWorld) {
+    if (xpctdJob != cntntJob || xpctdRank != cntntRank || wSize != cntntWorld) {
 	clog("content mismatch got %s/%d/%d",
 	     PSC_printTID(cntntJob), cntntRank, cntntWorld);
-	mlog(" expected %s/%d/%d\n",
-	     PSC_printTID(xpctdJob), xpctdRank, worldSize);
+	mlog(" expected %s/%d/%d\n", PSC_printTID(xpctdJob), xpctdRank, wSize);
 	return false;
     }
 
@@ -119,42 +120,40 @@ static void testInsideJob(void)
     cdbg("in-job ring test\n");
 
     char sendBuf[128], recvBuf[128];
-    snprintf(sendBuf, sizeof(sendBuf), "%d %d %d", jobID, rank, worldSize);
+    snprintf(sendBuf, sizeof(sendBuf), "%d %d %d", jobID, rank, wSize);
 
     // right with compatibility: RRC_send() -> RRC_recv()
     if (verbose) cdbg("test 1\n");
-    RRC_send((rank + 1) % worldSize, sendBuf, strlen(sendBuf) + 1);
+    RRC_send((rank + 1) % wSize, sendBuf, strlen(sendBuf) + 1);
     ssize_t recvd = RRC_recv(&recvRank, recvBuf, sizeof(recvBuf));
     if (!checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf), jobID, recvRank,
-		     jobID, (rank + worldSize - 1) % worldSize, true))
+		     jobID, (rank + wSize - 1) % wSize, true))
 	clog("test 1 failed\n");
 
     // second right with mixed I: RRC_send() -> RRC_recvX()
     if (verbose) cdbg("test 3\n");
-    RRC_send((rank + 1) % worldSize, sendBuf, strlen(sendBuf) + 1);
+    RRC_send((rank + 1) % wSize, sendBuf, strlen(sendBuf) + 1);
     recvd = RRC_recvX(&recvJob, &recvRank, recvBuf, sizeof(recvBuf));
     if (!checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf), recvJob, recvRank,
-		     jobID, (rank + worldSize - 1) % worldSize, true))
+		     jobID, (rank + wSize - 1) % wSize, true))
 	clog("test 3 failed\n");
 
     MPI_Barrier(MPI_COMM_WORLD);
 
     // left with new version: RRC_sendX() -> RRC_recvX()
     if (verbose) cdbg("test 2\n");
-    RRC_sendX(0, (rank + worldSize - 1) % worldSize,
-	      sendBuf, strlen(sendBuf) + 1);
+    RRC_sendX(0, (rank + wSize - 1) % wSize, sendBuf, strlen(sendBuf) + 1);
     recvd = RRC_recvX(&recvJob, &recvRank, recvBuf, sizeof(recvBuf));
     if (!checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf), recvJob, recvRank,
-		     jobID, (rank + 1) % worldSize, true))
+		     jobID, (rank + 1) % wSize, true))
 	clog("test 2 failed\n");
 
     // second left with mixed II: RRC_sendX() -> RRC_recv()
     if (verbose) cdbg("test 4\n");
-    RRC_sendX(jobID, (rank + worldSize - 1) % worldSize,
-	      sendBuf, strlen(sendBuf) + 1);
+    RRC_sendX(jobID, (rank + wSize - 1) % wSize, sendBuf, strlen(sendBuf) + 1);
     recvd = RRC_recv(&recvRank, recvBuf, sizeof(recvBuf));
     if (!checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf), jobID, recvRank,
-		     jobID, (rank + 1) % worldSize, true))
+		     jobID, (rank + 1) % wSize, true))
 	clog("test 4 failed\n");
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -180,21 +179,22 @@ static void testInsideJob(void)
  */
 static void handleDescendant(void)
 {
-    PStask_ID_t recvJob;
-    int32_t recvRank;
-
     cdbg("waiting for descendant\n");
 
-    char recvBuf[128];
+    int32_t destRank = TWISTED_PINGPONG ? (rank + 1) % wSize : rank;
+    int32_t xpctdRank = TWISTED_PINGPONG ? (rank + wSize - 1) % wSize : rank;
 
     /* waiting to get contacted */
+    PStask_ID_t recvJob;
+    int32_t recvRank;
+    char recvBuf[128];
     ssize_t recvd = RRC_recvX(&recvJob, &recvRank, recvBuf, sizeof(recvBuf));
     if (!checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf), recvJob, recvRank,
-		     recvJob, (rank + worldSize - 1) % worldSize, true))
+		     recvJob, xpctdRank, true))
 	clog("%s failed\n", __func__);
 
     /* send the received message to next remote rank */
-    RRC_sendX(recvJob, (rank + 1) % worldSize, recvBuf, recvd);
+    RRC_sendX(recvJob, destRank, recvBuf, recvd);
 }
 
 /**
@@ -212,23 +212,26 @@ static void handleDescendant(void)
  */
 static void contactAncestor(PStask_ID_t ancestor)
 {
-    PStask_ID_t jobID = RRC_getJobID(), recvJob;
-    int32_t recvRank;
-
     cdbg("contacting ancestor %s\n", PSC_printTID(ancestor));
 
+    int32_t destRank = TWISTED_PINGPONG ? (rank + 1) % wSize : rank;
+    int32_t xpctdRank = TWISTED_PINGPONG ? (rank + wSize - 1) % wSize : rank;
+    int32_t cntndRank = TWISTED_PINGPONG ? (rank + wSize - 2) % wSize : rank;
+
     char buf[128];
-    snprintf(buf, sizeof(buf), "%d %d %d", jobID, rank, worldSize);
+    snprintf(buf, sizeof(buf), "%d %d %d", RRC_getJobID(), rank, wSize);
 
     /* send message of next remote rank */
-    RRC_sendX(ancestor, (rank + 1) % worldSize, buf, strlen(buf) + 1);
+    RRC_sendX(ancestor, destRank, buf, strlen(buf) + 1);
 
     /* waiting for answer */
+    PStask_ID_t recvJob;
+    int32_t recvRank;
     ssize_t recvd = RRC_recvX(&recvJob, &recvRank, buf, sizeof(buf));
     /* message content expected from previous but one rank in local job */
-    if (!checkAnswer(recvd, errno, buf, sizeof(buf),	recvJob, recvRank,
-		     ancestor, (rank + worldSize - 1) % worldSize, false)
-	|| !checkContent(buf, jobID, (rank + worldSize - 2) % worldSize))
+    if (!checkAnswer(recvd, errno, buf, sizeof(buf), recvJob, recvRank,
+		     ancestor, xpctdRank, false)
+	|| !checkContent(buf, RRC_getJobID(), cntndRank))
 	clog("%s failed\n", __func__);
 }
 
@@ -238,15 +241,15 @@ int main( int argc, char *argv[] )
 
     /* setup coordinates */
     if (argc > 1) depth = strtol(argv[1], NULL, 0);
-    MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+    MPI_Comm_size(MPI_COMM_WORLD, &wSize);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     int len;
     char name[MPI_MAX_PROCESSOR_NAME];
     MPI_Get_processor_name(name, &len);
 
-    if (worldSize % N_EX) {
-	cdbg("worldSize %d not multiple of N_EX %d\n", worldSize, N_EX);
+    if (wSize % N_EX) {
+	cdbg("world size %d not multiple of N_EX %d\n", wSize, N_EX);
 	MPI_Abort(MPI_COMM_WORLD, -1);
     }
 
@@ -299,7 +302,7 @@ int main( int argc, char *argv[] )
 	    argmnts[i][3] = NULL;
 	}
 	int nps[N_EX];
-	for (int i = 0; i < N_EX; i++) nps[i] = worldSize / N_EX;
+	for (int i = 0; i < N_EX; i++) nps[i] = wSize / N_EX;
 
 	char wdir[PATH_MAX];
 	char *cwd = getcwd(wdir, sizeof(wdir));
@@ -310,7 +313,7 @@ int main( int argc, char *argv[] )
 	}
 
 	MPI_Comm spawn_comm;
-	int errcds[worldSize];
+	int errcds[wSize];
 	MPI_Comm_spawn_multiple(N_EX, cmds, argmnts, nps, infos, 0,
 				MPI_COMM_WORLD, &spawn_comm, errcds);
 	if (spawn_comm == MPI_COMM_NULL) {
