@@ -47,7 +47,7 @@ int rank = -1;
 /**
  * Check answer content for consistency
  */
-static void checkContent(char *msgBuf, PStask_ID_t xpctdJob, int32_t xpctdRank)
+static bool checkContent(char *msgBuf, PStask_ID_t xpctdJob, int32_t xpctdRank)
 {
     int32_t cntntRank, cntntWorld;
     PStask_ID_t cntntJob;
@@ -58,16 +58,16 @@ static void checkContent(char *msgBuf, PStask_ID_t xpctdJob, int32_t xpctdRank)
 	     PSC_printTID(cntntJob), cntntRank, cntntWorld);
 	mlog(" expected %s/%d/%d\n",
 	     PSC_printTID(xpctdJob), xpctdRank, worldSize);
-	return;
+	return false;
     }
 
-    return;
+    return true;
 }
 
 /**
  * Check answer for consistency
  */
-static void checkAnswer(ssize_t recvd, int eno, char *msgBuf, size_t bufSize,
+static bool checkAnswer(ssize_t recvd, int eno, char *msgBuf, size_t bufSize,
 			PStask_ID_t recvJob, int32_t recvRank,
 			PStask_ID_t xpctdJob, int32_t xpctdRank, bool content)
 {
@@ -79,7 +79,7 @@ static void checkAnswer(ssize_t recvd, int eno, char *msgBuf, size_t bufSize,
 	} else {
 	    clog("RRC_recv[X]: error from %s/%d\n",
 		 PSC_printTID(recvJob), recvRank);
-	    return;
+	    return false;
 	}
     }
     if ((size_t)recvd > bufSize) {
@@ -90,16 +90,16 @@ static void checkAnswer(ssize_t recvd, int eno, char *msgBuf, size_t bufSize,
     if (recvJob != xpctdJob || recvRank != xpctdRank) {
 	clog("unexpected message from %s/%d", PSC_printTID(recvJob), recvRank);
 	mlog(" expected from %s/%d\n", PSC_printTID(xpctdJob), xpctdRank);
-	return;
+	return false;
     }
     /* check content size*/
     if ((size_t)recvd != strlen(msgBuf)+1) {
 	clog("unexpected content size (%zd vs %zd) from %s/%d\n",
 	     recvd, strlen(msgBuf), PSC_printTID(recvJob), recvRank);
-	return;
+	return false;
     }
     /* check content */
-    if (content) checkContent(msgBuf, xpctdJob, xpctdRank);
+    return content ? checkContent(msgBuf, xpctdJob, xpctdRank) : true;
 }
 
 /**
@@ -122,15 +122,17 @@ static void testInsideJob(void)
     if (verbose) cdbg("test 1\n");
     RRC_send((rank + 1) % worldSize, sendBuf, strlen(sendBuf) + 1);
     ssize_t recvd = RRC_recv(&recvRank, recvBuf, sizeof(recvBuf));
-    checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf),	jobID, recvRank,
-		jobID, (rank + worldSize - 1) % worldSize, true);
+    if (!checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf), jobID, recvRank,
+		     jobID, (rank + worldSize - 1) % worldSize, true))
+	clog("test 1 failed\n");
 
     // second right with mixed I: RRC_send() -> RRC_recvX()
     if (verbose) cdbg("test 3\n");
     RRC_send((rank + 1) % worldSize, sendBuf, strlen(sendBuf) + 1);
     recvd = RRC_recvX(&recvJob, &recvRank, recvBuf, sizeof(recvBuf));
-    checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf),	recvJob, recvRank,
-		jobID, (rank + worldSize - 1) % worldSize, true);
+    if (!checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf), recvJob, recvRank,
+		     jobID, (rank + worldSize - 1) % worldSize, true))
+	clog("test 3 failed\n");
 
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -139,16 +141,20 @@ static void testInsideJob(void)
     RRC_sendX(0, (rank + worldSize - 1) % worldSize,
 	      sendBuf, strlen(sendBuf) + 1);
     recvd = RRC_recvX(&recvJob, &recvRank, recvBuf, sizeof(recvBuf));
-    checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf), recvJob, recvRank,
-		jobID, (rank + 1) % worldSize, true);
+    if (!checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf), recvJob, recvRank,
+		     jobID, (rank + 1) % worldSize, true))
+	clog("test 2 failed\n");
 
     // second left with mixed II: RRC_sendX() -> RRC_recv()
     if (verbose) cdbg("test 4\n");
     RRC_sendX(jobID, (rank + worldSize - 1) % worldSize,
 	      sendBuf, strlen(sendBuf) + 1);
     recvd = RRC_recv(&recvRank, recvBuf, sizeof(recvBuf));
-    checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf),	jobID, recvRank,
-		jobID, (rank + 1) % worldSize, true);
+    if (!checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf), jobID, recvRank,
+		     jobID, (rank + 1) % worldSize, true))
+	clog("test 4 failed\n");
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     cdbg("done\n\n");
 
@@ -180,8 +186,9 @@ static void handleDescendant(void)
 
     /* waiting to get contacted */
     ssize_t recvd = RRC_recvX(&recvJob, &recvRank, recvBuf, sizeof(recvBuf));
-    checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf),	recvJob, recvRank,
-		recvJob, (rank + worldSize - 1) % worldSize, true);
+    if (!checkAnswer(recvd, errno, recvBuf, sizeof(recvBuf), recvJob, recvRank,
+		     recvJob, (rank + worldSize - 1) % worldSize, true))
+	clog("%s failed\n", __func__);
 
     /* send the received message to next remote rank */
     RRC_sendX(recvJob, (rank + 1) % worldSize, recvBuf, recvd);
@@ -216,9 +223,10 @@ static void contactAncestor(PStask_ID_t ancestor)
     /* waiting for answer */
     ssize_t recvd = RRC_recvX(&recvJob, &recvRank, buf, sizeof(buf));
     /* message content expected from previous but one rank in local job */
-    checkAnswer(recvd, errno, buf, sizeof(buf),	recvJob, recvRank,
-		ancestor, (rank + worldSize - 1) % worldSize, false);
-    checkContent(buf, jobID, (rank + worldSize - 2) % worldSize);
+    if (!checkAnswer(recvd, errno, buf, sizeof(buf),	recvJob, recvRank,
+		     ancestor, (rank + worldSize - 1) % worldSize, false)
+	|| !checkContent(buf, jobID, (rank + worldSize - 2) % worldSize))
+	clog("%s failed\n", __func__);
 }
 
 int main( int argc, char *argv[] )
