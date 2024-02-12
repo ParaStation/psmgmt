@@ -219,30 +219,15 @@ bool writeJobscript(Job_t *job)
 	return ret;
     }
 
-    /* set jobscript filename */
     char *jobdir = getConfValueC(Config, "DIR_JOB_FILES");
-    char buf[PATH_BUFFER_LEN];
-    snprintf(buf, sizeof(buf), "%s/%s", jobdir, Job_strID(job->jobid));
-    job->jobscript = ustrdup(buf);
-
-    FILE *fp = fopen(job->jobscript, "a");
-    if (!fp) {
-	mwarn(errno, "%s: open jobscript '%s' for job %u failed", __func__,
-	      job->jobscript, job->jobid);
-	goto CLEANUP;
+    if (!writeFile(Job_strID(job->jobid), jobdir, job->jsData,
+		   strlen(job->jsData))) {
+	flog("writing jobscript '%s' for job %u failed", job->jobscript,
+	     job->jobid);
+    } else {
+	ret = true;
+	job->jobscript = PSC_concat(jobdir, "/", Job_strID(job->jobid));
     }
-
-    while (fprintf(fp, "%s", job->jsData) != (int)strlen(job->jsData)) {
-	if (errno == EINTR) continue;
-	mwarn(errno, "%s: writing jobscript '%s' for job %i failed", __func__,
-	      job->jobscript, job->jobid);
-	goto CLEANUP;
-    }
-
-    ret = true;
-
-CLEANUP:
-    if (fp) fclose(fp);
 
     strShred(job->jsData);
     job->jsData = NULL;
