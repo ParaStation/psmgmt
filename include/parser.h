@@ -41,54 +41,52 @@ typedef struct {
 } parser_t;
 
 /**
- * @brief Initializes the parser module.
+ * @brief Initializes the parser module
  *
  * Initializes the parser machinery for inputstream @a input.
  *
- *
- * @param logfile File to use for logging. If NULL, syslog(3) is used.
+ * @param logfile File used for logging; if NULL, syslog(3) is used
  *
  * @param input The inputstream the parser is expected to act on. This
  * parameter is optional and may be NULL. If @a input is NULL, the
  * inputstream has to be set via @ref parser_setFile() before any
  * parsing is done.
  *
- *
- * @return No return value.
+ * @return No return value
  *
  * @see parser_setFile()
  */
 void parser_init(FILE* logfile, FILE* input);
 
 /**
- * @brief Set the input stream.
+ * @brief Set the input stream
  *
  * Set the inputstream to parse to @a input.
  *
- * @param input The inputstream the parser is expected to act on. *
+ * @param input Inputstream the parser is expected to act on
  *
- * @return No return value.
+ * @return No return value
  * */
 void parser_setFile(FILE* input);
 
 /**
- * @brief Handle a token.
+ * @brief Handle a token
  *
- * Handle the character array @a token pursuant to the syntax given by
- * @a parser.
+ * Handle the character string @a token pursuant to the syntax given
+ * by @a parser.
  *
  * In order to handle it, @a token will be converted to lowercase
  * characters. The converted token is compared to each key in @a
  * parser->keylist. If a key matches the token, the corresponding
- * action() is called. The token is passed as an argument.
+ * action() is called. The @a token is passed as an argument.
  *
  * If the last key in @a parser->keylist also does not match like all
  * keys before @b and is NULL, the corresponding action() is called
  * with token passed as an argument (default action).
  *
- * @param token The character array to handle.
+ * @param token Character array to handle
  *
- * @param parser The parser syntax used for parsing.
+ * @param parser Syntax used for parsing
  *
  * @return If @a token matches a key, the return value of the
  * corresponding action is returned. Otherwise 0 is returned.
@@ -112,12 +110,12 @@ int parser_parseToken(char* token, parser_t* parser);
  *
  * @param matched Upon return this points to the matched key, if found any
  *
- * @return Return the next keylist as defined by the matched token.
+ * @return Return the next keylist as defined by the matched token
  */
 keylist_t * parser_nextKeylist(char *token, keylist_t *keylist, char **matched);
 
 /**
- * @brief Register a string to parse.
+ * @brief Register a string to parse
  *
  * Register the character array @a string to get parsed pursuant to
  * the syntax given by @a parser. The actual parsing is done within
@@ -128,19 +126,19 @@ keylist_t * parser_nextKeylist(char *token, keylist_t *keylist, char **matched);
  * gained in this way is returned to the calling function and usually
  * will be handled by further call to @ref parser_parseString().
  *
- * @param string The character array to parse.
+ * @param string The character array to parse
  *
- * @param parser The parser syntax used for parsing.
+ * @param parser Syntax used for parsing
  *
  * @return The first token returned by the registering strtok_r() call
- * is returned.
+ * is returned
  *
  * @see strtok_r(3)
  */
 char* parser_registerString(char* string, parser_t* parser);
 
 /**
- * @brief Parses a string.
+ * @brief Parses a string
  *
  * Parses the string registered via @ref parser_registerString()
  * pursuant to the syntax given by @a parser.
@@ -157,9 +155,9 @@ char* parser_registerString(char* string, parser_t* parser);
  * parser_parseToken(). Otherwise the parsing will be interrupted
  * returning the corresponding value.
  *
- * @param token The first token to handle.
+ * @param token First token to handle
  *
- * @param parser The parser syntax used for parsing.
+ * @param parser Syntax used for parsing
  *
  * @return If the registered string can be parsed without error (as
  * shown by all @ref parser_parseToken() calls returning 0), 0 is
@@ -171,7 +169,7 @@ char* parser_registerString(char* string, parser_t* parser);
 int parser_parseString(char* token, parser_t* parser);
 
 /**
- * @brief Remove comment.
+ * @brief Remove comment
  *
  * Remove comments from line @a line. A comment starts with a hash
  * ('#') character and ends at the end of the line, i.e. the whole
@@ -186,18 +184,17 @@ int parser_parseString(char* token, parser_t* parser);
  *
  * @param line The line from which comments shall be removed.
  *
- * @return No return value.
+ * @return No return value
  */
 void parser_removeComment(char* line);
 
 /**
- * @brief Parses a character stream.
+ * @brief Parses a character stream
  *
  * Parses the character stream set via @ref parser_init() or @ref
  * parser_setFile() pursuant to the syntax given by @parser.
  *
- *
- * @param parser The parser syntax used for parsing by passing to @ref
+ * @param parser Syntax used for parsing by passing to @ref
  * parser_registerString() and @ref parser_parseString().
  *
  *
@@ -238,13 +235,13 @@ typedef enum {
 } parser_log_key_t;
 
 /**
- * @brief Quit parsing.
+ * @brief Quit parsing
  *
- * Quit parsing. An error-message will be produced.
+ * Quit parsing and print out an error-message.
  *
- * @param token The actual token where the error was noticed.
+ * @param token Actual token where the error was noticed
  *
- * @return Always returns -1.
+ * @return Always returns -1
  *
  * @see keylist_t
  */
@@ -255,52 +252,52 @@ int parser_error(char* token);
  */
 
 /**
- * @brief Get another whitespace delemited string.
+ * @brief Get another whitespace delemited string
  *
- * Get another whitespace delemited string from the character array
+ * Get another whitespace delimited string from the character array
  * passed to @ref parser_parseString() via strtok(NULL, " \t\n").
  *
- * @return The result of strtok(NULL, " \t\n") is returned.
+ * @return Return the result of strtok(NULL, " \t\n")
  */
 char* parser_getString(void);
 
 /**
- * @brief Get a quoted of whitespace delemited string.
+ * @brief Get a quoted of whitespace delemited string
  *
- * Get a quoted or whitespace delemited string from the character
+ * Get a quoted or whitespace delimited string from the character
  * array passed to @ref parser_parseString(). Depending on the first
  * non-whitespace character this is done via strtok(NULL, " \t\n"),
  * strtok(NULL, "\"") or strtok(NULL, "\'").
  *
  * @return The result of strtok(NULL, " \t\n"), strtok(NULL, "\"") or
- * strtok(NULL, "\'") is returned.
+ * strtok(NULL, "\'") is returned
  */
 char* parser_getQuotedString(void);
 
 /**
- * @brief Get the rest of the string to parse.
+ * @brief Get the rest of the string to parse
  *
  * Get the rest of the string to parse passed to @ref
  * parser_parseString() using strtok(NULL, "\n").
  *
- * @return The result of strtok(NULL, "\n") is returned.
+ * @return Return the result of strtok(NULL, "\n")
  */
 char* parser_getLine(void);
 
 /**
- * @brief Get a comment during a running line.
+ * @brief Get a comment during a running line
  *
  * Get a comment during a running line. Actually, the rest of the line
  * is fetched via @ref parser_getLine() and thrown away.
  *
  * @param token The actual token where the comment was noticed.
  *
- * @return The return value of @ref parser_getLine() is passed thru.
+ * @return The return value of @ref parser_getLine() is passed thru
  */
 int parser_getComment(char* token);
 
 /**
- * @brief Get a number.
+ * @brief Get a number
  *
  * Get a number from the character array @a token and assign it to @a
  * val. If @a token does not contain a valid number, @a val remains
@@ -310,12 +307,12 @@ int parser_getComment(char* token);
  *
  * @param val Pointer to the value to get.
  *
- * @return On success 0 is returned, or -1 otherwise.
+ * @return On success 0 is returned, or -1 otherwise
  */
 int parser_getNumber(char *token, long *val);
 
 /**
- * @brief Get a filename.
+ * @brief Get a filename
  *
  * Get a filename (i.e. a whitespace delimited string) from the
  * character array @a token and test if the file exists. If the
@@ -333,7 +330,7 @@ int parser_getNumber(char *token, long *val);
  *
  *
  * @return On success a pointer to the absolute filename is returned,
- * or NULL otherwise.
+ * or NULL otherwise
  */
 char* parser_getFilename(char* token, char* prefix, char* extradir);
 
@@ -351,7 +348,7 @@ char* parser_getFilename(char* token, char* prefix, char* extradir);
 in_addr_t parser_getHostname(const char* token);
 
 /**
- * @brief Get a numerical value.
+ * @brief Get a numerical value
  *
  * Get a numerical value from the character array @a token via @ref
  * parser_getNumber() and store it to @a *value. If an error occurred
@@ -366,12 +363,12 @@ in_addr_t parser_getHostname(const char* token);
  * @param valname The symbolic name of the value to get.
  *
  *
- * @return On success 0 is returned, or -1 otherwise.
+ * @return On success 0 is returned, or -1 otherwise
  */
 int parser_getNumValue(char* token, int* value, char* valname);
 
 /**
- * @brief Get a boolean value.
+ * @brief Get a boolean value
  *
  * Get a boolean value from the character array @a token and store it
  * to @a *value.  If an error occurred (i.e. token contains no valid
@@ -386,12 +383,12 @@ int parser_getNumValue(char* token, int* value, char* valname);
  * @param valname The symbolic name of the value to get.
  *
  *
- * @return On success 0 is returned, or -1 otherwise.
+ * @return On success 0 is returned, or -1 otherwise
  */
 int parser_getBool(char* token, int* value, char* valname);
 
 /**
- * @brief Continue to parse the file.
+ * @brief Continue to parse the file
  *
  * Continue to parse the file. It is assumed that the current line was
  * started to parse. The rest of the line is passed as @a line and
@@ -402,7 +399,7 @@ int parser_getBool(char* token, int* value, char* valname);
  *
  * @param line The line parsing should start with.
  *
- * @param parser The parser syntax used for parsing.
+ * @param parser Syntax used for parsing
  *
  *
  * @return If @ref parser_parseString() or @ref parser_parseFile()
@@ -418,9 +415,9 @@ int parser_parseOn(char* line, parser_t* parser);
  * Shutdown the parser module and release all occupied resources.
  *
  * Once the module is shut down all further calls to functions of the
- * parser module gives unspecifie results.
+ * parser module gives unspecified results.
  *
- * @return No return value.
+ * @return No return value
  */
 void parser_finalize(void);
 
