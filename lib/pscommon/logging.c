@@ -88,11 +88,11 @@ logger_t* logger_init(const char* tag, FILE* logfile)
 
 	/* pre-allocate fmt, prfx and txt to prevent psid from bloating */
 	logger->fmtSize = 256;
-	logger->fmt = (char*)malloc(logger->fmtSize);
+	logger->fmt = malloc(logger->fmtSize);
 	logger->prfxSize = 256;
-	logger->prfx = (char*)malloc(logger->prfxSize);
+	logger->prfx = malloc(logger->prfxSize);
 	logger->txtSize = 256;
-	logger->txt = (char*)malloc(logger->txtSize);
+	logger->txt = malloc(logger->txtSize);
 
 	if (!logger->trail || !logger->fmt || !logger->prfx || !logger->txt) {
 	    logger_finalize(logger);
