@@ -18,32 +18,33 @@
 #include "psnodes.h"
 
 /**
- * @brief Remove a directory recursive
+ * @brief Remove a directory recursively
  *
- * @param directory The directory to remove
+ * @param dir Directory to remove
  *
- * @param root Also delete the root directory
+ * @param root Flag to delete the root directory, too
  *
- * @return Returns 0 on error and 1 on success
+ * @return Returns false on error and true on success
  */
 bool removeDir(char *directory, bool root);
 
 /**
  * @brief Create directories recursively
  *
- * Create one or more directories and sets the mode and
- * owern accordingly. If a directory in the given path
- * already exists the owner or mode will not be modified.
+ * Create one or more directories to finally create @a path and set
+ * their @a mode, @a uid, and @a gid accordingly. If a directory in
+ * the given @a path already exists, its owner or mode will not be
+ * modified.
  *
  * @param path One or more directories to create
  *
- * @param mode The mode of the directories created
+ * @param mode Mode of the created directories
  *
- * @param uid The user ID of the directory owner
+ * @param uid User ID of the directory owner
  *
- * @param gid The group ID of the directory owner
+ * @param gid Group ID of the directory owner
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success; otherwise false is returned
  */
 bool mkDir(const char *path, mode_t mode, uid_t uid, gid_t gid);
 
