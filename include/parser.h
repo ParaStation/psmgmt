@@ -218,6 +218,12 @@ int parser_parseFile(parser_t* parser);
 /** private logger to use */
 extern logger_t *parserlogger;
 
+#define parser_getDebugMask() logger_getMask(parserlogger)
+#define parser_setDebugMask(...) logger_setMask(parserlogger, __VA_ARGS__)
+
+#define parser_comment(...) logger_print(parserlogger, __VA_ARGS__)
+#define parser_exit(...) logger_exit(parserlogger, __VA_ARGS__)
+
 /**
  * Various message classes for logging. These define the different
  * bits of the debug-mask set via @ref parser_setDebugMask().
@@ -243,87 +249,6 @@ typedef enum {
  * @see keylist_t
  */
 int parser_error(char* token);
-
-/**
- * @brief Query the debug-mask.
- *
- * Get the debug-mask of the parser module.
- *
- * @return The actual debug-mask is returned.
- *
- * @see parser_setDebugMask()
- */
-int32_t parser_getDebugMask(void);
-
-/**
- * @brief Set the debug-mask.
- *
- * Set the log-mask of the parser's logging facility to @a mask. @a
- * mask is a bit-wise OR of the different keys defined within @ref
- * parser_log_key_t.
- *
- * @param mask The debug-mask to set.
- *
- * @return No return value.
- *
- * @see parser_getDebugMask()
- */
-void parser_setDebugMask(int32_t mask);
-
-/**
- * @brief Print out a comment.
- *
- * Print out a comment concerning actual parsing. The @a comment will
- * be prepended with the current line number the parser acts at while
- * the comment is launched.
- *
- * This is a wrapper to @ref logger_print().
- *
- * The message is only put out if either:
- *
- * - the key @a key bitwise or'ed with the parser's current debug-mask
- * set via @ref setDebugMask() is different form zero, or
- *
- * - the key @a key is -1.
- *
- * Thus all messages with @a key set to -1 are put out always,
- * independently of the choice of @a parser's mask. Therefor critical
- * messages of general interest should be but out with @a key set to
- * this value.
- *
- * @param key The key to use in order to decide if anything is put out.
- *
- * @param format The format to be used in order to produce output. The
- * syntax used is according to the one defined for the @ref printf()
- * family of functions from the C standard. This string will also
- * define the further parameters to be expected.
- *
- * @return No return value.
- *
- * @see logger_print(), parser_getDebugLevel(), parser_setDebugLevel()
- */
-#define parser_comment(...) if (parserlogger)	\
-	logger_print(parserlogger, __VA_ARGS__)
-
-/**
- * @brief Print a warn-messages and exit.
- *
- * Print a message like from @ref logger_warn(), but gives this
- * message always, i.e no comparison to @a logger's mask. Furthermore
- * calls exit() afterwards.
- *
- * This is mainly a wrapper to @ref logger_exit().
- *
- * @param errorno Error code describing the error string to append to
- * the message. If set to 0, no string is appended.
- *
- * @param format The format to be used in order to produce output.
- *
- * @return No return value.
- *
- * @see logger_exit(), exit()
- */
-#define parser_exit(...) logger_exit(parserlogger, __VA_ARGS__)
 
 /*
  * Basic routines to get defined fields

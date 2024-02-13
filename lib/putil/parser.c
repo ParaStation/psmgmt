@@ -118,16 +118,6 @@ void parser_finalize(void)
     parseline = 0;
 }
 
-int32_t parser_getDebugMask(void)
-{
-    return logger_getMask(parserlogger);
-}
-
-void parser_setDebugMask(int32_t mask)
-{
-    logger_setMask(parserlogger, mask);
-}
-
 void parser_setFile(FILE *input)
 {
     parsefile = input;
