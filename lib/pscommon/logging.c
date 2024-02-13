@@ -222,14 +222,13 @@ static void do_print(logger_t* l, const char* fmt, va_list ap)
 {
     if (!logger_isValid(l)) return;
 
-    size_t len = 0;
     char *tag = l->tag;
 
     /* Prepare prefix string */
     char *timeStr = getTimeStr(l);
     int res = snprintf(l->prfx, l->prfxSize, "%s%s%s", tag ? tag : "", timeStr,
 		       (tag || l->timeFlag) ? ": " : "");
-    if (res >= 0) len = res;
+    size_t len = (res > 0) ? res : 0;
     if (len >= l->prfxSize) {
 	l->prfxSize = len + 80; /* Some extra space */
 	l->prfx = (char*)realloc(l->prfx, l->prfxSize);
@@ -311,127 +310,115 @@ static void do_print(logger_t* l, const char* fmt, va_list ap)
     if (l->logfile) fflush(l->logfile);
 }
 
-void logger_print(logger_t* logger, int32_t key, const char* format, ...)
+static inline bool logger_checkKey(logger_t *l, int32_t key)
 {
+    return logger_isValid(l) && (key == -1 || logger_getMask(l) & key);
+}
+
+void logger_print(logger_t* logger, int32_t key, const char* fmt, ...)
+{
+    if (!logger_checkKey(logger, key)) return;
+
     va_list ap;
-
-    if (!logger || ((key != -1) && !(logger->mask & key))) return;
-
-    va_start(ap, format);
-    do_print(logger, format, ap);
+    va_start(ap, fmt);
+    do_print(logger, fmt, ap);
     va_end(ap);
 }
 
-void logger_vprint(logger_t* logger, int32_t key,
-		   const char* format, va_list ap)
+void logger_vprint(logger_t* logger, int32_t key, const char* fmt, va_list ap)
 {
-    if (!logger || ((key != -1) && !(logger->mask & key))) return;
+    if (!logger_checkKey(logger, key)) return;
 
-    do_print(logger, format, ap);
+    do_print(logger, fmt, ap);
 }
 
 void logger_funcprint(logger_t* logger, const char *func, int32_t key,
-		      const char *format, ...)
+		      const char *fmt, ...)
 {
-    if (!logger || ((key != -1) && !(logger->mask & key))) return;
+    if (!logger_checkKey(logger, key)) return;
 
     if (func) {
-	int res = snprintf(logger->fmt, logger->fmtSize,
-			   "%s: %s", func, format);
-	size_t len = (res >= 0) ? res : 0;
+	int res = snprintf(logger->fmt, logger->fmtSize, "%s: %s", func, fmt);
+	size_t len = (res > 0) ? res : 0;
 	if (len >= logger->fmtSize) {
 	    logger->fmtSize = len + 80; /* Some extra space */
 	    logger->fmt = (char*)realloc(logger->fmt, logger->fmtSize);
 	    if (!logger->fmt) {
-		do_panic(logger, "%s: no mem for '%s'\n", __func__, format);
+		do_panic(logger, "%s: no mem for '%s'\n", __func__, fmt);
 	    }
-	    sprintf(logger->fmt, "%s: %s", func, format);
+	    sprintf(logger->fmt, "%s: %s", func, fmt);
 	}
     }
 
     va_list ap;
-    va_start(ap, format);
-    do_print(logger, func ? logger->fmt : format, ap);
+    va_start(ap, fmt);
+    do_print(logger, func ? logger->fmt : fmt, ap);
     va_end(ap);
 }
 
-void logger_warn(logger_t* logger, int32_t key, int eno,
-		 const char* format, ...)
+void logger_warn(logger_t* logger, int32_t key, int eno, const char* fmt, ...)
 {
+    if (!logger_checkKey(logger, key)) return;
+
     char* errstr = strerror(eno);
-    va_list ap;
-    size_t len = 0;
-    int res;
-
-    if (!logger || ((key != -1) && !(logger->mask & key))) return;
-
-    res = snprintf(logger->fmt, logger->fmtSize,
-		   "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
-    if (res >= 0) {
-	len = (size_t)res;
-    }
+    int res = snprintf(logger->fmt, logger->fmtSize, "%s: %s\n", fmt, errstr);
+    size_t len = (res > 0) ? res : 0;
     if (len >= logger->fmtSize) {
 	logger->fmtSize = len + 80; /* Some extra space */
 	logger->fmt = (char*)realloc(logger->fmt, logger->fmtSize);
 	if (!logger->fmt) {
-	    do_panic(logger, "%s: no mem for '%s'\n", __func__, format);
+	    do_panic(logger, "%s: no mem for '%s'\n", __func__, fmt);
 	}
-	sprintf(logger->fmt, "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
+	sprintf(logger->fmt, "%s: %s\n", fmt, errstr);
     }
 
-    va_start(ap, format);
+    va_list ap;
+    va_start(ap, fmt);
     do_print(logger, logger->fmt, ap);
     va_end(ap);
 }
 
 void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count)
 {
-    if (!logger || ((key != -1) && !(logger->mask & key))) return;
+    if (!logger_checkKey(logger, key) || !logger->logfile) return;
 
-    if (logger->logfile) {
-	size_t n;
-	ssize_t i;
-	for (n = 0, i = 1; n < count && i > 0; ) {
-	    i = write(fileno(logger->logfile), &buf[n], count-n);
-	    if (i <= 0) {
-		switch (errno) {
-		case EINTR:
-		case EAGAIN:
-		    break;
-		default:
-		    do_panic(logger, "%s: %s", __func__, strerror(errno));
-		}
-	    } else {
-		n += (size_t)i;
+    size_t n = 0;
+    ssize_t i = 1;
+    while (n < count && i > 0) {
+	i = write(fileno(logger->logfile), &buf[n], count-n);
+	if (i < 0) {
+	    switch (errno) {
+	    case EINTR:
+	    case EAGAIN:
+		break;
+	    default:
+		do_panic(logger, "%s: %s", __func__, strerror(errno));
 	    }
+	} else {
+	    n += i;
 	}
     }
 }
 
-void logger_exit(logger_t* logger, int eno, const char* format, ...)
+void logger_exit(logger_t* logger, int eno, const char* fmt, ...)
 {
-    char* errstr = strerror(eno);
-    va_list ap;
-    size_t len = 0;
-    int res;
+    if (!logger_isValid(logger)) exit(-1);
 
-    if (!logger) exit(-1);
-
-    res = snprintf(logger->fmt, logger->fmtSize,
-		   "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
-    if (res >= 0) {
-	len = (size_t)res;
-    }
+    char* eStr = eno ? strerror(eno) : NULL;
+    int res = snprintf(logger->fmt, logger->fmtSize, "%s%s%s\n", fmt,
+		       eStr ? ": " : "", eStr ? eStr : "");
+    size_t len = (res > 0) ? res : 0;
     if (len >= logger->fmtSize) {
 	logger->fmtSize = len + 80; /* Some extra space */
 	logger->fmt = (char*)realloc(logger->fmt, logger->fmtSize);
 	if (!logger->fmt) {
-	    do_panic(logger, "%s: no mem for '%s'\n", __func__, format);
+	    do_panic(logger, "%s: no mem for '%s'\n", __func__, fmt);
 	}
-	sprintf(logger->fmt, "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
+	sprintf(logger->fmt, "%s%s%s\n", fmt, eStr ? ": " : "", eStr ? eStr : "");
     }
 
-    va_start(ap, format);
+    va_list ap;
+    va_start(ap, fmt);
     do_print(logger, logger->fmt, ap);
     va_end(ap);
 
