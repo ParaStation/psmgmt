@@ -114,9 +114,7 @@ bool mkDir(const char *path, mode_t mode, uid_t uid, gid_t gid)
     ufree(dup);
 
     /* create last directory */
-    if (!doCreateDir(path, mode, uid, gid)) return false;
-
-    return true;
+    return doCreateDir(path, mode, uid, gid);
 }
 
 static bool nodeIdVisitor(struct sockaddr_in *saddr, void *info)
@@ -423,7 +421,7 @@ char *mmapFile(const char *filename, size_t *size)
 
     if (data == MAP_FAILED) {
 	pluginwarn(errno, "%s: mmap(%s)" , __func__, filename);
-        return NULL;
+	return NULL;
     }
 
     return data;
