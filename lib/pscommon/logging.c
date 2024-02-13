@@ -378,6 +378,32 @@ void logger_warn(logger_t* logger, int32_t key, int eno, const char* fmt, ...)
     va_end(ap);
 }
 
+void logger_funcwarn(logger_t* logger, const char *func, int32_t key,
+		     int eno, const char* fmt, ...)
+{
+    if (!logger_checkKey(logger, key)) return;
+
+    char* errstr = strerror(eno);
+    int res = snprintf(logger->fmt, logger->fmtSize, "%s%s%s: %s\n",
+		       func ? func : "", func ? ": " : "", fmt, errstr);
+    size_t len = (res > 0) ? res : 0;
+    if (len >= logger->fmtSize) {
+	logger->fmtSize = len + 80; /* Some extra space */
+	logger->fmt = (char*)realloc(logger->fmt, logger->fmtSize);
+	if (!logger->fmt) {
+	    do_panic(logger, "%s: no mem for '%s'\n", __func__, fmt);
+	}
+	sprintf(logger->fmt, "%s%s%s: %s\n",
+		func ? func : "", func ? ": " : "", fmt, errstr);
+    }
+
+    va_list ap;
+    va_start(ap, fmt);
+    do_print(logger, logger->fmt, ap);
+    va_end(ap);
+}
+
+
 void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count)
 {
     if (!logger_checkKey(logger, key) || !logger->logfile) return;

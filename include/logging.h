@@ -375,6 +375,34 @@ void logger_warn(logger_t* logger, int32_t key, int eno, const char* fmt, ...)
     __attribute__((format(printf,4,5)));
 
 /**
+ * @brief Print a warn message with function prefix
+ *
+ * Print a warn message similar to the ones of @ref logger_warn(), but
+ * add the function name @a func to the prefix. As a result the
+ * message is prepended by both, the logging facility's tag and the
+ * function name and append by an error string defined by @a eno and a
+ * trailing newline. Thus, as @a logger_warn() this function will
+ * always produce output instantly.
+ *
+ * @param logger Logging facility to use
+ *
+ * @param func Function name to insert between tag and message
+ *
+ * @param key Key used to decide if actual output is created
+ *
+ * @param eno Error code defining the error string to append
+ *
+ * @param fmt Format string defining the output
+ *
+ * @return No return value
+ *
+ * @see logger_print(), logger_funcprint(), logger_warn(), strerror()
+ */
+void logger_funcwarn(logger_t* logger, const char *func, int32_t key,
+		     int eno, const char* fmt, ...)
+    __attribute__((format(printf,5,6)));
+
+/**
  * @brief Print a warn-messages and exit
  *
  * Print a message like from @ref logger_warn(), but print it always,
