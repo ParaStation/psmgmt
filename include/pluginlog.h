@@ -64,6 +64,9 @@ typedef enum {
 #define plugindbg(...) if (pluginlogger)		\
 	logger_print(pluginlogger, __VA_ARGS__)
 
+#define pluginfdbg(...) if (pluginlogger)			\
+	logger_funcprint(pluginlogger, __func__, __VA_ARGS__)
+
 /**
  * @brief Initialize logging facility
  *

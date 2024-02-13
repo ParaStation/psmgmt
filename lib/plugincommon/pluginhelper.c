@@ -170,20 +170,18 @@ PSnodes_ID_t getNodeIDbyHostname(const char *hostname)
     if (inet_aton(hostname, &inp)) {
 	/* try to internally resolv as address */
 	nodeID = PSIDnodes_lookupHost(inp.s_addr);
-	plugindbg(PLUGIN_LOG_VERBOSE, "%s: %s => %hd\n", __func__, hostname,
-		  nodeID);
+	pluginfdbg(PLUGIN_LOG_VERBOSE, "%s => %hd\n", hostname, nodeID);
 	if (nodeID >= 0) return nodeID;
     }
 
     /* try to internally resolv as hostname */
     nodeID = PSIDnodes_lookupHostname(hostname);
-    plugindbg(PLUGIN_LOG_VERBOSE, "%s: %s => %hd\n", __func__, hostname,
-	      nodeID);
+    pluginfdbg(PLUGIN_LOG_VERBOSE, "%s => %hd\n", hostname, nodeID);
     if (nodeID >= 0) return nodeID;
 
     /* fall back to using the resolver */
-    plugindbg(PLUGIN_LOG_VERBOSE, "%s: '%s' not found internally => fall back"
-	      " to resolver\n", __func__, hostname);
+    pluginfdbg(PLUGIN_LOG_VERBOSE, "'%s' not found internally => fall back"
+	       " to resolver\n", hostname);
 
     return getNodeIDbyName(hostname);
 }

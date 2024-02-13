@@ -802,7 +802,7 @@ static void sigChldCB(int estatus, PStask_t *task)
 {
     Forwarder_Data_t *fw = PStask_infoGet(task, TASKINFO_FORWARDER);
 
-    plugindbg(PLUGIN_LOG_FW, "%s: forwarder", __func__);
+    pluginfdbg(PLUGIN_LOG_FW, "forwarder");
     if (fw) plugindbg(PLUGIN_LOG_FW, " %s (jobID %s)", fw->pTitle,
 		      fw->jobID ? fw->jobID : "<?>");
     plugindbg(PLUGIN_LOG_FW, " TID %s returns %d\n",
@@ -830,8 +830,8 @@ static void handleChildStart(Forwarder_Data_t *fw, DDTypedBufferMsg_t *msg)
 	fw->hookChild(fw, PSC_getPID(msg->header.sender), fw->cPid, fw->cSid);
     }
 
-    plugindbg(PLUGIN_LOG_FW, "%s: fwTID %s childPid %i childSid %i\n", __func__,
-	      PSC_printTID(msg->header.sender), fw->cPid, fw->cSid);
+    pluginfdbg(PLUGIN_LOG_FW, "fwTID %s childPid %i childSid %i\n",
+	       PSC_printTID(msg->header.sender), fw->cPid, fw->cSid);
 }
 
 static void handleChildCode(Forwarder_Data_t *fw, DDTypedBufferMsg_t *msg)
@@ -841,7 +841,7 @@ static void handleChildCode(Forwarder_Data_t *fw, DDTypedBufferMsg_t *msg)
 		       sizeof(fw->hookExitCode));
     fw->codeRcvd = true;
 
-    plugindbg(PLUGIN_LOG_FW, "%s: ecode %i\n", __func__, fw->hookExitCode);
+    pluginfdbg(PLUGIN_LOG_FW, "ecode %i\n", fw->hookExitCode);
 }
 
 static void handleChildExit(Forwarder_Data_t *fw, DDTypedBufferMsg_t *msg)
@@ -851,7 +851,7 @@ static void handleChildExit(Forwarder_Data_t *fw, DDTypedBufferMsg_t *msg)
 		       sizeof(fw->chldExitStatus));
     fw->exitRcvd = true;
 
-    plugindbg(PLUGIN_LOG_FW, "%s: estatus %i\n", __func__, fw->chldExitStatus);
+    pluginfdbg(PLUGIN_LOG_FW, "estatus %i\n", fw->chldExitStatus);
 }
 
 static void handleChildFin(PStask_ID_t sender)
@@ -865,8 +865,7 @@ static void handleChildFin(PStask_ID_t sender)
 	.type = PLGN_FIN_ACK };
     sendMsg(&msg);
 
-    plugindbg(PLUGIN_LOG_FW, "%s: %s finalized\n", __func__,
-	      PSC_printTID(sender));
+    pluginfdbg(PLUGIN_LOG_FW, "%s finalized\n", PSC_printTID(sender));
 }
 
 /**
