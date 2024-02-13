@@ -46,11 +46,11 @@ typedef struct {
 /**
  * @brief Query the log-mask
  *
- * Get the actual log-mask of the logger module @a logger.
+ * Get the actual log-mask of the logging facility @a logger.
  *
- * @param logger The logger to ask
+ * @param logger Logging facility to query
  *
- * @return The current log-mask is returned
+ * @return Return the actual log-mask or 0 if @a logger is invalid
  *
  * @see logger_setMask()
  */
@@ -59,12 +59,12 @@ int32_t logger_getMask(logger_t* logger);
 /**
  * @brief Set the log-mask
  *
- * Set the log-mask of the logger module @a logger. The possible
- * values depend on the usage in the actual modules.
+ * Set the log-mask of the logging facility @a logger. The meaning of
+ * actual bits depend on the usage in the actual facility.
  *
- * @param logger The logger to manipulate
+ * @param logger Logging facility to manipulate
  *
- * @param mask The log-mask to be set
+ * @param mask Log-mask to be set
  *
  * @return No return value
  *
@@ -75,11 +75,11 @@ void logger_setMask(logger_t* logger, int32_t mask);
 /**
  * @brief Query the log-tag
  *
- * Get the actual log-tag of the logger module @a logger.
+ * Get the actual log-tag of the logging facility @a logger.
  *
- * @param logger The logger to ask
+ * @param logger Logging facility to query
  *
- * @return The actual log-tag is returned
+ * @return Return the actual log-tag or NULL if @a logger is invalid
  *
  * @see logger_setTag()
  */
@@ -88,30 +88,31 @@ char* logger_getTag(logger_t* logger);
 /**
  * @brief Set the log-tag
  *
- * Set the log-tag of the logger module @a logger. The log-tag is
- * prepended to each message put out via @ref logger_print(), @ref
- * logger_vprint(), @ref logger_warn() or @ref logger_exit().
+ * Set the log-tag of the logging facility @a logger.
  *
- * @param logger The logger to manipulate
+ * The log-tag is prepended to each line put out via @ref
+ * logger_print(), @ref logger_funcprint(), @ref logger_vprint(), @ref
+ * logger_warn(), @ref logger_funcwarn(), or @ref logger_exit().
  *
- * @param tag The log-tag to be set
+ * @param logger Logging facility to manipulate
+ *
+ * @param tag Log-tag to be set
  *
  * @return No return value
  *
- * @see logger_getTag(), logger_print(), logger_vprint(),
- * logger_warn(), logger_exit()
+ * @see logger_getTag(), logger_print(), logger_funcprint(),
+ * logger_vprint(), logger_warn(), logger_funcwarn(), logger_exit()
  */
 void logger_setTag(logger_t* logger, const char* tag);
 
 /**
  * @brief Query the time-flag
  *
- * Get the current time-flag of the logger module @a logger.
+ * Get the actual time-flag of the logging facility @a logger.
  *
- * @param logger The logger to ask
+ * @param logger Logging facility to query
  *
- * @return The current time-flag is returned; or false if the
- * logger-handle is invalid
+ * @return Return the actual time-flag or false if @a logger is invalid
  *
  * @see logger_setTimeFlag()
  */
@@ -120,33 +121,34 @@ bool logger_getTimeFlag(logger_t* logger);
 /**
  * @brief Set the time-flag
  *
- * Set the time-flag of the logger module @a logger to @a flag. If the
- * time-flag is set, a time-stamp is appended to the tag of each
- * message put out via @ref logger_print(), @ref logger_vprint(), @ref
- * logger_warn() or @ref logger_exit().
+ * Set the time-flag of the logging facility @a logger to @a flag.
  *
- * The logger's default behavior is to not print time-flags.
+ * If the time-flag is set, a time-stamp is appended to the tag of
+ * each line put out via @ref logger_print(), @ref logger_funcprint(),
+ * @ref logger_vprint(), @ref logger_warn(), @ref logger_funcwarn(),
+ * or @ref logger_exit().
  *
- * @param logger The logger to manipulate
+ * A logging facility's default behavior is to not print time-stamps.
  *
- * @param flag The flag's value to be set
+ * @param logger Logging facility to manipulate
+ *
+ * @param flag Time-flag's value to be set
  *
  * @return No return value
  *
- * @see logger_getTimeFlag(), logger_print(), logger_vprint(),
- * logger_warn(), logger_exit()
+ * @see logger_getTimeFlag(), logger_print(), logger_funcprint(),
+ * logger_vprint(), logger_warn(), logger_funcwarn(), logger_exit()
  */
 void logger_setTimeFlag(logger_t* logger, bool flag);
 
 /**
  * @brief Query the waitNL-flag
  *
- * Get the current waitNL-flag of the logger module @a logger.
+ * Get the actual waitNL-flag of the logging facility @a logger.
  *
- * @param logger The logger to ask
+ * @param logger Logging facility to query
  *
- * @return The current waitNL-flag is returned; or false, if the
- * logger-handle is invalid
+ * @return Return the actual waitNL-flag  or false if @a logger is invalid
  *
  * @see logger_setWaitNLFlag()
  */
@@ -155,24 +157,28 @@ bool logger_getWaitNLFlag(logger_t* logger);
 /**
  * @brief Set the waitNL-flag
  *
- * Set the waitNL-flag of the logger module @a logger to @a flag. If
- * the waitNL-flag is set, output sent to @a logger is not printed out
- * unless a trailing new-line was sent to the logger. Instead, such
- * output is collected within the logger module and printed as a whole
- * line as soon as the newline is received.
+ * Set the waitNL-flag of the logging facility @a logger to @a flag.
+ *
+ * If the waitNL-flag is set, output sent to @a logger is not printed
+ * out unless a newline was included. In this case everything before
+ * the last newline is put out. If no newline is included or trailing
+ * content exists, such output is collected within the logging
+ * facility and printed as a whole line as soon as the next newline is
+ * received.
  *
  * This might introduced unexpected behavior within interactive
- * applications that use a logger-facility to create output like
+ * applications that use a logging facility to create output like
  * psiadmin.
  *
- * The logger's default behavior is to wait for trailing newlines.
+ * The logging facility's default behavior is to wait for trailing
+ * newlines.
  *
- * In order to flush a logger's trailing output upon a program's
- * finalization @ref plugin_finalize() shall be called.
+ * In order to flush a logging facility's trailing output upon a
+ * program's finalization @ref plugin_finalize() must be called.
  *
- * @param logger The logger to manipulate
+ * @param logger Logging facility to manipulate
  *
- * @param flag The flag's value to be set
+ * @param flag waitNL-flag's value to be set
  *
  * @return No return value
  *
@@ -181,38 +187,35 @@ bool logger_getWaitNLFlag(logger_t* logger);
 void logger_setWaitNLFlag(logger_t* logger, bool flag);
 
 /**
- * @brief Initialize logger facility
+ * @brief Initialize logging facility
  *
- * Initialize the logger facility using the tag @a tag to log into @a
- * logfile. Use syslog(), if @a logfile is NULL.
+ * Initialize a logging facility using the tag @a tag to log into @a
+ * logfile. Use syslog() if @a logfile is NULL.
  *
  *
- * @param tag The tag to be used for all output via @ref
- * logger_print(), @ref logger_vprint(), @ref logger_warn(), @ref
- * logger_exit().
+ * @param tag Tag prepended to all output via @ref logger_print(),
+ * @ref logger_funcprint(), @ref logger_vprint(), @ref logger_warn(),
+ * @ref logger_funcwarn(), or @ref logger_exit()
  *
- * @param logfile The file to use for logging. If NULL, syslog() will
- * be used.
+ * @param logfile File to use for logging or NULL if syslog() shall be
+ * used
  *
- * @return On success, a handle of the created logger is
+ * @return On success, a handle to the created logging facility is
  * returned. This handle has to be passed to any further function
- * using this logger. In case of an error NULL is returned.
- *
- * @see logger_print(), logger_vprint(), logger_warn(), logger_exit(),
- * logger_finalize()
+ * using this logging facility. In case of an error NULL is returned.
  */
 logger_t* logger_init(const char* tag, FILE *logfile);
 
 /**
- * @brief Finalize logger facility
+ * @brief Finalize logging facility
  *
- * Finalize the logger facility @a logger. This will flush trailing
+ * Finalize the logging facility @a logger. This will flush trailing
  * output stored within the logger while waiting for a trailing
  * newline. For this, a newline is appended to the existing trail.
  *
- * If @a logger is NULL, nothing will happen.
+ * If @a logger is NULL or invalid, nothing will happen.
  *
- * @param logger Handle of the logger facility to finalize
+ * @param logger Logging facility to finalize
  *
  * @return No return value
  *
@@ -224,27 +227,28 @@ void logger_finalize(logger_t* logger);
  * @brief Write a log message
  *
  * Write the raw message of length @a count stored in @a buf to the
- * logger facility @a logger.
+ * logging facility @a logger.
  *
  * The message is only put out if either:
  *
- * - the key @a key bitwise or'ed with @a logger's current mask is
- * different form zero, or
+ * - @a key bitwise or'ed with the log-mask of @a logger is different
+ * form zero, or
  *
- * - the key @a key is -1.
+ * - @a key is -1.
  *
- * Thus, all messages with @a key set to -1 are put out always,
- * independently of the choice of @a logger's mask.
+ * Thus, messages with @a key set to -1 are always printed,
+ * independent of the choice of the log-mask of @a logger.
  *
  * All messages are put out instantly without any beautifications like
  * prefixes, source-ranks or time-stamps. This functions is mainly
- * useful for raw communication as it used by psiloggers in raw-mode.
+ * useful for raw communication as it is used by psiloggers in
+ * raw-mode.
  *
- * @param logger The logger facility to use
+ * @param logger Logging facility to use
  *
- * @param key The key to use in order to decide if anything is put out
+ * @param key Key to use in order to decide if anything is put out
  *
- * @param buf Buffer holding the message to write via the logger
+ * @param buf Buffer holding the message to write via @a logger
  *
  * @param count Length of the message to write
  *
@@ -257,146 +261,140 @@ void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count);
 /**
  * @brief Print a log message
  *
- * Print a message defined via @a format and the remaining arguments
- * with some beautification, mainly prepended by the current tag of
- * the logger facility @a logger.
+ * Print a message defined by @a fmt and the remaining arguments with
+ * some beautification, mainly prepended by the tag and time-stamp of
+ * the logging facility @a logger.
  *
  * The message is only put out if either:
  *
- * - the key @a key bitwise or'ed with @a logger's current mask is
- * different form zero, or
+ * - @a key bitwise or'ed with the log-mask of @a logger is different
+ * form zero, or
  *
- * - the key @a key is -1.
+ * - @a key is -1.
  *
- * Thus all messages with @a key set to -1 are put out always,
- * independently of the choice of @a logger's mask. Therefor critical
- * messages of general interest should be but out with @a key st to
- * this value.
+ * Thus, all messages with @a key set to -1 will always be printed,
+ * independent of the choice of the log-mask of @a logger. Thus,
+ * critical messages of general interest should be printed with @a key
+ * set to -1.
  *
- * The message is only put out instantly, if @a format contains a
+ * The message is only put out instantly, if @a fmt contains a
  * trailing newline character. Otherwise the current line will be
  * stored within the @a logger for later output during further calls
- * to @ref logger_print(), @ref logger_vprint(), @ref logger_warn() or
- * @ref logger_exit().
+ * to @ref logger_print(), @logger_funcprint(), @ref logger_vprint(),
+ * @ref logger_warn(), logger_funcwarn() or @ref logger_exit().
  *
- * @param logger The logger facility to use
+ * @param logger Logging facility to use
  *
- * @param key The key to use in order to decide if anything is put out
+ * @param key Key used to decide if actual output is created
  *
- * @param format The format to be used in order to produce output. The
- * syntax of this parameter is according to the one defined for the
- * printf() family of functions from the C standard. This string will
- * also define the further parameters to be expected.
+ * @param fmt Format string defining the output. The syntax of this
+ * parameter is according to the printf() family of functions from the
+ * C standard. This string will also define the further parameters to
+ * be expected.
  *
  * @return No return value
  *
  * @see printf(), logger_print(), logger_vprint(), logger_funcprint(),
  * logger_warn(), logger_exit()
  */
-void logger_print(logger_t* logger, int32_t key, const char* format, ...)
+void logger_print(logger_t* logger, int32_t key, const char* fmt, ...)
     __attribute__((format(printf,3,4)));
 
 /**
  * @brief Print a log message
  *
- * A wrapper for @ref logger_print() with only expecting the remaining
- * arguments defined within @a format within the va_list @a ap instead
- * of as normal arguments.
+ * Wrapper if @ref logger_print() but expecting the further arguments
+ * defined by @a fmt in the va_list @a ap instead of normal arguments.
  *
- * The main use of this function is to enable the user to write
+ * The main use of this function is to enable user to write
  * specialized wrappers around @ref logger_print().
  *
- * @param logger The logger facility to use
+ * @param logger Logging facility to use
  *
- * @param key The key to use in order to decide if anything is put out
+ * @param key Key used to decide if actual output is created
  *
- * @param format The format to be used in order to produce output
+ * @param fmt Format string defining the output
  *
- * @param ap The va_list of the remainig parameters defined from @a
- * format
+ * @param ap va_list of further parameters defined by @a fmt
  *
  * @return No return value
  *
- * @see logger_print()
+ * @see logger_print() for details
  */
-void logger_vprint(logger_t* logger, int32_t key, const char* format,va_list ap)
+void logger_vprint(logger_t* logger, int32_t key, const char* fmt, va_list ap)
     __attribute__((format(printf,3,0)));
 
 /**
  * @brief Print a log message with function prefix
  *
- * Print a warn message similar to the log messages put out via @ref
- * logger_print(), but add the function name @a func as a prefix. As a
- * result the log message is prepended by both, the current tag of the
- * logger facility @a logger and the function name.
+ * Print a message similar to the ones of @ref logger_print(), but add
+ * the function name @a func to the prefix. As a result the message is
+ * prepended by both, the logging facility's tag and the function
+ * name.
  *
  * Internally @ref logger_print() will be used for the actual
- * output. Therefore all functionality mentioned there will apply here
- * as well.
+ * output. Thus all rules mentioned there will apply here as well.
  *
- * @param logger The logger facility to use
+ * @param logger Logging facility to use
  *
- * @param func The function name to insert between tag and message
+ * @param func Function name to insert between tag and message
  *
- * @param key The key to use in order to decide if anything is put out
+ * @param key Key used to decide if actual output is created
  *
- * @param format The format to be used in order to produce output. The
- * syntax of this parameter is according to the one defined for the
- * printf() family of functions from the C standard. This string will
- * also define the further parameters to be expected.
+ * @param fmt Format string defining the output
  *
  * @return No return value
  *
- * @see logger_print()
+ * @see logger_print() for details
  */
 void logger_funcprint(logger_t* logger, const char *func, int32_t key,
-		      const char *format, ...)
+		      const char *fmt, ...)
     __attribute__((format(printf,4,5)));
 
 /**
  * @brief Print a warn message
  *
- * Print a warn message similar to the log messages put out via @ref
- * logger_print(), but append the string returned from strerror() for
- * the argument @a errorno and a trailing newline. Thus this function
- * will always produce output instantly.
+ * Print a warn message similar to the ones of @ref logger_print(),
+ * but append the string returned by strerror() for the argument @a
+ * eno and a trailing newline. Thus, this function will always produce
+ * output instantly.
  *
- * @param logger The logger facility to use
+ * @param logger Logging facility to use
  *
- * @param key The key to use in order to decide if anything is put out
+ * @param key Key used to decide if actual output is created
  *
- * @param errorno Error code describing the error string to append to
- * the message
+ * @param eno Error code defining the error string to append
  *
- * @param format The format to be used in order to produce output
+ * @param fmt Format string defining the output
  *
  * @return No return value
  *
  * @see logger_print(), strerror()
  */
-void logger_warn(logger_t* logger, int32_t key, int errorno,
-		 const char* format, ...)
+void logger_warn(logger_t* logger, int32_t key, int eno, const char* fmt, ...)
     __attribute__((format(printf,4,5)));
 
 /**
  * @brief Print a warn-messages and exit
  *
- * Print a message like from @ref logger_warn(), but gives this
- * message always, i.e no comparison to @a logger's mask. Furthermore
- * calls exit() afterwards.
+ * Print a message like from @ref logger_warn(), but print it always,
+ * i.e no comparison to @a logger's mask and call exit() right after
+ * this.
  *
- * @param logger The logger facility to use
+ * If @a eno is 0, no error string will be appended.
  *
- * @param errorno Error code describing the error string to append to
- * the message
+ * @param logger Logging facility to use
  *
- * @param format The format to be used in order to produce output
+ * @param eno Error code defining the error string to append; if 0, no
+ * string is appended
+ *
+ * @param fmt Format string defining the output
  *
  * @return No return value
  *
  * @see logger_warn(), exit()
  */
-void logger_exit(logger_t* logger, int errorno, const char* format, ...)
+void logger_exit(logger_t* logger, int eno, const char* fmt, ...)
     __attribute__((format(printf,3,4),noreturn));
 
 #endif  /* __LOGGING_H */

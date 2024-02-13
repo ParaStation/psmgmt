@@ -121,18 +121,18 @@ void logger_finalize(logger_t* logger)
 /**
  * @brief Create time-stamp
  *
- * Create a time-stamp for the logger @a logger. If the logger's
- * timeFlag is set, a real time-stamp is created. Otherwise the
- * time-stamp will be empty.
+ * Create a time-stamp for the logging facility @a logger. If the
+ * @a logger's timeFlag is set, a real time-stamp is created. Otherwise
+ * the time-stamp will be empty.
  *
  * The character-array returned is a static array within this
- * function. Thus calling the function multiple time might lead to
+ * function. Thus calling the function multiple times might lead to
  * unexpected results.
  *
- * @param logger The logger the time-stamp is created for.
+ * @param logger Logging facility the time-stamp is created for
  *
  * @return Return a pointer to a static character array containing the
- * time-stamp created.
+ * just created time-stamp
  */
 static inline char *getTimeStr(logger_t *logger)
 {
@@ -154,17 +154,18 @@ static inline char *getTimeStr(logger_t *logger)
 /**
  * @brief Panic output and exit
  *
- * Print some panic output to the logger @a l. The structure of the
- * output is described by the format @a f. The format is expected to
- * take two arguments of type pointer to character-string. Afterwards
- * @ref exit() is called in order to terminate the program.
+ * Print some panic output to the logging facility @a logger. The
+ * structure of the output is described by the format @a fmt. The
+ * format is expected to take two arguments of type pointer to
+ * character-string. Afterwards @ref exit() is called in order to
+ * terminate the program.
  *
  * This function shall be called in fatal situations, e.g. if no
- * memory is allocateble any more.
+ * memory is allocatable any more.
  *
- * @param l The logger to use for output
+ * @param logger Logging facility to use for output
  *
- * @param f Format string describing the output
+ * @param fmt Format string describing the output
  *
  * @param c1 First character string to fill the format
  *
@@ -187,36 +188,35 @@ static void do_panic(logger_t* logger, const char *fmt,
 /**
  * @brief Actually print message
  *
- * Worker function for @ref logger_print(), @ref logger_vprint(), @ref
- * logger_warn() and @ref logger_exit() actually printing the message.
+ * Worker function for @ref logger_print(), @ref logger_funcprint(),
+ * @ref logger_vprint(), @ref logger_warn(), @ref logger_funcwarn(),
+ * and @ref logger_exit() actually printing the message.
  *
- * The message defined by @a format and @a ap will be spiffed up with
- * @a logger's tag and some timestamp and put out to the destination
- * also defined within @a logger.
+ * The message defined by @a fmt and @a ap will be spiffed up with the
+ * tag and some timestamp of the logging facility @a l and put out to
+ * the destination also defined within @a l.
  *
- * The message is only actually put out if @a format contains a
- * newline character. Any trails left after the last newline character
- * will be stored within @a logger and put in front of further
- * messages sent via this special logger.
+ * The message is only actually put out if @a fmt contains a newline
+ * character. Any trailing parts left after the last newline character
+ * will be stored within @a l and put in front of further messages
+ * sent via this specific logging facility.
  *
  * This function does @b no keys/mask handling, i.e. this has to be
  * done within the wrapper functions.
  *
+ * @param l Logging facility to use
  *
- * @param l The logger facility to use.
+ * @param fmt Format string defining the output. The syntax of this
+ * parameter is according to the printf() family of functions from the
+ * C standard. This string will also define the further parameters to
+ * be expected from within the va list @a ap.
  *
- * @param format The format to be used in order to produce output. The
- * syntax of this parameter is according to the one defined for the
- * @ref printf() family of functions from the C standard. This string
- * will also define the further parameters to be expected from within
- * the va list @a ap.
+ * @param ap The va_list of remaining parameters defined by @a fmt
  *
- * @param ap The va_list of the remainig parameters defined from @a
- * format.
+ * @return No return value
  *
- * @return No return value.
- *
- * @see logger_print(), logger_vprint(), logger_warn(), logger_exit()
+ * @see logger_print(), logger_funcprint(), logger_vprint(),
+ * logger_warn(), logger_funcwarn(), @ref logger_exit()
  */
 static void do_print(logger_t* l, const char* fmt, va_list ap)
 {
