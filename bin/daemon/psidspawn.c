@@ -1543,7 +1543,7 @@ static int spawnTask(PStask_t *task)
 	/* Tell everybody about the new forwarder task */
 	incJobs(1, 0);
     } else {
-	PSID_warn(PSID_LOG_SPAWN, err, "%s: buildSandboxAndStart()", __func__);
+	PSID_fdwarn(PSID_LOG_SPAWN, err, "buildSandboxAndStart()");
     }
 
     return err;

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -208,8 +208,8 @@ ssize_t sendMsg(void *amsg)
 	    key = PSID_LOG_COMM;
 	}
 
-	PSID_warn(key, eno, "%s(type=%s, len=%d) to %s in %s",
-		  __func__, PSDaemonP_printMsg(msg->type), msg->len,
+	PSID_fdwarn(key, eno, "(type=%s, len=%d) to %s in %s",
+		    PSDaemonP_printMsg(msg->type), msg->len,
 		  PSC_printTID(msg->dest), sender);
 	PSID_fdbg(key, "sender was %s\n", PSC_printTID(msg->sender));
 	if (msg->len > sizeof(*msg)) {

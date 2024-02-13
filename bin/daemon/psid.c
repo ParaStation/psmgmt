@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -97,8 +97,7 @@ static void MCastCallBack(int msgid, void *buf)
 		  "(MCAST_NEW_CONNECTION,%d)\n", node);
 	if (node!=PSC_getMyID() && !PSIDnodes_isUp(node)) {
 	    if (send_DAEMONCONNECT(node)<0) {
-		PSID_warn(PSID_LOG_STATUS, errno,
-			  "%s: send_DAEMONCONNECT()", __func__);
+		PSID_fdwarn(PSID_LOG_STATUS, errno, "send_DAEMONCONNECT()");
 	    }
 	}
 	break;
@@ -162,8 +161,7 @@ static void RDPCallBack(RDP_CB_type_t type, void *buf)
 		      "(RDP_NEW_CONNECTION,%d)\n", node);
 	    if (node != PSC_getMyID() && !PSIDnodes_isUp(node)) {
 		if (send_DAEMONCONNECT(node)<0) { // @todo Really necessary ?
-		    PSID_warn(PSID_LOG_STATUS, errno,
-			      "%s: send_DAEMONCONNECT()", __func__);
+		    PSID_fdwarn(PSID_LOG_STATUS, errno, "send_DAEMONCONNECT()");
 		}
 	    }
 	}

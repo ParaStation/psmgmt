@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -223,8 +223,8 @@ static ssize_t doSend(int fd, DDMsg_t *msg, size_t offset)
 	if (eno == EAGAIN || eno == EINTR) {
 	    return offset + sent;
 	}
-	PSID_warn((eno == EPIPE) ? PSID_LOG_CLIENT : -1, eno,
-		  "%s: error on socket %d", __func__, fd);
+	PSID_fdwarn((eno == EPIPE) ? PSID_LOG_CLIENT : -1, eno,
+		    "error on socket %d", fd);
 	PStask_t *task = PSIDclient_getTask(fd);
 	if (task) {
 	    if (!task->killat) task->killat = time(NULL) + 10;

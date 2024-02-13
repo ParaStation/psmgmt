@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -171,8 +171,8 @@ static void sendSignal(pid_t dest, int signal)
     if (childTask->interactive && dest > 0) {
 	pid = tcgetpgrp(childTask->stderr_fd);
 	if (pid == -1) {
-	    PSID_warn((errno == EBADF) ? PSID_LOG_SIGNAL : -1, errno,
-		      "%s: tcgetpgrp()", __func__);
+	    PSID_fdwarn((errno == EBADF) ? PSID_LOG_SIGNAL : -1, errno,
+			"tcgetpgrp()");
 	    pid = -dest;
 	} else if (pid) {
 	    /* Send signal to process-group */
@@ -187,12 +187,12 @@ static void sendSignal(pid_t dest, int signal)
     /* actually send the signal */
     if (signal == SIGKILL) kill(pid, SIGCONT);
     if (kill(pid, signal) == -1) {
-	PSID_warn((errno==ESRCH) ? PSID_LOG_SIGNAL : -1, errno,
-		  "%s: kill(%d, %d)", __func__, pid, signal);
+	PSID_fdwarn((errno==ESRCH) ? PSID_LOG_SIGNAL : -1, errno,
+		    "kill(%d, %d)", pid, signal);
 	/* Maybe try again, now to the single process */
 	if ((errno==ESRCH) && dest > 0 && kill(dest, signal) == -1) {
-	    PSID_warn((errno==ESRCH) ? PSID_LOG_SIGNAL : -1, errno,
-		      "%s: kill(%d, %d)", __func__, dest, signal);
+	    PSID_fdwarn((errno==ESRCH) ? PSID_LOG_SIGNAL : -1, errno,
+			"kill(%d, %d)", dest, signal);
 	}
     }
 }

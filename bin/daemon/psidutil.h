@@ -105,6 +105,8 @@ void PSID_setDebugMask(int32_t mask);
  */
 #define PSID_warn(...) logger_warn(PSID_logger, __VA_ARGS__)
 
+#define PSID_fdwarn(...) logger_funcwarn(PSID_logger, __func__, __VA_ARGS__)
+
 /**
  * Print a warn messages via PSID's logging facility @a PSID_logger
  * and exit.

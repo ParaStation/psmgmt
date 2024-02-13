@@ -89,8 +89,8 @@ int pskill(pid_t pid, int sig, uid_t uid)
 	}
 
 	if (error) {
-	    PSID_warn((eno == ESRCH) ? PSID_LOG_SIGNAL : -1, eno,
-		      "%s: kill(%d, %d)", __func__, pid, sig);
+	    PSID_fdwarn((eno == ESRCH) ? PSID_LOG_SIGNAL : -1, eno,
+			"kill(%d, %d)", pid, sig);
 	} else {
 	    PSID_fdbg(PSID_LOG_SIGNAL, "sent signal %d to %d\n", sig, pid);
 	}

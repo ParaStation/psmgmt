@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -830,7 +830,7 @@ static bool msg_DAEMONCONNECT(DDBufferMsg_t *msg)
     PSP_putMsgBuf(msg, "dmnProto", &tmp, sizeof(tmp));
 
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(PSID_LOG_STATUS, errno, "%s: sendMsg()", __func__);
+	PSID_fdwarn(PSID_LOG_STATUS, errno, "sendMsg()");
     } else {
 	send_OPTIONS(id);
     }
