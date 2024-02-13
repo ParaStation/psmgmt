@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,30 +19,31 @@
 #include <sys/time.h>
 #include <time.h>
 
+#define LOG_MAGIC 0x0577215664901532
+
+static inline bool logger_isValid(logger_t *logger)
+{
+    return logger && logger->magic == LOG_MAGIC;
+}
+
 int32_t logger_getMask(logger_t* logger)
 {
-    if (!logger) return 0;
-
-    return logger->mask;
+    return logger_isValid(logger) ? logger->mask : 0;
 }
 
 void logger_setMask(logger_t* logger, int32_t mask)
 {
-    if (!logger) return;
-
-    logger->mask = mask;
+    if (logger_isValid(logger)) logger->mask = mask;
 }
 
 char* logger_getTag(logger_t* logger)
 {
-    if (!logger) return NULL;
-
-    return logger->tag;
+    return logger_isValid(logger) ? logger->tag : NULL;
 }
 
 void logger_setTag(logger_t* logger, const char* tag)
 {
-    if (!logger) return;
+    if (!logger_isValid(logger)) return;
 
     free(logger->tag);
     logger->tag = tag ? strdup(tag) : NULL;
@@ -50,30 +51,22 @@ void logger_setTag(logger_t* logger, const char* tag)
 
 bool logger_getTimeFlag(logger_t* logger)
 {
-    if (!logger) return false;
-
-    return logger->timeFlag;
+    return logger_isValid(logger) ? logger->timeFlag : false;
 }
 
 void logger_setTimeFlag(logger_t* logger, bool flag)
 {
-    if (!logger) return;
-
-    logger->timeFlag = flag;
+    if (logger_isValid(logger)) logger->timeFlag = flag;
 }
 
 bool logger_getWaitNLFlag(logger_t* logger)
 {
-    if (!logger) return false;
-
-    return logger->waitNLFlag;
+    return logger_isValid(logger) ? logger->waitNLFlag : false;
 }
 
 void logger_setWaitNLFlag(logger_t* logger, bool flag)
 {
-    if (!logger) return;
-
-    logger->waitNLFlag = flag;
+    if (logger_isValid(logger)) logger->waitNLFlag = flag;
 }
 
 logger_t* logger_init(const char* tag, FILE* logfile)
@@ -81,6 +74,7 @@ logger_t* logger_init(const char* tag, FILE* logfile)
     logger_t* logger = (logger_t*)malloc(sizeof(*logger));
 
     if (logger) {
+	logger->magic = LOG_MAGIC;
 	logger->logfile = logfile;
 	logger_setMask(logger, 0);
 	logger->tag = NULL;
@@ -111,7 +105,7 @@ logger_t* logger_init(const char* tag, FILE* logfile)
 
 void logger_finalize(logger_t* logger)
 {
-    if (!logger) return;
+    if (!logger_isValid(logger)) return;
 
     if (logger->trailUsed) logger_print(logger, -1, "\n");
 
@@ -120,6 +114,7 @@ void logger_finalize(logger_t* logger)
     free(logger->fmt);
     free(logger->prfx);
     free(logger->txt);
+    logger->magic = 0;
     free(logger);
 }
 
@@ -144,14 +139,14 @@ static inline char *getTimeStr(logger_t *logger)
     static char timeStr[40];
     struct timeval time;
 
-    if (!logger || !logger->timeFlag) return "";
+    if (!logger_isValid(logger) || !logger_getTimeFlag(logger)) return "";
 
     gettimeofday(&time, NULL);
 
     strftime(timeStr, sizeof(timeStr), "[%H:%M:%S", localtime(&time.tv_sec));
 
     snprintf(timeStr+strlen(timeStr), sizeof(timeStr)-strlen(timeStr),
-	    ".%ld]", (long)time.tv_usec);
+	     ".%ld]", (long)time.tv_usec);
 
     return timeStr;
 }
@@ -177,12 +172,13 @@ static inline char *getTimeStr(logger_t *logger)
  *
  * @return No return value
  */
-static void do_panic(logger_t* l, const char *f, const char *c1, const char *c2)
+static void do_panic(logger_t* logger, const char *fmt,
+		     const char *c1, const char *c2)
 {
-    if (l && l->logfile) {
-	fprintf(l->logfile, f, c1, c2);
+    if (logger_isValid(logger) && logger->logfile) {
+	fprintf(logger->logfile, fmt, c1, c2);
     } else {
-	syslog(LOG_ERR,  f, c1, c2);
+	syslog(LOG_ERR, fmt, c1, c2);
     }
 
     exit(1);
@@ -222,50 +218,42 @@ static void do_panic(logger_t* l, const char *f, const char *c1, const char *c2)
  *
  * @see logger_print(), logger_vprint(), logger_warn(), logger_exit()
  */
-static void do_print(logger_t* l, const char* format, va_list ap)
+static void do_print(logger_t* l, const char* fmt, va_list ap)
 {
-    size_t len = 0;
-    int res;
-    va_list aq;
-    char *tag, *timeStr, *c;
+    if (!logger_isValid(l)) return;
 
-    if (!l) return;
-    tag = l->tag;
+    size_t len = 0;
+    char *tag = l->tag;
 
     /* Prepare prefix string */
-    timeStr = getTimeStr(l);
-    res = snprintf(l->prfx, l->prfxSize, "%s%s%s", tag ? tag : "", timeStr,
-		   (tag || l->timeFlag) ? ": " : "");
-    if (res >= 0) {
-	len = (size_t)res;
-    }
+    char *timeStr = getTimeStr(l);
+    int res = snprintf(l->prfx, l->prfxSize, "%s%s%s", tag ? tag : "", timeStr,
+		       (tag || l->timeFlag) ? ": " : "");
+    if (res >= 0) len = res;
     if (len >= l->prfxSize) {
 	l->prfxSize = len + 80; /* Some extra space */
 	l->prfx = (char*)realloc(l->prfx, l->prfxSize);
 	if (!l->prfx) {
-	    do_panic(l, "%s: no mem for prefix: '%s'\n", __func__, format);
+	    do_panic(l, "%s: no mem for prefix: '%s'\n", __func__, fmt);
 	}
 	sprintf(l->prfx, "%s%s%s", tag ? tag : "", timeStr,
 		(tag || l->timeFlag) ? ": " : "");
     }
 
     /* Create actual output */
+    va_list aq;
     va_copy(aq, ap);
-    res = vsnprintf(l->txt, l->txtSize, format, ap);
-    if (res > 0) {
-	len = (size_t)res;
-    }
+    res = vsnprintf(l->txt, l->txtSize, fmt, ap);
+    if (res > 0) len = (size_t)res;
     if (len >= l->txtSize) {
 	l->txtSize = len + 80; /* Some extra space */
 	l->txt = (char*)realloc(l->txt, l->txtSize);
-	if (!l->txt) {
-	    do_panic(l, "%s: no mem for text: '%s'\n", __func__, format);
-	}
-	vsprintf(l->txt, format, aq);
+	if (!l->txt) do_panic(l, "%s: no mem for text: '%s'\n", __func__, fmt);
+	vsprintf(l->txt, fmt, aq);
     }
     va_end(aq);
 
-    c = l->txt;
+    char *c = l->txt;
 
     while (c && *c) {
 	char *r = strchr(c, '\n');

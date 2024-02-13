@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,10 +19,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
-/**
- * Container for all the internal information of a logger facility.
- */
+/** Container for all the internal information of a logging facility */
 typedef struct {
+    long magic;
     FILE* logfile;    /**< The logfile to use. If NULL, use syslog. Set
 			 via logger_init(). */
     int32_t mask;     /**< Mask used to determine wich messages to print.
