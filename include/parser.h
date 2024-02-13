@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -323,8 +323,7 @@ void parser_setDebugMask(int32_t mask);
  *
  * @see logger_exit(), exit()
  */
-void parser_exit(int errorno, char* format, ...)
-    __attribute__((format(printf,2,3),noreturn));
+#define parser_exit(...) logger_exit(parserlogger, __VA_ARGS__)
 
 /*
  * Basic routines to get defined fields
