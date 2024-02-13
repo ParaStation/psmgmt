@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -40,6 +40,9 @@ typedef enum {
  */
 #define pluginlog(...) if (pluginlogger)		\
 	logger_print(pluginlogger, -1, __VA_ARGS__)
+
+#define pluginflog(...) if (pluginlogger)				\
+	logger_funcprint(pluginlogger, __func__, -1, __VA_ARGS__)
 
 /**
  * Print a warn messages via the logging facility @ref pluginlogger.

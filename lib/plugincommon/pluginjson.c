@@ -99,7 +99,7 @@ psjson_t jsonNewObject(void)
     return psjson;
 
 #else
-    pluginlog("%s: json-c support not available\n", __func__);
+    pluginflog("json-c support not available\n");
     return NULL;
 #endif
 }
@@ -107,7 +107,7 @@ psjson_t jsonNewObject(void)
 psjson_t jsonFromFile(const char *path)
 {
     if (!path) {
-	pluginlog("%s: invalid path given\n", __func__);
+	pluginflog("invalid path\n");
 	return NULL;
     }
 
@@ -116,13 +116,13 @@ psjson_t jsonFromFile(const char *path)
     size_t len;
     char *mapMem = mmapFile(path, &len);
     if (!mapMem) {
-	pluginlog("%s: failed to open %s\n", __func__, path);
+	pluginflog("failed to open '%s'\n", path);
 	return NULL;
     }
 
     struct json_object *obj = json_tokener_parse(mapMem);
     if (!obj) {
-	pluginlog("%s: failed to parse %s\n", __func__, path);
+	pluginflog("failed to parse '%s'\n", path);
 	munmap(mapMem, len);
 	return NULL;
     }
@@ -138,7 +138,7 @@ psjson_t jsonFromFile(const char *path)
     return psjson;
 
 #else
-    pluginlog("%s: json-c support not available\n", __func__);
+    pluginflog("json-c support not available\n");
     return NULL;
 #endif
 }
@@ -171,8 +171,7 @@ bool __jsonWalkPath(psjson_t psjson, const char *path, bool addMissing,
 	    int32_t idx = -1;
 	    if (array[1] != ']') {
 		if (sscanf(array, "[%u]", &idx) != 1) {
-		    pluginlog("%s: invalid array definition in %s\n",
-			      __func__, path);
+		    pluginflog("invalid array definition in '%s'\n", path);
 		    ufree(dup);
 		    return false;
 		}
@@ -208,9 +207,9 @@ bool __jsonWalkPath(psjson_t psjson, const char *path, bool addMissing,
 
 	    /* create missing object */
 	    nextObj = json_object_new_object();
-            json_object_object_add(psjson->pos, next, nextObj);
-        }
-	pluginlog("%s: walked to %s\n", __func__, next);
+	    json_object_object_add(psjson->pos, next, nextObj);
+	}
+	pluginflog("walked to '%s'\n", next);
 
 	psjson->pos = nextObj;
 	next = strtok_r(NULL, delimiters, &toksave);
@@ -319,7 +318,7 @@ bool jsonDestroy(psjson_t psjson)
     return true;
 
 #else
-    pluginlog("%s: json-c support not available\n", __func__);
+    pluginflog("json-c support not available\n");
     return false;
 #endif
 }
@@ -338,12 +337,12 @@ bool jsonWriteFile(psjson_t psjson, const char *dir, const char *filename)
     if (!checkMagic(psjson, __func__, __LINE__)) return false;
 
     if (!filename) {
-	pluginlog("%s: invalid filename given\n", __func__);
+	pluginflog("invalid filename \n");
 	return false;
     }
 
     if (!dir) {
-	pluginlog("%s: invalid directory given\n", __func__);
+	pluginflog("invalid directory\n");
 	return false;
     }
 
@@ -352,18 +351,18 @@ bool jsonWriteFile(psjson_t psjson, const char *dir, const char *filename)
     const char* strObj = json_object_to_json_string_ext(psjson->obj,
 			    JSON_C_TO_STRING_PRETTY);
     if (!strObj || strlen(strObj) < 1) {
-	pluginlog("%s: converting object to string failed\n", __func__);
+	pluginflog("converting object to string failed\n");
 	return false;
     }
 
     if (!writeFile(filename, dir, strObj, strlen(strObj))) {
-	pluginlog("%s: writing object failed\n", __func__);
+	pluginflog("writing object failed\n");
 	return false;
     }
 
     return true;
 #else
-    pluginlog("%s: json-c support not available\n", __func__);
+    pluginflog("json-c support not available\n");
     return false;
 #endif
 }
@@ -430,7 +429,7 @@ int __jsonArrayLen(psjson_t psjson, const char *path,
     return json_object_array_length(psjson->pos);
 
 #else
-    pluginlog("%s: json-c support not available\n", __func__);
+    pluginflog("json-c support not available\n");
     return 0;
 #endif
 }

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -107,7 +107,7 @@ static bool fillValue(pluginConfigObj_t *obj, pluginConfigVal_t *value)
 	obj->value.val.lst = value->val.lst;
 	break;
     default:
-	pluginlog("%s: unknown type %ud\n", __func__, value->type);
+	pluginflog("unknown type %ud\n", value->type);
 	return false;
     }
     return true;
@@ -129,7 +129,7 @@ static void cleanupValue(pluginConfigObj_t *obj)
 	obj->value.val.lst = NULL;
 	break;
     default:
-	pluginlog("%s: unable to handle type %d\n", __func__, obj->value.type);
+	pluginflog("unable to handle type %d\n", obj->value.type);
 	return;
     }
 }
@@ -162,17 +162,17 @@ static bool addObj(pluginConfig_t conf, const char *key,
 
     pluginConfigObj_t *obj = umalloc(sizeof(*obj));
     if (!obj) {
-	pluginlog("%s: no memory for %s's obj\n", __func__, key);
+	pluginflog("no memory for %s's obj\n", key);
 	return false;
     }
     obj->key = ustrdup(key);
     if (!obj->key) {
-	pluginlog("%s: no memory for %s's key\n", __func__, key);
+	pluginflog("no memory for %s's key\n", key);
 	free(obj);
 	return false;
     }
     if (!fillValue(obj, value)) {
-	pluginlog("%s: cannot fill %s's value\n", __func__, key);
+	pluginflog("cannot fill %s's value\n", key);
 	free(obj->key);
 	free(obj);
 	return false;
@@ -263,7 +263,7 @@ bool pluginConfig_setDef(pluginConfig_t conf, const pluginConfigDef_t def[])
 	}
     }
     if (def[i].type != PLUGINCONFIG_VALUE_NONE || def[i].desc) {
-	pluginlog("%s: definition %p is invalid\n", __func__, def);
+	pluginflog("definition %p is invalid\n", def);
 	return false;
     }
 
@@ -314,7 +314,7 @@ static bool handlePSConfigEntry(pluginConfig_t conf, PSConfig *cfg,
     GError *err = NULL;
 
     if (!checkConfig(conf)) {
-	pluginlog("%s: context not ready\n", __func__);
+	pluginflog("context not ready\n");
 	return false;
     }
 
@@ -328,13 +328,13 @@ static bool handlePSConfigEntry(pluginConfig_t conf, PSConfig *cfg,
     if (val) {
 	if (cVal.type == PLUGINCONFIG_VALUE_NUM) {
 	    if (!toLong(val, &cVal.val.num)) {
-		pluginlog("%s: %s value '%s' not number\n", __func__, sKey,val);
+		pluginflog("%s value '%s' not number\n", sKey, val);
 		g_free(val);
 		return false;
 	    }
 	    g_free(val);
 	} else if (cVal.type == PLUGINCONFIG_VALUE_LST) {
-	    pluginlog("%s: %s expects list\n", __func__, sKey);
+	    pluginflog("%s expects list\n", sKey);
 	    return false;
 	} else {
 	    cVal.type = PLUGINCONFIG_VALUE_STR;
@@ -346,14 +346,14 @@ static bool handlePSConfigEntry(pluginConfig_t conf, PSConfig *cfg,
 
 	if (cVal.type != PLUGINCONFIG_VALUE_NONE
 	    && cVal.type != PLUGINCONFIG_VALUE_LST) {
-	    pluginlog("%s: %s's value of wrong type\n", __func__, sKey);
+	    pluginflog("%s's value of wrong type\n", sKey);
 	    return false;
 	}
 
 	/* This should be a list */
 	GPtrArray *list = psconfig_getList(cfg, obj, key, psCfgFlags, &err);
 	if (!list) {
-	    pluginlog("%s: %s(%s): %s\n", __func__, obj, key, err->message);
+	    pluginflog("%s(%s): %s\n", obj, key, err->message);
 	    g_error_free(err);
 	    return false;
 	}
@@ -361,7 +361,7 @@ static bool handlePSConfigEntry(pluginConfig_t conf, PSConfig *cfg,
 	cVal.type = PLUGINCONFIG_VALUE_LST;
 	cVal.val.lst = umalloc((list->len + 1) * sizeof(*(cVal.val.lst)));
 	if (!cVal.val.lst) {
-	    pluginlog("%s: %s: no memory\n", __func__, sKey);
+	    pluginflog("%s: no memory\n", sKey);
 	    g_ptr_array_free(list, TRUE);
 	    return false;
 	}
@@ -373,7 +373,7 @@ static bool handlePSConfigEntry(pluginConfig_t conf, PSConfig *cfg,
 
 	g_ptr_array_free(list, FALSE /* keep array elements */);
     } else {
-	pluginlog("%s: %s(%s): %s\n", __func__, obj, sKey, err->message);
+	pluginflog("%s(%s): %s\n", obj, sKey, err->message);
 	g_error_free(err);
 	return false;
     }
@@ -385,7 +385,7 @@ static bool handlePSConfigEntry(pluginConfig_t conf, PSConfig *cfg,
 bool pluginConfig_load(pluginConfig_t conf, const char *configKey)
 {
 #ifdef BUILD_WITHOUT_PSCONFIG
-    pluginlog("%s: psconfig is not supported!\n", __func__);
+    pluginflog("psconfig is not supported!\n");
     return false;
 #else
     if (!checkConfig(conf)) return false;
@@ -397,7 +397,7 @@ bool pluginConfig_load(pluginConfig_t conf, const char *configKey)
     char *psCfgObj = PSCfgHelp_getObject(psCfg, psCfgFlags, pluginlogger,
 					 PLUGIN_LOG_VERBOSE);
     if (!psCfgObj) {
-	pluginlog("%s: no valid host object for this node\n", __func__);
+	pluginflog("no valid host object for this node\n");
 	goto loadCfgErr;
     }
 
@@ -407,7 +407,7 @@ bool pluginConfig_load(pluginConfig_t conf, const char *configKey)
     GHashTable *configHash = psconfig_getKeyList(psCfg, psCfgObj, keypat,
 						 psCfgFlags, &err);
     if (!configHash) {
-	pluginlog("%s: %s(%s): %s\n", __func__, psCfgObj, keypat, err->message);
+	pluginflog("%s(%s): %s\n", psCfgObj, keypat, err->message);
 	g_error_free(err);
 	goto loadCfgErr;
     }
@@ -417,7 +417,7 @@ bool pluginConfig_load(pluginConfig_t conf, const char *configKey)
     g_hash_table_iter_init (&iter, configHash);
     while (g_hash_table_iter_next(&iter, &key, &obj)) {
 	if (!handlePSConfigEntry(conf, psCfg, psCfgObj, key)) {
-	    pluginlog("%s: failed to handle '%s'\n", __func__, (gchar *)key);
+	    pluginflog("failed to handle '%s'\n", (gchar *)key);
 	}
     }
     g_hash_table_destroy(configHash);
@@ -439,7 +439,7 @@ bool pluginConfig_add(pluginConfig_t conf,
 
     const pluginConfigDef_t *def = pluginConfig_getDef(conf, key);
     if (def && value->type != def->type) {
-	pluginlog("%s: type mismatch for %s\n", __func__, key);
+	pluginflog("type mismatch for %s\n", key);
 	return false;
     }
 
@@ -447,7 +447,7 @@ bool pluginConfig_add(pluginConfig_t conf,
     if (obj) {
 	cleanupValue(obj);
 	if (!fillValue(obj, value)) {
-	    pluginlog("%s: Cannot fill %s's value\n", __func__, key);
+	    pluginflog("Cannot fill %s's value\n", key);
 	    obj->value.type = PLUGINCONFIG_VALUE_NONE;
 	    return false;
 	}
@@ -464,13 +464,13 @@ bool pluginConfig_addStr(pluginConfig_t conf, const char *key, char *value)
     const pluginConfigDef_t *def = pluginConfig_getDef(conf, key);
     if (def && def->type != PLUGINCONFIG_VALUE_STR
 	&& def->type != PLUGINCONFIG_VALUE_NUM) {
-	pluginlog("%s: type mismatch for %s\n", __func__, key);
+	pluginflog("type mismatch for %s\n", key);
 	return false;
     }
     pluginConfigVal_t val = { .type = def ? def->type:PLUGINCONFIG_VALUE_STR };
     if (val.type == PLUGINCONFIG_VALUE_NUM) {
 	if (!toLong(value, &val.val.num)) {
-	    pluginlog("%s: type mismatch for %s\n", __func__, key);
+	    pluginflog("type mismatch for %s\n", key);
 	    return false;
 	}
     } else {
@@ -490,14 +490,14 @@ bool pluginConfig_addToLst(pluginConfig_t conf, const char *key, char *item)
     if (obj) {
 	/* extend existing object */
 	if (obj->value.type != PLUGINCONFIG_VALUE_LST) {
-	    pluginlog("%s: type mismatch for %s\n", __func__, key);
+	    pluginflog("type mismatch for %s\n", key);
 	    return false;
 	}
 	size_t len = lstLen(obj->value.val.lst);
 	char **newLst = urealloc(obj->value.val.lst,
 				 (len + 2) * sizeof(*(obj->value.val.lst)));
 	if (!newLst) {
-	    pluginlog("%s: no memory for %s\n", __func__, key);
+	    pluginflog("no memory for %s\n", key);
 	    return false;
 	}
 	newLst[len] = strdup(item);
@@ -510,7 +510,7 @@ bool pluginConfig_addToLst(pluginConfig_t conf, const char *key, char *item)
     pluginConfigVal_t val = { .type = PLUGINCONFIG_VALUE_LST };
     val.val.lst = umalloc(2 * sizeof(*(val.val.lst)));
     if (!val.val.lst) {
-	pluginlog("%s: no memory for %s\n", __func__, key);
+	pluginflog("no memory for %s\n", key);
 	return false;
     }
     val.val.lst[0] = strdup(item);
@@ -579,23 +579,23 @@ int pluginConfig_verifyEntry(pluginConfig_t conf,
 			     const char *key, pluginConfigVal_t *val)
 {
     if (!checkConfig(conf) || !conf->def) {
-	pluginlog("%s: config not initialized or no definition'\n", __func__);
+	pluginflog("config not initialized or no definition'\n");
 	return 1;
     }
 
     const pluginConfigDef_t *def = pluginConfig_getDef(conf, key);
     if (!def) {
-	pluginlog("%s: unknown option '%s'\n", __func__, key);
+	pluginflog("unknown option '%s'\n", key);
 	return 1;
     }
 
     if (!val) {
-	pluginlog("%s: no value for %s\n", __func__, key);
+	pluginflog("no value for %s\n", key);
 	return 1;
     }
 
     if (val->type != def->type) {
-	pluginlog("%s: type mismatch for %s\n", __func__, key);
+	pluginflog("type mismatch for %s\n", key);
 	return 2;
     }
 
@@ -605,7 +605,7 @@ int pluginConfig_verifyEntry(pluginConfig_t conf,
 int pluginConfig_verify(pluginConfig_t conf)
 {
     if (!checkConfig(conf) || !conf->def) {
-	pluginlog("%s: config not initialized or no definition'\n", __func__);
+	pluginflog("config not initialized or no definition'\n");
 	return 1;
     }
 

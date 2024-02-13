@@ -40,7 +40,7 @@
 bool removeDir(char *directory, bool root)
 {
     if (!directory) {
-	pluginlog("%s: invalid directory given\n", __func__);
+	pluginflog("invalid directory\n");
 	return false;
     }
 
@@ -95,7 +95,7 @@ static bool doCreateDir(const char *dir, mode_t mode, uid_t uid, gid_t gid)
 bool mkDir(const char *path, mode_t mode, uid_t uid, gid_t gid)
 {
     if (!path) {
-	pluginlog("%s: invalid directory given\n", __func__);
+	pluginflog("invalid directory\n");
 	return false;
     }
 
@@ -141,21 +141,20 @@ PSnodes_ID_t getNodeIDbyName(const char *host)
     timersub(&time_now, &time_start, &time_diff);
 
     if (time_diff.tv_sec >= RESOLVE_TIME_WARNING) {
-	pluginlog("%s: warning: slow resolving for host %s (%ld.%06ld)\n",
-		  __func__, host, time_diff.tv_sec, time_diff.tv_usec);
+	pluginflog("warning: slow resolving for host %s (%ld.%06ld)\n",
+		   host, time_diff.tv_sec, time_diff.tv_usec);
     }
 
     if (rc) {
-	pluginlog("%s: unknown host %s: %s\n", __func__, host, gai_strerror(rc));
+	pluginflog("unknown host %s: %s\n", host, gai_strerror(rc));
 	return -1;
     }
 
     if (nodeID < 0) {
-	pluginlog("%s: cannot get PS_ID for host %s\n", __func__, host);
+	pluginflog("cannot get PS_ID for host %s\n", host);
 	return -1;
     } else if (!PSC_validNode(nodeID)) {
-	pluginlog("%s: PS_ID %d for host %s out of range\n", __func__,
-		  nodeID, host);
+	pluginflog("PS_ID %d for host %s out of range\n", nodeID, host);
 	return -1;
     }
 
@@ -306,8 +305,7 @@ void __printBinaryData(char *data, size_t len, char *tag,
     size_t i;
 
     if (!data) {
-	pluginlog("%s: invalid data ptr from '%s:%i'\n", __func__,
-		    func, line);
+	pluginflog("invalid data ptr from '%s:%i'\n", func, line);
 	return;
     }
 
@@ -377,7 +375,7 @@ bool __getScriptCBdata(int fd, char *errMsg, size_t errMsgLen, size_t *errLen,
 		       const char *func, const int line)
 {
     if (fd <= 0) {
-	pluginlog("%s: invalid iofd from caller %s:%i\n", __func__, func, line);
+	pluginflog("invalid iofd from caller %s:%i\n", func, line);
 	errMsg[0] = '\0';
 	return false;
     }
@@ -393,12 +391,12 @@ bool __getScriptCBdata(int fd, char *errMsg, size_t errMsgLen, size_t *errLen,
 char *mmapFile(const char *filename, size_t *size)
 {
     if (!filename) {
-	pluginlog("%s: invalid filename given\n", __func__);
+	pluginflog("invalid filename\n");
 	return NULL;
     }
 
     if (!size) {
-	pluginlog("%s: invalid size given\n", __func__);
+	pluginflog("invalid size\n");
 	return NULL;
     }
 
@@ -430,11 +428,11 @@ char *mmapFile(const char *filename, size_t *size)
 bool writeFile(const char *name, const char *dir, const void *data, size_t len)
 {
     if (!name) {
-	pluginlog("%s: invalid name given\n", __func__);
+	pluginflog("invalid name\n");
 	return false;
     }
     if (!dir) {
-	pluginlog("%s: invalid directory given\n", __func__);
+	pluginflog("invalid directory\n");
 	return false;
     }
 
@@ -451,7 +449,7 @@ bool writeFile(const char *name, const char *dir, const void *data, size_t len)
 
     fwrite(data, len, 1, fp);
     if (ferror(fp)) {
-	pluginlog("%s: fwrite(%s) failed\n", __func__, path);
+	pluginflog("fwrite(%s) failed\n", path);
 	fclose(fp);
 	return false;
     }

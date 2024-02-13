@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -208,8 +208,7 @@ int parseConfigFileExt(char *filename, Config_t conf, bool keepObjects,
     if (!(fp = fopen(filename, "r"))) {
 	char *cwd = getcwd(NULL, 0);
 
-	pluginlog("%s: error opening config cwd:%s file:%s\n", __func__, cwd,
-		  filename);
+	pluginflog("error opening config cwd:%s file:%s\n", cwd, filename);
 	free(cwd);
 	return -1;
     }
@@ -236,11 +235,11 @@ int parseConfigFileExt(char *filename, Config_t conf, bool keepObjects,
 	    case 0:
 		break;
 	    case -1:
-		pluginlog("%s: failed to handle '%s'\n", __func__, line);
+		pluginflog("failed to handle '%s'\n", line);
 		free(line);
 		return -1;
 	    default:
-		pluginlog("%s: handleImmediate() returns %d\n", __func__, ret);
+		pluginflog("handleImmediate() returns %d\n", ret);
 	    }
 	}
 
@@ -286,7 +285,7 @@ static char *getConfValue(Config_t conf, char *key)
 
 void addConfigEntry(Config_t conf, char *key, char *value)
 {
-    //pluginlog("%s: key '%s' value '%s'\n", __func__, key, value);
+    //pluginflog("key '%s' value '%s'\n", key, value);
     if (value) {
 	value = trim(value);
 	/* remove quotes from value if required */
@@ -327,13 +326,13 @@ int verifyConfigEntry(const ConfDef_t confDef[], char *key, char *value)
     long testNum;
 
     if (!(def = getConfigDef(key, confDef))) {
-	pluginlog("%s: unknown option '%s'\n", __func__, key);
+	pluginflog("unknown option '%s'\n", key);
 	return 1;
     }
 
     if (def->isNum) {
 	if ((sscanf(value, "%li", &testNum)) != 1) {
-	    pluginlog("%s: option '%s' is not a number\n", __func__, key);
+	    pluginflog("option '%s' is not a number\n", key);
 	    return 2;
 	}
     }
@@ -390,7 +389,7 @@ long getConfValueL(Config_t conf, char *key)
     if (!key || !(valStr = getConfValue(conf, key))) return val;
 
     if ((sscanf(valStr, "%li", &val)) != 1) {
-	pluginlog("%s: option '%s' is not a number\n", __func__, key);
+	pluginflog("option '%s' is not a number\n", key);
 	val = -1;
     }
 
@@ -405,7 +404,7 @@ float getConfValueF(Config_t conf, char *key)
     if (!key || !(valStr = getConfValue(conf, key))) return val;
 
     if ((sscanf(valStr, "%f", &val)) != 1) {
-	pluginlog("%s: option '%s' is not a float\n", __func__, key);
+	pluginflog("option '%s' is not a float\n", key);
 	val = -1;
     }
 
@@ -420,7 +419,7 @@ int getConfValueI(Config_t conf, char *key)
     if (!key || !(valStr = getConfValue(conf, key))) return val;
 
     if ((sscanf(valStr, "%i", &val)) != 1) {
-	pluginlog("%s: option '%s' is not a number\n", __func__, key);
+	pluginflog("option '%s' is not a number\n", key);
 	val = -1;
     }
 
@@ -435,7 +434,7 @@ unsigned int getConfValueU(Config_t conf, char *key)
     if (!key || !(valStr = getConfValue(conf, key))) return val;
 
     if ((sscanf(valStr, "%u", &val)) != 1) {
-	pluginlog("%s: option '%s' is not a number\n", __func__, key);
+	pluginflog("option '%s' is not a number\n", key);
 	val = -1;
     }
 

@@ -135,9 +135,9 @@ static void killForwarderChild(Forwarder_Data_t *fw, int sig, char *reason,
 
     if (fw->cSid < 1 || fw->cPid < 1) return;
 
-    pluginlog("%s: signal %u to sid %i (job %s) grace %i%s%s\n", __func__,
-	      sig, fw->cSid, fw->jobID ? fw->jobID : "<?>", grace,
-	      reason ? " reason " : "", reason ? reason : "");
+    pluginflog("signal %u to sid %i (job %s) grace %i%s%s\n", sig, fw->cSid,
+	       fw->jobID ? fw->jobID : "<?>", grace,
+	       reason ? " reason " : "", reason ? reason : "");
 
     if (fw->cPid <= 0) return;
 
@@ -200,9 +200,9 @@ static int handleMthrSock(int fd, void *info)
 
     /* messages not handled yet must be PSP_PF_MSG */
     if (msg.header.type != PSP_PF_MSG) {
-	pluginlog("%s: unexpected message %s from %s (type %d)\n", __func__,
-		  PSP_printMsg(msg.header.type),
-		  PSC_printTID(msg.header.sender), msg.type);
+	pluginflog("unexpected message %s from %s (type %d)\n",
+		   PSP_printMsg(msg.header.type),
+		   PSC_printTID(msg.header.sender), msg.type);
 	return -1;
     }
 
@@ -222,8 +222,8 @@ static int handleMthrSock(int fd, void *info)
 	handleFinACK(fw);
 	break;
     default:
-	pluginlog("%s: invalid cmd %i from %s\n", __func__, msg.type,
-		  PSC_printTID(msg.header.sender));
+	pluginflog("invalid cmd %i from %s\n", msg.type,
+		   PSC_printTID(msg.header.sender));
     }
 
     return 0;
@@ -289,8 +289,8 @@ static void signalHandler(int sig)
 	fwShutdown = true;
 	if (killAllChildren && fwData->cSid > 0) {
 	    /* second kill phase, do it the hard way now */
-	    pluginlog("%s: SIGKILL to sid %i (job %s)\n", __func__,
-		      fwData->cSid, fwData->jobID ? fwData->jobID : "<?>");
+	    pluginflog("SIGKILL to sid %i (job %s)\n", fwData->cSid,
+		       fwData->jobID ? fwData->jobID : "<?>");
 	    /* warning: don't use killSession() in the signal handler.
 	     * Double entry of killSession() can lead to corrupt memory! */
 	    pskill(fwData->cPid, SIGKILL, 0);
@@ -301,7 +301,7 @@ static void signalHandler(int sig)
 	}
 	break;
     case SIGPIPE:
-	pluginlog("%s: SIGPIPE\n", __func__);
+	pluginflog("SIGPIPE\n");
 	break;
     }
 }
@@ -368,14 +368,14 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
     /* needed or ioctl(TIOCSCTTY) will fail! */
     fw->cSid = setsid();
     if (fw->cSid == -1) {
-	pluginlog("%s: setsid() failed\n", __func__);
+	pluginflog("setsid() failed\n");
 	exit(1);
     }
 
     /* send sid to forwarder */
     ssize_t written = PSCio_sendF(controlFD, &fw->cSid, sizeof(fw->cSid));
     if (written != sizeof(pid_t)) {
-	pluginlog("%s: failed writing child's sid\n", __func__);
+	pluginflog("failed writing child's sid\n");
 	exit(1);
     }
 
@@ -511,7 +511,7 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
     PSP_putTypedMsgBuf(&accMsg, "extended flag", &ext, sizeof(ext));
 
     if (accMsg.header.len > BufTypedMsgSize) {
-	pluginlog("%s: accMsg to large to append\n", __func__);
+	pluginflog("accMsg to large to append\n");
 	return;
     }
 
@@ -606,12 +606,12 @@ static void monitorOEpipes(Forwarder_Data_t *fw)
 {
     close(fw->stdOut[1]);
     if (Selector_register(fw->stdOut[0], handleChildOE, fw) <0) {
-	pluginlog("%s: register fd %i failed\n", __func__, fw->stdOut[0]);
+	pluginflog("failed to register fd %i\n", fw->stdOut[0]);
     }
 
     close(fw->stdErr[1]);
     if (Selector_register(fw->stdErr[0], handleChildOE, fw) <0) {
-	pluginlog("%s: register fd %i failed\n", __func__, fw->stdErr[0]);
+	pluginflog("failed to register fd %i\n", fw->stdErr[0]);
     }
 }
 
@@ -647,7 +647,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
     if (fw->hookFWInit) {
 	int ret = fw->hookFWInit(fw);
 	if (ret < 0) {
-	    pluginlog("%s: hookFWInit failed with %d\n", __func__, ret);
+	    pluginflog("hookFWInit failed with %d\n", ret);
 	    return ret;
 	}
     }
@@ -655,14 +655,14 @@ static int execFWhooks(Forwarder_Data_t *fw)
     /* jail myself and all my children */
     pid_t pid = getpid();
     if (fw->jailChild && PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid) < 0) {
-	pluginlog("%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
+	pluginflog("hook PSIDHOOK_JAIL_CHILD failed\n");
 	return -1;
     }
 
     /* optional switch user */
     if (fw->uID != getuid() || fw->gID != getgid()) {
 	if (!switchUser(fw->userName, fw->uID, fw->gID)) {
-	    pluginlog("%s: switchUser() failed\n", __func__);
+	    pluginflog("switchUser() failed\n");
 	    return -1;
 	}
     }
@@ -671,7 +671,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
     if (fw->hookFWInitUser) {
 	int ret = fw->hookFWInitUser(fw);
 	if (ret < 0) {
-	    pluginlog("%s: hookFWInitUser failed with %d\n", __func__, ret);
+	    pluginflog("hookFWInitUser failed with %d\n", ret);
 	    return ret;
 	}
     }
@@ -691,13 +691,13 @@ static void execForwarder(PStask_t *task)
     PSID_clearMem(false);
 
     if (!initForwarder(fwTask->fd, fw)) {
-	pluginlog("%s: initForwarder failed\n", __func__);
+	pluginflog("initForwarder failed\n");
 	exit(1);
     }
 
     int ret = execFWhooks(fw);
     if (ret < 0) {
-	pluginlog("%s: forwarder hooks failed\n", __func__);
+	pluginflog("forwarder hooks failed\n");
 	sendCodeInfo(ret);
 	exit(-1);
     }
@@ -710,8 +710,7 @@ static void execForwarder(PStask_t *task)
 	    /* setup output/error pipes */
 	    if (fw->fwChildOE) {
 		if (!openOEpipes(fw)) {
-		    pluginlog("%s: initialize child STDOUT/STDERR failed\n",
-			      __func__);
+		    pluginflog("initialize child STDOUT/STDERR failed\n");
 		    exit(-1);
 		}
 	    }
@@ -746,7 +745,7 @@ static void execForwarder(PStask_t *task)
 					     sizeof(pid_t));
 		close(controlFDs[0]);
 		if (read != sizeof(pid_t)) {
-		    pluginlog("%s: reading childs sid failed\n", __func__);
+		    pluginflog("reading childs sid failed\n");
 		    pskill(fw->cPid, SIGKILL, 0);
 		}
 		gettimeofday(&childStart, NULL);
@@ -773,7 +772,7 @@ static void execForwarder(PStask_t *task)
 	}
 	/* check for timeout */
 	if (jobTimeout) {
-	    pluginlog("%s: child timed out\n", __func__);
+	    pluginflog("child timed out\n");
 	    status = -4;
 	}
 
@@ -912,7 +911,7 @@ static int handleFwSock(int fd, void *info)
 
     /* messages not handled yet must be PSP_PF_MSG */
     if (msg.header.type != PSP_PF_MSG) {
-	pluginlog("%s: unexpected message %s from %s (type %d)\n", __func__,
+	pluginflog("unexpected message %s from %s (type %d)\n",
 		  PSP_printMsg(msg.header.type),
 		  PSC_printTID(msg.header.sender), msg.type);
 	return 0;
@@ -935,8 +934,8 @@ static int handleFwSock(int fd, void *info)
 	handleChildFin(msg.header.sender);
 	break;
     default:
-	pluginlog("%s: invalid cmd %i from %s\n", __func__, msg.type,
-		  PSC_printTID(msg.header.sender));
+	pluginflog("invalid cmd %i from %s\n", msg.type,
+		   PSC_printTID(msg.header.sender));
     }
 
     return 0;
@@ -945,11 +944,11 @@ static int handleFwSock(int fd, void *info)
 bool startForwarder(Forwarder_Data_t *fw)
 {
     if (!fw) {
-	pluginlog("%s: no forwarder defined\n", __func__);
+	pluginflog("no forwarder defined\n");
 	return false;
     }
     if (!fw->killSession) {
-	pluginlog("%s: no killSessions() given\n", __func__);
+	pluginflog("no killSessions() given\n");
 	return false;
     }
 
@@ -965,7 +964,7 @@ bool startForwarder(Forwarder_Data_t *fw)
     task->argc = 1 + !!fw->jobID;
     task->argv = malloc((task->argc + 1) * sizeof(*task->argv));
     if (!task->argv) {
-	pluginlog("%s: out of memory\n", __func__);
+	pluginflog("out of memory\n");
 	goto ERROR;
     }
     task->argv[0] = strdup(fw->pTitle);
@@ -975,7 +974,7 @@ bool startForwarder(Forwarder_Data_t *fw)
 
     /* start the new forwarder */
     if (PSIDspawn_localTask(task, execForwarder, handleFwSock)) {
-	pluginlog("%s: creating forwarder %s failed\n", __func__, fw->pTitle);
+	pluginflog("creating forwarder %s failed\n", fw->pTitle);
 	goto ERROR;
     }
     fw->tid = task->tid;
@@ -1009,7 +1008,7 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
 {
     if (fw && fw->cSid > 0) {
 	fw->killSession(fw->cSid, sig);
-	pluginlog("%s: session %i signal %i\n", __func__, fw->cSid, sig);
+	pluginflog("session %i signal %i\n", fw->cSid, sig);
 
 	/* Trigger the forwarder itself, too */
 	if ((sig == SIGTERM || sig == SIGKILL) && fw->tid > 0) {
@@ -1032,7 +1031,7 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
 	}
 	return true;
     } else {
-	pluginlog("%s: unable to signal forwarder\n", __func__);
+	pluginflog("unable to signal forwarder\n");
     }
     return false;
 }
