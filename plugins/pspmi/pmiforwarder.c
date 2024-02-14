@@ -147,13 +147,15 @@ static int readFromPMIClient(int fd, void *data)
     clientStatus = CONNECTED;
 
     int rLen = strlen(recvBuf);
-    while (recvBuf[rLen] == '\n') rLen--;
+    if (rLen > 0) rLen--;
+    while (rLen > 0 && recvBuf[rLen] == '\n') rLen--;
     mdbg(PSPMI_LOG_RECV, "%s: PMI message received: {%.*s}\n", __func__, rLen,
 	 recvBuf);
 
     while (true) {
 	int mLen = strlen(msgBuf);
-	while (msgBuf[mLen] == '\n') mLen--;
+	if (mLen > 0) mLen--;
+	while (mLen > 0 && msgBuf[mLen] == '\n') mLen--;
 	mdbg(PSPMI_LOG_VERBOSE, "%s: Current message buffer: {%.*s}\n",
 	     __func__, mLen, msgBuf);
 
