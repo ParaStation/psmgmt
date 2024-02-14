@@ -262,7 +262,7 @@ int parser_error(char* token);
 char* parser_getString(void);
 
 /**
- * @brief Get a quoted of whitespace delimited string
+ * @brief Get a quoted or whitespace delimited string
  *
  * Get a quoted or whitespace delimited string from the character
  * array passed to @ref parser_parseString(). Depending on the first
