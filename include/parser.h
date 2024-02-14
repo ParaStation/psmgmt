@@ -175,7 +175,7 @@ int parser_parseString(char* token, parser_t* parser);
  * ('#') character and ends at the end of the line, i.e. the whole
  * rest of the line following the hash character will be omitted.
  *
- * Hash characters within quoted or double qouted parts of the line
+ * Hash characters within quoted or double quoted parts of the line
  * will be ignored.
  *
  * This function might modify the character array @a line, i.e. it
@@ -252,7 +252,7 @@ int parser_error(char* token);
  */
 
 /**
- * @brief Get another whitespace delemited string
+ * @brief Get another whitespace delimited string
  *
  * Get another whitespace delimited string from the character array
  * passed to @ref parser_parseString() via strtok(NULL, " \t\n").
@@ -262,7 +262,7 @@ int parser_error(char* token);
 char* parser_getString(void);
 
 /**
- * @brief Get a quoted of whitespace delemited string
+ * @brief Get a quoted of whitespace delimited string
  *
  * Get a quoted or whitespace delimited string from the character
  * array passed to @ref parser_parseString(). Depending on the first
@@ -316,7 +316,7 @@ int parser_getNumber(char *token, long *val);
  *
  * Get a filename (i.e. a whitespace delimited string) from the
  * character array @a token and test if the file exists. If the
- * filename is an absolut one, only the existence of filename itself
+ * filename is an absolute one, only the existence of filename itself
  * is tested. Otherwise first the existence of
  * prefix/extradir/filename and, on absence, the existence of
  * prefix/filename is tested.
