@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -283,13 +283,11 @@ static plugin_ref_t * findRef(list_t *refList, plugin_t *plugin)
  */
 static int addRef(list_t *refList, plugin_t *plugin)
 {
-    plugin_ref_t *ref;
-
     if (findRef(refList, plugin)) return 0;
 
-    ref = getRef();
+    plugin_ref_t *ref = getRef();
     if (!ref) {
-	PSID_warn(-1, errno, "%s", __func__);
+	PSID_fwarn(errno, "getRef()");
 	return -1;
     }
 
@@ -473,7 +471,7 @@ static plugin_t * newPlugin(void *handle, char *pName, int pVer)
 
     plugin = malloc(sizeof(*plugin));
     if (!plugin) {
-	PSID_warn(-1, errno, "%s", __func__);
+	PSID_fwarn(errno, "malloc()");
 	return NULL;
     }
 
@@ -804,14 +802,14 @@ void PSIDplugin_sendList(PStask_ID_t dest)
 	len = strlen(msg.buf)+1;
 	msg.header.len += len;
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	    return;
 	}
 	msg.header.len -= len;
 
 	msg.type = PSP_INFO_QUEUE_SEP;
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	    return;
 	}
 	msg.type = PSP_INFO_QUEUE_PLUGINS;
@@ -1202,8 +1200,7 @@ static void sendStr(DDTypedBufferMsg_t *msg, char *str, const char *caller)
 
 	msg->header.len += num+1;
 	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: %s: sendMsg()", caller ? caller : "<?>",
-		      __func__);
+	    PSID_fwarn(errno, "%s: sendMsg()", caller ? caller : "<?>");
 	    break;
 	}
 	msg->header.len -= num+1;
@@ -1236,7 +1233,7 @@ static void sendAvail(PStask_ID_t dest)
 
     if (!(dir = opendir(dirName))) {
 	int eno = errno;
-	PSID_warn(-1, eno, "%s: opendir(%s) failed", __func__, dirName);
+	PSID_fwarn(eno, "opendir(%s) failed", dirName);
 	snprintf(res, sizeof(res), "opendir(%.200s) failed: %s\n", dirName,
 		 strerror(eno));
 	goto end;
@@ -1516,7 +1513,7 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 	}
 	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
 	    ret = errno;
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	    goto end;
 	}
 	return true; /* destination node will send PLUGINRES message */
@@ -1566,7 +1563,7 @@ end:
 		.len = sizeof(msg) },
 	    .type = ret };
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	}
     }
     return true;

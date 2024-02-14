@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -156,7 +156,7 @@ void PSID_resetSigs(void)
     sigaddset(&handledSet, SIGUSR2);
 
     if (sigprocmask(SIG_UNBLOCK, &handledSet, NULL) < 0) {
-	PSID_warn(-1, errno, "%s: sigprocmask()", __func__);
+	PSID_fwarn(errno, "sigprocmask()");
     }
 
     /* Also reset SIGHUP */
@@ -245,7 +245,7 @@ static int handleMasterSock(int fd, void *info)
 
     int ssock = accept(fd, NULL, 0);
     if (ssock < 0) {
-	PSID_warn(-1, errno, "%s: error while accept", __func__);
+	PSID_fwarn(errno, "error while accept");
 	return -1;
     }
 
@@ -336,9 +336,7 @@ void PSID_shutdownMasterSock(void)
     /* Just in case, this has not yet happened */
     if (Selector_isRegistered(masterSock)) Selector_remove(masterSock);
 
-    if (close(masterSock)) {
-	PSID_warn(-1, errno, "%s: close()", __func__);
-    }
+    if (close(masterSock) < 0) PSID_fwarn(errno, "close()");
 
     masterSock = -1;
 }
@@ -352,14 +350,14 @@ void PSID_checkMaxPID(void)
     int ret;
 
     if (!maxPIDFile) {
-	PSID_warn(-1, errno, "%s: cannot open file '%s'", __func__, PID_FILE);
+	PSID_fwarn(errno, "cannot open file '%s'", PID_FILE);
 	return;
     }
 
     ret = fscanf(maxPIDFile, "%u", &maxPID);
     if (ret == EOF) {
-	PSID_warn(-1, ferror(maxPIDFile) ? errno : 0,
-		  "%s: unable to determine maximum PID", __func__);
+	PSID_fwarn(ferror(maxPIDFile) ? errno : 0,
+		   "unable to determine maximum PID");
 	goto end;
     }
 

@@ -80,7 +80,7 @@ static int handleClientConnectMsg(int fd, void *info)
     } else if (msglen == -1) {
 	if (errno != EAGAIN) {
 	    int eno = errno;
-	    PSID_warn(-1, eno, "%s(%d): PSIDclient_recv()", __func__, fd);
+	    PSID_fwarn(eno, "(%d): PSIDclient_recv()", fd);
 	    if (eno == EBADF) PSIDclient_delete(fd);
 	}
     } else {
@@ -154,7 +154,7 @@ static int handleClientMsg(int fd, void *info)
     } else if (msglen == -1) {
 	if (errno != EAGAIN) {
 	    int eno = errno;
-	    PSID_warn(-1, eno, "%s(%d): PSIDclient_recv()", __func__, fd);
+	    PSID_fwarn(eno, "(%d): PSIDclient_recv()", fd);
 	    if (eno == EBADF) PSIDclient_delete(fd);
 	}
     } else {
@@ -381,7 +381,7 @@ int PSIDclient_send(DDMsg_t *msg)
 
     /* msg at most partly sent */
     if (!storeMsg(fd, msg, sent)) {
-	PSID_warn(-1, errno, "%s: Failed to store message", __func__);
+	PSID_fwarn(errno, "Failed to store message");
 	errno = ENOBUFS;
 	return -1;
     }
@@ -390,7 +390,7 @@ int PSIDclient_send(DDMsg_t *msg)
     if (PSIDFlwCntrl_applicable(msg)) {
 	int ret = PSIDFlwCntrl_addStop(clients[fd].stops, msg->sender);
 	if (ret < 0) {
-	    PSID_warn(-1, errno, "%s: Failed to store stopTID", __func__);
+	    PSID_fwarn(errno, "Failed to store stopTID");
 	    errno = ENOBUFS;
 	    return -1;
 	} else if (!ret) {
@@ -440,8 +440,7 @@ ssize_t PSIDclient_recv(int fd, DDBufferMsg_t *msg)
     ssize_t ret = doClientRecv(fd, msg);
 
     if (ret < 0) {
-	PSID_warn(-1, errno, "%s(%d/%s)", __func__, fd,
-		  PSC_printTID(PSIDclient_getTID(fd)));
+	PSID_fwarn(errno, "(%d/%s)", fd, PSC_printTID(PSIDclient_getTID(fd)));
     } else if (ret && ret != msg->header.len) {
 	PSID_flog("(%d/%s) type %s (len=%d) from %s", fd,
 		  PSC_printTID(PSIDclient_getTID(fd)),
@@ -1128,7 +1127,7 @@ int PSIDclient_setMax(int max)
     size_t oldClients = (size_t)clients;
     client_t *newClients = realloc(clients, sizeof(*clients) * maxClientFD);
     if (!newClients) {
-	PSID_warn(-1, ENOMEM, "%s", __func__);
+	PSID_fwarn(ENOMEM, "realloc()");
 	maxClientFD = oldMax;
 	errno = ENOMEM;
 	return -1;

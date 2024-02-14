@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -47,7 +47,7 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 
     PSsignal_t *thissig = PSsignal_get();
     if (!thissig) {
-	PSID_warn(-1, errno, "%s(%s,%d)", __func__, PSC_printTID(tid), signal);
+	PSID_fwarn(errno, "(%s,%d)", PSC_printTID(tid), signal);
 	RDP_blockTimer(blockedRDP);
 	return;
     }

@@ -80,14 +80,14 @@ static void alarmHandler(int sig)
 
     if (!alarmFunc) alarmFunc = "UNKNOWN";
 
-    PSID_warn(-1, eno, "%s: %s()", __func__, alarmFunc);
+    PSID_fwarn(eno, "%s()", alarmFunc);
     fprintf(stderr, "%s: %s(): %s\n", __func__, alarmFunc, strerror(eno));
 
     if (alarmFD >= 0) {
 	int ret = write(alarmFD, &eno, sizeof(eno));
 	if (ret < 0) {
 	    eno = errno;
-	    PSID_warn(-1, eno, "%s: write()", __func__);
+	    PSID_fwarn(eno, "write()");
 	    fprintf(stderr, "%s: write(): %s\n", __func__, strerror(eno));
 	}
     }
@@ -188,8 +188,7 @@ static void pty_setowner(uid_t uid, gid_t gid, const char *tty)
     if (st.st_uid != uid || st.st_gid != gid) {
 	if (chown(tty, uid, gid) < 0) {
 	    if (errno == EROFS && (st.st_uid == uid || st.st_uid == 0)) {
-		PSID_warn(-1, errno, "%s: chown(%s, %u, %u)", __func__,
-			  tty, (u_int)uid, (u_int)gid);
+		PSID_fwarn(errno, "chown(%s, %u, %u)", tty, uid, gid);
 	    } else {
 		PSID_exit(errno, "%s: chown(%s, %u, %u)", __func__,
 			  tty, (u_int)uid, (u_int)gid);
@@ -200,8 +199,7 @@ static void pty_setowner(uid_t uid, gid_t gid, const char *tty)
     if ((st.st_mode & (S_IRWXU|S_IRWXG|S_IRWXO)) != mode) {
 	if (chmod(tty, mode) < 0) {
 	    if (errno == EROFS && (st.st_mode & (S_IRGRP | S_IROTH)) == 0) {
-		PSID_warn(-1, errno, "%s: chmod(%s, 0%o)", __func__,
-			  tty, (u_int)mode);
+		PSID_fwarn(errno, "chmod(%s, 0%o)", tty, (u_int)mode);
 	    } else {
 		PSID_exit(errno, "%s: chmod(%s, 0%o)", __func__,
 			  tty, (u_int)mode);
@@ -221,8 +219,8 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
     /* First disconnect from the old controlling tty. */
     fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
     if (fd >= 0) {
-	if (ioctl(fd, TIOCNOTTY, NULL)<0)
-	    PSID_warn(-1, errno, "%s: ioctl(TIOCNOTTY)", __func__);
+	if (ioctl(fd, TIOCNOTTY, NULL) < 0)
+	    PSID_fwarn(errno, "ioctl(TIOCNOTTY)");
 	close(fd);
     }
 
@@ -239,20 +237,20 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
     /* Make it our controlling tty. */
 #ifdef TIOCSCTTY
     if (ioctl(*ttyfd, TIOCSCTTY, NULL) < 0)
-	PSID_warn(-1, errno, "%s: ioctl(TIOCSCTTY)", __func__);
+	PSID_fwarn(errno, "ioctl(TIOCSCTTY)");
 #else
 #error No TIOCSCTTY
 #endif /* TIOCSCTTY */
 
     oldCONT = PSC_setSigHandler(SIGCONT, SIG_IGN);
     oldHUP = PSC_setSigHandler(SIGHUP, SIG_IGN);
-    if (vhangup() < 0) PSID_warn(-1, errno, "%s: vhangup()", __func__);
+    if (vhangup() < 0) PSID_fwarn(errno, "vhangup()");
     PSC_setSigHandler(SIGCONT, oldCONT);
     PSC_setSigHandler(SIGHUP, oldHUP);
 
     fd = open(tty, O_RDWR);
     if (fd < 0) {
-	PSID_warn(-1, errno, "%s: open(%s)", __func__, tty);
+	PSID_fwarn(errno, "open(%s)", tty);
     } else {
 	close(*ttyfd);
 	*ttyfd = fd;
@@ -260,7 +258,7 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
     /* Verify that we now have a controlling tty. */
     fd = open(_PATH_TTY, O_WRONLY);
     if (fd < 0) {
-	PSID_warn(-1, errno, "%s: open(%s)", __func__, _PATH_TTY);
+	PSID_fwarn(errno, "open(%s)", _PATH_TTY);
 	PSID_flog("unable to set controlling tty: %s\n", _PATH_TTY);
     } else {
 	close(fd);
@@ -284,7 +282,7 @@ static int changeToWorkDir(PStask_t *task)
     char *rawIO = getenv("__PSI_RAW_IO");
     alarmFunc = __func__;
 
-    if (chdir(task->workingdir)<0) {
+    if (chdir(task->workingdir) < 0) {
 	if (!rawIO) {
 	    fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
 		    task->workingdir ? task->workingdir : "", strerror(errno));
@@ -294,11 +292,11 @@ static int changeToWorkDir(PStask_t *task)
 	char *pwBuf = NULL;
 	struct passwd *passwd = PSC_getpwuidBuf(task->uid, &pwBuf);
 	if (passwd) {
-	    if (chdir(passwd->pw_dir)<0) {
+	    if (chdir(passwd->pw_dir) < 0) {
 		int eno = errno;
 		if (rawIO) {
-		    PSID_warn(-1, eno, "%s: chdir(%s)", __func__,
-			      passwd->pw_dir ? passwd->pw_dir : "");
+		    PSID_fwarn(eno, "chdir(%s)",
+			       passwd->pw_dir ? passwd->pw_dir : "");
 		} else {
 		    fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
 			    passwd->pw_dir ? passwd->pw_dir : "",
@@ -479,7 +477,7 @@ static void restoreLimits(void)
 static void __checkFD(int fd, const char *func, const int line)
 {
     int ret = fcntl(fd, F_GETFD);
-    if (ret < 0) PSID_warn(-1, errno, "%s(%d) at %s@%d", __func__, fd, func, line);
+    if (ret < 0) PSID_fwarn(errno, "(%d) at %s@%d", fd, func, line);
 }
 
 #define checkFD(fd) __checkFD(fd, __func__, __LINE__)
@@ -533,7 +531,7 @@ static void execClient(PStask_t *task)
     checkFD(task->fd); // @todo extra check for jwt:#20747
 
     /* change the gid; exit() on failure */
-    if (setgid(task->gid)<0) {
+    if (setgid(task->gid) < 0) {
 	eno = errno;
 	fprintf(stderr, "%s: setgid: %s\n", __func__, strerror(eno));
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
@@ -564,7 +562,7 @@ static void execClient(PStask_t *task)
     checkFD(task->fd); // @todo extra check for jwt:#20747
 
     /* change the uid; exit() on failure */
-    if (setuid(task->uid)<0) {
+    if (setuid(task->uid) < 0) {
 	eno = errno;
 	fprintf(stderr, "%s: setuid: %s\n", __func__, strerror(eno));
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
@@ -733,24 +731,24 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
     if (task->aretty & (1<<fileNo)) {
 	if (openpty(&fds[0], &fds[1], NULL, &task->termios, &task->winsize)) {
 	    int eno = errno;
-	    PSID_warn(-1, errno, "%s: openpty(%s)", __func__, fdName);
+	    PSID_fwarn(eno, "openpty(%s)", fdName);
 	    return eno;
 	}
     } else {
 	/* need to create as user to grant permission to access /dev/stdX */
 	if (seteuid(task->uid) == -1) {
 	    int eno = errno;
-	    PSID_warn(-1, eno, "%s: seteiud(%i)", __func__, task->uid);
+	    PSID_fwarn(eno, "seteiud(%i)", task->uid);
 	    return eno;
 	}
-	if (pipe(fds)) {
+	if (pipe(fds) == -1) {
 	    int eno = errno;
-	    PSID_warn(-1, errno, "%s: pipe(%s)", __func__, fdName);
+	    PSID_fwarn(eno, "pipe(%s)", fdName);
 	    return eno;
 	}
 	if (seteuid(0) == -1) {
 	    int eno = errno;
-	    PSID_warn(-1, eno, "%s: seteiud(0)", __func__);
+	    PSID_fwarn(eno, "seteiud(0)");
 	    return eno;
 	}
     }
@@ -777,18 +775,18 @@ static void statPID(pid_t pid)
 
     snprintf(fileName, sizeof(fileName), "/proc/%i/stat", pid);
     if (stat(fileName, &sbuf) == -1) {
-	PSID_warn(-1, errno, "%s(%d): stat()", __func__, pid);
+	PSID_fwarn(errno, "PID %d: stat()", pid);
 	return;
     }
 
     statFile = fopen(fileName,"r");
     if (!statFile) {
-	PSID_warn(-1, errno, "%s(%d): fopen(%s)", __func__, pid, fileName);
+	PSID_fwarn(errno, "PID %d: fopen(%s)", pid, fileName);
 	return;
     }
 
     if (getline(&statLine, &len, statFile) < 0) {
-	PSID_warn(-1, errno, "%s(%d): getline(%s)", __func__, pid, fileName);
+	PSID_fwarn(errno, "PID %d: getline(%s)", pid, fileName);
 	return;
     }
 
@@ -852,9 +850,9 @@ static void execForwarder(PStask_t *task)
     }
 
     /* create a socketpair for communication between forwarder and client */
-    if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlfds)<0) {
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlfds) < 0) {
 	eno = errno;
-	PSID_warn(-1, eno, "%s: socketpair()", __func__);
+	PSID_fwarn(eno, "socketpair()");
 	goto error;
     }
 
@@ -926,9 +924,7 @@ static void execForwarder(PStask_t *task)
 	 * kills whole process groups. Otherwise the daemon might
 	 * also kill the forwarder by sending a signal to the client.
 	 */
-	if (setsid() < 0) {
-	    PSID_warn(-1, errno, "%s: setsid()", __func__);
-	}
+	if (setsid() < 0) PSID_fwarn(errno, "setsid()");
 
 	checkFD(task->fd); // @todo extra check for jwt:#20747
 
@@ -977,7 +973,7 @@ static void execForwarder(PStask_t *task)
 	if (dup2(task->stderr_fd, STDERR_FILENO) < 0) {
 	    eno = errno;
 	    if (write(task->fd, &eno, sizeof(eno)) < 0) {
-		PSID_warn(-1, errno, "%s: dup2(stderr): write()", __func__);
+		PSID_fwarn(errno, "dup2(stderr): write()");
 	    }
 	    PSID_exit(eno, "%s: dup2(stderr)", __func__);
 	}
@@ -990,7 +986,7 @@ static void execForwarder(PStask_t *task)
 	    eno = errno;
 	    fprintf(stderr, "%s: dup2(stdin): %s\n", __func__, strerror(eno));
 	    if (write(task->fd, &eno, sizeof(eno)) < 0) {
-		PSID_warn(-1, errno, "%s: dup2(stdin): write()", __func__);
+		PSID_fwarn(errno, "dup2(stdin): write()");
 	    }
 	    PSID_exit(eno, "%s: dup2(stdin)", __func__);
 	}
@@ -998,7 +994,7 @@ static void execForwarder(PStask_t *task)
 	    eno = errno;
 	    fprintf(stderr, "%s: dup2(stdout): %s\n", __func__, strerror(eno));
 	    if (write(task->fd, &eno, sizeof(eno)) < 0) {
-		PSID_warn(-1, errno, "%s: dup2(stdout): write()", __func__);
+		PSID_fwarn(errno, "dup2(stdout): write()");
 	    }
 	    PSID_exit(eno, "%s: dup2(stdout)", __func__);
 	}
@@ -1037,7 +1033,7 @@ static void execForwarder(PStask_t *task)
 
     /* prepare connection to child */
     if (close(controlfds[1]) < 0) {
-	PSID_warn(-1, errno, "%s: close(%d)", __func__, controlfds[1]);
+	PSID_fwarn(errno, "close(%d)", controlfds[1]);
     }
 
     /* close the slave ttys / sockets */
@@ -1057,14 +1053,14 @@ static void execForwarder(PStask_t *task)
 
     /* check if fork() was successful */
     if (pid == -1) {
-	PSID_warn(-1, eno, "%s: fork()", __func__);
+	PSID_fwarn(eno, "fork()");
 	goto error;
     }
 
     /* change the gid */
-    if (setgid(task->gid)<0) {
+    if (setgid(task->gid) < 0) {
 	eno = errno;
-	PSID_warn(-1, eno, "%s: setgid()", __func__);
+	PSID_fwarn(eno, "setgid()");
 	goto error;
     }
 
@@ -1075,15 +1071,15 @@ static void execForwarder(PStask_t *task)
     if (PSIDnodes_supplGrps(PSC_getMyID())) {
 	char *name = PSC_userFromUID(task->uid);
 	if (name && initgroups(name, task->gid) < 0) {
-	    PSID_warn(-1, errno, "%s: initgroups()", __func__);
+	    PSID_fwarn(errno, "initgroups()");
 	}
 	free(name);
     }
 
     /* change the uid */
-    if (setuid(task->uid)<0) {
+    if (setuid(task->uid) < 0) {
 	eno = errno;
-	PSID_warn(-1, eno, "%s: setuid()", __func__);
+	PSID_fwarn(eno, "setuid()");
 	goto error;
     }
 
@@ -1126,7 +1122,7 @@ static void execForwarder(PStask_t *task)
 		continue;
 	    } else {
 		eno = errno;
-		PSID_warn(-1, eno, "%s: select() failed", __func__);
+		PSID_fwarn(eno, "select() failed");
 		break;
 	    }
 	} else if (!ret) {
@@ -1144,7 +1140,7 @@ static void execForwarder(PStask_t *task)
 	ssize_t ret = PSCio_recvBuf(controlfds[0], &eno, sizeof(eno));
 	if (ret < 0) {
 	    eno = errno;
-	    PSID_warn(-1, eno, "%s: PSCio_recvBuf()", __func__);
+	    PSID_fwarn(eno, "PSCio_recvBuf()");
 	} else if (!ret) {
 	    PSID_flog("ret is %zd\n", ret);
 	    eno = EBADMSG;
@@ -1239,7 +1235,7 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
     int socketfds[2];     /* sockets for communication with forwarder */
 
     if (!creator) {
-	PSID_warn(-1, EINVAL, "%s: no creator", __func__);
+	PSID_fwarn(EINVAL, "no creator");
 	return EINVAL;
     }
 
@@ -1250,9 +1246,9 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
     }
 
     /* create a socketpair for communication between daemon and forwarder */
-    if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds) < 0) {
 	int eno = errno;
-	PSID_warn(-1, eno, "%s: socketpair()", __func__);
+	PSID_fwarn(eno, "socketpair()");
 	return eno;
     }
 
@@ -1310,7 +1306,7 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
     if (pid == -1) {
 	close(socketfds[0]);
 
-	PSID_warn(-1, eno, "%s: fork()", __func__);
+	PSID_fwarn(eno, "fork()");
 
 	return eno;
     }
@@ -1619,8 +1615,7 @@ static void sendPendCRR(PendCRR_t *crr)
     PSID_dbg(PSID_LOG_PART, " from %s (%d pending)\n",
 	     PSC_printTID(crr->sender), crr->pendSlots);
     if (sendMsg(&msg) < 0) {
-	PSID_warn(-1, errno, "%s: sendMsg(%s)", __func__,
-		  PSC_printTID(crr->dest));
+	PSID_fwarn(errno, "sendMsg(%s)", PSC_printTID(crr->dest));
     }
 }
 
@@ -1738,8 +1733,8 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
 	if (!crr) {
 	    crr = newPendCRR();
 	    if (!crr) {
-		PSID_warn(-1, ENOMEM, "%s: newPendCRR(%s, %#x)", __func__,
-			  PSC_printTID(dest), task->resID);
+		PSID_fwarn(ENOMEM, "newPendCRR(%s, %#x)",
+			   PSC_printTID(dest), task->resID);
 		return;
 	    }
 
@@ -1798,9 +1793,7 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
     PSID_dbg(PSID_LOG_PART, " res %#x from %s\n", task->resID,
 	     PSC_printTID(sender));
 
-    if (sendMsg(&msg) < 0) {
-	PSID_warn(-1, errno, "%s: sendMsg(%s)", __func__, PSC_printTID(dest));
-    }
+    if (sendMsg(&msg) < 0) PSID_fwarn(errno, "sendMsg(%s)", PSC_printTID(dest));
 }
 
 /**
@@ -1872,14 +1865,14 @@ static void cloneEnvFromTasks(PStask_t *task)
     while (sibling->environ[envSize]) envSize++;
     task->environ = malloc(sizeof(*task->environ) * (envSize+1));
     if (!task->environ) {
-	PSID_warn(-1, ENOMEM, "%s", __func__);
+	PSID_fwarn(ENOMEM, "malloc() environ");
 	return;
     }
 
     for (i=0; i<envSize; i++) {
 	task->environ[i] = strdup(sibling->environ[i]);
 	totSize += strlen(task->environ[i]);
-	if (!task->environ[i]) PSID_warn(-1, ENOMEM, "%s", __func__);
+	if (!task->environ[i]) PSID_fwarn(ENOMEM, "malloc() environ[%d]", i);
     }
 
     /* add trailing NULL */
@@ -2029,8 +2022,8 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		      PSC_getID(locMsg.header.dest));
 
 	    if (sendMsg(&locMsg) < 0) {
-		PSID_warn(-1, errno, "%s: send PSP_SPAWN_LOC to node %d failed",
-			  __func__, PSC_getID(locMsg.header.dest));
+		PSID_fwarn(errno, "send PSP_SPAWN_LOC to node %d failed",
+			   PSC_getID(locMsg.header.dest));
 	    }
 	}
 
@@ -2123,7 +2116,7 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 	task->workingdir = realloc(task->workingdir, newLen);
 	if (!task->workingdir) {
-	    PSID_warn(-1, errno, "%s: realloc(task->workingdir)", __func__);
+	    PSID_fwarn(errno, "realloc(task->workingdir)");
 	    return true;
 	}
 	strcpy(task->workingdir + strlen(task->workingdir), msg->buf);
@@ -2271,7 +2264,7 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
 	if (!PSP_tryPutMsgBuf(&locMsg, "CPUset", setBuf, nBytes)) {
 	    int32_t myR = rank + i;
 	    if (sendMsg(&locMsg) < 0) {
-		PSID_warn(-1, errno, "%s: send to %d",  __func__, destID);
+		PSID_fwarn(errno, "send to %d", destID);
 		return false;
 	    }
 
@@ -2285,7 +2278,7 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
 	}
     }
     if (sendMsg(&locMsg) < 0) {
-	PSID_warn(-1, errno, "%s: send to %d",  __func__, destID);
+	PSID_fwarn(errno, "send to %d", destID);
 	return false;
     }
 
@@ -2358,7 +2351,7 @@ static bool msg_SPAWNLOC(DDBufferMsg_t *msg)
     if (!newRes) {
 	newRes = malloc(sizeof(*newRes));
 	if (!newRes) {
-	    PSID_warn(-1, errno, "%s", __func__);
+	    PSID_fwarn(errno, "malloc() newRes");
 	    return true;
 	}
 	newRes->sender = msg->header.sender;
@@ -2366,7 +2359,7 @@ static bool msg_SPAWNLOC(DDBufferMsg_t *msg)
 	newRes->num = num;
 	newRes->CPUsets = malloc(num * sizeof(*newRes->CPUsets));
 	if (!newRes->CPUsets) {
-	    PSID_warn(-1, errno, "%s: CPUsets", __func__);
+	    PSID_fwarn(errno, "malloc() CPUsets");
 	    free(newRes);
 	    return true;
 	}
@@ -3247,7 +3240,7 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
     /* prepare child task */
     child = PStask_clone(forwarder);
     if (!child) {
-	PSID_warn(-1, errno, "%s: PStask_clone()", __func__);
+	PSID_fwarn(errno, "PStask_clone()");
 
 	/* Tell forwarder to kill child */
 	msg->header.type = PSP_DD_CHILDDEAD;
@@ -3596,7 +3589,7 @@ int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
 	/* Tell everybody about the new forwarder task */
 	incJobs(1, 0);
     } else {
-	PSID_warn(-1, err, "%s: buildSandboxAndStart()", __func__);
+	PSID_fwarn(err, "buildSandboxAndStart()");
     }
 
     return err;

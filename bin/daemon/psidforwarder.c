@@ -116,7 +116,7 @@ static ssize_t sendLogMsg(PSLog_msg_t type, char *buf, size_t len)
 
     int ret = PSLog_write(loggerTID, type, buf, len);
     if (ret < 0) {
-	PSID_warn(-1, errno, "%s: PSLog_write()", __func__);
+	PSID_fwarn(errno, "PSLog_write()");
 	closeDaemonSock();
     }
 
@@ -269,7 +269,7 @@ static ssize_t recvDaemonMsg(DDBufferMsg_t *msg, struct timeval *timeout)
 	    case ETIME:
 		break;
 	    default:
-		PSID_warn(-1, eno, "%s: PSCio_recvMsgT()", __func__);
+		PSID_fwarn(eno, "PSCio_recvMsgT()");
 		closeDaemonSock();
 	    }
 	    errno = eno;
@@ -298,7 +298,7 @@ ssize_t sendDaemonMsg(void *amsg)
     ssize_t ret = PSCio_sendF(daemonSock, msg, msg->len);
 
     if (ret < 0) {
-	PSID_warn(-1, errno ,"%s: doWriteF()", __func__);
+	PSID_fwarn(errno ,"PSCio_sendF()");
 	closeDaemonSock();
 	return ret;
     } else if (!ret) {
@@ -369,8 +369,7 @@ static bool connectLogger(PStask_ID_t tid)
 	ssize_t ret = recvDaemonMsg(&msg, &timeout);
 
 	if (ret <= 0) {
-	    PSID_warn(-1, errno, "%s(%s): Connection refused",
-		      __func__, PSC_printTID(tid));
+	    PSID_fwarn(errno, "%s: Connection refused", PSC_printTID(tid));
 	    break;
 	}
 
@@ -449,7 +448,7 @@ static void releaseLogger(int status)
 		    PSID_flog("receive timeout. Send again\n");
 		    goto send_again;
 		default:
-		    PSID_warn(-1, errno, "%s: recvDaemonMsg()", __func__);
+		    PSID_fwarn(errno, "recvDaemonMsg()");
 		    if (daemonSock < 0) {
 			PSID_flog("connection lost\n");
 			return;
@@ -1206,7 +1205,7 @@ send_again:
 		PSID_flog("receive timed out. Send again\n");
 		goto send_again;
 	    default:
-		PSID_warn(-1, errno, "%s: recvDaemonMsg()", __func__);
+		PSID_fwarn(errno, "recvDaemonMsg()");
 	    }
 	} else if (!ret) {
 	    PSID_flog("daemon closed connection\n");
@@ -1256,7 +1255,7 @@ static int handleSIGCHLD(int fd, void *info)
 
     /* Ignore data available on fd. We rely on waitpid() alone */
     if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
-	PSID_warn(-1, errno, "%s: read()", __func__);
+	PSID_fwarn(errno, "read()");
     }
 
     /* if child is stopped, return */

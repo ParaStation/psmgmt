@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -156,7 +156,7 @@ int PSIDnodes_grow(PSnodes_ID_t num)
     size_t oldNodes = (size_t) nodes;
     node_t *newNodes = realloc(nodes, sizeof(*nodes) * numNodes);
     if (!newNodes) {
-	PSID_warn(-1, ENOMEM, "%s", __func__);
+	PSID_fwarn(ENOMEM, "realloc()");
 	numNodes = oldNum;
 	return -1;
     }
@@ -294,7 +294,7 @@ bool PSIDnodes_setAddr(PSnodes_ID_t id, in_addr_t addr)
     if (addr != INADDR_ANY && addr != INADDR_NONE) {
 	struct host_t *host = malloc(sizeof(*host));
 	if (!host) {
-	    PSID_warn(-1, ENOMEM, "%s", __func__);
+	    PSID_fwarn(ENOMEM, "malloc()");
 	    return false;
 	}
 
@@ -612,7 +612,7 @@ void send_CPUMap_OPTIONS(PStask_ID_t dest)
 	msg.count++;
 	if (msg.count == DDOptionMsgMax) {
 	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+		PSID_fwarn(errno, "sendMsg()");
 	    }
 	    msg.count = 0;
 	}
@@ -622,7 +622,7 @@ void send_CPUMap_OPTIONS(PStask_ID_t dest)
     msg.opt[(int) msg.count].value = 0;
     msg.count++;
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
     }
 }
 
@@ -982,7 +982,7 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what)
 	msg.count++;
 	if (msg.count == DDOptionMsgMax) {
 	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+		PSID_fwarn(errno, "sendMsg()");
 	    }
 	    msg.count = 0;
 	}
@@ -992,7 +992,7 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what)
     msg.count++;
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
     }
 }
 

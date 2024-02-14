@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -111,7 +111,7 @@ void send_acct_OPTIONS(PStask_ID_t dest, int all)
 	}
 	if (msg.count == DDOptionMsgMax) {
 	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+		PSID_fwarn(errno, "sendMsg()");
 	    }
 	    msg.count = 0;
 	}
@@ -121,7 +121,7 @@ void send_acct_OPTIONS(PStask_ID_t dest, int all)
     msg.opt[(int) msg.count].value = 0;
     msg.count++;
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
     }
 }
 
@@ -171,7 +171,7 @@ static void localForward_ACCOUNT(DDTypedBufferMsg_t *msg)
     }
 
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
     }
 }
 
@@ -208,7 +208,7 @@ static bool msg_ACCOUNT(DDTypedBufferMsg_t *msg)
 		localForward_ACCOUNT(msg);
 	    } else {
 		if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-		    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+		    PSID_fwarn(errno, "sendMsg()");
 		}
 	    }
 	}

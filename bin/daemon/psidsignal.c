@@ -45,8 +45,8 @@ int pskill(pid_t pid, int sig, uid_t uid)
     int cntrlfds[2];  /* pipe fds to control the actual kill(2) */
 
     /* create a control channel */
-    if (pipe(cntrlfds)<0) {
-	PSID_warn(-1, errno, "%s: pipe()", __func__);
+    if (pipe(cntrlfds) < 0) {
+	PSID_fwarn(errno, "pipe()");
 	return -1;
     }
 
@@ -73,8 +73,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
 	if (setuid(uid) < 0) {
 	    eno = errno;
 	    if (write(cntrlfds[1], &eno, sizeof(eno)) < 0) {
-		PSID_warn(-1, errno,
-			  "%s: write to control channel failed", __func__);
+		PSID_fwarn(errno, "write to control channel failed");
 	    }
 	    PSID_exit(eno, "%s: setuid(%d)", __func__, uid);
 	}
@@ -84,8 +83,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
 	int error = kill(pid, sig);
 	eno = (error) ? errno : 0;
 	if (write(cntrlfds[1], &eno, sizeof(eno)) < 0) {
-	    PSID_warn(-1, errno,
-		      "%s: write to control channel failed", __func__);
+	    PSID_fwarn(errno, "write to control channel failed");
 	}
 
 	if (error) {
@@ -106,7 +104,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
     /* check if fork() was successful */
     if (forkPid == -1) {
 	close(cntrlfds[0]);
-	PSID_warn(-1, eno, "%s: fork()", __func__);
+	PSID_fwarn(eno, "fork()");
 
 	return -1;
     }
@@ -138,8 +136,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
     } else {
 	if (uid && child->uid != uid) {
 	    /* Task is not allowed to send signal */
-	    PSID_warn(-1, EPERM,
-		      "%s: kill(%d, %d) uid %d", __func__, pid, sig, uid);
+	    PSID_fwarn(EPERM, "kill(%d, %d) uid %d", pid, sig, uid);
 	    errno = EPERM;
 	    return -1;
 	}
@@ -1026,7 +1023,7 @@ static int releaseTask(PStask_t *task)
 	if (!sentToNode) {
 	    free(bak);
 	    sTNSize = 0;
-	    PSID_warn(-1, ENOMEM, "%s: realloc()", __func__);
+	    PSID_fwarn(ENOMEM, "realloc()");
 	    return ENOMEM;
 	}
     }
@@ -1354,8 +1351,8 @@ static void send_RELEASERES(PStask_t *task, PStask_ID_t sender)
 	.param = task->pendingReleaseErr };
 
     if (msg.param) {
-	PSID_warn(-1, msg.param, "%s: forward error = %d to local %s", __func__,
-		  msg.param, PSC_printTID(task->tid));
+	PSID_fwarn(msg.param, "forward error = %d to local %s", msg.param,
+		  PSC_printTID(task->tid));
     } else {
 	PSID_fdbg(PSID_LOG_SIGNAL, "tell local parent %s\n",
 		  PSC_printTID(task->tid));

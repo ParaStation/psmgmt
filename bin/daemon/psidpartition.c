@@ -211,7 +211,7 @@ void initPartHandler(void)
 	    .taskReqPending = 0 };
 	PSCPU_clrAll(nodeStat[node].CPUset);
 	if (PSIDnodes_isUp(node) && send_GETTASKS(node) < 0) {
-	    PSID_warn(-1, errno, "%s: send_GETTASKS(%d)", __func__, node);
+	    PSID_fwarn(errno, "send_GETTASKS(%d)", node);
 	}
     }
 
@@ -1388,7 +1388,7 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
 	off += chunk;
 
 	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	    return -1;
 	}
     }
@@ -1473,7 +1473,7 @@ static int sendSlots(PSpart_slot_t *slots, uint32_t num, DDBufferMsg_t *msg)
 	PSID_fdbg(PSID_LOG_PART, "send chunk of %d (size %d)\n", chunk,
 		  msg->header.len);
 	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	    return -1;
 	}
     }
@@ -1510,14 +1510,14 @@ static bool sendPartition(PSpart_request_t *req)
     PSP_putMsgBuf(&msg, "options", &req->options, sizeof(req->options));
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
 	return false;
     }
 
     msg.header.type = PSP_DD_PROVIDEPARTSL;
     msg.header.len = sizeof(msg.header);
     if (sendSlots(req->slots, req->size, &msg) < 0) {
-	PSID_warn(-1, errno, "%s: sendSlots()", __func__);
+	PSID_fwarn(errno, "sendSlots()");
 	return false;
     }
 
@@ -1732,7 +1732,7 @@ static bool msg_CREATEPART(DDBufferMsg_t *inmsg)
     task->request = PSpart_newReq();
     if (!task->request) {
 	errno = ENOMEM;
-	PSID_warn(-1, errno, "%s: PSpart_newReq()", __func__);
+	PSID_fwarn(errno, "PSpart_newReq()");
 	goto error;
     }
     PSpart_decodeReq(inmsg->buf, task->request);
@@ -1751,7 +1751,7 @@ static bool msg_CREATEPART(DDBufferMsg_t *inmsg)
 	    malloc(task->request->num * sizeof(*task->request->nodes));
 	if (!task->request->nodes) {
 	    errno = ENOMEM;
-	    PSID_warn(-1, errno, "%s: malloc() nodes", __func__);
+	    PSID_fwarn(errno, "malloc() nodes");
 	    goto cleanup;
 	}
     }
@@ -1777,7 +1777,7 @@ static bool msg_CREATEPART(DDBufferMsg_t *inmsg)
     PSpart_encodeReq(inmsg, task->request);
 
     if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
 	goto cleanup;
     }
     return true;
@@ -1982,7 +1982,7 @@ static bool msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
     inmsg->header.dest = PSC_getTID(getMasterID(), 0);
 
     if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
 	goto error;
     }
     return true;
@@ -2485,7 +2485,7 @@ static uint32_t createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
 	if (!procsPerNode) {
 	    procsPerNode = malloc(PSC_getNrOfNodes() * sizeof(*procsPerNode));
 	    if (!procsPerNode) {
-		PSID_warn(-1, errno, "%s", __func__);
+		PSID_fwarn(errno, "malloc() procsPerNode");
 		return 0;
 	    }
 	}
@@ -2496,7 +2496,7 @@ static uint32_t createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
     if (task->totalThreads > myUseSpaceSize) {
 	myUse = malloc(task->totalThreads * sizeof(*myUse));
 	if (!myUse) {
-	    PSID_warn(-1, errno, "%s", __func__);
+	    PSID_fwarn(errno, "malloc() myUse");
 	    return 0;
 	}
     } else {
@@ -2665,7 +2665,7 @@ static bool msg_GETNODES(DDBufferMsg_t *inmsg)
 	inmsg->header.type = PSP_DD_GETNODES;
 	inmsg->header.dest = task->ptid;
 	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	    goto error;
 	}
 	return true;
@@ -2770,7 +2770,7 @@ static bool prepNumToSend(uint16_t *preSet)
 	if (!numToSend) {
 	    free(bak);
 	    nTSSize = 0;
-	    PSID_warn(-1, ENOMEM, "%s: realloc()", __func__);
+	    PSID_fwarn(ENOMEM, "realloc()");
 	    return false;
 	}
     }
@@ -3024,7 +3024,7 @@ static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
 
 	msg.header.dest = PSC_getTID(node, 0);
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg(%d)", __func__, node);
+	    PSID_fwarn(errno, "sendMsg(%d)", node);
 	    error = true;
 	}
     }
@@ -3042,7 +3042,7 @@ static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
 
 	    msg.header.dest = PSC_getTID(node, 0);
 	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		PSID_warn(-1, errno, "%s: sendMsg(%d)", __func__, node);
+		PSID_fwarn(errno, "sendMsg(%d)", node);
 		error = true;
 	    }
 	}
@@ -3133,7 +3133,7 @@ static bool send_RESCLEANUP(PStask_t *task, PSpart_request_t *sister)
 
 	msg.dest = PSC_getTID(node, 0);
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg(%d)", __func__, node);
+	    PSID_fwarn(errno, "sendMsg(%d)", node);
 	    error = true;
 	}
     }
@@ -3234,7 +3234,7 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 		  PSC_printTID(thisRes->requester));
 	msg->header.dest = thisRes->requester;
 	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	}
 	return true;
     }
@@ -3336,7 +3336,7 @@ static bool msg_GETRANKNODE(DDBufferMsg_t *msg)
 	msg->header.type = PSP_DD_GETRANKNODE;
 	msg->header.dest = task->ptid;
 	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	    goto error;
 	}
 	return true;
@@ -3986,7 +3986,7 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
     PSP_putMsgBuf(&msg, "nSlots", &res->nSlots, sizeof(res->nSlots));
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
 	return -1;
     }
 
@@ -4036,7 +4036,7 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	inmsg->header.type = PSP_DD_GETRESERVATION;
 	inmsg->header.dest = task->ptid;
 	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	    eno = errno;
 	    goto error;
 	}
@@ -4103,7 +4103,7 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	enqRes(&delegate->resRequests, r);
 
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg(PSP_DD_GETRESERVATION)", __func__);
+	    PSID_fwarn(errno, "sendMsg(PSP_DD_GETRESERVATION)");
 	    eno = errno;
 	    deqRes(&delegate->resRequests, r);
 	    goto error;
@@ -4157,7 +4157,7 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	}
 
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg(PART_OPT_DUMMY)", __func__);
+	    PSID_fwarn(errno, "sendMsg(PART_OPT_DUMMY)");
 	}
 
 	return true;
@@ -4494,7 +4494,7 @@ static bool msg_GETSLOTS(DDBufferMsg_t *inmsg)
 	inmsg->header.type = PSP_DD_GETSLOTS;
 	inmsg->header.dest = task->ptid;
 	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	    eno = errno;
 	    goto error;
 	}
@@ -4718,8 +4718,8 @@ void PSIDpart_cleanupSlots(PStask_t *task)
 		  PSCPU_print_part(rankSets[0], nBytes), numSlots, rankNode, r);
 
 	if (sendMsg(&relMsg) < 0) {
-	    PSID_warn(-1, errno, "%s: sendMsg(%s) for rank %d", __func__,
-		      PSC_printTID(relMsg.header.dest), r);
+	    PSID_fwarn(errno, "sendMsg(%s) for rank %d",
+		       PSC_printTID(relMsg.header.dest), r);
 	}
     }
     task->spawnNodesSize = 0;
@@ -4851,7 +4851,7 @@ static void sendRequests(void)
 	    msg.header.type = PSP_DD_GETPARTNL;
 	    if (task->request->num
 		&& (sendNodelist(task->request, &msg)<0)) {
-		PSID_warn(-1, errno, "%s: sendNodelist()", __func__);
+		PSID_fwarn(errno, "sendNodelist()");
 	    }
 	}
     }
@@ -4894,7 +4894,7 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
     msg.header.len = sizeof(msg.header);
 
     if (sendSlots(task->partition, task->partitionSize, &msg) < 0) {
-	PSID_warn(-1, errno, "%s: sendSlots()", __func__);
+	PSID_fwarn(errno, "sendSlots()");
     }
 }
 
@@ -5128,7 +5128,7 @@ static void send_further_RESCREATED(PSpart_request_t *req, PStask_t *task)
 	if (!filter) {
 	    free(bak);
 	    filterSize = 0;
-	    PSID_warn(-1, ENOMEM, "%s: realloc()", __func__);
+	    PSID_fwarn(ENOMEM, "realloc()");
 	    return;
 	}
     }
@@ -5326,7 +5326,7 @@ static bool sendReqSlots(DDTypedBufferMsg_t *msg, PSpart_request_t *req)
     msg->header.len = sizeof(msg->header) + sizeof(msg->type);
     msg->type = PSP_INFO_QUEUE_SEP;
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
 	return false;
     }
 
@@ -5352,7 +5352,7 @@ static bool sendReqSlots(DDTypedBufferMsg_t *msg, PSpart_request_t *req)
 	offset += chunk;
 
 	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	    return false;
 	}
 	msg->header.len = sizeof(msg->header) + sizeof(msg->type);
@@ -5411,7 +5411,7 @@ static void sendReqList(PStask_ID_t dest, list_t *queue, PSpart_list_t opt)
 	req->num = tmp;
 
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	    return;
 	}
 
@@ -5420,7 +5420,7 @@ static void sendReqList(PStask_ID_t dest, list_t *queue, PSpart_list_t opt)
 	msg.type = PSP_INFO_QUEUE_SEP;
 	msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	    return;
 	}
     }
@@ -5479,7 +5479,7 @@ static uint32_t partFromThreads(PSpart_HWThread_t *threads, uint32_t num,
 
     *partition = malloc(slots * sizeof(**partition));
     if (!*partition) {
-	PSID_warn(-1, errno, "%s", __func__);
+	PSID_fwarn(errno, "malloc()");
 	return 0;
     }
 

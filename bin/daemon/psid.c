@@ -224,9 +224,7 @@ static int handleSIGCHLD(int fd, void *info)
     int estatus;       /* termination status of the child process */
 
     /* Ignore data available on fd. We rely on waitpid() alone */
-    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
-	PSID_warn(-1, errno, "%s: read()", __func__);
-    }
+    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) PSID_fwarn(errno, "read()");
 
     while ((pid = waitpid(-1, &estatus, WNOHANG)) > 0){
 	/*
@@ -290,9 +288,7 @@ static int handleSIGUSR1(int fd, void *info)
     struct signalfd_siginfo sigInfo;
 
     /* Ignore data available on fd */
-    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
-	PSID_warn(-1, errno, "%s: read()", __func__);
-    }
+    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) PSID_fwarn(errno, "read()");
 
     PSIDMsgbuf_printStat();
     PStask_printStat();
@@ -349,9 +345,7 @@ static int handleSIGUSR2(int fd, void *info)
     struct signalfd_siginfo sigInfo;
 
     /* Ignore data available on fd */
-    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
-	PSID_warn(-1, errno, "%s: read()", __func__);
-    }
+    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) PSID_fwarn(errno, "read()");
 
     printMallocInfo();
     malloc_trim(0);
@@ -379,7 +373,7 @@ static int handleSignals(int fd, void *info)
 
     if (got < 0) {
 	int eno = errno;
-	PSID_warn(-1, errno, "%s: read()", __func__);
+	PSID_fwarn(errno, "read()");
 	Selector_remove(fd);
 	errno = eno;
 	return -1;
@@ -611,9 +605,7 @@ int main(int argc, const char *argv[])
     /* First disconnect from the old controlling tty. */
     int fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
     if (fd >= 0) {
-	if (ioctl(fd, TIOCNOTTY, NULL)) {
-	    PSID_warn(-1, errno, "%s: ioctl(TIOCNOTTY)", __func__);
-	}
+	if (ioctl(fd, TIOCNOTTY, NULL)) PSID_fwarn(errno, "ioctl(TIOCNOTTY)");
 	close(fd);
     }
 

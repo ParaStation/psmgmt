@@ -344,7 +344,7 @@ bool PSID_handleMsg(DDBufferMsg_t *msg)
 	PSP_putMsgBuf(&errMsg, "type", &msg->header.type,
 		      sizeof(msg->header.type));
 	if (sendMsgFunc(&errMsg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    PSID_fwarn(errno, "sendMsg()");
 	}
     }
 

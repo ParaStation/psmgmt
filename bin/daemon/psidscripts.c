@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -364,8 +364,8 @@ int PSID_registerScript(config_t *config, char *type, char *script)
 	command = strdup(script);
     }
 
-    if (stat(command, &sb)) {
-	PSID_warn(-1, errno, "%s(%s, %s)", __func__, type, script);
+    if (stat(command, &sb) < 0) {
+	PSID_fwarn(errno, "(%s, %s)", type, script);
 	free(command);
 	return -1;
     }
@@ -389,7 +389,7 @@ int PSID_registerScript(config_t *config, char *type, char *script)
     *scriptStr = strdup(script);
 
     if (!*scriptStr) {
-	PSID_warn(-1, errno, "%s: strdup(%s)", __func__, script);
+	PSID_fwarn(errno, "strdup(%s)", script);
 	return -1;
     }
 

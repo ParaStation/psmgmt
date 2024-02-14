@@ -517,7 +517,7 @@ static void stateChangeCB(int result, bool tmdOut, int iofd, void *info)
 	    int num = PSCio_recvBuf(iofd, line, sizeof(line));
 	    int eno = errno;
 	    if (num < 0) {
-		PSID_warn(-1, eno, "%s: PSCio_recvBuf(iofd)", __func__);
+		PSID_fwarn(eno, "PSCio_recvBuf(iofd)");
 		line[0] = '\0';
 	    } else if (num == sizeof(line)) {
 		strcpy(&line[sizeof(line)-4], "...");
@@ -641,7 +641,7 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	if (PSID_config->nodeDownScript && *PSID_config->nodeDownScript) {
 	    stateChangeInfo_t *info = malloc(sizeof(*info));
 	    if (!info) {
-		PSID_warn(-1, errno, "%s", __func__);
+		PSID_fwarn(errno, "malloc()");
 	    } else {
 		info->id = id;
 		info->script = PSID_config->nodeDownScript;
@@ -714,7 +714,7 @@ bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds,
 	if (PSID_config->nodeUpScript && *PSID_config->nodeUpScript) {
 	    stateChangeInfo_t *info = malloc(sizeof(*info));
 	    if (!info) {
-		PSID_warn(-1, errno, "%s", __func__);
+		PSID_fwarn(errno, "malloc()");
 	    } else {
 		info->id = id;
 		info->script = PSID_config->nodeUpScript;

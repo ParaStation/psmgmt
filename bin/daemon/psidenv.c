@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,14 +64,14 @@ static void sendSingleEnv(PStask_ID_t dest, char *key)
     strLen = strlen(msg.buf)+1;
     msg.header.len += strLen;
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
 	return;
     }
     msg.header.len -= strLen;
 
     msg.type = PSP_INFO_QUEUE_SEP;
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
 	return;
     }
 }
@@ -136,7 +136,7 @@ static bool msg_ENV(DDTypedBufferMsg_t *inmsg)
 		ret = EHOSTDOWN;
 	    } else if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
 		ret = errno;
-		PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+		PSID_fwarn(ret, "sendMsg()");
 	    } else {
 		return true; /* destination node will send ENVRES message */
 	    }
@@ -150,27 +150,26 @@ static bool msg_ENV(DDTypedBufferMsg_t *inmsg)
 		val++;
 
 		if (!*key) {
-		    PSID_warn(-1, errno, "%s: No key given to set", __func__);
 		    ret = EINVAL;
+		    PSID_fwarn(ret, "No key given to set");
 		} else {
 		    ret = setenv(key, val, 1);
 		    if (ret) {
 			ret = errno;
-			PSID_warn(-1, errno, "%s: setenv(%s)", __func__, key);
+			PSID_fwarn(ret, "setenv(%s)", key);
 		    }
 		}
 		break;
 	    }
 	    case PSP_ENV_UNSET:
 		if (!*inmsg->buf) {
-		    PSID_warn(-1, errno, "%s: No key given to unset", __func__);
 		    ret = EINVAL;
+		    PSID_fwarn(ret, "No key given to unset");
 		} else {
 		    ret = unsetenv(inmsg->buf);
 		    if (ret) {
 			ret = errno;
-			PSID_warn(-1, errno, "%s: unsetenv(%s)", __func__,
-				  inmsg->buf);
+			PSID_fwarn(ret, "unsetenv(%s)", inmsg->buf);
 		    }
 		}
 		break;
@@ -189,7 +188,7 @@ static bool msg_ENV(DDTypedBufferMsg_t *inmsg)
 	    .len = sizeof(msg) },
 	.type = ret };
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
     }
 
     return true;

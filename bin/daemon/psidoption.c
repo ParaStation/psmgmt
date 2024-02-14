@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -87,7 +87,7 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     /* max 3 left (if ProtoV < 344) */
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
     }
 
     send_acct_OPTIONS(PSC_getTID(destnode, 0), 0);
@@ -229,7 +229,7 @@ static void send_rlimit_OPTIONS(PStask_ID_t dest, PSP_Option_t option)
     msg.opt[(int) msg.count].value = 0;
     msg.count++;
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	PSID_fwarn(errno, "sendMsg()");
     }
 }
 
@@ -292,9 +292,8 @@ static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
     limit.rlim_cur = value;
     limit.rlim_max = value;
 
-    if (setrlimit(resource, &limit)) {
-	PSID_warn(-1, errno, "%s: setrlimit(%d, %d)", __func__,
-		  resource, value);
+    if (setrlimit(resource, &limit) < 0) {
+	PSID_fwarn(errno, "setrlimit(%d, %d)", resource, value);
     } else {
 	/* We might have to inform other facilities, too */
 	switch (resource) {

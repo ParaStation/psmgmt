@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -644,7 +644,7 @@ static void informOtherNodes(void)
 	}};
 
     if (broadcastMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: broadcastMsg()", __func__);
+	PSID_fwarn(errno, "broadcastMsg()");
     }
 }
 
@@ -689,7 +689,7 @@ static void switchHWCB(int result, bool tmdOut, int iofd, void *info)
 	    int num = PSCio_recvBuf(iofd, line, sizeof(line));
 	    int eno = errno;
 	    if (num < 0) {
-		PSID_warn(-1, eno, "%s: PSCio_recvBuf(iofd)", __func__);
+		PSID_fwarn(eno, "PSCio_recvBuf(iofd)");
 		line[0] = '\0';
 	    } else if (num == sizeof(line)) {
 		strcpy(&line[sizeof(line)-4], "...");
@@ -746,7 +746,7 @@ static void switchHW(AttrIdx_t hw, bool on)
     if (script) {
 	switchInfo_t *info = malloc(sizeof(*info));
 	if (!info) {
-	    PSID_warn(-1, errno, "%s: malloc()", __func__);
+	    PSID_fwarn(errno, "malloc()");
 	    return;
 	}
 	info->hw = hw;
@@ -885,7 +885,7 @@ static void getCounterCB(int result, bool tmdOut, int iofd, void *info)
 	close(iofd); /* Discard further output */
     }
     if (num < 0) {
-	PSID_warn(-1, eno, "%s: PSCio_recvBuf(iofd)", __func__);
+	PSID_fwarn(eno, "PSCio_recvBuf(iofd)");
 	num = snprintf(msg.buf, sizeof(msg.buf),
 		       "%s: PSCio_recvBuf(iofd) failed\n", __func__) + 1;
     } else if (num == sizeof(msg.buf)) {
@@ -930,7 +930,7 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 	    DDTypedBufferMsg_t *info = malloc(inmsg->header.len);
 
 	    if (!info) {
-		PSID_warn(-1, errno, "%s: malloc()", __func__);
+		PSID_fwarn(errno, "malloc()");
 		return;
 	    }
 	    memcpy(info, inmsg, inmsg->header.len);
