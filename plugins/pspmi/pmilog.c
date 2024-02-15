@@ -17,7 +17,7 @@ FILE *pmilogfile;
 
 void initLogger(char *name, FILE *logfile)
 {
-    pmilogger = logger_init(name, logfile);
+    pmilogger = logger_new(name, logfile);
     initPluginLogger(NULL, logfile);
     pmilogfile = logfile;
 }

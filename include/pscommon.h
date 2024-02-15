@@ -236,14 +236,14 @@ const char* PSC_getVersionStr(void);
 void PSC_startDaemon(in_addr_t hostaddr);
 
 /**
- * @brief Initialize the PSC logging facility.
+ * @brief Initialize the PSC logging facility
  *
  * Initialize the PSC logging facility. This is mainly a wrapper to
- * @ref logger_init().
+ * @ref logger_new().
  *
  * @param logfile Alternative file to use for logging.
  *
- * @return No return value.
+ * @return No return value
  *
  * If @a logfile is NULL, syslog() will be used for any
  * output. Otherwise @a logfile will be used.
@@ -251,7 +251,7 @@ void PSC_startDaemon(in_addr_t hostaddr);
  * @ref PSC_logInitialized() might be used in order to test, if the
  * PSC logging facility is already initialized.
  *
- * @see logger_init(), syslog(3)
+ * @see logger_new(), syslog(3)
  */
 void PSC_initLog(FILE *logfile);
 

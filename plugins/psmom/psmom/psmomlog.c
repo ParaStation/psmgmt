@@ -17,7 +17,7 @@ FILE *psmomlogfile;
 
 void initLogger(char *name, FILE *logfile)
 {
-    psmomlogger = logger_init(name, logfile);
+    psmomlogger = logger_new(name, logfile);
     initPluginLogger(NULL, logfile);
     psmomlogfile = logfile;
 }

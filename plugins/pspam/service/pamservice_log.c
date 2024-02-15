@@ -16,7 +16,7 @@ logger_t pamservice_logger;
 
 void initLogger(char *name, FILE *logfile)
 {
-    pamservice_logger = logger_init(name, logfile);
+    pamservice_logger = logger_new(name, logfile);
     initPluginLogger(name, logfile);
 }
 

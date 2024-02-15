@@ -18,7 +18,7 @@ logger_t psslurmlogger;
 
 void initLogger(char *name, FILE *logfile)
 {
-    psslurmlogger = logger_init(name, logfile);
+    psslurmlogger = logger_new(name, logfile);
     initPluginLogger(NULL, logfile);
 }
 

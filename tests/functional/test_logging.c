@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,7 +13,7 @@
 #include <stdarg.h>
 #include "logging.h"
 
-void my_print(logger_t *log, long key, char *format, ...)
+void my_print(logger_t log, long key, char *format, ...)
 {
     static char *fmt = NULL;
     static int fmtlen = 0;
@@ -32,7 +33,7 @@ void my_print(logger_t *log, long key, char *format, ...)
 }
 
 
-void log_it(logger_t *my)
+void log_it(logger_t my)
 {
     int count = 1, i;
 
@@ -64,14 +65,12 @@ void log_it(logger_t *my)
 
 int main(void)
 {
-    logger_t *my, *my2;
-
-    my = logger_init("TEST", stderr);
+    logger_t my = logger_new("TEST", stderr);
     if (!my) {
 	fprintf(stderr, "Failed to initialize logger 'my'\n");
 	exit(1);
     }
-    my2 = logger_init("TEST2", stderr);
+    logger_t my2 = logger_new("TEST2", stderr);
     if (!my2) {
 	fprintf(stderr, "Failed to initialize logger 'my2'\n");
 	logger_finalize(my);

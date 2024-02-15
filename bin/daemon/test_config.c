@@ -93,7 +93,7 @@ int main(int argc, const char *argv[])
 	return 1;
     }
 
-    PSID_logger = logger_init(NULL, stderr);
+    PSID_logger = logger_new(NULL, stderr);
     if (!PSID_logger) {
 	fprintf(stderr, "Failed to initialize logger\n");
 	exit(1);

@@ -39,7 +39,7 @@ extern const char **PSID_argv;
  * @brief Initialize the PSID logging facility
  *
  * Initialize the PSID logging facility. This is mainly a wrapper to
- * @ref logger_init(). Additionally, PSC's logging facility is
+ * @ref logger_new(). Additionally, PSC's logging facility is
  * initialized, too.
  *
  * @param logfile File to use for logging; if NULL, use syslog(3) for
@@ -47,7 +47,7 @@ extern const char **PSID_argv;
  *
  * @return No return value
  *
- * @see logger_init(), syslog(3), PSID_finalizeLogs()
+ * @see logger_new(), syslog(3), PSID_finalizeLogs()
  */
 void PSID_initLogs(FILE *logfile);
 

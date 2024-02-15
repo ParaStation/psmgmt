@@ -63,7 +63,7 @@ void PSE_initialize(void)
 {
     char *envStr;
 
-    logger = logger_init("PSE", stderr);
+    logger = logger_new("PSE", stderr);
     if (!logger) {
 	fprintf(stderr, "%s: failed to initialize logger\n", __func__);
 	exit(1);

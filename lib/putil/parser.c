@@ -93,7 +93,7 @@ static char *nextline(void)
 
 void parser_init(FILE* logfile, FILE *input)
 {
-    parserlogger = logger_init("Parser", logfile);
+    parserlogger = logger_new("Parser", logfile);
     if (!parserlogger) {
 	if (logfile) {
 	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);

@@ -16,7 +16,7 @@ logger_t nodeInfoLogger;
 
 void initNodeInfoLogger(char *name, FILE *logfile)
 {
-    nodeInfoLogger = logger_init(name, logfile);
+    nodeInfoLogger = logger_new(name, logfile);
     initPluginLogger(name, logfile);
 }
 

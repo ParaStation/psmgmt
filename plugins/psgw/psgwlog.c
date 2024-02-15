@@ -16,7 +16,7 @@ logger_t psgwlogger;
 
 void initLogger(char *name, FILE *logfile)
 {
-    psgwlogger = logger_init(name, logfile);
+    psgwlogger = logger_new(name, logfile);
     initPluginLogger(name, logfile);
 }
 

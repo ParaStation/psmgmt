@@ -41,7 +41,7 @@ static PStask_ID_t myTID = -1;
 void PSC_initLog(FILE* logfile)
 {
     if (PSC_logger) logger_finalize(PSC_logger);
-    PSC_logger = logger_init("PSC", logfile);
+    PSC_logger = logger_new("PSC", logfile);
     if (!PSC_logger) {
 	if (logfile) {
 	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);

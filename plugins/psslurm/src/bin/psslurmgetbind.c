@@ -790,7 +790,7 @@ int main(int argc, char *argv[])
 logger_t psslurmlogger = (logger_t)1;
 logger_t pluginlogger;
 
-logger_t logger_init(const char* tag, FILE *logfile)
+logger_t logger_new(const char* tag, FILE *logfile)
 {
     return (logger_t)1;
 }

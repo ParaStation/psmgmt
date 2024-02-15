@@ -15,7 +15,7 @@ logger_t RRCommLogger;
 
 void initRRCommLogger(char *name, FILE *logfile)
 {
-    RRCommLogger = logger_init(name, logfile);
+    RRCommLogger = logger_new(name, logfile);
     initPluginLogger(name, logfile);
 }
 

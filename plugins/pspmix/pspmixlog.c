@@ -80,7 +80,7 @@ const char *pspmix_jobIDsStr(PStask_ID_t sessID, PStask_ID_t jobID)
 
 void pspmix_initLogger(char *name, FILE *logfile)
 {
-    pmixlogger = logger_init(name, logfile);
+    pmixlogger = logger_new(name, logfile);
     initPluginLogger(name, logfile);
 }
 

@@ -14,7 +14,7 @@ logger_t pluginlogger;
 
 void initPluginLogger(char *name, FILE *logfile)
 {
-    pluginlogger = logger_init(name ? name : "plcom", logfile);
+    pluginlogger = logger_new(name ? name : "plcom", logfile);
 }
 
 bool isPluginLoggerInitialized(void)

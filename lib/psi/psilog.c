@@ -21,7 +21,7 @@ void PSI_initLog(FILE* logfile)
 {
     if (! PSC_logInitialized()) PSC_initLog(logfile);
 
-    PSI_logger = logger_init("PSI", logfile);
+    PSI_logger = logger_new("PSI", logfile);
     if (!PSI_logger) {
 	fprintf(stderr, "%s: failed to initialize logger\n", __func__);
 	exit(1);

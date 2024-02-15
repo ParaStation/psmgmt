@@ -123,7 +123,7 @@ static FILE * getFile(char *fNameBase, char *ext)
  * @brief Initialize psilogger's logging facilities
  *
  * Initialize psilogger's logging facilities. This is mainly a wrapper
- * to @ref logger_init() but additionally also initializes the
+ * to @ref logger_new() but additionally also initializes the
  * facilities handling output to stdout and stderr.
  *
  * If @a fNameBase is given, all logs will be redirected into separate
@@ -140,20 +140,20 @@ static FILE * getFile(char *fNameBase, char *ext)
 static void initLogs(char *fNameBase)
 {
     FILE *logFile = fNameBase ? getFile(fNameBase, "log") : stderr;
-    PSIlog_logger = logger_init("PSIlogger", logFile);
+    PSIlog_logger = logger_new("PSIlogger", logFile);
     if (!PSIlog_logger) {
 	fprintf(logFile, "Failed to initialize logger\n");
 	exit(1);
     }
 
     FILE *stdoutFile = fNameBase ? getFile(fNameBase, "stdout") : stdout;
-    PSIlog_stdout = logger_init(NULL, stdoutFile);
+    PSIlog_stdout = logger_new(NULL, stdoutFile);
     if (!PSIlog_stdout) {
 	PSIlog_exit(errno, "Failed to initialize stdout");
     }
 
     FILE *stderrFile = fNameBase ? getFile(fNameBase, "stderr") : stderr;
-    PSIlog_stderr = logger_init(NULL, stderrFile);
+    PSIlog_stderr = logger_new(NULL, stderrFile);
     if (!PSIlog_stderr) {
 	PSIlog_exit(errno, "Failed to initialize stderr");
     }

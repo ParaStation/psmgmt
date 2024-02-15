@@ -241,7 +241,7 @@ void Timer_setDebugMask(int32_t mask)
 
 void Timer_init(FILE* logfile)
 {
-    logger = logger_init("Timer", logfile);
+    logger = logger_new("Timer", logfile);
     if (!logger) {
 	if (logfile) {
 	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);

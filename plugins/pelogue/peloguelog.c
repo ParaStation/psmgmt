@@ -16,7 +16,7 @@ logger_t peloguelogger;
 
 void initLogger(char *name, FILE *logfile)
 {
-    peloguelogger = logger_init(name, logfile);
+    peloguelogger = logger_new(name, logfile);
     initPluginLogger(name, logfile);
 }
 

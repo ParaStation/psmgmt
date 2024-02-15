@@ -1748,7 +1748,7 @@ int main(int argc, char *argv[])
     PSC_setSigHandler(SIGUSR1, sig_handler);
 
     /* emergency logger during startup */
-    alogger = logger_init(NULL, stderr);
+    alogger = logger_new(NULL, stderr);
 
     optCon =
 	poptGetContext(NULL, argc, (const char **) argv, optionsTable, 0);
@@ -1773,7 +1773,7 @@ int main(int argc, char *argv[])
 
 	/* re-init logger (use syslog in the meantime) */
 	logger_finalize(alogger);
-	alogger = logger_init("PSACC", NULL);
+	alogger = logger_new("PSACC", NULL);
     }
 
     /* set core dir */
@@ -1818,7 +1818,7 @@ int main(int argc, char *argv[])
 
     /* re-init logger again (switch to final logfile) */
     logger_finalize(alogger);
-    alogger = logger_init("PSACC", logfile);
+    alogger = logger_new("PSACC", logfile);
 
     if (debug) alog("Enabling debug mask: 0x%x\n", debug);
 

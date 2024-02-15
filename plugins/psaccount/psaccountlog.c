@@ -17,7 +17,7 @@ FILE *psaccountlogfile;
 
 void initLogger(char *name, FILE *logfile)
 {
-    psaccountlogger = logger_init(name, logfile);
+    psaccountlogger = logger_new(name, logfile);
     initPluginLogger(NULL, logfile);
     psaccountlogfile = logfile;
 }

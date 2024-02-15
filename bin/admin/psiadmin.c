@@ -41,7 +41,7 @@ logger_t PSIadm_logger;
  * @brief Initialize psiadmin's logging facility
  *
  * Initialize psiadmin's logging facility. This is mainly a wrapper to
- * @ref logger_init().
+ * @ref logger_new().
  *
  * @param logfile File to use for logging. If NULL, use stderr for any
  * output.
@@ -50,13 +50,13 @@ logger_t PSIadm_logger;
  *
  * @return No return value
  *
- * @see logger_init(), PSIadm_finalizeLogs()
+ * @see logger_new(), PSIadm_finalizeLogs()
  */
 static void PSIadm_initLogs(FILE *logfile, const char *tag)
 {
     if (!tag) tag = "psiadmin";
     if (!logfile) logfile = stderr;
-    PSIadm_logger = logger_init(tag, logfile);
+    PSIadm_logger = logger_new(tag, logfile);
     if (!PSIadm_logger) {
 	fprintf(logfile, "%s: Failed to initialize logger\n", tag);
 	exit(1);

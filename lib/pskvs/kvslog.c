@@ -18,7 +18,7 @@ bool isKVSLoggerInitialized(void)
 
 void initKVSLogger(char *name, FILE *logfile)
 {
-    kvslogger = logger_init(name, logfile);
+    kvslogger = logger_new(name, logfile);
 }
 
 void maskKVSLogger(int32_t mask)

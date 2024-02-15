@@ -228,7 +228,7 @@ int Selector_setMax(int max)
 
 void Selector_init(FILE* logfile)
 {
-    logger = logger_init("Selector", logfile);
+    logger = logger_new("Selector", logfile);
     if (!logger) {
 	if (logfile) {
 	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);

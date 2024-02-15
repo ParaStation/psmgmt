@@ -13,7 +13,7 @@ logger_t dynIPlogger;
 
 void initLogger(char *name, FILE *logfile)
 {
-    dynIPlogger = logger_init(name, logfile);
+    dynIPlogger = logger_new(name, logfile);
 }
 
 void maskLogger(int32_t mask)

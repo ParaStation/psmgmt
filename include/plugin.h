@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -67,8 +67,8 @@ extern plugin_dep_t dependencies[];
  *
  * The @a logfile parameter defines the logging destination. Plugins
  * are expected to use this file for logging or to use syslog when
- * NULL. Thus, iIt is save to pass this argument directly to @ref
- * logger_init() or @ref initPluginLogger().
+ * NULL. Thus, it is save to pass this argument directly to @ref
+ * logger_new() or @ref initPluginLogger().
  *
  * If initialization of the plugin fails, this shall be signaled to
  * the ParaStation daemon by a return value different from 0. In this

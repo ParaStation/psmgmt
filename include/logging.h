@@ -19,7 +19,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-/** Logging context to be created via @ref logger_init() */
+/** Logging context to be created via @ref logger_new() */
 typedef struct logger * logger_t;
 
 /**
@@ -166,9 +166,9 @@ bool logger_getWaitNLFlag(logger_t logger);
 void logger_setWaitNLFlag(logger_t logger, bool flag);
 
 /**
- * @brief Initialize logging facility
+ * @brief Create a logging facility
  *
- * Initialize a logging facility using the tag @a tag to log into @a
+ * Create a logging facility using the tag @a tag to log into @a
  * logfile. Use syslog() if @a logfile is NULL.
  *
  *
@@ -183,20 +183,20 @@ void logger_setWaitNLFlag(logger_t logger, bool flag);
  * returned. This handle has to be passed to any further function
  * using this logging facility. In case of an error NULL is returned.
  */
-logger_t logger_init(const char *tag, FILE *logfile);
+logger_t logger_new(const char *tag, FILE *logfile);
 
 /**
  * @brief Check validity of logging facility
  *
  * Check the validity of the logging facility @a logger, i.e. if the
- * handle was created by @ref logger_init() and not finalized via
+ * handle was created by @ref logger_new() and not finalized via
  * @ref logger_finalize() in the meantime
  *
  * @param logger Logging facility to investigate
  *
  * @return Return true if @a logger is valid or false otherwise
  *
- * @see logger_init(), logger_finalize()
+ * @see logger_new(), logger_finalize()
  */
 bool logger_isValid(logger_t logger);
 
@@ -213,7 +213,7 @@ bool logger_isValid(logger_t logger);
  *
  * @return No return value
  *
- * @see logger_init()
+ * @see logger_new()
  */
 void logger_finalize(logger_t logger);
 

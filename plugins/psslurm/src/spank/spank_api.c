@@ -38,7 +38,7 @@ static int psSpank_loglevel = SPANK_LOG_VERBOSE;
 
 bool psSpank_Init(bool verbose)
 {
-    psSpank_logger = logger_init(NULL, NULL);
+    psSpank_logger = logger_new(NULL, NULL);
 
     void *pluginHandle = PSIDplugin_getHandle("psslurm");
 

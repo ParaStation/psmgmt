@@ -42,7 +42,7 @@ const char **PSID_argv;
 /* Wrapper functions for logging */
 void PSID_initLogs(FILE *logfile)
 {
-    PSID_logger = logger_init(logfile ? "PSID" : NULL, logfile);
+    PSID_logger = logger_new(logfile ? "PSID" : NULL, logfile);
     if (!PSID_logger) {
 	if (logfile) {
 	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);

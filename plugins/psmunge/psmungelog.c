@@ -16,7 +16,7 @@ logger_t psmungelogger;
 
 void initLogger(char *name, FILE *logfile)
 {
-    psmungelogger = logger_init(name, logfile);
+    psmungelogger = logger_new(name, logfile);
     initPluginLogger(name, logfile);
 }
 

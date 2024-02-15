@@ -673,7 +673,7 @@ static int handleMCast(int fd, void *info)
 int initMCast(int nodes, int mcastgroup, unsigned short portno, FILE* logfile,
 	      unsigned int hosts[], int id, void (*callback)(int, void*))
 {
-    logger = logger_init("MCast", logfile);
+    logger = logger_new("MCast", logfile);
     if (!logger) {
 	if (logfile) {
 	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);

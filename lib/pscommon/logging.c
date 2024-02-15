@@ -93,7 +93,7 @@ void logger_setWaitNLFlag(logger_t logger, bool flag)
     if (logger_isValid(logger)) logger->waitNLFlag = flag;
 }
 
-logger_t logger_init(const char *tag, FILE *logfile)
+logger_t logger_new(const char *tag, FILE *logfile)
 {
     logger_t logger = malloc(sizeof(*logger));
 

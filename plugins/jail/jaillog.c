@@ -14,7 +14,7 @@ logger_t jaillogger;
 
 void initLogger(char *name, FILE *logfile)
 {
-    jaillogger = logger_init(name, logfile);
+    jaillogger = logger_new(name, logfile);
 }
 
 void maskLogger(int32_t mask)

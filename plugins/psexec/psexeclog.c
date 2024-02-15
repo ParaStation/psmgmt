@@ -16,7 +16,7 @@ logger_t psexeclogger;
 
 void initLogger(char *name, FILE *logfile)
 {
-    psexeclogger = logger_init(name, logfile);
+    psexeclogger = logger_new(name, logfile);
     initPluginLogger(name, logfile);
 }
 

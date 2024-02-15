@@ -16,7 +16,7 @@ logger_t pspamlogger;
 
 void initLogger(char *name, FILE *logfile)
 {
-    pspamlogger = logger_init(name, logfile);
+    pspamlogger = logger_new(name, logfile);
     initPluginLogger(name, logfile);
 }
 

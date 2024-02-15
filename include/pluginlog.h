@@ -76,11 +76,11 @@ typedef enum {
  * @param logfile File to use for logging. If NULL, syslog() will be
  * used.
  *
- * This is wrapper to logger_init()
+ * This is wrapper to @ref logger_new()
  *
  * @return No return value
  *
- * @see logger_init()
+ * @see logger_new()
  */
 void initPluginLogger(char *name, FILE *logfile);
 

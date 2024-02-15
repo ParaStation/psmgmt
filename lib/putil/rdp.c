@@ -1865,7 +1865,7 @@ int RDP_init(int nodes, in_addr_t addr, in_port_t portno, FILE* logfile,
 	     in_addr_t hosts[], void (*dispatcher)(void),
 	     void (*callback)(RDP_CB_type_t, void*))
 {
-    logger = logger_init("RDP", logfile);
+    logger = logger_new("RDP", logfile);
     if (!logger) {
 	if (logfile) {
 	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);

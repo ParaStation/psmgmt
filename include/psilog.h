@@ -28,7 +28,7 @@ extern logger_t PSI_logger;
  * @brief Initialize the PSI logging facility
  *
  * Initialize the PSI logging facility. This is mainly a wrapper to
- * @ref logger_init().
+ * @ref logger_new().
  *
  * If @a logfile is NULL, syslog() will be used for any
  * output. Otherwise @a logfile will be used.
@@ -44,7 +44,7 @@ extern logger_t PSI_logger;
  *
  * @return No return value.
  *
- * @see logger_init(), syslog(3), PSI_logInitialized()
+ * @see logger_new(), syslog(3), PSI_logInitialized()
  */
 void PSI_initLog(FILE* logfile);
 
