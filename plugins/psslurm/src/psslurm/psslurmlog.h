@@ -19,18 +19,13 @@
 extern logger_t *psslurmlogger;
 extern FILE *psslurmlogfile;
 
-#define mlog(...) if (psslurmlogger)			\
-	logger_print(psslurmlogger, -1, __VA_ARGS__)
-#define mwarn(...) if (psslurmlogger)			\
-	logger_warn(psslurmlogger, -1, __VA_ARGS__)
-#define mdbg(...) if (psslurmlogger) logger_print(psslurmlogger, __VA_ARGS__)
+#define mlog(...) logger_print(psslurmlogger, -1, __VA_ARGS__)
+#define mwarn(...) logger_warn(psslurmlogger, -1, __VA_ARGS__)
+#define mdbg(...) logger_print(psslurmlogger, __VA_ARGS__)
 
-#define flog(...) if (psslurmlogger)					\
-	logger_funcprint(psslurmlogger, __func__, -1, __VA_ARGS__)
-#define fdbg(key, ...) if (psslurmlogger)				\
-	logger_funcprint(psslurmlogger, __func__, key, __VA_ARGS__)
-#define fwarn(...) if (psslurmlogger)					\
-	logger_funcwarn(psslurmlogger, __func__, -1, __VA_ARGS__)
+#define flog(...) logger_funcprint(psslurmlogger, __func__, -1, __VA_ARGS__)
+#define fdbg(...) logger_funcprint(psslurmlogger, __func__, __VA_ARGS__)
+#define fwarn(...) logger_funcwarn(psslurmlogger, __func__, -1, __VA_ARGS__)
 
 void initLogger(char *name, FILE *logfile);
 void maskLogger(int32_t mask);

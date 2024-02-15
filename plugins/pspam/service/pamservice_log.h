@@ -18,12 +18,9 @@
 
 extern logger_t *pamservice_logger;
 
-#define mlog(...) if (pamservice_logger) \
-	logger_print(pamservice_logger, -1, __VA_ARGS__)
-#define mwarn(...) if (pamservice_logger) \
-	logger_warn(pamservice_logger, -1, __VA_ARGS__)
-#define mdbg(...) if (pamservice_logger) \
-	logger_print(pamservice_logger, __VA_ARGS__)
+#define mlog(...) logger_print(pamservice_logger, -1, __VA_ARGS__)
+#define mwarn(...) logger_warn(pamservice_logger, -1, __VA_ARGS__)
+#define mdbg(...) logger_print(pamservice_logger, __VA_ARGS__)
 
 #define flog(...) if (pamservice_logger)				\
 	logger_funcprint(pamservice_logger, __func__, -1, __VA_ARGS__)

@@ -19,19 +19,13 @@
 extern logger_t *psaccountlogger;
 extern FILE *psaccountlogfile;
 
-#define mlog(...)  if (psaccountlogger)			\
-	logger_print(psaccountlogger, -1, __VA_ARGS__)
-#define mwarn(...) if (psaccountlogger)			\
-	logger_warn(psaccountlogger, -1, __VA_ARGS__)
-#define mdbg(...)  if (psaccountlogger)			\
-	logger_print(psaccountlogger, __VA_ARGS__)
+#define mlog(...) logger_print(psaccountlogger, -1, __VA_ARGS__)
+#define mwarn(...) logger_warn(psaccountlogger, -1, __VA_ARGS__)
+#define mdbg(...)  logger_print(psaccountlogger, __VA_ARGS__)
 
-#define flog(...)  if (psaccountlogger)					\
-	logger_funcprint(psaccountlogger, __func__, -1, __VA_ARGS__)
-#define fdbg(key, ...)  if (psaccountlogger)				\
-	logger_funcprint(psaccountlogger, __func__, key, __VA_ARGS__)
-#define fwarn(...) if (psaccountlogger)					\
-	logger_funcwarn(psaccountlogger, __func__, -1, __VA_ARGS__)
+#define flog(...) logger_funcprint(psaccountlogger, __func__, -1, __VA_ARGS__)
+#define fdbg(...) logger_funcprint(psaccountlogger, __func__, __VA_ARGS__)
+#define fwarn(...) logger_funcwarn(psaccountlogger, __func__, -1, __VA_ARGS__)
 
 /** Various types of logging levels for more verbose logging */
 typedef enum {

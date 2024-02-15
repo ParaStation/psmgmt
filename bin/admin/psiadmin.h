@@ -22,8 +22,7 @@ extern logger_t *PSIadm_logger;
  *
  * @see logger_print()
  */
-#define PSIadm_log(...) if (PSIadm_logger)	\
-	logger_print(PSIadm_logger, __VA_ARGS__)
+#define PSIadm_log(...) logger_print(PSIadm_logger, __VA_ARGS__)
 
 /**
  * Print warn messages via psiadmin's logging facility
@@ -32,8 +31,7 @@ extern logger_t *PSIadm_logger;
  *
  * @see logger_warn()
  */
-#define PSIadm_warn(...) if (PSIadm_logger)	\
-	logger_warn(PSIadm_logger, __VA_ARGS__)
+#define PSIadm_warn(...) logger_warn(PSIadm_logger, __VA_ARGS__)
 
 /**
  * Print warn messages via psiadmin's logging facility and exit
@@ -42,8 +40,6 @@ extern logger_t *PSIadm_logger;
  *
  * @see logger_exit()
  */
-#define PSIadm_exit(...) if (PSIadm_logger) {		\
-	logger_exit(PSIadm_logger, __VA_ARGS__);	\
-    }
+#define PSIadm_exit(...) logger_exit(PSIadm_logger, __VA_ARGS__)
 
 #endif /* __PSIADMIN_H */

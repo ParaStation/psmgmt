@@ -23,7 +23,7 @@ extern logger_t *psgwlogger;
 #define mdbg(...) logger_print(psgwlogger, __VA_ARGS__)
 
 #define flog(...) logger_funcprint(psgwlogger, __func__, -1, __VA_ARGS__)
-#define fdbg(key, ...) logger_funcprint(psgwlogger, __func__, key, __VA_ARGS__)
+#define fdbg(...) logger_funcprint(psgwlogger, __func__, __VA_ARGS__)
 
 /** Various types of logging levels for more verbose logging */
 typedef enum {

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,11 +18,9 @@
 
 extern logger_t *peloguelogger;
 
-#define mlog(...) if (peloguelogger)		\
-	logger_print(peloguelogger, -1, __VA_ARGS__)
-#define mwarn(...) if (peloguelogger)		\
-	logger_warn(peloguelogger, -1, __VA_ARGS__)
-#define mdbg(...) if (peloguelogger) logger_print(peloguelogger, __VA_ARGS__)
+#define mlog(...) logger_print(peloguelogger, -1, __VA_ARGS__)
+#define mwarn(...) logger_warn(peloguelogger, -1, __VA_ARGS__)
+#define mdbg(...) logger_print(peloguelogger, __VA_ARGS__)
 
 /** Various types of logging levels for more verbose logging */
 typedef enum {

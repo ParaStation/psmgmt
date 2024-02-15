@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -141,8 +141,8 @@ static LIST_HEAD(dJobs);
 /** store node information */
 static Acc_Nodes_t *accNodes;
 
-#define alog(...) if (alogger) logger_print(alogger, -1, __VA_ARGS__)
-#define awarn(...) if (alogger) logger_warn(alogger, -1, errno, __VA_ARGS__)
+#define alog(...) logger_print(alogger, -1, __VA_ARGS__)
+#define awarn(...) logger_warn(alogger, -1, errno, __VA_ARGS__)
 
 /**
  * @brief Malloc with error handling.

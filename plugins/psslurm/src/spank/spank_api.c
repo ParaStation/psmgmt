@@ -23,8 +23,7 @@ typedef enum {
 
 static int psSpank_loglevel = SPANK_LOG_VERBOSE;
 
-#define mlog(...) if (psSpank_logger)                   \
-    logger_print(psSpank_logger, -1, __VA_ARGS__)
+#define mlog(...) logger_print(psSpank_logger, -1, __VA_ARGS__)
 
 #define PSLOG(level, logger, fmt) {                     \
     va_list ap;                                         \

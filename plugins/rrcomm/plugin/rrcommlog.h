@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,17 +17,12 @@
 
 extern logger_t *RRCommLogger;
 
-#define mlog(...)  if (RRCommLogger)			\
-	logger_print(RRCommLogger, -1, __VA_ARGS__)
-#define mdbg(...)  if (RRCommLogger)		\
-	logger_print(RRCommLogger, __VA_ARGS__)
-#define mwarn(...) if (RRCommLogger)			\
-	logger_warn(RRCommLogger, -1, __VA_ARGS__)
+#define mlog(...) logger_print(RRCommLogger, -1, __VA_ARGS__)
+#define mdbg(...) logger_print(RRCommLogger, __VA_ARGS__)
+#define mwarn(...) logger_warn(RRCommLogger, -1, __VA_ARGS__)
 
-#define flog(...)  if (RRCommLogger)					\
-	logger_funcprint(RRCommLogger, __func__, -1, __VA_ARGS__)
-#define fdbg(key, ...)  if (RRCommLogger)				\
-	logger_funcprint(RRCommLogger, __func__, key, __VA_ARGS__)
+#define flog(...) logger_funcprint(RRCommLogger, __func__, -1, __VA_ARGS__)
+#define fdbg(...) logger_funcprint(RRCommLogger, __func__, __VA_ARGS__)
 
 typedef enum {
     RRCOMM_LOG_COMM    = 0x00001,   /**< All about routing */
@@ -70,7 +65,6 @@ void maskRRCommLogger(uint32_t mask);
 static inline int32_t getRRCommLoggerMask(void) {
     return logger_getMask(RRCommLogger);
 }
-
 
 /**
  * @brief Finalize the logger facility

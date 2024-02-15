@@ -27,31 +27,31 @@ extern logger_t *pmixlogger;
 
 extern pthread_mutex_t __mlock;
 
-#define mlog(...) \
-    do { \
-	if (pmixlogger) { \
-	    pthread_mutex_lock(&__mlock); \
-	    logger_print(pmixlogger, -1, __VA_ARGS__); \
-	    pthread_mutex_unlock(&__mlock); \
-	} \
+#define mlog(...)					\
+    do {						\
+	if (pmixlogger) {				\
+	    pthread_mutex_lock(&__mlock);		\
+	    logger_print(pmixlogger, -1, __VA_ARGS__);	\
+	    pthread_mutex_unlock(&__mlock);		\
+	}						\
     } while(0)
 
-#define mwarn(...) \
-    do { \
-	if (pmixlogger) { \
-	    pthread_mutex_lock(&__mlock); \
-	    if (pmixlogger) logger_warn(pmixlogger, -1, __VA_ARGS__); \
-	    pthread_mutex_unlock(&__mlock); \
-	} \
+#define mwarn(...)					\
+    do {						\
+	if (pmixlogger) {				\
+	    pthread_mutex_lock(&__mlock);		\
+	    logger_warn(pmixlogger, -1, __VA_ARGS__);	\
+	    pthread_mutex_unlock(&__mlock);		\
+	}						\
     } while(0)
 
-#define mdbg(...) \
-    do { \
-	if (pmixlogger) { \
-	    pthread_mutex_lock(&__mlock); \
-	    if (pmixlogger) logger_print(pmixlogger, __VA_ARGS__); \
-	    pthread_mutex_unlock(&__mlock); \
-	} \
+#define mdbg(...)					\
+    do {						\
+	if (pmixlogger) {				\
+	    pthread_mutex_lock(&__mlock);		\
+	    logger_print(pmixlogger, __VA_ARGS__);	\
+	    pthread_mutex_unlock(&__mlock);		\
+	}						\
     } while(0)
 
 #define elog(...) PSIDfwd_printMsgf(STDERR, __VA_ARGS__)

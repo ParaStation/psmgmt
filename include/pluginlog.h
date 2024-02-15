@@ -39,8 +39,7 @@ typedef enum {
  *
  * @see logger_print()
  */
-#define pluginlog(...) if (pluginlogger)		\
-	logger_print(pluginlogger, -1, __VA_ARGS__)
+#define pluginlog(...) logger_print(pluginlogger, -1, __VA_ARGS__)
 
 #define pluginflog(...) if (pluginlogger)				\
 	logger_funcprint(pluginlogger, __func__, -1, __VA_ARGS__)
@@ -52,8 +51,7 @@ typedef enum {
  *
  * @see logger_warn()
  */
-#define pluginwarn(...) if (pluginlogger)		\
-	logger_warn(pluginlogger, -1, __VA_ARGS__)
+#define pluginwarn(...) logger_warn(pluginlogger, -1, __VA_ARGS__)
 
 /**
  * Print a debug messages via the logging facility @ref pluginlogger.
@@ -62,8 +60,7 @@ typedef enum {
  *
  * @see logger_print()
  */
-#define plugindbg(...) if (pluginlogger)		\
-	logger_print(pluginlogger, __VA_ARGS__)
+#define plugindbg(...) logger_print(pluginlogger, __VA_ARGS__)
 
 #define pluginfdbg(...) if (pluginlogger)			\
 	logger_funcprint(pluginlogger, __func__, __VA_ARGS__)
