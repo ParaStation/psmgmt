@@ -40,9 +40,9 @@
  *
  * @param flags Flags steering the behavior of the database
  *
- * @param logger The logger facility to use
+ * @param logger Logging facility to use
  *
- * @param key The key to use in order to decide if anything is put out
+ * @param key Key to use in order to decide if anything is put out
  *
  * @return On success the name of the local configuration object
  * suitable for further calls to the database is returned; in case of
