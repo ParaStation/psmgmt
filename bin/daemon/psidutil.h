@@ -27,7 +27,7 @@
 #include "selector.h"
 
 /** The logger we use inside PSID */
-extern logger_t *PSID_logger;
+extern logger_t PSID_logger;
 
 /** Number of arguments to be modified by forwarders, etc. */
 extern int PSID_argc;

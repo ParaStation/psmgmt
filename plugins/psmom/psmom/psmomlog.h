@@ -16,7 +16,7 @@
 
 #include "logging.h"
 
-extern logger_t *psmomlogger;
+extern logger_t psmomlogger;
 extern FILE *psmomlogfile;
 
 #define mlog(...) logger_print(psmomlogger, -1, __VA_ARGS__)

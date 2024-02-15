@@ -30,7 +30,7 @@
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 
 /** The logger we use inside PSC */
-extern logger_t* PSC_logger;
+extern logger_t PSC_logger;
 
 /**
  * @brief Determines the number of nodes of the cluster.

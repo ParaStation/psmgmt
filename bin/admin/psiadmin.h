@@ -13,7 +13,7 @@
 #include "logging.h"
 
 /** Logger used for error messages within psiadmin. */
-extern logger_t *PSIadm_logger;
+extern logger_t PSIadm_logger;
 
 /**
  * Print log messages via psiadmins's logging facility

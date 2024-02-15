@@ -34,7 +34,7 @@
 
 config_t *PSID_config = NULL;
 
-logger_t *PSID_logger;
+logger_t PSID_logger;
 
 int PSID_argc;
 const char **PSID_argv;

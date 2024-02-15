@@ -15,7 +15,7 @@
 
 #include "logging.h"
 
-extern logger_t *RRCommLogger;
+extern logger_t RRCommLogger;
 
 #define mlog(...) logger_print(RRCommLogger, -1, __VA_ARGS__)
 #define mdbg(...) logger_print(RRCommLogger, __VA_ARGS__)

@@ -12,7 +12,7 @@
 
 #include "pluginlog.h"
 
-logger_t *psgwlogger;
+logger_t psgwlogger;
 
 void initLogger(char *name, FILE *logfile)
 {

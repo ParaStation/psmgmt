@@ -16,7 +16,7 @@
 
 #include "logging.h"
 
-extern logger_t *pmilogger;
+extern logger_t pmilogger;
 extern FILE *pmilogfile;
 
 #define mlog(...) logger_print(pmilogger, -1, __VA_ARGS__)

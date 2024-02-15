@@ -16,7 +16,7 @@
 
 #include "logging.h"
 
-extern logger_t *psmungelogger;
+extern logger_t psmungelogger;
 
 #define mlog(...) logger_print(psmungelogger,-1, __VA_ARGS__)
 #define mwarn(...) logger_warn(psmungelogger,-1, __VA_ARGS__)

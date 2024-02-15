@@ -16,7 +16,7 @@
 
 #include "logging.h"
 
-extern logger_t *pamservice_logger;
+extern logger_t pamservice_logger;
 
 #define mlog(...) logger_print(pamservice_logger, -1, __VA_ARGS__)
 #define mwarn(...) logger_warn(pamservice_logger, -1, __VA_ARGS__)

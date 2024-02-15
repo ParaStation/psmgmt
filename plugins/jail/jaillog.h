@@ -16,7 +16,7 @@
 
 #include "logging.h"
 
-extern logger_t *jaillogger;
+extern logger_t jaillogger;
 
 #define jlog(...) logger_print(jaillogger, __VA_ARGS__)
 #define jwarn(...) logger_warn(jaillogger, __VA_ARGS__)

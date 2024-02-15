@@ -12,7 +12,7 @@
 
 #include "pluginlog.h"
 
-logger_t *pmilogger;
+logger_t pmilogger;
 FILE *pmilogfile;
 
 void initLogger(char *name, FILE *logfile)

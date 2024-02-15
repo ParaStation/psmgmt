@@ -9,7 +9,7 @@
  */
 #include "kvslog.h"
 
-logger_t *kvslogger;
+logger_t kvslogger;
 
 bool isKVSLoggerInitialized(void)
 {

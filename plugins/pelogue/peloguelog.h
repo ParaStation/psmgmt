@@ -16,7 +16,7 @@
 
 #include "logging.h"
 
-extern logger_t *peloguelogger;
+extern logger_t peloguelogger;
 
 #define mlog(...) logger_print(peloguelogger, -1, __VA_ARGS__)
 #define mwarn(...) logger_warn(peloguelogger, -1, __VA_ARGS__)

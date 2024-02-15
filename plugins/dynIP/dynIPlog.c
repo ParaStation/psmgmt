@@ -9,7 +9,7 @@
  */
 #include "dynIPlog.h"
 
-logger_t *dynIPlogger;
+logger_t dynIPlogger;
 
 void initLogger(char *name, FILE *logfile)
 {

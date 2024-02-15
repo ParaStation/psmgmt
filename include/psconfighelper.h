@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -49,7 +49,7 @@
  * failure NULL is returned
  */
 char * PSCfgHelp_getObject(PSConfig* db, guint flags,
-			   logger_t* logger, int32_t key);
+			   logger_t logger, int32_t key);
 
 #endif /* BUILD_WITHOUT_PSCONFIG */
 

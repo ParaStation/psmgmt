@@ -12,7 +12,7 @@
 
 #include "pluginlog.h"
 
-logger_t *pamservice_logger;
+logger_t pamservice_logger;
 
 void initLogger(char *name, FILE *logfile)
 {

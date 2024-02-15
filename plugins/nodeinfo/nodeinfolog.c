@@ -12,7 +12,7 @@
 
 #include "pluginlog.h"
 
-logger_t *nodeInfoLogger;
+logger_t nodeInfoLogger;
 
 void initNodeInfoLogger(char *name, FILE *logfile)
 {

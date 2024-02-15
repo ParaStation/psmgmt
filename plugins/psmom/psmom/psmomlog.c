@@ -12,7 +12,7 @@
 
 #include "pluginlog.h"
 
-logger_t *psmomlogger;
+logger_t psmomlogger;
 FILE *psmomlogfile;
 
 void initLogger(char *name, FILE *logfile)

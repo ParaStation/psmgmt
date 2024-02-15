@@ -10,7 +10,7 @@
  */
 #include "jaillog.h"
 
-logger_t *jaillogger;
+logger_t jaillogger;
 
 void initLogger(char *name, FILE *logfile)
 {

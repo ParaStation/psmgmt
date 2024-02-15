@@ -10,7 +10,7 @@
  */
 #include "pluginlog.h"
 
-logger_t *pluginlogger;
+logger_t pluginlogger;
 
 void initPluginLogger(char *name, FILE *logfile)
 {

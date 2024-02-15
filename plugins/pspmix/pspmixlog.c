@@ -13,7 +13,7 @@
 #include "pscommon.h"
 #include "pluginlog.h"
 
-logger_t *pmixlogger;
+logger_t pmixlogger;
 pthread_mutex_t __mlock = PTHREAD_MUTEX_INITIALIZER;
 
 const char *pspmix_getMsgTypeString(PSP_PSPMIX_t type)

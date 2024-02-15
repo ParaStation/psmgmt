@@ -23,7 +23,7 @@
 #include "pspmixtypes.h"
 #include "pspmixuserserver.h"  // IWYU pragma: keep // for server
 
-extern logger_t *pmixlogger;
+extern logger_t pmixlogger;
 
 extern pthread_mutex_t __mlock;
 

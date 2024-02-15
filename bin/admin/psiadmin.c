@@ -35,7 +35,7 @@
 #include "commands.h"
 #include "adminparser.h"
 
-logger_t *PSIadm_logger;
+logger_t PSIadm_logger;
 
 /**
  * @brief Initialize psiadmin's logging facility

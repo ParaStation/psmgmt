@@ -12,7 +12,7 @@
 
 #include "pluginlog.h"
 
-logger_t *psaccountlogger;
+logger_t psaccountlogger;
 FILE *psaccountlogfile;
 
 void initLogger(char *name, FILE *logfile)

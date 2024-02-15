@@ -19,7 +19,7 @@
 #include "logging.h"
 
 /** private logger to use */
-extern logger_t *pluginlogger;
+extern logger_t pluginlogger;
 
 /**
  * Various message classes for logging. These define the different

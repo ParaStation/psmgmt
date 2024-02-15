@@ -19,29 +19,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
-/** Container for all the internal information of a logging facility */
-typedef struct {
-    long magic;
-    FILE* logfile;    /**< The logfile to use. If NULL, use syslog. Set
-			 via logger_init(). */
-    int32_t mask;     /**< Mask used to determine wich messages to print.
-			 Set/get thru logger_setMask()/logger_getMask().*/
-    char* tag;        /**< Actual tag prepended each log-message. Set/get thru
-			 logger_setTag()/logger_getTag() or logger_init(). */
-    char* trail;      /**< Remnants from the last messages that did not
-			 had a closing '\n' character. */
-    size_t trailSize; /**< Maximum size to be currently stored in trail */
-    size_t trailUsed; /**< Number of character currently stored in trail */
-    bool timeFlag;    /**< Flag if current time shall be given within tag */
-    bool waitNLFlag;  /**< Flag if actual output waits for next newline */
-
-    char* fmt;        /**< Internal buffer used to store formats */
-    size_t fmtSize;   /**< Actual size of @a fmt */
-    char* prfx;       /**< Internal buffer used to store prefix */
-    size_t prfxSize;  /**< Actual size of @a prfx */
-    char* txt;        /**< Internal buffer used to store actual output text */
-    size_t txtSize;   /**< Actual size of @a txt */
-} logger_t;
+/** Logging context to be created via @ref logger_init() */
+typedef struct logger * logger_t;
 
 /**
  * @brief Query the log-mask
@@ -54,7 +33,7 @@ typedef struct {
  *
  * @see logger_setMask()
  */
-int32_t logger_getMask(logger_t* logger);
+int32_t logger_getMask(logger_t logger);
 
 /**
  * @brief Set the log-mask
@@ -70,7 +49,7 @@ int32_t logger_getMask(logger_t* logger);
  *
  * @see logger_getMask()
  */
-void logger_setMask(logger_t* logger, int32_t mask);
+void logger_setMask(logger_t logger, int32_t mask);
 
 /**
  * @brief Query the log-tag
@@ -83,7 +62,7 @@ void logger_setMask(logger_t* logger, int32_t mask);
  *
  * @see logger_setTag()
  */
-char* logger_getTag(logger_t* logger);
+char* logger_getTag(logger_t logger);
 
 /**
  * @brief Set the log-tag
@@ -103,7 +82,7 @@ char* logger_getTag(logger_t* logger);
  * @see logger_getTag(), logger_print(), logger_funcprint(),
  * logger_vprint(), logger_warn(), logger_funcwarn(), logger_exit()
  */
-void logger_setTag(logger_t* logger, const char* tag);
+void logger_setTag(logger_t logger, const char* tag);
 
 /**
  * @brief Query the time-flag
@@ -116,7 +95,7 @@ void logger_setTag(logger_t* logger, const char* tag);
  *
  * @see logger_setTimeFlag()
  */
-bool logger_getTimeFlag(logger_t* logger);
+bool logger_getTimeFlag(logger_t logger);
 
 /**
  * @brief Set the time-flag
@@ -139,7 +118,7 @@ bool logger_getTimeFlag(logger_t* logger);
  * @see logger_getTimeFlag(), logger_print(), logger_funcprint(),
  * logger_vprint(), logger_warn(), logger_funcwarn(), logger_exit()
  */
-void logger_setTimeFlag(logger_t* logger, bool flag);
+void logger_setTimeFlag(logger_t logger, bool flag);
 
 /**
  * @brief Query the waitNL-flag
@@ -152,7 +131,7 @@ void logger_setTimeFlag(logger_t* logger, bool flag);
  *
  * @see logger_setWaitNLFlag()
  */
-bool logger_getWaitNLFlag(logger_t* logger);
+bool logger_getWaitNLFlag(logger_t logger);
 
 /**
  * @brief Set the waitNL-flag
@@ -184,7 +163,7 @@ bool logger_getWaitNLFlag(logger_t* logger);
  *
  * @see logger_getWaitNLFlag(), logger_finalize()
  */
-void logger_setWaitNLFlag(logger_t* logger, bool flag);
+void logger_setWaitNLFlag(logger_t logger, bool flag);
 
 /**
  * @brief Initialize logging facility
@@ -204,7 +183,7 @@ void logger_setWaitNLFlag(logger_t* logger, bool flag);
  * returned. This handle has to be passed to any further function
  * using this logging facility. In case of an error NULL is returned.
  */
-logger_t* logger_init(const char* tag, FILE *logfile);
+logger_t logger_init(const char *tag, FILE *logfile);
 
 /**
  * @brief Check validity of logging facility
@@ -219,7 +198,7 @@ logger_t* logger_init(const char* tag, FILE *logfile);
  *
  * @see logger_init(), logger_finalize()
  */
-bool logger_isValid(logger_t *logger);
+bool logger_isValid(logger_t logger);
 
 /**
  * @brief Finalize logging facility
@@ -236,7 +215,7 @@ bool logger_isValid(logger_t *logger);
  *
  * @see logger_init()
  */
-void logger_finalize(logger_t* logger);
+void logger_finalize(logger_t logger);
 
 /**
  * @brief Write a log message
@@ -271,7 +250,7 @@ void logger_finalize(logger_t* logger);
  *
  * @see write(2), logger_exit()
  */
-void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count);
+void logger_write(logger_t logger, int32_t key, const char *buf, size_t count);
 
 /**
  * @brief Print a log message
@@ -312,7 +291,7 @@ void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count);
  * @see printf(), logger_print(), logger_vprint(), logger_funcprint(),
  * logger_warn(), logger_exit()
  */
-void logger_print(logger_t* logger, int32_t key, const char* fmt, ...)
+void logger_print(logger_t logger, int32_t key, const char* fmt, ...)
     __attribute__((format(printf,3,4)));
 
 /**
@@ -336,7 +315,7 @@ void logger_print(logger_t* logger, int32_t key, const char* fmt, ...)
  *
  * @see logger_print() for details
  */
-void logger_vprint(logger_t* logger, int32_t key, const char* fmt, va_list ap)
+void logger_vprint(logger_t logger, int32_t key, const char* fmt, va_list ap)
     __attribute__((format(printf,3,0)));
 
 /**
@@ -362,7 +341,7 @@ void logger_vprint(logger_t* logger, int32_t key, const char* fmt, va_list ap)
  *
  * @see logger_print() for details
  */
-void logger_funcprint(logger_t* logger, const char *func, int32_t key,
+void logger_funcprint(logger_t logger, const char *func, int32_t key,
 		      const char *fmt, ...)
     __attribute__((format(printf,4,5)));
 
@@ -386,7 +365,7 @@ void logger_funcprint(logger_t* logger, const char *func, int32_t key,
  *
  * @see logger_print(), strerror()
  */
-void logger_warn(logger_t* logger, int32_t key, int eno, const char* fmt, ...)
+void logger_warn(logger_t logger, int32_t key, int eno, const char* fmt, ...)
     __attribute__((format(printf,4,5)));
 
 /**
@@ -413,7 +392,7 @@ void logger_warn(logger_t* logger, int32_t key, int eno, const char* fmt, ...)
  *
  * @see logger_print(), logger_funcprint(), logger_warn(), strerror()
  */
-void logger_funcwarn(logger_t* logger, const char *func, int32_t key,
+void logger_funcwarn(logger_t logger, const char *func, int32_t key,
 		     int eno, const char* fmt, ...)
     __attribute__((format(printf,5,6)));
 
@@ -437,7 +416,7 @@ void logger_funcwarn(logger_t* logger, const char *func, int32_t key,
  *
  * @see logger_warn(), exit()
  */
-void logger_exit(logger_t* logger, int eno, const char* fmt, ...)
+void logger_exit(logger_t logger, int eno, const char* fmt, ...)
     __attribute__((format(printf,3,4),noreturn));
 
 #endif  /* __LOGGING_H */

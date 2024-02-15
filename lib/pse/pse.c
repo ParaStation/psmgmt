@@ -37,7 +37,7 @@ static PStask_ID_t parentTID = -1;
 static uint32_t defaultHWType = 0; /* Take any node */
 
 /** The logger we use inside PSE */
-static logger_t *logger;
+static logger_t logger;
 
 typedef enum {
     PSE_LOG_SPAWN = PSI_LOG_SPAWN,

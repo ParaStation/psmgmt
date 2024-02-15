@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,13 +24,13 @@
 #include "logging.h"
 
 /** A logger used within psilogger. This one is used for stdout stuff */
-extern logger_t *PSIlog_stdout;
+extern logger_t PSIlog_stdout;
 
 /** A logger used within psilogger. This one is used for stderr stuff */
-extern logger_t *PSIlog_stderr;
+extern logger_t PSIlog_stderr;
 
 /** A logger used within psilogger. This one is used for error messages */
-extern logger_t *PSIlog_logger;
+extern logger_t PSIlog_logger;
 
 /** Maximum number of processes within this job. */
 extern int usize;

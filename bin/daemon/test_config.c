@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -30,7 +30,7 @@
 #include "config_parsing.h"
 
 /* stub required for logging in psidnodes.c */
-extern logger_t *PSID_logger;
+extern logger_t PSID_logger;
 /* stub required to link against psidnodes.o */
 ssize_t sendMsg(void *amsg) {return 0;}
 /* stubs required to link against psidutil.o */

@@ -62,7 +62,7 @@ typedef struct {
 } Timer_t;
 
 /** The logger used by the Timer facility */
-static logger_t *logger;
+static logger_t logger;
 
 /** List of all registered timers */
 static LIST_HEAD(timerList);

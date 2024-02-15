@@ -12,7 +12,7 @@
 
 #include "pluginlog.h"
 
-logger_t *psexeclogger;
+logger_t psexeclogger;
 
 void initLogger(char *name, FILE *logfile)
 {

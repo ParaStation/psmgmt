@@ -14,7 +14,7 @@
 
 #define MAX_FLOG_SIZE 4096
 
-logger_t *psslurmlogger;
+logger_t psslurmlogger;
 
 void initLogger(char *name, FILE *logfile)
 {

@@ -50,7 +50,7 @@ typedef struct {
 } Selector_t;
 
 /** The logger used by the Selector facility */
-static logger_t *logger;
+static logger_t logger;
 
 /** File-descriptor used for all epoll actions */
 static int epollFD = -1;

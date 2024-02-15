@@ -11,7 +11,7 @@
 
 #include "pluginlog.h"
 
-logger_t *RRCommLogger;
+logger_t RRCommLogger;
 
 void initRRCommLogger(char *name, FILE *logfile)
 {

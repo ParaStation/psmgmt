@@ -16,7 +16,7 @@
 
 #include "logging.h"
 
-extern logger_t *psgwlogger;
+extern logger_t psgwlogger;
 
 #define mlog(...) logger_print(psgwlogger, -1, __VA_ARGS__)
 #define mwarn(...) logger_warn(psgwlogger, -1, __VA_ARGS__)

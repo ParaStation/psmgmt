@@ -16,7 +16,7 @@
 
 #include "logging.h"
 
-extern logger_t *pspamlogger;
+extern logger_t pspamlogger;
 
 #define mlog(...) logger_print(pspamlogger, -1, __VA_ARGS__)
 #define mwarn(...) logger_warn(pspamlogger, -1, __VA_ARGS__)

@@ -16,7 +16,7 @@
 
 #include "logging.h"
 
-extern logger_t *nodeInfoLogger;
+extern logger_t nodeInfoLogger;
 
 #define mlog(...) logger_print(nodeInfoLogger, -1, __VA_ARGS__)
 #define mdbg(...) logger_print(nodeInfoLogger, __VA_ARGS__)

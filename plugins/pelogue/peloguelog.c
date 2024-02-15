@@ -12,7 +12,7 @@
 
 #include "pluginlog.h"
 
-logger_t *peloguelogger;
+logger_t peloguelogger;
 
 void initLogger(char *name, FILE *logfile)
 {

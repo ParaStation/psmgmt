@@ -22,27 +22,50 @@
 
 #define LOG_MAGIC 0x0577215664901532
 
-bool logger_isValid(logger_t *logger)
+/** Container holding all information of a logging facility */
+struct logger {
+    long magic;
+    FILE* logfile;    /**< The logfile to use; ff NULL, use syslog */
+    int32_t mask;     /**< Mask used to determine wich messages to print;
+			 set/get thru logger_setMask()/logger_getMask() */
+    char* tag;        /**< Actual tag prepended each log-message; set/get thru
+			 logger_setTag()/logger_getTag() or logger_new() */
+    char* trail;      /**< Remnants from the last messages that did not
+			 had a closing '\n' character */
+    size_t trailSize; /**< Maximum size to be currently stored in trail */
+    size_t trailUsed; /**< Number of character currently stored in trail */
+    bool timeFlag;    /**< Flag if current time shall be given within tag */
+    bool waitNLFlag;  /**< Flag if actual output waits for next newline */
+
+    char* fmt;        /**< Internal buffer used to store formats */
+    size_t fmtSize;   /**< Actual size of @a fmt */
+    char* prfx;       /**< Internal buffer used to store prefix */
+    size_t prfxSize;  /**< Actual size of @a prfx */
+    char* txt;        /**< Internal buffer used to store actual output text */
+    size_t txtSize;   /**< Actual size of @a txt */
+};
+
+bool logger_isValid(logger_t logger)
 {
     return logger && logger->magic == LOG_MAGIC;
 }
 
-int32_t logger_getMask(logger_t* logger)
+int32_t logger_getMask(logger_t logger)
 {
     return logger_isValid(logger) ? logger->mask : 0;
 }
 
-void logger_setMask(logger_t* logger, int32_t mask)
+void logger_setMask(logger_t logger, int32_t mask)
 {
     if (logger_isValid(logger)) logger->mask = mask;
 }
 
-char* logger_getTag(logger_t* logger)
+char* logger_getTag(logger_t logger)
 {
     return logger_isValid(logger) ? logger->tag : NULL;
 }
 
-void logger_setTag(logger_t* logger, const char* tag)
+void logger_setTag(logger_t logger, const char* tag)
 {
     if (!logger_isValid(logger)) return;
 
@@ -50,29 +73,29 @@ void logger_setTag(logger_t* logger, const char* tag)
     logger->tag = tag ? strdup(tag) : NULL;
 }
 
-bool logger_getTimeFlag(logger_t* logger)
+bool logger_getTimeFlag(logger_t logger)
 {
     return logger_isValid(logger) ? logger->timeFlag : false;
 }
 
-void logger_setTimeFlag(logger_t* logger, bool flag)
+void logger_setTimeFlag(logger_t logger, bool flag)
 {
     if (logger_isValid(logger)) logger->timeFlag = flag;
 }
 
-bool logger_getWaitNLFlag(logger_t* logger)
+bool logger_getWaitNLFlag(logger_t logger)
 {
     return logger_isValid(logger) ? logger->waitNLFlag : false;
 }
 
-void logger_setWaitNLFlag(logger_t* logger, bool flag)
+void logger_setWaitNLFlag(logger_t logger, bool flag)
 {
     if (logger_isValid(logger)) logger->waitNLFlag = flag;
 }
 
-logger_t* logger_init(const char* tag, FILE* logfile)
+logger_t logger_init(const char *tag, FILE *logfile)
 {
-    logger_t* logger = (logger_t*)malloc(sizeof(*logger));
+    logger_t logger = malloc(sizeof(*logger));
 
     if (logger) {
 	logger->magic = LOG_MAGIC;
@@ -104,7 +127,7 @@ logger_t* logger_init(const char* tag, FILE* logfile)
     return logger;
 }
 
-void logger_finalize(logger_t* logger)
+void logger_finalize(logger_t logger)
 {
     if (!logger_isValid(logger)) return;
 
@@ -135,7 +158,7 @@ void logger_finalize(logger_t* logger)
  * @return Return a pointer to a static character array containing the
  * just created time-stamp
  */
-static inline char *getTimeStr(logger_t *logger)
+static inline char *getTimeStr(logger_t logger)
 {
     static char timeStr[40];
     struct timeval time;
@@ -174,7 +197,7 @@ static inline char *getTimeStr(logger_t *logger)
  *
  * @return No return value
  */
-static void do_panic(logger_t* logger, const char *fmt,
+static void do_panic(logger_t logger, const char *fmt,
 		     const char *c1, const char *c2)
 {
     if (logger_isValid(logger) && logger->logfile) {
@@ -219,7 +242,7 @@ static void do_panic(logger_t* logger, const char *fmt,
  * @see logger_print(), logger_funcprint(), logger_vprint(),
  * logger_warn(), logger_funcwarn(), @ref logger_exit()
  */
-static void do_print(logger_t* l, const char* fmt, va_list ap)
+static void do_print(logger_t l, const char* fmt, va_list ap)
 {
     if (!logger_isValid(l)) return;
 
@@ -311,12 +334,12 @@ static void do_print(logger_t* l, const char* fmt, va_list ap)
     if (l->logfile) fflush(l->logfile);
 }
 
-static inline bool logger_checkKey(logger_t *l, int32_t key)
+static inline bool logger_checkKey(logger_t l, int32_t key)
 {
     return logger_isValid(l) && (key == -1 || logger_getMask(l) & key);
 }
 
-void logger_print(logger_t* logger, int32_t key, const char* fmt, ...)
+void logger_print(logger_t logger, int32_t key, const char* fmt, ...)
 {
     if (!logger_checkKey(logger, key)) return;
 
@@ -326,14 +349,14 @@ void logger_print(logger_t* logger, int32_t key, const char* fmt, ...)
     va_end(ap);
 }
 
-void logger_vprint(logger_t* logger, int32_t key, const char* fmt, va_list ap)
+void logger_vprint(logger_t logger, int32_t key, const char* fmt, va_list ap)
 {
     if (!logger_checkKey(logger, key)) return;
 
     do_print(logger, fmt, ap);
 }
 
-void logger_funcprint(logger_t* logger, const char *func, int32_t key,
+void logger_funcprint(logger_t logger, const char *func, int32_t key,
 		      const char *fmt, ...)
 {
     if (!logger_checkKey(logger, key)) return;
@@ -357,7 +380,7 @@ void logger_funcprint(logger_t* logger, const char *func, int32_t key,
     va_end(ap);
 }
 
-void logger_warn(logger_t* logger, int32_t key, int eno, const char* fmt, ...)
+void logger_warn(logger_t logger, int32_t key, int eno, const char* fmt, ...)
 {
     if (!logger_checkKey(logger, key)) return;
 
@@ -379,7 +402,7 @@ void logger_warn(logger_t* logger, int32_t key, int eno, const char* fmt, ...)
     va_end(ap);
 }
 
-void logger_funcwarn(logger_t* logger, const char *func, int32_t key,
+void logger_funcwarn(logger_t logger, const char *func, int32_t key,
 		     int eno, const char* fmt, ...)
 {
     if (!logger_checkKey(logger, key)) return;
@@ -405,7 +428,7 @@ void logger_funcwarn(logger_t* logger, const char *func, int32_t key,
 }
 
 
-void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count)
+void logger_write(logger_t logger, int32_t key, const char *buf, size_t count)
 {
     if (!logger_checkKey(logger, key) || !logger->logfile) return;
 
@@ -427,7 +450,7 @@ void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count)
     }
 }
 
-void logger_exit(logger_t* logger, int eno, const char* fmt, ...)
+void logger_exit(logger_t logger, int eno, const char* fmt, ...)
 {
     if (!logger_isValid(logger)) exit(-1);
 

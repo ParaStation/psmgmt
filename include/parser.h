@@ -213,7 +213,7 @@ void parser_removeComment(char* line);
 int parser_parseFile(parser_t* parser);
 
 /** private logger to use */
-extern logger_t *parserlogger;
+extern logger_t parserlogger;
 
 #define parser_getDebugMask() logger_getMask(parserlogger)
 #define parser_setDebugMask(...) logger_setMask(parserlogger, __VA_ARGS__)

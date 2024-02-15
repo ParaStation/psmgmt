@@ -30,7 +30,7 @@
 
 #include "list.h"
 
-logger_t *PSC_logger;
+logger_t PSC_logger;
 
 static PSnodes_ID_t nrOfNodes = -1;
 static PSnodes_ID_t myID = -1;

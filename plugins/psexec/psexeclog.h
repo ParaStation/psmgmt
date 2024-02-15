@@ -16,7 +16,7 @@
 
 #include "logging.h"
 
-extern logger_t *psexeclogger;
+extern logger_t psexeclogger;
 
 #define mlog(...) logger_print(psexeclogger, -1, __VA_ARGS__)
 #define mwarn(...) logger_warn(psexeclogger, -1, __VA_ARGS__)

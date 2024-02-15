@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,7 +18,7 @@
 static char obj[HOST_NAME_MAX + 6];
 
 char * PSCfgHelp_getObject(PSConfig* db, guint flags,
-			   logger_t* logger, int32_t key)
+			   logger_t logger, int32_t key)
 {
     /* generate local psconfig host object name */
     strncpy(obj, "host:", sizeof(obj));

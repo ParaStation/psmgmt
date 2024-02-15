@@ -16,7 +16,7 @@
 
 #include "logging.h"
 
-extern logger_t *psaccountlogger;
+extern logger_t psaccountlogger;
 extern FILE *psaccountlogfile;
 
 #define mlog(...) logger_print(psaccountlogger, -1, __VA_ARGS__)

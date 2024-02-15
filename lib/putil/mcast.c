@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -48,7 +48,7 @@ static int  nrOfNodes = 0;
 static int myID = -1;
 
 /** The logger we use inside MCast */
-static logger_t *logger;
+static logger_t logger;
 
 /** Abbrev for normal log messages. This is a wrapper to @ref logger_print() */
 #define MCast_log(...) logger_print(logger, __VA_ARGS__)

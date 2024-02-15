@@ -787,38 +787,31 @@ int main(int argc, char *argv[])
 		 overcommit, exact, useThreadsPerCore);
 }
 
+logger_t psslurmlogger = (logger_t)1;
+logger_t pluginlogger;
 
-static logger_t lt;
-logger_t *psslurmlogger = &lt;
-logger_t *pluginlogger;
-
-logger_t* logger_init(const char* tag, FILE* logfile)
+logger_t logger_init(const char* tag, FILE *logfile)
 {
-    logger_t* logger = (logger_t*)malloc(sizeof(*logger));
-    return logger;
+    return (logger_t)1;
 }
 
-bool logger_isValid(logger_t *logger)
+bool logger_isValid(logger_t logger)
 {
     return true;
 }
 
-void logger_finalize(logger_t *logger)
-{
-    free(logger);
-}
+void logger_finalize(logger_t logger)
+{}
 
-int32_t logger_getMask(logger_t* logger)
+int32_t logger_getMask(logger_t logger)
 {
     return 0;
 }
 
-void logger_setMask(logger_t* logger, int32_t mask)
-{
-    return;
-}
+void logger_setMask(logger_t logger, int32_t mask)
+{}
 
-void logger_exit(logger_t* logger, int eno, const char* format, ...)
+void logger_exit(logger_t logger, int eno, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -828,8 +821,7 @@ void logger_exit(logger_t* logger, int eno, const char* format, ...)
     exit(-1);
 }
 
-void logger_warn(logger_t* logger, int32_t key, int eno,
-		 const char* format, ...)
+void logger_warn(logger_t logger, int32_t key, int eno, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -838,7 +830,7 @@ void logger_warn(logger_t* logger, int32_t key, int eno,
     va_end(ap);
 }
 
-void logger_print(logger_t* logger, int32_t key, const char* format, ...)
+void logger_print(logger_t logger, int32_t key, const char *format, ...)
 {
     if (verbosity != DEBUGOUT) return;
 
@@ -848,8 +840,8 @@ void logger_print(logger_t* logger, int32_t key, const char* format, ...)
     va_end(ap);
 }
 
-void logger_funcprint(logger_t* logger, const char *func, int32_t key,
-		      const char* format, ...)
+void logger_funcprint(logger_t logger, const char *func, int32_t key,
+		      const char *format, ...)
 {
     if (verbosity != DEBUGOUT) return;
 

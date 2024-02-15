@@ -12,7 +12,7 @@
 
 #include "pluginlog.h"
 
-logger_t *pspamlogger;
+logger_t pspamlogger;
 
 void initLogger(char *name, FILE *logfile)
 {
