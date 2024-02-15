@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -128,7 +128,7 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
 	goto ERROR;
     }
 
-    if (psslurmlogger->mask & PSSLURM_LOG_AUTH) {
+    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_AUTH) {
 	flog("cred len %u stepHostlist '%s' jobHostlist '%s' ctime %lu"
 	     " sig '%s' pwGecos '%s' pwDir '%s' pwShell '%s' contrains %s\n",
 	     credLen, cred->stepHL, cred->jobHostlist, cred->ctime, cred->sig,
@@ -188,7 +188,7 @@ bool *getCPUsetFromCoreBitmap(uint32_t total, const char *bitmap)
 	}
     }
 
-    if (psslurmlogger->mask & PSSLURM_LOG_PART) {
+    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PART) {
 	flog("cores '%s' coreMap '", bitstr);
 	for (uint32_t i = 0; i < total; i++) mlog("%i", coreMap[i]);
 	mlog("'\n");

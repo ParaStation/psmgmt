@@ -403,7 +403,7 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
 	uint64_t *nodeAlloc;
 	uint32_t gresNodeAllocCount;
 	getUint64Array(data, &nodeAlloc, &gresNodeAllocCount);
-	if (psslurmlogger->mask & PSSLURM_LOG_GRES) {
+	if (logger_getMask(psslurmlogger) & PSSLURM_LOG_GRES) {
 	    flog("gres node alloc: ");
 	    for (uint32_t i = 0; i < gresNodeAllocCount; i++) {
 		if (i) mlog(",");
@@ -486,7 +486,7 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
 	uint64_t *nodeAlloc;
 	uint32_t gresNodeAllocCount;
 	getUint64Array(data, &nodeAlloc, &gresNodeAllocCount);
-	if (psslurmlogger->mask & PSSLURM_LOG_GRES) {
+	if (logger_getMask(psslurmlogger) & PSSLURM_LOG_GRES) {
 	    flog("gres node alloc: ");
 	    for (uint32_t i=0; i<gresNodeAllocCount; i++) {
 		if (i) mlog(",");
@@ -1418,7 +1418,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 		     step->packTaskCounts[i]);
 	    }
 
-	    if (psslurmlogger->mask & PSSLURM_LOG_PACK) {
+	    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PACK) {
 		flog("pack node %u task count %u", i,
 			step->packTaskCounts[i]);
 		for (uint32_t n=0; n<step->packTaskCounts[i]; n++) {

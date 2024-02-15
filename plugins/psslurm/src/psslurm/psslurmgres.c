@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -219,7 +219,7 @@ Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int credType)
 	}
     }
 
-    if (psslurmlogger->mask & PSSLURM_LOG_GRES) {
+    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_GRES) {
 	if (ret) {
 	    flog("credType %d pluginID %u cpusPerGres %u gresPerStep %lu"
 		 " gresPerNode %lu gresPerSocket %lu gresPerTask %lu"

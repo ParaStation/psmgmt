@@ -164,7 +164,7 @@ bool SpankInitGlobalSym(void)
 	return false;
     }
 
-    return psSpank_Init(psslurmlogger->mask & PSSLURM_LOG_SPANK);
+    return psSpank_Init(logger_getMask(psslurmlogger) & PSSLURM_LOG_SPANK);
 }
 
 bool SpankIsInitialized(void)

@@ -1026,7 +1026,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     strv_t argV;
     char buf[128];
     pmi_type_t pmi_type;
-    int32_t oldMask = psslurmlogger->mask;
+    int32_t oldMask = logger_getMask(psslurmlogger);
 
     /* reopen syslog */
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
@@ -1086,7 +1086,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     /* remove environment variables not evaluated by mpiexec */
     removeUserVars(step->env, pmi_type);
 
-    if (psslurmlogger->mask & PSSLURM_LOG_PROCESS) {
+    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PROCESS) {
 	debugMpiexecStart(argV.strings, envGetArray(step->env));
     }
 

@@ -79,7 +79,7 @@ static void prepEnv(void *reqPtr)
 	setenv(buf, req->psgwd[i].addr, 1);
     }
 
-    if (psgwlogger->mask & PSGW_LOG_ROUTE) {
+    if (logger_getMask(psgwlogger) & PSGW_LOG_ROUTE) {
 	setenv("PSGW_VERBOSE", "1", 1);
     }
 }

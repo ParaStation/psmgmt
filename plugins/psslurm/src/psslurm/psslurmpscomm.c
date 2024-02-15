@@ -211,7 +211,8 @@ static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
 static void logSlots(const char* prefix,
 		     PSpart_slot_t *slots, uint32_t numSlots)
 {
-    if (!(psslurmlogger->mask & (PSSLURM_LOG_PROCESS | PSSLURM_LOG_PART))) {
+    if (!(logger_getMask(psslurmlogger)
+	  & (PSSLURM_LOG_PROCESS | PSSLURM_LOG_PART))) {
 	return;
     }
 
@@ -1780,7 +1781,7 @@ static bool handleCC_IO_Msg(PSLog_Msg_t *msg)
     int32_t jobRank = (task && sendRank==task->rank) ? task->jobRank : sendRank;
     int32_t slurmRank = jobRank - step->packTaskOffset;
 
-    if (psslurmlogger->mask & PSSLURM_LOG_IO) {
+    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO) {
 	flog("sender %s msgLen %zi type %i sender-rank %i job-rank %i"
 	     " Slurm-rank %i\n", PSC_printTID(msg->header.sender),
 	     msg->header.len - PSLog_headerSize, msg->type,

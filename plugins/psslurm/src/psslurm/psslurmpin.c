@@ -2028,7 +2028,7 @@ error:
 
 void logHWthreads(const char* func, PSpart_HWThread_t *threads, uint32_t num)
 {
-    if (!(psslurmlogger->mask & PSSLURM_LOG_PART)) return;
+    if (!(logger_getMask(psslurmlogger) & PSSLURM_LOG_PART)) return;
 
     for (size_t t = 0; t < num; t++) {
 	flog("thread %zu node %hd id %hd timesUsed %hd\n", t, threads[t].node,
