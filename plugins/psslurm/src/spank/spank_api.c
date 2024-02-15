@@ -10,7 +10,7 @@
 #include "logging.h"
 #include "psidplugin.h"
 
-static logger_t *psSpank_logger = NULL;
+static logger_t *psSpank_logger;
 
 typedef enum {
     SPANK_LOG_ERROR = 2,

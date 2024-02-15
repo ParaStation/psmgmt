@@ -12,8 +12,8 @@
 
 #include "pluginlog.h"
 
-logger_t *psmomlogger = NULL;
-FILE *psmomlogfile = NULL;
+logger_t *psmomlogger;
+FILE *psmomlogfile;
 
 void initLogger(char *name, FILE *logfile)
 {

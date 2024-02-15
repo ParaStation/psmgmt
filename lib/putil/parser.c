@@ -24,7 +24,7 @@
 
 #include "pscommon.h"
 
-logger_t *parserlogger = NULL;
+logger_t *parserlogger;
 
 /** The file to parse, if any */
 static FILE *parsefile;

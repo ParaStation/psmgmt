@@ -15,7 +15,7 @@
 
 #include "pscommon.h"
 
-logger_t* PSI_logger = NULL;
+logger_t *PSI_logger;
 
 void PSI_initLog(FILE* logfile)
 {

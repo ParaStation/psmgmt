@@ -12,7 +12,7 @@
 
 #include "pluginlog.h"
 
-logger_t *psmungelogger = NULL;
+logger_t *psmungelogger;
 
 void initLogger(char *name, FILE *logfile)
 {

@@ -131,9 +131,9 @@ static int extendedLogging = 0;
 /** set post processing command for accouting log files like gzip */
 static char *logPostProcessing;
 /** structure for syslog */
-static logger_t *alogger = NULL;
+static logger_t *alogger;
 /** log file for debug and error messages */
-static FILE *logfile = NULL;
+static FILE *logfile;
 /** the number of nodes in the parastation cluster */
 static int nrOfNodes = 0;
 /** store incomplete jobs waiting for missing children */

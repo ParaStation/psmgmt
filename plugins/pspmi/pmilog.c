@@ -12,8 +12,8 @@
 
 #include "pluginlog.h"
 
-logger_t *pmilogger = NULL;
-FILE *pmilogfile = NULL;
+logger_t *pmilogger;
+FILE *pmilogfile;
 
 void initLogger(char *name, FILE *logfile)
 {

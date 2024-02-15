@@ -12,8 +12,8 @@
 
 #include "pluginlog.h"
 
-logger_t *psaccountlogger = NULL;
-FILE *psaccountlogfile = NULL;
+logger_t *psaccountlogger;
+FILE *psaccountlogfile;
 
 void initLogger(char *name, FILE *logfile)
 {

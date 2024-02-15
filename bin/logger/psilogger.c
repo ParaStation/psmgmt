@@ -87,9 +87,9 @@ static int retVal = 0;
 /** Flag marking a client got signaled */
 static bool signaled = false;
 
-logger_t *PSIlog_stdout = NULL;
-logger_t *PSIlog_stderr = NULL;
-logger_t *PSIlog_logger = NULL;
+logger_t *PSIlog_stdout;
+logger_t *PSIlog_stderr;
+logger_t *PSIlog_logger;
 
 /* create a file handle pointing to <fNameBase>-<PID>.<ext> or exit() */
 static FILE * getFile(char *fNameBase, char *ext)
