@@ -36,16 +36,16 @@ extern int PSID_argc;
 extern const char **PSID_argv;
 
 /**
- * @brief Initialize the PSID logging facility.
+ * @brief Initialize the PSID logging facility
  *
  * Initialize the PSID logging facility. This is mainly a wrapper to
  * @ref logger_init(). Additionally, PSC's logging facility is
  * initialized, too.
  *
- * @param logfile File to use for logging. If NULL, use syslog(3) for
- * any output.
+ * @param logfile File to use for logging; if NULL, use syslog(3) for
+ * any output
  *
- * @return No return value.
+ * @return No return value
  *
  * @see logger_init(), syslog(3), PSID_finalizeLogs()
  */
