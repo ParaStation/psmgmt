@@ -71,4 +71,13 @@ int32_t getLoggerMask(void);
  */
 void setLoggerMask(int32_t mask);
 
+/**
+ * @brief Finalize logging facility
+ *
+ * Finalize pspam plugin's logging facility.
+ *
+ * @return No return value
+ */
+void finalizeLogger(void);
+
 #endif /* __PAMSERVICE_LOG */

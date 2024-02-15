@@ -201,4 +201,5 @@ void cleanup(void)
     clearAllClients();
     finalizeProc();
     freeConfig(config);
+    finalizeLogger();
 }

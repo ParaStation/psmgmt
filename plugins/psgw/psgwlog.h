@@ -60,4 +60,13 @@ void initLogger(char *name, FILE *logfile);
  */
 void maskLogger(int32_t mask);
 
+/**
+ * @brief Finalize logging facility
+ *
+ * Finalize psgw plugin's logging facility.
+ *
+ * @return No return value
+ */
+void finalizeLogger(void);
+
 #endif  /* __PS_PSGW_LOG */

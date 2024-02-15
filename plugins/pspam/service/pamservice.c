@@ -214,4 +214,6 @@ void cleanup(void)
     if (!PSIDhook_del(PSIDHOOK_PSSLURM_JOB_FWFIN, finishPAMservice)) {
 	mlog("unregister 'PSIDHOOK_PSSLURM_JOB_FWFIN' failed\n");
     }
+
+    finalizeLogger();
 }

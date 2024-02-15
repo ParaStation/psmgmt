@@ -55,4 +55,13 @@ void initLogger(char *name, FILE *logfile);
  */
 void maskLogger(int32_t mask);
 
+/**
+ * @brief Finalize logging facility
+ *
+ * Finalize pspam plugin's logging facility.
+ *
+ * @return No return value
+ */
+void finalizeLogger(void);
+
 #endif /* __PSPAM_LOG */

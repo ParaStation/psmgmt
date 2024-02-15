@@ -24,3 +24,9 @@ void maskLogger(int32_t mask)
 {
     logger_setMask(psgwlogger, mask);
 }
+
+void finalizeLogger(void)
+{
+    logger_finalize(psgwlogger);
+    psgwlogger = NULL;
+}

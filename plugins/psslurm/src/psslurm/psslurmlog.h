@@ -29,6 +29,7 @@ extern FILE *psslurmlogfile;
 
 void initLogger(char *name, FILE *logfile);
 void maskLogger(int32_t mask);
+void finalizeLogger(void);
 
 typedef enum {
     PSSLURM_LOG_DEBUG    =      0x0000010, /**< Debug */

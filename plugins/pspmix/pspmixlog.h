@@ -139,6 +139,15 @@ void pspmix_initLogger(char *name, FILE *logfile);
  */
 void pspmix_maskLogger(int32_t mask);
 
+/**
+ * @brief Finalize logging facility
+ *
+ * Finalize pspmix plugin's logging facility.
+ *
+ * @return No return value
+ */
+void pspmix_finalizeLogger(void);
+
 #endif  /* __PS_PMIX_LOG */
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

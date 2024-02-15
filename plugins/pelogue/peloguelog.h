@@ -57,4 +57,13 @@ void initLogger(char *name, FILE *logfile);
  */
 void maskLogger(int32_t mask);
 
+/**
+ * @brief Finalize logging facility
+ *
+ * Finalize peloggue plugin's logging facility.
+ *
+ * @return No return value
+ */
+void finalizeLogger(void);
+
 #endif  /* __PELOGUE_LOG */

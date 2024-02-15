@@ -89,4 +89,10 @@ void pspmix_maskLogger(int32_t mask)
     logger_setMask(pmixlogger, mask);
 }
 
+void pspmix_finalizeLogger(void)
+{
+    logger_finalize(pmixlogger);
+    pmixlogger = NULL;
+}
+
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

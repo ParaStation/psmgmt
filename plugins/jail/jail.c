@@ -209,9 +209,7 @@ void cleanup(void)
     freeConfig(config);
 
     jlog(-1, "...Bye.\n");
-
-    /* release the logger */
-    logger_finalize(jaillogger);
+    finalizeLogger();
 }
 
 char *help(char *key)

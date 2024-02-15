@@ -25,6 +25,7 @@ extern FILE *psmomlogfile;
 
 void initLogger(char *name, FILE *logfile);
 void maskLogger(int32_t mask);
+void finalizeLogger(void);
 
 typedef enum {
     PSMOM_LOG_PSCOM =	0x000010, /**< Communication via psid */

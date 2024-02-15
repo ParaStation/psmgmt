@@ -980,7 +980,5 @@ void cleanup(void)
 #endif
 
     mlog("...Bye.\n");
-
-    /* release the logger */
-    logger_finalize(psslurmlogger);
+    finalizeLogger();
 }

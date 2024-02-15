@@ -797,5 +797,5 @@ void cleanup(void)
     if (memoryDebug) fclose(memoryDebug);
 
     mlog("...Bye.\n");
-    logger_finalize(psmomlogger);
+    finalizeLogger();
 }

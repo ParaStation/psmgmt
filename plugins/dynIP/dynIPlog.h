@@ -27,6 +27,7 @@ extern FILE *dynIPlogfile;
 
 void initLogger(char *name, FILE *logfile);
 void maskLogger(int32_t mask);
+void finalizeLogger(void);
 
 typedef enum {
     DYNIP_LOG_DEBUG    =      0x0000010, /**< Debug */
