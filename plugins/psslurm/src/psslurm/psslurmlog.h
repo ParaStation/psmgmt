@@ -17,7 +17,6 @@
 #include "logging.h"  // IWYU pragma: export
 
 extern logger_t *psslurmlogger;
-extern FILE *psslurmlogfile;
 
 #define mlog(...) logger_print(psslurmlogger, -1, __VA_ARGS__)
 #define mwarn(...) logger_warn(psslurmlogger, -1, __VA_ARGS__)
