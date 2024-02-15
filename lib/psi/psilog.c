@@ -30,7 +30,7 @@ void PSI_initLog(FILE* logfile)
 
 bool PSI_logInitialized(void)
 {
-    return PSI_logger;
+    return logger_isValid(PSI_logger);
 }
 
 int32_t PSI_getDebugMask(void)

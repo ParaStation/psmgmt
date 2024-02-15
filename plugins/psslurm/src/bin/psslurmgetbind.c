@@ -798,7 +798,12 @@ logger_t* logger_init(const char* tag, FILE* logfile)
     return logger;
 }
 
-void logger_finalize(logger_t* logger)
+bool logger_isValid(logger_t *logger)
+{
+    return true;
+}
+
+void logger_finalize(logger_t *logger)
 {
     free(logger);
 }

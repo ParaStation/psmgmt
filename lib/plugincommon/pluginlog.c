@@ -19,7 +19,7 @@ void initPluginLogger(char *name, FILE *logfile)
 
 bool isPluginLoggerInitialized(void)
 {
-    return pluginlogger;
+    return logger_isValid(pluginlogger);
 }
 
 void maskPluginLogger(int32_t mask)

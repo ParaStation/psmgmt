@@ -54,7 +54,7 @@ void PSC_initLog(FILE* logfile)
 
 bool PSC_logInitialized(void)
 {
-    return PSC_logger;
+    return logger_isValid(PSC_logger);
 }
 
 void PSC_finalizeLog(void)

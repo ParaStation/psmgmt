@@ -13,8 +13,7 @@ logger_t *kvslogger;
 
 bool isKVSLoggerInitialized(void)
 {
-    if (!kvslogger) return false;
-    return true;
+    return logger_isValid(kvslogger);
 }
 
 void initKVSLogger(char *name, FILE *logfile)

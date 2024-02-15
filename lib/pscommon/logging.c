@@ -22,7 +22,7 @@
 
 #define LOG_MAGIC 0x0577215664901532
 
-static inline bool logger_isValid(logger_t *logger)
+bool logger_isValid(logger_t *logger)
 {
     return logger && logger->magic == LOG_MAGIC;
 }

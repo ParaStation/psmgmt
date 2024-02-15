@@ -207,6 +207,21 @@ void logger_setWaitNLFlag(logger_t* logger, bool flag);
 logger_t* logger_init(const char* tag, FILE *logfile);
 
 /**
+ * @brief Check validity of logging facility
+ *
+ * Check the validity of the logging facility @a logger, i.e. if the
+ * handle was created by @ref logger_init() and not finalized via
+ * @ref logger_finalize() in the meantime
+ *
+ * @param logger Logging facility to investigate
+ *
+ * @return Return true if @a logger is valid or false otherwise
+ *
+ * @see logger_init(), logger_finalize()
+ */
+bool logger_isValid(logger_t *logger);
+
+/**
  * @brief Finalize logging facility
  *
  * Finalize the logging facility @a logger. This will flush trailing
