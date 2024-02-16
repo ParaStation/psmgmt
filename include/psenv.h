@@ -161,8 +161,8 @@ void envSteal(env_t env);
  * be accessed via envGetArray().
  *
  * This is meant to be used after a handle to the string array is
- * gained through envGetArray() and this is meant to be kept on the
- * long run.
+ * gained through envGetArray() and the string array shall be kept
+ * outside of @a env on the long run.
  *
  * @param env Environment to steal the string array from
  *
