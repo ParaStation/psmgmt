@@ -160,7 +160,7 @@ void envSteal(env_t env);
  * free()ed, but not the representing string array's memory that can
  * be accessed via envGetArray().
  *
- * This is meant to be used after a handle to the string array is is
+ * This is meant to be used after a handle to the string array is
  * gained through envGetArray() and this is meant to be kept on the
  * long run.
  *
@@ -276,7 +276,7 @@ env_t envConstruct(char **envArray, char **filter);
  * @param env Environment to get a string array handle on
  *
  * @return Pointer to a NULL terminated string array or NULL if @a env
- * is still uninitialize or empty
+ * is still uninitialized or empty
  */
 char **envGetArray(env_t env);
 
