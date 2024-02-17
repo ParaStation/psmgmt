@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2023 ParTec AG, Munich
+ * Copyright (C) 2023-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -43,9 +43,9 @@ typedef struct {
 } SpawnRequest_t;
 
 /**
- * @brief Initialize empty spawn request
+ * @brief Create an empty spawn request
  *
- * @param num Number of single spawns to have space in the request
+ * @param num Number of single spawns the request is capable to store
  *
  * @return SpawnRequest_t structure, NULL on error with errno set
  */
@@ -66,6 +66,7 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req);
  * @param req Spawn request to free
  */
 void freeSpawnRequest(SpawnRequest_t *req);
+
 /**
  * @brief Create and initialize new task for the spawnee
  *
