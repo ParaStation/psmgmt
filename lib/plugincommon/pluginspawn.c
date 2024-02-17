@@ -48,10 +48,11 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req)
 
 	if (old->argv) {
 	    new->argc = old->argc;
-	    new->argv = umalloc(new->argc * sizeof(*new->argv));
+	    new->argv = umalloc((new->argc + 1) * sizeof(*new->argv));
 	    for (int j = 0; j < old->argc; j++) {
 		new->argv[j] = ustrdup(old->argv[j]);
 	    }
+	    new->argv[new->argc] = NULL;
 	}
 	if (old->preputv) {
 	    new->preputc = old->preputc;
