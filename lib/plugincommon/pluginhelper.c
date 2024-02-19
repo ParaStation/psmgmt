@@ -14,6 +14,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <grp.h>
+#include <limits.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <string.h>
@@ -53,7 +54,7 @@ bool removeDir(char *directory, bool root)
     struct dirent *d;
     while ((d = readdir(dir))) {
 	if ((!strcmp(d->d_name, ".") || !(strcmp(d->d_name, "..")))) continue;
-	char buf[400];
+	char buf[PATH_MAX];
 	snprintf(buf, sizeof(buf), "%s/%s", directory, d->d_name);
 
 	struct stat sbuf;
@@ -434,7 +435,7 @@ bool writeFile(const char *name, const char *dir, const void *data, size_t len)
 
     if (!len) return true;
 
-    char path[FILENAME_MAX];
+    char path[PATH_MAX];
     snprintf(path, sizeof(path), "%s/%s", dir, name);
 
     FILE *fp = fopen(path, "w+");
