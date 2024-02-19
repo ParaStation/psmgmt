@@ -38,16 +38,16 @@
 #endif
 
 /** psslurm plugin configuration list */
-Config_t Config = NULL;
+Config_t Config;
 
 /** Slurm configuration list */
-Config_t SlurmConfig = NULL;
+Config_t SlurmConfig;
 
 /** Slurm cgroup configuration list */
-Config_t SlurmCgroupConfig = NULL;
+Config_t SlurmCgroupConfig;
 
 /** Slurm oci configuration list */
-Config_t SlurmOCIConfig = NULL;
+Config_t SlurmOCIConfig;
 
 /** Hash value of the current Slurm configuration */
 static uint32_t configHash = -1;
