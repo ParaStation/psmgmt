@@ -334,11 +334,15 @@ bool envCat(env_t dst, const env_t src, char **filter);
 /**
  * @brief Create an environment from comma separated string
  *
- * @param string The string holding the environment to parse
+ * Create an environment context and initialize it with the content
+ * provided in @a string. @a string is expected to contain a
+ * comma-separated list of <key>=<value> entries.
  *
- * @return Returns the requested environment on success otherwise
- * NULL is returned
+ * @param string Character string holding the environment
+ *
+ * @return Handle to the environment if it was successfully created or
+ * NULL
  */
-env_t *envFromString(const char *string);
+env_t envFromString(const char *string);
 
 #endif  /* __PSENV_H */

@@ -286,26 +286,28 @@ bool envCat(env_t dst, const env_t src, char **filter)
     return true;
 }
 
-env_t *envFromString(const char *string)
+env_t envFromString(const char *string)
 {
     if (!string) return NULL;
 
-    env_t *env = umalloc(sizeof(*env));
+    env_t env = envNew(NULL);
     if (!env) return NULL;
 
-    envInit(env);
-
-    char *toksave, *next;
     const char delimiters[] = ", ";
     char *dup = strdup(string);
     if (!dup) {
-	free(env);
+	envDestroy(env);
 	return NULL;
     }
 
-    next = strtok_r(dup, delimiters, &toksave);
+    char *toksave;
+    char *next = strtok_r(dup, delimiters, &toksave);
     while (next) {
-	envPut(env, next);
+	if (!envPut(env, next)) {
+	    envDestroy(env);
+	    env = NULL;
+	    break;
+	}
 	next = strtok_r(NULL, delimiters, &toksave);
     }
     free(dup);
