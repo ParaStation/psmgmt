@@ -71,6 +71,11 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	PSresinfo_t *resInfo = ucalloc(sizeof(*resInfo));
 	getResId(data, &resInfo->resID);
 
+	getTaskId(data, &resInfo->partHolder);
+	getUint32(data, &resInfo->rankOffset);
+	getInt32(data, &resInfo->minRank);
+	getInt32(data, &resInfo->maxRank);
+
 	size_t len;
 	resInfo->entries = getDataM(data, &len);
 	if (!resInfo->entries) {

@@ -493,6 +493,10 @@ static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
     list_for_each(r, resInfos) {
 	PSresinfo_t *resInfo = list_entry(r, PSresinfo_t, next);
 	addResIdToMsg(resInfo->resID, &msg);
+	addTaskIdToMsg(resInfo->partHolder, &msg);
+	addUint32ToMsg(resInfo->rankOffset, &msg);
+	addInt32ToMsg(resInfo->minRank, &msg);
+	addInt32ToMsg(resInfo->maxRank, &msg);
 	addDataToMsg(resInfo->entries,
 		     resInfo->nEntries * sizeof(*resInfo->entries), &msg);
 	addDataToMsg(resInfo->localSlots,
