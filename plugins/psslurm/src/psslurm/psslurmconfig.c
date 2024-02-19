@@ -1288,14 +1288,16 @@ static bool verifySlurmConf(void)
 }
 
 /**
- * @brief Parse a Slurm oci configuration line
+ * @brief Verify Slurm OCI configuration entry
  *
- * @param key The key of the line to parse
+ * @param key Entry key to verify
  *
- * @param value The value of the line to parse
+ * @param value Entry value to verify
  *
- * @return Returns true on error to stop further parsing
- * and false otherwise
+ * @param info Additional information (ignored)
+ *
+ * @return Returns true on error to stop further verification and
+ * false otherwise
  */
 static bool verifyOCIConf(char *key, char *value, const void *info)
 {
@@ -1323,14 +1325,16 @@ static bool verifyOCIConf(char *key, char *value, const void *info)
 }
 
 /**
- * @brief Parse a Slurm cgroup configuration line
+ * @brief Verify Slurm cgroup configuration entry
  *
- * @param key The key of the line to parse
+ * @param key Entry key to verify
  *
- * @param value The value of the line to parse
+ * @param value Entry value to verify
  *
- * @return Returns true on error to stop further parsing
- * and false otherwise
+ * @param info Additional information (ignored)
+ *
+ * @return Returns true on error to stop further verification and
+ * false otherwise
  */
 static bool verifyCgroupConf(char *key, char *value, const void *info)
 {

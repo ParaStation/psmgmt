@@ -33,7 +33,7 @@ extern Config_t SlurmConfig;
 /** The Slurm cgroup configuration list. */
 extern Config_t SlurmCgroupConfig;
 
-/** The Slurm oci configuration list. */
+/** The Slurm OCI (Open Container Initiative) configuration list. */
 extern Config_t SlurmOCIConfig;
 
 /** Psslurm configuration options */
