@@ -85,19 +85,24 @@ static json_object *newObject(PS_JsonType_t type, const void *val)
 }
 #endif
 
+#if HAVE_JSON_C_DEVEL
+static psjson_t doCreateObject(struct json_object *obj)
+{
+    psjson_t psjson = ucalloc(sizeof(*psjson));
+    if (psjson) {
+	psjson->magic = PSJSON_MAGIC;
+	psjson->obj = obj;
+	psjson->pos = obj;
+    }
+    return psjson;
+}
+#endif
+
 psjson_t jsonNewObject(void)
 {
 #if HAVE_JSON_C_DEVEL
-
     struct json_object *obj = json_object_new_object();
-
-    psjson_t psjson = ucalloc(sizeof(psjson));
-    psjson->magic = PSJSON_MAGIC;
-    psjson->obj = obj;
-    psjson->pos = obj;
-
-    return psjson;
-
+    return doCreateObject(obj);
 #else
     pluginflog("json-c support not available\n");
     return NULL;
@@ -127,16 +132,15 @@ psjson_t jsonFromFile(const char *path)
 	return NULL;
     }
 
-    psjson_t psjson = umalloc(sizeof(psjson));
-    psjson->objLen = len;
-    psjson->obj = obj;
-    psjson->pos = obj;
-    psjson->mapMem = mapMem;
-    psjson->magic = PSJSON_MAGIC;
-    psjson->path = ustrdup(path);
-
+    psjson_t psjson = doCreateObject(obj);
+    if (psjson) {
+	psjson->objLen = len;
+	psjson->mapMem = mapMem;
+	psjson->path = ustrdup(path);
+    } else {
+	munmap(mapMem, len);
+    }
     return psjson;
-
 #else
     pluginflog("json-c support not available\n");
     return NULL;
