@@ -2867,6 +2867,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	}
 
 	if (printmembind) {
+#ifdef HAVE_LIBNUMA
 	    struct bitmask *nodemask;
 	    if (memBindType & MEM_BIND_LOCAL) {
 		/* default usually handled in psid */
@@ -2877,13 +2878,11 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 				getSocketByThread(i, &nodeinfo));
 		    }
 		}
-	    }
-	    else if (memBindType
-			& (MEM_BIND_MAP| MEM_BIND_MASK | MEM_BIND_RANK)) {
+	    } else if (memBindType
+		       & (MEM_BIND_MAP| MEM_BIND_MASK | MEM_BIND_RANK)) {
 		nodemask = getMemBindMask(0, local_tid, local_tid, tasksPerNode,
-			memBindType, memBindString);
-	    }
-	    else {
+					  memBindType, memBindString);
+	    } else {
 		/* no memory binding => bind to all existing sockets */
 		nodemask = numa_allocate_nodemask();
 		for (int i = 0; i < socketCount; i++) {
@@ -2898,8 +2897,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 			int s = numa_bitmask_isbitset(nodemask, i) ? 1 : 0;
 			printf("%d", s);
 		    }
-		}
-		else {
+		} else {
 		    printf("0x");
 		    for (int i = (socketCount - 1) - (socketCount - 1) % 4;
 			    i >= 0; i -= 4) {
@@ -2908,6 +2906,9 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 		}
 		numa_free_nodemask(nodemask);
 	    }
+#else
+	    printf("    mem: NUMA support missing");
+#endif
 	}
 	printf("\n");
     }

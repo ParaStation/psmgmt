@@ -525,12 +525,17 @@ int main(int argc, char *argv[])
     }
 
     if (printmembind) {
+#ifdef HAVE_LIBNUMA
 	int maxnodes = sizeof(*((struct bitmask *)0)->maskp) * 8;
 	if (socketCount > maxnodes) {
 	    outline(ERROROUT, "Membind printing not supported for more than"
 		    " %d sockets", maxnodes);
 	    return -1;
 	}
+#else
+	outline(ERROROUT, "Membind printing unsupported w/out NUMA support\n");
+	return -1;
+#endif
     }
 
     /* task info */
@@ -919,6 +924,7 @@ int numa_available(void) {
     return 0;
 }
 
+#ifdef HAVE_LIBNUMA
 struct bitmask *numa_allocate_nodemask(void) {
     struct bitmask *b = malloc(sizeof(*b));
     b->maskp = calloc(1, sizeof(unsigned long));
@@ -961,6 +967,7 @@ struct bitmask *numa_bitmask_setall(struct bitmask *b) {
 struct bitmask *numa_get_membind(void) {
     return NULL;
 }
+#endif
 
 short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu)
 {
