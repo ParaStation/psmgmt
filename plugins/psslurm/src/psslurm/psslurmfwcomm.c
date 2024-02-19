@@ -327,7 +327,7 @@ static bool setupPartition(Step_t *step) {
 
 static void debugMpiexecStart(strv_t argv, env_t env)
 {
-    mlog("%s:", __func__);
+    flog("exec:");
     for (char **a = strvGetArray(argv); a && *a; a++) mlog(" %s", *a);
     mlog("\n");
 

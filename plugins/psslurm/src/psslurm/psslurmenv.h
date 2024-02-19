@@ -148,7 +148,7 @@ pmi_type_t getPMIType(Step_t *step);
 /**
  * @brief Set PSSLURM_PMI_TYPE in the environment of the calling process
  *
- * @param pmi_type   value to set
+ * @param pmi_type Value to set
  */
 void setPMITypeEnv(pmi_type_t pmi_type);
 

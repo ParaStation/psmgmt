@@ -515,25 +515,25 @@ static bool regPsExecHandles(void)
     void *pluginHandle = PSIDplugin_getHandle("psexec");
 
     if (!pluginHandle) {
-	mlog("%s: getting psexec handle failed\n", __func__);
+	flog("getting psexec handle failed\n");
 	return false;
     }
 
     psExecStartScript = dlsym(pluginHandle, "psExecStartScript");
     if (!psExecStartScript) {
-	mlog("%s: loading psExecStartScript() failed\n", __func__);
+	flog("loading psExecStartScript() failed\n");
 	return false;
     }
 
     psExecSendScriptStart = dlsym(pluginHandle, "psExecSendScriptStart");
     if (!psExecSendScriptStart) {
-	mlog("%s: loading psExecSendScriptStart() failed\n", __func__);
+	flog("loading psExecSendScriptStart() failed\n");
 	return false;
     }
 
     psExecStartLocalScript = dlsym(pluginHandle, "psExecStartLocalScript");
     if (!psExecStartLocalScript) {
-	mlog("%s: loading psExecStartLocalScript() failed\n", __func__);
+	flog("loading psExecStartLocalScript() failed\n");
 	return false;
     }
 
@@ -545,21 +545,21 @@ static bool regPsPMIHandles(void)
     void *pluginHandle = PSIDplugin_getHandle("pspmi");
 
     if (!pluginHandle) {
-	mlog("%s: getting pspmi handle failed\n", __func__);
+	flog("getting pspmi handle failed\n");
 	return false;
     }
 
     psPmiSetFillSpawnTaskFunction =
 	dlsym(pluginHandle, "psPmiSetFillSpawnTaskFunction");
     if (!psPmiSetFillSpawnTaskFunction) {
-	mlog("%s: loading psPmiSetFillSpawnTaskFunction() failed\n", __func__);
+	flog("loading psPmiSetFillSpawnTaskFunction() failed\n");
 	return false;
     }
 
     psPmiResetFillSpawnTaskFunction =
 	dlsym(pluginHandle, "psPmiResetFillSpawnTaskFunction");
     if (!psPmiResetFillSpawnTaskFunction) {
-	mlog("%s: loading psPmiResetFillSpawnTaskFunction() failed\n",__func__);
+	flog("loading psPmiResetFillSpawnTaskFunction() failed\n");
 	return false;
     }
 
@@ -571,21 +571,21 @@ static bool regPsPMIxHandles(void)
     void *pluginHandle = PSIDplugin_getHandle("pspmix");
 
     if (!pluginHandle) {
-	mlog("%s: getting pspmix handle failed\n", __func__);
+	flog("getting pspmix handle failed\n");
 	return false;
     }
 
     psPmixSetFillSpawnTaskFunction =
 	dlsym(pluginHandle, "psPmixSetFillSpawnTaskFunction");
     if (!psPmixSetFillSpawnTaskFunction) {
-	mlog("%s: loading psPmixSetFillSpawnTaskFunction() failed\n", __func__);
+	flog("loading psPmixSetFillSpawnTaskFunction() failed\n");
 	return false;
     }
 
     psPmixResetFillSpawnTaskFunction =
 	dlsym(pluginHandle, "psPmixResetFillSpawnTaskFunction");
     if (!psPmixResetFillSpawnTaskFunction) {
-	mlog("%s: loading psPmixResetFillSpawnTaskFunction() failed\n",__func__);
+	flog("loading psPmixResetFillSpawnTaskFunction() failed\n");
 	return false;
     }
 
