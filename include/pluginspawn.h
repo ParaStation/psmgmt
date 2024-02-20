@@ -42,7 +42,6 @@ typedef struct {
 typedef struct {
     int num;               /**< number of single spawns */
     SingleSpawn_t *spawns; /**< array of single spawns */
-    env_t env;             /**< environment variables (only PMI) */
     void *data;            /**< custom data pointer */
 } SpawnRequest_t;
 

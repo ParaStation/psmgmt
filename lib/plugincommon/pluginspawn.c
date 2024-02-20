@@ -30,8 +30,6 @@ SpawnRequest_t *initSpawnRequest(int num)
 
     for (int i = 0; i < num; i++) req->spawns[i].env = envNew(NULL);
 
-    req->env = envNew(NULL);
-
     req->data = NULL;
 
     return req;
@@ -81,12 +79,6 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req)
 	}
     }
 
-    ret->env = envClone(req->env, NULL);
-    if (!ret->env) {
-	freeSpawnRequest(ret);
-	return NULL;
-    }
-
     ret->data = req->data;
 
     return ret;
@@ -117,8 +109,6 @@ void freeSpawnRequest(SpawnRequest_t *req)
 	    ufree(req->spawns[i].infov);
 	}
     }
-
-    envDestroy(req->env);
 
     ufree(req->spawns);
 }
