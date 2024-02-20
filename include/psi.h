@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -269,22 +269,38 @@ void PSI_propEnv(void);
  * @brief Propagate list of environments
  *
  * Propagate a list of environment variables to the next level of
- * spawning. For that, the environment variable @a listName containing
+ * spawning. For this the environment variable @a listName containing
  * a comma-separated list of environment variable names is
- * analyzed. Each environment mentioned in this list is put into the
- * PSI_environment
+ * analyzed. Each environment variable mentioned in this list is put
+ * into the PSI_environment
  *
  * @param listName Name of the environment containing a
- * comma-separated list of environments to be propagated.
+ * comma-separated list of environment variables to be propagated
  *
- * @return No return value.
+ * @return No return value
  */
 void PSI_propEnvList(char *listName);
 
 /**
+ * @brief Propagate list of environments
+ *
+ * Propagate a list of environment variables to the next level of
+ * spawning. For this the string @a listStr containing a
+ * comma-separated list of environment variable names is
+ * analyzed. Each environment variable mentioned in this list is put
+ * into the PSI_environment
+ *
+ * @param list Comma-separated list of environment variable names to
+ * be propagated
+ *
+ * @return No return value
+ */
+void PSI_propList(char *listStr);
+
+/**
  * @brief Get the fd which is connected to the local daemon.
  *
- * @return Returns the requested file descriptor or -1 on error.
+ * @return Returns the requested file descriptor or -1 on error
  */
 int PSI_getDaemonFD(void);
 
