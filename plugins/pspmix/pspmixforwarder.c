@@ -240,7 +240,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 
     for (int i = 0; i < req->num; i++) {
 
-	SingleSpawn_t *spawn = &(req->spawns[0]);
+	SingleSpawn_t *spawn = &req->spawns[i];
 
 	jobsize += spawn->np;
 
