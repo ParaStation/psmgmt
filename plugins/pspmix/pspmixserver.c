@@ -1223,7 +1223,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 		strvAdd(&argv, *cur);
 	    }
 	    sapps[a].argv = argv.strings;
-	    strvSteal(&argv, true);
+	    strvStealArray(&argv);
 	} else {
 	    sapps[a].argv = apps[a].argv;
 	}

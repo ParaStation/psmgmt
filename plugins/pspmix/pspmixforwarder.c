@@ -320,7 +320,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 
     task->argv = args.strings;
     task->argc = args.count;
-    strvSteal(&args, true);
+    strvStealArray(&args);
 
     task->noParricide = noParricide;
 
@@ -461,7 +461,7 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     ufree(task->environ);
     task->environ = env.strings;
     task->envSize = env.count;
-    strvSteal(&env, true);
+    strvStealArray(&env);
 
     if (debug) {
 	elog("%s(r%i): Executing '%s", __func__, rank, task->argv[0]);

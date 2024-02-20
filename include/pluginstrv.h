@@ -139,7 +139,7 @@ void __strvDestroy(strv_t *strv, const char *func, const int line);
  *
  * @param strv   The string vector to be destroy
  *
- * @param sarray Flag to free or not free the strings array
+ * @param sarray Flag to steal the strings array as well
  *
  * @param func   Function name of the calling function
  *
@@ -148,6 +148,7 @@ void __strvDestroy(strv_t *strv, const char *func, const int line);
  * @return No return value
  */
 void __strvSteal(strv_t *strv, bool sarray, const char *func, const int line);
-#define strvSteal(strv, sarray) __strvSteal(strv, sarray, __func__, __LINE__)
+#define strvSteal(strv) __strvSteal(strv, false, __func__, __LINE__)
+#define strvStealArray(strv) __strvSteal(strv, true, __func__, __LINE__)
 
 #endif  /* __PLUGIN_LIB_STRV */
