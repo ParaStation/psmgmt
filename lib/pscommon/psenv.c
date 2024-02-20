@@ -251,6 +251,8 @@ char **envGetArray(env_t env)
 
 env_t envClone(const env_t env, char **filter)
 {
+    if (!envInitialized(env)) return NULL;
+
     env_t clone = envNew(NULL);
     if (!clone) return NULL;
 
