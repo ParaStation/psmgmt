@@ -296,14 +296,15 @@ static void setupCommonEnv(Conf_t *conf)
 	setPSIEnv("__PMIX_NODELIST", env, 1);
 
 	/* info about and for respawned processes */
-	if (getenv("PMIX_SPAWNID")) {
-	    setPSIEnv("PMIX_SPAWNID", getenv("PMIX_SPAWNID"), 0);
+	env = getenv("PMIX_SPAWNID");
+	if (env) {
+	    setPSIEnv("PMIX_SPAWNID", env, 1);
 	    setPSIEnv("__PMIX_SPAWN_PARENT_FWTID",
-		    getenv("__PMIX_SPAWN_PARENT_FWTID"), 0);
+		    getenv("__PMIX_SPAWN_PARENT_FWTID"), 1);
 	    setPSIEnv("__PMIX_SPAWN_PARENT_NSPACE",
-		    getenv("__PMIX_SPAWN_PARENT_NSPACE"), 0);
+		    getenv("__PMIX_SPAWN_PARENT_NSPACE"), 1);
 	    setPSIEnv("__PMIX_SPAWN_PARENT_RANK",
-		    getenv("__PMIX_SPAWN_PARENT_RANK"), 0);
+		    getenv("__PMIX_SPAWN_PARENT_RANK"), 1);
 	}
 
 	snprintf(tmp, sizeof(tmp), "%d", conf->execCount);
