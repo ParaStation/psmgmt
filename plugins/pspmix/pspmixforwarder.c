@@ -831,7 +831,7 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	/* read and fill environment */
 	char **env;
 	getStringArrayM(data, &env, &alen);
-	for (size_t i = 0; i < alen; i++) envPut(spawn->env, env[i]);
+	spawn->env = envNew(env);
 
 	/* Note on spawn->preput:
 	 * In PMI "preput" is used to pass KVPs along the PMI_Spawn to be
