@@ -520,7 +520,8 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  *
  * Further members of the task structure will be filled by the
  * corresponding properties of the calling process, like UID, GID,
- * logger TID, etc. including a copy of the environment.
+ * logger TID, etc. including a copy of the environment. This
+ * environment will be expanded by the content of @a env.
  *
  * @param wDir Initial working directory of the spawned tasks
  *
@@ -537,12 +538,14 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  *
  * @param strictArgv Flag to prevent "smart" replacement of argv[0]
  *
+ * @param env Additional environment for the spawned tasks
+ *
  * @return Upon success a prepare task structure is returned or NULL
  * in case of failure
  */
 static PStask_t * createSpawnTask(char *wDir, PStask_group_t taskGroup,
-				  PSrsrvtn_ID_t resID,
-				  int argc, char **argv, bool strictArgv)
+				  PSrsrvtn_ID_t resID, int argc, char **argv,
+				  bool strictArgv, env_t env)
 {
     /* setup task structure to store information of tasks to be spawned */
     PStask_t *task = PStask_new();
@@ -657,6 +660,15 @@ static PStask_t * createSpawnTask(char *wDir, PStask_group_t taskGroup,
 	PSI_log(-1, "%s: cannot dump environment\n", __func__);
 	goto cleanup;
     }
+    /* add the content of env */
+    if (envSize(env)) {
+	env_t psiEnv = envNew(task->environ);
+	for (uint32_t e = 0; e < envSize(env); e++)
+	    envPut(psiEnv, envDumpIndex(env, e));
+	task->environ = envGetArray(psiEnv);
+	envStealArray(psiEnv);
+    }
+
     return task;
 
  cleanup:
@@ -835,7 +847,7 @@ int PSI_spawn(int count, char *wDir, int argc, char **argv, int *errors)
     if (count <= 0) return 0;
 
     PStask_t *task = createSpawnTask(wDir, TG_ANY, -1 /* resID */,
-				     argc, argv, false);
+				     argc, argv, false, NULL);
     if (!task) {
 	PSI_log(-1, "%s: unable to create helper task\n", __func__);
 	return -1;
@@ -878,7 +890,8 @@ int PSI_spawn(int count, char *wDir, int argc, char **argv, int *errors)
 }
 
 int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
-		    int argc, char **argv, bool strictArgv, int *errors)
+		    int argc, char **argv, bool strictArgv, env_t env,
+		    int *errors)
 {
     PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, count, resID);
     if (!errors) {
@@ -888,7 +901,8 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 
     if (count <= 0) return 0;
 
-    PStask_t *task = createSpawnTask(wDir, TG_ANY, resID, argc, argv, strictArgv);
+    PStask_t *task = createSpawnTask(wDir, TG_ANY, resID, argc, argv,
+				     strictArgv, env);
     if (!task) {
 	PSI_log(-1, "%s: unable to create helper task\n", __func__);
 	return -1;
@@ -992,7 +1006,7 @@ bool PSI_spawnAdmin(PSnodes_ID_t node, char *wDir, int argc, char **argv,
     }
 
     PStask_t *task = createSpawnTask(wDir, TG_ADMINTASK, -1 /* resID */,
-				     argc, argv, strictArgv);
+				     argc, argv, strictArgv, NULL);
     if (!task) {
 	PSI_log(-1, "%s: unable to create helper task\n", __func__);
 	return false;
@@ -1034,7 +1048,7 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
 
     if (rank >= -1) rank = -2;
 
-    PStask_t *task = createSpawnTask(wDir, taskGroup, -1, argc, argv, false);
+    PStask_t *task = createSpawnTask(wDir, taskGroup, -1, argc, argv, false, NULL);
     if (!task) {
 	PSI_log(-1, "%s: unable to create helper task\n", __func__);
 	return false;

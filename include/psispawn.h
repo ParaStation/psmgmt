@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
+#include "psenv.h"
 #include "psnodes.h"
 #include "pstask.h"
 #include "psreservation.h"
@@ -158,9 +159,11 @@ int PSI_spawn(int count, char *wDir, int argc, char **argv, int *errors);
  * @brief Spawn one or more tasks within the cluster into a reservation
  *
  * Spawn @a count tasks described by the @a argc number of arguments
- * within @a argv. The nodes and ranks used will be determined via the
- * PSI_getSlots() function. The latter will use the reservation
- * identified by @a resID in order to access the required resources.
+ * within @a argv. The environment of the spawned tasks will be
+ * extended by the content of @a env. The nodes and ranks used will be
+ * determined via the PSI_getSlots() function. The latter will use the
+ * reservation identified by @a resID in order to access the required
+ * resources.
  *
  * If an error occurred, @a errors will contain an errno describing
  * the error on the position corresponding to the relative rank of the
@@ -191,6 +194,8 @@ int PSI_spawn(int count, char *wDir, int argc, char **argv, int *errors);
  * of the executable. If set, argv[0] will be passed to the final
  * exec() call as is.
  *
+ * @param env Additional environment for the spawned tasks
+ *
  * @param errors Error-codes displaying if an error occurred while
  * spawning the corresponding tasks
  *
@@ -200,7 +205,8 @@ int PSI_spawn(int count, char *wDir, int argc, char **argv, int *errors);
  * @see PSI_createPartition() PSI_getRervation(), PSI_getSlots()
  */
 int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
-		    int argc, char **argv, bool strictArgv, int *errors);
+		    int argc, char **argv, bool strictArgv, env_t env,
+		    int *errors);
 
 /**
  * @brief Spawn admin task within the cluster.
