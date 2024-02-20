@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,29 +45,26 @@ static void propMoreEnv(void)
 			"PMI_BARRIER_TMOUT", "PMI_BARRIER_ROUNDS",
 			"__MPIEXEC_DIST_START", "PSPMIX_ENV_TMOUT", NULL };
 
-    char **e;
-    for (e = envList; *e; e++) {
-	setPSIEnv(*e, getenv(*e), 1);
-    }
+    for (char **e = envList; *e; e++) setPSIEnv(*e, getenv(*e), 1);
 
     char *env = getenv("__PMI_preput_num");
-    if (env) {
-	int i, prenum;
-	char *key, *value, keybuf[64], valbuf[64];
+    if (!env) return;
 
-	setPSIEnv("__PMI_preput_num", env, 1);
+    setPSIEnv("__PMI_preput_num", env, 1);
+    int prenum = atoi(env);
+    for (int i = 0; i < prenum; i++) {
+	char keybuf[64];
+	snprintf(keybuf, sizeof(keybuf), "__PMI_preput_key_%i", i);
+	char *key = getenv(keybuf);
+	if (!key) continue;
 
-	prenum = atoi(env);
-	for (i=0; i<prenum; i++) {
-	    snprintf(keybuf, sizeof(keybuf), "__PMI_preput_key_%i", i);
-	    key = getenv(keybuf);
-	    snprintf(valbuf, sizeof(valbuf), "__PMI_preput_val_%i", i);
-	    value = getenv(valbuf);
-	    if (key && value) {
-		setPSIEnv(keybuf, key, 1);
-		setPSIEnv(valbuf, value, 1);
-	    }
-	}
+	char valbuf[64];
+	snprintf(valbuf, sizeof(valbuf), "__PMI_preput_val_%i", i);
+	char *value = getenv(valbuf);
+	if (!value) continue;
+
+	setPSIEnv(keybuf, key, 1);
+	setPSIEnv(valbuf, value, 1);
     }
 }
 
