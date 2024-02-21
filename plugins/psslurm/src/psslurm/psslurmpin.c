@@ -1474,41 +1474,38 @@ static void fillHints(hints_t *hints, env_t *env, pininfo_t *pininfo)
 {
     memset(hints, 0, sizeof(*hints));
 
-    char *hintstr;
-    if ((hintstr = envGet(env, "PSSLURM_HINT"))
-	    || (hintstr = envGet(env, "SLURM_HINT"))) {
-	char *var = envGet(env, "PSSLURM_HINT") ? "PSSLURM_HINT" : "SLURM_HINT";
-	for (char *ptr = hintstr; *ptr != '\0'; ptr++) {
-	    if (!strncmp(ptr, "compute_bound", 13)
-		    && (ptr[13] == ',' || ptr[13] == '\0')) {
-		hints->compute_bound = true;
-		ptr+=13;
-		flog("Valid hint in %s: compute_bound\n", var);
-	    }
-	    else if (!strncmp(ptr, "memory_bound", 12)
-		    && (ptr[12] == ',' || ptr[12] == '\0')) {
-		hints->memory_bound = true;
-		ptr+=12;
-		flog("Valid hint in %s: memory_bound\n", var);
-	    }
-	    else if (!strncmp(ptr, "multithread", 11)
-		    && (ptr[11] == ',' || ptr[11] == '\0')) {
-		hints->nomultithread = false;
-		ptr+=11;
-		flog("Valid hint %s: multithread\n", var);
-	    }
-	    else if (!strncmp(ptr, "nomultithread", 13)
-		    && (ptr[13] == ',' || ptr[13] == '\0')) {
-		hints->nomultithread = true;
-		ptr+=13;
-		flog("Valid hint in %s: nomultithread\n", var);
-	    }
-	    else {
-		ulog(pininfo, "invalid hint in %s: '%s'\n", var, hintstr);
-		break;
-	    }
+    char *hintstr, *var;
+
+    if ((hintstr = envGet(env, "PSSLURM_HINT"))) var = "PSSLURM_HINT";
+    else if ((hintstr = envGet(env, "SLURM_HINT"))) var = "SLURM_HINT";
+
+    if (!hintstr) return;
+
+    char *tmpstr = ustrdup(hintstr);
+    char *tok = strtok(tmpstr, ",");
+    do {
+	if (!strcmp(tok, "compute_bound")) {
+	    hints->compute_bound = true;
+	    flog("Valid hint in %s: compute_bound\n", var);
 	}
-    }
+	else if (!strcmp(tok, "memory_bound")) {
+	    hints->memory_bound = true;
+	    flog("Valid hint in %s: memory_bound\n", var);
+	}
+	else if (!strcmp(tok, "multithread")) {
+	    hints->nomultithread = false;
+	    flog("Valid hint %s: multithread\n", var);
+	}
+	else if (!strcmp(tok, "nomultithread")) {
+	    hints->nomultithread = true;
+	    flog("Valid hint in %s: nomultithread\n", var);
+	}
+	else {
+	    ulog(pininfo, "invalid hint '%s' in %s: '%s'\n", tok, var,
+		 hintstr);
+	}
+    } while ((tok = strtok(NULL, ",")));
+    ufree(tmpstr);
 }
 
 static void fillTasksPerSocket(pininfo_t *pininfo, env_t *env,
