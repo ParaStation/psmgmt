@@ -639,15 +639,12 @@ static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
     /* Analyze result, if necessary */
     if (ret < 0) {
 	for (int i = 0; i < np; i++) {
-	    if (verbose || errors[i]) {
-		fprintf(stderr, "Could%s spawn '%s' process %d",
-			errors[i] ? " not" : "", argv[0], i);
-		if (errors[i]) {
-		    char* errstr = strerror(errors[i]);
-		    fprintf(stderr, ": %s", errstr ? errstr : "UNKNOWN");
-		}
-		fprintf(stderr, "\n");
-	    }
+	    if (!verbose && !errors[i]) continue;
+
+	    fprintf(stderr, "Could%s spawn '%s' process %d",
+		    errors[i] ? " not" : "", argv[0], i);
+	    if (errors[i]) fprintf(stderr, ": %s", strerror(errors[i]));
+	    fprintf(stderr, "\n");
 	}
 	fprintf(stderr, "%s: PSI_spawn() failed.\n", __func__);
     }
@@ -709,7 +706,6 @@ static int startProcs(Conf_t *conf)
 
     /* Create the reservations required later on */
     for (int i = 0; i < conf->execCount; i++) {
-	unsigned int got;
 	PSpart_option_t options = (conf->overbook ? PART_OPT_OVERBOOK : 0)
 	    | (conf->loopnodesfirst ? PART_OPT_NODEFIRST : 0)
 	    | (conf->wait ? PART_OPT_WAIT : 0)
@@ -717,6 +713,7 @@ static int startProcs(Conf_t *conf)
 
 	if (!options) options = PART_OPT_DEFAULT;
 
+	unsigned int got;
 	exec[i].resID = PSI_getReservation(exec[i].np, exec[i].np, exec[i].ppn,
 					   exec[i].tpp, exec[i].hwType,
 					   options, &got);
@@ -753,8 +750,7 @@ static int startProcs(Conf_t *conf)
     }
 
     if (cnt != conf->np) {
-	fprintf(stderr, "%s: nodes are missing (%d/%d)\n", __func__, cnt,
-		conf->np);
+	fprintf(stderr, "%s: missing nodes (%d/%d)\n", __func__, cnt, conf->np);
 	free(nodeList);
 
 	return -1;

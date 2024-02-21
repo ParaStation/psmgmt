@@ -563,10 +563,8 @@ static struct poptOption optionsTable[] = {
 static void printHiddenUsage(poptOption opt, int argc, const char *argv[],
 			     char *headline)
 {
-    poptOption o = opt;
-    while(o->longName || o->shortName || o->arg) {
+    for (poptOption o = opt; o->longName || o->shortName || o->arg; o++) {
 	o->argInfo = o->argInfo ^ POPT_ARGFLAG_DOC_HIDDEN;
-	o++;
     }
 
     poptFreeContext(optCon);
@@ -751,19 +749,18 @@ static uint32_t getNodeType(char *hwStr)
 static void saveNextExecutable(Conf_t *conf, int argc, const char **argv)
 {
     char *hwTypeStr, msgStr[128];
-    Executable_t *exec;
 
     if (conf->execCount >= conf->execMax) {
-	Executable_t *newExec;
 	conf->execMax += 16;
-	newExec = realloc(conf->exec, conf->execMax * sizeof(*conf->exec));
+	Executable_t *newExec = realloc(conf->exec,
+					conf->execMax * sizeof(*conf->exec));
 	if (!newExec) {
 	    fprintf(stderr, "%s: realloc(): %m\n", __func__);
 	    exit(EXIT_FAILURE);
 	}
-	conf->exec=newExec;
+	conf->exec = newExec;
     }
-    exec = &conf->exec[conf->execCount];
+    Executable_t *exec = &conf->exec[conf->execCount];
 
     if (argc <= 0 || !argv || !argv[0]) errExit("invalid colon syntax\n");
 
@@ -1214,10 +1211,9 @@ void releaseConf(Conf_t *conf)
 
     if (conf->exec) {
 	for (int e = 0; e < conf->execCount; e++) {
-	    if (conf->exec[e].argv) {
-		for (int i = 0; i < conf->exec[e].argc; i++) {
-		    free(conf->exec[e].argv[i]);
-		}
+	    if (!conf->exec[e].argv) continue;
+	    for (int i = 0; i < conf->exec[e].argc; i++) {
+		free(conf->exec[e].argv[i]);
 	    }
 	    free(conf->exec[e].argv);
 	}
