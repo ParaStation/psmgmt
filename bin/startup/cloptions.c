@@ -74,10 +74,13 @@ static char *gnodetype = NULL;
 
 /* environment flags and options */
 static int envall;
+static bool execEnvall;
+static int genvall;
 static char *envlist;
 static char *envopt, *envval;
 
 /** Accumulated environments to get exported */
+static env_t env;
 static char *accenvlist;
 
 static char *path = NULL;
@@ -473,7 +476,7 @@ static struct poptOption poptCompatibilityGlobalOptions[] = {
       &gnodetype, 0, "equal to gnodetype", NULL},
     { "genvall", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &envall, 0, "export all environment globally", NULL},
+      &genvall, 0, "export all environment globally", NULL},
     { "genvnone", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "export no environment globally (ignored)", NULL},
@@ -829,6 +832,13 @@ static void saveNextExecutable(Conf_t *conf, int argc, const char **argv)
 	}
     }
     exec->argv[argc] = NULL;
+
+    exec->env = env;
+    env = envNew(NULL);
+    exec->envall = envall;
+    if (envall) execEnvall = true;
+    envall = 0;
+
     conf->execCount++;
 }
 
@@ -1008,7 +1018,8 @@ static void setupConf(Conf_t *conf)
     conf->envTPP = envtpp;
 
     conf->dryrun = dryrun;
-    conf->envall = envall;
+    conf->envall = genvall;
+    conf->execEnvall = execEnvall;
     conf->u_mask = u_mask;
 
     /* resource options */
@@ -1099,6 +1110,7 @@ Conf_t * parseCmdOptions(int argc, const char *argv[])
 	setPSIEnv("PSI_TPP", envStr, 1);
     }
     conf->maxTPP = 1;
+    env = envNew(NULL);
 
     /* create context for parsing */
     poptDupArgv(argc, argv, &dup_argc, &dup_argv);
@@ -1164,6 +1176,7 @@ PARSE_MPIEXEC_OPT:
     }
 
     if (leftArgv) saveNextExecutable(conf, leftArgc, leftArgv);
+    envDestroy(env);
 
     /* restore original context for further usage messages */
     poptFreeContext(optCon);
@@ -1211,6 +1224,7 @@ void releaseConf(Conf_t *conf)
 
     if (conf->exec) {
 	for (int e = 0; e < conf->execCount; e++) {
+	    envDestroy(conf->exec[e].env);
 	    if (!conf->exec[e].argv) continue;
 	    for (int i = 0; i < conf->exec[e].argc; i++) {
 		free(conf->exec[e].argv[i]);

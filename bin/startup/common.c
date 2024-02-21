@@ -374,7 +374,7 @@ void setupEnvironment(Conf_t *conf)
     setupPSCOMEnv(conf);
 
     /* Setup various environment variables depending on passed arguments */
-    if (conf->envall && !getenv("__PSI_EXPORTS")) {
+    if ((conf->envall || conf->execEnvall) && !getenv("__PSI_EXPORTS")) {
 	extern char **environ;
 	char *xprts = NULL;
 	size_t xprtsLen = 0;

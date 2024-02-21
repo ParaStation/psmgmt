@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include "psenv.h"
 #include "psreservation.h"
 
 /** Information on executables to start */
@@ -30,6 +31,8 @@ typedef struct {
     int argc;           /**< number of arguments in argv */
     char **argv;        /**< executable's argument vector */
     char *wdir;         /**< executable's working directory */
+    env_t env;          /**< executable's environment set at CL */
+    bool envall;        /**< Flag to propagate the whole environment */
 } Executable_t;
 
 /** configuration derived from command line options */
@@ -43,6 +46,7 @@ typedef struct {
     int envTPP;         /**< Thread per process requested via environment */
     bool dryrun;        /**< Flag dryrun, i.e. do not spawn processes */
     bool envall;        /**< Flag to propagate the whole environment */
+    bool execEnvall;    /**< Flag propagate whole environment for executable */
     mode_t u_mask;      /**< File mode creation mask to be used */
     /* resource options */
     char *nList;        /**< List of node IDs to use (not required for batch) */

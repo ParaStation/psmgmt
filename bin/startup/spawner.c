@@ -25,6 +25,7 @@
 #include <netinet/in.h>
 
 #include "pse.h"
+#include "psenv.h"
 #include "psi.h"
 #include "psienv.h"
 #include "psiinfo.h"
@@ -454,6 +455,37 @@ static void setupCommonEnv(Conf_t *conf)
 }
 
 /**
+ * @brief Add list of environment variables to environment
+ *
+ * Add the environment variables defined by the comma separated list
+ * @a list of environment variables to the environment @a env
+ *
+ * @param env Environment to extend
+ *
+ * @param list Comma separated list of environment names
+ *
+ * @return No return value
+ */
+static void addEnvList(env_t env, char *list)
+{
+    char *envList = strdup(list);
+    char *thisEnv = envList;
+    while (thisEnv && *thisEnv) {
+	char *nextEnv = strchr(thisEnv,',');
+	if (nextEnv) {
+	    *nextEnv = 0;  /* replace the "," with EOS */
+	    nextEnv++;     /* move to the start of the next string */
+	}
+	if (!envGet(env, thisEnv)) {
+	    char *envStr = getenv(thisEnv);
+	    if (envStr) envSet(env, thisEnv, envStr);
+	}
+	thisEnv = nextEnv;
+    }
+    free(envList);
+}
+
+/**
  * @brief Setup the per executable environment
  *
  * Setup the per executable environment needed by the Process Manager
@@ -469,17 +501,29 @@ static void setupCommonEnv(Conf_t *conf)
  */
 static void setupExecEnv(Conf_t *conf, int execNum)
 {
-    char tmp[32];
+    Executable_t *thisExec = &conf->exec[execNum];
 
+    char tmp[32];
     snprintf(tmp, sizeof(tmp), "%d", execNum);
-    setPSIEnv("PSI_APPNUM", tmp, 1);
+    envSet(thisExec->env, "PSI_APPNUM", tmp);
     if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
-	setPSIEnv("PMI_APPNUM", tmp, 1);
+	envSet(thisExec->env, "PMI_APPNUM", tmp);
     }
 
     if (conf->PMIx) {
-	snprintf(tmp, sizeof(tmp), "%d", conf->exec[execNum].np);
-	setPSIEnv("PMIX_APPSIZE", tmp, 1);
+	snprintf(tmp, sizeof(tmp), "%d", thisExec->np);
+	envSet(thisExec->env, "PMIX_APPSIZE", tmp);
+    }
+
+    if (thisExec->envall) {
+	char *listStr = getenv("__PSI_EXPORTS");
+	if (!listStr) {
+	    fprintf(stderr, "executable %d with envall but no __PSI_EXPORTS\n",
+		    execNum);
+	} else {
+	    addEnvList(thisExec->env, listStr);
+	    return;
+	}
     }
 }
 
@@ -629,7 +673,7 @@ static int spawnSingleExecutable(Executable_t *exec, bool verbose)
 
     /* spawn client processes */
     int ret = PSI_spawnRsrvtn(exec->np, exec->resID, exec->wdir, exec->argc,
-			      exec->argv, true, NULL, errors);
+			      exec->argv, true, exec->env, errors);
 
     /* Analyze result, if necessary */
     if (ret < 0) {
@@ -903,7 +947,7 @@ int main(int argc, const char *argv[], char** envp)
     /* Now actually Propagate parts of the environment */
     PSI_propEnv();
     PSI_propEnvList("PSI_EXPORTS");
-    PSI_propEnvList("__PSI_EXPORTS");
+    if (conf->envall) PSI_propEnvList("__PSI_EXPORTS");
 
     if (conf->verbose) printf("spawner %s started\n",
 			      PSC_printTID(PSC_getMyTID()));
