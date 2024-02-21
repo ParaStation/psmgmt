@@ -1166,7 +1166,16 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 				     const pmix_app_t apps[], size_t napps,
 				     pmix_spawn_cbfunc_t cbfunc, void *cbdata)
 {
+
+    /* assert input from pmix lib is as we expect it */
     assert(proc != NULL);
+    assert(job_info != NULL || ninfo == 0);
+    assert(apps != NULL || napps == 0);
+    for (size_t a = 0; a < napps; a++) {
+	assert(apps[a].cmd);
+	assert(apps[a].argv);
+	assert(!strcmp(apps[a].cmd, apps[a].argv[0]));
+    }
 
     if (mset(PSPMIX_LOG_CALL)) {
 	mlog("%s(%s:%d)\n", __func__, proc->nspace, proc->rank);
@@ -1178,13 +1187,18 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 		mlog("%s ", *tmp);
 		(*tmp)++;
 	    }
-	    mlog("' env='");
-	    tmp = apps[i].env;
-	    while(*tmp) {
-		mlog("%s ", *tmp);
-		(*tmp)++;
+	    if (!apps[i].env) {
+		mlog("' env=NULL");
+	    } else {
+		mlog("' env='");
+		tmp = apps[i].env;
+		while(*tmp) {
+		    mlog("%s ", *tmp);
+		    (*tmp)++;
+		}
+		mlog("'");
 	    }
-	    mlog("' cwd='%s' maxprocs=%d ninfo=%zd\n", apps[i].cwd,
+	    mlog(" cwd='%s' maxprocs=%d ninfo=%zd\n", apps[i].cwd,
 		 apps[i].maxprocs, apps[i].ninfo);
 	}
     }
@@ -1212,7 +1226,6 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	 * as apps[x].argv[0] */
 
 	sapps[a].prefix = si_app.prefix ? si_app.prefix : si_job.prefix;
-
 
 	if (sapps[a].prefix) {
 	    /* add prefix */
