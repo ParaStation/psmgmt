@@ -303,33 +303,32 @@ static void setupCommonEnv(Conf_t *conf)
 
 	char var[32];
 	for (int i = 0; i < conf->execCount; i++) {
+	    Executable_t *exec = &conf->exec[i];
 	    snprintf(var, sizeof(var), "PMIX_APPSIZE_%d", i);
-	    snprintf(tmp, sizeof(tmp), "%d", conf->exec[i].np);
+	    snprintf(tmp, sizeof(tmp), "%d", exec->np);
 	    setPSIEnv(var, tmp, 1);
 
 	    snprintf(var, sizeof(var), "PMIX_APPWDIR_%d", i);
-	    char *dir = PSC_getwd(conf->exec[i].wdir);
+	    char *dir = PSC_getwd(exec->wdir);
 	    setPSIEnv(var, dir, 1);
 	    free(dir);
 
 	    snprintf(var, sizeof(var), "PMIX_APPARGV_%d", i);
 	    size_t sum = 1;
-	    for (int j = 0; j < conf->exec[i].argc; j++) {
-		sum += strlen(conf->exec[i].argv[j]) + 1;
+	    for (int j = 0; j < exec->argc; j++) {
+		sum += strlen(exec->argv[j]) + 1;
 	    }
 	    env = umalloc(sum);
 	    char *ptr = env;
-	    for (int j = 0; j < conf->exec[i].argc; j++) {
-		ptr += sprintf(ptr, "%s ", conf->exec[i].argv[j]);
+	    for (int j = 0; j < exec->argc; j++) {
+		ptr += sprintf(ptr, "%s ", exec->argv[j]);
 	    }
 	    *(ptr-1)='\0';
 	    setPSIEnv(var, env, 1);
 	    free(env);
-	}
 
-	for (int i = 0; i < conf->execCount; i++) {
 	    snprintf(var, sizeof(var), "__PMIX_RESID_%d", i);
-	    snprintf(tmp, sizeof(tmp), "%d", conf->exec[i].resID);
+	    snprintf(tmp, sizeof(tmp), "%d", exec->resID);
 	    setPSIEnv(var, tmp, 1);
 	}
 
@@ -698,10 +697,10 @@ static void sendPMIFail(void)
  */
 static int startProcs(Conf_t *conf)
 {
-    Executable_t *exec = conf->exec;
-
     /* Create the reservations required later on */
     for (int i = 0; i < conf->execCount; i++) {
+	Executable_t *exec = &conf->exec[i];
+
 	PSpart_option_t options = (conf->overbook ? PART_OPT_OVERBOOK : 0)
 	    | (conf->loopnodesfirst ? PART_OPT_NODEFIRST : 0)
 	    | (conf->wait ? PART_OPT_WAIT : 0)
@@ -710,15 +709,13 @@ static int startProcs(Conf_t *conf)
 	if (!options) options = PART_OPT_DEFAULT;
 
 	unsigned int got;
-	exec[i].resID = PSI_getReservation(exec[i].np, exec[i].np, exec[i].ppn,
-					   exec[i].tpp, exec[i].hwType,
-					   options, &got);
+	exec->resID = PSI_getReservation(exec->np, exec->np, exec->ppn,
+					 exec->tpp, exec->hwType, options, &got);
 
-	if (!exec[i].resID || (int)got != exec[i].np) {
+	if (!exec->resID || (int)got != exec->np) {
 	    fprintf(stderr, "%s: Unable to get reservation for app %d %d slots "
 		    "(tpp %d hwType %#x options %#x ppn %d)\n", __func__, i,
-		    exec[i].np, exec[i].tpp, exec[i].hwType, options,
-		    exec[i].ppn);
+		    exec->np, exec->tpp, exec->hwType, options, exec->ppn);
 	    if (getenv("PMI_SPAWNED")) sendPMIFail();
 
 	    return -1;
@@ -730,14 +727,15 @@ static int startProcs(Conf_t *conf)
 
     int cnt = 0;
     for (int i = 0; i < conf->execCount; i++) {
-	int got = PSI_infoList(-1, PSP_INFO_LIST_RESNODES, &exec[i].resID,
+	Executable_t *exec = &conf->exec[i];
+	int got = PSI_infoList(-1, PSP_INFO_LIST_RESNODES, &exec->resID,
 			       nodeList + cnt,
 			       (conf->np - cnt) * sizeof(*nodeList), false);
 
-	if ((unsigned)got != exec[i].np * sizeof(*nodeList)) {
+	if ((unsigned)got != exec->np * sizeof(*nodeList)) {
 	    fprintf(stderr, "%s: Unable to get nodes in reservation %#x for"
-		    " app %d. Got %zu expected %d\n", __func__, exec[i].resID,
-		    i, got / sizeof(*nodeList), exec[i].np);
+		    " app %d. Got %zu expected %d\n", __func__, exec->resID,
+		    i, got / sizeof(*nodeList), exec->np);
 	    if (getenv("PMI_SPAWNED")) sendPMIFail();
 
 	    return -1;
@@ -761,8 +759,9 @@ static int startProcs(Conf_t *conf)
     PSI_registerRankEnvFunc(setupRankEnv, conf);
 
     for (int i = 0; i < conf->execCount; i++) {
+	Executable_t *exec = &conf->exec[i];
 	setupExecEnv(conf, i);
-	int res = spawnSingleExecutable(&exec[i], conf->verbose);
+	int res = spawnSingleExecutable(exec, conf->verbose);
 	if (res < 0) {
 	    if (getenv("PMI_SPAWNED")) sendPMIFail();
 	    return -1;
