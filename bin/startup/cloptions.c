@@ -77,12 +77,14 @@ static int envall;
 static bool execEnvall;
 static int genvall;
 static char *envlist;
+static char *genvlist;
 static char *envopt, *envval;
 static char *genvopt, *genvval;
 
 /** Accumulated environments to get exported */
 static env_t env;
 static char *accenvlist;
+static char *accgenvlist;
 
 static char *path = NULL;
 
@@ -487,7 +489,7 @@ static struct poptOption poptCompatibilityGlobalOptions[] = {
       &none, 0, "export no environment globally (ignored)", NULL},
     { "genvlist", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &envlist, 'l', "export list of environment globally", "envlist"},
+      &genvlist, 'L', "export list of environment globally", "envlist"},
     { "genv", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &genvopt, 'E', "set environment to value globally", "<name> <value>"},
@@ -840,6 +842,8 @@ static void saveNextExecutable(Conf_t *conf, int argc, const char **argv)
 
     exec->env = env;
     env = envNew(NULL);
+    exec->envList = accenvlist;
+    accenvlist = NULL;
     exec->envall = envall;
     if (envall) execEnvall = true;
     envall = 0;
@@ -1087,7 +1091,7 @@ static void setupConf(Conf_t *conf)
     conf->interactive = interactive;
     conf->maxtime = maxtime;
     if (dest) { conf->dest = strdup(dest); dest = NULL; }
-    if (accenvlist) { conf->envList = accenvlist; accenvlist = NULL; }
+    if (accgenvlist) { conf->envList = accgenvlist; accgenvlist = NULL; }
     if (path) { conf->path = strdup(path); path = NULL; }
 
     /* debug options */
@@ -1151,6 +1155,15 @@ PARSE_MPIEXEC_OPT:
 		accenvlist = tmp;
 	    } else {
 		accenvlist = strdup(envlist);
+	    }
+	    break;
+	case 'L':
+	    if (accgenvlist) {
+		char *tmp = PSC_concat(accgenvlist, ",", genvlist);
+		free(accgenvlist);
+		accgenvlist = tmp;
+	    } else {
+		accgenvlist = strdup(genvlist);
 	    }
 	    break;
 	}
@@ -1237,6 +1250,7 @@ void releaseConf(Conf_t *conf)
     if (conf->exec) {
 	for (int e = 0; e < conf->execCount; e++) {
 	    envDestroy(conf->exec[e].env);
+	    free(conf->exec[e].envList);
 	    if (!conf->exec[e].argv) continue;
 	    for (int i = 0; i < conf->exec[e].argc; i++) {
 		free(conf->exec[e].argv[i]);

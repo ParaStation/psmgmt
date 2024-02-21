@@ -98,6 +98,7 @@ int main(int argc, const char *argv[], char** envp)
     PSI_propEnvList("PSI_EXPORTS");
     PSI_propEnvList("__PSI_EXPORTS");
     propMoreEnv();
+    propExecEnvironment(conf);
 
     /* Identify the rank of the spawner service to start */
     envPtr = getenv("__PMI_SPAWN_SERVICE_RANK");

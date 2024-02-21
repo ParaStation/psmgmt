@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -128,6 +128,7 @@ int main(int argc, const char *argv[])
     PSI_propEnv();
     PSI_propEnvList("PSI_EXPORTS");
     PSI_propEnvList("__PSI_EXPORTS");
+    propExecEnvironment(conf);
 
     /* Create a partition; we need the updated environment for that */
     int pSize = conf->uSize > conf->np ? conf->uSize : conf->np;

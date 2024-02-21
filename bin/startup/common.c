@@ -425,6 +425,16 @@ void setupEnvironment(Conf_t *conf)
     }
 }
 
+void propExecEnvironment(Conf_t *conf)
+{
+    if (conf->envall || conf->execEnvall) return;
+    for (int i = 0; i < conf->execCount; i++) {
+	Executable_t *exec = &conf->exec[i];
+
+	if (exec->envList) PSI_propList(exec->envList);
+    }
+}
+
 PSnodes_ID_t getIDbyIdx(Conf_t *conf, int index)
 {
     int numBytes, pSize = conf->uSize > conf->np ? conf->uSize : conf->np;

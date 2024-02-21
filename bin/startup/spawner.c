@@ -525,6 +525,9 @@ static void setupExecEnv(Conf_t *conf, int execNum)
 	    return;
 	}
     }
+    if (thisExec->envList) {
+	addEnvList(thisExec->env, thisExec->envList);
+    }
 }
 
 static char **setupRankEnv(int psRank, void *info)

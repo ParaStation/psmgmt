@@ -32,6 +32,7 @@ typedef struct {
     char **argv;        /**< executable's argument vector */
     char *wdir;         /**< executable's working directory */
     env_t env;          /**< executable's environment set at CL */
+    char *envList;      /**< executable's list of environment to propagate */
     bool envall;        /**< Flag to propagate the whole environment */
 } Executable_t;
 
