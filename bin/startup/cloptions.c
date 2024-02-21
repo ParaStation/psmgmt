@@ -78,6 +78,7 @@ static bool execEnvall;
 static int genvall;
 static char *envlist;
 static char *envopt, *envval;
+static char *genvopt, *genvval;
 
 /** Accumulated environments to get exported */
 static env_t env;
@@ -184,10 +185,14 @@ static struct poptOption poptCommonOptions[] = {
     { "envall", 'x', POPT_ARG_NONE,
       &envall, 0, "export all environment to this executable", NULL},
     { "env", 'E', POPT_ARG_STRING,
-      &envopt, 'E', "export environment and value to this executable",
+      &envopt, 'e', "export environment and value to this executable",
       "<name> <value>"},
     { "envval", '\0', POPT_ARG_STRING | POPT_ARGFLAG_DOC_HIDDEN,
-      &envval, 'e', "", ""},
+      &envval, 'v', "", ""},
+    { "genv", '\0', POPT_ARG_STRING,
+      &genvopt, 'E', "export environment and value globally", "<name> <value>"},
+    { "genvval", '\0', POPT_ARG_STRING | POPT_ARGFLAG_DOC_HIDDEN,
+      &genvval, 'V', "", ""},
     { "bnr", 'b', POPT_ARG_NONE,
       &mpichcom, 0, "enable ParaStation4 compatibility mode", NULL},
     { "usize", 'u', POPT_ARG_INT,
@@ -411,7 +416,7 @@ static struct poptOption poptCompatibilityOptions[] = {
       "envlist"},
     { "env", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &envopt, 'E', "set environment to value for this executable",
+      &envopt, 'e', "set environment to value for this executable",
       "<name> <value>"},
     { "usize", 'u',
       POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
@@ -485,7 +490,7 @@ static struct poptOption poptCompatibilityGlobalOptions[] = {
       &envlist, 'l', "export list of environment globally", "envlist"},
     { "genv", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &envopt, 'E', "set environment to value globally", "<name> <value>"},
+      &genvopt, 'E', "set environment to value globally", "<name> <value>"},
     POPT_TABLEEND
 };
 
@@ -1123,14 +1128,21 @@ PARSE_MPIEXEC_OPT:
     /* parse mpiexec options */
     while ((rc = poptGetNextOpt(optCon)) >= 0) {
 	const char *av[] = { "--envval", NULL };
+	const char *gav[] = { "--genvval", NULL };
 
 	/* handle special env option */
 	switch (rc) {
-	case 'E':
+	case 'e':
 	    poptStuffArgs(optCon, av);
 	    break;
-	case 'e':
-	    setPSIEnv(envopt, envval, 1);
+	case 'v':
+	    envSet(env, envopt, envval);
+	    break;
+	case 'E':
+	    poptStuffArgs(optCon, gav);
+	    break;
+	case 'V':
+	    setPSIEnv(genvopt, genvval, 1);
 	    break;
 	case 'l':
 	    if (accenvlist) {
