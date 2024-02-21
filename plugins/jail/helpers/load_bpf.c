@@ -270,7 +270,7 @@ static int openMap(const char *id)
     char pinPath[PATH_MAX];
     snprintf(pinPath, sizeof(pinPath), "%s/%s_map", BPF_PSID_PATH, id);
     int fd = bpf_obj_get(pinPath);
-    if (fd == -1) {
+    if (fd < 0) {
 	fprintf(stderr, "Failed to open map %s: %s\n", pinPath,
 		strerror(errno));
 	exit(1);
@@ -347,7 +347,7 @@ int main(int argc, const char *argv[])
 
     /* if access was specified save it to BPF map */
     if (bpfAccess != -1) {
-	if (mapFD == -1) reopenMap();
+	if (mapFD < 0) reopenMap();
 
 	/* update access rights in map */
 	updateMap();
