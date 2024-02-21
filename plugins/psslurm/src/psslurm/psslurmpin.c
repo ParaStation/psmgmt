@@ -1820,6 +1820,27 @@ static void printCoreMap(char *title, PSCPU_set_t coremap, Step_t *step,
     }
 }
 
+static void printStepCpuBindType(Step_t *step, char *prefix)
+{
+#define CPU_BIND(type) \
+    step->cpuBindType & CPU_BIND_ ## type ? "CPU_BIND_" #type "|" : ""
+
+    char *str = PSC_concat(prefix, "cpuBindType = ", CPU_BIND(VERBOSE),
+			   CPU_BIND(TO_THREADS), CPU_BIND(TO_CORES),
+			   CPU_BIND(TO_SOCKETS), CPU_BIND(TO_LDOMS),
+			   CPU_BIND(NONE), CPU_BIND(RANK), CPU_BIND(MAP),
+			   CPU_BIND(MASK), CPU_BIND(LDRANK), CPU_BIND(LDMAP),
+			   CPU_BIND(LDMASK), CPU_BIND(ONE_THREAD_PER_CORE),
+			   CPU_BIND(OFF), "\n");
+    size_t last = strlen(str) - 1;
+    if (str[last-1] == '|') {
+	str[last--] = '\0';  /* cut of '\n' */
+	str[last] = '\n';    /* override '|' */
+    }
+    fwCMD_printMsg(NULL, step, str, strlen(str), STDERR, -1);
+    free(str);
+}
+
 /* This is the entry point to the whole CPU pinning stuff */
 bool setStepSlots(Step_t *step)
 {
@@ -1840,6 +1861,11 @@ bool setStepSlots(Step_t *step)
     uint32_t slotsSize = step->np;
     PSpart_slot_t *slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
 
+    /* be verbose */
+    if (envGet(&step->env, "PSSLURM_VERBOSE_PINNING")) {
+	printStepCpuBindType(step, "received ");
+    }
+
     /* set configured defaults for bind type and distributions */
     fdbg(PSSLURM_LOG_PART, "Masks before assigning defaults:"
 	    " CpuBindType 0x%05x, TaskDist 0x%04x\n", step->cpuBindType,
@@ -1849,6 +1875,11 @@ bool setStepSlots(Step_t *step)
     fdbg(PSSLURM_LOG_PART, "Masks after assigning defaults: "
 	    " CpuBindType 0x%05x, TaskDist 0x%04x\n",
 	    step->cpuBindType, step->taskDist);
+
+    /* be verbose */
+    if (envGet(&step->env, "PSSLURM_VERBOSE_PINNING")) {
+	printStepCpuBindType(step, "modified ");
+    }
 
     /* handle hints */
     hints_t hints;
