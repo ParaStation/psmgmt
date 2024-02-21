@@ -458,7 +458,7 @@ static void setupCommonEnv(Conf_t *conf)
  * @brief Setup the per executable environment
  *
  * Setup the per executable environment needed by the Process Manager
- * Interface (PMI). Additional variables are needed on a common and s
+ * Interface (PMI). Additional variables are needed on a common and
  * per rank basis. These are setup via @ref setupCommonEnv() and @ref
  * setupRankEnv() respectively.
  *
