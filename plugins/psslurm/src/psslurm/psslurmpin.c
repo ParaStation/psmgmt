@@ -1475,7 +1475,6 @@ static void fillHints(hints_t *hints, env_t *env, pininfo_t *pininfo)
     memset(hints, 0, sizeof(*hints));
 
     char *hintstr, *var;
-
     if ((hintstr = envGet(env, "PSSLURM_HINT"))) var = "PSSLURM_HINT";
     else if ((hintstr = envGet(env, "SLURM_HINT"))) var = "SLURM_HINT";
 
@@ -1487,22 +1486,17 @@ static void fillHints(hints_t *hints, env_t *env, pininfo_t *pininfo)
 	if (!strcmp(tok, "compute_bound")) {
 	    hints->compute_bound = true;
 	    flog("Valid hint in %s: compute_bound\n", var);
-	}
-	else if (!strcmp(tok, "memory_bound")) {
+	} else if (!strcmp(tok, "memory_bound")) {
 	    hints->memory_bound = true;
 	    flog("Valid hint in %s: memory_bound\n", var);
-	}
-	else if (!strcmp(tok, "multithread")) {
+	} else if (!strcmp(tok, "multithread")) {
 	    hints->nomultithread = false;
 	    flog("Valid hint %s: multithread\n", var);
-	}
-	else if (!strcmp(tok, "nomultithread")) {
+	} else if (!strcmp(tok, "nomultithread")) {
 	    hints->nomultithread = true;
 	    flog("Valid hint in %s: nomultithread\n", var);
-	}
-	else {
-	    ulog(pininfo, "invalid hint '%s' in %s: '%s'\n", tok, var,
-		 hintstr);
+	} else {
+	    ulog(pininfo, "invalid hint '%s' in %s: '%s'\n", tok, var, hintstr);
 	}
     } while ((tok = strtok(NULL, ",")));
     ufree(tmpstr);
