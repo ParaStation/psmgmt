@@ -604,45 +604,41 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 /**
  * @brief Spawn a single executable
  *
- * Spawn all processes linked to a specific executable. In total @a np
- * processes will be started, each process described by the argument
- * vector @a argv containing @a argc elements. Processes will use @a
- * wd as the working directory. The resources for spawning the new
- * processes will be taken from the reservation identified by @a
- * resID. @a verbose flags the emission of more detailed
- * error-messages.
+ * Spawn all processes linked to a specific executable. The executable
+ * is decribed within @a exec.
  *
- * @param np Number of instances to spawn
+ * @a exec contains the total number of processes @a np that will be
+ * started, the argument vector @a argv of @a argc elements describing
+ * the processes to start. Processes will use the @a wdir there as the
+ * working directory. The resources for spawning the new processes
+ * will be taken from the reservation identified in @a exec's @a
+ * resID.
  *
- * @param argc Size of @a argv
+ * @a verbose flags the emission of more detailed error-messages.
  *
- * @param argv Argument vector of the processes to spawn
- *
- * @param wd Working directory of the processes to spawn
- *
- * @param resID ID of the reservation to spawn the processes into
+ * @param exec Description of the executable to start
  *
  * @param verbose Be more verbose in case of error
  *
  * @return In case of success the number of spawned processes is
  * returned; or -1 if an error occurred
  */
-static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
-				 PSrsrvtn_ID_t resID, bool verbose)
+static int spawnSingleExecutable(Executable_t *exec, bool verbose)
 {
-    int *errors = umalloc(sizeof(int) * np);
-    memset(errors, 0, sizeof(int) * np);
+    int *errors = umalloc(sizeof(int) * exec->np);
+    memset(errors, 0, sizeof(int) * exec->np);
 
     /* spawn client processes */
-    int ret = PSI_spawnRsrvtn(np, resID, wd, argc, argv, true, NULL, errors);
+    int ret = PSI_spawnRsrvtn(exec->np, exec->resID, exec->wdir, exec->argc,
+			      exec->argv, true, NULL, errors);
 
     /* Analyze result, if necessary */
     if (ret < 0) {
-	for (int i = 0; i < np; i++) {
+	for (int i = 0; i < exec->np; i++) {
 	    if (!verbose && !errors[i]) continue;
 
 	    fprintf(stderr, "Could%s spawn '%s' process %d",
-		    errors[i] ? " not" : "", argv[0], i);
+		    errors[i] ? " not" : "", exec->argv[0], i);
 	    if (errors[i]) fprintf(stderr, ": %s", strerror(errors[i]));
 	    fprintf(stderr, "\n");
 	}
@@ -766,9 +762,7 @@ static int startProcs(Conf_t *conf)
 
     for (int i = 0; i < conf->execCount; i++) {
 	setupExecEnv(conf, i);
-	int res = spawnSingleExecutable(exec[i].np, exec[i].argc, exec[i].argv,
-					exec[i].wdir, exec[i].resID,
-					conf->verbose);
+	int res = spawnSingleExecutable(&exec[i], conf->verbose);
 	if (res < 0) {
 	    if (getenv("PMI_SPAWNED")) sendPMIFail();
 	    return -1;
