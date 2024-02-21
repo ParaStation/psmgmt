@@ -62,7 +62,6 @@ static int gppn = 0;
 static int tpp = 0;
 static int gtpp = 0;
 static int envtpp = 0;
-static int envall = 0;
 static int usize = 0;
 static mode_t u_mask;
 static char *wdir = NULL;
@@ -70,15 +69,17 @@ static char *gwdir = NULL;
 static char *nList = NULL;
 static char *hList = NULL;
 static char *hFile = NULL;
-static char *envlist = NULL;
 static char *nodetype = NULL;
 static char *gnodetype = NULL;
 
-/** Accumulated list of envirenments to get exported */
-static char *accenvlist = NULL;
+/* environment flags and options */
+static int envall;
+static char *envlist;
+static char *envopt, *envval;
 
-static char *envopt = NULL;
-static char *envval = NULL;
+/** Accumulated environments to get exported */
+static char *accenvlist;
+
 static char *path = NULL;
 
 /* compability options from other mpiexec commands */
