@@ -199,9 +199,9 @@ static struct poptOption poptCommonOptions[] = {
       &mpichcom, 0, "enable ParaStation4 compatibility mode", NULL},
     { "usize", 'u', POPT_ARG_INT,
       &usize, 0, "set the universe size", "num"},
-    { "pmix", 0, POPT_ARG_NONE,
+    { "pmix", '\0', POPT_ARG_NONE,
       &pmix, 0, "enable PMIx support (disables PMI)", NULL},
-    { "timeout", 0, POPT_ARG_INT,
+    { "timeout", '\0', POPT_ARG_INT,
       &maxtime, 0, "maximum number of seconds the job is permitted to run",
       "timeout"},
     POPT_TABLEEND
