@@ -71,6 +71,7 @@ static char *hList = NULL;
 static char *hFile = NULL;
 static char *nodetype = NULL;
 static char *gnodetype = NULL;
+static char *psetname;
 
 /* environment flags and options */
 static int envall;
@@ -204,6 +205,8 @@ static struct poptOption poptCommonOptions[] = {
     { "timeout", '\0', POPT_ARG_INT,
       &maxtime, 0, "maximum number of seconds the job is permitted to run",
       "timeout"},
+    { "pset", '\0', POPT_ARG_STRING,
+      &psetname, 0, "user-specified name assigned to this executable", "name" },
     POPT_TABLEEND
 };
 
@@ -847,6 +850,9 @@ static void saveNextExecutable(Conf_t *conf, int argc, const char **argv)
     exec->envall = envall;
     if (envall) execEnvall = true;
     envall = 0;
+
+    exec->psetname = psetname;
+    psetname = NULL;
 
     conf->execCount++;
 }

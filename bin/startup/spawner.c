@@ -328,6 +328,11 @@ static void setupCommonEnv(Conf_t *conf)
 	    setPSIEnv(var, env, 1);
 	    free(env);
 
+	    if (exec->psetname) {
+		snprintf(var, sizeof(var), "PMIX_APPNAME_%d", i);
+		setPSIEnv(var, exec->psetname, 1);
+	    }
+
 	    snprintf(var, sizeof(var), "__PMIX_RESID_%d", i);
 	    snprintf(tmp, sizeof(tmp), "%d", exec->resID);
 	    setPSIEnv(var, tmp, 1);
@@ -430,6 +435,15 @@ static void setupCommonEnv(Conf_t *conf)
 	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"), 1);
 	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"), 1);
 	setPSIEnv("__MPIEXEC_DIST_START", getenv("__MPIEXEC_DIST_START"), 1);
+
+	char var[32];
+	for (int i = 0; i < conf->execCount; i++) {
+	    Executable_t *exec = &conf->exec[i];
+	    if (exec->psetname) {
+		snprintf(var, sizeof(var), "PMI_APPNAME_%d", i);
+		setPSIEnv(var, exec->psetname, 1);
+	    }
+	}
     }
 
     /* set the size of the job */
