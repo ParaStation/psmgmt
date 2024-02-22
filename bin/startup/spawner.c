@@ -365,19 +365,13 @@ static void setupCommonEnv(Conf_t *conf)
 	setPSIEnv("PMI_ID", env, 1);
 
 	/* enable PMI tcp port */
-	if (conf->pmiTCP) {
-	    setPSIEnv("PMI_ENABLE_TCP", "1", 1);
-	}
+	if (conf->pmiTCP) setPSIEnv("PMI_ENABLE_TCP", "1", 1);
 
 	/* enable PMI sockpair */
-	if (conf->pmiSock) {
-	    setPSIEnv("PMI_ENABLE_SOCKP", "1", 1);
-	}
+	if (conf->pmiSock) setPSIEnv("PMI_ENABLE_SOCKP", "1", 1);
 
 	/* set the PMI debug mode */
-	if (conf->pmiDbg || getenv("PMI_DEBUG")) {
-	    setPSIEnv("PMI_DEBUG", "1", 1);
-	}
+	if (conf->pmiDbg || getenv("PMI_DEBUG")) setPSIEnv("PMI_DEBUG", "1", 1);
 
 	/* set the PMI debug KVS mode */
 	if (conf->pmiDbgKVS || getenv("PMI_DEBUG_KVS")) {
@@ -412,22 +406,22 @@ static void setupCommonEnv(Conf_t *conf)
 	setPSIEnv("PMI_SUBVERSION", "1", 1);
 
 	/* propagate neccessary infos for PMI spawn */
-	if ((env = getenv("__PMI_preput_num"))) {
-	    int i, prenum;
-	    char *key, *value, keybuf[100], valbuf[100];
-
+	env = getenv("__PMI_preput_num");
+	if (env) {
 	    setPSIEnv("__PMI_preput_num", env, 1);
-
-	    prenum = atoi(env);
-	    for (i=0; i<prenum; i++) {
+	    int prenum = atoi(env);
+	    for (int i = 0; i < prenum; i++) {
+		char keybuf[100], valbuf[100];
 		snprintf(keybuf, sizeof(keybuf), "__PMI_preput_key_%i", i);
-		key = getenv(keybuf);
 		snprintf(valbuf, sizeof(valbuf), "__PMI_preput_val_%i", i);
-		value = getenv(valbuf);
-		if (key && value) {
-		    setPSIEnv(keybuf, key, 1);
-		    setPSIEnv(valbuf, value, 1);
-		}
+
+		char *key = getenv(keybuf);
+		if (!key) continue;
+		char *value = getenv(valbuf);
+		if (!value) continue;
+
+		setPSIEnv(keybuf, key, 1);
+		setPSIEnv(valbuf, value, 1);
 	    }
 	}
 	setPSIEnv("__PMI_SPAWN_PARENT", getenv("__PMI_SPAWN_PARENT"), 1);
