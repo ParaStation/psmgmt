@@ -1879,6 +1879,10 @@ bool setStepSlots(Step_t *step)
     /* be verbose */
     if (envGet(&step->env, "PSSLURM_VERBOSE_PINNING")) {
 	printStepCpuBindType(step, "modified ");
+	char tmp[32];
+	snprintf(tmp, sizeof(tmp), "step's threadsPerCore = %hu\n",
+		 step->threadsPerCore);
+	fwCMD_printMsg(NULL, step, tmp, strlen(tmp), STDERR, -1);
     }
 
     /* handle hints */
@@ -1944,6 +1948,14 @@ bool setStepSlots(Step_t *step)
 	    nodeinfo->threadCount = nodeinfo->coreCount;
 	    fdbg(PSSLURM_LOG_PART, "hint 'nomultithread' set,"
 		 " setting nodeinfo.threadsPerCore = 1\n");
+	}
+
+	/* handle step's threadsPerCore limit*/
+	if (step->threadsPerCore < nodeinfo->threadsPerCore) {
+	    nodeinfo->threadsPerCore = step->threadsPerCore;
+	    nodeinfo->threadCount = nodeinfo->coreCount * step->threadsPerCore;
+	    fdbg(PSSLURM_LOG_PART, "step limits threads per core, setting"
+		 " nodeinfo.threadsPerCore = %hu\n", step->threadsPerCore);
 	}
 
 	/* inform user about invalid combination of options */
