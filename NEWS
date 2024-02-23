@@ -6,6 +6,17 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.59-4:
+=================
+Bugfixes:
+ - Adopt to changed return code in libbpf 1.0.0 and above (jwt:#26118)
+ - Fix handling of srun's --threads-per-core for pinning (psc:#443)
+ - Rework psslurm's fillHints() avoids random 'invalid hint' (psc:#440)
+Enhancements:
+ - Introduce PSSLURM_VERBOSE_PINNING to print additional information
+ - Suppress more error messages if quiet flag is given in bpf_loader
+
+
 Version 5.1.59-3:
 =================
 Enhancements:

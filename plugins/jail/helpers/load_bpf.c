@@ -169,12 +169,12 @@ static void loadBPF(void)
     /* open bpf program (bytecode) and load it */
     struct bpf_object *obj = bpf_object__open_file(bpfProg, NULL);
     if (libbpf_get_error(obj)) {
-	fprintf(stderr, "Failed to open BPF object %s\n", bpfProg);
+	if (!quiet) fprintf(stderr, "Failed to open BPF object %s\n", bpfProg);
 	exit(1);
     }
 
     if (bpf_object__load(obj)) {
-	fprintf(stderr, "Failed to load BPF object\n");
+	if (!quiet) fprintf(stderr, "Failed to load BPF object\n");
 	exit(1);
     }
 
@@ -182,50 +182,59 @@ static void loadBPF(void)
     struct bpf_program *prog;
     prog = bpf_object__find_program_by_name(obj, "bpf_prog");
     if (!prog) {
-        fprintf(stderr, "Failed to find BPF program\n");
+        if (!quiet) fprintf(stderr, "Failed to find BPF program\n");
 	exit(1);
     }
 
     int prog_fd = bpf_program__fd(prog);
     if (prog_fd < 0) {
-        fprintf(stderr, "Failed to get BPF program FD\n");
+        if (!quiet) fprintf(stderr, "Failed to get BPF program FD\n");
 	exit(1);
     }
 
     /* open BPF map */
     struct bpf_map *map = bpf_object__find_map_by_name(obj, "device_map");
     if (!map) {
-	fprintf(stderr, "open BPF device_map failed: %s\n", strerror(errno));
+	if (!quiet) fprintf(stderr, "open BPF device_map failed: %s\n",
+			    strerror(errno));
 	exit(1);
     }
 
     mapFD = bpf_map__fd(map);
     if (mapFD < 0) {
-	fprintf(stderr, "Failed to get file descriptor for BPF map: %s\n",
-		strerror(errno));
+	if (!quiet) {
+	    fprintf(stderr, "Failed to get file descriptor for BPF map: %s\n",
+		    strerror(errno));
+	}
 	exit(1);
     }
 
     /* attach BPF program to cgroup */
     int cgroup_fd = open(attachPath, O_DIRECTORY);
     if (cgroup_fd < 0) {
-	fprintf(stderr, "Failed to open cgroup %s: %s\n", attachPath,
-		strerror(errno));
+	if (!quiet) {
+	    fprintf(stderr, "Failed to open cgroup %s: %s\n", attachPath,
+		    strerror(errno));
+	}
 	exit(1);
     }
 
     int ret = bpf_prog_attach(prog_fd, cgroup_fd, BPF_CGROUP_DEVICE, 0);
     if (ret < 0) {
-	fprintf(stderr, "Failed to attach BPF program to cgroup %s: %s\n",
-		attachPath, strerror(errno));
+	if (!quiet) {
+	    fprintf(stderr, "Failed to attach BPF program to cgroup %s: %s\n",
+		    attachPath, strerror(errno));
+	}
 	exit(1);
     }
 
     /* pin the BPF map to enable later changes (e.g. add/remove devices) */
     if (mkdir(BPF_PSID_PATH, 0755) < 0) {
 	if (errno != EEXIST) {
-	    fprintf(stderr, "mkdir(%s) failed: %s\n", BPF_PSID_PATH,
-		    strerror(errno));
+	    if (!quiet) {
+		fprintf(stderr, "mkdir(%s) failed: %s\n", BPF_PSID_PATH,
+			strerror(errno));
+	    }
 	    exit(1);
 	}
     }
@@ -234,8 +243,10 @@ static void loadBPF(void)
     snprintf(pinPath, sizeof(pinPath), "%s/%s_map", BPF_PSID_PATH, progID);
 
     if (bpf_obj_pin(mapFD, pinPath) < 0) {
-	fprintf(stderr, "Failed to pin BPF map to %s: %s\n", pinPath,
-		strerror(errno));
+	if (!quiet) {
+	    fprintf(stderr, "Failed to pin BPF map to %s: %s\n", pinPath,
+		    strerror(errno));
+	}
 	exit(1);
     }
 
@@ -251,8 +262,11 @@ static void loadBPF(void)
 static void updateMap()
 {
     if (bpf_map_update_elem(mapFD, &bpfKey, &bpfAccess, BPF_ANY) != 0) {
-	fprintf(stderr, "Failed to update BPF map with key %i:%i fd %i: %s\n",
-		bpfKey.major, bpfKey.minor, mapFD, strerror(errno));
+	if (!quiet) {
+	    fprintf(stderr, "Failed to update BPF map with key %i:%i "
+		    "fd %i: %s\n", bpfKey.major, bpfKey.minor, mapFD,
+		    strerror(errno));
+	}
 	exit(1);
     }
 
@@ -270,9 +284,11 @@ static int openMap(const char *id)
     char pinPath[PATH_MAX];
     snprintf(pinPath, sizeof(pinPath), "%s/%s_map", BPF_PSID_PATH, id);
     int fd = bpf_obj_get(pinPath);
-    if (fd == -1) {
-	fprintf(stderr, "Failed to open map %s: %s\n", pinPath,
-		strerror(errno));
+    if (fd < 0) {
+	if (!quiet) {
+	    fprintf(stderr, "Failed to open map %s: %s\n", pinPath,
+		    strerror(errno));
+	}
 	exit(1);
     }
 
@@ -332,9 +348,11 @@ int main(int argc, const char *argv[])
 		/* deny access */
 		value = 0;
 		if (bpf_map_update_elem(destMap, &key, &value, BPF_ANY) != 0) {
-		    fprintf(stderr, "Failed to update BPF map with key %i:%i"
-			    " fd %i: %s\n", key.major, key.minor,
-			    destMap, strerror(errno));
+		    if (!quiet) {
+			fprintf(stderr, "Failed to update BPF map with "
+				"key %i:%i fd %i: %s\n", key.major, key.minor,
+				destMap, strerror(errno));
+		    }
 		    exit(1);
 		}
 	    }
@@ -347,7 +365,7 @@ int main(int argc, const char *argv[])
 
     /* if access was specified save it to BPF map */
     if (bpfAccess != -1) {
-	if (mapFD == -1) reopenMap();
+	if (mapFD < 0) reopenMap();
 
 	/* update access rights in map */
 	updateMap();

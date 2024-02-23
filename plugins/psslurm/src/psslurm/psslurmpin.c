@@ -1474,36 +1474,32 @@ static void fillHints(hints_t *hints, env_t env, pininfo_t *pininfo)
 {
     memset(hints, 0, sizeof(*hints));
 
-    char *hintstr = envGet(env, "PSSLURM_HINT");
-    if (hintstr || (hintstr = envGet(env, "SLURM_HINT"))) {
-	char *var = envGet(env, "PSSLURM_HINT") ? "PSSLURM_HINT" : "SLURM_HINT";
-	for (char *ptr = hintstr; *ptr != '\0'; ptr++) {
-	    if (!strncmp(ptr, "compute_bound", 13)
-		&& (ptr[13] == ',' || ptr[13] == '\0')) {
-		hints->compute_bound = true;
-		ptr += 13;
-		flog("Valid hint in %s: compute_bound\n", var);
-	    } else if (!strncmp(ptr, "memory_bound", 12)
-		       && (ptr[12] == ',' || ptr[12] == '\0')) {
-		hints->memory_bound = true;
-		ptr += 12;
-		flog("Valid hint in %s: memory_bound\n", var);
-	    } else if (!strncmp(ptr, "multithread", 11)
-		       && (ptr[11] == ',' || ptr[11] == '\0')) {
-		hints->nomultithread = false;
-		ptr += 11;
-		flog("Valid hint %s: multithread\n", var);
-	    } else if (!strncmp(ptr, "nomultithread", 13)
-		       && (ptr[13] == ',' || ptr[13] == '\0')) {
-		hints->nomultithread = true;
-		ptr += 13;
-		flog("Valid hint in %s: nomultithread\n", var);
-	    } else {
-		ulog(pininfo, "invalid hint in %s: '%s'\n", var, hintstr);
-		break;
-	    }
+    char *hintstr, *var;
+    if ((hintstr = envGet(env, "PSSLURM_HINT"))) var = "PSSLURM_HINT";
+    else if ((hintstr = envGet(env, "SLURM_HINT"))) var = "SLURM_HINT";
+
+    if (!hintstr) return;
+
+    char *tmpstr = ustrdup(hintstr);
+    char *tok = strtok(tmpstr, ",");
+    do {
+	if (!strcmp(tok, "compute_bound")) {
+	    hints->compute_bound = true;
+	    flog("Valid hint in %s: compute_bound\n", var);
+	} else if (!strcmp(tok, "memory_bound")) {
+	    hints->memory_bound = true;
+	    flog("Valid hint in %s: memory_bound\n", var);
+	} else if (!strcmp(tok, "multithread")) {
+	    hints->nomultithread = false;
+	    flog("Valid hint %s: multithread\n", var);
+	} else if (!strcmp(tok, "nomultithread")) {
+	    hints->nomultithread = true;
+	    flog("Valid hint in %s: nomultithread\n", var);
+	} else {
+	    ulog(pininfo, "invalid hint '%s' in %s: '%s'\n", tok, var, hintstr);
 	}
-    }
+    } while ((tok = strtok(NULL, ",")));
+    ufree(tmpstr);
 }
 
 static void fillTasksPerSocket(pininfo_t *pininfo, env_t env,
@@ -1823,6 +1819,27 @@ static void printCoreMap(char *title, PSCPU_set_t coremap, Step_t *step,
     }
 }
 
+static void printStepCpuBindType(Step_t *step, char *prefix)
+{
+#define CPU_BIND(type) \
+    step->cpuBindType & CPU_BIND_ ## type ? "CPU_BIND_" #type "|" : ""
+
+    char *str = PSC_concat(prefix, "cpuBindType = ", CPU_BIND(VERBOSE),
+			   CPU_BIND(TO_THREADS), CPU_BIND(TO_CORES),
+			   CPU_BIND(TO_SOCKETS), CPU_BIND(TO_LDOMS),
+			   CPU_BIND(NONE), CPU_BIND(RANK), CPU_BIND(MAP),
+			   CPU_BIND(MASK), CPU_BIND(LDRANK), CPU_BIND(LDMAP),
+			   CPU_BIND(LDMASK), CPU_BIND(ONE_THREAD_PER_CORE),
+			   CPU_BIND(OFF), "\n");
+    size_t last = strlen(str) - 1;
+    if (str[last-1] == '|') {
+	str[last--] = '\0';  /* cut of '\n' */
+	str[last] = '\n';    /* override '|' */
+    }
+    fwCMD_printMsg(NULL, step, str, strlen(str), STDERR, -1);
+    free(str);
+}
+
 /* This is the entry point to the whole CPU pinning stuff */
 bool setStepSlots(Step_t *step)
 {
@@ -1843,6 +1860,11 @@ bool setStepSlots(Step_t *step)
     uint32_t slotsSize = step->np;
     PSpart_slot_t *slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
 
+    /* be verbose */
+    if (envGet(&step->env, "PSSLURM_VERBOSE_PINNING")) {
+	printStepCpuBindType(step, "received ");
+    }
+
     /* set configured defaults for bind type and distributions */
     fdbg(PSSLURM_LOG_PART, "Masks before assigning defaults:"
 	 " CpuBindType 0x%05x, TaskDist 0x%04x\n", step->cpuBindType,
@@ -1852,6 +1874,15 @@ bool setStepSlots(Step_t *step)
     fdbg(PSSLURM_LOG_PART, "Masks after assigning defaults: "
 	 " CpuBindType 0x%05x, TaskDist 0x%04x\n",
 	 step->cpuBindType, step->taskDist);
+
+    /* be verbose */
+    if (envGet(&step->env, "PSSLURM_VERBOSE_PINNING")) {
+	printStepCpuBindType(step, "modified ");
+	char tmp[32];
+	snprintf(tmp, sizeof(tmp), "step's threadsPerCore = %hu\n",
+		 step->threadsPerCore);
+	fwCMD_printMsg(NULL, step, tmp, strlen(tmp), STDERR, -1);
+    }
 
     /* handle hints */
     hints_t hints;
@@ -1909,6 +1940,14 @@ bool setStepSlots(Step_t *step)
 	    nodeinfo->threadCount = nodeinfo->coreCount;
 	    fdbg(PSSLURM_LOG_PART, "hint 'nomultithread' set,"
 		 " setting nodeinfo.threadsPerCore = 1\n");
+	}
+
+	/* handle step's threadsPerCore limit*/
+	if (step->threadsPerCore < nodeinfo->threadsPerCore) {
+	    nodeinfo->threadsPerCore = step->threadsPerCore;
+	    nodeinfo->threadCount = nodeinfo->coreCount * step->threadsPerCore;
+	    fdbg(PSSLURM_LOG_PART, "step limits threads per core, setting"
+		 " nodeinfo.threadsPerCore = %hu\n", step->threadsPerCore);
 	}
 
 	/* inform user about invalid combination of options */
