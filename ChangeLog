@@ -1,3 +1,49 @@
+Version 5.1.59-4:
+=================
+------------------------------------------------------------------------
+6e71c899a | Stephan Krempel | Thu, 22 Feb 2024 12:28:36 +0100
+
+psslurm pinning: Respect step's threadsPerCore
+
+Fix handling of srun's --threads-per-core that is no longer
+used only for node selection, but should limit the actually
+used threads per core on the nodes.
+------------------------------------------------------------------------
+42046d2fc | Stephan Krempel | Wed, 21 Feb 2024 20:39:55 +0100
+
+psslurm: Introduce PSSLURM_VERBOSE_PINNING
+
+If this environment variable is set, it prints additional
+information to the user for debugging pinning issues.
+
+This is meant for administrators and developers to easier
+test changes especially coming with new Slurm versions.
+
+Currently, this only prints the content of the cpuBindType
+received from slurmctld, but is subject to be extended.
+------------------------------------------------------------------------
+2ab97d41f | Michael Rauh | Wed, 21 Feb 2024 14:43:00 +0100
+
+Suppress more error messages if quiet flag is given in bpf_loader
+------------------------------------------------------------------------
+940212b50 | Michael Rauh | Wed, 21 Feb 2024 14:00:08 +0100
+
+Adopt to changed return code of bpf_obj_get()
+for newer libbpf versions 1.0.0 and above (jwt:#26118)
+------------------------------------------------------------------------
+6024b86c7 | Norbert Eicker | Wed, 21 Feb 2024 19:55:10 +0100
+
+Streamline
+------------------------------------------------------------------------
+bce969f90 | Stephan Krempel | Wed, 21 Feb 2024 16:36:03 +0100
+
+psslurm pinning: rework fillHints()
+
+Fixes incorrect 'invalid hint' printed randomly depending
+on the byte following the actual hintstr in memory.
+------------------------------------------------------------------------
+
+
 Version 5.1.59-3:
 =================
 ------------------------------------------------------------------------
