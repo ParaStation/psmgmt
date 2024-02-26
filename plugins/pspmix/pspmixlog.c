@@ -45,6 +45,12 @@ const char *pspmix_getMsgTypeString(PSP_PSPMIX_t type)
 	    return "PSPMIX_CLIENT_FINALIZE_RES";
 	case PSPMIX_FENCE_DATA:
 	    return "PSPMIX_FENCE_DATA";
+	case PSPMIX_CLIENT_SPAWN:
+	    return "PSPMIX_CLIENT_SPAWN";
+	case PSPMIX_CLIENT_SPAWN_RES:
+	    return "PSPMIX_CLIENT_SPAWN_RES";
+	case PSPMIX_SPAWN_INFO:
+	    return "PSPMIX_SPAWN_INFO";
 	default:
 	{
 	    static char buf[32];
