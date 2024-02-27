@@ -1861,7 +1861,7 @@ bool setStepSlots(Step_t *step)
     PSpart_slot_t *slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
 
     /* be verbose */
-    if (envGet(&step->env, "PSSLURM_VERBOSE_PINNING")) {
+    if (envGet(step->env, "PSSLURM_VERBOSE_PINNING")) {
 	printStepCpuBindType(step, "received ");
     }
 
@@ -1876,7 +1876,7 @@ bool setStepSlots(Step_t *step)
 	 step->cpuBindType, step->taskDist);
 
     /* be verbose */
-    if (envGet(&step->env, "PSSLURM_VERBOSE_PINNING")) {
+    if (envGet(step->env, "PSSLURM_VERBOSE_PINNING")) {
 	printStepCpuBindType(step, "modified ");
 	char tmp[32];
 	snprintf(tmp, sizeof(tmp), "step's threadsPerCore = %hu\n",
