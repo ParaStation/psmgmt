@@ -6,6 +6,12 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.59-5:
+=================
+Bugfixes:
+ - Ensure reading from cached pack info messages start from the start
+
+
 Version 5.1.59-4:
 =================
 Bugfixes:
