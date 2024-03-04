@@ -421,7 +421,9 @@ void freeDataBuffer(PS_DataBuffer_t *data);
  *
  * Duplicate the data buffer @a data and return a pointer to the copy
  * of this data buffer. For this not only the actual buffer but also
- * all administrative information is replicated.
+ * all administrative information is replicated. The only exception
+ * is the unpackPtr of the data buffer which is reset so reading from
+ * the duplicated will start from the beginning of the received data.
  *
  * @param data Data buffer to be duplicated
  *
