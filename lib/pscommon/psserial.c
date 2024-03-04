@@ -893,8 +893,9 @@ PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data)
     memcpy(dup->buf, data->buf, data->size);
     dup->size = data->size;
     dup->used = data->used;
-    dup->unpackPtr = dup->buf + (data->unpackPtr - data->buf);
     dup->unpackErr = data->unpackErr;
+    /* start reading from top of buffer for duplicate */
+    dup->unpackPtr = dup->buf;
 
     return dup;
 }
