@@ -95,7 +95,8 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
     pid_t childPID = fork();
     if (childPID < 0) {
 	mwarn(errno, "%s: fork() %s", __func__, fwdata->pTitle);
-	exit(1);
+	/* don't break infinite forwarder loop */
+	exit(0);
     }
 
     if (!childPID) {
@@ -120,8 +121,10 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
 	    if (errno == EINTR) continue;
 	    flog("parent kill() errno: %i\n", errno);
 	    killpg(childPID, SIGKILL);
-	    exit(1);
+	    /* don't break infinite forwarder loop */
+	    exit(0);
 	}
+	if (status) flog("%s exited with %i\n", script->path, status);
 	break;
     }
 
