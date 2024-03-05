@@ -192,7 +192,7 @@ static PspmixNamespace_t* findNamespaceByJobID(PStask_ID_t spawnertid)
  *
  * @param id  spawn id
  *
- * @return Returns the namespace or NULL if not in list
+ * @return Returns the spawn request or NULL if not in list
  */
 static PspmixSpawn_t* findSpawn(uint16_t id)
 {
@@ -1952,7 +1952,7 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
 	}
 
 	/* waiting for all clients to be known as connected */
-        if (spawn->state != SPAWN_REQUESTED) {
+	if (spawn->state != SPAWN_REQUESTED) {
 		ulog("UNEXPECTED: spawn state is %d", spawn->state);
 	}
 	spawn->state = SPAWN_EXECUTING;
