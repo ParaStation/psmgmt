@@ -144,19 +144,19 @@ int initialize(FILE *logfile)
 	fwarn(errno, "uname()");
 	return 1;
     } else if (strcmp(uts.sysname, "Linux")) {
-	mlog("%s: accounting will only work on Linux platforms\n", __func__);
+	flog("accounting will only work on Linux platforms\n");
 	return 1;
     }
 
     /* check if system's clock ticks can be determined */
     if (sysconf(_SC_CLK_TCK) < 1) {
-	mlog("%s: reading clock ticks failed\n", __func__);
+	flog("reading clock ticks failed\n");
 	return 1;
     }
 
     /* check if system's page size can be determined */
     if (sysconf(_SC_PAGESIZE) < 1) {
-	mlog("%s: reading page size failed\n", __func__);
+	flog("reading page size failed\n");
 	return 1;
     }
 

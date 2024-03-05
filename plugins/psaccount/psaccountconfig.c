@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -82,7 +82,7 @@ bool initPSAccConfig(char *cfgName)
     if (!initConfig(&config)) return false;
 
     if (parseConfigFile(cfgName, config) < 0) {
-	mlog("%s: failed to open '%s'\n", __func__, cfgName);
+	flog("failed to open '%s'\n", cfgName);
 	return false;
     }
     if (traverseConfig(config, verifyVisitor, confDef)) return false;

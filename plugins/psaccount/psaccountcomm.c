@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -292,8 +292,7 @@ static bool handlePSMsg(DDTypedBufferMsg_t *msg)
     if (msg->header.dest == PSC_getMyTID()) {
 	/* message for me, let's get infos and forward to all accounters */
 
-	mdbg(PSACC_LOG_ACC_MSG, "%s: got msg %s\n", __func__,
-	     getAccountMsgType(msg->type));
+	fdbg(PSACC_LOG_ACC_MSG, "got msg %s\n", getAccountMsgType(msg->type));
 
 	switch (msg->type) {
 	    case PSP_ACCOUNT_QUEUE:
@@ -312,10 +311,10 @@ static bool handlePSMsg(DDTypedBufferMsg_t *msg)
 		handleAccountEnd(msg);
 		break;
 	    default:
-		mlog("%s: invalid msg type %i sender %s\n", __func__, msg->type,
+		flog("invalid msg type %i sender %s\n", msg->type,
 		     PSC_printTID(msg->header.sender));
 	}
-	mdbg(PSACC_LOG_VERBOSE, "%s: msg type %s sender %s\n", __func__,
+	fdbg(PSACC_LOG_VERBOSE, "msg type %s sender %s\n",
 	     getAccountMsgType(msg->type), PSC_printTID(msg->header.sender));
     }
 
@@ -596,10 +595,10 @@ static bool handleInterAccount(DDTypedBufferMsg_t *msg)
     case PSP_ACCOUNT_FORWARD_START:
     case PSP_ACCOUNT_DATA_UPDATE:
     case PSP_ACCOUNT_FORWARD_END:
-	mlog("%s: got obsolete msg %i\n", __func__, msg->type);
+	flog("got obsolete msg %i\n", msg->type);
 	break;
     default:
-	mlog("%s: unknown msg type %i received form %s\n", __func__, msg->type,
+	flog("unknown msg type %i received form %s\n", msg->type,
 	     PSC_printTID(msg->header.sender));
     }
     return true;

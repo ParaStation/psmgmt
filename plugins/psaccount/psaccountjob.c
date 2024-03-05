@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -143,7 +143,7 @@ static void monitorJobStarted(void)
     int grace = getConfValueI(config, "TIME_JOBSTART_WAIT");
     list_t *j;
 
-    mdbg(PSACC_LOG_VERBOSE, "%s: grace is %d\n", __func__, grace);
+    fdbg(PSACC_LOG_VERBOSE, "grace is %d\n", grace);
 
     list_for_each(j, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
@@ -165,8 +165,8 @@ static void monitorJobStarted(void)
 	    if (!job->jobscript) {
 		Client_t *js = findJobscriptInClients(job);
 		if (js) {
-		    mdbg(PSACC_LOG_VERBOSE, "%s: found jobscript pid '%i'\n",
-			 __func__, js->pid);
+		    fdbg(PSACC_LOG_VERBOSE, "found jobscript pid '%i'\n",
+			 js->pid);
 		    job->jobscript = js->pid;
 		    if (!job->jobid && js->jobid)  {
 			job->jobid = ustrdup(js->jobid);
@@ -225,7 +225,7 @@ bool getDataByJob(pid_t js, AccountDataExt_t *accData)
     memset(accData, 0, sizeof(*accData));
 
     if (!jsClient) {
-	mlog("%s: aggregating data for job %i failed\n", __func__, js);
+	flog("aggregating data for job %i failed\n", js);
 	return false;
     }
 

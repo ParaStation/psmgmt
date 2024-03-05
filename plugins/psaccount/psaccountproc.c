@@ -66,7 +66,7 @@ static void proc_gc(void)
 {
     if (!PSitems_gcRequired(procPool)) return;
 
-    mdbg(PSACC_LOG_PROC, "%s()\n", __func__);
+    fdbg(PSACC_LOG_PROC, "\n");
     PSitems_gc(procPool, relocProc);
 }
 
@@ -98,7 +98,7 @@ static int getCPUCount(void)
     FILE *fd = fopen(PROC_CPU_INFO, "r");
 
     if (!fd) {
-	mlog("%s: open '%s' failed\n", __func__, PROC_CPU_INFO);
+	flog("open '%s' failed\n", PROC_CPU_INFO);
 	return 0;
     }
 
@@ -222,12 +222,11 @@ ProcSnapshot_t *findProcSnapshot(pid_t pid)
  */
 static void doKill(pid_t pid, pid_t pgroup, int sig)
 {
-    mdbg(PSACC_LOG_SIGNAL, "%s(pid %d pgroup %d sig %d)\n", __func__,
-	 pid, pgroup, sig);
+    fdbg(PSACC_LOG_SIGNAL, "(pid %d pgroup %d sig %d)\n", pid, pgroup, sig);
 
     ProcSnapshot_t *ps = findProcSnapshot(pid);
     if (!ps) {
-	mlog("%s: proc snapshot for PID %i not found\n", __func__, pid);
+	flog("proc snapshot for PID %i not found\n", pid);
 	/* fallback to direct kill() */
 	if (pgroup > 0) kill(-pgroup, sig);
 	kill(pid, sig);
@@ -272,7 +271,7 @@ static int signalChildren(pid_t mypid, pid_t pid, pid_t pgrp, int sig)
 	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	if (proc->state == PROC_SIGNALED) continue;
 	if (proc->state == PROC_UNUSED) {
-	    mlog("%s: abort due to UNUSED proc snapshot\n", __func__);
+	    flog("abort due to UNUSED proc snapshot\n");
 	    break;
 	}
 	if (proc->ppid == pid) {
@@ -306,8 +305,7 @@ int signalSession(pid_t session, int sig)
 	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	if (proc->state == PROC_SIGNALED) continue;
 	if (proc->state == PROC_UNUSED) {
-	    mlog("%s(%d, %d): abort due to UNUSED proc snapshot\n", __func__,
-		 session, sig);
+	    flog("(%d, %d): abort due to UNUSED proc snapshot\n", session, sig);
 	    break;
 	}
 	if (proc->session == session && proc->pid != mypid && proc->pid > 0) {
@@ -333,7 +331,7 @@ void findDaemonProcs(uid_t uid, bool kill, bool warn)
 	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	if (proc->state == PROC_SIGNALED) continue;
 	if (proc->state == PROC_UNUSED) {
-	    mlog("%s: abort due to UNUSED proc snapshot\n", __func__);
+	    flog("abort due to UNUSED proc snapshot\n");
 	    break;
 	}
 	if (proc->uid == uid && proc->ppid == 1) {
@@ -352,7 +350,7 @@ static bool isDescendantSnap(pid_t parent, pid_t child)
 
     procChild = findProcSnapshot(child);
     if (!procChild) {
-	mdbg(PSACC_LOG_PROC, "%s: child %i not found\n", __func__, child);
+	fdbg(PSACC_LOG_PROC, "child %i not found\n", child);
 	return false;
     }
 
@@ -419,7 +417,7 @@ bool readProcIO(pid_t pid, ProcIO_t *io)
 
     fd = fopen(fileName,"r");
     if (!fd) {
-	mlog("%s: open '%s' failed\n", __func__, fileName);
+	flog("open '%s' failed\n", fileName);
 	return false;
     }
 
@@ -434,8 +432,8 @@ bool readProcIO(pid_t pid, ProcIO_t *io)
 	return false;
     }
 
-    mdbg(PSACC_LOG_PROC, "%s: io stat: diskRead %zu diskWrite %zu readBytes %zu"
-	 " writeBytes %zu\n", __func__, io->diskRead, io->diskWrite,
+    fdbg(PSACC_LOG_PROC, "io stat: diskRead %zu diskWrite %zu readBytes %zu"
+	 " writeBytes %zu\n", io->diskRead, io->diskWrite,
 	 io->readBytes, io->writeBytes);
     return true;
 }
@@ -489,7 +487,7 @@ bool readProcStat(pid_t pid, ProcStat_t *pS)
 
     fd = fopen(fileName,"r");
     if (!fd) {
-	mlog("%s: open '%s' failed\n", __func__, fileName);
+	flog("open '%s' failed\n", fileName);
 	return false;
     }
 
@@ -525,7 +523,7 @@ static bool readProcUID(pid_t pid, ProcStat_t *pS)
 
     fd = fopen(fileName,"r");
     if (!fd) {
-	mlog("%s: open '%s' failed\n", __func__, fileName);
+	flog("open '%s' failed\n", fileName);
 	return false;
     }
 
@@ -610,7 +608,7 @@ void getSessionInfo(int *count, char *buf, size_t size, int *userCount)
 	}
 	if (i == *userCount) {
 	    if (*userCount == MAX_USER-1) {
-		mlog("%s: MAX_USER exceeded. Truncating sessions\n", __func__);
+		flog("MAX_USER exceeded. Truncating sessions\n");
 		continue;
 	    }
 	    users[(*userCount)++] = proc->uid;
@@ -645,9 +643,9 @@ static void collectDescendantData(pid_t pid, ProcSnapshot_t *res)
 	    res->cutime += proc->cutime;
 	    res->cstime += proc->cstime;
 
-	    mdbg(PSACC_LOG_PROC, "%s: pid:%i ppid:%i cutime:%lu "
-		 "cstime:%lu mem:%lu vmem:%lu\n", __func__, proc->pid,
-		 proc->ppid, proc->cutime, proc->cstime, proc->mem, proc->vmem);
+	    fdbg(PSACC_LOG_PROC, "pid:%i ppid:%i cutime:%lu cstime:%lu mem:%lu"
+		 " vmem:%lu\n", proc->pid, proc->ppid, proc->cutime,
+		 proc->cstime, proc->mem, proc->vmem);
 	    collectDescendantData(proc->pid, res);
 	}
     }
@@ -669,8 +667,8 @@ void getDescendantData(pid_t pid, ProcSnapshot_t *res)
 
     collectDescendantData(pid, res);
 
-    mdbg(PSACC_LOG_PROC, "%s: pid:%i mem:%lu vmem:%lu cutime:%lu cstime:%lu\n",
-	 __func__, pid, res->mem, res->vmem, res->cutime, res->cstime);
+    fdbg(PSACC_LOG_PROC, "pid:%i mem:%lu vmem:%lu cutime:%lu cstime:%lu\n", pid,
+	 res->mem, res->vmem, res->cutime, res->cstime);
 }
 
 void updateProcSnapshot(void)
@@ -684,7 +682,7 @@ void updateProcSnapshot(void)
     clearAllProcSnapshots();
 
     if (!dir) {
-	mlog("%s: open /proc failed\n", __func__);
+	flog("open /proc failed\n");
 	return;
     }
 
@@ -694,8 +692,8 @@ void updateProcSnapshot(void)
     while ((dent = readdir(dir))) {
 	pid_t pid = atoi(dent->d_name);
 	if (pid <= 0) {
-	    mdbg(PSACC_LOG_PROC, "%s: pid %i too small for d_name '%s'\n",
-		 __func__, pid, dent->d_name);
+	    fdbg(PSACC_LOG_PROC, "pid %i too small for d_name '%s'\n", pid,
+		 dent->d_name);
 	    continue;
 	}
 

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -156,7 +156,7 @@ static void updateClntData(Client_t *client)
 	/* determine system's clock ticks */
 	clockTicks = sysconf(_SC_CLK_TCK);
 	if (clockTicks < 1) {
-	    mlog("%s: reading clock ticks failed\n", __func__);
+	    flog("reading clock ticks failed\n");
 	    clockTicks = 0;
 	    return;
 	}
@@ -166,7 +166,7 @@ static void updateClntData(Client_t *client)
 	/* determine system's page size */
 	pageSize = sysconf(_SC_PAGESIZE);
 	if (pageSize < 1) {
-	    mlog("%s: reading page size failed\n", __func__);
+	    flog("reading page size failed\n");
 	    pageSize = 0;
 	    return;
 	}
@@ -240,9 +240,9 @@ static void updateClntData(Client_t *client)
     }
     if (!cputime) accData->cpuFreq = getCpuFreq(proc->cpu);
 
-    mdbg(PSACC_LOG_COLLECT, "%s: tid %s rank %i cutime: %lu cstime: %lu"
+    fdbg(PSACC_LOG_COLLECT, "tid %s rank %i cutime: %lu cstime: %lu"
 	 " session %i mem %lukB vmem %lukB threads %lu majflt %lu"
-	 " cpu %u cpuFreq %lu\n", __func__, PSC_printTID(client->taskid),
+	 " cpu %u cpuFreq %lu\n", PSC_printTID(client->taskid),
 	 client->rank, accData->cutime, accData->cstime, accData->session,
 	 accData->maxRss, accData->maxVsize, accData->maxThreads,
 	 accData->totMajflt, proc->cpu, accData->cpuFreq);
@@ -811,7 +811,7 @@ void cleanupClients(void)
 
 	/* check timeout */
 	if (client->endTime + grace * 60 <= now) {
-	    mdbg(PSACC_LOG_VERBOSE, "%s: %i\n", __func__, client->pid);
+	    fdbg(PSACC_LOG_VERBOSE, "%i\n", client->pid);
 	    doDeleteClient(client);
 	}
     }
@@ -869,7 +869,7 @@ void switchClientUpdate(PStask_ID_t clientTID, bool enable)
 {
     Client_t *client = findClientByTID(clientTID);
     if (client) {
-	mdbg(PSACC_LOG_ACC_SWITCH, "%s: %s accounting for %s\n", __func__,
+	fdbg(PSACC_LOG_ACC_SWITCH, "%s accounting for %s\n",
 	     (enable) ? "enable" : "disable", PSC_printTID(clientTID));
 	client->doAccounting = enable;
     }
