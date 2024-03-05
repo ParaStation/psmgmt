@@ -24,12 +24,12 @@
  */
 #include "pspmixforwarder.h"
 
-#include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <pmix.h>
@@ -38,10 +38,10 @@
 #include "pscio.h"
 #include "pscommon.h"
 #include "psenv.h"
+#include "pslog.h"
 #include "psprotocol.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
-#include "pstask.h"
 #include "psispawn.h"
 
 #include "psidcomm.h"
@@ -50,7 +50,9 @@
 
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
+#include "pluginspawn.h"
 #include "pluginstrv.h"
+#include "pluginvector.h"
 
 #include "pspmixconfig.h"
 #include "pspmixcommon.h"
