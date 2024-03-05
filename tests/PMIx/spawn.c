@@ -29,14 +29,10 @@ int main(int argc, char **argv)
     mypid = getpid();
 
     char hostname[HOST_NAME_MAX+1];
-    if (gethostname(hostname, sizeof(hostname))) {
-	exit(1);
-    }
+    if (gethostname(hostname, sizeof(hostname))) exit(1);
 
     char dir[1024];
-    if (!getcwd(dir, sizeof(dir))) {
-	exit(1);
-    }
+    if (!getcwd(dir, sizeof(dir))) exit(1);
 
     fprintf(stderr, "%d running\n", mypid);
 
@@ -247,7 +243,7 @@ int main(int argc, char **argv)
 	return 1;
     }
     print("PMIx_Finalize succeeded\n");
-    
+
     fflush(stderr);
 
     return 0;
