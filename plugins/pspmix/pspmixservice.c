@@ -421,7 +421,7 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
  * @todo stopgap solution
  * This needs to be changed to properly support removed namespaces.
  * Are their ranks to be reused? If so, we would need to get an offset for each
- * single rank in the new namespace for the case, that in does not completely
+ * single rank in the new namespace for the case, that it does not completely
  * fit into the gap left by the removed namespace. If not, we would need a
  * never decreasing counter instead, maybe on session layer.
  *
@@ -462,7 +462,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* fill jobid
      * @todo for the moment, use nsname, with Slurm, maybe the slurm job id
-     *       its exprected by clients here */
+     *       is expected by clients here */
     strncpy(ns->jobid, ns->name, sizeof(ns->jobid));
 
     /* get information from spawner set environment */
