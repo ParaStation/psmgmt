@@ -1063,19 +1063,19 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
        present in either the job_info or the info array of an element of the
        apps array:
        PMIX_WDIR "pmix.wdir" (char* )
-         Working directory for spawned processes.
+	 Working directory for spawned processes.
        PMIX_SET_SESSION_CWD "pmix.ssncwd" (bool)
-         Set the current working directory to the session working directory
-         assigned by the RM - can be assigned to the entire job (by including
-         attribute in the job_info array) or on a per-application basis in
-         the info array for each pmix_app_t.
+	 Set the current working directory to the session working directory
+	 assigned by the RM - can be assigned to the entire job (by including
+	 attribute in the job_info array) or on a per-application basis in
+	 the info array for each pmix_app_t.
        PMIX_PREFIX "pmix.prefix" (char* )
-         Prefix to use for starting spawned processes
-         i.e., the directory where the executables can be found.
+	 Prefix to use for starting spawned processes
+	 i.e., the directory where the executables can be found.
        PMIX_HOST "pmix.host" (char* )
-         Comma-delimited list of hosts to use for spawned processes.
+	 Comma-delimited list of hosts to use for spawned processes.
        PMIX_HOSTFILE "pmix.hostfile" (char* )
-         Hostfile to use for spawned processes.
+	 Hostfile to use for spawned processes.
      */
     for (size_t i = 0; i < ninfo; i++) {
 	if (PMIX_CHECK_KEY(info+i, PMIX_WDIR)) {
