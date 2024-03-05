@@ -1153,7 +1153,7 @@ static int hookExecClientUser(void *data)
     PMIX_PROC_CONSTRUCT(&proc);
     pmix_status_t status = PMIx_Init(&proc, NULL, 0);
     if (status != PMIX_SUCCESS) {
-	rlog("PMIX_Init() failed: %s\n", PMIx_Error_string(status));
+	rlog("PMIx_Init() failed: %s\n", PMIx_Error_string(status));
 	PMIX_PROC_DESTRUCT(&proc);
 	return -1;
     }
