@@ -48,13 +48,13 @@ static uint64_t readEnergyFile(char *path)
     FILE *fd = fopen(path, "r");
 
     if (!fd) {
-	mwarn(errno, "%s: fopen(%s) failed : ", __func__, path);
+	fwarn(errno, "fopen(%s) failed : ", path);
 	return NO_VAL64;
     }
 
     uint64_t val;
     if (fscanf(fd, "%"PRIu64, &val) != 1) {
-	mwarn(errno, "%s: fscanf(%s) failed : ", __func__, path);
+	fwarn(errno, "fscanf(%s) failed : ", path);
 	val = NO_VAL64;
     }
 

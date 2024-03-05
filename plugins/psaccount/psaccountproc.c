@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -173,12 +173,12 @@ static void updateCpuFreq(void)
 	FILE *fd = fopen(buf, "r");
 
 	if (!fd) {
-	    mwarn(errno, "%s: fopen(%s) failed : ", __func__, buf);
+	    fwarn(errno, "fopen(%s) failed : ", buf);
 	    continue;
 	}
 
 	if (fscanf(fd, "%d", &cpuFreq[i]) != 1) {
-	    mwarn(errno, "%s: fscanf(%s) failed : ", __func__, buf);
+	    fwarn(errno, "fscanf(%s) failed : ", buf);
 	}
 
 	fclose(fd);
@@ -430,7 +430,7 @@ bool readProcIO(pid_t pid, ProcIO_t *io)
     } while (ret == -1 && eno == EINTR);
     fclose(fd);
     if (ret != 4) {
-	mwarn(eno, "%s: fscanf() returns %d", __func__, ret);
+	fwarn(eno, "fscanf() returns %d", ret);
 	return false;
     }
 
@@ -502,7 +502,7 @@ bool readProcStat(pid_t pid, ProcStat_t *pS)
     } while (ret == -1 && eno == EINTR);
     fclose(fd);
     if (ret != 14) {
-	mwarn(eno, "%s: fscanf(%d) returns %d", __func__, pid, ret);
+	fwarn(eno, "fscanf(%d) returns %d", pid, ret);
 	return false;
     }
 
@@ -535,7 +535,7 @@ static bool readProcUID(pid_t pid, ProcStat_t *pS)
     } while (ret == -1 && eno == EINTR);
     fclose(fd);
     if (ret != 1) {
-	mwarn(eno, "%s: fscanf() returns %d", __func__, ret);
+	fwarn(eno, "fscanf() returns %d", ret);
 	return false;
     }
     return true;

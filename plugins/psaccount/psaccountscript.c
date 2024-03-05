@@ -94,7 +94,7 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
 
     pid_t childPID = fork();
     if (childPID < 0) {
-	mwarn(errno, "%s: fork() %s", __func__, fwdata->pTitle);
+	fwarn(errno, "fork() %s", fwdata->pTitle);
 	/* don't break infinite forwarder loop */
 	exit(0);
     }
@@ -164,7 +164,7 @@ bool Script_test(char *spath, char *title)
 
     struct stat sbuf;
     if (stat(absPath, &sbuf) == -1) {
-	mwarn(errno, "%s: %s script '%s'", __func__, title, absPath);
+	fwarn(errno, "%s script '%s'", title, absPath);
 	ufree(absPath);
 	return false;
     }
