@@ -173,12 +173,12 @@ static void updateCpuFreq(void)
 	FILE *fd = fopen(buf, "r");
 
 	if (!fd) {
-	    fwarn(errno, "fopen(%s) failed : ", buf);
+	    fwarn(errno, "fopen(%s) failed", buf);
 	    continue;
 	}
 
 	if (fscanf(fd, "%d", &cpuFreq[i]) != 1) {
-	    fwarn(errno, "fscanf(%s) failed : ", buf);
+	    fwarn(errno, "fscanf(%s) failed", buf);
 	}
 
 	fclose(fd);
