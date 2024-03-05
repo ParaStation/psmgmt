@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1213,7 +1213,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
      * standard (v4) does not provide any guaranties about the availability
      * of any data passed to this function after it returned.
      * Would be great to have this data available until the cbfunc is called
-     * unless PMIX_OPERATION_SUCCEDED ist returned to avoid data dublication.
+     * unless PMIX_OPERATION_SUCCEDED is returned to avoid data duplication.
      * To avoid copying everything, we invalidate all data that are only needed
      * to setup the spawn but not for later processing. */
     PspmixSpawnApp_t *sapps = umalloc(napps * sizeof(*apps));

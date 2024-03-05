@@ -19,8 +19,8 @@
  *   (This task is historically done in the psid forwarder and actually means
  *    an unnecessary indirection (PMIx server <-> PSID Forwarder <-> PSID).
  *    @todo Think about getting rid of that.)
- * - Handling spawn requests initiated by the client of the forwarder by a call
- *   of PMIx_Spawn().
+ * - Handling spawn requests initiated by the forwarder's client by calling
+ *   PMIx_Spawn().
  */
 #include "pspmixforwarder.h"
 
