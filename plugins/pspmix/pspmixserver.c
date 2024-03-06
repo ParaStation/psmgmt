@@ -1231,7 +1231,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	    /* add prefix */
 	    strv_t argv;
 	    strvInit(&argv, NULL, 8);
-	    strvAdd(&argv, PSC_concat(sapps[a].prefix, "/", sapps[a].argv[0]));
+	    strvAdd(&argv, PSC_concat(sapps[a].prefix, "/", apps[a].argv[0]));
 	    for (char **cur = apps[a].argv + 1; *cur; cur++) {
 		strvAdd(&argv, *cur);
 	    }
@@ -1241,7 +1241,6 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	    sapps[a].argv = apps[a].argv;
 	}
 
-	sapps[a].argv = apps[a].argv;
 	sapps[a].maxprocs = apps[a].maxprocs;
 	sapps[a].env = apps[a].env;
 
