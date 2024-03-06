@@ -636,7 +636,7 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 	     PMIx_Data_type_string(info[i].value.type));
 	/* @todo use PMIx_Info_string() for PMIx > 4.1.2 */
 
-	/* support mendatory key PMIX_REQUIRED_KEY */
+	/* support mandatory key PMIX_REQUIRED_KEY */
 	if (PMIX_CHECK_KEY(info+i, PMIX_REQUIRED_KEY)) {
 	    strvAdd(&reqKeys, info[i].value.data.string);
 	    continue;
