@@ -968,9 +968,7 @@ static bool msgCC(DDBufferMsg_t *msg)
 static bool msgSPAWNRES(DDBufferMsg_t *msg)
 {
     int type = msg->header.type;
-    if (type != PSP_CD_SPAWNFAILED && type != PSP_CD_SPAWNSUCCESS) {
-	return false;
-    }
+    if (type != PSP_CD_SPAWNFAILED && type != PSP_CD_SPAWNSUCCESS) return false;
 
     if (!pendSpawn) {
 	plog("UNEXPECTED: no pending spawn found\n");

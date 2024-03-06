@@ -1858,9 +1858,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     if (mset(PSPMIX_LOG_SPAWN)) {
 	for (size_t i = 0; i < napps; i++) {
 	    ulog("respawning");
-	    for (char **cur = apps->argv; *cur; cur++) {
-		mlog(" %s", *cur);
-	    }
+	    for (char **cur = apps->argv; *cur; cur++) mlog(" %s", *cur);
 	    mlog("\n");
 	}
     }
