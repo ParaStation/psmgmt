@@ -795,13 +795,6 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	getStringArrayM(data, &env, &alen);
 	spawn->env = envNew(env);
 
-	/* Note on spawn->preput:
-	 * In PMI "preput" is used to pass KVPs along the PMI_Spawn to be
-	 * prefilled into the KVS.
-	 * This is something we do not need with PMIx, since here the spawn
-	 * parent has to PMIx_put() such values directly to the PMIx servers.
-	 */
-
 	/* get and fill additional info */
 	vector_t infos;
 	vectorInit(&infos, 3, 3, KVP_t);
