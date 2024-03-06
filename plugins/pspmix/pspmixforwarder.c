@@ -844,7 +844,7 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 	/* get and fill additional info */
 	vector_t infos;
-	vectorInit(&infos, 8, 8, KVP_t);
+	vectorInit(&infos, 3, 3, KVP_t);
 
 	KVP_t entry;
 	char *wdir = getStringML(data, &len);
