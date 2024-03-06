@@ -116,13 +116,24 @@ int main(int argc, char **argv)
 	app->env[0] = strdup("PMIX_ENV_VALUE=3");
 	app->env[1] = NULL;
 
+	/* Fill app info data structure */
+	PMIX_INFO_CREATE(app->info, 1);
+	PMIX_INFO_LOAD(&(app->info[0]), PMIX_WDIR, dir, PMIX_STRING);
+	app->ninfo = 1;
+
+	/* Fill job info data structure */
+	pmix_info_t *job_info;
+	PMIX_INFO_CREATE(job_info, 1);
+	PMIX_INFO_LOAD(&(job_info[0]), PMIX_PREFIX, dir, PMIX_STRING);
+
 	print("Calling PMIx_Spawn\n");
 	char nspace[PMIX_MAX_NSLEN + 1];
-	rc = PMIx_Spawn(NULL, 0, app, 1, nspace);
+	rc = PMIx_Spawn(job_info, 1, app, 1, nspace);
 	if (rc != PMIX_SUCCESS) {
 	    printerr("PMIx_Spawn failed: %s\n", PMIx_Error_string(rc));
 	}
 	PMIX_APP_FREE(app, 1);
+	PMIX_INFO_FREE(job_info, 1);
 
 	/* get their universe size */
 	val = NULL;
