@@ -161,46 +161,6 @@ static bool doSpawn(SpawnRequest_t *req)
     return true;
 }
 
-#if 0 /* currently not used with PMIx */
-/**
- * @brief Prepare preput keys and values to pass by environment
- *
- * Generates an array of strings representing the preput key-value-pairs in the
- * format "__PMI_<KEY>=<VALUE>" and one variable "__PMI_preput_num=<COUNT>"
- *
- * @param preputc Number of key value pairs
- *
- * @param preputv Array of key value pairs
- *
- * @param envv Where to store the pointer to the array of definitions
- *
- * @return No return value
- */
-static void addPreputToEnv(int preputc, KVP_t *preputv, strv_t *env)
-{
-
-    snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", preputc);
-    strvAdd(env, ustrdup(buffer));
-
-    for (int i = 0; i < preputc; i++) {
-	int esize;
-	char *tmpstr;
-
-	snprintf(buffer, sizeof(buffer), "preput_key_%i", i);
-	esize = 6 + strlen(buffer) + 1 + strlen(preputv[i].key) + 1;
-	tmpstr = umalloc(esize);
-	snprintf(tmpstr, esize, "__PMI_%s=%s", buffer, preputv[i].key);
-	strvAdd(env, tmpstr);
-
-	snprintf(buffer, sizeof(buffer), "preput_val_%i", i);
-	esize = 6 + strlen(buffer) + 1 + strlen(preputv[i].value) + 1;
-	tmpstr = umalloc(esize);
-	snprintf(tmpstr, esize, "__PMI_%s=%s", buffer, preputv[i].value);
-	strvAdd(env, tmpstr);
-    }
-}
-#endif
-
 /**
  *  fills the passed task structure to spawn processes using mpiexec
  *
