@@ -16,6 +16,15 @@ static int spawned;
 static int timeout = 5;
 static bool refresh = true;
 
+#if defined __GNUC__ && __GNUC__ < 8
+#define printerr(format, ...) \
+    fprintf(stderr, "%d: Client %s:%d: ERROR: " format, mypid, myproc.nspace, \
+	    myproc.rank, ##__VA_ARGS__)
+
+#define print(format, ...) \
+    fprintf(stderr, "%d: Client %s:%d: " format, mypid, myproc.nspace, \
+	    myproc.rank, ##__VA_ARGS__)
+#else
 #define printerr(format, ...) \
     fprintf(stderr, "%d: Client %s:%d: ERROR: " format, mypid, myproc.nspace, \
 	    myproc.rank __VA_OPT__(,) __VA_ARGS__)
@@ -23,6 +32,7 @@ static bool refresh = true;
 #define print(format, ...) \
     fprintf(stderr, "%d: Client %s:%d: " format, mypid, myproc.nspace, \
 	    myproc.rank __VA_OPT__(,) __VA_ARGS__)
+#endif
 
 int main(int argc, char **argv)
 {
