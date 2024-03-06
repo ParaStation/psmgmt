@@ -384,7 +384,7 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
 
     ns->spawner = atoi(spawner);
     if (ns->spawner <= 0) {
-	ulog("invalid __PMIX_SPAWN_PARENT: %s\n", spawner);
+	ulog("invalid __PMIX_SPAWN_PARENT_FWTID: %s\n", spawner);
 	return false;
     }
 

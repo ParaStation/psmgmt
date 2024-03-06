@@ -2520,7 +2520,7 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
     size_t i = 0;
     /* session id
      * (needed to be the first entry
-     *  @todo find out sice which version this is no longer the case) */
+     *  @todo find out since which version this is no longer the case) */
     PMIX_INFO_LOAD(&infos[i], PMIX_SESSION_ID, &session_id, PMIX_UINT32);
     i++;
 
