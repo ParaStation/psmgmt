@@ -2190,7 +2190,8 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
  *
  * @param msg Logger message to handle
  *
- * @return No return value
+ * @return Return true if the message was consumed or false to pass it
+ * to the next handler
  */
 static bool handleServiceInfo(PSLog_Msg_t *msg)
 {
