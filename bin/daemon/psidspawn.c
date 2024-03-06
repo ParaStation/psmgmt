@@ -1255,7 +1255,7 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	char tasktxt[4096];
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_fdbg(PSID_LOG_TASK, "task=%s\n", tasktxt);
+	PSID_flog("task=%s\n", tasktxt);
     }
 
     /* create a socketpair for communication between daemon and forwarder */
@@ -1956,7 +1956,6 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     size_t usedBytes;
     int32_t rank = -1;
     PStask_group_t group = TG_ANY;
-    char tasktxt[128];
 
     PSID_fdbg(PSID_LOG_SPAWN, "from %s msglen %d\n",
 	      PSC_printTID(msg->header.sender), msg->header.len);
@@ -2071,6 +2070,7 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     switch (msg->type) {
     case PSP_SPAWN_TASK:
 	if (task) {
+	    char tasktxt[128];
 	    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	    PSID_flog("from %s task %s already there\n",
 		      PSC_printTID(msg->header.sender), tasktxt);
@@ -2111,8 +2111,11 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    }
 	}
 
-	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_fdbg(PSID_LOG_SPAWN, "create %s\n", tasktxt);
+	if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
+	    char tasktxt[4096];
+	    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+	    PSID_flog("create %s\n", tasktxt);
+	}
 
 	PStasklist_enqueue(&spawnTasks, task);
 
@@ -2221,8 +2224,11 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     }
 
     if (msg->type == PSP_SPAWN_END) {
-	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_fdbg(PSID_LOG_SPAWN, "spawning %s\n", tasktxt);
+	if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
+	    char tasktxt[4096];
+	    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+	    PSID_flog("spawning %s\n", tasktxt);
+	}
 
 	PStasklist_dequeue(task);
 	if (task->deleted) {
@@ -2679,7 +2685,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	    char tasktxt[4096];
 	    PStask_snprintf(tasktxt, sizeof(tasktxt), clone);
-	    PSID_fdbg(PSID_LOG_SPAWN, "Spawning %s\n", tasktxt);
+	    PSID_flog("Spawning %s\n", tasktxt);
 	}
 
 	if (clone->delayReasons) {
@@ -3018,9 +3024,11 @@ void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info)
 	    .error = 0,
 	    .request = task->rank};
 
-	char tasktxt[256];
-	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_fdbg(PSID_LOG_SPAWN, "Spawning %s\n", tasktxt);
+	if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
+	    char tasktxt[256];
+	    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+	    PSID_flog("spawning %s\n", tasktxt);
+	}
 
 	PStasklist_dequeue(task);
 	answer.error = spawnTask(task);
@@ -3601,7 +3609,7 @@ int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	char tasktxt[4096];
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_fdbg(PSID_LOG_SPAWN, "spawning %s\n", tasktxt);
+	PSID_flog("spawning %s\n", tasktxt);
     }
 
     /* now try to start the task */
