@@ -185,18 +185,18 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     /* @todo change to not need to start a kvsprovider any longer */
     char *tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
     if (tmpStr) {
-	strvAdd(&args, ustrdup(tmpStr));
+	strvAdd(&args, tmpStr);
     } else {
-	strvAdd(&args, ustrdup(PKGLIBEXECDIR "/kvsprovider"));
+	strvAdd(&args, PKGLIBEXECDIR "/kvsprovider");
     }
 
     /* set PMIx mode */
-    strvAdd(&args, ustrdup("--pmix"));
+    strvAdd(&args, "--pmix");
 
     /* set universe size */
-    strvAdd(&args, ustrdup("-u"));
+    strvAdd(&args, "-u");
     snprintf(buffer, sizeof(buffer), "%d", usize);
-    strvAdd(&args, ustrdup(buffer));
+    strvAdd(&args, buffer);
 
     size_t jobsize = 0;
 
@@ -207,9 +207,9 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	jobsize += spawn->np;
 
 	/* set the number of processes to spawn */
-	strvAdd(&args, ustrdup("-np"));
+	strvAdd(&args, "-np");
 	snprintf(buffer, sizeof(buffer), "%d", spawn->np);
-	strvAdd(&args, ustrdup(buffer));
+	strvAdd(&args, buffer);
 
 	/* extract info values and keys
 	 *
@@ -227,19 +227,19 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    KVP_t *info = &(spawn->infov[j]);
 
 	    if (!strcmp(info->key, "wdir")) {
-		strvAdd(&args, ustrdup("-d"));
-		strvAdd(&args, ustrdup(info->value));
+		strvAdd(&args, "-d");
+		strvAdd(&args, info->value);
 	    }
 	    if (!strcmp(info->key, "hosts")) {
-		strvAdd(&args, ustrdup("-H"));
+		strvAdd(&args, "-H");
 		char *val = ustrdup(info->value);
 		/* replace all colons with whitespaces */
 		for (char *p = val; (p = strchr(p, ',')) != NULL; *p = ' ');
-		strvAdd(&args, val);
+		strvLink(&args, val);
 	    }
 	    if (!strcmp(info->key, "hostfile")) {
-		strvAdd(&args, ustrdup("-f"));
-		strvAdd(&args, ustrdup(info->value));
+		strvAdd(&args, "-f");
+		strvAdd(&args, info->value);
 	    }
 	}
 
@@ -259,11 +259,11 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	 * */
 	char **env = envGetArray(spawn->env);
 	while (env && *env) {
-	    strvAdd(&args, ustrdup("-E"));
+	    strvAdd(&args, "-E");
 	    char *tmp = ustrdup(*env);
 	    char *stringp = tmp;
-	    strvAdd(&args, ustrdup(strsep(&stringp, "=")));
-	    strvAdd(&args, ustrdup(stringp));
+	    strvAdd(&args, strsep(&stringp, "="));
+	    strvAdd(&args, stringp);
 	    ufree(tmp);
 	    env++;
 	}
@@ -271,12 +271,12 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 
 	/* add binary and argument from spawn request */
 	for (int j = 0; j < spawn->argc; j++) {
-	    strvAdd(&args, ustrdup(spawn->argv[j]));
+	    strvAdd(&args, spawn->argv[j]);
 	}
 
 	/* add separating colon */
 	if (i < req->num - 1) {
-	    strvAdd(&args, ustrdup(":"));
+	    strvAdd(&args, ":");
 	}
     }
 
@@ -398,27 +398,27 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     /* tell the spawnees the spawn id */
     char tmp[28+PMIX_MAX_NSLEN];
     snprintf(tmp, sizeof(tmp), "PMIX_SPAWNID=%d", srdata->spawnID);
-    strvAdd(&env, ustrdup(tmp));
+    strvAdd(&env, tmp);
 
     /* tell the spawnees our tid (that of the forwarder) */
     snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_FWTID=%d", PSC_getMyTID());
-    strvAdd(&env, ustrdup(tmp));
+    strvAdd(&env, tmp);
 
     /* tell the spawnees the namespace of the spawner (=> PMIX_PARENT_ID) */
     snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_NSPACE=%s",
 	     srdata->pnspace);
-    strvAdd(&env, ustrdup(tmp));
+    strvAdd(&env, tmp);
 
     /* tell the spawnees the rank of the spawner (=> PMIX_PARENT_ID) */
     snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_RANK=%d", srdata->prank);
-    strvAdd(&env, ustrdup(tmp));
+    strvAdd(&env, tmp);
 
     /* tell the service rank to the kvsprovider    @todo why - 3 */
     snprintf(tmp, sizeof(tmp), "__PMI_SPAWN_SERVICE_RANK=%d", serviceRank - 3);
-    strvAdd(&env, ustrdup(tmp));
+    strvAdd(&env, tmp);
 
     /* set common PMI_SPAWNED used by psslurm to detect respawns */
-    strvAdd(&env, ustrdup("PMI_SPAWNED=1"));
+    strvAdd(&env, "PMI_SPAWNED=1");
 
     ufree(task->environ);
     task->environ = env.strings;

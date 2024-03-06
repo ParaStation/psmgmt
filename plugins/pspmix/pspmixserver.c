@@ -1231,9 +1231,9 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	    /* add prefix */
 	    strv_t argv;
 	    strvInit(&argv, NULL, 8);
-	    strvAdd(&argv, PSC_concat(sapps[a].prefix, "/", apps[a].argv[0]));
+	    strvLink(&argv, PSC_concat(sapps[a].prefix, "/", apps[a].argv[0]));
 	    for (char **cur = apps[a].argv + 1; *cur; cur++) {
-		strvAdd(&argv, *cur);
+		strvLink(&argv, *cur);
 	    }
 	    sapps[a].argv = argv.strings;
 	    strvStealArray(&argv);
