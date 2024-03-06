@@ -1031,7 +1031,7 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
 		 PSC_getID(ns->spawner));
 	}
 	/* @todo take some shortcut when spawner is local?
-	         (PSC_getID(ns->spawner) == PSC_getMyID()) */
+		 (PSC_getID(ns->spawner) == PSC_getMyID()) */
 	/* @todo use fence communication scheme here? */
     }
 
