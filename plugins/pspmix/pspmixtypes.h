@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -257,7 +257,7 @@ typedef struct {
  * @brief Set task preparation function
  *
  * Register the new task preparation function @a spawnFunc to the
- * pspmi module. This function will be used within future PMI spawn
+ * pspmix module. This function will be used within future PMIx spawn
  * requests in order to prepare the task structure of the helper tasks
  * used to realize the actual spawn action.
  *
@@ -270,7 +270,7 @@ typedef void(psPmixSetFillSpawnTaskFunction_t)(fillerFunc_t spawnFunc);
 /**
  * @brief Reset task preparation function
  *
- * Reset pspmi's task preparation function to the default one
+ * Reset pspmix's task preparation function to the default one
  * utilizing mpiexec as a helper.
  *
  * @return No return value

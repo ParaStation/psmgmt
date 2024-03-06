@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -115,7 +115,7 @@ const char *pspmix_jobIDsStr(PStask_ID_t loggertid, PStask_ID_t spawnertid);
 /**
  * @brief Init logging facility
  *
- * Init pspmi plugin's logging facility. If the filehandle @a
+ * Init pspmix plugin's logging facility. If the filehandle @a
  * logfile is different from NULL, the corresponding file will be used
  * for logging. Otherwise the syslog facility is used.
  *

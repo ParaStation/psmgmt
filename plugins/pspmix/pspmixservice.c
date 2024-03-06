@@ -257,7 +257,7 @@ static void printProcMap(list_t *map)
 {
     ulog("printing process mapping in format: (global session rank (psid"
 	 " rank), job/nspace rank, [app num: app rank, local app rank],"
-	 " node rank, reincanation)\n");
+	 " node rank, reincarnation)\n");
 
     list_t *n;
     list_for_each(n, map) {
