@@ -232,14 +232,15 @@ int main(int argc, char **argv)
     PMIX_LOAD_PROCID(&proc, myproc.nspace, PMIX_RANK_WILDCARD);
     rc = PMIx_Fence(&proc, 1, NULL, 0);
     if (rc != PMIX_SUCCESS) {
-	print("Final PMIx_Fence failed: %s\n", PMIx_Error_string(rc));
+	printerr("Final PMIx_Fence failed: %s\n", PMIx_Error_string(rc));
+    } else {
+	print("Final PMIx_Fence succeeded\n");
     }
-    print("Final PMIx_Fence succeeded\n");
 
     /* finalize */
     rc = PMIx_Finalize(NULL, 0);
     if (rc != PMIX_SUCCESS) {
-	print("PMIx_Finalize failed: %s\n", PMIx_Error_string(rc));
+	printerr("PMIx_Finalize failed: %s\n", PMIx_Error_string(rc));
 	return 1;
     }
     print("PMIx_Finalize succeeded\n");
