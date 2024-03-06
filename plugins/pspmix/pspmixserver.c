@@ -1182,20 +1182,12 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 
 	for (size_t i = 0; napps < i; i++) {
 	    mlog("%s: cmd='%s' argv='", __func__, apps[i].cmd);
-	    char **tmp = apps[i].argv;
-	    while(*tmp) {
-		mlog("%s ", *tmp);
-		(*tmp)++;
-	    }
+	    for (char **tmp = apps[i].argv; *tmp; tmp++) mlog("%s ", *tmp);
 	    if (!apps[i].env) {
 		mlog("' env=NULL");
 	    } else {
 		mlog("' env='");
-		tmp = apps[i].env;
-		while(*tmp) {
-		    mlog("%s ", *tmp);
-		    (*tmp)++;
-		}
+		for (char **tmp = apps[i].env; *tmp; tmp++) mlog("%s ", *tmp);
 		mlog("'");
 	    }
 	    mlog(" cwd='%s' maxprocs=%d ninfo=%zd\n", apps[i].cwd,
