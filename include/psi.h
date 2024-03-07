@@ -271,8 +271,9 @@ void PSI_propEnv(void);
  * Propagate a list of environment variables to the next level of
  * spawning. For this the environment variable @a listName containing
  * a comma-separated list of environment variable names is
- * analyzed. The environment variable containing the list and each environment
- * variable mentioned in this list is put into the PSI_environment
+ * analyzed. The environment variable @a listName itself and each
+ * environment variable mentioned therein is put into the
+ * PSI_environment.
  *
  * @param listName Name of the environment containing a
  * comma-separated list of environment variables to be propagated
