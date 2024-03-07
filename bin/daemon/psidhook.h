@@ -261,6 +261,11 @@ typedef enum {
     PSIDHOOK_LAST_RESRELEASED,/**< Reservation was released, i.e. all resource
 				usage was canceled by PSP_DD_CHILDRESREL
 				messages; arg points to the reservation */
+    PSIDHOOK_EXEC_CLIENT_EXEC,/**< Before exec()ing the child after all
+				preparation and other hooks are done. arg is
+				a pointer to the child's task structure. This
+				hook might be used to execute the child in
+				a container. */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
