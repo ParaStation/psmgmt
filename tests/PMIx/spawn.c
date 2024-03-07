@@ -8,6 +8,7 @@
 
 #define CUSTOM_KEY "spawn-test"
 #define CUSTOM_VALUE "foo"
+#define CHILD_WDIR_KEY "child-wdir"
 
 static pid_t mypid;
 static pmix_proc_t myproc;
@@ -41,10 +42,10 @@ int main(int argc, char **argv)
     char hostname[HOST_NAME_MAX+1];
     if (gethostname(hostname, sizeof(hostname))) exit(1);
 
-    char dir[1024];
+    char dir[1024], wd[1024];
     if (!getcwd(dir, sizeof(dir))) exit(1);
 
-    fprintf(stderr, "%d running\n", mypid);
+    fprintf(stderr, "%d running in %s\n", mypid, dir);
 
     /* init */
     int rc = PMIx_Init(&myproc, NULL, 0);
@@ -125,9 +126,34 @@ int main(int argc, char **argv)
 	app->env[0] = strdup("PMIX_ENV_VALUE=3");
 	app->env[1] = NULL;
 
+	char *p;
+	/* Make the working directory the directory above the current running directory */
+	strncpy(wd, dir, sizeof(wd));
+	/* Lop off the last element of the directory */
+	p = wd + strlen(wd) - 1;
+	while (p > wd && *p != '/' && *p != '\\') {
+	    p--;
+	}
+	*p = 0;
+
+	/* Put working directory in KVS so that child processes can compare later if they
+	 * are running in the correct directory */
+	PMIX_VALUE_CREATE(val, 1);
+	PMIX_VALUE_LOAD(val, wd, PMIX_STRING);
+	rc = PMIx_Put(PMIX_GLOBAL, CHILD_WDIR_KEY, val);
+	if (rc != PMIX_SUCCESS) {
+	    printerr("PMIx_Put of wdir failed: %s\n", PMIx_Error_string(rc));
+	}
+	PMIX_VALUE_FREE(val, 1);
+	val = NULL;
+	rc = PMIx_Commit();
+	if (rc != PMIX_SUCCESS) {
+	    printerr("PMIx_Commit failed: %s\n", PMIx_Error_string(rc));
+	}
+
 	/* Fill app info data structure */
 	PMIX_INFO_CREATE(app->info, 1);
-	PMIX_INFO_LOAD(&(app->info[0]), PMIX_WDIR, dir, PMIX_STRING);
+	PMIX_INFO_LOAD(&(app->info[0]), PMIX_WDIR, wd, PMIX_STRING);
 	app->ninfo = 1;
 
 	/* Fill job info data structure */
@@ -222,6 +248,23 @@ int main(int argc, char **argv)
 		print("PMIx_Get OK: %s == %s\n", CUSTOM_KEY, val->data.string);
 	    }
 	    PMIX_VALUE_RELEASE(val);
+	    val = NULL;
+	}
+
+	/* Check if running in correct directory */
+	rc = PMIx_Get(&parent_proc, CHILD_WDIR_KEY, NULL, 0, &val);
+	if (rc != PMIX_SUCCESS) {
+	    printerr("PMIx_Get for value of parent failed: %s\n",
+		     PMIx_Error_string(rc));
+	} else {
+	    if (strcmp(dir, val->data.string) != 0) {
+	        printerr("Expected a working dir of %s but child is in %s\n",
+	                 val->data.string, dir);
+	    } else {
+	        print("Child working directory OK!\n");
+	    }
+	    PMIX_VALUE_RELEASE(val);
+	    val = NULL;
 	}
 
 	/* Check environment variable specified on spawning */
