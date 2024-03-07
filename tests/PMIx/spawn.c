@@ -116,12 +116,11 @@ int main(int argc, char **argv)
 	    return 1;
 	}
 	app->maxprocs = 2;
-	app->argv = (char **) malloc(3 * sizeof(char *));
-	if (asprintf(&app->argv[0], "%s/%s", dir, argv[0]) < 0) {
+	app->argv = (char **) malloc(2 * sizeof(char *));
+	if (asprintf(&app->argv[0], "%s", argv[0]) < 0) {
 	    return 1;
 	}
-	app->argv[1] = strdup("2");
-	app->argv[2] = NULL;
+	app->argv[1] = NULL;
 	app->env = (char **) malloc(2 * sizeof(char *));
 	app->env[0] = strdup("PMIX_ENV_VALUE=3");
 	app->env[1] = NULL;
@@ -211,7 +210,7 @@ int main(int argc, char **argv)
 	PMIX_INFO_FREE(fence_info, 2);
 
 	/* Get value from KVS, put there by parent process before spawn*/
-	PMIx_Get(&parent_proc, CUSTOM_KEY, NULL, 0, &val);
+	rc = PMIx_Get(&parent_proc, CUSTOM_KEY, NULL, 0, &val);
 	if (rc != PMIX_SUCCESS) {
 	    printerr("PMIx_Get for value of parent failed: %s\n",
 		     PMIx_Error_string(rc));
