@@ -298,7 +298,7 @@ void PSI_propList(char *listStr)
 
     char *thisEnv = envList;
     while (thisEnv && *thisEnv) {
-	char *nextEnv = strchr(thisEnv,',');
+	char *nextEnv = strchr(thisEnv, ',');
 	if (nextEnv) {
 	    *nextEnv = '\0';  /* replace the ',' with EOS */
 	    nextEnv++;        /* move to the start of the next string */

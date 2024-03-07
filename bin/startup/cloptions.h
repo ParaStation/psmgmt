@@ -47,7 +47,7 @@ typedef struct {
     int envTPP;         /**< Thread per process requested via environment */
     bool dryrun;        /**< Flag dryrun, i.e. do not spawn processes */
     bool envall;        /**< Flag to propagate the whole environment */
-    bool execEnvall;    /**< Flag propagate whole environment for executable */
+    bool execEnvall;    /**< Flag propagate whole environment for executables */
     mode_t u_mask;      /**< File mode creation mask to be used */
     /* resource options */
     char *nList;        /**< List of node IDs to use (not required for batch) */
