@@ -417,9 +417,6 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     snprintf(tmp, sizeof(tmp), "__PMI_SPAWN_SERVICE_RANK=%d", serviceRank - 3);
     strvAdd(&env, tmp);
 
-    /* set common PMI_SPAWNED used by psslurm to detect respawns */
-    strvAdd(&env, "PMI_SPAWNED=1");
-
     ufree(task->environ);
     task->environ = env.strings;
     task->envSize = env.count;
