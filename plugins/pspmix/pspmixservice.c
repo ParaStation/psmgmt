@@ -1881,6 +1881,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     if (!ns) {
 	ulog("namespace '%s' not found\n", caller->nspace);
 	RELEASE_LOCK(namespaceList);
+	ufree(spawn);
 	return false;
     }
 
@@ -1889,6 +1890,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 	ulog("client rank %d not found in namespace '%s'\n", caller->rank,
 	     caller->nspace);
 	RELEASE_LOCK(namespaceList);
+	ufree(spawn);
 	return false;
     }
 
@@ -1900,6 +1902,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 				     spawn->caller.rank)) {
 	ulog("sending spawn req to forwarder failed (namespace %s rank %d)\n",
 	     spawn->caller.nspace, spawn->caller.rank);
+	ufree(spawn);
 	return false;
     }
 
