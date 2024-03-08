@@ -1022,8 +1022,6 @@ static pmix_status_t server_unpublish_cb(const pmix_proc_t *proc, char **keys,
 }
 
 /* tell server helper library about spawn finished
- *
- * This takes back ownership of @a sdata.
  */
 void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
 			    const char *nspace)
@@ -1043,7 +1041,6 @@ void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
     if (nspace) PMIX_LOAD_NSPACE(ns->name, spawn->sdata->nspace);
 #endif
     sdata->cbfunc(status, ns, sdata->cbdata);
-    ufree(sdata);
 }
 
 

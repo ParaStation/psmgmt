@@ -245,7 +245,7 @@ bool pspmix_server_requestModexData(modexdata_t *mdata);
  *  @brief Tell server helper library about spawn finished
  *
  *  @param success  true if successful, false if not
- *  @param sdata    return data (takes full ownership)
+ *  @param sdata    return data
  *  @param nspace   new namespace on success, NULL on fail
  */
 void pspmix_server_spawnRes(bool success, spawndata_t *sdata,

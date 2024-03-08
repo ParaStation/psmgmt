@@ -245,6 +245,7 @@ static void handleSpawnInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint32(data, &np);
     pspmix_service_spawnInfo(spawnID, result, nspace, np,
 			     PSC_getID(msg->header.sender));
+    ufree(nspace);
 }
 
 /**

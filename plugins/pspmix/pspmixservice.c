@@ -150,6 +150,8 @@ static void cleanupSpawn(PspmixSpawn_t *spawn)
 {
     /* cleanup spawn */
     ufree(spawn->apps);
+    ufree(spawn->nspace);
+    ufree(spawn->sdata);
     ufree(spawn);
 }
 
@@ -2002,7 +2004,7 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool success, char *nspace,
     /* do some checks with nspace */
     if (!spawn->ready) {
 	/* first info for this spawn */
-	spawn->nspace = nspace;
+	spawn->nspace = ustrdup(nspace);
     } else if (!spawn->nspace) {
 	ulog("UNEXPECTED: spawn id %hu: namespace not set\n", spawnID);
 	goto failed;
@@ -2023,7 +2025,7 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool success, char *nspace,
     if (spawn->ready > spawn->np) {
 	ulog("UNEXPECTED: spawn id %hu: to many processes (%u > %u)\n", spawnID,
 	     spawn->ready, spawn->np);
-	goto cleanup;
+	goto failed;
     }
 
     /* all processes are ready */
