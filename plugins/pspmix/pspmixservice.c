@@ -370,11 +370,13 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
     char *spawnID = envGet(env, "PMIX_SPAWNID");
     if (!spawnID) return true;
 
-    ns->spawnID = atoi(spawnID);
-    if (ns->spawnID <= 0) {
-	ulog("invalid PMIX_SPAWNID: %hd\n", ns->spawnID);
+    char *end;
+    long res = strtol(spawnID, &end, 10);
+    if (*end != '\0' || res <= 0) {
+	ulog("invalid PMIX_SPAWNID: %s\n", spawnID);
 	return false;
     }
+    ns->spawnID = res;
 
     /* this is a respawn */
     char *spawner = envGet(env, "__PMIX_SPAWN_PARENT_FWTID");
@@ -384,11 +386,12 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
 	return false;
     }
 
-    ns->spawner = atoi(spawner);
-    if (ns->spawner <= 0) {
+    res = strtol(spawner, &end, 10);
+    if (*end != '\0' || res <= 0) {
 	ulog("invalid __PMIX_SPAWN_PARENT_FWTID: %s\n", spawner);
 	return false;
     }
+    ns->spawner = res;
 
     char *nspace = envGet(env, "__PMIX_SPAWN_PARENT_NSPACE");
     if (!nspace) {
@@ -403,8 +406,12 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
 	     ns->spawnID);
 	return false;
     }
-
-    PMIX_PROC_LOAD(&ns->parent, nspace, atoi(rank));
+    res = strtol(rank, &end, 10);
+    if (*end != '\0' || res < 0) {
+	ulog("invalid __PMIX_SPAWN_PARENT_RANK: %s\n", rank);
+	return false;
+    }
+    PMIX_PROC_LOAD(&ns->parent, nspace, res);
 
     char *loc = PSC_getID(ns->spawner) == PSC_getMyID() ? "local" : "remote";
     udbg(PSPMIX_LOG_SPAWN, "%s spawn id %hu initiated by %s (nspace %s"
