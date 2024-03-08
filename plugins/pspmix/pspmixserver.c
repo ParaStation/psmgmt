@@ -1029,18 +1029,18 @@ void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
     assert(sdata != NULL);
     assert(sdata->cbfunc != NULL);
 
+#if PMIX_VERSION_MAJOR >= 4
     mdbg(PSPMIX_LOG_CALL, "%s(success %s)\n", __func__,
 	 success ? "true" : "false");
 
     pmix_status_t status = success ? PMIX_SUCCESS : PMIX_ERROR;
 
     pmix_nspace_t ns;
-#if PMIX_VERSION < 4
-    if (nspace) memcpy(ns, nspace, strlen(nspace)+1);
-#else
-    if (nspace) PMIX_LOAD_NSPACE(ns->name, spawn->sdata->nspace);
-#endif
+    if (nspace) PMIX_LOAD_NSPACE(ns, nspace);
     sdata->cbfunc(status, ns, sdata->cbdata);
+#else
+    return; /* spawn not supported */
+#endif
 }
 
 
@@ -1051,6 +1051,7 @@ typedef struct {
     char *hostfile;
 } SpawnInfo_t;
 
+#if PMIX_VERSION_MAJOR >= 4
 static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 {
     SpawnInfo_t si = { NULL, NULL, NULL, NULL };
@@ -1134,6 +1135,7 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 
     return si;
 }
+#endif
 
 /**
  * @brief Spawn a set of applications/processes as per the PMIx_Spawn API.
@@ -1340,9 +1342,8 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 
 #else
     mlog("%s: NOT IMPLEMENTED\n", __func__);
-#endif
-
     return __PSPMIX_NOT_IMPLEMENTED;
+#endif
 }
 
 /* Record the processes specified by the procs array as connected as per the
@@ -2632,8 +2633,9 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo,
      */
 
 #if PMIX_VERSION_MAJOR < 4
-    mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)='%s' - %s(%d)=%u - %s(%d)=%u - "
-	 "%s(%d)='%s' - %s(%d)='%s' - %s(%d)=%u\n", __func__,
+    mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)='%s' - %s(%d)=%s - %s(%d)=%u - "
+	 "%s(%d)=%u - %s(%d)='%s' - %s(%d)='%s' - %s(%d)=%u - %s(%d)=%u\n",
+	 __func__,
 	 infos[0].key, infos[0].value.type, infos[0].value.data.string,
 	 infos[1].key, infos[1].value.type, infos[1].value.data.string,
 	 infos[2].key, infos[2].value.type, infos[2].value.data.uint32,
