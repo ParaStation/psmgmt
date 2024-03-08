@@ -1996,7 +1996,7 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool success, char *nspace,
 	RELEASE_LOCK(spawnList);
 	ulog("UNEXPECTED: spawn id %hu not found (np %u node %hd)\n", spawnID,
 	     np, node);
-	goto failed;
+	return;
     }
 
     /* do some checks with nspace */
