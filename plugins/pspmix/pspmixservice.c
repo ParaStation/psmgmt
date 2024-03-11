@@ -487,14 +487,14 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     if (!getSpawnInfo(ns)) goto nscreate_error;
 
     /* set the MPI universe size from environment set by the spawner */
-    char *env = envGet(job->env, "PMI_UNIVERSE_SIZE");
+    char *env = envGet(job->env, "PMIX_UNIV_SIZE");
     ns->universeSize = env ? atoi(env) : 1;
 
     /* set the job size from environment set by the spawner */
-    env = envGet(job->env, "PMI_SIZE");
+    env = envGet(job->env, "PMIX_JOB_SIZE");
     ns->jobSize = env ? atoi(env) : 1;
 
-    env = envGet(job->env, "PMIX_APPCOUNT");
+    env = envGet(job->env, "PMIX_JOB_NUM_APPS");
     ns->appsCount = env ? atoi(env) : 1;
     ns->apps = umalloc(ns->appsCount * sizeof(*ns->apps));
 
@@ -505,7 +505,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
 	/* set the application size from environment set by the spawner */
 	char var[64];
-	snprintf(var, sizeof(var), "PMIX_APPSIZE_%zu", a);
+	snprintf(var, sizeof(var), "PMIX_APP_SIZE_%zu", a);
 	env = envGet(job->env, var);
 	if (!env) {
 	    ulog("broken environment: '%s' missing\n", var);
@@ -517,7 +517,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	ns->apps[a].firstRank = procCount;
 
 	/* set working directory */
-	snprintf(var, sizeof(var), "PMIX_APPWDIR_%zu", a);
+	snprintf(var, sizeof(var), "PMIX_APP_WDIR_%zu", a);
 	env = envGet(job->env, var);
 	if (!env) {
 	    ulog("broken environment: '%s' missing\n", var);
@@ -526,7 +526,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	ns->apps[a].wdir = ustrdup(env);
 
 	/* set arguments */
-	snprintf(var, sizeof(var), "PMIX_APPARGV_%zu", a);
+	snprintf(var, sizeof(var), "PMIX_APP_ARGV_%zu", a);
 	env = envGet(job->env, var);
 	if (!env) {
 	    ulog("broken environment: '%s' missing\n", var);
@@ -535,7 +535,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	ns->apps[a].args = ustrdup(env);
 
 	/* set optional name defined by the user */
-	snprintf(var, sizeof(var), "PMIX_APPNAME_%zu", a);
+	snprintf(var, sizeof(var), "PMIX_APP_NAME_%zu", a);
 	env = envGet(job->env, var);
 	strncpy(ns->apps[a].name, env ? env : "", MAX_APPNAMELEN);
 

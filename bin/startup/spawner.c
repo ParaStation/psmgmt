@@ -308,21 +308,21 @@ static void setupCommonEnv(Conf_t *conf)
 	}
 
 	snprintf(tmp, sizeof(tmp), "%d", conf->execCount);
-	setPSIEnv("PMIX_APPCOUNT", tmp, 1);
+	setPSIEnv("PMIX_JOB_NUM_APPS", tmp, 1);
 
 	char var[32];
 	for (int i = 0; i < conf->execCount; i++) {
 	    Executable_t *exec = &conf->exec[i];
-	    snprintf(var, sizeof(var), "PMIX_APPSIZE_%d", i);
+	    snprintf(var, sizeof(var), "PMIX_APP_SIZE_%d", i);
 	    snprintf(tmp, sizeof(tmp), "%d", exec->np);
 	    setPSIEnv(var, tmp, 1);
 
-	    snprintf(var, sizeof(var), "PMIX_APPWDIR_%d", i);
+	    snprintf(var, sizeof(var), "PMIX_APP_WDIR_%d", i);
 	    char *dir = PSC_getwd(exec->wdir);
 	    setPSIEnv(var, dir, 1);
 	    free(dir);
 
-	    snprintf(var, sizeof(var), "PMIX_APPARGV_%d", i);
+	    snprintf(var, sizeof(var), "PMIX_APP_ARGV_%d", i);
 	    size_t sum = 1;
 	    for (int j = 0; j < exec->argc; j++) {
 		sum += strlen(exec->argv[j]) + 1;
@@ -337,7 +337,7 @@ static void setupCommonEnv(Conf_t *conf)
 	    free(env);
 
 	    if (exec->psetname) {
-		snprintf(var, sizeof(var), "PMIX_APPNAME_%d", i);
+		snprintf(var, sizeof(var), "PMIX_APP_NAME_%d", i);
 		setPSIEnv(var, exec->psetname, 1);
 	    }
 
@@ -355,7 +355,21 @@ static void setupCommonEnv(Conf_t *conf)
     snprintf(tmp, sizeof(tmp), "%d", conf->np);
     setPSIEnv("PS_JOB_SIZE", tmp, 1);
 
-    if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
+    if (conf->PMIx) {
+	/* set the size of the PMIx job */
+	env = getenv("PMIX_JOB_SIZE");
+	if (!env) {
+	    fprintf(stderr, "\n%s: No PMIX_JOB_SIZE given\n", __func__);
+	    exit(EXIT_FAILURE);
+	}
+	setPSIEnv("PMIX_JOB_SIZE", env, 1);
+
+	/* set PMIx session max procs aka universe size */
+	snprintf(tmp, sizeof(tmp), "%d", conf->uSize);
+	setPSIEnv("PMIX_UNIV_SIZE", tmp, 1);
+    }
+
+    if (conf->pmiTCP || conf->pmiSock) {
 	/* set the init size of the PMI job */
 	env = getenv("PMI_SIZE");
 	if (!env) {
@@ -367,9 +381,7 @@ static void setupCommonEnv(Conf_t *conf)
 	/* set PMI's universe size */
 	snprintf(tmp, sizeof(tmp), "%d", conf->uSize);
 	setPSIEnv("PMI_UNIVERSE_SIZE", tmp, 1);
-    }
 
-    if (conf->pmiTCP || conf->pmiSock) {
 	char *mapping;
 
 	/* propagate PMI auth token */

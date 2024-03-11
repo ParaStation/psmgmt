@@ -931,7 +931,7 @@ static int hookSpawnTask(void *data)
      * or singleton support is configured and np == 1 */
     bool usePMIx = pspmix_common_usePMIx(env);
     if (!usePMIx && !getConfValueI(config, "SUPPORT_MPI_SINGLETON")) return 0;
-    char *jobsize = envGet(env, "PMI_SIZE");
+    char *jobsize = envGet(env, "PMIX_JOB_SIZE");
     if (!usePMIx && (jobsize ? atoi(jobsize) : 1) != 1) return 0;
 
     /* find ParaStation session */
@@ -1012,11 +1012,11 @@ static int hookSpawnTask(void *data)
 	}
 	env = myEnv;
 
-	envSet(env, "PMI_UNIVERSE_SIZE", "1");
-	envSet(env, "PMI_SIZE", "1");
-	envSet(env, "PMIX_APPCOUNT", "1");
-	envSet(env, "PMIX_APPSIZE_0", "1");
-	envSet(env, "PMIX_APPWDIR_0", task->workingdir);
+	envSet(env, "PMIX_UNIV_SIZE", "1");
+	envSet(env, "PMIX_JOB_SIZE", "1");
+	envSet(env, "PMIX_JOB_NUM_APPS", "1");
+	envSet(env, "PMIX_APP_SIZE_0", "1");
+	envSet(env, "PMIX_APP_WDIR_0", task->workingdir);
 	char **argv = task->argv;
 	int argc = task->argc;
 	size_t sum = 1;
@@ -1025,7 +1025,7 @@ static int hookSpawnTask(void *data)
 	char *ptr = str;
 	for (int j = 0; j < argc; j++) ptr += sprintf(ptr, "%s ", argv[j]);
 	*(ptr-1)='\0';
-	envSet(env, "PMIX_APPARGV_0", str);
+	envSet(env, "PMIX_APP_ARGV_0", str);
 	char var[HOST_NAME_MAX + 1];
 	gethostname(var, sizeof(var));
 	envSet(env, "__PMIX_NODELIST", var);

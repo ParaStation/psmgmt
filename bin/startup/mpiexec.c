@@ -50,14 +50,19 @@ static void setupGlobalEnv(Conf_t *conf)
 	exit(EXIT_FAILURE);
     }
 
-    if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
+    if (conf->PMIx) {
+	/* set the size of the job */
+	snprintf(tmp, sizeof(tmp), "%d", conf->np);
+	setPSIEnv("PMIX_JOB_SIZE", tmp, 1);
+	setenv("PMIX_JOB_SIZE", tmp, 1);
+    }
+
+    if (conf->pmiTCP || conf->pmiSock) {
 	/* set the size of the job */
 	snprintf(tmp, sizeof(tmp), "%d", conf->np);
 	setPSIEnv("PMI_SIZE", tmp, 1);
 	setenv("PMI_SIZE", tmp, 1);
-    }
 
-    if (conf->pmiTCP || conf->pmiSock) {
 	/* generate PMI auth token */
 	snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
 	setPSIEnv("PMI_ID", tmp, 1);

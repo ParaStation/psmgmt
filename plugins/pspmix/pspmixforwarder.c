@@ -290,7 +290,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     strv_t env;
     strvInit(&env, task->environ, task->envSize);
     char tmp[64];
-    snprintf(tmp, sizeof(tmp), "PMI_SIZE=%zu", jobsize);
+    snprintf(tmp, sizeof(tmp), "PMIX_JOB_SIZE=%zu", jobsize);
     strvAdd(&env, tmp);
     ufree(task->environ);
     task->environ = env.strings;
@@ -353,7 +353,7 @@ static bool spawnEnvFilter(const char *envent)
 static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
 {
     int usize = 1;
-    char *str = getenv("PMI_UNIVERSE_SIZE");
+    char *str = getenv("PMIX_UNIV_SIZE");
     if (str) {
 	usize = atoi(str);
     }
@@ -987,7 +987,7 @@ static int hookExecForwarder(void *data)
     /* continue only if PMIx support is requested
      * or singleton support is configured and np == 1 */
     bool usePMIx = pspmix_common_usePMIx(env);
-    char *jobsize = envGet(env, "PMI_SIZE");
+    char *jobsize = envGet(env, "PMIX_JOB_SIZE");
     if (!usePMIx && (!getConfValueI(config, "SUPPORT_MPI_SINGLETON")
 		     || (jobsize ? atoi(jobsize) : 1) != 1)) {
 	childTask = NULL;
