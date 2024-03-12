@@ -96,6 +96,19 @@ int PSIDplugin_getNum(void);
 void PSIDplugin_sendList(PStask_ID_t dest);
 
 /**
+ * @brief Get plugin's handle
+ *
+ * Get the identifying handle of the plugin loaded via @a pName. It
+ * might be used as a trigger for further plugins to be loaded.
+ *
+ * @param pName Uniquely identifying name used to load the plugin
+ *
+ * @return If the plugin is found, the identifying handle is returned;
+ * otherwise NULL is returned
+ */
+PSIDplugin_t PSIDplugin_find(char *pName);
+
+/**
  * @brief Get handle on plugin
  *
  * Get a handle on the plugin loaded via @a name. The handle was

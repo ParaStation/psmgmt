@@ -415,18 +415,7 @@ static void printRefList(char *buf, size_t size, list_t *refList)
     }
 }
 
-/**
- * @brief Find plugin
- *
- * Find a plugin by its name @a pName from the list of plugins @ref
- * pluginList.
- *
- * @param pName Name of the plugin to find
- *
- * @return If the plugin was found, a pointer to the describing
- * structure is returned. Or NULL otherwise.
- */
-static PSIDplugin_t findPlugin(char *pName)
+PSIDplugin_t PSIDplugin_find(char *pName)
 {
     if (!pName || ! *pName) return NULL;
 
@@ -543,7 +532,7 @@ static PSIDplugin_t registerPlugin(PSIDplugin_t new)
 {
     PSID_fdbg(PSID_LOG_PLUGIN, "'%s' ver %d\n", new->name, new->version);
 
-    PSIDplugin_t plugin = findPlugin(new->name);
+    PSIDplugin_t plugin = PSIDplugin_find(new->name);
     if (plugin) {
 	PSID_flog("'%s' already registered with version %d\n",
 		  plugin->name, plugin->version);
@@ -623,7 +612,7 @@ static PSIDplugin_t loadPlugin(char *pName, int minVer,
 {
     char filename[PATH_MAX];
 
-    PSIDplugin_t plugin = findPlugin(pName);
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
 
     if (!pName || ! *pName) {
 	PSID_flog("no name given\n");
@@ -804,7 +793,7 @@ void PSIDplugin_sendList(PStask_ID_t dest)
 
 void *PSIDplugin_getHandle(char *pName)
 {
-    PSIDplugin_t plugin = findPlugin(pName);
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
     if (plugin) return plugin->handle;
 
     return NULL;
@@ -1095,7 +1084,7 @@ static PSIDplugin_t findMaxDistPlugin(void)
  */
 static int forceUnloadPlugin(char *pName)
 {
-    PSIDplugin_t plugin = findPlugin(pName);
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
     if (!plugin) return -1;
 
     int rounds = 0;
@@ -1134,7 +1123,7 @@ static int forceUnloadPlugin(char *pName)
 
 int PSIDplugin_finalize(char *pName)
 {
-    PSIDplugin_t plugin = findPlugin(pName);
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
     if (!plugin) return -1;
 
     remTrigger(plugin, plugin);
@@ -1144,7 +1133,7 @@ int PSIDplugin_finalize(char *pName)
 
 int PSIDplugin_unload(char *pName)
 {
-    PSIDplugin_t plugin = findPlugin(pName);
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
     if (!plugin) return -1;
 
     return unloadPlugin(plugin);
@@ -1249,7 +1238,7 @@ static void sendHelp(PStask_ID_t dest, char *buf)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_HELP };
 
-    PSIDplugin_t plugin = findPlugin(pName);
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
 	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
@@ -1285,7 +1274,7 @@ static void handleSetKey(PStask_ID_t dest, char *buf)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_SET };
 
-    PSIDplugin_t plugin = findPlugin(pName);
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
 	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
@@ -1320,7 +1309,7 @@ static void handleUnsetKey(PStask_ID_t dest, char *buf)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_UNSET };
 
-    PSIDplugin_t plugin = findPlugin(pName);
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
 	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
@@ -1357,7 +1346,7 @@ static void handleShowKey(PStask_ID_t dest, char *buf)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_SHOW };
 
-    PSIDplugin_t plugin = findPlugin(pName);
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
 	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
@@ -1412,7 +1401,7 @@ static void handleLoadTime(PStask_ID_t dest, char *pName)
     if (!pName) return;
 
     if (*pName) {
-	PSIDplugin_t plugin = findPlugin(pName);
+	PSIDplugin_t plugin = PSIDplugin_find(pName);
 	if (!plugin) {
 	    char mBuf[sizeof(msg.buf)];
 	    snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: plugin '%s' not found\n",
