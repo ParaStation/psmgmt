@@ -1851,13 +1851,12 @@ static int getSoftArgList(char *soft, int **softList)
  */
 static void addPreputToEnv(int preputc, KVP_t *preputv, strv_t *env)
 {
-    int i;
     char *tmpstr;
 
     snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", preputc);
     strvAdd(env, buffer);
 
-    for (i = 0; i < preputc; i++) {
+    for (int i = 0; i < preputc; i++) {
 	int esize;
 
 	snprintf(buffer, sizeof(buffer), "preput_key_%i", i);
@@ -1888,11 +1887,8 @@ static void addPreputToEnv(int preputc, KVP_t *preputv, strv_t *env)
 static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 {
     SingleSpawn_t *spawn;
-    KVP_t *info;
-    strv_t args, env;
+    strv_t env;
     bool noParricide = false;
-    char *tmpStr;
-    int i, j;
 
     spawn = &(req->spawns[0]);
 
@@ -1913,9 +1909,10 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     /* build arguments:
      * mpiexec -u <UNIVERSE_SIZE> -np <NP> -d <WDIR> -p <PATH> \
      *  --nodetype=<NODETYPE> --tpp=<TPP> <BINARY> ... */
+    strv_t args;
     strvInit(&args, NULL, 0);
 
-    tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
+    char *tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
     if (tmpStr) {
 	strvAdd(&args, tmpStr);
     } else {
@@ -1926,9 +1923,11 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     snprintf(buffer, sizeof(buffer), "%d", usize);
     strvAdd(&args, buffer);
 
-    for (i = 0; i < req->num; i++) {
-
+    for (int i = 0; i < req->num; i++) {
 	spawn = &(req->spawns[i]);
+
+	/* add separating colon */
+	if (i) strvAdd(&args, ":");
 
 	/* set the number of processes to spawn */
 	strvAdd(&args, "-np");
@@ -1963,8 +1962,8 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	 *		+ 0:8:2,7 means 0,2,4,6,7,8
 	 *		+ 0:2 means 0,1,2
 	 */
-	for (j = 0; j < spawn->infoc; j++) {
-	    info = &(spawn->infov[j]);
+	for (int j = 0; j < spawn->infoc; j++) {
+	    KVP_t *info = &(spawn->infov[j]);
 
 	    if (!strcmp(info->key, "wdir")) {
 		strvAdd(&args, "-d");
@@ -2009,14 +2008,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	}
 
 	/* add binary and argument from spawn request */
-	for (j = 0; j < spawn->argc; j++) {
-	    strvAdd(&args, spawn->argv[j]);
-	}
-
-	/* add separating colon */
-	if (i < req->num - 1) {
-	    strvAdd(&args, ":");
-	}
+	for (int j = 0; j < spawn->argc; j++) strvAdd(&args, spawn->argv[j]);
     }
 
     task->argv = args.strings;
