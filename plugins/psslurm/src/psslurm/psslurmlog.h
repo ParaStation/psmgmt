@@ -29,6 +29,8 @@ extern FILE *psslurmlogfile;
 	logger_funcprint(psslurmlogger, __func__, -1, __VA_ARGS__)
 #define fdbg(key, ...) if (psslurmlogger)				\
 	logger_funcprint(psslurmlogger, __func__, key, __VA_ARGS__)
+#define fwarn(...) if (psslurmlogger)					\
+	logger_funcwarn(psslurmlogger, __func__, -1, __VA_ARGS__)
 
 void initLogger(char *name, FILE *logfile);
 void maskLogger(int32_t mask);
