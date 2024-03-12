@@ -254,10 +254,9 @@ static void putRef(plugin_ref_t *ref) {
  */
 static plugin_ref_t * findRef(list_t *refList, plugin_t *plugin)
 {
-    list_t *t;
-
     if (!refList || !plugin) return NULL;
 
+    list_t *t;
     list_for_each(t, refList) {
 	plugin_ref_t *ref = list_entry(t, plugin_ref_t, next);
 
@@ -340,12 +339,9 @@ static plugin_t * remRef(list_t *refList, plugin_t *plugin)
  */
 static plugin_t * remTrigger(plugin_t *plugin, plugin_t *trigger)
 {
-    plugin_t *removed;
-
     if (!plugin || !trigger) return NULL;
 
-    removed = remRef(&plugin->triggers, trigger);
-
+    plugin_t *removed = remRef(&plugin->triggers, trigger);
     if (!removed) {
 	PSID_fdbg(plugin == trigger ? PSID_LOG_PLUGIN : -1,
 		  "trigger '%s' not found in '%s'\n",
@@ -373,11 +369,9 @@ static plugin_t * remTrigger(plugin_t *plugin, plugin_t *trigger)
  */
 static plugin_t * remDepend(plugin_t *plugin, plugin_t *depend)
 {
-    plugin_t *removed;
-
     if (!plugin || !depend) return NULL;
 
-    removed = remRef(&plugin->depends, depend);
+    plugin_t *removed = remRef(&plugin->depends, depend);
     if (!removed) {
 	PSID_flog("dependency '%s' not found in '%s'\n",
 		  depend->name, plugin->name);
@@ -434,10 +428,9 @@ static void printRefList(char *buf, size_t size, list_t *refList)
  */
 static plugin_t * findPlugin(char *pName)
 {
-    list_t *p;
-
     if (!pName || ! *pName) return NULL;
 
+    list_t *p;
     list_for_each(p, &pluginList) {
 	plugin_t *plugin = list_entry(p, plugin_t, next);
 
@@ -465,11 +458,9 @@ static plugin_t * findPlugin(char *pName)
  */
 static plugin_t * newPlugin(void *handle, char *pName, int pVer)
 {
-    plugin_t *plugin;
-
     PSID_fdbg(PSID_LOG_PLUGIN, "(%p, %s, %d)\n", handle, pName, pVer);
 
-    plugin = malloc(sizeof(*plugin));
+    plugin_t *plugin = malloc(sizeof(*plugin));
     if (!plugin) {
 	PSID_fwarn(errno, "malloc()");
 	return NULL;
@@ -550,9 +541,9 @@ static void delPlugin(plugin_t *plugin)
  */
 static plugin_t * registerPlugin(plugin_t * new)
 {
-    plugin_t *plugin = findPlugin(new->name);
-
     PSID_fdbg(PSID_LOG_PLUGIN, "'%s' ver %d\n", new->name, new->version);
+
+    plugin_t *plugin = findPlugin(new->name);
     if (plugin) {
 	PSID_flog("'%s' already registered with version %d\n",
 		  plugin->name, plugin->version);
@@ -580,12 +571,11 @@ void PSIDplugin_setUnloadTmout(int tmout)
 
 int PSIDplugin_getNum(void)
 {
-    list_t *p;
     int num = 0;
 
+    list_t *p;
     list_for_each(p, &pluginList) {
 	plugin_t *plugin = list_entry(p, plugin_t, next);
-
 	if (!plugin->unload) num++;
     }
 
@@ -631,13 +621,7 @@ int PSIDplugin_getNum(void)
 static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger,
 			     FILE *logfile)
 {
-    char filename[PATH_MAX], *instDir;
-    void *handle = NULL;
-
-    int *plugin_reqAPI = NULL;
-    char *plugin_name = NULL;
-    int *plugin_version = NULL;
-    plugin_dep_t *plugin_deps = NULL;
+    char filename[PATH_MAX];
 
     plugin_t *plugin = findPlugin(pName);
 
@@ -670,24 +654,24 @@ static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger,
 	return plugin;
     }
 
-    instDir = getenv("PSID_PLUGIN_PATH");
+    char *instDir = getenv("PSID_PLUGIN_PATH");
     if (!instDir) instDir = PSC_lookupInstalldir(NULL);
     if (!instDir) {
 	PSID_flog("installation directory not found\n");
 	return NULL;
     }
     snprintf(filename, sizeof(filename), "%s/plugins/%s.so", instDir, pName);
-    handle = dlopen(filename, RTLD_NOW);
+    void *handle = dlopen(filename, RTLD_NOW);
 
     if (!handle) {
 	PSID_flog("dlopen(%s) failed: %s\n", filename, dlerror());
 	return NULL;
     }
 
-    plugin_reqAPI = dlsym(handle, "requiredAPI");
-    plugin_name = dlsym(handle, "name");
-    plugin_version = dlsym(handle, "version");
-    plugin_deps = dlsym(handle, "dependencies");
+    int *plugin_reqAPI = dlsym(handle, "requiredAPI");
+    char *plugin_name = dlsym(handle, "name");
+    int *plugin_version = dlsym(handle, "version");
+    plugin_dep_t *plugin_deps = dlsym(handle, "dependencies");
 
     if (!plugin_reqAPI) {
 	PSID_fdbg(PSID_LOG_PLUGIN, "any API accepted\n");
@@ -734,10 +718,10 @@ static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger,
     if (plugin_deps) {
 	plugin_dep_t *deps = plugin_deps;
 	while (deps->name) {
-	    plugin_t *d;
 	    PSID_fdbg(PSID_LOG_PLUGIN, "  requires '%s' version %d\n",
 		      deps->name, deps->version);
-	    d = loadPlugin(deps->name, deps->version, plugin, logfile);
+	    plugin_t *d = loadPlugin(deps->name, deps->version, plugin,
+					     logfile);
 	    if (!d || addRef(&plugin->depends, d) < 0) {
 		plugin->finalized = true;
 		unloadPlugin(plugin);
@@ -821,7 +805,6 @@ void PSIDplugin_sendList(PStask_ID_t dest)
 void *PSIDplugin_getHandle(char *pName)
 {
     plugin_t *plugin = findPlugin(pName);
-
     if (plugin) return plugin->handle;
 
     return NULL;
@@ -977,8 +960,6 @@ static bool depLoopDetect = false;
  */
 static int walkDepGraph(plugin_t *plugin, int distance)
 {
-    list_t *t;
-
     if (!plugin) return -1;
 
     PSID_fdbg(PSID_LOG_PLUGIN, "(%s, %d)\n", plugin->name, distance);
@@ -1029,6 +1010,7 @@ static int walkDepGraph(plugin_t *plugin, int distance)
 	return 0;
     } else {
 	bool cleared = true;
+	list_t *t;
 	list_for_each(t, &plugin->triggers) {
 	    plugin_ref_t *ref = list_entry(t, plugin_ref_t, next);
 
@@ -1064,8 +1046,8 @@ static int walkDepGraph(plugin_t *plugin, int distance)
 static plugin_t *findMaxDistPlugin(void)
 {
     plugin_t *maxDist = NULL;
-    list_t *p;
 
+    list_t *p;
     list_for_each(p, &pluginList) {
 	plugin_t *plugin = list_entry(p, plugin_t, next);
 	PSID_fdbg(PSID_LOG_PLUGIN, "%s dist %d cleared %d\n",
@@ -1114,10 +1096,9 @@ static plugin_t *findMaxDistPlugin(void)
 static int forceUnloadPlugin(char *pName)
 {
     plugin_t *plugin = findPlugin(pName);
-    int rounds = 0;
-
     if (!plugin) return -1;
 
+    int rounds = 0;
     do {
 	depLoopDetect = false;
 
@@ -1125,13 +1106,12 @@ static int forceUnloadPlugin(char *pName)
 
 	if (depLoopDetect) {
 	    plugin_t *victim = findMaxDistPlugin();
-	    list_t *t, *tmp;
-
 	    if (!victim) {
 		PSID_flog("no victim found despite of loop\n");
 		return -1;
 	    }
 
+	    list_t *t, *tmp;
 	    PSID_flog("kick out victim '%s' (distance %d) forcefully\n",
 		      victim->name, victim->distance);
 
@@ -1155,7 +1135,6 @@ static int forceUnloadPlugin(char *pName)
 int PSIDplugin_finalize(char *pName)
 {
     plugin_t *plugin = findPlugin(pName);
-
     if (!plugin) return -1;
 
     remTrigger(plugin, plugin);
@@ -1166,7 +1145,6 @@ int PSIDplugin_finalize(char *pName)
 int PSIDplugin_unload(char *pName)
 {
     plugin_t *plugin = findPlugin(pName);
-
     if (!plugin) return -1;
 
     return unloadPlugin(plugin);
@@ -1175,7 +1153,6 @@ int PSIDplugin_unload(char *pName)
 void PSIDplugin_forceUnloadAll(void)
 {
     list_t *p;
-
     list_for_each(p, &pluginList) {
 	plugin_t *plugin = list_entry(p, plugin_t, next);
 
@@ -1187,10 +1164,9 @@ void PSIDplugin_forceUnloadAll(void)
 
 static void sendStr(DDTypedBufferMsg_t *msg, char *str, const char *caller)
 {
-    bool first = true;
-
     if (!str) return;
 
+    bool first = true;
     while (*str || first) {
 	size_t num = MIN(strlen(str), sizeof(msg->buf) - 1);
 
@@ -1263,7 +1239,8 @@ end:
 static void sendHelp(PStask_ID_t dest, char *buf)
 {
     char *pName = buf, *key = pName + PSP_strLen(pName);
-    plugin_t *plugin = findPlugin(pName);
+    if (! *key) key = NULL;
+
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_CD_PLUGINRES,
@@ -1272,8 +1249,7 @@ static void sendHelp(PStask_ID_t dest, char *buf)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_HELP };
 
-    if (! *key) key = NULL;
-
+    plugin_t *plugin = findPlugin(pName);
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
 	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
@@ -1301,7 +1277,6 @@ static void handleSetKey(PStask_ID_t dest, char *buf)
 {
     char *pName = buf, *key = pName + PSP_strLen(pName);
     char *val = key + PSP_strLen(key);
-    plugin_t *plugin = findPlugin(pName);
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_CD_PLUGINRES,
@@ -1310,7 +1285,7 @@ static void handleSetKey(PStask_ID_t dest, char *buf)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_SET };
 
-
+    plugin_t *plugin = findPlugin(pName);
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
 	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
@@ -1337,7 +1312,6 @@ static void handleSetKey(PStask_ID_t dest, char *buf)
 static void handleUnsetKey(PStask_ID_t dest, char *buf)
 {
     char *pName = buf, *key = pName + PSP_strLen(pName);
-    plugin_t *plugin = findPlugin(pName);
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_CD_PLUGINRES,
@@ -1346,6 +1320,7 @@ static void handleUnsetKey(PStask_ID_t dest, char *buf)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_UNSET };
 
+    plugin_t *plugin = findPlugin(pName);
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
 	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
@@ -1372,7 +1347,8 @@ static void handleUnsetKey(PStask_ID_t dest, char *buf)
 static void handleShowKey(PStask_ID_t dest, char *buf)
 {
     char *pName = buf, *key = pName + PSP_strLen(pName);
-    plugin_t *plugin = findPlugin(pName);
+    if (! *key) key=NULL;
+
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_CD_PLUGINRES,
@@ -1381,8 +1357,7 @@ static void handleShowKey(PStask_ID_t dest, char *buf)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_SHOW };
 
-    if (! *key) key=NULL;
-
+    plugin_t *plugin = findPlugin(pName);
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
 	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
@@ -1438,7 +1413,6 @@ static void handleLoadTime(PStask_ID_t dest, char *pName)
 
     if (*pName) {
 	plugin_t *plugin = findPlugin(pName);
-
 	if (!plugin) {
 	    char mBuf[sizeof(msg.buf)];
 	    snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: plugin '%s' not found\n",
@@ -1610,9 +1584,6 @@ static bool drop_PLUGIN(DDBufferMsg_t *msg)
  */
 static int doUnload(plugin_t *plugin)
 {
-    char line[80];
-    list_t *d, *tmp;
-
     if (!plugin || !plugin->handle) return 0;
 
     PSID_fdbg(PSID_LOG_PLUGIN, "%s\n", plugin->name);
@@ -1623,12 +1594,14 @@ static int doUnload(plugin_t *plugin)
     }
 
     if (!list_empty(&plugin->triggers)) {
+	char line[80];
 	printRefList(line, sizeof(line), &plugin->triggers);
 	PSID_flog("'%s' still triggered by: %s\n", plugin->name, line);
 	return 0;
     }
 
     /* Remove triggers from plugins we depend on */
+    list_t *d, *tmp;
     list_for_each_safe(d, tmp, &plugin->depends) {
 	plugin_ref_t *ref = list_entry(d, plugin_ref_t, next);
 
@@ -1671,7 +1644,6 @@ static void handlePlugins(void)
 
     list_for_each_safe(p, tmp, &pluginList) {
 	plugin_t *plugin = list_entry(p, plugin_t, next);
-
 	if (plugin->finalized && (timerisset(&plugin->grace)
 				  && timercmp(&now, &plugin->grace, >))) {
 	    PSID_fdbg(PSID_LOG_PLUGIN, "finalize() timed out for %s\n",
