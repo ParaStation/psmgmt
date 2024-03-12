@@ -221,7 +221,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	close(iofds[1]);
 
 	/* Cleanup all unneeded memory */
-	PSID_clearMem(false);
+	if (PSC_isDaemon()) PSID_clearMem(false);
 
 	int32_t ret = 0;
 	if (func) {
