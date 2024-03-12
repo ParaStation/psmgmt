@@ -137,16 +137,9 @@ PStask_t* initSpawnTask(PStask_t *spawner, bool filter(const char*))
     }
 
     /* build environment */
-    strv_t env;
-    strvInit(&env, NULL, 0);
-    for (int i = 0; spawner->environ[i]; i++) {
-	char *cur = spawner->environ[i];
-
-	if (!filter(cur)) continue;
-	strvAdd(&env, cur);
-    }
-    task->environ = env.strings;
-    task->envSize = env.count;
+    env_t env = envConstruct(spawner->environ, filter);
+    task->envSize = envSize(env);
+    task->environ = envStealArray(env);
 
     return task;
 }

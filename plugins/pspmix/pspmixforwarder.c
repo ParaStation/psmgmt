@@ -287,14 +287,14 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     task->noParricide = noParricide;
 
     /* update environment */
-    strv_t env;
-    strvInit(&env, task->environ, task->envSize);
+    env_t env = envNew(task->environ);
+
     char tmp[64];
     snprintf(tmp, sizeof(tmp), "PMIX_JOB_SIZE=%zu", jobsize);
-    strvAdd(&env, tmp);
-    ufree(task->environ);
-    task->environ = env.strings;
-    task->envSize = env.count;
+    envPut(env, tmp);
+
+    task->envSize = envSize(env);
+    task->environ = envStealArray(env);
 
     return 1;
 }
@@ -392,35 +392,32 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     }
 
     /* add additional env vars */
-    strv_t env;
-    strvInit(&env, task->environ, task->envSize);
+    env_t env = envNew(task->environ);
 
     /* tell the spawnees the spawn id */
     char tmp[28+PMIX_MAX_NSLEN];
     snprintf(tmp, sizeof(tmp), "PMIX_SPAWNID=%d", srdata->spawnID);
-    strvAdd(&env, tmp);
+    envPut(env, tmp);
 
     /* tell the spawnees our tid (that of the forwarder) */
     snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_FWTID=%d", PSC_getMyTID());
-    strvAdd(&env, tmp);
+    envPut(env, tmp);
 
     /* tell the spawnees the namespace of the spawner (=> PMIX_PARENT_ID) */
     snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_NSPACE=%s",
 	     srdata->pnspace);
-    strvAdd(&env, tmp);
+    envPut(env, tmp);
 
     /* tell the spawnees the rank of the spawner (=> PMIX_PARENT_ID) */
     snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_RANK=%d", srdata->prank);
-    strvAdd(&env, tmp);
+    envPut(env, tmp);
 
     /* tell the service rank to the kvsprovider    @todo why - 3 */
     snprintf(tmp, sizeof(tmp), "__PMI_SPAWN_SERVICE_RANK=%d", serviceRank - 3);
-    strvAdd(&env, tmp);
+    envPut(env, tmp);
 
-    ufree(task->environ);
-    task->environ = env.strings;
-    task->envSize = env.count;
-    strvStealArray(&env);
+    task->envSize = envSize(env);
+    task->environ = envStealArray(env);
 
     if (debug) {
 	elog("%s(r%i): Executing '%s", __func__, rank, task->argv[0]);
