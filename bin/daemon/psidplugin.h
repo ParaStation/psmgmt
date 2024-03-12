@@ -109,17 +109,16 @@ void PSIDplugin_sendList(PStask_ID_t dest);
 PSIDplugin_t PSIDplugin_find(char *pName);
 
 /**
- * @brief Get handle on plugin
+ * @brief Get plugin's DL handle
  *
- * Get a handle on the plugin loaded via @a name. The handle was
+ * Get the DL handle of the plugin loaded via @a name. The handle was
  * returned by dlopen() while the plugin was loaded. It might be used
  * in order to resolve additional symbols exposed by the plugin.
  *
- * @param name The name used to load the plugin. Each plugin can be
- * uniquely identified by its name.
+ * @param name Name used to load the plugin and uniquely identifying it
  *
  * @return If the plugin is found, the handle as returned by dlopen()
- * while loading the plugin is returned. Otherwise NULL is returned.
+ * while loading the plugin is returned; otherwise NULL is returned
  */
 void *PSIDplugin_getHandle(char *name);
 
