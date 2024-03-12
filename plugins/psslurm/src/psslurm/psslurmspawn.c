@@ -288,9 +288,8 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     addSpawnPreputToEnv(spawn->preputc, spawn->preputv, env);
 
     /* replace task environment */
-    task->environ = envGetArray(env);
     task->envSize = envSize(env);
-    envStealArray(env);
+    task->environ = envStealArray(env);
 
     if (req->num == 1) {
 	return fillCmdForSingleSpawn(req, usize, task);

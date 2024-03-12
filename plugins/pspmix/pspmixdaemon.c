@@ -894,10 +894,8 @@ static int hookRecvSpawnReq(void *data)
 	envPut(env, strdup("__USE_PMIX=1")); /* for pspmix_common_usePMIx() */
     }
 
-    prototask->environ = envGetArray(env);
     prototask->envSize = envSize(env);
-
-    envStealArray(env);
+    prototask->environ = envStealArray(env);
 
     return 0;
 }
