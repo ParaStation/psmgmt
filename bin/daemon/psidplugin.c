@@ -40,7 +40,7 @@ typedef char *setFunc_t(char *key, char *value);
 typedef char *keyFunc_t(char *key);
 
 /** Structure holding all information concerning a plugin */
-typedef struct {
+struct PSIDplugin {
     list_t next;             /**< Used to put into @ref pluginList */
     list_t triggers;         /**< List of plugins triggering this one */
     list_t depends;          /**< List of plugins this one depends on */
@@ -60,15 +60,15 @@ typedef struct {
     bool unload;             /**< Flag plugin to become unloaded */
     struct timeval load;     /**< Time when plugin was loaded */
     struct timeval grace;    /**< Grace period before forcefully unload */
-} plugin_t;
+};
 
 /**
  * Structure used to create @a trigger and @a depends members of @ref
- * plugin_t
+ * PSIDplugin_t
  */
 typedef struct {
-    plugin_t * plugin; /**< Corresponding plugin added to the list */
-    list_t next;       /**< Actual list entry */
+    PSIDplugin_t plugin; /**< Corresponding plugin added to the list */
+    list_t next;         /**< Actual list entry */
 } plugin_ref_t;
 
 /** List of plugins currently loaded */
@@ -178,8 +178,8 @@ static int unloadTimeout = 4;
 /** logfile to be used by all plugins (unless they decide otherwise) */
 static FILE *pluginLogfile = NULL;
 
-static int finalizePlugin(plugin_t * plugin);
-static int unloadPlugin(plugin_t * plugin);
+static int finalizePlugin(PSIDplugin_t plugin);
+static int unloadPlugin(PSIDplugin_t plugin);
 
 /** List of unused plugin-references */
 static LIST_HEAD(refFreeList);
@@ -252,7 +252,7 @@ static void putRef(plugin_ref_t *ref) {
  * @return Return the reference to the plugin plugin, if it is found
  * within the list. Otherwise NULL is given back.
  */
-static plugin_ref_t * findRef(list_t *refList, plugin_t *plugin)
+static plugin_ref_t * findRef(list_t *refList, PSIDplugin_t plugin)
 {
     if (!refList || !plugin) return NULL;
 
@@ -280,7 +280,7 @@ static plugin_ref_t * findRef(list_t *refList, plugin_t *plugin)
  * reference to @a plugin was already registered, 0 is given back. Or
  * -1 in case of an error.
  */
-static int addRef(list_t *refList, plugin_t *plugin)
+static int addRef(list_t *refList, PSIDplugin_t plugin)
 {
     if (findRef(refList, plugin)) return 0;
 
@@ -309,7 +309,7 @@ static int addRef(list_t *refList, plugin_t *plugin)
  * @return On success, the removed plugin is returned. Or NULL, if
  * the reference to @a plugin was not found in the list.
  */
-static plugin_t * remRef(list_t *refList, plugin_t *plugin)
+static PSIDplugin_t remRef(list_t *refList, PSIDplugin_t plugin)
 {
     plugin_ref_t *ref = findRef(refList, plugin);
 
@@ -337,11 +337,11 @@ static plugin_t * remRef(list_t *refList, plugin_t *plugin)
  * @return On success, the removed trigger is returned. Or NULL, if
  * the triggering plugin was not found in the list.
  */
-static plugin_t * remTrigger(plugin_t *plugin, plugin_t *trigger)
+static PSIDplugin_t remTrigger(PSIDplugin_t plugin, PSIDplugin_t trigger)
 {
     if (!plugin || !trigger) return NULL;
 
-    plugin_t *removed = remRef(&plugin->triggers, trigger);
+    PSIDplugin_t removed = remRef(&plugin->triggers, trigger);
     if (!removed) {
 	PSID_fdbg(plugin == trigger ? PSID_LOG_PLUGIN : -1,
 		  "trigger '%s' not found in '%s'\n",
@@ -367,11 +367,11 @@ static plugin_t * remTrigger(plugin_t *plugin, plugin_t *trigger)
  * @return On success, the removed dependency is returned. Or NULL, if
  * the depending plugin was not found in the list.
  */
-static plugin_t * remDepend(plugin_t *plugin, plugin_t *depend)
+static PSIDplugin_t remDepend(PSIDplugin_t plugin, PSIDplugin_t depend)
 {
     if (!plugin || !depend) return NULL;
 
-    plugin_t *removed = remRef(&plugin->depends, depend);
+    PSIDplugin_t removed = remRef(&plugin->depends, depend);
     if (!removed) {
 	PSID_flog("dependency '%s' not found in '%s'\n",
 		  depend->name, plugin->name);
@@ -426,13 +426,13 @@ static void printRefList(char *buf, size_t size, list_t *refList)
  * @return If the plugin was found, a pointer to the describing
  * structure is returned. Or NULL otherwise.
  */
-static plugin_t * findPlugin(char *pName)
+static PSIDplugin_t findPlugin(char *pName)
 {
     if (!pName || ! *pName) return NULL;
 
     list_t *p;
     list_for_each(p, &pluginList) {
-	plugin_t *plugin = list_entry(p, plugin_t, next);
+	PSIDplugin_t plugin = list_entry(p, struct PSIDplugin, next);
 
 	if (!strcmp(pName, plugin->name)) return plugin;
     }
@@ -456,11 +456,11 @@ static plugin_t * findPlugin(char *pName)
  * @return Return the newly created structure, or NULL, if some error
  * occurred.
  */
-static plugin_t * newPlugin(void *handle, char *pName, int pVer)
+static PSIDplugin_t newPlugin(void *handle, char *pName, int pVer)
 {
     PSID_fdbg(PSID_LOG_PLUGIN, "(%p, %s, %d)\n", handle, pName, pVer);
 
-    plugin_t *plugin = malloc(sizeof(*plugin));
+    PSIDplugin_t plugin = malloc(sizeof(*plugin));
     if (!plugin) {
 	PSID_fwarn(errno, "malloc()");
 	return NULL;
@@ -505,7 +505,7 @@ static plugin_t * newPlugin(void *handle, char *pName, int pVer)
  *
  * @return No return value.
  */
-static void delPlugin(plugin_t *plugin)
+static void delPlugin(PSIDplugin_t plugin)
 {
     char line[80];
 
@@ -539,11 +539,11 @@ static void delPlugin(plugin_t *plugin)
  * pointer to this plugin is given back. If the new plugin @a new is
  * registered successfully, NULL is returned.
  */
-static plugin_t * registerPlugin(plugin_t * new)
+static PSIDplugin_t registerPlugin(PSIDplugin_t new)
 {
     PSID_fdbg(PSID_LOG_PLUGIN, "'%s' ver %d\n", new->name, new->version);
 
-    plugin_t *plugin = findPlugin(new->name);
+    PSIDplugin_t plugin = findPlugin(new->name);
     if (plugin) {
 	PSID_flog("'%s' already registered with version %d\n",
 		  plugin->name, plugin->version);
@@ -575,7 +575,7 @@ int PSIDplugin_getNum(void)
 
     list_t *p;
     list_for_each(p, &pluginList) {
-	plugin_t *plugin = list_entry(p, plugin_t, next);
+	PSIDplugin_t plugin = list_entry(p, struct PSIDplugin, next);
 	if (!plugin->unload) num++;
     }
 
@@ -618,12 +618,12 @@ int PSIDplugin_getNum(void)
  * structure describing the plugin is given back. Or NULL, if the
  * plugin could not be loaded.
  */
-static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger,
-			     FILE *logfile)
+static PSIDplugin_t loadPlugin(char *pName, int minVer,
+			     PSIDplugin_t trigger, FILE *logfile)
 {
     char filename[PATH_MAX];
 
-    plugin_t *plugin = findPlugin(pName);
+    PSIDplugin_t plugin = findPlugin(pName);
 
     if (!pName || ! *pName) {
 	PSID_flog("no name given\n");
@@ -720,7 +720,7 @@ static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger,
 	while (deps->name) {
 	    PSID_fdbg(PSID_LOG_PLUGIN, "  requires '%s' version %d\n",
 		      deps->name, deps->version);
-	    plugin_t *d = loadPlugin(deps->name, deps->version, plugin,
+	    PSIDplugin_t d = loadPlugin(deps->name, deps->version, plugin,
 					     logfile);
 	    if (!d || addRef(&plugin->depends, d) < 0) {
 		plugin->finalized = true;
@@ -764,7 +764,7 @@ void PSIDplugin_sendList(PStask_ID_t dest)
 
     list_t *p;
     list_for_each(p, &pluginList) {
-	plugin_t *plugin = list_entry(p, plugin_t, next);
+	PSIDplugin_t plugin = list_entry(p, struct PSIDplugin, next);
 	size_t len;
 
 	if (plugin->unload) continue;
@@ -804,7 +804,7 @@ void PSIDplugin_sendList(PStask_ID_t dest)
 
 void *PSIDplugin_getHandle(char *pName)
 {
-    plugin_t *plugin = findPlugin(pName);
+    PSIDplugin_t plugin = findPlugin(pName);
     if (plugin) return plugin->handle;
 
     return NULL;
@@ -830,7 +830,7 @@ void *PSIDplugin_getHandle(char *pName)
  * @return If @a plugin is NULL, -1 is returned. Otherwise 0 is
  * returned.
  */
-static int unloadPlugin(plugin_t *plugin)
+static int unloadPlugin(PSIDplugin_t plugin)
 {
     if (!plugin) return -1;
 
@@ -883,7 +883,7 @@ static int unloadPlugin(plugin_t *plugin)
  * @return If @a plugin is NULL, -1 is returned. Otherwise 0 is
  * returned.
  */
-static int finalizePlugin(plugin_t *plugin)
+static int finalizePlugin(PSIDplugin_t plugin)
 {
     if (!plugin) return -1;
 
@@ -958,7 +958,7 @@ static bool depLoopDetect = false;
  * @return If @a plugin is not defined, -1 is returned. Otherwise 0 is
  * returned.
  */
-static int walkDepGraph(plugin_t *plugin, int distance)
+static int walkDepGraph(PSIDplugin_t plugin, int distance)
 {
     if (!plugin) return -1;
 
@@ -1043,13 +1043,13 @@ static int walkDepGraph(plugin_t *plugin, int distance)
  * plugin not yet cleared. If no plugin is connected to the original
  * plugin or all such plugins are already cleared NULL is returned.
  */
-static plugin_t *findMaxDistPlugin(void)
+static PSIDplugin_t findMaxDistPlugin(void)
 {
-    plugin_t *maxDist = NULL;
+    PSIDplugin_t maxDist = NULL;
 
     list_t *p;
     list_for_each(p, &pluginList) {
-	plugin_t *plugin = list_entry(p, plugin_t, next);
+	PSIDplugin_t plugin = list_entry(p, struct PSIDplugin, next);
 	PSID_fdbg(PSID_LOG_PLUGIN, "%s dist %d cleared %d\n",
 		  plugin->name, plugin->distance, plugin->cleared);
 	if (plugin->distance && !plugin->cleared
@@ -1095,7 +1095,7 @@ static plugin_t *findMaxDistPlugin(void)
  */
 static int forceUnloadPlugin(char *pName)
 {
-    plugin_t *plugin = findPlugin(pName);
+    PSIDplugin_t plugin = findPlugin(pName);
     if (!plugin) return -1;
 
     int rounds = 0;
@@ -1105,7 +1105,7 @@ static int forceUnloadPlugin(char *pName)
 	walkDepGraph(plugin, 1);
 
 	if (depLoopDetect) {
-	    plugin_t *victim = findMaxDistPlugin();
+	    PSIDplugin_t victim = findMaxDistPlugin();
 	    if (!victim) {
 		PSID_flog("no victim found despite of loop\n");
 		return -1;
@@ -1134,7 +1134,7 @@ static int forceUnloadPlugin(char *pName)
 
 int PSIDplugin_finalize(char *pName)
 {
-    plugin_t *plugin = findPlugin(pName);
+    PSIDplugin_t plugin = findPlugin(pName);
     if (!plugin) return -1;
 
     remTrigger(plugin, plugin);
@@ -1144,7 +1144,7 @@ int PSIDplugin_finalize(char *pName)
 
 int PSIDplugin_unload(char *pName)
 {
-    plugin_t *plugin = findPlugin(pName);
+    PSIDplugin_t plugin = findPlugin(pName);
     if (!plugin) return -1;
 
     return unloadPlugin(plugin);
@@ -1154,7 +1154,7 @@ void PSIDplugin_forceUnloadAll(void)
 {
     list_t *p;
     list_for_each(p, &pluginList) {
-	plugin_t *plugin = list_entry(p, plugin_t, next);
+	PSIDplugin_t plugin = list_entry(p, struct PSIDplugin, next);
 
 	if (timerisset(&plugin->grace) || plugin->unload) continue;
 
@@ -1249,7 +1249,7 @@ static void sendHelp(PStask_ID_t dest, char *buf)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_HELP };
 
-    plugin_t *plugin = findPlugin(pName);
+    PSIDplugin_t plugin = findPlugin(pName);
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
 	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
@@ -1285,7 +1285,7 @@ static void handleSetKey(PStask_ID_t dest, char *buf)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_SET };
 
-    plugin_t *plugin = findPlugin(pName);
+    PSIDplugin_t plugin = findPlugin(pName);
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
 	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
@@ -1320,7 +1320,7 @@ static void handleUnsetKey(PStask_ID_t dest, char *buf)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_UNSET };
 
-    plugin_t *plugin = findPlugin(pName);
+    PSIDplugin_t plugin = findPlugin(pName);
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
 	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
@@ -1357,7 +1357,7 @@ static void handleShowKey(PStask_ID_t dest, char *buf)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_SHOW };
 
-    plugin_t *plugin = findPlugin(pName);
+    PSIDplugin_t plugin = findPlugin(pName);
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
 	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
@@ -1381,7 +1381,7 @@ static void handleShowKey(PStask_ID_t dest, char *buf)
     sendStr(&msg, "", __func__);
 }
 
-static void sendLoadTime(PStask_ID_t dest, plugin_t *plugin)
+static void sendLoadTime(PStask_ID_t dest, PSIDplugin_t plugin)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -1412,7 +1412,7 @@ static void handleLoadTime(PStask_ID_t dest, char *pName)
     if (!pName) return;
 
     if (*pName) {
-	plugin_t *plugin = findPlugin(pName);
+	PSIDplugin_t plugin = findPlugin(pName);
 	if (!plugin) {
 	    char mBuf[sizeof(msg.buf)];
 	    snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: plugin '%s' not found\n",
@@ -1424,9 +1424,8 @@ static void handleLoadTime(PStask_ID_t dest, char *pName)
 	}
     } else {
 	list_t *p;
-
 	list_for_each(p, &pluginList) {
-	    plugin_t *plugin = list_entry(p, plugin_t, next);
+	    PSIDplugin_t plugin = list_entry(p, struct PSIDplugin, next);
 
 	    sendLoadTime(dest, plugin);
 	}
@@ -1582,7 +1581,7 @@ static bool drop_PLUGIN(DDBufferMsg_t *msg)
  * unloaded, 1 is returned. Or 0, if some error occurred. In the
  * latter case the plugin might still be loaded.
  */
-static int doUnload(plugin_t *plugin)
+static int doUnload(PSIDplugin_t plugin)
 {
     if (!plugin || !plugin->handle) return 0;
 
@@ -1643,7 +1642,7 @@ static void handlePlugins(void)
     gettimeofday(&now, NULL);
 
     list_for_each_safe(p, tmp, &pluginList) {
-	plugin_t *plugin = list_entry(p, plugin_t, next);
+	PSIDplugin_t plugin = list_entry(p, struct PSIDplugin, next);
 	if (plugin->finalized && (timerisset(&plugin->grace)
 				  && timercmp(&now, &plugin->grace, >))) {
 	    PSID_fdbg(PSID_LOG_PLUGIN, "finalize() timed out for %s\n",

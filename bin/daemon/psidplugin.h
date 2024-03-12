@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,9 @@
 #include <stdio.h>
 
 #include "pstask.h"
+
+/** Handle to uniquely identifying a loaded plugin */
+typedef struct PSIDplugin * PSIDplugin_t;
 
 /**
  * @brief Initialize plugin stuff
