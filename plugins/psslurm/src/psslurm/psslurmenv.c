@@ -25,6 +25,7 @@
 #include "psipartition.h"
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
+#include "pluginstrv.h"
 #include "psidnodes.h"
 
 #include "slurmcommon.h"
@@ -38,8 +39,6 @@
 #include "psslurmpin.h"
 #include "psslurmproto.h"
 
-char **envFilter = NULL;
-
 extern char **environ;
 
 #define GPU_VARIABLE_MAXLEN 20
@@ -49,33 +48,26 @@ static char * gpu_variables[] = {
     NULL
 };
 
+static strv_t envFilterData;
+
 bool initEnvFilter(void)
 {
-    char *conf, *dup, *next, *saveptr;
-    const char delimiters[] =",\n";
-    uint32_t count = 0, index = 0;
-
-    if (!(conf = getConfValueC(Config, "PELOGUE_ENV_FILTER"))) {
-	mlog("%s: invalid PELOGUE_ENV_FILTER config option", __func__);
+    char *conf = getConfValueC(Config, "PELOGUE_ENV_FILTER");
+    if (!conf) {
+	flog("invalid PELOGUE_ENV_FILTER config option");
 	return false;
     }
 
-    dup = ustrdup(conf);
-    next = strtok_r(dup, delimiters, &saveptr);
+    strvInit(&envFilterData, NULL, 0);
+
+    char *dup = ustrdup(conf);
+    const char delimiters[] =",\n";
+    char *saveptr, *next = strtok_r(dup, delimiters, &saveptr);
     while (next) {
-	count++;
+	strvAdd(&envFilterData, next);
 	next = strtok_r(NULL, delimiters, &saveptr);
     }
 
-    envFilter = (char **) umalloc(sizeof(char *) * count+1);
-
-    strcpy(dup, conf);
-    next = strtok_r(dup, delimiters, &saveptr);
-    while (next) {
-	envFilter[index++] = ustrdup(next);
-	next = strtok_r(NULL, delimiters, &saveptr);
-    }
-    envFilter[index] = NULL;
     ufree(dup);
 
     return true;
@@ -83,9 +75,18 @@ bool initEnvFilter(void)
 
 void freeEnvFilter(void)
 {
-    uint32_t index = 0;
-    if (envFilter) while (envFilter[index]) ufree(envFilter[index++]);
-    ufree(envFilter);
+    strvDestroy(&envFilterData);
+}
+
+bool envFilterFunc(const char *envStr)
+{
+    for (char **cur = envFilterData.strings; *cur; cur++) {
+	size_t len = strlen(*cur);
+	size_t cmpLen = ((*cur)[len-1] == '*') ? (len-1) : len;
+	if (!strncmp(*cur, envStr, cmpLen)
+	    && (envStr[len] == '=' || (*cur)[len-1] == '*')) return true;
+    }
+    return false;
 }
 
 /**

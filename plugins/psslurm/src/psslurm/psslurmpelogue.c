@@ -246,7 +246,7 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
 		    getConfValueU(Config, "PELOGUE_LOG_OE"));
 
     /* buildup environment */
-    env_t env = envClone(alloc->env, envFilter);
+    env_t env = envClone(alloc->env, envFilterFunc);
     /* username */
     envSet(env, "SLURM_USER", alloc->username);
     /* uid */
@@ -432,7 +432,7 @@ int handleLocalPElogueStart(void *data)
 		    alloc->state = A_PROLOGUE;
 		} else {
 		    envDestroy(alloc->env);
-		    alloc->env = envClone(pedata->env, envFilter);
+		    alloc->env = envClone(pedata->env, envFilterFunc);
 		}
 	    }
 	}

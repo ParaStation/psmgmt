@@ -236,12 +236,10 @@ void envUnsetIndex(env_t env, uint32_t idx);
  * Construct a new environment from the NULL terminated array of
  * string @a envArray.
  *
- * If @a filter is given, only those elements of @a envArray that match
- * the filter are added to the new environment. Therefore, the key of
- * each entry of the array to add is tested against each element of
- * the filter-array. @a filter consists of a series of strings that
- * shall either exactly match a key or -- if the string's last
- * character is '*' -- match the beginning of a key.
+ * If @a filter is given, only those elements of @a envArray that
+ * match the filter are added to the new environment. For this, each
+ * element is passed to the filter function @a filter and only added
+ * if this returns true.
  *
  * If @a filter is NULL, all elements of @a envArray are added to the
  * environment.
@@ -253,14 +251,14 @@ void envUnsetIndex(env_t env, uint32_t idx);
  * @param envArray NULL terminated array of character strings to create
  * the new environment from
  *
- * @param filter Array of strings to match those elements of @a array
- * to put into the environment
+ * @param filter Function filtering the elements of @a envArray to put
+ * into the environment
  *
  * @return If the environments was successfully constructed, the
  * handle to this new environment is returned; or NULL in case of
  * error
  */
-env_t envConstruct(char **envArray, char **filter);
+env_t envConstruct(char **envArray, bool filter(const char *));
 
 /**
  * @brief Access environment's string array
@@ -277,7 +275,7 @@ env_t envConstruct(char **envArray, char **filter);
  *   string array
  *
  * Thus, if it is required to modify the returned string array or to
- * rely on the content of it on the long run, it is adviced to either
+ * rely on the content of it on the long run, it is advised to either
  * steal it from @a env utilizing envStealArray() or to work on a
  * clone of @a env created via @ref envClone().
  *
@@ -297,23 +295,19 @@ char **envGetArray(env_t env);
  * Clone the environment @a env into a new environment.
  *
  * If @a filter is given, only those elements of @a env that match the
- * filter are cloned into the new environment. Therefore, the key of
- * each entry of the environment to clone is tested against each
- * element of the filter-array. @a filter consists of a series of
- * strings that shall either exactly match a key or -- if the string's
- * last character is '*' -- match the beginning of a key.
+ * filter are cloned. For this, each element is passed to the filter
+ * function @a filter and only added if this returns true.
  *
  * If @a filter is NULL, all elements of @a env are cloned.
  *
  * @param env Environment to clone
  *
- * @param filter Array of strings to match those elements of @a env to
- * clone
+ * @param filter Function filtering the elements of @a env to clone
  *
  * @return If the environments was successfully cloned, the handle to
  * the cloned environment is returned; or NULL in case of error
  */
-env_t envClone(const env_t env, char **filter);
+env_t envClone(const env_t env, bool filter(const char *));
 
 /**
  * @brief Concatenate two environments
@@ -321,11 +315,8 @@ env_t envClone(const env_t env, char **filter);
  * Add the elements of environment @a src to the environment @a dst.
  *
  * If @a filter is given, only those elements of @a src that match the
- * filter are added to @a dst. Therefore, the key of each entry of @a
- * src is tested against each element of the filter-array. @a filter
- * consists of a series of strings that shall either exactly match a
- * key or -- if the string's last character is '*' -- match the
- * beginning of a key.
+ * filter are added to @a dst. For this, each element is passed to the
+ * filter function @a filter and only added if this returns true.
  *
  * If @a filter is NULL, all elements of @a src are added.
  *
@@ -333,14 +324,13 @@ env_t envClone(const env_t env, char **filter);
  *
  * @param src Environment to add to @a dst
  *
- * @param filter Array of strings to match those elements of @a src to
- * be added to @a dst
+ * @param filter Function filtering the @a src elements
  *
  * @return If both environments were successfully concatenated, true
  * is returned. Or false in case of error. In the latter case @a dst
  * might be modified upon return and contain parts of @a src.
  */
-bool envCat(env_t dst, const env_t src, char **filter);
+bool envCat(env_t dst, const env_t src, bool filter(const char *));
 
 /**
  * @brief Create an environment from comma separated string

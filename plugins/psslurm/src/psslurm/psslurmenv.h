@@ -29,24 +29,43 @@ typedef enum pmi_type {
 	PMI_TYPE_PMIX
 } pmi_type_t;
 
-/** environment filter for prologue/epilogue execution */
-extern char **envFilter;
-
 /**
  * @brief Initialize the environment filter
  *
- * Initialize the environment filter from the psslurm configuration.
- * It will be applied to the environment of prologue and epilogue
- * scripts.
+ * Initialize the environment filter function @ref envFilterFunc()
+ * from the psslurm configuration PELOGUE_ENV_FILTER. The filter will
+ * be applied to the environment of prologue and epilogue scripts.
  *
  * @return Returns true on success and false on error
  */
 bool initEnvFilter(void);
 
 /**
- * @brief Free all memory used by the environment filter
+ * @brief Free all memory used by the environment filter function
  */
 void freeEnvFilter(void);
+
+/**
+ * @brief Filter environment
+ *
+ * Filter out some environment variables according the psslurm
+ * configuration. The filter function must be initialized once before
+ * the first use via @ref initEnvFilter(). This will setup the filter
+ * from the PELOGUE_ENV_FILTER configuration of psslurm.
+ *
+ * The filter consists of a series of strings that shall either
+ * exactly match the key of @a envStr or -- if the filter string's
+ * last character is '*' -- match the beginning of the key.
+ *
+ * This function is supposed to be used as a filter in psenv's @ref
+ * envConstruct(), @ref envClone() or @ref envCat() functions.
+ *
+ * @param envStr Single environment entry to be checked in "k=v" notation
+ *
+ * @return If the environment @a envStr matches the filter, true is
+ * returned; or false to exclude it from the environment
+ */
+bool envFilterFunc(const char *envStr);
 
 /**
  * @brief Initialize the job/user specific jail environment

@@ -678,7 +678,7 @@ void setNodeOffline(env_t env, uint32_t id, const char *host, const char *reason
 	sendDrainNode(host, reason);
     } else {
 	/* use psexec to drain nodes in Slurm */
-	env_t clone = envClone(env, envFilter);
+	env_t clone = envClone(env, envFilterFunc);
 	envSet(clone, "SLURM_HOSTNAME", host);
 	envSet(clone, "SLURM_REASON", reason);
 
@@ -711,7 +711,7 @@ static int callbackRequeueBatchJob(uint32_t id, int32_t exit,
 
 void requeueBatchJob(Job_t *job, PSnodes_ID_t dest)
 {
-    env_t clone = envClone(job->env, envFilter);
+    env_t clone = envClone(job->env, envFilterFunc);
     envSet(clone, "SLURM_JOBID", Job_strID(job->jobid));
     psExecStartScript(job->jobid, "psslurm-requeue-job", clone,
 			dest, callbackRequeueBatchJob);

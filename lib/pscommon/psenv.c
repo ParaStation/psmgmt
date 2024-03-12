@@ -204,25 +204,7 @@ bool envPut(env_t env, const char *envstring)
     return envDoSet(env, strdup(envstring));
 }
 
-static bool envSetFilter(env_t env, const char *envstring, char **filter)
-{
-    if (!envInitialized(env)) return false;
-    if (!filter) return envDoSet(env, strdup(envstring));
-
-    uint32_t count = 0;
-    const char *ptr;
-    while ((ptr = filter[count++])) {
-	size_t len = strlen(ptr);
-	size_t cmpLen = (ptr[len-1] == '*') ? (len-1) : len;
-	if (!strncmp(ptr, envstring, cmpLen) && (envstring[len] == '='
-						 || ptr[len-1] == '*')) {
-	    return envDoSet(env, strdup(envstring));
-	}
-    }
-    return true;
-}
-
-env_t envConstruct(char **envArray, char **filter)
+env_t envConstruct(char **envArray, bool filter(const char *))
 {
     if (!envArray) return NULL;
     env_t env = envNew(NULL);
@@ -237,7 +219,8 @@ env_t envConstruct(char **envArray, char **filter)
 	env->cnt = 0;
 
 	for (uint32_t i = 0; i < cnt - 1; i++) {
-	    if (!envSetFilter(env, envArray[i], filter)) goto error;
+	    if (filter && !filter(envArray[i])) continue;
+	    if (!envDoSet(env, strdup(envArray[i]))) goto error;
 	}
     }
     return env;
@@ -252,7 +235,7 @@ char **envGetArray(env_t env)
     return envInitialized(env) ? env->vars : NULL;
 }
 
-env_t envClone(const env_t env, char **filter)
+env_t envClone(const env_t env, bool filter(const char *))
 {
     if (!envInitialized(env)) return NULL;
 
@@ -264,7 +247,8 @@ env_t envClone(const env_t env, char **filter)
     clone->size = env->size;
 
     for (uint32_t i = 0; i < env->cnt; i++) {
-	if (!envSetFilter(clone, env->vars[i], filter)) goto error;
+	if (filter && !filter(env->vars[i])) continue;
+	if (!envDoSet(clone, strdup(env->vars[i]))) goto error;
     }
     return clone;
 
@@ -273,7 +257,7 @@ error:
     return NULL;
 }
 
-bool envCat(env_t dst, const env_t src, char **filter)
+bool envCat(env_t dst, const env_t src, bool filter(const char *))
 {
     if (!envInitialized(dst) || !envInitialized(src)) return false;
 
@@ -286,7 +270,8 @@ bool envCat(env_t dst, const env_t src, char **filter)
     }
 
     for (uint32_t i = 0; i < src->cnt; i++) {
-	if (!envSetFilter(dst, src->vars[i], filter)) return false;
+	if (filter && !filter(src->vars[i])) continue;
+	if (!envDoSet(dst, strdup(src->vars[i]))) return false;
     }
     return true;
 }

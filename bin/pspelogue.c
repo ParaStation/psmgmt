@@ -470,17 +470,27 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
     }
 }
 
+static char *filterData[] = { "SLURM_SPANK_*", "_SLURM_SPANK_OPTION_*",
+    "SLURM_JOBID", "SLURM_JOB_ID", "SLURM_JOB_NODELIST", "SLURM_SUBMIT_DIR",
+    "SLURM_PACK_JOB_ID", "SLURM_PACK_JOB_NODELIST", "_PSSLURM_*", NULL, NULL };
+
+static bool envFilter(const char *envStr)
+{
+    for (char **cur = filterData; *cur; cur++) {
+	size_t len = strlen(*cur);
+	size_t cmpLen = ((*cur)[len-1] == '*') ? (len-1) : len;
+	if (!strncmp(*cur, envStr, cmpLen)
+	    && (envStr[len] == '=' || (*cur)[len-1] == '*')) return true;
+    }
+    return false;
+}
+
 int main(const int argc, const char *argv[], char *envp[])
 {
-    char *filter[] = { "SLURM_SPANK_*", "_SLURM_SPANK_OPTION_*", "SLURM_JOBID",
-		       "SLURM_JOB_ID", "SLURM_JOB_NODELIST", "SLURM_SUBMIT_DIR",
-		       "SLURM_PACK_JOB_ID", "SLURM_PACK_JOB_NODELIST",
-		       "_PSSLURM_*", NULL, NULL };
-    size_t numFilter = sizeof(filter)/sizeof(*filter);
-
     init(argc, argv);
 
-    filter[numFilter-2] = addFilter;
+    size_t numFilter = sizeof(filterData)/sizeof(*filterData);
+    filterData[numFilter-2] = addFilter;
 
     /* make sure we have all the infos we need */
     jobID = getenv("SLURM_JOB_ID");
@@ -514,7 +524,7 @@ int main(const int argc, const char *argv[], char *envp[])
     }
 
     /* build and filter environment */
-    env_t env = envConstruct(envp, filter);
+    env_t env = envConstruct(envp, envFilter);
     if (!envInitialized(env)) {
 	fprintf(stderr, "%s: envConstruct failed for job %s\n", argv[0], jobID);
 	exit(1);
