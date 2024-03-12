@@ -571,43 +571,7 @@ int PSIDplugin_getNum(void)
     return num;
 }
 
-/**
- * @brief Load plugin
- *
- * Load the plugin @a pName with minimum version @a minVer. If loading
- * the plugin is triggered by the requirements of another plugin, @a
- * trigger has to hold this plugin.
- *
- * Loading a plugin might fail for several reasons. Besides obvious
- * problem like non-existing plugins or problems within dlopen(), this
- * might also include version mismatch, etc.
- *
- * Two types of version-matches are tested. First of all the current
- * API-version of the loading daemon has to fulfill the plugin's
- * requirements. Furthermore the plugin's version has to fulfill the
- * requirements set by @a minVer. If any version of a plugin is okay,
- * @a minVer might be set to 0.
- *
- * Loading a plugin might also fail due to loading dependent plugins
- * without success.
- *
- * If @a trigger is different from NULL, the corresponding plugin will
- * be marked as a triggering plugin within the newly created plugin.
- *
- * @param pName Name of the plugin to load
- *
- * @param minVer Minimal required version of the plugin. Might be 0
- *
- * @param trigger Plugin triggering the current plugin to be loaded
- *
- * @param logfile Logging destination to be used by the plugin and all
- * dependent plugins unless they decide otherwise
- *
- * @return Upon success, i.e. if the plugin is loaded afterward, the
- * structure describing the plugin is given back. Or NULL, if the
- * plugin could not be loaded.
- */
-static PSIDplugin_t loadPlugin(char *pName, int minVer,
+PSIDplugin_t PSIDplugin_load(char *pName, int minVer,
 			     PSIDplugin_t trigger, FILE *logfile)
 {
     char filename[PATH_MAX];
@@ -709,7 +673,7 @@ static PSIDplugin_t loadPlugin(char *pName, int minVer,
 	while (deps->name) {
 	    PSID_fdbg(PSID_LOG_PLUGIN, "  requires '%s' version %d\n",
 		      deps->name, deps->version);
-	    PSIDplugin_t d = loadPlugin(deps->name, deps->version, plugin,
+	    PSIDplugin_t d = PSIDplugin_load(deps->name, deps->version, plugin,
 					     logfile);
 	    if (!d || addRef(&plugin->depends, d) < 0) {
 		plugin->finalized = true;
@@ -1482,7 +1446,7 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
     } else {
 	switch (inmsg->type) {
 	case PSP_PLUGIN_LOAD:
-	    if (!loadPlugin(inmsg->buf, 0, NULL, pluginLogfile)) ret = -1;
+	    if (!PSIDplugin_load(inmsg->buf, 0, NULL, pluginLogfile)) ret = -1;
 	    break;
 	case PSP_PLUGIN_REMOVE:
 	    if (PSIDplugin_finalize(inmsg->buf) < 0) ret = ENODEV;
@@ -1695,7 +1659,7 @@ void initPlugins(FILE *logfile)
 	}
 
 	PSID_fdbg(PSID_LOG_PLUGIN, "load '%s'\n", ent->name);
-	if (!loadPlugin(ent->name, 0, NULL, logfile)) {
+	if (!PSIDplugin_load(ent->name, 0, NULL, logfile)) {
 	    PSID_flog("loading '%s' failed\n", ent->name);
 	}
 	free(ent->name);

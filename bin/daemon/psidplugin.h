@@ -96,6 +96,45 @@ int PSIDplugin_getNum(void);
 void PSIDplugin_sendList(PStask_ID_t dest);
 
 /**
+ * @brief Load plugin
+ *
+ * Load the plugin @a pName with minimum version @a minVer. If loading
+ * the plugin is triggered from within of another plugin, @a trigger
+ * has to point to this plugin in order to ensure implicit unloading.
+ *
+ * Loading a plugin might fail for several reasons. Besides obvious
+ * problem like non-existing plugins or problems within dlopen(), this
+ * might also include version mismatch, etc.
+ *
+ * Two types of version-matches are tested. First of all the current
+ * API-version of the loading daemon has to fulfill the plugin's
+ * requirements. Furthermore, the plugin's version has to fulfill the
+ * requirements set by @a minVer. If any version of a plugin is okay,
+ * @a minVer might be set to 0.
+ *
+ * Loading a plugin might also fail due to loading dependent plugins
+ * without success.
+ *
+ * If @a trigger is different from NULL, the corresponding plugin will
+ * be marked as a triggering plugin within the newly created plugin.
+ *
+ * @param pName Name of the plugin to load
+ *
+ * @param minVer Minimal required version of the plugin; might be 0
+ *
+ * @param trigger Plugin triggering the current plugin to be loaded
+ *
+ * @param logfile Logging destination to be used by the plugin and all
+ * dependent plugins unless they decide otherwise
+ *
+ * @return Upon success, i.e. if the plugin is loaded afterward, the
+ * handle identifying the plugin is given back; or NULL if the plugin
+ * could not be loaded
+ */
+PSIDplugin_t PSIDplugin_load(char *pName, int minVer,
+			     PSIDplugin_t trigger, FILE *logfile);
+
+/**
  * @brief Get plugin's handle
  *
  * Get the identifying handle of the plugin loaded via @a pName. It
