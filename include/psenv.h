@@ -164,11 +164,22 @@ void envSteal(env_t env);
  * gained through envGetArray() and the string array shall be kept
  * outside of @a env on the long run.
  *
+ * Instead of utilizing @ref envGetArray() before, the return value of
+ * this function might be used directly. I.e.
+ *
+ * char **environ = envStealArray(env);
+ *
+ * is equivalent to:
+ *
+ * char **environ = envGetArray(env)
+ * envStealArray(env)
+ *
  * @param env Environment to steal the string array from
  *
- * @return No return value
+ * @return Pointer to a NULL terminated string array or NULL if @a env
+ * is still uninitialized or empty
  */
-void envStealArray(env_t env);
+char **envStealArray(env_t env);
 
 /**
  * @brief Clear environment

@@ -76,11 +76,14 @@ void envSteal(env_t env)
     free(env);
 }
 
-void envStealArray(env_t env)
+char **envStealArray(env_t env)
 {
-    if (!envInitialized(env)) return;
+    if (!envInitialized(env)) return NULL;
+    char **varsArray = env->vars;
     env->vars = NULL;
     envSteal(env);
+
+    return varsArray;
 }
 
 void __envDestroy(env_t env, bool shred)
