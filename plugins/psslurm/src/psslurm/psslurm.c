@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -773,6 +773,18 @@ bool finalizeInit(void)
 
     /* initialize Slurm options and register node to slurmctld */
     if (!initSlurmOpt()) return false;
+
+    /* enable PAM user sessions */
+    bool pam = getConfValueI(Config, "PAM_SESSION");
+    if (pam) {
+	flog("enable PAM session support\n");
+	PSIDplugin_t trigger = PSIDplugin_find("psslurm");
+	if (!trigger) {
+	    flog("failed to get plugin handle\n");
+	    return false;
+	}
+	PSIDplugin_load("pam_service", 1, trigger, NULL);
+    }
 
     isInit = true;
 

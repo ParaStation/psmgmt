@@ -302,6 +302,10 @@ const ConfDef_t confDef[] =
 	"bool",
 	"0",
 	"Skip verification check of slurm.conf and psid view of cores" },
+    { "PAM_SESSION", 1,
+	"bool",
+	"0",
+	"Enable PAM sessions for user processes" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
