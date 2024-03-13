@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -43,6 +43,27 @@ static void startPAMservice(char *user)
     if (retPAM != PAM_SUCCESS) {
 	mlog("%s: starting PAM for %s failed : %s\n", __func__, user,
 	     pam_strerror(pamh, retPAM));
+	return;
+    }
+
+    retPAM = pam_set_item(pamh, PAM_USER, user);
+    if (retPAM != PAM_SUCCESS) {
+	mlog("%s: setting PAM_USER %s failed : %s\n", __func__, user,
+	     pam_strerror(pamh, retPAM));
+	return;
+    }
+
+    retPAM = pam_set_item(pamh, PAM_RUSER, user);
+    if (retPAM != PAM_SUCCESS) {
+	mlog("%s: setting PAM_RUSER %s failed : %s\n", __func__, user,
+	     pam_strerror(pamh, retPAM));
+	return;
+    }
+
+    retPAM = pam_setcred(pamh, PAM_ESTABLISH_CRED);
+    if (retPAM != PAM_SUCCESS) {
+	mlog("%s: setting PAM_ESTABLISH_CRED %s failed : %s\n", __func__, user,
+	     pam_strerror(pamh, retPAM));
     }
 }
 
@@ -75,6 +96,12 @@ static int finishPAMservice(void *unused)
     retPAM = pam_close_session(pamh, 0);
     if (retPAM != PAM_SUCCESS) {
 	mlog("%s: closing PAM session failed : %s\n", __func__,
+	     pam_strerror(pamh, retPAM));
+    }
+
+    retPAM = pam_setcred(pamh, PAM_DELETE_CRED);
+    if (retPAM != PAM_SUCCESS) {
+	mlog("%s: removing PAM credentials failed : %s\n", __func__,
 	     pam_strerror(pamh, retPAM));
     }
 
