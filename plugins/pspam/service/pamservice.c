@@ -36,33 +36,32 @@ static void startPAMservice(char *user)
     const struct pam_conv conversation;
     const char serviceName[] = "psid";
 
-    mdbg(PAMSERVICE_LOG_DEBUG, "%s: start PAM service for %s\n",
-	 __func__, user);
+    fdbg(PAMSERVICE_LOG_DEBUG, "start PAM service for %s\n", user);
 
     retPAM = pam_start(serviceName, user, &conversation, &pamh);
     if (retPAM != PAM_SUCCESS) {
-	mlog("%s: starting PAM for %s failed : %s\n", __func__, user,
+	flog("starting PAM for %s failed : %s\n", user,
 	     pam_strerror(pamh, retPAM));
 	return;
     }
 
     retPAM = pam_set_item(pamh, PAM_USER, user);
     if (retPAM != PAM_SUCCESS) {
-	mlog("%s: setting PAM_USER %s failed : %s\n", __func__, user,
+	flog("setting PAM_USER %s failed : %s\n", user,
 	     pam_strerror(pamh, retPAM));
 	return;
     }
 
     retPAM = pam_set_item(pamh, PAM_RUSER, user);
     if (retPAM != PAM_SUCCESS) {
-	mlog("%s: setting PAM_RUSER %s failed : %s\n", __func__, user,
+	flog("setting PAM_RUSER %s failed : %s\n", user,
 	     pam_strerror(pamh, retPAM));
 	return;
     }
 
     retPAM = pam_setcred(pamh, PAM_ESTABLISH_CRED);
     if (retPAM != PAM_SUCCESS) {
-	mlog("%s: setting PAM_ESTABLISH_CRED %s failed : %s\n", __func__, user,
+	flog("setting PAM_ESTABLISH_CRED %s failed : %s\n", user,
 	     pam_strerror(pamh, retPAM));
     }
 }
@@ -70,44 +69,42 @@ static void startPAMservice(char *user)
 static void startPAMsession(char *user)
 {
     if (!pamh) {
-	mlog("%s: invalid PAM handle for %s\n", __func__, user);
+	flog("invalid PAM handle for %s\n", user);
 	return;
     }
 
-    mdbg(PAMSERVICE_LOG_DEBUG, "%s: start PAM session for %s\n",
-	 __func__, user);
+    fdbg(PAMSERVICE_LOG_DEBUG, "start PAM session for %s\n", user);
 
     retPAM = pam_open_session(pamh, PAM_SILENT);
     if (retPAM != PAM_SUCCESS) {
-	mlog("%s: open PAM session for %s failed : %s\n", __func__,
-	     user, pam_strerror(pamh, retPAM));
+	flog("open PAM session for %s failed : %s\n", user,
+	     pam_strerror(pamh, retPAM));
     }
 }
 
 static int finishPAMservice(void *unused)
 {
     if (!pamh) {
-	mlog("%s: invalid PAM handle\n", __func__);
+	flog("invalid PAM handle\n");
 	return 0;
     }
 
-    mdbg(PAMSERVICE_LOG_DEBUG, "%s: stop PAM service\n", __func__);
+    fdbg(PAMSERVICE_LOG_DEBUG, "stop PAM service\n");
 
     retPAM = pam_close_session(pamh, 0);
     if (retPAM != PAM_SUCCESS) {
-	mlog("%s: closing PAM session failed : %s\n", __func__,
-	     pam_strerror(pamh, retPAM));
+	flog("closing PAM session failed : %s\n", pam_strerror(pamh, retPAM));
     }
 
     retPAM = pam_setcred(pamh, PAM_DELETE_CRED);
     if (retPAM != PAM_SUCCESS) {
-	mlog("%s: removing PAM credentials failed : %s\n", __func__,
+	flog("removing PAM credentials failed : %s\n",
 	     pam_strerror(pamh, retPAM));
     }
 
     int ret = pam_end(pamh, retPAM);
     if (ret != PAM_SUCCESS) {
-	mlog("%s: ending PAM failed : %s\n", __func__, pam_strerror(pamh, ret));
+	flog("ending PAM failed : %s\n", pam_strerror(pamh, ret));
     }
     return 0;
 }
@@ -117,7 +114,7 @@ static int handleExecForwarder(void *data)
     PStask_t *task = data;
     char *user = PSC_userFromUID(task->uid);
     if (!user) {
-	mlog("getting username for uid %i failed\n", task->uid);
+	flog("getting username for uid %i failed\n", task->uid);
 	return 0;
     }
 
@@ -138,7 +135,7 @@ static int handleExecClient(void *data)
     PStask_t *task = data;
     char *user = PSC_userFromUID(task->uid);
     if (!user) {
-	mlog("getting username for uid %i failed\n", task->uid);
+	flog("getting username for uid %i failed\n", task->uid);
 	return 0;
     }
 
