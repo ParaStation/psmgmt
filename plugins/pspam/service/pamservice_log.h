@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,6 +24,13 @@ extern logger_t *pamservice_logger;
 	logger_warn(pamservice_logger, -1, __VA_ARGS__)
 #define mdbg(...) if (pamservice_logger) \
 	logger_print(pamservice_logger, __VA_ARGS__)
+
+#define flog(...) if (pamservice_logger)				\
+	logger_funcprint(pamservice_logger, __func__, -1, __VA_ARGS__)
+#define fdbg(key, ...) if (pamservice_logger)				\
+	logger_funcprint(pamservice_logger, __func__, key, __VA_ARGS__)
+#define fwarn(...) if (pamservice_logger)				\
+	logger_funcwarn(pamservice_logger, __func__, -1, __VA_ARGS__)
 
 /** Various types of logging levels for more verbose logging */
 typedef enum {
