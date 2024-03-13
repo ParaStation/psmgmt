@@ -40,6 +40,7 @@
 #include "pscommon.h"
 #include "pscpu.h"
 #include "psdaemonprotocol.h"
+#include "psenv.h"
 #include "pspartition.h"
 #include "psprotocolenv.h"
 #include "psreservation.h"
@@ -1522,6 +1523,26 @@ static int spawnTask(PStask_t *task)
 	PSID_flog("PSIDHOOK_SPAWN_TASK failed\n");
 	return EINVAL;   // most probably some illegal value was passed
     }
+
+    /* add some last minute extra environment */
+    env_t env = envNew(task->environ);
+    char tmp[32];
+    sprintf(tmp, "%d", task->loggertid);
+    envSet(env, "PS_SESSION_ID", tmp);
+
+    sprintf(tmp, "%d", task->spawnertid);
+    envSet(env, "PS_JOB_ID", tmp);
+
+    sprintf(tmp, "%d", task->resID);
+    envSet(env, "PS_RESERVATION_ID", tmp);
+
+    sprintf(tmp, "%d", task->jobRank);
+    envSet(env, "PS_JOB_RANK", tmp);
+
+    task->environ = envGetArray(env);
+    task->envSize = envSize(env);
+
+    envStealArray(env);
 
     /* now try to start the task */
     int err = buildSandboxAndStart(execForwarder, task);

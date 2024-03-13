@@ -344,6 +344,9 @@ static void setupCommonEnv(Conf_t *conf)
     unsetPSIEnv(ENV_PART_LOOPNODES);
     unsetPSIEnv("__PMI_PROVIDER_FD");
 
+    snprintf(tmp, sizeof(tmp), "%d", conf->np);
+    setPSIEnv("PS_JOB_SIZE", tmp, 1);
+
     if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
 	/* set the init size of the PMI job */
 	env = getenv("PMI_SIZE");
