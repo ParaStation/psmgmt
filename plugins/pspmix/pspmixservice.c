@@ -1953,7 +1953,7 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
 	 * spawn respose from the forwarder which is unlikely, but possible */
 	if (spawn->state == SPAWN_ALLCONNECTED) {
 	    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: all clients already connected,"
-				   " skipping state EXECUTING\n", spawn->id);
+				   " skipping state INPROGRESS\n", spawn->id);
 	    pspmix_server_spawnRes(true, spawn->sdata, spawn->nspace);
 	    list_del(&spawn->next);
 	    RELEASE_LOCK(spawnList);
@@ -1966,13 +1966,13 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
 		ulog("UNEXPECTED: spawn state is %d", spawn->state);
 	}
 	spawn->state = SPAWN_INPROGRESS;
-	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state EXECUTING\n", spawn->id);
+	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state INPROGRESS\n", spawn->id);
 	RELEASE_LOCK(spawnList);
 	return;
     }
 
     spawn->state = SPAWN_INPROGRESS;
-    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state EXECUTING\n", spawn->id);
+    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state INPROGRESS\n", spawn->id);
 
     if (spawn->state != SPAWN_REQUESTED) {
 	ulog("UNEXPECTED: spawn state is %d", spawn->state);
