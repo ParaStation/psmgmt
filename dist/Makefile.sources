@@ -124,6 +124,7 @@ doc/99-psid.conf \
 doc/Makefile.am \
 doc/Makefile.in \
 doc/MessageTypes \
+doc/pam/psid \
 doc/README.nodeinfo \
 doc/README.psgw \
 doc/README.pspam \

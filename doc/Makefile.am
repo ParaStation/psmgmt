@@ -20,4 +20,6 @@ endif
 dist_noinst_DATA = parastation.conf.tmpl README.nodeinfo README.pspam	\
 	README.psgw
 
+dist_pamconf_DATA = pam/psid
+
 EXTRA_DIST = MessageTypes psconfig systemd

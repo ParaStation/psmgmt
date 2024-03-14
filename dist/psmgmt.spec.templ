@@ -370,6 +370,7 @@ fi
 %{_pamdir}/pam_pspam.so
 %{_plugindir}/pam_service.so
 %endif
+%config(noreplace) /etc/pam.d/psid
 %{_plugindir}/pspmi.so
 %{_plugindir}/rrcomm.so
 %config(missingok,noreplace) %{_sysconfdir}/gdbinit.d/psmgmt.gdb
