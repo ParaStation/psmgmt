@@ -778,7 +778,7 @@ bool finalizeInit(void)
     bool pam = getConfValueI(Config, "PAM_SESSION");
     if (pam) {
 	flog("enable PAM session support\n");
-	PSIDplugin_t trigger = PSIDplugin_find("psslurm");
+	PSIDplugin_t trigger = PSIDplugin_find(name);
 	if (!trigger) {
 	    flog("failed to get plugin handle\n");
 	    return false;
