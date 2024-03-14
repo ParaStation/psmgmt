@@ -37,7 +37,7 @@ typedef struct {
     time_t reqtime;              /**< time the request handling started */
 } modexdata_t;
 
-/** Type for callback data for fence and get */
+/** Type for callback data for respawn */
 typedef struct {
     pmix_spawn_cbfunc_t cbfunc;  /**< function to use to pass back data */
     void *cbdata;                /**< pointer to pass back to cbfunc */
