@@ -690,14 +690,14 @@ static void execClient(PStask_t *task)
 
     /* used by psslurm to execute the child in a container */
     if (PSIDhook_call(PSIDHOOK_EXEC_CLIENT_EXEC, task) < 0) {
-        eno = EPERM;
-        fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_EXEC failed\n", __func__);
-        if (write(task->fd, &eno, sizeof(eno)) < 0) {
-            eno = errno;
-            fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_EXEC: write(): %s\n",
-                    __func__, strerror(eno));
-        }
-        exit(1);
+	eno = EPERM;
+	fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_EXEC failed\n", __func__);
+	if (write(task->fd, &eno, sizeof(eno)) < 0) {
+	    eno = errno;
+	    fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_EXEC: write(): %s\n",
+		    __func__, strerror(eno));
+	}
+	exit(1);
     }
 
     /* execute the image */
