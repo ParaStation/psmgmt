@@ -156,6 +156,7 @@ static bool doSpawn(SpawnRequest_t *req)
     if (PSLog_write(childTask->loggertid, SERV_TID, NULL, 0) < 0) {
 	plog("writing to logger failed\n");
 	pendSpawn = NULL;
+	freeSpawnRequest(pendSpawn);
 	return false;
     }
 
@@ -830,7 +831,7 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     pdbg(PSPMIX_LOG_COMM, "received %s with napps %hu.\n",
 	 pspmix_getMsgTypeString(msg->type), napps);
 
-    if (!doSpawn(req)) {
+    if (!doSpawn(req /* transfers ownership */)) {
 	plog("spawn failed");
     }
 }
