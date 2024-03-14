@@ -642,8 +642,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     /* register namespace */
     if (!pspmix_server_registerNamespace(ns->name, ns->jobid, sessionId,
 					 ns->universeSize, ns->jobSize,
-					 ns->spawnID, &ns->parent, grankOffset,
-					 nodeCount, ns->nodelist_s,
+					 ns->spawnID ? &ns->parent : NULL,
+					 grankOffset, nodeCount, ns->nodelist_s,
 					 &ns->procMap, ns->appsCount, ns->apps,
 					 job->session->tmpdir, nsdir,
 					 PSC_getMyID())) {
@@ -1950,7 +1950,7 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
 
 	/* fine if all clients already reported to be connected, this means that
 	 * the SPAWN requests from the spawner process have been faster than the
-	 * spawn respose from the forwarder which is unlikely, but possible */
+	 * spawn response from the forwarder which is unlikely, but possible */
 	if (spawn->state == SPAWN_ALLCONNECTED) {
 	    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: all clients already connected,"
 				   " skipping state INPROGRESS\n", spawn->id);

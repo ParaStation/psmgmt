@@ -83,8 +83,8 @@ void pspmix_server_operationFinished(bool success, void* cb);
  * @param sessionId  id of the session
  * @param univSize   number of slots in this session
  * @param jobSize    number of processes in this job/namespace
- * @param spawned    true if this job spawn resulted from a call to PMIx_Spawn
- * @param parent     process that called PMIx_Spawn if resulted from such a call
+ * @param spawnparent process that called PMIx_Spawn if resulted from such a
+ *		      call, NULL else
  * @param gRankOffset offset to global rank for this job
  * @param numNodes   number of nodes this job/namespace runs at
  * @param nodelist_s string containing comma separated list of nodes in the job
@@ -97,8 +97,7 @@ void pspmix_server_operationFinished(bool success, void* cb);
  */
 bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
 				     uint32_t sessionId, uint32_t univSize,
-				     uint32_t jobSize, bool spawned,
-				     pmix_proc_t *parent,
+				     uint32_t jobSize, pmix_proc_t *spawnparent,
 				     pmix_rank_t grankOffset,
 				     uint32_t numNodes, const char *nodelist_s,
 				     list_t *procMap, uint32_t numApps,

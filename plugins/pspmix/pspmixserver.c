@@ -2847,8 +2847,7 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
 
 static void fillProcDataArray(pmix_data_array_t *procData,
 			      PspmixProcess_t *proc, PSnodes_ID_t nodeID,
-			      bool spawned, pmix_proc_t *parent,
-			      const char *nsdir)
+			      pmix_proc_t *spawnparent, const char *nsdir)
 {
 #if PMIX_VERSION_MAJOR < 4
     uint32_t ninfo = 8;
@@ -2856,6 +2855,8 @@ static void fillProcDataArray(pmix_data_array_t *procData,
     uint32_t ninfo = 9;
     if (nodeID == PSC_getMyID()) ninfo += 3;
 #endif
+
+    bool spawned = spawnparent ? true : false;
 
     if (spawned) ninfo++;
 
@@ -2912,7 +2913,7 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 
     /* parent process if this is the result of a call to PMIx_Spawn() */
     if (spawned) {
-	PMIX_INFO_LOAD(&infos[i], PMIX_PARENT_ID, parent, PMIX_PROC);
+	PMIX_INFO_LOAD(&infos[i], PMIX_PARENT_ID, spawnparent, PMIX_PROC);
 	i++;
     }
 
@@ -3039,18 +3040,22 @@ static void registerNamespace_cb(pmix_status_t status, void *cbdata)
 
 bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
 				     uint32_t sessionId, uint32_t univSize,
-				     uint32_t jobSize, bool spawned,
-				     pmix_proc_t *parent,
+				     uint32_t jobSize, pmix_proc_t *spawnparent,
 				     pmix_rank_t grankOffset,
 				     uint32_t numNodes, const char *nodelist_s,
 				     list_t *procMap, uint32_t numApps,
 				     PspmixApp_t *apps, const char *tmpdir,
 				     const char *nsdir, PSnodes_ID_t nodeID)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(nspace '%s' sessionId %u univSize %u jobSize %u"
-	 " spawned %d numNodes %d nodelist_s '%s' numApps %u tmpdir '%s' nsdir '%s'"
-	 " nodeID %hd)\n", __func__, nspace, sessionId, univSize, jobSize,
-	 spawned, numNodes, nodelist_s, numApps, tmpdir, nsdir, nodeID);
+    if (mset(PSPMIX_LOG_CALL)) {
+	mlog("%s(nspace '%s' sessionId %u univSize %u jobSize %u"
+	     " spawnparent ", __func__, nspace, sessionId, univSize, jobSize);
+	if (!spawnparent) mlog("(null)");
+	else mlog("%s:%u", spawnparent->nspace, spawnparent->rank);
+	mlog(" numNodes %d nodelist_s '%s' numApps %u tmpdir '%s' nsdir '%s'"
+	     " nodeID %hd)\n", numNodes, nodelist_s, numApps, tmpdir, nsdir,
+	     nodeID);
+    }
 
     pmix_status_t status;
 
@@ -3169,7 +3174,7 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
 	for (size_t j = 0; j < node->procs.len; j++) {
 	    PspmixProcess_t *proc = vectorGet(&node->procs, j, PspmixProcess_t);
 	    pmix_data_array_t procData;
-	    fillProcDataArray(&procData, proc, node->id, spawned, parent, nsdir);
+	    fillProcDataArray(&procData, proc, node->id, spawnparent, nsdir);
 
 	    PMIX_INFO_LOAD(&data.info[i], PMIX_PROC_DATA, &procData,
 			   PMIX_DATA_ARRAY);
