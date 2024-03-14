@@ -923,7 +923,7 @@ void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType)
     }
 
     /* always export all environment variables */
-    strvAdd(argV, "-x");
+    strvAdd(argV, "-genvall");
 
     /* interactive mode */
     if (step->taskFlags & LAUNCH_PTY) strvAdd(argV, "-i");
