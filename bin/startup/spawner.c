@@ -537,13 +537,8 @@ static void setupExecEnv(Conf_t *conf, int execNum)
     char tmp[32];
     snprintf(tmp, sizeof(tmp), "%d", execNum);
     envSet(thisExec->env, "PSI_APPNUM", tmp);
-    if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
+    if (conf->pmiTCP || conf->pmiSock) {
 	envSet(thisExec->env, "PMI_APPNUM", tmp);
-    }
-
-    if (conf->PMIx) {
-	snprintf(tmp, sizeof(tmp), "%d", thisExec->np);
-	envSet(thisExec->env, "PMIX_APPSIZE", tmp);
     }
 
     if (thisExec->envall) {
