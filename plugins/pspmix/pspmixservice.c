@@ -76,10 +76,10 @@ typedef struct {
 typedef enum {
     SPAWN_INITIALIZED,          /**< initialized */
     SPAWN_REQUESTED,            /**< request sent to the forwarder */
-    SPAWN_EXECUTING,            /**< response from fw received, now executing */
+    SPAWN_INPROGRESS,           /**< response from fw received, now executing */
     SPAWN_ALLCONNECTED,         /**< all clients on all nodes are connected */
     SPAWN_FAILED,               /**< spawn failed at any point */
-} spawn_enum_t;
+} PspmixSpawnState_t;
 
 /**
  * Information needed to execute a call to PMIx_Spawn()
@@ -92,7 +92,7 @@ typedef struct {
     PspmixSpawnApp_t *apps;    /**< applications to spawn */
     uint32_t np;               /**< num of processes to be spawned in total */
     spawndata_t *sdata;        /**< callback data object */
-    spawn_enum_t state;        /**< current state of this spawn */
+    PspmixSpawnState_t state;  /**< current state of this spawn */
     uint32_t ready;            /**< num of processes reported as ready */
     char *nspace;              /**< new namespace */
 } PspmixSpawn_t;
@@ -1965,13 +1965,13 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
 	if (spawn->state != SPAWN_REQUESTED) {
 		ulog("UNEXPECTED: spawn state is %d", spawn->state);
 	}
-	spawn->state = SPAWN_EXECUTING;
+	spawn->state = SPAWN_INPROGRESS;
 	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state EXECUTING\n", spawn->id);
 	RELEASE_LOCK(spawnList);
 	return;
     }
 
-    spawn->state = SPAWN_EXECUTING;
+    spawn->state = SPAWN_INPROGRESS;
     udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state EXECUTING\n", spawn->id);
 
     if (spawn->state != SPAWN_REQUESTED) {
@@ -2036,7 +2036,7 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool success, char *nspace,
     }
 
     /* all processes are ready */
-    if (spawn->state == SPAWN_EXECUTING) {
+    if (spawn->state == SPAWN_INPROGRESS) {
 	/* answer from spawn request already received */
 	spawn->state = SPAWN_ALLCONNECTED;
 	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state ALLCONNECTED\n", spawn->id);
