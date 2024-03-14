@@ -120,8 +120,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_DATA) \
-	$(dist_plugin_DATA) $(am__dist_sysctl_DATA_DIST) \
-	$(am__DIST_COMMON)
+	$(dist_pamconf_DATA) $(dist_plugin_DATA) \
+	$(am__dist_sysctl_DATA_DIST) $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
@@ -171,9 +171,11 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(plugindir)" "$(DESTDIR)$(sysctldir)"
+am__installdirs = "$(DESTDIR)$(pamconfdir)" "$(DESTDIR)$(plugindir)" \
+	"$(DESTDIR)$(sysctldir)"
 am__dist_sysctl_DATA_DIST = 99-psid.conf
-DATA = $(dist_noinst_DATA) $(dist_plugin_DATA) $(dist_sysctl_DATA)
+DATA = $(dist_noinst_DATA) $(dist_pamconf_DATA) $(dist_plugin_DATA) \
+	$(dist_sysctl_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -191,7 +193,6 @@ BPF_LIBS = @BPF_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CSCOPE = @CSCOPE@
 CTAGS = @CTAGS@
@@ -308,6 +309,7 @@ psconfig_CFLAGS = @psconfig_CFLAGS@
 psconfig_LIBS = @psconfig_LIBS@
 psconfigdumpsdir = @psconfigdumpsdir@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -362,6 +364,7 @@ dist_plugin_DATA = psaccount.conf
 dist_noinst_DATA = parastation.conf.tmpl README.nodeinfo README.pspam	\
 	README.psgw
 
+dist_pamconf_DATA = pam/psid
 EXTRA_DIST = MessageTypes psconfig systemd
 all: all-am
 
@@ -402,6 +405,27 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-dist_pamconfDATA: $(dist_pamconf_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_pamconf_DATA)'; test -n "$(pamconfdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(pamconfdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(pamconfdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(pamconfdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(pamconfdir)" || exit $$?; \
+	done
+
+uninstall-dist_pamconfDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_pamconf_DATA)'; test -n "$(pamconfdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(pamconfdir)'; $(am__uninstall_files_from_dir)
 install-dist_pluginDATA: $(dist_plugin_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(dist_plugin_DATA)'; test -n "$(plugindir)" || list=; \
@@ -487,7 +511,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(plugindir)" "$(DESTDIR)$(sysctldir)"; do \
+	for dir in "$(DESTDIR)$(pamconfdir)" "$(DESTDIR)$(plugindir)" "$(DESTDIR)$(sysctldir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -540,7 +564,8 @@ info: info-am
 
 info-am:
 
-install-data-am: install-dist_pluginDATA install-dist_sysctlDATA
+install-data-am: install-dist_pamconfDATA install-dist_pluginDATA \
+	install-dist_sysctlDATA
 
 install-dvi: install-dvi-am
 
@@ -584,7 +609,8 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-dist_pluginDATA uninstall-dist_sysctlDATA
+uninstall-am: uninstall-dist_pamconfDATA uninstall-dist_pluginDATA \
+	uninstall-dist_sysctlDATA
 
 .MAKE: install-am install-strip
 
@@ -592,15 +618,16 @@ uninstall-am: uninstall-dist_pluginDATA uninstall-dist_sysctlDATA
 	cscopelist-am ctags-am distclean distclean-generic \
 	distclean-libtool distdir dvi dvi-am html html-am info info-am \
 	install install-am install-data install-data-am \
-	install-dist_pluginDATA install-dist_sysctlDATA install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags-am uninstall uninstall-am uninstall-dist_pluginDATA \
-	uninstall-dist_sysctlDATA
+	install-dist_pamconfDATA install-dist_pluginDATA \
+	install-dist_sysctlDATA install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
+	uninstall-am uninstall-dist_pamconfDATA \
+	uninstall-dist_pluginDATA uninstall-dist_sysctlDATA
 
 .PRECIOUS: Makefile
 
