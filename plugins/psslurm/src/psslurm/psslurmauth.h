@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -111,5 +111,19 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg);
  * error.
  */
 bool verifyUserId(uid_t userID, uid_t validID);
+
+/**
+ * @brief Convert a list of users to an array of UIDs
+ *
+ * @param users The list to convert
+ *
+ * @param UIDs Array of UIDs holding the result
+ *
+ * @param numUIDs Number of entries in @a UIDs
+ *
+ * @return On success true is returned or false in case of an
+ * error.
+ */
+bool arrayFromUserList(const char *users, uid_t **UIDs, uint16_t *numUIDs);
 
 #endif /*  __PS_SLURM_AUTH */

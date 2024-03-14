@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -58,14 +58,26 @@ bool verifyUserId(uid_t userID, uid_t validID)
     return false;
 }
 
-bool Auth_init(void)
+bool arrayFromUserList(const char *users, uid_t **UIDs, uint16_t *numUIDs)
 {
-    const char *deniedUsers = getConfValueC(Config, "DENIED_USERS");
-    if (!deniedUsers) return true;
+    if (!users) {
+	flog("invalid users\n");
+	return false;
+    }
 
-    char *toksave, *dup = ustrdup(deniedUsers);
+    if (!UIDs) {
+	flog("invalid UDIs\n");
+	return false;
+    }
+
+    if (!numUIDs) {
+	flog("invalid numUIDs\n");
+	return false;
+    }
+
+    char *toksave, *dup = ustrdup(users);
     const char delimiters[] =", \t\n";
-    uint16_t countUIDs = 0;
+    uint16_t countUIDs = *numUIDs = 0;
 
     char *next = strtok_r(dup, delimiters, &toksave);
     while (next) {
@@ -73,8 +85,8 @@ bool Auth_init(void)
 	next = strtok_r(NULL, delimiters, &toksave);
     }
 
-    deniedUIDs = umalloc(sizeof(*deniedUIDs) * countUIDs);
-    strcpy(dup, deniedUsers);
+    uid_t *newUIDs = umalloc(sizeof(*newUIDs) * countUIDs);
+    strcpy(dup, users);
     next = strtok_r(dup, delimiters, &toksave);
     while (next) {
 	uid_t uid = PSC_uidFromString(next);
@@ -84,13 +96,21 @@ bool Auth_init(void)
 	}
 	fdbg(PSSLURM_LOG_AUTH, "adding user %s uid %u to list of denied"
 	     " users\n", next, uid);
-	deniedUIDs[numDeniedUIDs++] = uid;
+	newUIDs[(*numUIDs)++] = uid;
 	next = strtok_r(NULL, delimiters, &toksave);
     }
 
+    *UIDs = newUIDs;
     ufree(dup);
-
     return true;
+}
+
+bool Auth_init(void)
+{
+    const char *deniedUsers = getConfValueC(Config, "DENIED_USERS");
+    if (!deniedUsers || deniedUsers[0] == '\0') return true;
+
+    return arrayFromUserList(deniedUsers, &deniedUIDs, &numDeniedUIDs);
 }
 
 void Auth_finalize(void)
