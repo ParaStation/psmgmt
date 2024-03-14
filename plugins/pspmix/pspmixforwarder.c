@@ -155,6 +155,7 @@ static bool doSpawn(SpawnRequest_t *req)
     /* get next service rank from logger */
     if (PSLog_write(childTask->loggertid, SERV_TID, NULL, 0) < 0) {
 	plog("writing to logger failed\n");
+	pendSpawn = NULL;
 	return false;
     }
 
