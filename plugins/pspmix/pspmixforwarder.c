@@ -400,8 +400,8 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     envPut(env, tmp);
 
     /* tell the spawnees our tid (that of the forwarder) */
-    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_FWTID=%s",
-	     PSC_printTID(PSC_getMyTID()));
+    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_FWTID=0x%08x",
+	     PSC_getMyTID());
     envPut(env, tmp);
 
     /* tell the spawnees the namespace of the spawner (=> PMIX_PARENT_ID) */
