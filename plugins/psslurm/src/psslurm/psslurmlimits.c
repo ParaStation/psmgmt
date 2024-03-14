@@ -79,14 +79,14 @@ bool initLimits(void)
 	next = strtok_r(conf, delimiters, &saveptr);
 
 	while (next) {
-	    if (!(strcasecmp(next, "ALL"))) {
+	    if (!strcasecmp(next, "ALL")) {
 		setPropagateFlags(true);
-	    } else if (!(strcasecmp(next, "NONE"))) {
+	    } else if (!strcasecmp(next, "NONE")) {
 		setPropagateFlags(false);
 	    } else {
 		found = i = 0;
 		while (slurmConfLimits[i].name) {
-		    if (!(strcasecmp(next, slurmConfLimits[i].name))) {
+		    if (!strcasecmp(next, slurmConfLimits[i].name)) {
 			slurmConfLimits[i].propagate = true;
 			found = 1;
 			break;
@@ -111,14 +111,14 @@ bool initLimits(void)
 	next = strtok_r(conf, delimiters, &saveptr);
 
 	while (next) {
-	    if (!(strcasecmp(next, "ALL"))) {
+	    if (!strcasecmp(next, "ALL")) {
 		setPropagateFlags(false);
-	    } else if (!(strcasecmp(next, "NONE"))) {
+	    } else if (!strcasecmp(next, "NONE")) {
 		/* nothing to do here */
 	    } else {
 		found = i = 0;
 		while (slurmConfLimits[i].name) {
-		    if (!(strcasecmp(next, slurmConfLimits[i].name))) {
+		    if (!strcasecmp(next, slurmConfLimits[i].name)) {
 			slurmConfLimits[i].propagate = false;
 			found = 1;
 			break;
@@ -147,7 +147,7 @@ static int resString2Limit(char *limit)
     name = limit + 7;
 
     while (slurmConfLimits[i].name) {
-	if (!(strcasecmp(name, slurmConfLimits[i].name))) {
+	if (!strcasecmp(name, slurmConfLimits[i].name)) {
 	    return  slurmConfLimits[i].limit;
 	}
 	i++;

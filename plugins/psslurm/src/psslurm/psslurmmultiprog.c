@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -97,7 +97,7 @@ static void unrollRanks(Multi_Prog_t *mp, uint32_t np, char *rankList,
     range = strtok_r(rankList, delimiters, &saveptr);
 
     while (range) {
-	if (!(strchr(range, '-'))) {
+	if (!strchr(range, '-')) {
 	    if (range[0] == '*') {
 		for (i=0; i<np; i++) {
 		    if (!mp[i].exe) {

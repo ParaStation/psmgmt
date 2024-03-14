@@ -1159,25 +1159,25 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
     for (uint32_t i = 0; i < envSize(step->env); i++) {
 	char *thisEnv = envDumpIndex(step->env, i);
 	/* protect selected variables from changes */
-	if (!(strncmp(thisEnv, "SLURM_RLIMIT_", 13))) continue;
-	if (!(strncmp(thisEnv, "SLURM_UMASK=", 12))) continue;
-	if (!(strncmp(thisEnv, "PWD=", 4))) continue;
-	if (display && !(strncmp(thisEnv, "DISPLAY=", 8))) continue;
-	if (!(strncmp(thisEnv, "PMI_FD=", 7))) continue;
-	if (!(strncmp(thisEnv, "PMI_PORT=", 9))) continue;
-	if (!(strncmp(thisEnv, "PMI_RANK=", 9))) continue;
-	if (!(strncmp(thisEnv, "PMI_SIZE=", 9))) continue;
-	if (!(strncmp(thisEnv, "PMI_UNIVERSE_SIZE=", 18))) continue;
-	if (!(strncmp(thisEnv, "PMI_ID=", 7))) continue;
-	if (!(strncmp(thisEnv, "PMI_APPNUM=", 11))) continue;
-	if (!(strncmp(thisEnv, "PMI_ENABLE_SOCKP=", 17))) continue;
-	if (!(strncmp(thisEnv, "PMI_SUBVERSION=", 15))) continue;
-	if (!(strncmp(thisEnv, "PMI_VERSION=", 12))) continue;
-	if (!(strncmp(thisEnv, "PMI_BARRIER_ROUNDS=", 19))) continue;
+	if (!strncmp(thisEnv, "SLURM_RLIMIT_", 13)) continue;
+	if (!strncmp(thisEnv, "SLURM_UMASK=", 12)) continue;
+	if (!strncmp(thisEnv, "PWD=", 4)) continue;
+	if (display && !strncmp(thisEnv, "DISPLAY=", 8)) continue;
+	if (!strncmp(thisEnv, "PMI_FD=", 7)) continue;
+	if (!strncmp(thisEnv, "PMI_PORT=", 9)) continue;
+	if (!strncmp(thisEnv, "PMI_RANK=", 9)) continue;
+	if (!strncmp(thisEnv, "PMI_SIZE=", 9)) continue;
+	if (!strncmp(thisEnv, "PMI_UNIVERSE_SIZE=", 18)) continue;
+	if (!strncmp(thisEnv, "PMI_ID=", 7)) continue;
+	if (!strncmp(thisEnv, "PMI_APPNUM=", 11)) continue;
+	if (!strncmp(thisEnv, "PMI_ENABLE_SOCKP=", 17)) continue;
+	if (!strncmp(thisEnv, "PMI_SUBVERSION=", 15)) continue;
+	if (!strncmp(thisEnv, "PMI_VERSION=", 12)) continue;
+	if (!strncmp(thisEnv, "PMI_BARRIER_ROUNDS=", 19)) continue;
 	if (!strncmp(thisEnv, "PMIX_", 5)
 	    && strncmp(thisEnv, "PMIX_MCA_", 9)) continue;
-	if (!(strncmp(thisEnv, "PSPMIX_ENV_TMOUT=", 17))) continue;
-	if (!(strncmp(thisEnv, "PSP_SMP_NODE_ID=", 16))) continue;
+	if (!strncmp(thisEnv, "PSPMIX_ENV_TMOUT=", 17)) continue;
+	if (!strncmp(thisEnv, "PSP_SMP_NODE_ID=", 16)) continue;
 
 	putenv(thisEnv);
     }
@@ -1309,11 +1309,11 @@ void removeUserVars(env_t env, pmi_type_t pmi_type)
 	if (!strncmp(thisEnv, "PWD=", 4)) continue;
 	if (!strncmp(thisEnv, "DISPLAY=", 8)) continue;
 
-	if (!(strncmp(thisEnv, "SLURM_STEPID=", 13))) continue;
-	if (!(strncmp(thisEnv, "SLURM_JOBID=", 12))) continue;
+	if (!strncmp(thisEnv, "SLURM_STEPID=", 13)) continue;
+	if (!strncmp(thisEnv, "SLURM_JOBID=", 12)) continue;
 
-	if (!(strncmp(thisEnv, "__MPIEXEC_DIST_START=", 21))) continue;
-	if (!(strncmp(thisEnv, "MPIEXEC_", 8))) continue;
+	if (!strncmp(thisEnv, "__MPIEXEC_DIST_START=", 21)) continue;
+	if (!strncmp(thisEnv, "MPIEXEC_", 8)) continue;
 
 	if (!strncmp(thisEnv, "PSI_", 4)) continue;
 	if (!strncmp(thisEnv, "__PSI_", 6)) continue;
