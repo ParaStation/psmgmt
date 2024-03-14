@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -287,6 +287,10 @@ const ConfDef_t confDef[] =
 	"list",
 	"root",
 	"Users listed won't be able to execute jobs/steps" },
+    { "SSTAT_USERS", 0,
+	"list",
+	"",
+	"Privileged users allowed to use sstat for any job" },
     { "SKIP_CORE_VERIFICATION", 1,
 	"bool",
 	"0",

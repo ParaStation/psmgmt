@@ -93,6 +93,12 @@ static bool needNodeRegResp = true;
 /** PID of a running Slurm health-check script */
 static pid_t slurmHCpid = -1;
 
+/** list of privileged sstat UIDs */
+static uid_t *sstatUIDs = NULL;
+
+/** number of sstat UIDs */
+static uint16_t numSstatUIDs = 0;
+
 Ext_Resp_Node_Reg_t *tresDBconfig = NULL;
 
 typedef struct {
@@ -1579,8 +1585,17 @@ static int handleStepStat(Slurm_Msg_t *sMsg)
 
     /* check permissions */
     if (!verifyUserId(sMsg->head.uid, step->uid)) {
-	flog("request from invalid user %u\n", sMsg->head.uid);
-	return ESLURM_USER_ID_MISSING;
+	bool verified = false;
+	for (uint16_t i=0; i< numSstatUIDs; i++) {
+	    if (sstatUIDs[i] == sMsg->head.uid) {
+		verified = true;
+		break;
+	    }
+	}
+	if (!verified) {
+	    flog("request from invalid user %u\n", sMsg->head.uid);
+	    return ESLURM_USER_ID_MISSING;
+	}
     }
 
     PS_SendDB_t *msg = &sMsg->reply;
@@ -2946,6 +2961,15 @@ bool initSlurmdProto(void)
     registerSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT, handleInvalid);
     registerSlurmdMsg(REQUEST_UPDATE_JOB_TIME, handleUpdateJobTime);
 
+    /* initialize privileged sstat users */
+    const char *sstatUsers = getConfValueC(Config, "SSTAT_USERS");
+    if (!sstatUsers || sstatUsers[0] == '\0') return true;
+
+    if (!arrayFromUserList(sstatUsers, &sstatUIDs, &numSstatUIDs)) {
+	flog("initialize of privileged sstat users failed\n");
+	return false;
+    }
+
     return true;
 }
 
@@ -2960,6 +2984,7 @@ void clearSlurmdProto(void)
 
     ufree(slurmProtoStr);
     ufree(slurmVerStr);
+    ufree(sstatUIDs);
 
     if (tresDBconfig) {
 	for (uint32_t i = 0; i < tresDBconfig->count; i++) {
