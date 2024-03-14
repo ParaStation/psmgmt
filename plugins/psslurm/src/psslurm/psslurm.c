@@ -783,7 +783,10 @@ bool finalizeInit(void)
 	    flog("failed to get plugin handle\n");
 	    return false;
 	}
-	PSIDplugin_load("pam_service", 1, trigger, NULL);
+	if (!PSIDplugin_load("pam_service", 1, trigger, NULL)) {
+	    flog("failed to load plugin pam_service\n");
+	    return false;
+	}
     }
 
     isInit = true;
