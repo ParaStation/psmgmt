@@ -113,16 +113,23 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg);
 bool verifyUserId(uid_t userID, uid_t validID);
 
 /**
- * @brief Convert a list of users to an array of UIDs
+ * @brief Convert list of users to an array of UIDs
  *
- * @param users The list to convert
+ * Convert the comma separated list of usernames @a users to an array
+ * of UIDs. This array is created via @ref malloc() in according size
+ * and upon successful return given back via @a UIDs. The number of
+ * elements will be reported via @a numUIDs.
  *
- * @param UIDs Array of UIDs holding the result
+ * If any username cannot be converted into an UID the overall process
+ * will fail and no result is provided.
+ *
+ * @param users List of usernames to convert
+ *
+ * @param UIDs Array of UIDs created to hold the results
  *
  * @param numUIDs Number of entries in @a UIDs
  *
- * @return On success true is returned or false in case of an
- * error.
+ * @return On success true is returned or false in case of an error
  */
 bool arrayFromUserList(const char *users, uid_t **UIDs, uint16_t *numUIDs);
 
