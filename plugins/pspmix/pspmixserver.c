@@ -1165,15 +1165,14 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 {
 
     /* assert input from pmix lib is as we expect it */
-    assert(proc != NULL);
-    assert(job_info != NULL || ninfo == 0);
-    assert(apps != NULL || napps == 0);
+    if (!proc || (ninfo && !job_info) || !napps || !apps)
+	return PMIX_ERR_BAD_PARAM;
     for (size_t a = 0; a < napps; a++) {
-	assert(apps[a].cmd);
-	assert(apps[a].argv);
-	if (strcmp(apps[a].cmd, apps[a].argv[0])) {
-	    mlog("%s: UNEXPECTED: apps[%zu].cmd (%s) != apps[%zu].argv[0] (%s)"
-		 "\n", __func__, a, apps[a].cmd, a, apps[a].argv[0]);
+	if (!apps[a].cmd || !apps[a].argv ||
+	    strcmp(apps[a].cmd, apps[a].argv[0])) {
+	    mlog("%s: UNEXPECTED: apps[%zu].cmd (%s) != apps[%zu].argv[0]"
+		 " (%s)\n", __func__, a, apps[a].cmd, a, apps[a].argv[0]);
+	    return PMIX_ERR_BAD_PARAM;
 	}
     }
 
