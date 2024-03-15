@@ -457,7 +457,6 @@ static void setupCommonEnv(Conf_t *conf)
 	setPSIEnv("PMI_SPAWNED", getenv("PMI_SPAWNED"), 1);
 	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"), 1);
 	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"), 1);
-	setPSIEnv("__MPIEXEC_DIST_START", getenv("__MPIEXEC_DIST_START"), 1);
 
 	char var[32];
 	for (int i = 0; i < conf->execCount; i++) {
