@@ -455,9 +455,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    /* we are using the loggertid as session ID
+    /* we are using the logger's TID as session ID
      * PMIx 4 standard: "Session identifier assigned by the scheduler" */
-    uint32_t sessionId = job->session->loggertid;
+    uint32_t sessionId = job->session->ID;
 
     /* create and initialize namespace object */
     PspmixNamespace_t *ns = ucalloc(sizeof(*ns));
@@ -806,12 +806,12 @@ static PSnodes_ID_t getNodeFromRank(PspmixNamespace_t *ns, int32_t rank)
 }
 
 /* main thread */
-bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
+bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 					     PStask_ID_t spawnertid,
 					     PspmixClient_t *client)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(job %s rank %d reservation %d)\n", __func__,
-	 pspmix_jobIDsStr(loggertid, spawnertid), client->rank, client->resID);
+	 pspmix_jobIDsStr(sessionID, spawnertid), client->rank, client->resID);
 
     /* get namespace name */
     const char *nsname = generateNamespaceName(spawnertid, false);

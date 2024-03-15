@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -35,11 +35,11 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata);
 /**
  * @brief Add a job to this server
  *
- * @param loggertid  logger to identify session to add the job to
+ * @param sessID     logger's TID to identify session to add the job to
  * @param job        the job to add to the server (takes ownership)
  *                   (needs not to have the session set, yet)
  */
-bool pspmix_userserver_addJob(PStask_ID_t loggertid, PspmixJob_t *job);
+bool pspmix_userserver_addJob(PStask_ID_t sessID, PspmixJob_t *job);
 
 /**
  * @brief Remove a job from this server

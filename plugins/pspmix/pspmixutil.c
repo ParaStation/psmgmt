@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,8 +32,8 @@ static void printSessions(PspmixServer_t *server)
     list_t *s, *j, *r;
     list_for_each(s, &server->sessions) {
 	PspmixSession_t *session = list_entry(s, PspmixSession_t, next);
-	mlog("%s: Session: logger %s used %s\n", __func__,
-	     PSC_printTID(session->loggertid), session->used ? "true" : "false");
+	mlog("%s: Session: ID %s used %s\n", __func__,
+	     PSC_printTID(session->ID), session->used ? "true" : "false");
 	list_for_each(j, &session->jobs) {
 	    PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
 	    mlog("%s:  - Job: spawner %s used %s\n", __func__,
@@ -90,14 +90,14 @@ void __pspmix_deleteSession(PspmixSession_t *session, bool warn,
 			  const char *caller, const int line)
 {
     if (!session) return;
-    mdbg(PSPMIX_LOG_CALL, "%s(logger %s) called\n", __func__,
-	 PSC_printTID(session->loggertid));
+    mdbg(PSPMIX_LOG_CALL, "%s(ID %s) called\n", __func__,
+	 PSC_printTID(session->ID));
 
     list_del(&session->next);
 
     if (!list_empty(&session->jobs) && warn) {
-	mlog("%s@%d: jobs list not empty (logger %s)\n", caller, line,
-	     PSC_printTID(session->loggertid));
+	mlog("%s@%d: jobs list not empty (ID %s)\n", caller, line,
+	     PSC_printTID(session->ID));
     }
 
     list_t *j, *tmp;

@@ -58,7 +58,7 @@ typedef struct {
  */
 typedef struct {
     list_t next;             /**< used to put into PspmixServer_t's session list */
-    PStask_ID_t loggertid;   /**< logger's tid, unique PMIx session ID */
+    PStask_ID_t ID;          /**< unique PMIx session ID (logger's TID) */
     PspmixServer_t *server;  /**< reference to PMIx server handling the session */
     list_t jobs;             /**< jobs involving this node in the session,
 				  entries are of type PspmixJob_t
@@ -224,8 +224,8 @@ typedef struct {
 /* generates findNodeInList(PSnodes_ID_t id, list_t *list) */
 FIND_IN_LIST_FUNC(Node, PspmixNode_t, PSnodes_ID_t, id)
 
-/* generates findSessionInList(PStask_ID_t loggertid, list_t *list) */
-FIND_IN_LIST_FUNC(Session, PspmixSession_t, PStask_ID_t, loggertid)
+/* generates findSessionInList(PStask_ID_t ID, list_t *list) */
+FIND_IN_LIST_FUNC(Session, PspmixSession_t, PStask_ID_t, ID)
 
 /* generates findJobInList(PStask_ID_t spawnertid, list_t *list) */
 FIND_IN_LIST_FUNC(Job, PspmixJob_t, PStask_ID_t, spawnertid)

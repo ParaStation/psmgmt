@@ -577,34 +577,34 @@ static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t spawnertid)
  * - Notify the running server via a PSPMIX_ADD_JOB message.
  *
  * @param server    PMIx server to add the job to
- * @param loggertid PMIx session identifier
+ * @param sessID    PMIx session identifier
  * @param psjob     job to add
  * @param env       environment for the job
  *
  * @returns True on success or if job already known to server, false on error
  */
-static bool addJobToServer(PspmixServer_t *server, PStask_ID_t loggertid,
+static bool addJobToServer(PspmixServer_t *server, PStask_ID_t sessID,
 			   PSjob_t *psjob, env_t env)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %d loggertid %s)\n", __func__,
-	 server->uid, PSC_printTID(loggertid));
+    mdbg(PSPMIX_LOG_CALL, "%s(uid %d session ID %s)\n", __func__,
+	 server->uid, PSC_printTID(sessID));
 
-    PspmixSession_t *session = findSessionInList(loggertid, &server->sessions);
+    PspmixSession_t *session = findSessionInList(sessID, &server->sessions);
     if (session) {
-	mdbg(PSPMIX_LOG_VERBOSE, "%s: session already exists (uid %d loggertid"
-	     " %s)\n", __func__, server->uid, PSC_printTID(loggertid));
+	mdbg(PSPMIX_LOG_VERBOSE, "%s: session already exists (uid %d ID %s)\n",
+	     __func__, server->uid, PSC_printTID(sessID));
     } else {
 	session = ucalloc(sizeof(*session));
 	if (!session) return false;
 
-	session->loggertid = loggertid;
+	session->ID = sessID;
 	session->server = server;
 	INIT_LIST_HEAD(&session->jobs);
 
 	list_add_tail(&session->next, &server->sessions);
 
-	mdbg(PSPMIX_LOG_VERBOSE, "%s: new session created (uid %d loggertid"
-	     " %s)\n", __func__, server->uid, PSC_printTID(loggertid));
+	mdbg(PSPMIX_LOG_VERBOSE, "%s: new session created (uid %d ID %s)\n",
+	     __func__, server->uid, PSC_printTID(sessID));
     }
 
     /* check if the user's server already knows this job */
@@ -630,7 +630,7 @@ static bool addJobToServer(PspmixServer_t *server, PStask_ID_t loggertid,
 
     list_add_tail(&job->next, &session->jobs);
 
-    return sendAddJob(server, loggertid, job->spawnertid, &psjob->resInfos, env);
+    return sendAddJob(server, sessID, job->spawnertid, &psjob->resInfos, env);
 }
 
 /**
@@ -652,13 +652,13 @@ static void killServer(int timerId, void *data)
 }
 
 /**
- * @brief Terminate the session associated with @a loggertid
+ * @brief Terminate the session associated with ID @a sessID
  */
-static void terminateSession(PStask_ID_t loggertid)
+static void terminateSession(PStask_ID_t sessID)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(logger %s)\n", __func__, PSC_printTID(loggertid));
+    mdbg(PSPMIX_LOG_CALL, "%s(ID %s)\n", __func__, PSC_printTID(sessID));
 
-    PSID_sendSignal(loggertid, getuid(), PSC_getMyTID(), -1 /* signal */,
+    PSID_sendSignal(sessID, getuid(), PSC_getMyTID(), -1 /* signal */,
 		    false /* pervasive */, false /* answer */);
 }
 
@@ -700,15 +700,15 @@ static void serverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 	    list_t *s;
 	    list_for_each(s, &server->sessions) {
 		PspmixSession_t *session = list_entry(s, PspmixSession_t, next);
-		mlog("%s: terminating session (logger %s)"
-			" (KILL_JOB_ON_SERVERFAIL set)\n", __func__,
-			PSC_printTID(session->loggertid));
+		mlog("%s: terminating session (ID %s)"
+		     " (KILL_JOB_ON_SERVERFAIL set)\n", __func__,
+		     PSC_printTID(session->ID));
 		if (session->used) {
-		    terminateSession(session->loggertid);
+		    terminateSession(session->ID);
 		} else {
 		    mdbg(PSPMIX_LOG_VERBOSE, "%s: session not using server"
-			 " (uid %d logger %s), not terminating\n", __func__,
-			 server->uid, PSC_printTID(session->loggertid));
+			 " (uid %d ID %s), not terminating\n", __func__,
+			 server->uid, PSC_printTID(session->ID));
 		}
 	    }
 	}
@@ -936,7 +936,7 @@ static int hookSpawnTask(void *data)
     PStask_ID_t loggertid = task->loggertid;
     PSsession_t *pssession = PSID_findSessionByID(loggertid);
     if (!pssession) {
-	mlog("%s: no session (logger %s)\n", __func__, PSC_printTID(loggertid));
+	mlog("%s: no session (ID %s)\n", __func__, PSC_printTID(loggertid));
 	envStealArray(env);
 	return -1;
     }
@@ -946,7 +946,7 @@ static int hookSpawnTask(void *data)
     PSjob_t *psjob = PSID_findJobInSession(pssession, spawnertid);
     if (!psjob) {
 	mlog("%s: no job (spawner %s", __func__, PSC_printTID(spawnertid));
-	mlog(" logger %s)\n", PSC_printTID(loggertid));
+	mlog(" session %s)\n", PSC_printTID(loggertid));
 	envStealArray(env);
 	return -1;
     }
@@ -957,7 +957,7 @@ static int hookSpawnTask(void *data)
     if (!resInfo) {
 	mlog("%s: no reservation %d (spawner %s", __func__, resID,
 	     PSC_printTID(spawnertid));
-	mlog(" logger %s)\n", PSC_printTID(loggertid));
+	mlog(" session %s)\n", PSC_printTID(loggertid));
 	envStealArray(env);
 	return -1;
     }
@@ -1042,7 +1042,7 @@ static int hookSpawnTask(void *data)
 
     mlog("%s: sending job failed (uid %d server %s", __func__, server->uid,
 	 PSC_printTID(server->fwdata->tid));
-    mlog(" logger %s)\n", PSC_printTID(loggertid));
+    mlog(" session %s)\n", PSC_printTID(loggertid));
 
     mlog("%s: stopping PMIx server (uid %d)\n", __func__, server->uid);
     stopServer(server);
@@ -1092,8 +1092,8 @@ static int hookLocalJobRemoved(void *data)
 
     /* remove session if this was the last job in it */
     if (list_empty(&job->session->jobs)) {
-	mdbg(PSPMIX_LOG_VERBOSE, "%s: removing session (uid %d logger %s)\n",
-	     __func__, server->uid, PSC_printTID(job->session->loggertid));
+	mdbg(PSPMIX_LOG_VERBOSE, "%s: removing session (uid %d ID %s)\n",
+	     __func__, server->uid, PSC_printTID(job->session->ID));
 	list_del(&job->session->next);
 
 	/* stop server if this was the last session on it */

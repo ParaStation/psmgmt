@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -62,13 +62,13 @@ const char *pspmix_getMsgTypeString(PSP_PSPMIX_t type)
 
 const char *pspmix_jobStr(PspmixJob_t *job)
 {
-    return pspmix_jobIDsStr(job->session->loggertid, job->spawnertid);
+    return pspmix_jobIDsStr(job->session->ID, job->spawnertid);
 }
 
-const char *pspmix_jobIDsStr(PStask_ID_t logTID, PStask_ID_t spawnTID)
+const char *pspmix_jobIDsStr(PStask_ID_t sessID, PStask_ID_t spawnTID)
 {
     static char str[64];
-    int n = snprintf(str, sizeof(str), "logger %s", PSC_printTID(logTID));
+    int n = snprintf(str, sizeof(str), "session %s", PSC_printTID(sessID));
     n += snprintf(str+n, sizeof(str) - n, " spawner %s", PSC_printTID(spawnTID));
 
     return str;

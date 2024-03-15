@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -87,32 +87,32 @@ static char * genSessionTmpdirName(PspmixSession_t *session)
 {
     char tmp[128];
     snprintf(tmp, sizeof(tmp), "/tmp/pspmix_%d/%s", session->server->uid,
-	     PSC_printTID(session->loggertid));
+	     PSC_printTID(session->ID));
 
     return ustrdup(tmp);
 }
 
-bool pspmix_userserver_addJob(PStask_ID_t loggertid, PspmixJob_t *job)
+bool pspmix_userserver_addJob(PStask_ID_t sessID, PspmixJob_t *job)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__,
-	 pspmix_jobIDsStr(loggertid, job->spawnertid));
+	 pspmix_jobIDsStr(sessID, job->spawnertid));
 
     if (!server) {
 	mlog("%s: FATAL: no server object\n", __func__);
 	return false;
     }
 
-    PspmixSession_t *session = findSessionInList(loggertid, &server->sessions);
+    PspmixSession_t *session = findSessionInList(sessID, &server->sessions);
     if (!session) {
 	session = ucalloc(sizeof(*session));
 	if (!session) return false;
 	session->server = server;
-	session->loggertid = loggertid;
+	session->ID = sessID;
 	INIT_LIST_HEAD(&session->jobs);
 	list_add_tail(&session->next, &server->sessions);
 	session->tmpdir = genSessionTmpdirName(session);
-	mdbg(PSPMIX_LOG_VERBOSE, "%s(uid %d): session created (logger %s"
-	     " tmpdir %s)\n", __func__, server->uid, PSC_printTID(loggertid),
+	mdbg(PSPMIX_LOG_VERBOSE, "%s(uid %d): session created (ID %s"
+	     " tmpdir %s)\n", __func__, server->uid, PSC_printTID(session->ID),
 	     session->tmpdir);
     }
 
@@ -146,13 +146,12 @@ bool pspmix_userserver_addJob(PStask_ID_t loggertid, PspmixJob_t *job)
  */
 static void terminateSession(PspmixSession_t *session)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(logger %s)\n", __func__,
-	 PSC_printTID(session->loggertid));
+    mdbg(PSPMIX_LOG_CALL, "%s(ID %s)\n", __func__, PSC_printTID(session->ID));
 
     ulog("terminating session by signaling logger %s\n",
-	 PSC_printTID(session->loggertid));
+	 PSC_printTID(session->ID));
 
-    pspmix_comm_sendSignal(session->loggertid, -1);
+    pspmix_comm_sendSignal(session->ID, -1);
 }
 
 /**
@@ -199,7 +198,7 @@ bool pspmix_userserver_removeJob(PStask_ID_t spawnertid, bool abort)
     pspmix_deleteJob(job);
 
     mdbg(PSPMIX_LOG_VERBOSE, "%s(uid %d): job removed (job %s)\n", __func__,
-	 server->uid, pspmix_jobIDsStr(session->loggertid, spawnertid));
+	 server->uid, pspmix_jobIDsStr(session->ID, spawnertid));
 
     if (list_empty(&session->jobs)) pspmix_deleteSession(session, true);
 
