@@ -1038,8 +1038,6 @@ void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
     pmix_nspace_t ns;
     if (nspace) PMIX_LOAD_NSPACE(ns, nspace);
     sdata->cbfunc(status, ns, sdata->cbdata);
-#else
-    return; /* spawn not supported */
 #endif
 }
 
