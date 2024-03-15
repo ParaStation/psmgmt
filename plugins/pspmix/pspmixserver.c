@@ -1036,7 +1036,7 @@ void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
     pmix_status_t status = success ? PMIX_SUCCESS : PMIX_ERROR;
 
     pmix_nspace_t ns;
-    if (nspace) PMIX_LOAD_NSPACE(ns, nspace);
+    PMIX_LOAD_NSPACE(ns, nspace ? nspace : "none");
     sdata->cbfunc(status, ns, sdata->cbdata);
 #endif
 }
