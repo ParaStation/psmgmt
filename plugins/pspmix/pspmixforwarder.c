@@ -217,25 +217,12 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	 * ParaStation pspmix supports:
 	 *
 	 *  - wdir: The working directory of the spawned processes
-	 *  - hosts: List of hosts to use
-	 *  - hostfile: File containing the list of hosts to use
 	 */
 	for (int j = 0; j < spawn->infoc; j++) {
 	    KVP_t *info = &(spawn->infov[j]);
 
 	    if (!strcmp(info->key, "wdir")) {
 		strvAdd(&args, "-d");
-		strvAdd(&args, info->value);
-	    }
-	    if (!strcmp(info->key, "hosts")) {
-		strvAdd(&args, "-H");
-		char *val = ustrdup(info->value);
-		/* replace all colons with whitespaces */
-		for (char *p = val; (p = strchr(p, ',')) != NULL; *p = ' ');
-		strvLink(&args, val);
-	    }
-	    if (!strcmp(info->key, "hostfile")) {
-		strvAdd(&args, "-f");
 		strvAdd(&args, info->value);
 	    }
 	}
