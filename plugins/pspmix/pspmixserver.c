@@ -1171,7 +1171,10 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
     for (size_t a = 0; a < napps; a++) {
 	assert(apps[a].cmd);
 	assert(apps[a].argv);
-	assert(!strcmp(apps[a].cmd, apps[a].argv[0]));
+	if (strcmp(apps[a].cmd, apps[a].argv[0])) {
+	    mlog("%s: UNEXPECTED: apps[%zu].cmd (%s) != apps[%zu].argv[0] (%s)"
+		 "\n", __func__, a, apps[a].cmd, a, apps[a].argv[0]);
+	}
     }
 
     if (mset(PSPMIX_LOG_CALL)) {
