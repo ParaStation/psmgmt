@@ -195,11 +195,6 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     /* set PMIx mode */
     strvAdd(&args, "--pmix");
 
-    /* set universe size */
-    strvAdd(&args, "-u");
-    snprintf(buffer, sizeof(buffer), "%d", usize);
-    strvAdd(&args, buffer);
-
     size_t jobsize = 0;
 
     for (int i = 0; i < req->num; i++) {
