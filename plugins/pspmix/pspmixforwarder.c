@@ -1135,14 +1135,12 @@ static int hookForwarderExit(void *data)
 
 void pspmix_initForwarderModule(void)
 {
-    /* set spawn handler if no other plugin (e.g. psslurm) already did */
-    if (!pspmix_getFillTaskFunction()) {
-	mdbg(PSPMIX_LOG_VERBOSE, "Setting PMIx default fill spawn task function"
-	     " to fillWithMpiexec()\n");
-	psPmixResetFillSpawnTaskFunction();
-    } else {
-	mdbg(PSPMIX_LOG_VERBOSE, "PMIx fill spawn task function already set\n");
-    }
+    /* set spawn handler
+     * as long as this function is only called in pspmix init function,
+     * it will always be unset before */
+    mdbg(PSPMIX_LOG_VERBOSE, "Setting PMIx default fill spawn task function"
+	 " to fillWithMpiexec()\n");
+    psPmixResetFillSpawnTaskFunction();
 
     PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
     PSIDhook_add(PSIDHOOK_FRWRD_SETUP, hookForwarderSetup);
