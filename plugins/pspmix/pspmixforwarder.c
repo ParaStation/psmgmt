@@ -402,7 +402,7 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     envPut(env, tmp);
 
     /* tell the service rank to the kvsprovider    @todo why - 3 */
-    snprintf(tmp, sizeof(tmp), "__PMI_SPAWN_SERVICE_RANK=%d", serviceRank - 3);
+    snprintf(tmp, sizeof(tmp), "__SPAWNER_SERVICE_RANK=%d", serviceRank - 3);
     envPut(env, tmp);
 
     task->envSize = envSize(env);

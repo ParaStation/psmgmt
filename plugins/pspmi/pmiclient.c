@@ -2116,7 +2116,7 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     envPut(env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
-    snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_SERVICE_RANK=%i",
+    snprintf(buffer, sizeof(buffer), "__SPAWNER_SERVICE_RANK=%i",
 	     serviceRank - 3);
     envPut(env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);

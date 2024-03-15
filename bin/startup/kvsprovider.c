@@ -106,7 +106,7 @@ int main(int argc, const char *argv[], char** envp)
     propExecEnvironment(conf);
 
     /* Identify the rank of the spawner service to start */
-    envPtr = getenv("__PMI_SPAWN_SERVICE_RANK");
+    envPtr = getenv("__SPAWNER_SERVICE_RANK");
     int sRank = -3;
     if (envPtr) sRank = atoi(envPtr);
 
