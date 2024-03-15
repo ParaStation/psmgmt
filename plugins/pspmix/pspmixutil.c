@@ -36,8 +36,8 @@ static void printSessions(PspmixServer_t *server)
 	     PSC_printTID(session->ID), session->used ? "true" : "false");
 	list_for_each(j, &session->jobs) {
 	    PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
-	    mlog("%s:  - Job: spawner %s used %s\n", __func__,
-		 PSC_printTID(job->spawnertid), job->used ? "true" : "false");
+	    mlog("%s:  - Job: ID %s used %s\n", __func__,
+		 PSC_printTID(job->ID), job->used ? "true" : "false");
 	    list_for_each(r, &job->resInfos) {
 		PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
 		mlog("%s:    - Reservation: resID %d nEntries %u entries [",
@@ -70,8 +70,7 @@ void __pspmix_printServer(PspmixServer_t *server, bool sessions,
 void pspmix_deleteJob(PspmixJob_t *job)
 {
     if (!job) return;
-    mdbg(PSPMIX_LOG_CALL, "%s(spawner %s) called\n", __func__,
-	 PSC_printTID(job->spawnertid));
+    mdbg(PSPMIX_LOG_CALL, "%s(ID %s) called\n", __func__, PSC_printTID(job->ID));
 
     list_del(&job->next);
 

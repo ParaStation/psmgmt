@@ -105,12 +105,12 @@ const char *pspmix_jobStr(PspmixJob_t *job);
 /**
  * @brief Returns string representing a PMIx job
  *
- * @param loggertid   session id
- * @param spawnertid  job id
+ * @param sessID   session id
+ * @param jobID    job id
  *
  * @return Returns the string
  */
-const char *pspmix_jobIDsStr(PStask_ID_t loggertid, PStask_ID_t spawnertid);
+const char *pspmix_jobIDsStr(PStask_ID_t sessID, PStask_ID_t jobID);
 
 /**
  * @brief Init logging facility

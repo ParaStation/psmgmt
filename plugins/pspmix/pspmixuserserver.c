@@ -31,13 +31,13 @@
 PspmixServer_t *server = NULL;
 
 /**
- * @brief Find job with given spawnertid
+ * @brief Find job with given ID
  *
- * @param spawnertid  TID of the spawner creating the job (unique ID)
+ * @param jobID Job's unique ID (TID of the spawner creating the job)
  *
  * @return Returns the job or NULL if not in list
  */
-static PspmixJob_t * findJob(PStask_ID_t spawnertid)
+static PspmixJob_t * findJob(PStask_ID_t jobID)
 {
     if (!server) return NULL;
 
@@ -47,7 +47,7 @@ static PspmixJob_t * findJob(PStask_ID_t spawnertid)
 	list_t *j;
 	list_for_each(j, &session->jobs) {
 	    PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
-	    if (job->spawnertid == spawnertid) return job;
+	    if (job->ID == jobID) return job;
 	}
     }
     return NULL;
@@ -95,7 +95,7 @@ static char * genSessionTmpdirName(PspmixSession_t *session)
 bool pspmix_userserver_addJob(PStask_ID_t sessID, PspmixJob_t *job)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__,
-	 pspmix_jobIDsStr(sessID, job->spawnertid));
+	 pspmix_jobIDsStr(sessID, job->ID));
 
     if (!server) {
 	mlog("%s: FATAL: no server object\n", __func__);
@@ -172,7 +172,7 @@ static void terminateJob(PspmixJob_t *job)
     terminateSession(job->session);
 }
 
-bool pspmix_userserver_removeJob(PStask_ID_t spawnertid, bool abort)
+bool pspmix_userserver_removeJob(PStask_ID_t jobID, bool abort)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
@@ -181,15 +181,15 @@ bool pspmix_userserver_removeJob(PStask_ID_t spawnertid, bool abort)
 	return false;
     }
 
-    PspmixJob_t *job = findJob(spawnertid);
+    PspmixJob_t *job = findJob(jobID);
     if (!job) {
-	ulog("job not found (spawner %s)\n", PSC_printTID(spawnertid));
+	ulog("job not found (ID %s)\n", PSC_printTID(jobID));
 	return false;
     }
 
     if (abort) terminateJob(job);
 
-    if (!pspmix_service_removeNamespace(spawnertid)) {
+    if (!pspmix_service_removeNamespace(jobID)) {
 	ulog("destroying namespace failed (%s)\n", pspmix_jobStr(job));
 	return false;
     }
@@ -198,7 +198,7 @@ bool pspmix_userserver_removeJob(PStask_ID_t spawnertid, bool abort)
     pspmix_deleteJob(job);
 
     mdbg(PSPMIX_LOG_VERBOSE, "%s(uid %d): job removed (job %s)\n", __func__,
-	 server->uid, pspmix_jobIDsStr(session->ID, spawnertid));
+	 server->uid, pspmix_jobIDsStr(session->ID, jobID));
 
     if (list_empty(&session->jobs)) pspmix_deleteSession(session, true);
 

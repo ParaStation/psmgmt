@@ -175,16 +175,16 @@ static PspmixNamespace_t* findNamespace(const char *nsname)
 /**
  * @brief Find namespace by job id (spawnertid)
  *
- * @param name  namespace name
+ * @param jobID Job's unique identifier
  *
  * @return Returns the namespace or NULL if not in list
  */
-static PspmixNamespace_t* findNamespaceByJobID(PStask_ID_t spawnertid)
+static PspmixNamespace_t* findNamespaceByJobID(PStask_ID_t jobID)
 {
     list_t *n;
     list_for_each(n, &namespaceList) {
 	PspmixNamespace_t *ns = list_entry(n, PspmixNamespace_t, next);
-	if (ns->job->spawnertid == spawnertid) return ns;
+	if (ns->job->ID == jobID) return ns;
     }
     return NULL;
 }
@@ -234,11 +234,11 @@ bool pspmix_service_init(uid_t uid, gid_t gid, char *clusterid)
  *
  * @return Returns buffer containing the generated name
  */
-static const char* generateNamespaceName(PStask_ID_t spawnertid, bool singleton)
+static const char* generateNamespaceName(PStask_ID_t jobID, bool singleton)
 {
     static char buf[MAX_NSLEN];
 
-    snprintf(buf, MAX_NSLEN, "pspmix_%s%s", PSC_printTID(spawnertid),
+    snprintf(buf, MAX_NSLEN, "pspmix_%s%s", PSC_printTID(jobID),
 	     singleton ? "_singleton" : "");
 
     return buf;
@@ -466,7 +466,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* generate my namespace name */
     bool singleton = !pspmix_common_usePMIx(job->env);
-    strncpy(ns->name, generateNamespaceName(job->spawnertid, singleton),
+    strncpy(ns->name, generateNamespaceName(job->ID, singleton),
 	    sizeof(ns->name));
 
     /* fill jobid
@@ -719,12 +719,12 @@ nscreate_error:
 	if called by handleRemoveJob() via pspmix_userserver_removeJob()
    library thread:
 	if called by pmix_service_abort() via pspmix_userserver_removeJob() */
-bool pspmix_service_removeNamespace(PStask_ID_t spawnertid)
+bool pspmix_service_removeNamespace(PStask_ID_t jobID)
 {
     GET_LOCK(namespaceList);
-    PspmixNamespace_t *ns = findNamespaceByJobID(spawnertid);
+    PspmixNamespace_t *ns = findNamespaceByJobID(jobID);
     if (!ns) {
-	ulog("namespace not found (spawner %s)\n", PSC_printTID(spawnertid));
+	ulog("namespace not found (jobID %s)\n", PSC_printTID(jobID));
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -807,14 +807,14 @@ static PSnodes_ID_t getNodeFromRank(PspmixNamespace_t *ns, int32_t rank)
 
 /* main thread */
 bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
-					     PStask_ID_t spawnertid,
+					     PStask_ID_t jobID,
 					     PspmixClient_t *client)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(job %s rank %d reservation %d)\n", __func__,
-	 pspmix_jobIDsStr(sessionID, spawnertid), client->rank, client->resID);
+	 pspmix_jobIDsStr(sessionID, jobID), client->rank, client->resID);
 
     /* get namespace name */
-    const char *nsname = generateNamespaceName(spawnertid, false);
+    const char *nsname = generateNamespaceName(jobID, false);
 
     GET_LOCK(namespaceList);
 
@@ -824,7 +824,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 	if (getConfValueI(config, "SUPPORT_MPI_SINGLETON")) {
 	    /* try singleton name */
 	    char *nsname2 = ustrdup(nsname);
-	    nsname = generateNamespaceName(spawnertid, true);
+	    nsname = generateNamespaceName(jobID, true);
 	    if (!((ns = findNamespace(nsname)))) {
 		ulog("namespaces '%s' and '%s' not found\n", nsname2, nsname);
 		ufree(nsname2);
@@ -1012,11 +1012,11 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
     char nsname[MAX_NSLEN+1];
     strcpy(nsname, client->nsname);
     pmix_rank_t rank = client->rank;
-    PStask_ID_t spawnertid = ns->job->spawnertid;
+    PStask_ID_t jobID = ns->job->ID;
 
     RELEASE_LOCK(namespaceList);
 
-    if (!pspmix_comm_sendInitNotification(fwtid, nsname, rank, spawnertid)) {
+    if (!pspmix_comm_sendInitNotification(fwtid, nsname, rank, jobID)) {
 	ulog("Sending init notification for %s:%d to %s failed\n",
 	     nsname, rank, PSC_printTID(fwtid));
     }
@@ -1063,8 +1063,7 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
 	return false;
     }
 
-    PStask_ID_t spawnertid = ns->job->spawnertid;
-
+    PStask_ID_t jobID = ns->job->ID;
 
     if (client->notifiedFwCb) {
 	ulog("UNEXPECTED: client->notifiedFwCb set\n");
@@ -1091,7 +1090,7 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
 
     RELEASE_LOCK(namespaceList);
 
-    pspmix_comm_sendFinalizeNotification(fwtid, nsname, rank, spawnertid);
+    pspmix_comm_sendFinalizeNotification(fwtid, nsname, rank, jobID);
 
     return true;
 }
@@ -1161,10 +1160,10 @@ void pspmix_service_abort(void *clientObject)
 	return;
     }
 
-    PStask_ID_t spawnertid = ns->job->spawnertid;
+    PStask_ID_t jobID = ns->job->ID;
     RELEASE_LOCK(namespaceList);
 
-    pspmix_userserver_removeJob(spawnertid, true);
+    pspmix_userserver_removeJob(jobID, true);
 }
 
 /**

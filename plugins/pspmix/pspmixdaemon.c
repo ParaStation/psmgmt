@@ -102,17 +102,17 @@ static PspmixServer_t* findServer(uid_t uid)
 }
 
 /**
- * @brief Find job with given spawnertid
+ * @brief Find job by ID
  *
- * Ignores only invalid servers that have been already finalized
- * by @a stopServer() and are waiting for SIGCHILD handling
- * in @a serverTerminated_cb().
+ * Ignores only invalid servers that have been already finalized by @a
+ * stopServer() and are waiting for SIGCHILD handling in @a
+ * serverTerminated_cb().
  *
- * @param spawnertid  TID of the spawner creating the job (unique ID)
+ * @param jobID Job's unique ID (TID of the spawner creating the job)
  *
  * @return Returns the job or NULL if not in list
  */
-static PspmixJob_t * findJob(PStask_ID_t spawnertid)
+static PspmixJob_t * findJob(PStask_ID_t jobID)
 {
     list_t *s, *t, *j;
     list_for_each(s, &pmixServers) {
@@ -122,7 +122,7 @@ static PspmixJob_t * findJob(PStask_ID_t spawnertid)
 	    PspmixSession_t *session = list_entry(t, PspmixSession_t, next);
 	    list_for_each(j, &session->jobs) {
 		PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
-		if (job->spawnertid == spawnertid) return job;
+		if (job->ID == jobID) return job;
 	    }
 	}
     }
@@ -151,16 +151,15 @@ PStask_ID_t pspmix_daemon_getServerTID(uid_t uid)
 /**
  * @brief Find a PMIx job in a server object
  *
- * Finds the server by @a servertid and the PMIx job by spawner @a spawnertid
- * in its jobs list.
+ * Finds the server by @a servertid and the PMIx job by its ID @a
+ * jobID in its jobs list.
  *
  * @param servertid  TID of the PMIx server of the job
- * @param spawnertid  TID of the spawner requested the PMIx job
+ * @param jobID Unique ID (TID of the spawner requested the PMIx job)
  *
  * @returns PMIx job or NULL of not found or on error
  */
-static PspmixJob_t * findJobInServer(PStask_ID_t servertid,
-				     PStask_ID_t spawnertid)
+static PspmixJob_t * findJobInServer(PStask_ID_t servertid, PStask_ID_t jobID)
 {
     PspmixServer_t *server;
     bool found = false;
@@ -184,12 +183,11 @@ static PspmixJob_t * findJobInServer(PStask_ID_t servertid,
 	list_t *j;
 	list_for_each(j, &pmixsession->jobs) {
 	    PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
-	    if (job->spawnertid == spawnertid) return job;
+	    if (job->ID == jobID) return job;
 	}
     }
 
-    mlog("%s: no matching PMIx job (spawner %s", __func__,
-	 PSC_printTID(spawnertid));
+    mlog("%s: no matching PMIx job (ID %s", __func__, PSC_printTID(jobID));
     mlog(" server %s)\n", PSC_printTID(servertid));
     return NULL;
 }
@@ -624,13 +622,13 @@ static bool addJobToServer(PspmixServer_t *server, PStask_ID_t sessID,
 	return false;
     }
 
-    job->spawnertid = psjob->ID;
+    job->ID = psjob->ID;
     job->session = session;
     INIT_LIST_HEAD(&job->resInfos); /* init even if never used */
 
     list_add_tail(&job->next, &session->jobs);
 
-    return sendAddJob(server, sessID, job->spawnertid, &psjob->resInfos, env);
+    return sendAddJob(server, sessID, job->ID, &psjob->resInfos, env);
 }
 
 /**
@@ -945,7 +943,7 @@ static int hookSpawnTask(void *data)
     PStask_ID_t spawnertid = task->spawnertid;
     PSjob_t *psjob = PSID_findJobInSession(pssession, spawnertid);
     if (!psjob) {
-	mlog("%s: no job (spawner %s", __func__, PSC_printTID(spawnertid));
+	mlog("%s: no job (ID %s", __func__, PSC_printTID(spawnertid));
 	mlog(" session %s)\n", PSC_printTID(loggertid));
 	envStealArray(env);
 	return -1;
@@ -955,7 +953,7 @@ static int hookSpawnTask(void *data)
     PSrsrvtn_ID_t resID = task->resID;
     PSresinfo_t *resInfo = findReservationInList(resID, &psjob->resInfos);
     if (!resInfo) {
-	mlog("%s: no reservation %d (spawner %s", __func__, resID,
+	mlog("%s: no reservation %d (ID %s", __func__, resID,
 	     PSC_printTID(spawnertid));
 	mlog(" session %s)\n", PSC_printTID(loggertid));
 	envStealArray(env);
@@ -972,7 +970,7 @@ static int hookSpawnTask(void *data)
 						     &server->sessions);
 	if (session && findJobInList(spawnertid, &session->jobs)) {
 	    mdbg(PSPMIX_LOG_VERBOSE, "%s: rank %d: job already known (uid %d"
-		 " spawner %s)\n", __func__, task->rank, server->uid,
+		 " ID %s)\n", __func__, task->rank, server->uid,
 		 PSC_printTID(spawnertid));
 	    envStealArray(env);
 	    return 0;
@@ -1082,7 +1080,7 @@ static int hookLocalJobRemoved(void *data)
     PspmixServer_t *server = job->session->server;
 
     /* send info about removed job to the PMIx server */
-    if (!sendRemoveJob(server, job->spawnertid)) {
+    if (!sendRemoveJob(server, job->ID)) {
 	mlog("%s: sending job remove failed (uid %d %s)\n", __func__,
 	     server->uid, pspmix_jobStr(job));
 	//TODO @todo stop server if still alive ???
