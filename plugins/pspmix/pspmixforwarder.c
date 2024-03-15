@@ -179,8 +179,8 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     bool noParricide = false;
 
     /* build arguments:
-     * mpiexec --pmix -u <UNIVERSE_SIZE> -np <NP> -d <WDIR> -p <PATH> \
-     *  --nodetype=<NODETYPE> --tpp=<TPP> <BINARY> : -np ... */
+     * kvsprovider --pmix -np <NP> -d <WDIR> --nodetype=<typeslist>
+     *					     -E <key> <value> <BINARY> : ... */
     strv_t args;
     strvInit(&args, NULL, 0);
 
@@ -217,6 +217,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	 * ParaStation pspmix supports:
 	 *
 	 *  - wdir: The working directory of the spawned processes
+	 *  - nodetype/arch: Comma separated list of nodetypes to be used
 	 */
 	for (int j = 0; j < spawn->infoc; j++) {
 	    KVP_t *info = &(spawn->infov[j]);
@@ -224,6 +225,11 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    if (!strcmp(info->key, "wdir")) {
 		strvAdd(&args, "-d");
 		strvAdd(&args, info->value);
+	    }
+
+	    if (!strcmp(info->key, "nodetype") || !strcmp(info->key, "arch")) {
+		char *tmp = PSC_concat("--nodetype=", info->value);
+		strvLink(&args, tmp);
 	    }
 	}
 
