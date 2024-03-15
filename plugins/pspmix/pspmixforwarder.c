@@ -245,20 +245,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    }
 	}
 
-	/* add user defined environment
-	 *
-	 * Note: This is currently not working exactly as it should:
-	 * Since mpiexec does not support setting different environments for
-	 * different apps in a single call, this will actually mix up the
-	 * environments. It creates a command line like
-	 *
-	 *  kvsprovider -np 1 -E VAR0 VAL0 exe0 : -np 1 -E VAR1 VAL1 exe1
-	 *
-	 * currently ending up in all apps getting VAR0 and VAR1 set. If the
-	 * same variable is set for multiple apps, the last one will win.
-	 *
-	 * @todo fix somehow
-	 * */
+	/* add user defined environment */
 	char **env = envGetArray(spawn->env);
 	while (env && *env) {
 	    strvAdd(&args, "-E");
@@ -269,7 +256,6 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    ufree(tmp);
 	    env++;
 	}
-
 
 	/* add binary and argument from spawn request */
 	for (int j = 0; j < spawn->argc; j++) {
