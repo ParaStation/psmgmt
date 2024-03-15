@@ -885,10 +885,9 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 	return false;
     }
 
-    /* put into env_t */
-    env_t env = envNew(NULL);
+    /* transfer into env_t, we rely on the environment to be valid here */
+    env_t env = envConstruct(envp, NULL);
     for (size_t i = 0; envp[i]; i++) {
-	envPut(env, envp[i]);
 	mdbg(PSPMIX_LOG_ENV, "%s: Got '%s'\n", __func__, envp[i]);
 	pmix_free(envp[i]);
     }
