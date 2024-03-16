@@ -1969,16 +1969,16 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
 	return;
     }
 
-    spawn->state = SPAWN_INPROGRESS;
-    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state INPROGRESS\n", spawn->id);
-
-    if (spawn->state != SPAWN_REQUESTED) {
-	ulog("UNEXPECTED: spawn state is %d", spawn->state);
-    }
-
     /* an error happened */
     list_del(&spawn->next);
     RELEASE_LOCK(spawnList);
+
+    /* valid states here are:
+     * - SPAWN_REQUESTED     if not all spawn info messages are received, yet
+     * - SPAWN_ALLCONNECTED  if all spawn info messages are received */
+    if (spawn->state != SPAWN_REQUESTED && spawn->state != SPAWN_ALLCONNECTED) {
+	ulog("UNEXPECTED: spawn state is %d", spawn->state);
+    }
 
     ulog("forwarder reported fail for spawn id %hu\n", spawnID);
 
