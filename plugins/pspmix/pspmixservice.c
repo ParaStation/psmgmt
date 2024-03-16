@@ -1986,6 +1986,15 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
     udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
     pspmix_server_spawnRes(false, spawn->sdata, NULL);
 
+    /*
+     * Behavior of individual resource managers may differ, but it is expected
+     * that failure of any application process to start will result in
+     * termination/cleanup of all processes in the newly spawned job and return
+     * of an error code to the caller.
+     */
+
+    /* @todo  trigger termination and cleanup of all spawned processes */
+
     cleanupSpawn(spawn);
 }
 
@@ -2004,6 +2013,14 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool success, char *nspace,
 	ulog("UNEXPECTED: spawn id %hu not found (np %u node %hd)\n", spawnID,
 	     np, node);
 	return;
+    }
+
+    if (!success) {
+	ulog("Node %hd reported failed spawn (id %hu nspace %s np %u)\n", node,
+	     spawnID, nspace, np);
+	spawn->state = SPAWN_FAILED;
+	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
+	goto failed;
     }
 
     /* do some checks with nspace */
@@ -2051,6 +2068,15 @@ failed:
     spawn->state = SPAWN_FAILED;
     udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
     pspmix_server_spawnRes(false, spawn->sdata, NULL);
+
+    /*
+     * Behavior of individual resource managers may differ, but it is expected
+     * that failure of any application process to start will result in
+     * termination/cleanup of all processes in the newly spawned job and return
+     * of an error code to the caller.
+     */
+
+    /* @todo  trigger termination and cleanup of all spawned processes */
 
 cleanup:
     list_del(&spawn->next);
