@@ -1026,10 +1026,13 @@ static pmix_status_t server_unpublish_cb(const pmix_proc_t *proc, char **keys,
 void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
 			    const char *nspace)
 {
-    assert(sdata != NULL);
-    assert(sdata->cbfunc != NULL);
-
 #if PMIX_VERSION_MAJOR >= 4
+    if (!sdata || !sdata->cbfunc) {
+	mlog("%s(success %s sdata %p) missing callback\n", __func__,
+	     success ? "true" : "false", sdata);
+	return;
+    }
+
     mdbg(PSPMIX_LOG_CALL, "%s(success %s)\n", __func__,
 	 success ? "true" : "false");
 
