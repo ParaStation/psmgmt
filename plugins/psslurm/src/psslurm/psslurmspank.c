@@ -429,7 +429,7 @@ void __SpankInitOpt(spank_t spank, const char *func, const int line)
 {
     Step_t *step = spank->step;
     if (!step) {
-	flog("invalid step from %s:%i\n", func, line);
+	if (!spank->job) flog("invalid step from %s:%i\n", func, line);
 	return;
     }
 
