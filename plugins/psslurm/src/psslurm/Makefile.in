@@ -175,7 +175,8 @@ am__psslurm_la_SOURCES_DIST = psslurm.c psslurm.h psslurmlog.c \
 	psslurmnodeinfo.c psslurmnodeinfo.h psslurmnodeinfotype.h \
 	psslurmjobcred.c psslurmtopo.c psslurmtopo.h \
 	psslurmprototypes.c psslurmprototypes.h psslurmcontainer.c \
-	psslurmcontainer.h psslurmspank.h psslurmspank.c
+	psslurmcontainer.h psslurmcontainertype.h psslurmspank.h \
+	psslurmspank.c
 @SPANK_ENABLED_TRUE@am__objects_1 = psslurm_la-psslurmspank.lo
 am_psslurm_la_OBJECTS = psslurm_la-psslurm.lo psslurm_la-psslurmlog.lo \
 	psslurm_la-psslurmpscomm.lo psslurm_la-psslurmconfig.lo \
@@ -512,7 +513,7 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h \
 	psslurmnodeinfo.c psslurmnodeinfo.h psslurmnodeinfotype.h \
 	psslurmjobcred.c psslurmtopo.c psslurmtopo.h \
 	psslurmprototypes.c psslurmprototypes.h psslurmcontainer.c \
-	psslurmcontainer.h $(am__append_2)
+	psslurmcontainer.h psslurmcontainertype.h $(am__append_2)
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 	-DLOCALSTATEDIR=\"$(localstatedir)\"				\
 	-DPKGLIBEXECDIR=\"$(pkglibexecdir)\" -DBINDIR=\"$(bindir)\"	\
