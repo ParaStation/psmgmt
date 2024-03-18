@@ -662,6 +662,7 @@ plugins/psslurm/src/psslurm/psslurmconfig.c \
 plugins/psslurm/src/psslurm/psslurmconfig.h \
 plugins/psslurm/src/psslurm/psslurmcontainer.c \
 plugins/psslurm/src/psslurm/psslurmcontainer.h \
+plugins/psslurm/src/psslurm/psslurmcontainertype.h \
 plugins/psslurm/src/psslurm/psslurmenv.c \
 plugins/psslurm/src/psslurm/psslurmenv.h \
 plugins/psslurm/src/psslurm/psslurmforwarder.c \
