@@ -1993,13 +1993,15 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
     pspmix_server_spawnRes(false, spawn->sdata, NULL);
 
     /*
-     * Behavior of individual resource managers may differ, but it is expected
+     * PMIx Standard v5.0:
+     * "Behavior of individual resource managers may differ, but it is expected
      * that failure of any application process to start will result in
      * termination/cleanup of all processes in the newly spawned job and return
-     * of an error code to the caller.
+     * of an error code to the caller."
+     *
+     * Ending up here means that the kvsprovider has failed to be created,
+     * so no processes were spawned and nothing to be cleaned up.
      */
-
-    /* @todo  trigger termination and cleanup of all spawned processes */
 
     cleanupSpawn(spawn);
 }
