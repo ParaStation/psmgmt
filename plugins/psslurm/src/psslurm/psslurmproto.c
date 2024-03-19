@@ -562,6 +562,18 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     step->state = JOB_QUEUED;
     printLaunchTasksInfos(step);
 
+    /* launch step in container */
+    if (step->containerBundle && step->containerBundle[0] != '\0') {
+	step->ct = Container_new(step->containerBundle, step->jobid,
+				 step->stepid, step->username, step->uid,
+				 step->gid);
+	if (!step->ct) {
+	    flog("error: failed to initialize container %s %s\n",
+		 step->containerBundle, Step_strID(step));
+	    return ESLURM_CONTAINER_NOT_CONFIGURED;
+	}
+    }
+
     /* set accounting options */
     setAccOpts(step->acctFreq, &step->accType);
 
@@ -2112,6 +2124,18 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* setup job environment */
     initJobEnv(job);
+
+    /* container */
+    if (job->containerBundle && job->containerBundle[0] != '\0') {
+	job->ct = Container_new(job->containerBundle, job->jobid,
+				 SLURM_BATCH_SCRIPT, job->username,
+				 job->uid, job->gid);
+	if (!job->ct) {
+	    flog("error: failed to initialize container %s job %u\n",
+		 job->containerBundle, job->jobid);
+	    return ESLURM_CONTAINER_NOT_CONFIGURED;
+	}
+    }
 
     Alloc_t *alloc = Alloc_find(job->jobid);
     bool ret = false;

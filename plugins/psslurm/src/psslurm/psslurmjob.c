@@ -76,13 +76,14 @@ bool Job_delete(Job_t *job)
     Step_deleteByJobid(job->jobid);
     BCast_clearByJobid(job->jobid);
     freeGresCred(&job->gresList);
+    if (job->ct) Container_destroy(job->ct);
 
     /* overwrite sensitive data */
     strShred(job->username);
     strShred(job->jobscript);
     strShred(job->cwd);
     strShred(job->account);
-    strShred(job->container);
+    strShred(job->containerBundle);
     strShred(job->jsData);
     job->uid = job->gid = 0;
 

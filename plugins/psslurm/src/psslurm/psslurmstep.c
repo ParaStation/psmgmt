@@ -290,6 +290,7 @@ bool Step_delete(Step_t *step)
     fdbg(PSSLURM_LOG_JOB, "%s\n", Step_strID(step));
 
     deleteCachedMsg(step->jobid, step->stepid);
+    if (step->ct) Container_destroy(step->ct);
 
     /* overwrite sensitive data */
     strShred(step->cwd);
@@ -299,7 +300,7 @@ bool Step_delete(Step_t *step)
     strShred(step->x11.host);
     strShred(step->x11.magicCookie);
     strShred(step->x11.target);
-    strShred(step->container);
+    strShred(step->containerBundle);
     step->uid = step->gid = 0;
 
     ufree(step->srunPorts);

@@ -1560,8 +1560,8 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     step->spankenv = envNew(envP);
 
     if (msgVer > SLURM_20_11_PROTO_VERSION) {
-	/* container path */
-	step->container = getStringM(data);
+	/* container bundle path */
+	step->containerBundle = getStringM(data);
     }
 
     /* cwd */
@@ -1771,8 +1771,8 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     job->acctFreq = getStringM(data);
 
     if (msgVer > SLURM_20_11_PROTO_VERSION) {
-	/* container */
-	job->container = getStringM(data);
+	/* container bundle path */
+	job->containerBundle = getStringM(data);
     }
 
     /* CPU bind type */

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,6 +28,7 @@
 #include "psslurmjobcred.h"
 #include "psslurmmsg.h"
 #include "psslurmnodeinfotype.h"
+#include "psslurmcontainer.h"
 
 typedef struct {
     uint32_t jobid;         /**< unique job identifier */
@@ -197,7 +198,8 @@ typedef struct {
 /* helper variables, only used temporarily by specific functions */
     uint32_t rcvdPackInfos;	/**< number of received pack infos */
     uint32_t rcvdPackProcs;	/**< number of received pack processes */
-    char *container;            /**< container path */
+    char *containerBundle;      /**< path to container bundle */
+    Slurm_Container_t *ct;      /**< container representation */
     psAccountInfo_t acctBase;   /**< account base values (e.g. file-system) */
     uint32_t mpiPluginID;	/**< Slurm MPI plugin ID */
     list_t fwMsgQueue;          /**< Queued output/error messages waiting for
