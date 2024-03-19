@@ -400,6 +400,15 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     /* set default RLimits */
     setDefaultRlimits();
 
+    /* setup batch specific environment */
+    setJobEnv(job);
+
+    /* initialize container */
+    if (job->ct) {
+	Container_jobInit(job->ct, job->stdIn, job->stdOut, job->stdErr,
+			  job->jobscript, job->env, job->argv, job->argc);
+    }
+
     /* switch user */
     char *cwd = job->cwd;
     if (getConfValueI(Config, "CWD_PATTERN") == 1) {
@@ -425,9 +434,6 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     SpankCallHook(&spank);
 #endif
 
-    /* setup batch specific environment */
-    setJobEnv(job);
-
     /* set RLimits */
     setRlimitsFromEnv(job->env, false);
 
@@ -438,6 +444,9 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 	    flog("warning: failed to reset exception mask\n");
 	}
     }
+
+    /* start jobscript in container, does *not* return */
+    if (job->ct) Container_run(job->ct);
 
     /* do exec */
     closelog();
@@ -593,6 +602,10 @@ int handleExecClient(void *data)
     SpankCallHook(&spank);
 #endif
 
+    if (fwStep && fwStep->ct) {
+	Container_taskInit(fwStep->ct, task, (fwStep->taskFlags & LAUNCH_PTY));
+    }
+
     return 0;
 }
 
@@ -712,6 +725,20 @@ int handleExecClientUser(void *data)
     }
 
     if (fwStep) startTaskPrologue(fwStep, task);
+
+    return 0;
+}
+
+int handleExecClientExec(void *data)
+{
+    PStask_t *task = data;
+
+    if (!task) return -1;
+    if (task->rank < 0 || task->group != TG_ANY) return 0;
+
+    /* exec task in container, function will *not* return!
+     * every initialization should be finished beforehand */
+    if (fwStep && fwStep->ct) Container_run(fwStep->ct);
 
     return 0;
 }
@@ -1487,6 +1514,9 @@ static void jobForwarderFin(Forwarder_Data_t *fwdata)
     spank.hook = SPANK_EXIT;
     SpankCallHook(&spank);
 #endif
+
+    /* stop and destroy container */
+    if (job->ct) Container_stop(job->ct);
 }
 
 bool execBatchJob(Job_t *job)
@@ -1813,6 +1843,12 @@ int handleFwRes(void * data)
 	SpankCallHook(&spank);
     }
 #endif
+
+    /* kill and remove container */
+    if (fwStep && fwTask && fwTask->rank >= 0) {
+	if (fwStep->ct) Container_stop(fwStep->ct);
+    }
+
     return 0;
 }
 

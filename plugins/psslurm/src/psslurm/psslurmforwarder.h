@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -186,6 +186,17 @@ int handleFwRes(void * data);
  * @return Returns 0 on success or -1 otherwise
  */
 int handleExecClientPrep(void *data);
+
+/**
+ * @brief Handle hook PSIDHOOK_EXEC_CLIENT_EXEC
+ *
+ * Used to call execute the task in a container on request.
+ *
+ * @param data Task structure of the client
+ *
+ * @return Returns 0 on success or -1 otherwise
+ */
+int handleExecClientExec(void *data);
 
 /**
  * @brief Handle hook PSIDHOOK_LAST_CHILD_GONE
