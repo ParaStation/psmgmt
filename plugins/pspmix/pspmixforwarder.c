@@ -179,7 +179,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     bool noParricide = false;
 
     /* build arguments:
-     * kvsprovider --pmix -np <NP> -d <WDIR> --nodetype=<typeslist>
+     * kvsprovider --pmix -np <NP> -d <WDIR> --nodetype <typeslist>
      *					     -E <key> <value> <BINARY> : ... */
     strv_t args;
     strvInit(&args, NULL, 0);
@@ -228,8 +228,8 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    }
 
 	    if (!strcmp(info->key, "nodetype") || !strcmp(info->key, "arch")) {
-		char *tmp = PSC_concat("--nodetype=", info->value);
-		strvLink(&args, tmp);
+		strvAdd(&args, "--nodetype");
+		strvAdd(&args, info->value);
 	    }
 	}
 
