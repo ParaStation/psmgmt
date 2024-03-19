@@ -1168,8 +1168,11 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 {
 
     /* assert input from pmix lib is as we expect it */
-    if (!proc || (ninfo && !job_info) || !napps || !apps || !apps->cmd
-	|| !apps->argv)	return PMIX_ERR_BAD_PARAM;
+    if (!proc || (ninfo && !job_info) || !napps || !apps)
+	return PMIX_ERR_BAD_PARAM;
+    for (size_t a = 0; a < napps; a++) {
+	if (!apps[a].cmd || !apps[a].argv) return PMIX_ERR_BAD_PARAM;
+    }
 
     if (mset(PSPMIX_LOG_CALL)) {
 	mlog("%s(%s:%d)\n", __func__, proc->nspace, proc->rank);
