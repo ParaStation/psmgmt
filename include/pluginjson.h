@@ -69,27 +69,51 @@ bool jsonPut(psjson_t psjson, const char *path, const char *key,
 	     const void *val, PS_JsonType_t type, const char *caller,
 	     const int line);
 
-#define jsonPutString(psjson, path, key, val)			    \
+#define jsonPutString(psjson, key, val)				    \
+	jsonPut(psjson, NULL, key, val, PSJSON_STRING,		    \
+	    __func__, __LINE__)
+
+#define jsonPutStringP(psjson, path, key, val)			    \
 	jsonPut(psjson, path, key, val, PSJSON_STRING,		    \
 	    __func__, __LINE__)
 
-#define jsonPutArray(psjson, path, key, val)			    \
+#define jsonPutArray(psjson, key)				    \
+	jsonPut(psjson, NULL, key, NULL, PSJSON_ARRAY,		    \
+	    __func__, __LINE__)
+
+#define jsonPutArrayP(psjson, path, key, val)			    \
 	jsonPut(psjson, path, key, val, PSJSON_ARRAY,		    \
 	    __func__, __LINE__)
 
-#define jsonPutBool(psjson, path, key, val) { bool _x = val;	    \
+#define jsonPutBool(psjson, key, val) { bool _x = val;	    \
+	jsonPut(psjson, NULL, key, &_x, PSJSON_BOOL,		    \
+	    __func__, __LINE__); }
+
+#define jsonPutBoolP(psjson, path, key, val) { bool _x = val;	    \
 	jsonPut(psjson, path, key, &_x, PSJSON_BOOL,		    \
 	    __func__, __LINE__); }
 
-#define jsonPutInt32(psjson, path, key, val) { int32_t _x = val;    \
+#define jsonPutInt32(psjson, key, val) { int32_t _x = val;    \
+	jsonPut(psjson, NULL, key, &_x, PSJSON_INT32,		    \
+	    __func__, __LINE__); }
+
+#define jsonPutInt32P(psjson, path, key, val) { int32_t _x = val;    \
 	jsonPut(psjson, path, key, &_x, PSJSON_INT32,		    \
 	    __func__, __LINE__); }
 
-#define jsonPutInt64(psjson, path, key, val) { int64_t _x = val;    \
+#define jsonPutInt64(psjson, key, val) { int64_t _x = val;    \
+	jsonPut(psjson, NULL, key, &_x, PSJSON_INT64,		    \
+	    __func__, __LINE__); }
+
+#define jsonPutInt64P(psjson, path, key, val) { int64_t _x = val;    \
 	jsonPut(psjson, path, key, &_x, PSJSON_INT64,		    \
 	    __func__, __LINE__); }
 
-#define jsonPutDouble(psjson, path, key, val) { double _x = val;    \
+#define jsonPutDouble(psjson, key, val) { double _x = val;    \
+	jsonPut(psjson, NULL, key, &_x, PSJSON_DOUBLE,		    \
+	    __func__, __LINE__); }
+
+#define jsonPutDoubleP(psjson, path, key, val) { double _x = val;    \
 	jsonPut(psjson, path, key, &_x, PSJSON_DOUBLE,		    \
 	    __func__, __LINE__); }
 
