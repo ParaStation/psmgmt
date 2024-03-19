@@ -631,7 +631,7 @@ static void handleEarlyMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @return Returns true on success, false on timeout
  */
-static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout)
+static bool waitForClientEnv(int daemonfd, struct timeval timeout)
 {
     rdbg(PSPMIX_LOG_CALL, "(timeout %lu us)\n",
 	 (unsigned long)(timeout.tv_sec * 1000 * 1000 + timeout.tv_usec));
@@ -1024,10 +1024,10 @@ static int hookExecForwarder(void *data)
 	rlog("timeout is %d\n", tmout);
     }
     struct timeval timeout = { .tv_sec = tmout, .tv_usec = 0 };
-    if (!readClientPMIxEnvironment(childTask->fd, timeout)) return -1;
+    bool success = waitForClientEnv(childTask->fd, timeout);
 
     finalizeSerial();
-    return 0;
+    return success ? 0 : -1;
 }
 
 /**
