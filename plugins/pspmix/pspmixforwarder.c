@@ -210,14 +210,14 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 
 	/* extract info values and keys
 	 *
-	 * These info variables are implementation dependend and can
-	 * be used for e.g. process placement. All unsupported values
-	 * will be silently ignored.
+	 * These info variables are set in handleClientSpawn() depending on the
+	 * information received. These information are originally taken from
+	 * info fields set by the user in the PMIx_Spawn() call.
 	 *
-	 * ParaStation pspmix supports:
+	 * Plain pspmix supports:
 	 *
-	 *  - wdir: The working directory of the spawned processes
-	 *  - nodetype/arch: Comma separated list of nodetypes to be used
+	 *  - PMIX_WDIR (wdir): Working directory for spawned processes
+	 *  - @todo (nodetype): Comma separated list of nodetypes to be used
 	 */
 	for (int j = 0; j < spawn->infoc; j++) {
 	    KVP_t *info = &(spawn->infov[j]);
@@ -227,7 +227,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 		strvAdd(&args, info->value);
 	    }
 
-	    if (!strcmp(info->key, "nodetype") || !strcmp(info->key, "arch")) {
+	    if (!strcmp(info->key, "nodetype")) {
 		strvAdd(&args, "--nodetype");
 		strvAdd(&args, info->value);
 	    }
