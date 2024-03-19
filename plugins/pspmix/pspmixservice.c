@@ -825,7 +825,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 	    /* try singleton name */
 	    char *nsname2 = ustrdup(nsname);
 	    nsname = generateNamespaceName(jobID, true);
-	    if (!((ns = findNamespace(nsname)))) {
+	    if (!(ns = findNamespace(nsname))) {
 		ulog("namespaces '%s' and '%s' not found\n", nsname2, nsname);
 		ufree(nsname2);
 		RELEASE_LOCK(namespaceList);
