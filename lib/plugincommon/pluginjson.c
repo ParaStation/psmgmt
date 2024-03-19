@@ -147,13 +147,74 @@ psjson_t jsonFromFile(const char *path)
 #endif
 }
 
+#if HAVE_JSON_C_DEVEL
+static struct json_object *handleArray(psjson_t psjson, char *next,
+				       bool addMissing, bool silent,
+				       const char *caller, const int line)
+{
+    struct json_object *nextObj = NULL;
+    int32_t idx = -1;
+    char *array = strchr(next, '[');
+    if (array[1] != ']') {
+	if (sscanf(next, "[%u]", &idx) != 1) {
+	    if (!silent) {
+		pluginflog("%s(%s@%d) invalid array definition\n",
+			   __func__, caller, line);
+	    }
+	    return NULL;
+	}
+
+	if (!json_object_is_type(psjson->pos, json_type_array)) {
+	    if (!silent) {
+		pluginlog("%s(%s@%d): %s requested from non array\n",
+			  __func__, caller, line, next);
+	    }
+	    return NULL;
+	}
+	nextObj = json_object_array_get_idx(psjson->pos, idx);
+    }
+
+    if (!nextObj) {
+	if (!addMissing) {
+	    if (!silent) {
+		pluginlog("%s(%s@%d): error: %s not found\n", __func__,
+			  caller, line, next);
+	    }
+	    return NULL;
+	}
+
+	if (!json_object_is_type(psjson->pos, json_type_array)) {
+	    if (!silent) {
+		pluginlog("%s(%s@%d): cannot add into non array object\n",
+			  __func__, caller, line);
+	    }
+	    return NULL;
+	}
+
+	/* create missing object */
+	nextObj = json_object_new_object();
+
+	if (idx == -1) {
+	    /* add object to end of array */
+	    json_object_array_add(psjson->pos, nextObj);
+	} else {
+	    json_object_array_put_idx(psjson->pos, idx, nextObj);
+	}
+    }
+
+    return nextObj;
+}
+#endif
+
 bool __jsonWalkPath(psjson_t psjson, const char *path, bool addMissing,
-		    const char *caller, const int line)
+		    bool silent, const char *caller, const int line)
 {
     if (!checkMagic(psjson, caller, line)) return false;
 
     if (!path) {
-	pluginlog("%s(%s@%d): invalid path given\n", __func__, caller, line);
+	if (!silent) {
+	    pluginlog("%s(%s@%d): invalid path\n", __func__, caller, line);
+	}
 	return false;
     }
 
@@ -172,39 +233,20 @@ bool __jsonWalkPath(psjson_t psjson, const char *path, bool addMissing,
 
 	char *array = strchr(next, '[');
 	if (array) {
-	    int32_t idx = -1;
-	    if (array[1] != ']') {
-		if (sscanf(array, "[%u]", &idx) != 1) {
-		    pluginflog("invalid array definition in '%s'\n", path);
-		    ufree(dup);
-		    return false;
-		}
-		nextObj = json_object_array_get_idx(psjson->pos, idx);
-	    }
-
+	    nextObj = handleArray(psjson, next, addMissing, silent,
+				  caller, line);
 	    if (!nextObj) {
-		if (!addMissing) {
-		    pluginlog("%s(%s@%d): error: %s not found\n", __func__,
-			      caller, line, next);
-		    ufree(dup);
-		    return false;
-		}
-
-		/* create missing object */
-		nextObj = json_object_new_object();
-		if (idx == -1) {
-		    /* add object to end of array */
-		    json_object_array_add(psjson->pos, nextObj);
-		} else {
-		    json_object_array_put_idx(psjson->pos, idx, nextObj);
-		}
+		ufree(dup);
+		return false;
 	    }
 	}
 
 	if (!array && !json_object_object_get_ex(psjson->pos, next, &nextObj)) {
 	    if (!addMissing) {
-		pluginlog("%s(%s@%d): error: %s not found\n", __func__,
-			  caller, line, next);
+		if (!silent) {
+		    pluginlog("%s(%s@%d): error: %s not found\n", __func__,
+			      caller, line, next);
+		}
 		ufree(dup);
 		return false;
 	    }
@@ -213,7 +255,9 @@ bool __jsonWalkPath(psjson_t psjson, const char *path, bool addMissing,
 	    nextObj = json_object_new_object();
 	    json_object_object_add(psjson->pos, next, nextObj);
 	}
-	pluginflog("walked to '%s'\n", next);
+
+	plugindbg(PLUGIN_LOG_JSON, "%s(%s@%d): walked to '%s'\n", __func__,
+		  caller, line, next);
 
 	psjson->pos = nextObj;
 	next = strtok_r(NULL, delimiters, &toksave);
@@ -237,7 +281,7 @@ const char *__jsonGetString(psjson_t psjson, const char *path,
 #if HAVE_JSON_C_DEVEL
 
     if (path) {
-	if (!__jsonWalkPath(psjson, path, false, caller, line)) {
+	if (!__jsonWalkPath(psjson, path, false, false, caller, line)) {
 	    pluginlog("%s(%s@%d): failed to find %s in %s\n", __func__, caller,
 		      line, path, psjson->path);
 	    return NULL;
@@ -266,7 +310,7 @@ bool jsonGet(psjson_t psjson, const char *path, void *val,
 #if HAVE_JSON_C_DEVEL
 
     if (path) {
-	if (!__jsonWalkPath(psjson, path, false, caller, line)) {
+	if (!__jsonWalkPath(psjson, path, false, false, caller, line)) {
 	    pluginlog("%s(%s@%d): failed to find %s in %s\n", __func__, caller,
 		      line, path, psjson->path);
 	    return NULL;
@@ -377,11 +421,6 @@ bool jsonPut(psjson_t psjson, const char *path, const char *key,
 {
     if (!checkMagic(psjson, caller, line)) return false;
 
-    if (!key) {
-	pluginlog("%s(%s@%d): invalid key given\n", __func__, caller, line);
-	return false;
-    }
-
     if ((type != PSJSON_OBJECT && type != PSJSON_ARRAY) && !val) {
 	pluginlog("%s(%s@%d): invalid value given\n", __func__, caller, line);
 	return false;
@@ -390,7 +429,7 @@ bool jsonPut(psjson_t psjson, const char *path, const char *key,
 #if HAVE_JSON_C_DEVEL
 
     if (path) {
-	if (!__jsonWalkPath(psjson, path, true, caller, line)) {
+	if (!__jsonWalkPath(psjson, path, true, false, caller, line)) {
 	    pluginlog("%s(%s@%d): failed to find %s in %s\n", __func__, caller,
 		      line, path, psjson->path);
 	    return NULL;
@@ -405,7 +444,21 @@ bool jsonPut(psjson_t psjson, const char *path, const char *key,
     }
 
     /* save new object to previous walked path */
-    json_object_object_add(psjson->pos, key, newObj);
+    if (!json_object_is_type(psjson->pos, json_type_array)) {
+	if (!key) {
+	    pluginlog("%s(%s@%d): path is not an array and no key given\n",
+		      __func__, caller, line);
+	    return false;
+	}
+	json_object_object_add(psjson->pos, key, newObj);
+    } else {
+	if (key) {
+	    pluginlog("%s(%s@%d): path is an array and key %s was given\n",
+		      __func__, caller, line, key);
+	    return false;
+	}
+	json_object_array_add(psjson->pos, newObj);
+    }
 
     return true;
 #else
@@ -423,19 +476,27 @@ int __jsonArrayLen(psjson_t psjson, const char *path,
 #if HAVE_JSON_C_DEVEL
 
     if (path) {
-	if (!__jsonWalkPath(psjson, path, false, caller, line)) {
+	if (!__jsonWalkPath(psjson, path, false, false, caller, line)) {
 	    pluginlog("%s(%s@%d): failed to find %s in %s\n", __func__, caller,
 		      line, path, psjson->path);
-	    return 0;
+	    return -1;
 	}
+    }
+
+    if (!json_object_is_type(psjson->pos, json_type_array)) {
+	plugindbg(PLUGIN_LOG_JSON, "%s(%s@%d) %s is not an array\n", __func__,
+		  caller, line, (path ? path : "position"));
+	return -1;
     }
 
     return json_object_array_length(psjson->pos);
 
 #else
-    pluginflog("json-c support not available\n");
-    return 0;
+    pluginflog("(%s(%s@%d): json-c support not available\n", __func__, caller,
+	       line);
+    return -1;
 #endif
+}
 
 bool __jsonDel(psjson_t psjson, const char *path, const char *key,
 	       const char *caller, const int line)
