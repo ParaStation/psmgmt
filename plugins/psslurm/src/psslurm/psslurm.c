@@ -776,8 +776,14 @@ bool finalizeInit(void)
 
     /* enable PAM user sessions */
     bool pam = getConfValueI(Config, "PAM_SESSION");
+    char *runtime = getConfValueC(SlurmOCIConfig, "RunTimeRun");
+    if (runtime && runtime[0] != '\0') {
+	flog("oci.conf automatically enables PAM sessions\n");
+	pam = true;
+    }
+
     if (pam) {
-	flog("enable PAM session support\n");
+	flog("enabling PAM session support\n");
 	PSIDplugin_t trigger = PSIDplugin_find(name);
 	if (!trigger) {
 	    flog("failed to get plugin handle\n");
