@@ -2078,13 +2078,23 @@ failed:
     pspmix_server_spawnRes(false, spawn->sdata, NULL);
 
     /*
-     * Behavior of individual resource managers may differ, but it is expected
+     * PMIx Standard v5.0:
+     * "Behavior of individual resource managers may differ, but it is expected
      * that failure of any application process to start will result in
      * termination/cleanup of all processes in the newly spawned job and return
-     * of an error code to the caller.
+     * of an error code to the caller."
+     *
+     * The only expected case to end up here is that `success == false`. This
+     * is then a result of a failed call of pspmix_service_registerNamespace()
+     * on at least one node's PMIx server. In this case there is no according
+     * namespace registered and registering the client to the PMIx server will
+     * fail in pspmix_service_registerClientAndSendEnv(). A message of type
+     * PSPMIX_JOBSETUP_FAILED will be sent to the clients forwarder and thus
+     * spawning the related client fails and as a result kills all sister
+     * processes via psmgmt's cleanup mechanism.
+     *
+     * @todo Handle the unexpected cases by cleanup manually (#194)
      */
-
-    /* @todo  trigger termination and cleanup of all spawned processes */
 
 cleanup:
     list_del(&spawn->next);
