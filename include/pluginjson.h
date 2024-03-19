@@ -31,10 +31,14 @@ psjson_t jsonNewObject(void);
 psjson_t jsonFromFile(const char *path);
 
 bool __jsonWalkPath(psjson_t psjson, const char *path, bool addMissing,
-		    const char *caller, const int line);
+		    bool silent, const char *caller, const int line);
 
-#define jsonWalkPath(psjson, path, addMissing)			    \
-    __jsonWalkPath(psjson, path, addMissing, __func__, __LINE__)
+#define jsonWalkPath(psjson, path)				    \
+    __jsonWalkPath(psjson, path, false, false,			    \
+		    __func__, __LINE__)
+
+#define jsonExists(psjson, path)				    \
+    __jsonWalkPath(psjson, path, false, true, __func__, __LINE__)
 
 const char *__jsonGetString(psjson_t psjson, const char *path,
 			    const char *caller, const int line);
