@@ -183,7 +183,10 @@ typedef enum {
 	ESLURM_BAD_NAME,
 
 	/* plugin and custom errors */
-	ESLURM_MISSING_TIME_LIMIT       = 8000
+	ESLURM_MISSING_TIME_LIMIT       = 8000,
+
+	/* container errors */
+        ESLURM_CONTAINER_NOT_CONFIGURED = 10000
 } slurm_err_t;
 
 #endif
