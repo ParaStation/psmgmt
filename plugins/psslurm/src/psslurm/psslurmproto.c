@@ -57,6 +57,7 @@
 #include "psslurmbcast.h"
 #include "psslurmcomm.h"
 #include "psslurmconfig.h"
+#include "psslurmcontainer.h"
 #include "psslurmenv.h"
 #include "psslurmforwarder.h"
 #include "psslurmfwcomm.h"

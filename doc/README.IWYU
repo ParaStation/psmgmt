@@ -19,6 +19,9 @@ In order to not get overwhelmed by iwyu_tool.py's output one might use:
    | grep -v \^\$ | grep -v "has correct #includes/fwd-decls"
 as a filter
 
+As a one-liner:
+iwyu_tool.py -p ../build.psmgmt . -- -Xiwyu --mapping_file=${PWD}/scripts/psmgmt.imp -Xiwyu --no_fwd_decls | grep -v \^\$ | grep -v "has correct #includes/fwd-decls"
+
 
 As an alternative one might use the following strategy: to check all
 files within an directory start with:

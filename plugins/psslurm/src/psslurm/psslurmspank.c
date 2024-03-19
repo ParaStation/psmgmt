@@ -20,13 +20,14 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+#include <slurm/slurm_errno.h>
+
 #include "pscommon.h"
 #include "psenv.h"
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
 
 #include "slurmcommon.h"
-#include "slurmerrno.h"
 
 #include "psslurmstep.h"
 #include "psslurmlog.h"

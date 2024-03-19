@@ -25,10 +25,10 @@
 #include "pluginforwarder.h"
 
 #include "slurmcommon.h"
+#include "psslurmcontainertype.h"
 #include "psslurmjobcred.h"
 #include "psslurmmsg.h"
 #include "psslurmnodeinfotype.h"
-#include "psslurmcontainer.h"
 
 typedef struct {
     uint32_t jobid;         /**< unique job identifier */

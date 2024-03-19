@@ -35,7 +35,6 @@
 #include "pscommon.h"
 #include "pslog.h"
 #include "pspartition.h"
-#include "psreservation.h"
 #include "kvscommon.h"
 
 #include "cloptions.h"

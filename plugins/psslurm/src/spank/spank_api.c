@@ -1,8 +1,9 @@
+#include <dlfcn.h>
+#include <slurm/slurm_errno.h>
+#include <slurm/spank.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <slurm/spank.h>
-#include <dlfcn.h>
 
 #include "psslurmhandles.h"
 

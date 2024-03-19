@@ -20,8 +20,6 @@
 #include <string.h>
 #include <libgen.h>
 #include <limits.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>

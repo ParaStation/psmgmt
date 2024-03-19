@@ -18,6 +18,7 @@
 #include <limits.h>
 #include <unistd.h>
 
+#include "psenv.h"
 #include "psidhook.h"
 
 #include "peloguescript.h"

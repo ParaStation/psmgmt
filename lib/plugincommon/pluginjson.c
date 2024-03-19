@@ -7,14 +7,17 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pluginjson.h"
+
 #if HAVE_JSON_C_DEVEL
 #include <json-c/json.h>
 #endif
 
-#include <sys/mman.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-
-#include "pluginjson.h"
+#include <sys/mman.h>
 
 #include "pluginhelper.h"
 #include "pluginlog.h"

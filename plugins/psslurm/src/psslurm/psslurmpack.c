@@ -19,6 +19,7 @@
 #include <sys/wait.h>
 
 #include "pscommon.h"
+#include "psenv.h"
 #include "psserial.h"
 
 #include "pluginconfig.h"

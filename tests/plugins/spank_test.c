@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <slurm/slurm_errno.h>
 #include <slurm/spank.h>
 
 /*

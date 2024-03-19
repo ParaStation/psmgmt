@@ -12,6 +12,8 @@
 #ifndef __PLUGIN_LIB_SPAWN
 #define __PLUGIN_LIB_SPAWN
 
+#include <stdbool.h>
+
 #include "psenv.h"
 #include "pstask.h"
 

@@ -62,6 +62,7 @@
 #include "psslurm.h"
 #include "psslurmcomm.h"
 #include "psslurmconfig.h"
+#include "psslurmcontainer.h"
 #include "psslurmfwcomm.h"
 #include "psslurmio.h"
 #include "psslurmjobcred.h"

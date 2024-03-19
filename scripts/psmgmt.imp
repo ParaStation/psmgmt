@@ -1,5 +1,5 @@
 # special IWYU mappings for psmgmt
-# Copyright (C) 2021-2023 ParTec AG, Munich
+# Copyright (C) 2021-2024 ParTec AG, Munich
 [
   { symbol: ["__kernel_ulong_t", "private", "<sys/sysinfo.h>", "public"] },
   { symbol: ["sysinfo", "private", "<sys/sysinfo.h>", "public"] },
@@ -12,4 +12,5 @@
   { include: ["<security/_pam_types.h>", "private", "<security/pam_modules.h>", "public"] },
   { include: ["@<bits/termios-.*", "private", "<termios.h>", "public"] },
   { include: ["@<psconfig-.*", "private", "<psconfig.h>", "public"] },
+  { include: ["@<json-c/json_.*", "private", "<json-c/json.h>", "public"] },
 ]

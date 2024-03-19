@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 #include <time.h>
 

@@ -21,6 +21,7 @@
 #include "psslurmauth.h"
 #include "psslurmbcast.h"
 #include "psslurmcomm.h"
+#include "psslurmcontainer.h"
 #include "psslurmfwcomm.h"
 #include "psslurmgres.h"
 #include "psslurmio.h"
