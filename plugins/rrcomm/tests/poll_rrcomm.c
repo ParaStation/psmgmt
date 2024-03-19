@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,16 +19,14 @@
 /**
  * @brief rank in a parallel context
  *
- * Set from PMI_RANK environment in initCoordinates(). As the default
- * assume we are alone.
+ * Set from PS_JOB_RANK in initCoordinates() (default: assume to be alone)
  */
 int rank = 0;
 
 /**
  * @brief number of processes in a parallel context
  *
- * Set from PMI_SIZE environment in initCoordinates(). As the default
- * assume we are alone.
+ * Set from PS_JOB_SIZE in initCoordinates() (default: assume to be alone)
  */
 int num = 1;
 
@@ -50,9 +48,9 @@ char *nodeName = NULL;
  */
 void initCoordinates(void)
 {
-    char *envStr = getenv("PMI_RANK");
+    char *envStr = getenv("PS_JOB_RANK");
     if (envStr) rank = atoi(envStr);
-    envStr = getenv("PMI_SIZE");
+    envStr = getenv("PS_JOB_SIZE");
     if (envStr) num = atoi(envStr);
 
     static struct utsname uBuf;

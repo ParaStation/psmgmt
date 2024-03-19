@@ -62,10 +62,10 @@ int main(void)
     char *envStr = getenv("__RRCOMM_SOCKET");
     printf("RRComm socket expected at '%s'\n", envStr ? envStr : "???");
 
-    envStr = getenv("PMI_RANK");
+    envStr = getenv("PS_JOB_RANK");
     if (!envStr) envStr = "0";
     int rank = atoi(envStr);
-    envStr = getenv("PMI_SIZE");
+    envStr = getenv("PS_JOB_SIZE");
     if (!envStr) envStr = "1";
     int num = atoi(envStr);
 
