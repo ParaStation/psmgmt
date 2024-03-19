@@ -829,13 +829,13 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 		ulog("namespaces '%s' and '%s' not found\n", nsname2, nsname);
 		ufree(nsname2);
 		RELEASE_LOCK(namespaceList);
-		return false;
+		goto failed;
 	    }
 	    ufree(nsname2);
 	} else {
 	    ulog("namespace '%s' not found\n", nsname);
 	    RELEASE_LOCK(namespaceList);
-	    return false;
+	    goto failed;
 	}
     }
 
@@ -847,7 +847,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 	ulog("r%d: reservation %d not found in client's namespace %s\n",
 	     client->rank, client->resID, client->nsname);
 	RELEASE_LOCK(namespaceList);
-	return false;
+	goto failed;
     }
 
     /* adapt rank from global (psid-)rank to namespace rank (psid job-rank) */
@@ -871,7 +871,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
     if (!pspmix_server_registerClient(nsname, client->rank, client->uid,
 				      client->gid, (void*)client)) {
 	ulog("r%d: failed to register client to PMIx server\n", client->rank);
-	return false;
+	goto failed;
     }
 
     /* get environment from PMIx server */
@@ -882,7 +882,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 	ufree(envp);
 	pspmix_server_deregisterClient(nsname, client->rank);
 	/* the client object is invalid now */
-	return false;
+	goto failed;
     }
 
     /* transfer into env_t, we rely on the environment to be valid here */
@@ -939,7 +939,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 	ulog("r%d: failed to send the environment to client forwarder %s\n",
 	     client->rank, PSC_printTID(client->fwtid));
 	pspmix_server_deregisterClient(nsname, client->rank);
-	return false;
+	goto failed;
     }
 
     GET_LOCK(namespaceList);
@@ -959,6 +959,12 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
     RELEASE_LOCK(namespaceList);
 
     return true;
+
+failed:
+    /* send message to forwarder to make it fail directly as well so
+     * it does not need to wait for the timeout */
+    pspmix_comm_sendJobsetupFailed(client->fwtid);
+    return false;
 }
 
 bool pspmix_service_finalize(void)

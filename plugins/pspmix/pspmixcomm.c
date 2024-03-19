@@ -526,6 +526,25 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t env)
     return true;
 }
 
+bool pspmix_comm_sendJobsetupFailed(PStask_ID_t targetTID)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__, PSC_printTID(targetTID));
+
+    PS_SendDB_t msg;
+    pthread_mutex_lock(&send_lock);
+    initFragPspmix(&msg, PSPMIX_JOBSETUP_FAILED);
+    setFragDest(&msg, targetTID);
+
+    int ret = sendFragMsg(&msg);
+    pthread_mutex_unlock(&send_lock);
+    if (ret < 0) {
+	mlog("%s: Sending jobsetup failed message to %s failed.\n", __func__,
+	     PSC_printTID(targetTID));
+	return false;
+    }
+    return true;
+}
+
 bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
 				 uint16_t napps, PspmixSpawnApp_t apps[],
 				 const char *pnspace, uint32_t prank)

@@ -562,7 +562,10 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
     return ret > 0;
 }
 
+/* indicates that env has been received */
 static bool environmentReady = false;
+/* indicates that fail message has been received */
+static bool jobsetupFailed = false;
 
 /**
 * @brief Handle PSPMIX_CLIENT_PMIX_ENV message
@@ -591,7 +594,38 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
- * @brief Block until the PMIx enviroment is set
+* @brief Handle PSP_PLUG_PSPMIX message arriving early
+*
+* At the very beginning of forwarder's setup, we are requesting the environment
+* for our client from the PMIx server. This function handles the answer to
+* that request and is not meant to be used later again.
+*
+* @param msg  The last fragment of the message to handle
+* @param data The defragmented data received
+*/
+static void handleEarlyMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    if (msg->header.type != PSP_PLUG_PSPMIX) {
+	rlog("Dropping unexpected message of type %d/%d from %s\n", msg->type,
+	     msg->header.type, PSC_printTID(msg->header.sender));
+	return;
+    }
+
+    switch (msg->type) {
+	case PSPMIX_CLIENT_PMIX_ENV:
+	    handleClientPMIxEnv(msg, data);
+	    break;
+	case PSPMIX_JOBSETUP_FAILED:
+	    jobsetupFailed = true;
+	    break;
+	default:
+	    rlog("Dropping unexpected message of type %d/%d from %s\n",
+		 msg->type, msg->header.type, PSC_printTID(msg->header.sender));
+    }
+}
+
+/**
+ * @brief Block until the PMIx enviroment is set or a failure is reported
  *
  * @param timeout  maximum time in microseconds to wait
  *
@@ -602,7 +636,7 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout)
     rdbg(PSPMIX_LOG_CALL, "(timeout %lu us)\n",
 	 (unsigned long)(timeout.tv_sec * 1000 * 1000 + timeout.tv_usec));
 
-    while (!environmentReady) {
+    while (!environmentReady && !jobsetupFailed) {
 	DDTypedBufferMsg_t msg;
 	ssize_t ret = PSCio_recvMsgT(daemonfd, &msg, &timeout);
 	if (ret < 0) {
@@ -619,10 +653,10 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout)
 	    return false;
 	}
 
-	recvFragMsg(&msg, handleClientPMIxEnv);
+	recvFragMsg(&msg, handleEarlyMsg);
     }
 
-    return true;
+    return !jobsetupFailed;
 }
 
 static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,

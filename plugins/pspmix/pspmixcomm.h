@@ -49,6 +49,15 @@ bool pspmix_comm_handleMthrMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw);
 bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t env);
 
 /**
+ * @brief Compose and send a jobsetup failed message
+ *
+ * @param targetTID  task id of the forwarder to send the message to
+ *
+ * @return Returns true on success, false on error
+ */
+bool pspmix_comm_sendJobsetupFailed(PStask_ID_t targetTID);
+
+/**
  * @brief Compose and send a client spawn request message
  *
  * @param targetTID  task id of the forwarder to send the message to

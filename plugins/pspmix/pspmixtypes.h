@@ -283,6 +283,7 @@ typedef enum {
     PSPMIX_REMOVE_JOB,         /**< Remove job from PMIx server */
     PSPMIX_REGISTER_CLIENT,    /**< Request to register a new client */
     PSPMIX_CLIENT_PMIX_ENV,    /**< Client's environment addition */
+    PSPMIX_JOBSETUP_FAILED,    /**< Creation of namespace for client failed */
     PSPMIX_FENCE_IN,           /**< Enter fence request @obsolete */
     PSPMIX_FENCE_OUT,          /**< Leave fence permission @obsolete */
     PSPMIX_MODEX_DATA_REQ,     /**< Request direct modex */
