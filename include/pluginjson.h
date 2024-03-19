@@ -129,4 +129,10 @@ bool jsonIsAvail(void);
 
 bool jsonWriteFile(psjson_t psjson, const char *dir, const char *filename);
 
+bool __jsonDel(psjson_t psjson, const char *path, const char *key,
+	       const char *caller, const int line);
+
+#define jsonDel(psjson, path, key)				    \
+    __jsonDel(psjson, path, key, __func__, __LINE__)
+
 #endif  /* __PLUGIN_JSON */

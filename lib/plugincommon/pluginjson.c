@@ -436,4 +436,26 @@ int __jsonArrayLen(psjson_t psjson, const char *path,
     pluginflog("json-c support not available\n");
     return 0;
 #endif
+
+bool __jsonDel(psjson_t psjson, const char *path, const char *key,
+	       const char *caller, const int line)
+{
+    if (!checkMagic(psjson, caller, line)) return false;
+
+#if HAVE_JSON_C_DEVEL
+    if (path) {
+	if (!__jsonWalkPath(psjson, path, false, false, caller, line)) {
+	    pluginlog("%s(%s@%d): failed to find %s in %s\n", __func__, caller,
+		      line, path, psjson->path);
+	    return false;
+	}
+    }
+
+    json_object_object_del(psjson->pos, key);
+    return true;
+
+#else
+    pluginflog("json-c support not available\n");
+    return false;
+#endif
 }
