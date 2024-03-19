@@ -391,6 +391,15 @@ const ConfDef_t ociDef[] =
     { "RunTimeEnvExclude", 0,
 	"string", "",
 	"runtime environment excludes" },
+    { "MountSpoolDir", 0,
+	"string", "",
+	"spool directory to use" },
+    { "DisableCleanup", 0,
+	"bool", "",
+	"flag to prevent cleanup of files" },
+    { "DisableHooks", 0,
+	"string", "",
+	"comma separated list of hooks to disable" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
@@ -1309,8 +1318,16 @@ static bool verifyOCIConf(char *key, char *value, const void *info)
 	fdbg(PSSLURM_LOG_CONTAIN, "runtime query cmd: %s\n", value);
     } else if (!strcasecmp(key, "RunTimeCreate")) {
 	fdbg(PSSLURM_LOG_CONTAIN, "runtime create cmd: %s\n", value);
+	if (value && value[0] != '\0') {
+	    flog("RunTimeCreate currently unsupported, use RunTimeRun instead\n");
+	    return true;
+	}
     } else if (!strcasecmp(key, "RunTimeStart")) {
 	fdbg(PSSLURM_LOG_CONTAIN, "runtime start cmd: %s\n", value);
+	if (value && value[0] != '\0') {
+	    flog("RunTimeStart currently unsupported, use RunTimeRun instead\n");
+	    return true;
+	}
     } else if (!strcasecmp(key, "RunTimeKill")) {
 	fdbg(PSSLURM_LOG_CONTAIN, "runtime kill cmd: %s\n", value);
     } else if (!strcasecmp(key, "RunTimeDelete")) {
@@ -1319,8 +1336,18 @@ static bool verifyOCIConf(char *key, char *value, const void *info)
 	fdbg(PSSLURM_LOG_CONTAIN, "runtime run cmd: %s\n", value);
     } else if (!strcasecmp(key, "RunTimeEnvExclude")) {
 	fdbg(PSSLURM_LOG_CONTAIN, "runtime environment excludes: %s\n", value);
+	if (value && value[0] != '\0') {
+	    flog("RunTimeEnvExclude currently unsupported\n");
+	    return true;
+	}
+    } else if (!strcasecmp(key, "MountSpoolDir")) {
+	fdbg(PSSLURM_LOG_CONTAIN, "mount spool directory: %s\n", value);
+    } else if (!strcasecmp(key, "DisableCleanup")) {
+	fdbg(PSSLURM_LOG_CONTAIN, "disabling cleanup: %s\n", value);
+    } else if (!strcasecmp(key, "DisableHooks")) {
+	fdbg(PSSLURM_LOG_CONTAIN, "disabling hooks: %s\n", value);
     } else {
-	fdbg(PSSLURM_LOG_WARN, "warning: ignoring unsupported oci.conf "
+	fdbg(PSSLURM_LOG_WARN, "warning: ignoring unknown oci.conf "
 	     "value %s\n", key);
     }
 
