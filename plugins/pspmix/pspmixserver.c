@@ -1100,6 +1100,13 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	    continue;
 	}
 
+	/*
+	 * Starting from version 5.0.2 OpenPMIx does already apply the prefix
+	 * and then never pass it again to us.
+	 *
+	 * Clarification to the standard is ongoing:
+	 * https://github.com/pmix/pmix-standard/issues/506
+	 */
 	if (PMIX_CHECK_KEY(info+i, PMIX_PREFIX)) {
 	    mdbg(PSPMIX_LOG_SPAWN, "%s: Found %s info [key '%s' value '%s']\n",
 		 __func__,
@@ -1224,23 +1231,30 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 
 	SpawnInfo_t si_app = getSpawnInfo(apps[a].info, apps[a].ninfo);
 
-	/* do not use apps[x].cmd since with openpmix it is always the same
-	 * as apps[x].argv[0] */
+	/* apps[x].cmd is the command to be executed.
+	 * We ignore and override apps[x].argv[0] since it is set again by each
+	 * process forwarder before the execve() call.
+	 *
+	 * see https://github.com/openpmix/openpmix/issues/3321
+	 */
+	strv_t argv;
+	strvInit(&argv, apps[a].argv, 0);
+	sapps[a].argv = argv.strings;
+	strvStealArray(&argv);
+	sapps[a].argv[0] = apps[a].cmd;
 
+	/*
+	 * Starting from version 5.0.2 OpenPMIx does already apply the prefix
+	 * and then never pass it again to us, so sapps[a].prefix will be NULL.
+	 */
 	sapps[a].prefix = si_app.prefix ? si_app.prefix : si_job.prefix;
 
 	if (sapps[a].prefix) {
 	    /* add prefix */
-	    strv_t argv;
-	    strvInit(&argv, NULL, 8);
-	    strvLink(&argv, PSC_concat(sapps[a].prefix, "/", apps[a].argv[0]));
-	    for (char **cur = apps[a].argv + 1; *cur; cur++) {
-		strvLink(&argv, *cur);
-	    }
-	    sapps[a].argv = argv.strings;
-	    strvStealArray(&argv);
-	} else {
-	    sapps[a].argv = apps[a].argv;
+	    sapps[a].argv[0] = PSC_concat(sapps[a].prefix, "/", apps[a].cmd);
+
+	    mlog("%s: prefix '%s' applied to app %zu command: '%s'\n", __func__,
+		 sapps[a].prefix, a, sapps[a].argv[0]);
 	}
 
 	sapps[a].maxprocs = apps[a].maxprocs;
@@ -1268,10 +1282,11 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 
 
     for (size_t a = 0; a < napps; a++) {
+
 	if (sapps[a].prefix) {
-	    free(sapps[a].argv[0]); /* allocated by PSC_concat() */
-	    ufree(sapps[a].argv); /* allocated by strv*() */
+	    ufree(sapps[a].argv[0]); /* allocated by PSC_concat() */
 	}
+	ufree(sapps[a].argv); /* allocated by strvInit() */
 
 	/* Invalidate all data not copied */
 	sapps[a].prefix = NULL;
