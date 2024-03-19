@@ -654,8 +654,6 @@ static char *addCwd(char *cwd, char *path)
 
 void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
 {
-    char *inFile;
-
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
     close(STDIN_FILENO);
@@ -675,21 +673,15 @@ void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
     close(fwdata->stdErr[0]);
 
     /* stdin */
-    if (!strlen(job->stdIn)) {
-	inFile = ustrdup("/dev/null");
-    } else {
-	inFile = addCwd(job->cwd, IO_replaceJobSymbols(job, job->stdIn));
-    }
-    int fd = open(inFile, O_RDONLY);
+    int fd = open(job->stdIn, O_RDONLY);
     if (fd == -1) {
-	mwarn(errno, "%s: open stdin '%s' failed", __func__, inFile);
+	mwarn(errno, "%s: open stdin '%s' failed", __func__, job->stdIn);
 	exit(1);
     }
     if (dup2(fd, STDIN_FILENO) == -1) {
-	mwarn(errno, "%s: dup2(%i) '%s' failed", __func__, fd, inFile);
+	mwarn(errno, "%s: dup2(%i) '%s' failed", __func__, fd, job->stdIn);
 	exit(1);
     }
-    ufree(inFile);
 }
 
 int IO_redirectRank(Step_t *step, int rank)
@@ -825,6 +817,16 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
 	defOutName = "slurm-%j.out";
     }
 
+    /* stdin */
+    char *inFile;
+    if (!strlen(job->stdIn)) {
+	inFile = ustrdup("/dev/null");
+    } else {
+	inFile = addCwd(job->cwd, IO_replaceJobSymbols(job, job->stdIn));
+    }
+    ufree(job->stdIn);
+    job->stdIn = inFile;
+
     /* stdout */
     close(STDOUT_FILENO);
 
@@ -841,7 +843,8 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
 	mwarn(errno, "%s: open stdout '%s' failed", __func__, outFile);
 	exit(1);
     }
-    ufree(outFile);
+    ufree(job->stdOut);
+    job->stdOut = outFile;
 
     Selector_register(fwdata->stdOut[0], IO_forwardJobData, fwdata);
     close(fwdata->stdOut[1]);
@@ -859,7 +862,8 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
 		  errFile, job->jobid);
 	    exit(1);
 	}
-	ufree(errFile);
+	ufree(job->stdErr);
+	job->stdErr = errFile;
     } else {
 	job->stdErrFD = job->stdOutFD;
     }
