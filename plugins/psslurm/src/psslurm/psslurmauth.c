@@ -92,6 +92,8 @@ bool arrayFromUserList(const char *users, uid_t **UIDs, uint16_t *numUIDs)
 	uid_t uid = PSC_uidFromString(next);
 	if ((signed int ) uid < 0) {
 	    flog("unable to get UID from username %s\n", next);
+	    ufree(newUIDs);
+	    ufree(dup);
 	    return false;
 	}
 	fdbg(PSSLURM_LOG_AUTH, "adding uid %u from user %s to array\n",
