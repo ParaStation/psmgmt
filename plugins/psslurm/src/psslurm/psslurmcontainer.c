@@ -99,10 +99,8 @@ static char *replaceSymbols(const char *line, Slurm_Container_t *ct)
 	    break;
 	case 'p':
 	    /* pid of task (rank) */
-	    if (ct->rankPID > -1) {
-		snprintf(tmp, sizeof(tmp), "%i", ct->rankPID);
-		str2Buf(tmp, &buf, &bufSize);
-	    }
+	    snprintf(tmp, sizeof(tmp), "%i", ct->rankPID);
+	    str2Buf(tmp, &buf, &bufSize);
 	    break;
 	case 'r':
 	    /* rootfs */
@@ -115,10 +113,8 @@ static char *replaceSymbols(const char *line, Slurm_Container_t *ct)
 	    break;
 	case 't':
 	    /* taskid (rank) */
-	    if (ct->rank > -1) {
-		snprintf(tmp, sizeof(tmp), "%i", ct->rank);
-		str2Buf(tmp, &buf, &bufSize);
-	    }
+	    snprintf(tmp, sizeof(tmp), "%i", ct->rank);
+	    str2Buf(tmp, &buf, &bufSize);
 	    break;
 	case 'U':
 	    /* user ID */
