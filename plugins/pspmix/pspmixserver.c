@@ -1132,9 +1132,9 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	 * @todo
 	 *
 	 * find a way to add custom info fields to add
-	 * - initrequired:  a spawn is not successfull before all clients have
+	 * - initrequired:  a spawn is not successful before all clients have
 	 *                  called PMIx_Init(). Without that option set, it
-	 *                  is reported as successfull once all clients are
+	 *                  is reported as successful once all clients are
 	 *                  spawned (called exec()).
 	 */
 

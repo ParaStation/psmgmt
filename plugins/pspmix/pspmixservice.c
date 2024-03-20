@@ -456,7 +456,7 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
 
     char *loc = PSC_getID(ns->spawner) == PSC_getMyID() ? "local" : "remote";
     udbg(PSPMIX_LOG_SPAWN, "%s spawn id %hu initiated by %s (nspace %s"
-	 " rank %u opts %08x)\n", loc, ns->spawnID, PSC_printTID(ns->spawner),
+	 " rank %u opts 0x%08x)\n", loc, ns->spawnID, PSC_printTID(ns->spawner),
 	 ns->parent.nspace, ns->parent.rank, ns->spawnOpts);
 
     return true;
@@ -748,9 +748,10 @@ nscreate_error:
 	 * in termination/cleanup of all processes in the newly spawned job and
 	 * return of an error code to the caller."
 	 *
-	 * Since no namespace is created, getting the environment from the
-	 * forwarders will fail, so spawning the clients will fail and
-	 * every process will be cleaned up as usual.
+	 * Since no namespace is created, getting the environment from
+	 * the PMIx server will fail for the forwarder. Thus, spawning
+	 * the clients will fail and every process will be cleaned up
+	 * as usual.
 	 */
     }
 

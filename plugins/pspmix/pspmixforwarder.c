@@ -334,11 +334,11 @@ static bool spawnEnvFilter(const char *envent)
  * This function is called once we received a service rank to use from the
  * job's logger. It triggers the actual spawn.
  *
- * It uses @a fillTaskFunction to setup a command, that will lead to a new
- * job containing the given applications. Usually this will call @a kvsprovider
+ * It uses @ref fillTaskFunction to setup a command, that will lead to a new
+ * job containing the given applications. Usually this will call kvsprovider
  * directly to start a new spawner or use a different resource manager command
- * like Slurm's @a srun which will later trigger @a psslurm to execute
- * @a mpiexec.
+ * like Slurm's @a srun which will later trigger psslurm to execute
+ * kvsprovider.
  *
  * Note: This function is only called if the forwarder's client has called
  * PMIx_Spawn() and thus we are handling this respawn as leading forwarder.
@@ -1005,8 +1005,9 @@ static bool msgCC(DDBufferMsg_t *msg)
  * @brief Handle spawn result message
  *
  * Handle the spawn results message contained in @a msg. Such message
- * is only expected upon the creation of a new service process used to
- * actually realize the PMIx spawn that was triggered by this forwarder's client.
+ * of type PSP_CD_SPAWNSUCCESS or PSP_CD_SPAWNFAILED is only expected
+ * upon the creation of a new service process used to actually realize
+ * the PMIx spawn that was triggered by this forwarder's client.
  *
  * @see handleClientSpawn()
  *
