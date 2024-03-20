@@ -1066,8 +1066,6 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
     pmix_rank_t rank = client->rank;
     PStask_ID_t jobID = ns->job->ID;
 
-    RELEASE_LOCK(namespaceList);
-
     if (!pspmix_comm_sendInitNotification(fwtid, nsname, rank, jobID)) {
 	ulog("Sending init notification for %s:%d to %s failed\n",
 	     nsname, rank, PSC_printTID(fwtid));
@@ -1077,7 +1075,7 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
        if (psAccountSwitchAccounting) psAccountSwitchAccounting(childTask->tid, false);
     */
 
-    if (ns->clientsConnected < ns->localClients) return true;
+    if (ns->clientsConnected < ns->localClients) goto success;
 
     /* all local clients are connected */
     if (ns->spawnID) {
@@ -1088,7 +1086,7 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
 
 	if (!(ns->spawnOpts & PSPMIX_SPAWNOPT_INITREQUIRED)) {
 	    /* spawn info has already been sent and spawn is cleaned up */
-	    return true;
+	    goto success;
 	}
 
 	if (!pspmix_comm_sendSpawnInfo(PSC_getID(ns->spawner), ns->spawnID,
@@ -1101,6 +1099,8 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
 	/* @todo use fence communication scheme here? */
     }
 
+success:
+    RELEASE_LOCK(namespaceList);
     return true;
 }
 
