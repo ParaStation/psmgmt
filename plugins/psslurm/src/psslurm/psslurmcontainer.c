@@ -134,8 +134,7 @@ static char *replaceSymbols(const char *line, Slurm_Container_t *ct)
     }
 
     str2Buf(ptr, &buf, &bufSize);
-    fdbg(PSSLURM_LOG_CONTAIN & PSSLURM_LOG_DEBUG, "orig '%s' result: '%s'\n",
-	 line, buf);
+    fdbg(PSSLURM_LOG_DEBUG, "orig '%s' result: '%s'\n", line, buf);
 
     return buf;
 }
