@@ -611,8 +611,8 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
  *
  * @return Returns true on success, false on error
  */
-static bool sendSpawnSuccess(PStask_t *clientTask, uint16_t spawnID,
-			     PStask_ID_t pmixServer)
+static bool sendSpawnSuccess(PStask_ID_t pmixServer, PStask_t *clientTask,
+			     uint16_t spawnID)
 {
     rdbg(PSPMIX_LOG_COMM, "Send spawn success message for rank %d\n",
 	 clientTask->rank);
@@ -1208,7 +1208,7 @@ static int hookForwarderInit(void *data)
     }
 
     /* inform PMIx server about success of the spawn */
-    if (!sendSpawnSuccess(childTask, spawnID, serverTID)) {
+    if (!sendSpawnSuccess(serverTID, childTask, spawnID)) {
 	rlog("Failed to send spawn success message\n");
 	return -1;
     }
