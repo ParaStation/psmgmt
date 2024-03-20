@@ -91,6 +91,7 @@ bool Container_taskInit(Slurm_Container_t *ct, PStask_t *task, bool tty);
  *
  * @param ct Container to be execute
  * */
+__attribute__ ((noreturn))
 void Container_run(Slurm_Container_t *ct);
 
 /**

@@ -544,6 +544,7 @@ static int execRuntimeCmd(Slurm_Container_t *ct, char *cmd, bool doFork)
     return ret;
 }
 
+__attribute__ ((noreturn))
 void Container_run(Slurm_Container_t *ct)
 {
     /* TODO add support for start + exec */
