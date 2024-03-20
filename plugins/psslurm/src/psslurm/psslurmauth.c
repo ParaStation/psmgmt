@@ -94,8 +94,8 @@ bool arrayFromUserList(const char *users, uid_t **UIDs, uint16_t *numUIDs)
 	    flog("unable to get UID from username %s\n", next);
 	    return false;
 	}
-	fdbg(PSSLURM_LOG_AUTH, "adding user %s uid %u to list of denied"
-	     " users\n", next, uid);
+	fdbg(PSSLURM_LOG_AUTH, "adding uid %u from user %s to array\n",
+	     uid, next);
 	newUIDs[(*numUIDs)++] = uid;
 	next = strtok_r(NULL, delimiters, &toksave);
     }
