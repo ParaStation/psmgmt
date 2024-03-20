@@ -108,7 +108,7 @@ static LIST_HEAD(fenceList);
 /** A list of pending modex message requests */
 static LIST_HEAD(modexRequestList);
 
-/** A list of open spawns */
+/** A list of open spawns initiated by this node (via this PMIx server) */
 static LIST_HEAD(spawnList);
 
 /****** locks to protect the global variables ******/

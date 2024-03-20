@@ -120,17 +120,24 @@ static fillerFunc_t *fillTaskFunction = NULL;
 /** Generic static buffer */
 static char buffer[1024];
 
-/** SpawnRequest to be handled when logger returns service rank */
+/** SpawnRequest to be handled when logger returns service rank.
+ *
+ * pendSpawn != NULL indicates that there is a respawn ongoing that has been
+ * initiated by a call of PMIx_Spawn() by the child of this forwarder */
 static SpawnRequest_t *pendSpawn = NULL;
 
 /**
  * @brief Spawn one or more processes
  *
- * We first need the next rank for the new service process to
- * start. Only the logger knows that. So we ask it and buffer
- * the spawn request to wait for an answer.
+ * We first need the next rank for the new service process to start. Only the
+ * logger knows that. So we ask it and buffer the spawn request to wait for an
+ * answer.
+ *
+ * Note: This function is only called if the forwarder's client has called
+ * PMIx_Spawn() and thus we are handling this respawn as leading forwarder.
  *
  * @see handleServiceInfo()
+ * @see handleClientSpawn()
  *
  * @param req Spawn request data structure (takes ownership)
  *
@@ -164,15 +171,18 @@ static bool doSpawn(SpawnRequest_t *req)
 }
 
 /**
- *  fills the passed task structure to spawn processes using mpiexec
+ * Fill the passed task structure to spawn processes using kvsprovider
  *
- *  @param req spawn request
+ * Note: This function is only called if the forwarder's client has called
+ * PMIx_Spawn() and thus we are handling this respawn as leading forwarder.
  *
- *  @param usize universe size
+ * @see handleClientSpawn()
  *
- *  @param task task structure to adjust
+ * @param req spawn request
+ * @param usize universe size
+ * @param task task structure to adjust
  *
- *  @return 1 on success, 0 on error (currently unused)
+ * @return 1 on success, 0 on error (currently unused)
  */
 static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 {
@@ -278,8 +288,13 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 /**
  * @brief Filter spawner environment for the spawnee
  *
- * Filter out some of the spawners environment variables
- * when copying the task for the spawnees.
+ * Filter out some of the spawners environment variables when copying the task
+ * for the spawnees.
+ *
+ * Note: This function is only called if the forwarder's client has called
+ * PMIx_Spawn() and thus we are handling this respawn as leading forwarder.
+ *
+ * @see handleClientSpawn()
  *
  * @param envent  one entry of the task environment in "k=v" notation
  *
@@ -317,9 +332,15 @@ static bool spawnEnvFilter(const char *envent)
  * job's logger. It triggers the actual spawn.
  *
  * It uses @a fillTaskFunction to setup a command, that will lead to a new
- * job containing the given applications. Usually this will call @a mpiexec
- * directly or use a different resource manager command like Slurm's @a srun
- * which will later trigger @a psslurm to execute @a mpiexec.
+ * job containing the given applications. Usually this will call @a kvsprovider
+ * directly to start a new spawner or use a different resource manager command
+ * like Slurm's @a srun which will later trigger @a psslurm to execute
+ * @a mpiexec.
+ *
+ * Note: This function is only called if the forwarder's client has called
+ * PMIx_Spawn() and thus we are handling this respawn as leading forwarder.
+ *
+ * @see handleClientSpawn()
  *
  * @param req           spawn request to execute
  * @param serviceRank   service rank to use
@@ -421,6 +442,9 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
 /**
  * @brief Send message of type PSPMIX_CLIENT_SPAWN_RES back to the PMIx server
  *
+ * Note: This function is only called if the forwarder's client has called
+ * PMIx_Spawn() and thus we are handling this respawn as leading forwarder.
+ *
  * @param targetTID   TID of the PMIx server
  * @param result      status: 1 means success, 0 means fail
  * @param spawnID     ID of the spawn transmitted by the PMIx server with the
@@ -428,7 +452,8 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
  *
  * @return Returns true on success, false on error
  */
-static bool sendSpawnResp(PStask_ID_t targetTID, uint8_t result, uint16_t spawnID)
+static bool sendSpawnResp(PStask_ID_t targetTID, uint8_t result,
+			  uint16_t spawnID)
 {
     rdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
 	 "(targetTID %s spawnid %hu result %d)\n",
@@ -451,6 +476,11 @@ static bool sendSpawnResp(PStask_ID_t targetTID, uint8_t result, uint16_t spawnI
 
 /**
  * @brief Extract the next service rank and try to continue spawning
+ *
+ * Note: This function is only called if the forwarder's client has called
+ * PMIx_Spawn() and thus we are handling this respawn as leading forwarder.
+ *
+ * @see handleClientSpawn()
  *
  * @param msg Logger message to handle
  *
@@ -513,6 +543,8 @@ fillerFunc_t * pspmix_getFillTaskFunction(void) {
 /**
  * @brief Compose and send a client registration message to the PMIx server
  *
+ * @see waitForClientEnv()
+ *
  * @param clientTask the client task to register
  *
  * @return Returns true on success, false on error
@@ -570,6 +602,8 @@ static bool jobsetupFailed = false;
 /**
 * @brief Handle PSPMIX_CLIENT_PMIX_ENV message
 *
+* @see waitForClientEnv()
+*
 * @param msg  The last fragment of the message to handle
 * @param data The defragmented data received
 */
@@ -600,6 +634,8 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 * for our client from the PMIx server. This function handles the answer to
 * that request and is not meant to be used later again.
 *
+* @see waitForClientEnv()
+*
 * @param msg  The last fragment of the message to handle
 * @param data The defragmented data received
 */
@@ -626,6 +662,11 @@ static void handleEarlyMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 /**
  * @brief Block until the PMIx enviroment is set or a failure is reported
+ *
+ * This function waits for the message of type PSPMIX_CLIENT_PMIX_ENV expected
+ * from the local PMIx server as response to our PSPMIX_REGISTER_CLIENT message.
+ * It would containing the environment additions. If a problem occurs on the
+ * PMIx server side, PSPMIX_JOBSETUP_FAILED might be received instead.
  *
  * @param timeout  maximum time in microseconds to wait
  *
@@ -686,6 +727,11 @@ static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
 /**
  * @brief Handle messages of type PSPMIX_CLIENT_INIT
  *
+ * This message is sent by the local PMIx server after the forwarder's client
+ * has called PMIx_Init().
+ *
+ * This function marks the client as connected so exiting becomes erroneous.
+ *
  * @param msg  The last fragment of the message to handle
  * @param data The defragmented data received
  */
@@ -710,8 +756,10 @@ static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 /**
  * @brief Handle messages of type PSPMIX_CLIENT_FINALIZE
  *
- * Handle notification about finalization of forwarders client. This marks the
- * client as released so exiting becomes non erroneous.
+ * This message is sent by the local PMIx server after the forwarder's client
+ * has called PMIx_Finalize().
+ *
+ * This function marks the client as released so exiting becomes non erroneous.
  *
  * @param msg  The last fragment of the message to handle
  * @param data The defragmented data received
@@ -748,8 +796,10 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 /**
  * @brief Handle messages of type PSPMIX_CLIENT_SPAWN
  *
- * Handle request to spawn new processes received from the user server. This
- * function creates a new spawn request and triggers the actual spawn by
+ * Handle request to spawn new processes received from the user server. Such a
+ * request is sent if the child of this forwarder has called PMIx_Spawn().
+ *
+ * This function creates a new spawn request and triggers the actual spawn by
  * requesting a new service rank from the logger. After this service rank has
  * been received, the spawn request is further handled in @a tryPMIxSpawn()
  *
@@ -915,9 +965,10 @@ static bool msgCC(DDBufferMsg_t *msg)
  * @brief Handle spawn result message
  *
  * Handle the spawn results message contained in @a msg. Such message
- * is expected upon the creation of a new service process used to
- * actually realize the PMIx spawn that was triggered by this forwarders
- * child.
+ * is only expected upon the creation of a new service process used to
+ * actually realize the PMIx spawn that was triggered by this forwarder's client.
+ *
+ * @see handleClientSpawn()
  *
  * @param msg Message to handle
  *
