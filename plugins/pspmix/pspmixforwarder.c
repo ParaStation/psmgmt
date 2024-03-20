@@ -11,7 +11,7 @@
 /**
  * @file Implementation of all functions running in the forwarders
  *
- * Three jobs are done in the forwarders:
+ * Four jobs are done in the forwarders:
  * - Before forking the client, wait for the environment sent by the
  *   PMIx server and set it for the client.
  * - Manage the initialization state (in PMIx sense) of the client to correctly
@@ -21,6 +21,8 @@
  *    @todo Think about getting rid of that.)
  * - Handling spawn requests initiated by the forwarder's client by calling
  *   PMIx_Spawn().
+ * - Inform the PMIx server about the successfull spawn of the client if it
+ *   results from a call to PMIx_Spawn().
  */
 #include "pspmixforwarder.h"
 
@@ -599,6 +601,38 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
     return ret > 0;
 }
 
+/**
+ * @brief Compose and send a spawn success message to the PMIx server
+ *
+ * Note: This function is only called if the forwarder's client is one
+ * of the processes resulting from a call to PMIx_Spawn().
+ *
+ * @param clientTask the client task successfully spawned
+ *
+ * @return Returns true on success, false on error
+ */
+static bool sendSpawnSuccess(PStask_t *clientTask, uint16_t spawnID,
+			     PStask_ID_t pmixServer)
+{
+    rdbg(PSPMIX_LOG_COMM, "Send spawn success message for rank %d\n",
+	 clientTask->rank);
+
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_SPAWN_SUCCESS);
+    setFragDest(&msg, pmixServer);
+
+    addUint16ToMsg(spawnID, &msg);
+
+    rdbg(PSPMIX_LOG_COMM, "Send message for %s\n", PSC_printTID(pmixServer));
+
+    if (sendFragMsg(&msg) < 0) {
+	rlog("Sending spawn success message to %s failed\n",
+	     PSC_printTID(pmixServer));
+	return false;
+    }
+    return true;
+}
+
 /* indicates that env has been received */
 static bool environmentReady = false;
 /* indicates that fail message has been received */
@@ -1130,6 +1164,58 @@ static int hookForwarderSetup(void *data)
 }
 
 /**
+ * @brief Hook function for PSIDHOOK_FRWRD_INIT
+ *
+ * Send PSPMIX_SPAWN_SUCCESS message to the local PMIx server if the
+ * forwarder's client is the result of a call to PMIx_Spawn().
+ *
+ * @param data Pointer to the child's task structure
+ *
+ * @return Return 0 or -1 in case of error
+ */
+static int hookForwarderInit(void *data)
+{
+    /* break if this is not a PMIx job and no PMIx singleton */
+    if (!childTask) return 0;
+
+    rdbg(PSPMIX_LOG_CALL, "(data %p)\n", data);
+
+    /* pointer is assumed to be valid for the life time of the forwarder */
+    if (childTask != data) {
+	rlog("Unexpected child task\n");
+	return -1;
+    }
+
+    /* if we are not part of a spawn, do nothing */
+    env_t env = envNew(childTask->environ);
+    char *spawnIDstr = envGet(env, "PMIX_SPAWNID");
+    envStealArray(env);            /* @todo adjust once environ becomes env_t */
+    if (!spawnIDstr) return 0;
+
+    char *end;
+    long res = strtol(spawnIDstr, &end, 10);
+    if (*end != '\0' || res <= 0) {
+	rlog("invalid PMIX_SPAWNID: %s\n", spawnIDstr);
+	return -1;
+    }
+    uint16_t spawnID = res;
+
+    PStask_ID_t serverTID = pspmix_daemon_getServerTID(childTask->uid);
+    if (serverTID < 0) {
+	rlog("Failed to get PMIx server TID (uid %d)\n", childTask->uid);
+	return -1;
+    }
+
+    /* inform PMIx server about success of the spawn */
+    if (!sendSpawnSuccess(childTask, spawnID, serverTID)) {
+	rlog("Failed to send spawn success message\n");
+	return -1;
+    }
+
+    return 0;
+}
+
+/**
  * @brief Hook function for PSIDHOOK_EXEC_CLIENT_USER
  *
  * Call PMIx_Init() for singleton support
@@ -1242,6 +1328,7 @@ void pspmix_initForwarderModule(void)
     PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
     PSIDhook_add(PSIDHOOK_FRWRD_SETUP, hookForwarderSetup);
     PSIDhook_add(PSIDHOOK_EXEC_CLIENT_USER, hookExecClientUser);
+    PSIDhook_add(PSIDHOOK_FRWRD_INIT, hookForwarderInit);
     PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, hookForwarderClientRelease);
     PSIDhook_add(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }
@@ -1250,6 +1337,7 @@ void pspmix_finalizeForwarderModule(void)
 {
     PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
     PSIDhook_del(PSIDHOOK_FRWRD_SETUP, hookForwarderSetup);
+    PSIDhook_del(PSIDHOOK_FRWRD_INIT, hookForwarderInit);
     PSIDhook_del(PSIDHOOK_EXEC_CLIENT_USER, hookExecClientUser);
     PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, hookForwarderClientRelease);
     PSIDhook_del(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);

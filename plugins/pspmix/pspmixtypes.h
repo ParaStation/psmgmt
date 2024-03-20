@@ -173,6 +173,7 @@ typedef struct {
     uint16_t spawnID;           /**< spawn ID if result of an PMIx_Spawn call */
     pmix_proc_t parent;         /**< spawn parent if result of PMIx_Spawn */
     uint32_t spawnOpts;         /**< spawn option flags */
+    uint32_t spawnReady;        /**< number of respawned processes ready */
     char *nodelist_s;           /**< comma sep. nodelist string from mpiexec */
     PspmixApp_t *apps;          /**< applications in this namespace */
     size_t appsCount;           /**< number of applications, length of apps */
@@ -297,6 +298,7 @@ typedef enum {
     PSPMIX_CLIENT_SPAWN_RES,   /**< Response to spawn request */
     PSPMIX_SPAWN_INFO,         /**< Info about respawn succeded or failed */
     PSPMIX_JOBSETUP_FAILED,    /**< Creation of client's namespace failed */
+    PSPMIX_SPAWN_SUCCESS,      /**< Info about respawn succeded or failed */
 } PSP_PSPMIX_t;
 
 /** Options changing behavior of PMIx_Spawn handing */

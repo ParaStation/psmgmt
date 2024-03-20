@@ -232,6 +232,16 @@ static void handleClientSpawnResp(DDTypedBufferMsg_t *msg,
     pspmix_service_spawnRes(spawnID, result);
 }
 
+static void handleSpawnSuccess(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    uint16_t spawnID;
+    getUint16(data, &spawnID);
+
+    pspmix_service_spawnSuccess(spawnID, PSC_getID(msg->header.sender));
+}
+
 static void handleSpawnInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
@@ -397,6 +407,9 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 	break;
     case PSPMIX_CLIENT_SPAWN_RES:
 	recvFragMsg(msg, handleClientSpawnResp);
+	break;
+    case PSPMIX_SPAWN_SUCCESS:
+	recvFragMsg(msg, handleSpawnSuccess);
 	break;
     case PSPMIX_SPAWN_INFO:
 	recvFragMsg(msg, handleSpawnInfo);
