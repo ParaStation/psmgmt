@@ -547,7 +547,8 @@ bool pspmix_comm_sendJobsetupFailed(PStask_ID_t targetTID)
 
 bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
 				 uint16_t napps, PspmixSpawnApp_t apps[],
-				 const char *pnspace, uint32_t prank)
+				 const char *pnspace, uint32_t prank,
+				 uint32_t opts)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__, PSC_printTID(targetTID));
 
@@ -559,6 +560,8 @@ bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
     addUint16ToMsg(spawnID, &msg);
     addStringToMsg(pnspace, &msg);
     addUint32ToMsg(prank, &msg);
+    addUint32ToMsg(opts, &msg);
+
     addUint16ToMsg(napps, &msg);
 
     for (size_t a = 0; a < napps; a++) {

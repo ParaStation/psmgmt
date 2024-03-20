@@ -1050,12 +1050,13 @@ typedef struct {
     char *prefix;
     char *host;
     char *hostfile;
+    bool initrequired;
 } SpawnInfo_t;
 
 #if PMIX_VERSION_MAJOR >= 4
 static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 {
-    SpawnInfo_t si = { NULL, NULL, NULL, NULL };
+    SpawnInfo_t si = { NULL, NULL, NULL, NULL, false };
 
     /* handle command directives */
     /* Host environments are required to support the following attributes when
@@ -1126,6 +1127,16 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	    si.hostfile = info[i].value.data.string;
 	    continue;
 	}
+
+	/*
+	 * @todo
+	 *
+	 * find a way to add custom info fields to add
+	 * - initrequired:  a spawn is not successfull before all clients have
+	 *                  called PMIx_Init(). Without that option set, it
+	 *                  is reported as successfull once all clients are
+	 *                  spawned (called exec()).
+	 */
 
 	/* inform about lacking implementation */
 	mlog("%s: Ignoring info [key '%s' flags '%s' value.type '%s']"
@@ -1241,12 +1252,16 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 				 si_job.hostfile;
     }
 
+    /* handle additional options */
+    uint32_t opts = 0;
+    if (si_job.initrequired) opts |= PSPMIX_SPAWNOPT_INITREQUIRED;
+
     /* initialize return data struct */
     spawndata_t *sdata = ucalloc(sizeof(*sdata));
     sdata->cbfunc = cbfunc;
     sdata->cbdata = cbdata;
 
-    bool ret = pspmix_service_spawn(proc, napps, sapps, sdata);
+    bool ret = pspmix_service_spawn(proc, napps, sapps, sdata, 0);
 
 
 

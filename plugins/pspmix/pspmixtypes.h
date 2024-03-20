@@ -172,6 +172,7 @@ typedef struct {
     PStask_ID_t spawner;        /**< spawner if result of an PMIx_Spawn call */
     uint16_t spawnID;           /**< spawn ID if result of an PMIx_Spawn call */
     pmix_proc_t parent;         /**< spawn parent if result of PMIx_Spawn */
+    uint32_t spawnOpts;         /**< spawn option flags */
     char *nodelist_s;           /**< comma sep. nodelist string from mpiexec */
     PspmixApp_t *apps;          /**< applications in this namespace */
     size_t appsCount;           /**< number of applications, length of apps */
@@ -298,6 +299,8 @@ typedef enum {
     PSPMIX_JOBSETUP_FAILED,    /**< Creation of client's namespace failed */
 } PSP_PSPMIX_t;
 
+/** Options changing behavior of PMIx_Spawn handing */
+#define PSPMIX_SPAWNOPT_INITREQUIRED  0x00000001
 
 #endif  /* __PS_PMIX_TYPES */
 

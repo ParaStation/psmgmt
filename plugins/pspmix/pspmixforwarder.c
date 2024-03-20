@@ -77,6 +77,7 @@ typedef struct {
     uint16_t spawnID;
     char * pnspace;
     uint32_t prank;
+    uint32_t opts;
 } SpawnReqData_t;
 
 
@@ -408,6 +409,10 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
 
     /* tell the spawnees the rank of the spawner (=> PMIX_PARENT_ID) */
     snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_RANK=%d", srdata->prank);
+    envPut(env, tmp);
+
+    /* tell the spawnees the options of the spawn */
+    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_OPTS=0x%08x", srdata->opts);
     envPut(env, tmp);
 
     /* tell the service rank to the kvsprovider    @todo why - 3 */
@@ -825,6 +830,7 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint16(data, &srdata->spawnID);
     srdata->pnspace = getStringM(data);
     getUint32(data, &srdata->prank);
+    getUint32(data, &srdata->opts);
 
     uint16_t napps;
     getUint16(data, &napps);

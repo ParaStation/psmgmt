@@ -95,6 +95,7 @@ typedef struct {
     PspmixSpawnState_t state;  /**< current state of this spawn */
     uint32_t ready;            /**< num of processes reported as ready */
     char *nspace;              /**< new namespace */
+    uint32_t opts;             /**< spawn options: PSPMIX_SPAWNOPT_* */
 } PspmixSpawn_t;
 
 /****** global variable needed to be lock protected ******/
@@ -357,8 +358,10 @@ static void createAppPSet(const char *name, PspmixNamespace_t *ns,
  * - @a __PMIX_SPAWN_PARENT_FWTID
  * - @a __PMIX_SPAWN_PARENT_NSPACE
  * - @a __PMIX_SPAWN_PARENT_RANK
+ * - @a __PMIX_SPAWN_OPTS
  * are set, indicating, that the namespace resulted from a call to PMIx_Spawn.
- * If so, remember them in @a ns->spawnID, @a ns->spawner, and @a ns->parent.
+ * If so, remember them in @a ns->spawnID, @a ns->spawner, @a ns->parent, and
+ * @a ns->spawnOpts.
  *
  * @param ns       Namespace to check
  *
@@ -413,10 +416,23 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
     }
     PMIX_PROC_LOAD(&ns->parent, nspace, res);
 
+    char *opts = envGet(env, "__PMIX_SPAWN_OPTS");
+    if (!opts) {
+	ulog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_OPTS set\n",
+	     ns->spawnID);
+	return false;
+    }
+    res = strtol(opts, &end, 0);
+    if (*end != '\0' || res < 0) {
+	ulog("invalid __PMIX_SPAWN_OPTS: %s\n", rank);
+	return false;
+    }
+    ns->spawnOpts = res;
+
     char *loc = PSC_getID(ns->spawner) == PSC_getMyID() ? "local" : "remote";
     udbg(PSPMIX_LOG_SPAWN, "%s spawn id %hu initiated by %s (nspace %s"
-	 " rank %u)\n", loc, ns->spawnID, PSC_printTID(ns->spawner),
-	 ns->parent.nspace, ns->parent.rank);
+	 " rank %u opts %08x)\n", loc, ns->spawnID, PSC_printTID(ns->spawner),
+	 ns->parent.nspace, ns->parent.rank, ns->spawnOpts);
 
     return true;
 }
@@ -1864,7 +1880,8 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status,
 
 /* library thread */
 bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
-			  PspmixSpawnApp_t *apps, spawndata_t *sdata)
+			  PspmixSpawnApp_t *apps, spawndata_t *sdata,
+			  uint32_t opts)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(%s:%d napps %hu)\n", __func__, caller->nspace,
 	 caller->rank, napps);
@@ -1887,6 +1904,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     spawn->napps = napps;
     spawn->apps = apps;
     spawn->state = SPAWN_INITIALIZED;
+    spawn->opts = opts;
     udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state INITIALIZED\n", spawn->id);
 
     /* @todo what means maxprocs, can the spawn be successful with less procs? */
@@ -1916,7 +1934,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     /* send PSPMIX_CLIENT_SPAWN message to forwarder of proc */
     if (!pspmix_comm_sendClientSpawn(client->fwtid, spawn->id, spawn->napps,
 				     spawn->apps, spawn->caller.nspace,
-				     spawn->caller.rank)) {
+				     spawn->caller.rank, spawn->opts)) {
 	ulog("sending spawn req to forwarder failed (namespace %s rank %d)\n",
 	     spawn->caller.nspace, spawn->caller.rank);
 	ufree(spawn);

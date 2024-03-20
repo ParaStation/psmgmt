@@ -305,6 +305,8 @@ static void setupCommonEnv(Conf_t *conf)
 		    getenv("__PMIX_SPAWN_PARENT_NSPACE"), 1);
 	    setPSIEnv("__PMIX_SPAWN_PARENT_RANK",
 		    getenv("__PMIX_SPAWN_PARENT_RANK"), 1);
+	    setPSIEnv("__PMIX_SPAWN_OPTS",
+		    getenv("__PMIX_SPAWN_OPTS"), 1);
 	}
 
 	snprintf(tmp, sizeof(tmp), "%d", conf->execCount);
