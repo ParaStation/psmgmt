@@ -57,7 +57,7 @@ typedef enum {
     PSSLURM_LOG_SPLUGIN  =      0x0400000, /**< slurm plugins */
     PSSLURM_LOG_TOPO     =      0x0800000, /**< Topology */
     PSSLURM_LOG_JAIL     =      0x1000000, /**< jail/cgroup */
-    PSSLURM_LOG_CONTAIN  =      0x1000000, /**< container */
+    PSSLURM_LOG_CONTAIN  =      0x2000000, /**< container */
 } PSSLURM_log_types_t;
 
 #endif  /* __PSSLURM_LOG */
