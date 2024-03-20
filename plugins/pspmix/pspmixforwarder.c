@@ -21,7 +21,7 @@
  *    @todo Think about getting rid of that.)
  * - Handling spawn requests initiated by the forwarder's client by calling
  *   PMIx_Spawn().
- * - Inform the PMIx server about the successfull spawn of the client if it
+ * - Inform the PMIx server about the successful spawn of the client if it
  *   results from a call to PMIx_Spawn().
  */
 #include "pspmixforwarder.h"
@@ -700,7 +700,7 @@ static void handleEarlyMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
- * @brief Block until the PMIx enviroment is set or a failure is reported
+ * @brief Block until the PMIx environment is set or a failure is reported
  *
  * This function waits for the message of type PSPMIX_CLIENT_PMIX_ENV expected
  * from the local PMIx server as response to our PSPMIX_REGISTER_CLIENT message.
@@ -1060,7 +1060,7 @@ static bool msgSPAWNRES(DDBufferMsg_t *msg)
  *
  * In this function we do:
  * - Wait for the environment sent by the PMIx server
- * - Set the environment in the childs task structure
+ * - Set the environment in the child's task structure
  *
  * @param data Pointer to the child's task structure
  *
