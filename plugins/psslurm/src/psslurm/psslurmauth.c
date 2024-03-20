@@ -66,7 +66,7 @@ bool arrayFromUserList(const char *users, uid_t **UIDs, uint16_t *numUIDs)
     }
 
     if (!UIDs) {
-	flog("invalid UDIs\n");
+	flog("invalid UIDs\n");
 	return false;
     }
 
