@@ -17,6 +17,7 @@
 #include "pstask.h"
 #include "psenv.h"
 
+#include "psslurmjob.h"
 #include "psslurmcontainertype.h"
 
 /**
@@ -59,26 +60,9 @@ Slurm_Container_t *Container_new(const char *bundle, uint32_t jobid,
  * Called in batch forwarder as root to initialize an OCI container for
  * a job.
  *
- * @param ct Container to initialize
- *
- * @param stdIn Path to stdin of jobscript
- *
- * @param stdOut Path to stdout of jobscript
- *
- * @param stdErr Path to stderr of jobscript
- *
- * @param jobscript Jobscript to execute inside container
- *
- * @param env Environment for jobscript
- *
- * @param argv Job arguments
- *
- * @param argc Number of job arguments
+ * @param job Job executed in container to initialize
  */
-void Container_jobInit(Slurm_Container_t *ct, const char *stdIn,
-		       const char *stdOut, const char *stdErr,
-		       const char *jobscript, env_t env, char **argv,
-		       uint32_t argc);
+void Container_jobInit(Job_t *job);
 
 /**
  * @brief Initialize a container for a given task

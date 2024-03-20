@@ -405,10 +405,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     setJobEnv(job);
 
     /* initialize container */
-    if (job->ct) {
-	Container_jobInit(job->ct, job->stdIn, job->stdOut, job->stdErr,
-			  job->jobscript, job->env, job->argv, job->argc);
-    }
+    if (job->ct) Container_jobInit(job);
 
     /* switch user */
     char *cwd = job->cwd;

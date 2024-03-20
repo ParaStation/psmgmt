@@ -418,18 +418,17 @@ static void mountSpoolDir(Slurm_Container_t *ct, const char *newSpool)
     if (spool && spool[0] != '\0') bindMount(ct, spool, newSpool);
 }
 
-void Container_jobInit(Slurm_Container_t *ct, const char *stdIn,
-		       const char *stdOut, const char *stdErr,
-		       const char *jobscript, env_t env, char **argv,
-		       uint32_t argc)
+void Container_jobInit(Job_t *job)
 {
+    Slurm_Container_t *ct = job->ct;
+
     /* mount I/O files */
-    bindMount(ct, JSON_STDIN, stdIn);
-    bindMount(ct, JSON_STDOUT, stdOut);
-    bindMount(ct, JSON_STDERR, stdErr);
+    bindMount(ct, JSON_STDIN, job->stdIn);
+    bindMount(ct, JSON_STDOUT, job->stdOut);
+    bindMount(ct, JSON_STDERR, job->stdErr);
 
     /* mount jobscript */
-    bindMount(ct, JSON_JOBSCRIPT, jobscript);
+    bindMount(ct, JSON_JOBSCRIPT, job->jobscript);
     jsonPutString(ct->configObj, NULL, "ro");
 
     /* mount spool directory */
@@ -439,13 +438,13 @@ void Container_jobInit(Slurm_Container_t *ct, const char *stdIn,
     jsonPutArrayP(ct->configObj, "/process", "args", NULL);
     jsonWalkPath(ct->configObj, "/process/args");
     jsonPutString(ct->configObj, NULL, JSON_JOBSCRIPT);
-    for (uint32_t i = 0; i < argc; i++) {
-	fdbg(PSSLURM_LOG_CONTAIN, "arg(%i) %s\n", i, argv[i]);
-	jsonPutString(ct->configObj, NULL, argv[i]);
+    for (uint32_t i = 0; i < job->argc; i++) {
+	fdbg(PSSLURM_LOG_CONTAIN, "arg(%i) %s\n", i, job->argv[i]);
+	jsonPutString(ct->configObj, NULL, job->argv[i]);
     }
 
     /* merge current job environment with container environment */
-    mergeEnv(ct, env);
+    mergeEnv(ct, job->env);
 
     /* no tty for jobscript */
     jsonPutBoolP(ct->configObj, "/process/", "terminal", false);
