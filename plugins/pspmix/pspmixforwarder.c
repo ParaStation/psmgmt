@@ -1190,7 +1190,7 @@ static int hookForwarderInit(void *data)
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
 	rlog("Unexpected child task\n");
-	return -1;
+	childTask = data; /* in doubt take the new one */
     }
 
     /* if we are not part of a spawn, do nothing */
@@ -1199,27 +1199,32 @@ static int hookForwarderInit(void *data)
     envStealArray(env);            /* @todo adjust once environ becomes env_t */
     if (!spawnIDstr) return 0;
 
+    bool success = true;
+    uint16_t spawnID = 0;  /* no spawn */
+
     char *end;
     long res = strtol(spawnIDstr, &end, 10);
     if (*end != '\0' || res <= 0) {
 	rlog("invalid PMIX_SPAWNID: %s\n", spawnIDstr);
-	return -1;
+	success = false;
+    } else {
+	spawnID = res;
     }
-    uint16_t spawnID = res;
 
     PStask_ID_t serverTID = pspmix_daemon_getServerTID(childTask->uid);
     if (serverTID < 0) {
 	rlog("Failed to get PMIx server TID (uid %d)\n", childTask->uid);
-	return -1;
+	return -1; /* cannot send a message without a target */
     }
 
     /* inform PMIx server about success of the spawn */
-    if (!sendSpawnSuccess(serverTID, childTask, spawnID, true)) {
+    if (!sendSpawnSuccess(serverTID, childTask, spawnID, success)) {
 	rlog("Failed to send spawn success message\n");
 	return -1;
     }
 
-    return 0;
+    return success ? 0 : -1;
+
 }
 
 /**

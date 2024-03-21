@@ -2080,6 +2080,8 @@ void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
 	return;
     }
 
+    if (!success) goto send_msg;
+
     /* if PMIx_Init() of all clients is required, send spawn info later */
     if (ns->spawnOpts & PSPMIX_SPAWNOPT_INITREQUIRED) return;
 
@@ -2097,6 +2099,8 @@ void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
 	RELEASE_LOCK(namespaceList);
 	success = false;
     }
+
+send_msg:
 
     if (!pspmix_comm_sendSpawnInfo(PSC_getID(ns->spawner), ns->spawnID,
 				       success, ns->name, ns->spawnReady)) {
