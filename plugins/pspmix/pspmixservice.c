@@ -2110,6 +2110,16 @@ void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
 	}
     }
 
+    /* set client tid */
+    PspmixClient_t *client = findClientInList(rank, &ns->clientList);
+    if (!client) {
+	ulog("UNEXPECTED: no client with rank %u found in namespace '%s' (spawn"
+	     " id %hu fw %s)\n", rank, ns->name, spawnID, PSC_printTID(fwTID));
+	success = false;
+    } else {
+	client->tid = clientTID;
+    }
+
     if (!success) goto send_msg;
 
     /* if PMIx_Init() of all clients is required, send spawn info later */

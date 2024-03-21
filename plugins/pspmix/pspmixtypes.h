@@ -205,6 +205,8 @@ typedef struct {
     gid_t gid;                 /**< group id */
     PSrsrvtn_ID_t resID;       /**< reservation ID */
     PStask_ID_t fwtid;	       /**< TID of the client's forwarder */
+    PStask_ID_t tid;	       /**< TID of the client (0 means yet unknown)
+				    n/a before PSPMIX_SPAWN_SUCCESS msg rcvd */
     void *notifiedFwCb;        /**< callback object for forwarder notification
 				    about init/finalize */
 } PspmixClient_t;
