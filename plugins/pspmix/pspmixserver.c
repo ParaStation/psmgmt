@@ -1245,8 +1245,8 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	sapps[a].env = apps[a].env;
 
 
-	sapps[a].wdir = apps[a].cwd ? apps[a].cwd :
-			     si_app.wdir ? si_app.wdir : si_job.wdir;
+	sapps[a].wdir = si_app.wdir ? si_app.wdir :
+			si_job.wdir ? si_job.wdir : apps[a].cwd;
 	sapps[a].host = si_app.host ? si_app.host : si_job.host;
 	sapps[a].hostfile = si_app.hostfile ? si_app.hostfile :
 				 si_job.hostfile;
