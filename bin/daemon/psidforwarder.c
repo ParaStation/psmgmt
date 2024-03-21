@@ -49,8 +49,11 @@ static char tag[] = "PSID_forwarder";
 /** Forwarder's verbosity; set in connectLogger() on behalf of logger's info */
 static bool verbose = false;
 
-/** logger's ParaStation task ID; also tracks the corresponding connection */
+/** logger's ParaStation task ID */
 static PStask_ID_t loggerTID = -1;
+
+/** track connection to logger */
+static bool loggerConn = false;
 
 /** Description of the local child-task */
 static PStask_t *childTask = NULL;
@@ -76,7 +79,7 @@ static void closeDaemonSock(void)
     if (daemonSock < 0) return;
 
     PSLog_close();
-    loggerTID = -1;
+    loggerConn = false;
 
     Selector_remove(daemonSock);
     close(daemonSock);
@@ -103,7 +106,7 @@ static void closeDaemonSock(void)
  */
 static ssize_t sendLogMsg(PSLog_msg_t type, char *buf, size_t len)
 {
-    if (loggerTID < 0) {
+    if (!loggerConn) {
 	static bool first = true;
 	if (first) {
 	    /* cut trailing newlines if any */
@@ -311,7 +314,7 @@ ssize_t sendDaemonMsg(void *amsg)
 	return ret;
     }
 
-    if (verbose && loggerTID >= 0) {
+    if (verbose && loggerConn) {
 	PSIDfwd_printMsgf(STDERR, "%s: %s: type %s (len=%d) to %s\n",
 			  tag, __func__, PSDaemonP_printMsg(msg->type),
 			  msg->len, PSC_printTID(msg->dest));
@@ -325,19 +328,21 @@ ssize_t sendDaemonMsg(void *amsg)
  *
  * Connect to the logger identified by the unique task ID @a tid. This
  * function waits for a specific time for the #INITIALIZE answer and
- * set @ref loggerTID and @ref verbose accordingly. The default is to
- * wait for 60 sec + <np> * 5 msec but this might be overrule by the
- * __PSI_LOGGER_TIMEOUT environment variable.
+ * set @ref loggerTID, @ref loggerConn and @ref verbose
+ * accordingly. The default is to wait for 60 sec + <np> * 5 msec but
+ * this might be overruled by the __PSI_LOGGER_TIMEOUT environment
+ * variable.
  *
  * @param tid logger's ParaStation task ID
  *
- * @return On success, true is returned and @ref loggerTID and @ref
- * verbose are set; or false in case off error which resets @ref
- * loggerTID to -1
+ * @return On success, true is returned and @ref loggerTID, @ref
+ * loggerConn and @ref verbose are set; or false in case off error
+ * which resets @ref loggerConn to false
  */
 static bool connectLogger(PStask_ID_t tid)
 {
-    loggerTID = tid; /* Set for the first sendLogMsg() call */
+    loggerTID = tid;
+    loggerConn = true; /* Set for the first sendLogMsg() call */
     sendLogMsg(INITIALIZE, (char *)&childTask->group, sizeof(childTask->group));
 
     /* determine timeout for connecting the logger */
@@ -414,7 +419,7 @@ static bool connectLogger(PStask_ID_t tid)
 	}
     }
 
-    loggerTID = -1;
+    loggerConn = false;
     return false;
 }
 
@@ -433,7 +438,7 @@ static bool connectLogger(PStask_ID_t tid)
 static void releaseLogger(int status)
 {
     send_again:
-    while (loggerTID >= 0) {
+    while (loggerConn) {
 	sendLogMsg(FINALIZE, (char *)&status, sizeof(status));
 
 	struct timeval timeout = {10, 0};
@@ -463,7 +468,7 @@ static void releaseLogger(int status)
 	    if (lmsg->header.type == PSP_CC_MSG && lmsg->type == EXIT) {
 		PSID_fdbg(PSID_LOG_SPAWN, "(%d): Released %s\n", status,
 			  PSC_printTID(loggerTID));
-		loggerTID = -1;
+		loggerConn = false;
 		return;
 	    }
 	    if (!PSID_handleMsg(&msg)) {
@@ -474,7 +479,6 @@ static void releaseLogger(int status)
 	    }
 	}
     }
-    loggerTID = -1;
 }
 
 /**
@@ -791,7 +795,7 @@ static bool msgCC_ERROR(DDBufferMsg_t *msg)
 	PSLog_Msg_t *logMsg = (PSLog_Msg_t *)msg;
 	PSID_flog("logger %s disappeared on '%s'\n", PSC_printTID(loggerTID),
 		  PSLog_printMsgType(logMsg->type));
-	loggerTID = -1;
+	loggerConn = false;
 	return true;
     }
     return false;
