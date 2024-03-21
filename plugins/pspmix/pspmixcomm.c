@@ -238,8 +238,15 @@ static void handleSpawnSuccess(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     uint16_t spawnID;
     getUint16(data, &spawnID);
+    int32_t rank;
+    getInt32(data, &rank);
+    bool success;
+    getBool(data, &success);
+    PStask_ID_t clientTID;
+    getInt32(data, &clientTID);
 
-    pspmix_service_spawnSuccess(spawnID, PSC_getID(msg->header.sender));
+    pspmix_service_spawnSuccess(spawnID, rank, success, clientTID,
+				msg->header.sender);
 }
 
 static void handleSpawnInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)

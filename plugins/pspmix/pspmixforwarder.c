@@ -607,12 +607,15 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
  * Note: This function is only called if the forwarder's client is one
  * of the processes resulting from a call to PMIx_Spawn().
  *
+ * @param pmixServer task id of the PMIx server that is target of the message
  * @param clientTask the client task successfully spawned
+ * @param spawnID    identifier of the spawn the client is part of
+ * @param success    success state to report
  *
  * @return Returns true on success, false on error
  */
 static bool sendSpawnSuccess(PStask_ID_t pmixServer, PStask_t *clientTask,
-			     uint16_t spawnID)
+			     uint16_t spawnID, bool success)
 {
     rdbg(PSPMIX_LOG_COMM, "Send spawn success message for rank %d\n",
 	 clientTask->rank);
@@ -622,6 +625,9 @@ static bool sendSpawnSuccess(PStask_ID_t pmixServer, PStask_t *clientTask,
     setFragDest(&msg, pmixServer);
 
     addUint16ToMsg(spawnID, &msg);
+    addInt32ToMsg(clientTask->jobRank, &msg);
+    addBoolToMsg(success, &msg);
+    addInt32ToMsg(clientTask->tid, &msg);  /* avail. in PSIDHOOK_FRWRD_INIT */
 
     rdbg(PSPMIX_LOG_COMM, "Send message for %s\n", PSC_printTID(pmixServer));
 
@@ -1208,7 +1214,7 @@ static int hookForwarderInit(void *data)
     }
 
     /* inform PMIx server about success of the spawn */
-    if (!sendSpawnSuccess(serverTID, childTask, spawnID)) {
+    if (!sendSpawnSuccess(serverTID, childTask, spawnID, true)) {
 	rlog("Failed to send spawn success message\n");
 	return -1;
     }

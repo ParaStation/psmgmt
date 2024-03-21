@@ -2061,10 +2061,14 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
 }
 
 /* main thread */
-void pspmix_service_spawnSuccess(uint16_t spawnID, PStask_ID_t fw)
+void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
+				 PStask_ID_t clientTID, PStask_ID_t fwTID)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(spawn %hu fw %s)\n", __func__, spawnID,
-	 PSC_printTID(fw));
+    if (mset(PSPMIX_LOG_CALL)) {
+	 mlog("%s(spawn %hu rank %d success %s client %s", __func__, spawnID,
+	      rank, success ? "true" : "false", PSC_printTID(clientTID));
+	 mlog(" fw %s)\n", PSC_printTID(fwTID));
+    }
 
     GET_LOCK(namespaceList);
 
@@ -2072,7 +2076,7 @@ void pspmix_service_spawnSuccess(uint16_t spawnID, PStask_ID_t fw)
     if (!ns) {
 	RELEASE_LOCK(namespaceList);
 	ulog("UNEXPECTED: no namespace for spawn id %hu found (fw %s)\n",
-		spawnID, PSC_printTID(fw));
+		spawnID, PSC_printTID(fwTID));
 	return;
     }
 
@@ -2086,8 +2090,6 @@ void pspmix_service_spawnSuccess(uint16_t spawnID, PStask_ID_t fw)
 	RELEASE_LOCK(namespaceList);
 	return;
     }
-
-    bool success = true;
 
     if (ns->spawnReady > ns->localClients) {
 	ulog("UNEXPECTED: spawn id %hu: to many processes (%u > %u)\n", spawnID,

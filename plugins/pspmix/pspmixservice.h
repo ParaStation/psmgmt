@@ -322,9 +322,13 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success);
  * started the respawn.
  *
  * @param spawnID   local ID of the spawn
- * @param fw        TID of the forwarder
+ * @param rank      namespace (job) rank of the client
+ * @param success   success state reported
+ * @param clientTID TID of the client
+ * @param fwTID     TID of the forwarder
  */
-void pspmix_service_spawnSuccess(uint16_t spawnID, PStask_ID_t fw);
+void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
+				 PStask_ID_t clientTID, PStask_ID_t fwTID);
 
 /**
  * @brief Handle spawn info from node involved in respawn
