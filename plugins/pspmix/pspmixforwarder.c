@@ -604,30 +604,44 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
 /**
  * @brief Compose and send a spawn success message to the PMIx server
  *
- * Note: This function is only called if the forwarder's client is one
+ * This function does only send a message if the forwarder's client is one
  * of the processes resulting from a call to PMIx_Spawn().
  *
  * @param pmixServer task id of the PMIx server that is target of the message
- * @param clientTask the client task successfully spawned
- * @param spawnID    identifier of the spawn the client is part of
  * @param success    success state to report
  *
  * @return Returns true on success, false on error
  */
-static bool sendSpawnSuccess(PStask_ID_t pmixServer, PStask_t *clientTask,
-			     uint16_t spawnID, bool success)
+static bool sendSpawnSuccess(PStask_ID_t pmixServer, bool success)
 {
-    rdbg(PSPMIX_LOG_COMM, "Send spawn success message for rank %d\n",
-	 clientTask->rank);
+    rdbg(PSPMIX_LOG_COMM, "Send spawn success message for job rank %d\n",
+	 childTask->jobRank);
+
+    /* this message is only to be send if we are part of a spawn */
+    env_t env = envNew(childTask->environ);
+    char *spawnIDstr = envGet(env, "PMIX_SPAWNID");
+    envStealArray(env);            /* @todo adjust once environ becomes env_t */
+    if (!spawnIDstr) return true;
+
+    uint16_t spawnID = 0; /* no spawn */
+
+    char *end;
+    long res = strtol(spawnIDstr, &end, 10);
+    if (*end != '\0' || res <= 0) {
+	rlog("invalid PMIX_SPAWNID: %s\n", spawnIDstr);
+	success = false;
+    } else {
+	spawnID = res;
+    }
 
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_SPAWN_SUCCESS);
     setFragDest(&msg, pmixServer);
 
     addUint16ToMsg(spawnID, &msg);
-    addInt32ToMsg(clientTask->jobRank, &msg);
+    addInt32ToMsg(childTask->jobRank, &msg);
     addBoolToMsg(success, &msg);
-    addInt32ToMsg(clientTask->tid, &msg);  /* avail. in PSIDHOOK_FRWRD_INIT */
+    addInt32ToMsg(childTask->tid, &msg);  /* avail. in PSIDHOOK_FRWRD_INIT */
 
     rdbg(PSPMIX_LOG_COMM, "Send message for %s\n", PSC_printTID(pmixServer));
 
@@ -1193,24 +1207,6 @@ static int hookForwarderInit(void *data)
 	childTask = data; /* in doubt take the new one */
     }
 
-    /* if we are not part of a spawn, do nothing */
-    env_t env = envNew(childTask->environ);
-    char *spawnIDstr = envGet(env, "PMIX_SPAWNID");
-    envStealArray(env);            /* @todo adjust once environ becomes env_t */
-    if (!spawnIDstr) return 0;
-
-    bool success = true;
-    uint16_t spawnID = 0;  /* no spawn */
-
-    char *end;
-    long res = strtol(spawnIDstr, &end, 10);
-    if (*end != '\0' || res <= 0) {
-	rlog("invalid PMIX_SPAWNID: %s\n", spawnIDstr);
-	success = false;
-    } else {
-	spawnID = res;
-    }
-
     PStask_ID_t serverTID = pspmix_daemon_getServerTID(childTask->uid);
     if (serverTID < 0) {
 	rlog("Failed to get PMIx server TID (uid %d)\n", childTask->uid);
@@ -1218,13 +1214,12 @@ static int hookForwarderInit(void *data)
     }
 
     /* inform PMIx server about success of the spawn */
-    if (!sendSpawnSuccess(serverTID, childTask, spawnID, success)) {
+    if (!sendSpawnSuccess(serverTID, true)) {
 	rlog("Failed to send spawn success message\n");
 	return -1;
     }
 
-    return success ? 0 : -1;
-
+    return 0;
 }
 
 /**
