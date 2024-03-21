@@ -2125,13 +2125,13 @@ void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
 
     if (!success) goto send_msg;
 
+    ns->spawnReady++;
+
     /* if PMIx_Init() of all clients is required, send spawn info later */
     if (ns->spawnOpts & PSPMIX_SPAWNOPT_INITREQUIRED) {
 	RELEASE_LOCK(namespaceList);
 	return;
     }
-
-    ns->spawnReady++;
 
     if (ns->spawnReady < ns->localClients) {
 	/* waiting for more processes */
