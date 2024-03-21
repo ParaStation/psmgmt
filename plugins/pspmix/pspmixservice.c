@@ -2150,7 +2150,14 @@ send_msg:
 	ulog("failed to send failed spawn info to node %hd\n",
 	     PSC_getID(ns->spawner));
     }
+
+    PStask_ID_t jobID = ns->job->ID;
     RELEASE_LOCK(namespaceList);
+
+    if (!success) {
+	ulog("ERROR in execution of PMIx_Spawn(): Terminating spawned job\n");
+	pspmix_userserver_removeJob(jobID, true);
+    }
 }
 
 /* main thread */

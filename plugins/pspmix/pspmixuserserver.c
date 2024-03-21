@@ -165,11 +165,27 @@ static void terminateJob(PspmixJob_t *job)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__, pspmix_jobStr(job));
 
-    /* TODO change for spawn support */
+    /* find a client with known tid */
+    bool found = false;
+    PspmixClient_t *client = NULL;
+    list_t *c;
+    list_for_each(c, &job->ns->clientList) {
+	client = list_entry(c, PspmixClient_t, next);
+	if (client->tid) {
+	    found = true;
+	    break;
+	}
+    }
+    if (!found) {
+	ulog("no client TID known yet, unable to kill job");
+	/* @todo is there a fallback way? Do we need one? */
+	return;
+    }
 
-    ulog("only terminating sessions is supported at the moment\n");
-
-    terminateSession(job->session);
+    /* kill first client via forwarder to trigger cleanup mechanism */
+    ulog("terminating job by sending signal to client %s\n",
+	 PSC_printTID(client->tid));
+    pspmix_comm_sendSignal(client->tid, -1);
 }
 
 bool pspmix_userserver_removeJob(PStask_ID_t jobID, bool abort)
