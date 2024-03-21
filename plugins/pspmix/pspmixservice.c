@@ -2142,7 +2142,6 @@ void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
     if (ns->spawnReady > ns->localClients) {
 	ulog("UNEXPECTED: spawn id %hu: to many processes (%u > %u)\n", spawnID,
 	     ns->spawnReady, ns->localClients);
-	RELEASE_LOCK(namespaceList);
 	success = false;
     }
 
