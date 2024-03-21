@@ -67,6 +67,9 @@ typedef struct {
     bool used;               /**< flag if PMIx is actively in this session */
 } PspmixSession_t;
 
+/* typedef to be used in PspmixJob_t */
+typedef struct __pspmixNamespace PspmixNamespace_t;
+
 /**
  * Type to manage jobs in session objects
  *
@@ -89,6 +92,7 @@ typedef struct {
     env_t env;               /**< environment of the spawn creating this job
 				  (only used in PMIx server, not in daemon) */
     bool used;               /**< flag if PMIx is actively used by this job */
+    PspmixNamespace_t *ns;   /**< namespace for this job or NULL if no PMIx job */
 } PspmixJob_t;
 
 /**
@@ -162,7 +166,7 @@ typedef struct {
  * > string representation of a numerical job ID. The namespace and job terms
  * > will be used interchangeably throughout the document.
  */
-typedef struct {
+struct __pspmixNamespace {
     list_t next;
     char name[MAX_NSLEN+1];     /**< space for the name of the namespace ;) */
     char jobid[MAX_NSLEN+1];    /**< scheduler assiged job identificator */
@@ -184,7 +188,7 @@ typedef struct {
 				     (list of PspmixClient_t objects) */
     uint32_t localClients;      /**< number of local clients */
     uint32_t clientsConnected;  /**< number of local clients connected */
-} PspmixNamespace_t;
+};
 
 /**
  * Information about one client

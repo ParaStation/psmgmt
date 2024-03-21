@@ -740,6 +740,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	}
     }
 
+    /* add reference to job */
+    ns->job->ns = ns;
+
     /* initialize list of clients */
     INIT_LIST_HEAD(&ns->clientList);
 
