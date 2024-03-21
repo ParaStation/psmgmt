@@ -216,6 +216,29 @@ static PspmixNamespace_t* findNamespaceBySpawnID(uint16_t spawnID)
 }
 
 /**
+ * @brief Find namespace by local clients fw tid
+ *
+ * This is relatively expensive, so use other way if possible.
+ *
+ * @param fwTID   Local client's forwader TID
+ *
+ * @return Returns the namespace or NULL if not in list
+ */
+static PspmixNamespace_t* findNamespaceByFwTID(PStask_ID_t fwTID)
+{
+
+    list_t *n, *c;
+    list_for_each(n, &namespaceList) {
+	PspmixNamespace_t *ns = list_entry(n, PspmixNamespace_t, next);
+	list_for_each(c, &ns->clientList) {
+	    PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
+	    if (client->fwtid == fwTID) return ns;
+	}
+    }
+    return NULL;
+}
+
+/**
  * @brief Find spawn by id
  *
  * @param id  spawn id
@@ -2074,10 +2097,17 @@ void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
 
     PspmixNamespace_t *ns = findNamespaceBySpawnID(spawnID);
     if (!ns) {
-	RELEASE_LOCK(namespaceList);
 	ulog("UNEXPECTED: no namespace for spawn id %hu found (fw %s)\n",
 		spawnID, PSC_printTID(fwTID));
-	return;
+	success = false;
+
+	ns = findNamespaceByFwTID(fwTID);
+	if (!ns) {
+	    ulog("UNEXPECTED: no namespace for local fwTID %s found\n",
+		 PSC_printTID(fwTID));
+	    RELEASE_LOCK(namespaceList);
+	    return;
+	}
     }
 
     if (!success) goto send_msg;
