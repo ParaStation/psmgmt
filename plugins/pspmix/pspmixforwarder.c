@@ -616,6 +616,11 @@ static bool sendSpawnSuccess(bool success)
     rdbg(PSPMIX_LOG_COMM, "Send spawn success message for job rank %d\n",
 	 childTask->jobRank);
 
+    /* Each forwarder should only send this message once in a lifetime */
+    static bool alreadySent = false;
+    if (alreadySent) return true;
+    alreadySent = true;
+
     /* this message is only to be send if we are part of a spawn */
     env_t env = envNew(childTask->environ);
     char *spawnIDstr = envGet(env, "PMIX_SPAWNID");
