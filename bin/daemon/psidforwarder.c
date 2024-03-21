@@ -106,6 +106,10 @@ static ssize_t sendLogMsg(PSLog_msg_t type, char *buf, size_t len)
     if (loggerTID < 0) {
 	static bool first = true;
 	if (first) {
+	    /* cut trailing newlines if any */
+	    while (strlen(buf) > 0
+		   && buf[strlen(buf)-1] == '\n') buf[strlen(buf)-1] = '\0';
+
 	    PSID_flog("(%d) not connected: '%s'\n", type, buf);
 	    first = false;
 	}
