@@ -471,6 +471,13 @@ static void releaseLogger(int status)
 		loggerConn = false;
 		return;
 	    }
+	    if (lmsg->header.type == PSP_CC_ERROR && lmsg->type == FINALIZE
+		&& lmsg->header.sender == loggerTID) {
+		PSID_flog("logger %s already disappeared\n",
+			  PSC_printTID(loggerTID));
+		loggerConn = false;
+		return;
+	    }
 	    if (!PSID_handleMsg(&msg)) {
 		PSIDfwd_printMsgf(STDERR, "%s: %s: Unexpected msg type %s"
 				  " from %s\n", tag, __func__,
