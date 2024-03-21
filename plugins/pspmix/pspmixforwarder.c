@@ -604,8 +604,9 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
 /**
  * @brief Compose and send a spawn success message to the PMIx server
  *
- * This function does only send a message if the forwarder's client is one
- * of the processes resulting from a call to PMIx_Spawn().
+ * This function does only send a message if the forwarder's client is
+ * one of the processes resulting from a call to PMIx_Spawn(). This is
+ * identified by peeking into the client's environment for PMIX_SPAWNID.
  *
  * @param success    success state to report
  *
@@ -621,7 +622,7 @@ static bool sendSpawnSuccess(bool success)
     if (alreadySent) return true;
     alreadySent = true;
 
-    /* this message is only to be send if we are part of a spawn */
+    /* this message is only to be sent if we are part of a spawn */
     env_t env = envNew(childTask->environ);
     char *spawnIDstr = envGet(env, "PMIX_SPAWNID");
     envStealArray(env);            /* @todo adjust once environ becomes env_t */
