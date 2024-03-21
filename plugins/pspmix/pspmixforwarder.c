@@ -607,12 +607,11 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
  * This function does only send a message if the forwarder's client is one
  * of the processes resulting from a call to PMIx_Spawn().
  *
- * @param pmixServer task id of the PMIx server that is target of the message
  * @param success    success state to report
  *
  * @return Returns true on success, false on error
  */
-static bool sendSpawnSuccess(PStask_ID_t pmixServer, bool success)
+static bool sendSpawnSuccess(bool success)
 {
     rdbg(PSPMIX_LOG_COMM, "Send spawn success message for job rank %d\n",
 	 childTask->jobRank);
@@ -634,20 +633,26 @@ static bool sendSpawnSuccess(PStask_ID_t pmixServer, bool success)
 	spawnID = res;
     }
 
+    PStask_ID_t serverTID = pspmix_daemon_getServerTID(childTask->uid);
+    if (serverTID < 0) {
+	rlog("Failed to get PMIx server TID (uid %d)\n", childTask->uid);
+	return false; /* cannot send a message without a target */
+    }
+
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_SPAWN_SUCCESS);
-    setFragDest(&msg, pmixServer);
+    setFragDest(&msg, serverTID);
 
     addUint16ToMsg(spawnID, &msg);
     addInt32ToMsg(childTask->jobRank, &msg);
     addBoolToMsg(success, &msg);
     addInt32ToMsg(childTask->tid, &msg);  /* avail. in PSIDHOOK_FRWRD_INIT */
 
-    rdbg(PSPMIX_LOG_COMM, "Send message for %s\n", PSC_printTID(pmixServer));
+    rdbg(PSPMIX_LOG_COMM, "Send message for %s\n", PSC_printTID(serverTID));
 
     if (sendFragMsg(&msg) < 0) {
 	rlog("Sending spawn success message to %s failed\n",
-	     PSC_printTID(pmixServer));
+	     PSC_printTID(serverTID));
 	return false;
     }
     return true;
@@ -1207,14 +1212,8 @@ static int hookForwarderInit(void *data)
 	childTask = data; /* in doubt take the new one */
     }
 
-    PStask_ID_t serverTID = pspmix_daemon_getServerTID(childTask->uid);
-    if (serverTID < 0) {
-	rlog("Failed to get PMIx server TID (uid %d)\n", childTask->uid);
-	return -1; /* cannot send a message without a target */
-    }
-
     /* inform PMIx server about success of the spawn */
-    if (!sendSpawnSuccess(serverTID, true)) {
+    if (!sendSpawnSuccess(true)) {
 	rlog("Failed to send spawn success message\n");
 	return -1;
     }
