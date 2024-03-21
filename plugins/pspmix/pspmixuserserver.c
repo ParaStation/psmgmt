@@ -144,15 +144,18 @@ bool pspmix_userserver_addJob(PStask_ID_t sessID, PspmixJob_t *job)
  *
  * @return No return value
  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void terminateSession(PspmixSession_t *session)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(ID %s)\n", __func__, PSC_printTID(session->ID));
 
-    ulog("terminating session by signaling logger %s\n",
+    ulog("terminating session by sending signal to logger %s\n",
 	 PSC_printTID(session->ID));
 
     pspmix_comm_sendSignal(session->ID, -1);
 }
+#pragma GCC diagnostic pop
 
 /**
  * @brief Terminate the SessionJob
