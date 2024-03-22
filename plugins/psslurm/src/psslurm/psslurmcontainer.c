@@ -370,9 +370,6 @@ Slurm_Container_t *Container_new(const char *bundle, uint32_t jobid,
 	ufree(dup);
     }
 
-    /* test writing updated container configuration */
-    jsonWriteFile(ct->configObj, ct->spoolJobDir, JSON_CONFIG);
-
     return ct;
 }
 

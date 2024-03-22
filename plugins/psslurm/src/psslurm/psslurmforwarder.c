@@ -401,12 +401,6 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     /* set default RLimits */
     setDefaultRlimits();
 
-    /* setup batch specific environment */
-    setJobEnv(job);
-
-    /* initialize container */
-    if (job->ct) Container_jobInit(job);
-
     /* switch user */
     char *cwd = job->cwd;
     if (getConfValueI(Config, "CWD_PATTERN") == 1) {
@@ -431,6 +425,12 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     spank.hook = SPANK_TASK_INIT;
     SpankCallHook(&spank);
 #endif
+
+    /* setup batch specific environment */
+    setJobEnv(job);
+
+    /* initialize container */
+    if (job->ct) Container_jobInit(job);
 
     /* set RLimits */
     setRlimitsFromEnv(job->env, false);
@@ -600,10 +600,6 @@ int handleExecClient(void *data)
     SpankCallHook(&spank);
 #endif
 
-    if (fwStep && fwStep->ct) {
-	Container_taskInit(fwStep->ct, task, (fwStep->taskFlags & LAUNCH_PTY));
-    }
-
     return 0;
 }
 
@@ -734,9 +730,12 @@ int handleExecClientExec(void *data)
     if (!task) return -1;
     if (task->rank < 0 || task->group != TG_ANY) return 0;
 
-    /* exec task in container, function will *not* return!
-     * every initialization should be finished beforehand */
-    if (fwStep && fwStep->ct) Container_run(fwStep->ct);
+    if (fwStep && fwStep->ct) {
+	Container_taskInit(fwStep->ct, task, (fwStep->taskFlags & LAUNCH_PTY));
+	/* exec task in container, function will *not* return!
+	 * every initialization should be finished beforehand */
+	Container_run(fwStep->ct);
+    }
 
     return 0;
 }
