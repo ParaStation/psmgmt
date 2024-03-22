@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -164,6 +164,13 @@ void IO_openStepPipes(Forwarder_Data_t *fwdata, Step_t *step);
  * @return Returns 1 on success otherwise 0 is returned
  */
 int IO_openJobPipes(Forwarder_Data_t *fwdata);
+
+/**
+ * @brief Replace patterns in I/O files of job
+ *
+ * @param fwdata The forwarder structure of the job
+ */
+void IO_initJobFilenames(Forwarder_Data_t *fwdata);
 
 /**
  * @brief Open I/O files for a job

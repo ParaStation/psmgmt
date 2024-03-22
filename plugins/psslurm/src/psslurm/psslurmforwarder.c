@@ -1486,6 +1486,8 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 	fwdata->childRerun = 1;
     }
 
+    IO_initJobFilenames(fwdata);
+
     return IO_openJobPipes(fwdata);
 }
 

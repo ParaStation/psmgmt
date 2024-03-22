@@ -805,17 +805,9 @@ int IO_forwardJobData(int sock, void *data)
     return 0;
 }
 
-void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
+void IO_initJobFilenames(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
-    int flags = getAppendFlags(job->appendMode);
-    char *outFile, *defOutName;
-
-    if (job->arrayTaskId != NO_VAL) {
-	defOutName = "slurm-%A_%a.out";
-    } else {
-	defOutName = "slurm-%j.out";
-    }
 
     /* stdin */
     char *inFile;
@@ -828,23 +820,40 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     job->stdIn = inFile;
 
     /* stdout */
-    close(STDOUT_FILENO);
-
+    char *outFile;
     if (strlen(job->stdOut)) {
 	outFile = addCwd(job->cwd, IO_replaceJobSymbols(job, job->stdOut));
     } else {
+	char *defOutName = (job->arrayTaskId != NO_VAL) ?
+			    "slurm-%A_%a.out" : "slurm-%j.out";
 	outFile = addCwd(job->cwd, IO_replaceJobSymbols(job, defOutName));
-    }
-
-    mdbg(PSSLURM_LOG_IO, "%s: job %u stdout file %s\n", __func__,
-	 job->jobid, outFile);
-    job->stdOutFD = open(outFile, flags, 0666);
-    if (job->stdOutFD == -1) {
-	mwarn(errno, "%s: open stdout '%s' failed", __func__, outFile);
-	exit(1);
     }
     ufree(job->stdOut);
     job->stdOut = outFile;
+
+    /* stderr */
+    if (strlen(job->stdErr)) {
+	char *errFile = addCwd(job->cwd, IO_replaceJobSymbols(job,job->stdErr));
+	ufree(job->stdErr);
+	job->stdErr = errFile;
+     }
+}
+
+void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
+{
+    Job_t *job = fwdata->userData;
+    int flags = getAppendFlags(job->appendMode);
+
+    /* stdout */
+    close(STDOUT_FILENO);
+
+    mdbg(PSSLURM_LOG_IO, "%s: job %u stdout file %s\n", __func__,
+	 job->jobid, job->stdOut);
+    job->stdOutFD = open(job->stdOut, flags, 0666);
+    if (job->stdOutFD == -1) {
+	mwarn(errno, "%s: open stdout '%s' failed", __func__, job->stdOut);
+	exit(1);
+    }
 
     Selector_register(fwdata->stdOut[0], IO_forwardJobData, fwdata);
     close(fwdata->stdOut[1]);
@@ -853,17 +862,14 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     close(STDERR_FILENO);
 
     if (strlen(job->stdErr)) {
-	char *errFile = addCwd(job->cwd, IO_replaceJobSymbols(job,job->stdErr));
 	mdbg(PSSLURM_LOG_IO, "%s: job %u stderr file %s\n", __func__,
-	     job->jobid, errFile);
-	job->stdErrFD = open(errFile, flags, 0666);
+	     job->jobid, job->stdErr);
+	job->stdErrFD = open(job->stdErr, flags, 0666);
 	if (job->stdErrFD == -1) {
 	    mwarn(errno, "%s: open stderr '%s' failed for job %u", __func__,
-		  errFile, job->jobid);
+		  job->stdErr, job->jobid);
 	    exit(1);
 	}
-	ufree(job->stdErr);
-	job->stdErr = errFile;
     } else {
 	job->stdErrFD = job->stdOutFD;
     }
