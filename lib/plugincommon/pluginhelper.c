@@ -63,7 +63,7 @@ bool removeDir(char *directory, bool root)
 
 	if (S_ISDIR(sbuf.st_mode)) {
 	    /* remove all directories recursively */
-	    removeDir(buf, 1);
+	    removeDir(buf, true);
 	} else {
 	    remove(buf);
 	}

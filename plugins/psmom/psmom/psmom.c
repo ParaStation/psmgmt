@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -347,21 +347,21 @@ static void cleanupLogs(void)
     cleanJob = getConfValueI(config, "CLEAN_JOBS_FILES");
     if (cleanJob) {
 	dir = getConfValueC(config, "DIR_JOB_FILES");
-	removeDir(dir, 0);
+	removeDir(dir, false);
     }
 
     /* cleanup node files */
     cleanNodes = getConfValueI(config, "CLEAN_NODE_FILES");
     if (cleanNodes) {
 	dir = getConfValueC(config, "DIR_NODE_FILES");
-	removeDir(dir, 0);
+	removeDir(dir, false);
     }
 
     /* cleanup temp (scratch) dir */
     cleanTemp = getConfValueI(config, "CLEAN_TEMP_DIR");
     if (cleanTemp) {
 	dir = getConfValueC(config, "DIR_TEMP");
-	if (dir) removeDir(dir, 0);
+	if (dir) removeDir(dir, false);
     }
 }
 

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -803,7 +803,7 @@ char *set(char *key, char *value)
 
     if (!strcmp(key, "CLEAR_CONF_CACHE")) {
 	char *confDir = getConfValueC(Config, "SLURM_CONF_CACHE");
-	removeDir(confDir, 0);
+	removeDir(confDir, false);
 	str2Buf("Clear Slurm configuration cache ", &buf, &bufSize);
 	str2Buf(confDir, &buf, &bufSize);
 	return str2Buf("\n", &buf, &bufSize);

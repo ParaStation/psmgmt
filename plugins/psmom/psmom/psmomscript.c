@@ -679,14 +679,14 @@ static void callbackPElogue(int exitStat, bool tmdOut, int iofd, void *info)
 
 	/* delete temp directory if prologue failed */
 	if (exitStat != 0 && data->tmpDir) {
-	    removeDir(data->tmpDir, 1);
+	    removeDir(data->tmpDir, true);
 	}
     } else {
 	initFragBuffer(&msg, PSP_PLUG_PSMOM, PSP_PSMOM_EPILOGUE_FINISH);
 
 	/* delete temp directory in epilogue */
 	if (data->tmpDir) {
-	    removeDir(data->tmpDir, 1);
+	    removeDir(data->tmpDir, true);
 	}
     }
     setFragDest(&msg, data->mainMom);
@@ -907,7 +907,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 
 	/* delete temp directory in epilogue */
 	if (confTmpDir) {
-	    removeDir(tmpDir, 1);
+	    removeDir(tmpDir, true);
 	}
     }
     setFragDest(&ans, msg->header.sender);
