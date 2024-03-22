@@ -36,10 +36,11 @@
 #define JSON_CONFIG "config.json"
 #define JSON_ENV "/process/env"
 #define JSON_CONFIG_ROOTFS "/root/path"
-#define JSON_JOBSCRIPT "/tmp/psslurm/jobscript"
-#define JSON_STDIN "/tmp/psslurm/stdin"
-#define JSON_STDOUT "/tmp/psslurm/stdout"
-#define JSON_STDERR "/tmp/psslurm/stderr"
+#define JSON_TMP "/tmp/psslurm/job-%j"
+#define JSON_JOBSCRIPT JSON_TMP "/jobscript"
+#define JSON_STDIN JSON_TMP "/stdin"
+#define JSON_STDOUT JSON_TMP "/stdout"
+#define JSON_STDERR JSON_TMP "/stderr"
 
 #define DEFAULT_SPOOL_DIR "/var/run/psid"
 
@@ -387,14 +388,21 @@ static void bindMount(Slurm_Container_t *ct, const char *dest,
 		      const char *source)
 {
     /* don't attempt to bind mount /dev/null */
-    if (!strcmp(source, "/dev/null")) return;
+    if (!source || source[0] == '\0' || !strcmp(source, "/dev/null")) return;
 
-    jsonPutStringP(ct->configObj, "/mounts/[]/", "destination", dest);
-    jsonPutString(ct->configObj, "source", source);
+    char *rsource = replaceSymbols(source, ct);
+    char *rdest = replaceSymbols(dest, ct);
+    fdbg(PSSLURM_LOG_CONTAIN, "bind mount src %s dest %s\n", rsource, rdest);
+
+    jsonPutStringP(ct->configObj, "/mounts/[]/", "destination", rdest);
+    jsonPutString(ct->configObj, "source", rsource);
     jsonPutString(ct->configObj, "type", "none");
 
     jsonPutArray(ct->configObj, "options");
     jsonPutStringP(ct->configObj, "options", NULL, "bind");
+
+    ufree(rsource);
+    ufree(rdest);
 }
 
 /**
@@ -429,7 +437,9 @@ void Container_jobInit(Job_t *job)
     /* let runtime start jobscript */
     jsonPutArrayP(ct->configObj, "/process", "args", NULL);
     jsonWalkPath(ct->configObj, "/process/args");
-    jsonPutString(ct->configObj, NULL, JSON_JOBSCRIPT);
+    char *jsPath = replaceSymbols(JSON_JOBSCRIPT, ct);
+    jsonPutString(ct->configObj, NULL, jsPath);
+    ufree(jsPath);
     for (uint32_t i = 0; i < job->argc; i++) {
 	fdbg(PSSLURM_LOG_CONTAIN, "arg(%i) %s\n", i, job->argv[i]);
 	jsonPutString(ct->configObj, NULL, job->argv[i]);
@@ -576,8 +586,16 @@ bool Container_destroy(Slurm_Container_t *ct)
     }
 
     if (!getConfValueU(SlurmOCIConfig, "DisableCleanup")) {
-	if (ct->spoolJobDir) removeDir(ct->spoolJobDir, 1);
+	if (ct->spoolJobDir) removeDir(ct->spoolJobDir, true);
     }
+
+    /* remove leftover bind mounts from container rootfs */
+    char *tmpDir = PSC_concat(ct->rootfs, JSON_TMP);
+    char *tmpDirR = replaceSymbols(tmpDir, ct);
+    struct stat sbuf;
+    if (!stat(tmpDirR, &sbuf)) removeDir(tmpDirR, true);
+    ufree(tmpDir);
+    ufree(tmpDirR);
 
     Container_CMDs_t *cmds = &ct->cmds;
     ufree(cmds->query);
