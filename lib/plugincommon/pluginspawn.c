@@ -12,9 +12,6 @@
 
 #include <string.h>
 
-#include "psenv.h"
-#include "pluginstrv.h"
-
 #include "pluginmalloc.h"
 
 SpawnRequest_t *initSpawnRequest(int num)

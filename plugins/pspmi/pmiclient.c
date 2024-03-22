@@ -21,6 +21,7 @@
 #include "list.h"
 #include "pscommon.h"
 #include "pscio.h"
+#include "psenv.h"
 #include "pslog.h"
 #include "psprotocol.h"
 #include "selector.h"

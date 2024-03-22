@@ -11,7 +11,6 @@
 
 #include <linux/bpf.h>
 #include <bpf/bpf.h>
-#include <bpf/libbpf_legacy.h>
 #include <bpf/libbpf.h>
 #include <bpf/libbpf_legacy.h>
 

@@ -15,7 +15,6 @@
 #include <sys/types.h>
 
 #include "pstask.h"
-#include "psenv.h"
 
 #include "psslurmjob.h"
 #include "psslurmcontainertype.h"

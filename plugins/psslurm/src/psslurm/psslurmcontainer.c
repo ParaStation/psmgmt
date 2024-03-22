@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include "psslurmcontainer.h"
 
 #include <errno.h>
