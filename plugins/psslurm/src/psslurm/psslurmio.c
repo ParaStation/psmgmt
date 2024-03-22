@@ -847,11 +847,10 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     /* stdout */
     close(STDOUT_FILENO);
 
-    mdbg(PSSLURM_LOG_IO, "%s: job %u stdout file %s\n", __func__,
-	 job->jobid, job->stdOut);
+    fdbg(PSSLURM_LOG_IO, "job %u stdout file %s\n", job->jobid, job->stdOut);
     job->stdOutFD = open(job->stdOut, flags, 0666);
     if (job->stdOutFD == -1) {
-	mwarn(errno, "%s: open stdout '%s' failed", __func__, job->stdOut);
+	fwarn(errno, "open stdout '%s' failed", job->stdOut);
 	exit(1);
     }
 
@@ -862,11 +861,10 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     close(STDERR_FILENO);
 
     if (strlen(job->stdErr)) {
-	mdbg(PSSLURM_LOG_IO, "%s: job %u stderr file %s\n", __func__,
-	     job->jobid, job->stdErr);
+	fdbg(PSSLURM_LOG_IO, "job %u stderr file %s\n", job->jobid, job->stdErr);
 	job->stdErrFD = open(job->stdErr, flags, 0666);
 	if (job->stdErrFD == -1) {
-	    mwarn(errno, "%s: open stderr '%s' failed for job %u", __func__,
+	    fwarn(errno, "open stderr '%s' failed for job %u",
 		  job->stdErr, job->jobid);
 	    exit(1);
 	}
