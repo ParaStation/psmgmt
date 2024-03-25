@@ -278,7 +278,8 @@ static pmix_status_t server_client_connected_cb(const pmix_proc_t *proc,
 	cb->cbdata = cbdata;
     }
 
-    if (!pspmix_service_clientConnected(clientObject, cb)) return PMIX_ERROR;
+    if (!pspmix_service_clientConnected(proc->nspace, clientObject, cb))
+	return PMIX_ERROR;
 
     /* tell the server library to wait for the callback call */
     return PMIX_SUCCESS;
@@ -314,7 +315,8 @@ static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 	cb->cbdata = cbdata;
     }
 
-    if (!pspmix_service_clientFinalized(clientObject, cb)) return PMIX_ERROR;
+    if (!pspmix_service_clientFinalized(proc->nspace, clientObject, cb))
+	return PMIX_ERROR;
 
     /* tell the server library to wait for the callback call */
     return PMIX_SUCCESS;
@@ -371,7 +373,7 @@ static pmix_status_t server_abort_cb(const pmix_proc_t *proc,
 #endif
     }
 
-    pspmix_service_abort(clientObject);
+    pspmix_service_abort(proc->nspace, clientObject);
 
     return PMIX_OPERATION_SUCCEEDED;
 }

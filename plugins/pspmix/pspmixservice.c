@@ -796,7 +796,7 @@ nscreate_error:
 	if called by handleTermClients()
    library thread:
 	if called by pmix_service_abort() */
-bool pspmix_service_terminateClients(char *nsname, bool remote)
+bool pspmix_service_terminateClients(const char *nsname, bool remote)
 {
     GET_LOCK(namespaceList);
     PspmixNamespace_t *ns = findNamespace(nsname);
@@ -960,13 +960,11 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 	}
     }
 
-    strcpy(client->nsname, ns->name);
-
     PSresinfo_t *resInfo = findReservationInList(client->resID,
 						 &ns->job->resInfos);
     if (!resInfo) {
 	ulog("r%d: reservation %d not found in client's namespace %s\n",
-	     client->rank, client->resID, client->nsname);
+	     client->rank, client->resID, ns->name);
 	RELEASE_LOCK(namespaceList);
 	goto failed;
     }
@@ -1101,7 +1099,8 @@ bool pspmix_service_finalize(void)
 }
 
 /* library thread */
-bool pspmix_service_clientConnected(void *clientObject, void *cb)
+bool pspmix_service_clientConnected(const char *nsName, void *clientObject,
+				    void *cb)
 {
     PspmixClient_t *client = clientObject;
 
@@ -1110,9 +1109,9 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
     /* Inform the client's forwarder about initialization and remember callback
      * for answer handling */
 
-    PspmixNamespace_t *ns = findNamespace(client->nsname);
+    PspmixNamespace_t *ns = findNamespace(nsName);
     if (!ns) {
-	ulog("no namespace '%s'\n", client->nsname);
+	ulog("no namespace '%s'\n", nsName);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -1127,60 +1126,59 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
     ns->clientsConnected++;
 
     /* log clients */
-    udbg(PSPMIX_LOG_CLIENTS, "(nspace %s rank %d\n", client->nsname,
-	 client->rank);
+    udbg(PSPMIX_LOG_CLIENTS, "(nspace %s rank %d\n", ns->name, client->rank);
     if (ns->clientsConnected >= ns->localClients) {
-	ulog("nspace %s: All %u local clients connected\n", client->nsname,
+	ulog("nspace %s: All %u local clients connected\n", ns->name,
 	     ns->localClients);
     }
 
     /* copy values inside lock */
     PStask_ID_t fwtid = client->fwtid;
-    char nsname[MAX_NSLEN+1];
-    strcpy(nsname, client->nsname);
     pmix_rank_t rank = client->rank;
     PStask_ID_t jobID = ns->job->ID;
+    uint32_t connClients = ns->clientsConnected;
+    uint32_t localClients = ns->localClients;
+    uint16_t spawnID = ns->spawnID;
+    PSnodes_ID_t spawnNode = PSC_getID(ns->spawner);
+    uint32_t spawnOpts = ns->spawnOpts;
+    RELEASE_LOCK(namespaceList);
 
-    if (!pspmix_comm_sendInitNotification(fwtid, nsname, rank, jobID)) {
+    if (!pspmix_comm_sendInitNotification(fwtid, nsName, rank, jobID)) {
 	ulog("Sending init notification for %s:%d to %s failed\n",
-	     nsname, rank, PSC_printTID(fwtid));
+	     nsName, rank, PSC_printTID(fwtid));
     }
 
     /* @todo do we need that?
        if (psAccountSwitchAccounting) psAccountSwitchAccounting(childTask->tid, false);
     */
 
-    if (ns->clientsConnected < ns->localClients) goto success;
+    if (connClients < localClients || !spawnID) return true;
 
     /* all local clients are connected */
-    if (ns->spawnID) {
-	/* inform spawner's node user server if this is a respawn */
-	udbg(PSPMIX_LOG_SPAWN, "All local clients connected in namespace '%s'"
-	     " for respawn id %hu as requested by node %hd\n", ns->name,
-	     ns->spawnID, PSC_getID(ns->spawner));
+    /* inform spawner's node user server if this is a respawn */
+    udbg(PSPMIX_LOG_SPAWN, "All local clients connected in namespace '%s'"
+	 " for respawn id %hu as requested by node %hd\n", nsName, spawnID,
+	 spawnNode);
 
-	if (!(ns->spawnOpts & PSPMIX_SPAWNOPT_INITREQUIRED)) {
-	    /* spawn info has already been sent and spawn is cleaned up */
-	    goto success;
-	}
-
-	if (!pspmix_comm_sendSpawnInfo(PSC_getID(ns->spawner), ns->spawnID,
-				       true, ns->name, ns->localClients)) {
-	    ulog("failed to send failed spawn info to node %hd\n",
-		 PSC_getID(ns->spawner));
-	}
-	/* @todo take some shortcut when spawner is local?
-		 (PSC_getID(ns->spawner) == PSC_getMyID()) */
-	/* @todo use fence communication scheme here? */
+    if (!(spawnOpts & PSPMIX_SPAWNOPT_INITREQUIRED)) {
+	/* spawn info has already been sent and spawn is cleaned up */
+	return true;
     }
 
-success:
-    RELEASE_LOCK(namespaceList);
+    if (!pspmix_comm_sendSpawnInfo(spawnNode, spawnID, true,
+				   nsName, localClients)) {
+	ulog("failed to send failed spawn info to node %hd\n", spawnNode);
+    }
+    /* @todo take some shortcut when spawner is local?
+       (spawnNode == PSC_getMyID()) */
+    /* @todo use fence communication scheme here? */
+
     return true;
 }
 
 /* library thread */
-bool pspmix_service_clientFinalized(void *clientObject, void *cb)
+bool pspmix_service_clientFinalized(const char *nsName, void *clientObject,
+				    void *cb)
 {
     PspmixClient_t *client = clientObject;
 
@@ -1189,9 +1187,9 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
     /* Inform the client's forwarder about finalization and remember callback
      * for answer handling */
 
-    PspmixNamespace_t *ns = findNamespace(client->nsname);
+    PspmixNamespace_t *ns = findNamespace(nsName);
     if (!ns) {
-	ulog("no namespace '%s'\n", client->nsname);
+	ulog("no namespace '%s'\n", nsName);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -1208,22 +1206,18 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
     ns->clientsConnected--;
 
     /* log clients */
-    udbg(PSPMIX_LOG_CLIENTS, "(nspace %s rank %d\n", client->nsname,
-	 client->rank);
+    udbg(PSPMIX_LOG_CLIENTS, "(nspace %s rank %d\n", ns->name, client->rank);
     if (ns->clientsConnected == 0) {
-	ulog("nspace %s: All %u local clients finalized\n", client->nsname,
+	ulog("nspace %s: All %u local clients finalized\n", ns->name,
 	     ns->localClients);
     }
 
     /* copy values inside lock */
     PStask_ID_t fwtid = client->fwtid;
     pmix_rank_t rank = client->rank;
-    char nsname[MAX_NSLEN+1];
-    strcpy(nsname, client->nsname);
-
     RELEASE_LOCK(namespaceList);
 
-    pspmix_comm_sendFinalizeNotification(fwtid, nsname, rank, jobID);
+    pspmix_comm_sendFinalizeNotification(fwtid, nsName, rank, jobID);
 
     return true;
 }
@@ -1272,7 +1266,7 @@ void pspmix_service_handleClientIFResp(bool success, const char *nspace,
 }
 
 /* library thread */
-void pspmix_service_abort(void *clientObject)
+void pspmix_service_abort(const char *nsName, void *clientObject)
 {
     PspmixClient_t *client = clientObject;
 
@@ -1287,7 +1281,7 @@ void pspmix_service_abort(void *clientObject)
     /* just terminate the clients, cleaning up namespace will be triggered by
      * @ref PSPMIX_REMOVE_JOB message that is sent to us by the daemon in
      * @ref PSIDHOOK_LOCALJOBREMOVED */
-    pspmix_service_terminateClients(client->nsname, true);
+    pspmix_service_terminateClients(nsName, true);
 }
 
 /**

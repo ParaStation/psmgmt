@@ -659,7 +659,7 @@ bool pspmix_comm_sendSpawnInfo(PSnodes_ID_t dest, uint16_t spawnID,
 }
 
 bool pspmix_comm_sendTermClients(PSnodes_ID_t dests[], size_t ndests,
-				 char *nspace)
+				 const char *nspace)
 {
     if (mset(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM)) {
 	mlog("%s(dests ", __func__);

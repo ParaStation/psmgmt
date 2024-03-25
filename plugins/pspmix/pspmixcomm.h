@@ -107,7 +107,7 @@ bool pspmix_comm_sendSpawnInfo(PSnodes_ID_t dest, uint16_t spawnID, bool success
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendTermClients(PSnodes_ID_t dests[], size_t ndests,
-				 char *nspace);
+				 const char *nspace);
 
 /**
  * @brief Compose and send a fence data message if @a nDest != 0

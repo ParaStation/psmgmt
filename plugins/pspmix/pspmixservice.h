@@ -84,7 +84,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
  *
  * @return Returns true on success and false on sending errors
  */
-bool pspmix_service_terminateClients(char *nsname, bool remote);
+bool pspmix_service_terminateClients(const char *nsname, bool remote);
 
 /**
  * @brief Removes namespace
@@ -143,12 +143,14 @@ bool pspmix_service_finalize(void);
  *
  * @todo This reads the environment and joins the client to the KVS provider.
  *
+ * @param nsName        name of the namespace the client is member of
  * @param clientObject  client object of type PspmixClient_t
  * @param cb            callback object to pass back to return callback
  *
  * @return Returns true on success, false on fail
  */
-bool pspmix_service_clientConnected(void *clientObject, void *cb);
+bool pspmix_service_clientConnected(const char *nsName, void *clientObject,
+				    void *cb);
 
 /**
  * @brief Handle that a client finalized
@@ -157,12 +159,14 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb);
  *
  * @todo Leave the KVS and release the child and allow it to exit.
  *
+ * @param nsName        name of the namespace the client is member of
  * @param clientObject  client object of type PspmixClient_t
  * @param cb            callback object to pass back to return callback
  *
  * @return Returns true on success, false on fail
  * */
-bool pspmix_service_clientFinalized(void *clientObject, void *cb);
+bool pspmix_service_clientFinalized(const char *nsName, void *clientObject,
+				    void *cb);
 
 /**
  * @brief Handle the response of a client's forwarder about connection or
@@ -184,11 +188,12 @@ void pspmix_service_handleClientIFResp(bool success, const char *nspace,
  *
  * Abort the current job.
  *
+ * @param nsName        name of the namespace the client is member of
  * @param clientObject  client object of type PspmixClient_t
  *
  * @return No return value
  */
-void pspmix_service_abort(void *clientObject);
+void pspmix_service_abort(const char *nsName, void *clientObject);
 
 /**
  * @brief Handle fence operation requested from the local helper library
