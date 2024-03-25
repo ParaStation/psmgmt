@@ -22,12 +22,9 @@ extern logger_t pamservice_logger;
 #define mwarn(...) logger_warn(pamservice_logger, -1, __VA_ARGS__)
 #define mdbg(...) logger_print(pamservice_logger, __VA_ARGS__)
 
-#define flog(...) if (pamservice_logger)				\
-	logger_funcprint(pamservice_logger, __func__, -1, __VA_ARGS__)
-#define fdbg(key, ...) if (pamservice_logger)				\
-	logger_funcprint(pamservice_logger, __func__, key, __VA_ARGS__)
-#define fwarn(...) if (pamservice_logger)				\
-	logger_funcwarn(pamservice_logger, __func__, -1, __VA_ARGS__)
+#define flog(...) logger_funcprint(pamservice_logger, __func__, -1, __VA_ARGS__)
+#define fdbg(...) logger_funcprint(pamservice_logger, __func__, __VA_ARGS__)
+#define fwarn(...) logger_funcwarn(pamservice_logger, __func__, -1, __VA_ARGS__)
 
 /** Various types of logging levels for more verbose logging */
 typedef enum {
