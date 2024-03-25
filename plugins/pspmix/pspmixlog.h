@@ -55,7 +55,7 @@ extern pthread_mutex_t __mlock;
     } while(0)
 
 #define elog(...) PSIDfwd_printMsgf(STDERR, __VA_ARGS__)
-#define mset(flag) (logger_getMask(pmixlogger) & flag)
+#define mset(flag) (logger_getMask(pmixlogger) & (flag))
 
 #if defined __GNUC__ && __GNUC__ < 8
 #define udbg(mask, format, ...)						\
