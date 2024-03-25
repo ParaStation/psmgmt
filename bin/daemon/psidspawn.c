@@ -273,51 +273,50 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
  * this fails, changing into the corresponding user's home-directory
  * is attempted.
  *
- * @param task Structure describing the client-task.
+ * @param task Structure describing the client-task
  *
- * @return Upon success 0 is returned. If an error occurred, an
- * error-code (i.e. an errno) different from 0 is returned.
+ * @return Upon success true is returned; if an error occurred, false
+ * is returned and errno is set accordingly
  */
-static int changeToWorkDir(PStask_t *task)
+static bool changeToWorkDir(PStask_t *task)
 {
-    char *rawIO = getenv("__PSI_RAW_IO");
     alarmFunc = __func__;
 
-    if (chdir(task->workingdir) < 0) {
-	if (!rawIO) {
-	    fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
-		    task->workingdir ? task->workingdir : "", strerror(errno));
-	    fprintf(stderr, "Will use user's home directory\n");
-	}
+    if (chdir(task->workingdir) == 0) return true;
 
-	char *pwBuf = NULL;
-	struct passwd *passwd = PSC_getpwuidBuf(task->uid, &pwBuf);
-	if (passwd) {
-	    if (chdir(passwd->pw_dir) < 0) {
-		int eno = errno;
-		if (rawIO) {
-		    PSID_fwarn(eno, "chdir(%s)",
-			       passwd->pw_dir ? passwd->pw_dir : "");
-		} else {
-		    fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
-			    passwd->pw_dir ? passwd->pw_dir : "",
-			    strerror(eno));
-		}
-		free(pwBuf);
-		return eno;
-	    }
-	    free(pwBuf);
-	} else {
-	    if (rawIO) {
-		PSID_log("cannot determine home directory\n");
-	    } else {
-		fprintf(stderr, "Cannot determine home directory\n");
-	    }
-	    return ENOENT;
-	}
+    int eno = errno;
+    char *rawIO = getenv("__PSI_RAW_IO");
+    if (!rawIO) {
+	fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
+		task->workingdir ? task->workingdir : "", strerror(eno));
+	fprintf(stderr, "Will use user's home directory\n");
     }
 
-    return 0;
+    char *pwBuf = NULL;
+    struct passwd *passwd = PSC_getpwuidBuf(task->uid, &pwBuf);
+    if (!passwd) {
+	if (rawIO) {
+	    PSID_log("cannot determine home directory\n");
+	} else {
+	    fprintf(stderr, "Cannot determine home directory\n");
+	}
+	errno = ENOENT;
+	return false;
+    }
+
+    int ret = chdir(passwd->pw_dir);
+    eno = errno;
+    free(pwBuf);
+    if (!ret) return true;
+
+    if (rawIO) {
+	PSID_fwarn(eno, "chdir(%s)", passwd->pw_dir ? passwd->pw_dir : "");
+    } else {
+	fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
+		passwd->pw_dir ? passwd->pw_dir : "", strerror(eno));
+    }
+    errno = eno;
+    return false;
 }
 
 /**
@@ -521,8 +520,6 @@ __attribute__ ((noreturn))
 static void execClient(PStask_t *task)
 {
     /* logging is done via the forwarder thru stderr! */
-    int eno = 0, timeout = 30;
-    char *executable = NULL, *envStr;
 
     /* Give the client some hint where we are running (#2911) */
     char nodeIDStr[16];
@@ -533,7 +530,7 @@ static void execClient(PStask_t *task)
 
     /* change the gid; exit() on failure */
     if (setgid(task->gid) < 0) {
-	eno = errno;
+	int eno = errno;
 	fprintf(stderr, "%s: setgid: %s\n", __func__, strerror(eno));
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
@@ -564,7 +561,7 @@ static void execClient(PStask_t *task)
 
     /* change the uid; exit() on failure */
     if (setuid(task->uid) < 0) {
-	eno = errno;
+	int eno = errno;
 	fprintf(stderr, "%s: setuid: %s\n", __func__, strerror(eno));
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
@@ -587,7 +584,7 @@ static void execClient(PStask_t *task)
     checkFD(task->fd); // @todo extra check for jwt:#20747
 
     /* restore umask settings */
-    envStr = getenv("__PSI_UMASK");
+    char *envStr = getenv("__PSI_UMASK");
     if (envStr) {
 	mode_t mask;
 	if (sscanf(envStr, "%o", &mask) > 0) umask(mask);
@@ -596,7 +593,7 @@ static void execClient(PStask_t *task)
     /* used e.g. by psslurm Spank to modify the namespace,
      * thus before testExecutable() and alarm */
     if (PSIDhook_call(PSIDHOOK_EXEC_CLIENT_PREP, task) < 0) {
-	eno = EPERM;
+	int eno = EPERM;
 	fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_PREP failed\n", __func__);
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
@@ -611,6 +608,7 @@ static void execClient(PStask_t *task)
     /* setup alarm */
     alarmFD = task->fd;
     PSC_setSigHandler(SIGALRM, alarmHandler);
+    int timeout = 30;
     envStr = getenv("__PSI_ALARM_TMOUT");
     if (envStr) {
 	int tmout;
@@ -620,7 +618,8 @@ static void execClient(PStask_t *task)
 
     checkFD(task->fd); // @todo extra check for jwt:#20747
 
-    if ((eno = changeToWorkDir(task))) {
+    if (!changeToWorkDir(task)) {
+	int eno = errno;
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: changeToWorkDir: write(): %s\n", __func__,
@@ -631,7 +630,9 @@ static void execClient(PStask_t *task)
 
     checkFD(task->fd); // @todo extra check for jwt:#20747
 
-    if ((eno = testExecutable(task, &executable))) {
+    char *executable = NULL;
+    int eno = testExecutable(task, &executable);
+    if (eno) {
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: testExecutable: write(): %s\n", __func__,
@@ -653,21 +654,22 @@ static void execClient(PStask_t *task)
     checkFD(task->fd); // @todo extra check for jwt:#20747
 
     /* Signal forwarder we're ready for execve() */
-    if (write(task->fd, &eno, sizeof(eno)) < 0) {
-	eno = errno;
+    int forwErr = 0;
+    if (write(task->fd, &forwErr, sizeof(forwErr)) < 0) {
+	int eno = errno;
 	fprintf(stderr, "%s: write(): %s\n", __func__, strerror(eno));
 	PSID_exit(eno, "%s: write(%d)", __func__, task->fd);
     }
 
-    if (PSCio_recvBuf(task->fd, &eno, sizeof(eno)) < 0) {
-	eno = errno;
+    if (PSCio_recvBuf(task->fd, &forwErr, sizeof(forwErr)) < 0) {
+	int eno = errno;
 	fprintf(stderr, "%s: PSCio_recvBuf: %s\n", __func__, strerror(eno));
 	PSID_exit(eno, "%s: PSCio_recvBuf", __func__);
     } else {
 	close(task->fd);
     }
 
-    if (eno) {
+    if (forwErr) {
 	fprintf(stderr, "%s: DD_CHILDBORN failed\n", __func__);
 	PSID_flog("DD_CHILDBORN failed\n");
 	exit(1);
@@ -675,7 +677,7 @@ static void execClient(PStask_t *task)
 
     /* used by psslurm to modify default pinning; thus after doClamps() */
     if (PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task) < 0) {
-	eno = EPERM;
+	int eno = EPERM;
 	fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_USER failed\n", __func__);
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
@@ -690,7 +692,7 @@ static void execClient(PStask_t *task)
 
     /* used by psslurm to execute the child in a container */
     if (PSIDhook_call(PSIDHOOK_EXEC_CLIENT_EXEC, task) < 0) {
-	eno = EPERM;
+	int eno = EPERM;
 	fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_EXEC failed\n", __func__);
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
