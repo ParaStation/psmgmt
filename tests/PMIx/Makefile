@@ -1,6 +1,6 @@
 CFLAGS = -Wall
 
-TARGETS =  getSizes putGet log spawn
+TARGETS =  getSizes putGet log spawn abort
 
 all: $(TARGETS)
 
