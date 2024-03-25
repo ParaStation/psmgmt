@@ -696,48 +696,56 @@ struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf)
 	PSC_warn(-1, eno, "%s: unable to query user database", __func__);
 	free(*pwBuf);
 	*pwBuf = NULL;
+	errno = eno;
 	return NULL;
     }
+
+    /* no matching passwd record was found */
+    if (!passwd) {
+	free(*pwBuf);
+	*pwBuf = NULL;
+    }
+
     return passwd;
 }
 
 uid_t PSC_uidFromString(const char *user)
 {
-    long uid;
-    if (!user) return -2;
+    if (!user) {
+	errno = ENOENT;
+	return -2;
+    }
     if (!strcasecmp(user, "any")) return -1;
+    long uid;
     if (!PSC_numFromString(user, &uid) && uid > -1) return uid;
 
     char *pwBuf = NULL;
     struct passwd *passwd = PSC_getpwnamBuf(user, &pwBuf);
-    if (passwd) {
-	uid = passwd->pw_uid;
-	free(pwBuf);
-	return uid;
-    }
+    if (!passwd) return -2;
 
-    PSC_log(-1, "%s: unknown user '%s'\n", __func__, user);
-    return -2;
+    uid = passwd->pw_uid;
+    free(pwBuf);
+    return uid;
 }
 
 gid_t PSC_gidFromString(const char *group)
 {
-    long gid;
-    if (!group) return -2;
+    if (!group) {
+	errno = ENOENT;
+	return -2;
+    }
     if (!strcasecmp(group, "any")) return -1;
+
+    long gid;
     if (!PSC_numFromString(group, &gid) && gid > -1) return gid;
 
     char *pwBuf = NULL;
     struct passwd *passwd = PSC_getpwnamBuf(group, &pwBuf);
-    if (passwd) {
-	gid = passwd->pw_gid;
-	free(pwBuf);
-	return gid;
-    }
-    free(pwBuf); // Useless but silences scanbuild
+    if (!passwd) return -2;
 
-    PSC_log(-1, "%s: unknown group '%s'\n", __func__, group);
-    return -2;
+    gid = passwd->pw_gid;
+    free(pwBuf);
+    return gid;
 }
 
 struct passwd *PSC_getpwuidBuf(uid_t uid, char **pwBuf)
@@ -763,7 +771,14 @@ struct passwd *PSC_getpwuidBuf(uid_t uid, char **pwBuf)
 	PSC_warn(-1, eno, "%s: unable to query user database", __func__);
 	free(*pwBuf);
 	*pwBuf = NULL;
+	errno = eno;
 	return NULL;
+    }
+
+    /* no matching passwd record was found */
+    if (!passwd) {
+	free(*pwBuf);
+	*pwBuf = NULL;
     }
 
     return passwd;
@@ -808,7 +823,14 @@ static struct group *getgrgidBuf(gid_t gid, char **grBuf)
 	PSC_warn(-1, eno, "%s: unable to query group database", __func__);
 	free(*grBuf);
 	*grBuf = NULL;
+	errno = eno;
 	return NULL;
+    }
+
+    /* no matching passwd record was found */
+    if (!grp) {
+	free(*grBuf);
+	*grBuf = NULL;
     }
 
     return grp;

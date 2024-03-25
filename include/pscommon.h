@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -621,8 +621,9 @@ int PSC_numFromString(const char *numStr, long *val);
  * @param user String describing the user to resolve
  *
  * @return If the string @a user hints to a known user, its user ID is
- * returned; if @a user is "any", -2 is returned; or -1 in case of an
- * unknown user
+ * returned; if @a user is "any", -1 is returned; or -2 in case of an
+ * error, i.e. an unknown user; in the last case, errno is set to
+ * indicate the cause
  */
 uid_t PSC_uidFromString(const char *user);
 
@@ -635,8 +636,9 @@ uid_t PSC_uidFromString(const char *user);
  * @param user String describing the group to resolve
  *
  * @return If the string @a group hints to a known group, its group ID
- * is returned; if @a group is "any", -2 is returned; or -1 in case of
- * an unknown group
+ * is returned; if @a group is "any", -1 is returned; or -2 in case of
+ * an error, i.e. an unknown group; in the last case, errno is set to
+ * indicate the cause
  */
 gid_t PSC_gidFromString(const char *group);
 
@@ -645,13 +647,14 @@ gid_t PSC_gidFromString(const char *group);
  *
  * Create a string describing the user identified by the user ID @a
  * uid. This takes the special value -1 into account, for which "ANY"
- * is returned.
+ * is returned. If the user is unknown, i.e. @a uid cannot be
+ * resolved, a copy of the string "unknown" is returned.
  *
  * @param uid User ID of the user to describe
  *
  * @return Pointer to a new string describing the user; memory for the
  * new string is obtained via @ref malloc(), and must be freed with
- * @ref free()
+ * @ref free();
  */
 char* PSC_userFromUID(int uid);
 
@@ -660,13 +663,14 @@ char* PSC_userFromUID(int uid);
  *
  * Create a string describing the group identified by the group ID @a
  * gid. This takes the special value -1 into account, for which "ANY"
- * is returned.
+ * is returned. If the group is unknown, i.e. @a gid cannot be
+ * resolved, a copy of the string "unknown" is returned.
  *
  * @param gid Group ID of the group to describe
  *
  * @return Pointer to a new string describing the group; memory for
  * the new string is obtained via @ref malloc(), and must be freed
- * with @ref free()
+ * with @ref free();
  */
 char* PSC_groupFromGID(int gid);
 
@@ -683,7 +687,8 @@ char* PSC_groupFromGID(int gid);
  * @param pwBuf The buffer to store the database entries
  *
  * @return Returns the requested passwd structure holding the
- * user information or NULL on error.
+ * user information or NULL on error; in the event of an error,
+ * errno is set to indicate the cause
  */
 struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf);
 
@@ -700,7 +705,8 @@ struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf);
  * @param pwBuf The buffer to store the database entries
  *
  * @return Returns the requested passwd structure holding the
- * user information or NULL on error.
+ * user information or NULL on error; in the event of an error,
+ * errno is set to indicate the cause
  */
 struct passwd *PSC_getpwuidBuf(uid_t uid, char **pwBuf);
 
