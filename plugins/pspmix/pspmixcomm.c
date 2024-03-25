@@ -266,6 +266,28 @@ static void handleSpawnInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
+* @brief Handle PSPMIX_TERM_JOB message
+*
+* This message is sent by an other PMIx server.
+*
+* @param msg  Last fragment of the message to handle
+* @param data Accumulated data received
+*/
+static void handleTermClients(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    char *nspace = getStringM(data);
+
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s for namespace %s\n", __func__,
+	 pspmix_getMsgTypeString(msg->type), nspace);
+
+    pspmix_service_terminateClients(nspace, false);
+
+    ufree(nspace);
+}
+
+/**
 * @brief Handle obsolete PSPMIX_FENCE_IN/PSPMIX_FENCE_OUT message
 *
 * This obsolete message was sent by an outdated PMIx server of the same user
@@ -434,6 +456,9 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 	break;
     case PSPMIX_MODEX_DATA_RES:
 	recvFragMsg(msg, handleModexDataResp);
+	break;
+    case PSPMIX_TERM_CLIENTS:
+	recvFragMsg(msg, handleTermClients);
 	break;
     default:
 	mlog("%s: received unknown msg type: 0x%X [%s",
@@ -628,6 +653,36 @@ bool pspmix_comm_sendSpawnInfo(PSnodes_ID_t dest, uint16_t spawnID,
     if (ret < 0) {
 	mlog("%s: Sending spawn info to %s failed.\n", __func__,
 	     PSC_printTID(dest));
+	return false;
+    }
+    return true;
+}
+
+bool pspmix_comm_sendTermClients(PSnodes_ID_t dests[], size_t ndests,
+				 char *nspace)
+{
+    if (mset(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM)) {
+	mlog("%s(dests ", __func__);
+	for (size_t n = 0; n < ndests; n++) {
+	    mlog("%s%s", n ? "," : "", PSC_printTID(dests[n]));
+	}
+	mlog(" nspace %s)\n", nspace);
+    }
+
+    PS_SendDB_t msg;
+    pthread_mutex_lock(&send_lock);
+    initFragPspmix(&msg, PSPMIX_TERM_CLIENTS);
+    for (size_t n = 0; n < ndests; n++) {
+	setFragDest(&msg, PSC_getTID(dests[n], 0));
+    }
+
+    addStringToMsg(nspace, &msg);
+
+    int ret = sendFragMsg(&msg);
+    pthread_mutex_unlock(&send_lock);
+    if (ret < 0) {
+	mlog("%s: Sending term clients message for nspace %s failed.\n",
+	     __func__, nspace);
 	return false;
     }
     return true;

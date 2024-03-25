@@ -371,6 +371,7 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
     case PSPMIX_FENCE_IN:
     case PSPMIX_MODEX_DATA_REQ:
     case PSPMIX_SPAWN_INFO:
+    case PSPMIX_TERM_CLIENTS:
 	if (!setTargetToPmixServer(extra, msg)) {
 	    mlog("%s: setting target PMIx server failed (type %s), dropping\n",
 		 __func__, pspmix_getMsgTypeString(msg->type));

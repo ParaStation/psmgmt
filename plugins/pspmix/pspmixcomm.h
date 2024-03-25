@@ -93,6 +93,23 @@ bool pspmix_comm_sendSpawnInfo(PSnodes_ID_t dest, uint16_t spawnID, bool success
 			       const char *nspace, uint32_t np);
 
 /**
+ * @brief Compose and send a terminate clients message
+ *
+ * The message is send to the psid (pid 0) on each destination node and
+ * then forwarded to the pspmix user server running on that node. It instructs
+ * the PMIx server to signal each local client assossiated with @a nspace to
+ * terminate.
+ *
+ * @param dests      list of nodes to send this message to
+ * @param ndests     length of @a dests
+ * @param nspace     name of the namespace which clients to send signals
+ *
+ * @return Returns true on success, false on error
+ */
+bool pspmix_comm_sendTermClients(PSnodes_ID_t dests[], size_t ndests,
+				 char *nspace);
+
+/**
  * @brief Compose and send a fence data message if @a nDest != 0
  *
  * Note: It is fine (and used by intention) to call with no destinations and

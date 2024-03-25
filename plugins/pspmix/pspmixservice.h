@@ -70,25 +70,44 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 					     PspmixClient_t *client);
 
 /**
- * @brief Remove a namespace
+ * @brief Terminate the clients of a namespace by signals
  *
- * The namespace is removed from the list so it cannot be found any more from
- * anywhere else. Then the deregestration from the server library is triggered
- * asynchronously. This needs to be non-blocking since we need to do it inside
- * the NamespaceList lock to avoid races on the client objects but we cannot be
- * sure whether a server library internal lock then will lead to a deadlock
- * during the deregistration process if a callback is still in process using
- * NamespaceList lock, too.
+ * Initiate to send TERM and KILL signal to all the local clients in @a nsname
+ * with known TID.
  *
- * Actual cleanup of the remaining client objects and the namespace
- * object is done in the deregistration callback that must call @ref
- * pspmix_service_cleanupNamespace().
+ * If @a remote is true, then send a message of type PSPMIX_TERM_CLIENTS to
+ * all other PMIx servers also hosting clients of the namespace to instruct
+ * then to do the same.
  *
- * @param spawnertid   spawner identifying the job implemented by the namespace
+ * @param nsname   name of the namespace
+ * @param remote   switch to instruct remote PMIx servers to send signals, too
+ *
+ * @return Returns true on success and false on sending errors
+ */
+bool pspmix_service_terminateClients(char *nsname, bool remote);
+
+/**
+ * @brief Removes namespace
+ *
+ * Performs the following steps:
+ * 1. Remove the namespace associated with @a JobID from the list of namspaces
+ *    so it cannot be found any more from anywhere else.
+ * 2. Trigger the deregestration of the namespace from the server library. This
+ *    is then done asynchronously. This needs to be non-blocking since we need
+ *    to do it inside the NamespaceList lock to avoid races on the client
+ *    objects but we cannot be sure whether a server library internal lock then
+ *    will lead to a deadlock during the deregistration process if a callback
+ *    is still in process using NamespaceList lock, too.
+ *
+ * Actual cleanup of the remaining client objects and the namespace object is
+ * done in the deregistration callback that must call
+ * @ref pspmix_service_cleanupNamespace().
+ *
+ * @param jobID    spawner identifying the job
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_removeNamespace(PStask_ID_t spawnertid);
+bool pspmix_service_removeNamespace(PStask_ID_t jobID);
 
 /**
  * @brief Cleanup namespace

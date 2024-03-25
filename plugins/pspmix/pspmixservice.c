@@ -792,6 +792,50 @@ nscreate_error:
     return false;
 }
 
+/* main thread:
+	if called by handleTermClients()
+   library thread:
+	if called by pmix_service_abort() */
+bool pspmix_service_terminateClients(char *nsname, bool remote)
+{
+    GET_LOCK(namespaceList);
+    PspmixNamespace_t *ns = findNamespace(nsname);
+    if (!ns) {
+	/* might happen if namespace deregistration is already ongoing */
+	ulog("no namespace '%s'\n", nsname);
+	RELEASE_LOCK(namespaceList);
+	return false;
+    }
+
+    /* signal all local clients */
+    list_t *c;
+    list_for_each(c, &ns->clientList) {
+	PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
+	if (client->tid) pspmix_comm_sendSignal(client->tid, -1);
+    }
+
+    if (!remote) {
+	RELEASE_LOCK(namespaceList);
+	return true;
+    }
+
+    /* send message to all other involved PMIx servers to do the same */
+    vector_t nodelist;
+    vectorInit(&nodelist, 32, 32, PSnodes_ID_t);
+    list_t *n;
+    list_for_each(n, &ns->procMap) {
+	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
+	if (node->id != PSC_getID(-1)) vectorAdd(&nodelist, &node->id);
+    }
+
+    bool ret = pspmix_comm_sendTermClients(nodelist.data, nodelist.len,
+					   ns->name);
+
+    vectorDestroy(&nodelist);
+    RELEASE_LOCK(namespaceList);
+    return ret;
+}
+
 /* main thread */
 bool pspmix_service_removeNamespace(PStask_ID_t jobID)
 {
@@ -1240,7 +1284,10 @@ void pspmix_service_abort(void *clientObject)
 
     elog("%s: on users request from rank %d\n", __func__, client->rank);
 
-    /* @todo terminate all clients of the job */
+    /* just terminate the clients, cleaning up namespace will be triggered by
+     * @ref PSPMIX_REMOVE_JOB message that is sent to us by the daemon in
+     * @ref PSIDHOOK_LOCALJOBREMOVED */
+    pspmix_service_terminateClients(client->nsname, true);
 }
 
 /**
@@ -2146,12 +2193,12 @@ send_msg:
 	     PSC_getID(ns->spawner));
     }
 
-    RELEASE_LOCK(namespaceList);
-
     if (!success) {
 	ulog("ERROR in execution of PMIx_Spawn(): Terminating spawned job\n");
-	/* @todo terminate the clients of the namespace */
+	pspmix_service_terminateClients(ns->name, true);
     }
+
+    RELEASE_LOCK(namespaceList);
 }
 
 /* main thread */

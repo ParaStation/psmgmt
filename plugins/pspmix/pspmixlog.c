@@ -51,6 +51,10 @@ const char *pspmix_getMsgTypeString(PSP_PSPMIX_t type)
 	    return "PSPMIX_CLIENT_SPAWN_RES";
 	case PSPMIX_SPAWN_INFO:
 	    return "PSPMIX_SPAWN_INFO";
+	case PSPMIX_SPAWN_SUCCESS:
+	    return "PSPMIX_SPAWN_SUCCESS";
+	case PSPMIX_TERM_CLIENTS:
+	    return "PSPMIX_TERM_CLIENTS";
 	default:
 	{
 	    static char buf[32];
