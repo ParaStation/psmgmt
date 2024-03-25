@@ -320,36 +320,33 @@ static bool changeToWorkDir(PStask_t *task)
 }
 
 /**
- * @brief Test, if tasks executable is there
+ * @brief Test if tasks executable is there
  *
- * Test, if the child-task's @a task executable is available. If the
+ * Test if the child-task's @a task executable is available. If the
  * task's argv[0] contains an absolute path, only this is
  * search. Otherwise all paths listed in the PATH environment
  * variables are searched for the executable.
  *
  * If the executable is found, it's accessibility is tested.
  *
- * If all tests are passed, @a executable is set accordingly. Future
- * calls to execv() might get @a executable as the first argument.
+ * If all tests are passed, task's argv[0] is returned. Future calls
+ * to execv() might get this pointer as the first argument.
  *
  * @param task Structure describing the client-task.
  *
- * @param executable The actual executable identified. This might be
- * passed to execv().
- *
- * @return Upon success 0 is returned. If an error occurred, an
- * error-code (i.e. an errno) different from 0 is returned.
+ * @return Upon success, task's argv[0] (different from NULL) is
+ * returned; if an error occurred, NULL is returned and errno is set
+ * accordingly
  */
-static int testExecutable(PStask_t *task, char **executable)
+static char *testExecutable(PStask_t *task)
 {
-    struct stat sb;
-    bool execFound = false;
     char buf[64];
 
     alarmFunc = __func__;
     if (!task->argv[0]) {
 	fprintf(stderr, "No argv[0] given!\n");
-	return ENOENT;
+	errno = ENOENT;
+	return NULL;
     }
 
     if (!strcmp(task->argv[0], "$SHELL")) {
@@ -359,7 +356,8 @@ static int testExecutable(PStask_t *task, char **executable)
 	    int eno = errno;
 	    fprintf(stderr, "%s: Unable to determine $SHELL: %s\n", __func__,
 		    strerror(eno));
-	    return eno;
+	    errno = eno;
+	    return NULL;
 	}
 	free(task->argv[0]);
 	task->argv[0] = strdup(passwd->pw_shell);
@@ -367,6 +365,8 @@ static int testExecutable(PStask_t *task, char **executable)
     }
 
     /* Test if executable is there */
+    bool execFound = false;
+    struct stat sb;
     if (task->argv[0][0] != '/' && task->argv[0][0] != '.') {
 	/* Relative path -> let's search in $PATH */
 	char *p = getenv("PATH");
@@ -400,7 +400,8 @@ static int testExecutable(PStask_t *task, char **executable)
 	    int eno = errno;
 	    fprintf(stderr, "%s: stat(%s): %s\n", __func__,
 		    task->argv[0] ? task->argv[0] : "", strerror(eno));
-	    return eno;
+	    errno = eno;
+	    return NULL;
 	}
     }
 
@@ -409,7 +410,8 @@ static int testExecutable(PStask_t *task, char **executable)
 		task->argv[0] ? task->argv[0] : "",
 		(!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
 		(sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
-	return EACCES;
+	errno = EACCES;
+	return NULL;
     }
 
     /* Try to read first 64 bytes; on Lustre this might hang */
@@ -418,20 +420,20 @@ static int testExecutable(PStask_t *task, char **executable)
 	int eno = errno;
 	if (eno != EACCES) { /* Might not have to permission to read (#1058) */
 	    fprintf(stderr, "%s: open(): %s\n", __func__, strerror(eno));
-	    return eno;
+	    errno = eno;
+	    return NULL;
 	}
     } else if (PSCio_recvBuf(fd, buf, sizeof(buf)) < 0) {
 	int eno = errno;
 	fprintf(stderr, "%s: PSCio_recvBuf(): %s\n", __func__, strerror(eno));
-	return eno;
+	errno = eno;
+	return NULL;
     } else {
 	close(fd);
     }
 
-    *executable = task->argv[0];
-
     /* shells */
-    if (!strcmp(*executable, "/bin/bash")) {
+    if (!strcmp(task->argv[0], "/bin/bash")) {
 	if (task->argc == 2 && !strcmp(task->argv[1], "-i")) {
 	    task->argv[0] = "-bash";
 	    task->argv[1] = NULL;
@@ -439,7 +441,7 @@ static int testExecutable(PStask_t *task, char **executable)
 	} else {
 	    task->argv[0] = "bash";
 	}
-    } else if (!strcmp(*executable, "/bin/tcsh")) {
+    } else if (!strcmp(task->argv[0], "/bin/tcsh")) {
 	if (task->argc == 2 && !strcmp(task->argv[1], "-i")) {
 	    task->argv[0] = "-tcsh";
 	    task->argv[1] = NULL;
@@ -449,7 +451,7 @@ static int testExecutable(PStask_t *task, char **executable)
 	}
     }
 
-    return 0;
+    return task->argv[0];
 }
 
 static void restoreLimits(void)
@@ -630,9 +632,9 @@ static void execClient(PStask_t *task)
 
     checkFD(task->fd); // @todo extra check for jwt:#20747
 
-    char *executable = NULL;
-    int eno = testExecutable(task, &executable);
-    if (eno) {
+    char *executable = testExecutable(task);
+    if (!executable) {
+	int eno = errno;
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: testExecutable: write(): %s\n", __func__,
@@ -703,7 +705,7 @@ static void execClient(PStask_t *task)
     }
 
     /* execute the image */
-    if (!executable || myexecv(executable, task->argv) < 0) {
+    if (myexecv(executable, task->argv) < 0) {
 	fprintf(stderr, "%s: execv(%s): %m\n", __func__, executable);
 	PSID_exit(errno, "%s: execv(%s)", __func__, executable);
     }
