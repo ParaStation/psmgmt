@@ -79,12 +79,12 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
  * all other PMIx servers also hosting clients of the namespace to instruct
  * then to do the same.
  *
- * @param nsname   name of the namespace
+ * @param nsName   name of the namespace
  * @param remote   switch to instruct remote PMIx servers to send signals, too
  *
  * @return Returns true on success and false on sending errors
  */
-bool pspmix_service_terminateClients(const char *nsname, bool remote);
+bool pspmix_service_terminateClients(const char *nsName, bool remote);
 
 /**
  * @brief Removes namespace

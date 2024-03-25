@@ -796,13 +796,13 @@ nscreate_error:
 	if called by handleTermClients()
    library thread:
 	if called by pmix_service_abort() */
-bool pspmix_service_terminateClients(const char *nsname, bool remote)
+bool pspmix_service_terminateClients(const char *nsName, bool remote)
 {
     GET_LOCK(namespaceList);
-    PspmixNamespace_t *ns = findNamespace(nsname);
+    PspmixNamespace_t *ns = findNamespace(nsName);
     if (!ns) {
 	/* might happen if namespace deregistration is already ongoing */
-	ulog("no namespace '%s'\n", nsname);
+	ulog("no namespace '%s'\n", nsName);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -827,12 +827,12 @@ bool pspmix_service_terminateClients(const char *nsname, bool remote)
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
 	if (node->id != PSC_getID(-1)) vectorAdd(&nodelist, &node->id);
     }
+    RELEASE_LOCK(namespaceList);
 
     bool ret = pspmix_comm_sendTermClients(nodelist.data, nodelist.len,
-					   ns->name);
+					   nsName);
 
     vectorDestroy(&nodelist);
-    RELEASE_LOCK(namespaceList);
     return ret;
 }
 
@@ -2135,7 +2135,7 @@ void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
     PspmixNamespace_t *ns = findNamespaceBySpawnID(spawnID);
     if (!ns) {
 	ulog("UNEXPECTED: no namespace for spawn id %hu found (fw %s)\n",
-		spawnID, PSC_printTID(fwTID));
+	     spawnID, PSC_printTID(fwTID));
 	success = false;
 
 	ns = findNamespaceByFwTID(fwTID);
@@ -2157,42 +2157,40 @@ void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
 	client->tid = clientTID;
     }
 
-    if (!success) goto send_msg;
+    if (success) ns->spawnReady++;
 
-    ns->spawnReady++;
+    /* copy values inside lock */
+    char nsName[MAX_NSLEN+1];
+    strcpy(nsName, ns->name);
+    uint32_t readyClients = ns->spawnReady;
+    uint32_t localClients = ns->localClients;
+    PSnodes_ID_t spawnNode = PSC_getID(ns->spawner);
+    uint32_t spawnOpts = ns->spawnOpts;
+    RELEASE_LOCK(namespaceList);
 
-    /* if PMIx_Init() of all clients is required, send spawn info later */
-    if (ns->spawnOpts & PSPMIX_SPAWNOPT_INITREQUIRED) {
-	RELEASE_LOCK(namespaceList);
-	return;
-    }
+    if (success) {
+	/* if PMIx_Init() of all clients is required, send spawn info later */
+	if (spawnOpts & PSPMIX_SPAWNOPT_INITREQUIRED) return;
 
-    if (ns->spawnReady < ns->localClients) {
 	/* waiting for more processes */
-	RELEASE_LOCK(namespaceList);
-	return;
+	if (readyClients < localClients) return;
+
+	if (readyClients > localClients) {
+	    ulog("UNEXPECTED: spawn id %hu: too many processes (%u > %u)\n",
+		 spawnID, readyClients, localClients);
+	    success = false;
+	}
     }
 
-    if (ns->spawnReady > ns->localClients) {
-	ulog("UNEXPECTED: spawn id %hu: to many processes (%u > %u)\n", spawnID,
-	     ns->spawnReady, ns->localClients);
-	success = false;
-    }
-
-send_msg:
-
-    if (!pspmix_comm_sendSpawnInfo(PSC_getID(ns->spawner), ns->spawnID,
-				       success, ns->name, ns->spawnReady)) {
-	ulog("failed to send failed spawn info to node %hd\n",
-	     PSC_getID(ns->spawner));
+    if (!pspmix_comm_sendSpawnInfo(spawnNode, spawnID, success,
+				   nsName, readyClients)) {
+	ulog("failed to send failed spawn info to node %hd\n", spawnNode);
     }
 
     if (!success) {
 	ulog("ERROR in execution of PMIx_Spawn(): Terminating spawned job\n");
-	pspmix_service_terminateClients(ns->name, true);
+	pspmix_service_terminateClients(nsName, true);
     }
-
-    RELEASE_LOCK(namespaceList);
 }
 
 /* main thread */
@@ -2242,8 +2240,8 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool success, char *nspace,
     }
 
     if (spawn->ready > spawn->np) {
-	ulog("UNEXPECTED: spawn id %hu: to many processes (%u > %u)\n", spawnID,
-	     spawn->ready, spawn->np);
+	ulog("UNEXPECTED: spawn id %hu: too many processes (%u > %u)\n",
+	     spawnID, spawn->ready, spawn->np);
 	goto failed;
     }
 
