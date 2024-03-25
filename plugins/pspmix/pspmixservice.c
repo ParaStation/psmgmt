@@ -792,10 +792,7 @@ nscreate_error:
     return false;
 }
 
-/* main thread:
-	if called by handleRemoveJob() via pspmix_userserver_removeJob()
-   library thread:
-	if called by pmix_service_abort() via pspmix_userserver_removeJob() */
+/* main thread */
 bool pspmix_service_removeNamespace(PStask_ID_t jobID)
 {
     /* remove namespace from list */
@@ -1243,19 +1240,7 @@ void pspmix_service_abort(void *clientObject)
 
     elog("%s: on users request from rank %d\n", __func__, client->rank);
 
-    GET_LOCK(namespaceList);
-    PspmixNamespace_t *ns = findNamespace(client->nsname);
-    if (!ns) {
-	/* might only happen if namespace deregistration is already ongoing */
-	ulog("no namespace '%s'\n", client->nsname);
-	RELEASE_LOCK(namespaceList);
-	return;
-    }
-
-    PStask_ID_t jobID = ns->job->ID;
-    RELEASE_LOCK(namespaceList);
-
-    pspmix_userserver_removeJob(jobID, true);
+    /* @todo terminate all clients of the job */
 }
 
 /**
@@ -2161,12 +2146,11 @@ send_msg:
 	     PSC_getID(ns->spawner));
     }
 
-    PStask_ID_t jobID = ns->job->ID;
     RELEASE_LOCK(namespaceList);
 
     if (!success) {
 	ulog("ERROR in execution of PMIx_Spawn(): Terminating spawned job\n");
-	pspmix_userserver_removeJob(jobID, true);
+	/* @todo terminate the clients of the namespace */
     }
 }
 

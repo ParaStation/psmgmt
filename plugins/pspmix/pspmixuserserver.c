@@ -58,6 +58,7 @@ static PspmixJob_t * findJob(PStask_ID_t jobID)
 	    if (job->ID == jobID) return job;
 	}
     }
+
     return NULL;
 }
 
@@ -114,6 +115,7 @@ bool pspmix_userserver_addJob(PStask_ID_t sessID, PspmixJob_t *job)
     if (!session) {
 	session = ucalloc(sizeof(*session));
 	if (!session) return false;
+
 	session->server = server;
 	session->ID = sessID;
 	INIT_LIST_HEAD(&session->jobs);
@@ -165,27 +167,7 @@ static void terminateSession(PspmixSession_t *session)
 }
 #pragma GCC diagnostic pop
 
-/**
- * @brief Terminate the SessionJob
- *
- * Send first TERM and then KILL signal to all the job's processes.
- *
- * @return No return value
- */
-static void terminateJob(PspmixJob_t *job)
-{
-    mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__, pspmix_jobStr(job));
-
-    /* @todo find a way to get the client->tid */
-    PStask_ID_t clienttid = 0;
-
-    /* kill first client via forwarder to trigger cleanup mechanism */
-    ulog("terminating job by sending signal to client %s\n",
-	 PSC_printTID(clienttid));
-    pspmix_comm_sendSignal(clienttid, -1);
-}
-
-bool pspmix_userserver_removeJob(PStask_ID_t jobID, bool abort)
+bool pspmix_userserver_removeJob(PStask_ID_t jobID)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
@@ -199,8 +181,6 @@ bool pspmix_userserver_removeJob(PStask_ID_t jobID, bool abort)
 	ulog("job not found (ID %s)\n", PSC_printTID(jobID));
 	return false;
     }
-
-    if (abort) terminateJob(job);
 
     /* always remove namespace first, so there is no reference to job left */
     if (!pspmix_service_removeNamespace(jobID)) {

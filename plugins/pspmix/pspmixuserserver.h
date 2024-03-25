@@ -45,9 +45,8 @@ bool pspmix_userserver_addJob(PStask_ID_t sessID, PspmixJob_t *job);
  * @brief Remove a job from this server
  *
  * @param spawnertid  spawner identifying the job to remove
- * @param abort       flag if the job need to be aborted
  */
-bool pspmix_userserver_removeJob(PStask_ID_t spawnertid, bool abort);
+bool pspmix_userserver_removeJob(PStask_ID_t spawnertid);
 
 /**
  * @brief Function called to prepare the plugin forwarder loop

@@ -132,7 +132,7 @@ static void handleRemoveJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     mdbg(PSPMIX_LOG_COMM, "%s: received %s with spawnertid %s\n", __func__,
 	 pspmix_getMsgTypeString(msg->type), PSC_printTID(spawnertid));
 
-    pspmix_userserver_removeJob(spawnertid, false);
+    pspmix_userserver_removeJob(spawnertid);
 }
 
 /**
