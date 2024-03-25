@@ -112,19 +112,26 @@ int main(int argc, char **argv)
 
 	/* Fill app data structure for spawning */
 	pmix_app_t *app;
-	PMIX_APP_CREATE(app, 1);
-	if (asprintf(&app->cmd, "%s/%s", dir, argv[0]) < 0) {
+	PMIX_APP_CREATE(app, 2);
+	if (asprintf(&app[0].cmd, "%s/%s", dir, argv[0]) < 0) {
 	    return 1;
 	}
-	app->maxprocs = 2;
-	app->argv = (char **) malloc(2 * sizeof(char *));
-	if (asprintf(&app->argv[0], "%s", argv[0]) < 0) {
+	app[0].maxprocs = 2;
+	app[0].argv = (char **) malloc(2 * sizeof(char *));
+	if (asprintf(&app[0].argv[0], "%s", argv[0]) < 0) {
 	    return 1;
 	}
-	app->argv[1] = NULL;
-	app->env = (char **) malloc(2 * sizeof(char *));
-	app->env[0] = strdup("PMIX_ENV_VALUE=3");
-	app->env[1] = NULL;
+	app[0].argv[1] = NULL;
+	app[0].env = (char **) malloc(2 * sizeof(char *));
+	app[0].env[0] = strdup("PMIX_ENV_VALUE=3");
+	app[0].env[1] = NULL;
+
+	if (asprintf(&app[1].cmd, "%s", argv[0]) < 0) {
+	    return 1;
+	}
+	app[1].maxprocs = 1;
+	app[1].argv = NULL;
+	app[1].env = NULL;
 
 	char *p;
 	/* Make the working directory the directory above the current running directory */
@@ -152,22 +159,24 @@ int main(int argc, char **argv)
 	}
 
 	/* Fill app info data structure */
-	PMIX_INFO_CREATE(app->info, 1);
-	PMIX_INFO_LOAD(&(app->info[0]), PMIX_WDIR, wd, PMIX_STRING);
-	app->ninfo = 1;
+	app[0].ninfo = 0;
+
+	PMIX_INFO_CREATE(app[1].info, 1);
+	PMIX_INFO_LOAD(&(app[1].info[0]), PMIX_PREFIX, dir, PMIX_STRING);
+	app[1].ninfo = 1;
 
 	/* Fill job info data structure */
 	pmix_info_t *job_info;
 	PMIX_INFO_CREATE(job_info, 1);
-	PMIX_INFO_LOAD(&(job_info[0]), PMIX_PREFIX, dir, PMIX_STRING);
+	PMIX_INFO_LOAD(&(job_info[0]), PMIX_WDIR, wd, PMIX_STRING);
 
 	print("Calling PMIx_Spawn\n");
 	char nspace[PMIX_MAX_NSLEN + 1];
-	rc = PMIx_Spawn(job_info, 1, app, 1, nspace);
+	rc = PMIx_Spawn(job_info, 1, app, 2, nspace);
 	if (rc != PMIX_SUCCESS) {
 	    printerr("PMIx_Spawn failed: %s\n", PMIx_Error_string(rc));
 	}
-	PMIX_APP_FREE(app, 1);
+	PMIX_APP_FREE(app, 2);
 	PMIX_INFO_FREE(job_info, 1);
 
 	/* get their universe size */
@@ -267,15 +276,35 @@ int main(int argc, char **argv)
 	    val = NULL;
 	}
 
-	/* Check environment variable specified on spawning */
-	char *env = getenv("PMIX_ENV_VALUE");
-	if (!env) {
-	    printerr("Environment variable %s not found\n", "PMIX_ENV_VALUE");
+	/* Get my own application number */
+	uint32_t appnum = 0;
+	rc = PMIx_Get(&myproc, PMIX_APPNUM, NULL, 0, &val);
+	if (rc != PMIX_SUCCESS) {
+	    printerr("PMIx_Get for app number failed: %s\n",
+		     PMIx_Error_string(rc));
 	} else {
-	    if (strcmp("3", env) != 0) {
-		printerr("env: expected %s, got %s\n", "3", env);
+	    appnum = val->data.uint32;
+	    PMIX_VALUE_RELEASE(val);
+	}
+
+	/* Check environment variable specified on spawning */
+	if (appnum == 0) {
+	    char *env = getenv("PMIX_ENV_VALUE");
+	    if (!env) {
+		printerr("Environment variable %s not found\n",
+			 "PMIX_ENV_VALUE");
 	    } else {
-		print("env OK: %s = %s\n", "PMIX_ENV_VALUE", env);
+		if (strcmp("3", env) != 0) {
+		    printerr("env: expected %s, got %s\n", "3", env);
+		} else {
+		    print("env OK: %s = %s\n", "PMIX_ENV_VALUE", env);
+		}
+	    }
+	} else {
+	    char *env = getenv("PMIX_ENV_VALUE");
+	    if (env) {
+		printerr("Environment variable %s should not be set\n",
+			 "PMIX_ENV_VALUE");
 	    }
 	}
     }
