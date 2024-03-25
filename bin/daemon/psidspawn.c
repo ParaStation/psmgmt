@@ -701,7 +701,7 @@ static void execClient(PStask_t *task)
     }
 
     /* execute the image */
-    if (myexecv(executable, task->argv) < 0) {
+    if (!executable || myexecv(executable, task->argv) < 0) {
 	fprintf(stderr, "%s: execv(%s): %m\n", __func__, executable);
 	PSID_exit(errno, "%s: execv(%s)", __func__, executable);
     }
