@@ -33,6 +33,14 @@ PspmixServer_t *server = NULL;
 /**
  * @brief Find job with given ID
  *
+ * ATTENTION: Special care is needed every time a job reference is used. The
+ * namespace in pspmixservice.c contains a reference to the corresponing job
+ * to be used read only there. It is used to access the job's ID and
+ * environment. As long as the job is created before the namespace and the
+ * reference is removed before the job is deleted, everything is fine as long
+ * as the job is never changed in between. So the job objects are considered to
+ * be IMMUTABLE.
+ *
  * @param jobID Job's unique ID (TID of the spawner creating the job)
  *
  * @return Returns the job or NULL if not in list
@@ -168,27 +176,13 @@ static void terminateJob(PspmixJob_t *job)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__, pspmix_jobStr(job));
 
-    /* find a client with known tid */
-    bool found = false;
-    PspmixClient_t *client = NULL;
-    list_t *c;
-    list_for_each(c, &job->ns->clientList) {
-	client = list_entry(c, PspmixClient_t, next);
-	if (client->tid) {
-	    found = true;
-	    break;
-	}
-    }
-    if (!found) {
-	ulog("no client TID known yet, unable to kill job");
-	/* @todo is there a fallback way? Do we need one? */
-	return;
-    }
+    /* @todo find a way to get the client->tid */
+    PStask_ID_t clienttid = 0;
 
     /* kill first client via forwarder to trigger cleanup mechanism */
     ulog("terminating job by sending signal to client %s\n",
-	 PSC_printTID(client->tid));
-    pspmix_comm_sendSignal(client->tid, -1);
+	 PSC_printTID(clienttid));
+    pspmix_comm_sendSignal(clienttid, -1);
 }
 
 bool pspmix_userserver_removeJob(PStask_ID_t jobID, bool abort)
@@ -208,6 +202,7 @@ bool pspmix_userserver_removeJob(PStask_ID_t jobID, bool abort)
 
     if (abort) terminateJob(job);
 
+    /* always remove namespace first, so there is no reference to job left */
     if (!pspmix_service_removeNamespace(jobID)) {
 	ulog("destroying namespace failed (%s)\n", pspmix_jobStr(job));
 	return false;

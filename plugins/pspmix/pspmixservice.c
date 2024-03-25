@@ -748,9 +748,6 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	}
     }
 
-    /* add reference to job */
-    ns->job->ns = ns;
-
     /* initialize list of clients */
     INIT_LIST_HEAD(&ns->clientList);
 
@@ -801,6 +798,7 @@ nscreate_error:
 	if called by pmix_service_abort() via pspmix_userserver_removeJob() */
 bool pspmix_service_removeNamespace(PStask_ID_t jobID)
 {
+    /* remove namespace from list */
     GET_LOCK(namespaceList);
     PspmixNamespace_t *ns = findNamespaceByJobID(jobID);
     if (!ns) {
@@ -809,16 +807,18 @@ bool pspmix_service_removeNamespace(PStask_ID_t jobID)
 	return false;
     }
     list_del(&ns->next);
+    RELEASE_LOCK(namespaceList);
+
+
+    /* remove reference to the job to not accidentally use it afterwards */
+    ns->job = NULL;
 
     /* trigger the deregistration non blocking */
     pspmix_server_deregisterNamespace(ns->name, ns);
 
-    RELEASE_LOCK(namespaceList);
-
     /* @todo update PMIX_NODE_SIZE (processes over all the user's jobs)
      * for all nodes of the namespace using pmix_register_resources
      * https://github.com/pmix/pmix-standard/issues/401 */
-
     return true;
 }
 

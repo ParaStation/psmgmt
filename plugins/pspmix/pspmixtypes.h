@@ -67,9 +67,6 @@ typedef struct {
     bool used;               /**< flag if PMIx is actively in this session */
 } PspmixSession_t;
 
-/* typedef to be used in PspmixJob_t */
-typedef struct __pspmixNamespace PspmixNamespace_t;
-
 /**
  * Type to manage jobs in session objects
  *
@@ -81,6 +78,12 @@ typedef struct __pspmixNamespace PspmixNamespace_t;
  * > Program Multiple Data (MPMD) job containing two applications. A user may
  * > execute multiple jobs within a given session, either sequentially or in
  * > parallel.
+ *
+ * ATTENTION: Do not add a reference back to the namespace into this struct.
+ * That would make it very easy to break the namespace lock, since it would make
+ * the namespace object accessible from where the respective lock it not.
+ *
+ * !!! INSTANCES ARE MEANT TO BE IMMUTABLE, NEVER CHANGE THEM AFTER CREATION !!!
  */
 typedef struct {
     list_t next;             /**< used to put into PspmixSession_t's job list */
@@ -92,7 +95,6 @@ typedef struct {
     env_t env;               /**< environment of the spawn creating this job
 				  (only used in PMIx server, not in daemon) */
     bool used;               /**< flag if PMIx is actively used by this job */
-    PspmixNamespace_t *ns;   /**< namespace for this job or NULL if no PMIx job */
 } PspmixJob_t;
 
 /**
@@ -166,11 +168,12 @@ typedef struct {
  * > string representation of a numerical job ID. The namespace and job terms
  * > will be used interchangeably throughout the document.
  */
-struct __pspmixNamespace {
+typedef struct {
     list_t next;
     char name[MAX_NSLEN+1];     /**< space for the name of the namespace ;) */
     char jobid[MAX_NSLEN+1];    /**< scheduler assiged job identificator */
-    PspmixJob_t *job;           /**< job this namespace is implementing */
+    PspmixJob_t *job;           /**< job this namespace is implementing
+				     !!! consider the object as read only !!! */
     uint32_t universeSize;      /**< size of the MPI universe (from mpiexec) */
     uint32_t jobSize;           /**< size of the job (from mpiexec) */
     PStask_ID_t spawner;        /**< spawner if result of an PMIx_Spawn call */
@@ -188,7 +191,8 @@ struct __pspmixNamespace {
 				     (list of PspmixClient_t objects) */
     uint32_t localClients;      /**< number of local clients */
     uint32_t clientsConnected;  /**< number of local clients connected */
-};
+} PspmixNamespace_t;
+
 
 /**
  * Information about one client
