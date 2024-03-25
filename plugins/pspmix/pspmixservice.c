@@ -129,6 +129,7 @@ static pthread_mutex_t modexRequestList_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t spawnList_lock = PTHREAD_MUTEX_INITIALIZER;
 
 
+/* macros to handle list locks */
 #define GET_LOCK(var) \
     do { \
 	mdbg(PSPMIX_LOG_LOCK, "%s: Requesting lock for "#var" ...\n", \
@@ -534,6 +535,13 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	    sizeof(ns->name));
 
     /* fill jobid
+     * ATTENTION: This is not the ParaStation Job ID, but a custom one to
+     *            be passed to the PMIx library and to be used by the user.
+     *
+     * PMIx Standard 5.0:
+     * > Job identifier assigned by the scheduler to the specified job that it
+     * > might be assigned by the scheduler.
+     *
      * @todo for the moment, use nsname, with Slurm, maybe the slurm job id
      *       is expected by clients here */
     strncpy(ns->jobid, ns->name, sizeof(ns->jobid));
