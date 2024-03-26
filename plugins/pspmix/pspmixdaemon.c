@@ -36,6 +36,7 @@
 #include "psenv.h"
 #include "pspluginprotocol.h"
 #include "psprotocol.h"
+#include "psdaemonprotocol.h"
 #include "psreservation.h"
 #include "psserial.h"
 #include "timer.h"
@@ -264,7 +265,8 @@ static bool setTargetToPmixServer(PspmixMsgExtra_t *extra,
  */
 static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(type %s)\n", __func__,
+	 PSDaemonP_printMsg(vmsg->header.type));
 
     DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
 
@@ -425,9 +427,14 @@ forward_msg:
  */
 static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(type %s fw %s)\n", __func__,
+	 PSDaemonP_printMsg(msg->header.type), PSC_printTID(fw->tid));
 
-    if (msg->header.type != PSP_PLUG_PSPMIX) return false;
+    if (msg->header.type != PSP_PLUG_PSPMIX) {
+	mlog("%s: Received message of unhandled type %s\n", __func__,
+	     PSDaemonP_printMsg(msg->header.type));
+	return false;
+    }
     if (msg->type == PSPMIX_CLIENT_INIT) {
 	PspmixMsgExtra_t *extra = getExtra(msg);
 	if (!extra) {
