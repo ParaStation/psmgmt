@@ -13,4 +13,5 @@
   { include: ["@<bits/termios-.*", "private", "<termios.h>", "public"] },
   { include: ["@<psconfig-.*", "private", "<psconfig.h>", "public"] },
   { include: ["@<json-c/json_.*", "private", "<json-c/json.h>", "public"] },
+  { include: ["<__stdarg_va_arg.h>", "private", "<stdarg.h>", "public"] },
 ]

@@ -18,10 +18,10 @@
 #include "logging.h"
 #include "pstask.h"
 
-#include "psidforwarder.h"  // IWYU pragma: keep
+#include "psidforwarder.h"  // IWYU pragma: keep // for PSIDfwd_printMsgf()
 
 #include "pspmixtypes.h"
-#include "pspmixuserserver.h"  // IWYU pragma: keep // for server)
+#include "pspmixuserserver.h"  // IWYU pragma: keep // for server
 
 extern logger_t *pmixlogger;
 

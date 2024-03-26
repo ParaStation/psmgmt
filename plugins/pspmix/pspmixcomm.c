@@ -24,7 +24,6 @@
 #include "psserial.h"
 #include "psenv.h"
 
-#include "psidforwarder.h"
 #include "psidsession.h"
 
 #include "pluginmalloc.h"

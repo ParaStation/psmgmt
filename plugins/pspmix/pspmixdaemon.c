@@ -33,10 +33,9 @@
 
 #include "list.h"
 #include "pscommon.h"
+#include "psdaemonprotocol.h"
 #include "psenv.h"
 #include "pspluginprotocol.h"
-#include "psprotocol.h"
-#include "psdaemonprotocol.h"
 #include "psreservation.h"
 #include "psserial.h"
 #include "timer.h"

@@ -32,7 +32,6 @@
 #include "pspmixconfig.h"
 #include "pspmixlog.h"
 #include "pspmixtypes.h"
-#include "pspmixuserserver.h"
 
 /** Pending fence message container */
 typedef struct {
