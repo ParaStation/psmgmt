@@ -27,6 +27,7 @@
 #include <time.h>
 #include <sys/ioctl.h>
 #include <sys/signalfd.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>

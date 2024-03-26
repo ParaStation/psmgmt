@@ -12,6 +12,7 @@
 #define __PSSLURM_MESSAGE
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
 

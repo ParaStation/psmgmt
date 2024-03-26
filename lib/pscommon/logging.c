@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <syslog.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <time.h>
 
 #define LOG_MAGIC 0x0577215664901532

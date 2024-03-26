@@ -11,21 +11,22 @@
  */
 #include "commands.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <arpa/inet.h>
 #include <errno.h>
 #include <grp.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <pwd.h>
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 
 #include "pscommon.h"
 #include "pscpu.h"

@@ -10,15 +10,16 @@
  */
 #include "psgwres.h"
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
 #include <pwd.h>
 #include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <timer.h>
 #include <unistd.h>
 

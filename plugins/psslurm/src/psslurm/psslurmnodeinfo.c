@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,8 +12,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "string.h"
-#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
 
 #include "pscpu.h"
 #include "pluginmalloc.h"

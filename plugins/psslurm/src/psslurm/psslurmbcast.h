@@ -12,6 +12,7 @@
 #define __PS_PSSLURM_BCAST
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
 

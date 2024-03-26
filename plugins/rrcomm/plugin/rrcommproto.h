@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,7 +18,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <unistd.h>
+#include <sys/types.h>
 
 #include "psprotocol.h"
 #include "pstaskid.h"

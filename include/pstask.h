@@ -16,6 +16,7 @@
 #define __PSTASK_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>

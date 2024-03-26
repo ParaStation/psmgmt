@@ -12,6 +12,7 @@
 #define __PS_PLUGIN_LIB_HELPER
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <sys/types.h>
 
 #include "psnodes.h"

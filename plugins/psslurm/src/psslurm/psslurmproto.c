@@ -24,6 +24,7 @@
 #include <sys/statfs.h>
 #include <sys/sysinfo.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
 #include <time.h>

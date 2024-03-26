@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,14 +11,15 @@
 #define _GNU_SOURCE
 #include "psmomspawn.h"
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <errno.h>
 #include <pwd.h>
 #include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/resource.h>
+#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 

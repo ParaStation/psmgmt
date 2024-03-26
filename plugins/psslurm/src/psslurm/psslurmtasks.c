@@ -11,6 +11,7 @@
 #include "psslurmtasks.h"
 
 #include <signal.h>
+#include <stddef.h>
 #include <unistd.h>
 
 #include "pscommon.h"

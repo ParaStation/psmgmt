@@ -10,13 +10,14 @@
  */
 #include "pspamcomm.h"
 
-#include <stdint.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <netinet/in.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
 

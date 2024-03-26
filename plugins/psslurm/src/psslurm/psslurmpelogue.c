@@ -11,18 +11,19 @@
 #define _GNU_SOURCE
 #include "psslurmpelogue.h"
 
+#include <errno.h>
+#include <fenv.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <signal.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-#include <fenv.h>
 
 #include "pscommon.h"
 #include "pscomplist.h"

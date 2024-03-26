@@ -11,12 +11,13 @@
 #define _GNU_SOURCE
 #include "psslurmio.h"
 
+#include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <string.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "pscio.h"
