@@ -294,6 +294,8 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	case PSPMIX_CLIENT_STATUS:
 	    /* message from forwarder to local pmix server without extra
 	       verify match of user IDs */
+	case PSPMIX_SPAWNER_FAILED:
+	    /* message from the spawner to inform about failed respawnes */
 
 	    if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 		mlog("%s: destination task is not local (dest %s type %s)\n",

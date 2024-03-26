@@ -31,11 +31,13 @@
 #include "psiinfo.h"
 #include "psispawn.h"
 #include "psipartition.h"
+#include "pspluginprotocol.h"
 
 #include "pscommon.h"
 #include "pslog.h"
 #include "pspartition.h"
 #include "kvscommon.h"
+#include "psserial.h"
 
 #include "cloptions.h"
 #include "common.h"
@@ -751,6 +753,78 @@ static void sendPMIFail(void)
     PSI_sendMsg((DDMsg_t *)bmsg);
 }
 
+static void sendPMIxFail(void)
+{
+    /* get spawn ID */
+    char *env = getenv("PMIX_SPAWNID");
+    if (!env) return;
+
+    char *end;
+    long res = strtol(env, &end, 10);
+    if (*end != '\0' || res <= 0) {
+	fprintf(stderr, "%s: invalid PMIX_SPAWNID: %s\n", __func__, env);
+	return;
+    }
+    uint16_t spawnID = res;
+
+    /* get TID of the PMIx server */
+    env = getenv("__PMIX_SPAWN_SERVERTID");
+    if (!env) {
+	fprintf(stderr, "%s: PMIX_SPAWNID found (%hd) but no"
+		" __PMIX_SPAWN_SERVERTID\n", __func__, spawnID);
+	return;
+    }
+    res = strtol(env, &end, 0);
+    if (*end != '\0') {
+	fprintf(stderr, "%s: invalid __PMIX_SPAWN_SERVERTID: %s\n",
+		__func__, env);
+	return;
+    }
+    PStask_ID_t server = res;
+
+    /* get PMIX message subtype to use */
+    env = getenv("__PMIX_SPAWN_FAILMSG_TYPE");
+    if (!env) {
+	fprintf(stderr, "%s: PMIX_SPAWNID found (%hd) but no"
+		" __PMIX_SPAWNER_FAILMSG_TYPE\n", __func__, spawnID);
+	return;
+    }
+
+    res = strtol(env, &end, 0);
+    if (*end != '\0') {
+	fprintf(stderr, "%s: invalid __PMIX_SPAWNER_FAILMSG_TYPE: %s\n",
+		__func__, env);
+	return;
+    }
+    int32_t type = res;
+
+    /* use psserial to send the message */
+    if (!initSerial(0, PSI_sendMsg)) {
+	fprintf(stderr, "%s: initSerial() failed\n", __func__);
+	return;
+    }
+
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_PLUG_PSPMIX, type);
+    setFragDest(&msg, server);
+
+    addUint16ToMsg(spawnID, &msg);
+
+    int ret = sendFragMsg(&msg);
+    if (ret < 0) {
+	fprintf(stderr, "%s: Sending fail message to PMIx server %s failed.\n",
+		__func__, PSC_printTID(server));
+    }
+
+    finalizeSerial();
+}
+
+static void sendSpawnFail(void)
+{
+    if (getenv("PMI_SPAWNED")) sendPMIFail();
+    if (getenv("PMIX_SPAWNID")) sendPMIxFail();
+}
+
 /**
  * @brief Spawn compute processes
  *
@@ -790,7 +864,7 @@ static int startProcs(Conf_t *conf)
 	    fprintf(stderr, "%s: Unable to get reservation for app %d %d slots "
 		    "(tpp %d hwType %#x options %#x ppn %d)\n", __func__, i,
 		    exec->np, exec->tpp, exec->hwType, options, exec->ppn);
-	    if (getenv("PMI_SPAWNED")) sendPMIFail();
+	    sendSpawnFail();
 
 	    return -1;
 	}
@@ -810,7 +884,7 @@ static int startProcs(Conf_t *conf)
 	    fprintf(stderr, "%s: Unable to get nodes in reservation %#x for"
 		    " app %d. Got %zu expected %d\n", __func__, exec->resID,
 		    i, got / sizeof(*nodeList), exec->np);
-	    if (getenv("PMI_SPAWNED")) sendPMIFail();
+	    sendSpawnFail();
 
 	    return -1;
 	}
@@ -837,7 +911,7 @@ static int startProcs(Conf_t *conf)
 	setupExecEnv(conf, i);
 	int res = spawnSingleExecutable(exec, conf->verbose);
 	if (res < 0) {
-	    if (getenv("PMI_SPAWNED")) sendPMIFail();
+	    sendSpawnFail();
 	    return -1;
 	}
     }

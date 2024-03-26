@@ -421,6 +421,16 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     snprintf(tmp, sizeof(tmp), "__SPAWNER_SERVICE_RANK=%d", serviceRank - 3);
     envPut(env, tmp);
 
+    /* tell the responsible PMIx server to the spawner for fail reports */
+    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_SERVERTID=0x%08x",
+	    srdata->pmixServer);
+    envPut(env, tmp);
+
+    /* tell the message type to be used for fails to the spawner */
+    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_FAILMSG_TYPE=0x%08x",
+	     PSPMIX_SPAWNER_FAILED);
+    envPut(env, tmp);
+
     task->envSize = envSize(env);
     task->environ = envStealArray(env);
 

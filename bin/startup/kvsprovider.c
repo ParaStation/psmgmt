@@ -49,6 +49,8 @@ static void propMoreEnv(void)
 			"__PMIX_SPAWN_PARENT_NSPACE",
 			"__PMIX_SPAWN_PARENT_RANK",
 			"__PMIX_SPAWN_OPTS",
+			"__PMIX_SPAWN_SERVERTID",
+			"__PMIX_SPAWN_FAILMSG_TYPE",
 			NULL };
 
     for (char **e = envList; *e; e++) setPSIEnv(*e, getenv(*e), 1);

@@ -285,6 +285,28 @@ static void handleSpawnInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
+* @brief Handle PSPMIX_SPAWNER_FAILED message
+*
+* This message is sent by the spawner process of a respawn triggered by a
+* call to PMIx_Spawn in one of our local clients.
+*
+* @param msg  Last fragment of the message to handle
+* @param data Accumulated data received
+*/
+static void handleSpawnerFailed(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    uint16_t spawnID;
+    getUint16(data, &spawnID);
+
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s for spawn id %hu\n", __func__,
+	 pspmix_getMsgTypeString(msg->type), spawnID);
+
+    pspmix_service_spawnRes(spawnID, false);
+}
+
+/**
 * @brief Handle PSPMIX_TERM_JOB message
 *
 * This message is sent by an other PMIx server.
@@ -480,6 +502,10 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 	break;
     case PSPMIX_TERM_CLIENTS:
 	recvFragMsg(msg, handleTermClients);
+	break;
+    /* message types comming from a spawner process of the same user */
+    case PSPMIX_SPAWNER_FAILED:
+	recvFragMsg(msg, handleSpawnerFailed);
 	break;
     default:
 	mlog("%s: received unknown msg type: 0x%X [%s",
