@@ -430,11 +430,19 @@ static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
     mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(type %s fw %s)\n", __func__,
 	 PSDaemonP_printMsg(msg->header.type), PSC_printTID(fw->tid));
 
-    if (msg->header.type != PSP_PLUG_PSPMIX) {
-	mlog("%s: Received message of unhandled type %s\n", __func__,
-	     PSDaemonP_printMsg(msg->header.type));
-	return false;
+    switch(msg->header.type) {
+	case PSP_PLUG_PSPMIX:
+	    break;
+	case PSP_CD_SIGNAL:
+	    PSID_handleMsg((DDBufferMsg_t *)msg);
+	    return true;
+	default:
+	    mlog("%s: Received message of unhandled type %s\n", __func__,
+		 PSDaemonP_printMsg(msg->header.type));
+	    return false;
     }
+
+    /* handle PSP_PLUG_PSPMIX */
     if (msg->type == PSPMIX_CLIENT_INIT) {
 	PspmixMsgExtra_t *extra = getExtra(msg);
 	if (!extra) {

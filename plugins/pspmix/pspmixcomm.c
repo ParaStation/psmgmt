@@ -880,7 +880,7 @@ void pspmix_comm_sendSignal(PStask_ID_t targetTID, int signal)
 	.param = extra.uid,
 	.pervasive = 1,
 	.answer = 0 };
-    sendDaemonMsg((DDMsg_t *)&msg);
+    sendMsgToDaemon((DDTypedBufferMsg_t*) &msg);
 }
 
 /**********************************************************
