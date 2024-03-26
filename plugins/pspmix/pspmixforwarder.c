@@ -614,13 +614,23 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
  */
 static bool sendSpawnSuccess(bool success)
 {
-    rdbg(PSPMIX_LOG_COMM, "Send spawn success message for job rank %d\n",
-	 childTask->jobRank);
+    rdbg(PSPMIX_LOG_CALL, "%s(success %s)\n", __func__,
+	 success ? "true" : "false");
 
     /* Each forwarder should only send this message once in a lifetime */
     static bool alreadySent = false;
     if (alreadySent) return true;
     alreadySent = true;
+
+    /* get the namespace of the client from the environment
+     * it is always in included in the additional environment received from the
+     * PMIx server in hookExecForwarder() and set in handleClientPMIxEnv() */
+    char *nspace = getenv("PMIX_NAMESPACE");
+
+    if (!nspace) {
+	rlog("UNEXPECTED: PMIX_NAMESPACE not found in client environment\n");
+	return false;
+    }
 
     /* this message is only to be sent if we are part of a spawn */
     env_t env = envNew(childTask->environ);
@@ -649,12 +659,18 @@ static bool sendSpawnSuccess(bool success)
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_SPAWN_SUCCESS);
     setFragDest(&msg, serverTID);
 
+    addStringToMsg(nspace, &msg);
     addUint16ToMsg(spawnID, &msg);
     addInt32ToMsg(childTask->jobRank, &msg);
     addBoolToMsg(success, &msg);
     addInt32ToMsg(childTask->tid, &msg);  /* avail. in PSIDHOOK_FRWRD_INIT */
 
-    rdbg(PSPMIX_LOG_COMM, "Send message for %s\n", PSC_printTID(serverTID));
+    if (mset(PSPMIX_LOG_COMM)) {
+	rlog("Send message to %s (nspace '%s' spawnID %hu jobRank %d",
+	     PSC_printTID(serverTID), nspace, spawnID, childTask->jobRank);
+	mlog(" success %s clientTID %s\n", success ? "true" : "false",
+	     PSC_printTID(childTask->tid));
+    }
 
     if (sendFragMsg(&msg) < 0) {
 	rlog("Sending spawn success message to %s failed\n",

@@ -244,6 +244,7 @@ static void handleSpawnSuccess(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
+    char *nspace = getStringM(data);
     uint16_t spawnID;
     getUint16(data, &spawnID);
     int32_t rank;
@@ -253,12 +254,14 @@ static void handleSpawnSuccess(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     PStask_ID_t clientTID;
     getInt32(data, &clientTID);
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s for spawnID %hu (rank %d success %s"
-	 " clientTID %s)\n", __func__, pspmix_getMsgTypeString(msg->type),
-	 spawnID, rank, success ? "true" : "false", PSC_printTID(clientTID));
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s for namespace '%s' (spawnID %hu"
+	 " rank %d success %s clientTID %s)\n", __func__, nspace,
+	 pspmix_getMsgTypeString(msg->type), spawnID, rank,
+	 success ? "true" : "false", PSC_printTID(clientTID));
 
-    pspmix_service_spawnSuccess(spawnID, rank, success, clientTID,
+    pspmix_service_spawnSuccess(nspace, spawnID, rank, success, clientTID,
 				msg->header.sender);
+    ufree(nspace);
 }
 
 static void handleSpawnInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)

@@ -345,13 +345,15 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success);
  * received for one spawn, the spawnInfo is send to PMIx server that
  * started the respawn.
  *
+ * @param nspace    namespace of the spawn
  * @param spawnID   local ID of the spawn
  * @param rank      namespace (job) rank of the client
  * @param success   success state reported
  * @param clientTID TID of the client
  * @param fwTID     TID of the forwarder
  */
-void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
+void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
+				 int32_t rank, bool success,
 				 PStask_ID_t clientTID, PStask_ID_t fwTID);
 
 /**

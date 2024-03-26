@@ -194,52 +194,6 @@ static PspmixNamespace_t* findNamespaceByJobID(PStask_ID_t jobID)
 }
 
 /**
- * @brief Find namespace by spawn id
- *
- * Searches for the namespace created as result of the respawn with given id.
- *
- * Since spawnID == 0 means no spawn, NULL will be returned.
- *
- * @param spawnID   Spawn's unique identifier
- *
- * @return Returns the namespace or NULL if not in list
- */
-static PspmixNamespace_t* findNamespaceBySpawnID(uint16_t spawnID)
-{
-    if (spawnID == 0) return NULL;
-
-    list_t *n;
-    list_for_each(n, &namespaceList) {
-	PspmixNamespace_t *ns = list_entry(n, PspmixNamespace_t, next);
-	if (ns->spawnID == spawnID) return ns;
-    }
-    return NULL;
-}
-
-/**
- * @brief Find namespace by local clients fw tid
- *
- * This is relatively expensive, so use other way if possible.
- *
- * @param fwTID   Local client's forwader TID
- *
- * @return Returns the namespace or NULL if not in list
- */
-static PspmixNamespace_t* findNamespaceByFwTID(PStask_ID_t fwTID)
-{
-
-    list_t *n, *c;
-    list_for_each(n, &namespaceList) {
-	PspmixNamespace_t *ns = list_entry(n, PspmixNamespace_t, next);
-	list_for_each(c, &ns->clientList) {
-	    PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
-	    if (client->fwtid == fwTID) return ns;
-	}
-    }
-    return NULL;
-}
-
-/**
  * @brief Find spawn by id
  *
  * @param id  spawn id
@@ -2121,7 +2075,8 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
 }
 
 /* main thread */
-void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
+void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
+				 int32_t rank, bool success,
 				 PStask_ID_t clientTID, PStask_ID_t fwTID)
 {
     if (mset(PSPMIX_LOG_CALL)) {
@@ -2132,19 +2087,11 @@ void pspmix_service_spawnSuccess(uint16_t spawnID, int32_t rank, bool success,
 
     GET_LOCK(namespaceList);
 
-    PspmixNamespace_t *ns = findNamespaceBySpawnID(spawnID);
+    PspmixNamespace_t *ns = findNamespace(nspace);
     if (!ns) {
-	ulog("UNEXPECTED: no namespace for spawn id %hu found (fw %s)\n",
-	     spawnID, PSC_printTID(fwTID));
-	success = false;
-
-	ns = findNamespaceByFwTID(fwTID);
-	if (!ns) {
-	    ulog("UNEXPECTED: no namespace for local fwTID %s found\n",
-		 PSC_printTID(fwTID));
-	    RELEASE_LOCK(namespaceList);
-	    return;
-	}
+	ulog("UNEXPECTED: namespace '%s' not found (fw %s rank %d spawnID"
+	     " %hu)\n", nspace, PSC_printTID(fwTID), rank, spawnID);
+	return;
     }
 
     /* set client tid */
