@@ -766,6 +766,7 @@ bool pspmix_service_terminateClients(const char *nsName, bool remote)
     list_for_each(c, &ns->clientList) {
 	PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
 	if (client->tid) pspmix_comm_sendSignal(client->tid, -1);
+	/* @todo send to the forwarder tid otherwise? */
     }
 
     if (!remote) {
@@ -2102,6 +2103,12 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 	success = false;
     } else {
 	client->tid = clientTID;
+    }
+
+    /* for usual spawn, we only need the client TID */
+    if (!spawnID) {
+	RELEASE_LOCK(namespaceList);
+	return;
     }
 
     if (success) ns->spawnReady++;

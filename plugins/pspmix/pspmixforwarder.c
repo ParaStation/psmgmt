@@ -604,9 +604,15 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
 /**
  * @brief Compose and send a spawn success message to the PMIx server
  *
- * This function does only send a message if the forwarder's client is
- * one of the processes resulting from a call to PMIx_Spawn(). This is
- * identified by peeking into the client's environment for PMIX_SPAWNID.
+ * This function reports the successful spawn of the client to the local
+ * PMIx server. In addition it includes the client's TID to enable the
+ * PMIx server to terminate the job.
+ *
+ * If the spawn results from a call to PMIx_Spawn(), the ID of that spawn is
+ * included as well. This is identified by peeking into the client's
+ * environment for PMIX_SPAWNID.
+ *
+ * Only one message is ever sent, no matter how ofter the function is called.
  *
  * @param success    success state to report
  *
@@ -627,26 +633,26 @@ static bool sendSpawnSuccess(bool success)
      * PMIx server in hookExecForwarder() and set in handleClientPMIxEnv() */
     char *nspace = getenv("PMIX_NAMESPACE");
 
+    /* try to get the spawn ID which should only be there for respawns */
+    env_t env = envNew(childTask->environ);
+    char *spawnIDstr = envGet(env, "PMIX_SPAWNID");
+    envStealArray(env);            /* @todo adjust once environ becomes env_t */
+
     if (!nspace) {
 	rlog("UNEXPECTED: PMIX_NAMESPACE not found in client environment\n");
 	return false;
     }
 
-    /* this message is only to be sent if we are part of a spawn */
-    env_t env = envNew(childTask->environ);
-    char *spawnIDstr = envGet(env, "PMIX_SPAWNID");
-    envStealArray(env);            /* @todo adjust once environ becomes env_t */
-    if (!spawnIDstr) return true;
-
-    uint16_t spawnID = 0; /* no spawn */
-
-    char *end;
-    long res = strtol(spawnIDstr, &end, 10);
-    if (*end != '\0' || res <= 0) {
-	rlog("invalid PMIX_SPAWNID: %s\n", spawnIDstr);
-	success = false;
-    } else {
-	spawnID = res;
+    uint16_t spawnID = 0; /* no respawn */
+    if (spawnIDstr) {
+	char *end;
+	long res = strtol(spawnIDstr, &end, 10);
+	if (*end != '\0' || res <= 0) {
+	    rlog("invalid PMIX_SPAWNID: %s\n", spawnIDstr);
+	    success = false;
+	} else {
+	    spawnID = res;
+	}
     }
 
     PStask_ID_t serverTID = pspmix_daemon_getServerTID(childTask->uid);

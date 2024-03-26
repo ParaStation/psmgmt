@@ -335,15 +335,21 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 void pspmix_service_spawnRes(uint16_t spawnID, bool success);
 
 /**
- * @brief Handle spawn success from forwarder of respawned process
+ * @brief Handle spawn success message from forwarder
  *
- * All forwarders involed in spawning processes for a respawn are sending
- * a success message once the actual user process is successfully spawned
- * and everything is set up, right before entering their final loop.
+ * All forwarders are sending a success message once the actual user process
+ * is successfully spawned and everything is set up, right before entering their
+ * final loop.
  *
- * These success messages are collected and once all expected ones are
- * received for one spawn, the spawnInfo is send to PMIx server that
- * started the respawn.
+ * For usual spawns, this only transports the client's TID which is stored to
+ * be used for terminating the job if needed.
+ *
+ * For respawned clients these success messages are collected and once all
+ * expected ones are received for one spawn, the spawnInfo is send to PMIx
+ * server that started the respawn.
+ *
+ * The @a spawnID is used to detect the difference, 0 means an usual spawn,
+ * everything else indicated a respawn with the given ID.
  *
  * @param nspace    namespace of the spawn
  * @param spawnID   local ID of the spawn
