@@ -433,8 +433,7 @@ static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 	case PSP_PLUG_PSPMIX:
 	    break;
 	case PSP_CD_SIGNAL:
-	    PSID_handleMsg((DDBufferMsg_t *)msg);
-	    return true;
+	    return PSID_handleMsg((DDBufferMsg_t *)msg);
 	default:
 	    mlog("%s: Received message of unhandled type %s\n", __func__,
 		 PSDaemonP_printMsg(msg->header.type));
