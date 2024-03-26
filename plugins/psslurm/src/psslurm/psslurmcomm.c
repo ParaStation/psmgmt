@@ -1884,12 +1884,13 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
 
     while (once || towrite > 0) {
 	ioh.len = towrite;
-	if (towrite > SLURM_IO_MAX_LEN) {
+	char *nextPos = buf + written;
+	if (nextPos && towrite > SLURM_IO_MAX_LEN) {
 	    /* find newline in the maximal accepted message length */
-	    char *nl = memrchr(buf + written, '\n', SLURM_IO_MAX_LEN);
-	    ioh.len = nl ? (nl +1) - (buf + written) : SLURM_IO_MAX_LEN;
+	    char *nl = memrchr(nextPos, '\n', SLURM_IO_MAX_LEN);
+	    ioh.len = nl ? (nl +1) - (nextPos) : SLURM_IO_MAX_LEN;
 	}
-	packSlurmIOMsg(&data, &ioh, buf + written);
+	packSlurmIOMsg(&data, &ioh, nextPos);
 	ssize_t ret = PSCio_sendF(sock, data.buf, data.bufUsed);
 
 	data.bufUsed = 0;
