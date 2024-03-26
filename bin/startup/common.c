@@ -363,8 +363,34 @@ static void setupPSIEnv(Conf_t *conf)
     setenv("PSI_USIZE_INFO", buf, 1);
 }
 
-static size_t doSetup(Conf_t *conf, char **environ,
-		      char *xprts, size_t xprtsLen, bool dryRun)
+/**
+ * @brief Setup __PSI_EXPORTS
+ *
+ * Analyze the environment @a environ and create a string containing a
+ * comma-separated list of environment variable names to be assigned
+ * to __PSI_EXPORTS in @a xprts. All environment variables contained
+ * in the ParaStation environment anyhow will be ignored. Furthermore,
+ * environment variables that will be overruled by the configuration
+ * @a conf (like ENV_NODE_NODES, ENV_NODE_HOSTS, or ENV_NODE_HOSTFILE
+ * in combination with according settings in @a conf) will be ignored.
+ *
+ * @a xprts is expected to be of sufficient size. The size must be
+ * passed in @a xprtsLen. In order to determine that required size,
+ * this function might be called with @a xprtsLen set to 0. This will
+ * leave @a xprts untouched and just calculated the required length
+ * that will be returned.
+ *
+ * @param conf Configuration as identified from command-line options
+ *
+ * @param environ Environment of the calling process
+ *
+ * @param xprts Character array to store the comma-separated list to
+ *
+ * @param xprtsLen Actual size of @a xptrs; might be 0 for dryrun
+ *
+ * @return Number of characters the full list will occupy
+ */
+static size_t doSetup(Conf_t *conf, char **environ, char *xprts, size_t xprtsLen)
 {
     size_t retLen = 0;
     char *key = NULL;
@@ -379,7 +405,7 @@ static size_t doSetup(Conf_t *conf, char **environ,
 	if (getPSIEnv(key)) continue;
 
 	val++;
-	if (!dryRun && xprts && xprtsLen) {
+	if (xprts && xprtsLen) {
 	    setPSIEnv(key, val, 1);
 	    snprintf(xprts + strlen(xprts), xprtsLen - strlen(xprts),
 		     "%s%s", strlen(xprts) ? "," : "", key);
@@ -405,7 +431,7 @@ void setupEnvironment(Conf_t *conf)
     if ((conf->envall || conf->execEnvall) && !getenv("__PSI_EXPORTS")) {
 	extern char **environ;
 	char *xprts = NULL;
-	size_t xprtsLen = doSetup(conf, environ, xprts, 0, true);
+	size_t xprtsLen = doSetup(conf, environ, xprts, 0);
 
 	if (xprtsLen) {
 	    xprts = malloc(xprtsLen);
@@ -416,7 +442,7 @@ void setupEnvironment(Conf_t *conf)
 	    *xprts = '\0';
 
 	    /* now setup the actual environment */
-	    doSetup(conf, environ, xprts, 0, false);
+	    doSetup(conf, environ, xprts, xprtsLen);
 
 	    setPSIEnv("__PSI_EXPORTS", xprts, 1);
 	    free(xprts);
