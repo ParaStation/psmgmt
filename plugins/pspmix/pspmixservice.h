@@ -337,19 +337,19 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success);
 /**
  * @brief Handle spawn success message from forwarder
  *
- * All forwarders are sending a success message once the actual user process
- * is successfully spawned and everything is set up, right before entering their
- * final loop.
+ * All psidforwarders are sending a success message once the actual
+ * user process is successfully spawned and everything is set up,
+ * right before entering their main loop.
  *
- * For usual spawns, this only transports the client's TID which is stored to
- * be used for terminating the job if needed.
+ * For usual spawns, this only transports the client's TID which is
+ * stored to be used for terminating the job if needed.
  *
- * For respawned clients these success messages are collected and once all
- * expected ones are received for one spawn, the spawnInfo is send to PMIx
- * server that started the respawn.
+ * For respawned clients these success messages are collected and once
+ * all expected ones are received for one spawn, the spawnInfo is send
+ * to the PMIx server that initiated the respawn.
  *
- * The @a spawnID is used to detect the difference, 0 means an usual spawn,
- * everything else indicated a respawn with the given ID.
+ * The @a spawnID is used to detect the difference: 0 indicates an
+ * ordinary spawn, any other value a respawn with the given ID.
  *
  * @param nspace    namespace of the spawn
  * @param spawnID   local ID of the spawn
