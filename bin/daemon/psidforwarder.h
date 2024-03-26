@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -61,6 +61,13 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno);
  * @brief Send a message to the local daemon
  *
  * Send the message @a msg to the local daemon.
+ *
+ * @warning This will **only** work from within the psidforwarder
+ * process. Calling this function outside psidforwarder (e.g. from a
+ * pluginforwarder process) will fail silently, especially if the
+ * return value and the associated errno is ignored. From within a
+ * pluginforwarder process, @ref sendMsgToMother() is the method of
+ * choice.
  *
  * @param msg Message to be sent. The format of the message has to
  * follow DDMsg_t and further deduced message types.
