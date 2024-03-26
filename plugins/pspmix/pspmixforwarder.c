@@ -632,18 +632,16 @@ static bool sendSpawnSuccess(bool success)
      * it is always in included in the additional environment received from the
      * PMIx server in hookExecForwarder() and set in handleClientPMIxEnv() */
     char *nspace = getenv("PMIX_NAMESPACE");
-
-    /* try to get the spawn ID which should only be there for respawns */
-    env_t env = envNew(childTask->environ);
-    char *spawnIDstr = envGet(env, "PMIX_SPAWNID");
-    envStealArray(env);            /* @todo adjust once environ becomes env_t */
-
     if (!nspace) {
 	rlog("UNEXPECTED: PMIX_NAMESPACE not found in client environment\n");
 	return false;
     }
 
+    /* try to get the spawn ID which should only be there for respawns */
     uint16_t spawnID = 0; /* no respawn */
+    env_t env = envNew(childTask->environ);
+    char *spawnIDstr = envGet(env, "PMIX_SPAWNID");
+    envStealArray(env);            /* @todo adjust once environ becomes env_t */
     if (spawnIDstr) {
 	char *end;
 	long res = strtol(spawnIDstr, &end, 10);
