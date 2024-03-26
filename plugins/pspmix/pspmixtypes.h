@@ -309,7 +309,7 @@ typedef enum {
     PSPMIX_CLIENT_SPAWN_RES,   /**< Response to spawn request */
     PSPMIX_SPAWN_INFO,         /**< Info about respawn succeded or failed */
     PSPMIX_JOBSETUP_FAILED,    /**< Creation of client's namespace failed */
-    PSPMIX_SPAWN_SUCCESS,      /**< Info about respawn succeded or failed */
+    PSPMIX_CLIENT_STATUS,      /**< Info from psidfw about success or fail */
     PSPMIX_TERM_CLIENTS,       /**< Tell PMIx server to signal local clients */
 } PSP_PSPMIX_t;
 

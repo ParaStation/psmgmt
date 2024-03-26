@@ -660,7 +660,7 @@ static bool sendSpawnSuccess(bool success)
     }
 
     PS_SendDB_t msg;
-    initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_SPAWN_SUCCESS);
+    initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_CLIENT_STATUS);
     setFragDest(&msg, serverTID);
 
     addStringToMsg(nspace, &msg);
