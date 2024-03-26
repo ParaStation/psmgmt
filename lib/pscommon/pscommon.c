@@ -827,7 +827,7 @@ static struct group *getgrgidBuf(gid_t gid, char **grBuf)
 	return NULL;
     }
 
-    /* no matching passwd record was found */
+    /* no matching group record was found */
     if (!grp) {
 	free(*grBuf);
 	*grBuf = NULL;
