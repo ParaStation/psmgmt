@@ -2146,74 +2146,6 @@ void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid) {
 }
 
 /**
-* @brief Handle a PSP_CD_SPAWNREQ message
-*
-* Warning: This message handler is obsolete and only
-* kept for compatibility reasons. The new mechanism uses
-* the hook PSIDHOOK_RECV_SPAWNREQ.
-*
-* The new handler can be found in @ref handleRecvSpawnReq().
-*
-* @param msg The message to handle
-*/
-static bool handleSpawnReq(DDTypedBufferMsg_t *msg)
-{
-    fdbg(PSSLURM_LOG_PSCOMM, "from %s\n", PSC_printTID(msg->header.sender));
-
-    /* only handle message subtype PSP_SPAWN_END meant for us */
-    if (msg->type != PSP_SPAWN_END
-	|| PSC_getID(msg->header.dest) != PSC_getMyID()) {
-	return false; // call the old handler if any
-    }
-
-    /* try to find task structure */
-    PStask_t *spawnee = PSIDspawn_findSpawnee(msg->header.sender);
-    if (!spawnee) {
-	mlog("%s: cannot find spawnee for sender %s\n", __func__,
-	     PSC_printTID(msg->header.sender));
-	return false; // call the old handler if any
-    }
-
-    /* PSP_SPAWN_END message can contain parts of the environment */
-    size_t usedBytes = PStask_decodeEnv(msg->buf, spawnee);
-    msg->header.len -= usedBytes; /* HACK: Don't apply env-tail twice */
-
-    if (msg->header.len - sizeof(msg->header) - sizeof(msg->type)) {
-	mlog("%s: problem decoding task %s type %d used %zd remain %zd\n",
-	     __func__, PSC_printTID(spawnee->tid), msg->type,
-	     usedBytes, msg->header.len-sizeof(msg->header)-sizeof(msg->type));
-	return false; // call the old handler if any
-    }
-
-    /* get jobid and stepid from received environment */
-    bool isAdmin = isPSAdminUser(spawnee->uid, spawnee->gid);
-    uint32_t jobid, stepid;
-    if (!Step_findByEnv(spawnee->environ, &jobid, &stepid)) {
-	/* admin users may start jobs directly via mpiexec */
-	if (isAdmin) return false; // call the old handler if any
-
-	Step_t s = {
-	    .jobid = jobid,
-	    .stepid = stepid };
-
-	if (!Alloc_find(jobid) && !Alloc_findByPackID(jobid)) {
-	    flog("drop obsolete spawnee from %s lacking allocation %s\n",
-		 PSC_printTID(msg->header.sender), Step_strID(&s));
-	    PSIDtask_cleanup(spawnee);
-	    return true; // message is fully handled
-	}
-
-	flog("delay spawnee from %s due to missing %s\n",
-	     PSC_printTID(msg->header.sender), Step_strID(&s));
-
-	spawnee->delayReasons |= DELAY_PSSLURM;
-	PSIDspawn_delayTask(spawnee);
-	return true; // message is fully handled
-    }
-    return false; // call the old handler if any
-}
-
-/**
 * @brief Handle a PSP_CC_MSG message
 *
 * @param msg The message to handle
@@ -2373,7 +2305,6 @@ void finalizePScomm(bool verbose)
     PSID_clearMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
     PSID_clearMsg(PSP_CD_SPAWNFAILED, (handlerFunc_t) handleSpawnFailed);
     PSID_clearMsg(PSP_CD_SPAWNSUCCESS, (handlerFunc_t) handleSpawnSuccess);
-    PSID_clearMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) handleSpawnReq);
     PSID_clearMsg(PSP_CD_UNKNOWN, handleUnknownMsg);
 
     /* unregister msg drop handler */
@@ -2615,9 +2546,6 @@ bool initPScomm(void)
 
     /* register to PSP_CD_SPAWNSUCCESS message */
     PSID_registerMsg(PSP_CD_SPAWNSUCCESS, (handlerFunc_t) handleSpawnSuccess);
-
-    /* register to *obsolete* PSP_CD_SPAWNREQ message */
-    PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) handleSpawnReq);
 
     /* register to PSP_CD_UNKNOWN message */
     PSID_registerMsg(PSP_CD_UNKNOWN, handleUnknownMsg);

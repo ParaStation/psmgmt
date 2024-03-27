@@ -230,9 +230,9 @@ typedef enum {
 #define PSP_CD_SPAWNFAILED       0x0022  /**< Reply on failed spawn */
 #define PSP_CD_SPAWNFINISH       0x0023  /**< Reply after successful end of
 					      spawned process */
-#define PSP_CD_SPAWNREQ          0x0024  /**< Request to spawn a process */
+#define PSP_CD_SPAWNREQ          0x0024  /**< Request to spawn a process @obsolete */
 
-/** Kind of content within #PSP_CD_SPAWNREQ message */
+/** Kind of content within #PSP_CD_SPAWNREQ message @obsolete */
 typedef enum {
     PSP_SPAWN_TASK = 0x0000,      /**< Content is task (and workdir) */
     PSP_SPAWN_ARG,                /**< Content is argument-vector */
