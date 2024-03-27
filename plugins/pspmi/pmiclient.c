@@ -25,6 +25,7 @@
 #include "psenv.h"
 #include "pslog.h"
 #include "psprotocol.h"
+#include "psserial.h"
 #include "selector.h"
 
 #include "psilog.h"
@@ -2160,11 +2161,12 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     }
 #endif
 
-    bool ret = PSI_sendSpawnMsg(task, false, PSC_getMyID(), sendDaemonMsg);
+    PSnodes_ID_t dest = PSC_getMyID();
+    int num = PSI_sendSpawnReq(task, &dest, 1);
 
     PStask_delete(task);
 
-    return ret;
+    return num == 1;
 }
 
 /**
@@ -2464,6 +2466,9 @@ void psPmiResetFillSpawnTaskFunction(void)
 
 static int setupMsgHandlers(void *data)
 {
+    /* initialize fragmentation layer */
+    initSerial(0, sendDaemonMsg);
+
     if (!PSID_registerMsg(PSP_CC_MSG, msgCC))
 	mlog("%s: failed to register PSP_CC_MSG handler\n", __func__);
     if (!PSID_registerMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES))
@@ -2482,6 +2487,9 @@ static int clearMsgHandlers(void *unused)
     PSID_clearMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES);
     PSID_clearMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES);
     PSID_clearMsg(PSP_CC_ERROR, msgCCError);
+
+    finalizeSerial();
+
     return 0;
 }
 
