@@ -130,29 +130,6 @@ void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info);
 int PSI_sendSpawnReq(PStask_t *task, PSnodes_ID_t *dstnodes, uint32_t max);
 
 /**
- * @brief Send spawn messages
- *
- * Send a bunch of messages to node @a dest in order to spawn a
- * process as described in the task structure @a task. Messages are
- * actually sent via @a sendFunc. @a envClone flags the use of
- * environment cloning on the receiving side in order to reduce the
- * total size of byte to be transferred.
- *
- * @param task Task structure describing the process to be spawned
- *
- * @param envClone Flag the use of environment cloning on the spawning
- * node in order to reduce the amount of data to be transferred.
- *
- * @param dest Destination node of the messages to be sent
- *
- * @param sendFunc Actual function used to send out the message(s)
- *
- * @return On success true is returned; or false in case of error
- */
-bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
-		      ssize_t (*sendFunc)(void *));
-
-/**
  * @brief Spawn one or more tasks within the cluster
  *
  * Spawn @a count tasks described by the @a argc number of arguments

@@ -648,52 +648,6 @@ static struct {
 
 static char someStr[256];
 
-size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
-{
-    size_t msglen = sizeof(tmpTask);
-
-    snprintfStruct(someStr, sizeof(someStr), task);
-    PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task(%s))\n", __func__, buffer,
-	    (long)size, someStr);
-
-    if (msglen > size) return msglen; /* buffer too small */
-
-    tmpTask.tid = task->tid;
-    tmpTask.ptid = task->ptid;
-    tmpTask.uid = task->uid;
-    tmpTask.gid = task->gid;
-    tmpTask.aretty = task->aretty;
-    tmpTask.termios = task->termios;
-    tmpTask.winsize = task->winsize;
-    tmpTask.group = task->group;
-    tmpTask.resID = task->resID;
-    tmpTask.rank = task->rank;
-    tmpTask.loggertid = task->loggertid;
-    tmpTask.argc = task->argc;
-    tmpTask.noParricide = task->noParricide;
-
-    memcpy(buffer, &tmpTask, sizeof(tmpTask));
-
-    *off = NULL;
-    if (task->workingdir) {
-	if (msglen + strlen(task->workingdir) < size) {
-	    strcpy(&buffer[msglen], task->workingdir);
-	    msglen += strlen(task->workingdir);
-	} else {
-	    /* buffer too small */
-	    strncpy(&buffer[msglen], task->workingdir, size - msglen - 1);
-	    *off = &task->workingdir[size - msglen - 1];
-	    buffer[size-1] = '\0';
-	    msglen += strlen(&buffer[msglen]);
-	}
-    } else {
-	buffer[msglen]='\0';
-    }
-    msglen++; /* zero byte */
-
-    return msglen;
-}
-
 bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg)
 {
     snprintfStruct(someStr, sizeof(someStr), task);
@@ -764,99 +718,6 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
 	snprintfStruct(someStr, sizeof(someStr), task);
 	PSC_log(PSC_LOG_TASK, " received task = (%s)\n", someStr);
 	PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
-    }
-
-    return msglen;
-}
-
-/**
- * @brief Encode string-vector
- *
- * Encode the string-vector @a strV into the buffer @a buffer of size
- * @a size. @a cur will hold the index of the string currently handled
- * while @a offset might point to a trailing part of a string not
- * fitting into @a buffer as a whole.
- *
- * In order to encode @a strV completely, several calls to this
- * function might be necessary depending on the sizes of @a strV and
- * @a buffer. Depending on the settings of @a cur and @a offset is
- * will behave differently.
- *
- * Before calling this function the first time @a cur has to be set to
- * 0 and @a offset to NULL. Both shall not be modified during the
- * course of repeated calls. Once @a cur holds the value -1, all
- * strings of @a strV are encoded.
- *
- * If a single string does not fit into @a buffer, i.e. if the length
- * of this string is larger than @a size, upon return @a offset will
- * point to the trailing part of the string. Further calls to this
- * function will encode the trailing part(s) into @a buffer. Once all
- * trailing parts are encoded, @a offset is reset to NULL by the
- * function.
- *
- * @param buffer The buffer used to encode the string-vector
- *
- * @param size The size of the buffer
- *
- * @param strV String-vector to encode
- *
- * @param cur Index of the string to encode next
- *
- * @param offset Offset to a trailing part of the string currently
- * encoded, if any.
- *
- * @return The number of characters put into the buffer. Or 0, if an
- * error occurred.
- */
-static size_t encodeStrV(char *buffer, size_t size, char **strV,
-			 int *cur, char **offset)
-{
-    size_t msglen = 0;
-    int first=*cur;
-
-    if (!strV) {
-	PSC_log(-1, "%s: strV is NULL\n", __func__);
-	return 0;
-    }
-
-    if (*cur == -1) {
-	PSC_log(-1, "%s: encoding complete\n", __func__);
-	return 0;
-    }
-
-    if (*offset) {
-	msglen = strlen(*offset) < size ? strlen(*offset)+1 : size - 1;
-	strncpy(buffer, *offset, msglen);
-	if (strlen(*offset) < size) {
-	    *offset = NULL;
-	    (*cur)++;
-	} else {
-	    *offset += msglen;
-	    buffer[msglen] = '\0';
-	    msglen++;
-	}
-    } else {
-	for (; strV[*cur]; (*cur)++) {
-	    if (msglen + strlen(strV[*cur]) < size-1) {
-		strcpy(&buffer[msglen], strV[*cur]);
-		msglen += strlen(strV[*cur])+1;
-	    } else if (*cur > first) {
-		break;
-	    } else {
-		/* buffer too small */
-		*offset = strV[*cur];
-		msglen = size-2;
-		strncpy(buffer, *offset, msglen);
-		*offset += msglen;
-		buffer[msglen] = '\0';
-		msglen++;
-		break;
-	    }
-	}
-	/* append extra zero byte (marks end of message) */
-	buffer[msglen] = '\0';
-	msglen++;
-	if (!strV[*cur]) *cur = -1; /* last entry done */
     }
 
     return msglen;
@@ -970,23 +831,6 @@ static int decodeStrVApp(char *buffer, char **strV, int size)
     return strlen(buffer)+1;
 }
 
-size_t PStask_encodeArgv(char *buffer, size_t size, char **argv, int *cur,
-			 char **offset)
-{
-    if (!argv) {
-	PSC_log(-1, "%s: argv is NULL\n", __func__);
-	return 0;
-    }
-
-    if (PSC_getDebugMask() & PSC_LOG_TASK) {
-	snprintfStrV(someStr, sizeof(someStr), argv);
-	PSC_log(PSC_LOG_TASK, "%s(%p, %ld, argv(%s))\n", __func__, buffer,
-		(long)size, someStr);
-    }
-
-    return encodeStrV(buffer, size, argv, cur, offset);
-}
-
 int PStask_decodeArgv(char *buffer, PStask_t *task)
 {
     if (!task) {
@@ -1042,23 +886,6 @@ int PStask_decodeArgvAppend(char *buffer, PStask_t *task)
     }
 
     return ret;
-}
-
-size_t PStask_encodeEnv(char *buffer, size_t size, char **env,
-			int *cur, char **offset)
-{
-    if (!env) {
-	PSC_log(-1, "%s: env is NULL\n", __func__);
-	return 0;
-    }
-
-    if (PSC_getDebugMask() & PSC_LOG_TASK) {
-	snprintfStrV(someStr, sizeof(someStr), env);
-	PSC_log(PSC_LOG_TASK, "%s(%p, %ld, %s, %d, %p)\n", __func__,
-		buffer, (long)size, someStr, *cur, *offset);
-    }
-
-    return encodeStrV(buffer, size, env, cur, offset);
 }
 
 int PStask_decodeEnv(char *buffer, PStask_t *task)

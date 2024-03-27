@@ -270,51 +270,6 @@ PStask_t *PStask_clone(PStask_t *task);
 void PStask_snprintf(char *txt, size_t size, PStask_t *task);
 
 /**
- * @brief Encode a task structure.
- *
- * Encode the task structure @a task into the buffer @a buffer of
- * size @a size. This enables the task to be sent to a remote node
- * where it can be decoded using the @ref PStask_decodeTask() function.
- *
- * Beware of the fact that the task's argument-vector and environment
- * are not encoded. In order to send these parts they have to be
- * encoded separately using the @ref PStask_encodeArgv() and @ref
- * PStask_encodeEnv() functions respectively.
- *
- * Sending the task includes sending its working-directory. Since this
- * information might be larger than the buffer, additional messages
- * might be necessary. In this case @a offset will point to the
- * remnant of the working-directory still to be sent.
- *
- * In the current implementation of the protocol the original messages
- * is flagged as PSP_SPAWN_TASK while messages holding additional
- * parts of the working directory are in PSP_SPAWN_WDIRCNTD messages.
- *
- *
- * @param buffer The buffer used to encode the task structure.
- *
- * @param size The size of the buffer.
- *
- * @param task The task structure to encode.
- *
- * @param offset Pointing to trailing part of working-directory upon
- * return.
- *
- * @return On success, the number of bytes written to the buffer are
- * returned. If the return value is larger than @a size, the buffer is
- * too small in order to encode the task. In this case the task
- * structure will *not* be encoded, i.e. the buffer remains empty.
- *
- * A value of @a offset different from NULL upon return flags that the
- * task's working-directory was not completely encoded. Additional
- * messages containing the trailing part have to be sent.
- *
- * @see PStask_decodeTask(), PStask_encodeArgv(), PStask_encodeEnv()
- */
-size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task,
-			 char **offset);
-
-/**
  * @brief Decode a task structure
  *
  * Decode a task structure encoded by PStask_encodeTask() and stored
@@ -355,66 +310,6 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWdir);
 bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg);
 
 /**
- * @brief Encode argv part of task structure.
- *
- * Encode the argument-vector @a argv into the buffer @a buffer of
- * size @a size. This enables the argument-vector to be sent to a
- * remote node where the argument-vector shall be decoded using the
- * @ref PStask_decodeArgv() and PStask_decodeArgvAppend() functions.
- *
- * The actual task structure might be encoded using the @ref
- * PStask_encodeTask() function.
- *
- * Since both, the argument-vector as whole and single arguments,
- * might be substantially larger than the buffer's size @a size, it
- * might be split into more than one messages and, thus, buffer
- * contents. To support this feature, a pointer to an integer within
- * the calling context @a cur has to be provided. The integer @a cur
- * points to has to be set to 0 before calling this function for the
- * first time on a given @a argv. The same is true for the pointer @a
- * offset points to. During consecutive calls with the same @a argv
- * they have to be left untouched.
- *
- * In order to make correct use of this function the chunks of the
- * argument-vector have to be sent using different message types. The
- * type of message is determined by the @a offset parameter. If it is
- * different from NULL after a call, there will exists trailing parts
- * of the current argument which can be accessed by further calls to
- * this function. This trailing parts have to be flagged and handled
- * by the @ref PStask_decodeArgvAppend() function and have to be send
- * in strict order. As soon as @a offset is NULL again, all further
- * calls will give normal chunks unless @a offset is different from
- * NULL.
- *
- * In the current implementation of the protocol the messages are
- * flagged as PSP_SPAWN_ARG and PSP_SPAWN_ARGCNTD respectively.
- *
- * @param buffer The buffer used to encode the arguments.
- *
- * @param size The size of the buffer.
- *
- * @param argv The argument-vector to encode.
- *
- * @param cur Pointer to an integer holding the internal status in
- * between consecutive calls. Do not modify between consecutive
- * calls. The integer @a cur is pointing to has to be set to 0 before
- * doing the first call. This integer will be -1 after the last part
- * of the last argument is encoded.
- *
- * @param offset Pointer to an char pointer holding an offset for
- * trailing chunks of an environment variable. Do not modify between
- * consecutive calls. The pointer @a offset is pointing to has to be
- * set to NULL before doing the first call.
- *
- * @return On success, the number of bytes written to the buffer are
- * returned. Or 0, if an error occurs.
- *
- * @see PStask_encodeTask(), PStask_decodeArgv(), PStask_decodeArgvAppend()
- */
-size_t PStask_encodeArgv(char *buffer, size_t size, char **argv, int *cur,
-			 char **offset);
-
-/**
  * @brief Decode argument-vector.
  *
  * Decode the argument-vector of a task structure encoded by
@@ -452,76 +347,6 @@ int PStask_decodeArgv(char *buffer, PStask_t *task);
  * decode the argument.
  */
 int PStask_decodeArgvAppend(char *buffer, PStask_t *task);
-
-/**
- * @brief Encode environment.
- *
- * Encode the environment @a env into the the buffer @a buffer of size
- * @a size. This enables the environment to be sent to a remote node
- * where it shall be decoded using the PStask_decodeEnv() and
- * PStask_decodeEnvAppend() functions.
- *
- * The actual task structure might be encoded using the @ref
- * PStask_encodeTask() function.
- *
- * Since both, the environment as whole and single environment's
- * key-value pairs, might be substantially larger than the buffer's
- * size @a size, it might be split into more than one messages and,
- * thus, buffer contents. To support this feature, a pointer to an
- * integer within the calling context @a cur has to be provided. The
- * integer @a cur points to has to be set to 0 before calling this
- * function for the first time on a given @a env. The same is true for
- * the pointer @a offset points to. During consecutive calls upon the
- * same @a env they have to be left untouched.
- *
- * Since the environment might be substantially larger than the
- * buffer's size @a size, it might be split into more than one
- * messages and thus buffer contents. To support this feature, a
- * pointer to an integer within the calling context @a cur has to be
- * provided. The integer @a cur points to has to be set to 0 before
- * calling this function for the first time on a given environment @a
- * env. The same is true for the pointer @a offset points to. During
- * consecutive calls with the same @a env they have to be left
- * untouched.
- *
- * In order to make correct use of this function the chunk of the
- * environment have to be sent using different message types. The type
- * of message is determined by the @a offset parameter. If it is
- * different from NULL after a call, there will exists trailing parts
- * of the current environment which can be accessed by further calls
- * to this function. This trailing parts have to be flagged and
- * handled by the @ref PStask_decodeEnvAppend() function and have to
- * be send in strict order. As soon as @a offset is NULL again, all
- * further calls will give normal chunks unless @a offset is different
- * from NULL.
- *
- * In the current implementation of the protocol the messages are
- * flagged as PSP_SPAWN_ENV and PSP_SPAWN_ENVCNTD respectively.
- *
- * @param buffer The buffer used to encode the environment.
- *
- * @param size The size of the buffer.
- *
- * @param env The environment to encode.
- *
- * @param cur Pointer to an integer holding the internal status in
- * between consecutive calls. Do not modify between consecutive calls.
- * The integer @a cur is pointing to has to be set to 0 before doing
- * the first call. This integer will be -1 after the last part of the
- * last argument is encoded.
- *
- * @param offset Pointer to an char pointer holding an offset for
- * trailing chunks of an environment variable. Do not modify between
- * consecutive calls. The pointer @a offset is pointing to has to be
- * set to NULL before doing the first call.
- *
- * @return On success, the number of bytes written to the buffer are
- * returned. Or 0, if an error occurs.
- *
- * @see PStask_decodeEnv() PStask_decodeEnvAppend()
- */
-size_t PStask_encodeEnv(char *buffer, size_t size, char **env, int *cur,
-			char **offset);
 
 /**
  * @brief Decode environment.
