@@ -369,39 +369,7 @@ static int handleAnswer(DDBufferMsg_t *msg, AnswerBucket_t *bucket)
     return 1;
 }
 
-/**
- * @brief Send spawn request
- *
- * Use the serialization layer in order to send the request to spawn
- * at most @a max tasks. The request might be split into multiple
- * messages depending on the amount of information that needs to be
- * submitted. The task structure @a task describes the tasks to be
- * spawned containing e.g. the argument vector or the environment. @a
- * dstnodes holds the ID of the destination node (in dstnodes[0]) and
- * the number of tasks to spawn (encoded in the number of consecutive
- * elements identical to dstnodes[0]). Nevertheless, @a max limits the
- * number of tasks anyhow.
- *
- * This function will consider the per rank environment characterized
- * through the function to be registered via @ref
- * PSI_registerRankEnvFunc().
- *
- * A single call to this function might initiate to spawn multiple
- * tasks to a remote node. The actual number of tasks spawned is
- * returned.
- *
- * On the long run this function shall obsolete PSI_sendSpawnMsg().
- *
- * @param task Task structure describing the tasks to be spawned
- *
- * @param dstnodes Destination nodes of the spawn requests
- *
- * @param max Maximum number of tasks to spawn -- might be less
- *
- * @return On success the number of spawned tasks is returned; or -1
- * in case of an error
- */
-static int sendSpawnReq(PStask_t* task, PSnodes_ID_t *dstnodes, uint32_t max)
+int PSI_sendSpawnReq(PStask_t *task, PSnodes_ID_t *dstnodes, uint32_t max)
 {
     PS_SendDB_t msg;
     PStask_ID_t dest = PSC_getTID(dstnodes[0], 0);
@@ -774,7 +742,7 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
     bool error = false;
     for (int i = 0; i < count && !error;) {
 	task->rank = first + i;
-	int sent = sendSpawnReq(task, &dstNodes[i], count - i);
+	int sent = PSI_sendSpawnReq(task, &dstNodes[i], count - i);
 	if (sent < 0) return -1;
 
 	i += sent;
