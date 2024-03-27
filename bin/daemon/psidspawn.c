@@ -432,6 +432,7 @@ static char *testExecutable(PStask_t *task)
 	close(fd);
     }
 
+    char *executable = task->argv[0];
     /* shells */
     if (!strcmp(task->argv[0], "/bin/bash")) {
 	if (task->argc == 2 && !strcmp(task->argv[1], "-i")) {
@@ -451,7 +452,7 @@ static char *testExecutable(PStask_t *task)
 	}
     }
 
-    return task->argv[0];
+    return executable;
 }
 
 static void restoreLimits(void)
