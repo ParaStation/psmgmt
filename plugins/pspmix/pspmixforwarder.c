@@ -449,11 +449,12 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     }
 
     /* spawn task */
-    bool ret = PSI_sendSpawnMsg(task, false, PSC_getMyID(), sendDaemonMsg);
+    PSnodes_ID_t dest = PSC_getMyID();
+    int num = PSI_sendSpawnReq(task, &dest, 1);
 
     PStask_delete(task);
 
-    return ret;
+    return num == 1;
 }
 
 /**
