@@ -924,19 +924,15 @@ static int handleReattachTasks(Slurm_Msg_t *sMsg)
     } else if (req->numIOports < 1) {
 	flog("invalid request, no I/O ports for %s\n", Step_strID(step));
 	sendReattachFail(sMsg, ESLURM_PORTS_INVALID);
-    } else if (!req->cred) {
-	flog("invalid credential for %s\n", Step_strID(step));
-	sendReattachFail(sMsg, ESLURM_INVALID_JOB_CREDENTIAL);
-    } else if (strlen(req->cred->sig) + 1 < SLURM_IO_KEY_SIZE) {
-	flog("invalid I/O key size %zu for %s\n", strlen(req->cred->sig) + 1,
-	     Step_strID(step));
+    } else if (!req->ioKey) {
+	flog("invalid I/O key %s\n", Step_strID(step));
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_CREDENTIAL);
     } else {
 	/* send message to forwarder */
 	fwCMD_reattachTasks(step->fwdata, sMsg->head.addr.ip,
 			    req->ioPorts[step->localNodeId % req->numIOports],
 			    req->ctlPorts[step->localNodeId % req->numCtlPorts],
-			    req->cred->sig);
+			    req->ioKey);
 	sendReattchReply(step, sMsg);
     }
 

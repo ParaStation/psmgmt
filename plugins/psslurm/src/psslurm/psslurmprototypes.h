@@ -229,7 +229,7 @@ typedef struct {
     uint16_t *ctlPorts;	    /**< control ports */
     uint16_t numIOports;    /**< number of I/O ports */
     uint16_t *ioPorts;	    /**< I/O ports */
-    JobCred_t *cred;	    /**< job credential */
+    char *ioKey;	    /**< I/O key */
 } Req_Reattach_Tasks_t;
 
 /** Holding all information for RPC REQUEST_JOB_NOTIFY */

@@ -239,7 +239,7 @@ static inline void freeReqReattachTasks(Slurm_Msg_t *sMsg)
 {
     Req_Reattach_Tasks_t *req = sMsg->unpData;
 
-    freeJobCred(req->cred);
+    strShred(req->ioKey);
     ufree(req->ioPorts);
     ufree(req->ctlPorts);
     ufree(req);

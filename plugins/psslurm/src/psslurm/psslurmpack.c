@@ -2962,6 +2962,11 @@ static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
     /* unpack jobid/stepid */
     unpackStepHead(data, req, msgVer);
 
+    if (msgVer > SLURM_23_02_PROTO_VERSION) {
+	/* I/O key */
+	req->ioKey = getStringM(data);
+    }
+
     /* srun control ports */
     getUint16(data, &req->numCtlPorts);
     if (req->numCtlPorts > 0) {
@@ -2980,10 +2985,26 @@ static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
 	}
     }
 
-    /* job credential including I/O key */
-    LIST_HEAD(gresList);
-    req->cred = extractJobCred(&gresList, sMsg, false);
-    freeGresCred(&gresList);
+    if (!(msgVer > SLURM_23_02_PROTO_VERSION)) {
+	/* job credential with embedded I/O key */
+	LIST_HEAD(gresList);
+	JobCred_t *cred = extractJobCred(&gresList, sMsg, false);
+	freeGresCred(&gresList);
+
+	if (!cred) {
+	    flog("failed to unpack credential\n");
+	    return false;
+	}
+
+	if (strlen(cred->sig) + 1 < SLURM_IO_KEY_SIZE) {
+	    flog("invalid I/O key size %zu\n", strlen(cred->sig) + 1);
+	    return false;
+	}
+
+	/* save I/O key from credential */
+	req->ioKey = ustrdup(cred->sig);
+	freeJobCred(cred);
+    }
 
     if (data->unpackErr) {
 	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
