@@ -385,7 +385,7 @@ static PStask_t * createSpawnTask(char *wDir, PStask_group_t taskGroup,
     task->argc += offset;
     task->argv[task->argc] = NULL;
 
-    task->env = envNew(dumpPSIEnv());
+    task->env = dumpPSIEnv();
     /* add the content of env */
     envCat(task->env, env, NULL);
 

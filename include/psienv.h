@@ -103,12 +103,12 @@ int numPSIEnv(void);
  * @brief Get a packed copy of the ParaStation Environment
  *
  * Get a copy of the actual ParaStation Environment. This will
- * contain all environment variables and its values.
+ * contain all environment variables and their values.
  *
  * @return A compressed form of the ParaStation environment is
  * returned; if something went wrong during the creation of the
  * compressed copy, NULL is returned
  */
-char **dumpPSIEnv(void);
+env_t dumpPSIEnv(void);
 
 #endif /* __PSIENV_H */

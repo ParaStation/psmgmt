@@ -50,8 +50,7 @@ int numPSIEnv(void)
     return envSize(PSenv);
 }
 
-char **dumpPSIEnv(void)
+env_t dumpPSIEnv(void)
 {
-    env_t clone = envClone(PSenv, NULL);
-    return envStealArray(clone);
+    return envClone(PSenv, NULL);
 }
