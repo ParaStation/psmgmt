@@ -139,7 +139,7 @@ static const char * encodeValue(const pmix_value_t *val, pmix_rank_t rank)
     return buffer;
 }
 
-/* Fill a typed pmix value from its string repesentation */
+/* Fill a typed pmix value from its string representation */
 static void decodeValue(const char *encval, pmix_value_t *val,
 	pmix_rank_t *rank)
 {
@@ -1073,7 +1073,7 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	 the info array for each pmix_app_t.
        PMIX_PREFIX "pmix.prefix" (char* )
 	 Prefix to use for starting spawned processes
-	 i.e., the directory where the executables can be found.
+	 i.e., the directory where the executable can be found.
        PMIX_HOST "pmix.host" (char* )
 	 Comma-delimited list of hosts to use for spawned processes.
        PMIX_HOSTFILE "pmix.hostfile" (char* )
@@ -1178,7 +1178,7 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
  * @param apps      Array of pmix_app_t structure
  * @param napps     Number of elements in the apps array
  * @param cbfunc    Callback function
- * @param cbdata    Data tp be passed to the callback function
+ * @param cbdata    Data to be passed to the callback function
  */
 /* pmix_server_spawn_fn_t  */
 static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
@@ -1222,7 +1222,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
      * standard (v4) does not provide any guaranties about the availability
      * of any data passed to this function after it returned.
      * Would be great to have this data available until the cbfunc is called
-     * unless PMIX_OPERATION_SUCCEDED is returned to avoid data duplication.
+     * unless PMIX_OPERATION_SUCCEEDED is returned to avoid data duplication.
      * To avoid copying everything, we invalidate all data that are only needed
      * to setup the spawn but not for later processing. */
     PspmixSpawnApp_t *sapps = umalloc(napps * sizeof(*apps));
@@ -1633,7 +1633,7 @@ static void server_log_cb(const pmix_proc_t *client,
  *   will be considered as part of the current allocation, and thus will be
  *   released at the same time.
  * - Request a new allocation of resources. Note that the new allocation will be
- *   disjoint from (i.e., not affiliated with) the allocation of the requestor
+ *   disjoint from (i.e., not affiliated with) the allocation of the requester
  *    - thus the termination of one allocation will not impact the other.
  * - Extend the reservation on currently allocated resources, subject to
  *   scheduling availability and priorities.
@@ -2497,7 +2497,7 @@ static char* getProcessMapString(list_t *procMap)
  * Get string representation of nodes ranks
  *
  * @param procMap      process map (which process runs on which node)
- * @param nodeID       parastation node id of this node
+ * @param nodeID       ParaStation ID of this node
  * @param pmap   <OUT> vector to hold the process map string
  * @param lpeers <OUT> vector to hold the local peers string
  *
