@@ -133,10 +133,7 @@ PStask_t* initSpawnTask(PStask_t *spawner, bool filter(const char*))
 	task->workingdir = NULL;
     }
 
-    /* build environment */
-    env_t env = envConstruct(spawner->environ, filter);
-    task->envSize = envSize(env);
-    task->environ = envStealArray(env);
+    task->env = envClone(spawner->env, filter);
 
     return task;
 }

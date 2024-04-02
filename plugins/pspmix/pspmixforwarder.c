@@ -276,14 +276,9 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     task->noParricide = noParricide;
 
     /* update environment */
-    env_t env = envNew(task->environ);
-
-    char tmp[64];
-    snprintf(tmp, sizeof(tmp), "PMIX_JOB_SIZE=%zu", jobsize);
-    envPut(env, tmp);
-
-    task->envSize = envSize(env);
-    task->environ = envStealArray(env);
+    char tmp[32];
+    snprintf(tmp, sizeof(tmp), "%zu", jobsize);
+    envSet(task->env, "PMIX_JOB_SIZE", tmp);
 
     return 1;
 }
@@ -392,47 +387,38 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     }
 
     /* add additional env vars */
-    env_t env = envNew(task->environ);
 
     /* tell the spawnees the spawn id */
-    char tmp[28+PMIX_MAX_NSLEN];
-    snprintf(tmp, sizeof(tmp), "PMIX_SPAWNID=%d", srdata->spawnID);
-    envPut(env, tmp);
+    char tmp[32];
+    snprintf(tmp, sizeof(tmp), "%d", srdata->spawnID);
+    envSet(task->env, "PMIX_SPAWNID", tmp);
 
     /* tell the spawnees our tid (that of the forwarder) */
-    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_FWTID=0x%08x",
-	     PSC_getMyTID());
-    envPut(env, tmp);
+    snprintf(tmp, sizeof(tmp), "0x%08x", PSC_getMyTID());
+    envSet(task->env, "__PMIX_SPAWN_PARENT_FWTID", tmp);
 
     /* tell the spawnees the namespace of the spawner (=> PMIX_PARENT_ID) */
-    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_NSPACE=%s",
-	     srdata->pnspace);
-    envPut(env, tmp);
+    envSet(task->env, "__PMIX_SPAWN_PARENT_NSPACE", srdata->pnspace);
 
     /* tell the spawnees the rank of the spawner (=> PMIX_PARENT_ID) */
-    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_PARENT_RANK=%d", srdata->prank);
-    envPut(env, tmp);
+    snprintf(tmp, sizeof(tmp), "%d", srdata->prank);
+    envSet(task->env, "__PMIX_SPAWN_PARENT_RANK", tmp);
 
     /* tell the spawnees the options of the spawn */
-    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_OPTS=0x%08x", srdata->opts);
-    envPut(env, tmp);
+    snprintf(tmp, sizeof(tmp), "0x%08x", srdata->opts);
+    envSet(task->env, "__PMIX_SPAWN_OPTS", tmp);
 
     /* tell the service rank to the kvsprovider    @todo why - 3 */
-    snprintf(tmp, sizeof(tmp), "__SPAWNER_SERVICE_RANK=%d", serviceRank - 3);
-    envPut(env, tmp);
+    snprintf(tmp, sizeof(tmp), "%d", serviceRank - 3);
+    envSet(task->env, "__SPAWNER_SERVICE_RANK", tmp);
 
     /* tell the responsible PMIx server to the spawner for fail reports */
-    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_SERVERTID=0x%08x",
-	    srdata->pmixServer);
-    envPut(env, tmp);
+    snprintf(tmp, sizeof(tmp), "0x%08x", srdata->pmixServer);
+    envSet(task->env,  "__PMIX_SPAWN_SERVERTID", tmp);
 
     /* tell the message type to be used for fails to the spawner */
-    snprintf(tmp, sizeof(tmp), "__PMIX_SPAWN_FAILMSG_TYPE=0x%08x",
-	     PSPMIX_SPAWNER_FAILED);
-    envPut(env, tmp);
-
-    task->envSize = envSize(env);
-    task->environ = envStealArray(env);
+    snprintf(tmp, sizeof(tmp), "0x%08x", PSPMIX_SPAWNER_FAILED);
+    envSet(task->env, "__PMIX_SPAWN_FAILMSG_TYPE", tmp);
 
     if (debug) {
 	elog("%s(r%i): Executing '%s", __func__, rank, task->argv[0]);
@@ -443,8 +429,8 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     for (uint32_t j = 1; j < task->argc; j++) mlog(" %s", task->argv[j]);
     mlog("'\n");
     if (mset(PSPMIX_LOG_ENV)) {
-	for (size_t i = 0; i < task->envSize; i++) {
-	    rlog("%zd: %s\n", i, task->environ[i]);
+	for (uint32_t i = 0; envDumpIndex(task->env, i); i++) {
+	    rlog("%d: %s\n", i, envDumpIndex(task->env, i));
 	}
     }
 
@@ -650,9 +636,7 @@ static bool sendSpawnSuccess(bool success)
 
     /* try to get the spawn ID which should only be there for respawns */
     uint16_t spawnID = 0; /* no respawn */
-    env_t env = envNew(childTask->environ);
-    char *spawnIDstr = envGet(env, "PMIX_SPAWNID");
-    envStealArray(env);            /* @todo adjust once environ becomes env_t */
+    char *spawnIDstr = envGet(childTask->env, "PMIX_SPAWNID");
     if (spawnIDstr) {
 	char *end;
 	long res = strtol(spawnIDstr, &end, 10);
@@ -1144,16 +1128,13 @@ static int hookExecForwarder(void *data)
 	return 0;
     }
 
-    env_t env = envNew(childTask->environ); // use of env is read only
-
     /* continue only if PMIx support is requested
      * or singleton support is configured and np == 1 */
-    bool usePMIx = pspmix_common_usePMIx(env);
-    char *jobsize = envGet(env, "PMIX_JOB_SIZE");
+    bool usePMIx = pspmix_common_usePMIx(childTask->env);
+    char *jobsize = envGet(childTask->env, "PMIX_JOB_SIZE");
     if (!usePMIx && (!getConfValueI(config, "SUPPORT_MPI_SINGLETON")
 		     || (jobsize ? atoi(jobsize) : 1) != 1)) {
 	childTask = NULL;
-	envStealArray(env);
 	return 0;
     }
 
@@ -1163,14 +1144,12 @@ static int hookExecForwarder(void *data)
     /* Send client registration request to the PMIx server */
     if (!sendRegisterClientMsg(childTask)) {
 	rlog("Failed to send register message\n");
-	envStealArray(env);
 	return -1;
     }
 
     /* block until PMIx environment is set with some timeout */
     uint32_t tmout = 3;
-    char *tmoutStr = envGet(env, "PSPMIX_ENV_TMOUT");
-    envStealArray(env);
+    char *tmoutStr = envGet(childTask->env, "PSPMIX_ENV_TMOUT");
     if (tmoutStr && *tmoutStr) {
 	char *end;
 	long tmp = strtol(tmoutStr, &end, 0);
@@ -1282,10 +1261,7 @@ static int hookExecClientUser(void *data)
 
     /* if this is a singleton case, call PMIx_Init() to prevent the PMIx server
      * lib from deleting the namespace after first use */
-    env_t env = envNew(childTask->environ); // use of env is read only
-    bool usePMIx = pspmix_common_usePMIx(env);
-    envStealArray(env);
-    if (usePMIx) return 0;
+    if (pspmix_common_usePMIx(childTask->env)) return 0;
 
     rlog("Calling PMIx_Init() for singleton support.\n");
     /* need to call with proc != NULL since this is buggy until in 4.2.0

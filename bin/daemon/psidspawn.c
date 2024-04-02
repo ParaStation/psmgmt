@@ -861,10 +861,8 @@ static void execForwarder(PStask_t *task)
     /* setup the environment; done here to pass it to forwarder, too */
     setenv("PWD", task->workingdir, 1);
 
-    if (task->environ) {
-	for (int i = 0; task->environ[i]; i++) {
-	    putenv(strdup(task->environ[i]));
-	}
+    for (uint32_t i = 0; envDumpIndex(task->env, i); i++) {
+	putenv(strdup(envDumpIndex(task->env, i)));
     }
 
     /* create a socketpair for communication between forwarder and client */
@@ -1542,24 +1540,18 @@ static int spawnTask(PStask_t *task)
     }
 
     /* add some last minute extra environment */
-    env_t env = envNew(task->environ);
     char tmp[32];
     sprintf(tmp, "%d", task->loggertid);
-    envSet(env, "PS_SESSION_ID", tmp);
+    envSet(task->env, "PS_SESSION_ID", tmp);
 
     sprintf(tmp, "%d", task->spawnertid);
-    envSet(env, "PS_JOB_ID", tmp);
+    envSet(task->env, "PS_JOB_ID", tmp);
 
     sprintf(tmp, "%d", task->resID);
-    envSet(env, "PS_RESERVATION_ID", tmp);
+    envSet(task->env, "PS_RESERVATION_ID", tmp);
 
     sprintf(tmp, "%d", task->jobRank);
-    envSet(env, "PS_JOB_RANK", tmp);
-
-    task->environ = envGetArray(env);
-    task->envSize = envSize(env);
-
-    envStealArray(env);
+    envSet(task->env, "PS_JOB_RANK", tmp);
 
     /* now try to start the task */
     int err = buildSandboxAndStart(execForwarder, task);
@@ -2221,7 +2213,9 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     task->spawnertid = msg->header.sender;
     task->workingdir = getStringM(rData);
     getStringArrayM(rData, &task->argv, &task->argc);
-    getStringArrayM(rData, &task->environ, &task->envSize);
+    char **envP = NULL;
+    getStringArrayM(rData, &envP, NULL);
+    task->env = envNew(envP);
 
     /* Call hook once per PSP_CD_SPAWNREQUEST meaning once per node.
      * Pay attention that the task provided is only a prototype, containing
@@ -2259,13 +2253,11 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	clone->rank += r;
 	answer.request = clone->rank;
 
-	char **extraEnv;
-	uint32_t extraEnvSize;
-	getStringArrayM(rData, &extraEnv, &extraEnvSize);
-	if (extraEnvSize) {
-	    appendStrV(&clone->environ, &clone->envSize, extraEnv);
-	    free(extraEnv);
-	}
+	char **extraEnvP;
+	getStringArrayM(rData, &extraEnvP, NULL);
+	env_t extraEnv = envNew(extraEnvP);
+	envCat(clone->env, extraEnv, NULL);
+	envDestroy(extraEnv);
 
 	if (!isServiceTask(task->group)) {
 	    if (useLOC) {

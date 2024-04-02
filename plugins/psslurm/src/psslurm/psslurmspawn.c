@@ -238,6 +238,21 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
     return 1;
 }
 
+static bool spawnEnvFilter(const char *envStr)
+{
+    static bool first = true;
+    static char *display = NULL;
+    if (first) display = getenv("DISPLAY");
+    first = false;
+
+    if (!strncmp(envStr, "SLURM_RLIMIT_", 13)
+	|| !strncmp(envStr, "SLURM_UMASK=", 12)
+	|| !strncmp(envStr, "PWD=", 4)
+	|| (display && !strncmp(envStr, "DISPLAY=", 8))) return false;
+
+    return true;
+}
+
 int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
 {
     if (!step) {
@@ -246,33 +261,19 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     }
 
     /* *** build environment *** */
-    // can use task->environ since it will be replaced later anyhow
-    env_t env = envNew(task->environ);
-
     /* add (filtered) step environment */
+    envCat(task->env, step->env, spawnEnvFilter);
 
-    /* we need the DISPLAY variable set by psslurm */
-    char *display = getenv("DISPLAY");
-
-    for (size_t i = 0; i < envSize(step->env); i++) {
-	char *thisEnv = envDumpIndex(step->env, i);
-	if (!strncmp(thisEnv, "SLURM_RLIMIT_", 13)) continue;
-	if (!strncmp(thisEnv, "SLURM_UMASK=", 12)) continue;
-	if (!strncmp(thisEnv, "PWD=", 4)) continue;
-	if (display && !strncmp(thisEnv, "DISPLAY=", 8)) continue;
-	envPut(env, thisEnv);
-    }
-
-    setSlurmConfEnvVar(env);
+    setSlurmConfEnvVar(task->env);
 
     /* propagate parent TID, logger TID and rank through Slurm */
     char nStr[32];
     snprintf(nStr, sizeof(nStr), "%d", task->ptid);
-    envSet(env, "__PSSLURM_SPAWN_PTID", nStr);
+    envSet(task->env, "__PSSLURM_SPAWN_PTID", nStr);
     snprintf(nStr, sizeof(nStr), "%d", task->loggertid);
-    envSet(env, "__PSSLURM_SPAWN_LTID", nStr);
+    envSet(task->env, "__PSSLURM_SPAWN_LTID", nStr);
     snprintf(nStr, sizeof(nStr), "%d", task->rank - 1);
-    envSet(env, "__PSSLURM_SPAWN_RANK", nStr);
+    envSet(task->env, "__PSSLURM_SPAWN_RANK", nStr);
 
     /* XXX: Do we need to set further variables as in setRankEnv()
      *      in psslurmforwarder.c? */
@@ -285,11 +286,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
      *
      * Only the values of the first single spawn are used. */
     SingleSpawn_t *spawn = &(req->spawns[0]);
-    addSpawnPreputToEnv(spawn->preputc, spawn->preputv, env);
-
-    /* replace task environment */
-    task->envSize = envSize(env);
-    task->environ = envStealArray(env);
+    addSpawnPreputToEnv(spawn->preputc, spawn->preputv, task->env);
 
     if (req->num == 1) {
 	return fillCmdForSingleSpawn(req, usize, task);

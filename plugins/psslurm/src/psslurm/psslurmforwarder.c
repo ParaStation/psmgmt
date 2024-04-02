@@ -468,7 +468,7 @@ static void initFwPtr(PStask_t *task)
 
     bool isAdmin = isPSAdminUser(task->uid, task->gid);
     uint32_t jobid, stepid;
-    Step_t *step = Step_findByEnv(task->environ, &jobid, &stepid);
+    Step_t *step = Step_findByEnv(task->env, &jobid, &stepid);
 
     if (step) {
 	fwStep = step;

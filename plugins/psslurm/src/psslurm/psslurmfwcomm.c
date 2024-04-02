@@ -386,9 +386,7 @@ static void startSpawner(Step_t *step)
     setStepEnv(envStep);
     removeUserVars(envStep->env, pmi_type);
 
-    task->envSize = envSize(envStep->env);
-    task->environ = envStealArray(envStep->env);
-
+    task->env = envStep->env;
     envStep->env = NULL;
     Step_delete(envStep);
 

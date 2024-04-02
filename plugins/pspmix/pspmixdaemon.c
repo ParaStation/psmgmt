@@ -887,7 +887,7 @@ static void stopServer(PspmixServer_t *server)
  *
  * Attention: The task passed is a prototype containing only the values
  * decoded in @a PStask_decodeTask and in addition spawnerid, workingdir,
- * argv, argc, environ, and envSize.
+ * argv, argc, and env.
  *
  * @param data Pointer to task structure to be spawned
  *
@@ -902,15 +902,10 @@ static int hookRecvSpawnReq(void *data)
 
     mdbg(PSPMIX_LOG_CALL, "%s(task group TG_ANY)\n", __func__);
 
-    env_t env = envNew(prototask->environ);
-
     /* mark environment if mpiexec demands PMIx for this job */
-    if (envGet(env, "__PMIX_NODELIST")) {
-	envPut(env, strdup("__USE_PMIX=1")); /* for pspmix_common_usePMIx() */
+    if (envGet(prototask->env, "__PMIX_NODELIST")) {
+	envPut(prototask->env, "__USE_PMIX=1"); /* for pspmix_common_usePMIx() */
     }
-
-    prototask->envSize = envSize(env);
-    prototask->environ = envStealArray(env);
 
     return 0;
 }
@@ -938,13 +933,11 @@ static int hookSpawnTask(void *data)
 
     mdbg(PSPMIX_LOG_CALL, "%s(task group TG_ANY)\n", __func__);
 
-    env_t env = envNew(task->environ); // use of env is read only
-
     /* continue only if PMIx support is requested
      * or singleton support is configured and np == 1 */
-    bool usePMIx = pspmix_common_usePMIx(env);
+    bool usePMIx = pspmix_common_usePMIx(task->env);
     if (!usePMIx && !getConfValueI(config, "SUPPORT_MPI_SINGLETON")) return 0;
-    char *jobsize = envGet(env, "PMIX_JOB_SIZE");
+    char *jobsize = envGet(task->env, "PMIX_JOB_SIZE");
     if (!usePMIx && (jobsize ? atoi(jobsize) : 1) != 1) return 0;
 
     /* find ParaStation session */
@@ -952,7 +945,6 @@ static int hookSpawnTask(void *data)
     PSsession_t *pssession = PSID_findSessionByID(loggertid);
     if (!pssession) {
 	mlog("%s: no session (ID %s)\n", __func__, PSC_printTID(loggertid));
-	envStealArray(env);
 	return -1;
     }
 
@@ -962,7 +954,6 @@ static int hookSpawnTask(void *data)
     if (!psjob) {
 	mlog("%s: no job (ID %s", __func__, PSC_printTID(spawnertid));
 	mlog(" session %s)\n", PSC_printTID(loggertid));
-	envStealArray(env);
 	return -1;
     }
 
@@ -973,7 +964,6 @@ static int hookSpawnTask(void *data)
 	mlog("%s: no reservation %d (ID %s", __func__, resID,
 	     PSC_printTID(spawnertid));
 	mlog(" session %s)\n", PSC_printTID(loggertid));
-	envStealArray(env);
 	return -1;
     }
 
@@ -989,7 +979,6 @@ static int hookSpawnTask(void *data)
 	    mdbg(PSPMIX_LOG_VERBOSE, "%s: rank %d: job already known (uid %d"
 		 " ID %s)\n", __func__, task->rank, server->uid,
 		 PSC_printTID(spawnertid));
-	    envStealArray(env);
 	    return 0;
 	}
     } else {
@@ -1004,7 +993,6 @@ static int hookSpawnTask(void *data)
 	if (!startServer(server)) {
 	    mlog("%s: starting PMIx server failed (uid %d)\n", __func__,
 		 server->uid);
-	    envStealArray(env);
 	    return -1;
 	}
 
@@ -1015,16 +1003,14 @@ static int hookSpawnTask(void *data)
     }
 
     /* fake environment for one process if MPI singleton support is enabled */
+    env_t env = task->env;
     if (!usePMIx) {
 	/* clone environment so we can modify it */
-	env_t myEnv = envClone(env, NULL);
-	envStealArray(env);
-	if (!envInitialized(myEnv)) {
+	env = envClone(task->env, NULL);
+	if (!envInitialized(env)) {
 	    mlog("%s: cloning env failed\n", __func__);
 	    return -1;
 	}
-	env = myEnv;
-
 	envSet(env, "PMIX_UNIV_SIZE", "1");
 	envSet(env, "PMIX_JOB_SIZE", "1");
 	envSet(env, "PMIX_JOB_NUM_APPS", "1");
@@ -1048,11 +1034,7 @@ static int hookSpawnTask(void *data)
 
     /* save job in server (if not yet known) and notify running server */
     bool success = addJobToServer(server, loggertid, psjob, env);
-    if (!usePMIx) {
-	envDestroy(env);
-    } else {
-	envStealArray(env);
-    }
+    if (!usePMIx) envDestroy(env);
     if (success) return 0;
 
     mlog("%s: sending job failed (uid %d server %s", __func__, server->uid,

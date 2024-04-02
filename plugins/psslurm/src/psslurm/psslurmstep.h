@@ -387,14 +387,14 @@ Step_t *Step_findByPsidTask(pid_t pid);
  * @brief Find step from an environment
  *
  * Find a step from the values of the variables SLURM_STEPID and
- * SLURM_JOBID in the environment passed in @a environ. If NULL is
- * passed as @a environ or one of the variables is not found, NO_VAL
+ * SLURM_JOBID in the environment passed in @a env. If NULL is
+ * passed as @a env or one of the variables is not found, NO_VAL
  * for jobid and SLURM_BATCH_SCRIPT for stepid are assumed.
  *
  * If @a jobidOut or @a stepidOut are provided they will be used to
  * provide the found jobid and stepid respectively.
  *
- * @param environ Environment to investigate
+ * @param env Environment to investigate
  *
  * @param jobidOut Provide jobid of the step on return if not NULL
  *
@@ -407,12 +407,11 @@ Step_t *Step_findByPsidTask(pid_t pid);
  * @return On success a pointer to the step is returned or NULL
  * otherwise
  */
-Step_t *__Step_findByEnv(char **environ, uint32_t *jobidOut,
-			 uint32_t *stepidOut, const char *caller,
-			 const int line);
+Step_t *__Step_findByEnv(env_t env, uint32_t *jobidOut, uint32_t *stepidOut,
+			 const char *caller, const int line);
 
-#define Step_findByEnv(environ, jobidOut, stepidOut) \
-	__Step_findByEnv(environ, jobidOut, stepidOut, __func__, __LINE__)
+#define Step_findByEnv(env, jobidOut, stepidOut) \
+	__Step_findByEnv(env, jobidOut, stepidOut, __func__, __LINE__)
 
 /**
  * @brief Get the number of steps

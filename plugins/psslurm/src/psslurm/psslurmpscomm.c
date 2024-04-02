@@ -547,7 +547,7 @@ static int handleRecvSpawnReq(void *taskPtr)
     if (isPSAdminUser(spawnee->uid, spawnee->gid)) return 0;
 
     uint32_t jobid, stepid;
-    Step_t *step = Step_findByEnv(spawnee->environ, &jobid, &stepid);
+    Step_t *step = Step_findByEnv(spawnee->env, &jobid, &stepid);
     if (!step || !step->nodeinfos) {
 	/* if the step has no nodeinfo yet, delay spawning processes */
 	flog("delay spawning for %s due to missing %sstep %u:%u\n",
@@ -1965,7 +1965,7 @@ static Step_t * identifyStepByTaskEnv(PStask_t *task,
     /* check if step was identified before */
     Step_t *step = PStask_infoGet(task, TASKINFO_STEP);
     if (!step) {
-	step = Step_findByEnv(task->environ, jobID, stepID);
+	step = Step_findByEnv(task->env, jobID, stepID);
 	if (step) {
 	    /* cache for further calls */
 	    PStask_infoAdd(task, TASKINFO_STEP, step);
@@ -2089,7 +2089,7 @@ static bool filter(PStask_t *task, void *info)
 
     /* get jobid and stepid from received environment */
     uint32_t jobid, stepid;
-    Step_t *step = Step_findByEnv(task->environ, &jobid, &stepid);
+    Step_t *step = Step_findByEnv(task->env, &jobid, &stepid);
     if (!step && !js->cleanup) {
 	if (jobid == NO_VAL) {
 	    flog("no slurm IDs in spawnee environment from %s\n",

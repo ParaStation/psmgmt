@@ -215,19 +215,18 @@ Step_t *Step_findByPsidTask(pid_t pid)
     return NULL;
 }
 
-Step_t *__Step_findByEnv(char **environ, uint32_t *jobidOut,
-			 uint32_t *stepidOut, const char *caller,
-			 const int line)
+Step_t *__Step_findByEnv(env_t env, uint32_t *jobidOut, uint32_t *stepidOut,
+			 const char *caller, const int line)
 {
     uint32_t jobid = NO_VAL, stepid = SLURM_BATCH_SCRIPT;
 
-    if (!environ) {
+    if (!envInitialized(env)) {
 	flog("no environment, caller %s:%i\n", caller, line);
 	return NULL;
     }
 
-    for (int i = 0; environ[i]; i++) {
-	char *ptr = environ[i];
+    for (uint32_t i = 0; envDumpIndex(env, i); i++) {
+	char *ptr = envDumpIndex(env, i);
 	if (!strncmp(ptr, "SLURM_STEPID=", 13)) sscanf(ptr+13, "%u", &stepid);
 	if (!strncmp(ptr, "SLURM_JOBID=", 12)) sscanf(ptr+12, "%u", &jobid);
     }

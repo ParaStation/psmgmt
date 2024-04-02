@@ -212,7 +212,7 @@ int PSI_sendSpawnReq(PStask_t *task, PSnodes_ID_t *dstnodes, uint32_t max)
     addUint32ToMsg(num, &msg);
     if (!PStask_addToMsg(task, &msg)) return -1;
     if (!addStringArrayToMsg(task->argv, &msg)) return -1;
-    if (!addStringArrayToMsg(task->environ, &msg)) return -1;
+    if (!addStringArrayToMsg(envGetArray(task->env), &msg)) return -1;
 
     for (uint32_t r = 0; r < num; r++) {
 	char **extraEnv;
@@ -385,19 +385,9 @@ static PStask_t * createSpawnTask(char *wDir, PStask_group_t taskGroup,
     task->argc += offset;
     task->argv[task->argc] = NULL;
 
-    task->environ = dumpPSIEnv();
-    if (!task->environ) {
-	PSI_log(-1, "%s: cannot dump environment\n", __func__);
-	goto cleanup;
-    }
+    task->env = envNew(dumpPSIEnv());
     /* add the content of env */
-    if (envSize(env)) {
-	env_t psiEnv = envNew(task->environ);
-	for (uint32_t e = 0; e < envSize(env); e++)
-	    envPut(psiEnv, envDumpIndex(env, e));
-	task->environ = envGetArray(psiEnv);
-	envStealArray(psiEnv);
-    }
+    envCat(task->env, env, NULL);
 
     return task;
 

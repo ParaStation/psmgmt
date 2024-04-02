@@ -27,6 +27,7 @@
 #include "pstaskid.h" // IWYU pragma: export
 
 #include "pscpu.h"
+#include "psenv.h"
 #include "psitems.h"
 #include "pssenddb_t.h"
 
@@ -125,8 +126,7 @@ struct __task__ {
     /*C*/ char *workingdir;        /**< working directory */
     /*C*/ uint32_t argc;           /**< size of argv (w/o trailing NULL) */
     /*C*/ char **argv;             /**< command line arguments */
-    /*C*/ char **environ;          /**< PS environment, used for spawning */
-    /*C*/ uint32_t envSize;        /**< Size of environ (w/o trailing NULL) */
+    /*C*/ env_t env;               /**< PS environment, used for spawning */
     int relativesignal;            /**< the signal sent when a relative (i.e.
 				      parent or child) dies */
     int pendingReleaseRes;         /**< num of pending RELEASERES messages */

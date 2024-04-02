@@ -1894,10 +1894,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
      * Only the values of the first single spawn are used. */
     SingleSpawn_t *spawn = &(req->spawns[0]);
 
-    env_t env = envNew(task->environ);
-    addPreputToEnv(spawn->preputc, spawn->preputv, env);
-    task->envSize = envSize(env);
-    task->environ = envStealArray(env);
+    addPreputToEnv(spawn->preputc, spawn->preputv, task->env);
 
     /* build arguments:
      * mpiexec -u <UNIVERSE_SIZE> -np <NP> -d <WDIR> -p <PATH> \
@@ -2112,34 +2109,29 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     }
 
     /* add additional env vars */
-    env_t env = envNew(task->environ);
-
     snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%i_%i",
 	     PSC_getMyTID(), kvs_next++);  /* setup new KVS name */
-    envPut(env, buffer);
+    envPut(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     snprintf(buffer, sizeof(buffer), "__SPAWNER_SERVICE_RANK=%i",
 	     serviceRank - 3);
-    envPut(env, buffer);
+    envPut(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_PARENT=%i", PSC_getMyTID());
-    envPut(env, buffer);
+    envPut(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
-    envPut(env, "PMI_SPAWNED=1");
+    envPut(task->env, "PMI_SPAWNED=1");
 
     snprintf(buffer, sizeof(buffer), "PMI_SIZE=%d", *totalProcs);
-    envPut(env, buffer);
+    envPut(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     snprintf(buffer, sizeof(buffer), "__PMI_NO_PARRICIDE=%i",task->noParricide);
-    envPut(env, buffer);
+    envPut(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
-
-    task->envSize = envSize(env);
-    task->environ = envStealArray(env);
 
     if (debug) {
 	elog("%s(r%i): Executing '", __func__, rank);

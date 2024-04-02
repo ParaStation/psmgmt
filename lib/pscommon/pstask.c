@@ -231,8 +231,7 @@ static bool initTask(PStask_t* task)
     task->workingdir = NULL;
     task->argc = 0;
     task->argv = NULL;
-    task->environ = NULL;
-    task->envSize = 0;
+    task->env = NULL;
     task->relativesignal = SIGTERM;
     task->pendingReleaseRes = 0;
     task->pendingReleaseErr = 0;
@@ -330,11 +329,7 @@ static void cleanupTask(PStask_t* task)
 	task->argv = NULL;
     }
 
-    if (task->environ) {
-	for (uint32_t i = 0; task->environ[i]; i++) free(task->environ[i]);
-	free(task->environ);
-	task->environ = NULL;
-    }
+    envDestroy(task->env);
 
     if (task->request) PSpart_delReq(task->request);
     free(task->partition);
@@ -477,30 +472,7 @@ PStask_t* PStask_clone(PStask_t* task)
     }
     clone->argv[clone->argc] = NULL;
 
-    if (task->envSize) {
-	if (!task->environ) {
-	    PSC_log(-1, "%s: environ is NULL\n", __func__);
-	    eno = EINVAL;
-	    goto error;
-	}
-	clone->environ = malloc((task->envSize + 1) * sizeof(*clone->environ));
-	if (!clone->environ) {
-	    eno = errno;
-	    PSC_warn(-1, eno, "%s: malloc(environ)", __func__);
-	    goto error;
-	}
-	uint32_t i;
-	for (i = 0; task->environ[i]; i++) {
-	    clone->environ[i] = strdup(task->environ[i]);
-	    if (!clone->environ[i]) {
-		eno = errno;
-		PSC_warn(-1, eno, "%s: strdup(environ[%d])", __func__, i);
-		goto error;
-	    }
-	}
-	clone->environ[i] = NULL;
-    }
-    clone->envSize = task->envSize;
+    clone->env = envClone(task->env, NULL);
     clone->relativesignal = task->relativesignal;
     clone->pendingReleaseRes = task->pendingReleaseRes;
     clone->pendingReleaseErr = task->pendingReleaseErr;
@@ -624,7 +596,7 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task)
     if (strlen(txt)+1 == size) return;
     snprintf(txt+strlen(txt), size-strlen(txt), "\" env=\"");
     if (strlen(txt)+1 == size) return;
-    snprintfStrV(txt+strlen(txt), size-strlen(txt), task->environ);
+    snprintfStrV(txt+strlen(txt), size-strlen(txt), envGetArray(task->env));
     if (strlen(txt)+1 == size) return;
     snprintf(txt+strlen(txt), size-strlen(txt), "\"");
 }
