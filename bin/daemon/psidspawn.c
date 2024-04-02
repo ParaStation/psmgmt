@@ -2014,45 +2014,6 @@ static bool msg_SPAWNLOC(DDBufferMsg_t *msg)
     return true;
 }
 
-/**
- * @brief Append string vector
- *
- * Append the string vector @a newStrV to the existing vector @a
- * strV. @a strV contains @a strVSize entries before. @a strVSize will
- * be updated by this function and hold the new size of @a strV upon
- * return.
- *
- * This function will consume all the content strings of @a
- * newStrV. I.e. calling free() for this strings will affect the
- * consistency of @a strV. Thus, free() must not be called for any
- * element of @a newStrV[] after this call.
- *
- * @param strV String vector to extend
- *
- * @param strVSize Current and updated size of @a strV
- *
- * @param newStrV String vector to append to @a strV
- *
- * @return Open success true is returned; or false in case of an error
- */
-static bool appendStrV(char ***strV, uint32_t *strVSize, char **newStrV)
-{
-    int32_t i, num = 0;
-
-    while (newStrV[num]) num++;
-
-    char **tmp = realloc(*strV, (*strVSize + num + 1) * sizeof(**strV));
-    if (!tmp) return false;
-    *strV = tmp;
-
-    for (i = 0; i < num; i++) (*strV)[*strVSize + i] = newStrV[i];
-    (*strV)[*strVSize + num] = NULL;  /* trailing NULL */
-
-    *strVSize += num;
-
-    return true;
-}
-
 static inline bool isServiceTask(PStask_group_t group)
 {
     return (group == TG_SERVICE || group == TG_SERVICE_SIG
