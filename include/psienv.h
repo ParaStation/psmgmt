@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2001-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -91,23 +92,6 @@ int putPSIEnv(const char *string);
  * @see setPSIEnv()
  */
 char* getPSIEnv(const char *name);
-
-/**
- * @brief Pack the ParaStation Environment.
- *
- * Pack the ParaStation Environment into buffer @a buffer, so it can be sent
- * in a single message.
- *
- *
- * @param buffer The buffer to pack the ParaStation Environment in.
- *
- * @param size The size of @a buffer.
- *
- *
- * @return On success, the number of used bytes in buffer is returned, or -1
- * if an error occurred (i.e. the buffer is too small).
- */
-int packPSIEnv(char *buffer, size_t size);
 
 /**
  * @brief Get the number variables in the ParaStation Environment.

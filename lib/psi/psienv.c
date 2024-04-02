@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2001-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -139,30 +139,6 @@ char* getPSIEnv(const char* name)
     if (i < sizeOfEnv) return &(environment[i])[len + 1];
 
     return NULL;
-}
-
-int packPSIEnv(char *buffer, size_t size)
-{
-    size_t msglen = 0;
-
-    if (! buffer) return -1; /* We need a buffer */
-    if (! sizeOfEnv) return 0; /* No environment to pack */
-
-    for (int i = 0; i < sizeOfEnv; i++) {
-	if (environment[i]) {
-	    if ((msglen + strlen(environment[i])) < size) {
-		strcpy(&buffer[msglen], environment[i]);
-		msglen += strlen(environment[i]) + 1;
-	    } else {
-		return -1;  /* buffer too small */
-	    }
-	}
-    }
-
-    if (msglen >= size) return -1;  /* buf too small */
-
-    buffer[++msglen] = 0;
-    return msglen;
 }
 
 int numPSIEnv(void)
