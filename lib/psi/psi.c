@@ -285,7 +285,7 @@ void PSI_propEnvList(char *listName)
     char *envStr = getenv(listName);
     if (envStr) {
 	/* Propagate the list itself */
-	setPSIEnv(listName, envStr, 1);
+	setPSIEnv(listName, envStr);
 
 	/* Now handle its content */
 	PSI_propList(envStr);
@@ -303,7 +303,7 @@ void PSI_propList(char *listStr)
 	    *nextEnv = '\0';  /* replace the ',' with EOS */
 	    nextEnv++;        /* move to the start of the next string */
 	}
-	setPSIEnv(thisEnv, getenv(thisEnv), 1);
+	setPSIEnv(thisEnv, getenv(thisEnv));
 
 	thisEnv = nextEnv;
     }
@@ -327,7 +327,7 @@ int PSI_initClient(PStask_group_t taskGroup)
 	}
 
 	/* Propagate to client */
-	setPSIEnv("PSI_DEBUGMASK", envStr, 1);
+	setPSIEnv("PSI_DEBUGMASK", envStr);
 
 	PSI_setDebugMask(debugmask);
 	PSC_setDebugMask(debugmask);
@@ -778,7 +778,7 @@ static void pushLimits(void)
 	} else {
 	    snprintf(valStr, sizeof(valStr), "%lx", rlim.rlim_cur);
 	}
-	setPSIEnv(PSP_rlimitEnv[i].envName, valStr, 1);
+	setPSIEnv(PSP_rlimitEnv[i].envName, valStr);
     }
 }
 
@@ -790,40 +790,24 @@ void PSI_propEnv(void)
     int i;
 
     /* Propagate some environment variables */
-    if ((envStr = getenv("HOME"))) {
-	setPSIEnv("HOME", envStr, 1);
-    }
-    if ((envStr = getenv("USER"))) {
-	setPSIEnv("USER", envStr, 1);
-    }
-    if ((envStr = getenv("SHELL"))) {
-	setPSIEnv("SHELL", envStr, 1);
-    }
-    if ((envStr = getenv("TERM"))) {
-	setPSIEnv("TERM", envStr, 1);
-    }
-    if ((envStr = getenv("LD_LIBRARY_PATH"))) {
-	setPSIEnv("LD_LIBRARY_PATH", envStr, 1);
-    }
-    if ((envStr = getenv("LD_PRELOAD"))) {
-	setPSIEnv("LD_PRELOAD", envStr, 1);
-    }
-    if ((envStr = getenv("LIBRARY_PATH"))) {
-	setPSIEnv("LIBRARY_PATH", envStr, 1);
-    }
-    if ((envStr = getenv("PATH"))) {
-	setPSIEnv("PATH", envStr, 1);
-    }
-    if ((envStr = getenv("MPID_PSP_MAXSMALLMSG"))) {
-	setPSIEnv("MPID_PSP_MAXSMALLMSG", envStr, 1);
-    }
+    if ((envStr = getenv("HOME"))) setPSIEnv("HOME", envStr);
+    if ((envStr = getenv("USER"))) setPSIEnv("USER", envStr);
+    if ((envStr = getenv("SHELL"))) setPSIEnv("SHELL", envStr);
+    if ((envStr = getenv("TERM"))) setPSIEnv("TERM", envStr);
+    if ((envStr = getenv("LD_LIBRARY_PATH")))
+	setPSIEnv("LD_LIBRARY_PATH", envStr);
+    if ((envStr = getenv("LD_PRELOAD"))) setPSIEnv("LD_PRELOAD", envStr);
+    if ((envStr = getenv("LIBRARY_PATH"))) setPSIEnv("LIBRARY_PATH", envStr);
+    if ((envStr = getenv("PATH"))) setPSIEnv("PATH", envStr);
+    if ((envStr = getenv("MPID_PSP_MAXSMALLMSG")))
+	setPSIEnv("MPID_PSP_MAXSMALLMSG", envStr);
 
     pushLimits();
 
     mask = umask(0);
     umask(mask);
     snprintf(valStr, sizeof(valStr), "%o", mask);
-    setPSIEnv("__PSI_UMASK", valStr, 1);
+    setPSIEnv("__PSI_UMASK", valStr);
 
     /* export all PSP_* vars to the ParaStation environment */
     for (i=0; environ[i]; i++) {

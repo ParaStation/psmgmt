@@ -16,39 +16,35 @@
 #ifndef __PSIENV_H
 #define __PSIENV_H
 
+#include <stdbool.h>
 #include <stdlib.h>
+
+#include "psenv.h"
 
 /**
  * @brief Initialize the ParaStation Environment.
  *
  * Initialize the ParaStation Environment, i.e. clear all variables.
  *
- * @return No return value.
+ * @return No return value
  */
 void clearPSIEnv(void);
 
 /**
- * @brief Change or add a ParaStation Environment variable.
+ * @brief Change or add a ParaStation Environment variable
  *
- * Adds the variable @a name to the ParaStation Environment with the value
- * @a value, if @a name does not already exist. If @a name does exist in the
- * ParaStation Environment, then its value is changed to @a value if
- * @a overwrite is non-zero; if @a overwrite is zero, then the valye of
- * @a name is not changed.
+ * Set the variable @a name in the ParaStation Environment to the
+ * value @a val.
  *
+ * @param name Variable name to be set
  *
- * @param name The name of the variable to be set.
+ * @param val Value the variable shall be set to
  *
- * @param value The value of the variable to be set.
- *
- * @param overwrite Flag if overwriting is allowed.
- *
- *
- * @return On success, 0 is returned, or -1 if an error occured.
+ * @return On success, true is returned; or false if an error occurred
  *
  * @see getPSIEnv()
  */
-int setPSIEnv(const char *name, const char *value, int overwrite);
+bool setPSIEnv(const char *name, const char *val);
 
 /**
  * @brief Delete a ParaStation Environment variable.
@@ -62,7 +58,7 @@ int setPSIEnv(const char *name, const char *value, int overwrite);
 void unsetPSIEnv(const char *name);
 
 /**
- * @brief Change or add a ParaStation Environment variable.
+ * @brief Change or add a ParaStation Environment variable
  *
  * Adds or changes the value of ParaStation Environment variables. The
  * argument @a string is of the form 'name=value'. If name does not already
@@ -70,13 +66,13 @@ void unsetPSIEnv(const char *name);
  * does exist, then the value of name in the ParaStation Environment is
  * changed to value.
  *
- * @param string A character string of the form 'name=value'.
+ * @param string Character string of the form 'name=value'
  *
- * @return On success, 0 is returned, or -1 if an error occured.
+ * @return On success, true is returned; or false if an error occurred
  *
  * @see getPSIEnv()
  */
-int putPSIEnv(const char *string);
+bool putPSIEnv(const char *string);
 
 /**
  * @brief Lookup the variable @a name in the ParaStation Environment.

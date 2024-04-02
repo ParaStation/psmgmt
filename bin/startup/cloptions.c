@@ -1122,7 +1122,7 @@ Conf_t * parseCmdOptions(int argc, const char *argv[])
     if (envStr) {
 	envtpp = strtol(envStr, NULL, 0);
 	/* Propagate explicitly since PSI_* is not */
-	setPSIEnv("PSI_TPP", envStr, 1);
+	setPSIEnv("PSI_TPP", envStr);
     }
     conf->maxTPP = 1;
     env = envNew(NULL);
@@ -1152,7 +1152,7 @@ PARSE_MPIEXEC_OPT:
 	    poptStuffArgs(optCon, gav);
 	    break;
 	case 'V':
-	    setPSIEnv(genvopt, genvval, 1);
+	    setPSIEnv(genvopt, genvval);
 	    break;
 	case 'l':
 	    if (accenvlist) {

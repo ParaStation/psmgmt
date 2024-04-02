@@ -289,41 +289,38 @@ static void setupCommonEnv(Conf_t *conf)
 
     if (conf->PMIx) {
 	/* set the PMIX debug mode */
-	if (conf->pmiDbg || getenv("PMIX_DEBUG")) {
-	    setPSIEnv("PMIX_DEBUG", "1", 1);
-	}
+	if (conf->pmiDbg || getenv("PMIX_DEBUG")) setPSIEnv("PMIX_DEBUG", "1");
 
 	/* uniq node list */
 	env = getUniqueHostnamesString(conf);
-	setPSIEnv("__PMIX_NODELIST", env, 1);
+	setPSIEnv("__PMIX_NODELIST", env);
 
 	/* info about and for respawned processes */
 	env = getenv("PMIX_SPAWNID");
 	if (env) {
-	    setPSIEnv("PMIX_SPAWNID", env, 1);
+	    setPSIEnv("PMIX_SPAWNID", env);
 	    setPSIEnv("__PMIX_SPAWN_PARENT_FWTID",
-		    getenv("__PMIX_SPAWN_PARENT_FWTID"), 1);
+		      getenv("__PMIX_SPAWN_PARENT_FWTID"));
 	    setPSIEnv("__PMIX_SPAWN_PARENT_NSPACE",
-		    getenv("__PMIX_SPAWN_PARENT_NSPACE"), 1);
+		      getenv("__PMIX_SPAWN_PARENT_NSPACE"));
 	    setPSIEnv("__PMIX_SPAWN_PARENT_RANK",
-		    getenv("__PMIX_SPAWN_PARENT_RANK"), 1);
-	    setPSIEnv("__PMIX_SPAWN_OPTS",
-		    getenv("__PMIX_SPAWN_OPTS"), 1);
+		      getenv("__PMIX_SPAWN_PARENT_RANK"));
+	    setPSIEnv("__PMIX_SPAWN_OPTS", getenv("__PMIX_SPAWN_OPTS"));
 	}
 
 	snprintf(tmp, sizeof(tmp), "%d", conf->execCount);
-	setPSIEnv("PMIX_JOB_NUM_APPS", tmp, 1);
+	setPSIEnv("PMIX_JOB_NUM_APPS", tmp);
 
 	char var[32];
 	for (int i = 0; i < conf->execCount; i++) {
 	    Executable_t *exec = &conf->exec[i];
 	    snprintf(var, sizeof(var), "PMIX_APP_SIZE_%d", i);
 	    snprintf(tmp, sizeof(tmp), "%d", exec->np);
-	    setPSIEnv(var, tmp, 1);
+	    setPSIEnv(var, tmp);
 
 	    snprintf(var, sizeof(var), "PMIX_APP_WDIR_%d", i);
 	    char *dir = PSC_getwd(exec->wdir);
-	    setPSIEnv(var, dir, 1);
+	    setPSIEnv(var, dir);
 	    free(dir);
 
 	    snprintf(var, sizeof(var), "PMIX_APP_ARGV_%d", i);
@@ -337,27 +334,27 @@ static void setupCommonEnv(Conf_t *conf)
 		ptr += sprintf(ptr, "%s ", exec->argv[j]);
 	    }
 	    *(ptr-1)='\0';
-	    setPSIEnv(var, env, 1);
+	    setPSIEnv(var, env);
 	    free(env);
 
 	    if (exec->psetname) {
 		snprintf(var, sizeof(var), "PMIX_APP_NAME_%d", i);
-		setPSIEnv(var, exec->psetname, 1);
+		setPSIEnv(var, exec->psetname);
 	    }
 
 	    snprintf(var, sizeof(var), "__PMIX_RESID_%d", i);
 	    snprintf(tmp, sizeof(tmp), "%d", exec->resID);
-	    setPSIEnv(var, tmp, 1);
+	    setPSIEnv(var, tmp);
 	}
 
-	setPSIEnv("PSPMIX_ENV_TMOUT", getenv("PSPMIX_ENV_TMOUT"), 1);
+	setPSIEnv("PSPMIX_ENV_TMOUT", getenv("PSPMIX_ENV_TMOUT"));
     }
 
     unsetPSIEnv(ENV_PART_LOOPNODES);
     unsetPSIEnv("__PMI_PROVIDER_FD");
 
     snprintf(tmp, sizeof(tmp), "%d", conf->np);
-    setPSIEnv("PS_JOB_SIZE", tmp, 1);
+    setPSIEnv("PS_JOB_SIZE", tmp);
 
     if (conf->PMIx) {
 	/* set the size of the PMIx job */
@@ -366,11 +363,11 @@ static void setupCommonEnv(Conf_t *conf)
 	    fprintf(stderr, "\n%s: No PMIX_JOB_SIZE given\n", __func__);
 	    exit(EXIT_FAILURE);
 	}
-	setPSIEnv("PMIX_JOB_SIZE", env, 1);
+	setPSIEnv("PMIX_JOB_SIZE", env);
 
 	/* set PMIx session max procs aka universe size */
 	snprintf(tmp, sizeof(tmp), "%d", conf->uSize);
-	setPSIEnv("PMIX_UNIV_SIZE", tmp, 1);
+	setPSIEnv("PMIX_UNIV_SIZE", tmp);
     }
 
     if (conf->pmiTCP || conf->pmiSock) {
@@ -380,11 +377,11 @@ static void setupCommonEnv(Conf_t *conf)
 	    fprintf(stderr, "\n%s: No PMI_SIZE given\n", __func__);
 	    exit(EXIT_FAILURE);
 	}
-	setPSIEnv("PMI_SIZE", env, 1);
+	setPSIEnv("PMI_SIZE", env);
 
 	/* set PMI's universe size */
 	snprintf(tmp, sizeof(tmp), "%d", conf->uSize);
-	setPSIEnv("PMI_UNIVERSE_SIZE", tmp, 1);
+	setPSIEnv("PMI_UNIVERSE_SIZE", tmp);
 
 	char *mapping;
 
@@ -394,26 +391,24 @@ static void setupCommonEnv(Conf_t *conf)
 	    fprintf(stderr, "\n%s: No PMI_ID given\n", __func__);
 	    exit(EXIT_FAILURE);
 	}
-	setPSIEnv("PMI_ID", env, 1);
+	setPSIEnv("PMI_ID", env);
 
 	/* enable PMI tcp port */
-	if (conf->pmiTCP) setPSIEnv("PMI_ENABLE_TCP", "1", 1);
+	if (conf->pmiTCP) setPSIEnv("PMI_ENABLE_TCP", "1");
 
 	/* enable PMI sockpair */
-	if (conf->pmiSock) setPSIEnv("PMI_ENABLE_SOCKP", "1", 1);
+	if (conf->pmiSock) setPSIEnv("PMI_ENABLE_SOCKP", "1");
 
 	/* set the PMI debug mode */
-	if (conf->pmiDbg || getenv("PMI_DEBUG")) setPSIEnv("PMI_DEBUG", "1", 1);
+	if (conf->pmiDbg || getenv("PMI_DEBUG")) setPSIEnv("PMI_DEBUG", "1");
 
 	/* set the PMI debug KVS mode */
-	if (conf->pmiDbgKVS || getenv("PMI_DEBUG_KVS")) {
-	    setPSIEnv("PMI_DEBUG_KVS", "1", 1);
-	}
+	if (conf->pmiDbgKVS || getenv("PMI_DEBUG_KVS"))
+	    setPSIEnv("PMI_DEBUG_KVS", "1");
 
 	/* set the PMI debug client mode */
-	if (conf->pmiDbgClient || getenv("PMI_DEBUG_CLIENT")) {
-	    setPSIEnv("PMI_DEBUG_CLIENT", "1", 1);
-	}
+	if (conf->pmiDbgClient || getenv("PMI_DEBUG_CLIENT"))
+	    setPSIEnv("PMI_DEBUG_CLIENT", "1");
 
 	/* set the template for the KVS name */
 	env = getenv("PMI_KVS_TMP");
@@ -421,12 +416,12 @@ static void setupCommonEnv(Conf_t *conf)
 	    fprintf(stderr, "\n%s: No PMI_KVS_TMP given\n", __func__);
 	    exit(EXIT_FAILURE);
 	}
-	setPSIEnv("PMI_KVS_TMP", env, 1);
+	setPSIEnv("PMI_KVS_TMP", env);
 
 	/* setup process mapping needed for MVAPICH */
 	mapping = getProcessMap(conf->np);
 	if (mapping) {
-	    setPSIEnv("__PMI_PROCESS_MAPPING", mapping, 1);
+	    setPSIEnv("__PMI_PROCESS_MAPPING", mapping);
 	    free(mapping);
 	} else {
 	    fprintf(stderr, "failed building MVAPICH process mapping\n");
@@ -434,13 +429,13 @@ static void setupCommonEnv(Conf_t *conf)
 
 	/* MPI processes should use PMI version 1 as long as we don't have
 	 * support for PMI version 2 */
-	setPSIEnv("PMI_VERSION", "1", 1);
-	setPSIEnv("PMI_SUBVERSION", "1", 1);
+	setPSIEnv("PMI_VERSION", "1");
+	setPSIEnv("PMI_SUBVERSION", "1");
 
 	/* propagate neccessary infos for PMI spawn */
 	env = getenv("__PMI_preput_num");
 	if (env) {
-	    setPSIEnv("__PMI_preput_num", env, 1);
+	    setPSIEnv("__PMI_preput_num", env);
 	    int prenum = atoi(env);
 	    for (int i = 0; i < prenum; i++) {
 		char keybuf[100], valbuf[100];
@@ -452,22 +447,22 @@ static void setupCommonEnv(Conf_t *conf)
 		char *value = getenv(valbuf);
 		if (!value) continue;
 
-		setPSIEnv(keybuf, key, 1);
-		setPSIEnv(valbuf, value, 1);
+		setPSIEnv(keybuf, key);
+		setPSIEnv(valbuf, value);
 	    }
 	}
-	setPSIEnv("__PMI_SPAWN_PARENT", getenv("__PMI_SPAWN_PARENT"), 1);
-	setPSIEnv("__KVS_PROVIDER_TID", getenv("__KVS_PROVIDER_TID"), 1);
-	setPSIEnv("PMI_SPAWNED", getenv("PMI_SPAWNED"), 1);
-	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"), 1);
-	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"), 1);
+	setPSIEnv("__PMI_SPAWN_PARENT", getenv("__PMI_SPAWN_PARENT"));
+	setPSIEnv("__KVS_PROVIDER_TID", getenv("__KVS_PROVIDER_TID"));
+	setPSIEnv("PMI_SPAWNED", getenv("PMI_SPAWNED"));
+	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"));
+	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"));
 
 	char var[32];
 	for (int i = 0; i < conf->execCount; i++) {
 	    Executable_t *exec = &conf->exec[i];
 	    if (exec->psetname) {
 		snprintf(var, sizeof(var), "PMI_APPNAME_%d", i);
-		setPSIEnv(var, exec->psetname, 1);
+		setPSIEnv(var, exec->psetname);
 	    }
 	}
     }
@@ -478,11 +473,11 @@ static void setupCommonEnv(Conf_t *conf)
 	fprintf(stderr, "\n%s: No PSI_NP_INFO given\n", __func__);
 	exit(EXIT_FAILURE);
     }
-    setPSIEnv("PSI_NP_INFO", env, 1);
+    setPSIEnv("PSI_NP_INFO", env);
 
     /* *hack* let MPI processes fail if no pspmi plugin is loaded */
-    setPSIEnv("PMI_FD", "10000", 1);
-    setPSIEnv("PMI_PORT", "10000", 1);
+    setPSIEnv("PMI_FD", "10000");
+    setPSIEnv("PMI_PORT", "10000");
 
     /* Reduce environment footprint for actual processes */
     unsetPSIEnv("__PSI_EXPORTS");

@@ -422,9 +422,9 @@ static int nodelistFromHostStr(char *hostStr, nodelist_t *nodelist)
 	    if (host && host[0] != '\0') {
 		if ((envstr = getenv("PSP_NETWORK"))) {
 		    snprintf(buf, sizeof(buf), "%s,%s", envstr, host);
-		    setPSIEnv("PSP_NETWORK", buf, 1);
+		    setPSIEnv("PSP_NETWORK", buf);
 		} else {
-		    setPSIEnv("PSP_NETWORK", host, 1);
+		    setPSIEnv("PSP_NETWORK", host);
 		}
 	    }
 	} else {

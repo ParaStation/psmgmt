@@ -53,12 +53,12 @@ static void propMoreEnv(void)
 			"__PMIX_SPAWN_FAILMSG_TYPE",
 			NULL };
 
-    for (char **e = envList; *e; e++) setPSIEnv(*e, getenv(*e), 1);
+    for (char **e = envList; *e; e++) setPSIEnv(*e, getenv(*e));
 
     char *env = getenv("__PMI_preput_num");
     if (!env) return;
 
-    setPSIEnv("__PMI_preput_num", env, 1);
+    setPSIEnv("__PMI_preput_num", env);
     int prenum = atoi(env);
     for (int i = 0; i < prenum; i++) {
 	char keybuf[64];
@@ -71,8 +71,8 @@ static void propMoreEnv(void)
 	char *value = getenv(valbuf);
 	if (!value) continue;
 
-	setPSIEnv(keybuf, key, 1);
-	setPSIEnv(valbuf, value, 1);
+	setPSIEnv(keybuf, key);
+	setPSIEnv(valbuf, value);
     }
 }
 
@@ -115,7 +115,7 @@ int main(int argc, const char *argv[], char** envp)
 
     if (!conf->pmiDisable) {
 	snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
-	setPSIEnv("__KVS_PROVIDER_TID", tmp, 1);
+	setPSIEnv("__KVS_PROVIDER_TID", tmp);
     }
 
     /* determine node the spawn service process shall run on */

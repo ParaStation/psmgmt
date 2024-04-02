@@ -26,21 +26,17 @@ void clearPSIEnv(void)
     sizeOfEnv = 0;
 }
 
-int setPSIEnv(const char *name, const char *value, int overwrite)
+bool setPSIEnv(const char *name, const char *val)
 {
-    if (!name || !value) return -1;
+    if (!name || !val) return false;
 
-    if (getPSIEnv(name)) {
-	if (!overwrite) return 0;
+    if (getPSIEnv(name)) unsetPSIEnv(name);
 
-	unsetPSIEnv(name);
-    }
+    char *envStr = malloc(strlen(name) + strlen(val) + 2);
+    if (!envStr) return false;
+    sprintf(envStr, "%s=%s", name, val);
 
-    char *envStr = malloc(strlen(name) + strlen(value) + 2);
-    if (!envStr) return -1;
-    sprintf(envStr, "%s=%s", name, value);
-
-    int ret = putPSIEnv(envStr);
+    bool ret = putPSIEnv(envStr);
 
     free(envStr);
 
@@ -69,11 +65,11 @@ void unsetPSIEnv(const char *name)
 
 #define ENVCHUNK 5
 
-int putPSIEnv(const char *string)
+bool putPSIEnv(const char *string)
 {
     /* search for the name in string */
     char *beg = strchr(string,'=');
-    if (!beg) return -1;
+    if (!beg) return false;
 
     size_t len = ((size_t)beg) - ((size_t)string);
 
@@ -99,7 +95,7 @@ int putPSIEnv(const char *string)
 
 	    if (!new_environ) {
 		errno = ENOMEM;
-		return -1;
+		return false;
 	    }
 
 	    environment = new_environ;
@@ -115,10 +111,10 @@ int putPSIEnv(const char *string)
 
     if (!environment[i]) {
 	errno = ENOMEM;
-	return -1;
+	return false;
     }
 
-    return 0;
+    return true;
 }
 
 char* getPSIEnv(const char* name)

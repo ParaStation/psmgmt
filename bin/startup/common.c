@@ -53,33 +53,33 @@ static void setupPSCOMEnv(Conf_t *conf)
 		    !strcmp(tok,"P4S") || !strcmp(tok,"p4s")) {
 		unsetenv("PSP_P4S");
 		unsetenv("PSP_P4SOCK");
-		setPSIEnv("PSP_P4S", "0", 1);
+		setPSIEnv("PSP_P4S", "0");
 		if (verbose) printf("PSP_P4S=0\n");
 	    } else if (!strcmp(tok,"SHM") || !strcmp(tok,"shm") ||
 		    !strcmp(tok,"SHAREDMEM") || !strcmp(tok,"sharedmem")) {
 		unsetenv("PSP_SHM");
 		unsetenv("PSP_SHAREDMEM");
-		setPSIEnv("PSP_SHM", "0", 1);
+		setPSIEnv("PSP_SHM", "0");
 		if (verbose) printf("PSP_SHM=0\n");
 	    } else if (!strcmp(tok,"GM") || !strcmp(tok,"gm")) {
 		unsetenv("PSP_GM");
-		setPSIEnv("PSP_GM", "0", 1);
+		setPSIEnv("PSP_GM", "0");
 		if (verbose) printf("PSP_GM=0\n");
 	    } else if (!strcmp(tok,"MVAPI") || !strcmp(tok,"mvapi")) {
 		unsetenv("PSP_MVAPI");
-		setPSIEnv("PSP_MVAPI", "0", 1);
+		setPSIEnv("PSP_MVAPI", "0");
 		if (verbose) printf("PSP_MVAPI=0\n");
 	    } else if (!strcmp(tok,"OPENIB") || !strcmp(tok,"openib")) {
 		unsetenv("PSP_OPENIB");
-		setPSIEnv("PSP_OPENIB", "0", 1);
+		setPSIEnv("PSP_OPENIB", "0");
 		if (verbose) printf("PSP_OPENIB=0\n");
 	    } else if (!strcmp(tok,"TCP") || !strcmp(tok,"tcp")) {
 		unsetenv("PSP_TCP");
-		setPSIEnv("PSP_TCP", "0", 1);
+		setPSIEnv("PSP_TCP", "0");
 		if (verbose) printf("PSP_TCP=0\n");
 	    } else if (!strcmp(tok,"DAPL") || !strcmp(tok,"dapl")) {
 		unsetenv("PSP_DAPL");
-		setPSIEnv("PSP_DAPL", "0", 1);
+		setPSIEnv("PSP_DAPL", "0");
 		if (verbose) printf("PSP_DAPL=0\n");
 	    } else {
 		printf("Unknown option to discom: %s\n", tok);
@@ -91,67 +91,67 @@ static void setupPSCOMEnv(Conf_t *conf)
     }
 
     if (conf->PSComNtwrk) {
-	setPSIEnv("PSP_NETWORK", conf->PSComNtwrk, 1);
+	setPSIEnv("PSP_NETWORK", conf->PSComNtwrk);
 	if (verbose) printf("PSP_NETWORK=%s\n", conf->PSComNtwrk);
     }
 
     if (conf->PSComSigQUIT) {
-	setPSIEnv("PSP_SIGQUIT", "1", 1);
+	setPSIEnv("PSP_SIGQUIT", "1");
 	if (verbose) printf("PSP_SIGQUIT=1 : Switching pscom SIGQUIT on\n");
     }
 
     if (conf->PSComDbg) {
-	setPSIEnv("PSP_DEBUG", "2", 1);
+	setPSIEnv("PSP_DEBUG", "2");
 	if (verbose) printf("PSP_DEBUG=2 : Switching pscom debug mode on\n");
     }
 
     if (conf->PSComRetry) {
 	snprintf(buf, sizeof(buf), "%d", conf->PSComRetry);
-	setPSIEnv("PSP_RETRY", buf, 1);
+	setPSIEnv("PSP_RETRY", buf);
 	if (verbose) printf("PSP_RETRY=%d : Number of connection retries\n",
 			    conf->PSComRetry);
     }
 
     if (conf->PSComColl) {
-	setPSIEnv("PSP_COLLECTIVES", "1", 1);
+	setPSIEnv("PSP_COLLECTIVES", "1");
 	if (verbose) printf("PSP_COLLECTIVES=1 : Using psmpi collectives\n");
     }
 
     if (conf->PSComOnDemand > -1) {
-	setPSIEnv("PSP_ONDEMAND", conf->PSComOnDemand ? "1" : "0", 1);
+	setPSIEnv("PSP_ONDEMAND", conf->PSComOnDemand ? "1" : "0");
 	if (verbose) printf("PSP_ONDEMAND=%s : %sable psmpi on-demand"
 			    " connections\n", conf->PSComOnDemand ? "1" : "0",
 			    conf->PSComOnDemand ? "En" : "Dis");
     }
 
     if (conf->PSComSchedYield) {
-	setPSIEnv("PSP_SCHED_YIELD", "1", 1);
+	setPSIEnv("PSP_SCHED_YIELD", "1");
 	if (verbose) printf("PSP_SCHED_YIELD=1 : Using sched_yield "
 	    "system call\n");
     }
 
     if (conf->PSComSndbuf) {
 	snprintf(buf, sizeof(buf), "%d", conf->PSComSndbuf);
-	setPSIEnv("PSP_SO_SNDBUF", buf, 1);
+	setPSIEnv("PSP_SO_SNDBUF", buf);
 	if (verbose) printf("PSP_SO_SNDBUF=%d : TCP send buffer\n",
 			    conf->PSComSndbuf);
     }
 
     if (conf->PSComRcvbuf) {
 	snprintf(buf, sizeof(buf), "%d", conf->PSComRcvbuf);
-	setPSIEnv("PSP_SO_RCVBUF", buf, 1);
+	setPSIEnv("PSP_SO_RCVBUF", buf);
 	if (verbose) printf("PSP_SO_RCVBUF=%d : TCP receive buffer\n",
 			    conf->PSComRcvbuf);
     }
 
     if (conf->PSComPlgnDir) {
-	setPSIEnv("PSP_PLUGINDIR", conf->PSComPlgnDir, 1);
+	setPSIEnv("PSP_PLUGINDIR", conf->PSComPlgnDir);
 	if (verbose) printf("PSP_PLUGINDIR=%s : PSCom plugin directory\n",
 			    conf->PSComPlgnDir);
     }
 
     if (conf->PSComNoDelay) {
-	setPSIEnv("PSP_TCP_NODELAY", "0", 1);
+	setPSIEnv("PSP_TCP_NODELAY", "0");
 	if (verbose) printf("PSP_TCP_NODELAY=0 : Turn TCP_NODELAY off\n");
     }
 }
@@ -224,10 +224,10 @@ static void setupPSIEnv(Conf_t *conf)
     if (conf->valgrind) {
 	snprintf(buf, sizeof(buf), "%d", conf->memcheck ? 2 : 1);
 	setenv("PSI_USE_VALGRIND", buf, 1);
-	setPSIEnv("PSI_USE_VALGRIND", buf, 1);
+	setPSIEnv("PSI_USE_VALGRIND", buf);
 	if (conf->callgrind) {
 	    setenv("PSI_USE_CALLGRIND", "1", 1);
-	    setPSIEnv("PSI_USE_CALLGRIND", "1", 1);
+	    setPSIEnv("PSI_USE_CALLGRIND", "1");
 	    if (verbose) printf("PSI_USE_CALLGRIND=1 : Running on Valgrind"
 				" core(s) (callgrind tool)\n");
 	} else {
@@ -355,11 +355,11 @@ static void setupPSIEnv(Conf_t *conf)
     }
 
     /* forward verbosity */
-    if (conf->verbose) setPSIEnv("MPIEXEC_VERBOSE", "1", 1);
+    if (conf->verbose) setPSIEnv("MPIEXEC_VERBOSE", "1");
 
     /* forward the job's universe size */
     snprintf(buf, sizeof(buf), "%d", conf->uSize);
-    setPSIEnv("PSI_USIZE_INFO", buf, 1);
+    setPSIEnv("PSI_USIZE_INFO", buf);
     setenv("PSI_USIZE_INFO", buf, 1);
 }
 
@@ -406,7 +406,7 @@ static size_t doSetup(Conf_t *conf, char **environ, char *xprts, size_t xprtsLen
 
 	val++;
 	if (xprts && xprtsLen) {
-	    setPSIEnv(key, val, 1);
+	    setPSIEnv(key, val);
 	    snprintf(xprts + strlen(xprts), xprtsLen - strlen(xprts),
 		     "%s%s", strlen(xprts) ? "," : "", key);
 	}
@@ -444,7 +444,7 @@ void setupEnvironment(Conf_t *conf)
 	    /* now setup the actual environment */
 	    doSetup(conf, environ, xprts, xprtsLen);
 
-	    setPSIEnv("__PSI_EXPORTS", xprts, 1);
+	    setPSIEnv("__PSI_EXPORTS", xprts);
 	    free(xprts);
 	}
 
@@ -453,7 +453,7 @@ void setupEnvironment(Conf_t *conf)
 
     if (conf->path) {
 	setenv("PATH", conf->path, 1);
-	setPSIEnv("PATH", conf->path, 1);
+	setPSIEnv("PATH", conf->path);
     }
 }
 

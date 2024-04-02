@@ -72,7 +72,7 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
 	    snprintf(env_name, sizeof(env_name), ENV_NODE_RARG, i);
 	    new_argv[i] = getenv(env_name);
 	    /* Propagate the environment */
-	    setPSIEnv(env_name, new_argv[i], 1);
+	    setPSIEnv(env_name, new_argv[i]);
 	}
 	for (i = 0; i < Argc; i++) {
 	    new_argv[i+cnt] = Argv[i];

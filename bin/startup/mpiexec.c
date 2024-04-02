@@ -53,24 +53,24 @@ static void setupGlobalEnv(Conf_t *conf)
     if (conf->PMIx) {
 	/* set the size of the job */
 	snprintf(tmp, sizeof(tmp), "%d", conf->np);
-	setPSIEnv("PMIX_JOB_SIZE", tmp, 1);
+	setPSIEnv("PMIX_JOB_SIZE", tmp);
 	setenv("PMIX_JOB_SIZE", tmp, 1);
     }
 
     if (conf->pmiTCP || conf->pmiSock) {
 	/* set the size of the job */
 	snprintf(tmp, sizeof(tmp), "%d", conf->np);
-	setPSIEnv("PMI_SIZE", tmp, 1);
+	setPSIEnv("PMI_SIZE", tmp);
 	setenv("PMI_SIZE", tmp, 1);
 
 	/* generate PMI auth token */
 	snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
-	setPSIEnv("PMI_ID", tmp, 1);
+	setPSIEnv("PMI_ID", tmp);
 	setenv("PMI_ID", tmp, 1);
 
 	/* set the template for the KVS name */
 	snprintf(tmp, sizeof(tmp), "pshost_%i_0", PSC_getMyTID());
-	setPSIEnv("PMI_KVS_TMP", tmp, 1);
+	setPSIEnv("PMI_KVS_TMP", tmp);
 	setenv("PMI_KVS_TMP", tmp, 1);
 
 	if (conf->pmiTmout) {
@@ -79,21 +79,21 @@ static void setupGlobalEnv(Conf_t *conf)
 	    if (conf->verbose)
 		printf("Set timeout of PMI barrier to %i\n", conf->pmiTmout);
 	}
-	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"), 1);
-	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"), 1);
-	setPSIEnv("MEASURE_KVS_PROVIDER", getenv("MEASURE_KVS_PROVIDER"), 1);
+	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"));
+	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"));
+	setPSIEnv("MEASURE_KVS_PROVIDER", getenv("MEASURE_KVS_PROVIDER"));
     } else if (conf->PMIx) {
-	setPSIEnv("PSPMIX_ENV_TMOUT", getenv("PSPMIX_ENV_TMOUT"), 1);
+	setPSIEnv("PSPMIX_ENV_TMOUT", getenv("PSPMIX_ENV_TMOUT"));
     }
 
     /* set the size of the job */
     snprintf(tmp, sizeof(tmp), "%d", conf->np);
-    setPSIEnv("PSI_NP_INFO", tmp, 1);
+    setPSIEnv("PSI_NP_INFO", tmp);
     setenv("PSI_NP_INFO", tmp, 1);
 
     /* provide information on the logger task */
     snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
-    setPSIEnv("__PSI_LOGGER_TID", tmp, 1);
+    setPSIEnv("__PSI_LOGGER_TID", tmp);
 }
 
 int main(int argc, const char *argv[])
@@ -147,7 +147,7 @@ int main(int argc, const char *argv[])
     /* determine node the kvsprovider service process shall run on */
     char *envPtr = getenv("__MPIEXEC_DIST_START");
     PSnodes_ID_t startNode = envPtr ? getIDbyIdx(conf, 1) : PSC_getMyID();
-    setPSIEnv("__MPIEXEC_DIST_START", envPtr, 1);
+    setPSIEnv("__MPIEXEC_DIST_START", envPtr);
 
     /* setup the global environment also shared by logger for PMI */
     setupGlobalEnv(conf);
@@ -163,7 +163,7 @@ int main(int argc, const char *argv[])
 
     /* determine working directory */
     char *pwd = getcwd(tmp, sizeof(tmp));
-    if (pwd) setPSIEnv("PWD", pwd, 1);
+    if (pwd) setPSIEnv("PWD", pwd);
 
     /* spawn the actual KVS provider service */
     if (conf->verbose) printf("%s: provide KVS via %s\n", origArgv0, argv[0]);
