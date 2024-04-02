@@ -16,6 +16,7 @@
 #define __PSISPAWN_H__
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 #include "psenv.h"

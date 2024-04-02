@@ -11,9 +11,7 @@
  */
 #include "psienv.h"
 
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
+#include <stdlib.h>
 
 static env_t PSenv;
 
