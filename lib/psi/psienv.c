@@ -15,164 +15,43 @@
 #include <string.h>
 #include <errno.h>
 
-static char** environment = NULL;
-static int sizeOfEnv = 0;
+static env_t PSenv;
 
 void clearPSIEnv(void)
 {
-    for (int i = 0; i < sizeOfEnv; i++) free(environment[i]);
-    free(environment);
-    environment = NULL;
-    sizeOfEnv = 0;
+    envDestroy(PSenv);
 }
 
 bool setPSIEnv(const char *name, const char *val)
 {
-    if (!name || !val) return false;
-
-    if (getPSIEnv(name)) unsetPSIEnv(name);
-
-    char *envStr = malloc(strlen(name) + strlen(val) + 2);
-    if (!envStr) return false;
-    sprintf(envStr, "%s=%s", name, val);
-
-    bool ret = putPSIEnv(envStr);
-
-    free(envStr);
-
-    return ret;
+    if (!envInitialized(PSenv)) PSenv = envNew(NULL);
+    return envSet(PSenv, name, val);
 }
 
 void unsetPSIEnv(const char *name)
 {
-    size_t len = strlen(name);
-
-    int i;
-    for (i = 0; i < sizeOfEnv; i++) {
-	if (environment[i] && !strncmp(environment[i], name, len)
-	    && environment[i][len] == '=') {
-	    /* the environment names are the same, including the length */
-	    break;
-	}
-    }
-
-    if (i < sizeOfEnv) {
-	/* the name is found => delete it */
-	free(environment[i]);
-	environment[i] = NULL;
-    }
+    if (!envInitialized(PSenv)) return;
+    envUnset(PSenv, name);
 }
-
-#define ENVCHUNK 5
 
 bool putPSIEnv(const char *string)
 {
-    /* search for the name in string */
-    char *beg = strchr(string,'=');
-    if (!beg) return false;
-
-    size_t len = ((size_t)beg) - ((size_t)string);
-
-    int i;
-    for (i = 0; i < sizeOfEnv; i++) {
-	if (environment[i] && !strncmp(environment[i], string, len)
-	    && environment[i][len] == '=') {
-	    /* the environment names are the same, including the length */
-	    break;
-	}
-    }
-
-    if (i < sizeOfEnv) {
-	/* the name is found => replace it */
-	free(environment[i]);
-    } else {
-	/* Look for a free place */
-	for (i = 0; i < sizeOfEnv && environment[i]; i++);
-	if (i == sizeOfEnv) {
-	    /* no free place found => extend the environment */
-	    char** new_environ = realloc(environment,
-					 sizeof(char*)*(sizeOfEnv + ENVCHUNK));
-
-	    if (!new_environ) {
-		errno = ENOMEM;
-		return false;
-	    }
-
-	    environment = new_environ;
-
-	    for (int j = sizeOfEnv + 1; j < sizeOfEnv + ENVCHUNK; j++) {
-		environment[j] = NULL;
-	    }
-	    sizeOfEnv += ENVCHUNK;
-	}
-    }
-
-    environment[i] = strdup(string);
-
-    if (!environment[i]) {
-	errno = ENOMEM;
-	return false;
-    }
-
-    return true;
+    if (!envInitialized(PSenv)) PSenv = envNew(NULL);
+    return envPut(PSenv, string);
 }
 
-char* getPSIEnv(const char* name)
+char *getPSIEnv(const char* name)
 {
-    /* search for the name in string */
-    if (!name) return NULL;
-    size_t len = strlen(name);
-
-    int i;
-    for (i = 0; i < sizeOfEnv; i++) {
-	if (environment[i] && !strncmp(environment[i], name, len)
-	    && environment[i][len] == '=') {
-	    /* the environment names are the same, including the length */
-	    break;
-	}
-    }
-
-    if (i < sizeOfEnv) return &(environment[i])[len + 1];
-
-    return NULL;
+    return envGet(PSenv, name);
 }
 
 int numPSIEnv(void)
 {
-    int count = 0;
-    for (int i = 0; i < sizeOfEnv; i++) if (environment[i]) count++;
-
-    return count;
+    return envSize(PSenv);
 }
 
-char ** dumpPSIEnv(void)
+char **dumpPSIEnv(void)
 {
-    int count = numPSIEnv();
-
-    char **env_copy = malloc((count + 1) * sizeof(char*));
-
-    int j = 0;
-    for (int i = 0; i < sizeOfEnv && j <= count; i++) {
-	if (environment[i]) {
-	    env_copy[j] = strdup(environment[i]);
-	    if (!env_copy[j]) {
-		for (int k = 0; k < j; k++) free(env_copy[k]);
-		free(env_copy);
-
-		return NULL;
-	    }
-	    j++;
-	}
-    }
-
-    if (j > count) {
-	/* Cleanup */
-	for (int i = 0; i < count + 1; i++) free(env_copy[i]);
-	free(env_copy);
-
-	return NULL;
-    }
-
-    env_copy[j] = NULL;
-    return env_copy;
+    env_t clone = envClone(PSenv, NULL);
+    return envStealArray(clone);
 }

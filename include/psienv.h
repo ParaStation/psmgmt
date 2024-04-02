@@ -47,13 +47,13 @@ void clearPSIEnv(void);
 bool setPSIEnv(const char *name, const char *val);
 
 /**
- * @brief Delete a ParaStation Environment variable.
+ * @brief Delete a ParaStation Environment variable
  *
- * Deletes the variable @a name from the ParaStation Environment.
+ * Delete the variable @a name from the ParaStation Environment.
  *
- * @param name The name of the variable to be removed.
+ * @param name Variable name to be removed
  *
- * @return No return value.
+ * @return No return value
  */
 void unsetPSIEnv(const char *name);
 
@@ -75,47 +75,40 @@ void unsetPSIEnv(const char *name);
 bool putPSIEnv(const char *string);
 
 /**
- * @brief Lookup the variable @a name in the ParaStation Environment.
+ * @brief Lookup the variable @a name in the ParaStation Environment
  *
  * Find the variable @a name within the ParaStation Environment and return
- * the corresponding value, set by PSI_setenv("name=value").
+ * the corresponding value.
  *
- * @param name The name of the environment variable to be looked up.
+ * @param name Variable name to be looked up
  *
- * @return On success, a pointer to the corresponding value is returned, or
- * NULL if an error occured.
+ * @return On success, a pointer to the corresponding value is returned; or
+ * NULL if an error occured
  *
- * @see setPSIEnv()
+ * @see setPSIEnv(), putPSIEnv()
  */
-char* getPSIEnv(const char *name);
+char *getPSIEnv(const char *name);
 
 /**
- * @brief Get the number variables in the ParaStation Environment.
+ * @brief Get the number variables in the ParaStation Environment
  *
  * Get the number variables in the ParaStation Environment.
  *
  * @return On success, the number of variables in the ParaStation Environment
- * is returned, or -1 if an error occurred.
+ * is returned; or -1 if an error occurred
  */
 int numPSIEnv(void);
 
 /**
- * @brief Get a packed copy of the ParaStation Environment.
+ * @brief Get a packed copy of the ParaStation Environment
  *
- * Get a packed copy of the actual ParaStation Environment. This will
+ * Get a copy of the actual ParaStation Environment. This will
  * contain all environment variables and its values.
  *
- * The packed is allocated by malloc() and might be free()ed part by
- * part. As a first step an index of pointers to char with size
- * numPSIEnv() is allocated, then all environment variables and their
- * values are strdup()ed to this structure. Thus firstly each element
- * of the index has to be free()ed before the index itself is
- * free()ed.
- *
  * @return A compressed form of the ParaStation environment is
- * returned. If something went wrong within the creation of the
- * compressed copy, NULL is returned.
+ * returned; if something went wrong during the creation of the
+ * compressed copy, NULL is returned
  */
-char ** dumpPSIEnv(void);
+char **dumpPSIEnv(void);
 
 #endif /* __PSIENV_H */
