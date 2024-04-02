@@ -6,6 +6,47 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.60:
+===============
+Bugfixes:
+ - Don't stop psaccount collect scripts on temporary error (#186)
+ - Ensure PSP_DD_CHILDRESREL is sent without delay (#177)
+ - Ensure -x and -H (-N, -f) work together in mpiexec (#160)
+ - psiadmin has to expect local answer on plugin (#167)
+ - Rework mpiexec's environment handling (#182)
+ - Ensure building works even with missing NUMA support (#12)
+ - Fix potentail memory leak and unexpected NULL attribute unveiled by Clang
+ - Fix warnings unveiled by recent Clang versions
+ - Fix psidsession information when spawning w/out Slurm
+Enhancements:
+ - Add psslurm configuration option SSTAT_USERS (psc:#438)
+ - Add extra variables to client environment (#188)
+   * PS_SESSION_ID, PS_JOB_ID, PS_RESERVATION_ID, PS_JOB_RANK, PS_JOB_SIZE
+ - Implement --pset option for mpiexec (#110)
+ - Add support for OCI containers to psslurm (via Slurm's oci.conf)
+ - Add PAM session support for user processes in psslurm
+ - Prepare for PMIx_Spawn() support -- this is not yet complete
+ - Close psidforwarder's logger connection on dropped FINALIZE message
+Additional changes:
+ - Get rid of the OpenMPI tweeks in mpiexec
+   * This is obsoleted for a long time by native Slurm support
+ - Get rid of starters for ancient MPI versions
+ - PMIx tests: Add spawn and simple abort tests
+ - Add script to calculate cpumap from /proc/cpuinfo
+ - Rename __PMI_SPAWN_SERVICE_RANK to __SPAWNER_SERVICE_RANK
+ - Introduce PSIDHOOK_EXEC_CLIENT_EXEC and bump plugin API to 141
+ - Push rrcomm's plugin version to 2
+ - Make PSID_execFunc() usable outside psid itself
+ - Publish loadPlugin(), findPlugin() as PSIDplugin_load(), PSIDplugin_find()
+ - Move spawn definitions into common pluginspawn.[ch]
+ - Rework psidspawn's testExecutable() and changeToWorkDir()
+ - Introduce mmapFile() in pluginhelper
+ - Rework env_t to make it opaque, rework filter functionality, etc.
+ - Allow stealing of the whole array from strv_t
+ - IWYU fixes (after update to version 0.22)
+ - Add Intel Xeon MAX topology w/ and w/out flat mode recorded with v2.2
+
+
 Version 5.1.59-5:
 =================
 Bugfixes:
