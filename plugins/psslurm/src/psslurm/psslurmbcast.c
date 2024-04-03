@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -181,9 +181,16 @@ BCast_t *BCast_find(uint32_t jobid, char *fileName, uint32_t blockNum)
 
 void BCast_freeCred(BCast_Cred_t *cred)
 {
+    if (cred->groupNames) {
+	for (uint32_t i=0; i<cred->gNamesLen; i++) ufree(cred->groupNames[i]);
+	ufree(cred->groupNames);
+    }
     ufree(cred->username);
     ufree(cred->gids);
     ufree(cred->hostlist);
+    ufree(cred->gecos);
+    ufree(cred->home);
+    ufree(cred->shell);
     ufree(cred->sig);
 }
 

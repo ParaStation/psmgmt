@@ -890,16 +890,42 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     }
 
     PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
     /* init cred */
     memset(cred, 0, sizeof(*cred));
+
+    /* identity */
+    if (msgVer > SLURM_23_02_PROTO_VERSION) {
+	/* uid */
+	getUint32(data, &cred->uid);
+	/* gid */
+	getUint32(data, &cred->gid);
+	/* username */
+	cred->username = getStringM(data);
+	/* gecos (additional user information) */
+	cred->gecos = getStringM(data);
+	/* users home directory */
+	cred->home = getStringM(data);
+	/* users shell */
+	cred->shell = getStringM(data);
+	/* secondary group IDs */
+	getUint32Array(data, &cred->gids, &cred->gidsLen);
+	/* secondary group names */
+	getStringArrayM(data, &cred->groupNames, &cred->gNamesLen);
+	if (cred->gNamesLen && (cred->gNamesLen != cred->gidsLen)) {
+	    flog("error: extended group IDs %u and names %u mismatched\n",
+		 cred->gidsLen, cred->gNamesLen);
+	    return false;
+	}
+    }
+
     /* creation time */
     getTime(data, &cred->ctime);
     /* expiration time */
     getTime(data, &cred->etime);
     /* jobid */
     getUint32(data, &cred->jobid);
-
-    uint16_t msgVer = sMsg->head.version;
     /* pack jobid */
     getUint32(data, &cred->packJobid);
 
@@ -910,16 +936,20 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
 	cred->stepid = SLURM_BATCH_SCRIPT;
     }
 
-    /* uid */
-    getUint32(data, &cred->uid);
-    /* gid */
-    getUint32(data, &cred->gid);
-    /* username */
-    cred->username = getStringM(data);
-    /* gids */
-    getUint32Array(data, &cred->gids, &cred->gidsLen);
+    if (msgVer <= SLURM_23_02_PROTO_VERSION) {
+	/* uid */
+	getUint32(data, &cred->uid);
+	/* gid */
+	getUint32(data, &cred->gid);
+	/* username */
+	cred->username = getStringM(data);
+	/* gids */
+	getUint32Array(data, &cred->gids, &cred->gidsLen);
+    }
+
     /* hostlist */
     cred->hostlist = getStringM(data);
+
     /* credential end */
     cred->end = data->unpackPtr;
     /* signature */

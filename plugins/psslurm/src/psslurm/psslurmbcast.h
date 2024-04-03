@@ -35,8 +35,13 @@ typedef struct {
     gid_t gid;		/**< group id */
     char *username;	/**< username */
     uint32_t *gids;	/**< secondary group ids */
-    uint32_t gidsLen;	/**< size of secondary group ids array */
+    uint32_t gidsLen;	/**< size of secondary group ids */
+    char **groupNames;	/**< secondary group names */
+    uint32_t gNamesLen;	/**< size of secondary names (unused) */
     char *hostlist;	/**< Slurm compressed hostlist */
+    char *gecos;	/**< additional user information (unused) */
+    char *home;		/**< users home directory (unused) */
+    char *shell;	/**< users shell (unused) */
     char *end;		/**< end of credential */
     char *sig;		/**< credential signature */
     size_t sigLen;	/**< signature length */
