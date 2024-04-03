@@ -236,7 +236,7 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
  * the information where the RPC was executed and error will hold the result.
  * The forward process is tracked in the connection object from the original
  * RPC request. If all RPC results from the involved nodes were collected the
- * original RPC is answered holding the results from all nodes imbedded
+ * original RPC is answered holding the results from all nodes embedded
  * in the message header.
  *
  * @param sMsg The forwarded message to save
@@ -257,7 +257,7 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
  * @brief Handle a broken connection
  *
  * If the connection which broke has outstanding forwarded
- * messages they will be cancelled.
+ * messages they will be canceled.
  *
  * @param nodeID The ID of the broken node
  */
