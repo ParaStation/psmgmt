@@ -380,7 +380,7 @@ static int verifyJobInfo(Slurm_Msg_t *sMsg, void *info)
 	    break;
 	case SLURM_JOB_PENDING:
 	case SLURM_JOB_COMPLETE:
-	case SLURM_JOB_CANCELLED:
+	case SLURM_JOB_CANCELED:
 	case SLURM_JOB_FAILED:
 	case SLURM_JOB_TIMEOUT:
 	case SLURM_JOB_NODE_FAIL:
