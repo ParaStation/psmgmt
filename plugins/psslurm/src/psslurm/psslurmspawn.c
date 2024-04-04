@@ -18,9 +18,9 @@
 #include <unistd.h>
 
 #include "psenv.h"
+#include "psstrv.h"
 
 #include "pluginconfig.h"
-#include "pluginstrv.h"
 
 #include "slurmcommon.h"
 #include "psslurmconfig.h"

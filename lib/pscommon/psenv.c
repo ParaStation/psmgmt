@@ -26,6 +26,8 @@ struct env {
     uint32_t size;      /**< Total amount of elements in @ref vars */
 };
 
+#define VECTOR_CHUNK_SIZE 16
+
 /** Minimum size of any allocation done by psenv */
 #define MIN_MALLOC_SIZE 64
 
@@ -166,7 +168,7 @@ static bool doSet(env_t env, char *envStr, bool freeEnvStr)
     }
 
     if (env->cnt + 1 >= env->size) {
-	uint32_t newSize = env->size + 16;
+	uint32_t newSize = env->size + VECTOR_CHUNK_SIZE;
 	char **tmp = realloc(env->vars, newSize * sizeof(*tmp));
 	if (!tmp) {
 	    if (freeEnvStr) free(envStr);

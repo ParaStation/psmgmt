@@ -25,9 +25,9 @@
 #include "pspartition.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
+#include "psstrv.h"
 
 #include "pluginmalloc.h"
-#include "pluginstrv.h"
 #include "psidcomm.h"
 #include "psidpartition.h"
 #include "psidspawn.h"

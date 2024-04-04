@@ -17,8 +17,8 @@ noinst_LTLIBRARIES = libplugincommon.la
 
 libplugincommon_la_SOURCES = pluginconfig.c pluginforwarder.c		\
 	pluginhelper.c pluginlog.c pluginmalloc.c pluginpartition.c	\
-	pluginpsconfig.c pluginpty.c pluginspawn.c pluginstrv.c		\
-	pluginvector.c pluginjson.c
+	pluginpsconfig.c pluginpty.c pluginspawn.c pluginvector.c	\
+	pluginjson.c
 
 pluginpsconfig.lo: AM_CFLAGS += $(glib2_CFLAGS)
 

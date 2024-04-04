@@ -26,6 +26,7 @@
 #include "pslog.h"
 #include "psprotocol.h"
 #include "psserial.h"
+#include "psstrv.h"
 #include "selector.h"
 
 #include "psilog.h"
@@ -34,7 +35,6 @@
 #include "kvs.h"
 #include "kvscommon.h"
 #include "pluginmalloc.h"
-#include "pluginstrv.h"
 #include "pluginspawn.h"
 
 #include "psidcomm.h"

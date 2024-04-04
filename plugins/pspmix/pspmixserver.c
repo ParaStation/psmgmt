@@ -34,7 +34,6 @@
 #include "list.h"
 #include "timer.h"
 #include "pluginmalloc.h"
-#include "pluginstrv.h"
 #include "pluginvector.h"
 #if PMIX_VERSION_MAJOR >= 4
 #include "pluginhelper.h"

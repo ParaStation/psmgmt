@@ -25,8 +25,8 @@
 #include <pmix_common.h>
 
 #include "psnodes.h"
+#include "psstrv.h"
 #include "pstask.h"
-#include "pluginstrv.h"
 
 #include "pspmixserver.h"
 #include "pspmixtypes.h"

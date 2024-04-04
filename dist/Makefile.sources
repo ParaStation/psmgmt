@@ -159,7 +159,6 @@ include/pluginpartition.h \
 include/pluginpsconfig.h \
 include/pluginpty.h \
 include/pluginspawn.h \
-include/pluginstrv.h \
 include/pluginvector.h \
 include/psattribute.h \
 include/psbyteorder.h \
@@ -189,6 +188,7 @@ include/psreservation.h \
 include/pssenddb_t.h \
 include/psserial.h \
 include/pssignal.h \
+include/psstrv.h \
 include/pstask.h \
 include/pstaskid.h \
 include/rdp.h \
@@ -208,7 +208,6 @@ lib/plugincommon/pluginpartition.c \
 lib/plugincommon/pluginpsconfig.c \
 lib/plugincommon/pluginpty.c \
 lib/plugincommon/pluginspawn.c \
-lib/plugincommon/pluginstrv.c \
 lib/plugincommon/pluginvector.c \
 lib/pscommon/Makefile.am \
 lib/pscommon/Makefile.in \
@@ -224,6 +223,7 @@ lib/pscommon/psprotocol.c \
 lib/pscommon/psreservation.c \
 lib/pscommon/psserial.c \
 lib/pscommon/pssignal.c \
+lib/pscommon/psstrv.c \
 lib/pscommon/pstask.c \
 lib/pse/Makefile.am \
 lib/pse/Makefile.in \

@@ -22,10 +22,10 @@
 #include <unistd.h>
 
 #include "pscommon.h"
+#include "psstrv.h"
 #include "psipartition.h"
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
-#include "pluginstrv.h"
 #include "psidnodes.h"
 
 #include "slurmcommon.h"

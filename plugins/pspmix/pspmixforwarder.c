@@ -44,6 +44,7 @@
 #include "psprotocol.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
+#include "psstrv.h"
 #include "psispawn.h"
 
 #include "psidcomm.h"
@@ -53,7 +54,6 @@
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "pluginspawn.h"
-#include "pluginstrv.h"
 #include "pluginvector.h"
 
 #include "pspmixconfig.h"

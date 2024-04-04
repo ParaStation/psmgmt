@@ -19,13 +19,13 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include "pscommon.h"
+#include "psenv.h"
+#include "psstrv.h"
 #include "pluginconfig.h"
 #include "pluginhelper.h"
 #include "pluginjson.h"
 #include "pluginmalloc.h"
-#include "pluginstrv.h"
-#include "pscommon.h"
-#include "psenv.h"
 #include "psidscripts.h"
 
 #include "slurmcommon.h"

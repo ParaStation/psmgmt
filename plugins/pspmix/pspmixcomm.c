@@ -20,14 +20,14 @@
 #include "list.h"
 #include "pscommon.h"
 #include "psdaemonprotocol.h"
+#include "psenv.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
-#include "psenv.h"
+#include "psstrv.h"
 
 #include "psidsession.h"
 
 #include "pluginmalloc.h"
-#include "pluginstrv.h"
 
 #include "pspmixlog.h"
 #include "pspmixuserserver.h"

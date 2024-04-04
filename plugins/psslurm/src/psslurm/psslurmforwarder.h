@@ -13,8 +13,8 @@
 
 #include <stdbool.h>
 
+#include "psstrv.h"
 #include "pluginforwarder.h"
-#include "pluginstrv.h"
 
 #include "psslurmalloc.h"
 #include "psslurmbcast.h"
