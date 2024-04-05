@@ -279,8 +279,8 @@ static void mergeEnv(Slurm_Container_t *ct, env_t env)
 	    jsonPutString(ct->configObj, NULL, environ[i]);
 	}
     } else {
-	for (uint32_t i = 0; i < envSize(env); i++) {
-	    jsonPutString(ct->configObj, NULL, envDumpIndex(env, i));
+	for (char **e = envGetArray(env); e && *e; e++) {
+	    jsonPutString(ct->configObj, NULL, *e);
 	}
     }
 }

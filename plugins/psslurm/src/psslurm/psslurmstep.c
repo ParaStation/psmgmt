@@ -225,10 +225,9 @@ Step_t *__Step_findByEnv(env_t env, uint32_t *jobidOut, uint32_t *stepidOut,
 	return NULL;
     }
 
-    for (uint32_t i = 0; envDumpIndex(env, i); i++) {
-	char *ptr = envDumpIndex(env, i);
-	if (!strncmp(ptr, "SLURM_STEPID=", 13)) sscanf(ptr+13, "%u", &stepid);
-	if (!strncmp(ptr, "SLURM_JOBID=", 12)) sscanf(ptr+12, "%u", &jobid);
+    for (char **e = envGetArray(env); e && *e; e++) {
+	if (!strncmp(*e, "SLURM_STEPID=", 13)) sscanf(*e + 13, "%u", &stepid);
+	if (!strncmp(*e, "SLURM_JOBID=", 12)) sscanf(*e + 12, "%u", &jobid);
     }
     if (jobidOut) *jobidOut = jobid;
     if (stepidOut) *stepidOut = stepid;

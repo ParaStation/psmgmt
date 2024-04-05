@@ -99,7 +99,7 @@ static void prepEnv(void *info)
 
     mlog("%s: setting env %i\n", __func__, envSize(env));
 
-    for (uint32_t i = 0; i < envSize(env); i++) putenv(envDumpIndex(env, i));
+    for (char **e = envGetArray(env); e && *e; e++) putenv(*e);
 }
 
 static bool execScript(Script_t *script, PSID_scriptCB_t cb)

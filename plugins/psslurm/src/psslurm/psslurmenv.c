@@ -892,17 +892,15 @@ static void setBindingEnvVars(Step_t *step)
 
 static void setPsslurmEnv(env_t alloc_env, env_t dest_env)
 {
-    for (uint32_t i = 0; i < envSize(alloc_env); i++) {
-	char *thisEnv = envDumpIndex(alloc_env, i);
-	if (thisEnv && !strncmp("_PSSLURM_ENV_", thisEnv, 13)) {
-	    char *ptr = thisEnv + 13;
-	    fdbg(PSSLURM_LOG_ENV, "set %s\n", ptr);
-	    if (!*ptr) continue;
-	    if (envInitialized(dest_env)) {
-		envPut(dest_env, ptr);
-	    } else {
-		putenv(ptr);
-	    }
+    for (char **e = envGetArray(alloc_env); e && *e; e++) {
+	if (strncmp("_PSSLURM_ENV_", *e, 13)) continue;
+	char *ptr = *e + 13;
+	fdbg(PSSLURM_LOG_ENV, "set %s\n", ptr);
+	if (!*ptr) continue;
+	if (envInitialized(dest_env)) {
+	    envPut(dest_env, ptr);
+	} else {
+	    putenv(ptr);
 	}
     }
 }
@@ -1068,15 +1066,11 @@ static void setInteractiveRankEnv(Step_t *step)
      * for the interactive step */
     env_t gresEnv = envNew(NULL);
     setGResJobEnv(&step->gresList, gresEnv);
-    for (uint32_t i = 0; i < envSize(gresEnv); i++) {
-	char *thisEnv = envDumpIndex(gresEnv, i);
-	char *val = strchr(thisEnv, '=');
-	if (!val) continue;
-
-	*val = '\0';
-	setenv(thisEnv, ++val, 1);
+    for (char **e = envGetArray(gresEnv); e && *e; e++) {
+	if (!strchr(*e, '=')) continue;
+	putenv(*e);
     }
-    envDestroy(gresEnv);
+    envSteal(gresEnv);
 }
 
 /**
@@ -1157,30 +1151,29 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
     char *display = getenv("DISPLAY");
 
     /* set environment variables from user */
-    for (uint32_t i = 0; i < envSize(step->env); i++) {
-	char *thisEnv = envDumpIndex(step->env, i);
+    for (char **e = envGetArray(step->env); e && *e; e++) {
 	/* protect selected variables from changes */
-	if (!strncmp(thisEnv, "SLURM_RLIMIT_", 13)) continue;
-	if (!strncmp(thisEnv, "SLURM_UMASK=", 12)) continue;
-	if (!strncmp(thisEnv, "PWD=", 4)) continue;
-	if (display && !strncmp(thisEnv, "DISPLAY=", 8)) continue;
-	if (!strncmp(thisEnv, "PMI_FD=", 7)) continue;
-	if (!strncmp(thisEnv, "PMI_PORT=", 9)) continue;
-	if (!strncmp(thisEnv, "PMI_RANK=", 9)) continue;
-	if (!strncmp(thisEnv, "PMI_SIZE=", 9)) continue;
-	if (!strncmp(thisEnv, "PMI_UNIVERSE_SIZE=", 18)) continue;
-	if (!strncmp(thisEnv, "PMI_ID=", 7)) continue;
-	if (!strncmp(thisEnv, "PMI_APPNUM=", 11)) continue;
-	if (!strncmp(thisEnv, "PMI_ENABLE_SOCKP=", 17)) continue;
-	if (!strncmp(thisEnv, "PMI_SUBVERSION=", 15)) continue;
-	if (!strncmp(thisEnv, "PMI_VERSION=", 12)) continue;
-	if (!strncmp(thisEnv, "PMI_BARRIER_ROUNDS=", 19)) continue;
-	if (!strncmp(thisEnv, "PMIX_", 5)
-	    && strncmp(thisEnv, "PMIX_MCA_", 9)) continue;
-	if (!strncmp(thisEnv, "PSPMIX_ENV_TMOUT=", 17)) continue;
-	if (!strncmp(thisEnv, "PSP_SMP_NODE_ID=", 16)) continue;
+	if (!strncmp(*e, "SLURM_RLIMIT_", 13)) continue;
+	if (!strncmp(*e, "SLURM_UMASK=", 12)) continue;
+	if (!strncmp(*e, "PWD=", 4)) continue;
+	if (display && !strncmp(*e, "DISPLAY=", 8)) continue;
+	if (!strncmp(*e, "PMI_FD=", 7)) continue;
+	if (!strncmp(*e, "PMI_PORT=", 9)) continue;
+	if (!strncmp(*e, "PMI_RANK=", 9)) continue;
+	if (!strncmp(*e, "PMI_SIZE=", 9)) continue;
+	if (!strncmp(*e, "PMI_UNIVERSE_SIZE=", 18)) continue;
+	if (!strncmp(*e, "PMI_ID=", 7)) continue;
+	if (!strncmp(*e, "PMI_APPNUM=", 11)) continue;
+	if (!strncmp(*e, "PMI_ENABLE_SOCKP=", 17)) continue;
+	if (!strncmp(*e, "PMI_SUBVERSION=", 15)) continue;
+	if (!strncmp(*e, "PMI_VERSION=", 12)) continue;
+	if (!strncmp(*e, "PMI_BARRIER_ROUNDS=", 19)) continue;
+	if (!strncmp(*e, "PMIX_", 5)
+	    && strncmp(*e, "PMIX_MCA_", 9)) continue;
+	if (!strncmp(*e, "PSPMIX_ENV_TMOUT=", 17)) continue;
+	if (!strncmp(*e, "PSP_SMP_NODE_ID=", 16)) continue;
 
-	putenv(thisEnv);
+	putenv(*e);
     }
 
     /* use pwd over cwd if realpath is identical */
@@ -1261,9 +1254,9 @@ static void removeSpankOptions(env_t env)
     /* remove srun/spank options */
     for (uint32_t i = 0; i < envSize(env); i++) {
 	char *thisEnv = envDumpIndex(env, i);
-	while (thisEnv && !strncmp("_SLURM_SPANK_OPTION", thisEnv, 19)) {
+	if (!strncmp("_SLURM_SPANK_OPTION", thisEnv, 19)) {
 	    envUnsetIndex(env, i);
-	    thisEnv = envDumpIndex(env, i);
+	    i--;
 	}
     }
 }

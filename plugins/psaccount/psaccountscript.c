@@ -103,11 +103,8 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
     if (!childPID) {
 	/* This is the child */
 
-	/* update scripts environment */
-	for (uint32_t i = 0; i < envSize(script->env); i++) {
-	    char *thisEnv = envDumpIndex(script->env, i);
-	    if (thisEnv) putenv(thisEnv);
-	}
+	/* update script's environment */
+	for (char **e = envGetArray(script->env); e && *e; e++) putenv(*e);
 
 	char *argv[2] = { script->path, NULL };
 	execvp(argv[0], argv);

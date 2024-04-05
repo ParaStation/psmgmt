@@ -305,14 +305,15 @@ static void setAccOpts(char *freqString, uint16_t *accType)
 static void printLaunchTasksInfos(Step_t *step)
 {
     /* env */
-    for (uint32_t i = 0; i < envSize(step->env); i++) {
-	fdbg(PSSLURM_LOG_ENV, "env%i: '%s'\n", i, envDumpIndex(step->env, i));
+    int cnt = 0;
+    for (char **e = envGetArray(step->env); e && *e; e++, cnt++) {
+	fdbg(PSSLURM_LOG_ENV, "env%i: '%s'\n", cnt, *e);
     }
 
     /* spank env */
-    for (uint32_t i = 0; i < envSize(step->spankenv); i++) {
-	fdbg(PSSLURM_LOG_ENV, "spankenv%i: '%s'\n", i,
-	     envDumpIndex(step->spankenv, i));
+    cnt = 0;
+    for (char **e = envGetArray(step->spankenv); e && *e; e++, cnt++) {
+	fdbg(PSSLURM_LOG_ENV, "spankenv%i: '%s'\n", cnt, *e);
     }
 
     /* set stdout/stderr/stdin options */
@@ -584,10 +585,10 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     step->srun.sin_port = sMsg->head.addr.port;
 
     /* env / spank env */
-    for (uint32_t i = 0; i < envSize(step->spankenv); i++) {
-	if (!strncmp("_SLURM_SPANK_OPTION_x11spank_forward_x",
-		     envDumpIndex(step->spankenv, i), 38)) {
+    for (char **e = envGetArray(step->spankenv); e && *e; e++) {
+	if (!strncmp("_SLURM_SPANK_OPTION_x11spank_forward_x", *e, 38)) {
 	    step->x11forward = true;
+	    break;
 	}
     }
 
@@ -1913,9 +1914,9 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
 	 req->x11TargetPort);
 
     /* spank env */
-    for (uint32_t i = 0; i < envSize(req->spankEnv); i++) {
-	fdbg(PSSLURM_LOG_PELOG, "spankEnv%i: '%s'\n", i,
-	     envDumpIndex(req->spankEnv, i));
+    int cnt = 0;
+    for (char **e = envGetArray(req->spankEnv); e && *e; e++, cnt++) {
+	fdbg(PSSLURM_LOG_PELOG, "spankEnv%i: '%s'\n", cnt, *e);
     }
 
     /* add an allocation if slurmctld prologue did not */
@@ -2029,14 +2030,15 @@ static void printJobLaunchInfos(Job_t *job)
     }
 
     /* job env */
-    for (uint32_t i = 0; i < envSize(job->env); i++) {
-	fdbg(PSSLURM_LOG_ENV, "env%i: '%s'\n", i, envDumpIndex(job->env, i));
+    int cnt = 0;
+    for (char **e = envGetArray(job->env); e && *e; e++, cnt++) {
+	fdbg(PSSLURM_LOG_ENV, "env%i: '%s'\n", cnt, *e);
     }
 
     /* spank env */
-    for (uint32_t i = 0; i < envSize(job->spankenv); i++) {
-	fdbg(PSSLURM_LOG_ENV, "spankenv%i: '%s'\n", i,
-	     envDumpIndex(job->spankenv, i));
+    cnt = 0;
+    for (char **e = envGetArray(job->spankenv); e && *e; e++, cnt++) {
+	fdbg(PSSLURM_LOG_ENV, "spankenv%i: '%s'\n", cnt, *e);
     }
 }
 

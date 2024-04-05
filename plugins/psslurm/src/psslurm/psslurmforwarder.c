@@ -1328,9 +1328,8 @@ static void stepFinalize(Forwarder_Data_t *fwdata)
     };
 
     /* set environment variables from user */
-    for (uint32_t i = 0; i < envSize(step->env); i++) {
-	putenv(envDumpIndex(step->env, i));
-    }
+    for (char **e = envGetArray(step->env); e && *e; e++) putenv(*e);
+
     SpankCallHook(&spank);
 #endif
 }

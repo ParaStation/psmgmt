@@ -861,9 +861,7 @@ static void execForwarder(PStask_t *task)
     /* setup the environment; done here to pass it to forwarder, too */
     setenv("PWD", task->workingdir, 1);
 
-    for (uint32_t i = 0; envDumpIndex(task->env, i); i++) {
-	putenv(strdup(envDumpIndex(task->env, i)));
-    }
+    for (char **e = envGetArray(task->env); e && *e; e++) putenv(strdup(*e));
 
     /* create a socketpair for communication between forwarder and client */
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlfds) < 0) {

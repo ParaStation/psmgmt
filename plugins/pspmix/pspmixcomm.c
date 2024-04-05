@@ -604,8 +604,9 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t env)
     setFragDest(&msg, targetTID);
 
     mdbg(PSPMIX_LOG_COMM, "%s: Adding environment to message:\n", __func__);
-    for (uint32_t i = 0; i < envSize(env); i++) {
-	mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, i, envDumpIndex(env, i));
+    int cnt = 0;
+    for (char **e = envGetArray(env); e && *e; e++, cnt++) {
+	mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, cnt, *e);
     }
     addStringArrayToMsg(envGetArray(env), &msg);
 

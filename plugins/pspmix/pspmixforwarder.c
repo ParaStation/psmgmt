@@ -429,8 +429,9 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     for (uint32_t j = 1; j < task->argc; j++) mlog(" %s", task->argv[j]);
     mlog("'\n");
     if (mset(PSPMIX_LOG_ENV)) {
-	for (uint32_t i = 0; envDumpIndex(task->env, i); i++) {
-	    rlog("%d: %s\n", i, envDumpIndex(task->env, i));
+	int cnt = 0;
+	for (char **e = envGetArray(task->env); e && *e; e++, cnt++) {
+	    rlog("%d: %s\n", cnt, *e);
 	}
     }
 
@@ -699,13 +700,13 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     env_t env = envNew(envP);
 
     rdbg(PSPMIX_LOG_COMM, "Setting environment:\n");
-    for (uint32_t i = 0; i < envSize(env); i++) {
-	char *envStr = envDumpIndex(env, i);
-	if (putenv(envStr) != 0) {
-	    rwarn(errno, "set env '%s'", envStr);
+    int cnt = 0;
+    for (char **e = envGetArray(env); e && *e; e++, cnt++) {
+	if (putenv(*e) != 0) {
+	    rwarn(errno, "set env '%s'", *e);
 	    continue;
 	}
-	rdbg(PSPMIX_LOG_COMM, "%d %s\n", i, envStr);
+	rdbg(PSPMIX_LOG_COMM, "%d %s\n", cnt, *e);
     }
     envSteal(env);
 
