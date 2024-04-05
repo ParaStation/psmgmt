@@ -67,21 +67,20 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
 {
     if (req->num != 1) return 0; // ensure to only handle single spawns
 
-    strv_t argV;
-    strvInit(&argV, NULL, 0);
-
     const char *srun = getConfValueC(Config, "SRUN_BINARY");
     if (!srun) {
 	flog("no SRUN_BINARY provided\n");
 	return 0;
     }
-    strvAdd(&argV, srun);
+
+    strv_t argV = strvNew(NULL);
+    strvAdd(argV, srun);
 
     /* ensure srun will not hang and wait for resources */
-    strvAdd(&argV, "--immediate=5");
+    strvAdd(argV, "--immediate=5");
 
     /* always use exact the resources requested */
-    strvAdd(&argV, "--exact");
+    strvAdd(argV, "--exact");
 
     /* this is stupid but needed for best slurm compatibility
        actually this removes our default rank binding from the spawned
@@ -92,15 +91,15 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
 				| CPU_BIND_LDMASK | CPU_BIND_TO_SOCKETS
 				| CPU_BIND_TO_LDOMS | CPU_BIND_LDRANK
 				| CPU_BIND_RANK | CPU_BIND_TO_THREADS ))) {
-	strvAdd(&argV, "--cpu-bind=none");
+	strvAdd(argV, "--cpu-bind=none");
     }
 
     SingleSpawn_t *spawn = &(req->spawns[0]);
 
     /* set the number of processes to spawn */
-    strvAdd(&argV, "-n");                  // --ntasks=
+    strvAdd(argV, "-n");                  // --ntasks=
     snprintf(buffer, sizeof(buffer), "%d", spawn->np);
-    strvAdd(&argV, buffer);
+    strvAdd(argV, buffer);
 
     /* extract info values and keys
      *
@@ -132,20 +131,20 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
 	KVP_t *info = &(spawn->infov[i]);
 
 	if (strcmp(info->key, "wdir") == 0) {
-	    strvAdd(&argV, "-D");          // --chdir=
-	    strvAdd(&argV, info->value);
+	    strvAdd(argV, "-D");          // --chdir=
+	    strvAdd(argV, info->value);
 	} else if (strcmp(info->key, "host") == 0) {
-	    strvAdd(&argV, "-w");          // --nodelist=
-	    strvAdd(&argV, info->value);
+	    strvAdd(argV, "-w");          // --nodelist=
+	    strvAdd(argV, info->value);
 	} else {
 	    flog("info key '%s' not supported\n", info->key);
 	}
     }
 
-    for (int i = 0; i<spawn->argc; i++) strvAdd(&argV, spawn->argv[i]);
+    for (int i = 0; i < spawn->argc; i++) strvAdd(argV, spawn->argv[i]);
 
-    task->argc = strvSize(&argV);
-    task->argv = strvStealArray(&argV);
+    task->argc = strvSize(argV);
+    task->argv = strvStealArray(argV);
 
     return 1;
 }
@@ -197,21 +196,20 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
     }
     fclose(fs);
 
-    strv_t argV;
-    strvInit(&argV, NULL, 0);
-
     const char *srun = getConfValueC(Config, "SRUN_BINARY");
     if (!srun) {
 	flog("no SRUN_BINARY provided\n");
 	return 0;
     }
-    strvAdd(&argV, srun);
+
+    strv_t argV = strvNew(NULL);
+    strvAdd(argV, srun);
 
     /* ensure srun will not hang and wait for resources */
-    strvAdd(&argV, "--immediate=5");
+    strvAdd(argV, "--immediate=5");
 
     /* always use exact the resources requested */
-    strvAdd(&argV, "--exact");
+    strvAdd(argV, "--exact");
 
     /* this is stupid but needed for best slurm compatibility
        actually this removes our default rank binding from the spawned
@@ -222,19 +220,19 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 				| CPU_BIND_LDMASK | CPU_BIND_TO_SOCKETS
 				| CPU_BIND_TO_LDOMS | CPU_BIND_LDRANK
 				| CPU_BIND_RANK | CPU_BIND_TO_THREADS ))) {
-	strvAdd(&argV, "--cpu-bind=none");
+	strvAdd(argV, "--cpu-bind=none");
     }
 
     /* set the number of processes to spawn */
-    strvAdd(&argV, "-n");                  // --ntasks=
+    strvAdd(argV, "-n");                  // --ntasks=
     snprintf(buffer, sizeof(buffer), "%d", ntasks);
-    strvAdd(&argV, buffer);
+    strvAdd(argV, buffer);
 
-    strvAdd(&argV, "--multi-prog");
-    strvAdd(&argV, filebuf);
+    strvAdd(argV, "--multi-prog");
+    strvAdd(argV, filebuf);
 
-    task->argc = strvSize(&argV);
-    task->argv = strvStealArray(&argV);
+    task->argc = strvSize(argV);
+    task->argv = strvStealArray(argV);
 
     return 1;
 }

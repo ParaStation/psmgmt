@@ -16,7 +16,6 @@
 
 #include "psslurmstep.h"
 
-void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
-			    strv_t *argV);
+void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata, strv_t argV);
 
 #endif  /* __PS_SLURM_MULTI_PROG */

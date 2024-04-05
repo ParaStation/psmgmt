@@ -372,10 +372,9 @@ static void startSpawner(Step_t *step)
 
     // - prepare the argument vector according to fwExecStep()
     pmi_type_t pmi_type = getPMIType(step);
-    strv_t argV;
-    buildStartArgv(fwData, &argV, pmi_type);
-    task->argc = strvSize(&argV);
-    task->argv = strvStealArray(&argV);
+    strv_t argV = buildStartArgv(fwData, pmi_type);
+    task->argc = strvSize(argV);
+    task->argv = strvStealArray(argV);
 
     // - do some environment preparation from fwExecStep()
     Step_t *envStep = Step_new();

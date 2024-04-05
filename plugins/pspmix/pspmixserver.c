@@ -575,7 +575,7 @@ static void dmodex_req_release_fn(void *cbdata)
 
     /* free struct allocated by server_dmodex_req_cb() */
     PMIX_PROC_DESTRUCT(&mdata->proc);
-    strvDestroy(&mdata->reqKeys);
+    strvDestroy(mdata->reqKeys);
     ufree(mdata);
 }
 
@@ -620,9 +620,7 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
     mdbg(PSPMIX_LOG_CALL, "%s(rank %u namespace %s)\n", __func__, proc->rank,
 	 proc->nspace);
 
-    strv_t reqKeys;
-    char *emptyStr = NULL;
-    strvInit(&reqKeys, &emptyStr, 0); // ensure reqKeys.strings get initialized
+    strv_t reqKeys = strvNew(NULL);
     int timeout = 0;
 
     /* handle command directives */
@@ -639,7 +637,7 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 
 	/* support mandatory key PMIX_REQUIRED_KEY */
 	if (PMIX_CHECK_KEY(info+i, PMIX_REQUIRED_KEY)) {
-	    strvAdd(&reqKeys, info[i].value.data.string);
+	    strvAdd(reqKeys, info[i].value.data.string);
 	    continue;
 	}
 
@@ -661,7 +659,7 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 		 " '%s'] marked required", __func__, info[i].key,
 		 PMIx_Info_directives_string(info[i].flags),
 		 PMIx_Data_type_string(info[i].value.type));
-	    strvDestroy(&reqKeys);
+	    strvDestroy(reqKeys);
 	    return PMIX_ERR_NOT_SUPPORTED;
 	}
 #endif
@@ -686,7 +684,7 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 	mlog("%s: pspmix_service_sendModexDataRequest() for rank %u in"
 	     " namespace %s failed.\n", __func__, proc->rank, proc->nspace);
 	PMIX_PROC_DESTRUCT(&mdata->proc);
-	strvDestroy(&reqKeys);
+	strvDestroy(reqKeys);
 	ufree(mdata);
 
 	return PMIX_ERROR;
@@ -726,7 +724,7 @@ static void requestModexData_cb(pmix_status_t status, char *data, size_t ndata,
  * @param proc     client process
  * @param reqKeys  array of keys (NULL terminated)
  */
-static bool checkKeyAvailability(pmix_proc_t *proc, strv_t *reqKeys)
+static bool checkKeyAvailability(pmix_proc_t *proc, strv_t reqKeys)
 {
     if (!strvSize(reqKeys)) return true;
 
@@ -802,7 +800,7 @@ static void reqModexTimeoutHandler(int timerID, void *info)
 	return;
     }
 
-    if (checkKeyAvailability(&mdata->proc, &mdata->reqKeys)) {
+    if (checkKeyAvailability(&mdata->proc, mdata->reqKeys)) {
 	Timer_remove(timerID);
 	/* there are either no keys required or all available */
 	pmix_status_t status =
@@ -844,7 +842,7 @@ bool pspmix_server_requestModexData(modexdata_t *mdata)
     /* store time processing of the request has started */
     mdata->reqtime = time(NULL);
 
-    if (checkKeyAvailability(&mdata->proc, &mdata->reqKeys)) {
+    if (checkKeyAvailability(&mdata->proc, mdata->reqKeys)) {
 	/* there are either no keys required or all available */
 	pmix_status_t status =
 		PMIx_server_dmodex_request(&mdata->proc, requestModexData_cb,
@@ -1234,9 +1232,8 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	 *
 	 * see https://github.com/openpmix/openpmix/issues/3321
 	 */
-	strv_t argv;
-	strvInit(&argv, apps[a].argv, 0);
-	sapps[a].argv = strvStealArray(&argv);
+	strv_t argv = strvConstruct(apps[a].argv);
+	sapps[a].argv = strvStealArray(argv);
 	sapps[a].argv[0] = apps[a].cmd;
 
 	/*
@@ -1282,7 +1279,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	if (sapps[a].prefix) {
 	    ufree(sapps[a].argv[0]); /* allocated by PSC_concat() */
 	}
-	ufree(sapps[a].argv); /* allocated by strvInit() */
+	ufree(sapps[a].argv); /* allocated by strvConstruct() */
 
 	/* Invalidate all data not copied */
 	sapps[a].prefix = NULL;

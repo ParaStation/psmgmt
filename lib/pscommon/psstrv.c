@@ -16,6 +16,14 @@
 
 #define STRV_MAGIC 0x0697774657964007
 
+/** Structure holding a string vector */
+struct strv {
+    long magic;
+    char **strings;     /**< NULL terminated array of strings */
+    uint32_t cnt;       /**< Current number of strings in array */
+    uint32_t size;      /**< Current maximum size incl. NULL (do not use) */
+};
+
 #define VECTOR_CHUNK_SIZE 8
 
 /** Minimum size of any allocation done by psenv */
@@ -27,42 +35,60 @@ static inline void *umalloc(size_t size)
     return malloc(size < MIN_MALLOC_SIZE ? MIN_MALLOC_SIZE : size);
 }
 
-void strvInit(strv_t *strv, char **initstrv, uint32_t initcount)
+strv_t strvNew(char **strvArray)
 {
-    if (initstrv) {
-	size_t count = initcount;
-	if (!count) while (initstrv[count]) count++;
-
-	strv->size = (count/VECTOR_CHUNK_SIZE + 1) * VECTOR_CHUNK_SIZE;
-	strv->cnt = count;
-    } else {
-	strv->size = 0;
-	strv->cnt = 0;
+    strv_t strv = umalloc(sizeof(*strv));
+    if (!strv) return NULL;
+    memset(strv, 0, sizeof(*strv));
+    strv->magic = STRV_MAGIC;
+    strv->strings = strvArray;
+    if (strvArray) {
+	/* Count strvArray's elements and setup strv_t accordingly */
+	uint32_t cnt = 0;
+	while (strvArray[cnt++]);
+	strv->cnt = cnt - 1;
+	strv->size = cnt;
     }
-
-    if (strv->size) {
-	strv->strings = umalloc(strv->size * sizeof(char *));
-
-	if (initstrv) memcpy(strv->strings, initstrv, strv->cnt * sizeof(char *));
-
-	strv->strings[strv->cnt] = NULL; /* terminate vector */
-    } else {
-	strv->strings = NULL;
-    }
-}
-
-bool strvInitialized(const strv_t *strv)
-{
-    //return (strv && strv->magic == STRV_MAGIC);
     return strv;
 }
 
-uint32_t strvSize(strv_t *strv)
+strv_t strvConstruct(char **strvArray)
+{
+    if (!strvArray) return NULL;
+
+    /* Count strvArray's elements */
+    uint32_t cnt = 0;
+    while (strvArray[cnt++]);
+
+    /* Create and setup new strv_t */
+    strv_t strv = umalloc(sizeof(*strv));
+    if (!strv) return NULL;
+    strv->magic = STRV_MAGIC;
+    strv->cnt = cnt - 1;
+    strv->size = (strv->cnt/VECTOR_CHUNK_SIZE + 1) * VECTOR_CHUNK_SIZE;
+
+    /* Create new strv_t's strings and add references to strvArray's content */
+    strv->strings = umalloc(strv->size * sizeof(*strv->strings));
+    if (!strv->strings) {
+	strv->magic = 0;
+	free(strv);
+	return NULL;
+    }
+    memcpy(strv->strings, strvArray, (strv->cnt + 1) * sizeof(*strv->strings));
+    return strv;
+}
+
+bool strvInitialized(const strv_t strv)
+{
+    return (strv && strv->magic == STRV_MAGIC);
+}
+
+uint32_t strvSize(strv_t strv)
 {
     return strvInitialized(strv) ? strv->cnt : 0;
 }
 
-bool strvLink(strv_t *strv, const char *str)
+bool strvLink(strv_t strv, const char *str)
 {
     if (!strvInitialized(strv) || !str) return false;
 
@@ -80,25 +106,26 @@ bool strvLink(strv_t *strv, const char *str)
     return true;
 }
 
-bool strvAdd(strv_t *strv, const char *str)
+bool strvAdd(strv_t strv, const char *str)
 {
-    return str ? strvLink(strv, strdup(str)) : false;
+    if (!strvInitialized(strv) || !str) return false;
+    return strvLink(strv, strdup(str));
 }
 
-char **strvGetArray(strv_t *strv)
+char **strvGetArray(strv_t strv)
 {
     return strvInitialized(strv) ? strv->strings : NULL;
 }
 
-void strvSteal(strv_t *strv)
+void strvSteal(strv_t strv)
 {
     if (!strvInitialized(strv)) return;
     free(strv->strings);
-    //strv->magic = 0;
-    //free(strv);
+    strv->magic = 0;
+    free(strv);
 }
 
-char **strvStealArray(strv_t *strv)
+char **strvStealArray(strv_t strv)
 {
     if (!strvInitialized(strv)) return NULL;
     char **stringsArray = strv->strings;
@@ -108,7 +135,7 @@ char **strvStealArray(strv_t *strv)
     return stringsArray;
 }
 
-void strvDestroy(strv_t *strv)
+void strvDestroy(strv_t strv)
 {
     if (!strvInitialized(strv)) return;
     for (char **str = strv->strings; *str; str++) free(*str);

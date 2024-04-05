@@ -396,16 +396,15 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     char **reqKeysP = NULL;
     getStringArrayM(data, &reqKeysP, NULL);
-    strv_t reqKeys;
-    strvInit(&reqKeys, reqKeysP, 0);
+    strv_t reqKeys = strvNew(reqKeysP);
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s (namespace %s rank %d numReqKeys %u"
 	 " timeout %d)\n", __func__, pspmix_getMsgTypeString(msg->type),
-	 nspace, rank, strvSize(&reqKeys), timeout);
+	 nspace, rank, strvSize(reqKeys), timeout);
 
     if (!pspmix_service_handleModexDataRequest(msg->header.sender, nspace, rank,
 					       reqKeys, timeout)) {
-	strvDestroy(&reqKeys);
+	strvDestroy(reqKeys);
     }
     ufree(nspace);
 }
@@ -791,7 +790,8 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote node */,
     addStringToMsg(nspace, &msg);
     addUint32ToMsg(rank, &msg);
     addInt32ToMsg(timeout, &msg);
-    addStringArrayToMsg(reqKeys, &msg);
+    char *empty = NULL;
+    addStringArrayToMsg(reqKeys ? reqKeys : &empty, &msg);
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);

@@ -929,12 +929,12 @@ static void debugMpiexecStart(char **argv, char **env)
     }
 }
 
-void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType)
+strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
 {
     Step_t *step = fwData->userData;
     char buf[128];
 
-    strvInit(argV, NULL, 0);
+    strv_t argV = strvNew(NULL);
 
     if (envGet(step->env, "PMI_SPAWNED") || envGet(step->env, "PMIX_SPAWNID")) {
 	char *tmpStr = envGet(step->env, "__PSI_MPIEXEC_KVSPROVIDER");
@@ -1018,6 +1018,7 @@ void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType)
 	    }
 	}
     }
+    return argV;
 }
 
 static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
@@ -1068,9 +1069,8 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     pmi_type = getPMIType(step);
 
     /* build mpiexec et al. argument vector */
-    strv_t argV;
-    buildStartArgv(fwdata, &argV, pmi_type);
-    char **argvP = strvStealArray(&argV);
+    strv_t argV = buildStartArgv(fwdata, pmi_type);
+    char **argvP = strvStealArray(argV);
 
     /* setup step specific environment */
     setStepEnv(step);

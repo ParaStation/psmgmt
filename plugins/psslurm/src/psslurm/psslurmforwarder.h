@@ -91,19 +91,20 @@ bool execEpilogueFin(Alloc_t *alloc);
  * is used and the actual argument vector is mostly based on the
  * information found in the forwarder data @a fwData. Additionally,
  * the content of the argument vector will be influence by the chosen
- * PMI type @a pmiType. The argument vector will be created in @a
- * argV. The caller is responsible for cleaning up the dynamic memory
- * in @a argV when it is no longer required.
+ * PMI type @a pmiType.
+ *
+ * The argument vector will be created as a string vector strv_t which
+ * utilized dynmic memory. The caller is responsible for cleaning up
+ * this dynamic memory when the string vector is no longer required.
  *
  * @param fwData Forwarder data of the step to investigate
  *
- * @param argV Argument vector to build
- *
  * @param pmiType Flag to signal which PMI type to use
  *
- * @return No return value
+ * @return On success the argument vector is returned; or NULL in case
+ * of error
  */
-void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType);
+strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType);
 
 /**
  * @brief Handle hook PSIDHOOK_EXEC_FORWARDER

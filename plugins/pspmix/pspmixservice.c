@@ -1814,7 +1814,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 
     if (!pspmix_comm_sendModexDataRequest(nodeid, mdata->proc.nspace,
 					  mdata->proc.rank,
-					  strvGetArray(&mdata->reqKeys),
+					  strvGetArray(mdata->reqKeys),
 					  mdata->timeout)) {
 	ulog("send failed for %s:%d to node %hd\n",
 		mdata->proc.nspace, mdata->proc.rank, nodeid);
@@ -1877,7 +1877,7 @@ void pspmix_service_sendModexDataResponse(pmix_status_t status,
 				      mdata->data, mdata->ndata);
 
     PMIX_PROC_DESTRUCT(&mdata->proc);
-    strvDestroy(&mdata->reqKeys);
+    strvDestroy(mdata->reqKeys);
     ufree(mdata);
 }
 

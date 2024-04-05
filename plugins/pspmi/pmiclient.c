@@ -1478,7 +1478,7 @@ void setKVSProviderSock(int fd)
  *
  * @return Returns true on success and false on error
  */
-static bool getSpawnArgs(char *msg, strv_t *args)
+static bool getSpawnArgs(char *msg, strv_t args)
 {
     char *execname;
     char numArgs[50];
@@ -1593,7 +1593,6 @@ kvp_error:
 static bool parseSpawnReq(char *msg, SingleSpawn_t *spawn)
 {
     const char delm[] = "\n";
-    strv_t args;
     char *tmpStr;
 
     if (!msg) return false;
@@ -1611,13 +1610,13 @@ static bool parseSpawnReq(char *msg, SingleSpawn_t *spawn)
     ufree(tmpStr);
 
     /* setup argv for processes to spawn */
-    strvInit(&args, NULL, 0);
-    if (!getSpawnArgs(msg, &args)) {
-	strvDestroy(&args);
+    strv_t args = strvNew(NULL);
+    if (!getSpawnArgs(msg, args)) {
+	strvDestroy(args);
 	goto parse_error;
     }
-    spawn->argc = strvSize(&args);
-    spawn->argv = strvStealArray(&args);
+    spawn->argc = strvSize(args);
+    spawn->argv = strvStealArray(args);
 
     /* extract preput keys and values */
     if (!getSpawnKVPs(msg, "preput", &spawn->preputc, &spawn->preputv)) {
@@ -1897,30 +1896,29 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     /* build arguments:
      * mpiexec -u <UNIVERSE_SIZE> -np <NP> -d <WDIR> -p <PATH> \
      *  --nodetype=<NODETYPE> --tpp=<TPP> <BINARY> ... */
-    strv_t args;
-    strvInit(&args, NULL, 0);
+    strv_t args = strvNew(NULL);
 
     char *tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
     if (tmpStr) {
-	strvAdd(&args, tmpStr);
+	strvAdd(args, tmpStr);
     } else {
-	strvAdd(&args, PKGLIBEXECDIR "/kvsprovider");
+	strvAdd(args, PKGLIBEXECDIR "/kvsprovider");
     }
-    strvAdd(&args, "-u");
+    strvAdd(args, "-u");
 
     snprintf(buffer, sizeof(buffer), "%d", usize);
-    strvAdd(&args, buffer);
+    strvAdd(args, buffer);
 
     for (int i = 0; i < req->num; i++) {
 	spawn = &(req->spawns[i]);
 
 	/* add separating colon */
-	if (i) strvAdd(&args, ":");
+	if (i) strvAdd(args, ":");
 
 	/* set the number of processes to spawn */
-	strvAdd(&args, "-np");
+	strvAdd(args, "-np");
 	snprintf(buffer, sizeof(buffer), "%d", spawn->np);
-	strvAdd(&args, buffer);
+	strvAdd(args, buffer);
 
 	/* extract info values and keys
 	 *
@@ -1954,24 +1952,24 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    KVP_t *info = &(spawn->infov[j]);
 
 	    if (!strcmp(info->key, "wdir")) {
-		strvAdd(&args, "-d");
-		strvAdd(&args, info->value);
+		strvAdd(args, "-d");
+		strvAdd(args, info->value);
 	    }
 	    if (!strcmp(info->key, "tpp")) {
 		size_t len = strlen(info->value) + 7;
 		tmpStr = umalloc(len);
 		snprintf(tmpStr, len, "--tpp=%s", info->value);
-		strvLink(&args, tmpStr);
+		strvLink(args, tmpStr);
 	    }
 	    if (!strcmp(info->key, "nodetype") || !strcmp(info->key, "arch")) {
 		size_t len = strlen(info->value) + 12;
 		tmpStr = umalloc(len);
 		snprintf(tmpStr, len, "--nodetype=%s", info->value);
-		strvLink(&args, tmpStr);
+		strvLink(args, tmpStr);
 	    }
 	    if (!strcmp(info->key, "path")) {
-		strvAdd(&args, "-p");
-		strvAdd(&args, info->value);
+		strvAdd(args, "-p");
+		strvAdd(args, info->value);
 	    }
 
 	    /* TODO soft spawn
@@ -1996,11 +1994,11 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	}
 
 	/* add binary and argument from spawn request */
-	for (int j = 0; j < spawn->argc; j++) strvAdd(&args, spawn->argv[j]);
+	for (int j = 0; j < spawn->argc; j++) strvAdd(args, spawn->argv[j]);
     }
 
-    task->argc = strvSize(&args);
-    task->argv = strvStealArray(&args);
+    task->argc = strvSize(args);
+    task->argv = strvStealArray(args);
 
     task->noParricide = noParricide;
 

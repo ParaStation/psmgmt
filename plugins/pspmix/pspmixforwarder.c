@@ -194,19 +194,17 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     /* build arguments:
      * kvsprovider --pmix -np <NP> -d <WDIR> --nodetype <typeslist>
      *					     -E <key> <value> <BINARY> : ... */
-    strv_t args;
-    strvInit(&args, NULL, 0);
-
+    strv_t args = strvNew(NULL);
     /* @todo change to not need to start a kvsprovider any longer */
     char *tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
     if (tmpStr) {
-	strvAdd(&args, tmpStr);
+	strvAdd(args, tmpStr);
     } else {
-	strvAdd(&args, PKGLIBEXECDIR "/kvsprovider");
+	strvAdd(args, PKGLIBEXECDIR "/kvsprovider");
     }
 
     /* set PMIx mode */
-    strvAdd(&args, "--pmix");
+    strvAdd(args, "--pmix");
 
     size_t jobsize = 0;
 
@@ -217,9 +215,9 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	jobsize += spawn->np;
 
 	/* set the number of processes to spawn */
-	strvAdd(&args, "-np");
+	strvAdd(args, "-np");
 	snprintf(buffer, sizeof(buffer), "%d", spawn->np);
-	strvAdd(&args, buffer);
+	strvAdd(args, buffer);
 
 	/* extract info values and keys
 	 *
@@ -236,41 +234,35 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    KVP_t *info = &(spawn->infov[j]);
 
 	    if (!strcmp(info->key, "wdir")) {
-		strvAdd(&args, "-d");
-		strvAdd(&args, info->value);
+		strvAdd(args, "-d");
+		strvAdd(args, info->value);
 	    }
 
 	    if (!strcmp(info->key, "nodetype")) {
-		strvAdd(&args, "--nodetype");
-		strvAdd(&args, info->value);
+		strvAdd(args, "--nodetype");
+		strvAdd(args, info->value);
 	    }
 	}
 
 	/* add user defined environment */
-	char **env = envGetArray(spawn->env);
-	while (env && *env) {
-	    strvAdd(&args, "-E");
+	for (char **env = envGetArray(spawn->env); env && *env; env++) {
+	    strvAdd(args, "-E");
 	    char *tmp = ustrdup(*env);
 	    char *stringp = tmp;
-	    strvAdd(&args, strsep(&stringp, "="));
-	    strvAdd(&args, stringp);
+	    strvAdd(args, strsep(&stringp, "="));
+	    strvAdd(args, stringp);
 	    ufree(tmp);
-	    env++;
 	}
 
-	/* add binary and argument from spawn request */
-	for (int j = 0; j < spawn->argc; j++) {
-	    strvAdd(&args, spawn->argv[j]);
-	}
+	/* add executable and arguments from spawn request */
+	for (int j = 0; j < spawn->argc; j++) strvAdd(args, spawn->argv[j]);
 
 	/* add separating colon */
-	if (i < req->num - 1) {
-	    strvAdd(&args, ":");
-	}
+	if (i < req->num - 1) strvAdd(args, ":");
     }
 
-    task->argc = strvSize(&args);
-    task->argv = strvStealArray(&args);
+    task->argc = strvSize(args);
+    task->argv = strvStealArray(args);
 
     task->noParricide = noParricide;
 

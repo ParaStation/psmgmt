@@ -96,7 +96,7 @@ static void delSpankPlug(Spank_Plugin_t *sp)
 	sp->handle = NULL;
     }
     ufree(sp->path);
-    strvDestroy(&sp->argV);
+    strvDestroy(sp->argV);
 
     list_del(&sp->next);
     ufree(sp);
@@ -198,7 +198,7 @@ static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
     current_spank = spank;
 
     gettimeofday(&time_start, NULL);
-    int res = (*hSym)(spank, strvSize(&plugin->argV), strvGetArray(&plugin->argV));
+    int res = (*hSym)(spank, strvSize(plugin->argV), strvGetArray(plugin->argV));
     gettimeofday(&time_now, NULL);
 
     timersub(&time_now, &time_start, &time_diff);
@@ -301,10 +301,10 @@ Spank_Plugin_t *SpankNewPlug(char *spankDef)
     fdbg(PSSLURM_LOG_SPANK, "path '%s'", def->path);
 
     /* additional arguments */
-    strvInit(&def->argV, NULL, 0);
+    def->argV = strvNew(NULL);
     char *args = strtok_r(NULL, delimiters, &toksave);
     while (args) {
-	strvAdd(&def->argV, args);
+	strvAdd(def->argV, args);
 	mdbg(PSSLURM_LOG_SPANK, " args: '%s'", args);
 	args = strtok_r(NULL, delimiters, &toksave);
     }

@@ -58,13 +58,14 @@ bool initEnvFilter(void)
 	return false;
     }
 
-    strvInit(&envFilterData, NULL, 0);
+    if (strvInitialized(envFilterData)) return true;
+    envFilterData = strvNew(NULL);
 
     char *dup = ustrdup(conf);
     const char delimiters[] =",\n";
     char *saveptr, *next = strtok_r(dup, delimiters, &saveptr);
     while (next) {
-	strvAdd(&envFilterData, next);
+	strvAdd(envFilterData, next);
 	next = strtok_r(NULL, delimiters, &saveptr);
     }
 
@@ -75,12 +76,12 @@ bool initEnvFilter(void)
 
 void freeEnvFilter(void)
 {
-    strvDestroy(&envFilterData);
+    strvDestroy(envFilterData);
 }
 
 bool envFilterFunc(const char *envStr)
 {
-    for (char **cur = strvGetArray(&envFilterData); *cur; cur++) {
+    for (char **cur = strvGetArray(envFilterData); cur && *cur; cur++) {
 	size_t len = strlen(*cur);
 	size_t cmpLen = ((*cur)[len-1] == '*') ? (len-1) : len;
 	if (!strncmp(*cur, envStr, cmpLen)

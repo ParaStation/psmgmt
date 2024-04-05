@@ -364,14 +364,9 @@ static char ** splitArguments(char *args)
     return argv;
 }
 
-static int addExecutableToArgv(strv_t *argV, const char *lastExe,
+static int addExecutableToArgv(strv_t argV, const char *lastExe,
 			       uint32_t exeCount, char *lastArgs)
 {
-    int i;
-#if 0
-    int j;
-#endif
-    char **tmpArgs;
     char np[128];
 
     strvAdd(argV, "-np");
@@ -383,21 +378,19 @@ static int addExecutableToArgv(strv_t *argV, const char *lastExe,
     mlog("%s: Adding executable '%s'\n", __func__, lastExe);
 #endif
 
-    tmpArgs = splitArguments(lastArgs);
+    char **tmpArgs = splitArguments(lastArgs);
     if (!tmpArgs) {
 	return -1;
     }
 
-    for (i=0; tmpArgs[i] != NULL; i++) {
+    for (int i = 0; tmpArgs[i]; i++) {
 #if 0
-	mlog("%s: Adding argument '%s'\n", __func__, tmpArgs[i]);
+	flog("adding argument '%s'\n", tmpArgs[i]);
 #endif
 	strvLink(argV, tmpArgs[i]);
 #if 0
-	mlog("%s: argv generated so far: ", __func__);
-	for (j = 0; argV->strings[j]; j++) {
-	    mlog("%s ", argV->strings[j]);
-	}
+	flog("argv generated so far: ");
+	for (char **str = strvGetArray(argV); *str; str++) mlog("%s ", *str);
 	mlog("\n");
 #endif
     }
@@ -407,30 +400,28 @@ static int addExecutableToArgv(strv_t *argV, const char *lastExe,
     return 0;
 }
 
-void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
-			    strv_t *argV)
+void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata, strv_t argV)
 {
-    uint32_t i, exeCount = 0, uniqExeCount = 0;
-
     Multi_Prog_t *mp = umalloc(step->np * sizeof(Multi_Prog_t));
-    for (i=0; i<step->np; i++) mp[i].exe = mp[i].args = NULL;
+    for (uint32_t i = 0; i < step->np; i++) mp[i].exe = mp[i].args = NULL;
 
     /* parse the multi prog conf */
     parseMultiProgConf(step->argv[1], mp, step->np);
 
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PROCESS) {
 	flog("Got following multiprog data:\n");
-	for (i=0; i<step->np; i++) {
+	for (uint32_t i = 0; i < step->np; i++) {
 	    flog("  %i:  %s   %s\n", i, mp[i].exe, mp[i].args);
 	}
     }
 
     /* generate arguments for every executable */
+    uint32_t exeCount = 0, uniqExeCount = 0;
     char *lastExe = mp[0].exe;
     char *lastArgs = mp[0].args;
 
     size_t startArgc = strvSize(argV);
-    for (i = 0; i < step->np; i++) {
+    for (uint32_t i = 0; i < step->np; i++) {
 	if (!mp[i].exe) goto setup_error;
 	if (!strcmp(mp[i].exe, lastExe) && !strcmp(mp[i].args, lastArgs)) {
 	    /* count how often this exe/args combination should run (==np) */
@@ -447,8 +438,8 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
 	    goto setup_error;
 	}
 #if 0
-	mlog("%s: generated argv %i with exeCount '%s' lastExe '%s'"
-		" lastArgs '%s'\n", __func__, i, np, lastExe, lastArgs);
+	flog("generated argv %i with exeCount '%s' lastExe '%s' lastArgs '%s'\n",
+	     i, np, lastExe, lastArgs);
 #endif
 
 	lastExe = mp[i].exe;
@@ -471,15 +462,13 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
     ufree(mp);
 
 #if 0
-    mlog("%s: generated last argv with exeCount '%s' lastExe '%s'"
-	    " lastArgs '%s'\n", __func__, np, lastExe, lastArgs);
+    flog("generated last argv with exeCount '%s' lastExe '%s' lastArgs '%s'\n",
+	 np, lastExe, lastArgs);
 #endif
 
 #if 0
-    mlog("%s: complete argv: ", __func__);
-    for (i = 0; argV->strings[i]; i++) {
-	mlog("%s ", argV->strings[i]);
-    }
+    flog("complete argv: ");
+    for (char **str = strvGetArray(argV); *str; str++) mlog("%s ", *str);
     mlog("\n");
 #endif
 

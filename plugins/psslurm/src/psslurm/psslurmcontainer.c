@@ -506,7 +506,7 @@ bool Container_taskInit(Slurm_Container_t *ct, PStask_t *task, bool tty)
 
 static int doExec(void *info)
 {
-    strv_t *argV = info;
+    strv_t argV = info;
 
     if (strvSize(argV) <= 2) {
 	flog("invalid argument vector for container command\n");
@@ -533,19 +533,18 @@ static int execRuntimeCmd(Slurm_Container_t *ct, char *cmd, bool doFork)
 	return -1;
     }
 
-    strv_t argV;
-    strvInit(&argV, NULL, 0);
-    strvAdd(&argV, "/bin/sh");
-    strvAdd(&argV, "-c");
-    strvAdd(&argV, runtime);
+    strv_t argV = strvNew(NULL);
+    strvAdd(argV, "/bin/sh");
+    strvAdd(argV, "-c");
+    strvAdd(argV, runtime);
 
     fdbg(PSSLURM_LOG_CONTAIN, "%s\n", runtime);
-    if (!doFork) doExec(&argV);
+    if (!doFork) doExec(argV);
 
     struct timeval timeout = { .tv_sec = 3, .tv_usec = 0};
-    int ret = PSID_execFunc(doExec, NULL, NULL, &timeout, &argV);
+    int ret = PSID_execFunc(doExec, NULL, NULL, &timeout, argV);
     ufree(runtime);
-    strvDestroy(&argV);
+    strvDestroy(argV);
 
     return ret;
 }

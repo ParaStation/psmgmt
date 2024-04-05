@@ -18,33 +18,66 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/** String vector to be handled by strv* functions */
-typedef struct {
-    char **strings;    /**< Array of strings */
-    uint32_t cnt;      /**< Current number of strings in array */
-    uint32_t size;     /**< Current maximum size incl. NULL (do not use) */
-} strv_t;
+/** String vector context to be created via @ref strvNew() */
+typedef struct strv * strv_t;
 
 /**
- * @brief Initialize string vector
+ * @brief Create a string vector
  *
- * This function has to be called for @a strv before it can be passed
- * to any other strv* function.
+ * Create a string vector context in order to hold an arbitrary number
+ * of strings. If the NULL terminated array of strings @a strArray is
+ * given, the string vector context will use (and possibly modify)
+ * this array. This implies:
  *
- * @a initstrv might hold the initial content to be copied into @a
- * strv or NULL if @a strv shall be started empty. Only the actual
- * array is copied, the strings are not. If @a initcount is 0, @a
- * initstrv is assumed to be NULL terminated.
+ * 1. The initial setting of the string vector content is provided
+ * within @a strArray
  *
- * @param strv The string vector to initialize
+ * 2. The ownership of @a strArray is passed to the string vector
+ * context
  *
- * @param initstrv Array to set initially or NULL
+ * 3. Any modification of @a strArray later on will directly influence
+ * the content of the string vector context created here
  *
- * @param initcount Length of initstrv or 0 if initstrv is NULL terminated
+ * If it is required to avoid these implications, it is suggested to
+ * construct the string vector via @ref strvConstruct().
  *
- * @return No return value
+ * @a strArray is expected to be NULL terminated.
+ *
+ * @param strArray NULL terminated array of strings defining the
+ * string vector; might be NULL
+ *
+ * @return Handle to the string vector if it was successfully created
+ * or NULL
  */
-void strvInit(strv_t *strv, char **initstrv, uint32_t initcount);
+strv_t strvNew(char **strArray);
+
+/**
+ * @brief Construct a string vector
+ *
+ * Construct a string vector context from the NULL terminated array of
+ * string @a strArray. In contrast to @ref strvNew(), @a strArray
+ * itself is not part of the newly constructed context. Nevertheless,
+ * the strings the elements of @a strArray are pointing to will still
+ * be referenced. This implies:
+ *
+ * 1. The initial setting of the string vector content is provided
+ * within @a strArray
+ *
+ * 2. The ownership of @a strArray remains at the caller
+ *
+ * 3. Any modification of the strings, the elements of @a strArray are
+ * pointing to later on will directly influence the content of the
+ * string vector context created here
+ *
+ * @a strArray is expected to be NULL terminated.
+ *
+ * @param strArray NULL terminated array of strings defining the
+ * string vector; if NULL, no string vector context will be created
+ *
+ * @return Handle to the string vector if it was successfully
+ * constructed or NULL
+ */
+strv_t strvConstruct(char **strArray);
 
 /**
  * @brief Check string vector for initialization
@@ -57,7 +90,7 @@ void strvInit(strv_t *strv, char **initstrv, uint32_t initcount);
  * @return Return true if the string vector is initialized; or false
  * otherwise
  */
-bool strvInitialized(const strv_t *strv);
+bool strvInitialized(const strv_t strv);
 
 /**
  * @brief Get string vector's size
@@ -69,13 +102,12 @@ bool strvInitialized(const strv_t *strv);
  *
  * @return Size of the string vector
  */
-uint32_t strvSize(strv_t *strv);
+uint32_t strvSize(strv_t strv);
 
 /**
  * @brief Add string to string vector
  *
- * Append the string @a str to the string vector @a strv. The string
- * vector @a strv must be initialized via @ref strvInit() before.
+ * Append the string @a str to the string vector @a strv.
  *
  * @a strv will not be extended by @a str itself but by a copy of the
  * string created utilizing @ref strdup(). Thus, "ownership" of @a str
@@ -88,14 +120,12 @@ uint32_t strvSize(strv_t *strv);
  * @return If @a str was appended, true is returned; or false in case
  * of error
  */
-bool strvAdd(strv_t *strv, const char *str);
+bool strvAdd(strv_t strv, const char *str);
 
 /**
  * @brief Link string to string vector
  *
- * Append the string @a str itself to the string vector @a strv. The
- * string vector @a strv must be initialized via @ref strvInit()
- * before.
+ * Append the string @a str itself to the string vector @a strv.
  *
  * @attention The pointer @a str to the string pointer is stored
  * directly, i.e. the "ownership" of @a str is transferred to @a
@@ -108,7 +138,7 @@ bool strvAdd(strv_t *strv, const char *str);
  * @return If @a str was appended, true is returned; or false in case
  * of error
  */
-bool strvLink(strv_t *strv, const char *str);
+bool strvLink(strv_t strv, const char *str);
 
 /**
  * @brief Access string vector's string array
@@ -136,7 +166,7 @@ bool strvLink(strv_t *strv, const char *str);
  * @return Pointer to a NULL terminated string array or NULL if @a strv
  * is still uninitialized or empty
  */
-char **strvGetArray(strv_t *strv);
+char **strvGetArray(strv_t strv);
 
 /**
  * Destroy string vector
@@ -149,7 +179,7 @@ char **strvGetArray(strv_t *strv);
  *
  * @return No return value
  */
-void strvDestroy(strv_t *strv);
+void strvDestroy(strv_t strv);
 
 /**
  * @brief Steal string vector's strings
@@ -159,13 +189,13 @@ void strvDestroy(strv_t *strv);
  * free()ed, but not the individual string's memory.
  *
  * This is meant to be used after all the string vector content has been
- * used otherwise, i.e. transfered ownership to a different control'
+ * used otherwise, i.e. transferred ownership to a different control.
  *
  * @param strv String vector to steal the strings from
  *
  * @return No return value
  */
-void strvSteal(strv_t *strv);
+void strvSteal(strv_t strv);
 
 /**
  * @brief Steal string vector's string array
@@ -194,6 +224,6 @@ void strvSteal(strv_t *strv);
  * @return Pointer to a NULL terminated string array or NULL if @a strv
  * is still uninitialized or empty
  */
-char **strvStealArray(strv_t *strv);
+char **strvStealArray(strv_t strv);
 
 #endif  /* __PSSTRV_H */
