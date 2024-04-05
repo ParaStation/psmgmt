@@ -1023,7 +1023,6 @@ void buildStartArgv(Forwarder_Data_t *fwData, strv_t *argV, pmi_type_t pmiType)
 static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
 {
     Step_t *step = fwdata->userData;
-    strv_t argV;
     char buf[128];
     pmi_type_t pmi_type;
     int32_t oldMask = logger_getMask(psslurmlogger);
@@ -1069,7 +1068,9 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     pmi_type = getPMIType(step);
 
     /* build mpiexec et al. argument vector */
+    strv_t argV;
     buildStartArgv(fwdata, &argV, pmi_type);
+    char **argvP = strvStealArray(&argV);
 
     /* setup step specific environment */
     setStepEnv(step);
@@ -1078,7 +1079,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     if (step->x11forward) initX11Forward(step);
 
     fdbg(PSSLURM_LOG_JOB, "exec %s via %s mypid %u\n", Step_strID(step),
-	 argV.strings[0], getpid());
+	 argvP[0], getpid());
 
     /* set RLimits */
     setRlimitsFromEnv(step->env, true);
@@ -1087,21 +1088,20 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     removeUserVars(step->env, pmi_type);
 
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PROCESS) {
-	debugMpiexecStart(argV.strings, envGetArray(step->env));
+	debugMpiexecStart(argvP, envGetArray(step->env));
     }
 
     /* start mpiexec to spawn the parallel job */
     closelog();
-    execve(argV.strings[0], argV.strings, envGetArray(step->env));
+    execve(argvP[0], argvP, envGetArray(step->env));
     int err = errno;
 
     /* execve() failed */
-    fprintf(stderr, "%s: execve %s: %s\n", __func__, argV.strings[0],
-	    strerror(err));
+    fprintf(stderr, "%s: execve %s: %s\n", __func__, argvP[0], strerror(err));
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     snprintf(buf, sizeof(buf), "psslurm-%s", Step_strID(step));
     initLogger(buf, NULL);
-    mwarn(err, "%s: execve(%s)", __func__, argV.strings[0]);
+    mwarn(err, "%s: execve(%s)", __func__, argvP[0]);
     exit(err);
 }
 

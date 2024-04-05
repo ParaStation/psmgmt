@@ -728,7 +728,7 @@ static void requestModexData_cb(pmix_status_t status, char *data, size_t ndata,
  */
 static bool checkKeyAvailability(pmix_proc_t *proc, strv_t *reqKeys)
 {
-    if (!reqKeys->strings) return true;
+    if (!strvSize(reqKeys)) return true;
 
 #if PMIX_VERSION_MAJOR < 4
     size_t ninfo = 1;
@@ -749,21 +749,19 @@ static bool checkKeyAvailability(pmix_proc_t *proc, strv_t *reqKeys)
     i++;
 #endif
 
-    size_t c = 0;
-    char *key;
-    while ((key = reqKeys->strings[c++])) {
+    for (char **key = strvGetArray(reqKeys); *key; key++) {
 	pmix_value_t *val;
-	pmix_status_t status = PMIx_Get(proc, key, info, ninfo, &val);
+	pmix_status_t status = PMIx_Get(proc, *key, info, ninfo, &val);
 	switch (status) {
 	    case PMIX_SUCCESS:
-		udbg(PSPMIX_LOG_MODEX, "found '%s' for rank %d\n", key,
+		udbg(PSPMIX_LOG_MODEX, "found '%s' for rank %d\n", *key,
 		     proc->rank);
 #if PMIX_VERSION_MAJOR < 4
 		PMIX_VALUE_DESTRUCT(val);
 #endif
 		break;
 	    case PMIX_ERR_NOT_FOUND:
-		udbg(PSPMIX_LOG_MODEX, "not found '%s' for rank %d\n", key,
+		udbg(PSPMIX_LOG_MODEX, "not found '%s' for rank %d\n", *key,
 		     proc->rank);
 		PMIX_INFO_FREE(info, ninfo);
 		return false;
@@ -772,7 +770,7 @@ static bool checkKeyAvailability(pmix_proc_t *proc, strv_t *reqKeys)
 	    case PMIX_ERR_EXISTS_OUTSIDE_SCOPE:
 #endif
 		mlog("%s: PMIx_get(proc %s:%d key %s) failed: %s\n", __func__,
-			proc->nspace, proc->rank, key,
+			proc->nspace, proc->rank, *key,
 			PMIx_Error_string(status));
 		PMIX_INFO_FREE(info, ninfo);
 		return false;
@@ -1238,8 +1236,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	 */
 	strv_t argv;
 	strvInit(&argv, apps[a].argv, 0);
-	sapps[a].argv = argv.strings;
-	strvStealArray(&argv);
+	sapps[a].argv = strvStealArray(&argv);
 	sapps[a].argv[0] = apps[a].cmd;
 
 	/*

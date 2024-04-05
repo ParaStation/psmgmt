@@ -198,7 +198,7 @@ static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
     current_spank = spank;
 
     gettimeofday(&time_start, NULL);
-    int res = (*hSym)(spank, plugin->argV.count, plugin->argV.strings);
+    int res = (*hSym)(spank, strvSize(&plugin->argV), strvGetArray(&plugin->argV));
     gettimeofday(&time_now, NULL);
 
     timersub(&time_now, &time_start, &time_diff);

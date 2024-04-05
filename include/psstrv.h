@@ -9,11 +9,8 @@
  * file.
  */
 /*
- * This small library is a collection of functions for easy handling of dynamic
- * NULL terminated string vectors.
- * After each function called on a strv_t *strv:
- * - strv->strings is a pointer to a NULL terminated vector of strings or NULL
- * - strv->count contains the number of entries in the strings vector
+ * This small library is a collection of functions for easy handling
+ * of dynamic NULL terminated string vectors.
  */
 #ifndef __PSSTRV_H
 #define __PSSTRV_H
@@ -24,7 +21,7 @@
 /** String vector to be handled by strv* functions */
 typedef struct {
     char **strings;    /**< Array of strings */
-    uint32_t count;    /**< Current number of strings in array */
+    uint32_t cnt;      /**< Current number of strings in array */
     uint32_t size;     /**< Current maximum size incl. NULL (do not use) */
 } strv_t;
 
@@ -45,22 +42,40 @@ typedef struct {
  *
  * @param initcount Length of initstrv or 0 if initstrv is NULL terminated
  *
- * @param func Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return No return value
  */
-void __strvInit(strv_t *strv, char **initstrv, uint32_t initcount,
-		const char *func, const int line);
-#define strvInit(strv, initstrv, initcount) \
-    __strvInit(strv, initstrv, initcount, __func__, __LINE__)
+void strvInit(strv_t *strv, char **initstrv, uint32_t initcount);
+
+/**
+ * @brief Check string vector for initialization
+ *
+ * Check if the string vector represented by @a strv is initialized,
+ * i.e. if @ref strvNew() was called for this string vector before.
+ *
+ * @param strv String vector's handle
+ *
+ * @return Return true if the string vector is initialized; or false
+ * otherwise
+ */
+bool strvInitialized(const strv_t *strv);
+
+/**
+ * @brief Get string vector's size
+ *
+ * Get the actual size, i.e. the number of stored strings, of the
+ * string vector @a strv.
+ *
+ * @param strv String vector to investigate
+ *
+ * @return Size of the string vector
+ */
+uint32_t strvSize(strv_t *strv);
 
 /**
  * @brief Add string to string vector
  *
  * Append the string @a str to the string vector @a strv. The string
- * vector @a strv has to be initialized via @ref strvInit() before.
+ * vector @a strv must be initialized via @ref strvInit() before.
  *
  * @a strv will not be extended by @a str itself but by a copy of the
  * string created utilizing @ref strdup(). Thus, "ownership" of @a str
@@ -70,20 +85,16 @@ void __strvInit(strv_t *strv, char **initstrv, uint32_t initcount,
  *
  * @param str String to add
  *
- * @param func Function name of the calling function
- *
- * @param line Line number where this function is called
- *
- * @return No return value
+ * @return If @a str was appended, true is returned; or false in case
+ * of error
  */
-void __strvAdd(strv_t *strv, const char *str, const char *func, const int line);
-#define strvAdd(strv, str) __strvAdd(strv, str, __func__, __LINE__)
+bool strvAdd(strv_t *strv, const char *str);
 
 /**
  * @brief Link string to string vector
  *
  * Append the string @a str itself to the string vector @a strv. The
- * string vector @a strv has to be initialized via @ref strvInit()
+ * string vector @a strv must be initialized via @ref strvInit()
  * before.
  *
  * @attention The pointer @a str to the string pointer is stored
@@ -94,17 +105,41 @@ void __strvAdd(strv_t *strv, const char *str, const char *func, const int line);
  *
  * @param str String to add
  *
- * @param func Function name of the calling function
- *
- * @param line Line number where this function is called
- *
- * @return No return value
+ * @return If @a str was appended, true is returned; or false in case
+ * of error
  */
-void __strvLink(strv_t *strv, const char *str, const char *func, const int line);
-#define strvLink(strv, str) __strvLink(strv, str, __func__, __LINE__)
+bool strvLink(strv_t *strv, const char *str);
 
 /**
- * Destroys string vector
+ * @brief Access string vector's string array
+ *
+ * Get a handle on a string array representing the string vector @a
+ * strv. The string array is NULL terminated and remains in the
+ * ownership of @a strv, i.e.
+ *
+ * - it will get obsolete as soon as @a strv is destroyed
+ *
+ * - any modification of this array will immediately affect @a strv
+ *
+ * - any modifications of @a strv will immediately change the returned
+ *   string array
+ *
+ * Thus, if it is required to modify the returned string array or to
+ * rely on the content of it on the long run, it is advised to either
+ * steal it from @a strv utilizing strvStealArray().
+ *
+ * The main purpose of this function is to feed the content of @a strv
+ * into functions like @ref addStringArrayToMsg() or exec().
+ *
+ * @param strv String vector to get a string array handle on
+ *
+ * @return Pointer to a NULL terminated string array or NULL if @a strv
+ * is still uninitialized or empty
+ */
+char **strvGetArray(strv_t *strv);
+
+/**
+ * Destroy string vector
  *
  * Destroy the string vector @a strv. All memory used by the string
  * vector itself and the containing strings is invalidated and
@@ -112,43 +147,53 @@ void __strvLink(strv_t *strv, const char *str, const char *func, const int line)
  *
  * @param strv The string vector to be destroy
  *
- * @param func Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return No return value
  */
-void __strvDestroy(strv_t *strv, const char *func, const int line);
-#define strvDestroy(strv) __strvDestroy(strv, __func__, __LINE__)
+void strvDestroy(strv_t *strv);
 
 /**
- * Steal string vector
+ * @brief Steal string vector's strings
  *
- * Destroy the string vector @a strv. All memory used by the string
- * vector itself is invalidated and free()ed. Nevertheless, memory
- * used by the strings within the vector is left untouched.
+ * Destroy the string vector @a strv but leave the actual strings
+ * alone. For this, all memory occupied by the string vector is
+ * free()ed, but not the individual string's memory.
  *
- * With the @a array switch, you can choose to steal the strings array and the
- * contained strings (true), or to only steal the contained strings (false).
+ * This is meant to be used after all the string vector content has been
+ * used otherwise, i.e. transfered ownership to a different control'
  *
- * @attention This function especially frees strv->strings iff array == false.
- *
- * @attention You cannot access any pointer in @a strv after calling this
- * function, so you need to copy strv->strings beforehand iff array == true or
- * the memory pointed to by it will be leaked.
- *
- * @param strv   The string vector to be destroy
- *
- * @param sarray Flag to steal the strings array as well
- *
- * @param func   Function name of the calling function
- *
- * @param line   Line number where this function is called
+ * @param strv String vector to steal the strings from
  *
  * @return No return value
  */
-void __strvSteal(strv_t *strv, bool sarray, const char *func, const int line);
-#define strvSteal(strv) __strvSteal(strv, false, __func__, __LINE__)
-#define strvStealArray(strv) __strvSteal(strv, true, __func__, __LINE__)
+void strvSteal(strv_t *strv);
+
+/**
+ * @brief Steal string vector's string array
+ *
+ * Destroy the string vector @a strv but leave the actual string array
+ * alone. For this, all memory occupied by the string vector is
+ * free()ed, but not the representing string array's memory that can
+ * be accessed via strvGetArray().
+ *
+ * This is meant to be used after a handle to the string array is
+ * gained through strvGetArray() and the string array shall be kept
+ * outside of @a strv on the long run.
+ *
+ * Instead of utilizing @ref strvGetArray() before, the return value of
+ * this function might be used directly. I.e.
+ *
+ * char **argv = strvStealArray(args);
+ *
+ * is equivalent to:
+ *
+ * char **argv = strvGetArray(args)
+ * strvStealArray(args)
+ *
+ * @param strv String vector to steal the string array from
+ *
+ * @return Pointer to a NULL terminated string array or NULL if @a strv
+ * is still uninitialized or empty
+ */
+char **strvStealArray(strv_t *strv);
 
 #endif  /* __PSSTRV_H */

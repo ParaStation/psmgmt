@@ -429,7 +429,7 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
     char *lastExe = mp[0].exe;
     char *lastArgs = mp[0].args;
 
-    size_t startArgc = argV->count;
+    size_t startArgc = strvSize(argV);
     for (i = 0; i < step->np; i++) {
 	if (!mp[i].exe) goto setup_error;
 	if (!strcmp(mp[i].exe, lastExe) && !strcmp(mp[i].args, lastArgs)) {
@@ -438,7 +438,7 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
 	    continue;
 	}
 
-	if (argV->count != startArgc) {
+	if (strvSize(argV) != startArgc) {
 	    /* this is not the first executable, separate using colon */
 	    strvAdd(argV, ":");
 	}

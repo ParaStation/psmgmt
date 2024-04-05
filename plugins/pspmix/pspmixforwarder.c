@@ -269,9 +269,8 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	}
     }
 
-    task->argv = args.strings;
-    task->argc = args.count;
-    strvStealArray(&args);
+    task->argc = strvSize(&args);
+    task->argv = strvStealArray(&args);
 
     task->noParricide = noParricide;
 

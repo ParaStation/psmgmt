@@ -1616,8 +1616,8 @@ static bool parseSpawnReq(char *msg, SingleSpawn_t *spawn)
 	strvDestroy(&args);
 	goto parse_error;
     }
-    spawn->argv = args.strings;
-    spawn->argc = args.count;
+    spawn->argc = strvSize(&args);
+    spawn->argv = strvStealArray(&args);
 
     /* extract preput keys and values */
     if (!getSpawnKVPs(msg, "preput", &spawn->preputc, &spawn->preputv)) {
@@ -1999,8 +1999,8 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	for (int j = 0; j < spawn->argc; j++) strvAdd(&args, spawn->argv[j]);
     }
 
-    task->argv = args.strings;
-    task->argc = args.count;
+    task->argc = strvSize(&args);
+    task->argv = strvStealArray(&args);
 
     task->noParricide = noParricide;
 

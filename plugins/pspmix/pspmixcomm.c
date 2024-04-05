@@ -394,14 +394,14 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     int32_t timeout;
     getInt32(data, &timeout);
 
+    char **reqKeysP = NULL;
+    getStringArrayM(data, &reqKeysP, NULL);
     strv_t reqKeys;
-    strvInit(&reqKeys, NULL, 0);
-    getStringArrayM(data, &reqKeys.strings, &reqKeys.count);
-    if (reqKeys.count) reqKeys.size = reqKeys.count + 1;
+    strvInit(&reqKeys, reqKeysP, 0);
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s (namespace %s rank %d numReqKeys %u"
 	 " timeout %d)\n", __func__, pspmix_getMsgTypeString(msg->type),
-	 nspace, rank, reqKeys.count, timeout);
+	 nspace, rank, strvSize(&reqKeys), timeout);
 
     if (!pspmix_service_handleModexDataRequest(msg->header.sender, nspace, rank,
 					       reqKeys, timeout)) {

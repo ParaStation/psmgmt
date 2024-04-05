@@ -144,8 +144,8 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
 
     for (int i = 0; i<spawn->argc; i++) strvAdd(&argV, spawn->argv[i]);
 
-    task->argc = argV.count;
-    task->argv = argV.strings;
+    task->argc = strvSize(&argV);
+    task->argv = strvStealArray(&argV);
 
     return 1;
 }
@@ -233,8 +233,8 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
     strvAdd(&argV, "--multi-prog");
     strvAdd(&argV, filebuf);
 
-    task->argc = argV.count;
-    task->argv = argV.strings;
+    task->argc = strvSize(&argV);
+    task->argv = strvStealArray(&argV);
 
     return 1;
 }

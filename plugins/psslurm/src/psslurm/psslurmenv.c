@@ -80,7 +80,7 @@ void freeEnvFilter(void)
 
 bool envFilterFunc(const char *envStr)
 {
-    for (char **cur = envFilterData.strings; *cur; cur++) {
+    for (char **cur = strvGetArray(&envFilterData); *cur; cur++) {
 	size_t len = strlen(*cur);
 	size_t cmpLen = ((*cur)[len-1] == '*') ? (len-1) : len;
 	if (!strncmp(*cur, envStr, cmpLen)

@@ -508,16 +508,17 @@ static int doExec(void *info)
 {
     strv_t *argV = info;
 
-    if (!argV || !argV->strings[2]) {
+    if (strvSize(argV) <= 2) {
 	flog("invalid argument vector for container command\n");
 	exit(1);
     }
 
-    fdbg(PSSLURM_LOG_CONTAIN, "executing %s\n", argV->strings[2]);
-    execv(argV->strings[0], argV->strings);
+    char **argvP = strvStealArray(argV);
+    fdbg(PSSLURM_LOG_CONTAIN, "executing %s\n", argvP[2]);
+    execv(argvP[0], argvP);
 
     /* execve() failed */
-    flog("executing %s failed\n", argV->strings[2]);
+    flog("executing %s failed\n", argvP[2]);
     exit(1);
 }
 
