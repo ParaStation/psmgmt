@@ -53,8 +53,10 @@ enum {
     SLURM_22_05,
     SLURM_23_02,
     SLURM_23_11,
-    SLURM_24_08,
-    SLURM_25_05
+    SLURM_24_05,
+    SLURM_24_11,
+    SLURM_25_05,
+    SLURM_25_11
 } slurm_version;
 
 
@@ -751,8 +753,10 @@ int main(int argc, char *argv[])
 	else if (!strcmp(sv, "22.05")) slurm_version = SLURM_22_05;
 	else if (!strcmp(sv, "23.02")) slurm_version = SLURM_23_02;
 	else if (!strcmp(sv, "23.11")) slurm_version = SLURM_23_11;
-	else if (!strcmp(sv, "24.08")) slurm_version = SLURM_24_08;
+	else if (!strcmp(sv, "24.05")) slurm_version = SLURM_24_05;
+	else if (!strcmp(sv, "24.11")) slurm_version = SLURM_24_11;
 	else if (!strcmp(sv, "25.05")) slurm_version = SLURM_25_05;
+	else if (!strcmp(sv, "25.11")) slurm_version = SLURM_25_11;
 	else {
 	    outline(ERROROUT, "Unknown slurm version in SLURM_VERSION");
 	    return -1;
