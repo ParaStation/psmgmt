@@ -764,7 +764,7 @@ int main(int argc, char *argv[])
 	outline(INFOOUT, "SLURM_VERSION=%s", sv);
 	free(sv);
     } else {
-	slurm_version = SLURM_21_08;
+	slurm_version = SLURM_23_02;
     }
 
     /* starting with Slurm 22.05 -c implies --exact */
