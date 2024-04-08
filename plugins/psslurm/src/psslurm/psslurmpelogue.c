@@ -651,7 +651,7 @@ void startTaskPrologue(Step_t *step, PStask_t *task)
     }
 }
 
-int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
+static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 {
     /* handle relative paths */
     if (taskEpilogue[0] != '/') {
