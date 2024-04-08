@@ -59,7 +59,18 @@ uint32_t envSize(env_t env)
     return envInitialized(env) ? env->cnt : 0;
 }
 
-void envUnsetIndex(env_t env, uint32_t idx)
+/**
+ * @brief Remove from environment
+ *
+ * Remove the entry indexed by @a idx from the environment @a env.
+ *
+ * @param env Environment to modify
+ *
+ * @param idx Index of the entry to remove
+ *
+ * @return No return value
+ */
+static void envUnsetIndex(env_t env, uint32_t idx)
 {
     if (!envInitialized(env)) return;
     free(env->vars[idx]);
@@ -274,6 +285,17 @@ bool envCat(env_t dst, const env_t src, bool filter(const char *))
 	if (!envDoSet(dst, strdup(src->vars[i]))) return false;
     }
     return true;
+}
+
+void envEvict(env_t env, bool filter(const char *, void *), void *info)
+{
+    if (!envInitialized(env) || !filter) return;
+
+    for (uint32_t i = 0; i < env->cnt; i++) {
+	if (!filter(env->vars[i], info)) continue;
+	envUnsetIndex(env, i);
+	i--;
+    }
 }
 
 env_t envFromString(const char *string)

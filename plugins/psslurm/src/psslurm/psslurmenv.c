@@ -1243,20 +1243,20 @@ void setRankEnv(int32_t rank, Step_t *step)
 }
 
 /**
- * @brief Remove spank options from environment
+ * @brief Filter spank option variables
  *
- * @param env The environment to alter
+ * @param envStr Environment string to test
+ *
+ * @param info Extra info (ignored)
+ *
+ * @return Return true if @a envStr represents a SPANK option or false
+ * otherwise
  */
-static void removeSpankOptions(env_t env)
+static bool spankVarFilter(const char *envStr, void *info)
 {
-    /* remove srun/spank options */
-    for (uint32_t i = 0; i < envSize(env); i++) {
-	char *thisEnv = envDumpIndex(env, i);
-	if (!strncmp("_SLURM_SPANK_OPTION", thisEnv, 19)) {
-	    envUnsetIndex(env, i);
-	    i--;
-	}
-    }
+    if (!strncmp("_SLURM_SPANK_OPTION", envStr, 19)) return true;
+
+    return false;
 }
 
 pmi_type_t getPMIType(Step_t *step)
@@ -1288,42 +1288,52 @@ pmi_type_t getPMIType(Step_t *step)
     return PMI_TYPE_DEFAULT;
 }
 
-void removeUserVars(env_t env, pmi_type_t pmi_type)
+/**
+ * @brief Filter variable not foreseen to be user-visible
+ *
+ * @param envStr Environment string to test
+ *
+ * @param info Extra info expected to present the PMI type
+ *
+ * @return Return true if @a envStr shall be evicted or false
+ * otherwise
+ */
+static bool userVarFilter(const char *envStr, void *info)
 {
+    pmi_type_t pmi_type = *(pmi_type_t *)info;
+
     /* get rid of all environment variables which are not needed
      * for spawning of processes via mpiexec */
-    for (uint32_t i = 0; i < envSize(env); i++) {
-	char *thisEnv = envDumpIndex(env, i);
-	if (!strncmp(thisEnv, "USER=", 5)) continue;
-	if (!strncmp(thisEnv, "HOSTNAME=", 9)) continue;
-	if (!strncmp(thisEnv, "PATH=", 5)) continue;
-	if (!strncmp(thisEnv, "HOME=", 5)) continue;
-	if (!strncmp(thisEnv, "PWD=", 4)) continue;
-	if (!strncmp(thisEnv, "DISPLAY=", 8)) continue;
+    if (!strncmp(envStr, "USER=", 5)
+	|| !strncmp(envStr, "HOSTNAME=", 9)
+	|| !strncmp(envStr, "PATH=", 5)
+	|| !strncmp(envStr, "HOME=", 5)
+	|| !strncmp(envStr, "PWD=", 4)
+	|| !strncmp(envStr, "DISPLAY=", 8)
+	|| !strncmp(envStr, "SLURM_STEPID=", 13)
+	|| !strncmp(envStr, "SLURM_JOBID=", 12)
+	|| !strncmp(envStr, "__MPIEXEC_DIST_START=", 21)
+	|| !strncmp(envStr, "MPIEXEC_", 8)
+	|| !strncmp(envStr, "PSI_", 4)
+	|| !strncmp(envStr, "__PSI_", 6)
+	|| !strncmp(envStr, "__PSID_", 7)) return false;
 
-	if (!strncmp(thisEnv, "SLURM_STEPID=", 13)) continue;
-	if (!strncmp(thisEnv, "SLURM_JOBID=", 12)) continue;
+    if (pmi_type == PMI_TYPE_DEFAULT && (
+	    !strncmp(envStr, "PMI_", 4)
+	    || !strncmp(envStr, "__PMI_", 6)
+	    || !strncmp(envStr, "MEASURE_KVS_PROVIDER", 20))) return false;
 
-	if (!strncmp(thisEnv, "__MPIEXEC_DIST_START=", 21)) continue;
-	if (!strncmp(thisEnv, "MPIEXEC_", 8)) continue;
+    if (pmi_type == PMI_TYPE_PMIX && (
+	    !strncmp(envStr, "PMIX_DEBUG", 10)
+	    || !strncmp(envStr, "PMIX_SPAWNED", 12)
+	    || !strncmp(envStr, "PSPMIX_ENV_TMOUT=", 17))) return false;
 
-	if (!strncmp(thisEnv, "PSI_", 4)) continue;
-	if (!strncmp(thisEnv, "__PSI_", 6)) continue;
-	if (pmi_type == PMI_TYPE_DEFAULT) {
-	    if (!strncmp(thisEnv, "PMI_", 4)) continue;
-	    if (!strncmp(thisEnv, "__PMI_", 6)) continue;
-	    if (!strncmp(thisEnv, "MEASURE_KVS_PROVIDER", 20)) continue;
-	}
-	if (pmi_type == PMI_TYPE_PMIX) {
-	    if (!strncmp(thisEnv, "PMIX_DEBUG", 10)) continue;
-	    if (!strncmp(thisEnv, "PMIX_SPAWNED", 12)) continue;
-	    if (!strncmp(thisEnv, "PSPMIX_ENV_TMOUT=", 17)) continue;
-	}
-	if (!strncmp(thisEnv, "__PSID_", 7)) continue;
+    return true;
+}
 
-	envUnsetIndex(env, i);
-	i--;
-    }
+void removeUserVars(env_t env, pmi_type_t pmi_type)
+{
+    envEvict(env, userVarFilter, &pmi_type);
 }
 
 void setStepEnv(Step_t *step)
@@ -1376,7 +1386,7 @@ void setStepEnv(Step_t *step)
     envSet(step->env, ENV_PSID_BATCH, "1");
 
     /* cleanup env */
-    removeSpankOptions(step->env);
+    envEvict(step->env, spankVarFilter, NULL);
 }
 
 void setJobEnv(Job_t *job)
@@ -1420,7 +1430,7 @@ void setJobEnv(Job_t *job)
     if (job->tresBind) envSet(job->env, "SLURMD_TRES_BIND", job->tresBind);
     if (job->tresFreq) envSet(job->env, "SLURMD_TRES_FREQ", job->tresFreq);
 
-    removeSpankOptions(job->env);
+    envEvict(job->env, spankVarFilter, NULL);
 
     setSlurmConfEnvVar(job->env);
 

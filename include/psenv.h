@@ -218,19 +218,6 @@ void __envDestroy(env_t env, bool shred);
 bool envPut(env_t env, const char *envString);
 
 /**
- * @brief Remove from environment
- *
- * Remove the entry indexed by @a idx from the environment @a env.
- *
- * @param env Environment to modify
- *
- * @param idx Index of the entry to remove
- *
- * @return No return value
- */
-void envUnsetIndex(env_t env, uint32_t idx);
-
-/**
  * @brief Construct environment from array
  *
  * Construct a new environment from the NULL terminated array of
@@ -331,6 +318,24 @@ env_t envClone(const env_t env, bool filter(const char *));
  * might be modified upon return and contain parts of @a src.
  */
 bool envCat(env_t dst, const env_t src, bool filter(const char *));
+
+/**
+ * @brief Evict elements from environment
+ *
+ * Evict all elements from the environment @a env that match the
+ * filter.  For this, each element is passed to the filter function @a
+ * filter together with some extra information @a info is pointing
+ * to. If the filter returns true, the element is evicted from @a env.
+ *
+ * @param env Environment to filter
+ *
+ * @param filter Function filtering the elements
+ *
+ * @param info Extra information to be passed to the filter function
+ *
+ * @return No return value
+ */
+void envEvict(env_t env, bool filter(const char *, void *), void *info);
 
 /**
  * @brief Create an environment from comma separated string
