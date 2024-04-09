@@ -210,25 +210,21 @@ bool envSet(env_t env, const char *name, const char *val)
     return doSet(env, PSC_concat(name, "=", val), true);
 }
 
-bool envPut(env_t env, const char *envstring)
+bool envAdd(env_t env, const char *envStr)
 {
-    if (!envInitialized(env) || !envstring) return false;
+    if (!envInitialized(env) || !envStr || !strchr(envStr, '=')) return false;
 
-    char *value = strchr(envstring, '=');
-    if (!value) return false;
+    size_t keyLen = strchr(envStr, '=') - envStr;
+    if (!keyLen) return false;
 
-    size_t len = strlen(envstring) - strlen(value);
-    for (uint32_t i = 0; i < env->cnt; i++) {
-	if (!strncmp(envstring, env->vars[i], len) &&
-	    (env->vars[i][len] == '=')) {
-	    char *tmp = strdup(envstring);
-	    if (!tmp) return false;
-	    free(env->vars[i]);
-	    env->vars[i] = tmp;
-	    return true;
-	}
+    int idx = getIndex(env, envStr, keyLen);
+    if (idx != -1) {
+	free(env->vars[idx]);
+	env->vars[idx] = strdup(envStr);
+	return true;
     }
-    return doSet(env, strdup(envstring), true);
+
+    return doSet(env, strdup(envStr), true);
 }
 
 env_t envConstruct(char **envArray, bool filter(const char *))
@@ -331,7 +327,7 @@ env_t envFromString(const char *string)
     char *toksave;
     char *next = strtok_r(dup, delimiters, &toksave);
     while (next) {
-	if (!envPut(env, next)) {
+	if (!envAdd(env, next)) {
 	    envDestroy(env);
 	    env = NULL;
 	    break;

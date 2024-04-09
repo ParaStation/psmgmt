@@ -536,7 +536,7 @@ int main(const int argc, const char *argv[], char *envp[])
      * pspelogue needs to forward (juwels:#9228) */
     for (uint32_t i = 0; envp[i]; i++) {
 	if (!strncmp("SPANK_SLURM_SPANK_", envp[i], 18)) {
-	    envPut(env, envp[i] + 6);
+	    envAdd(env, envp[i] + 6);
 	}
     }
 

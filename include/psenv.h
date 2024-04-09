@@ -199,23 +199,23 @@ void __envDestroy(env_t env, bool shred);
 #define envShred(env) __envDestroy(env, true);
 
 /**
- * @brief Put into environment
+ * @brief Add string to environment
  *
- * Add the string @a envString to the environment @a env. @a envString
- * is expected to be of the form <name>=<value>. If an entry with key
- * <name> exists before, it will be removed from the environment.
+ * Add the string @a envStr to the environment @a env. @a envStr is
+ * expected to be of the form <name>=<value>. If an entry with key
+ * <name> exists before, it will be replaced in the environment.
  *
  * Note: Unlike putenv(), this function stores a copy of the passed string.
  *
  * @param env Environment to extend
  *
- * @param envString Character string of the form <name>=<value> to be
- * added to the environment.
+ * @param envStr Character string of the form <name>=<value> to be
+ * added to the environment
  *
- * @return If the entry was added, true is returned. Otherwise false
- * is returned.
+ * @return If the entry was added, true is returned; otherwise false
+ * is returned
  */
-bool envPut(env_t env, const char *envString);
+bool envAdd(env_t env, const char *envStr);
 
 /**
  * @brief Construct environment from array

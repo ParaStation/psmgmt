@@ -1855,17 +1855,17 @@ static int getSoftArgList(char *soft, int **softList)
 static void addPreputToEnv(int preputc, KVP_t *preputv, env_t env)
 {
     snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", preputc);
-    envPut(env, buffer);
+    envAdd(env, buffer);
 
     for (int i = 0; i < preputc; i++) {
 	snprintf(buffer, sizeof(buffer), "__PMI_preput_key_%i", i);
 	char *tmpStr = PSC_concat(buffer, "=",  preputv[i].key);
-	envPut(env, tmpStr);
+	envAdd(env, tmpStr);
 	free(tmpStr);
 
 	snprintf(buffer, sizeof(buffer), "__PMI_preput_val_%i", i);
 	tmpStr = PSC_concat(buffer, "=",  preputv[i].value);
-	envPut(env, tmpStr);
+	envAdd(env, tmpStr);
 	free(tmpStr);
     }
 }
@@ -2111,26 +2111,26 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     /* add additional env vars */
     snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%i_%i",
 	     PSC_getMyTID(), kvs_next++);  /* setup new KVS name */
-    envPut(task->env, buffer);
+    envAdd(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     snprintf(buffer, sizeof(buffer), "__SPAWNER_SERVICE_RANK=%i",
 	     serviceRank - 3);
-    envPut(task->env, buffer);
+    envAdd(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_PARENT=%i", PSC_getMyTID());
-    envPut(task->env, buffer);
+    envAdd(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
-    envPut(task->env, "PMI_SPAWNED=1");
+    envAdd(task->env, "PMI_SPAWNED=1");
 
     snprintf(buffer, sizeof(buffer), "PMI_SIZE=%d", *totalProcs);
-    envPut(task->env, buffer);
+    envAdd(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     snprintf(buffer, sizeof(buffer), "__PMI_NO_PARRICIDE=%i",task->noParricide);
-    envPut(task->env, buffer);
+    envAdd(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     if (debug) {

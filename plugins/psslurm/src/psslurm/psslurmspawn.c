@@ -51,7 +51,7 @@ void initSpawnFacility(Step_t *jobstep)
 static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, env_t env)
 {
     snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", preputc);
-    envPut(env, buffer);
+    envAdd(env, buffer);
 
     for (int i = 0; i < preputc; i++) {
 	snprintf(buffer, sizeof(buffer), "__PMI_preput_key_%i", i);

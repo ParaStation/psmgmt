@@ -896,7 +896,7 @@ static void setPsslurmEnv(env_t alloc_env, env_t dest_env)
 	fdbg(PSSLURM_LOG_ENV, "set %s\n", ptr);
 	if (!*ptr) continue;
 	if (envInitialized(dest_env)) {
-	    envPut(dest_env, ptr);
+	    envAdd(dest_env, ptr);
 	} else {
 	    putenv(ptr);
 	}

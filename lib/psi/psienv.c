@@ -35,7 +35,7 @@ void unsetPSIEnv(const char *name)
 bool putPSIEnv(const char *string)
 {
     if (!envInitialized(PSenv)) PSenv = envNew(NULL);
-    return envPut(PSenv, string);
+    return envAdd(PSenv, string);
 }
 
 char *getPSIEnv(const char* name)

@@ -904,7 +904,7 @@ static int hookRecvSpawnReq(void *data)
 
     /* mark environment if mpiexec demands PMIx for this job */
     if (envGet(prototask->env, "__PMIX_NODELIST")) {
-	envPut(prototask->env, "__USE_PMIX=1"); /* for pspmix_common_usePMIx() */
+	envAdd(prototask->env, "__USE_PMIX=1"); /* for pspmix_common_usePMIx() */
     }
 
     return 0;

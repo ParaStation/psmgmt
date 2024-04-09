@@ -207,7 +207,7 @@ static void handleCtlEnvVar(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data,
 
     switch (action) {
     case CMD_SET_ENV_VAR:
-	envPut(script->env, envStr);
+	envAdd(script->env, envStr);
 	break;
     case CMD_UNSET_ENV_VAR:
 	envUnset(script->env, envStr);

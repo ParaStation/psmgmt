@@ -247,7 +247,7 @@ bool Energy_ctlEnv(psAccountCtl_t action, const char *envStr)
 {
     switch (action) {
 	case PSACCOUNT_SCRIPT_ENV_SET:
-	    envPut(scriptEnv, envStr);
+	    envAdd(scriptEnv, envStr);
 	    break;
 	case PSACCOUNT_SCRIPT_ENV_UNSET:
 	    envUnset(scriptEnv, envStr);

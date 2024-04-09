@@ -265,7 +265,7 @@ static void mergeEnv(Slurm_Container_t *ct, env_t env)
 	snprintf(path, sizeof(path), "%s/[%i]", JSON_ENV, i);
 	const char *cEnv = jsonGetString(ct->configObj, path);
 	if (cEnv) {
-	    env ? envPut(env, cEnv) : putenv(ustrdup(cEnv));
+	    env ? envAdd(env, cEnv) : putenv(ustrdup(cEnv));
 	}
     }
 
