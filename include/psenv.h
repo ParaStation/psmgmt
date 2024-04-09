@@ -205,7 +205,8 @@ void __envDestroy(env_t env, bool shred);
  * expected to be of the form <name>=<value>. If an entry with key
  * <name> exists before, it will be replaced in the environment.
  *
- * Note: Unlike putenv(), this function stores a copy of the passed string.
+ * Note: Unlike putenv() and @ref envPut(), this function stores a
+ * copy of the passed string.
  *
  * @param env Environment to extend
  *
@@ -216,6 +217,27 @@ void __envDestroy(env_t env, bool shred);
  * is returned
  */
 bool envAdd(env_t env, const char *envStr);
+
+/**
+ * @brief Put string into environment
+ *
+ * Put the string @a envStr itself into the environment @a env. @a
+ * envStr is expected to be of the form <name>=<value>. If an entry
+ * with key <name> exists before, it will be replaced in the
+ * environment.
+ *
+ * Note: Unlike @ref addEnv(), this function stores the passed string
+ * itself.
+ *
+ * @param env Environment to extend
+ *
+ * @param envStr Character string of the form <name>=<value> to be
+ * added to the environment
+ *
+ * @return If the entry was added, true is returned; otherwise false
+ * is returned
+ */
+bool envPut(env_t env, char *envStr);
 
 /**
  * @brief Construct environment from array

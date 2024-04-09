@@ -1860,13 +1860,11 @@ static void addPreputToEnv(int preputc, KVP_t *preputv, env_t env)
     for (int i = 0; i < preputc; i++) {
 	snprintf(buffer, sizeof(buffer), "__PMI_preput_key_%i", i);
 	char *tmpStr = PSC_concat(buffer, "=",  preputv[i].key);
-	envAdd(env, tmpStr);
-	free(tmpStr);
+	envPut(env, tmpStr);
 
 	snprintf(buffer, sizeof(buffer), "__PMI_preput_val_%i", i);
 	tmpStr = PSC_concat(buffer, "=",  preputv[i].value);
-	envAdd(env, tmpStr);
-	free(tmpStr);
+	envPut(env, tmpStr);
     }
 }
 

@@ -310,8 +310,7 @@ static void finalizeRequest(PSGW_Req_t *req)
 	    size_t len = strlen(prefix) + strlen(next) + 1;
 	    char *new = umalloc(len);
 	    snprintf(new, len, "%s%s", prefix, next);
-	    envAdd(res->env, new);
-	    ufree(new);
+	    envPut(res->env, new);
 	    next = strtok_r(NULL, delimiters, &toksave);
 	}
 	ufree(envCopy);

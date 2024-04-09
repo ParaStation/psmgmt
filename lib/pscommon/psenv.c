@@ -210,7 +210,7 @@ bool envSet(env_t env, const char *name, const char *val)
     return doSet(env, PSC_concat(name, "=", val), true);
 }
 
-bool envAdd(env_t env, const char *envStr)
+bool envPut(env_t env, char *envStr)
 {
     if (!envInitialized(env) || !envStr || !strchr(envStr, '=')) return false;
 
@@ -220,11 +220,22 @@ bool envAdd(env_t env, const char *envStr)
     int idx = getIndex(env, envStr, keyLen);
     if (idx != -1) {
 	free(env->vars[idx]);
-	env->vars[idx] = strdup(envStr);
+	env->vars[idx] = envStr;
 	return true;
     }
 
-    return doSet(env, strdup(envStr), true);
+    return doSet(env, envStr, false);
+}
+
+bool envAdd(env_t env, const char *envStr)
+{
+    if (!envInitialized(env) || !envStr) return false;
+
+    char *dup = strdup(envStr);
+    bool res = envPut(env, dup);
+    if (!res) free(dup);
+
+    return res;
 }
 
 env_t envConstruct(char **envArray, bool filter(const char *))
