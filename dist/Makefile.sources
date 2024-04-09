@@ -801,6 +801,7 @@ tests/functional/listInfoTypes.c \
 tests/functional/test_bitsets.c \
 tests/functional/test_logging.c \
 tests/functional/test_paramspace.c \
+tests/functional/test_psenv.c \
 tests/plugins/Makefile.am \
 tests/plugins/Makefile.in \
 tests/plugins/delayPSPMsg.c \

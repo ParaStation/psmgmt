@@ -100,9 +100,10 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 check_PROGRAMS = test_logging$(EXEEXT) test_paramspace$(EXEEXT) \
-	listInfoTypes$(EXEEXT) test_bitsets$(EXEEXT)
+	listInfoTypes$(EXEEXT) test_bitsets$(EXEEXT) \
+	test_psenv$(EXEEXT)
 TESTS = test_logging$(EXEEXT) test_paramspace$(EXEEXT) \
-	test_bitsets$(EXEEXT)
+	test_bitsets$(EXEEXT) test_psenv$(EXEEXT)
 subdir = tests/functional
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -131,6 +132,9 @@ test_logging_DEPENDENCIES = $(libpscommon)
 am_test_paramspace_OBJECTS = test_paramspace.$(OBJEXT)
 test_paramspace_OBJECTS = $(am_test_paramspace_OBJECTS)
 test_paramspace_DEPENDENCIES = $(libpscommon) $(libputil)
+am_test_psenv_OBJECTS = test_psenv.$(OBJEXT)
+test_psenv_OBJECTS = $(am_test_psenv_OBJECTS)
+test_psenv_DEPENDENCIES = $(libpscommon)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -148,7 +152,7 @@ depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/listInfoTypes.Po \
 	./$(DEPDIR)/test_bitsets.Po ./$(DEPDIR)/test_logging.Po \
-	./$(DEPDIR)/test_paramspace.Po
+	./$(DEPDIR)/test_paramspace.Po ./$(DEPDIR)/test_psenv.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -169,9 +173,11 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(listInfoTypes_SOURCES) $(test_bitsets_SOURCES) \
-	$(test_logging_SOURCES) $(test_paramspace_SOURCES)
+	$(test_logging_SOURCES) $(test_paramspace_SOURCES) \
+	$(test_psenv_SOURCES)
 DIST_SOURCES = $(listInfoTypes_SOURCES) $(test_bitsets_SOURCES) \
-	$(test_logging_SOURCES) $(test_paramspace_SOURCES)
+	$(test_logging_SOURCES) $(test_paramspace_SOURCES) \
+	$(test_psenv_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -606,6 +612,8 @@ listInfoTypes_SOURCES = listInfoTypes.c
 listInfoTypes_LDADD = $(libpscommon)
 test_bitsets_SOURCES = test_bitsets.c
 test_bitsets_LDADD = $(libpscommon)
+test_psenv_SOURCES = test_psenv.c
+test_psenv_LDADD = $(libpscommon)
 all: all-am
 
 .SUFFIXES:
@@ -666,6 +674,10 @@ test_paramspace$(EXEEXT): $(test_paramspace_OBJECTS) $(test_paramspace_DEPENDENC
 	@rm -f test_paramspace$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_paramspace_OBJECTS) $(test_paramspace_LDADD) $(LIBS)
 
+test_psenv$(EXEEXT): $(test_psenv_OBJECTS) $(test_psenv_DEPENDENCIES) $(EXTRA_test_psenv_DEPENDENCIES) 
+	@rm -f test_psenv$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_psenv_OBJECTS) $(test_psenv_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -676,6 +688,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_bitsets.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_logging.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_paramspace.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_psenv.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -927,6 +940,13 @@ test_bitsets.log: test_bitsets$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test_psenv.log: test_psenv$(EXEEXT)
+	@p='test_psenv$(EXEEXT)'; \
+	b='test_psenv'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .test.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -1023,6 +1043,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/test_bitsets.Po
 	-rm -f ./$(DEPDIR)/test_logging.Po
 	-rm -f ./$(DEPDIR)/test_paramspace.Po
+	-rm -f ./$(DEPDIR)/test_psenv.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -1072,6 +1093,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/test_bitsets.Po
 	-rm -f ./$(DEPDIR)/test_logging.Po
 	-rm -f ./$(DEPDIR)/test_paramspace.Po
+	-rm -f ./$(DEPDIR)/test_psenv.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
