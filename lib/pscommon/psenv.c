@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pscommon.h"
+
 #define ENV_MAGIC 0x2718281828459045
 
 /** Structure holding an environment */
@@ -198,15 +200,14 @@ bool envSet(env_t env, const char *name, const char *val)
     if (!envInitialized(env) || !name || strchr(name, '=')) return false;
     if (!val) val = "";
 
-    envUnset(env, name);
-    char *tmp = umalloc(strlen(name) + 1 + strlen(val) + 1);
-    if (!tmp) return false;
+    int idx = getIndex(env, name, 0);
+    if (idx != -1) {
+	free(env->vars[idx]);
+	env->vars[idx] = PSC_concat(name, "=", val);
+	return env->vars[idx];
+    }
 
-    strcpy(tmp, name);
-    strcat(tmp, "=");
-    strcat(tmp, val);
-
-    return doSet(env, tmp, true);
+    return doSet(env, PSC_concat(name, "=", val), true);
 }
 
 bool envPut(env_t env, const char *envstring)
