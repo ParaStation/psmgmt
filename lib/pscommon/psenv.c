@@ -116,20 +116,29 @@ void __envDestroy(env_t env, bool shred)
 /**
  * @brief Find key in environment
  *
- * Find the key @a name in the environment @a env and return its index.
+ * Find the key @a name in the environment @a env and return its
+ * index. If @a nameLen is different from 0, @a name might contain
+ * trailing content including the '=' character which is ignored
+ * during the search. Otherwise the whole @a name is taken into
+ * account.
  *
  * @param env Environment to search
  *
  * @param name Key of the entry to lookup
  *
+ * @param nameLen Valid length of @a name
+ *
  * @return If an entry with key @a name exists, its index is
- * returned. Otherwise -1 is returned.
+ * returned; otherwise -1 is returned
  */
-static int getIndex(const env_t env, const char *name)
+static int getIndex(const env_t env, const char *name, size_t nameLen)
 {
-    if (!envInitialized(env) || !name || strchr(name,'=')) return -1;
+    if (!envInitialized(env) || !name) return -1;
 
-    size_t len = strlen(name);
+    size_t len = nameLen ? nameLen : strlen(name);
+    char *eq = strchr(name, '=');
+    if (eq && eq < name + len) return -1;
+
     for (uint32_t i = 0; i < env->cnt; i++) {
 	if (!strncmp(name, env->vars[i], len) && (env->vars[i][len] == '=')) {
 	    return i;
@@ -140,7 +149,7 @@ static int getIndex(const env_t env, const char *name)
 
 void envUnset(env_t env, const char *name)
 {
-    int idx = getIndex(env, name);
+    int idx = getIndex(env, name, 0);
 
     if (idx == -1) return;
     envUnsetIndex(env, idx);
@@ -172,7 +181,7 @@ static bool envDoSet(env_t env, char *envstring)
 
 char *envGet(const env_t env, const char *name)
 {
-    int idx = getIndex(env, name);
+    int idx = getIndex(env, name, 0);
 
     if (idx == -1) return NULL;
     return strchr(env->vars[idx], '=') + 1;
