@@ -239,10 +239,10 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
     /* pass masterNode and masterPort to child */
     masterNode = node;
     snprintf(envstr, sizeof(envstr), "__PSI_MASTERNODE=%d", masterNode);
-    putPSIEnv(envstr);
+    addPSIEnv(envstr);
     masterPort = port;
     snprintf(envstr, sizeof(envstr), "__PSI_MASTERPORT=%d", masterPort);
-    putPSIEnv(envstr);
+    addPSIEnv(envstr);
 
     myWorldSize = num;
     int *errors = malloc(sizeof(int) * myWorldSize);

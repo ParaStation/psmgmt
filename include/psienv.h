@@ -71,7 +71,7 @@ void unsetPSIEnv(const char *name);
  *
  * @see getPSIEnv()
  */
-bool putPSIEnv(const char *string);
+bool addPSIEnv(const char *string);
 
 /**
  * @brief Lookup the variable @a name in the ParaStation Environment
@@ -84,7 +84,7 @@ bool putPSIEnv(const char *string);
  * @return On success, a pointer to the corresponding value is returned; or
  * NULL if an error occured
  *
- * @see setPSIEnv(), putPSIEnv()
+ * @see setPSIEnv(), addPSIEnv()
  */
 char *getPSIEnv(const char *name);
 

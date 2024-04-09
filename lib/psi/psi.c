@@ -809,15 +809,15 @@ void PSI_propEnv(void)
 
     /* export all PSP_* vars to the ParaStation environment */
     for (int i = 0; environ[i]; i++) {
-	if (!strncmp(environ[i], "PSP_", 4)) putPSIEnv(environ[i]);
+	if (!strncmp(environ[i], "PSP_", 4)) addPSIEnv(environ[i]);
     }
     /* export all __PSI_* vars to the ParaStation environment */
     for (int i = 0; environ[i]; i++) {
-	if (!strncmp(environ[i], "__PSI_", 6)) putPSIEnv(environ[i]);
+	if (!strncmp(environ[i], "__PSI_", 6)) addPSIEnv(environ[i]);
     }
     /* export all OMP_* vars to the ParaStation environment */
     for (int i = 0; environ[i]; i++) {
-	if (!strncmp(environ[i], "OMP_", 4)) putPSIEnv(environ[i]);
+	if (!strncmp(environ[i], "OMP_", 4)) addPSIEnv(environ[i]);
     }
 }
 
