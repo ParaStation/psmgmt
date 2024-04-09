@@ -155,11 +155,11 @@ void envUnset(env_t env, const char *name)
     envUnsetIndex(env, idx);
 }
 
-/* takes ownership of @a envstring and frees it in case of error */
-static bool envDoSet(env_t env, char *envstring)
+/* take ownership of @a envStr and free() it in case of error and freeEnvStr */
+static bool doSet(env_t env, char *envStr, bool freeEnvStr)
 {
-    if (!envInitialized(env) || !envstring) {
-	free(envstring);
+    if (!envInitialized(env) || !envStr) {
+	if (freeEnvStr) free(envStr);
 	return false;
     }
 
@@ -167,13 +167,13 @@ static bool envDoSet(env_t env, char *envstring)
 	uint32_t newSize = env->size + 16;
 	char **tmp = realloc(env->vars, newSize * sizeof(*tmp));
 	if (!tmp) {
-	    free(envstring);
+	    if (freeEnvStr) free(envStr);
 	    return false;
 	}
 	env->size = newSize;
 	env->vars = tmp;
     }
-    env->vars[env->cnt++] = envstring;
+    env->vars[env->cnt++] = envStr;
     env->vars[env->cnt] = NULL;
 
     return true;
@@ -206,7 +206,7 @@ bool envSet(env_t env, const char *name, const char *val)
     strcat(tmp, "=");
     strcat(tmp, val);
 
-    return envDoSet(env, tmp);
+    return doSet(env, tmp, true);
 }
 
 bool envPut(env_t env, const char *envstring)
@@ -227,7 +227,7 @@ bool envPut(env_t env, const char *envstring)
 	    return true;
 	}
     }
-    return envDoSet(env, strdup(envstring));
+    return doSet(env, strdup(envstring), true);
 }
 
 env_t envConstruct(char **envArray, bool filter(const char *))
@@ -246,7 +246,7 @@ env_t envConstruct(char **envArray, bool filter(const char *))
 
 	for (uint32_t i = 0; i < cnt - 1; i++) {
 	    if (filter && !filter(envArray[i])) continue;
-	    if (!envDoSet(env, strdup(envArray[i]))) goto error;
+	    if (!doSet(env, strdup(envArray[i]), true)) goto error;
 	}
     }
     return env;
@@ -274,7 +274,7 @@ env_t envClone(const env_t env, bool filter(const char *))
 
     for (uint32_t i = 0; i < env->cnt; i++) {
 	if (filter && !filter(env->vars[i])) continue;
-	if (!envDoSet(clone, strdup(env->vars[i]))) goto error;
+	if (!doSet(clone, strdup(env->vars[i]), true)) goto error;
     }
     return clone;
 
@@ -297,7 +297,7 @@ bool envCat(env_t dst, const env_t src, bool filter(const char *))
 
     for (uint32_t i = 0; i < src->cnt; i++) {
 	if (filter && !filter(src->vars[i])) continue;
-	if (!envDoSet(dst, strdup(src->vars[i]))) return false;
+	if (!doSet(dst, strdup(src->vars[i]), true)) return false;
     }
     return true;
 }
