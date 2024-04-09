@@ -785,9 +785,7 @@ static void pushLimits(void)
 void PSI_propEnv(void)
 {
     extern char **environ;
-    mode_t mask;
     char *envStr, valStr[64];
-    int i;
 
     /* Propagate some environment variables */
     if ((envStr = getenv("HOME"))) setPSIEnv("HOME", envStr);
@@ -804,22 +802,22 @@ void PSI_propEnv(void)
 
     pushLimits();
 
-    mask = umask(0);
+    mode_t mask = umask(0);
     umask(mask);
     snprintf(valStr, sizeof(valStr), "%o", mask);
     setPSIEnv("__PSI_UMASK", valStr);
 
     /* export all PSP_* vars to the ParaStation environment */
-    for (i=0; environ[i]; i++) {
-	if (!(strncmp(environ[i], "PSP_", 4))) putPSIEnv(environ[i]);
+    for (int i = 0; environ[i]; i++) {
+	if (!strncmp(environ[i], "PSP_", 4)) putPSIEnv(environ[i]);
     }
     /* export all __PSI_* vars to the ParaStation environment */
-    for (i=0; environ[i]; i++) {
-	if (!(strncmp(environ[i], "__PSI_", 6))) putPSIEnv(environ[i]);
+    for (int i = 0; environ[i]; i++) {
+	if (!strncmp(environ[i], "__PSI_", 6)) putPSIEnv(environ[i]);
     }
     /* export all OMP_* vars to the ParaStation environment */
-    for (i=0; environ[i]; i++) {
-	if (!(strncmp(environ[i], "OMP_", 4))) putPSIEnv(environ[i]);
+    for (int i = 0; environ[i]; i++) {
+	if (!strncmp(environ[i], "OMP_", 4)) putPSIEnv(environ[i]);
     }
 }
 
