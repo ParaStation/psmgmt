@@ -399,6 +399,11 @@ static void startSpawner(Step_t *step)
 	     Step_strID(step), step->srunControlMsg.sock);
 	sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
 	step->state = JOB_SPAWNED;
+    } else {
+	fwarn(ret, "failed to launch spawner for %s", Step_strID(step));
+	PStask_delete(task);
+	sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
+	shutdownForwarder(fwData);
     }
 }
 
