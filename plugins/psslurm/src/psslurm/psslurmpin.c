@@ -2758,11 +2758,11 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	fillDistributionStrategies(&pininfo, dist);
 	fillTasksPerSocket(&pininfo, env, &nodeinfo);
 
-	/* calucalte minimum number of cores needed */
-	uint32_t useCores = (threadsPerTask - 1) / nodeinfo.threadsPerCore + 1;
+	/* calucalte minimum number of cores needed per task */
+	uint32_t taskCores = (threadsPerTask - 1) / nodeinfo.threadsPerCore + 1;
 	fdbg(PSSLURM_LOG_PART, "Use %u cores per task to fulfill 'exact'\n",
-	     useCores);
-	pininfo.threadsPerTask = useCores;
+	     taskCores);
+	pininfo.threadsPerTask = taskCores;
 
 	nodeinfo_t fakenodeinfo = {
 	    .id = 0, /* for debugging output only */
@@ -2782,8 +2782,25 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	PSCPU_set_t CPUset;
 	PSCPU_clrAll(CPUset);
 
+	uint16_t threadsUnused = 0;
 	/* add node and cpuset for every task on this node */
 	for (uint32_t local_tid=0; local_tid < tasksPerNode; local_tid++) {
+
+	    /* skip if we have sufficient unused threads already assigned */
+	    if (threadsUnused >= threadsPerTask) {
+		fdbg(PSSLURM_LOG_PART, "Sufficient threads for local_tid %u,"
+		     "skipping\n", local_tid);
+		threadsUnused -= threadsPerTask;
+		continue;
+	    }
+
+	    /* assign to last task only the cores still strictly required */
+	    if (local_tid == tasksPerNode - 1) {
+		uint32_t reqThreads = threadsPerTask - threadsUnused;
+		taskCores = (reqThreads - 1) / nodeinfo.threadsPerCore + 1;
+		pininfo.threadsPerTask = taskCores;
+	    }
+
 	    /* reset first thread */
 	    pininfo.firstThread = UINT32_MAX;
 
@@ -2796,6 +2813,9 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	    }
 
 	    PSCPU_addCPUs(CPUset, myCPUset);
+
+	    /* update number of unused threads on the assigned cores */
+	    threadsUnused += taskCores * threadsPerCore - threadsPerTask;
 	}
 
 	fdbg(PSSLURM_LOG_PART, "Using coremap %s\n", PSCPU_print_part(CPUset,
