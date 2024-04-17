@@ -38,6 +38,7 @@ AM_PROG_CC_C_O
 LT_INIT([dlopen disable-static])
 
 AC_CHECK_FUNCS_ONCE([mallinfo2])
+AC_CHECK_FUNCS_ONCE([explicit_bzero])
 
 AC_CHECK_LIB([numa], [numa_available],
   [AC_SUBST([NUMA_LIBS], [-lnuma])

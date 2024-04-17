@@ -2492,6 +2492,7 @@ as_fn_append ac_header_c_list " sys/stat.h sys_stat_h HAVE_SYS_STAT_H"
 as_fn_append ac_header_c_list " sys/types.h sys_types_h HAVE_SYS_TYPES_H"
 as_fn_append ac_header_c_list " unistd.h unistd_h HAVE_UNISTD_H"
 as_fn_append ac_func_c_list " mallinfo2 HAVE_MALLINFO2"
+as_fn_append ac_func_c_list " explicit_bzero HAVE_EXPLICIT_BZERO"
 
 # Auxiliary files required by this configure script.
 ac_aux_files="ltmain.sh compile missing install-sh config.guess config.sub"
@@ -12818,6 +12819,8 @@ do
     ac_func=$ac_item
   fi
 done
+
+
 
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for numa_available in -lnuma" >&5
