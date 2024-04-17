@@ -101,7 +101,13 @@ void __envDestroy(env_t env, bool shred)
 {
     if (!envInitialized(env)) return;
     for (uint32_t i = 0; i < env->cnt; i++) {
-	if (shred && env->vars[i]) memset(env->vars[i], 0, strlen(env->vars[i]));
+	if (shred && env->vars[i]) {
+#ifdef HAVE_EXPLICIT_BZERO
+	    explicit_bzero(env->vars[i], strlen(env->vars[i]));
+#else
+	    memset(env->vars[i], 0, strlen(env->vars[i]));
+#endif
+	}
 	free(env->vars[i]);
     }
     envSteal(env);
