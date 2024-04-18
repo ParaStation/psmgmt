@@ -1790,6 +1790,7 @@ static void printCoreMap(char *title, PSCPU_set_t coremap, Step_t *step,
 {
     char *str;
     char *hName = getConfValueC(Config, "SLURM_HOSTNAME");
+    if (!hName) hName = "(unknown host)";
 
     if (expand) {
 	size_t len = strlen(hName) + strlen(title) + nodeinfo->coreCount
@@ -2804,6 +2805,13 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	PSCPU_addCPUs(nodeinfo.stepHWthreads, CPUset);
 
 	ufree(pininfo.usedHwThreads);
+    }
+
+    char *pc = getenv("PSSLURM_PRINT_COREMAPS");
+    if (pc) {
+	bool expand = (atol(pc) == 2);
+	printCoreMap("step core map", nodeinfo.stepHWthreads, NULL,
+			 &nodeinfo, expand);
     }
 
     /* prepare pininfo */
