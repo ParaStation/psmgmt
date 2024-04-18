@@ -416,12 +416,14 @@ static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
 static void pinToSocket(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 			uint16_t socket, bool phys)
 {
-    fdbg(PSSLURM_LOG_PART, "pinning to socket %u\n", socket);
+    fdbg(PSSLURM_LOG_PART, "pinning to socket %u (respecting step core map)\n",
+	 socket);
 
     for (uint16_t c = 0; c < nodeinfo->coresPerSocket; c++) {
 	for (uint16_t t = 0; t < nodeinfo->threadsPerCore; t++) {
 	    uint16_t thread = nodeinfo->coreCount * t
 		+ socket * nodeinfo->coresPerSocket + c;
+	    if (!PSCPU_isSet(nodeinfo->stepHWthreads, thread)) continue;
 	    if (phys) thread = PSIDnodes_unmapCPU(nodeinfo->id, thread);
 	    PSCPU_setCPU(*CPUset, thread);
 	}
