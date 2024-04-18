@@ -439,7 +439,13 @@ static void pinToCore(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
     fdbg(PSSLURM_LOG_PART, "pinning to core %u\n", core);
 
     for (uint16_t t = 0; t < nodeinfo->threadsPerCore; t++) {
-	PSCPU_setCPU(*CPUset, nodeinfo->coreCount * t + core);
+	uint16_t thread = nodeinfo->coreCount * t + core;
+	if (!PSCPU_isSet(nodeinfo->stepHWthreads, thread)) {
+	    /* this should not happen */
+	    flog("UNEXPECTED: Core %hu not in step core map\n", core);
+	    continue;
+	}
+	PSCPU_setCPU(*CPUset, thread);
     }
 }
 
