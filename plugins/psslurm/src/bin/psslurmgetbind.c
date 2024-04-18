@@ -35,6 +35,8 @@
 #include "psslurmpin.h"
 #include "psslurmstep.h"
 
+#define MAX_SUPPORTED_SLURM_VERSION 2302
+
 static int verbosity = 0;
 static bool humanreadable = false;
 static bool printmembind = false;
@@ -49,16 +51,8 @@ enum output_level {
     DEBUGOUT
 };
 
-enum {
-    SLURM_21_08 = 0,
-    SLURM_22_05,
-    SLURM_23_02,
-    SLURM_23_11,
-    SLURM_24_05,
-    SLURM_24_11,
-    SLURM_25_05,
-    SLURM_25_11
-} slurm_version;
+/* slurm verion in format YYMM */
+int slurm_version = 0;
 
 
 static void outline(enum output_level lvl, const char* format, ...) {
@@ -633,7 +627,7 @@ int main(int argc, char *argv[])
 		exit(-1);
 	    }
 	} else if (!strncmp(cur, "--extra-node-info=", 18)) {
-	    if (mutually_exclusive && slurm_version < SLURM_23_02) {
+	    if (mutually_exclusive && slurm_version < 2302) {
 		outline(ERROROUT, "srun options -B|--extra-node-info, --hint,"
 			" --threads-per-core (and --ntasks-per-core) are"
 			" mutually exclusive.");
@@ -648,7 +642,7 @@ int main(int argc, char *argv[])
 		outline(ERROROUT, "Syntax error reading value for -B.");
 		exit(-1);
 	    }
-	    if (mutually_exclusive && slurm_version < SLURM_23_02) {
+	    if (mutually_exclusive && slurm_version < 2302) {
 		outline(ERROROUT, "srun options -B|--extra-node-info, --hint,"
 			" --threads-per-core (and --ntasks-per-core) are"
 			" mutually exclusive.");
@@ -658,7 +652,7 @@ int main(int argc, char *argv[])
 	    outline(DEBUGOUT, "Reading -B value: \"%s\"", argv[i]);
 	    handleExtraNodeInfo(argv[i++], &cpuBindType, &useThreadsPerCore);
 	} else if (!strcmp(cur, "--hint=nomultithread")) {
-	    if (mutually_exclusive && slurm_version < SLURM_23_02) {
+	    if (mutually_exclusive && slurm_version < 2302) {
 		outline(ERROROUT, "srun options -B|--extra-node-info, --hint,"
 			" --threads-per-core (and --ntasks-per-core) are"
 			" mutually exclusive.");
@@ -680,7 +674,7 @@ int main(int argc, char *argv[])
 	    outline(DEBUGOUT, "Read option \"exact\"");
 	    exact = true;
 	} else if (!strncmp(cur, "--threads-per-core=", 19)) {
-	    if (mutually_exclusive && slurm_version < SLURM_23_02) {
+	    if (mutually_exclusive && slurm_version < 2302) {
 		outline(ERROROUT, "srun options -B|--extra-node-info, --hint,"
 			" --threads-per-core (and --ntasks-per-core) are"
 			" mutually exclusive.");
@@ -749,27 +743,40 @@ int main(int argc, char *argv[])
     }
     if (slurmver) {
 	char *sv = strdup(slurmver);
-	if (strlen(sv) >= 6) sv[5] = '\0';
-	if (!strcmp(sv, "21.08")) slurm_version = SLURM_21_08;
-	else if (!strcmp(sv, "22.05")) slurm_version = SLURM_22_05;
-	else if (!strcmp(sv, "23.02")) slurm_version = SLURM_23_02;
-	else if (!strcmp(sv, "23.11")) slurm_version = SLURM_23_11;
-	else if (!strcmp(sv, "24.05")) slurm_version = SLURM_24_05;
-	else if (!strcmp(sv, "24.11")) slurm_version = SLURM_24_11;
-	else if (!strcmp(sv, "25.05")) slurm_version = SLURM_25_05;
-	else if (!strcmp(sv, "25.11")) slurm_version = SLURM_25_11;
-	else {
-	    outline(ERROROUT, "Unknown slurm version in SLURM_VERSION");
+	if (strlen(sv) >= 6) sv[5] = '\0'; /* cut release part */
+	char *mm = sv;
+	char *yy = strsep(&mm, ".");
+	slurm_version = atol(yy) * 100 + atol(mm);
+	if (slurm_version < 2108) {
+	    outline(ERROROUT, "Not supporting Slurm versions before 21.08");
+	    free(sv);
 	    return -1;
 	}
-	outline(INFOOUT, "SLURM_VERSION=%s", sv);
+	if ((slurm_version < 2311 && (slurm_version != 2108
+				     && slurm_version != 2205
+				     && slurm_version != 2302))
+	    || (slurm_version >= 2311 && (slurm_version % 100 != 5
+					  && slurm_version % 100 != 11))) {
+	    outline(ERROROUT, "Invalid slurm version '%s.%s' in SLURM_VERSION",
+		    yy, mm);
+	    free(sv);
+	    return -1;
+	}
 	free(sv);
     } else {
-	slurm_version = SLURM_23_02;
+	slurm_version = 2302;
+    }
+
+    outline(INFOOUT, "Simulating Slurm version %02d.%02d", slurm_version / 100,
+	    slurm_version % 100);
+
+    if (slurm_version > MAX_SUPPORTED_SLURM_VERSION) {
+	outline(ERROROUT, "Warning: Slurm version %02d.%02d not yet supported",
+		slurm_version / 100, slurm_version % 100);
     }
 
     /* starting with Slurm 22.05 -c implies --exact */
-    if (slurm_version >= SLURM_22_05 && threadsPerTask > 1) {
+    if (slurm_version >= 2205 && threadsPerTask > 1) {
 	exact = true;
 	outline(INFOOUT, "Slurm >= 22.05: '-c' implies '--exact'");
     }
