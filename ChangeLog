@@ -1,3 +1,61 @@
+Version 5.1.60-1:
+=================
+------------------------------------------------------------------------
+92b9ef720 | Stephan Krempel | Thu, 18 Apr 2024 13:04:45 +0200
+
+psslurm: Output unexpected status
+
+Core requested to pin to should always match
+step core map. Print message if it does not.
+------------------------------------------------------------------------
+01bdc84ae | Stephan Krempel | Thu, 18 Apr 2024 13:03:58 +0200
+
+psslurm: respect step core map with cpu-bind=sockets (psc:#449)
+------------------------------------------------------------------------
+2da29b391 | Norbert Eicker | Fri, 19 Apr 2024 15:03:25 +0200
+
+Minor fixes and improvements
+------------------------------------------------------------------------
+68196c0bd | Norbert Eicker | Fri, 19 Apr 2024 13:41:02 +0200
+
+Add some explaining comments
+------------------------------------------------------------------------
+bad66f647 | Stephan Krempel | Tue, 16 Apr 2024 07:34:45 +0200
+
+psslurmgetbind: Adjust coremap generation (psc:#446)
+
+Try to adjust coremap generation to how slurmctld
+seems to do it.
+------------------------------------------------------------------------
+c0388bc39 | Stephan Krempel | Thu, 18 Apr 2024 17:18:01 +0200
+
+psslurmgetbind: Print core map if PSSLURM_PRINT_COREMAPS set
+------------------------------------------------------------------------
+16ca8e87f | Stephan Krempel | Thu, 18 Apr 2024 11:39:41 +0200
+
+psslurmgetbind: Rework internal slurm version management
+------------------------------------------------------------------------
+91268ab9d | Stephan Krempel | Tue, 16 Apr 2024 06:44:11 +0200
+
+psslurmgetbind: Allow option combinations (psc:#451)
+
+Only changes with Slurm 23.02 and higher:
+- -B, --threads-per-core and --hint are no longer mutually
+  exclusive since srun does against it's manpage not enforce
+  that. Actually, later options override previous ones.
+- --hint is ignored if -B of --threads-per-core is set,
+  the same as srun does (undocumented).
+------------------------------------------------------------------------
+35ba9c671 | Stephan Krempel | Mon, 8 Apr 2024 14:17:05 +0200
+
+psslurmgetbind: Change default Slurm version to 23.02
+------------------------------------------------------------------------
+e817fc096 | Stephan Krempel | Mon, 8 Apr 2024 14:16:09 +0200
+
+psslurmgetbind: Adjust to new Slurm release strategy
+------------------------------------------------------------------------
+
+
 Version 5.1.60:
 ===============
 ------------------------------------------------------------------------

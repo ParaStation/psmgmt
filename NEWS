@@ -6,6 +6,19 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.60-1:
+=================
+Bugfixes:
+ - psslurm: respect step core map with cpu-bind=sockets (psc:#449)
+ - psslurmgetbind: Adjust coremap generation (psc:#446)
+ - psslurmgetbind: Allow option combinations (psc:#451)
+Enhancements:
+ - Print message if core requested to pin does not match step core map
+ - psslurmgetbind: Print core map if PSSLURM_PRINT_COREMAPS set
+Additional changes:
+ - psslurmgetbind: Change default Slurm version to 23.02
+
+
 Version 5.1.60:
 ===============
 Bugfixes:

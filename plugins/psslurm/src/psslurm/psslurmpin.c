@@ -416,12 +416,14 @@ static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
 static void pinToSocket(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 			uint16_t socket, bool phys)
 {
-    fdbg(PSSLURM_LOG_PART, "pinning to socket %u\n", socket);
+    fdbg(PSSLURM_LOG_PART, "pinning to socket %u (respecting step core map)\n",
+	 socket);
 
     for (uint16_t c = 0; c < nodeinfo->coresPerSocket; c++) {
 	for (uint16_t t = 0; t < nodeinfo->threadsPerCore; t++) {
 	    uint16_t thread = nodeinfo->coreCount * t
 		+ socket * nodeinfo->coresPerSocket + c;
+	    if (!PSCPU_isSet(nodeinfo->stepHWthreads, thread)) continue;
 	    if (phys) thread = PSIDnodes_unmapCPU(nodeinfo->id, thread);
 	    PSCPU_setCPU(*CPUset, thread);
 	}
@@ -437,7 +439,13 @@ static void pinToCore(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
     fdbg(PSSLURM_LOG_PART, "pinning to core %u\n", core);
 
     for (uint16_t t = 0; t < nodeinfo->threadsPerCore; t++) {
-	PSCPU_setCPU(*CPUset, nodeinfo->coreCount * t + core);
+	uint16_t thread = nodeinfo->coreCount * t + core;
+	if (!PSCPU_isSet(nodeinfo->stepHWthreads, thread)) {
+	    /* this should not happen */
+	    flog("UNEXPECTED: Core %hu not in step core map\n", core);
+	    continue;
+	}
+	PSCPU_setCPU(*CPUset, thread);
     }
 }
 
@@ -1790,6 +1798,7 @@ static void printCoreMap(char *title, PSCPU_set_t coremap, Step_t *step,
 {
     char *str;
     char *hName = getConfValueC(Config, "SLURM_HOSTNAME");
+    if (!hName) hName = "(unknown host)";
 
     if (expand) {
 	size_t len = strlen(hName) + strlen(title) + nodeinfo->coreCount
@@ -2745,7 +2754,12 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
      * the coremap that we should get from slurmctld, we simulate to pin using
      * the core distribution strategy block and aggregate the pinning maps
      * of all processes into one.
-     * */
+     *
+     * psslurmctld's strategy seems to be to created the most compact coremap
+     * possible, i.e. to share the threads of a single core across different
+     * tasks if possible. To emulate this behavior for each task full cores
+     * are assigned first and the unused threads are handle in a subledger.
+     */
     if (exact) {
 	pininfo.usedHwThreads = ucalloc(nodeinfo.coreCount * threadsPerCore
 					  * sizeof(*pininfo.usedHwThreads));
@@ -2757,11 +2771,11 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	fillDistributionStrategies(&pininfo, dist);
 	fillTasksPerSocket(&pininfo, env, &nodeinfo);
 
-	/* calucalte minimum number of cores needed */
-	uint32_t useCores = (threadsPerTask - 1) / nodeinfo.threadsPerCore + 1;
+	/* calculate minimum number of cores needed per task */
+	uint32_t taskCores = (threadsPerTask - 1) / nodeinfo.threadsPerCore + 1;
 	fdbg(PSSLURM_LOG_PART, "Use %u cores per task to fulfill 'exact'\n",
-	     useCores);
-	pininfo.threadsPerTask = useCores;
+	     taskCores);
+	pininfo.threadsPerTask = taskCores;
 
 	nodeinfo_t fakenodeinfo = {
 	    .id = 0, /* for debugging output only */
@@ -2781,8 +2795,25 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	PSCPU_set_t CPUset;
 	PSCPU_clrAll(CPUset);
 
+	uint16_t unusedThreads = 0;
 	/* add node and cpuset for every task on this node */
 	for (uint32_t local_tid=0; local_tid < tasksPerNode; local_tid++) {
+
+	    /* skip if we have sufficient unused threads already assigned */
+	    if (unusedThreads >= threadsPerTask) {
+		fdbg(PSSLURM_LOG_PART, "Sufficient threads for local_tid %u,"
+		     "skipping\n", local_tid);
+		unusedThreads -= threadsPerTask;
+		continue;
+	    }
+
+	    /* assign to last task only the cores still strictly required */
+	    if (local_tid == tasksPerNode - 1) {
+		uint32_t reqThreads = threadsPerTask - unusedThreads;
+		taskCores = (reqThreads - 1) / nodeinfo.threadsPerCore + 1;
+		pininfo.threadsPerTask = taskCores;
+	    }
+
 	    /* reset first thread */
 	    pininfo.firstThread = UINT32_MAX;
 
@@ -2795,15 +2826,25 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	    }
 
 	    PSCPU_addCPUs(CPUset, myCPUset);
+
+	    /* update number of unused threads on the assigned cores */
+	    unusedThreads +=
+		taskCores * nodeinfo.threadsPerCore - threadsPerTask;
 	}
 
 	fdbg(PSSLURM_LOG_PART, "Using coremap %s\n", PSCPU_print_part(CPUset,
 		PSCPU_bytesForCPUs(nodeinfo.coreCount)));
 
-	PSCPU_clrAll(nodeinfo.stepHWthreads);
-	PSCPU_addCPUs(nodeinfo.stepHWthreads, CPUset);
+	PSCPU_copy(nodeinfo.stepHWthreads, CPUset);
 
 	ufree(pininfo.usedHwThreads);
+    }
+
+    char *pc = getenv("PSSLURM_PRINT_COREMAPS");
+    if (pc) {
+	bool expand = (atol(pc) == 2);
+	printCoreMap("step core map", nodeinfo.stepHWthreads, NULL,
+			 &nodeinfo, expand);
     }
 
     /* prepare pininfo */
