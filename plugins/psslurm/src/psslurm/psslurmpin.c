@@ -2820,14 +2820,14 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	    PSCPU_addCPUs(CPUset, myCPUset);
 
 	    /* update number of unused threads on the assigned cores */
-	    unusedThreads += taskCores * threadsPerCore - threadsPerTask;
+	    unusedThreads +=
+		taskCores * nodeinfo.threadsPerCore - threadsPerTask;
 	}
 
 	fdbg(PSSLURM_LOG_PART, "Using coremap %s\n", PSCPU_print_part(CPUset,
 		PSCPU_bytesForCPUs(nodeinfo.coreCount)));
 
-	PSCPU_clrAll(nodeinfo.stepHWthreads);
-	PSCPU_addCPUs(nodeinfo.stepHWthreads, CPUset);
+	PSCPU_copy(nodeinfo.stepHWthreads, CPUset);
 
 	ufree(pininfo.usedHwThreads);
     }
