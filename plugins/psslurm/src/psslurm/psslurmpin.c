@@ -1793,8 +1793,8 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 }
 
 /* Print core map to srun's stderr */
-static void printCoreMap(char *title, PSCPU_set_t coremap, Step_t *step,
-			 nodeinfo_t *nodeinfo, bool expand)
+static void printCoreMap(char *title, const PSCPU_set_t coremap, Step_t *step,
+			 const nodeinfo_t *nodeinfo, bool expand)
 {
     char *str;
     char *hName = getConfValueC(Config, "SLURM_HOSTNAME");
@@ -2834,6 +2834,13 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 
 	fdbg(PSSLURM_LOG_PART, "Using coremap %s\n", PSCPU_print_part(CPUset,
 		PSCPU_bytesForCPUs(nodeinfo.coreCount)));
+
+	/* set remaining threads of each core */
+	for (uint16_t t = nodeinfo.threadsPerCore;
+	     t < nodeinfo.threadCount; t++) {
+	    if (PSCPU_isSet(CPUset, getCore(t, &nodeinfo)))
+		    PSCPU_setCPU(CPUset, t);
+	}
 
 	PSCPU_copy(nodeinfo.stepHWthreads, CPUset);
 
