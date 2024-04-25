@@ -535,6 +535,56 @@ int main(int argc, char *argv[])
 #endif
     }
 
+    if (!readConfigFile()) {
+	outline(ERROROUT, "Error reading psslurm.conf.");
+	exit(-1);
+    }
+
+    const char *slurmver = getenv("SLURM_VERSION");
+    if (!slurmver) {
+	slurmver = getConfValueC(Config, "SLURM_PROTO_VERSION");
+	if (!slurmver || !strcmp(slurmver, "auto")) {
+	    slurmver = autoDetectSlurmVersion();
+	    if (slurmver) outline(INFOOUT, "SLURM_VERSION autodetected");
+	} else {
+	    outline(INFOOUT, "Take SLURM_PROTO_VERSION from psslurm.conf as"
+		    " SLURM_VERSION");
+	}
+    }
+    if (slurmver) {
+	char *sv = strdup(slurmver);
+	if (strlen(sv) >= 6) sv[5] = '\0'; /* cut release part */
+	char *mm = sv;
+	char *yy = strsep(&mm, ".");
+	slurm_version = atol(yy) * 100 + atol(mm);
+	if (slurm_version < 2108) {
+	    outline(ERROROUT, "Not supporting Slurm versions before 21.08");
+	    free(sv);
+	    return -1;
+	}
+	if ((slurm_version < 2311 && (slurm_version != 2108
+				     && slurm_version != 2205
+				     && slurm_version != 2302))
+	    || (slurm_version >= 2311 && (slurm_version % 100 != 5
+					  && slurm_version % 100 != 11))) {
+	    outline(ERROROUT, "Invalid slurm version '%s.%s' in SLURM_VERSION",
+		    yy, mm);
+	    free(sv);
+	    return -1;
+	}
+	free(sv);
+    } else {
+	slurm_version = 2302;
+    }
+
+    outline(INFOOUT, "Simulating Slurm version %02d.%02d", slurm_version / 100,
+	    slurm_version % 100);
+
+    if (slurm_version > MAX_SUPPORTED_SLURM_VERSION) {
+	outline(ERROROUT, "Warning: Slurm version %02d.%02d not yet supported",
+		slurm_version / 100, slurm_version % 100);
+    }
+
     /* task info */
     uint32_t tasksPerNode = 0;
     uint16_t threadsPerTask = 1;
@@ -603,6 +653,11 @@ int main(int argc, char *argv[])
 	    if (!threadsPerTask) {
 		outline(ERROROUT, "Invalid number of threads per task.");
 		exit(-1);
+	    }
+	    /* starting with Slurm 22.05 -c implies --exact */
+	    if (slurm_version >= 2205) {
+		exact = true;
+		outline(INFOOUT, "Slurm >= 22.05: '-c' implies '--exact'");
 	    }
 	} else if (!strncmp(cur, "--cpu-bind=", 11)) {
 	    outline(DEBUGOUT, "Reading --cpu-bind value: \"%s\"", cur+11);
@@ -724,62 +779,6 @@ int main(int argc, char *argv[])
 	    outline(INFOOUT, out);
     }
     outline(INFOOUT, "");
-
-    if (!readConfigFile()) {
-	outline(ERROROUT, "Error reading psslurm.conf.");
-	exit(-1);
-    }
-
-    const char *slurmver = getenv("SLURM_VERSION");
-    if (!slurmver) {
-	slurmver = getConfValueC(Config, "SLURM_PROTO_VERSION");
-	if (!slurmver || !strcmp(slurmver, "auto")) {
-	    slurmver = autoDetectSlurmVersion();
-	    if (slurmver) outline(INFOOUT, "SLURM_VERSION autodetected");
-	} else {
-	    outline(INFOOUT, "Take SLURM_PROTO_VERSION from psslurm.conf as"
-		    " SLURM_VERSION");
-	}
-    }
-    if (slurmver) {
-	char *sv = strdup(slurmver);
-	if (strlen(sv) >= 6) sv[5] = '\0'; /* cut release part */
-	char *mm = sv;
-	char *yy = strsep(&mm, ".");
-	slurm_version = atol(yy) * 100 + atol(mm);
-	if (slurm_version < 2108) {
-	    outline(ERROROUT, "Not supporting Slurm versions before 21.08");
-	    free(sv);
-	    return -1;
-	}
-	if ((slurm_version < 2311 && (slurm_version != 2108
-				     && slurm_version != 2205
-				     && slurm_version != 2302))
-	    || (slurm_version >= 2311 && (slurm_version % 100 != 5
-					  && slurm_version % 100 != 11))) {
-	    outline(ERROROUT, "Invalid slurm version '%s.%s' in SLURM_VERSION",
-		    yy, mm);
-	    free(sv);
-	    return -1;
-	}
-	free(sv);
-    } else {
-	slurm_version = 2302;
-    }
-
-    outline(INFOOUT, "Simulating Slurm version %02d.%02d", slurm_version / 100,
-	    slurm_version % 100);
-
-    if (slurm_version > MAX_SUPPORTED_SLURM_VERSION) {
-	outline(ERROROUT, "Warning: Slurm version %02d.%02d not yet supported",
-		slurm_version / 100, slurm_version % 100);
-    }
-
-    /* starting with Slurm 22.05 -c implies --exact */
-    if (slurm_version >= 2205 && threadsPerTask > 1) {
-	exact = true;
-	outline(INFOOUT, "Slurm >= 22.05: '-c' implies '--exact'");
-    }
 
     test_pinning(socketCount, coresPerSocket, threadsPerCore, tasksPerNode,
 		 threadsPerTask, cpuBindType, cpuBindString, taskDist,
