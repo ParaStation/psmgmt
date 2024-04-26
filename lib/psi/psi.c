@@ -785,20 +785,18 @@ static void pushLimits(void)
 void PSI_propEnv(void)
 {
     extern char **environ;
-    char *envStr, valStr[64];
+    char valStr[64];
 
     /* Propagate some environment variables */
-    if ((envStr = getenv("HOME"))) setPSIEnv("HOME", envStr);
-    if ((envStr = getenv("USER"))) setPSIEnv("USER", envStr);
-    if ((envStr = getenv("SHELL"))) setPSIEnv("SHELL", envStr);
-    if ((envStr = getenv("TERM"))) setPSIEnv("TERM", envStr);
-    if ((envStr = getenv("LD_LIBRARY_PATH")))
-	setPSIEnv("LD_LIBRARY_PATH", envStr);
-    if ((envStr = getenv("LD_PRELOAD"))) setPSIEnv("LD_PRELOAD", envStr);
-    if ((envStr = getenv("LIBRARY_PATH"))) setPSIEnv("LIBRARY_PATH", envStr);
-    if ((envStr = getenv("PATH"))) setPSIEnv("PATH", envStr);
-    if ((envStr = getenv("MPID_PSP_MAXSMALLMSG")))
-	setPSIEnv("MPID_PSP_MAXSMALLMSG", envStr);
+    setPSIEnv("HOME", getenv("HOME"));
+    setPSIEnv("USER", getenv("USER"));
+    setPSIEnv("SHELL", getenv("SHELL"));
+    setPSIEnv("TERM", getenv("TERM"));
+    setPSIEnv("LD_LIBRARY_PATH", getenv("LD_LIBRARY_PATH"));
+    setPSIEnv("LD_PRELOAD", getenv("LD_PRELOAD"));
+    setPSIEnv("LIBRARY_PATH", getenv("LIBRARY_PATH"));
+    setPSIEnv("PATH", getenv("PATH"));
+    setPSIEnv("MPID_PSP_MAXSMALLMSG", getenv("MPID_PSP_MAXSMALLMSG"));
 
     pushLimits();
 
