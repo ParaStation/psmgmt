@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <malloc.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -1042,11 +1043,11 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 	for (uint32_t i = 0; i < config->numFiles; i++) {
 	    Config_File_t *file = &config->files[i];
 
+	    char path[PATH_MAX];
+	    snprintf(path, sizeof(path), "%s/%s", confDir, file->name);
+
 	    if (!file->create) {
 		/* file should be deleted if possbile */
-		char path[1024];
-
-		snprintf(path, sizeof(path), "%s/%s", confDir, file->name);
 		unlink(path);
 		continue;
 	    }
@@ -1059,8 +1060,8 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 		return false;
 	    }
 	    mode_t mode = file->executable ? 0755 : 0644;
-	    if (chmod(file->name, mode ) == -1) {
-		fwarn(errno, "chmod(%s, %o)", file->name, mode);
+	    if (chmod(path, mode ) == -1) {
+		fwarn(errno, "chmod(%s, %o)", path, mode);
 		return false;
 	    }
 	}
