@@ -1058,6 +1058,11 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 			   strlen(file->data))) {
 		return false;
 	    }
+	    mode_t mode = file->executable ? 0755 : 0644;
+	    if (chmod(file->name, mode ) == -1) {
+		fwarn(errno, "chmod(%s, %o)", file->name, mode);
+		return false;
+	    }
 	}
     } else {
 	/* old configuration format, remove with 20.11 */
