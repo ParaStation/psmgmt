@@ -22,6 +22,7 @@ void clearPSIEnv(void)
 
 bool setPSIEnv(const char *name, const char *val)
 {
+    if (!val) return true;
     if (!envInitialized(PSenv)) PSenv = envNew(NULL);
     return envSet(PSenv, name, val);
 }

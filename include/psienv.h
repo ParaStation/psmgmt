@@ -33,7 +33,8 @@ void clearPSIEnv(void);
  * @brief Change or add a ParaStation Environment variable
  *
  * Set the variable @a name in the ParaStation Environment to the
- * value @a val.
+ * value @a val. If @a val is NULL, no variable will be set and true
+ * is returned.
  *
  * @param name Variable name to be set
  *
