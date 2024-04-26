@@ -588,6 +588,7 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	}
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
 	    PSID_fdbg(PSID_LOG_TASK, "PSIDtask_cleanup()\n");
+	    task->pendingReleaseRes = 0; // ignore pending inheritance
 	    PSIDtask_cleanup(task);
 	    continue;
 	}
@@ -611,6 +612,7 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
 	    PSID_fdbg(PSID_LOG_TASK, "PSIDtask_cleanup()\n");
+	    task->pendingReleaseRes = 0; // ignore pending inheritance
 	    PSIDtask_cleanup(task);
 	}
     }
