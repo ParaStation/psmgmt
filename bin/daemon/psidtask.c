@@ -104,7 +104,7 @@ bool PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 	PSID_dbg(PSID_LOG_SIGDBG, "\n");
     }
 
-    PSID_fdbg(PSID_LOG_SIGNAL,"(%s, %d)", PSC_printTID(tid), signal);
+    PSID_fdbg(PSID_LOG_SIGNAL,"(%s, %d)\n", PSC_printTID(tid), signal);
 
     bool ret = false;
     PSsignal_t *sig = PSID_findSignal(sigList, tid, signal);
@@ -113,7 +113,6 @@ bool PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 	list_del(&sig->next);
 	PSsignal_put(sig);
 
-	PSID_fdbg(PSID_LOG_SIGNAL, "\n");
 	if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	    PSID_fdbg(PSID_LOG_SIGDBG, "signals after (in %p):", sigList);
 	    printList(sigList);
@@ -122,7 +121,7 @@ bool PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 
 	ret = true;
     } else {
-	PSID_dbg(PSID_LOG_SIGNAL, ": Not found\n");
+	PSID_fdbg(PSID_LOG_SIGNAL, "not found\n");
     }
 
     RDP_blockTimer(blockedRDP);
