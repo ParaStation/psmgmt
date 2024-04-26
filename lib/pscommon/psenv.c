@@ -246,7 +246,7 @@ env_t envConstruct(char **envArray, bool filter(const char *))
 
     uint32_t cnt = 0;
     while (envArray[cnt++]);
-    if (cnt) {
+    if (cnt > 1) {
 	env->size = cnt;
 	env->vars = umalloc(sizeof(*env->vars) * env->size);
 	if (!env->vars) goto error;
@@ -276,13 +276,15 @@ env_t envClone(const env_t env, bool filter(const char *))
     env_t clone = envNew(NULL);
     if (!clone) return NULL;
 
-    clone->vars = umalloc(sizeof(*clone->vars) * env->size);
-    if (!clone->vars) goto error;
-    clone->size = env->size;
+    if (env->cnt) {
+	clone->vars = umalloc(sizeof(*clone->vars) * env->size);
+	if (!clone->vars) goto error;
+	clone->size = env->size;
 
-    for (uint32_t i = 0; i < env->cnt; i++) {
-	if (filter && !filter(env->vars[i])) continue;
-	if (!doSet(clone, strdup(env->vars[i]), true)) goto error;
+	for (uint32_t i = 0; i < env->cnt; i++) {
+	    if (filter && !filter(env->vars[i])) continue;
+	    if (!doSet(clone, strdup(env->vars[i]), true)) goto error;
+	}
     }
     return clone;
 
