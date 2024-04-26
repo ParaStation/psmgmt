@@ -1367,7 +1367,8 @@ bool execStepLeader(Step_t *step)
     int grace = getConfValueI(SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
-    step->spawned = envGet(step->env, "PMI_SPAWNED");
+    step->spawned = envGet(step->env, "PMI_SPAWNED")
+			|| envGet(step->env, "PMIX_SPAWNID");
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
     char jobStr[32], titleStr[64];
