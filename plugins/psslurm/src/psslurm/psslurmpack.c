@@ -434,8 +434,7 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
 		gres->perBitAlloc = umalloc(sizeof(*gres->perBitAlloc) *
 					    gres->nodeCount);
 	    }
-	    uint32_t bitLen;
-	    getUint64Array(data, &gres->perBitAlloc[i], &bitLen);
+	    getUint64Array(data, &gres->perBitAlloc[i], NULL);
 	}
     }
 
@@ -538,8 +537,7 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
 		gres->perBitAlloc = umalloc(sizeof(*gres->perBitAlloc) *
 					    gres->nodeCount);
 	    }
-	    uint32_t bitLen;
-	    getUint64Array(data, &gres->perBitAlloc[i], &bitLen);
+	    getUint64Array(data, &gres->perBitAlloc[i], NULL);
 	}
     }
 
@@ -574,8 +572,7 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
 		gres->stepPerBitAlloc = umalloc(sizeof(*gres->stepPerBitAlloc) *
 					    gres->nodeCount);
 	    }
-	    uint32_t bitLen;
-	    getUint64Array(data, &gres->stepPerBitAlloc[i], &bitLen);
+	    getUint64Array(data, &gres->stepPerBitAlloc[i], NULL);
 	}
     }
 
