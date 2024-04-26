@@ -461,7 +461,7 @@ void PSIDtask_cleanup(PStask_t *task)
     if (task->fd != -1) Selector_enable(task->fd);
 
     if (PSID_emptySigList(&task->childList) && !task->delegate
-	&& !task->sigChldCB) {
+	&& !task->sigChldCB && !task->pendingReleaseRes) {
 	/* Mark task as deleted; will be actually removed in main loop */
 	task->deleted = true;
     }

@@ -939,6 +939,8 @@ static int releaseChild(PStask_ID_t parent, PStask_ID_t child, bool answer)
     } else if (PSID_emptySigList(&task->childList)) {
 	PSIDhook_call(PSIDHOOK_LAST_CHILD_GONE, task);
 	PSID_fdbg(PSID_LOG_SIGNAL, "last child was %s\n", PSC_printTID(child));
+	/* If the task is gone in the meantime, we might have to cleanup */
+	if (task->removeIt) PSIDtask_cleanup(task);
     }
 
     return 0;
@@ -1233,8 +1235,12 @@ static bool msg_RELEASERES(DDSignalMsg_t *msg)
 	msg->header.dest = task->forwarder->tid;
     }
 
-    /* send the initiator a result msg */
+    /* send result msg to initiator */
     if (task->releaseAnswer) sendMsg(msg);
+
+    /* If the initiator is gone in the meantime, we might have to cleanup */
+    if (task->removeIt) PSIDtask_cleanup(task);
+
     return true;
 }
 
@@ -1411,6 +1417,8 @@ static bool msg_INHERITDONE(DDBufferMsg_t *msg)
 		  PSC_printTID(tid), task->pendingReleaseRes);
     } else {
 	send_RELEASERES(task, msg->header.sender);
+	/* If the initiator is gone in the meantime, we might have to cleanup */
+	if (task->removeIt) PSIDtask_cleanup(task);
     }
     return true;
 }
@@ -1454,6 +1462,8 @@ static bool msg_INHERITFAILED(DDBufferMsg_t *msg)
 		  PSC_printTID(tid), task->pendingReleaseRes);
     } else {
 	send_RELEASERES(task, msg->header.sender);
+	/* If the initiator is gone in the meantime, we might have to cleanup */
+	if (task->removeIt) PSIDtask_cleanup(task);
     }
     return true;
 }
