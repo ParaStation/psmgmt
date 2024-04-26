@@ -625,7 +625,8 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
  * address of the latter is returned via @a val. The fetched data is
  * expected to be of type @a type. The latter is double-checked if the
  * global type-info flag is set. The actual number of elements read
- * from @a data and stored to @a val is provided in @a len.
+ * from @a data and stored to @a val is provided in @a len. In the case
+ * that @a len is NULL, no such information is provided.
  *
  * @a data is expected to provide data in the form of a leading length
  * item followed by the corresponding number of data items.
@@ -642,7 +643,8 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
  *
  * @param val Buffer holding the allocated data array on return
  *
- * @param len Number of elements read from @a data into the data array
+ * @param len Number of elements read from @a data into the data array;
+ *	      might be NULL
  *
  * @param type Data type to be expected for the elements to read
  *

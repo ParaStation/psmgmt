@@ -1053,6 +1053,8 @@ bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
 		     PS_DataType_t type, size_t size,
 		     const char *caller, const int line)
 {
+    uint32_t myLen;
+    if (!len) len = &myLen;
     if (!getFromBuf(data, len, PSDATA_UINT32, sizeof(*len), caller, line))
 	return false;
 
