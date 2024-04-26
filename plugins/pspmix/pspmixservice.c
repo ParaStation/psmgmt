@@ -396,7 +396,7 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
     char *end;
     long res = strtol(spawnID, &end, 10);
     if (*end != '\0' || res <= 0) {
-	ulog("invalid PMIX_SPAWNID: %s\n", spawnID);
+	ulog("invalid PMIX_SPAWNID: '%s'\n", spawnID);
 	return false;
     }
     ns->spawnID = res;
@@ -411,7 +411,7 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
 
     res = strtol(spawner, &end, 0);
     if (*end != '\0') {
-	ulog("invalid __PMIX_SPAWN_PARENT_FWTID: %s\n", spawner);
+	ulog("invalid __PMIX_SPAWN_PARENT_FWTID: '%s'\n", spawner);
 	return false;
     }
     ns->spawner = res;
@@ -431,7 +431,7 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
     }
     res = strtol(rank, &end, 10);
     if (*end != '\0' || res < 0) {
-	ulog("invalid __PMIX_SPAWN_PARENT_RANK: %s\n", rank);
+	ulog("invalid __PMIX_SPAWN_PARENT_RANK: '%s'\n", rank);
 	return false;
     }
     PMIX_PROC_LOAD(&ns->parent, nspace, res);
@@ -444,7 +444,7 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
     }
     res = strtol(opts, &end, 0);
     if (*end != '\0' || res < 0) {
-	ulog("invalid __PMIX_SPAWN_OPTS: %s\n", rank);
+	ulog("invalid __PMIX_SPAWN_OPTS: '%s'\n", rank);
 	return false;
     }
     ns->spawnOpts = res;
@@ -545,7 +545,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	ulog("job environment:\n");
 	int cnt = 0;
 	for (char **e = envGetArray(job->env); e && *e; e++, cnt++) {
-	    ulog("%02d: %s\n", cnt, *e);
+	    ulog("%02d: '%s'\n", cnt, *e);
 	}
     }
 
