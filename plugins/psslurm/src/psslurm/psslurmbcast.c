@@ -185,13 +185,13 @@ void BCast_freeCred(BCast_Cred_t *cred)
 	for (uint32_t i=0; i<cred->gNamesLen; i++) ufree(cred->groupNames[i]);
 	ufree(cred->groupNames);
     }
-    ufree(cred->username);
     ufree(cred->gids);
     ufree(cred->hostlist);
     ufree(cred->gecos);
     ufree(cred->home);
     ufree(cred->shell);
-    ufree(cred->sig);
+    strShred(cred->username);
+    strShred(cred->sig);
 }
 
 char *BCast_adjustExe(char *exe, uint32_t jobid, uint32_t stepid)
