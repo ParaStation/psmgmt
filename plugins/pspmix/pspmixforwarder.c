@@ -208,9 +208,11 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 
     size_t jobsize = 0;
 
-    for (int i = 0; i < req->num; i++) {
+    for (int r = 0; r < req->num; r++) {
+	SingleSpawn_t *spawn = &req->spawns[r];
 
-	SingleSpawn_t *spawn = &req->spawns[i];
+	/* add separating colon */
+	if (r) strvAdd(args, ":");
 
 	jobsize += spawn->np;
 
@@ -230,17 +232,17 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	 *  - PMIX_WDIR (wdir): Working directory for spawned processes
 	 *  - @todo (nodetype): Comma separated list of nodetypes to be used
 	 */
-	for (int j = 0; j < spawn->infoc; j++) {
-	    KVP_t *info = &(spawn->infov[j]);
+	for (int i = 0; i < spawn->infoc; i++) {
+	    KVP_t *info = &(spawn->infov[i]);
 
 	    if (!strcmp(info->key, "wdir")) {
 		strvAdd(args, "-d");
 		strvAdd(args, info->value);
-	    }
-
-	    if (!strcmp(info->key, "nodetype")) {
+	    } else if (!strcmp(info->key, "nodetype")) {
 		strvAdd(args, "--nodetype");
 		strvAdd(args, info->value);
+	    } else {
+		plog("info key '%s' not supported\n", info->key);
 	    }
 	}
 
@@ -254,11 +256,8 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    ufree(tmp);
 	}
 
-	/* add executable and arguments from spawn request */
-	for (int j = 0; j < spawn->argc; j++) strvAdd(args, spawn->argv[j]);
-
-	/* add separating colon */
-	if (i < req->num - 1) strvAdd(args, ":");
+	/* add binary and argument from spawn request */
+	for (int a = 0; a < spawn->argc; a++) strvAdd(args, spawn->argv[a]);
     }
 
     task->argc = strvSize(args);
