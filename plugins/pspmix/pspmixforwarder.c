@@ -231,6 +231,8 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	 *
 	 *  - PMIX_WDIR (wdir): Working directory for spawned processes
 	 *  - @todo (nodetype): Comma separated list of nodetypes to be used
+	 *  - parricide: Flag to not kill process upon relative's unexpected
+	 *               death.
 	 */
 	for (int i = 0; i < spawn->infoc; i++) {
 	    KVP_t *info = &(spawn->infov[i]);
@@ -241,6 +243,12 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    } else if (!strcmp(info->key, "nodetype")) {
 		strvAdd(args, "--nodetype");
 		strvAdd(args, info->value);
+	    } else if (!strcmp(info->key, "parricide")) {
+		if (!strcmp(info->value, "disabled")) {
+		    noParricide = true;
+		} else if (!strcmp(info->value, "enabled")) {
+		    noParricide = false;
+		}
 	    } else {
 		plog("info key '%s' not supported\n", info->key);
 	    }
