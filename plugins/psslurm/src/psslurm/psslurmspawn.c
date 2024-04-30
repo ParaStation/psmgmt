@@ -140,7 +140,25 @@ static size_t fillCmdForSingleSpawn(SpawnRequest_t *req, PStask_t *task)
 	}
     }
 
-    for (int i = 0; i < spawn->argc; i++) strvAdd(argV, spawn->argv[i]);
+    char *envArg = strdup("--export=ALL");
+    for (char **env = envGetArray(spawn->env); env && *env; env++) {
+	char *eq = strchr(*env, '=');
+	if (!eq || eq == *env) continue;
+
+	/* append environment to argument */
+	char *tmpArg = PSC_concat(envArg, ",", *env);
+	if (!tmpArg) continue;
+	free(envArg);
+	envArg = tmpArg;
+
+	/* unset the current environment since it would have precedence */
+	*eq = '\0';
+	unsetenv(*env);
+	*eq = '=';
+    }
+    strvLink(argV, envArg);
+
+    for (int a = 0; a < spawn->argc; a++) strvAdd(argV, spawn->argv[a]);
 
     task->argc = strvSize(argV);
     task->argv = strvStealArray(argV);
@@ -186,6 +204,15 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, PStask_t *task)
 	    fprintf(fs, "%zd", nTasks);
 	} else {
 	    fprintf(fs, "%zd-%zd", nTasks, nTasks + spawn->np - 1);
+	}
+
+	if (envSize(spawn->env)) fprintf(fs, " env");
+	for (char **env = envGetArray(spawn->env); env && *env; env++) {
+	    char *eq = strchr(*env, '=');
+	    if (!eq || eq == *env) continue;
+
+	    /* prepend environment to app */
+	    fprintf(fs, " %s", *env);
 	}
 
 	for (int j = 0; j < spawn->argc; j++) fprintf(fs, " %s", spawn->argv[j]);
