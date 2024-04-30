@@ -135,6 +135,10 @@ static size_t fillCmdForSingleSpawn(SpawnRequest_t *req, PStask_t *task)
 	} else if (strcmp(info->key, "host") == 0) {
 	    strvAdd(argV, "-w");          // --nodelist=
 	    strvAdd(argV, info->value);
+	} else if (strcmp(info->key, "parricide") == 0) {
+	    if (!strcmp(info->value, "disabled")) {
+		task->noParricide = true;
+	    }
 	} else {
 	    flog("info key '%s' not supported\n", info->key);
 	}
@@ -197,7 +201,7 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, PStask_t *task)
 
 	/* TODO: handle info (slurm ignores too) */
 	if (spawn->infoc > 0) {
-	    mlog("Spawn info not supported for spawn multiple binaries.\n");
+	    flog("spawn info not supported for spawn multiple binaries.\n");
 	}
 
 	if (spawn->np == 1) {
@@ -297,9 +301,6 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     /* make sure to use the same PMI */
     char *pmitype = getenv("PSSLURM_PMI_TYPE");
     envSet(task->env, "PSSLURM_PMI_TYPE", pmitype);
-
-    /* XXX: Do we need to set further variables as in setRankEnv()
-     *      in psslurmforwarder.c? */
 
     /* put preput key-value-pairs into environment
      *
