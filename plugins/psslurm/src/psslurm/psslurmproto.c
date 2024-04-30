@@ -625,7 +625,7 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	if (step->nodes[0] == PSC_getMyID()) step->leader = true;
     }
 
-    flog("%s user '%s' np %u nodes '%s' N %u tpp %u pack size %u"
+    flog("%s user '%s' np %u nodes '%s' N %u tpp %u pack's step count %u"
 	 " leader %i exe '%s' packJobid %u hetComp %u\n", Step_strID(step),
 	 step->username, step->np, step->slurmHosts, step->nrOfNodes, step->tpp,
 	 step->packStepCount, step->leader, step->argv[0],
