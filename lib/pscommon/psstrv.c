@@ -109,7 +109,11 @@ bool strvLink(strv_t strv, const char *str)
 bool strvAdd(strv_t strv, const char *str)
 {
     if (!strvInitialized(strv) || !str) return false;
-    return strvLink(strv, strdup(str));
+
+    size_t strLen = strlen(str);
+    strLen = strLen < MIN_MALLOC_SIZE ? MIN_MALLOC_SIZE : strLen + 1;
+    char *copy = malloc(strLen);
+    return copy ? strvLink(strv, strcpy(copy, str)) : false;
 }
 
 char **strvGetArray(strv_t strv)
