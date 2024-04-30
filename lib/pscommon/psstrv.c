@@ -26,7 +26,7 @@ struct strv {
 
 #define VECTOR_CHUNK_SIZE 8
 
-/** Minimum size of any allocation done by psenv */
+/** Minimum size of any allocation done by psstrv */
 #define MIN_MALLOC_SIZE 64
 
 /** Wrapper around malloc enforcing @ref MIN_MALLOC_SIZE */
