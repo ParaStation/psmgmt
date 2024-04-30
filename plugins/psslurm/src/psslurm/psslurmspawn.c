@@ -62,8 +62,7 @@ static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, env_t env)
     }
 }
 
-static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
-				 PStask_t *task)
+static size_t fillCmdForSingleSpawn(SpawnRequest_t *req, PStask_t *task)
 {
     if (req->num != 1) return 0; // ensure to only handle single spawns
 
@@ -146,34 +145,36 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
     task->argc = strvSize(argV);
     task->argv = strvStealArray(argV);
 
-    return 1;
+    return spawn->np;
 }
 
-static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
-				PStask_t *task)
+static int fillCmdForMultiSpawn(SpawnRequest_t *req, PStask_t *task)
 {
+    const char *srun = getConfValueC(Config, "SRUN_BINARY");
+    if (!srun) {
+	flog("no SRUN_BINARY provided\n");
+	return 0;
+    }
+
     /* create multi-prog file */
     char filebuf[64];
     sprintf(filebuf, "/tmp/psslurm-spawn.%d.XXXXXX", getpid());
     int fd = mkstemp(filebuf);
     if (fd < 0) {
-	mlog("%s: failed to create temporary multi-prog file %s: %s\n",
-		__func__, filebuf, strerror(errno));
+	fwarn(errno, "failed to create temporary multi-prog file %s", filebuf);
 	return 0;
     }
     FILE *fs = fdopen(fd, "w");
     if (!fs) {
-	mlog("%s: failed to open stream for temporary multi-prog file %s: %s\n",
-		__func__, filebuf, strerror(errno));
+	fwarn(errno, "no stream for multi-prog file %s", filebuf);
 	return 0;
     }
 
-    int totalSpawns = req->num;
-    mlog("Writing %d spawn requests to multi-prog file '%s'\n", totalSpawns,
-	    filebuf);
+    int numApps = req->num;
+    flog("writing %d applications to multi-prog file '%s'\n", numApps, filebuf);
 
-    int ntasks = 0;
-    for (int i = 0; i < totalSpawns; i++) {
+    size_t nTasks = 0;
+    for (int i = 0; i < numApps; i++) {
 	SingleSpawn_t *spawn = &(req->spawns[i]);
 
 	/* TODO: handle info (slurm ignores too) */
@@ -182,25 +183,17 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 	}
 
 	if (spawn->np == 1) {
-	    fprintf(fs, "%d ", ntasks);
+	    fprintf(fs, "%zd", nTasks);
 	} else {
-	    fprintf(fs, "%d-%d ", ntasks, ntasks + spawn->np - 1);
+	    fprintf(fs, "%zd-%zd", nTasks, nTasks + spawn->np - 1);
 	}
 
-	for (int j = 0; j < spawn->argc; j++) {
-	    fprintf(fs, " %s", spawn->argv[j]);
-	}
+	for (int j = 0; j < spawn->argc; j++) fprintf(fs, " %s", spawn->argv[j]);
 	fprintf(fs, "\n");
 
-	ntasks += spawn->np;
+	nTasks += spawn->np;
     }
     fclose(fs);
-
-    const char *srun = getConfValueC(Config, "SRUN_BINARY");
-    if (!srun) {
-	flog("no SRUN_BINARY provided\n");
-	return 0;
-    }
 
     strv_t argV = strvNew(NULL);
     strvAdd(argV, srun);
@@ -225,7 +218,7 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 
     /* set the number of processes to spawn */
     strvAdd(argV, "-n");                  // --ntasks=
-    snprintf(buffer, sizeof(buffer), "%d", ntasks);
+    snprintf(buffer, sizeof(buffer), "%zd", nTasks);
     strvAdd(argV, buffer);
 
     strvAdd(argV, "--multi-prog");
@@ -234,7 +227,7 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
     task->argc = strvSize(argV);
     task->argv = strvStealArray(argV);
 
-    return 1;
+    return nTasks;
 }
 
 static bool spawnEnvFilter(const char *envStr)
@@ -291,11 +284,23 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     SingleSpawn_t *spawn = &(req->spawns[0]);
     addSpawnPreputToEnv(spawn->preputc, spawn->preputv, task->env);
 
+    size_t jobSize;
     if (req->num == 1) {
-	return fillCmdForSingleSpawn(req, usize, task);
+	jobSize = fillCmdForSingleSpawn(req, task);
     } else {
-	return fillCmdForMultiSpawn(req, usize, task);
+	jobSize = fillCmdForMultiSpawn(req, task);
     }
+
+    /* update environment */
+    pmitype = envGet(task->env, "PSSLURM_PMI_TYPE");
+    flog("pmitype is '%s'\n", pmitype);
+    if (jobSize && !strcmp(pmitype, "pmix")) {
+	char tmp[32];
+	snprintf(tmp, sizeof(tmp), "%zu", jobSize);
+	envSet(task->env, "PMIX_JOB_SIZE", tmp);
+    }
+
+    return jobSize ? 1 : 0;
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/
