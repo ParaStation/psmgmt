@@ -333,32 +333,65 @@ static bool readMemBindType(char *ptr, uint16_t *memBindType,
 }
 
 static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType,
-			        uint16_t *useThreadsPerCore)
+				bool *cpuBindTypeSet,
+				uint16_t *useThreadsPerCore)
 {
-    /* never override settings from --cpu-bind */
-    if (*cpuBindType) return;
+    bool resetThreadsPerCore = true;
+    bool hasCores = false;
+    bool hasThreads = false;
 
     /* sockets given */
-    *cpuBindType = CPU_BIND_TO_SOCKETS;
     char *cur = strstr(value, ":");
     if (cur) {
 	/* cores given */
-	*cpuBindType = CPU_BIND_TO_CORES;
+	hasCores = true;
 	if ((cur = strstr(cur+1, ":"))) {
 	    /* threads given */
-	    *cpuBindType = CPU_BIND_TO_THREADS;
+	    hasThreads = true;
 	    *useThreadsPerCore = atoi(cur+1);
+	    resetThreadsPerCore = false;
 	}
     }
+
+    /* reset earlier --threads-per-core, since srun does that as well */
+    if (resetThreadsPerCore && *useThreadsPerCore) {
+	*useThreadsPerCore = 0;
+	outline(INFOOUT, "-B|--extra-node-info without tasks part: "
+		"ignoring earlier --threads-per-core value but keep it's "
+		"implicit --cpu-bind=threads");
+    }
+
+    /* handle imlicit setting of cpubind */
+    if (*cpuBindTypeSet) return;
+
+    if (hasThreads) {
+	*cpuBindType = CPU_BIND_TO_THREADS;
+	outline(INFOOUT, "-B|--extra-node-info with tasks part: "
+		"implicitly set --cpu-bind=threads");
+    } else if (hasCores) {
+	*cpuBindType = CPU_BIND_TO_CORES;
+	outline(INFOOUT, "-B|--extra-node-info with cores and w/o tasks part: "
+		"implicitly set --cpu-bind=cores");
+    } else {
+	*cpuBindType = CPU_BIND_TO_SOCKETS;
+	outline(INFOOUT, "-B|--extra-node-info with only sockets part: "
+		"implicitly set --cpu-bind=sockets");
+    }
+    *cpuBindTypeSet = true;
 }
 
 static void handleThreadsPerCore(char *value, uint16_t *cpuBindType,
-			        uint16_t *useThreadsPerCore)
+				 bool *cpuBindTypeSet,
+				 uint16_t *useThreadsPerCore)
 {
     /* never override settings from --cpu-bind */
-    if (*cpuBindType) return;
+    if (!*cpuBindTypeSet) {
+	*cpuBindType = CPU_BIND_TO_THREADS;
+	outline(INFOOUT, "--threads-per-core set: "
+		"implicitly set --cpu-bind=threads");
+	*cpuBindTypeSet = true;
+    }
 
-    *cpuBindType = CPU_BIND_TO_THREADS;
     *useThreadsPerCore = atoi(value);
 }
 
@@ -662,12 +695,19 @@ int main(int argc, char *argv[])
 		slurm_version / 100, slurm_version % 100);
     }
 
+    if (slurm_version < 2302) {
+	outline(ERROROUT, "Warning: Output for Slurm versions < 23.02 might not"
+		" (longer) be accurate\n regarding implicit cpu-bind setting by"
+		" the options --threads-per-core and\n -B|--extra-node-info.");
+    }
+
     /* task info */
     uint32_t tasksPerNode = 0;
     uint16_t threadsPerTask = 1;
 
     /* pinning info */
     uint16_t cpuBindType = 0;
+    bool cpuBindTypeSet = false;
     char *cpuBindString = NULL;
     uint32_t taskDist = 0;
     bool nomultithread = false;
@@ -742,6 +782,11 @@ int main(int argc, char *argv[])
 		outline(ERROROUT, "Invalid cpu bind type.");
 		exit(-1);
 	    }
+	    if (cpuBindTypeSet) {
+		outline(INFOOUT, "explicit --cpu-bind overrides all earlier"
+			" ones: set to %s", cpuBindTypeStr(cpuBindType));
+	    }
+	    cpuBindTypeSet = true;
 	} else if (!strncmp(cur, "--distribution=", 15)) {
 	    outline(DEBUGOUT, "Reading --distribution value: \"%s\"", cur+15);
 	    if (!readDistribution(cur+15, &taskDist)) {
@@ -768,7 +813,8 @@ int main(int argc, char *argv[])
 	    mutually_exclusive = true;
 	    outline(DEBUGOUT, "Reading --extra-node-info value: \"%s\"",
 		    cur+18);
-	    handleExtraNodeInfo(cur+18, &cpuBindType, &useThreadsPerCore);
+	    handleExtraNodeInfo(cur+18, &cpuBindType, &cpuBindTypeSet,
+				&useThreadsPerCore);
 	} else if (!strcmp(cur, "-B")) {
 	    if (i == argc) {
 		outline(ERROROUT, "Syntax error reading value for -B.");
@@ -782,7 +828,8 @@ int main(int argc, char *argv[])
 	    }
 	    mutually_exclusive = true;
 	    outline(DEBUGOUT, "Reading -B value: \"%s\"", argv[i]);
-	    handleExtraNodeInfo(argv[i++], &cpuBindType, &useThreadsPerCore);
+	    handleExtraNodeInfo(argv[i++], &cpuBindType, &cpuBindTypeSet,
+				&useThreadsPerCore);
 	} else if (!strcmp(cur, "--hint=nomultithread")) {
 	    if (mutually_exclusive && slurm_version < 2302) {
 		outline(ERROROUT, "srun options -B|--extra-node-info, --hint,"
@@ -815,7 +862,8 @@ int main(int argc, char *argv[])
 	    mutually_exclusive = true;
 	    outline(DEBUGOUT, "Reading --threads-per-core value: \"%s\"",
 		    cur+19);
-	    handleThreadsPerCore(cur+19, &cpuBindType, &useThreadsPerCore);
+	    handleThreadsPerCore(cur+19, &cpuBindType, &cpuBindTypeSet,
+				 &useThreadsPerCore);
 	} else {
 	    outline(ERROROUT, "Invalid argument: \"%s\"", cur);
 	    exit(-1);
