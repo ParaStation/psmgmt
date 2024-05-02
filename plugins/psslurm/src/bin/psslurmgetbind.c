@@ -170,8 +170,40 @@ static bool readCpuBindType(char *ptr, uint16_t *cpuBindType,
     return true;
 }
 
-static bool readDistribution(char *ptr, uint32_t *taskDist) {
+static const char* cpuBindTypeStr(uint16_t cpuBindType)
+{
+    switch(cpuBindType) {
+	case CPU_BIND_NONE:
+	    return "none";
+	case CPU_BIND_MAP:
+	    return "map_cpu";
+	case CPU_BIND_MASK:
+	    return "mask_cpu";
+	case CPU_BIND_LDMAP:
+	    return "map_ldom";
+	case CPU_BIND_LDMASK:
+	    return "mask_ldom";
+	case CPU_BIND_TO_BOARDS:
+	    return "boards";
+	case CPU_BIND_TO_SOCKETS:
+	    return "sockets";
+	case CPU_BIND_TO_LDOMS:
+	    return "ldoms";
+	case CPU_BIND_TO_CORES:
+	    return "cores";
+	case CPU_BIND_TO_THREADS:
+	    return "threads";
+	case CPU_BIND_RANK:
+	    return "rank";
+	case CPU_BIND_LDRANK:
+	    return "rank_ldom";
+	default:
+	    return "unknown";
+    }
+}
 
+static bool readDistribution(char *ptr, uint32_t *taskDist)
+{
     /* looking for first colon */
     ptr = strchr(ptr, ':');
 
@@ -230,6 +262,50 @@ static bool readDistribution(char *ptr, uint32_t *taskDist) {
     }
 
     return true;
+}
+
+static const char* taskDistStr(uint32_t taskDist)
+{
+    switch(taskDist) {
+	case SLURM_DIST_BLOCK_BLOCK_BLOCK:
+	    return "block:block:block";
+	case SLURM_DIST_BLOCK_BLOCK_CYCLIC:
+	    return "block:block:cyclic";
+	case SLURM_DIST_BLOCK_BLOCK_CFULL:
+	    return "block:block:fcyclic";
+	case SLURM_DIST_BLOCK_CYCLIC_BLOCK:
+	    return "block:cyclic:block";
+	case SLURM_DIST_BLOCK_CYCLIC_CYCLIC:
+	    return "block:cyclic:cyclic";
+	case SLURM_DIST_BLOCK_CYCLIC_CFULL:
+	    return "block:cyclic:fyclic";
+	case SLURM_DIST_BLOCK_CFULL_BLOCK:
+	    return "block:fcyclic:block";
+	case SLURM_DIST_BLOCK_CFULL_CYCLIC:
+	    return "block:fcyclic:cyclic";
+	case SLURM_DIST_BLOCK_CFULL_CFULL:
+	    return "block:fcyclic:fcyclic";
+	case SLURM_DIST_CYCLIC_BLOCK_BLOCK:
+	    return "cyclic:block:block";
+	case SLURM_DIST_CYCLIC_BLOCK_CYCLIC:
+	    return "cyclic:block:cyclic";
+	case SLURM_DIST_CYCLIC_BLOCK_CFULL:
+	    return "cyclic:block:fcyclic";
+	case SLURM_DIST_CYCLIC_CYCLIC_BLOCK:
+	    return "cyclic:cyclic:block";
+	case SLURM_DIST_CYCLIC_CYCLIC_CYCLIC:
+	    return "cyclic:cyclic:cyclic";
+	case SLURM_DIST_CYCLIC_CYCLIC_CFULL:
+	    return "cyclic:cyclic:fyclic";
+	case SLURM_DIST_CYCLIC_CFULL_BLOCK:
+	    return "cyclic:fcyclic:block";
+	case SLURM_DIST_CYCLIC_CFULL_CYCLIC:
+	    return "cyclic:fcyclic:cyclic";
+	case SLURM_DIST_CYCLIC_CFULL_CFULL:
+	    return "cyclic:fcyclic:fcyclic";
+	default:
+	    return "unknown";
+    }
 }
 
 static bool readMemBindType(char *ptr, uint16_t *memBindType,
@@ -766,9 +842,9 @@ int main(int argc, char *argv[])
     outline(INFOOUT, "job: %u tasks, %hu threads per task, "
 	    "using %hu threads per core", tasksPerNode, threadsPerTask,
 	    useThreadsPerCore ? useThreadsPerCore : threadsPerCore);
-    outline(INFOOUT, "cpuBindType = 0x%X - cpuBindString = \"%s\"", cpuBindType,
-	    cpuBindString);
-    outline(INFOOUT, "taskDist = 0x%X", taskDist);
+    outline(INFOOUT, "cpuBindType = 0x%X (%s) - cpuBindString = \"%s\"",
+	    cpuBindType, cpuBindTypeStr(cpuBindType), cpuBindString);
+    outline(INFOOUT, "taskDist = 0x%X (%s)", taskDist, taskDistStr(taskDist));
     if (cpumap) {
 	    size_t maxout = 8 + threadCount * 4;
 	    char out[maxout];
