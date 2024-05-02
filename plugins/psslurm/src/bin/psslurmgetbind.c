@@ -88,6 +88,7 @@ static void print_help() {
 	    "          Be verbose (twice for debugging)\n"
 	    "   -h, --human-readable\n"
 	    "          Print 0/1-blocks instead of hex masks\n"
+	    "          (threads in lines, cores in colums, sockets in blocks)\n"
 	    "   -m, --membind\n"
 	    "          Print memory binding, too\n"
 	    "   -M,  --cpumap <CPUMAP>\n"
