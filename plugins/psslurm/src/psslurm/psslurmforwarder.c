@@ -989,6 +989,22 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
 	    snprintf(buf, sizeof(buf), "%u", step->tpp);
 	    strvAdd(argV, buf);
 
+	    char *cwd = step->cwd;
+	    if (getConfValueI(Config, "CWD_PATTERN") == 1) {
+		cwd = IO_replaceStepSymbols(step, 0, step->cwd);
+	    }
+	    char *pwd = envGet(step->env, "PWD");
+	    if (pwd) {
+		char *rpath = realpath(pwd, NULL);
+		if (rpath && !strcmp(rpath, cwd)) {
+		    /* use pwd over cwd if realpath is identical */
+		    cwd = pwd;
+		}
+		free(rpath);
+	    }
+	    strvAdd(argV, "-d");
+	    strvAdd(argV, cwd);
+
 	    /* executable and arguments */
 	    for (uint32_t i = 0; i < step->argc; i++) {
 		strvAdd(argV, step->argv[i]);
