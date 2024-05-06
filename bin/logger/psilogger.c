@@ -974,7 +974,8 @@ static void handleCCMsg(PSLog_Msg_t *msg)
 	PSIlog_log(-1, "%s: sender %s (rank %d) out of range.\n",
 		   __func__, PSC_printTID(msg->header.sender),
 		   msg->sender);
-    } else if (getClientTID(msg->sender) != msg->header.sender) {
+    } else if (msg->type != SERV_RNK     // SERV_RNK from kvsprovider itself!
+	       && getClientTID(msg->sender) != msg->header.sender) {
 	int rank = msg->sender;
 	int key = ((msg->type == FINALIZE) && clientIsGone(rank)) ?
 	    PSILOG_LOG_VERB : -1;
