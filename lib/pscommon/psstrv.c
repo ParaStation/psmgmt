@@ -142,6 +142,6 @@ char **strvStealArray(strv_t strv)
 void strvDestroy(strv_t strv)
 {
     if (!strvInitialized(strv)) return;
-    for (char **str = strv->strings; *str; str++) free(*str);
+    for (char **s = strv->strings; s && *s; s++) free(*s);
     strvSteal(strv);
 }

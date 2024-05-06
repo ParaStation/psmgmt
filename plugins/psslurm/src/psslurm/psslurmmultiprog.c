@@ -389,8 +389,8 @@ static int addExecutableToArgv(strv_t argV, const char *lastExe,
 #endif
 	strvLink(argV, tmpArgs[i]);
 #if 0
-	flog("argv generated so far: ");
-	for (char **str = strvGetArray(argV); *str; str++) mlog("%s ", *str);
+	flog("argv generated so far:");
+	for (char **a = strvGetArray(argV); a && *a; a++) mlog(" %s", *a);
 	mlog("\n");
 #endif
     }
@@ -467,8 +467,8 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata, strv_t argV)
 #endif
 
 #if 0
-    flog("complete argv: ");
-    for (char **str = strvGetArray(argV); *str; str++) mlog("%s ", *str);
+    flog("complete argv:");
+    for (char **a = strvGetArray(argV); a && *a; a++) mlog(" %s", *a);
     mlog("\n");
 #endif
 

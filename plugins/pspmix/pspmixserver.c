@@ -747,7 +747,7 @@ static bool checkKeyAvailability(pmix_proc_t *proc, strv_t reqKeys)
     i++;
 #endif
 
-    for (char **key = strvGetArray(reqKeys); *key; key++) {
+    for (char **key = strvGetArray(reqKeys); key && *key; key++) {
 	pmix_value_t *val;
 	pmix_status_t status = PMIx_Get(proc, *key, info, ninfo, &val);
 	switch (status) {
