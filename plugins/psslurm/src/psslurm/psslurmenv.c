@@ -1190,8 +1190,8 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 
     setSlurmConfEnvVar(NULL);
 
-    if (step->tresBind) envSet(step->env, "SLURMD_TRES_BIND", step->tresBind);
-    if (step->tresFreq) envSet(step->env, "SLURMD_TRES_FREQ", step->tresFreq);
+    if (step->tresBind) setenv("SLURMD_TRES_BIND", step->tresBind, 1);
+    if (step->tresFreq) setenv("SLURMD_TRES_FREQ", step->tresFreq, 1);
 
     setenv("SLURMD_NODENAME", getConfValueC(Config, "SLURM_HOSTNAME"), 1);
     char tmp[128];
