@@ -1659,7 +1659,7 @@ static bool doSpawn(SpawnRequest_t *req)
     mlog("%s(r%i): trying to do %d spawns\n", __func__, rank, pendSpawn->num);
 
     /* get next service rank from logger */
-    if (PSLog_write(cTask->loggertid, SERV_TID, NULL, 0) < 0) {
+    if (PSLog_write(cTask->loggertid, SERV_RNK, NULL, 0) < 0) {
 	mlog("%s(r%i): Writing to logger failed.\n", __func__, rank);
 	return false;
     }
@@ -2429,7 +2429,7 @@ static bool msgCC(DDBufferMsg_t *msg)
 	case KVS:
 	    handleKVSMessage(lmsg);
 	    return true;
-	case SERV_TID:
+	case SERV_RNK:
 	    return handleServiceInfo(lmsg);
 	case SERV_EXT:
 	    handleServiceExit(lmsg);

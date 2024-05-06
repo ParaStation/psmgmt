@@ -163,7 +163,7 @@ static bool doSpawn(SpawnRequest_t *req)
 	 srdata->spawnID, srdata->pnspace, srdata->prank);
 
     /* get next service rank from logger */
-    if (PSLog_write(childTask->loggertid, SERV_TID, NULL, 0) < 0) {
+    if (PSLog_write(childTask->loggertid, SERV_RNK, NULL, 0) < 0) {
 	plog("writing to logger failed\n");
 	freeSpawnRequest(pendSpawn);
 	pendSpawn = NULL;
@@ -1027,7 +1027,7 @@ static bool msgCC(DDBufferMsg_t *msg)
 {
     PSLog_Msg_t *lmsg = (PSLog_Msg_t *)msg;
     switch (lmsg->type) {
-	case SERV_TID:
+	case SERV_RNK:
 	    return handleServiceInfo(lmsg);
 #if 0
 	case SERV_EXT:

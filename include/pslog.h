@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,7 +38,7 @@ typedef enum {
     X11,        /**< fw -> lg (and lg -> fw) X11 forwarding */
     KVS,        /**< fw -> kvs (and kvs -> fw) Manipulates the kvs */
     SIGNAL,     /**< lg -> fw Forward signal to client of forwarder */
-    SERV_TID,	/**< fw -> lg (and lg -> fw) Get min service rank */
+    SERV_RNK,	/**< fw -> lg (and lg -> fw) Get unique service rank */
     SERV_EXT,   /**< lg -> fw Forward service exit msg to client of fw */
     PSLOG_LAST = 32,  /**< all numbers beyond this might be used privately,
 			 e.g. between plugins and their own forwarders */

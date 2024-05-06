@@ -629,8 +629,8 @@ static void forwardInput(int std_in)
  */
 static void handleServiceMsg(PSLog_Msg_t *msg)
 {
-    int32_t minRank = getNextServiceRank();
-    sendMsg(msg->header.sender, SERV_TID, (char *) &minRank, sizeof(minRank));
+    int32_t nextRank = getNextServiceRank();
+    sendMsg(msg->header.sender, SERV_RNK, (char *) &nextRank, sizeof(nextRank));
 }
 
 /**
@@ -1003,7 +1003,7 @@ static void handleCCMsg(PSLog_Msg_t *msg)
 	case CONT:
 	    handleCONTMsg(msg);
 	    break;
-	case SERV_TID:
+	case SERV_RNK:
 	    handleServiceMsg(msg);
 	    break;
 	default:
