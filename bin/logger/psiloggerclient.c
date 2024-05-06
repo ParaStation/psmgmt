@@ -307,6 +307,10 @@ bool registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
 	exit(1);
     }
 
+    if (rank <= nextServiceRank) {
+	PSIlog_log(-1, "%s: unexpected service rank %d\n", __func__, rank);
+    }
+
     if (rank < getMinRank()) {
 	growClients(rank, maxClient);
     }

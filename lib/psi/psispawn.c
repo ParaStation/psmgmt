@@ -747,6 +747,10 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
 	return false;
     }
 
+    if (rank >= -1) {
+	PSI_log(-1, "%s: unexpected service rank %d\n", __func__, rank);
+	return false;
+    }
 
     PStask_t *task = createSpawnTask(wDir, taskGroup, -1, argc, argv, false, NULL);
     if (!task) {
