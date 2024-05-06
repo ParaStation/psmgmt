@@ -399,10 +399,6 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     snprintf(tmp, sizeof(tmp), "0x%08x", srdata->opts);
     envSet(task->env, "__PMIX_SPAWN_OPTS", tmp);
 
-    /* tell the service rank to the kvsprovider    @todo why - 3 */
-    snprintf(tmp, sizeof(tmp), "%d", serviceRank - 3);
-    envSet(task->env, "__SPAWNER_SERVICE_RANK", tmp);
-
     /* tell the responsible PMIx server to the spawner for fail reports */
     snprintf(tmp, sizeof(tmp), "0x%08x", srdata->pmixServer);
     envSet(task->env,  "__PMIX_SPAWN_SERVERTID", tmp);

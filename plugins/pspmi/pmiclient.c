@@ -2110,11 +2110,6 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     envAdd(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
-    snprintf(buffer, sizeof(buffer), "__SPAWNER_SERVICE_RANK=%i",
-	     serviceRank - 3);
-    envAdd(task->env, buffer);
-    if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
-
     snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_PARENT=%i", PSC_getMyTID());
     envAdd(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);

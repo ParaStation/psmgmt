@@ -19,10 +19,13 @@
 #include <unistd.h>
 
 #include "pscommon.h"
+#include "psdaemonprotocol.h"
 #include "pse.h"
 #include "psi.h"
 #include "psienv.h"
+#include "psiinfo.h"
 #include "psispawn.h"
+#include "pslog.h"
 
 #include "cloptions.h"
 #include "common.h"
@@ -76,6 +79,48 @@ static void propMoreEnv(void)
     }
 }
 
+int getNextServiceRank(void)
+{
+    int rank = PSE_getRank();
+    PSLog_init(PSI_getDaemonFD(), rank, 2);
+
+    /* Determine logger's TID */
+    PStask_ID_t loggerTID;
+    if (PSI_infoTaskID(-1, PSP_INFO_LOGGERTID, NULL, &loggerTID, false)) {
+	fprintf(stderr, "%s(r%i): unable to determine logger's TID: %s\n",
+		__func__, rank, strerror(errno));
+	return -1;
+    }
+
+    /* get next service rank from logger */
+    if (PSLog_write(loggerTID, SERV_RNK, NULL, 0) < 0) {
+	fprintf(stderr, "%s(r%i): write to logger failed: %s\n",
+		__func__, rank, strerror(errno));
+	return -1;
+    }
+
+    while (true) {
+	PSLog_Msg_t msg;
+
+	int ret = PSLog_read(&msg, NULL);
+	if (ret == -1) {
+	    fprintf(stderr, "%s(r%i): read failed: %s\n",
+		    __func__, rank, strerror(errno));
+	} else if (msg.header.type != PSP_CC_MSG) {
+	    fprintf(stderr, "%s(r%i): unexpected message type %s\n",
+		    __func__, rank, PSDaemonP_printMsg(msg.header.type));
+	} else if (msg.type != SERV_RNK) {
+	    fprintf(stderr, "%s(r%i): unexpected log message type %s\n",
+		    __func__, rank, PSLog_printMsgType(msg.type));
+	} else {
+	    rank = *(int32_t *)&msg.buf;
+	    break;
+	}
+    }
+
+    return rank;
+}
+
 int main(int argc, const char *argv[], char** envp)
 {
     char tmp[PATH_MAX], *envPtr;
@@ -108,11 +153,6 @@ int main(int argc, const char *argv[], char** envp)
     propMoreEnv();
     propExecEnvironment(conf);
 
-    /* Identify the rank of the spawner service to start */
-    envPtr = getenv("__SPAWNER_SERVICE_RANK");
-    int sRank = -3;
-    if (envPtr) sRank = atoi(envPtr);
-
     if (!conf->pmiDisable) {
 	snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
 	setPSIEnv("__KVS_PROVIDER_TID", tmp);
@@ -128,6 +168,13 @@ int main(int argc, const char *argv[], char** envp)
 	argv[0] = envPtr;
     } else {
 	argv[0] = PKGLIBEXECDIR "/spawner";
+    }
+
+    /* Identify the rank of the spawner service to start */
+    int sRank = getNextServiceRank();
+    if (sRank == -1) {
+	fprintf(stderr, "%s: unable to get spawner's rank\n", origArgv0);
+	exit(EXIT_FAILURE);
     }
 
     /* determine working directory */
