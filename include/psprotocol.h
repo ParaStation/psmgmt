@@ -29,9 +29,6 @@
 /** The location of the UNIX socket used to contact the daemon */
 #define PSmasterSocketName "\0parastation.sock"
 
-/** Environment used to pass number of service processes to logger */
-#define ENV_NUM_SERVICE_PROCS    "__PSI_SERVICE_PROCS"
-
 /** IDs of the various message types */
 
 /** First messages used for setting up connections between client and daemon */

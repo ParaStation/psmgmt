@@ -747,24 +747,6 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
 	return false;
     }
 
-    /* tell logger about service tasks */
-    /* @todo remove this on the long run since the logger ignores it */
-    char *envStr = getenv(ENV_NUM_SERVICE_PROCS);
-    if (envStr) {
-	char *end, newStr[32];
-	long oldNum = strtol(envStr, &end, 10);
-
-	if (*end) {
-	    PSI_log(-1, "%s: unknown value '%s' in environment '%s'\n",
-		    __func__, envStr, ENV_NUM_SERVICE_PROCS);
-	    oldNum = 0;
-	}
-
-	snprintf(newStr, sizeof(newStr), "%ld", oldNum+1);
-	setenv(ENV_NUM_SERVICE_PROCS, newStr, 1);
-    } else {
-	setenv(ENV_NUM_SERVICE_PROCS, "1", 1);
-    }
 
     PStask_t *task = createSpawnTask(wDir, taskGroup, -1, argc, argv, false, NULL);
     if (!task) {
