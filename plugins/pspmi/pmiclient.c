@@ -2079,7 +2079,7 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 	return false;
     }
 
-    task->rank = serviceRank - 1;
+    task->rank = serviceRank;
 
     /* calc totalProcs */
     *totalProcs = 0;

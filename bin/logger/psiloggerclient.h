@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -118,12 +118,12 @@ int getMaxRank(void);
  *
  * Request the next free (and unique) service rank.
  *
- * The next free service rank is commonly equal to the minimum rank.
+ * The next free service rank is commonly one less than the minimum rank.
  * However, since the service ranks should be kept unique also in the case
  * of multiple (external) inquiries for new ranks, an incremental offset
  * ensures that subsequent calls will not return the same rank value.
  *
- * @return Returns the next service rank to be assigned.
+ * @return Returns the next service rank to be assigned
  */
 int getNextServiceRank(void);
 

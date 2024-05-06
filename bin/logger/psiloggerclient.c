@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -87,20 +87,16 @@ int getMinRank(void)
     return minRank;
 }
 
-/** An offset that helps to makes sure that assigned service ranks are unique */
-static int offsetServiceRank = 0;
+/**
+ * Next service rank to use.
+ * - -1 is used by the logger itself
+ * - -2 is the service process started by mpiexec
+ */
+static int nextServiceRank = -3;
 
 int getNextServiceRank(void)
 {
-     int ret;
-
-     /* return next free (and unique!) service rank: */
-     ret = getMinRank() - offsetServiceRank;
-
-     /* keep returned/assigned service ranks unique: */
-     offsetServiceRank += 3; /* service process plus KVS provider */
-
-     return ret;
+    return nextServiceRank--;
 }
 
 int getMaxRank(void)
@@ -312,8 +308,7 @@ bool registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
     }
 
     if (rank < getMinRank()) {
-	 offsetServiceRank -= (minRank - rank);
-	 growClients(rank, maxClient);
+	growClients(rank, maxClient);
     }
 
     if (rank > maxClient) {

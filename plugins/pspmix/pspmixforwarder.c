@@ -358,7 +358,7 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
 	return false;
     }
 
-    task->rank = serviceRank - 1;
+    task->rank = serviceRank;
 
     /* fill the command of the task */
     int rc = fillTaskFunction(req, usize, task);
