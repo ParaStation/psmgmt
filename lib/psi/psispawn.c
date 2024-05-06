@@ -766,8 +766,6 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
 	setenv(ENV_NUM_SERVICE_PROCS, "1", 1);
     }
 
-    if (rank >= -1) rank = -2;
-
     PStask_t *task = createSpawnTask(wDir, taskGroup, -1, argc, argv, false, NULL);
     if (!task) {
 	PSI_log(-1, "%s: unable to create helper task\n", __func__);

@@ -168,8 +168,7 @@ int main(int argc, const char *argv[])
     /* spawn the actual KVS provider service */
     if (conf->verbose) printf("%s: provide KVS via %s\n", origArgv0, argv[0]);
     int error;
-    if (!PSI_spawnService(startNode, TG_KVS, pwd, argc, (char **)argv,
-			  &error, 0)
+    if (!PSI_spawnService(startNode, TG_KVS, pwd, argc, (char **)argv, &error, -2)
 	|| error) {
 	fprintf(stderr, "%s: Could not start KVS provider process (%s)",
 		origArgv0, argv[0]);
