@@ -2836,8 +2836,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 		PSCPU_bytesForCPUs(nodeinfo.coreCount)));
 
 	/* set remaining threads of each core */
-	for (uint16_t t = nodeinfo.threadsPerCore;
-	     t < nodeinfo.threadCount; t++) {
+	for (uint16_t t = nodeinfo.coreCount; t < nodeinfo.threadCount; t++) {
 	    if (PSCPU_isSet(CPUset, getCore(t, &nodeinfo)))
 		    PSCPU_setCPU(CPUset, t);
 	}
