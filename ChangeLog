@@ -1,3 +1,70 @@
+Version 5.1.60-2:
+=================
+------------------------------------------------------------------------
+705d43bfc | Stephan Krempel | Tue, 7 May 2024 16:07:59 +0200
+
+psslurmgetbind: Fix setting all threads in core map
+------------------------------------------------------------------------
+59f42256f | Norbert Eicker | Tue, 7 May 2024 13:32:37 +0200
+
+Fix typo in comment
+------------------------------------------------------------------------
+182953fcd | Stephan Krempel | Thu, 2 May 2024 23:46:29 +0200
+
+psslurmgetbind: Fix implicit setting of --cpu-bind
+
+--threads-per-core and -B|--extra-node-options do implicity set
+--cpu-bind option but once set by any option, only explicit
+--cpu-bind later in the command line can override it again.
+This commit tries to replicate srun's behavior in that regard.
+
+If verbose, decicions to implicitly set --cpu-bind and to override
+it are logged while the commandline options get parsed.
+------------------------------------------------------------------------
+c8217130d | Stephan Krempel | Thu, 2 May 2024 23:35:54 +0200
+
+psslurmgetbind: Print dist and bind type human readable
+
+When verbose, print distribution and cpu bind type not only
+as hex masks but also in human readable format.
+------------------------------------------------------------------------
+6b32b5075 | Stephan Krempel | Thu, 2 May 2024 23:34:06 +0200
+
+psslurmgetbind: More descriptive help for -h option
+------------------------------------------------------------------------
+5eae41b1c | Stephan Krempel | Thu, 25 Apr 2024 11:29:43 +0200
+
+psslurmgetbind: Imply --exact even with -c 1
+
+Only for Slurm >= 22.05
+------------------------------------------------------------------------
+4b44d1850 | Stephan Krempel | Wed, 24 Apr 2024 18:04:16 +0200
+
+psslurmgetbind: Set all threads in core map (jwt:#27756)
+------------------------------------------------------------------------
+a6de36aea | Norbert Eicker | Fri, 26 Apr 2024 21:05:26 +0200
+
+Ensure inheritance does not prevent cleanup
+
+ - An in-flight inheritance must not prevent the cleanup of tasks due to
+   a failed remote psid
+------------------------------------------------------------------------
+a290215e1 | Norbert Eicker | Fri, 26 Apr 2024 20:00:44 +0200
+
+More debug message improvements
+------------------------------------------------------------------------
+f9c0874f9 | Norbert Eicker | Fri, 26 Apr 2024 19:57:02 +0200
+
+Improve debug logs
+------------------------------------------------------------------------
+a8858b97a | Norbert Eicker | Fri, 26 Apr 2024 19:53:14 +0200
+
+Ensure task structures are kept until inheritance is done
+
+ - Otherwise zombie entries might remain in psiadmin
+------------------------------------------------------------------------
+
+
 Version 5.1.60-1:
 =================
 ------------------------------------------------------------------------

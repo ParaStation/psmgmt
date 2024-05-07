@@ -6,6 +6,15 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.60-2:
+=================
+Bugfixes:
+ - Ensure task structs are kept until inheritance is done to prevent
+   zombie entries in psiadmin
+ - psslurmgetbind: Set all threads in core map (jwt:#27756)
+ - Lots of additional fixes to the psslurmgetbind tool
+
+
 Version 5.1.60-1:
 =================
 Bugfixes:

@@ -88,6 +88,7 @@ static void print_help() {
 	    "          Be verbose (twice for debugging)\n"
 	    "   -h, --human-readable\n"
 	    "          Print 0/1-blocks instead of hex masks\n"
+	    "          (threads in lines, cores in colums, sockets in blocks)\n"
 	    "   -m, --membind\n"
 	    "          Print memory binding, too\n"
 	    "   -M,  --cpumap <CPUMAP>\n"
@@ -169,8 +170,40 @@ static bool readCpuBindType(char *ptr, uint16_t *cpuBindType,
     return true;
 }
 
-static bool readDistribution(char *ptr, uint32_t *taskDist) {
+static const char* cpuBindTypeStr(uint16_t cpuBindType)
+{
+    switch(cpuBindType) {
+	case CPU_BIND_NONE:
+	    return "none";
+	case CPU_BIND_MAP:
+	    return "map_cpu";
+	case CPU_BIND_MASK:
+	    return "mask_cpu";
+	case CPU_BIND_LDMAP:
+	    return "map_ldom";
+	case CPU_BIND_LDMASK:
+	    return "mask_ldom";
+	case CPU_BIND_TO_BOARDS:
+	    return "boards";
+	case CPU_BIND_TO_SOCKETS:
+	    return "sockets";
+	case CPU_BIND_TO_LDOMS:
+	    return "ldoms";
+	case CPU_BIND_TO_CORES:
+	    return "cores";
+	case CPU_BIND_TO_THREADS:
+	    return "threads";
+	case CPU_BIND_RANK:
+	    return "rank";
+	case CPU_BIND_LDRANK:
+	    return "rank_ldom";
+	default:
+	    return "unknown";
+    }
+}
 
+static bool readDistribution(char *ptr, uint32_t *taskDist)
+{
     /* looking for first colon */
     ptr = strchr(ptr, ':');
 
@@ -231,6 +264,50 @@ static bool readDistribution(char *ptr, uint32_t *taskDist) {
     return true;
 }
 
+static const char* taskDistStr(uint32_t taskDist)
+{
+    switch(taskDist) {
+	case SLURM_DIST_BLOCK_BLOCK_BLOCK:
+	    return "block:block:block";
+	case SLURM_DIST_BLOCK_BLOCK_CYCLIC:
+	    return "block:block:cyclic";
+	case SLURM_DIST_BLOCK_BLOCK_CFULL:
+	    return "block:block:fcyclic";
+	case SLURM_DIST_BLOCK_CYCLIC_BLOCK:
+	    return "block:cyclic:block";
+	case SLURM_DIST_BLOCK_CYCLIC_CYCLIC:
+	    return "block:cyclic:cyclic";
+	case SLURM_DIST_BLOCK_CYCLIC_CFULL:
+	    return "block:cyclic:fyclic";
+	case SLURM_DIST_BLOCK_CFULL_BLOCK:
+	    return "block:fcyclic:block";
+	case SLURM_DIST_BLOCK_CFULL_CYCLIC:
+	    return "block:fcyclic:cyclic";
+	case SLURM_DIST_BLOCK_CFULL_CFULL:
+	    return "block:fcyclic:fcyclic";
+	case SLURM_DIST_CYCLIC_BLOCK_BLOCK:
+	    return "cyclic:block:block";
+	case SLURM_DIST_CYCLIC_BLOCK_CYCLIC:
+	    return "cyclic:block:cyclic";
+	case SLURM_DIST_CYCLIC_BLOCK_CFULL:
+	    return "cyclic:block:fcyclic";
+	case SLURM_DIST_CYCLIC_CYCLIC_BLOCK:
+	    return "cyclic:cyclic:block";
+	case SLURM_DIST_CYCLIC_CYCLIC_CYCLIC:
+	    return "cyclic:cyclic:cyclic";
+	case SLURM_DIST_CYCLIC_CYCLIC_CFULL:
+	    return "cyclic:cyclic:fyclic";
+	case SLURM_DIST_CYCLIC_CFULL_BLOCK:
+	    return "cyclic:fcyclic:block";
+	case SLURM_DIST_CYCLIC_CFULL_CYCLIC:
+	    return "cyclic:fcyclic:cyclic";
+	case SLURM_DIST_CYCLIC_CFULL_CFULL:
+	    return "cyclic:fcyclic:fcyclic";
+	default:
+	    return "unknown";
+    }
+}
+
 static bool readMemBindType(char *ptr, uint16_t *memBindType,
 			    char **memBindString)
 {
@@ -256,32 +333,65 @@ static bool readMemBindType(char *ptr, uint16_t *memBindType,
 }
 
 static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType,
-			        uint16_t *useThreadsPerCore)
+				bool *cpuBindTypeSet,
+				uint16_t *useThreadsPerCore)
 {
-    /* never override settings from --cpu-bind */
-    if (*cpuBindType) return;
+    bool resetThreadsPerCore = true;
+    bool hasCores = false;
+    bool hasThreads = false;
 
     /* sockets given */
-    *cpuBindType = CPU_BIND_TO_SOCKETS;
     char *cur = strstr(value, ":");
     if (cur) {
 	/* cores given */
-	*cpuBindType = CPU_BIND_TO_CORES;
+	hasCores = true;
 	if ((cur = strstr(cur+1, ":"))) {
 	    /* threads given */
-	    *cpuBindType = CPU_BIND_TO_THREADS;
+	    hasThreads = true;
 	    *useThreadsPerCore = atoi(cur+1);
+	    resetThreadsPerCore = false;
 	}
     }
+
+    /* reset earlier --threads-per-core, since srun does that as well */
+    if (resetThreadsPerCore && *useThreadsPerCore) {
+	*useThreadsPerCore = 0;
+	outline(INFOOUT, "-B|--extra-node-info without tasks part: "
+		"ignoring earlier --threads-per-core value but keep it's "
+		"implicit --cpu-bind=threads");
+    }
+
+    /* handle implicit setting of cpubind */
+    if (*cpuBindTypeSet) return;
+
+    if (hasThreads) {
+	*cpuBindType = CPU_BIND_TO_THREADS;
+	outline(INFOOUT, "-B|--extra-node-info with tasks part: "
+		"implicitly set --cpu-bind=threads");
+    } else if (hasCores) {
+	*cpuBindType = CPU_BIND_TO_CORES;
+	outline(INFOOUT, "-B|--extra-node-info with cores and w/o tasks part: "
+		"implicitly set --cpu-bind=cores");
+    } else {
+	*cpuBindType = CPU_BIND_TO_SOCKETS;
+	outline(INFOOUT, "-B|--extra-node-info with only sockets part: "
+		"implicitly set --cpu-bind=sockets");
+    }
+    *cpuBindTypeSet = true;
 }
 
 static void handleThreadsPerCore(char *value, uint16_t *cpuBindType,
-			        uint16_t *useThreadsPerCore)
+				 bool *cpuBindTypeSet,
+				 uint16_t *useThreadsPerCore)
 {
     /* never override settings from --cpu-bind */
-    if (*cpuBindType) return;
+    if (!*cpuBindTypeSet) {
+	*cpuBindType = CPU_BIND_TO_THREADS;
+	outline(INFOOUT, "--threads-per-core set: "
+		"implicitly set --cpu-bind=threads");
+	*cpuBindTypeSet = true;
+    }
 
-    *cpuBindType = CPU_BIND_TO_THREADS;
     *useThreadsPerCore = atoi(value);
 }
 
@@ -535,12 +645,69 @@ int main(int argc, char *argv[])
 #endif
     }
 
+    if (!readConfigFile()) {
+	outline(ERROROUT, "Error reading psslurm.conf.");
+	exit(-1);
+    }
+
+    const char *slurmver = getenv("SLURM_VERSION");
+    if (!slurmver) {
+	slurmver = getConfValueC(Config, "SLURM_PROTO_VERSION");
+	if (!slurmver || !strcmp(slurmver, "auto")) {
+	    slurmver = autoDetectSlurmVersion();
+	    if (slurmver) outline(INFOOUT, "SLURM_VERSION autodetected");
+	} else {
+	    outline(INFOOUT, "Take SLURM_PROTO_VERSION from psslurm.conf as"
+		    " SLURM_VERSION");
+	}
+    }
+    if (slurmver) {
+	char *sv = strdup(slurmver);
+	if (strlen(sv) >= 6) sv[5] = '\0'; /* cut release part */
+	char *mm = sv;
+	char *yy = strsep(&mm, ".");
+	slurm_version = atol(yy) * 100 + atol(mm);
+	if (slurm_version < 2108) {
+	    outline(ERROROUT, "Not supporting Slurm versions before 21.08");
+	    free(sv);
+	    return -1;
+	}
+	if ((slurm_version < 2311 && (slurm_version != 2108
+				     && slurm_version != 2205
+				     && slurm_version != 2302))
+	    || (slurm_version >= 2311 && (slurm_version % 100 != 5
+					  && slurm_version % 100 != 11))) {
+	    outline(ERROROUT, "Invalid slurm version '%s.%s' in SLURM_VERSION",
+		    yy, mm);
+	    free(sv);
+	    return -1;
+	}
+	free(sv);
+    } else {
+	slurm_version = 2302;
+    }
+
+    outline(INFOOUT, "Simulating Slurm version %02d.%02d", slurm_version / 100,
+	    slurm_version % 100);
+
+    if (slurm_version > MAX_SUPPORTED_SLURM_VERSION) {
+	outline(ERROROUT, "Warning: Slurm version %02d.%02d not yet supported",
+		slurm_version / 100, slurm_version % 100);
+    }
+
+    if (slurm_version < 2302) {
+	outline(ERROROUT, "Warning: Output for Slurm versions < 23.02 might not"
+		" (longer) be accurate\n regarding implicit cpu-bind setting by"
+		" the options --threads-per-core and\n -B|--extra-node-info.");
+    }
+
     /* task info */
     uint32_t tasksPerNode = 0;
     uint16_t threadsPerTask = 1;
 
     /* pinning info */
     uint16_t cpuBindType = 0;
+    bool cpuBindTypeSet = false;
     char *cpuBindString = NULL;
     uint32_t taskDist = 0;
     bool nomultithread = false;
@@ -604,12 +771,22 @@ int main(int argc, char *argv[])
 		outline(ERROROUT, "Invalid number of threads per task.");
 		exit(-1);
 	    }
+	    /* starting with Slurm 22.05 -c implies --exact */
+	    if (slurm_version >= 2205) {
+		exact = true;
+		outline(INFOOUT, "Slurm >= 22.05: '-c' implies '--exact'");
+	    }
 	} else if (!strncmp(cur, "--cpu-bind=", 11)) {
 	    outline(DEBUGOUT, "Reading --cpu-bind value: \"%s\"", cur+11);
 	    if (!readCpuBindType(cur+11, &cpuBindType, &cpuBindString)) {
 		outline(ERROROUT, "Invalid cpu bind type.");
 		exit(-1);
 	    }
+	    if (cpuBindTypeSet) {
+		outline(INFOOUT, "explicit --cpu-bind overrides all earlier"
+			" ones: set to %s", cpuBindTypeStr(cpuBindType));
+	    }
+	    cpuBindTypeSet = true;
 	} else if (!strncmp(cur, "--distribution=", 15)) {
 	    outline(DEBUGOUT, "Reading --distribution value: \"%s\"", cur+15);
 	    if (!readDistribution(cur+15, &taskDist)) {
@@ -636,7 +813,8 @@ int main(int argc, char *argv[])
 	    mutually_exclusive = true;
 	    outline(DEBUGOUT, "Reading --extra-node-info value: \"%s\"",
 		    cur+18);
-	    handleExtraNodeInfo(cur+18, &cpuBindType, &useThreadsPerCore);
+	    handleExtraNodeInfo(cur+18, &cpuBindType, &cpuBindTypeSet,
+				&useThreadsPerCore);
 	} else if (!strcmp(cur, "-B")) {
 	    if (i == argc) {
 		outline(ERROROUT, "Syntax error reading value for -B.");
@@ -650,7 +828,8 @@ int main(int argc, char *argv[])
 	    }
 	    mutually_exclusive = true;
 	    outline(DEBUGOUT, "Reading -B value: \"%s\"", argv[i]);
-	    handleExtraNodeInfo(argv[i++], &cpuBindType, &useThreadsPerCore);
+	    handleExtraNodeInfo(argv[i++], &cpuBindType, &cpuBindTypeSet,
+				&useThreadsPerCore);
 	} else if (!strcmp(cur, "--hint=nomultithread")) {
 	    if (mutually_exclusive && slurm_version < 2302) {
 		outline(ERROROUT, "srun options -B|--extra-node-info, --hint,"
@@ -683,7 +862,8 @@ int main(int argc, char *argv[])
 	    mutually_exclusive = true;
 	    outline(DEBUGOUT, "Reading --threads-per-core value: \"%s\"",
 		    cur+19);
-	    handleThreadsPerCore(cur+19, &cpuBindType, &useThreadsPerCore);
+	    handleThreadsPerCore(cur+19, &cpuBindType, &cpuBindTypeSet,
+				 &useThreadsPerCore);
 	} else {
 	    outline(ERROROUT, "Invalid argument: \"%s\"", cur);
 	    exit(-1);
@@ -710,9 +890,9 @@ int main(int argc, char *argv[])
     outline(INFOOUT, "job: %u tasks, %hu threads per task, "
 	    "using %hu threads per core", tasksPerNode, threadsPerTask,
 	    useThreadsPerCore ? useThreadsPerCore : threadsPerCore);
-    outline(INFOOUT, "cpuBindType = 0x%X - cpuBindString = \"%s\"", cpuBindType,
-	    cpuBindString);
-    outline(INFOOUT, "taskDist = 0x%X", taskDist);
+    outline(INFOOUT, "cpuBindType = 0x%X (%s) - cpuBindString = \"%s\"",
+	    cpuBindType, cpuBindTypeStr(cpuBindType), cpuBindString);
+    outline(INFOOUT, "taskDist = 0x%X (%s)", taskDist, taskDistStr(taskDist));
     if (cpumap) {
 	    size_t maxout = 8 + threadCount * 4;
 	    char out[maxout];
@@ -724,62 +904,6 @@ int main(int argc, char *argv[])
 	    outline(INFOOUT, out);
     }
     outline(INFOOUT, "");
-
-    if (!readConfigFile()) {
-	outline(ERROROUT, "Error reading psslurm.conf.");
-	exit(-1);
-    }
-
-    const char *slurmver = getenv("SLURM_VERSION");
-    if (!slurmver) {
-	slurmver = getConfValueC(Config, "SLURM_PROTO_VERSION");
-	if (!slurmver || !strcmp(slurmver, "auto")) {
-	    slurmver = autoDetectSlurmVersion();
-	    if (slurmver) outline(INFOOUT, "SLURM_VERSION autodetected");
-	} else {
-	    outline(INFOOUT, "Take SLURM_PROTO_VERSION from psslurm.conf as"
-		    " SLURM_VERSION");
-	}
-    }
-    if (slurmver) {
-	char *sv = strdup(slurmver);
-	if (strlen(sv) >= 6) sv[5] = '\0'; /* cut release part */
-	char *mm = sv;
-	char *yy = strsep(&mm, ".");
-	slurm_version = atol(yy) * 100 + atol(mm);
-	if (slurm_version < 2108) {
-	    outline(ERROROUT, "Not supporting Slurm versions before 21.08");
-	    free(sv);
-	    return -1;
-	}
-	if ((slurm_version < 2311 && (slurm_version != 2108
-				     && slurm_version != 2205
-				     && slurm_version != 2302))
-	    || (slurm_version >= 2311 && (slurm_version % 100 != 5
-					  && slurm_version % 100 != 11))) {
-	    outline(ERROROUT, "Invalid slurm version '%s.%s' in SLURM_VERSION",
-		    yy, mm);
-	    free(sv);
-	    return -1;
-	}
-	free(sv);
-    } else {
-	slurm_version = 2302;
-    }
-
-    outline(INFOOUT, "Simulating Slurm version %02d.%02d", slurm_version / 100,
-	    slurm_version % 100);
-
-    if (slurm_version > MAX_SUPPORTED_SLURM_VERSION) {
-	outline(ERROROUT, "Warning: Slurm version %02d.%02d not yet supported",
-		slurm_version / 100, slurm_version % 100);
-    }
-
-    /* starting with Slurm 22.05 -c implies --exact */
-    if (slurm_version >= 2205 && threadsPerTask > 1) {
-	exact = true;
-	outline(INFOOUT, "Slurm >= 22.05: '-c' implies '--exact'");
-    }
 
     test_pinning(socketCount, coresPerSocket, threadsPerCore, tasksPerNode,
 		 threadsPerTask, cpuBindType, cpuBindString, taskDist,
