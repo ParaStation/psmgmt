@@ -138,7 +138,7 @@ bool strvAdd(strv_t strv, const char *str);
  * @return If @a str was appended, true is returned; or false in case
  * of error
  */
-bool strvLink(strv_t strv, const char *str);
+bool strvLink(strv_t strv, char *str);
 
 /**
  * @brief Access string vector's string array

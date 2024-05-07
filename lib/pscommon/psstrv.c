@@ -87,14 +87,17 @@ uint32_t strvSize(strv_t strv)
     return strvInitialized(strv) ? strv->cnt : 0;
 }
 
-bool strvLink(strv_t strv, const char *str)
+static bool doLink(strv_t strv, char *str, bool cleanup)
 {
     if (!strvInitialized(strv) || !str) return false;
 
     if (strv->cnt + 1 >= strv->size) {
 	uint32_t newSize = strv->size + VECTOR_CHUNK_SIZE;
 	char **tmp = realloc(strv->strings, newSize * sizeof(*tmp));
-	if (!tmp) return false;
+	if (!tmp) {
+	    if (cleanup) free(str);
+	    return false;
+	}
 
 	strv->size = newSize;
 	strv->strings = tmp;
@@ -105,6 +108,11 @@ bool strvLink(strv_t strv, const char *str)
     return true;
 }
 
+bool strvLink(strv_t strv, char *str)
+{
+    return doLink(strv, str, false);
+}
+
 bool strvAdd(strv_t strv, const char *str)
 {
     if (!strvInitialized(strv) || !str) return false;
@@ -112,7 +120,7 @@ bool strvAdd(strv_t strv, const char *str)
     size_t strLen = strlen(str);
     strLen = strLen < MIN_MALLOC_SIZE ? MIN_MALLOC_SIZE : strLen + 1;
     char *copy = malloc(strLen);
-    return copy ? strvLink(strv, strcpy(copy, str)) : false;
+    return copy ? doLink(strv, strcpy(copy, str), true) : false;
 }
 
 char **strvGetArray(strv_t strv)
