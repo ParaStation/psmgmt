@@ -361,7 +361,7 @@ static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType,
 		"implicit --cpu-bind=threads");
     }
 
-    /* handle imlicit setting of cpubind */
+    /* handle implicit setting of cpubind */
     if (*cpuBindTypeSet) return;
 
     if (hasThreads) {
