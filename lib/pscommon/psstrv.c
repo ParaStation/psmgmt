@@ -117,9 +117,7 @@ bool strvAdd(strv_t strv, const char *str)
 {
     if (!strvInitialized(strv) || !str) return false;
 
-    size_t strLen = strlen(str);
-    strLen = strLen < MIN_MALLOC_SIZE ? MIN_MALLOC_SIZE : strLen + 1;
-    char *copy = malloc(strLen);
+    char *copy = umalloc(strlen(str) + 1);
     return copy ? doLink(strv, strcpy(copy, str), true) : false;
 }
 
