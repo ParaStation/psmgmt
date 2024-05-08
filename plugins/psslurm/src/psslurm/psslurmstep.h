@@ -193,6 +193,10 @@ typedef struct {
     char *tresFreq;             /**< TRes frequency (currently env set only) */
     char *tresPerTask;          /**< TRes per task */
     bool spawned;               /**< step is result of a PMI[x]_spawn */
+    char *stepManager;		/**< step manager */
+    Slurm_Job_Record_t jobRec;  /**< Slurm job record */
+    list_t nodeRecords;		/**< list of Slurm node records */
+    Slurm_Part_Record_t partRec;/**< Slurm partition record */
 /* helper variables, only used temporarily by specific functions */
     uint32_t rcvdPackInfos;	/**< number of received pack infos */
     uint32_t rcvdPackProcs;	/**< number of received pack processes */

@@ -51,6 +51,8 @@ typedef struct {
 typedef struct {
     list_t next;		/**< used to put into some BCast-lists */
     char *fileName;		/**< name of the file */
+    char *exeFileName;		/**< name of the executable file
+				     (24.05, unused)*/
     uint32_t blockNumber;	/**< block number of this part */
     uint64_t blockOffset;	/**< offset of this part */
     uint16_t compress;		/**< compression algorithm used */

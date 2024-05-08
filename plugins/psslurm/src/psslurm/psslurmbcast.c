@@ -53,6 +53,7 @@ void BCast_delete(BCast_t *bcast)
     freeSlurmMsg(&bcast->msg);
     ufree(bcast->username);
     ufree(bcast->fileName);
+    ufree(bcast->exeFileName);
     ufree(bcast->block);
     ufree(bcast->sig);
     ufree(bcast);

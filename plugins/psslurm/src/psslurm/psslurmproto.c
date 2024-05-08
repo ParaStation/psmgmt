@@ -2828,7 +2828,10 @@ bool initSlurmdProto(void)
 	pver = autoVer;
     }
 
-    if (!strncmp(pver, "23.11", 5) || !strncmp(pver, "2311", 4)) {
+    if (!strncmp(pver, "24.05", 5) || !strncmp(pver, "2405", 4)) {
+	slurmProto = SLURM_24_05_PROTO_VERSION;
+	slurmProtoStr = ustrdup("24.05");
+    } else if (!strncmp(pver, "23.11", 5) || !strncmp(pver, "2311", 4)) {
 	slurmProto = SLURM_23_11_PROTO_VERSION;
 	slurmProtoStr = ustrdup("23.11");
     } else if (!strncmp(pver, "23.02", 5) || !strncmp(pver, "2302", 4)) {

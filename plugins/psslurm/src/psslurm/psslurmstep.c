@@ -38,6 +38,12 @@ Step_t *Step_new(void)
     Step_t *step = ucalloc(sizeof(Step_t));
 
     INIT_LIST_HEAD(&step->gresList);
+    INIT_LIST_HEAD(&step->nodeRecords);
+    INIT_LIST_HEAD(&step->jobRec.details.depList);
+    INIT_LIST_HEAD(&step->jobRec.stateList);
+    INIT_LIST_HEAD(&step->jobRec.gresJobReq);
+    INIT_LIST_HEAD(&step->jobRec.gresJobAlloc);
+
     step->exitCode = -1;
     step->stdOutRank = -1;
     step->stdErrRank = -1;
@@ -331,12 +337,16 @@ bool Step_delete(Step_t *step)
     ufree(step->restartDir);
     ufree(step->compCPUsPerTask);
     ufree(step->compCPUsPerTaskReps);
+    ufree(step->stepManager);
 
     clearTasks(&step->tasks);
     clearTasks(&step->remoteTasks);
     freeGresCred(&step->gresList);
     freeJobCred(step->cred);
     clearFwMsgQueue(&step->fwMsgQueue);
+    freeSlurmJobRecord(&step->jobRec);
+    freeSlurmNodeRecords(&step->nodeRecords);
+    freeSlurmPartRecord(&step->partRec);
 
     if (step->globalTaskIds) {
 	for (uint32_t i = 0; i < step->nrOfNodes; i++) {

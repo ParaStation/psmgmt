@@ -57,6 +57,9 @@ static inline void freeRespJobInfo(Slurm_Msg_t *sMsg)
 	ufree(rec->containerID);
 	ufree(rec->failedNode);
 	ufree(rec->extra);
+	ufree(rec->prioArray);
+	ufree(rec->prioArrayParts);
+	ufree(rec->resvPorts);
     }
     ufree(resp->jobs);
     ufree(resp);
@@ -87,6 +90,12 @@ static inline void freeReqLaunchProlog(Slurm_Msg_t *sMsg)
     freeJobCred(req->cred);
     freeGresJobAlloc(req->gresList);
     ufree(req->gresList);
+    ufree(req->stepManager);
+
+    freeSlurmJobRecord(&req->jobRec);
+    freeSlurmNodeRecords(&req->nodeRecords);
+    freeSlurmPartRecord(&req->partRec);
+
     ufree(req);
 
     sMsg->unpData = NULL;
@@ -401,4 +410,255 @@ bool __freeUnpackMsgData(Slurm_Msg_t *sMsg, const char *caller, const int line)
     }
 
     return true;
+}
+
+static void freeSlurmGresNodeStates(list_t *nsList)
+{
+    if (!nsList) return;
+
+    list_t *g, *tmp;
+    list_for_each_safe(g, tmp, nsList) {
+	Slurm_Gres_Node_State_t *state =
+	    list_entry(g, Slurm_Gres_Node_State_t, next);
+
+	list_del(&state->next);
+
+	for (uint16_t i=0; i<state->topoCnt; i++) {
+	    ufree(state->topoCoreBitmap[i]);
+	    ufree(state->topoGresBitmap[i]);
+	    ufree(state->topoResCoreBitmap[i]);
+	}
+
+	ufree(state->topoCoreBitmap);
+	ufree(state->topoGresBitmap);
+	ufree(state->topoResCoreBitmap);
+	ufree(state->topoGresCountAlloc);
+	ufree(state->topoGresCountAvail);
+	ufree(state->topoTypeID);
+	ufree(state->topoTypeName);
+	ufree(state);
+    }
+}
+
+void freeSlurmNodeRecords(list_t *nrList)
+{
+    if (!nrList) return;
+
+    list_t *g, *tmp;
+    list_for_each_safe(g, tmp, nrList) {
+	Slurm_Node_Record_t *nr = list_entry(g, Slurm_Node_Record_t, next);
+
+	list_del(&nr->next);
+
+	ufree(nr->commName);
+	ufree(nr->name);
+	ufree(nr->nodeHostname);
+	ufree(nr->comment);
+	ufree(nr->extra);
+	ufree(nr->reason);
+	ufree(nr->features);
+	ufree(nr->featuresAct);
+	ufree(nr->gres);
+	ufree(nr->instanceID);
+	ufree(nr->instanceType);
+	ufree(nr->cpuSpecList);
+	ufree(nr->gpuSpecBitmap);
+	ufree(nr->mcsLabel);
+
+	freeSlurmGresNodeStates(&nr->gresNodeStates);
+    }
+}
+
+void freeSlurmPartRecord(Slurm_Part_Record_t *pr)
+{
+    if (!pr) return;
+
+    ufree(pr->name);
+    ufree(pr->allowAccounts);
+    ufree(pr->allowGroups);
+    ufree(pr->allowQOS);
+    ufree(pr->qosName);
+    ufree(pr->allowAllocNodes);
+    ufree(pr->alternate);
+    ufree(pr->denyAccounts);
+    ufree(pr->denyQOS);
+    ufree(pr->origNodes);
+}
+
+static void freeSlurmJobArray(Slurm_Job_Array_t *ja)
+{
+    if (!ja) return;
+
+    ufree(ja->taskIDBitmap);
+    ufree(ja->taskIDStr);
+}
+
+static void freeSlurmJobResources(Slurm_Job_Resources_t *jr)
+{
+    if (!jr) return;
+
+    ufree(jr->coreBitmap);
+    ufree(jr->coreBitmapUsed);
+    ufree(jr->nodeBitmap);
+    ufree(jr->nodes);
+    ufree(jr->cpuArrayValue);
+    ufree(jr->cpuArrayReps);
+    ufree(jr->cpus);
+    ufree(jr->cpusUsed);
+    ufree(jr->coresPerSocket);
+    ufree(jr->memAllocated);
+    ufree(jr->memUsed);
+    ufree(jr->sockCoreRepCount);
+    ufree(jr->socketsPerNode);
+    ufree(jr->tasksPerNode);
+}
+
+static void freeSlurmCronEntry(Slurm_Cron_Entry_t *ce)
+{
+    if (!ce) return;
+
+    ufree(ce->minute);
+    ufree(ce->hour);
+    ufree(ce->dayOfMonth);
+    ufree(ce->month);
+    ufree(ce->dayOfWeek);
+    ufree(ce->cronSpec);
+}
+
+static void freeSlurmJobDetails(Slurm_Job_Details_t *jd)
+{
+    if (!jd) return;
+
+    ufree(jd->acctPollInt);
+    ufree(jd->cpuBind);
+    ufree(jd->memBind);
+    ufree(jd->requiredNodes);
+    ufree(jd->excludedNodes);
+    ufree(jd->features);
+    ufree(jd->clusterFeatures);
+    ufree(jd->prefer);
+    ufree(jd->jobSizeBitmap);
+    ufree(jd->dependency);
+    ufree(jd->origDependency);
+    ufree(jd->err);
+    ufree(jd->in);
+    ufree(jd->out);
+    ufree(jd->submitLine);
+    ufree(jd->workDir);
+    ufree(jd->envHash);
+    ufree(jd->scriptHash);
+
+    envShred(jd->suppEnv);
+
+    for (uint32_t i=0; i<jd->argc; i++) ufree(jd->argv[i]);
+    ufree(jd->argv);
+
+    list_t *g, *tmp;
+    list_for_each_safe(g, tmp, &jd->depList) {
+	Slurm_Dep_List_t *dl = list_entry(g, Slurm_Dep_List_t, next);
+	list_del(&dl->next);
+	ufree(dl);
+    }
+
+    freeSlurmCronEntry(&jd->cronEntry);
+}
+
+static void freeSlurmFedDetails(Slurm_Job_Fed_Details_t *fd)
+{
+    if (!fd) return;
+
+    ufree(fd->originStr);
+    ufree(fd->siblingsActiveStr);
+    ufree(fd->siblingsViableStr);
+}
+
+static void freeSlurmIdentity(Slurm_Identity_t *id)
+{
+    if (!id) return;
+
+    ufree(id->pwName);
+    ufree(id->pwGecos);
+    ufree(id->pwDir);
+    ufree(id->pwShell);
+    ufree(id->gids);
+
+    for (uint32_t i=0; i<id->gidsLen; i++) {
+	ufree(id->grNames[i]);
+    }
+    ufree(id->grNames);
+}
+
+static void freeSlurmStepStates(list_t *stateList)
+{
+    list_t *g, *tmp;
+    list_for_each_safe(g, tmp, stateList) {
+	Slurm_Step_State_t *st = list_entry(g, Slurm_Step_State_t, next);
+	list_del(&st->next);
+	ufree(st);
+    }
+}
+
+void freeSlurmJobRecord(Slurm_Job_Record_t *jr)
+{
+    if (!jr) return;
+
+    ufree(jr->limitSetTRes);
+    ufree(jr->batchFeat);
+    ufree(jr->container);
+    ufree(jr->containerID);
+    ufree(jr->failedNode);
+    ufree(jr->hetJobIDSet);
+    ufree(jr->stateDesc);
+    ufree(jr->respHost);
+    ufree(jr->resvPorts);
+    ufree(jr->nodesCompleting);
+    ufree(jr->nodesProlog);
+    ufree(jr->nodes);
+    ufree(jr->nodeBitmap);
+    ufree(jr->partition);
+    ufree(jr->name);
+    ufree(jr->userName);
+    ufree(jr->wckey);
+    ufree(jr->allocNode);
+    ufree(jr->account);
+    ufree(jr->adminComment);
+    ufree(jr->comment);
+    ufree(jr->extra);
+    ufree(jr->gresUsed);
+    ufree(jr->network);
+    ufree(jr->licenses);
+    ufree(jr->licReq);
+    ufree(jr->mailUser);
+    ufree(jr->mcsLabel);
+    ufree(jr->resvName);
+    ufree(jr->batchHost);
+    ufree(jr->burstBuffer);
+    ufree(jr->burstBufferState);
+    ufree(jr->systemComment);
+    ufree(jr->tresAllocStr);
+    ufree(jr->tresFormatAlloc);
+    ufree(jr->tresReq);
+    ufree(jr->tresFormatReq);
+    ufree(jr->clusters);
+    ufree(jr->originCluster);
+    ufree(jr->cpusPerTres);
+    ufree(jr->memPerTres);
+    ufree(jr->tresBind);
+    ufree(jr->tresFreq);
+    ufree(jr->tresPerJob);
+    ufree(jr->tresPerNode);
+    ufree(jr->tresPerSocket);
+    ufree(jr->tresPerTask);
+    ufree(jr->selinuxContext);
+
+    freeSlurmJobArray(&jr->jobArray);
+    freeSlurmJobResources(&jr->jobRes);
+    envShred(jr->spankJobEnv);
+    freeSlurmJobDetails(&jr->details);
+    freeSlurmFedDetails(&jr->fedDetails);
+    freeSlurmIdentity(&jr->identity);
+    freeSlurmStepStates(&jr->stateList);
+
+    freeGresCred(&jr->gresJobReq);
+    freeGresCred(&jr->gresJobAlloc);
 }

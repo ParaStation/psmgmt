@@ -34,9 +34,10 @@
 #define SLURM_PACK_ADDRS	0x0080
 
 /* protocol versions */
-#define SLURM_MAX_PROTO_VERSION SLURM_23_11_PROTO_VERSION
+#define SLURM_MAX_PROTO_VERSION SLURM_24_05_PROTO_VERSION
 #define SLURM_MIN_PROTO_VERSION SLURM_20_02_PROTO_VERSION
 
+#define SLURM_24_05_PROTO_VERSION ((41 << 8) | 0) /* 10496 */
 #define SLURM_23_11_PROTO_VERSION ((40 << 8) | 0) /* 10240 */
 #define SLURM_23_02_PROTO_VERSION ((39 << 8) | 0) /* 9984 */
 #define SLURM_22_05_PROTO_VERSION ((38 << 8) | 0) /* 9728 */
@@ -298,5 +299,21 @@ typedef enum {
 
 #define MEM_PER_CPU  0x8000000000000000   /* bitmask to indicate memory per cpu
 					     instead of memory per node */
+
+#define SLURM_JOB_COMPLETING	SLURM_BIT(15)
+#define DETAILS_FLAG 0xdddd
+#define STEP_FLAG 0xbbbb
+#define STEP_MAGIC 0xcafecafe
+
+enum slurm_job_state_reason {
+    WAIT_NO_REASON = 0,
+    WAIT_PROLOG = 36
+};
+
+enum select_plugin_type {
+        SELECT_CONS_RES	    = 101,
+        SELECT_LINEAR	    = 102,
+        SELECT_CONS_TRES    = 109,
+};
 
 #endif

@@ -27,8 +27,10 @@
 /** List of all GRES configurations */
 static LIST_HEAD(GresConfList);
 
-static uint32_t getGresId(char *name)
+uint32_t GRes_getID(char *name)
 {
+    if (!name) return 0;
+
     uint32_t gresId = 0;
     for (uint32_t i = 0, x = 0; name[i]; i++) {
 	gresId += (name[i] << x);
@@ -131,7 +133,7 @@ static void freeGresConf(Gres_Conf_t *gres)
 
 Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count)
 {
-    gres->id = getGresId(gres->name);
+    gres->id = GRes_getID(gres->name);
     /* use continuing device IDs */
     gres->nextDevID = GRes_countDevices(gres->id);
 
@@ -223,10 +225,11 @@ Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int credType)
 	if (ret) {
 	    flog("credType %d pluginID %u cpusPerGres %u gresPerStep %lu"
 		 " gresPerNode %lu gresPerSocket %lu gresPerTask %lu"
-		 " memPerGres %lu totalGres %lu nodeInUse %s\n", credType, id,
+		 " memPerGres %lu totalGres %lu nodeInUse %s typeName %s"
+		 " typeID %u\n", credType, id,
 		 ret->cpusPerGRes, ret->gresPerStep, ret->gresPerNode,
 		 ret->gresPerSocket, ret->gresPerTask, ret->memPerGRes,
-		 ret->totalGres, ret->nodeInUse);
+		 ret->totalGres, ret->nodeInUse, ret->typeName, ret->typeID);
 
 	    if (ret->bitAlloc) {
 		for (size_t i = 0; i < ret->nodeCount; i++) {
@@ -274,6 +277,7 @@ void releaseGresCred(Gres_Cred_t *gres)
     ufree(gres->countStepAlloc);
     ufree(gres->nodeInUse);
     ufree(gres->typeModel);
+    ufree(gres->typeName);
     ufree(gres);
 }
 

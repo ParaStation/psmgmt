@@ -22,6 +22,7 @@
 
 #include "psslurmjobcred.h"
 #include "psslurmmsg.h"
+#include "psslurmaccount.h"
 
 /** Holding information for RPC REQUEST_TERMINATE_JOB */
 typedef struct {
@@ -242,30 +243,6 @@ typedef struct {
     char *msg;		    /**< the message to send to the job */
 } Req_Job_Notify_t;
 
-/** Holding all information for RPC REQUEST_LAUNCH_PROLOG */
-typedef struct {
-    uint32_t jobid;		/**< unique job identifier */
-    uint32_t hetJobid;		/**< step het component identifier */
-    uid_t uid;			/**< unique user identifier */
-    gid_t gid;			/**< unique group identifier */
-    char *aliasList;		/**< alias list */
-    char *nodes;		/**< node string */
-    char *partition;		/**< partition (removed in 22.05) */
-    char *stdErr;		/**< stderr (removed in 23.11) */
-    char *stdOut;		/**< stdout (removed in 23.11) */
-    char *workDir;		/**< working directory */
-    uint16_t x11;		/**< x11 flag */
-    char *x11AllocHost;		/**< X11 allocated host */
-    uint16_t x11AllocPort;	/**< X11 allocated port */
-    char *x11MagicCookie;	/**< X11 magic cookie */
-    char *x11Target;		/**< X11 target */
-    uint16_t x11TargetPort;	/**< X11 target port */
-    env_t spankEnv;		/**< spank environment */
-    char *userName;		/**< username (removed in 23.11) */
-    JobCred_t *cred;		/**< job credentials */
-    list_t *gresList;		/**< list of allocated generic resources */
-} Req_Launch_Prolog_t;
-
 /** Holding all information for RPC REQUEST_COMPLETE_PROLOG */
 typedef struct {
     uint32_t jobid;		/**< unique job identifier */
@@ -312,7 +289,7 @@ typedef struct {
     char *hostname;		/**< local hostname */
 } Req_Comp_Batch_Script_t;
 
-/** Holding information of a single Slurm job record */
+/** Holding information of a single Slurm job info slice */
 typedef struct {
     uint32_t arrayJobID;
     uint32_t arrayTaskID;
@@ -377,6 +354,10 @@ typedef struct {
     char *containerID;
     char *failedNode;
     char *extra;
+    uint32_t *prioArray;
+    uint32_t numPrioArray;
+    char *prioArrayParts;
+    char *resvPorts;
 } Slurm_Job_Info_Slice_t;
 
 /** Holding all information for RPC RESPONSE_JOB_INFO */
@@ -428,6 +409,497 @@ typedef struct {
     char *slurmd_spooldir;	    /**< tbr with 20.11 */
 } Config_Msg_t;
 
+/** Structure holding a Slurm job array */
+typedef struct {
+    uint32_t taskCount;
+    char *taskIDBitmap;
+    char *taskIDStr;
+    uint32_t arrayFlags;
+    uint32_t maxRunTasks;
+    uint32_t totalRunTasks;
+    uint32_t minExitCode;
+    uint32_t maxExitCode;
+    uint32_t pendRunTasks;
+    uint32_t totCompTasks;
+} Slurm_Job_Array_t;
+
+/** Structure holding Slurm job resources */
+typedef struct {
+    char *coreBitmap;
+    char *coreBitmapUsed;
+    uint32_t cpuArrayCount;
+    uint16_t *cpuArrayValue;
+    uint32_t *cpuArrayReps;
+    uint16_t *cpus;
+    uint16_t *cpusUsed;
+    uint16_t *coresPerSocket;
+    uint16_t crType;
+    uint64_t *memAllocated;
+    uint64_t *memUsed;
+    uint32_t nhosts;
+    char *nodeBitmap;
+    uint32_t nodeReq;
+    char *nodes;
+    uint32_t numCPUs;
+    uint32_t *sockCoreRepCount;
+    uint16_t *socketsPerNode;
+    uint16_t *tasksPerNode;
+    uint16_t threadsPerCore;
+    uint8_t wholeNode;
+} Slurm_Job_Resources_t;
+
+/** Structure holding Slurm dependency list */
+typedef struct {
+    list_t next;                /**< used to put into some dependency-lists */
+    uint32_t arrayTaskID;
+    uint16_t type;
+    uint16_t flags;
+    uint32_t state;
+    uint32_t time;
+    uint32_t jobID;
+    uint64_t singletonBits;
+} Slurm_Dep_List_t;
+
+/** Structure holding multicore data */
+typedef struct {
+    uint16_t boardsPerNode;
+    uint16_t socketsPerBoard;
+    uint16_t socketsPerNode;
+    uint16_t coresPerSocket;
+    uint16_t threadsPerCore;
+    uint16_t numTasksPerBoard;
+    uint16_t numTasksPerSocket;
+    uint16_t numTasksPerCore;
+    uint16_t planeSize;
+} Slurm_Multicore_data_t;
+
+/** Structure holding a cron entry */
+typedef struct {
+    uint32_t entry;
+    char *minute;
+    char *hour;
+    char *dayOfMonth;
+    char *month;
+    char *dayOfWeek;
+    char *cronSpec;
+    uint32_t lineStart;
+    uint32_t lineEnd;
+    uint32_t flags;
+} Slurm_Cron_Entry_t;
+
+/** Structure holding a job details */
+typedef struct {
+    uint32_t minCPUs;
+    uint32_t maxCPUs;
+    uint32_t minNodes;
+    uint32_t maxNodes;
+    uint32_t numTasks;
+    char *acctPollInt;
+    uint16_t contiguous;
+    uint16_t coreSpec;
+    uint16_t cpusPerTask;
+    uint32_t nice;
+    uint16_t tasksPerNode;
+    uint16_t requeue;
+    uint32_t taskDist;
+    uint8_t shareRes;
+    uint8_t wholeNode;
+    char *cpuBind;
+    uint16_t cpuBindType;
+    char *memBind;
+    uint16_t memBindType;
+    uint8_t openMode;
+    uint8_t overcommit;
+    uint8_t prologRunning;
+    uint32_t minCPUsPerNode;
+    uint64_t minMemPerNode;
+    uint32_t minTmpDiskPerNode;
+    uint32_t cpuFreqMin;
+    uint32_t cpuFreqMax;
+    uint32_t cpuFreqGov;
+    time_t beginTime;
+    time_t accrueTime;
+    time_t submitTime;
+    char *requiredNodes;
+    char *excludedNodes;
+    char *features;
+    char *clusterFeatures;
+    char *prefer;
+    uint8_t featuresUse;
+    char *jobSizeBitmap;
+    list_t depList;
+    char *dependency;
+    char *origDependency;
+    char *err;
+    char *in;
+    char *out;
+    char *submitLine;
+    char *workDir;
+    Slurm_Multicore_data_t multiCore;
+    char **argv;
+    uint32_t argc;
+    env_t suppEnv;
+    Slurm_Cron_Entry_t cronEntry;
+    char *envHash;
+    char *scriptHash;
+    uint16_t segmentSize;
+    uint16_t resvPortCount;
+} Slurm_Job_Details_t;
+
+/** Structure holding a step layout */
+typedef struct {
+    char *frontEnd;
+    char *nodeList;
+    uint32_t nodeCount;
+    uint16_t startProtoVer;
+    uint32_t taskCount;
+    uint32_t taskDist;
+    uint32_t **taskIDs;
+    uint32_t *numTaskIDs;
+    uint16_t *compCPUsPerTask;
+    uint32_t numNodeCount;
+    uint32_t *compCPUsPerTaskReps;
+    char *netCred;
+} Slurm_Step_Layout_t;
+
+/** Structure holding a track-able resources record */
+typedef struct {
+    uint64_t allocSecs;
+    uint64_t count;
+    uint32_t id;
+    char *name;
+    char *type;
+} Slurm_TRes_Record_t;
+
+/** Structure holding a job account */
+typedef struct {
+    uint64_t userCPUsec;
+    uint32_t userCPUusec;
+    uint64_t sysCPUsec;
+    uint32_t sysCPUusec;
+    uint32_t cpuFreq;
+    uint64_t consEnergy;
+    TRes_t tres;
+    Slurm_TRes_Record_t *trr;
+} Slurm_Job_Acct_t;
+
+/** Structure holding a step state */
+typedef struct {
+    list_t next;
+    uint32_t stepid;
+    uint32_t stepHetComp;
+    uint16_t cyclicAlloc;
+    uint32_t srunPID;
+    uint16_t port;
+    uint16_t cpusPerTask;
+    char *container;
+    char *containerID;
+    uint16_t resvPortCount;
+    uint16_t state;
+    uint16_t startProtoVer;
+    uint32_t flags;
+    uint32_t *cpuAllocReps;
+    uint16_t *cpuAllocValues;
+    uint32_t cpuAllocCount;
+    uint32_t cpuCount;
+    uint64_t minMemPerNode;
+    uint32_t exitStatus;
+    char *exitNodeBitmap;
+    char *jobCoreBitmap;
+    uint32_t timeLimit;
+    uint32_t cpuFreqMin;
+    uint32_t cpuFreqMax;
+    uint32_t cpuFreqGov;
+    time_t startTime;
+    time_t priorSuspTime;
+    time_t totSuspTime;
+    char *host;
+    char *resvPorts;
+    char *name;
+    char *network;
+    list_t gresStepReq;
+    list_t gresStepAlloc;
+    Slurm_Step_Layout_t layout;
+    Slurm_Job_Acct_t acctData;
+    char *tresAlloc;
+    char *tresFormatAlloc;
+    char *cpusPerTres;
+    char *memPerTres;
+    char *submitLine;
+    char *tresBind;
+    char *tresStep;
+    char *tresFreq;
+    char *tresNode;
+    char *tresSocket;
+    char *tresPerTask;
+    uint64_t *memAlloc;
+    uint32_t numMemAlloc;
+} Slurm_Step_State_t;
+
+/** Structure holding fed details */
+typedef struct {
+    uint32_t clusterLock;
+    uint64_t siblingsActive;
+    uint64_t siblingsViable;
+    char *originStr;
+    char *siblingsActiveStr;
+    char *siblingsViableStr;
+} Slurm_Job_Fed_Details_t;
+
+/** Structure holding a Slurm identity */
+typedef struct {
+    uint32_t uid;
+    uint32_t gid;
+    char *pwName;
+    char *pwGecos;
+    char *pwDir;
+    char *pwShell;
+    uint32_t *gids;
+    uint32_t gidsLen;
+    char **grNames;
+} Slurm_Identity_t;
+
+/** Structure holding a Slurm job record */
+typedef struct {
+    uint32_t arrayJobID;
+    uint32_t arrayTaskID;
+    uint32_t taskIDsize;
+    Slurm_Job_Array_t jobArray;
+    uint32_t assocID;
+    char *batchFeat;
+    char *container;
+    char *containerID;
+    uint32_t delayBoot;
+    char *failedNode;
+    uint32_t jobID;
+    uint32_t userID;
+    uint32_t groupID;
+    uint32_t timeLimit;
+    uint32_t timeMin;
+    uint32_t priority;
+    uint32_t allocSID;
+    uint32_t totalCPUs;
+    uint32_t totalNodes;
+    uint32_t cpuCount;
+    uint32_t exitCode;
+    uint32_t derivedExitCode;
+    uint64_t dbIndex;
+    uint32_t resvID;
+    uint32_t nextStepID;
+    uint32_t hetJobID;
+    char *hetJobIDSet;
+    uint32_t hetJobOffset;
+    uint32_t qosID;
+    uint32_t reqSwitch;
+    uint32_t waitForSwitch;
+    uint32_t profile;
+    uint32_t dbFlags;
+    time_t lastSchedEval;
+    time_t preemptTime;
+    time_t prologLaunchTime;
+    time_t startTime;
+    time_t endTime;
+    time_t endTimeExp;
+    time_t suspendTime;
+    time_t preSusTime;
+    time_t resizeTime;
+    time_t totSusTime;
+    time_t deadline;
+    uint32_t siteFactor;
+    uint16_t directSetPrio;
+    uint32_t jobState;
+    uint16_t killOnNOdeFail;
+    uint16_t batchFlag;
+    uint16_t mailType;
+    uint32_t stateReason;
+    uint32_t stateReaseonPrevDB;
+    uint8_t reboot;
+    uint16_t restartCount;
+    uint16_t waitAllNodes;
+    uint16_t warnFlags;
+    uint16_t warnSignal;
+    uint16_t warnTime;
+    uint16_t limitSetQos;
+    uint16_t limitSetTime;
+    uint16_t *limitSetTRes;
+    uint32_t numLimitSetTRes;
+    char *stateDesc;
+    char *respHost;
+    uint16_t allocRespPort;
+    uint16_t otherPort;
+    char *resvPorts;
+    uint16_t resvPortCount;
+    uint16_t startProtoVer;
+    double billableTRes;
+    char *nodesCompleting;
+    char *nodesProlog;
+    char *nodes;
+    uint32_t nodeCount;
+    char *nodeBitmap;
+    char *partition;
+    char *name;
+    char *userName;
+    char *wckey;
+    char *allocNode;
+    char *account;
+    char *adminComment;
+    char *comment;
+    char *extra;
+    char *gresUsed;
+    char *network;
+    char *licenses;
+    char *licReq;
+    char *mailUser;
+    char *mcsLabel;
+    char *resvName;
+    char *batchHost;
+    char *burstBuffer;
+    char *burstBufferState;
+    char *systemComment;
+    Slurm_Job_Resources_t jobRes;
+    env_t spankJobEnv;
+    list_t gresJobReq;
+    list_t gresJobAlloc;
+    Slurm_Job_Details_t details;
+    list_t stateList;
+    uint64_t bitFlags;
+    char *tresAllocStr;
+    char *tresFormatAlloc;
+    char *tresReq;
+    char *tresFormatReq;
+    char *clusters;
+    Slurm_Job_Fed_Details_t fedDetails;
+    char *originCluster;
+    char *cpusPerTres;
+    char *memPerTres;
+    char *tresBind;
+    char *tresFreq;
+    char *tresPerJob;
+    char *tresPerNode;
+    char *tresPerSocket;
+    char *tresPerTask;
+    char *selinuxContext;
+    Slurm_Identity_t identity;
+} Slurm_Job_Record_t;
+
+/** Structure holding a Slurm partition record */
+typedef struct {
+    uint32_t cpuBind;
+    char *name;
+    uint32_t graceTime;
+    uint32_t maxTime;
+    uint32_t defaultTime;
+    uint32_t maxCPUsPerNode;
+    uint32_t maxCPUsPerSocket;
+    uint32_t maxNodesOrig;
+    uint32_t minNodesOrig;
+    uint32_t flags;
+    uint16_t maxShare;
+    uint16_t overTimeLimit;
+    uint16_t preemptMode;
+    uint16_t prioJobFactor;
+    uint16_t prioTier;
+    uint16_t stateUp;
+    uint16_t crType;
+    char *allowAccounts;
+    char *allowGroups;
+    char *allowQOS;
+    char *qosName;
+    char *allowAllocNodes;
+    char *alternate;
+    char *denyAccounts;
+    char *denyQOS;
+    char *origNodes;
+} Slurm_Part_Record_t;
+
+/** Structure holding a generic resources node state */
+typedef struct {
+    list_t next;                /**< used to put into some state-lists */
+    uint32_t pluginID;
+    uint32_t configFlags;
+    uint64_t gresCountAvail;
+    uint16_t gresBitmapSize;
+    uint16_t topoCnt;
+    char **topoCoreBitmap;
+    char **topoGresBitmap;
+    char **topoResCoreBitmap;
+    uint64_t *topoGresCountAlloc;
+    uint64_t *topoGresCountAvail;
+    uint32_t *topoTypeID;
+    char *topoTypeName;
+} Slurm_Gres_Node_State_t;
+
+/** Structure holding a Slurm node record */
+typedef struct {
+    list_t next;                /**< used to put into some noderecord-lists */
+    char *commName;
+    char *name;
+    char *nodeHostname;
+    char *comment;
+    char *extra;
+    char *reason;
+    char *features;
+    char *featuresAct;
+    char *gres;
+    char *instanceID;
+    char *instanceType;
+    char *cpuSpecList;
+    uint32_t nextState;
+    uint32_t nodeState;
+    uint32_t cpuBind;
+    uint16_t cpus;
+    uint16_t boards;
+    uint16_t totSockets;
+    uint16_t cores;
+    uint16_t coreSpecCount;
+    uint16_t threads;
+    uint64_t realMem;
+    uint16_t resCoresPerGPU;
+    char *gpuSpecBitmap;
+    uint32_t tmpDisk;
+    uint32_t reasonUID;
+    time_t reasonTime;
+    time_t resumeAfter;
+    time_t bootReqTime;
+    time_t powerSaveReqTime;
+    time_t lastBusy;
+    time_t lastResp;
+    uint16_t port;
+    uint16_t protoVer;
+    uint16_t threadsPerCore;
+    char *mcsLabel;
+    list_t gresNodeStates;
+    uint32_t weight;
+} Slurm_Node_Record_t;
+
+/** Holding all information for RPC REQUEST_LAUNCH_PROLOG */
+typedef struct {
+    uint32_t jobid;		/**< unique job identifier */
+    uint32_t hetJobid;		/**< step het component identifier */
+    uid_t uid;			/**< unique user identifier */
+    gid_t gid;			/**< unique group identifier */
+    char *aliasList;		/**< alias list */
+    char *nodes;		/**< node string */
+    char *partition;		/**< partition (removed in 22.05) */
+    char *stdErr;		/**< stderr (removed in 23.11) */
+    char *stdOut;		/**< stdout (removed in 23.11) */
+    char *workDir;		/**< working directory */
+    uint16_t x11;		/**< x11 flag */
+    char *x11AllocHost;		/**< X11 allocated host */
+    uint16_t x11AllocPort;	/**< X11 allocated port */
+    char *x11MagicCookie;	/**< X11 magic cookie */
+    char *x11Target;		/**< X11 target */
+    uint16_t x11TargetPort;	/**< X11 target port */
+    env_t spankEnv;		/**< spank environment */
+    char *userName;		/**< username (removed in 23.11) */
+    JobCred_t *cred;		/**< job credentials */
+    char *stepManager;		/**< step manager */
+    list_t *gresList;		/**< list of allocated generic resources */
+    Slurm_Job_Record_t jobRec;  /**< Slurm job record */
+    list_t nodeRecords;		/**< list of Slurm node records */
+    Slurm_Part_Record_t partRec;/**< Slurm partition record */
+} Req_Launch_Prolog_t;
+
 /**
  * @brief Free unpack buffer of a Slurm message
  *
@@ -441,5 +913,9 @@ typedef struct {
 bool __freeUnpackMsgData(Slurm_Msg_t *sMsg, const char *caller, const int line);
 
 #define freeUnpackMsgData(sMsg) __freeUnpackMsgData(sMsg, __func__, __LINE__);
+
+void freeSlurmNodeRecords(list_t *nrList);
+void freeSlurmJobRecord(Slurm_Job_Record_t *jr);
+void freeSlurmPartRecord(Slurm_Part_Record_t *pr);
 
 #endif /* __PSSLURM_PROTOTYPES */

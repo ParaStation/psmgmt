@@ -396,6 +396,14 @@ static Gres_Cred_t *unpackGresStepPart(PS_DataBuffer_t *data, uint16_t index,
     getUint64(data, &gres->memPerGRes);
     /* total GRes */
     getUint64(data, &gres->totalGres);
+
+    if (msgVer > SLURM_23_11_PROTO_VERSION) {
+	/* type name */
+	gres->typeName = getStringM(data);
+	/* type identifier */
+	gres->typeID = GRes_getID(gres->typeName);
+    }
+
     /* node count */
     getUint32(data, &gres->nodeCount);
     /* nodes in use */
@@ -1543,6 +1551,1355 @@ static void unpackStepIOoptions(PS_DataBuffer_t *data, Step_t *step)
     }
 }
 
+static bool unpackJobResources(Slurm_Msg_t *sMsg, Slurm_Job_Resources_t *jr)
+{
+
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (!(msgVer > SLURM_23_11_PROTO_VERSION)) {
+	flog("unsupported protocol version %u for job record\n", msgVer);
+	return false;
+    }
+
+    /* number of hosts */
+    getUint32(data, &jr->nhosts);
+
+    /* empty job resources */
+    if (jr->nhosts == NO_VAL) return true;
+
+    /* number of CPUs */
+    getUint32(data, &jr->numCPUs);
+    /* node requested */
+    getUint32(data, &jr->nodeReq);
+    /* nodes */
+    jr->nodes = getStringM(data);
+    /* whole node */
+    getUint8(data, &jr->wholeNode);
+    /* threads per core */
+    getUint16(data, &jr->threadsPerCore);
+    /* cr type */
+    getUint16(data, &jr->crType);
+    /* CPU array repetitions */
+    getUint32Array(data, &jr->cpuArrayReps, &jr->cpuArrayCount);
+
+    /* CPU array value */
+    uint32_t count;
+    getUint16Array(data, &jr->cpuArrayValue, &count);
+    if (count != jr->cpuArrayCount) {
+	flog("mismatching cpuArray Reps %u and Value %u count\n",
+	     jr->cpuArrayCount, count);
+	return false;
+    }
+
+    /* CPUs */
+    getUint16Array(data, &jr->cpus, &jr->numCPUs);
+    if (jr->numCPUs != jr->nhosts) {
+	flog("mismatching CPUs %u and #hosts %u count\n",
+	     jr->numCPUs, jr->nhosts);
+	return false;
+    }
+
+    /* CPUs used */
+    getUint16Array(data, &jr->cpus, NULL);
+    /* memory allocated */
+    getUint64Array(data, &jr->memAllocated, NULL);
+    /* memory used */
+    getUint64Array(data, &jr->memUsed, NULL);
+    /* sockets per node */
+    getUint16Array(data, &jr->socketsPerNode, NULL);
+    /* cores per socket */
+    getUint16Array(data, &jr->coresPerSocket, NULL);
+    /* socket core repetition count */
+    getUint32Array(data, &jr->sockCoreRepCount, NULL);
+    /* core bitmap */
+    jr->coreBitmap = getBitString(data);
+    /* core bitmap used */
+    jr->coreBitmapUsed = getBitString(data);
+    /* node bitmap */
+    jr->nodeBitmap = getBitString(data);
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+static bool unpackDepList(Slurm_Msg_t *sMsg, list_t *depList)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (msgVer < SLURM_23_02_PROTO_VERSION) {
+	flog("unsupported protocol version %u for dependency list\n", msgVer);
+	return false;
+    }
+
+    /* number of entries */
+    uint32_t entries;
+    getUint32(data, &entries);
+    if (!entries) return true;
+
+    for (uint32_t i=0; i< entries; i++) {
+	Slurm_Dep_List_t *dep = umalloc(sizeof(*dep));
+
+	/* array task identifier */
+	getUint32(data, &dep->arrayTaskID);
+	/* type */
+	getUint16(data, &dep->type);
+	/* flags */
+	getUint16(data, &dep->flags);
+	/* state */
+	getUint32(data, &dep->state);
+	/* time */
+	getUint32(data, &dep->time);
+	/* job identifier */
+	getUint32(data, &dep->jobID);
+	/* singleton bits */
+	getUint64(data, &dep->singletonBits);
+
+	list_add_tail(&dep->next, depList);
+    }
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+static bool unpackMultiCoreData(Slurm_Msg_t *sMsg,
+				Slurm_Multicore_data_t *mc)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (msgVer < SLURM_23_02_PROTO_VERSION) {
+	flog("unsupported protocol version %u for multicore data\n", msgVer);
+	return false;
+    }
+
+    /* verify multicore flag */
+    uint8_t flag;
+    getUint8(data, &flag);
+    if (!flag) return true;
+    if (flag != 0xff) {
+	flog("invalid multicore data flag %u\n", flag);
+	return false;
+    }
+
+    /* boards per node */
+    getUint16(data, &mc->boardsPerNode);
+    /* sockets per board */
+    getUint16(data, &mc->socketsPerBoard);
+    /* sockets per node */
+    getUint16(data, &mc->socketsPerNode);
+    /* cores per socket */
+    getUint16(data, &mc->coresPerSocket);
+    /* threads per core */
+    getUint16(data, &mc->threadsPerCore);
+    /* tasks per board */
+    getUint16(data, &mc->numTasksPerBoard);
+    /* tasks per socket */
+    getUint16(data, &mc->numTasksPerSocket);
+    /* tasks per core */
+    getUint16(data, &mc->numTasksPerCore);
+    /* plane size (SLURM_DIST_PLANE) */
+    getUint16(data, &mc->planeSize);
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+static bool unpackCronEntry(Slurm_Msg_t *sMsg, Slurm_Cron_Entry_t *ce)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (msgVer < SLURM_23_02_PROTO_VERSION) {
+	flog("unsupported protocol version %u for cron entry\n", msgVer);
+	return false;
+    }
+
+    uint8_t hasData;
+    getUint8(data, &hasData);
+    if (!hasData) return true;
+
+    /* flags */
+    getUint32(data, &ce->flags);
+    /* minute */
+    ce->minute = getBitString(data);
+    /* hour */
+    ce->hour = getBitString(data);
+    /* day of month */
+    ce->dayOfMonth = getBitString(data);
+    /* month */
+    ce->month = getBitString(data);
+    /* day of week */
+    ce->dayOfWeek = getBitString(data);
+    /* cron specification */
+    ce->cronSpec = getStringM(data);
+    /* line start */
+    getUint32(data, &ce->lineStart);
+    /* line end */
+    getUint32(data, &ce->lineEnd);
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+static bool unpackJobDetails(Slurm_Msg_t *sMsg, Slurm_Job_Details_t *dt)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (!(msgVer > SLURM_23_11_PROTO_VERSION)) {
+	flog("unsupported protocol version %u for job details\n", msgVer);
+	return false;
+    }
+
+    /* minimum CPUs  */
+    getUint32(data, &dt->minCPUs);
+    /* maximum CPUs  */
+    getUint32(data, &dt->maxCPUs);
+    /* minimum nodes  */
+    getUint32(data, &dt->minNodes);
+    /* maximum nodes  */
+    getUint32(data, &dt->maxNodes);
+    /* tasks count  */
+    getUint32(data, &dt->numTasks);
+    /* account poll interval  */
+    dt->acctPollInt = getStringM(data);
+
+    /* contiguous */
+    getUint16(data, &dt->contiguous);
+    /* core specification */
+    getUint16(data, &dt->coreSpec);
+    /* CPUs per task */
+    getUint16(data, &dt->cpusPerTask);
+    /* nice */
+    getUint32(data, &dt->nice);
+    /* tasks per node */
+    getUint16(data, &dt->tasksPerNode);
+    /* re-queue */
+    getUint16(data, &dt->requeue);
+    /* task distribution */
+    getUint32(data, &dt->taskDist);
+    /* share resources */
+    getUint8(data, &dt->shareRes);
+    /* whole node */
+    getUint8(data, &dt->wholeNode);
+
+    /* CPU bind */
+    dt->cpuBind = getStringM(data);
+    /* CPU bind type */
+    getUint16(data, &dt->cpuBindType);
+    /* memory bind */
+    dt->memBind = getStringM(data);
+    /* memory bind type */
+    getUint16(data, &dt->memBindType);
+    /* open mode */
+    getUint8(data, &dt->openMode);
+    /* overcommit */
+    getUint8(data, &dt->overcommit);
+    /* prologue running */
+    getUint8(data, &dt->prologRunning);
+
+    /* minimum CPUs per node */
+    getUint32(data, &dt->minCPUsPerNode);
+    /* minimum memory per node */
+    getUint64(data, &dt->minMemPerNode);
+    /* minimum temporary disk per node */
+    getUint32(data, &dt->minTmpDiskPerNode);
+    /* minimum CPU frequency */
+    getUint32(data, &dt->cpuFreqMin);
+    /* maximum CPU frequency */
+    getUint32(data, &dt->cpuFreqMax);
+    /* governor CPU frequency */
+    getUint32(data, &dt->cpuFreqGov);
+    /* begin time */
+    getTime(data, &dt->beginTime);
+    /* accrue time */
+    getTime(data, &dt->accrueTime);
+    /* submit time */
+    getTime(data, &dt->submitTime);
+
+    /* required nodes */
+    dt->requiredNodes = getStringM(data);
+    /* excluded nodes */
+    dt->excludedNodes = getStringM(data);
+    /* features */
+    dt->features = getStringM(data);
+    /* cluster features */
+    dt->clusterFeatures = getStringM(data);
+    /* prefer */
+    dt->prefer = getStringM(data);
+    /* features use */
+    getUint8(data, &dt->featuresUse);
+    /* job size bitmap */
+    dt->jobSizeBitmap = getBitString(data);
+
+    /* dependency list */
+    if (!unpackDepList(sMsg, &dt->depList)) {
+	flog("unpacking dependency list failed\n");
+	return false;
+    }
+
+    /* dependency */
+    dt->dependency = getStringM(data);
+    /* original dependency */
+    dt->origDependency = getStringM(data);
+    /* stderr */
+    dt->err = getStringM(data);
+    /* stdin */
+    dt->in = getStringM(data);
+    /* stdout */
+    dt->out = getStringM(data);
+    /* command line options */
+    dt->submitLine = getStringM(data);
+    /* working directory */
+    dt->workDir = getStringM(data);
+
+    /* multicore data */
+    if (!unpackMultiCoreData(sMsg, &dt->multiCore)) {
+	flog("unpacking multicore data failed\n");
+	return false;
+    }
+
+    /* argv / argc */
+    getStringArrayM(data, &dt->argv, &dt->argc);
+    /* supplemental environment */
+    getEnv(data, dt->suppEnv);
+
+    /* cron entry */
+    if (!unpackCronEntry(sMsg, &dt->cronEntry)) {
+	flog("unpacking cron entry failed\n");
+	return false;
+    }
+
+    /* environment hash */
+    dt->envHash = getStringM(data);
+    /* script hash */
+    dt->scriptHash = getStringM(data);
+    /* segment size */
+    getUint16(data, &dt->segmentSize);
+    /* reserved port count */
+    getUint16(data, &dt->resvPortCount);
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+static bool unpackStepLayout(Slurm_Msg_t *sMsg, Slurm_Step_Layout_t *sl)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (msgVer < SLURM_23_11_PROTO_VERSION) {
+	flog("unsupported protocol version %u for job details\n", msgVer);
+	return false;
+    }
+
+    uint16_t hasData;
+    getUint16(data, &hasData);
+    if (!hasData) return true;
+
+    /* frontend */
+    sl->frontEnd = getStringM(data);
+    /* node list */
+    sl->nodeList = getStringM(data);
+    /* node count */
+    getUint32(data, &sl->nodeCount);
+    /* start protocol version */
+    getUint16(data, &sl->startProtoVer);
+    /* task count */
+    getUint32(data, &sl->taskCount);
+    /* task distribution */
+    getUint32(data, &sl->taskDist);
+
+    /* task IDs */
+    sl->taskIDs = umalloc(sizeof(*sl->taskIDs) * sl->nodeCount);
+    sl->taskIDs = umalloc(sizeof(*sl->numTaskIDs) * sl->nodeCount);
+    for (uint32_t i=0; i<sl->nodeCount; i++) {
+	getUint32Array(data, &(sl->taskIDs)[i], &sl->numTaskIDs[i]);
+    }
+
+    /* compressed CPUs per task (node indexed) */
+    getUint16Array(data, &sl->compCPUsPerTask, &sl->numNodeCount);
+    /* compressed CPUs per task repetitions (node indexed) */
+    uint32_t count;
+    getUint32Array(data, &sl->compCPUsPerTaskReps, &count);
+    if (count != sl->numNodeCount) {
+	flog("mismatching # node count %u and repetitions %u\n",
+	     sl->numNodeCount, count);
+    }
+
+    /* network credential */
+    sl->netCred = getStringM(data);
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+static bool unpackJobAcctData(Slurm_Msg_t *sMsg, Slurm_Job_Acct_t *sa)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (!(msgVer > SLURM_23_02_PROTO_VERSION)) {
+	flog("unsupported protocol version %u for job account data\n", msgVer);
+	return false;
+    }
+
+    /* user CPU seconds */
+    getUint64(data, &sa->userCPUsec);
+    /* user CPU micro seconds */
+    getUint32(data, &sa->userCPUusec);
+    /* system CPU seconds */
+    getUint64(data, &sa->sysCPUsec);
+    /* system CPU micro seconds */
+    getUint32(data, &sa->sysCPUusec);
+    /* CPU frequency */
+    getUint32(data, &sa->cpuFreq);
+    /* consumed energy */
+    getUint64(data, &sa->consEnergy);
+
+    /* track-able resources */
+    TRes_t *tres = &sa->tres;
+
+    /* TRes IDs */
+    getUint32Array(data, &tres->ids, &tres->count);
+
+    /* TRes record list */
+    uint32_t numEntries;
+    getUint32(data, &numEntries);
+    if (numEntries) {
+	Slurm_TRes_Record_t *trr = umalloc(sizeof(*trr) * numEntries);
+
+	for (uint32_t i=0; i< numEntries; i++) {
+	    /* CPU seconds allocated */
+	    getUint64(data, &trr[i].allocSecs);
+	    /* count */
+	    getUint64(data, &trr[i].count);
+	    /* ID */
+	    getUint32(data, &trr[i].id);
+	    /* name */
+	    trr[i].name = getStringM(data);
+	    /* type */
+	    trr[i].type = getStringM(data);
+	}
+    }
+
+    /* in max/min values */
+    getUint64Array(data, &tres->in_max, &tres->count);
+    getUint64Array(data, &tres->in_max_nodeid, &tres->count);
+    getUint64Array(data, &tres->in_max_taskid, &tres->count);
+    getUint64Array(data, &tres->in_min, &tres->count);
+    getUint64Array(data, &tres->in_min_nodeid, &tres->count);
+    getUint64Array(data, &tres->in_min_taskid, &tres->count);
+    /* in total */
+    getUint64Array(data, &tres->in_tot, &tres->count);
+
+    /* out max/min values */
+    getUint64Array(data, &tres->out_max, &tres->count);
+    getUint64Array(data, &tres->out_max_nodeid, &tres->count);
+    getUint64Array(data, &tres->out_max_taskid, &tres->count);
+    getUint64Array(data, &tres->out_min, &tres->count);
+    getUint64Array(data, &tres->out_min_nodeid, &tres->count);
+    getUint64Array(data, &tres->out_min_taskid, &tres->count);
+    /* out total */
+    getUint64Array(data, &tres->out_tot, &tres->count);
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Ensure a compatible jobinfo (select) plugin is loaded
+ *
+ * Currently no jobinfo plugin packs/unpacks any data. But this may
+ * change in future versions.
+ *
+ * @param data Databuffer to unpack plugin information from
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+static bool validateJobinfoPluginID(PS_DataBuffer_t *data)
+{
+    uint32_t pluginID;
+    getUint32(data, &pluginID);
+
+    switch (pluginID) {
+	case 0:
+	    return true;
+	case SELECT_CONS_RES:
+	    return true;
+	case SELECT_LINEAR:
+	    return true;
+	case SELECT_CONS_TRES:
+	    return true;
+    }
+
+    flog("unsupported jobinfo plugin %i\n", pluginID);
+    return false;
+}
+
+static bool unpackStepState(Slurm_Msg_t *sMsg, list_t *stateList)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (msgVer < SLURM_23_11_PROTO_VERSION) {
+	flog("unsupported protocol version %u for job details\n", msgVer);
+	return false;
+    }
+
+    Slurm_Step_State_t *state = ucalloc(sizeof(*state));
+    list_add_tail(&state->next, stateList);
+
+    /* step ID */
+    getUint32(data, &state->stepid);
+    /* step het comp */
+    getUint32(data, &state->stepHetComp);
+    /* cyclic allocation */
+    getUint16(data, &state->cyclicAlloc);
+    /* srun PID */
+    getUint32(data, &state->srunPID);
+    /* port */
+    getUint16(data, &state->port);
+    /* CPUs per task */
+    getUint16(data, &state->cpusPerTask);
+    /* container */
+    state->container = getStringM(data);
+    /* container ID */
+    state->containerID = getStringM(data);
+    /* reserved port count */
+    getUint16(data, &state->resvPortCount);
+    /* state */
+    getUint16(data, &state->state);
+    /* start protocol version */
+    getUint16(data, &state->startProtoVer);
+    /* flags */
+    getUint32(data, &state->flags);
+
+    /* CPU allocation repetitions */
+    getUint32Array(data, &state->cpuAllocReps, &state->cpuAllocCount);
+    /* CPU allocation values */
+    uint32_t valuesCount;
+    getUint16Array(data, &state->cpuAllocValues, &valuesCount);
+    if (state->cpuAllocCount != valuesCount) {
+	flog("mismatching CPU alloc %u and values %u count\n",
+	     state->cpuAllocCount, valuesCount);
+	return false;
+    }
+
+    /* CPU count */
+    getUint32(data, &state->cpuCount);
+    /* minimum memory per node */
+    getUint64(data, &state->minMemPerNode);
+    /* exit status */
+    getUint32(data, &state->exitStatus);
+
+    /* exit node bitmap */
+    if (state->exitStatus != NO_VAL) {
+	state->exitNodeBitmap = getBitString(data);
+    }
+
+    /* job core bitmap */
+    state->jobCoreBitmap = getBitString(data);
+    /* time limit */
+    getUint32(data, &state->timeLimit);
+    /* minimum CPU frequency */
+    getUint32(data, &state->cpuFreqMin);
+    /* maximum CPU frequency */
+    getUint32(data, &state->cpuFreqMax);
+    /* CPU frequency governor */
+    getUint32(data, &state->cpuFreqGov);
+
+    /* start time */
+    getTime(data, &state->startTime);
+    /* prior suspend time */
+    getTime(data, &state->priorSuspTime);
+    /* total suspend time */
+    getTime(data, &state->totSuspTime);
+
+    /* host */
+    state->host = getStringM(data);
+    /* reserved ports */
+    state->resvPorts = getStringM(data);
+    /* name */
+    state->name = getStringM(data);
+    /* network */
+    state->network = getStringM(data);
+
+    /* GRes step requested */
+    if (!unpackGresStep(data, &state->gresStepReq, msgVer)) {
+	flog("unpacking GRes step request failed\n");
+	return false;
+    }
+
+    /* GRes step allocated */
+    if (!unpackGresStep(data, &state->gresStepAlloc, msgVer)) {
+	flog("unpacking GRes step allocated failed\n");
+	return false;
+    }
+
+    /* step layout */
+    if (!unpackStepLayout(sMsg, &state->layout)) {
+	flog("unpacking step layout failed\n");
+	return false;
+    }
+
+    /* switch plugin */
+    uint8_t hasSwitch;
+    getUint8(data, &hasSwitch);
+    if (hasSwitch) {
+	uint32_t switchPlugin;
+	getUint32(data, &switchPlugin);
+	if (switchPlugin != NO_VAL) {
+	    flog("unsupported step switch plugin %u\n", switchPlugin);
+	    return false;
+	}
+    }
+
+    /* jobinfo (select) plugin */
+    if (!validateJobinfoPluginID(data)) {
+	flog("invalid jobinfo plugin\n");
+	return false;
+    }
+
+    /* TRes allocation */
+    state->tresAlloc = getStringM(data);
+    /* formated TRes allocation */
+    state->tresFormatAlloc = getStringM(data);
+    /* CPUs per TRes */
+    state->cpusPerTres = getStringM(data);
+    /* memory per TRes */
+    state->memPerTres = getStringM(data);
+    /* submit line */
+    state->submitLine = getStringM(data);
+    /* TRes bind */
+    state->tresBind = getStringM(data);
+    /* TRes frequency */
+    state->tresFreq = getStringM(data);
+    /* TRes per step */
+    state->tresStep = getStringM(data);
+    /* TRes per node */
+    state->tresNode = getStringM(data);
+    /* TRes per socket */
+    state->tresSocket = getStringM(data);
+    /* TRes per task */
+    state->tresPerTask = getStringM(data);
+
+    /* job account info */
+    if (!unpackJobAcctData(sMsg, &state->acctData)) {
+	flog("unpacking account data failed\n");
+	return false;
+    }
+
+    /* memory allocated */
+    getUint64Array(data, &state->memAlloc, &state->numMemAlloc);
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+static bool unpackJobFedDetails(Slurm_Msg_t *sMsg, Slurm_Job_Fed_Details_t *fd)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (!(msgVer > SLURM_23_02_PROTO_VERSION)) {
+	flog("unsupported protocol version %u for job account data\n", msgVer);
+	return false;
+    }
+
+    uint16_t hasDetails;
+    getUint16(data, &hasDetails);
+    if (!hasDetails) return true;
+
+    /* cluster lock */
+    getUint32(data, &fd->clusterLock);
+    /* origin string */
+    fd->originStr = getStringM(data);
+    /* siblings active */
+    getUint64(data, &fd->siblingsActive);
+    /* siblings active string */
+    fd->siblingsActiveStr = getStringM(data);
+    /* siblings viable */
+    getUint64(data, &fd->siblingsViable);
+    /* siblings viable string */
+    fd->siblingsViableStr = getStringM(data);
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+static bool unpackIdentity(Slurm_Msg_t *sMsg, Slurm_Identity_t *id)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+
+    /* user ID */
+    getUint32(data, &id->uid);
+    /* group ID */
+    getUint32(data, &id->gid);
+    /* user name */
+    id->pwName = getStringM(data);
+    /* additional information */
+    id->pwGecos = getStringM(data);
+    /* home directory */
+    id->pwDir = getStringM(data);
+    /* shell */
+    id->pwShell = getStringM(data);
+    /* extended group IDs */
+    getUint32Array(data, &id->gids, &id->gidsLen);
+    /* group names */
+    uint32_t nameLen;
+    getStringArrayM(data, &id->grNames, &nameLen);
+
+    if (nameLen != id->gidsLen) {
+	flog("mismatching group IDs %u and names %u\n", id->gidsLen, nameLen);
+	return false;
+    }
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+static bool unpackJobRecord(Slurm_Msg_t *sMsg, Slurm_Job_Record_t *jr)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (!(msgVer > SLURM_23_11_PROTO_VERSION)) {
+	flog("unsupported protocol version %u for job record\n", msgVer);
+	return false;
+    }
+
+    /* array job ID */
+    getUint32(data, &jr->arrayJobID);
+    /* array task ID */
+    getUint32(data, &jr->arrayTaskID);
+
+    /* job array record */
+    getUint32(data, &jr->taskIDsize);
+    if (jr->taskIDsize != NO_VAL) {
+	Slurm_Job_Array_t *jobA = &jr->jobArray;
+	if (jr->taskIDsize) {
+	    /* task ID bitmap */
+	    jobA->taskIDBitmap = getStringM(data);
+	}
+	/* array flags */
+	getUint32(data, &jobA->arrayFlags);
+	/* maximum running tasks */
+	getUint32(data, &jobA->maxRunTasks);
+	/* current running tasks */
+	getUint32(data, &jobA->totalRunTasks);
+	/* minimum exit code */
+	getUint32(data, &jobA->minExitCode);
+	/* maximum exit code */
+	getUint32(data, &jobA->maxExitCode);
+	/* completed tasks */
+	getUint32(data, &jobA->totCompTasks);
+    }
+
+    /* association ID */
+    getUint32(data, &jr->assocID );
+    /* batch features */
+    jr->batchFeat = getStringM(data);
+    /* OCI container */
+    jr->container = getStringM(data);
+    /* OCI container ID */
+    jr->containerID = getStringM(data);
+    /* delay boot */
+    getUint32(data, &jr->delayBoot);
+    /* node that caused job fail */
+    jr->failedNode = getStringM(data);
+    /* job ID */
+    getUint32(data, &jr->jobID);
+    if (!jr->jobID) {
+	flog("sanity check: invalid job ID %u\n", jr->jobID);
+	return false;
+    }
+    /* user ID */
+    getUint32(data, &jr->userID);
+    /* group ID */
+    getUint32(data, &jr->groupID);
+    /* time limit */
+    getUint32(data, &jr->timeLimit);
+    /* minimum time */
+    getUint32(data, &jr->timeMin);
+    /* priority */
+    getUint32(data, &jr->priority);
+    /* allocation SID */
+    getUint32(data, &jr->allocSID);
+    /* total CPUs */
+    getUint32(data, &jr->totalCPUs);
+    /* total nodes */
+    getUint32(data, &jr->totalNodes);
+    /* CPU count */
+    getUint32(data, &jr->cpuCount);
+    /* exit code */
+    getUint32(data, &jr->exitCode);
+    /* derived exit code */
+    getUint32(data, &jr->derivedExitCode);
+
+    /* database index */
+    getUint64(data, &jr->dbIndex);
+    /* reservation ID */
+    getUint32(data, &jr->resvID);
+    /* next step ID */
+    getUint32(data, &jr->nextStepID);
+    /* het job ID */
+    getUint32(data, &jr->hetJobID);
+    /* het job ID set */
+    jr->hetJobIDSet = getStringM(data);
+    /* het job offset */
+    getUint32(data, &jr->hetJobOffset);
+    /* QOS ID */
+    getUint32(data, &jr->qosID);
+    /* switch */
+    getUint32(data, &jr->reqSwitch);
+    /* wait for switch */
+    getUint32(data, &jr->waitForSwitch);
+    /* profile */
+    getUint32(data, &jr->profile);
+    /* database flags */
+    getUint32(data, &jr->dbFlags);
+
+    /* last scheduling evaluated  */
+    getTime(data, &jr->lastSchedEval);
+    /* preempt time */
+    getTime(data, &jr->preemptTime);
+    /* prologue launch time */
+    getTime(data, &jr->prologLaunchTime);
+    /* start time */
+    getTime(data, &jr->startTime);
+    /* end time */
+    getTime(data, &jr->endTime);
+    /* end time expected */
+    getTime(data, &jr->endTimeExp);
+    /* suspend time */
+    getTime(data, &jr->suspendTime);
+    /* prior last suspend */
+    getTime(data, &jr->preSusTime);
+    /* resize time */
+    getTime(data, &jr->resizeTime);
+    /* total suspended time */
+    getTime(data, &jr->totSusTime);
+    /* deadline */
+    getTime(data, &jr->deadline);
+
+    /* site factor */
+    getUint32(data, &jr->siteFactor);
+    /* direct set priority */
+    getUint16(data, &jr->directSetPrio);
+    /* job state */
+    getUint32(data, &jr->jobState);
+    /* kill on node failure */
+    getUint16(data, &jr->killOnNOdeFail);
+    /* batch flag */
+    getUint16(data, &jr->batchFlag);
+    /* mail type */
+    getUint16(data, &jr->mailType);
+    /* state reason */
+    getUint32(data, &jr->stateReason);
+    /* previous state reason in database */
+    getUint32(data, &jr->stateReaseonPrevDB);
+    /* reboot */
+    getUint8(data, &jr->reboot);
+    /* restart count */
+    getUint16(data, &jr->restartCount);
+    /* wait for all nodes */
+    getUint16(data, &jr->waitAllNodes);
+    /* warn flags */
+    getUint16(data, &jr->warnFlags);
+    /* warn signal */
+    getUint16(data, &jr->warnSignal);
+    /* warn time */
+    getUint16(data, &jr->warnTime);
+
+    /* account policy limit members */
+    /* limit set QOS */
+    getUint16(data, &jr->limitSetQos);
+    /* limit set time */
+    getUint16(data, &jr->limitSetTime);
+    /* limit set track-able resources */
+    getUint16Array(data, &jr->limitSetTRes, &jr->numLimitSetTRes);
+
+    /* state description */
+    jr->stateDesc = getStringM(data);
+    /* response host */
+    jr->respHost = getStringM(data);
+    /* allocation response port */
+    getUint16(data, &jr->allocRespPort);
+    /* other port */
+    getUint16(data, &jr->otherPort);
+    /* reserved ports */
+    jr->resvPorts = getStringM(data);
+    /* reserved ports count */
+    getUint16(data, &jr->resvPortCount);
+    /* (tbr, old power flags) */
+    uint8_t tmp8;
+    getUint8(data, &tmp8);
+    /* start protocol version */
+    getUint16(data, &jr->startProtoVer);
+
+    /* billable TRes */
+    getDouble(data, &jr->billableTRes);
+    /* nodes completing */
+    if (jr->jobState & SLURM_JOB_COMPLETING) {
+	jr->nodesCompleting = getStringM(data);
+    }
+    /* nodes prologue */
+    if (jr->stateReason == WAIT_PROLOG) {
+	jr->nodesProlog = getStringM(data);
+    }
+    /* nodes */
+    jr->nodes = getStringM(data);
+    /* node count */
+    getUint32(data, &jr->nodeCount);
+
+    /* node bitmap */
+    jr->nodeBitmap = getBitString(data);
+    /* partition */
+    jr->partition = getStringM(data);
+    /* name */
+    jr->name = getStringM(data);
+    /* user name */
+    jr->userName = getStringM(data);
+    /* wckey */
+    jr->wckey = getStringM(data);
+    /* allocation node */
+    jr->allocNode = getStringM(data);
+    /* account */
+    jr->account = getStringM(data);
+    /* admin comment */
+    jr->adminComment = getStringM(data);
+    /* comment */
+    jr->comment = getStringM(data);
+    /* extra */
+    jr->extra = getStringM(data);
+    /* general resources used */
+    jr->gresUsed = getStringM(data);
+    /* network */
+    jr->network = getStringM(data);
+    /* licenses */
+    jr->licenses = getStringM(data);
+    /* licenses required */
+    jr->licReq = getStringM(data);
+    /* mail user */
+    jr->mailUser = getStringM(data);
+    /* mcs label */
+    jr->mcsLabel = getStringM(data);
+    /* reservation name */
+    jr->resvName = getStringM(data);
+    /* batch host */
+    jr->batchHost = getStringM(data);
+    /* burst buffer */
+    jr->burstBuffer = getStringM(data);
+    /* burst buffer state */
+    jr->burstBufferState = getStringM(data);
+    /* system comment */
+    jr->systemComment = getStringM(data);
+
+    /* jobinfo (select) plugin */
+    if (!validateJobinfoPluginID(data)) {
+	flog("invalid jobinfo plugin\n");
+	return false;
+    }
+
+    /* switch job info */
+    uint32_t jobSwitch;
+    getUint32(data, &jobSwitch);
+    if (jobSwitch && jobSwitch != NO_VAL) {
+	flog("unsupported switch jobinfo plugin %i\n", jobSwitch);
+	return false;
+    }
+
+    /* job resources */
+    if (!unpackJobResources(sMsg, &jr->jobRes)) {
+	flog("unpacking job resources failed\n");
+	return false;
+    }
+
+    /* spank job env */
+    getEnv(data, jr->spankJobEnv);
+
+    /* GRes job state */
+    if (!unpackGresJob(data, &jr->gresJobReq, msgVer)) {
+	flog("unpacking GRes job state failed\n");
+	return false;
+    }
+
+    /* GRes job allocation */
+    if (!unpackGresJob(data, &jr->gresJobAlloc, msgVer)) {
+	flog("unpacking GRes job allocation failed\n");
+	return false;
+    }
+
+    /* job details */
+    uint16_t hasDetails;
+    getUint16(data, &hasDetails);
+    if (hasDetails == DETAILS_FLAG && !unpackJobDetails(sMsg, &jr->details)) {
+	flog("unpacking job details failed\n");
+	return false;
+    }
+
+    /* step flag */
+    uint16_t stepFlag;
+    getUint16(data, &stepFlag);
+
+    while (stepFlag == STEP_FLAG) {
+	unpackStepState(sMsg, &jr->stateList);
+	/* test if more data is available */
+	getUint16(data, &stepFlag);
+    }
+
+    /* bit flags */
+    getUint64(data, &jr->bitFlags);
+
+    /* track-able resources allocation string */
+    jr->tresAllocStr = getStringM(data);
+    /* track-able resources formatted allocation string */
+    jr->tresFormatAlloc = getStringM(data);
+    /* track-able resources requested  */
+    jr->tresReq = getStringM(data);
+    /* formatted track-able resources requested  */
+    jr->tresFormatReq = getStringM(data);
+    /* clusters */
+    jr->clusters = getStringM(data);
+
+    /* job fed details */
+    if (!unpackJobFedDetails(sMsg, &jr->fedDetails)) {
+	flog("unpacking job fed details failed\n");
+	return false;
+    }
+
+    /* origin cluster */
+    jr->originCluster = getStringM(data);
+    /* CPUs per track-able resources */
+    jr->cpusPerTres = getStringM(data);
+    /* memory per track-able resources */
+    jr->memPerTres = getStringM(data);
+    /* track-able resources bind */
+    jr->tresBind = getStringM(data);
+    /* track-able resources frequency */
+    jr->tresFreq = getStringM(data);
+    /* track-able resources per job */
+    jr->tresPerJob = getStringM(data);
+    /* track-able resources per node */
+    jr->tresPerNode = getStringM(data);
+    /* track-able resources per socket */
+    jr->tresPerSocket = getStringM(data);
+    /* track-able resources per task */
+    jr->tresPerTask = getStringM(data);
+    /* selinux context */
+    jr->selinuxContext = getStringM(data);
+
+    /* identity */
+    uint8_t hasIdentity;
+    getUint8(data, &hasIdentity);
+    if (hasIdentity && !unpackIdentity(sMsg, &jr->identity)) {
+	flog("unpacking identity failed\n");
+	return false;
+    }
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+static bool unpackNodeStates(Slurm_Msg_t *sMsg, list_t *stateList)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    /* number of records (before protocol version check!) */
+    uint16_t count;
+    getUint16(data, &count);
+    if (!count) return true;
+
+    if (!(msgVer > SLURM_23_11_PROTO_VERSION)) {
+	flog("unsupported protocol version %u for node record\n", msgVer);
+	return false;
+    }
+
+    for (uint16_t i=0; i<count; i++) {
+	/* verify magic */
+	uint32_t magic;
+	getUint32(data, &magic);
+	if (magic != GRES_MAGIC) {
+	    flog("invalid GRes magic %u record %u\n", magic, i);
+	    return false;
+	}
+
+	Slurm_Gres_Node_State_t *ns = ucalloc(sizeof(*ns));
+
+	/* plugin ID */
+	getUint32(data, &ns->pluginID);
+	/* configuration flags */
+	getUint32(data, &ns->configFlags);
+	/* generic resources available */
+	getUint64(data, &ns->gresCountAvail);
+	/* generic resources bitmap size */
+	getUint16(data, &ns->gresBitmapSize);
+	/* topology count */
+	getUint16(data, &ns->topoCnt);
+
+	if (ns->topoCnt) {
+	    ns->topoCoreBitmap = umalloc(sizeof(char *) * ns->topoCnt);
+	    ns->topoGresBitmap = umalloc(sizeof(char *) * ns->topoCnt);
+	    ns->topoResCoreBitmap = umalloc(sizeof(char *) * ns->topoCnt);
+
+	    for (uint16_t u=0; u<ns->topoCnt; u++) {
+		/* topology core bitmap */
+		ns->topoCoreBitmap[u] = getBitString(data);
+		/* topology GRes bitmap */
+		ns->topoGresBitmap[u] = getBitString(data);
+		/* topology reserved core bitmap */
+		ns->topoResCoreBitmap[u] = getBitString(data);
+	    }
+	}
+
+	/* topology GRes count allocated */
+	getUint64Array(data, &ns->topoGresCountAlloc, NULL);
+	/* topology GRes count available */
+	getUint64Array(data, &ns->topoGresCountAvail, NULL);
+	/* topology type ID */
+	getUint32Array(data, &ns->topoTypeID, NULL);
+	/* topology type name */
+	ns->topoTypeName = getStringM(data);
+
+	list_add_tail(&ns->next, stateList);
+    }
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+static bool unpackPartRecord(Slurm_Msg_t *sMsg, Slurm_Part_Record_t *pr)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (!(msgVer > SLURM_23_11_PROTO_VERSION)) {
+	flog("unsupported protocol version %u for node record\n", msgVer);
+	return false;
+    }
+
+    /* CPU bind */
+    getUint32(data, &pr->cpuBind);
+    /* name */
+    pr->name = getStringM(data);
+    /* grace time */
+    getUint32(data, &pr->graceTime);
+    /* maximum time */
+    getUint32(data, &pr->maxTime);
+    /* default time */
+    getUint32(data, &pr->defaultTime);
+    /* maximum CPUs per node */
+    getUint32(data, &pr->maxCPUsPerNode);
+    /* maximum CPUs per socket */
+    getUint32(data, &pr->maxCPUsPerSocket);
+    /* maximum nodes original */
+    getUint32(data, &pr->maxNodesOrig);
+    /* minimum nodes original */
+    getUint32(data, &pr->minNodesOrig);
+    /* flags */
+    getUint32(data, &pr->flags);
+
+    /* maximum share */
+    getUint16(data, &pr->maxShare);
+    /* over time limit */
+    getUint16(data, &pr->overTimeLimit);
+    /* preempt mode */
+    getUint16(data, &pr->preemptMode);
+    /* priority job factor */
+    getUint16(data, &pr->prioJobFactor);
+    /* priority tier */
+    getUint16(data, &pr->prioTier);
+    /* state up */
+    getUint16(data, &pr->stateUp);
+    /*cr type */
+    getUint16(data, &pr->crType);
+
+    /* allowed accounts */
+    pr->allowAccounts = getStringM(data);
+    /* allowed groups */
+    pr->allowGroups = getStringM(data);
+    /* allowed QOS */
+    pr->allowQOS = getStringM(data);
+    /* QOS name */
+    pr->qosName = getStringM(data);
+    /* allowed allocating nodes */
+    pr->allowAllocNodes = getStringM(data);
+    /* alternate */
+    pr->alternate = getStringM(data);
+    /* denied accounts */
+    pr->denyAccounts = getStringM(data);
+    /* denied QOS */
+    pr->denyQOS = getStringM(data);
+    /* original nodes */
+    pr->origNodes = getStringM(data);
+
+    return true;
+}
+
+static bool unpackNodeRecords(Slurm_Msg_t *sMsg, list_t *nrList)
+{
+    PS_DataBuffer_t *data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (!(msgVer > SLURM_23_11_PROTO_VERSION)) {
+	flog("unsupported protocol version %u for node record\n", msgVer);
+	return false;
+    }
+
+    uint32_t numRecords;
+    getUint32(data, &numRecords);
+
+    for (uint32_t i=0; i<numRecords; i++) {
+
+	Slurm_Node_Record_t *nr = umalloc(sizeof(*nr));
+	INIT_LIST_HEAD(&nr->gresNodeStates);
+
+	/* communication name */
+	nr->commName = getStringM(data);
+	/* name */
+	nr->name = getStringM(data);
+	/* node hostname */
+	nr->nodeHostname = getStringM(data);
+	/* comment */
+	nr->comment = getStringM(data);
+	/* extra */
+	nr->extra = getStringM(data);
+	/* reason */
+	nr->reason = getStringM(data);
+	/* features */
+	nr->features = getStringM(data);
+	/* active features */
+	nr->featuresAct = getStringM(data);
+	/* generic resources */
+	nr->gres = getStringM(data);
+	/* instance identifier */
+	nr->instanceID = getStringM(data);
+	/* instance type */
+	nr->instanceType = getStringM(data);
+	/* specialized CPUs  */
+	nr->cpuSpecList = getStringM(data);
+
+	/* next state */
+	getUint32(data, &nr->nextState);
+	/* node state */
+	getUint32(data, &nr->nodeState);
+	/* CPU bind */
+	getUint32(data, &nr->cpuBind);
+	/* CPUs */
+	getUint16(data, &nr->cpus);
+	/* boards */
+	getUint16(data, &nr->boards);
+	/* total sockets */
+	getUint16(data, &nr->totSockets);
+	/* cores */
+	getUint16(data, &nr->cores);
+	/* specialized cores */
+	getUint16(data, &nr->coreSpecCount);
+	/* threads */
+	getUint16(data, &nr->threads);
+	/* real memory */
+	getUint64(data, &nr->realMem);
+	/* reserved cores per GPU */
+	getUint16(data, &nr->resCoresPerGPU);
+
+	/* GPU specialization */
+	nr->gpuSpecBitmap = getBitString(data);
+	/* temporary disk */
+	getUint32(data, &nr->tmpDisk);
+	/* reason user identifier */
+	getUint32(data, &nr->reasonUID);
+
+	/* reason time */
+	getTime(data, &nr->reasonTime);
+	/* resume after */
+	getTime(data, &nr->resumeAfter);
+	/* time of boot requested */
+	getTime(data, &nr->bootReqTime);
+	/* time of power save requested */
+	getTime(data, &nr->powerSaveReqTime);
+	/* last busy */
+	getTime(data, &nr->lastBusy);
+	/* last response */
+	getTime(data, &nr->lastResp);
+
+	/* port */
+	getUint16(data, &nr->port);
+	/* protocol version */
+	getUint16(data, &nr->protoVer);
+	/* number of threads per core */
+	getUint16(data, &nr->threadsPerCore);
+	/* mcs label (mcs plugin) */
+	nr->mcsLabel = getStringM(data);
+
+	if (!unpackNodeStates(sMsg, &nr->gresNodeStates)) {
+	    flog("unpacking GRes node state failed\n");
+	    return false;
+	}
+
+	/* weight */
+	getUint32(data, &nr->weight);
+    }
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
 /**
  * @brief Unpack a task launch request
  *
@@ -1883,6 +3240,33 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     /* x11 target port */
     getUint16(data, &step->x11.targetPort);
 
+    if (msgVer > SLURM_23_11_PROTO_VERSION) {
+	/* step manager */
+	step->stepManager = getStringM(data);
+
+	bool more;
+	getBool(data, &more);
+	if (more) {
+	    /* job record */
+	    if (!unpackJobRecord(sMsg, &step->jobRec)) {
+		flog("extracting job record failed\n");
+		return false;
+	    }
+
+	    /* node record */
+	    if (!unpackNodeRecords(sMsg, &step->nodeRecords)) {
+		flog("extracting node record failed\n");
+		return false;
+	    }
+
+	    /* partition record */
+	    if (!unpackPartRecord(sMsg, &step->partRec)) {
+		flog("extracting partition record failed\n");
+		return false;
+	    }
+	}
+    }
+
     if (data->unpackErr) {
 	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
 	return false;
@@ -2164,7 +3548,7 @@ bool __packTResData(PS_SendDB_t *data, TRes_t *tres, const char *caller,
     addUint64ArrayToMsg(tres->out_min, tres->count, data);
     addUint64ArrayToMsg(tres->out_min_nodeid, tres->count, data);
     addUint64ArrayToMsg(tres->out_min_taskid, tres->count, data);
-    /* in total */
+    /* out total */
     addUint64ArrayToMsg(tres->out_tot, tres->count, data);
 
     return true;
@@ -2603,8 +3987,14 @@ static bool unpackReqFileBcast(Slurm_Msg_t *sMsg)
     getTime(data, &bcast->atime);
     /* mtime */
     getTime(data, &bcast->mtime);
-    /* file name */
+    /* filename */
     bcast->fileName = getStringM(data);
+
+    if (msgVer > SLURM_23_11_PROTO_VERSION) {
+	/* executable filename */
+	bcast->exeFileName = getStringM(data);
+    }
+
     /* block length */
     getUint32(data, &bcast->blockLen);
     /* uncompressed length */
@@ -3031,6 +4421,8 @@ bool packReqStepComplete(PS_SendDB_t *data, Req_Step_Comp_t *req)
     addUint32ToMsg(req->exitStatus, data);
     /* account data */
     packSlurmAccData(data, req->sAccData);
+    /* send to step manager */
+    addBoolToMsg(req->stepManagerSent, data);
 
     return true;
 }
@@ -3183,6 +4575,12 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
 
     req->gresList = ucalloc(sizeof(*req->gresList));
     INIT_LIST_HEAD(req->gresList);
+    INIT_LIST_HEAD(&req->nodeRecords);
+    INIT_LIST_HEAD(&req->jobRec.details.depList);
+    INIT_LIST_HEAD(&req->jobRec.stateList);
+    INIT_LIST_HEAD(&req->jobRec.gresJobReq);
+    INIT_LIST_HEAD(&req->jobRec.gresJobAlloc);
+
     if (!unpackGresJobAlloc(data, req->gresList)) {
 	flog("unpacking gres job allocation info failed\n");
 	return false;
@@ -3218,6 +4616,7 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     req->x11MagicCookie = getStringM(data);
     req->x11Target = getStringM(data);
     getUint16(data, &req->x11TargetPort);
+
     /* spank environment */
     getEnv(data, req->spankEnv);
 
@@ -3238,6 +4637,30 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     } else {
 	/* user name */
 	req->userName = getStringM(data);
+    }
+
+    if (msgVer > SLURM_23_11_PROTO_VERSION) {
+	bool more;
+	getBool(data, &more);
+	if (more) {
+	    /* job record */
+	    if (!unpackJobRecord(sMsg, &req->jobRec)) {
+		flog("extracting job record failed\n");
+		return false;
+	    }
+
+	    /* node record */
+	    if (!unpackNodeRecords(sMsg, &req->nodeRecords)) {
+		flog("extracting node record failed\n");
+		return false;
+	    }
+
+	    /* partition record */
+	    if (!unpackPartRecord(sMsg, &req->partRec)) {
+		flog("extracting partition record failed\n");
+		return false;
+	    }
+	}
     }
 
     if (data->unpackErr) {
@@ -3349,18 +4772,18 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
     resp->jobs = ucalloc(sizeof(*(resp->jobs)) * resp->numJobs);
 
     for (uint32_t i=0; i<resp->numJobs; i++) {
-	Slurm_Job_Info_Slice_t *slice = &(resp->jobs)[i];
+	Slurm_Job_Info_Slice_t *rec = &(resp->jobs)[i];
 
 	/* array job ID */
-	getUint32(data, &slice->arrayJobID);
+	getUint32(data, &rec->arrayJobID);
 	/* array task ID */
-	getUint32(data, &slice->arrayTaskID);
+	getUint32(data, &rec->arrayTaskID);
 	/* array task string */
-	slice->arrayTaskStr = getStringM(data);
+	rec->arrayTaskStr = getStringM(data);
 	/* array maximal tasks */
-	getUint32(data, &slice->arrayMaxTasks);
+	getUint32(data, &rec->arrayMaxTasks);
 	/* association ID for job */
-	getUint32(data, &slice->assocID);
+	getUint32(data, &rec->assocID);
 
 	if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	    /* job container, will be overwritten later,
@@ -3371,141 +4794,155 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 
 	/* container ID */
 	if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	    slice->containerID = getStringM(data);
+	    rec->containerID = getStringM(data);
 	}
 
 	/* delay boot */
-	getUint32(data, &slice->delayBoot);
+	getUint32(data, &rec->delayBoot);
 
 	/* failed node */
 	if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	    slice->failedNode = getStringM(data);
+	    rec->failedNode = getStringM(data);
 	}
 
 	/* job ID */
-	getUint32(data, &slice->jobid);
+	getUint32(data, &rec->jobid);
 	/* user ID */
-	getUint32(data, &slice->userID);
+	getUint32(data, &rec->userID);
 	/* group ID */
-	getUint32(data, &slice->groupID);
+	getUint32(data, &rec->groupID);
 	/* het job ID */
-	getUint32(data, &slice->hetJobID);
+	getUint32(data, &rec->hetJobID);
 	/* het job ID set */
-	slice->hetJobIDset = getStringM(data);
+	rec->hetJobIDset = getStringM(data);
 	/* het job offset */
-	getUint32(data, &slice->hetJobOffset);
+	getUint32(data, &rec->hetJobOffset);
 	/* profile */
-	getUint32(data, &slice->profile);
+	getUint32(data, &rec->profile);
 	/* job state */
-	getUint32(data, &slice->jobState);
+	getUint32(data, &rec->jobState);
 	/* batch flag */
-	getUint16(data, &slice->batchFlag);
+	getUint16(data, &rec->batchFlag);
 
 	/* state reason */
 	if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	    getUint32(data, &slice->stateReason);
+	    getUint32(data, &rec->stateReason);
 	} else {
-	    getUint16(data, (uint16_t *) &slice->stateReason);
+	    getUint16(data, (uint16_t *) &rec->stateReason);
 	}
 
 	/* power flags */
-	getUint8(data, &slice->powerFlags);
+	getUint8(data, &rec->powerFlags);
 	/* reboot */
-	getUint8(data, &slice->reboot);
+	getUint8(data, &rec->reboot);
 	/* restart count */
-	getUint16(data, &slice->restartCount);
+	getUint16(data, &rec->restartCount);
 	/* show flags */
-	getUint16(data, &slice->showFlags);
+	getUint16(data, &rec->showFlags);
 	/* deadline */
-	getTime(data, &slice->deadline);
+	getTime(data, &rec->deadline);
 	/* alloc sid */
-	getUint32(data, &slice->allocSID);
+	getUint32(data, &rec->allocSID);
 	/* time limit */
-	getUint32(data, &slice->timeLimit);
+	getUint32(data, &rec->timeLimit);
 	/* time min */
-	getUint32(data, &slice->timeMin);
+	getUint32(data, &rec->timeMin);
 	/* nice */
-	getUint32(data, &slice->nice);
+	getUint32(data, &rec->nice);
 
 	/* submit time */
-	getTime(data, &slice->submitTime);
+	getTime(data, &rec->submitTime);
 	/* eligible time */
-	getTime(data, &slice->eligibleTime);
+	getTime(data, &rec->eligibleTime);
 	/* accrue time */
-	getTime(data, &slice->accrueTime);
+	getTime(data, &rec->accrueTime);
 	/* start time */
-	getTime(data, &slice->startTime);
+	getTime(data, &rec->startTime);
 	/* end time */
-	getTime(data, &slice->endTime);
+	getTime(data, &rec->endTime);
 	/* suspend time */
-	getTime(data, &slice->suspendTime);
+	getTime(data, &rec->suspendTime);
 	/* time prior last suspend */
-	getTime(data, &slice->preSusTime);
+	getTime(data, &rec->preSusTime);
 	/* resize time */
-	getTime(data, &slice->resizeTime);
+	getTime(data, &rec->resizeTime);
 	/* last time schedule was evaluated */
-	getTime(data, &slice->lastSchedEval);
+	getTime(data, &rec->lastSchedEval);
 	/* preempt time */
-	getTime(data, &slice->preemptTime);
+	getTime(data, &rec->preemptTime);
 
 	/* priority */
-	getUint32(data, &slice->priority);
+	getUint32(data, &rec->priority);
+
+	if (msgVer > SLURM_23_11_PROTO_VERSION) {
+	    /* priority array */
+	    getUint32Array(data, &rec->prioArray, &rec->numPrioArray);
+	    /* priority array parts */
+	    rec->prioArrayParts = getStringM(data);
+	}
+
 	/* billable tres */
-	getDouble(data, &slice->billableTres);
+	getDouble(data, &rec->billableTres);
 	/* cluster */
-	slice->cluster = getStringM(data);
+	rec->cluster = getStringM(data);
 	/* nodes */
-	slice->nodes = getStringM(data);
+	rec->nodes = getStringM(data);
 	/* sched nodes */
-	slice->schedNodes = getStringM(data);
+	rec->schedNodes = getStringM(data);
 	/* partition */
-	slice->partition = getStringM(data);
+	rec->partition = getStringM(data);
 	/* account */
-	slice->account = getStringM(data);
+	rec->account = getStringM(data);
 	/* admin comment */
-	slice->adminComment = getStringM(data);
+	rec->adminComment = getStringM(data);
 	/* site factor */
-	getUint32(data, &slice->siteFactor);
+	getUint32(data, &rec->siteFactor);
 	/* network */
-	slice->network = getStringM(data);
+	rec->network = getStringM(data);
 	/* comment */
-	slice->comment = getStringM(data);
+	rec->comment = getStringM(data);
 
 	/* extra */
 	if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	    slice->extra = getStringM(data);
+	    rec->extra = getStringM(data);
 	}
 
 	/* container */
-	slice->container = getStringM(data);
+	rec->container = getStringM(data);
 
 	/* batch features */
-	slice->batchFeat = getStringM(data);
+	rec->batchFeat = getStringM(data);
 	/* batch host */
-	slice->batchHost = getStringM(data);
+	rec->batchHost = getStringM(data);
 	/* burst buffer */
-	slice->burstBuffer = getStringM(data);
+	rec->burstBuffer = getStringM(data);
 	/* burst buffer state */
-	slice->burstBufferState = getStringM(data);
+	rec->burstBufferState = getStringM(data);
 	/* system comment */
-	slice->systemComment = getStringM(data);
+	rec->systemComment = getStringM(data);
 	/* qos */
-	slice->qos = getStringM(data);
+	rec->qos = getStringM(data);
 	/* preemptable time */
-	getTime(data, &slice->preemptableTime);
+	getTime(data, &rec->preemptableTime);
 	/* licenses */
-	slice->licenses = getStringM(data);
+	rec->licenses = getStringM(data);
 	/* stateDesc */
-	slice->stateDesc = getStringM(data);
-	/* resvName */
-	slice->resvName = getStringM(data);
+	rec->stateDesc = getStringM(data);
+	/* reserved name */
+	rec->resvName = getStringM(data);
+
+	if (msgVer > SLURM_23_11_PROTO_VERSION) {
+	    /* reserved ports */
+	    rec->resvPorts = getStringM(data);
+	}
+
 	/* mcs label */
-	slice->mcsLabel = getStringM(data);
+	rec->mcsLabel = getStringM(data);
 
 	/* exit code */
-	getUint32(data, &slice->exitCode);
+	getUint32(data, &rec->exitCode);
 	/* derived exit code */
-	getUint32(data, &slice->derivedExitCode);
+	getUint32(data, &rec->derivedExitCode);
     }
 
     if (data->unpackErr) {

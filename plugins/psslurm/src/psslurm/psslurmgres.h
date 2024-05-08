@@ -81,6 +81,8 @@ typedef struct {
     uint64_t memPerGRes;        /**< memory per GRES */
     uint64_t totalGres;         /**< total GRES count */
     uint16_t numTasksPerGres;   /**< number of tasks per GRES */
+    char *typeName;		/**< type name (since 24.05, unused) */
+    uint32_t typeID;		/**< type identifier (since 24.05, unused) */
 } Gres_Cred_t;
 
 /** Structure holding a GRes job allocation used in prologue/epilogue */
@@ -268,4 +270,5 @@ bool traverseGResDevs(uint32_t id, GResDevVisitor_t visitor, void *info);
  */
 const char *GRes_strType(GRes_Cred_type_t type);
 
+uint32_t GRes_getID(char *name);
 #endif /* __PS_SLURM_GRES */
