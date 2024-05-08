@@ -444,12 +444,12 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
     {
 	PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
 	if (task) {
-	    for (uint32_t i = 0; i < task->argc; i++) {
+	    for (char **a = strvGetArray(task->argV); a && *a; a++) {
 		snprintf(&msg.buf[strlen(msg.buf)],
-			 sizeof(msg.buf)-strlen(msg.buf), "%s ", task->argv[i]);
+			 sizeof(msg.buf)-strlen(msg.buf), "%s ", *a);
 	    }
 	    /* Cut the trailing space */
-	    if (strlen(msg.buf)) msg.buf[strlen(msg.buf)-1]='\0';
+	    if (strlen(msg.buf)) msg.buf[strlen(msg.buf) - 1]='\0';
 	}
 	msg.header.len += strlen(msg.buf) + 1;
 	break;

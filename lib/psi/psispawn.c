@@ -210,8 +210,8 @@ int PSI_sendSpawnReq(PStask_t *task, PSnodes_ID_t *dstnodes, uint32_t max)
 	    dstnodes[0], task->rank);
 
     addUint32ToMsg(num, &msg);
-    if (!PStask_addToMsg(task, &msg)) return -1;
-    if (!addStringArrayToMsg(task->argv, &msg)) return -1;
+    if (!PStask_addToMsg(task, &msg)) return -1; // @todo look at dest protoVer
+    if (!addStringArrayToMsg(strvGetArray(task->argV), &msg)) return -1;
     if (!addStringArrayToMsg(envGetArray(task->env), &msg)) return -1;
 
     for (uint32_t r = 0; r < num; r++) {
@@ -319,67 +319,52 @@ static PStask_t * createSpawnTask(char *wDir, PStask_group_t taskGroup,
 	PSI_warn(-1, errno, "%s: unable to get working directory", __func__);
 	goto cleanup;
     }
-
     task->workingdir = myWD;
-    task->argc = argc;
 
-    char *valgrind = getenv("PSI_USE_VALGRIND");
-    if (!valgrind) {
-	 task->argv = malloc(sizeof(char*)*(task->argc+1));
-    } else {
-	 /* add 'valgrind' and its parameters before executable: (see below)*/
-	 task->argv = malloc(sizeof(char*)*(task->argc+4));
-    }
-
-    if (!task->argv) {
+    task->argV = strvNew(NULL);
+    if (!strvInitialized(task->argV)) {
 	PSI_warn(-1, errno, "%s: unable to store argument vector", __func__);
 	goto cleanup;
     }
 
-    struct stat statbuf;
-    if (stat(argv[0], &statbuf) && !strictArgv) {
-	char myexec[PATH_MAX];
-	int length = readlink("/proc/self/exe", myexec, sizeof(myexec)-1);
-	if (length < 0) {
-	    PSI_warn(-1, errno, "%s: readlink", __func__);
-	} else {
-	    myexec[length]='\0';
-	}
-
-	task->argv[0] = strdup(myexec);
-    } else {
-	task->argv[0] = strdup(argv[0]);
-    }
-
     /* check for valgrind support and whether this is the actual executable: */
-    int offset = 0;
+    char *valgrind = getenv("PSI_USE_VALGRIND");
     if (valgrind && strcmp(basename(argv[0]), "mpiexec")
 	&& strcmp(basename(argv[0]), "kvsprovider")
 	&& strcmp(basename(argv[0]), "spawner")
 	&& strcmp(argv[0], "valgrind") ) {
 	/* add 'valgrind' and its parameters before the executable name: */
-	task->argv[3] = strdup(argv[0]);
-	task->argv[0] = strdup("valgrind");
-	task->argv[1] = strdup("--quiet");
+	strvAdd(task->argV, "valgrind");
+	strvAdd(task->argV, "--quiet");
 
 	if (getenv("PSI_USE_CALLGRIND")) {
-	    task->argv[2] = strdup("--tool=callgrind");
+	    strvAdd(task->argV, "--tool=callgrind");
 	} else {
 	    if (!strcmp(valgrind, "1")) {
-		task->argv[2] = strdup("--leak-check=no");
+		strvAdd(task->argV, "--leak-check=no");
 	    } else {
-		task->argv[2] = strdup("--leak-check=full");
+		strvAdd(task->argV, "--leak-check=full");
 	    }
 	}
-	offset = 3;
     }
+
+    /* add the executable name */
+    struct stat statbuf;
+    if (stat(argv[0], &statbuf) && !strictArgv) {
+	char myexec[PATH_MAX];
+	ssize_t len = readlink("/proc/self/exe", myexec, sizeof(myexec) - 1);
+	if (len < 0) {
+	    PSI_warn(-1, errno, "%s: readlink", __func__);
+	} else {
+	    myexec[len]='\0';
+	}
+	strvAdd(task->argV, myexec);
+    } else {
+	strvAdd(task->argV, argv[0]);
+    }
+
     /* copy arguments */
-    for (uint32_t a = 1; a < task->argc; a++) {
-	task->argv[a + offset] = strdup(argv[a]);
-	if (!task->argv[a + offset]) goto cleanup;
-    }
-    task->argc += offset;
-    task->argv[task->argc] = NULL;
+    for (int a = 1; a < argc; a++) strvAdd(task->argV, argv[a]);
 
     task->env = dumpPSIEnv();
     /* add the content of env */

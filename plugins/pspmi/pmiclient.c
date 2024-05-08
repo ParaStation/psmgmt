@@ -2004,9 +2004,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	/* add binary and argument from spawn request */
 	for (int j = 0; j < spawn->argc; j++) strvAdd(args, spawn->argv[j]);
     }
-
-    task->argc = strvSize(args);
-    task->argv = strvStealArray(args);
+    task->argV = args;
 
     task->noParricide = noParricide;
 
@@ -2134,21 +2132,18 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 
     if (debug) {
 	elog("%s(r%i): Executing '", __func__, rank);
-	for (uint32_t j = 0; j < task->argc; j++) elog(" %s", task->argv[j]);
+	for (char **a = strvGetArray(task->argV); a && *a; a++) elog(" %s", *a);
 	elog("'\n");
     }
     mlog("%s(r%i): Executing '", __func__, rank);
-    for (uint32_t j = 0; j < task->argc; j++) mlog(" %s", task->argv[j]);
+    for (char **a = strvGetArray(task->argV); a && *a; a++) mlog(" %s", *a);
     mlog("'\n");
 
 #if 0
     mlog("Task environment:\n");
-    for (int i = 0; i < task->envSize; i++) {
-	if (task->environ[i] == NULL) {
-	    mlog("!!! NULL pointer in task environment !!!\n");
-	    continue;
-	}
-	mlog(" %d: %s\n", i, task->environ[i]);
+    int cnt = 0;
+    for (char **e = envGetArray(task->env); e && *e; e++, cnt++) {
+	mlog(" %d: %s\n", cnt, *a);
     }
 #endif
 

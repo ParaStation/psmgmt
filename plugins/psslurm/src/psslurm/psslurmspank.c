@@ -1054,27 +1054,19 @@ spank_err_t psSpankPrependArgv(spank_t spank, int argc, const char *argv[])
 {
     if (!testMagic(spank, __func__)) return ESPANK_BAD_ARG;
 
-    if (!spank->task || !spank->task->argv
+    if (!spank->task || !strvInitialized(spank->task->argV)
 	|| (spank->hook != SPANK_TASK_INIT_PRIVILEGED
 	    && spank->hook != SPANK_TASK_INIT))
 	return ESPANK_NOT_TASK;
 
-    uint32_t new_argc = argc + spank->task->argc;
-    char **new_argv = umalloc((new_argc+1) * sizeof(char *));
-
-    uint32_t j = 0;
-    for (int i = 0; i < argc && argv[i]; i++) {
-	new_argv[j++] = ustrdup(argv[i]);
+    strv_t argV = strvNew(NULL);
+    for (int i = 0; i < argc && argv[i]; i++) strvAdd(argV, argv[i]);
+    for (char **a = strvGetArray(spank->task->argV); a && *a; a++) {
+	strvLink(argV, *a);
     }
-    for (uint32_t i = 0; i < spank->task->argc && spank->task->argv[i]; i++) {
-	new_argv[j++] = spank->task->argv[i];
-    }
-    new_argv[j] = NULL;
+    strvSteal(spank->task->argV);
 
-    free(spank->task->argv);
-
-    spank->task->argc = new_argc;
-    spank->task->argv = new_argv;
+    spank->task->argV = argV;
 
     return ESPANK_SUCCESS;
 }

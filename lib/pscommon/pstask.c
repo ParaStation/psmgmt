@@ -229,8 +229,7 @@ static bool initTask(PStask_t* task)
     task->jobRank = -1;
     task->fd = -1;
     task->workingdir = NULL;
-    task->argc = 0;
-    task->argv = NULL;
+    task->argV = NULL;
     task->env = NULL;
     task->relativesignal = SIGTERM;
     task->pendingReleaseRes = 0;
@@ -323,12 +322,7 @@ static void delReservationList(list_t *list)
 static void cleanupTask(PStask_t* task)
 {
     free(task->workingdir);
-    if (task->argv) {
-	for (uint32_t i = 0; i < task->argc; i++) free(task->argv[i]);
-	free(task->argv);
-	task->argv = NULL;
-    }
-
+    strvDestroy(task->argV);
     envDestroy(task->env);
 
     if (task->request) PSpart_delReq(task->request);
@@ -446,32 +440,17 @@ PStask_t* PStask_clone(PStask_t* task)
 	goto error;
     }
 
-    clone->argc = task->argc;
-    if (!task->argv) {
-	PSC_log(-1, "%s: argv is NULL\n", __func__);
+    if (!strvSize(task->argV)) {
+	PSC_log(-1, "%s: argV is empty\n", __func__);
 	eno = EINVAL;
 	goto error;
     }
-    clone->argv = malloc((task->argc + 1) * sizeof(*clone->argv));
-    if (!clone->argv) {
-	eno = errno;
-	PSC_warn(-1, eno, "%s: malloc(argv)", __func__);
+    clone->argV = strvClone(task->argV);
+    if (!strvSize(clone->argV)) {
+	eno = ENOMEM;
+	PSC_warn(-1, eno, "%s: strvClone(argV)", __func__);
 	goto error;
     }
-    for (uint32_t i = 0; i < task->argc; i++) {
-	if (!task->argv[i]) {
-	    PSC_log(-1, "%s: argv[%d] is NULL\n", __func__, i);
-	    eno = EINVAL;
-	    goto error;
-	}
-	clone->argv[i] = strdup(task->argv[i]);
-	if (!clone->argv[i]) {
-	    eno = errno;
-	    PSC_warn(-1, eno, "%s: strdup(argv[%d])", __func__, i);
-	    goto error;
-	}
-    }
-    clone->argv[clone->argc] = NULL;
 
     clone->env = envClone(task->env, NULL);
     clone->relativesignal = task->relativesignal;
@@ -565,18 +544,18 @@ static void snprintfStruct(char *txt, size_t size, PStask_t *task)
     if (!task) return;
 
     snprintf(txt, size, "tid 0x%08x ptid 0x%08x uid %d gid %d group %s"
-	     " childGroup %s rank %d cpus ...%s loggertid %08x fd %d argc %u",
+	     " childGroup %s rank %d cpus ...%s loggertid %08x fd %d",
 	     task->tid, task->ptid, task->uid, task->gid,
 	     PStask_printGrp(task->group), PStask_printGrp(task->childGroup),
 	     task->rank, PSCPU_print_part(task->CPUset, 8), task->loggertid,
-	     task->fd, task->argc);
+	     task->fd);
 }
 
 static void snprintfStrV(char *txt, size_t size, char **strV)
 {
     if (!strV) return;
     for (uint32_t i = 0; strV[i]; i++) {
-	snprintf(txt+strlen(txt), size-strlen(txt), "%s ", strV[i]);
+	snprintf(txt+strlen(txt), size-strlen(txt), "%s%s", i?" ":"", strV[i]);
 	if (strlen(txt)+1 == size) return;
     }
 }
@@ -592,13 +571,108 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task)
     snprintf(txt+strlen(txt), size-strlen(txt), "dir=\"%s\" argv=\"",
 	     (task->workingdir) ? task->workingdir : "");
     if (strlen(txt)+1 == size) return;
-    snprintfStrV(txt+strlen(txt), size-strlen(txt), task->argv);
+    snprintfStrV(txt+strlen(txt), size-strlen(txt), strvGetArray(task->argV));
     if (strlen(txt)+1 == size) return;
     snprintf(txt+strlen(txt), size-strlen(txt), "\" env=\"");
     if (strlen(txt)+1 == size) return;
     snprintfStrV(txt+strlen(txt), size-strlen(txt), envGetArray(task->env));
     if (strlen(txt)+1 == size) return;
     snprintf(txt+strlen(txt), size-strlen(txt), "\"");
+}
+
+static char someStr[256];
+
+/* helper struct to compress the relvant parts of PStask_t to be sent
+   (used for protocol version <= 344) */
+static struct {
+    PStask_ID_t tid;
+    PStask_ID_t ptid;
+    uid_t uid;
+    gid_t gid;
+    uint32_t aretty;
+    struct termios termios;
+    struct winsize winsize;
+    PStask_group_t group;
+    PSrsrvtn_ID_t resID;
+    int32_t rank;
+    PStask_ID_t loggertid;
+    uint32_t argc;
+    int32_t noParricide;
+} oldTmpTask;
+
+bool PStask_addToMsg_old(PStask_t *task, PS_SendDB_t *msg)
+{
+    snprintfStruct(someStr, sizeof(someStr), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, msg, someStr);
+
+    oldTmpTask.tid = task->tid;
+    oldTmpTask.ptid = task->ptid;
+    oldTmpTask.uid = task->uid;
+    oldTmpTask.gid = task->gid;
+    oldTmpTask.aretty = task->aretty;
+    oldTmpTask.termios = task->termios;
+    oldTmpTask.winsize = task->winsize;
+    oldTmpTask.group = task->group;
+    oldTmpTask.resID = task->resID;
+    oldTmpTask.rank = task->rank;
+    oldTmpTask.loggertid = task->loggertid;
+    oldTmpTask.argc = strvSize(task->argV);
+    oldTmpTask.noParricide = task->noParricide;
+
+    if (!addMemToMsg(&oldTmpTask, sizeof(oldTmpTask), msg)) return false;
+
+    char *wDir = task->workingdir ? task->workingdir : "";
+    if (!addStringToMsg(wDir, msg)) return false;
+
+    return true;
+}
+
+int PStask_decodeTask_old(char *buffer, PStask_t *task, bool withWDir)
+{
+    if (!task) {
+	PSC_log(-1, "%s: task is NULL\n", __func__);
+	return 0;
+    }
+
+    if (PSC_getDebugMask() & PSC_LOG_TASK) {
+	snprintfStruct(someStr, sizeof(someStr), task);
+	PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, buffer, someStr);
+    }
+
+    reinitTask(task);
+
+    /* unpack buffer */
+    int msglen = sizeof(oldTmpTask);
+    memcpy(&oldTmpTask, buffer, sizeof(oldTmpTask));
+
+    task->tid = oldTmpTask.tid;
+    task->ptid = oldTmpTask.ptid;
+    task->uid = oldTmpTask.uid;
+    task->gid = oldTmpTask.gid;
+    task->aretty = oldTmpTask.aretty;
+    task->termios = oldTmpTask.termios;
+    task->winsize = oldTmpTask.winsize;
+    task->group = oldTmpTask.group;
+    task->resID = oldTmpTask.resID;
+    task->rank = oldTmpTask.rank;
+    task->loggertid = oldTmpTask.loggertid;
+    // ignore oldTmpTask.argc
+    task->noParricide = oldTmpTask.noParricide;
+
+    if (withWDir) {
+	int len = strlen(&buffer[msglen]);
+
+	if (len) task->workingdir = strdup(&buffer[msglen]);
+	msglen += len+1;
+    }
+
+    if (PSC_getDebugMask() & PSC_LOG_TASK) {
+	snprintfStruct(someStr, sizeof(someStr), task);
+	PSC_log(PSC_LOG_TASK, " received task = (%s)\n", someStr);
+	PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
+    }
+
+    return msglen;
 }
 
 /* helper struct to compress the relvant parts of PStask_t to be sent */
@@ -614,11 +688,8 @@ static struct {
     PSrsrvtn_ID_t resID;
     int32_t rank;
     PStask_ID_t loggertid;
-    uint32_t argc;
     int32_t noParricide;
 } tmpTask;
-
-static char someStr[256];
 
 bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg)
 {
@@ -636,7 +707,6 @@ bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg)
     tmpTask.resID = task->resID;
     tmpTask.rank = task->rank;
     tmpTask.loggertid = task->loggertid;
-    tmpTask.argc = task->argc;
     tmpTask.noParricide = task->noParricide;
 
     if (!addMemToMsg(&tmpTask, sizeof(tmpTask), msg)) return false;
@@ -676,7 +746,6 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
     task->resID = tmpTask.resID;
     task->rank = tmpTask.rank;
     task->loggertid = tmpTask.loggertid;
-    task->argc = tmpTask.argc;
     task->noParricide = tmpTask.noParricide;
 
     if (withWDir) {

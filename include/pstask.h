@@ -30,6 +30,7 @@
 #include "psenv.h"
 #include "psitems.h"
 #include "pssenddb_t.h"
+#include "psstrv.h"
 
 /**
  * @brief Get the name of a PStask_group
@@ -124,8 +125,7 @@ struct __task__ {
     int32_t jobRank;               /**< rank w/in job (tasks w/ same spawner */
     short fd;                      /**< connection fd from/to the psid */
     /*C*/ char *workingdir;        /**< working directory */
-    /*C*/ uint32_t argc;           /**< size of argv (w/o trailing NULL) */
-    /*C*/ char **argv;             /**< command line arguments */
+    /*C*/ strv_t argV;             /**< command line arguments */
     /*C*/ env_t env;               /**< PS environment, used for spawning */
     int relativesignal;            /**< the signal sent when a relative (i.e.
 				      parent or child) dies */

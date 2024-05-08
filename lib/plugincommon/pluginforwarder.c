@@ -965,15 +965,13 @@ bool startForwarder(Forwarder_Data_t *fw)
     task->uid = fw->uID;
     task->gid = fw->gID;
     PStask_infoAdd(task, TASKINFO_FORWARDER, fw);
-    task->argc = 1 + !!fw->jobID;
-    task->argv = malloc((task->argc + 1) * sizeof(*task->argv));
-    if (!task->argv) {
+    task->argV = strvNew(NULL);
+    if (!strvInitialized(task->argV)) {
 	pluginflog("out of memory\n");
 	goto ERROR;
     }
-    task->argv[0] = strdup(fw->pTitle);
-    if (fw->jobID) task->argv[1] = strdup(fw->jobID);
-    task->argv[task->argc] = NULL;
+    strvAdd(task->argV, fw->pTitle);
+    if (fw->jobID) strvAdd(task->argV, fw->jobID);
     task->sigChldCB = sigChldCB;
 
     /* start the new forwarder */

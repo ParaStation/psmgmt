@@ -631,13 +631,15 @@ int handleExecClientPrep(void *data)
 	setRankEnv(task->jobRank, fwStep);
 
 	/* adjust BCast executable name */
-	char *newExe = BCast_adjustExe(task->argv[0], fwStep->jobid,
-				       fwStep->stepid);
+	char *exe = strvGet(task->argV, 0);
+	char *newExe = BCast_adjustExe(exe, fwStep->jobid, fwStep->stepid);
 	if (!newExe) {
-	    flog("failed to adjust BCast exe %s\n", task->argv[0]);
+	    flog("failed to adjust BCast exe %s\n", exe);
 	} else {
-	    if (newExe != task->argv[0]) free(task->argv[0]);
-	    task->argv[0] = newExe;
+	    if (newExe != exe) {
+		strvReplace(task->argV, 0, newExe);
+		free(newExe);
+	    }
 	}
     } else {
 	if (!isPSAdminUser(task->uid, task->gid)) {

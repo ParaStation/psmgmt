@@ -488,9 +488,10 @@ bool Container_taskInit(Slurm_Container_t *ct, PStask_t *task, bool tty)
     jsonPutArrayP(ct->configObj, "/process", "args", NULL);
     jsonWalkPath(ct->configObj, "/process/args");
 
-    for (uint32_t i = 0; i < task->argc; i++) {
-	fdbg(PSSLURM_LOG_CONTAIN, "arg(%i) %s\n", i, task->argv[i]);
-	jsonPutString(ct->configObj, NULL, task->argv[i]);
+    int cnt = 0;
+    for (char **a = strvGetArray(task->argV); a && *a; a++, cnt++) {
+	fdbg(PSSLURM_LOG_CONTAIN, "arg(%i) %s\n", cnt, *a);
+	jsonPutString(ct->configObj, NULL, *a);
     }
 
     /* write final container configuration for task */

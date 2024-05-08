@@ -268,8 +268,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	for (int a = 0; a < spawn->argc; a++) strvAdd(args, spawn->argv[a]);
     }
 
-    task->argc = strvSize(args);
-    task->argv = strvStealArray(args);
+    task->argV = args;
 
     task->noParricide = noParricide;
 
@@ -409,13 +408,13 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     envSet(task->env, "__PMIX_SPAWN_FAILMSG_TYPE", tmp);
 
     if (debug) {
-	elog("%s(r%i): Executing '%s", __func__, rank, task->argv[0]);
-	for (uint32_t j = 1; j < task->argc; j++) elog(" %s", task->argv[j]);
-	elog("'\n");
+	elog("%s(r%i): Executing:", __func__, rank);
+	for (char **a = strvGetArray(task->argV); a && *a; a++) elog(" %s", *a);
+	elog("\n");
     }
-    mlog("%s(r%i): Executing '%s", __func__, rank, task->argv[0]);
-    for (uint32_t j = 1; j < task->argc; j++) mlog(" %s", task->argv[j]);
-    mlog("'\n");
+    mlog("%s(r%i): Executing:", __func__, rank);
+    for (char **a = strvGetArray(task->argV); a && *a; a++) mlog(" %s", *a);
+    mlog("\n");
     if (mset(PSPMIX_LOG_ENV)) {
 	int cnt = 0;
 	for (char **e = envGetArray(task->env); e && *e; e++, cnt++) {

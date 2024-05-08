@@ -116,15 +116,15 @@ static void alarmHandler(int sig)
  *
  * @see execv(3)
  */
-static int myexecv(const char *path, char *const argv[])
+static int myexecv(const char *path, strv_t argV)
 {
-    int ret;
-    int cnt;
+    char **argv = strvGetArray(argV);
 
     /* Try 5 times with delay 400ms = 2 sec overall */
     execv(path, argv);
 
-    for (cnt=0; cnt<4; cnt++) {
+    int ret;
+    for (int cnt = 0; cnt < 4; cnt++) {
 	usleep(1000 * 400);
 	ret = execv(path, argv);
     }
@@ -343,13 +343,14 @@ static char *testExecutable(PStask_t *task)
     char buf[64];
 
     alarmFunc = __func__;
-    if (!task->argv[0]) {
-	fprintf(stderr, "No argv[0] given!\n");
+    char *cmd = strvGet(task->argV, 0);
+    if (!cmd) {
+	fprintf(stderr, "No command given!\n");
 	errno = ENOENT;
 	return NULL;
     }
 
-    if (!strcmp(task->argv[0], "$SHELL")) {
+    if (!strcmp(cmd, "$SHELL")) {
 	char *pwBuf = NULL;
 	struct passwd *passwd = PSC_getpwuidBuf(task->uid, &pwBuf);
 	if (!passwd) {
@@ -359,15 +360,15 @@ static char *testExecutable(PStask_t *task)
 	    errno = eno;
 	    return NULL;
 	}
-	free(task->argv[0]);
-	task->argv[0] = strdup(passwd->pw_shell);
+	strvReplace(task->argV, 0, passwd->pw_shell);
+	cmd = strvGet(task->argV, 0);
 	free(pwBuf);
     }
 
     /* Test if executable is there */
     bool execFound = false;
     struct stat sb;
-    if (task->argv[0][0] != '/' && task->argv[0][0] != '.') {
+    if (cmd[0] != '/' && cmd[0] != '.') {
 	/* Relative path -> let's search in $PATH */
 	char *p = getenv("PATH");
 
@@ -377,12 +378,13 @@ static char *testExecutable(PStask_t *task)
 	    char *path = strdup(p);
 	    p = strtok(path, ":");
 	    while (p) {
-		char *fn = PSC_concat(p, "/", task->argv[0]);
+		char *fn = PSC_concat(p, "/", cmd);
 
 		if (!stat(fn, &sb) && (sb.st_mode & S_IXUSR)
 		    && !S_ISDIR(sb.st_mode) ) {
-		    free(task->argv[0]);
-		    task->argv[0] = fn;
+		    strvReplace(task->argV, 0, fn);
+		    cmd = strvGet(task->argV, 0);
+		    free(fn);
 		    execFound = true;
 		    break;
 		}
@@ -396,18 +398,16 @@ static char *testExecutable(PStask_t *task)
 
     if (!execFound) {
 	/* this might be on NFS -> use mystat */
-	if (mystat(task->argv[0], &sb) == -1) {
+	if (mystat(cmd, &sb) == -1) {
 	    int eno = errno;
-	    fprintf(stderr, "%s: stat(%s): %s\n", __func__,
-		    task->argv[0] ? task->argv[0] : "", strerror(eno));
+	    fprintf(stderr, "%s: stat(%s): %s\n", __func__, cmd, strerror(eno));
 	    errno = eno;
 	    return NULL;
 	}
     }
 
     if (!S_ISREG(sb.st_mode) || !(sb.st_mode & S_IXUSR)) {
-	fprintf(stderr, "%s: stat(%s): %s\n", __func__,
-		task->argv[0] ? task->argv[0] : "",
+	fprintf(stderr, "%s: stat(%s): %s\n", __func__, cmd,
 		(!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
 		(sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
 	errno = EACCES;
@@ -415,7 +415,7 @@ static char *testExecutable(PStask_t *task)
     }
 
     /* Try to read first 64 bytes; on Lustre this might hang */
-    int fd = open(task->argv[0],O_RDONLY);
+    int fd = open(cmd, O_RDONLY);
     if (fd < 0) {
 	int eno = errno;
 	if (eno != EACCES) { /* Might not have to permission to read (#1058) */
@@ -432,27 +432,28 @@ static char *testExecutable(PStask_t *task)
 	close(fd);
     }
 
-    char *executable = task->argv[0];
     /* shells */
-    if (!strcmp(task->argv[0], "/bin/bash")) {
-	if (task->argc == 2 && !strcmp(task->argv[1], "-i")) {
-	    task->argv[0] = "-bash";
-	    task->argv[1] = NULL;
-	    task->argc = 1;
+    if (!strcmp(cmd, "/bin/bash")) {
+	cmd = strdup(cmd);
+	if (strvSize(task->argV) == 2 && !strcmp(strvGet(task->argV, 1), "-i")) {
+	    strvDestroy(task->argV);
+	    task->argV = strvNew(NULL);
+	    strvAdd(task->argV, "-bash");
 	} else {
-	    task->argv[0] = "bash";
+	    strvReplace(task->argV, 0, "bash");
 	}
-    } else if (!strcmp(task->argv[0], "/bin/tcsh")) {
-	if (task->argc == 2 && !strcmp(task->argv[1], "-i")) {
-	    task->argv[0] = "-tcsh";
-	    task->argv[1] = NULL;
-	    task->argc = 1;
+    } else if (!strcmp(cmd, "/bin/tcsh")) {
+	cmd = strdup(cmd);
+	if (strvSize(task->argV) == 2 && !strcmp(strvGet(task->argV, 1), "-i")) {
+	    strvDestroy(task->argV);
+	    task->argV = strvNew(NULL);
+	    strvAdd(task->argV, "-tcsh");
 	} else {
-	    task->argv[0] = "tcsh";
+	    strvReplace(task->argV, 0, "tcsh");
 	}
     }
 
-    return executable;
+    return cmd;
 }
 
 static void restoreLimits(void)
@@ -706,7 +707,7 @@ static void execClient(PStask_t *task)
     }
 
     /* execute the image */
-    if (myexecv(executable, task->argv) < 0) {
+    if (myexecv(executable, task->argV) < 0) {
 	fprintf(stderr, "%s: execv(%s): %m\n", __func__, executable);
 	PSID_exit(errno, "%s: execv(%s)", __func__, executable);
     }
@@ -1201,16 +1202,15 @@ static void sendAcctChild(PStask_t *task)
 
 #define MAXARGV0 128
     /* job's name */
-    if (task->argv && task->argv[0]) {
-	size_t len = strlen(task->argv[0]), offset=0;
-
+    char *cmd = strvGet(task->argV, 0);
+    if (cmd) {
+	size_t len = strlen(cmd), offset=0;
 	if (len > MAXARGV0) {
 	    char dots[]="...";
 	    PSP_putTypedMsgBuf(&msg, "dots", dots, strlen(dots));
 	    offset = len-MAXARGV0+3;
 	}
-	PSP_putTypedMsgBuf(&msg, "name", task->argv[0] + offset,
-			   strlen(task->argv[0] + offset));
+	PSP_putTypedMsgBuf(&msg, "name", cmd + offset, strlen(cmd + offset));
     }
     PSP_putTypedMsgBuf(&msg, "trailing \\0", NULL, 0);
 
@@ -2168,10 +2168,13 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     PStask_t *task = PStask_new();
 
+    // @todo look at src protoVer
     rData->unpackPtr += PStask_decodeTask(rData->unpackPtr, task, false);
     task->spawnertid = msg->header.sender;
     task->workingdir = getStringM(rData);
-    getStringArrayM(rData, &task->argv, &task->argc);
+    char **argvP = NULL;
+    getStringArrayM(rData, &argvP, NULL);
+    task->argV = strvNew(argvP);
     char **envP = NULL;
     getStringArrayM(rData, &envP, NULL);
     task->env = envNew(envP);
@@ -2333,6 +2336,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	/* fetch info from message */
 	getUint32(&data, &num);
 	PStask_t *task = PStask_new();
+	// @todo look at src protoVer but most probably only old is valid here
 	data.unpackPtr += PStask_decodeTask(data.unpackPtr, task, false);
 
 	/* reset psserial's byteorder */
@@ -2506,6 +2510,7 @@ static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     uint32_t num;
     getUint32(&data, &num);
     PStask_t *task = PStask_new();
+    /* protocol version can be ignored here since rank is packed before argc */
     data.unpackPtr += PStask_decodeTask(data.unpackPtr, task, false);
 
     /* reset psserial's byteorder */
@@ -2829,12 +2834,7 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
 	return true;
     }
 
-    if (forwarder->argv) {
-	for (uint32_t i = 0; i < forwarder->argc; i++) free(forwarder->argv[i]);
-	free(forwarder->argv);
-	forwarder->argv = NULL;
-	forwarder->argc = 0;
-    }
+    strvDestroy(forwarder->argV);
 
     child->tid = msg->request;
     child->fd = -1;
@@ -2848,22 +2848,20 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
     }
 
     /* Fix interactive shell's argv[0] */
-    if (child->argc == 2 && (!child->argv[0] || !child->argv[1])) {
-	PSID_flog("argv seems to be messed up\n");
-    } else if (child->argc == 2 && (!strcmp(child->argv[0], "/bin/bash")
-				    && !strcmp(child->argv[1], "-i"))) {
-	free(child->argv[0]);
-	child->argv[0] = strdup("-bash");
-	free(child->argv[1]);
-	child->argv[1] = NULL;
-	child->argc = 1;
-    } else if (child->argc == 2 && (!strcmp(child->argv[0], "/bin/tcsh")
-				     && !strcmp(child->argv[1], "-i"))) {
-	free(child->argv[0]);
-	child->argv[0] = strdup("-tcsh");
-	free(child->argv[1]);
-	child->argv[1] = NULL;
-	child->argc = 1;
+    if (strvSize(child->argV) == 2) {
+	if (!strvGet(child->argV, 0) || !strvGet(child->argV, 1)) {
+	    PSID_flog("argV seems to be messed up\n");
+	} else if (!strcmp(strvGet(child->argV, 0), "/bin/bash")
+		   && !strcmp(strvGet(child->argV, 1), "-i")) {
+	    strvDestroy(child->argV);
+	    child->argV = strvNew(NULL);
+	    strvAdd(child->argV, "-bash");
+	} else if (!strcmp(strvGet(child->argV, 0), "/bin/tcsh")
+		   && !strcmp(strvGet(child->argV, 1), "-i")) {
+	    strvDestroy(child->argV);
+	    child->argV = strvNew(NULL);
+	    strvAdd(child->argV, "-tcsh");
+	}
     }
 
     /* Enqueue the task right in front of the forwarder */

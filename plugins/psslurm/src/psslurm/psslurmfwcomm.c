@@ -385,9 +385,7 @@ static void startSpawner(Step_t *step, int32_t serviceRank)
 
     // - prepare the argument vector according to fwExecStep()
     pmi_type_t pmi_type = getPMIType(step);
-    strv_t argV = buildStartArgv(fwData, pmi_type);
-    task->argc = strvSize(argV);
-    task->argv = strvStealArray(argV);
+    task->argV = buildStartArgv(fwData, pmi_type);
 
     // - do some environment preparation from fwExecStep()
     Step_t *envStep = Step_new();
@@ -403,7 +401,7 @@ static void startSpawner(Step_t *step, int32_t serviceRank)
     Step_delete(envStep);
 
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PROCESS) {
-	debugMpiexecStart(argV, task->env);
+	debugMpiexecStart(task->argV, task->env);
     }
 
     // - actually start the task

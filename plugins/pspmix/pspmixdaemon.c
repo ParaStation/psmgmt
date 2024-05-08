@@ -1204,13 +1204,15 @@ static int hookSpawnTask(void *data)
 	envSet(env, "PMIX_JOB_NUM_APPS", "1");
 	envSet(env, "PMIX_APP_SIZE_0", "1");
 	envSet(env, "PMIX_APP_WDIR_0", task->workingdir);
-	char **argv = task->argv;
-	int argc = task->argc;
 	size_t sum = 1;
-	for (int j = 0; j < argc; j++) sum += strlen(argv[j]) + 1;
+	for (char **a = strvGetArray(task->argV); a && *a; a++) {
+	    sum += strlen(*a) + 1;
+	}
 	char *str = umalloc(sum);
 	char *ptr = str;
-	for (int j = 0; j < argc; j++) ptr += sprintf(ptr, "%s ", argv[j]);
+	for (char **a = strvGetArray(task->argV); a && *a; a++) {
+	    ptr += sprintf(ptr, "%s ", *a);
+	}
 	*(ptr-1)='\0';
 	envSet(env, "PMIX_APP_ARGV_0", str);
     }
