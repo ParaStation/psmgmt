@@ -146,6 +146,16 @@ bool strvAdd(strv_t strv, const char *str);
 bool strvLink(strv_t strv, char *str);
 
 /**
+ * @brief @doctodo
+ */
+bool strvReplace(strv_t strv, uint32_t idx, const char *str);
+
+/**
+ * @brief @doctodo
+ */
+char *strvGet(const strv_t strv, uint32_t idx);
+
+/**
  * @brief Access string vector's string array
  *
  * Get a handle on a string array representing the string vector @a

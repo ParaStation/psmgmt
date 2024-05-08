@@ -148,6 +148,22 @@ bool strvAdd(strv_t strv, const char *str)
     return copy ? doLink(strv, strcpy(copy, str), true) : false;
 }
 
+bool strvReplace(strv_t strv, uint32_t idx, const char *str)
+{
+    if (idx >= strvSize(strv) || !str) return false;
+
+    char *copy = umalloc(strlen(str) + 1);
+    if (!copy) return false;
+    free(strv->strings[idx]);
+    strv->strings[idx] = strcpy(copy, str);
+    return true;
+}
+
+char *strvGet(const strv_t strv, uint32_t idx)
+{
+    return idx >= strvSize(strv) ? NULL : strv->strings[idx];
+}
+
 char **strvGetArray(strv_t strv)
 {
     return strvInitialized(strv) ? strv->strings : NULL;
