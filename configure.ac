@@ -116,11 +116,6 @@ AM_COND_IF([BUILD_WITHOUT_SPANK], [
 ])
 AM_CONDITIONAL([SPANK_ENABLED], [test "x$spank_enabled" = xtrue])
 
-AM_COND_IF([SPANK_ENABLED], [
-  AC_CHECK_DECLS([S_TASK_ARGV],[AC_DEFINE(HAVE_S_TASK_ARGV)],
-		 [],[[#include<slurm/spank.h>]])
-])
-
 AC_ARG_ENABLE([psconfig], [AS_HELP_STRING([--disable-psconfig],
   [build without psconfig support])])
 AM_CONDITIONAL([BUILD_WITHOUT_PSCONFIG], [test "x$enable_psconfig" = xno])
