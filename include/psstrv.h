@@ -80,6 +80,11 @@ strv_t strvNew(char **strArray);
 strv_t strvConstruct(char **strArray);
 
 /**
+ * @brief @doctodo
+ */
+strv_t strvClone(const strv_t strv);
+
+/**
  * @brief Check string vector for initialization
  *
  * Check if the string vector represented by @a strv is initialized,

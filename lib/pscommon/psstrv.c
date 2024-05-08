@@ -77,6 +77,33 @@ strv_t strvConstruct(char **strvArray)
     return strv;
 }
 
+strv_t strvClone(const strv_t strv)
+{
+    if (!strvInitialized(strv)) return NULL;
+
+    strv_t clone = strvNew(NULL);
+    if (!clone) return NULL;
+
+    if (strv->cnt) {
+	clone->strings = malloc(strv->size * sizeof(*clone->strings));
+	if (!clone->strings) goto error;
+	clone->size = strv->size;
+
+	for (uint32_t i = 0; i < strv->cnt; i++) {
+	    clone->strings[i] = umalloc(strlen(strv->strings[i]) + 1);
+	    if (!clone->strings[i]) goto error;
+	    strcpy(clone->strings[i], strv->strings[i]);
+	}
+	clone->cnt = strv->cnt;
+	clone->strings[clone->cnt] = NULL;
+    }
+    return clone;
+
+error:
+    strvDestroy(clone);
+    return NULL;
+}
+
 bool strvInitialized(const strv_t strv)
 {
     return (strv && strv->magic == STRV_MAGIC);
