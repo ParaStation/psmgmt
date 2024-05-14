@@ -84,6 +84,8 @@ static void print_help() {
 	    "Options:\n"
 	    "   --help\n"
 	    "          Print this help\n"
+	    "   --version\n"
+	    "          Print psmgmt version\n"
 	    "   -v, --verbose\n"
 	    "          Be verbose (twice for debugging)\n"
 	    "   -h, --human-readable\n"
@@ -548,8 +550,11 @@ static bool parse_cpumap(char *mapStr, size_t threadCount)
 
 int main(int argc, char *argv[])
 {
-
     if (argc < 4) {
+	if (argc > 1 && !strcmp(argv[1], "--version")) {
+	    printf("psslurmgetbind from psmgmt %s\n", PSC_getVersionStr());
+	    return 0;
+	}
 	print_help();
 	return -1;
     }
