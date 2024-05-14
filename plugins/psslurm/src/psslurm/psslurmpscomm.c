@@ -1226,17 +1226,15 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  */
 static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    uint32_t packJobid, stepid, packAllocID, len;
+    uint32_t packJobid, stepid, len;
 
     /* packJobid  */
     getUint32(data, &packJobid);
     /* stepid */
     getUint32(data, &stepid);
-    /* pack allocation ID */
-    getUint32(data, &packAllocID);
 
-    if (!Alloc_findByPackID(packAllocID)) {
-	flog("allocation %u not found\n", packAllocID);
+    if (!Alloc_findByPackID(packJobid)) {
+	flog("allocation %u not found\n", packJobid);
 	return;
     }
 
@@ -2664,8 +2662,6 @@ int send_PS_PackInfo(Step_t *step)
     addUint32ToMsg(step->packJobid, &data);
     /* stepid */
     addUint32ToMsg(step->stepid, &data);
-    /* pack allocation ID */
-    addUint32ToMsg(step->packAllocID, &data);
     /* pack task offset */
     addUint32ToMsg(step->packTaskOffset, &data);
     /* np */

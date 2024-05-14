@@ -398,14 +398,6 @@ static bool extractStepPackInfos(Step_t *step)
 	step->packSize = atoi(sPackSize);
     }
 
-    /* extract allocation ID */
-    char *sPackID = envGet(step->env, "SLURM_JOB_ID_PACK_GROUP_0");
-    if (!sPackID) {
-	flog("missing SLURM_JOB_ID_PACK_GROUP_0 environment\n");
-	return false;
-    }
-    step->packAllocID = atoi(sPackID);
-
     return true;
 }
 
