@@ -384,20 +384,6 @@ static bool extractStepPackInfos(Step_t *step)
 	     step->packTaskCounts[i]);
     }
 
-    /* extract pack size */
-    if (step->stepid == SLURM_INTERACTIVE_STEP) {
-	/* overwrite pack size and tasks for interactive steps */
-	step->packSize = 1;
-	step->packNtasks = 1;
-    } else {
-	char *sPackSize = envGet(step->env, "SLURM_PACK_SIZE");
-	if (!sPackSize) {
-	    flog("missing SLURM_PACK_SIZE environment\n");
-	    return false;
-	}
-	step->packSize = atoi(sPackSize);
-    }
-
     return true;
 }
 
@@ -642,7 +628,7 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     flog("%s user '%s' np %u nodes '%s' N %u tpp %u pack size %u"
 	 " leader %i exe '%s' packJobid %u hetComp %u\n", Step_strID(step),
 	 step->username, step->np, step->slurmHosts, step->nrOfNodes, step->tpp,
-	 step->packSize, step->leader, step->argv[0],
+	 step->packStepCount, step->leader, step->argv[0],
 	 step->packJobid == NO_VAL ? 0 : step->packJobid,
 	 step->stepHetComp == NO_VAL ? 0 : step->stepHetComp);
 

@@ -1255,9 +1255,9 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	return;
     }
 
-    if (step->numPackInfo == step->packSize) {
-	flog("too many pack infos, numPackInfo %u packSize %u for step %u:%u\n",
-	     step->numPackInfo, step->packSize, packJobid, stepid);
+    if (step->numPackInfo == step->packStepCount) {
+	flog("too many pack infos, numPackInfo %u packStepCount %u for %s\n",
+	     step->numPackInfo, step->packStepCount, Step_strID(step));
 	return;
     }
 
@@ -1285,13 +1285,13 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* slots */
     if (!getSlotsFromMsg(data, &jobcomp->slots, &len)) {
-	flog("Error getting slots from message\n");
+	flog("Error getting slots from message, %s\n", Step_strID(step));
 	JobComp_delete(jobcomp);
 	return;
     }
     if (len != jobcomp->np) {
-	flog("length of slots list does not match number of processes"
-	     " (%u != %u)\n", len, jobcomp->np);
+	flog("length of slots list does not match number of processes, %s"
+	     " (%u != %u)\n", Step_strID(step), len, jobcomp->np);
 	JobComp_delete(jobcomp);
 	return;
     }
@@ -1299,9 +1299,11 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     Step_addJobCompInfo(step, jobcomp);
 
     /* test if we have all infos to start */
-    if (step->rcvdPackProcs == step->packNtasks) {
-	if (!execStepLeader(step)) {
-	    flog("starting user step failed\n");
+    uint32_t nTasks =
+	(step->stepid == SLURM_INTERACTIVE_STEP) ?  1 : step->packNtasks;
+    if (step->rcvdPackProcs == nTasks) {
+	if (!(execStepLeader(step))) {
+	    flog("starting user %s failed\n", Step_strID(step));
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
 	    Step_delete(step);
 	}

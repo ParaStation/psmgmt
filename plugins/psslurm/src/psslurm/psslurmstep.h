@@ -180,8 +180,7 @@ typedef struct {
     uint32_t packNtasks;	/**< pack total task count */
     uint32_t packOffset;	/**< pack job offset */
     uint32_t packTaskOffset;	/**< pack task offset */
-    uint32_t packSize;		/**< the size of the pack */
-    uint32_t packStepCount;     /**< pack step count */
+    uint32_t packStepCount;     /**< number of steps in pack */
     uint32_t **packTIDs;        /**< pack task IDs */
     uint32_t *packTIDsOffset;   /**< pack task offset */
     char *packHostlist;		/**< pack host-list (Slurm compressed) */
