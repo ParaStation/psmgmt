@@ -1944,55 +1944,6 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
 }
 
 /**
- * @brief Extract jobpack information
- *
- * Extract the jobpack size and hostlist from a jobs environment.
- *
- * @param job The job to extract the information from
- */
-static bool extractJobPackInfos(Job_t *job)
-{
-    size_t nlSize = 0;
-
-    /* extract pack size */
-    char *sPackSize = envGet(job->env, "SLURM_PACK_SIZE");
-    if (!sPackSize) return true;
-
-    job->packSize = atoi(sPackSize);
-
-    /* extract pack nodes */
-    for (uint32_t i = 0; i < job->packSize; i++) {
-	char nodeListName[256];
-
-	snprintf(nodeListName, sizeof(nodeListName),
-		 "SLURM_JOB_NODELIST_PACK_GROUP_%u", i);
-
-	char *next = envGet(job->env, nodeListName);
-	if (!next) {
-	    flog("%s not found in job environment\n", nodeListName);
-	    ufree(job->packHostlist);
-	    job->packHostlist = NULL;
-	    job->packSize = 0;
-	    return false;
-	}
-	if (nlSize) str2Buf(",", &job->packHostlist, &nlSize);
-	str2Buf(next, &job->packHostlist, &nlSize);
-    }
-
-    if (!convHLtoPSnodes(job->packHostlist, getNodeIDbySlurmHost,
-			 &job->packNodes, &job->packNrOfNodes)) {
-	flog("resolving PS nodeIDs from pack host-list %s failed\n",
-	     job->packHostlist);
-	return false;
-    }
-
-    fdbg(PSSLURM_LOG_PACK, "job %u pack nrOfNodes %u hostlist '%s'\n",
-	 job->jobid, job->packNrOfNodes, job->packHostlist);
-
-    return true;
-}
-
-/**
  * @brief Print various job information
  *
  * @param job The job to print the infos from
@@ -2065,11 +2016,6 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* set accounting options */
     setAccOpts(job->acctFreq, &job->accType);
 
-    if (!extractJobPackInfos(job)) {
-	flog("invalid job pack information for job %u\n", job->jobid);
-	return ESLURMD_INVALID_JOB_CREDENTIAL;
-    }
-
     /* set mask of hardware threads to use */
     nodeinfo_t *nodeinfo = getNodeinfo(PSC_getMyID(), job->cred, job->jobid);
     if (!nodeinfo) {
@@ -2092,9 +2038,9 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return SLURM_SUCCESS;
     }
 
-    flog("job %u user '%s' np %u nodes '%s' N %u tpp %u pack size %u"
-	 " script '%s'\n", job->jobid, job->username, job->np, job->slurmHosts,
-	 job->nrOfNodes, job->tpp, job->packSize, job->jobscript);
+    flog("job %u user '%s' np %u nodes '%s' N %u tpp %u script '%s'\n",
+	 job->jobid, job->username, job->np, job->slurmHosts, job->nrOfNodes,
+	 job->tpp, job->jobscript);
 
     /* sanity check nrOfNodes */
     if (job->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {

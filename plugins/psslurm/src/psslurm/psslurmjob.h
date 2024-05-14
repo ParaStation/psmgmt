@@ -79,10 +79,6 @@ typedef struct {
     bool timeout;	    /**< job was cancelled due to time limit */
     uint32_t *gids;	    /**< extended group IDs from slurmctld */
     uint32_t gidsLen;	    /**< size of the gids array */
-    uint32_t packSize;	    /**< the size of the pack */
-    char *packHostlist;	    /**< pack host-list (Slurm compressed) */
-    uint32_t packNrOfNodes; /**< number of nodes in pack */
-    PSnodes_ID_t *packNodes;/**< all participating nodes in the pack */
     uint32_t packJobid;	    /**< unique pack job identifier */
     char *tresBind;         /**< TRes binding (currently env set only) */
     char *tresFreq;         /**< TRes frequency (currently env set only) */

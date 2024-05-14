@@ -107,14 +107,6 @@ static bool addJobInfo(Job_t *job, const void *info)
     snprintf(line, sizeof(line), "start time '%s'\n", start);
     addStrBuf(line, strBuf);
 
-    if (job->packSize) {
-	snprintf(line, sizeof(line), "pack size %u\n", job->packSize);
-	addStrBuf(line, strBuf);
-
-	snprintf(line, sizeof(line), "pack host list %s\n", job->packHostlist);
-	addStrBuf(line, strBuf);
-    }
-
     addStrBuf("-\n\n", strBuf);
 
     return false;
