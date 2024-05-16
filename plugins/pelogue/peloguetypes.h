@@ -153,7 +153,6 @@ typedef void(PElogueJobCb_t)(char *jobid, int exit, bool timeout,
  * 'epilogue', and 'epilogue.parallel' therein is enforced. Otherwise
  * the operation will not succeed.
  *
- * Up to MAX_SUPPORTED_PLUGINS configuration might be added.
  *
  * @param name Name tag of the configuration to register
  *

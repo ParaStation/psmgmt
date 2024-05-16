@@ -14,17 +14,13 @@
 #include <stdbool.h>
 
 #include "pluginconfig.h"
+#include "list.h"
 
-/**
- * @brief Initialize configuration repository
- *
- * Initialize pelogue plugin's repository holding plugin
- * configurations. This function has to be called before adding any
- * configuration via @ref addPluginConfig().
- *
- * @return No return value
- */
-void initPluginConfigs(void);
+typedef struct {
+    char *name;
+    Config_t conf;
+    list_t nodes;
+} pluginConfNode_t;
 
 /**
  * @brief Add configuration
@@ -42,7 +38,6 @@ void initPluginConfigs(void);
  * 'epilogue', and 'epilogue.parallel' therein is enforced. Otherwise
  * the operation will not succeed.
  *
- * Up to MAX_SUPPORTED_PLUGINS configuration might be added.
  *
  * @param name Name tag of the configuration to register
  *
@@ -118,6 +113,6 @@ bool delPluginConfig(const char *name);
  *
  * @return No return value
  */
-void clearAllPluginConfigs(void);
+void clearPluginConfigList(void);
 
 #endif  /* __PELOGUE_CONFIG */

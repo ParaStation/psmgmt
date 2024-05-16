@@ -149,7 +149,6 @@ int initialize(FILE *logfile)
 	return 1;
     }
 
-    initPluginConfigs();
     initComm();
 
     /* get psaccount function handles */
@@ -218,7 +217,7 @@ void cleanup(void)
 
     clearChildList();
     clearJobList();
-    clearAllPluginConfigs();
+    clearPluginConfigList();
     unregisterHooks(true);
 
     mlog("...Bye.\n");

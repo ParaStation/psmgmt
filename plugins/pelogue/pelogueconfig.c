@@ -21,42 +21,22 @@
 #include "peloguelog.h"
 #include "peloguescript.h"
 
-#define MAX_SUPPORTED_PLUGINS 10
-
-static bool initialized = false;
-
-static struct {
-    char *name;
-    Config_t conf;
-} pluginConfList[MAX_SUPPORTED_PLUGINS];
-
-void initPluginConfigs(void)
-{
-    if (initialized) return;
-
-    for (int i = 0; i < MAX_SUPPORTED_PLUGINS; i++) {
-	pluginConfList[i].name = NULL;
-	pluginConfList[i].conf = NULL;
-    }
-
-    initialized = true;
-}
+static LIST_HEAD(pluginConfList);
 
 static Config_t getPluginConfig(const char *plugin, const char *caller,
 				const int line)
 {
     if (!plugin) {
 	mlog("%s: no plugin given, caller %s:%i\n", __func__, caller, line);
-    } else if (!initialized) {
-	mlog("%s: configuration not initialized caller %s:%i\n",
-	     __func__, caller, line);
     } else {
-	for (int i = 0; i < MAX_SUPPORTED_PLUGINS; i++) {
-	    if (pluginConfList[i].name &&
-		!(strcmp(pluginConfList[i].name, plugin))) {
-		return pluginConfList[i].conf;
-	    }
-	}
+    list_t *pluginConfNodes;
+    pluginConfNode_t *pluginConf;
+    list_for_each(pluginConfNodes, &pluginConfList){
+        pluginConf = list_entry(pluginConfNodes, pluginConfNode_t, nodes);
+        if (pluginConf->name && !(strcmp(pluginConf->name, plugin))) {
+		    return pluginConf->conf;
+        }
+    }
 	mlog("%s: no config for plugin %s caller %s:%i\n", __func__, plugin,
 	     caller, line);
     }
@@ -174,58 +154,55 @@ bool addPluginConfig(const char *name, Config_t config)
 	return false;
     }
 
-    for (int i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
-	if (pluginConfList[i].name && !strcmp(pluginConfList[i].name, name)) {
-	    /* update existing plugin configuration */
-	    freeConfig(pluginConfList[i].conf);
-
-	    pluginConfList[i].conf = config;
-	    return true;
-	}
+    list_t *pluginConfNodes;
+    pluginConfNode_t *pluginConf;
+    list_for_each(pluginConfNodes, &pluginConfList){
+        pluginConf = list_entry(pluginConfNodes, pluginConfNode_t, nodes);
+        if (pluginConf->name && !(strcmp(pluginConf->name, name))) {
+		    /* update existing plugin configuration */
+            freeConfig(pluginConf->conf);
+            pluginConf->conf = config;
+            return true;
+        }
     }
+    pluginConfNode_t *new = umalloc(sizeof(*new));
+    new->name = ustrdup(name);
+    new->conf = config;
+    list_add_tail(&new->nodes, &pluginConfList);
 
-    for (int i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
-	if (!pluginConfList[i].name) {
-	    pluginConfList[i].name = ustrdup(name);
-	    pluginConfList[i].conf = config;
-
-	    return true;
-	}
-    }
-    mlog("%s: pluginConfList full\n", __func__);
-    return false;
+    return true;
 }
 
-static void clearConfigEntry(int i)
+static void del(pluginConfNode_t *entry)
 {
-    ufree(pluginConfList[i].name);
-    pluginConfList[i].name = NULL;
-
-    freeConfig(pluginConfList[i].conf);
-    pluginConfList[i].conf = NULL;
+    list_del(&entry->nodes);
+    freeConfig(entry->conf);
+    ufree(entry->name);
+    ufree(entry);
 }
 
 bool delPluginConfig(const char *name)
 {
-    if (!initialized || !name) return false;
+    if (!name) return false;
 
-    for (int i = 0; i < MAX_SUPPORTED_PLUGINS; i++) {
-	if (pluginConfList[i].name &&
-	    !(strcmp(pluginConfList[i].name, name))) {
-	    clearConfigEntry(i);
-	    return true;
-	}
+    list_t *pluginConfNodes, *tmp;
+    pluginConfNode_t *pluginConf;
+    list_for_each_safe(pluginConfNodes, tmp, &pluginConfList){
+        pluginConf = list_entry(pluginConfNodes, pluginConfNode_t, nodes);
+        if (pluginConf->name && !(strcmp(pluginConf->name, name))) {
+            del(pluginConf);
+            return true;
+        }
     }
     return false;
 }
 
-void clearAllPluginConfigs(void)
+void clearPluginConfigList(void)
 {
-    if (!initialized) return;
-
-    for (int i = 0; i < MAX_SUPPORTED_PLUGINS; i++) {
-	if (pluginConfList[i].name) clearConfigEntry(i);
+    list_t *pluginConfNodes, *tmp;
+    pluginConfNode_t *pluginConf;
+    list_for_each_safe(pluginConfNodes, tmp, &pluginConfList){
+        pluginConf = list_entry(pluginConfNodes, pluginConfNode_t, nodes);
+        del(pluginConf);
     }
-
-    initialized = false;
 }
