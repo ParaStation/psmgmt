@@ -159,7 +159,7 @@ bool addPluginConfig(const char *name, Config_t config)
     list_for_each(pluginConfNodes, &pluginConfList){
         pluginConf = list_entry(pluginConfNodes, pluginConfNode_t, nodes);
         if (pluginConf->name && !(strcmp(pluginConf->name, name))) {
-		    /* update existing plugin configuration */
+            /* update existing plugin configuration */
             freeConfig(pluginConf->conf);
             pluginConf->conf = config;
             return true;
