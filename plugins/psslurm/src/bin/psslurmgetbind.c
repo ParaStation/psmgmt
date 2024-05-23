@@ -334,7 +334,7 @@ static bool readMemBindType(char *ptr, uint16_t *memBindType,
     return true;
 }
 
-static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType,
+static bool handleExtraNodeInfo(char *value, uint16_t *cpuBindType,
 				bool *cpuBindTypeSet,
 				uint16_t *useThreadsPerCore)
 {
@@ -342,17 +342,39 @@ static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType,
     bool hasCores = false;
     bool hasThreads = false;
 
-    /* sockets given */
-    char *cur = strstr(value, ":");
-    if (cur) {
-	/* cores given */
-	hasCores = true;
-	if ((cur = strstr(cur+1, ":"))) {
-	    /* threads given */
-	    hasThreads = true;
-	    *useThreadsPerCore = atoi(cur+1);
-	    resetThreadsPerCore = false;
+    char *nptr = value;
+    char *endptr;
+    for (int i = 0; i < 3; i++) {
+	long val = strtol(nptr, &endptr, 10);
+
+	if (val == 0 && *endptr == '*') {
+	    /* this means use all available sockets/cores/threads */
+	    endptr++;
 	}
+	else if (val <= 0) return false; /* negative values and 0 not allowed */
+
+	switch(i) {
+	    case 1:
+		hasCores = true;
+		break;
+	    case 2:
+		hasThreads = true;
+		*useThreadsPerCore = val;
+		resetThreadsPerCore = false;
+	}
+
+	if (*endptr == '\0') break;
+
+	if (*endptr == '-') {
+	    /* this is min-max, check and ignore max part */
+	    nptr = endptr + 1;
+	    long maxval = strtol(nptr, &endptr, 10);
+	    if (maxval < val) return false;
+	    if (*endptr == '\0') break;
+	}
+
+	if (*endptr != ':') return false;  /* invalid character found */
+	nptr = endptr + 1;
     }
 
     /* reset earlier --threads-per-core, since srun does that as well */
@@ -364,7 +386,7 @@ static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType,
     }
 
     /* handle implicit setting of cpubind */
-    if (*cpuBindTypeSet) return;
+    if (*cpuBindTypeSet) return true;
 
     if (hasThreads) {
 	*cpuBindType = CPU_BIND_TO_THREADS;
@@ -380,6 +402,8 @@ static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType,
 		"implicitly set --cpu-bind=sockets");
     }
     *cpuBindTypeSet = true;
+
+    return true;
 }
 
 static void handleThreadsPerCore(char *value, uint16_t *cpuBindType,
@@ -818,8 +842,12 @@ int main(int argc, char *argv[])
 	    mutually_exclusive = true;
 	    outline(DEBUGOUT, "Reading --extra-node-info value: \"%s\"",
 		    cur+18);
-	    handleExtraNodeInfo(cur+18, &cpuBindType, &cpuBindTypeSet,
-				&useThreadsPerCore);
+	    if (!handleExtraNodeInfo(cur+18, &cpuBindType, &cpuBindTypeSet,
+				&useThreadsPerCore)) {
+		outline(ERROROUT, "Invalid --extra-node-info value '%s'.",
+			cur+18);
+		exit(-1);
+	    }
 	} else if (!strcmp(cur, "-B")) {
 	    if (i == argc) {
 		outline(ERROROUT, "Syntax error reading value for -B.");
@@ -833,8 +861,11 @@ int main(int argc, char *argv[])
 	    }
 	    mutually_exclusive = true;
 	    outline(DEBUGOUT, "Reading -B value: \"%s\"", argv[i]);
-	    handleExtraNodeInfo(argv[i++], &cpuBindType, &cpuBindTypeSet,
-				&useThreadsPerCore);
+	    if (!handleExtraNodeInfo(argv[i++], &cpuBindType, &cpuBindTypeSet,
+				&useThreadsPerCore)) {
+		outline(ERROROUT, "Invalid -B value '%s'.", argv[i-1]);
+		exit(-1);
+	    }
 	} else if (!strcmp(cur, "--hint=nomultithread")) {
 	    if (mutually_exclusive && slurm_version < 2302) {
 		outline(ERROROUT, "srun options -B|--extra-node-info, --hint,"
