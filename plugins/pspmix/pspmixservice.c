@@ -784,8 +784,7 @@ bool pspmix_service_terminateClients(const char *nsName, bool remote)
     }
     RELEASE_LOCK(namespaceList);
 
-    bool ret = pspmix_comm_sendTermClients(nodelist.data, nodelist.len,
-					   nsName);
+    bool ret = pspmix_comm_sendTermClients(nodelist.data, nodelist.len, nsName);
 
     vectorDestroy(&nodelist);
     return ret;

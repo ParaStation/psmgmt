@@ -722,6 +722,8 @@ bool pspmix_comm_sendTermClients(PSnodes_ID_t dests[], size_t ndests,
 	mlog(" nspace %s)\n", nspace);
     }
 
+    if (!ndests) return true;
+
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
     initFragPspmix(&msg, PSPMIX_TERM_CLIENTS);
