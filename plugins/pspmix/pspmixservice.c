@@ -780,7 +780,7 @@ bool pspmix_service_terminateClients(const char *nsName, bool remote)
     list_t *n;
     list_for_each(n, &ns->procMap) {
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
-	if (node->id != PSC_getID(-1)) vectorAdd(&nodelist, &node->id);
+	if (node->id != PSC_getMyID()) vectorAdd(&nodelist, &node->id);
     }
     RELEASE_LOCK(namespaceList);
 
