@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -56,7 +56,9 @@ typedef struct {
 typedef struct {
     list_t next;             /**< used to put into PSsession_t.jobs */
     PStask_ID_t ID;          /**< unique job identifier (spawner's TID) */
+    PStask_ID_t sessID;      /**< PSsession_t.ID this job belongs to */
     time_t creation;         /**< creation time of this job */
+    bool registered;         /**< PSIDHOOK_JOB_RESCOMPLETE called for this */
     list_t resInfos;         /**< reservations in this job (PSresinfo_t) */
 } PSjob_t;
 

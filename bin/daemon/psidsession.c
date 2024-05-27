@@ -101,6 +101,7 @@ static PSjob_t *getJob(void)
 {
     PSjob_t *job = PSitems_getItem(jobPool);
     job->creation = time(NULL);
+    job->registered = false;
     INIT_LIST_HEAD(&job->resInfos);
 
     return job;
@@ -460,6 +461,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    return;
 	}
 	job->ID = jobID;
+	job->sessID = session->ID;
 	list_add_tail(&job->next, &session->jobs);
 	jobCreated = true;
 	PSID_fdbg(PSID_LOG_SPAWN, "add job %s to", PSC_printTID(jobID));
