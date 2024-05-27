@@ -2752,8 +2752,9 @@ error:
 }
 
 /**
- * helper array for send_RESCREATED(), send_RESSLOTS(),
- * send_RESRELEASED(), and send_RESCLEANUP()
+ * helper array for send_RESSLOTS(), send_RESRELEASED(),
+ * send_RESCLEANUP(), and preparaDestinations() (utilized by
+ * send_RESCREATED() and send_JOBCOMPLETE())
  */
 static uint16_t *numToSend = NULL;
 
@@ -2788,21 +2789,77 @@ static PSrsrvtn_t *findRes(list_t *queue, PSrsrvtn_ID_t rid);
 static bool deqRes(list_t *queue, PSrsrvtn_t *res);
 
 /**
+ * @brief Prepare destinations for message
+ *
+ * Prepare the destinations of the fragmented message @a
+ * msg. Potential destinations are all nodes being part of the task's
+ * @a task (or its delegate's) partition or its sister partitions.
+ *
+ * @a filter might be used to ignore certain nodes. It is expected to
+ * have a number of elements identical to the result of @ref
+ * PSC_getNrOfNodes(), one for each node. If an element of @a filter is
+ * different from 0, the corresponding node will **not** be considered
+ * in the destinations of @a msg.
+ *
+ * @param msg Fragmented message buffer to be prepared
+ *
+ * @param task Task holding partition and sister partitions to consider
+ *
+ * @param filter Nodes to be ignored
+ *
+ * @return Return false if preparation failed or true otherwise
+ */
+static bool prepareDestinations(PS_SendDB_t *msg, PStask_t *task,
+				uint16_t *filter)
+{
+    if (!msg || !task) return false;
+
+    if (!prepNumToSend(filter)) return false;
+
+    PStask_t *delegate = task->delegate ? task->delegate : task;
+    for (uint32_t i = 0; i < delegate->partitionSize; i++) {
+	PSnodes_ID_t node = delegate->partition[i].node;
+	if (numToSend[node]) continue;                   // don't send twice
+	numToSend[node] = 1;
+
+	setFragDest(msg, PSC_getTID(node, 0));
+	PSID_fdbg(PSID_LOG_PART, "to node %d\n", node);
+    }
+    /* this includes nodes in sister partitions */
+    list_t *p;
+    list_for_each(p, &task->sisterParts) {
+	PSpart_request_t *sister = list_entry(p, PSpart_request_t, next);
+	if (sister->sizeGot != sister->size) continue;   // still incomplete
+	for (uint32_t s = 0; s < sister->size; s++) {
+	    PSnodes_ID_t node = sister->slots[s].node;
+	    if (numToSend[node]) continue;               // don't send twice
+	    numToSend[node] = 1;
+
+	    setFragDest(msg, PSC_getTID(node, 0));
+	    PSID_fdbg(PSID_LOG_PART, "to node %d\n", node);
+	}
+    }
+
+    return true;
+}
+
+/**
  * @brief Distribute reservation information to nodes involved in partition
  *
  * Provide information on rank distribution within the reservation @a
- * res to all nodes that are part of the partition the reservation is
- * belonging to. This partition is expected to be associated to the
- * task @a task. To actually provide the information, one or more
+ * res to all nodes that are part of the partition provided by @a task
+ * (or its delegate) or that are part of one of the sister partitions
+ * in @a task. To actually provide the information, one or more
  * messages of type PSP_DD_RESCREATED are emitted.
  *
  * @a filter might be used to prevent sending the information to
  * certain nodes. It is expected to have a number of elements
- * identical to the result of @re PSC_getNrOfNodes(), one for each
- * node. If an element of filter is set to 1, the corresponding node
- * will be **excluded** from the distribution of information.
+ * identical to the result of @ref PSC_getNrOfNodes(), one for each
+ * node. If an element of filter is different from 0, the
+ * corresponding node will **not** be considered to receive the
+ * information.
  *
- * @param task Task holding the partition the reservation belongs to
+ * @param task Task holding partition and sister partitions to tell
  *
  * @param res Reservation to distribute
  *
@@ -2825,34 +2882,11 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
 	return false;
     }
 
-    if (!prepNumToSend(filter)) return false;
-
-    /* send message to each node in the partition if any */
+    /* send message to each node in the partition and sisters if any */
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_DD_RESCREATED, -1);
-    PStask_t *delegate = task->delegate ? task->delegate : task;
-    for (uint32_t i = 0; i < delegate->partitionSize; i++) {
-	PSnodes_ID_t node = delegate->partition[i].node;
-	if (numToSend[node]) continue;                   // don't send twice
-	numToSend[node] = 1;
+    if (!prepareDestinations(&msg, task, filter)) return false;
 
-	setFragDest(&msg, PSC_getTID(node, 0));
-	PSID_fdbg(PSID_LOG_PART, "to node %d\n", node);
-    }
-    /* this includes nodes in sister partitions */
-    list_t *p;
-    list_for_each(p, &task->sisterParts) {
-	PSpart_request_t *sister = list_entry(p, PSpart_request_t, next);
-	if (sister->sizeGot != sister->size) continue;   // still incomplete
-	for (uint32_t s = 0; s < sister->size; s++) {
-	    PSnodes_ID_t node = sister->slots[s].node;
-	    if (numToSend[node]) continue;               // don't send twice
-	    numToSend[node] = 1;
-
-	    setFragDest(&msg, PSC_getTID(node, 0));
-	    PSID_fdbg(PSID_LOG_PART, "to node %d\n", node);
-	}
-    }
     if (!msg.numDest) {
 	PSID_fdbg(PSID_LOG_PART, "%#x all targets filtered out\n", res->rid);
 	return true;
@@ -2861,8 +2895,8 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
 	      res->rid, res->nSlots, msg.numDest);
 
     addInt32ToMsg(res->rid, &msg);         // reservation ID
-    addTaskIdToMsg(task->loggertid, &msg); // logger's task ID
-    addTaskIdToMsg(res->requester, &msg);  // spawners's task ID
+    addTaskIdToMsg(task->loggertid, &msg); // logger's task ID / session ID
+    addTaskIdToMsg(res->requester, &msg);  // spawners's task ID / job ID
 
     addUint32ToMsg(res->rankOffset, &msg); // global rank offset
     addTaskIdToMsg(res->task, &msg);    // task managing partition & reservation
@@ -2883,6 +2917,68 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
 
 	firstrank = lastrank + 1;
     }
+
+    if (sendFragMsg(&msg) == -1) {
+	PSID_flog("sending failed\n");
+	return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Tell nodes that job information is complete
+ *
+ * Tell nodes that information of rank distribution of job @a jobID is
+ * now complete. Thus, the job might now be registered via @ref
+ * PSIDHOOK_JOBCOMPLETE. Information is sent to all nodes that are
+ * part of the partition provided by @a task (or its delegate) or that
+ * are part of one of the sister partitions in @a task. To actually
+ * provide the information, messages of type PSP_DD_JOBCOMPLETE are
+ * emitted.
+ *
+ * @a filter might be used to prevent sending the information to
+ * certain nodes. It is expected to have a number of elements
+ * identical to the result of @ref PSC_getNrOfNodes(), one for each
+ * node. If an element of filter is different from 0, the
+ * corresponding node will **not** be considered to receive the
+ * information.
+ *
+ * The intended use of this function is to conclude reservation
+ * distribution done via @ref send_RESCREATED.
+ *
+ * @param task Task holding partition and sister partitions to tell
+ *
+ * @param jobID ID of job that is concluded
+ *
+ * @param filter Node filter excluding from receiving the information
+ *
+ * @return On success, true is returned; or false if an error occurred
+ */
+static bool send_JOBCOMPLETE(PStask_t *task, PStask_ID_t jobID, uint16_t *filter)
+{
+    if (!task) {
+	PSID_flog("no task for job %s\n", PSC_printTID(jobID));
+	return false;
+    }
+
+    /* send message to each node in the partition and sisters if any */
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_DD_JOBCOMPLETE, -1);
+
+    if (!prepareDestinations(&msg, task, filter)) return false;
+
+    if (!msg.numDest) {
+	PSID_fdbg(PSID_LOG_PART, "%s all targets filtered out\n",
+		  PSC_printTID(jobID));
+	return true;
+    }
+
+    PSID_fdbg(PSID_LOG_PART, "for %s to %d destinations\n",
+	      PSC_printTID(jobID), msg.numDest);
+
+    addTaskIdToMsg(task->loggertid, &msg);   // logger's task ID / session ID
+    addTaskIdToMsg(jobID, &msg);             // spawners's task ID / job ID
 
     if (sendFragMsg(&msg) == -1) {
 	PSID_flog("sending failed\n");
@@ -5154,7 +5250,7 @@ static void send_further_RESCREATED(PSpart_request_t *req, PStask_t *task)
 	}
     }
 
-    /* PStask_t stub containing all members used send_RESCREATED() */
+    /* PStask_t stub containing all members used by send_RESCREATED() */
     PStask_t reqHolder = {
 	.loggertid = task->loggertid,
 	.partitionSize = 0,
@@ -5162,14 +5258,20 @@ static void send_further_RESCREATED(PSpart_request_t *req, PStask_t *task)
     INIT_LIST_HEAD(&reqHolder.sisterParts);
     enqPart(&reqHolder.sisterParts, req);
 
+    PStask_ID_t lastRequester = 0;
     list_t *r;
     list_for_each(r, &task->reservations) {
 	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
 	/* ignore placeholder reservation */
 	if ((res->options & PART_OPT_DUMMY) && !res->nSlots) continue;
+	if (lastRequester && res->requester != lastRequester) {
+	    send_JOBCOMPLETE(&reqHolder, lastRequester, filter);
+	}
+	lastRequester = res->requester;
 	if (!send_RESCREATED(&reqHolder, res, filter))
 	    PSID_flog("send_RESCREATED failed\n");
     }
+    if (lastRequester) send_JOBCOMPLETE(&reqHolder, lastRequester, filter);
 
     deqPart(&reqHolder.sisterParts, req);
 }
