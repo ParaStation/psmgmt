@@ -83,6 +83,7 @@ static msgString_t daemonMessages[] = {
     { PSP_DD_RESRELEASED      , "PSP_DD_RESRELEASED"      },
     { PSP_DD_RESSLOTS         , "PSP_DD_RESSLOTS"         },
     { PSP_DD_RESCLEANUP       , "PSP_DD_RESCLEANUP"       },
+    { PSP_DD_JOBCOMPLETE      , "PSP_DD_JOBCOMPLETE"      },
 
     {0,NULL}
 };

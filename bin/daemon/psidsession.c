@@ -524,6 +524,75 @@ static bool msg_RESCREATED(DDTypedBufferMsg_t *msg)
 }
 
 /**
+ * @brief Trigger job registration
+ *
+ * When receiving a message of type PSP_DD_JOBCOMPLETE it is assured
+ * that all reservations belonging to the corresponding job are
+ * received. Thus, the job might be registered via the
+ * PSIDHOOK_JOBCOMPLETE hook which is mainly utilized by pspmix.
+ *
+ * @param msg Message header (including the type) of the last fragment
+ *
+ * @param rData Data buffer presenting the actual PSP_DD_JOBCOMPLETE
+ *
+ * @return No return value
+ */
+static void handleJobComplete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+{
+    PStask_ID_t sessionID, jobID;
+    getTaskId(rData, &sessionID);
+    getTaskId(rData, &jobID);
+
+    PSsession_t *session = PSID_findSessionByID(sessionID);
+    if (!session) {
+	PSID_flog("missing session %s\n", PSC_printTID(sessionID));
+	return;
+    }
+
+    /* try to find existing job */
+    PSjob_t *job = PSID_findJobInSession(session, jobID);
+    if (!job) {
+	PSID_flog("missing job %s", PSC_printTID(jobID));
+	PSID_log(" in session %s\n", PSC_printTID(sessionID));
+	return;
+    }
+
+    if (!job->registered) {
+	PSID_flog("session %s", PSC_printTID(sessionID));
+	PSID_log(" job %s register on complete\n", PSC_printTID(jobID));
+	PSIDhook_call(PSIDHOOK_JOBCOMPLETE, job);
+	job->registered = true;
+    }
+}
+
+/**
+ * @brief Handle a PSP_DD_JOBCOMPLETE message
+ *
+ * Handle the message @a msg of type PSP_DD_JOBCOMPLETE.
+ *
+ * This function will collect these fragments into a single message
+ * using the serialization layer. In basically all cases there is just
+ * one fragment.
+ *
+ * The actual handling of the payload once all fragments are received
+ * is done within @ref handleJobComplete().
+ *
+ * @param msg Pointer to message holding the fragment to handle
+ *
+ * @return Always return true
+ */
+static bool msg_JOBCOMPLETE(DDTypedBufferMsg_t *msg)
+{
+    if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
+	/* destination not here ?!*/
+	PSID_flog("got fragment for %s?!\n", PSC_printTID(msg->header.dest));
+    } else {
+	recvFragMsg(msg, handleJobComplete);
+    }
+    return true;
+}
+
+/**
  * @brief Handle a PSP_DD_RESRELEASED message
  *
  * Handle the message @a msg of type PSP_DD_RESRELEASED.
@@ -874,6 +943,7 @@ bool PSIDsession_init(void)
     PSID_registerMsg(PSP_DD_RESRELEASED, msg_RESRELEASED);
     PSID_registerMsg(PSP_DD_RESSLOTS, (handlerFunc_t) msg_RESSLOTS);
     PSID_registerMsg(PSP_DD_RESCLEANUP, msg_RESCLEANUP);
+    PSID_registerMsg(PSP_DD_JOBCOMPLETE, (handlerFunc_t) msg_JOBCOMPLETE);
 
     return true;
 }

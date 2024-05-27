@@ -266,6 +266,10 @@ typedef enum {
 				a pointer to the child's task structure. This
 				hook might be used to execute the child in
 				a container. */
+    PSIDHOOK_JOBCOMPLETE,     /**< All information belonging to a specific job
+				were received and the job might be registered.
+				arg points to the PSjob_t structure holding all
+				information. */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
