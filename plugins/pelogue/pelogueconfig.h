@@ -14,7 +14,6 @@
 #include <stdbool.h>
 
 #include "pluginconfig.h"
-#include "list.h"
 
 /**
  * @brief Add configuration

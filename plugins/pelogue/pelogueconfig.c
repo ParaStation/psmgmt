@@ -16,6 +16,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "list.h"
 #include "pluginmalloc.h"
 
 #include "peloguelog.h"
