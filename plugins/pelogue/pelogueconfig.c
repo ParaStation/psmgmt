@@ -25,27 +25,36 @@ typedef struct {
     list_t next;
     char *name;
     Config_t conf;
-} pluginConf_t;
+} PluginConf_t;
 
 static LIST_HEAD(pluginConfList);
+
+static PluginConf_t * doGetPluginConf(const char *name)
+{
+    if (!name) return NULL;
+
+    list_t *p;
+    list_for_each(p, &pluginConfList) {
+	PluginConf_t *pluginConf = list_entry(p, PluginConf_t, next);
+	if (pluginConf->name && !(strcmp(pluginConf->name, name))) {
+	    return pluginConf;
+	}
+    }
+    return NULL;
+}
 
 static Config_t getPluginConfig(const char *plugin, const char *caller,
 				const int line)
 {
     if (!plugin) {
 	mlog("%s: no plugin given, caller %s:%i\n", __func__, caller, line);
-    } else {
-	list_t *p;
-	list_for_each(p, &pluginConfList) {
-	    pluginConf_t *pluginConf = list_entry(p, pluginConf_t, next);
-	    if (pluginConf->name && !(strcmp(pluginConf->name, plugin))) {
-		return pluginConf->conf;
-	    }
-	}
+    }
+    PluginConf_t *pluginConfig = doGetPluginConf(plugin);
+    if (!pluginConfig) {
 	mlog("%s: no config for plugin %s caller %s:%i\n", __func__, plugin,
 	     caller, line);
     }
-    return NULL;
+    return pluginConfig ? pluginConfig->conf : NULL;
 }
 
 int __getPluginConfValueI(const char *plugin, char *key, const char *caller,
@@ -159,25 +168,22 @@ bool addPluginConfig(const char *name, Config_t config)
 	return false;
     }
 
-    list_t *p;
-    list_for_each(p, &pluginConfList) {
-	pluginConf_t *pluginConf = list_entry(p, pluginConf_t, next);
-	if (pluginConf->name && !(strcmp(pluginConf->name, name))) {
-	    /* update existing plugin configuration */
-	    freeConfig(pluginConf->conf);
-	    pluginConf->conf = config;
-	    return true;
-	}
+    PluginConf_t *pluginConf =  doGetPluginConf(name);
+    if (pluginConf) {
+	/* update existing plugin configuration */
+	freeConfig(pluginConf->conf);
+    } else {
+	/* create new */
+	pluginConf = umalloc(sizeof(*pluginConf));
+	pluginConf->name = ustrdup(name);
+	list_add_tail(&pluginConf->next, &pluginConfList);
     }
-    pluginConf_t *pluginConf = umalloc(sizeof(*pluginConf));
-    pluginConf->name = ustrdup(name);
     pluginConf->conf = config;
-    list_add_tail(&pluginConf->next, &pluginConfList);
 
     return true;
 }
 
-static void del(pluginConf_t *entry)
+static void del(PluginConf_t *entry)
 {
     list_del(&entry->next);
     freeConfig(entry->conf);
@@ -187,16 +193,12 @@ static void del(pluginConf_t *entry)
 
 bool delPluginConfig(const char *name)
 {
-    if (!name) return false;
-
-    list_t *p;
-    list_for_each(p, &pluginConfList) {
-	pluginConf_t *pluginConf = list_entry(p, pluginConf_t, next);
-	if (pluginConf->name && !(strcmp(pluginConf->name, name))) {
-	    del(pluginConf);
-	    return true;
-	}
+    PluginConf_t *pluginConf = doGetPluginConf(name);
+    if (pluginConf) {
+	del(pluginConf);
+	return true;
     }
+
     return false;
 }
 
@@ -204,7 +206,7 @@ void clearPluginConfigList(void)
 {
     list_t *p, *tmp;
     list_for_each_safe(p, tmp, &pluginConfList) {
-	pluginConf_t *pluginConf = list_entry(p, pluginConf_t, next);
+	PluginConf_t *pluginConf = list_entry(p, PluginConf_t, next);
 	del(pluginConf);
     }
 }
