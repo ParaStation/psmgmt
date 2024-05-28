@@ -58,6 +58,16 @@ extern pthread_mutex_t __mlock;
 #define mset(flag) (logger_getMask(pmixlogger) & (flag))
 
 #if defined __GNUC__ && __GNUC__ < 8
+#define fdbg(mask, format, ...)						\
+    mdbg(mask, "%s: " format, __func__, ##__VA_ARGS__)
+#else
+#define fdbg(mask, format, ...)						\
+    mdbg(mask, "%s: " format, __func__ __VA_OPT__(,) __VA_ARGS__)
+#endif
+
+#define flog(...) fdbg(-1, __VA_ARGS__)
+
+#if defined __GNUC__ && __GNUC__ < 8
 #define udbg(mask, format, ...)						\
     mdbg(mask, "%s(uid %d): " format, __func__, server->uid, ##__VA_ARGS__)
 #else
