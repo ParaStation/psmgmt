@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -162,41 +162,33 @@ static char *showJob(Job_t *job, char *buf, size_t *bufSize)
     /* display saved pbs attributes */
     str2Buf("\n# pbs attributes #\n", &buf, bufSize);
 
-    if (!(list_empty(&job->data.list))) {
+    list_for_each(pos, &job->data.list) {
+	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
+	if (!next->name || *next->name == '\0') break;
 
-	list_for_each(pos, &job->data.list) {
-	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
-	    if (!next->name || *next->name == '\0') break;
-
-	    if (next->resource) {
-		snprintf(line, sizeof(line), "%s:%s = %s\n", next->name,
-			next->resource, next->value);
-	    } else {
-		snprintf(line, sizeof(line), "%s = %s\n", next->name,
-			next->value);
-	    }
-	    str2Buf(line, &buf, bufSize);
+	if (next->resource) {
+	    snprintf(line, sizeof(line), "%s:%s = %s\n", next->name,
+		     next->resource, next->value);
+	} else {
+	    snprintf(line, sizeof(line), "%s = %s\n", next->name, next->value);
 	}
+	str2Buf(line, &buf, bufSize);
     }
 
     /* display known accouting data */
     str2Buf("\n# accounting information #\n", &buf, bufSize);
 
-    if (!(list_empty(&job->status.list))) {
+    list_for_each(pos, &job->status.list) {
+	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL)  break;
+	if (!next->name || *next->name == '\0') break;
 
-	list_for_each(pos, &job->status.list) {
-	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL)  break;
-	    if (!next->name || *next->name == '\0') break;
-
-	    if (next->resource) {
-		snprintf(line, sizeof(line), "%s:%s = %s\n", next->name,
-			next->resource, next->value);
-	    } else {
-		snprintf(line, sizeof(line), "%s = %s\n", next->name,
-			next->value);
-	    }
-	    str2Buf(line, &buf, bufSize);
+	if (next->resource) {
+	    snprintf(line, sizeof(line), "%s:%s = %s\n", next->name,
+		     next->resource, next->value);
+	} else {
+	    snprintf(line, sizeof(line), "%s = %s\n", next->name, next->value);
 	}
+	str2Buf(line, &buf, bufSize);
     }
 
     /* display running job child */
@@ -253,27 +245,21 @@ static char *showState(char *buf, size_t *bufSize)
     str2Buf("\n", &buf, bufSize);
 
     updateInfoList(1);
-    if (!(list_empty(&infoData.list))) {
+    list_for_each(pos, &infoData.list) {
+	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
+	if (!next->name || *next->name == '\0') break;
 
-	list_for_each(pos, &infoData.list) {
-	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
-	    if (!next->name || *next->name == '\0') break;
-
-	    str2Buf(next->value, &buf, bufSize);
-	    str2Buf("\n", &buf, bufSize);
-	}
+	str2Buf(next->value, &buf, bufSize);
+	str2Buf("\n", &buf, bufSize);
     }
     clearDataList(&infoData.list);
 
-    if (!(list_empty(&staticInfoData.list))) {
+    list_for_each(pos, &staticInfoData.list) {
+	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
+	if (!next->name || *next->name == '\0') break;
 
-	list_for_each(pos, &staticInfoData.list) {
-	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
-	    if (!next->name || *next->name == '\0') break;
-
-	    str2Buf(next->value, &buf, bufSize);
-	    str2Buf("\n", &buf, bufSize);
-	}
+	str2Buf(next->value, &buf, bufSize);
+	str2Buf("\n", &buf, bufSize);
     }
 
     return buf;
@@ -685,18 +671,18 @@ char *set(char *key, char *value)
     if (thisConfDef) {
 	int verRes = verifyConfigEntry(confDef, key, value);
 
-	if (!(strcmp(key, "PBS_SERVER"))) {
+	if (!strcmp(key, "PBS_SERVER")) {
 	    return NULL;
-	} else if (!(strcmp(key, "PORT_SERVER"))) {
+	} else if (!strcmp(key, "PORT_SERVER")) {
 	    return NULL;
-	} else if (!(strcmp(key, "PORT_MOM"))) {
+	} else if (!strcmp(key, "PORT_MOM")) {
 	    return NULL;
-	} else if (!(strcmp(key, "PORT_RM"))) {
+	} else if (!strcmp(key, "PORT_RM")) {
 	    return NULL;
-	} else if (!(strcmp(key, "TORQUE_VERSION"))) {
+	} else if (!strcmp(key, "TORQUE_VERSION")) {
 	    return str2Buf("\nInvalid request: changing torque version is not"
 			   " possible without a restart\n", &buf, &bufSize);
-	} else if (!(strcmp(key, "DEBUG_MASK"))) {
+	} else if (!strcmp(key, "DEBUG_MASK")) {
 	    int32_t mask;
 
 	    if ((sscanf(value, "%i", &mask)) != 1) {
@@ -724,8 +710,8 @@ char *set(char *key, char *value)
 	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
 	    str2Buf(line, &buf, &bufSize);
 	}
-    } else if (!(strcmp(key, "statistic"))) {
-	if (!(strcmp(value, "0"))) {
+    } else if (!strcmp(key, "statistic")) {
+	if (!strcmp(value, "0")) {
 	    stat_batchJobs = 0;
 	    stat_interJobs = 0;
 	    stat_successBatchJobs = 0;
@@ -744,7 +730,7 @@ char *set(char *key, char *value)
 	} else {
 	    str2Buf("\nInvalid statistic command\n", &buf, &bufSize);
 	}
-    } else if (!(strcmp(key, "memdebug"))) {
+    } else if (!strcmp(key, "memdebug")) {
 	if (memoryDebug) fclose(memoryDebug);
 
 	if ((memoryDebug = fopen(value, "w+"))) {
@@ -776,7 +762,7 @@ char *unset(char *key)
 
     if (getConfValueC(config, key)) {
 	unsetConfigEntry(config, confDef, key);
-    } else if (!(strcmp(key, "memdebug"))) {
+    } else if (!strcmp(key, "memdebug")) {
 	if (memoryDebug) {
 	    finalizePluginLogger();
 	    fclose(memoryDebug);

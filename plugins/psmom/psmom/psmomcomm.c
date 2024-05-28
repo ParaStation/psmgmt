@@ -145,7 +145,7 @@ ComHandle_t *findComHandleByJobid(char *jobid)
 	}
 
 	if (!com->jobid) continue;
-	if (!(strcmp(jobid, com->jobid))) {
+	if (!strcmp(jobid, com->jobid)) {
 	    return com;
 	}
     }
@@ -421,7 +421,7 @@ void wClose(ComHandle_t *com)
 	return;
     }
 
-    if (!(isValidComHandle(com))) return;
+    if (!isValidComHandle(com)) return;
 
     com->Close(com->socket);
     ufree(com->jobid);

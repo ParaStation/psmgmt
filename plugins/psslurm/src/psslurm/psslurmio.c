@@ -922,7 +922,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 			 IO_replaceStepSymbols(step, 0, step->stdErr));
 
 	fwdata->stdErr[0] = -1;
-	if (outFile && !(strcmp(outFile, errFile))) {
+	if (outFile && !strcmp(outFile, errFile)) {
 	    fwdata->stdErr[1] = fwdata->stdOut[1];
 	} else {
 	    fwdata->stdErr[1] = open(errFile, flags, 0666);

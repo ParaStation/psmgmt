@@ -347,7 +347,7 @@ static void PElogueExit(Job_t *job, int status, bool prologue)
     *track = *track -1;
 
     /* check if PElogue was running on all hosts */
-    if (!(*track)) {
+    if (!*track) {
 	if (*epExit == 0) {
 	    *epExit = status;
 	}

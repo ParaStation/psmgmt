@@ -236,7 +236,7 @@ static bool readHistoryFile(void)
 	histName = PSC_concat(home, "/", HISTNAME);
     }
 
-    if ((stat(histName, &statbuf) < 0) && !(file = fopen(histName, "a"))) {
+    if (stat(histName, &statbuf) < 0 && !(file = fopen(histName, "a"))) {
 	PSIadm_warn(-1, errno, "%s: cannot create history file '%s'",
 		    __func__, histName);
     }

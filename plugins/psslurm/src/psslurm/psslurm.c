@@ -852,7 +852,7 @@ int initialize(FILE *logfile)
     setConfOpt();
 
     if (!registerHooks()) goto INIT_ERROR;
-    if (!(initSlurmdProto())) goto INIT_ERROR;
+    if (!initSlurmdProto()) goto INIT_ERROR;
     if (!Auth_init()) goto INIT_ERROR;
 
     enableFPEexceptions();

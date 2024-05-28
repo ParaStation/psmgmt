@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -136,7 +136,7 @@ static int tcpAcceptClient(int asocket, void *data)
     }
 
     /* check if client is allowed to connect */
-    if (!(isAuthIP(ip))) {
+    if (!isAuthIP(ip)) {
 	mlog("%s: refused connection from non authorized addr:%s\n",
 	    __func__, rAddr);
 	close(socket);
@@ -336,7 +336,7 @@ ssize_t tcpRead(int sock, char *buffer, ssize_t size, const char *caller)
 
     /* no data received from client */
     if (!(read = recv(sock, buffer, size, 0))) {
-        mdbg(PSMOM_LOG_TCP, "%s: no data on socket:%i\n", __func__, sock);
+	mdbg(PSMOM_LOG_TCP, "%s: no data on socket:%i\n", __func__, sock);
 	tcpClose(sock);
 	return -1;
     }
@@ -347,7 +347,7 @@ ssize_t tcpRead(int sock, char *buffer, ssize_t size, const char *caller)
 	    return tcpRead(sock, buffer, size, caller);
 	}
 	mwarn(errno, "%s: tcp read on socket:%i failed ", __func__, sock);
-        return -1;
+	return -1;
     }
 
     /* FIXME: produces to much output, unreadable

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -43,7 +43,7 @@ void recoverJobInfo()
     }
 
     while ((d = readdir(dir))) {
-	if ((!strcmp(d->d_name, ".") || !(strcmp(d->d_name, "..")))) continue;
+	if ((!strcmp(d->d_name, ".") || !strcmp(d->d_name, ".."))) continue;
 
 	mlog("recovering job '%s'\n", d->d_name);
 	snprintf(accFile, sizeof(accFile), "%s/%s", accPath, d->d_name);

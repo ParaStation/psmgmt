@@ -412,7 +412,7 @@ int Step_signal(Step_t *step, int signal, uid_t reqUID)
     if (!step) return 0;
 
     /* check permissions */
-    if (!(verifyUserId(reqUID, step->uid))) {
+    if (!verifyUserId(reqUID, step->uid)) {
 	mlog("%s: request from invalid user '%u'\n", __func__, reqUID);
 	return -1;
     }

@@ -355,7 +355,7 @@ int Job_signalTasks(Job_t *job, int signal, uid_t reqUID)
     int count;
 
     /* check permissions */
-    if (!(verifyUserId(reqUID, job->uid))) {
+    if (!verifyUserId(reqUID, job->uid)) {
 	mlog("%s: request from invalid user '%u'\n", __func__, reqUID);
 	return -1;
     }

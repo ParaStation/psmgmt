@@ -60,7 +60,7 @@ void psmomSwitchUser(char *username, struct passwd *spasswd, int saveEnv)
 
     /* change to new root (chroot) */
     if ((rootDir = getEnvValue("PBS_O_ROOTDIR"))) {
-	if ((chroot(rootDir)) == -1) {
+	if (chroot(rootDir) == -1) {
 	    mlog("%s: chroot(%s) failed : %s\n", __func__, rootDir,
 		    strerror(errno));
 	    exit(1);
@@ -178,7 +178,7 @@ void setOutputFDs(char *outlog, char *errlog, int stdinFD, int logFD)
     int i;
 
     /* Close all open file descriptors, except stdin/out/err */
-    if ((getrlimit(RLIMIT_NOFILE, &rl)) < 0) {
+    if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
 	mlog("%s: can't get file limit 'RLIMIT_NOFILE' : %s\n", __func__,
 		strerror(errno));
 	exit(1);
@@ -193,7 +193,7 @@ void setOutputFDs(char *outlog, char *errlog, int stdinFD, int logFD)
     }
 
     /* connect stdout/err to file */
-    if ((freopen(errlog, "a+", stderr)) == NULL) {
+    if (freopen(errlog, "a+", stderr) == NULL) {
 	mlog("%s: freopen(stderr) failed file '%s' : %s\n", __func__,
 		errlog, strerror(errno));
 	exit(1);
@@ -205,7 +205,7 @@ void setOutputFDs(char *outlog, char *errlog, int stdinFD, int logFD)
     }
 
     /* redirect stdin */
-    if ((dup2(stdinFD, STDIN_FILENO)) == -1) {
+    if (dup2(stdinFD, STDIN_FILENO) == -1) {
 	mlog("%s: dup2 (%i) failed : %s\n", __func__, stdinFD,
 		strerror(errno));
     }
@@ -221,29 +221,29 @@ void setOutputFDs(char *outlog, char *errlog, int stdinFD, int logFD)
  */
 static int resString2Limit(char *limit)
 {
-    if (!(strcmp(limit, "RLIMIT_CPU"))) {
+    if (!strcmp(limit, "RLIMIT_CPU")) {
 	return RLIMIT_CPU;
-    } else if (!(strcmp(limit, "RLIMIT_DATA"))) {
+    } else if (!strcmp(limit, "RLIMIT_DATA")) {
 	return RLIMIT_DATA;
-    } else if (!(strcmp(limit, "RLIMIT_FSIZE"))) {
+    } else if (!strcmp(limit, "RLIMIT_FSIZE")) {
 	return RLIMIT_FSIZE;
-    } else if (!(strcmp(limit, "RLIMIT_RSS"))) {
+    } else if (!strcmp(limit, "RLIMIT_RSS")) {
 	return RLIMIT_RSS;
-    } else if (!(strcmp(limit, "RLIMIT_AS"))) {
+    } else if (!strcmp(limit, "RLIMIT_AS")) {
 	return RLIMIT_AS;
-    } else if (!(strcmp(limit, "RLIMIT_NOFILE"))) {
+    } else if (!strcmp(limit, "RLIMIT_NOFILE")) {
 	return RLIMIT_NOFILE;
-    } else if (!(strcmp(limit, "RLIMIT_STACK"))) {
+    } else if (!strcmp(limit, "RLIMIT_STACK")) {
 	return RLIMIT_STACK;
-    } else if (!(strcmp(limit, "RLIMIT_CORE"))) {
+    } else if (!strcmp(limit, "RLIMIT_CORE")) {
 	return RLIMIT_CORE;
-    } else if (!(strcmp(limit, "RLIMIT_NPROC"))) {
+    } else if (!strcmp(limit, "RLIMIT_NPROC")) {
 	return RLIMIT_NPROC;
-    } else if (!(strcmp(limit, "RLIMIT_MEMLOCK"))) {
+    } else if (!strcmp(limit, "RLIMIT_MEMLOCK")) {
 	return RLIMIT_MEMLOCK;
-    } else if (!(strcmp(limit, "RLIMIT_NICE"))) {
+    } else if (!strcmp(limit, "RLIMIT_NICE")) {
 	return RLIMIT_NICE;
-    } else if (!(strcmp(limit, "RLIMIT_LOCKS"))) {
+    } else if (!strcmp(limit, "RLIMIT_LOCKS")) {
 	return RLIMIT_LOCKS;
     }
 
@@ -286,13 +286,13 @@ static void setDefaultResLimits(char *limits, int soft)
 	    continue;
 	}
 
-	if ((sscanf(lvalue, "%i", &iValue)) != 1) {
+	if (sscanf(lvalue, "%i", &iValue) != 1) {
 	    mlog("%s: invalid rlimit value '%s'\n", __func__, lvalue);
 	    next = strtok_r(NULL, delim, &toksave);
 	    continue;
 	}
 
-	if ((getrlimit(iLimit, &limit)) < 0) {
+	if (getrlimit(iLimit, &limit) < 0) {
 	    mlog("%s: getting rlimit failed :  '%s'\n", __func__,
 		    strerror(errno));
 	    limit.rlim_cur = limit.rlim_max = iValue;
@@ -307,7 +307,7 @@ static void setDefaultResLimits(char *limits, int soft)
 	    }
 	}
 
-	if ((setrlimit(iLimit, &limit)) == -1) {
+	if (setrlimit(iLimit, &limit) == -1) {
 	    mlog("%s: failed setting rlimit '%s' soft '%zu' hard '%zu' : "
 		    "%s\n", __func__, lname, limit.rlim_cur, limit.rlim_max,
 		    strerror(errno));
@@ -342,10 +342,10 @@ static unsigned long sizeToBytes(char *string)
     }, *ptr = conf_table;
 
 
-    if ((sscanf(string, "%lu%10s", &size, suf)) > 2) return 0;
+    if (sscanf(string, "%lu%10s", &size, suf) > 2) return 0;
 
     while (ptr->mult !=  0) {
-	if (!(strcmp(ptr->format, suf))) return ptr->mult * size;
+	if (!strcmp(ptr->format, suf)) return ptr->mult * size;
 	ptr++;
     }
 
@@ -356,7 +356,7 @@ static int strToInt(char *string)
 {
     int num;
 
-    if ((sscanf(string, "%d", &num)) != 1) return 0;
+    if (sscanf(string, "%d", &num) != 1) return 0;
 
     return num;
 }
@@ -379,66 +379,66 @@ void setResourceLimits(Job_t *job)
     data = &job->data;
 
     /* loop through all limits in the job */
-    if ((data && !list_empty(&data->list))) {
+    if (data) {
 	list_for_each(pos, &data->list) {
 	    if (!(next = list_entry(pos, Data_Entry_t, list))) break;
 
-	    if (!(strcmp(next->name, "Resource_List"))) {
+	    if (!strcmp(next->name, "Resource_List")) {
 
 		mdbg(PSMOM_LOG_VERBOSE, "%s: %s to %s\n", __func__,
 			next->resource, next->value);
 
-		if (!(strcmp(next->resource, "pcput")) ||
-			!(strcmp(next->resource, "cput"))) {
+		if (!strcmp(next->resource, "pcput")
+		    || !strcmp(next->resource, "cput")) {
 		    /* max cpu time per process */
 		    limit.rlim_cur = limit.rlim_max =
 			stringTimeToSec(next->value);
-		    if ((setrlimit(RLIMIT_CPU, &limit)) == 1) {
+		    if (setrlimit(RLIMIT_CPU, &limit) == 1) {
 			mwarn(errno, "%s: limit cpu time failed", __func__);
 		    }
-		} else if (!(strcmp(next->resource, "file"))) {
+		} else if (!strcmp(next->resource, "file")) {
 		    /* max file size */
 		    limit.rlim_cur = limit.rlim_max = sizeToBytes(next->value);
-		    if ((setrlimit(RLIMIT_FSIZE, &limit)) == 1) {
+		    if (setrlimit(RLIMIT_FSIZE, &limit) == 1) {
 			mwarn(errno, "%s: limit file size failed", __func__);
 		    }
-		} else if (!(strcmp(next->resource, "pmem")) ||
-				!(strcmp(next->resource, "mem"))) {
+		} else if (!strcmp(next->resource, "pmem")
+			   || !strcmp(next->resource, "mem")) {
 		    /* max physical memory */
 		    limit.rlim_cur = limit.rlim_max = sizeToBytes(next->value);
-		    if ((setrlimit(RLIMIT_DATA, &limit)) == -1) {
+		    if (setrlimit(RLIMIT_DATA, &limit) == -1) {
 			mwarn(errno, "%s: limit physical memory failed",
 			    __func__);
 		    }
 
-		    if ((setrlimit(RLIMIT_RSS, &limit)) == -1) {
+		    if (setrlimit(RLIMIT_RSS, &limit) == -1) {
 			mwarn(errno, "%s: limit physical memory failed",
 			    __func__);
 		    }
-		} else if (!(strcmp(next->resource, "pvmem")) ||
-				!(strcmp(next->resource, "vmem"))) {
+		} else if (!strcmp(next->resource, "pvmem")
+			   || !strcmp(next->resource, "vmem")) {
 		    /* max virtual memory */
 		    limit.rlim_cur = limit.rlim_max = sizeToBytes(next->value);
-		    if ((setrlimit(RLIMIT_AS, &limit)) == -1) {
+		    if (setrlimit(RLIMIT_AS, &limit) == -1) {
 			mwarn(errno, "%s: limit virtual memory failed",
 			    __func__);
 		    }
-		} else if (!(strcmp(next->resource, "nice"))) {
+		} else if (!strcmp(next->resource, "nice")) {
 		    /* nice level */
-		    if ((nice(strToInt(next->value))) == -1 ) {
+		    if (nice(strToInt(next->value)) == -1 ) {
 			mlog("%s: error setting nice value\n", __func__);
 		    }
-		} else if (!(strcmp(next->resource, "walltime"))) {
+		} else if (!strcmp(next->resource, "walltime")) {
 		    /* ignore, already done with the child tracking */
-		} else if (!(strcmp(next->resource, "nodes"))) {
+		} else if (!strcmp(next->resource, "nodes")) {
 		    /* ignore nodes, no real limit */
-		} else if (!(strcmp(next->resource, "neednodes"))) {
+		} else if (!strcmp(next->resource, "neednodes")) {
 		    /* ignore neednodes, no real limit */
-		} else if (!(strcmp(next->resource, "nodect"))) {
+		} else if (!strcmp(next->resource, "nodect")) {
 		    /* ignore nodect, no real limit */
-		} else if (!(strcmp(next->resource, "signal"))) {
+		} else if (!strcmp(next->resource, "signal")) {
 		    /* ignore signal, no real limit */
-		} else if (!(strcmp(next->resource, "depend"))) {
+		} else if (!strcmp(next->resource, "depend")) {
 		    /* ignore signal, no real limit */
 		} else {
 		    mdbg(PSMOM_LOG_WARN, "%s: limit not supported:%s val:%s\n",

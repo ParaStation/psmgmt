@@ -287,7 +287,7 @@ int ReadDigitUL(ComHandle_t *com, unsigned long *digit)
 static int filterDataEntry(const Data_Filter_t *filter, char *name, char *value)
 {
     for (int i = 0; i < DataFilterCount; i++) {
-	if (!(strcmp(name, DataFilterJob[i].name))) {
+	if (!strcmp(name, DataFilterJob[i].name)) {
 	    if (DataFilterJob[i].ignore) return 0;
 	    return 1;
 	}
@@ -431,7 +431,7 @@ int __ReadString(ComHandle_t *com, char *buffer, size_t len, const char *caller)
 
     if ((ret = ReadDigitUL(com, &size)) < 0) {
 	/* hack */
-	if (!!(strcmp(caller, "handle_RM_REQUEST"))) {
+	if (!!strcmp(caller, "handle_RM_REQUEST")) {
 	    mlog("%s(%s): reading string len failed\n", __func__, caller);
 	}
 	return ret;

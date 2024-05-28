@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -86,7 +86,7 @@ void obitWaitingJobs(void)
 
 	    /* request additional job information from the server */
 	    if (job->recovered && job->recoverTrack <= 3 &&
-		!(getJobDetail(&job->data, "Variable_List", NULL))) {
+		!getJobDetail(&job->data, "Variable_List", NULL)) {
 
 		if (!requestJobInformation(job) && job->recoverTrack == 3) {
 		    mlog("%s: requesting recover info for job '%s' failed.\n",
@@ -400,10 +400,10 @@ char *getJobDetail(Data_Entry_t *data, char *name, char *resource)
 	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) {
 	    break;
 	}
-	if (next->name && !(strcmp(next->name, name))) {
+	if (next->name && !strcmp(next->name, name)) {
 	    if (!resource && !next->resource) return next->value;
 	    if (!resource) continue;
-	    if ((next->resource && !(strcmp(next->resource, resource))) ||
+	    if ((next->resource && !strcmp(next->resource, resource)) ||
 		(!next->resource && strlen(resource) == 0)) {
 		return next->value;
 	    }

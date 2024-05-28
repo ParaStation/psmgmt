@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -94,7 +94,7 @@ static void setNetload(void)
     allBytes = 0;
 
     while ((getline(&line, &len, fp)) != -1) {
-	if (!(strchr(line, ':'))) continue;
+	if (!strchr(line, ':')) continue;
 
 	res = sscanf(line, net_format,
 		    interface,
@@ -106,7 +106,7 @@ static void setNetload(void)
 	}
 
 	/* skip loopback devices */
-	if (!(strcmp(interface, "lo"))) continue;
+	if (!strcmp(interface, "lo")) continue;
 
 	allBytes += bytesRecv + bytesSend;
     }
@@ -206,13 +206,13 @@ static void setMemory(void)
 	    return;
 	}
 
-	if (!(strcmp(next, "MemTotal:"))) {
+	if (!strcmp(next, "MemTotal:")) {
 	    memTotal = mem;
-	} else if (!(strcmp(next, "MemFree:"))) {
+	} else if (!strcmp(next, "MemFree:")) {
 	    memFree = mem;
-	} else if (!(strcmp(next, "SwapFree:"))) {
+	} else if (!strcmp(next, "SwapFree:")) {
 	    swapFree = mem;
-	} else if (!(strcmp(next, "SwapTotal:"))) {
+	} else if (!strcmp(next, "SwapTotal:")) {
 	    swapTotal = mem;
 	}
     }
@@ -346,7 +346,7 @@ static void setNCpus(void)
     }
 
     while ((fscanf(fp, "%50s %*[^\n]%*c", next)) != EOF) {
-	if (!(strcmp(next, "processor"))) {
+	if (!strcmp(next, "processor")) {
 	    count++;
 	}
     }

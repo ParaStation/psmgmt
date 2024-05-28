@@ -54,7 +54,7 @@ bool removeDir(char *directory, bool root)
 
     struct dirent *d;
     while ((d = readdir(dir))) {
-	if ((!strcmp(d->d_name, ".") || !(strcmp(d->d_name, "..")))) continue;
+	if ((!strcmp(d->d_name, ".") || !strcmp(d->d_name, ".."))) continue;
 	char buf[PATH_MAX];
 	snprintf(buf, sizeof(buf), "%s/%s", directory, d->d_name);
 

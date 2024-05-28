@@ -598,7 +598,7 @@ int initialize(FILE *logfile)
     }
 
     /* init the configuration */
-    if (!(initPSMomConfig(PSMOM_CONFIG_FILE))) {
+    if (!initPSMomConfig(PSMOM_CONFIG_FILE)) {
 	fprintf(stderr, "%s: init of the configuration failed\n", __func__);
 	return 1;
     }

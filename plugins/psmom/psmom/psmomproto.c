@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -456,7 +456,7 @@ Data_Entry_t *getPBSNodeState(char *server, const char *host)
     WriteDigit(com, 0);
     wDoSend(com);
 
-    if (!(ReadTM(com, &cmd)) || cmd) {
+    if (!ReadTM(com, &cmd) || cmd) {
 	readAllData(com);
 	mlog("%s: failed '%s'\n", __func__, buf);
 	wClose(com);
@@ -536,7 +536,7 @@ int setPBSNodeState(char *server, char *note, char *state, const char *host)
 	wDoSend(com);
 	clearDataList(&data.list);
 
-	if (!(ReadTM(com, &cmd)) || cmd) {
+	if (!ReadTM(com, &cmd) || cmd) {
 	    readAllData(com);
 	    mlog("%s: failed '%s'\n", __func__, buf);
 	    wClose(com);
@@ -554,7 +554,7 @@ int setPBSNodeState(char *server, char *note, char *state, const char *host)
     wDoSend(com);
     clearDataList(&data.list);
 
-    if (!(ReadTM(com, &cmd)) || cmd) {
+    if (!ReadTM(com, &cmd) || cmd) {
 	readAllData(com);
 	mlog("%s: failed '%s'\n", __func__, buf);
 	wClose(com);
@@ -644,7 +644,7 @@ int sendTMJobTermination(Job_t *job)
 		continue;
 	    }
 
-	    if (!(doSendObit(job, serv->addr, serverPort))) continue;
+	    if (!doSendObit(job, serv->addr, serverPort)) continue;
 
 	    obitSuccess = 1;
 	    break;
@@ -799,7 +799,7 @@ static int handle_TM_BQueueJob(ComHandle_t *com, char *sender)
     ReadDigitUI(com, &len);
 
     /* setup various node infos */
-    if (!(setNodeInfos(job))) {
+    if (!setNodeInfos(job)) {
 	send_TM_Error(com, PBSE_NOATTR, "Undefined Attribute", 1);
 	deleteJob(job->id);
 	return false;
@@ -2187,15 +2187,9 @@ static void doWriteStateStruct(ComHandle_t *com, struct list_head *list)
 {
     Data_Entry_t *next;
     struct list_head *pos;
-
-    if (!(list_empty(list))) {
-
-	list_for_each(pos, list) {
-	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) {
-		break;
-	    }
-	    if (next->value) WriteString(com, next->value);
-	}
+    list_for_each(pos, list) {
+	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
+	if (next->value) WriteString(com, next->value);
     }
 }
 

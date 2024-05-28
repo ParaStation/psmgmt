@@ -43,7 +43,7 @@ int rppPoll(int fd, void *data)
 	} else {
 	    if (com->isAuth) {
 		handleNewData(com);
-	    } else if (!(isAuthIP(com->lremoteAddr))
+	    } else if (!isAuthIP(com->lremoteAddr)
 			    || com->remotePort > IPPORT_RESERVED) {
 		mlog("%s: not authorized remote addr or port for stream '%i'\n",
 		    __func__, stream);

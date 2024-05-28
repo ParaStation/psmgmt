@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -49,7 +49,7 @@ static Env_t *findEnvEntry(char *envStr)
     list_for_each(pos, &EnvList.list) {
 	if ((env = list_entry(pos, Env_t, list)) == NULL) return NULL;
 
-	if (!(strncmp(env->var, envStr, len))) {
+	if (!strncmp(env->var, envStr, len)) {
 	    return env;
 	}
     }
@@ -98,7 +98,7 @@ char *getEnvValue(char *name)
     list_for_each(pos, &EnvList.list) {
 	if ((env = list_entry(pos, Env_t, list)) == NULL) return NULL;
 
-	if (!(strncmp(env->var, name, len))) {
+	if (!strncmp(env->var, name, len)) {
 	    if (!(val = strchr(env->var, '='))) return NULL;
 	    val++;
 	    return val;
@@ -214,15 +214,15 @@ void setupPBSEnv(Job_t *job, int interactive)
 	    /* skip "PBS_O_" */
 	    tmp = pStart + 6;
 
-	    if (!(strcmp(name, "PBS_O_HOME"))) {
+	    if (!strcmp(name, "PBS_O_HOME")) {
 		addEnv(tmp);
-	    } else if (!(strcmp(name, "PBS_O_USER"))) {
+	    } else if (!strcmp(name, "PBS_O_USER")) {
 		addEnv(tmp);
-	    } else if (!(strcmp(name, "PBS_O_SHELL"))) {
+	    } else if (!strcmp(name, "PBS_O_SHELL")) {
 		addEnv(tmp);
-	    } else if (!(strcmp(name, "PBS_O_PATH"))) {
+	    } else if (!strcmp(name, "PBS_O_PATH")) {
 		addEnv(tmp);
-	    } else if (!(strcmp(name, "PBS_O_LOGNAME"))) {
+	    } else if (!strcmp(name, "PBS_O_LOGNAME")) {
 		addEnv(tmp);
 	    }
 	    addEnv(pStart);
@@ -250,7 +250,7 @@ void setupPBSEnv(Job_t *job, int interactive)
 	    }
 
 	    /* processes per node */
-	    if (!(strncmp(next, "ppn=", 4))) {
+	    if (!strncmp(next, "ppn=", 4)) {
 		snprintf(name, sizeof(name), "PBS_NUM_PPN=%s", value);
 		addEnv(name);
 		setPPN = 1;

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -265,7 +265,7 @@ static void handle_Local_Request_Account(ComHandle_t *com)
     Job_t *job;
     char jobid[JOB_NAME_LEN];
 
-    if (!(ReadString(com, jobid, sizeof(jobid)))) {
+    if (!ReadString(com, jobid, sizeof(jobid))) {
 	mlog("%s: failed reading jobid\n", __func__);
 	WriteDigit(com, 0);
 	wDoSend(com);

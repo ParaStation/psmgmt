@@ -75,9 +75,9 @@ static ConfObj_t *findConfObj(Config_t conf, char *key)
 	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
 
 	if (conf->caseSensitive) {
-	    if (!(strcmp(obj->key, key))) return obj;
+	    if (!strcmp(obj->key, key)) return obj;
 	} else {
-	    if (!(strcasecmp(obj->key, key))) return obj;
+	    if (!strcasecmp(obj->key, key)) return obj;
 	}
     }
 
@@ -307,7 +307,7 @@ void addConfigEntry(Config_t conf, char *key, char *value)
 void setConfigDefaults(Config_t conf, const ConfDef_t confDef[])
 {
     for (int i = 0; confDef[i].name; i++) {
-	if (!(getConfValue(conf, confDef[i].name)) && confDef[i].def) {
+	if (!getConfValue(conf, confDef[i].name) && confDef[i].def) {
 	    addConfigEntry(conf, confDef[i].name, confDef[i].def);
 	}
     }
@@ -316,7 +316,7 @@ void setConfigDefaults(Config_t conf, const ConfDef_t confDef[])
 const ConfDef_t *getConfigDef(char *name, const ConfDef_t confDef[])
 {
     for (int i = 0; confDef[i].name; i++) {
-	if (!(strcmp(name, confDef[i].name))) return confDef + i;
+	if (!strcmp(name, confDef[i].name)) return confDef + i;
     }
     return NULL;
 }

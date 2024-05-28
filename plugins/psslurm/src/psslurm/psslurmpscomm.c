@@ -1302,7 +1302,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* test if we have all infos to start */
     if (step->rcvdPackProcs == step->packNtasks) {
-	if (!(execStepLeader(step))) {
+	if (!execStepLeader(step)) {
 	    flog("starting user step failed\n");
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
 	    Step_delete(step);
@@ -2579,7 +2579,7 @@ bool initPScomm(void)
 	return false;
     }
 
-    if (!(initHostLT())) {
+    if (!initHostLT()) {
 	mlog("%s: resolving Slurm hosts failed\n", __func__);
 	return false;
     }
