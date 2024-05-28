@@ -2756,29 +2756,29 @@ error:
  * send_RESCLEANUP(), and preparaDestinations() (utilized by
  * send_RESCREATED() and send_JOBCOMPLETE())
  */
-static uint16_t *numToSend = NULL;
+static uint16_t *sendCount = NULL;
 
-static bool prepNumToSend(uint16_t *preSet)
+static bool prepSendCount(uint16_t *preSet)
 {
-    /** size of @ref numToSend */
-    static ssize_t nTSSize = 0;
+    /** size of @ref sendCounter */
+    static ssize_t sCSize = 0;
 
-    if (!numToSend || nTSSize < PSC_getNrOfNodes()) {
-	uint16_t *bak = numToSend;
+    if (!sendCount || sCSize < PSC_getNrOfNodes()) {
+	uint16_t *bak = sendCount;
 
-	nTSSize = PSC_getNrOfNodes();
-	numToSend = realloc(numToSend, nTSSize * sizeof(*numToSend));
-	if (!numToSend) {
+	sCSize = PSC_getNrOfNodes();
+	sendCount = realloc(sendCount, sCSize * sizeof(*sendCount));
+	if (!sendCount) {
 	    free(bak);
-	    nTSSize = 0;
+	    sCSize = 0;
 	    PSID_fwarn(ENOMEM, "realloc()");
 	    return false;
 	}
     }
     if (preSet) {
-	memcpy(numToSend, preSet, nTSSize * sizeof(*numToSend));
+	memcpy(sendCount, preSet, sCSize * sizeof(*sendCount));
     } else {
-	memset(numToSend, 0, nTSSize * sizeof(*numToSend));
+	memset(sendCount, 0, sCSize * sizeof(*sendCount));
     }
 
     return true;
@@ -2814,13 +2814,13 @@ static bool prepareDestinations(PS_SendDB_t *msg, PStask_t *task,
 {
     if (!msg || !task) return false;
 
-    if (!prepNumToSend(filter)) return false;
+    if (!prepSendCount(filter)) return false;
 
     PStask_t *delegate = task->delegate ? task->delegate : task;
     for (uint32_t i = 0; i < delegate->partitionSize; i++) {
 	PSnodes_ID_t node = delegate->partition[i].node;
-	if (numToSend[node]) continue;                   // don't send twice
-	numToSend[node] = 1;
+	if (sendCount[node]) continue;                   // don't send twice
+	sendCount[node] = 1;
 
 	setFragDest(msg, PSC_getTID(node, 0));
 	PSID_fdbg(PSID_LOG_PART, "to node %d\n", node);
@@ -2832,8 +2832,8 @@ static bool prepareDestinations(PS_SendDB_t *msg, PStask_t *task,
 	if (sister->sizeGot != sister->size) continue;   // still incomplete
 	for (uint32_t s = 0; s < sister->size; s++) {
 	    PSnodes_ID_t node = sister->slots[s].node;
-	    if (numToSend[node]) continue;               // don't send twice
-	    numToSend[node] = 1;
+	    if (sendCount[node]) continue;               // don't send twice
+	    sendCount[node] = 1;
 
 	    setFragDest(msg, PSC_getTID(node, 0));
 	    PSID_fdbg(PSID_LOG_PART, "to node %d\n", node);
@@ -3021,16 +3021,16 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 	return false;
     }
 
-    if (!prepNumToSend(NULL)) return false;
+    if (!prepSendCount(NULL)) return false;
 
     /* determine slots to send to each node */
-    for (uint32_t s = 0; s < res->nSlots; s++) numToSend[res->slots[s].node]++;
+    for (uint32_t s = 0; s < res->nSlots; s++) sendCount[res->slots[s].node]++;
 
     /* send message to each node in the reservation containing its local info */
     PS_SendDB_t msg;
     for (uint32_t s = 0; s < res->nSlots; s++) {
 	PSnodes_ID_t node = res->slots[s].node;
-	if (!numToSend[node] || PSIDnodes_getDmnProtoV(node) < 415) continue;
+	if (!sendCount[node] || PSIDnodes_getDmnProtoV(node) < 415) continue;
 
 	initFragBuffer(&msg, PSP_DD_RESSLOTS, -1);
 	setFragDest(&msg, PSC_getTID(node, 0));
@@ -3043,16 +3043,16 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 	uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(node));
 	addUint16ToMsg(nBytes, &msg);          // size of each packed CPU_set
 
-	addUint16ToMsg(numToSend[node], &msg); // number of slots to expect
+	addUint16ToMsg(sendCount[node], &msg); // number of slots to expect
 
-	for (uint32_t ss = s; ss < res->nSlots && numToSend[node]; ss++) {
+	for (uint32_t ss = s; ss < res->nSlots && sendCount[node]; ss++) {
 	    if (res->slots[ss].node != node) continue;
 	    addInt32ToMsg(res->firstRank + ss, &msg);    // rank
 
 	    char cpuBuf[nBytes];
 	    PSCPU_extract(cpuBuf, res->slots[ss].CPUset, nBytes);
 	    addMemToMsg(cpuBuf, nBytes, &msg); // packed CPU_set
-	    numToSend[node]--;
+	    sendCount[node]--;
 	}
 	addInt32ToMsg(-1, &msg);               // end of pairs
 
@@ -3097,7 +3097,7 @@ static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
 	return false;
     }
 
-    if (!prepNumToSend(NULL)) return false;
+    if (!prepSendCount(NULL)) return false;
 
     DDBufferMsg_t msg = {
 	.header = {
@@ -3113,8 +3113,8 @@ static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
     bool error = false;
     for (uint32_t i = 0; i < delegate->partitionSize; i++) {
 	PSnodes_ID_t node = delegate->partition[i].node;
-	if (numToSend[node]) continue;                   // don't send twice
-	numToSend[node] = 1;
+	if (sendCount[node]) continue;                   // don't send twice
+	sendCount[node] = 1;
 
 	PSID_fdbg(PSID_LOG_PART, "to %hu for resID %#x)\n", node, res->rid);
 
@@ -3131,8 +3131,8 @@ static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
 	if (sister->sizeGot != sister->size) continue;   // still incomplete
 	for (uint32_t s = 0; s < sister->size; s++) {
 	    PSnodes_ID_t node = sister->slots[s].node;
-	    if (numToSend[node]) continue;               // don't send twice
-	    numToSend[node] = 1;
+	    if (sendCount[node]) continue;               // don't send twice
+	    sendCount[node] = 1;
 
 	    PSID_fdbg(PSID_LOG_PART, "to %hu for resID %#x)\n", node, res->rid);
 
@@ -3189,12 +3189,12 @@ static bool send_RESCLEANUP(PStask_t *task, PSpart_request_t *sister)
 	return false;
     }
 
-    if (!prepNumToSend(NULL)) return false;
+    if (!prepSendCount(NULL)) return false;
 
     /* do not send message to nodes in the partition */
     for (uint32_t i = 0; i < delegate->partitionSize; i++) {
 	PSnodes_ID_t node = delegate->partition[i].node;
-	numToSend[node] = 1;
+	sendCount[node] = 1;
     }
     /* this includes nodes in sister partitions */
     list_t *s;
@@ -3203,7 +3203,7 @@ static bool send_RESCLEANUP(PStask_t *task, PSpart_request_t *sister)
 	if (sis->sizeGot != sis->size) continue;   // still incomplete
 	for (uint32_t s = 0; s < sis->size; s++) {
 	    PSnodes_ID_t node = sis->slots[s].node;
-	    numToSend[node] = 1;
+	    sendCount[node] = 1;
 	}
     }
 
@@ -3217,8 +3217,8 @@ static bool send_RESCLEANUP(PStask_t *task, PSpart_request_t *sister)
     bool error = false;
     for (uint32_t s = 0; s < sister->size; s++) {
 	PSnodes_ID_t node = sister->slots[s].node;
-	if (numToSend[node]) continue;          // filtered or don't send twice
-	numToSend[node] = 1;
+	if (sendCount[node]) continue;          // filtered or don't send twice
+	sendCount[node] = 1;
 
 	if (PSIDnodes_getDmnProtoV(node) < 416) {
 	    PSID_flog("unsupported on node %hu\n", node);
@@ -5739,8 +5739,8 @@ void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
  */
 static int clearMem(void *dummy)
 {
-    free(numToSend);
-    numToSend = NULL;
+    free(sendCount);
+    sendCount = NULL;
 
     cleanupTmpSpace();
 
