@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2023 ParTec AG, Munich
+ * Copyright (C) 2023-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,12 +15,6 @@
 
 #include "pluginconfig.h"
 #include "list.h"
-
-typedef struct {
-    char *name;
-    Config_t conf;
-    list_t next;
-} pluginConfNode_t;
 
 /**
  * @brief Add configuration

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,6 +20,12 @@
 
 #include "peloguelog.h"
 #include "peloguescript.h"
+
+typedef struct {
+    list_t next;
+    char *name;
+    Config_t conf;
+} pluginConfNode_t;
 
 static LIST_HEAD(pluginConfList);
 
