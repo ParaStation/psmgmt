@@ -12,7 +12,6 @@
 #include <limits.h>
 #include <string.h>
 
-#include "pscommon.h"
 #include "plugin.h"
 
 #include "pluginconfig.h"

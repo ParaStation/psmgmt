@@ -12,7 +12,6 @@
 #include <unistd.h>
 
 #include "plugin.h"
-#include "logging.h"
 
 #include "psexeclog.h"
 #include "psexecscripts.h"

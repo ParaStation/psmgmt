@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "logging.h"
 #include "plugin.h"
 
 #include "psmungeinter.h"

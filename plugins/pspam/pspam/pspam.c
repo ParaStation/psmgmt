@@ -13,7 +13,6 @@
 #include <dlfcn.h>
 #include <unistd.h>
 
-#include "logging.h"
 #include "plugin.h"
 #include "psidplugin.h"
 

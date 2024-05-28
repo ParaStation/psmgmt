@@ -12,7 +12,6 @@
 #include <dlfcn.h>
 
 #include "plugin.h"
-#include "logging.h"
 #include "psidplugin.h"
 #include "psaccounthandles.h"
 

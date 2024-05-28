@@ -16,7 +16,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "logging.h"
 #include "plugin.h"
 #include "pluginconfig.h"
 #include "pspluginprotocol.h"
