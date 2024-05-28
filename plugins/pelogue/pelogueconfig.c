@@ -25,7 +25,7 @@ typedef struct {
     list_t next;
     char *name;
     Config_t conf;
-} pluginConfNode_t;
+} pluginConf_t;
 
 static LIST_HEAD(pluginConfList);
 
@@ -35,10 +35,9 @@ static Config_t getPluginConfig(const char *plugin, const char *caller,
     if (!plugin) {
 	mlog("%s: no plugin given, caller %s:%i\n", __func__, caller, line);
     } else {
-	list_t *pluginConfNodes;
-	pluginConfNode_t *pluginConf;
-	list_for_each(pluginConfNodes, &pluginConfList) {
-	    pluginConf = list_entry(pluginConfNodes, pluginConfNode_t, next);
+	list_t *p;
+	list_for_each(p, &pluginConfList) {
+	    pluginConf_t *pluginConf = list_entry(p, pluginConf_t, next);
 	    if (pluginConf->name && !(strcmp(pluginConf->name, plugin))) {
 		return pluginConf->conf;
 	    }
@@ -160,10 +159,9 @@ bool addPluginConfig(const char *name, Config_t config)
 	return false;
     }
 
-    list_t *pluginConfNodes;
-    pluginConfNode_t *pluginConf;
-    list_for_each(pluginConfNodes, &pluginConfList) {
-	pluginConf = list_entry(pluginConfNodes, pluginConfNode_t, next);
+    list_t *p;
+    list_for_each(p, &pluginConfList) {
+	pluginConf_t *pluginConf = list_entry(p, pluginConf_t, next);
 	if (pluginConf->name && !(strcmp(pluginConf->name, name))) {
 	    /* update existing plugin configuration */
 	    freeConfig(pluginConf->conf);
@@ -171,15 +169,15 @@ bool addPluginConfig(const char *name, Config_t config)
 	    return true;
 	}
     }
-    pluginConfNode_t *new = umalloc(sizeof(*new));
-    new->name = ustrdup(name);
-    new->conf = config;
-    list_add_tail(&new->next, &pluginConfList);
+    pluginConf_t *pluginConf = umalloc(sizeof(*pluginConf));
+    pluginConf->name = ustrdup(name);
+    pluginConf->conf = config;
+    list_add_tail(&pluginConf->next, &pluginConfList);
 
     return true;
 }
 
-static void del(pluginConfNode_t *entry)
+static void del(pluginConf_t *entry)
 {
     list_del(&entry->next);
     freeConfig(entry->conf);
@@ -191,10 +189,9 @@ bool delPluginConfig(const char *name)
 {
     if (!name) return false;
 
-    list_t *pluginConfNodes, *tmp;
-    pluginConfNode_t *pluginConf;
-    list_for_each_safe(pluginConfNodes, tmp, &pluginConfList) {
-	pluginConf = list_entry(pluginConfNodes, pluginConfNode_t, next);
+    list_t *p;
+    list_for_each(p, &pluginConfList) {
+	pluginConf_t *pluginConf = list_entry(p, pluginConf_t, next);
 	if (pluginConf->name && !(strcmp(pluginConf->name, name))) {
 	    del(pluginConf);
 	    return true;
@@ -205,10 +202,9 @@ bool delPluginConfig(const char *name)
 
 void clearPluginConfigList(void)
 {
-    list_t *pluginConfNodes, *tmp;
-    pluginConfNode_t *pluginConf;
-    list_for_each_safe(pluginConfNodes, tmp, &pluginConfList) {
-	pluginConf = list_entry(pluginConfNodes, pluginConfNode_t, next);
+    list_t *p, *tmp;
+    list_for_each_safe(p, tmp, &pluginConfList) {
+	pluginConf_t *pluginConf = list_entry(p, pluginConf_t, next);
 	del(pluginConf);
     }
 }
