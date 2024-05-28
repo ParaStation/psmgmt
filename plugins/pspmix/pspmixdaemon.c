@@ -599,9 +599,10 @@ static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t spawnertid)
  *
  * @returns True on success or if job already known to server, false on error
  */
-static bool addJobToServer(PspmixServer_t *server, PStask_ID_t sessID,
-			   PSjob_t *psjob, env_t env)
+static bool addJobToServer(PspmixServer_t *server, PSjob_t *psjob, env_t env)
 {
+    PStask_ID_t sessID = psjob->sessID;
+
     mdbg(PSPMIX_LOG_CALL, "%s(uid %d session ID %s)\n", __func__,
 	 server->uid, PSC_printTID(sessID));
 
@@ -1037,7 +1038,7 @@ static int hookSpawnTask(void *data)
     }
 
     /* save job in server (if not yet known) and notify running server */
-    bool success = addJobToServer(server, loggertid, psjob, env);
+    bool success = addJobToServer(server, psjob, env);
     if (!usePMIx) envDestroy(env);
     if (success) return 0;
 
