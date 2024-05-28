@@ -37,7 +37,7 @@ static PluginConf_t * doGetPluginConf(const char *name)
     list_t *p;
     list_for_each(p, &pluginConfList) {
 	PluginConf_t *pluginConf = list_entry(p, PluginConf_t, next);
-	if (pluginConf->name && !(strcmp(pluginConf->name, name))) {
+	if (pluginConf->name && !strcmp(pluginConf->name, name)) {
 	    return pluginConf;
 	}
     }
