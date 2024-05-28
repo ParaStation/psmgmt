@@ -43,7 +43,8 @@ static Config_t getPluginConfig(const char *plugin, const char *caller,
 		return pluginConf->conf;
 	    }
 	}
-	mlog("%s: no config for plugin %s caller %s:%i\n", __func__, plugin, caller, line);
+	mlog("%s: no config for plugin %s caller %s:%i\n", __func__, plugin,
+	     caller, line);
     }
     return NULL;
 }
