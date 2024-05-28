@@ -840,6 +840,32 @@ static bool startServer(PspmixServer_t *server)
     return true;
 }
 
+static PspmixServer_t* findOrStartServer(uid_t uid, gid_t gid)
+{
+    /* is there already a PMIx server running for this user? */
+    PspmixServer_t *server = findServer(uid);
+    if (server) return server;
+
+    /* No suitable server found, start one */
+    server = ucalloc(sizeof(*server));
+    server->uid = uid;
+    server->gid = gid;
+    server->timerId = -1;
+    INIT_LIST_HEAD(&server->sessions);
+
+    if (!startServer(server)) {
+	flog("starting PMIx server failed (uid %d)\n", server->uid);
+	return NULL;
+    }
+
+    list_add_tail(&server->next, &pmixServers);
+
+    fdbg(PSPMIX_LOG_VERBOSE, "new PMIx server started (uid %d server %s)\n",
+	 server->uid, PSC_printTID(server->fwdata->tid));
+
+    return server;
+}
+
 /*
  * @brief Stop the PMIx server process
  *
@@ -966,36 +992,18 @@ static int hookSpawnTask(void *data)
 
     if (mset(PSPMIX_LOG_VERBOSE)) printServers();
 
-    /* is there already a PMIx server running for this user? */
-    PspmixServer_t *server = findServer(task->uid);
-    if (server) {
-	/* nothing to do if job is already known to the user's server */
-	PspmixSession_t *session = findSessionInList(loggertid,
-						     &server->sessions);
-	if (session && findJobInList(spawnertid, &session->jobs)) {
-	    fdbg(PSPMIX_LOG_VERBOSE, "rank %d: job already known (uid %d"
-		 " ID %s)\n", task->rank, server->uid,
-		 PSC_printTID(spawnertid));
-	    return 0;
-	}
-    } else {
+    PspmixServer_t *server = findOrStartServer(task->uid, task->gid);
+    if (!server) {
+	flog("unable to get PMIx server for uid %d", task->uid);
+	return -1;
+    }
 
-	/* No suitable server found, start one */
-	server = ucalloc(sizeof(*server));
-	server->uid = task->uid;
-	server->gid = task->gid;
-	server->timerId = -1;
-	INIT_LIST_HEAD(&server->sessions);
-
-	if (!startServer(server)) {
-	    flog("starting PMIx server failed (uid %d)\n", server->uid);
-	    return -1;
-	}
-
-	list_add_tail(&server->next, &pmixServers);
-
-	fdbg(PSPMIX_LOG_VERBOSE, "new PMIx server started (uid %d server %s)\n",
-	     server->uid, PSC_printTID(server->fwdata->tid));
+    /* nothing to do if job is already known to the user's server */
+    PspmixSession_t *session = findSessionInList(loggertid, &server->sessions);
+    if (session && findJobInList(spawnertid, &session->jobs)) {
+	fdbg(PSPMIX_LOG_VERBOSE, "rank %d: job already known (uid %d ID %s)\n",
+	     task->rank, server->uid, PSC_printTID(spawnertid));
+	return 0;
     }
 
     /* fake environment for one process if MPI singleton support is enabled */
