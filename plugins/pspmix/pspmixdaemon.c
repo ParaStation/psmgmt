@@ -966,19 +966,25 @@ static int hookSpawnTask(void *data)
     if (!usePMIx && (jobsize ? atoi(jobsize) : 1) != 1) return 0;
 
     /* find ParaStation session */
-    PStask_ID_t loggertid = task->loggertid;
-    PSsession_t *pssession = PSID_findSessionByID(loggertid);
+    PStask_ID_t sessID = task->loggertid;
+    PSsession_t *pssession = PSID_findSessionByID(sessID);
     if (!pssession) {
-	flog("no session (ID %s)\n", PSC_printTID(loggertid));
+	flog("no session (ID %s)\n", PSC_printTID(sessID));
 	return -1;
     }
 
     /* find ParaStation job */
-    PStask_ID_t spawnertid = task->spawnertid;
-    PSjob_t *psjob = PSID_findJobInSession(pssession, spawnertid);
+    PStask_ID_t jobID = task->spawnertid;
+    PSjob_t *psjob = PSID_findJobInSession(pssession, jobID);
     if (!psjob) {
-	flog("no job (ID %s", PSC_printTID(spawnertid));
-	mlog(" session %s)\n", PSC_printTID(loggertid));
+	flog("no job (ID %s", PSC_printTID(jobID));
+	mlog(" session %s)\n", PSC_printTID(sessID));
+	return -1;
+    }
+    if (psjob->sessID != sessID) {
+	flog("UNEXPECTED: session ID from job and task do not match (%s",
+	     PSC_printTID(psjob->sessID));
+	mlog(" != %s)\n", PSC_printTID(sessID));
 	return -1;
     }
 
@@ -986,8 +992,8 @@ static int hookSpawnTask(void *data)
     PSrsrvtn_ID_t resID = task->resID;
     PSresinfo_t *resInfo = findReservationInList(resID, &psjob->resInfos);
     if (!resInfo) {
-	flog("no reservation %d (ID %s", resID, PSC_printTID(spawnertid));
-	mlog(" session %s)\n", PSC_printTID(loggertid));
+	flog("no reservation %d (ID %s", resID, PSC_printTID(jobID));
+	mlog(" session %s)\n", PSC_printTID(sessID));
 	return -1;
     }
 
@@ -1000,10 +1006,10 @@ static int hookSpawnTask(void *data)
     }
 
     /* nothing to do if job is already known to the user's server */
-    PspmixSession_t *session = findSessionInList(loggertid, &server->sessions);
-    if (session && findJobInList(spawnertid, &session->jobs)) {
+    PspmixSession_t *session = findSessionInList(sessID, &server->sessions);
+    if (session && findJobInList(jobID, &session->jobs)) {
 	fdbg(PSPMIX_LOG_VERBOSE, "rank %d: job already known (uid %d ID %s)\n",
-	     task->rank, server->uid, PSC_printTID(spawnertid));
+	     task->rank, server->uid, PSC_printTID(jobID));
 	return 0;
     }
 
@@ -1044,7 +1050,7 @@ static int hookSpawnTask(void *data)
 
     flog("sending job failed (uid %d server %s", server->uid,
 	 PSC_printTID(server->fwdata->tid));
-    mlog(" session %s)\n", PSC_printTID(loggertid));
+    mlog(" session %s)\n", PSC_printTID(sessID));
 
     flog("stopping PMIx server (uid %d)\n", server->uid);
     stopServer(server);
