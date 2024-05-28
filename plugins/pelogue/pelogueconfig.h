@@ -19,7 +19,7 @@
 typedef struct {
     char *name;
     Config_t conf;
-    list_t nodes;
+    list_t next;
 } pluginConfNode_t;
 
 /**
