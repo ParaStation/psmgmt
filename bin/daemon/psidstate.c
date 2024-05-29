@@ -161,7 +161,8 @@ void PSID_reset(void)
  * Handle the message @a msg of type PSP_CD_DAEMONSTART.
  *
  * This message type is used in order to trigger the startup of a
- * remote daemon via (x)inetd.
+ * remote daemon via (x)inetd or systemd. For the actual mechanism to
+ * start a daemon @ref PSC_startDaemon() is utilized
  *
  * @param msg Pointer to message to handle
  *

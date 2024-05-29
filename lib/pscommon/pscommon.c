@@ -210,9 +210,7 @@ void PSC_startDaemon(in_addr_t hostaddr)
     long maxFD = sysconf(_SC_OPEN_MAX);
     for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) close(fd);
 
-    /*
-     * start the PSI Daemon via inetd
-     */
+    /* start PSI Daemon via (x)inetd or systemd by connecting the magic port */
     int sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
  again:
