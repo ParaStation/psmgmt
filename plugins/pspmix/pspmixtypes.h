@@ -61,7 +61,7 @@ typedef struct {
     list_t next;             /**< used to put into PspmixServer_t's session list */
     PStask_ID_t ID;          /**< unique PMIx session ID (logger's TID) */
     PspmixServer_t *server;  /**< reference to PMIx server handling the session */
-    list_t jobs;             /**< jobs involving this node in the session,
+    list_t jobs;             /**< jobs in the session,
 				  entries are of type PspmixJob_t
 				  (only used in PMIx server, not in daemon) */
     char *tmpdir;            /**< Temporary directory for this session */
@@ -90,7 +90,7 @@ typedef struct {
     list_t next;             /**< used to put into PspmixSession_t's job list */
     PStask_ID_t ID;          /**< uniquee PMIx job ID (spawner's TID) */
     PspmixSession_t *session;/**< reference to PMIx session hosting the job */
-    list_t resInfos;         /**< job's reservations involving this node,
+    list_t resInfos;         /**< job's reservations involving this node,     @todo vermutlich falsch
 				  entries are of type PSresinfo_t
 				  (only used in PMIx server, not in daemon) */
     env_t env;               /**< environment of the spawn creating this job

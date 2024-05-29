@@ -979,6 +979,99 @@ static int hookRecvSpawnReq(void *data)
 }
 
 /**
+ * @brief Hook function for PSIDHOOK_JOBCOMPLETE
+ *
+ * This hook is called when all reservation info of a job has been received,
+ * so when the job is completly known on the local node.
+ *
+ * @param data Pointer to job structure.
+ *
+ * @return Returns 0 on success and -1 on error.
+ */
+static int hookJobComplete(void *data)
+{
+    PSjob_t *psjob = data;
+
+    mdbg(PSPMIX_LOG_CALL, "%s(spawner %s)\n", __func__, PSC_printTID(psjob->ID));
+
+    if (mset(PSPMIX_LOG_VERBOSE)) printServers();
+
+    PspmixJob_t *job = findJob(psjob->ID);
+    if (job) {
+	flog("UNEXPECTED: job %s already known\n", PSC_printTID(psjob->ID));
+	return -1;
+    }
+
+    /* Check whether this job will have local tasks */
+    bool found = false;
+    list_t *r;
+    list_for_each(r, &psjob->resInfos) {
+	PSresinfo_t *resInfo = list_entry(r, PSresinfo_t, next);
+	for (size_t i = 0; i < resInfo->nEntries; i++) {
+	    if (resInfo->entries[i].node == PSC_getMyID()) found = true;
+	}
+    }
+
+    if (found) return 0;
+
+    /* we are on a sister partition for this job, so no spawn request will
+     * be sent to us and we can already create the job and namespace */
+
+    char *tmp;
+    tmp = envGet(psjob->extraData, "UID");
+    if (!tmp) {
+	flog("UID not in extraData of job %s\n", PSC_printTID(psjob->ID));
+	return -1;
+    }
+
+    char *endptr;
+    uid_t uid = strtol(tmp, &endptr, 0);
+    if (endptr == tmp) {
+	flog("invalid UID in extraData of job %s\n", PSC_printTID(psjob->ID));
+	return -1;
+    }
+
+    tmp = envGet(psjob->extraData, "GID");
+    if (!tmp) {
+	flog("GID not in extraData of job %s\n", PSC_printTID(psjob->ID));
+	return -1;
+    }
+
+    gid_t gid = strtol(tmp, &endptr, 0);
+    if (endptr == tmp) {
+	flog("invalid UID in extraData of job %s\n", PSC_printTID(psjob->ID));
+	return -1;
+    }
+
+
+    PspmixServer_t *server = findOrStartServer(uid, gid);
+    if (!server) {
+	flog("unable to get PMIx server for uid %d", uid);
+	return -1;
+    }
+
+    /* create fake environment, this is used by the PMIx server to detect
+     * the sister partition case
+     * @todo fill with real data? */
+    env_t env = envNew(NULL);
+    envSet(env, "__PSPMIX_IS_SISTER_PARTITION_NODE", "1");
+
+    /* save job in server (if not yet known) and notify running server */
+    bool success = addJobToServer(server, psjob, env);
+    envDestroy(env);
+    if (success) return 0;
+
+    flog("sending job failed (uid %d server %s", server->uid,
+	 PSC_printTID(server->fwdata->tid));
+    mlog(" session %s)\n", PSC_printTID(psjob->sessID));
+
+    flog("stopping PMIx server (uid %d)\n", server->uid);
+    stopServer(server);
+
+    return -1;
+}
+
+/**
  * @brief Hook function for PSIDHOOK_SPAWN_TASK
  *
  * This hook is called right before the forwarder for a task is started
@@ -1189,6 +1282,7 @@ void pspmix_initDaemonModule(void)
 {
     PSIDhook_add(PSIDHOOK_FILL_RESFINALIZED, hookFillResFinalized);
     PSIDhook_add(PSIDHOOK_RECV_SPAWNREQ, hookRecvSpawnReq);
+    PSIDhook_add(PSIDHOOK_JOBCOMPLETE, hookJobComplete);
     PSIDhook_add(PSIDHOOK_SPAWN_TASK, hookSpawnTask);
     PSIDhook_add(PSIDHOOK_LOCALJOBREMOVED, hookLocalJobRemoved);
     PSIDhook_add(PSIDHOOK_NODE_DOWN, hookNodeDown);
@@ -1199,6 +1293,7 @@ void pspmix_finalizeDaemonModule(void)
 {
     PSIDhook_del(PSIDHOOK_FILL_RESFINALIZED, hookFillResFinalized);
     PSIDhook_del(PSIDHOOK_RECV_SPAWNREQ, hookRecvSpawnReq);
+    PSIDhook_del(PSIDHOOK_JOBCOMPLETE, hookJobComplete);
     PSIDhook_del(PSIDHOOK_SPAWN_TASK, hookSpawnTask);
     PSIDhook_del(PSIDHOOK_LOCALJOBREMOVED, hookLocalJobRemoved);
     PSIDhook_del(PSIDHOOK_NODE_DOWN, hookNodeDown);
