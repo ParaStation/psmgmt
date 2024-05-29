@@ -42,6 +42,37 @@ typedef enum {
 } PSACCOUNT_Fw_Cmds_t;
 
 /**
+ * @brief Create new script structure
+ *
+ * Create a new script structure
+ *
+ * @return On success, a pointer to the new structure is returned; or
+ * NULL in case of error
+ */
+static Collect_Script_t * getScript(void)
+{
+    return ucalloc(sizeof(Collect_Script_t));
+}
+
+/**
+ * @brief Destroy script structure
+ *
+ * Destroy the script structure @a script releasing all utilized memory.
+ *
+ * @param script Structure to destroy
+ *
+ * @return No return value
+ */
+static void delScript(Collect_Script_t *script)
+{
+    if (!script) return;
+
+    ufree(script->path);
+    envDestroy(script->env);
+    ufree(script);
+}
+
+/**
  * @brief Parse stdout/stderr from collect script
  *
  * @param msg Message to parse
@@ -273,7 +304,7 @@ Collect_Script_t *Script_start(char *title, char *path,
 	return NULL;
     }
 
-    Collect_Script_t *script = umalloc(sizeof(*script));
+    Collect_Script_t *script = getScript();
     script->path = getAbsMonPath(path);
     if (!script->path) {
 	flog("getting absolute script path for %s failed\n", title);
@@ -299,9 +330,7 @@ Collect_Script_t *Script_start(char *title, char *path,
     if (!startForwarder(fwdata)) {
 	flog("starting %s script forwarder failed\n", title);
 	ForwarderData_delete(fwdata);
-	ufree(script->path);
-	envDestroy(script->env);
-	ufree(script);
+	delScript(script);
 	return NULL;
     }
 
@@ -317,9 +346,7 @@ void Script_finalize(Collect_Script_t *script)
     }
 
     shutdownForwarder(script->fwdata);
-    ufree(script->path);
-    envDestroy(script->env);
-    ufree(script);
+    delScript(script);
 }
 
 bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)
