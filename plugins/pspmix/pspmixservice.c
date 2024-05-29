@@ -353,6 +353,31 @@ static void createAppPSet(const char *name, PspmixNamespace_t *ns,
 }
 
 /**
+ * @brief Calculate current universe size
+ *
+ * Calculates the number of all processes in all jobs of the session @a session.
+ *
+ * @param session   session
+ */
+static uint32_t getUniverseSize(PspmixSession_t *session)
+{
+    uint32_t usize = 0;
+    list_t *j;
+    list_for_each(j, &session->jobs) {
+	PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
+	list_t *r;
+	list_for_each(r, &job->resInfos) {
+	    PSresinfo_t *rinfo = list_entry(r, PSresinfo_t, next);
+	    for (size_t i = 0; i < rinfo->nEntries; i++) {
+		PSresinfoentry_t *cur = &rinfo->entries[i];
+		usize += cur->lastRank - cur->firstRank + 1;
+	    }
+	}
+    }
+    return usize;
+}
+
+/**
  * @brief Try to get info of the respawn that initiated the namespace
  *
  * This checks in the job environment of the namespace if all the variables
@@ -523,12 +548,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     /* check if this namespace is spawned out of another one */
     if (!getSpawnInfo(ns)) goto nscreate_error;
 
-    /* set the MPI universe size from environment set by the spawner */
-    char *env = envGet(job->env, "PMIX_UNIV_SIZE");
-    ns->universeSize = env ? atoi(env) : 1;
 
     /* set the job size from environment set by the spawner */
-    env = envGet(job->env, "PMIX_JOB_SIZE");
+    char *env = envGet(job->env, "PMIX_JOB_SIZE");
     ns->jobSize = env ? atoi(env) : 1;
 
     env = envGet(job->env, "PMIX_JOB_NUM_APPS");
@@ -678,7 +700,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* register namespace */
     if (!pspmix_server_registerNamespace(ns->name, ns->jobid, sessionId,
-					 ns->universeSize, ns->jobSize,
+					 getUniverseSize(job->session),
+					 ns->jobSize,
 					 ns->spawnID ? &ns->parent : NULL,
 					 grankOffset, nodeCount, ns->nodelist_s,
 					 &ns->procMap, ns->appsCount, ns->apps,
@@ -940,7 +963,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 	 " %d\n", __func__, client->rank + resInfo->rankOffset, client->rank);
 
     /* remember some information to be used outside the lock */
-    uint32_t universeSize = ns->universeSize;
+    PspmixSession_t *session = ns->job->session;
     uint32_t jobSize = ns->jobSize;
     PSnodes_ID_t nodeId = getNodeFromRank(ns, client->rank);
 
@@ -977,13 +1000,14 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
     }
     ufree(envp);
 
-    /* add custom environment variables */
+    /* add custom environment variables
+     * @todo can we remove this with dropping support for OpenMPI 3.x? */
     char tmp[20];
     snprintf(tmp, sizeof(tmp), "%u", jobSize);
     envSet(env, "OMPI_COMM_WORLD_SIZE", tmp);
     snprintf(tmp, sizeof(tmp), "%d", client->rank);
     envSet(env, "OMPI_COMM_WORLD_RANK", tmp);
-    snprintf(tmp, sizeof(tmp), "%u", universeSize);
+    snprintf(tmp, sizeof(tmp), "%u", getUniverseSize(session));
     envSet(env, "OMPI_UNIVERSE_SIZE", tmp);
 
     /* since this function is always running in the main thread and resInfo

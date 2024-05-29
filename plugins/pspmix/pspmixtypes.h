@@ -175,7 +175,6 @@ typedef struct {
     char jobid[MAX_NSLEN+1];    /**< scheduler assiged job identificator */
     PspmixJob_t *job;           /**< job this namespace is implementing
 				     !!! consider the object as read only !!! */
-    uint32_t universeSize;      /**< size of the MPI universe (from mpiexec) */
     uint32_t jobSize;           /**< size of the job (from mpiexec) */
     PStask_ID_t spawner;        /**< spawner if result of an PMIx_Spawn call */
     uint16_t spawnID;           /**< spawn ID if result of an PMIx_Spawn call */
