@@ -221,9 +221,6 @@ static char *histName = NULL;
 static bool readHistoryFile(void)
 {
     char *env = getenv("PSIADM_HISTFILE");
-    struct stat statbuf;
-    FILE *file = NULL;
-
     if (env) histName = strdup(env);
 
     if (!histName) {
@@ -235,6 +232,8 @@ static bool readHistoryFile(void)
 	histName = PSC_concat(home, "/", HISTNAME);
     }
 
+    struct stat statbuf;
+    FILE *file = NULL;
     if (stat(histName, &statbuf) < 0 && !(file = fopen(histName, "a"))) {
 	PSIadm_fwarn(errno, "cannot create history file '%s'", histName);
     }
@@ -264,11 +263,6 @@ int main(int argc, const char **argv)
 {
     char *copt = NULL, *progfile = NULL;
     int echo=0, noinit=0, quiet=0, reset=0, no_start=0, start_all=0, version=0;
-    int rc;
-    FILE *cmdStream = stdin;
-    bool done = false;
-
-    poptContext optCon;   /* context for parsing command-line options */
 
     struct poptOption optionsTable[] = {
 	{ "command", 'c', POPT_ARG_STRING, &copt, 0,
@@ -293,8 +287,8 @@ int main(int argc, const char **argv)
 	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
 
-    optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
-    rc = poptGetNextOpt(optCon);
+    poptContext optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
+    int rc = poptGetNextOpt(optCon);
 
     if (rc < -1) {
 	/* an error occurred during option processing */
@@ -347,6 +341,7 @@ int main(int argc, const char **argv)
 	}
     }
 
+    FILE *cmdStream = stdin;
     if (progfile) {
 	/* Program-file processing */
 	cmdStream = fopen(progfile, "r");
@@ -366,6 +361,7 @@ int main(int argc, const char **argv)
 	linenoiseSetCompletionCallback(completeLine);
     }
 
+    bool done = false;
     while (!done) {
 	char *line = nextline(cmdStream, quiet);
 	if (!line) break;
