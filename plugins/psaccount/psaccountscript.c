@@ -298,6 +298,11 @@ static bool handleMthrMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     return true;
 }
 
+static int killSession(pid_t session, int sig)
+{
+    return session > 0 ? kill(-session, sig) : -1;
+}
+
 /**
  * @brief Forwarder callback
  *
@@ -359,7 +364,7 @@ Collect_Script_t *Script_start(char *title, char *path,
     fwdata->pTitle = ustrdup(title);
     fwdata->jobID = ustrdup("collect");
     fwdata->graceTime = 1;
-    fwdata->killSession = signalSession;
+    fwdata->killSession = killSession;
     fwdata->callback = callback;
     fwdata->handleFwMsg = handleFwMsg;
     fwdata->childFunc = execCollectScript;
