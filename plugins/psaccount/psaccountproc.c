@@ -93,15 +93,14 @@ static bool cpuGovEnabled = false;
 
 static int getCPUCount(void)
 {
-    int count = 0;
-    char buf[256];
     FILE *fd = fopen(PROC_CPU_INFO, "r");
-
     if (!fd) {
 	flog("open '%s' failed\n", PROC_CPU_INFO);
 	return 0;
     }
 
+    int count = 0;
+    char buf[256];
     while (fgets(buf, sizeof(buf), fd)) {
 	if (!strncmp(buf, "processor", 9)) count++;
     }
@@ -123,16 +122,15 @@ static void initCpuFreq(void)
 	cpuGovEnabled = true;
     } else {
 	/* try to determine static frequency assuming all CPUs are identical */
-	FILE *fd = fopen(PROC_CPU_INFO, "r");
-	double freq, freqFactor = 1.0;
-
 	cpuGovEnabled = false;
+	FILE *fd = fopen(PROC_CPU_INFO, "r");
 	if (!fd) {
 	    cpuCount = 0;
 	    ufree(cpuFreq);
 	    return;
 	}
 
+	double freqFactor = 1.0;
 	while (fgets(buf, sizeof(buf), fd)) {
 	    if (!strncmp(buf, "cpu MHz", 7)) {
 		freqFactor = 1.0e3;
@@ -144,6 +142,7 @@ static void initCpuFreq(void)
 	}
 
 	/* did we find anything? */
+	double freq;
 	if (!feof(fd)) { /* yes, we did */
 	    char *sfreq = strchr(buf, ':') + 2;
 
@@ -158,17 +157,14 @@ static void initCpuFreq(void)
 	}
 	fclose(fd);
 
-	int i;
-	for (i=0; i<cpuCount; i++) cpuFreq[i] = freq * freqFactor;
+	for (int i = 0; i < cpuCount; i++) cpuFreq[i] = freq * freqFactor;
     }
 }
 
 static void updateCpuFreq(void)
 {
-    int i;
-    char buf[256];
-
-    for (i=0; i<cpuCount; i++) {
+    for (int i = 0; i < cpuCount; i++) {
+	char buf[256];
 	snprintf(buf, sizeof(buf), SYS_CPU_FREQ, i);
 	FILE *fd = fopen(buf, "r");
 
@@ -344,11 +340,9 @@ void findDaemonProcs(uid_t uid, bool kill, bool warn)
 
 static bool isDescendantSnap(pid_t parent, pid_t child)
 {
-    ProcSnapshot_t *procChild;
-
     if (!child) return false;
 
-    procChild = findProcSnapshot(child);
+    ProcSnapshot_t *procChild = findProcSnapshot(child);
     if (!procChild) {
 	fdbg(PSACC_LOG_PROC, "child %i not found\n", child);
 	return false;
@@ -371,10 +365,9 @@ static bool isDescendantSnap(pid_t parent, pid_t child)
  */
 static bool isDescendantLive(pid_t parent, pid_t child)
 {
-    ProcStat_t pS;
-
     if (child <= 1) return false;
 
+    ProcStat_t pS;
     if (!readProcStat(child, &pS)) return false;
     if (pS.ppid == parent) return true;
 
@@ -390,11 +383,6 @@ bool isDescendant(pid_t parent, pid_t child)
 
 bool readProcIO(pid_t pid, ProcIO_t *io)
 {
-    FILE *fd;
-    char fileName[128];
-    struct stat sbuf;
-    int ret, eno;
-
     /* format string of /proc/<pid>/io */
     static char io_format[] =
 		    "%*[^:]: "
@@ -412,15 +400,18 @@ bool readProcIO(pid_t pid, ProcIO_t *io)
 
     memset(io, 0, sizeof(*io));
 
+    char fileName[128];
     snprintf(fileName, sizeof(fileName), "/proc/%i/io", pid);
+    struct stat sbuf;
     if (stat(fileName, &sbuf) == -1) return false;
 
-    fd = fopen(fileName,"r");
+    FILE *fd = fopen(fileName,"r");
     if (!fd) {
 	flog("open '%s' failed\n", fileName);
 	return false;
     }
 
+    int ret, eno;
     do {
 	ret = fscanf(fd, io_format, &io->diskRead, &io->diskWrite,
 		     &io->readBytes, &io->writeBytes);
@@ -440,11 +431,6 @@ bool readProcIO(pid_t pid, ProcIO_t *io)
 
 bool readProcStat(pid_t pid, ProcStat_t *pS)
 {
-    FILE *fd;
-    char fileName[128];
-    struct stat sbuf;
-    int ret, eno;
-
     /* format string of /proc/<pid>/stat */
     static char stat_format[] =
 		    "%*d "	    /* pid */
@@ -482,15 +468,18 @@ bool readProcStat(pid_t pid, ProcStat_t *pS)
 
     pS->state[0] = '\0';
 
+    char fileName[128];
     snprintf(fileName, sizeof(fileName), "/proc/%i/stat", pid);
+    struct stat sbuf;
     if (stat(fileName, &sbuf) == -1) return false;
 
-    fd = fopen(fileName,"r");
+    FILE *fd = fopen(fileName,"r");
     if (!fd) {
 	flog("open '%s' failed\n", fileName);
 	return false;
     }
 
+    int ret, eno;
     do {
 	ret = fscanf(fd, stat_format, pS->state, &pS->ppid, &pS->pgrp,
 		     &pS->session, &pS->majflt, &pS->cmajflt, &pS->utime,
@@ -509,24 +498,22 @@ bool readProcStat(pid_t pid, ProcStat_t *pS)
 
 static bool readProcUID(pid_t pid, ProcStat_t *pS)
 {
-    FILE *fd;
     char fileName[128];
-    struct stat sbuf;
-    int ret, eno;
-
     snprintf(fileName, sizeof(fileName), "/proc/%i/task", pid);
+    struct stat sbuf;
     if (stat(fileName, &sbuf) == -1) return false;
     pS->uid = sbuf.st_uid;
 
     snprintf(fileName, sizeof(fileName), "/proc/%i/loginuid", pid);
     if (stat(fileName, &sbuf) == -1) return false;
 
-    fd = fopen(fileName,"r");
+    FILE *fd = fopen(fileName,"r");
     if (!fd) {
 	flog("open '%s' failed\n", fileName);
 	return false;
     }
 
+    int ret, eno;
     do {
 	ret = fscanf(fd, "%u", &pS->loginUid);
 	eno = errno;
@@ -673,14 +660,12 @@ void getDescendantData(pid_t pid, ProcSnapshot_t *res)
 
 void updateProcSnapshot(void)
 {
-    DIR *dir = opendir("/proc/");
-    struct dirent *dent;
-    ProcStat_t pS;
     bool ignoreRoot = getConfValueI(config, "IGNORE_ROOT_PROCESSES");
 
     /* clear all previous proc entrys */
     clearAllProcSnapshots();
 
+    DIR *dir = opendir("/proc/");
     if (!dir) {
 	flog("open /proc failed\n");
 	return;
@@ -689,7 +674,7 @@ void updateProcSnapshot(void)
     if (cpuGovEnabled) updateCpuFreq();
 
     rewinddir(dir);
-    while ((dent = readdir(dir))) {
+    for (struct dirent *dent = readdir(dir); dent; dent = readdir(dir)) {
 	pid_t pid = atoi(dent->d_name);
 	if (pid <= 0) {
 	    fdbg(PSACC_LOG_PROC, "pid %i too small for d_name '%s'\n", pid,
@@ -697,6 +682,7 @@ void updateProcSnapshot(void)
 	    continue;
 	}
 
+	ProcStat_t pS;
 	if (readProcStat(pid, &pS) && readProcUID(pid, &pS)
 	    && (!ignoreRoot || pS.uid) && pS.loginUid != (uid_t)-1
 	    && pS.state[0] != 'Z') {
