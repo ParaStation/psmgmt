@@ -207,5 +207,7 @@ void cleanup(void)
     clearAllClients();
     finalizeProc();
     freeConfig(config);
+
+    mlog("...Bye.\n");
     finalizeLogger();
 }
