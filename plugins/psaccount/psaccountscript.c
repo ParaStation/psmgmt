@@ -25,12 +25,15 @@
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "psserial.h"
+#include "selector.h"
 
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
 #include "pluginmalloc.h"
+#include "psidclient.h"
 #include "psidcomm.h"
 #include "psidplugin.h"
+#include "psidtask.h"
 
 #include "psaccountproc.h"
 #include "psaccountlog.h"
@@ -398,6 +401,28 @@ void Script_finalizeAll(void)
 
     finalized = true;
     if (list_empty(&scriptList)) PSIDplugin_unload("psaccount");
+}
+
+void Script_cleanup(void)
+{
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &scriptList) {
+	Collect_Script_t *script = list_entry(s, Collect_Script_t, next);
+	if (script->fwdata) {
+	    PStask_t *task = PStasklist_find(&managedTasks, script->fwdata->tid);
+	    /* ensure selector gets removed before plugin is unloaded */
+	    if (task && task->fd != -1) Selector_remove(task->fd);
+	    /* more cleanup */
+	    PStask_infoRemove(task, TASKINFO_FORWARDER, script->fwdata);
+	    ForwarderData_delete(script->fwdata);
+	    if (task) {
+		task->sigChldCB = NULL;
+		PSIDclient_delete(task->fd);
+	    }
+	}
+	list_del(&script->next);
+	delScript(script);
+    }
 }
 
 bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)

@@ -194,6 +194,7 @@ void cleanup(void)
 {
     if (mainTimerID != -1) Timer_remove(mainTimerID);
 
+    Script_cleanup();
     Energy_cleanup();
     IC_cleanup();
     FS_cleanup();

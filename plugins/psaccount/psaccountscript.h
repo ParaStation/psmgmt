@@ -98,4 +98,11 @@ bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
  */
 void Script_finalizeAll(void);
 
+/**
+ * @brief Hard cleanup of all scripts still active
+ *
+ * @return No return value
+ */
+void Script_cleanup(void);
+
 #endif  /* __PS_ACCOUNT_SCRIPT */
