@@ -332,14 +332,7 @@ int main(int argc, const char **argv)
     }
 
     /* Read the startup file */
-    if (!noinit) {
-	int ret = handleRCfile(!progfile || echo);
-	if (ret) {
-	    parserRelease();
-	    PSIadm_finalizeLogs();
-	    return ret;
-	}
-    }
+    if (!noinit) handleRCfile(!progfile || echo);
 
     FILE *cmdStream = stdin;
     if (progfile) {
