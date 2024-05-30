@@ -30,6 +30,7 @@
 #include "pluginforwarder.h"
 #include "pluginmalloc.h"
 #include "psidcomm.h"
+#include "psidplugin.h"
 
 #include "psaccountproc.h"
 #include "psaccountlog.h"
@@ -43,6 +44,14 @@ typedef enum {
 
 /** List of scripts currently active */
 static LIST_HEAD(scriptList);
+
+/**
+ * Flag plugin finalization
+ *
+ * Setting it to true will trigger calling @ref PSIDplugin_unload()
+ * once the last script is gone.
+ */
+static bool finalized = false;
 
 /**
  * @brief Create new script structure
@@ -307,6 +316,8 @@ static void callback(int32_t exit_status, Forwarder_Data_t *fw)
 
     list_del(&script->next);
     delScript(script);
+
+    if (finalized && list_empty(&scriptList)) PSIDplugin_unload("psaccount");
 }
 
 Collect_Script_t *Script_start(char *title, char *path,
@@ -384,6 +395,9 @@ void Script_finalizeAll(void)
 	Collect_Script_t *script = list_entry(s, Collect_Script_t, next);
 	shutdownForwarder(script->fwdata);
     }
+
+    finalized = true;
+    if (list_empty(&scriptList)) PSIDplugin_unload("psaccount");
 }
 
 bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)
