@@ -91,8 +91,8 @@ static PStask_t *fwTask;
 /** Flag to be set to true when first kill phase is started */
 static bool killAllChildren = false;
 
-/** Flag indicating if SIGTERM was already send */
-static bool sendHardKill = false;
+/** Flag indicating if SIGTERM was already sent */
+static bool sentHardKill = false;
 
 /** Flag indicating SIGCHLD was received */
 static bool sigChild = false;
@@ -277,7 +277,7 @@ static void signalHandler(int sig)
     switch (sig) {
     case SIGTERM:
 	fwShutdown = true;
-	if (sendHardKill) return;
+	if (sentHardKill) return;
 
 	/* kill the child */
 	killForwarderChild(fwData, SIGTERM, "received SIGTERM", false);
@@ -294,7 +294,7 @@ static void signalHandler(int sig)
 	    /* warning: don't use killSession() in the signal handler.
 	     * Double entry of killSession() can lead to corrupt memory! */
 	    pskill(fwData->cPid, SIGKILL, 0);
-	    sendHardKill = true;
+	    sentHardKill = true;
 	} else {
 	    jobTimeout = true;
 	    killForwarderChild(fwData, SIGTERM, "timeout", false);
