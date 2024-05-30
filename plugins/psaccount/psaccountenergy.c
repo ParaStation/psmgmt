@@ -186,9 +186,8 @@ void Energy_stopScript(void)
     eScript = NULL;
 }
 
-void Energy_finalize(void)
+void Energy_cleanup(void)
 {
-    Energy_stopScript();
     envDestroy(scriptEnv);
 }
 

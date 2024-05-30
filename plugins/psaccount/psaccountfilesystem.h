@@ -28,9 +28,9 @@ bool FS_init(void);
 void FS_stopScript(void);
 
 /**
- * @brief Finalize filesystem monitoring
+ * @brief Cleanup filesystem monitoring memory
  */
-void FS_finalize(void);
+void FS_cleanup(void);
 
 /**
  * @brief Get current filesystem data

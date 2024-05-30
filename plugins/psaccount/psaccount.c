@@ -194,9 +194,9 @@ void cleanup(void)
 {
     if (mainTimerID != -1) Timer_remove(mainTimerID);
 
-    Energy_finalize();
-    IC_finalize();
-    FS_finalize();
+    Energy_cleanup();
+    IC_cleanup();
+    FS_cleanup();
     finalizeAccComm();
 
     if (memoryDebug) fclose(memoryDebug);

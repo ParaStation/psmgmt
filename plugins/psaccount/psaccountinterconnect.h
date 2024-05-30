@@ -32,9 +32,9 @@ bool IC_init(void);
 void IC_stopScript(void);
 
 /**
- * @brief Finalize interconnect monitoring
+ * @brief Cleanup interconnect monitoring memory
  */
-void IC_finalize(void);
+void IC_cleanup(void);
 
 /**
  * @brief Get current interconnect data

@@ -121,9 +121,8 @@ void FS_stopScript(void)
     fsScript = NULL;
 }
 
-void FS_finalize(void)
+void FS_cleanup(void)
 {
-    FS_stopScript();
     envDestroy(scriptEnv);
 }
 

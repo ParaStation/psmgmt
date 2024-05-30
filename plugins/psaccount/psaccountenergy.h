@@ -43,9 +43,9 @@ psAccountEnergy_t *Energy_getData(void);
 void Energy_stopScript(void);
 
 /**
- * @brief Finalize energy monitoring
+ * @brief Cleanup energy monitoring memory
  */
-void Energy_finalize(void);
+void Energy_cleanup(void);
 
 /**
  * @brief Set energy poll time

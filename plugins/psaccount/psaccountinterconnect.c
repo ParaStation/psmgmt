@@ -123,9 +123,8 @@ void IC_stopScript(void)
     iScript = NULL;
 }
 
-void IC_finalize(void)
+void IC_cleanup(void)
 {
-    IC_stopScript();
     envDestroy(scriptEnv);
 }
 
