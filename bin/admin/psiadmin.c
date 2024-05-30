@@ -149,49 +149,40 @@ static char *homedir(void)
 
 #define RCNAME ".psiadminrc"
 
-static int handleRCfile(bool echo)
+static void handleRCfile(bool echo)
 {
     FILE *rcfile = fopen(RCNAME, "r");
-    if (!rcfile && errno != ENOENT) {
-	PSIadm_fwarn(errno, "%s", RCNAME);
-	return -1;
-    }
-    if (!rcfile) {
-	char *rcname, *home = homedir();
+    if (!rcfile && errno != ENOENT) PSIadm_fwarn(errno, "%s", RCNAME);
 
+    /* fall back to $HOME */
+    if (!rcfile) {
+	char *home = homedir();
 	if (!home) {
 	    PSIadm_flog("no homedir?\n");
-	    return -1;
+	    return;
 	}
-
-	rcname = PSC_concat(home, "/", RCNAME);
+	char *rcname = PSC_concat(home, "/", RCNAME);
 	rcfile = fopen(rcname, "r");
-
 	if (!rcfile && errno != ENOENT) {
 	    PSIadm_fwarn(errno, "%s", rcname);
-	    return -1;
 	}
 	free(rcname);
     }
+    if (!rcfile) return;
 
-    if (rcfile) {
-	bool done = false;
+    bool done = false;
+    while (!done) {
+	char *line = nextline(rcfile, true);
+	if (!line) break;
 
-	while (!done) {
-	    char *line = nextline(rcfile, true);
-	    if (!line) break;
-
-	    if (*line) {
-		parser_removeComment(line);
-		if (echo) printf("%s", line);
-		done = parseLine(line);
-	    }
-	    free(line);
+	if (*line) {
+	    parser_removeComment(line);
+	    if (echo) printf("%s", line);
+	    done = parseLine(line);
 	}
-	fclose(rcfile);
+	free(line);
     }
-
-    return 0;
+    fclose(rcfile);
 }
 
 static void getHistoryLen(void)
