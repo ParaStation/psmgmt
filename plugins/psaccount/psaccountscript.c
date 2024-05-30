@@ -41,6 +41,9 @@ typedef enum {
     CMD_UNSET_ENV_VAR,
 } PSACCOUNT_Fw_Cmds_t;
 
+/** List of scripts currently active */
+static LIST_HEAD(scriptList);
+
 /**
  * @brief Create new script structure
  *
@@ -283,6 +286,29 @@ static bool handleMthrMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     return true;
 }
 
+/**
+ * @brief Forwarder callback
+ *
+ * Callback of pluginforwarder indicating the forwarder has
+ * exited. This will cleanup all memory associated to the
+ * corresponding script. During the plugin's shutdown phase this will
+ * trigger to unload the plugin once the last script is gone.
+ *
+ * @param exit_status Scripts exit status (ignored)
+ *
+ * @param fw Pointer to structure representing the  pluginforwarder
+ *
+ * @return No return value
+ */
+static void callback(int32_t exit_status, Forwarder_Data_t *fw)
+{
+    Collect_Script_t *script = fw->userData;
+    if (!script) return;
+
+    list_del(&script->next);
+    delScript(script);
+}
+
 Collect_Script_t *Script_start(char *title, char *path,
 			       scriptDataHandler_t *func, uint32_t poll,
 			       env_t env)
@@ -320,6 +346,7 @@ Collect_Script_t *Script_start(char *title, char *path,
     fwdata->jobID = ustrdup("collect");
     fwdata->graceTime = 1;
     fwdata->killSession = signalSession;
+    fwdata->callback = callback;
     fwdata->handleFwMsg = handleFwMsg;
     fwdata->childFunc = execCollectScript;
     fwdata->fwChildOE = true;
@@ -335,6 +362,8 @@ Collect_Script_t *Script_start(char *title, char *path,
     }
 
     script->fwdata = fwdata;
+    list_add_tail(&script->next, &scriptList);
+
     return script;
 }
 
@@ -346,7 +375,15 @@ void Script_finalize(Collect_Script_t *script)
     }
 
     shutdownForwarder(script->fwdata);
-    delScript(script);
+}
+
+void Script_finalizeAll(void)
+{
+    list_t *s;
+    list_for_each(s, &scriptList) {
+	Collect_Script_t *script = list_entry(s, Collect_Script_t, next);
+	shutdownForwarder(script->fwdata);
+    }
 }
 
 bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)

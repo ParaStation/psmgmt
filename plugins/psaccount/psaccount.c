@@ -31,6 +31,7 @@
 #include "psaccountkvs.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
+#include "psaccountscript.h"
 
 #define PSACCOUNT_CONFIG "psaccount.conf"
 
@@ -184,9 +185,13 @@ int initialize(FILE *logfile)
     return 0;
 }
 
+void finalize(void)
+{
+    Script_finalizeAll();
+}
+
 void cleanup(void)
 {
-    /* remove all timer */
     if (mainTimerID != -1) Timer_remove(mainTimerID);
 
     Energy_finalize();

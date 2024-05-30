@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "list.h"
 #include "pluginforwarder.h"
 #include "psenv.h"
 #include "psaccounttypes.h"
@@ -24,6 +25,7 @@ typedef void scriptDataHandler_t(char *);
 
 /** structure holding all information of a collect script */
 typedef struct {
+    list_t next;
     char *path;
     scriptDataHandler_t *func;
     uint32_t poll;
@@ -88,5 +90,12 @@ bool Script_test(char *spath, char *title);
  */
 bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
 		   const char *envStr);
+
+/**
+ * @brief Finalize all active collect scripts
+ *
+ * @return No return value
+ */
+void Script_finalizeAll(void);
 
 #endif  /* __PS_ACCOUNT_SCRIPT */
