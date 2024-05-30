@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,7 +23,8 @@ extern logger_t PSIadm_logger;
  *
  * @see logger_print()
  */
-#define PSIadm_log(...) logger_print(PSIadm_logger, __VA_ARGS__)
+#define PSIadm_log(...) logger_print(PSIadm_logger, -1, __VA_ARGS__)
+#define PSIadm_flog(...) logger_funcprint(PSIadm_logger, __func__, -1, __VA_ARGS__)
 
 /**
  * Print warn messages via psiadmin's logging facility
@@ -32,6 +34,7 @@ extern logger_t PSIadm_logger;
  * @see logger_warn()
  */
 #define PSIadm_warn(...) logger_warn(PSIadm_logger, __VA_ARGS__)
+#define PSIadm_fwarn(...) logger_funcwarn(PSIadm_logger, __func__, -1, __VA_ARGS__)
 
 /**
  * Print warn messages via psiadmin's logging facility and exit

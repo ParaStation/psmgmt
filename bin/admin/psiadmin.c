@@ -90,7 +90,7 @@ static void printVersion(void)
 static void doReset(void)
 {
     if (geteuid()) {
-	PSIadm_log(-1, "Insufficient privilege for resetting\n");
+	PSIadm_log("Insufficient privilege for resetting\n");
 	exit(-1);
     }
     printf("Initiating RESET.\n");
@@ -152,16 +152,15 @@ static char *homedir(void)
 static int handleRCfile(bool echo)
 {
     FILE *rcfile = fopen(RCNAME, "r");
-
     if (!rcfile && errno != ENOENT) {
-	PSIadm_warn(-1, errno, "%s: %s", __func__, RCNAME);
+	PSIadm_fwarn(errno, "%s", RCNAME);
 	return -1;
     }
     if (!rcfile) {
 	char *rcname, *home = homedir();
 
 	if (!home) {
-	    PSIadm_log(-1, "%s: no homedir?\n", __func__);
+	    PSIadm_flog("no homedir?\n");
 	    return -1;
 	}
 
@@ -169,7 +168,7 @@ static int handleRCfile(bool echo)
 	rcfile = fopen(rcname, "r");
 
 	if (!rcfile && errno != ENOENT) {
-	    PSIadm_warn(-1, errno, "%s: %s", __func__, rcname);
+	    PSIadm_fwarn(errno, "%s", rcname);
 	    return -1;
 	}
 	free(rcname);
@@ -204,10 +203,10 @@ static void getHistoryLen(void)
     unsigned long size = strtoul(env, &tail, 0);
 
     if (*tail) {
-	PSIadm_log(-1, "%s: '%s' invalid, INT_MAX.\n", __func__, env);
+	PSIadm_flog("'%s' invalid, use INT_MAX\n", env);
 	historyLen = INT_MAX;
     } else if (size != (unsigned long)(int)size) {
-	PSIadm_log(-1, "%s: '%s' too large, use INT_MAX.\n", __func__, env);
+	PSIadm_flog("'%s' too large, use INT_MAX\n", env);
 	historyLen = INT_MAX;
     } else {
 	historyLen = (int)size;
@@ -230,21 +229,19 @@ static bool readHistoryFile(void)
     if (!histName) {
 	char *home = homedir();
 	if (!home) {
-	    PSIadm_log(-1, "%s: no homedir?\n", __func__);
+	    PSIadm_flog("no homedir?\n");
 	    return false;
 	}
 	histName = PSC_concat(home, "/", HISTNAME);
     }
 
     if (stat(histName, &statbuf) < 0 && !(file = fopen(histName, "a"))) {
-	PSIadm_warn(-1, errno, "%s: cannot create history file '%s'",
-		    __func__, histName);
+	PSIadm_fwarn(errno, "cannot create history file '%s'", histName);
     }
     if (file) fclose(file);
 
     if (linenoiseHistoryLoad(histName)) {
-	PSIadm_warn(-1, errno, "%s: cannot read history file '%s'",
-		    __func__, histName);
+	PSIadm_fwarn(errno, "cannot read history file '%s'", histName);
 	return false;
     }
     return true;
@@ -255,7 +252,7 @@ static void saveHistoryFile(void)
     if (!histName) return;
 
     if (linenoiseHistorySave(histName)) {
-	PSIadm_warn(-1, errno, "cannot write history file '%s'", histName);
+	PSIadm_fwarn(errno, "cannot write history file '%s'", histName);
 	return;
     }
 
@@ -320,7 +317,7 @@ int main(int argc, const char **argv)
     if (no_start) setenv("__PSI_DONT_START_DAEMON", "", 1);
 
     if (!PSI_initClient(TG_ADMIN)) {
-	PSIadm_log(-1, "cannot contact my own daemon.\n");
+	PSIadm_log("cannot contact my own daemon\n");
 	PSIadm_finalizeLogs();
 	exit(-1);
     }
@@ -355,7 +352,7 @@ int main(int argc, const char **argv)
 	cmdStream = fopen(progfile, "r");
 
 	if (!cmdStream) {
-	    PSIadm_warn(-1, errno, "%s", progfile);
+	    PSIadm_fwarn(errno, "%s", progfile);
 	    parserRelease();
 	    PSIadm_finalizeLogs();
 	    return -1;

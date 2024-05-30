@@ -1677,7 +1677,7 @@ void PSIADM_sighandler(int sig)
 	sleep(2);
 	fprintf(stderr, "PSIadmin: Restarting...\n");
 	if (!PSI_initClient(TG_ADMIN)) {
-	    PSIadm_log(-1, "%s: can't contact my own daemon.\n", __func__);
+	    PSIadm_flog("can't contact my own daemon\n");
 	    exit(-1);
 	}
 	doRestart = false;
