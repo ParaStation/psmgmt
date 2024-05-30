@@ -137,7 +137,7 @@ static void killForwarderChild(Forwarder_Data_t *fw, int sig, char *reason,
 
     pluginflog("signal %u to sid %i (job %s) grace %i%s%s\n", sig, fw->cSid,
 	       fw->jobID ? fw->jobID : "<?>", grace,
-	       reason ? " reason " : "", reason ? reason : "");
+	       reason ? " reason: " : "", reason ? reason : "");
 
     if (sig == SIGTERM) {
 	/* let children being debugged continue */
@@ -761,15 +761,15 @@ static void execForwarder(PStask_t *task)
 
 	struct rusage rusage;
 	if (fw->childFunc) {
-	    int res = wait4(fw->cPid, &status, 0, &rusage);
+	    int childStatus, res = wait4(fw->cPid, &childStatus, 0, &rusage);
 	    if (res == -1) {
 		pluginwarn(errno, "%s: wait4(%d)", __func__, fw->cPid);
-		status = 1;
+		childStatus = 1;
 	    } else if (fw->accounted) {
-		sendAccInfo(fw, status, &rusage);
+		sendAccInfo(fw, childStatus, &rusage);
 	    }
-	    sendExitInfo(status);
-	    fw->chldExitStatus = status;
+	    sendExitInfo(childStatus);
+	    fw->chldExitStatus = childStatus;
 	}
 	/* check for timeout */
 	if (jobTimeout) {
@@ -777,7 +777,7 @@ static void execForwarder(PStask_t *task)
 	    status = -4;
 	}
 
-	if (status) break;
+	if (status || fw->chldExitStatus) break;
 	round++;
     }
 
