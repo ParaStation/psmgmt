@@ -158,7 +158,7 @@ static void handleLocalShutdown(Forwarder_Data_t *fw)
 	sigChild = true;
 	Selector_startOver();
     } else {
-	killForwarderChild(fw, SIGTERM, NULL, true);
+	killForwarderChild(fw, SIGTERM, "local shutdown", true);
     }
 }
 
@@ -208,7 +208,7 @@ static int handleMthrSock(int fd, void *info)
     switch(msg.type) {
     case PLGN_SIGNAL_CHLD:
 	PSP_getTypedMsgBuf(&msg, &used, "signal", &signal, sizeof(signal));
-	killForwarderChild(fw, signal, NULL, true);
+	killForwarderChild(fw, signal, "signal child", true);
 	break;
     case PLGN_START_GRACE:
 	handleGraceTime(fw);
