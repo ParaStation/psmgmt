@@ -139,8 +139,6 @@ static void killForwarderChild(Forwarder_Data_t *fw, int sig, char *reason,
 	       fw->jobID ? fw->jobID : "<?>", grace,
 	       reason ? " reason " : "", reason ? reason : "");
 
-    if (fw->cPid <= 0) return;
-
     if (sig == SIGTERM) {
 	/* let children being debugged continue */
 	doKillChild(fw->cSid, SIGCONT, session);
