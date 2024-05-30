@@ -291,7 +291,10 @@ static void signalHandler(int sig)
 		       fwData->jobID ? fwData->jobID : "<?>");
 	    /* warning: don't use killSession() in the signal handler.
 	     * Double entry of killSession() can lead to corrupt memory! */
-	    pskill(fwData->cPid, SIGKILL, 0);
+	    /* warning: don't use pskill() here. SIGCHLD of the
+	     * fork()ed killer might interfere with the child's
+	     * SIGCHLD and we kill with uid 0 anyhow */
+	    kill(-fwData->cSid, SIGKILL);
 	    sentHardKill = true;
 	} else {
 	    jobTimeout = true;
