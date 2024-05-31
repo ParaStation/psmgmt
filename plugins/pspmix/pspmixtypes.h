@@ -41,6 +41,7 @@ typedef struct {
 				  handled by this PMIx server */
     bool used;               /**< flag if this server is actively used */
     int timerId;             /**< ID of the kill timer or -1 */
+    char tmproot[32];        /**< root for all temporary directories */
 } PspmixServer_t;
 
 /**

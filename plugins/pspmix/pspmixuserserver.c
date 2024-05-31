@@ -20,6 +20,7 @@
 #include "pscommon.h"
 #include "psidutil.h"
 
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
 
 #include "pspmixlog.h"
@@ -80,6 +81,10 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 	return -1;
     }
 
+    /* fill root for all temporary directories */
+    snprintf(server->tmproot, sizeof(server->tmproot), "/tmp/pspmix_%d",
+	     server->uid);
+
     char *clusterid = PSID_config->psiddomain;
     if (!clusterid || !clusterid[0]) clusterid = "ParaStationCluster";
 
@@ -95,7 +100,7 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 static char * genSessionTmpdirName(PspmixSession_t *session)
 {
     char tmp[128];
-    snprintf(tmp, sizeof(tmp), "/tmp/pspmix_%d/%s", session->server->uid,
+    snprintf(tmp, sizeof(tmp), "%s/%s", server->tmproot,
 	     PSC_printTID(session->ID));
 
     return ustrdup(tmp);
@@ -194,7 +199,11 @@ bool pspmix_userserver_removeJob(PStask_ID_t jobID)
     mdbg(PSPMIX_LOG_VERBOSE, "%s(uid %d): job removed (job %s)\n", __func__,
 	 server->uid, pspmix_jobIDsStr(session->ID, jobID));
 
-    if (list_empty(&session->jobs)) pspmix_deleteSession(session, true);
+    if (list_empty(&session->jobs)) {
+	/* remove session's tempdir */
+	removeDir(session->tmpdir, true);
+	pspmix_deleteSession(session, true);
+    }
 
     return true;
 }
@@ -211,6 +220,9 @@ void pspmix_userserver_finalize(Forwarder_Data_t *fwdata)
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     pspmix_service_finalize();
+
+    /* remove root of all temporary directories */
+    removeDir(server->tmproot, true);
 
     server = NULL;
 }
