@@ -183,6 +183,10 @@ void getSessionInfo(int *count, char *buf, size_t size, int *userCount);
  * Send the signal @a sig to all processes being part of the session
  * identified by @a session and all their descendants.
  *
+ * The process list is gathered using @ref updateProcSnapshot() which
+ * ignores root processes by default. This behavior can be adjusted globally
+ * by chaning the IGNORE_ROOT_PROCESSES configuration option.
+ *
  * @param session Session ID to receive the signal
  *
  * @param sig Signal to send.
