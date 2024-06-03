@@ -1297,6 +1297,14 @@ static bool verifySlurmConf(void)
 	return false;
     }
 
+    /* warn if configless is enabled but psslurm does not use it */
+    char *confServer = getConfValueC(Config, "SLURM_CONF_SERVER");
+    if (confHasOpt(SlurmConfig, "SlurmctldParameters", "enable_configless") &&
+        (!confServer || !strcasecmp(confServer, "none"))) {
+	flog("warning: Slurm configless mode enabled but SLURM_CONF_SERVER is "
+	     "not set\n");
+    }
+
     return true;
 }
 
