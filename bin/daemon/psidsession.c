@@ -102,6 +102,7 @@ static PSjob_t *getJob(void)
     PSjob_t *job = PSitems_getItem(jobPool);
     job->creation = time(NULL);
     job->registered = false;
+    job->extraData = NULL;
     INIT_LIST_HEAD(&job->resInfos);
 
     return job;
@@ -135,6 +136,7 @@ static void putJob(PSjob_t *job, PStask_ID_t sessionID, const char *caller)
 		 PSC_printTID(job->ID));
 	PSID_dbg(PSID_LOG_SPAWN, " from session %s\n", PSC_printTID(sessionID));
     }
+    envDestroy(job->extraData);
 
     PSitems_putItem(jobPool, job);
 }
@@ -555,6 +557,12 @@ static void handleJobComplete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PSID_flog("missing job %s", PSC_printTID(jobID));
 	PSID_log(" in session %s\n", PSC_printTID(sessionID));
 	return;
+    }
+
+    if (!envInitialized(job->extraData)) {
+	char **envP = NULL;
+	getStringArrayM(rData, &envP, NULL);
+	job->extraData = envNew(envP);
     }
 
     if (!job->registered) {

@@ -58,7 +58,8 @@ typedef struct {
     PStask_ID_t ID;          /**< unique job identifier (spawner's TID) */
     PStask_ID_t sessID;      /**< PSsession_t.ID this job belongs to */
     time_t creation;         /**< creation time of this job */
-    bool registered;         /**< PSIDHOOK_JOB_RESCOMPLETE called for this */
+    env_t extraData;         /**< extra data from PSIDHOOK_FILL_RESFINALIZED */
+    bool registered;         /**< PSIDHOOK_JOBCOMPLETE called for this */
     list_t resInfos;         /**< reservations in this job (PSresinfo_t) */
 } PSjob_t;
 
