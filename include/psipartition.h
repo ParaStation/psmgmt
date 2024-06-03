@@ -15,6 +15,7 @@
 #ifndef __PSIPARTITION_H__
 #define __PSIPARTITION_H__
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "psnodes.h"
@@ -386,13 +387,26 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
  * indicates an unknown reason.
  *
  * @return Upon success the unique ID of the created reservation will
- * be returned. Or 0 in case of an error.
+ * be returned; or 0 in case of an error
  *
  * @see PSI_requestSlots() PSI_extractSlots()
  */
 PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 				 uint16_t tpp, uint32_t hwType,
 				 PSpart_option_t options, uint32_t *got);
+
+/**
+ * @brief Finalize reservation creation
+ *
+ * Tell the reservation mechanism, that no further reservations
+ * will be created by this caller. This might trigger further actions
+ * within the reservation mechanism like starting the distribution of
+ * reservation information to partnering nodes.
+ *
+ * @return If the reservation mechanism was triggered accordingly,
+ * true is returned; or false in case of error
+ */
+bool PSI_finReservation(void);
 
 /**
  * @brief Request slots from reservation

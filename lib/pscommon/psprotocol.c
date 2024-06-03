@@ -70,6 +70,7 @@ static struct {
     { PSP_CD_RESERVATIONRES   , "PSP_CD_RESERVATIONRES"   },
     { PSP_CD_GETSLOTS         , "PSP_CD_GETSLOTS"         },
     { PSP_CD_SLOTSRES         , "PSP_CD_SLOTSRES"         },
+    { PSP_CD_FINRESERVATION   , "PSP_CD_FINRESERVATION"   },
 
     { PSP_CD_SENDSTOP         , "PSP_CD_SENDSTOP"         },
     { PSP_CD_SENDCONT         , "PSP_CD_SENDCONT"         },

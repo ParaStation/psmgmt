@@ -4311,6 +4311,31 @@ error:
 }
 
 /**
+ * @brief Handle a PSP_CD_FINRESERVATION message
+ *
+ * Handle the message @a inmsg of type PSP_CD_FINRESERVATION.
+ *
+ * This kind of message is used by clients in order to tell the
+ * reservation that no further reservations will be created by this
+ * client. This will trigger the distribution of reservation
+ * information to partnering nodes.
+ *
+ * @param inmsg Pointer to message to handle
+ *
+ * @return Always return true
+ */
+static bool msg_FINRESERVATION(DDBufferMsg_t *inmsg)
+{
+    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
+    if (!task) {
+	PSID_flog("task %s not found\n", PSC_printTID(inmsg->header.sender));
+	return true;
+    }
+
+    return true;
+}
+
+/**
  * @brief Handle a PSP_DD_RESERVATIONRES message
  *
  * Handle the message @a msg of type PSP_DD_RESERVATIONRES.
@@ -5785,6 +5810,7 @@ void initPartition(void)
     PSID_registerMsg(PSP_DD_GETSLOTS, msg_GETSLOTS);
     PSID_registerMsg(PSP_DD_SLOTSRES, msg_SLOTSRES);
     PSID_registerMsg(PSP_CD_SLOTSRES, frwdMsg);
+    PSID_registerMsg(PSP_CD_FINRESERVATION, msg_FINRESERVATION);
 
     PSID_registerDropper(PSP_DD_TASKDEAD, drop_TASKDEAD);
 

@@ -11,7 +11,6 @@
  */
 #include "psipartition.h"
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -1228,6 +1227,24 @@ recv_retry:
     }
 
     return rid;
+}
+
+bool PSI_finReservation(void)
+{
+    DDMsg_t msg = {
+	.type = PSP_CD_FINRESERVATION,
+	.dest = PSC_getTID(-1, 0),
+	.sender = PSC_getMyTID(),
+	.len = sizeof(msg) };
+
+    PSI_log(PSI_LOG_PART, "%s()\n", __func__);
+
+    if (PSI_sendMsg(&msg) < 0) {
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	return false;
+    }
+
+    return true;
 }
 
 int PSI_requestSlots(uint16_t num, PSrsrvtn_ID_t resID)

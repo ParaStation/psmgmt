@@ -306,6 +306,7 @@ typedef enum {
 #define PSP_CD_RESERVATIONRES    0x0067  /**< Reservation result */
 #define PSP_CD_GETSLOTS          0x0068  /**< Request slots from reservation */
 #define PSP_CD_SLOTSRES          0x0069  /**< Slots got from a reservation */
+#define PSP_CD_FINRESERVATION    0x006A  /**< End of reservation requests */
 
 /** Flow-control to loggers and forwarders */
 #define PSP_CD_SENDSTOP          0x0070  /**< Stop sending further packets */
