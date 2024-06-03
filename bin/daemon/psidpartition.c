@@ -23,6 +23,7 @@
 #include "pscommon.h"
 #include "pscpu.h"
 #include "psdaemonprotocol.h"
+#include "psenv.h"
 #include "psserial.h"
 
 #include "psidutil.h"
@@ -2951,11 +2952,14 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
  *
  * @param jobID ID of job that is concluded
  *
+ * @param extra Additional data attached to the job
+ *
  * @param filter Node filter excluding from receiving the information
  *
  * @return On success, true is returned; or false if an error occurred
  */
-static bool send_JOBCOMPLETE(PStask_t *task, PStask_ID_t jobID, uint16_t *filter)
+static bool send_JOBCOMPLETE(PStask_t *task, PStask_ID_t jobID, env_t extra,
+			     uint16_t *filter)
 {
     if (!task) {
 	PSID_flog("no task for job %s\n", PSC_printTID(jobID));
@@ -2979,6 +2983,7 @@ static bool send_JOBCOMPLETE(PStask_t *task, PStask_ID_t jobID, uint16_t *filter
 
     addTaskIdToMsg(task->loggertid, &msg);   // logger's task ID / session ID
     addTaskIdToMsg(jobID, &msg);             // spawners's task ID / job ID
+    if (envInitialized(extra)) addStringArrayToMsg(envGetArray(extra), &msg);
 
     if (sendFragMsg(&msg) == -1) {
 	PSID_flog("sending failed\n");
@@ -4316,9 +4321,14 @@ error:
  * Handle the message @a inmsg of type PSP_CD_FINRESERVATION.
  *
  * This kind of message is used by clients in order to tell the
- * reservation that no further reservations will be created by this
- * client. This will trigger the distribution of reservation
+ * reservation machinery that no further reservations will be created
+ * by this client. This will trigger the distribution of reservation
  * information to partnering nodes.
+ *
+ * For this, a message of type PSP_DD_RESFINALIZED is sent up the task
+ * tree towards the logger. It will be handled by the first task that
+ * contains a partition, i.e. either the logger task or a
+ * Step-forwarder task in case of psslurm and a re-spawned Step.
  *
  * @param inmsg Pointer to message to handle
  *
@@ -4330,6 +4340,97 @@ static bool msg_FINRESERVATION(DDBufferMsg_t *inmsg)
     if (!task) {
 	PSID_flog("task %s not found\n", PSC_printTID(inmsg->header.sender));
 	return true;
+    }
+
+    env_t env = envNew(NULL);
+    char spawnerTID[32];
+    snprintf(spawnerTID, sizeof(spawnerTID), "%d", inmsg->header.sender);
+    envSet(env, "SPAWNER_TID", spawnerTID);
+
+    /* send message up the tree towards the logger */
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_DD_RESFINALIZED, -1);
+    setFragDest(&msg, task->ptid);
+
+    addTaskIdToMsg(inmsg->header.sender, &msg);
+    addStringArrayToMsg(envGetArray(env), &msg);
+    envDestroy(env);
+
+    PSID_fdbg(PSID_LOG_PART, "send PSP_DD_RESFINALIZED to %s\n",
+	      PSC_printTID(task->ptid));
+
+    if (sendFragMsg(&msg) == -1) PSID_flog("sending failed\n");
+
+    return true;
+}
+
+static void handleResFinalized(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+{
+    PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
+    if (!task) {
+	PSID_flog("task %s not found\n", PSC_printTID(msg->header.dest));
+	return;
+    }
+
+    PStask_ID_t jobID;
+    getTaskId(rData, &jobID);
+    char **envP = NULL;
+    getStringArrayM(rData, &envP, NULL);
+    env_t extraData = envNew(envP);
+
+    /* prepare node filter */
+    static ssize_t filterSize = 0;
+    static uint16_t *filter = NULL;
+    if (!filter || filterSize < PSC_getNrOfNodes()) {
+	uint16_t *bak = filter;
+
+	filterSize = PSC_getNrOfNodes();
+	filter = realloc(filter, filterSize * sizeof(*filter));
+	if (!filter) {
+	    free(bak);
+	    filterSize = 0;
+	    PSID_fwarn(ENOMEM, "realloc()");
+	    return;
+	}
+    }
+    memset(filter, 0, filterSize * sizeof(*filter));
+
+    /* filter out all nodes in job's reservations (they get tasks) */
+    list_t *r;
+    list_for_each(r, &task->reservations) {
+	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
+	/* ignore reservations belonging to other jobs */
+	if (res->requester != jobID) continue;
+	/* ignore placeholder reservation */
+	if ((res->options & PART_OPT_DUMMY) && !res->nSlots) continue;
+
+	for (uint32_t s = 0; s < res->nSlots; s++) filter[res->slots[s].node] = 1;
+    }
+
+    send_JOBCOMPLETE(task, jobID, extraData, filter);
+
+    /* keep extraJobData to send to sister partition nodes */
+    if (!envInitialized(task->extraJobData)) {
+	task->extraJobData = extraData;
+    } else {
+	envDestroy(extraData);
+    }
+}
+
+static bool msg_RESFINALIZED(DDTypedBufferMsg_t *msg)
+{
+    PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
+    if (!task) {
+	PSID_flog("task %s not found\n", PSC_printTID(msg->header.dest));
+    } else if (task->ptid && !task->partition) {
+	PSID_fdbg(PSID_LOG_PART, "forward to parent %s\n",
+		  PSC_printTID(task->ptid));
+	msg->header.dest = task->ptid;
+	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_fwarn(errno, "sendMsg()");
+	}
+    } else {
+	recvFragMsg(msg, handleResFinalized);
     }
 
     return true;
@@ -5290,13 +5391,15 @@ static void send_further_RESCREATED(PSpart_request_t *req, PStask_t *task)
 	/* ignore placeholder reservation */
 	if ((res->options & PART_OPT_DUMMY) && !res->nSlots) continue;
 	if (lastRequester && res->requester != lastRequester) {
-	    send_JOBCOMPLETE(&reqHolder, lastRequester, filter);
+	    send_JOBCOMPLETE(&reqHolder, lastRequester,
+			     task->extraJobData, filter);
 	}
 	lastRequester = res->requester;
 	if (!send_RESCREATED(&reqHolder, res, filter))
 	    PSID_flog("send_RESCREATED failed\n");
     }
-    if (lastRequester) send_JOBCOMPLETE(&reqHolder, lastRequester, filter);
+    if (lastRequester) send_JOBCOMPLETE(&reqHolder, lastRequester,
+					task->extraJobData, filter);
 
     deqPart(&reqHolder.sisterParts, req);
 }
@@ -5811,6 +5914,7 @@ void initPartition(void)
     PSID_registerMsg(PSP_DD_SLOTSRES, msg_SLOTSRES);
     PSID_registerMsg(PSP_CD_SLOTSRES, frwdMsg);
     PSID_registerMsg(PSP_CD_FINRESERVATION, msg_FINRESERVATION);
+    PSID_registerMsg(PSP_DD_RESFINALIZED, (handlerFunc_t) msg_RESFINALIZED);
 
     PSID_registerDropper(PSP_DD_TASKDEAD, drop_TASKDEAD);
 

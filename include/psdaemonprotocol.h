@@ -100,6 +100,7 @@
 #define PSP_DD_RESRELEASED         0x0142  /**< Reservation released */
 #define PSP_DD_RESSLOTS            0x0143  /**< Node's reservation slots */
 #define PSP_DD_RESCLEANUP          0x0144  /**< Cleanup reservations */
+#define PSP_DD_RESFINALIZED        0x0145  /**< No more reservations expected */
 #define PSP_DD_JOBCOMPLETE         0x0146  /**< All information on provided */
 
     /***********************************************************/
