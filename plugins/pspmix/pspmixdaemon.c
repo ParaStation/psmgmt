@@ -765,7 +765,7 @@ static int fakeKillSession(pid_t pid, int signal)
  *
  * @param fwdata  the forwarders user data containing the server struct
  */
-int initialCleanup(Forwarder_Data_t *fwdata)
+static int initialCleanup(Forwarder_Data_t *fwdata)
 {
     PspmixServer_t *myserver = fwdata->userData;
 
