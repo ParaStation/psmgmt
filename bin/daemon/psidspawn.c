@@ -2102,6 +2102,8 @@ int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res)
     if (session) {
 	PSjob_t *job = PSID_findJobInSession(session, task->spawnertid);
 	if (job && !job->registered) {
+	    PSID_flog("session %s", PSC_printTID(session->ID));
+	    PSID_log(" job %s register on spawn\n", PSC_printTID(job->ID));
 	    PSIDhook_call(PSIDHOOK_JOBCOMPLETE, job);
 	    job->registered = true;
 	}

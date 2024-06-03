@@ -2938,6 +2938,10 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res, uint16_t *filter)
  * provide the information, messages of type PSP_DD_JOBCOMPLETE are
  * emitted.
  *
+ * Additional data attached to the job that was originally fed via
+ * PSIDHOOK_FILL_RESFINALIZED into the system might be passed via @a
+ * extra.
+ *
  * @a filter might be used to prevent sending the information to
  * certain nodes. It is expected to have a number of elements
  * identical to the result of @ref PSC_getNrOfNodes(), one for each
@@ -4330,6 +4334,12 @@ error:
  * contains a partition, i.e. either the logger task or a
  * Step-forwarder task in case of psslurm and a re-spawned Step.
  *
+ * Plugins might add further information to the PSP_DD_RESFINALIZED
+ * message. For this, the hook of type PSIDHOOK_FILL_RESFINALIZED is
+ * called. The env_t passed to this hook will contain
+ * "SPAWNER_TID=<task ID of spawner>". This and additional content of
+ * env_t will be added to the message.
+ *
  * @param inmsg Pointer to message to handle
  *
  * @return Always return true
@@ -4346,6 +4356,8 @@ static bool msg_FINRESERVATION(DDBufferMsg_t *inmsg)
     char spawnerTID[32];
     snprintf(spawnerTID, sizeof(spawnerTID), "%d", inmsg->header.sender);
     envSet(env, "SPAWNER_TID", spawnerTID);
+
+    PSIDhook_call(PSIDHOOK_FILL_RESFINALIZED, env);
 
     /* send message up the tree towards the logger */
     PS_SendDB_t msg;

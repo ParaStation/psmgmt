@@ -171,7 +171,7 @@ static LIST_HEAD(pluginList);
  *
  * 141: new hook PSIDHOOK_EXEC_CLIENT_EXEC
  *
- * 142: new hook PSIDHOOK_JOBCOMPLETE
+ * 142: new hooks PSIDHOOK_JOBCOMPLETE, PSIDHOOK_FILL_RESFINALIZED
  */
 static int pluginAPIVersion = 142;
 

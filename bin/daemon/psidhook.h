@@ -270,6 +270,13 @@ typedef enum {
 				were received and the job might be registered.
 				arg points to the PSjob_t structure holding all
 				information. */
+    PSIDHOOK_FILL_RESFINALIZED,/**< PSP_CD_FINRESERVATION was received and
+				distribution of reservation information will
+				start. The hook might add additional info;
+				For this, arg points to an env_t initially
+				holding SPAWNER_TID=<tid of spawner>; this and
+				all content of env_t will be distributed
+				alongside the reservations info */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
