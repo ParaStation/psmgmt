@@ -2822,6 +2822,8 @@ static bool prepareDestinations(PS_SendDB_t *msg, PStask_t *task,
 	PSnodes_ID_t node = delegate->partition[i].node;
 	if (sendCount[node]) continue;                   // don't send twice
 	sendCount[node] = 1;
+	if (msg->headType == PSP_DD_JOBCOMPLETE
+	    && PSIDnodes_getDmnProtoV(node) < 417) continue;
 
 	setFragDest(msg, PSC_getTID(node, 0));
 	PSID_fdbg(PSID_LOG_PART, "to node %d\n", node);
@@ -2836,6 +2838,8 @@ static bool prepareDestinations(PS_SendDB_t *msg, PStask_t *task,
 	    if (sendCount[node]) continue;               // don't send twice
 	    sendCount[node] = 1;
 
+	    if (msg->headType == PSP_DD_JOBCOMPLETE
+		&& PSIDnodes_getDmnProtoV(node) < 417) continue;
 	    setFragDest(msg, PSC_getTID(node, 0));
 	    PSID_fdbg(PSID_LOG_PART, "to node %d\n", node);
 	}
@@ -4360,6 +4364,8 @@ static bool msg_FINRESERVATION(DDBufferMsg_t *inmsg)
     PSIDhook_call(PSIDHOOK_FILL_RESFINALIZED, env);
 
     /* send message up the tree towards the logger */
+    if (PSIDnodes_getDmnProtoV(PSC_getID(task->ptid)) < 417) return true;
+
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_DD_RESFINALIZED, -1);
     setFragDest(&msg, task->ptid);
@@ -4438,8 +4444,10 @@ static bool msg_RESFINALIZED(DDTypedBufferMsg_t *msg)
 	PSID_fdbg(PSID_LOG_PART, "forward to parent %s\n",
 		  PSC_printTID(task->ptid));
 	msg->header.dest = task->ptid;
-	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_fwarn(errno, "sendMsg()");
+	if (PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest)) >= 417) {
+	    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
+		PSID_fwarn(errno, "sendMsg()");
+	    }
 	}
     } else {
 	recvFragMsg(msg, handleResFinalized);
