@@ -263,8 +263,9 @@ static bool initTask(PStask_t* task)
     INIT_LIST_HEAD(&task->sisterParts);
     task->usedThreads = -1;
     task->firstSpawner = -1;
-    INIT_LIST_HEAD(&task->reservations);
     INIT_LIST_HEAD(&task->resRequests);
+    INIT_LIST_HEAD(&task->reservations);
+    task->extraJobData = NULL;
     task->activeChild = 0;
     task->numChild = 0;
     task->spawnNodes = NULL;
@@ -369,8 +370,9 @@ static bool reinitTask(PStask_t* task)
     }
     PSpart_clrQueue(&task->sisterParts);
 
-    delReservationList(&task->reservations);
     delReservationList(&task->resRequests);
+    delReservationList(&task->reservations);
+    envDestroy(task->extraJobData);
 
     clearInfoList(&task->info);
 
