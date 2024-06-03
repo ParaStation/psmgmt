@@ -100,8 +100,7 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 static char * genSessionTmpdirName(PspmixSession_t *session)
 {
     char tmp[128];
-    snprintf(tmp, sizeof(tmp), "%s/%s", server->tmproot,
-	     PSC_printTID(session->ID));
+    snprintf(tmp, sizeof(tmp), "%s/0x%08x", server->tmproot, session->ID);
 
     return ustrdup(tmp);
 }
