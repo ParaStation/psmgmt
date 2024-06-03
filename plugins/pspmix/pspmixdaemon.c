@@ -903,6 +903,49 @@ static void stopServer(PspmixServer_t *server)
 }
 
 /**
+ * @brief Hook function for PSIDHOOK_FILL_RESFINALIZED
+ *
+ * This hook is called on the node the spawner is running after receiving
+ * the final reservation of a job.
+ *
+ * Creates the environment that is then distributed to all session nodes
+ * via PSP_DD_JOBCOMPLETE message. On the nodes it is used in
+ * PSIDHOOK_JOBCOMPLETE to create PMIx jobs and register namespaces for
+ * jobs in the same session as a local job but having tasks running on remote
+ * nodes only.
+ *
+ * @param data Pointer to env to fill
+ *
+ * @return Returns 0 on success and -1 on error.
+ */
+static int hookFillResFinalized(void *data)
+{
+    env_t env = data;
+
+    if (!envInitialized(env)) return -1;
+
+    char *stid = envGet(env, "SPAWNER_TID");
+    if (!stid) return -1;
+
+    char *endptr;
+    long spawnertid = strtol(stid, &endptr, 0);
+    if (endptr == stid) return -1;
+
+    PStask_t *task = PStasklist_find(&managedTasks, spawnertid);
+
+    char tmp[32];
+    snprintf(tmp, sizeof(tmp), "%d", task->uid);
+    envSet(env, "UID", tmp);
+
+    snprintf(tmp, sizeof(tmp), "%d", task->gid);
+    envSet(env, "GID", tmp);
+
+    /* @todo fill with more data */
+
+    return 0;
+}
+
+/**
  * @brief Hook function for PSIDHOOK_RECV_SPAWNREQ
  *
  * This hook is called after receiving a spawn request message
@@ -1144,6 +1187,7 @@ static int hookNodeDown(void *data)
 
 void pspmix_initDaemonModule(void)
 {
+    PSIDhook_add(PSIDHOOK_FILL_RESFINALIZED, hookFillResFinalized);
     PSIDhook_add(PSIDHOOK_RECV_SPAWNREQ, hookRecvSpawnReq);
     PSIDhook_add(PSIDHOOK_SPAWN_TASK, hookSpawnTask);
     PSIDhook_add(PSIDHOOK_LOCALJOBREMOVED, hookLocalJobRemoved);
@@ -1153,6 +1197,7 @@ void pspmix_initDaemonModule(void)
 
 void pspmix_finalizeDaemonModule(void)
 {
+    PSIDhook_del(PSIDHOOK_FILL_RESFINALIZED, hookFillResFinalized);
     PSIDhook_del(PSIDHOOK_RECV_SPAWNREQ, hookRecvSpawnReq);
     PSIDhook_del(PSIDHOOK_SPAWN_TASK, hookSpawnTask);
     PSIDhook_del(PSIDHOOK_LOCALJOBREMOVED, hookLocalJobRemoved);
