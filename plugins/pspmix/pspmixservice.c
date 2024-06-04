@@ -353,6 +353,24 @@ static void createAppPSet(const char *name, PspmixNamespace_t *ns,
 }
 
 /**
+ * @brief Calculate reservation size
+ *
+ * Calculates the number of all processes in the reservation represented by
+ * @a resInfo.
+ *
+ * @param resInfo  info object of the reservation
+ */
+static uint32_t getResSize(PSresinfo_t *resInfo)
+{
+    uint32_t rsize = 0;
+    for (size_t i = 0; i < resInfo->nEntries; i++) {
+	PSresinfoentry_t *cur = &resInfo->entries[i];
+	rsize += cur->lastRank - cur->firstRank + 1;
+    }
+    return rsize;
+}
+
+/**
  * @brief Calculate job size
  *
  * Calculates the number of all processes in the job @a job.
@@ -365,10 +383,7 @@ static uint32_t getJobSize(PspmixJob_t *job)
     list_t *r;
     list_for_each(r, &job->resInfos) {
 	PSresinfo_t *rinfo = list_entry(r, PSresinfo_t, next);
-	for (size_t i = 0; i < rinfo->nEntries; i++) {
-	    PSresinfoentry_t *cur = &rinfo->entries[i];
-	    jsize += cur->lastRank - cur->firstRank + 1;
-	}
+	jsize += getResSize(rinfo);
     }
     return jsize;
 }
@@ -586,20 +601,14 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	    goto nscreate_error;
 	}
 
-	/* set the application size from environment set by the spawner */
-	char var[64];
-	snprintf(var, sizeof(var), "PMIX_APP_SIZE_%zu", a);
-	env = envGet(job->env, var);
-	if (!env) {
-	    ulog("broken environment: '%s' missing\n", var);
-	    goto nscreate_error;
-	}
-	ns->apps[a].size = atoi(env);
+	/* set the application size */
+	ns->apps[a].size = getResSize(rinfo);
 
 	/* set first job rank of the application to counted value */
 	ns->apps[a].firstRank = procCount;
 
 	/* set working directory */
+	char var[64];
 	snprintf(var, sizeof(var), "PMIX_APP_WDIR_%zu", a);
 	env = envGet(job->env, var);
 	if (!env) {
