@@ -181,7 +181,6 @@ typedef struct {
     pmix_proc_t parent;         /**< spawn parent if result of PMIx_Spawn */
     uint32_t spawnOpts;         /**< spawn option flags */
     uint32_t spawnReady;        /**< number of respawned processes ready */
-    char *nodelist_s;           /**< comma sep. nodelist string from mpiexec */
     PspmixApp_t *apps;          /**< applications in this namespace */
     size_t appsCount;           /**< number of applications, length of apps */
     list_t procMap;             /**< nodes to process map

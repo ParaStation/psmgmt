@@ -87,7 +87,6 @@ void pspmix_server_operationFinished(bool success, void* cb);
  *		      call, NULL else
  * @param gRankOffset offset to global rank for this job
  * @param numNodes   number of nodes this job/namespace runs at
- * @param nodelist_s string containing comma separated list of nodes in the job
  * @param procMap    process map of the job (which process runs on which node)
  * @param numApps    number of applications in this job/namespace
  * @param apps       application characteristics array of length numApps
@@ -98,8 +97,7 @@ void pspmix_server_operationFinished(bool success, void* cb);
 bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
 				     uint32_t sessionId, uint32_t univSize,
 				     uint32_t jobSize, pmix_proc_t *spawnparent,
-				     pmix_rank_t grankOffset,
-				     uint32_t numNodes, const char *nodelist_s,
+				     pmix_rank_t grankOffset, uint32_t numNodes,
 				     list_t *procMap, uint32_t numApps,
 				     PspmixApp_t *apps, const char *tmpdir,
 				     const char *nsdir, PSnodes_ID_t nodeID);

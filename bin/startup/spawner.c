@@ -96,128 +96,6 @@ static void *__umalloc(size_t size, const char *func)
 #define umalloc(size) __umalloc(size, __func__)
 
 /**
- * @brief Realloc with error handling
- *
- * Wrap standard @ref realloc() with error handling. If the actual
- * @ref realloc() of size @a size on pointer @a ptr fails, an error
- * message giving hint to the calling function @a func is issued and
- * the program is terminated.
- *
- * @param ptr Pointer to re-allocate
- *
- * @param size Size in bytes to allocate
- *
- * @param func Name of the calling function used for error-reporting
- *
- * @return Pointer to the re-allocated memory
- */
-static void *__urealloc(void *ptr, size_t size, const char *func)
-{
-    ptr = realloc(ptr, size);
-    if (!ptr) {
-	fprintf(stderr, "%s: memory reallocation failed\n", func);
-	exit(EXIT_FAILURE);
-    }
-    return ptr;
-}
-#define urealloc(ptr, size) __urealloc(ptr, size, __func__)
-
-/**
- * @brief Get the hostname for a node ID.
- *
- * @param nodeID The node ID to get the hostname for.
- *
- * @return Returns a pointer holding the requested hostname
- */
-static char *getHostByNodeID(PSnodes_ID_t nodeID)
-{
-    in_addr_t nodeIP;
-    struct sockaddr_in nodeAddr;
-    int rc;
-    static char nodeName[NI_MAXHOST];
-
-    /* get ip-address of node */
-    rc = PSI_infoUInt(-1, PSP_INFO_NODE, &nodeID, &nodeIP, false);
-    if (rc || nodeIP == INADDR_ANY) {
-	fprintf(stderr, "%s: getting node info for node ID %i failed, "
-		"errno:%i ret:%i\n", __func__, nodeID, errno, rc);
-	exit(EXIT_FAILURE);
-    }
-
-    /* get hostname */
-    nodeAddr = (struct sockaddr_in) {
-	.sin_family = AF_INET,
-	.sin_port = 0,
-	.sin_addr = { .s_addr = nodeIP } };
-    rc = getnameinfo((struct sockaddr *)&nodeAddr, sizeof(nodeAddr), nodeName,
-		     sizeof(nodeName), NULL, 0, NI_NAMEREQD | NI_NOFQDN);
-    if (rc) {
-	char *dotName = inet_ntoa(nodeAddr.sin_addr);
-	fprintf(stderr, "%s: couldn't resolve hostname for %s: %s\n",
-		__func__, dotName, gai_strerror(rc));
-	return dotName;
-    } else {
-	char *ptr = strchr (nodeName, '.');
-	if (ptr) *ptr = '\0';
-	return nodeName;
-    }
-}
-
-/**
- * @brief Save a string into a buffer and let it dynamically grow if needed.
- *
- * @param strSave The string to write to the buffer.
- *
- * @param buffer The buffer to write the string to.
- *
- * @param bufSize The current size of the buffer.
- *
- * @return Returns a pointer to the buffer
- */
-static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
-{
-#define MALLOC_SIZE 512
-
-    size_t lenSave = strlen(strSave);
-
-    if (!buffer) {
-	*bufSize = (lenSave / MALLOC_SIZE + 1) * MALLOC_SIZE;
-	buffer = umalloc(*bufSize);
-	buffer[0] = '\0';
-    }
-
-    size_t lenBuf = strlen(buffer);
-
-    if (lenBuf + lenSave + 1 > *bufSize) {
-	*bufSize = ((lenBuf + lenSave) / MALLOC_SIZE + 1) * MALLOC_SIZE;
-	buffer = urealloc(buffer, *bufSize);
-    }
-
-    strcat(buffer, strSave);
-
-    return buffer;
-}
-
-/**
- * @brief Get string with comma separated hostname list.
- *
- * @return Returns the requested string
- */
-static char *getUniqueHostnamesString(Conf_t *conf)
-{
-    char *buf = NULL;
-    size_t bufSize = 0;
-
-    for (int i = 0; i < numUniqNodes; i++) {
-	if (i) buf = str2Buf(",", buf, &bufSize);
-
-	buf = str2Buf(getHostByNodeID(jobLocalUniqNodeIDs[i]), buf, &bufSize);
-    }
-
-    return buf;
-}
-
-/**
  * @brief Build a MVAPICH process mapping vector.
  *
  * Build a process mapping vector which is needed by the MVAPICH MPI when
@@ -304,10 +182,6 @@ static env_t createPMEnv(Conf_t *conf)
     if (conf->PMIx) {
 	/* set the PMIX debug mode */
 	if (conf->pmiDbg || getenv("PMIX_DEBUG")) envSet(env, "PMIX_DEBUG", "1");
-
-	/* uniq node list */
-	char *str = getUniqueHostnamesString(conf);
-	if (str) envSet(env, "__PMIX_NODELIST", str);
 
 	/* info about and for respawned processes */
 	if (getenv("PMIX_SPAWNID")) {

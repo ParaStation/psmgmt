@@ -971,7 +971,7 @@ static int hookRecvSpawnReq(void *data)
     mdbg(PSPMIX_LOG_CALL, "%s(task group TG_ANY)\n", __func__);
 
     /* mark environment if mpiexec demands PMIx for this job */
-    if (envGet(prototask->env, "__PMIX_NODELIST")) {
+    if (envGet(prototask->env, "PMIX_JOB_SIZE")) {
 	envAdd(prototask->env, "__USE_PMIX=1"); /* for pspmix_common_usePMIx() */
     }
 
@@ -1173,8 +1173,6 @@ static int hookSpawnTask(void *data)
 	*(ptr-1)='\0';
 	envSet(env, "PMIX_APP_ARGV_0", str);
 	char var[HOST_NAME_MAX + 1];
-	gethostname(var, sizeof(var));
-	envSet(env, "__PMIX_NODELIST", var);
 	snprintf(var, sizeof(var), "%d", resID);
 	envSet(env, "__PMIX_RESID_0", var);
     }

@@ -638,10 +638,6 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	goto nscreate_error;
     }
 
-    /* set the list of nodes string from environment set by the spawner */
-    env = envGet(job->env, "__PMIX_NODELIST");
-    ns->nodelist_s = env ? env : "";
-
     /* will be changed to rankOffest of first application of the job */
     pmix_rank_t grankOffset = 0;
 
@@ -726,8 +722,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 					 getUniverseSize(job->session),
 					 ns->jobSize,
 					 ns->spawnID ? &ns->parent : NULL,
-					 grankOffset, nodeCount, ns->nodelist_s,
-					 &ns->procMap, ns->appsCount, ns->apps,
+					 grankOffset, nodeCount, &ns->procMap,
+					 ns->appsCount, ns->apps,
 					 job->session->tmpdir, nsdir,
 					 PSC_getMyID())) {
 	ulog("failed to register namespace at the pspmix server\n");

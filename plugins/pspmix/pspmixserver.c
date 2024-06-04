@@ -44,6 +44,7 @@
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
+#include "pspmixtypes.h"
 
 /* PMIx' return code change on the move to version 4 of the standard */
 #if PMIX_VERSION_MAJOR < 4
@@ -2564,11 +2565,32 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
     sessionInfo->array = infos;
 }
 
+/**
+ * @brief Get string with comma separated hostname list.
+ *
+ * @return Returns the requested string
+ */
+static char * getNodelistString(list_t *procMap)
+{
+    StrBuffer_t strBuf = { .buf = NULL };
+
+    list_t *n;
+    list_for_each(n, procMap) {
+	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
+	addStrBuf(node->hostname, &strBuf);
+	addStrBuf(",", &strBuf);
+    }
+
+    if (strBuf.strLen > 1) strBuf.buf[strBuf.strLen-1] = '\0';
+
+    return strBuf.buf;
+}
+
 static void fillJobInfoArray(pmix_data_array_t *jobInfo,
 			     const char *nspace, const char *jobId,
 			     uint32_t jobSize, uint32_t maxProcs,
-			     const char *nodelist_s, list_t *procMap,
-			     uint32_t numApps, pmix_rank_t grankOffset)
+			     list_t *procMap,  uint32_t numApps,
+			     pmix_rank_t grankOffset)
 {
 #define JOB_INFO_ARRAY_LEN 8
     pmix_info_t *infos;
@@ -2597,14 +2619,20 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo,
     i++;
 
     /* regex of nodes containing procs for this job */
+    char *nodelist_s = getNodelistString(procMap);
+    if (!nodelist_s) nodelist_s = "";
+
+    mdbg(PSPMIX_LOG_INFOARR, "%s: nodelist string created: '%s'\n", __func__,
+	 nodelist_s);
+
     char *nodelist_r;
     PMIx_generate_regex(nodelist_s, &nodelist_r);
+    ufree(nodelist_s);
     PMIX_INFO_LOAD(&infos[i], PMIX_NODE_MAP, nodelist_r, PMIX_STRING);
     i++;
 
     /* regex describing procs on each node within this job */
-    char *pmap_s;
-    pmap_s = getProcessMapString(procMap);
+    char *pmap_s = getProcessMapString(procMap);
 
     mdbg(PSPMIX_LOG_INFOARR, "%s: proc_map string created: '%s'\n", __func__,
 	 pmap_s);
@@ -3064,8 +3092,7 @@ static void registerNamespace_cb(pmix_status_t status, void *cbdata)
 bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
 				     uint32_t sessionId, uint32_t univSize,
 				     uint32_t jobSize, pmix_proc_t *spawnparent,
-				     pmix_rank_t grankOffset,
-				     uint32_t numNodes, const char *nodelist_s,
+				     pmix_rank_t grankOffset, uint32_t numNodes,
 				     list_t *procMap, uint32_t numApps,
 				     PspmixApp_t *apps, const char *tmpdir,
 				     const char *nsdir, PSnodes_ID_t nodeID)
@@ -3075,9 +3102,8 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
 	     " spawnparent ", __func__, nspace, sessionId, univSize, jobSize);
 	if (!spawnparent) mlog("(null)");
 	else mlog("%s:%u", spawnparent->nspace, spawnparent->rank);
-	mlog(" numNodes %d nodelist_s '%s' numApps %u tmpdir '%s' nsdir '%s'"
-	     " nodeID %hd)\n", numNodes, nodelist_s, numApps, tmpdir, nsdir,
-	     nodeID);
+	mlog(" numNodes %d numApps %u tmpdir '%s' nsdir '%s' nodeID %hd)\n",
+	     numNodes, numApps, tmpdir, nsdir, nodeID);
     }
 
     pmix_status_t status;
@@ -3157,8 +3183,8 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
 
     /* ===== job info array ===== */
     pmix_data_array_t jobInfo;
-    fillJobInfoArray(&jobInfo, nspace, jobid, jobSize, jobSize, nodelist_s,
-		     procMap, numApps, grankOffset);
+    fillJobInfoArray(&jobInfo, nspace, jobid, jobSize, jobSize, procMap,
+		     numApps, grankOffset);
     PMIX_INFO_LOAD(&data.info[i], PMIX_JOB_INFO_ARRAY, &jobInfo,
 		   PMIX_DATA_ARRAY);
     i++;
