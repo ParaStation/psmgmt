@@ -562,30 +562,15 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     /* check if this namespace is spawned out of another one */
     if (!getSpawnInfo(ns)) goto nscreate_error;
 
-
-    /* set the job size */
-    ns->jobSize = getJobSize(job);
-
-    /* double check with environment, @todo maybe remove in the future */
-    char *env = envGet(job->env, "PMIX_JOB_SIZE");
-    if (env) {
-	uint32_t jsize = atoi(env);
-	if (ns->jobSize != jsize) {
-	    flog("calculated job size does not match environment (%u != %u)\n",
-		 ns->jobSize, jsize);
-	}
-    }
-
-
-
-    env = envGet(job->env, "PMIX_JOB_NUM_APPS");
+    /* take number from env, better than counting twice */
+    char *env = envGet(job->env, "PMIX_JOB_NUM_APPS");
     ns->appsCount = env ? atoi(env) : 1;
     ns->apps = umalloc(ns->appsCount * sizeof(*ns->apps));
 
-    uint32_t procCount = 0;
 
     /* we expect the reservation infos to be in order, one per app */
     size_t a = 0;
+    uint32_t procCount = 0;
     list_t *r;
     list_for_each(r, &job->resInfos) {
 	PSresinfo_t *rinfo = list_entry(r, PSresinfo_t, next);
@@ -641,12 +626,21 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	a++;
     }
 
-    if (procCount != ns->jobSize) {
-	ulog("sum of application sizes does not match job size\n");
-	goto nscreate_error;
+    /* set the job size */
+    ns->jobSize = procCount;
+
+    /* double check with environment
+     * @todo maybe remove in the future */
+    env = envGet(job->env, "PMIX_JOB_SIZE");
+    if (env) {
+	uint32_t jsize = atoi(env);
+	if (ns->jobSize != jsize) {
+	    flog("calculated job size does not match environment (%u != %u)\n",
+		 ns->jobSize, jsize);
+	}
     }
 
-    /* will be changed to rankOffest of first application of the job */
+    /* will be changed to rankOffset of first application of the job */
     pmix_rank_t grankOffset = 0;
 
     /* add process information and mapping to namespace */
