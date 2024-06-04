@@ -120,7 +120,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_DATA) \
-	$(dist_pamconf_DATA) $(dist_plugin_DATA) \
+	$(am__dist_pamconf_DATA_DIST) $(dist_plugin_DATA) \
 	$(am__dist_sysctl_DATA_DIST) $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
@@ -144,6 +144,7 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+am__dist_pamconf_DATA_DIST = pam/psid
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -365,7 +366,7 @@ dist_plugin_DATA = psaccount.conf
 dist_noinst_DATA = parastation.conf.tmpl README.nodeinfo README.pspam	\
 	README.psgw
 
-dist_pamconf_DATA = pam/psid
+@PAM_ENABLED_TRUE@dist_pamconf_DATA = pam/psid
 EXTRA_DIST = MessageTypes psconfig systemd
 all: all-am
 
