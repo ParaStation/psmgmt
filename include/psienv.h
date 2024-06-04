@@ -75,6 +75,20 @@ void unsetPSIEnv(const char *name);
 bool addPSIEnv(const char *string);
 
 /**
+ * @brief Add environment to ParaStation Environment
+ *
+ * Add a whole environment @a env consisting of an arbitrary number of
+ * environment variables to the ParaStation Environment. Nevertheless,
+ * it is ensured that variables are still unique, i.e. variables
+ * existing before in the ParaStation Environment will be overwritten.
+ *
+ * @param env Environment to add
+ *
+ * @return On success, true is returned; or false if an error occurred
+ */
+bool concatPSIEnv(const env_t env);
+
+/**
  * @brief Lookup the variable @a name in the ParaStation Environment
  *
  * Find the variable @a name within the ParaStation Environment and return
