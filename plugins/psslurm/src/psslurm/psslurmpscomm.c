@@ -1232,6 +1232,9 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint32(data, &packJobid);
     /* stepid */
     getUint32(data, &stepid);
+    /* packJobid for old protocol versions, tbr */
+    uint32_t unused;
+    getUint32(data, &unused);
 
     if (!Alloc_findByPackID(packJobid)) {
 	flog("allocation %u not found\n", packJobid);
@@ -2664,6 +2667,8 @@ int send_PS_PackInfo(Step_t *step)
     addUint32ToMsg(step->packJobid, &data);
     /* stepid */
     addUint32ToMsg(step->stepid, &data);
+    /* add packJobid again to stay compatible with older versions, tbr */
+    addUint32ToMsg(step->packJobid, &data);
     /* pack task offset */
     addUint32ToMsg(step->packTaskOffset, &data);
     /* np */
