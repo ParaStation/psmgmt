@@ -720,7 +720,7 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
 	Step_signalByJobid(req->jobid, req->signal, req->uid);
     } else if (req->flags & KILL_STEPS_ONLY) {
 	/* send signal to all steps excluding the jobscript */
-	flog("send steps %u:%u (stepHetComp %u) signal %u\n",
+	flog("send steps %u.%u (stepHetComp %u) signal %u\n",
 	     req->jobid, req->stepid, req->stepHetComp, req->signal);
 	Step_signalByJobid(req->jobid, req->signal, req->uid);
     } else {
@@ -729,8 +729,10 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
 	    return Job_signalJS(req->jobid, req->signal, req->uid);
 	} else {
 	    /* signal a single step */
-	    flog("send step %u:%u (stepHetComp %u) signal %u\n",
-		 req->jobid, req->stepid, req->stepHetComp, req->signal);
+	    Step_t s = { .jobid = req->jobid,
+			 .stepid = req->stepid };
+	    flog("send %s (stepHetComp %u) signal %u\n", Step_strID(&s),
+		 req->stepHetComp, req->signal);
 	    Step_t *step = Step_findByStepId(req->jobid, req->stepid);
 	    if (step) return Step_signal(step, req->signal, req->uid);
 	}

@@ -597,7 +597,7 @@ const char *Step_strID(const Step_t *step)
 	    snprintf(buf, sizeof(buf), "step %u+%u.%u (%u)", step->packJobid,
 		     step->packOffset, step->stepid, step->jobid);
 	} else {
-	    snprintf(buf, sizeof(buf), "step %u:%u", step->jobid, step->stepid);
+	    snprintf(buf, sizeof(buf), "step %u.%u", step->jobid, step->stepid);
 	}
     }
 

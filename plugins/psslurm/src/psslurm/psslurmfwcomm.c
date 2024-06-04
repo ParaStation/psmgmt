@@ -254,7 +254,9 @@ static void changeEnv(int cmd, PS_DataBuffer_t *data)
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
-	flog("warning: step %u:%u already gone\n", jobid, stepid);
+	Step_t s = { .jobid = jobid,
+		     .stepid = stepid };
+	flog("warning: %s already gone\n", Step_strID(&s));
 	return;
     }
 
@@ -262,13 +264,13 @@ static void changeEnv(int cmd, PS_DataBuffer_t *data)
 
     if (cmd == CMD_SETENV) {
 	char *val = getStringM(data);
-	fdbg(PSSLURM_LOG_SPANK, "setenv %s:%s for %u:%u\n", var, val,
-	     jobid, stepid);
+	fdbg(PSSLURM_LOG_SPANK, "setenv %s:%s for %s\n", var, val,
+	     Step_strID(step));
 	envSet(step->env, var, val);
 
 	ufree(val);
     } else {
-	fdbg(PSSLURM_LOG_SPANK, "unsetenv %s for %u:%u\n", var, jobid, stepid);
+	fdbg(PSSLURM_LOG_SPANK, "unsetenv %s for %s\n", var, Step_strID(step));
 	envUnset(step->env, var);
     }
 
@@ -416,7 +418,9 @@ static void handleInitComplete(PS_DataBuffer_t *data)
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
-	flog("warning: step %u:%u already gone\n", jobid, stepid);
+	Step_t s = { .jobid = jobid,
+		     .stepid = stepid };
+	flog("warning: %s already gone\n", Step_strID(&s));
 	return;
     }
     releaseDelayedSpawns(step->jobid, step->stepid);

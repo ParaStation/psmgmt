@@ -475,7 +475,9 @@ static void initFwPtr(PStask_t *task)
 	fwJob = Job_findById(jobid);
 	fwAlloc = Alloc_find(jobid);
     } else if (!isAdmin) {
-	flog("step '%u:%u' not found\n", jobid, stepid);
+	Step_t s = { .jobid = jobid,
+		     .stepid = stepid };
+	flog("%s not found\n", Step_strID(&s));
     }
 
     fwTask = task;

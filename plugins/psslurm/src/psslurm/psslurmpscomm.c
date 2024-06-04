@@ -551,9 +551,12 @@ static int handleRecvSpawnReq(void *taskPtr)
     Step_t *step = Step_findByEnv(spawnee->env, &jobid, &stepid);
     if (!step || !step->nodeinfos) {
 	/* if the step has no nodeinfo yet, delay spawning processes */
-	flog("delay spawning for %s due to missing %sstep %u:%u\n",
+	Step_t s = {
+	    .jobid = jobid,
+	    .stepid = stepid };
+	flog("delay spawning for %s due to missing %s%s\n",
 	     PSC_printTID(spawnee->ptid), step ? "nodeinfo in " : "",
-	     jobid, stepid);
+	     Step_strID(&s));
 
 	spawnee->delayReasons |= DELAY_PSSLURM;
     }
@@ -875,13 +878,16 @@ static void handleStopStepFW(DDTypedBufferMsg_t *msg)
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
-	fdbg(PSSLURM_LOG_DEBUG, "step %u:%u not found\n", jobid, stepid);
+	Step_t s = {
+	    .jobid = jobid,
+	    .stepid = stepid };
+	fdbg(PSSLURM_LOG_DEBUG, "%s not found\n", Step_strID(&s));
 	return;
     }
 
     if (step->fwdata) {
-	fdbg(PSSLURM_LOG_DEBUG, "shutdown forwarder for step %u:%u\n",
-	     jobid, stepid);
+	fdbg(PSSLURM_LOG_DEBUG, "shutdown forwarder for %s\n",
+	     Step_strID(step));
 	shutdownForwarder(step->fwdata);
     }
 }
@@ -1253,7 +1259,10 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	cache->data = dupDataBuffer(data);
 	list_add_tail(&cache->next, &msgCache);
 
-	flog("caching pack info, step %u:%u from %s\n", packJobid, stepid,
+	Step_t s = {
+	    .jobid = packJobid,
+	    .stepid = stepid };
+	flog("caching pack info, %s from %s\n", Step_strID(&s),
 	     PSC_printTID(msg->header.sender));
 	return;
     }
@@ -2099,7 +2108,7 @@ static bool filter(PStask_t *task, void *info)
 	    flog("no slurm IDs in spawnee environment from %s\n",
 		 PSC_printTID(task->ptid));
 	} else {
-	    flog("no step for %u:%u from %s\n", jobid, stepid,
+	    flog("no step for %u.%u from %s\n", jobid, stepid,
 		 PSC_printTID(task->ptid));
 	}
 	return false;
@@ -2194,8 +2203,11 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
     uint32_t jobID = 0, stepID = 0;
     Step_t *step = identifyStepByTaskEnv(frwrdr, &jobID, &stepID);
 
-    fdbg(PSSLURM_LOG_PSCOMM, "from sender %s for jobid %u:%u\n",
-	 PSC_printTID(msg->header.sender), jobID, stepID);
+    Step_t s = {
+	.jobid = jobID,
+	.stepid = stepID };
+    fdbg(PSSLURM_LOG_PSCOMM, "from sender %s for %s\n",
+	 PSC_printTID(msg->header.sender), Step_strID(&s));
 
     if (stepID == SLURM_BATCH_SCRIPT) {
 	Job_t *job = Job_findById(jobID);
@@ -2207,9 +2219,6 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
 	PStask_infoAdd(frwrdr, TASKINFO_JOB, job);
     } else {
 	if (!step) {
-	    Step_t s = {
-		.jobid = jobID,
-		.stepid = stepID };
 	    flog("%s not found\n", Step_strID(&s));
 	    return false; // fallback to old handler
 	}
