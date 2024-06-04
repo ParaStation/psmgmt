@@ -224,10 +224,6 @@ static env_t createPMEnv(Conf_t *conf)
 		snprintf(key, sizeof(key), "PMIX_APP_NAME_%d", i);
 		envSet(env, key, exec->psetname);
 	    }
-
-	    snprintf(key, sizeof(key), "__PMIX_RESID_%d", i);
-	    snprintf(val, sizeof(val), "%d", exec->resID);
-	    envSet(env, key, val);
 	}
 
 	propEnv(env, "PMIX_JOB_SIZE");

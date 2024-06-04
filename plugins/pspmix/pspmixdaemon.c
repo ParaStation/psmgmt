@@ -1172,9 +1172,6 @@ static int hookSpawnTask(void *data)
 	for (int j = 0; j < argc; j++) ptr += sprintf(ptr, "%s ", argv[j]);
 	*(ptr-1)='\0';
 	envSet(env, "PMIX_APP_ARGV_0", str);
-	char var[HOST_NAME_MAX + 1];
-	snprintf(var, sizeof(var), "%d", resID);
-	envSet(env, "__PMIX_RESID_0", var);
     }
 
     /* save job in server (if not yet known) and notify running server */

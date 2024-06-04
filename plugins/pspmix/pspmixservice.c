@@ -576,14 +576,30 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	}
     }
 
+
+
     env = envGet(job->env, "PMIX_JOB_NUM_APPS");
     ns->appsCount = env ? atoi(env) : 1;
     ns->apps = umalloc(ns->appsCount * sizeof(*ns->apps));
 
     uint32_t procCount = 0;
-    for (size_t a = 0; a < ns->appsCount; a++) {
+
+    /* we expect the reservation infos to be in order, one per app */
+    size_t a = 0;
+    list_t *r;
+    list_for_each(r, &job->resInfos) {
+	PSresinfo_t *rinfo = list_entry(r, PSresinfo_t, next);
 
 	ns->apps[a].num = a;
+
+	/* set used reservation */
+	ns->apps[a].resID = rinfo->resID;
+
+	if (a && ns->apps[a].resID <= ns->apps[a-1].resID) {
+	    ulog("UNEXPECTED: reservation IDs not strictly ascending"
+		 " (%u <= %u)\n", ns->apps[a].resID, ns->apps[a-1].resID);
+	    goto nscreate_error;
+	}
 
 	/* set the application size from environment set by the spawner */
 	char var[64];
@@ -621,16 +637,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	env = envGet(job->env, var);
 	strncpy(ns->apps[a].name, env ? env : "", MAX_APPNAMELEN);
 
-	/* get used reservation from environment set by the spawner */
-	snprintf(var, sizeof(var), "__PMIX_RESID_%zu", a);
-	env = envGet(job->env, var);
-	if (!env) {
-	    ulog("broken environment: '%s' missing\n", var);
-	    goto nscreate_error;
-	}
-	ns->apps[a].resID = atoi(env);
-
 	procCount += ns->apps[a].size;
+	a++;
     }
 
     if (procCount != ns->jobSize) {
@@ -647,6 +655,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	PSresinfo_t *resInfo = findReservationInList(ns->apps[a].resID,
 						     &job->resInfos);
 	if (!resInfo) {
+	    /* this cannot happen, resID is taken from existing res */
 	    ulog("reservation %d for app %zu not found\n", ns->apps[a].resID,
 		 a);
 	    goto nscreate_error;
