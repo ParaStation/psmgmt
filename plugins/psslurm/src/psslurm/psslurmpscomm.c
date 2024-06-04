@@ -2101,7 +2101,8 @@ static bool filter(PStask_t *task, void *info)
 	    flog("no slurm IDs in spawnee environment from %s\n",
 		 PSC_printTID(task->ptid));
 	} else {
-	    flog("no step for %u.%u from %s\n", jobid, stepid,
+	    Step_t s = { .jobid = jobid, .stepid = stepid };
+	    flog("%s not found from %s\n", Step_strID(&s),
 		 PSC_printTID(task->ptid));
 	}
 	return false;
