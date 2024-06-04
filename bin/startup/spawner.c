@@ -865,7 +865,7 @@ static int startProcs(Conf_t *conf)
 	}
     }
     /* Tell daemon to start distributing reservation information */
-    PSI_finReservation();
+    PSI_finReservation(NULL);
 
     /* Collect info on reservations */
     PSnodes_ID_t *nodeList = umalloc(conf->np * sizeof(*nodeList));

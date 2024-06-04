@@ -4324,60 +4324,93 @@ error:
 }
 
 /**
- * @brief Handle a PSP_CD_FINRESERVATION message
+ * @brief Handle finalization of creating reservations
  *
- * Handle the message @a inmsg of type PSP_CD_FINRESERVATION.
- *
- * This kind of message is used by clients in order to tell the
- * reservation machinery that no further reservations will be created
- * by this client. This will trigger the distribution of reservation
- * information to partnering nodes.
+ * Clients use this in order to tell the reservation machinery that no
+ * further reservations will be created by this client. This will
+ * trigger the distribution of reservation information to partnering
+ * nodes.
  *
  * For this, a message of type PSP_DD_RESFINALIZED is sent up the task
  * tree towards the logger. It will be handled by the first task that
  * contains a partition, i.e. either the logger task or a
  * Step-forwarder task in case of psslurm and a re-spawned Step.
  *
- * Plugins might add further information to the PSP_DD_RESFINALIZED
- * message. For this, the hook of type PSIDHOOK_FILL_RESFINALIZED is
- * called. The env_t passed to this hook will contain
- * "SPAWNER_TID=<task ID of spawner>". This and additional content of
- * env_t will be added to the message.
+ * Along the information already added by the client in form of
+ * key-value pairs available in @a rData, plugins might add further
+ * information to the PSP_DD_RESFINALIZED message. For this, the hook
+ * of type PSIDHOOK_FILL_RESFINALIZED is called. The env_t passed to
+ * this hook will contain "SPAWNER_TID=<task ID of spawner>" alongside
+ * the key-value pairs provided by the calling spawner. This and
+ * additional content of env_t will be added to the message to send.
  *
- * @param inmsg Pointer to message to handle
+ * Additional information can be obtained from @a msg containing
+ * meta-information of the last fragment received.
  *
- * @return Always return true
+ * @param msg Message header (including the type) of the last fragment
+ *
+ * @param rData Data buffer presenting the actual PSP_CD_FINRESERVATION
+ *
+ * @return No return value
  */
-static bool msg_FINRESERVATION(DDBufferMsg_t *inmsg)
+static void handleFinReservation(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
-    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
+    PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
     if (!task) {
-	PSID_flog("task %s not found\n", PSC_printTID(inmsg->header.sender));
-	return true;
+	PSID_flog("task %s not found\n", PSC_printTID(msg->header.sender));
+	return;
     }
 
-    env_t env = envNew(NULL);
-    char spawnerTID[32];
-    snprintf(spawnerTID, sizeof(spawnerTID), "%d", inmsg->header.sender);
-    envSet(env, "SPAWNER_TID", spawnerTID);
+    /* will send message up the tree towards the logger if expected there */
+    if (PSIDnodes_getDmnProtoV(PSC_getID(task->ptid)) < 417) return;
+
+    char **envP = NULL;
+    getStringArrayM(rData, &envP, NULL);
+    env_t env = envNew(envP);
+
+    char TIDstr[32];
+    snprintf(TIDstr, sizeof(TIDstr), "%d", msg->header.sender);
+    envSet(env, "SPAWNER_TID", TIDstr);
 
     PSIDhook_call(PSIDHOOK_FILL_RESFINALIZED, env);
 
-    /* send message up the tree towards the logger */
-    if (PSIDnodes_getDmnProtoV(PSC_getID(task->ptid)) < 417) return true;
+    PS_SendDB_t newMsg;
+    initFragBuffer(&newMsg, PSP_DD_RESFINALIZED, -1);
+    setFragDest(&newMsg, task->ptid);
 
-    PS_SendDB_t msg;
-    initFragBuffer(&msg, PSP_DD_RESFINALIZED, -1);
-    setFragDest(&msg, task->ptid);
-
-    addTaskIdToMsg(inmsg->header.sender, &msg);
-    addStringArrayToMsg(envGetArray(env), &msg);
+    addTaskIdToMsg(msg->header.sender, &newMsg);
+    addStringArrayToMsg(envGetArray(env), &newMsg);
     envDestroy(env);
 
     PSID_fdbg(PSID_LOG_PART, "send PSP_DD_RESFINALIZED to %s\n",
 	      PSC_printTID(task->ptid));
 
-    if (sendFragMsg(&msg) == -1) PSID_flog("sending failed\n");
+    if (sendFragMsg(&newMsg) == -1) PSID_flog("sending failed\n");
+}
+
+/**
+ * @brief Handle a PSP_CD_FINRESERVATION message
+ *
+ * Handle the message @a msg of type PSP_CD_FINRESERVATION.
+ *
+ * This will trigger the reservation mechanism to finally distribute
+ * the associated job information. Since the serialization layer is
+ * utilized, depending on the number of key-value pairs passed the
+ * messages might be split into multiple fragments.
+ *
+ * This function will collect these fragments into a single message
+ * using the serialization layer.
+ *
+ * The actual handling of the payload once all fragments are received
+ * is done within @ref handleFinReservation().
+ *
+ * @param msg Pointer to message holding the fragment to handle
+ *
+ * @return Always return true
+ */
+static bool msg_FINRESERVATION(DDTypedBufferMsg_t *msg)
+{
+    recvFragMsg(msg, handleFinReservation);
 
     return true;
 }
@@ -5933,7 +5966,7 @@ void initPartition(void)
     PSID_registerMsg(PSP_DD_GETSLOTS, msg_GETSLOTS);
     PSID_registerMsg(PSP_DD_SLOTSRES, msg_SLOTSRES);
     PSID_registerMsg(PSP_CD_SLOTSRES, frwdMsg);
-    PSID_registerMsg(PSP_CD_FINRESERVATION, msg_FINRESERVATION);
+    PSID_registerMsg(PSP_CD_FINRESERVATION, (handlerFunc_t) msg_FINRESERVATION);
     PSID_registerMsg(PSP_DD_RESFINALIZED, (handlerFunc_t) msg_RESFINALIZED);
 
     PSID_registerDropper(PSP_DD_TASKDEAD, drop_TASKDEAD);

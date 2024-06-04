@@ -23,6 +23,7 @@
 
 #include "pscommon.h"
 #include "psnodes.h"
+#include "psserial.h"
 
 #include "psi.h"
 #include "psilog.h"
@@ -1229,18 +1230,23 @@ recv_retry:
     return rid;
 }
 
-bool PSI_finReservation(void)
+bool PSI_finReservation(env_t env)
 {
-    DDMsg_t msg = {
-	.type = PSP_CD_FINRESERVATION,
-	.dest = PSC_getTID(-1, 0),
-	.sender = PSC_getMyTID(),
-	.len = sizeof(msg) };
+    if (!initSerial(0, PSI_sendMsg)) {
+	PSI_log(-1, "%s: initSerial() failed\n", __func__);
+	return false;
+    }
 
     PSI_log(PSI_LOG_PART, "%s()\n", __func__);
 
-    if (PSI_sendMsg(&msg) < 0) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_CD_FINRESERVATION, -1);
+    setFragDest(&msg, PSC_getTID(-1, 0));
+
+    addStringArrayToMsg(envGetArray(env), &msg);
+
+    if (sendFragMsg(&msg) == -1) {
+	PSI_log(-1, "%s: sending failed\n", __func__);
 	return false;
     }
 

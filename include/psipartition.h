@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "psenv.h"
 #include "psnodes.h"
 #include "pspartition.h"
 #include "psprotocol.h"
@@ -403,10 +404,19 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
  * within the reservation mechanism like starting the distribution of
  * reservation information to partnering nodes.
  *
+ * In order to pass further information here, the environment @a env
+ * might be utilized. It can handle an arbitrary set of key-value
+ * pairs that will be passed to the mechanism behind, e.g. to the hook
+ * PSIDHOOK_FILL_RESFINALIZED and will end up in the @ref extraData
+ * member of @ref PSjob_t.
+ *
+ * @param env Set of key-value pair to be passed to underlying
+ * mechanism
+ *
  * @return If the reservation mechanism was triggered accordingly,
  * true is returned; or false in case of error
  */
-bool PSI_finReservation(void);
+bool PSI_finReservation(env_t env);
 
 /**
  * @brief Request slots from reservation
