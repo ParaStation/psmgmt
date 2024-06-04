@@ -663,12 +663,8 @@ bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
     for (size_t a = 0; a < napps; a++) {
 	addStringArrayToMsg(apps[a].argv, &msg);
 	addInt32ToMsg(apps[a].maxprocs, &msg);
-	if (apps[a].env) {
-	    addStringArrayToMsg(apps[a].env, &msg);
-	} else {
-	    char *tmp[] = { NULL };
-	    addStringArrayToMsg(tmp, &msg);
-	}
+	addStringArrayToMsg(apps[a].env, &msg);
+
 	addStringToMsg(apps[a].wdir, &msg);
 	addStringToMsg(apps[a].host, &msg);
 	addStringToMsg(apps[a].hostfile, &msg);
@@ -792,8 +788,7 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote node */,
     addStringToMsg(nspace, &msg);
     addUint32ToMsg(rank, &msg);
     addInt32ToMsg(timeout, &msg);
-    char *empty = NULL;
-    addStringArrayToMsg(reqKeys ? reqKeys : &empty, &msg);
+    addStringArrayToMsg(reqKeys, &msg);
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);

@@ -2991,7 +2991,7 @@ static bool send_JOBCOMPLETE(PStask_t *task, PStask_ID_t jobID, env_t extra,
 
     addTaskIdToMsg(task->loggertid, &msg);   // logger's task ID / session ID
     addTaskIdToMsg(jobID, &msg);             // spawners's task ID / job ID
-    if (envInitialized(extra)) addStringArrayToMsg(envGetArray(extra), &msg);
+    addStringArrayToMsg(envGetArray(extra), &msg);
 
     if (sendFragMsg(&msg) == -1) {
 	PSID_flog("sending failed\n");

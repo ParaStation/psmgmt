@@ -1347,10 +1347,8 @@ bool __addStringArrayToBuf(char **array, PS_SendDB_t *data,
 	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
 	return false;
     }
-    if (!array) {
-	PSC_log(-1, "%s(%s@%d): invalid array\n", __func__, caller, line);
-	return false;
-    }
+    char *empty = NULL;
+    if (!array) array = &empty;
 
     uint32_t num = 0;
     while (array[num]) num++;

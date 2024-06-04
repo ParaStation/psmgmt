@@ -899,6 +899,10 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
  * The data format is suitable for the array of strings to be read
  * from the buffer with @ref getStringArrayM().
  *
+ * If @a array is NULL, the behavior is identical to the case where an
+ * empty array, i.e. an array consisting just of the terminating NULL
+ * element would be added.
+ *
  * @param array Address of the array of strings to add
  *
  * @param data Data buffer to save data to

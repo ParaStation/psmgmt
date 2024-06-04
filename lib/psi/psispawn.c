@@ -215,14 +215,10 @@ int PSI_sendSpawnReq(PStask_t *task, PSnodes_ID_t *dstnodes, uint32_t max)
     if (!addStringArrayToMsg(envGetArray(task->env), &msg)) return -1;
 
     for (uint32_t r = 0; r < num; r++) {
-	char **extraEnv;
+	char **extraEnv = NULL;
+	if (extraEnvFunc) extraEnv = extraEnvFunc(task->rank + r, extraEnvInfo);
 
-	if (extraEnvFunc
-	    && (extraEnv = extraEnvFunc(task->rank + r, extraEnvInfo))) {
-	    if (!addStringArrayToMsg(extraEnv, &msg)) return -1;
-	} else {
-	    addUint32ToMsg(0, &msg);
-	}
+	if (!addStringArrayToMsg(extraEnv, &msg)) return -1;
     }
 
     if (sendFragMsg(&msg) == -1) {
