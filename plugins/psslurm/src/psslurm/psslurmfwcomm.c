@@ -254,8 +254,7 @@ static void changeEnv(int cmd, PS_DataBuffer_t *data)
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
-	Step_t s = { .jobid = jobid,
-		     .stepid = stepid };
+	Step_t s = { .jobid = jobid, .stepid = stepid };
 	flog("warning: %s already gone\n", Step_strID(&s));
 	return;
     }
@@ -418,8 +417,7 @@ static void handleInitComplete(PS_DataBuffer_t *data)
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
-	Step_t s = { .jobid = jobid,
-		     .stepid = stepid };
+	Step_t s = { .jobid = jobid, .stepid = stepid };
 	flog("warning: %s already gone\n", Step_strID(&s));
 	return;
     }

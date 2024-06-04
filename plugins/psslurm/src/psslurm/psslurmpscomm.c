@@ -551,9 +551,7 @@ static int handleRecvSpawnReq(void *taskPtr)
     Step_t *step = Step_findByEnv(spawnee->env, &jobid, &stepid);
     if (!step || !step->nodeinfos) {
 	/* if the step has no nodeinfo yet, delay spawning processes */
-	Step_t s = {
-	    .jobid = jobid,
-	    .stepid = stepid };
+	Step_t s = { .jobid = jobid, .stepid = stepid };
 	flog("delay spawning for %s due to missing %s%s\n",
 	     PSC_printTID(spawnee->ptid), step ? "nodeinfo in " : "",
 	     Step_strID(&s));
@@ -878,16 +876,13 @@ static void handleStopStepFW(DDTypedBufferMsg_t *msg)
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
-	Step_t s = {
-	    .jobid = jobid,
-	    .stepid = stepid };
+	Step_t s = { .jobid = jobid, .stepid = stepid };
 	fdbg(PSSLURM_LOG_DEBUG, "%s not found\n", Step_strID(&s));
 	return;
     }
 
     if (step->fwdata) {
-	fdbg(PSSLURM_LOG_DEBUG, "shutdown forwarder for %s\n",
-	     Step_strID(step));
+	fdbg(PSSLURM_LOG_DEBUG, "shutdown forwarder for %s\n", Step_strID(step));
 	shutdownForwarder(step->fwdata);
     }
 }
@@ -1259,9 +1254,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	cache->data = dupDataBuffer(data);
 	list_add_tail(&cache->next, &msgCache);
 
-	Step_t s = {
-	    .jobid = packJobid,
-	    .stepid = stepid };
+	Step_t s = { .jobid = packJobid, .stepid = stepid };
 	flog("caching pack info, %s from %s\n", Step_strID(&s),
 	     PSC_printTID(msg->header.sender));
 	return;
@@ -2140,8 +2133,8 @@ void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid) {
     /* double check if the step is ready now */
     if (!Step_findByStepId(jobid, stepid)) {
 	/* this is a serious problem and should never happen */
-	mlog("%s: SERIOUS: Called for step %d:%d that cannot be found.\n",
-	     __func__, jobid, stepid);
+	Step_t s = { .jobid = jobid, .stepid = stepid };
+	flog("SERIOUS: %s not found\n", Step_strID(&s));
 	return;
     }
 
@@ -2203,9 +2196,7 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
     uint32_t jobID = 0, stepID = 0;
     Step_t *step = identifyStepByTaskEnv(frwrdr, &jobID, &stepID);
 
-    Step_t s = {
-	.jobid = jobID,
-	.stepid = stepID };
+    Step_t s = { .jobid = jobID, .stepid = stepID };
     fdbg(PSSLURM_LOG_PSCOMM, "from sender %s for %s\n",
 	 PSC_printTID(msg->header.sender), Step_strID(&s));
 

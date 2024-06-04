@@ -606,9 +606,7 @@ static bool unpackGres(PS_DataBuffer_t *data, list_t *gresList, JobCred_t *cred,
     /* extract gres step data */
     getUint16(data, &count);
 
-    Step_t s = {
-	.jobid = cred->jobid,
-	.stepid = cred->stepid };
+    Step_t s = { .jobid = cred->jobid, .stepid = cred->stepid };
     fdbg(PSSLURM_LOG_GRES, "%s uid %u gres step count %u\n", Step_strID(&s),
 	 cred->uid, count);
 

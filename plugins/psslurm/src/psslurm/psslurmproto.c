@@ -729,8 +729,7 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
 	    return Job_signalJS(req->jobid, req->signal, req->uid);
 	} else {
 	    /* signal a single step */
-	    Step_t s = { .jobid = req->jobid,
-			 .stepid = req->stepid };
+	    Step_t s = { .jobid = req->jobid, .stepid = req->stepid };
 	    flog("send %s (stepHetComp %u) signal %u\n", Step_strID(&s),
 		 req->stepHetComp, req->signal);
 	    Step_t *step = Step_findByStepId(req->jobid, req->stepid);
