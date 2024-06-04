@@ -353,6 +353,27 @@ static void createAppPSet(const char *name, PspmixNamespace_t *ns,
 }
 
 /**
+ * @brief Calculate job size
+ *
+ * Calculates the number of all processes in the job @a job.
+ *
+ * @param job   job
+ */
+static uint32_t getJobSize(PspmixJob_t *job)
+{
+    uint32_t jsize = 0;
+    list_t *r;
+    list_for_each(r, &job->resInfos) {
+	PSresinfo_t *rinfo = list_entry(r, PSresinfo_t, next);
+	for (size_t i = 0; i < rinfo->nEntries; i++) {
+	    PSresinfoentry_t *cur = &rinfo->entries[i];
+	    jsize += cur->lastRank - cur->firstRank + 1;
+	}
+    }
+    return jsize;
+}
+
+/**
  * @brief Calculate current universe size
  *
  * Calculates the number of all processes in all jobs of the session @a session.
@@ -365,14 +386,7 @@ static uint32_t getUniverseSize(PspmixSession_t *session)
     list_t *j;
     list_for_each(j, &session->jobs) {
 	PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
-	list_t *r;
-	list_for_each(r, &job->resInfos) {
-	    PSresinfo_t *rinfo = list_entry(r, PSresinfo_t, next);
-	    for (size_t i = 0; i < rinfo->nEntries; i++) {
-		PSresinfoentry_t *cur = &rinfo->entries[i];
-		usize += cur->lastRank - cur->firstRank + 1;
-	    }
-	}
+	usize += getJobSize(job);
     }
     return usize;
 }
@@ -549,9 +563,18 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     if (!getSpawnInfo(ns)) goto nscreate_error;
 
 
-    /* set the job size from environment set by the spawner */
+    /* set the job size */
+    ns->jobSize = getJobSize(job);
+
+    /* double check with environment, @todo maybe remove in the future */
     char *env = envGet(job->env, "PMIX_JOB_SIZE");
-    ns->jobSize = env ? atoi(env) : 1;
+    if (env) {
+	uint32_t jsize = atoi(env);
+	if (ns->jobSize != jsize) {
+	    flog("calculated job size does not match environment (%u != %u)\n",
+		 ns->jobSize, jsize);
+	}
+    }
 
     env = envGet(job->env, "PMIX_JOB_NUM_APPS");
     ns->appsCount = env ? atoi(env) : 1;
