@@ -721,21 +721,19 @@ int IO_openJobPipes(Forwarder_Data_t *fwdata)
 
     /* stdout */
     if (pipe(fwdata->stdOut) == -1) {
-	mwarn(errno, "%s: open stdout pipe for job %u failed", __func__,
-	      job->jobid);
+	fwarn(errno, "open stdout pipe for job %u failed", job->jobid);
 	return 0;
     }
-    mdbg(PSSLURM_LOG_IO, "%s: stdout pipe %i:%i for job %u\n", __func__,
-	 fwdata->stdOut[0], fwdata->stdOut[1], job->jobid);
+    fdbg(PSSLURM_LOG_IO, "stdout pipe %i:%i for job %u\n", fwdata->stdOut[0],
+	 fwdata->stdOut[1], job->jobid);
 
     /* stderr */
     if (pipe(fwdata->stdErr) == -1) {
-	mwarn(errno, "%s: create stderr pipe for job %u failed", __func__,
-	      job->jobid);
+	fwarn(errno, "create stderr pipe for job %u failed", job->jobid);
 	return 0;
     }
-    mdbg(PSSLURM_LOG_IO, "%s: stderr pipe %i:%i for job %u\n", __func__,
-	 fwdata->stdErr[0], fwdata->stdErr[1], job->jobid);
+    fdbg(PSSLURM_LOG_IO, "stderr pipe %i:%i for job %u\n", fwdata->stdErr[0],
+	 fwdata->stdErr[1], job->jobid);
 
     return 1;
 }
@@ -745,31 +743,31 @@ void IO_openStepPipes(Forwarder_Data_t *fwdata, Step_t *step)
     /* stdout */
     if (step->stdOutOpt != IO_NODE_FILE && step->stdOutOpt != IO_GLOBAL_FILE) {
 	if (pipe(fwdata->stdOut) == -1) {
-	    mwarn(errno, "%s: create stdout pipe failed", __func__);
+	    fwarn(errno, "create stdout pipe failed");
 	    return;
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: stdout pipe %i:%i\n", __func__,
-		fwdata->stdOut[0], fwdata->stdOut[1]);
+	fdbg(PSSLURM_LOG_IO, "stdout pipe %i:%i\n",
+	     fwdata->stdOut[0], fwdata->stdOut[1]);
     }
 
     /* stderr */
     if (step->stdErrOpt != IO_NODE_FILE && step->stdErrOpt != IO_GLOBAL_FILE) {
 	if (pipe(fwdata->stdErr) == -1) {
-	    mwarn(errno, "%s: create stderr pipe failed", __func__);
+	    fwarn(errno, "create stderr pipe failed");
 	    return;
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: stderr pipe %i:%i\n", __func__,
+	fdbg(PSSLURM_LOG_IO, "stderr pipe %i:%i\n",
 		fwdata->stdErr[0], fwdata->stdErr[1]);
     }
 
     /* stdin */
     if (!(step->stdInRank == -1 && step->stdIn && strlen(step->stdIn) > 0)) {
 	if (pipe(fwdata->stdIn) == -1) {
-	    mwarn(errno, "%s: create stdin pipe failed", __func__);
+	    fwarn(errno, "create stdin pipe failed");
 	    return;
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: stdin pipe %i:%i\n", __func__,
-		fwdata->stdIn[0], fwdata->stdIn[1]);
+	fdbg(PSSLURM_LOG_IO, "stdin pipe %i:%i\n",
+	     fwdata->stdIn[0], fwdata->stdIn[1]);
     }
 }
 
