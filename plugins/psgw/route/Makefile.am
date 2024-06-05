@@ -11,5 +11,5 @@
 
 include $(top_srcdir)/common.am
 
-dist_psgwlib_SCRIPTS = plugin01.py plugin02.py plugin03.py		\
+dist_psgwlib_DATA= plugin01.py plugin02.py plugin03.py		\
 	psgwd_start psgwd_exec psgwd_stop psroute.py
