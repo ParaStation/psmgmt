@@ -1119,9 +1119,8 @@ static int hookExecForwarder(void *data)
     /* continue only if PMIx support is requested
      * or singleton support is configured and np == 1 */
     bool usePMIx = pspmix_common_usePMIx(childTask->env);
-    char *jobsize = envGet(childTask->env, "PMIX_JOB_SIZE");
-    if (!usePMIx && (!getConfValueI(config, "SUPPORT_MPI_SINGLETON")
-		     || (jobsize ? atoi(jobsize) : 1) != 1)) {
+    if (!usePMIx && (!getConfValueI(config, "SUPPORT_MPI_SINGLETON"))
+	/* @todo do we need to check np == 1 here? */) {
 	childTask = NULL;
 	return 0;
     }

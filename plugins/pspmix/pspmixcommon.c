@@ -21,7 +21,9 @@
 /* decide if this job wants to use PMIx
  * Relies on __USE_PMIX set in hookRecvSpawnReq() in pspmixdaemon.c */
 bool __pspmix_common_usePMIx(const env_t env, const char* func) {
-    if (envGet(env, "__USE_PMIX")) {
+    /* PMIX_JOB_SIZE is set by mpiexec iff called with '--pmix' and by the
+     * spawning forwarder in case of PMIx_Spawn() */
+    if (envGet(env, "PMIX_JOB_SIZE")) {
 	mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx support requested by mpiexec\n",
 	     func);
 	return true;

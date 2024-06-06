@@ -946,39 +946,6 @@ static int hookFillResFinalized(void *data)
 }
 
 /**
- * @brief Hook function for PSIDHOOK_RECV_SPAWNREQ
- *
- * This hook is called after receiving a spawn request message
- *
- * Marks in the prototask's environment whether or not PMIx usage is
- * requested for this spawn request by mpiexec.
- *
- * Attention: The task passed is a prototype containing only the values
- * decoded in @a PStask_decodeTask and in addition spawnerid, workingdir,
- * argv, argc, and env.
- *
- * @param data Pointer to task structure to be spawned
- *
- * @return Returns 0 on success and -1 on error.
- */
-static int hookRecvSpawnReq(void *data)
-{
-    PStask_t *prototask = data;
-
-    /* leave all special task groups alone */
-    if (prototask->group != TG_ANY) return 0;
-
-    mdbg(PSPMIX_LOG_CALL, "%s(task group TG_ANY)\n", __func__);
-
-    /* mark environment if mpiexec demands PMIx for this job */
-    if (envGet(prototask->env, "PMIX_JOB_SIZE")) {
-	envAdd(prototask->env, "__USE_PMIX=1"); /* for pspmix_common_usePMIx() */
-    }
-
-    return 0;
-}
-
-/**
  * @brief Hook function for PSIDHOOK_JOBCOMPLETE
  *
  * This hook is called when all reservation info of a job has been received,
@@ -1094,12 +1061,13 @@ static int hookSpawnTask(void *data)
 
     mdbg(PSPMIX_LOG_CALL, "%s(task group TG_ANY)\n", __func__);
 
-    /* continue only if PMIx support is requested
-     * or singleton support is configured and np == 1 */
+    /* continue only for singleton case (see hookJobComplete for other cases)
+     * which is if
+     * - PMIx support is NOT requested
+     * - AND singleton support is configured
+     * - AND np == 1 (little below)*/
     bool usePMIx = pspmix_common_usePMIx(task->env);
     if (!usePMIx && !getConfValueI(config, "SUPPORT_MPI_SINGLETON")) return 0;
-    char *jobsize = envGet(task->env, "PMIX_JOB_SIZE");
-    if (!usePMIx && (jobsize ? atoi(jobsize) : 1) != 1) return 0;
 
     /* find ParaStation session */
     PStask_ID_t sessID = task->loggertid;
@@ -1134,6 +1102,15 @@ static int hookSpawnTask(void *data)
     }
 
     if (mset(PSPMIX_LOG_VERBOSE)) printServers();
+
+    /* count processes */
+    uint32_t np = 0;
+    for (size_t i = 0; i < resInfo->nEntries; i++) {
+	np += resInfo->entries[i].lastRank - resInfo->entries[i].firstRank + 1;
+    }
+
+    /* no singleton (see above) */
+    if (!usePMIx && np != 1) return 0;
 
     PspmixServer_t *server = findOrStartServer(task->uid, task->gid);
     if (!server) {
@@ -1276,7 +1253,6 @@ static int hookNodeDown(void *data)
 void pspmix_initDaemonModule(void)
 {
     PSIDhook_add(PSIDHOOK_FILL_RESFINALIZED, hookFillResFinalized);
-    PSIDhook_add(PSIDHOOK_RECV_SPAWNREQ, hookRecvSpawnReq);
     PSIDhook_add(PSIDHOOK_JOBCOMPLETE, hookJobComplete);
     PSIDhook_add(PSIDHOOK_SPAWN_TASK, hookSpawnTask);
     PSIDhook_add(PSIDHOOK_LOCALJOBREMOVED, hookLocalJobRemoved);
@@ -1287,7 +1263,6 @@ void pspmix_initDaemonModule(void)
 void pspmix_finalizeDaemonModule(void)
 {
     PSIDhook_del(PSIDHOOK_FILL_RESFINALIZED, hookFillResFinalized);
-    PSIDhook_del(PSIDHOOK_RECV_SPAWNREQ, hookRecvSpawnReq);
     PSIDhook_del(PSIDHOOK_JOBCOMPLETE, hookJobComplete);
     PSIDhook_del(PSIDHOOK_SPAWN_TASK, hookSpawnTask);
     PSIDhook_del(PSIDHOOK_LOCALJOBREMOVED, hookLocalJobRemoved);
