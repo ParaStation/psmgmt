@@ -46,7 +46,7 @@
 
 Forwarder_Data_t *ForwarderData_new(void)
 {
-    Forwarder_Data_t *fw = calloc(sizeof(*fw), 1);
+    Forwarder_Data_t *fw = calloc(1, sizeof(*fw));
     if (fw) {
 	fw->childRerun = 1;
 	fw->tid = -1;
