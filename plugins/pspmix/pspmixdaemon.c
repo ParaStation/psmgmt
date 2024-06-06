@@ -940,7 +940,32 @@ static int hookFillResFinalized(void *data)
     snprintf(tmp, sizeof(tmp), "%d", task->gid);
     envSet(env, "GID", tmp);
 
-    /* @todo fill with more data */
+    if (!pspmix_common_usePMIx(env)) return 0; /* no PMIx support requested */
+
+    /* checking for required data */
+    char *val = envGet(env, "PMIX_JOB_NUM_APPS");
+    if (!val) {
+	flog("PMIX_JOB_NUM_APPS not found\n");
+	return -1;
+    }
+
+    int apps = atol(val);
+    for (int i = 0; i < apps; i++) {
+	char tmp[32];
+	snprintf(tmp, sizeof(tmp), "PMIX_APP_WDIR_%d", i);
+	val = envGet(env, tmp);
+	if (!val) {
+	    flog("%s not found\n", tmp);
+	    return -1;
+	}
+
+	snprintf(tmp, sizeof(tmp), "PMIX_APP_ARGV_%d", i);
+	val = envGet(env, tmp);
+	if (!val) {
+	    flog("%s not found\n", tmp);
+	    return -1;
+	}
+    }
 
     return 0;
 }
