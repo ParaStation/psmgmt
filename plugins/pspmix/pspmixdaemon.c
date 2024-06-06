@@ -986,29 +986,23 @@ static int hookJobComplete(void *data)
 
     mdbg(PSPMIX_LOG_CALL, "%s(spawner %s)\n", __func__, PSC_printTID(psjob->ID));
 
-    if (mset(PSPMIX_LOG_VERBOSE)) printServers();
-
     PspmixJob_t *job = findJob(psjob->ID);
     if (job) {
 	flog("UNEXPECTED: job %s already known\n", PSC_printTID(psjob->ID));
 	return -1;
     }
 
-    /* Check whether this job will have local tasks */
-    bool found = false;
-    list_t *r;
-    list_for_each(r, &psjob->resInfos) {
-	PSresinfo_t *resInfo = list_entry(r, PSresinfo_t, next);
-	for (size_t i = 0; i < resInfo->nEntries; i++) {
-	    if (resInfo->entries[i].node == PSC_getMyID()) found = true;
-	}
-    }
+    /* Check whether this job has extraData set. This is only the case for
+     * jobs with no local processes on this node, otherwise the information
+     * comes with the SPAWN_TASK_REQUEST and job registration needs to be done
+     * in PSIDHOOK_SPAWN_TASK a using the task environment. */
+    if (!psjob->extraData) return 0;
 
-    if (found) return 0;
+    /* continue only if PMIx support is requested
+     * no singleton check needed here, singletons never have extraData set */
+    if (!pspmix_common_usePMIx(psjob->extraData)) return 0;
 
-    /* we are on a sister partition for this job, so no spawn request will
-     * be sent to us and we can already create the job and namespace */
-
+    /* get information to start PMIx server */
     char *tmp;
     tmp = envGet(psjob->extraData, "UID");
     if (!tmp) {
@@ -1035,6 +1029,7 @@ static int hookJobComplete(void *data)
 	return -1;
     }
 
+    if (mset(PSPMIX_LOG_VERBOSE)) printServers();
 
     PspmixServer_t *server = findOrStartServer(uid, gid);
     if (!server) {
@@ -1042,15 +1037,17 @@ static int hookJobComplete(void *data)
 	return -1;
     }
 
-    /* create fake environment, this is used by the PMIx server to detect
-     * the sister partition case
-     * @todo fill with real data? */
-    env_t env = envNew(NULL);
-    envSet(env, "__PSPMIX_IS_SISTER_PARTITION_NODE", "1");
+    /* nothing to do if job is already known to the user's server */
+    PspmixSession_t *session = findSessionInList(psjob->sessID,
+						 &server->sessions);
+    if (session && findJobInList(psjob->ID, &session->jobs)) {
+	flog("UNEXPECTED: job already known (uid %d ID %s)\n", server->uid,
+	     PSC_printTID(psjob->ID));
+	return 0;
+    }
 
     /* save job in server (if not yet known) and notify running server */
-    bool success = addJobToServer(server, psjob, env);
-    envDestroy(env);
+    bool success = addJobToServer(server, psjob, psjob->extraData);
     if (success) return 0;
 
     flog("sending job failed (uid %d server %s", server->uid,
@@ -1126,8 +1123,6 @@ static int hookSpawnTask(void *data)
 	return -1;
     }
 
-    if (mset(PSPMIX_LOG_VERBOSE)) printServers();
-
     /* count processes */
     uint32_t np = 0;
     for (size_t i = 0; i < resInfo->nEntries; i++) {
@@ -1160,7 +1155,6 @@ static int hookSpawnTask(void *data)
 	    flog("cloning env failed\n");
 	    return -1;
 	}
-	envSet(env, "PMIX_UNIV_SIZE", "1");
 	envSet(env, "PMIX_JOB_SIZE", "1");
 	envSet(env, "PMIX_JOB_NUM_APPS", "1");
 	envSet(env, "PMIX_APP_SIZE_0", "1");
