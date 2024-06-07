@@ -215,79 +215,6 @@ static env_t createPMEnv(Conf_t *conf)
 	    envSet(env, key, argvStr);
 	    free(argvStr);
 	}
-
-    } else if (conf->pmiTCP || conf->pmiSock) {
-
-	propEnv(env, "PMI_SIZE");
-
-	/* propagate PMI auth token */
-	propEnv(env, "PMI_ID");
-
-	/* enable PMI tcp port */
-	if (conf->pmiTCP) envSet(env, "PMI_ENABLE_TCP", "1");
-
-	/* enable PMI sockpair */
-	if (conf->pmiSock) envSet(env, "PMI_ENABLE_SOCKP", "1");
-
-	/* set the PMI debug mode */
-	if (conf->pmiDbg || getenv("PMI_DEBUG")) envSet(env, "PMI_DEBUG", "1");
-
-	/* set the PMI debug KVS mode */
-	if (conf->pmiDbgKVS || getenv("PMI_DEBUG_KVS"))
-	    envSet(env, "PMI_DEBUG_KVS", "1");
-
-	/* set the PMI debug client mode */
-	if (conf->pmiDbgClient || getenv("PMI_DEBUG_CLIENT"))
-	    envSet(env, "PMI_DEBUG_CLIENT", "1");
-
-	/* set the template for the KVS name */
-	propEnv(env, "PMI_KVS_TMP");
-
-	/* setup process mapping needed for MVAPICH */
-	char *mapping = getProcessMap(conf->np);
-	if (mapping) {
-	    envSet(env, "__PMI_PROCESS_MAPPING", mapping);
-	    free(mapping);
-	} else {
-	    fprintf(stderr, "failed building MVAPICH process mapping\n");
-	}
-
-	/* MPI processes should use PMI version 1 as long as we don't have
-	 * support for PMI version 2 */
-	envSet(env, "PMI_VERSION", "1");
-	envSet(env, "PMI_SUBVERSION", "1");
-
-	/* propagate neccessary infos for PMI spawn */
-	char *envStr = getenv("__PMI_preput_num");
-	if (envStr) {
-	    propEnv(env, "__PMI_preput_num");
-	    int prenum = atoi(envStr);
-	    for (int i = 0; i < prenum; i++) {
-		snprintf(key, sizeof(key), "__PMI_preput_key_%i", i);
-		snprintf(val, sizeof(val), "__PMI_preput_val_%i", i);
-
-		if (!propEnv(env, key)) continue;
-		if (!propEnv(env, val)) envUnset(env, key);
-	    }
-	}
-	propEnv(env, "__PMI_SPAWN_PARENT");
-	propEnv(env, "__KVS_PROVIDER_TID");
-	propEnv(env, "PMI_SPAWNED");
-	propEnv(env, "PMI_BARRIER_TMOUT");
-	propEnv(env, "PMI_BARRIER_ROUNDS");
-
-	for (int i = 0; i < conf->execCount; i++) {
-	    Executable_t *exec = &conf->exec[i];
-	    if (exec->psetname) {
-		snprintf(key, sizeof(key), "PMI_APPNAME_%d", i);
-		envSet(env, key, exec->psetname);
-	    }
-	}
-
-	/* set PMI's universe size */
-	snprintf(val, sizeof(val), "%d", conf->uSize);
-	envSet(env, "PMI_UNIVERSE_SIZE", val);
-
     }
 
     return env;
@@ -375,6 +302,83 @@ static void setupCommonEnv(Conf_t *conf, env_t pmEnv)
 	/* set PMIx session max procs aka universe size */
 	snprintf(val, sizeof(val), "%d", conf->uSize);
 	setPSIEnv("PMIX_UNIV_SIZE", val);
+
+    } else if (conf->pmiTCP || conf->pmiSock) {
+
+	setPSIEnv("PMI_SIZE", getenv("PMI_SIZE"));
+
+	/* propagate PMI auth token */
+	setPSIEnv("PMI_ID", getenv("PMI_ID"));
+
+	/* enable PMI tcp port */
+	if (conf->pmiTCP) setPSIEnv("PMI_ENABLE_TCP", "1");
+
+	/* enable PMI sockpair */
+	if (conf->pmiSock) setPSIEnv("PMI_ENABLE_SOCKP", "1");
+
+	/* set the PMI debug mode */
+	if (conf->pmiDbg || getenv("PMI_DEBUG")) setPSIEnv("PMI_DEBUG", "1");
+
+	/* set the PMI debug KVS mode */
+	if (conf->pmiDbgKVS || getenv("PMI_DEBUG_KVS"))
+	    setPSIEnv("PMI_DEBUG_KVS", "1");
+
+	/* set the PMI debug client mode */
+	if (conf->pmiDbgClient || getenv("PMI_DEBUG_CLIENT"))
+	    setPSIEnv("PMI_DEBUG_CLIENT", "1");
+
+	/* set the template for the KVS name */
+	setPSIEnv("PMI_KVS_TMP", getenv("PMI_KVS_TMP"));
+
+	/* setup process mapping needed for MVAPICH */
+	char *mapping = getProcessMap(conf->np);
+	if (mapping) {
+	    setPSIEnv("__PMI_PROCESS_MAPPING", mapping);
+	    free(mapping);
+	} else {
+	    fprintf(stderr, "failed building MVAPICH process mapping\n");
+	}
+
+	/* MPI processes should use PMI version 1 as long as we don't have
+	 * support for PMI version 2 */
+	setPSIEnv("PMI_VERSION", "1");
+	setPSIEnv("PMI_SUBVERSION", "1");
+
+	/* propagate neccessary infos for PMI spawn */
+	char *envStr = getenv("__PMI_preput_num");
+	if (envStr) {
+	    setPSIEnv("__PMI_preput_num", envStr);
+	    int prenum = atoi(envStr);
+	    for (int i = 0; i < prenum; i++) {
+		snprintf(key, sizeof(key), "__PMI_preput_key_%i", i);
+		snprintf(val, sizeof(val), "__PMI_preput_val_%i", i);
+
+		char *keyEnv = getenv(key);
+		if (!keyEnv) continue;
+		char *valEnv = getenv(val);
+		if (!valEnv) continue;
+
+		setPSIEnv(key, keyEnv);
+		setPSIEnv(val, valEnv);
+	    }
+	}
+	setPSIEnv("__PMI_SPAWN_PARENT", getenv("__PMI_SPAWN_PARENT"));
+	setPSIEnv("__KVS_PROVIDER_TID", getenv("__KVS_PROVIDER_TID"));
+	setPSIEnv("PMI_SPAWNED", getenv("PMI_SPAWNED"));
+	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"));
+	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"));
+
+	for (int i = 0; i < conf->execCount; i++) {
+	    Executable_t *exec = &conf->exec[i];
+	    if (exec->psetname) {
+		snprintf(key, sizeof(key), "PMI_APPNAME_%d", i);
+		setPSIEnv(key, exec->psetname);
+	    }
+	}
+
+	/* set PMI's universe size */
+	snprintf(val, sizeof(val), "%d", conf->uSize);
+	setPSIEnv("PMI_UNIVERSE_SIZE", val);
 
     }
 
