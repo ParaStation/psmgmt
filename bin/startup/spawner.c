@@ -57,11 +57,6 @@
 static int numUniqNodes = 0;
 
 /* Some helper fields used especially for OpenMPI support */
-/**
- * list of unique nodeIDs within the job. This helps to map job-local nodeIDs
- * to absolute nodeIDs
- */
-static PSnodes_ID_t *jobLocalUniqNodeIDs = NULL;
 /** number of processes per node per job local nodeID */
 static int *numProcPerNode = NULL;
 /** job local nodeIDs (i.e. nodes numbered job locally starting @ 0) per rank */
@@ -108,7 +103,7 @@ static void *__umalloc(size_t size, const char *func)
  */
 static char *getProcessMap(int np)
 {
-    int i, sid = 0, nodeCount = 0, procCount = 0;
+    int sid = 0, nodeCount = 0, procCount = 0;
     int oldProcCount = 0;
     char pMap[PMI_VALLEN_MAX], buf[64];
 
@@ -119,7 +114,7 @@ static char *getProcessMap(int np)
 
     snprintf(pMap, sizeof(pMap), "(vector");
 
-    for (i=0; i<numUniqNodes; i++) {
+    for (int i = 0; i < numUniqNodes; i++) {
 	procCount = numProcPerNode[i];
 
 	if (!i || oldProcCount == procCount) {
@@ -528,12 +523,10 @@ static char **setupRankEnv(int psRank, void *info)
  * @return No return value
  */
 static void setRankInfos(int np, PSnodes_ID_t node, PSnodes_ID_t *uniqNodeIDs,
-			    int *listProcIDs, int *nodeid, int *procid)
+			 int *listProcIDs, int *nodeid, int *procid)
 {
-    int i;
-
     /* Use reverse search for canonically sorted nodeList */
-    for (i=numUniqNodes-1; i>=0; i--) {
+    for (int i = numUniqNodes-1; i >= 0; i--) {
 	if (uniqNodeIDs[i] == node) {
 	    /* already known node */
 	    *procid = listProcIDs[i];
@@ -569,20 +562,19 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
     }
 
     /* allocate the helper fields */
-    jobLocalUniqNodeIDs = umalloc(sizeof(*jobLocalUniqNodeIDs) * np);
+    PSnodes_ID_t uniqNodeIDs[np];
     numProcPerNode = umalloc(sizeof(*numProcPerNode) * np);
     jobLocalNodeIDs = umalloc(sizeof(*jobLocalNodeIDs) * np);
     nodeLocalProcIDs = umalloc(sizeof(*nodeLocalProcIDs) * np);
 
-    if (!jobLocalUniqNodeIDs || !numProcPerNode || !jobLocalNodeIDs
-	|| !nodeLocalProcIDs) {
+    if (!numProcPerNode || !jobLocalNodeIDs || !nodeLocalProcIDs) {
 	fprintf(stderr, "%s: invalid nodeList\n", __func__);
 	exit(1);
     }
 
     /* save the information */
     for (int i = 0; i < np; i++) {
-	setRankInfos(np, nodeList[i], jobLocalUniqNodeIDs, numProcPerNode,
+	setRankInfos(np, nodeList[i], uniqNodeIDs, numProcPerNode,
 		     &jobLocalNodeIDs[i], &nodeLocalProcIDs[i]);
     }
 }
