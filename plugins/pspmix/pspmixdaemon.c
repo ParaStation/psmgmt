@@ -998,6 +998,13 @@ static int hookJobComplete(void *data)
      * in PSIDHOOK_SPAWN_TASK a using the task environment. */
     if (!psjob->extraData) return 0;
 
+    if (mset(PSPMIX_LOG_ENV)) {
+	int cnt = 0;
+	for (char **e = envGetArray(psjob->extraData); e && *e; e++, cnt++) {
+	    flog("%d: %s\n", cnt, *e);
+	}
+    }
+
     /* continue only if PMIx support is requested
      * no singleton check needed here, singletons never have extraData set */
     if (!pspmix_common_usePMIx(psjob->extraData)) return 0;
