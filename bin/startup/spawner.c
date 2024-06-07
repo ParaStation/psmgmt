@@ -180,8 +180,7 @@ static env_t createPMEnv(Conf_t *conf)
     env_t env = envNew(NULL);
 
     if (conf->PMIx) {
-	/* set the PMIX debug mode */
-	if (conf->pmiDbg || getenv("PMIX_DEBUG")) envSet(env, "PMIX_DEBUG", "1");
+	propEnv(env, "PMIX_JOB_SIZE");
 
 	/* info about and for respawned processes */
 	if (getenv("PMIX_SPAWNID")) {
@@ -197,10 +196,6 @@ static env_t createPMEnv(Conf_t *conf)
 
 	for (int i = 0; i < conf->execCount; i++) {
 	    Executable_t *exec = &conf->exec[i];
-	    snprintf(key, sizeof(key), "PMIX_APP_SIZE_%d", i);
-	    snprintf(val, sizeof(val), "%d", exec->np);
-	    envSet(env, key, val);
-
 	    snprintf(key, sizeof(key), "PMIX_APP_WDIR_%d", i);
 	    char *dir = PSC_getwd(exec->wdir);
 	    envSet(env, key, dir);
@@ -219,18 +214,7 @@ static env_t createPMEnv(Conf_t *conf)
 	    *(ptr-1)='\0';
 	    envSet(env, key, argvStr);
 	    free(argvStr);
-
-	    if (exec->psetname) {
-		snprintf(key, sizeof(key), "PMIX_APP_NAME_%d", i);
-		envSet(env, key, exec->psetname);
-	    }
 	}
-
-	propEnv(env, "PMIX_JOB_SIZE");
-
-	/* set PMIx session max procs aka universe size */
-	snprintf(val, sizeof(val), "%d", conf->uSize);
-	envSet(env, "PMIX_UNIV_SIZE", val);
 
     } else if (conf->pmiTCP || conf->pmiSock) {
 
@@ -366,12 +350,32 @@ static void checkEnvironment(Conf_t *conf)
  */
 static void setupCommonEnv(Conf_t *conf, env_t pmEnv)
 {
-    char val[32];
+    char key[32], val[32];
 
     concatPSIEnv(pmEnv);
 
     if (conf->PMIx) {
 	setPSIEnv("PSPMIX_ENV_TMOUT", getenv("PSPMIX_ENV_TMOUT"));
+
+	/* set the PMIX debug mode */
+	if (conf->pmiDbg || getenv("PMIX_DEBUG")) setPSIEnv("PMIX_DEBUG", "1");
+
+	for (int i = 0; i < conf->execCount; i++) {
+	    Executable_t *exec = &conf->exec[i];
+	    snprintf(key, sizeof(key), "PMIX_APP_SIZE_%d", i);
+	    snprintf(val, sizeof(val), "%d", exec->np);
+	    setPSIEnv(key, val);
+
+	    if (exec->psetname) {
+		snprintf(key, sizeof(key), "PMIX_APP_NAME_%d", i);
+		setPSIEnv(key, exec->psetname);
+	    }
+	}
+
+	/* set PMIx session max procs aka universe size */
+	snprintf(val, sizeof(val), "%d", conf->uSize);
+	setPSIEnv("PMIX_UNIV_SIZE", val);
+
     }
 
     unsetPSIEnv(ENV_PART_LOOPNODES);
