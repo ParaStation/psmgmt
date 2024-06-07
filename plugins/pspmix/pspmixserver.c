@@ -3149,10 +3149,9 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
 
     /* find this node in procMap */
     PspmixNode_t *mynode = findNodeInList(nodeID, procMap);
-    if (mynode == NULL) {
-	mlog("%s: Could not find my own node (%u) in process map\n", __func__,
-	     nodeID);
-	return false;
+    if (!mynode) {
+	fdbg(PSPMIX_LOG_INFOARR,
+	     "Namespace without local node (%u) in process map\n", nodeID);
     }
 
     /* fill infos */
@@ -3234,23 +3233,25 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
 #if PMIX_VERSION_MAJOR < 4
     /* ===== own node info ===== */
 
-    /* number of processes in this job/namespace on this node */
-    uint32_t val_u32 = mynode->procs.len;
-    PMIX_INFO_LOAD(&data.info[i], PMIX_LOCAL_SIZE, &val_u32, PMIX_UINT32);
-    i++;
+    if (mynode) {
+	/* number of processes in this job/namespace on this node */
+	uint32_t val_u32 = mynode->procs.len;
+	PMIX_INFO_LOAD(&data.info[i], PMIX_LOCAL_SIZE, &val_u32, PMIX_UINT32);
+	i++;
 
-    /* comma-delimited string of ranks on this node within the specified job */
-    char *lpeers;
-    lpeers = getNodeRanksString(mynode);
-    if (lpeers[0] == '\0') {
-	mlog("%s: no local ranks found.\n", __func__);
+	/* comma-delimited string of ranks on this node within the job */
+	char *lpeers;
+	lpeers = getNodeRanksString(mynode);
+	if (lpeers[0] == '\0') {
+	    mlog("%s: no local ranks found.\n", __func__);
+	    ufree(lpeers);
+	    DESTROY_CBDATA(data);
+	    return false;
+	}
+	PMIX_INFO_LOAD(&data.info[i], PMIX_LOCAL_PEERS, lpeers, PMIX_STRING);
+	i++;
 	ufree(lpeers);
-	DESTROY_CBDATA(data);
-	return false;
     }
-    PMIX_INFO_LOAD(&data.info[i], PMIX_LOCAL_PEERS, lpeers, PMIX_STRING);
-    i++;
-    ufree(lpeers);
 #endif
 
     if (i != data.ninfo) {
@@ -3303,8 +3304,9 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
     }
 
     /* register namespace */
-    status = PMIx_server_register_nspace(nspace, mynode->procs.len, data.info,
-	    data.ninfo, registerNamespace_cb, &data);
+    status = PMIx_server_register_nspace(nspace, mynode ? mynode->procs.len : 0,
+					 data.info, data.ninfo,
+					 registerNamespace_cb, &data);
     if (status == PMIX_OPERATION_SUCCEEDED) {
 	goto reg_nspace_success;
     }

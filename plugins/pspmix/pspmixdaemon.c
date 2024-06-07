@@ -1066,6 +1066,8 @@ static int hookJobComplete(void *data)
  * This hook is called right before the forwarder for a task is started
  *
  * Starts the user's PMIx server and/or notifies this PMIx server of the job.
+ * This hook handles jobs having local tasks including the Singleton case.
+ * Jobs without local tasks are handled by @a hookJobComplete().
  *
  * This function depends on all reservation information of the job being
  * received. This is guaranteed at the moment this hook is called.
