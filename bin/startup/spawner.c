@@ -209,6 +209,12 @@ static env_t createPMEnv(Conf_t *conf)
 	    *(ptr-1)='\0';
 	    envSet(env, key, argvStr);
 	    free(argvStr);
+
+	    if (exec->psetname) {
+		snprintf(key, sizeof(key), "PMIX_APP_NAME_%d", i);
+		envSet(env, key, exec->psetname);
+	    }
+
 	}
     }
 
@@ -287,11 +293,6 @@ static void setupCommonEnv(Conf_t *conf, env_t pmEnv)
 	    snprintf(key, sizeof(key), "PMIX_APP_SIZE_%d", i);
 	    snprintf(val, sizeof(val), "%d", exec->np);
 	    setPSIEnv(key, val);
-
-	    if (exec->psetname) {
-		snprintf(key, sizeof(key), "PMIX_APP_NAME_%d", i);
-		setPSIEnv(key, exec->psetname);
-	    }
 	}
 
 	/* set PMIx session max procs aka universe size */
