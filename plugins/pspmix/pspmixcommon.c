@@ -18,8 +18,7 @@
 #include "pspmixlog.h"
 #include "pspmixconfig.h"
 
-/* decide if this job wants to use PMIx
- * Relies on __USE_PMIX set in hookRecvSpawnReq() in pspmixdaemon.c */
+/* decide if this job wants to use PMIx */
 bool __pspmix_common_usePMIx(const env_t env, const char* func) {
     /* PMIX_JOB_SIZE is set by mpiexec iff called with '--pmix' and by the
      * spawning forwarder in case of PMIx_Spawn() */
