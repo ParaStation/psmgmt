@@ -994,7 +994,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 	 " %d\n", __func__, client->rank + resInfo->rankOffset, client->rank);
 
     /* remember some information to be used outside the lock */
-    PspmixSession_t *session = ns->job->session;
+    uint32_t sessSize = getSessSize(ns->job->session);
     uint32_t jobSize = ns->jobSize;
     PSnodes_ID_t nodeId = getNodeFromRank(ns, client->rank);
 
@@ -1038,7 +1038,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
     envSet(env, "OMPI_COMM_WORLD_SIZE", tmp);
     snprintf(tmp, sizeof(tmp), "%d", client->rank);
     envSet(env, "OMPI_COMM_WORLD_RANK", tmp);
-    snprintf(tmp, sizeof(tmp), "%u", getSessSize(session));
+    snprintf(tmp, sizeof(tmp), "%u", sessSize);
     envSet(env, "OMPI_UNIVERSE_SIZE", tmp);
 
     /* since this function is always running in the main thread and resInfo
