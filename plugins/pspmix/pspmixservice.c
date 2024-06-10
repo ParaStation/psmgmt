@@ -541,21 +541,10 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     INIT_LIST_HEAD(&ns->procMap); /* now we can safely call freeProcMap() */
     ns->job = job;
 
-    /* recognize sister partition case by env (see hookJobRescomplete())
-     * this namespace is only informational, and will not have any client
-     * on the local node */
-    bool infons = envGet(job->env, "__PSPMIX_IS_SISTER_PARTITION_NODE");
-
     /* generate my namespace name */
-    bool singleton = !infons && !pspmix_common_usePMIx(job->env);
+    bool singleton = !pspmix_common_usePMIx(job->env);
     strncpy(ns->name, generateNamespaceName(job->ID, singleton),
 	    sizeof(ns->name));
-
-    if (infons) {
-	ulog("Not creating informational namespace '%s'\n", ns->name);
-	/* @todo create and register when no longer relying on env */
-	return true;
-    }
 
     /* fill jobid
      * ATTENTION: This is not the ParaStation Job ID, but a custom one to
