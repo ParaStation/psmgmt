@@ -928,8 +928,8 @@ static int hookFillResFinalized(void *data)
     if (!stid) return -1;
 
     char *endptr;
-    long spawnertid = strtol(stid, &endptr, 0);
-    if (endptr == stid) return -1;
+    PStask_ID_t spawnertid = strtol(stid, &endptr, 0);
+    if (endptr == stid || *endptr) return -1;
 
     PStask_t *task = PStasklist_find(&managedTasks, spawnertid);
 
@@ -1019,7 +1019,7 @@ static int hookJobComplete(void *data)
 
     char *endptr;
     uid_t uid = strtol(tmp, &endptr, 0);
-    if (endptr == tmp) {
+    if (endptr == tmp || *endptr) {
 	flog("invalid UID in extraData of job %s\n", PSC_printTID(psjob->ID));
 	return -1;
     }
@@ -1031,7 +1031,7 @@ static int hookJobComplete(void *data)
     }
 
     gid_t gid = strtol(tmp, &endptr, 0);
-    if (endptr == tmp) {
+    if (endptr == tmp || *endptr) {
 	flog("invalid UID in extraData of job %s\n", PSC_printTID(psjob->ID));
 	return -1;
     }
