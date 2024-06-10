@@ -229,7 +229,7 @@ static PspmixMsgExtra_t* getExtra(DDTypedBufferMsg_t *msg)
 static bool setTargetToPmixServer(PspmixMsgExtra_t *extra,
 				  DDTypedBufferMsg_t *msg)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     PspmixServer_t *server = findServer(extra->uid);
     if (!server) {
@@ -262,7 +262,7 @@ static bool setTargetToPmixServer(PspmixMsgExtra_t *extra,
  */
 static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 {
-    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(type %s)\n", __func__,
+    fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "(type %s)\n",
 	 PSDaemonP_printMsg(vmsg->header.type));
 
     DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
@@ -426,7 +426,7 @@ forward_msg:
  */
 static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 {
-    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(type %s fw %s)\n", __func__,
+    fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "(type %s fw %s)\n",
 	 PSDaemonP_printMsg(msg->header.type), PSC_printTID(fw->tid));
 
     switch(msg->header.type) {
@@ -480,8 +480,8 @@ static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
 		       PStask_ID_t spawnertid, list_t *resInfos, env_t env)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %d spawner %s)\n", __func__,
-	 server->uid, PSC_printTID(spawnertid));
+    fdbg(PSPMIX_LOG_CALL, "(uid %d spawner %s)\n", server->uid,
+	 PSC_printTID(spawnertid));
 
     if (!server->fwdata) {
 	flog("server seems to be dead (uid %d)\n", server->uid);
@@ -550,8 +550,8 @@ static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
  */
 static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t spawnertid)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %d spawnertid %s)\n", __func__,
-	 server->uid, PSC_printTID(spawnertid));
+    fdbg(PSPMIX_LOG_CALL, "(uid %d spawnertid %s)\n", server->uid,
+	 PSC_printTID(spawnertid));
 
     if (!server->fwdata) {
 	flog("server seems to be dead (uid %d)\n", server->uid);
@@ -602,8 +602,8 @@ static bool addJobToServer(PspmixServer_t *server, PSjob_t *psjob, env_t env)
 {
     PStask_ID_t sessID = psjob->sessID;
 
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %d session ID %s)\n", __func__,
-	 server->uid, PSC_printTID(sessID));
+    fdbg(PSPMIX_LOG_CALL, "(uid %d session ID %s)\n", server->uid,
+	 PSC_printTID(sessID));
 
     PspmixSession_t *session = findSessionInList(sessID, &server->sessions);
     if (session) {
@@ -672,7 +672,7 @@ static void killServer(int timerId, void *data)
  */
 static void terminateSession(PStask_ID_t sessID)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(ID %s)\n", __func__, PSC_printTID(sessID));
+    fdbg(PSPMIX_LOG_CALL, "(ID %s)\n", PSC_printTID(sessID));
 
     PSID_sendSignal(sessID, getuid(), PSC_getMyTID(), -1 /* signal */,
 		    false /* pervasive */, false /* answer */);
@@ -690,8 +690,8 @@ static void terminateSession(PStask_ID_t sessID)
  */
 static void serverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(server %s status %d)\n", __func__,
-	    PSC_printTID(fw->tid), exit_status);
+    fdbg(PSPMIX_LOG_CALL, "(server %s status %d)\n", PSC_printTID(fw->tid),
+	 exit_status);
 
     PspmixServer_t *server = fw->userData;
     if (!server) {
@@ -748,7 +748,7 @@ static void serverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
  */
 static int fakeKillSession(pid_t pid, int signal)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(pid %d signal %d)\n", __func__, pid, signal);
+    fdbg(PSPMIX_LOG_CALL, "(pid %d signal %d)\n", pid, signal);
 
     /* since we do not have a child, we need nothing to do here */
     return 0;
@@ -769,7 +769,7 @@ static int initialCleanup(Forwarder_Data_t *fwdata)
 {
     PspmixServer_t *myserver = fwdata->userData;
 
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     /* there has to be a server object */
     if (!myserver) {
@@ -874,7 +874,7 @@ static PspmixServer_t* findOrStartServer(uid_t uid, gid_t gid)
  */
 static void stopServer(PspmixServer_t *server)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %d)\n", __func__, server->uid);
+    fdbg(PSPMIX_LOG_CALL, "(uid %d)\n", server->uid);
 
     if (!server->fwdata) {
 	flog("no valid forwarder data, removing from list (uid %d)\n",
@@ -984,7 +984,7 @@ static int hookJobComplete(void *data)
 {
     PSjob_t *psjob = data;
 
-    mdbg(PSPMIX_LOG_CALL, "%s(spawner %s)\n", __func__, PSC_printTID(psjob->ID));
+    fdbg(PSPMIX_LOG_CALL, "spawner %s\n", PSC_printTID(psjob->ID));
 
     PspmixJob_t *job = findJob(psjob->ID);
     if (job) {
@@ -1090,7 +1090,7 @@ static int hookSpawnTask(void *data)
     /* leave all special task groups alone */
     if (task->group != TG_ANY) return 0;
 
-    mdbg(PSPMIX_LOG_CALL, "%s(task group TG_ANY)\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "(task group TG_ANY)\n");
 
     /* continue only for singleton case (see hookJobComplete for other cases)
      * which is if
@@ -1211,7 +1211,7 @@ static int hookLocalJobRemoved(void *data)
 {
     PSjob_t *psjob = data;
 
-    mdbg(PSPMIX_LOG_CALL, "%s(spawner %s)\n", __func__, PSC_printTID(psjob->ID));
+    fdbg(PSPMIX_LOG_CALL, "(spawner %s)\n", PSC_printTID(psjob->ID));
 
     if (mset(PSPMIX_LOG_VERBOSE)) printServers();
 
@@ -1267,7 +1267,7 @@ static int hookNodeDown(void *data)
 {
     PSnodes_ID_t *nodeid = data;
 
-    mdbg(PSPMIX_LOG_CALL, "%s(nodeid %hd)\n", __func__, *nodeid);
+    fdbg(PSPMIX_LOG_CALL, "(nodeid %hd)\n", *nodeid);
 
     /** @todo
      * Is there any action needed here?
