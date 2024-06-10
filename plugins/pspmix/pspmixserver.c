@@ -2630,6 +2630,7 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo,
     ufree(nodelist_s);
     PMIX_INFO_LOAD(&infos[i], PMIX_NODE_MAP, nodelist_r, PMIX_STRING);
     i++;
+    ufree(nodelist_r);
 
     /* regex describing procs on each node within this job */
     char *pmap_s = getProcessMapString(procMap);
@@ -2642,6 +2643,7 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo,
     ufree(pmap_s);
     PMIX_INFO_LOAD(&infos[i], PMIX_PROC_MAP, pmap_r, PMIX_STRING);
     i++;
+    ufree(pmap_r);
 
     /* number of applications in this job (required if > 1) */
     PMIX_INFO_LOAD(&infos[i], PMIX_JOB_NUM_APPS, &numApps, PMIX_UINT32);
