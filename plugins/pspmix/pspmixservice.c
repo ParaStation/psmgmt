@@ -658,6 +658,12 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	a++;
     }
 
+    if (a != ns->appsCount) {
+	flog("PMIX_JOB_NUM_APPS does not match number of reservations"
+	     " (%zu != %zu)\n", ns->appsCount, a);
+	goto nscreate_error;
+    }
+
     /* set the job size */
     ns->jobSize = procCount;
 
