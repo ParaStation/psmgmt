@@ -2568,11 +2568,11 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
 /**
  * @brief Get string with comma separated hostname list.
  *
- * @return Returns the requested string
+ * @return Returns the requested string or "", needs to be freed
  */
 static char * getNodelistString(list_t *procMap)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    StrBuffer_t strBuf = { .buf = NULL, .strLen = 0 };
 
     list_t *n;
     list_for_each(n, procMap) {
@@ -2582,6 +2582,7 @@ static char * getNodelistString(list_t *procMap)
     }
 
     if (strBuf.strLen > 1) strBuf.buf[strBuf.strLen-1] = '\0';
+    else addStrBuf("", &strBuf); /* make sure to never return NULL */
 
     return strBuf.buf;
 }
@@ -2620,7 +2621,6 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo,
 
     /* regex of nodes containing procs for this job */
     char *nodelist_s = getNodelistString(procMap);
-    if (!nodelist_s) nodelist_s = "";
 
     mdbg(PSPMIX_LOG_INFOARR, "%s: nodelist string created: '%s'\n", __func__,
 	 nodelist_s);
