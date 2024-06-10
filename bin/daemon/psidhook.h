@@ -250,7 +250,7 @@ typedef enum {
 				logger connection, etc. */
     PSIDHOOK_NODE_UNKNOWN,    /**< Node IP is unknown, arg is PSnodes_ID_t ID;
 				this shall update the node's IP address to a
-				valid one in order to allow to grow the numer
+				valid one in order to allow to grow the number
 				of available nodes dynamically. */
     PSIDHOOK_SENDER_UNKNOWN,  /**< Sender's IP is unknown to RDP, arg
 				 point's to sender's struct
@@ -274,9 +274,12 @@ typedef enum {
 				distribution of reservation information will
 				start. The hook might add additional info;
 				For this, arg points to an env_t initially
-				holding SPAWNER_TID=<tid of spawner>; this and
-				all content of env_t will be distributed
-				alongside the reservations info */
+				holding SPAWNER_TID=<tid of spawner> and all
+				key-value pairs provided through
+				PSI_finReservation()'s env argument; all
+				content of env_t upon return will be distributed
+				alongside the reservations info and provided
+				in PSjob_t's extraData. */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
