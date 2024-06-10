@@ -1138,6 +1138,8 @@ static int hookSpawnTask(void *data)
     /* no singleton (see above) */
     if (!usePMIx && np != 1) return 0;
 
+    if (mset(PSPMIX_LOG_VERBOSE)) printServers();
+
     PspmixServer_t *server = findOrStartServer(task->uid, task->gid);
     if (!server) {
 	flog("unable to get PMIx server for uid %d", task->uid);
