@@ -523,9 +523,32 @@ static uint16_t getNodeRankOffset()
     return offset;
 }
 
+void printJob(PspmixJob_t *job)
+{
+    flog("Printing job with ID %u:\n", job->ID);
+    flog("  Session ID = %u\n", job->session->ID);
+    list_t *r;
+    list_for_each(r, &job->resInfos) {
+	PSresinfo_t *rinfo = list_entry(r, PSresinfo_t, next);
+	flog("  Reservation %u:\n", rinfo->resID);
+	flog("  rankOffset: %u:\n", rinfo->rankOffset);
+	flog("  minRank: %d:\n", rinfo->minRank);
+	flog("  maxRank: %d:\n", rinfo->maxRank);
+	for (size_t i = 0; i < rinfo->nEntries; i++) {
+	    flog("  Entry %zu:\n", i);
+	    flog("    node: %hd:\n", rinfo->entries[i].node);
+	    flog("    firstRank: %d:\n", rinfo->entries[i].firstRank);
+	    flog("    lastRank: %d:\n", rinfo->entries[i].lastRank);
+	}
+	flog("  nLocalSlots: %hu:\n", rinfo->nLocalSlots);
+    }
+}
+
 bool pspmix_service_registerNamespace(PspmixJob_t *job)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    if (mset(PSPMIX_LOG_JOB)) printJob(job);
 
     /* we are using the logger's TID as session ID
      * PMIx 4 standard: "Session identifier assigned by the scheduler" */
