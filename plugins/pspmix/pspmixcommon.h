@@ -18,9 +18,21 @@
 
 #include "psenv.h"
 
+#include "psidsession.h"
+
 /* decide if this job wants to use PMIx */
 #define pspmix_common_usePMIx(e) __pspmix_common_usePMIx(e, __func__)
 bool __pspmix_common_usePMIx(const env_t env, const char* func);
+
+/**
+ * @brief Calculate reservation size
+ *
+ * Calculates the number of all processes in the reservation represented by
+ * @a resInfo.
+ *
+ * @param resInfo  info object of the reservation
+ */
+uint32_t getResSize(PSresinfo_t *resInfo);
 
 #endif  /* __PS_PMIX_COMMON */
 

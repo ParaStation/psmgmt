@@ -1133,10 +1133,7 @@ static int hookSpawnTask(void *data)
     }
 
     /* count processes */
-    uint32_t np = 0;
-    for (size_t i = 0; i < resInfo->nEntries; i++) {
-	np += resInfo->entries[i].lastRank - resInfo->entries[i].firstRank + 1;
-    }
+    uint32_t np = getResSize(resInfo);
 
     /* no singleton (see above) */
     if (!usePMIx && np != 1) return 0;

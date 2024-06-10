@@ -36,4 +36,13 @@ bool __pspmix_common_usePMIx(const env_t env, const char* func) {
     return false;
 }
 
+uint32_t getResSize(PSresinfo_t *resInfo)
+{
+    uint32_t rsize = 0;
+    for (size_t i = 0; i < resInfo->nEntries; i++) {
+	PSresinfoentry_t *cur = &resInfo->entries[i];
+	rsize += cur->lastRank - cur->firstRank + 1;
+    }
+    return rsize;
+}
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

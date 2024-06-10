@@ -353,24 +353,6 @@ static void createAppPSet(const char *name, PspmixNamespace_t *ns,
 }
 
 /**
- * @brief Calculate reservation size
- *
- * Calculates the number of all processes in the reservation represented by
- * @a resInfo.
- *
- * @param resInfo  info object of the reservation
- */
-static uint32_t getResSize(PSresinfo_t *resInfo)
-{
-    uint32_t rsize = 0;
-    for (size_t i = 0; i < resInfo->nEntries; i++) {
-	PSresinfoentry_t *cur = &resInfo->entries[i];
-	rsize += cur->lastRank - cur->firstRank + 1;
-    }
-    return rsize;
-}
-
-/**
  * @brief Calculate job size
  *
  * Calculates the number of all processes in the job @a job.
