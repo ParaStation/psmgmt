@@ -593,7 +593,6 @@ static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t spawnertid)
  * - Notify the running server via a PSPMIX_ADD_JOB message.
  *
  * @param server    PMIx server to add the job to
- * @param sessID    PMIx session identifier
  * @param psjob     job to add
  * @param env       environment for the job
  *
