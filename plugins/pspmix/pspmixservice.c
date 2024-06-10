@@ -389,13 +389,13 @@ static uint32_t getJobSize(PspmixJob_t *job)
 }
 
 /**
- * @brief Calculate current universe size
+ * @brief Calculate current session size
  *
  * Calculates the number of all processes in all jobs of the session @a session.
  *
  * @param session   session
  */
-static uint32_t getUniverseSize(PspmixSession_t *session)
+static uint32_t getSessSize(PspmixSession_t *session)
 {
     uint32_t usize = 0;
     list_t *j;
@@ -731,7 +731,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* register namespace */
     if (!pspmix_server_registerNamespace(ns->name, ns->jobid, sessionId,
-					 getUniverseSize(job->session),
+					 getSessSize(job->session),
 					 ns->jobSize,
 					 ns->spawnID ? &ns->parent : NULL,
 					 grankOffset, nodeCount, &ns->procMap,
@@ -1038,7 +1038,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
     envSet(env, "OMPI_COMM_WORLD_SIZE", tmp);
     snprintf(tmp, sizeof(tmp), "%d", client->rank);
     envSet(env, "OMPI_COMM_WORLD_RANK", tmp);
-    snprintf(tmp, sizeof(tmp), "%u", getUniverseSize(session));
+    snprintf(tmp, sizeof(tmp), "%u", getSessSize(session));
     envSet(env, "OMPI_UNIVERSE_SIZE", tmp);
 
     /* since this function is always running in the main thread and resInfo
