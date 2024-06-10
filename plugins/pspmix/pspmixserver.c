@@ -3157,9 +3157,22 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
     /* fill infos */
     mycbdata_t data;
 #if PMIX_VERSION_MAJOR >= 4
+    /* sessionInfo
+     * jobInfo
+     * numApps * appInfo
+     * numNodes * nodeInfo
+     * jobSize * procInfo */
     INIT_CBDATA(data, 2 + numApps + numNodes + jobSize);
 #else
-    INIT_CBDATA(data, 4 + numApps + jobSize + 2);
+    /* univSize
+     * jobSize
+     * sessionInfo
+     * jobInfo
+     * numApps * appInfo
+     * jobSize * procInfo
+     * localSize
+     * (localPeers) */
+    INIT_CBDATA(data, 4 + numApps + jobSize + mynode ? 2 : 1);
 #endif
 
     size_t i = 0;
@@ -3233,12 +3246,12 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
 #if PMIX_VERSION_MAJOR < 4
     /* ===== own node info ===== */
 
-    if (mynode) {
-	/* number of processes in this job/namespace on this node */
-	uint32_t val_u32 = mynode->procs.len;
-	PMIX_INFO_LOAD(&data.info[i], PMIX_LOCAL_SIZE, &val_u32, PMIX_UINT32);
-	i++;
+    /* number of processes in this job/namespace on this node */
+    uint32_t val_u32 = mynode ? mynode->procs.len : 0;
+    PMIX_INFO_LOAD(&data.info[i], PMIX_LOCAL_SIZE, &val_u32, PMIX_UINT32);
+    i++;
 
+    if (mynode) {
 	/* comma-delimited string of ranks on this node within the job */
 	char *lpeers;
 	lpeers = getNodeRanksString(mynode);
