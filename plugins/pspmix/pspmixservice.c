@@ -489,21 +489,21 @@ static uint16_t getNodeRankOffset()
 
 void printJob(PspmixJob_t *job)
 {
-    flog("Printing %s:\n", pspmix_jobIDsStr(job->session->ID, job->ID));
+    flog("%s:\n", pspmix_jobIDsStr(job->session->ID, job->ID));
     list_t *r;
     list_for_each(r, &job->resInfos) {
 	PSresinfo_t *rinfo = list_entry(r, PSresinfo_t, next);
-	flog("  Reservation %u:\n", rinfo->resID);
-	flog("  rankOffset: %u:\n", rinfo->rankOffset);
-	flog("  minRank: %d:\n", rinfo->minRank);
-	flog("  maxRank: %d:\n", rinfo->maxRank);
+	flog("  reservation %u:\n", rinfo->resID);
+	flog("    rankOffset: %u\n", rinfo->rankOffset);
+	flog("    minRank: %d\n", rinfo->minRank);
+	flog("    maxRank: %d\n", rinfo->maxRank);
 	for (size_t i = 0; i < rinfo->nEntries; i++) {
-	    flog("  Entry %zu:\n", i);
-	    flog("    node: %hd:\n", rinfo->entries[i].node);
-	    flog("    firstRank: %d:\n", rinfo->entries[i].firstRank);
-	    flog("    lastRank: %d:\n", rinfo->entries[i].lastRank);
+	    flog("    entry %zu:\n", i);
+	    flog("      node: %hd\n", rinfo->entries[i].node);
+	    flog("      firstRank: %d\n", rinfo->entries[i].firstRank);
+	    flog("      lastRank: %d\n", rinfo->entries[i].lastRank);
 	}
-	flog("  nLocalSlots: %hu:\n", rinfo->nLocalSlots);
+	flog("    nLocalSlots: %hu\n", rinfo->nLocalSlots);
     }
 }
 
