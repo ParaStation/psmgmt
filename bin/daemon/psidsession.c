@@ -101,7 +101,6 @@ static PSjob_t *getJob(void)
 {
     PSjob_t *job = PSitems_getItem(jobPool);
     job->creation = time(NULL);
-    job->registered = false;
     job->extraData = NULL;
     INIT_LIST_HEAD(&job->resInfos);
 
@@ -531,7 +530,12 @@ static bool msg_RESCREATED(DDTypedBufferMsg_t *msg)
  * When receiving a message of type PSP_DD_JOBCOMPLETE it is assured
  * that all reservations belonging to the corresponding job are
  * received. Thus, the job might be registered via the
- * PSIDHOOK_JOBCOMPLETE hook which is mainly utilized by pspmix.
+ * PSIDHOOK_JOBCOMPLETE hook which is mainly utilized by pspmix for
+ * the time being.
+ *
+ * This type of information is only received for remote jobs, i.e. job
+ * not starting tasks on the local node. For local jobs according
+ * information is available in PSIDHOOK_SPAWN_TASK.
  *
  * @param msg Message header (including the type) of the last fragment
  *
@@ -559,18 +563,19 @@ static void handleJobComplete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	return;
     }
 
-    if (!envInitialized(job->extraData)) {
-	char **envP = NULL;
-	getStringArrayM(rData, &envP, NULL);
-	job->extraData = envNew(envP);
+    if (envInitialized(job->extraData)) {
+	PSID_flog("session %s", PSC_printTID(sessionID));
+	PSID_log(" job %s already has extraData\n", PSC_printTID(jobID));
+	return;
     }
 
-    if (!job->registered) {
-	PSID_flog("session %s", PSC_printTID(sessionID));
-	PSID_log(" job %s register on complete\n", PSC_printTID(jobID));
-	PSIDhook_call(PSIDHOOK_JOBCOMPLETE, job);
-	job->registered = true;
-    }
+    char **envP = NULL;
+    getStringArrayM(rData, &envP, NULL);
+    job->extraData = envNew(envP);
+
+    PSID_fdbg(PSID_LOG_PART, "register session %s", PSC_printTID(sessionID));
+    PSID_dbg(PSID_LOG_PART, " job %s\n", PSC_printTID(jobID));
+    PSIDhook_call(PSIDHOOK_JOBCOMPLETE, job);
 }
 
 /**

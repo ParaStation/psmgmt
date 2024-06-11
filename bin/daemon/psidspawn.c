@@ -2097,18 +2097,6 @@ int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res)
 	return 0;
     }
 
-    /* now that reservations are complete the job might be registered */
-    PSsession_t *session = PSID_findSessionByID(task->loggertid);
-    if (session) {
-	PSjob_t *job = PSID_findJobInSession(session, task->spawnertid);
-	if (job && !job->registered) {
-	    PSID_flog("session %s", PSC_printTID(session->ID));
-	    PSID_log(" job %s register on spawn\n", PSC_printTID(job->ID));
-	    PSIDhook_call(PSIDHOOK_JOBCOMPLETE, job);
-	    job->registered = true;
-	}
-    }
-
     task->jobRank = task->rank - res->rankOffset;
     if (task->jobRank < res->minRank || task->jobRank > res->maxRank) {
 	PSID_flog("res %#x rank %d out of range\n", res->resID, task->rank);

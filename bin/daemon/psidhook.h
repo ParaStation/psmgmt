@@ -267,9 +267,9 @@ typedef enum {
 				hook might be used to execute the child in
 				a container. */
     PSIDHOOK_JOBCOMPLETE,     /**< All information belonging to a specific job
-				were received and the job might be registered.
-				arg points to the PSjob_t structure holding all
-				information. */
+				on remote nodes only were received and the job
+				might be registered. arg points to the PSjob_t
+				structure holding all information. */
     PSIDHOOK_FILL_RESFINALIZED,/**< PSP_CD_FINRESERVATION was received and
 				distribution of reservation information will
 				start. The hook might add additional info;

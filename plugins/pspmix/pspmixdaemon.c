@@ -908,11 +908,13 @@ static void stopServer(PspmixServer_t *server)
  * message of type PSP_DD_RESFINALIZED sent by the spawner once the
  * final reservation of a job was done.
  *
- * Creates the environment that is then distributed to all session
- * nodes via PSP_DD_JOBCOMPLETE message. On these nodes it is passed
- * to PSIDHOOK_JOBCOMPLETE to create PMIx jobs and register namespaces
- * for jobs in the same session as a local job but having tasks
- * running on remote nodes only.
+ * It can modify the environment that will be distributed to all
+ * session nodes which will not run tasks of this job via
+ * PSP_DD_JOBCOMPLETE message. On these nodes it is passed to
+ * PSIDHOOK_JOBCOMPLETE. This hook is utilized to register the
+ * corresponding PMIx job and create namespaces for jobs in the same
+ * session as a local job but having tasks running on remote nodes
+ * only.
  *
  * @param data Pointer to env to fill
  *
@@ -993,8 +995,11 @@ static int hookFillResFinalized(void *data)
 /**
  * @brief Hook function for PSIDHOOK_JOBCOMPLETE
  *
- * This hook is called when all reservation info of a job has been received,
- * i.e. once the job is completely known on the local node.
+ * This hook is called when all reservation info of a job has been
+ * received, i.e. once the job is completely known on the local node.
+ *
+ * It will only be called for remote jobs, i.e. jobs **not** having
+ * tasks on the local node.
  *
  * @param data Pointer to job structure
  *
