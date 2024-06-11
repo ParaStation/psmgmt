@@ -820,6 +820,7 @@ static int startProcs(Conf_t *conf)
     PSI_finReservation(pmEnv);
 
     setupCommonEnv(conf, pmEnv);
+    envDestroy(pmEnv);
 
     PSI_registerRankEnvFunc(setupRankEnv, conf);
 
