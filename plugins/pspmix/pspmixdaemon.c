@@ -947,30 +947,44 @@ static int hookFillResFinalized(void *data)
     snprintf(tmp, sizeof(tmp), "%d", task->gid);
     envSet(env, "GID", tmp);
 
+    /* print all used variables for debugging */
+    if (mset(PSPMIX_LOG_ENV)) {
+	char *val = envGet(env, "PMIX_JOB_SIZE");
+	flog("PMIX_JOB_SIZE = %s\n", val ? val : "(N/A)");
 
-    /* checking for required data */
-    char *val = envGet(env, "PMIX_JOB_NUM_APPS");
-    if (!val) {
-	flog("PMIX_JOB_NUM_APPS not found\n");
-	return -1;
-    }
+	val = envGet(env, "PMIX_JOB_NUM_APPS");
+	flog("PMIX_JOB_NUM_APPS = %s\n", val ? val : "(N/A)");
 
-    int apps = atol(val);
-    for (int i = 0; i < apps; i++) {
-	char tmp[32];
-	snprintf(tmp, sizeof(tmp), "PMIX_APP_WDIR_%d", i);
-	val = envGet(env, tmp);
-	if (!val) {
-	    flog("%s not found\n", tmp);
-	    return -1;
+	int apps = atol(val);
+	for (int i = 0; i < apps; i++) {
+	    char tmp[32];
+	    snprintf(tmp, sizeof(tmp), "PMIX_APP_WDIR_%d", i);
+	    val = envGet(env, tmp);
+	    flog("%s = %s\n", tmp, val ? val : "(N/A)");
+
+	    snprintf(tmp, sizeof(tmp), "PMIX_APP_ARGV_%d", i);
+	    val = envGet(env, tmp);
+	    flog("%s = %s\n", tmp, val ? val : "(N/A)");
+
+	    snprintf(tmp, sizeof(tmp), "PMIX_APP_NAME_%d", i);
+	    val = envGet(env, tmp);
+	    flog("%s = %s\n", tmp, val ? val : "(N/A)");
 	}
 
-	snprintf(tmp, sizeof(tmp), "PMIX_APP_ARGV_%d", i);
-	val = envGet(env, tmp);
-	if (!val) {
-	    flog("%s not found\n", tmp);
-	    return -1;
-	}
+	val = envGet(env, "PMIX_SPAWNID");
+	flog("PMIX_SPAWNID = %s\n", val ? val : "(N/A)");
+
+	val = envGet(env, "__PMIX_SPAWN_PARENT_NSPACE");
+	flog("PMIX_SPAWN_PARENT_NSPACE = %s\n", val ? val : "(N/A)");
+
+	val = envGet(env, "__PMIX_SPAWN_PARENT_RANK");
+	flog("PMIX_SPAWN_PARENT_RANK = %s\n", val ? val : "(N/A)");
+
+	val = envGet(env, "__PMIX_SPAWN_PARENT_FWTID");
+	flog("PMIX_SPAWN_PARENT_FWTID = %s\n", val ? val : "(N/A)");
+
+	val = envGet(env, "__PMIX_SPAWN_OPTS");
+	flog("PMIX_SPAWN_OPTS = %s\n", val ? val : "(N/A)");
     }
 
     return 0;
