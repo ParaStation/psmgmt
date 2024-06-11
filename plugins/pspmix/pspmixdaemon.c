@@ -924,7 +924,10 @@ static int hookFillResFinalized(void *data)
 {
     env_t env = data;
 
-    if (!envInitialized(env)) return -1;
+    if (!envInitialized(env)) {
+	flog("UNEXPECTED: no initialized environment passed to hook\n");
+	return -1;
+    }
 
     if (!pspmix_common_usePMIx(env)) return 0; /* no PMIx support requested */
 
@@ -1008,6 +1011,11 @@ static int hookFillResFinalized(void *data)
 static int hookJobComplete(void *data)
 {
     PSjob_t *psjob = data;
+
+    if (!psjob) {
+	flog("UNEXPECTED: no job passed to hook\n");
+	return -1;
+    }
 
     fdbg(PSPMIX_LOG_CALL, "spawner %s\n", PSC_printTID(psjob->ID));
 
@@ -1111,6 +1119,11 @@ static int hookJobComplete(void *data)
 static int hookSpawnTask(void *data)
 {
     PStask_t *task = data;
+
+    if (!task) {
+	flog("UNEXPECTED: no task passed to hook\n");
+	return -1;
+    }
 
     /* leave all special task groups alone */
     if (task->group != TG_ANY) return 0;
@@ -1234,6 +1247,11 @@ static int hookSpawnTask(void *data)
 static int hookLocalJobRemoved(void *data)
 {
     PSjob_t *psjob = data;
+
+    if (!psjob) {
+	flog("UNEXPECTED: no job passed to hook\n");
+	return -1;
+    }
 
     fdbg(PSPMIX_LOG_CALL, "(spawner %s)\n", PSC_printTID(psjob->ID));
 
