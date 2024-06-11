@@ -321,7 +321,15 @@ env_t envClone(const env_t env, bool filter(const char *));
 /**
  * @brief Concatenate two environments
  *
- * Add the elements of environment @a src to the environment @a dst.
+ * Concatenate the elements of environment @a src to the environment
+ * @a dst.
+ *
+ * If the flag @a merge is true, elements of @a src will overwrite
+ * matching elements in @a dst. Otherwise elements of @a src will just
+ * be appended to @a dst. While appending is significantly faster than
+ * merging (O(N) vs O(N*(N+M)), it comprises the danger of double
+ * entries, i.e. appending elements of @a src with no effect since
+ * they are hidden by pre-existing elements in @a dst.
  *
  * If @a filter is given, only those elements of @a src that match the
  * filter are added to @a dst. For this, each element is passed to the
@@ -339,7 +347,10 @@ env_t envClone(const env_t env, bool filter(const char *));
  * is returned. Or false in case of error. In the latter case @a dst
  * might be modified upon return and contain parts of @a src.
  */
-bool envCat(env_t dst, const env_t src, bool filter(const char *));
+bool __envConcat(env_t dst, const env_t src, bool filter(const char *),
+		 bool merge);
+
+#define envCat(dst, src, filter) __envConcat(dst, src, filter, false)
 
 /**
  * @brief Evict elements from environment

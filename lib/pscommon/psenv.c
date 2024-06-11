@@ -295,7 +295,8 @@ error:
     return NULL;
 }
 
-bool envCat(env_t dst, const env_t src, bool filter(const char *))
+bool __envConcat(env_t dst, const env_t src, bool filter(const char *),
+		 bool merge)
 {
     if (!envInitialized(dst) || !envInitialized(src)) return false;
 
@@ -309,7 +310,11 @@ bool envCat(env_t dst, const env_t src, bool filter(const char *))
 
     for (uint32_t i = 0; i < src->cnt; i++) {
 	if (filter && !filter(src->vars[i])) continue;
-	if (!doSet(dst, strdup(src->vars[i]), true)) return false;
+	if (merge) {
+	    if (!envAdd(dst, src->vars[i])) return false;
+	} else {
+	    if (!doSet(dst, strdup(src->vars[i]), true)) return false;
+	}
     }
     return true;
 }
