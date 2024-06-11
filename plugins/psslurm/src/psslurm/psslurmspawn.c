@@ -285,7 +285,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
 
     /* *** build environment *** */
     /* add (filtered) step environment */
-    envCat(task->env, step->env, spawnEnvFilter);
+    envAppend(task->env, step->env, spawnEnvFilter);
 
     setSlurmConfEnvVar(task->env);
 

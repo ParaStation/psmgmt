@@ -46,7 +46,7 @@ bool concatPSIEnv(const env_t env)
 	return true;
     }
 
-    return envCat(PSenv, env, NULL);
+    return envAppend(PSenv, env, NULL);
 }
 
 char *getPSIEnv(const char* name)

@@ -2215,7 +2215,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	char **extraEnvP;
 	getStringArrayM(rData, &extraEnvP, NULL);
 	env_t extraEnv = envNew(extraEnvP);
-	envCat(clone->env, extraEnv, NULL);
+	envAppend(clone->env, extraEnv, NULL);
 	envDestroy(extraEnv);
 
 	if (!isServiceTask(task->group)) {

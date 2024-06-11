@@ -383,7 +383,7 @@ static PStask_t * createSpawnTask(char *wDir, PStask_group_t taskGroup,
 
     task->env = dumpPSIEnv();
     /* add the content of env */
-    envCat(task->env, env, NULL);
+    envMerge(task->env, env, NULL);
 
     return task;
 

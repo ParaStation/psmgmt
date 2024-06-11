@@ -1910,7 +1910,7 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
 	alloc = Alloc_add(req->jobid, req->hetJobid, req->nodes, req->spankEnv,
 			 req->uid, req->gid, req->userName);
     } else {
-	envCat(alloc->env, req->spankEnv, envFilterFunc);
+	envAppend(alloc->env, req->spankEnv, envFilterFunc);
     }
 
     /* move job credential and GRes to allocation */

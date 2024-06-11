@@ -350,7 +350,8 @@ env_t envClone(const env_t env, bool filter(const char *));
 bool __envConcat(env_t dst, const env_t src, bool filter(const char *),
 		 bool merge);
 
-#define envCat(dst, src, filter) __envConcat(dst, src, filter, false)
+#define envMerge(dst, src, filter)  __envConcat(dst, src, filter, true)
+#define envAppend(dst, src, filter) __envConcat(dst, src, filter, false)
 
 /**
  * @brief Evict elements from environment
