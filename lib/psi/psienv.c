@@ -39,14 +39,14 @@ bool addPSIEnv(const char *string)
     return envAdd(PSenv, string);
 }
 
-bool concatPSIEnv(const env_t env)
+bool mergePSIEnv(const env_t env)
 {
     if (!envInitialized(PSenv)) {
 	PSenv = envClone(env, NULL);
 	return true;
     }
 
-    return envAppend(PSenv, env, NULL);
+    return envMerge(PSenv, env, NULL);
 }
 
 char *getPSIEnv(const char* name)

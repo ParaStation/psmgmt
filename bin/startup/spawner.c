@@ -280,7 +280,7 @@ static void setupCommonEnv(Conf_t *conf, env_t pmEnv)
 {
     char key[32], val[32];
 
-    concatPSIEnv(pmEnv);
+    mergePSIEnv(pmEnv);
 
     if (conf->PMIx) {
 	setPSIEnv("PSPMIX_ENV_TMOUT", getenv("PSPMIX_ENV_TMOUT"));
