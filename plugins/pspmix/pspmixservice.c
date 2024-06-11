@@ -353,24 +353,6 @@ static void createAppPSet(const char *name, PspmixNamespace_t *ns,
 }
 
 /**
- * @brief Calculate job size
- *
- * Calculates the number of all processes in the job @a job.
- *
- * @param job   job
- */
-static uint32_t getJobSize(PspmixJob_t *job)
-{
-    uint32_t jsize = 0;
-    list_t *r;
-    list_for_each(r, &job->resInfos) {
-	PSresinfo_t *rinfo = list_entry(r, PSresinfo_t, next);
-	jsize += getResSize(rinfo);
-    }
-    return jsize;
-}
-
-/**
  * @brief Calculate current session size
  *
  * Calculates the number of all processes in all jobs of the session @a session.
@@ -383,7 +365,7 @@ static uint32_t getSessSize(PspmixSession_t *session)
     list_t *j;
     list_for_each(j, &session->jobs) {
 	PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
-	usize += getJobSize(job);
+	usize += job->size;
     }
     return usize;
 }

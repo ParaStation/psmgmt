@@ -29,6 +29,7 @@
 
 #include "pluginmalloc.h"
 
+#include "pspmixcommon.h"
 #include "pspmixlog.h"
 #include "pspmixuserserver.h"
 #include "pspmixservice.h"
@@ -99,6 +100,8 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	resInfo->nLocalSlots = len / sizeof(*resInfo->localSlots);
 
 	list_add_tail(&resInfo->next, &job->resInfos);
+
+	job->size += getResSize(resInfo);
     }
 
     char **envP = NULL;

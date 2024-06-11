@@ -96,6 +96,7 @@ typedef struct {
     env_t env;               /**< environment of the spawn creating this job
 				  (only used in PMIx server, not in daemon) */
     bool used;               /**< flag if PMIx is actively used by this job */
+    uint32_t size;           /**< total number of tasks in this job */
 } PspmixJob_t;
 
 /**
