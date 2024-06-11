@@ -554,7 +554,11 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* take number from env, better than counting twice */
     char *env = envGet(job->env, "PMIX_JOB_NUM_APPS");
-    ns->appsCount = env ? atoi(env) : 1;
+    if (!env) {
+	ulog("UNEXPECTED: PMIX_JOB_NUM_APPS missing\n");
+	goto nscreate_error;
+    }
+    ns->appsCount = atoi(env);
     ns->apps = umalloc(ns->appsCount * sizeof(*ns->apps));
 
 
