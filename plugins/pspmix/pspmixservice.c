@@ -570,10 +570,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	/* set used reservation */
 	ns->apps[a].resID = rinfo->resID;
 
-	if (a && ns->apps[a].resID <= ns->apps[a-1].resID) {
-	    ulog("UNEXPECTED: reservation IDs not strictly ascending"
-		 " (%u <= %u)\n", ns->apps[a].resID, ns->apps[a-1].resID);
-	    goto nscreate_error;
+	if (a && ns->apps[a-1].resID >= ns->apps[a].resID) {
+	    ulog("WARNING: reservation IDs not strictly ascending (%u <= %u)\n",
+		 ns->apps[a].resID, ns->apps[a-1].resID);
 	}
 
 	/* set the application size */
