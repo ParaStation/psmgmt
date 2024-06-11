@@ -54,7 +54,7 @@ static PspmixMsgExtra_t extra;
 */
 static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     PStask_ID_t loggertid;
     getTaskId(data, &loggertid);
@@ -77,22 +77,22 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	size_t len;
 	resInfo->entries = getDataM(data, &len);
 	if (!resInfo->entries) {
-	    mlog("%s: message corrupted, cannot get entries\n", __func__);
+	    flog("message corrupted, cannot get entries\n");
 	    return;
 	}
 	if (len % sizeof(*resInfo->entries) != 0) {
-	    mlog("%s: message corrupted, invalid entries length\n", __func__);
+	    flog("message corrupted, invalid entries length\n");
 	    return;
 	}
 	resInfo->nEntries = len / sizeof(*resInfo->entries);
 
 	resInfo->localSlots = getDataM(data, &len);
 	if (!resInfo->localSlots) {
-	    mlog("%s: message corrupted, cannot get local slots\n", __func__);
+	    flog("message corrupted, cannot get local slots\n");
 	    return;
 	}
 	if (len % sizeof(*resInfo->localSlots) != 0) {
-	    mlog("%s: message corrupted, invalid slots length\n", __func__);
+	    flog("message corrupted, invalid slots length\n");
 	    return;
 	}
 	resInfo->nLocalSlots = len / sizeof(*resInfo->localSlots);
@@ -107,10 +107,9 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     job->env = envNew(envP);
 
     if (mset(PSPMIX_LOG_COMM)) {
-	mlog("%s: received %s with loggertid %s", __func__,
+	flog("received %s with loggertid %s",
 	     pspmix_getMsgTypeString(msg->type), PSC_printTID(loggertid));
-	mlog(" spawnertid %s numResInfos %d\n", PSC_printTID(job->ID),
-	     job->numRes);
+	mlog(" spawnertid %s numRes %d\n", PSC_printTID(job->ID), job->numRes);
     }
 
     pspmix_userserver_addJob(loggertid, job);
