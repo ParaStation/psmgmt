@@ -559,8 +559,14 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	goto nscreate_error;
     }
     ns->appsCount = atoi(env);
-    ns->apps = umalloc(ns->appsCount * sizeof(*ns->apps));
 
+    if (ns->appsCount != job->numRes) {
+	flog("PMIX_JOB_NUM_APPS does not match number of reservations"
+	     " (%zu != %u)\n", ns->appsCount, job->numRes);
+	goto nscreate_error;
+    }
+
+    ns->apps = umalloc(ns->appsCount * sizeof(*ns->apps));
 
     /* we expect the reservation infos to be in order, one per app */
     size_t a = 0;
@@ -611,12 +617,6 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
 	procCount += ns->apps[a].size;
 	a++;
-    }
-
-    if (a != ns->appsCount) {
-	flog("PMIX_JOB_NUM_APPS does not match number of reservations"
-	     " (%zu != %zu)\n", ns->appsCount, a);
-	goto nscreate_error;
     }
 
     /* set the job size */
