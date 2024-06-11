@@ -298,16 +298,16 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
  */
 static bool spawnEnvFilter(const char *envent)
 {
-    /* @todo just copied from pspmi, modify */
-
     /* skip troublesome old env vars */
     if (!strncmp(envent, "__KVS_PROVIDER_TID=", 19)
-	    || !strncmp(envent, "PMI_ENABLE_SOCKP=", 17)
-	    || !strncmp(envent, "PMI_RANK=", 9)
-	    || !strncmp(envent, "PMI_PORT=", 9)
-	    || !strncmp(envent, "PMI_FD=", 7)
-	    || !strncmp(envent, "PMI_KVS_TMP=", 12)
-	    || !strncmp(envent, "OMP_NUM_THREADS=", 16)) {
+	|| !strncmp(envent, "PMI_ENABLE_SOCKP=", 17)
+	|| !strncmp(envent, "PMI_RANK=", 9)
+	|| !strncmp(envent, "PMI_PORT=", 9)
+	|| !strncmp(envent, "PMI_FD=", 7)
+	|| !strncmp(envent, "PMI_KVS_TMP=", 12)
+	|| !strncmp(envent, "OMP_NUM_THREADS=", 16)
+	|| !strncmp(envent, "PMIX_", 5)
+	|| !strncmp(envent, "__PMIX_", 7)) {
 	return false;
     }
 
