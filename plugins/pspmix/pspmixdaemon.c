@@ -934,6 +934,11 @@ static int hookFillResFinalized(void *data)
     if (endptr == stid || *endptr) return -1;
 
     PStask_t *task = PStasklist_find(&managedTasks, spawnertid);
+    if (!task) {
+	flog("UNEXPECTED: spawner task %s not found\n",
+	     PSC_printTID(spawnertid));
+	return -1;
+    }
 
     char tmp[32];
     snprintf(tmp, sizeof(tmp), "%d", task->uid);
