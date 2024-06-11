@@ -378,6 +378,15 @@ static void setupCommonEnv(Conf_t *conf, env_t pmEnv)
 
     }
 
+    /* ensure per excutable environment is not hidden by common one */
+    unsetPSIEnv("PSI_APPNUM");
+    unsetPSIEnv("PMI_APPNUM");
+
+    /* ensure per rank environment is not hidden by common one */
+    unsetPSIEnv("PMI_RANK");
+    unsetPSIEnv("MPI_LOCALRANKID");
+    unsetPSIEnv("MPI_LOCALNRANKS");
+
     unsetPSIEnv(ENV_PART_LOOPNODES);
     unsetPSIEnv("__PMI_PROVIDER_FD");
 
