@@ -507,8 +507,7 @@ static uint16_t getNodeRankOffset()
 
 void printJob(PspmixJob_t *job)
 {
-    flog("Printing job with ID %u:\n", job->ID);
-    flog("  Session ID = %u\n", job->session->ID);
+    flog("Printing %s:\n", pspmix_jobIDsStr(job->session->ID, job->ID));
     list_t *r;
     list_for_each(r, &job->resInfos) {
 	PSresinfo_t *rinfo = list_entry(r, PSresinfo_t, next);
