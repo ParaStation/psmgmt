@@ -38,12 +38,8 @@ bool __pspmix_common_usePMIx(const env_t env, const char* func) {
 
 uint32_t getResSize(PSresinfo_t *resInfo)
 {
-    uint32_t rsize = 0;
-    for (size_t i = 0; i < resInfo->nEntries; i++) {
-	PSresinfoentry_t *cur = &resInfo->entries[i];
-	rsize += cur->lastRank - cur->firstRank + 1;
-    }
-
-    return rsize;
+    /* reservations are always compact, there are no gaps in the ranks used
+     * by the entries, so this calculation is sufficient */
+    return resInfo->maxRank - resInfo->minRank + 1;
 }
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
