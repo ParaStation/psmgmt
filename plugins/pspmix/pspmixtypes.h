@@ -90,6 +90,7 @@ typedef struct {
     list_t next;             /**< used to put into PspmixSession_t's job list */
     PStask_ID_t ID;          /**< uniquee PMIx job ID (spawner's TID) */
     PspmixSession_t *session;/**< reference to PMIx session hosting the job */
+    uint32_t numRes;         /**< number of reservations / length of resInfos */
     list_t resInfos;         /**< info of all reservations in the job
 				  entries are of type PSresinfo_t
 				  (only used in PMIx server, not in daemon) */

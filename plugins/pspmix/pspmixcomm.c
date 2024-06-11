@@ -63,11 +63,9 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     INIT_LIST_HEAD(&job->resInfos);
 
     getTaskId(data, &job->ID);
+    getUint32(data, &job->numRes);
 
-    uint32_t numResInfos;
-    getUint32(data, &numResInfos);
-
-    for (size_t i = 0; i < numResInfos; i++) {
+    for (size_t i = 0; i < job->numRes; i++) {
 	PSresinfo_t *resInfo = ucalloc(sizeof(*resInfo));
 	getResId(data, &resInfo->resID);
 
@@ -112,7 +110,7 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	mlog("%s: received %s with loggertid %s", __func__,
 	     pspmix_getMsgTypeString(msg->type), PSC_printTID(loggertid));
 	mlog(" spawnertid %s numResInfos %d\n", PSC_printTID(job->ID),
-	     numResInfos);
+	     job->numRes);
     }
 
     pspmix_userserver_addJob(loggertid, job);
