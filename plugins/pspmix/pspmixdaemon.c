@@ -924,6 +924,8 @@ static int hookFillResFinalized(void *data)
 
     if (!envInitialized(env)) return -1;
 
+    if (!pspmix_common_usePMIx(env)) return 0; /* no PMIx support requested */
+
     char *stid = envGet(env, "SPAWNER_TID");
     if (!stid) return -1;
 
@@ -940,7 +942,6 @@ static int hookFillResFinalized(void *data)
     snprintf(tmp, sizeof(tmp), "%d", task->gid);
     envSet(env, "GID", tmp);
 
-    if (!pspmix_common_usePMIx(env)) return 0; /* no PMIx support requested */
 
     /* checking for required data */
     char *val = envGet(env, "PMIX_JOB_NUM_APPS");
