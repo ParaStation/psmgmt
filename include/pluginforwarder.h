@@ -70,6 +70,7 @@ typedef struct __fwData__ {
 			    * function handleFwMsg() */
     bool jailChild;	   /**< jail myself and all my children by
 			    * calling the hook PSIDHOOK_JAIL_CHILD */
+    bool omitSPAWNSUCCESS; /**< Suppress SPAWNSUCCESS to parent if any */
     int (*killSession)(pid_t, int);
 			   /**< Method to kill all forwarder's children */
     void (*callback)(int32_t, Forwarder_Data_t *);

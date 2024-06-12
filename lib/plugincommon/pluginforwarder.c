@@ -65,6 +65,7 @@ Forwarder_Data_t *ForwarderData_new(void)
 	fw->hideCCError = true;
 	fw->fwChildOE = false;
 	fw->jailChild = false;
+	fw->omitSPAWNSUCCESS = false;
     }
 
     return fw;
@@ -978,7 +979,7 @@ bool startForwarder(Forwarder_Data_t *fw)
 	goto ERROR;
     }
     fw->tid = task->tid;
-    if (fw->pTid != -1) {
+    if (fw->pTid != -1 && !fw->omitSPAWNSUCCESS) {
 	/* tell parent (if any) about the spawn */
 	DDErrorMsg_t msg = {
 	    .header = {

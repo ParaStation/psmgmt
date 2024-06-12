@@ -1402,6 +1402,7 @@ bool execStepLeader(Step_t *step)
 	if (env) fwdata->loggerTid = atoi(env);
 	env = envGet(step->env, "__PSSLURM_SPAWN_RANK");
 	if (env) fwdata->rank = atoi(env);
+	fwdata->omitSPAWNSUCCESS = true;
     }
     fwdata->jailChild = true;
     fwdata->killSession = psAccountSignalSession;
