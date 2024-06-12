@@ -1400,7 +1400,7 @@ bool execStepLeader(Step_t *step)
 	if (env) fwdata->pTid = atoi(env);
 	env = envGet(step->env, "__PSSLURM_SPAWN_LTID");
 	if (env) fwdata->loggerTid = atoi(env);
-	env = envGet(step->env, "__PSSLURM_SPAWN_RANK");
+	env = envGet(step->env, "__PSSLURM_STEP_RANK");
 	if (env) fwdata->rank = atoi(env);
 	fwdata->omitSPAWNSUCCESS = true;
     }

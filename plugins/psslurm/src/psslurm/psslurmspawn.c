@@ -295,8 +295,8 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     envSet(task->env, "__PSSLURM_SPAWN_PTID", nStr);
     snprintf(nStr, sizeof(nStr), "%d", task->loggertid);
     envSet(task->env, "__PSSLURM_SPAWN_LTID", nStr);
-    snprintf(nStr, sizeof(nStr), "%d", task->rank - 1);
-    envSet(task->env, "__PSSLURM_SPAWN_RANK", nStr);
+    snprintf(nStr, sizeof(nStr), "%d", task->rank);
+    envSet(task->env, "__PSSLURM_STEP_RANK", nStr);
 
     /* make sure to use the same PMI */
     char *pmitype = getenv("PSSLURM_PMI_TYPE");
