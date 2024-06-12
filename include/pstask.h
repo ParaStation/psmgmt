@@ -178,8 +178,6 @@ struct __task__ {
     uint32_t spawnNodesSize;       /**< Current size of @ref spawnNodes */
     uint32_t spawnNum;             /**< Amount of content of @ref spawnNodes */
     PStask_t *delegate;            /**< Delegate holding resources */
-    int injectedEnv;               /**< Flag an injected environment into the
-				      current spawn. Used by psmom, etc. */
     PStask_sigChldCB_t *sigChldCB; /**< Callback to be executed on SIGCHLD */
     list_t info;                   /**< List of extra information items */
 

@@ -272,7 +272,6 @@ static bool initTask(PStask_t* task)
     task->spawnNodesSize = 0;
     task->spawnNum = 0;
     task->delegate = NULL;
-    task->injectedEnv = 0;
     task->sigChldCB = NULL;
 
     INIT_LIST_HEAD(&task->info);
@@ -546,7 +545,6 @@ PStask_t* PStask_clone(PStask_t* task)
     }
     clone->spawnNum = task->spawnNum;
     clone->delegate = task->delegate;
-    clone->injectedEnv = task->injectedEnv;
     /* Ignore sigChldCB and info */
 
     PSsignal_cloneList(&clone->signalSender, &task->signalSender);
