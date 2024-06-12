@@ -345,17 +345,11 @@ static bool spawnEnvFilter(const char *envent)
  */
 static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
 {
-    int usize = 1;
     char *str = getenv("PMIX_UNIV_SIZE");
-    if (str) {
-	usize = atoi(str);
-    }
+    int usize = str ? atoi(str) : 1;
 
-    bool debug = false;
     str = getenv("PMIX_DEBUG");
-    if (str && atoi(str) > 0) {
-	debug = true;
-    }
+    bool debug = (str && atoi(str) > 0);
 
     SpawnReqData_t *srdata = req->data;
 
