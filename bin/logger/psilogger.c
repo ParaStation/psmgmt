@@ -630,6 +630,8 @@ static void forwardInput(int std_in)
 static void handleServiceMsg(PSLog_Msg_t *msg)
 {
     int32_t nextRank = getNextServiceRank();
+    PSIlog_log(PSILOG_LOG_VERB, "%s: %s (%d) requested %d\n", __func__,
+	       PSC_printTID(msg->header.sender), msg->sender, nextRank);
     sendMsg(msg->header.sender, SERV_RNK, (char *) &nextRank, sizeof(nextRank));
 }
 

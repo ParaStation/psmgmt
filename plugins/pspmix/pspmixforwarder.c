@@ -1062,7 +1062,8 @@ static bool msgSPAWNRES(DDBufferMsg_t *msg)
     if (type != PSP_CD_SPAWNFAILED && type != PSP_CD_SPAWNSUCCESS) return false;
 
     if (!pendSpawn) {
-	plog("UNEXPECTED: no pending spawn found\n");
+	plog("UNEXPECTED: no pending spawn found, got type %s from %s\n",
+	     PSP_printMsg(type), PSC_printTID(msg->header.sender));
 	return false;
     }
 
@@ -1076,9 +1077,9 @@ static bool msgSPAWNRES(DDBufferMsg_t *msg)
 	break;
     case PSP_CD_SPAWNSUCCESS:
 	/* wait for result of the spawner process */
-	pdbg(PSPMIX_LOG_SPAWN, "spawn %s:%d: service process spawn"
-	     " successful\n", PSC_printTID(srdata->pmixServer),
-	     srdata->spawnID);
+	pdbg(PSPMIX_LOG_SPAWN, "spawn %s:%d: service process spawned successful",
+	     PSC_printTID(srdata->pmixServer), srdata->spawnID);
+	mdbg(PSPMIX_LOG_SPAWN, " to %s\n", PSC_printTID(msg->header.sender));
 	sendSpawnResp(srdata->pmixServer, 1, srdata->spawnID);
 	break;
     }
