@@ -50,7 +50,8 @@ typedef struct {
     uint64_t stepMemLimit;      /**< step memory limit (defunct in 21.08) */
     char *stepHL;		/**< Slurm compressed step host-list */
     time_t ctime;               /**< creation time of credential */
-    uint32_t totalCoreCount;    /**< number of total reserved cores */
+    uint32_t totalCoreCount;    /**< total number of all reserved cores over all
+				     nodes */
     char *jobCoreBitmap;        /**< job's reserved core bitmap (MSB first) */
     char *stepCoreBitmap;       /**< step's reserved core bitmap (MSB first)*/
     uint16_t nodeArraySize;     /**< size of the following node arrays */

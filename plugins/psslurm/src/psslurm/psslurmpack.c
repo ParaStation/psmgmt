@@ -746,11 +746,11 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     getUint16(data, &cred->x11);
     /* time */
     getTime(data, &cred->ctime);
-    /* total core count */
+    /* total core count (over all nodes involved in the job) */
     getUint32(data, &cred->totalCoreCount);
-    /* job core bitmap */
+    /* job core bitmap (over all nodes involved in the job) */
     cred->jobCoreBitmap = getBitString(data);
-    /* step core bitmap */
+    /* step core bitmap (over all nodes involved in the job */
     cred->stepCoreBitmap = getBitString(data);
     /* core array size */
     getUint16(data, &cred->nodeArraySize);
