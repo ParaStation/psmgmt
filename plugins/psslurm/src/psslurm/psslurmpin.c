@@ -889,8 +889,8 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
 
 	/* omit cpus not in core map and thus not to use by this job step */
 	if (!PSCPU_isSet(nodeinfo->stepHWthreads, getCore(thread, nodeinfo))) {
-	    fdbg(PSSLURM_LOG_PART, "thread %u not assigned to step (not"
-		 " in core map)\n", thread);
+	    fdbg(PSSLURM_LOG_PART, "thread %u not assigned to step (core %d not"
+		 " in core map)\n", thread, getCore(thread, nodeinfo));
 	    continue;
 	}
 
