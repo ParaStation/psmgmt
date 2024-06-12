@@ -353,7 +353,7 @@ static void debugMpiexecStart(strv_t argv, env_t env)
  *
  * @return No return value
  */
-static void startSpawner(Step_t *step)
+static void startSpawner(Step_t *step, int32_t serviceRank)
 {
     Forwarder_Data_t *fwData = step->fwdata;
 
@@ -378,7 +378,7 @@ static void startSpawner(Step_t *step)
     }
     task->group = TG_KVS;
     task->loggertid = fwData->loggerTid;
-    task->rank = fwData->rank;
+    task->rank = serviceRank ? serviceRank : fwData->rank;
     /* service tasks will not be pinned (i.e. pinned to all HW threads) */
     PSCPU_setAll(task->CPUset);
     if (step->cwd) task->workingdir = strdup(step->cwd);
@@ -430,6 +430,8 @@ static void handleInitComplete(PS_DataBuffer_t *data)
     getUint32(data, &jobid);
     uint32_t stepid;
     getUint32(data, &stepid);
+    int32_t serviceRank;
+    getInt32(data, &serviceRank);
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
@@ -438,7 +440,7 @@ static void handleInitComplete(PS_DataBuffer_t *data)
 	return;
     }
     releaseDelayedSpawns(step->jobid, step->stepid);
-    if (step->spawned) startSpawner(step);
+    if (step->spawned) startSpawner(step, serviceRank);
 }
 
 bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
@@ -447,6 +449,7 @@ bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	PSLog_Msg_t *lmsg = (PSLog_Msg_t *)msg;
 	switch (lmsg->type) {
 	case FINALIZE:
+	case SERV_RNK:
 	case STDIN:
 	    sendMsg(msg);
 	    break;
@@ -525,7 +528,7 @@ void fwCMD_setEnv(Step_t *step, const char *var, const char *val)
     sendMsgToMother(&msg);
 }
 
-void fwCMD_initComplete(Step_t *step)
+void fwCMD_initComplete(Step_t *step, int32_t serviceRank)
 {
     if (!step) {
 	flog("error: missing step\n");
@@ -543,6 +546,8 @@ void fwCMD_initComplete(Step_t *step)
     PSP_putTypedMsgBuf(&msg, "jobID", &myJobID, sizeof(myJobID));
     uint32_t myStepID = htonl(step->stepid);
     PSP_putTypedMsgBuf(&msg, "stepID", &myStepID, sizeof(myStepID));
+    int32_t mySrvcRnk = htonl(serviceRank);
+    PSP_putTypedMsgBuf(&msg, "serviceRank", &mySrvcRnk, sizeof(mySrvcRnk));
 
     sendMsgToMother(&msg);
 }

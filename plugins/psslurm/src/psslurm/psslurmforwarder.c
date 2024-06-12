@@ -38,6 +38,7 @@
 #include "list.h"
 #include "pscommon.h"
 #include "pscio.h"
+#include "psdaemonprotocol.h"
 #include "psenv.h"
 #include "pslog.h"
 #include "psprotocol.h"
@@ -1180,6 +1181,37 @@ static int switchEffectiveUser(char *username, uid_t uid, gid_t gid)
     return 1;
 }
 
+/* HACK HACK HACK this must be called eary before other messages appear */
+static int getNextServiceRank(Forwarder_Data_t *fwData)
+{
+    /* get next service rank from logger */
+    if (PSLog_write(fwData->loggerTid, SERV_RNK, NULL, 0) < 0) {
+	fwarn(errno, "rank %d: PSLog_write()", fwData->rank);
+	return 0;
+    }
+
+    int rank = 0;
+    while (true) {
+	PSLog_Msg_t msg;
+
+	int ret = PSLog_read(&msg, NULL);
+	if (ret == -1) {
+	    fwarn(errno, "rank %d: PSLog_read()", fwData->rank);
+	} else if (msg.header.type != PSP_CC_MSG) {
+	    flog("rank %d: unexpected message type %s\n", fwData->rank,
+		 PSDaemonP_printMsg(msg.header.type));
+	} else if (msg.type != SERV_RNK) {
+	    flog("rank %d: unexpected log message type %s\n", fwData->rank,
+		 PSLog_printMsgType(msg.type));
+	} else {
+	    rank = *(int32_t *)&msg.buf;
+	    break;
+	}
+    }
+
+    return rank;
+}
+
 static int stepForwarderInit(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
@@ -1187,6 +1219,8 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     /* free unused memory */
     Step_deleteAll(step);
+
+    int serviceRank = step->spawned ? getNextServiceRank(fwdata) : 0;
 
     initSerial(0, sendMsg);
     setJailEnv(step->env, step->username,
@@ -1268,7 +1302,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     }
 
     /* inform the mother psid */
-    fwCMD_initComplete(step);
+    fwCMD_initComplete(step, serviceRank);
 
     /* setup I/O channels solely to send an error message, so prevent
      * any execution of child tasks */
@@ -1804,7 +1838,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 #endif
 
     /* inform the mother psid */
-    fwCMD_initComplete(step);
+    fwCMD_initComplete(step, 0);
 
     return 1;
 }

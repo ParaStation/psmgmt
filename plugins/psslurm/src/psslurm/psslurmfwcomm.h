@@ -225,12 +225,16 @@ void fwCMD_unsetEnv(Step_t *step, const char *var);
 /**
  * @brief Send CMD_INIT_COMPLETE to mother
  *
- * Inform the mother psid that the psslurmstep forwarder
- * successfully complete the initialization phase including
- * SPANK hooks.
+ * Inform the mother psid that the psslurmstep forwarder successfully
+ * complete the initialization phase including SPANK hooks. @a
+ * serviceRank might contain the rank of the new spawner to be started
+ * by the local daemon upon receive of this message. For this, a new
+ * service rank has to be requested from the according logger task.
  *
- * @param step The step the forwarder is responsible for
+ * @param step Step the forwarder is responsible for
+ *
+ * @param serviceRank Rank of the next service task (spawner) to start
  */
-void fwCMD_initComplete(Step_t *step);
+void fwCMD_initComplete(Step_t *step, int32_t serviceRank);
 
 #endif  /* __PS_SLURM_FW_COMM */

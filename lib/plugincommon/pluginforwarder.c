@@ -25,6 +25,7 @@
 
 #include "pscio.h"
 #include "pscommon.h"
+#include "pslog.h"
 #include "selector.h"
 #include "timer.h"
 #include "pluginhelper.h"
@@ -330,6 +331,8 @@ static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
 
     Selector_register(motherFD, handleMthrSock, fw);
+
+    if (fw->rank < -1) PSLog_init(motherFD, fw->rank, 2);
 
     PSID_blockSig(SIGALRM, true);
 
