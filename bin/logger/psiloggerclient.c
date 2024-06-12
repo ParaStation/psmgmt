@@ -90,7 +90,7 @@ int getMinRank(void)
 /**
  * Next service rank to use.
  * - -1 is used by the logger itself
- * - -2 is the service process started by mpiexec
+ * - -2 is the service process started by mpiexec before becoming the logger
  */
 static int nextServiceRank = -3;
 

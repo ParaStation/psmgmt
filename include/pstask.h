@@ -141,10 +141,9 @@ struct __task__ {
     bool suspended;                /**< flag to mark suspended tasks */
     bool removeIt;                 /**< flag to mark task to be removed (as
 				      soon as all children are released) */
-    bool deleted;                  /**< flag to mark deleted tasks. It
-				      will be removed from the list of
-				      managed tasks in the next round
-				      of the main loop */
+    bool deleted;                  /**< flag to mark deleted tasks. It will be
+				      removed from the list of managed tasks
+				      in the next round of the main loop */
     bool obsolete;                 /**< flag tasks as obsolete, i.e. removed
 				      from managed tasks but still referred
 				      by a  selector */

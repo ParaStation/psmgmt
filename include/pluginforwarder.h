@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -54,7 +54,7 @@ typedef struct __fwData__ {
     int32_t fwExitStatus;  /**< Forwarder's exit status (only available in cb)*/
     bool exitRcvd;         /**< Flag chldExitStatus as valid */
     int32_t chldExitStatus;/**< Child's exit status (only available in cb
-			        and hookFinalize in fw) */
+			    * and hookFinalize in fw) */
     bool codeRcvd;         /**< Flag hookExitCode as valid */
     int32_t hookExitCode;  /**< Child's hook exit code (only available in cb) */
     int stdIn[2];          /**< stdIn provided to forwarder's child */

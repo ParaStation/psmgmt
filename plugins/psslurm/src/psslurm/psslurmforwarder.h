@@ -223,5 +223,4 @@ int handleLastChildGone(void *data);
  */
 int handleResReleased(void *data);
 
-
 #endif
