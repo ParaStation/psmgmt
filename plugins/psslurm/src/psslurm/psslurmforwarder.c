@@ -941,7 +941,7 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
 
     strv_t argV = strvNew(NULL);
 
-    if (envGet(step->env, "PMI_SPAWNED") || envGet(step->env, "PMIX_SPAWNID")) {
+    if (step->spawned) {
 	char *tmpStr = envGet(step->env, "__PSI_MPIEXEC_KVSPROVIDER");
 	if (tmpStr) {
 	    strvAdd(argV, tmpStr);
