@@ -18,6 +18,7 @@
 
 extern logger_t psslurmlogger;
 
+#define mset(flag) (logger_getMask(psslurmlogger) & (flag))
 #define mlog(...) logger_print(psslurmlogger, -1, __VA_ARGS__)
 #define mwarn(...) logger_warn(psslurmlogger, -1, __VA_ARGS__)
 #define mdbg(...) logger_print(psslurmlogger, __VA_ARGS__)
