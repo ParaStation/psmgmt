@@ -147,6 +147,9 @@ static int spawnChildCount = 0;
 /** The number of successful spawned children */
 static int spawnChildSuccess = 0;
 
+/** Flag pending spawn request */
+static bool pendReq = false;
+
 /** Buffer to collect multiple spawn requests */
 static SpawnRequest_t *spawnBuffer = NULL;
 
@@ -330,19 +333,24 @@ static int __PMI_send(char *msg, const char *caller, const int line)
  */
 static bool msgSPAWNRES(DDBufferMsg_t *msg)
 {
+    if (!pendReq) return false;
+
     switch (msg->header.type) {
     case PSP_CD_SPAWNFAILED:
 	elog("%s(r%i): spawning service proccess failed\n", __func__, rank);
 	PMI_send("cmd=spawn_result rc=-1\n");
-	return true;
+	break;
     case PSP_CD_SPAWNSUCCESS:
 	/* wait for result of the spawner process */
 	if (debug) elog("%s(r%i): spawning service process successful\n",
 			__func__, rank);
-	return true;
+	break;
     default:
 	return false;
     }
+
+    pendReq = false;
+    return true;
 }
 
 /**
@@ -2172,6 +2180,7 @@ static bool handleServiceInfo(PSLog_Msg_t *msg)
 	/* reset tracking */
 	spawnChildSuccess = 0;
 	spawnChildCount = totalProcs;
+	pendReq = true;
     } else {
 	PMI_send("cmd=spawn_result rc=-1\n");
     }
