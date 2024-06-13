@@ -490,7 +490,6 @@ static int handleGetReservation(void *res)
 	    bool found = false;
 	    for (size_t t = firstThread; t < task->totalThreads; t++) {
 		PSpart_HWThread_t *thread = &(task->partThrds[t]);
-		if (thread->node != thisNode) break;
 		if (thread->id == cpu) {
 		    /* increase number of used threads
 		     * only if this threads was unused before */
