@@ -834,7 +834,7 @@ static bool sendForwarderNotification(PStask_ID_t targetTID /* fw */,
 				      const char *nspace, uint32_t rank)
 {
     mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(targetTID %s type %s nspace %s"
-	 " rank %u", __func__, PSC_printTID(targetTID),
+	 " rank %u\n", __func__, PSC_printTID(targetTID),
 	 pspmix_getMsgTypeString(type), nspace, rank);
 
     PS_SendDB_t msg;

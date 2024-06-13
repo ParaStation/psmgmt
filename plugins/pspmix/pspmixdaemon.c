@@ -471,17 +471,18 @@ static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
  * Send message of type PSPMIX_ADD_JOB
  *
  * @param server     target server
- * @param spawnertid PMIx job identifier
+ * @param sessID     PMIx session identifier (logger's tid)
+ * @param jobID      PMIx job identifier (spawner's tid)
  * @param resInfos   reservation information list
  * @param env        job's environment
  *
  * @returns True on success or if job already known to server, false on error
  */
-static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
-		       PStask_ID_t spawnertid, list_t *resInfos, env_t env)
+static bool sendAddJob(PspmixServer_t *server, PStask_ID_t sessID,
+		       PStask_ID_t jobID, list_t *resInfos, env_t env)
 {
-    fdbg(PSPMIX_LOG_CALL, "(uid %d spawner %s)\n", server->uid,
-	 PSC_printTID(spawnertid));
+    fdbg(PSPMIX_LOG_CALL, "(uid %d job %s)\n", server->uid,
+	 PSC_printTID(jobID));
 
     if (!server->fwdata) {
 	flog("server seems to be dead (uid %d)\n", server->uid);
@@ -494,8 +495,8 @@ static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_ADD_JOB);
     setFragDest(&msg, targetTID);
 
-    addTaskIdToMsg(loggertid, &msg);
-    addTaskIdToMsg(spawnertid, &msg);
+    addTaskIdToMsg(sessID, &msg);
+    addTaskIdToMsg(jobID, &msg);
 
     list_t *r;
     uint32_t count = 0;
@@ -520,12 +521,11 @@ static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
 
     if (mset(PSPMIX_LOG_COMM)) {
 	flog("sending PSPMIX_ADD_JOB to %s", PSC_printTID(targetTID));
-	mlog(" (spawner %s)\n", PSC_printTID(spawnertid));
+	mlog(" (job %s)\n", PSC_printTID(jobID));
     }
 
     if (sendFragMsg(&msg) < 0) {
-	flog("sendFragMsg(uid %d spawner %s", server->uid,
-	     PSC_printTID(spawnertid));
+	flog("sendFragMsg(uid %d job %s", server->uid, PSC_printTID(jobID));
 	mlog(" server %s) failed\n", PSC_printTID(targetTID));
 	return false;
     }
@@ -543,15 +543,15 @@ static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
  * search time when walking though the list. So, perhaps it is enough
  * to cleanup them when the job they belong to ends.
  *
- * @param server     target server
- * @param spawnertid PMIx job identifier
+ * @param server   target server
+ * @param jobID    PMIx job identifier (spawner's tid)
  *
  * @returns True on success or if job already known to server, false on error
  */
-static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t spawnertid)
+static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t jobID)
 {
-    fdbg(PSPMIX_LOG_CALL, "(uid %d spawnertid %s)\n", server->uid,
-	 PSC_printTID(spawnertid));
+    fdbg(PSPMIX_LOG_CALL, "(uid %d job %s)\n", server->uid,
+	 PSC_printTID(jobID));
 
     if (!server->fwdata) {
 	flog("server seems to be dead (uid %d)\n", server->uid);
@@ -562,17 +562,17 @@ static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t spawnertid)
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_REMOVE_JOB);
     setFragDest(&msg, server->fwdata->tid);
 
-    addInt32ToMsg(spawnertid, &msg);
+    addInt32ToMsg(jobID, &msg);
 
     if (mset(PSPMIX_LOG_COMM)) {
 	flog("sending PSPMIX_REMOVE_JOB to %s",
 	     PSC_printTID(server->fwdata->tid));
-	mlog(" (spawner %s)\n", PSC_printTID(spawnertid));
+	mlog(" (job %s)\n", PSC_printTID(jobID));
     }
 
     if (sendFragMsg(&msg) < 0) {
-	flog("sending job remove message failed (uid %d spawner %s",
-	     server->uid, PSC_printTID(spawnertid));
+	flog("sending job remove message failed (uid %d job %s", server->uid,
+	     PSC_printTID(jobID));
 	mlog(" server %s)\n", PSC_printTID(server->fwdata->tid));
 	return false;
     }
@@ -625,7 +625,7 @@ static bool addJobToServer(PspmixServer_t *server, PSjob_t *psjob, env_t env)
 
     /* check if the user's server already knows this job */
     if (findJobInList(psjob->ID, &session->jobs)) {
-	fdbg(PSPMIX_LOG_VERBOSE, "job already known (uid %d spawner %s)\n",
+	fdbg(PSPMIX_LOG_VERBOSE, "job already known (uid %d job %s)\n",
 	     server->uid, PSC_printTID(psjob->ID));
 	return true;
     }
@@ -1017,7 +1017,7 @@ static int hookJobComplete(void *data)
 	return -1;
     }
 
-    fdbg(PSPMIX_LOG_CALL, "spawner %s\n", PSC_printTID(psjob->ID));
+    fdbg(PSPMIX_LOG_CALL, "job %s\n", PSC_printTID(psjob->ID));
 
     PspmixJob_t *job = findJob(psjob->ID);
     if (job) {
@@ -1253,7 +1253,7 @@ static int hookLocalJobRemoved(void *data)
 	return -1;
     }
 
-    fdbg(PSPMIX_LOG_CALL, "(spawner %s)\n", PSC_printTID(psjob->ID));
+    fdbg(PSPMIX_LOG_CALL, "(job %s)\n", PSC_printTID(psjob->ID));
 
     if (mset(PSPMIX_LOG_VERBOSE)) printServers();
 

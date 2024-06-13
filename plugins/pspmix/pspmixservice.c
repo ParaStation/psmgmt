@@ -934,7 +934,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 					     PStask_ID_t jobID,
 					     PspmixClient_t *client)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(job %s rank %d reservation %d)\n", __func__,
+    mdbg(PSPMIX_LOG_CALL, "%s(%s rank %d reservation %d)\n", __func__,
 	 pspmix_jobIDsStr(sessionID, jobID), client->rank, client->resID);
 
     /* get namespace name */
