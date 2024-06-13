@@ -1056,7 +1056,8 @@ static bool msgSPAWNRES(DDBufferMsg_t *msg)
     if (type != PSP_CD_SPAWNFAILED && type != PSP_CD_SPAWNSUCCESS) return false;
 
     if (!pendSpawn) {
-	plog("UNEXPECTED: no pending spawn found, got type %s from %s\n",
+	/* might happen if PMI is actually used */
+	pdbg(PSPMIX_LOG_SPAWN, "no pending spawn found (type %s from %s)\n",
 	     PSP_printMsg(type), PSC_printTID(msg->header.sender));
 	return false;
     }
