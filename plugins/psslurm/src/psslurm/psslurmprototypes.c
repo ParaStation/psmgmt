@@ -31,7 +31,7 @@ static inline void freeRespJobInfo(Slurm_Msg_t *sMsg)
     Resp_Job_Info_t *resp = sMsg->unpData;
 
     for (uint32_t i = 0; i < resp->numJobs; i++) {
-	Slurm_Job_Rec_t *rec = &resp->jobs[i];
+	Slurm_Job_Info_Slice_t *rec = &resp->jobs[i];
 
 	ufree(rec->arrayTaskStr);
 	ufree(rec->hetJobIDset);

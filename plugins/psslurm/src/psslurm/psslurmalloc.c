@@ -366,17 +366,17 @@ static int verifyJobInfo(Slurm_Msg_t *sMsg, void *info)
     }
 
     for (uint32_t i = 0; i < resp->numJobs; i++) {
-	Slurm_Job_Rec_t *rec = &(resp->jobs)[i];
+	Slurm_Job_Info_Slice_t *slice = &(resp->jobs)[i];
 
-	if (req->jobid != rec->jobid && alloc->packID != rec->hetJobID) {
+	if (req->jobid != slice->jobid && alloc->packID != slice->hetJobID) {
 	    flog("warning: skipping unrequested job %u, requested job %u\n",
-		 rec->jobid, req->jobid);
+		 slice->jobid, req->jobid);
 	    continue;
 	}
 
 	alloc->verified = true;
 
-	switch (rec->jobState & JOB_STATE_BASE) {
+	switch (slice->jobState & JOB_STATE_BASE) {
 	case SLURM_JOB_RUNNING:
 	case SLURM_JOB_SUSPENDED:
 	    /* allocation is in an expected state */
@@ -392,8 +392,8 @@ static int verifyJobInfo(Slurm_Msg_t *sMsg, void *info)
 	case SLURM_JOB_DEADLINE:
 	case SLURM_JOB_OOM:
 	case SLURM_JOB_END:
-	    flog("deleting allocation %u job state %u\n", rec->jobid,
-		 rec->jobState & JOB_STATE_BASE);
+	    flog("deleting allocation %u job state %u\n", slice->jobid,
+		 slice->jobState & JOB_STATE_BASE);
 	    send_PS_AllocTerm(alloc);
 	    break;
 	}

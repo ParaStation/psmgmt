@@ -3299,18 +3299,18 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
     resp->jobs = ucalloc(sizeof(*(resp->jobs)) * resp->numJobs);
 
     for (uint32_t i=0; i<resp->numJobs; i++) {
-	Slurm_Job_Rec_t *rec = &(resp->jobs)[i];
+	Slurm_Job_Info_Slice_t *slice = &(resp->jobs)[i];
 
 	/* array job ID */
-	getUint32(data, &rec->arrayJobID);
+	getUint32(data, &slice->arrayJobID);
 	/* array task ID */
-	getUint32(data, &rec->arrayTaskID);
+	getUint32(data, &slice->arrayTaskID);
 	/* array task string */
-	rec->arrayTaskStr = getStringM(data);
+	slice->arrayTaskStr = getStringM(data);
 	/* array maximal tasks */
-	getUint32(data, &rec->arrayMaxTasks);
+	getUint32(data, &slice->arrayMaxTasks);
 	/* association ID for job */
-	getUint32(data, &rec->assocID);
+	getUint32(data, &slice->assocID);
 
 	if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	    /* job container, will be overwritten later,
@@ -3321,141 +3321,141 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 
 	/* container ID */
 	if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	    rec->containerID = getStringM(data);
+	    slice->containerID = getStringM(data);
 	}
 
 	/* delay boot */
-	getUint32(data, &rec->delayBoot);
+	getUint32(data, &slice->delayBoot);
 
 	/* failed node */
 	if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	    rec->failedNode = getStringM(data);
+	    slice->failedNode = getStringM(data);
 	}
 
 	/* job ID */
-	getUint32(data, &rec->jobid);
+	getUint32(data, &slice->jobid);
 	/* user ID */
-	getUint32(data, &rec->userID);
+	getUint32(data, &slice->userID);
 	/* group ID */
-	getUint32(data, &rec->groupID);
+	getUint32(data, &slice->groupID);
 	/* het job ID */
-	getUint32(data, &rec->hetJobID);
+	getUint32(data, &slice->hetJobID);
 	/* het job ID set */
-	rec->hetJobIDset = getStringM(data);
+	slice->hetJobIDset = getStringM(data);
 	/* het job offset */
-	getUint32(data, &rec->hetJobOffset);
+	getUint32(data, &slice->hetJobOffset);
 	/* profile */
-	getUint32(data, &rec->profile);
+	getUint32(data, &slice->profile);
 	/* job state */
-	getUint32(data, &rec->jobState);
+	getUint32(data, &slice->jobState);
 	/* batch flag */
-	getUint16(data, &rec->batchFlag);
+	getUint16(data, &slice->batchFlag);
 
 	/* state reason */
 	if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	    getUint32(data, &rec->stateReason);
+	    getUint32(data, &slice->stateReason);
 	} else {
-	    getUint16(data, (uint16_t *) &rec->stateReason);
+	    getUint16(data, (uint16_t *) &slice->stateReason);
 	}
 
 	/* power flags */
-	getUint8(data, &rec->powerFlags);
+	getUint8(data, &slice->powerFlags);
 	/* reboot */
-	getUint8(data, &rec->reboot);
+	getUint8(data, &slice->reboot);
 	/* restart count */
-	getUint16(data, &rec->restartCount);
+	getUint16(data, &slice->restartCount);
 	/* show flags */
-	getUint16(data, &rec->showFlags);
+	getUint16(data, &slice->showFlags);
 	/* deadline */
-	getTime(data, &rec->deadline);
+	getTime(data, &slice->deadline);
 	/* alloc sid */
-	getUint32(data, &rec->allocSID);
+	getUint32(data, &slice->allocSID);
 	/* time limit */
-	getUint32(data, &rec->timeLimit);
+	getUint32(data, &slice->timeLimit);
 	/* time min */
-	getUint32(data, &rec->timeMin);
+	getUint32(data, &slice->timeMin);
 	/* nice */
-	getUint32(data, &rec->nice);
+	getUint32(data, &slice->nice);
 
 	/* submit time */
-	getTime(data, &rec->submitTime);
+	getTime(data, &slice->submitTime);
 	/* eligible time */
-	getTime(data, &rec->eligibleTime);
+	getTime(data, &slice->eligibleTime);
 	/* accrue time */
-	getTime(data, &rec->accrueTime);
+	getTime(data, &slice->accrueTime);
 	/* start time */
-	getTime(data, &rec->startTime);
+	getTime(data, &slice->startTime);
 	/* end time */
-	getTime(data, &rec->endTime);
+	getTime(data, &slice->endTime);
 	/* suspend time */
-	getTime(data, &rec->suspendTime);
+	getTime(data, &slice->suspendTime);
 	/* time prior last suspend */
-	getTime(data, &rec->preSusTime);
+	getTime(data, &slice->preSusTime);
 	/* resize time */
-	getTime(data, &rec->resizeTime);
+	getTime(data, &slice->resizeTime);
 	/* last time schedule was evaluated */
-	getTime(data, &rec->lastSchedEval);
+	getTime(data, &slice->lastSchedEval);
 	/* preempt time */
-	getTime(data, &rec->preemptTime);
+	getTime(data, &slice->preemptTime);
 
 	/* priority */
-	getUint32(data, &rec->priority);
+	getUint32(data, &slice->priority);
 	/* billable tres */
-	getDouble(data, &rec->billableTres);
+	getDouble(data, &slice->billableTres);
 	/* cluster */
-	rec->cluster = getStringM(data);
+	slice->cluster = getStringM(data);
 	/* nodes */
-	rec->nodes = getStringM(data);
+	slice->nodes = getStringM(data);
 	/* sched nodes */
-	rec->schedNodes = getStringM(data);
+	slice->schedNodes = getStringM(data);
 	/* partition */
-	rec->partition = getStringM(data);
+	slice->partition = getStringM(data);
 	/* account */
-	rec->account = getStringM(data);
+	slice->account = getStringM(data);
 	/* admin comment */
-	rec->adminComment = getStringM(data);
+	slice->adminComment = getStringM(data);
 	/* site factor */
-	getUint32(data, &rec->siteFactor);
+	getUint32(data, &slice->siteFactor);
 	/* network */
-	rec->network = getStringM(data);
+	slice->network = getStringM(data);
 	/* comment */
-	rec->comment = getStringM(data);
+	slice->comment = getStringM(data);
 
 	/* extra */
 	if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	    rec->extra = getStringM(data);
+	    slice->extra = getStringM(data);
 	}
 
 	/* container */
-	rec->container = getStringM(data);
+	slice->container = getStringM(data);
 
 	/* batch features */
-	rec->batchFeat = getStringM(data);
+	slice->batchFeat = getStringM(data);
 	/* batch host */
-	rec->batchHost = getStringM(data);
+	slice->batchHost = getStringM(data);
 	/* burst buffer */
-	rec->burstBuffer = getStringM(data);
+	slice->burstBuffer = getStringM(data);
 	/* burst buffer state */
-	rec->burstBufferState = getStringM(data);
+	slice->burstBufferState = getStringM(data);
 	/* system comment */
-	rec->systemComment = getStringM(data);
+	slice->systemComment = getStringM(data);
 	/* qos */
-	rec->qos = getStringM(data);
+	slice->qos = getStringM(data);
 	/* preemptable time */
-	getTime(data, &rec->preemptableTime);
+	getTime(data, &slice->preemptableTime);
 	/* licenses */
-	rec->licenses = getStringM(data);
+	slice->licenses = getStringM(data);
 	/* stateDesc */
-	rec->stateDesc = getStringM(data);
+	slice->stateDesc = getStringM(data);
 	/* resvName */
-	rec->resvName = getStringM(data);
+	slice->resvName = getStringM(data);
 	/* mcs label */
-	rec->mcsLabel = getStringM(data);
+	slice->mcsLabel = getStringM(data);
 
 	/* exit code */
-	getUint32(data, &rec->exitCode);
+	getUint32(data, &slice->exitCode);
 	/* derived exit code */
-	getUint32(data, &rec->derivedExitCode);
+	getUint32(data, &slice->derivedExitCode);
     }
 
     if (data->unpackErr) {

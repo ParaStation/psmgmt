@@ -434,16 +434,16 @@ static int handleJobInfoResp(Slurm_Msg_t *sMsg, void *info)
     flog("received %u jobs, update %zu\n", resp->numJobs, resp->lastUpdate);
 
     for (uint32_t i = 0; i < resp->numJobs; i++) {
-	Slurm_Job_Rec_t *rec = &(resp->jobs)[i];
+	Slurm_Job_Info_Slice_t *slice = &(resp->jobs)[i];
 
-	if (req->jobid != rec->jobid) {
+	if (req->jobid != slice->jobid) {
 	    flog("warning: got non requested job %u, requested job %u\n",
-		 rec->jobid, req->jobid);
+		 slice->jobid, req->jobid);
 	}
 
 	flog("jobid %u userid %u state %x state_reason %u exit code %u\n",
-	     rec->jobid, rec->userID, rec->jobState & JOB_STATE_BASE,
-	     rec->stateReason, rec->exitCode);
+	     slice->jobid, slice->userID, slice->jobState & JOB_STATE_BASE,
+	     slice->stateReason, slice->exitCode);
     }
 
     freeUnpackMsgData(sMsg);

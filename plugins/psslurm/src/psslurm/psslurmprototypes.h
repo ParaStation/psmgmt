@@ -210,6 +210,7 @@ typedef struct {
     uint32_t lastNode;		/**< last node completed the step */
     uint32_t exitStatus;	/**< compound step exit status */
     SlurmAccData_t *sAccData;	/**< Slurm account data */
+    bool stepManagerSent;	/**< send to step manager (24.05, unused) */
 } Req_Step_Comp_t;
 
 /** Holding Slurm PIDs to pack */
@@ -376,14 +377,14 @@ typedef struct {
     char *containerID;
     char *failedNode;
     char *extra;
-} Slurm_Job_Rec_t;
+} Slurm_Job_Info_Slice_t;
 
 /** Holding all information for RPC RESPONSE_JOB_INFO */
 typedef struct {
-    uint32_t numJobs;	    /**< number of job records */
-    time_t lastUpdate;	    /**< last time the data was updated */
-    time_t lastBackfill;    /**< last time backfiller run */
-    Slurm_Job_Rec_t *jobs;  /**< the job infos */
+    uint32_t numJobs;		    /**< number of job records */
+    time_t lastUpdate;		    /**< last time the data was updated */
+    time_t lastBackfill;	    /**< last time backfiller run */
+    Slurm_Job_Info_Slice_t *jobs;   /**< list of job infos */
 } Resp_Job_Info_t;
 
 /** Holding all information for RPC REQUEST_REBOOT_NODES */
