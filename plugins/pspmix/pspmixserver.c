@@ -455,7 +455,7 @@ static pmix_status_t server_fencenb_cb(
     assert(procs != NULL);
     assert(nprocs != 0);
 
-    if (mset(PSPMIX_LOG_CALL)) {
+    if (mset(PSPMIX_LOG_CALL|PSPMIX_LOG_FENCE)) {
 	mlog("%s(processes ", __func__);
 	char rankstr[20];
 	for (size_t i = 0; i < nprocs; i++) {
@@ -554,6 +554,7 @@ static pmix_status_t server_fencenb_cb(
      * library."
      * So we pass ownership of data to the service module here */
     int ret = pspmix_service_fenceIn(procs, nprocs, data, ndata, mdata);
+    fdbg(PSPMIX_LOG_FENCE, "fenceIn result: %d\n", ret);
     if (ret == -1) return PMIX_ERROR;
     if (ret == 0) return PMIX_SUCCESS;
     assert(ret == 1);
