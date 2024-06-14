@@ -605,8 +605,8 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	char *endptr;
 	int digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
-	    ulog(pininfo, "invalid character in locality domain mask '%s',"
-		 " bind task to all CPUs assigned to the step: %s\n", maskStr,
+	    ulog(pininfo, "invalid character '%c' in locality domain mask '%s',"
+		 " bind task to all CPUs assigned to the step: %s\n", *endptr, maskStr,
 		 PSCPU_print_part(nodeinfo->stepHWthreads,
 				  PSCPU_bytesForCPUs(nodeinfo->coreCount)));
 	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
