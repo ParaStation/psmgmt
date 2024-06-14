@@ -478,8 +478,8 @@ static void parseCPUmask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	char *endptr;
 	int digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
-	    ulog(pininfo, "invalid character '%c' in CPU mask '%s', bind task to all"
-		 " CPUs assigned to the step: %s\n", *endptr, maskStr,
+	    ulog(pininfo, "invalid character '%c' in CPU mask '%s', bind to all"
+		 " CPUs assigned to step: %s\n", *endptr, maskStr,
 		 PSCPU_print_part(nodeinfo->stepHWthreads,
 				  PSCPU_bytesForCPUs(nodeinfo->coreCount)));
 	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
@@ -606,7 +606,7 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	int digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
 	    ulog(pininfo, "invalid character '%c' in locality domain mask '%s',"
-		 " bind task to all CPUs assigned to the step: %s\n", *endptr, maskStr,
+		 " bind to all CPUs assigned to step: %s\n", *endptr, maskStr,
 		 PSCPU_print_part(nodeinfo->stepHWthreads,
 				  PSCPU_bytesForCPUs(nodeinfo->coreCount)));
 	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
@@ -658,8 +658,7 @@ bool checkCpuMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	if (!PSCPU_isSet(nodeinfo->stepHWthreads, getCore(cpu, nodeinfo))) {
 	    PSCPU_set_t orig;
 	    mapCPUset(CPUset, &orig, nodeinfo->threadCount, nodeinfo->id);
-	    ulog(pininfo, "CPU mask '%s' does not fit CPUs assigned to the"
-		 " step, ",
+	    ulog(pininfo, "CPU mask '%s' does not fit CPUs assigned to step, ",
 		 PSCPU_print_part(orig,
 				  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 	    return false;
@@ -768,7 +767,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	short myumapcpu = PSIDnodes_unmapCPU(nodeinfo->id, mycpu);
 
 	if (!PSCPU_isSet(nodeinfo->stepHWthreads, myumapcpu)) {
-	    ulog(pininfo, "CPU %ld in CPU map '%s' not in CPUs assigned to the"
+	    ulog(pininfo, "CPU %ld in CPU map '%s' not in CPUs assigned to "
 		 " step, ", mycpu, cpuBindString);
 	    goto error;
 	}
@@ -804,7 +803,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 
 error:
     pinToAllThreads(CPUset, nodeinfo); // @todo other result in error case?
-    ulog(pininfo, "bind task to all CPUs assigned to the step: %s\n",
+    ulog(pininfo, "bind to all CPUs assigned to step: %s\n",
 	 PSCPU_print_part(nodeinfo->stepHWthreads,
 			  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 
@@ -961,8 +960,8 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	    /* there are no threads left */
 	    if (!pininfo->overcommit) {
 		pinToAllThreads(CPUset, nodeinfo);
-		ulog(pininfo, "no unused hardware threads left, bind task to"
-		     " all CPUs assigned to the step: %s\n",
+		ulog(pininfo, "no unused hardware threads left, bind to all"
+		     " CPUs assigned to step: %s\n",
 		     PSCPU_print_part(nodeinfo->stepHWthreads,
 				      PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 		return;
@@ -1039,8 +1038,8 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	/* there are not enough threads left */
 	if (!pininfo->overcommit) {
-	    ulog(pininfo, "not enough unused hardware threads left, bind task"
-		 " to all CPUs assigned to the step: %s\n",
+	    ulog(pininfo, "not enough unused hardware threads left, bind to"
+		 " all CPUs assigned to step: %s\n",
 		 PSCPU_print_part(nodeinfo->stepHWthreads,
 				  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 	    pinToAllThreads(CPUset, nodeinfo);
@@ -1193,8 +1192,8 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 
 	/* there are not enough threads left */
 	if (!pininfo->overcommit) {
-	    ulog(pininfo, "not enough unused hardware threads left, bind task"
-		 " to all CPUs assigned to the step: %s\n",
+	    ulog(pininfo, "not enough unused hardware threads left, bind to"
+		 " all CPUs assigned to step: %s\n",
 		 PSCPU_print_part(nodeinfo->stepHWthreads,
 				  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 	    pinToAllThreads(CPUset, nodeinfo);
@@ -1735,10 +1734,10 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	}
 	for (size_t i = 0; i < count; i++) {
 	    if (!PSCPU_isSet(*assGPUs, maparray[i])) {
-		flog("GPU %ld included in map_gpu '%s' is not assigned to the"
-		     " job\n", maparray[i], map_gpu);
-		uprintf("GPU %ld included in map_gpu '%s' is not"
-			" assigned to the job\n", maparray[i], map_gpu);
+		flog("GPU %ld included in map_gpu '%s' is not assigned to job\n",
+		     maparray[i], map_gpu);
+		uprintf("GPU %ld included in map_gpu '%s' is not assigned to"
+			" job\n", maparray[i], map_gpu);
 		ufree(maparray);
 		return -1;
 	    }
@@ -1979,7 +1978,7 @@ bool setStepSlots(Step_t *step)
 	/* inform user about invalid combination of options */
 	if (hints.memory_bound && pininfo.threadsPerTask > 1) {
 	    ulog(&pininfo, "incompatible options: hint 'memory_bound' and "
-		 "cpus-per-task != 1, ignoring hint\n");
+		 "cpus-per-task > 1, ignoring hint\n");
 	}
 
 	/* set node and cpuset for every task on this node */
