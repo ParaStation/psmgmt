@@ -15,6 +15,7 @@
 #define __PS_PMIX_COMMON
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "psenv.h"
 

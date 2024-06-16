@@ -41,7 +41,6 @@
 #include "psdaemonprotocol.h"
 #include "psenv.h"
 #include "pslog.h"
-#include "psprotocol.h"
 #include "psprotocolenv.h"
 #include "psreservation.h"
 #include "psserial.h"

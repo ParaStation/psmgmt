@@ -11,11 +11,13 @@
 /**
  * @file kvsprovider.c Helper to mpiexec providing the PMI key-value space
  */
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "pscommon.h"

@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include "pscommon.h"
 #include "psenv.h"
 #include "psstrv.h"
 

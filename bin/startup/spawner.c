@@ -19,10 +19,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
 
 #include "pse.h"
 #include "psenv.h"

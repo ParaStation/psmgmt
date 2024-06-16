@@ -19,10 +19,11 @@
 #include <time.h>
 
 #include "list.h"
+#include "pscpu.h"
+#include "psenv.h"
 #include "psnodes.h"
 #include "psreservation.h"
 #include "pstask.h"
-#include "pscpu.h"
 
 /** Single node part of a reservation */
 typedef struct {

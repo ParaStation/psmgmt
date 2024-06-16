@@ -35,7 +35,6 @@
 #include "psidplugin.h"
 #include "psidtask.h"
 
-#include "psaccountproc.h"
 #include "psaccountlog.h"
 #include "psaccountconfig.h"
 
