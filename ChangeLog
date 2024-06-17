@@ -1,3 +1,1063 @@
+Version 5.1.61:
+===============
+------------------------------------------------------------------------
+5afd764a1 | Norbert Eicker | Sun, 16 Jun 2024 17:42:45 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+34e919d76 | Norbert Eicker | Fri, 14 Jun 2024 16:07:51 +0200
+
+Minor rephrasing and reformatting
+------------------------------------------------------------------------
+d2e969fdd | Yannik Müller | Fri, 14 Jun 2024 12:22:16 +0000
+
+Resolving thread regarding invalid character highlighting
+------------------------------------------------------------------------
+f4ac17087 | Stephan Krempel | Mon, 4 Mar 2024 16:13:24 +0100
+
+psslurm: Rework pinning user messages
+------------------------------------------------------------------------
+8c6f4276b | Norbert Eicker | Thu, 13 Jun 2024 19:55:15 +0200
+
+Don't spoil syslog in pspmix for pspmi's messages
+------------------------------------------------------------------------
+b3574d7b8 | Norbert Eicker | Thu, 13 Jun 2024 19:54:57 +0200
+
+Prevent pspmi from eating pspmix message
+------------------------------------------------------------------------
+580a4fbe0 | Stephan Krempel | Thu, 13 Jun 2024 15:45:05 +0200
+
+pspmix: More fence debugging output
+------------------------------------------------------------------------
+f34dd77a9 | Stephan Krempel | Thu, 13 Jun 2024 13:03:41 +0200
+
+pspmix: Use "job" instead of "spawner" in debugging output.
+------------------------------------------------------------------------
+e6357378a | Stephan Krempel | Thu, 13 Jun 2024 02:48:30 +0200
+
+psslurm: Fix marking thread usage in partition
+
+The assumption that all slots for a node are consecutive
+in the list of slots in a partition is incorrect. We must
+always search to the end of the list.
+------------------------------------------------------------------------
+5fea923b8 | Stephan Krempel | Thu, 13 Jun 2024 00:12:53 +0200
+
+psslurm: Enhance comments on core bitmaps
+------------------------------------------------------------------------
+04c548ba1 | Stephan Krempel | Wed, 12 Jun 2024 23:34:54 +0200
+
+psslurm: Extend debugging output
+------------------------------------------------------------------------
+d0b1f2e02 | Stephan Krempel | Wed, 12 Jun 2024 13:24:11 +0200
+
+psslurm: Introduce mset()
+------------------------------------------------------------------------
+3ddd8536f | Norbert Eicker | Wed, 12 Jun 2024 22:49:59 +0200
+
+Fetch service rank from logger to start spawned step-forwarder's spawner
+
+ - requires the use of pslog in the pluginforwarder
+ - implementation is bit hackish since pluginforwarder does not allow
+   the registration of new message handlers in a flexible way
+------------------------------------------------------------------------
+7c97f2a57 | Norbert Eicker | Wed, 12 Jun 2024 22:45:31 +0200
+
+Do not re-evalute step's environment to identify re-spawn
+------------------------------------------------------------------------
+1335e67c0 | Norbert Eicker | Wed, 12 Jun 2024 22:44:44 +0200
+
+Rename __PSSLURM_SPAWN_RANK to __PSSLURM_STEP_RANK according to its use
+------------------------------------------------------------------------
+37aa96c66 | Norbert Eicker | Wed, 12 Jun 2024 22:37:46 +0200
+
+Minor streamlining
+------------------------------------------------------------------------
+9cb438602 | Norbert Eicker | Wed, 12 Jun 2024 22:33:45 +0200
+
+Prevent spawned step-forwarder from sending SPAWNSUCCESS to parent
+------------------------------------------------------------------------
+4c9232ffc | Norbert Eicker | Wed, 12 Jun 2024 22:30:01 +0200
+
+Enhance debug log
+------------------------------------------------------------------------
+f0aae828e | Norbert Eicker | Wed, 12 Jun 2024 22:26:45 +0200
+
+Enhance docu comments
+------------------------------------------------------------------------
+ba442aa87 | Norbert Eicker | Wed, 12 Jun 2024 22:24:28 +0200
+
+Evict obsolete injectedEnv member from PStask_t
+------------------------------------------------------------------------
+29beb2c30 | Norbert Eicker | Wed, 12 Jun 2024 00:33:15 +0200
+
+Filter more troublesome environment in PMIx_spawn()
+------------------------------------------------------------------------
+0b2382d78 | Norbert Eicker | Wed, 12 Jun 2024 00:32:15 +0200
+
+Fix memory leak in spawner
+------------------------------------------------------------------------
+4a7848ba0 | Norbert Eicker | Wed, 12 Jun 2024 00:30:32 +0200
+
+Ensure per executable or per rank environment is not hidden
+------------------------------------------------------------------------
+8526e218b | Norbert Eicker | Wed, 12 Jun 2024 00:29:02 +0200
+
+Rename concatPSIEnv() to mergePSIEnv()
+
+ - adapt its functionality to the original description
+------------------------------------------------------------------------
+6272c1f15 | Norbert Eicker | Wed, 12 Jun 2024 00:26:40 +0200
+
+Split __envConcat() into envMerge() and envAppend()
+
+ - Choose between them appropriately
+------------------------------------------------------------------------
+03a6206cb | Norbert Eicker | Wed, 12 Jun 2024 00:19:56 +0200
+
+Rename envCat() to __envConcat() and add merge flag
+
+ - this flag enables to actually merge the environments
+------------------------------------------------------------------------
+864ec91d2 | Norbert Eicker | Mon, 6 May 2024 00:04:17 +0200
+
+Ensure srun's -D is considered even in the case of re-spawn
+------------------------------------------------------------------------
+3f3835f26 | Norbert Eicker | Tue, 30 Apr 2024 18:13:18 +0200
+
+Add support for parricide info in case of single spawn
+------------------------------------------------------------------------
+d209b7973 | Norbert Eicker | Tue, 30 Apr 2024 18:07:11 +0200
+
+Add support for re-spawn environment
+------------------------------------------------------------------------
+ec293a971 | Norbert Eicker | Tue, 30 Apr 2024 18:05:29 +0200
+
+Rework fillSpawnTaskWithSrun() and descendants
+
+ - also set PMIX_JOB_SIZE if required
+------------------------------------------------------------------------
+c99ac8deb | Norbert Eicker | Tue, 30 Apr 2024 17:41:00 +0200
+
+Minor enhancement of debug message
+------------------------------------------------------------------------
+64d4a764c | Norbert Eicker | Tue, 30 Apr 2024 17:30:27 +0200
+
+Propagate more environment to user processes
+
+ - This is required to detect and assign re-spawned processes
+------------------------------------------------------------------------
+185863b67 | Norbert Eicker | Mon, 29 Apr 2024 10:52:23 +0200
+
+Add parricide support to PMIx backend
+------------------------------------------------------------------------
+c367514e3 | Norbert Eicker | Mon, 29 Apr 2024 10:51:48 +0200
+
+Streamlining
+------------------------------------------------------------------------
+e3e2d4f22 | Norbert Eicker | Fri, 26 Apr 2024 23:55:57 +0200
+
+Ensure Step is identified as spawned in case of PMIx
+------------------------------------------------------------------------
+d569077d3 | Norbert Eicker | Fri, 26 Apr 2024 20:09:24 +0200
+
+Enhance debug log readability
+------------------------------------------------------------------------
+6682b6e61 | Norbert Eicker | Tue, 20 Feb 2024 00:47:39 +0100
+
+Streamline debug log messages
+------------------------------------------------------------------------
+5ded5a3c4 | Stephan Krempel | Tue, 19 Dec 2023 16:25:52 +0100
+
+psslurm: also debug print mpiexec command in respawn case
+------------------------------------------------------------------------
+99bb28257 | Stephan Krempel | Fri, 15 Dec 2023 02:23:52 +0100
+
+psslurm: Enhance debugging output
+------------------------------------------------------------------------
+468e84220 | Stephan Krempel | Fri, 15 Dec 2023 01:39:01 +0100
+
+psslurm: Let spawn relevant pspmix env vars pass
+------------------------------------------------------------------------
+5ddbda826 | Stephan Krempel | Fri, 15 Dec 2023 01:24:11 +0100
+
+psslurm: Make sure respawns use same PMI as parent
+------------------------------------------------------------------------
+64f77f053 | Stephan Krempel | Fri, 15 Dec 2023 00:53:11 +0100
+
+psslurm: Call psPmixSetFillSpawnTaskFunction()
+------------------------------------------------------------------------
+158cc3736 | Stephan Krempel | Thu, 14 Dec 2023 20:58:15 +0100
+
+psslurm: Load pspmix handles
+
+Bump plugin version to 118
+------------------------------------------------------------------------
+f5301d636 | Stephan Krempel | Tue, 11 Jun 2024 23:49:23 +0200
+
+pspmix: Polish output of printJob()
+------------------------------------------------------------------------
+76d8f0972 | Norbert Eicker | Tue, 11 Jun 2024 20:04:30 +0200
+
+More use of flog() in pspmix
+------------------------------------------------------------------------
+cfce30e23 | Norbert Eicker | Tue, 11 Jun 2024 20:03:22 +0200
+
+Ensure staying in PspmixNamespace_t.apps boundaries
+------------------------------------------------------------------------
+c0988620c | Norbert Eicker | Tue, 11 Jun 2024 19:59:36 +0200
+
+Explicitly store PspmixJob_t's number of reservations
+------------------------------------------------------------------------
+207328f8c | Norbert Eicker | Tue, 11 Jun 2024 19:40:05 +0200
+
+Let namespace creation fail on missing PMIX_JOB_NUM_APPS
+------------------------------------------------------------------------
+bbda6ac89 | Norbert Eicker | Tue, 11 Jun 2024 19:35:20 +0200
+
+Just warn about non-ascending reservation ID
+
+ - reservation IDs might (unprobably) overflow
+------------------------------------------------------------------------
+e7d9eb96a | Stephan Krempel | Tue, 11 Jun 2024 17:11:33 +0200
+
+pspmix: Increase efficiency of reservation size calculation
+------------------------------------------------------------------------
+34d49c9ca | Stephan Krempel | Tue, 11 Jun 2024 17:04:45 +0200
+
+pspmix: Check input parameter in hook functions
+------------------------------------------------------------------------
+b2b6a9300 | Norbert Eicker | Tue, 11 Jun 2024 16:43:59 +0200
+
+Call PSIDHOOK_JOBCOMPLETE only on PSP_DD_JOBCOMPLETE
+------------------------------------------------------------------------
+fcb9abb89 | Stephan Krempel | Tue, 11 Jun 2024 15:32:57 +0200
+
+pspmix: Cache job size
+------------------------------------------------------------------------
+2ac2c4536 | Stephan Krempel | Tue, 11 Jun 2024 13:28:34 +0200
+
+pspmix: Change env checks to debugging output
+
+Print all variables later used by pspmix
+------------------------------------------------------------------------
+10e16acc1 | Stephan Krempel | Tue, 11 Jun 2024 13:28:12 +0200
+
+pspmix: Add error check
+------------------------------------------------------------------------
+ead9ae32a | Stephan Krempel | Tue, 11 Jun 2024 13:27:19 +0200
+
+pspmix: Check for pmix request as early as possible
+------------------------------------------------------------------------
+56fae012d | Stephan Krempel | Tue, 11 Jun 2024 13:05:20 +0200
+
+pspmix: Use pspmix_jobIDsStr() in printJob()
+------------------------------------------------------------------------
+97abd06a0 | Stephan Krempel | Tue, 11 Jun 2024 00:46:13 +0200
+
+pspmix: Fix memory leaks
+------------------------------------------------------------------------
+f8b341996 | Stephan Krempel | Tue, 11 Jun 2024 00:45:40 +0200
+
+pspmix: Fix potential invalid free
+------------------------------------------------------------------------
+f1dd05758 | Stephan Krempel | Tue, 11 Jun 2024 00:28:28 +0200
+
+pspmix: Remove obsolete code
+------------------------------------------------------------------------
+ca96c724d | Stephan Krempel | Tue, 11 Jun 2024 00:23:08 +0200
+
+pspmix: Make string conversion more strict
+------------------------------------------------------------------------
+e5bdf6e0e | Stephan Krempel | Tue, 11 Jun 2024 00:15:06 +0200
+
+pspmix: Readd accidentally lost debugging output
+------------------------------------------------------------------------
+373f0e960 | Stephan Krempel | Tue, 11 Jun 2024 00:09:15 +0200
+
+pspmix: Make getResSize() a common function
+------------------------------------------------------------------------
+7956c1bc0 | Stephan Krempel | Mon, 10 Jun 2024 14:24:30 +0200
+
+pspmix: fix PMIx 3 support
+------------------------------------------------------------------------
+fe6346568 | Stephan Krempel | Mon, 10 Jun 2024 23:58:51 +0200
+
+pspmix: Error if PMIX_JOB_NUM_APPS != #reservations
+------------------------------------------------------------------------
+a20593dd2 | Stephan Krempel | Mon, 10 Jun 2024 23:57:19 +0200
+
+pspmix: Add debug output of job used for namespace creation
+------------------------------------------------------------------------
+ed4bbbd29 | Norbert Eicker | Mon, 10 Jun 2024 19:34:26 +0200
+
+Streamline debug log
+------------------------------------------------------------------------
+ca382f6a3 | Norbert Eicker | Mon, 10 Jun 2024 19:13:58 +0200
+
+Enhance docu comments
+------------------------------------------------------------------------
+6feb24eee | Norbert Eicker | Mon, 10 Jun 2024 18:50:31 +0200
+
+Fix obsolete docu comment
+------------------------------------------------------------------------
+3b4a5b1c3 | Norbert Eicker | Mon, 10 Jun 2024 16:30:18 +0200
+
+Omit documentation of removed parameter
+------------------------------------------------------------------------
+6a9230a59 | Stephan Krempel | Mon, 10 Jun 2024 13:02:52 +0200
+
+pspmix: Fix comment
+------------------------------------------------------------------------
+d653aa037 | Stephan Krempel | Mon, 10 Jun 2024 12:58:32 +0200
+
+pspmix: Avoid unnecessary access outside of the lock
+------------------------------------------------------------------------
+28dbbe565 | Stephan Krempel | Mon, 10 Jun 2024 12:49:38 +0200
+
+pspsmix: Rename function for getting session size
+------------------------------------------------------------------------
+532e16613 | Norbert Eicker | Sun, 9 Jun 2024 19:44:19 +0200
+
+PMIX_APP_NAME_* needs to be propagated, too.
+------------------------------------------------------------------------
+c6fb89581 | Stephan Krempel | Sat, 8 Jun 2024 01:14:09 +0200
+
+pspmix: Add debug output of jobs extraData
+------------------------------------------------------------------------
+3632c6f15 | Norbert Eicker | Fri, 7 Jun 2024 23:48:02 +0200
+
+Get rid of global jobLocalUniqNodeIDs and streamline
+------------------------------------------------------------------------
+92c4a7f5d | Norbert Eicker | Fri, 7 Jun 2024 23:37:11 +0200
+
+PMI needs no propagation via PSI_finReservation()
+------------------------------------------------------------------------
+87cac16d5 | Norbert Eicker | Fri, 7 Jun 2024 23:29:53 +0200
+
+Only propagate those PMIX variables actually required
+------------------------------------------------------------------------
+1ab64799e | Stephan Krempel | Fri, 7 Jun 2024 14:57:58 +0200
+
+pspmix: Adjust namespace creation
+
+Allow to also create and register namespaces that
+do not have local tasks.
+------------------------------------------------------------------------
+f69111a18 | Stephan Krempel | Thu, 6 Jun 2024 20:50:02 +0200
+
+pspmix: Use job's extraData in hookJobComplete
+------------------------------------------------------------------------
+93a21cb98 | Stephan Krempel | Thu, 6 Jun 2024 20:44:19 +0200
+
+pspmix: Check required envvars in hookFillResFinalized
+------------------------------------------------------------------------
+294592bd8 | Stephan Krempel | Thu, 6 Jun 2024 20:36:41 +0200
+
+pspmix: Use only PMIX_JOB_SIZE to detect pmix job
+------------------------------------------------------------------------
+fbe5ca937 | Stephan Krempel | Tue, 4 Jun 2024 17:52:41 +0200
+
+pspmix: Get rid of PMIX_APP_SIZE_%d
+
+This information is implicitly included in the reservation infos
+------------------------------------------------------------------------
+b4886fc48 | Stephan Krempel | Tue, 4 Jun 2024 17:27:58 +0200
+
+pspmix: Do not calculate job size twice
+------------------------------------------------------------------------
+02e63bd8d | Stephan Krempel | Tue, 4 Jun 2024 17:07:11 +0200
+
+pspmix: Get rid of __PMIX_RESID_%d
+
+Now rely on order of the reservation information
+------------------------------------------------------------------------
+f169d8fd1 | Stephan Krempel | Tue, 4 Jun 2024 14:02:13 +0200
+
+pspmix: Generate nodelist string on the fly
+
+Now using PMIX_JOB_SIZE to detect pmix is to be used
+------------------------------------------------------------------------
+ca36973f8 | Stephan Krempel | Tue, 4 Jun 2024 03:02:42 +0200
+
+pspmix: Calculate job size
+------------------------------------------------------------------------
+88fb0e463 | Stephan Krempel | Wed, 29 May 2024 02:09:45 +0200
+
+pspmix: Calculate universe size
+
+This is now possible, since we do have a complete view
+on all jobs of the session.
+------------------------------------------------------------------------
+d67b2e178 | Stephan Krempel | Wed, 29 May 2024 02:14:54 +0200
+
+pspmix: Tell PMIx server about sister partition jobs as well
+
+Only pushes the job information into the PMIx server by using
+the new hook PSIDHOOK_JOBCOMPLETE. Not yet creating and
+registering informational namespaces. First needs a rework
+of how all the information for the registration are gathered.
+------------------------------------------------------------------------
+ae679f046 | Stephan Krempel | Tue, 4 Jun 2024 01:16:45 +0200
+
+pspmix: Use PSIDHOOK_FILL_RESFINALIZED
+------------------------------------------------------------------------
+d99f1263e | Stephan Krempel | Wed, 29 May 2024 01:10:43 +0200
+
+pspmix: Use sessID/jobID in hookSpawnTask()
+------------------------------------------------------------------------
+8bcb01aa9 | Stephan Krempel | Wed, 29 May 2024 01:09:21 +0200
+
+pspmix: Use sessID from psjob in addJobToServer()
+------------------------------------------------------------------------
+cc01d2206 | Stephan Krempel | Wed, 29 May 2024 00:55:00 +0200
+
+pspmix: Separate function findOrStartServer()
+------------------------------------------------------------------------
+00c758410 | Stephan Krempel | Tue, 4 Jun 2024 01:16:00 +0200
+
+pspmix: Add missing static
+------------------------------------------------------------------------
+842fe43ab | Stephan Krempel | Wed, 29 May 2024 00:01:42 +0200
+
+pspmix: Introduce and start using flog()/fdbg()
+------------------------------------------------------------------------
+57da7b0d7 | Stephan Krempel | Thu, 23 May 2024 03:35:31 +0200
+
+psslurmgetbind: Do syntax checking for -B|--extra-node-info
+------------------------------------------------------------------------
+aeb272eac | Stephan Krempel | Tue, 14 May 2024 15:30:56 +0200
+
+psslurmgetbind: Add --version option
+------------------------------------------------------------------------
+0b4cf0bfa | Norbert Eicker | Mon, 10 Jun 2024 11:27:17 +0200
+
+More detailed documentation of PSIDHOOK_FILL_RESFINALIZED
+------------------------------------------------------------------------
+a575005e4 | Norbert Eicker | Tue, 4 Jun 2024 23:16:12 +0200
+
+Pass PMI[x] specific key-value pairs to PSI_finReservation()
+------------------------------------------------------------------------
+aa4ce0d8d | Norbert Eicker | Tue, 4 Jun 2024 20:13:56 +0200
+
+Allow clients to pass extra key-value pairs to PSI_finReservation()
+------------------------------------------------------------------------
+695415c61 | Norbert Eicker | Tue, 4 Jun 2024 19:38:05 +0200
+
+Enhance addStringArrayToMSg() to accept NULL arrays
+------------------------------------------------------------------------
+0bcd6a97b | Norbert Eicker | Tue, 4 Jun 2024 18:19:37 +0200
+
+Introduce concatPSIEnv()
+------------------------------------------------------------------------
+e81769f10 | Norbert Eicker | Mon, 3 Jun 2024 19:38:41 +0200
+
+Expose extraData in job to PSIDHOOK_JOBCOMPLETE
+------------------------------------------------------------------------
+73c584ef4 | Norbert Eicker | Mon, 3 Jun 2024 16:35:28 +0200
+
+Push PSDaemonProtocolVersion to 417
+
+ - Used to ensure PSP_DD_RESFINALIZED and PSP_DD_JOBCOMPLETE are
+   only sent to destinations capable to handle them
+------------------------------------------------------------------------
+a128d8d7a | Norbert Eicker | Mon, 3 Jun 2024 16:17:55 +0200
+
+Introduce PSIDHOOK_FILL_RESFINALIZED
+------------------------------------------------------------------------
+46a87c974 | Norbert Eicker | Mon, 3 Jun 2024 16:13:49 +0200
+
+Introduce PSP_DD_RESFINALIZED
+------------------------------------------------------------------------
+2381c3a7f | Norbert Eicker | Mon, 3 Jun 2024 15:57:54 +0200
+
+Add extraJobData member to PStask_t
+------------------------------------------------------------------------
+5f4f9dc47 | Norbert Eicker | Mon, 3 Jun 2024 10:36:24 +0200
+
+Introduce PSI_finReservation() and PSP_CD_FINRESERVATION
+------------------------------------------------------------------------
+f8db3458a | Norbert Eicker | Tue, 28 May 2024 13:07:42 +0200
+
+Rename numToSend to sendCount to better reflect use
+------------------------------------------------------------------------
+48543b0f6 | Norbert Eicker | Mon, 27 May 2024 21:02:54 +0200
+
+Actually send PSP_DD_JOBCOMPLETE messages
+------------------------------------------------------------------------
+2934d57a2 | Norbert Eicker | Mon, 27 May 2024 20:59:50 +0200
+
+Introduce PSIDHOOK_JOBCOMPLETE
+
+ - bump pluin API to 142
+ - this utilizes the new message type PSP_DD_JOBCOMPLETE
+------------------------------------------------------------------------
+6b8b1c849 | Norbert Eicker | Mon, 27 May 2024 20:46:30 +0200
+
+Add registered flag and sessID member to PSjob_t
+------------------------------------------------------------------------
+ee9febf85 | Norbert Eicker | Wed, 5 Jun 2024 16:06:09 +0200
+
+Revert from DATA to SCRIPT for scripts requiring it
+------------------------------------------------------------------------
+784943f3d | Yannik Mueller | Wed, 5 Jun 2024 11:03:43 +0200
+
+autoreconfig
+------------------------------------------------------------------------
+7d9e32df0 | Yannik Mueller | Wed, 5 Jun 2024 11:03:34 +0200
+
+Changed python snippets from SCRIPT to DATA
+------------------------------------------------------------------------
+8d33b8475 | Norbert Eicker | Tue, 4 Jun 2024 17:56:43 +0200
+
+Update various Copyright entries
+------------------------------------------------------------------------
+c9d99d2e2 | Norbert Eicker | Tue, 4 Jun 2024 17:54:48 +0200
+
+Ensure /etc/pam.d/psid is not installed witout PAM
+------------------------------------------------------------------------
+1d45a3baa | Norbert Eicker | Thu, 6 Jun 2024 10:56:03 +0200
+
+Rephrase documentation changes
+------------------------------------------------------------------------
+887f689d0 | Michael Rauh | Thu, 6 Jun 2024 10:20:02 +0200
+
+Improve documentation
+------------------------------------------------------------------------
+3af123b62 | Michael Rauh | Mon, 3 Jun 2024 16:42:53 +0200
+
+Warn if configless is enabled in slurm.conf but not psslurm
+------------------------------------------------------------------------
+18a7f20cc | Norbert Eicker | Wed, 8 May 2024 21:06:42 +0200
+
+Simplify the code
+------------------------------------------------------------------------
+f96e4469c | Norbert Eicker | Tue, 7 May 2024 13:58:41 +0200
+
+Fix potential memory leak in strvAdd() (#208)
+
+ - In fact strLink() requires a non-const str argument since this might
+   be cleaned up upon strvDestroy()
+------------------------------------------------------------------------
+5c4bdf3e4 | Stephan Krempel | Thu, 6 Jun 2024 09:31:53 +0200
+
+Fix -Wcalloc-transposed-args of gcc 14
+------------------------------------------------------------------------
+3f989f9fb | Stephan Krempel | Thu, 23 May 2024 12:54:13 +0200
+
+pspmix: Use foreseen function to get local node id
+------------------------------------------------------------------------
+98884bb8c | Stephan Krempel | Thu, 23 May 2024 12:54:13 +0200
+
+pspmix: Not send TERM_CLIENTS to empty recipients list
+
+This created a meaningless failure message.
+------------------------------------------------------------------------
+95c91bf85 | Norbert Eicker | Tue, 4 Jun 2024 12:35:16 +0200
+
+More use of Step_strID()
+------------------------------------------------------------------------
+955a7a3d0 | Norbert Eicker | Tue, 4 Jun 2024 12:34:14 +0200
+
+More use of fwarn() and fdbg()
+------------------------------------------------------------------------
+54c46317a | Norbert Eicker | Tue, 4 Jun 2024 12:33:27 +0200
+
+Streamlining
+------------------------------------------------------------------------
+5b3869c65 | Michael Rauh | Tue, 4 Jun 2024 11:23:36 +0200
+
+More consistent use of point to separate job and step IDs
+------------------------------------------------------------------------
+bdb79b1be | Michael Rauh | Tue, 4 Jun 2024 10:52:00 +0200
+
+Be compatible with old versions of PSP_PACK_INFO
+------------------------------------------------------------------------
+31b210c44 | Michael Rauh | Tue, 14 May 2024 15:46:41 +0200
+
+Remove superfluous job pack information
+------------------------------------------------------------------------
+07591369c | Michael Rauh | Tue, 14 May 2024 12:19:43 +0200
+
+Replace obsolete packSize with step->packStepCount
+------------------------------------------------------------------------
+d85d15ef7 | Michael Rauh | Tue, 14 May 2024 11:22:26 +0200
+
+Replace obsolete packAllocID with step->packJobid
+------------------------------------------------------------------------
+db995e72f | Michael Rauh | Tue, 14 May 2024 10:58:41 +0200
+
+Update log format of hetsteps
+------------------------------------------------------------------------
+994442d7f | Stephan Krempel | Mon, 3 Jun 2024 22:47:52 +0200
+
+pspmix: Do not use special characters in tmp dir name
+------------------------------------------------------------------------
+cb31b6e7f | Stephan Krempel | Fri, 31 May 2024 16:48:13 +0200
+
+pspmix: Cleanup temporary directories
+------------------------------------------------------------------------
+f4749e3d8 | Norbert Eicker | Thu, 30 May 2024 21:58:02 +0200
+
+Always fall back to $HOME/.psiadminrc in handleRCfile()
+
+ - also no return value required
+------------------------------------------------------------------------
+68a320cb3 | Norbert Eicker | Thu, 30 May 2024 21:56:46 +0200
+
+Do not exit psiadmin if handleRCfile() fails
+------------------------------------------------------------------------
+8ea540b81 | Norbert Eicker | Thu, 30 May 2024 21:55:43 +0200
+
+Streamlining
+------------------------------------------------------------------------
+e757d79ae | Norbert Eicker | Thu, 30 May 2024 21:23:31 +0200
+
+Introduce PSIadm_flog() and PSIadm_fwarn()
+------------------------------------------------------------------------
+9ffc60d6d | Norbert Eicker | Sun, 2 Jun 2024 21:59:44 +0200
+
+Minor adaptation of docu comment
+------------------------------------------------------------------------
+75b81666d | Michael Rauh | Fri, 31 May 2024 17:07:34 +0200
+
+Update documentation of signalSession()
+------------------------------------------------------------------------
+a847dd00a | Norbert Eicker | Thu, 30 May 2024 20:22:15 +0200
+
+psaccountscript shall not utilize signalSession()
+
+ - signalSession() ignores root procs as default but scripts run
+   as root
+ - Instead send signals just to the corresponding process group
+------------------------------------------------------------------------
+28c56615f | Norbert Eicker | Thu, 30 May 2024 20:20:53 +0200
+
+pluginforwarder's exit status independent of child status
+------------------------------------------------------------------------
+4324eefb9 | Norbert Eicker | Thu, 30 May 2024 14:58:07 +0200
+
+Use kill() instead of pskill() on alarm timeout
+
+ - This fixes two issues:
+   * Signal is sent to the whole process group
+   * Prevent interference of SIGCHLDs emitted by child and killer
+------------------------------------------------------------------------
+c0f5bddfb | Norbert Eicker | Thu, 30 May 2024 14:43:33 +0200
+
+More reasons for killForwarderChild()
+------------------------------------------------------------------------
+b940a04c7 | Norbert Eicker | Thu, 30 May 2024 14:41:35 +0200
+
+Avoid useless check (same check two line above)
+------------------------------------------------------------------------
+592a53a99 | Norbert Eicker | Thu, 30 May 2024 14:37:15 +0200
+
+Fix typo in variable name
+------------------------------------------------------------------------
+ff7db01a4 | Norbert Eicker | Thu, 30 May 2024 14:34:33 +0200
+
+Streamlining
+------------------------------------------------------------------------
+97e39e357 | Norbert Eicker | Thu, 30 May 2024 02:37:52 +0200
+
+Let psaccount wave goodbye
+------------------------------------------------------------------------
+1ab8fbde4 | Norbert Eicker | Thu, 30 May 2024 02:22:43 +0200
+
+Bugfix: Ensure no selectors are left on psaccount unload
+
+ - This might require a hard cleanup in psaccounts cleanup phase
+ - Left over selectors might cause segfaults once psaccount is unloaded
+------------------------------------------------------------------------
+8f5c55d1e | Norbert Eicker | Thu, 30 May 2024 02:18:49 +0200
+
+Let psaccount call PSIDplugin_unload()
+
+ - Once the last script is gone the plugin is ready for unload when in
+   shutdown phase
+------------------------------------------------------------------------
+3fea2e1c1 | Norbert Eicker | Thu, 30 May 2024 02:14:27 +0200
+
+Don't stop psaccount scripts again
+
+ - Since all scripts were triggered for shutdown during finalize() we
+   just need to cleanup memory in cleanup phase
+------------------------------------------------------------------------
+417ad9041 | Norbert Eicker | Thu, 30 May 2024 02:09:43 +0200
+
+Introduce finalize() to psaccount
+
+ - All scripts are kept in a list used to trigger their shutdown
+ - Collect_Script_t structures will be cleaned up one by one in a
+   callback function
+------------------------------------------------------------------------
+8c99bf3b3 | Norbert Eicker | Thu, 30 May 2024 01:56:50 +0200
+
+Introduce getScript()/delScript() to psaccount
+------------------------------------------------------------------------
+663b5b3f7 | Norbert Eicker | Thu, 30 May 2024 01:41:03 +0200
+
+Reorder #includes
+------------------------------------------------------------------------
+65965344e | Norbert Eicker | Mon, 6 May 2024 18:58:13 +0200
+
+Add some checks to ensure valid service ranks
+------------------------------------------------------------------------
+71a467c1e | Norbert Eicker | Mon, 6 May 2024 18:57:05 +0200
+
+Actively request service rank from logger in kvsprovider
+
+ - The environment variable __SPAWNER_SERVICE_RANK is useless now
+------------------------------------------------------------------------
+101f0d06f | Norbert Eicker | Mon, 6 May 2024 19:58:09 +0200
+
+Ensure kvsprovider will get a service rank
+------------------------------------------------------------------------
+d47feacfc | Norbert Eicker | Mon, 6 May 2024 18:54:43 +0200
+
+Assign service ranks without gaps
+
+ - This assumes all service ranks are requested explicitly
+------------------------------------------------------------------------
+896ef8202 | Norbert Eicker | Mon, 6 May 2024 18:50:08 +0200
+
+Get rid of useless ENV_NUM_SERVICE_PROCS
+------------------------------------------------------------------------
+bb738228e | Norbert Eicker | Mon, 6 May 2024 18:47:35 +0200
+
+mpiexec knows the service rank to spawn exactly
+------------------------------------------------------------------------
+1addb4901 | Norbert Eicker | Mon, 6 May 2024 15:59:57 +0200
+
+Rename message subtype SERV_TID to SERV_RNK
+------------------------------------------------------------------------
+e1685c55b | Norbert Eicker | Wed, 29 May 2024 13:57:05 +0200
+
+Enhance docu comments to mention systemd, too
+------------------------------------------------------------------------
+0dd63fd5d | Norbert Eicker | Tue, 28 May 2024 20:39:51 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+e0f026640 | Norbert Eicker | Tue, 28 May 2024 20:30:32 +0200
+
+Omit more superfluous brackets
+------------------------------------------------------------------------
+0836c70f5 | Norbert Eicker | Tue, 28 May 2024 19:47:17 +0200
+
+Omit superfluous brackets
+------------------------------------------------------------------------
+ce3154cad | Norbert Eicker | Tue, 28 May 2024 19:46:57 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+a85d6ead9 | Norbert Eicker | Tue, 28 May 2024 13:55:36 +0200
+
+Introduce doGetPluginConf() and streamline code
+------------------------------------------------------------------------
+705017c89 | Norbert Eicker | Tue, 28 May 2024 13:32:37 +0200
+
+Adapt to coding style and avoid unnecessary list_for_each_safe()
+------------------------------------------------------------------------
+6213692bc | Norbert Eicker | Tue, 28 May 2024 13:25:47 +0200
+
+Update copyright and adapt linebreak after 80 columns
+------------------------------------------------------------------------
+4be44dfb2 | Norbert Eicker | Tue, 28 May 2024 13:24:39 +0200
+
+Hide local information
+------------------------------------------------------------------------
+3ea8e2b2d | Yannik Mueller | Tue, 28 May 2024 12:23:33 +0200
+
+Fixed indentation (hopefully)
+------------------------------------------------------------------------
+7358a9b57 | Yannik Mueller | Tue, 28 May 2024 12:14:56 +0200
+
+Renamed list_t member to common name next
+------------------------------------------------------------------------
+c89d55b0b | Yannik Mueller | Fri, 17 May 2024 12:37:08 +0200
+
+Replacing tabs with spaces
+------------------------------------------------------------------------
+1ea94b227 | Yannik Mueller | Thu, 16 May 2024 21:01:14 +0200
+
+Added plugin config list, replacing plugin config array
+------------------------------------------------------------------------
+17bf085e9 | Norbert Eicker | Tue, 7 May 2024 18:07:05 +0200
+
+Merge branch '5.1.60' again
+------------------------------------------------------------------------
+3a65cf55f | Michael Rauh | Mon, 6 May 2024 18:20:10 +0200
+
+Ensure SLURMD_TRES_BIND and SLURMD_TRES_FREQ get set
+------------------------------------------------------------------------
+5644755a1 | Norbert Eicker | Mon, 6 May 2024 10:04:41 +0200
+
+Catch potential segfaults introduced by strv_t rework
+------------------------------------------------------------------------
+6b6232383 | Norbert Eicker | Tue, 30 Apr 2024 12:16:55 +0200
+
+Fix copy'n'paste remnant
+------------------------------------------------------------------------
+4e53d927c | Norbert Eicker | Tue, 30 Apr 2024 12:15:31 +0200
+
+Ensure allocated string memory conforms minimum size
+------------------------------------------------------------------------
+a070e0b98 | Norbert Eicker | Fri, 5 Apr 2024 16:26:14 +0200
+
+Add more similarities to env_t including opaqueness
+------------------------------------------------------------------------
+9fc69a34c | Norbert Eicker | Fri, 5 Apr 2024 12:06:48 +0200
+
+Adapt strv_t behavior to env_t
+------------------------------------------------------------------------
+c50fae470 | Norbert Eicker | Thu, 4 Apr 2024 17:19:36 +0200
+
+Move pluginstrv as psstrv to libscommon
+------------------------------------------------------------------------
+fe5b1fcdd | Norbert Eicker | Tue, 16 Apr 2024 23:35:43 +0200
+
+Ensure cleanup if starting re-spawn's spawner fails (#199)
+
+ - delete orphaned task structure
+ - tell srun about the failure
+ - tell step-forwarder to quit
+------------------------------------------------------------------------
+d0cfd5b79 | Michael Rauh | Fri, 26 Apr 2024 16:48:00 +0200
+
+Use absolute path for chmod() in writeSlurmConfigFiles()
+------------------------------------------------------------------------
+7eea2302e | Michael Rauh | Fri, 26 Apr 2024 15:51:39 +0200
+
+Removed unused length parameter from calls to getUint64Array()
+------------------------------------------------------------------------
+39d2135fc | Michael Rauh | Fri, 26 Apr 2024 15:47:26 +0200
+
+Allow to miss len in getArrayFromBuf() parameters
+------------------------------------------------------------------------
+5d18c6186 | Michael Rauh | Fri, 26 Apr 2024 15:35:15 +0200
+
+Shred BCast credential and username
+------------------------------------------------------------------------
+74ca93cba | Michael Rauh | Fri, 26 Apr 2024 15:26:20 +0200
+
+Set executable bit for configuration scripts distributed
+in configless mode
+------------------------------------------------------------------------
+1092c0392 | Norbert Eicker | Wed, 3 Apr 2024 20:29:04 +0200
+
+Fix AE vs BE typo in enum member name
+------------------------------------------------------------------------
+3f5165e1c | Norbert Eicker | Wed, 3 Apr 2024 20:27:15 +0200
+
+Fix AE vs BE typos in docu comments
+------------------------------------------------------------------------
+3e2348e61 | Michael Rauh | Wed, 3 Apr 2024 13:19:42 +0200
+
+Adopt sbcast RPC for Slurm 23.11 protocol
+------------------------------------------------------------------------
+547eea880 | Michael Rauh | Thu, 28 Mar 2024 16:55:03 +0100
+
+Adopt to new I/O key tranfer in protocol 23.11
+
+ - warning: this breaks sattach for Slurm 23.11 versions
+   smaller 23.11.5
+ - see vanilla Slurm bug 18744
+------------------------------------------------------------------------
+0f87731bd | Michael Rauh | Tue, 23 Jan 2024 10:10:29 +0100
+
+Add support for Slurm 23.11 protocol
+------------------------------------------------------------------------
+be13126fe | Norbert Eicker | Fri, 26 Apr 2024 03:19:18 +0200
+
+Simplify environment propagation
+------------------------------------------------------------------------
+22bbe2e59 | Norbert Eicker | Fri, 26 Apr 2024 03:13:12 +0200
+
+Bugfix: Ensure behavior of setPSIEnv() remains
+------------------------------------------------------------------------
+a58e2d773 | Norbert Eicker | Fri, 26 Apr 2024 02:36:14 +0200
+
+Ensure that psenv_t is NULL terminated in any case
+------------------------------------------------------------------------
+164fb0632 | Norbert Eicker | Tue, 9 Apr 2024 20:36:47 +0200
+
+Add functional test for env_t
+------------------------------------------------------------------------
+85ed41686 | Norbert Eicker | Tue, 9 Apr 2024 18:37:46 +0200
+
+Rename putPSIEnv() to addPSIEnv() similar to env_t
+------------------------------------------------------------------------
+4d728b703 | Norbert Eicker | Tue, 9 Apr 2024 18:35:48 +0200
+
+Streamlining
+------------------------------------------------------------------------
+f4fa53724 | Norbert Eicker | Tue, 9 Apr 2024 18:32:48 +0200
+
+Introduce a new envPut() according to (#189)
+------------------------------------------------------------------------
+dbf86414b | Norbert Eicker | Tue, 9 Apr 2024 17:43:20 +0200
+
+Rework envPut() and rename it to envAdd() (#189)
+------------------------------------------------------------------------
+f7d7fce28 | Norbert Eicker | Tue, 9 Apr 2024 17:21:51 +0200
+
+Rework envSet()
+------------------------------------------------------------------------
+6bd471804 | Norbert Eicker | Tue, 9 Apr 2024 17:16:09 +0200
+
+Make ownership takeover in envDoSet()->doSet() flexible
+------------------------------------------------------------------------
+8f07de8ea | Norbert Eicker | Tue, 9 Apr 2024 17:06:00 +0200
+
+Allow getIndex()'s name to have trailing content
+------------------------------------------------------------------------
+135f0145f | Norbert Eicker | Wed, 17 Apr 2024 19:31:06 +0200
+
+Protect shredding of data from optimizations
+------------------------------------------------------------------------
+99cd89b3e | Norbert Eicker | Wed, 17 Apr 2024 19:25:30 +0200
+
+Add check for explicit_bzero() to configure
+------------------------------------------------------------------------
+3638f5c04 | Norbert Eicker | Mon, 25 Mar 2024 23:23:22 +0100
+
+Avoid more unnecessary checks
+------------------------------------------------------------------------
+9b04cebee | Norbert Eicker | Thu, 15 Feb 2024 15:36:44 +0100
+
+Rename logger_init() to logger_new()
+------------------------------------------------------------------------
+b1979a461 | Norbert Eicker | Thu, 15 Feb 2024 15:06:33 +0100
+
+Enhance docu comment
+------------------------------------------------------------------------
+8b71244e4 | Norbert Eicker | Thu, 15 Feb 2024 15:05:53 +0100
+
+Streamline docu comment
+------------------------------------------------------------------------
+0a49bd035 | Norbert Eicker | Thu, 15 Feb 2024 15:01:40 +0100
+
+Make logger_t opaque
+------------------------------------------------------------------------
+b5b0ded1d | Norbert Eicker | Thu, 15 Feb 2024 12:52:27 +0100
+
+Introduce logger_isValid()
+------------------------------------------------------------------------
+e47035780 | Norbert Eicker | Thu, 15 Feb 2024 12:32:13 +0100
+
+Remove actually unused FILE variable
+------------------------------------------------------------------------
+efe43c92a | Norbert Eicker | Thu, 15 Feb 2024 12:10:31 +0100
+
+Avoid unnecessary initialization of global variables
+------------------------------------------------------------------------
+10571584e | Norbert Eicker | Thu, 15 Feb 2024 11:32:48 +0100
+
+Use logger_getMask() where applicable
+
+ - Do not access logger_t->mask directly
+------------------------------------------------------------------------
+39fed35d0 | Norbert Eicker | Thu, 15 Feb 2024 11:23:49 +0100
+
+Introduce finalizeLogger() or similar for various plugins
+------------------------------------------------------------------------
+d50fc1d90 | Norbert Eicker | Thu, 15 Feb 2024 11:13:40 +0100
+
+Avoid unecessary checks
+------------------------------------------------------------------------
+1f3e9d4d1 | Norbert Eicker | Fri, 19 Apr 2024 15:33:17 +0200
+
+Merge branch '5.1.60'
+------------------------------------------------------------------------
+53c7116e0 | Norbert Eicker | Mon, 8 Apr 2024 18:45:33 +0200
+
+Introduce envEvict() to filter certain variables
+
+ - This removes the need to have envUnsetIndex() public
+------------------------------------------------------------------------
+c1debbd47 | Norbert Eicker | Mon, 8 Apr 2024 12:08:26 +0200
+
+Hide execTaskEpilogue()
+------------------------------------------------------------------------
+f5fdcaeba | Norbert Eicker | Mon, 8 Apr 2024 12:07:09 +0200
+
+Streamlining
+------------------------------------------------------------------------
+a430ea2fd | Norbert Eicker | Fri, 5 Apr 2024 17:22:44 +0200
+
+Unify environment loops
+------------------------------------------------------------------------
+ab85359a4 | Norbert Eicker | Tue, 2 Apr 2024 22:28:30 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+8903574b7 | Norbert Eicker | Tue, 2 Apr 2024 22:22:25 +0200
+
+Adapt dumpPSIEnv()'s prototype to its actual usage
+------------------------------------------------------------------------
+e62f3760c | Norbert Eicker | Tue, 2 Apr 2024 22:11:55 +0200
+
+Utilize env_t in implementation of psienv
+------------------------------------------------------------------------
+8dfc2b266 | Norbert Eicker | Tue, 2 Apr 2024 21:51:54 +0200
+
+Remove unused overwrite argument from setPSIEnv()
+------------------------------------------------------------------------
+221960fc1 | Norbert Eicker | Tue, 2 Apr 2024 21:26:12 +0200
+
+Fix several typos in docu comments
+------------------------------------------------------------------------
+0c97cb7bb | Norbert Eicker | Tue, 2 Apr 2024 18:30:54 +0200
+
+Omit the obsolete packPSIEnv() that was never used
+------------------------------------------------------------------------
+c7f465c77 | Norbert Eicker | Tue, 2 Apr 2024 18:30:25 +0200
+
+Omit the now unused appendStrV()
+------------------------------------------------------------------------
+2de4f932d | Norbert Eicker | Tue, 2 Apr 2024 18:28:14 +0200
+
+Change environment in PStask_t to env_t
+------------------------------------------------------------------------
+09fdb311a | Norbert Eicker | Wed, 27 Mar 2024 16:07:28 +0100
+
+Get rid of creating/handling PSP_CD_SPAWNREQ functionality
+
+ - This type of message is sent since years only from the local
+   psidforwarder to its local psid for PMI_Spawn() and PMIxSpawn()
+ - Since they moved to PSP_CD_SPAWNREQUEST this type is orphaned
+ - Support is kept in psmom for decoumentation reasons
+ - In fact due to lacking support of PSP_CD_SPAWNREQUEST is useless
+   since years
+------------------------------------------------------------------------
+a5d6915a7 | Norbert Eicker | Wed, 27 Mar 2024 13:47:09 +0100
+
+Remove PSI_sendSpawnMsg() and all its helpers
+------------------------------------------------------------------------
+f08b7064b | Norbert Eicker | Wed, 27 Mar 2024 12:53:47 +0100
+
+Utilize PSI_sendSpawnReq() in pspmi
+
+ - This requires the serialization layer to be setup and finalized
+------------------------------------------------------------------------
+028eb71d7 | Norbert Eicker | Wed, 27 Mar 2024 12:47:30 +0100
+
+Utilize PSI_sendSpawnReq() in pspmix
+------------------------------------------------------------------------
+f6f94df51 | Norbert Eicker | Wed, 27 Mar 2024 12:42:11 +0100
+
+Make [PSI_]sendSpawnReq() public
+------------------------------------------------------------------------
+7926d8769 | Norbert Eicker | Tue, 2 Apr 2024 15:38:52 +0200
+
+Update buildsystem to container versions
+
+ - Switch to setup provided in Infrastructure/Containers/autotools
+------------------------------------------------------------------------
+
+
 Version 5.1.60-2:
 =================
 ------------------------------------------------------------------------

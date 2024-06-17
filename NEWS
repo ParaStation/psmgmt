@@ -6,6 +6,52 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.61:
+===============
+Bugfixes:
+ - Ensure SLURMD_TRES_BIND and SLURMD_TRES_FREQ get set (#201)
+ - Do not exit psiadmin if handleRCfile() fails (#215)
+ - Cleanup pspmix's temporary directories (#143)
+ - Fix potential memory leak in strvAdd() (#208)
+ - Fix psslurm's marking thread usage in partition
+ - Ensure /etc/pam.d/psid is not installed witout PAM
+ - Ensure cleanup if starting re-spawn's spawner fails (#199)
+ - Actually shred BCast credential and username
+ - Ensure psaccount plugin can be safely unloaded during psid's runtime
+ - Fix -Wcalloc-transposed-args of gcc 14
+Enhancements:
+ - Add support for Slurm 23.11 protocol
+ - Introduce full support of PMIx_Spawn()
+ - psslurmgetbind: syntax checking for -B|--extra-node-info and add --version
+ - Ranks of service tasks fetched from logger where required (#192)
+ - Rework psslurm's pinning user messages
+ - Warn if configless is enabled in slurm.conf but not in psslurm
+ - Ensure hetjob handling does not depend on Slurm's backward compatibility
+ - Add plugin config list to pelogue plugin, replacing static sized array
+ - Detect explicit_bzero() in configure and protect shredding from optimizations
+ - Align log format of hetsteps to vanilla Slurm
+ - Do not send TERM_CLIENTS to empty recipients list in pspmix
+Additional changes:
+ - Make [PSI_]sendSpawnReq() public and use it in pspmi[x]
+ - Remove PSI_sendSpawnMsg() and all its helpers (e.g. handling PSP_CD_SPAWNREQ)
+ - Introduce PSI_finReservation() and PSP_CD_FINRESERVATION
+ - Introduce PSIDHOOK_JOBCOMPLETE and PSIDHOOK_FILL_RESFINALIZED
+   => bump plugin API to 142
+ - Add PSP_DD_RESFINALIZED and PSP_DD_JOBCOMPLETE
+   => push PSDaemonProtocolVersion to 417
+ - Rename __PSSLURM_SPAWN_RANK environment to __PSSLURM_STEP_RANK
+ - Utilize env_t in implementation of psienv and introduce mergePSIEnv()
+ - Rename putPSIEnv() to addPSIEnv() similar to env_t
+ - Rework envPut() and rename it to envAdd(); add a new envPut() (#189)
+ - Split envCat() into envMerge() and envAppend()
+ - Introduce envEvict() to filter certain variables
+ - Change environment in PStask_t to env_t
+ - Evict obsolete injectedEnv member from PStask_t
+ - Update buildsystem to container versions
+ - Make logger_t opaque
+ - Load pspmix handles in psslurm and bump plugin version to 118
+
+
 Version 5.1.60-2:
 =================
 Bugfixes:
