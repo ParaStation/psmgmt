@@ -1007,6 +1007,12 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
 	    strvAdd(argV, "-d");
 	    strvAdd(argV, cwd);
 
+	    char *pset = envGet(step->env, "SLURM_SPANK_PSET_0");
+	    if (pset) {
+		strvAdd(argV, "--pset");
+		strvAdd(argV, pset);
+	    }
+
 	    /* executable and arguments */
 	    for (uint32_t i = 0; i < step->argc; i++) {
 		strvAdd(argV, step->argv[i]);
@@ -1015,6 +1021,7 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
 	    /* executables from job pack */
 	    list_t *c;
 	    bool first = true;
+	    size_t c_id = 0;
 	    list_for_each(c, &step->jobCompInfos) {
 		JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
 
@@ -1034,10 +1041,20 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
 		snprintf(buf, sizeof(buf), "%u", tpp);
 		strvAdd(argV, buf);
 
+		char key[32];
+		sprintf(key, "SLURM_SPANK_PSET_%i", c_id);
+		char *pset = envGet(step->env, key);
+		if (pset) {
+		    strvAdd(argV, "--pset");
+		    strvAdd(argV, pset);
+		}
+
 		/* executable and arguments */
 		for (uint32_t j = 0; j < cur->argc; j++) {
 		    strvAdd(argV, cur->argv[j]);
 		}
+
+		c_id++;
 	    }
 	}
     }
