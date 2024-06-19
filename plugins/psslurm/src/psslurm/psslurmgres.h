@@ -254,4 +254,18 @@ typedef bool GResDevVisitor_t(GRes_Dev_t *dev, uint32_t id, void *info);
  */
 bool traverseGResDevs(uint32_t id, GResDevVisitor_t visitor, void *info);
 
+/**
+ * @brief Convert GRes credential type to string
+ *
+ * For certain type the returned pointer leads to a static character array
+ * that contains the type. Subsequent calls to @ref GRes_strType() will
+ * change the content of this array. Therefore the result might be unexpected
+ * if more than one call is made.
+ *
+ * @param type The numeric type to convert
+ *
+ * @return Returns the given GRes type as string
+ */
+const char *GRes_strType(GRes_Cred_type_t type);
+
 #endif /* __PS_SLURM_GRES */

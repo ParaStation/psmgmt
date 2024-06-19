@@ -351,3 +351,17 @@ uint32_t GRes_countDevices(uint32_t pluginID)
 
     return numDev;
 }
+
+const char *GRes_strType(GRes_Cred_type_t type)
+{
+    switch (type) {
+	case GRES_CRED_STEP:
+	    return "STEP";
+	case GRES_CRED_JOB:
+	    return "JOB";
+	default:
+	    ;static char buf[128];
+	    snprintf(buf, sizeof(buf), "unknown(%i)", type);
+	    return buf;
+    }
+}

@@ -464,7 +464,8 @@ static void setJailDevEnv(list_t *gresList, uint32_t localNodeId)
     list_for_each(g, gresList) {
 	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
 
-	fdbg(PSSLURM_LOG_JAIL, "test bitAlloc of gres %i\n", gres->id);
+	fdbg(PSSLURM_LOG_JAIL, "test bitAlloc of gres %i type %s\n", gres->id,
+	     GRes_strType(gres->credType));
 
 	PSCPU_set_t set;
 	PSCPU_clrAll(set);

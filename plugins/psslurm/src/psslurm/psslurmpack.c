@@ -392,10 +392,11 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
 
     fdbg(PSSLURM_LOG_GRES, "index %i pluginID %u cpusPerGres %u"
 	 " gresPerStep %lu gresPerNode %lu gresPerSocket %lu gresPerTask %lu"
-	 " memPerGres %lu totalGres %lu nodeInUse %s\n", index, gres->id,
-	 gres->cpusPerGRes, gres->gresPerStep, gres->gresPerNode,
-	 gres->gresPerSocket, gres->gresPerTask, gres->memPerGRes,
-	 gres->totalGres, gres->nodeInUse);
+	 " memPerGres %lu totalGres %lu nodeInUse %s flags %x nodeCount: %u\n",
+	 index, gres->id, gres->cpusPerGRes, gres->gresPerStep,
+	 gres->gresPerNode, gres->gresPerSocket, gres->gresPerTask,
+	 gres->memPerGRes, gres->totalGres, gres->nodeInUse, gres->flags,
+	 gres->nodeCount);
 
     /* additional node allocation */
     uint8_t more;
@@ -404,7 +405,7 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
 	uint64_t *nodeAlloc;
 	uint32_t gresNodeAllocCount;
 	getUint64Array(data, &nodeAlloc, &gresNodeAllocCount);
-	if (logger_getMask(psslurmlogger) & PSSLURM_LOG_GRES) {
+	if (mset(PSSLURM_LOG_GRES)) {
 	    flog("gres node alloc: ");
 	    for (uint32_t i = 0; i < gresNodeAllocCount; i++) {
 		if (i) mlog(",");
@@ -435,7 +436,18 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
 		gres->perBitAlloc = umalloc(sizeof(*gres->perBitAlloc) *
 					    gres->nodeCount);
 	    }
-	    getUint64Array(data, &gres->perBitAlloc[i], NULL);
+
+	    uint32_t gresBitAllocCnt;
+	    getUint64Array(data, &gres->perBitAlloc[i], &gresBitAllocCnt);
+
+	    if (mset(PSSLURM_LOG_GRES)) {
+		flog("gres per bit alloc: ");
+		for (uint32_t j=0; j<gresBitAllocCnt; j++) {
+		    if (j) mlog(",");
+		    mlog("N%u:%zu", j, gres->perBitAlloc[i][j]);
+		}
+		mlog("\n");
+	    }
 	}
     }
 
@@ -500,7 +512,7 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
 	uint64_t *nodeAlloc;
 	uint32_t gresNodeAllocCount;
 	getUint64Array(data, &nodeAlloc, &gresNodeAllocCount);
-	if (logger_getMask(psslurmlogger) & PSSLURM_LOG_GRES) {
+	if (mset(PSSLURM_LOG_GRES)) {
 	    flog("gres node alloc: ");
 	    for (uint32_t i=0; i<gresNodeAllocCount; i++) {
 		if (i) mlog(",");
@@ -513,10 +525,11 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
 
     fdbg(PSSLURM_LOG_GRES, "index %i pluginID %u cpusPerGres %u "
 	 "gresPerJob %lu gresPerNode %lu gresPerSocket %lu gresPerTask %lu "
-	 "memPerGres %lu totalGres %lu type %s nodeCount %u\n", index,
-	 gres->id, gres->cpusPerGRes, gres->gresPerJob, gres->gresPerNode,
-	 gres->gresPerSocket, gres->gresPerTask, gres->memPerGRes,
-	 gres->totalGres, gres->typeModel, gres->nodeCount);
+	 "memPerGres %lu totalGres %lu type %s nodeCount %u "
+	 "numTasksPerGres %u flags %x\n", index, gres->id, gres->cpusPerGRes,
+	 gres->gresPerJob, gres->gresPerNode, gres->gresPerSocket,
+	 gres->gresPerTask, gres->memPerGRes, gres->totalGres, gres->typeModel,
+	 gres->nodeCount, gres->numTasksPerGres, gres->flags);
 
     /* bit allocation (GRes allocation per node) */
     getUint8(data, &more);
@@ -538,7 +551,17 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
 		gres->perBitAlloc = umalloc(sizeof(*gres->perBitAlloc) *
 					    gres->nodeCount);
 	    }
-	    getUint64Array(data, &gres->perBitAlloc[i], NULL);
+
+	    uint32_t gresBitAllocCnt;
+	    getUint64Array(data, &gres->perBitAlloc[i], &gresBitAllocCnt);
+	    if (mset(PSSLURM_LOG_GRES)) {
+		flog("gres per bit alloc: ");
+		for (uint32_t j=0; j<gresBitAllocCnt; j++) {
+		    if (j) mlog(",");
+		    mlog("N%u:%zu", j, gres->perBitAlloc[i][j]);
+		}
+		mlog("\n");
+	    }
 	}
     }
 
@@ -573,7 +596,17 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
 		gres->stepPerBitAlloc = umalloc(sizeof(*gres->stepPerBitAlloc) *
 					    gres->nodeCount);
 	    }
-	    getUint64Array(data, &gres->stepPerBitAlloc[i], NULL);
+
+	    uint32_t stepPerBitCnt;
+	    getUint64Array(data, &gres->stepPerBitAlloc[i], &stepPerBitCnt);
+	    if (mset(PSSLURM_LOG_GRES)) {
+		flog("gres per bit alloc: ");
+		for (uint32_t j=0; j<stepPerBitCnt; j++) {
+		    if (j) mlog(",");
+		    mlog("N%u:%zu", j, gres->stepPerBitAlloc[i][j]);
+		}
+		mlog("\n");
+	    }
 	}
     }
 
