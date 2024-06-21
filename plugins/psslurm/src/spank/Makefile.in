@@ -178,6 +178,9 @@ perfparanoidspank_la_OBJECTS = $(am_perfparanoidspank_la_OBJECTS)
 perftoolspank_la_LIBADD =
 am_perftoolspank_la_OBJECTS = perftoolspank_la-perftoolspank.lo
 perftoolspank_la_OBJECTS = $(am_perftoolspank_la_OBJECTS)
+psetspank_la_LIBADD =
+am_psetspank_la_OBJECTS = psetspank_la-psetspank.lo
+psetspank_la_OBJECTS = $(am_psetspank_la_OBJECTS)
 showglobresspank_la_LIBADD =
 am_showglobresspank_la_OBJECTS =  \
 	showglobresspank_la-showglobresspank.lo
@@ -213,6 +216,7 @@ am__depfiles_remade = ./$(DEPDIR)/cudaspank_la-cudaspank.Plo \
 	./$(DEPDIR)/noturbospank_la-noturbospank.Plo \
 	./$(DEPDIR)/perfparanoidspank_la-perfparanoidspank.Plo \
 	./$(DEPDIR)/perftoolspank_la-perftoolspank.Plo \
+	./$(DEPDIR)/psetspank_la-psetspank.Plo \
 	./$(DEPDIR)/showglobresspank_la-showglobresspank.Plo \
 	./$(DEPDIR)/spank_api_la-spank_api.Plo \
 	./$(DEPDIR)/visspank_la-visspank.Plo \
@@ -239,15 +243,15 @@ am__v_CCLD_1 =
 SOURCES = $(cudaspank_la_SOURCES) $(energyreport_la_SOURCES) \
 	$(globresspank_la_SOURCES) $(nopshcspank_la_SOURCES) \
 	$(noturbospank_la_SOURCES) $(perfparanoidspank_la_SOURCES) \
-	$(perftoolspank_la_SOURCES) $(showglobresspank_la_SOURCES) \
-	$(spank_api_la_SOURCES) $(visspank_la_SOURCES) \
-	$(x11spank_la_SOURCES)
+	$(perftoolspank_la_SOURCES) $(psetspank_la_SOURCES) \
+	$(showglobresspank_la_SOURCES) $(spank_api_la_SOURCES) \
+	$(visspank_la_SOURCES) $(x11spank_la_SOURCES)
 DIST_SOURCES = $(cudaspank_la_SOURCES) $(energyreport_la_SOURCES) \
 	$(globresspank_la_SOURCES) $(nopshcspank_la_SOURCES) \
 	$(noturbospank_la_SOURCES) $(perfparanoidspank_la_SOURCES) \
-	$(perftoolspank_la_SOURCES) $(showglobresspank_la_SOURCES) \
-	$(spank_api_la_SOURCES) $(visspank_la_SOURCES) \
-	$(x11spank_la_SOURCES)
+	$(perftoolspank_la_SOURCES) $(psetspank_la_SOURCES) \
+	$(showglobresspank_la_SOURCES) $(spank_api_la_SOURCES) \
+	$(visspank_la_SOURCES) $(x11spank_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -461,7 +465,7 @@ psslurm_dir := plugins/psslurm/src
 slurmlib_LTLIBRARIES = cudaspank.la energyreport.la globresspank.la \
 	nopshcspank.la noturbospank.la perfparanoidspank.la \
 	perftoolspank.la showglobresspank.la spank_api.la \
-	visspank.la x11spank.la
+	visspank.la x11spank.la psetspank.la
 
 spank_api_la_SOURCES = spank_api.c spank_api.h
 spank_api_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
@@ -485,6 +489,8 @@ visspank_la_SOURCES = visspank.c
 visspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 x11spank_la_SOURCES = x11spank.c
 x11spank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+psetspank_la_SOURCES = psetspank.c
+psetspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 all: all-am
 
 .SUFFIXES:
@@ -576,6 +582,9 @@ perfparanoidspank.la: $(perfparanoidspank_la_OBJECTS) $(perfparanoidspank_la_DEP
 perftoolspank.la: $(perftoolspank_la_OBJECTS) $(perftoolspank_la_DEPENDENCIES) $(EXTRA_perftoolspank_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(slurmlibdir) $(perftoolspank_la_OBJECTS) $(perftoolspank_la_LIBADD) $(LIBS)
 
+psetspank.la: $(psetspank_la_OBJECTS) $(psetspank_la_DEPENDENCIES) $(EXTRA_psetspank_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK) -rpath $(slurmlibdir) $(psetspank_la_OBJECTS) $(psetspank_la_LIBADD) $(LIBS)
+
 showglobresspank.la: $(showglobresspank_la_OBJECTS) $(showglobresspank_la_DEPENDENCIES) $(EXTRA_showglobresspank_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(slurmlibdir) $(showglobresspank_la_OBJECTS) $(showglobresspank_la_LIBADD) $(LIBS)
 
@@ -601,6 +610,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/noturbospank_la-noturbospank.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/perfparanoidspank_la-perfparanoidspank.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/perftoolspank_la-perftoolspank.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psetspank_la-psetspank.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/showglobresspank_la-showglobresspank.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spank_api_la-spank_api.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/visspank_la-visspank.Plo@am__quote@ # am--include-marker
@@ -684,6 +694,13 @@ perftoolspank_la-perftoolspank.lo: perftoolspank.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='perftoolspank.c' object='perftoolspank_la-perftoolspank.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(perftoolspank_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o perftoolspank_la-perftoolspank.lo `test -f 'perftoolspank.c' || echo '$(srcdir)/'`perftoolspank.c
+
+psetspank_la-psetspank.lo: psetspank.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psetspank_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psetspank_la-psetspank.lo -MD -MP -MF $(DEPDIR)/psetspank_la-psetspank.Tpo -c -o psetspank_la-psetspank.lo `test -f 'psetspank.c' || echo '$(srcdir)/'`psetspank.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psetspank_la-psetspank.Tpo $(DEPDIR)/psetspank_la-psetspank.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psetspank.c' object='psetspank_la-psetspank.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psetspank_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psetspank_la-psetspank.lo `test -f 'psetspank.c' || echo '$(srcdir)/'`psetspank.c
 
 showglobresspank_la-showglobresspank.lo: showglobresspank.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(showglobresspank_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT showglobresspank_la-showglobresspank.lo -MD -MP -MF $(DEPDIR)/showglobresspank_la-showglobresspank.Tpo -c -o showglobresspank_la-showglobresspank.lo `test -f 'showglobresspank.c' || echo '$(srcdir)/'`showglobresspank.c
@@ -853,6 +870,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/noturbospank_la-noturbospank.Plo
 	-rm -f ./$(DEPDIR)/perfparanoidspank_la-perfparanoidspank.Plo
 	-rm -f ./$(DEPDIR)/perftoolspank_la-perftoolspank.Plo
+	-rm -f ./$(DEPDIR)/psetspank_la-psetspank.Plo
 	-rm -f ./$(DEPDIR)/showglobresspank_la-showglobresspank.Plo
 	-rm -f ./$(DEPDIR)/spank_api_la-spank_api.Plo
 	-rm -f ./$(DEPDIR)/visspank_la-visspank.Plo
@@ -909,6 +927,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/noturbospank_la-noturbospank.Plo
 	-rm -f ./$(DEPDIR)/perfparanoidspank_la-perfparanoidspank.Plo
 	-rm -f ./$(DEPDIR)/perftoolspank_la-perftoolspank.Plo
+	-rm -f ./$(DEPDIR)/psetspank_la-psetspank.Plo
 	-rm -f ./$(DEPDIR)/showglobresspank_la-showglobresspank.Plo
 	-rm -f ./$(DEPDIR)/spank_api_la-spank_api.Plo
 	-rm -f ./$(DEPDIR)/visspank_la-visspank.Plo

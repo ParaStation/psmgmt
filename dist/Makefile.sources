@@ -723,6 +723,7 @@ plugins/psslurm/src/spank/nopshcspank.c \
 plugins/psslurm/src/spank/noturbospank.c \
 plugins/psslurm/src/spank/perfparanoidspank.c \
 plugins/psslurm/src/spank/perftoolspank.c \
+plugins/psslurm/src/spank/psetspank.c \
 plugins/psslurm/src/spank/showglobresspank.c \
 plugins/psslurm/src/spank/spank_api.c \
 plugins/psslurm/src/spank/spank_api.h \

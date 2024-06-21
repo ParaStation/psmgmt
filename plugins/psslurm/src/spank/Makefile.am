@@ -21,7 +21,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon		\
 slurmlib_LTLIBRARIES = cudaspank.la energyreport.la globresspank.la \
 	nopshcspank.la noturbospank.la perfparanoidspank.la \
 	perftoolspank.la showglobresspank.la spank_api.la \
-	visspank.la x11spank.la
+	visspank.la x11spank.la psetspank.la
 
 spank_api_la_SOURCES = spank_api.c spank_api.h
 
@@ -66,3 +66,7 @@ visspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 x11spank_la_SOURCES = x11spank.c
 
 x11spank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+
+psetspank_la_SOURCES = psetspank.c
+
+psetspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
