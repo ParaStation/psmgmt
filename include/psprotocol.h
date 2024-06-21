@@ -24,7 +24,7 @@
 #include "pstaskid.h"
 
 /** Unique version number of the high-level protocol */
-#define PSProtocolVersion 344
+#define PSProtocolVersion 345
 
 /** The location of the UNIX socket used to contact the daemon */
 #define PSmasterSocketName "\0parastation.sock"

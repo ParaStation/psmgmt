@@ -210,7 +210,11 @@ int PSI_sendSpawnReq(PStask_t *task, PSnodes_ID_t *dstnodes, uint32_t max)
 	    dstnodes[0], task->rank);
 
     addUint32ToMsg(num, &msg);
-    if (!PStask_addToMsg(task, &msg)) return -1; // @todo look at dest protoVer
+    if (PSI_protocolVersion(dstnodes[0]) < 345) {
+	if (!PStask_addToMsg_old(task, &msg)) return -1;
+    } else {
+	if (!PStask_addToMsg(task, &msg)) return -1;
+    }
     if (!addStringArrayToMsg(strvGetArray(task->argV), &msg)) return -1;
     if (!addStringArrayToMsg(envGetArray(task->env), &msg)) return -1;
 

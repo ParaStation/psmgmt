@@ -2168,8 +2168,11 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     PStask_t *task = PStask_new();
 
-    // @todo look at src protoVer
-    rData->unpackPtr += PStask_decodeTask(rData->unpackPtr, task, false);
+    if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) < 345) {
+	rData->unpackPtr += PStask_decodeTask_old(rData->unpackPtr, task, false);
+    } else {
+	rData->unpackPtr += PStask_decodeTask(rData->unpackPtr, task, false);
+    }
     task->spawnertid = msg->header.sender;
     task->workingdir = getStringM(rData);
     char **argvP = NULL;
@@ -2336,7 +2339,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	/* fetch info from message */
 	getUint32(&data, &num);
 	PStask_t *task = PStask_new();
-	// @todo look at src protoVer but most probably only old is valid here
+	/* messages from local senders always conform to newest protocol */
 	data.unpackPtr += PStask_decodeTask(data.unpackPtr, task, false);
 
 	/* reset psserial's byteorder */
