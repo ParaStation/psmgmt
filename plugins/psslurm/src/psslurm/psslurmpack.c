@@ -352,8 +352,19 @@ bool __unpackMungeCred(Slurm_Msg_t *sMsg, Slurm_Auth_t *auth,
     return true;
 }
 
-static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
-				   uint16_t msgVer)
+/**
+ * @brief Unpack part of a step credential
+ *
+ * @param data The message to unpack the data from
+ *
+ * @param index identifier of the current part
+ *
+ * @param msgVer Slurm protocol version of message to unpack
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+static Gres_Cred_t *unpackGresStepPart(PS_DataBuffer_t *data, uint16_t index,
+				       uint16_t msgVer)
 {
     Gres_Cred_t *gres = getGresCred();
     gres->credType = GRES_CRED_STEP;
@@ -460,8 +471,60 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
     return gres;
 }
 
-static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
-				  uint16_t msgVer)
+/**
+ * @brief Unpack GRes step credential
+ *
+ * @param data The message to unpack the data from
+ *
+ * @param gresList A list to receive the unpacked data
+ *
+ * @param cred Associated job credential
+ *
+ * @param msgVer Slurm protocol version of message to unpack
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+static bool unpackGresStep(PS_DataBuffer_t *data, list_t *gresList,
+			   JobCred_t *cred, uint16_t msgVer)
+{
+    /* extract gres step data */
+    uint16_t count;
+    getUint16(data, &count);
+
+    Step_t s = { .jobid = cred->jobid, .stepid = cred->stepid };
+    fdbg(PSSLURM_LOG_GRES, "%s uid %u gres step count %u\n", Step_strID(&s),
+	 cred->uid, count);
+
+    for (uint16_t i = 0; i < count; i++) {
+	Gres_Cred_t *gres = unpackGresStepPart(data, i, msgVer);
+	if (!gres) {
+	    flog("unpacking gres step data %u failed\n", i);
+	    return false;
+	}
+	list_add_tail(&gres->next, gresList);
+    }
+
+    if (data->unpackErr) {
+	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Unpack part of a job credential
+ *
+ * @param data The message to unpack the data from
+ *
+ * @param index identifier of the current part
+ *
+ * @param msgVer Slurm protocol version of message to unpack
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+static Gres_Cred_t *unpackGresJobPart(PS_DataBuffer_t *data, uint16_t index,
+				      uint16_t msgVer)
 {
     Gres_Cred_t *gres = getGresCred();
     gres->credType = GRES_CRED_JOB;
@@ -619,35 +682,33 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
     return gres;
 }
 
-static bool unpackGres(PS_DataBuffer_t *data, list_t *gresList, JobCred_t *cred,
-		       uint16_t msgVer)
+/**
+ * @brief Unpack GRes job credential
+ *
+ * @param data The message to unpack the data from
+ *
+ * @param gresList A list to receive the unpacked data
+ *
+ * @param cred Associated job credential
+ *
+ * @param msgVer Slurm protocol version of message to unpack
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+static bool unpackGresJob(PS_DataBuffer_t *data, list_t *gresList,
+			  JobCred_t *cred, uint16_t msgVer)
 {
     /* extract gres job data */
     uint16_t count;
     getUint16(data, &count);
+
     fdbg(PSSLURM_LOG_GRES, "job data: id %u:%u uid %u gres job count %u\n",
 	 cred->jobid, cred->stepid, cred->uid, count);
 
     for (uint16_t i = 0; i < count; i++) {
-	Gres_Cred_t *gres = unpackGresJob(data, i, msgVer);
+	Gres_Cred_t *gres = unpackGresJobPart(data, i, msgVer);
 	if (!gres) {
 	    flog("unpacking gres job data %u failed\n", i);
-	    return false;
-	}
-	list_add_tail(&gres->next, gresList);
-    }
-
-    /* extract gres step data */
-    getUint16(data, &count);
-
-    Step_t s = { .jobid = cred->jobid, .stepid = cred->stepid };
-    fdbg(PSSLURM_LOG_GRES, "%s uid %u gres step count %u\n", Step_strID(&s),
-	 cred->uid, count);
-
-    for (uint16_t i = 0; i < count; i++) {
-	Gres_Cred_t *gres = unpackGresStep(data, i, msgVer);
-	if (!gres) {
-	    flog("unpacking gres step data %u failed\n", i);
 	    return false;
 	}
 	list_add_tail(&gres->next, gresList);
@@ -713,9 +774,15 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 	goto ERROR;
     }
 
-    /* GRes job/step allocations */
-    if (!unpackGres(data, gresList, cred, msgVer)) {
-	flog("unpacking gres data failed\n");
+    /* GRes job allocations */
+    if (!unpackGresJob(data, gresList, cred, msgVer)) {
+	flog("unpacking GRes job data failed\n");
+	goto ERROR;
+    }
+
+    /* GRes step allocations */
+    if (!unpackGresStep(data, gresList, cred, msgVer)) {
+	flog("unpacking GRes step data failed\n");
 	goto ERROR;
     }
 
