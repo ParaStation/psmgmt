@@ -977,6 +977,22 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
     if (step->taskFlags & LAUNCH_MULTI_PROG) {
 	setupArgsFromMultiProg(step, fwData, argV);
     } else {
+	char *cwd = step->cwd;
+	if (getConfValueI(Config, "CWD_PATTERN") == 1) {
+	    cwd = IO_replaceStepSymbols(step, 0, step->cwd);
+	}
+	char *pwd = envGet(step->env, "PWD");
+	if (pwd) {
+	    char *rpath = realpath(pwd, NULL);
+	    if (rpath && !strcmp(rpath, cwd)) {
+		/* use pwd over cwd if realpath is identical */
+		cwd = pwd;
+	    }
+	    free(rpath);
+	}
+	strvAdd(argV, "--gwdir");
+	strvAdd(argV, cwd);
+
 	if (step->packStepCount == 1) {
 	    /* number of processes */
 	    strvAdd(argV, "-np");
@@ -989,22 +1005,6 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
 	    strvAdd(argV, "-tpp");
 	    snprintf(buf, sizeof(buf), "%u", step->tpp);
 	    strvAdd(argV, buf);
-
-	    char *cwd = step->cwd;
-	    if (getConfValueI(Config, "CWD_PATTERN") == 1) {
-		cwd = IO_replaceStepSymbols(step, 0, step->cwd);
-	    }
-	    char *pwd = envGet(step->env, "PWD");
-	    if (pwd) {
-		char *rpath = realpath(pwd, NULL);
-		if (rpath && !strcmp(rpath, cwd)) {
-		    /* use pwd over cwd if realpath is identical */
-		    cwd = pwd;
-		}
-		free(rpath);
-	    }
-	    strvAdd(argV, "-d");
-	    strvAdd(argV, cwd);
 
 	    char *pset = envGet(step->env, "SLURM_SPANK_PSET_0");
 	    if (pset) {
