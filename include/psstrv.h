@@ -185,6 +185,23 @@ bool strvReplace(strv_t strv, uint32_t idx, const char *str);
 char *strvGet(const strv_t strv, uint32_t idx);
 
 /**
+ * @brief Append string vector
+ *
+ * Append the strings of string vector @a src to the string vector @a
+ * dst. The strings added to @a dst will be copies of the strings
+ * contained in @a src, i.e. @a src will remain untouched.
+ *
+ * @param dst String vector to extend
+ *
+ * @param src String vector to append to @a dst
+ *
+ * @return If @a src was successfully appended, true is returned; or
+ * false in case of error. In the latter case @a dst might be modified
+ * upon return and contain parts of @a src.
+ */
+bool strvAppend(strv_t dst, strv_t src);
+
+/**
  * @brief Access string vector's string array
  *
  * Get a handle on a string array representing the string vector @a
@@ -219,11 +236,16 @@ char **strvGetArray(strv_t strv);
  * vector itself and the containing strings is invalidated and
  * free()ed.
  *
- * @param strv The string vector to be destroy
+ * @param strv String vector to destroy
+ *
+ * @param shred If true overwrite memory with zeros before free
  *
  * @return No return value
  */
-void strvDestroy(strv_t strv);
+void __strvDestroy(strv_t strv, bool shred);
+
+#define strvDestroy(strv) __strvDestroy(strv, false);
+#define strvShred(strv) __strvDestroy(strv, true);
 
 /**
  * @brief Steal string vector's strings

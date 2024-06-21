@@ -164,6 +164,25 @@ char *strvGet(const strv_t strv, uint32_t idx)
     return idx >= strvSize(strv) ? NULL : strv->strings[idx];
 }
 
+bool strvAppend(strv_t dst, strv_t src)
+{
+    if (!strvInitialized(dst)) return false;
+    if (!strvInitialized(src)) return true;
+
+    uint32_t count = dst->cnt + src->cnt + 1;
+    if (count > dst->size) {
+	char **tmp = realloc(dst->strings, count * sizeof(*tmp));
+	if (!tmp) return false;
+	dst->size = count;
+	dst->strings = tmp;
+    }
+
+    for (uint32_t i = 0; i < src->cnt; i++) {
+	if (!strvAdd(dst, src->strings[i])) return false;
+    }
+    return true;
+}
+
 char **strvGetArray(strv_t strv)
 {
     return strvInitialized(strv) ? strv->strings : NULL;
@@ -187,9 +206,18 @@ char **strvStealArray(strv_t strv)
     return stringsArray;
 }
 
-void strvDestroy(strv_t strv)
+void __strvDestroy(strv_t strv, bool shred)
 {
     if (!strvInitialized(strv)) return;
-    for (char **s = strv->strings; s && *s; s++) free(*s);
+    for (char **s = strv->strings; s && *s; s++) {
+	if (shred && *s) {
+#ifdef HAVE_EXPLICIT_BZERO
+	    explicit_bzero(*s, strlen(*s));
+#else
+	    memset(*s, 0, strlen(*s));
+#endif
+	}
+	free(*s);
+    }
     strvSteal(strv);
 }
