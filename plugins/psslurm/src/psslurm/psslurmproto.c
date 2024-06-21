@@ -347,7 +347,7 @@ static void printLaunchTasksInfos(Step_t *step)
 
 static bool extractStepPackInfos(Step_t *step)
 {
-    fdbg(PSSLURM_LOG_PACK, "packNodeOffset %u  packJobid %u packNtasks %u "
+    fdbg(PSSLURM_LOG_PACK, "packNodeOffset %u packJobid %u packNtasks %u "
 	 "packOffset %u packTaskOffset %u packHostlist '%s' packNrOfNodes %u\n",
 	 step->packNodeOffset, step->packJobid, step->packNtasks,
 	 step->packOffset, step->packTaskOffset, step->packHostlist,
@@ -618,7 +618,7 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* determine my role in the step */
-    if (step->packJobid != NO_VAL) {
+    if (step->packStepCount > 1) {
 	/* step with pack */
 	if (step->packNodes[0] == PSC_getMyID()) step->leader = true;
     } else {
@@ -679,7 +679,7 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	/* non pack jobs can be started right away.
 	 * However for pack jobs the pack leader has to wait for
 	 * the pack follower to send hw threads */
-	if (step->packJobid == NO_VAL) {
+	if (step->packStepCount == 1) {
 	    if (!execStepLeader(step)) return ESLURMD_FORK_FAILED;
 	} else {
 	    /* Check for cached hw threads */
@@ -697,7 +697,7 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	}
     }
 
-    if (step->packJobid != NO_VAL && step->nodes[0] == PSC_getMyID()) {
+    if (step->packStepCount > 1 && step->nodes[0] == PSC_getMyID()) {
 	/* forward hw thread infos to pack leader */
 	/* if this is the pack leader execStepLeader() might be called
 	 * in the handler */

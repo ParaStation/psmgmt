@@ -412,7 +412,7 @@ static int handleGetReservation(void *res)
     /* find correct slots array calculated by pinning */
     uint32_t nSlots;
     PSpart_slot_t *slots;
-    if (step->packJobid == NO_VAL) {
+    if (step->packStepCount == 1) {
 	/* only for MULTI_PROG steps we expect to get multiple reservation
 	 * requests since an mpiexec call with colons was generated for it */
 	if (!(step->taskFlags & LAUNCH_MULTI_PROG) && (r->nMin != step->np)) {
@@ -2605,7 +2605,7 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
     }
 
     /* pack jobid */
-    addUint32ToMsg(step->packJobid, &data);
+    addUint32ToMsg(step->packJobid != NO_VAL ? step->packJobid : step->jobid, &data);
     /* stepid */
     addUint32ToMsg(step->stepid, &data);
     /* exit status */
@@ -2663,7 +2663,7 @@ int send_PS_PackInfo(Step_t *step)
     setFragDest(&data, PSC_getTID(step->packNodes[0], 0));
 
     /* pack jobid */
-    addUint32ToMsg(step->packJobid, &data);
+    addUint32ToMsg(step->packJobid != NO_VAL ? step->packJobid : step->jobid, &data);
     /* stepid */
     addUint32ToMsg(step->stepid, &data);
     /* add packJobid again to stay compatible with older versions, tbr */

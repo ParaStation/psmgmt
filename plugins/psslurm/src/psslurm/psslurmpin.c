@@ -2113,7 +2113,7 @@ bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
     *numThreads = 0;
     *threads = NULL;
 
-    if (step->packJobid == NO_VAL) {
+    if (step->packStepCount == 1) {
 	return addThreadsToArray(threads, numThreads, step->slots, step->np);
     }
 

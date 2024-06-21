@@ -316,10 +316,9 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	sendStepExit(step, eStatus);
 
 	/* forward exit status to pack follower */
-	if (step->packJobid != NO_VAL && step->packNrOfNodes > 1) {
-	    if (send_PS_PackExit(step, eStatus) == -1) {
-		flog("sending pack exit for %s failed\n", Step_strID(step));
-	    }
+	if (step->packStepCount > 1 && step->packNrOfNodes > 1
+	    && send_PS_PackExit(step, eStatus) == -1) {
+	    flog("sending pack exit for %s failed\n", Step_strID(step));
 	}
     }
 
@@ -978,7 +977,7 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
     if (step->taskFlags & LAUNCH_MULTI_PROG) {
 	setupArgsFromMultiProg(step, fwData, argV);
     } else {
-	if (step->packJobid == NO_VAL) {
+	if (step->packStepCount == 1) {
 	    /* number of processes */
 	    strvAdd(argV, "-np");
 	    snprintf(buf, sizeof(buf), "%u", step->np);
