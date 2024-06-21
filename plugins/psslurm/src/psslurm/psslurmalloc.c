@@ -130,7 +130,8 @@ Alloc_t *Alloc_findByPackID(uint32_t packID)
     list_t *a;
     list_for_each(a, &AllocList) {
 	Alloc_t *alloc = list_entry(a, Alloc_t, next);
-	if (alloc->packID == packID) return alloc;
+	if (alloc->packID == packID
+	    || (alloc->packID == NO_VAL && alloc->id == packID)) return alloc;
     }
     return NULL;
 }
