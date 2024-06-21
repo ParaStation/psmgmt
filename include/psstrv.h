@@ -80,7 +80,14 @@ strv_t strvNew(char **strArray);
 strv_t strvConstruct(char **strArray);
 
 /**
- * @brief @doctodo
+ * @brief Clone string vector
+ *
+ * Clone the string vector @a strv into a new string vector context.
+ *
+ * @param strv String vector to clone
+ *
+ * @return If the string vector was successfully cloned, the handle to
+ * the cloned string vectory is returned; or NULL in case of error
  */
 strv_t strvClone(const strv_t strv);
 
@@ -146,12 +153,34 @@ bool strvAdd(strv_t strv, const char *str);
 bool strvLink(strv_t strv, char *str);
 
 /**
- * @brief @doctodo
+ * @brief Replace string in string vector
+ *
+ * Replace the string at index @a idx in the string vector @a strv by
+ * the replacement string @a str. Memory occupied at index @a idx in
+ * the string vector @a strv will be released.
+ *
+ * @param strv String vector to be modified
+ *
+ * @param idx Index to be replaced
+ *
+ * @param str Replacement to be inserted
+ *
+ * @return If the string was successfully replaced, true is returned;
+ * or false in case of error
  */
 bool strvReplace(strv_t strv, uint32_t idx, const char *str);
 
 /**
- * @brief @doctodo
+ * @brief Get string at index
+ *
+ * Get the string at index @a idx in the string vector @a strv.
+ *
+ * @param strv String vector to be looked up
+ *
+ * @param idx Index to be replaced
+ *
+ * @return If a string is available at index @a idx, this string is
+ * returned; or NULL otherwise
  */
 char *strvGet(const strv_t strv, uint32_t idx);
 
