@@ -39,8 +39,7 @@ typedef struct {
 
 typedef struct {
     list_t next;
-    char **argv;		    /**< program arguments */
-    uint32_t argc;		    /**< number of arguments */
+    strv_t argV;		    /**< program arguments */
     uint32_t np;		    /**< number of processes */
     uint16_t tpp;                   /**< threads per process */
     PSpart_slot_t *slots;           /**< CPUs to use (length is np) */

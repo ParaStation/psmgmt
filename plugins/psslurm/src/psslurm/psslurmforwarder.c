@@ -1048,9 +1048,7 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
 		}
 
 		/* executable and arguments */
-		for (uint32_t j = 0; j < cur->argc; j++) {
-		    strvAdd(argV, cur->argv[j]);
-		}
+		strvAppend(argV, cur->argV);
 
 		c_id++;
 	    }

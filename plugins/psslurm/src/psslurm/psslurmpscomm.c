@@ -1274,16 +1274,17 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* tpp */
     getUint16(data, &jobcomp->tpp);
     /* argc/argv */
-    getStringArrayM(data, &jobcomp->argv, &jobcomp->argc);
+    char **argvP = NULL;
+    getStringArrayM(data, &argvP, NULL);
+    jobcomp->argV = strvNew(argvP);
 
     /* debug print what we have right now, slots are printed
      *  inside the loop in getSlotsFromMsg() */
     step->rcvdPackInfos++;
-    fdbg(PSSLURM_LOG_PACK, "from %s for %s: pack info %u (now %u/%u"
-	    " pack procs): np %u tpp %hu argc %d slots:\n",
-	    PSC_printTID(msg->header.sender), Step_strID(step),
-	    step->rcvdPackInfos, step->rcvdPackProcs, step->packNtasks,
-	    jobcomp->np, jobcomp->tpp, jobcomp->argc);
+    fdbg(PSSLURM_LOG_PACK, "from %s for %s: pack info %u (now %u/%u pack procs):"
+	 " np %u tpp %hu argc %d slots:\n", PSC_printTID(msg->header.sender),
+	 Step_strID(step), step->rcvdPackInfos, step->rcvdPackProcs,
+	 step->packNtasks, jobcomp->np, jobcomp->tpp, strvSize(jobcomp->argV));
 
     /* slots */
     if (!getSlotsFromMsg(data, &jobcomp->slots, &len)) {

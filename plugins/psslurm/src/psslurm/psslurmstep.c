@@ -276,8 +276,7 @@ void JobComp_delete(JobCompInfo_t *jobComp)
 {
     if (!jobComp) return;
 
-    for (uint32_t i = 0; i < jobComp->argc; i++) ufree(jobComp->argv[i]);
-    ufree(jobComp->argv);
+    strvShred(jobComp->argV);
     ufree(jobComp->slots);
     ufree(jobComp);
 }
