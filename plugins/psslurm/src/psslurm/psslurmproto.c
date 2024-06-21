@@ -628,7 +628,7 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     flog("%s user '%s' np %u nodes '%s' N %u tpp %u pack's step count %u"
 	 " leader %i exe '%s' packJobid %u hetComp %u\n", Step_strID(step),
 	 step->username, step->np, step->slurmHosts, step->nrOfNodes, step->tpp,
-	 step->packStepCount, step->leader, step->argv[0],
+	 step->packStepCount, step->leader, strvGet(step->argV, 0),
 	 step->packJobid == NO_VAL ? 0 : step->packJobid,
 	 step->stepHetComp == NO_VAL ? 0 : step->stepHetComp);
 
@@ -868,7 +868,7 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg)
 
     /* executable names */
     for (uint32_t i = 0; i < numTasks; i++) {
-	addStringToMsg(step->argv[0], reply);
+	addStringToMsg(strvGet(step->argV, 0), reply);
     }
 
     sendSlurmReply(sMsg, RESPONSE_REATTACH_TASKS);

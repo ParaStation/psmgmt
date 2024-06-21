@@ -355,8 +355,7 @@ bool Step_delete(Step_t *step)
     ufree(step->packTIDsOffset);
     ufree(step->packTaskCounts);
 
-    for (uint32_t i = 0; i < step->argc; i++) strShred(step->argv[i]);
-    ufree(step->argv);
+    strvShred(step->argV);
 
     list_t *c, *tmp;
     list_for_each_safe(c, tmp, &step->jobCompInfos) {

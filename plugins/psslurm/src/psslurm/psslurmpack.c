@@ -1691,7 +1691,9 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     getUint16(data, &step->memBindType);
     step->memBind = getStringM(data);
     /* arguments */
-    getStringArrayM(data, &step->argv, &step->argc);
+    char **argvP = NULL;
+    getStringArrayM(data, &argvP, NULL);
+    step->argV = strvNew(argvP);
     /* task flags */
     getUint32(data, &step->taskFlags);
     /* I/O options */

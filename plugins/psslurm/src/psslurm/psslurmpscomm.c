@@ -33,6 +33,7 @@
 #include "pspluginprotocol.h"
 #include "psreservation.h"
 #include "psserial.h"
+#include "psstrv.h"
 
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
@@ -2673,12 +2674,12 @@ int send_PS_PackInfo(Step_t *step)
     /* tpp */
     addUint16ToMsg(step->tpp, &data);
     /* argv */
-    addStringArrayToMsg(step->argv, &data);
+    addStringArrayToMsg(strvGetArray(step->argV), &data);
     /* slots */
     addSlotsToMsg(step->slots, step->np, &data);
 
     fdbg(PSSLURM_LOG_PACK, "%s offset %i argc %u np %u tpp %hu to leader %s\n",
-	    Step_strID(step), step->packNodeOffset, step->argc, step->np,
+	 Step_strID(step), step->packNodeOffset, strvSize(step->argV), step->np,
 	    step->tpp, PSC_printTID(PSC_getTID(step->packNodes[0], 0)));
 
     /* send msg to pack group leader */

@@ -1014,9 +1014,7 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
 	    }
 
 	    /* executable and arguments */
-	    for (uint32_t i = 0; i < step->argc; i++) {
-		strvAdd(argV, step->argv[i]);
-	    }
+	    strvAppend(argV, step->argV);
 	} else {
 	    /* executables from job pack */
 	    list_t *c;
