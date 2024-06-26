@@ -30,6 +30,7 @@
 #include "psslurmjobcred.h"
 #include "psslurmmsg.h"
 #include "psslurmnodeinfotype.h"
+#include "psslurmprototypes.h"
 
 typedef struct {
     uint32_t jobid;         /**< unique job identifier */
@@ -530,15 +531,19 @@ char *Step_getActiveList(void);
 int Step_killFWbyJobid(uint32_t jobid);
 
 /**
- * @brief Get a list of all known steps on the local node
+ * @brief Add all known steps on the local node to status
  *
- * @param infoCount The number of jobids/stepids
+ * Add information on all known steps on the local node to the node
+ * registration status @a stat. This might modify the allocation of
+ * its member arrays @ref jobids, @ref stepids and @ref stepHetComp
+ * and fill according content. Furthermore, @ref jobInfoCount might be
+ * updated.
  *
- * @param jobids The jobids of all known steps
+ * @param stat Node registration status to be updated
  *
- * @param stepids The stepids of all known steps
+ * @return No return value
  */
-void Step_getInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
+void Step_getInfos(Resp_Node_Reg_Status_t *stat);
 
 /**
  * @brief Get jobid and stepid as string

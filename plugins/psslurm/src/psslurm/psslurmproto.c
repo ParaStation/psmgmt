@@ -2984,13 +2984,9 @@ void sendNodeRegStatus(bool startup)
 	 stat.cpus, stat.boards, stat.sockets, stat.coresPerSocket,
 	 stat.threadsPerCore, stat.realMem, stat.tmpDisk);
 
-    /* job id infos (count, array (jobid/stepid) */
-    Job_getInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
-    Step_getInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
-    stat.stepHetComp = umalloc(sizeof(*stat.stepHetComp) * stat.jobInfoCount);
-    for (uint32_t i = 0; i < stat.jobInfoCount; i++) {
-	stat.stepHetComp[i] = NO_VAL;
-    }
+    /* job and step infos (count, array (jobid/stepid/stepHetComp) */
+    Job_getInfos(&stat);
+    Step_getInfos(&stat);
 
     /* protocol version */
     stat.protoVersion = version;

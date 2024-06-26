@@ -307,23 +307,25 @@ int Job_count(void)
     return count;
 }
 
-void Job_getInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
+void Job_getInfos(Resp_Node_Reg_Status_t *stat)
 {
-    list_t *j, *tmp;
-    uint32_t max = Job_count() + *infoCount;
+    uint32_t max = Job_count() + stat->jobInfoCount;
 
-    *jobids = urealloc(*jobids, sizeof(uint32_t) * max);
-    *stepids = urealloc(*stepids, sizeof(uint32_t) * max);
+    stat->jobids = urealloc(stat->jobids, sizeof(*stat->jobids) * max);
+    stat->stepids = urealloc(stat->stepids, sizeof(*stat->stepids) * max);
+    stat->stepHetComp = urealloc(stat->stepHetComp,
+				 sizeof(*stat->stepHetComp) * max);
 
-    list_for_each_safe(j, tmp, &JobList) {
+    list_t *j;
+    list_for_each(j, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	if (*infoCount == max) break;
+	if (stat->jobInfoCount == max) break;
 	/* report all known jobs, even in state complete/exit */
-	(*jobids)[*infoCount] = job->jobid;
-	(*stepids)[*infoCount] = SLURM_BATCH_SCRIPT;
-	(*infoCount)++;
-	mdbg(PSSLURM_LOG_DEBUG, "%s: add job %u\n", __func__,
-	     job->jobid);
+	stat->jobids[stat->jobInfoCount] = job->jobid;
+	stat->stepids[stat->jobInfoCount] = SLURM_BATCH_SCRIPT;
+	stat->stepHetComp[stat->jobInfoCount] = NO_VAL;
+	stat->jobInfoCount++;
+	fdbg(PSSLURM_LOG_DEBUG, "add job %u\n", job->jobid);
     }
 }
 

@@ -23,6 +23,7 @@
 #include "pluginforwarder.h"
 #include "psaccounttypes.h"
 #include "psslurmcontainertype.h"
+#include "psslurmprototypes.h"
 
 #include "psslurmjobcred.h"
 
@@ -203,15 +204,22 @@ char *Job_strState(JobState_t state);
 int Job_count(void);
 
 /**
- * @brief Get a list of all known job on the local node
+ * @brief Add all known jobs on the local node to status
  *
- * @param infoCount The number of jobids/stepids
+ * Add information on all known jobs on the local node to the node
+ * registration status @a stat. This might modify the allocation of
+ * its member arrays @ref jobids, @ref stepids and @ref stepHetComp
+ * and fill the according content. The filled content is for @ref
+ * stepids fixed to SLURM_BATCH_SCRIPT and for @ref stepHetComp to
+ * NO_VAL for all jobs.
  *
- * @param jobids The jobids of all known jobs
+ * Furthermore, @ref jobInfoCount might be updated.
  *
- * @param stepids Always set to SLURM_BATCH_SCRIPT
+ * @param stat Node registration status to be updated
+ *
+ * @return No return value
  */
-void Job_getInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
+void Job_getInfos(Resp_Node_Reg_Status_t *stat);
 
 /**
  * @brief Send a signal to a jobscript
