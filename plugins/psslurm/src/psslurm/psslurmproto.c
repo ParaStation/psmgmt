@@ -1792,23 +1792,23 @@ static int handleForwardData(Slurm_Msg_t *sMsg)
     return ESLURM_NOT_SUPPORTED;
 }
 
-static void sendJobKill(uint32_t jobid, uint32_t stepid, uint16_t signal)
+static void sendJobKill(Req_Info_t *req, uint16_t signal)
 {
     Req_Job_Kill_t kill = {
-	.jobid = jobid,
-	.stepid = stepid,
-	.stepHetComp = NO_VAL,
+	.jobid = req->jobid,
+	.stepid = req->stepid,
+	.stepHetComp = req->stepHetComp,
 	.signal = signal,
 	.flags = 0,
 	.sibling = NULL
     };
 
     /* send request to slurmctld */
-    Req_Info_t *req = ucalloc(sizeof(*req));
-    req->type = REQUEST_KILL_JOB;
-    req->jobid = jobid;
+    Req_Info_t *reqInfo = ucalloc(sizeof(*reqInfo));
+    reqInfo->type = REQUEST_KILL_JOB;
+    reqInfo->jobid = req->jobid;
 
-    sendSlurmctldReq(req, &kill);
+    sendSlurmctldReq(reqInfo, &kill);
 }
 
 static int handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
@@ -1820,7 +1820,7 @@ static int handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
 
     if (rc == ESLURM_DISABLED || rc == ESLURM_BATCH_ONLY) {
 	flog("cancel job %u\n", req->jobid);
-	sendJobKill(req->jobid, req->stepid, SIGKILL);
+	sendJobKill(req, SIGKILL);
     } else if (rc != SLURM_SUCCESS) {
 	flog("error: response %s rc %s sock %i for request %s jobid %u\n",
 	     msgType2String(sMsg->head.type), slurmRC2String(rc), sMsg->sock,
