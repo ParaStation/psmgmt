@@ -3185,7 +3185,7 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     /* job/stepid */
     msg.jobid = step->jobid;
     msg.stepid = step->stepid;
-    msg.stepHetComp = NO_VAL;
+    msg.stepHetComp = step->stepHetComp;
 
     PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
     packMsgTaskExit(&body, &msg);
