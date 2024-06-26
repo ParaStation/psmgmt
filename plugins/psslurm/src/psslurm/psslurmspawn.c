@@ -160,7 +160,7 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 	}
 	strvLink(argV, envArg);
 
-	for (int a = 0; a < spawn->argc; a++) strvAdd(argV, spawn->argv[a]);
+	strvAppend(argV, spawn->argV);
 
 	nTasks += spawn->np;
     }

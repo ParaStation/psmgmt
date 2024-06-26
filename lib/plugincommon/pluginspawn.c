@@ -42,16 +42,11 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req)
 	SingleSpawn_t *new = &(ret->spawns[i]);
 
 	new->np = old->np;
-
-	if (old->argv) {
-	    new->argc = old->argc;
-	    new->argv = umalloc((new->argc + 1) * sizeof(*new->argv));
-	    for (int j = 0; j < old->argc; j++) {
-		new->argv[j] = ustrdup(old->argv[j]);
-	    }
-	    new->argv[new->argc] = NULL;
+	new->argV = strvClone(old->argV);
+	if (!strvInitialized(new->argV) && strvInitialized(old->argV)) {
+	    freeSpawnRequest(ret);
+	    return NULL;
 	}
-
 	new->env = envClone(old->env, NULL);
 	if (!envInitialized(new->env) && envInitialized(old->env)) {
 	    freeSpawnRequest(ret);
@@ -85,12 +80,7 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req)
 void freeSpawnRequest(SpawnRequest_t *req)
 {
     for (int i = 0; i < req->num; i++) {
-	if (req->spawns[i].argv) {
-	    for (int j = 0; j < req->spawns[i].argc; j++) {
-		ufree(req->spawns[i].argv[j]);
-	    }
-	    ufree(req->spawns[i].argv);
-	}
+	strvDestroy(req->spawns[i].argV);
 	envDestroy(req->spawns[i].env);
 	if (req->spawns[i].preputv) {
 	    for (int j = 0; j < req->spawns[i].preputc; j++) {

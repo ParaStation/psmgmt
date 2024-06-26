@@ -15,6 +15,7 @@
 #include <stdbool.h>
 
 #include "psenv.h"
+#include "psstrv.h"
 #include "pstask.h"
 
 /** Simple key-value pair */
@@ -26,8 +27,7 @@ typedef struct {
 /** Structure holding all information on a single spawn */
 typedef struct {
     int np;         /**< number of processes */
-    int argc;       /**< number of arguments */
-    char **argv;    /**< array of arguments */
+    strv_t argV;    /**< argument vector to spawn */
     env_t env;      /**< environment variables (only PMIx) */
     int preputc;    /**< number of preput values (only PMI) */
     KVP_t *preputv; /**< array of preput key-value-pairs (only PMI) */

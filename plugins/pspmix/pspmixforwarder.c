@@ -265,7 +265,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	}
 
 	/* add binary and argument from spawn request */
-	for (int a = 0; a < spawn->argc; a++) strvAdd(args, spawn->argv[a]);
+	strvAppend(args, spawn->argV);
     }
 
     task->argV = args;
@@ -910,24 +910,23 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     for (size_t a = 0; a < napps; a++) {
 	SingleSpawn_t *spawn = req->spawns + a;
 
-	size_t len;
-
-	uint32_t alen;
-	getStringArrayM(data, &spawn->argv, &alen);
-	spawn->argc = alen;
+	char **argvP = NULL;
+	getStringArrayM(data, &argvP, NULL);
+	spawn->argV = strvNew(argvP);
 
 	/* read and fill np (maxprocs) */
 	getInt32(data, &spawn->np);
 
 	/* read and fill environment */
 	char **env;
-	getStringArrayM(data, &env, &alen);
+	getStringArrayM(data, &env, NULL);
 	spawn->env = envNew(env);
 
 	/* get and fill additional info */
 	vector_t infos;
 	vectorInit(&infos, 3, 3, KVP_t);
 
+	size_t len;
 	KVP_t entry;
 	char *wdir = getStringML(data, &len);
 	if (len) {

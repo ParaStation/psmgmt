@@ -1482,53 +1482,50 @@ void setKVSProviderSock(int fd)
  *
  * @param msg Buffer containing the PMI spawn message
  *
- * @param argv String vector to add the extracted arguments to
- *
- * @return Returns true on success and false on error
+ * @return Return a string vector holding the extracted arguments on
+ * success or NULL on error
  */
-static bool getSpawnArgs(char *msg, strv_t args)
+static strv_t getSpawnArgs(char *msg)
 {
-    char *execname;
-    char numArgs[50];
-    int addArgs = 0;
-
-    /* setup argv */
-    if (!getpmiv("argcnt", msg, numArgs, sizeof(numArgs))) {
+    char numArgsStr[32];
+    if (!getpmiv("argcnt", msg, numArgsStr, sizeof(numArgsStr))) {
 	mlog("%s(r%i): missing argc argument\n", __func__, rank);
 	return false;
     }
 
-    addArgs = atoi(numArgs);
-    if (addArgs > PMI_SPAWN_MAX_ARGUMENTS) {
-	mlog("%s(r%i): too many arguments (%i)\n", __func__, rank, addArgs);
-	return false;
-    } else if (addArgs < 0) {
-	mlog("%s(r%i): invalid argument count (%i)\n", __func__, rank, addArgs);
-	return false;
+    int numArgs = atoi(numArgsStr);
+    if (numArgs > PMI_SPAWN_MAX_ARGUMENTS) {
+	mlog("%s(r%i): too many arguments (%i)\n", __func__, rank, numArgs);
+	return NULL;
+    } else if (numArgs < 0) {
+	mlog("%s(r%i): invalid argument count (%i)\n", __func__, rank, numArgs);
+	return NULL;
     }
 
     /* add the executable as argv[0] */
-    execname = getpmivm("execname", msg);
+    char *execname = getpmivm("execname", msg);
     if (!execname) {
 	mlog("%s(r%i): invalid executable name\n", __func__, rank);
-	return false;
+	return NULL;
     }
-    strvLink(args, execname);
+    strv_t argV = strvNew(NULL);
+    strvLink(argV, execname);
 
     /* add additional arguments */
-    for (int i = 1; i <= addArgs; i++) {
+    for (int i = 1; i <= numArgs; i++) {
 	char *nextval;
 	snprintf(buffer, sizeof(buffer), "arg%i", i);
 	nextval = getpmivm(buffer, msg);
 	if (nextval) {
-	    strvLink(args, nextval);
+	    strvLink(argV, nextval);
 	} else {
 	    mlog("%s(r%i): extracting arguments failed\n", __func__, rank);
-	    return false;
+	    strvDestroy(argV);
+	    return NULL;
 	}
     }
 
-    return true;
+    return argV;
 }
 
 /**
@@ -1618,13 +1615,8 @@ static bool parseSpawnReq(char *msg, SingleSpawn_t *spawn)
     ufree(tmpStr);
 
     /* setup argv for processes to spawn */
-    strv_t args = strvNew(NULL);
-    if (!getSpawnArgs(msg, args)) {
-	strvDestroy(args);
-	goto parse_error;
-    }
-    spawn->argc = strvSize(args);
-    spawn->argv = strvStealArray(args);
+    spawn->argV = getSpawnArgs(msg);
+    if (!spawn->argV) goto parse_error;
 
     /* extract preput keys and values */
     if (!getSpawnKVPs(msg, "preput", &spawn->preputc, &spawn->preputv)) {
@@ -2002,7 +1994,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	}
 
 	/* add binary and argument from spawn request */
-	for (int j = 0; j < spawn->argc; j++) strvAdd(args, spawn->argv[j]);
+	strvAppend(args, spawn->argV);
     }
     task->argV = args;
 
