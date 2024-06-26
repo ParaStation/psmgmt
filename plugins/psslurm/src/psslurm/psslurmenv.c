@@ -1170,7 +1170,14 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 	if (!strncmp(*e, "PMI_SUBVERSION=", 15)) continue;
 	if (!strncmp(*e, "PMI_VERSION=", 12)) continue;
 	if (!strncmp(*e, "PMI_BARRIER_ROUNDS=", 19)) continue;
-	if (!strncmp(*e, "PMIX_", 5) && strncmp(*e, "PMIX_MCA_", 9)) continue;
+	if (!strncmp(*e, "PMIX_JOB_SIZE=", 14)) continue;
+	if (!strncmp(*e, "PMIX_SPAWNID=", 13)) continue;
+	if (!strncmp(*e, "PMIX_APP_WDIR_", 14)) continue;
+	if (!strncmp(*e, "PMIX_APP_ARGV_", 14)) continue;
+	if (!strncmp(*e, "PMIX_APP_NAME_", 14)) continue;
+	if (!strncmp(*e, "PMIX_DEBUG=", 11)) continue;
+	if (!strncmp(*e, "PMIX_JOB_NUM_APPS=", 18)) continue;
+	if (!strncmp(*e, "PMIX_UNIV_SIZE=", 15)) continue;
 	if (!strncmp(*e, "PSPMIX_ENV_TMOUT=", 17)) continue;
 	if (!strncmp(*e, "PSP_SMP_NODE_ID=", 16)) continue;
 
@@ -1346,7 +1353,8 @@ static bool userVarFilter(const char *envStr, void *info)
 	    || !strncmp(envStr, "MEASURE_KVS_PROVIDER", 20))) return false;
 
     if (pmi_type == PMI_TYPE_PMIX && (
-	    !strncmp(envStr, "PMIX_", 5)
+	    !strncmp(envStr, "PMIX_JOB_SIZE=", 14)
+	    || !strncmp(envStr, "PMIX_SPAWNID=", 13)
 	    || !strncmp(envStr, "__SPAWNER_SERVICE_RANK=", 23)
 	    || !strncmp(envStr, "PSPMIX_ENV_TMOUT=", 17)
 	    || !strncmp(envStr, "__PMIX_", 7))) return false;
