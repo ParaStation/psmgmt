@@ -160,7 +160,13 @@ int main(int argc, const char *argv[])
     }
 
     /* setup MPIEXEC_UNIVERSE_SIZE if required */
-    envPtr = getenv("MPIEXEC_UNIVERSE_SIZE");
+    if (conf->cmdLineUSize > 0) {
+	static char val[32];
+	snprintf(val, sizeof(val), "%d", conf->cmdLineUSize);
+	envPtr = val;
+    } else {
+	envPtr = getenv("MPIEXEC_UNIVERSE_SIZE");
+    }
     setPSIEnv("MPIEXEC_UNIVERSE_SIZE", envPtr);
 
     /* determine working directory */
