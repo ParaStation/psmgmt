@@ -177,10 +177,10 @@ void declareMaster(PSnodes_ID_t newMaster);
  * MCast facility for status control this might happen during a short
  * startup phase of the cluster.
  *
- * @return If the master is still unknown, 0 is returned. After
- * determining the master is finished, 1 is returned.
+ * @return If the master is still unknown, false is returned; once a
+ * master is identified, true is returned
  */
-int knowMaster(void);
+bool knowMaster(void);
 
 /**
  * @brief Get master's ParaStation ID

@@ -442,9 +442,9 @@ void declareMaster(PSnodes_ID_t newMaster)
     if (newMaster == PSC_getMyID()) initPartHandler();
 }
 
-int knowMaster(void)
+bool knowMaster(void)
 {
-    return (timerID != -1);
+    return timerID != -1;
 }
 
 PSnodes_ID_t getMasterID(void)
