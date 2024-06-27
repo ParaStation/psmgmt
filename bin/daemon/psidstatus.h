@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -54,23 +54,21 @@ typedef struct {
 void initStatus(void);
 
 /**
- * @brief Set job info.
+ * @brief Set task count info
  *
- * Set the information on running jobs. If @a total is different from
- * 0, the absolute number of jobs is increased by one. The same holds
- * for @a normal and the number of normal jobs, i.e. jobs that are
- * intended for computation and not for administrational tasks.
+ * Set the information on running tasks. Each call will increase the
+ * number of (local) tasks by one. If the flag @a normal is true, also
+ * the number of normal tasks is increased. The latter are tasks that
+ * are intended for computation and not for administrative purposes.
  *
  * If MCast is used for status control, @ref incJobsMCast is
- * called. Otherwise an extra status ping is is triggered.
+ * called. Otherwise an extra status ping is triggered.
  *
- * @param total Flag if total count of jobs has to be increased.
- *
- * @param normal Flag if count of normal jobs has to be increased.
+ * @param normal Flag that count of normal tasks shall be increased, too
  *
  * @return No return value
  */
-void incJobs(int total, int normal);
+void incTaskCount(bool normal);
 
 /**
  * @brief Set job info.

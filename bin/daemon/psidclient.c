@@ -853,7 +853,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 
 	    /* Fix the info about the spawner task */
 	    decJobs(1, 1);
-	    incJobs(1, 0);
+	    incTaskCount(false);
 	}
     } else {
 	char tasktxt[128];
@@ -909,7 +909,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	PStasklist_enqueue(&managedTasks, task);
 
 	/* Tell everybody about the new task */
-	incJobs(1, (task->group==TG_ANY));
+	incTaskCount(task->group==TG_ANY);
 
 	/* Remove the old selector created while accept()ing connection */
 	Selector_remove(fd);

@@ -1565,7 +1565,7 @@ static int spawnTask(PStask_t *task)
 	PSIDclient_register(task->fd, task->tid, task);
 	PSIDclient_setEstablished(task->fd, NULL, NULL);
 	/* Tell everybody about the new forwarder task */
-	incJobs(1, 0);
+	incTaskCount(false);
     } else {
 	PSID_fdwarn(PSID_LOG_SPAWN, err, "buildSandboxAndStart()");
     }
@@ -2870,7 +2870,7 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
     /* Enqueue the task right in front of the forwarder */
     PStasklist_enqueueBefore(&managedTasks, child, forwarder);
     /* Tell everybody about the new task */
-    incJobs(1, (child->group==TG_ANY));
+    incTaskCount(child->group==TG_ANY);
 
     /* Spawned task will get signal if the forwarder dies unexpectedly. */
     PSID_setSignal(&forwarder->childList, child->tid, -1);
@@ -3157,7 +3157,7 @@ int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
 	PSIDclient_register(task->fd, task->tid, task);
 	PSIDclient_setEstablished(task->fd, msgHandler, task);
 	/* Tell everybody about the new forwarder task */
-	incJobs(1, 0);
+	incTaskCount(false);
     } else {
 	PSID_fwarn(err, "buildSandboxAndStart()");
     }
