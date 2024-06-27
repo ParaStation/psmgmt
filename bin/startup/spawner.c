@@ -963,6 +963,9 @@ int main(int argc, const char *argv[], char** envp)
     PSI_propEnvList("PSI_EXPORTS");
     if (conf->envall) PSI_propEnvList("__PSI_EXPORTS");
 
+    /* propagate MPIEXEC_UNIVERSE_SIZE if required */
+    setPSIEnv("MPIEXEC_UNIVERSE_SIZE", getenv("MPIEXEC_UNIVERSE_SIZE"));
+
     if (conf->verbose) printf("spawner %s started\n",
 			      PSC_printTID(PSC_getMyTID()));
 

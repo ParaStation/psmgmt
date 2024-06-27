@@ -159,6 +159,10 @@ int main(int argc, const char *argv[])
 	argv[0] = PKGLIBEXECDIR "/kvsprovider";
     }
 
+    /* setup MPIEXEC_UNIVERSE_SIZE if required */
+    envPtr = getenv("MPIEXEC_UNIVERSE_SIZE");
+    setPSIEnv("MPIEXEC_UNIVERSE_SIZE", envPtr);
+
     /* determine working directory */
     char *pwd = getcwd(tmp, sizeof(tmp));
     if (pwd) setPSIEnv("PWD", pwd);
