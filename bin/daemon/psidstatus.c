@@ -46,8 +46,8 @@
 #include "psidscripts.h"
 #include "psidhook.h"
 
-/** The jobs of the local node node */
-static PSID_Jobs_t myJobs = { .normal = 0, .total = 0 };
+/** Number of tasks on the local node */
+static PSID_Jobs_t localTasks = { .normal = 0, .total = 0 };
 
 /** Total number of nodes connected. Needed for keep-alive pings */
 static int totNodes = 0;
@@ -293,7 +293,7 @@ static void sendRDPPing(void)
 
     PSID_fdbg(PSID_LOG_STATUS, "to %d\n", getMasterID());
 
-    PSP_putMsgBuf(&msg, "myJobs", &myJobs, sizeof(myJobs));
+    PSP_putMsgBuf(&msg, "localTasks", &localTasks, sizeof(localTasks));
     PSP_putMsgBuf(&msg, "load", &load, sizeof(load));
     PSP_putMsgBuf(&msg, "mem", &mem, sizeof(mem));
     PSP_putMsgBuf(&msg, "totNodes", &totNodes, sizeof(totNodes));
@@ -337,8 +337,8 @@ void incTaskCount(bool normal)
 {
     PSID_fdbg(PSID_LOG_STATUS, "%s task\n", normal ? "normal" : "service");
 
-    myJobs.total++;
-    if (normal) myJobs.normal++;
+    localTasks.total++;
+    if (normal) localTasks.normal++;
 
     if (PSID_config->useMCast) incJobsMCast(PSC_getMyID(), 1, normal);
 }
@@ -347,8 +347,8 @@ void decTaskCount(bool normal)
 {
     PSID_fdbg(PSID_LOG_STATUS, "%s task\n", normal ? "normal" : "service");
 
-    myJobs.total--;
-    if (normal) myJobs.normal--;
+    localTasks.total--;
+    if (normal) localTasks.normal--;
 
     if (PSID_config->useMCast) decJobsMCast(PSC_getMyID(), 1, normal);
 }
@@ -377,7 +377,7 @@ PSID_NodeStatus_t getStatusInfo(PSnodes_ID_t node)
 	status.jobs.normal = info.jobs.normal;
     } else {
 	if (node == PSC_getMyID()) {
-	    status.jobs = myJobs;
+	    status.jobs = localTasks;
 	    status.load = getLoad();
 	} else if (PSC_getMyID() != getMasterID()
 		   || !PSC_validNode(node) || !clientStat) {
