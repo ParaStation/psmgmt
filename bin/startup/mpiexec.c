@@ -50,13 +50,6 @@ static void setupGlobalEnv(Conf_t *conf)
 	exit(EXIT_FAILURE);
     }
 
-    if (conf->PMIx) {
-	/* set the size of the job */
-	snprintf(tmp, sizeof(tmp), "%d", conf->np);
-	setPSIEnv("PMIX_JOB_SIZE", tmp);
-	setenv("PMIX_JOB_SIZE", tmp, 1);
-    }
-
     if (conf->pmiTCP || conf->pmiSock) {
 	/* set the size of the job */
 	snprintf(tmp, sizeof(tmp), "%d", conf->np);
@@ -83,6 +76,11 @@ static void setupGlobalEnv(Conf_t *conf)
 	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"));
 	setPSIEnv("MEASURE_KVS_PROVIDER", getenv("MEASURE_KVS_PROVIDER"));
     } else if (conf->PMIx) {
+	/* set the size of the job */
+	snprintf(tmp, sizeof(tmp), "%d", conf->np);
+	setPSIEnv("PMIX_JOB_SIZE", tmp);
+	setenv("PMIX_JOB_SIZE", tmp, 1);
+
 	setPSIEnv("PSPMIX_ENV_TMOUT", getenv("PSPMIX_ENV_TMOUT"));
     }
 

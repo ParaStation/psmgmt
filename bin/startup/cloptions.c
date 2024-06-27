@@ -1013,12 +1013,10 @@ static void checkConsistency(Conf_t *conf)
  */
 static void setupConf(Conf_t *conf)
 {
-    char *envStr;
-
     if (!conf) return;
 
     conf->verbose = verbose;
-    envStr = getenv("MPIEXEC_VERBOSE");
+    char *envStr = getenv("MPIEXEC_VERBOSE");
     if (envStr) conf->verbose = true;
 
     /* np already fixed */
