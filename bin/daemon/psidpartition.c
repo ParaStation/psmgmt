@@ -319,7 +319,7 @@ static void unregisterReq(PSpart_request_t *req)
 		 node, PSCPU_print(*CPUset));
 	nodeStat[node].assgndThrds -=  PSCPU_getCPUs(*CPUset, NULL, PSCPU_MAX);
 	freeCPUs(node, *CPUset);
-	decJobsHint(node);
+	decTaskCountHint(node);
 	if ((req->options & PART_OPT_EXCLUSIVE)
 	    && !nodeStat[node].assgndThrds) nodeStat[node].exclusive = false;
     }

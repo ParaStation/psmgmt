@@ -100,7 +100,7 @@ void decTaskCount(bool normal);
  *
  * @return No return value
  */
-void decJobsHint(PSnodes_ID_t node);
+void decTaskCountHint(PSnodes_ID_t node);
 
 /**
  * @brief Get node status info

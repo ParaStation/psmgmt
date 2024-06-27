@@ -353,7 +353,7 @@ void decTaskCount(bool normal)
     if (PSID_config->useMCast) decJobsMCast(PSC_getMyID(), 1, normal);
 }
 
-void decJobsHint(PSnodes_ID_t node)
+void decTaskCountHint(PSnodes_ID_t node)
 {
     PSID_fdbg(PSID_LOG_STATUS, "node %d\n", node);
 
