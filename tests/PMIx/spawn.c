@@ -336,6 +336,7 @@ int main(int argc, char **argv)
 	return 1;
     }
     print("PMIx_Finalize succeeded\n");
+    if (!spawned) sleep(1);
 
     fflush(stderr);
 
