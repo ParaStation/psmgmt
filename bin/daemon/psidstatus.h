@@ -20,14 +20,14 @@
 
 #include "psnodes.h"
 
-/** Structure used for returning info on number of jobs. */
+/** Structure keeping info on number of tasks */
 typedef struct {
-    short total;         /**< The total number of jobs */
-    short normal;        /**< Number of "normal" jobs (i.e. without
+    short total;         /**< The total number of tasks */
+    short normal;        /**< Number of "normal" tasks (i.e. without
 			    admin, logger etc.) */
 } PSID_Jobs_t;
 
-/** Structure used for returning info on load. */
+/** Structure keeping load info */
 typedef struct {
     double load[3];      /**< The actual load parameters */
 } PSID_Load_t;
@@ -37,10 +37,10 @@ typedef struct {
     uint64_t free;
 } PSID_Mem_t;
 
-/** Structure used for returning info on node status. */
+/** Structure holding info on node status */
 typedef struct {
     PSID_Load_t load;    /**< The load info of the node @see PSID_Load_t */
-    PSID_Jobs_t jobs;    /**< The job info of the node @see PSID_Jobs_t */
+    PSID_Jobs_t jobs;    /**< The task info of the node @see PSID_Jobs_t */
 } PSID_NodeStatus_t;
 
 /**
@@ -49,7 +49,7 @@ typedef struct {
  * Initialize the master-node detection and status framework. This
  * registers the necessary message handlers.
  *
- * @return No return value.
+ * @return No return value
  */
 void initStatus(void);
 
@@ -88,44 +88,44 @@ void incTaskCount(bool normal);
 void decTaskCount(bool normal);
 
 /**
- * @brief Give job info hint.
+ * @brief Give task count info hint
  *
  * Give a hint to the status handling system that the number of normal
- * jobs on node @a node will be decreased by one soon, i.e. most
+ * tasks on node @a node will be decreased by one soon, i.e. most
  * likely when the next PSP_DD_LOAD message will be received from this
  * node.
  *
- * @param node The node on which the number of normal jobs will be
- * decreased by one soon.
+ * @param node ID of the node on which the number of normal tasks will
+ * be decreased soon
  *
  * @return No return value
  */
 void decJobsHint(PSnodes_ID_t node);
 
 /**
- * @brief Get node status info.
+ * @brief Get node status info
  *
  * Get information on the status of node @a node. The actual
- * information returned contains number concerning the number of jobs
- * and the load on the requested node.
+ * information returned contains the number of tasks (total and
+ * normal) and the load on the requested node.
  *
  * This is mainly an abstraction layer in order to hide the actual
  * mechanism used for information distribution within
  * ParaStation. This might on the one hand be the MCast facility, on
- * the other hand a autonomous system based on RDP.
+ * the other hand a system based on RDP and Timers.
  *
- * @param node The node information is requested from.
+ * @param node ID of the node information is requested from
  *
  * @return On success, i.e. if the requested information is available,
  * this info is returned. Otherwise, some dummy information with a
- * negative jobs numbers is returned. The latter case might occur, if
- * MCast is not used and info on some remote node is requested on a
- * node which is not the master node.
+ * negative task numbers is returned. The latter case might occur, if
+ * MCast is not used and info concerning a remote node is requested on
+ * a node which is not the master node.
  */
 PSID_NodeStatus_t getStatusInfo(PSnodes_ID_t node);
 
 /**
- * @brief Get node memory info.
+ * @brief Get node memory info
  *
  * Get information on the memory status of node @a node. The actual
  * information returned contains the number of total available bytes
@@ -150,7 +150,7 @@ PSID_NodeStatus_t getStatusInfo(PSnodes_ID_t node);
 PSID_Mem_t getMemoryInfo(PSnodes_ID_t node);
 
 /**
- * @brief Declare master node.
+ * @brief Declare master node
  *
  * Declare the node @a newMaster to be the master of the cluster until
  * another node is declared to handle this task.
@@ -166,12 +166,12 @@ PSID_Mem_t getMemoryInfo(PSnodes_ID_t node);
  *
  * @param newMaster ParaStation ID of the new master to declare.
  *
- * @return No return value.
+ * @return No return value
  */
 void declareMaster(PSnodes_ID_t newMaster);
 
 /**
- * @brief Test if master is already known.
+ * @brief Test if master is already known
  *
  * Test if the master node is already known. In case of not using the
  * MCast facility for status control this might happen during a short
@@ -183,7 +183,7 @@ void declareMaster(PSnodes_ID_t newMaster);
 int knowMaster(void);
 
 /**
- * @brief Get master's ParaStation ID.
+ * @brief Get master's ParaStation ID
  *
  * Get the unique ParaStation ID of the node actually serving as the
  * master node. In case of usage of the MCast facility, the master's
@@ -204,18 +204,18 @@ int knowMaster(void);
 PSnodes_ID_t getMasterID(void);
 
 /**
- * @brief Release status timer.
+ * @brief Release status timer
  *
  * Release the timer used within the status control mechanism. This
  * should only be done, when status control is no longer needed,
  * i.e. just before exit.
  *
- * @return No return value.
+ * @return No return value
  */
 void releaseStatusTimer(void);
 
 /**
- * @brief Get status-timeout.
+ * @brief Get status-timeout
  *
  * Get the status-timeout in milli-seconds.
  *
@@ -223,12 +223,12 @@ void releaseStatusTimer(void);
  * keep-alive ping into the fabric. On the master node additionally
  * the arrival of all ping messages is tested.
  *
- * @return The current status-timeout in milli-seconds is returned.
+ * @return The current status-timeout in milli-seconds is returned
  */
 int getStatusTimeout(void);
 
 /**
- * @brief Set status-timeout.
+ * @brief Set status-timeout
  *
  * Set the status-timeout in milli-seconds to @a timeout.
  *
@@ -238,7 +238,7 @@ int getStatusTimeout(void);
  *
  * @param timeout The new timeout to be set in milli-seconds.
  *
- * @return No return value.
+ * @return No return value
  */
 void setStatusTimeout(int timeout);
 
@@ -268,7 +268,7 @@ int getDeadLimit(void);
  * untouched since only the value on the current master node takes any
  * effect.
  *
- * @return No return value.
+ * @return No return value
  */
 void setDeadLimit(int limit);
 
@@ -289,7 +289,7 @@ void setDeadLimit(int limit);
  * setStatusTimeout() function.
  *
  * @return The number of allowed status-broadcast per status-iteration
- * is returned.
+ * is returned
  *
  * @see setMaxStatBCast(), getStatusTimeout(), setStatusTimeout()
  */
@@ -319,14 +319,14 @@ int getMaxStatBCast(void);
  * @param limit The new limit on the status-broadcasts per
  * status-iteration.
  *
- * @return No return value.
+ * @return No return value
  *
  * @see getMaxStatBCast(), getStatusTimeout(), setStatusTimeout()
  */
 void setMaxStatBCast(int limit);
 
 /**
- * @brief Declare a node dead.
+ * @brief Declare a node dead
  *
  * Declare the node with ParaStation ID @a id to be dead. Therefore
  * various internal and external (e.g. within PSnodes or MCast)
@@ -353,7 +353,7 @@ void setMaxStatBCast(int limit);
 bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent);
 
 /**
- * @brief Declare a node alive.
+ * @brief Declare a node alive
  *
  * Declare the node with ParaStation ID @a id to be alive. Therefore
  * various internal and external (e.g. within PSnodes or MCast)
@@ -377,14 +377,14 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent);
  *
  * @param dmnProto Daemon protocol version the registered node supports
  *
- * @return If successful, true is returned. Or false if @id is out of
- * range.
+ * @return If successful, true is returned; or false if @id is out of
+ * range
  */
 bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds, int proto,
 		      int dmnProto);
 
 /**
- * @brief Send a PSP_DD_DAEMONCONNECT message.
+ * @brief Send a PSP_DD_DAEMONCONNECT message
  *
  * Send a initial PSP_DD_DAEMONCONNECT message to node @a id.
  *
@@ -397,7 +397,7 @@ bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds, int proto,
 int send_DAEMONCONNECT(PSnodes_ID_t id);
 
 /**
- * @brief Broadcast a PSP_DD_DAEMONSHUTDOWN message.
+ * @brief Broadcast a PSP_DD_DAEMONSHUTDOWN message
  *
  * Broadcast a PSP_DD_DAEMONSHUTDOWN message to all active nodes. This
  * message indicates that the sender will go down soon and no longer
@@ -412,7 +412,7 @@ int send_DAEMONCONNECT(PSnodes_ID_t id);
 int send_DAEMONSHUTDOWN(void);
 
 /**
- * @brief Send a PSP_DD_MASTER_IS message.
+ * @brief Send a PSP_DD_MASTER_IS message
  *
  * Send a PSP_DD_MASTER_IS message to node @a dest. This gives a hint
  * to the receiving node which node is the correct master.
