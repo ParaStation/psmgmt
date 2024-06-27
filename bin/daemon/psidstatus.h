@@ -25,7 +25,7 @@ typedef struct {
     short total;         /**< The total number of tasks */
     short normal;        /**< Number of "normal" tasks (i.e. without
 			    admin, logger etc.) */
-} PSID_Jobs_t;
+} PSID_TaskCount_t;
 
 /** Structure keeping load info */
 typedef struct {
@@ -39,8 +39,8 @@ typedef struct {
 
 /** Structure holding info on node status */
 typedef struct {
-    PSID_Load_t load;    /**< The load info of the node @see PSID_Load_t */
-    PSID_Jobs_t jobs;    /**< The task info of the node @see PSID_Jobs_t */
+    PSID_Load_t load;         /**< node's load info (@see PSID_Load_t) */
+    PSID_TaskCount_t tasks;   /**< node's task count (@see PSID_TaskCount_t) */
 } PSID_NodeStatus_t;
 
 /**

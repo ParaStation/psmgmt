@@ -329,12 +329,12 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		break;
 	    case PSP_INFO_LIST_ALLJOBS:
 		status = getStatusInfo(node);
-		((uint16_t *)msg.buf)[idx] = status.jobs.total;
+		((uint16_t *)msg.buf)[idx] = status.tasks.total;
 		size = sizeof(uint16_t);
 		break;
 	    case PSP_INFO_LIST_NORMJOBS:
 		status = getStatusInfo(node);
-		((uint16_t *)msg.buf)[idx] = status.jobs.normal;
+		((uint16_t *)msg.buf)[idx] = status.tasks.normal;
 		size = sizeof(uint16_t);
 		break;
 	    case PSP_INFO_LIST_ALLOCJOBS:

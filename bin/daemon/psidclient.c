@@ -946,7 +946,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 					  (PSIDnodes_guid_t) {.g=gid})) {
 	outmsg.type = PSP_CONN_ERR_GIDLIMIT;
     } else if (PSIDnodes_getProcs(PSC_getMyID()) != PSNODES_ANYPROC
-	       && status.jobs.normal > PSIDnodes_getProcs(PSC_getMyID())) {
+	       && status.tasks.normal > PSIDnodes_getProcs(PSC_getMyID())) {
 	outmsg.type = PSP_CONN_ERR_PROCLIMIT;
 	int32_t maxProcs = PSIDnodes_getProcs(PSC_getMyID());
 	PSP_putTypedMsgBuf(&outmsg, "maxProcs", &maxProcs, sizeof(maxProcs));
@@ -961,7 +961,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	PSID_fdbg(PSID_LOG_CLIENT, "connection refused: group %s task %s"
 		  " version %d vs. %d uid %d gid %d jobs %d %d\n",
 		  PStask_printGrp(msg->group), PSC_printTID(task->tid),
-		  msg->version, PSProtocolVersion, uid, gid, status.jobs.normal,
+		  msg->version, PSProtocolVersion, uid, gid, status.tasks.normal,
 		  PSIDnodes_getProcs(PSC_getMyID()));
 	sendMsg(&outmsg);
 

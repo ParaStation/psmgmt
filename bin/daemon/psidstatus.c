@@ -47,7 +47,7 @@
 #include "psidhook.h"
 
 /** Number of tasks on the local node */
-static PSID_Jobs_t localTasks = { .normal = 0, .total = 0 };
+static PSID_TaskCount_t localTasks = { .normal = 0, .total = 0 };
 
 /** Total number of nodes connected. Needed for keep-alive pings */
 static int totNodes = 0;
@@ -97,11 +97,11 @@ static PSID_Mem_t getMem(void)
 /** Structure used to hold status information of all nodes on the master */
 typedef struct {
     struct timeval lastPing;  /**< Time-stamp of last received ping */
-    PSID_Jobs_t jobs;   /**< Number of jobs on the node */
-    PSID_Load_t load;   /**< Load parameters of node */
-    PSID_Mem_t mem;     /**< Memory parameters of node */
-    short missCounter;  /**< Number of consecutively missing status pings */
-    short wrongClients; /**< Number of consecutively wrong client numbers */
+    PSID_TaskCount_t tasks;   /**< Number of tasks on the node */
+    PSID_Load_t load;         /**< Load parameters of node */
+    PSID_Mem_t mem;           /**< Memory parameters of node */
+    short missCounter;        /**< # of consecutively missing status pings */
+    short wrongClients;       /**< # of consecutively wrong client numbers */
 } ClientStatus_t;
 
 /**
@@ -137,7 +137,7 @@ static void allocMasterSpace(void)
 
     for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
 	gettimeofday(&clientStat[n].lastPing, NULL);
-	clientStat[n].jobs = (PSID_Jobs_t) { .normal = 0, .total = 0 };
+	clientStat[n].tasks = (PSID_TaskCount_t) { .normal = 0, .total = 0 };
 	clientStat[n].mem = (PSID_Mem_t) { -1, -1 };
 	clientStat[n].missCounter = 0;
 	clientStat[n].wrongClients = 0;
@@ -357,8 +357,8 @@ void decTaskCountHint(PSnodes_ID_t node)
 {
     PSID_fdbg(PSID_LOG_STATUS, "node %d\n", node);
 
-    if (clientStat && clientStat[node].jobs.normal)
-	clientStat[node].jobs.normal--;
+    if (clientStat && clientStat[node].tasks.normal)
+	clientStat[node].tasks.normal--;
 }
 
 PSID_NodeStatus_t getStatusInfo(PSnodes_ID_t node)
@@ -373,18 +373,18 @@ PSID_NodeStatus_t getStatusInfo(PSnodes_ID_t node)
 	status.load.load[0] = info.load.load[0];
 	status.load.load[1] = info.load.load[1];
 	status.load.load[2] = info.load.load[2];
-	status.jobs.total = info.jobs.total;
-	status.jobs.normal = info.jobs.normal;
+	status.tasks.total = info.jobs.total;
+	status.tasks.normal = info.jobs.normal;
     } else {
 	if (node == PSC_getMyID()) {
-	    status.jobs = localTasks;
+	    status.tasks = localTasks;
 	    status.load = getLoad();
 	} else if (PSC_getMyID() != getMasterID()
 		   || !PSC_validNode(node) || !clientStat) {
-	    status.jobs = (PSID_Jobs_t) { .normal = -1, .total = -1 };
+	    status.tasks = (PSID_TaskCount_t) { .normal = -1, .total = -1 };
 	    status.load = (PSID_Load_t) {{ 0.0, 0.0, 0.0}};
 	} else {
-	    status.jobs = clientStat[node].jobs;
+	    status.tasks = clientStat[node].tasks;
 	    status.load = clientStat[node].load;
 	}
     }
@@ -1193,8 +1193,8 @@ static bool msg_LOAD(DDBufferMsg_t *msg)
 	size_t used = 0;
 	int clientNodes;
 
-	PSP_getMsgBuf(msg, &used, "jobs", &clientStat[client].jobs,
-		      sizeof(clientStat[client].jobs));
+	PSP_getMsgBuf(msg, &used, "tasks", &clientStat[client].tasks,
+		      sizeof(clientStat[client].tasks));
 	PSP_getMsgBuf(msg, &used, "load", &clientStat[client].load,
 		      sizeof(clientStat[client].load));
 	PSP_getMsgBuf(msg, &used, "mem", &clientStat[client].mem,
