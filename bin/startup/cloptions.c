@@ -1021,7 +1021,7 @@ static void setupConf(Conf_t *conf)
 
     /* np already fixed */
     /* set the universe size */
-    conf->uSize = usize;
+    conf->uSize = conf->cmdLineUSize = usize;
     envStr = getenv("MPIEXEC_UNIVERSE_SIZE");
     if (envStr && conf->uSize < 1) conf->uSize = atoi(envStr);
     if (conf->uSize < conf->np) conf->uSize = conf->np;

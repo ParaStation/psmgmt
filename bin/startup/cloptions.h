@@ -108,6 +108,7 @@ typedef struct {
     bool loggerrawmode; /**< Flag switching logger to raw-mode */
     unsigned int psiDbgMask;  /**< Set libpsi's debug mask */
     bool verbose;       /**< Flag to be more verbose by oneself */
+    int cmdLineUSize;   /**< Universe size as defined at command line */
 } Conf_t;
 
 /**
