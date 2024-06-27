@@ -386,7 +386,7 @@ void PSIDtask_cleanup(PStask_t *task)
 	if (!task->released) PSID_sendSignalsToRelatives(task);
 
 	/* Tell status facility about removing the task */
-	if (!task->duplicate) decJobs(1, (task->group == TG_ANY));
+	if (!task->duplicate) decTaskCount(task->group == TG_ANY);
 
 	/* Release resources bound to reservations */
 	PSIDpart_cleanupRes(task);

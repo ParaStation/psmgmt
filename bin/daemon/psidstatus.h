@@ -61,7 +61,7 @@ void initStatus(void);
  * the number of normal tasks is increased. The latter are tasks that
  * are intended for computation and not for administrative purposes.
  *
- * If MCast is used for status control, @ref incJobsMCast is
+ * If MCast is used for status control, @ref incJobsMCast() is
  * called. Otherwise an extra status ping is triggered.
  *
  * @param normal Flag that count of normal tasks shall be increased, too
@@ -71,23 +71,21 @@ void initStatus(void);
 void incTaskCount(bool normal);
 
 /**
- * @brief Set job info.
+ * @brief Set task count info
  *
- * Set the information on running jobs. If @a total is different from
- * 0, the absolute number of jobs is decreased by one. The same holds
- * for @a normal and the number of normal jobs, i.e. jobs that are
- * intended for computation and not for administrational tasks.
+ * Set the information on running tasks. Each call will decrease the
+ * number of (local) tasks by one. If the flag @a normal is true, also
+ * the number of normal tasks is decreased. The latter are tasks that
+ * are intended for computation and not for administrative purposes.
  *
- * If MCast is used for status control, @ref incJobsMCast is
- * called. Otherwise an extra status ping is is triggered.
+ * If MCast is used for status control, @ref decJobsMCast() is
+ * called. Otherwise an extra status ping is triggered.
  *
- * @param total Flag if total count of jobs has to be increased.
- *
- * @param normal Flag if count of normal jobs has to be increased.
+ * @param normal Flag that count of normal tasks shall be decreased, too
  *
  * @return No return value
  */
-void decJobs(int total, int normal);
+void decTaskCount(bool normal);
 
 /**
  * @brief Give job info hint.

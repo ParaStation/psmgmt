@@ -343,14 +343,14 @@ void incTaskCount(bool normal)
     if (PSID_config->useMCast) incJobsMCast(PSC_getMyID(), 1, normal);
 }
 
-void decJobs(int total, int normal)
+void decTaskCount(bool normal)
 {
-    PSID_fdbg(PSID_LOG_STATUS, "total %d normal %d\n", total, normal);
+    PSID_fdbg(PSID_LOG_STATUS, "%s task\n", normal ? "normal" : "service");
 
-    if (total) myJobs.total--;
+    myJobs.total--;
     if (normal) myJobs.normal--;
 
-    if (PSID_config->useMCast) decJobsMCast(PSC_getMyID(), total, normal);
+    if (PSID_config->useMCast) decJobsMCast(PSC_getMyID(), 1, normal);
 }
 
 void decJobsHint(PSnodes_ID_t node)

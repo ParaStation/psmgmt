@@ -852,7 +852,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	    task->group = msg->group;
 
 	    /* Fix the info about the spawner task */
-	    decJobs(1, 1);
+	    decTaskCount(true);
 	    incTaskCount(false);
 	}
     } else {
