@@ -1042,7 +1042,7 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
 		strvAdd(argV, buf);
 
 		char key[32];
-		sprintf(key, "SLURM_SPANK_PSET_%i", c_id);
+		sprintf(key, "SLURM_SPANK_PSET_%zi", c_id);
 		char *pset = envGet(step->env, key);
 		if (pset) {
 		    strvAdd(argV, "--pset");
