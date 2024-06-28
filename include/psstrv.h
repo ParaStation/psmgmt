@@ -191,6 +191,9 @@ char *strvGet(const strv_t strv, uint32_t idx);
  * dst. The strings added to @a dst will be copies of the strings
  * contained in @a src, i.e. @a src will remain untouched.
  *
+ * @a dst is expected to be initialized, or the call will fail. If @a
+ * src is empty or uninitialized, @a dst will be left untouched.
+ *
  * @param dst String vector to extend
  *
  * @param src String vector to append to @a dst
