@@ -3148,7 +3148,6 @@ int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
 	    /* prepare forwarder task */
 	    task->childGroup = task->group;
 	    task->group = TG_FORWARDER;
-	    /* Tell everybody about the new forwarder task */
 	} else {
 	    /* No signals expected to be sent, thus, release immediately */
 	    task->released = true;
