@@ -177,7 +177,7 @@ typedef struct {
     char jobid[MAX_NSLEN+1];    /**< scheduler assiged job identificator */
     PspmixJob_t *job;           /**< job this namespace is implementing
 				     !!! consider the object as read only !!! */
-    uint32_t jobSize;           /**< size of the job (from mpiexec) */
+    uint32_t jobSize;           /**< # procs in job (sum of app sizes) */
     PStask_ID_t spawner;        /**< spawner if result of an PMIx_Spawn call */
     uint16_t spawnID;           /**< spawn ID if result of an PMIx_Spawn call */
     pmix_proc_t parent;         /**< spawn parent if result of PMIx_Spawn */
@@ -186,7 +186,7 @@ typedef struct {
     PspmixApp_t *apps;          /**< applications in this namespace */
     size_t appsCount;           /**< number of applications, length of apps */
     list_t procMap;             /**< nodes to process map
-				     (list of PspmixNodes_t objects each
+				     (list of PspmixNode_t objects each
 				     containing a vector of processes */
     list_t clientList;          /**< list of clients on this node in this ns
 				     (list of PspmixClient_t objects) */
