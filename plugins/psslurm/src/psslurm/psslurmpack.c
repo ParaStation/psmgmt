@@ -1409,10 +1409,8 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
 	getUint32(data, &tmp);
     }
 
-    /* spank env */
-    char **envP = NULL;
-    getStringArrayM(data, &envP, NULL);
-    req->spankEnv = envNew(envP);
+    /* spank environment */
+    getEnv(data, req->spankEnv);
 
     /* start time */
     getTime(data, &req->startTime);
@@ -1769,14 +1767,10 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 	return false;
     }
 
-    /* environment */
-    char **envP = NULL;
-    getStringArrayM(data, &envP, NULL);
-    step->env = envNew(envP);
+    /* step environment */
+    getEnv(data, step->env);
     /* spank environment */
-    envP = NULL;
-    getStringArrayM(data, &envP, NULL);
-    step->spankenv = envNew(envP);
+    getEnv(data, step->spankenv);
 
     if (msgVer > SLURM_20_11_PROTO_VERSION) {
 	/* container bundle path */
@@ -2041,16 +2035,11 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 	flog("mismatching argc %u : %u\n", count, job->argc);
 	return false;
     }
-    /* spank env/envc */
-    char **envP = NULL;
-    getStringArrayM(data, &envP, NULL);
-    job->spankenv = envNew(envP);
-
-    /* env/envc */
+    /* spank environment */
+    getEnv(data, job->spankenv);
+    /* job environment */
     getUint32(data, &count);
-    envP = NULL;
-    getStringArrayM(data, &envP, NULL);
-    job->env = envNew(envP);
+    getEnv(data, job->env);
     if (count != envSize(job->env)) {
 	flog("mismatching envc %u : %u\n", count, envSize(job->env));
 	return false;
@@ -3235,9 +3224,8 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     req->x11Target = getStringM(data);
     getUint16(data, &req->x11TargetPort);
     /* spank environment */
-    char **envP = NULL;
-    getStringArrayM(data, &envP, NULL);
-    req->spankEnv = envNew(envP);
+    getEnv(data, req->spankEnv);
+
     /* job credential */
     if (msgVer < SLURM_22_05_PROTO_VERSION) {
 	req->cred = extractJobCred(req->gresList, sMsg, true);
