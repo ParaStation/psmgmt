@@ -463,12 +463,18 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
  * The offset is just the number of ranks that are still running in all
  * namespaces.
  *
- * @todo stopgap solution
- * This needs to be changed to properly support removed namespaces.
- * Are their ranks to be reused? If so, we would need to get an offset for each
- * single rank in the new namespace for the case, that it does not completely
- * fit into the gap left by the removed namespace. If not, we would need a
- * never decreasing counter instead, maybe on session layer.
+ * The standard states for the PMIX_NODE_RANK, i.e. the only value the
+ * result of this function is used for:
+ *
+ * rank of the process on its node spanning all jobs
+ * refers to the numerical location (starting from zero) of the process on
+ * its node when idxing all processes (regardless of job) that share the
+ * node, ordered by their overall rank within the job. The value represents
+ * a snapshot in time when the specified process was started on its node and
+ * is not dynamically adjusted as processes from other jobs are started or
+ * terminated on the node.
+ *
+ * Thus, it seems fair to ignore removed namespaces here
  *
  * @returns rank offset
  */
