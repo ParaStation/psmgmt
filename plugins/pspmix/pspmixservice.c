@@ -866,9 +866,6 @@ bool pspmix_service_removeNamespace(PStask_ID_t jobID)
     /* trigger the deregistration non blocking */
     pspmix_server_deregisterNamespace(ns->name, ns);
 
-    /* @todo update PMIX_NODE_SIZE (processes over all the user's jobs)
-     * for all nodes of the namespace using pmix_register_resources
-     * https://github.com/pmix/pmix-standard/issues/401 */
     return true;
 }
 
