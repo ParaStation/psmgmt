@@ -1181,7 +1181,6 @@ bool pspmix_service_clientConnected(const char *nsName, void *clientObject,
     }
     /* @todo take some shortcut when spawner is local?
        (spawnNode == PSC_getMyID()) */
-    /* @todo use fence communication scheme here? */
 
     return true;
 }
