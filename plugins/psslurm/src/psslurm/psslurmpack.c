@@ -478,22 +478,16 @@ static Gres_Cred_t *unpackGresStepPart(PS_DataBuffer_t *data, uint16_t index,
  *
  * @param gresList A list to receive the unpacked data
  *
- * @param cred Associated job credential
- *
  * @param msgVer Slurm protocol version of message to unpack
  *
  * @return Returns true on success otherwise false is returned
  */
 static bool unpackGresStep(PS_DataBuffer_t *data, list_t *gresList,
-			   JobCred_t *cred, uint16_t msgVer)
+			   uint16_t msgVer)
 {
     /* extract gres step data */
     uint16_t count;
     getUint16(data, &count);
-
-    Step_t s = { .jobid = cred->jobid, .stepid = cred->stepid };
-    fdbg(PSSLURM_LOG_GRES, "%s uid %u gres step count %u\n", Step_strID(&s),
-	 cred->uid, count);
 
     for (uint16_t i = 0; i < count; i++) {
 	Gres_Cred_t *gres = unpackGresStepPart(data, i, msgVer);
@@ -689,21 +683,16 @@ static Gres_Cred_t *unpackGresJobPart(PS_DataBuffer_t *data, uint16_t index,
  *
  * @param gresList A list to receive the unpacked data
  *
- * @param cred Associated job credential
- *
  * @param msgVer Slurm protocol version of message to unpack
  *
  * @return Returns true on success otherwise false is returned
  */
 static bool unpackGresJob(PS_DataBuffer_t *data, list_t *gresList,
-			  JobCred_t *cred, uint16_t msgVer)
+			  uint16_t msgVer)
 {
     /* extract gres job data */
     uint16_t count;
     getUint16(data, &count);
-
-    fdbg(PSSLURM_LOG_GRES, "job data: id %u:%u uid %u gres job count %u\n",
-	 cred->jobid, cred->stepid, cred->uid, count);
 
     for (uint16_t i = 0; i < count; i++) {
 	Gres_Cred_t *gres = unpackGresJobPart(data, i, msgVer);
@@ -775,13 +764,19 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     }
 
     /* GRes job allocations */
-    if (!unpackGresJob(data, gresList, cred, msgVer)) {
+    Step_t s = { .jobid = cred->jobid, .stepid = cred->stepid };
+    fdbg(PSSLURM_LOG_GRES, "job data: id %s uid %u gres job\n",
+	 Step_strID(&s), cred->uid);
+
+    if (!unpackGresJob(data, gresList, msgVer)) {
 	flog("unpacking GRes job data failed\n");
 	goto ERROR;
     }
 
     /* GRes step allocations */
-    if (!unpackGresStep(data, gresList, cred, msgVer)) {
+    fdbg(PSSLURM_LOG_GRES, "%s uid %u gres step\n", Step_strID(&s),
+	 cred->uid);
+    if (!unpackGresStep(data, gresList, msgVer)) {
 	flog("unpacking GRes step data failed\n");
 	goto ERROR;
     }
