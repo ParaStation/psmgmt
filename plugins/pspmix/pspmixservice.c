@@ -901,7 +901,12 @@ void pspmix_service_cleanupNamespace(void *nspace, bool error,
 }
 
 /**
- * @brief Get the node containing a specific rank in a given reservation
+ * @brief Get the node containing a specific rank in a given namespace
+ *
+ * Make use of the fact that all information in a given namespace
+ * reflect the represented job. Thus, ranks are always (psid-)job
+ * local. Those are also used to organize the corresponding
+ * reservation.
  *
  * @param ns       namespace
  * @param rank     rank in reservation
@@ -911,8 +916,6 @@ void pspmix_service_cleanupNamespace(void *nspace, bool error,
  */
 static PSnodes_ID_t getNodeFromRank(PspmixNamespace_t *ns, int32_t rank)
 {
-    //TODO: translate namespace rank to parastation rank ?!?
-    // for the time being ranks in reservation are (psid-)job local
     if (list_empty(&ns->job->resInfos)) return -1;
 
     list_t *r;
