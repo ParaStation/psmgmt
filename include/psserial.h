@@ -34,6 +34,7 @@
 #include "pssenddb_t.h"  // IWYU pragma: export
 #include "psprotocol.h"
 #include "pstaskid.h"
+#include "psenv.h"
 
 /** Data type information used to tag data in serialized messages */
 typedef enum {
@@ -730,6 +731,9 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
 #define getStringArrayM(data, array, len)			\
     __getStringArrayM(data, array, len, __func__, __LINE__)
 
+#define getEnv(data, env) { char **envP = NULL;			\
+    __getStringArrayM(data, &envP, NULL, __func__, __LINE__);   \
+    env = envNew(envP); };
 
 /**
  * @brief Add element to buffer
