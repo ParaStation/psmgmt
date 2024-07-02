@@ -75,13 +75,15 @@ static PStask_t *childTask = NULL;
 PSIDhook_ClntRls_t pmixStatus = IDLE;
 
 typedef struct {
-    PStask_ID_t pmixServer;
-    uint16_t spawnID;
-    char * pnspace;
-    uint32_t prank;
-    uint32_t opts;
+    list_t next;               /**< used to put into pendSpawns */
+    PStask_ID_t pmixServer;    /**< PMIx user-server requesting this spawn */
+    uint16_t spawnID;          /**< spawn ID as provided by user-server */
+    SpawnRequest_t *req;       /**< corresponding request itself */
+    char *pnspace;             /**< parent namespace */
+    uint32_t prank;            /**< parent rank */
+    uint32_t opts;             /**< additional options flags */
+    int32_t servRank;          /**< service rank to use (0 none yet assigned) */
 } SpawnReqData_t;
-
 
 /* convenient logging functions */
 /* These are only meaningful between the client init and finalize messages
@@ -112,6 +114,51 @@ typedef struct {
 #endif
 
 #define rlog(...) rdbg(-1, __VA_ARGS__)
+
+/* ****************************************************** *
+ *          SpawnReqData_t helper functions               *
+ * ****************************************************** */
+
+/** list of pending spawn requests of type SpawnReqData_t */
+static LIST_HEAD(pendSpawns);
+
+static SpawnReqData_t *newSpawnReqData(void)
+{
+    SpawnReqData_t *srdata = umalloc(sizeof(*srdata));
+    srdata->pnspace = NULL;
+    srdata->servRank = 0;
+
+    return srdata;
+}
+
+/**
+ * @brief Find spawn request data by service rank
+ *
+ * Identity spawn request data struct by its service rank @a
+ * servRank. If @a servRank is 0 (i.e. no service rank was yet
+ * assigned to this spawn request data struct) the first item with
+ * service rank 0 is returned.
+ *
+ * @param servRank Service rank to search for
+ *
+ * @return Return the spawn request data struct or NULL
+ */
+static SpawnReqData_t *findSpawnReqData(int32_t servRank)
+{
+    list_t *s;
+    list_for_each(s, &pendSpawns) {
+	SpawnReqData_t *srdata = list_entry(s, SpawnReqData_t, next);
+	if (srdata->servRank == servRank) return srdata;
+    }
+    return NULL;
+}
+
+static void freeSpawnReqData(SpawnReqData_t *srdata)
+{
+    if (!srdata) return;
+    ufree(srdata->pnspace);
+    ufree(srdata);
+}
 
 /* ****************************************************** *
  *                Spawn handling functions                *
