@@ -383,10 +383,7 @@ static bool spawnEnvFilter(const char *envent)
  */
 static bool tryPMIxSpawn(SpawnReqData_t *srdata)
 {
-    char *str = getenv("PMIX_UNIV_SIZE");
-    int usize = str ? atoi(str) : 1;
-
-    str = getenv("PMIX_DEBUG");
+    char *str = getenv("PMIX_DEBUG");
     bool debug = (str && atoi(str) > 0);
 
     PStask_t *task = initSpawnTask(childTask, spawnEnvFilter);
@@ -398,13 +395,13 @@ static bool tryPMIxSpawn(SpawnReqData_t *srdata)
     task->rank = srdata->servRank;
 
     /* fill the command of the task */
-    int rc = fillTaskFunction(srdata->req, usize, task);
+    int rc = fillTaskFunction(srdata->req, 0 /* ignored */, task);
 
     if (rc == -1) {
 	/* function to fill the spawn task tells us not to be responsible */
 	mlog("%s(r%i): Falling back to default PMIx fill spawn function.\n",
 	     __func__, rank);
-	rc = fillWithMpiexec(srdata->req, usize, task);
+	rc = fillWithMpiexec(srdata->req, 0 /* ignored */, task);
     }
 
     if (!rc) {
