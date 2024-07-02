@@ -484,23 +484,21 @@ static bool tryPMIxSpawn(SpawnReqData_t *srdata)
  *
  * @return Returns true on success, false on error
  */
-static bool sendSpawnResp(PStask_ID_t targetTID, uint8_t result,
-			  uint16_t spawnID)
+static bool sendSpawnResp(PStask_ID_t dest, uint16_t spawnID, uint8_t result)
 {
-    rdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
-	 "(targetTID %s spawnid %hu result %d)\n",
-	 PSC_printTID(targetTID), spawnID, result);
+    rdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "(dest %s spawnID %hu result %d)\n",
+	 PSC_printTID(dest), spawnID, result);
 
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_CLIENT_SPAWN_RES);
-    setFragDest(&msg, targetTID);
+    setFragDest(&msg, dest);
 
     addUint16ToMsg(spawnID, &msg);
     addUint8ToMsg(result, &msg);
 
     if (sendFragMsg(&msg) < 0) {
 	plog("Sending PSPMIX_CLIENT_SPAWN_RES (spawnID %hu result %d)"
-	     " to %s failed\n", spawnID, result, PSC_printTID(targetTID));
+	     " to %s failed\n", spawnID, result, PSC_printTID(dest));
 	return false;
     }
     return true;
@@ -534,7 +532,7 @@ static bool handleServiceInfo(PSLog_Msg_t *msg)
 
     /* spawn already failed */
     plog("spawn failed\n");
-    sendSpawnResp(srdata->pmixServer, 0, srdata->spawnID);
+    sendSpawnResp(srdata->pmixServer, srdata->spawnID, 0);
 
     /* cleanup */
     list_del(&srdata->next);
@@ -1111,14 +1109,14 @@ static bool msgSPAWNRES(DDBufferMsg_t *msg)
     case PSP_CD_SPAWNFAILED:
 	plog("spawn %s:%d: spawning service process failed\n",
 	     PSC_printTID(srdata->pmixServer), srdata->spawnID);
-	sendSpawnResp(srdata->pmixServer, 0, srdata->spawnID);
+	sendSpawnResp(srdata->pmixServer, srdata->spawnID, 0);
 	break;
     case PSP_CD_SPAWNSUCCESS:
 	/* wait for result of the spawner process */
 	pdbg(PSPMIX_LOG_SPAWN, "spawn %s:%d: service process spawned successful",
 	     PSC_printTID(srdata->pmixServer), srdata->spawnID);
 	mdbg(PSPMIX_LOG_SPAWN, " to %s\n", PSC_printTID(msg->header.sender));
-	sendSpawnResp(srdata->pmixServer, 1, srdata->spawnID);
+	sendSpawnResp(srdata->pmixServer, srdata->spawnID, 1);
 	break;
     }
 
