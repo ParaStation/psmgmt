@@ -32,13 +32,15 @@
 #include "pspmixtypes.h"
 
 /**
- * @brief Initialize the PMIX service
+ * @brief Initialize the PMIx service
  *
- * This must be the first call to the PMI service module.
+ * This must be the first call to the service module.
  *
- * @param uid        UID for the server
- * @param gid        GID for the server
- * @param clusterid  Cluster ID
+ * @param uid Server's UID
+ *
+ * @param gid Server's GID
+ *
+ * @param clusterid Cluster ID (some random string)
  *
  * @return Returns true on success and false on errors
  */
@@ -47,64 +49,70 @@ bool pspmix_service_init(uid_t uid, gid_t gid, char *clusterid);
 /**
  * @brief Register a new namespace
  *
- * @param job   job to be implemented by the namespace
+ * @param job Job to be represented by the namespace
  *
  * @return Returns true on success and false on errors
  */
 bool pspmix_service_registerNamespace(PspmixJob_t *job);
 
 /**
- * @brief Register the client and send its environment to its forwarder
+ * @brief Register a client and send its environment to its forwarder
  *
  * If false is returned, the @a client object passed is to be
  * considered as unused and shall be cleaned up by the calling
  * function if not needed for other purposes.
  *
- * @param loggertid  logger to identify the session the client belongs to
- * @param spawnertid spawner to identify the job the client belongs to
- * @param client     client to register
+ * @param sessionID ID of the session the client belongs to (aka logger's TID)
+ *
+ * @param jobID ID of the job the client belongs to (aka spawner's TID)
+ *
+ * @param client Client to register
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
-					     PStask_ID_t spawnertid,
+bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
+					     PStask_ID_t jobID,
 					     PspmixClient_t *client);
 
 /**
  * @brief Terminate the clients of a namespace by signals
  *
- * Initiate to send TERM and KILL signal to all the local clients in @a nsname
- * with known TID.
+ * Initiate to send SIGTERM and SIGKILL signals to all local clients
+ * with known task ID in the namespace @a nsname.
  *
- * If @a remote is true, then send a message of type PSPMIX_TERM_CLIENTS to
- * all other PMIx servers also hosting clients of the namespace to instruct
- * then to do the same.
+ * If @a remote is true, then send a message of type PSPMIX_TERM_CLIENTS
+ * to all other PMIx servers also hosting clients of the namespace to
+ * instruct them to do the same.
  *
- * @param nsName   name of the namespace
- * @param remote   switch to instruct remote PMIx servers to send signals, too
+ * @param nsName Name of the namespace to handle
+ *
+ * @param remote Flag to instruct remote PMIx servers to send signals, too
  *
  * @return Returns true on success and false on sending errors
  */
 bool pspmix_service_terminateClients(const char *nsName, bool remote);
 
 /**
- * @brief Removes namespace
+ * @brief Remove namespace
  *
  * Performs the following steps:
- * 1. Remove the namespace associated with @a JobID from the list of namspaces
- *    so it cannot be found any more from anywhere else.
- * 2. Trigger the deregestration of the namespace from the server library. This
- *    is then done asynchronously. This needs to be non-blocking since we need
- *    to do it inside the NamespaceList lock to avoid races on the client
- *    objects but we cannot be sure whether a server library internal lock then
- *    will lead to a deadlock during the deregistration process if a callback
- *    is still in process using NamespaceList lock, too.
+ *
+ * 1. Remove the namespace associated with @a JobID from the list of
+ *    namspaces so it cannot be found any more from anywhere else.
+ *
+ * 2. Trigger the deregestration of the namespace from the server
+ *    library. This is then done asynchronously. This needs to be
+ *    non-blocking since we need to do it inside the NamespaceList
+ *    lock to avoid races on the client objects but we cannot be sure
+ *    whether a server library internal lock then will lead to a
+ *    deadlock during the deregistration process if a callback is
+ *    still in process using NamespaceList lock, too.
  *
  * Actual cleanup of the remaining client objects and the namespace object is
  * done in the deregistration callback that must call
  * @ref pspmix_service_cleanupNamespace().
  *
- * @param jobID    spawner identifying the job
+ * @param jobID ID of the job represented by the namespace (aka spawner TID)
  *
  * @return Returns true on success and false on errors
  */
@@ -121,11 +129,13 @@ bool pspmix_service_removeNamespace(PStask_ID_t jobID);
  * nspace is the namespace object reference that has been passed to
  * @ref pspmix_server_deregisterNamespace()
  *
- * @param nspace   namespace object of type (PspmixNamespace_t *)
- * @param error    indicator of a error reported by the server library
- * @param errstr   in case of an error, this is the error string
+ * @param ns Namespace object to clean up
+ *
+ * @param error Flag error reported by the server library
+ *
+ * @param errstr Error string provided in case of error
  */
-void pspmix_service_cleanupNamespace(void *nspace, bool error,
+void pspmix_service_cleanupNamespace(PspmixNamespace_t *nspace, bool error,
 				     const char *errstr);
 
 /**
@@ -138,35 +148,39 @@ void pspmix_service_cleanupNamespace(void *nspace, bool error,
 bool pspmix_service_finalize(void);
 
 /**
- * @brief Handle that a client connected
+ * @brief Handle connecting client
  *
  * Notify the client's forwarder about the initialization of the client.
  *
  * @todo This reads the environment and joins the client to the KVS provider.
  *
- * @param nsName        name of the namespace the client is member of
- * @param clientObject  client object of type PspmixClient_t
- * @param cb            callback object to pass back to return callback
+ * @param nsName Name of the namespace the client belong to
  *
- * @return Returns true on success, false on fail
+ * @param client Client object registered before
+ *
+ * @param cb Callback object to pass back to return callback
+ *
+ * @return Returns true on success, false on failure
  */
-bool pspmix_service_clientConnected(const char *nsName, void *clientObject,
+bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
 				    void *cb);
 
 /**
- * @brief Handle that a client finalized
+ * @brief Handle finalizing client
  *
- * Notify the client's forwarder about the finalization of the client.
+ * Notify the client's forwarder about its client's finalization.
  *
  * @todo Leave the KVS and release the child and allow it to exit.
  *
- * @param nsName        name of the namespace the client is member of
- * @param clientObject  client object of type PspmixClient_t
- * @param cb            callback object to pass back to return callback
+ * @param nsName Name of the namespace the client belongs to
  *
- * @return Returns true on success, false on fail
+ * @param client Client object registered before
+ *
+ * @param cb Callback object to pass back to return callback
+ *
+ * @return Returns true on success, false on failure
  * */
-bool pspmix_service_clientFinalized(const char *nsName, void *clientObject,
+bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
 				    void *cb);
 
 /**
@@ -185,16 +199,17 @@ void pspmix_service_handleClientIFResp(bool success, const char *nspace,
 				       pmix_rank_t rank, PStask_ID_t fwtid);
 
 /**
- * @brief Abort the job
+ * @brief Handle aborting client
  *
  * Abort the current job.
  *
- * @param nsName        name of the namespace the client is member of
- * @param clientObject  client object of type PspmixClient_t
+ * @param nsName Name of the namespace the client belongs to
+ *
+ * @param client Client object registered before
  *
  * @return No return value
  */
-void pspmix_service_abort(const char *nsName, void *clientObject);
+void pspmix_service_abort(const char *nsName, PspmixClient_t *client);
 
 /**
  * @brief Handle fence operation requested from the local helper library

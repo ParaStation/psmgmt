@@ -870,11 +870,9 @@ bool pspmix_service_removeNamespace(PStask_ID_t jobID)
 }
 
 /* library thread */
-void pspmix_service_cleanupNamespace(void *nspace, bool error,
+void pspmix_service_cleanupNamespace(PspmixNamespace_t *ns, bool error,
 				     const char *errstr)
 {
-    PspmixNamespace_t *ns = (PspmixNamespace_t *)nspace;
-
     if (error) {
 	ulog("deregister namespace %s failed: %s", ns->name, errstr);
 	return;
@@ -1109,11 +1107,9 @@ bool pspmix_service_finalize(void)
 }
 
 /* library thread */
-bool pspmix_service_clientConnected(const char *nsName, void *clientObject,
+bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
 				    void *cb)
 {
-    PspmixClient_t *client = clientObject;
-
     GET_LOCK(namespaceList);
 
     /* Inform the client's forwarder about initialization and remember callback
@@ -1182,11 +1178,9 @@ bool pspmix_service_clientConnected(const char *nsName, void *clientObject,
 }
 
 /* library thread */
-bool pspmix_service_clientFinalized(const char *nsName, void *clientObject,
+bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
 				    void *cb)
 {
-    PspmixClient_t *client = clientObject;
-
     GET_LOCK(namespaceList);
 
     /* Inform the client's forwarder about finalization and remember callback
@@ -1271,10 +1265,8 @@ void pspmix_service_handleClientIFResp(bool success, const char *nspace,
 }
 
 /* library thread */
-void pspmix_service_abort(const char *nsName, void *clientObject)
+void pspmix_service_abort(const char *nsName, PspmixClient_t *client)
 {
-    PspmixClient_t *client = clientObject;
-
     /* since we never free client objects before deregistering the
        according namespace from the server library, the clientObject
        should be always valid here */
