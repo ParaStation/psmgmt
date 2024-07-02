@@ -170,12 +170,6 @@ static fillerFunc_t *fillTaskFunction = NULL;
 /** Generic static buffer */
 static char buffer[1024];
 
-/** SpawnRequest to be handled when logger returns service rank.
- *
- * pendSpawn != NULL indicates that there is a respawn ongoing that has been
- * initiated by a call of PMIx_Spawn() by the child of this forwarder */
-static SpawnRequest_t *pendSpawn = NULL;
-
 /**
  * @brief Spawn one or more processes
  *
@@ -193,17 +187,11 @@ static SpawnRequest_t *pendSpawn = NULL;
  *
  * @return Returns true on success and false on error
  */
-static bool doSpawn(SpawnRequest_t *req)
+static bool doSpawn(SpawnReqData_t *srdata)
 {
-    if (pendSpawn) {
-	plog("another spawn is pending\n");
-	return false;
-    }
+    list_add_tail(&srdata->next, &pendSpawns);
 
-    pendSpawn = req;
-    SpawnReqData_t *srdata = req->data;
-
-    plog("trying to spawn job with %d apps\n", pendSpawn->num);
+    plog("trying to spawn job with %d apps\n", srdata->req->num);
 
     pdbg(PSPMIX_LOG_SPAWN, "Requesting service rank for spawn %s:%d triggered"
 	 " by nspace %s rank %u\n", PSC_printTID(srdata->pmixServer),
@@ -212,8 +200,10 @@ static bool doSpawn(SpawnRequest_t *req)
     /* get next service rank from logger */
     if (PSLog_write(childTask->loggertid, SERV_RNK, NULL, 0) < 0) {
 	plog("writing to logger failed\n");
-	freeSpawnRequest(pendSpawn);
-	pendSpawn = NULL;
+
+	list_del(&srdata->next);
+	freeSpawnRequest(srdata->req);
+	freeSpawnReqData(srdata);
 	return false;
     }
 
@@ -389,7 +379,7 @@ static bool spawnEnvFilter(const char *envent)
  *
  * @return True on success, false on error
  */
-static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
+static bool tryPMIxSpawn(SpawnReqData_t *srdata)
 {
     char *str = getenv("PMIX_UNIV_SIZE");
     int usize = str ? atoi(str) : 1;
@@ -397,24 +387,22 @@ static bool tryPMIxSpawn(SpawnRequest_t *req, int serviceRank)
     str = getenv("PMIX_DEBUG");
     bool debug = (str && atoi(str) > 0);
 
-    SpawnReqData_t *srdata = req->data;
-
     PStask_t *task = initSpawnTask(childTask, spawnEnvFilter);
     if (!task) {
 	mlog("%s: cannot create a new task\n", __func__);
 	return false;
     }
 
-    task->rank = serviceRank;
+    task->rank = srdata->servRank;
 
     /* fill the command of the task */
-    int rc = fillTaskFunction(req, usize, task);
+    int rc = fillTaskFunction(srdata->req, usize, task);
 
     if (rc == -1) {
 	/* function to fill the spawn task tells us not to be responsible */
 	mlog("%s(r%i): Falling back to default PMIx fill spawn function.\n",
 	     __func__, rank);
-	rc = fillWithMpiexec(req, usize, task);
+	rc = fillWithMpiexec(srdata->req, usize, task);
     }
 
     if (!rc) {
@@ -527,31 +515,25 @@ static bool sendSpawnResp(PStask_ID_t targetTID, uint8_t result,
  */
 static bool handleServiceInfo(PSLog_Msg_t *msg)
 {
-    int serviceRank = *(int32_t *)msg->buf;
-
+    SpawnReqData_t *srdata = findSpawnReqData(0);
     /* message might be for other handler (e.g. pspmi) */
-    if (!pendSpawn) return false;
+    if (!srdata) return false;
 
-    /* @todo support multiple concurrent pendSpawn? */
-
-    /* uniquely identifies the spawn globally */
-    SpawnReqData_t *srdata = pendSpawn->data;
-
+    srdata->servRank = *(int32_t *)msg->buf;
     pdbg(PSPMIX_LOG_SPAWN, "Trying spawn %s:%d with service rank %d\n",
-	 PSC_printTID(srdata->pmixServer), srdata->spawnID, serviceRank);
+	 PSC_printTID(srdata->pmixServer), srdata->spawnID, srdata->servRank);
 
     /* try to do the spawn */
-    if (tryPMIxSpawn(pendSpawn, serviceRank)) return true;
+    if (tryPMIxSpawn(srdata)) return true;
 
     /* spawn already failed */
     plog("spawn failed\n");
     sendSpawnResp(srdata->pmixServer, 0, srdata->spawnID);
 
     /* cleanup */
-    ufree(srdata->pnspace);
-    ufree(pendSpawn->data);
-    freeSpawnRequest(pendSpawn);
-    pendSpawn = NULL;
+    list_del(&srdata->next);
+    freeSpawnRequest(srdata->req);
+    freeSpawnReqData(srdata);
 
     return true;
 }
@@ -939,7 +921,7 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	return;
     }
 
-    SpawnReqData_t *srdata = umalloc(sizeof(*srdata));
+    SpawnReqData_t *srdata = newSpawnReqData();
     srdata->pmixServer = msg->header.sender;
 
     getUint16(data, &srdata->spawnID);
@@ -949,13 +931,10 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     uint16_t napps;
     getUint16(data, &napps);
-
-    SpawnRequest_t *req = initSpawnRequest(napps);
-
-    req->data = srdata;
+    srdata->req = initSpawnRequest(napps);
 
     for (size_t a = 0; a < napps; a++) {
-	SingleSpawn_t *spawn = req->spawns + a;
+	SingleSpawn_t *spawn = srdata->req->spawns + a;
 
 	char **argvP = NULL;
 	getStringArrayM(data, &argvP, NULL);
@@ -1009,9 +988,8 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     pdbg(PSPMIX_LOG_COMM, "received %s with napps %hu.\n",
 	 pspmix_getMsgTypeString(msg->type), napps);
 
-    if (!doSpawn(req /* transfers ownership */)) {
-	plog("spawn failed");
-    }
+
+    if (!doSpawn(srdata /* transfers ownership */)) plog("spawn failed");
 }
 
 /**
@@ -1100,14 +1078,14 @@ static bool msgSPAWNRES(DDBufferMsg_t *msg)
     int type = msg->header.type;
     if (type != PSP_CD_SPAWNFAILED && type != PSP_CD_SPAWNSUCCESS) return false;
 
-    if (!pendSpawn) {
+    DDErrorMsg_t *eMsg = (DDErrorMsg_t *)msg;
+    SpawnReqData_t *srdata = findSpawnReqData(eMsg->request);
+    if (!srdata) {
 	/* might happen if PMI is actually used */
 	pdbg(PSPMIX_LOG_SPAWN, "no pending spawn found (type %s from %s)\n",
 	     PSP_printMsg(type), PSC_printTID(msg->header.sender));
 	return false;
     }
-
-    SpawnReqData_t *srdata = pendSpawn->data;
 
     switch (type) {
     case PSP_CD_SPAWNFAILED:
@@ -1125,10 +1103,10 @@ static bool msgSPAWNRES(DDBufferMsg_t *msg)
     }
 
     /* cleanup */
-    ufree(srdata->pnspace);
-    ufree(pendSpawn->data);
-    freeSpawnRequest(pendSpawn);
-    pendSpawn = NULL;
+    list_del(&srdata->next);
+    freeSpawnRequest(srdata->req);
+    freeSpawnReqData(srdata);
+
     return true;
 }
 
