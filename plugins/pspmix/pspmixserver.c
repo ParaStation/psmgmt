@@ -2941,14 +2941,14 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 
     /* rank of the process on its node in its job
      * refers to the numerical location (starting from zero) of the process on
-     * its node when idxing only those processes from the same job that share
+     * its node when counting only those processes from the same job that share
      * the node, ordered by their overall rank within that job. */
     PMIX_INFO_LOAD(&infos[i], PMIX_LOCAL_RANK, &proc->lrank, PMIX_UINT16);
     i++;
 
     /* rank of the process on its node spanning all jobs
      * refers to the numerical location (starting from zero) of the process on
-     * its node when idxing all processes (regardless of job) that share the
+     * its node when counting all processes (regardless of job) that share the
      * node, ordered by their overall rank within the job. The value represents
      * a snapshot in time when the specified process was started on its node and
      * is not dynamically adjusted as processes from other jobs are started or
