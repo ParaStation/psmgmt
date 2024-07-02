@@ -37,6 +37,7 @@
 #include "pspluginprotocol.h"
 #include "psreservation.h"
 #include "psserial.h"
+#include "psstrv.h"
 #include "timer.h"
 
 #include "pluginconfig.h"

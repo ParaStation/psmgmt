@@ -21,6 +21,7 @@
 #include "pscommon.h"
 #include "psenv.h"
 #include "psserial.h"
+#include "psstrv.h"
 
 #include "pluginconfig.h"
 #include "pluginhelper.h"

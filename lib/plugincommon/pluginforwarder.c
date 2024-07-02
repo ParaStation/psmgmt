@@ -14,7 +14,6 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <string.h>
 #include <syslog.h>
 #include <sys/resource.h>  // IWYU pragma: keep
 #include <sys/signalfd.h>
@@ -26,6 +25,7 @@
 #include "pscio.h"
 #include "pscommon.h"
 #include "pslog.h"
+#include "psstrv.h"
 #include "selector.h"
 #include "timer.h"
 #include "pluginhelper.h"

@@ -26,6 +26,7 @@
 
 #include "pscommon.h"
 #include "psserial.h"
+#include "psstrv.h"
 
 #include "psi.h"
 #include "psilog.h"

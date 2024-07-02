@@ -37,6 +37,7 @@
 #include <pmix.h>
 #include <pmix_common.h>
 
+#include "list.h"
 #include "pscio.h"
 #include "pscommon.h"
 #include "psenv.h"

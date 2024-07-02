@@ -45,6 +45,7 @@
 #include "psprotocolenv.h"
 #include "psreservation.h"
 #include "psserial.h"
+#include "psstrv.h"
 
 #include "timer.h"
 

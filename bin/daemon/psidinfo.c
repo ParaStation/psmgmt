@@ -23,6 +23,7 @@
 #include "psprotocol.h"
 #include "pspartition.h"
 #include "psreservation.h"
+#include "psstrv.h"
 
 #include "mcast.h"
 #include "rdp.h"
