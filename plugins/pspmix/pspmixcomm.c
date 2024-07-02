@@ -45,13 +45,14 @@ static PspmixMsgExtra_t extra;
     initFragBufferExtra(msg, PSP_PLUG_PSPMIX, type, &extra, sizeof(extra))
 
 /**
-* @brief Handle PSPMIX_ADD_JOB message
-*
-* This message is sent by the local psid.
-*
-* @param msg  Last fragment of the message to handle
-* @param data Accumulated data received
-*/
+ * @brief Handle PSPMIX_ADD_JOB message
+ *
+ * This message is sent by the local psid.
+ *
+ * @param msg Last fragment of the message to handle
+ *
+ * @param data Defragmented data received
+ */
 static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
@@ -116,13 +117,14 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
-* @brief Handle PSPMIX_REMOVE_JOB message
-*
-* This message is sent by the local psid.
-*
-* @param msg  Last fragment of the message to handle
-* @param data Accumulated data received
-*/
+ * @brief Handle PSPMIX_REMOVE_JOB message
+ *
+ * This message is sent by the local psid.
+ *
+ * @param msg Last fragment of the message to handle
+ *
+ * @param data Defragmented data received
+ */
 static void handleRemoveJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
@@ -177,13 +179,14 @@ static void handleRegisterClient(DDTypedBufferMsg_t *msg)
 }
 
 /**
-* @brief Handle PSPMIX_CLIENT_INIT_RES and PSPMIX_CLIENT_FINALIZE_RES messages
-*
-* This message is sent by a client's psid forwarder.
-*
-* @param msg  Last fragment of the message to handle
-* @param data Accumulated data received
-*/
+ * @brief Handle PSPMIX_CLIENT_INIT_RES and PSPMIX_CLIENT_FINALIZE_RES messages
+ *
+ * This message is sent by a client's psid forwarder.
+ *
+ * @param msg Last fragment of the message to handle
+ *
+ * @param data Defragmented data received
+ */
 static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
 				   PS_DataBuffer_t *data)
 {
@@ -213,13 +216,14 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
 }
 
 /**
-* @brief Handle PSPMIX_CLIENT_SPAWN_RES message
-*
-* This message is sent by a client's psid forwarder.
-*
-* @param msg  Last fragment of the message to handle
-* @param data Accumulated data received
-*/
+ * @brief Handle PSPMIX_CLIENT_SPAWN_RES message
+ *
+ * This message is sent by a client's psid forwarder.
+ *
+ * @param msg Last fragment of the message to handle
+ *
+ * @param data Defragmented data received
+ */
 static void handleClientSpawnResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
@@ -281,14 +285,15 @@ static void handleSpawnInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
-* @brief Handle PSPMIX_SPAWNER_FAILED message
-*
-* This message is sent by the spawner process of a respawn triggered by a
-* call to PMIx_Spawn in one of our local clients.
-*
-* @param msg  Last fragment of the message to handle
-* @param data Accumulated data received
-*/
+ * @brief Handle PSPMIX_SPAWNER_FAILED message
+ *
+ * This message is sent by the spawner process of a respawn triggered by a
+ * call to PMIx_Spawn in one of our local clients.
+ *
+ * @param msg Last fragment of the message to handle
+ *
+ * @param data Defragmented data received
+ */
 static void handleSpawnerFailed(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
@@ -303,13 +308,14 @@ static void handleSpawnerFailed(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
-* @brief Handle PSPMIX_TERM_JOB message
-*
-* This message is sent by an other PMIx server.
-*
-* @param msg  Last fragment of the message to handle
-* @param data Accumulated data received
-*/
+ * @brief Handle PSPMIX_TERM_JOB message
+ *
+ * This message is sent by an other PMIx server.
+ *
+ * @param msg Last fragment of the message to handle
+ *
+ * @param data Defragmented data received
+ */
 static void handleTermClients(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
@@ -325,13 +331,14 @@ static void handleTermClients(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
-* @brief Handle obsolete PSPMIX_FENCE_IN/PSPMIX_FENCE_OUT message
-*
-* This obsolete message was sent by an outdated PMIx server of the same user
-*
-* @param msg  Last fragment of the message to handle
-* @param data Accumulated data received
-*/
+ * @brief Handle obsolete PSPMIX_FENCE_IN/PSPMIX_FENCE_OUT message
+ *
+ * This obsolete message was sent by an outdated PMIx server of the same user
+ *
+ * @param msg Last fragment of the message to handle
+ *
+ * @param data Defragmented data received
+ */
 static void handleFenceObsolete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     uint64_t fenceID;
@@ -343,14 +350,15 @@ static void handleFenceObsolete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
-* @brief Handle PSPMIX_FENCE_DATA message
-*
-* Message sent by another PMIx server of the same user for fence tree
-* communication
-*
-* @param msg  Last fragment of the message to handle
-* @param data Accumulated data received
-*/
+ * @brief Handle PSPMIX_FENCE_DATA message
+ *
+ * Message sent by another PMIx server of the same user for fence tree
+ * communication
+ *
+ * @param msg Last fragment of the message to handle
+ *
+ * @param data Defragmented data received
+ */
 static void handleFenceData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
@@ -373,12 +381,14 @@ static void handleFenceData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 				   nBlobs, mData, len);
 }
 /**
-* @brief Handle PSPMIX_MODEX_DATA_REQ message
-*
-* This message is sent by another PMIx server of the same user.
-*
-* @param msg The message to handle
-*/
+ * @brief Handle PSPMIX_MODEX_DATA_REQ message
+ *
+ * This message is sent by another PMIx server of the same user.
+ *
+ * @param msg Last fragment of the message to handle
+ *
+ * @param data Defragmented data received
+ */
 static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
@@ -406,13 +416,14 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
-* @brief Handle PSPMIX_MODEX_DATA_RES message
-*
-* This message is sent by another PMIx server of the same user.
-*
-* @param msg  Last fragment of the message to handle
-* @param data Accumulated data received
-*/
+ * @brief Handle PSPMIX_MODEX_DATA_RES message
+ *
+ * This message is sent by another PMIx server of the same user.
+ *
+ * @param msg Last fragment of the message to handle
+ *
+ * @param data Defragmented data received
+ */
 static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
