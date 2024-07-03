@@ -381,19 +381,25 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 /**
  * @brief Handle spawn info from node involved in respawn
  *
- * All user servers involed in spawning processes for a respawn are sending
- * information about creation of these processes succeded or failed to the
- * user server managing the client that called PMIx_Spawn(). This function
- * handles these information and reports fail and success of the respawn action
- * back to the server library.
+ * All user servers involed in spawning processes of a respawn are
+ * sending information about success or failure of creation of these
+ * processes to the user server managing the client that called
+ * PMIx_Spawn(). This function handles such information and reports
+ * failure or success of the respawn action back to the server library.
  *
- * @param spawnID   local ID of the spawn
- * @param success   success state
- * @param nspace    new namespace's name
- * @param np        number of processes successfully spawned
- * @param node      source node of this information
+ * @param spawnID ID uniquely identifying the spawn
+ *
+ * @param succ Success state
+ *
+ * @param nsName Name of the newly created namespace
+ *
+ * @param np Number of processes successfully spawned to this node
+ *
+ * @param node Source node of this information
+ *
+ * @return No return value
  */
-void pspmix_service_spawnInfo(uint16_t spawnID, bool success, char *nspace,
+void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 			      uint32_t np, PSnodes_ID_t node);
 #endif  /* __PS_PMIX_SERVICE */
 

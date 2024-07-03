@@ -2190,40 +2190,39 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 }
 
 /* main thread */
-void pspmix_service_spawnInfo(uint16_t spawnID, bool success, char *nspace,
+void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 			      uint32_t np, PSnodes_ID_t node)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(spawnID %hu success %s nspace %s np %u node"
-	 " %hd)\n", __func__, spawnID, success ? "true" : "false", nspace, np,
-	 node);
+    fdbg(PSPMIX_LOG_CALL, "spawnID %hu succ %s nsName %s np %u node %hd\n",
+	 spawnID, succ ? "true" : "false", nsName, np, node);
 
     GET_LOCK(spawnList);
     PspmixSpawn_t *spawn = findSpawn(spawnID);
     if (!spawn) {
 	RELEASE_LOCK(spawnList);
-	ulog("UNEXPECTED: spawn id %hu not found (np %u node %hd)\n", spawnID,
+	ulog("UNEXPECTED: spawnID %hu not found (np %u node %hd)\n", spawnID,
 	     np, node);
 	return;
     }
 
-    if (!success) {
-	ulog("Node %hd reported failed spawn (id %hu nspace %s np %u)\n", node,
-	     spawnID, nspace, np);
+    if (!succ) {
+	ulog("node %hd reported failed spawn (id %hu nsName %s np %u)\n", node,
+	     spawnID, nsName, np);
 	spawn->state = SPAWN_FAILED;
 	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
 	goto failed;
     }
 
-    /* do some checks with nspace */
+    /* do some checks with nsName */
     if (!spawn->ready) {
 	/* first info for this spawn */
-	spawn->nspace = ustrdup(nspace);
+	spawn->nspace = ustrdup(nsName);
     } else if (!spawn->nspace) {
 	ulog("UNEXPECTED: spawn id %hu: namespace not set\n", spawnID);
 	goto failed;
-    } else if (strcmp(spawn->nspace, nspace)) {
+    } else if (strcmp(spawn->nspace, nsName)) {
 	ulog("UNEXPECTED: spawn id %hu: different namespaces (%s != %s)\n",
-	     spawnID, nspace, spawn->nspace);
+	     spawnID, nsName, spawn->nspace);
 	goto failed;
     }
 
@@ -2246,7 +2245,7 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool success, char *nspace,
 	/* answer from spawn request already received */
 	spawn->state = SPAWN_ALLSUCCESS;
 	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state ALLSUCCESS\n", spawn->id);
-	pspmix_server_spawnRes(true, spawn->sdata, nspace);
+	pspmix_server_spawnRes(true, spawn->sdata, nsName);
 	goto cleanup;
     } else {
 	/* still waiting for the answer to the spawn request */
