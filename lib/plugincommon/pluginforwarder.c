@@ -684,7 +684,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
     return 0;
 }
 
-static void execForwarder(PStask_t *task)
+static void execPluginForwarder(PStask_t *task)
 {
     fwTask = task;
     /* fetch Forwarder_Data_t information before info list gets destructed */
@@ -693,7 +693,6 @@ static void execForwarder(PStask_t *task)
 	pluginflog("no forwarder data at task %s\n", PSC_printTID(task->tid));
 	exit(1);
     }
-    int status = 0;
 
     /* cleanup daemon memory and reset global facilities */
     PSID_clearMem(false);
@@ -710,7 +709,7 @@ static void execForwarder(PStask_t *task)
 	exit(-1);
     }
 
-    int round = 1;
+    int status = 0, round = 1;
     while (!fwShutdown &&
 	   (fwData->childRerun == FW_CHILD_INFINITE
 	    || round <= fwData->childRerun)) {
@@ -979,7 +978,7 @@ bool startForwarder(Forwarder_Data_t *fw)
     task->sigChldCB = sigChldCB;
 
     /* start the new forwarder */
-    if (PSIDspawn_localTask(task, execForwarder, handleFwSock)) {
+    if (PSIDspawn_localTask(task, execPluginForwarder, handleFwSock)) {
 	pluginflog("creating forwarder %s failed\n", fw->pTitle);
 	goto ERROR;
     }
