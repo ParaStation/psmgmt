@@ -235,8 +235,6 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am \
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
-#AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon \
-#	       -I$(top_srcdir)/$(psaccount_dir)
 AM_CFLAGS = @AM_CFLAGS@ -std=gnu99
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AM_LDFLAGS = @AM_LDFLAGS@ -avoid-version -module
@@ -428,8 +426,6 @@ scriptsdir = $(prefix)/scripts
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-
-#psaccount_dir := plugins/psaccount
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la

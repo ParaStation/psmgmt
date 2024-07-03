@@ -10,15 +10,11 @@
 #
 include $(top_srcdir)/common.am
 
-#psaccount_dir := plugins/psaccount
-
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
-#AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon \
-#	       -I$(top_srcdir)/$(psaccount_dir)
 AM_CFLAGS += -std=gnu99
 AM_LDFLAGS += -avoid-version -module
 

@@ -24,10 +24,6 @@
 
 #include "pmix_version.h"
 
-#if 0
-#include "psaccounthandles.h"
-#endif
-
 #define PSPMIX_CONFIG "pspmix.conf"
 
 /** psid plugin requirements */
@@ -35,9 +31,6 @@ char name[] = "pspmix";
 int version = 3;
 int requiredAPI = 137;
 plugin_dep_t dependencies[] = {
-#if 0
-    { .name = "psaccount", .version = 24 },
-#endif
     { .name = NULL, .version = 0 } };
 
 int initialize(FILE *logfile)
@@ -66,27 +59,9 @@ int initialize(FILE *logfile)
 */
     mdbg(PSPMIX_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, debugMask);
 
-#if 0
-    void *handle = PSIDplugin_getHandle("psaccount");
-#endif
-
     /* initialize all modules */
     pspmix_initDaemonModule();
     pspmix_initForwarderModule();
-
-#if 0
-    /* get psaccount function handles */
-    if (!handle) {
-	psAccountSwitchAccounting = NULL;
-	mlog("%s: getting psaccount handle failed\n", __func__);
-    } else {
-	psAccountSwitchAccounting = dlsym(handle, "psAccountSwitchAccounting");
-	if (!psAccountSwitchAccounting) {
-	    mlog("%s: loading function psAccountSwitchAccounting() failed\n",
-		 __func__);
-	}
-    }
-#endif
 
     mlog("(%i) successfully started\n", version);
 
