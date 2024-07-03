@@ -1158,10 +1158,6 @@ bool pspmix_service_clientConnected(const char *nsName, void *clientObject,
 	     nsName, rank, PSC_printTID(fwtid));
     }
 
-    /* @todo do we need that?
-       if (psAccountSwitchAccounting) psAccountSwitchAccounting(childTask->tid, false);
-    */
-
     if (connClients < localClients || !spawnID) return true;
 
     /* all local clients are connected */
