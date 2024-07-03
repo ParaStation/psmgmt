@@ -1167,12 +1167,12 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
 	return true;
     }
 
-    if (!pspmix_comm_sendSpawnInfo(spawnNode, spawnID, true,
-				   nsName, localClients)) {
+    if (spawnNode == PSC_getMyID())  {
+	pspmix_service_spawnInfo(spawnID, true, nsName, localClients, spawnNode);
+    } else if (!pspmix_comm_sendSpawnInfo(spawnNode, spawnID, true,
+					  nsName, localClients)) {
 	ulog("failed to send failed spawn info to node %hd\n", spawnNode);
     }
-    /* @todo take some shortcut when spawner is local?
-       (spawnNode == PSC_getMyID()) */
 
     return true;
 }
@@ -2189,7 +2189,10 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
     }
 }
 
-/* main thread */
+/* main thread:
+	if called by handleSpawnInfo()
+   library thread:
+	if called by pspmix_service_clientConnected() */
 void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 			      uint32_t np, PSnodes_ID_t node)
 {
