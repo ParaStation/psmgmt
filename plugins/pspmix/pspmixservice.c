@@ -804,7 +804,7 @@ nscreate_error:
 /* main thread:
 	if called by handleTermClients()
    library thread:
-	if called by pmix_service_abort() */
+	if called by pspmix_service_abort() */
 bool pspmix_service_terminateClients(const char *nsName, bool remote)
 {
     GET_LOCK(namespaceList);
