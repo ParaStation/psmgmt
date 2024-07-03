@@ -688,19 +688,22 @@ static void execForwarder(PStask_t *task)
 {
     fwTask = task;
     /* fetch Forwarder_Data_t information before info list gets destructed */
-    Forwarder_Data_t *fw = PStask_infoGet(task, TASKINFO_FORWARDER);
-    fwData = fw;
+    fwData = PStask_infoGet(task, TASKINFO_FORWARDER);
+    if (!fwData) {
+	pluginflog("no forwarder data at task %s\n", PSC_printTID(task->tid));
+	exit(1);
+    }
     int status = 0;
 
     /* cleanup daemon memory and reset global facilities */
     PSID_clearMem(false);
 
-    if (!initForwarder(fwTask->fd, fw)) {
+    if (!initForwarder(fwTask->fd, fwData)) {
 	pluginflog("initForwarder failed\n");
 	exit(1);
     }
 
-    int ret = execFWhooks(fw);
+    int ret = execFWhooks(fwData);
     if (ret < 0) {
 	pluginflog("forwarder hooks failed\n");
 	sendCodeInfo(ret);
@@ -709,12 +712,13 @@ static void execForwarder(PStask_t *task)
 
     int round = 1;
     while (!fwShutdown &&
-	   (fw->childRerun == FW_CHILD_INFINITE || round <= fw->childRerun)) {
+	   (fwData->childRerun == FW_CHILD_INFINITE
+	    || round <= fwData->childRerun)) {
 
-	if (fw->childFunc) {
+	if (fwData->childFunc) {
 	    /* setup output/error pipes */
-	    if (fw->fwChildOE) {
-		if (!openOEpipes(fw)) {
+	    if (fwData->fwChildOE) {
+		if (!openOEpipes(fwData)) {
 		    pluginflog("initialize child STDOUT/STDERR failed\n");
 		    exit(-1);
 		}
@@ -731,49 +735,49 @@ static void execForwarder(PStask_t *task)
 	    sigChild = false;
 
 	    /* fork child */
-	    fw->cPid = fork();
-	    if (fw->cPid  < 0) {
+	    fwData->cPid = fork();
+	    if (fwData->cPid  < 0) {
 		pluginwarn(errno, "%s: fork()", __func__);
 		exit(3);
-	    } else if (!fw->cPid) {
+	    } else if (!fwData->cPid) {
 		/* newly spawned child */
 		close(controlFDs[0]);
-		initChild(controlFDs[1], fw);
-		fw->childFunc(fw, round);
+		initChild(controlFDs[1], fwData);
+		fwData->childFunc(fwData, round);
 
 		/* never reached */
 		exit(1);
 	    } else {
 		/* read sid of child */
 		close(controlFDs[1]);
-		ssize_t read = PSCio_recvBuf(controlFDs[0], &fw->cSid,
+		ssize_t read = PSCio_recvBuf(controlFDs[0], &fwData->cSid,
 					     sizeof(pid_t));
 		close(controlFDs[0]);
 		if (read != sizeof(pid_t)) {
 		    pluginflog("reading childs sid failed\n");
-		    pskill(fw->cPid, SIGKILL, 0);
+		    pskill(fwData->cPid, SIGKILL, 0);
 		}
 		gettimeofday(&childStart, NULL);
 
-		sendChildInfo(fw);
+		sendChildInfo(fwData);
 	    }
 	}
 
-	if (fw->fwChildOE) monitorOEpipes(fw);
-	if (fw->hookLoop) fw->hookLoop(fw);
-	forwarderLoop(fw);
+	if (fwData->fwChildOE) monitorOEpipes(fwData);
+	if (fwData->hookLoop) fwData->hookLoop(fwData);
+	forwarderLoop(fwData);
 
 	struct rusage rusage;
-	if (fw->childFunc) {
-	    int childStatus, res = wait4(fw->cPid, &childStatus, 0, &rusage);
+	if (fwData->childFunc) {
+	    int childStatus, res = wait4(fwData->cPid, &childStatus, 0, &rusage);
 	    if (res == -1) {
-		pluginwarn(errno, "%s: wait4(%d)", __func__, fw->cPid);
+		pluginwarn(errno, "%s: wait4(%d)", __func__, fwData->cPid);
 		childStatus = 1;
-	    } else if (fw->accounted) {
-		sendAccInfo(fw, childStatus, &rusage);
+	    } else if (fwData->accounted) {
+		sendAccInfo(fwData, childStatus, &rusage);
 	    }
 	    sendExitInfo(childStatus);
-	    fw->chldExitStatus = childStatus;
+	    fwData->chldExitStatus = childStatus;
 	}
 	/* check for timeout */
 	if (jobTimeout) {
@@ -781,7 +785,7 @@ static void execForwarder(PStask_t *task)
 	    status = -4;
 	}
 
-	if (status || fw->chldExitStatus) break;
+	if (status || fwData->chldExitStatus) break;
 	round++;
     }
 
@@ -793,10 +797,10 @@ static void execForwarder(PStask_t *task)
     /* make sure handling all data, after child is gone + wait for FinACK */
     Swait(1);
 
-    if (fw->hookFinalize) fw->hookFinalize(fw);
+    if (fwData->hookFinalize) fwData->hookFinalize(fwData);
 
     /* cleanup */
-    forwarderExit(fw);
+    forwarderExit(fwData);
 
     exit(status);
 }
