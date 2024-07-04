@@ -284,13 +284,6 @@ static void setupCommonEnv(Conf_t *conf, env_t pmEnv)
 	/* set the PMIX debug mode */
 	if (conf->pmiDbg || getenv("PMIX_DEBUG")) setPSIEnv("PMIX_DEBUG", "1");
 
-	for (int i = 0; i < conf->execCount; i++) {
-	    Executable_t *exec = &conf->exec[i];
-	    snprintf(key, sizeof(key), "PMIX_APP_SIZE_%d", i);
-	    snprintf(val, sizeof(val), "%d", exec->np);
-	    setPSIEnv(key, val);
-	}
-
 	/* set PMIx session max procs aka universe size */
 	snprintf(val, sizeof(val), "%d", conf->uSize);
 	setPSIEnv("PMIX_UNIV_SIZE", val);

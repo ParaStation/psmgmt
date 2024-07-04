@@ -1202,7 +1202,6 @@ static int hookSpawnTask(void *data)
 	}
 	envSet(env, "PMIX_JOB_SIZE", "1");
 	envSet(env, "PMIX_JOB_NUM_APPS", "1");
-	envSet(env, "PMIX_APP_SIZE_0", "1");
 	envSet(env, "PMIX_APP_WDIR_0", task->workingdir);
 	size_t sum = 1;
 	for (char **a = strvGetArray(task->argV); a && *a; a++) {
