@@ -1,6 +1,5 @@
 #include <pmix.h>
 
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -30,10 +29,9 @@ int main(void)
     PMIX_LOAD_PROCID(&scope, proc.nspace, PMIX_RANK_WILDCARD);
 
     /* get various information */
-    GET_INFO(PMIX_UNIV_SIZE);
     GET_INFO(PMIX_JOB_SIZE);
-    GET_INFO(PMIX_APP_SIZE);
-
+    PMIX_LOAD_PROCID(&scope, proc.nspace, proc.rank);
+    GET_INFO(PMIX_APPNUM);
 
     size_t ndata = 1;
     pmix_info_t data[ndata];

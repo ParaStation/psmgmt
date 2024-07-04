@@ -29,9 +29,11 @@ int main(void)
     PMIX_LOAD_PROCID(&scope, proc.nspace, PMIX_RANK_WILDCARD);
 
     /* get various information */
-    GET_INFO(PMIX_UNIV_SIZE);
     GET_INFO(PMIX_JOB_SIZE);
-    GET_INFO(PMIX_APP_SIZE);
+    PMIX_LOAD_PROCID(&scope, proc.nspace, proc.rank);
+    GET_INFO(PMIX_APPNUM);
+
+    fflush(stdout);
 
     if (proc.rank == 0) {
 	sleep(2);
