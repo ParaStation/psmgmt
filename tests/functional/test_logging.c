@@ -90,7 +90,7 @@ int main(void)
     log_it(my);
 
     logger_print(my, -1, "\n");
-    logger_exit(my, 0, "final %s", "bla");
+    if (!getenv("TEST_LOGS")) logger_exit(my, 0, "final %s", "bla");
 
     logger_finalize(my2);
     logger_finalize(my);
