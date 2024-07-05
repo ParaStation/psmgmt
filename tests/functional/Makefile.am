@@ -13,9 +13,10 @@ include $(top_srcdir)/common.am
 AM_LDFLAGS += -avoid-version -module
 
 check_PROGRAMS = test_logging test_paramspace listInfoTypes	\
-	test_bitsets test_psenv
+	test_bitsets test_psenv test_psstrbuf
 
-TESTS = test_logging test_paramspace test_bitsets test_psenv
+TESTS = test_logging test_paramspace test_bitsets test_psenv	\
+	test_psstrbuf
 
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libputil = $(top_builddir)/lib/putil/libputil.la
@@ -35,3 +36,6 @@ test_bitsets_LDADD = $(libpscommon)
 
 test_psenv_SOURCES = test_psenv.c
 test_psenv_LDADD = $(libpscommon)
+
+test_psstrbuf_SOURCES = test_psstrbuf.c
+test_psstrbuf_LDADD = $(libpscommon)
