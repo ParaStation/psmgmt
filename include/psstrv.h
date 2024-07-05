@@ -219,8 +219,8 @@ bool strvAppend(strv_t dst, strv_t src);
  *   string array
  *
  * Thus, if it is required to modify the returned string array or to
- * rely on the content of it on the long run, it is advised to either
- * steal it from @a strv utilizing strvStealArray().
+ * rely on the content of it on the long run, it is advised to steal
+ * it from @a strv utilizing strvStealArray().
  *
  * The main purpose of this function is to feed the content of @a strv
  * into functions like @ref addStringArrayToMsg() or exec().
@@ -233,7 +233,7 @@ bool strvAppend(strv_t dst, strv_t src);
 char **strvGetArray(strv_t strv);
 
 /**
- * Destroy string vector
+ * @brief Destroy string vector
  *
  * Destroy the string vector @a strv. All memory used by the string
  * vector itself and the containing strings is invalidated and
