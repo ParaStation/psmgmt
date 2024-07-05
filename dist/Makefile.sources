@@ -188,6 +188,7 @@ include/psreservation.h \
 include/pssenddb_t.h \
 include/psserial.h \
 include/pssignal.h \
+include/psstrbuf.h \
 include/psstrv.h \
 include/pstask.h \
 include/pstaskid.h \
@@ -223,6 +224,7 @@ lib/pscommon/psprotocol.c \
 lib/pscommon/psreservation.c \
 lib/pscommon/psserial.c \
 lib/pscommon/pssignal.c \
+lib/pscommon/psstrbuf.c \
 lib/pscommon/psstrv.c \
 lib/pscommon/pstask.c \
 lib/pse/Makefile.am \

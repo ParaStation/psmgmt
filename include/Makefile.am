@@ -23,4 +23,4 @@ noinst_HEADERS = kvscommon.h kvs.h mcast.h parser.h psilog.h pslog.h	\
 	pluginmalloc.h pluginpartition.h pluginpsconfig.h pluginpty.h	\
 	pluginspawn.h psstrv.h pluginvector.h pspluginprotocol.h	\
 	pssenddb_t.h psattribute.h psbyteorder.h pscio.h		\
-	psconfighelper.h psitems.h pluginjson.h
+	psconfighelper.h psitems.h pluginjson.h psstrbuf.h

@@ -22,7 +22,8 @@ noinst_LTLIBRARIES = libpscommon.la
 
 libpscommon_la_SOURCES = logging.c pscio.c pscommon.c pscomplist.c	\
 	pscpu.c psenv.c psitems.c pspartition.c psprotocol.c		\
-	psreservation.c psserial.c pssignal.c psstrv.c pstask.c
+	psreservation.c psserial.c pssignal.c psstrbuf.c psstrv.c	\
+	pstask.c
 
 psserial.lo: CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/bin/daemon
 

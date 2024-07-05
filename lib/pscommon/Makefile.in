@@ -117,7 +117,7 @@ libpscommon_la_DEPENDENCIES =
 am_libpscommon_la_OBJECTS = logging.lo pscio.lo pscommon.lo \
 	pscomplist.lo pscpu.lo psenv.lo psitems.lo pspartition.lo \
 	psprotocol.lo psreservation.lo psserial.lo pssignal.lo \
-	psstrv.lo pstask.lo
+	psstrbuf.lo psstrv.lo pstask.lo
 libpscommon_la_OBJECTS = $(am_libpscommon_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -144,7 +144,8 @@ am__depfiles_remade = ./$(DEPDIR)/logging.Plo ./$(DEPDIR)/pscio.Plo \
 	./$(DEPDIR)/psitems.Plo ./$(DEPDIR)/pspartition.Plo \
 	./$(DEPDIR)/psprotocol.Plo ./$(DEPDIR)/psreservation.Plo \
 	./$(DEPDIR)/psserial.Plo ./$(DEPDIR)/pssignal.Plo \
-	./$(DEPDIR)/psstrv.Plo ./$(DEPDIR)/pstask.Plo
+	./$(DEPDIR)/psstrbuf.Plo ./$(DEPDIR)/psstrv.Plo \
+	./$(DEPDIR)/pstask.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -390,7 +391,8 @@ PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt releas
 noinst_LTLIBRARIES = libpscommon.la
 libpscommon_la_SOURCES = logging.c pscio.c pscommon.c pscomplist.c	\
 	pscpu.c psenv.c psitems.c pspartition.c psprotocol.c		\
-	psreservation.c psserial.c pssignal.c psstrv.c pstask.c
+	psreservation.c psserial.c pssignal.c psstrbuf.c psstrv.c	\
+	pstask.c
 
 libpscommon_la_LIBADD = -ldl
 all: all-am
@@ -460,6 +462,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psreservation.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psserial.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pssignal.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psstrbuf.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psstrv.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pstask.Plo@am__quote@ # am--include-marker
 
@@ -635,6 +638,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/psreservation.Plo
 	-rm -f ./$(DEPDIR)/psserial.Plo
 	-rm -f ./$(DEPDIR)/pssignal.Plo
+	-rm -f ./$(DEPDIR)/psstrbuf.Plo
 	-rm -f ./$(DEPDIR)/psstrv.Plo
 	-rm -f ./$(DEPDIR)/pstask.Plo
 	-rm -f Makefile
@@ -694,6 +698,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/psreservation.Plo
 	-rm -f ./$(DEPDIR)/psserial.Plo
 	-rm -f ./$(DEPDIR)/pssignal.Plo
+	-rm -f ./$(DEPDIR)/psstrbuf.Plo
 	-rm -f ./$(DEPDIR)/psstrv.Plo
 	-rm -f ./$(DEPDIR)/pstask.Plo
 	-rm -f Makefile
