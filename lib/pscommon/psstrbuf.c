@@ -62,7 +62,7 @@ bool strbufAdd(strbuf_t strbuf, const char *str)
     if (!strbufInitialized(strbuf)) return false;
 
     size_t strLen = strlen(str);
-    if (strbuf->len + strLen > strbuf->size) {
+    if (strbuf->len + (strLen ? strLen : 1) > strbuf->size) {
 	uint32_t newSize = ((strbuf->len + strLen) / MIN_MALLOC_SIZE + 1) *
 	    MIN_MALLOC_SIZE;
 	char *tmp = realloc(strbuf->string, newSize * sizeof(*tmp));
@@ -78,6 +78,20 @@ bool strbufAdd(strbuf_t strbuf, const char *str)
     strbuf->len += strLen;
 
     return true;
+}
+
+void strbufClear(strbuf_t strbuf)
+{
+    if (strbufInitialized(strbuf)) {
+	if (strbuf->string) {
+#ifdef HAVE_EXPLICIT_BZERO
+	    explicit_bzero(strbuf->string, strbuf->size);
+#else
+	    memset(strbuf->string, 0, strbuf->size);
+#endif
+	}
+	strbuf->len = 0;
+    }
 }
 
 char *strbufStr(strbuf_t strbuf)

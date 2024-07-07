@@ -27,7 +27,8 @@ static bool checkStr(strbuf_t strbuf)
 		strbufSize(strbuf));
 	return false;
     }
-    if (strbufLen(strbuf) != strlen(strbufStr(strbuf)) + 1) {
+    size_t strLen = strbufStr(strbuf) ? strlen(strbufStr(strbuf)) + 1: 0;
+    if (strbufLen(strbuf) != strLen) {
 	fprintf(stderr, "strbuf %p: unexpected length %u (expected %zu)\n",
 		strbuf, strbufLen(strbuf), strlen(strbufStr(strbuf)) + 1);
 	return false;
@@ -86,13 +87,30 @@ int main(void)
     if (verbose) fprintf(stderr, "create corner case 3 (size 64)\n");
     createCheck(str64);
 
+    if (verbose) fprintf(stderr, "create corner case 4 (size 0)\n");
+    createCheck("");
+
     if (verbose) fprintf(stderr, "add 1\n");
-    strbuf_t str = strbufNew(str40);
+    strbuf_t str = strbufNew(NULL);
+    strbufAdd(str, str20);
+    if (!checkStr(str)) return -1;
+    if (!cmpStr(strbufStr(str), str20)) return -1;
+    strbufDestroy(str);
+
+    if (verbose) fprintf(stderr, "add 2\n");
+    str = strbufNew(NULL);
+    strbufAdd(str, "");
+    if (!checkStr(str)) return -1;
+    if (!cmpStr(strbufStr(str), "")) return -1;
+    strbufDestroy(str);
+
+    if (verbose) fprintf(stderr, "add 3\n");
+    str = strbufNew(str40);
     strbufAdd(str, str62);
     if (!checkStr(str)) return -1;
     if (!cmpStr(strbufStr(str), str40 str62)) return -1;
 
-    if (verbose) fprintf(stderr, "add 2\n");
+    if (verbose) fprintf(stderr, "add 4\n");
     strbufAdd(str, str20);
     if (!checkStr(str)) return -1;
     if (!cmpStr(strbufStr(str), str40 str62 str20)) return -1;

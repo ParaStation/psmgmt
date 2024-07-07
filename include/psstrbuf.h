@@ -88,6 +88,19 @@ uint32_t strbufSize(strbuf_t strbuf);
 bool strbufAdd(strbuf_t strbuf, const char *str);
 
 /**
+ * @brief Clear a string buffer
+ *
+ * Clear the string buffer @a strbuf. This will omit all content from
+ * the representing string and reset its length to 0. The actual
+ * memory of the representing string will remain untouched.
+ *
+ * @param strbuf String buffer to clear
+ *
+ * @return No return value
+ */
+void strbufClear(strbuf_t strbuf);
+
+/**
  * @brief Access string buffer's string
  *
  * Get a handle on the string representing the string buffer @a
