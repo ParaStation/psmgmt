@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,13 +23,13 @@
 #include "psprotocol.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
+#include "psstrbuf.h"
 
 #include "psidcomm.h"
 #include "psidhook.h"
 #include "psidhw.h"
 #include "psidnodes.h"
 
-#include "pluginmalloc.h"
 #include "pluginpsconfig.h"
 
 #include "nodeinfolog.h"
@@ -666,21 +666,21 @@ void cleanup(void)
 
 char *help(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
-    addStrBuf("\tDistribute, collect and store info on node configurations\n\n",
-	      &strBuf);
-    addStrBuf("\tHW threads are displayed under key 'cpu'\n", &strBuf);
-    addStrBuf("\tGPUs are displayed under key 'gpu'\n", &strBuf);
-    addStrBuf("\tNICs are displayed under key 'nic'\n", &strBuf);
-    addStrBuf("\tCPU-maps are displayed under key 'map'\n", &strBuf);
-    addStrBuf("\tDistances are displayed under key 'distances'\n", &strBuf);
-    addStrBuf("\tTo display all HW information use key 'all'\n", &strBuf);
-    addStrBuf("\n# configuration options #\n\n", &strBuf);
+    strbufAdd(buf, "\tDistribute, collect and store info on node"
+	      " configurations\n\n");
+    strbufAdd(buf, "\tHW threads are displayed under key 'cpu'\n");
+    strbufAdd(buf, "\tGPUs are displayed under key 'gpu'\n");
+    strbufAdd(buf, "\tNICs are displayed under key 'nic'\n");
+    strbufAdd(buf, "\tCPU-maps are displayed under key 'map'\n");
+    strbufAdd(buf, "\tDistances are displayed under key 'distances'\n");
+    strbufAdd(buf, "\tTo display all HW information use key 'all'\n");
+    strbufAdd(buf, "\n# configuration options #\n\n");
 
-    pluginConfig_helpDesc(nodeInfoConfig, &strBuf);
+    pluginConfig_helpDesc(nodeInfoConfig, buf);
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }
 
 char *set(char *key, char *val)
@@ -722,28 +722,28 @@ char *unset(char *key)
 }
 
 static void printSets(PSnodes_ID_t node, char *tag, uint16_t numNUMA,
-		      PSCPU_set_t *sets, uint16_t setSize, StrBuffer_t *strBuf)
+		      PSCPU_set_t *sets, uint16_t setSize, strbuf_t buf)
 {
     char line[80];
 
-    addStrBuf("\n", strBuf);
-    addStrBuf(tag, strBuf);
+    strbufAdd(buf, "\n");
+    strbufAdd(buf, tag);
     if (node != PSC_getMyID()) {
 	snprintf(line, sizeof(line), " (for node %d)", node);
-	addStrBuf(line, strBuf);
+	strbufAdd(buf, line);
     }
     snprintf(line, sizeof(line), ": %d devices\n", setSize);
-    addStrBuf(line, strBuf);
+    strbufAdd(buf, line);
 
     if (!sets) {
-	addStrBuf("\t<none>\n", strBuf);
+	strbufAdd(buf, "\t<none>\n");
 	return;
     }
 
     for (uint16_t dom = 0; dom < numNUMA; dom++) {
 	snprintf(line, sizeof(line), "\t%d\t%s\n", dom,
 		 PSCPU_print_part(sets[dom], PSCPU_bytesForCPUs(setSize)));
-	addStrBuf(line, strBuf);
+	strbufAdd(buf, line);
     }
 }
 
@@ -759,67 +759,67 @@ static PSnodes_ID_t getNode(char *key)
     return node;
 }
 
-static void showMap(char *key, StrBuffer_t *strBuf)
+static void showMap(char *key, strbuf_t buf)
 {
     PSnodes_ID_t node = getNode(key);
     char line[80];
 
-    addStrBuf("\nMap", strBuf);
+    strbufAdd(buf, "\nMap");
     if (node != PSC_getMyID()) {
 	snprintf(line, sizeof(line), " (for node %d)", node);
-	addStrBuf(line, strBuf);
+	strbufAdd(buf, line);
     }
-    addStrBuf(":\n\t", strBuf);
+    strbufAdd(buf, ":\n\t");
     for (uint16_t thrd = 0; thrd < PSIDnodes_getNumThrds(node); thrd++) {
 	snprintf(line, sizeof(line), " %d->%d", thrd,
 		 PSIDnodes_mapCPU(node, thrd));
-	addStrBuf(line, strBuf);
+	strbufAdd(buf, line);
     }
-    addStrBuf("\n", strBuf);
+    strbufAdd(buf, "\n");
 }
 
-static void showDistances(char *key, StrBuffer_t *strBuf)
+static void showDistances(char *key, strbuf_t buf)
 {
     PSnodes_ID_t node = getNode(key);
     uint16_t numNUMA = PSIDnodes_numNUMADoms(node);
     uint32_t *distances = PSIDnodes_distances(node);
     char line[80];
 
-    addStrBuf("\nDistances", strBuf);
+    strbufAdd(buf, "\nDistances");
     if (node != PSC_getMyID()) {
 	snprintf(line, sizeof(line), " (for node %d)", node);
-	addStrBuf(line, strBuf);
+	strbufAdd(buf, line);
     }
-    addStrBuf(":\n", strBuf);
+    strbufAdd(buf, ":\n");
     if (!distances) {
-	addStrBuf("\t<none>\n", strBuf);
+	strbufAdd(buf, "\t<none>\n");
 	return;
     }
 
     /* column header */
-    addStrBuf("\t     ", strBuf);
+    strbufAdd(buf, "\t     ");
     for (int16_t i = 0; i < numNUMA; i++) {
 	snprintf(line, sizeof(line), " % 5hd", i);
-	addStrBuf(line, strBuf);
+	strbufAdd(buf, line);
     }
-    addStrBuf("\n", strBuf);
+    strbufAdd(buf, "\n");
 
     /* each line */
     for (int16_t i = 0; i < numNUMA; i++) {
 	/* row header */
 	snprintf(line, sizeof(line), "\t% 5hd", i);
-	addStrBuf(line, strBuf);
+	strbufAdd(buf, line);
 	/* each value */
 	for (uint16_t j = 0; j < numNUMA; j++) {
 	    snprintf(line, sizeof(line), " %5u", distances[i*numNUMA + j]);
-	    addStrBuf(line, strBuf);
+	    strbufAdd(buf, line);
 	}
-	addStrBuf("\n", strBuf);
+	strbufAdd(buf, "\n");
     }
-    addStrBuf("\n", strBuf);
+    strbufAdd(buf, "\n");
 }
 
-void printPCIIDs(PCI_ID_t *id, StrBuffer_t *strBuf)
+void printPCIIDs(PCI_ID_t *id, strbuf_t buf)
 {
     if (!id) return;
     for (size_t d = 0; id[d].vendor_id; d++) {
@@ -830,17 +830,17 @@ void printPCIIDs(PCI_ID_t *id, StrBuffer_t *strBuf)
 	    snprintf(devStr + strlen(devStr), sizeof(devStr) - strlen(devStr),
 		     ":%04x:%04x", id[d].subvendor_id, id[d].subdevice_id);
 	}
-	addStrBuf(devStr, strBuf);
+	strbufAdd(buf, devStr);
     }
-    addStrBuf("\n", strBuf);
+    strbufAdd(buf, "\n");
 }
 
-void printNICDevNames(StrBuffer_t *strBuf)
+void printNICDevNames(strbuf_t buf)
 {
     short numNICs= PSIDnodes_numNICs(PSC_getMyID());
     if (!numNICs) return;
 
-    addStrBuf("    names and ports:\n", strBuf);
+    strbufAdd(buf, "    names and ports:\n");
     for (short n = 0; n < numNICs; n++) {
 	PSIDhw_IOdev_t *dev = PSIDnodes_NICDevs(n);
 	if (!dev) continue;
@@ -850,58 +850,58 @@ void printNICDevNames(StrBuffer_t *strBuf)
 	for (short p = 0; p < dev->numPorts; p++)
 	    snprintf(devStr + strlen(devStr), sizeof(devStr) - strlen(devStr),
 		     " %d", dev->portNums[p]);
-	addStrBuf(devStr, strBuf);
-	addStrBuf("\n", strBuf);
+	strbufAdd(buf, devStr);
+	strbufAdd(buf, "\n");
     }
 }
 
 char *show(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
     if (!key) {
 	/* Show the whole configuration */
-	addStrBuf("\n", &strBuf);
-	pluginConfig_traverse(nodeInfoConfig, pluginConfig_showVisitor,&strBuf);
+	strbufAdd(buf, "\n");
+	pluginConfig_traverse(nodeInfoConfig, pluginConfig_showVisitor, buf);
     } else if (!strncmp(key, "cpu", strlen("cpu"))) {
 	PSnodes_ID_t node = getNode(key);
 	printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
-		  PSIDnodes_CPUSets(node), PSIDnodes_getNumThrds(node),&strBuf);
+		  PSIDnodes_CPUSets(node), PSIDnodes_getNumThrds(node), buf);
     } else if (!strncmp(key, "gpu", strlen("gpu"))) {
 	PSnodes_ID_t node = getNode(key);
 	printSets(node, "GPUs", PSIDnodes_numNUMADoms(node),
-		  PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node), &strBuf);
+		  PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node), buf);
     } else if (!strncmp(key, "nic", strlen("nic"))) {
 	PSnodes_ID_t node = getNode(key);
 	printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
-		  PSIDnodes_NICSets(node), PSIDnodes_numNICs(node), &strBuf);
-	if (node == PSC_getMyID()) printNICDevNames(&strBuf);
+		  PSIDnodes_NICSets(node), PSIDnodes_numNICs(node), buf);
+	if (node == PSC_getMyID()) printNICDevNames(buf);
     } else if (!strncmp(key, "map", strlen("map"))) {
-	showMap(key, &strBuf);
+	showMap(key, buf);
     } else if (!strncmp(key, "distances", strlen("distances"))) {
-	showDistances(key, &strBuf);
+	showDistances(key, buf);
     } else if (!strncmp(key, "all", strlen("all"))) {
 	PSnodes_ID_t node = getNode(key);
 	printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
-		  PSIDnodes_CPUSets(node), PSIDnodes_getNumThrds(node),&strBuf);
-	showMap(key, &strBuf);
+		  PSIDnodes_CPUSets(node), PSIDnodes_getNumThrds(node), buf);
+	showMap(key, buf);
 	printSets(node, "GPUs", PSIDnodes_numNUMADoms(node),
-		  PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node), &strBuf);
+		  PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node), buf);
 	printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
-		  PSIDnodes_NICSets(node), PSIDnodes_numNICs(node), &strBuf);
-	if (node == PSC_getMyID()) printNICDevNames(&strBuf);
-	showDistances(key, &strBuf);
+		  PSIDnodes_NICSets(node), PSIDnodes_numNICs(node), buf);
+	if (node == PSC_getMyID()) printNICDevNames(buf);
+	showDistances(key, buf);
     } else if (!strncmp(key, "pci", strlen("pci"))) {
-	addStrBuf("\n", &strBuf);
-	addStrBuf("PCIe IDs for GPUs:\n", &strBuf);
-	printPCIIDs(GPU_IDs, &strBuf);
-	addStrBuf("PCIe IDs for NICs:\n", &strBuf);
-	printPCIIDs(NIC_IDs, &strBuf);
-    } else if (!pluginConfig_showKeyVal(nodeInfoConfig, key, &strBuf)) {
-	addStrBuf(" '", &strBuf);
-	addStrBuf(key, &strBuf);
-	addStrBuf("' is unknown\n", &strBuf);
+	strbufAdd(buf, "\n");
+	strbufAdd(buf, "PCIe IDs for GPUs:\n");
+	printPCIIDs(GPU_IDs, buf);
+	strbufAdd(buf, "PCIe IDs for NICs:\n");
+	printPCIIDs(NIC_IDs, buf);
+    } else if (!pluginConfig_showKeyVal(nodeInfoConfig, key, buf)) {
+	strbufAdd(buf, " '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' is unknown\n");
     }
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }

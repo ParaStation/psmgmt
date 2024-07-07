@@ -639,58 +639,56 @@ bool pluginConfig_remove(pluginConfig_t conf, const char *key)
 }
 
 static bool doShow(const char *key, int keyLen, const pluginConfigVal_t *val,
-		   StrBuffer_t *buf)
+		   strbuf_t buf)
 {
-    if (!buf) return false;
+    if (!strbufInitialized(buf)) return false;
 
     char keyStr[keyLen + 1];
     switch (val->type) {
     case PLUGINCONFIG_VALUE_NONE:
 	snprintf(keyStr, sizeof(keyStr), "%*s", keyLen, key);
-	addStrBuf(keyStr, buf);
-	addStrBuf(" has no type\n", buf);
+	strbufAdd(buf, keyStr);
+	strbufAdd(buf, " has no type\n");
 	break;
     case PLUGINCONFIG_VALUE_NUM:
 	snprintf(keyStr, sizeof(keyStr), "%*s", keyLen, key);
-	addStrBuf(keyStr, buf);
+	strbufAdd(buf, keyStr);
 	char valStr[32];
 	snprintf(valStr, sizeof(valStr), " = %ld\n", val->val.num);
-	addStrBuf(valStr, buf);
+	strbufAdd(buf, valStr);
 	break;
     case PLUGINCONFIG_VALUE_STR:
 	snprintf(keyStr, sizeof(keyStr), "%*s", keyLen, key);
-	addStrBuf(keyStr, buf);
-	addStrBuf(" = \"", buf);
-	addStrBuf(val->val.str, buf);
-	addStrBuf("\"\n", buf);
+	strbufAdd(buf, keyStr);
+	strbufAdd(buf, " = \"");
+	strbufAdd(buf, val->val.str);
+	strbufAdd(buf, "\"\n");
 	break;
     case PLUGINCONFIG_VALUE_LST:
 	snprintf(keyStr, sizeof(keyStr), "%*s", keyLen, key);
-	addStrBuf(keyStr, buf);
-	addStrBuf(" = [", buf);
+	strbufAdd(buf, keyStr);
+	strbufAdd(buf, " = [");
 	for (size_t i = 0; val->val.lst[i]; i++) {
-	    if (i) addStrBuf(" , ", buf);
-	    addStrBuf("\"", buf);
-	    addStrBuf(val->val.lst[i], buf);
-	    addStrBuf("\"", buf);
+	    if (i) strbufAdd(buf, " , ");
+	    strbufAdd(buf, "\"");
+	    strbufAdd(buf, val->val.lst[i]);
+	    strbufAdd(buf, "\"");
 	}
-	addStrBuf("]\n", buf);
+	strbufAdd(buf, "]\n");
 	break;
     default:
 	snprintf(keyStr, sizeof(keyStr), "%*s", keyLen, key);
-	addStrBuf(keyStr, buf);
-	addStrBuf(" has unknown type\n", buf);
+	strbufAdd(buf, keyStr);
+	strbufAdd(buf, " has unknown type\n");
     }
     return true;
 }
 
-bool pluginConfig_showKeyVal(pluginConfig_t conf,
-			     const char *key, StrBuffer_t *buf)
+bool pluginConfig_showKeyVal(pluginConfig_t conf, const char *key, strbuf_t buf)
 {
-    if (!checkConfig(conf) || !key || !buf) return false;
+    if (!checkConfig(conf) || !key || !strbufInitialized(buf)) return false;
 
     pluginConfigObj_t *obj = findObj(conf, key);
-
     if (!obj) return false;
 
     return doShow(key, strlen(key) + 1, &(obj->value), buf);
@@ -703,17 +701,17 @@ bool pluginConfig_showVisitor(const char *key, const pluginConfigVal_t *val,
 {
     if (!info) return false;
 
-    StrBuffer_t *strBuf = (StrBuffer_t *)info;
+    strbuf_t strBuf = (strbuf_t)info;
 
     return doShow(key, maxKeyLen, val, strBuf);
 }
 
-void pluginConfig_helpDesc(pluginConfig_t conf, StrBuffer_t *buf)
+void pluginConfig_helpDesc(pluginConfig_t conf, strbuf_t buf)
 {
-    if (!buf) return;
+    if (!strbufInitialized(buf)) return;
 
     if (!checkConfig(conf)) {
-	addStrBuf("\tNo configuration context provided.\n", buf);
+	strbufAdd(buf, "\tNo configuration context provided.\n");
 	return;
     }
 
@@ -721,14 +719,14 @@ void pluginConfig_helpDesc(pluginConfig_t conf, StrBuffer_t *buf)
     char keyStr[maxKeyLen + 1];
     for (size_t i = 0; conf->def[i].name; i++) {
 	snprintf(keyStr, sizeof(keyStr), "%*s", maxKeyLen, conf->def[i].name);
-	addStrBuf(keyStr, buf);
+	strbufAdd(buf, keyStr);
 	char typeStr[16];
 	snprintf(typeStr, sizeof(typeStr), "%10s",
 		 pluginConfig_typeStr(conf->def[i].type));
-	addStrBuf(typeStr, buf);
-	addStrBuf("  ", buf);
-	addStrBuf(conf->def[i].desc, buf);
-	addStrBuf("\n", buf);
+	strbufAdd(buf, typeStr);
+	strbufAdd(buf, "  ");
+	strbufAdd(buf, conf->def[i].desc);
+	strbufAdd(buf, "\n");
     }
 }
 

@@ -30,11 +30,13 @@
 #include "psenv.h"
 #include "pslog.h"
 #include "psprotocol.h"
+#include "psstrbuf.h"
 #include "selector.h"
 
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
 #include "pluginhelper.h"
+#include "pluginmalloc.h"
 
 #include "slurmcommon.h"
 #include "slurmerrno.h"
@@ -1172,7 +1174,7 @@ int __sendSlurmctldReq(Req_Info_t *req, void *data,
     return __sendSlurmMsgEx(SLURMCTLD_SOCK, &head, &msg, req, caller, line);
 }
 
-static void addVal2List(StrBuffer_t *strBuf, int32_t val, bool range, bool fin,
+static void addVal2List(strbuf_t buf, int32_t val, bool range, bool fin,
 			hexBitStrConv_func_t *conv)
 {
     char tmp[128];
@@ -1182,7 +1184,7 @@ static void addVal2List(StrBuffer_t *strBuf, int32_t val, bool range, bool fin,
 	/* add end range of compacted list */
 	if (range && rangeVal != -1) {
 	    snprintf(tmp, sizeof(tmp), "-%i", rangeVal);
-	    addStrBuf(tmp, strBuf);
+	    strbufAdd(buf, tmp);
 	}
 	lastVal = rangeVal = -1;
 	return;
@@ -1196,42 +1198,43 @@ static void addVal2List(StrBuffer_t *strBuf, int32_t val, bool range, bool fin,
 
     if (range) {
 	/* compact list with range syntax */
-	if (!strBuf->buf) lastVal = rangeVal = -1;
+	if (!strbufLen(buf)) lastVal = rangeVal = -1;
 
 	if (lastVal != -1 && val == lastVal+1) {
 	    rangeVal = val;
 	} else {
 	    if (rangeVal != -1) {
 		snprintf(tmp, sizeof(tmp), "-%i", rangeVal);
-		addStrBuf(tmp, strBuf);
+		strbufAdd(buf, tmp);
 		rangeVal = -1;
 	    }
-	    if (strBuf->buf) addStrBuf(",", strBuf);
+	    if (strbufLen(buf)) strbufAdd(buf, ",");
 	    snprintf(tmp, sizeof(tmp), "%i", val);
-	    addStrBuf(tmp, strBuf);
+	    strbufAdd(buf, tmp);
 	}
 	lastVal = val;
     } else {
 	/* comma separated list only */
-	if (strBuf->buf) addStrBuf(",", strBuf);
+	if (strbufLen(buf)) strbufAdd(buf, ",");
 	snprintf(tmp, sizeof(tmp), "%i", val);
-	addStrBuf(tmp, strBuf);
+	strbufAdd(buf, tmp);
     }
 }
 
-bool hexBitstr2List(char *bitstr, StrBuffer_t *strBuf, bool range)
+bool hexBitstr2List(char *bitstr, strbuf_t buf, bool range)
 {
-    return hexBitstr2ListEx(bitstr, strBuf, range, NULL);
+    return hexBitstr2ListEx(bitstr, buf, range, NULL);
 }
 
-bool hexBitstr2ListEx(char *bitstr, StrBuffer_t *strBuf, bool range,
+bool hexBitstr2ListEx(char *bitstr, strbuf_t buf, bool range,
 		      hexBitStrConv_func_t *conv)
 {
-    strBuf->buf = NULL;
     if (!bitstr) {
 	flog("invalid bitstring\n");
 	return false;
     }
+
+    strbufClear(buf);
 
     if (!strncmp(bitstr, "0x", 2)) bitstr += 2;
     size_t len = strlen(bitstr);
@@ -1250,13 +1253,13 @@ bool hexBitstr2ListEx(char *bitstr, StrBuffer_t *strBuf, bool range,
 	}
 
 	for (int32_t i = 1; i <= 8; i *= 2) {
-	    if (next & i) addVal2List(strBuf, count, range, false, conv);
+	    if (next & i) addVal2List(buf, count, range, false, conv);
 	    count++;
 	}
     }
 
-    if (range) addVal2List(strBuf, 0, range, true, conv);
-    addStrBuf("", strBuf);
+    if (range) addVal2List(buf, 0, range, true, conv);
+    strbufAdd(buf, "");
 
     return true;
 }

@@ -38,6 +38,7 @@
 #if PMIX_VERSION_MAJOR >= 4
 #include "pluginhelper.h"
 #include "pscpu.h"
+#include "psstrbuf.h"
 
 #include "psidnodes.h"
 #endif
@@ -2573,19 +2574,18 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
  */
 static char * getNodelistString(list_t *procMap)
 {
-    StrBuffer_t strBuf = { .buf = NULL, .strLen = 0 };
+    strbuf_t buf = strbufNew(NULL);
 
     list_t *n;
     list_for_each(n, procMap) {
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
-	addStrBuf(node->hostname, &strBuf);
-	addStrBuf(",", &strBuf);
+	if (strbufLen(buf)) strbufAdd(buf, ",");
+	strbufAdd(buf, node->hostname);
     }
 
-    if (strBuf.strLen > 1) strBuf.buf[strBuf.strLen-1] = '\0';
-    else addStrBuf("", &strBuf); /* make sure to never return NULL */
+    strbufAdd(buf, ""); // make sure to never return NULL
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }
 
 static void fillJobInfoArray(pmix_data_array_t *jobInfo,

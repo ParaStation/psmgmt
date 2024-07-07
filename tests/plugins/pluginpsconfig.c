@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -79,14 +79,14 @@ void cleanup(void)
 
 char * help(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
-    addStrBuf("\tSome dummy plugin mimicking psconfig usage.\n", &strBuf);
-    addStrBuf("\n# configuration options #\n\n", &strBuf);
+    strbufAdd(buf, "\tSome dummy plugin mimicking psconfig usage.\n");
+    strbufAdd(buf, "\n# configuration options #\n\n");
 
-    pluginConfig_helpDesc(config, &strBuf);
+    pluginConfig_helpDesc(config, buf);
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }
 
 char *set(char *key, char *value)
@@ -142,17 +142,17 @@ char *unset(char *key)
 
 char *show(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
     if (!key) {
 	/* Show the whole configuration */
-	addStrBuf("\n", &strBuf);
-	pluginConfig_traverse(config, pluginConfig_showVisitor, &strBuf);
-    } else if (!pluginConfig_showKeyVal(config, key, &strBuf)) {
-	addStrBuf(" ", &strBuf);
-	addStrBuf(key, &strBuf);
-	addStrBuf(" is unknown\n", &strBuf);
+	strbufAdd(buf, "\n");
+	pluginConfig_traverse(config, pluginConfig_showVisitor, buf);
+    } else if (!pluginConfig_showKeyVal(config, key, buf)) {
+	strbufAdd(buf, " ");
+	strbufAdd(buf, key);
+	strbufAdd(buf, " is unknown\n");
     }
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }

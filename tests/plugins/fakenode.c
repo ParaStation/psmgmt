@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -74,11 +74,9 @@ static void resetFakeTopology(void)
 }
 
 
-static char * doEval(const char *key, const pluginConfigVal_t *val,
-		     const void *info)
+static char *doEval(const char *key, const pluginConfigVal_t *val,
+		    const void *info)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
-
     if (!strcmp(key, "DebugMask")) {
 	// uint32_t mask = val ? val->val.num : 0;
 	// currently ignored
@@ -92,8 +90,9 @@ static char * doEval(const char *key, const pluginConfigVal_t *val,
 	}
 	char *valStr = val->val.str;
 	if (!strlen(valStr)) {
-	    addStrBuf("  No value given", &strBuf);
-	    return strBuf.buf;
+	    strbuf_t buf = strbufNew(NULL);
+	    strbufAdd(buf, "  No value given");
+	    return strbufSteal(buf);
 	}
 	char *topoFile;
 	if (*valStr == '/') {
@@ -105,13 +104,14 @@ static char * doEval(const char *key, const pluginConfigVal_t *val,
 	}
 	struct stat fstat;
 	if (stat(topoFile, &fstat)) {
+	    strbuf_t buf = strbufNew(NULL);
 	    pluginwarn(errno, "%s: stat(%s)", __func__, topoFile);
-	    addStrBuf("  Topology file '", &strBuf);
-	    addStrBuf(topoFile, &strBuf);
-	    addStrBuf("' not found\n", &strBuf);
+	    strbufAdd(buf, "  Topology file '");
+	    strbufAdd(buf, topoFile);
+	    strbufAdd(buf, "' not found\n");
 	    pluginConfig_unset(config, key);
 	    free(topoFile);
-	    return strBuf.buf;
+	    return strbufSteal(buf);
 	}
 
 	setenv("HWLOC_XMLFILE", topoFile, 1);
@@ -124,12 +124,14 @@ static char * doEval(const char *key, const pluginConfigVal_t *val,
 
 	return NULL;
     } else {
-	addStrBuf("  Unknown key '", &strBuf);
-	addStrBuf(key, &strBuf);
-	addStrBuf("'\n", &strBuf);
-    }
+	strbuf_t buf = strbufNew(NULL);
+	strbufAdd(buf, "  Unknown key '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "'\n");
 
-    return strBuf.buf;
+	return strbufSteal(buf);
+    }
+    return NULL;
 }
 
 
@@ -196,42 +198,43 @@ void cleanup(void)
 
 char * help(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
-    addStrBuf("\nTest plugin helping to fake hwloc topologies.\n", &strBuf);
-    addStrBuf("Topologies might be set via psiadmin:\n", &strBuf);
-    addStrBuf("  plugin set ", &strBuf);
-    addStrBuf(name, &strBuf);
-    addStrBuf(" Topology <name>\n", &strBuf);
-    addStrBuf("<name> addresses to the hwloc topology file to be used\n",
-	      &strBuf);
-    addStrBuf("The file has to be available as\n", &strBuf);
-    addStrBuf("  /opt/parastation/plugins/hwloc/topo.<name>.xml\n", &strBuf);
-    addStrBuf("As an alternative the topology file might be addresses by"
-	      " an absolute path\n", &strBuf);
-    addStrBuf("\n# configuration options #\n\n", &strBuf);
+    strbufAdd(buf, "\nTest plugin helping to fake hwloc topologies.\n");
+    strbufAdd(buf, "Topologies might be set via psiadmin:\n");
+    strbufAdd(buf, "  plugin set ");
+    strbufAdd(buf, name);
+    strbufAdd(buf, " Topology <name>\n");
+    strbufAdd(buf, "<name> addresses to the hwloc topology file to be used\n");
+    strbufAdd(buf, "The file has to be available as\n");
+    strbufAdd(buf, "  /opt/parastation/plugins/hwloc/topo.<name>.xml\n");
+    strbufAdd(buf, "As an alternative the topology file might be addresses by"
+	      " an absolute path\n");
+    strbufAdd(buf, "\n# configuration options #\n\n");
 
-    pluginConfig_helpDesc(config, &strBuf);
-    return strBuf.buf;
+    pluginConfig_helpDesc(config, buf);
+
+    return strbufSteal(buf);
 }
 
 char *set(char *key, char *value)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
     const pluginConfigDef_t *thisDef = pluginConfig_getDef(config, key);
 
     if (!thisDef) {
-	addStrBuf("  Unknown key '", &strBuf);
-	addStrBuf(key, &strBuf);
-	addStrBuf("'\n", &strBuf);
-	return strBuf.buf;
+	strbuf_t buf = strbufNew(NULL);
+	strbufAdd(buf, "  Unknown key '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "'\n");
+	return strbufSteal(buf);
     }
 
     if (!pluginConfig_addStr(config, key, value)) {
-	addStrBuf("  Illegal value '", &strBuf);
-	addStrBuf(value, &strBuf);
-	addStrBuf("'\n", &strBuf);
-	return strBuf.buf;
+	strbuf_t buf = strbufNew(NULL);
+	strbufAdd(buf, "  Illegal value '");
+	strbufAdd(buf, value);
+	strbufAdd(buf, "'\n");
+	return strbufSteal(buf);
     }
 
     return doEval(key, pluginConfig_get(config, key), NULL);
@@ -245,23 +248,21 @@ char *unset(char *key)
 
 char *show(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
     if (key) {
-	if (!pluginConfig_showKeyVal(config, key, &strBuf)) {
-	    addStrBuf(" '", &strBuf);
-	    addStrBuf(key, &strBuf);
-	    addStrBuf("' is unknown\n", &strBuf);
+	if (!pluginConfig_showKeyVal(config, key, buf)) {
+	    strbufAdd(buf, " '");
+	    strbufAdd(buf, key);
+	    strbufAdd(buf, "' is unknown\n");
 	}
+    } else if (curTopology) {
+	strbufAdd(buf, "  Current fake topologie taken from ");
+	strbufAdd(buf, curTopology);
+	strbufAdd(buf, "\n");
     } else {
-	if (curTopology) {
-	    addStrBuf("  Current fake topologie taken from ", &strBuf);
-	    addStrBuf(curTopology, &strBuf);
-	    addStrBuf("\n", &strBuf);
-	} else {
-	    addStrBuf("  Current topologie is real\n", &strBuf);
-	}
+	strbufAdd(buf, "  Current topologie is real\n");
     }
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }

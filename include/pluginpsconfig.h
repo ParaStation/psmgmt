@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021,2023 ParTec AG, Munich
+ * Copyright (C) 2021,2023-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,7 +14,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "pluginmalloc.h"
+#include "psstrbuf.h"
 
 /**
  * @brief Configuration context
@@ -147,7 +147,7 @@ typedef bool pluginConfigVisitor_t(const char *key,
  * Special visitor to implement a plugin's show functionality. It will
  * add all key-value pairs of a given configuration context passed to
  * @ref pluginConfig_traverse() to the string buffer of type
- * StrBuffer_t that was passed as the info parameter.
+ * strbuf_t that was passed as the info parameter.
  */
 pluginConfigVisitor_t pluginConfig_showVisitor;
 
@@ -480,8 +480,7 @@ size_t pluginConfig_maxKeyLen(pluginConfig_t conf);
  * successfully appended to @a buf, true is returned; or false in case
  * of failure
  */
-bool pluginConfig_showKeyVal(pluginConfig_t conf,
-			     const char *key, StrBuffer_t *buf);
+bool pluginConfig_showKeyVal(pluginConfig_t conf, const char *key, strbuf_t buf);
 
 /**
  * @brief Provide description for plugin's help function
@@ -497,6 +496,6 @@ bool pluginConfig_showKeyVal(pluginConfig_t conf,
  *
  * @return No return value
  */
-void pluginConfig_helpDesc(pluginConfig_t conf, StrBuffer_t *buf);
+void pluginConfig_helpDesc(pluginConfig_t conf, strbuf_t buf);
 
 #endif  /* __PLUGIN_LIB_PSCONFIG */

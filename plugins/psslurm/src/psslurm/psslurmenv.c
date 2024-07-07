@@ -201,8 +201,7 @@ static char *getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes)
     return buffer;
 }
 
-static void getCompactThreadList(StrBuffer_t *strBuf,
-	const PSCPU_set_t threads)
+static char *getCompactThreadList(const PSCPU_set_t threads)
 {
     short numThreads = PSIDnodes_getNumThrds(PSC_getMyID());
 
@@ -221,8 +220,8 @@ static void getCompactThreadList(StrBuffer_t *strBuf,
 	mlog("\n");
     }
 
-    strBuf->buf = NULL;
-    strBuf->strLen = 0;
+    strbuf_t buf = strbufNew(NULL);
+
     char tmp[32];
     int last = -1;
     bool range = false;
@@ -237,8 +236,8 @@ static void getCompactThreadList(StrBuffer_t *strBuf,
 
 	if (!range) {
 	    /* if we are not in a range, last is solo or started a range */
-	    snprintf(tmp, sizeof(tmp), "%s%i", strBuf->strLen ? "," : "", last);
-	    addStrBuf(tmp, strBuf);
+	    snprintf(tmp, sizeof(tmp), "%s%i", strbufLen(buf) ? "," : "", last);
+	    strbufAdd(buf, tmp);
 	}
 
 	/* check if m continues a range */
@@ -252,7 +251,7 @@ static void getCompactThreadList(StrBuffer_t *strBuf,
 	if (range) {
 	    /* last finalized a range */
 	    snprintf(tmp, sizeof(tmp), "-%i", last);
-	    addStrBuf(tmp, strBuf);
+	    strbufAdd(buf, tmp);
 	    range = false;
 	}
 
@@ -263,27 +262,28 @@ static void getCompactThreadList(StrBuffer_t *strBuf,
     if (range) {
 	snprintf(tmp, sizeof(tmp), "-%d", last);
     } else {
-	snprintf(tmp, sizeof(tmp), "%s%i", strBuf->strLen ? "," : "", last);
+	snprintf(tmp, sizeof(tmp), "%s%i", strbufLen(buf) ? "," : "", last);
     }
-    addStrBuf(tmp, strBuf);
+    strbufAdd(buf, tmp);
+
+    return strbufSteal(buf);
 }
 
 static void setThreadsBitmapsEnv(const PSCPU_set_t *stepcpus,
-	const PSCPU_set_t *jobcpus)
+				 const PSCPU_set_t *jobcpus)
 {
-    StrBuffer_t strBuf;
     if (stepcpus) {
-	getCompactThreadList(&strBuf, *stepcpus);
-	setenv("__PSJAIL_STEP_CPUS", strBuf.buf, 1);
-	fdbg(PSSLURM_LOG_JAIL, "step cpus: %s\n", strBuf.buf);
-	freeStrBuf(&strBuf);
+	char *threadListStr = getCompactThreadList(*stepcpus);
+	setenv("__PSJAIL_STEP_CPUS", threadListStr, 1);
+	fdbg(PSSLURM_LOG_JAIL, "step cpus: %s\n",threadListStr);
+	free(threadListStr);
     }
 
     if (jobcpus) {
-	getCompactThreadList(&strBuf, *jobcpus);
-	setenv("__PSJAIL_JOB_CPUS", strBuf.buf, 1);
-	fdbg(PSSLURM_LOG_JAIL, "job cpus: %s\n", strBuf.buf);
-	freeStrBuf(&strBuf);
+	char *threadListStr = getCompactThreadList(*jobcpus);
+	setenv("__PSJAIL_JOB_CPUS", threadListStr, 1);
+	fdbg(PSSLURM_LOG_JAIL, "job cpus: %s\n", threadListStr);
+	free(threadListStr);
     }
 }
 
@@ -599,14 +599,18 @@ static void setGResJobEnv(list_t *gresList, env_t env)
     Gres_Cred_t *gres = findGresCred(gresList, GRES_PLUGIN_GPU, GRES_CRED_JOB);
     if (gres && gres->bitAlloc) {
 	if (gres->bitAlloc[0]) {
-	    StrBuffer_t strList = { .buf = NULL };
-	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
+	    strbuf_t strList = strbufNew(NULL);
+	    hexBitstr2List(gres->bitAlloc[0], strList, false);
 
 	    /* always set informational variable */
-	    envSet(env, "SLURM_JOB_GPUS", strList.buf);
+	    envSet(env, "SLURM_JOB_GPUS", strbufStr(strList));
 
 	    /* tell doClamps() which gpus to use */
-	    envSet(env, "__PSID_USE_GPUS", strList.buf);
+	    envSet(env, "__PSID_USE_GPUS", strbufStr(strList));
+
+	    /* append some spaces to help step code to detect whether
+	     * the user has changed the variable in his job script */
+	    strbufAdd(strList, "     ");
 
 	    char *prefix = "__AUTO_";
 	    char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
@@ -614,16 +618,11 @@ static void setGResJobEnv(list_t *gresList, env_t env)
 		/* set variable if not already set by the user */
 		if (envGet(env, gpu_variables[i])) continue;
 		snprintf(name, sizeof(name), "%s%s", prefix, gpu_variables[i]);
-		/* append some spaces to help step code to detect whether
-		 * the user has changed the variable in his job script */
-		char *val = umalloc(strList.strLen + 6);
-		sprintf(val, "%s     ", strList.buf);
-		envSet(env, gpu_variables[i], val);
-		envSet(env, name, val);
-		ufree(val);
-	    }
 
-	    freeStrBuf(&strList);
+		envSet(env, gpu_variables[i], strbufStr(strList));
+		envSet(env, name, strbufStr(strList));
+	    }
+	    strbufDestroy(strList);
 	} else {
 	    flog("invalid gpu gres bitAlloc for local nodeID 0\n");
 	}
@@ -633,10 +632,10 @@ static void setGResJobEnv(list_t *gresList, env_t env)
     gres = findGresCred(gresList, GRES_PLUGIN_MIC, GRES_CRED_JOB);
     if (gres && gres->bitAlloc) {
 	if (gres->bitAlloc[0]) {
-	    StrBuffer_t strList = { .buf = NULL };
-	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
-	    envSet(env, "OFFLOAD_DEVICES", strList.buf);
-	    freeStrBuf(&strList);
+	    strbuf_t strList = strbufNew(NULL);
+	    hexBitstr2List(gres->bitAlloc[0], strList, false);
+	    envSet(env, "OFFLOAD_DEVICES", strbufStr(strList));
+	    strbufDestroy(strList);
 	} else {
 	    flog("invalid mic gres bitAlloc for local nodeID 0\n");
 	}
@@ -646,10 +645,10 @@ static void setGResJobEnv(list_t *gresList, env_t env)
     gres = findGresCred(gresList, NO_VAL, GRES_CRED_JOB);
     if (gres && gres->bitAlloc) {
 	if (gres->bitAlloc[0]) {
-	    StrBuffer_t strList = { .buf = NULL };
-	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
-	    envSet(env, "SLURM_JOB_GRES", strList.buf);
-	    freeStrBuf(&strList);
+	    strbuf_t strList = strbufNew(NULL);
+	    hexBitstr2List(gres->bitAlloc[0], strList, false);
+	    envSet(env, "SLURM_JOB_GRES", strbufStr(strList));
+	    strbufDestroy(strList);
 	} else {
 	    flog("invalid job gres bitAlloc for local nodeID 0\n");
 	}
@@ -939,16 +938,16 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
     }
 
     /* decode step GPUs */
-    StrBuffer_t strList = { .buf = NULL };
-    hexBitstr2List(gres->bitAlloc[jobNodeId], &strList, false);
+    strbuf_t strList = strbufNew(NULL);
+    hexBitstr2List(gres->bitAlloc[jobNodeId], strList, false);
 
     /* always set informational variable */
-    setenv("SLURM_STEP_GPUS", strList.buf, 1);
+    setenv("SLURM_STEP_GPUS", strbufStr(strList), 1);
 
     /* tell doClamps() which gpus to use to correctly set PSID_CLOSE_GPUS */
-    setenv("__PSID_USE_GPUS", strList.buf, 1);
+    setenv("__PSID_USE_GPUS", strbufStr(strList), 1);
 
-    freeStrBuf(&strList);
+    strbufDestroy(strList);
 
     uint32_t stepNId = step->localNodeId;
     uint32_t ltnum = step->globalTaskIdsLen[stepNId];
@@ -1006,7 +1005,6 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
 
     if (jobNodeId != NO_VAL) {
 	Gres_Cred_t *gres;
-	StrBuffer_t strList = { .buf = NULL };
 
 	/* gres "gpu" plugin */
 	setGPUEnv(step, jobNodeId, localRankId);
@@ -1015,9 +1013,10 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, GRES_CRED_STEP);
 	if (gres && gres->bitAlloc) {
 	    if (gres->bitAlloc[jobNodeId]) {
-		hexBitstr2List(gres->bitAlloc[jobNodeId], &strList, false);
-		setenv("OFFLOAD_DEVICES", strList.buf, 1);
-		freeStrBuf(&strList);
+		strbuf_t strList = strbufNew(NULL);
+		hexBitstr2List(gres->bitAlloc[jobNodeId], strList, false);
+		setenv("OFFLOAD_DEVICES", strbufStr(strList), 1);
+		strbufDestroy(strList);
 	    } else {
 		flog("invalid mic gres bitAlloc for job node ID %u\n",
 		     jobNodeId);
@@ -1028,9 +1027,10 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
 	gres = findGresCred(&step->gresList, NO_VAL, GRES_CRED_STEP);
 	if (gres && gres->bitAlloc) {
 	    if (gres->bitAlloc[jobNodeId]) {
-		hexBitstr2List(gres->bitAlloc[jobNodeId], &strList, false);
-		setenv("SLURM_STEP_GRES", strList.buf, 1);
-		freeStrBuf(&strList);
+		strbuf_t strList = strbufNew(NULL);
+		hexBitstr2List(gres->bitAlloc[jobNodeId], strList, false);
+		setenv("SLURM_STEP_GRES", strbufStr(strList), 1);
+		strbufDestroy(strList);
 	    } else {
 		flog("invalid step gres bitAlloc for job node ID %u\n",
 		     jobNodeId);

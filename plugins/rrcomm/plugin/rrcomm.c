@@ -325,16 +325,16 @@ void cleanup(void)
 
 char *help(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
-    addStrBuf("\tImplement rank routed communication\n\n", &strBuf);
-    addStrBuf("\tNodes assumed to have no loaded plugin are displayed"
-	      " under key 'inept'\n", &strBuf);
-    addStrBuf("\n# configuration options #\n\n", &strBuf);
+    strbufAdd(buf, "\tImplement rank routed communication\n\n");
+    strbufAdd(buf, "\tNodes assumed to have no loaded plugin are displayed"
+	      " under key 'inept'\n");
+    strbufAdd(buf, "\n# configuration options #\n\n");
 
-    pluginConfig_helpDesc(RRCommConfig, &strBuf);
+    pluginConfig_helpDesc(RRCommConfig, buf);
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }
 
 char *set(char *key, char *val)
@@ -359,42 +359,42 @@ char *unset(char *key)
     return NULL;
 }
 
-static void showInept(StrBuffer_t *strBuf)
+static void showInept(strbuf_t buf)
 {
     char line[80];
 
     bool first = true;
-    addStrBuf("\tinept node(s): ", strBuf);
+    strbufAdd(buf, "\tinept node(s): ");
 
     if (ineptNds) {
 	for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
 	    if (!ineptNode(n)) continue;
-	    if (!first) addStrBuf(", ", strBuf);
+	    if (!first) strbufAdd(buf, ", ");
 	    snprintf(line, sizeof(line), "%d", n);
-	    addStrBuf(line, strBuf);
+	    strbufAdd(buf, line);
 	    first = false;
 	}
     }
-    if (first) addStrBuf("<none>", strBuf);
-    addStrBuf("\n", strBuf);
+    if (first) strbufAdd(buf, "<none>");
+    strbufAdd(buf, "\n");
 }
 
 
 char *show(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
     if (!key) {
 	/* Show the whole configuration */
-	addStrBuf("\n", &strBuf);
-	pluginConfig_traverse(RRCommConfig, pluginConfig_showVisitor,&strBuf);
+	strbufAdd(buf, "\n");
+	pluginConfig_traverse(RRCommConfig, pluginConfig_showVisitor, buf);
     } else if (!strcmp(key, "inept")) {
-	showInept(&strBuf);
-    } else if (!pluginConfig_showKeyVal(RRCommConfig, key, &strBuf)) {
-	addStrBuf(" '", &strBuf);
-	addStrBuf(key, &strBuf);
-	addStrBuf("' is unknown\n", &strBuf);
+	showInept(buf);
+    } else if (!pluginConfig_showKeyVal(RRCommConfig, key, buf)) {
+	strbufAdd(buf, " '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' is unknown\n");
     }
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }

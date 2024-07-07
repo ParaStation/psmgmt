@@ -21,7 +21,7 @@
 #include "pscpu.h"
 #include "psnodes.h"
 #include "psserial.h"
-#include "pluginmalloc.h"
+#include "psstrbuf.h"
 
 #include "slurmmsg.h"
 #include "psslurmio.h"
@@ -301,39 +301,35 @@ typedef int32_t hexBitStrConv_func_t(int32_t);
  *
  * @param bitstr The bitstring to convert
  *
- * @param strBuf The list holding the result
+ * @param buf String buffer holding the result
  *
  * @param range If true compact the list using range syntax
  *
  * @return Returns true on success otherwise false
  */
-bool hexBitstr2List(char *bitstr, StrBuffer_t *strBuf, bool range);
+bool hexBitstr2List(char *bitstr, strbuf_t buf, bool range);
 
 /**
  * @brief Convert a hex bitstring to a comma separated list.
  *
  * The provided bitstring @a bitstr is converted to a comma separated
- * list to be stored in @a strBuf. The list is initialized at
- * start. If the @a range option is set to true the values are
- * compacted into range syntax. Otherwise every single value will lead
- * to an entry in the list. The convert function @a conv will be
+ * list to be stored in the string buffer @a buf. The sting buffer is
+ * cleared at start. If the @a range option is set to true, the values
+ * are compacted into range syntax. Otherwise every single value will
+ * lead to an entry in the list. The convert function @a conv will be
  * called for every value before it is added.
  *
- * The list @a strBuf is grown using @ref __umalloc() and @ref
- * __urealloc(). The caller is responsible to free the memory using
- * @ref ufree().
+ * @param bitstr Bitstring to convert
  *
- * @param bitstr The bitstring to convert
+ * @param buf String buffer holding the result
  *
- * @param strBuf The list holding the result
- *
- * @param range If true compact the list using range syntax
+ * @param range Flag to compact the list using range syntax
  *
  * @param conv A convert function or NULL
  *
  * @return Returns true on success otherwise false
  */
-bool hexBitstr2ListEx(char *bitstr, StrBuffer_t *strBuf, bool range,
+bool hexBitstr2ListEx(char *bitstr, strbuf_t buf, bool range,
 		      hexBitStrConv_func_t *conv);
 
 /**

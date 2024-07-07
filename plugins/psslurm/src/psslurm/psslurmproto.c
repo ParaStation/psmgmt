@@ -1147,7 +1147,8 @@ static int handleConfig(Slurm_Msg_t *sMsg)
  *
  * @param iofd File descriptor providing reboot program's output
  *
- * @param info Extra information pointing to @ref StrBuffer_t
+ * @param info Extra information pointing to the command string (to be
+ * free()ed)
  *
  * @return No return value
  */
@@ -1157,13 +1158,13 @@ static void cbRebootProgram(int exit, bool tmdOut, int iofd, void *info)
     size_t errLen = 0;
     getScriptCBdata(iofd, errMsg, sizeof(errMsg), &errLen);
 
-    StrBuffer_t *cmdline = info;
-    flog("'%s' returned exit status %i\n",
-	 (cmdline ? cmdline->buf : "reboot program"), exit);
+    char *cmdStr = info;
+    flog("'%s' returned exit status %i\n", cmdStr ? cmdStr : "reboot program",
+	 exit);
 
     if (errMsg[0] != '\0') flog("reboot error message: %s\n", errMsg);
 
-    if (cmdline) freeStrBuf(cmdline);
+    free(cmdStr);
 
     char *shutdown = getConfValueC(Config, "SLURMD_SHUTDOWN_ON_REBOOT");
     if (shutdown) {
@@ -1185,20 +1186,20 @@ static int handleRebootNodes(Slurm_Msg_t *sMsg)
 	flog("error: RebootProgram is not set in slurm.conf\n");
     } else if (checkPrivMsg(sMsg)) {
 	/* try to execute reboot program */
-	StrBuffer_t cmdline = { .buf = NULL };
-	addStrBuf(trim(prog), &cmdline);
+	strbuf_t cmd = strbufNew(trim(prog));
 
-	if (access(cmdline.buf, R_OK | X_OK) < 0) {
-	    flog("invalid permissions for reboot program %s\n", cmdline.buf);
+	if (access(strbufStr(cmd), R_OK | X_OK) < 0) {
+	    flog("invalid permissions for reboot program %s\n", strbufStr(cmd));
+	    strbufDestroy(cmd);
 	} else {
 	    if (req->features && req->features[0]) {
-		addStrBuf(" ", &cmdline);
-		addStrBuf(req->features, &cmdline);
+		strbufAdd(cmd, " ");
+		strbufAdd(cmd, req->features);
 	    }
-	    flog("calling reboot program '%s'\n", cmdline.buf);
-	    PSID_execScript(cmdline.buf, NULL, &cbRebootProgram, NULL,&cmdline);
+	    char *cmdStr = strbufSteal(cmd);
+	    flog("calling reboot program '%s'\n", cmdStr);
+	    PSID_execScript(cmdStr, NULL, &cbRebootProgram, NULL, cmdStr);
 	}
-	freeStrBuf(&cmdline);
     }
 
     /* slurmctld does not require an answer for this RPC and silently ignores

@@ -16,6 +16,7 @@
 
 #include "pscommon.h"
 #include "pscomplist.h"
+#include "psstrbuf.h"
 
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
@@ -180,33 +181,34 @@ static int termJail(void *info)
 {
     Alloc_t *alloc = info;
     pid_t pid = -1;
-    char buf[64];
+    char tmp[64];
 
-    snprintf(buf, sizeof(buf), "%u", alloc->id);
-    setenv("__PSJAIL_JOBID", buf, 1);
+    snprintf(tmp, sizeof(tmp), "%u", alloc->id);
+    setenv("__PSJAIL_JOBID", tmp, 1);
 
     /* create list of all allocations belonging to the
      * terminating allocation owner */
-    StrBuffer_t allocList = { .buf = NULL };
+    strbuf_t allocList = strbufNew(NULL);
     list_t *a;
     list_for_each(a, &AllocList) {
 	Alloc_t *nextAlloc = list_entry(a, Alloc_t, next);
 	if (nextAlloc->uid != alloc->uid) continue;
 	if (!nextAlloc->verified) continue;
 
-	if (allocList.buf) addStrBuf(",", &allocList);
-	snprintf(buf, sizeof(buf), "%i", nextAlloc->id);
-	addStrBuf(buf, &allocList);
+	if (strbufLen(allocList)) strbufAdd(allocList, ",");
+	snprintf(tmp, sizeof(tmp), "%i", nextAlloc->id);
+	strbufAdd(allocList, tmp);
     }
 
-    if (!allocList.buf) {
+    if (!strbufLen(allocList)) {
 	/* if all relevant allocations are unverified, add at least
 	 * the (unverified) alloc */
-	snprintf(buf, sizeof(buf), "%i", alloc->id);
-	addStrBuf(buf, &allocList);
+	snprintf(tmp, sizeof(tmp), "%i", alloc->id);
+	strbufAdd(allocList, tmp);
     }
 
-    setenv("__PSJAIL_ALLOC_LIST", allocList.buf, 1);
+    setenv("__PSJAIL_ALLOC_LIST", strbufStr(allocList), 1);
+    strbufDestroy(allocList);
 
     setJailEnv(alloc->env, alloc->username, NULL, &(alloc->hwthreads),
 	       alloc->gresList, alloc->cred, alloc->localNodeId);

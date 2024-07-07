@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -383,22 +383,22 @@ static pluginConfig_t config = NULL;
 static char * doEval(const char *key, const pluginConfigVal_t *val,
 		     const void *info)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
     if (!strcmp(key, "DebugMask")) {
 	uint32_t mask = val ? val->val.num : 0;
 	maskPluginLogger(mask);
 	if (mask) pluginlog("debugMask set to %#x\n", mask);
-	addStrBuf("\tdebugMask set to ", &strBuf);
+	strbufAdd(buf, "\tdebugMask set to ");
 	char tmp[32];
 	snprintf(tmp, sizeof(tmp), "%#x", mask);
-	addStrBuf(tmp, &strBuf);
-	addStrBuf("\n", &strBuf);
+	strbufAdd(buf, tmp);
+	strbufAdd(buf, "\n");
     } else {
 	pluginlog("%s: unknown key '%s'\n", __func__, key);
     }
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }
 
 static bool evalValue(const char *key, const pluginConfigVal_t *val,
@@ -465,74 +465,69 @@ void cleanup(void)
 
 char * help(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
-    addStrBuf(
-	"\tDelay specific types of messages for debugging purposes.\n\n"
-	"\tUse the show directive to list all message types delayed:\n",
-	&strBuf);
-    addStrBuf("\t\tplugin show ", &strBuf);
-    addStrBuf(name, &strBuf);
-    addStrBuf(" key delays\n", &strBuf);
-    addStrBuf(
-	"\tUse the set directive add a new message type to delay\n",
-	&strBuf);
-    addStrBuf("\t\tplugin set ", &strBuf);
-    addStrBuf(name, &strBuf);
-    addStrBuf(" <message type> <delay in msec>\n", &strBuf);
-    addStrBuf(
-	"\tUse the unset directive clear a messages type from delay\n",
-	&strBuf);
-    addStrBuf("\t\tplugin unset ", &strBuf);
-    addStrBuf(name, &strBuf);
-    addStrBuf(" <message type>\n", &strBuf);
-    addStrBuf("\n# configuration options #\n\n", &strBuf);
+    strbufAdd(buf,
+	      "\tDelay specific types of messages for debugging purposes.\n\n"
+	      "\tUse the show directive to list all message types delayed:\n");
+    strbufAdd(buf, "\t\tplugin show ");
+    strbufAdd(buf, name);
+    strbufAdd(buf, " key delays\n");
+    strbufAdd(buf, "\tUse the set directive add a new message type to delay\n");
+    strbufAdd(buf, "\t\tplugin set ");
+    strbufAdd(buf, name);
+    strbufAdd(buf, " <message type> <delay in msec>\n");
+    strbufAdd(buf,
+	      "\tUse the unset directive clear a messages type from delay\n");
+    strbufAdd(buf, "\t\tplugin unset ");
+    strbufAdd(buf, name);
+    strbufAdd(buf, " <message type>\n");
+    strbufAdd(buf, "\n# configuration options #\n\n");
 
-    pluginConfig_helpDesc(config, &strBuf);
-    return strBuf.buf;
+    pluginConfig_helpDesc(config, buf);
+    return strbufSteal(buf);
 }
 
-static void printDelays(StrBuffer_t *strBuf)
+static void printDelays(strbuf_t buf)
 {
     if (list_empty(&delayContainerList)) {
-	addStrBuf("\tno messages to be delayed\n\n", strBuf);
+	strbufAdd(buf, "\tno messages to be delayed\n\n");
 	return;
     }
 
-    addStrBuf("\n", strBuf);
+    strbufAdd(buf, "\n");
     list_t *d;
     list_for_each(d, &delayContainerList) {
 	DelayContainer_t *delay = list_entry(d, DelayContainer_t, next);
 
-	addStrBuf("\t", strBuf);
-	addStrBuf(PSDaemonP_printMsg(delay->type), strBuf);
+	strbufAdd(buf, "\t");
+	strbufAdd(buf, PSDaemonP_printMsg(delay->type));
 	char tmpStr[128];
 	snprintf(tmpStr, sizeof(tmpStr), "\tdelayed by %d msec\n", delay->delay);
-	addStrBuf(tmpStr, strBuf);
+	strbufAdd(buf, tmpStr);
     }
-    addStrBuf("\n", strBuf);
+    strbufAdd(buf, "\n");
 }
 
 char * show(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
     if (!key) {
 	/* Show the whole configuration */
-	addStrBuf("\n", &strBuf);
-	pluginConfig_traverse(config, pluginConfig_showVisitor,&strBuf);
+	strbufAdd(buf, "\n");
+	pluginConfig_traverse(config, pluginConfig_showVisitor, buf);
     } else if (!strncmp(key, "delays", strlen("delays"))) {
-	printDelays(&strBuf);
-    } else if (!pluginConfig_showKeyVal(config, key, &strBuf)) {
-	addStrBuf(" '", &strBuf);
-	addStrBuf(key, &strBuf);
-	addStrBuf("' is unknown\n", &strBuf);
+	printDelays(buf);
+    } else if (!pluginConfig_showKeyVal(config, key, buf)) {
+	strbufAdd(buf, " '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' is unknown\n");
     }
-
-    return strBuf.buf;
+    return strbufSteal(buf);
 }
 
-static int16_t resolveMsgType(char *typeStr, StrBuffer_t *strBuf)
+static int16_t resolveMsgType(char *typeStr, strbuf_t buf)
 {
     int16_t msgType = PSDaemonP_resolveType(typeStr);
     if (msgType == -1) {
@@ -540,9 +535,9 @@ static int16_t resolveMsgType(char *typeStr, StrBuffer_t *strBuf)
 	char *end;
 	msgType = strtol(typeStr, &end, 0);
 	if (*end || msgType < 1) {
-	    addStrBuf("\tunknown message type '", strBuf);
-	    addStrBuf(typeStr, strBuf);
-	    addStrBuf("'\n", strBuf);
+	    strbufAdd(buf, "\tunknown message type '");
+	    strbufAdd(buf, typeStr);
+	    strbufAdd(buf, "'\n");
 	    return -1;
 	}
     }
@@ -551,22 +546,23 @@ static int16_t resolveMsgType(char *typeStr, StrBuffer_t *strBuf)
 
 char * set(char *key, char *val)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
     const pluginConfigDef_t *thisDef = pluginConfig_getDef(config, key);
 
     if (thisDef) {
 	if (!pluginConfig_addStr(config, key, val)) {
-	    addStrBuf("  Illegal value '", &strBuf);
-	    addStrBuf(val, &strBuf);
-	    addStrBuf("'\n", &strBuf);
-	    return strBuf.buf;
+	    strbuf_t buf = strbufNew(NULL);
+	    strbufAdd(buf, "  Illegal value '");
+	    strbufAdd(buf, val);
+	    strbufAdd(buf, "'\n");
+	    return strbufSteal(buf);
 	}
 	return doEval(key, pluginConfig_get(config, key), NULL);
     }
 
     /* resolve message type */
-    int16_t msgType = resolveMsgType(key, &strBuf);
-    if (msgType == -1) return strBuf.buf;
+    strbuf_t buf = strbufNew(NULL);
+    int16_t msgType = resolveMsgType(key, buf);
+    if (msgType == -1) return strbufSteal(buf);
 
     uint32_t delay = 0;
     if (val) {
@@ -576,27 +572,27 @@ char * set(char *key, char *val)
     }
 
     if (delay < 100) {
-	addStrBuf("\tillegal delay '", &strBuf);
-	addStrBuf(val ? val : "<empty>", &strBuf);
-	addStrBuf("' (must be >100)\n", &strBuf);
+	strbufAdd(buf, "\tillegal delay '");
+	strbufAdd(buf, val ? val : "<empty>");
+	strbufAdd(buf, "' (must be >100)\n");
     } else if (!installDelayHandler(msgType, 0 , delay)) {
-	addStrBuf("\tfailed to install delay handler for '", &strBuf);
-	addStrBuf(key, &strBuf);
-	addStrBuf("'\n", &strBuf);
+	strbufAdd(buf, "\tfailed to install delay handler for '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "'\n");
     } else {
-	addStrBuf("\tdelay '", &strBuf);
-	addStrBuf(PSDaemonP_printMsg(msgType), &strBuf);
-	addStrBuf("' by ", &strBuf);
-	addStrBuf(val, &strBuf);
-	addStrBuf(" msec\n", &strBuf);
+	strbufAdd(buf, "\tdelay '");
+	strbufAdd(buf, PSDaemonP_printMsg(msgType));
+	strbufAdd(buf, "' by ");
+	strbufAdd(buf, val);
+	strbufAdd(buf, " msec\n");
     }
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }
 
 char * unset(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
     const pluginConfigDef_t *thisDef = pluginConfig_getDef(config, key);
 
     if (thisDef) {
@@ -605,18 +601,18 @@ char * unset(char *key)
     }
 
     /* resolve message type */
-    int16_t msgType = resolveMsgType(key, &strBuf);
-    if (msgType == -1) return strBuf.buf;
+    int16_t msgType = resolveMsgType(key, buf);
+    if (msgType == -1) return strbufSteal(buf);
 
     if (!removeDelayHandler(msgType, 0)) {
-	addStrBuf("\tfailed to remove delay handler for '", &strBuf);
-	addStrBuf(PSDaemonP_printMsg(msgType), &strBuf);
-	addStrBuf("'\n", &strBuf);
+	strbufAdd(buf, "\tfailed to remove delay handler for '");
+	strbufAdd(buf, PSDaemonP_printMsg(msgType));
+	strbufAdd(buf, "'\n");
     } else {
-	addStrBuf("\tdelay handler for '", &strBuf);
-	addStrBuf(PSDaemonP_printMsg(msgType), &strBuf);
-	addStrBuf("' removed\n", &strBuf);
+	strbufAdd(buf, "\tdelay handler for '");
+	strbufAdd(buf, PSDaemonP_printMsg(msgType));
+	strbufAdd(buf, "' removed\n");
     }
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }

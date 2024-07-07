@@ -19,10 +19,10 @@
 #include "pscommon.h"
 #include "psidhook.h"
 #include "psidnodes.h"
+#include "psstrbuf.h"
 #include "rdp.h"
 
 #include "plugin.h"
-#include "pluginmalloc.h"
 #include "pluginpsconfig.h"
 #include "dynIPlog.h"
 
@@ -240,14 +240,14 @@ void cleanup(void)
 
 char *help(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
-    addStrBuf("\n# ", &strBuf);
-    addStrBuf(name, &strBuf);
-    addStrBuf(" configuration options #\n\n", &strBuf);
-    pluginConfig_helpDesc(config, &strBuf);
+    strbufAdd(buf, "\n# ");
+    strbufAdd(buf, name);
+    strbufAdd(buf, " configuration options #\n\n");
+    pluginConfig_helpDesc(config, buf);
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }
 
 char *set(char *key, char *val)
@@ -274,17 +274,17 @@ char *unset(char *key)
 
 char *show(char *key)
 {
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
     if (!key) {
 	/* Show the whole configuration */
-	addStrBuf("\n", &strBuf);
-	pluginConfig_traverse(config, pluginConfig_showVisitor,&strBuf);
-    } else if (!pluginConfig_showKeyVal(config, key, &strBuf)) {
-	addStrBuf(" '", &strBuf);
-	addStrBuf(key, &strBuf);
-	addStrBuf("' is unknown\n", &strBuf);
+	strbufAdd(buf, "\n");
+	pluginConfig_traverse(config, pluginConfig_showVisitor, buf);
+    } else if (!pluginConfig_showKeyVal(config, key, buf)) {
+	strbufAdd(buf, " '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' is unknown\n");
     }
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }

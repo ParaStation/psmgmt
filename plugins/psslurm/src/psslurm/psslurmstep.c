@@ -500,7 +500,7 @@ bool Step_partOfJob(uint32_t jobid)
 char *Step_getActiveList(void)
 {
     char strStep[128];
-    StrBuffer_t strBuf = { .buf = NULL };
+    strbuf_t buf = strbufNew(NULL);
 
     list_t *s;
     list_for_each(s, &StepList) {
@@ -509,12 +509,12 @@ char *Step_getActiveList(void)
 	if (step->state == JOB_EXIT ||
 	    step->state == JOB_COMPLETE) continue;
 
-	if (strBuf.buf) addStrBuf(", ", &strBuf);
+	if (strbufLen(buf)) strbufAdd(buf, ", ");
 	snprintf(strStep, sizeof(strStep), "%u.%u", step->jobid, step->stepid);
-	addStrBuf(strStep, &strBuf);
+	strbufAdd(buf, strStep);
     }
 
-    return strBuf.buf;
+    return strbufSteal(buf);
 }
 
 bool Step_traverse(StepVisitor_t visitor, const void *info)
