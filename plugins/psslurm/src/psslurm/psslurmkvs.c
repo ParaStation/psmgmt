@@ -24,6 +24,7 @@
 #include "pscommon.h"
 #include "pscomplist.h"
 #include "pscpu.h"
+#include "psstrbuf.h"
 #include "psstrv.h"
 
 #include "plugin.h"

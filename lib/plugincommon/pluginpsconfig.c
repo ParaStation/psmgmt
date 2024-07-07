@@ -23,8 +23,8 @@
 #include "list.h"
 
 #include "psconfighelper.h"
-#include "pluginmalloc.h"
 #include "pluginlog.h"
+#include "pluginmalloc.h"
 
 #define PLUGIN_PSCONFIG_MAGIC 0x4711170442
 

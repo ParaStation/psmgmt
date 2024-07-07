@@ -20,6 +20,7 @@
 #include "psprotocol.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
+#include "psstrbuf.h"
 
 #include "psidclient.h"
 #include "psidcomm.h"
@@ -27,7 +28,6 @@
 #include "psidsession.h"
 #include "psidtask.h"
 
-#include "pluginmalloc.h"
 #include "pluginpsconfig.h"
 
 #include "rrcomm_common.h"

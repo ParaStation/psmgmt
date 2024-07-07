@@ -17,11 +17,11 @@
 #include "list.h"
 #include "pscommon.h"
 #include "psdaemonprotocol.h"
+#include "psstrbuf.h"
 #include "timer.h"
 
 #include "plugin.h"
 #include "pluginlog.h"
-#include "pluginmalloc.h"
 #include "pluginpsconfig.h"
 
 #include "psidcomm.h"

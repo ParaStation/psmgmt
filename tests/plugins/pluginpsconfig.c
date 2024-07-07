@@ -12,9 +12,10 @@
 #include <string.h>
 
 #include "logging.h"
+#include "psstrbuf.h"
+
 #include "plugin.h"
 #include "pluginlog.h"
-#include "pluginmalloc.h"
 #include "pluginpsconfig.h"
 #include "psidutil.h"
 

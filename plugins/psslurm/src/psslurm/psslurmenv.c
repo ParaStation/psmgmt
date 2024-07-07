@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include "pscommon.h"
+#include "psstrbuf.h"
 #include "psstrv.h"
 #include "psipartition.h"
 #include "pluginconfig.h"

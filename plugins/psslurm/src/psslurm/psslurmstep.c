@@ -15,6 +15,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "psstrbuf.h"
 #include "pluginmalloc.h"
 #include "psidsignal.h"
 

@@ -17,9 +17,10 @@
 #include <sys/stat.h>
 
 #include "pscommon.h"
+#include "psstrbuf.h"
+
 #include "plugin.h"
 #include "pluginlog.h"
-#include "pluginmalloc.h"
 #include "pluginpsconfig.h"
 #include "psidnodes.h"
 #include "psidplugin.h"

@@ -37,6 +37,7 @@
 #include "psenv.h"
 #include "pslog.h"
 #include "psserial.h"
+#include "psstrbuf.h"
 #include "psstrv.h"
 #include "timer.h"
 
