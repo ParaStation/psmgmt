@@ -68,7 +68,7 @@ static char line[256];
  *
  * @param info A StrBuffer structure to save the information
  *
- * @return Always returns false to loop throw all jobs
+ * @return Always returns false to loop over all jobs
  */
 static bool addJobInfo(Job_t *job, const void *info)
 {
@@ -136,7 +136,7 @@ static char *showJobs(void)
  *
  * @param info A StrBuffer structure to save the information
  *
- * @return Always returns false to loop throw all allocations
+ * @return Always returns false to loop over all allocations
  */
 static bool Alloc_addInfo(Alloc_t *alloc, const void *info)
 {
@@ -191,7 +191,7 @@ static bool Alloc_addInfo(Alloc_t *alloc, const void *info)
  *
  * @param info String buffer of type strbuf_t to store the information
  *
- * @return Always returns false to loop throw all steps
+ * @return Always returns false to loop over all steps
  */
 static bool addTaskInfo(Step_t *step, const void *info)
 {
@@ -255,7 +255,7 @@ static char *showTasks(void)
  *
  * @param info String buffer of type strbuf_t to store the information
  *
- * @return Always returns false to loop throw all steps
+ * @return Always returns false to loop over all steps
  */
 static bool addSpankInfo(Spank_Plugin_t *sp, const void *info)
 {
@@ -391,7 +391,7 @@ static char *resolveIDs(char *hosts)
  *
  * @param info A StepInfo structure to save the information
  *
- * @return Always returns false to loop throw all steps
+ * @return Always returns false to loop over all steps
  */
 static bool addHwthreadsInfo(Step_t *step, const void *info)
 {
@@ -488,7 +488,7 @@ static char *showHWthreads(bool all)
  *
  * @param info A StepInfo structure to save the information
  *
- * @return Always returns false to loop throw all steps
+ * @return Always returns false to loop over all steps
  */
 static bool addStepInfo(Step_t *step, const void *info)
 {
@@ -860,7 +860,7 @@ char *help(char *key)
  *
  * @param info A StrBuffer structure to save the information
  *
- * @return Always returns false to loop throw all connections
+ * @return Always returns false to loop over all connections
  */
 static bool addConnInfo(Connection_t *conn, const void *info)
 {
