@@ -90,37 +90,6 @@ void __ufree(void *ptr, const char *func, const int line)
     free(ptr);
 }
 
-char *__addStrBuf(const char *str, StrBuffer_t *strBuf, const char *func,
-		  const int line)
-{
-    size_t lenStr = strlen(str);
-
-    if (!strBuf->buf) {
-	strBuf->size = (lenStr / STR_MALLOC_SIZE + 1) * STR_MALLOC_SIZE;
-	strBuf->buf = __umalloc(strBuf->size, func, line);
-	strBuf->strLen = 0;
-    }
-
-    if (strBuf->strLen + lenStr + 1 > strBuf->size) {
-	strBuf->size = ((strBuf->strLen + lenStr) / STR_MALLOC_SIZE + 1) *
-			STR_MALLOC_SIZE;
-	strBuf->buf = __urealloc(strBuf->buf, strBuf->size, func, line);
-    }
-
-    memcpy(strBuf->buf + strBuf->strLen, str, lenStr);
-    (strBuf->buf)[strBuf->strLen+lenStr] = '\0';
-    strBuf->strLen += lenStr;
-
-    return strBuf->buf;
-}
-
-void __freeStrBuf(StrBuffer_t *strBuf, const char *func, const int line)
-{
-    __ufree(strBuf->buf, func, line);
-    strBuf->buf = NULL;
-    strBuf->size = strBuf->strLen = 0;
-}
-
 char *__str2Buf(const char *str, char **buffer, size_t *bufSize,
 		const char *func, const int line)
 {
