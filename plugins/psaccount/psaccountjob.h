@@ -18,6 +18,7 @@
 
 #include "list.h"
 #include "pstaskid.h"
+#include "psstrbuf.h"
 #include "psaccounttypes.h"
 
 typedef struct {
@@ -149,16 +150,10 @@ void forwardAllData(void);
 /**
  * @brief List current jobs
  *
- * List current jobs and put all information into the buffer @a
- * buf. Upon return @a bufSize indicates the current size of @a
- * buf.
- *
- * @param buf Buffer to write all information to
- *
- * @param bufSize Size of the buffer
+ * List current jobs and put all information into a string buffer.
  *
  * @return Pointer to buffer with updated job information
  */
-char *listJobs(char *buf, size_t *bufSize);
+char *listJobs(void);
 
 #endif  /* __PS_ACCOUNT_JOB */

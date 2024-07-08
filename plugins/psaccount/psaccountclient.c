@@ -895,74 +895,74 @@ void switchClientUpdate(PStask_ID_t clientTID, bool enable)
     }
 }
 
-char *listClients(char *buf, size_t *bufSize, bool detailed)
+char *listClients(bool detailed)
 {
-    char l[160];
-    list_t *c;
-
+    strbuf_t buf = strbufNew(NULL);
     if (list_empty(&clientList)) {
-	return str2Buf("\nNo current clients.\n", &buf, bufSize);
-    }
+	strbufAdd(buf, "\nNo current clients.\n");
+    } else {
+	strbufAdd(buf, "\nclients:\n");
 
-    str2Buf("\nclients:\n", &buf, bufSize);
+	list_t *c;
+	list_for_each(c, &clientList) {
+	    Client_t *cl = list_entry(c, Client_t, next);
 
-    list_for_each(c, &clientList) {
-	Client_t *cl = list_entry(c, Client_t, next);
+	    char l[160];
+	    snprintf(l, sizeof(l), "taskID %s\n", PSC_printTID(cl->taskid));
+	    strbufAdd(buf, l);
+	    snprintf(l, sizeof(l), "rank %i\n", cl->rank);
+	    strbufAdd(buf, l);
+	    snprintf(l, sizeof(l), "root %s\n", PSC_printTID(cl->root));
+	    strbufAdd(buf, l);
+	    snprintf(l, sizeof(l), "do%s account\n", cl->doAccounting ? "" : " not");
+	    strbufAdd(buf, l);
+	    snprintf(l, sizeof(l), "%sended\n", cl->ended ? "" : "not ");
+	    strbufAdd(buf, l);
+	    snprintf(l, sizeof(l), "type '%s'\n", clientType2Str(cl->type));
+	    strbufAdd(buf, l);
+	    snprintf(l, sizeof(l), "uid %i\n", cl->uid);
+	    strbufAdd(buf, l);
+	    snprintf(l, sizeof(l), "gid %i\n", cl->gid);
+	    strbufAdd(buf, l);
+	    snprintf(l, sizeof(l), "page size %lu\n", cl->data.pageSize);
+	    strbufAdd(buf, l);
+	    snprintf(l, sizeof(l), "start time %s\n", ctime(&cl->startTime));
+	    strbufAdd(buf, l);
+	    snprintf(l, sizeof(l), "end time %s\n",
+		     cl->endTime ? ctime(&cl->endTime) : "-");
+	    strbufAdd(buf, l);
 
-	snprintf(l, sizeof(l), "taskID %s\n", PSC_printTID(cl->taskid));
-	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "rank %i\n", cl->rank);
-	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "root %s\n", PSC_printTID(cl->root));
-	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "do%s account\n", cl->doAccounting ? "" : " not");
-	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "%sended\n", cl->ended ? "" : "not ");
-	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "type '%s'\n", clientType2Str(cl->type));
-	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "uid %i\n", cl->uid);
-	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "gid %i\n", cl->gid);
-	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "page size %lu\n", cl->data.pageSize);
-	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "start time %s", ctime(&cl->startTime));
-	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "end time %s",
-		 cl->endTime ? ctime(&cl->endTime) : "-\n");
-	str2Buf(l, &buf, bufSize);
-
-	if (detailed) {
-	    snprintf(l, sizeof(l), "max mem %lukB\n", cl->data.maxRss);
-	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "max vmem %lukB\n", cl->data.maxVsize);
-	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "cutime %lu\n", cl->data.cutime);
-	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "cstime %lu\n", cl->data.cstime);
-	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "CPU time %lu\n", cl->data.totCputime);
-	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "max threads %lu\n", cl->data.maxThreads);
-	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "numTask %u\n", cl->data.numTasks);
-	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "Vsize %lu\n", cl->data.avgVsizeTotal);
-	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "#Vsize %lu\n",cl->data.avgVsizeCount);
-	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "Rss %lu\n", cl->data.avgRssTotal);
-	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "#Rss %lu\n", cl->data.avgRssCount);
-	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "Threads %lu\n", cl->data.avgThreadsTotal);
-	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "#Threads %lu\n", cl->data.avgThreadsCount);
-	    str2Buf(l, &buf, bufSize);
+	    if (detailed) {
+		snprintf(l, sizeof(l), "max mem %lukB\n", cl->data.maxRss);
+		strbufAdd(buf, l);
+		snprintf(l, sizeof(l), "max vmem %lukB\n", cl->data.maxVsize);
+		strbufAdd(buf, l);
+		snprintf(l, sizeof(l), "cutime %lu\n", cl->data.cutime);
+		strbufAdd(buf, l);
+		snprintf(l, sizeof(l), "cstime %lu\n", cl->data.cstime);
+		strbufAdd(buf, l);
+		snprintf(l, sizeof(l), "CPU time %lu\n", cl->data.totCputime);
+		strbufAdd(buf, l);
+		snprintf(l, sizeof(l), "max threads %lu\n", cl->data.maxThreads);
+		strbufAdd(buf, l);
+		snprintf(l, sizeof(l), "numTask %u\n", cl->data.numTasks);
+		strbufAdd(buf, l);
+		snprintf(l, sizeof(l), "Vsize %lu\n", cl->data.avgVsizeTotal);
+		strbufAdd(buf, l);
+		snprintf(l, sizeof(l), "#Vsize %lu\n",cl->data.avgVsizeCount);
+		strbufAdd(buf, l);
+		snprintf(l, sizeof(l), "Rss %lu\n", cl->data.avgRssTotal);
+		strbufAdd(buf, l);
+		snprintf(l, sizeof(l), "#Rss %lu\n", cl->data.avgRssCount);
+		strbufAdd(buf, l);
+		snprintf(l, sizeof(l), "Threads %lu\n", cl->data.avgThreadsTotal);
+		strbufAdd(buf, l);
+		snprintf(l, sizeof(l), "#Threads %lu\n", cl->data.avgThreadsCount);
+		strbufAdd(buf, l);
+	    }
+	    strbufAdd(buf, "-\n");
 	}
-	str2Buf("-\n", &buf, bufSize);
     }
 
-    return buf;
+    return strbufSteal(buf);
 }

@@ -19,6 +19,8 @@
 
 #include "list.h"
 #include "pscommon.h"
+#include "psstrbuf.h"
+
 #include "psaccountjob.h"
 #include "psaccounttypes.h"
 
@@ -218,20 +220,13 @@ void cleanupClients(void);
 /**
  * @brief List current clients
  *
- * List current clients and put all information into the buffer @a
- * buf. Upon return @a bufSize indicates the current size of @a
- * buf. If the flag @a detailed is true, detailed information will be
+ * List current clients and put all information into a string buffer
+ * If the flag @a detailed is true, detailed information will be
  * provided.
- *
- * @param buf Buffer to write all information to
- *
- * @param bufSize Size of the buffer
- *
- * @param detailed Flag detailed information to be put into @a buf
  *
  * @return Pointer to buffer with updated client information
  */
-char *listClients(char *buf, size_t *bufSize, bool detailed);
+char *listClients(bool detailed);
 
 /************************* Aggregation *************************/
 

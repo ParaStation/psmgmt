@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,119 +33,97 @@ static char line[256];
 /**
  * @brief Show current configuration
  *
- * Print the current configuration of the plugin to the buffer @a buf
- * of current length @a length. The buffer might be dynamically
- * extended if required.
+ * Print the current configuration of the plugin.
  *
- * @param buf Buffer to write information to
- *
- * @param bufSize Size of the buffer
- *
- * @return Returns the buffer with the updated configuration information.
+ * @return Returns a buffer with the updated configuration information
  */
-static char *showConfig(char *buf, size_t *bufSize)
+static char *showConfig(void)
 {
     int maxKeyLen = getMaxKeyLen(confDef);
-    int i;
 
-    str2Buf("\n", &buf, bufSize);
-
-    for (i = 0; confDef[i].name; i++) {
+    strbuf_t buf = strbufNew("\n");
+    for (int i = 0; confDef[i].name; i++) {
 	char *cName = confDef[i].name;
 	char *cVal = getConfValueC(config, cName);
-
 	snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, cVal);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
-static char *showEnergy(char *buf, size_t *bufSize)
+static char *showEnergy(void)
 {
     psAccountEnergy_t *e = Energy_getData();
 
-    str2Buf("\n", &buf, bufSize);
+    strbuf_t buf = strbufNew("\n");
     snprintf(line, sizeof(line), "power cur: %u avg: %u min: %u max: %u "
 	     "(watt) \n", e->powerCur, e->powerAvg, e->powerMin, e->powerMax);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "energy base: %lu consumed: %lu (joules)\n",
 	     e->energyBase, e->energyCur);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 char *show(char *key)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
 
     if (!key) {
-	str2Buf("use key [clients|dclients|jobs|config|energy]\n",
-		&buf, &bufSize);
-	return buf;
+	strbuf_t buf = strbufNew(NULL);
+	strbufAdd(buf, "use key [clients|dclients|jobs|config|energy]\n");
+	return strbufSteal(buf);
     }
 
     /* show current clients */
-    if (!strcmp(key, "clients")) {
-	return listClients(buf, &bufSize, false);
-    }
+    if (!strcmp(key, "clients")) return listClients(false);
 
     /* show current clients in detail */
-    if (!strcmp(key, "dclients")) {
-	return listClients(buf, &bufSize, true);
-    }
+    if (!strcmp(key, "dclients")) return listClients(true);
 
     /* show current jobs */
-    if (!strcmp(key, "jobs")) {
-	return listJobs(buf, &bufSize);
-    }
+    if (!strcmp(key, "jobs")) return listJobs();
 
     /* show current config */
-    if (!strcmp(key, "config")) {
-	return showConfig(buf, &bufSize);
-    }
+    if (!strcmp(key, "config")) return showConfig();
 
     /* show nodes energy/power consumption */
-    if (!strcmp(key, "energy")) {
-	return showEnergy(buf, &bufSize);
-    }
+    if (!strcmp(key, "energy")) return showEnergy();
 
-    str2Buf("invalid key, use [clients|dclients|jobs|config|energy]\n",
-	    &buf, &bufSize);
-    return buf;
+    strbuf_t buf = strbufNew(NULL);
+    strbufAdd(buf, "invalid key, use [clients|dclients|jobs|config|energy]\n");
+    return strbufSteal(buf);
 }
 
 char *set(char *key, char *val)
 {
-    const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
-    char *buf = NULL;
-    size_t bufSize = 0;
+    strbuf_t buf = strbufNew(NULL);
 
     /* search in config for given key */
+    const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
     if (thisConfDef) {
 	int verRes = verifyConfigEntry(confDef, key, val);
 	if (verRes) {
 	    if (verRes == 1) {
-		str2Buf("\nInvalid key '", &buf, &bufSize);
-		str2Buf(key, &buf, &bufSize);
-		str2Buf("' for cmd set : use 'plugin help psaccount' "
-			"for help.\n", &buf, &bufSize);
+		strbufAdd(buf, "\nInvalid key '");
+		strbufAdd(buf, key);
+		strbufAdd(buf, "' for cmd set : use 'plugin help psaccount' "
+			"for help.\n");
 	    } else if (verRes == 2) {
-		str2Buf("\nThe value '", &buf, &bufSize);
-		str2Buf(val, &buf, &bufSize);
-		str2Buf("' for cmd 'set ", &buf, &bufSize);
-		str2Buf(key, &buf, &bufSize);
-		str2Buf("' has to be numeric.\n", &buf,	&bufSize);
+		strbufAdd(buf, "\nThe value '");
+		strbufAdd(buf, val);
+		strbufAdd(buf, "' for cmd 'set ");
+		strbufAdd(buf, key);
+		strbufAdd(buf, "' has to be numeric.\n");
 	    }
 	} else {
 	    /* save new config value */
 	    addConfigEntry(config, key, val);
 
 	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, val);
-	    str2Buf(line, &buf, &bufSize);
+	    strbufAdd(buf, line);
 
 	    if (!strcmp(key, "DEBUG_MASK")) {
 		int debugMask = getConfValueI(config, "DEBUG_MASK");
@@ -162,28 +140,26 @@ char *set(char *key, char *val)
 	    finalizePluginLogger();
 	    initPluginLogger(NULL, memoryDebug);
 	    maskPluginLogger(PLUGIN_LOG_MALLOC);
-	    str2Buf("\nmemory logging to '", &buf, &bufSize);
-	    str2Buf(val, &buf, &bufSize);
-	    str2Buf("'\n", &buf, &bufSize);
+	    strbufAdd(buf, "\nmemory logging to '");
+	    strbufAdd(buf, val);
+	    strbufAdd(buf, "'\n");
 	} else {
-	    str2Buf("\nopening file '", &buf, &bufSize);
-	    str2Buf(val, &buf, &bufSize);
-	    str2Buf("' for writing failed\n", &buf, &bufSize);
+	    strbufAdd(buf, "\nopening file '");
+	    strbufAdd(buf, val);
+	    strbufAdd(buf, "' for writing failed\n");
 	}
     } else {
-	str2Buf("\nInvalid key '", &buf, &bufSize);
-	str2Buf(key, &buf, &bufSize);
-	str2Buf("' for cmd set : use 'plugin help psaccount' for help.\n",
-		&buf, &bufSize);
+	strbufAdd(buf, "\nInvalid key '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' for cmd set : use 'plugin help psaccount' for help.\n");
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 char *unset(char *key)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
+    strbuf_t buf = strbufNew(NULL);
 
     /* search in config for given key */
     if (getConfValueC(config, key)) {
@@ -203,33 +179,29 @@ char *unset(char *key)
 	    memoryDebug = NULL;
 	    initPluginLogger(NULL, psaccountlogfile);
 	}
-	str2Buf("Stopped memory debugging\n", &buf, &bufSize);
+	strbufAdd(buf, "Stopped memory debugging\n");
     } else {
-	str2Buf("\nInvalid key '", &buf, &bufSize);
-	str2Buf(key, &buf, &bufSize);
-	str2Buf("' for cmd unset : use 'plugin help psaccount' for help.\n",
-		&buf, &bufSize);
+	strbufAdd(buf, "\nInvalid key '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' for cmd unset : use 'plugin help psaccount' for help.\n");
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 char *help(char *key)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
     int maxKeyLen = getMaxKeyLen(confDef);
 
-    str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
-
+    strbuf_t buf = strbufNew("\n# configuration options #\n\n");
     for (int i = 0; confDef[i].name; i++) {
 	char type[10];
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%*s %8s  %s\n", maxKeyLen+2,
 		 confDef[i].name, type, confDef[i].desc);
-	str2Buf(line, &buf, &bufSize);
+	strbufAdd(buf, line);
     }
-    str2Buf("\nuse show [clients|dclients|jobs|config]\n", &buf, &bufSize);
+    strbufAdd(buf, "\nuse show [clients|dclients|jobs|config]\n");
 
-    return buf;
+    return strbufSteal(buf);
 }

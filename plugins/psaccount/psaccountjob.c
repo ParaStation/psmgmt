@@ -251,62 +251,62 @@ void forwardAllData(void)
     }
 }
 
-char *listJobs(char *buf, size_t *bufSize)
+char *listJobs(void)
 {
-    char line[160];
-    list_t *j;
-
+    strbuf_t buf = strbufNew(NULL);
     if (list_empty(&jobList)) {
-	return str2Buf("\nNo current jobs.\n", &buf, bufSize);
-    }
+	strbufAdd(buf, "\nNo current jobs.\n");
+    } else {
+	strbufAdd(buf, "\njobs:\n");
 
-    str2Buf("\njobs:\n", &buf, bufSize);
+	list_t *j;
+	list_for_each(j, &jobList) {
+	    Job_t *job = list_entry(j, Job_t, next);
 
-    list_for_each(j, &jobList) {
-	Job_t *job = list_entry(j, Job_t, next);
+	    char line[160];
+	    snprintf(line, sizeof(line), "nr Of Children in job %i\n",
+		     job->nrOfChildren);
+	    strbufAdd(buf, line);
 
-	snprintf(line, sizeof(line), "nr Of Children in job %i\n",
-		 job->nrOfChildren);
-	str2Buf(line, &buf, bufSize);
+	    snprintf(line, sizeof(line), "nr of Children exited %i\n",
+		     job->childrenExit);
+	    strbufAdd(buf, line);
 
-	snprintf(line, sizeof(line), "nr of Children exited %i\n",
-		 job->childrenExit);
-	str2Buf(line, &buf, bufSize);
+	    snprintf(line, sizeof(line), "complete %i\n", job->complete);
+	    strbufAdd(buf, line);
 
-	snprintf(line, sizeof(line), "complete %i\n", job->complete);
-	str2Buf(line, &buf, bufSize);
+	    snprintf(line, sizeof(line), "id '%s'\n", job->jobid);
+	    strbufAdd(buf, line);
 
-	snprintf(line, sizeof(line), "id '%s'\n", job->jobid);
-	str2Buf(line, &buf, bufSize);
+	    snprintf(line, sizeof(line), "jobscript %i\n", job->jobscript);
+	    strbufAdd(buf, line);
 
-	snprintf(line, sizeof(line), "jobscript %i\n", job->jobscript);
-	str2Buf(line, &buf, bufSize);
+	    snprintf(line, sizeof(line), "root %s\n", PSC_printTID(job->root));
+	    strbufAdd(buf, line);
 
-	snprintf(line, sizeof(line), "root %s\n", PSC_printTID(job->root));
-	str2Buf(line, &buf, bufSize);
+	    snprintf(line, sizeof(line), "start time %s", ctime(&job->startTime));
+	    strbufAdd(buf, line);
 
-	snprintf(line, sizeof(line), "start time %s", ctime(&job->startTime));
-	str2Buf(line, &buf, bufSize);
+	    snprintf(line, sizeof(line), "end time %s",
+		     job->endTime ? ctime(&job->endTime) : "-\n");
+	    strbufAdd(buf, line);
 
-	snprintf(line, sizeof(line), "end time %s",
-		 job->endTime ? ctime(&job->endTime) : "-\n");
-	str2Buf(line, &buf, bufSize);
+	    if (job->jobscript) {
+		AccountDataExt_t accData;
 
-	if (job->jobscript) {
-	    AccountDataExt_t accData;
-
-	    if (getDataByJob(job->jobscript, &accData)) {
-		snprintf(line, sizeof(line), "utime %lu stime %lu mem[kB] %lu"
-			 " vmem[kB] %lu\n", accData.cutime, accData.cstime,
-			 accData.maxRssTotal, accData.maxVsizeTotal);
-		str2Buf(line, &buf, bufSize);
+		if (getDataByJob(job->jobscript, &accData)) {
+		    snprintf(line, sizeof(line), "utime %lu stime %lu mem[kB] %lu"
+			     " vmem[kB] %lu\n", accData.cutime, accData.cstime,
+			     accData.maxRssTotal, accData.maxVsizeTotal);
+		    strbufAdd(buf, line);
+		}
 	    }
 	}
 
-	str2Buf("-\n", &buf, bufSize);
+	strbufAdd(buf, "-\n");
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 void finalizeJobs(void)
