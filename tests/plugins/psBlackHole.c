@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,9 +17,9 @@
 #include "list.h"
 #include "logging.h"
 #include "psprotocol.h"
+#include "psstrbuf.h"
 
 #include "plugin.h"
-#include "pluginmalloc.h"
 #include "psidcomm.h"
 #include "psidhook.h"
 #include "psidutil.h"
@@ -129,11 +129,10 @@ char * help(char *key)
 
 char * show(char *key)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
-    list_t *d;
     char l[128];
+    strbuf_t buf = strbufNew(NULL);
 
+    list_t *d;
     list_for_each(d, &dropList) {
 	dropper_t *dropper = list_entry(d, dropper_t, next);
 	type_t type = dropper->type;
@@ -145,10 +144,10 @@ char * show(char *key)
 	    snprintf(l, sizeof(l), "\ttype %d rate %d\n", type.type,
 		     dropper->rate);
 	}
-	str2Buf(l, &buf, &bufSize);
+	strbufAdd(buf, l);
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 static int getInt(char *str)
