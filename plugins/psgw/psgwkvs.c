@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,8 +13,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "psstrbuf.h"
+
 #include "pluginconfig.h"
-#include "pluginmalloc.h"
 
 #include "psgwconfig.h"
 #include "psgwlog.h"
@@ -23,8 +24,7 @@ static char line[256];
 
 char *set(char *key, char *value)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
+    strbuf_t buf = strbufNew(NULL);
 
     /* search in config for given key */
     if (getConfigDef(key, confDef)) {
@@ -32,63 +32,54 @@ char *set(char *key, char *value)
 	if (ret) {
 	    switch (ret) {
 	    case 1:
-		str2Buf("\nInvalid key '", &buf, &bufSize);
-		str2Buf(key, &buf, &bufSize);
-		str2Buf("' for cmd set : use 'plugin help psgw' for help.\n",
-			&buf, &bufSize);
+		strbufAdd(buf, "\nInvalid key '");
+		strbufAdd(buf, key);
+		strbufAdd(buf, "' for cmd set : use 'plugin help psgw' for help.\n");
 		break;
 	    case 2:
-		str2Buf("\nThe key '", &buf, &bufSize);
-		str2Buf(key, &buf, &bufSize);
-		str2Buf("' for cmd set has to be numeric.\n", &buf, &bufSize);
+		strbufAdd(buf, "\nThe key '");
+		strbufAdd(buf, key);
+		strbufAdd(buf, "' for cmd set has to be numeric.\n");
 	    }
-	    return buf;
-	}
-
-	if (!strcmp(key, "DEBUG_MASK")) {
+	} else if (!strcmp(key, "DEBUG_MASK")) {
 	    int32_t mask;
 
 	    if (sscanf(value, "%i", &mask) != 1) {
-		return str2Buf("\nInvalid debug mask: NAN\n", &buf, &bufSize);
+		strbufAdd(buf, "\nInvalid debug mask: NAN\n");
+	    } else {
+		maskLogger(mask);
 	    }
-	    maskLogger(mask);
+	} else {
+	    /* save new config value */
+	    addConfigEntry(config, key, value);
+
+	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
+	    strbufAdd(buf, line);
 	}
-
-	/* save new config value */
-	addConfigEntry(config, key, value);
-
-	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
-	return str2Buf(line, &buf, &bufSize);
+    } else {
+	strbufAdd(buf, "\nInvalid key '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' for cmd set : use 'plugin help psgw' for help.\n");
     }
-
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    return str2Buf("' for cmd set : use 'plugin help psgw' for help.\n",
-		   &buf, &bufSize);
+    return strbufSteal(buf);
 }
 
 char *help(void)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
-    int i = 0;
-    char type[10];
+    strbuf_t buf = strbufNew("\n# configuration options #\n\n");
 
-    str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
-
-    while (confDef[i].name != NULL) {
+    for (int i = 0; confDef[i].name; i++) {
+	char type[10];
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%21s\t%8s    %s\n", confDef[i].name,
 		type, confDef[i].desc);
-	str2Buf(line, &buf, &bufSize);
-	i++;
+	strbufAdd(buf, line);
     }
 
-    snprintf(line, sizeof(line), "%12s\t%s\n", "config",
-	    "show current configuration");
-    str2Buf(line, &buf, &bufSize);
+    snprintf(line, sizeof(line), "%12s\tshow current configuration\n", "config");
+    strbufAdd(buf, line);
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 /**
@@ -98,80 +89,74 @@ char *help(void)
  */
 static char *showConfig(void)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
-    int i = 0;
+    strbuf_t buf = strbufNew("\n");
 
-    str2Buf("\n", &buf, &bufSize);
-
-    while (confDef[i].name != NULL) {
+    for (int i = 0; confDef[i].name; i++) {
 	char *name = confDef[i].name;
 	char *val = getConfValueC(config, name);
 	snprintf(line, sizeof(line), "%21s = %s\n", name, val ? val:"<empty>");
-	str2Buf(line, &buf, &bufSize);
-	i++;
+	strbufAdd(buf, line);
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 /**
- * @brief Show all supported virtual keys.
+ * @brief Show all supported virtual keys
  *
- * @param buf The buffer to write the information to.
+ * This function will consume the string buffer @a buf, i.e. it will
+ * steal the representing string from @a buf and destroy the string
+ * buffer itself.
  *
- * @param bufSize The size of the buffer.
+ * @param buf String buffer to write the information to
  *
- * @return Returns the buffer with the updated forwarder information.
+ * @return Returns the buffer with the updated virtual key information
  */
-static char *showVirtualKeys(char *buf, size_t *bufSize, bool example)
+static char *showVirtualKeys(strbuf_t buf, bool example)
 {
-    str2Buf("\n# available keys #\n\n", &buf, bufSize);
-    str2Buf("     config\tshow current configuration\n", &buf, bufSize);
+    strbufAdd(buf, "\n# available keys #\n\n");
+    strbufAdd(buf, "     config\tshow current configuration\n");
 
-    if (example) str2Buf("\nExample:\nUse 'plugin show psgw key config'\n",
-			 &buf, bufSize);
-    return buf;
+    if (example) strbufAdd(buf, "\nExample:\nUse 'plugin show psgw key config'\n");
+
+    return strbufSteal(buf);
 }
 
 char *show(char *key)
 {
-    char *buf = NULL, *tmp;
-    size_t bufSize = 0;
+    strbuf_t buf = strbufNew(NULL);
 
-    if (!key) return showVirtualKeys(buf, &bufSize, true);
+    if (!key) return showVirtualKeys(buf, true);
 
     /* search in config for given key */
-    tmp = getConfValueC(config, key);
+    char *tmp = getConfValueC(config, key);
     if (tmp) {
-	str2Buf(key, &buf, &bufSize);
-	str2Buf(" = ", &buf, &bufSize);
-	str2Buf(tmp, &buf, &bufSize);
-	str2Buf("\n", &buf, &bufSize);
-
-	return buf;
+	strbufAdd(buf, key);
+	strbufAdd(buf, " = ");
+	strbufAdd(buf, tmp);
+	strbufAdd(buf, "\n");
+    } else if (!strcmp(key, "config")) {
+	/* show current config */
+	return showConfig();
+    } else {
+	strbufAdd(buf, "\nInvalid key '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "'\n");
+	return showVirtualKeys(buf, false);
     }
 
-    /* show current config */
-    if (!strcmp(key, "config")) return showConfig();
-
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    str2Buf("'\n", &buf, &bufSize);
-    return showVirtualKeys(buf, &bufSize, false);
+    return strbufSteal(buf);
 }
 
 char *unset(char *key)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
+    strbuf_t buf = strbufNew(NULL);
 
-    if (unsetConfigEntry(config, confDef, key)) return buf;
+    if (!unsetConfigEntry(config, confDef, key)) {
+	strbufAdd(buf, "\nInvalid key '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' for cmd unset : use 'plugin help psgw' for help.\n");
+    }
 
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    str2Buf("' for cmd unset : use 'plugin help psgw' for help.\n",
-	    &buf, &bufSize);
-
-    return buf;
+    return strbufSteal(buf);
 }

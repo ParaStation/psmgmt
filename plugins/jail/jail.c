@@ -19,13 +19,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "plugin.h"
 #include "pscommon.h"
+#include "psstrbuf.h"
+
+#include "plugin.h"
+#include "pluginconfig.h"
 #include "psidhook.h"
 #include "psidutil.h"
-
-#include "pluginconfig.h"
-#include "pluginmalloc.h"
 
 #include "jailconfig.h"
 #include "jaillog.h"
@@ -214,38 +214,35 @@ void cleanup(void)
 
 char *help(char *key)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
+    strbuf_t buf = strbufNew(NULL);
     int maxKeyLen = getMaxKeyLen(confDef);
 
-    str2Buf("\tModify child process' cgroup setup while jailing\n",
-	    &buf, &bufSize);
-    str2Buf("\tAll cgroups are defined in the JAIL_SCRIPT\n\n", &buf, &bufSize);
-    str2Buf("\tThe destruction of cgroups is in the JAIL_TERM_SCRIPT\n\n",
-	    &buf, &bufSize);
-    str2Buf("# configuration options #\n", &buf, &bufSize);
+    strbufAdd(buf, "\tModify child process' cgroup setup while jailing\n");
+    strbufAdd(buf, "\tAll cgroups are defined in the JAIL_SCRIPT\n\n");
+    strbufAdd(buf, "\tThe destruction of cgroups is in the JAIL_TERM_SCRIPT\n\n");
+    strbufAdd(buf, "# configuration options #\n");
 
     for (int i = 0; confDef[i].name; i++) {
 	char type[10], line[160];
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%*s %10s  %s\n",
 		 maxKeyLen+2, confDef[i].name, type, confDef[i].desc);
-	str2Buf(line, &buf, &bufSize);
+	strbufAdd(buf, line);
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 char *set(char *key, char *val)
 {
+    strbuf_t buf = strbufNew(NULL);
+
     const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
-
-    if (!thisConfDef) return ustrdup("\nUnknown option\n");
-
-    if (verifyConfigEntry(confDef, key, val))
-	return ustrdup("\tIllegal value\n");
-
-    if (!strcmp(key, "JAIL_SCRIPT")) {
+    if (!thisConfDef) {
+	strbufAdd(buf, "\nUnknown option\n");
+    } else if (verifyConfigEntry(confDef, key, val)) {
+	strbufAdd(buf, "\tIllegal value\n");
+    } else if (!strcmp(key, "JAIL_SCRIPT")) {
 	addConfigEntry(config, key, val);
 	free(jailScript);
 	char *script = getConfValueC(config, "JAIL_SCRIPT");
@@ -253,12 +250,9 @@ char *set(char *key, char *val)
 	jlog(J_LOG_VERBOSE, "jailScript set to '%s'\n",
 	     jailScript ? jailScript : "<invalid>");
 	if (!jailScript) {
-	    char *buf = NULL;
-	    size_t bufSize = 0;
-	    str2Buf("\tscript '", &buf, &bufSize);
-	    str2Buf(script, &buf, &bufSize);
-	    str2Buf("' is invalid\n", &buf, &bufSize);
-	    return buf;
+	    strbufAdd(buf, "\tscript '");
+	    strbufAdd(buf, script);
+	    strbufAdd(buf, "' is invalid\n");
 	}
     } else if (!strcmp(key, "JAIL_TERM_SCRIPT")) {
 	addConfigEntry(config, key, val);
@@ -268,12 +262,9 @@ char *set(char *key, char *val)
 	jlog(J_LOG_VERBOSE, "termScript set to '%s'\n",
 	     termScript ? termScript : "<invalid>");
 	if (!termScript) {
-	    char *buf = NULL;
-	    size_t bufSize = 0;
-	    str2Buf("\tterm script '", &buf, &bufSize);
-	    str2Buf(script, &buf, &bufSize);
-	    str2Buf("' is invalid\n", &buf, &bufSize);
-	    return buf;
+	    strbufAdd(buf, "\tterm script '");
+	    strbufAdd(buf, script);
+	    strbufAdd(buf, "' is invalid\n");
 	}
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
@@ -282,10 +273,10 @@ char *set(char *key, char *val)
 	maskLogger(dbgMask);
 	jlog(J_LOG_VERBOSE, "debugMask set to %#x\n", dbgMask);
     } else {
-	return ustrdup("\nPermission denied\n");
+	strbufAdd(buf, "\nPermission denied\n");
     }
 
-    return NULL;
+    return strbufSteal(buf);
 }
 
 char *unset(char *key)
@@ -317,59 +308,57 @@ char *unset(char *key)
 	maskLogger(dbgMask);
 	jlog(J_LOG_VERBOSE, "debugMask set to %#x\n", dbgMask);
     } else {
-	return ustrdup("Permission denied\n");
+	return strdup("Permission denied\n");
     }
-
     return NULL;
 }
 
 char *show(char *key)
 {
-    char *buf = NULL, *val;
-    size_t bufSize = 0;
+    strbuf_t buf = strbufNew(NULL);
 
+    char *val;
     if (!key) {
 	/* Show the whole configuration */
 	int maxKeyLen = getMaxKeyLen(confDef);
-	int i;
 
-	str2Buf("\n", &buf, &bufSize);
-	for (i = 0; confDef[i].name; i++) {
+	strbufAdd(buf, "\n");
+	for (int i = 0; confDef[i].name; i++) {
 	    char *cName = confDef[i].name, line[160];
 	    val = getConfValueC(config, cName);
 
 	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, val);
-	    str2Buf(line, &buf, &bufSize);
+	    strbufAdd(buf, line);
 	}
-	str2Buf("\n", &buf, &bufSize);
+	strbufAdd(buf, "\n");
 	if (jailScript) {
-	    str2Buf("jail script in use: '", &buf, &bufSize);
-	    str2Buf(jailScript, &buf, &bufSize);
-	    str2Buf("'\n", &buf, &bufSize);
+	    strbufAdd(buf, "jail script in use: '");
+	    strbufAdd(buf, jailScript);
+	    strbufAdd(buf, "'\n");
 	} else {
-	    str2Buf("no jail script defined!\n", &buf, &bufSize);
+	    strbufAdd(buf, "no jail script defined!\n");
 	}
 	if (termScript) {
-	    str2Buf("term script in use: '", &buf, &bufSize);
-	    str2Buf(termScript, &buf, &bufSize);
-	    str2Buf("'\n", &buf, &bufSize);
+	    strbufAdd(buf, "term script in use: '");
+	    strbufAdd(buf, termScript);
+	    strbufAdd(buf, "'\n");
 	} else {
-	    str2Buf("no term script defined!\n", &buf, &bufSize);
+	    strbufAdd(buf, "no term script defined!\n");
 	}
 	if (initScript) {
-	    str2Buf("init script in use: '", &buf, &bufSize);
-	    str2Buf(initScript, &buf, &bufSize);
-	    str2Buf("'\n", &buf, &bufSize);
+	    strbufAdd(buf, "init script in use: '");
+	    strbufAdd(buf, initScript);
+	    strbufAdd(buf, "'\n");
 	} else {
-	    str2Buf("no init script defined!\n", &buf, &bufSize);
+	    strbufAdd(buf, "no init script defined!\n");
 	}
     } else if ((val = getConfValueC(config, key))) {
-	str2Buf("\t", &buf, &bufSize);
-	str2Buf(key, &buf, &bufSize);
-	str2Buf(" = ", &buf, &bufSize);
-	str2Buf(val, &buf, &bufSize);
-	str2Buf("\n", &buf, &bufSize);
+	strbufAdd(buf, "\t");
+	strbufAdd(buf, key);
+	strbufAdd(buf, " = ");
+	strbufAdd(buf, val);
+	strbufAdd(buf, "\n");
     }
 
-    return buf;
+    return strbufSteal(buf);
 }

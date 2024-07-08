@@ -13,9 +13,9 @@
 #include <string.h>
 
 #include "plugin.h"
+#include "psstrbuf.h"
 
 #include "pluginconfig.h"
-#include "pluginmalloc.h"
 
 #include "pspmixlog.h"
 #include "pspmixconfig.h"
@@ -81,31 +81,27 @@ void cleanup(void)
 
 char *help(char *key)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
     int maxKeyLen = getMaxKeyLen(confDef);
 
-    str2Buf("\tProvide PMIx interface to executed programs\n",
-	    &buf, &bufSize);
-    str2Buf("# configuration options #\n", &buf, &bufSize);
+    strbuf_t buf = strbufNew("\tProvide PMIx interface to executed programs\n");
+    strbufAdd(buf, "# configuration options #\n");
 
     for (int i = 0; confDef[i].name; i++) {
 	char type[10], line[160];
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%*s %10s  %s\n",
 		 maxKeyLen+2, confDef[i].name, type, confDef[i].desc);
-	str2Buf(line, &buf, &bufSize);
+	strbufAdd(buf, line);
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 char *set(char *key, char *val)
 {
-    if (!getConfigDef(key, confDef)) return ustrdup("\nUnknown key\n");
+    if (!getConfigDef(key, confDef)) return strdup("\nUnknown key\n");
 
-    if (verifyConfigEntry(confDef, key, val))
-	return ustrdup("\tIllegal value\n");
+    if (verifyConfigEntry(confDef, key, val)) return strdup("\tIllegal value\n");
 
     addConfigEntry(config, key, val);
 
@@ -120,7 +116,7 @@ char *set(char *key, char *val)
 
 char *unset(char *key)
 {
-    if (!getConfigDef(key, confDef)) return ustrdup("\nUnknown key\n");
+    if (!getConfigDef(key, confDef)) return strdup("\nUnknown key\n");
 
     unsetConfigEntry(config, confDef, key);
 
@@ -135,32 +131,30 @@ char *unset(char *key)
 
 char *show(char *key)
 {
-    char *buf = NULL, *val;
-    size_t bufSize = 0;
+    char *val;
 
+    strbuf_t buf = strbufNew(NULL);
     if (!key) {
 	/* Show the whole configuration */
 	int maxKeyLen = getMaxKeyLen(confDef);
-	int i;
 
-	str2Buf("\n", &buf, &bufSize);
-	for (i = 0; confDef[i].name; i++) {
-
+	strbufAdd(buf, "\n");
+	for (int i = 0; confDef[i].name; i++) {
 	    char *cName = confDef[i].name, line[160];
 	    val = getConfValueC(config, cName);
 
 	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, val);
-	    str2Buf(line, &buf, &bufSize);
+	    strbufAdd(buf, line);
 	}
-	str2Buf("\n", &buf, &bufSize);
+	strbufAdd(buf, "\n");
     } else if ((val = getConfValueC(config, key))) {
-	str2Buf("\t", &buf, &bufSize);
-	str2Buf(key, &buf, &bufSize);
-	str2Buf(" = ", &buf, &bufSize);
-	str2Buf(val, &buf, &bufSize);
-	str2Buf("\n", &buf, &bufSize);
+	strbufAdd(buf, "\t");
+	strbufAdd(buf, key);
+	strbufAdd(buf, " = ");
+	strbufAdd(buf, val);
+	strbufAdd(buf, "\n");
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
