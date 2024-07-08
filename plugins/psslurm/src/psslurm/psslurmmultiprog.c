@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "pslog.h"
+#include "psstrbuf.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 
@@ -30,24 +31,16 @@ typedef struct {
 
 static char *replaceArgSymbols(char *args, unsigned rank, unsigned offset)
 {
-    char *tmp, *buf = NULL, *ptr, *last;
-    size_t len, bufSize = 0;
-    char symbol[15];
-    int haveOpenQuote = 0;
+    strbuf_t buf = strbufNew("");
 
-    if (!args) return ustrdup("");
+    if (!args) return strbufSteal(buf);
 
-    ptr = args;
-    last = args;
+    bool haveOpenQuote = false;
+    char *ptr = args;
+    char *last = args;
     while (ptr[0] != '\n' && ptr[0] != '\0') {
 	/* search for single quotes */
-	if (ptr[0] == '\'') {
-	    if (haveOpenQuote) {
-		haveOpenQuote = 0;
-	    } else {
-		haveOpenQuote = 1;
-	    }
-	}
+	if (ptr[0] == '\'') haveOpenQuote = !haveOpenQuote;
 
 	/* parse symbols */
 	if (ptr[0] == '%' &&
@@ -55,36 +48,35 @@ static char *replaceArgSymbols(char *args, unsigned rank, unsigned offset)
 
 	    if (haveOpenQuote) {
 		/* found quoted string, no parsing of symbols */
-		if ((tmp = strchr(ptr+2, '\''))) {
-		    len = tmp - last;
-		    strn2Buf(last, len, &buf, &bufSize);
+		char *tmp = strchr(ptr+2, '\'');
+		if (tmp) {
+		    strbufAddNum(buf, last, tmp - last);
 		    last = tmp;
-		    ptr = tmp+1;
-		    haveOpenQuote = 0;
+		    ptr = tmp + 1;
+		    haveOpenQuote = false;
 		    continue;
 		}
 	    }
 
-	    len = ptr - last;
-	    strn2Buf(last, len, &buf, &bufSize);
+	    strbufAddNum(buf, last, ptr - last);
+	    char symbol[15];
 	    if (ptr[1] == 't') {
 		snprintf(symbol, sizeof(symbol), "%u", rank);
 	    } else {
 		snprintf(symbol, sizeof(symbol), "%u", offset);
 	    }
-	    str2Buf(symbol, &buf, &bufSize);
-	    last = ptr+2;
+	    strbufAdd(buf, symbol);
+	    last = ptr + 2;
 	    ptr++;
 	}
 
 	ptr++;
     }
 
-    if ((len = ptr - last) >0) {
-	strn2Buf(last, len, &buf, &bufSize);
-    }
+    size_t len = ptr - last;
+    if (len > 0) strbufAddNum(buf, last, len);
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 static void unrollRanks(Multi_Prog_t *mp, uint32_t np, char *rankList,

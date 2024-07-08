@@ -24,6 +24,7 @@
 #include "psenv.h"
 #include "pslog.h"
 #include "psserial.h"
+#include "psstrbuf.h"
 #include "selector.h"
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
@@ -529,19 +530,19 @@ static char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 			    uint32_t arrayTaskId, int rank, char *path,
 			    char *jobname)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
+    strbuf_t buf = strbufNew(path);
 
     char *ptr = path;
     char *next = strchr(ptr, '%');
-    if (!next) return ustrdup(path);
+    if (!next) return strbufSteal(buf);
 
+    strbufClear(buf);
     while (next) {
 	char tmp[1024], symLen[64], symLen2[256];
 	char *symNum = next + 1;
 	char *symbol = symNum;
-	size_t len = next - ptr;
-	strn2Buf(ptr, len, &buf, &bufSize);
+
+	strbufAddNum(buf, ptr, next - ptr);
 
 	/* zero padding */
 	snprintf(symLen, sizeof(symLen), "%%u");
@@ -557,56 +558,56 @@ static char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 	switch (symbol[0]) {
 	case 'A':
 	    snprintf(tmp, sizeof(tmp), symLen, arrayJobId);
-	    str2Buf(tmp, &buf, &bufSize);
+	    strbufAdd(buf, tmp);
 	    break;
 	case 'a':
 	    snprintf(tmp, sizeof(tmp), symLen, arrayTaskId);
-	    str2Buf(tmp, &buf, &bufSize);
+	    strbufAdd(buf, tmp);
 	    break;
 	case 'J':
 	    snprintf(symLen2, sizeof(symLen2), "%s.%s", symLen, symLen);
 	    snprintf(tmp, sizeof(tmp), symLen2, jobid, stepid);
-	    str2Buf(tmp, &buf, &bufSize);
+	    strbufAdd(buf, tmp);
 	    break;
 	case 'j':
 	    snprintf(tmp, sizeof(tmp), symLen, jobid);
-	    str2Buf(tmp, &buf, &bufSize);
+	    strbufAdd(buf, tmp);
 	    break;
 	case 's':
 	    snprintf(tmp, sizeof(tmp), symLen, stepid);
-	    str2Buf(tmp, &buf, &bufSize);
+	    strbufAdd(buf, tmp);
 	    break;
 	case 'N':
-	    str2Buf(hostname, &buf, &bufSize);
+	    strbufAdd(buf, hostname);
 	    break;
 	case 'n':
 	    snprintf(tmp, sizeof(tmp), symLen, nodeid);
-	    str2Buf(tmp, &buf, &bufSize);
+	    strbufAdd(buf, tmp);
 	    break;
 	case 't':
 	    snprintf(tmp, sizeof(tmp), symLen, rank);
-	    str2Buf(tmp, &buf, &bufSize);
+	    strbufAdd(buf, tmp);
 	    break;
 	case 'u':
-	    str2Buf(username, &buf, &bufSize);
+	    strbufAdd(buf, username);
 	    break;
 	case 'x':
 	    if (jobname) {
-		str2Buf(jobname, &buf, &bufSize);
+		strbufAdd(buf, jobname);
 		break;
 	    }
 	    __attribute__((fallthrough));
 	default:
-	    strn2Buf(next, 2 + symNumLen, &buf, &bufSize);
+	    strbufAddNum(buf, next, 2 + symNumLen);
 	}
 
 	ptr = next + 2 + symNumLen;
 	next = strchr(ptr, '%');
     }
-    str2Buf(ptr, &buf, &bufSize);
-    mdbg(PSSLURM_LOG_IO, "%s: orig '%s' result: '%s'\n", __func__, path, buf);
+    strbufAdd(buf, ptr);
+    fdbg(PSSLURM_LOG_IO, "orig '%s' result: '%s'\n", path, strbufStr(buf));
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 char *IO_replaceStepSymbols(Step_t *step, int rank, char *path)
@@ -638,19 +639,15 @@ char *IO_replaceJobSymbols(Job_t *job, char *path)
 
 static char *addCwd(char *cwd, char *path)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
+    if (path[0] == '/' || path[0] == '.') return path;
 
-    if (path[0] == '/' || path[0] == '.') {
-	return path;
-    }
-
-    str2Buf(cwd, &buf, &bufSize);
-    str2Buf("/", &buf, &bufSize);
-    str2Buf(path, &buf, &bufSize);
+    strbuf_t buf = strbufNew(NULL);
+    strbufAdd(buf, cwd);
+    strbufAdd(buf, "/");
+    strbufAdd(buf, path);
     ufree(path);
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)

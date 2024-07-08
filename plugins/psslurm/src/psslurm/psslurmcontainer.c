@@ -21,6 +21,7 @@
 
 #include "pscommon.h"
 #include "psenv.h"
+#include "psstrbuf.h"
 #include "psstrv.h"
 #include "pluginconfig.h"
 #include "pluginhelper.h"
@@ -57,18 +58,17 @@ static char *replaceSymbols(const char *line, Slurm_Container_t *ct)
 {
     if (!line) return NULL;
 
+    strbuf_t buf = strbufNew(line);
     const char *ptr = line;
     char *next = strchr(ptr, '%');
-    if (!next) return ustrdup(line);
+    if (!next) return strbufSteal(buf);
 
-    char *buf = NULL;
-    size_t bufSize = 0;
-
+    strbufClear(buf);
     while (next) {
 	char tmp[1024];
 	char *symbol = next + 1;
-	size_t len = next - ptr;
-	strn2Buf(ptr, len, &buf, &bufSize);
+
+	strbufAddNum(buf, ptr, next - ptr);
 
 	switch (symbol[0]) {
 	case '@':
@@ -77,7 +77,7 @@ static char *replaceSymbols(const char *line, Slurm_Container_t *ct)
 	    break;
 	case 'b':
 	    /* container bundle */
-	    str2Buf(ct->bundle, &buf, &bufSize);
+	    strbufAdd(buf, ct->bundle);
 	    break;
 	case 'e':
 	    /* TODO: environment file */
@@ -86,44 +86,44 @@ static char *replaceSymbols(const char *line, Slurm_Container_t *ct)
 	case 'j':
 	    /* jobid */
 	    snprintf(tmp, sizeof(tmp), "%u", ct->jobid);
-	    str2Buf(tmp, &buf, &bufSize);
+	    strbufAdd(buf, tmp);
 	    break;
 	case 'm':
 	    /* spool directory */
-	    if (ct->spoolDir) str2Buf(ct->spoolDir, &buf, &bufSize);
+	    if (ct->spoolDir) strbufAdd(buf, ct->spoolDir);
 	    break;
 	case 'n':
 	    /* node name */
 	    ;char *hn = getConfValueC(Config, "SLURM_HOSTNAME");
-	    if (hn && hn[0] != '\0') str2Buf(hn, &buf, &bufSize);
+	    if (hn && hn[0] != '\0') strbufAdd(buf, hn);
 	    break;
 	case 'p':
 	    /* pid of task (rank) */
 	    snprintf(tmp, sizeof(tmp), "%i", ct->rankPID);
-	    str2Buf(tmp, &buf, &bufSize);
+	    strbufAdd(buf, tmp);
 	    break;
 	case 'r':
 	    /* rootfs */
-	    if (ct->rootfs) str2Buf(ct->rootfs, &buf, &bufSize);
+	    if (ct->rootfs) strbufAdd(buf, ct->rootfs);
 	    break;
 	case 's':
 	    /* stepid */
 	    snprintf(tmp, sizeof(tmp), "%u", ct->stepid);
-	    str2Buf(tmp, &buf, &bufSize);
+	    strbufAdd(buf, tmp);
 	    break;
 	case 't':
 	    /* taskid (rank) */
 	    snprintf(tmp, sizeof(tmp), "%i", ct->rank);
-	    str2Buf(tmp, &buf, &bufSize);
+	    strbufAdd(buf, tmp);
 	    break;
 	case 'U':
 	    /* user ID */
 	    snprintf(tmp, sizeof(tmp), "%u", ct->uid);
-	    str2Buf(tmp, &buf, &bufSize);
+	    strbufAdd(buf, tmp);
 	    break;
 	case 'u':
 	    /* username */
-	    str2Buf(ct->username, &buf, &bufSize);
+	    strbufAdd(buf, ct->username);
 	    break;
 	default:
 	    flog("error: unknown symbol '%c' to replace\n", symbol[0]);
@@ -133,10 +133,10 @@ static char *replaceSymbols(const char *line, Slurm_Container_t *ct)
 	next = strchr(ptr, '%');
     }
 
-    str2Buf(ptr, &buf, &bufSize);
-    fdbg(PSSLURM_LOG_DEBUG, "orig '%s' result: '%s'\n", line, buf);
+    strbufAdd(buf, ptr);
+    fdbg(PSSLURM_LOG_DEBUG, "orig '%s' result: '%s'\n", line, strbufStr(buf));
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 static bool readConfig(Slurm_Container_t *ct)
