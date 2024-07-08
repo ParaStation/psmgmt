@@ -13,10 +13,11 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "psstrbuf.h"
+
 #include "plugin.h"
 #include "pluginconfig.h"
 #include "pluginlog.h"
-#include "pluginmalloc.h"
 
 #include "psaccount.h"
 #include "psaccountclient.h"

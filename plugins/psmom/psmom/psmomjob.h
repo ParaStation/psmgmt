@@ -15,7 +15,6 @@
 #include <stdint.h>
 #include <pwd.h>
 #include <sys/types.h>
-#include <time.h>
 
 #include "list.h"
 #include "pscommon.h"

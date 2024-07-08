@@ -12,11 +12,14 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "psidtask.h"
+#include "psstrbuf.h"
+
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
 

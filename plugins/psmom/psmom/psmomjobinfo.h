@@ -13,7 +13,6 @@
 
 #include <stdbool.h>
 #include <sys/types.h>
-#include <time.h>
 
 #include "list.h"
 #include "pscommon.h"

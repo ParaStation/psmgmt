@@ -12,14 +12,11 @@
 #define __PS_ACCOUNT_CLIENT
 
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
-#include <sys/time.h>
 #include <sys/types.h>
 
 #include "list.h"
 #include "pscommon.h"
-#include "psstrbuf.h"
 
 #include "psaccountjob.h"
 #include "psaccounttypes.h"

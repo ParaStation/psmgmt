@@ -12,7 +12,6 @@
 #define __PSPAM_SSH
 
 #include <stdbool.h>
-#include <stddef.h>
 #include <sys/types.h>
 
 #include "list.h"

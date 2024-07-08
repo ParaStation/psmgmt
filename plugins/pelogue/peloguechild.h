@@ -12,7 +12,6 @@
 #define __PELOGUE_CHILD
 
 #include <stdbool.h>
-#include <stddef.h>
 
 #include "psstrbuf.h"
 

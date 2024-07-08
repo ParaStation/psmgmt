@@ -12,7 +12,6 @@
 #define __PSPAM_USER
 
 #include <stdbool.h>
-#include <stddef.h>
 
 #include "list.h"
 #include "pspamtypes.h"

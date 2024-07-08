@@ -14,11 +14,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
-#include <time.h>
 
 #include "list.h"
 #include "pstaskid.h"
-#include "psstrbuf.h"
 #include "psaccounttypes.h"
 
 typedef struct {

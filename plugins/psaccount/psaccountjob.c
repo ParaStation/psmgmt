@@ -13,9 +13,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
+#include <time.h>
 
 #include "timer.h"
 #include "pscommon.h"
+#include "psstrbuf.h"
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
 
