@@ -29,6 +29,7 @@
 #include "pscommon.h"
 #include "pspluginprotocol.h"
 #include "pspartition.h"
+#include "psstrbuf.h"
 #include "timer.h"
 #include "pluginconfig.h"
 #include "pluginhelper.h"
@@ -750,9 +751,7 @@ static void handlePELogueTimeout(int timerId, void *data)
 {
     char *jobid = data;
     const char *host;
-    char *buf = NULL, tmp[100];
-    size_t buflen = 0;
-    int i, count = 0;
+    char tmp[100];
 
     /* don't call myself again */
     Timer_remove(timerId);
@@ -777,16 +776,14 @@ static void handlePELogueTimeout(int timerId, void *data)
 	    __func__, job->state == JOB_PROLOGUE ? "prologue" : "epilogue",
 	    job->id);
 
-    str2Buf("missing nodeID(s): ", &buf, &buflen);
-
-    for (i=0; i<job->nrOfUniqueNodes; i++) {
+    strbuf_t buf = strbufNew("missing nodeID(s): ");
+    int count = 0;
+    for (int i = 0; i < job->nrOfUniqueNodes; i++) {
 	if (job->state == JOB_PROLOGUE) {
 	    if (job->nodes[i].prologue == -1) {
-		if (count>0) {
-		    str2Buf(",", &buf, &buflen);
-		}
+		if (count > 0) strbufAdd(buf, ",");
 		snprintf(tmp, sizeof(tmp), "%i", job->nodes[i].id);
-		str2Buf(tmp, &buf, &buflen);
+		strbufAdd(buf, tmp);
 		if ((host = getHostnameByNodeId(job->nodes[i].id))) {
 		    PElogueTimeoutAction(job->server, job->id, 1, host);
 		} else {
@@ -796,11 +793,9 @@ static void handlePELogueTimeout(int timerId, void *data)
 	    }
 	} else {
 	    if (job->nodes[i].epilogue == -1) {
-		if (count>0) {
-		    str2Buf(",", &buf, &buflen);
-		}
+		if (count > 0) strbufAdd(buf, ",");
 		snprintf(tmp, sizeof(tmp), "%i", job->nodes[i].id);
-		str2Buf(tmp, &buf, &buflen);
+		strbufAdd(buf, tmp);
 		if ((host = getHostnameByNodeId(job->nodes[i].id))) {
 		    PElogueTimeoutAction(job->server, job->id, 0, host);
 		} else {
@@ -811,8 +806,8 @@ static void handlePELogueTimeout(int timerId, void *data)
 	}
 	count++;
     }
-    mlog("%s: %s\n", __func__, buf);
-    ufree(buf);
+    mlog("%s: %s\n", __func__, strbufStr(buf));
+    strbufDestroy(buf);
 
     signalPElogue(job, "SIGKILL", "global pelogue timeout");
     stopPElogueExecution(job);

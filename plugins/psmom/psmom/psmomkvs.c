@@ -18,11 +18,11 @@
 
 #include "list.h"
 #include "pscommon.h"
+#include "psstrbuf.h"
 
 #include "plugin.h"
 #include "pluginconfig.h"
 #include "pluginlog.h"
-#include "pluginmalloc.h"
 #include "psidtask.h"
 
 #include "psaccounthandles.h"
@@ -74,305 +74,276 @@ void formatTimeout(long start, long timeout, char *buf, size_t bufsize)
 }
 
 /**
- * @brief Save detailed job information into an output buffer.
+ * @brief Save detailed job information into an output buffer
  *
- * @param job The job structure which holds all the information to save.
+ * @param job The job structure which holds all the information to save
  *
- * @param buf The buffer to save the information to.
- *
- * @param bufSize A pointer to the current size of the buffer.
- *
- * @return Returns the buffer with the job information.
+ * @return Returns the buffer with the job information
  */
-static char *showJob(Job_t *job, char *buf, size_t *bufSize)
+static char *showJob(Job_t *job)
 {
-    struct list_head *pos;
-    Data_Entry_t *next;
-    Child_t *child;
+    strbuf_t buf = strbufNew(NULL);
 
     snprintf(line, sizeof(line), "\n## job '%s' ##\n", job->id);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
-    str2Buf("\n# psmom attributes #\n", &buf, bufSize);
+    strbufAdd(buf, "\n# psmom attributes #\n");
 
     snprintf(line, sizeof(line), "user = '%s'\n", job->user);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "nr of procs = '%i'\n", job->nrOfNodes);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "nr of nodes = '%i'\n", job->nrOfUniqueNodes);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "server = '%s'\n", job->server);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "state = '%s'\n", jobState2String(job->state));
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     if (job->pwbuf) {
 	snprintf(line, sizeof(line), "uid = '%i'\n", job->passwd.pw_uid);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
 
 	snprintf(line, sizeof(line), "gid = '%i'\n", job->passwd.pw_gid);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
     snprintf(line, sizeof(line), "start time = %s", ctime(&job->start_time));
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     if (job->end_time > 0) {
 	snprintf(line, sizeof(line), "end time = %s", ctime(&job->end_time));
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
     if (job->pid != -1) {
 	snprintf(line, sizeof(line), "child pid = '%i'\n", job->pid);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
     if (job->sid != -1) {
 	snprintf(line, sizeof(line), "child sid = '%i'\n", job->pid);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
     if (job->mpiexec != -1) {
 	snprintf(line, sizeof(line), "mpiexec pid = '%i'\n", job->mpiexec);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
     snprintf(line, sizeof(line), "job cookie = '%s'\n", job->cookie);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "prologue exit = '%i'\n", job->prologueExit);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "epilogue exit = '%i'\n", job->epilogueExit);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     if (job->qsubPort != 0) {
-	str2Buf("interactive = true\n", &buf, bufSize);
+	strbufAdd(buf, "interactive = true\n");
 
 	snprintf(line, sizeof(line), "qsub port = '%i'\n", job->qsubPort);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     } else {
-	str2Buf("interactive = false\n", &buf, bufSize);
+	strbufAdd(buf, "interactive = false\n");
     }
 
     /* display saved pbs attributes */
-    str2Buf("\n# pbs attributes #\n", &buf, bufSize);
+    strbufAdd(buf, "\n# pbs attributes #\n");
 
-    list_for_each(pos, &job->data.list) {
-	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
-	if (!next->name || *next->name == '\0') break;
+    list_t *e;
+    list_for_each(e, &job->data.list) {
+	Data_Entry_t *entry = list_entry(e, Data_Entry_t, list);
+	if (!entry->name || *entry->name == '\0') break;
 
-	if (next->resource) {
-	    snprintf(line, sizeof(line), "%s:%s = %s\n", next->name,
-		     next->resource, next->value);
+	if (entry->resource) {
+	    snprintf(line, sizeof(line), "%s:%s = %s\n", entry->name,
+		     entry->resource, entry->value);
 	} else {
-	    snprintf(line, sizeof(line), "%s = %s\n", next->name, next->value);
+	    snprintf(line, sizeof(line), "%s = %s\n", entry->name, entry->value);
 	}
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
     /* display known accouting data */
-    str2Buf("\n# accounting information #\n", &buf, bufSize);
+    strbufAdd(buf, "\n# accounting information #\n");
 
-    list_for_each(pos, &job->status.list) {
-	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL)  break;
-	if (!next->name || *next->name == '\0') break;
+    list_for_each(e, &job->status.list) {
+	Data_Entry_t *entry = list_entry(e, Data_Entry_t, list);
+	if (!entry->name || *entry->name == '\0') break;
 
-	if (next->resource) {
-	    snprintf(line, sizeof(line), "%s:%s = %s\n", next->name,
-		     next->resource, next->value);
+	if (entry->resource) {
+	    snprintf(line, sizeof(line), "%s:%s = %s\n", entry->name,
+		     entry->resource, entry->value);
 	} else {
-	    snprintf(line, sizeof(line), "%s = %s\n", next->name, next->value);
+	    snprintf(line, sizeof(line), "%s = %s\n", entry->name, entry->value);
 	}
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
     /* display running job child */
-    if ((child = findChildByJobid(job->id, -1))) {
+    Child_t *child = findChildByJobid(job->id, -1);
+    if (child) {
 	time_t max_runtime;
 
-	str2Buf("\n# forwarder information #\n", &buf, bufSize);
+	strbufAdd(buf, "\n# forwarder information #\n");
 
 	snprintf(line, sizeof(line), "pid = '%i'\n", child->pid);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
 
 	snprintf(line, sizeof(line), "type = '%s'\n",
 		childType2String(child->type));
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
 
-	snprintf(line, sizeof(line), "child pid = '%i'\n",
-		    child->c_pid);
-	str2Buf(line, &buf, bufSize);
+	snprintf(line, sizeof(line), "child pid = '%i'\n", child->c_pid);
+	strbufAdd(buf, line);
 
-	snprintf(line, sizeof(line), "child sid = '%i'\n",
-		    child->c_sid);
-	str2Buf(line, &buf, bufSize);
+	snprintf(line, sizeof(line), "child sid = '%i'\n", child->c_sid);
+	strbufAdd(buf, line);
 
 	snprintf(line, sizeof(line), "start time = %s",
 			    ctime(&child->start_time.tv_sec));
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
 
 	if (child->fw_timeout > 0) {
 	    max_runtime = child->start_time.tv_sec + child->fw_timeout;
-
-	    snprintf(line, sizeof(line), "timeout = %s",
-				ctime(&max_runtime));
+	    snprintf(line, sizeof(line), "timeout = %s", ctime(&max_runtime));
 	}
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 /**
- * @brief Show psmom state information.
+ * @brief Show psmom state information
  *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
- * @return Returns the buffer with the updated state information.
+ * @return Returns the buffer with the updated state information
  */
-static char *showState(char *buf, size_t *bufSize)
+static char *showState(void)
 {
-    struct list_head *pos;
-    Data_Entry_t *next;
-
-    str2Buf("\n", &buf, bufSize);
+    strbuf_t buf = strbufNew("\n");
 
     updateInfoList(1);
-    list_for_each(pos, &infoData.list) {
-	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
-	if (!next->name || *next->name == '\0') break;
+    list_t *e;
+    list_for_each(e, &infoData.list) {
+	Data_Entry_t *entry = list_entry(e, Data_Entry_t, list);
+	if (!entry->name || *entry->name == '\0') break;
 
-	str2Buf(next->value, &buf, bufSize);
-	str2Buf("\n", &buf, bufSize);
+	strbufAdd(buf, entry->value);
+	strbufAdd(buf, "\n");
     }
     clearDataList(&infoData.list);
 
-    list_for_each(pos, &staticInfoData.list) {
-	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
-	if (!next->name || *next->name == '\0') break;
+    list_for_each(e, &staticInfoData.list) {
+	Data_Entry_t *entry = list_entry(e, Data_Entry_t, list);
+	if (!entry->name || *entry->name == '\0') break;
 
-	str2Buf(next->value, &buf, bufSize);
-	str2Buf("\n", &buf, bufSize);
+	strbufAdd(buf, entry->value);
+	strbufAdd(buf, "\n");
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 /**
- * @brief Show psmom connection information.
+ * @brief Show psmom connection information
  *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
- * @return Returns the buffer with the updated connection information.
+ * @return Returns the buffer with the updated connection information
  */
-static char *showConnectionState(char *buf, size_t *bufSize)
+static char *showConnectionState(void)
 {
-    struct list_head *pos;
-    ComHandle_t *com;
-    char *info, local[32], remote[32], lport[8], rport[8];
-
+    strbuf_t buf = strbufNew(NULL);
     snprintf(line, sizeof(line), "\nsocket\ttype\t%20s\t%20s\tinfo\n",
 		"local", "remote");
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     if (masterSocket != -1) {
 	snprintf(line, sizeof(line), "%i\t%s\t%20s\t%20s\t%s\n", masterSocket,
 		"UNIX", "0.0.0.0:*", "0.0.0.0:*", masterSocketName);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
-    if (list_empty(&ComList.list)) return buf;
-
-    list_for_each(pos, &ComList.list) {
-	if ((com = list_entry(pos, ComHandle_t, list)) == NULL) break;
-
-	info = com->jobid ? com->jobid : NULL;
+    list_t *c;
+    list_for_each(c, &ComList.list) {
+	ComHandle_t *com = list_entry(c, ComHandle_t, list);
+	char *info = com->jobid ? com->jobid : NULL;
 	if (!info) info = com->info ? com->info : "";
 
 	/* print local addr */
+	char lport[8];
 	if (com->localPort == -1) {
 	    snprintf(lport, sizeof(lport), "*");
 	} else {
 	    snprintf(lport, sizeof(lport), "%i", com->localPort);
 	}
+	char local[32];
 	snprintf(local, sizeof(local), "%s:%s",
 		    com->addr[0] ? com->addr : "0.0.0.0", lport);
 
 	/* print remote addr */
+	char rport[8];
 	if (com->remotePort == -1) {
 	    snprintf(rport, sizeof(rport), "*");
 	} else {
 	    snprintf(rport, sizeof(rport), "%i", com->remotePort);
 	}
+	char remote[32];
 	snprintf(remote, sizeof(remote), "%s:%s",
 		    com->remoteAddr[0] ? com->remoteAddr : "0.0.0.0",
 		    rport);
 
 	snprintf(line, sizeof(line), "%i\t%s\t%20s\t%20s\t%s\n", com->socket,
 		protocolType2String(com->type), local, remote, info);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 /**
- * @brief Show current forwarders.
+ * @brief Show current forwarders
  *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
- * @return Returns the buffer with the updated forwarder information.
+ * @return Returns the buffer with the updated forwarder information
  */
-static char *showForwarder(char *buf, size_t *bufSize)
+static char *showForwarder(void)
 {
-    Child_t *child;
-    list_t *pos, *tmp;
-    char start[50], timeout[50];
-    struct tm *ts;
+    strbuf_t buf = strbufNew(NULL);
 
     if (list_empty(&ChildList.list)) {
-	return str2Buf("\nCurrently no running forwarders.\n", &buf, bufSize);
+	strbufAdd(buf, "\nCurrently no running forwarders.\n");
+    } else {
+	snprintf(line, sizeof(line), "\n%12s\t%19s\t%19s\tPID\tChild PID"
+		 "\tChild SID\n", "Type", "Starttime", "Timeout");
+	strbufAdd(buf, line);
+
+	list_t *c;
+	list_for_each(c, &ChildList.list) {
+	    Child_t *child = list_entry(c, Child_t, list);
+
+	    /* format start time */
+	    struct tm *ts = localtime(&child->start_time.tv_sec);
+	    char start[50];
+	    strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
+
+	    /* format timeout */
+	    char timeout[50];
+	    formatTimeout(child->start_time.tv_sec, child->fw_timeout, timeout,
+			  sizeof(timeout));
+
+	    snprintf(line, sizeof(line), "%12s\t%s\t%s\t%i\t%i\t\t%i\n",
+		     childType2String(child->type),
+		     start, timeout, child->pid, child->c_pid, child->c_sid);
+
+	    strbufAdd(buf, line);
+	}
     }
-
-    snprintf(line, sizeof(line), "\n%12s\t%19s\t%19s\tPID\tChild PID"
-		"\tChild SID\n", "Type", "Starttime", "Timeout");
-    str2Buf(line, &buf, bufSize);
-
-
-    list_for_each_safe(pos, tmp, &ChildList.list) {
-	if ((child = list_entry(pos, Child_t, list)) == NULL) return buf;
-
-	/* format start time */
-	ts = localtime(&child->start_time.tv_sec);
-	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
-
-	/* format timeout */
-	formatTimeout(child->start_time.tv_sec, child->fw_timeout, timeout,
-			sizeof(timeout));
-
-	snprintf(line, sizeof(line), "%12s\t%s\t%s\t%i\t%i\t\t%i\n",
-		 childType2String(child->type),
-		 start,
-		 timeout,
-		 child->pid,
-		 child->c_pid,
-		 child->c_sid);
-
-	str2Buf(line, &buf, bufSize);
-    }
-
-    return buf;
+    return strbufSteal(buf);
 }
 
 /**
@@ -422,24 +393,23 @@ static pid_t getSIDforPID(pid_t pid)
  *
  * @return Returns the buffer with the updated configuration information.
  */
-static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
+static char *showAllowedPid(char *key)
 {
-    char *reason = NULL;
-    list_t *pos, *tmp;
-    pid_t pid, sid;
-    int found = 0;
-    PStask_ID_t psAccLogger;
-    PStask_t *task;
-    Child_t *child;
+    strbuf_t buf = strbufNew(NULL);
 
-    if ((sscanf(key, "allowed_%i", &pid)) != 1) {
-	return str2Buf("\nInvalid pid: not a number\n", &buf, bufSize);
+    pid_t pid;
+    if (sscanf(key, "allowed_%i", &pid) != 1) {
+	strbufAdd(buf, "\nInvalid pid: not a number\n");
+	return strbufSteal(buf);
     }
 
-    sid = getSIDforPID(pid);
+    pid_t sid = getSIDforPID(pid);
 
-    list_for_each_safe(pos, tmp, &ChildList.list) {
-	if ((child = list_entry(pos, Child_t, list)) == NULL) continue;
+    int found = 0;
+    char *reason = NULL;
+    list_t *c;
+    list_for_each(c, &ChildList.list) {
+	Child_t *child = list_entry(c, Child_t, list);
 	if (child->pid == pid) {
 	    found = 1;
 	    reason = "LOCAL_FORWARDER";
@@ -460,10 +430,12 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
     }
 
     /* try to find the logger using the account client list */
-    if (!(task = PStasklist_find(&managedTasks, PSC_getTID(-1, pid)))) {
-	psAccLogger = psAccountGetLoggerByClient(pid);
-    } else {
+    PStask_t *task = PStasklist_find(&managedTasks, PSC_getTID(-1, pid));
+    PStask_ID_t psAccLogger;
+    if (task) {
 	psAccLogger = task->loggertid;
+    } else {
+	psAccLogger = psAccountGetLoggerByClient(pid);
     }
 
     /* check for local job */
@@ -484,231 +456,199 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
 FINISH:
 
     snprintf(line, sizeof(line), "\n%i ", pid);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     if (found) {
-	str2Buf("TRUE ", &buf, bufSize);
-	str2Buf(reason, &buf, bufSize);
-	return str2Buf("\n", &buf, bufSize);
+	strbufAdd(buf, "TRUE ");
+	strbufAdd(buf, reason);
+	strbufAdd(buf, "\n");
+    } else {
+	strbufAdd(buf, "FALSE\n");
     }
-
-    return str2Buf("FALSE\n", &buf, bufSize);
+    return strbufSteal(buf);
 }
 
 /**
- * @brief Show internal statistic.
+ * @brief Show internal statistic
  *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
- * @return Returns the buffer with the updated configuration information.
+ * @return Returns the buffer with the updated configuration information
  */
-static char *showStatistic(char *buf, size_t *bufSize)
+static char *showStatistic(void)
 {
-    uint64_t stat_allJobs = stat_batchJobs + stat_interJobs;
-
-    str2Buf("\n# statistic #\n\n", &buf, bufSize);
-
-    snprintf(line, sizeof(line), "executed batch jobs\t\t%u\n",
-		stat_batchJobs);
-    str2Buf(line, &buf, bufSize);
+    strbuf_t buf = strbufNew("\n# statistic #\n\n");
+    snprintf(line, sizeof(line), "executed batch jobs\t\t%u\n", stat_batchJobs);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "executed interactive jobs\t%u\n",
-		stat_interJobs);
-    str2Buf(line, &buf, bufSize);
+	     stat_interJobs);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "successful batch jobs\t\t%u\n",
-		stat_successBatchJobs);
-    str2Buf(line, &buf, bufSize);
+	     stat_successBatchJobs);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "successful interactive jobs\t%u\n",
 		stat_successInterJobs);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "failed batch jobs\t\t%u\n",
 		stat_failedBatchJobs);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "failed interactive jobs\t\t%u\n",
 		stat_failedInterJobs);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "successful local prologue\t%u\n",
 		stat_lPrologue);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "successful remote prologue\t%u\n",
 		stat_rPrologue);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "failed local prologue\t\t%u\n",
 		stat_failedlPrologue);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "failed remote prologue\t\t%u\n",
 		stat_failedrPrologue);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
-
+    uint64_t stat_allJobs = stat_batchJobs + stat_interJobs;
     if (stat_allJobs > 0) {
 	snprintf(line, sizeof(line), "average nodes\t\t\t%lu\n",
 		    stat_numNodes / stat_allJobs);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
 
 	snprintf(line, sizeof(line), "average processes\t\t%lu\n",
 		    stat_numProcs / stat_allJobs);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
     snprintf(line, sizeof(line), "executed remote jobs\t\t%u\n",
 		stat_remoteJobs);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "psmom start time\t\t%s\n",
 		ctime(&stat_startTime));
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 /**
  * @brief Show current configuration
  *
- * Print the current configuration of the plugin to the buffer @a buf
- * of current length @a length. The buffer might be dynamically
- * extended if required.
+ * Print the current configuration of the plugin to a buffer.
  *
- * @param buf Buffer to write information to
- *
- * @param bufSize Size of the buffer
- *
- * @return Returns the buffer with the updated configuration information.
+ * @return Returns the buffer with the updated configuration information
  */
-static char *showConfig(char *buf, size_t *bufSize)
+static char *showConfig(void)
 {
     int maxKeyLen = getMaxKeyLen(confDef);
-    int i;
 
-    str2Buf("\n", &buf, bufSize);
-
-    for (i = 0; confDef[i].name; i++) {
+    strbuf_t buf = strbufNew("\n");
+    for (int i = 0; confDef[i].name; i++) {
 	char *cName = confDef[i].name;
 	char *cVal = getConfValueC(config, cName);
 
 	snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, cVal);
-	str2Buf(line, &buf, bufSize);
+	strbufAdd(buf, line);
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 /**
- * @brief Show all supported virtual keys.
+ * @brief Show all supported virtual keys
  *
- * @param buf The buffer to write the information to.
+ * @param buf String buffer to add information to
  *
- * @param bufSize The size of the buffer.
- *
- * @return Returns the buffer with the updated forwarder information.
+ * @return No return value
  */
-static char *showVirtualKeys(char *buf, size_t *bufSize, int example)
+static void showVirtualKeys(strbuf_t buf, int example)
 {
-    char *msg;
-
-    str2Buf("\n# available keys #\n\n", &buf, bufSize);
+    strbufAdd(buf, "\n# available keys #\n\n");
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "config",
-	    "show current configuration");
-    str2Buf(line, &buf, bufSize);
+	     "show current configuration");
+    strbufAdd(buf, line);
 
-    snprintf(line, sizeof(line), "%12s\t%s\n", "jobs",
-	    "show all jobs");
-    str2Buf(line, &buf, bufSize);
+    snprintf(line, sizeof(line), "%12s\t%s\n", "jobs", "show all jobs");
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "job-id",
-	    "show detailed information about a selected job");
-    str2Buf(line, &buf, bufSize);
+	     "show detailed information about a selected job");
+    strbufAdd(buf, line);
 
-    snprintf(line, sizeof(line), "%12s\t%s\n", "state",
-	    "show internal state");
-    str2Buf(line, &buf, bufSize);
+    snprintf(line, sizeof(line), "%12s\t%s\n", "state", "show internal state");
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "connections",
-	    "show all connections");
-    str2Buf(line, &buf, bufSize);
+	     "show all connections");
+    strbufAdd(buf, line);
 
-    snprintf(line, sizeof(line), "%12s\t%s\n", "rjobs",
-	    "show all remote jobs");
-    str2Buf(line, &buf, bufSize);
+    snprintf(line, sizeof(line), "%12s\t%s\n", "rjobs", "show all remote jobs");
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "forwarder",
-	    "show running forwarder");
-    str2Buf(line, &buf, bufSize);
+	     "show running forwarder");
+    strbufAdd(buf, line);
 
-    snprintf(line, sizeof(line), "%12s\t%s\n", "statistic",
-	    "show statistic");
-    str2Buf(line, &buf, bufSize);
+    snprintf(line, sizeof(line), "%12s\t%s\n", "statistic", "show statistic");
+    strbufAdd(buf, line);
 
     if (example) {
-	msg = "\nExample:\nUse 'plugin psmom show 1001.frontend' or"
-	    " 'plugin show psmom 1001'\nto display detailed job information"
-	    " about job '1001.frontend'.\n";
-
-	str2Buf(msg, &buf, bufSize);
+	strbufAdd(buf, "\nExample:\nUse 'plugin psmom show 1001.frontend' or"
+		  " 'plugin show psmom 1001'\nto display detailed job"
+		  " information about job '1001.frontend'.\n");
     }
-
-    return buf;
 }
 
 char *set(char *key, char *value)
 {
-    const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
-    char *buf = NULL;
-    size_t bufSize = 0;
+    strbuf_t buf = strbufNew(NULL);
 
     /* search in config for given key */
+    const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
     if (thisConfDef) {
 	int verRes = verifyConfigEntry(confDef, key, value);
 
 	if (!strcmp(key, "PBS_SERVER")) {
-	    return NULL;
+	    // do nothing
 	} else if (!strcmp(key, "PORT_SERVER")) {
-	    return NULL;
+	    // do nothing
 	} else if (!strcmp(key, "PORT_MOM")) {
-	    return NULL;
+	    // do nothing
 	} else if (!strcmp(key, "PORT_RM")) {
-	    return NULL;
+	    // do nothing
 	} else if (!strcmp(key, "TORQUE_VERSION")) {
-	    return str2Buf("\nInvalid request: changing torque version is not"
-			   " possible without a restart\n", &buf, &bufSize);
+	    strbufAdd(buf, "\nInvalid request: changing torque version is not"
+		      " possible without a restart\n");
 	} else if (!strcmp(key, "DEBUG_MASK")) {
 	    int32_t mask;
 
-	    if ((sscanf(value, "%i", &mask)) != 1) {
-		return str2Buf("\nInvalid debug mask: not a number\n", &buf,
-				&bufSize);
+	    if (sscanf(value, "%i", &mask) != 1) {
+		strbufAdd(buf, "\nInvalid debug mask: not a number\n");
 	    }
 	    maskLogger(mask);
-	}
-
-	if (verRes) {
+	} else if (verRes) {
 	    if (verRes == 1) {
-		str2Buf("\nInvalid key '", &buf, &bufSize);
-		str2Buf(key, &buf, &bufSize);
-		str2Buf("' for cmd set : use 'plugin help psmom' foor help.\n",
-			&buf, &bufSize);
+		strbufAdd(buf, "\nInvalid key '");
+		strbufAdd(buf, key);
+		strbufAdd(buf, "' for cmd set : use 'plugin help psmom' for help.\n");
 	    } else if (verRes == 2) {
-		str2Buf("\nThe key '", &buf, &bufSize);
-		str2Buf(key, &buf, &bufSize);
-		str2Buf("' for cmd set has to be numeric.\n", &buf, &bufSize);
+		strbufAdd(buf, "\nThe key '");
+		strbufAdd(buf, key);
+		strbufAdd(buf, "' for cmd set has to be numeric.\n");
 	    }
 	} else {
 	    /* save new config value */
 	    addConfigEntry(config, key, value);
 
 	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
-	    str2Buf(line, &buf, &bufSize);
+	    strbufAdd(buf, line);
 	}
     } else if (!strcmp(key, "statistic")) {
 	if (!strcmp(value, "0")) {
@@ -726,9 +666,9 @@ char *set(char *key, char *value)
 	    stat_numNodes = 0;
 	    stat_numProcs = 0;
 
-	    str2Buf("\nReset statistics\n", &buf, &bufSize);
+	    strbufAdd(buf, "\nReset statistics\n");
 	} else {
-	    str2Buf("\nInvalid statistic command\n", &buf, &bufSize);
+	    strbufAdd(buf, "\nInvalid statistic command\n");
 	}
     } else if (!strcmp(key, "memdebug")) {
 	if (memoryDebug) fclose(memoryDebug);
@@ -737,28 +677,26 @@ char *set(char *key, char *value)
 	    finalizePluginLogger();
 	    initPluginLogger(NULL, memoryDebug);
 	    maskPluginLogger(PLUGIN_LOG_MALLOC);
-	    str2Buf("\nmemory logging to '", &buf, &bufSize);
-	    str2Buf(value, &buf, &bufSize);
-	    str2Buf("'\n", &buf, &bufSize);
+	    strbufAdd(buf, "\nmemory logging to '");
+	    strbufAdd(buf, value);
+	    strbufAdd(buf, "'\n");
 	} else {
-	    str2Buf("\nopening file '", &buf, &bufSize);
-	    str2Buf(value, &buf, &bufSize);
-	    str2Buf("' for writing failed\n", &buf, &bufSize);
+	    strbufAdd(buf, "\nopening file '");
+	    strbufAdd(buf, value);
+	    strbufAdd(buf, "' for writing failed\n");
 	}
     } else {
-	str2Buf("\nInvalid key '", &buf, &bufSize);
-	str2Buf(key, &buf, &bufSize);
-	str2Buf("' for cmd set : use 'plugin help psmom' for help.\n", &buf,
-		&bufSize);
+	strbufAdd(buf, "\nInvalid key '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' for cmd set : use 'plugin help psmom' for help.\n");
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 char *unset(char *key)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
+    strbuf_t buf = strbufNew(NULL);
 
     if (getConfValueC(config, key)) {
 	unsetConfigEntry(config, confDef, key);
@@ -769,125 +707,102 @@ char *unset(char *key)
 	    memoryDebug = NULL;
 	    initPluginLogger(NULL, psmomlogfile);
 	}
-	str2Buf("Stopped memory debugging\n", &buf, &bufSize);
+	strbufAdd(buf, "Stopped memory debugging\n");
     } else {
-	str2Buf("\nInvalid key '", &buf, &bufSize);
-	str2Buf(key, &buf, &bufSize);
-	str2Buf("' for cmd unset : use 'plugin help psmom' for help.\n",
-		&buf, &bufSize);
+	strbufAdd(buf, "\nInvalid key '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' for cmd unset : use 'plugin help psmom' for help.\n");
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 char *help(char *key)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
     int maxKeyLen = getMaxKeyLen(confDef);
 
-    str2Buf("\nThe psmom is a complete replacement of the Torque pbs_mom."
+    strbuf_t buf = strbufNew(NULL);
+    strbufAdd(buf, "\nThe psmom is a complete replacement of the Torque pbs_mom."
 	    " Using the psmom plug-in the psid\ntherefore is the only"
 	    " daemon needed on the compute nodes to integrate them into"
-	    " the batch system.\n", &buf, &bufSize);
+	    " the batch system.\n");
 
-    str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
+    strbufAdd(buf, "\n# configuration options #\n\n");
     for (int i = 0; confDef[i].name; i++) {
 	char type[10];
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%*s %8s  %s\n", maxKeyLen+2,
 		 confDef[i].name, type, confDef[i].desc);
-	str2Buf(line, &buf, &bufSize);
+	strbufAdd(buf, line);
     }
 
-    buf = showVirtualKeys(buf, &bufSize, 0);
+    showVirtualKeys(buf, 0);
 
-    str2Buf("\nUse 'plugin show psmom [key name]' to view the"
-	    " current configuration or internal informations.\n"
-	    "To change the configuration use 'plugin set psmom"
-	    " <name> <value>'.\n"
-	    "To unset a configuration value use 'plugin unset psmom"
-	    " <name>'.\n"
-	    "To reset the statistic use 'plugin set psmom statistic 0'"
-	    ".\n", &buf, &bufSize);
+    strbufAdd(buf, "\nUse 'plugin show psmom [key name]' to view the"
+	      " current configuration or internal informations.\n"
+	      "To change the configuration use 'plugin set psmom"
+	      " <name> <value>'.\n"
+	      "To unset a configuration value use 'plugin unset psmom <name>'.\n"
+	      "To reset the statistic use 'plugin set psmom statistic 0'.\n");
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 char *show(char *key)
 {
-    Job_t *job;
-    char *buf = NULL, *tmp;
-    size_t bufSize = 0;
-
     if (!key) {
 	/* show all virtual keys */
-	buf = showVirtualKeys(buf, &bufSize, 1);
-
-	return buf;
+	strbuf_t buf = strbufNew(NULL);
+	showVirtualKeys(buf, 1);
+	return strbufSteal(buf);
     }
 
     /* search in config for given key */
-    tmp = getConfValueC(config, key);
+    char *tmp = getConfValueC(config, key);
     if (tmp) {
-	str2Buf(key, &buf, &bufSize);
-	str2Buf(" = ", &buf, &bufSize);
-	str2Buf(tmp, &buf, &bufSize);
-	str2Buf("\n", &buf, &bufSize);
+	strbuf_t buf = strbufNew(NULL);
+	strbufAdd(buf, key);
+	strbufAdd(buf, " = ");
+	strbufAdd(buf, tmp);
+	strbufAdd(buf, "\n");
 
-	return buf;
+	return strbufSteal(buf);
     }
 
     /* search for "virtual" values for given key */
 
     /* show current remote jobs */
-    if (!strcmp(key, "rjobs")) {
-	return listJobInfos(buf, &bufSize);
-    }
+    if (!strcmp(key, "rjobs")) return listJobInfos();
 
     /* show running forwarders */
-    if (!strcmp(key, "forwarder")) {
-	return showForwarder(buf, &bufSize);
-    }
+    if (!strcmp(key, "forwarder")) return showForwarder();
 
     /* show current connections */
-    if (!strcmp(key, "connections")) {
-	return showConnectionState(buf, &bufSize);
-    }
+    if (!strcmp(key, "connections")) return showConnectionState();
 
     /* show state information */
-    if (!strcmp(key, "state")) {
-	return showState(buf, &bufSize);
-    }
+    if (!strcmp(key, "state")) return showState();
 
     /* show current jobs */
-    if (!strcmp(key, "jobs")) {
-	return listJobs(buf, &bufSize);
-    }
+    if (!strcmp(key, "jobs")) return listJobs();
 
     /* show current config */
-    if (!strcmp(key, "config")) {
-	return showConfig(buf, &bufSize);
-    }
+    if (!strcmp(key, "config")) return showConfig();
 
     /* show statistic */
-    if (!strcmp(key, "statistic")) {
-	return showStatistic(buf, &bufSize);
-    }
+    if (!strcmp(key, "statistic")) return showStatistic();
 
     /* check for allowed pid */
-    if (!strncmp(key, "allowed_", 8)) {
-	return showAllowedPid(key, buf, &bufSize);
-    }
+    if (!strncmp(key, "allowed_", 8)) return showAllowedPid(key);
 
     /* job-id: show detailed job info */
-    if ((job = findJobById(key)) || (job = findJobByShortId(key))) {
-	return showJob(job, buf, &bufSize);
-    }
+    Job_t *job = findJobById(key);
+    if (!job) job = findJobByShortId(key);
+    if (job) return showJob(job);
 
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    str2Buf("' for cmd show : use 'plugin help psmom'.\n", &buf, &bufSize);
+    strbuf_t buf = strbufNew("\nInvalid key '");
+    strbufAdd(buf, key);
+    strbufAdd(buf, "' for cmd show : use 'plugin help psmom'.\n");
 
-    return buf;
+    return strbufSteal(buf);
 }

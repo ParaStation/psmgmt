@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "psstrbuf.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 
@@ -146,37 +147,40 @@ void clearJobInfoList()
     }
 }
 
-char *listJobInfos(char *buf, size_t *bufSize)
+char *listJobInfos(void)
 {
-    char line[160];
-    list_t *j;
+    strbuf_t buf = strbufNew(NULL);
 
     if (list_empty(&jobInfoList)) {
-	return str2Buf("\nNo current remote jobs.\n", &buf, bufSize);
+	strbufAdd(buf, "\nNo current remote jobs.\n");
+    } else {
+	char line[160];
+	snprintf(line, sizeof(line), "\n%26s  %9s  %6s  %15s  %15s\n",
+		 "JobId", "User", "NId", "Starttime", "Timeout");
+	strbufAdd(buf, line);
+
+	list_t *j;
+	list_for_each(j, &jobInfoList) {
+	    JobInfo_t *job = list_entry(j, JobInfo_t, next);
+
+	    /* format start time */
+	    struct tm *ts = localtime(&job->start_time);
+	    char start[50];
+	    strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
+
+	    char timeout[50];
+	    formatTimeout(job->start_time, job->timeout, timeout, sizeof(timeout));
+
+	    char nodeId[16];
+	    snprintf(nodeId, sizeof(nodeId), "%i", PSC_getID(job->tid));
+
+	    snprintf(line, sizeof(line), "%26s  %9s  %6s  %15s  %15s\n",
+		     job->id, job->user, nodeId, start, timeout);
+
+	    strbufAdd(buf, line);
+	}
     }
-
-    snprintf(line, sizeof(line), "\n%26s  %9s  %6s  %15s  %15s\n",
-		"JobId", "User", "NId", "Starttime", "Timeout");
-    str2Buf(line, &buf, bufSize);
-
-    list_for_each(j, &jobInfoList) {
-	JobInfo_t *job = list_entry(j, JobInfo_t, next);
-	char start[50], timeout[50], nodeId[10];
-
-	/* format start time */
-	struct tm *ts = localtime(&job->start_time);
-	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
-
-	formatTimeout(job->start_time, job->timeout, timeout, sizeof(timeout));
-
-	snprintf(nodeId, sizeof(nodeId), "%i", PSC_getID(job->tid));
-
-	snprintf(line, sizeof(line), "%26s  %9s  %6s  %15s  %15s\n",
-		 job->id, job->user, nodeId, start, timeout);
-
-	str2Buf(line, &buf, bufSize);
-    }
-    return buf;
+    return strbufSteal(buf);
 }
 
 bool showAllowedJobInfoPid(pid_t pid, PStask_ID_t psAccLogger, char **reason)

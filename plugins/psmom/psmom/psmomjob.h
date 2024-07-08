@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -243,15 +243,11 @@ bool deleteJob(char *jobname);
 int countJobs(void);
 
 /**
- * @brief Save information about all known jobs into a buffer.
+ * @brief Save information about all known jobs into a buffer
  *
- * @param buf The buffer to save the information to.
- *
- * @param bufSize A pointer to the current size of the buffer.
- *
- * @return Returns the buffer with the updated job information.
+ * @return Returns the buffer with the updated job information
  */
-char *listJobs(char *buf, size_t *bufSize);
+char *listJobs(void);
 
 /**
  * @brief Check PID for allowance

@@ -18,6 +18,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include "psstrbuf.h"
 #include "pluginconfig.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
@@ -753,54 +754,57 @@ int hasRunningJobs(char *user)
     return 0;
 }
 
-char *listJobs(char *buf, size_t *bufSize)
+char *listJobs(void)
 {
     char line[256];
-    list_t *j;
 
+    strbuf_t buf = strbufNew(NULL);
     if (list_empty(&jobList)) {
-	return str2Buf("\nCurrently no jobs.\n", &buf, bufSize);
-    }
+	strbufAdd(buf, "\nCurrently no jobs.\n");
+    } else {
+	snprintf(line, sizeof(line), "\n%26s %8s %8s %6s %10s %10s %20s %20s\n",
+		 "JobId", "State", "Procs", "Nodes", "User", "TaskID",
+		 "Startttime", "Timeout");
+	strbufAdd(buf, line);
 
-    snprintf(line, sizeof(line), "\n%26s %8s %8s %6s %10s %10s %20s %20s\n",
-	     "JobId", "State", "Procs", "Nodes", "User", "TaskID",
-	     "Startttime", "Timeout");
-    str2Buf(line, &buf, bufSize);
+	list_t *j;
+	list_for_each(j, &jobList) {
+	    Job_t *job = list_entry(j, Job_t, next);
 
-    list_for_each(j, &jobList) {
-	Job_t *job = list_entry(j, Job_t, next);
-	char start[50], timeout[32], logger[15], procs[8], nodes[6];
-	struct tm *ts;
-	long secTimeout;
+	    /* format start time */
+	    struct tm *ts = localtime(&job->start_time);
+	    char start[50];
+	    strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
 
-	/* format start time */
-	ts = localtime(&job->start_time);
-	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
+	    /* format timeout */
+	    long secTimeout = stringTimeToSec(getJobDetail(&job->data,
+							   "Resource_List",
+							   "walltime"));
+	    char timeout[32];
+	    formatTimeout(job->start_time, secTimeout, timeout, sizeof(timeout));
 
-	/* format timeout */
-	secTimeout = stringTimeToSec(getJobDetail(&job->data, "Resource_List",
-		    "walltime"));
+	    char logger[15];
+	    if (job->mpiexec == -1) {
+		strncpy(logger, "-", sizeof(logger));
+	    } else {
+		snprintf(logger, sizeof(logger), "[%i:%i]", PSC_getMyID(),
+			 job->mpiexec);
+	    }
 
-	formatTimeout(job->start_time, secTimeout, timeout, sizeof(timeout));
+	    char procs[8];
+	    snprintf(procs, sizeof(procs), "%i", job->nrOfNodes);
+	    char nodes[6];
+	    snprintf(nodes, sizeof(nodes), "%i", job->nrOfUniqueNodes);
 
-	if (job->mpiexec == -1) {
-	    strncpy(logger, "-", sizeof(logger));
-	} else {
-	    snprintf(logger, sizeof(logger), "[%i:%i]", PSC_getID(-1),
-			job->mpiexec);
+	    snprintf(line, sizeof(line), "%26s %8s %8s %6s %10s %10s %20s %20s\n",
+		     job->id, jobState2String(job->state), procs, nodes,
+		     job->user, logger, start, timeout);
+
+	    strbufAdd(buf, line);
 	}
-
-	snprintf(procs, sizeof(procs), "%i", job->nrOfNodes);
-	snprintf(nodes, sizeof(nodes), "%i", job->nrOfUniqueNodes);
-
-	snprintf(line, sizeof(line), "%26s %8s %8s %6s %10s %10s %20s %20s\n",
-		 job->id, jobState2String(job->state), procs, nodes, job->user,
-		 logger, start, timeout);
-
-	str2Buf(line, &buf, bufSize);
     }
 
-    return buf;
+    return strbufSteal(buf);
 }
 
 bool showAllowedJobPid(pid_t pid, pid_t sid, PStask_ID_t psAccLogger,
