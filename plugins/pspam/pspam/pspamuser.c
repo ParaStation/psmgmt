@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "pluginmalloc.h"
+#include "psstrbuf.h"
 
 #include "pspamlog.h"
 #include "pspamssh.h"
@@ -36,7 +36,7 @@ bool addUser(char *username, char *jobID, PSPAMState_t state)
 	free(user);
 	return false;
     }
-    user->jobID = ustrdup(jobID);
+    user->jobID = strdup(jobID);
     if (!user->jobID) {
 	free(user->name);
 	free(user);
@@ -122,24 +122,24 @@ const char *state2Str(PSPAMState_t state)
     }
 }
 
-char *listUsers(char *buf, size_t *bufSize)
+char *listUsers(void)
 {
-    char l[160];
-    list_t *u;
-
+    strbuf_t buf = strbufNew(NULL);
     if (list_empty(&userList)) {
-	return str2Buf("\nNo current users.\n", &buf, bufSize);
+	strbufAdd(buf, "\nNo current users.\n");
+    } else {
+	strbufAdd(buf, "\nusers:\n");
+
+	list_t *u;
+	list_for_each(u, &userList) {
+	    User_t *user = list_entry(u, User_t, next);
+
+	    char l[160];
+	    snprintf(l, sizeof(l), "%12s %24s %s\n", user->name, user->jobID,
+		     state2Str(user->state));
+	    strbufAdd(buf, l);
+	}
     }
 
-    str2Buf("\nusers:\n", &buf, bufSize);
-
-    list_for_each(u, &userList) {
-	User_t *user = list_entry(u, User_t, next);
-
-	snprintf(l, sizeof(l), "%12s %24s %s\n", user->name, user->jobID,
-		 state2Str(user->state));
-	str2Buf(l, &buf, bufSize);
-    }
-
-    return buf;
+    return strbufSteal(buf);
 }

@@ -93,16 +93,11 @@ void clearSessionList(void);
 /**
  * @brief List current sessions
  *
- * List current sessions and put all information into the buffer @a
- * buf. Upon return @a bufSize indicates the current size of @a buf.
- *
- * @param buf Buffer to write all information to
- *
- * @param bufSize Size of the buffer
+ * List current sessions and put all information into a string buffer.
  *
  * @return Pointer to buffer with updated session information
  */
-char *listSessions(char *buf, size_t *bufSize);
+char *listSessions(void);
 
 /**
  * @brief Verify a session pointer

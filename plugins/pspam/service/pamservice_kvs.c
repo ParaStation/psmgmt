@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "pluginmalloc.h"
+#include "psstrbuf.h"
 
 #include "pamservice_log.h"
 
@@ -20,53 +20,46 @@ static char line[256];
 
 char *show(char *key)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
-
-    if (!key) return str2Buf("\nError: empty key for show command\n",
-			     &buf, &bufSize);
-
-    if (!strcmp(key, "DEBUG_MASK")) {
+    strbuf_t buf = strbufNew(NULL);
+    if (!key) {
+	strbufAdd(buf, "\nError: empty key for show command\n");
+    } else if (!strcmp(key, "DEBUG_MASK")) {
 	snprintf(line, sizeof(line), "\nDEBUG_MASK = %#x\n", getLoggerMask());
-	return str2Buf(line, &buf, &bufSize);
+	strbufAdd(buf, line);
+    } else {
+	strbufAdd(buf, "\nInvalid key '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' for cmd show.\n");
     }
-
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    return str2Buf("' for cmd show.\n", &buf, &bufSize);
+    return strbufSteal(buf);
 }
 
 char *help(void)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
-
-    return str2Buf("\nUse show or set for option DEBUG_MASK\n", &buf, &bufSize);
+    return strdup("\nUse show or set for option DEBUG_MASK\n");
 }
 
 char *set(char *key, char *value)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
-
-    if (!key) return str2Buf("\nError: empty key for set command\n",
-			     &buf, &bufSize);
-
-    if (!strcmp(key, "DEBUG_MASK")) {
+    strbuf_t buf = strbufNew(NULL);
+    if (!key) {
+	strbufAdd(buf, "\nError: empty key for set command\n");
+    } else if (!strcmp(key, "DEBUG_MASK")) {
 	int32_t mask;
 
 	if (sscanf(value, "%i", &mask) != 1) {
-	    str2Buf("\nInvalid debug mask: '", &buf, &bufSize);
-	    str2Buf(value, &buf, &bufSize);
-	    return str2Buf("'\n", &buf, &bufSize);
+	    strbufAdd(buf, "\nInvalid debug mask: '");
+	    strbufAdd(buf, value);
+	    strbufAdd(buf, "'\n");
+	} else {
+	    setLoggerMask(mask);
+	    snprintf(line, sizeof(line), "\nnew %s = %#x\n", key, getLoggerMask());
+	    strbufAdd(buf, line);
 	}
-	setLoggerMask(mask);
-	snprintf(line, sizeof(line), "\nnew %s = %#x\n", key, getLoggerMask());
-
-	return str2Buf(line, &buf, &bufSize);
+    } else {
+	strbufAdd(buf, "\nInvalid key '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' for cmd set.\n");
     }
-
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    return str2Buf("' for cmd set.\n", &buf, &bufSize);
+    return strbufSteal(buf);
 }

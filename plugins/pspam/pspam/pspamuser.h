@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -112,15 +112,10 @@ const char *state2Str( PSPAMState_t state);
 /**
  * @brief List current users
  *
- * List current users and put all information into the buffer @a
- * buf. Upon return @a bufSize indicates the current size of @a buf.
- *
- * @param buf Buffer to write all information to
- *
- * @param bufSize Size of the buffer
+ * List current users and put all information into a string buffer.
  *
  * @return Pointer to buffer with updated user information
  */
-char *listUsers(char *buf, size_t *bufSize);
+char *listUsers(void);
 
 #endif /* __PSPAM_USER */

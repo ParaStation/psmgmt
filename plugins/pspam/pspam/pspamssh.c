@@ -17,7 +17,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "pluginmalloc.h"
+#include "psstrbuf.h"
 #include "psaccounthandles.h"
 
 /* list holding all ssh sessions */
@@ -28,13 +28,13 @@ Session_t *addSession(char *user, char *rhost, pid_t sshPid, pid_t sshSid)
     Session_t *ssh = malloc(sizeof(*ssh));
     if (!ssh) return NULL;
 
-    ssh->user = ustrdup(user);
+    ssh->user = strdup(user);
     if (!ssh->user) {
 	free(ssh);
 	return NULL;
     }
 
-    ssh->rhost = ustrdup(rhost);
+    ssh->rhost = strdup(rhost);
     if (!ssh->rhost) {
 	free(ssh->user);
 	free(ssh);
@@ -140,26 +140,26 @@ void clearSessionList(void)
     }
 }
 
-char *listSessions(char *buf, size_t *bufSize)
+char *listSessions(void)
 {
-    char l[160];
-    list_t *s;
-
+    strbuf_t buf = strbufNew(NULL);
     if (list_empty(&sshList)) {
-	return str2Buf("\nNo current sessions.\n", &buf, bufSize);
+	strbufAdd(buf, "\nNo current sessions.\n");
+    } else {
+	strbufAdd(buf, "\nsessions:\n");
+
+	list_t *s;
+	list_for_each(s, &sshList) {
+	    Session_t *ssh = list_entry(s, Session_t, next);
+
+	    char l[160];
+	    snprintf(l, sizeof(l), "%12s %20.20s %6d %6d %s", ssh->user,
+		     ssh->rhost, ssh->pid, ssh->sid, ctime(&ssh->startTime));
+	    strbufAdd(buf, l);
+	}
     }
 
-    str2Buf("\nsessions:\n", &buf, bufSize);
-
-    list_for_each(s, &sshList) {
-	Session_t *ssh = list_entry(s, Session_t, next);
-
-	snprintf(l, sizeof(l), "%12s %20.20s %6d %6d %s", ssh->user,
-		 ssh->rhost, ssh->pid, ssh->sid, ctime(&ssh->startTime));
-	str2Buf(l, &buf, bufSize);
-    }
-
-    return buf;
+    return strbufSteal(buf);
 }
 
 bool verifySessionPtr(Session_t *sessPtr)
