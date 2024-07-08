@@ -643,21 +643,18 @@ static char *showVirtualKeys(strbuf_t buf, bool example)
 
 char *set(char *key, char *value)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
+    strbuf_t buf = strbufNew(NULL);
 
     /* load a Spank plugin */
     if (!strcmp(key, "SPANK_LOAD")) {
 #ifdef HAVE_SPANK
 	Spank_Plugin_t *sp = SpankNewPlug(value);
 	if (!sp) {
-	    snprintf(line, sizeof(line),
-		    "\nerror loading plugin %s\n", value);
-	    return str2Buf(line, &buf, &bufSize);
-	}
-	int ret = SpankLoadPlugin(sp, true);
-
-	switch (ret) {
+	    snprintf(line, sizeof(line), "\nerror loading plugin %s\n", value);
+	    strbufAdd(buf, line);
+	} else {
+	    int ret = SpankLoadPlugin(sp, true);
+	    switch (ret) {
 	    case -1:
 		snprintf(line, sizeof(line),
 			 "\nerror loading plugin %s\n", sp->name);
@@ -675,16 +672,14 @@ char *set(char *key, char *value)
 			 sp->name);
 		ufree(sp);
 		break;
+	    }
 	}
+	strbufAdd(buf, line);
 #else
-	snprintf(line, sizeof(line),
-		 "\npsmgmt was compiled without spank support\n\n");
+	strbufAdd(buf, "\npsmgmt was compiled without spank support\n\n");
 #endif
-	return str2Buf(line, &buf, &bufSize);
-    }
-
-    /* unload a Spank plugin */
-    if (!strcmp(key, "SPANK_UNLOAD") || !strcmp(key, "SPANK_FIN")) {
+    } else if (!strcmp(key, "SPANK_UNLOAD") || !strcmp(key, "SPANK_FIN")) {
+	/* unload a Spank plugin */
 #ifdef HAVE_SPANK
 	bool fin = !strcmp(key, "SPANK_FIN") ? true : false;
 	if (!SpankUnloadPlugin(value, fin)) {
@@ -694,14 +689,11 @@ char *set(char *key, char *value)
 	    snprintf(line, sizeof(line), "\nunloaded plugin %s successfully\n",
 		     value);
 	}
+	strbufAdd(buf, line);
 #else
-	snprintf(line, sizeof(line),
-		 "\npsmgmt was compiled without spank support\n\n");
+	strbufAdd(buf, "\npsmgmt was compiled without spank support\n\n");
 #endif
-	return str2Buf(line, &buf, &bufSize);
-    }
-
-    if (!strcmp(key, "DEL_ALLOC")) {
+    } else if (!strcmp(key, "DEL_ALLOC")) {
 	int id = atoi(value);
 	if (Alloc_delete(id)) {
 	    snprintf(line, sizeof(line), "\ndeleted allocation %i\n", id);
@@ -709,16 +701,15 @@ char *set(char *key, char *value)
 	    snprintf(line, sizeof(line), "\nfailed to delete allocation %i\n",
 		     id);
 	}
-	return str2Buf(line, &buf, &bufSize);
+	strbufAdd(buf, line);
     } else if (!strcmp(key, "DEL_JOB")) {
 	Job_t *job = Job_findByIdC(value);
 	if (Job_destroy(job)) {
 	    snprintf(line, sizeof(line), "\ndeleted job %s\n", value);
 	} else {
-	    snprintf(line, sizeof(line), "\nfailed to delete job %s\n",
-		     value);
+	    snprintf(line, sizeof(line), "\nfailed to delete job %s\n", value);
 	}
-	return str2Buf(line, &buf, &bufSize);
+	strbufAdd(buf, line);
     } else if (!strcmp(key, "DEL_STEP")) {
 	int id = atoi(value);
 	if (Step_findByJobid(id)) {
@@ -728,89 +719,79 @@ char *set(char *key, char *value)
 	    snprintf(line, sizeof(line), "\nfailed to delete steps with jobid "
 		     "%i\n", id);
 	}
-	return str2Buf(line, &buf, &bufSize);
-    }
-
-    /* search in config for given key */
-    if (getConfigDef(key, confDef)) {
+	strbufAdd(buf, line);
+    } else if (getConfigDef(key, confDef)) {
+	/* search in config for given key */
 	int ret = verifyConfigEntry(confDef, key, value);
 	if (ret) {
 	    switch (ret) {
 	    case 1:
-		str2Buf("\nInvalid key '", &buf, &bufSize);
-		str2Buf(key, &buf, &bufSize);
-		str2Buf("' for cmd set : use 'plugin help psslurm' for help.\n",
-			&buf, &bufSize);
+		strbufAdd(buf, "\nInvalid key '");
+		strbufAdd(buf, key);
+		strbufAdd(buf, "' for cmd set : use 'plugin help psslurm'"
+			  " for help.\n");
 		break;
 	    case 2:
-		str2Buf("\nThe key '", &buf, &bufSize);
-		str2Buf(key, &buf, &bufSize);
-		str2Buf("' for cmd set has to be numeric.\n", &buf, &bufSize);
+		strbufAdd(buf, "\nThe key '");
+		strbufAdd(buf, key);
+		strbufAdd(buf, "' for cmd set has to be numeric.\n");
 	    }
-	    return buf;
-	}
-
-	if (!strcmp(key, "DEBUG_MASK")) {
+	} else if (!strcmp(key, "DEBUG_MASK")) {
 	    int32_t mask;
 
 	    if (sscanf(value, "%i", &mask) != 1) {
-		return str2Buf("\nInvalid debug mask: NAN\n", &buf, &bufSize);
+		strbufAdd(buf, "\nInvalid debug mask: NAN\n");
+	    } else {
+		maskLogger(mask);
 	    }
-	    maskLogger(mask);
-	}
-
-	if (!strcmp(key, "MEASURE_MUNGE")) {
+	} else if (!strcmp(key, "MEASURE_MUNGE")) {
 	    int32_t active;
 
 	    if (sscanf(value, "%i", &active) != 1) {
-		return str2Buf("\nInvalid flag: NAN\n", &buf, &bufSize);
+		strbufAdd(buf, "\nInvalid flag: NAN\n");
+	    } else {
+		psMungeMeasure(active);
 	    }
-	    psMungeMeasure(active);
-	}
-
-	if (!strcmp(key, "MEASURE_RPC")) {
+	} else if (!strcmp(key, "MEASURE_RPC")) {
 	    int32_t active;
 
 	    if (sscanf(value, "%i", &active) != 1) {
-		return str2Buf("\nInvalid flag: NAN\n", &buf, &bufSize);
+		strbufAdd(buf, "\nInvalid flag: NAN\n");
+	    } else {
+		measureRPC = active;
 	    }
-	    measureRPC = active;
+	} else {
+	    /* save new config value */
+	    addConfigEntry(Config, key, value);
+
+	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
+	    strbufAdd(buf, line);
 	}
-
-	/* save new config value */
-	addConfigEntry(Config, key, value);
-
-	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
-	return str2Buf(line, &buf, &bufSize);
-    }
-
-    if (!strcmp(key, "CLEAR_CONF_CACHE")) {
+    } else if (!strcmp(key, "CLEAR_CONF_CACHE")) {
 	char *confDir = getConfValueC(Config, "SLURM_CONF_CACHE");
 	removeDir(confDir, false);
-	str2Buf("Clear Slurm configuration cache ", &buf, &bufSize);
-	str2Buf(confDir, &buf, &bufSize);
-	return str2Buf("\n", &buf, &bufSize);
+	strbufAdd(buf, "Clear Slurm configuration cache ");
+	strbufAdd(buf, confDir);
+	strbufAdd(buf, "\n");
+    } else {
+	strbufAdd(buf, "\nInvalid key '");
+	strbufAdd(buf, key);
+	strbufAdd(buf, "' for cmd set : use 'plugin help psslurm' for help.\n");
     }
 
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    return str2Buf("' for cmd set : use 'plugin help psslurm' for help.\n",
-		   &buf, &bufSize);
+    return strbufSteal(buf);
 }
 
 char *unset(char *key)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
+    if (unsetConfigEntry(Config, confDef, key)) return NULL;
 
-    if (unsetConfigEntry(Config, confDef, key)) return buf;
+    strbuf_t buf = strbufNew(NULL);
+    strbufAdd(buf, "\nInvalid key '");
+    strbufAdd(buf, key);
+    strbufAdd(buf, "' for cmd unset : use 'plugin help psslurm' for help.\n");
 
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    str2Buf("' for cmd unset : use 'plugin help psslurm' for help.\n",
-	    &buf, &bufSize);
-
-    return buf;
+    return strbufSteal(buf);
 }
 
 char *help(char *key)

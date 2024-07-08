@@ -101,23 +101,21 @@ bool envFilterFunc(const char *envStr)
  */
 static char *getCPUsPerNode(Job_t *job)
 {
-    char *buffer = NULL;
-    size_t bufSize = 0;
-    uint32_t i;
-    char tmp[256];
+    strbuf_t buf = strbufNew(NULL);
 
-    for (i=0; i<job->cpuGroupCount; i++) {
-	if (i>0) str2Buf(",", &buffer, &bufSize);
+    for (uint32_t i = 0; i < job->cpuGroupCount; i++) {
+	if (i) strbufAdd(buf, ",");
 
+	char tmp[256];
 	if (job->cpuCountReps[i] > 1) {
 	    snprintf(tmp, sizeof(tmp), "%u(x%u)", job->cpusPerNode[i],
-			job->cpuCountReps[i]);
+		     job->cpuCountReps[i]);
 	} else {
 	    snprintf(tmp, sizeof(tmp), "%u", job->cpusPerNode[i]);
 	}
-	str2Buf(tmp, &buffer, &bufSize);
+	strbufAdd(buf, tmp);
     }
-    return buffer;
+    return strbufSteal(buf);
 }
 
 /**
@@ -134,19 +132,14 @@ static char *getCPUsPerNode(Job_t *job)
  */
 static uint16_t *calcTasksPerNode(Job_t *job)
 {
-    uint32_t N, n, i;
-    uint16_t *tasksPerNode;
+    uint32_t N = job->nrOfNodes;
+    uint32_t n = job->np;
 
-    N = job->nrOfNodes;
-    n = job->np;
+    if (!N || !n) return NULL;
 
-    if (N == 0 || n == 0) {
-	return NULL;
-    }
+    uint16_t *tasksPerNode = umalloc(N * sizeof(*tasksPerNode));
 
-    tasksPerNode = umalloc(N * sizeof(tasksPerNode));
-
-    for (i = 0; i < N; i++) {
+    for (uint32_t i = 0; i < N; i++) {
 	tasksPerNode[i] = n / N + ((i < (n % N)) ? 1 : 0);
     }
     return tasksPerNode;
@@ -168,18 +161,13 @@ static uint16_t *calcTasksPerNode(Job_t *job)
  */
 static char *getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes)
 {
-    char *buffer = NULL;
-    size_t bufSize = 0;
-    uint32_t i;
-    uint16_t current, last, count;
-    char tmp[21];
-
     if (nrOfNodes == 0) return NULL;
 
-    count = 0;
-    current = 0;
-    last = tasksPerNode[0]; /* for loop initialization */
-    for (i = 0; i <= nrOfNodes; i++) {
+    strbuf_t buf = strbufNew(NULL);
+
+    uint16_t count = 0, current = 0;
+    uint16_t last = tasksPerNode[0]; /* for loop initialization */
+    for (uint32_t i = 0; i <= nrOfNodes; i++) {
 	if (i != nrOfNodes) { /* don't do this in the last iteration */
 	    current = tasksPerNode[i];
 	    if (current == last) {
@@ -188,18 +176,19 @@ static char *getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes)
 	    }
 	}
 
+	char tmp[32];
 	if (count == 1) {
 	    snprintf(tmp, sizeof(tmp), "%u,", last);
 	} else {
 	    snprintf(tmp, sizeof(tmp), "%u(x%d),", last, count);
 	}
-	str2Buf(tmp, &buffer, &bufSize);
+	if (strbufLen(buf)) strbufAdd(buf, ",");
+	strbufAdd(buf, tmp);
 
 	last = current;
 	count = 1;
     }
-    buffer[strlen(buffer)-1] = '\0'; //override last comma
-    return buffer;
+    return strbufSteal(buf);
 }
 
 static char *getCompactThreadList(const PSCPU_set_t threads)
@@ -793,19 +782,18 @@ void initJobEnv(Job_t *job)
  */
 static char *GTIDsToList(Step_t *step)
 {
-    char *buf = NULL;
-    size_t bufSize;
-    uint32_t i;
-    char tmp[128];
+    strbuf_t buf = strbufNew(NULL);
 
     uint32_t offset = step->packTaskOffset != NO_VAL ? step->packTaskOffset : 0;
-    for (i=0; i<step->globalTaskIdsLen[step->localNodeId]; i++) {
-	if (i > 0) str2Buf(",", &buf, &bufSize);
+    for (uint32_t i = 0; i < step->globalTaskIdsLen[step->localNodeId]; i++) {
+	if (i) strbufAdd(buf, ",");
+
+	char tmp[128];
 	snprintf(tmp, sizeof(tmp), "%u",
 		 step->globalTaskIds[step->localNodeId][i] + offset);
-	str2Buf(tmp, &buf, &bufSize);
+	strbufAdd(buf, tmp);
     }
-    return buf;
+    return strbufSteal(buf);
 }
 
 /**

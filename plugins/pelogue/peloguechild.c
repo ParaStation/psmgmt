@@ -10,17 +10,17 @@
  */
 #include "peloguechild.h"
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
 #include <limits.h>
 #include <pwd.h>
 #include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
+#include <unistd.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -408,29 +408,27 @@ void clearChildList(void)
     hostName = NULL;
 }
 
-char *printChildStatistics(char *buf, size_t *bufSize)
+char *printChildStatistics(strbuf_t buf)
 {
+    strbufAdd(buf, "\nprologue statistics (success/failed):\n");
+
     char line[160];
-
-    snprintf(line, sizeof(line), "\nprologue statistics (success/failed):\n");
-    str2Buf(line, &buf, bufSize);
-
     snprintf(line, sizeof(line), "\tlocal: (%d/%d)\n",
 	     PEstat.locProSucc, PEstat.locProFail);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
     snprintf(line, sizeof(line), "\tremote: (%d/%d)\n\n",
 	     PEstat.remProSucc, PEstat.remProFail);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "epilogue statistics (success/failed):\n");
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "\tlocal: (%d/%d)\n",
 	     PEstat.locEpiSucc, PEstat.locEpiFail);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
     snprintf(line, sizeof(line), "\tremote: (%d/%d)\n\n",
 	     PEstat.remEpiSucc, PEstat.remEpiFail);
-    str2Buf(line, &buf, bufSize);
+    strbufAdd(buf, line);
 
-    return buf;
+    return strbufSteal(buf);
 }
