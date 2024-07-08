@@ -106,62 +106,6 @@ char *__ustrdup(const char *s1, const char *func, const int line);
 #define ustrdup(s1) __ustrdup(s1, __func__, __LINE__)
 
 /**
- * @brief Save a string into a buffer that dynamically grows if needed
- *
- * If possible @ref addStrBuf() should be used instead.
- *
- * Copy the string @a str into the dynamic buffer @a buffer is
- * pointing to. If required, this buffer will be grown using @ref
- * __umalloc() and @ref __urealloc(). The current size of the buffer
- * is tracked in @a bufSize. This is a wrapper to @ref strn2Buf().
- *
- * @param str The string to write to the buffer
- *
- * @param buffer The buffer to write the string to
- *
- * @param bufSize The current size of the buffer
- *
- * @param func Funtion name of the calling function
- *
- * @param line Line number where this function is called
- *
- * @return Returns a pointer to the buffer.
- */
-char *__str2Buf(const char *str, char **buffer, size_t *bufSize,
-		const char *func, const int line);
-#define str2Buf(str, buffer, bufSize) \
-    __str2Buf(str, buffer, bufSize, __func__, __LINE__)
-
-/**
- * @brief Save a string into a buffer that dynamically grows if needed
- *
- * If possible @ref addStrBuf() should be used instead.
- *
- * Copy @a lenStr bytes from the string @a str into the dynamic buffer
- * @a buffer is pointing to. If required, this buffer will be grown
- * using @ref __umalloc() and @ref __urealloc(). The current size of
- * the buffer is traced in @a bufSize.
- *
- * @param str The string to write to the buffer
- *
- * @param lenStr The number of bytes of @a str to write to the buffer
- *
- * @param buffer The buffer to write the string to
- *
- * @param bufSize The current size of the buffer
- *
- * @param func Funtion name of the calling function
- *
- * @param line Line number where this function is called
- *
- * @return Returns a pointer to the buffer.
- */
-char *__strn2Buf(const char *str, size_t lenStr, char **buffer, size_t *bufSize,
-		 const char *func, const int line);
-#define strn2Buf(str, lenStr, buffer, bufSize) \
-    __strn2Buf(str, lenStr, buffer, bufSize, __func__, __LINE__)
-
-/**
  * @brief calloc() with error handling and logging.
  *
  * Call calloc() and handle errors by printing an error message and

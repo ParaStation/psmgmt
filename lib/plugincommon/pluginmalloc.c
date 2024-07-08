@@ -17,7 +17,6 @@
 #include "pluginlog.h"
 
 #define MIN_MALLOC_SIZE 64
-#define STR_MALLOC_SIZE 512
 
 void *__umalloc(size_t size, const char *func, const int line)
 {
@@ -88,36 +87,6 @@ void __ufree(void *ptr, const char *func, const int line)
     plugindbg(PLUGIN_LOG_MALLOC, "ufree\t%15s\t%i\t%p\n", func, line, ptr);
 
     free(ptr);
-}
-
-char *__str2Buf(const char *str, char **buffer, size_t *bufSize,
-		const char *func, const int line)
-{
-    return __strn2Buf(str, strlen(str), buffer, bufSize, func, line);
-}
-
-char *__strn2Buf(const char *str, size_t lenStr, char **buffer, size_t *bufSize,
-		 const char *func, const int line)
-{
-    size_t lenBuf;
-
-    if (!*buffer) {
-	*bufSize = (lenStr / STR_MALLOC_SIZE + 1) * STR_MALLOC_SIZE;
-	*buffer = __umalloc(*bufSize, func, line);
-	lenBuf = 0;
-    } else {
-	lenBuf = strlen(*buffer);
-    }
-
-    if (lenBuf + lenStr + 1 > *bufSize) {
-	*bufSize = ((lenBuf + lenStr) / STR_MALLOC_SIZE + 1) * STR_MALLOC_SIZE;
-	*buffer = __urealloc(*buffer, *bufSize, func, line);
-    }
-
-    strncpy(*buffer + lenBuf, str, lenStr);
-    (*buffer)[lenBuf+lenStr] = '\0';
-
-    return *buffer;
 }
 
 void *__ucalloc(size_t size, const char *func, const int line)
