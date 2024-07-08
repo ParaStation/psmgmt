@@ -19,7 +19,7 @@
 static bool checkStr(strbuf_t strbuf)
 {
     if (!strbufInitialized(strbuf)) {
-	fprintf(stderr, "strbuf %p not initialzied\n", strbuf);
+	fprintf(stderr, "strbuf %p not initialized\n", strbuf);
 	return false;
     }
     if (strbufSize(strbuf) % MALLOC_GRANULARITY) {
@@ -127,6 +127,18 @@ int main(void)
 	fprintf(stderr, "untouched content '%s'?!\n", contentStr);
 	return -1;
     }
+
+    if (verbose) fprintf(stderr, "addNum 1\n");
+    str = strbufNew(NULL);
+    strbufAddNum(str, str20, 10);
+    if (!checkStr(str)) return -1;
+    if (!cmpStr(strbufStr(str), str10)) return -1;
+
+    if (verbose) fprintf(stderr, "addNum 2\n");
+    strbufAddNum(str, str40, 20);
+    if (!checkStr(str)) return -1;
+    if (!cmpStr(strbufStr(str), str10 str20)) return -1;
+    strbufDestroy(str);
 
     if (verbose) fprintf(stderr, "steal 1\n");
     // preparation

@@ -59,11 +59,15 @@ uint32_t strbufSize(strbuf_t strbuf)
 
 bool strbufAdd(strbuf_t strbuf, const char *str)
 {
-    if (!strbufInitialized(strbuf)) return false;
+    return str ? strbufAddNum(strbuf, str, strlen(str)) : false;
+}
 
-    size_t strLen = strlen(str);
-    if (strbuf->len + (strLen ? strLen : 1) > strbuf->size) {
-	uint32_t newSize = ((strbuf->len + strLen) / MIN_MALLOC_SIZE + 1) *
+bool strbufAddNum(strbuf_t strbuf, const char *str, size_t num)
+{
+    if (!strbufInitialized(strbuf) || !str) return false;
+
+    if (strbuf->len + (num ? num : 1) > strbuf->size) {
+	uint32_t newSize = ((strbuf->len + num) / MIN_MALLOC_SIZE + 1) *
 	    MIN_MALLOC_SIZE;
 	char *tmp = realloc(strbuf->string, newSize * sizeof(*tmp));
 	if (!tmp) return false;
@@ -72,10 +76,10 @@ bool strbufAdd(strbuf_t strbuf, const char *str)
 	strbuf->string = tmp;
     }
 
-    strLen++;                         // also copy trailing \0
     if (strbuf->len) strbuf->len--;   // omit stored trailing \0 if any
-    memcpy(strbuf->string + strbuf->len, str, strLen + 1);
-    strbuf->len += strLen;
+    memcpy(strbuf->string + strbuf->len, str, num);
+    strbuf->string[strbuf->len + num] = '\0';
+    strbuf->len += num + 1;
 
     return true;
 }

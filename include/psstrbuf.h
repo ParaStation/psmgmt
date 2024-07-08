@@ -15,6 +15,7 @@
 #define __PSSTRBUF_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 /** String buffer context to be created via @ref strbufNew() */
@@ -86,6 +87,24 @@ uint32_t strbufSize(strbuf_t strbuf);
  * str was added; or false otherwise
  */
 bool strbufAdd(strbuf_t strbuf, const char *str);
+
+/**
+ * @brief Append part of string to string buffer
+ *
+ * Append the first @a num characters of the string @a str to the
+ * content of the string buffer @a strbuf. If required, @a strbuf will
+ * grow dynamically.
+ *
+ * @param strbuf String buffer to extend
+ *
+ * @param str String to add
+ *
+ * @param num Number of characters of @a str to add
+ *
+ * @return Return true if the string buffer could be expanded and @a
+ * str was added; or false otherwise
+ */
+bool strbufAddNum(strbuf_t strbuf, const char *str, const size_t num);
 
 /**
  * @brief Clear a string buffer
