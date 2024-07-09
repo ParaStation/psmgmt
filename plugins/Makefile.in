@@ -99,8 +99,9 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-@MUNGE_ENABLED_TRUE@am__append_1 = psmunge
-@BUILD_WITHOUT_PSPMIX_FALSE@am__append_2 = pspmix
+@BUILD_WITH_PSMOM_TRUE@am__append_1 = psmom
+@MUNGE_ENABLED_TRUE@am__append_2 = psmunge
+@BUILD_WITHOUT_PSPMIX_FALSE@am__append_3 = pspmix
 subdir = plugins
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -165,8 +166,8 @@ am__define_uniq_tagged_files = \
   unique=`for i in $$list; do \
     if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
   done | $(am__uniquify_input)`
-DIST_SUBDIRS = dynIP jail nodeinfo pelogue psaccount psexec psgw psmom \
-	pspam pspmi psslurm rrcomm psmunge pspmix
+DIST_SUBDIRS = dynIP jail nodeinfo pelogue psaccount psexec psgw pspam \
+	pspmi psslurm rrcomm psmom psmunge pspmix
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
@@ -386,8 +387,9 @@ scriptsdir = $(prefix)/scripts
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-SUBDIRS = dynIP jail nodeinfo pelogue psaccount psexec psgw psmom \
-	pspam pspmi psslurm rrcomm $(am__append_1) $(am__append_2)
+SUBDIRS = dynIP jail nodeinfo pelogue psaccount psexec psgw pspam \
+	pspmi psslurm rrcomm $(am__append_1) $(am__append_2) \
+	$(am__append_3)
 all: all-recursive
 
 .SUFFIXES:

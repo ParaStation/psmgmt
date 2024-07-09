@@ -60,6 +60,9 @@ AC_CHECK_LIB([pam], [pam_open_session],
    [ pam_enabled=true ] ])
 AM_CONDITIONAL([PAM_ENABLED], [test "x$pam_enabled" = xtrue])
 
+AC_ARG_ENABLE([psmom], [AS_HELP_STRING([--enable-psmom],
+  [also build psmom plugin and corresponding RPM])])
+AM_CONDITIONAL([BUILD_WITH_PSMOM], [test "x$enable_psmom" = xyes])
 
 AC_ARG_ENABLE([bpf], [AS_HELP_STRING([--disable-bpf],
   [build without bpf support])])

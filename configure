@@ -703,6 +703,8 @@ PKG_CONFIG_PATH
 PKG_CONFIG
 BUILD_WITHOUT_BPF_FALSE
 BUILD_WITHOUT_BPF_TRUE
+BUILD_WITH_PSMOM_FALSE
+BUILD_WITH_PSMOM_TRUE
 PAM_ENABLED_FALSE
 PAM_ENABLED_TRUE
 PAM_LIBS
@@ -847,6 +849,7 @@ with_aix_soname
 with_gnu_ld
 with_sysroot
 enable_libtool_lock
+enable_psmom
 enable_bpf
 with_pamdir
 enable_spank
@@ -1516,6 +1519,7 @@ Optional Features:
   --enable-fast-install[=PKGS]
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
+  --enable-psmom          also build psmom plugin and corresponding RPM
   --disable-bpf           build without bpf support
   --disable-spank         build without spank support
   --disable-psconfig      build without psconfig support
@@ -12997,6 +13001,20 @@ else
 fi
 
 
+# Check whether --enable-psmom was given.
+if test ${enable_psmom+y}
+then :
+  enableval=$enable_psmom;
+fi
+
+ if test "x$enable_psmom" = xyes; then
+  BUILD_WITH_PSMOM_TRUE=
+  BUILD_WITH_PSMOM_FALSE='#'
+else
+  BUILD_WITH_PSMOM_TRUE='#'
+  BUILD_WITH_PSMOM_FALSE=
+fi
+
 
 # Check whether --enable-bpf was given.
 if test ${enable_bpf+y}
@@ -14382,6 +14400,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${PAM_ENABLED_TRUE}" && test -z "${PAM_ENABLED_FALSE}"; then
   as_fn_error $? "conditional \"PAM_ENABLED\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_WITH_PSMOM_TRUE}" && test -z "${BUILD_WITH_PSMOM_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_WITH_PSMOM\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${BUILD_WITHOUT_BPF_TRUE}" && test -z "${BUILD_WITHOUT_BPF_FALSE}"; then

@@ -15,6 +15,7 @@
 %{?_without_spank: %global disable_spank 1}
 %{?_without_testplugins: %global disable_testplugins 1}
 %{?_without_bpf: %global disable_bpf 1}
+%{?_with_psmom: %global enable_psmom 1}
 
 # we do not use rpm changelog
 %global source_date_epoch_from_changelog 0
@@ -110,6 +111,7 @@ Requires:  %{name} = %{version}-%{release}
 The psmgmt-mpilegacy package includes additional MPI starters for
 legacy implementations of the MPI version 1 standard.
 
+%if 0%{?enable_psmom}
 %package psmom
 Summary:   The MOM plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
@@ -119,6 +121,8 @@ Obsoletes: psmom <= 5.2.10-20
 %description psmom
 The ParaStation MOM is a complete replacement of the pbs_mom. No other
 daemon is necessary to integrate compute nodes into a Torque batch system.
+
+%endif
 
 %package psslurm
 Summary:   The Slurm plugin of the ParaStation process management
@@ -212,7 +216,8 @@ export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
 	   %{?disable_systemd:--with-unitdir=no} \
 	   %{?disable_spank:--disable-spank} \
 	   %{?disable_testplugins:--disable-testplugins} \
-	   %{?disable_bpf:--disable-bpf}
+	   %{?disable_bpf:--disable-bpf} \
+	   %{?enable_psmom:--enable-psmom}
 make %{?_smp_mflags}
 
 %install
@@ -431,6 +436,7 @@ fi
 %{_bindir}/psmstart
 %{_bindir}/pssh
 
+%if 0%{?enable_psmom}
 %files psmom
 %defattr(-,root,root,-)
 %doc plugins/psmom/doc/psmom-prologue-example
@@ -453,6 +459,7 @@ fi
 %attr(750,root,root) %{_spooldir}/account
 %attr(750,root,root) %{_spooldir}/backup
 %attr(751,root,root) %{_spooldir}/scripts
+%endif
 
 %files psslurm
 %defattr(-,root,root,-)
