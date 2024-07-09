@@ -682,8 +682,6 @@ static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 	    exit(-1);
 	}
 
-	for (char **e = envGetArray(step->env); e && *e; e++) putenv(*e);
-
 	setRankEnv(task->jobRank, step);
 
 	if (chdir(step->cwd) != 0) {
