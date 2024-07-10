@@ -61,13 +61,27 @@ static const char *getAccountMsgType(int type)
 
 static void sendAggDataFinish(PStask_ID_t rootTID);
 
+static void completeJob(Job_t *job)
+{
+    if (!job) return;
+
+    job->endTime = time(NULL);
+    job->complete = true;
+
+    mdbg(PSACC_LOG_VERBOSE, " [%i:%i]\n", job->childrenExit, job->nrOfChildren);
+}
+
 /**
- * @brief Handle a PSP_ACCOUNT_END message.
+ * @brief Handle PSP_ACCOUNT_END message
  *
- * This function will add extended accounting information to a
- * account end message.
+ * Handle message of type PSP_ACCOUNT_END. This will update all kind
+ * of information in the corresponding client structure and the job
+ * structure the client belongs to.
  *
- * @param msg The message to handle.
+ * Furthermore, it will add extended accounting information to the
+ * account end message @a msg to be forwarded to accounters.
+ *
+ * @param msg Message to handle
  *
  * @return No return value
  */
@@ -76,7 +90,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     PStask_ID_t sender = msg->header.sender;
     size_t used = 0;
 
-    fdbg(PSACC_LOG_ACC_MSG, "sender %s", PSC_printTID(sender));
+    fdbg(PSACC_LOG_ACC_MSG, "sender %s\n", PSC_printTID(sender));
 
     PStask_ID_t rootTID;
     PSP_getTypedMsgBuf(msg, &used, "root", &rootTID, sizeof(rootTID));
@@ -86,18 +100,10 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 	/* find the job */
 	Job_t *job = findJobByRoot(rootTID);
 	if (!job) {
-	    mdbg(PSACC_LOG_ACC_MSG, "\n");
-	    flog("job for root %s not found\n", PSC_printTID(rootTID));
+	    flog("no job for root %s\n", PSC_printTID(rootTID));
 	} else {
-	    job->endTime = time(NULL);
-	    job->complete = true;
-
-	    if (job->childrenExit < job->nrOfChildren) {
-		mdbg(PSACC_LOG_ACC_MSG, "\n");
-		fdbg(PSACC_LOG_VERBOSE, "root %s exited, but %i"
-		     " children are still alive\n", PSC_printTID(rootTID),
-		     job->nrOfChildren - job->childrenExit);
-	    }
+	    fdbg(PSACC_LOG_VERBOSE, "root %s exited", PSC_printTID(job->root));
+	    completeJob(job);
 	}
 	return;
     }
@@ -106,91 +112,91 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     PSP_getTypedMsgBuf(msg, &used, "rank(skipped)", &dummy, sizeof(int32_t));
     PSP_getTypedMsgBuf(msg, &used, "uid(skipped)", &dummy, sizeof(uid_t));
     PSP_getTypedMsgBuf(msg, &used, "gid(skipped)", &dummy, sizeof(gid_t));
-    pid_t child;
-    PSP_getTypedMsgBuf(msg, &used, "pid", &child, sizeof(child));
+    pid_t childPID;
+    PSP_getTypedMsgBuf(msg, &used, "pid", &childPID, sizeof(childPID));
 
     /* calculate childs TaskID */
     PSnodes_ID_t childNode = PSC_getID(sender);
-    PStask_ID_t childTID = PSC_getTID(childNode, child);
-    mdbg(PSACC_LOG_ACC_MSG, " on client %s\n", PSC_printTID(childTID));
+    PStask_ID_t childTID = PSC_getTID(childNode, childPID);
+    mdbg(PSACC_LOG_ACC_MSG, " child %s\n", PSC_printTID(childTID));
 
-    /* find the child exiting */
-    Client_t *client = findClientByTID(childTID);
-    if (!client) {
+    /* find the exiting child */
+    Client_t *child = findClientByTID(childTID);
+    if (!child) {
 	if (!findHist(rootTID)) {
-	    flog("end msg for unknown client %s", PSC_printTID(childTID));
+	    flog("unknown child %s", PSC_printTID(childTID));
 	    mlog(" from %s\n", PSC_printTID(sender));
 	}
 	return;
     }
-    if (client->type != ACC_CHILD_JOBSCRIPT && client->root != rootTID) {
+    if (child->type != ACC_CHILD_JOBSCRIPT && child->root != rootTID) {
 	flog("root mismatch (%s/", PSC_printTID(rootTID));
-	mlog("%s)\n", PSC_printTID(client->root));
+	mlog("%s)\n", PSC_printTID(child->root));
     }
     /* stop accounting of dead child */
-    client->doAccounting = false;
-    client->endTime = time(NULL);
+    child->doAccounting = false;
+    child->endTime = time(NULL);
 
-    PSP_getTypedMsgBuf(msg, &used, "rusage", &client->data.rusage,
-		       sizeof(client->data.rusage));
-    PSP_getTypedMsgBuf(msg, &used, "pageSize", &client->data.pageSize,
-		       sizeof(client->data.pageSize));
+    PSP_getTypedMsgBuf(msg, &used, "rusage", &child->data.rusage,
+		       sizeof(child->data.rusage));
+    PSP_getTypedMsgBuf(msg, &used, "pageSize", &child->data.pageSize,
+		       sizeof(child->data.pageSize));
     struct timeval dummyT;
     PSP_getTypedMsgBuf(msg, &used, "walltime(skipped)", &dummyT, sizeof(dummyT));
     PSP_getTypedMsgBuf(msg, &used, "status(skipped)", &dummy, sizeof(int32_t));
 
     fdbg(PSACC_LOG_VERBOSE, "child rank %i pid %i root %s uid %i"
-	 " gid %i msg type %s finished\n", client->rank, child,
-	 PSC_printTID(client->root), client->uid, client->gid,
+	 " gid %i msg type %s finished\n", child->rank, childPID,
+	 PSC_printTID(child->root), child->uid, child->gid,
 	 getAccountMsgType(msg->type));
 
-    if (client->type == ACC_CHILD_JOBSCRIPT) return; /* drop message */
+    if (child->type == ACC_CHILD_JOBSCRIPT) return; /* drop message */
 
     /* Now add further information to the message */
     msg->header.len = offsetof(DDTypedBufferMsg_t, buf) + used;
 
     uint32_t one = 1;
     PSP_putTypedMsgBuf(msg, "extended info", &one, sizeof(one));
-    PSP_putTypedMsgBuf(msg, "maxRss", &client->data.maxRss,
-		       sizeof(client->data.maxRss));
-    PSP_putTypedMsgBuf(msg, "maxVsize", &client->data.maxVsize,
-		       sizeof(client->data.maxVsize));
-    uint32_t myMaxThreads = client->data.maxThreads;
+    PSP_putTypedMsgBuf(msg, "maxRss", &child->data.maxRss,
+		       sizeof(child->data.maxRss));
+    PSP_putTypedMsgBuf(msg, "maxVsize", &child->data.maxVsize,
+		       sizeof(child->data.maxVsize));
+    uint32_t myMaxThreads = child->data.maxThreads;
     PSP_putTypedMsgBuf(msg, "maxThreads", &myMaxThreads, sizeof(myMaxThreads));
-    PSP_putTypedMsgBuf(msg, "session", &client->data.session,
-		       sizeof(client->data.session));
+    PSP_putTypedMsgBuf(msg, "session", &child->data.session,
+		       sizeof(child->data.session));
 
     /* add size of average used mem */
     uint64_t avgRss;
-    if (client->data.avgRssTotal < 1 || client->data.avgRssCount < 1) {
+    if (child->data.avgRssTotal < 1 || child->data.avgRssCount < 1) {
 	avgRss = 0;
     } else {
-	avgRss = client->data.avgRssTotal / client->data.avgRssCount;
+	avgRss = child->data.avgRssTotal / child->data.avgRssCount;
     }
     PSP_putTypedMsgBuf(msg, "avgRss", &avgRss, sizeof(avgRss));
 
     /* add size of average used vmem */
     uint64_t avgVsize;
-    if (client->data.avgVsizeTotal < 1 || client->data.avgVsizeCount < 1) {
+    if (child->data.avgVsizeTotal < 1 || child->data.avgVsizeCount < 1) {
 	avgVsize = 0;
     } else {
-	avgVsize = client->data.avgVsizeTotal / client->data.avgVsizeCount;
+	avgVsize = child->data.avgVsizeTotal / child->data.avgVsizeCount;
     }
     PSP_putTypedMsgBuf(msg, "avgVsize", &avgVsize, sizeof(avgVsize));
 
     /* add number of average threads */
     uint64_t avgThrds;
-    if (client->data.avgThreadsTotal < 1 || client->data.avgThreadsCount < 1) {
+    if (child->data.avgThreadsTotal < 1 || child->data.avgThreadsCount < 1) {
 	avgThrds = 0;
     } else {
-	avgThrds = client->data.avgThreadsTotal / client->data.avgThreadsCount;
+	avgThrds = child->data.avgThreadsTotal / child->data.avgThreadsCount;
     }
     PSP_putTypedMsgBuf(msg, "avgThrds", &avgThrds, sizeof(avgThrds));
 
     /* find the job */
-    Job_t *job = findJobByRoot(client->root);
+    Job_t *job = findJobByRoot(child->root);
     if (!job) {
-	flog("no job for child %i\n", child);
+	flog("no job for %s rank %d\n", PSC_printTID(childTID), child->rank);
     } else {
 	job->childrenExit++;
 	if (job->childrenExit >= job->nrOfChildren) {
@@ -199,12 +205,8 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 		forwardJobData(job, true);
 		sendAggDataFinish(rootTID);
 	    }
-
-	    job->complete = true;
-	    job->endTime = time(NULL);
-	    fdbg(PSACC_LOG_VERBOSE, "job complete [%i:%i]\n", job->childrenExit,
-		 job->nrOfChildren);
-
+	    fdbg(PSACC_LOG_VERBOSE, "job %s complete", PSC_printTID(job->root));
+	    completeJob(job);
 	    if (PSC_getID(job->root) != PSC_getMyID()) deleteJob(job->root);
 	}
     }
