@@ -160,7 +160,7 @@ static void handleAccountLost(DDTypedBufferMsg_t *msg)
 	    }
 	    fdbg(PSACC_LOG_VERBOSE, "job %s complete", PSC_printTID(job->root));
 	    completeJob(job);
-	    if (PSC_getID(job->root) != PSC_getMyID()) deleteJob(job->root);
+	    if (PSC_getID(job->root) != PSC_getMyID()) deleteJob(job);
 	}
     }
 }
@@ -304,7 +304,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 	    }
 	    fdbg(PSACC_LOG_VERBOSE, "job %s complete", PSC_printTID(job->root));
 	    completeJob(job);
-	    if (PSC_getID(job->root) != PSC_getMyID()) deleteJob(job->root);
+	    if (PSC_getID(job->root) != PSC_getMyID()) deleteJob(job);
 	}
     }
 }

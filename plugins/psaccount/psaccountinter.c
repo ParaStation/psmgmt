@@ -90,7 +90,8 @@ void psAccountRegisterJob(pid_t jsPid, char *jobid)
 
 void psAccountDelJob(PStask_ID_t rootTID)
 {
-    deleteJob(rootTID);
+    Job_t *job = findJobByRoot(rootTID);
+    if (job) deleteJob(job);
     deleteClient(rootTID);
 }
 

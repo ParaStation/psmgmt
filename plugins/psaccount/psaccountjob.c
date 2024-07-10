@@ -77,13 +77,12 @@ Job_t *addJob(PStask_ID_t rootTID)
     return job;
 }
 
-void deleteJob(PStask_ID_t rootTID)
+void deleteJob(Job_t *job)
 {
-    /* delete all children */
-    deleteClientsByRoot(rootTID);
-
-    Job_t *job = findJobByRoot(rootTID);
     if (!job) return;
+
+    /* delete all children */
+    deleteClientsByRoot(job->root);
 
     ufree(job->jobid);
     list_del(&job->next);
@@ -95,7 +94,7 @@ void deleteJobsByJobscript(pid_t js)
     list_t *j, *tmp;
     list_for_each_safe(j, tmp, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	if (job->jobscript == js) deleteJob(job->root);
+	if (job->jobscript == js) deleteJob(job);
     }
 }
 
@@ -116,7 +115,7 @@ void cleanupJobs(void)
 	/* check timeout */
 	if (job->endTime + (60 * grace) < now) {
 	    flog("%s\n", PSC_printTID(job->root));
-	    deleteJob(job->root);
+	    deleteJob(job);
 	}
     }
 }
@@ -315,7 +314,7 @@ void finalizeJobs(void)
     list_t *j, *tmp;
     list_for_each_safe(j, tmp, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	deleteJob(job->root);
+	deleteJob(job);
     }
 
     if (jobTimerID != -1) {

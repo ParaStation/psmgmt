@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -79,13 +79,13 @@ Job_t *addJob(PStask_ID_t rootTID);
 /**
  * @brief Delete job
  *
- * Delete the job associated to the root task ID @a rootTID
+ * Delete the job @a job.
  *
- * @param rootTID Task ID of the root process identifying the job to delete
+ * @param job Job delete
  *
  * @return No return value
  */
-void deleteJob(PStask_ID_t rootTID);
+void deleteJob(Job_t *job);
 
 /**
  * @brief Delete all jobs associated to jobscript
