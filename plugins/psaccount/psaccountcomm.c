@@ -74,6 +74,95 @@ static void completeJob(Job_t *job)
 }
 
 /**
+ * @brief Handle PSP_ACCOUNT_LOST message
+ *
+ * Handle message of type PSP_ACCOUNT_LOST. This will update all kind
+ * of information in the corresponding client structure and the job
+ * structure the client belongs to if the psidforwarder that was
+ * expected to send a PSP_ACCOUNT_END got killed.
+ *
+  * @param msg Message to handle
+ *
+ * @return No return value
+ */
+static void handleAccountLost(DDTypedBufferMsg_t *msg)
+{
+    PStask_ID_t sender = msg->header.sender;
+    size_t used = 0;
+
+    fdbg(PSACC_LOG_ACC_MSG, "sender %s\n", PSC_printTID(sender));
+
+    PStask_ID_t rootTID;
+    PSP_getTypedMsgBuf(msg, &used, "root", &rootTID, sizeof(rootTID));
+
+    /* end msg from root */
+    if (sender == rootTID) {
+	/* find the job */
+	Job_t *job = findJobByRoot(rootTID);
+	if (!job) {
+	    flog("no job for root %s\n", PSC_printTID(rootTID));
+	} else {
+	    fdbg(PSACC_LOG_VERBOSE, "root %s exited", PSC_printTID(job->root));
+	    completeJob(job);
+	}
+	return;
+    }
+
+    pid_t childPID;
+    PSP_getTypedMsgBuf(msg, &used, "pid", &childPID, sizeof(childPID));
+
+    /* calculate childs TaskID */
+    PSnodes_ID_t childNode = PSC_getID(sender);
+    PStask_ID_t childTID = PSC_getTID(childNode, childPID);
+    fdbg(PSACC_LOG_ACC_MSG, "child %s\n", PSC_printTID(childTID));
+
+    /* find the exiting child */
+    Client_t *child = findClientByTID(childTID);
+    if (!child) {
+	if (!findHist(rootTID)) {
+	    flog("unknown child %s", PSC_printTID(childTID));
+	    mlog(" from %s\n", PSC_printTID(sender));
+	}
+	return;
+    }
+    if (child->type != ACC_CHILD_JOBSCRIPT && child->root != rootTID) {
+	flog("root mismatch (%s/", PSC_printTID(rootTID));
+	mlog("%s)\n", PSC_printTID(child->root));
+    }
+    /* stop accounting of dead child */
+    child->doAccounting = false;
+    child->endTime = time(NULL);
+
+    PSP_getTypedMsgBuf(msg, &used, "pageSize", &child->data.pageSize,
+		       sizeof(child->data.pageSize));
+
+    fdbg(PSACC_LOG_VERBOSE, "child rank %i pid %i root %s uid %i"
+	 " gid %i msg type %s finished\n", child->rank, childPID,
+	 PSC_printTID(child->root), child->uid, child->gid,
+	 getAccountMsgType(msg->type));
+
+    if (child->type == ACC_CHILD_JOBSCRIPT) return; /* drop message */
+
+    /* find the job */
+    Job_t *job = findJobByRoot(child->root);
+    if (!job) {
+	flog("no job for %s rank %d\n", PSC_printTID(childTID), child->rank);
+    } else {
+	job->childrenExit++;
+	if (job->childrenExit >= job->nrOfChildren) {
+	    /* all children exited */
+	    if (globalCollectMode && PSC_getID(rootTID) != PSC_getMyID()) {
+		forwardJobData(job, true);
+		sendAggDataFinish(rootTID);
+	    }
+	    fdbg(PSACC_LOG_VERBOSE, "job %s complete", PSC_printTID(job->root));
+	    completeJob(job);
+	    if (PSC_getID(job->root) != PSC_getMyID()) deleteJob(job->root);
+	}
+    }
+}
+
+/**
  * @brief Handle PSP_ACCOUNT_END message
  *
  * Handle message of type PSP_ACCOUNT_END. This will update all kind
@@ -315,6 +404,9 @@ static bool handlePSMsg(DDTypedBufferMsg_t *msg)
 		break;
 	    case PSP_ACCOUNT_END:
 		handleAccountEnd(msg);
+		break;
+	    case PSP_ACCOUNT_LOST:
+		handleAccountLost(msg);
 		break;
 	    default:
 		flog("invalid msg type %i sender %s\n", msg->type,

@@ -508,6 +508,33 @@ static void closeConnection(int fd)
     close(fd);
 }
 
+static void sendAcctLost(PStask_ID_t forwarder, PStask_t *client)
+{
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_ACCOUNT,
+	    .sender = forwarder,
+	    .dest = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_ACCOUNT_LOST };
+
+    /* partition holder identifies job uniquely (logger's TID as fallback) */
+    PStask_ID_t acctRoot = client->loggertid;
+    if (client->partHolder != -1) acctRoot = client->partHolder;
+    PSP_putTypedMsgBuf(&msg, "acctRoot", &acctRoot, sizeof(acctRoot));
+
+    /* child's pid */
+    pid_t pid = PSC_getPID(client->tid);
+    PSP_putTypedMsgBuf(&msg, "pid", &pid, sizeof(pid));
+
+    /* pagesize */
+    int64_t pagesize = sysconf(_SC_PAGESIZE);
+    if (pagesize < 1) pagesize = 0;
+    PSP_putTypedMsgBuf(&msg, "pagesize", &pagesize, sizeof(pagesize));
+
+    sendMsg(&msg);
+}
+
 void PSIDclient_delete(int fd)
 {
     PSID_fdbg(fd < 0 ? -1 : PSID_LOG_CLIENT, "fd %d\n", fd);
@@ -550,12 +577,15 @@ void PSIDclient_delete(int fd)
 		if (childTask && childTask->forwarder != task) childTask = NULL;
 	    }
 
-	    /* Since forwarder is gone eliminate all references */
-	    if (childTask) childTask->forwarder = NULL;
+	    if (childTask) {
+		/* Tell accounters about unreleased forwarder's client */
+		sendAcctLost(task->tid, childTask);
 
-	    /* Try to kill the child, again (obsolete childs are yet gone) */
-	    if (childTask && !childTask->obsolete) {
-		PSID_kill(-child, SIGKILL, 0);
+		/* Since forwarder is gone eliminate all references */
+		childTask->forwarder = NULL;
+
+		/* Try to kill the child, again (obsolete childs are yet gone) */
+		if (!childTask->obsolete) PSID_kill(-child, SIGKILL, 0);
 	    }
 
 	    /* Assume child is dead */
