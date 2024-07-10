@@ -18,10 +18,7 @@ static int idx = -1;
 
 void saveHist(PStask_ID_t tid)
 {
-    if (idx < 0) {
-	int i;
-	for (i=0; i<HIST_SIZE; i++) savedJobs[i] = -1;
-    }
+    if (idx < 0) for (int i = 0; i < HIST_SIZE; i++) savedJobs[i] = -1;
 
     idx = (idx+1) % HIST_SIZE;
     savedJobs[idx] = tid;
@@ -29,13 +26,9 @@ void saveHist(PStask_ID_t tid)
 
 bool findHist(PStask_ID_t tid)
 {
-    int i;
+    if (idx < 0) return false;
 
-    if (idx<0) return false;
-
-    for (i=0; i<HIST_SIZE; i++) {
-	if (savedJobs[i] == tid) return true;
-    }
+    for (int i = 0; i < HIST_SIZE; i++) if (savedJobs[i] == tid) return true;
 
     return false;
 }
