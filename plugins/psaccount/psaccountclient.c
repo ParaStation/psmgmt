@@ -895,7 +895,9 @@ char *listClients(char *buf, size_t *bufSize, bool detailed)
 	str2Buf(l, &buf, bufSize);
 	snprintf(l, sizeof(l), "root %s\n", PSC_printTID(cl->root));
 	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "account %i\n", cl->doAccounting);
+	snprintf(l, sizeof(l), "do%s account\n", cl->doAccounting ? "" : " not");
+	str2Buf(l, &buf, bufSize);
+	snprintf(l, sizeof(l), "%sended\n", cl->ended ? "" : "not ");
 	str2Buf(l, &buf, bufSize);
 	snprintf(l, sizeof(l), "type '%s'\n", clientType2Str(cl->type));
 	str2Buf(l, &buf, bufSize);
