@@ -148,7 +148,10 @@ static void handleAccountLost(DDTypedBufferMsg_t *msg)
     if (!job) {
 	flog("no job for %s rank %d\n", PSC_printTID(childTID), child->rank);
     } else {
-	job->childrenExit++;
+	if (!child->ended) {
+	    job->childrenExit++;
+	    child->ended = true;
+	}
 	if (job->childrenExit >= job->nrOfChildren) {
 	    /* all children exited */
 	    if (globalCollectMode && PSC_getID(rootTID) != PSC_getMyID()) {
@@ -289,7 +292,10 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     if (!job) {
 	flog("no job for %s rank %d\n", PSC_printTID(childTID), child->rank);
     } else {
-	job->childrenExit++;
+	if (!child->ended) {
+	    job->childrenExit++;
+	    child->ended = true;
+	}
 	if (job->childrenExit >= job->nrOfChildren) {
 	    /* all children exited */
 	    if (globalCollectMode && PSC_getID(rootTID) != PSC_getMyID()) {

@@ -33,6 +33,7 @@ typedef enum {
 typedef struct {
     list_t next;                /**< used to put into list of clients */
     bool doAccounting;          /**< flag accounting of this client */
+    bool ended;                 /**< flag end accounting message received */
     PS_Acct_job_types_t type;   /**< type of client */
     PStask_ID_t root;           /**< root task identifying the job */
     PStask_ID_t taskid;         /**< client's task ID */
