@@ -135,10 +135,9 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 		       sizeof(client->data.rusage));
     PSP_getTypedMsgBuf(msg, &used, "pageSize", &client->data.pageSize,
 		       sizeof(client->data.pageSize));
-    PSP_getTypedMsgBuf(msg, &used, "walltime", &client->walltime,
-		       sizeof(client->walltime));
-    PSP_getTypedMsgBuf(msg, &used, "status", &client->status,
-		       sizeof(client->status));
+    struct timeval dummyT;
+    PSP_getTypedMsgBuf(msg, &used, "walltime(skipped)", &dummyT, sizeof(dummyT));
+    PSP_getTypedMsgBuf(msg, &used, "status(skipped)", &dummy, sizeof(int32_t));
 
     fdbg(PSACC_LOG_VERBOSE, "child rank %i pid %i root %s uid %i"
 	 " gid %i msg type %s finished\n", client->rank, child,

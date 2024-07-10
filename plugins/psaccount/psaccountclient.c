@@ -731,7 +731,6 @@ Client_t *addClient(PStask_ID_t taskID, PS_Acct_job_types_t type)
 
     client->taskid = taskID;
     client->pid = PSC_getPID(taskID);
-    client->status = -1;
     client->root = -1;
     client->doAccounting = true;
     client->type = type;
