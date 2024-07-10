@@ -1320,6 +1320,7 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
 	     msg->type == PSP_ACCOUNT_DELETE ? "Delete" :
 	     msg->type == PSP_ACCOUNT_CHILD ? "Child" :
 	     msg->type == PSP_ACCOUNT_LOG ? "Log" :
+	     msg->type == PSP_ACCOUNT_LOST ? "Lost" :
 	     msg->type == PSP_ACCOUNT_END ? "End" : "?",
 	     PSC_printTID(sender));
 	alog(", root:%s\n", PSC_printTID(rootTID));
@@ -1346,6 +1347,9 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
 	break;
     case PSP_ACCOUNT_LOG:
 	handleAccLogMsg(ptr);
+	break;
+    case PSP_ACCOUNT_LOST:
+	// ignore
 	break;
     default:
 	alog("%s: unknown accounting message: type=%d\n", __func__, msg->type);

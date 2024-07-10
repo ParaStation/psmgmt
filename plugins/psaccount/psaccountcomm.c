@@ -54,6 +54,8 @@ static const char *getAccountMsgType(int type)
 	return "CHILD";
     case PSP_ACCOUNT_LOG:
 	return "LOG";
+    case PSP_ACCOUNT_LOST:
+	return "LOST";
     default:
 	return "UNKNOWN";
     }

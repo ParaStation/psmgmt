@@ -254,6 +254,7 @@ typedef enum {
     PSP_ACCOUNT_END,              /**< Task ends execution */
     PSP_ACCOUNT_CHILD,            /**< Another child is spawned */
     PSP_ACCOUNT_LOG,              /**< Special info only known by the logger */
+    PSP_ACCOUNT_LOST,             /**< Task lost due to killed forwarder */
 } PSP_Account_t;
 
 /** All the signal handling stuff */
