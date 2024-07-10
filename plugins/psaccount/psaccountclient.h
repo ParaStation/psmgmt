@@ -191,6 +191,21 @@ bool deleteClient(PStask_ID_t tid);
 void deleteClientsByRoot(PStask_ID_t rootTID);
 
 /**
+ * @brief Count account clients associated to job
+ *
+ * Check if account clients associated to the job @a job still exists
+ * and count them. For this, each client found to be associated to the
+ * job's root will be checked for vitality by searching for it in @ref
+ * managedTasks. Each client found gone will be removed from the
+ * associated job.
+ *
+ * @param job Job identifying the clients to check
+ *
+ * @return Number of clients associtated to @a job still alive
+ */
+int numClientsByJob(Job_t *job);
+
+/**
  * @brief Clean leftover account clients
  *
  * Cleanup accounting clients which disappeared without an ACCOUNT_END

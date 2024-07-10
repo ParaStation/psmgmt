@@ -16,6 +16,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "psidtask.h"
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
 
@@ -776,6 +777,25 @@ void deleteClientsByRoot(PStask_ID_t rootTID)
 	Client_t *client = list_entry(c, Client_t, next);
 	if (client->root == rootTID) doDeleteClient(client);
     }
+}
+
+int numClientsByJob(Job_t *job)
+{
+    if (!job) return -1;
+
+    list_t *c;
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
+	if (client->root != job->root) continue;
+	if (PStasklist_find(&managedTasks, client->taskid)) continue;
+	if (!client->ended) {
+	    flog("client %s not ended but task is gone?!\n",
+		 PSC_printTID(client->taskid));
+	    job->childrenExit++;
+	    client->ended = true;
+	}
+    }
+    return job->nrOfChildren - job->childrenExit;
 }
 
 bool haveActiveClients(void)
