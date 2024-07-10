@@ -354,14 +354,15 @@ static bool isDescendantSnap(pid_t parent, pid_t child)
 }
 
 /**
- * @brief Check if a child pid belongs to a parent pid.
+ * @brief Check if a child PID belongs to a parent PID
  *
- * @param parent The parent pid.
+ * @param parent PID of the potential parent process
  *
- * @param child The child pid.
+ * @param child PID of the child process to investigate
  *
- * @return Returns 1 if the second pid is a child of the first pid or 0
- * otherwise.
+ * @return Returns true if the process identified by @a child is a
+ * direct or indirect child of the process identified by @a parent or
+ * false otherwise
  */
 static bool isDescendantLive(pid_t parent, pid_t child)
 {
