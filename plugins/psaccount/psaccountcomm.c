@@ -42,18 +42,18 @@ static const char *getAccountMsgType(int type)
     switch (type) {
     case PSP_ACCOUNT_QUEUE:
 	return "QUEUE";
-    case PSP_ACCOUNT_DELETE:
-	return "DELETE";
-    case PSP_ACCOUNT_SLOTS:
-	return "SLOTS";
     case PSP_ACCOUNT_START:
 	return "START";
-    case PSP_ACCOUNT_LOG:
-	    return "LOG";
-    case PSP_ACCOUNT_CHILD:
-	return "CHILD";
+    case PSP_ACCOUNT_SLOTS:
+	return "SLOTS";
+    case PSP_ACCOUNT_DELETE:
+	return "DELETE";
     case PSP_ACCOUNT_END:
 	return "END";
+    case PSP_ACCOUNT_CHILD:
+	return "CHILD";
+    case PSP_ACCOUNT_LOG:
+	return "LOG";
     default:
 	return "UNKNOWN";
     }
@@ -73,14 +73,12 @@ static void sendAggDataFinish(PStask_ID_t rootTID);
  */
 static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 {
-    PStask_ID_t sender = msg->header.sender, rootTID, childTID;
-    PSnodes_ID_t childNode;
-    pid_t child;
-    uint64_t avgRss, avgVsize, avgThrds, dummy;
+    PStask_ID_t sender = msg->header.sender;
     size_t used = 0;
 
     fdbg(PSACC_LOG_ACC_MSG, "sender %s", PSC_printTID(sender));
 
+    PStask_ID_t rootTID;
     PSP_getTypedMsgBuf(msg, &used, "root", &rootTID, sizeof(rootTID));
 
     /* end msg from root */
@@ -104,14 +102,16 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 	return;
     }
 
+    uint64_t dummy;
     PSP_getTypedMsgBuf(msg, &used, "rank(skipped)", &dummy, sizeof(int32_t));
     PSP_getTypedMsgBuf(msg, &used, "uid(skipped)", &dummy, sizeof(uid_t));
     PSP_getTypedMsgBuf(msg, &used, "gid(skipped)", &dummy, sizeof(gid_t));
+    pid_t child;
     PSP_getTypedMsgBuf(msg, &used, "pid", &child, sizeof(child));
 
     /* calculate childs TaskID */
-    childNode = PSC_getID(sender);
-    childTID = PSC_getTID(childNode, child);
+    PSnodes_ID_t childNode = PSC_getID(sender);
+    PStask_ID_t childTID = PSC_getTID(childNode, child);
     mdbg(PSACC_LOG_ACC_MSG, " on client %s\n", PSC_printTID(childTID));
 
     /* find the child exiting */
@@ -162,6 +162,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 		       sizeof(client->data.session));
 
     /* add size of average used mem */
+    uint64_t avgRss;
     if (client->data.avgRssTotal < 1 || client->data.avgRssCount < 1) {
 	avgRss = 0;
     } else {
@@ -170,6 +171,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     PSP_putTypedMsgBuf(msg, "avgRss", &avgRss, sizeof(avgRss));
 
     /* add size of average used vmem */
+    uint64_t avgVsize;
     if (client->data.avgVsizeTotal < 1 || client->data.avgVsizeCount < 1) {
 	avgVsize = 0;
     } else {
@@ -178,6 +180,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     PSP_putTypedMsgBuf(msg, "avgVsize", &avgVsize, sizeof(avgVsize));
 
     /* add number of average threads */
+    uint64_t avgThrds;
     if (client->data.avgThreadsTotal < 1 || client->data.avgThreadsCount < 1) {
 	avgThrds = 0;
     } else {

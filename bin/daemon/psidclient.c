@@ -510,8 +510,8 @@ static void closeConnection(int fd)
 
 void PSIDclient_delete(int fd)
 {
-    PSID_fdbg(fd<0 ? -1 : PSID_LOG_CLIENT, "fd %d\n", fd);
-    if (fd<0) return;
+    PSID_fdbg(fd < 0 ? -1 : PSID_LOG_CLIENT, "fd %d\n", fd);
+    if (fd < 0) return;
 
     PStask_t *task = PSIDclient_getTask(fd);
 
