@@ -838,11 +838,11 @@ static bool handleFINALIZEMsg(PSLog_Msg_t *msg)
 static char * getIDstr(void)
 {
     char *IDstr = getenv("PBS_JOBID");
-    if (IDstr) return IDstr;
+    if (!IDstr) IDstr = getenv("SLURM_JOB_ID");
 
     /* @todo Add support for other batch-systems */
 
-    return NULL;
+    return IDstr;
 }
 
 /**
