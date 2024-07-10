@@ -437,6 +437,7 @@ typedef enum {
     PSP_ACCOUNT_DISABLE_UPDATE,
     PSP_ACCOUNT_AGG_DATA_UPDATE,
     PSP_ACCOUNT_AGG_DATA_FINISH,
+    PSP_ACCOUNT_AGG_DATA_DROP,
 } PSP_PSAccount_t;
 
 static void handleSwitchUpdate(DDTypedBufferMsg_t *msg, bool enable)
@@ -546,6 +547,22 @@ void sendAggData(PStask_ID_t rootTID, AccountDataExt_t *aggData)
 	 aggData->FS_writeBytes, aggData->FS_readBytes);
 }
 
+static void sendAggDataDrop(PStask_ID_t dest, PStask_ID_t rootTID)
+{
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_PLUG_ACCOUNT,
+	    .sender = PSC_getMyTID(),
+	    .dest = dest,
+	    .len = 0 },
+	.type = PSP_ACCOUNT_AGG_DATA_DROP,
+	.buf = {'\0'} };
+
+    PSP_putTypedMsgBuf(&msg, "root", &rootTID, sizeof(rootTID));
+
+    sendMsg(&msg);
+}
+
 static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     AccountDataExt_t aggData;
@@ -557,7 +574,8 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     if (!findJobByRoot(rootTID)) {
 	flog("update unknown root %s ", PSC_printTID(rootTID));
 	mlog("from %s\n", PSC_printTID(msg->header.sender));
-	return;
+
+	return sendAggDataDrop(msg->header.sender, rootTID);
     }
 
     getUint64(data, &aggData.maxThreadsTotal);
@@ -676,6 +694,26 @@ static void handleAggDataFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     finishAggData(msg->header.sender, rootTID);
 }
 
+static void handleAggDataDrop(DDTypedBufferMsg_t *msg)
+{
+    PStask_ID_t rootTID;
+    size_t used = 0;
+    PSP_getTypedMsgBuf(msg, &used, "root", &rootTID, sizeof(rootTID));
+
+    Job_t *job = findJobByRoot(rootTID);
+    if (!job) {
+	flog("no job for root %s\n", PSC_printTID(rootTID));
+	return;
+    }
+
+    int numClients = numClientsByJob(job);
+    if (numClients > 0) {
+	flog("root %s still has %d clients\n", PSC_printTID(rootTID), numClients);
+	return;
+    }
+    deleteJob(job);
+}
+
 static bool handleInterAccount(DDTypedBufferMsg_t *msg)
 {
     fdbg(PSACC_LOG_ACC_MSG, "sender %s type %d",
@@ -694,6 +732,9 @@ static bool handleInterAccount(DDTypedBufferMsg_t *msg)
 	break;
     case PSP_ACCOUNT_AGG_DATA_FINISH:
 	recvFragMsg(msg, handleAggDataFinish);
+	break;
+    case PSP_ACCOUNT_AGG_DATA_DROP:
+	handleAggDataDrop(msg);
 	break;
     /* obsolete, to be removed */
     case PSP_ACCOUNT_FORWARD_START:
