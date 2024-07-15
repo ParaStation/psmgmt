@@ -358,14 +358,14 @@ typedef struct {
     uint32_t numPrioArray;
     char *prioArrayParts;
     char *resvPorts;
-} Slurm_Job_Info_Slice_t;
+} Job_Info_Slice_t;
 
 /** Holding all information for RPC RESPONSE_JOB_INFO */
 typedef struct {
-    uint32_t numJobs;		    /**< number of job records */
+    uint32_t numSlices;		    /**< number of job slices */
     time_t lastUpdate;		    /**< last time the data was updated */
     time_t lastBackfill;	    /**< last time backfiller run */
-    Slurm_Job_Info_Slice_t *jobs;   /**< list of job infos */
+    Job_Info_Slice_t *slices;	    /**< list of job slices */
 } Resp_Job_Info_t;
 
 /** Holding all information for RPC REQUEST_REBOOT_NODES */

@@ -431,10 +431,10 @@ static int handleJobInfoResp(Slurm_Msg_t *sMsg, void *info)
 	return 0;
     }
 
-    flog("received %u jobs, update %zu\n", resp->numJobs, resp->lastUpdate);
+    flog("received %u jobs, update %zu\n", resp->numSlices, resp->lastUpdate);
 
-    for (uint32_t i = 0; i < resp->numJobs; i++) {
-	Slurm_Job_Info_Slice_t *slice = &(resp->jobs)[i];
+    for (uint32_t i = 0; i < resp->numSlices; i++) {
+	Job_Info_Slice_t *slice = &(resp->slices)[i];
 
 	if (req->jobid != slice->jobid) {
 	    flog("warning: got non requested job %u, requested job %u\n",

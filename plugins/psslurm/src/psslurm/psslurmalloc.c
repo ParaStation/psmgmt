@@ -365,8 +365,8 @@ static int verifyJobInfo(Slurm_Msg_t *sMsg, void *info)
 	return 0;
     }
 
-    for (uint32_t i = 0; i < resp->numJobs; i++) {
-	Slurm_Job_Info_Slice_t *slice = &(resp->jobs)[i];
+    for (uint32_t i = 0; i < resp->numSlices; i++) {
+	Job_Info_Slice_t *slice = &(resp->slices)[i];
 
 	if (req->jobid != slice->jobid && alloc->packID != slice->hetJobID) {
 	    flog("warning: skipping unrequested job %u, requested job %u\n",

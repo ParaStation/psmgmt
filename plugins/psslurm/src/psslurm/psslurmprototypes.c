@@ -30,38 +30,38 @@ static inline void freeRespJobInfo(Slurm_Msg_t *sMsg)
 {
     Resp_Job_Info_t *resp = sMsg->unpData;
 
-    for (uint32_t i = 0; i < resp->numJobs; i++) {
-	Slurm_Job_Info_Slice_t *rec = &resp->jobs[i];
+    for (uint32_t i = 0; i < resp->numSlices; i++) {
+	Job_Info_Slice_t *slice = &resp->slices[i];
 
-	ufree(rec->arrayTaskStr);
-	ufree(rec->hetJobIDset);
-	ufree(rec->container);
-	ufree(rec->cluster);
-	ufree(rec->nodes);
-	ufree(rec->schedNodes);
-	ufree(rec->partition);
-	ufree(rec->account);
-	ufree(rec->adminComment);
-	ufree(rec->network);
-	ufree(rec->comment);
-	ufree(rec->batchFeat);
-	ufree(rec->batchHost);
-	ufree(rec->burstBuffer);
-	ufree(rec->burstBufferState);
-	ufree(rec->systemComment);
-	ufree(rec->qos);
-	ufree(rec->licenses);
-	ufree(rec->stateDesc);
-	ufree(rec->resvName);
-	ufree(rec->mcsLabel);
-	ufree(rec->containerID);
-	ufree(rec->failedNode);
-	ufree(rec->extra);
-	ufree(rec->prioArray);
-	ufree(rec->prioArrayParts);
-	ufree(rec->resvPorts);
+	ufree(slice->arrayTaskStr);
+	ufree(slice->hetJobIDset);
+	ufree(slice->container);
+	ufree(slice->cluster);
+	ufree(slice->nodes);
+	ufree(slice->schedNodes);
+	ufree(slice->partition);
+	ufree(slice->account);
+	ufree(slice->adminComment);
+	ufree(slice->network);
+	ufree(slice->comment);
+	ufree(slice->batchFeat);
+	ufree(slice->batchHost);
+	ufree(slice->burstBuffer);
+	ufree(slice->burstBufferState);
+	ufree(slice->systemComment);
+	ufree(slice->qos);
+	ufree(slice->licenses);
+	ufree(slice->stateDesc);
+	ufree(slice->resvName);
+	ufree(slice->mcsLabel);
+	ufree(slice->containerID);
+	ufree(slice->failedNode);
+	ufree(slice->extra);
+	ufree(slice->prioArray);
+	ufree(slice->prioArrayParts);
+	ufree(slice->resvPorts);
     }
-    ufree(resp->jobs);
+    ufree(resp->slices);
     ufree(resp);
 
     sMsg->unpData = NULL;
