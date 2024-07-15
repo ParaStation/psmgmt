@@ -107,24 +107,22 @@ static bool __getSlurmAddr(PS_DataBuffer_t *data, Slurm_Addr_t *addr,
 	return false;
     }
 
-    if (msgVer > SLURM_20_02_PROTO_VERSION) {
-	/* address family */
-	getUint16(data, &addr->family);
+    /* address family */
+    getUint16(data, &addr->family);
 
-	if(addr->family == AF_INET) {
-	    /* addr/port */
-	    getUint32(data, &addr->ip);
-	    getUint16(data, &addr->port);
-	} else if (addr->family == AF_INET6) {
-	    /* todo: do we need to support IPv6? */
-	    flog("error: IPv6 currently unsupported\n");
-	    return false;
-	}
-
-	/* if addr->family is does not match, no address was sent.
-	 * This is *not* an error */
-	return true;
+    if(addr->family == AF_INET) {
+	/* addr/port */
+	getUint32(data, &addr->ip);
+	getUint16(data, &addr->port);
+    } else if (addr->family == AF_INET6) {
+	/* todo: do we need to support IPv6? */
+	flog("error: IPv6 currently unsupported\n");
+	return false;
     }
+
+    /* if addr->family is does not match, no address was sent.
+     * This is *not* an error */
+    return true;
 
     /* addr/port */
     getUint32(data, &addr->ip);
@@ -162,56 +160,32 @@ static bool __addSlurmAddr(Slurm_Addr_t *addr, PS_SendDB_t *data,
 	return false;
     }
 
-    if (msgVer > SLURM_20_02_PROTO_VERSION) {
-	/* address family  */
-	addUint16ToMsg(addr->family, data);
+    /* address family  */
+    addUint16ToMsg(addr->family, data);
 
-	if(addr->family == AF_INET) {
-	    /* addr/port */
-	    addUint32ToMsg(addr->ip, data);
-	    addUint16ToMsg(addr->port, data);
-	} else if (addr->family == AF_INET6) {
-	    flog("error: IPv6 currently unsupported\n");
-	    return false;
-	}
-
-	/* if addr->family is null we are not adding additional information.
-	 * This is *not* an error */
-	return true;
+    if(addr->family == AF_INET) {
+	/* addr/port */
+	addUint32ToMsg(addr->ip, data);
+	addUint16ToMsg(addr->port, data);
+    } else if (addr->family == AF_INET6) {
+	flog("error: IPv6 currently unsupported\n");
+	return false;
     }
 
-    /* addr/port */
-    addUint32ToMsg(addr->ip, data);
-    addUint16ToMsg(addr->port, data);
-
+    /* if addr->family is null we are not adding additional information.
+     * This is *not* an error */
     return true;
 }
 #define addSlurmAddr(addr, data, msgVer) \
     __addSlurmAddr(addr, data, msgVer, __func__, __LINE__)
 
-static void packOldStepID(uint32_t stepid, PS_SendDB_t *data)
-{
-    if (stepid == SLURM_BATCH_SCRIPT) {
-	addUint32ToMsg(NO_VAL, data);
-    } else if (stepid == SLURM_EXTERN_CONT) {
-	addUint32ToMsg(INFINITE, data);
-    } else {
-	addUint32ToMsg(stepid, data);
-    }
-}
-
 static void packStepHead(void *head, PS_SendDB_t *data)
 {
     Slurm_Step_Head_t *stepH = head;
 
-    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
-	addUint32ToMsg(stepH->jobid, data);
-	addUint32ToMsg(stepH->stepid, data);
-	addUint32ToMsg(stepH->stepHetComp, data);
-    } else {
-	addUint32ToMsg(stepH->jobid, data);
-	packOldStepID(stepH->stepid, data);
-    }
+    addUint32ToMsg(stepH->jobid, data);
+    addUint32ToMsg(stepH->stepid, data);
+    addUint32ToMsg(stepH->stepHetComp, data);
 }
 
 /**
@@ -250,22 +224,9 @@ static bool __unpackStepHead(PS_DataBuffer_t *data, void *head, uint16_t msgVer,
 	return false;
     }
 
-    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
-	getUint32(data, &stepH->jobid);
-	getUint32(data, &stepH->stepid);
-	getUint32(data, &stepH->stepHetComp);
-    } else {
-	getUint32(data, &stepH->jobid);
-	getUint32(data, &stepH->stepid);
-	stepH->stepHetComp = NO_VAL;
-
-	/* convert step ID */
-	if (stepH->stepid == NO_VAL) {
-	    stepH->stepid = SLURM_BATCH_SCRIPT;
-	} else if (stepH->stepid == INFINITE) {
-	    stepH->stepid = SLURM_EXTERN_CONT;
-	}
-    }
+    getUint32(data, &stepH->jobid);
+    getUint32(data, &stepH->stepid);
+    getUint32(data, &stepH->stepHetComp);
 
     if (data->unpackErr) {
 	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
@@ -558,11 +519,7 @@ static Gres_Cred_t *unpackGresJobPart(PS_DataBuffer_t *data, uint16_t index,
     /* memory per GRes */
     getUint64(data, &gres->memPerGRes);
     /* number of tasks per GRes */
-    if (msgVer > SLURM_20_02_PROTO_VERSION) {
-	getUint16(data, &gres->numTasksPerGres);
-    } else {
-	gres->numTasksPerGres = NO_VAL16;
-    }
+    getUint16(data, &gres->numTasksPerGres);
     /* total GRes */
     getUint64(data, &gres->totalGres);
     /* type model */
@@ -1031,13 +988,8 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     getUint32(data, &cred->jobid);
     /* pack jobid */
     getUint32(data, &cred->packJobid);
-
-    if (msgVer > SLURM_20_02_PROTO_VERSION) {
-	/* stepid */
-	getUint32(data, &cred->stepid);
-    } else {
-	cred->stepid = SLURM_BATCH_SCRIPT;
-    }
+    /* stepid */
+    getUint32(data, &cred->stepid);
 
     if (msgVer <= SLURM_23_02_PROTO_VERSION) {
 	/* uid */
@@ -1389,12 +1341,7 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     }
 
     /* unpack job/step head */
-    if (msgVer > SLURM_20_02_PROTO_VERSION) {
-	unpackStepHead(data, req, msgVer);
-    } else {
-	/* jobid */
-	getUint32(data, &req->jobid);
-    }
+    unpackStepHead(data, req, msgVer);
     /* pack jobid */
     getUint32(data, &req->packJobid);
     /* jobstate */
@@ -1418,10 +1365,6 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     /* start time */
     getTime(data, &req->startTime);
 
-    if (msgVer < SLURM_20_11_PROTO_VERSION) {
-	/* step id */
-	getUint32(data, &req->stepid);
-    }
     /* slurmctld request time */
     getTime(data, &req->requestTime);
 
@@ -1458,19 +1401,10 @@ static bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
     PS_DataBuffer_t *data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
-    if (msgVer < SLURM_20_11_PROTO_VERSION) {
-	/* flags */
-	getUint16(data, &req->flags);
-    }
-
     /* unpack jobid/stepid */
     unpackStepHead(data, req, msgVer);
-
-    if (msgVer > SLURM_20_02_PROTO_VERSION) {
-	/* flags */
-	getUint16(data, &req->flags);
-    }
-
+    /* flags */
+    getUint16(data, &req->flags);
     /* signal */
     getUint16(data, &req->signal);
 
@@ -2944,10 +2878,6 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     getUint32(data, &step->packNrOfNodes);
     /* pack task counts */
     if (step->packNrOfNodes != NO_VAL) {
-	if (msgVer < SLURM_20_11_PROTO_VERSION) {
-	    uint8_t flagTIDs = 0;
-	    getUint8(data, &flagTIDs);
-	}
 
 	step->packTaskCounts =
 	    umalloc(sizeof(*step->packTaskCounts) * step->packNrOfNodes);
@@ -2955,17 +2885,9 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 	    umalloc(sizeof(*step->packTIDs) * step->packNrOfNodes);
 
 	for (uint32_t i=0; i<step->packNrOfNodes; i++) {
-	    uint16_t tcount = 0;
-	    if (msgVer < SLURM_20_11_PROTO_VERSION) getUint16(data, &tcount);
-
 	    /* pack TIDs per node */
 	    getUint32Array(data, &(step->packTIDs)[i],
 			   &(step->packTaskCounts)[i]);
-	    if (msgVer < SLURM_20_11_PROTO_VERSION
-		&& tcount != step->packTaskCounts[i]) {
-		flog("mismatching task count %u : %u\n", tcount,
-		     step->packTaskCounts[i]);
-	    }
 
 	    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PACK) {
 		flog("pack node %u task count %u", i,
@@ -2984,11 +2906,6 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     /* pack number of tasks */
     getUint32(data, &step->packNtasks);
     if (step->packNtasks != NO_VAL) {
-	if (msgVer < SLURM_20_11_PROTO_VERSION) {
-	    uint8_t flagTIDs = 0;
-	    getUint8(data, &flagTIDs);
-	}
-
 	step->packTIDsOffset =
 	    umalloc(sizeof(*step->packTIDsOffset) * step->packNtasks);
 	for (uint32_t i=0; i<step->packNtasks; i++) {
@@ -3016,10 +2933,8 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     getUint16(data, &step->numTasksPerBoard);
     /* number of tasks per core */
     getUint16(data, &step->numTasksPerCore);
-    if (msgVer > SLURM_20_02_PROTO_VERSION) {
-	/* number of tasks per TRes */
-	getUint16(data, &step->numTasksPerTRes);
-    }
+    /* number of tasks per TRes */
+    getUint16(data, &step->numTasksPerTRes);
     /* number of tasks per socket */
     getUint16(data, &step->numTasksPerSocket);
 
@@ -3058,11 +2973,8 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 	step->tresPerTask = getStringM(data);
     }
 
-    if (msgVer > SLURM_20_02_PROTO_VERSION) {
-	/* threads per core */
-	getUint16(data, &step->threadsPerCore);
-    }
-
+    /* threads per core */
+    getUint16(data, &step->threadsPerCore);
     /* task distribution */
     getUint32(data, &step->taskDist);
     /* node CPUs */
@@ -3329,10 +3241,6 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     getUint32(data, &job->packJobid);
 
     uint16_t msgVer = sMsg->head.version;
-    if (msgVer < SLURM_20_11_PROTO_VERSION) {
-	/* stepid */
-	getUint32(data, &tmp);
-    }
 
     if (!(msgVer > SLURM_23_02_PROTO_VERSION)) {
 	/* remove with support of protocol 23_02 */
@@ -3891,20 +3799,10 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     addUint64ToMsg(stat->freemem, data);
     /* job infos */
     addUint32ToMsg(stat->jobInfoCount, data);
-
-    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
-	for (uint32_t i=0; i<stat->jobInfoCount; i++) {
-	    addUint32ToMsg(stat->jobids[i], data);
-	    addUint32ToMsg(stat->stepids[i], data);
-	    addUint32ToMsg(stat->stepHetComp[i], data);
-	}
-    } else {
-	for (uint32_t i=0; i<stat->jobInfoCount; i++) {
-	    addUint32ToMsg(stat->jobids[i], data);
-	}
-	for (uint32_t i=0; i<stat->jobInfoCount; i++) {
-	    packOldStepID(stat->stepids[i], data);
-	}
+    for (uint32_t i=0; i<stat->jobInfoCount; i++) {
+	addUint32ToMsg(stat->jobids[i], data);
+	addUint32ToMsg(stat->stepids[i], data);
+	addUint32ToMsg(stat->stepHetComp[i], data);
     }
 
     /* flags */
@@ -3923,18 +3821,16 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     /* protocol version */
     addStringToMsg(stat->verStr, data);
 
-    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
-	/* dynamic node */
-	addUint8ToMsg(stat->dynamic, data);
+    /* dynamic node */
+    addUint8ToMsg(stat->dynamic, data);
 
-	if (slurmProto > SLURM_21_08_PROTO_VERSION) {
-	    /* dynamic node feature */
-	    addStringToMsg(stat->dynamicConf, data);
-	}
-
+    if (slurmProto > SLURM_21_08_PROTO_VERSION) {
 	/* dynamic node feature */
-	addStringToMsg(stat->dynamicFeat, data);
+	addStringToMsg(stat->dynamicConf, data);
     }
+
+    /* dynamic node feature */
+    addStringToMsg(stat->dynamicFeat, data);
 
     return true;
 }
@@ -4254,10 +4150,7 @@ static bool unpackExtRespNodeReg(Slurm_Msg_t *sMsg)
 	resp->entry[i].type = getStringM(data);
     }
 
-    uint16_t msgVer = sMsg->head.version;
-    if (msgVer > SLURM_20_02_PROTO_VERSION) {
-	resp->nodeName = getStringM(data);
-    }
+    resp->nodeName = getStringM(data);
 
     if (data->unpackErr) {
 	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
@@ -5136,19 +5029,10 @@ bool packReqJobRequeue(PS_SendDB_t *data, Req_Job_Requeue_t *req)
  */
 static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req)
 {
-    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
-	/* step header */
-	packStepHead(req, data);
-	/* jobid as string*/
-	addStringToMsg(Job_strID(req->jobid), data);
-    } else {
-	/* jobid as string*/
-	addStringToMsg(Job_strID(req->jobid), data);
-	/* jobid / stepid */
-	addUint32ToMsg(req->jobid, data);
-	addUint32ToMsg(req->stepid, data);
-    }
-
+    /* step header */
+    packStepHead(req, data);
+    /* jobid as string*/
+    addStringToMsg(Job_strID(req->jobid), data);
     /* sibling */
     addStringToMsg(req->sibling, data);
     /* signal */
@@ -5186,17 +5070,12 @@ static bool packReqEpilogComplete(PS_SendDB_t *data, Req_Epilog_Complete_t *req)
  */
 bool packReqUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update)
 {
-    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
-	/* comment */
-	addStringToMsg(update->comment, data);
-    }
+    /* comment */
+    addStringToMsg(update->comment, data);
     /* default cpu bind type */
     addUint32ToMsg(update->cpuBind, data);
-
-    if (slurmProto > SLURM_20_02_PROTO_VERSION) {
-	/* arbitrary */
-	addStringToMsg(update->extra, data);
-    }
+    /* arbitrary */
+    addStringToMsg(update->extra, data);
     /* new features */
     addStringToMsg(update->features, data);
     /* new active features */

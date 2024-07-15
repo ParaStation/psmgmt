@@ -2849,9 +2849,6 @@ bool initSlurmdProto(void)
     } else if (!strncmp(pver, "20.11", 5) || !strncmp(pver, "2011", 4)) {
 	slurmProto = SLURM_20_11_PROTO_VERSION;
 	slurmProtoStr = ustrdup("20.11");
-    } else if (!strncmp(pver, "20.02", 5) || !strncmp(pver, "2002", 4)) {
-	slurmProto = SLURM_20_02_PROTO_VERSION;
-	slurmProtoStr = ustrdup("20.02");
     } else {
 	flog("unsupported Slurm protocol version %s\n", pver);
 	return false;
