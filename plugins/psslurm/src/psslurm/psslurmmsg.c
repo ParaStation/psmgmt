@@ -137,6 +137,26 @@ const char *msgType2String(int type)
 	    return "REQUEST_CONFIG";
 	case RESPONSE_CONFIG:
 	    return "RESPONSE_CONFIG";
+	case REQUEST_JOB_STEP_CREATE:
+	    return "REQUEST_JOB_STEP_CREATE";
+	case RESPONSE_JOB_STEP_CREATE:
+	    return "RESPONSE_JOB_STEP_CREATE";
+	case SRUN_JOB_COMPLETE:
+	    return "SRUN_JOB_COMPLETE";
+	case REQUEST_CANCEL_JOB_STEP:
+	    return "REQUEST_CANCEL_JOB_STEP";
+	case SRUN_NODE_FAIL:
+	    return "SRUN_NODE_FAIL";
+	case SRUN_TIMEOUT:
+	    return "SRUN_TIMEOUT";
+	case REQUEST_UPDATE_JOB_STEP:
+	    return "REQUEST_UPDATE_JOB_STEP";
+	case REQUEST_STEP_LAYOUT:
+	    return "REQUEST_STEP_LAYOUT";
+	case REQUEST_JOB_SBCAST_CRED:
+	    return "REQUEST_JOB_SBCAST_CRED";
+	case REQUEST_HET_JOB_ALLOC_INFO:
+	    return "REQUEST_HET_JOB_ALLOC_INFO";
     }
 
     static char buf[64];
