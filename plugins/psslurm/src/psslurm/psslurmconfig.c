@@ -1310,6 +1310,13 @@ static bool verifySlurmConf(void)
 	     "not set\n");
     }
 
+    /* prevent usage of currently unsupported step manager until implemented */
+    if (confHasOpt(SlurmConfig, "SlurmctldParameters", "enable_stepmgr")) {
+	flog("error: enable_stepmgr (SlurmctldParameters) is currently"
+	     " unsupported\n");
+	return false;
+    }
+
     return true;
 }
 
