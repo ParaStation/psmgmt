@@ -914,8 +914,25 @@ bool __freeUnpackMsgData(Slurm_Msg_t *sMsg, const char *caller, const int line);
 
 #define freeUnpackMsgData(sMsg) __freeUnpackMsgData(sMsg, __func__, __LINE__);
 
+/**
+ * @brief Free a list of Slurm node records
+ *
+ * @param nrList The list to free
+ */
 void freeSlurmNodeRecords(list_t *nrList);
+
+/**
+ * @brief Free a Slurm job record
+ *
+ * @param jr The job record to free
+ */
 void freeSlurmJobRecord(Slurm_Job_Record_t *jr);
+
+/**
+ * @brief Free a Slurm partition record
+ *
+ * @param pr The partition record to free
+ */
 void freeSlurmPartRecord(Slurm_Part_Record_t *pr);
 
 #endif /* __PSSLURM_PROTOTYPES */
