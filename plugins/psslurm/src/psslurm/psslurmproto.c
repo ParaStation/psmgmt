@@ -2689,6 +2689,9 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
 	return 0;
     }
 
+    flog("error: got unregistred RPC %s (%u)\n",
+	 msgType2String(sMsg->head.type), sMsg->head.version);
+
     sendSlurmRC(sMsg, SLURM_ERROR);
     return 0;
 }
