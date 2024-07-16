@@ -860,7 +860,7 @@ bool pspmix_comm_sendInitNotification(PStask_ID_t dest /* fw */,
 				      PStask_ID_t spawnertid)
 {
     if (mset(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM)) {
-	flog(" dest %s nspace %s rank %u", PSC_printTID(dest), nspace, rank);
+	flog("dest %s nspace %s rank %u", PSC_printTID(dest), nspace, rank);
 	mlog(" spawner %s\n", PSC_printTID(spawnertid));
     }
 
