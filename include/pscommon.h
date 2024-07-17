@@ -773,21 +773,21 @@ int PSC_traverseHostInfo(const char *host, hostInfoVisitor_t visitor,
  *
  * Switch the effective user but not the real user. This allows to temporary
  * drop root privileged and to reclaim them at a later stage. To achieve this
- * the effective user ID, group ID and supplemental group IDs are modified.
- * Additionally the creation of core files will be re-enabled after switching
- * the user.
+ * the effective user ID and group ID are modified. If @a username is not NULL
+ * the supplemental group IDs are also set. Otherwise the supplemental group IDs
+ * are cleared.
  *
  * It is *important* to ensure the function completed without errors
  * by checking the return value.
  *
- * @param username Name of the effective user
+ * @param username Username of the new effective user
  *
- * @param uid Effective user ID
+ * @param uid New effective user ID
  *
- * @param gid Effective group ID
+ * @param gid New effective group ID
  *
- * @return Returns 1 on success otherwise -1 is returned
+ * @return Returns true on success otherwise false is returned
  */
-int PSC_switchEffectiveUser(char *username, uid_t uid, gid_t gid);
+bool PSC_switchEffectiveUser(char *username, uid_t uid, gid_t gid);
 
 #endif  /* __PSCOMMON_H */

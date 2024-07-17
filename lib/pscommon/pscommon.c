@@ -887,53 +887,48 @@ int PSC_traverseHostInfo(const char *host, hostInfoVisitor_t visitor,
     return 0;
 }
 
-int PSC_switchEffectiveUser(char *username, uid_t uid, gid_t gid)
+static bool switchGroups(char *username, gid_t gid)
 {
-    if (uid) {
-	/* current user is root, change groups before switching to user */
-	/* remove group memberships */
-	if (setgroups(0, NULL) == -1) {
-	    PSC_warn(-1, errno, "%s: setgroups(0)", __func__);
-	    return -1;
-	}
-
-	/* set supplementary groups */
-	if (initgroups(username, gid) < 0) {
-	    PSC_warn(-1, errno, "%s: initgroups()", __func__);
-	    return -1;
-	}
+    /* remove group memberships */
+    if (setgroups(0, NULL) == -1) {
+	PSC_warn(-1, errno, "%s: setgroups(0, NULL)", __func__);
+	return false;
     }
 
+    /* set supplementary groups */
+    if (username && initgroups(username, gid) < 0) {
+	PSC_warn(-1, errno, "%s: initgroups(%s, %i)", __func__, username, gid);
+	return false;
+    }
+    return true;
+}
+
+bool PSC_switchEffectiveUser(char *username, uid_t uid, gid_t gid)
+{
+    uid_t curEUID = geteuid();
+
+    /* current user is root, change groups before switching to user */
+    if (!curEUID && !switchGroups(username, gid)) return false;
+
     /* change effective GID */
-    if (setegid(gid) < 0) {
+    if (getegid() != gid && setegid(gid) < 0) {
 	PSC_warn(-1, errno, "%s: setgid(%i)", __func__, gid);
-	return -1;
+	return false;
     }
 
     /* change effective UID */
-    if (seteuid(uid) < 0) {
+    if (uid != curEUID && seteuid(uid) < 0) {
 	PSC_warn(-1, errno, "%s: setuid(%i)", __func__, uid);
-	return -1;
+	return false;
     }
 
-    if (!uid) {
-	/* current user was not root, change groups after switching UID */
-	/* remove group memberships */
-	if (setgroups(0, NULL) == -1) {
-	    PSC_warn(-1, errno, "%s: setgroups(0)", __func__);
-	    return -1;
-	}
+    /* current user was not root, change groups after switching UID */
+    if (curEUID && !switchGroups(username, gid)) return false;
 
-	/* set supplementary groups */
-	if (initgroups(username, gid) < 0) {
-	    PSC_warn(-1, errno, "%s: initgroups()", __func__);
-	    return -1;
-	}
-    }
-
+    /* re-enable writing of core dumps */
     if (prctl(PR_SET_DUMPABLE, 1) == -1) {
 	PSC_warn(-1, errno, "%s: prctl(PR_SET_DUMPABLE)", __func__);
     }
 
-    return 1;
+    return true;
 }

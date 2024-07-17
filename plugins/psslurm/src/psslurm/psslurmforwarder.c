@@ -1207,7 +1207,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     SpankCallHook(&spank);
 #endif
 
-    if (PSC_switchEffectiveUser(step->username, step->uid, step->gid) == -1) {
+    if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
 	mlog("%s: switching effective user failed\n", __func__);
 	exit(1);
     }
@@ -1247,7 +1247,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     SpankCallHook(&spank);
 #endif
 
-    if (PSC_switchEffectiveUser("root", 0, 0) == -1) {
+    if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	mlog("%s: switching effective user failed\n", __func__);
 	exit(1);
     }
@@ -1431,7 +1431,7 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
 
-    if (PSC_switchEffectiveUser(job->username, job->uid, job->gid) == -1) {
+    if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
 	mlog("%s: switching effective user failed\n", __func__);
 	exit(1);
     }
@@ -1451,7 +1451,7 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
 	exit(1);
     }
 
-    if (PSC_switchEffectiveUser("root", 0, 0) == -1) {
+    if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	mlog("%s: switching effective user failed\n", __func__);
 	exit(1);
     }
@@ -1482,7 +1482,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
     spank.hook = SPANK_INIT_POST_OPT;
     SpankCallHook(&spank);
 
-    if (PSC_switchEffectiveUser(job->username, job->uid, job->gid) == -1) {
+    if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
 	flog("switching effective user to %s failed\n", job->username);
 	exit(1);
     }
@@ -1490,7 +1490,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
     spank.hook = SPANK_USER_INIT;
     SpankCallHook(&spank);
 
-    if (PSC_switchEffectiveUser("root", 0, 0) == -1) {
+    if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");
 	exit(1);
     }
@@ -1727,7 +1727,7 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
 	return;
     }
 
-    if (PSC_switchEffectiveUser(step->username, step->uid, step->gid) == -1) {
+    if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
 	mlog("%s: switching effective user failed\n", __func__);
 	exit(1);
     }
@@ -1747,7 +1747,7 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
 	exit(1);
     }
 
-    if (PSC_switchEffectiveUser("root", 0, 0) == -1) {
+    if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	mlog("%s: switching effective user failed\n", __func__);
 	exit(1);
     }
@@ -1783,7 +1783,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     spank.hook = SPANK_INIT_POST_OPT;
     SpankCallHook(&spank);
 
-    if (PSC_switchEffectiveUser(step->username, step->uid, step->gid) == -1) {
+    if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
 	mlog("%s: switching effective user failed\n", __func__);
 	exit(1);
     }
@@ -1791,7 +1791,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     spank.hook = SPANK_USER_INIT;
     SpankCallHook(&spank);
 
-    if (PSC_switchEffectiveUser("root", 0, 0) == -1) {
+    if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	mlog("%s: switching effective user failed\n", __func__);
 	exit(1);
     }
