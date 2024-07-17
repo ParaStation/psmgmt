@@ -172,8 +172,10 @@ static LIST_HEAD(pluginList);
  * 141: new hook PSIDHOOK_EXEC_CLIENT_EXEC
  *
  * 142: new hooks PSIDHOOK_JOBCOMPLETE, PSIDHOOK_FILL_RESFINALIZED
+ *
+ * 143: new hooks PSIDHOOK_PRIV_FRWRD_CLNT_RES, PSIDHOOK_PRIV_FRWRD_INIT
  */
-static int pluginAPIVersion = 142;
+static int pluginAPIVersion = 143;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

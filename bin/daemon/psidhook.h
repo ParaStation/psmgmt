@@ -280,6 +280,10 @@ typedef enum {
 				content of env_t upon return will be distributed
 				alongside the reservations info and provided
 				in PSjob_t's extraData. */
+    PSIDHOOK_PRIV_FRWRD_CLNT_RES,/**< PSIDHOOK_FRWRD_CLNT_RES executed with
+				root privileges */
+    PSIDHOOK_PRIV_FRWRD_INIT, /**< PSIDHOOK_FRWRD_INIT executed with root
+				privileges */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
