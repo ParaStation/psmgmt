@@ -1208,7 +1208,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 #endif
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
-	flog("switching effective user failed\n");
+	flog("switching effective user to %s failed\n", step->username);
 	exit(1);
     }
 
@@ -1248,7 +1248,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 #endif
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
-	flog("switching effective user failed\n");
+	flog("switching effective user to root failed\n");
 	exit(1);
     }
 
@@ -1432,7 +1432,7 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
     Job_t *job = fwdata->userData;
 
     if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
-	flog("switching effective user failed\n");
+	flog("switching effective user to %s failed\n", job->username);
 	exit(1);
     }
 
@@ -1452,7 +1452,7 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
     }
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
-	flog("switching effective user failed\n");
+	flog("switching effective user to root failed\n");
 	exit(1);
     }
 }
@@ -1728,7 +1728,7 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
     }
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
-	flog("switching effective user failed\n");
+	flog("switching effective user to %s failed\n", step->username);
 	exit(1);
     }
 
@@ -1748,7 +1748,7 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
     }
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
-	flog("switching effective user failed\n");
+	flog("switching effective user to root failed\n");
 	exit(1);
     }
 }
@@ -1784,7 +1784,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     SpankCallHook(&spank);
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
-	flog("switching effective user failed\n");
+	flog("switching effective user to %s failed\n", step->username);
 	exit(1);
     }
 
@@ -1792,7 +1792,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     SpankCallHook(&spank);
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
-	flog("switching effective user failed\n");
+	flog("switching effective user to root failed\n");
 	exit(1);
     }
 
