@@ -115,7 +115,7 @@ static void cbTermJail(int exit, bool tmdOut, int iofd, void *info)
 
     bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg),&errLen);
     if (!ret) {
-	flog("%s: getting jail term script callback data failed\n", __func__);
+	flog("getting jail term script callback data failed\n");
 	return;
     }
 
@@ -130,10 +130,10 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     Job_t *job = fw->userData;
     Alloc_t *alloc = Alloc_find(job->jobid);
 
-    mlog("%s: job '%u' finished, exit %i / %i\n", __func__, job->jobid,
-	 exit_status, fw->chldExitStatus);
+    flog("job '%u' finished, exit %i / %i\n", job->jobid, exit_status,
+	 fw->chldExitStatus);
     if (!Job_findById(job->jobid)) {
-	mlog("%s: job '%u' not found\n", __func__, job->jobid);
+	flog("job '%u' not found\n", job->jobid);
 	return;
     }
 
@@ -497,7 +497,7 @@ int handleForwarderInit(void * data)
 
 	    waitpid(child, &status, WUNTRACED);
 	    if (!WIFSTOPPED(status)) {
-		mlog("%s: child '%i' not stopped\n", __func__, child);
+		flog("child '%i' not stopped\n", child);
 	    } else {
 		if (killChild(child, SIGSTOP, task->uid) == -1) {
 		    mwarn(errno, "%s: kill(%i)", __func__, child);
@@ -825,7 +825,7 @@ static void initX11Forward(Step_t *step)
 	fprintf(fp, "add %s %s %s\n", authStr, proto, cookie);
 	pclose(fp);
     } else {
-	mlog("%s: open xauth '%s' failed\n", __func__, X11_AUTH_CMD);
+	flog("open xauth '%s' failed\n", X11_AUTH_CMD);
 	envUnset(step->env, "DISPLAY");
     }
 }
@@ -925,12 +925,12 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 
 static void debugMpiexecStart(char **argv, char **env)
 {
-    mlog("%s:", __func__);
+    flog(":");
     for (int i = 0; argv[i]; i++) mlog(" %s", argv[i]);
     mlog("\n");
 
     for (int i = 0; env[i]; i++) {
-	mlog("%s: env[%i] '%s'\n", __func__, i, env[i]);
+	flog("env[%i] '%s'\n", i, env[i]);
     }
 }
 
@@ -1208,7 +1208,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 #endif
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
-	mlog("%s: switching effective user failed\n", __func__);
+	flog("switching effective user failed\n");
 	exit(1);
     }
 
@@ -1248,7 +1248,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 #endif
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
-	mlog("%s: switching effective user failed\n", __func__);
+	flog("switching effective user failed\n");
 	exit(1);
     }
 
@@ -1285,12 +1285,12 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
     if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return;
 
     if (!step->IOPort) {
-	mlog("%s: no I/O ports available\n", __func__);
+	flog("no I/O ports available\n");
 	return;
     }
 
     if (srunOpenIOConnection(step, step->cred->sig) == -1) {
-	mlog("%s: open srun I/O connection failed\n", __func__);
+	flog("open srun I/O connection failed\n");
 	return;
     }
 
@@ -1432,7 +1432,7 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
     Job_t *job = fwdata->userData;
 
     if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
-	mlog("%s: switching effective user failed\n", __func__);
+	flog("switching effective user failed\n");
 	exit(1);
     }
 
@@ -1452,7 +1452,7 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
     }
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
-	mlog("%s: switching effective user failed\n", __func__);
+	flog("switching effective user failed\n");
 	exit(1);
     }
 }
@@ -1718,17 +1718,17 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
     if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return;
 
     if (!step->IOPort) {
-	mlog("%s: no I/O Ports\n", __func__);
+	flog("no I/O Ports\n");
 	return;
     }
 
     if (srunOpenIOConnection(step, step->cred->sig) == -1) {
-	mlog("%s: open srun I/O connection failed\n", __func__);
+	flog("open srun I/O connection failed\n");
 	return;
     }
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
-	mlog("%s: switching effective user failed\n", __func__);
+	flog("switching effective user failed\n");
 	exit(1);
     }
 
@@ -1748,7 +1748,7 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
     }
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
-	mlog("%s: switching effective user failed\n", __func__);
+	flog("switching effective user failed\n");
 	exit(1);
     }
 }
@@ -1784,7 +1784,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     SpankCallHook(&spank);
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
-	mlog("%s: switching effective user failed\n", __func__);
+	flog("switching effective user failed\n");
 	exit(1);
     }
 
@@ -1792,7 +1792,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     SpankCallHook(&spank);
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
-	mlog("%s: switching effective user failed\n", __func__);
+	flog("switching effective user failed\n");
 	exit(1);
     }
 
