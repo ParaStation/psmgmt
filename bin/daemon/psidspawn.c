@@ -1073,34 +1073,17 @@ static void execForwarder(PStask_t *task)
 	goto error;
     }
 
-    /* change the gid */
-    if (setgid(task->gid) < 0) {
+    /* switch effective user */
+    char *name = NULL;
+    if (PSIDnodes_supplGrps(PSC_getMyID())) name = PSC_userFromUID(task->uid);
+
+    if (!PSC_switchEffectiveUser(name, task->uid, task->gid)) {
 	eno = errno;
-	PSID_fwarn(eno, "setgid()");
-	goto error;
-    }
-
-    /* remove psid's group memberships */
-    setgroups(0, NULL);
-
-    /* try to set supplementary groups if requested; failure is ignored */
-    if (PSIDnodes_supplGrps(PSC_getMyID())) {
-	char *name = PSC_userFromUID(task->uid);
-	if (name && initgroups(name, task->gid) < 0) {
-	    PSID_fwarn(errno, "initgroups()");
-	}
+	PSID_fwarn(eno, "switchEffectiveUser()");
 	free(name);
-    }
-
-    /* change the uid */
-    if (setuid(task->uid) < 0) {
-	eno = errno;
-	PSID_fwarn(eno, "setuid()");
 	goto error;
     }
-
-    /* re-enable capability to create coredumps */
-    prctl(PR_SET_DUMPABLE, 1);
+    free(name);
 
     /* check for a sign from the client */
     PSID_fdbg(PSID_LOG_SPAWN, "waiting for my child (%d)\n", pid);
