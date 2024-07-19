@@ -22,12 +22,13 @@ static bool checkStr(strbuf_t strbuf)
 	fprintf(stderr, "strbuf %p not initialized\n", strbuf);
 	return false;
     }
-    if (strbufSize(strbuf) % MALLOC_GRANULARITY) {
+    if ((!strbufStr(strbuf) && strbufSize(strbuf))
+	|| strbufSize(strbuf) % MALLOC_GRANULARITY) {
 	fprintf(stderr, "strbuf %p: unexpected size %u\n", strbuf,
 		strbufSize(strbuf));
 	return false;
     }
-    size_t strLen = strbufStr(strbuf) ? strlen(strbufStr(strbuf)) + 1: 0;
+    size_t strLen = strbufStr(strbuf) ? strlen(strbufStr(strbuf)) + 1 : 0;
     if (strbufLen(strbuf) != strLen) {
 	fprintf(stderr, "strbuf %p: unexpected length %u (expected %zu)\n",
 		strbuf, strbufLen(strbuf), strlen(strbufStr(strbuf)) + 1);
@@ -90,8 +91,21 @@ int main(void)
     if (verbose) fprintf(stderr, "create corner case 4 (size 0)\n");
     createCheck("");
 
-    if (verbose) fprintf(stderr, "add 1\n");
+    if (verbose) fprintf(stderr, "create corner case 5 (NULL)\n");
     strbuf_t str = strbufNew(NULL);
+    if (!checkStr(str)) return -1;
+    if (strbufStr(str)) {
+	fprintf(stderr, "strbuf %p: unexpected string %p\n", str, strbufStr(str));
+	return -1;
+    }
+    if (verbose) fprintf(stderr, "create corner case 5 (NULL) + add\n");
+    strbufAdd(str, "");
+    if (!checkStr(str)) return -1;
+    if (!cmpStr(strbufStr(str), "")) return -1;
+    strbufDestroy(str);
+
+    if (verbose) fprintf(stderr, "add 1\n");
+    str = strbufNew(NULL);
     strbufAdd(str, str20);
     if (!checkStr(str)) return -1;
     if (!cmpStr(strbufStr(str), str20)) return -1;
