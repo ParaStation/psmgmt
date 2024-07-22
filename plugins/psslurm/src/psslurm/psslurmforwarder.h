@@ -176,9 +176,21 @@ int handleForwarderInit(void * data);
 int handleForwarderClientStatus(void * data);
 
 /**
- * @brief Handle hook PSIDHOOK_FRWRD_CLNT_RES
+ * @brief Handle hook PSIDHOOK_PRIV_FRWRD_CLNT_RES
  *
  * Used to forward the client exit status in spank hook SPANK_TASK_EXIT.
+ * Executed with root privileges.
+ *
+ * @param data Exit status of the client
+ *
+ * @return Always returns 0
+ */
+int handleFwResPriv(void * data);
+
+/**
+ * @brief Handle hook PSIDHOOK_FRWRD_CLNT_RES
+ *
+ * Used to stop container after the client finalized.
  *
  * @param data Exit status of the client
  *

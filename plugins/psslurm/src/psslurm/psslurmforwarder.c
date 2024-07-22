@@ -1855,7 +1855,7 @@ bool execStepFollower(Step_t *step)
     return true;
 }
 
-int handleFwRes(void * data)
+int handleFwResPriv(void * data)
 {
 #ifdef HAVE_SPANK
     if (fwStep && fwTask && fwTask->rank >= 0) {
@@ -1873,7 +1873,11 @@ int handleFwRes(void * data)
 	SpankCallHook(&spank);
     }
 #endif
+    return 0;
+}
 
+int handleFwRes(void * data)
+{
     /* kill and remove container */
     if (fwStep && fwTask && fwTask->rank >= 0) {
 	if (fwStep->ct) Container_stop(fwStep->ct);

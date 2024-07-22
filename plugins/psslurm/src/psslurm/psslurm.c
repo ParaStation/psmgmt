@@ -178,6 +178,10 @@ static void unregisterHooks(bool verbose)
 	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLNT_RES' failed\n");
     }
 
+    if (!PSIDhook_del(PSIDHOOK_PRIV_FRWRD_CLNT_RES, handleFwResPriv)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_PRIV_FRWRD_CLNT_RES' failed\n");
+    }
+
     if (!PSIDhook_del(PSIDHOOK_LAST_CHILD_GONE, handleLastChildGone)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_LAST_CHILD_GONE' failed\n");
     }
@@ -262,6 +266,11 @@ static bool registerHooks(void)
 
     if (!PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RES, handleFwRes)) {
 	mlog("register 'PSIDHOOK_FRWRD_CLNT_RES' failed\n");
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_PRIV_FRWRD_CLNT_RES, handleFwResPriv)) {
+	mlog("register 'PSIDHOOK_PRIV_FRWRD_CLNT_RES' failed\n");
 	return false;
     }
 
