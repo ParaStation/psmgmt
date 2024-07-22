@@ -899,13 +899,18 @@ static int tryInclude(char *line, Config_t conf, const void *info)
     char *myLine = ustrdup(line);
 
     char *token = strtok(myLine, delimiters);
-    if (strncasecmp(token, "include", 7)) {
+    if (!token || strncasecmp(token, "include", 7)) {
 	ufree(myLine);
 	return 0; // proceed normal line handling
     }
 
     /* get absolute path */
     char *path = strtok(NULL, delimiters);
+    if (!path) {
+	flog("empty include path given\n");
+	ufree(myLine);
+	return -1;
+    }
     char cPath[PATH_MAX];
 
     if (path[0] != '/') {
