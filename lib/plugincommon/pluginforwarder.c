@@ -133,6 +133,7 @@ static void killForwarderChild(Forwarder_Data_t *fw, int sig, char *reason,
 			       bool session)
 {
     if (!fw) fw = fwData;
+    /* scan-build NullDereference false positive (fwData always != NULL) */
     int grace = fw->graceTime ? fw->graceTime : DEFAULT_GRACE_TIME;
 
     if (fw->cSid < 1 || fw->cPid < 1) return;
