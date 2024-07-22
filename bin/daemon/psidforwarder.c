@@ -1288,6 +1288,9 @@ static int handleSIGCHLD(int fd, void *info)
 
 	/* Tell attached plugins about child's exit status */
 	PSIDhook_call(PSIDHOOK_FRWRD_CLNT_RES, &childStatus);
+
+	/* PSIDHOOK_FRWRD_CLNT_RES executed with root privileges */
+	PSIDhook_callPriv(PSIDHOOK_PRIV_FRWRD_CLNT_RES, &childStatus);
     }
 
     return 0;
@@ -1397,6 +1400,9 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
 
     /* finally start plugin functionality right before entering the loop */
     PSIDhook_call(PSIDHOOK_FRWRD_INIT, task);
+
+    /* PSIDHOOK_FRWRD_INIT executed with root privileges */
+    PSIDhook_callPriv(PSIDHOOK_PRIV_FRWRD_INIT, task);
 
     /* Loop forever. We exit on SIGCHLD and all selectors removed */
     /* Do not count daemon connection! */
