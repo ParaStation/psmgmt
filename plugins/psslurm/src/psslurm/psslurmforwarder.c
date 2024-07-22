@@ -481,6 +481,30 @@ static void initFwPtr(PStask_t *task)
     fwTask = task;
 }
 
+int handleForwarderInitPriv(void * data)
+{
+    PStask_t *task = data;
+
+    if (task->rank < 0 || task->group != TG_ANY) return 0;
+    initFwPtr(task);
+
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = fwTask,
+	.alloc = fwAlloc,
+	.job = fwJob,
+	.step = fwStep,
+	.hook = SPANK_TASK_POST_FORK,
+	.envSet = NULL,
+	.envUnset = NULL
+    };
+    SpankInitOpt(&spank);
+    SpankCallHook(&spank);
+#endif
+
+    return 0;
+}
+
 int handleForwarderInit(void * data)
 {
     PStask_t *task = data;
@@ -519,20 +543,6 @@ int handleForwarderInit(void * data)
 
     /* override spawn task filling function in pspmix */
     psPmixSetFillSpawnTaskFunction(fillSpawnTaskWithSrun);
-
-#ifdef HAVE_SPANK
-    struct spank_handle spank = {
-	.task = fwTask,
-	.alloc = fwAlloc,
-	.job = fwJob,
-	.step = fwStep,
-	.hook = SPANK_TASK_POST_FORK,
-	.envSet = NULL,
-	.envUnset = NULL
-    };
-    SpankInitOpt(&spank);
-    SpankCallHook(&spank);
-#endif
 
     return 0;
 }

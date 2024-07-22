@@ -143,11 +143,20 @@ int handleExecClient(void *data);
 int handleExecClientUser(void * data);
 
 /**
+ * @brief Handle hook PSIDHOOK_PRIV_FRWRD_INIT
+ *
+ * The spank hook SPANK_TASK_POST_FORK is called with root privileges.
+ *
+ * @param data Task structure of the client
+ *
+ * @return Always returns 0
+ */
+int handleForwarderInitPriv(void * data);
+
+/**
  * @brief Handle hook PSIDHOOK_FRWRD_INIT
  *
  * Used to initialize the PMI interface and setup the ptrace interface.
- *
- * Additionally the spank hook SPANK_TASK_POST_FORK is called.
  *
  * @param data Task structure of the client
  *

@@ -87,7 +87,7 @@ int oldExceptions = -1;
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 118;
-int requiredAPI =141;
+int requiredAPI =143;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 5 },
     { .name = "psaccount", .version = 30 },
@@ -164,6 +164,10 @@ static void unregisterHooks(bool verbose)
 
     if (!PSIDhook_del(PSIDHOOK_FRWRD_INIT, handleForwarderInit)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_INIT' failed\n");
+    }
+
+    if (!PSIDhook_del(PSIDHOOK_PRIV_FRWRD_INIT, handleForwarderInitPriv)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_PRIV_FRWRD_INIT' failed\n");
     }
 
     if (!PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, handleForwarderClientStatus)){
@@ -243,6 +247,11 @@ static bool registerHooks(void)
 
     if (!PSIDhook_add(PSIDHOOK_FRWRD_INIT, handleForwarderInit)) {
 	mlog("register 'PSIDHOOK_FRWRD_INIT' failed\n");
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_PRIV_FRWRD_INIT, handleForwarderInitPriv)) {
+	mlog("register 'PSIDHOOK_PRIV_FRWRD_INIT' failed\n");
 	return false;
     }
 
