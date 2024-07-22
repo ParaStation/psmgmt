@@ -10,9 +10,11 @@
  */
 #include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "list.h"
 #include "psidutil.h"
+#include "psidnodes.h"
 
 #include "psidhook.h"
 
@@ -199,7 +201,7 @@ bool PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func)
     return true;
 }
 
-int PSIDhook_call(PSIDhook_t hook, void *arg)
+int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv)
 {
     int ret = PSIDHOOK_NOFUNC;
 
@@ -210,15 +212,31 @@ int PSIDhook_call(PSIDhook_t hook, void *arg)
 	return -1;
     }
 
+    uid_t euid = -1;
+    gid_t egid = -1;
+    char *euser = NULL;
+
+    if (priv) {
+	/* save effective user */
+	euid = geteuid();
+	egid = geteuid();
+	if (PSIDnodes_supplGrps(PSC_getMyID())) {
+	    euser = PSC_userFromUID(euid);
+	}
+    }
+
     list_t *h, *tmp;
     list_for_each_safe(h, tmp, &hookTab[hook].list) {
 	hook_ref_t *ref = list_entry(h, hook_ref_t, next);
 	if (ref->func) {
+	    if (priv) PSC_switchEffectiveUser("root", 0, 0);
 	    int fret = ref->func(arg);
 
 	    if (fret < ret) ret = fret;
 	}
     }
+
+    if (priv) PSC_switchEffectiveUser(euser, euid, egid);
 
     return ret;
 }
