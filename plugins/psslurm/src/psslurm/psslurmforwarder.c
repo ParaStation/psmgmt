@@ -419,9 +419,6 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     IO_redirectJob(fwdata, job);
 
 #ifdef HAVE_SPANK
-    spank.hook = SPANK_TASK_POST_FORK;
-    SpankCallHook(&spank);
-
     spank.hook = SPANK_TASK_INIT;
     SpankCallHook(&spank);
 #endif
@@ -1440,6 +1437,19 @@ bool execStepLeader(Step_t *step)
 void handleJobLoop(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
+
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = NULL,
+	.alloc = Alloc_find(job->jobid),
+	.job = job,
+	.step = NULL,
+	.hook = SPANK_TASK_POST_FORK,
+	.envSet = NULL,
+	.envUnset = NULL
+    };
+    SpankCallHook(&spank);
+#endif
 
     if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
 	flog("switching effective user to %s failed\n", job->username);
