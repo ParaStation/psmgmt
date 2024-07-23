@@ -146,6 +146,10 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
     spank_err_t ret;
     hookCount++;
 
+    /* write to users stderr */
+    slurm_spank_log("message to user stderr from %s local uid %i gid %i "
+		    "pid %i\n", func, getuid(), getgid(), getpid());
+
     slurm_info("%s: hook-count %u static-opt: %i local uid %i gid %i pid %i "
 	       "isremote %i", func, hookCount, optArg, getuid(), getgid(),
 	       getpid(), spank_remote(sp));
