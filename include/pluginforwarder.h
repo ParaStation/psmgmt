@@ -22,6 +22,7 @@
 typedef struct __fwData__ Forwarder_Data_t;
 
 #define FW_CHILD_INFINITE -1
+#define FW_RETRY_PAUSE 10
 
 /** Structure defining all parameter's of a forwarder */
 typedef struct __fwData__ {
