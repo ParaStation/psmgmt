@@ -91,9 +91,7 @@ static char *doEval(const char *key, const pluginConfigVal_t *val,
 	}
 	char *valStr = val->val.str;
 	if (!strlen(valStr)) {
-	    strbuf_t buf = strbufNew(NULL);
-	    strbufAdd(buf, "  No value given");
-	    return strbufSteal(buf);
+	    return strdup("  No value given");
 	}
 	char *topoFile;
 	if (*valStr == '/') {
