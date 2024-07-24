@@ -229,14 +229,21 @@ int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv)
     list_for_each_safe(h, tmp, &hookTab[hook].list) {
 	hook_ref_t *ref = list_entry(h, hook_ref_t, next);
 	if (ref->func) {
-	    if (priv) PSC_switchEffectiveUser("root", 0, 0);
+	    if (priv && !PSC_switchEffectiveUser("root", 0, 0)) {
+		PSID_flog("swtich effective user to root failed\n");
+		return -1;
+	    }
 	    int fret = ref->func(arg);
 
 	    if (fret < ret) ret = fret;
 	}
     }
 
-    if (priv) PSC_switchEffectiveUser(euser, euid, egid);
+    if (priv && !PSC_switchEffectiveUser(euser, euid, egid)) {
+	PSID_flog("swtich effective user to user _'%s'_ euid %u failed\n",
+		  euser, euid);
+	return -1;
+    }
 
     return ret;
 }
