@@ -34,9 +34,13 @@
 #include "psidcomm.h"
 #include "psidplugin.h"
 #include "psidtask.h"
+#include "psidstate.h"
 
 #include "psaccountlog.h"
 #include "psaccountconfig.h"
+
+/* forward declaration */
+static bool startScriptFW(Collect_Script_t *script, char *title);
 
 typedef enum {
     CMD_SET_POLL_TIME = PLGN_TYPE_LAST+1,
@@ -321,10 +325,46 @@ static void callback(int32_t exit_status, Forwarder_Data_t *fw)
     Collect_Script_t *script = fw->userData;
     if (!script) return;
 
+    if (PSID_getDaemonState() != PSID_STATE_SHUTDOWN && !script->shutdown) {
+	/* forwarder exited unexpected, restart script */
+	if (startScriptFW(script, fw->pTitle)) {
+	    fdbg(PSACC_LOG_COLLECT, "re-starting %s forwarder successful\n",
+		 fw->pTitle);
+	    return;
+	}
+	flog("re-starting %s forwarder failed, giving up\n", fw->pTitle);
+    }
+
     list_del(&script->next);
     delScript(script);
 
     if (finalized && list_empty(&scriptList)) PSIDplugin_unload("psaccount");
+}
+
+static bool startScriptFW(Collect_Script_t *script, char *title)
+{
+    Forwarder_Data_t *fwdata = ForwarderData_new();
+    fwdata->pTitle = ustrdup(title);
+    fwdata->jobID = ustrdup("collect");
+    fwdata->graceTime = 1;
+    fwdata->killSession = killSession;
+    fwdata->callback = callback;
+    fwdata->handleFwMsg = handleFwMsg;
+    fwdata->childFunc = execCollectScript;
+    fwdata->fwChildOE = true;
+    fwdata->userData = script;
+    fwdata->handleMthrMsg = handleMthrMsg;
+    fwdata->childRerun = FW_CHILD_INFINITE;
+
+    if (!startForwarder(fwdata)) {
+	flog("starting %s script forwarder failed\n", title);
+	ForwarderData_delete(fwdata);
+	return false;
+    }
+
+    script->fwdata = fwdata;
+
+    return true;
 }
 
 Collect_Script_t *Script_start(char *title, char *path,
@@ -357,29 +397,14 @@ Collect_Script_t *Script_start(char *title, char *path,
     }
     script->func = func;
     script->poll = poll;
+    script->shutdown = false;
     script->env = envInitialized(env) ? envClone(env, NULL) : envNew(NULL);
 
-    Forwarder_Data_t *fwdata = ForwarderData_new();
-    fwdata->pTitle = ustrdup(title);
-    fwdata->jobID = ustrdup("collect");
-    fwdata->graceTime = 1;
-    fwdata->killSession = killSession;
-    fwdata->callback = callback;
-    fwdata->handleFwMsg = handleFwMsg;
-    fwdata->childFunc = execCollectScript;
-    fwdata->fwChildOE = true;
-    fwdata->userData = script;
-    fwdata->handleMthrMsg = handleMthrMsg;
-    fwdata->childRerun = FW_CHILD_INFINITE;
-
-    if (!startForwarder(fwdata)) {
-	flog("starting %s script forwarder failed\n", title);
-	ForwarderData_delete(fwdata);
+    if (!startScriptFW(script, title)) {
 	delScript(script);
 	return NULL;
     }
 
-    script->fwdata = fwdata;
     list_add_tail(&script->next, &scriptList);
 
     return script;
@@ -392,6 +417,7 @@ void Script_finalize(Collect_Script_t *script)
 	return;
     }
 
+    script->shutdown = true;
     shutdownForwarder(script->fwdata);
 }
 
@@ -400,7 +426,7 @@ void Script_finalizeAll(void)
     list_t *s;
     list_for_each(s, &scriptList) {
 	Collect_Script_t *script = list_entry(s, Collect_Script_t, next);
-	shutdownForwarder(script->fwdata);
+	Script_finalize(script);
     }
 
     finalized = true;

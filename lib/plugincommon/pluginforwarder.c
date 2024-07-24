@@ -902,6 +902,7 @@ static int handleFwSock(int fd, void *info)
 	if (!task->sigChldCB) {
 	    /* SIGCHLD already received */
 	    if (fw && fw->callback) fw->callback(fw->fwExitStatus, fw);
+
 	    PStask_infoRemove(task, TASKINFO_FORWARDER, fw);
 	    ForwarderData_delete(fw);
 	}

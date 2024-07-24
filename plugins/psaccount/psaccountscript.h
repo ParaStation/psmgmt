@@ -31,6 +31,7 @@ typedef struct {
     uint32_t poll;
     Forwarder_Data_t *fwdata;
     env_t env;
+    bool shutdown;
 } Collect_Script_t;
 
 /**
