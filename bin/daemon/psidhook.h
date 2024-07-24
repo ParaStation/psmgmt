@@ -349,17 +349,17 @@ bool PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func);
  * If @a priv is true the effective user will be changed to root
  * using @ref PSC_switchEffectiveUser() before any hooks are called.
  * After the last hook was called the effective user is switched back to
- * what it was before. A prerequirement is that the real user must have
+ * what it was before. A prerequisite is that the real user must have
  * the capability to switch the effective user to root.
  *
- * @param hook The hook reached and to be handled.
+ * @param hook The hook reached and to be handled
  *
- * @param arg Pointer to additional information to be passed to the hooks.
+ * @param arg Pointer to additional information to be passed to the hooks
  *
- * @param priv Reclaim root privileges before executing hook
+ * @param priv Reclaim root privileges before executing the hooks
  *
  * @return The minimum of all return-values of the called functions
- * registered to the hook is returned.
+ * registered to the hook is returned
  */
 int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv);
 
