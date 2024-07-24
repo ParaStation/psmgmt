@@ -2574,7 +2574,7 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
  */
 static char * getNodelistString(list_t *procMap)
 {
-    strbuf_t buf = strbufNew(NULL);
+    strbuf_t buf = strbufNew(""); // make sure to never return NULL
 
     list_t *n;
     list_for_each(n, procMap) {
@@ -2582,8 +2582,6 @@ static char * getNodelistString(list_t *procMap)
 	if (strbufLen(buf)) strbufAdd(buf, ",");
 	strbufAdd(buf, node->hostname);
     }
-
-    strbufAdd(buf, ""); // make sure to never return NULL
 
     return strbufSteal(buf);
 }
