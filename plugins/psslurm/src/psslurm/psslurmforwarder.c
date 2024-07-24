@@ -932,7 +932,7 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 
 static void debugMpiexecStart(char **argv, char **env)
 {
-    flog(":");
+    flog(" ");
     for (int i = 0; argv[i]; i++) mlog(" %s", argv[i]);
     mlog("\n");
 
@@ -1215,7 +1215,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 #endif
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
-	flog("switching effective user to %s failed\n", step->username);
+	flog("switching effective user to '%s' failed\n", step->username);
 	exit(1);
     }
 
@@ -1452,7 +1452,7 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
 #endif
 
     if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
-	flog("switching effective user to %s failed\n", job->username);
+	flog("switching effective user to '%s' failed\n", job->username);
 	exit(1);
     }
 
@@ -1503,7 +1503,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
     SpankCallHook(&spank);
 
     if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
-	flog("switching effective user to %s failed\n", job->username);
+	flog("switching effective user to '%s' failed\n", job->username);
 	exit(1);
     }
 
@@ -1748,7 +1748,7 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
     }
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
-	flog("switching effective user to %s failed\n", step->username);
+	flog("switching effective user to '%s' failed\n", step->username);
 	exit(1);
     }
 
@@ -1804,7 +1804,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     SpankCallHook(&spank);
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
-	flog("switching effective user to %s failed\n", step->username);
+	flog("switching effective user to '%s' failed\n", step->username);
 	exit(1);
     }
 

@@ -912,13 +912,13 @@ bool PSC_switchEffectiveUser(char *username, uid_t uid, gid_t gid)
 
     /* change effective GID */
     if (getegid() != gid && setegid(gid) < 0) {
-	PSC_warn(-1, errno, "%s: setgid(%i)", __func__, gid);
+	PSC_warn(-1, errno, "%s: setegid(%i)", __func__, gid);
 	return false;
     }
 
     /* change effective UID */
     if (uid != curEUID && seteuid(uid) < 0) {
-	PSC_warn(-1, errno, "%s: setuid(%i)", __func__, uid);
+	PSC_warn(-1, errno, "%s: seteuid(%i)", __func__, uid);
 	return false;
     }
 
