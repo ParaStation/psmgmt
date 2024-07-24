@@ -478,7 +478,7 @@ static void initFwPtr(PStask_t *task)
     fwTask = task;
 }
 
-int handleForwarderInitPriv(void * data)
+int handleForwarderInitPriv(void *data)
 {
     PStask_t *task = data;
 
@@ -502,7 +502,7 @@ int handleForwarderInitPriv(void * data)
     return 0;
 }
 
-int handleForwarderInit(void * data)
+int handleForwarderInit(void *data)
 {
     PStask_t *task = data;
 
@@ -528,11 +528,9 @@ int handleForwarderInit(void * data)
 		}
 	    }
 	}
-    } else {
-	if (!isPSAdminUser(task->uid, task->gid)) {
-	    flog("rank %d (global %d) failed to find my step\n", task->jobRank,
-		 task->rank);
-	}
+    } else if (!isPSAdminUser(task->uid, task->gid)) {
+	flog("rank %d (global %d) failed to find my step\n", task->jobRank,
+	     task->rank);
     }
 
     /* override spawn task filling function in pspmi */
