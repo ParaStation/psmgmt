@@ -392,7 +392,7 @@ static Gres_Cred_t *unpackGresStep(PS_DataBuffer_t *data, uint16_t index,
 
     fdbg(PSSLURM_LOG_GRES, "index %i pluginID %u cpusPerGres %u"
 	 " gresPerStep %lu gresPerNode %lu gresPerSocket %lu gresPerTask %lu"
-	 " memPerGres %lu totalGres %lu nodeInUse %s flags %x nodeCount: %u\n",
+	 " memPerGres %lu totalGres %lu nodeInUse %s flags %#.4x nodeCount: %u\n",
 	 index, gres->id, gres->cpusPerGRes, gres->gresPerStep,
 	 gres->gresPerNode, gres->gresPerSocket, gres->gresPerTask,
 	 gres->memPerGRes, gres->totalGres, gres->nodeInUse, gres->flags,
@@ -526,7 +526,7 @@ static Gres_Cred_t *unpackGresJob(PS_DataBuffer_t *data, uint16_t index,
     fdbg(PSSLURM_LOG_GRES, "index %i pluginID %u cpusPerGres %u "
 	 "gresPerJob %lu gresPerNode %lu gresPerSocket %lu gresPerTask %lu "
 	 "memPerGres %lu totalGres %lu type %s nodeCount %u "
-	 "numTasksPerGres %u flags %x\n", index, gres->id, gres->cpusPerGRes,
+	 "numTasksPerGres %u flags %#.4x\n", index, gres->id, gres->cpusPerGRes,
 	 gres->gresPerJob, gres->gresPerNode, gres->gresPerSocket,
 	 gres->gresPerTask, gres->memPerGRes, gres->totalGres, gres->typeModel,
 	 gres->nodeCount, gres->numTasksPerGres, gres->flags);
