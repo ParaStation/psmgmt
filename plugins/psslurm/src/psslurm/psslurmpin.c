@@ -1505,8 +1505,7 @@ static void fillHints(hints_t *hints, env_t env, pininfo_t *pininfo)
     if (!hintstr) return;
 
     char *tmpstr = ustrdup(hintstr);
-    char *tok = strtok(tmpstr, ",");
-    do {
+    for (char *tok = strtok(tmpstr, ","); tok; tok = strtok(NULL, ",")) {
 	if (!strcmp(tok, "compute_bound")) {
 	    hints->compute_bound = true;
 	    flog("Valid hint in %s: compute_bound\n", var);
@@ -1522,7 +1521,7 @@ static void fillHints(hints_t *hints, env_t env, pininfo_t *pininfo)
 	} else {
 	    ulog(pininfo, "invalid hint '%s' in %s: '%s'\n", tok, var, hintstr);
 	}
-    } while ((tok = strtok(NULL, ",")));
+    }
     ufree(tmpstr);
 }
 
