@@ -788,6 +788,7 @@ int PSC_traverseHostInfo(const char *host, hostInfoVisitor_t visitor,
  *
  * @return Returns true on success otherwise false is returned
  */
+__attribute__ ((__warn_unused_result__))
 bool PSC_switchEffectiveUser(char *username, uid_t uid, gid_t gid);
 
 #endif  /* __PSCOMMON_H */

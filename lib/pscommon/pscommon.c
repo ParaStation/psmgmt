@@ -903,6 +903,7 @@ static bool switchGroups(char *username, gid_t gid)
     return true;
 }
 
+__attribute__ ((__warn_unused_result__))
 bool PSC_switchEffectiveUser(char *username, uid_t uid, gid_t gid)
 {
     uid_t curEUID = geteuid();
