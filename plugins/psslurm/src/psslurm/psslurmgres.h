@@ -270,5 +270,13 @@ bool traverseGResDevs(uint32_t id, GResDevVisitor_t visitor, void *info);
  */
 const char *GRes_strType(GRes_Cred_type_t type);
 
+/**
+ * @brief Calculate ID for given GRes name
+ *
+ * @param GRes name to calculate ID for
+ *
+ * @return Returns the requested ID or 0 on error
+ */
 uint32_t GRes_getID(char *name);
+
 #endif /* __PS_SLURM_GRES */
