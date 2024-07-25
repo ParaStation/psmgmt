@@ -490,7 +490,6 @@ static void freeSlurmJobArray(Slurm_Job_Array_t *ja)
     if (!ja) return;
 
     ufree(ja->taskIDBitmap);
-    ufree(ja->taskIDStr);
 }
 
 static void freeSlurmJobResources(Slurm_Job_Resources_t *jr)

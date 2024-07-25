@@ -413,7 +413,6 @@ typedef struct {
 typedef struct {
     uint32_t taskCount;
     char *taskIDBitmap;
-    char *taskIDStr;
     uint32_t arrayFlags;
     uint32_t maxRunTasks;
     uint32_t totalRunTasks;
