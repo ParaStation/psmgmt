@@ -411,14 +411,12 @@ typedef struct {
 
 /** Structure holding a Slurm job array */
 typedef struct {
-    uint32_t taskCount;
     char *taskIDBitmap;
     uint32_t arrayFlags;
     uint32_t maxRunTasks;
     uint32_t totalRunTasks;
     uint32_t minExitCode;
     uint32_t maxExitCode;
-    uint32_t pendRunTasks;
     uint32_t totCompTasks;
 } Slurm_Job_Array_t;
 
@@ -442,7 +440,6 @@ typedef struct {
     uint32_t numCPUs;
     uint32_t *sockCoreRepCount;
     uint16_t *socketsPerNode;
-    uint16_t *tasksPerNode;
     uint16_t threadsPerCore;
     uint8_t wholeNode;
 } Slurm_Job_Resources_t;
@@ -474,7 +471,6 @@ typedef struct {
 
 /** Structure holding a cron entry */
 typedef struct {
-    uint32_t entry;
     char *minute;
     char *hour;
     char *dayOfMonth;

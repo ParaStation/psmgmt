@@ -509,7 +509,6 @@ static void freeSlurmJobResources(Slurm_Job_Resources_t *jr)
     ufree(jr->memUsed);
     ufree(jr->sockCoreRepCount);
     ufree(jr->socketsPerNode);
-    ufree(jr->tasksPerNode);
 }
 
 static void freeSlurmCronEntry(Slurm_Cron_Entry_t *ce)
