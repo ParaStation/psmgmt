@@ -322,7 +322,8 @@ bool __unpackMungeCred(Slurm_Msg_t *sMsg, Slurm_Auth_t *auth,
  *
  * @param msgVer Slurm protocol version of message to unpack
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns the unpacked step credential on success otherwise
+ * NULL is returned
  */
 static Gres_Cred_t *unpackGresStepPart(PS_DataBuffer_t *data, uint16_t index,
 				       uint16_t msgVer)
@@ -484,7 +485,8 @@ static bool unpackGresStep(PS_DataBuffer_t *data, list_t *gresList,
  *
  * @param msgVer Slurm protocol version of message to unpack
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns the unpacked job credential on success othwerwise
+ * NULL is returned
  */
 static Gres_Cred_t *unpackGresJobPart(PS_DataBuffer_t *data, uint16_t index,
 				      uint16_t msgVer)
