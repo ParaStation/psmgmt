@@ -302,7 +302,6 @@ typedef enum {
 #define SLURM_JOB_COMPLETING	SLURM_BIT(15)
 #define DETAILS_FLAG 0xdddd
 #define STEP_FLAG 0xbbbb
-#define STEP_MAGIC 0xcafecafe
 
 enum slurm_job_state_reason {
     WAIT_NO_REASON = 0,
