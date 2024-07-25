@@ -4315,7 +4315,7 @@ bool packReqStepComplete(PS_SendDB_t *data, Req_Step_Comp_t *req)
     /* account data */
     packSlurmAccData(data, req->sAccData);
     /* send to step manager */
-    addBoolToMsg(req->stepManagerSent, data);
+    addBoolToMsg(req->stepManagerSend, data);
 
     return true;
 }

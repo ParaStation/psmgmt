@@ -211,7 +211,7 @@ typedef struct {
     uint32_t lastNode;		/**< last node completed the step */
     uint32_t exitStatus;	/**< compound step exit status */
     SlurmAccData_t *sAccData;	/**< Slurm account data */
-    bool stepManagerSent;	/**< send to step manager (24.05, unused) */
+    bool stepManagerSend;	/**< send to step manager (24.05, unused) */
 } Req_Step_Comp_t;
 
 /** Holding Slurm PIDs to pack */
