@@ -1529,10 +1529,10 @@ static bool unpackJobResources(Slurm_Msg_t *sMsg, Slurm_Job_Resources_t *jr)
     }
 
     /* CPUs */
-    getUint16Array(data, &jr->cpus, &jr->numCPUs);
-    if (jr->numCPUs != jr->nhosts) {
+    getUint16Array(data, &jr->cpus, &count);
+    if (count != jr->nhosts) {
 	flog("mismatching CPUs %u and #hosts %u count\n",
-	     jr->numCPUs, jr->nhosts);
+	     count, jr->nhosts);
 	return false;
     }
 
