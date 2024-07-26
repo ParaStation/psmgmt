@@ -198,6 +198,32 @@ void *PSIDplugin_getHandle(char *name);
 int PSIDplugin_finalize(char *name);
 
 /**
+ * @brief Finalize all plugins
+ *
+ * Finalize all plugins currently loaded in the psid. For this, the
+ * self-trigger is removed from all plugins resulting in calling the
+ * plugins @a finalize() method (if available) or directly marking the
+ * plugin for unload for all plugins not loaded as a dependency.
+ *
+ * Furthermore, each plugin is checked for actual unload, i.e. to
+ * remove the shared object and to remove all triggers on
+ * dependencies. This is iterated until no further plugins are
+ * unloaded.
+ *
+ * In the normal case this results in unloading all plugins. Special
+ * cases are:
+ * - there is a cyclic dependency between plugins
+ * - a plugin delays the call of @ref PSIDplugin_unload() after its
+ *   @ref finalize() was called
+ *
+ * In the case of cyclic dependencies @ref PSIDplugin_forceUnloadAll()
+ * will cleanup this situation.
+ *
+ * @return No return value
+ */
+void PSIDplugin_finalizeAll(void);
+
+/**
  * @brief Unload a plugin
  *
  * Trigger the plugin @a name to get actually unloaded.
@@ -232,7 +258,7 @@ int PSIDplugin_unload(char *name);
  * plugin ignores this demand, it will get unloaded forcefully once
  * the unload-timeout is elapsed.
  *
- * @return No return value.
+ * @return No return value
  */
 void PSIDplugin_forceUnloadAll(void);
 

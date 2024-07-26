@@ -1171,6 +1171,23 @@ int PSIDplugin_unload(char *pName)
     return unloadPlugin(plugin);
 }
 
+void PSIDplugin_finalizeAll(void)
+{
+    for (bool rerun = true; rerun;) {
+	PSID_fdbg(PSID_LOG_PLUGIN, "=====================================\n");
+	rerun = false;
+	list_t *p, *tmp;
+	list_for_each_safe(p, tmp, &pluginList) {
+	    PSIDplugin_t plugin = list_entry(p, struct PSIDplugin, next);
+	    if (!plugin->finalized) remTrigger(plugin, plugin);
+	    if (plugin->unload) {
+		doUnload(plugin);
+		rerun = true;
+	    }
+	}
+    }
+}
+
 void PSIDplugin_forceUnloadAll(void)
 {
     list_t *p;
