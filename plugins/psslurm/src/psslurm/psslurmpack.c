@@ -1870,7 +1870,7 @@ static bool unpackStepLayout(Slurm_Msg_t *sMsg, Slurm_Step_Layout_t *sl)
 
     /* task IDs */
     sl->taskIDs = umalloc(sizeof(*sl->taskIDs) * sl->nodeCount);
-    sl->taskIDs = umalloc(sizeof(*sl->numTaskIDs) * sl->nodeCount);
+    sl->numTaskIDs = umalloc(sizeof(*sl->numTaskIDs) * sl->nodeCount);
     for (uint32_t i=0; i<sl->nodeCount; i++) {
 	getUint32Array(data, &(sl->taskIDs)[i], &sl->numTaskIDs[i]);
     }
