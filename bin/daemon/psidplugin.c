@@ -1026,21 +1026,19 @@ static int walkDepGraph(PSIDplugin_t plugin, int distance)
 
     if (list_empty(&plugin->triggers)) {
 	PSID_fdbg(PSID_LOG_PLUGIN, "root %s reached\n", plugin->name);
-	PSIDplugin_finalize(plugin->name);
-
 	plugin->cleared = true;
 
 	return 0;
     } else {
 	bool cleared = true;
-	list_t *t;
-	list_for_each(t, &plugin->triggers) {
+	list_t *t, *tmp;
+	list_for_each_safe(t, tmp, &plugin->triggers) {
 	    plugin_ref_t *ref = list_entry(t, plugin_ref_t, next);
 
 	    if (ref->plugin->unload) continue;
 
 	    PSID_fdbg(PSID_LOG_PLUGIN, "forcing %s\n", ref->plugin->name);
-	    walkDepGraph(ref->plugin, distance+1);
+	    walkDepGraph(ref->plugin, distance + 1);
 
 	    cleared &= ref->plugin->cleared;
 	}
@@ -1134,10 +1132,10 @@ static int forceUnloadPlugin(char *pName)
 		return -1;
 	    }
 
-	    list_t *t, *tmp;
 	    PSID_flog("kick out victim '%s' (distance %d) forcefully\n",
 		      victim->name, victim->distance);
 
+	    list_t *t, *tmp;
 	    list_for_each_safe(t, tmp, &victim->triggers) {
 		plugin_ref_t *ref = list_entry(t, plugin_ref_t, next);
 
