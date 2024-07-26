@@ -2826,6 +2826,8 @@ static bool unpackNodeRecords(Slurm_Msg_t *sMsg, list_t *nrList)
 
 	/* weight */
 	getUint32(data, &nr->weight);
+
+	list_add_tail(&nr->next, nrList);
     }
 
     if (data->unpackErr) {

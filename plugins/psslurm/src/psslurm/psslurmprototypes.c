@@ -466,6 +466,7 @@ void freeSlurmNodeRecords(list_t *nrList)
 	ufree(nr->mcsLabel);
 
 	freeSlurmGresNodeStates(&nr->gresNodeStates);
+	ufree(nr);
     }
 }
 
