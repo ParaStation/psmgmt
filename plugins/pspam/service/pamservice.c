@@ -215,5 +215,7 @@ void cleanup(void)
 	mlog("unregister 'PSIDHOOK_PSSLURM_JOB_FWFIN' failed\n");
     }
 
+    mlog("...Bye.\n");
+
     finalizeLogger();
 }
