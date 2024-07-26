@@ -1929,19 +1929,19 @@ static bool unpackJobAcctData(Slurm_Msg_t *sMsg, Slurm_Job_Acct_t *sa)
     /* TRes record list */
     getUint32(data, &sa->numTResRecords);
     if (sa->numTResRecords) {
-	Slurm_TRes_Record_t *trr = umalloc(sizeof(*trr) * sa->numTResRecords);
+	sa->trr = umalloc(sizeof(*sa->trr) * sa->numTResRecords);
 
 	for (uint32_t i=0; i< sa->numTResRecords; i++) {
 	    /* CPU seconds allocated */
-	    getUint64(data, &trr[i].allocSecs);
+	    getUint64(data, &sa->trr[i].allocSecs);
 	    /* count */
-	    getUint64(data, &trr[i].count);
+	    getUint64(data, &sa->trr[i].count);
 	    /* ID */
-	    getUint32(data, &trr[i].id);
+	    getUint32(data, &sa->trr[i].id);
 	    /* name */
-	    trr[i].name = getStringM(data);
+	    sa->trr[i].name = getStringM(data);
 	    /* type */
-	    trr[i].type = getStringM(data);
+	    sa->trr[i].type = getStringM(data);
 	}
     }
 
