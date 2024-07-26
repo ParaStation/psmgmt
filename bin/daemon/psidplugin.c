@@ -863,7 +863,7 @@ PSIDplugin_t PSIDplugin_load(char *pName, int minVer,
     gettimeofday(&plugin->load, NULL);
 
     if (addRef(&plugin->triggers, trigger ? trigger : plugin) < 0)  {
-	PSID_flog("adding trigge failed\n");
+	PSID_flog("adding trigger failed\n");
 	finalizePlugin(plugin);
 	unloadPlugin(plugin);
 	return NULL;
