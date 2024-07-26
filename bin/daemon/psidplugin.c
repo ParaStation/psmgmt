@@ -570,7 +570,7 @@ static int finalizePlugin(PSIDplugin_t plugin)
     if (!plugin->finalize) return unloadPlugin(plugin);
 
     plugin->finalize();
-    if (timerisset(&plugin->grace)) {
+    if (timerisset(&plugin->grace) && !plugin->unload) {
 	struct timeval now, grace = {unloadTimeout, 0};
 
 	PSID_fdbg(PSID_LOG_PLUGIN, "setting grace on '%s'\n", plugin->name);
@@ -1611,15 +1611,14 @@ static bool drop_PLUGIN(DDBufferMsg_t *msg)
  */
 static void handlePlugins(void)
 {
-    list_t *p, *tmp;
     struct timeval now;
-
     gettimeofday(&now, NULL);
 
+    list_t *p, *tmp;
     list_for_each_safe(p, tmp, &pluginList) {
 	PSIDplugin_t plugin = list_entry(p, struct PSIDplugin, next);
-	if (plugin->finalized && (timerisset(&plugin->grace)
-				  && timercmp(&now, &plugin->grace, >))) {
+	if (plugin->finalized && !plugin->unload
+	    && timerisset(&plugin->grace) && timercmp(&now, &plugin->grace, >)) {
 	    PSID_fdbg(PSID_LOG_PLUGIN, "finalize() timed out for %s\n",
 		      plugin->name);
 
