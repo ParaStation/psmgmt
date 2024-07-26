@@ -1537,7 +1537,7 @@ static bool unpackJobResources(Slurm_Msg_t *sMsg, Slurm_Job_Resources_t *jr)
     }
 
     /* CPUs used */
-    getUint16Array(data, &jr->cpus, NULL);
+    getUint16Array(data, &jr->cpusUsed, NULL);
     /* memory allocated */
     getUint64Array(data, &jr->memAllocated, NULL);
     /* memory used */
