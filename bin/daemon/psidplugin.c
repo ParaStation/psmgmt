@@ -184,9 +184,6 @@ static int unloadTimeout = 4;
 /** logfile to be used by all plugins (unless they decide otherwise) */
 static FILE *pluginLogfile = NULL;
 
-static int finalizePlugin(PSIDplugin_t plugin);
-static int unloadPlugin(PSIDplugin_t plugin);
-
 /** List of unused plugin-references */
 static LIST_HEAD(refFreeList);
 
@@ -327,37 +324,6 @@ static PSIDplugin_t remRef(list_t *refList, PSIDplugin_t plugin)
     }
 
     return NULL;
-}
-
-
-/**
- * @brief Remove trigger
- *
- * Remove the triggering plugin @a trigger from the list of triggering
- * plugins of the plugin @a plugin.
- *
- * @param plugin The plugin the remove the trigger from
- *
- * @param trigger The triggering plugin to remove
- *
- * @return On success, the removed trigger is returned. Or NULL, if
- * the triggering plugin was not found in the list.
- */
-static PSIDplugin_t remTrigger(PSIDplugin_t plugin, PSIDplugin_t trigger)
-{
-    if (!plugin || !trigger) return NULL;
-
-    PSIDplugin_t removed = remRef(&plugin->triggers, trigger);
-    if (!removed) {
-	PSID_fdbg(plugin == trigger ? PSID_LOG_PLUGIN : -1,
-		  "trigger '%s' not found in '%s'\n",
-		  trigger->name, plugin->name);
-	return NULL;
-    }
-
-    if (list_empty(&plugin->triggers)) finalizePlugin(plugin);
-
-    return removed;
 }
 
 /**
@@ -548,6 +514,197 @@ static PSIDplugin_t registerPlugin(PSIDplugin_t new)
     list_add(&new->next, &pluginList);
 
     return NULL;
+}
+
+static int unloadPlugin(PSIDplugin_t plugin);
+
+/**
+ * @brief Finalize plugin
+ *
+ * Trigger the plugin @a plugin to get finalized. This is the standard
+ * way to safely unload a plugin in a graceful way. The plugin will
+ * not be affected, if the plugin is still triggered by another plugin
+ * depending on it. Basically, this function just removes the
+ * self-trigger of the plugin, i.e. a trigger of the plugin pointing
+ * to itself, if the plugin was loaded explicitly. If this was the
+ * plugin's last trigger, further measures will be taken in order to
+ * actually unload the plugin @a name.
+ *
+ * If the plugin exposes the function-symbol @a finalize, this method
+ * will be called. It is expected that the @a finalize method will do
+ * all necessary cleanup that has to be done in an asynchronous way
+ * (detaching from a service, etc.) before the plugin itself triggers
+ * the actual unload by calling @ref PSIDplugin_unload(). This gives a
+ * plugin the chance to cleanup properly before it is evicted from the
+ * address-space via dlclose().
+ *
+ * If no @a finalize method is exposed by the plugin @a name, calling
+ * this function behaves exactly like calling @ref
+ * PSIDplugin_unload(). Thus, the plugin will be marked to be unloaded
+ * immediately, if it is no longer required by other plugins depending
+ * on it.
+ *
+ * @param plugin The plugin to be finalized
+ *
+ * @return If @a plugin is NULL, -1 is returned. Otherwise 0 is
+ * returned.
+ */
+static int finalizePlugin(PSIDplugin_t plugin)
+{
+    if (!plugin) return -1;
+
+    PSID_fdbg(PSID_LOG_PLUGIN, "%s\n", plugin->name);
+
+    if (plugin->finalized) {
+	PSID_flog("plugin '%s' already finalized\n", plugin->name);
+	return 0;
+    }
+
+    if (!list_empty(&plugin->triggers)) {
+	PSID_flog("plugin '%s' still triggered\n", plugin->name);
+	return 0;
+    }
+
+    plugin->finalized = true;
+
+    if (!plugin->finalize) return unloadPlugin(plugin);
+
+    plugin->finalize();
+    if (timerisset(&plugin->grace)) {
+	struct timeval now, grace = {unloadTimeout, 0};
+
+	PSID_fdbg(PSID_LOG_PLUGIN, "setting grace on '%s'\n", plugin->name);
+	gettimeofday(&now, NULL);
+	timeradd(&now, &grace, &plugin->grace);
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Unload plugin
+ *
+ * Unload the plugin @a plugin. For this the plugin's cleanup-method
+ * is called, if available. This prompts the plugin to do all cleanup
+ * necessary before actually evicting the plugin from address-space
+ * via dlclose(). This includes free()ing memory segments allocated by
+ * the plugin via malloc(), un-registering of timer, message-handler
+ * and selectors, etc.
+ *
+ * Afterward or if the plugin does not expose a cleanup-method the
+ * plugin is marked to get evicted from address-space via
+ * dlclose(). The actual action will be performed from within the
+ * main-loop.
+ *
+ * @param plugin The plugin to unload
+ *
+ * @return If @a plugin is NULL, -1 is returned. Otherwise 0 is
+ * returned.
+ */
+static int unloadPlugin(PSIDplugin_t plugin)
+{
+    if (!plugin) return -1;
+
+    PSID_fdbg(PSID_LOG_PLUGIN, "%s\n", plugin->name);
+
+    if (!plugin->finalized) {
+	PSID_flog("plugin '%s' not finalized\n", plugin->name);
+	finalizePlugin(plugin);
+    }
+
+    /* This has to be after the call to finalizePlugin(), since
+      * unloadPlugin() might be called recursively from therein. */
+    if (plugin->unload) return 0;
+
+    if (plugin->cleanup) plugin->cleanup();
+
+    plugin->unload = true;
+
+    return 0;
+}
+
+/**
+ * @brief Remove trigger
+ *
+ * Remove the triggering plugin @a trigger from the list of triggering
+ * plugins of the plugin @a plugin.
+ *
+ * @param plugin The plugin the remove the trigger from
+ *
+ * @param trigger The triggering plugin to remove
+ *
+ * @return On success, the removed trigger is returned. Or NULL, if
+ * the triggering plugin was not found in the list.
+ */
+static PSIDplugin_t remTrigger(PSIDplugin_t plugin, PSIDplugin_t trigger)
+{
+    if (!plugin || !trigger) return NULL;
+
+    PSIDplugin_t removed = remRef(&plugin->triggers, trigger);
+    if (!removed) {
+	PSID_fdbg(plugin == trigger ? PSID_LOG_PLUGIN : -1,
+		  "trigger '%s' not found in '%s'\n",
+		  trigger->name, plugin->name);
+	return NULL;
+    }
+
+    if (list_empty(&plugin->triggers)) finalizePlugin(plugin);
+
+    return removed;
+}
+
+/**
+ * @brief Unload plugin
+ *
+ * Unload the plugin @a plugin. Unloading a plugin might fail due to
+ * still existent dependencies from other plugins. This functions is
+ * unable to force unloading a specific plugin.
+ *
+ * @param plugin The plugin to be unloaded
+ *
+ * @return Without error, i.e. if the plugin was successfully
+ * unloaded, 1 is returned. Or 0, if some error occurred. In the
+ * latter case the plugin might still be loaded.
+ */
+static int doUnload(PSIDplugin_t plugin)
+{
+    if (!plugin || !plugin->handle) return 0;
+
+    PSID_fdbg(PSID_LOG_PLUGIN, "%s\n", plugin->name);
+
+    if (!plugin->unload) {
+	PSID_flog("plugin '%s' not flagged for unload\n", plugin->name);
+	return 0;
+    }
+
+    if (!list_empty(&plugin->triggers)) {
+	char line[80];
+	printRefList(line, sizeof(line), &plugin->triggers);
+	PSID_flog("'%s' still triggered by: %s\n", plugin->name, line);
+	return 0;
+    }
+
+    /* Remove triggers from plugins we depend on */
+    list_t *d, *tmp;
+    list_for_each_safe(d, tmp, &plugin->depends) {
+	plugin_ref_t *ref = list_entry(d, plugin_ref_t, next);
+
+	remTrigger(ref->plugin, plugin);
+	remDepend(plugin, ref->plugin);
+    }
+
+    /* Actual unload */
+    if (dlclose(plugin->handle)) {
+	PSID_flog("dlclose(%s): %s\n", plugin->name, dlerror());
+    } else {
+	PSID_fdbg(PSID_LOG_PLUGIN, "'%s' successfully unloaded\n", plugin->name);
+    }
+    plugin->handle = NULL;
+
+    list_del(&plugin->next);
+    delPlugin(plugin);
+
+    return 1;
 }
 
 int PSIDplugin_getUnloadTmout(void)
@@ -767,111 +924,6 @@ void *PSIDplugin_getHandle(char *pName)
     if (plugin) return plugin->handle;
 
     return NULL;
-}
-
-/**
- * @brief Unload plugin
- *
- * Unload the plugin @a plugin. For this the plugin's cleanup-method
- * is called, if available. This prompts the plugin to do all cleanup
- * necessary before actually evicting the plugin from address-space
- * via dlclose(). This includes free()ing memory segments allocated by
- * the plugin via malloc(), un-registering of timer, message-handler
- * and selectors, etc.
- *
- * Afterward or if the plugin does not expose a cleanup-method the
- * plugin is marked to get evicted from address-space via
- * dlclose(). The actual action will be performed from within the
- * main-loop.
- *
- * @param plugin The plugin to unload
- *
- * @return If @a plugin is NULL, -1 is returned. Otherwise 0 is
- * returned.
- */
-static int unloadPlugin(PSIDplugin_t plugin)
-{
-    if (!plugin) return -1;
-
-    PSID_fdbg(PSID_LOG_PLUGIN, "%s\n", plugin->name);
-
-    if (!plugin->finalized) {
-	PSID_flog("plugin '%s' not finalized\n", plugin->name);
-	finalizePlugin(plugin);
-    }
-
-    /* This has to be after the call to finalizePlugin(), since
-      * unloadPlugin() might be called recursively from therein. */
-    if (plugin->unload) return 0;
-
-    if (plugin->cleanup) plugin->cleanup();
-
-    plugin->unload = true;
-
-    return 0;
-}
-
-/**
- * @brief Finalize plugin
- *
- * Trigger the plugin @a plugin to get finalized. This is the standard
- * way to safely unload a plugin in a graceful way. The plugin will
- * not be affected, if the plugin is still triggered by another plugin
- * depending on it. Basically, this function just removes the
- * self-trigger of the plugin, i.e. a trigger of the plugin pointing
- * to itself, if the plugin was loaded explicitly. If this was the
- * plugin's last trigger, further measures will be taken in order to
- * actually unload the plugin @a name.
- *
- * If the plugin exposes the function-symbol @a finalize, this method
- * will be called. It is expected that the @a finalize method will do
- * all necessary cleanup that has to be done in an asynchronous way
- * (detaching from a service, etc.) before the plugin itself triggers
- * the actual unload by calling @ref PSIDplugin_unload(). This gives a
- * plugin the chance to cleanup properly before it is evicted from the
- * address-space via dlclose().
- *
- * If no @a finalize method is exposed by the plugin @a name, calling
- * this function behaves exactly like calling @ref
- * PSIDplugin_unload(). Thus, the plugin will be marked to be unloaded
- * immediately, if it is no longer required by other plugins depending
- * on it.
- *
- * @param plugin The plugin to be finalized
- *
- * @return If @a plugin is NULL, -1 is returned. Otherwise 0 is
- * returned.
- */
-static int finalizePlugin(PSIDplugin_t plugin)
-{
-    if (!plugin) return -1;
-
-    PSID_fdbg(PSID_LOG_PLUGIN, "%s\n", plugin->name);
-
-    if (plugin->finalized) {
-	PSID_flog("plugin '%s' already finalized\n", plugin->name);
-	return 0;
-    }
-
-    if (!list_empty(&plugin->triggers)) {
-	PSID_flog("plugin '%s' still triggered\n", plugin->name);
-	return 0;
-    }
-
-    plugin->finalized = true;
-
-    if (!plugin->finalize) return unloadPlugin(plugin);
-
-    plugin->finalize();
-    if (timerisset(&plugin->grace)) {
-	struct timeval now, grace = {unloadTimeout, 0};
-
-	PSID_fdbg(PSID_LOG_PLUGIN, "setting grace on '%s'\n", plugin->name);
-	gettimeofday(&now, NULL);
-	timeradd(&now, &grace, &plugin->grace);
-    }
-
-    return 0;
 }
 
 /** Flag detection of loops in the dependency-graph of the plugins */
@@ -1543,60 +1595,6 @@ static bool drop_PLUGIN(DDBufferMsg_t *msg)
 
     sendMsg(&typmsg);
     return true;
-}
-
-/**
- * @brief Unload plugin
- *
- * Unload the plugin @a plugin. Unloading a plugin might fail due to
- * still existent dependencies from other plugins. This functions is
- * unable to force unloading a specific plugin.
- *
- * @param plugin The plugin to be unloaded
- *
- * @return Without error, i.e. if the plugin was successfully
- * unloaded, 1 is returned. Or 0, if some error occurred. In the
- * latter case the plugin might still be loaded.
- */
-static int doUnload(PSIDplugin_t plugin)
-{
-    if (!plugin || !plugin->handle) return 0;
-
-    PSID_fdbg(PSID_LOG_PLUGIN, "%s\n", plugin->name);
-
-    if (!plugin->unload) {
-	PSID_flog("plugin '%s' not flagged for unload\n", plugin->name);
-	return 0;
-    }
-
-    if (!list_empty(&plugin->triggers)) {
-	char line[80];
-	printRefList(line, sizeof(line), &plugin->triggers);
-	PSID_flog("'%s' still triggered by: %s\n", plugin->name, line);
-	return 0;
-    }
-
-    /* Remove triggers from plugins we depend on */
-    list_t *d, *tmp;
-    list_for_each_safe(d, tmp, &plugin->depends) {
-	plugin_ref_t *ref = list_entry(d, plugin_ref_t, next);
-
-	remTrigger(ref->plugin, plugin);
-	remDepend(plugin, ref->plugin);
-    }
-
-    /* Actual unload */
-    if (dlclose(plugin->handle)) {
-	PSID_flog("dlclose(%s): %s\n", plugin->name, dlerror());
-    } else {
-	PSID_fdbg(PSID_LOG_PLUGIN, "'%s' successfully unloaded\n", plugin->name);
-    }
-    plugin->handle = NULL;
-
-    list_del(&plugin->next);
-    delPlugin(plugin);
-
-    return 1;
 }
 
 /**
