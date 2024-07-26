@@ -646,6 +646,9 @@ static PSIDplugin_t remTrigger(PSIDplugin_t plugin, PSIDplugin_t trigger)
 		  "trigger '%s' not found in '%s'\n",
 		  trigger->name, plugin->name);
 	return NULL;
+    } else {
+	PSID_fdbg(PSID_LOG_PLUGIN, "removed '%s' from '%s'\n",
+		  trigger->name, plugin->name);
     }
 
     if (list_empty(&plugin->triggers)) finalizePlugin(plugin);
@@ -859,7 +862,7 @@ PSIDplugin_t PSIDplugin_load(char *pName, int minVer,
     gettimeofday(&plugin->load, NULL);
 
     if (addRef(&plugin->triggers, trigger ? trigger : plugin) < 0)  {
-	PSID_flog("addTrigger() failed\n");
+	PSID_flog("adding trigge failed\n");
 	finalizePlugin(plugin);
 	unloadPlugin(plugin);
 	return NULL;
