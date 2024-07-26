@@ -1078,7 +1078,7 @@ static void execForwarder(PStask_t *task)
     if (PSIDnodes_supplGrps(PSC_getMyID())) name = PSC_userFromUID(task->uid);
 
     if (!PSC_switchEffectiveUser(name, task->uid, task->gid)) {
-	eno = errno;
+	eno = EPERM;
 	PSID_fwarn(eno, "switchEffectiveUser()");
 	free(name);
 	goto error;
