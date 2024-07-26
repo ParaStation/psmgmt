@@ -769,6 +769,10 @@ PSIDplugin_t PSIDplugin_load(char *pName, int minVer,
 	if (addRef(&plugin->triggers, trigger ? trigger : plugin) < 0) {
 	    return NULL;
 	}
+	if (trigger && addRef(&trigger->depends, plugin) < 0) {
+	    remRef(&plugin->triggers, trigger);
+	    return NULL;
+	}
 
 	return plugin;
     }
@@ -835,24 +839,21 @@ PSIDplugin_t PSIDplugin_load(char *pName, int minVer,
     registerPlugin(plugin);
 
     if (plugin_deps) {
-	plugin_dep_t *deps = plugin_deps;
-	while (deps->name) {
+	for (plugin_dep_t *deps = plugin_deps; deps->name; deps++) {
 	    PSID_fdbg(PSID_LOG_PLUGIN, "  requires '%s' version %d\n",
 		      deps->name, deps->version);
 	    PSIDplugin_t d = PSIDplugin_load(deps->name, deps->version, plugin,
 					     logfile);
-	    if (!d || addRef(&plugin->depends, d) < 0) {
+	    if (!d) {
 		plugin->finalized = true;
 		unloadPlugin(plugin);
 		return NULL;
 	    }
-	    deps++;
 	}
     }
 
     if (plugin->initialize) {
 	int ret = plugin->initialize(logfile);
-
 	if (ret) {
 	    plugin->finalized = true;
 	    unloadPlugin(plugin);
@@ -867,6 +868,14 @@ PSIDplugin_t PSIDplugin_load(char *pName, int minVer,
 	unloadPlugin(plugin);
 	return NULL;
     }
+    if (trigger && addRef(&trigger->depends, plugin) < 0)  {
+	PSID_flog("adding dependency at trigger failed\n");
+	remRef(&plugin->triggers, trigger);
+	finalizePlugin(plugin);
+	unloadPlugin(plugin);
+	return NULL;
+    }
+
 
     return plugin;
 }
