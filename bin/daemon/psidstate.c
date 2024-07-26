@@ -77,10 +77,14 @@ void PSID_shutdown(void)
 	break;
     case 5:
 	PSIDplugin_setUnloadTmout(2);
-	PSIDplugin_forceUnloadAll();
+	PSIDplugin_finalizeAll();
 	if (!PSIDplugin_getNum()) PSID_shutdown();
 	break;
     case 6:
+	PSIDplugin_forceUnloadAll();
+	if (!PSIDplugin_getNum()) PSID_shutdown();
+	break;
+    case 7:
 	numPlugins = PSIDplugin_getNum();
 	if (numPlugins) {
 	    PSID_log("    Still %d plugins\n", numPlugins);
