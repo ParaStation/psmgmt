@@ -586,12 +586,71 @@ static void freeSlurmIdentity(Slurm_Identity_t *id)
     ufree(id->grNames);
 }
 
+static void freeSlurmStepLayout(Slurm_Step_Layout_t *la)
+{
+    for (uint32_t i=0; i < la->nodeCount; i++) {
+	ufree(la->taskIDs[i]);
+    }
+    ufree(la->taskIDs);
+
+    ufree(la->numTaskIDs);
+    ufree(la->compCPUsPerTask);
+    ufree(la->compCPUsPerTaskReps);
+    ufree(la->frontEnd);
+    ufree(la->nodeList);
+    ufree(la->netCred);
+}
+
+static void freeSlurmTResRecord(Slurm_TRes_Record_t *tr)
+{
+    ufree(tr->name);
+    ufree(tr->type);
+}
+
+static void freeSlurmJobAcct(Slurm_Job_Acct_t *ja)
+{
+    for (uint32_t i=0; i < ja->numTResRecords; i++) {
+	freeSlurmTResRecord(&ja->trr[i]);
+    }
+    ufree(ja->trr);
+
+    TRes_destroy(ja->tres);
+}
+
 static void freeSlurmStepStates(list_t *stateList)
 {
     list_t *g, *tmp;
     list_for_each_safe(g, tmp, stateList) {
 	Slurm_Step_State_t *st = list_entry(g, Slurm_Step_State_t, next);
 	list_del(&st->next);
+
+	freeGresCred(&st->gresStepReq);
+	freeGresCred(&st->gresStepAlloc);
+	freeSlurmJobAcct(&st->acctData);
+	freeSlurmStepLayout(&st->layout);
+
+	ufree(st->container);
+	ufree(st->containerID);
+	ufree(st->cpuAllocReps);
+	ufree(st->cpuAllocValues);
+	ufree(st->exitNodeBitmap);
+	ufree(st->jobCoreBitmap);
+	ufree(st->host);
+	ufree(st->resvPorts);
+	ufree(st->name);
+	ufree(st->network);
+	ufree(st->tresAlloc);
+	ufree(st->tresFormatAlloc);
+	ufree(st->cpusPerTres);
+	ufree(st->memPerTres);
+	ufree(st->submitLine);
+	ufree(st->tresBind);
+	ufree(st->tresStep);
+	ufree(st->tresFreq);
+	ufree(st->tresNode);
+	ufree(st->tresSocket);
+	ufree(st->tresPerTask);
+	ufree(st->memAlloc);
 	ufree(st);
     }
 }

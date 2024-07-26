@@ -574,7 +574,8 @@ typedef struct {
     uint32_t sysCPUusec;
     uint32_t cpuFreq;
     uint64_t consEnergy;
-    TRes_t tres;
+    TRes_t *tres;
+    uint32_t numTResRecords;
     Slurm_TRes_Record_t *trr;
 } Slurm_Job_Acct_t;
 

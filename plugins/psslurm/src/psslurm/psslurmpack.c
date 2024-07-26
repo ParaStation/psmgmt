@@ -1920,18 +1920,18 @@ static bool unpackJobAcctData(Slurm_Msg_t *sMsg, Slurm_Job_Acct_t *sa)
     getUint64(data, &sa->consEnergy);
 
     /* track-able resources */
-    TRes_t *tres = &sa->tres;
+    TRes_t *tres = TRes_new();
+    sa->tres = tres;
 
     /* TRes IDs */
     getUint32Array(data, &tres->ids, &tres->count);
 
     /* TRes record list */
-    uint32_t numEntries;
-    getUint32(data, &numEntries);
-    if (numEntries) {
-	Slurm_TRes_Record_t *trr = umalloc(sizeof(*trr) * numEntries);
+    getUint32(data, &sa->numTResRecords);
+    if (sa->numTResRecords) {
+	Slurm_TRes_Record_t *trr = umalloc(sizeof(*trr) * sa->numTResRecords);
 
-	for (uint32_t i=0; i< numEntries; i++) {
+	for (uint32_t i=0; i< sa->numTResRecords; i++) {
 	    /* CPU seconds allocated */
 	    getUint64(data, &trr[i].allocSecs);
 	    /* count */
