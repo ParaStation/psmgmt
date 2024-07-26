@@ -326,7 +326,7 @@ static void callback(int32_t exit_status, Forwarder_Data_t *fw)
     if (!script) return;
 
     if (PSID_getDaemonState() != PSID_STATE_SHUTDOWN && !script->shutdown) {
-	/* forwarder exited unexpected, restart script */
+	/* forwarder exited unexpectedly, restart script */
 	if (startScriptFW(script, fw->pTitle)) {
 	    fdbg(PSACC_LOG_COLLECT, "re-starting %s forwarder successful\n",
 		 fw->pTitle);
