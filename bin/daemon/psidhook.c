@@ -20,7 +20,8 @@
 
 /** List of hooks obsoleted in the meantime; trying to add a function
  * to one of these hooks will fail. */
-PSIDhook_t obsoleteHooks[] = { PSIDHOOK_FRWRD_CINFO,
+PSIDhook_t obsoleteHooks[] = { PSIDHOOK_MASTER_GETPART,
+			       PSIDHOOK_FRWRD_CINFO,
 			       PSIDHOOK_FRWRD_KVS,
 			       PSIDHOOK_FRWRD_SPAWNRES,
 			       PSIDHOOK_FRWRD_CC_ERROR,
