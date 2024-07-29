@@ -1028,7 +1028,7 @@ static int hookJobComplete(void *data)
     /* Check whether this job has extraData set. This is only the case for
      * jobs with no local processes on this node, otherwise the information
      * comes with the SPAWN_TASK_REQUEST and job registration needs to be done
-     * in PSIDHOOK_SPAWN_TASK a using the task environment. */
+     * in PSIDHOOK_SPAWN_TASK using the task environment. */
     if (!psjob->extraData) return 0;
 
     if (mset(PSPMIX_LOG_ENV)) {

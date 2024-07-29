@@ -166,13 +166,13 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, int32_t status,
  * @param targetTID  task id of the forwarder to send the message to
  * @param nspace     namespace name
  * @param rank       rank of the client
- * @param spawnertid spawner as job identifier for extra field
+ * @param jobID      spawner as job identifier for extra field
  *
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
 				      const char *nspace, uint32_t rank,
-				      PStask_ID_t spawnertid);
+				      PStask_ID_t jobID);
 
 /**
  * @brief Compose and send a client finalization notification message
@@ -180,13 +180,13 @@ bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
  * @param targetTID  task id of the forwarder to send the message to
  * @param nspace     namespace name
  * @param rank       rank of the client
- * @param spawnertid spawner as job identifier for extra field
+ * @param jobID      spawner as job identifier for extra field
  *
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID,
 					  const char *nspace, uint32_t rank,
-					  PStask_ID_t spawnertid);
+					  PStask_ID_t jobID);
 
 /**
  * @brief Send a signal message to a process via the daemon

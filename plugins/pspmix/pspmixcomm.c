@@ -857,14 +857,14 @@ static bool sendForwarderNotification(PStask_ID_t dest /* fw */,
 
 bool pspmix_comm_sendInitNotification(PStask_ID_t dest /* fw */,
 				      const char *nspace, uint32_t rank,
-				      PStask_ID_t spawnertid)
+				      PStask_ID_t jobID)
 {
     if (mset(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM)) {
 	flog("dest %s nspace %s rank %u", PSC_printTID(dest), nspace, rank);
-	mlog(" spawner %s\n", PSC_printTID(spawnertid));
+	mlog(" jobID %s\n", PSC_printTID(jobID));
     }
 
-    extra.spawnertid = spawnertid;
+    extra.spawnertid = jobID;
 
     return sendForwarderNotification(dest, PSPMIX_CLIENT_INIT,
 				     nspace, rank);
@@ -872,14 +872,14 @@ bool pspmix_comm_sendInitNotification(PStask_ID_t dest /* fw */,
 
 bool pspmix_comm_sendFinalizeNotification(PStask_ID_t dest /* fw */,
 					  const char *nspace, uint32_t rank,
-					  PStask_ID_t spawnertid)
+					  PStask_ID_t jobID)
 {
     if (mset(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM)) {
 	flog("dest %s nspace %s rank %u", PSC_printTID(dest), nspace, rank);
-	mlog(" spawner %s\n", PSC_printTID(spawnertid));
+	mlog(" jobID %s\n", PSC_printTID(jobID));
     }
 
-    extra.spawnertid = spawnertid;
+    extra.spawnertid = jobID;
 
     return sendForwarderNotification(dest, PSPMIX_CLIENT_FINALIZE,
 				     nspace, rank);
