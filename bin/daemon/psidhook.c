@@ -228,13 +228,17 @@ int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv)
 	}
     }
 
+    bool switched = false;
     list_t *h, *tmp;
     list_for_each_safe(h, tmp, &hookTab[hook].list) {
 	hook_ref_t *ref = list_entry(h, hook_ref_t, next);
 	if (ref->func) {
-	    if (priv && !PSC_switchEffectiveUser("root", 0, 0)) {
-		PSID_flog("switch effective user to root failed\n");
-		return -1;
+	    if (priv) {
+		if (!PSC_switchEffectiveUser("root", 0, 0)) {
+		    PSID_flog("switch effective user to root failed\n");
+		    return -1;
+		}
+		switched = true;
 	    }
 	    int fret = ref->func(arg);
 
@@ -242,7 +246,7 @@ int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv)
 	}
     }
 
-    if (priv && !PSC_switchEffectiveUser(euser, euid, egid)) {
+    if (switched && !PSC_switchEffectiveUser(euser, euid, egid)) {
 	PSID_flog("switch effective user to user '%s' euid %u failed\n",
 		  euser, euid);
 	return -1;
