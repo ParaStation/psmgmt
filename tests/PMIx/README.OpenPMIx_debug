@@ -1,0 +1,33 @@
+In order to get debug messages from the library part of the host
+server according preparations of OpenPMIx have to be made. The
+simplest way seems to be to abuse the psid's environment for that.
+
+Debug in OpenPMIx is configured based on its Modular Component
+Architecture (MCA). Thus, debug might be configured for each
+module. In order to explore the available knobs you can use:
+
+pmix_info --param all all
+
+Besides setting corresponding parameters in ~/.pmix/mca-params.conf
+(on a per user basis) or in /etc/pmix/pmix-mca-params.conf (globally)
+the possibility to utilize the environment of the corresponding
+process exists. Variables of the form
+
+PMIX_MCA_<variable_name>=<value>
+
+will set the according MCA variable.
+
+In the case of the host-server's library part an according output
+destination must be defined. This can be achieved by setting
+PMIX_OUTPUT_REDIRECT to 'file'. Thus, by e.g. setting a node's psid
+environment via psiadmin to:
+
+environment set PMIX_OUTPUT_REDIRECT file
+environment set PMIX_MCA_pmix_server_base_verbose 3
+environment set PMIX_MCA_pmix_server_get_verbose 8
+environment set PMIX_MCA_gds_base_verbose 11
+environment set PMIX_MCA_ptl_base_verbose 3
+
+you'll enable pmix_server_base's verbosity to 3, pmix_server_get's
+verbosity to 8, etc. and redirect all debug output into a file located
+in /tmp. The filename will be like "pmix-output-pid18780-output.txt"
