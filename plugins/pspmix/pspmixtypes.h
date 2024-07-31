@@ -31,6 +31,8 @@
 #include "pluginvector.h"
 #include "pluginspawn.h"
 
+#define MAX_NSLEN PMIX_MAX_NSLEN
+
 /** Type holding all information needed by the PMIx server */
 typedef struct {
     list_t next;             /**< used to put into pmixServers */
@@ -41,7 +43,13 @@ typedef struct {
 				  handled by this PMIx server */
     bool used;               /**< flag if this server is actively used */
     int timerId;             /**< ID of the kill timer or -1 */
-    char tmproot[32];        /**< root for all temporary directories */
+    char nspace[MAX_NSLEN];  /**< Server's namespace name */
+    pmix_rank_t rank;        /**< Server's namespace rank */
+    char tmproot[32];        /**< Top-level temporary directory for all client
+				  processes connected to this server, and where
+				  the PMIx server will place its tool rendezvous
+				  point and contact information */
+
 } PspmixServer_t;
 
 /**
@@ -159,7 +167,6 @@ typedef struct {
     char *hostname;          /**< hostname of the node */
 } PspmixNode_t;
 
-#define MAX_NSLEN PMIX_MAX_NSLEN
 /**
  * Namespace information
  *

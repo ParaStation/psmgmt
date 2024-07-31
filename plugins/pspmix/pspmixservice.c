@@ -209,22 +209,19 @@ static PspmixSpawn_t* findSpawn(uint16_t id)
     return NULL;
 }
 
-bool pspmix_service_init(uid_t uid, gid_t gid, char *clusterid)
+bool pspmix_service_init(PspmixServer_t *server, char *clusterID)
 {
-    fdbg(PSPMIX_LOG_CALL, "uid %d gid %d\n", uid, gid);
+    fdbg(PSPMIX_LOG_CALL, "uid %d gid %d\n", server->uid, server->gid);
 
     /* initialize the communication facility */
-    if (!pspmix_comm_init(uid)) {
+    if (!pspmix_comm_init(server->uid)) {
 	ulog("could not initialize communication\n");
 	return false;
     }
 
-    /* generate server namespace name */
-    static char nspace[MAX_NSLEN];
-    snprintf(nspace, MAX_NSLEN, "pspmix_%d", uid);
-
     /* initialize the pmix server */
-    if (!pspmix_server_init(nspace, PSC_getMyID(), clusterid, NULL, NULL)) {
+    if (!pspmix_server_init(server->nspace, server->rank, clusterID,
+			    server->tmproot, NULL)) {
 	ulog("failed to initialize pspmix server\n");
 	return false;
     }

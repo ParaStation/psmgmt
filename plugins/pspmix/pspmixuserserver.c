@@ -81,6 +81,10 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 	return -1;
     }
 
+    /* generate server namespace name and rank */
+    snprintf(server->nspace, sizeof(server->nspace), "pspmix_%d", server->uid);
+    server->rank = PSC_getMyID();
+
     /* fill root for all temporary directories */
     snprintf(server->tmproot, sizeof(server->tmproot), "/tmp/pspmix_%d",
 	     server->uid);
@@ -89,7 +93,7 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
     if (!clusterid || !clusterid[0]) clusterid = "ParaStationCluster";
 
     /* initialize service modules */
-    if (!pspmix_service_init(server->uid, server->gid, clusterid)) {
+    if (!pspmix_service_init(server, clusterid)) {
 	flog("failed to initialize pmix service\n");
 	return -1;
     }
@@ -100,7 +104,7 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 static char * genSessionTmpdirName(PspmixSession_t *session)
 {
     char tmp[128];
-    snprintf(tmp, sizeof(tmp), "%s/0x%08x", server->tmproot, session->ID);
+    snprintf(tmp, sizeof(tmp), "%s/%#.8x", server->tmproot, session->ID);
 
     return ustrdup(tmp);
 }

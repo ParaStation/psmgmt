@@ -36,15 +36,14 @@
  *
  * This must be the first call to the service module.
  *
- * @param uid Server's UID
+ * @param server Holds various info like Server's UID, GID, namespace,
+ * rank, tmpdir
  *
- * @param gid Server's GID
- *
- * @param clusterid Cluster ID (some random string)
+ * @param clusterID Cluster ID (some random string)
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_init(uid_t uid, gid_t gid, char *clusterid);
+bool pspmix_service_init(PspmixServer_t *server, char *clusterID);
 
 /**
  * @brief Register a new namespace
