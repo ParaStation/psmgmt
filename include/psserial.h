@@ -34,7 +34,6 @@
 #include "pssenddb_t.h"  // IWYU pragma: export
 #include "psprotocol.h"
 #include "pstaskid.h"
-#include "psenv.h"
 
 /** Data type information used to tag data in serialized messages */
 typedef enum {

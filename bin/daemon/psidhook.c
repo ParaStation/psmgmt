@@ -8,11 +8,13 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdlib.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "list.h"
+#include "pscommon.h"
 #include "psidutil.h"
 #include "psidnodes.h"
 
