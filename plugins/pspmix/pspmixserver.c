@@ -2591,10 +2591,6 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo,
     PMIX_INFO_CREATE(infos, JOB_INFO_ARRAY_LEN);
 
     size_t i = 0;
-    /* hint:
-     * PMIX_SERVER_NSPACE and PMIX_SERVER_RANK are mentioned here in the
-     * standard, but we already pass them with PMIx_server_init() */
-
     /* namespace identifier (set even if not needed for call to
      * PMIx_server_register_nspace() as explicitly stated in the standard */
     PMIX_INFO_LOAD(&infos[i], PMIX_NSPACE, nspace, PMIX_STRING);
@@ -3084,7 +3080,8 @@ static void registerNamespace_cb(pmix_status_t status, void *cbdata)
     SET_CBDATA_AVAIL(data);
 }
 
-bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
+bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
+				     const char *nspace, const char *jobid,
 				     uint32_t sessionId, uint32_t univSize,
 				     uint32_t jobSize, pmix_proc_t *spawnparent,
 				     pmix_rank_t grankOffset, uint32_t numNodes,
@@ -3093,8 +3090,9 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
 				     const char *nsdir, PSnodes_ID_t nodeID)
 {
     if (mset(PSPMIX_LOG_CALL)) {
-	flog("nspace '%s' sessionId %u univSize %u jobSize %u"
-	     " spawnparent ", nspace, sessionId, univSize, jobSize);
+	flog("srv_nspace '%s' srv_rank %d nspace '%s' sessionId %u univSize %u"
+	     " jobSize %u spawnparent ", srv_nspace, srv_rank, nspace,
+	     sessionId, univSize, jobSize);
 	if (!spawnparent) mlog("(null)");
 	else mlog("%s:%u", spawnparent->nspace, spawnparent->rank);
 	mlog(" numNodes %d numApps %u tmpdir '%s' nsdir '%s' nodeID %hd)\n",
@@ -3152,12 +3150,14 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
     /* fill infos */
     mycbdata_t data;
 #if PMIX_VERSION_MAJOR >= 4
-    /* sessionInfo
+    /* serverNSpace
+     * serverRank
+     * sessionInfo
      * jobInfo
      * numApps * appInfo
      * numNodes * nodeInfo
      * jobSize * procInfo */
-    INIT_CBDATA(data, 2 + numApps + numNodes + jobSize);
+    INIT_CBDATA(data, 4 + numApps + numNodes + jobSize);
 #else
     /* univSize
      * jobSize
@@ -3171,7 +3171,15 @@ bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
 #endif
 
     size_t i = 0;
-#if PMIX_VERSION_MAJOR < 4
+#if PMIX_VERSION_MAJOR >= 4
+    /* PMIx server namespace hosting this namespace */
+    PMIX_INFO_LOAD(&data.info[i], PMIX_SERVER_NSPACE, srv_nspace, PMIX_STRING);
+    i++;
+
+    /* Rank of this PMIx server */
+    PMIX_INFO_LOAD(&data.info[i], PMIX_SERVER_RANK, &srv_rank, PMIX_PROC_RANK);
+    i++;
+#else
     /* number of allocated slots in a session (here for historical reasons) */
     PMIX_INFO_LOAD(&data.info[i], PMIX_UNIV_SIZE, &univSize, PMIX_UINT32);
     i++;

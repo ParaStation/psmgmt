@@ -78,6 +78,8 @@ void pspmix_server_operationFinished(bool success, void* cb);
 /**
  * @brief Register namespace at the server library
  *
+ * @param srv_nspace name of the server namespace to address
+ * @param srv_rank   rank of the server namespace to address
  * @param nspace     name of the namespace to register
  * @param jobid      name of the job as defined by the scheduler
  * @param sessionId  id of the session
@@ -94,7 +96,8 @@ void pspmix_server_operationFinished(bool success, void* cb);
  * @param nsdir      full path of temp dir of this namespace (under @a tmpdir)
  * @param nodeID     parastation node id of this node
  */
-bool pspmix_server_registerNamespace(const char *nspace, const char *jobid,
+bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
+				     const char *nspace, const char *jobid,
 				     uint32_t sessionId, uint32_t univSize,
 				     uint32_t jobSize, pmix_proc_t *spawnparent,
 				     pmix_rank_t grankOffset, uint32_t numNodes,

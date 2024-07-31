@@ -717,7 +717,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     char *nsdir = PSC_concat(job->session->tmpdir, "/", ns->name);
 
     /* register namespace */
-    if (!pspmix_server_registerNamespace(ns->name, ns->jobid, sessionId,
+    if (!pspmix_server_registerNamespace(job->session->server->nspace,
+					 job->session->server->rank,
+					 ns->name, ns->jobid, sessionId,
 					 getSessSize(job->session),
 					 ns->jobSize,
 					 ns->spawnID ? &ns->parent : NULL,
