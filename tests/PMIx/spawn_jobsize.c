@@ -107,8 +107,9 @@ int main(int argc, char **argv)
 	pmix_info_t *spawn_info = NULL;
 	PMIX_INFO_CREATE(spawn_info, 2);
 	PMIX_INFO_LOAD(&spawn_info[0], PMIX_MERGE_STDERR_STDOUT, &TRUE, PMIX_BOOL);
-	PMIX_INFO_LOAD(&spawn_info[1], PMIX_OUTPUT_TO_FILE,
-		       "/home/eicker/Work/psmgmt.git/tests/PMIx/out", PMIX_STRING);
+	// all files will end up in $CWD
+	snprintf(dir + strlen(dir), sizeof(dir) - strlen(dir), "/out");
+	PMIX_INFO_LOAD(&spawn_info[1], PMIX_OUTPUT_TO_FILE, dir, PMIX_STRING);
 
 	print("Calling PMIx_Spawn\n");
 	char nspace[PMIX_MAX_NSLEN + 1];
