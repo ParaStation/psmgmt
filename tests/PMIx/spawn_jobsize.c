@@ -104,13 +104,20 @@ int main(int argc, char **argv)
 	app[1].env = NULL;
 	app[1].ninfo = 0;
 
+	pmix_info_t *spawn_info = NULL;
+	PMIX_INFO_CREATE(spawn_info, 2);
+	PMIX_INFO_LOAD(&spawn_info[0], PMIX_MERGE_STDERR_STDOUT, &TRUE, PMIX_BOOL);
+	PMIX_INFO_LOAD(&spawn_info[1], PMIX_OUTPUT_TO_FILE,
+		       "/home/eicker/Work/psmgmt.git/tests/PMIx/out", PMIX_STRING);
+
 	print("Calling PMIx_Spawn\n");
 	char nspace[PMIX_MAX_NSLEN + 1];
-	rc = PMIx_Spawn(NULL, 0, app, 2, nspace);
+	rc = PMIx_Spawn(spawn_info, 2, app, 2, nspace);
 	if (rc != PMIX_SUCCESS) {
 	    printerr("PMIx_Spawn failed: %s\n", PMIx_Error_string(rc));
 	}
 	PMIX_APP_FREE(app, 2);
+	PMIX_INFO_FREE(spawn_info, 2);
 
 	/* get their universe size */
 	val = NULL;
