@@ -15,6 +15,7 @@
 #include "pspmixuserserver.h"
 
 #include <stdio.h>
+#include <sys/stat.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -88,6 +89,7 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
     /* fill root for all temporary directories */
     snprintf(server->tmproot, sizeof(server->tmproot), "/tmp/pspmix_%d",
 	     server->uid);
+    mkDir(server->tmproot, S_IRWXU, server->uid, server->gid);
 
     char *clusterid = PSID_config->psiddomain;
     if (!clusterid || !clusterid[0]) clusterid = "ParaStationCluster";
