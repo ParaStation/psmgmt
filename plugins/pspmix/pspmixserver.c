@@ -3152,12 +3152,13 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 #if PMIX_VERSION_MAJOR >= 4
     /* serverNSpace
      * serverRank
+     * jobSize
      * sessionInfo
      * jobInfo
      * numApps * appInfo
      * numNodes * nodeInfo
      * jobSize * procInfo */
-    INIT_CBDATA(data, 4 + numApps + numNodes + jobSize);
+    INIT_CBDATA(data, 5 + numApps + numNodes + jobSize);
 #else
     /* univSize
      * jobSize
@@ -3178,6 +3179,17 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 
     /* Rank of this PMIx server */
     PMIX_INFO_LOAD(&data.info[i], PMIX_SERVER_RANK, &srv_rank, PMIX_PROC_RANK);
+    i++;
+
+    /*
+     * total num of processes in this job
+     *
+     * this seems to be required by OpenPMIx (at least v4) in order to
+     * determine the parent's jobsize when re-spawned processes reside
+     * on "new" nodes; for some reason identical information in the
+     * namespace's PMIX_JOB_INFO_ARRAY is ignored
+     */
+    PMIX_INFO_LOAD(&data.info[i], PMIX_JOB_SIZE, &jobSize, PMIX_UINT32);
     i++;
 #else
     /* number of allocated slots in a session (here for historical reasons) */
