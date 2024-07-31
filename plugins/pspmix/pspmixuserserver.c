@@ -67,17 +67,17 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 {
     server = (PspmixServer_t *)fwdata->userData;
 
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     /* there has to be a server object */
     if (!server) {
-	mlog("%s: FATAL: no server object\n", __func__);
+	flog("FATAL: no server object\n");
 	return -1;
     }
 
     /* there must not be a session in the server object */
     if (!list_empty(&server->sessions)) {
-	mlog("%s: FATAL: sessions list not empty\n", __func__);
+	flog("FATAL: sessions list not empty\n");
 	return -1;
     }
 
@@ -90,7 +90,7 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 
     /* initialize service modules */
     if (!pspmix_service_init(server->uid, server->gid, clusterid)) {
-	mlog("%s: Failed to initialize pmix service\n", __func__);
+	flog("failed to initialize pmix service\n");
 	return -1;
     }
 
@@ -107,11 +107,10 @@ static char * genSessionTmpdirName(PspmixSession_t *session)
 
 bool pspmix_userserver_addJob(PStask_ID_t sessID, PspmixJob_t *job)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__,
-	 pspmix_jobIDsStr(sessID, job->ID));
+    fdbg(PSPMIX_LOG_CALL, "sessID %s\n", pspmix_jobIDsStr(sessID, job->ID));
 
     if (!server) {
-	mlog("%s: FATAL: no server object\n", __func__);
+	flog("FATAL: no server object\n");
 	return false;
     }
 
@@ -125,20 +124,18 @@ bool pspmix_userserver_addJob(PStask_ID_t sessID, PspmixJob_t *job)
 	INIT_LIST_HEAD(&session->jobs);
 	list_add_tail(&session->next, &server->sessions);
 	session->tmpdir = genSessionTmpdirName(session);
-	mdbg(PSPMIX_LOG_VERBOSE, "%s(uid %d): session created (ID %s"
-	     " tmpdir %s)\n", __func__, server->uid, PSC_printTID(session->ID),
-	     session->tmpdir);
+	fdbg(PSPMIX_LOG_VERBOSE, "uid %d: session created (ID %s tmpdir %s)\n",
+	     server->uid, PSC_printTID(session->ID), session->tmpdir);
     }
 
     job->session = session;
     list_add_tail(&job->next, &session->jobs);
 
-    mdbg(PSPMIX_LOG_VERBOSE, "%s(uid %d): job added (%s)\n", __func__,
+    fdbg(PSPMIX_LOG_VERBOSE, "uid %d: new job %s\n",
 	 server->uid, pspmix_jobStr(job));
 
     if (!pspmix_service_registerNamespace(job)) {
-	mlog("%s: creating namespace failed (%s)\n", __func__,
-	     pspmix_jobStr(job));
+	flog("failed to create namespace '%s'\n", pspmix_jobStr(job));
 	pspmix_deleteJob(job);
 	if (list_empty(&session->jobs)) pspmix_deleteSession(session, true);
 	return false;

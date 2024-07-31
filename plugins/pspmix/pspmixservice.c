@@ -211,7 +211,7 @@ static PspmixSpawn_t* findSpawn(uint16_t id)
 
 bool pspmix_service_init(uid_t uid, gid_t gid, char *clusterid)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %d gid %d)\n", __func__, uid, gid);
+    fdbg(PSPMIX_LOG_CALL, "uid %d gid %d\n", uid, gid);
 
     /* initialize the communication facility */
     if (!pspmix_comm_init(uid)) {
