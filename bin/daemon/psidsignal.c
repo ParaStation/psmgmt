@@ -70,7 +70,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
 	}
 
 	/* change user id to appropriate user */
-	if (setuid(uid) < 0) {
+	if (geteuid() != uid && setuid(uid) < 0) {
 	    eno = errno;
 	    if (write(cntrlfds[1], &eno, sizeof(eno)) < 0) {
 		PSID_fwarn(errno, "write to control channel failed");
