@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,11 +27,14 @@ typedef enum {
     TG_RESET,       /**< normal task */
     TG_LOGGER,      /**< special task, the logger */
     TG_FORWARDER,   /**< special task, psid's forwarder to control clients */
-    TG_SPAWNER,     /**< special task, the spawner (helper to spawn p4 jobs) */
-    TG_GMSPAWNER,   /**< special task, the gmspawner (helper to spawn GM) */
-    TG_MONITOR,     /**< special task that monitors the daemon. Don't kill */
-    TG_PSCSPAWNER,  /**< special task, the pscspawner (helper to spawn
-		     * PSC) @deprecated */
+    TG_SPAWNER,     /**< special task, the spawner (helper to spawn p4 jobs)
+		       @deprecated due to ditched p4 support */
+    TG_GMSPAWNER,   /**< special task, the gmspawner (helper to spawn GM)
+		       @deprecated due to ditched MyriNet support */
+    TG_MONITOR,     /**< special task that monitors the daemon. Don't kill
+		       @deprecated */
+    TG_PSCSPAWNER,  /**< special task, the pscspawner (helper to spawn PSC)
+		       @deprecated due to ditched PathScale support */
     TG_ADMINTASK,   /**< admin-task, i.e. unaccounted task */
     TG_SERVICE,     /**< service task, e.g. used by mpiexec to spawn procs */
     TG_ACCOUNT,     /**< accounter, will receive and log accounting info */
