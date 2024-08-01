@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -239,8 +239,8 @@ int PSIDclient_getNum(bool admTasks);
  *
  * Send signal @a sig to all managed client. Members of the task-group
  * TG_MONITOR will never receive this signal. Members of the
- * task-groups TG_ADMIN and TG_FORWARDER will only receive this
- * signal if the flag @a killAdmTasks is set.
+ * task-groups TG_ADMIN, TG_FORWARDER, and TG_PLUGINFW will only
+ * receive this signal if the flag @a killAdmTasks is set.
  *
  * @param sig Signal to send
  *

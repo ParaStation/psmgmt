@@ -719,8 +719,8 @@ int PSIDclient_killAll(int sig, bool killAdmTasks)
 
 	if (task->deleted) continue;
 	if (task->group==TG_MONITOR) continue;
-	if ((task->group==TG_ADMIN || task->group==TG_FORWARDER)
-	    && !killAdmTasks) continue;
+	if ((task->group==TG_ADMIN || task->group==TG_FORWARDER
+	     || task->group==TG_PLUGINFW) && !killAdmTasks) continue;
 
 	PSID_fdbg(PSID_LOG_CLIENT, "send %s to %s pid %d fd %d\n",
 		  strsignal(sig), PSC_printTID(task->tid), pid, task->fd);
