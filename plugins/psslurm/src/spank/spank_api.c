@@ -110,45 +110,45 @@ bool psSpank_Init(bool verbose)
  ** The following functions are directly called by Spank plugins
  ***/
 
-void slurm_spank_log(const char *, ...) __attribute__ ((format (printf, 1, 2)));
+__attribute__ ((format (printf, 1, 2)))
 void slurm_spank_log(const char *fmt, ...)
 {
     PSLOG(SPANK_LOG_ERROR, psSpank_logger, fmt);
 }
 
-void slurm_info(const char *, ...) __attribute__ ((format (printf, 1, 2)));
+__attribute__ ((format (printf, 1, 2)))
 void slurm_info(const char *fmt, ...)
 {
     PSLOG(SPANK_LOG_INFO, psSpank_logger, fmt);
 }
 
-void slurm_error(const char *, ...) __attribute__ ((format (printf, 1, 2)));
+__attribute__ ((format (printf, 1, 2)))
 void slurm_error(const char *fmt, ...)
 {
     PSLOG(SPANK_LOG_ERROR, psSpank_logger, fmt);
 }
 
-void slurm_verbose(const char *, ...) __attribute__ ((format (printf, 1, 2)));
+__attribute__ ((format (printf, 1, 2)))
 void slurm_verbose(const char *fmt, ...)
 {
     PSLOG(SPANK_LOG_VERBOSE, psSpank_logger, fmt);
 }
 
-void slurm_debug(const char *, ...) __attribute__ ((format (printf, 1, 2)));
+__attribute__ ((format (printf, 1, 2)))
 void slurm_debug(const char *fmt, ...)
 {
 
     PSLOG(SPANK_LOG_DEBUG, psSpank_logger, fmt);
 }
 
-void slurm_debug2(const char *, ...) __attribute__ ((format (printf, 1, 2)));
+__attribute__ ((format (printf, 1, 2)))
 void slurm_debug2(const char *fmt, ...)
 {
 
     PSLOG(SPANK_LOG_DEBUG2, psSpank_logger, fmt);
 }
 
-void slurm_debug3(const char *, ...) __attribute__ ((format (printf, 1, 2)));
+__attribute__ ((format (printf, 1, 2)))
 void slurm_debug3(const char *fmt, ...)
 {
     PSLOG(SPANK_LOG_DEBUG3, psSpank_logger, fmt);

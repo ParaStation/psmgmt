@@ -115,8 +115,8 @@ int PSIDfwd_printMsg(PSLog_msg_t type, char *buf);
  *
  * @see PSLog_write()
  */
-int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
-	__attribute__ ((__format__ (__printf__, 2, 3)));
+__attribute__ ((__format__ (__printf__, 2, 3)))
+int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...);
 
 /**
  * @brief Detect execution within a psidforwarder process

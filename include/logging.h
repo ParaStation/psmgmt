@@ -291,8 +291,8 @@ void logger_write(logger_t logger, int32_t key, const char *buf, size_t count);
  * @see printf(), logger_print(), logger_vprint(), logger_funcprint(),
  * logger_warn(), logger_exit()
  */
-void logger_print(logger_t logger, int32_t key, const char* fmt, ...)
-    __attribute__((format(printf,3,4)));
+__attribute__((format(printf,3,4)))
+void logger_print(logger_t logger, int32_t key, const char* fmt, ...);
 
 /**
  * @brief Print a log message
@@ -315,8 +315,8 @@ void logger_print(logger_t logger, int32_t key, const char* fmt, ...)
  *
  * @see logger_print() for details
  */
-void logger_vprint(logger_t logger, int32_t key, const char* fmt, va_list ap)
-    __attribute__((format(printf,3,0)));
+__attribute__((format(printf,3,0)))
+void logger_vprint(logger_t logger, int32_t key, const char* fmt, va_list ap);
 
 /**
  * @brief Print a log message with function prefix
@@ -341,9 +341,9 @@ void logger_vprint(logger_t logger, int32_t key, const char* fmt, va_list ap)
  *
  * @see logger_print() for details
  */
+__attribute__((format(printf,4,5)))
 void logger_funcprint(logger_t logger, const char *func, int32_t key,
-		      const char *fmt, ...)
-    __attribute__((format(printf,4,5)));
+		      const char *fmt, ...);
 
 /**
  * @brief Print a warn message
@@ -365,8 +365,8 @@ void logger_funcprint(logger_t logger, const char *func, int32_t key,
  *
  * @see logger_print(), strerror()
  */
-void logger_warn(logger_t logger, int32_t key, int eno, const char* fmt, ...)
-    __attribute__((format(printf,4,5)));
+__attribute__((format(printf,4,5)))
+void logger_warn(logger_t logger, int32_t key, int eno, const char* fmt, ...);
 
 /**
  * @brief Print a warn message with function prefix
@@ -392,9 +392,9 @@ void logger_warn(logger_t logger, int32_t key, int eno, const char* fmt, ...)
  *
  * @see logger_print(), logger_funcprint(), logger_warn(), strerror()
  */
+__attribute__((format(printf,5,6)))
 void logger_funcwarn(logger_t logger, const char *func, int32_t key,
-		     int eno, const char* fmt, ...)
-    __attribute__((format(printf,5,6)));
+		     int eno, const char* fmt, ...);
 
 /**
  * @brief Print a warn-messages and exit
@@ -416,7 +416,7 @@ void logger_funcwarn(logger_t logger, const char *func, int32_t key,
  *
  * @see logger_warn(), exit()
  */
-void logger_exit(logger_t logger, int eno, const char* fmt, ...)
-    __attribute__((format(printf,3,4),noreturn));
+__attribute__((format(printf,3,4),noreturn))
+void logger_exit(logger_t logger, int eno, const char* fmt, ...);
 
 #endif  /* __LOGGING_H */

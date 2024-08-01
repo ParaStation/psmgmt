@@ -152,12 +152,12 @@ static int version = 0;
 /** context for parsing command-line options */
 static poptContext optCon;
 
-static void errExit(char *msg) __attribute__ ((noreturn));
 /**
  * @brief Print error msg and exit.
  *
  * @return No return value.
  */
+__attribute__ ((noreturn))
 static void errExit(char *msg)
 {
     poptPrintUsage(optCon, stderr, 0);

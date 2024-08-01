@@ -380,6 +380,7 @@ int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv);
  *
  * @return No return value.
  */
-void initHooks(void) __attribute__ ((deprecated));
+ __attribute__ ((deprecated))
+void initHooks(void);
 
 #endif  /* __PSIDHOOK_H */

@@ -247,8 +247,8 @@ int PSI_recvFinish(int num);
  *
  * @return No return value.
  */
-void PSI_execLogger(const char *command)
-    __attribute__ ((noreturn));
+__attribute__ ((noreturn))
+void PSI_execLogger(const char *command);
 
 /**
  * @brief Propagate environment
