@@ -50,6 +50,7 @@ Forwarder_Data_t *ForwarderData_new(void)
     Forwarder_Data_t *fw = calloc(1, sizeof(*fw));
     if (fw) {
 	fw->childRerun = 1;
+	fw->rerunPause = 1;
 	fw->tid = -1;
 	fw->pTid = -1;
 	fw->loggerTid = -1;
@@ -740,7 +741,7 @@ static void execPluginForwarder(PStask_t *task)
 		pluginwarn(errno, "%s: fork()", __func__);
 		if (fwData->childRerun != FW_CHILD_INFINITE) exit(3);
 		/* retry forking after short pause */
-		sleep(FW_RETRY_PAUSE);
+		if (fwData->rerunPause > 0) sleep(fwData->rerunPause);
 	    } else if (!fwData->cPid) {
 		/* newly spawned child */
 		close(controlFDs[0]);

@@ -355,6 +355,7 @@ static bool startScriptFW(Collect_Script_t *script, char *title)
     fwdata->userData = script;
     fwdata->handleMthrMsg = handleMthrMsg;
     fwdata->childRerun = FW_CHILD_INFINITE;
+    fwdata->rerunPause = 10;
 
     if (!startForwarder(fwdata)) {
 	flog("starting %s script forwarder failed\n", title);

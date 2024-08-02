@@ -22,7 +22,6 @@
 typedef struct __fwData__ Forwarder_Data_t;
 
 #define FW_CHILD_INFINITE -1
-#define FW_RETRY_PAUSE 10
 
 /** Structure defining all parameter's of a forwarder */
 typedef struct __fwData__ {
@@ -37,6 +36,9 @@ typedef struct __fwData__ {
 			    * indefinite restarts of @ref childFunc()
 			    * until the forwarder is stopped or a
 			    * predefined time limit is reached. */
+    int32_t rerunPause;    /**< amount of seconds to wait after failed
+			    * fork() if childRerun == FW_CHILD_INFINITE
+			    * Default is 1 */
     int32_t timeoutChild;  /**< Maximum runtime of @ref childFunc() */
     int32_t graceTime;     /**< Grace time before sending SIGKILL */
     bool accounted;        /**< Flag to get accounting data on forwarder.
