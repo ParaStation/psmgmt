@@ -27,32 +27,24 @@
 #include <pmix_version.h>
 #include <pmix.h>
 
-#if PMIX_VERSION_MAJOR >= 4
 #include <hwloc.h>
-#endif
 
 #include "list.h"
 #include "timer.h"
 #include "pluginmalloc.h"
 #include "pluginvector.h"
-#if PMIX_VERSION_MAJOR >= 4
 #include "pluginhelper.h"
 #include "pscpu.h"
 #include "psstrbuf.h"
 
 #include "psidnodes.h"
-#endif
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
 #include "pspmixtypes.h"
 
 /* PMIx' return code change on the move to version 4 of the standard */
-#if PMIX_VERSION_MAJOR < 4
-#define __PSPMIX_NOT_IMPLEMENTED PMIX_ERR_NOT_IMPLEMENTED
-#else
 #define __PSPMIX_NOT_IMPLEMENTED PMIX_ERR_NOT_SUPPORTED
-#endif
 
 /* allow walking throu the environment */
 extern char **environ;
@@ -254,19 +246,12 @@ static void decodeValue(const char *encval, pmix_value_t *val,
  * Note that this text is copied from the standard and we use our clientObject
  * as what the standard calls server_object */
 /* pmix_server_client_connected2_fn_t */
-#if PMIX_VERSION_MAJOR >= 4
 static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
 						 void *clientObject,
 						 pmix_info_t info[],
 						 size_t ninfo,
 						 pmix_op_cbfunc_t cbfunc,
 						 void *cbdata)
-#else
-static pmix_status_t server_client_connected_cb(const pmix_proc_t *proc,
-						 void *clientObject,
-						 pmix_op_cbfunc_t cbfunc,
-						 void *cbdata)
-#endif
 {
     fdbg(PSPMIX_LOG_CALL, "proc %s:%d clientObject %p cbfunc %p cbdata %p\n",
 	 proc->nspace, proc->rank, clientObject, cbfunc, cbdata);
@@ -366,11 +351,7 @@ static pmix_status_t server_abort_cb(const pmix_proc_t *proc,
 	mlog(" (not supported)\n");
 
 	// we do currently not support aborting subsets of namespaces
-#if PMIX_VERSION_MAJOR < 4
-	return PMIX_ERR_NOT_SUPPORTED;
-#else
 	return PMIX_ERR_PARAM_VALUE_NOT_SUPPORTED;
-#endif
     }
 
     pspmix_service_abort(proc->nspace, clientObject);
@@ -499,7 +480,6 @@ static pmix_status_t server_fencenb_cb(
 	    continue;
 	}
 
-#if PMIX_VERSION_MAJOR >= 4
 	/* This is not part of PMIx 4.1 standard but is used by OpenPMIx 4.
 	 * Currently it is included as provisional in the PMIx
 	 * standard HEAD. It shall be used by the host server to tell
@@ -535,7 +515,6 @@ static pmix_status_t server_fencenb_cb(
 		 (PMIX_INFO_TRUE(&info[i])) ? "true" : "false");
 	    continue;
 	}
-#endif
 
 	/* inform about lacking implementation */
 	mlog("%s: Ignoring info [key '%s' flags '%s' value.type '%s']"
@@ -626,8 +605,6 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 
     /* handle command directives */
     for (size_t i = 0; i < ninfo; i++) {
-
-#if PMIX_VERSION_MAJOR >= 4
 	/* debug print each info */
 	fdbg(PSPMIX_LOG_MODEX, "info %s [key '%s' flags '%s' value.type '%s'\n",
 	     (PMIX_INFO_IS_REQUIRED(info+i)) ? "required" : "optional",
@@ -661,7 +638,6 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 	    strvDestroy(reqKeys);
 	    return PMIX_ERR_NOT_SUPPORTED;
 	}
-#endif
 
 	/* inform about lacking implementation */
 	flog("ignoring unimplemented [key '%s' flags '%s' value.type '%s']\n",
@@ -725,12 +701,8 @@ static bool checkKeyAvailability(pmix_proc_t *proc, strv_t reqKeys)
 {
     if (!strvSize(reqKeys)) return true;
 
-#if PMIX_VERSION_MAJOR < 4
-    size_t ninfo = 1;
-#else
     /* @todo move to PMIX_INFO_LIST_* macro when removing PMIx < 4 support */
     size_t ninfo = 2;
-#endif
     pmix_info_t *info;
     PMIX_INFO_CREATE(info, ninfo);
 
@@ -739,10 +711,8 @@ static bool checkKeyAvailability(pmix_proc_t *proc, strv_t reqKeys)
     PMIX_INFO_LOAD(&info[i], PMIX_IMMEDIATE, &flag, PMIX_BOOL);
     i++;
 
-#if PMIX_VERSION_MAJOR >= 4
     PMIX_INFO_LOAD(&info[i], PMIX_GET_POINTER_VALUES, &flag, PMIX_BOOL);
     i++;
-#endif
 
     for (char **key = strvGetArray(reqKeys); key && *key; key++) {
 	pmix_value_t *val;
@@ -751,9 +721,6 @@ static bool checkKeyAvailability(pmix_proc_t *proc, strv_t reqKeys)
 	    case PMIX_SUCCESS:
 		udbg(PSPMIX_LOG_MODEX, "found '%s' for rank %d\n", *key,
 		     proc->rank);
-#if PMIX_VERSION_MAJOR < 4
-		PMIX_VALUE_DESTRUCT(val);
-#endif
 		break;
 	    case PMIX_ERR_NOT_FOUND:
 		udbg(PSPMIX_LOG_MODEX, "not found '%s' for rank %d\n", *key,
@@ -761,9 +728,7 @@ static bool checkKeyAvailability(pmix_proc_t *proc, strv_t reqKeys)
 		PMIX_INFO_FREE(info, ninfo);
 		return false;
 	    case PMIX_ERR_BAD_PARAM:
-#if PMIX_VERSION_MAJOR >= 4
 	    case PMIX_ERR_EXISTS_OUTSIDE_SCOPE:
-#endif
 		mlog("%s: PMIx_get(proc %s:%d key %s) failed: %s\n", __func__,
 			proc->nspace, proc->rank, *key,
 			PMIx_Error_string(status));
@@ -1020,7 +985,6 @@ static pmix_status_t server_unpublish_cb(const pmix_proc_t *proc, char **keys,
 void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
 			    const char *nspace)
 {
-#if PMIX_VERSION_MAJOR >= 4
     if (!sdata || !sdata->cbfunc) {
 	mlog("%s(success %s sdata %p) missing callback\n", __func__,
 	     success ? "true" : "false", sdata);
@@ -1035,7 +999,6 @@ void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
     pmix_nspace_t ns;
     PMIX_LOAD_NSPACE(ns, nspace ? nspace : "none");
     sdata->cbfunc(status, ns, sdata->cbdata);
-#endif
 }
 
 
@@ -1047,7 +1010,6 @@ typedef struct {
     bool initrequired;
 } SpawnInfo_t;
 
-#if PMIX_VERSION_MAJOR >= 4
 static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 {
     SpawnInfo_t si = { NULL, NULL, NULL, NULL, false };
@@ -1148,7 +1110,6 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 
     return si;
 }
-#endif
 
 /**
  * @brief Spawn a set of applications/processes as per the PMIx_Spawn API.
@@ -1203,8 +1164,6 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 		 apps[i].maxprocs, apps[i].ninfo);
 	}
     }
-
-#if PMIX_VERSION_MAJOR >= 4
 
     SpawnInfo_t si_job = getSpawnInfo(job_info, ninfo);
 
@@ -1359,11 +1318,6 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
        PMIX_ERR_JOB_SYS_OP_FAILED (Provisional)
        PMIX_ERR_JOB_WDIR_NOT_FOUND (Provisional)
      */
-
-#else
-    mlog("%s: NOT IMPLEMENTED\n", __func__);
-    return __PSPMIX_NOT_IMPLEMENTED;
-#endif
 }
 
 /* Record the processes specified by the procs array as connected as per the
@@ -1599,7 +1553,6 @@ static void server_log_cb(const pmix_proc_t *client,
     fdbg(PSPMIX_LOG_CALL, "client %s:%d ndata %zd ndirs %zd\n",
 	 client->nspace, client->rank, ndata, ndirs);
 
-#if PMIX_VERSION_MAJOR >= 4
     flog("%s:%d reports:", client->nspace, client->rank);
     for (size_t i = 0; i < ndata; i++) {
 	char * istr = PMIx_Info_string(data+i);
@@ -1607,7 +1560,6 @@ static void server_log_cb(const pmix_proc_t *client,
 	free(istr);
     }
     mlog("\n");
-#endif
 
     // @todo implement
 
@@ -1773,7 +1725,6 @@ static pmix_status_t server_stdin_cb(const pmix_proc_t *source,
     return __PSPMIX_NOT_IMPLEMENTED;
 }
 
-#if PMIX_VERSION_MAJOR >= 4
 /* Request group operations (construct, destruct, etc.) on behalf of a set of
  * processes.
  *
@@ -1850,17 +1801,11 @@ static pmix_status_t server_fabric_cb(const pmix_proc_t *requestor,
     /* not implemented */
     return __PSPMIX_NOT_IMPLEMENTED;
 }
-#endif
-
 
 /* struct holding the server callback functions */
 static pmix_server_module_t module = {
     /* v1x interfaces */
-#if PMIX_VERSION_MAJOR >= 4
     .client_connected = NULL, /* deprecated */
-#else
-    .client_connected = server_client_connected_cb,
-#endif
     .client_finalized = server_client_finalized_cb,
     .abort = server_abort_cb,
     .fence_nb = server_fencenb_cb,
@@ -1892,11 +1837,9 @@ static pmix_server_module_t module = {
     .iof_pull = server_iof_cb,
     .push_stdin = server_stdin_cb,
     /* v4x interfaces */
-#if PMIX_VERSION_MAJOR >= 4
     .group = server_grp_cb,
     .fabric = server_fabric_cb,
     .client_connected2 = server_client_connected2_cb,
-#endif
 };
 
 /* XXX */
@@ -1909,8 +1852,6 @@ static void errhandler(size_t evhdlr_registration_id, pmix_status_t status,
     fdbg(PSPMIX_LOG_CALL, "status %d proc %s:%u ninfo %lu nresults %lu\n",
 	 status, source->nspace, source->rank, ninfo, nresults);
 }
-
-#if PMIX_VERSION_MAJOR >= 4
 
 #define INFO_LIST_ADD(i, key, val, t) \
     do { \
@@ -1979,7 +1920,6 @@ static void registerResources_cb(pmix_status_t status, void *cbdata)
 
     SET_CBDATA_AVAIL(data);
 }
-#endif
 
 /**
  * To be called by error handler registration function to provide success state
@@ -2011,11 +1951,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 	}
     }
 
-#if PMIX_VERSION_MAJOR >= 4
     size_t ninfo = 7;
-#else
-    size_t ninfo = 4;
-#endif
     if (srvtmpdir) ninfo++;
     if (systmpdir) ninfo++;
 
@@ -2087,7 +2023,6 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 		   PMIX_BOOL);
     i++;
 
-#if PMIX_VERSION_MAJOR >= 4
     /* The host RM wants to declare itself as being the local session server for
      * PMIx connection requests. */
     tmpbool = false;
@@ -2238,12 +2173,9 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     i++;
 # endif /* optional attributes */
 
-#endif /* if PMIX_VERSION_MAJOR >= 4 */
-
     mdbg(PSPMIX_LOG_VERBOSE, "%s: Setting nspace %s rank %d\n", __func__,
 	    nspace, rank);
 
-#if PMIX_VERSION_MAJOR >= 4
     if (mset(PSPMIX_LOG_INFOARR)) {
 	mlog("%s: PMIx_server_init info:\n", __func__);
 	for (size_t j = 0; j < cbdata.ninfo; j++) {
@@ -2252,7 +2184,6 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 	    free(istr);
 	}
     }
-#endif
 
     /* initialize server library */
     pmix_status_t status = PMIx_server_init(&module, cbdata.info, cbdata.ninfo);
@@ -2263,7 +2194,6 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     }
     fdbg(PSPMIX_LOG_VERBOSE, "PMIx_server_init() successful\n");
 
-#if PMIX_VERSION_MAJOR >= 4
     /* tell the server common information */
 
     pmix_data_array_t sessionInfo;
@@ -2302,7 +2232,6 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 
     mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx_server_register_resources()"
 	 " successful\n", __func__);
-#endif
 
     /* register the error handler */
     INIT_CBDATA(cbdata, 0);
@@ -2518,11 +2447,7 @@ static char* getNodeRanksString(PspmixNode_t *node)
 static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
 				 uint32_t session_id, uint32_t universe_size)
 {
-#if PMIX_VERSION_MAJOR >= 4
 # define SESSION_INFO_ARRAY_LEN 3
-#else
-# define SESSION_INFO_ARRAY_LEN 2
-#endif
     pmix_info_t *infos;
     PMIX_INFO_CREATE(infos, SESSION_INFO_ARRAY_LEN);
 
@@ -2533,11 +2458,9 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
     PMIX_INFO_LOAD(&infos[i], PMIX_SESSION_ID, &session_id, PMIX_UINT32);
     i++;
 
-#if PMIX_VERSION_MAJOR >= 4
     /* same as PMIX_MAX_PROCS below, here for historical reasons */
     PMIX_INFO_LOAD(&infos[i], PMIX_UNIV_SIZE, &universe_size, PMIX_UINT32);
     i++;
-#endif
 
     /* number of slots in this session */
     PMIX_INFO_LOAD(&infos[i], PMIX_MAX_PROCS, &universe_size, PMIX_UINT32);
@@ -2549,12 +2472,6 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
      *     specified realm regardless of whether or not they currently host
      *     processes. Defaults to the job realm.
      */
-
-#if PMIX_VERSION_MAJOR < 4
-    mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)=%u - %s(%d)=%u\n", __func__,
-	 infos[0].key, infos[0].value.type, infos[0].value.data.uint32,
-	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32);
-#endif
 
     sessionInfo->type = PMIX_INFO;
     sessionInfo->size = SESSION_INFO_ARRAY_LEN;
@@ -2674,20 +2591,6 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo,
      *     Blob containing crypto key.
      */
 
-#if PMIX_VERSION_MAJOR < 4
-    mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)='%s' - %s(%d)=%s - %s(%d)=%u - "
-	 "%s(%d)=%u - %s(%d)='%s' - %s(%d)='%s' - %s(%d)=%u - %s(%d)=%u\n",
-	 __func__,
-	 infos[0].key, infos[0].value.type, infos[0].value.data.string,
-	 infos[1].key, infos[1].value.type, infos[1].value.data.string,
-	 infos[2].key, infos[2].value.type, infos[2].value.data.uint32,
-	 infos[3].key, infos[3].value.type, infos[3].value.data.uint32,
-	 infos[4].key, infos[4].value.type, infos[4].value.data.string,
-	 infos[5].key, infos[5].value.type, infos[5].value.data.string,
-	 infos[6].key, infos[6].value.type, infos[6].value.data.uint32,
-	 infos[7].key, infos[7].value.type, infos[7].value.data.rank);
-#endif
-
     jobInfo->type = PMIX_INFO;
     jobInfo->size = JOB_INFO_ARRAY_LEN;
     jobInfo->array = infos;
@@ -2695,11 +2598,7 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo,
 
 static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
 {
-#if PMIX_VERSION_MAJOR < 4
-#define APP_INFO_ARRAY_LEN 4
-#else
 #define APP_INFO_ARRAY_LEN 5
-#endif
     pmix_info_t *infos;
     PMIX_INFO_CREATE(infos, APP_INFO_ARRAY_LEN);
 
@@ -2728,11 +2627,9 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
     PMIX_INFO_LOAD(&infos[i], PMIX_WDIR, app->wdir, PMIX_STRING);
     i++;
 
-#if PMIX_VERSION_MAJOR >= 4
     /* concatenated argv for spawned processes */
     PMIX_INFO_LOAD(&infos[i], PMIX_APP_ARGV, app->args, PMIX_STRING);
     i++;
-#endif
 
     /* optional infos (PMIx v4.1 and v5.0):
      * * PMIX_PSET_NAMES "pmix.pset.nms" (pmix_data_array_t*)
@@ -2755,21 +2652,11 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
      *     Programming model version string (e.g., “2.1.1”).
      */
 
-#if PMIX_VERSION_MAJOR < 4
-    mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)=%u - %s(%d)=%u - %s(%d)=%u - "
-	 "%s(%d)='%s'\n", __func__,
-	 infos[0].key, infos[0].value.type, infos[0].value.data.uint32,
-	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32,
-	 infos[2].key, infos[2].value.type, infos[2].value.data.rank,
-	 infos[3].key, infos[3].value.type, infos[3].value.data.string);
-#endif
-
     appInfo->type = PMIX_INFO;
     appInfo->size = APP_INFO_ARRAY_LEN;
     appInfo->array = infos;
 }
 
-#if PMIX_VERSION_MAJOR >= 4
 /**
  * @param nodeInfo     array to fill
  * @param node         node object
@@ -2865,38 +2752,17 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
 	 */
     }
 
-#if PMIX_VERSION_MAJOR < 4
-    mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)=%u - %s(%d)='%s' - %s(%d)=%u - "
-	 "%s(%d)=%u - %s(%d)='%s'", __func__,
-	 infos[0].key, infos[0].value.type, infos[0].value.data.uint32,
-	 infos[1].key, infos[1].value.type, infos[1].value.data.string,
-	 infos[2].key, infos[2].value.type, infos[2].value.data.uint32,
-	 infos[3].key, infos[3].value.type, infos[3].value.data.rank,
-	 infos[4].key, infos[4].value.type, infos[4].value.data.string);
-    if (node->id == PSC_getMyID()) {
-	mdbg(PSPMIX_LOG_INFOARR, " - %s(%d)='%s' - %s(%d)='%s'",
-	 infos[5].key, infos[5].value.type, infos[5].value.data.string,
-	 infos[6].key, infos[6].value.type, infos[6].value.data.string);
-    }
-    mdbg(PSPMIX_LOG_INFOARR, "\n");
-#endif
-
     nodeInfo->type = PMIX_INFO;
     nodeInfo->size = ninfo;
     nodeInfo->array = infos;
 }
-#endif /* PMIX_VERSION_MAJOR >= 4 */
 
 static void fillProcDataArray(pmix_data_array_t *procData,
 			      PspmixProcess_t *proc, PSnodes_ID_t nodeID,
 			      pmix_proc_t *spawnparent, const char *nsdir)
 {
-#if PMIX_VERSION_MAJOR < 4
-    uint32_t ninfo = 8;
-#else
     uint32_t ninfo = 9;
     if (nodeID == PSC_getMyID()) ninfo += 3;
-#endif
 
     bool spawned = spawnparent ? true : false;
 
@@ -2959,7 +2825,6 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 	i++;
     }
 
-#if PMIX_VERSION_MAJOR >= 4
     /* number of times this process has been re-instantiated
      * i.e, a value of zero indicates that the process has never been restarted.
      */
@@ -3045,21 +2910,6 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 	PMIX_INFO_LOAD(&infos[i], PMIX_PACKAGE_RANK, &pkgrank, PMIX_UINT16);
 	i++;
     }
-#endif
-
-#if PMIX_VERSION_MAJOR < 4
-    mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)=%u - %s(%d)=%u - %s(%d)=%u - "
-	 "%s(%d)=%u - %s(%d)=%hu - %s(%d)=%hu - %s(%d)=%u - %s(%d)=%d\n",
-	 __func__,
-	 infos[0].key, infos[0].value.type, infos[0].value.data.rank,
-	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32,
-	 infos[2].key, infos[2].value.type, infos[2].value.data.rank,
-	 infos[3].key, infos[3].value.type, infos[3].value.data.rank,
-	 infos[4].key, infos[4].value.type, infos[4].value.data.uint16,
-	 infos[5].key, infos[5].value.type, infos[5].value.data.uint16,
-	 infos[6].key, infos[6].value.type, infos[6].value.data.uint32,
-	 infos[7].key, infos[7].value.type, infos[7].value.data.flag);
-#endif
 
     procData->type = PMIX_INFO;
     procData->size = ninfo;
@@ -3149,7 +2999,6 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 
     /* fill infos */
     mycbdata_t data;
-#if PMIX_VERSION_MAJOR >= 4
     /* serverNSpace
      * serverRank
      * jobSize
@@ -3159,20 +3008,8 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
      * numNodes * nodeInfo
      * jobSize * procInfo */
     INIT_CBDATA(data, 5 + numApps + numNodes + jobSize);
-#else
-    /* univSize
-     * jobSize
-     * sessionInfo
-     * jobInfo
-     * numApps * appInfo
-     * jobSize * procInfo
-     * localSize
-     * (localPeers) */
-    INIT_CBDATA(data, 4 + numApps + jobSize + mynode ? 2 : 1);
-#endif
 
     size_t i = 0;
-#if PMIX_VERSION_MAJOR >= 4
     /* PMIx server namespace hosting this namespace */
     PMIX_INFO_LOAD(&data.info[i], PMIX_SERVER_NSPACE, srv_nspace, PMIX_STRING);
     i++;
@@ -3191,15 +3028,6 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
      */
     PMIX_INFO_LOAD(&data.info[i], PMIX_JOB_SIZE, &jobSize, PMIX_UINT32);
     i++;
-#else
-    /* number of allocated slots in a session (here for historical reasons) */
-    PMIX_INFO_LOAD(&data.info[i], PMIX_UNIV_SIZE, &univSize, PMIX_UINT32);
-    i++;
-
-    /* total num of processes in this job (here for historical reasons) */
-    PMIX_INFO_LOAD(&data.info[i], PMIX_JOB_SIZE, &jobSize, PMIX_UINT32);
-    i++;
-#endif
 
     /* ===== session info array ===== */
     pmix_data_array_t sessionInfo;
@@ -3228,7 +3056,6 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 
     list_t *n;
 
-#if PMIX_VERSION_MAJOR >= 4
     /* ===== node info arrays ===== */
     uint32_t nodeIdx = 0;
     list_for_each(n, procMap) {
@@ -3240,7 +3067,6 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 		       PMIX_DATA_ARRAY);
 	i++;
     }
-#endif
 
     /* ===== process data ===== */
 
@@ -3258,30 +3084,6 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 	}
     }
 
-#if PMIX_VERSION_MAJOR < 4
-    /* ===== own node info ===== */
-
-    /* number of processes in this job/namespace on this node */
-    uint32_t val_u32 = mynode ? mynode->procs.len : 0;
-    PMIX_INFO_LOAD(&data.info[i], PMIX_LOCAL_SIZE, &val_u32, PMIX_UINT32);
-    i++;
-
-    if (mynode) {
-	/* comma-delimited string of ranks on this node within the job */
-	char *lpeers;
-	lpeers = getNodeRanksString(mynode);
-	if (lpeers[0] == '\0') {
-	    mlog("%s: no local ranks found.\n", __func__);
-	    ufree(lpeers);
-	    DESTROY_CBDATA(data);
-	    return false;
-	}
-	PMIX_INFO_LOAD(&data.info[i], PMIX_LOCAL_PEERS, lpeers, PMIX_STRING);
-	i++;
-	ufree(lpeers);
-    }
-#endif
-
     if (i != data.ninfo) {
 	mlog("%s: WARNING: Number of info fields does not match (%lu != %lu)\n",
 	     __func__, i, data.ninfo);
@@ -3289,46 +3091,12 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 
     /* debugging output of info values */
     if (mset(PSPMIX_LOG_INFOARR)) {
-#if PMIX_VERSION_MAJOR >= 4
 	mlog("%s: PMIx_server_register_nspace info:\n", __func__);
 	for (size_t j = 0; j < data.ninfo; j++) {
 	    char * istr = PMIx_Info_string(&data.info[j]);
 	    mlog("%s\n", istr);
 	    free(istr);
 	}
-#else
-	vector_t infostr;
-	charvInit(&infostr, 1024);
-
-	char prefix[50];
-	snprintf(prefix, 50, "%s:   ", __func__);
-
-	for (size_t j = 0; j < data.ninfo; j++) {
-	    char *tmpstr;
-	    switch(PMIx_Data_print(&tmpstr, prefix, &data.info[j], PMIX_INFO)) {
-		case PMIX_SUCCESS:
-		    charvAddCount(&infostr, tmpstr, strlen(tmpstr));
-		    charvAdd(&infostr, "\n");
-		    free(tmpstr);
-		    continue;
-		case PMIX_ERR_BAD_PARAM:
-		    mlog("%s: Data type not recognized by PMIx_Data_print()\n",
-			 __func__);
-		    break;
-		case PMIX_ERR_NOT_SUPPORTED:
-		    mlog("%s: PMIx_Data_print() not supported by PMIx"
-			 " implementation.\n", __func__);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	}
-	mdbg(PSPMIX_LOG_INFOARR, "%s: info array to be passed to"
-	     " PMIx_server_register_nspace():\n%s", __func__,
-	     (char *)infostr.data);
-	charvDestroy(&infostr);
-#endif
     }
 
     /* register namespace */
@@ -3365,7 +3133,6 @@ bool pspmix_server_createPSet(const char *name, PspmixNamespace_t *ns,
 					  void *),
 			      void *data)
 {
-#if PMIX_VERSION_MAJOR >= 4
     vector_t members;
     vectorInit(&members, 128, 128, pmix_proc_t);
 
@@ -3401,7 +3168,6 @@ bool pspmix_server_createPSet(const char *name, PspmixNamespace_t *ns,
 	return false;
     }
     udbg(PSPMIX_LOG_PSET, "process set '%s' created\n", name);
-#endif
     return true;
 }
 
@@ -3523,21 +3289,6 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
     return true;
 }
 
-#if PMIX_VERSION_MAJOR < 4
-/**
- * To be called by PMIx_deregisterClient() to provide status
- */
-static void deregisterClient_cb(pmix_status_t status, void *cbdata)
-{
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
-
-    mycbdata_t *data = cbdata;
-    data->status = status;
-
-    SET_CBDATA_AVAIL(data);
-}
-
-#endif
 /* run this function in exception case to remove all client information  */
 void pspmix_server_deregisterClient(const char *nspace, int rank)
 {
@@ -3549,21 +3300,7 @@ void pspmix_server_deregisterClient(const char *nspace, int rank)
     PMIX_PROC_LOAD(&proc, nspace, rank);
 
     /* deregister client */
-#if PMIX_VERSION_MAJOR >= 4
     PMIx_server_deregister_client(&proc, NULL, NULL);
-#else
-    mycbdata_t cbdata;
-    INIT_CBDATA(cbdata, 0);
-    PMIx_server_deregister_client(&proc, deregisterClient_cb, &cbdata);
-    WAIT_FOR_CBDATA(cbdata);
-
-    if (cbdata.status != PMIX_SUCCESS) {
-	mlog("%s: Callback from register client failed: %s\n", __func__,
-	     PMIx_Error_string(cbdata.status));
-    }
-
-    DESTROY_CBDATA(cbdata);
-#endif
     PMIX_PROC_DESTRUCT(&proc);
 }
 
