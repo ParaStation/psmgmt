@@ -491,7 +491,7 @@ int open_forwarder_socket()
  * Fork a forwarder process. Return the pid and the socket address.
  */
 int fork_forwarder(struct x11display *d, pid_t *pid, struct sockaddr_in *sai,
-                   socklen_t alen)
+		   socklen_t alen)
 {
     *pid = -1;
 
