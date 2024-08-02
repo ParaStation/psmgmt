@@ -24,6 +24,7 @@ typedef enum {
 static int psSpank_loglevel = SPANK_LOG_VERBOSE;
 
 #define mlog(...) logger_print(psSpank_logger, -1, __VA_ARGS__)
+#define flog(...) logger_funcprint(psSpank_logger, __func__, -1, __VA_ARGS__)
 
 #define PSLOG(level, logger, fmt) {                     \
     va_list ap;                                         \
@@ -43,61 +44,61 @@ bool psSpank_Init(bool verbose)
     void *pluginHandle = PSIDplugin_getHandle("psslurm");
 
     if (!pluginHandle) {
-	mlog("%s: getting psslurm handle failed\n", __func__);
+	flog("getting psslurm handle failed\n");
 	return false;
     }
 
     psSpankGetenv = dlsym(pluginHandle, "psSpankGetenv");
     if (!psSpankGetenv) {
-	mlog("%s: loading psSpankGetenv() failed\n", __func__);
+	flog("loading psSpankGetenv() failed\n");
 	return false;
     }
 
     psSpankSetenv = dlsym(pluginHandle, "psSpankSetenv");
     if (!psSpankSetenv) {
-	mlog("%s: loading psSpankSetenv() failed\n", __func__);
+	flog("loading psSpankSetenv() failed\n");
 	return false;
     }
 
     psSpankUnsetenv = dlsym(pluginHandle, "psSpankUnsetenv");
     if (!psSpankUnsetenv) {
-	mlog("%s: loading psSpankUnsetenv() failed\n", __func__);
+	flog("loading psSpankUnsetenv() failed\n");
 	return false;
     }
 
     psSpankGetItem = dlsym(pluginHandle, "psSpankGetItem");
     if (!psSpankGetItem) {
-	mlog("%s: loading psSpankGetItem() failed\n", __func__);
+	flog("loading psSpankGetItem() failed\n");
 	return false;
     }
 
     psSpankPrependArgv = dlsym(pluginHandle, "psSpankPrependArgv");
     if (!psSpankPrependArgv) {
-	mlog("%s: loading psSpankPrependArgv() failed\n", __func__);
+	flog("loading psSpankPrependArgv() failed\n");
 	return false;
     }
 
     psSpankSymbolSup = dlsym(pluginHandle, "psSpankSymbolSup");
     if (!psSpankSymbolSup) {
-	mlog("%s: loading psSpankSymbolSup() failed\n", __func__);
+	flog("loading psSpankSymbolSup() failed\n");
 	return false;
     }
 
     psSpankGetContext = dlsym(pluginHandle, "psSpankGetContext");
     if (!psSpankGetContext) {
-	mlog("%s: loading psSpankGetContext() failed\n", __func__);
+	flog("loading psSpankGetContext() failed\n");
 	return false;
     }
 
     psSpankOptGet = dlsym(pluginHandle, "psSpankOptGet");
     if (!psSpankOptGet) {
-	mlog("%s: loading psSpankOptGet() failed\n", __func__);
+	flog("loading psSpankOptGet() failed\n");
 	return false;
     }
 
     psSpankOptRegister = dlsym(pluginHandle, "psSpankOptRegister");
     if (!psSpankOptRegister) {
-	mlog("%s: loading psSpankOptRegister() failed\n", __func__);
+	flog("loading psSpankOptRegister() failed\n");
 	return false;
     }
 
