@@ -1,3 +1,779 @@
+Version 5.1.62:
+===============
+------------------------------------------------------------------------
+725a906c1 | Michael Rauh | Thu, 1 Aug 2024 14:40:34 +0200
+
+pskill should not try to change the user if it does not have to
+------------------------------------------------------------------------
+710130c3f | Norbert Eicker | Thu, 1 Aug 2024 10:53:27 +0200
+
+Don't kill TG_PLUGINFW tasks unless killAdmTasks is set (#245)
+------------------------------------------------------------------------
+70bc58318 | Norbert Eicker | Thu, 1 Aug 2024 10:49:30 +0200
+
+Update PStask_group_t docu comments
+------------------------------------------------------------------------
+5d96e6ecf | Norbert Eicker | Wed, 31 Jul 2024 18:59:05 +0200
+
+Use local directory for PRRTE's output files
+------------------------------------------------------------------------
+a1417e050 | Norbert Eicker | Wed, 31 Jul 2024 16:19:17 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+f65268ac5 | Norbert Eicker | Wed, 31 Jul 2024 15:44:27 +0200
+
+Create PMIx server's tmpdir to provide a place for dstors
+------------------------------------------------------------------------
+63232ca8d | Norbert Eicker | Wed, 31 Jul 2024 15:20:47 +0200
+
+Add description to debug host-server's library part
+------------------------------------------------------------------------
+fb7c81550 | Norbert Eicker | Wed, 31 Jul 2024 14:45:00 +0200
+
+Bugfix: enable re-spawned children to determine parent's job-size
+------------------------------------------------------------------------
+023fdb6f4 | Norbert Eicker | Wed, 31 Jul 2024 14:39:01 +0200
+
+Add PMIX_SERVER_NSPACE and PMIX_SERVER_RANK to registered nspace
+------------------------------------------------------------------------
+2bdbafffd | Norbert Eicker | Wed, 31 Jul 2024 14:37:01 +0200
+
+Make server's nspace and rank part of PspmixServer_t
+------------------------------------------------------------------------
+9d88edd9b | Norbert Eicker | Wed, 31 Jul 2024 12:49:27 +0200
+
+Adapt spawn_jobsize to PRRTE
+------------------------------------------------------------------------
+637f9b162 | Norbert Eicker | Wed, 31 Jul 2024 12:21:50 +0200
+
+More use of flog/fdbg in pspmix
+------------------------------------------------------------------------
+71695cfa5 | Norbert Eicker | Tue, 30 Jul 2024 22:42:50 +0200
+
+Bugfix: only switch back euid if switched before
+------------------------------------------------------------------------
+d483fecec | Norbert Eicker | Mon, 29 Jul 2024 19:19:12 +0200
+
+Fix typos
+------------------------------------------------------------------------
+78994afde | Norbert Eicker | Mon, 29 Jul 2024 12:59:40 +0200
+
+Add simplified PMIx spawn test
+------------------------------------------------------------------------
+10a65cf78 | Norbert Eicker | Mon, 29 Jul 2024 12:31:19 +0200
+
+Replace more spawnertid by jobID
+------------------------------------------------------------------------
+d4fbafac7 | Norbert Eicker | Mon, 29 Jul 2024 12:23:31 +0200
+
+Add warning on dropped PSP_DD_RESFINALIZED extra data
+------------------------------------------------------------------------
+dbbfc5f5e | Norbert Eicker | Wed, 31 Jul 2024 16:16:06 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+2fe0aab1a | Norbert Eicker | Mon, 29 Jul 2024 12:15:01 +0200
+
+Since PSIDHOOK_MASTER_GETPART is marked as obsolete...
+------------------------------------------------------------------------
+fb3c1db95 | Michael Rauh | Fri, 26 Jul 2024 16:59:02 +0200
+
+Actually save TRes record in job account structure
+------------------------------------------------------------------------
+36c83b915 | Michael Rauh | Fri, 26 Jul 2024 12:31:41 +0200
+
+Fix node record list management
+------------------------------------------------------------------------
+b71d6ee58 | Michael Rauh | Fri, 26 Jul 2024 12:16:36 +0200
+
+Free all allocated memory in freeSlurmStepStates()
+------------------------------------------------------------------------
+96617f140 | Michael Rauh | Fri, 26 Jul 2024 11:29:23 +0200
+
+Fix memory allocation to wrong variable
+------------------------------------------------------------------------
+c03d614f8 | Michael Rauh | Fri, 26 Jul 2024 11:26:51 +0200
+
+Use correct variable for unpacking RPC
+------------------------------------------------------------------------
+e56aa627a | Michael Rauh | Fri, 26 Jul 2024 11:24:06 +0200
+
+minor code improvement
+------------------------------------------------------------------------
+d93075f49 | Michael Rauh | Thu, 25 Jul 2024 21:50:29 +0200
+
+Remove unused definition
+------------------------------------------------------------------------
+c303484d6 | Michael Rauh | Thu, 25 Jul 2024 21:43:00 +0200
+
+Removed unused fields
+------------------------------------------------------------------------
+784bd8522 | Michael Rauh | Thu, 25 Jul 2024 21:03:02 +0200
+
+Remove unused taskIDStr of Slurm_Job_Array_t
+------------------------------------------------------------------------
+8555f31dd | Michael Rauh | Thu, 25 Jul 2024 20:57:19 +0200
+
+Fix function documentations
+------------------------------------------------------------------------
+e9006c61e | Michael Rauh | Thu, 25 Jul 2024 20:50:24 +0200
+
+Fix typo
+------------------------------------------------------------------------
+522a73846 | Michael Rauh | Thu, 25 Jul 2024 20:38:39 +0200
+
+Add documentation
+------------------------------------------------------------------------
+711d9d000 | Michael Rauh | Mon, 15 Jul 2024 14:43:15 +0200
+
+Add missing documentation
+------------------------------------------------------------------------
+f38a68589 | Michael Rauh | Mon, 15 Jul 2024 14:36:22 +0200
+
+Improve naming of Slurm_Job_Info_Slice_t
+------------------------------------------------------------------------
+f57a333c6 | Michael Rauh | Mon, 15 Jul 2024 12:06:45 +0200
+
+Drop support for Slurm protocol 20.02
+------------------------------------------------------------------------
+a8caa0e71 | Michael Rauh | Mon, 15 Jul 2024 11:52:12 +0200
+
+Ensure currently unsupported step manager feature is disabled
+------------------------------------------------------------------------
+7c7857d90 | Michael Rauh | Mon, 15 Jul 2024 11:46:01 +0200
+
+Add correct logging for step manager RPCs
+------------------------------------------------------------------------
+be4ba8136 | Michael Rauh | Mon, 15 Jul 2024 11:19:13 +0200
+
+Unregistered RPCs received by psslurm should be reported
+------------------------------------------------------------------------
+34400e618 | Michael Rauh | Wed, 8 May 2024 14:45:27 +0200
+
+Add support for Slurm 24.05 protocol
+------------------------------------------------------------------------
+c7f348428 | Michael Rauh | Mon, 1 Jul 2024 20:49:35 +0200
+
+Remove credential from unpackGresStep/unpackGresJob
+------------------------------------------------------------------------
+ec33de15d | Michael Rauh | Mon, 1 Jul 2024 15:28:56 +0200
+
+Utilize jobEnv()
+------------------------------------------------------------------------
+c8b58550e | Michael Rauh | Mon, 1 Jul 2024 15:24:00 +0200
+
+Introduce getEnv()
+------------------------------------------------------------------------
+235e2e5a2 | Michael Rauh | Fri, 21 Jun 2024 15:39:33 +0200
+
+Split extracting of GRes job and step credentials
+------------------------------------------------------------------------
+36cf45e5f | Michael Rauh | Thu, 13 Jun 2024 16:15:18 +0200
+
+Rename Slurm_Job_Rec_t to Slurm_Job_Info_Slice_t
+
+ - Old name is reserved for a new structure to be introduced
+------------------------------------------------------------------------
+ce24a3f80 | Norbert Eicker | Fri, 26 Jul 2024 16:31:27 +0200
+
+Fix typo in comment
+------------------------------------------------------------------------
+9af8c4929 | Michael Rauh | Wed, 24 Jul 2024 10:49:15 +0200
+
+Let psaccount restart collect scripts if they exit unexpected
+------------------------------------------------------------------------
+8fdb30414 | Michael Rauh | Tue, 23 Jul 2024 13:54:23 +0200
+
+plugin forwarder should retry failed fork attempts if infinite
+child restarts were requested (#186)
+------------------------------------------------------------------------
+d15565ca5 | Michael Rauh | Fri, 26 Jul 2024 16:08:51 +0200
+
+Fix typo
+------------------------------------------------------------------------
+0b333a0ba | Norbert Eicker | Fri, 26 Jul 2024 14:46:53 +0200
+
+Add yet another shutdown phase to unload plugins gracefully
+------------------------------------------------------------------------
+663d10713 | Norbert Eicker | Fri, 26 Jul 2024 14:44:34 +0200
+
+Introduce PSIDplugin_finalizeAll()
+------------------------------------------------------------------------
+5ff89ee43 | Norbert Eicker | Fri, 26 Jul 2024 14:29:06 +0200
+
+Improve robustnes of PSIDplugin_forceUnloadAll()
+------------------------------------------------------------------------
+ff26250b2 | Norbert Eicker | Fri, 26 Jul 2024 14:26:16 +0200
+
+Bugfix: Ensure dependency is added for trigger
+
+ - PSIDplugin_load() might be called with a trigger from outside
+ - This fixes the issue of plugins not being unloaded on shutdown
+------------------------------------------------------------------------
+1ecabf93d | Norbert Eicker | Fri, 26 Jul 2024 14:21:47 +0200
+
+More and better debug logging
+------------------------------------------------------------------------
+08ea08525 | Norbert Eicker | Fri, 26 Jul 2024 14:20:03 +0200
+
+No grace period if plugin is ready for unload
+------------------------------------------------------------------------
+0c4eafba5 | Norbert Eicker | Fri, 26 Jul 2024 14:09:12 +0200
+
+Add `Bye` message to pam_service plugin
+------------------------------------------------------------------------
+dd2a9b9f3 | Norbert Eicker | Fri, 26 Jul 2024 10:06:11 +0200
+
+Reorganize psidplugin (just change order of functions)
+------------------------------------------------------------------------
+e623c16d8 | Michael Rauh | Fri, 26 Jul 2024 12:40:28 +0200
+
+Set errno to EPERM if switching effective user fails
+------------------------------------------------------------------------
+e95420636 | Michael Rauh | Wed, 24 Jul 2024 10:59:03 +0200
+
+Don't ignore return value of PSC_switchEffetiveUser()
+------------------------------------------------------------------------
+12bc5e1f7 | Michael Rauh | Wed, 24 Jul 2024 10:57:37 +0200
+
+Add __warn_unused_result__ attribute to PSC_switchEffectiveUser()
+------------------------------------------------------------------------
+c0f2de4cf | Norbert Eicker | Wed, 24 Jul 2024 09:12:52 +0200
+
+Whitespace improvements
+------------------------------------------------------------------------
+7663e87cc | Norbert Eicker | Wed, 24 Jul 2024 09:11:08 +0200
+
+Improve debug syslogs
+
+ - Fix function names
+ - Avoid double colon
+ - Emphasise empty name strings
+------------------------------------------------------------------------
+f8572ba40 | Norbert Eicker | Wed, 24 Jul 2024 09:09:25 +0200
+
+Fix type and minor changes in docu comments
+------------------------------------------------------------------------
+d7b7391dd | Michael Rauh | Tue, 23 Jul 2024 12:46:05 +0200
+
+Call SPANK_TASK_POST_FORK with root privileges in job context
+------------------------------------------------------------------------
+a28f63eb5 | Michael Rauh | Mon, 22 Jul 2024 14:37:50 +0200
+
+Use PSIDHOOK_PRIV_FRWRD_CLNT_RES to call SPANK hook SPANK_TASK_EXIT
+
+ - allow SPANK hook to be executed with root privileges
+ - addresses #180
+------------------------------------------------------------------------
+396915982 | Michael Rauh | Mon, 22 Jul 2024 14:29:09 +0200
+
+Use PSIDHOOK_PRIV_FRWRD_INIT to call SPANK hook SPANK_TASK_POST_FORK
+
+ - allow SPANK hook to be executed with root privileges
+ - addresses #180
+ - bump psslurm required plugin API to 143
+------------------------------------------------------------------------
+2e5a0d7cb | Michael Rauh | Mon, 22 Jul 2024 14:21:10 +0200
+
+Call PSIDHOOK_PRIV_FRWRD_CLNT_RES and PSIDHOOK_PRIV_FRWRD_INIT in
+psidforwarder
+------------------------------------------------------------------------
+0049c5db5 | Michael Rauh | Wed, 17 Jul 2024 14:44:13 +0200
+
+Introduce PSIDHOOK_PRIV_FRWRD_CLNT_RES and PSIDHOOK_PRIV_FRWRD_INIT
+
+ - bump plugin API to 143
+------------------------------------------------------------------------
+866dab149 | Michael Rauh | Mon, 22 Jul 2024 14:12:00 +0200
+
+Introduce PSIDhook_callPriv()
+
+ - reclaim root privileges before executing the hook
+ - restore effective user after all hooks were executed
+------------------------------------------------------------------------
+3e29be785 | Michael Rauh | Wed, 17 Jul 2024 14:24:11 +0200
+
+Use PSC_switchEffectiveUser() in psidforwarder
+
+ - Allow the psidforwarder to drop privileges temporarily and
+   reclaim them later. This is needed to execute SPANK hooks with
+   root privileges
+------------------------------------------------------------------------
+662d1394d | Michael Rauh | Wed, 17 Jul 2024 11:13:27 +0200
+
+Improve error log messages
+------------------------------------------------------------------------
+02b393154 | Michael Rauh | Wed, 17 Jul 2024 11:10:21 +0200
+
+Make more use of flog() in psslurmforwarder
+------------------------------------------------------------------------
+bdb16a58a | Michael Rauh | Wed, 17 Jul 2024 11:01:23 +0200
+
+Rework PSC_switchEffectiveUser()
+------------------------------------------------------------------------
+939d39803 | Michael Rauh | Wed, 17 Jul 2024 10:51:34 +0200
+
+Move switchEffectiveUser() to pscommon
+------------------------------------------------------------------------
+9aefddf40 | Norbert Eicker | Wed, 24 Jul 2024 10:46:01 +0200
+
+More identifiable flag bitfields
+------------------------------------------------------------------------
+c1c76e987 | Michael Rauh | Wed, 19 Jun 2024 15:40:47 +0200
+
+Enhance GRes debug logging
+------------------------------------------------------------------------
+094782dd4 | Norbert Eicker | Wed, 24 Jul 2024 11:40:29 +0000
+
+Shortcut to `strdup()` the static string
+------------------------------------------------------------------------
+ed6298d59 | Norbert Eicker | Wed, 24 Jul 2024 08:51:24 +0000
+
+Simplify guarantee to not return NULL
+------------------------------------------------------------------------
+c8ded0fe5 | Yannik Mueller | Fri, 19 Jul 2024 09:59:37 +0200
+
+Add yet another corner case
+------------------------------------------------------------------------
+615f5ac05 | Norbert Eicker | Mon, 8 Jul 2024 21:06:35 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+248d2d933 | Norbert Eicker | Mon, 8 Jul 2024 20:44:19 +0200
+
+Get rid of now useless str2Buf() and strn2Buf()
+------------------------------------------------------------------------
+8e9bfb2a1 | Norbert Eicker | Mon, 8 Jul 2024 20:42:40 +0200
+
+Get rid of all remaining str2Buf() utilization
+------------------------------------------------------------------------
+f36592b1c | Norbert Eicker | Mon, 8 Jul 2024 20:12:11 +0200
+
+Also remove str2Buf() from pelogue and psslurm
+------------------------------------------------------------------------
+f3e54eb55 | Norbert Eicker | Mon, 8 Jul 2024 19:50:35 +0200
+
+Eliminate str2Buf() from pspam
+------------------------------------------------------------------------
+5f8fdb24b | Norbert Eicker | Mon, 8 Jul 2024 19:36:15 +0200
+
+Get rid of str2Buf() in psaccount
+------------------------------------------------------------------------
+b79d36f3d | Norbert Eicker | Mon, 8 Jul 2024 19:21:02 +0200
+
+Evict all use of str2Buf() from test plugins
+------------------------------------------------------------------------
+404f673f5 | Norbert Eicker | Mon, 8 Jul 2024 19:15:28 +0200
+
+Evict all use of str2Buf() from obsolete psmom
+------------------------------------------------------------------------
+93b5d36c8 | Norbert Eicker | Mon, 8 Jul 2024 10:35:12 +0200
+
+Replace strn2Buf() by strbufAddNum()
+------------------------------------------------------------------------
+0885d4c73 | Norbert Eicker | Mon, 8 Jul 2024 10:25:23 +0200
+
+Introduce strbufAddNum()
+------------------------------------------------------------------------
+2f2b6400d | Norbert Eicker | Mon, 8 Jul 2024 00:48:09 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+ca3eadc17 | Norbert Eicker | Mon, 8 Jul 2024 00:24:25 +0200
+
+Remove now obsolete StrBuffer_t stuff
+------------------------------------------------------------------------
+9c19a881a | Norbert Eicker | Mon, 8 Jul 2024 00:20:58 +0200
+
+Enhance docu comments
+------------------------------------------------------------------------
+ce1dfac14 | Norbert Eicker | Mon, 8 Jul 2024 00:19:29 +0200
+
+Replace StrBuffer_t by corresponding strbuf_t constructs
+------------------------------------------------------------------------
+545f5a239 | Norbert Eicker | Sun, 7 Jul 2024 22:29:12 +0200
+
+Introduce strbufClear() and fix one cornercase
+
+ - Also extend the unit-test to check for more cornercases
+------------------------------------------------------------------------
+66b0ed073 | Norbert Eicker | Fri, 5 Jul 2024 12:36:10 +0200
+
+Add functional test for strbuf_t
+------------------------------------------------------------------------
+4ebee534f | Norbert Eicker | Fri, 5 Jul 2024 12:33:40 +0200
+
+Ensure test_logging does not fail the testsuite
+
+ - logger_exit() will exit(1) by design which would make this test
+   failing
+------------------------------------------------------------------------
+efe4177c2 | Norbert Eicker | Fri, 5 Jul 2024 11:45:04 +0200
+
+Add strbuf_t (#218)
+
+ - this is expected to replace StrBuffer_t, str2Buf() and strn2Buf() on
+   the long run
+------------------------------------------------------------------------
+1968c54cf | Norbert Eicker | Fri, 5 Jul 2024 11:44:00 +0200
+
+Fix typos in docu comments
+------------------------------------------------------------------------
+2d9301705 | Norbert Eicker | Wed, 24 Jul 2024 10:07:27 +0200
+
+Fix another potential segv while parsing [PS]SLURM_HINT
+------------------------------------------------------------------------
+444a29049 | Michael Rauh | Mon, 22 Jul 2024 16:20:19 +0200
+
+psslurm: fix possible segfault while parsing slurm.conf include statements
+(#242)
+------------------------------------------------------------------------
+926b3c3c2 | Michael Rauh | Mon, 22 Jul 2024 17:18:56 +0200
+
+Add comment for scan-build false positive
+------------------------------------------------------------------------
+14ec984a2 | Norbert Eicker | Wed, 3 Jul 2024 15:33:37 +0200
+
+Rename execForwarder() -> execPluginForwarder() (#209)
+------------------------------------------------------------------------
+bf7c0c05b | Norbert Eicker | Wed, 3 Jul 2024 15:29:44 +0200
+
+Check if task has TASKINFO_FORWARDER attached (#209)
+
+ - This prevents scan-build from complaining on false-positives
+------------------------------------------------------------------------
+cf9c99bd3 | Norbert Eicker | Tue, 9 Jul 2024 11:47:48 +0200
+
+Add --enable-psmom option to configure (#223)
+
+ - This makes building psmom and the RPMs optional
+------------------------------------------------------------------------
+127be3dca | Michael Rauh | Tue, 16 Jul 2024 12:33:23 +0200
+
+Remove leading space from log message
+------------------------------------------------------------------------
+f300badb8 | Norbert Eicker | Wed, 3 Jul 2024 09:52:36 +0200
+
+Avoid detour via local psid (#234)
+------------------------------------------------------------------------
+4ad546a77 | Norbert Eicker | Wed, 3 Jul 2024 09:52:14 +0200
+
+Minor rework of pspmix_service_spawnInfo()
+------------------------------------------------------------------------
+b8a72af62 | Norbert Eicker | Wed, 3 Jul 2024 09:48:33 +0200
+
+Fix typo in docu comment
+------------------------------------------------------------------------
+67b47b338 | Norbert Eicker | Tue, 2 Jul 2024 16:17:45 +0200
+
+Enhance and unify docu comments
+------------------------------------------------------------------------
+c1f5d27c2 | Norbert Eicker | Tue, 2 Jul 2024 16:16:47 +0200
+
+Unify pspmixcomm's debug log
+
+ - more use of flog() and fdbg()
+------------------------------------------------------------------------
+9b5fbd1fd | Norbert Eicker | Tue, 2 Jul 2024 15:21:37 +0200
+
+Rework pspmix_service_ interface and update docu
+------------------------------------------------------------------------
+4e4551a70 | Norbert Eicker | Wed, 10 Jul 2024 22:51:07 +0200
+
+Add PSP_ACCOUNT_AGG_DATA_DROP to psaccount (#183)
+------------------------------------------------------------------------
+7f3cb43b8 | Norbert Eicker | Wed, 10 Jul 2024 22:48:18 +0200
+
+Introduce numClientsByJob() to psaccount
+------------------------------------------------------------------------
+87bd2bef3 | Norbert Eicker | Wed, 10 Jul 2024 22:15:44 +0200
+
+Rework deleteJob()
+------------------------------------------------------------------------
+19f3a6029 | Norbert Eicker | Wed, 10 Jul 2024 21:34:55 +0200
+
+Advance psaccount's client reporting
+------------------------------------------------------------------------
+8e9beb030 | Norbert Eicker | Wed, 10 Jul 2024 21:33:57 +0200
+
+Ensure exiting children are counted just once
+------------------------------------------------------------------------
+d9fd13f18 | Norbert Eicker | Wed, 10 Jul 2024 21:33:04 +0200
+
+Send and handle PSP_ACCOUNT_LOST message (#183)
+------------------------------------------------------------------------
+c57030a20 | Norbert Eicker | Wed, 10 Jul 2024 21:26:43 +0200
+
+Streamlining
+------------------------------------------------------------------------
+87d106f1a | Norbert Eicker | Wed, 10 Jul 2024 21:23:52 +0200
+
+Introduce PSP_ACCOUNT_LOST sub-type
+------------------------------------------------------------------------
+eb4658dfc | Norbert Eicker | Wed, 10 Jul 2024 21:20:15 +0200
+
+Rework PSP_ACCOUNT_END handling
+------------------------------------------------------------------------
+cf23860a4 | Norbert Eicker | Wed, 10 Jul 2024 19:29:32 +0200
+
+Evict status and walltime members from Client_t
+
+ - the values are never referenced
+------------------------------------------------------------------------
+046bd1c8c | Norbert Eicker | Wed, 10 Jul 2024 19:15:11 +0200
+
+Streamlining
+------------------------------------------------------------------------
+b8b7ee419 | Norbert Eicker | Wed, 10 Jul 2024 13:57:14 +0200
+
+Enhance docu comments
+------------------------------------------------------------------------
+2444d8ea0 | Norbert Eicker | Wed, 10 Jul 2024 13:56:24 +0200
+
+Ensure accounting data includes correct job ID
+------------------------------------------------------------------------
+074fd4d38 | Norbert Eicker | Thu, 27 Jun 2024 19:23:23 +0200
+
+Set MPIEXEC_UNIVERSE_SIZE from mpiexec -u (#225)
+------------------------------------------------------------------------
+7a52d891c | Norbert Eicker | Thu, 27 Jun 2024 19:03:10 +0200
+
+Introduce cmdLineUSize in startup's Conf_t
+------------------------------------------------------------------------
+1beeef839 | Norbert Eicker | Thu, 27 Jun 2024 18:58:43 +0200
+
+Propagate MPIEXEC_UNIVERSE_SIZE through startup
+------------------------------------------------------------------------
+e9105feeb | Norbert Eicker | Thu, 27 Jun 2024 18:56:12 +0200
+
+Streamlining
+------------------------------------------------------------------------
+3fa843658 | Norbert Eicker | Tue, 2 Jul 2024 13:35:17 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+23f294803 | Norbert Eicker | Tue, 2 Jul 2024 13:20:52 +0200
+
+Explicitly state ignorance on universe size
+------------------------------------------------------------------------
+db3993b1f | Norbert Eicker | Tue, 2 Jul 2024 13:11:51 +0200
+
+Rework pspmixforwarder's sendSpawnResp()
+------------------------------------------------------------------------
+b591dc81e | Norbert Eicker | Tue, 2 Jul 2024 12:05:50 +0200
+
+Rework docu comments
+------------------------------------------------------------------------
+1cf7201e7 | Norbert Eicker | Tue, 2 Jul 2024 11:41:09 +0200
+
+Support concurrent re-spawns in pspmix (#230)
+------------------------------------------------------------------------
+dce4043d9 | Norbert Eicker | Tue, 2 Jul 2024 11:32:19 +0200
+
+Extend SpawnReqData_t and add helper functions
+------------------------------------------------------------------------
+361b60b9a | Norbert Eicker | Tue, 9 Jul 2024 13:41:40 +0200
+
+Get rid of superfluous environment dump (#202)
+------------------------------------------------------------------------
+8186b7fbc | Norbert Eicker | Wed, 3 Jul 2024 13:29:36 +0200
+
+Remove never used deps on psaccount from pspmix
+------------------------------------------------------------------------
+a61a77f06 | Norbert Eicker | Wed, 3 Jul 2024 13:24:06 +0200
+
+Omit PMI remnant from pspmix (#235)
+------------------------------------------------------------------------
+017f8cc20 | Norbert Eicker | Thu, 4 Jul 2024 10:38:45 +0200
+
+Adapt PMIx/abort and PMIx/log tests
+
+ - Seems templates were copied from getSizes which never really worked
+------------------------------------------------------------------------
+0cd9f7d90 | Norbert Eicker | Thu, 4 Jul 2024 10:36:06 +0200
+
+Enhance PMIx/getSizes test
+------------------------------------------------------------------------
+e1dc8dc4b | Norbert Eicker | Thu, 4 Jul 2024 10:08:11 +0200
+
+Omit obsolete PMIX_APP_SIZE_* environment (#222)
+------------------------------------------------------------------------
+895c3759e | Norbert Eicker | Tue, 2 Jul 2024 16:42:29 +0200
+
+Fix typo in docu comment (adapt to PMIx standard)
+------------------------------------------------------------------------
+2b1d90ab7 | Norbert Eicker | Mon, 1 Jul 2024 20:08:26 +0200
+
+Does not make too much sense here:
+
+ - All kind of messages are sent during re-spawn on a point to point
+   basis. Thus, using the fence scheme here makes things more
+   complicated and will not save too much overall
+------------------------------------------------------------------------
+d70267e6c | Norbert Eicker | Mon, 1 Jul 2024 19:38:15 +0200
+
+Remove another todo by explaining irrelevance
+------------------------------------------------------------------------
+54135a74e | Norbert Eicker | Mon, 1 Jul 2024 19:21:09 +0200
+
+According to the PMIx standard this is not necessary
+
+ - see https://github.com/pmix/pmix-standard/issues/401
+------------------------------------------------------------------------
+2fa524389 | Norbert Eicker | Mon, 1 Jul 2024 19:12:55 +0200
+
+Replace one todo by explaining irrelevance
+------------------------------------------------------------------------
+39d89fadb | Norbert Eicker | Mon, 1 Jul 2024 19:12:19 +0200
+
+Minor documentation commit refinements
+------------------------------------------------------------------------
+582789486 | Norbert Eicker | Thu, 27 Jun 2024 15:38:46 +0200
+
+Consequently replace Jobs by Task[Count] in psidstatus
+------------------------------------------------------------------------
+e5f06aac9 | Norbert Eicker | Thu, 27 Jun 2024 15:25:23 +0200
+
+Booleanize knowMaster()
+------------------------------------------------------------------------
+204ed0c97 | Norbert Eicker | Thu, 27 Jun 2024 15:20:45 +0200
+
+Rename decJobsHint() to decTaskCountHint() as well
+------------------------------------------------------------------------
+8333699d3 | Norbert Eicker | Thu, 27 Jun 2024 15:12:24 +0200
+
+Rename myJobs to localTasks in psidstatus
+------------------------------------------------------------------------
+8e7d9533a | Norbert Eicker | Thu, 27 Jun 2024 15:00:17 +0200
+
+Rework documentation of psidstatus
+------------------------------------------------------------------------
+d666e4f3e | Norbert Eicker | Thu, 27 Jun 2024 14:39:13 +0200
+
+Rework decJobs() and rename it to decTaskCount()
+------------------------------------------------------------------------
+aea8ce025 | Norbert Eicker | Thu, 27 Jun 2024 14:30:02 +0200
+
+Rework incJobs() and rename it to incTaskCount()
+------------------------------------------------------------------------
+2c4d532e3 | Norbert Eicker | Fri, 28 Jun 2024 16:00:50 +0200
+
+Omit dangling comment
+------------------------------------------------------------------------
+12109999c | Norbert Eicker | Fri, 28 Jun 2024 15:58:23 +0200
+
+Refine strvAppend() docu comment
+------------------------------------------------------------------------
+7a89e5e9b | Norbert Eicker | Thu, 27 Jun 2024 10:35:21 +0200
+
+Fix bookkeeping of re-spawn service processes
+------------------------------------------------------------------------
+9f8684ee1 | Norbert Eicker | Thu, 27 Jun 2024 07:17:36 +0200
+
+Delay exit of root process to get all output
+------------------------------------------------------------------------
+7b29013ca | Norbert Eicker | Thu, 27 Jun 2024 07:17:05 +0200
+
+Also ignore built abort test
+------------------------------------------------------------------------
+83e631f1a | Norbert Eicker | Wed, 26 Jun 2024 20:27:49 +0200
+
+Ensure MESSAGE_NODE_REGISTRATION_STATUS is complete (#226)
+
+ - Job_getInfos() and Step_getInfos() need to provide this info
+------------------------------------------------------------------------
+541f87c68 | Norbert Eicker | Wed, 26 Jun 2024 17:28:37 +0200
+
+Ensure REQUEST_KILL_JOB contains all relevant info (#226)
+------------------------------------------------------------------------
+1d3e62fc1 | Norbert Eicker | Wed, 26 Jun 2024 17:15:59 +0200
+
+Make SingleSpawn_t's argV a strv_t
+------------------------------------------------------------------------
+8faeb7e19 | Norbert Eicker | Wed, 26 Jun 2024 16:03:43 +0200
+
+Use srun's colon syntax to re-spawn multiple apps
+------------------------------------------------------------------------
+24c2e8744 | Norbert Eicker | Wed, 26 Jun 2024 15:57:41 +0200
+
+Ensure MESSAGE_TASK_EXIT contains all relevant info (#226)
+------------------------------------------------------------------------
+17cdff818 | Norbert Eicker | Wed, 26 Jun 2024 12:05:56 +0200
+
+Be more selective with environment filtering
+------------------------------------------------------------------------
+20621f09f | Norbert Eicker | Sat, 22 Jun 2024 00:24:23 +0200
+
+Ensure srun's -D argument is considered for hetjobs
+------------------------------------------------------------------------
+2504aab3d | Norbert Eicker | Sat, 22 Jun 2024 00:21:05 +0200
+
+Ensure to find allocations even for sub-steps
+------------------------------------------------------------------------
+2a994e4aa | Norbert Eicker | Sat, 22 Jun 2024 00:17:31 +0200
+
+Identify packed step from packStepCount
+
+ - Identifying from packJobid might fail since this might be
+   NO_VAL for (re-spawned) step within an existing allocation
+------------------------------------------------------------------------
+66bef5b17 | Norbert Eicker | Sat, 22 Jun 2024 00:12:39 +0200
+
+Utilize strv_t in JobCompInfo_t's argV
+------------------------------------------------------------------------
+c5e8a6749 | Norbert Eicker | Sat, 22 Jun 2024 00:08:32 +0200
+
+Utilize strv_t in Step_t's argV
+------------------------------------------------------------------------
+29d8676e1 | Norbert Eicker | Fri, 21 Jun 2024 23:59:14 +0200
+
+Introduce strvAppend() and strvShred()
+------------------------------------------------------------------------
+6c214b16e | Norbert Eicker | Thu, 27 Jun 2024 16:11:06 +0200
+
+Fix compiler warning
+------------------------------------------------------------------------
+70fb9389e | Yannik Mueller | Thu, 27 Jun 2024 11:45:45 +0200
+
+Added mpiPSET test
+------------------------------------------------------------------------
+09048843d | Yannik Mueller | Tue, 18 Jun 2024 14:11:08 +0200
+
+Add draft of pset forwarding
+------------------------------------------------------------------------
+3a5224f91 | Norbert Eicker | Fri, 21 Jun 2024 23:46:11 +0200
+
+Ensure backward compatibility
+
+ - Push PSProtocolVersion to 345
+------------------------------------------------------------------------
+859d2d2b9 | Norbert Eicker | Fri, 21 Jun 2024 23:45:22 +0200
+
+Add documentation to new strv_t functions
+------------------------------------------------------------------------
+c12c1513a | Norbert Eicker | Wed, 8 May 2024 21:01:24 +0200
+
+Replace argc/argv by strv_t in PStask_t
+------------------------------------------------------------------------
+9c19bd559 | Norbert Eicker | Wed, 8 May 2024 21:17:27 +0200
+
+Omit S_TASK_ARGV support which never made it upstream
+------------------------------------------------------------------------
+02db271bd | Norbert Eicker | Wed, 8 May 2024 21:00:40 +0200
+
+Introduce strvGet() and strvReplace()
+------------------------------------------------------------------------
+7d57cee68 | Norbert Eicker | Wed, 8 May 2024 20:54:50 +0200
+
+Introduce strvClone()
+------------------------------------------------------------------------
+c1c2190e6 | Yannik Müller | Fri, 21 Jun 2024 11:16:46 +0000
+
+Added pset SPANK plugin
+------------------------------------------------------------------------
+
+
 Version 5.1.61:
 ===============
 ------------------------------------------------------------------------

@@ -6,6 +6,40 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.62:
+===============
+Bugfixes:
+ - Prevent psaccount updates after child is gone (#183)
+ - Let psaccount restart collect scripts if they exit unexpectedly (#186)
+ - Retry failed fork attempts in pluginforwarder (#186)
+ - Fix segfault while parsing slurm.conf include statements (#242)
+ - Enable re-spawned children to determine parent's job-size in PMIx
+ - Ensure MESSAGE_TASK_EXIT, MESSAGE_NODE_REGISTRATION_STATUS, and
+   REQUEST_KILL_JOB contain all relevant info (#226)
+ - Ensure dependency is added for trigger in PSIDplugin
+ - Get rid of superfluous environment dump (#202)
+Enhancements:
+ - Add support for Slurm 24.05 protocol
+ - Call SPANK_TASK_POST_FORK SPANK_TASK_EXIT with root privileges (#180)
+ - Don't kill TG_PLUGINFW tasks unless killAdmTasks is set (#245)
+ - Create PMIx server's tmpdir to provide a place for dstors
+ - Introduce pset SPANK plugin
+ - Support concurrent re-spawns in pspmix (#230)
+ - Set MPIEXEC_UNIVERSE_SIZE from mpiexec -u (#225)
+ - Avoid detour via local psid (#234)
+Additional changes:
+ - Drop support for Slurm protocol 20.02
+ - Use srun's colon syntax to re-spawn multiple apps in PMIx
+ - Add yet another shutdown phase to unload plugins gracefully
+ - Add --enable-psmom option to configure (#223)
+ - Rename execForwarder() -> execPluginForwarder() (#209)
+ - Check if task has TASKINFO_FORWARDER attached (#209)
+ - Omit obsolete PMIX_APP_SIZE_* environment (#222)
+ - Omit PMI remnant from pspmix (#235)
+ - Introduce PSIDplugin_finalizeAll()
+ - Replace StrBuffer_t, etc. by corresponding strbuf_t constructs (#218)
+
+
 Version 5.1.61:
 ===============
 Bugfixes:
