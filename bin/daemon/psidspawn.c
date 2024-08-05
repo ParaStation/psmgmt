@@ -1067,6 +1067,11 @@ static void execForwarder(PStask_t *task)
 	task->stderr_fd = stderrfds[0];
     }
 
+    /* set close-on-exec for fds */
+    PSCio_setFDCloExec(task->stdin_fd, true);
+    PSCio_setFDCloExec(task->stdout_fd, true);
+    PSCio_setFDCloExec(task->stderr_fd, true);
+
     /* check if fork() was successful */
     if (pid == -1) {
 	PSID_fwarn(eno, "fork()");
