@@ -102,6 +102,12 @@ bool psSpank_Init(bool verbose)
 	return false;
     }
 
+    psSpankPrint = dlsym(pluginHandle, "psSpankPrint");
+    if (!psSpankPrint) {
+	flog("loading psSpankPrint() failed\n");
+	return false;
+    }
+
     if (verbose) mlog("spank api successfully started\n");
 
     return true;
@@ -113,7 +119,10 @@ bool psSpank_Init(bool verbose)
 
 void slurm_spank_log(const char *fmt, ...)
 {
-    PSLOG(SPANK_LOG_ERROR, psSpank_logger, fmt);
+    va_list ap;
+    va_start(ap, fmt);
+    psSpankPrint(fmt, ap);
+    va_end(ap);
 }
 
 void slurm_info(const char *fmt, ...)

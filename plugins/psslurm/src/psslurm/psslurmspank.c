@@ -26,6 +26,7 @@
 #include "psenv.h"
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
+#include "psidforwarder.h"
 
 #include "slurmcommon.h"
 
@@ -33,6 +34,7 @@
 #include "psslurmlog.h"
 #include "psslurmproto.h"
 #include "psslurmconfig.h"
+#include "psslurmfwcomm.h"
 
 #include "spank_api.h"
 
@@ -1088,6 +1090,87 @@ int psSpankGetContext(spank_t spank)
     if (spank) return spank->context;
     if (current_spank) return current_spank->context;
     return S_CTX_ERROR;
+}
+
+/**
+ * @brief Convert printf format and arguments to string buffer
+ *
+ * @param fmt printf format string
+ *
+ * @param ap variable argument list
+ *
+ * @return Returns the requested string buffer on success otherwise
+ * NULL is returned
+ */
+static char *getBufFromFormat(const char *fmt, va_list ap)
+{
+    /* determine buffer length */
+    va_list copy;
+    va_copy(copy, ap);
+    int len = vsnprintf(NULL, 0, fmt, copy);
+    va_end(copy);
+
+    /* save message in buffer */
+    if (!len) return NULL;
+    char *buf = umalloc(len + 1);
+    len = vsnprintf(buf, len, fmt, ap);
+
+    if (!len) {
+	flog("vsprintf() failed\n");
+	ufree(buf);
+	return NULL;
+    }
+
+    return buf;
+}
+
+void psSpankPrint(const char *fmt, va_list ap)
+{
+    spank_t sp = current_spank;
+    if (!sp) {
+	flog("invalid SPANK handle\n");
+	return;
+    }
+
+    if (sp->context == S_CTX_JOB_SCRIPT) {
+	/* no connection to user (pelogue), print to syslog */
+
+	char *buf = getBufFromFormat(fmt, ap);
+	if (!buf) return;
+	mlog("slurm_spank_log: %s\n", buf);
+	ufree(buf);
+    } else if (sp->hook == SPANK_TASK_POST_FORK ||
+	    sp->hook == SPANK_TASK_EXIT) {
+	/* psidforwarder context */
+
+	char *buf = getBufFromFormat(fmt, ap);
+	if (!buf) return;
+	if (PSIDfwd_printMsg(STDERR, buf) == -1) {
+	    fwarn(errno, "PSIDfwd_printMsg() failed:");
+	}
+	ufree(buf);
+	if (PSIDfwd_printMsg(STDERR, "\n") == -1) {
+	    fwarn(errno, "PSIDfwd_printMsg(\\n) failed:");
+	}
+    } else if (sp->hook == SPANK_USER_INIT) {
+	/* psslurmforwarder context */
+
+	if (!sp->step) {
+	    flog("missing step in spank context\n");
+	    return;
+	}
+
+	char *buf = getBufFromFormat(fmt, ap);
+	if (!buf) return;
+	queueFwMsg(&sp->step->fwMsgQueue, buf, strlen(buf), STDERR, 0);
+	queueFwMsg(&sp->step->fwMsgQueue, "\n", 1, STDERR, 0);
+	ufree(buf);
+    } else {
+	/* child context */
+	if (vfprintf(stderr, fmt, ap) < 1) {
+	    flog("vfprintf() failed\n");
+	}
+    }
 }
 
 int psSpankOptRegister(spank_t spank, struct spank_option *opt)

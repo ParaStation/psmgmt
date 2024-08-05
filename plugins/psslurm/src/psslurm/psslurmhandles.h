@@ -36,6 +36,7 @@ psSpankPrependArgv_t *psSpankPrependArgv;
 psSpankSymbolSup_t *psSpankSymbolSup;
 psSpankGetContext_t *psSpankGetContext;
 psSpankOptRegister_t *psSpankOptRegister;
+psSpankPrint_t *psSpankPrint;
 psSpankOptGet_t *psSpankOptGet;
 #endif
 
