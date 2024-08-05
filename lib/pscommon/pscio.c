@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -187,3 +187,28 @@ ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len,
 
     return ret;
 }
+
+bool PSCio_setFDCloExec(int fd, bool close)
+{
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1) {
+	PSC_warn(-1, errno, "%s: fcntl(%i, F_GETFL) failed:", __func__, fd);
+	return false;
+    }
+
+    if (!close) {
+	if (fcntl(fd, F_SETFL, flags & (~FD_CLOEXEC)) == -1) {
+	    PSC_warn(-1, errno, "%s: fcntl(%i, set ~FD_CLOEXEC) failed:",
+		     __func__, fd);
+	    return false;
+	}
+    } else {
+	if (fcntl(fd, F_SETFL, flags | FD_CLOEXEC) == -1) {
+	    PSC_warn(-1, errno, "%s: fcntl(%i, set FD_CLOEXEC) failed:",
+		     __func__, fd);
+	    return false;
+	}
+    }
+    return true;
+}
+

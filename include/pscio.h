@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -285,5 +285,20 @@ ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len,
 /** Receive message with timeout */
 #define PSCio_recvMsgT(fd, msg, tmout)				\
     PSCio_recvMsgFunc(fd, (DDBufferMsg_t *)msg, sizeof(*msg), tmout, NULL)
+
+/**
+ * @brief Switch file-descriptor's close-on-exec mode
+ *
+ * If the flag @a close is true, the file-descriptor @a fd is brought
+ * into close-on-exec mode, i.e. the @ref FD_CLOEXEC flag is set to
+ * the file-descriptor. If @a close is false, the flag is removed.
+ *
+ * @param fd File descriptor to manipulate
+ *
+ * @param block Flag the close-on-exec mode
+ *
+ * @return Return true on success ohterwise false is returned
+ */
+bool PSCio_setFDCloExec(int fd, bool close);
 
 #endif  /* __PSCIO_H */
