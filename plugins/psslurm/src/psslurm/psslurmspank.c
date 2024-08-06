@@ -1092,38 +1092,6 @@ int psSpankGetContext(spank_t spank)
     return S_CTX_ERROR;
 }
 
-/**
- * @brief Convert printf format and arguments to string buffer
- *
- * @param fmt printf format string
- *
- * @param ap variable argument list
- *
- * @return Returns the requested string buffer on success otherwise
- * NULL is returned
- */
-static char *getBufFromFormat(const char *fmt, va_list ap)
-{
-    /* determine buffer length */
-    va_list copy;
-    va_copy(copy, ap);
-    int len = vsnprintf(NULL, 0, fmt, copy);
-    va_end(copy);
-
-    /* save message in buffer */
-    if (!len) return NULL;
-    char *buf = umalloc(len + 1);
-    len = vsnprintf(buf, len, fmt, ap);
-
-    if (!len) {
-	flog("vsprintf() failed\n");
-	ufree(buf);
-	return NULL;
-    }
-
-    return buf;
-}
-
 void psSpankPrint(const char *fmt, va_list ap, char *prefix)
 {
     spank_t sp = current_spank;
@@ -1135,16 +1103,22 @@ void psSpankPrint(const char *fmt, va_list ap, char *prefix)
     if (sp->context == S_CTX_JOB_SCRIPT) {
 	/* no connection to user (pelogue), print to syslog */
 
-	char *buf = getBufFromFormat(fmt, ap);
-	if (!buf) return;
+	char *buf;
+	if (vasprintf(&buf, fmt, ap) == -1) {
+	    flog("vasprintf() failed\n");
+	    return;
+	}
 	mlog("%s: %s%s\n", __func__, (prefix ? prefix : ""), buf);
 	ufree(buf);
     } else if (sp->hook == SPANK_TASK_POST_FORK ||
 	    sp->hook == SPANK_TASK_EXIT) {
 	/* psidforwarder context */
 
-	char *buf = getBufFromFormat(fmt, ap);
-	if (!buf) return;
+	char *buf;
+	if (vasprintf(&buf, fmt, ap) == -1) {
+	    flog("vasprintf() failed\n");
+	    return;
+	}
 
 	if (prefix && PSIDfwd_printMsg(STDERR, prefix) == -1) {
 	    fwarn(errno, "PSIDfwd_printMsg(%s) failed:", prefix);
@@ -1164,8 +1138,11 @@ void psSpankPrint(const char *fmt, va_list ap, char *prefix)
 	    return;
 	}
 
-	char *buf = getBufFromFormat(fmt, ap);
-	if (!buf) return;
+	char *buf;
+	if (vasprintf(&buf, fmt, ap) == -1) {
+	    flog("vasprintf() failed\n");
+	    return;
+	}
 	if (prefix) {
 	    queueFwMsg(&sp->step->fwMsgQueue, prefix, strlen(prefix), STDERR, 0);
 	}
