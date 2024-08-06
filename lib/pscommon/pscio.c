@@ -192,19 +192,19 @@ bool PSCio_setFDCloExec(int fd, bool close)
 {
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1) {
-	PSC_warn(-1, errno, "%s: fcntl(%i, F_GETFL) failed:", __func__, fd);
+	PSC_warn(-1, errno, "%s: fcntl(%i, F_GETFL) failed", __func__, fd);
 	return false;
     }
 
     if (!close) {
 	if (fcntl(fd, F_SETFL, flags & (~FD_CLOEXEC)) == -1) {
-	    PSC_warn(-1, errno, "%s: fcntl(%i, set ~FD_CLOEXEC) failed:",
+	    PSC_warn(-1, errno, "%s: fcntl(%i, set ~FD_CLOEXEC) failed",
 		     __func__, fd);
 	    return false;
 	}
     } else {
 	if (fcntl(fd, F_SETFL, flags | FD_CLOEXEC) == -1) {
-	    PSC_warn(-1, errno, "%s: fcntl(%i, set FD_CLOEXEC) failed:",
+	    PSC_warn(-1, errno, "%s: fcntl(%i, set FD_CLOEXEC) failed",
 		     __func__, fd);
 	    return false;
 	}
