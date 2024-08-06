@@ -121,7 +121,15 @@ void slurm_spank_log(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    psSpankPrint(fmt, ap, NULL);
+
+    char *buf;
+    if (vasprintf(&buf, fmt, ap) == -1) {
+	flog("vasprintf() failed\n");
+	return;
+    }
+    psSpankPrint(buf, NULL);
+    free(buf);
+
     va_end(ap);
 }
 
@@ -137,18 +145,19 @@ void slurm_error(const char *fmt, ...)
     va_list ap;
     va_start(ap, fmt);
 
-    /* print to syslog */
-    if (psSpank_logger) {
-	va_list copy;
-	va_copy(copy, ap);
-	mlog("spank(L%i): ", psSpank_loglevel);
-	logger_vprint(psSpank_logger, -1, fmt, copy);
-	va_end(copy);
-	mlog("\n");
+    char *buf;
+    if (vasprintf(&buf, fmt, ap) == -1) {
+	flog("vasprintf() failed\n");
+	return;
     }
 
+    /* print to syslog */
+    mlog("spank(L%i): %s\n", psSpank_loglevel, buf);
+
     /* print to user */
-    psSpankPrint(fmt, ap, "psslurm: error: ");
+    psSpankPrint(buf, "psslurm: error: ");
+    free(buf);
+
     va_end(ap);
 }
 

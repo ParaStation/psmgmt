@@ -1092,7 +1092,7 @@ int psSpankGetContext(spank_t spank)
     return S_CTX_ERROR;
 }
 
-void psSpankPrint(const char *fmt, va_list ap, char *prefix)
+void psSpankPrint(char *buf, char *prefix)
 {
     spank_t sp = current_spank;
     if (!sp) {
@@ -1103,22 +1103,10 @@ void psSpankPrint(const char *fmt, va_list ap, char *prefix)
     if (sp->context == S_CTX_JOB_SCRIPT) {
 	/* no connection to user (pelogue), print to syslog */
 
-	char *buf;
-	if (vasprintf(&buf, fmt, ap) == -1) {
-	    flog("vasprintf() failed\n");
-	    return;
-	}
 	mlog("%s: %s%s\n", __func__, (prefix ? prefix : ""), buf);
-	ufree(buf);
     } else if (sp->hook == SPANK_TASK_POST_FORK ||
 	    sp->hook == SPANK_TASK_EXIT) {
 	/* psidforwarder context */
-
-	char *buf;
-	if (vasprintf(&buf, fmt, ap) == -1) {
-	    flog("vasprintf() failed\n");
-	    return;
-	}
 
 	if (prefix && PSIDfwd_printMsg(STDERR, prefix) == -1) {
 	    fwarn(errno, "PSIDfwd_printMsg(%s) failed:", prefix);
@@ -1126,7 +1114,6 @@ void psSpankPrint(const char *fmt, va_list ap, char *prefix)
 	if (PSIDfwd_printMsg(STDERR, buf) == -1) {
 	    fwarn(errno, "PSIDfwd_printMsg(%s) failed:", buf);
 	}
-	ufree(buf);
 	if (PSIDfwd_printMsg(STDERR, "\n") == -1) {
 	    fwarn(errno, "PSIDfwd_printMsg(\\n) failed:");
 	}
@@ -1138,24 +1125,15 @@ void psSpankPrint(const char *fmt, va_list ap, char *prefix)
 	    return;
 	}
 
-	char *buf;
-	if (vasprintf(&buf, fmt, ap) == -1) {
-	    flog("vasprintf() failed\n");
-	    return;
-	}
 	if (prefix) {
 	    queueFwMsg(&sp->step->fwMsgQueue, prefix, strlen(prefix), STDERR, 0);
 	}
 	queueFwMsg(&sp->step->fwMsgQueue, buf, strlen(buf), STDERR, 0);
 	queueFwMsg(&sp->step->fwMsgQueue, "\n", 1, STDERR, 0);
-	ufree(buf);
     } else {
 	/* child context */
-	if (prefix && fprintf(stderr, "%s", prefix) < 0) {
-	    flog("fprintf(%s) failed\n", prefix);
-	}
-	if (vfprintf(stderr, fmt, ap) < 1) {
-	    flog("vfprintf() failed\n");
+	if (fprintf(stderr, "%s%s\n", (prefix ? prefix : ""), buf) < 1) {
+	    flog("fprintf() failed\n");
 	}
     }
 }
