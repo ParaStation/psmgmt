@@ -1426,19 +1426,6 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
 
-#ifdef HAVE_SPANK
-    struct spank_handle spank = {
-	.task = NULL,
-	.alloc = Alloc_find(job->jobid),
-	.job = job,
-	.step = NULL,
-	.hook = SPANK_TASK_POST_FORK,
-	.envSet = NULL,
-	.envUnset = NULL
-    };
-    SpankCallHook(&spank);
-#endif
-
     if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
 	flog("switching effective user to '%s' failed\n", job->username);
 	exit(1);
@@ -1463,6 +1450,20 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
 	flog("switching effective user to root failed\n");
 	exit(1);
     }
+
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = NULL,
+	.alloc = Alloc_find(job->jobid),
+	.job = job,
+	.step = NULL,
+	.hook = SPANK_TASK_POST_FORK,
+	.envSet = NULL,
+	.envUnset = NULL
+    };
+    SpankCallHook(&spank);
+#endif
+
 }
 
 static int jobForwarderInit(Forwarder_Data_t *fwdata)

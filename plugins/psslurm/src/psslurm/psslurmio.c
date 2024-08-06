@@ -840,9 +840,7 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     Job_t *job = fwdata->userData;
     int flags = getAppendFlags(job->appendMode);
 
-    /* stdout */
-    close(STDOUT_FILENO);
-
+    /* redirect stdout */
     fdbg(PSSLURM_LOG_IO, "job %u stdout file %s\n", job->jobid, job->stdOut);
     job->stdOutFD = open(job->stdOut, flags, 0666);
     if (job->stdOutFD == -1) {
@@ -851,11 +849,10 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     }
 
     Selector_register(fwdata->stdOut[0], IO_forwardJobData, fwdata);
+    PSCio_setFDCloExec(fwdata->stdOut[0], true);
     close(fwdata->stdOut[1]);
 
-    /* stderr */
-    close(STDERR_FILENO);
-
+    /* redirect stderr */
     if (strlen(job->stdErr)) {
 	fdbg(PSSLURM_LOG_IO, "job %u stderr file %s\n", job->jobid, job->stdErr);
 	job->stdErrFD = open(job->stdErr, flags, 0666);
@@ -869,6 +866,7 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     }
 
     Selector_register(fwdata->stdErr[0], IO_forwardJobData, fwdata);
+    PSCio_setFDCloExec(fwdata->stdErr[0], true);
     close(fwdata->stdErr[1]);
 }
 
