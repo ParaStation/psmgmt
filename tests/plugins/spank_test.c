@@ -154,6 +154,10 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
 	       "isremote %i", func, hookCount, optArg, getuid(), getgid(),
 	       getpid(), spank_remote(sp));
 
+    slurm_error("%s: hook-count %u static-opt: %i local uid %i gid %i pid %i "
+	       "isremote %i", func, hookCount, optArg, getuid(), getgid(),
+	       getpid(), spank_remote(sp));
+
     /* context */
     int ctx = spank_context();
     char *strCtx = NULL;
