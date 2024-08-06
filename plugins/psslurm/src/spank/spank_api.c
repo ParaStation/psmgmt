@@ -132,7 +132,24 @@ void slurm_info(const char *fmt, ...)
 
 void slurm_error(const char *fmt, ...)
 {
-    PSLOG(SPANK_LOG_ERROR, psSpank_logger, fmt);
+    if (psSpank_loglevel < SPANK_LOG_ERROR) return;
+
+    va_list ap;
+    va_start(ap, fmt);
+
+    /* print to syslog */
+    if (psSpank_logger) {
+	va_list copy;
+	va_copy(copy, ap);
+	mlog("spank(L%i): ", psSpank_loglevel);
+	logger_vprint(psSpank_logger, -1, fmt, copy);
+	va_end(copy);
+	mlog("\n");
+    }
+
+    /* print to user */
+    psSpankPrint(fmt, ap, "psslurm: error: ");
+    va_end(ap);
 }
 
 void slurm_verbose(const char *fmt, ...)
