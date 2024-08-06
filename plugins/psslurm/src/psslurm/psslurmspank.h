@@ -235,7 +235,7 @@ int psSpankGetContext(spank_t spank);
 
 int psSpankOptRegister(spank_t spank, struct spank_option *opt);
 
-void psSpankPrint(const char *fmt, va_list ap);
+void psSpankPrint(const char *fmt, va_list ap, char *prefix);
 
 int psSpankOptGet(spank_t spank, struct spank_option *opt, char **retval);
 

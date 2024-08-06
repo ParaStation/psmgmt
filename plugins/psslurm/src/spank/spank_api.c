@@ -121,7 +121,7 @@ void slurm_spank_log(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    psSpankPrint(fmt, ap);
+    psSpankPrint(fmt, ap, NULL);
     va_end(ap);
 }
 

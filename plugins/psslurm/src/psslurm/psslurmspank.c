@@ -1124,7 +1124,7 @@ static char *getBufFromFormat(const char *fmt, va_list ap)
     return buf;
 }
 
-void psSpankPrint(const char *fmt, va_list ap)
+void psSpankPrint(const char *fmt, va_list ap, char *prefix)
 {
     spank_t sp = current_spank;
     if (!sp) {
@@ -1137,7 +1137,7 @@ void psSpankPrint(const char *fmt, va_list ap)
 
 	char *buf = getBufFromFormat(fmt, ap);
 	if (!buf) return;
-	mlog("slurm_spank_log: %s\n", buf);
+	mlog("%s: %s%s\n", __func__, (prefix ? prefix : ""), buf);
 	ufree(buf);
     } else if (sp->hook == SPANK_TASK_POST_FORK ||
 	    sp->hook == SPANK_TASK_EXIT) {
@@ -1145,8 +1145,12 @@ void psSpankPrint(const char *fmt, va_list ap)
 
 	char *buf = getBufFromFormat(fmt, ap);
 	if (!buf) return;
+
+	if (prefix && PSIDfwd_printMsg(STDERR, prefix) == -1) {
+	    fwarn(errno, "PSIDfwd_printMsg(%s) failed:", prefix);
+	}
 	if (PSIDfwd_printMsg(STDERR, buf) == -1) {
-	    fwarn(errno, "PSIDfwd_printMsg() failed:");
+	    fwarn(errno, "PSIDfwd_printMsg(%s) failed:", buf);
 	}
 	ufree(buf);
 	if (PSIDfwd_printMsg(STDERR, "\n") == -1) {
@@ -1162,11 +1166,17 @@ void psSpankPrint(const char *fmt, va_list ap)
 
 	char *buf = getBufFromFormat(fmt, ap);
 	if (!buf) return;
+	if (prefix) {
+	    queueFwMsg(&sp->step->fwMsgQueue, prefix, strlen(prefix), STDERR, 0);
+	}
 	queueFwMsg(&sp->step->fwMsgQueue, buf, strlen(buf), STDERR, 0);
 	queueFwMsg(&sp->step->fwMsgQueue, "\n", 1, STDERR, 0);
 	ufree(buf);
     } else {
 	/* child context */
+	if (prefix && fprintf(stderr, "%s", prefix) < 0) {
+	    flog("fprintf(%s) failed\n", prefix);
+	}
 	if (vfprintf(stderr, fmt, ap) < 1) {
 	    flog("vfprintf() failed\n");
 	}
