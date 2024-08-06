@@ -456,13 +456,16 @@ static bool devEnvVisitor(GRes_Dev_t *dev, uint32_t id, void *info)
  *
  * @param gresList List of generic resources for this job/step
  *
+ * @param credType GRes credential type to use
+ *
  * @param localNodeId Local node ID for this jobs/step
  */
-static void setJailDevEnv(list_t *gresList, uint32_t localNodeId)
+static void setJailDevEnv(list_t *gresList, int credType, uint32_t localNodeId)
 {
     list_t *g;
     list_for_each(g, gresList) {
 	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
+	if (gres->credType != credType) continue;
 
 	fdbg(PSSLURM_LOG_JAIL, "test bitAlloc of gres %i type %s\n", gres->id,
 	     GRes_strType(gres->credType));
@@ -512,8 +515,8 @@ static bool denyAllDevs(Gres_Conf_t *conf, void *info)
 }
 
 void setJailEnv(const env_t env, const char *user, const PSCPU_set_t *stepcpus,
-		const PSCPU_set_t *jobcpus, list_t *gresList, JobCred_t *cred,
-		uint32_t localNodeId)
+		const PSCPU_set_t *jobcpus, list_t *gresList, int credType,
+		JobCred_t *cred, uint32_t localNodeId)
 {
     static bool isInit = false;
     if (isInit || PSC_isDaemon()) {
@@ -540,7 +543,7 @@ void setJailEnv(const env_t env, const char *user, const PSCPU_set_t *stepcpus,
     const char *c = getConfValueC(SlurmCgroupConfig, "ConstrainDevices");
     if (c && !strcasecmp(c, "yes") && gresList) {
 	traverseGresConf(&denyAllDevs, NULL);
-	setJailDevEnv(gresList, localNodeId);
+	setJailDevEnv(gresList, credType, localNodeId);
     }
 
     if (cred) setJailMemEnv(cred, localNodeId);

@@ -166,7 +166,7 @@ static int initJail(void *info)
     setenv("__PSJAIL_USER_INIT", "1", 1);
 
     setJailEnv(alloc->env, alloc->username, NULL, &(alloc->hwthreads),
-	       alloc->gresList, alloc->cred, alloc->localNodeId);
+	       alloc->gresList, GRES_CRED_JOB, alloc->cred, alloc->localNodeId);
 
     return PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
 }
@@ -211,7 +211,7 @@ static int termJail(void *info)
     strbufDestroy(allocList);
 
     setJailEnv(alloc->env, alloc->username, NULL, &(alloc->hwthreads),
-	       alloc->gresList, alloc->cred, alloc->localNodeId);
+	       alloc->gresList, GRES_CRED_JOB, alloc->cred, alloc->localNodeId);
 
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &pid);
 }

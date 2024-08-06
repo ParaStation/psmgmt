@@ -77,6 +77,7 @@
 #include "psslurmpscomm.h"
 #include "psslurmspawn.h"
 #include "psslurmtasks.h"
+#include "psslurmgres.h"
 #include "slurmcommon.h"
 #include "slurmerrno.h"
 #ifdef HAVE_SPANK
@@ -104,7 +105,7 @@ static int termJobJail(void *info)
     Job_t *job = info;
 
     setJailEnv(job->env, job->username, NULL, &(job->hwthreads),
-	       &job->gresList, job->cred, job->localNodeId);
+	       &job->gresList, GRES_CRED_JOB, job->cred, job->localNodeId);
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &job->fwdata->cPid);
 }
 
@@ -189,7 +190,7 @@ static int termStepJail(void *info)
     setJailEnv(step->env, step->username,
 	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
-	       &step->gresList, step->cred, step->localNodeId);
+	       &step->gresList, GRES_CRED_STEP, step->cred, step->localNodeId);
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &step->fwdata->cPid);
 }
 
@@ -578,7 +579,8 @@ int handleHookExecFW(void *data)
 	setJailEnv(NULL, NULL,
 		   &(fwStep->nodeinfos[fwStep->localNodeId].stepHWthreads),
 		   &(fwStep->nodeinfos[fwStep->localNodeId].jobHWthreads),
-		   &fwStep->gresList, fwStep->cred, fwStep->localNodeId);
+		   &fwStep->gresList, GRES_CRED_STEP, fwStep->cred,
+		   fwStep->localNodeId);
     }
 
     return 0;
@@ -1192,7 +1194,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     setJailEnv(step->env, step->username,
 	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
-	       &step->gresList, step->cred, step->localNodeId);
+	       &step->gresList, GRES_CRED_STEP, step->cred, step->localNodeId);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -1516,7 +1518,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 #endif
 
     setJailEnv(job->env, job->username, NULL, &(job->hwthreads),
-	       &job->gresList, job->cred, job->localNodeId);
+	       &job->gresList, GRES_CRED_JOB, job->cred, job->localNodeId);
 
     /* setup I/O channels solely to send an error message, so prevent
      * any execution of child tasks */
@@ -1681,7 +1683,7 @@ static int initBCastFW(Forwarder_Data_t *fwdata)
     BCast_t *bcast = fwdata->userData;
 
     setJailEnv(bcast->env, bcast->username, NULL, &(bcast->hwthreads), NULL,
-	       NULL, 0);
+	       GRES_CRED_JOB, NULL, 0);
 
     return 0;
 }
@@ -1781,7 +1783,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     setJailEnv(step->env, step->username,
 	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
-	       &step->gresList, step->cred, step->localNodeId);
+	       &step->gresList, GRES_CRED_STEP, step->cred, step->localNodeId);
 
 #ifdef HAVE_SPANK
 
