@@ -96,9 +96,12 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 
     /* initialize service modules */
     if (!pspmix_service_init(server, clusterid)) {
-	flog("failed to initialize pmix service\n");
+	flog("failed to initialize service module for UID %d\n", server->uid);
 	return -1;
     }
+
+    /* always print UID to have the PID <-> UID mapping in syslog */
+    flog("server for UID %d initialized\n", server->uid);
 
     return 0;
 }
@@ -167,7 +170,7 @@ static void terminateSession(PspmixSession_t *session)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(ID %s)\n", __func__, PSC_printTID(session->ID));
 
-    ulog("terminating session by sending signal to logger %s\n",
+    flog("terminating session by sending signal to logger %s\n",
 	 PSC_printTID(session->ID));
 
     pspmix_comm_sendSignal(session->ID, -1);
@@ -185,13 +188,13 @@ bool pspmix_userserver_removeJob(PStask_ID_t jobID)
 
     PspmixJob_t *job = findJob(jobID);
     if (!job) {
-	ulog("job not found (ID %s)\n", PSC_printTID(jobID));
+	flog("job not found (ID %s)\n", PSC_printTID(jobID));
 	return false;
     }
 
     /* always remove namespace first, so there is no reference to job left */
     if (!pspmix_service_removeNamespace(jobID)) {
-	ulog("destroying namespace failed (%s)\n", pspmix_jobStr(job));
+	flog("destroying namespace failed (%s)\n", pspmix_jobStr(job));
 	return false;
     }
 
@@ -225,6 +228,8 @@ void pspmix_userserver_finalize(Forwarder_Data_t *fwdata)
 
     /* remove root of all temporary directories */
     removeDir(server->tmproot, true);
+
+    flog("server for UID %d finalized\n", server->uid);
 
     server = NULL;
 }

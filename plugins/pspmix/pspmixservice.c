@@ -215,14 +215,14 @@ bool pspmix_service_init(PspmixServer_t *server, char *clusterID)
 
     /* initialize the communication facility */
     if (!pspmix_comm_init(server->uid)) {
-	ulog("could not initialize communication\n");
+	flog("could not initialize communication\n");
 	return false;
     }
 
     /* initialize the pmix server */
     if (!pspmix_server_init(server->nspace, server->rank, clusterID,
 			    server->tmproot, NULL)) {
-	ulog("failed to initialize pspmix server\n");
+	flog("failed to initialize pspmix server for UID %d\n", server->uid);
 	return false;
     }
 
@@ -257,14 +257,14 @@ static char * printProcess(PspmixProcess_t *proc) {
 /* debugging function to print process mapping */
 static void printProcMap(list_t *map)
 {
-    ulog("printing process mapping in format: (global session rank (psid"
+    flog("printing process mapping in format: (global session rank (psid"
 	 " rank), job/nspace rank, [app num: app rank, local app rank],"
 	 " node rank, reincarnation)\n");
 
     list_t *n;
     list_for_each(n, map) {
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
-	ulog("node %u [%s", node->id,
+	flog("node %u [%s", node->id,
 	     printProcess(vectorGet(&node->procs, 0, PspmixProcess_t)));
 	for (size_t rank = 1; rank < node->procs.len; rank++) {
 	    mlog(",%s", printProcess(vectorGet(&node->procs, rank,
@@ -313,7 +313,7 @@ static void createNodeAttrPSets(PspmixNamespace_t *ns)
 	char name[64];
 	snprintf(name, sizeof(name), "pspmix:nodeattr/%s", Attr_name(i));
 	if (!pspmix_server_createPSet(name, ns, nodeAttrFilter, &i)) {
-	    ulog("failed to create hardware type process sets\n");
+	    flog("failed to create hardware type process sets\n");
 	    return;
 	}
     }
@@ -344,7 +344,7 @@ static void createAppPSet(const char *name, PspmixNamespace_t *ns,
 			  PspmixApp_t *app)
 {
     if (!pspmix_server_createPSet(name, ns, reservationFilter, app)) {
-	ulog("failed to create application process set '%s'\n", name);
+	flog("failed to create application process set '%s'\n", name);
 	return;
     }
 }
@@ -393,7 +393,7 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
     char *end;
     long res = strtol(spawnID, &end, 10);
     if (*end != '\0' || res <= 0) {
-	ulog("invalid PMIX_SPAWNID: '%s'\n", spawnID);
+	flog("invalid PMIX_SPAWNID: '%s'\n", spawnID);
 	return false;
     }
     ns->spawnID = res;
@@ -401,53 +401,53 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
     /* this is a respawn */
     char *spawner = envGet(env, "__PMIX_SPAWN_PARENT_FWTID");
     if (!spawner) {
-	ulog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_PARENT_FWTID set\n",
+	flog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_PARENT_FWTID set\n",
 	     ns->spawnID);
 	return false;
     }
 
     res = strtol(spawner, &end, 0);
     if (*end != '\0') {
-	ulog("invalid __PMIX_SPAWN_PARENT_FWTID: '%s'\n", spawner);
+	flog("invalid __PMIX_SPAWN_PARENT_FWTID: '%s'\n", spawner);
 	return false;
     }
     ns->spawner = res;
 
     char *nspace = envGet(env, "__PMIX_SPAWN_PARENT_NSPACE");
     if (!nspace) {
-	ulog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_PARENT_NSPACE set\n",
+	flog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_PARENT_NSPACE set\n",
 	     ns->spawnID);
 	return false;
     }
 
     char *rank = envGet(env, "__PMIX_SPAWN_PARENT_RANK");
     if (!rank) {
-	ulog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_PARENT_RANK set\n",
+	flog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_PARENT_RANK set\n",
 	     ns->spawnID);
 	return false;
     }
     res = strtol(rank, &end, 10);
     if (*end != '\0' || res < 0) {
-	ulog("invalid __PMIX_SPAWN_PARENT_RANK: '%s'\n", rank);
+	flog("invalid __PMIX_SPAWN_PARENT_RANK: '%s'\n", rank);
 	return false;
     }
     PMIX_PROC_LOAD(&ns->parent, nspace, res);
 
     char *opts = envGet(env, "__PMIX_SPAWN_OPTS");
     if (!opts) {
-	ulog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_OPTS set\n",
+	flog("PMIX_SPAWNID found (%hd) but no __PMIX_SPAWN_OPTS set\n",
 	     ns->spawnID);
 	return false;
     }
     res = strtol(opts, &end, 0);
     if (*end != '\0' || res < 0) {
-	ulog("invalid __PMIX_SPAWN_OPTS: '%s'\n", rank);
+	flog("invalid __PMIX_SPAWN_OPTS: '%s'\n", rank);
 	return false;
     }
     ns->spawnOpts = res;
 
     char *loc = PSC_getID(ns->spawner) == PSC_getMyID() ? "local" : "remote";
-    udbg(PSPMIX_LOG_SPAWN, "%s spawn id %hu initiated by %s (nspace %s"
+    fdbg(PSPMIX_LOG_SPAWN, "%s spawn id %hu initiated by %s (nspace %s"
 	 " rank %u opts 0x%08x)\n", loc, ns->spawnID, PSC_printTID(ns->spawner),
 	 ns->parent.nspace, ns->parent.rank, ns->spawnOpts);
 
@@ -545,10 +545,10 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     /* get information from spawner set environment */
 
     if (mset(PSPMIX_LOG_ENV)) {
-	ulog("job environment:\n");
+	flog("job environment:\n");
 	int cnt = 0;
 	for (char **e = envGetArray(job->env); e && *e; e++, cnt++) {
-	    ulog("%02d: '%s'\n", cnt, *e);
+	    flog("%02d: '%s'\n", cnt, *e);
 	}
     }
 
@@ -558,7 +558,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     /* take number from env, better than counting twice */
     char *env = envGet(job->env, "PMIX_JOB_NUM_APPS");
     if (!env) {
-	ulog("UNEXPECTED: PMIX_JOB_NUM_APPS missing\n");
+	flog("UNEXPECTED: PMIX_JOB_NUM_APPS missing\n");
 	goto nscreate_error;
     }
     ns->appsCount = atoi(env);
@@ -584,7 +584,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	ns->apps[a].resID = rinfo->resID;
 
 	if (a && ns->apps[a-1].resID >= ns->apps[a].resID) {
-	    ulog("WARNING: reservation IDs not strictly ascending (%u <= %u)\n",
+	    flog("WARNING: reservation IDs not strictly ascending (%u <= %u)\n",
 		 ns->apps[a].resID, ns->apps[a-1].resID);
 	}
 
@@ -599,7 +599,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	snprintf(var, sizeof(var), "PMIX_APP_WDIR_%zu", a);
 	env = envGet(job->env, var);
 	if (!env) {
-	    ulog("broken environment: '%s' missing\n", var);
+	    flog("broken environment: '%s' missing\n", var);
 	    goto nscreate_error;
 	}
 	ns->apps[a].wdir = ustrdup(env);
@@ -608,7 +608,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	snprintf(var, sizeof(var), "PMIX_APP_ARGV_%zu", a);
 	env = envGet(job->env, var);
 	if (!env) {
-	    ulog("broken environment: '%s' missing\n", var);
+	    flog("broken environment: '%s' missing\n", var);
 	    goto nscreate_error;
 	}
 	ns->apps[a].args = ustrdup(env);
@@ -646,7 +646,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 						     &job->resInfos);
 	if (!resInfo) {
 	    /* this cannot happen, resID is taken from existing res */
-	    ulog("reservation %d for app %zu not found\n", ns->apps[a].resID,
+	    flog("reservation %d for app %zu not found\n", ns->apps[a].resID,
 		 a);
 	    goto nscreate_error;
 	}
@@ -665,7 +665,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		const char *hostname = PSIDnodes_getHostname(node->id);
 		if (!hostname) hostname = PSIDnodes_getNodename(node->id);
 		if (!hostname) {
-		    ulog("no hostname for node %hd", node->id);
+		    flog("no hostname for node %hd", node->id);
 		    ufree(node);
 		    goto nscreate_error;
 		}
@@ -687,7 +687,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		    if (slot->rank == r) {
 			PSCPU_copy(proc.cpus, slot->CPUset);
 		    } else {
-			ulog("unexpected rank in local slots list"
+			flog("unexpected rank in local slots list"
 			     " (%d not %d)\n", slot->rank, r);
 			PSCPU_clrAll(proc.cpus);
 		    }
@@ -727,7 +727,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 					 ns->appsCount, ns->apps,
 					 job->session->tmpdir, nsdir,
 					 PSC_getMyID())) {
-	ulog("failed to register namespace at the pspmix server\n");
+	flog("failed to register namespace at the pspmix server\n");
 	ufree(nsdir);
 	goto nscreate_error;
     }
@@ -735,7 +735,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* setup local node */
     if (!pspmix_server_setupLocalSupport(ns->name)) {
-	ulog("failed to setup local support\n");
+	flog("failed to setup local support\n");
 	pspmix_server_deregisterNamespace(ns->name, ns);
 	goto nscreate_error;
     }
@@ -765,7 +765,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     RELEASE_LOCK(namespaceList);
 
     if (ns->spawnID) {
-	udbg(PSPMIX_LOG_SPAWN, "Created namespace '%s' for respawn id %hu as"
+	fdbg(PSPMIX_LOG_SPAWN, "Created namespace '%s' for respawn id %hu as"
 	     " requested by node %hd\n", ns->name, ns->spawnID,
 	     PSC_getID(ns->spawner));
     }
@@ -776,7 +776,7 @@ nscreate_error:
     if (ns->spawnID) {
 	if (!pspmix_comm_sendSpawnInfo(PSC_getID(ns->spawner), ns->spawnID,
 				       false, NULL, 0)) {
-	    ulog("failed to send failed spawn info for id %hu to node %hd\n",
+	    flog("failed to send failed spawn info for id %hu to node %hd\n",
 		 ns->spawnID, PSC_getID(ns->spawner));
 	}
 
@@ -810,7 +810,7 @@ bool pspmix_service_terminateClients(const char *nsName, bool remote)
     PspmixNamespace_t *ns = findNamespace(nsName);
     if (!ns) {
 	/* might happen if namespace deregistration is already ongoing */
-	ulog("no namespace '%s'\n", nsName);
+	flog("no namespace '%s'\n", nsName);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -851,7 +851,7 @@ bool pspmix_service_removeNamespace(PStask_ID_t jobID)
     GET_LOCK(namespaceList);
     PspmixNamespace_t *ns = findNamespaceByJobID(jobID);
     if (!ns) {
-	ulog("namespace not found (jobID %s)\n", PSC_printTID(jobID));
+	flog("namespace not found (jobID %s)\n", PSC_printTID(jobID));
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -873,7 +873,7 @@ void pspmix_service_cleanupNamespace(PspmixNamespace_t *ns, bool error,
 				     const char *errstr)
 {
     if (error) {
-	ulog("deregister namespace %s failed: %s", ns->name, errstr);
+	flog("deregister namespace %s failed: %s", ns->name, errstr);
 	return;
     }
 
@@ -926,7 +926,7 @@ static PSnodes_ID_t getNodeFromRank(PspmixNamespace_t *ns, int32_t rank)
 	}
     }
 
-    ulog("rank %d not found in any reservation of namespace '%s'\n", rank,
+    flog("rank %d not found in any reservation of namespace '%s'\n", rank,
 	 ns->name);
     return -2;
 
@@ -953,14 +953,14 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 	    char *nsname2 = ustrdup(nsname);
 	    nsname = generateNamespaceName(jobID, true);
 	    if (!(ns = findNamespace(nsname))) {
-		ulog("namespaces '%s' and '%s' not found\n", nsname2, nsname);
+		flog("namespaces '%s' and '%s' not found\n", nsname2, nsname);
 		ufree(nsname2);
 		RELEASE_LOCK(namespaceList);
 		goto failed;
 	    }
 	    ufree(nsname2);
 	} else {
-	    ulog("namespace '%s' not found\n", nsname);
+	    flog("namespace '%s' not found\n", nsname);
 	    RELEASE_LOCK(namespaceList);
 	    goto failed;
 	}
@@ -969,7 +969,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
     PSresinfo_t *resInfo = findReservationInList(client->resID,
 						 &ns->job->resInfos);
     if (!resInfo) {
-	ulog("r%d: reservation %d not found in client's namespace %s\n",
+	flog("r%d: reservation %d not found in client's namespace %s\n",
 	     client->rank, client->resID, ns->name);
 	RELEASE_LOCK(namespaceList);
 	goto failed;
@@ -995,14 +995,14 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
      * in pspmix_service_removeNamespace()/pspmix_service_cleanupNamespace()*/
     if (!pspmix_server_registerClient(nsname, client->rank, client->uid,
 				      client->gid, (void*)client)) {
-	ulog("r%d: failed to register client to PMIx server\n", client->rank);
+	flog("r%d: failed to register client to PMIx server\n", client->rank);
 	goto failed;
     }
 
     /* get environment from PMIx server */
     char **envp = ucalloc(sizeof(*envp));
     if (!pspmix_server_setupFork(nsname, client->rank, &envp)) {
-	ulog("r%d: failed to setup the environment at the pspmix server\n",
+	flog("r%d: failed to setup the environment at the pspmix server\n",
 	     client->rank);
 	ufree(envp);
 	pspmix_server_deregisterClient(nsname, client->rank);
@@ -1062,7 +1062,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
     envDestroy(env);
 
     if (!success) {
-	ulog("r%d: failed to send the environment to client forwarder %s\n",
+	flog("r%d: failed to send the environment to client forwarder %s\n",
 	     client->rank, PSC_printTID(client->fwtid));
 	pspmix_server_deregisterClient(nsname, client->rank);
 	goto failed;
@@ -1073,7 +1073,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
     /* lookup namespace again to assure it is still valid in this lock */
     ns = findNamespace(nsname);
     if (!ns) {
-	ulog("namespace '%s' no longer valid\n", nsname);
+	flog("namespace '%s' no longer valid\n", nsname);
 	RELEASE_LOCK(namespaceList);
 	pspmix_server_deregisterClient(nsname, client->rank);
 	return false;
@@ -1116,13 +1116,13 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
 
     PspmixNamespace_t *ns = findNamespace(nsName);
     if (!ns) {
-	ulog("no namespace '%s'\n", nsName);
+	flog("no namespace '%s'\n", nsName);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
 
     if (client->notifiedFwCb) {
-	ulog("UNEXPECTED: client->notifiedFwCb set\n");
+	flog("UNEXPECTED: client->notifiedFwCb set\n");
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -1131,9 +1131,9 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
     ns->clientsConnected++;
 
     /* log clients */
-    udbg(PSPMIX_LOG_CLIENTS, "(nspace %s rank %d\n", ns->name, client->rank);
+    fdbg(PSPMIX_LOG_CLIENTS, "(nspace %s rank %d\n", ns->name, client->rank);
     if (ns->clientsConnected >= ns->localClients) {
-	ulog("nspace %s: All %u local clients connected\n", ns->name,
+	flog("nspace %s: All %u local clients connected\n", ns->name,
 	     ns->localClients);
     }
 
@@ -1149,7 +1149,7 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
     RELEASE_LOCK(namespaceList);
 
     if (!pspmix_comm_sendInitNotification(fwtid, nsName, rank, jobID)) {
-	ulog("Sending init notification for %s:%d to %s failed\n",
+	flog("Sending init notification for %s:%d to %s failed\n",
 	     nsName, rank, PSC_printTID(fwtid));
     }
 
@@ -1157,7 +1157,7 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
 
     /* all local clients are connected */
     /* inform spawner's node user server if this is a respawn */
-    udbg(PSPMIX_LOG_SPAWN, "All local clients connected in namespace '%s'"
+    fdbg(PSPMIX_LOG_SPAWN, "All local clients connected in namespace '%s'"
 	 " for respawn id %hu as requested by node %hd\n", nsName, spawnID,
 	 spawnNode);
 
@@ -1170,7 +1170,7 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
 	pspmix_service_spawnInfo(spawnID, true, nsName, localClients, spawnNode);
     } else if (!pspmix_comm_sendSpawnInfo(spawnNode, spawnID, true,
 					  nsName, localClients)) {
-	ulog("failed to send failed spawn info to node %hd\n", spawnNode);
+	flog("failed to send failed spawn info to node %hd\n", spawnNode);
     }
 
     return true;
@@ -1187,7 +1187,7 @@ bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
 
     PspmixNamespace_t *ns = findNamespace(nsName);
     if (!ns) {
-	ulog("no namespace '%s'\n", nsName);
+	flog("no namespace '%s'\n", nsName);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -1195,7 +1195,7 @@ bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
     PStask_ID_t jobID = ns->job->ID;
 
     if (client->notifiedFwCb) {
-	ulog("UNEXPECTED: client->notifiedFwCb set\n");
+	flog("UNEXPECTED: client->notifiedFwCb set\n");
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -1204,9 +1204,9 @@ bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
     ns->clientsConnected--;
 
     /* log clients */
-    udbg(PSPMIX_LOG_CLIENTS, "(nspace %s rank %d\n", ns->name, client->rank);
+    fdbg(PSPMIX_LOG_CLIENTS, "(nspace %s rank %d\n", ns->name, client->rank);
     if (ns->clientsConnected == 0) {
-	ulog("nspace %s: All %u local clients finalized\n", ns->name,
+	flog("nspace %s: All %u local clients finalized\n", ns->name,
 	     ns->localClients);
     }
 
@@ -1229,21 +1229,21 @@ void pspmix_service_handleClientIFResp(bool success, const char *nspace,
     /* find namespace in list */
     PspmixNamespace_t *ns = findNamespace(nspace);
     if (!ns) {
-	ulog("no namespace '%s'\n", nspace);
+	flog("no namespace '%s'\n", nspace);
 	RELEASE_LOCK(namespaceList);
 	return;
     }
 
     PspmixClient_t *client = findClientInList(rank, &ns->clientList);
     if (!client) {
-	ulog("no client for rank %d in namespace '%s'\n", rank, nspace);
+	flog("no client for rank %d in namespace '%s'\n", rank, nspace);
 	RELEASE_LOCK(namespaceList);
 	return;
     }
 
     /* check fwtid */
     if (client->fwtid != fwtid) {
-	ulog("client init/finalize notification response from unexpected TID"
+	flog("client init/finalize notification response from unexpected TID"
 	     " %s", PSC_printTID(fwtid));
 	mlog(" (expected %s)\n", PSC_printTID(client->fwtid));
 	RELEASE_LOCK(namespaceList);
@@ -1270,7 +1270,7 @@ void pspmix_service_abort(const char *nsName, PspmixClient_t *client)
        according namespace from the server library, the clientObject
        should be always valid here */
 
-    ulog("(rank %d)\n", client->rank);
+    flog("(rank %d)\n", client->rank);
 
     elog("%s: on users request from rank %d\n", __func__, client->rank);
 
@@ -1355,7 +1355,7 @@ static PspmixFence_t* findFence(uint64_t fenceID)
 static bool dropMsg(PspmixFence_t *fence, uint8_t msg)
 {
     if (msg >= fence->nMsgs) {
-	ulog("UNEXPECTED: fence 0x%016lX lacks of messages (%u <= %u)\n",
+	flog("UNEXPECTED: fence 0x%016lX lacks of messages (%u <= %u)\n",
 	     fence->id, fence->nMsgs, msg);
 	return false;
     }
@@ -1374,14 +1374,14 @@ static bool dropMsg(PspmixFence_t *fence, uint8_t msg)
 static bool appendMsg(PspmixFence_t *fence, uint8_t msg)
 {
     if (msg >= fence->nMsgs) {
-	ulog("UNEXPECTED: fence 0x%016lX lacks of messages (%u <= %u)\n",
+	flog("UNEXPECTED: fence 0x%016lX lacks of messages (%u <= %u)\n",
 	     fence->id, fence->nMsgs, msg);
 	return false;
     }
 
     char *data = urealloc(fence->data, fence->len + fence->msgs[msg].len);
     if (!data) {
-	ulog("UNEXPECTED: no memory for 0x%016lX\n", fence->id);
+	flog("UNEXPECTED: no memory for 0x%016lX\n", fence->id);
 	ufree(fence->data);
 	fence->data = NULL;
 	dropMsg(fence, msg);
@@ -1520,12 +1520,12 @@ static void checkFence(PspmixFence_t *fence) {
     mdbg(PSPMIX_LOG_CALL, "%s(0x%016lX)\n", __func__, fence->id);
 
     if (!fence->nNodes) {
-	ulog("UNEXPECTED: no nodes in 0x%016lX\n", fence->id);
+	flog("UNEXPECTED: no nodes in 0x%016lX\n", fence->id);
 	return;
     }
 
     if (!fence->nMsgs) {
-	ulog("UNEXPECTED: no pending messages in 0x%016lX\n", fence->id);
+	flog("UNEXPECTED: no pending messages in 0x%016lX\n", fence->id);
 	return;
     }
 
@@ -1627,7 +1627,7 @@ static void checkFence(PspmixFence_t *fence) {
 	pspmix_server_fenceOut(true, fence->mdata);
 
 	/* cleanup fence object */
-	if (fence->nMsgs) ulog("UNEXPECTED: drop %u messages from 0x%016lX\n",
+	if (fence->nMsgs) flog("UNEXPECTED: drop %u messages from 0x%016lX\n",
 			       fence->nMsgs, fence->id);
 	while (fence->nMsgs) dropMsg(fence, fence->nMsgs - 1);
 	ufree(fence->nodes);
@@ -1649,7 +1649,7 @@ static bool extractNodes(const pmix_proc_t procs[], size_t nprocs,
 	if (!ns || !PMIX_CHECK_NSPACE(procs[p].nspace, ns->name)) {
 	    ns = findNamespace(procs[p].nspace);
 	    if (!ns) {
-		ulog("UNEXPECTED: unknown namespaces '%s'\n", procs[p].nspace);
+		flog("UNEXPECTED: unknown namespaces '%s'\n", procs[p].nspace);
 		vectorDestroy(nodes);
 		RELEASE_LOCK(namespaceList);
 		return false;
@@ -1673,7 +1673,7 @@ static bool extractNodes(const pmix_proc_t procs[], size_t nprocs,
 
 	PSnodes_ID_t nodeid = getNodeFromRank(ns, procs[p].rank);
 	if (nodeid < 0) {
-	    ulog("no node for rank %d in namespace '%s'\n",
+	    flog("no node for rank %d in namespace '%s'\n",
 		 procs[p].rank, procs[p].nspace);
 	    vectorDestroy(nodes);
 	    RELEASE_LOCK(namespaceList);
@@ -1694,7 +1694,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
 			   char *data, size_t len, modexdata_t *mdata)
 {
     if (nProcs == 0) {
-	ulog("ERROR: nProcs == 0\n");
+	flog("ERROR: nProcs == 0\n");
 	return -1;
     }
 
@@ -1711,7 +1711,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
     /* fence object should only exist if pspmix_service_handleFenceData has
      * already been called and then has no node list set */
     if (fence && fence->nodes) {
-	ulog("UNEXPECTED: fence 0x%016lX found with nodes set\n", fenceID);
+	flog("UNEXPECTED: fence 0x%016lX found with nodes set\n", fenceID);
 	RELEASE_LOCK(fenceList);
 	return -1;
     }
@@ -1719,13 +1719,13 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
     /* create list of participating nodes */
     vector_t nodes;
     if (!extractNodes(procs, nProcs, &nodes)) {
-	ulog("UNEXPECTED: failed to extract nodes for fence operation\n");
+	flog("UNEXPECTED: failed to extract nodes for fence operation\n");
 	RELEASE_LOCK(fenceList);
 	return -1;
     }
 
     if (nodes.len == 0) {
-	ulog("UNEXPECTED: no node in list of participating nodes\n");
+	flog("UNEXPECTED: no node in list of participating nodes\n");
 	vectorDestroy(&nodes);
 	RELEASE_LOCK(fenceList);
 	return -1;
@@ -1734,7 +1734,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
     PSnodes_ID_t myNodeID = PSC_getMyID();
     size_t myNodeRank = vectorFind(&nodes, &myNodeID);
     if (myNodeRank == nodes.len) {
-	ulog("UNEXPECTED: local node not in list of participants\n");
+	flog("UNEXPECTED: local node not in list of participants\n");
 	vectorDestroy(&nodes);
 	RELEASE_LOCK(fenceList);
 	return -1;
@@ -1750,7 +1750,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
     }
 
     if (mset(PSPMIX_LOG_FENCE)) {
-	ulog("this fence has id 0x%016lX and nodelist: %hd", fenceID,
+	flog("this fence has id 0x%016lX and nodelist: %hd", fenceID,
 	     *vectorGet(&nodes, 0, PSnodes_ID_t));
 	for (size_t i = 1; i < nodes.len; i++) {
 	    mlog(",%hd", *vectorGet(&nodes, i, PSnodes_ID_t));
@@ -1834,14 +1834,14 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 
     PspmixNamespace_t *ns = findNamespace(mdata->proc.nspace);
     if (!ns) {
-	ulog("namespace '%s' not found\n", mdata->proc.nspace);
+	flog("namespace '%s' not found\n", mdata->proc.nspace);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
 
     PSnodes_ID_t nodeid = getNodeFromRank(ns, mdata->proc.rank);
     if (nodeid < 0) {
-	ulog("UNEXPECTED: getNodeFromRank(%s, %d) failed\n", ns->name,
+	flog("UNEXPECTED: getNodeFromRank(%s, %d) failed\n", ns->name,
 	     mdata->proc.rank);
 	RELEASE_LOCK(namespaceList);
 	return false;
@@ -1849,7 +1849,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 
     RELEASE_LOCK(namespaceList);
 
-    udbg(PSPMIX_LOG_MODEX, "rank %d on node %hd\n", mdata->proc.rank, nodeid);
+    fdbg(PSPMIX_LOG_MODEX, "rank %d on node %hd\n", mdata->proc.rank, nodeid);
 
     GET_LOCK(modexRequestList);
 
@@ -1857,7 +1857,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 					  mdata->proc.rank,
 					  strvGetArray(mdata->reqKeys),
 					  mdata->timeout)) {
-	ulog("send failed for %s:%d to node %hd\n",
+	flog("send failed for %s:%d to node %hd\n",
 		mdata->proc.nspace, mdata->proc.rank, nodeid);
 	RELEASE_LOCK(modexRequestList);
 	return false;
@@ -1886,7 +1886,7 @@ bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
 
     /* hands over ownership of mdata */
     if (!pspmix_server_requestModexData(mdata)) {
-	ulog("pspmix_server_requestModexData() failed for %s:%d\n", nspace,
+	flog("pspmix_server_requestModexData() failed for %s:%d\n", nspace,
 	     rank);
 	PMIX_PROC_DESTRUCT(&mdata->proc);
 	ufree(mdata);
@@ -1902,11 +1902,11 @@ void pspmix_service_sendModexDataResponse(pmix_status_t status,
 
     if (status != PMIX_SUCCESS)
     {
-	ulog(" failed: %d\n", status);
+	flog(" failed: %d\n", status);
     }
 
     if (mset(PSPMIX_LOG_MODEX)) {
-	ulog("Sending data: ");
+	flog("Sending data: ");
 	for (size_t i = 0; i < mdata->ndata; i++) {
 	    mlog("%02hhx ", *(char *)(mdata->data+i));
 	}
@@ -1946,7 +1946,7 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status,
     RELEASE_LOCK(modexRequestList);
 
     if (!mdata) {
-	ulog("no request for response (namespace %s rank %d). Ignoring!\n",
+	flog("no request for response (namespace %s rank %d). Ignoring!\n",
 	     nspace, rank);
 	ufree(data);
 	return;
@@ -1956,7 +1956,7 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status,
     mdata->ndata = len;
 
     if (mset(PSPMIX_LOG_MODEX)) {
-	ulog("passing received data: ");
+	flog("passing received data: ");
 	for (size_t i = 0; i < mdata->ndata; i++) {
 	    mlog("%02hhx ", *(char *)(mdata->data+i));
 	}
@@ -1979,7 +1979,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 
     if (mset(PSPMIX_LOG_SPAWN)) {
 	for (size_t i = 0; i < napps; i++) {
-	    ulog("respawning");
+	    flog("respawning");
 	    for (char **cur = apps[i].argv; *cur; cur++) mlog(" %s", *cur);
 	    mlog("\n");
 	}
@@ -1993,7 +1993,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     spawn->apps = apps;
     spawn->state = SPAWN_INITIALIZED;
     spawn->opts = opts;
-    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state INITIALIZED\n", spawn->id);
+    fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state INITIALIZED\n", spawn->id);
 
     /* @todo what means maxprocs, can the spawn be successful with less procs? */
     for (size_t i = 0; i < napps; i++) spawn->np += apps[i].maxprocs;
@@ -2002,7 +2002,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 
     PspmixNamespace_t *ns = findNamespace(caller->nspace);
     if (!ns) {
-	ulog("namespace '%s' not found\n", caller->nspace);
+	flog("namespace '%s' not found\n", caller->nspace);
 	RELEASE_LOCK(namespaceList);
 	ufree(spawn);
 	return false;
@@ -2010,7 +2010,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 
     PspmixClient_t *client = findClientInList(caller->rank, &ns->clientList);
     if (!client) {
-	ulog("client rank %d not found in namespace '%s'\n", caller->rank,
+	flog("client rank %d not found in namespace '%s'\n", caller->rank,
 	     caller->nspace);
 	RELEASE_LOCK(namespaceList);
 	ufree(spawn);
@@ -2023,7 +2023,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     if (!pspmix_comm_sendClientSpawn(client->fwtid, spawn->id, spawn->napps,
 				     spawn->apps, spawn->caller.nspace,
 				     spawn->caller.rank, spawn->opts)) {
-	ulog("sending spawn req to forwarder failed (namespace %s rank %d)\n",
+	flog("sending spawn req to forwarder failed (namespace %s rank %d)\n",
 	     spawn->caller.nspace, spawn->caller.rank);
 	ufree(spawn);
 	return false;
@@ -2036,7 +2036,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     RELEASE_LOCK(spawnList);
 
     spawn->state = SPAWN_REQUESTED;
-    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state REQUESTED\n", spawn->id);
+    fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state REQUESTED\n", spawn->id);
 
     return true;
 }
@@ -2051,7 +2051,7 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
     PspmixSpawn_t *spawn = findSpawn(spawnID);
     if (!spawn) {
 	RELEASE_LOCK(spawnList);
-	ulog("UNEXPECTED: spawn id %hu not found (success %s)", spawnID,
+	flog("UNEXPECTED: spawn id %hu not found (success %s)", spawnID,
 	     success ? "true" : "false");
 	return;
     }
@@ -2059,14 +2059,14 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
     if (success) {
 	/* success, update state and wait for ready clients */
 
-	udbg(PSPMIX_LOG_SPAWN, "forwarder reported success for spawn id %hu\n",
+	fdbg(PSPMIX_LOG_SPAWN, "forwarder reported success for spawn id %hu\n",
 	     spawnID);
 
 	/* fine if all clients already reported to be connected, this means that
 	 * the SPAWN requests from the spawner process have been faster than the
 	 * spawn response from the forwarder which is unlikely, but possible */
 	if (spawn->state == SPAWN_ALLSUCCESS) {
-	    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: all clients already connected,"
+	    fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: all clients already connected,"
 				   " skipping state INPROGRESS\n", spawn->id);
 	    pspmix_server_spawnRes(true, spawn->sdata, spawn->nspace);
 	    list_del(&spawn->next);
@@ -2077,10 +2077,10 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
 
 	/* waiting for all clients to be known as connected */
 	if (spawn->state != SPAWN_REQUESTED) {
-		ulog("UNEXPECTED: spawn state is %d", spawn->state);
+		flog("UNEXPECTED: spawn state is %d", spawn->state);
 	}
 	spawn->state = SPAWN_INPROGRESS;
-	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state INPROGRESS\n", spawn->id);
+	fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state INPROGRESS\n", spawn->id);
 	RELEASE_LOCK(spawnList);
 	return;
     }
@@ -2093,13 +2093,13 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
      * - SPAWN_REQUESTED     if not all spawn info messages are received, yet
      * - SPAWN_ALLSUCCESS  if all spawn info messages are received */
     if (spawn->state != SPAWN_REQUESTED && spawn->state != SPAWN_ALLSUCCESS) {
-	ulog("UNEXPECTED: spawn state is %d", spawn->state);
+	flog("UNEXPECTED: spawn state is %d", spawn->state);
     }
 
-    ulog("forwarder reported fail for spawn id %hu\n", spawnID);
+    flog("forwarder reported fail for spawn id %hu\n", spawnID);
 
     spawn->state = SPAWN_FAILED;
-    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
+    fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
     pspmix_server_spawnRes(false, spawn->sdata, NULL);
 
     /*
@@ -2131,7 +2131,7 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 
     PspmixNamespace_t *ns = findNamespace(nspace);
     if (!ns) {
-	ulog("UNEXPECTED: namespace '%s' not found (fw %s rank %d spawnID"
+	flog("UNEXPECTED: namespace '%s' not found (fw %s rank %d spawnID"
 	     " %hu)\n", nspace, PSC_printTID(fwTID), rank, spawnID);
 	return;
     }
@@ -2139,7 +2139,7 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
     /* set client tid */
     PspmixClient_t *client = findClientInList(rank, &ns->clientList);
     if (!client) {
-	ulog("UNEXPECTED: no client with rank %u found in namespace '%s' (spawn"
+	flog("UNEXPECTED: no client with rank %u found in namespace '%s' (spawn"
 	     " id %hu fw %s)\n", rank, ns->name, spawnID, PSC_printTID(fwTID));
 	success = false;
     } else {
@@ -2171,7 +2171,7 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 	if (readyClients < localClients) return;
 
 	if (readyClients > localClients) {
-	    ulog("UNEXPECTED: spawn id %hu: too many processes (%u > %u)\n",
+	    flog("UNEXPECTED: spawn id %hu: too many processes (%u > %u)\n",
 		 spawnID, readyClients, localClients);
 	    success = false;
 	}
@@ -2179,11 +2179,11 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 
     if (!pspmix_comm_sendSpawnInfo(spawnNode, spawnID, success,
 				   nsName, readyClients)) {
-	ulog("failed to send failed spawn info to node %hd\n", spawnNode);
+	flog("failed to send failed spawn info to node %hd\n", spawnNode);
     }
 
     if (!success) {
-	ulog("ERROR in execution of PMIx_Spawn(): Terminating spawned job\n");
+	flog("ERROR in execution of PMIx_Spawn(): Terminating spawned job\n");
 	pspmix_service_terminateClients(nsName, true);
     }
 }
@@ -2202,16 +2202,16 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
     PspmixSpawn_t *spawn = findSpawn(spawnID);
     if (!spawn) {
 	RELEASE_LOCK(spawnList);
-	ulog("UNEXPECTED: spawnID %hu not found (np %u node %hd)\n", spawnID,
+	flog("UNEXPECTED: spawnID %hu not found (np %u node %hd)\n", spawnID,
 	     np, node);
 	return;
     }
 
     if (!succ) {
-	ulog("node %hd reported failed spawn (id %hu nsName %s np %u)\n", node,
+	flog("node %hd reported failed spawn (id %hu nsName %s np %u)\n", node,
 	     spawnID, nsName, np);
 	spawn->state = SPAWN_FAILED;
-	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
+	fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
 	goto failed;
     }
 
@@ -2220,10 +2220,10 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 	/* first info for this spawn */
 	spawn->nspace = ustrdup(nsName);
     } else if (!spawn->nspace) {
-	ulog("UNEXPECTED: spawn id %hu: namespace not set\n", spawnID);
+	flog("UNEXPECTED: spawn id %hu: namespace not set\n", spawnID);
 	goto failed;
     } else if (strcmp(spawn->nspace, nsName)) {
-	ulog("UNEXPECTED: spawn id %hu: different namespaces (%s != %s)\n",
+	flog("UNEXPECTED: spawn id %hu: different namespaces (%s != %s)\n",
 	     spawnID, nsName, spawn->nspace);
 	goto failed;
     }
@@ -2237,7 +2237,7 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
     }
 
     if (spawn->ready > spawn->np) {
-	ulog("UNEXPECTED: spawn id %hu: too many processes (%u > %u)\n",
+	flog("UNEXPECTED: spawn id %hu: too many processes (%u > %u)\n",
 	     spawnID, spawn->ready, spawn->np);
 	goto failed;
     }
@@ -2246,19 +2246,19 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
     if (spawn->state == SPAWN_INPROGRESS) {
 	/* answer from spawn request already received */
 	spawn->state = SPAWN_ALLSUCCESS;
-	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state ALLSUCCESS\n", spawn->id);
+	fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state ALLSUCCESS\n", spawn->id);
 	pspmix_server_spawnRes(true, spawn->sdata, nsName);
 	goto cleanup;
     } else {
 	/* still waiting for the answer to the spawn request */
 	spawn->state = SPAWN_ALLSUCCESS;
-	udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state ALLSUCCESS\n", spawn->id);
+	fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state ALLSUCCESS\n", spawn->id);
 	return;
     }
 
 failed:
     spawn->state = SPAWN_FAILED;
-    udbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
+    fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
     pspmix_server_spawnRes(false, spawn->sdata, NULL);
 
     /*

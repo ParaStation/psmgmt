@@ -86,7 +86,7 @@ typedef struct {
 #define INFO_LIST_ADD(i, key, val, t)					    \
     do {								    \
 	pmix_status_t status = PMIx_Info_list_add(i, key, val, t);	    \
-	if (status != PMIX_SUCCESS) ulog("failed to add %s: %s\n", #key,    \
+	if (status != PMIX_SUCCESS) flog("failed to add %s: %s\n", #key,    \
 					 PMIx_Error_string(status));	    \
     } while(0)
 
@@ -96,7 +96,7 @@ typedef struct {
 	pmix_status_t status = PMIx_Info_list_convert(list, array);	    \
 	PMIx_Info_list_release(list);					    \
 	if (status != PMIX_SUCCESS) {					    \
-	    ulog("failed to convert info list: %s\n",			    \
+	    flog("failed to convert info list: %s\n",			    \
 		 PMIx_Error_string(status));				    \
 	} \
     } while(0)
@@ -735,11 +735,11 @@ static bool checkKeyAvailability(pmix_proc_t *proc, strv_t reqKeys)
 					&val);
 	switch (status) {
 	    case PMIX_SUCCESS:
-		udbg(PSPMIX_LOG_MODEX, "found '%s' for rank %d\n", *key,
+		fdbg(PSPMIX_LOG_MODEX, "found '%s' for rank %d\n", *key,
 		     proc->rank);
 		break;
 	    case PMIX_ERR_NOT_FOUND:
-		udbg(PSPMIX_LOG_MODEX, "not found '%s' for rank %d\n", *key,
+		fdbg(PSPMIX_LOG_MODEX, "not found '%s' for rank %d\n", *key,
 		     proc->rank);
 		PMIX_DATA_ARRAY_DESTRUCT(&info);
 		return false;
@@ -791,7 +791,7 @@ static void reqModexTimeoutHandler(int timerID, void *info)
 	return;
     }
 
-    udbg(PSPMIX_LOG_MODEX, "not yet found all required keys for rank %d\n",
+    fdbg(PSPMIX_LOG_MODEX, "not yet found all required keys for rank %d\n",
 	 mdata->proc.rank);
 
     time_t curtime = time(NULL);
@@ -3037,7 +3037,7 @@ bool pspmix_server_createPSet(const char *name, PspmixNamespace_t *ns,
 
     /* do not create empty psets */
     if (!members.len) {
-	udbg(PSPMIX_LOG_PSET, "process set '%s' would be empty\n", name);
+	fdbg(PSPMIX_LOG_PSET, "process set '%s' would be empty\n", name);
 	vectorDestroy(&members);
 	return true;
     }
@@ -3049,11 +3049,11 @@ bool pspmix_server_createPSet(const char *name, PspmixNamespace_t *ns,
     /* Standard says PMIX_SUCCESS should be returned, but OpenPMIx 4.2.2
      * might return PMIX_OPERATION_SUCCEEDED instead */
     if (status != PMIX_SUCCESS && status != PMIX_OPERATION_SUCCEEDED) {
-	ulog("failed to create process set '%s': %s\n", name,
+	flog("failed to create process set '%s': %s\n", name,
 	     PMIx_Error_string(status));
 	return false;
     }
-    udbg(PSPMIX_LOG_PSET, "process set '%s' created\n", name);
+    fdbg(PSPMIX_LOG_PSET, "process set '%s' created\n", name);
     return true;
 }
 

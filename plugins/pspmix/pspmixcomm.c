@@ -344,7 +344,7 @@ static void handleFenceObsolete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     uint64_t fenceID;
     getUint64(data, &fenceID);
 
-    ulog("UNEXPECTED: type %s from %s for fence 0x%016lX\n",
+    flog("UNEXPECTED: type %s from %s for fence 0x%016lX\n",
 	 pspmix_getMsgTypeString(msg->type),
 	 PSC_printTID(msg->header.sender), fenceID);
 }

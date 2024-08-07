@@ -21,7 +21,6 @@
 #include "psidforwarder.h"  // IWYU pragma: keep // for PSIDfwd_printMsgf()
 
 #include "pspmixtypes.h"
-#include "pspmixuserserver.h"  // IWYU pragma: keep // for server
 
 extern logger_t pmixlogger;
 
@@ -66,17 +65,6 @@ extern pthread_mutex_t __mlock;
 #endif
 
 #define flog(...) fdbg(-1, __VA_ARGS__)
-
-#if defined __GNUC__ && __GNUC__ < 8
-#define udbg(mask, format, ...)						\
-    mdbg(mask, "%s(uid %d): " format, __func__, server->uid, ##__VA_ARGS__)
-#else
-#define udbg(mask, format, ...)						\
-    mdbg(mask, "%s(uid %d): " format, __func__, server->uid __VA_OPT__(,) \
-	 __VA_ARGS__)
-#endif
-
-#define ulog(...) udbg(-1, __VA_ARGS__)
 
 /** Various types of logging levels for more verbose logging */
 typedef enum {
