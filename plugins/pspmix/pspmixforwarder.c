@@ -484,7 +484,7 @@ static bool tryPMIxSpawn(SpawnReqData_t *srdata)
  */
 static bool sendSpawnResp(PStask_ID_t dest, uint16_t spawnID, uint8_t result)
 {
-    rdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "(dest %s spawnID %hu result %d)\n",
+    rdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %s spawnID %hu result %d\n",
 	 PSC_printTID(dest), spawnID, result);
 
     PS_SendDB_t msg;
@@ -785,7 +785,7 @@ static void handleEarlyMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  */
 static bool waitForClientEnv(int daemonfd, struct timeval timeout)
 {
-    rdbg(PSPMIX_LOG_CALL, "(timeout %lu us)\n",
+    rdbg(PSPMIX_LOG_CALL, "timeout %lu us\n",
 	 (unsigned long)(timeout.tv_sec * 1000 * 1000 + timeout.tv_usec));
 
     while (!environmentReady && !jobsetupFailed) {
@@ -814,8 +814,8 @@ static bool waitForClientEnv(int daemonfd, struct timeval timeout)
 static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
 				 const char *nspace, pmix_rank_t pmixrank)
 {
-    rdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "(targetTID %s type %s nspace %s"
-	 " rank %u)\n", PSC_printTID(targetTID), pspmix_getMsgTypeString(type),
+    rdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "targetTID %s type %s nspace %s"
+	 " rank %u\n", PSC_printTID(targetTID), pspmix_getMsgTypeString(type),
 	 nspace, rank);
 
     PS_SendDB_t msg;
@@ -851,7 +851,7 @@ static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
  */
 static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    rdbg(PSPMIX_LOG_CALL, "(msg %p data %p)\n", msg, data);
+    rdbg(PSPMIX_LOG_CALL, "msg %p data %p\n", msg, data);
 
     PMIX_PROC_CONSTRUCT(&myproc);
     getString(data, myproc.nspace, sizeof(myproc.nspace));
@@ -883,7 +883,7 @@ static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  */
 static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    rdbg(PSPMIX_LOG_CALL, "(msg %p data %p)\n", msg, data);
+    rdbg(PSPMIX_LOG_CALL, "msg %p data %p\n", msg, data);
 
     pmix_proc_t proc;
     PMIX_PROC_CONSTRUCT(&proc);
@@ -930,7 +930,7 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  */
 static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    rdbg(PSPMIX_LOG_CALL, "(msg %p data %p\n", msg, data);
+    rdbg(PSPMIX_LOG_CALL, "msg %p data %p\n", msg, data);
 
     if (pmixStatus != CONNECTED) {
 	rlog("ERROR: client not connected\n");
@@ -1020,7 +1020,7 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  */
 static bool handlePspmixMsg(DDBufferMsg_t *vmsg)
 {
-    rdbg(PSPMIX_LOG_CALL, "(vmsg %p)\n", vmsg);
+    rdbg(PSPMIX_LOG_CALL, "vmsg %p\n", vmsg);
 
     DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
 
@@ -1145,7 +1145,7 @@ static bool msgSPAWNRES(DDBufferMsg_t *msg)
  */
 static int hookExecForwarder(void *data)
 {
-    rdbg(PSPMIX_LOG_CALL, "(data %p)\n", data);
+    rdbg(PSPMIX_LOG_CALL, "data %p\n", data);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     childTask = data;
@@ -1206,7 +1206,7 @@ static int hookForwarderSetup(void *data)
     /* break if this is not a PMIx job and no PMIx singleton */
     if (!childTask) return 0;
 
-    rdbg(PSPMIX_LOG_CALL, "(data %p)\n", data);
+    rdbg(PSPMIX_LOG_CALL, "data %p\n", data);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
@@ -1249,7 +1249,7 @@ static int hookForwarderInit(void *data)
     /* break if this is not a PMIx job and no PMIx singleton */
     if (!childTask) return 0;
 
-    rdbg(PSPMIX_LOG_CALL, "(data %p)\n", data);
+    rdbg(PSPMIX_LOG_CALL, "data %p\n", data);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
@@ -1280,7 +1280,7 @@ static int hookExecClientUser(void *data)
     /* break if this is not a PMIx job and no PMIx singleton */
     if (!childTask) return 0;
 
-    rdbg(PSPMIX_LOG_CALL, "(data %p)\n", data);
+    rdbg(PSPMIX_LOG_CALL, "data %p\n", data);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
@@ -1324,7 +1324,7 @@ static int hookForwarderClientRelease(void *data)
     /* break if this is not a PMIx job */
     if (!childTask) return IDLE;
 
-    rdbg(PSPMIX_LOG_CALL, "(data %p)\n", data);
+    rdbg(PSPMIX_LOG_CALL, "data %p\n", data);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
@@ -1348,7 +1348,7 @@ static int hookForwarderClientRelease(void *data)
  */
 static int hookForwarderExit(void *data)
 {
-    rdbg(PSPMIX_LOG_CALL, "(data %p)\n", data);
+    rdbg(PSPMIX_LOG_CALL, "data %p\n", data);
 
     /* un-register handler for notification messages from the PMIx userserver */
     PSID_clearMsg(PSP_PLUG_PSPMIX, handlePspmixMsg);

@@ -272,7 +272,7 @@ static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
 						 pmix_op_cbfunc_t cbfunc,
 						 void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "(proc %s:%d clientObject %p cbfunc %p cbdata %p)\n",
+    fdbg(PSPMIX_LOG_CALL, "proc %s:%d clientObject %p cbfunc %p cbdata %p\n",
 	 proc->nspace, proc->rank, clientObject, cbfunc, cbdata);
 
     mycbfunc_t *cb = NULL;
@@ -308,7 +308,7 @@ static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
 static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 	void* clientObject, pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "(proc %s:%d clientObject %p cbfunc %p cbdata %p)\n",
+    fdbg(PSPMIX_LOG_CALL, "proc %s:%d clientObject %p cbfunc %p cbdata %p\n",
 	 proc->nspace, proc->rank, clientObject, cbfunc, cbdata);
 
     mycbfunc_t *cb = NULL;
@@ -332,7 +332,7 @@ void pspmix_server_operationFinished(bool success, void* cb)
 
     mycbfunc_t *callback = cb;
 
-    fdbg(PSPMIX_LOG_CALL, "(success %s cbfunc %p cbdata %p)\n",
+    fdbg(PSPMIX_LOG_CALL, "success %s cbfunc %p cbdata %p\n",
 	 success ? "true" : "false", callback->cbfunc, callback->cbdata);
 
     callback->cbfunc(success ? PMIX_SUCCESS : PMIX_ERROR, callback->cbdata);
@@ -352,8 +352,8 @@ static pmix_status_t server_abort_cb(const pmix_proc_t *proc,
 	void *clientObject, int status, const char msg[], pmix_proc_t procs[],
 	size_t nprocs, pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "(proc %s:%d clientObject %p status %d nprocs"
-	 " %zd cbdata %p)\n", proc->nspace, proc->rank, clientObject,
+    fdbg(PSPMIX_LOG_CALL, "proc %s:%d clientObject %p status %d nprocs %zd"
+	 " cbdata %p\n", proc->nspace, proc->rank, clientObject,
 	 status, nprocs, cbdata);
 
     flog("abort request by %s:%d for ", proc->nspace, proc->rank);
@@ -406,8 +406,8 @@ void pspmix_server_fenceOut(bool success, modexdata_t *mdata)
 	mdata->data = NULL;
     }
 
-    fdbg(PSPMIX_LOG_CALL, "(success %s, mdata->cbfunc %s,"
-	 " mdata->ndata %lu)\n", success ? "true" : "false",
+    fdbg(PSPMIX_LOG_CALL, "success %s mdata->cbfunc %s mdata->ndata %lu\n",
+	 success ? "true" : "false",
 	 mdata->cbfunc ? "set" : "unset", mdata->ndata);
 
     pmix_status_t status = success ? PMIX_SUCCESS : PMIX_ERROR;
@@ -454,7 +454,7 @@ static pmix_status_t server_fencenb_cb(
     assert(nprocs != 0);
 
     if (mset(PSPMIX_LOG_CALL|PSPMIX_LOG_FENCE)) {
-	flog("(processes ");
+	flog("processes ");
 	char rankstr[20];
 	for (size_t i = 0; i < nprocs; i++) {
 
@@ -476,7 +476,7 @@ static pmix_status_t server_fencenb_cb(
 		mlog("},%s{%s", procs[i].nspace, rankstr);
 	    }
 	}
-	mlog("})\n");
+	mlog("}\n");
     }
 
     /* handle command directives */
@@ -582,7 +582,7 @@ void pspmix_server_returnModexData(pmix_status_t status, modexdata_t *mdata)
 {
     assert(mdata != NULL);
 
-    fdbg(PSPMIX_LOG_CALL, "(status %s rank %u namespace %s ndata %lu)\n",
+    fdbg(PSPMIX_LOG_CALL, "status %s rank %u namespace %s ndata %lu\n",
 	 PMIx_Error_string(status), mdata->proc.rank,
 	 mdata->proc.nspace, mdata->ndata);
 
@@ -612,7 +612,7 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 					  pmix_modex_cbfunc_t cbfunc,
 					  void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "(proc %s:%u)\n", proc->nspace, proc->rank);
+    fdbg(PSPMIX_LOG_CALL, "proc %s:%u\n", proc->nspace, proc->rank);
 
     strv_t reqKeys = strvNew(NULL);
     int timeout = 0;
@@ -691,7 +691,7 @@ static void requestModexData_cb(pmix_status_t status, char *data, size_t ndata,
 {
     modexdata_t *mdata = cbdata;
 
-    fdbg(PSPMIX_LOG_CALL, "(ndata %zu proc %s:%u)\n",
+    fdbg(PSPMIX_LOG_CALL, "ndata %zu proc %s:%u\n",
 	 ndata, mdata->proc.nspace, mdata->proc.rank);
 
     mdata->data = data;
@@ -808,8 +808,7 @@ static void reqModexTimeoutHandler(int timerID, void *info)
  */
 bool pspmix_server_requestModexData(modexdata_t *mdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "(proc %s:%u)\n", mdata->proc.nspace,
-	 mdata->proc.rank);
+    fdbg(PSPMIX_LOG_CALL, "proc %s:%u\n", mdata->proc.nspace, mdata->proc.rank);
 
     /* store time processing of the request has started */
     mdata->reqtime = time(NULL);
@@ -996,12 +995,12 @@ void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
 			    const char *nspace)
 {
     if (!sdata || !sdata->cbfunc) {
-	flog("(success %s sdata %p) missing callback\n",
+	flog("success %s sdata %p: missing callback\n",
 	     success ? "true" : "false", sdata);
 	return;
     }
 
-    fdbg(PSPMIX_LOG_CALL, "(success %s)\n", success ? "true" : "false");
+    fdbg(PSPMIX_LOG_CALL, "success %s\n", success ? "true" : "false");
 
     pmix_status_t status = success ? PMIX_SUCCESS : PMIX_ERROR;
 
@@ -1152,7 +1151,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
     }
 
     if (mset(PSPMIX_LOG_CALL)) {
-	flog("(proc %s:%d)\n", proc->nspace, proc->rank);
+	flog("proc %s:%d\n", proc->nspace, proc->rank);
 
 	for (size_t i = 0; i < napps; i++) {
 	    flog("cmd='%s' argv='", apps[i].cmd);
@@ -1394,7 +1393,7 @@ static pmix_status_t server_register_events_cb(pmix_status_t *codes, size_t ncod
 					       const pmix_info_t info[], size_t ninfo,
 					       pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "()\n");
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     flog("NOT IMPLEMENTED\n");
 
@@ -1410,7 +1409,7 @@ static pmix_status_t server_register_events_cb(pmix_status_t *codes, size_t ncod
 static pmix_status_t server_deregister_events_cb(pmix_status_t *codes, size_t ncodes,
 						 pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "()\n");
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     flog("NOT IMPLEMENTED\n");
 
@@ -1443,7 +1442,7 @@ static pmix_status_t server_notify_event_cb(pmix_status_t code,
 					    pmix_info_t info[], size_t ninfo,
 					    pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "()\n");
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     flog("NOT IMPLEMENTED\n");
 
@@ -1483,7 +1482,7 @@ static pmix_status_t server_query_cb(pmix_proc_t *proc,
 				     pmix_query_t *queries, size_t nqueries,
 				     pmix_info_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "(proc %s:%u)\n", proc->nspace, proc->rank);
+    fdbg(PSPMIX_LOG_CALL, "proc %s:%u\n", proc->nspace, proc->rank);
 
     // @todo implement
 
@@ -1554,7 +1553,7 @@ static void server_log_cb(const pmix_proc_t *client,
 			  const pmix_info_t directives[], size_t ndirs,
 			  pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "(client %s:%d ndata %zd ndirs %zd)\n",
+    fdbg(PSPMIX_LOG_CALL, "client %s:%d ndata %zd ndirs %zd\n",
 	 client->nspace, client->rank, ndata, ndirs);
 
     flog("%s:%d reports:", client->nspace, client->rank);
@@ -1853,7 +1852,7 @@ static void errhandler(size_t evhdlr_registration_id, pmix_status_t status,
 		       pmix_info_t results[], size_t nresults,
 		       pmix_event_notification_cbfunc_fn_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "(status %d proc %s:%u ninfo %lu nresults %lu)\n",
+    fdbg(PSPMIX_LOG_CALL, "status %d proc %s:%u ninfo %lu nresults %lu\n",
 	 status, source->nspace, source->rank, ninfo, nresults);
 }
 
@@ -1935,8 +1934,8 @@ static void registerErrorHandler_cb (pmix_status_t status,
 bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 			const char *srvtmpdir, const char *systmpdir)
 {
-    fdbg(PSPMIX_LOG_CALL, "(nspace %s rank %d srvtmpdir %s systmpdir %s)\n",
-	    nspace, rank, srvtmpdir, systmpdir);
+    fdbg(PSPMIX_LOG_CALL, "nspace %s rank %d srvtmpdir %s systmpdir %s\n",
+	 nspace, rank, srvtmpdir, systmpdir);
 
     /* print some interesting environment variables if set */
     for (size_t i = 0; environ[i]; i++) {
@@ -2825,12 +2824,12 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 				     const char *nsdir, PSnodes_ID_t nodeID)
 {
     if (mset(PSPMIX_LOG_CALL)) {
-	flog("(srv_nspace '%s' srv_rank %d nspace '%s' sessionId %u univSize %u"
+	flog("srv_nspace '%s' srv_rank %d nspace '%s' sessionId %u univSize %u"
 	     " jobSize %u spawnparent ", srv_nspace, srv_rank, nspace,
 	     sessionId, univSize, jobSize);
 	if (!spawnparent) mlog("(null)");
 	else mlog("%s:%u", spawnparent->nspace, spawnparent->rank);
-	mlog(" numNodes %d numApps %u tmpdir '%s' nsdir '%s' nodeID %hd)\n",
+	mlog(" numNodes %d numApps %u tmpdir '%s' nsdir '%s' nodeID %hd\n",
 	     numNodes, numApps, tmpdir, nsdir, nodeID);
     }
 
@@ -3055,7 +3054,7 @@ static void deregisterNamespace_cb(pmix_status_t status, void *cbdata)
 
 void pspmix_server_deregisterNamespace(const char *nsname, void *nsobject)
 {
-    fdbg(PSPMIX_LOG_CALL, "(nspace '%s')\n", nsname);
+    fdbg(PSPMIX_LOG_CALL, "nspace '%s'\n", nsname);
 
     /* deregister namespace */
     PMIx_server_deregister_nspace(nsname, deregisterNamespace_cb, nsobject);
@@ -3125,7 +3124,7 @@ static void registerClient_cb(pmix_status_t status, void *cbdata)
 bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
 				  int gid, void *clientObject)
 {
-    fdbg(PSPMIX_LOG_CALL, "(nspace '%s' rank %d uid %d gid %d)\n", nspace,
+    fdbg(PSPMIX_LOG_CALL, "nspace '%s' rank %d uid %d gid %d\n", nspace,
 	 rank, uid, gid);
 
     pmix_status_t status;
@@ -3160,7 +3159,7 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
 /* run this function in exception case to remove all client information  */
 void pspmix_server_deregisterClient(const char *nspace, int rank)
 {
-    fdbg(PSPMIX_LOG_CALL, "(nspace '%s' rank %d)\n", nspace, rank);
+    fdbg(PSPMIX_LOG_CALL, "nspace '%s' rank %d\n", nspace, rank);
 
     /* setup process struct */
     pmix_proc_t proc;
