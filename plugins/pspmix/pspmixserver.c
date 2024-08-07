@@ -139,12 +139,12 @@ static const char * encodeValue(const pmix_value_t *val, pmix_rank_t rank)
 		    PMIX_VAL_FIELD_flag(val));
 	    break;
 	default:
-	    mlog("%s: unsupported value type\n", __func__);
+	    flog("unsupported value type\n");
 	    *buffer = '\0';
     }
 
     if (res >= SBUFSIZE) {
-	mlog("%s: BUFFER SIZE TOO SMALL!!!\n", __func__);
+	flog("BUFFER SIZE TOO SMALL!!!\n");
 	*buffer = '\0';
     }
 
@@ -170,7 +170,7 @@ static void decodeValue(const char *encval, pmix_value_t *val,
     ptr = strchr(buffer, ':');
 
     if (!ptr) {
-	mlog("%s: wrong format encval: no colon found\n", __func__);
+	flog("wrong format encval: no colon found\n");
 	/* return undef */
 	return;
     }
@@ -179,7 +179,7 @@ static void decodeValue(const char *encval, pmix_value_t *val,
     ptr = strchr(++ptr, ':');
 
     if (!ptr) {
-	mlog("%s: wrong format encval: no second colon found\n", __func__);
+	flog("wrong format encval: no second colon found\n");
 	/* return undef */
 	return;
     }
@@ -188,8 +188,8 @@ static void decodeValue(const char *encval, pmix_value_t *val,
     *ptr='\0';
 
     if (sscanf(buffer, "%d:%8s", rank, type) != 2) {
-	mlog("%s: wrong format encval '%s': failed to scan rank:type string"
-	     " '%s'\n", __func__, encval, buffer);
+	flog("wrong format encval '%s': failed to scan rank:type string '%s'\n",
+	     encval, buffer);
 	/* return undef */
 	return;
     }
@@ -234,14 +234,14 @@ static void decodeValue(const char *encval, pmix_value_t *val,
 	}
     }
     else {
-	mlog("%s: unknown type '%s' found in encval\n", __func__, type);
+	flog("unknown type '%s' found in encval\n", type);
 	/* return undef */
 	return;
     }
 
     if (val->type == PMIX_UNDEF) {
-	mlog("%s: could not parse value string '%s' (type '%s') in encval"
-	     " '%s'\n", __func__, ptr, type, encval);
+	flog("could not parse value string '%s' (type '%s') in encval '%s'\n",
+	     ptr, type, encval);
     }
 
     return;
@@ -272,7 +272,7 @@ static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
 						 pmix_op_cbfunc_t cbfunc,
 						 void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "proc %s:%d clientObject %p cbfunc %p cbdata %p\n",
+    fdbg(PSPMIX_LOG_CALL, "(proc %s:%d clientObject %p cbfunc %p cbdata %p)\n",
 	 proc->nspace, proc->rank, clientObject, cbfunc, cbdata);
 
     mycbfunc_t *cb = NULL;
@@ -308,9 +308,8 @@ static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
 static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 	void* clientObject, pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL,
-	 "%s(proc(%d, '%s') clientObject %p cbfunc %p cbdata %p)\n", __func__,
-	 proc->rank, proc->nspace, clientObject, cbfunc, cbdata);
+    fdbg(PSPMIX_LOG_CALL, "(proc %s:%d clientObject %p cbfunc %p cbdata %p)\n",
+	 proc->nspace, proc->rank, clientObject, cbfunc, cbdata);
 
     mycbfunc_t *cb = NULL;
     if (cbfunc) {
@@ -333,7 +332,7 @@ void pspmix_server_operationFinished(bool success, void* cb)
 
     mycbfunc_t *callback = cb;
 
-    mdbg(PSPMIX_LOG_CALL, "%s(success %s cbfunc %p cbdata %p)\n", __func__,
+    fdbg(PSPMIX_LOG_CALL, "(success %s cbfunc %p cbdata %p)\n",
 	 success ? "true" : "false", callback->cbfunc, callback->cbdata);
 
     callback->cbfunc(success ? PMIX_SUCCESS : PMIX_ERROR, callback->cbdata);
@@ -353,12 +352,11 @@ static pmix_status_t server_abort_cb(const pmix_proc_t *proc,
 	void *clientObject, int status, const char msg[], pmix_proc_t procs[],
 	size_t nprocs, pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(proc(%d, '%s') clientObject %p status %d nprocs"
-	 " %zd cbdata %p)\n", __func__, proc->rank, proc->nspace, clientObject,
+    fdbg(PSPMIX_LOG_CALL, "(proc %s:%d clientObject %p status %d nprocs"
+	 " %zd cbdata %p)\n", proc->nspace, proc->rank, clientObject,
 	 status, nprocs, cbdata);
 
-    mlog("Got notification of abort request by %s:%d for ", proc->nspace,
-	 proc->rank);
+    flog("abort request by %s:%d for ", proc->nspace, proc->rank);
     if (!procs || (nprocs == 1
 		   && PMIX_CHECK_NSPACE(procs[0].nspace, proc->nspace)
 		   && procs[0].rank == PMIX_RANK_WILDCARD)) {
@@ -381,7 +379,7 @@ static pmix_status_t server_abort_cb(const pmix_proc_t *proc,
 /* free everything to be freed in fence stuff */
 static void fencenb_release_fn(void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     modexdata_t *mdata = cbdata;
 
@@ -408,8 +406,8 @@ void pspmix_server_fenceOut(bool success, modexdata_t *mdata)
 	mdata->data = NULL;
     }
 
-    mdbg(PSPMIX_LOG_CALL, "%s(success %s, mdata->cbfunc %s,"
-	 " mdata->ndata %lu)\n", __func__, success ? "true" : "false",
+    fdbg(PSPMIX_LOG_CALL, "(success %s, mdata->cbfunc %s,"
+	 " mdata->ndata %lu)\n", success ? "true" : "false",
 	 mdata->cbfunc ? "set" : "unset", mdata->ndata);
 
     pmix_status_t status = success ? PMIX_SUCCESS : PMIX_ERROR;
@@ -456,7 +454,7 @@ static pmix_status_t server_fencenb_cb(
     assert(nprocs != 0);
 
     if (mset(PSPMIX_LOG_CALL|PSPMIX_LOG_FENCE)) {
-	mlog("%s(processes ", __func__);
+	flog("(processes ");
 	char rankstr[20];
 	for (size_t i = 0; i < nprocs; i++) {
 
@@ -491,8 +489,7 @@ static pmix_status_t server_fencenb_cb(
 	 * data around anyhow, nothing to do about this info being set
 	 * or not. */
 	if (PMIX_CHECK_KEY(info+i, PMIX_COLLECT_DATA)) {
-	    mdbg(PSPMIX_LOG_FENCE, "%s: Found %s info [key '%s' value '%s']\n",
-		 __func__,
+	    fdbg(PSPMIX_LOG_FENCE, "found %s info [key '%s' value '%s']\n",
 		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
 		 info[i].key,
 		 (PMIX_INFO_TRUE(&info[i])) ? "true" : "false");
@@ -508,13 +505,12 @@ static pmix_status_t server_fencenb_cb(
 	 * OpenPMIx has no means to have PMIX_LOCAL_COLLECTIVE_STATUS
 	 * different from PMIX_SUCCESS. @todo implement this! */
 	if (PMIX_CHECK_KEY(info+i, PMIX_LOCAL_COLLECTIVE_STATUS)) {
-	    mdbg(PSPMIX_LOG_FENCE, "%s: Found %s info [key '%s' value '%s']\n",
-		 __func__,
+	    fdbg(PSPMIX_LOG_FENCE, "found %s info [key '%s' value '%s']\n",
 		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
 		 info[i].key,
 		 PMIx_Error_string(info[i].value.data.status));
 	    if (info[i].value.data.status != PMIX_SUCCESS) {
-		mlog("%s: Local collective error status passed: %s\n", __func__,
+		flog("local collective error status passed: %s\n",
 		     PMIx_Error_string(info[i].value.data.status));
 	    }
 	    continue;
@@ -527,8 +523,7 @@ static pmix_status_t server_fencenb_cb(
 	 * acts on nodes and there is no guarantee that proc ordering
 	 * transfers to node ordering. Thus, just ignore this info. */
 	if (PMIX_CHECK_KEY(info+i, PMIX_SORTED_PROC_ARRAY)) {
-	    mdbg(PSPMIX_LOG_FENCE, "%s: Found %s info [key '%s' value '%s']\n",
-		 __func__,
+	    fdbg(PSPMIX_LOG_FENCE, "found %s info [key '%s' value '%s']\n",
 		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
 		 info[i].key,
 		 (PMIX_INFO_TRUE(&info[i])) ? "true" : "false");
@@ -536,8 +531,8 @@ static pmix_status_t server_fencenb_cb(
 	}
 
 	/* inform about lacking implementation */
-	mlog("%s: Ignoring info [key '%s' flags '%s' value.type '%s']"
-	     " (not implemented)\n", __func__, info[i].key,
+	flog("ignoring info [key '%s' flags '%s' value.type '%s']"
+	     " (not implemented)\n", info[i].key,
 	     PMIx_Info_directives_string(info[i].flags),
 	     PMIx_Data_type_string(info[i].value.type));
     }
@@ -559,7 +554,7 @@ static pmix_status_t server_fencenb_cb(
 
     ufree(mdata->data);
     ufree(mdata);
-    mdbg(PSPMIX_LOG_FENCE, "%s: return PMIX_OPERATION_SUCCEEDED\n", __func__);
+    fdbg(PSPMIX_LOG_FENCE, "return PMIX_OPERATION_SUCCEEDED\n");
     return PMIX_OPERATION_SUCCEEDED;
 }
 
@@ -587,8 +582,8 @@ void pspmix_server_returnModexData(pmix_status_t status, modexdata_t *mdata)
 {
     assert(mdata != NULL);
 
-    mdbg(PSPMIX_LOG_CALL, "%s(status %s rank %u namespace %s ndata %lu)\n",
-	 __func__, PMIx_Error_string(status), mdata->proc.rank,
+    fdbg(PSPMIX_LOG_CALL, "(status %s rank %u namespace %s ndata %lu)\n",
+	 PMIx_Error_string(status), mdata->proc.rank,
 	 mdata->proc.nspace, mdata->ndata);
 
     /* Call the callback provided by the server in server_dmodex_req_cb().
@@ -617,7 +612,7 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 					  pmix_modex_cbfunc_t cbfunc,
 					  void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "on %s:%u\n", proc->nspace, proc->rank);
+    fdbg(PSPMIX_LOG_CALL, "(proc %s:%u)\n", proc->nspace, proc->rank);
 
     strv_t reqKeys = strvNew(NULL);
     int timeout = 0;
@@ -696,7 +691,7 @@ static void requestModexData_cb(pmix_status_t status, char *data, size_t ndata,
 {
     modexdata_t *mdata = cbdata;
 
-    fdbg(PSPMIX_LOG_CALL, "ndata %zu proc %s:%u\n",
+    fdbg(PSPMIX_LOG_CALL, "(ndata %zu proc %s:%u)\n",
 	 ndata, mdata->proc.nspace, mdata->proc.rank);
 
     mdata->data = data;
@@ -745,9 +740,8 @@ static bool checkKeyAvailability(pmix_proc_t *proc, strv_t reqKeys)
 		return false;
 	    case PMIX_ERR_BAD_PARAM:
 	    case PMIX_ERR_EXISTS_OUTSIDE_SCOPE:
-		mlog("%s: PMIx_get(proc %s:%d key %s) failed: %s\n", __func__,
-			proc->nspace, proc->rank, *key,
-			PMIx_Error_string(status));
+		flog("PMIx_get(proc %s:%d key %s) failed: %s\n", proc->nspace,
+		     proc->rank, *key, PMIx_Error_string(status));
 		PMIX_DATA_ARRAY_DESTRUCT(&info);
 		return false;
 	}
@@ -774,7 +768,7 @@ static void reqModexTimeoutHandler(int timerID, void *info)
 {
     modexdata_t *mdata = info;
     if (!mdata) {
-	mlog("%s: no mdata for %d\n", __func__, timerID);
+	flog("no mdata for %d\n", timerID);
 	return;
     }
 
@@ -785,7 +779,7 @@ static void reqModexTimeoutHandler(int timerID, void *info)
 		PMIx_server_dmodex_request(&mdata->proc, requestModexData_cb,
 					   mdata);
 	if (status != PMIX_SUCCESS) {
-	    mlog("%s: PMIx_server_dmodex_request() failed: %s\n", __func__,
+	    flog("PMIx_server_dmodex_request() failed: %s\n",
 		 PMIx_Error_string(status));
 	}
 	return;
@@ -814,8 +808,8 @@ static void reqModexTimeoutHandler(int timerID, void *info)
  */
 bool pspmix_server_requestModexData(modexdata_t *mdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(rank %u namespace %s)\n", __func__,
-	 mdata->proc.rank, mdata->proc.nspace);
+    fdbg(PSPMIX_LOG_CALL, "(proc %s:%u)\n", mdata->proc.nspace,
+	 mdata->proc.rank);
 
     /* store time processing of the request has started */
     mdata->reqtime = time(NULL);
@@ -826,7 +820,7 @@ bool pspmix_server_requestModexData(modexdata_t *mdata)
 		PMIx_server_dmodex_request(&mdata->proc, requestModexData_cb,
 					   mdata);
 	if (status != PMIX_SUCCESS) {
-	    mlog("%s: PMIx_server_dmodex_request() failed: %s\n", __func__,
+	    flog("PMIx_server_dmodex_request() failed: %s\n",
 		 PMIx_Error_string(status));
 	    return false;
 	}
@@ -868,9 +862,9 @@ static pmix_status_t server_publish_cb(const pmix_proc_t *proc,
 				       const pmix_info_t info[], size_t ninfo,
 				       pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
-    mlog("%s: NOT IMPLEMENTED\n", __func__);
+    flog("NOT IMPLEMENTED\n");
 
     // @todo implement
 #if 0
@@ -881,8 +875,8 @@ static pmix_status_t server_publish_cb(const pmix_proc_t *proc,
 	if (!ret) errcount++;
 
 	/* inform about lacking implementation */
-	mlog("%s: Ignoring flags for key '%s' flags '%s' (not implemented)\n",
-	     __func__, info[i].key, PMIx_Info_directives_string(info[i].flags));
+	flog("ignoring flags for key '%s' flags '%s' (not implemented)\n",
+	     info[i].key, PMIx_Info_directives_string(info[i].flags));
     }
 
     if (cbfunc) cbfunc(errcount == 0 ? PMIX_SUCCESS : PMIX_ERROR, cbdata);
@@ -915,9 +909,9 @@ static pmix_status_t server_lookup_cb(const pmix_proc_t *proc, char **keys,
 				      const pmix_info_t info[], size_t ninfo,
 				      pmix_lookup_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
-    mlog("%s: NOT IMPLEMENTED\n", __func__);
+    flog("NOT IMPLEMENTED\n");
 
     /* @todo implement */
 #if 0
@@ -925,8 +919,8 @@ static pmix_status_t server_lookup_cb(const pmix_proc_t *proc, char **keys,
 
     /* inform about lacking implementation */
     for (size_t i = 0; i < ninfo; i++) {
-	mlog("%s: Ignoring info [key '%s' flags '%s' value.type '%s']"
-	     " (not implemented)\n", __func__, info[i].key,
+	flog("ignoring info [key '%s' flags '%s' value.type '%s']"
+	     " (not implemented)\n", info[i].key,
 	     PMIx_Info_directives_string(info[i].flags),
 	     PMIx_Data_type_string(info[i].value.type));
     }
@@ -945,8 +939,8 @@ static pmix_status_t server_lookup_cb(const pmix_proc_t *proc, char **keys,
 	encval = pspmix_service_getFromKVS(proc->nspace, keys[i]);
 
 	if (!encval) {
-	    mlog("%s: Error getting key '%s' in namespace '%s'\n", __func__,
-		 keys[i], proc->nspace);
+	    flog("error getting key '%s' in namespace '%s'\n", keys[i],
+		 proc->nspace);
 	    continue;
 	}
 
@@ -987,9 +981,9 @@ static pmix_status_t server_unpublish_cb(const pmix_proc_t *proc, char **keys,
 					 const pmix_info_t info[], size_t ninfo,
 					 pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
-    mlog("%s: NOT IMPLEMENTED\n", __func__);
+    flog("NOT IMPLEMENTED\n");
 
     // @todo implement
 
@@ -1002,13 +996,12 @@ void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
 			    const char *nspace)
 {
     if (!sdata || !sdata->cbfunc) {
-	mlog("%s(success %s sdata %p) missing callback\n", __func__,
+	flog("(success %s sdata %p) missing callback\n",
 	     success ? "true" : "false", sdata);
 	return;
     }
 
-    mdbg(PSPMIX_LOG_CALL, "%s(success %s)\n", __func__,
-	 success ? "true" : "false");
+    fdbg(PSPMIX_LOG_CALL, "(success %s)\n", success ? "true" : "false");
 
     pmix_status_t status = success ? PMIX_SUCCESS : PMIX_ERROR;
 
@@ -1051,8 +1044,7 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
      */
     for (size_t i = 0; i < ninfo; i++) {
 	if (PMIX_CHECK_KEY(info+i, PMIX_WDIR)) {
-	    mdbg(PSPMIX_LOG_SPAWN, "%s: Found %s info [key '%s' value '%s']\n",
-		 __func__,
+	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
 		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
 		 info[i].key,
 		 info[i].value.data.string);
@@ -1061,8 +1053,7 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	}
 
 	if (PMIX_CHECK_KEY(info+i, PMIX_SET_SESSION_CWD)) {
-	    mdbg(PSPMIX_LOG_SPAWN, "%s: Found %s info [key '%s' value '%s']\n",
-		 __func__,
+	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
 		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
 		 info[i].key,
 		 (PMIX_INFO_TRUE(&info[i])) ? "true" : "false");
@@ -1078,8 +1069,7 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	 * https://github.com/pmix/pmix-standard/issues/506
 	 */
 	if (PMIX_CHECK_KEY(info+i, PMIX_PREFIX)) {
-	    mdbg(PSPMIX_LOG_SPAWN, "%s: Found %s info [key '%s' value '%s']\n",
-		 __func__,
+	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
 		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
 		 info[i].key,
 		 info[i].value.data.string);
@@ -1088,8 +1078,7 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	}
 
 	if (PMIX_CHECK_KEY(info+i, PMIX_HOST)) {
-	    mdbg(PSPMIX_LOG_SPAWN, "%s: Found %s info [key '%s' value '%s']\n",
-		 __func__,
+	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
 		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
 		 info[i].key,
 		 info[i].value.data.string);
@@ -1098,8 +1087,7 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	}
 
 	if (PMIX_CHECK_KEY(info+i, PMIX_HOSTFILE)) {
-	    mdbg(PSPMIX_LOG_SPAWN, "%s: Found %s info [key '%s' value '%s']\n",
-		 __func__,
+	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
 		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
 		 info[i].key,
 		 info[i].value.data.string);
@@ -1118,8 +1106,8 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	 */
 
 	/* inform about lacking implementation */
-	mlog("%s: Ignoring info [key '%s' flags '%s' value.type '%s']"
-	     " (not implemented)\n", __func__, info[i].key,
+	flog("Ignoring info [key '%s' flags '%s' value.type '%s']"
+	     " (not implemented)\n", info[i].key,
 	     PMIx_Info_directives_string(info[i].flags),
 	     PMIx_Data_type_string(info[i].value.type));
     }
@@ -1164,10 +1152,10 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
     }
 
     if (mset(PSPMIX_LOG_CALL)) {
-	mlog("%s(%s:%d)\n", __func__, proc->nspace, proc->rank);
+	flog("(proc %s:%d)\n", proc->nspace, proc->rank);
 
 	for (size_t i = 0; i < napps; i++) {
-	    mlog("%s: cmd='%s' argv='", __func__, apps[i].cmd);
+	    flog("cmd='%s' argv='", apps[i].cmd);
 	    for (char **tmp = apps[i].argv; *tmp; tmp++) mlog("%s ", *tmp);
 	    if (!apps[i].env) {
 		mlog("' env=NULL");
@@ -1218,7 +1206,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	    /* add prefix */
 	    sapps[a].argv[0] = PSC_concat(sapps[a].prefix, "/", apps[a].cmd);
 
-	    mlog("%s: prefix '%s' applied to app %zu command: '%s'\n", __func__,
+	    flog("prefix '%s' applied to app %zu command: '%s'\n",
 		 sapps[a].prefix, a, sapps[a].argv[0]);
 	}
 
@@ -1352,9 +1340,9 @@ static pmix_status_t server_connect_cb(const pmix_proc_t procs[], size_t nprocs,
 				       const pmix_info_t info[], size_t ninfo,
 				       pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
-    mlog("%s: NOT IMPLEMENTED\n", __func__);
+    flog("NOT IMPLEMENTED\n");
 
     // @todo implement
 
@@ -1380,9 +1368,9 @@ static pmix_status_t server_disconnect_cb(const pmix_proc_t procs[], size_t npro
 					  const pmix_info_t info[], size_t ninfo,
 					  pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
-    mlog("%s: NOT IMPLEMENTED\n", __func__);
+    flog("NOT IMPLEMENTED\n");
 
     // @todo implement
 
@@ -1406,9 +1394,9 @@ static pmix_status_t server_register_events_cb(pmix_status_t *codes, size_t ncod
 					       const pmix_info_t info[], size_t ninfo,
 					       pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "()\n");
 
-    mlog("%s: NOT IMPLEMENTED\n", __func__);
+    flog("NOT IMPLEMENTED\n");
 
     // @todo implement
 
@@ -1422,9 +1410,9 @@ static pmix_status_t server_register_events_cb(pmix_status_t *codes, size_t ncod
 static pmix_status_t server_deregister_events_cb(pmix_status_t *codes, size_t ncodes,
 						 pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "()\n");
 
-    mlog("%s: NOT IMPLEMENTED\n", __func__);
+    flog("NOT IMPLEMENTED\n");
 
     // @todo implement
 
@@ -1455,9 +1443,9 @@ static pmix_status_t server_notify_event_cb(pmix_status_t code,
 					    pmix_info_t info[], size_t ninfo,
 					    pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "()\n");
 
-    mlog("%s: NOT IMPLEMENTED\n", __func__);
+    flog("NOT IMPLEMENTED\n");
 
     // @todo implement
 
@@ -1495,7 +1483,7 @@ static pmix_status_t server_query_cb(pmix_proc_t *proc,
 				     pmix_query_t *queries, size_t nqueries,
 				     pmix_info_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "%s:%u\n", proc->nspace, proc->rank);
+    fdbg(PSPMIX_LOG_CALL, "(proc %s:%u)\n", proc->nspace, proc->rank);
 
     // @todo implement
 
@@ -1547,11 +1535,11 @@ static void server_tool_connection_cb(pmix_info_t *info, size_t ninfo,
 				      pmix_tool_connection_cbfunc_t cbfunc,
 				      void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     // @todo implement at low priority
 
-    mlog("%s: NOT IMPLEMENTED\n", __func__);
+    flog("NOT IMPLEMENTED\n");
 
     /* not implemented */
 }
@@ -1566,7 +1554,7 @@ static void server_log_cb(const pmix_proc_t *client,
 			  const pmix_info_t directives[], size_t ndirs,
 			  pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "client %s:%d ndata %zd ndirs %zd\n",
+    fdbg(PSPMIX_LOG_CALL, "(client %s:%d ndata %zd ndirs %zd)\n",
 	 client->nspace, client->rank, ndata, ndirs);
 
     flog("%s:%d reports:", client->nspace, client->rank);
@@ -1579,7 +1567,7 @@ static void server_log_cb(const pmix_proc_t *client,
 
     // @todo implement
 
-    mlog("%s: NOT IMPLEMENTED\n", __func__);
+    flog("NOT IMPLEMENTED\n");
 }
 
 /* Request new allocation or modifications to an existing allocation on behalf
@@ -1865,7 +1853,7 @@ static void errhandler(size_t evhdlr_registration_id, pmix_status_t status,
 		       pmix_info_t results[], size_t nresults,
 		       pmix_event_notification_cbfunc_fn_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "status %d proc %s:%u ninfo %lu nresults %lu\n",
+    fdbg(PSPMIX_LOG_CALL, "(status %d proc %s:%u ninfo %lu nresults %lu)\n",
 	 status, source->nspace, source->rank, ninfo, nresults);
 }
 
@@ -1892,12 +1880,12 @@ static bool fillServerSessionArray(pmix_data_array_t *sessionInfo,
     /* Host where target PMIx server is located */
     const char *hostname = PSIDnodes_getHostname(PSC_getMyID());
     if (!hostname) {
-	mdbg(PSPMIX_LOG_VERBOSE, "%s: Unable to get my own hostname from psid"
-	     " => falling back to resolver\n", __func__);
+	fdbg(PSPMIX_LOG_VERBOSE, "unable to get my own hostname from psid"
+	     " => falling back to resolver\n");
 	hostname = getHostnameByNodeId(PSC_getMyID());
     }
     if (!hostname) {
-	mlog("%s: Unable to get my own hostname\n", __func__);
+	flog("Unable to get my own hostname\n");
 	PMIx_Info_list_release(list);
 	return false;
     }
@@ -1907,8 +1895,8 @@ static bool fillServerSessionArray(pmix_data_array_t *sessionInfo,
     status = PMIx_Info_list_convert(list, sessionInfo);
     PMIx_Info_list_release(list);
     if (status != PMIX_SUCCESS) {
-	mlog("%s: Converting info list to array failed: %s\n", __func__,
-	       PMIx_Error_string(status));
+	flog("Converting info list to array failed: %s\n",
+	     PMIx_Error_string(status));
 	return false;
     }
 
@@ -1920,7 +1908,7 @@ static bool fillServerSessionArray(pmix_data_array_t *sessionInfo,
  */
 static void registerResources_cb(pmix_status_t status, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     mycbdata_t *data = cbdata;
 
@@ -1935,7 +1923,7 @@ static void registerResources_cb(pmix_status_t status, void *cbdata)
 static void registerErrorHandler_cb (pmix_status_t status,
 				     size_t errhandler_ref, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     mycbdata_t *data = cbdata;
 
@@ -1947,15 +1935,15 @@ static void registerErrorHandler_cb (pmix_status_t status,
 bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 			const char *srvtmpdir, const char *systmpdir)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(nspace %s rank %d srvtmpdir %s systmpdir %s)\n",
-	    __func__, nspace, rank, srvtmpdir, systmpdir);
+    fdbg(PSPMIX_LOG_CALL, "(nspace %s rank %d srvtmpdir %s systmpdir %s)\n",
+	    nspace, rank, srvtmpdir, systmpdir);
 
     /* print some interesting environment variables if set */
     for (size_t i = 0; environ[i]; i++) {
 	if (!strncmp(environ[i], "PMIX_DEBUG", 10)
 	    || !strncmp (environ[i], "PMIX_OUTPUT", 11)
 	    || !strncmp (environ[i], "PMIX_MCA_", 9)) {
-	    mlog("%s: %s set\n", __func__, environ[i]);
+	    flog("%s set\n", environ[i]);
 	}
     }
 
@@ -2137,8 +2125,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     INFO_LIST_ADD(list, PMIX_SERVER_START_TIME, tmpstr, PMIX_STRING);
 # endif /* optional attributes */
 
-    mdbg(PSPMIX_LOG_VERBOSE, "%s: Setting nspace %s rank %d\n", __func__,
-	    nspace, rank);
+    fdbg(PSPMIX_LOG_VERBOSE, "Setting nspace %s rank %d\n", nspace, rank);
 
     pmix_data_array_t info = PMIX_DATA_ARRAY_STATIC_INIT;
     INFO_LIST_CONVERT(list, &info);
@@ -2165,7 +2152,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 
     pmix_data_array_t sessionInfo = PMIX_DATA_ARRAY_STATIC_INIT;
     if (!fillServerSessionArray(&sessionInfo, clusterid)) {
-	mlog("%s: filling server session info failed\n", __func__);
+	flog("filling server session info failed\n");
 	return false;
     }
 
@@ -2175,7 +2162,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 		   PMIX_DATA_ARRAY);
 
     if (mset(PSPMIX_LOG_INFOARR)) {
-	mlog("%s: PMIx_server_register_resources info:\n", __func__);
+	flog("PMIx_server_register_resources info:\n");
 	for (size_t j = 0; j < cbdata.ninfo; j++)
 	    mlog("%s\n", PMIx_Info_string(&cbdata.info[j]));
     }
@@ -2183,7 +2170,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     status = PMIx_server_register_resources(cbdata.info, cbdata.ninfo,
 					    registerResources_cb, &cbdata);
     if (status != PMIX_SUCCESS) {
-	mlog("%s: PMIx_server_register_resources() failed: %s\n", __func__,
+	flog("PMIx_server_register_resources() failed: %s\n",
 	     PMIx_Error_string(status));
 	DESTROY_CBDATA(cbdata);
 	return false;
@@ -2191,15 +2178,14 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     WAIT_FOR_CBDATA(cbdata);
 
     if (cbdata.status != PMIX_SUCCESS) {
-	mlog("%s: Callback from register resources failed: %s\n", __func__,
+	flog("callback from register resources failed: %s\n",
 	     PMIx_Error_string(cbdata.status));
 	DESTROY_CBDATA(cbdata);
 	return false;
     }
     DESTROY_CBDATA(cbdata);
 
-    mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx_server_register_resources()"
-	 " successful\n", __func__);
+    fdbg(PSPMIX_LOG_VERBOSE, "PMIx_server_register_resources() successful\n");
 
     /* register the error handler */
     INIT_CBDATA(cbdata, 0);
@@ -2208,7 +2194,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     WAIT_FOR_CBDATA(cbdata);
 
     if (cbdata.status != PMIX_SUCCESS) {
-	mlog("%s: Callback from register error handler failed: %s\n", __func__,
+	flog("callback from register error handler failed: %s\n",
 	     PMIx_Error_string(cbdata.status));
 	return false;
     }
@@ -2265,7 +2251,7 @@ static char * getAllocatedInfoString(pmix_info_t *info)
 		if (info->value.data.darray->type == PMIX_INFO) {
 		    for (size_t i = 0; i < data.ninfo; i++) {
 			char *tmp = getAllocatedInfoString(&data.info[i]);
-			mlog("%s: passing %s\n", __func__, tmp);
+			flog("passing %s\n", tmp);
 			free(tmp);
 		    }
 		    ASPRINTF(&value, "{%s}", info->value.data.darray->size);
@@ -2294,7 +2280,7 @@ static void setupApplication_cb(
 {
     mycbdata_t *data = provided_cbdata;
 
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     data->status = status;
 
@@ -2481,8 +2467,7 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo,
     /* regex of nodes containing procs for this job */
     char *nodelist_s = getNodelistString(procMap);
 
-    mdbg(PSPMIX_LOG_INFOARR, "%s: nodelist string created: '%s'\n", __func__,
-	 nodelist_s);
+    fdbg(PSPMIX_LOG_INFOARR, "nodelist string created: '%s'\n", nodelist_s);
 
     char *nodelist_r;
     PMIx_generate_regex(nodelist_s, &nodelist_r);
@@ -2493,8 +2478,7 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo,
     /* regex describing procs on each node within this job */
     char *pmap_s = getProcessMapString(procMap);
 
-    mdbg(PSPMIX_LOG_INFOARR, "%s: proc_map string created: '%s'\n", __func__,
-	 pmap_s);
+    fdbg(PSPMIX_LOG_INFOARR, "proc_map string created: '%s'\n", pmap_s);
 
     char *pmap_r;
     PMIx_generate_ppn(pmap_s, &pmap_r);
@@ -2628,8 +2612,8 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
      * within this namespace */
     char *lpeers;
     lpeers = getNodeRanksString(node);
-    if (lpeers[0] == '\0') mlog("%s: no local ranks for node %u (%s)\n",
-				__func__, id, node->hostname);
+    if (lpeers[0] == '\0') flog("no local ranks for node %u (%s)\n", id,
+				node->hostname);
     INFO_LIST_ADD(list, PMIX_LOCAL_PEERS, lpeers, PMIX_STRING);
     ufree(lpeers);
 
@@ -2786,8 +2770,8 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 	PMIx_Cpuset_destruct(&cpuset);
 
 	if (status != PMIX_SUCCESS) {
-	    mlog("%s: failed to generate locality string for rank %d: %s\n",
-		 __func__, proc->rank, PMIx_Error_string(status));
+	    flog("failed to generate locality string for rank %d: %s\n",
+		 proc->rank, PMIx_Error_string(status));
 	    locstr = strdup("pspmix:generation_error");
 	    if (!locstr) abort(); /* @todo handle somehow more gently? */
 	}
@@ -2799,7 +2783,7 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 	int pdsize = strlen(nsdir)+10;
 	char *procdir = umalloc(pdsize);
 	if (snprintf(procdir, pdsize, "%s/%u", nsdir, proc->rank) >= pdsize) {
-	    mlog("%s: Warning, procdir truncated", __func__);
+	    flog("warning: procdir truncated");
 	}
 	INFO_LIST_ADD(list, PMIX_PROCDIR, procdir, PMIX_STRING);
 	ufree(procdir);
@@ -2824,7 +2808,7 @@ static void registerNamespace_cb(pmix_status_t status, void *cbdata)
 {
     mycbdata_t *data = cbdata;
 
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     data->status = status;
 
@@ -2841,7 +2825,7 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 				     const char *nsdir, PSnodes_ID_t nodeID)
 {
     if (mset(PSPMIX_LOG_CALL)) {
-	flog("srv_nspace '%s' srv_rank %d nspace '%s' sessionId %u univSize %u"
+	flog("(srv_nspace '%s' srv_rank %d nspace '%s' sessionId %u univSize %u"
 	     " jobSize %u spawnparent ", srv_nspace, srv_rank, nspace,
 	     sessionId, univSize, jobSize);
 	if (!spawnparent) mlog("(null)");
@@ -2853,11 +2837,11 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
     pmix_status_t status;
 
     if (univSize < 1) {
-	mlog("%s: Bad parameter: univSize = %u (< 1)\n", __func__, univSize);
+	flog("bad parameter: univSize = %u (< 1)\n", univSize);
 	return false;
     }
     if (jobSize < 1) {
-	mlog("%s: Bad parameter: jobSize = %u (< 1)\n", __func__, jobSize);
+	flog("bad parameter: jobSize = %u (< 1)\n", jobSize);
 	return false;
     }
 
@@ -2872,21 +2856,20 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
     status = PMIx_server_setup_application(nspace, NULL, 0, setupApplication_cb,
 	    &cbdata);
     if (status != PMIX_SUCCESS) {
-	mlog("%s: Failed to setup application: %s\n", __func__,
-	     PMIx_Error_string(status));
+	flog("failed to setup application: %s\n", PMIx_Error_string(status));
 	return false;
     }
     /* wait until the callback function has filled cbdata */
     WAIT_FOR_CBDATA(cbdata);
 
     if (cbdata.status != PMIX_SUCCESS) {
-	mlog("%s: Callback from setup application failed: %s\n", __func__,
+	flog("callback from setup application failed: %s\n",
 	     PMIx_Error_string(cbdata.status));
 	return false;
     }
 
-    mdbg(PSPMIX_LOG_VERBOSE, "%s: Got %lu info entries from"
-	    " PMIx_server_setup_application().\n", __func__, cbdata.ninfo);
+    fdbg(PSPMIX_LOG_VERBOSE, "got %lu info entries from"
+	    " PMIx_server_setup_application().\n", cbdata.ninfo);
 
     /* TODO save or return the received data? */
 #endif
@@ -2977,7 +2960,7 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 
     /* debugging output of info values */
     if (mset(PSPMIX_LOG_INFOARR)) {
-	mlog("%s: PMIx_server_register_nspace info:\n", __func__);
+	flog("PMIx_server_register_nspace info:\n");
 	for (size_t j = 0; j < data.ninfo; j++) {
 	    char * istr = PMIx_Info_string(&data.info[j]);
 	    mlog("%s\n", istr);
@@ -2994,13 +2977,13 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
     }
 
     if (status != PMIX_SUCCESS) {
-	mlog("%s: PMIx_server_register_nspace() failed.\n", __func__);
+	flog("PMIx_server_register_nspace() failed.\n");
 	goto reg_nspace_error;
     }
     WAIT_FOR_CBDATA(data);
 
     if (data.status != PMIX_SUCCESS) {
-	mlog("%s: Callback from register namespace failed: %s\n", __func__,
+	flog("callback from register namespace failed: %s\n",
 		PMIx_Error_string(data.status));
 	goto reg_nspace_error;
     }
@@ -3062,7 +3045,7 @@ bool pspmix_server_createPSet(const char *name, PspmixNamespace_t *ns,
  */
 static void deregisterNamespace_cb(pmix_status_t status, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     const char *errstr = "";
     if (status != PMIX_SUCCESS) errstr = PMIx_Error_string(status);
@@ -3072,7 +3055,7 @@ static void deregisterNamespace_cb(pmix_status_t status, void *cbdata)
 
 void pspmix_server_deregisterNamespace(const char *nsname, void *nsobject)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(namespace '%s')\n", __func__, nsname);
+    fdbg(PSPMIX_LOG_CALL, "(nspace '%s')\n", nsname);
 
     /* deregister namespace */
     PMIx_server_deregister_nspace(nsname, deregisterNamespace_cb, nsobject);
@@ -3085,7 +3068,7 @@ static void setupLocalSupport_cb(pmix_status_t status, void *cbdata)
 {
     mycbdata_t *data = cbdata;
 
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     data->status = status;
 
@@ -3095,7 +3078,7 @@ static void setupLocalSupport_cb(pmix_status_t status, void *cbdata)
 /* run this function once per node */
 bool pspmix_server_setupLocalSupport(const char *nspace)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     pmix_status_t status;
 
@@ -3108,14 +3091,14 @@ bool pspmix_server_setupLocalSupport(const char *nspace)
     status = PMIx_server_setup_local_support(nspace, NULL, 0,
 	    setupLocalSupport_cb, &cbdata);
     if (status != PMIX_SUCCESS) {
-	mlog("%s: Setting up the local support callback failed: %s\n",
-	     __func__, PMIx_Error_string(status));
+	flog("setting up the local support callback failed: %s\n",
+	     PMIx_Error_string(status));
 	return false;
     }
     WAIT_FOR_CBDATA(cbdata);
 
     if (cbdata.status != PMIX_SUCCESS) {
-	mlog("%s: Callback from setup local support failed: %s\n", __func__,
+	flog("callback from setup local support failed: %s\n",
 	     PMIx_Error_string(cbdata.status));
 	return false;
     }
@@ -3131,7 +3114,7 @@ static void registerClient_cb(pmix_status_t status, void *cbdata)
 {
     mycbdata_t *data = cbdata;
 
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     data->status = status;
 
@@ -3142,8 +3125,8 @@ static void registerClient_cb(pmix_status_t status, void *cbdata)
 bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
 				  int gid, void *clientObject)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(nspace '%s' rank %d uid %d gid %d)\n", __func__,
-	 nspace, rank, uid, gid);
+    fdbg(PSPMIX_LOG_CALL, "(nspace '%s' rank %d uid %d gid %d)\n", nspace,
+	 rank, uid, gid);
 
     pmix_status_t status;
 
@@ -3159,14 +3142,13 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
 					 registerClient_cb, &cbdata);
     PMIX_PROC_DESTRUCT(&proc);
     if (status != PMIX_SUCCESS) {
-	mlog("%s: Registering client failed: %s\n", __func__,
-	     PMIx_Error_string(status));
+	flog("registering client failed: %s\n", PMIx_Error_string(status));
 	return false;
     }
     WAIT_FOR_CBDATA(cbdata);
 
     if (cbdata.status != PMIX_SUCCESS) {
-	mlog("%s: Callback from register client failed: %s\n", __func__,
+	flog("callback from register client failed: %s\n",
 	     PMIx_Error_string(cbdata.status));
 	return false;
     }
@@ -3178,7 +3160,7 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
 /* run this function in exception case to remove all client information  */
 void pspmix_server_deregisterClient(const char *nspace, int rank)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(nspace '%s' rank %d)\n", __func__, nspace, rank);
+    fdbg(PSPMIX_LOG_CALL, "(nspace '%s' rank %d)\n", nspace, rank);
 
     /* setup process struct */
     pmix_proc_t proc;
@@ -3193,7 +3175,7 @@ void pspmix_server_deregisterClient(const char *nspace, int rank)
 /* get the client environment set */
 bool pspmix_server_setupFork(const char *nspace, int rank, char ***childEnv)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     pmix_status_t status;
 
@@ -3206,8 +3188,8 @@ bool pspmix_server_setupFork(const char *nspace, int rank, char ***childEnv)
     status = PMIx_server_setup_fork(&proc, childEnv);
     PMIX_PROC_DESTRUCT(&proc);
     if (status != PMIX_SUCCESS) {
-	mlog("%s: Setting up environment for fork failed: %s\n",
-	     __func__, PMIx_Error_string(status));
+	flog("setting up environment for fork failed: %s\n",
+	     PMIx_Error_string(status));
 	return false;
     }
 
@@ -3216,12 +3198,12 @@ bool pspmix_server_setupFork(const char *nspace, int rank, char ***childEnv)
 
 bool pspmix_server_finalize(void)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     pmix_status_t status;
 
     if (!initialized) {
-	mlog("%s: pspmix server not initialized\n", __func__);
+	flog("pspmix server not initialized\n");
 	return false;
     }
 
@@ -3230,8 +3212,7 @@ bool pspmix_server_finalize(void)
 
     status = PMIx_server_finalize();
     if (status != PMIX_SUCCESS) {
-	mlog("%s: PMIx_server_finalize() failed: %s\n", __func__,
-	     PMIx_Error_string(status));
+	flog("PMIx_server_finalize() failed: %s\n", PMIx_Error_string(status));
 	return false;
     }
     return true;
