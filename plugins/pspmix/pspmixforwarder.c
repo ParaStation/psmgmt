@@ -636,8 +636,7 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
  */
 static bool sendSpawnSuccess(bool success)
 {
-    rdbg(PSPMIX_LOG_CALL, "%s(success %s)\n", __func__,
-	 success ? "true" : "false");
+    rdbg(PSPMIX_LOG_CALL, "success %s\n", success ? "true" : "false");
 
     /* Each forwarder should only send this message once in a lifetime */
     static bool alreadySent = false;

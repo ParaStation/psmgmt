@@ -1105,7 +1105,7 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	 */
 
 	/* inform about lacking implementation */
-	flog("Ignoring info [key '%s' flags '%s' value.type '%s']"
+	flog("ignoring info [key '%s' flags '%s' value.type '%s']"
 	     " (not implemented)\n", info[i].key,
 	     PMIx_Info_directives_string(info[i].flags),
 	     PMIx_Data_type_string(info[i].value.type));
@@ -1884,7 +1884,7 @@ static bool fillServerSessionArray(pmix_data_array_t *sessionInfo,
 	hostname = getHostnameByNodeId(PSC_getMyID());
     }
     if (!hostname) {
-	flog("Unable to get my own hostname\n");
+	flog("unable to get my own hostname\n");
 	PMIx_Info_list_release(list);
 	return false;
     }
@@ -1894,7 +1894,7 @@ static bool fillServerSessionArray(pmix_data_array_t *sessionInfo,
     status = PMIx_Info_list_convert(list, sessionInfo);
     PMIx_Info_list_release(list);
     if (status != PMIX_SUCCESS) {
-	flog("Converting info list to array failed: %s\n",
+	flog("converting info list to array failed: %s\n",
 	     PMIx_Error_string(status));
 	return false;
     }
@@ -2124,7 +2124,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     INFO_LIST_ADD(list, PMIX_SERVER_START_TIME, tmpstr, PMIX_STRING);
 # endif /* optional attributes */
 
-    fdbg(PSPMIX_LOG_VERBOSE, "Setting nspace %s rank %d\n", nspace, rank);
+    fdbg(PSPMIX_LOG_VERBOSE, "setting nspace %s rank %d\n", nspace, rank);
 
     pmix_data_array_t info = PMIX_DATA_ARRAY_STATIC_INIT;
     INFO_LIST_CONVERT(list, &info);
@@ -2133,7 +2133,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 	flog("PMIx_server_init info:\n");
 	for (size_t j = 0; j < info.size; j++) {
 	    char * istr = PMIx_Info_string(&((pmix_info_t *)info.array)[j]);
-	    mlog("%s\n", istr);
+	    mlog("   %s\n", istr);
 	    free(istr);
 	}
     }
@@ -2163,7 +2163,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     if (mset(PSPMIX_LOG_INFOARR)) {
 	flog("PMIx_server_register_resources info:\n");
 	for (size_t j = 0; j < cbdata.ninfo; j++)
-	    mlog("%s\n", PMIx_Info_string(&cbdata.info[j]));
+	    mlog("   %s\n", PMIx_Info_string(&cbdata.info[j]));
     }
 
     status = PMIx_server_register_resources(cbdata.info, cbdata.ninfo,
@@ -2868,7 +2868,7 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
     }
 
     fdbg(PSPMIX_LOG_VERBOSE, "got %lu info entries from"
-	    " PMIx_server_setup_application().\n", cbdata.ninfo);
+	 " PMIx_server_setup_application()\n", cbdata.ninfo);
 
     /* TODO save or return the received data? */
 #endif
@@ -2877,7 +2877,7 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
     PspmixNode_t *mynode = findNodeInList(nodeID, procMap);
     if (!mynode) {
 	fdbg(PSPMIX_LOG_INFOARR,
-	     "Namespace without local node (%u) in process map\n", nodeID);
+	     "namespace without local node (%u) in process map\n", nodeID);
     }
 
     /* fill infos */
@@ -2962,7 +2962,7 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 	flog("PMIx_server_register_nspace info:\n");
 	for (size_t j = 0; j < data.ninfo; j++) {
 	    char * istr = PMIx_Info_string(&data.info[j]);
-	    mlog("%s\n", istr);
+	    mlog("   %s\n", istr);
 	    free(istr);
 	}
     }
@@ -2976,7 +2976,7 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
     }
 
     if (status != PMIX_SUCCESS) {
-	flog("PMIx_server_register_nspace() failed.\n");
+	flog("PMIx_server_register_nspace() failed\n");
 	goto reg_nspace_error;
     }
     WAIT_FOR_CBDATA(data);
