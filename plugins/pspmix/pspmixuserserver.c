@@ -168,7 +168,7 @@ bool pspmix_userserver_addJob(PStask_ID_t sessID, PspmixJob_t *job)
 #pragma GCC diagnostic ignored "-Wunused-function"
 static void terminateSession(PspmixSession_t *session)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(ID %s)\n", __func__, PSC_printTID(session->ID));
+    fdbg(PSPMIX_LOG_CALL, "ID %s\n", PSC_printTID(session->ID));
 
     flog("terminating session by sending signal to logger %s\n",
 	 PSC_printTID(session->ID));
@@ -179,10 +179,10 @@ static void terminateSession(PspmixSession_t *session)
 
 bool pspmix_userserver_removeJob(PStask_ID_t jobID)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     if (!server) {
-	mlog("%s: FATAL: no server object\n", __func__);
+	flog("FATAL: no server object\n");
 	return false;
     }
 
@@ -215,14 +215,14 @@ bool pspmix_userserver_removeJob(PStask_ID_t jobID)
 
 void pspmix_userserver_prepareLoop(Forwarder_Data_t *fwdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
-    if (!server) mlog("%s: FATAL: no server object\n", __func__);
+    if (!server) flog("FATAL: no server object\n");
 }
 
 void pspmix_userserver_finalize(Forwarder_Data_t *fwdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     pspmix_service_finalize();
 

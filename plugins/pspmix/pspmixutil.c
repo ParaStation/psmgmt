@@ -70,7 +70,7 @@ void __pspmix_printServer(PspmixServer_t *server, bool sessions,
 void pspmix_deleteJob(PspmixJob_t *job)
 {
     if (!job) return;
-    mdbg(PSPMIX_LOG_CALL, "%s(ID %s) called\n", __func__, PSC_printTID(job->ID));
+    fdbg(PSPMIX_LOG_CALL, "ID %s\n", PSC_printTID(job->ID));
 
     list_del(&job->next);
 
@@ -89,8 +89,7 @@ void __pspmix_deleteSession(PspmixSession_t *session, bool warn,
 			  const char *caller, const int line)
 {
     if (!session) return;
-    mdbg(PSPMIX_LOG_CALL, "%s(ID %s) called\n", __func__,
-	 PSC_printTID(session->ID));
+    fdbg(PSPMIX_LOG_CALL, "ID %s\n", PSC_printTID(session->ID));
 
     list_del(&session->next);
 
@@ -112,7 +111,7 @@ void __pspmix_deleteSession(PspmixSession_t *session, bool warn,
 void __pspmix_deleteServer(PspmixServer_t *server, bool warn,
 			  const char *caller, const int line)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %d) called\n", __func__, server->uid);
+    fdbg(PSPMIX_LOG_CALL, "uid %d\n", server->uid);
 
     list_del(&server->next);
 

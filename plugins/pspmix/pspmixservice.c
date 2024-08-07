@@ -512,7 +512,7 @@ void printJob(PspmixJob_t *job)
 
 bool pspmix_service_registerNamespace(PspmixJob_t *job)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    fdbg(PSPMIX_LOG_CALL, "\n");
 
     if (mset(PSPMIX_LOG_JOB)) printJob(job);
 
@@ -937,7 +937,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 					     PStask_ID_t jobID,
 					     PspmixClient_t *client)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(%s rank %d reservation %d)\n", __func__,
+    fdbg(PSPMIX_LOG_CALL, "%s rank %d reservation %d\n",
 	 pspmix_jobIDsStr(sessionID, jobID), client->rank, client->resID);
 
     /* get namespace name */
@@ -977,8 +977,8 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 
     /* adapt rank from global (psid-)rank to namespace rank (psid job-rank) */
     client->rank -= resInfo->rankOffset;
-    mdbg(PSPMIX_LOG_CALL | PSPMIX_LOG_SPAWN, "%s:   global rank %d -> ns rank"
-	 " %d\n", __func__, client->rank + resInfo->rankOffset, client->rank);
+    fdbg(PSPMIX_LOG_CALL | PSPMIX_LOG_SPAWN, " global rank %d -> ns rank %d\n",
+	 client->rank + resInfo->rankOffset, client->rank);
 
     /* remember some information to be used outside the lock */
     uint32_t sessSize = getSessSize(ns->job->session);
@@ -1517,7 +1517,7 @@ static bool appendMsg(PspmixFence_t *fence, uint8_t msg)
 
    !!! always called with FenceList locked !!! */
 static void checkFence(PspmixFence_t *fence) {
-    mdbg(PSPMIX_LOG_CALL, "%s(0x%016lX)\n", __func__, fence->id);
+    fdbg(PSPMIX_LOG_CALL, "fence->id 0x%016lX\n", fence->id);
 
     if (!fence->nNodes) {
 	flog("UNEXPECTED: no nodes in 0x%016lX\n", fence->id);
@@ -1698,7 +1698,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
 	return -1;
     }
 
-    mdbg(PSPMIX_LOG_CALL, "%s(nProcs %lu nspace %s len %lu)\n", __func__,
+    fdbg(PSPMIX_LOG_CALL, "nProcs %lu nspace %s len %lu\n",
 	 nProcs, procs[0].nspace, len);
 
     /** @warning see remark at @ref getFenceID() */
@@ -1898,7 +1898,7 @@ bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
 void pspmix_service_sendModexDataResponse(pmix_status_t status,
 					  modexdata_t *mdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(status %d)\n", __func__, status);
+    fdbg(PSPMIX_LOG_CALL, "status %d\n", status);
 
     if (status != PMIX_SUCCESS)
     {
@@ -1971,7 +1971,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 			  PspmixSpawnApp_t *apps, spawndata_t *sdata,
 			  uint32_t opts)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(%s:%d napps %hu)\n", __func__, caller->nspace,
+    fdbg(PSPMIX_LOG_CALL, "%s:%d napps %hu\n", caller->nspace,
 	 caller->rank, napps);
 
     /* ID that is uniq local to this user server */
@@ -2044,7 +2044,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 /* main thread */
 void pspmix_service_spawnRes(uint16_t spawnID, bool success)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(spawnID %hu success %s)\n", __func__, spawnID,
+    fdbg(PSPMIX_LOG_CALL, "spawnID %hu success %s\n", spawnID,
 	 success ? "true" : "false");
 
     GET_LOCK(spawnList);
@@ -2122,9 +2122,9 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 				 PStask_ID_t clientTID, PStask_ID_t fwTID)
 {
     if (mset(PSPMIX_LOG_CALL)) {
-	 mlog("%s(spawn %hu rank %d success %s client %s", __func__, spawnID,
-	      rank, success ? "true" : "false", PSC_printTID(clientTID));
-	 mlog(" fw %s)\n", PSC_printTID(fwTID));
+	flog("spawn %hu rank %d success %s client %s", spawnID,
+	     rank, success ? "true" : "false", PSC_printTID(clientTID));
+	 mlog(" fw %s\n", PSC_printTID(fwTID));
     }
 
     GET_LOCK(namespaceList);
