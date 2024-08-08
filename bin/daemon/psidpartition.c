@@ -4463,9 +4463,9 @@ static void handleResFinalized(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* keep extraJobData to send to sister partition nodes */
     if (!envInitialized(task->extraJobData)) {
-	PSID_flog("drop extra data for task %s\n", PSC_printTID(task->tid));
 	task->extraJobData = extraData;
     } else {
+	PSID_flog("drop extra data for task %s\n", PSC_printTID(task->tid));
 	envDestroy(extraData);
     }
 }
