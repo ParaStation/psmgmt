@@ -209,7 +209,7 @@ Gres_Cred_t *getGresCred(void)
     return gres;
 }
 
-Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id,
+Gres_Cred_t *findGresCred(list_t *gresList, uint32_t hash,
 			  GRes_Cred_type_t credType)
 {
     Gres_Cred_t *ret = NULL;
@@ -217,7 +217,8 @@ Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id,
     list_t *g;
     list_for_each(g, gresList) {
 	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
-	if (gres->credType == credType && (gres->id == id || id == NO_VAL)) {
+	if (gres->credType == credType &&
+	    (gres->hash == hash || hash == NO_VAL)) {
 	    ret = gres;
 	    break;
 	}
@@ -225,10 +226,10 @@ Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id,
 
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_GRES) {
 	if (ret) {
-	    flog("credType %d pluginID %u cpusPerGres %u gresPerStep %lu"
+	    flog("credType %d hash %u cpusPerGres %u gresPerStep %lu"
 		 " gresPerNode %lu gresPerSocket %lu gresPerTask %lu"
 		 " memPerGres %lu totalGres %lu nodeInUse %s typeName %s"
-		 " typeID %u\n", credType, id,
+		 " typeID %u\n", credType, hash,
 		 ret->cpusPerGRes, ret->gresPerStep, ret->gresPerNode,
 		 ret->gresPerSocket, ret->gresPerTask, ret->memPerGRes,
 		 ret->totalGres, ret->nodeInUse, ret->typeName, ret->typeID);

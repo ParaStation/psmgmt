@@ -60,7 +60,7 @@ typedef struct {
 /** Structure holding a GRes credential */
 typedef struct {
     list_t next;                /**< used to put into some gres-cred-lists */
-    uint32_t id;                /**< GRES plugin ID */
+    uint32_t hash;              /**< GRes hash (plugin ID) */
     uint64_t countAlloc;        /**< GRES per node */
     uint64_t *countStepAlloc;
     char *typeModel;

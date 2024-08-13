@@ -341,7 +341,7 @@ static Gres_Cred_t *unpackGresStepPart(PS_DataBuffer_t *data, uint16_t index,
 	return NULL;
     }
     /* plugin ID */
-    getUint32(data, &gres->id);
+    getUint32(data, &gres->hash);
     /* CPUs per GRes */
     getUint16(data, &gres->cpusPerGRes);
     /* flags */
@@ -371,10 +371,10 @@ static Gres_Cred_t *unpackGresStepPart(PS_DataBuffer_t *data, uint16_t index,
     /* nodes in use */
     gres->nodeInUse = getBitString(data);
 
-    fdbg(PSSLURM_LOG_GRES, "index %i pluginID %u cpusPerGres %u"
+    fdbg(PSSLURM_LOG_GRES, "index %i hash %u cpusPerGres %u"
 	 " gresPerStep %lu gresPerNode %lu gresPerSocket %lu gresPerTask %lu"
 	 " memPerGres %lu totalGres %lu nodeInUse %s flags %#.4x nodeCount: %u\n",
-	 index, gres->id, gres->cpusPerGRes, gres->gresPerStep,
+	 index, gres->hash, gres->cpusPerGRes, gres->gresPerStep,
 	 gres->gresPerNode, gres->gresPerSocket, gres->gresPerTask,
 	 gres->memPerGRes, gres->totalGres, gres->nodeInUse, gres->flags,
 	 gres->nodeCount);
@@ -505,7 +505,7 @@ static Gres_Cred_t *unpackGresJobPart(PS_DataBuffer_t *data, uint16_t index,
     }
 
     /* plugin ID */
-    getUint32(data, &gres->id);
+    getUint32(data, &gres->hash);
     /* CPUs per GRes */
     getUint16(data, &gres->cpusPerGRes);
     /* flags */
@@ -547,13 +547,14 @@ static Gres_Cred_t *unpackGresJobPart(PS_DataBuffer_t *data, uint16_t index,
 	ufree(nodeAlloc);
     }
 
-    fdbg(PSSLURM_LOG_GRES, "index %i pluginID %u cpusPerGres %u "
+    fdbg(PSSLURM_LOG_GRES, "index %i hash %u cpusPerGres %u "
 	 "gresPerJob %lu gresPerNode %lu gresPerSocket %lu gresPerTask %lu "
 	 "memPerGres %lu totalGres %lu type %s nodeCount %u "
-	 "numTasksPerGres %u flags %#.4x\n", index, gres->id, gres->cpusPerGRes,
-	 gres->gresPerJob, gres->gresPerNode, gres->gresPerSocket,
-	 gres->gresPerTask, gres->memPerGRes, gres->totalGres, gres->typeModel,
-	 gres->nodeCount, gres->numTasksPerGres, gres->flags);
+	 "numTasksPerGres %u flags %#.4x\n", index, gres->hash,
+	 gres->cpusPerGRes, gres->gresPerJob, gres->gresPerNode,
+	 gres->gresPerSocket, gres->gresPerTask, gres->memPerGRes,
+	 gres->totalGres, gres->typeModel, gres->nodeCount,
+	 gres->numTasksPerGres, gres->flags);
 
     /* bit allocation (GRes allocation per node) */
     getUint8(data, &more);

@@ -469,7 +469,7 @@ static void setJailDevEnv(list_t *gresList, GRes_Cred_type_t credType,
 	if (gres->credType != credType) continue;
 
 	fdbg(PSSLURM_LOG_JAIL, "test bitAlloc of gres %i name %s type %s\n",
-	     gres->id, GRes_getNamebyHash(gres->id),
+	     gres->hash, GRes_getNamebyHash(gres->hash),
 	     GRes_strType(gres->credType));
 
 	PSCPU_set_t set;
@@ -482,7 +482,7 @@ static void setJailDevEnv(list_t *gresList, GRes_Cred_type_t credType,
 	    return;
 	}
 
-	traverseGResDevs(gres->id, devEnvVisitor, &set);
+	traverseGResDevs(gres->hash, devEnvVisitor, &set);
     }
 }
 
