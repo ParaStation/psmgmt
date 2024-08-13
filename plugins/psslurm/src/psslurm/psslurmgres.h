@@ -107,13 +107,14 @@ typedef struct {
 Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count);
 
 /**
- * @brief Find a GRes configuration
+ * @brief Get name from GRes hash
  *
  * @param hash The GRes hash (plugin id) identifying the configuration
  *
- * @return Returns the requested configuration or NULL otherwise
+ * @return Returns the requested name on success otherwise unknown is
+ * returned
  */
-Gres_Conf_t *findGresConf(uint32_t hash);
+const char *GRes_getNamebyHash(uint32_t hash);
 
 /**
  * @brief Free all saved GRES configurations

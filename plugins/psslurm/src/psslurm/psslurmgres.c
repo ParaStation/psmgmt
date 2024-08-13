@@ -179,14 +179,15 @@ int countGresConf(void)
     return count;
 }
 
-Gres_Conf_t *findGresConf(uint32_t hash)
+const char *GRes_getNamebyHash(uint32_t hash)
 {
     list_t *g;
     list_for_each(g, &GresConfList) {
 	Gres_Conf_t *gres = list_entry(g, Gres_Conf_t, next);
-	if (gres->hash == hash) return gres;
+	if (gres->hash == hash) return gres->name;
     }
-    return NULL;
+
+    return "unknown";
 }
 
 void clearGresConf(void)

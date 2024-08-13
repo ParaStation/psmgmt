@@ -468,9 +468,8 @@ static void setJailDevEnv(list_t *gresList, GRes_Cred_type_t credType,
 	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
 	if (gres->credType != credType) continue;
 
-	Gres_Conf_t *gConf = findGresConf(gres->id);
 	fdbg(PSSLURM_LOG_JAIL, "test bitAlloc of gres %i name %s type %s\n",
-	     gres->id, (gConf ? gConf->name : "unknown"),
+	     gres->id, GRes_getNamebyHash(gres->id),
 	     GRes_strType(gres->credType));
 
 	PSCPU_set_t set;
