@@ -244,6 +244,8 @@ typedef bool GResDevVisitor_t(GRes_Dev_t *dev, uint32_t id, void *info);
  * If @a visitor returns true, the traversal will be stopped
  * immediately and true is returned to the calling function.
  *
+ * The visitor is not allowed to modify @ref GresConfList.
+ *
  * @param id GRes plugin ID traversed devices must be associated to
  *
  * @param visitor Visitor function to be called for each GRes device

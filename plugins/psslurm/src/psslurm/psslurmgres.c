@@ -309,13 +309,13 @@ bool traverseGresConf(GresConfVisitor_t visitor, void *info)
 
 bool traverseGResDevs(uint32_t id, GResDevVisitor_t visitor, void *info)
 {
-    list_t *c, *tmp;
-    list_for_each_safe(c, tmp, &GresConfList) {
+    list_t *c;
+    list_for_each(c, &GresConfList) {
 	Gres_Conf_t *conf = list_entry(c, Gres_Conf_t, next);
 	if (conf->id != id) continue;
 
-	list_t *d, *tmp2;
-	list_for_each_safe(d, tmp2, &conf->devices) {
+	list_t *d, *tmp;
+	list_for_each_safe(d, tmp, &conf->devices) {
 	    GRes_Dev_t *dev = list_entry(d, GRes_Dev_t, next);
 	    if (visitor(dev, id, info)) return true;
 	}
