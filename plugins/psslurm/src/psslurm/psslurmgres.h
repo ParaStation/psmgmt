@@ -70,7 +70,7 @@ typedef struct {
     char **bitStepAlloc;        /**< GRES step bit-string allocation */
     uint64_t **stepPerBitAlloc;	/**< step per bit allocation for shared GRES */
     char *nodeInUse;            /**< GRES use per node */
-    int credType;               /**< credential type (job or step) */
+    GRes_Cred_type_t credType;  /**< credential type (job or step) */
     uint16_t cpusPerGRes;       /**< CPUs per GRES */
     uint16_t flags;             /**< GRES flags */
     uint64_t gresPerJob;        /**< GRES count per job */
@@ -139,7 +139,8 @@ Gres_Cred_t *getGresCred(void);
  *
  * @return Returns the found GRES credential or NULL otherwise
  */
-Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int credType);
+Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id,
+			  GRes_Cred_type_t credType);
 
 /**
  * @brief Free a GRES credential

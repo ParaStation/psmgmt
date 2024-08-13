@@ -208,7 +208,8 @@ Gres_Cred_t *getGresCred(void)
     return gres;
 }
 
-Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int credType)
+Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id,
+			  GRes_Cred_type_t credType)
 {
     Gres_Cred_t *ret = NULL;
 

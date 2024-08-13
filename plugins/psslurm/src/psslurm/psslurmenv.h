@@ -21,6 +21,7 @@
 #include "psslurmjob.h"
 #include "psslurmjobcred.h"
 #include "psslurmstep.h"
+#include "psslurmgres.h"
 
 /** Type to distinguish between different PMI environments */
 typedef enum pmi_type {
@@ -83,8 +84,9 @@ bool envFilterFunc(const char *envStr);
  * @param localNodeId   local node ID
  */
 void setJailEnv(const env_t env, const char *user, const PSCPU_set_t *stepcpus,
-		const PSCPU_set_t *jobcpus, list_t *gresList, int credType,
-		JobCred_t *cred, uint32_t localNodeId);
+		const PSCPU_set_t *jobcpus, list_t *gresList,
+		GRes_Cred_type_t credType, JobCred_t *cred,
+		uint32_t localNodeId);
 /**
  * @brief Initialize global jail environment
  *

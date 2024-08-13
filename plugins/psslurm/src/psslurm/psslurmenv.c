@@ -460,7 +460,8 @@ static bool devEnvVisitor(GRes_Dev_t *dev, uint32_t id, void *info)
  *
  * @param localNodeId Local node ID for this jobs/step
  */
-static void setJailDevEnv(list_t *gresList, int credType, uint32_t localNodeId)
+static void setJailDevEnv(list_t *gresList, GRes_Cred_type_t credType,
+			  uint32_t localNodeId)
 {
     list_t *g;
     list_for_each(g, gresList) {
@@ -517,8 +518,9 @@ static bool denyAllDevs(Gres_Conf_t *conf, void *info)
 }
 
 void setJailEnv(const env_t env, const char *user, const PSCPU_set_t *stepcpus,
-		const PSCPU_set_t *jobcpus, list_t *gresList, int credType,
-		JobCred_t *cred, uint32_t localNodeId)
+		const PSCPU_set_t *jobcpus, list_t *gresList,
+		GRes_Cred_type_t credType, JobCred_t *cred,
+		uint32_t localNodeId)
 {
     static bool isInit = false;
     if (isInit || PSC_isDaemon()) {
