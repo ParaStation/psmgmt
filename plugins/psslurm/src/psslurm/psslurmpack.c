@@ -3683,7 +3683,7 @@ bool packGresConf(Gres_Conf_t *gres, void *info)
 	addUint8ToMsg(gres->flags, msg);
     }
 
-    addUint32ToMsg(gres->id, msg);
+    addUint32ToMsg(gres->hash, msg);
     addStringToMsg(gres->cpus, msg);
     /* links */
     addStringToMsg(gres->links, msg);

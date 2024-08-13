@@ -133,9 +133,9 @@ static void freeGresConf(Gres_Conf_t *gres)
 
 Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count)
 {
-    gres->id = GRes_getHash(gres->name);
+    gres->hash = GRes_getHash(gres->name);
     /* use continuing device IDs */
-    gres->nextDevID = GRes_countDevices(gres->id);
+    gres->nextDevID = GRes_countDevices(gres->hash);
 
     /* parse file */
     INIT_LIST_HEAD(&gres->devices);
@@ -155,8 +155,8 @@ Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count)
 	goto GRES_ERROR;
     }
 
-    flog("%s id=%u count=%lu%s%s%s%s%s%s%s%s\n",
-	 gres->name, gres->id, gres->count,
+    flog("%s hash=%u count=%lu%s%s%s%s%s%s%s%s\n",
+	 gres->name, gres->hash, gres->count,
 	 gres->file ? " file=" : "", gres->file ? gres->file : "",
 	 gres->type ? " type=" : "", gres->type ? gres->type : "",
 	 gres->cores ? " cores=" : "", gres->cores ? gres->cores : "",
@@ -179,12 +179,12 @@ int countGresConf(void)
     return count;
 }
 
-Gres_Conf_t *findGresConf(uint32_t id)
+Gres_Conf_t *findGresConf(uint32_t hash)
 {
     list_t *g;
     list_for_each(g, &GresConfList) {
 	Gres_Conf_t *gres = list_entry(g, Gres_Conf_t, next);
-	if (gres->id == id) return gres;
+	if (gres->hash == hash) return gres;
     }
     return NULL;
 }
@@ -307,17 +307,17 @@ bool traverseGresConf(GresConfVisitor_t visitor, void *info)
     return false;
 }
 
-bool traverseGResDevs(uint32_t id, GResDevVisitor_t visitor, void *info)
+bool traverseGResDevs(uint32_t hash, GResDevVisitor_t visitor, void *info)
 {
     list_t *c;
     list_for_each(c, &GresConfList) {
 	Gres_Conf_t *conf = list_entry(c, Gres_Conf_t, next);
-	if (conf->id != id) continue;
+	if (conf->hash != hash) continue;
 
 	list_t *d, *tmp;
 	list_for_each_safe(d, tmp, &conf->devices) {
 	    GRes_Dev_t *dev = list_entry(d, GRes_Dev_t, next);
-	    if (visitor(dev, id, info)) return true;
+	    if (visitor(dev, hash, info)) return true;
 	}
     }
 
@@ -344,14 +344,14 @@ void freeGresJobAlloc(list_t *gresList)
     }
 }
 
-uint32_t GRes_countDevices(uint32_t pluginID)
+uint32_t GRes_countDevices(uint32_t hash)
 {
     uint32_t numDev = 0;
 
     list_t *c;
     list_for_each(c, &GresConfList) {
 	Gres_Conf_t *conf = list_entry(c, Gres_Conf_t, next);
-	if (conf->id == pluginID) numDev += conf->count;
+	if (conf->hash == hash) numDev += conf->count;
     }
 
     return numDev;

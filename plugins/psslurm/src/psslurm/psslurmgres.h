@@ -52,7 +52,7 @@ typedef struct {
 				     devices */
     uint32_t flags;             /**< parsed binary flags */
     uint64_t count;             /**< number of GRES resources */
-    uint32_t id;                /**< GRES plugin ID */
+    uint32_t hash;              /**< GRes hash (plugin ID) */
     uint32_t nextDevID;		/**< first device ID in this configuration */
     list_t devices;		/**< list of GRes devices */
 } Gres_Conf_t;
@@ -109,11 +109,11 @@ Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count);
 /**
  * @brief Find a GRes configuration
  *
- * @param id The GRes plugin id identifying the configuration
+ * @param hash The GRes hash (plugin id) identifying the configuration
  *
  * @return Returns the requested configuration or NULL otherwise
  */
-Gres_Conf_t *findGresConf(uint32_t id);
+Gres_Conf_t *findGresConf(uint32_t hash);
 
 /**
  * @brief Free all saved GRES configurations
@@ -208,13 +208,13 @@ bool traverseGresConf(GresConfVisitor_t visitor, void *info);
 void freeGresJobAlloc(list_t *gresList);
 
 /**
- * @brief Count all devices identified by their plugin ID
+ * @brief Count all devices identified by their hash (plugin ID)
  *
  * @param pluginID The ID of the plugin for the devices to count
  *
  * @return Returns the number of devices found
  */
-uint32_t GRes_countDevices(uint32_t pluginID);
+uint32_t GRes_countDevices(uint32_t hash);
 
 /**
  * @brief Visitor function
@@ -246,7 +246,7 @@ typedef bool GResDevVisitor_t(GRes_Dev_t *dev, uint32_t id, void *info);
  *
  * The visitor is not allowed to modify @ref GresConfList.
  *
- * @param id GRes plugin ID traversed devices must be associated to
+ * @param hash GRes hash (plugin ID) traversed devices must be associated to
  *
  * @param visitor Visitor function to be called for each GRes device
  *
@@ -257,7 +257,7 @@ typedef bool GResDevVisitor_t(GRes_Dev_t *dev, uint32_t id, void *info);
  * immediately and true is returned; if no visitor returned true
  * during the traversal, false is returned
  */
-bool traverseGResDevs(uint32_t id, GResDevVisitor_t visitor, void *info);
+bool traverseGResDevs(uint32_t hash, GResDevVisitor_t visitor, void *info);
 
 /**
  * @brief Convert GRes credential type to string
