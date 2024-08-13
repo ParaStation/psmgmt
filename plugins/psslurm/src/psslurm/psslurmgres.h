@@ -274,12 +274,14 @@ bool traverseGResDevs(uint32_t id, GResDevVisitor_t visitor, void *info);
 const char *GRes_strType(GRes_Cred_type_t type);
 
 /**
- * @brief Calculate ID for given GRes name
+ * @brief Calculate hash (plugin ID) for given GRes name
  *
- * @param GRes name to calculate ID for
+ * Basic hash which might not be collision free.
  *
- * @return Returns the requested ID or 0 on error
+ * @param GRes name to calculate hash for
+ *
+ * @return Returns the requested hash or 0 on error
  */
-uint32_t GRes_getID(char *name);
+uint32_t GRes_getHash(char *name);
 
 #endif /* __PS_SLURM_GRES */

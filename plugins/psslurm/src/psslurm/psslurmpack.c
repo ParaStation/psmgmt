@@ -363,7 +363,7 @@ static Gres_Cred_t *unpackGresStepPart(PS_DataBuffer_t *data, uint16_t index,
 	/* type name */
 	gres->typeName = getStringM(data);
 	/* type identifier */
-	gres->typeID = GRes_getID(gres->typeName);
+	gres->typeID = GRes_getHash(gres->typeName);
     }
 
     /* node count */

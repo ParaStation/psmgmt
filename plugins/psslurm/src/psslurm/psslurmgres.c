@@ -27,17 +27,17 @@
 /** List of all GRES configurations */
 static LIST_HEAD(GresConfList);
 
-uint32_t GRes_getID(char *name)
+uint32_t GRes_getHash(char *name)
 {
     if (!name) return 0;
 
-    uint32_t gresId = 0;
+    uint32_t hash = 0;
     for (uint32_t i = 0, x = 0; name[i]; i++) {
-	gresId += (name[i] << x);
+	hash += (name[i] << x);
 	x = (x + 8) % 32;
     }
 
-    return gresId;
+    return hash;
 }
 
 static bool setGresCount(Gres_Conf_t *gres, char *count)
@@ -133,7 +133,7 @@ static void freeGresConf(Gres_Conf_t *gres)
 
 Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count)
 {
-    gres->id = GRes_getID(gres->name);
+    gres->id = GRes_getHash(gres->name);
     /* use continuing device IDs */
     gres->nextDevID = GRes_countDevices(gres->id);
 
