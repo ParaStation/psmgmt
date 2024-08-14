@@ -16,20 +16,20 @@
 
 #include "list.h"
 
-/** ID of the GRES GPU plugin */
+/** ID of the GRes GPU plugin */
 #define GRES_PLUGIN_GPU 7696487
 
-/** ID of the GRES MIC plugin */
+/** ID of the GRes MIC plugin */
 #define GRES_PLUGIN_MIC 6515053
 
 typedef enum {
-    GRES_CRED_STEP,             /**< GRES step credential */
-    GRES_CRED_JOB,              /**< GRES job credential */
+    GRES_CRED_STEP,             /**< GRes step credential */
+    GRES_CRED_JOB,              /**< GRes job credential */
 } GRes_Cred_type_t;
 
 /** Structure holding a GRes device */
 typedef struct {
-    list_t next;                /**< used to put into some gres-dev-lists */
+    list_t next;                /**< used to put into some GRes device list */
     char *path;			/**< path to device (e.g. /dev/gpu0) */
     unsigned int major;		/**< major device ID */
     unsigned int minor;		/**< minor device ID */
@@ -39,19 +39,19 @@ typedef struct {
 
 /** Structure holding a GRes configuration */
 typedef struct {
-    list_t next;                /**< used to put into some gres-conf-lists */
-    char *name;                 /**< name of the GRES resource (e.g. gpu) */
+    list_t next;                /**< used to put into some GRes config list */
+    char *name;                 /**< name of the GRes resource (e.g. gpu) */
     char *cpus;                 /**< obsolete, replaced by cores */
     char *file;                 /**< compressed filename of the device
 				     (e.g. /dev/gpu[01-03]) */
-    char *type;                 /**< GRES type */
-    char *cores;                /**< cores to bind to GRES */
-    char *strFlags;             /**< flags specified for the GRES from config */
+    char *type;                 /**< GRes type */
+    char *cores;                /**< cores to bind to GRes */
+    char *strFlags;             /**< flags specified for the GRes from config */
     char *links;                /**< comma separated list of numbers identifying
 				     the number of connections between
 				     devices */
     uint32_t flags;             /**< parsed binary flags */
-    uint64_t count;             /**< number of GRES resources */
+    uint64_t count;             /**< number of GRes resources */
     uint32_t hash;              /**< GRes hash (plugin ID) */
     uint32_t nextDevID;		/**< first device ID in this configuration */
     list_t devices;		/**< list of GRes devices */
@@ -59,35 +59,35 @@ typedef struct {
 
 /** Structure holding a GRes credential */
 typedef struct {
-    list_t next;                /**< used to put into some gres-cred-lists */
+    list_t next;                /**< used to put into some GRes lists */
     uint32_t hash;              /**< GRes hash (plugin ID) */
-    uint64_t countAlloc;        /**< GRES per node */
+    uint64_t countAlloc;        /**< GRes per node */
     uint64_t *countStepAlloc;
     char *typeModel;
     uint32_t nodeCount;
-    char **bitAlloc;            /**< GRES job bit-string allocation */
-    uint64_t **perBitAlloc;	/**< per bit allocation for shared GRES */
-    char **bitStepAlloc;        /**< GRES step bit-string allocation */
-    uint64_t **stepPerBitAlloc;	/**< step per bit allocation for shared GRES */
-    char *nodeInUse;            /**< GRES use per node */
+    char **bitAlloc;            /**< GRes job bit-string allocation */
+    uint64_t **perBitAlloc;	/**< per bit allocation for shared GRes */
+    char **bitStepAlloc;        /**< GRes step bit-string allocation */
+    uint64_t **stepPerBitAlloc;	/**< step per bit allocation for shared GRes */
+    char *nodeInUse;            /**< GRes use per node */
     GRes_Cred_type_t credType;  /**< credential type (job or step) */
-    uint16_t cpusPerGRes;       /**< CPUs per GRES */
-    uint16_t flags;             /**< GRES flags */
-    uint64_t gresPerJob;        /**< GRES count per job */
-    uint64_t gresPerStep;       /**< GRES count per step */
-    uint64_t gresPerNode;       /**< GRES count per node */
-    uint64_t gresPerSocket;     /**< GRES count per socket */
-    uint64_t gresPerTask;       /**< GRES count per task */
-    uint64_t memPerGRes;        /**< memory per GRES */
-    uint64_t totalGres;         /**< total GRES count */
-    uint16_t numTasksPerGres;   /**< number of tasks per GRES */
+    uint16_t cpusPerGRes;       /**< CPUs per GRes */
+    uint16_t flags;             /**< GRes flags */
+    uint64_t gresPerJob;        /**< GRes count per job */
+    uint64_t gresPerStep;       /**< GRes count per step */
+    uint64_t gresPerNode;       /**< GRes count per node */
+    uint64_t gresPerSocket;     /**< GRes count per socket */
+    uint64_t gresPerTask;       /**< GRes count per task */
+    uint64_t memPerGRes;        /**< memory per GRes */
+    uint64_t totalGres;         /**< total GRes count */
+    uint16_t numTasksPerGres;   /**< number of tasks per GRes */
     char *typeName;		/**< type name (since 24.05, unused) */
     uint32_t typeID;		/**< type identifier (since 24.05, unused) */
 } Gres_Cred_t;
 
 /** Structure holding a GRes job allocation used in prologue/epilogue */
 typedef struct {
-    list_t next;                /**< used to put into some gres-alloc-lists */
+    list_t next;                /**< used to put into some GRes allocation list */
     uint32_t pluginID;          /**< plugin identifier */
     uint32_t nodeCount;         /**< node count */
     uint64_t *nodeAlloc;        /**< node allocation */
@@ -95,13 +95,13 @@ typedef struct {
 } Gres_Job_Alloc_t;
 
 /**
- * @brief Save a GRES configuration
+ * @brief Save a GRes configuration
  *
- * @param gres The GRES configuration to save
+ * @param gres The GRes configuration to save
  *
- * @param count The number of GRES resources as string
+ * @param count The number of GRes resources as string
  *
- * @return Returns the saved GRES configuration on success or
+ * @return Returns the saved GRes configuration on success or
  * NULL otherwise
  */
 Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count);
@@ -109,58 +109,62 @@ Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count);
 /**
  * @brief Get name from GRes hash
  *
+ * @attention This function returns the name of the first matching
+ * configuration. In the rare case to hash collisions, this might
+ * belong to a different configuration.
+ *
  * @param hash The GRes hash (plugin id) identifying the configuration
  *
- * @return Returns the requested name on success otherwise unknown is
- * returned
+ * @return Returns the requested name on success otherwise "unknown"
+ * is returned
  */
 const char *GRes_getNamebyHash(uint32_t hash);
 
 /**
- * @brief Free all saved GRES configurations
+ * @brief Free all saved GRes configurations
  */
 void clearGresConf(void);
 
 /**
- * @brief Allocate and initialize a new GRES credential
+ * @brief Allocate and initialize a new GRes credential
  *
- * @return Returns the created GRES credential
+ * @return Returns the created GRes credential
  */
 Gres_Cred_t *getGresCred(void);
 
 /**
- * @brief Find a GRES credential
+ * @brief Find a GRes credential
  *
- * @param list The GRES list to search
+ * @param list The GRes list to search
  *
- * @param id The GRES plugin ID or NO_VAL for any ID
+ * @param id The GRes plugin ID or NO_VAL for any ID
  *
- * @param credType The GRES credential type
+ * @param credType The GRes credential type
  * (currently GRES_CRED_STEP|GRES_CRED_JOB)
  *
- * @return Returns the found GRES credential or NULL otherwise
+ * @return Returns the found GRes credential or NULL otherwise
  */
 Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id,
 			  GRes_Cred_type_t credType);
 
 /**
- * @brief Free a GRES credential
+ * @brief Free a GRes credential
  *
- * @param gres The GRES credential to free
+ * @param gres The GRes credential to free
  */
 void releaseGresCred(Gres_Cred_t *gres);
 
 /**
- * @brief Free GRES credential of a list
+ * @brief Free GRes credential of a list
  *
- * @param gresList The GRES credential list to free
+ * @param gresList The GRes credential list to free
  */
 void freeGresCred(list_t *gresList);
 
 /**
- * @brief Get GRES configuration count
+ * @brief Get GRes configuration count
  *
- * @return Returns the number of GRES configurations
+ * @return Returns the number of GRes configurations
  */
 int countGresConf(void);
 
@@ -170,9 +174,9 @@ int countGresConf(void);
  * Visitor function used by @ref traverseGresConf() in order to visit
  * each gres configuration currently registered.
  *
- * The parameters are as follows: @a gres points to the gres config to
+ * The parameters are as follows: @a gres points to the GRes configuration to
  * visit. @a info points to the additional information passed to @ref
- * traverseGresConf() in order to be forwarded to each gres config.
+ * traverseGresConf() in order to be forwarded to each GRes config.
  *
  * If the visitor function returns true the traversal will be
  * interrupted and @ref traverseGresConf() will return to its calling
@@ -183,17 +187,18 @@ typedef bool GresConfVisitor_t(Gres_Conf_t *gres , void *info);
 /**
  * @brief Traverse all gres configurations
  *
- * Traverse all gres configurations by calling @a visitor for each of the
- * gres configurations. In addition to a pointer to the current gres config
- * @a info is passed as additional information to @a visitor.
+ * Traverse all GRes configurations by calling @a visitor for each of
+ * the GRes configurations. In addition to a pointer to the current
+ * GRes configuration, @a info is passed as additional information to
+ * @a visitor.
  *
  * If @a visitor returns true, the traversal will be stopped
  * immediately and true is returned to the calling function.
  *
- * @param visitor Visitor function to be called for each gres config
+ * @param visitor Visitor function to be called for each GRes configuration
  *
  * @param info Additional information to be passed to @a visitor while
- * visiting the gres configurations
+ * visiting the GRes configurations
  *
  * @return If the visitor returns true, traversal will be stopped and
  * true is returned. If no visitor returned true during the traversal
@@ -202,9 +207,9 @@ typedef bool GresConfVisitor_t(Gres_Conf_t *gres , void *info);
 bool traverseGresConf(GresConfVisitor_t visitor, void *info);
 
 /**
- * @brief Free GRES job allocation list
+ * @brief Free GRes job allocation list
  *
- * @param gresList The GRES job allocation list to free
+ * @param gresList The GRes job allocation list to free
  */
 void freeGresJobAlloc(list_t *gresList);
 
@@ -279,7 +284,7 @@ const char *GRes_strType(GRes_Cred_type_t type);
  *
  * Basic hash which might not be collision free.
  *
- * @param GRes name to calculate hash for
+ * @param name GRes name to calculate hash for
  *
  * @return Returns the requested hash or 0 on error
  */
