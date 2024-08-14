@@ -6,6 +6,13 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.62-1:
+=================
+Bugfixes:
+ - Only use GRes step credentials for step GPU pinning
+ - Emit warning in the correct if-branch
+
+
 Version 5.1.62:
 ===============
 Bugfixes:
