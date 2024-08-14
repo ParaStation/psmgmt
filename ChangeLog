@@ -1,3 +1,51 @@
+Version 5.1.62-1:
+=================
+------------------------------------------------------------------------
+6f130edbe | Norbert Eicker | Wed, 14 Aug 2024 15:02:28 +0200
+
+Enhance docu comments
+
+ - this includes yet another warning on hash collisions
+------------------------------------------------------------------------
+367baac8d | Michael Rauh | Tue, 13 Aug 2024 15:56:19 +0200
+
+Make it clear that GRes credential ID is a hash
+------------------------------------------------------------------------
+c0fc04554 | Michael Rauh | Tue, 13 Aug 2024 15:47:20 +0200
+
+Get rid of error prone findGresConf() and replace it with
+GRes_getNamebyHash()
+------------------------------------------------------------------------
+62dddaa7f | Michael Rauh | Tue, 13 Aug 2024 15:37:39 +0200
+
+Make it clear that GRes configuration ID is a hash
+------------------------------------------------------------------------
+3bbd91556 | Michael Rauh | Tue, 13 Aug 2024 15:33:05 +0200
+
+Rename GRes_getID() to GRes_getHash()
+------------------------------------------------------------------------
+c8fb3c25d | Michael Rauh | Tue, 13 Aug 2024 14:54:58 +0200
+
+Use list_for_each() for interation over traverseGResDevs
+------------------------------------------------------------------------
+a2cdc9ec0 | Michael Rauh | Tue, 13 Aug 2024 13:52:11 +0200
+
+Use GRes_Cred_type_t for GRes credentail types
+------------------------------------------------------------------------
+8006f54d8 | Michael Rauh | Wed, 7 Aug 2024 10:19:22 +0200
+
+Improve debug message
+------------------------------------------------------------------------
+a93ce700f | Michael Rauh | Tue, 6 Aug 2024 15:15:54 +0200
+
+Bugfix: only use GRes step credentials for step GPU pinning
+------------------------------------------------------------------------
+16369a548 | Norbert Eicker | Thu, 8 Aug 2024 10:46:50 +0200
+
+Bugfix: Emit warning in the correct if-branch
+------------------------------------------------------------------------
+
+
 Version 5.1.62:
 ===============
 ------------------------------------------------------------------------
