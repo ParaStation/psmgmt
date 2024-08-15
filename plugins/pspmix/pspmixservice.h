@@ -45,6 +45,21 @@
 bool pspmix_service_init(PspmixServer_t *server, char *clusterID);
 
 /**
+ * @brief Resolve node hosting a process
+ *
+ * Determine the node that is hosting the process @a proc.
+ *
+ * @param proc PMIx proc to lookup
+ *
+ * @return On success the ParaStation ID of the node hosting the
+ * process is returned. Otherwise -1 is returned if either the
+ * according namespace is unknown or does not contain any
+ * reservations. If the namespace is known but does not host the
+ * requested rank, -2 is returned.
+ */
+PSnodes_ID_t pspmix_service_nodeFromProc(const pmix_proc_t *proc);
+
+/**
  * @brief Register a new namespace
  *
  * @param job Job to be represented by the namespace

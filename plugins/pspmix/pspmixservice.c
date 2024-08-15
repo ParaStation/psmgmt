@@ -898,7 +898,7 @@ void pspmix_service_cleanupNamespace(PspmixNamespace_t *ns, bool error,
 }
 
 /**
- * @brief Get the node containing a specific rank in a given namespace
+ * @brief Get the node hosting a specific rank in a given namespace
  *
  * Make use of the fact that all information in a given namespace
  * reflect the represented job. Thus, ranks are always (psid-)job
@@ -930,6 +930,30 @@ static PSnodes_ID_t getNodeFromRank(PspmixNamespace_t *ns, int32_t rank)
 	 ns->name);
     return -2;
 
+}
+
+PSnodes_ID_t pspmix_service_nodeFromProc(const pmix_proc_t *proc)
+{
+    fdbg(PSPMIX_LOG_CALL, "proc %s:%d\n", proc->nspace, proc->rank);
+
+    GET_LOCK(namespaceList);
+
+    PspmixNamespace_t *ns = findNamespace(proc->nspace);
+    if (!ns) {
+	flog("namespace '%s' not found\n", proc->nspace);
+	RELEASE_LOCK(namespaceList);
+	return -1;
+    }
+
+    PSnodes_ID_t nodeID = getNodeFromRank(ns, proc->rank);
+    RELEASE_LOCK(namespaceList);
+
+    if (nodeID < 0) {
+	flog("UNEXPECTED: getNodeFromRank(%s, %d) failed\n", ns->name,
+	     proc->rank);
+    }
+
+    return nodeID;
 }
 
 /* main thread */
@@ -1830,24 +1854,8 @@ void pspmix_service_handleFenceData(uint64_t fenceID, PStask_ID_t sender,
 
 bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 {
-    GET_LOCK(namespaceList);
-
-    PspmixNamespace_t *ns = findNamespace(mdata->proc.nspace);
-    if (!ns) {
-	flog("namespace '%s' not found\n", mdata->proc.nspace);
-	RELEASE_LOCK(namespaceList);
-	return false;
-    }
-
-    PSnodes_ID_t nodeid = getNodeFromRank(ns, mdata->proc.rank);
-    if (nodeid < 0) {
-	flog("UNEXPECTED: getNodeFromRank(%s, %d) failed\n", ns->name,
-	     mdata->proc.rank);
-	RELEASE_LOCK(namespaceList);
-	return false;
-    }
-
-    RELEASE_LOCK(namespaceList);
+    PSnodes_ID_t nodeid = pspmix_service_nodeFromProc(&mdata->proc);
+    if (nodeid < 0) return false;
 
     fdbg(PSPMIX_LOG_MODEX, "rank %d on node %hd\n", mdata->proc.rank, nodeid);
 
@@ -1858,7 +1866,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 					  strvGetArray(mdata->reqKeys),
 					  mdata->timeout)) {
 	flog("send failed for %s:%d to node %hd\n",
-		mdata->proc.nspace, mdata->proc.rank, nodeid);
+	     mdata->proc.nspace, mdata->proc.rank, nodeid);
 	RELEASE_LOCK(modexRequestList);
 	return false;
     }
