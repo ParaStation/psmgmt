@@ -1908,13 +1908,10 @@ void pspmix_service_sendModexDataResponse(pmix_status_t status,
 {
     fdbg(PSPMIX_LOG_CALL, "status %d\n", status);
 
-    if (status != PMIX_SUCCESS)
-    {
-	flog(" failed: %d\n", status);
-    }
+    if (status != PMIX_SUCCESS) flog(" failed: %d\n", status);
 
     if (mset(PSPMIX_LOG_MODEX)) {
-	flog("Sending data: ");
+	flog("sending data: ");
 	for (size_t i = 0; i < mdata->ndata; i++) {
 	    mlog("%02hhx ", *(char *)(mdata->data+i));
 	}
