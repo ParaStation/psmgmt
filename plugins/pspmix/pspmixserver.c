@@ -619,36 +619,38 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 
     /* handle command directives */
     for (size_t i = 0; i < ninfo; i++) {
+	const pmix_info_t *this = info + i;
+
 	/* debug print each info */
-	fdbg(PSPMIX_LOG_MODEX, "info %s [key '%s' flags '%s' value.type '%s'\n",
-	     (PMIX_INFO_IS_REQUIRED(info+i)) ? "required" : "optional",
-	     info[i].key, PMIx_Info_directives_string(info[i].flags),
-	     PMIx_Data_type_string(info[i].value.type));
-	/* @todo use PMIx_Info_string() for PMIx > 4.1.2 */
+	if (mset(PSPMIX_LOG_MODEX)) {
+	    char *iStr = PMIx_Info_string(this);
+	    flog("info[%zd] '%s'\n", i, iStr);
+	    free(iStr);
+	}
 
 	/* support mandatory key PMIX_REQUIRED_KEY */
-	if (PMIX_CHECK_KEY(info+i, PMIX_REQUIRED_KEY)) {
-	    strvAdd(reqKeys, info[i].value.data.string);
+	if (PMIX_CHECK_KEY(this, PMIX_REQUIRED_KEY)) {
+	    strvAdd(reqKeys, this->value.data.string);
 	    continue;
 	}
 
 	/* support optional key PMIX_TIMEOUT */
-	if (PMIX_CHECK_KEY(info+i, PMIX_TIMEOUT)) {
-	    timeout = info[i].value.data.integer;
+	if (PMIX_CHECK_KEY(this, PMIX_TIMEOUT)) {
+	    timeout = this->value.data.integer;
 	    continue;
 	}
 
 	/* ignore keys not relevant for our implementation */
-	if (PMIX_CHECK_KEY(info+i, PMIX_GET_REFRESH_CACHE)) {
-	    /* we no not manage an own modex cache */
+	if (PMIX_CHECK_KEY(this, PMIX_GET_REFRESH_CACHE)) {
+	    /* we do not manage an own modex cache */
 	    continue;
 	}
 
 	/* info with required directive are not allowed to be ignored */
-	if (PMIX_INFO_IS_REQUIRED(info+i)) {
-	    flog("ERROR: required info [key '%s' flags '%s' value.type '%s']\n",
-		 info[i].key, PMIx_Info_directives_string(info[i].flags),
-		 PMIx_Data_type_string(info[i].value.type));
+	if (PMIX_INFO_IS_REQUIRED(this)) {
+	    char *iStr = PMIx_Info_string(this);
+	    flog("ERROR required info[%zd] '%s'\n", i, iStr);
+	    free(iStr);
 	    strvDestroy(reqKeys);
 	    return PMIX_ERR_NOT_SUPPORTED;
 	}
