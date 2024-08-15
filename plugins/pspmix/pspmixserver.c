@@ -1510,22 +1510,13 @@ static pmix_status_t server_query_cb(pmix_proc_t *proc,
 
     // @todo implement
 
-    vector_t query;
-    charvInit(&query, 50);
-    char buf[50];
     for (size_t i = 0; i < nqueries; i++) {
-	snprintf(buf, sizeof(buf), "Query %zu:", i);
-	charvAddCount(&query, buf, strlen(buf));
-
+	flog("query %zu:", i);
 	for (size_t j = 0; queries[i].keys[j] != NULL; j++) {
-	    snprintf(buf, sizeof(buf), " Key '%s'", queries[i].keys[j]);
-	    charvAddCount(&query, buf, strlen(buf));
+	    mlog(" key '%s'", queries[i].keys[j]);
 	}
-	charvAddCount(&query, "  (NOT IMPLEMENTED)\n\0", 21);
+	mlog(" (NOT IMPLEMENTED)\n");
     }
-
-    flog("%s", (char *)query.data);
-    charvDestroy(&query);
 
     /* not implemented */
     return __PSPMIX_NOT_IMPLEMENTED;
@@ -2364,31 +2355,22 @@ static char * intArrayToCommaString(uint32_t *array, size_t len)
  */
 static char* getProcessMapString(list_t *procMap)
 {
-    char buf[24];
-    char ranksep = ',';
-    char nodesep = ';';
-    vector_t pmap;
-    charvInit(&pmap, 50);
+    strbuf_t pmap = strbufNew(NULL);
 
     list_t *n;
     list_for_each(n, procMap) {
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
+	if (strbufLen(pmap)) strbufAdd(pmap, ";");
 	for (size_t i = 0; i < node->procs.len; i++) {
 	    PspmixProcess_t *proc = vectorGet(&node->procs, i, PspmixProcess_t);
+	    if (i) strbufAdd(pmap, ",");
+	    char buf[24];
 	    sprintf(buf, "%u", proc->rank);
-	    if (i) charvAdd(&pmap, &ranksep);
-	    charvAddCount(&pmap, buf, strlen(buf));
-	}
-	if (node->next.next != procMap) {
-	    charvAdd(&pmap, &nodesep);
+	    strbufAdd(pmap, buf);
 	}
     }
 
-    /* terminate string */
-    buf[0] = '\0';
-    charvAdd(&pmap, buf);
-
-    return (char *)pmap.data;
+    return strbufSteal(pmap);
 }
 
 /**
@@ -2403,24 +2385,17 @@ static char* getProcessMapString(list_t *procMap)
  */
 static char* getNodeRanksString(PspmixNode_t *node)
 {
-    char buf[24];
-    char ranksep = ',';
-    vector_t ranks;
-    charvInit(&ranks, 50);
+    strbuf_t ranks = strbufNew(NULL);
 
     for (size_t i = 0; i < node->procs.len; i++) {
-	PspmixProcess_t *proc;
-	proc = vectorGet(&node->procs, i, PspmixProcess_t);
+	PspmixProcess_t *proc = vectorGet(&node->procs, i, PspmixProcess_t);
+	if (i) strbufAdd(ranks, ",");
+	char buf[24];
 	sprintf(buf, "%u", proc->rank);
-	if (i > 0) charvAdd(&ranks, &ranksep);
-	charvAddCount(&ranks, buf, strlen(buf));
+	strbufAdd(ranks, buf);
     }
 
-    /* terminate string */
-    buf[0] = '\0';
-    charvAdd(&ranks, buf);
-
-    return ranks.data;
+    return strbufSteal(ranks);
 }
 
 static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
