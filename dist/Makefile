@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2003 ParTec AG, Karlsruhe
 # Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2023-2024 ParTec AG, Munich
+# Copyright (C) 2022-2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -62,7 +62,7 @@ $(RPMBUILDLOG): $(DISTNAME)/$(DISTNAME).spec $(DISTNAME).tar.gz
 	mkdir -p $(RPMBUILDDIR)
 # Setting LT_SYS_LIBRARY_PATH to system's default path explicitly
 # prevents RedHat's macro to set it to libdir (see #142)
-	env LT_SYS_LIBRARY_PATH=/usr/lib64 rpmbuild --clean $(TARGETARGS) \
+	env QA_RPATHS=0x0003 LT_SYS_LIBRARY_PATH=/usr/lib64 rpmbuild --clean $(TARGETARGS) \
 		-bb --define="_sourcedir $$PWD" --define "_rpmdir $$PWD" \
 		--define="_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
 		--define="_builddir $(RPMBUILDDIR)" $(CONFIGARGS) \
