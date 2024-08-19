@@ -91,6 +91,11 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 	     server->uid);
     mkDir(server->tmproot, S_IRWXU, server->uid, server->gid);
 
+    /* create top level temporary directory */
+    if (!mkDir(server->tmproot, 0755, server->uid, server->gid)) {
+	flog("failed to create session's tempdir '%s'\n", server->tmproot);
+    }
+
     char *clusterid = PSID_config->psiddomain;
     if (!clusterid || !clusterid[0]) clusterid = "ParaStationCluster";
 
@@ -135,6 +140,11 @@ bool pspmix_userserver_addJob(PStask_ID_t sessID, PspmixJob_t *job)
 	session->tmpdir = genSessionTmpdirName(session);
 	fdbg(PSPMIX_LOG_VERBOSE, "uid %d: session created (ID %s tmpdir %s)\n",
 	     server->uid, PSC_printTID(session->ID), session->tmpdir);
+
+	/* create session's temporary directory */
+	if (!mkDir(session->tmpdir, 0755, server->uid, server->gid)) {
+	    flog("failed to create session's tempdir '%s'\n", session->tmpdir);
+	}
     }
 
     job->session = session;
