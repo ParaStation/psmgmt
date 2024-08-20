@@ -1109,13 +1109,13 @@ void psSpankPrint(char *buf, char *prefix)
 	/* psidforwarder context */
 
 	if (prefix && PSIDfwd_printMsg(STDERR, prefix) == -1) {
-	    fwarn(errno, "PSIDfwd_printMsg(%s) failed:", prefix);
+	    fwarn(errno, "PSIDfwd_printMsg(%s) failed", prefix);
 	}
 	if (PSIDfwd_printMsg(STDERR, buf) == -1) {
-	    fwarn(errno, "PSIDfwd_printMsg(%s) failed:", buf);
+	    fwarn(errno, "PSIDfwd_printMsg(%s) failed", buf);
 	}
 	if (PSIDfwd_printMsg(STDERR, "\n") == -1) {
-	    fwarn(errno, "PSIDfwd_printMsg(\\n) failed:");
+	    fwarn(errno, "PSIDfwd_printMsg(\\n) failed");
 	}
     } else if (sp->hook == SPANK_USER_INIT) {
 	/* psslurmforwarder context */
