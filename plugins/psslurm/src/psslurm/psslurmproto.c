@@ -1395,7 +1395,7 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
 	 (bcast->flags & BCAST_FORCE) ? 1 : 0,
 	 bcast->modes, bcast->username, bcast->uid, bcast->gid,
 	 bcast->fileName, bcast->blockLen);
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PROTO) {
+    if (mset(PSSLURM_LOG_PROTO)) {
 	printBinaryData(bcast->block, bcast->blockLen, "bcast->block");
     }
 
@@ -2445,7 +2445,6 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 {
     PSnodes_ID_t *nodes = NULL;
     uint32_t nrOfNodes;
-    bool verbose = logger_getMask(psslurmlogger) & PSSLURM_LOG_FWD;
     struct timeval time_start, time_now, time_diff;
 
     /* no forwarding active for this message? */
@@ -2478,7 +2477,7 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 	fw->head.fwRes[i].body.used = 0;
     }
 
-    if (verbose) {
+    if (mset(PSSLURM_LOG_FWD)) {
 	gettimeofday(&time_start, NULL);
 
 	mlog("%s: forward type %s count %u nodelist %s timeout %u "
@@ -2490,7 +2489,7 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     /* use RDP to send the message to other nodes */
     int ret = forwardSlurmMsg(sMsg, nrOfNodes, nodes);
 
-    if (verbose) {
+    if (mset(PSSLURM_LOG_FWD)) {
 	gettimeofday(&time_now, NULL);
 	timersub(&time_now, &time_start, &time_diff);
 	mlog("%s: forward type %s of size %u took %.4f seconds\n", __func__,

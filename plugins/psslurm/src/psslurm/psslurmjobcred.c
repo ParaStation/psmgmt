@@ -102,7 +102,7 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg)
 	goto ERROR;
     }
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_AUTH) {
+    if (mset(PSSLURM_LOG_AUTH)) {
 	flog("cred len %u stepHostlist '%s' jobHostlist '%s' ctime %lu"
 	     " sig '%s' pwGecos '%s' pwDir '%s' pwShell '%s' contrains %s\n",
 	     credLen, cred->stepHL, cred->jobHostlist, cred->ctime, cred->sig,
@@ -162,7 +162,7 @@ bool *getCPUsetFromCoreBitmap(uint32_t total, const char *bitmap)
 	}
     }
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PART) {
+    if (mset(PSSLURM_LOG_PART)) {
 	flog("cores '%s' coreMap '", bitstr);
 	for (uint32_t i = 0; i < total; i++) mlog("%i", coreMap[i]);
 	mlog("'\n");

@@ -400,9 +400,7 @@ static void startSpawner(Step_t *step, int32_t serviceRank)
     envStep->env = NULL;
     Step_delete(envStep);
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PROCESS) {
-	debugMpiexecStart(task->argV, task->env);
-    }
+    if (mset(PSSLURM_LOG_PROCESS)) debugMpiexecStart(task->argV, task->env);
 
     // - actually start the task
     int ret = PSIDspawn_localTask(task, NULL, NULL);

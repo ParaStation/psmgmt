@@ -401,7 +401,7 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata, strv_t argV)
     /* parse the multi prog conf */
     parseMultiProgConf(strvGet(step->argV ,1), mp, step->np);
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PROCESS) {
+    if (mset(PSSLURM_LOG_PROCESS)) {
 	flog("Got following multiprog data:\n");
 	for (uint32_t i = 0; i < step->np; i++) {
 	    flog("  %i:  %s   %s\n", i, mp[i].exe, mp[i].args);

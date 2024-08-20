@@ -224,7 +224,7 @@ Gres_Cred_t *findGresCred(list_t *gresList, uint32_t hash,
 	}
     }
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_GRES) {
+    if (mset(PSSLURM_LOG_GRES)) {
 	if (ret) {
 	    flog("credType %d hash %u cpusPerGres %u gresPerStep %lu"
 		 " gresPerNode %lu gresPerSocket %lu gresPerTask %lu"

@@ -2839,7 +2839,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 	    getUint32Array(data, &(step->packTIDs)[i],
 			   &(step->packTaskCounts)[i]);
 
-	    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PACK) {
+	    if (mset(PSSLURM_LOG_PACK)) {
 		flog("pack node %u task count %u", i,
 			step->packTaskCounts[i]);
 		for (uint32_t n=0; n<step->packTaskCounts[i]; n++) {
@@ -3552,7 +3552,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     TRes_t *tres = TRes_new();
     convAccDataToTRes(slurmAccData, tres);
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_ACC) TRes_print(tres);
+    if (mset(PSSLURM_LOG_ACC)) TRes_print(tres);
     packTResData(data, tres);
     TRes_destroy(tres);
 
@@ -3813,7 +3813,7 @@ bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     fdbg(PSSLURM_LOG_COMM, "slurm header len %i body len %zi RPC %s\n",
 	 data->bufUsed, body->used, msgType2String(head->type));
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
+    if (mset(PSSLURM_LOG_IO_VERB)) {
 	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
 			"msg header");
 	lastBufLen = data->bufUsed;
@@ -3825,7 +3825,7 @@ bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 	fdbg(PSSLURM_LOG_COMM, "added slurm auth (%i)\n", data->bufUsed);
     }
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
+    if (mset(PSSLURM_LOG_IO_VERB)) {
 	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
 			"slurm auth");
 	lastBufLen = data->bufUsed;
@@ -3835,7 +3835,7 @@ bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     addMemToMsg(body->buf, body->used, data);
     fdbg(PSSLURM_LOG_COMM, "added slurm msg body (%i)\n", data->bufUsed);
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
+    if (mset(PSSLURM_LOG_IO_VERB)) {
 	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
 			"msg body");
     }

@@ -243,7 +243,7 @@ void closeSlurmCon(int socket)
 
     /* free memory */
     if (con) {
-	if (logger_getMask(psslurmlogger) & PSSLURM_LOG_COMM) {
+	if (mset(PSSLURM_LOG_COMM)) {
 	    struct timeval time_now, time_diff;
 
 	    gettimeofday(&time_now, NULL);
@@ -938,7 +938,7 @@ TCP_RECONNECT:
 	return -1;
     }
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_COMM) {
+    if (mset(PSSLURM_LOG_COMM)) {
 	struct sockaddr_in sockLocal, sockRemote;
 	socklen_t lenLoc = sizeof(sockLocal), lenRem = sizeof(sockRemote);
 
@@ -1322,7 +1322,7 @@ static int acceptSlurmClient(int socket, void *data)
 	return 0;
     }
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_COMM) {
+    if (mset(PSSLURM_LOG_COMM)) {
 	struct sockaddr_in sockLocal;
 	socklen_t len = sizeof(sockLocal);
 

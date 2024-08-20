@@ -1124,7 +1124,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     /* remove environment variables not evaluated by mpiexec */
     removeUserVars(step->env, pmi_type);
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PROCESS) {
+    if (mset(PSSLURM_LOG_PROCESS)) {
 	debugMpiexecStart(argvP, envGetArray(step->env));
     }
 

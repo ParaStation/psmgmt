@@ -203,7 +203,7 @@ static char *getCompactThreadList(const PSCPU_set_t threads)
 	mapped[m] = PSCPU_isSet(threads, t);
     }
 
-    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_ENV) {
+    if (mset(PSSLURM_LOG_ENV)) {
 	flog("handling threads set %s, mapped ",
 	    PSCPU_print_part(threads, PSCPU_bytesForCPUs(numThreads)));
 	for (short m = 0; m < numThreads; m++) mlog("%d", mapped[m]);
