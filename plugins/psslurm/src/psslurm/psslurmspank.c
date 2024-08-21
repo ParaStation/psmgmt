@@ -1094,7 +1094,7 @@ int psSpankGetContext(spank_t spank)
     return S_CTX_ERROR;
 }
 
-void psSpankPrint(char *buf, char *prefix)
+void psSpankPrint(char *prefix, char *buf)
 {
     spank_t sp = current_spank;
     if (!sp) {

@@ -180,7 +180,7 @@ void slurm_spank_log(const char *fmt, ...)
 	flog("vasprintf() failed\n");
 	return;
     }
-    psSpankPrint(buf, NULL);
+    psSpankPrint(NULL, buf);
     free(buf);
 
     va_end(ap);
@@ -208,7 +208,7 @@ void slurm_error(const char *fmt, ...)
     mlog("spank(L%i): %s\n", psSpank_loglevel, buf);
 
     /* print to user */
-    psSpankPrint(buf, "psslurm: error: ");
+    psSpankPrint("psslurm: error: ", buf);
     free(buf);
 
     va_end(ap);
