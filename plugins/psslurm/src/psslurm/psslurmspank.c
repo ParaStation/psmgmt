@@ -1135,7 +1135,7 @@ void psSpankPrint(char *buf, char *prefix)
     } else {
 	/* child context */
 	if (fprintf(stderr, "%s%s\n", (prefix ? prefix : ""), buf) < 1) {
-	    flog("fprintf() failed\n");
+	    flog("fprintf(%s%s) failed\n", (prefix ? prefix : ""), buf);
 	}
     }
 }
