@@ -10,7 +10,7 @@
  *
  * @return Returns true on success or false otherwise
  */
-typedef bool psSpank_Init_t(bool);
+typedef bool psSpank_Init_t(bool, char *);
 
 psSpank_Init_t *psSpank_Init;
 

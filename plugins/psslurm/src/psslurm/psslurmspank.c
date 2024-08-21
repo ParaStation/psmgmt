@@ -166,7 +166,9 @@ bool SpankInitGlobalSym(void)
 	return false;
     }
 
-    return psSpank_Init(mset(PSSLURM_LOG_SPANK));
+    char *logLevel = getConfValueC(SlurmConfig, "SlurmdDebug");
+
+    return psSpank_Init(mset(PSSLURM_LOG_SPANK), logLevel);
 }
 
 bool SpankIsInitialized(void)

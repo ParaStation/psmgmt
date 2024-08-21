@@ -15,12 +15,16 @@
 static logger_t psSpank_logger;
 
 typedef enum {
-    SPANK_LOG_ERROR = 2,
+    SPANK_LOG_QUIET = 0,
+    SPANK_LOG_FATAL,
+    SPANK_LOG_ERROR,
     SPANK_LOG_INFO,
     SPANK_LOG_VERBOSE,
     SPANK_LOG_DEBUG,
     SPANK_LOG_DEBUG2,
     SPANK_LOG_DEBUG3,
+    SPANK_LOG_DEBUG4,
+    SPANK_LOG_DEBUG5,
 } psSpank_Log_Level_t;
 
 static int psSpank_loglevel = SPANK_LOG_VERBOSE;
@@ -39,7 +43,46 @@ static int psSpank_loglevel = SPANK_LOG_VERBOSE;
     mlog("\n");                                         \
 }
 
-bool psSpank_Init(bool verbose)
+/**
+ * @brief Set spank log level from slurm.conf
+ *
+ * @param ll Log level as string
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+static bool setLogLevel(char *ll)
+{
+    if (!ll) return true;
+
+    if (!strcasecmp(ll, "quiet")) {
+	psSpank_loglevel = SPANK_LOG_QUIET;
+    } else if (!strcasecmp(ll, "fatal")) {
+	psSpank_loglevel = SPANK_LOG_FATAL;
+    } else if (!strcasecmp(ll, "error")) {
+	psSpank_loglevel = SPANK_LOG_ERROR;
+    } else if (!strcasecmp(ll, "info")) {
+	psSpank_loglevel = SPANK_LOG_INFO;
+    } else if (!strcasecmp(ll, "verbose")) {
+	psSpank_loglevel = SPANK_LOG_VERBOSE;
+    } else if (!strcasecmp(ll, "debug")) {
+	psSpank_loglevel = SPANK_LOG_DEBUG;
+    } else if (!strcasecmp(ll, "debug2")) {
+	psSpank_loglevel = SPANK_LOG_DEBUG2;
+    } else if (!strcasecmp(ll, "debug3")) {
+	psSpank_loglevel = SPANK_LOG_DEBUG3;
+    } else if (!strcasecmp(ll, "debug4")) {
+	psSpank_loglevel = SPANK_LOG_DEBUG4;
+    } else if (!strcasecmp(ll, "debug5")) {
+	psSpank_loglevel = SPANK_LOG_DEBUG5;
+    } else {
+	flog("unknown SlurmdDebug option %s\n", ll);
+	return false;
+    }
+
+    return true;
+}
+
+bool psSpank_Init(bool verbose, char *logLevel)
 {
     psSpank_logger = logger_new(NULL, NULL);
 
@@ -108,6 +151,14 @@ bool psSpank_Init(bool verbose)
     if (!psSpankPrint) {
 	flog("loading psSpankPrint() failed\n");
 	return false;
+    }
+
+    if (!setLogLevel(logLevel)) {
+	flog("setting spank log level failed\n");
+	return false;
+    }
+    if (verbose && logLevel) {
+	flog("SPANK log level %s(%i)\n", logLevel, psSpank_loglevel);
     }
 
     if (verbose) mlog("spank api successfully started\n");
