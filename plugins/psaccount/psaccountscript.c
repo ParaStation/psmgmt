@@ -59,6 +59,27 @@ static LIST_HEAD(scriptList);
  */
 static bool finalized = false;
 
+
+/**
+ * @brief Verify a script pointer
+ *
+ * @param scriptPtr The pointer to verify
+ *
+ * @return Returns true if the pointer is valid otherwise
+ * false
+ */
+static bool Script_verifyPtr(Collect_Script_t *scriptPtr)
+{
+    if (!scriptPtr) return false;
+
+    list_t *s;
+    list_for_each(s, &scriptList) {
+	Collect_Script_t *script = list_entry(s, Collect_Script_t, next);
+	if (script == scriptPtr) return true;
+    }
+    return false;
+}
+
 /**
  * @brief Create new script structure
  *
@@ -412,7 +433,7 @@ Collect_Script_t *Script_start(char *title, char *path,
 
 void Script_finalize(Collect_Script_t *script)
 {
-    if (!script) {
+    if (!Script_verifyPtr(script)) {
 	flog("invalid script given\n");
 	return;
     }
@@ -457,7 +478,7 @@ void Script_cleanup(void)
 
 bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)
 {
-    if (!script || !script->fwdata) {
+    if (!Script_verifyPtr(script) || !script->fwdata) {
 	flog("invalid script or forwarder data\n");
 	return false;
     }
@@ -483,7 +504,7 @@ bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)
 bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
 		   const char *envStr)
 {
-    if (!script || !script->fwdata) {
+    if (!Script_verifyPtr(script) || !script->fwdata) {
 	flog("invalid script or forwarder data\n");
 	return false;
     }
