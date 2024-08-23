@@ -731,6 +731,11 @@ void initJobEnv(Job_t *job)
     envSet(job->env, "SLURM_JOB_UID", tmp);
     envSet(job->env, "SLURM_CPUS_ON_NODE", getConfValueC(Config, "SLURM_CPUS"));
 
+    /* ensure USER is set (even if sbatch --export=NONE is used) */
+    if (!envGet(job->env, "USER")) {
+	envSet(job->env, "USER", job->username);
+    }
+
     char *cpus = getCPUsPerNode(job);
     envSet(job->env, "SLURM_JOB_CPUS_PER_NODE", cpus);
     ufree(cpus);
@@ -1414,6 +1419,11 @@ void setStepEnv(Step_t *step)
 
     /* cleanup env */
     envEvict(step->env, spankVarFilter, NULL);
+
+    /* ensure USER is set (even if srun --export=NONE is used) */
+    if (!envGet(step->env, "USER")) {
+	envSet(step->env, "USER", step->username);
+    }
 }
 
 void setJobEnv(Job_t *job)
