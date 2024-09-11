@@ -478,6 +478,7 @@ int handlePEloguePrepare(void *data)
 
     if (pedata->type != PELOGUE_PROLOGUE) spank.hook = SPANK_JOB_EPILOG;
 
+    SpankInitOpt(&spank);
     SpankCallHook(&spank);
 #endif
 

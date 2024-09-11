@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <ctype.h>
 
 #include <slurm/slurm_errno.h>
 
@@ -52,6 +53,9 @@
 /** maximum number of seconds a spank hook may take to execute before
  * a warning is generated */
 #define HOOK_MAX_RUNTIME 1
+
+/* magic prefix for SPANK options transferred in environment */
+#define SPANK_ENV_OPT "_SLURM_SPANK_OPTION_"
 
 static const struct {
     bool sup;
@@ -217,6 +221,45 @@ static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
     }
 }
 
+/**
+ * @brief Convert a name to SPANK environment encoding
+ *
+ * @param name The name to convert
+ *
+ * @return Returns the converted name
+ */
+static char *getSpankEnvName(const char *name)
+{
+    char *dup = ustrdup(name);
+    for (char *ptr = dup; *ptr; ptr++) {
+	if (!isalnum((int)*ptr)) *ptr = '_';
+    }
+    return dup;
+}
+
+static bool testSpankEnvName(const char *regName, const char *envName,
+			     const char sep)
+{
+    char *envName2 = getSpankEnvName(regName);
+    if (!envName2) return false;
+
+    bool res = false;
+    size_t len2 = strlen(envName2);
+    if (!strncmp(envName2, envName, len2) && (envName[len2] == sep)) {
+	res = true;
+    }
+
+    ufree(envName2);
+    return res;
+}
+
+/**
+ * @brief Find a SPANK plugin by name
+ *
+ * @param name The name of the plugin to find
+ *
+ * @return Returns the found plugin on success otherwise false is returned
+ */
 static Spank_Plugin_t *findPlugin(const char *name)
 {
     if (!name) return NULL;
@@ -413,31 +456,122 @@ bool SpankUnloadPlugin(const char *name, bool finalize)
     return true;
 }
 
-static struct spank_option *findPluginOpt(Spank_Plugin_t *plugin, char *name)
+/**
+ * @brief Find a SPANK plugin option
+ *
+ * @param plugin The plugin which registered the option
+ *
+ * @param name The name of the option to find
+ *
+ * @param isEnvName True if the name is in environment format
+ * (see @ref getSpankEnvName())
+ *
+ * @return Returns the found SPANK option on success or NULL otherwise
+ */
+static struct spank_option *findPluginOpt(Spank_Plugin_t *plugin,
+					  const char *name, bool isEnvName)
 {
+    if (!plugin || !name) return NULL;
+
     /* find option in spank_options table */
     struct spank_option *opt = dlsym(plugin->handle, "spank_options");
     for (int i = 0; opt && opt[i].name; i++) {
-	if (!strcmp(opt[i].name, name)) return &opt[i];
+	if (isEnvName) {
+	    if (testSpankEnvName(opt[i].name, name, '=')) return &opt[i];
+	} else {
+	    if (!strcmp(opt[i].name, name)) return &opt[i];
+	}
     }
 
     /* find option in plugin table */
     opt = plugin->opt;
     for (uint32_t i = 0; i < plugin->optCount; i++) {
-	if (!strcmp(opt[i].name, name)) return &opt[i];
+	if (isEnvName) {
+	    if (testSpankEnvName(opt[i].name, name, '=')) return &opt[i];
+	} else {
+	    if (!strcmp(opt[i].name, name)) return &opt[i];
+	}
     }
 
     return NULL;
 }
 
+/**
+ * @brief Initialize SPANK option from environment
+ *
+ * Search the given environment for SPANK plugin options. A option string
+ * starts with a defined prefix followed by the plugin and option names.
+ * If a option is successfully identified an optional callback is invoked so
+ * the SPANK plugin may initialize itself.
+ *
+ * @param env Environment to use
+ */
+static void initSpankOptByEnv(env_t env)
+{
+    if (!env) return;
+    size_t len = strlen(SPANK_ENV_OPT);
+
+    for (char **e = envGetArray(env); e && *e; e++) {
+	if (strncmp(SPANK_ENV_OPT, *e, len)) continue;
+
+	/* remove SPANK prefix */
+	char *optEnv = *e + len;
+	if (!optEnv) {
+	    flog("erro: empty option environment string %s\n", *e);
+	    continue;
+	}
+
+	/* find SPANK plugin */
+	bool found = false;
+	list_t *s;
+	list_for_each(s, &SpankList) {
+	    Spank_Plugin_t *plugin = list_entry(s, Spank_Plugin_t, next);
+	    if (!plugin->name) continue;
+	    if (!testSpankEnvName(plugin->name, optEnv, '_')) continue;
+
+	    /* find SPANK option in plugin */
+	    char *optName = optEnv + strlen(plugin->name) + 1;
+	    struct spank_option *opt = findPluginOpt(plugin, optName, true);
+	    if (!opt) {
+		fdbg(PSSLURM_LOG_SPANK, "unable to find option '%s' in"
+		     " plugin %s\n", optName, plugin->name);
+		continue;
+	    }
+
+	    /* extract option value */
+	    char *value = optName + strlen(opt->name) + 1;
+	    if (value) {
+		fdbg(PSSLURM_LOG_SPANK, "set option %s=%s for plugin %s \n",
+		     opt->name, value, plugin->name);
+		if (opt->cb) opt->cb(opt->val, value, 1);
+		found = true;
+	    }
+	}
+	if (!found) {
+	    fdbg(PSSLURM_LOG_SPANK, "error: could not match option %s\n", *e);
+	}
+    }
+}
+
 void __SpankInitOpt(spank_t spank, const char *func, const int line)
 {
     Step_t *step = spank->step;
-    if (!step) {
-	if (!spank->job) flog("invalid step from %s:%i\n", func, line);
+    Job_t *job = spank->job;
+    Alloc_t *alloc = spank->alloc;
+
+    if (!step && !job && !alloc) {
+	flog("invalid allocation/job/step from %s:%i\n", func, line);
 	return;
     }
 
+    /* parse SPANK options included in allocation/job/step environment */
+    env_t env = alloc ? alloc->env : NULL;
+    env = job ? job->spankenv : env;
+    env = step ? step->spankenv : env;
+    initSpankOptByEnv(env);
+
+    /* parse SPANK options transferred by launch-step RPC */
+    if (!step) return;
     for (uint32_t i=0; i<step->spankOptCount; i++) {
 	Spank_Opt_t stepOpt = step->spankOpt[i];
 
@@ -450,7 +584,7 @@ void __SpankInitOpt(spank_t spank, const char *func, const int line)
 	    continue;
 	}
 
-	struct spank_option *opt = findPluginOpt(plugin, stepOpt.optName);
+	struct spank_option *opt = findPluginOpt(plugin, stepOpt.optName, false);
 	if (!opt) {
 	    /* a spank plugin may choose to register options only in
 	     * local context */
@@ -1191,7 +1325,7 @@ int psSpankOptGet(spank_t spank, struct spank_option *opt, char **retval)
     Step_t *step = spank->step;
     if (!step) {
 	flog("invalid step from for opt %s\n", opt->name);
-	return ESPANK_NOEXIST;
+	return ESPANK_ERROR;
     }
 
     for (uint32_t i=0; i<step->spankOptCount; i++) {
@@ -1207,7 +1341,7 @@ int psSpankOptGet(spank_t spank, struct spank_option *opt, char **retval)
 	}
     }
 
-    return ESPANK_NOEXIST;
+    return ESPANK_ERROR;
 }
 
 /**
