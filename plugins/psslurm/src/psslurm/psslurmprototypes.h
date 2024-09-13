@@ -864,7 +864,6 @@ typedef struct {
     gid_t gid;			/**< unique group identifier */
     char *aliasList;		/**< alias list */
     char *nodes;		/**< node string */
-    char *partition;		/**< partition (removed in 22.05) */
     char *stdErr;		/**< stderr (removed in 23.11) */
     char *stdOut;		/**< stdout (removed in 23.11) */
     char *workDir;		/**< working directory */

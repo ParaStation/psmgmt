@@ -60,8 +60,6 @@ typedef struct {
     char *jobscript;	    /**< absolute path of the jobscript */
     char *jsData;	    /**< jobscript data */
     char *hostname;	    /**< hostname of the jobscript */
-    char *checkpoint;	    /**< directory for checkpoints (removed in 21.08) */
-    char *restartDir;       /**< restart directory (removed in 21.08) */
     char *acctFreq;	    /**< account polling frequency */
     uint16_t cpuBindType;    /**< CPU bind type (unused) */
     int state;		    /**< current state of the job */

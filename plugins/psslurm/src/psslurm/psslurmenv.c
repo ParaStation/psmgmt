@@ -762,11 +762,6 @@ void initJobEnv(Job_t *job)
     envSet(job->env, "SLURM_NODELIST", job->slurmHosts);
     envSet(job->env, "SLURM_JOB_NODELIST", job->slurmHosts);
 
-    if (job->checkpoint) {
-	/* removed in 21.08 */
-	envSet(job->env, "SLURM_CHECKPOINT_IMAGE_DIR", job->checkpoint);
-    }
-
     /* node alias was removed in 23.11 */
     if (!job->nodeAlias || !strlen(job->nodeAlias)) {
 	if (slurmProto <= SLURM_23_02_PROTO_VERSION) {

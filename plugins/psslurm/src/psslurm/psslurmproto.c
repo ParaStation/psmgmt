@@ -1835,10 +1835,9 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
     if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
     fdbg(PSSLURM_LOG_PELOG, "jobid %u het-jobid %u uid %u gid %u alias %s"
-	 " nodes=%s partition=%s stdErr='%s' stdOut='%s' work-dir=%s user=%s\n",
+	 " nodes=%s stdErr='%s' stdOut='%s' work-dir=%s user=%s\n",
 	 req->jobid, req->hetJobid, req->uid, req->gid, req->aliasList,
-	 req->nodes, req->partition, req->stdErr, req->stdOut, req->workDir,
-	 req->userName);
+	 req->nodes, req->stdErr, req->stdOut, req->workDir, req->userName);
 
     fdbg(PSSLURM_LOG_DEBUG, "x11 %u allocHost='%s' allocPort %u cookie='%s'"
 	 "target=%s targetPort %u\n", req->x11, req->x11AllocHost,
@@ -2784,9 +2783,6 @@ bool initSlurmdProto(void)
     } else if (!strncmp(pver, "22.05", 5) || !strncmp(pver, "2205", 4)) {
 	slurmProto = SLURM_22_05_PROTO_VERSION;
 	slurmProtoStr = ustrdup("22.05");
-    } else if (!strncmp(pver, "21.08", 5) || !strncmp(pver, "2108", 4)) {
-	slurmProto = SLURM_21_08_PROTO_VERSION;
-	slurmProtoStr = ustrdup("21.08");
     } else {
 	flog("unsupported Slurm protocol version %s\n", pver);
 	return false;

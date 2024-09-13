@@ -78,7 +78,6 @@ static inline void freeReqLaunchProlog(Slurm_Msg_t *sMsg)
 
     ufree(req->aliasList);
     ufree(req->nodes);
-    ufree(req->partition);
     ufree(req->stdErr);
     ufree(req->stdOut);
     ufree(req->workDir);

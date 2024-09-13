@@ -95,7 +95,6 @@ bool Job_delete(Job_t *job)
     ufree(job->stdIn);
     ufree(job->hostname);
     ufree(job->slurmHosts);
-    ufree(job->checkpoint);
     ufree(job->nodeAlias);
     ufree(job->partition);
     ufree(job->cpusPerNode);
@@ -104,7 +103,6 @@ bool Job_delete(Job_t *job)
     ufree(job->gids);
     ufree(job->tresBind);
     ufree(job->tresFreq);
-    ufree(job->restartDir);
     ufree(job->qos);
     ufree(job->resName);
 
