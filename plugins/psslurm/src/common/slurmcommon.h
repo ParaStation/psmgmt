@@ -231,7 +231,6 @@ typedef enum task_dist_states {
 #define LAUNCH_PTY              0x00000004
 #define LAUNCH_BUFFERED_IO      0x00000008
 #define LAUNCH_LABEL_IO         0x00000010
-#define LAUNCH_USER_MANAGED_IO  0x00000020
 
 /* node registration flags */
 #define SLURMD_REG_FLAG_STARTUP  0x0001

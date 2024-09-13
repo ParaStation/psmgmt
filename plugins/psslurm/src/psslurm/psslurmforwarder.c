@@ -887,36 +887,34 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	    exit(1);
 	}
     } else {
-	if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
-	    if (dup2(fwdata->stdOut[1], STDOUT_FILENO) == -1) {
-		mwarn(errno, "%s: dup2(%u/stdout)",
-		      __func__, fwdata->stdOut[0]);
-		exit(1);
-	    }
-	    if (dup2(fwdata->stdErr[1], STDERR_FILENO) == -1) {
-		mwarn(errno, "%s: dup2(%u/stderr)",
-		      __func__, fwdata->stdErr[0]);
-		exit(1);
-	    }
-	    if (step->stdInRank == -1 && step->stdIn &&
-	       strlen(step->stdIn) > 0) {
-		/* input is redirected from file and not connected to psidfw! */
+	if (dup2(fwdata->stdOut[1], STDOUT_FILENO) == -1) {
+	    mwarn(errno, "%s: dup2(%u/stdout)",
+		  __func__, fwdata->stdOut[0]);
+	    exit(1);
+	}
+	if (dup2(fwdata->stdErr[1], STDERR_FILENO) == -1) {
+	    mwarn(errno, "%s: dup2(%u/stderr)",
+		  __func__, fwdata->stdErr[0]);
+	    exit(1);
+	}
+	if (step->stdInRank == -1 && step->stdIn &&
+	   strlen(step->stdIn) > 0) {
+	    /* input is redirected from file and not connected to psidfw! */
 
-		int fd = open("/dev/null", O_RDONLY);
-		if (fd == -1) {
-		    mwarn(errno, "%s: open(/dev/null)", __func__);
-		    exit(1);
-		}
-		if (dup2(fd, STDIN_FILENO) == -1) {
-		    mwarn(errno, "%s: dup2(%i=/dev/null)", __func__, fd);
-		    exit(1);
-		}
-	    } else {
-		if (dup2(fwdata->stdIn[0], STDIN_FILENO) == -1) {
-		    mwarn(errno, "%s: dup2(%u/stdin)",
-			  __func__, fwdata->stdIn[0]);
-		    exit(1);
-		}
+	    int fd = open("/dev/null", O_RDONLY);
+	    if (fd == -1) {
+		mwarn(errno, "%s: open(/dev/null)", __func__);
+		exit(1);
+	    }
+	    if (dup2(fd, STDIN_FILENO) == -1) {
+		mwarn(errno, "%s: dup2(%i=/dev/null)", __func__, fd);
+		exit(1);
+	    }
+	} else {
+	    if (dup2(fwdata->stdIn[0], STDIN_FILENO) == -1) {
+		mwarn(errno, "%s: dup2(%u/stdin)",
+		      __func__, fwdata->stdIn[0]);
+		exit(1);
 	    }
 	}
 
@@ -1243,8 +1241,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     }
 
     /* redirect stdout/stderr/stdin */
-    if (!(step->taskFlags & LAUNCH_PTY)
-	&& !(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
+    if (!(step->taskFlags & LAUNCH_PTY)) {
 	IO_redirectStep(fwdata, step);
 	IO_openStepPipes(fwdata, step);
     }
@@ -1287,9 +1284,6 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
     Step_t *step = fwdata->userData;
 
     IO_init();
-
-    /* user will take care of I/O handling */
-    if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return;
 
     if (!step->IOPort) {
 	flog("no I/O ports available\n");
@@ -1733,9 +1727,6 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
     step->fwdata = fwdata;
 
     IO_init();
-
-    /* user will take care of I/O handling */
-    if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return;
 
     if (!step->IOPort) {
 	flog("no I/O Ports\n");

@@ -3041,23 +3041,19 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* task flags */
     getUint32(data, &step->taskFlags);
-    /* I/O options */
-    if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO) ||
-	msgVer > SLURM_21_08_PROTO_VERSION) {
-	/* stdout options */
-	step->stdOut = getStringM(data);
-	/* stderr options */
-	step->stdErr = getStringM(data);
-	/* stdin options */
-	step->stdIn = getStringM(data);
+    /* stdout options */
+    step->stdOut = getStringM(data);
+    /* stderr options */
+    step->stdErr = getStringM(data);
+    /* stdin options */
+    step->stdIn = getStringM(data);
 
-	/* I/O Ports */
-	getUint16(data, &step->numIOPort);
-	if (step->numIOPort > 0) {
-	    step->IOPort = umalloc(sizeof(uint16_t) * step->numIOPort);
-	    for (uint32_t i = 0; i < step->numIOPort; i++) {
-		getUint16(data, &step->IOPort[i]);
-	    }
+    /* I/O Ports */
+    getUint16(data, &step->numIOPort);
+    if (step->numIOPort > 0) {
+	step->IOPort = umalloc(sizeof(uint16_t) * step->numIOPort);
+	for (uint32_t i = 0; i < step->numIOPort; i++) {
+	    getUint16(data, &step->IOPort[i]);
 	}
     }
 

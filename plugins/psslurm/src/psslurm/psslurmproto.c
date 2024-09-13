@@ -320,20 +320,18 @@ static void printLaunchTasksInfos(Step_t *step)
     }
 
     /* set stdout/stderr/stdin options */
-    if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
-	fdbg(PSSLURM_LOG_IO, "stdOut '%s' stdOutRank %i stdOutOpt %s\n",
-	     step->stdOut, step->stdOutRank, IO_strOpt(step->stdOutOpt));
+    fdbg(PSSLURM_LOG_IO, "stdOut '%s' stdOutRank %i stdOutOpt %s\n",
+	 step->stdOut, step->stdOutRank, IO_strOpt(step->stdOutOpt));
 
-	fdbg(PSSLURM_LOG_IO, "stdErr '%s' stdErrRank %i stdErrOpt %s\n",
-	     step->stdErr, step->stdErrRank, IO_strOpt(step->stdErrOpt));
+    fdbg(PSSLURM_LOG_IO, "stdErr '%s' stdErrRank %i stdErrOpt %s\n",
+	 step->stdErr, step->stdErrRank, IO_strOpt(step->stdErrOpt));
 
-	fdbg(PSSLURM_LOG_IO, "stdIn '%s' stdInRank %i stdInOpt %s\n",
-	     step->stdIn, step->stdInRank, IO_strOpt(step->stdInOpt));
+    fdbg(PSSLURM_LOG_IO, "stdIn '%s' stdInRank %i stdInOpt %s\n",
+	 step->stdIn, step->stdInRank, IO_strOpt(step->stdInOpt));
 
-	mdbg(PSSLURM_LOG_IO, "%s: bufferedIO '%i' labelIO '%i'\n", __func__,
-	     step->taskFlags & LAUNCH_BUFFERED_IO,
-	     step->taskFlags & LAUNCH_LABEL_IO);
-    }
+    mdbg(PSSLURM_LOG_IO, "%s: bufferedIO '%i' labelIO '%i'\n", __func__,
+	 step->taskFlags & LAUNCH_BUFFERED_IO,
+	 step->taskFlags & LAUNCH_LABEL_IO);
 
     /* job state */
     fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
@@ -574,11 +572,9 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* set stdout/stderr/stdin options */
-    if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
-	setIOoptions(step->stdOut, &step->stdOutOpt, &step->stdOutRank);
-	setIOoptions(step->stdErr, &step->stdErrOpt, &step->stdErrRank);
-	setIOoptions(step->stdIn, &step->stdInOpt, &step->stdInRank);
-    }
+    setIOoptions(step->stdOut, &step->stdOutOpt, &step->stdOutRank);
+    setIOoptions(step->stdErr, &step->stdErrOpt, &step->stdErrRank);
+    setIOoptions(step->stdIn, &step->stdInOpt, &step->stdInRank);
 
     /* convert slurm hostlist to PSnodes */
     uint32_t count;
