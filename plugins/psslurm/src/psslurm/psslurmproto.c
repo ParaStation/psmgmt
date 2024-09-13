@@ -942,15 +942,6 @@ static int handleSuspendInt(Slurm_Msg_t *sMsg)
     return SLURM_SUCCESS;
 }
 
-static int handleUpdateJobTime(Slurm_Msg_t *sMsg)
-{
-    /* does nothing, since timelimit is not used in slurmd */
-
-    if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
-
-    return SLURM_SUCCESS;
-}
-
 /**
  * @brief Handle a shutdown request
  *
@@ -988,17 +979,6 @@ static int handleReconfigure(Slurm_Msg_t *sMsg)
 }
 
 /**
- * @brief Mapper for old configuration format, remove with 20.11
- */
-static bool oldWrite(const char *name, const char *dir, const char *data)
-{
-    /* skip empty files */
-    if (!data || strlen(data) < 1) return true;
-
-    return writeFile(name, dir, data, strlen(data));
-}
-
-/**
  * @brief Write various Slurm configuration files
  *
  * @param config The configuration message holding the payload to write
@@ -1016,58 +996,29 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 	}
     }
 
-    if (config->numFiles) {
-	/* new Slurm configuration format since Slurm 21.08 */
-	for (uint32_t i = 0; i < config->numFiles; i++) {
-	    Config_File_t *file = &config->files[i];
+    /* new Slurm configuration format since Slurm 21.08 */
+    for (uint32_t i = 0; i < config->numFiles; i++) {
+	Config_File_t *file = &config->files[i];
 
-	    char path[PATH_MAX];
-	    snprintf(path, sizeof(path), "%s/%s", confDir, file->name);
+	char path[PATH_MAX];
+	snprintf(path, sizeof(path), "%s/%s", confDir, file->name);
 
-	    if (!file->create) {
-		/* file should be deleted if possbile */
-		unlink(path);
-		continue;
-	    }
+	if (!file->create) {
+	    /* file should be deleted if possbile */
+	    unlink(path);
+	    continue;
+	}
 
-	    /* skip empty files */
-	    if (!file->data || strlen(file->data) < 1) continue;
+	/* skip empty files */
+	if (!file->data || strlen(file->data) < 1) continue;
 
-	    if (!writeFile(file->name, confDir, file->data,
-			   strlen(file->data))) {
-		return false;
-	    }
-	    mode_t mode = file->executable ? 0755 : 0644;
-	    if (chmod(path, mode ) == -1) {
-		fwarn(errno, "chmod(%s, %o)", path, mode);
-		return false;
-	    }
-	}
-    } else {
-	/* old configuration format, remove with 20.11 */
-	if (!oldWrite("slurm.conf", confDir, config->slurm_conf)) return false;
-	if (!oldWrite("acct_gather.conf", confDir, config->acct_gather_conf)) {
+	if (!writeFile(file->name, confDir, file->data,
+		       strlen(file->data))) {
 	    return false;
 	}
-	if (!oldWrite("cgroup.conf", confDir, config->cgroup_conf)) return false;
-	if (!oldWrite("cgroup_allowd_dev.conf", confDir,
-		       config->cgroup_allowed_dev_conf)) {
-	    return false;
-	}
-	if (!oldWrite("ext_sensor.conf", confDir, config->ext_sensor_conf)) {
-	    return false;
-	}
-	if (!oldWrite("gres.conf", confDir, config->gres_conf)) return false;
-	if (!oldWrite("knl_cray.conf", confDir, config->knl_cray_conf)) {
-	    return false;
-	}
-	if (!oldWrite("knl_generic.conf", confDir, config->knl_generic_conf)) {
-	    return false;
-	}
-	if (!oldWrite("plugstack.conf", confDir, config->plugstack_conf)) {
-	    return false;
-	}
-	if (!oldWrite("topology.conf", confDir, config->topology_conf)) {
+	mode_t mode = file->executable ? 0755 : 0644;
+	if (chmod(path, mode ) == -1) {
+	    fwarn(errno, "chmod(%s, %o)", path, mode);
 	    return false;
 	}
     }
@@ -2434,12 +2385,6 @@ static int handleNetworkCallerID(Slurm_Msg_t *sMsg)
     /* node name */
 }
 
-static int handleRespMessageComposite(Slurm_Msg_t *sMsg)
-{
-    flog("implement me!\n");
-    return ESLURM_NOT_SUPPORTED;
-}
-
 /**
  * @brief Handle response to node registration request
  *
@@ -2842,9 +2787,6 @@ bool initSlurmdProto(void)
     } else if (!strncmp(pver, "21.08", 5) || !strncmp(pver, "2108", 4)) {
 	slurmProto = SLURM_21_08_PROTO_VERSION;
 	slurmProtoStr = ustrdup("21.08");
-    } else if (!strncmp(pver, "20.11", 5) || !strncmp(pver, "2011", 4)) {
-	slurmProto = SLURM_20_11_PROTO_VERSION;
-	slurmProtoStr = ustrdup("20.11");
     } else {
 	flog("unsupported Slurm protocol version %s\n", pver);
 	return false;
@@ -2889,13 +2831,6 @@ bool initSlurmdProto(void)
     registerSlurmdMsg(REQUEST_DAEMON_STATUS, handleDaemonStatus);
     registerSlurmdMsg(REQUEST_STEP_COMPLETE, handleInvalid);
     registerSlurmdMsg(REQUEST_JOB_NOTIFY, handleJobNotify);
-
-    /* removed in 20.11 */
-    registerSlurmdMsg(REQUEST_STEP_COMPLETE_AGGR, handleInvalid);
-    registerSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE, handleRespMessageComposite);
-    registerSlurmdMsg(MESSAGE_COMPOSITE, handleInvalid);
-    registerSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT, handleInvalid);
-    registerSlurmdMsg(REQUEST_UPDATE_JOB_TIME, handleUpdateJobTime);
 
     /* initialize privileged sstat users */
     const char *sstatUsers = getConfValueC(Config, "SSTAT_USERS");

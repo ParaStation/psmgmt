@@ -879,48 +879,46 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 	cred->jobLicenses = getStringM(data);
     }
 
-    if (msgVer > SLURM_20_11_PROTO_VERSION) {
-	/* job memory allocation size */
-	getUint32(data, &cred->jobMemAllocSize);
+    /* job memory allocation size */
+    getUint32(data, &cred->jobMemAllocSize);
 
-	if (cred->jobMemAllocSize) {
-	    uint32_t allocLen;
-	    getUint64Array(data, &cred->jobMemAlloc, &allocLen);
-	    if (allocLen != cred->jobMemAllocSize) {
-		flog("mismatching allocLen %u and cred->jobMemAllocSize %u\n",
-		     allocLen, cred->jobMemAllocSize);
-		goto ERROR;
-	    }
-	    getUint32Array(data, &cred->jobMemAllocRepCount, &allocLen);
-	    if (allocLen != cred->jobMemAllocSize) {
-		flog("mismatching allocLen %u and cred->jobMemAllocRepCount %u\n",
-		     allocLen, cred->jobMemAllocSize);
-		goto ERROR;
-	    }
+    if (cred->jobMemAllocSize) {
+	uint32_t allocLen;
+	getUint64Array(data, &cred->jobMemAlloc, &allocLen);
+	if (allocLen != cred->jobMemAllocSize) {
+	    flog("mismatching allocLen %u and cred->jobMemAllocSize %u\n",
+		 allocLen, cred->jobMemAllocSize);
+	    goto ERROR;
 	}
-
-	/* step memory allocation size */
-	getUint32(data, &cred->stepMemAllocSize);
-
-	if (cred->stepMemAllocSize) {
-	    uint32_t allocLen;
-	    getUint64Array(data, &cred->stepMemAlloc, &allocLen);
-	    if (allocLen != cred->stepMemAllocSize) {
-		flog("mismatching allocLen %u and cred->stepMemAllocSize %u\n",
-		     allocLen, cred->stepMemAllocSize);
-		goto ERROR;
-	    }
-	    getUint32Array(data, &cred->stepMemAllocRepCount, &allocLen);
-	    if (allocLen != cred->stepMemAllocSize) {
-		flog("mismatching allocLen %u and cred->stepMemAllocRepCount %u\n",
-		     allocLen, cred->stepMemAllocSize);
-		goto ERROR;
-	    }
+	getUint32Array(data, &cred->jobMemAllocRepCount, &allocLen);
+	if (allocLen != cred->jobMemAllocSize) {
+	    flog("mismatching allocLen %u and cred->jobMemAllocRepCount %u\n",
+		 allocLen, cred->jobMemAllocSize);
+	    goto ERROR;
 	}
-
-	/* SELinux context */
-	cred->SELinuxContext = getStringM(data);
     }
+
+    /* step memory allocation size */
+    getUint32(data, &cred->stepMemAllocSize);
+
+    if (cred->stepMemAllocSize) {
+	uint32_t allocLen;
+	getUint64Array(data, &cred->stepMemAlloc, &allocLen);
+	if (allocLen != cred->stepMemAllocSize) {
+	    flog("mismatching allocLen %u and cred->stepMemAllocSize %u\n",
+		 allocLen, cred->stepMemAllocSize);
+	    goto ERROR;
+	}
+	getUint32Array(data, &cred->stepMemAllocRepCount, &allocLen);
+	if (allocLen != cred->stepMemAllocSize) {
+	    flog("mismatching allocLen %u and cred->stepMemAllocRepCount %u\n",
+		 allocLen, cred->stepMemAllocSize);
+	    goto ERROR;
+	}
+    }
+
+    /* SELinux context */
+    cred->SELinuxContext = getStringM(data);
 
     /* munge signature */
     *credEnd = data->unpackPtr;
@@ -1371,10 +1369,8 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     /* slurmctld request time */
     getTime(data, &req->requestTime);
 
-    if (msgVer > SLURM_20_11_PROTO_VERSION) {
-	/* job working directory */
-	req->workDir = getStringM(data);
-    }
+    /* job working directory */
+    req->workDir = getStringM(data);
 
     if (data->unpackErr) {
 	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
@@ -2953,11 +2949,8 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 	}
     }
 
-    if (msgVer > SLURM_20_11_PROTO_VERSION) {
-	/* TRes per task */
-	step->tresPerTask = getStringM(data);
-    }
-
+    /* TRes per task */
+    step->tresPerTask = getStringM(data);
     /* threads per core */
     getUint16(data, &step->threadsPerCore);
     /* task distribution */
@@ -3020,11 +3013,8 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     getEnv(data, step->env);
     /* spank environment */
     getEnv(data, step->spankenv);
-
-    if (msgVer > SLURM_20_11_PROTO_VERSION) {
-	/* container bundle path */
-	step->containerBundle = getStringM(data);
-    }
+    /* container bundle path */
+    step->containerBundle = getStringM(data);
 
     /* current working directory */
     step->cwd = getStringM(data);
@@ -3275,11 +3265,8 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     getUint32(data, &job->arrayTaskId);
     /* acctg freq */
     job->acctFreq = getStringM(data);
-
-    if (msgVer > SLURM_20_11_PROTO_VERSION) {
-	/* container bundle path */
-	job->containerBundle = getStringM(data);
-    }
+    /* container bundle path */
+    job->containerBundle = getStringM(data);
 
     /* CPU bind type */
     getUint16(data, &job->cpuBindType);
@@ -3624,27 +3611,11 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     AccountDataExt_t *accData = &slurmAccData->psAcct;
 
     /* user CPU sec/usec */
-    if (slurmProto > SLURM_20_11_PROTO_VERSION) {
-	addUint64ToMsg(accData->rusage.ru_utime.tv_sec, data);
-    } else {
-	if (accData->rusage.ru_utime.tv_sec > NO_VAL) {
-	    addUint32ToMsg(NO_VAL, data);
-	} else {
-	    addUint32ToMsg(accData->rusage.ru_utime.tv_sec, data);
-	}
-    }
+    addUint64ToMsg(accData->rusage.ru_utime.tv_sec, data);
     addUint32ToMsg(accData->rusage.ru_utime.tv_usec, data);
 
     /* system CPU sec/usec */
-    if (slurmProto > SLURM_20_11_PROTO_VERSION) {
-	addUint64ToMsg(accData->rusage.ru_stime.tv_sec, data);
-    } else {
-	if (accData->rusage.ru_stime.tv_sec > NO_VAL) {
-	    addUint32ToMsg(NO_VAL, data);
-	} else {
-	    addUint32ToMsg(accData->rusage.ru_stime.tv_sec, data);
-	}
-    }
+    addUint64ToMsg(accData->rusage.ru_stime.tv_sec, data);
     addUint32ToMsg(accData->rusage.ru_stime.tv_usec, data);
 
     /* CPU frequency */
@@ -3673,11 +3644,7 @@ bool packGresConf(Gres_Conf_t *gres, void *info)
     addUint32ToMsg(getConfValueI(Config, "SLURM_CPUS"), msg);
 
     /* GRES flags (e.g. GRES_CONF_HAS_FILE) */
-    if (slurmProto > SLURM_20_11_PROTO_VERSION) {
-	addUint32ToMsg(gres->flags, msg);
-    } else {
-	addUint8ToMsg(gres->flags, msg);
-    }
+    addUint32ToMsg(gres->flags, msg);
 
     addUint32ToMsg(gres->hash, msg);
     addStringToMsg(gres->cpus, msg);
@@ -3686,10 +3653,8 @@ bool packGresConf(Gres_Conf_t *gres, void *info)
     addStringToMsg(gres->name, msg);
     addStringToMsg(gres->type, msg);
 
-    if (slurmProto > SLURM_20_11_PROTO_VERSION) {
-	/* unique ID (GPU binding with MICs) */
-	addStringToMsg(NULL, msg);
-    }
+    /* unique ID (GPU binding with MICs) */
+    addStringToMsg(NULL, msg);
 
     return false;
 }
@@ -4214,44 +4179,29 @@ static bool unpackConfigMsg(Slurm_Msg_t *sMsg)
     Config_Msg_t *req = ucalloc(sizeof(*req));
     sMsg->unpData = req;
 
-    if (msgVer > SLURM_20_11_PROTO_VERSION) {
-	getUint32(data, &req->numFiles);
+    getUint32(data, &req->numFiles);
 
-	if (req->numFiles == NO_VAL) {
-	    flog("error receiving config files\n");
-	    req->numFiles = 0;
-	    return false;
+    if (req->numFiles == NO_VAL) {
+	flog("error receiving config files\n");
+	req->numFiles = 0;
+	return false;
+    }
+
+    req->files = ucalloc(sizeof(*req->files) * req->numFiles);
+
+    for (uint32_t i=0; i<req->numFiles; i++) {
+	Config_File_t *file = &req->files[i];
+
+	/* create/delete file */
+	getBool(data, &file->create);
+	if (msgVer > SLURM_23_02_PROTO_VERSION) {
+	    /* executable scripts */
+	    getBool(data, &file->executable);
 	}
-
-	req->files = ucalloc(sizeof(*req->files) * req->numFiles);
-
-	for (uint32_t i=0; i<req->numFiles; i++) {
-	    Config_File_t *file = &req->files[i];
-
-	    /* create/delete file */
-	    getBool(data, &file->create);
-	    if (msgVer > SLURM_23_02_PROTO_VERSION) {
-		/* executable scripts */
-		getBool(data, &file->executable);
-	    }
-	    /* filename */
-	    file->name = getStringM(data);
-	    /* content */
-	    file->data = getStringM(data);
-	}
-    } else {
-	req->slurm_conf = getStringM(data);
-	req->acct_gather_conf = getStringM(data);
-	req->cgroup_conf = getStringM(data);
-	req->cgroup_allowed_dev_conf = getStringM(data);
-	req->ext_sensor_conf = getStringM(data);
-	req->gres_conf = getStringM(data);
-	req->knl_cray_conf = getStringM(data);
-	req->knl_generic_conf = getStringM(data);
-	req->plugstack_conf = getStringM(data);
-	req->topology_conf = getStringM(data);
-	req->xtra_conf = getStringM(data);
-	req->slurmd_spooldir = getStringM(data);
+	/* filename */
+	file->name = getStringM(data);
+	/* content */
+	file->data = getStringM(data);
     }
 
     if (data->unpackErr) {
@@ -4654,10 +4604,8 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
     /* last update */
     getTime(data, &resp->lastUpdate);
 
-    if (msgVer > SLURM_20_11_PROTO_VERSION) {
-	/* last backfill time */
-	getTime(data, &resp->lastBackfill);
-    }
+    /* last backfill time */
+    getTime(data, &resp->lastBackfill);
 
     /* only parse the first job description for now */
     resp->numSlices = 1;
@@ -4678,12 +4626,10 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 	/* association ID for job */
 	getUint32(data, &slice->assocID);
 
-	if (msgVer > SLURM_20_11_PROTO_VERSION) {
-	    /* job container, will be overwritten later,
-	     * unclear why this was introduced */
-	    char *tmp = getStringM(data);
-	    ufree(tmp);
-	}
+	/* job container, will be overwritten later,
+	 * unclear why this was introduced */
+	char *tmp = getStringM(data);
+	ufree(tmp);
 
 	/* container ID */
 	if (msgVer > SLURM_22_05_PROTO_VERSION) {
