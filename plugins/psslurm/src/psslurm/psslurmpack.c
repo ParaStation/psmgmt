@@ -1468,26 +1468,6 @@ static bool unpackStepAddr(PS_DataBuffer_t *data, Step_t *step, uint16_t msgVer)
     return true;
 }
 
-static void unpackStepIOoptions(PS_DataBuffer_t *data, Step_t *step)
-{
-    if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
-	/* stdout options */
-	step->stdOut = getStringM(data);
-	/* stderr options */
-	step->stdErr = getStringM(data);
-	/* stdin options */
-	step->stdIn = getStringM(data);
-	/* I/O Ports */
-	getUint16(data, &step->numIOPort);
-	if (step->numIOPort > 0) {
-	    step->IOPort = umalloc(sizeof(uint16_t) * step->numIOPort);
-	    for (uint32_t i = 0; i < step->numIOPort; i++) {
-		getUint16(data, &step->IOPort[i]);
-	    }
-	}
-    }
-}
-
 static bool unpackJobResources(Slurm_Msg_t *sMsg, Slurm_Job_Resources_t *jr)
 {
 
@@ -3058,10 +3038,29 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     char **argvP = NULL;
     getStringArrayM(data, &argvP, NULL);
     step->argV = strvNew(argvP);
+
     /* task flags */
     getUint32(data, &step->taskFlags);
     /* I/O options */
-    unpackStepIOoptions(data, step);
+    if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO) ||
+	msgVer > SLURM_21_08_PROTO_VERSION) {
+	/* stdout options */
+	step->stdOut = getStringM(data);
+	/* stderr options */
+	step->stdErr = getStringM(data);
+	/* stdin options */
+	step->stdIn = getStringM(data);
+
+	/* I/O Ports */
+	getUint16(data, &step->numIOPort);
+	if (step->numIOPort > 0) {
+	    step->IOPort = umalloc(sizeof(uint16_t) * step->numIOPort);
+	    for (uint32_t i = 0; i < step->numIOPort; i++) {
+		getUint16(data, &step->IOPort[i]);
+	    }
+	}
+    }
+
     /* profile (see srun --profile) */
     getUint32(data, &step->profile);
     /* prologue/epilogue */
