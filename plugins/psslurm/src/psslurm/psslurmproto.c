@@ -329,7 +329,7 @@ static void printLaunchTasksInfos(Step_t *step)
     fdbg(PSSLURM_LOG_IO, "stdIn '%s' stdInRank %i stdInOpt %s\n",
 	 step->stdIn, step->stdInRank, IO_strOpt(step->stdInOpt));
 
-    mdbg(PSSLURM_LOG_IO, "%s: bufferedIO '%i' labelIO '%i'\n", __func__,
+    fdbg(PSSLURM_LOG_IO, "bufferedIO '%li' labelIO '%li'\n",
 	 step->taskFlags & LAUNCH_BUFFERED_IO,
 	 step->taskFlags & LAUNCH_LABEL_IO);
 

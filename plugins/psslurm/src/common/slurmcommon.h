@@ -224,11 +224,16 @@ typedef enum task_dist_states {
 #define KILL_FED_REQUEUE 0x0010 /* Mark job as requeued when requeued */
 
 /* task flags */
-#define LAUNCH_PARALLEL_DEBUG   0x00000001
-#define LAUNCH_MULTI_PROG       0x00000002
-#define LAUNCH_PTY              0x00000004
-#define LAUNCH_BUFFERED_IO      0x00000008
-#define LAUNCH_LABEL_IO         0x00000010
+#define LAUNCH_PARALLEL_DEBUG   SLURM_BIT(0)
+#define LAUNCH_MULTI_PROG       SLURM_BIT(1)
+#define LAUNCH_PTY              SLURM_BIT(2)
+#define LAUNCH_BUFFERED_IO      SLURM_BIT(3)
+#define LAUNCH_LABEL_IO         SLURM_BIT(4)
+#define LAUNCH_EXT_LAUNCHER     SLURM_BIT(5)
+#define LAUNCH_NO_ALLOC         SLURM_BIT(6)
+#define LAUNCH_OVERCOMMIT       SLURM_BIT(7)
+#define LAUNCH_NO_SIG_FAIL      SLURM_BIT(8)
+#define LAUNCH_GRES_ALLOW_TASK_SHARING SLURM_BIT(9)
 
 /* node registration flags */
 #define SLURMD_REG_FLAG_STARTUP  0x0001
