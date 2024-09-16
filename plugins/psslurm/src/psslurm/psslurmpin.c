@@ -1877,8 +1877,9 @@ bool setStepSlots(Step_t *step)
     /* on interactive/external launcher steps, always deactivate pinning */
     if (step->stepid == SLURM_INTERACTIVE_STEP ||
 	step->taskFlags & LAUNCH_EXT_LAUNCHER) {
-	flog("interactive step detected, using CPU pinning style 'none'\n");
+	flog("interactive step detected, using CPU/MEM pinning style 'none'\n");
 	step->cpuBindType = CPU_BIND_NONE;
+	step->memBindType = MEM_BIND_NONE;
     }
 
     /* generate slotlist */
