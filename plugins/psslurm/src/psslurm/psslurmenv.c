@@ -1241,7 +1241,8 @@ void setRankEnv(int32_t rank, Step_t *step)
     Alloc_t *alloc = Alloc_find(step->jobid);
     if (alloc) setPsslurmEnv(alloc->env, NULL);
 
-    if (step->stepid == SLURM_INTERACTIVE_STEP) {
+    if (step->stepid == SLURM_INTERACTIVE_STEP ||
+	step->taskFlags & LAUNCH_EXT_LAUNCHER) {
 	return setInteractiveRankEnv(step);
     } else {
 	return setOrdinaryRankEnv(rank, step);
