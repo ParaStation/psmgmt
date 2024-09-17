@@ -30,6 +30,7 @@
 #include "psenv.h"
 
 #include "pluginconfig.h"
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "psidsignal.h"
 #include "psprotocol.h"
@@ -534,18 +535,10 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 {
     char line[4096], buffer[4096];
 
-    flog("starting task prologue '%s' for rank %u (global %u) of job %u\n",
-	 taskPrologue, task->jobRank, task->rank, step->jobid);
-
     /* handle relative paths */
     if (taskPrologue[0] != '/') {
 	snprintf(buffer, 4096, "%s/%s", step->cwd, taskPrologue);
 	taskPrologue = buffer;
-    }
-
-    if (access(taskPrologue, R_OK | X_OK) < 0) {
-	mwarn(errno, "task prologue '%s' not accessable", taskPrologue);
-	return -1;
     }
 
     int pipe_fd[2];
@@ -571,12 +564,25 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 	close(pipe_fd[1]);
 	close(0);
 	close(2);
-	setpgrp();
+
+	if (getuid() != step->uid &&
+	    !switchUser(step->username, step->uid, step->gid)) {
+	    flog("switch user %s failed\n", step->username);
+	    exit(1);
+	}
+
+	if (access(taskPrologue, R_OK | X_OK) < 0) {
+	    mwarn(errno, "task prologue '%s' not accessable", taskPrologue);
+	    exit(1);
+	}
 
 	/* Set SLURM_TASK_PID variable in environment */
 	char envstr[32];
 	sprintf(envstr, "%d", PSC_getPID(task->tid));
 	setenv("SLURM_TASK_PID", envstr, 1);
+
+	flog("starting task prologue '%s' for rank %u (global %u) of job %u\n",
+	     taskPrologue, task->jobRank, task->rank, step->jobid);
 
 	/* Execute task prologue */
 	execvp(child_argv[0], child_argv);
@@ -669,9 +675,20 @@ static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
     if (!childpid) {
 	/* This is the child */
 
-	setpgrp();
+	if (getuid() != step->uid) {
+	    /* reclaim permissions before switching user */
+	    if (geteuid() && !PSC_switchEffectiveUser(NULL, 0, 0)) {
+		flog("no permission to change user %s\n", step->username);
+		exit(1);
+	    }
 
-	setDefaultRlimits();
+	    setDefaultRlimits();
+
+	    if (!switchUser(step->username, step->uid, step->gid)) {
+		flog("switch user %s failed\n", step->username);
+		exit(1);
+	    }
+	}
 
 	setStepEnv(step);
 
