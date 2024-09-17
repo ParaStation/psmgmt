@@ -24,6 +24,7 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <limits.h>
 
 #include "pscommon.h"
 #include "pscomplist.h"
@@ -533,7 +534,7 @@ int handleLocalPElogueFinish(void *data)
 
 static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 {
-    char line[4096], buffer[4096];
+    char buffer[PATH_MAX];
 
     /* handle relative paths */
     if (taskPrologue[0] != '/') {
@@ -600,12 +601,12 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 	return -1;
     }
 
-    while (fgets(line, sizeof(line), output) != NULL) {
+    while (fgets(buffer, sizeof(buffer), output) != NULL) {
 	char *saveptr;
-	size_t last = strlen(line)-1;
-	if (line[last] == '\n') line[last] = '\0';
+	size_t last = strlen(buffer)-1;
+	if (buffer[last] == '\n') buffer[last] = '\0';
 
-	char *key = strtok_r(line, " ", &saveptr);
+	char *key = strtok_r(buffer, " ", &saveptr);
 	if (!key) continue;
 
 	if (!strcmp(key, "export")) {
@@ -654,9 +655,10 @@ void startTaskPrologue(Step_t *step, PStask_t *task)
 
 static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 {
+    char buffer[PATH_MAX];
+
     /* handle relative paths */
     if (taskEpilogue[0] != '/') {
-	char buffer[4096];
 	snprintf(buffer, sizeof(buffer), "%s/%s", step->cwd, taskEpilogue);
 	taskEpilogue = buffer;
     }
