@@ -399,7 +399,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     SpankCallHook(&spank);
 #endif
 
-    /* set default RLimits */
+    /* set RLimits from configuration */
     setDefaultRlimits();
 
     /* switch user */
@@ -1078,7 +1078,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     /* setup standard I/O and PTY */
     setupStepIO(fwdata, step);
 
-    /* set default RLimits */
+    /* set RLimits from configuration */
     setDefaultRlimits();
 
     /* switch user */

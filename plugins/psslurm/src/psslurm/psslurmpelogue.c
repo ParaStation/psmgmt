@@ -688,7 +688,6 @@ static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 	setStepEnv(step);
 
 	errno = 0;
-
 	if (access(taskEpilogue, R_OK | X_OK) < 0) {
 	    fwarn(errno, "access(%s)", taskEpilogue);
 	    exit(-1);
