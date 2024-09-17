@@ -68,7 +68,7 @@ static bool finalized = false;
  * @return Returns true if the pointer is valid otherwise
  * false
  */
-static bool Script_verifyPtr(Collect_Script_t *scriptPtr)
+static bool verifyScriptPtr(Collect_Script_t *scriptPtr)
 {
     if (!scriptPtr) return false;
 
@@ -433,8 +433,8 @@ Collect_Script_t *Script_start(char *title, char *path,
 
 void Script_finalize(Collect_Script_t *script)
 {
-    if (!Script_verifyPtr(script)) {
-	flog("invalid script given\n");
+    if (!verifyScriptPtr(script)) {
+	flog("invalid script\n");
 	return;
     }
 
@@ -478,7 +478,7 @@ void Script_cleanup(void)
 
 bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)
 {
-    if (!Script_verifyPtr(script) || !script->fwdata) {
+    if (!verifyScriptPtr(script) || !script->fwdata) {
 	flog("invalid script or forwarder data\n");
 	return false;
     }
@@ -504,7 +504,7 @@ bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)
 bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
 		   const char *envStr)
 {
-    if (!Script_verifyPtr(script) || !script->fwdata) {
+    if (!verifyScriptPtr(script) || !script->fwdata) {
 	flog("invalid script or forwarder data\n");
 	return false;
     }
