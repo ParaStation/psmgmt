@@ -548,10 +548,6 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 	return -1;
     }
 
-    char *child_argv[2];
-    child_argv[0] = taskPrologue;
-    child_argv[1] = NULL;
-
     pid_t child = fork();
     if (child < 0) {
 	fwarn(errno, "fork()");
@@ -586,6 +582,9 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 	     taskPrologue, task->jobRank, task->rank, step->jobid);
 
 	/* Execute task prologue */
+	char *child_argv[2];
+	child_argv[0] = taskPrologue;
+	child_argv[1] = NULL;
 	execvp(child_argv[0], child_argv);
 	fwarn(errno, "execvp(%s) failed for rank %d (global %d) of job %d",
 	      taskPrologue, task->jobRank, task->rank, step->jobid);
