@@ -1004,7 +1004,7 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 	snprintf(path, sizeof(path), "%s/%s", confDir, file->name);
 
 	if (!file->create) {
-	    /* file should be deleted if possbile */
+	    /* file should be deleted if possible */
 	    unlink(path);
 	    continue;
 	}
@@ -1012,8 +1012,7 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 	/* skip empty files */
 	if (!file->data || strlen(file->data) < 1) continue;
 
-	if (!writeFile(file->name, confDir, file->data,
-		       strlen(file->data))) {
+	if (!writeFile(file->name, confDir, file->data, strlen(file->data))) {
 	    return false;
 	}
 	mode_t mode = file->executable ? 0755 : 0644;
