@@ -645,15 +645,11 @@ void startTaskPrologue(Step_t *step, PStask_t *task)
 {
     /* exec task prologue from slurm.conf */
     char *script = getConfValueC(SlurmConfig, "TaskProlog");
-    if (script && script[0] != '\0') {
-	execTaskPrologue(step, task, script);
-    }
+    if (script && script[0] != '\0') execTaskPrologue(step, task, script);
 
     /* exec task prologue from srun option --task-prolog */
     script = step->taskProlog;
-    if (script && script[0] != '\0') {
-	execTaskPrologue(step, task, script);
-    }
+    if (script && script[0] != '\0') execTaskPrologue(step, task, script);
 }
 
 static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
