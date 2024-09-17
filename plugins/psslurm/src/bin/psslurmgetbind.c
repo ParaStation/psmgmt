@@ -35,7 +35,7 @@
 #include "psslurmpin.h"
 #include "psslurmstep.h"
 
-#define MAX_SUPPORTED_SLURM_VERSION 2302
+#define MAX_SUPPORTED_SLURM_VERSION 2311
 
 static int verbosity = 0;
 static bool humanreadable = false;
