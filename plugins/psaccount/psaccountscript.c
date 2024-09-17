@@ -431,6 +431,12 @@ Collect_Script_t *Script_start(char *title, char *path,
     return script;
 }
 
+static void doFinalize(Collect_Script_t *script)
+{
+    script->shutdown = true;
+    shutdownForwarder(script->fwdata);
+}
+
 void Script_finalize(Collect_Script_t *script)
 {
     if (!verifyScriptPtr(script)) {
@@ -438,8 +444,7 @@ void Script_finalize(Collect_Script_t *script)
 	return;
     }
 
-    script->shutdown = true;
-    shutdownForwarder(script->fwdata);
+    doFinalize(script);
 }
 
 void Script_finalizeAll(void)
@@ -447,7 +452,7 @@ void Script_finalizeAll(void)
     list_t *s;
     list_for_each(s, &scriptList) {
 	Collect_Script_t *script = list_entry(s, Collect_Script_t, next);
-	Script_finalize(script);
+	doFinalize(script);
     }
 
     finalized = true;
