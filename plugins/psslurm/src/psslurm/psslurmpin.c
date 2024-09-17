@@ -2773,6 +2773,12 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
      * possible, i.e. to share the threads of a single core across different
      * tasks if possible. To emulate this behavior for each task full cores
      * are assigned first and the unused threads are handle in a subledger.
+     *
+     * One exception even with autobind disabled by TaskPluginParam=Threads
+     * seems to be the case #tasks == #cores and #cpusPerTask == 1. In that case
+     * the slurmctld creates a fully populated step core map (which imho is a
+     * bug that unfortunatelly does not lead to a problem with the way vanilla
+     * slurm does the pinning, see psc#450)
      */
     if (exact) {
 	pininfo.usedHwThreads = ucalloc(nodeinfo.coreCount * threadsPerCore
@@ -2844,6 +2850,16 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	    /* update number of unused threads on the assigned cores */
 	    unusedThreads +=
 		taskCores * nodeinfo.threadsPerCore - threadsPerTask;
+	}
+
+	/* copy broken slurmctld behavior, see above
+	 * @todo check with each new version */
+	if (tasksPerNode == nodeinfo.coreCount && threadsPerTask == 1) {
+	    fprintf(stderr, "Warning: Result of this case (#tasks == #cores,"
+			    " #cpusPerTask == 1, and implied --exact) might be"
+			    " unexpected due to a broken core map provided by"
+			    " slurmctld\n");
+	    PSCPU_setAll(CPUset);
 	}
 
 	fdbg(PSSLURM_LOG_PART, "Using coremap %s\n", PSCPU_print_part(CPUset,
