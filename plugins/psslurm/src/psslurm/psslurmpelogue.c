@@ -537,7 +537,7 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 
     /* handle relative paths */
     if (taskPrologue[0] != '/') {
-	snprintf(buffer, 4096, "%s/%s", step->cwd, taskPrologue);
+	snprintf(buffer, sizeof(buffer), "%s/%s", step->cwd, taskPrologue);
 	taskPrologue = buffer;
     }
 
@@ -662,7 +662,7 @@ static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
     /* handle relative paths */
     if (taskEpilogue[0] != '/') {
 	char buffer[4096];
-	snprintf(buffer, 4096, "%s/%s", step->cwd, taskEpilogue);
+	snprintf(buffer, sizeof(buffer), "%s/%s", step->cwd, taskEpilogue);
 	taskEpilogue = buffer;
     }
 
