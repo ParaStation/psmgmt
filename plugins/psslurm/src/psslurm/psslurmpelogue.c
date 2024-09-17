@@ -543,7 +543,7 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 
     int pipe_fd[2];
     if (pipe(pipe_fd) < 0) {
-	mwarn(errno, "%s: pipe()", __func__);
+	fwarn(errno, "pipe()");
 	return -1;
     }
 
@@ -553,7 +553,7 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 
     pid_t child = fork();
     if (child < 0) {
-	mwarn(errno, "%s: fork()", __func__);
+	fwarn(errno, "fork()");
 	return -1;
     }
 
@@ -572,7 +572,7 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 	}
 
 	if (access(taskPrologue, R_OK | X_OK) < 0) {
-	    mwarn(errno, "task prologue '%s' not accessible", taskPrologue);
+	    fwarn(errno, "access(%s)", taskPrologue);
 	    exit(1);
 	}
 
@@ -586,9 +586,8 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 
 	/* Execute task prologue */
 	execvp(child_argv[0], child_argv);
-	mwarn(errno, "%s: exec task prologue '%s' failed for rank %d (global %d)"
-	      " of job %d", __func__, taskPrologue, task->jobRank, task->rank,
-	      step->jobid);
+	fwarn(errno, "execvp(%s) failed for rank %d (global %d) of job %d",
+	      taskPrologue, task->jobRank, task->rank, step->jobid);
 	return -1;
     }
 
@@ -597,7 +596,7 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 
     FILE *output = fdopen(pipe_fd[0], "r");
     if (!output) {
-	mwarn(errno, "%s: fdopen()", __func__);
+	fwarn(errno, "fdopen()");
 	return -1;
     }
 
@@ -615,7 +614,7 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 
 	    char *env = ustrdup(saveptr);
 	    if (putenv(env) != 0) {
-		mwarn(errno, "Failed to set '%s' prologue environment", env);
+		fwarn(errno, "failed to set '%s' prologue environment", env);
 		ufree(env);
 	    }
 	} else if (!strcmp(key, "print")) {
@@ -668,7 +667,7 @@ static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 
     pid_t childpid = fork();
     if (childpid < 0) {
-	mwarn(errno, "%s: fork()", __func__);
+	fwarn(errno, "fork()");
 	return 0;
     }
 
@@ -695,14 +694,14 @@ static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 	errno = 0;
 
 	if (access(taskEpilogue, R_OK | X_OK) < 0) {
-	    mwarn(errno, "task epilogue '%s' not accessible", taskEpilogue);
+	    fwarn(errno, "access(%s)", taskEpilogue);
 	    exit(-1);
 	}
 
 	setRankEnv(task->jobRank, step);
 
 	if (chdir(step->cwd) != 0) {
-	    mwarn(errno, "cannot change to working directory '%s'", step->cwd);
+	    fwarn(errno, "chdir(%s)", step->cwd);
 	}
 
 	char *argv[2];
@@ -714,9 +713,8 @@ static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 	     taskEpilogue, task->jobRank, task->rank, step->jobid);
 
 	execvp(argv[0], argv);
-	mwarn(errno, "%s: exec task epilogue '%s' failed for rank %u (global %u)"
-	      " of job %u", __func__, taskEpilogue, task->jobRank, task->rank,
-	      step->jobid);
+	fwarn(errno, "execvp(%s) failed for rank %u (global %u) of job %u",
+	      taskEpilogue, task->jobRank, task->rank, step->jobid);
 	exit(-1);
     }
 
