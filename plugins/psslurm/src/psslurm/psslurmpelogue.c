@@ -80,8 +80,8 @@ static void handleFailedPrologue(Alloc_t *alloc, PElogueResList_t *resList)
 	    snprintf(msg, sizeof(msg), "psslurm: slurmctld prologue timed out\n");
 	    offline = true;
 	} else if (resList[i].prologue == PELOGUE_NODEDOWN) {
-	    snprintf(msg, sizeof(msg), "psslurm: node down while slurmctld "
-				        "prologue\n");
+	    snprintf(msg, sizeof(msg),
+		     "psslurm: node down while slurmctld prologue\n");
 	    offline = true;
 	}
 	if (offline) setNodeOffline(alloc->env, alloc->id,
@@ -572,7 +572,7 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 	}
 
 	if (access(taskPrologue, R_OK | X_OK) < 0) {
-	    mwarn(errno, "task prologue '%s' not accessable", taskPrologue);
+	    mwarn(errno, "task prologue '%s' not accessible", taskPrologue);
 	    exit(1);
 	}
 
@@ -695,14 +695,14 @@ static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 	errno = 0;
 
 	if (access(taskEpilogue, R_OK | X_OK) < 0) {
-	    mwarn(errno, "task epilogue '%s' not accessable", taskEpilogue);
+	    mwarn(errno, "task epilogue '%s' not accessible", taskEpilogue);
 	    exit(-1);
 	}
 
 	setRankEnv(task->jobRank, step);
 
 	if (chdir(step->cwd) != 0) {
-	    mwarn(errno, "cannot change to working direktory '%s'", step->cwd);
+	    mwarn(errno, "cannot change to working directory '%s'", step->cwd);
 	}
 
 	char *argv[2];
