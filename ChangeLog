@@ -1,3 +1,105 @@
+Version 5.1.62-2:
+=================
+------------------------------------------------------------------------
+8a6eadf4e | Michael Rauh | Wed, 18 Sep 2024 09:53:49 +0200
+
+Don't skip free of config structure
+------------------------------------------------------------------------
+38e3af7c5 | Norbert Eicker | Tue, 17 Sep 2024 22:01:17 +0200
+
+Fix typo and streamline
+------------------------------------------------------------------------
+c404dc88a | Norbert Eicker | Tue, 17 Sep 2024 22:00:36 +0200
+
+More use of fwarn()
+------------------------------------------------------------------------
+7cafef4df | Michael Rauh | Mon, 16 Sep 2024 12:33:01 +0200
+
+Also disable memory pinning for interactive/external launcher steps
+------------------------------------------------------------------------
+c8720ac4e | Michael Rauh | Mon, 16 Sep 2024 12:29:21 +0200
+
+Disable pinning for external launcher step
+------------------------------------------------------------------------
+faa49d15c | Michael Rauh | Mon, 16 Sep 2024 12:22:29 +0200
+
+Update Slurm task flags
+------------------------------------------------------------------------
+e11e7268c | Michael Rauh | Fri, 13 Sep 2024 17:05:10 +0200
+
+Drop support for Slurm protocol version 21.08
+------------------------------------------------------------------------
+144b28e88 | Michael Rauh | Fri, 13 Sep 2024 16:46:36 +0200
+
+Drop support for Slurm protocol version 20.11
+------------------------------------------------------------------------
+0b12496a4 | Michael Rauh | Fri, 13 Sep 2024 16:18:14 +0200
+
+Remove user managed I/O support dropped in Slurm 22.05
+------------------------------------------------------------------------
+28ccc9088 | Michael Rauh | Fri, 13 Sep 2024 11:20:55 +0200
+
+Fix protocol unpack error for user managed I/O
+------------------------------------------------------------------------
+835248b6c | Stephan Krempel | Tue, 17 Sep 2024 18:12:34 +0200
+
+psslurmgetbind: Bump supported version to 23.11
+------------------------------------------------------------------------
+3a386c226 | Stephan Krempel | Tue, 17 Sep 2024 17:31:43 +0200
+
+psslurmgetbind: Adjust to weird slurmctld behavior
+------------------------------------------------------------------------
+1a3a8e0d8 | Michael Rauh | Fri, 23 Aug 2024 15:51:19 +0200
+
+Ensure USER is always set for jobs and steps (jrt:31717)
+------------------------------------------------------------------------
+f233fd9d6 | Norbert Eicker | Tue, 17 Sep 2024 16:09:20 +0200
+
+Avoid checking valid script pointers
+------------------------------------------------------------------------
+3fb06fc91 | Norbert Eicker | Tue, 17 Sep 2024 16:08:06 +0200
+
+Rename Script_verifyPtr() to  verifyScriptPtr()
+------------------------------------------------------------------------
+388457891 | Michael Rauh | Thu, 22 Aug 2024 14:26:36 +0200
+
+Bugfix: ensure a collect script pointer is still valid on shutdown (jrt:31732)
+------------------------------------------------------------------------
+79491aaa1 | Norbert Eicker | Tue, 17 Sep 2024 18:20:16 +0200
+
+Reduce the scope of some local variable
+------------------------------------------------------------------------
+80a78fa30 | Michael Rauh | Tue, 17 Sep 2024 16:24:01 +0200
+
+Use PATH_MAX for buffer and ensure correct scope
+------------------------------------------------------------------------
+f9724dc4b | Norbert Eicker | Tue, 17 Sep 2024 15:29:48 +0200
+
+Enhance comments
+------------------------------------------------------------------------
+7b5a16d74 | Norbert Eicker | Tue, 17 Sep 2024 15:24:56 +0200
+
+Streamlining
+------------------------------------------------------------------------
+da8eb2dd0 | Norbert Eicker | Tue, 17 Sep 2024 15:23:28 +0200
+
+More use of fwarn() and streamline debug logs
+------------------------------------------------------------------------
+363bfed86 | Norbert Eicker | Tue, 17 Sep 2024 14:47:43 +0200
+
+Avoid using hand-crafted buffer sizes in snprintf()
+------------------------------------------------------------------------
+e03290ee4 | Norbert Eicker | Tue, 17 Sep 2024 13:48:23 +0200
+
+Fix typos and whitespace
+------------------------------------------------------------------------
+4107b1457 | Michael Rauh | Tue, 17 Sep 2024 12:52:05 +0200
+
+Bugfix: ensure to reclaim permissions and switch to correct user
+before executing task epilog
+------------------------------------------------------------------------
+
+
 Version 5.1.62-1:
 =================
 ------------------------------------------------------------------------
