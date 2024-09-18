@@ -78,7 +78,6 @@ static inline void freeReqLaunchProlog(Slurm_Msg_t *sMsg)
 
     ufree(req->aliasList);
     ufree(req->nodes);
-    ufree(req->partition);
     ufree(req->stdErr);
     ufree(req->stdOut);
     ufree(req->workDir);
@@ -194,20 +193,6 @@ static inline void freeSlurmConfigMsg(Slurm_Msg_t *sMsg)
 	ufree(config->files[i].data);
     }
     ufree(config->files);
-
-    /* old configuration message (remove with support for 20.11) */
-    ufree(config->slurm_conf);
-    ufree(config->acct_gather_conf);
-    ufree(config->cgroup_conf);
-    ufree(config->cgroup_allowed_dev_conf);
-    ufree(config->ext_sensor_conf);
-    ufree(config->gres_conf);
-    ufree(config->knl_cray_conf);
-    ufree(config->knl_generic_conf);
-    ufree(config->plugstack_conf);
-    ufree(config->topology_conf);
-    ufree(config->xtra_conf);
-    ufree(config->slurmd_spooldir);
     ufree(config);
 
     sMsg->unpData = NULL;

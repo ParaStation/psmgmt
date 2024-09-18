@@ -1757,14 +1757,10 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
     }
 
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
-    if (slurmProto > SLURM_20_11_PROTO_VERSION) {
-	/* add placeholder for length */
-	addUint32ToMsg(0, &data);
-	/* Slurm protocol */
-	addUint16ToMsg(slurmProto, &data);
-    } else {
-	addUint16ToMsg(IO_PROTOCOL_VERSION, &data);
-    }
+    /* add placeholder for length */
+    addUint32ToMsg(0, &data);
+    /* Slurm protocol */
+    addUint16ToMsg(slurmProto, &data);
 
     /* nodeid */
     addUint32ToMsg(nodeID, &data);
@@ -1797,16 +1793,10 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 	addUint32ToMsg(step->globalTaskIdsLen[nodeID], &data);
     }
 
-    if (slurmProto > SLURM_20_11_PROTO_VERSION) {
-	/* full signature is now the I/O key */
-	addStringToMsg(sig, &data);
-	/* update length *without* the length itself */
-	*(uint32_t *) data.buf = htonl(data.bufUsed - sizeof(uint32_t));
-    } else {
-	/* I/O key */
-	addUint32ToMsg((uint32_t) SLURM_IO_KEY_SIZE, &data);
-	addMemToMsg(sig, (uint32_t) SLURM_IO_KEY_SIZE, &data);
-    }
+    /* full signature is now the I/O key */
+    addStringToMsg(sig, &data);
+    /* update length *without* the length itself */
+    *(uint32_t *) data.buf = htonl(data.bufUsed - sizeof(uint32_t));
 
     PSCio_sendP(sock, data.buf, data.bufUsed);
 

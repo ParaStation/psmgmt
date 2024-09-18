@@ -320,7 +320,6 @@ bool Step_delete(Step_t *step)
     ufree(step->stdOut);
     ufree(step->stdIn);
     ufree(step->stdErr);
-    ufree(step->checkpoint);
     ufree(step->partition);
     ufree(step->outFDs);
     ufree(step->errFDs);
@@ -334,7 +333,6 @@ bool Step_delete(Step_t *step)
     ufree(step->tresBind);
     ufree(step->tresFreq);
     ufree(step->tresPerTask);
-    ufree(step->restartDir);
     ufree(step->compCPUsPerTask);
     ufree(step->compCPUsPerTaskReps);
     ufree(step->stepManager);

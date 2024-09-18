@@ -156,21 +156,16 @@ Slurm_Auth_t *getSlurmAuth(Slurm_Msg_Header_t *head, char *body,
 			   uint32_t bodyLen)
 {
     Slurm_Msg_Hash_t credHash = {0};
-    if (slurmProto > SLURM_21_08_PROTO_VERSION) {
-	uint16_t msgType = htons(head->type);
+    uint16_t msgType = htons(head->type);
 
-	/* calculate k12 hash from message payload */
-	if (KangarooTwelve((unsigned char *) body, bodyLen, credHash.hash,
-			   sizeof(credHash.hash), (unsigned char *) &msgType,
-			   sizeof(msgType))) {
-	    flog("k12 hash calculation failed\n");
-	    return NULL;
-	}
-	credHash.type = HASH_PLUGIN_K12;
-    } else {
-	memcpy(&credHash.hash, &head->type, sizeof(head->type));
-	credHash.type = HASH_PLUGIN_NONE;
+    /* calculate k12 hash from message payload */
+    if (KangarooTwelve((unsigned char *) body, bodyLen, credHash.hash,
+		       sizeof(credHash.hash), (unsigned char *) &msgType,
+		       sizeof(msgType))) {
+	flog("k12 hash calculation failed\n");
+	return NULL;
     }
+    credHash.type = HASH_PLUGIN_K12;
 
     char *cred;
     int credLen = (credHash.type == HASH_PLUGIN_NONE) ? 3 : sizeof(credHash);
@@ -229,10 +224,7 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
     }
 
     /* verify message hash */
-    uint16_t msgType = sMsg->head.type;
-    if (sMsg->head.version > SLURM_21_08_PROTO_VERSION) {
-	msgType = htons(msgType);
-    }
+    uint16_t msgType = htons(sMsg->head.type);
 
     if (credHash[0] == HASH_PLUGIN_NONE) {
 	if (hashLen != 3 || memcmp(credHash + 1, &msgType, sizeof(msgType))) {

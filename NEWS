@@ -6,6 +6,20 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.62-2:
+=================
+Bugfixes:
+ - Ensure USER is always set for jobs and steps (jwt:#31717)
+ - Reclaim permissions and switch to correct user before task epilogue (jwt:#32154)
+ - Ensure a collect script pointer is still valid on shutdown (jwt:#31732)
+ - Adjust psslurmgetbind to weird slurmctld behavior and bump version to 23.11
+Enhancements:
+ - Support external launchers (LXP:#1709)
+Additional changes:
+ - Drop support for Slurm protocols 20.11 and 21.08
+ - Remove user managed I/O support dropped in Slurm 22.05
+
+
 Version 5.1.62-1:
 =================
 Bugfixes:
@@ -462,7 +476,7 @@ Bugfixes:
 Version 5.1.54-1:
 =================
 Bugfixes:
- - Fix possbile segfault when parsing GRes usage in psslurm
+ - Fix possible segfault when parsing GRes usage in psslurm
  - Update srun options for user triggered spawn in psslurm
 
 
@@ -1033,7 +1047,7 @@ Version 5.1.45-2:
 Bugfixes:
  - Don't wait for finalize message for tasks that could not be spawned (#45)
  - Ensure heterogeneous steps will shutdown correctly if executable is missing
- - Fix possbile segmentation fault if psslurm connections get re-used
+ - Fix possible segmentation fault if psslurm connections get re-used
  - Ensure correct termination of error message
 Enhancements:
  - Adapt visible copyright messages to ParTec AG

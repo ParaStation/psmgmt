@@ -24,12 +24,14 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <limits.h>
 
 #include "pscommon.h"
 #include "pscomplist.h"
 #include "psenv.h"
 
 #include "pluginconfig.h"
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "psidsignal.h"
 #include "psprotocol.h"
@@ -79,8 +81,8 @@ static void handleFailedPrologue(Alloc_t *alloc, PElogueResList_t *resList)
 	    snprintf(msg, sizeof(msg), "psslurm: slurmctld prologue timed out\n");
 	    offline = true;
 	} else if (resList[i].prologue == PELOGUE_NODEDOWN) {
-	    snprintf(msg, sizeof(msg), "psslurm: node down while slurmctld "
-				        "prologue\n");
+	    snprintf(msg, sizeof(msg),
+		     "psslurm: node down while slurmctld prologue\n");
 	    offline = true;
 	}
 	if (offline) setNodeOffline(alloc->env, alloc->id,
@@ -532,35 +534,23 @@ int handleLocalPElogueFinish(void *data)
 
 static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 {
-    char line[4096], buffer[4096];
-
-    flog("starting task prologue '%s' for rank %u (global %u) of job %u\n",
-	 taskPrologue, task->jobRank, task->rank, step->jobid);
+    char buffer[PATH_MAX];
 
     /* handle relative paths */
     if (taskPrologue[0] != '/') {
-	snprintf(buffer, 4096, "%s/%s", step->cwd, taskPrologue);
+	snprintf(buffer, sizeof(buffer), "%s/%s", step->cwd, taskPrologue);
 	taskPrologue = buffer;
-    }
-
-    if (access(taskPrologue, R_OK | X_OK) < 0) {
-	mwarn(errno, "task prologue '%s' not accessable", taskPrologue);
-	return -1;
     }
 
     int pipe_fd[2];
     if (pipe(pipe_fd) < 0) {
-	mwarn(errno, "%s: pipe()", __func__);
+	fwarn(errno, "pipe()");
 	return -1;
     }
 
-    char *child_argv[2];
-    child_argv[0] = taskPrologue;
-    child_argv[1] = NULL;
-
     pid_t child = fork();
     if (child < 0) {
-	mwarn(errno, "%s: fork()", __func__);
+	fwarn(errno, "fork()");
 	return -1;
     }
 
@@ -571,18 +561,33 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 	close(pipe_fd[1]);
 	close(0);
 	close(2);
-	setpgrp();
+
+	if (getuid() != step->uid &&
+	    !switchUser(step->username, step->uid, step->gid)) {
+	    flog("switch user %s failed\n", step->username);
+	    exit(1);
+	}
+
+	if (access(taskPrologue, R_OK | X_OK) < 0) {
+	    fwarn(errno, "access(%s)", taskPrologue);
+	    exit(1);
+	}
 
 	/* Set SLURM_TASK_PID variable in environment */
 	char envstr[32];
 	sprintf(envstr, "%d", PSC_getPID(task->tid));
 	setenv("SLURM_TASK_PID", envstr, 1);
 
+	flog("starting task prologue '%s' for rank %u (global %u) of job %u\n",
+	     taskPrologue, task->jobRank, task->rank, step->jobid);
+
 	/* Execute task prologue */
+	char *child_argv[2];
+	child_argv[0] = taskPrologue;
+	child_argv[1] = NULL;
 	execvp(child_argv[0], child_argv);
-	mwarn(errno, "%s: exec task prologue '%s' failed for rank %d (global %d)"
-	      " of job %d", __func__, taskPrologue, task->jobRank, task->rank,
-	      step->jobid);
+	fwarn(errno, "execvp(%s) failed for rank %d (global %d) of job %d",
+	      taskPrologue, task->jobRank, task->rank, step->jobid);
 	return -1;
     }
 
@@ -591,16 +596,16 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 
     FILE *output = fdopen(pipe_fd[0], "r");
     if (!output) {
-	mwarn(errno, "%s: fdopen()", __func__);
+	fwarn(errno, "fdopen()");
 	return -1;
     }
 
-    while (fgets(line, sizeof(line), output) != NULL) {
+    while (fgets(buffer, sizeof(buffer), output) != NULL) {
 	char *saveptr;
-	size_t last = strlen(line)-1;
-	if (line[last] == '\n') line[last] = '\0';
+	size_t last = strlen(buffer)-1;
+	if (buffer[last] == '\n') buffer[last] = '\0';
 
-	char *key = strtok_r(line, " ", &saveptr);
+	char *key = strtok_r(buffer, " ", &saveptr);
 	if (!key) continue;
 
 	if (!strcmp(key, "export")) {
@@ -609,7 +614,7 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 
 	    char *env = ustrdup(saveptr);
 	    if (putenv(env) != 0) {
-		mwarn(errno, "Failed to set '%s' prologue environment", env);
+		fwarn(errno, "failed to set '%s' prologue environment", env);
 		ufree(env);
 	    }
 	} else if (!strcmp(key, "print")) {
@@ -640,52 +645,59 @@ void startTaskPrologue(Step_t *step, PStask_t *task)
 {
     /* exec task prologue from slurm.conf */
     char *script = getConfValueC(SlurmConfig, "TaskProlog");
-    if (script && script[0] != '\0') {
-	execTaskPrologue(step, task, script);
-    }
+    if (script && script[0] != '\0') execTaskPrologue(step, task, script);
 
     /* exec task prologue from srun option --task-prolog */
     script = step->taskProlog;
-    if (script && script[0] != '\0') {
-	execTaskPrologue(step, task, script);
-    }
+    if (script && script[0] != '\0') execTaskPrologue(step, task, script);
 }
 
 static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 {
+    char buffer[PATH_MAX];
+
     /* handle relative paths */
     if (taskEpilogue[0] != '/') {
-	char buffer[4096];
-	snprintf(buffer, 4096, "%s/%s", step->cwd, taskEpilogue);
+	snprintf(buffer, sizeof(buffer), "%s/%s", step->cwd, taskEpilogue);
 	taskEpilogue = buffer;
     }
 
     pid_t childpid = fork();
     if (childpid < 0) {
-	mwarn(errno, "%s: fork()", __func__);
+	fwarn(errno, "fork()");
 	return 0;
     }
 
     if (!childpid) {
 	/* This is the child */
 
-	setpgrp();
+	if (getuid() != step->uid) {
+	    /* reclaim permissions before switching user */
+	    if (geteuid() && !PSC_switchEffectiveUser(NULL, 0, 0)) {
+		flog("no permission to change user %s\n", step->username);
+		exit(1);
+	    }
 
-	setDefaultRlimits();
+	    setDefaultRlimits();
+
+	    if (!switchUser(step->username, step->uid, step->gid)) {
+		flog("switch user %s failed\n", step->username);
+		exit(1);
+	    }
+	}
 
 	setStepEnv(step);
 
 	errno = 0;
-
 	if (access(taskEpilogue, R_OK | X_OK) < 0) {
-	    mwarn(errno, "task epilogue '%s' not accessable", taskEpilogue);
+	    fwarn(errno, "access(%s)", taskEpilogue);
 	    exit(-1);
 	}
 
 	setRankEnv(task->jobRank, step);
 
 	if (chdir(step->cwd) != 0) {
-	    mwarn(errno, "cannot change to working direktory '%s'", step->cwd);
+	    fwarn(errno, "chdir(%s)", step->cwd);
 	}
 
 	char *argv[2];
@@ -697,9 +709,8 @@ static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 	     taskEpilogue, task->jobRank, task->rank, step->jobid);
 
 	execvp(argv[0], argv);
-	mwarn(errno, "%s: exec task epilogue '%s' failed for rank %u (global %u)"
-	      " of job %u", __func__, taskEpilogue, task->jobRank, task->rank,
-	      step->jobid);
+	fwarn(errno, "execvp(%s) failed for rank %u (global %u) of job %u",
+	      taskEpilogue, task->jobRank, task->rank, step->jobid);
 	exit(-1);
     }
 

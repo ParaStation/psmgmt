@@ -64,11 +64,10 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred);
 }
 
-JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
+JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg)
 {
     char *credStart = sMsg->data->unpackPtr, *credEnd, *sigBuf = NULL;
     JobCred_t *cred = NULL;
-    int sigBufLen, credLen;
 
     if (!unpackJobCred(sMsg, &cred, gresList, &credEnd)) {
 	flog("unpacking job credential failed\n");
@@ -87,33 +86,7 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
     }
     mdbg(PSSLURM_LOG_PART, "\n");
 
-    credLen = credEnd - credStart;
-
-    if (verify) {
-	uid_t sigUid;
-	gid_t sigGid;
-	if (!psMungeDecodeBuf(cred->sig, (void **) &sigBuf, &sigBufLen,
-			      &sigUid, &sigGid)) {
-	    flog("decoding munge credential failed\n");
-	    goto ERROR;
-	}
-
-	if (credLen != sigBufLen) {
-	    flog("mismatching credential, len %u : %u\n", credLen, sigBufLen);
-	    printBinaryData(sigBuf, sigBufLen, "sigBuf");
-	    printBinaryData(credStart, credLen, "jobData");
-	    goto ERROR;
-	}
-
-	if (memcmp(sigBuf, credStart, sigBufLen)) {
-	    flog("manipulated data\n");
-	    printBinaryData(sigBuf, sigBufLen, "sigBuf");
-	    printBinaryData(credStart, credLen, "jobData");
-	    goto ERROR;
-	}
-	free(sigBuf);
-	sigBuf = NULL;
-    }
+    int credLen = credEnd - credStart;
 
     /* convert Slurm host-list to PSnodes */
     uint32_t count;

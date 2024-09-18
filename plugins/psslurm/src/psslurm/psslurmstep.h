@@ -155,8 +155,6 @@ typedef struct {
     uint8_t appendMode;         /**< truncate(=0) or append(=1) stdout/stderr */
     uint16_t accType;		/**< type of accounting */
     char *nodeAlias;		/**< node alias (deprecated in 23.11) */
-    char *checkpoint;		/**< checkpoint directory (removed in 21.08) */
-    char *restartDir;           /**< restart directory (removed in 21.08) */
     bool x11forward;		/**< X11 forwarding */
     int32_t fwInitCount;	/**< track INIT messages from logger to fw */
     uint32_t fwFinCount;	/**< track FINALIZE message from fw to logger */

@@ -395,18 +395,6 @@ typedef struct {
 typedef struct {
     Config_File_t *files;	    /**< holding config files (since 21.08) */
     uint32_t numFiles;		    /**< number of config files (since 21.08) */
-    char *slurm_conf;		    /**< tbr with 20.11 */
-    char *acct_gather_conf;         /**< tbr with 20.11 */
-    char *cgroup_conf;		    /**< tbr with 20.11 */
-    char *cgroup_allowed_dev_conf;  /**< tbr with 20.11 */
-    char *ext_sensor_conf;	    /**< tbr with 20.11 */
-    char *gres_conf;		    /**< tbr with 20.11 */
-    char *knl_cray_conf;	    /**< tbr with 20.11 */
-    char *knl_generic_conf;	    /**< tbr with 20.11 */
-    char *plugstack_conf;	    /**< tbr with 20.11 */
-    char *topology_conf;	    /**< tbr with 20.11 */
-    char *xtra_conf;		    /**< tbr with 20.11 */
-    char *slurmd_spooldir;	    /**< tbr with 20.11 */
 } Config_Msg_t;
 
 /** Structure holding a Slurm job array */
@@ -876,7 +864,6 @@ typedef struct {
     gid_t gid;			/**< unique group identifier */
     char *aliasList;		/**< alias list */
     char *nodes;		/**< node string */
-    char *partition;		/**< partition (removed in 22.05) */
     char *stdErr;		/**< stderr (removed in 23.11) */
     char *stdOut;		/**< stdout (removed in 23.11) */
     char *workDir;		/**< working directory */

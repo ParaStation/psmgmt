@@ -35,14 +35,12 @@
 
 /* protocol versions */
 #define SLURM_MAX_PROTO_VERSION SLURM_24_05_PROTO_VERSION
-#define SLURM_MIN_PROTO_VERSION SLURM_20_11_PROTO_VERSION
+#define SLURM_MIN_PROTO_VERSION SLURM_22_05_PROTO_VERSION
 
 #define SLURM_24_05_PROTO_VERSION ((41 << 8) | 0) /* 10496 */
 #define SLURM_23_11_PROTO_VERSION ((40 << 8) | 0) /* 10240 */
 #define SLURM_23_02_PROTO_VERSION ((39 << 8) | 0) /* 9984 */
 #define SLURM_22_05_PROTO_VERSION ((38 << 8) | 0) /* 9728 */
-#define SLURM_21_08_PROTO_VERSION ((37 << 8) | 0) /* 9472 */
-#define SLURM_20_11_PROTO_VERSION ((36 << 8) | 0) /* 9216 */
 
 /* maximum step ID of normal step */
 #define SLURM_MAX_NORMAL_STEP_ID (0xfffffff0)
@@ -226,12 +224,16 @@ typedef enum task_dist_states {
 #define KILL_FED_REQUEUE 0x0010 /* Mark job as requeued when requeued */
 
 /* task flags */
-#define LAUNCH_PARALLEL_DEBUG   0x00000001
-#define LAUNCH_MULTI_PROG       0x00000002
-#define LAUNCH_PTY              0x00000004
-#define LAUNCH_BUFFERED_IO      0x00000008
-#define LAUNCH_LABEL_IO         0x00000010
-#define LAUNCH_USER_MANAGED_IO  0x00000020
+#define LAUNCH_PARALLEL_DEBUG   SLURM_BIT(0)
+#define LAUNCH_MULTI_PROG       SLURM_BIT(1)
+#define LAUNCH_PTY              SLURM_BIT(2)
+#define LAUNCH_BUFFERED_IO      SLURM_BIT(3)
+#define LAUNCH_LABEL_IO         SLURM_BIT(4)
+#define LAUNCH_EXT_LAUNCHER     SLURM_BIT(5)
+#define LAUNCH_NO_ALLOC         SLURM_BIT(6)
+#define LAUNCH_OVERCOMMIT       SLURM_BIT(7)
+#define LAUNCH_NO_SIG_FAIL      SLURM_BIT(8)
+#define LAUNCH_GRES_ALLOW_TASK_SHARING SLURM_BIT(9)
 
 /* node registration flags */
 #define SLURMD_REG_FLAG_STARTUP  0x0001

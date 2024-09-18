@@ -46,8 +46,6 @@ typedef struct {
     uint32_t gidsLen;		/**< size of gids array */
     char **gidNames;            /**< (currently) unused */
     uint16_t jobCoreSpec;       /**< specialized cores */
-    uint64_t jobMemLimit;       /**< job memory limit (defunct in 21.08) */
-    uint64_t stepMemLimit;      /**< step memory limit (defunct in 21.08) */
     char *stepHL;		/**< Slurm compressed step host-list */
     time_t ctime;               /**< creation time of credential */
     uint32_t totalCoreCount;    /**< total number of all reserved cores over all
@@ -111,11 +109,9 @@ typedef struct {
  *
  * @param sMsg The message to unpack
  *
- * @param verify If true verify the data using psmunge
- *
  * @return Returns the extracted job credential or NULL on error
  */
-JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify);
+JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg);
 
 /**
  * @brief Free a job credential

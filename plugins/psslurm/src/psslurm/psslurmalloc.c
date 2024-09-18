@@ -406,8 +406,6 @@ static int verifyJobInfo(Slurm_Msg_t *sMsg, void *info)
 
 void Alloc_verify(bool grace)
 {
-    if (slurmProto < SLURM_21_08_PROTO_VERSION) return;
-
     char *prologue = getConfValueC(SlurmConfig, "Prolog");
     if (!prologue || prologue[0] == '\0') {
 	/* no slurmd prologue configured,

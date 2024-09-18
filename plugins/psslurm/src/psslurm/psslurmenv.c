@@ -731,6 +731,11 @@ void initJobEnv(Job_t *job)
     envSet(job->env, "SLURM_JOB_UID", tmp);
     envSet(job->env, "SLURM_CPUS_ON_NODE", getConfValueC(Config, "SLURM_CPUS"));
 
+    /* ensure USER is set (even if sbatch --export=NONE is used) */
+    if (!envGet(job->env, "USER")) {
+	envSet(job->env, "USER", job->username);
+    }
+
     char *cpus = getCPUsPerNode(job);
     envSet(job->env, "SLURM_JOB_CPUS_PER_NODE", cpus);
     ufree(cpus);
@@ -756,11 +761,6 @@ void initJobEnv(Job_t *job)
 
     envSet(job->env, "SLURM_NODELIST", job->slurmHosts);
     envSet(job->env, "SLURM_JOB_NODELIST", job->slurmHosts);
-
-    if (job->checkpoint) {
-	/* removed in 21.08 */
-	envSet(job->env, "SLURM_CHECKPOINT_IMAGE_DIR", job->checkpoint);
-    }
 
     /* node alias was removed in 23.11 */
     if (!job->nodeAlias || !strlen(job->nodeAlias)) {
@@ -1241,7 +1241,8 @@ void setRankEnv(int32_t rank, Step_t *step)
     Alloc_t *alloc = Alloc_find(step->jobid);
     if (alloc) setPsslurmEnv(alloc->env, NULL);
 
-    if (step->stepid == SLURM_INTERACTIVE_STEP) {
+    if (step->stepid == SLURM_INTERACTIVE_STEP ||
+	step->taskFlags & LAUNCH_EXT_LAUNCHER) {
 	return setInteractiveRankEnv(step);
     } else {
 	return setOrdinaryRankEnv(rank, step);
@@ -1414,6 +1415,11 @@ void setStepEnv(Step_t *step)
 
     /* cleanup env */
     envEvict(step->env, spankVarFilter, NULL);
+
+    /* ensure USER is set (even if srun --export=NONE is used) */
+    if (!envGet(step->env, "USER")) {
+	envSet(step->env, "USER", step->username);
+    }
 }
 
 void setJobEnv(Job_t *job)

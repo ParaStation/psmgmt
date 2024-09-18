@@ -359,13 +359,12 @@ static int setFilePermissions(Job_t *job)
     if (!job->jobscript) return 1;
 
     if (chown(job->jobscript, job->uid, job->gid) == -1) {
-	mwarn(errno, "%s: chown(%s, %i, %i)", __func__,
-	      job->jobscript, job->uid, job->gid);
+	fwarn(errno, "chown(%s, %i, %i)", job->jobscript, job->uid, job->gid);
 	return 1;
     }
 
     if (chmod(job->jobscript, 0700) == -1) {
-	mwarn(errno, "%s: chmod(%s, 0700)", __func__, job->jobscript);
+	fwarn(errno, "chmod(%s, 0700)", job->jobscript);
 	return 1;
     }
 
@@ -399,7 +398,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     SpankCallHook(&spank);
 #endif
 
-    /* set default RLimits */
+    /* set RLimits from configuration */
     setDefaultRlimits();
 
     /* switch user */
@@ -455,7 +454,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     snprintf(buf, sizeof(buf), "psslurm-job:%u", job->jobid);
     initLogger(buf, NULL);
-    mwarn(err, "%s: execve(%s)", __func__, job->argv[0]);
+    fwarn(err, "execve(%s)", job->argv[0]);
     exit(err);
 }
 
@@ -522,10 +521,10 @@ int handleForwarderInit(void *data)
 		flog("child '%i' not stopped\n", child);
 	    } else {
 		if (killChild(child, SIGSTOP, task->uid) == -1) {
-		    mwarn(errno, "%s: kill(%i)", __func__, child);
+		    fwarn(errno, "kill(%i)", child);
 		}
 		if (ptrace(PTRACE_DETACH, child, 0, 0) == -1) {
-		    mwarn(errno, "%s: ptrace(PTRACE_DETACH)", __func__);
+		    fwarn(errno, "ptrace(PTRACE_DETACH)");
 		}
 	    }
 	}
@@ -681,7 +680,7 @@ int handleExecClientUser(void *data)
 	/* stop child after exec */
 	if (fwStep->taskFlags & LAUNCH_PARALLEL_DEBUG) {
 	    if (ptrace(PTRACE_TRACEME, 0, 0, 0) == -1) {
-		mwarn(errno, "%s: ptrace()", __func__);
+		fwarn(errno, "ptrace()");
 		return -1;
 	    }
 	}
@@ -867,56 +866,50 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	    ws.ws_col = atoi(cols);
 	    ws.ws_row = atoi(rows);
 	    if (ioctl(fwdata->stdOut[0], TIOCSWINSZ, &ws)) {
-		mwarn(errno, "%s: ioctl(TIOCSWINSZ, %s:%s)",
-		      __func__, cols, rows);
+		fwarn(errno, "ioctl(TIOCSWINSZ, %s:%s)", cols, rows);
 		exit(1);
 	    }
 	}
 
 	/* redirect stdout/stderr/stdin to PTY */
 	if (dup2(fwdata->stdOut[0], STDOUT_FILENO) == -1) {
-	    mwarn(errno, "%s: dup2(%u/stdout)", __func__, fwdata->stdOut[0]);
+	    fwarn(errno, "dup2(%u/stdout)", fwdata->stdOut[0]);
 	    exit(1);
 	}
 	if (dup2(fwdata->stdOut[0], STDERR_FILENO) == -1) {
-	    mwarn(errno, "%s: dup2(%u/stderr)", __func__, fwdata->stdOut[0]);
+	    fwarn(errno, "dup2(%u/stderr)", fwdata->stdOut[0]);
 	    exit(1);
 	}
 	if (dup2(fwdata->stdOut[0], STDIN_FILENO) == -1) {
-	    mwarn(errno, "%s: dup2(%u/stdin)", __func__, fwdata->stdOut[0]);
+	    fwarn(errno, "dup2(%u/stdin)", fwdata->stdOut[0]);
 	    exit(1);
 	}
     } else {
-	if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
-	    if (dup2(fwdata->stdOut[1], STDOUT_FILENO) == -1) {
-		mwarn(errno, "%s: dup2(%u/stdout)",
-		      __func__, fwdata->stdOut[0]);
-		exit(1);
-	    }
-	    if (dup2(fwdata->stdErr[1], STDERR_FILENO) == -1) {
-		mwarn(errno, "%s: dup2(%u/stderr)",
-		      __func__, fwdata->stdErr[0]);
-		exit(1);
-	    }
-	    if (step->stdInRank == -1 && step->stdIn &&
-	       strlen(step->stdIn) > 0) {
-		/* input is redirected from file and not connected to psidfw! */
+	if (dup2(fwdata->stdOut[1], STDOUT_FILENO) == -1) {
+	    fwarn(errno, "dup2(%u/stdout)", fwdata->stdOut[0]);
+	    exit(1);
+	}
+	if (dup2(fwdata->stdErr[1], STDERR_FILENO) == -1) {
+	    fwarn(errno, "dup2(%u/stderr)", fwdata->stdErr[0]);
+	    exit(1);
+	}
+	if (step->stdInRank == -1 && step->stdIn &&
+	   strlen(step->stdIn) > 0) {
+	    /* input is redirected from file and not connected to psidfw! */
 
-		int fd = open("/dev/null", O_RDONLY);
-		if (fd == -1) {
-		    mwarn(errno, "%s: open(/dev/null)", __func__);
-		    exit(1);
-		}
-		if (dup2(fd, STDIN_FILENO) == -1) {
-		    mwarn(errno, "%s: dup2(%i=/dev/null)", __func__, fd);
-		    exit(1);
-		}
-	    } else {
-		if (dup2(fwdata->stdIn[0], STDIN_FILENO) == -1) {
-		    mwarn(errno, "%s: dup2(%u/stdin)",
-			  __func__, fwdata->stdIn[0]);
-		    exit(1);
-		}
+	    int fd = open("/dev/null", O_RDONLY);
+	    if (fd == -1) {
+		fwarn(errno, "open(/dev/null)");
+		exit(1);
+	    }
+	    if (dup2(fd, STDIN_FILENO) == -1) {
+		fwarn(errno, "dup2(%i=/dev/null)", fd);
+		exit(1);
+	    }
+	} else {
+	    if (dup2(fwdata->stdIn[0], STDIN_FILENO) == -1) {
+		fwarn(errno, "dup2(%u/stdin)", fwdata->stdIn[0]);
+		exit(1);
 	    }
 	}
 
@@ -1078,7 +1071,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     /* setup standard I/O and PTY */
     setupStepIO(fwdata, step);
 
-    /* set default RLimits */
+    /* set RLimits from configuration */
     setDefaultRlimits();
 
     /* switch user */
@@ -1145,7 +1138,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     snprintf(buf, sizeof(buf), "psslurm-%s", Step_strID(step));
     initLogger(buf, NULL);
-    mwarn(err, "%s: execve(%s)", __func__, argvP[0]);
+    fwarn(err, "execve(%s)", argvP[0]);
     exit(err);
 }
 
@@ -1221,7 +1214,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     /* check if we can change working directory */
     if (step->cwd && chdir(step->cwd) == -1) {
-	mwarn(errno, "%s: chdir(%s) for uid %u gid %u", __func__,
+	fwarn(errno, "chdir(%s) for uid %u gid %u",
 	      step->cwd, step->uid, step->gid);
 	if (slurmProto < SLURM_23_02_PROTO_VERSION) {
 	    return - ESCRIPT_CHDIR_FAILED;
@@ -1233,8 +1226,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	queueFwMsg(&step->fwMsgQueue, buf, strlen(buf), STDERR, 0);
 
 	if (chdir("/tmp") == -1) {
-	    mwarn(errno, "%s: chdir(/tmp) for uid %u gid %u", __func__,
-		  step->uid, step->gid);
+	    fwarn(errno, "chdir(/tmp) for uid %u gid %u", step->uid, step->gid);
 	    return - ESLURMD_EXECVE_FAILED;
 	}
 
@@ -1243,8 +1235,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     }
 
     /* redirect stdout/stderr/stdin */
-    if (!(step->taskFlags & LAUNCH_PTY)
-	&& !(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
+    if (!(step->taskFlags & LAUNCH_PTY)) {
 	IO_redirectStep(fwdata, step);
 	IO_openStepPipes(fwdata, step);
     }
@@ -1264,7 +1255,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	/* open PTY */
 	if (openpty(&fwdata->stdOut[1], &fwdata->stdOut[0],
 		    NULL, NULL, NULL) == -1) {
-	    mwarn(errno, "%s: openpty()", __func__);
+	    fwarn(errno, "openpty()");
 	    return -1;
 	}
     }
@@ -1287,9 +1278,6 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
     Step_t *step = fwdata->userData;
 
     IO_init();
-
-    /* user will take care of I/O handling */
-    if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return;
 
     if (!step->IOPort) {
 	flog("no I/O ports available\n");
@@ -1640,14 +1628,14 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
     int fd = open(destFile, wFlags, 0700);
     if (fd == -1) {
 	int eno = errno;
-	mwarn(eno, "%s: open(%s)", __func__, destFile);
+	fwarn(eno, "open(%s)", destFile);
 	exit(eno);
     }
 
     /* write the file */
     if (PSCio_sendF(fd, bcast->block, bcast->blockLen) == -1) {
 	int eno = errno;
-	mwarn(eno, "%s: write(%s)", __func__, destFile);
+	fwarn(eno, "write(%s)", destFile);
 	exit(eno);
     }
 
@@ -1655,12 +1643,12 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
     if (bcast->flags & BCAST_LAST_BLOCK) {
 	if (fchmod(fd, bcast->modes & 0700) == -1) {
 	    int eno = errno;
-	    mwarn(eno, "%s: chmod(%s)", __func__, destFile);
+	    fwarn(eno, "chmod(%s)", destFile);
 	    exit(eno);
 	}
 	if (fchown(fd, bcast->uid, bcast->gid) == -1) {
 	    int eno = errno;
-	    mwarn(eno, "%s: chown(%s)", __func__, destFile);
+	    fwarn(eno, "chown(%s)", destFile);
 	    exit(eno);
 	}
 	if (bcast->atime) {
@@ -1668,7 +1656,7 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
 	    times.modtime = bcast->mtime;
 	    if (utime(destFile, &times)) {
 		int eno = errno;
-		mwarn(eno, "%s: utime(%s)", __func__, destFile);
+		fwarn(eno, "utime(%s)", destFile);
 		exit(eno);
 	    }
 	}
@@ -1733,9 +1721,6 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
     step->fwdata = fwdata;
 
     IO_init();
-
-    /* user will take care of I/O handling */
-    if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return;
 
     if (!step->IOPort) {
 	flog("no I/O Ports\n");
@@ -1915,7 +1900,7 @@ static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     snprintf(buf, sizeof(buf), "psslurm-epifin:%u", alloc->id);
     initLogger(buf, NULL);
-    mwarn(err, "%s: execve(%s)", __func__, script);
+    fwarn(err, "execve(%s)", script);
     exit(err);
 }
 
