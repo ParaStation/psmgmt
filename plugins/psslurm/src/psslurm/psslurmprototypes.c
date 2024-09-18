@@ -193,6 +193,7 @@ static inline void freeSlurmConfigMsg(Slurm_Msg_t *sMsg)
 	ufree(config->files[i].data);
     }
     ufree(config->files);
+    ufree(config);
 
     sMsg->unpData = NULL;
 }
