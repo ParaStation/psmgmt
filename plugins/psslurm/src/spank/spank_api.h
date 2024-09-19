@@ -8,6 +8,8 @@
  *
  * @param verbose Enable verbose messages
  *
+ * @param logLevel Slurm log level
+ *
  * @return Returns true on success or false otherwise
  */
 typedef bool psSpank_Init_t(bool, char *);
