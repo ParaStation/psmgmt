@@ -2477,7 +2477,8 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 	fw->head.fwRes[i].body.used = 0;
     }
 
-    if (mset(PSSLURM_LOG_FWD)) {
+    bool verbose = mset(PSSLURM_LOG_FWD);
+    if (verbose) {
 	gettimeofday(&time_start, NULL);
 
 	mlog("%s: forward type %s count %u nodelist %s timeout %u "
@@ -2489,7 +2490,7 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     /* use RDP to send the message to other nodes */
     int ret = forwardSlurmMsg(sMsg, nrOfNodes, nodes);
 
-    if (mset(PSSLURM_LOG_FWD)) {
+    if (verbose) {
 	gettimeofday(&time_now, NULL);
 	timersub(&time_now, &time_start, &time_diff);
 	mlog("%s: forward type %s of size %u took %.4f seconds\n", __func__,
