@@ -52,12 +52,12 @@ void PSID_shutdown(void)
 
     phase++;
     PSID_flog("phase %d\n", phase);
+    PSIDhook_call(PSIDHOOK_SHUTDOWN, &phase);
 
     switch (phase) {
     case 0:
 	daemonState |= PSID_STATE_SHUTDOWN;
 	PSID_registerLoopAct(PSID_shutdown);
-	PSIDhook_call(PSIDHOOK_SHUTDOWN, NULL);
 	PSID_disableMasterSock();
 	if (!PSIDclient_killAll(SIGTERM, false))
 	    /* no clients => proceed immediately to next phase */

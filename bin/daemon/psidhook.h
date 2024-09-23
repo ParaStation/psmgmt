@@ -70,7 +70,9 @@ typedef enum {
 				will suppress creating a reservation. Any other
 				return value will trigger to fall back to
 				standard creation of reservations. */
-    PSIDHOOK_SHUTDOWN,        /**< Daemon got signaled to shutdown, no arg */
+    PSIDHOOK_SHUTDOWN,        /**< Daemon got signaled to shutdown and a
+				specific phase is reached. Arg points to an
+				int holding the current phase. */
     PSIDHOOK_MASTER_GETPART,  /**< Master is creating a new partition, the arg
 				is a pointer to PSpart_request_t holding the new
 				created request (obsolete) */
