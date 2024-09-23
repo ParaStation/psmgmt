@@ -400,6 +400,9 @@ static int setupTorqueVersionSupport(void)
  */
 static int handleShutdown(void *data)
 {
+    /* only take notice of phase 0 */
+    if (data && *(int *)data != 0) return 0;
+
     /* we are not finalized yet, so we can't trigger an unload */
     doUnload = 0;
 
