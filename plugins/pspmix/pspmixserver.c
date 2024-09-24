@@ -1179,7 +1179,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
      * unless PMIX_OPERATION_SUCCEEDED is returned to avoid data duplication.
      * To avoid copying everything, we invalidate all data that are only needed
      * to setup the spawn but not for later processing. */
-    PspmixSpawnApp_t *sapps = umalloc(napps * sizeof(*apps));
+    PspmixSpawnApp_t *sapps = umalloc(napps * sizeof(*sapps));
 
     for (size_t a = 0; a < napps; a++) {
 
