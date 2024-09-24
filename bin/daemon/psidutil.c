@@ -346,7 +346,7 @@ void PSID_shutdownMasterSock(void)
 void PSID_checkMaxPID(void)
 {
     FILE *maxPIDFile = fopen(PID_FILE,"r");
-    unsigned int maxPID;
+    uint32_t maxPID;
     int ret;
 
     if (!maxPIDFile) {
@@ -361,7 +361,7 @@ void PSID_checkMaxPID(void)
 	goto end;
     }
 
-    PSID_fdbg(PSID_LOG_VERB, "pid_max is %d\n", maxPID);
+    PSID_fdbg(PSID_LOG_VERB, "pid_max is %u\n", maxPID);
 
     if (maxPID > 65536) {
 	PSID_exit(EINVAL, "%s: cannot handle PIDs larger than 16 bit."

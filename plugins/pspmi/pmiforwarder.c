@@ -315,6 +315,7 @@ void setConnectionInfo(PMItype_t type, int sock)
 static int setupPMIsockets(void *data)
 {
     childTask = data;
+    if (!childTask) return -1;
 
     if (childTask->group != TG_ANY) return 0;
 

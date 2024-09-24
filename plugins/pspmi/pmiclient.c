@@ -2103,12 +2103,12 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     }
 
     /* add additional env vars */
-    snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%i_%i",
+    snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%d_%d",
 	     PSC_getMyTID(), kvs_next++);  /* setup new KVS name */
     envAdd(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
-    snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_PARENT=%i", PSC_getMyTID());
+    snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_PARENT=%d", PSC_getMyTID());
     envAdd(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 

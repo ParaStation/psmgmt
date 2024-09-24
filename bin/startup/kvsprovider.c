@@ -157,7 +157,7 @@ int main(int argc, const char *argv[], char** envp)
     propExecEnvironment(conf);
 
     if (!conf->pmiDisable) {
-	snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
+	snprintf(tmp, sizeof(tmp), "%d", PSC_getMyTID());
 	setPSIEnv("__KVS_PROVIDER_TID", tmp);
     }
 

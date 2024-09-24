@@ -96,9 +96,6 @@ void PSpart_clrQueue(list_t *queue)
 
 void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
 {
-    int i;
-    unsigned int u;
-
     if (!request) {
 	PSC_log(-1, "%s: request is NULL\n", __func__);
 	return;
@@ -117,14 +114,14 @@ void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
 
     if (request->nodes) {
 	/* raw request (no partition yet) */
-	for (i=0; i<request->numGot; i++) {
+	for (int i = 0; i < request->numGot; i++) {
 	    snprintf(txt+strlen(txt), size-strlen(txt),
 		     "%s%d", i ? " " : "",request->nodes[i]);
 	    if (strlen(txt)+1 == size) return;
 	}
     } else if (request->slots) {
 	/* processed request */
-	for (u=0; u<request->sizeGot; u++) {
+	for (unsigned int u = 0; u < request->sizeGot; u++) {
 	    snprintf(txt+strlen(txt), size-strlen(txt),
 		     "%s%d/%s", u ? " " : "",
 		     request->slots[u].node,
