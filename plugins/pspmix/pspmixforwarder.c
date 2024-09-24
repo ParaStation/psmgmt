@@ -231,7 +231,8 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     bool noParricide = false;
 
     /* build arguments:
-     * kvsprovider --pmix -np <NP> -d <WDIR> --nodetype <typeslist>
+     * kvsprovider --pmix --gnodetype <typelist>
+     *             -np <NP> -d <WDIR> --nodetype <typeslist>
      *					     -E <key> <value> <BINARY> : ... */
     strv_t args = strvNew(NULL);
     /* @todo change to not need to start a kvsprovider any longer */
@@ -244,6 +245,13 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 
     /* set PMIx mode */
     strvAdd(args, "--pmix");
+
+    for (int i = 0; i < req->infoc; i++) {
+	if (!strcmp(req->infov[i].key, "nodetypes")) {
+	    strvAdd(args, "--gnodetype");
+	    strvAdd(args, req->infov[i].value);
+	}
+    }
 
     size_t jobsize = 0;
 
@@ -945,9 +953,29 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint32(data, &srdata->prank);
     getUint32(data, &srdata->opts);
 
+    /* get additional job level info */
+    vector_t infos;
+    vectorInit(&infos, 1, 1, KVP_t);
+
+    size_t len;
+    KVP_t entry;
+    char *nodetypes = getStringML(data, &len);
+    if (len) {
+	entry.key = ustrdup("nodetypes");
+	entry.value = nodetypes;
+	vectorAdd(&infos, &entry);
+    } else {
+	ufree(nodetypes);
+    }
+
+    /* get number of apps and initialize request accordingly */
     uint16_t napps;
     getUint16(data, &napps);
     srdata->req = initSpawnRequest(napps);
+
+    /* fill additional job level info into request */
+    srdata->req->infov = infos.data;
+    srdata->req->infoc = infos.len;
 
     for (size_t a = 0; a < napps; a++) {
 	SingleSpawn_t *spawn = srdata->req->spawns + a;

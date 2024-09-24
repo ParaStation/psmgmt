@@ -329,12 +329,13 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status,
  * @param apps      applications to spawn
  * @param sdata     callback data object
  * @param opts      additional options
+ * @param hints     job level hints not processed in the server module
  *
  * @return Returns true on success, false on error
  */
 bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 			  PspmixSpawnApp_t *apps, spawndata_t *sdata,
-			  uint32_t opts);
+			  uint32_t opts, PspmixSpawnHints_t *hints);
 
 /**
  * @brief Handle response to previous spawn requested

@@ -67,13 +67,14 @@ bool pspmix_comm_sendJobsetupFailed(PStask_ID_t targetTID);
  * @param pnspace    parent namespace
  * @param prank      parent rank
  * @param opts       additional options for the spawn
+ * @param hints      job level hints
  *
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendClientSpawn(PStask_ID_t targetTID, uint16_t spawnID,
 				 uint16_t napps, PspmixSpawnApp_t apps[],
 				 const char *pnspace, uint32_t prank,
-				 uint32_t opts);
+				 uint32_t opts, PspmixSpawnHints_t *hints);
 
 /**
  * @brief Compose and send a spawn info message

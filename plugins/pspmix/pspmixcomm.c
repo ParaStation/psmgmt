@@ -648,11 +648,12 @@ bool pspmix_comm_sendJobsetupFailed(PStask_ID_t dest)
 bool pspmix_comm_sendClientSpawn(PStask_ID_t dest, uint16_t spawnID,
 				 uint16_t napps, PspmixSpawnApp_t apps[],
 				 const char *pnspace, uint32_t prank,
-				 uint32_t opts)
+				 uint32_t opts, PspmixSpawnHints_t *hints)
 {
     fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %s spawnID %hu napps%hu"
-	 " pnspace '%s' prank %u opts 0x%x\n", PSC_printTID(dest),
-	 spawnID, napps, pnspace, prank, opts);
+	 " pnspace '%s' prank %u opts 0x%x nodetypes %s\n",
+	 PSC_printTID(dest), spawnID, napps, pnspace, prank, opts,
+	 hints->nodetypes ? hints->nodetypes : "NULL");
 
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
@@ -663,6 +664,7 @@ bool pspmix_comm_sendClientSpawn(PStask_ID_t dest, uint16_t spawnID,
     addStringToMsg(pnspace, &msg);
     addUint32ToMsg(prank, &msg);
     addUint32ToMsg(opts, &msg);
+    addStringToMsg(hints->nodetypes, &msg);
 
     addUint16ToMsg(napps, &msg);
 

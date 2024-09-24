@@ -1242,8 +1242,11 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
     sdata->cbfunc = cbfunc;
     sdata->cbdata = cbdata;
 
-    bool ret = pspmix_service_spawn(proc, napps, sapps, sdata, opts);
+    PspmixSpawnHints_t hints = {
+	.nodetypes = si_job.nodetypes
+    };
 
+    bool ret = pspmix_service_spawn(proc, napps, sapps, sdata, opts, &hints);
 
 
     for (size_t a = 0; a < napps; a++) {

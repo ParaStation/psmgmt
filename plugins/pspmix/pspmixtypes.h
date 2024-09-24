@@ -276,6 +276,13 @@ typedef struct {
 } PspmixSpawnApp_t;
 
 /**
+ * Job level hints to a PMIx_Spawn() call not processed in server module
+ */
+typedef struct {
+    char *nodetypes;        /**< nodetypes, comma separated */
+} PspmixSpawnHints_t;
+
+/**
  * @brief Set task preparation function
  *
  * Register the new task preparation function @a spawnFunc to the

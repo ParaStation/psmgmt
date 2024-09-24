@@ -97,6 +97,7 @@ typedef struct {
     uint32_t ready;            /**< num of processes reported as ready */
     char *nspace;              /**< new namespace */
     uint32_t opts;             /**< spawn options: PSPMIX_SPAWNOPT_* */
+    PspmixSpawnHints_t hints;  /**< hints not processed in server module */
 } PspmixSpawn_t;
 
 /****** global variable needed to be lock protected ******/
@@ -155,6 +156,7 @@ static void cleanupSpawn(PspmixSpawn_t *spawn)
     ufree(spawn->apps);
     ufree(spawn->nspace);
     ufree(spawn->sdata);
+    ufree(spawn->hints.nodetypes);
     ufree(spawn);
 }
 
@@ -1969,7 +1971,7 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status,
 /* library thread */
 bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 			  PspmixSpawnApp_t *apps, spawndata_t *sdata,
-			  uint32_t opts)
+			  uint32_t opts, PspmixSpawnHints_t *hints)
 {
     fdbg(PSPMIX_LOG_CALL, "%s:%d napps %hu\n", caller->nspace,
 	 caller->rank, napps);
@@ -1993,6 +1995,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     spawn->apps = apps;
     spawn->state = SPAWN_INITIALIZED;
     spawn->opts = opts;
+    spawn->hints.nodetypes = ustrdup(hints->nodetypes);
     fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state INITIALIZED\n", spawn->id);
 
     /* @todo what means maxprocs, can the spawn be successful with less procs? */
@@ -2019,10 +2022,14 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 
     RELEASE_LOCK(namespaceList);
 
+    /* @todo perhaps early check existence of all nodetypes in job and apps
+     *       see cloptions.c:getNodeType() */
+
     /* send PSPMIX_CLIENT_SPAWN message to forwarder of proc */
     if (!pspmix_comm_sendClientSpawn(client->fwtid, spawn->id, spawn->napps,
 				     spawn->apps, spawn->caller.nspace,
-				     spawn->caller.rank, spawn->opts)) {
+				     spawn->caller.rank, spawn->opts,
+				     &spawn->hints)) {
 	flog("sending spawn req to forwarder failed (namespace %s rank %d)\n",
 	     spawn->caller.nspace, spawn->caller.rank);
 	ufree(spawn);
