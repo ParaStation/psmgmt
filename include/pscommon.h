@@ -317,7 +317,7 @@ void PSC_setDebugMask(int32_t mask);
  *
  * @see logger_warn()
  */
-#define PSC_warn(...) logger_warn(PSC_logger, __VA_ARGS__)
+#define PSC_warn(...) logger_warn(PSC_logger, -1, __VA_ARGS__)
 #define PSC_fwarn(...) logger_funcwarn(PSC_logger, __func__, -1, __VA_ARGS__)
 
 /**
