@@ -1016,11 +1016,12 @@ typedef struct {
     char *host;
     char *hostfile;
     bool initrequired;
+    char *nodetypes;
 } SpawnInfo_t;
 
 static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 {
-    SpawnInfo_t si = { NULL, NULL, NULL, NULL, false };
+    SpawnInfo_t si = { NULL, NULL, NULL, NULL, false, NULL };
 
     /* handle command directives */
     /* Host environments are required to support the following attributes when
@@ -1093,6 +1094,15 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 		 this->key,
 		 this->value.data.string);
 	    si.hostfile = this->value.data.string;
+	    continue;
+	}
+
+	if (PMIX_CHECK_KEY(this, "pspmix.nodetypes")) {
+	    flog("found %s info [key '%s' value '%s']\n",
+		 (PMIX_INFO_IS_REQUIRED(this)) ? "required" : "optional",
+		 this->key,
+		 this->value.data.string);
+	    si.nodetypes = this->value.data.string;
 	    continue;
 	}
 
