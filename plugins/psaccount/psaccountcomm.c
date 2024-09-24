@@ -458,7 +458,7 @@ void sendAggData(PStask_ID_t rootTID, AccountDataExt_t *aggData)
     setFragDest(&data, PSC_getTID(rootNode, 0));
 
     /* add ID of the job's root task */
-    addInt32ToMsg(rootTID, &data);
+    addTaskIdToMsg(rootTID, &data);
 
     addUint64ToMsg(aggData->maxThreadsTotal, &data);
     addUint64ToMsg(aggData->maxVsizeTotal, &data);
@@ -490,12 +490,12 @@ void sendAggData(PStask_ID_t rootTID, AccountDataExt_t *aggData)
     addDoubleToMsg(aggData->maxDiskWrite, &data);
     addDoubleToMsg(aggData->totDiskWrite, &data);
 
-    addInt32ToMsg(aggData->taskIds[ACCID_MAX_VSIZE], &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MAX_RSS], &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MAX_PAGES], &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MIN_CPU], &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MAX_DISKREAD], &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MAX_DISKWRITE], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_VSIZE], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_RSS], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_PAGES], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_CPU], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_DISKREAD], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_DISKWRITE], &data);
 
     addTimeToMsg(aggData->rusage.ru_utime.tv_sec, &data);
     addTimeToMsg(aggData->rusage.ru_utime.tv_usec, &data);
@@ -503,25 +503,25 @@ void sendAggData(PStask_ID_t rootTID, AccountDataExt_t *aggData)
     addTimeToMsg(aggData->rusage.ru_stime.tv_usec, &data);
 
     addUint64ToMsg(aggData->energyTot, &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MIN_ENERGY], &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MAX_ENERGY], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_ENERGY], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_ENERGY], &data);
     addUint64ToMsg(aggData->powerAvg, &data);
     addUint64ToMsg(aggData->powerMin, &data);
     addUint64ToMsg(aggData->powerMax, &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MIN_POWER], &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MAX_POWER], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_POWER], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_POWER], &data);
 
     addUint64ToMsg(aggData->IC_recvBytesTot, &data);
     addUint64ToMsg(aggData->IC_recvBytesMin, &data);
     addUint64ToMsg(aggData->IC_recvBytesMax, &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MIN_IC_RECV], &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MAX_IC_RECV], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_IC_RECV], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_IC_RECV], &data);
 
     addUint64ToMsg(aggData->IC_sendBytesTot, &data);
     addUint64ToMsg(aggData->IC_sendBytesMin, &data);
     addUint64ToMsg(aggData->IC_sendBytesMax, &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MIN_IC_SEND], &data);
-    addInt32ToMsg(aggData->taskIds[ACCID_MAX_IC_SEND], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_IC_SEND], &data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_IC_SEND], &data);
 
     addUint64ToMsg(aggData->FS_writeBytes, &data);
     addUint64ToMsg(aggData->FS_readBytes, &data);
@@ -569,7 +569,7 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* get root task's ID */
     PStask_ID_t rootTID;
-    getInt32(data, &rootTID);
+    getTaskId(data, &rootTID);
 
     if (!findJobByRoot(rootTID)) {
 	flog("update unknown root %s ", PSC_printTID(rootTID));
@@ -608,12 +608,12 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getDouble(data, &aggData.maxDiskWrite);
     getDouble(data, &aggData.totDiskWrite);
 
-    getInt32(data, &aggData.taskIds[ACCID_MAX_VSIZE]);
-    getInt32(data, &aggData.taskIds[ACCID_MAX_RSS]);
-    getInt32(data, &aggData.taskIds[ACCID_MAX_PAGES]);
-    getInt32(data, &aggData.taskIds[ACCID_MIN_CPU]);
-    getInt32(data, &aggData.taskIds[ACCID_MAX_DISKREAD]);
-    getInt32(data, &aggData.taskIds[ACCID_MAX_DISKWRITE]);
+    getTaskId(data, &aggData.taskIds[ACCID_MAX_VSIZE]);
+    getTaskId(data, &aggData.taskIds[ACCID_MAX_RSS]);
+    getTaskId(data, &aggData.taskIds[ACCID_MAX_PAGES]);
+    getTaskId(data, &aggData.taskIds[ACCID_MIN_CPU]);
+    getTaskId(data, &aggData.taskIds[ACCID_MAX_DISKREAD]);
+    getTaskId(data, &aggData.taskIds[ACCID_MAX_DISKWRITE]);
 
     getTime(data, &aggData.rusage.ru_utime.tv_sec);
     getTime(data, &aggData.rusage.ru_utime.tv_usec);
@@ -621,26 +621,26 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getTime(data, &aggData.rusage.ru_stime.tv_usec);
 
     getUint64(data, &aggData.energyTot);
-    getInt32(data, &aggData.taskIds[ACCID_MIN_ENERGY]);
-    getInt32(data, &aggData.taskIds[ACCID_MAX_ENERGY]);
+    getTaskId(data, &aggData.taskIds[ACCID_MIN_ENERGY]);
+    getTaskId(data, &aggData.taskIds[ACCID_MAX_ENERGY]);
 
     getUint64(data, &aggData.powerAvg);
     getUint64(data, &aggData.powerMin);
     getUint64(data, &aggData.powerMax);
-    getInt32(data, &aggData.taskIds[ACCID_MIN_POWER]);
-    getInt32(data, &aggData.taskIds[ACCID_MAX_POWER]);
+    getTaskId(data, &aggData.taskIds[ACCID_MIN_POWER]);
+    getTaskId(data, &aggData.taskIds[ACCID_MAX_POWER]);
 
     getUint64(data, &aggData.IC_recvBytesTot);
     getUint64(data, &aggData.IC_recvBytesMin);
     getUint64(data, &aggData.IC_recvBytesMax);
-    getInt32(data, &aggData.taskIds[ACCID_MIN_IC_RECV]);
-    getInt32(data, &aggData.taskIds[ACCID_MAX_IC_RECV]);
+    getTaskId(data, &aggData.taskIds[ACCID_MIN_IC_RECV]);
+    getTaskId(data, &aggData.taskIds[ACCID_MAX_IC_RECV]);
 
     getUint64(data, &aggData.IC_sendBytesTot);
     getUint64(data, &aggData.IC_sendBytesMin);
     getUint64(data, &aggData.IC_sendBytesMax);
-    getInt32(data, &aggData.taskIds[ACCID_MIN_IC_SEND]);
-    getInt32(data, &aggData.taskIds[ACCID_MAX_IC_SEND]);
+    getTaskId(data, &aggData.taskIds[ACCID_MIN_IC_SEND]);
+    getTaskId(data, &aggData.taskIds[ACCID_MAX_IC_SEND]);
 
     getUint64(data, &aggData.FS_writeBytes);
     getUint64(data, &aggData.FS_readBytes);
@@ -679,7 +679,7 @@ static void sendAggDataFinish(PStask_ID_t rootTID)
     setFragDest(&data, PSC_getTID(PSC_getID(rootTID), 0));
 
     /* add root task's ID */
-    addInt32ToMsg(rootTID, &data);
+    addTaskIdToMsg(rootTID, &data);
 
     sendFragMsg(&data);
 }
@@ -689,7 +689,7 @@ static void handleAggDataFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     PStask_ID_t rootTID;
 
     /* get root task's ID */
-    getInt32(data, &rootTID);
+    getTaskId(data, &rootTID);
 
     finishAggData(msg->header.sender, rootTID);
 }

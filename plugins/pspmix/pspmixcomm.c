@@ -251,7 +251,7 @@ static void handleClientStatus(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     bool success;
     getBool(data, &success);
     PStask_ID_t clientTID;
-    getInt32(data, &clientTID);
+    getTaskId(data, &clientTID);
 
     fdbg(PSPMIX_LOG_COMM, "type %s for namespace '%s' (spawnID %hu rank %d"
 	 " success %s clientTID %s)\n", pspmix_getMsgTypeString(msg->type),

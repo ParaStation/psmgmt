@@ -560,7 +560,7 @@ static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t jobID)
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_REMOVE_JOB);
     setFragDest(&msg, server->fwdata->tid);
 
-    addInt32ToMsg(jobID, &msg);
+    addTaskIdToMsg(jobID, &msg);
 
     if (mset(PSPMIX_LOG_COMM)) {
 	flog("sending PSPMIX_REMOVE_JOB to %s",

@@ -680,7 +680,7 @@ static bool sendSpawnSuccess(bool success)
     addUint16ToMsg(spawnID, &msg);
     addInt32ToMsg(childTask->jobRank, &msg);
     addBoolToMsg(success, &msg);
-    addInt32ToMsg(childTask->tid, &msg);  /* avail. in PSIDHOOK_FRWRD_INIT */
+    addTaskIdToMsg(childTask->tid, &msg);  /* avail. in PSIDHOOK_FRWRD_INIT */
 
     if (mset(PSPMIX_LOG_COMM)) {
 	rlog("Send message to %s (nspace '%s' spawnID %hu jobRank %d",
