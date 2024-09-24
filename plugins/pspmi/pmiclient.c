@@ -1250,17 +1250,17 @@ int pmi_init(int pmisocket, PStask_t *childTask)
 
     /* tell my PMI parent I am alive */
     if (getenv("PMI_SPAWNED")) {
-	PStask_ID_t parent;
 	int32_t res = 1;
 
 	mdbg(PSPMI_LOG_VERBOSE, "PMI_SPAWNED is set, contact parents.\n");
 
 	env = getenv("__PMI_SPAWN_PARENT");
-	if (!env) {
-	    elog("%s(r%i): error getting my PMI parent\n", __func__, rank);
+	PStask_ID_t parent;
+	if (!env || sscanf(env, "%d", &parent) != 1) {
+	    elog("%s(r%i): error getting PMI parent from '%s'\n",
+		 __func__, rank, env);
 	    return critErr();
 	}
-	parent = atoi(env);
 
 	ptr = buffer;
 	len = 0;

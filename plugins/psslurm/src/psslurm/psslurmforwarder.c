@@ -1391,11 +1391,17 @@ bool execStepLeader(Step_t *step)
     fwdata->accounted = true;
     if (step->spawned) {
 	char *env = envGet(step->env, "__PSSLURM_SPAWN_PTID");
-	if (env) fwdata->pTid = atoi(env);
+	if (env && sscanf(env, "%d", &fwdata->pTid) != 1) {
+	    flog("unable to determine parent TID from '%s'\n", env);
+	}
 	env = envGet(step->env, "__PSSLURM_SPAWN_LTID");
-	if (env) fwdata->loggerTid = atoi(env);
+	if (env && sscanf(env, "%d", &fwdata->loggerTid) != 1) {
+	    flog("unable to determine logger TID from '%s'\n", env);
+	}
 	env = envGet(step->env, "__PSSLURM_STEP_RANK");
-	if (env) fwdata->rank = atoi(env);
+	if (env && sscanf(env, "%d", &fwdata->rank) != 1) {
+	    flog("unable to determine rank from '%s'\n", env);
+	}
 	fwdata->omitSPAWNSUCCESS = true;
     }
     fwdata->jailChild = true;

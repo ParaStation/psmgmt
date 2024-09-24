@@ -314,22 +314,16 @@ void setConnectionInfo(PMItype_t type, int sock)
  */
 static int setupPMIsockets(void *data)
 {
-    PStask_ID_t providertid = -1;
     childTask = data;
 
     if (childTask->group != TG_ANY) return 0;
 
     if (pmiType == PMI_OVER_TCP || pmiType == PMI_OVER_UNIX) {
+	/* save infos on KVS provider */
 	char *env = getenv("__KVS_PROVIDER_TID");
-
-	/* save infos from KVS provider */
-	if (!env) {
-	    elog("%s: KVS provider TID not available\n", __func__);
-	    pmiType = PMI_DISABLED;
-	    return -1;
-	}
-	if (sscanf(env, "%i", &providertid) != 1) {
-	    elog("%s: invalid KVS provider TID\n", __func__);
+	PStask_ID_t providertid;
+	if (!env || sscanf(env, "%d", &providertid) != 1) {
+	    elog("%s: no KVS provider TID from '%s'\n", __func__, env);
 	    pmiType = PMI_DISABLED;
 	    return -1;
 	}

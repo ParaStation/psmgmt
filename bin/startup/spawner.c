@@ -628,13 +628,14 @@ static int spawnSingleExecutable(Executable_t *exec, bool verbose)
 
 static void sendPMIFail(void)
 {
-    char *env = getenv("__PMI_SPAWN_PARENT");
     uint8_t cmd = CHILD_SPAWN_RES;
     int32_t res = 0;
 
     /* tell parent the spawn has failed */
-    if (!env) {
-	fprintf(stderr, "%s: don't know the spawn parent!\n", __func__);
+    char *env = getenv("__PMI_SPAWN_PARENT");
+    PStask_ID_t parent;
+    if (!env || sscanf(env, "%d", &parent) != 1) {
+	fprintf(stderr, "%s: cannot get parent TID from '%s'!\n", __func__, env);
 	exit(1);
     }
 
@@ -642,7 +643,7 @@ static void sendPMIFail(void)
 	.header = {
 	    .type = PSP_CC_MSG,
 	    .sender = PSC_getMyTID(),
-	    .dest = atoi(env),
+	    .dest = parent,
 	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = 2,
 	.type = KVS,
@@ -671,18 +672,12 @@ static void sendPMIxFail(void)
 
     /* get TID of the PMIx server */
     env = getenv("__PMIX_SPAWN_SERVERTID");
-    if (!env) {
+    PStask_ID_t server;
+    if (!env || sscanf(env, "%d", &server) != 1) {
 	fprintf(stderr, "%s: PMIX_SPAWNID found (%hd) but no"
-		" __PMIX_SPAWN_SERVERTID\n", __func__, spawnID);
+		" __PMIX_SPAWN_SERVERTID from '%s'\n", __func__, spawnID, env);
 	return;
     }
-    res = strtol(env, &end, 0);
-    if (*end != '\0') {
-	fprintf(stderr, "%s: invalid __PMIX_SPAWN_SERVERTID: %s\n",
-		__func__, env);
-	return;
-    }
-    PStask_ID_t server = res;
 
     /* get PMIX message subtype to use */
     env = getenv("__PMIX_SPAWN_FAILMSG_TYPE");
@@ -691,7 +686,6 @@ static void sendPMIxFail(void)
 		" __PMIX_SPAWNER_FAILMSG_TYPE\n", __func__, spawnID);
 	return;
     }
-
     res = strtol(env, &end, 0);
     if (*end != '\0') {
 	fprintf(stderr, "%s: invalid __PMIX_SPAWNER_FAILMSG_TYPE: %s\n",

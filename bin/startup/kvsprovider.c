@@ -218,14 +218,14 @@ int main(int argc, const char *argv[], char** envp)
 
     /* set the process title */
     envPtr = getenv("__PSI_LOGGER_TID");
-    if (envPtr) {
+    PStask_ID_t logger;
+    if (!envPtr || sscanf(envPtr, "%d", &logger) != 1) {
+	fprintf(stderr, "%s: No logger TID in environment\n", argv[0]);
+    } else {
 	char pTitle[128];
-	PStask_ID_t logger = atoi(envPtr);
 	snprintf(pTitle, sizeof(pTitle), "kvsprovider LTID[%s] %s",
 		 PSC_printTID(logger), getenv("PMI_KVS_TMP"));
 	PSC_setProcTitle(argc, argv, pTitle, 1);
-    } else {
-	fprintf(stderr, "%s: No logger TID in environment\n", argv[0]);
     }
 
     /* start the KVS provider */

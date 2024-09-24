@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1093,7 +1093,10 @@ static void initKvsProvider(void)
 	mlog("%s: cannot find logger tid\n", __func__);
 	terminateJob(__func__);
     }
-    loggertid = atoi(envstr);
+    if (sscanf(envstr, "%d", &loggertid) != 1) {
+	mlog("%s: cannot determine logger from '%s'\n", __func__, envstr);
+	terminateJob(__func__);
+    }
 
     envstr = getenv("__PMI_NO_PARRICIDE");
     if (envstr) noParricide = atoi(envstr);
