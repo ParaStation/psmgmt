@@ -81,7 +81,7 @@ void PSsignal_clearList(list_t *list)
 
 void PSsignal_cloneList(list_t *cloneList, list_t *origList)
 {
-    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, origList);
+    PSC_fdbg(PSC_LOG_TASK, "%p\n", origList);
 
     PSsignal_clearList(cloneList);
 

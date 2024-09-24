@@ -211,8 +211,8 @@ static int nodeDownHandler(void *nodeID)
 	recvBuf_t *recvBuf = list_entry(r, recvBuf_t, next);
 
 	if (PSC_getID(recvBuf->tid) == id) {
-	    PSC_log(PSC_LOG_COMM, "%s: free recvBuffer for %s\n", __func__,
-		    PSC_printTID(recvBuf->tid));
+	    PSC_fdbg(PSC_LOG_COMM, "free recvBuffer for %s\n",
+		     PSC_printTID(recvBuf->tid));
 	    putRecvBuf(recvBuf);
 	}
     }
@@ -582,7 +582,7 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 	    msg = &fragMsg;
 	}
 	msg->header.dest = destTIDs[i];
-	PSC_log(PSC_LOG_COMM, "%s: send fragment %d to %s len %u\n", __func__,
+	PSC_fdbg(PSC_LOG_COMM, "send fragment %d to %s len %u\n",
 		buf->fragNum, PSC_printTID(destTIDs[i]), msg->header.len);
 
 	int res = sendPSMsg(msg);
@@ -597,8 +597,8 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
     /* send any local messages now */
     if (localDest != -1) {
 	fragMsg.header.dest = localDest;
-	PSC_log(PSC_LOG_COMM, "%s: send fragment %d to %s len %u\n", __func__,
-		buf->fragNum, PSC_printTID(localDest), fragMsg.header.len);
+	PSC_fdbg(PSC_LOG_COMM, "send fragment %d to %s len %u\n",
+		 buf->fragNum, PSC_printTID(localDest), fragMsg.header.len);
 
 	int res = sendPSMsg(&fragMsg);
 
@@ -740,16 +740,15 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	if (!recvBuf->nextFrag) recvBuf->nextFrag = 1; // avoid second 0
     }
 
-    PSC_log(PSC_LOG_COMM, "%s: recv fragment %d from %s\n", __func__, fragNum,
-	    PSC_printTID(msg->header.sender));
+    PSC_fdbg(PSC_LOG_COMM, "recv fragment %d from %s\n", fragNum,
+	     PSC_printTID(msg->header.sender));
 
     /* last message fragment ? */
     if (fragType == FRAGMENT_END) {
 	/* invoke callback */
 
-	PSC_log(PSC_LOG_COMM, "%s: msg of %zu bytes from %s (%d fragments)\n",
-		__func__, recvBuf->used, PSC_printTID(msg->header.sender),
-		fragNum);
+	PSC_fdbg(PSC_LOG_COMM, "msg of %zu bytes from %s (%d fragments)\n",
+		 recvBuf->used, PSC_printTID(msg->header.sender), fragNum);
 
 	msg->buf[0] = '\0';
 	recvBuf->unpackPtr = recvBuf->buf;
@@ -987,8 +986,8 @@ static inline bool verifyDataBuf(PS_DataBuffer_t *data, size_t size,
 				 const int line)
 {
     if (data->unpackErr) {
-	PSC_log(PSC_LOG_VERB, "%s(%s@%d): previous unpack error: %s\n",
-		__func__, caller, line,	serialStrErr(data->unpackErr));
+	PSC_fdbg(PSC_LOG_VERB, "previous unpack error at %s@%d: %s\n",
+		 caller, line, serialStrErr(data->unpackErr));
 	return false;
     }
 

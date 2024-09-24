@@ -148,7 +148,7 @@ void * __PSitems_getItem(PSitems_t items, const char *caller, const int line)
     items->numGet++;
 
     if (list_empty(&items->idleItems)) {
-	PSC_log(PSC_LOG_VERB, "%s(%s): no more items\n", __func__, items->name);
+	PSC_fdbg(PSC_LOG_VERB, "'%s': no more items\n", items->name);
 	if (!growItems(items)) {
 	    PSC_flog("no memory for '%s' at %s@%d\n", items->name, caller, line);
 	    return NULL;

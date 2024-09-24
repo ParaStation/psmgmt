@@ -190,8 +190,7 @@ void PSC_startDaemon(in_addr_t hostaddr)
 {
     struct sockaddr_in sa;
 
-    PSC_log(PSC_LOG_VERB, "%s(%s)\n",
-	    __func__, inet_ntoa(*(struct in_addr*)&hostaddr));
+    PSC_fdbg(PSC_LOG_VERB, "at %s\n", inet_ntoa(*(struct in_addr*)&hostaddr));
 
     switch (fork()) {
     case -1:
@@ -292,9 +291,8 @@ int PSC_getServicePort(char* name , int def)
 
     service = getservbyname(name, "tcp");
     if (!service) {
-	PSC_log(PSC_LOG_VERB,
-		"%s: can't get '%s' service entry, using port %d\n",
-		__func__, name, def);
+	PSC_fdbg(PSC_LOG_VERB, "can't get '%s' service entry, using port %d\n",
+		 name, def);
 	return def;
     } else {
 	return ntohs(service->s_port);
@@ -459,7 +457,7 @@ void PSC_saveTitleSpace(int argc, const char **argv, int saveEnv)
 
     nextArg = argv[0];
 
-    PSC_log(PSC_LOG_VERB, "%s\n", __func__);
+    PSC_fdbg(PSC_LOG_VERB, "\n");
 
     /* find last element in argv/env */
     for (int i = 0; i < argc; i++) {
@@ -476,7 +474,7 @@ void PSC_saveTitleSpace(int argc, const char **argv, int saveEnv)
     titleSize = nextArg - argv[0];
     titleSpace = (char *)argv[0];
 
-    PSC_log(PSC_LOG_VERB, "%s: found %zd bytes\n", __func__, titleSize);
+    PSC_fdbg(PSC_LOG_VERB, "found %zd bytes\n", titleSize);
 
     /* save environment */
     if (environ && saveEnv) {
@@ -507,7 +505,7 @@ noSpace:
 
 int PSC_setProcTitle(int argc, const char **argv, char *title, int saveEnv)
 {
-    PSC_log(PSC_LOG_VERB, "%s\n", __func__);
+    PSC_fdbg(PSC_LOG_VERB, "\n");
 
     if (!title) return 0;
 
@@ -523,7 +521,7 @@ int PSC_setProcTitle(int argc, const char **argv, char *title, int saveEnv)
     memset(titleSpace, '\0', titleSize);
     snprintf(titleSpace, titleSize, "%s", title);
 
-    PSC_log(PSC_LOG_VERB, "%s: title set to '%s'\n", __func__, title);
+    PSC_fdbg(PSC_LOG_VERB, "title set to '%s'\n", title);
 
     return 1;
 }
@@ -600,7 +598,7 @@ static void getLocalIPs(void)
     if (skfd<0) {
 	PSC_exit(errno, "%s: socket()", __func__);
     }
-    PSC_log(PSC_LOG_VERB, "%s: get list of NICs\n", __func__);
+    PSC_fdbg(PSC_LOG_VERB, "get list of NICs\n");
 
     /* Get list of NICs */
     /* Determine required size first */
@@ -629,8 +627,7 @@ static void getLocalIPs(void)
 	newEnt = malloc(sizeof(*newEnt));
 	if (!newEnt) PSC_exit(errno, "%s", __func__);
 
-	PSC_log(PSC_LOG_VERB, "%s: register address %s\n", __func__,
-		inet_ntoa(*sin_addr));
+	PSC_fdbg(PSC_LOG_VERB, "register address %s\n", inet_ntoa(*sin_addr));
 	newEnt->addr = sin_addr->s_addr;
 	list_add_tail(&newEnt->next, &localIPs);
     }

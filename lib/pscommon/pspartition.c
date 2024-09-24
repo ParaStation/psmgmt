@@ -83,13 +83,13 @@ bool PSpart_delReq(PSpart_request_t* request)
 
 void PSpart_clrQueue(list_t *queue)
 {
-    PSC_log(PSC_LOG_PART, "%s(%p)\n", __func__, queue);
+    PSC_fdbg(PSC_LOG_PART, "queue %p\n", queue);
 
     list_t *r, *tmp;
     list_for_each_safe(r, tmp, queue) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
 	list_del(&req->next);
-	PSC_log(PSC_LOG_PART, "%s: %s\n", __func__, PSC_printTID(req->tid));
+	PSC_fdbg(PSC_LOG_PART, "request %s\n", PSC_printTID(req->tid));
 	PSpart_delReq(req);
     }
 }
@@ -158,7 +158,7 @@ bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request)
     }
 
     PSpart_snprintf(partString, sizeof(partString), request);
-    PSC_log(PSC_LOG_PART, "%s(%p, request (%s))\n", __func__, msg, partString);
+    PSC_fdbg(PSC_LOG_PART, "msg %p request %s\n", msg, partString);
 
     if (sizeof(tmpRequest) > sizeof(msg->buf) - off) {
 	PSC_flog("request %s too large\n", partString);
@@ -192,7 +192,7 @@ size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request)
 	return 0;
     }
 
-    PSC_log(PSC_LOG_PART, "%s(%p, %p)", __func__, buffer, request);
+    PSC_fdbg(PSC_LOG_PART, "buffer %p request %p", buffer, request);
 
     PSpart_reinitReq(request);
 

@@ -203,7 +203,7 @@ const char* PStask_printGrp(PStask_group_t tg)
  */
 static bool initTask(PStask_t* task)
 {
-    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
+    PSC_fdbg(PSC_LOG_TASK, "task %p\n", task);
 
     if (!task) return false;
 
@@ -284,7 +284,7 @@ static bool initTask(PStask_t* task)
 
 PStask_t* PStask_new(void)
 {
-    PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
+    PSC_fdbg(PSC_LOG_TASK, "\n");
     PStask_t* task = malloc(sizeof(PStask_t));
     if (task) initTask(task);
 
@@ -296,8 +296,8 @@ static void delReservationList(list_t *list)
     list_t *r, *tmp;
     list_for_each_safe(r, tmp, list) {
 	PSrsrvtn_t *reservation = list_entry(r, PSrsrvtn_t, next);
-	PSC_log(PSC_LOG_TASK, "%s: put(rid %d, slots %p, state %d)\n", __func__,
-		reservation->rid, reservation->slots, reservation->state);
+	PSC_fdbg(PSC_LOG_TASK, "put(rid %d, slots %p, state %d)\n",
+		 reservation->rid, reservation->slots, reservation->state);
 	free(reservation->slots);
 	reservation->slots = NULL;
 	list_del(&reservation->next);
@@ -345,7 +345,7 @@ static void cleanupTask(PStask_t* task)
  */
 static bool reinitTask(PStask_t* task)
 {
-    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
+    PSC_fdbg(PSC_LOG_TASK, "task %p\n", task);
 
     if (!task) return false;
 
@@ -358,8 +358,7 @@ static bool reinitTask(PStask_t* task)
     PSsignal_clearList(&task->deadBefore);
 
     if (!list_empty(&task->sisterParts)) {
-	PSC_log(PSC_LOG_TASK, "%s(%s): cleanup sisters\n", __func__,
-		PSC_printTID(task->tid));
+	PSC_fdbg(PSC_LOG_TASK, "cleanup %s sisters\n", PSC_printTID(task->tid));
     }
     PSpart_clrQueue(&task->sisterParts);
 
@@ -379,7 +378,7 @@ static bool reinitTask(PStask_t* task)
 
 bool PStask_delete(PStask_t* task)
 {
-    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
+    PSC_fdbg(PSC_LOG_TASK, "task %p\n", task);
 
     if (!task) return false;
 
@@ -391,7 +390,7 @@ bool PStask_delete(PStask_t* task)
 
 bool PStask_destroy(PStask_t* task)
 {
-    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
+    PSC_fdbg(PSC_LOG_TASK, "task %p\n", task);
 
     if (!task) return false;
 
@@ -405,7 +404,7 @@ bool PStask_destroy(PStask_t* task)
 
 PStask_t* PStask_clone(PStask_t* task)
 {
-    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
+    PSC_fdbg(PSC_LOG_TASK, "task %p\n", task);
     int eno = 0;
 
     PStask_t *clone = PStask_new();
@@ -603,7 +602,7 @@ static struct {
 bool PStask_addToMsg_old(PStask_t *task, PS_SendDB_t *msg)
 {
     snprintfStruct(someStr, sizeof(someStr), task);
-    PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, msg, someStr);
+    PSC_fdbg(PSC_LOG_TASK, "msg %p task %s\n", msg, someStr);
 
     oldTmpTask.tid = task->tid;
     oldTmpTask.ptid = task->ptid;
@@ -636,7 +635,7 @@ int PStask_decodeTask_old(char *buffer, PStask_t *task, bool withWDir)
 
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
 	snprintfStruct(someStr, sizeof(someStr), task);
-	PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, buffer, someStr);
+	PSC_fdbg(PSC_LOG_TASK, " buffer %p task %s\n", buffer, someStr);
     }
 
     reinitTask(task);
@@ -669,7 +668,7 @@ int PStask_decodeTask_old(char *buffer, PStask_t *task, bool withWDir)
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
 	snprintfStruct(someStr, sizeof(someStr), task);
 	PSC_log(PSC_LOG_TASK, " received task = (%s)\n", someStr);
-	PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
+	PSC_fdbg(PSC_LOG_TASK, "return %d\n", msglen);
     }
 
     return msglen;
@@ -694,7 +693,7 @@ static struct {
 bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg)
 {
     snprintfStruct(someStr, sizeof(someStr), task);
-    PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, msg, someStr);
+    PSC_fdbg(PSC_LOG_TASK, "msg %p task %s\n", msg, someStr);
 
     tmpTask.tid = task->tid;
     tmpTask.ptid = task->ptid;
@@ -726,7 +725,7 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
 
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
 	snprintfStruct(someStr, sizeof(someStr), task);
-	PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, buffer, someStr);
+	PSC_fdbg(PSC_LOG_TASK, "buffer %p task %s\n", buffer, someStr);
     }
 
     reinitTask(task);
@@ -758,7 +757,7 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
 	snprintfStruct(someStr, sizeof(someStr), task);
 	PSC_log(PSC_LOG_TASK, " received task = (%s)\n", someStr);
-	PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
+	PSC_fdbg(PSC_LOG_TASK, "return %d\n", msglen);
     }
 
     return msglen;
