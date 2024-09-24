@@ -86,13 +86,10 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
     snprintf(server->nspace, sizeof(server->nspace), "pspmix_%d", server->uid);
     server->rank = PSC_getMyID();
 
-    /* fill root for all temporary directories */
+    /* create top level temporary directory */
     snprintf(server->tmproot, sizeof(server->tmproot), "/tmp/pspmix_%d",
 	     server->uid);
-    mkDir(server->tmproot, S_IRWXU, server->uid, server->gid);
-
-    /* create top level temporary directory */
-    if (!mkDir(server->tmproot, 0755, server->uid, server->gid)) {
+    if (!mkDir(server->tmproot, S_IRWXU, server->uid, server->gid)) {
 	flog("failed to create session's tempdir '%s'\n", server->tmproot);
     }
 
