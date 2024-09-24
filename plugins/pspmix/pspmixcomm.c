@@ -651,9 +651,10 @@ bool pspmix_comm_sendClientSpawn(PStask_ID_t dest, uint16_t spawnID,
 				 uint32_t opts, PspmixSpawnHints_t *hints)
 {
     fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %s spawnID %hu napps%hu"
-	 " pnspace '%s' prank %u opts 0x%x nodetypes %s\n",
+	 " pnspace '%s' prank %u opts 0x%x nodetypes %s srunopts %s\n",
 	 PSC_printTID(dest), spawnID, napps, pnspace, prank, opts,
-	 hints->nodetypes ? hints->nodetypes : "NULL");
+	 hints->nodetypes ? hints->nodetypes : "NULL",
+	 hints->srunopts ? hints->srunopts : "NULL");
 
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
@@ -665,6 +666,7 @@ bool pspmix_comm_sendClientSpawn(PStask_ID_t dest, uint16_t spawnID,
     addUint32ToMsg(prank, &msg);
     addUint32ToMsg(opts, &msg);
     addStringToMsg(hints->nodetypes, &msg);
+    addStringToMsg(hints->srunopts, &msg);
 
     addUint16ToMsg(napps, &msg);
 

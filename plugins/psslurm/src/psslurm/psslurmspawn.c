@@ -90,6 +90,26 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 	strvAdd(argV, "--cpu-bind=none");
     }
 
+    for (int i = 0; i < req->infoc; i++) {
+        KVP_t *info = &(req->infov[i]);
+
+        /* "srunopts" info field is extremely dangerous and only meant for
+	 * easier testing purposes during development. It is officially
+	 * undocumented and can be removed at any time in the future.
+	 * Every option that is found useful using this mechanism should
+	 * get it's own info key for in production use. */
+	if (strcmp(info->key, "srunopts") == 0) {
+	    flog("WARNING: Undocumented feature 'srunopts' used: '%s'\n",
+		 info->value);
+	    /* simply split at blanks */
+	    char *ptr = strtok(info->value, " ");
+	    while(ptr) {
+		strvAdd(argV, ptr);
+		ptr = strtok(NULL, " ");
+	    }
+	}
+    }
+
     size_t nTasks = 0;
     for (int s = 0; s < req->num; s++) {
 	SingleSpawn_t *spawn = &(req->spawns[s]);

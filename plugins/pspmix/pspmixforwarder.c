@@ -968,6 +968,15 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	ufree(nodetypes);
     }
 
+    char *srunopts = getStringML(data, &len);
+    if (len) {
+	entry.key = ustrdup("srunopts");
+	entry.value = srunopts;
+	vectorAdd(&infos, &entry);
+    } else {
+	ufree(srunopts);
+    }
+
     /* get number of apps and initialize request accordingly */
     uint16_t napps;
     getUint16(data, &napps);

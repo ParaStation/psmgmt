@@ -280,6 +280,7 @@ typedef struct {
  */
 typedef struct {
     char *nodetypes;        /**< nodetypes, comma separated */
+    char *srunopts;         /**< UNDOCUMENTED: additional options for srun */
 } PspmixSpawnHints_t;
 
 /**
