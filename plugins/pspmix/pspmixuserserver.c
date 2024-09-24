@@ -90,7 +90,7 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
     snprintf(server->tmproot, sizeof(server->tmproot), "/tmp/pspmix_%d",
 	     server->uid);
     if (!mkDir(server->tmproot, S_IRWXU, server->uid, server->gid)) {
-	flog("failed to create session's tempdir '%s'\n", server->tmproot);
+	flog("failed to create server's tempdir '%s'\n", server->tmproot);
     }
 
     char *clusterid = PSID_config->psiddomain;
