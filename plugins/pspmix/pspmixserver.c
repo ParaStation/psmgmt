@@ -1042,20 +1042,22 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	 Hostfile to use for spawned processes.
      */
     for (size_t i = 0; i < ninfo; i++) {
-	if (PMIX_CHECK_KEY(info+i, PMIX_WDIR)) {
+	const pmix_info_t *this = info+i;
+
+	if (PMIX_CHECK_KEY(this, PMIX_WDIR)) {
 	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
 		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
-		 info[i].key,
-		 info[i].value.data.string);
-	    si.wdir = info[i].value.data.string;
+		 this->key,
+		 this->value.data.string);
+	    si.wdir = this->value.data.string;
 	    continue;
 	}
 
-	if (PMIX_CHECK_KEY(info+i, PMIX_SET_SESSION_CWD)) {
+	if (PMIX_CHECK_KEY(this, PMIX_SET_SESSION_CWD)) {
 	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
-		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
-		 info[i].key,
-		 (PMIX_INFO_TRUE(&info[i])) ? "true" : "false");
+		 (PMIX_INFO_IS_REQUIRED(this)) ? "required" : "optional",
+		 this->key,
+		 (PMIX_INFO_TRUE(this)) ? "true" : "false");
 	    /* @todo What is the session cwd? */
 	    continue;
 	}
@@ -1067,30 +1069,30 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	 * Clarification to the standard is ongoing:
 	 * https://github.com/pmix/pmix-standard/issues/506
 	 */
-	if (PMIX_CHECK_KEY(info+i, PMIX_PREFIX)) {
+	if (PMIX_CHECK_KEY(this, PMIX_PREFIX)) {
 	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
-		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
-		 info[i].key,
-		 info[i].value.data.string);
-	    si.prefix = info[i].value.data.string;
+		 (PMIX_INFO_IS_REQUIRED(this)) ? "required" : "optional",
+		 this->key,
+		 this->value.data.string);
+	    si.prefix = this->value.data.string;
 	    continue;
 	}
 
-	if (PMIX_CHECK_KEY(info+i, PMIX_HOST)) {
+	if (PMIX_CHECK_KEY(this, PMIX_HOST)) {
 	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
-		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
-		 info[i].key,
-		 info[i].value.data.string);
-	    si.host = info[i].value.data.string;
+		 (PMIX_INFO_IS_REQUIRED(this)) ? "required" : "optional",
+		 this->key,
+		 this->value.data.string);
+	    si.host = this->value.data.string;
 	    continue;
 	}
 
-	if (PMIX_CHECK_KEY(info+i, PMIX_HOSTFILE)) {
+	if (PMIX_CHECK_KEY(this, PMIX_HOSTFILE)) {
 	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
-		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
-		 info[i].key,
-		 info[i].value.data.string);
-	    si.hostfile = info[i].value.data.string;
+		 (PMIX_INFO_IS_REQUIRED(this)) ? "required" : "optional",
+		 this->key,
+		 this->value.data.string);
+	    si.hostfile = this->value.data.string;
 	    continue;
 	}
 
@@ -1106,9 +1108,9 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 
 	/* inform about lacking implementation */
 	flog("ignoring info [key '%s' flags '%s' value.type '%s']"
-	     " (not implemented)\n", info[i].key,
-	     PMIx_Info_directives_string(info[i].flags),
-	     PMIx_Data_type_string(info[i].value.type));
+	     " (not implemented)\n", this->key,
+	     PMIx_Info_directives_string(this->flags),
+	     PMIx_Data_type_string(this->value.type));
     }
 
     return si;
