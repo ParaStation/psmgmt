@@ -363,8 +363,8 @@ void PSID_checkMaxPID(void)
 
     PSID_fdbg(PSID_LOG_VERB, "pid_max is %u\n", maxPID);
 
-    if (maxPID > 65536) {
-	PSID_exit(EINVAL, "%s: cannot handle PIDs larger than 16 bit."
+    if (maxPID > INT32_MAX) {
+	PSID_exit(EINVAL, "%s: cannot handle PIDs larger than 31 bit!"
 		  " Please fix setting in '%s'", __func__, PID_FILE);
     }
 

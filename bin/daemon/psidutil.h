@@ -372,8 +372,8 @@ void PSID_shutdownMasterSock(void);
  *
  * Try to determine the system's maximum PID from
  * /proc/sys/kernel/pid_max. If the maximum PID is too large
- * (i.e. uses more than 16 bit) this function will give some warning and
- * exit.
+ * (i.e. uses more than 31 bit) this function will give some warning
+ * and exit.
  *
  * Too large PIDs might create major problems for the ParaStation
  * daemon. Due to the definition of the ParaStation protocol PIDs with
