@@ -1963,7 +1963,9 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 
     /* Temporary directory for this system, and where a PMIx server that
      * declares itself to be a system-level server will place a tool rendezvous
-     * point and contact information. */
+     * point and contact information.
+     * Needs to be persistent and visible across sessions
+     * see https://github.com/openpmix/openpmix/issues/3349 */
     if (systmpdir) {
 	INFO_LIST_ADD(list, PMIX_SYSTEM_TMPDIR, systmpdir, PMIX_STRING);
     }
