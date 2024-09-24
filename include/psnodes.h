@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,7 +19,7 @@
 #include <stdint.h>
 
 /**
- * Type to store unique node IDs in. This enables us to have 32168 nodes.
+ * Type to store unique node IDs in. This enables us to have > 2G nodes.
  *
  * There are some (negative) node IDs having a special meaning:
  *
@@ -30,7 +30,7 @@
  *    structure not stored in the list @ref managedTasks but in @ref
  *    obsoleteTasks
  */
-typedef int16_t PSnodes_ID_t;
+typedef int32_t PSnodes_ID_t;
 
 /** Pseudo user ID to allow any user to run on a specific node */
 #define PSNODES_ANYUSER (uid_t) -1

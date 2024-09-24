@@ -18,7 +18,7 @@
 #include <stdint.h>
 
 /** Type to store unique task IDs in */
-typedef int32_t PStask_ID_t;
+typedef int64_t PStask_ID_t;
 
 /** Task Group constants */
 typedef enum {

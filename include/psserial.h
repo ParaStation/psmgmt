@@ -544,12 +544,12 @@ bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 	getFromBuf(data, &_x, PSDATA_UINT8, sizeof(uint8_t),	    \
 		   __func__, __LINE__);	*_y = _x; }
 
-#define getTaskId(data, val) { int32_t *_x = val;		    \
-	getFromBuf(data, _x, PSDATA_INT32, sizeof(int32_t),	    \
+#define getTaskId(data, val) { int64_t *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_INT64, sizeof(int64_t),	    \
 		   __func__, __LINE__); }
 
-#define getNodeId(data, val) { int16_t *_x = val;		    \
-	getFromBuf(data, _x, PSDATA_INT16, sizeof(int16_t),	    \
+#define getNodeId(data, val) { int32_t *_x = val;		    \
+	getFromBuf(data, _x, PSDATA_INT32, sizeof(int32_t),	    \
 		   __func__, __LINE__); }
 
 #define getResId(data, val) { int32_t *_x = val;		    \
@@ -816,9 +816,9 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
 	addToBuf(&_x, sizeof(_x), data, PSDATA_PID,		\
 		 __func__, __LINE__); }
 
-#define addTaskIdToMsg(val, data) addInt32ToMsg(val, data)
+#define addTaskIdToMsg(val, data) addInt64ToMsg(val, data)
 
-#define addNodeIdToMsg(val, data) addInt16ToMsg(val, data)
+#define addNodeIdToMsg(val, data) addInt32ToMsg(val, data)
 
 #define addResIdToMsg(val, data) addInt32ToMsg(val, data)
 

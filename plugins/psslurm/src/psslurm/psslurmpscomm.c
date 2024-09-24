@@ -2027,7 +2027,7 @@ static bool handleSpawnSuccess(DDErrorMsg_t *msg)
  */
 static bool handleSpawnFailed(DDErrorMsg_t *msg)
 {
-    fwarn(msg->error, "spawn failed: forwarder %s rank %d errno %d",
+    fwarn(msg->error, "spawn failed: forwarder %s rank %ld errno %d",
 	  PSC_printTID(msg->header.sender), msg->request, msg->error);
 
     /* ignore on nodes not the spawn destination */

@@ -752,7 +752,7 @@ static PSnodes_ID_t getNode(char *key)
     PSnodes_ID_t node = -1;
     char *underline = strchr(key, '_');
     if (underline) {
-	sscanf(underline + 1, "%hd", &node);
+	sscanf(underline + 1, "%d", &node);
     }
     if (!PSC_validNode(node)) node = PSC_getMyID();
 

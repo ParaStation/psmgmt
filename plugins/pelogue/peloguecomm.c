@@ -299,7 +299,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* nodelist */
     PSnodes_ID_t *nodes;
     uint32_t nrOfNodes;
-    getInt16Array(rData, &nodes, &nrOfNodes);
+    getInt32Array(rData, &nodes, &nrOfNodes);
     /* environment */
     char **envP = NULL;
     getStringArrayM(rData, &envP, NULL);

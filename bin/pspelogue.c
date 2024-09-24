@@ -449,7 +449,7 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
     /* gid */
     addUint32ToMsg(atoi(sGid), &msg);
     /* nodelist */
-    addInt16ArrayToMsg(nodes, nrOfNodes, &msg);
+    addInt32ArrayToMsg(nodes, nrOfNodes, &msg);
     /* environment */
     addStringArrayToMsg(envGetArray(env), &msg);
     /* fwPrologueOE */

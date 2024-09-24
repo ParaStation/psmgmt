@@ -157,7 +157,7 @@ int main(int argc, const char *argv[], char** envp)
     propExecEnvironment(conf);
 
     if (!conf->pmiDisable) {
-	snprintf(tmp, sizeof(tmp), "%d", PSC_getMyTID());
+	snprintf(tmp, sizeof(tmp), "%ld", PSC_getMyTID());
 	setPSIEnv("__KVS_PROVIDER_TID", tmp);
     }
 
@@ -215,7 +215,7 @@ int main(int argc, const char *argv[], char** envp)
     /* set the process title */
     envPtr = getenv("__PSI_LOGGER_TID");
     PStask_ID_t logger;
-    if (!envPtr || sscanf(envPtr, "%d", &logger) != 1) {
+    if (!envPtr || sscanf(envPtr, "%ld", &logger) != 1) {
 	fprintf(stderr, "%s: No logger TID in environment\n", argv[0]);
     } else {
 	char pTitle[128];

@@ -57,12 +57,12 @@ static void setupGlobalEnv(Conf_t *conf)
 	setenv("PMI_SIZE", tmp, 1);
 
 	/* generate PMI auth token */
-	snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
+	snprintf(tmp, sizeof(tmp), "%ld", PSC_getMyTID());
 	setPSIEnv("PMI_ID", tmp);
 	setenv("PMI_ID", tmp, 1);
 
 	/* set the template for the KVS name */
-	snprintf(tmp, sizeof(tmp), "pshost_%i_0", PSC_getMyTID());
+	snprintf(tmp, sizeof(tmp), "pshost_%ld_0", PSC_getMyTID());
 	setPSIEnv("PMI_KVS_TMP", tmp);
 	setenv("PMI_KVS_TMP", tmp, 1);
 
@@ -90,7 +90,7 @@ static void setupGlobalEnv(Conf_t *conf)
     setenv("PSI_NP_INFO", tmp, 1);
 
     /* provide information on the logger task */
-    snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
+    snprintf(tmp, sizeof(tmp), "%ld", PSC_getMyTID());
     setPSIEnv("__PSI_LOGGER_TID", tmp);
 }
 

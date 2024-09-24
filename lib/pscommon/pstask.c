@@ -544,8 +544,8 @@ static void snprintfStruct(char *txt, size_t size, PStask_t *task)
 {
     if (!task) return;
 
-    snprintf(txt, size, "tid 0x%08x ptid 0x%08x uid %d gid %d group %s"
-	     " childGroup %s rank %d cpus ...%s loggertid %08x fd %d",
+    snprintf(txt, size, "tid %#.12lx ptid %#.12lx uid %d gid %d group %s"
+	     " childGroup %s rank %d cpus ...%s loggertid %#.12lx fd %d",
 	     task->tid, task->ptid, task->uid, task->gid,
 	     PStask_printGrp(task->group), PStask_printGrp(task->childGroup),
 	     task->rank, PSCPU_print_part(task->CPUset, 8), task->loggertid,

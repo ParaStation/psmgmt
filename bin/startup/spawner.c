@@ -634,7 +634,7 @@ static void sendPMIFail(void)
     /* tell parent the spawn has failed */
     char *env = getenv("__PMI_SPAWN_PARENT");
     PStask_ID_t parent;
-    if (!env || sscanf(env, "%d", &parent) != 1) {
+    if (!env || sscanf(env, "%ld", &parent) != 1) {
 	fprintf(stderr, "%s: cannot get parent TID from '%s'!\n", __func__, env);
 	exit(1);
     }
@@ -673,7 +673,7 @@ static void sendPMIxFail(void)
     /* get TID of the PMIx server */
     env = getenv("__PMIX_SPAWN_SERVERTID");
     PStask_ID_t server;
-    if (!env || sscanf(env, "%d", &server) != 1) {
+    if (!env || sscanf(env, "%ld", &server) != 1) {
 	fprintf(stderr, "%s: PMIX_SPAWNID found (%hd) but no"
 		" __PMIX_SPAWN_SERVERTID from '%s'\n", __func__, spawnID, env);
 	return;

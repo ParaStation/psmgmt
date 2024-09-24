@@ -323,7 +323,7 @@ static int setupPMIsockets(void *data)
 	/* save infos on KVS provider */
 	char *env = getenv("__KVS_PROVIDER_TID");
 	PStask_ID_t providertid;
-	if (!env || sscanf(env, "%d", &providertid) != 1) {
+	if (!env || sscanf(env, "%ld", &providertid) != 1) {
 	    elog("%s: no KVS provider TID from '%s'\n", __func__, env);
 	    pmiType = PMI_DISABLED;
 	    return -1;

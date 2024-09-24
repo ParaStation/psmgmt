@@ -139,7 +139,7 @@ static int handleAnswer(DDBufferMsg_t *msg, AnswerBucket_t *bucket)
     switch (msg->header.type) {
     case PSP_CD_SPAWNSUCCESS:
 	if (localRank < 0 || localRank >= bucket->num) {
-	    PSI_log(-1, "%s: %s from illegal rank %d at node %d\n", __func__,
+	    PSI_log(-1, "%s: %s from illegal rank %ld at node %d\n", __func__,
 		    PSP_printMsg(errMsg->header.type), errMsg->request,
 		    PSC_getID(errMsg->header.sender));
 	    return -2; /* Ignore answer */
@@ -148,7 +148,7 @@ static int handleAnswer(DDBufferMsg_t *msg, AnswerBucket_t *bucket)
 	return 1;
     case PSP_CD_SPAWNFAILED:
 	if (localRank < 0 || localRank >= bucket->num) {
-	    PSI_log(-1, "%s: %s from illegal rank %d at node %d\n", __func__,
+	    PSI_log(-1, "%s: %s from illegal rank %ld at node %d\n", __func__,
 		    PSP_printMsg(errMsg->header.type), errMsg->request,
 		    PSC_getID(errMsg->header.sender));
 	    return -2; /* Ignore answer */

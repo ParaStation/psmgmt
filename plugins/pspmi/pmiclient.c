@@ -1256,7 +1256,7 @@ int pmi_init(int pmisocket, PStask_t *childTask)
 
 	env = getenv("__PMI_SPAWN_PARENT");
 	PStask_ID_t parent;
-	if (!env || sscanf(env, "%d", &parent) != 1) {
+	if (!env || sscanf(env, "%ld", &parent) != 1) {
 	    elog("%s(r%i): error getting PMI parent from '%s'\n",
 		 __func__, rank, env);
 	    return critErr();
@@ -1423,7 +1423,7 @@ static void handleDaisyBarrierIn(char *ptr)
  */
 static void handleSuccReady(char *mbuf)
 {
-    succtid = getKVSInt32(&mbuf);
+    succtid = getKVSInt64(&mbuf);
     //elog("s(r%i): succ:%i pmiRank:%i providertid:%i\n", rank, succtid,
     //	    pmiRank, kvsProvTID);
     succReady = true;
@@ -2103,12 +2103,12 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     }
 
     /* add additional env vars */
-    snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%d_%d",
+    snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%ld_%d",
 	     PSC_getMyTID(), kvs_next++);  /* setup new KVS name */
     envAdd(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
-    snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_PARENT=%d", PSC_getMyTID());
+    snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_PARENT=%ld", PSC_getMyTID());
     envAdd(task->env, buffer);
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 

@@ -104,6 +104,8 @@ void PSC_setMyID(PSnodes_ID_t id)
     myID = id;
 }
 
+#define UINT32MASK 0xFFFFFFFFLL
+
 PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid)
 {
     /*
@@ -114,13 +116,13 @@ PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid)
      * requires serious testing.
      */
     PStask_ID_t n = (node == -1) ? PSC_getMyID() : node;
-    return ((n & 0xFFFF) << 16 | (pid & 0xFFFF));
+    return ((n & UINT32MASK) << 32 | (pid & UINT32MASK));
 }
 
 PSnodes_ID_t PSC_getID(PStask_ID_t tid)
 {
     /* See comment in PSC_getTID() */
-    PSnodes_ID_t node = (tid>>16) & 0xFFFF;
+    PSnodes_ID_t node = (tid>>32) & UINT32MASK;
     if (node == -1) return PSC_getMyID();
     return node;
 }
@@ -128,7 +130,7 @@ PSnodes_ID_t PSC_getID(PStask_ID_t tid)
 pid_t PSC_getPID(PStask_ID_t tid)
 {
     /* See comment in PSC_getTID() */
-    return (tid & 0xFFFF);
+    return (tid & UINT32MASK);
 }
 
 static bool daemonFlag = false;
@@ -174,9 +176,9 @@ PStask_ID_t PSC_getMyTID(void)
 
 char* PSC_printTID(PStask_ID_t tid)
 {
-    static char taskNumString[40];
+    static char taskNumString[48];
 
-    snprintf(taskNumString, sizeof(taskNumString), "0x%08x[%d:%d]",
+    snprintf(taskNumString, sizeof(taskNumString), "0x%.12lx[%d:%d]",
 	     tid, (tid==-1) ? -1 : PSC_getID(tid), PSC_getPID(tid));
     return taskNumString;
 }

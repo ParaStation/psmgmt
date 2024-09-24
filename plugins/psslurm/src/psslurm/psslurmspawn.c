@@ -240,9 +240,9 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
 
     /* propagate parent TID, logger TID and rank through Slurm */
     char nStr[32];
-    snprintf(nStr, sizeof(nStr), "%d", task->ptid);
+    snprintf(nStr, sizeof(nStr), "%ld", task->ptid);
     envSet(task->env, "__PSSLURM_SPAWN_PTID", nStr);
-    snprintf(nStr, sizeof(nStr), "%d", task->loggertid);
+    snprintf(nStr, sizeof(nStr), "%ld", task->loggertid);
     envSet(task->env, "__PSSLURM_SPAWN_LTID", nStr);
     snprintf(nStr, sizeof(nStr), "%d", task->rank);
     envSet(task->env, "__PSSLURM_STEP_RANK", nStr);

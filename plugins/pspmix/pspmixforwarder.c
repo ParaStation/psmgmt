@@ -466,7 +466,7 @@ static bool tryPMIxSpawn(SpawnReqData_t *srdata)
     envSet(task->env, "PMIX_SPAWNID", tmp);
 
     /* tell the spawnees our tid (that of the forwarder) */
-    snprintf(tmp, sizeof(tmp), "0x%08x", PSC_getMyTID());
+    snprintf(tmp, sizeof(tmp), "%#.12lx", PSC_getMyTID());
     envSet(task->env, "__PMIX_SPAWN_PARENT_FWTID", tmp);
 
     /* tell the spawnees the namespace of the spawner (=> PMIX_PARENT_ID) */
@@ -481,7 +481,7 @@ static bool tryPMIxSpawn(SpawnReqData_t *srdata)
     envSet(task->env, "__PMIX_SPAWN_OPTS", tmp);
 
     /* tell the responsible PMIx server to the spawner for fail reports */
-    snprintf(tmp, sizeof(tmp), "0x%08x", srdata->pmixServer);
+    snprintf(tmp, sizeof(tmp), "%#.12lx", srdata->pmixServer);
     envSet(task->env,  "__PMIX_SPAWN_SERVERTID", tmp);
 
     /* tell the message type to be used for fails to the spawner */

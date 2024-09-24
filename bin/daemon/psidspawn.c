@@ -1528,10 +1528,10 @@ static int spawnTask(PStask_t *task)
 
     /* add some last minute extra environment */
     char tmp[32];
-    sprintf(tmp, "%d", task->loggertid);
+    sprintf(tmp, "%ld", task->loggertid);
     envSet(task->env, "PS_SESSION_ID", tmp);
 
-    sprintf(tmp, "%d", task->spawnertid);
+    sprintf(tmp, "%ld", task->spawnertid);
     envSet(task->env, "PS_JOB_ID", tmp);
 
     sprintf(tmp, "%d", task->resID);
@@ -2739,7 +2739,7 @@ static bool msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
  */
 static bool msg_SPAWNFAILED(DDErrorMsg_t *msg)
 {
-    PSID_fdbg(PSID_LOG_SPAWN, "%s reports on rank %d",
+    PSID_fdbg(PSID_LOG_SPAWN, "%s reports on rank %ld",
 	      PSC_printTID(msg->header.sender), msg->request);
     PSID_dbg(PSID_LOG_SPAWN, " error = %d sending to parent %s\n", msg->error,
 	     PSC_printTID(msg->header.dest));

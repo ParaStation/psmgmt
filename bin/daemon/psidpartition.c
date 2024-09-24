@@ -4375,7 +4375,7 @@ static void handleFinReservation(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData
     env_t env = envNew(envP);
 
     char TIDstr[32];
-    snprintf(TIDstr, sizeof(TIDstr), "%d", msg->header.sender);
+    snprintf(TIDstr, sizeof(TIDstr), "%ld", msg->header.sender);
     envSet(env, "SPAWNER_TID", TIDstr);
 
     PSIDhook_call(PSIDHOOK_FILL_RESFINALIZED, env);

@@ -171,7 +171,7 @@ static void RDPCallBack(RDP_CB_type_t type, void *buf)
     {
 	DDBufferMsg_t *msg = (DDBufferMsg_t*)((RDPDeadbuf*)buf)->buf;
 	PSID_fdbg(PSID_LOG_RDP,
-		  "(RDP_PKT_UNDELIVERABLE, dest %x source %x type %s)\n",
+		  "(RDP_PKT_UNDELIVERABLE, dest %#.12lx source %#.12lx type %s)\n",
 		  msg->header.dest, msg->header.sender,
 		  PSDaemonP_printMsg(msg->header.type));
 

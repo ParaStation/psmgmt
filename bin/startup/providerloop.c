@@ -644,7 +644,7 @@ static void sendDaisyReady(PStask_ID_t tid, PStask_ID_t succ)
     size_t bufLen = 0;
 
     setKVSCmd(&bufPtr, &bufLen, DAISY_SUCC_READY);
-    addKVSInt32(&bufPtr, &bufLen, &succ);
+    addKVSInt64(&bufPtr, &bufLen, &succ);
     sendKvsMsg(tid, buffer, bufLen);
 }
 
@@ -1094,7 +1094,7 @@ static void initKvsProvider(void)
 	mlog("%s: cannot find logger tid\n", __func__);
 	terminateJob(__func__);
     }
-    if (sscanf(envstr, "%d", &loggertid) != 1) {
+    if (sscanf(envstr, "%ld", &loggertid) != 1) {
 	mlog("%s: cannot determine logger from '%s'\n", __func__, envstr);
 	terminateJob(__func__);
     }
