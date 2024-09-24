@@ -206,7 +206,7 @@ static bool doPutMsgBuf(DDBufferMsg_t *msg, const char *callName,
     size_t off;
 
     if (!msg) {
-	PSC_log(-1, "%s: no 'msg' provided for '%s' in %s()\n", callName,
+	PSC_log("%s: no msg provided for '%s' in %s()\n", callName,
 		dataName, caller);
 	return false;
     }
@@ -273,7 +273,7 @@ static bool doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
 			size_t size, bool typed, bool try)
 {
     if (!msg || !used || !data) {
-	PSC_log(-1, "%s: no '%s' provided for '%s' in %s()\n", callName,
+	PSC_log("%s: no %s provided for '%s' in %s()\n", callName,
 		msg ? (used ? "data" : "used") : "msg", dataName, caller);
 	return false;
     }

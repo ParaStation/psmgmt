@@ -310,7 +310,7 @@ static bool parseRange(bool *list, char *range)
 	first = strtol(start, &end, 0);
 	if (*end != '\0') return false;
 	if (!PSC_validNode(first)) {
-	    PSC_log(-1, "node %ld out of range\n", first);
+	    PSC_log("node %ld out of range\n", first);
 	    return false;
 	}
     }
@@ -321,7 +321,7 @@ static bool parseRange(bool *list, char *range)
 	if (*end != '\0') return false;
 	if (last < 0
 	    || (last >= PSC_getNrOfNodes() && !(first == -1 && last == 1))) {
-	    PSC_log(-1, "node %ld out of range\n", last);
+	    PSC_log("node %ld out of range\n", last);
 	    return false;
 	}
     } else {

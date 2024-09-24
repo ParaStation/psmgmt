@@ -146,7 +146,7 @@ void PStask_printStat(void)
 {
     PSC_flog("Infos %d/%d (used/avail)", PSitems_getUsed(infoPool),
 	     PSitems_getAvail(infoPool));
-    PSC_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(infoPool),
+    PSC_log("\t%d/%d (gets/grows)\n", PSitems_getUtilization(infoPool),
 	    PSitems_getDynamics(infoPool));
     PSsignal_printStat();
     PSrsrvtn_printStat();

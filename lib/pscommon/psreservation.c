@@ -97,7 +97,7 @@ void PSrsrvtn_printStat(void)
 {
     PSC_flog("Reservations %d/%d (used/avail)", PSitems_getUsed(rsrvtnPool),
 	     PSitems_getAvail(rsrvtnPool));
-    PSC_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(rsrvtnPool),
+    PSC_log("\t%d/%d (gets/grows)\n", PSitems_getUtilization(rsrvtnPool),
 	    PSitems_getDynamics(rsrvtnPool));
 }
 
