@@ -139,7 +139,7 @@ bool pspmix_userserver_addJob(PStask_ID_t sessID, PspmixJob_t *job)
 	     server->uid, PSC_printTID(session->ID), session->tmpdir);
 
 	/* create session's temporary directory */
-	if (!mkDir(session->tmpdir, 0755, server->uid, server->gid)) {
+	if (!mkDir(session->tmpdir, S_IRWXU, server->uid, server->gid)) {
 	    flog("failed to create session's tempdir '%s'\n", session->tmpdir);
 	}
     }
