@@ -16,16 +16,15 @@
 
 SpawnRequest_t *initSpawnRequest(int num)
 {
-    SpawnRequest_t *req = umalloc(sizeof(*req));
+    SpawnRequest_t *req = ucalloc(sizeof(*req));
     if (!req) return NULL;
 
     req->num = num;
-    req->spawns = umalloc(num * sizeof(*req->spawns));
-
-    /* set everything to zero */
-    memset(req->spawns, 0, num * sizeof(*req->spawns));
-
-    req->data = NULL;
+    req->spawns = ucalloc(num * sizeof(*req->spawns));
+    if (!req->spawns) {
+	ufree(req);
+	return NULL;
+    }
 
     return req;
 }
