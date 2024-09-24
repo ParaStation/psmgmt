@@ -1153,7 +1153,7 @@ static bool getSlotsFromMsg(PS_DataBuffer_t *data, PSpart_slot_t **slots,
 
 
     for (size_t s = 0; s < *len; s++) {
-	getInt16(data, &((*slots)[s].node));
+	getNodeId(data, &((*slots)[s].node));
 
 	PSCPU_clrAll((*slots)[s].CPUset);
 	PSCPU_inject((*slots)[s].CPUset, data->unpackPtr, CPUbytes);
@@ -2647,7 +2647,7 @@ static void addSlotsToMsg(PSpart_slot_t *slots, uint32_t len, PS_SendDB_t *data)
 
     for (size_t s = 0; s < len; s++) {
 	char cpuBuf[CPUbytes];
-	addUint16ToMsg(slots[s].node, data);
+	addNodeIdToMsg(slots[s].node, data);
 	PSCPU_extract(cpuBuf, slots[s].CPUset, CPUbytes);
 	addMemToMsg(cpuBuf, CPUbytes, data);
 	fdbg(PSSLURM_LOG_PACK, "slot %zu node %hd cpuset %s\n", s,
