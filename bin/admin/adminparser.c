@@ -54,7 +54,7 @@ static bool * getNodeList(char *nl_descr)
 
     if (!nl) nl = malloc(sizeof(*nl) * PSC_getNrOfNodes());
     if (!nl) {
-	PSC_log(-1, "%s: no memory\n", __func__);
+	PSC_flog("no memory\n");
 	return NULL;
     }
 

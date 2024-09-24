@@ -393,7 +393,7 @@ int PSI_protocolVersion(PSnodes_ID_t id)
 	/* initialize cache */
 	PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 	if (numNodes == -1) {
-	    PSC_log(-1, "%s: unable to determine number of nodes\n", __func__);
+	    PSC_flog("unable to determine number of nodes\n");
 	    return -1;
 	}
 	protoCache = calloc(numNodes, sizeof(*protoCache));

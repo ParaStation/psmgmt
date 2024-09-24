@@ -248,7 +248,7 @@ char* PSC_lookupInstalldir(char *hint)
 	if (stat(name, &fstat)) {
 	    PSC_warn(-1, errno, "%s: '%s'", __func__, name);
 	} else if (!S_ISREG(fstat.st_mode)) {
-	    PSC_log(-1, "%s: '%s' not a regular file\n", __func__, name);
+	    PSC_flog("'%s' not a regular file\n", name);
 	} else {
 	    installdir = strdup(hint ? hint : DEFAULT_INSTDIR);
 	}
@@ -357,7 +357,7 @@ bool * PSC_parseNodelist(char* descr)
 
     if (!nl) nl = malloc(sizeof(*nl) * PSC_getNrOfNodes());
     if (!nl) {
-	PSC_log(-1, "%s: no memory\n", __func__);
+	PSC_flog("no memory\n");
 	return NULL;
     }
     memset(nl, 0, sizeof(*nl) * PSC_getNrOfNodes());
@@ -502,7 +502,7 @@ noSpace:
     /* Re-adjust the size to the available space */
     titleSize = environ[0] - argv[0];
 
-    PSC_log(-1, "%s: re-adjusted to %zd bytes\n", __func__, titleSize);
+    PSC_flog("re-adjusted to %zd bytes\n", titleSize);
 }
 
 int PSC_setProcTitle(int argc, const char **argv, char *title, int saveEnv)
@@ -515,8 +515,7 @@ int PSC_setProcTitle(int argc, const char **argv, char *title, int saveEnv)
 
     /* test for enough space for new title */
     if (strlen(title) + 1 > titleSize) {
-	PSC_log(-1, "%s: not enough space for title '%s'\n", __func__,
-		title);
+	PSC_flog("not enough space for title '%s'\n", title);
 	return 0;
     }
 
@@ -639,7 +638,7 @@ static void getLocalIPs(void)
     free(ifc.ifc_buf);
     close(skfd);
 
-    if (list_empty(&localIPs)) PSC_log(-1, "%s: No devices found\n", __func__);
+    if (list_empty(&localIPs)) PSC_flog("no devices found\n");
 }
 
 bool PSC_isLocalIP(in_addr_t ipaddr)

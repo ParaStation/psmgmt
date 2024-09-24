@@ -130,7 +130,7 @@ static recvBuf_t *getRecvBuf(void)
     recvBuf_t *r = PSitems_getItem(recvBuffers);
 
     if (!r) {
-	PSC_log(-1, "%s: no receive buffers left\n", __func__);
+	PSC_flog("no receive buffers left\n");
 	return NULL;
     }
 
@@ -202,7 +202,7 @@ static int nodeDownHandler(void *nodeID)
     PSnodes_ID_t id = *(PSnodes_ID_t *)nodeID;
 
     if (!PSC_validNode(id)) {
-	PSC_log(-1, "%s: invalid node id %i\n", __func__, id);
+	PSC_flog("invalid node id %i\n", id);
 	return 1;
     }
 
@@ -284,10 +284,10 @@ static void initSerialHooks(void)
 
     if (hookAdd && hookDel) {
 	if (!hookAdd(PSIDHOOK_NODE_DOWN, nodeDownHandler)) {
-	    PSC_log(-1, "%s: cannot register PSIDHOOK_NODE_DOWN\n", __func__);
+	    PSC_flog("cannot register PSIDHOOK_NODE_DOWN\n");
 	}
 	if (!hookAdd(PSIDHOOK_CLEARMEM, clearMem)) {
-	    PSC_log(-1, "%s: cannot register PSIDHOOK_CLEARMEM\n", __func__);
+	    PSC_flog("cannot register PSIDHOOK_CLEARMEM\n");
 	}
     }
 }
@@ -389,7 +389,7 @@ bool initSerialBuf(size_t bufSize)
     sendBuf = malloc(sendBufLen);
 
     if (!sendBuf) {
-	PSC_log(-1, "%s: cannot allocate buffer\n", __func__);
+	PSC_flog("cannot allocate buffer\n");
 
 	return false;
     }
@@ -406,7 +406,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
     if (!PSC_logInitialized()) PSC_initLog(stderr);
 
     if (numNodes == -1) {
-	PSC_log(-1, "%s: unable to get number of nodes\n", __func__);
+	PSC_flog("unable to get number of nodes\n");
 	return false;
     }
 
@@ -417,7 +417,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
     destTIDs = malloc(sizeof(*destTIDs) * numNodes);
 
     if (!sendBuf || !destTIDs) {
-	PSC_log(-1, "%s: cannot allocate all buffers\n", __func__);
+	PSC_flog("cannot allocate all buffers\n");
 	free(sendBuf);
 	sendBuf = NULL;
 	free(destTIDs);
@@ -434,7 +434,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
     /* Initialize receive buffer handling */
     recvBuffers = PSitems_new(sizeof(recvBuf_t), "recvBuffers");
     if (!recvBuffers) {
-	PSC_log(-1, "%s: cannot get recvBuffer items\n", __func__);
+	PSC_flog("cannot get recvBuffer items\n");
 	free(sendBuf);
 	sendBuf = NULL;
 	free(destTIDs);
@@ -471,21 +471,18 @@ void initFragBufferExtra(PS_SendDB_t *buffer, int16_t headType, int32_t msgType,
     buffer->extraSize = extra ? extraSize : 0;
 }
 
-bool _setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid, const char *func, const int line)
+bool _setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid, const char *func,
+		  const int line)
 {
     PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 
     if (buffer->numDest >= numNodes) {
-	PSC_log(-1, "%s: max destinations (%d) reached", __func__, numNodes);
-	PSC_log(-1, " at %s:%d\n", func, line);
-
+	PSC_flog("max destinations (%d) reached at %s:%d\n", numNodes, func, line);
 	return false;
     }
 
     if (!PSC_validNode(PSC_getID(tid))) {
-	PSC_log(-1, "%s: nodeID %i out of range", __func__, PSC_getID(tid));
-	PSC_log(-1, " at %s:%d\n", func, line);
-
+	PSC_flog("nodeID %i out of range at %s:%d\n", PSC_getID(tid), func, line);
 	return false;
     }
 
@@ -551,12 +548,12 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
     bool dupOK = false;
 
     if (!buf->numDest) {
-	PSC_log(-1, "%s(%s@%d): empty nodelist\n", __func__, caller, line);
+	PSC_flog("empty nodelist at %s@%d\n", caller, line);
 	return false;
     }
 
     if (!sendPSMsg) {
-	PSC_log(-1, "%s(%s@%d): no send function\n", __func__, caller, line);
+	PSC_flog("no send function at %s@%d\n", caller, line);
 	return false;
     }
 
@@ -649,12 +646,12 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 		   bool verbose, const char *caller, const int line)
 {
     if (!msg) {
-	PSC_log(-1, "%s(%s@%d): invalid msg\n", __func__, caller, line);
+	PSC_flog("invalid msg at %s@%d\n", caller, line);
 	return false;
     }
 
     if (!func) {
-	PSC_log(-1, "%s(%s@%d): no callback\n", __func__, caller, line);
+	PSC_flog("no callback at %s@%d\n", caller, line);
 	return false;
     }
 
@@ -662,14 +659,14 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     uint8_t fragType = 0;
     uint16_t fragNum = -1;
     if (!fetchFragHeader(msg, &used, &fragType, &fragNum, NULL, NULL)) {
-	PSC_log(-1, "%s: unable to fetch fragment header from %s\n", __func__,
-		PSC_printTID(msg->header.sender));
+	PSC_flog("unable to fetch fragment header from %s\n",
+		 PSC_printTID(msg->header.sender));
 	return false;
     }
 
     if (fragType != FRAGMENT_PART && fragType != FRAGMENT_END) {
-	PSC_log(-1, "%s: invalid fragment type %u from %s\n", __func__,
-		fragType, PSC_printTID(msg->header.sender));
+	PSC_flog("invalid fragment type %u from %s\n", fragType,
+		 PSC_printTID(msg->header.sender));
 	return false;
     }
 
@@ -684,24 +681,23 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	recvBuf = &myRecvBuf;
     } else {
 	if (!sendBuf) {
-	    PSC_log(-1, "%s(%s@%d): call initSerial()\n", __func__,
-		    caller, line);
+	    PSC_flog("call initSerial() before %s@%d\n",  caller, line);
 	    return false;
 	}
 
 	recvBuf = findRecvBuf(msg->header.sender);
 	uint16_t expectedFrag = recvBuf ? recvBuf->nextFrag : 0;
 	if (fragNum != expectedFrag) {
-	    if (verbose) PSC_log(-1, "%s(%s@%d): unexpected fragment %u/%u"
-				 " from %s\n", __func__, caller, line, fragNum,
-				 expectedFrag, PSC_printTID(msg->header.sender));
+	    if (verbose) PSC_flog("unexpected fragment %u/%u from %s at %s@%d\n",
+				  fragNum, expectedFrag,
+				  PSC_printTID(msg->header.sender), caller, line);
 	    if (fragNum) return false;
 	}
 
 	if (!recvBuf) {
 	    recvBuf_t *r = getRecvBuf();
 	    if (!r) {
-		PSC_log(-1, "%s(%s@%d): no buffer\n", __func__, caller, line);
+		PSC_flog("no buffer at %s@%d\n", caller, line);
 		return false;
 	    }
 	    r->tid = msg->header.sender;
@@ -710,14 +706,14 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	}
 
 	if (fragNum == 0) {
-	    if (recvBuf->buf) PSC_log(-1, "%s: found buffer for %s\n", __func__,
-				      PSC_printTID(msg->header.sender));
+	    if (recvBuf->buf) PSC_flog("found buffer for %s\n",
+				       PSC_printTID(msg->header.sender));
 
 	    resetBuf(recvBuf);
 	    recvBuf->size = DEFAULT_BUFFER_SIZE;
 	    recvBuf->buf = malloc(recvBuf->size);
 	    if (!recvBuf->buf) {
-		PSC_log(-1, "%s(%s@%d): no memory\n", __func__, caller, line);
+		PSC_flog("no memory at %s@%d\n", caller, line);
 		putRecvBuf(list_entry(recvBuf, recvBuf_t, dBuf));
 		return false;
 	    }
@@ -730,8 +726,8 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	    recvBuf->size *= 2;
 	    char * tmp = realloc(recvBuf->buf, recvBuf->size);
 	    if (!tmp) {
-		PSC_log(-1, "%s(%s@%d): realloc(%p, %zd) failed\n", __func__,
-			caller, line, recvBuf->buf, recvBuf->size);
+		PSC_flog("realloc(%p, %zd) failed at %s@%d\n",
+			 recvBuf->buf, recvBuf->size, caller, line);
 		putRecvBuf(list_entry(recvBuf, recvBuf_t, dBuf));
 		return false;
 	    }
@@ -797,7 +793,7 @@ static void setupFragMsg(PS_SendDB_t *buf)
 int __sendFragMsg(PS_SendDB_t *buffer, const char *caller, const int line)
 {
     if (!sendBuf) {
-	PSC_log(-1, "%s(%s@%d): call initSerial()\n", __func__, caller, line);
+	PSC_flog("call initSerial() before %s@%d\n", caller, line);
 	return -1;
     }
 
@@ -860,8 +856,7 @@ static bool growDataBuffer(size_t len, PS_DataBuffer_t *data,
 
     char *tmp = realloc(data->buf, newLen);
     if (!tmp) {
-	PSC_log(-1, "%s(%s@%d): allocation of %zd failed\n", __func__,
-		caller, line, newLen);
+	PSC_flog("allocation of %zd failed at %s@%d\n", newLen,	caller, line);
 	return false;
     }
     data->buf = tmp;
@@ -882,14 +877,14 @@ PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data)
     PS_DataBuffer_t *dup = umalloc(sizeof(*dup));
     if (!dup) {
 	data->unpackErr = E_PSSERIAL_MEM;
-	PSC_log(-1, "%s: %s\n", __func__, serialStrErr(data->unpackErr));
+	PSC_flog("%s\n", serialStrErr(data->unpackErr));
 	return NULL;
     }
 
     dup->buf = umalloc(data->size);
     if (!dup->buf) {
 	data->unpackErr = E_PSSERIAL_MEM;
-	PSC_log(-1, "%s: buf: %s\n", __func__, serialStrErr(data->unpackErr));
+	PSC_flog("buf: %s\n", serialStrErr(data->unpackErr));
 	free(dup);
 	return NULL;
     }
@@ -908,12 +903,12 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
 		       const char *caller, const int line)
 {
     if (!buffer) {
-	PSC_log(-1, "%s(%s@%d): invalid buffer\n", __func__, caller, line);
+	PSC_flog("invalid buffer at %s@%d\n", caller, line);
 	return false;
     }
 
     if (!growDataBuffer(len, buffer, caller, line)) {
-	PSC_log(-1, "%s(%s@%d): cannot grow buffer\n", __func__, caller, line);
+	PSC_flog("cannot grow buffer at %s@%d\n", caller, line);
 	return false;
     }
 
@@ -960,8 +955,8 @@ static bool verifyTypeInfo(PS_DataBuffer_t *data, PS_DataType_t expectedType,
 
     if (type != expectedType) {
 	data->unpackErr = E_PSSERIAL_TYPE;
-	PSC_log(-1, "%s(%s@%d): (%d vs %d): %s\n", __func__, caller, line,
-		type, expectedType, serialStrErr(data->unpackErr));
+	PSC_flog("type %d vs %d at %s@%d: %s\n", type, expectedType,
+		 caller, line, serialStrErr(data->unpackErr));
 	return false;
     }
     return true;
@@ -1001,8 +996,8 @@ static inline bool verifyDataBuf(PS_DataBuffer_t *data, size_t size,
     size_t avail = data->used - (data->unpackPtr - data->buf);
     if (toread > avail) {
 	data->unpackErr = E_PSSERIAL_INSUF;
-	PSC_log(-1, "%s(%s@%d): %s (%zu < %zu)\n", __func__, caller, line,
-		serialStrErr(data->unpackErr), avail, toread);
+	PSC_flog("%zu < %zu at %s@%d: %s\n", avail, toread, caller, line,
+		 serialStrErr(data->unpackErr));
 	return false;
     }
     return true;
@@ -1012,15 +1007,14 @@ bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 		size_t size, const char *caller, const int line)
 {
     if (!data || !data->unpackPtr) {
-	PSC_log(-1, "%s(%s@%d): %s\n", __func__, caller, line,
-		serialStrErr(E_PSSERIAL_PARAM));
+	PSC_flog("at %s@%d: %s\n", caller, line, serialStrErr(E_PSSERIAL_PARAM));
 	if (data) data->unpackErr = E_PSSERIAL_PARAM;
 	return false;
     }
     if (!val) {
 	data->unpackErr = E_PSSERIAL_PARAM;
-	PSC_log(-1, "%s(%s@%d): val: %s\n", __func__, caller, line,
-		serialStrErr(data->unpackErr));
+	PSC_flog("val at %s@%d: %s\n", caller, line,
+		 serialStrErr(data->unpackErr));
 	return false;
     }
 
@@ -1043,8 +1037,8 @@ bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 	    break;
 	default:
 	    data->unpackErr = E_PSSERIAL_CONV;
-	    PSC_log(-1, "%s(%s@%d): size %zd: %s\n", __func__, caller, line,
-		    size, serialStrErr(data->unpackErr));
+	    PSC_flog("size %zd at %s@%d: %s\n", size, caller, line,
+		     serialStrErr(data->unpackErr));
 	    return false;
 	}
     }
@@ -1066,8 +1060,8 @@ bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
     *val = umalloc(size * *len);
     if (!*val) {
 	data->unpackErr = E_PSSERIAL_MEM;
-	PSC_log(-1, "%s(%s@%d): size %zd: %s\n", __func__, caller, line,
-		size * *len, serialStrErr(data->unpackErr));
+	PSC_flog("size %zd at %s@%d: %s\n", size * *len, caller, line,
+		 serialStrErr(data->unpackErr));
 	return false;
     }
 
@@ -1086,14 +1080,14 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
 		    const int line)
 {
     if (!data || !data->unpackPtr) {
-	PSC_log(-1, "%s(%s@%d): data: %s\n", __func__, caller, line,
-		serialStrErr(E_PSSERIAL_PARAM));
+	PSC_flog("data at %s@%d: %s\n", caller, line,
+		 serialStrErr(E_PSSERIAL_PARAM));
 	if (data) data->unpackErr = E_PSSERIAL_PARAM;
 	return NULL;
     }
     if (destSize && !dest) {
 	data->unpackErr = E_PSSERIAL_PARAM;
-	PSC_log(-1, "%s(%s@%d): buffer: %s\n", __func__, caller, line,
+	PSC_flog("buffer at %s@%d: %s\n", caller, line,
 		serialStrErr(data->unpackErr));
 	return NULL;
     }
@@ -1114,16 +1108,16 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
 	if (l >= destSize) {
 	    /* buffer too small */
 	    data->unpackErr = E_PSSERIAL_BUFSIZE;
-	    PSC_log(-1, "%s(%s@%d): (%zu vs %u): %s\n", __func__, caller, line,
-		    destSize, l, serialStrErr(data->unpackErr));
+	    PSC_flog("size %zu vs %u at %s@%d: %s\n", destSize, l, caller, line,
+		     serialStrErr(data->unpackErr));
 	    return NULL;
 	}
     } else {
 	dest = umalloc(l);
 	if (!dest) {
 	    data->unpackErr = E_PSSERIAL_MEM;
-	    PSC_log(-1, "%s(%s@%d): size %u: %s\n", __func__, caller, line, l,
-		    serialStrErr(data->unpackErr));
+	    PSC_flog("size %u at %s@%d: %s\n", l, caller, line,
+		     serialStrErr(data->unpackErr));
 	    return NULL;
 	}
     }
@@ -1144,8 +1138,8 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
 			const char *caller, const int line)
 {
     if (!array) {
-	PSC_log(-1, "%s(%s@%d): array: %s\n", __func__, caller, line,
-		serialStrErr(E_PSSERIAL_PARAM));
+	PSC_flog("array at %s@%d: %s\n", caller, line,
+		 serialStrErr(E_PSSERIAL_PARAM));
 	if (data) data->unpackErr = E_PSSERIAL_PARAM;
 	return false;
     }
@@ -1161,8 +1155,8 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
     *array = umalloc(sizeof(char *) * (*len + 1));
     if (!*array) {
 	data->unpackErr = E_PSSERIAL_MEM;
-	PSC_log(-1, "%s(%s@%d): size %zd: %s\n", __func__, caller, line,
-		sizeof(char *) * (*len + 1), serialStrErr(data->unpackErr));
+	PSC_flog("size %zd at %s@%d: %s\n", sizeof(char *) * (*len + 1),
+		 caller, line, serialStrErr(data->unpackErr));
 	return false;
     }
 
@@ -1237,8 +1231,7 @@ static bool addData(PS_SendDB_t *buffer, const void *data, const size_t dataLen,
 	    size_t s = sendBufLen ? sendBufLen * 2 : DEFAULT_BUFFER_SIZE;
 	    char *tmp = realloc(sendBuf, s);
 	    if (!tmp) {
-		PSC_log(-1, "%s(%s@%d): allocation of %zd failed\n", __func__,
-			caller, line, s);
+		PSC_flog("allocation of %zd failed at %s@%d\n", s, caller, line);
 		return false;
 	    }
 	    sendBufLen = s;
@@ -1258,17 +1251,17 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
     bool hasLen = (type == PSDATA_STRING || type == PSDATA_DATA);
 
     if (!data) {
-	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
+	PSC_flog("invalid data at %s@%d\n", caller, line);
 	return false;
     }
 
     if (!val && (!hasLen || size)) {
-	PSC_log(-1, "%s(%s@%d): invalid val\n", __func__, caller, line);
+	PSC_flog("invalid val at %s@%d\n", caller, line);
 	return false;
     }
 
     if (!sendBuf) {
-	PSC_log(-1, "%s(%s@%d): call initSerial()\n", __func__, caller, line);
+	PSC_flog("call initSerial() before %s@%d\n", caller, line);
 	return false;
     }
 
@@ -1310,8 +1303,8 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
 	}
 	default:
 	    if (!addData(data, val, size, caller, line)) return false;
-	    PSC_log(-1, "%s(%s@%d): unknown conversion for size %d\n",
-		      __func__, caller, line, size);
+	    PSC_flog("unknown conversion for size %d at %s@%d\n",
+		     size, caller, line);
 	}
     } else {
 	if (!addData(data, val, size, caller, line)) return false;
@@ -1325,11 +1318,11 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
 		   const char *caller, const int line)
 {
     if (!data) {
-	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
+	PSC_flog("invalid data at %s@%d\n", caller, line);
 	return false;
     }
     if (!val) {
-	PSC_log(-1, "%s(%s@%d): invalid val\n", __func__, caller, line);
+	PSC_flog("invalid val at %s@%d\n", caller, line);
 	return false;
     }
 
@@ -1348,7 +1341,7 @@ bool __addStringArrayToBuf(char **array, PS_SendDB_t *data,
 			   const char *caller, const int line)
 {
     if (!data) {
-	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
+	PSC_flog("invalid data at %s@%d\n", caller, line);
 	return false;
     }
     char *empty = NULL;

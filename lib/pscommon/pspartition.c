@@ -30,7 +30,7 @@ PSpart_request_t* PSpart_newReq(void)
 void PSpart_initReq(PSpart_request_t* request)
 {
     if (!request) {
-	PSC_log(-1, "%s: request is NULL\n", __func__);
+	PSC_flog("no request\n");
 	return;
     }
 
@@ -58,7 +58,7 @@ void PSpart_initReq(PSpart_request_t* request)
 void PSpart_reinitReq(PSpart_request_t* request)
 {
     if (!request) {
-	PSC_log(-1, "%s: request is NULL\n", __func__);
+	PSC_flog("no request\n");
 	return;
     }
 
@@ -71,7 +71,7 @@ void PSpart_reinitReq(PSpart_request_t* request)
 bool PSpart_delReq(PSpart_request_t* request)
 {
     if (!request) {
-	PSC_log(-1, "%s: request is NULL\n", __func__);
+	PSC_flog("no request\n");
 	return false;
     }
 
@@ -97,7 +97,7 @@ void PSpart_clrQueue(list_t *queue)
 void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
 {
     if (!request) {
-	PSC_log(-1, "%s: request is NULL\n", __func__);
+	PSC_flog("no request\n");
 	return;
     }
 
@@ -153,7 +153,7 @@ bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request)
     size_t off = msg->header.len - sizeof(msg->header);
 
     if (!request) {
-	PSC_log(-1, "%s: request is NULL\n", __func__);
+	PSC_flog("no request\n");
 	return 0;
     }
 
@@ -161,7 +161,7 @@ bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request)
     PSC_log(PSC_LOG_PART, "%s(%p, request (%s))\n", __func__, msg, partString);
 
     if (sizeof(tmpRequest) > sizeof(msg->buf) - off) {
-	PSC_log(-1, "%s: request '%s' too large\n", __func__, partString);
+	PSC_flog("request %s too large\n", partString);
 	return false;
     }
 
@@ -188,7 +188,7 @@ size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request)
     size_t length =  sizeof(tmpRequest);
 
     if (!request) {
-	PSC_log(-1, "%s: request is NULL\n", __func__);
+	PSC_flog("no request\n");
 	return 0;
     }
 

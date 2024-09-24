@@ -144,8 +144,8 @@ void PStask_clearMem(void)
 
 void PStask_printStat(void)
 {
-    PSC_log(-1, "%s: Infos %d/%d (used/avail)", __func__,
-	    PSitems_getUsed(infoPool), PSitems_getAvail(infoPool));
+    PSC_flog("Infos %d/%d (used/avail)", PSitems_getUsed(infoPool),
+	     PSitems_getAvail(infoPool));
     PSC_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(infoPool),
 	    PSitems_getDynamics(infoPool));
     PSsignal_printStat();
@@ -441,7 +441,7 @@ PStask_t* PStask_clone(PStask_t* task)
     }
 
     if (!strvSize(task->argV)) {
-	PSC_log(-1, "%s: argV is empty\n", __func__);
+	PSC_flog("empty argV\n");
 	eno = EINVAL;
 	goto error;
     }
@@ -630,7 +630,7 @@ bool PStask_addToMsg_old(PStask_t *task, PS_SendDB_t *msg)
 int PStask_decodeTask_old(char *buffer, PStask_t *task, bool withWDir)
 {
     if (!task) {
-	PSC_log(-1, "%s: task is NULL\n", __func__);
+	PSC_flog("no task\n");
 	return 0;
     }
 
@@ -720,7 +720,7 @@ bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg)
 int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
 {
     if (!task) {
-	PSC_log(-1, "%s: task is NULL\n", __func__);
+	PSC_flog("no task\n");
 	return 0;
     }
 

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -48,7 +48,7 @@ PSrsrvtn_t *PSrsrvtn_get(void)
 void PSrsrvtn_put(PSrsrvtn_t *rp)
 {
     if (rp->slots) {
-	PSC_log(-1, "%s: still slots in registration %#x\n", __func__, rp->rid);
+	PSC_flog("still slots in registration %#x\n", rp->rid);
 	free(rp->slots);
     }
 
@@ -95,8 +95,8 @@ void PSrsrvtn_gc(void)
 
 void PSrsrvtn_printStat(void)
 {
-    PSC_log(-1, "%s: Reservations %d/%d (used/avail)", __func__,
-	    PSitems_getUsed(rsrvtnPool), PSitems_getAvail(rsrvtnPool));
+    PSC_flog("Reservations %d/%d (used/avail)", PSitems_getUsed(rsrvtnPool),
+	     PSitems_getAvail(rsrvtnPool));
     PSC_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(rsrvtnPool),
 	    PSitems_getDynamics(rsrvtnPool));
 }

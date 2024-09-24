@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -59,12 +59,12 @@ static bool visitItemRange(char *prefix, char *range, CL_Visitor_t visitor,
     unsigned int min, max;
     int pad;
     if (sscanf(range, "%u%n-%u", &min, &pad, &max) != 2) {
-	PSC_log(-1, "%s: invalid range '%s'\n", __func__, range);
+	PSC_flog("invalid range '%s'\n", range);
 	return false;
     }
 
     if (min > max) {
-	PSC_log(-1, "%s: invalid range '%s'\n", __func__, range);
+	PSC_flog("invalid range '%s'\n", range);
 	return false;
     }
 
@@ -92,7 +92,7 @@ bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info)
 	char *closeBrk = strchr(next, ']');
 
 	if (openBrk && isOpen) {
-	    PSC_log(-1, "%s: error nested brackets found\n", __func__);
+	    PSC_flog("error nested brackets found\n");
 	    goto error;
 	}
 
@@ -111,11 +111,11 @@ bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info)
 	} else if (closeBrk) {
 	    // end of the bracket
 	    if (!isOpen) {
-		PSC_log(-1, "%s: error no open bracket found\n", __func__);
+		PSC_flog("no open bracket found\n");
 		goto error;
 	    }
 	    if (!prefix) {
-		PSC_log(-1, "%s: error invalid prefix\n", __func__);
+		PSC_flog("invalid prefix\n");
 		goto error;
 	    }
 
@@ -128,7 +128,7 @@ bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info)
 	} else if (isOpen) {
 	    // inside the bracket
 	    if (!prefix) {
-		PSC_log(-1, "%s: error invalid prefix\n", __func__);
+		PSC_flog("invalid prefix\n");
 		goto error;
 	    }
 	    if (!visitItemRange(prefix, next, visitor, info)) {
@@ -163,13 +163,13 @@ static bool hostToPSnode(char *host, void *info)
     PSnodeList_t *psNL = info;
 
     if (psNL->nrOfNodes >= psNL->size) {
-	PSC_log(-1, "%s: no space left (max %i)\n", __func__, psNL->size);
+	PSC_flog("no space left (max %i)\n", psNL->size);
 	return false;
     }
 
     PSnodes_ID_t nodeID = psNL->resolveNID(host);
     if (nodeID == -1) {
-	PSC_log(-1, "%s: no PS node ID for host %s\n", __func__, host);
+	PSC_flog("no PS node ID for host %s\n", host);
 	return false;
     }
     psNL->nodes[psNL->nrOfNodes++] = nodeID;
@@ -190,7 +190,7 @@ bool convHLtoPSnodes(char *hostlist, ResolveFunc_t resolveNID,
 
     psNL.nodes = malloc(psNL.size * sizeof(*psNL.nodes));
     if (!psNL.nodes) {
-	PSC_log(-1, "%s: no memory for nodelist\n", __func__);
+	PSC_flog("no memory for nodelist\n");
 	return false;
     }
 

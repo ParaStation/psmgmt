@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -216,7 +216,7 @@ static param_t * newParam(char *name)
     param = findParam(name);
 
     if (param) {
-	PSC_log(-1, "%s: parameter '%s' not unique.\n", __func__, name);
+	PSC_flog("parameter '%s' not unique\n", name);
 	return NULL;
     }
 
@@ -278,7 +278,7 @@ int PSPARM_register(char *name, void *data, PSPARM_setFunc_t setFunc,
     param_t *param;
 
     if (!name || ! *name) {
-	PSC_log(-1, "%s: No name given\n", __func__);
+	PSC_flog("no name given\n");
 	return 0;
     }
 
@@ -299,13 +299,13 @@ int PSPARM_remove(char *name)
     param_t *param;
 
     if (!name || ! *name) {
-	PSC_log(-1, "%s: No name given\n", __func__);
+	PSC_flog("no name given\n");
 	return 0;
     }
 
     param = findParam(name);
     if (!param) {
-	PSC_log(-1, "%s: Unknown parameter '%s'\n", __func__, name);
+	PSC_flog("unknown parameter '%s'\n", name);
 	return 0;
     }
 
@@ -372,24 +372,24 @@ void PSPARM_set(char *name, char *value)
     char *msg;
 
     if (!name || ! *name) {
-	PSC_log(-1, "%s: No name given\n", __func__);
+	PSC_flog("no name given\n");
     }
 
     param = findParam(name);
     if (!param) {
-	PSC_log(-1, "%s: Unknown parameter '%s'\n", __func__, name);
+	PSC_flog("unknown parameter '%s'\n", name);
 	return;
     }
 
     if (!param->set) {
-	PSC_log(-1, "%s: No set-method for '%s'\n", __func__, name);
+	PSC_flog("no set-method for '%s'\n", name);
 	return;
     }
 
     msg = param->set(param->data, value);
 
     if (msg) {
-	PSC_log(-1, "%s: %s: %s\n", __func__, param->name, msg);
+	PSC_flog("%s: %s\n", param->name, msg);
 	free(msg);
     }
 }

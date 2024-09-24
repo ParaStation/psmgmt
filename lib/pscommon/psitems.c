@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -142,8 +142,7 @@ static int growItems(PSitems_t items)
 void * __PSitems_getItem(PSitems_t items, const char *caller, const int line)
 {
     if (!PSitems_isInitialized(items)) {
-	PSC_log(-1, "%s: not initialized and called by %s:%i\n", __func__,
-		caller, line);
+	PSC_flog("not initialized and called at %s@%d\n", caller, line);
 	return NULL;
     }
     items->numGet++;
@@ -151,8 +150,7 @@ void * __PSitems_getItem(PSitems_t items, const char *caller, const int line)
     if (list_empty(&items->idleItems)) {
 	PSC_log(PSC_LOG_VERB, "%s(%s): no more items\n", __func__, items->name);
 	if (!growItems(items)) {
-	    PSC_log(-1, "%s(%s): no memory for caller %s:%i\n", __func__,
-		    items->name, caller, line);
+	    PSC_flog("no memory for '%s' at %s@%d\n", items->name, caller, line);
 	    return NULL;
 	}
     }
@@ -160,10 +158,9 @@ void * __PSitems_getItem(PSitems_t items, const char *caller, const int line)
     /* get list's first usable element */
     item_t *item = list_entry(items->idleItems.next, item_t, next);
     if (item->state != PSITEM_IDLE) {
-	PSC_log(-1, "%s(%s): item is %s. Never be here for caller %s:%i.\n",
-		__func__, items->name,
-		(item->state == PSITEM_DRAINED) ? "DRAINED" : "BUSY",
-		caller, line);
+	PSC_flog("item %s is %s at %s@%d\n", items->name,
+		 (item->state == PSITEM_DRAINED) ? "DRAINED" : "BUSY",
+		 caller, line);
 	return NULL;
     }
     list_del_init(&item->next);
@@ -176,7 +173,7 @@ void * __PSitems_getItem(PSitems_t items, const char *caller, const int line)
 void PSitems_putItem(PSitems_t items, void *item)
 {
     if (!PSitems_isInitialized(items)) {
-	PSC_log(-1, "%s: initialize before!\n", __func__);
+	PSC_flog("initialize before!\n");
 	return;
     }
 
@@ -236,8 +233,7 @@ static void freeChunk(PSitems_t items, chunk_t *chunk, bool(*relocItem)(void*))
 	    list_del(&item->next);
 	} else {
 	    if (!relocItem(item)) {
-		PSC_log(-1, "%s(%s): reloc(%d) failed\n", __func__,
-			items->name, i);
+		PSC_flog("item %s: reloc(%d) failed\n", items->name, i);
 		return;
 	    }
 	    items->used--;
