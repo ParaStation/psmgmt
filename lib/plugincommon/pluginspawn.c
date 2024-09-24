@@ -79,6 +79,13 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req)
 
 void freeSpawnRequest(SpawnRequest_t *req)
 {
+    if (req->infov) {
+	for (int i = 0; i < req->infoc; i++) {
+	    ufree(req->infov[i].key);
+	    ufree(req->infov[i].value);
+	}
+	ufree(req->infov);
+    }
     for (int i = 0; i < req->num; i++) {
 	strvDestroy(req->spawns[i].argV);
 	envDestroy(req->spawns[i].env);
