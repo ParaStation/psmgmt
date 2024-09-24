@@ -225,7 +225,7 @@ static bool doPutMsgBuf(DDBufferMsg_t *msg, const char *callName,
     size_t used = (sizeof(msg->buf) - off >= s) ? s : 0;
 
     if (!used) {
-	PSC_log(try ? PSC_LOG_VERB : -1, "%s: data '%s' too large in %s()\n",
+	PSC_dbg(try ? PSC_LOG_VERB : -1, "%s: data '%s' too large in %s()\n",
 		callName, dataName ? dataName : "<empty>", caller);
 	return false;
     }
@@ -283,7 +283,7 @@ static bool doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
 
     ssize_t totAvail = msg->header.len - sizeof(msg->header);
     if ((ssize_t)(size + u) > totAvail) {
-	PSC_log(try ? PSC_LOG_VERB : -1,
+	PSC_dbg(try ? PSC_LOG_VERB : -1,
 		"%s: insufficient data for '%s' in %s()\n", callName, dataName,
 		caller);
 	return false;

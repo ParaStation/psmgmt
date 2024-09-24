@@ -211,7 +211,7 @@ size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request)
     request->start = tmpRequest.start;
 
     PSpart_snprintf(partString, sizeof(partString), request);
-    PSC_log(PSC_LOG_PART, " received request = (%s)\n", partString);
+    PSC_dbg(PSC_LOG_PART, " received request = (%s)\n", partString);
 
     return length;
 }

@@ -667,7 +667,7 @@ int PStask_decodeTask_old(char *buffer, PStask_t *task, bool withWDir)
 
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
 	snprintfStruct(someStr, sizeof(someStr), task);
-	PSC_log(PSC_LOG_TASK, " received task = (%s)\n", someStr);
+	PSC_dbg(PSC_LOG_TASK, " received task = (%s)\n", someStr);
 	PSC_fdbg(PSC_LOG_TASK, "return %d\n", msglen);
     }
 
@@ -756,7 +756,7 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
 
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
 	snprintfStruct(someStr, sizeof(someStr), task);
-	PSC_log(PSC_LOG_TASK, " received task = (%s)\n", someStr);
+	PSC_dbg(PSC_LOG_TASK, " received task = (%s)\n", someStr);
 	PSC_fdbg(PSC_LOG_TASK, "return %d\n", msglen);
     }
 
