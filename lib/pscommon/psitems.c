@@ -120,7 +120,7 @@ static int growItems(PSitems_t items)
 {
     chunk_t *newChunk = malloc(sizeof(list_t) + items->itemSize * items->iPC);
     if (!newChunk) {
-	PSC_warn(-1, errno, "%s(%s)", __func__, items->name);
+	PSC_fwarn(errno, "name %s", items->name);
 	return 0;
     }
     items->numGrow++;

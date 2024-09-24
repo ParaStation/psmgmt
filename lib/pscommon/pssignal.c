@@ -91,7 +91,7 @@ void PSsignal_cloneList(list_t *cloneList, list_t *origList)
 	PSsignal_t *cloneSig = PSsignal_get();
 	if (!cloneSig) {
 	    PSsignal_clearList(cloneList);
-	    PSC_warn(-1, ENOMEM, "%s()", __func__);
+	    PSC_fwarn(ENOMEM, "PSsignal_get()");
 	    break;
 	}
 

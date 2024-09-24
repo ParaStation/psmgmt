@@ -222,7 +222,7 @@ static param_t * newParam(char *name)
 
     param = malloc(sizeof(*param));
     if (!param) {
-	PSC_warn(-1, errno, "%s", __func__);
+	PSC_fwarn(errno, "malloc()");
 	return NULL;
     }
 

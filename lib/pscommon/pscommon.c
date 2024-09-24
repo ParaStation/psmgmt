@@ -194,7 +194,7 @@ void PSC_startDaemon(in_addr_t hostaddr)
 
     switch (fork()) {
     case -1:
-	PSC_warn(-1, errno, "%s: unable to fork server process", __func__);
+	PSC_fwarn(errno, "fork()");
 	break;
     case 0: /* I'm the child (and running further) */
 	break;
@@ -218,8 +218,7 @@ void PSC_startDaemon(in_addr_t hostaddr)
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
 	if (errno==EINTR) goto again;
 
-	PSC_warn(-1, errno, "%s: connect() to %s fails",
-		 __func__, inet_ntoa(sa.sin_addr));
+	PSC_fwarn(errno, "connect(%s)", inet_ntoa(sa.sin_addr));
 	shutdown(sock, SHUT_RDWR);
 	close(sock);
 	exit(0);
@@ -245,7 +244,7 @@ char* PSC_lookupInstalldir(char *hint)
 	installdir = NULL;
 
 	if (stat(name, &fstat)) {
-	    PSC_warn(-1, errno, "%s: '%s'", __func__, name);
+	    PSC_fwarn(errno, "stat(%s)", name);
 	} else if (!S_ISREG(fstat.st_mode)) {
 	    PSC_flog("'%s' not a regular file\n", name);
 	} else {
@@ -559,7 +558,7 @@ void (*PSC_setSigHandler(int signum, void handler(int)))(int)
     saNew.sa_handler = handler;
     if (sigaction(signum, &saNew, &saOld) == -1) {
 	int eno = errno;
-	PSC_warn(-1, errno, "%s: sigaction()", __func__);
+	PSC_fwarn(errno, "sigaction()");
 	errno = eno;
 	return SIG_ERR;
     }
@@ -685,7 +684,7 @@ struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf)
 		continue;
 	    }
 	}
-	PSC_warn(-1, eno, "%s: unable to query user database", __func__);
+	PSC_fwarn(eno, "unable to query user database");
 	free(*pwBuf);
 	*pwBuf = NULL;
 	errno = eno;
@@ -760,7 +759,7 @@ struct passwd *PSC_getpwuidBuf(uid_t uid, char **pwBuf)
 		continue;
 	    }
 	}
-	PSC_warn(-1, eno, "%s: unable to query user database", __func__);
+	PSC_fwarn(eno, "unable to query user database");
 	free(*pwBuf);
 	*pwBuf = NULL;
 	errno = eno;
@@ -812,7 +811,7 @@ static struct group *getgrgidBuf(gid_t gid, char **grBuf)
 		continue;
 	    }
 	}
-	PSC_warn(-1, eno, "%s: unable to query group database", __func__);
+	PSC_fwarn(eno, "unable to query group database");
 	free(*grBuf);
 	*grBuf = NULL;
 	errno = eno;
@@ -884,13 +883,13 @@ static bool switchGroups(char *username, gid_t gid)
 {
     /* remove group memberships */
     if (setgroups(0, NULL) == -1) {
-	PSC_warn(-1, errno, "%s: setgroups(0, NULL)", __func__);
+	PSC_fwarn(errno, "setgroups(0, NULL)");
 	return false;
     }
 
     /* set supplementary groups */
     if (username && initgroups(username, gid) < 0) {
-	PSC_warn(-1, errno, "%s: initgroups(%s, %i)", __func__, username, gid);
+	PSC_fwarn(errno, "initgroups(%s, %i)", username, gid);
 	return false;
     }
     return true;
@@ -905,13 +904,13 @@ bool PSC_switchEffectiveUser(char *username, uid_t uid, gid_t gid)
 
     /* change effective GID */
     if (getegid() != gid && setegid(gid) < 0) {
-	PSC_warn(-1, errno, "%s: setegid(%i)", __func__, gid);
+	PSC_fwarn(errno, "setegid(%i)", gid);
 	return false;
     }
 
     /* change effective UID */
     if (uid != curEUID && seteuid(uid) < 0) {
-	PSC_warn(-1, errno, "%s: seteuid(%i)", __func__, uid);
+	PSC_fwarn(errno, "seteuid(%i)", uid);
 	return false;
     }
 
@@ -920,7 +919,7 @@ bool PSC_switchEffectiveUser(char *username, uid_t uid, gid_t gid)
 
     /* re-enable writing of core dumps */
     if (prctl(PR_SET_DUMPABLE, 1) == -1) {
-	PSC_warn(-1, errno, "%s: prctl(PR_SET_DUMPABLE)", __func__);
+	PSC_fwarn(errno, "prctl(PR_SET_DUMPABLE)");
     }
 
     return true;

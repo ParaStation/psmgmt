@@ -435,7 +435,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->workingdir = (task->workingdir) ? strdup(task->workingdir) : NULL;
     if (task->workingdir && !clone->workingdir) {
 	eno = errno;
-	PSC_warn(-1, eno, "%s: strdup(workingdir)", __func__);
+	PSC_fwarn(eno, "strdup(workingdir)");
 	goto error;
     }
 
@@ -447,7 +447,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->argV = strvClone(task->argV);
     if (!strvSize(clone->argV)) {
 	eno = ENOMEM;
-	PSC_warn(-1, eno, "%s: strvClone(argV)", __func__);
+	PSC_fwarn(eno, "strvClone(argV)");
 	goto error;
     }
 
@@ -482,7 +482,7 @@ PStask_t* PStask_clone(PStask_t* task)
 				  * sizeof(*clone->partition));
 	if (!clone->partition) {
 	    eno = errno;
-	    PSC_warn(-1, eno, "%s: malloc(partition)", __func__);
+	    PSC_fwarn(eno, "malloc(partition)");
 	    goto error;
 	}
 	memcpy(clone->partition, task->partition,
@@ -494,7 +494,7 @@ PStask_t* PStask_clone(PStask_t* task)
 				  * sizeof(*task->partThrds));
 	if (!clone->partThrds) {
 	    eno = errno;
-	    PSC_warn(-1, eno, "%s: malloc(partThrds)", __func__);
+	    PSC_fwarn(eno, "malloc(partThrds)");
 	    goto error;
 	}
 	memcpy(clone->partThrds, task->partThrds,
@@ -515,7 +515,7 @@ PStask_t* PStask_clone(PStask_t* task)
 				   * sizeof(*task->spawnNodes));
 	if (!clone->spawnNodes) {
 	    eno = errno;
-	    PSC_warn(-1, eno, "%s: malloc(spawnNodes)", __func__);
+	    PSC_fwarn(eno, "malloc(spawnNodes)");
 	    goto error;
 	}
 	memcpy(clone->spawnNodes, task->spawnNodes,

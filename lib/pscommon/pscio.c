@@ -48,7 +48,7 @@ ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
 	    if (eno != EAGAIN && !silent) {
 		time_t now = time(NULL);
 		if (lastLog != now) {
-		    PSC_warn(-1, eno, "%s(%s): write(%d)", __func__, func, fd);
+		    PSC_fwarn(eno, "from %s: write(%d)", func, fd);
 		    lastLog = now;
 		}
 	    }
@@ -83,7 +83,7 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
 	    if (eno != EAGAIN && !silent) {
 		time_t now = time(NULL);
 		if (lastLog != now) {
-		    PSC_warn(-1, eno, "%s(%s): read(%d)", __func__, func, fd);
+		    PSC_fwarn(eno, "from %s: read(%d)", func, fd);
 		    lastLog = now;
 		}
 	    }
@@ -161,7 +161,7 @@ ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len,
     if (ret < 0) {
 	int eno = errno;
 	if (eno != ECONNRESET) {
-	    PSC_warn(-1, eno, "%s: PSCio_recvBufFunc(header)", __func__);
+	    PSC_fwarn(eno, "PSCio_recvBufFunc(header)");
 	}
 	errno = eno;
 	return ret;
@@ -170,7 +170,7 @@ ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len,
     if (msg->header.len > len) {
 	/* msg too small, drop tail to clean the file descriptor */
 	int eno = EMSGSIZE;
-	PSC_warn(-1, eno, "%s: size %d", __func__, msg->header.len);
+	PSC_fwarn(eno, "size %d", msg->header.len);
 	dropTail(fd, msg->header.len - sizeof(msg->header));
 	errno = eno;
 	return -1;
@@ -181,7 +181,7 @@ ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len,
 			    __func__, true, indefinite, true);
     if (ret < 0) {
 	int eno = errno;
-	PSC_warn(-1, eno, "%s: PSCio_recvBufFunc(body)", __func__);
+	PSC_fwarn(eno, "PSCio_recvBufFunc(body)");
 	errno = eno;
     }
 
@@ -192,23 +192,20 @@ bool PSCio_setFDCloExec(int fd, bool close)
 {
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1) {
-	PSC_warn(-1, errno, "%s: fcntl(%i, F_GETFL) failed", __func__, fd);
+	PSC_fwarn(errno, "fcntl(%i, F_GETFL)", fd);
 	return false;
     }
 
     if (!close) {
 	if (fcntl(fd, F_SETFL, flags & (~FD_CLOEXEC)) == -1) {
-	    PSC_warn(-1, errno, "%s: fcntl(%i, set ~FD_CLOEXEC) failed",
-		     __func__, fd);
+	    PSC_fwarn(errno, "fcntl(%i, set ~FD_CLOEXEC)", fd);
 	    return false;
 	}
     } else {
 	if (fcntl(fd, F_SETFL, flags | FD_CLOEXEC) == -1) {
-	    PSC_warn(-1, errno, "%s: fcntl(%i, set FD_CLOEXEC) failed",
-		     __func__, fd);
+	    PSC_fwarn(errno, "fcntl(%i, set FD_CLOEXEC)", fd);
 	    return false;
 	}
     }
     return true;
 }
-

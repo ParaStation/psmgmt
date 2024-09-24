@@ -342,7 +342,7 @@ static void initLoopAction(void)
 
     if (regLoopAct && relLoopAct) {
 	if (regLoopAct(recvBuf_gc) < 0) {
-	    PSC_warn(-1, errno, "%s: register loop action", __func__);
+	    PSC_fwarn(errno, "register loop action");
 	    return;
 	}
     }
@@ -589,8 +589,8 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 
 	if (res == -1 && errno != EWOULDBLOCK) {
 	    ret = false;
-	    PSC_warn(-1, errno, "%s(%s@%d): send(fragment %u)", __func__,
-		     caller, line, buf->fragNum);
+	    PSC_fwarn(errno, "at %s@%d: send(fragment %u, dest %s)",
+		      caller, line, buf->fragNum, PSC_printTID(destTIDs[i]));
 	}
     }
 
@@ -604,8 +604,8 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 
 	if (res == -1 && errno != EWOULDBLOCK) {
 	    ret = false;
-	    PSC_warn(-1, errno, "%s(%s@%d): send (fragment %u)", __func__,
-		     caller, line, buf->fragNum);
+	    PSC_fwarn(errno, "at %s@%d: send(fragment %u, local dest %s)",
+		      caller, line, buf->fragNum, PSC_printTID(localDest));
 	}
     }
     return ret;

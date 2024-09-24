@@ -990,6 +990,22 @@ void logger_warn(logger_t logger, int32_t key, int eno, const char *format, ...)
     va_end(ap);
 }
 
+void logger_funcwarn(logger_t logger, const char *func, int32_t key, int eno,
+		     const char *format, ...)
+{
+    static char fmtStr[1024];
+    const char *fmt = format;
+
+    size_t len = snprintf(fmtStr, sizeof(fmtStr), "%s: %s", func, format);
+    if (len + 1 <= sizeof(fmtStr)) fmt = fmtStr;
+
+    va_list ap;
+    va_start(ap, format);
+    /* @todo print eno */
+    vprintf(fmt, ap);
+    va_end(ap);
+}
+
 void logger_print(logger_t logger, int32_t key, const char *format, ...)
 {
     if (verbosity != DEBUGOUT) return;
