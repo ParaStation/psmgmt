@@ -272,6 +272,7 @@ typedef struct {
     char *prefix;          /**< prefix for argv[0] (applied) */
     char *host;            /**< comma delimited list of hostnames to be used */
     char *hostfile;        /**< file with hostnames to be used one each line */
+    char *nodetypes;       /**< nodetypes to use, comma separated */
 } PspmixSpawnApp_t;
 
 /**

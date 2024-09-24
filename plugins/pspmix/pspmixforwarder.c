@@ -269,7 +269,8 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	 * Plain pspmix supports:
 	 *
 	 *  - PMIX_WDIR (wdir): Working directory for spawned processes
-	 *  - @todo (nodetype): Comma separated list of nodetypes to be used
+	 *  - pspmix.nodetypes (nodetypes): Comma separated list of nodetypes to
+	 *                                  be used
 	 *  - parricide: Flag to not kill process upon relative's unexpected
 	 *               death.
 	 */
@@ -279,7 +280,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    if (!strcmp(info->key, "wdir")) {
 		strvAdd(args, "-d");
 		strvAdd(args, info->value);
-	    } else if (!strcmp(info->key, "nodetype")) {
+	    } else if (!strcmp(info->key, "nodetypes")) {
 		strvAdd(args, "--nodetype");
 		strvAdd(args, info->value);
 	    } else if (!strcmp(info->key, "parricide")) {
@@ -994,6 +995,15 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	    vectorAdd(&infos, &entry);
 	} else {
 	    ufree(hostfile);
+	}
+
+	char *nodetypes = getStringML(data, &len);
+	if (len) {
+	    entry.key = ustrdup("nodetypes");
+	    entry.value = nodetypes;
+	    vectorAdd(&infos, &entry);
+	} else {
+	    ufree(nodetypes);
 	}
 
 	spawn->infov = infos.data;

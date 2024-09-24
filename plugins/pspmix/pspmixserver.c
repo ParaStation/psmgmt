@@ -1230,6 +1230,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	sapps[a].host = si_app.host ? si_app.host : si_job.host;
 	sapps[a].hostfile = si_app.hostfile ? si_app.hostfile :
 				 si_job.hostfile;
+	sapps[a].nodetypes = si_app.nodetypes;
     }
 
     /* handle additional options */
@@ -1259,6 +1260,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	sapps[a].wdir = NULL;
 	sapps[a].host = NULL;
 	sapps[a].hostfile = NULL;
+	sapps[a].nodetypes = NULL;
     }
 
     if (!ret) {
