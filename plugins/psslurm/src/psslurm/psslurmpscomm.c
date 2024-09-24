@@ -780,9 +780,9 @@ void send_PS_PElogueRes(Alloc_t *alloc, int16_t res, int16_t type)
 	.type = PSP_PELOGUE_RES,
 	.buf = {'\0'} };
 
-    fdbg(PSSLURM_LOG_PELOG, "type %s result: %i dest:%u\n",
+    fdbg(PSSLURM_LOG_PELOG, "type %s result: %i dest:%s\n",
 	 type == PELOGUE_PROLOGUE ? "prologue" : "epilogue",
-	 res, msg.header.dest);
+	 res, PSC_printTID(msg.header.dest));
 
     PSP_putTypedMsgBuf(&msg, "ID", &alloc->id, sizeof(alloc->id));
     PSP_putTypedMsgBuf(&msg, "res", &res, sizeof(res));

@@ -1159,11 +1159,15 @@ static int getNextServiceRank(Forwarder_Data_t *fwData)
 	if (ret == -1) {
 	    fwarn(errno, "rank %d: PSLog_read()", fwData->rank);
 	} else if (msg.header.type != PSP_CC_MSG) {
-	    flog("rank %d: unexpected message type %s\n", fwData->rank,
+	    flog("rank %d: unexpected message type %s ", fwData->rank,
 		 PSDaemonP_printMsg(msg.header.type));
+	    mlog(" from %s", PSC_printTID(msg.header.sender));
+	    mlog(" while fetching from %s\n", PSC_printTID(fwData->loggerTid));
 	} else if (msg.type != SERV_RNK) {
-	    flog("rank %d: unexpected log message type %s\n", fwData->rank,
+	    flog("rank %d: unexpected log message type %s", fwData->rank,
 		 PSLog_printMsgType(msg.type));
+	    mlog(" from %s", PSC_printTID(msg.header.sender));
+	    mlog(" while fetching from %s\n", PSC_printTID(fwData->loggerTid));
 	} else {
 	    rank = *(int32_t *)&msg.buf;
 	    break;

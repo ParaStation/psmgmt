@@ -104,10 +104,10 @@ void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
 	return;
     }
 
-    snprintf(txt, size, "%stid 0x%08x size %u tpp %d hwType 0x%x uid %d gid %d"
+    snprintf(txt, size, "%stid %s size %u tpp %d hwType 0x%x uid %d gid %d"
 	     " sort 0x%x options 0x%x priority %u num %d",
-	     request->deleted ? "!DELETED! " : "",
-	     request->tid, request->size, request->tpp, request->hwType,
+	     request->deleted ? "!DELETED! " : "", PSC_printTID(request->tid),
+	     request->size, request->tpp, request->hwType,
 	     request->uid, request->gid,
 	     request->sort, request->options, request->priority, request->num);
     if (strlen(txt)+1 == size) return;

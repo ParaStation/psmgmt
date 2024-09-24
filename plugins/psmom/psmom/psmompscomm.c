@@ -83,8 +83,8 @@ static void handleShutdownReq(DDTypedBufferMsg_t *msg)
 {
     char note[100];
 
-    snprintf(note, sizeof(note), "got shutdown request from %i",
-		msg->header.sender);
+    snprintf(note, sizeof(note), "got shutdown request from %s",
+	     PSC_printTID(msg->header.sender));
     shutMyselfDown(note);
 }
 

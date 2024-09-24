@@ -1446,6 +1446,11 @@ static int sendSlots(PSpart_slot_t *slots, uint32_t num, DDBufferMsg_t *msg)
     uint16_t nBytes = PSCPU_bytesForCPUs(numBits);
     if (!nBytes) {
 	PSID_flog("too many hardware threads (%d)\n", numBits);
+	PSID_flog("investigated %u slots:", num);
+	for (uint32_t n = 0; n < num; n++) {
+	    PSID_log(" %d:%s", slots[n].node, PSCPU_print(slots[n].CPUset));
+	}
+	PSID_log("\n");
 	return -1;
     }
 

@@ -223,7 +223,9 @@ void initFragBufferExtra(PS_SendDB_t *buffer, int16_t headType, int32_t msgType,
  *
  * @return Returns true if the destination was added or false on error
  */
-bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid);
+bool _setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid, const char *func, const int line);
+
+#define setFragDest(buf, tid) _setFragDest(buf, tid, __func__, __LINE__)
 
 /**
  * @brief Set an additional unique destination for fragmented messages

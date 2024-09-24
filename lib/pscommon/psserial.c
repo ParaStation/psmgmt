@@ -471,17 +471,21 @@ void initFragBufferExtra(PS_SendDB_t *buffer, int16_t headType, int32_t msgType,
     buffer->extraSize = extra ? extraSize : 0;
 }
 
-bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid)
+bool _setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid, const char *func, const int line)
 {
     PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 
     if (buffer->numDest >= numNodes) {
-	PSC_log(-1, "%s: max destinations (%d) reached\n", __func__, numNodes);
+	PSC_log(-1, "%s: max destinations (%d) reached", __func__, numNodes);
+	PSC_log(-1, " at %s:%d\n", func, line);
+
 	return false;
     }
 
     if (!PSC_validNode(PSC_getID(tid))) {
-	PSC_log(-1, "%s: nodeID %i out of range\n", __func__, PSC_getID(tid));
+	PSC_log(-1, "%s: nodeID %i out of range", __func__, PSC_getID(tid));
+	PSC_log(-1, " at %s:%d\n", func, line);
+
 	return false;
     }
 
