@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -145,10 +145,23 @@ void addKVSInt32(char **ptr, size_t *len, int32_t *num)
 
 int32_t getKVSInt32(char **ptr)
 {
-    uint32_t num;
-
-    num = *(uint32_t *) *ptr;
+    uint32_t num = *(uint32_t *) *ptr;
     *ptr += sizeof(uint32_t);
+
+    return num;
+}
+
+void addKVSInt64(char **ptr, size_t *len, int64_t *num)
+{
+    *(uint64_t *) *ptr = *num;
+    *ptr += sizeof(uint64_t);
+    *len += sizeof(uint64_t);
+}
+
+int64_t getKVSInt64(char **ptr)
+{
+    uint64_t num = *(uint64_t *) *ptr;
+    *ptr += sizeof(uint64_t);
 
     return num;
 }

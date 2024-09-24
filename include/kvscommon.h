@@ -93,9 +93,9 @@ char *getpmivm(char *name, char *vbuffer);
 /**
  * @brief Extract a kvs command from a message buffer.
  *
- * @param ptr Pointer to a buffer which holds the message.
+ * @param ptr Pointer to a buffer which holds the message
  *
- * @return Retuns the extracted command.
+ * @return Returns the extracted command
  */
 int getKVSCmd(char **ptr);
 
@@ -138,33 +138,58 @@ int addKVSString(char **ptr, size_t *bufSize, char *string);
  *
  * @param bufSize The size of the buffer.
  *
- * @return Retuns the length of the extract string or -1 on error.
+ * @return Returns the length of the extract string or -1 on error
  */
 int getKVSString(char **ptr, char *buf, size_t bufSize);
 
 /**
- * @brief Extract a int32 from a message buffer.
+ * @brief Extract int32 from message buffer
  *
- * @param ptr Pointer to a buffer which holds the message.
+ * @param ptr Pointer to buffer that holds the message
  *
- * @return Retuns the requested value.
+ * @return Returns the requested value
  */
 int32_t getKVSInt32(char **ptr);
 
 /**
- * @brief Add a int32 to a message buffer.
+ * @brief Add int32 to message buffer
  *
  * Note: The pointer to the buffer and buffer size will be shifted
  * accordingly.
  *
- * @param ptr Pointer to the message buffer to add the msg to.
+ * @param ptr Pointer to message buffer to add the msg to
  *
- * @param len Pointer to the length of the message buffer.
+ * @param len Pointer to the length of the message buffer
  *
- * @param num The int32 to add.
+ * @param num int32 to add
  *
- * @return No return value.
+ * @return No return value
  */
 void addKVSInt32(char **ptr, size_t *len, int32_t *num);
+
+/**
+ * @brief Extract int64 from message buffer
+ *
+ * @param ptr Pointer to buffer that holds the message
+ *
+ * @return Returns the requested value
+ */
+int64_t getKVSInt64(char **ptr);
+
+/**
+ * @brief Add int64 to message buffer
+ *
+ * Note: The pointer to the buffer and buffer size will be shifted
+ * accordingly.
+ *
+ * @param ptr Pointer to message buffer to add the msg to
+ *
+ * @param len Pointer to the length of the message buffer
+ *
+ * @param num int64 to add
+ *
+ * @return No return value
+ */
+void addKVSInt64(char **ptr, size_t *len, int64_t *num);
 
 #endif  /* __KVSCOMMON_H */
