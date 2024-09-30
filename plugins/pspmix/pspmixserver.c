@@ -1043,22 +1043,18 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	 Hostfile to use for spawned processes.
      */
     for (size_t i = 0; i < ninfo; i++) {
-	const pmix_info_t *this = info+i;
+	const pmix_info_t *this = info + i;
+
+	char *iStr = PMIx_Info_string(this);
+	fdbg(PSPMIX_LOG_SPAWN, "info[%zd] '%s'\n", i, iStr);
+	free(iStr);
 
 	if (PMIX_CHECK_KEY(this, PMIX_WDIR)) {
-	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
-		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
-		 this->key,
-		 this->value.data.string);
 	    si.wdir = this->value.data.string;
 	    continue;
 	}
 
 	if (PMIX_CHECK_KEY(this, PMIX_SET_SESSION_CWD)) {
-	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
-		 (PMIX_INFO_IS_REQUIRED(this)) ? "required" : "optional",
-		 this->key,
-		 (PMIX_INFO_TRUE(this)) ? "true" : "false");
 	    /* @todo What is the session cwd? */
 	    continue;
 	}
@@ -1071,37 +1067,21 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	 * https://github.com/pmix/pmix-standard/issues/506
 	 */
 	if (PMIX_CHECK_KEY(this, PMIX_PREFIX)) {
-	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
-		 (PMIX_INFO_IS_REQUIRED(this)) ? "required" : "optional",
-		 this->key,
-		 this->value.data.string);
 	    si.prefix = this->value.data.string;
 	    continue;
 	}
 
 	if (PMIX_CHECK_KEY(this, PMIX_HOST)) {
-	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
-		 (PMIX_INFO_IS_REQUIRED(this)) ? "required" : "optional",
-		 this->key,
-		 this->value.data.string);
 	    si.host = this->value.data.string;
 	    continue;
 	}
 
 	if (PMIX_CHECK_KEY(this, PMIX_HOSTFILE)) {
-	    fdbg(PSPMIX_LOG_SPAWN, "found %s info [key '%s' value '%s']\n",
-		 (PMIX_INFO_IS_REQUIRED(this)) ? "required" : "optional",
-		 this->key,
-		 this->value.data.string);
 	    si.hostfile = this->value.data.string;
 	    continue;
 	}
 
 	if (PMIX_CHECK_KEY(this, "pspmix.nodetypes")) {
-	    flog("found %s info [key '%s' value '%s']\n",
-		 (PMIX_INFO_IS_REQUIRED(this)) ? "required" : "optional",
-		 this->key,
-		 this->value.data.string);
 	    si.nodetypes = this->value.data.string;
 	    continue;
 	}
@@ -1117,10 +1097,9 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	 */
 
 	/* inform about lacking implementation */
-	flog("ignoring info [key '%s' flags '%s' value.type '%s']"
-	     " (not implemented)\n", this->key,
-	     PMIx_Info_directives_string(this->flags),
-	     PMIx_Data_type_string(this->value.type));
+	iStr = PMIx_Info_string(this);
+	flog("ignoring unimplemented info[%zd] '%s'\n", i, iStr);
+	free(iStr);
     }
 
     return si;
