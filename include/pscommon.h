@@ -488,9 +488,9 @@ void PSC_printNodelist(bool* nl);
 char * __PSC_concat(const char *str, ...);
 
 /**
- * Make use of @ref __PSC_concat more convenient by implicit adding 0L
+ * Make use of @ref __PSC_concat more convenient by implicit adding NULL
  */
-#define PSC_concat(...) __PSC_concat(__VA_ARGS__, 0L)
+#define PSC_concat(...) __PSC_concat(__VA_ARGS__, NULL)
 
 
 /**

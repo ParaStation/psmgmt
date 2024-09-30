@@ -209,6 +209,10 @@ void PSC_startDaemon(in_addr_t hostaddr)
 
     /* start PSI Daemon via (x)inetd or systemd by connecting the magic port */
     int sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock < 0) {
+	PSC_fwarn(errno, "socket()");
+	exit(0);
+    }
 
  again:
     memset(&sa, 0, sizeof(sa));
@@ -669,7 +673,16 @@ struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf)
     long pwMax = sysconf(_SC_GETPW_R_SIZE_MAX);
     size_t pwBufSize = (pwMax < 1) ? 1024 : pwMax;
 
+    if (!pwBuf) {
+	PSC_flog("pwBuf is NULL\n");
+	return NULL;
+    }
+
     *pwBuf = malloc(pwBufSize);
+    if (!*pwBuf) {
+	PSC_fwarn(errno, "malloc()");
+	return NULL;
+    }
     static struct passwd result;
     struct passwd *passwd = NULL;
     int eno;
@@ -744,7 +757,16 @@ struct passwd *PSC_getpwuidBuf(uid_t uid, char **pwBuf)
     long pwMax = sysconf(_SC_GETPW_R_SIZE_MAX);
     size_t pwBufSize = (pwMax < 1) ? 1024 : pwMax;
 
+    if (!pwBuf) {
+	PSC_flog("pwBuf is NULL\n");
+	return NULL;
+    }
+
     *pwBuf = malloc(pwBufSize);
+    if (!*pwBuf) {
+	PSC_fwarn(errno, "malloc()");
+	return NULL;
+    }
     static struct passwd result;
     struct passwd *passwd = NULL;
     int eno;
@@ -796,7 +818,16 @@ static struct group *getgrgidBuf(gid_t gid, char **grBuf)
     long grMax = sysconf(_SC_GETPW_R_SIZE_MAX);
     size_t grBufSize = (grMax < 1) ? 1024 : grMax;
 
+    if (!grBuf) {
+	PSC_flog("grBuf is NULL\n");
+	return NULL;
+    }
+
     *grBuf = malloc(grBufSize);
+    if (!*grBuf) {
+	PSC_fwarn(errno, "malloc()");
+	return NULL;
+    }
     static struct group result;
     struct group *grp = NULL;
     int eno;

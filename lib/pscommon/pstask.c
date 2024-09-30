@@ -408,6 +408,7 @@ PStask_t* PStask_clone(PStask_t* task)
     int eno = 0;
 
     PStask_t *clone = PStask_new();
+    if (!clone) return NULL;
 
     /* clone->tid = 0; */
     clone->ptid = task->ptid;
