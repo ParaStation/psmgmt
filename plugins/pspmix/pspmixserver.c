@@ -1017,12 +1017,13 @@ typedef struct {
     char *hostfile;
     bool initrequired;
     char *nodetypes;
+    char *mpiexecopts;
     char *srunopts;
 } SpawnInfo_t;
 
 static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 {
-    SpawnInfo_t si = { NULL, NULL, NULL, NULL, false, NULL, NULL };
+    SpawnInfo_t si = { NULL, NULL, NULL, NULL, false, NULL, NULL, NULL };
 
     /* handle command directives */
     /* Host environments are required to support the following attributes when
@@ -1084,6 +1085,11 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 
 	if (PMIX_CHECK_KEY(this, "pspmix.nodetypes")) {
 	    si.nodetypes = this->value.data.string;
+	    continue;
+	}
+
+	if (PMIX_CHECK_KEY(this, "pspmix.mpiexecopts")) {
+	    si.mpiexecopts = this->value.data.string;
 	    continue;
 	}
 
@@ -1228,6 +1234,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 
     PspmixSpawnHints_t hints = {
 	.nodetypes = si_job.nodetypes,
+	.mpiexecopts = si_job.mpiexecopts,
 	.srunopts = si_job.srunopts
     };
 

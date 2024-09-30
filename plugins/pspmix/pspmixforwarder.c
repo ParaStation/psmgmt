@@ -231,7 +231,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     bool noParricide = false;
 
     /* build arguments:
-     * kvsprovider --pmix --gnodetype <typelist>
+     * kvsprovider --pmix --gnodetype <typelist> <mpiexecopts>
      *             -np <NP> -d <WDIR> --nodetype <typeslist>
      *					     -E <key> <value> <BINARY> : ... */
     strv_t args = strvNew(NULL);
@@ -247,9 +247,27 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     strvAdd(args, "--pmix");
 
     for (int i = 0; i < req->infoc; i++) {
-	if (!strcmp(req->infov[i].key, "nodetypes")) {
+	KVP_t *this = req->infov+i;
+
+	if (!strcmp(this->key, "nodetypes")) {
 	    strvAdd(args, "--gnodetype");
-	    strvAdd(args, req->infov[i].value);
+	    strvAdd(args, this->value);
+	}
+
+        /* "mpiexecopts" info field is extremely dangerous and only meant for
+	 * easier testing purposes during development. It is officially
+	 * undocumented and can be removed at any time in the future.
+	 * Every option that is found useful using this mechanism should
+	 * get it's own info key for in production use. */
+	if (!strcmp(this->key, "mpiexecopts")) {
+	    flog("WARNING: Undocumented feature 'mpiexecopts' used: '%s'\n",
+		 this->value);
+	    /* simply split at blanks */
+	    char *ptr = strtok(this->value, " ");
+	    while(ptr) {
+		strvAdd(args, ptr);
+		ptr = strtok(NULL, " ");
+	    }
 	}
     }
 
@@ -966,6 +984,15 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	vectorAdd(&infos, &entry);
     } else {
 	ufree(nodetypes);
+    }
+
+    char *mpiexecopts = getStringML(data, &len);
+    if (len) {
+	entry.key = ustrdup("mpiexecopts");
+	entry.value = mpiexecopts;
+	vectorAdd(&infos, &entry);
+    } else {
+	ufree(mpiexecopts);
     }
 
     char *srunopts = getStringML(data, &len);
