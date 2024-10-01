@@ -231,9 +231,9 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     bool noParricide = false;
 
     /* build arguments:
-     * kvsprovider --pmix --gnodetype <typelist> <mpiexecopts>
+     * kvsprovider --pmix --gnodetype <typelist> <mpiexecopts(job)>
      *             -np <NP> -d <WDIR> --nodetype <typeslist>
-     *					     -E <key> <value> <BINARY> : ... */
+     *			    -E <key> <mpiexecopts(app) <value> <BINARY> : ... */
     strv_t args = strvNew(NULL);
     /* @todo change to not need to start a kvsprovider any longer */
     char *tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
@@ -259,9 +259,9 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	 * undocumented and can be removed at any time in the future.
 	 * Every option that is found useful using this mechanism should
 	 * get it's own info key for in production use. */
-	if (!strcmp(this->key, "mpiexecopts")) {
-	    flog("WARNING: Undocumented feature 'mpiexecopts' used: '%s'\n",
-		 this->value);
+	if (strcmp(this->key, "mpiexecopts") == 0) {
+	    flog("WARNING: Undocumented feature 'mpiexecopts' used (job):"
+		 " '%s'\n", this->value);
 	    /* simply split at blanks */
 	    char *ptr = strtok(this->value, " ");
 	    while(ptr) {
@@ -300,6 +300,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	 *  - parricide: Flag to not kill process upon relative's unexpected
 	 *               death.
 	 */
+	char * mpiexecopts = NULL;
 	for (int i = 0; i < spawn->infoc; i++) {
 	    KVP_t *info = &(spawn->infov[i]);
 
@@ -315,6 +316,11 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 		} else if (!strcmp(info->value, "enabled")) {
 		    noParricide = false;
 		}
+            /* "mpiexecopts" info field is extremely dangerous (see above) */
+	    } else if (!strcmp(info->key, "mpiexecopts")) {
+		flog("WARNING: Undocumented feature 'mpiexecopts' used"
+		     " (app %d): '%s'\n", r, info->value);
+		mpiexecopts = info->value;
 	    } else {
 		plog("info key '%s' not supported\n", info->key);
 	    }
@@ -328,6 +334,16 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    strvAdd(args, strsep(&stringp, "="));
 	    strvAdd(args, stringp);
 	    ufree(tmp);
+	}
+
+	/* append developer options if passed as last options */
+	if (mpiexecopts) {
+	    /* simply split at blanks */
+	    char *ptr = strtok(mpiexecopts, " ");
+	    while(ptr) {
+		strvAdd(args, ptr);
+		ptr = strtok(NULL, " ");
+	    }
 	}
 
 	/* add binary and argument from spawn request */
@@ -1068,6 +1084,24 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	    vectorAdd(&infos, &entry);
 	} else {
 	    ufree(nodetypes);
+	}
+
+	char *mpiexecopts = getStringML(data, &len);
+	if (len) {
+	    entry.key = ustrdup("mpiexecopts");
+	    entry.value = mpiexecopts;
+	    vectorAdd(&infos, &entry);
+	} else {
+	    ufree(mpiexecopts);
+	}
+
+	char *srunopts = getStringML(data, &len);
+	if (len) {
+	    entry.key = ustrdup("srunopts");
+	    entry.value = srunopts;
+	    vectorAdd(&infos, &entry);
+	} else {
+	    ufree(srunopts);
 	}
 
 	spawn->infov = infos.data;

@@ -99,7 +99,7 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 	 * Every option that is found useful using this mechanism should
 	 * get it's own info key for in production use. */
 	if (strcmp(info->key, "srunopts") == 0) {
-	    flog("WARNING: Undocumented feature 'srunopts' used: '%s'\n",
+	    flog("WARNING: Undocumented feature 'srunopts' used (job): '%s'\n",
 		 info->value);
 	    /* simply split at blanks */
 	    char *ptr = strtok(info->value, " ");
@@ -140,21 +140,27 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 	 *  - tpp: Threads per process
 	 *
 	 */
+	char *srunopts = NULL;
 	for (int i = 0; i < spawn->infoc; i++) {
 	    KVP_t *info = &(spawn->infov[i]);
 
-	    if (strcmp(info->key, "wdir") == 0) {
+	    if (!strcmp(info->key, "wdir")) {
 		if (!s) {
 		    strvAdd(argV, "-D");          // --chdir=
 		    strvAdd(argV, info->value);
 		}
-	    } else if (strcmp(info->key, "host") == 0) {
+	    } else if (!strcmp(info->key, "host")) {
 		strvAdd(argV, "-w");          // --nodelist=
 		strvAdd(argV, info->value);
-	    } else if (strcmp(info->key, "parricide") == 0) {
+	    } else if (!strcmp(info->key, "parricide")) {
 		if (!strcmp(info->value, "disabled")) {
 		    task->noParricide = true;
 		}
+	    /* "srunopts" info field is extremely dangerous (see above) */
+	    } else if (!strcmp(info->key, "srunopts")) {
+		flog("WARNING: Undocumented feature 'srunopts' used (app %d):"
+		     " '%s'\n", s, info->value);
+		srunopts = info->value;
 	    } else {
 		flog("info key '%s' not supported\n", info->key);
 	    }
@@ -177,6 +183,16 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 	    *eq = '=';
 	}
 	strvLink(argV, envArg);
+
+	/* append developer options if passed as last options */
+	if (srunopts) {
+	    /* simply split at blanks */
+	    char *ptr = strtok(srunopts, " ");
+	    while(ptr) {
+		strvAdd(argV, ptr);
+		ptr = strtok(NULL, " ");
+	    }
+	}
 
 	strvAppend(argV, spawn->argV);
 

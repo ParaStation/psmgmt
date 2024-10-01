@@ -273,6 +273,8 @@ typedef struct {
     char *host;            /**< comma delimited list of hostnames to be used */
     char *hostfile;        /**< file with hostnames to be used one each line */
     char *nodetypes;       /**< nodetypes to use, comma separated */
+    char *mpiexecopts;      /**< UNDOCUMENTED: additional options for mpiexec */
+    char *srunopts;         /**< UNDOCUMENTED: additional options for srun */
 } PspmixSpawnApp_t;
 
 /**
