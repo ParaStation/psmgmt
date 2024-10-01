@@ -97,7 +97,6 @@ typedef struct {
     uint32_t ready;            /**< num of processes reported as ready */
     char *nspace;              /**< new namespace */
     uint32_t opts;             /**< spawn options: PSPMIX_SPAWNOPT_* */
-    PspmixSpawnHints_t hints;  /**< hints not processed in server module */
 } PspmixSpawn_t;
 
 /****** global variable needed to be lock protected ******/
@@ -156,7 +155,6 @@ static void cleanupSpawn(PspmixSpawn_t *spawn)
     ufree(spawn->apps);
     ufree(spawn->nspace);
     ufree(spawn->sdata);
-    ufree(spawn->hints.nodetypes);
     ufree(spawn);
 }
 
@@ -1995,7 +1993,6 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     spawn->apps = apps;
     spawn->state = SPAWN_INITIALIZED;
     spawn->opts = opts;
-    spawn->hints.nodetypes = ustrdup(hints->nodetypes);
     fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state INITIALIZED\n", spawn->id);
 
     /* @todo what means maxprocs, can the spawn be successful with less procs? */
@@ -2029,7 +2026,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     if (!pspmix_comm_sendClientSpawn(client->fwtid, spawn->id, spawn->napps,
 				     spawn->apps, spawn->caller.nspace,
 				     spawn->caller.rank, spawn->opts,
-				     &spawn->hints)) {
+				     hints)) {
 	flog("sending spawn req to forwarder failed (namespace %s rank %d)\n",
 	     spawn->caller.nspace, spawn->caller.rank);
 	ufree(spawn);
