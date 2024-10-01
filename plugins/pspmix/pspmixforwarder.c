@@ -263,11 +263,13 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    flog("WARNING: Undocumented feature 'mpiexecopts' used (job):"
 		 " '%s'\n", this->value);
 	    /* simply split at blanks */
-	    char *ptr = strtok(this->value, " ");
+	    char *mpiexecopts = ustrdup(this->value);
+	    char *ptr = strtok(mpiexecopts, " ");
 	    while(ptr) {
 		strvAdd(args, ptr);
 		ptr = strtok(NULL, " ");
 	    }
+	    ufree(mpiexecopts);
 	}
     }
 
@@ -320,7 +322,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    } else if (!strcmp(info->key, "mpiexecopts")) {
 		flog("WARNING: Undocumented feature 'mpiexecopts' used"
 		     " (app %d): '%s'\n", r, info->value);
-		mpiexecopts = info->value;
+		mpiexecopts = ustrdup(info->value);
 	    } else {
 		plog("info key '%s' not supported\n", info->key);
 	    }
@@ -344,6 +346,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 		strvAdd(args, ptr);
 		ptr = strtok(NULL, " ");
 	    }
+	    ufree(mpiexecopts);
 	}
 
 	/* add binary and argument from spawn request */

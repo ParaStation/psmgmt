@@ -102,11 +102,13 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 	    flog("WARNING: Undocumented feature 'srunopts' used (job): '%s'\n",
 		 info->value);
 	    /* simply split at blanks */
-	    char *ptr = strtok(info->value, " ");
+	    char *srunopts = strdup(info->value);
+	    char *ptr = strtok(srunopts, " ");
 	    while(ptr) {
 		strvAdd(argV, ptr);
 		ptr = strtok(NULL, " ");
 	    }
+	    free(srunopts);
 	}
     }
 
@@ -160,7 +162,7 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 	    } else if (!strcmp(info->key, "srunopts")) {
 		flog("WARNING: Undocumented feature 'srunopts' used (app %d):"
 		     " '%s'\n", s, info->value);
-		srunopts = info->value;
+		srunopts = strdup(info->value);
 	    } else {
 		flog("info key '%s' not supported\n", info->key);
 	    }
@@ -192,6 +194,7 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 		strvAdd(argV, ptr);
 		ptr = strtok(NULL, " ");
 	    }
+	    free(srunopts);
 	}
 
 	strvAppend(argV, spawn->argV);
