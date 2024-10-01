@@ -1246,6 +1246,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
     }
 
     if (!ret) {
+	ufree(sapps);
 	ufree(sdata);
     }
 
