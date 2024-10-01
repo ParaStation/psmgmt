@@ -81,6 +81,9 @@ static const struct {
 /** List of all spank plugins */
 static LIST_HEAD(SpankList);
 
+/** SPANK option cache */
+static LIST_HEAD(OptCacheList);
+
 /** handle to symbols of the spank API */
 static void *globalSym = NULL;
 
@@ -89,6 +92,60 @@ static spank_t current_spank = NULL;
 
 /** flag psid to be tainted by external spank plugins */
 bool tainted = false;
+
+typedef struct {
+    list_t next;                /**< used to put into some cache-list */
+    Spank_Plugin_t *plugin;
+    struct spank_option *spOpt;
+    char *value;
+} Opt_Cache_Entry_t;
+
+static Opt_Cache_Entry_t *optCacheFind(Spank_Plugin_t *plugin,
+				       struct spank_option *spOpt)
+{
+    list_t *o;
+    list_for_each(o, &OptCacheList) {
+	Opt_Cache_Entry_t *optCache = list_entry(o, Opt_Cache_Entry_t, next);
+	if (optCache->plugin != plugin || optCache->spOpt != spOpt) continue;
+	return optCache;
+    }
+
+    return NULL;
+}
+
+static void optCacheSave(Spank_Plugin_t *plugin, struct spank_option *spOpt,
+			 const char *value)
+{
+    fdbg(PSSLURM_LOG_SPANK, "plugin %s option %s=%s\n", plugin->name,
+	 spOpt->name, value);
+
+    Opt_Cache_Entry_t *optCache = optCacheFind(plugin, spOpt);
+    if (optCache) {
+	ufree(optCache->value);
+	optCache->value = ustrdup(value);
+	return;
+    }
+
+    optCache = umalloc(sizeof(*optCache));
+    optCache->plugin = plugin;
+    optCache->spOpt = spOpt;
+    optCache->value = ustrdup(value);
+
+    list_add_tail(&optCache->next, &OptCacheList);
+}
+
+static void optCacheClear(Spank_Plugin_t *plugin)
+{
+    list_t *o;
+    list_for_each(o, &OptCacheList) {
+	Opt_Cache_Entry_t *optCache = list_entry(o, Opt_Cache_Entry_t, next);
+	if (optCache->plugin != plugin) continue;
+	ufree(optCache->value);
+
+	list_del(&optCache->next);
+	ufree(optCache);
+    }
+}
 
 void SpankSavePlugin(Spank_Plugin_t *def)
 {
@@ -101,6 +158,7 @@ static void delSpankPlug(Spank_Plugin_t *sp)
 	dlclose(sp->handle);
 	sp->handle = NULL;
     }
+    optCacheClear(sp);
     ufree(sp->path);
     strvDestroy(sp->argV);
 
@@ -459,6 +517,9 @@ bool SpankUnloadPlugin(const char *name, bool finalize)
 /**
  * @brief Find a SPANK plugin option
  *
+ * The SPANK option may be defined in the spank_options table or
+ * added by a call to spank_option_register().
+ *
  * @param plugin The plugin which registered the option
  *
  * @param name The name of the option to find
@@ -483,7 +544,7 @@ static struct spank_option *findPluginOpt(Spank_Plugin_t *plugin,
 	}
     }
 
-    /* find option in plugin table */
+    /* find option in plugin table (see psSpankOptRegister()) */
     opt = plugin->opt;
     for (uint32_t i = 0; i < plugin->optCount; i++) {
 	if (isEnvName) {
@@ -499,7 +560,7 @@ static struct spank_option *findPluginOpt(Spank_Plugin_t *plugin,
 /**
  * @brief Initialize SPANK option from environment
  *
- * Search the given environment for SPANK plugin options. A option string
+ * Search the given environment for SPANK plugin options. An option string
  * starts with a defined prefix followed by the plugin and option names.
  * If a option is successfully identified an optional callback is invoked so
  * the SPANK plugin may initialize itself.
@@ -543,12 +604,46 @@ static void initSpankOptByEnv(env_t env)
 	    if (value) {
 		fdbg(PSSLURM_LOG_SPANK, "set option %s=%s for plugin %s \n",
 		     opt->name, value, plugin->name);
-		if (opt->cb) opt->cb(opt->val, value, 1);
+		optCacheSave(plugin, opt, value);
 		found = true;
 	    }
 	}
 	if (!found) {
 	    fdbg(PSSLURM_LOG_SPANK, "error: could not match option %s\n", *e);
+	}
+    }
+}
+
+/**
+ * @brief Initialize SPANK option from step
+ *
+ * @param step step holding options to handle
+ */
+void initSpankOptByStep(Step_t *step)
+{
+    for (uint32_t i=0; step && i < step->spankOptCount; i++) {
+	Spank_Opt_t stepOpt = step->spankOpt[i];
+
+	if (stepOpt.type != OPT_TYPE_SPANK) continue;
+
+	Spank_Plugin_t *plugin = findPlugin(stepOpt.pluginName);
+	if (!plugin) {
+	    flog("no plugin %s for option %s found\n", stepOpt.pluginName,
+		 stepOpt.optName);
+	    continue;
+	}
+
+	struct spank_option *opt = findPluginOpt(plugin, stepOpt.optName, false);
+	if (!opt) {
+	    /* a spank plugin may choose to register options only in
+	     * local context */
+	    fdbg(PSSLURM_LOG_SPANK, "no option %s for plugin %s found\n",
+		 stepOpt.optName, stepOpt.pluginName);
+	} else {
+	    /* save option in cache */
+	    fdbg(PSSLURM_LOG_SPANK, "exec callback for name %s val %s"
+		 " callback %p\n", stepOpt.optName, stepOpt.val, opt->cb);
+	    optCacheSave(plugin, opt, stepOpt.val);
 	}
     }
 }
@@ -571,30 +666,17 @@ void __SpankInitOpt(spank_t spank, const char *func, const int line)
     initSpankOptByEnv(env);
 
     /* parse SPANK options transferred by launch-step RPC */
-    if (!step) return;
-    for (uint32_t i=0; i<step->spankOptCount; i++) {
-	Spank_Opt_t stepOpt = step->spankOpt[i];
+    initSpankOptByStep(step);
 
-	if (stepOpt.type != OPT_TYPE_SPANK) continue;
-
-	Spank_Plugin_t *plugin = findPlugin(stepOpt.pluginName);
-	if (!plugin) {
-	    flog("no plugin %s for option %s found\n", stepOpt.pluginName,
-		 stepOpt.optName);
-	    continue;
-	}
-
-	struct spank_option *opt = findPluginOpt(plugin, stepOpt.optName, false);
-	if (!opt) {
-	    /* a spank plugin may choose to register options only in
-	     * local context */
-	    fdbg(PSSLURM_LOG_SPANK, "no option %s for plugin %s found\n",
-		 stepOpt.optName, stepOpt.pluginName);
-	} else {
-	    /* execute option callback */
-	    fdbg(PSSLURM_LOG_SPANK, "exec callback for name %s val %s"
-		 " callback %p\n", stepOpt.optName, stepOpt.val, opt->cb);
-	    if (opt->cb) opt->cb(opt->val, stepOpt.val, 1);
+    /* execute callbacks */
+    list_t *o;
+    list_for_each(o, &OptCacheList) {
+	Opt_Cache_Entry_t *optCache = list_entry(o, Opt_Cache_Entry_t, next);
+	spank_opt_cb_f cb = optCache->spOpt->cb;
+	if (cb) {
+	    fdbg(PSSLURM_LOG_SPANK, "option callback %s=%s\n",
+		 optCache->spOpt->name, optCache->value);
+	    cb(optCache->spOpt->val, optCache->value, 1);
 	}
     }
 }
@@ -1322,25 +1404,15 @@ int psSpankOptGet(spank_t spank, struct spank_option *opt, char **retval)
 	    return ESPANK_NOT_AVAIL;
     }
 
-    Step_t *step = spank->step;
-    if (!step) {
-	flog("invalid step from for opt %s\n", opt->name);
-	return ESPANK_ERROR;
+    Opt_Cache_Entry_t *optCache = optCacheFind(spank->plugin, opt);
+    if (optCache) {
+	*retval = optCache->value;
+	fdbg(PSSLURM_LOG_SPANK, "get option %s val %s\n", opt->name,
+	     optCache->value);
+	return ESPANK_SUCCESS;
     }
 
-    for (uint32_t i=0; i<step->spankOptCount; i++) {
-	Spank_Opt_t stepOpt = step->spankOpt[i];
-
-	if (stepOpt.type != OPT_TYPE_SPANK) continue;
-
-	if (!strcmp(stepOpt.optName, opt->name)) {
-	    *retval = stepOpt.val;
-	    fdbg(PSSLURM_LOG_SPANK, "get option %s val %s\n",
-		 stepOpt.optName, stepOpt.val);
-	    return ESPANK_SUCCESS;
-	}
-    }
-
+    flog("SPANK option %s not found\n", opt->name);
     return ESPANK_ERROR;
 }
 
