@@ -100,6 +100,15 @@ typedef struct {
     char *value;
 } Opt_Cache_Entry_t;
 
+/**
+ * @brief Find an option in the cache
+ *
+ * @param plugin SPANK plugin which registered the option
+ *
+ * @param optName name of the option
+ *
+ * @return Returns the found option on success otherwise NULL is returned
+ */
 static Opt_Cache_Entry_t *optCacheFind(Spank_Plugin_t *plugin,
 				       const char *optName)
 {
@@ -114,6 +123,15 @@ static Opt_Cache_Entry_t *optCacheFind(Spank_Plugin_t *plugin,
     return NULL;
 }
 
+/**
+ * @brief Save an option in the cache
+ *
+ * @param plugin SPANK plugin which registered the option
+ *
+ * @param spOpt SPANK option to save
+ *
+ * @param value option value
+ */
 static void optCacheSave(Spank_Plugin_t *plugin, struct spank_option *spOpt,
 			 const char *value)
 {
@@ -138,6 +156,11 @@ static void optCacheSave(Spank_Plugin_t *plugin, struct spank_option *spOpt,
     list_add_tail(&optCache->next, &OptCacheList);
 }
 
+/**
+ * @brief Clear the option cache for a plugin
+ *
+ * @param plugin SPANK plugin to clear all options for
+ */
 static void optCacheClear(Spank_Plugin_t *plugin)
 {
     list_t *o;
@@ -581,7 +604,7 @@ static void initSpankOptByEnv(env_t env)
 	char *ptr = !strncmp("SPANK_", *e, 6) ? *e + 6 : *e;
 	if (strncmp(SPANK_ENV_OPT, ptr, len)) continue;
 
-	/* remove SPANK prefix */
+	/* remove SPANK option prefix */
 	char *optEnv = ptr + len;
 	if (!optEnv) {
 	    flog("erro: empty option environment string %s\n", ptr);
@@ -1400,14 +1423,15 @@ int psSpankOptGet(spank_t spank, struct spank_option *opt, char **retval)
 
     Opt_Cache_Entry_t *optCache = optCacheFind(spank->plugin, opt->name);
     if (!optCache) {
-	flog("SPANK plugin %s option %s not found\n", spank->plugin->name,
+	fdbg(PSSLURM_LOG_SPANK, "plugin %s hook %s option %s not found\n",
+	     spank->plugin->name, Spank_Hook_Table[spank->hook].strName,
 	     opt->name);
 	return ESPANK_ERROR;
     }
 
     *retval = optCache->value;
-    fdbg(PSSLURM_LOG_SPANK, "get option %s val %s\n", opt->name,
-	 optCache->value);
+    fdbg(PSSLURM_LOG_SPANK, "get option %s hook %s val %s\n", opt->name,
+	 Spank_Hook_Table[spank->hook].strName, optCache->value);
     return ESPANK_SUCCESS;
 }
 
