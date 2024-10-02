@@ -20,7 +20,7 @@
 #include "psprotocol.h" // IWYU pragma: export
 
 /** Unique version number of the high-level protocol */
-#define PSDaemonProtocolVersion  417
+#define PSDaemonProtocolVersion  418
 
 /** IDs of the various message types */
 
