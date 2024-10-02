@@ -472,7 +472,8 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
 
 static char *filterData[] = { "SLURM_SPANK_*", "_SLURM_SPANK_OPTION_*",
     "SLURM_JOBID", "SLURM_JOB_ID", "SLURM_JOB_NODELIST", "SLURM_SUBMIT_DIR",
-    "SLURM_PACK_JOB_ID", "SLURM_PACK_JOB_NODELIST", "_PSSLURM_*", NULL, NULL };
+    "SLURM_PACK_JOB_ID", "SLURM_PACK_JOB_NODELIST", "_PSSLURM_*",
+    "SPANK__SLURM*", NULL, NULL };
 
 static bool envFilter(const char *envStr)
 {

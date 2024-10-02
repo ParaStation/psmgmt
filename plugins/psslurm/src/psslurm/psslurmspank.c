@@ -573,12 +573,14 @@ static void initSpankOptByEnv(env_t env)
     size_t len = strlen(SPANK_ENV_OPT);
 
     for (char **e = envGetArray(env); e && *e; e++) {
-	if (strncmp(SPANK_ENV_OPT, *e, len)) continue;
+	/* remove optional SPANK prefix */
+	char *ptr = !strncmp("SPANK_", *e, 6) ? *e + 6 : *e;
+	if (strncmp(SPANK_ENV_OPT, ptr, len)) continue;
 
 	/* remove SPANK prefix */
-	char *optEnv = *e + len;
+	char *optEnv = ptr + len;
 	if (!optEnv) {
-	    flog("erro: empty option environment string %s\n", *e);
+	    flog("erro: empty option environment string %s\n", ptr);
 	    continue;
 	}
 
