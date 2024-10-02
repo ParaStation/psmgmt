@@ -60,10 +60,6 @@ AC_CHECK_LIB([pam], [pam_open_session],
    [ pam_enabled=true ] ])
 AM_CONDITIONAL([PAM_ENABLED], [test "x$pam_enabled" = xtrue])
 
-AC_ARG_ENABLE([psmom], [AS_HELP_STRING([--enable-psmom],
-  [also build psmom plugin and corresponding RPM])])
-AM_CONDITIONAL([BUILD_WITH_PSMOM], [test "x$enable_psmom" = xyes])
-
 AC_ARG_ENABLE([bpf], [AS_HELP_STRING([--disable-bpf],
   [build without bpf support])])
 AM_CONDITIONAL([BUILD_WITHOUT_BPF], [test "x$enable_bpf" = xno])
@@ -216,11 +212,6 @@ AC_CONFIG_FILES(plugins/psgw/Makefile)
 AC_CONFIG_FILES(plugins/psgw/doc/Makefile)
 AC_CONFIG_FILES(plugins/psgw/route/Makefile)
 AC_CONFIG_FILES(plugins/psgw/spank/Makefile)
-AC_CONFIG_FILES(plugins/psmom/Makefile)
-AC_CONFIG_FILES(plugins/psmom/doc/Makefile)
-AC_CONFIG_FILES(plugins/psmom/include/Makefile)
-AC_CONFIG_FILES(plugins/psmom/pbs/Makefile)
-AC_CONFIG_FILES(plugins/psmom/psmom/Makefile)
 AC_CONFIG_FILES(plugins/psmunge/Makefile)
 AC_CONFIG_FILES(plugins/pspam/Makefile)
 AC_CONFIG_FILES(plugins/pspam/include/Makefile)

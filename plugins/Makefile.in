@@ -99,9 +99,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-@BUILD_WITH_PSMOM_TRUE@am__append_1 = psmom
-@MUNGE_ENABLED_TRUE@am__append_2 = psmunge
-@BUILD_WITHOUT_PSPMIX_FALSE@am__append_3 = pspmix
+@MUNGE_ENABLED_TRUE@am__append_1 = psmunge
+@BUILD_WITHOUT_PSPMIX_FALSE@am__append_2 = pspmix
 subdir = plugins
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -167,7 +166,7 @@ am__define_uniq_tagged_files = \
     if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
   done | $(am__uniquify_input)`
 DIST_SUBDIRS = dynIP jail nodeinfo pelogue psaccount psexec psgw pspam \
-	pspmi psslurm rrcomm psmom psmunge pspmix
+	pspmi psslurm rrcomm psmunge pspmix
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
@@ -388,8 +387,7 @@ scriptsdir = $(prefix)/scripts
 # file.
 #
 SUBDIRS = dynIP jail nodeinfo pelogue psaccount psexec psgw pspam \
-	pspmi psslurm rrcomm $(am__append_1) $(am__append_2) \
-	$(am__append_3)
+	pspmi psslurm rrcomm $(am__append_1) $(am__append_2)
 all: all-recursive
 
 .SUFFIXES:

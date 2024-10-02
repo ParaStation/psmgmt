@@ -64,9 +64,6 @@ endif
 if !BPF_ENABLED
   AM_CONFIGARGS := $(AM_CONFIGARGS) -without bpf
 endif
-if BUILD_WITH_PSMOM
-  AM_CONFIGARGS := $(AM_CONFIGARGS) -with psmom
-endif
 
 .PHONY: tar rpm srpm tag version
 tar rpm srpm tag version:

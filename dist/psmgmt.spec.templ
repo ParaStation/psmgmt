@@ -15,7 +15,6 @@
 %{?_without_spank: %global disable_spank 1}
 %{?_without_testplugins: %global disable_testplugins 1}
 %{?_without_bpf: %global disable_bpf 1}
-%{?_with_psmom: %global enable_psmom 1}
 
 # we do not use rpm changelog
 %global source_date_epoch_from_changelog 0
@@ -111,19 +110,6 @@ Requires:  %{name} = %{version}-%{release}
 The psmgmt-mpilegacy package includes additional MPI starters for
 legacy implementations of the MPI version 1 standard.
 
-%if 0%{?enable_psmom}
-%package psmom
-Summary:   The MOM plugin of the ParaStation process management
-Group:     Productivity/Clustering/Computing
-Requires:  %{name} = %{version}-%{release}
-Obsoletes: psmom <= 5.2.10-20
-
-%description psmom
-The ParaStation MOM is a complete replacement of the pbs_mom. No other
-daemon is necessary to integrate compute nodes into a Torque batch system.
-
-%endif
-
 %package psslurm
 Summary:   The Slurm plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
@@ -216,8 +202,7 @@ export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
 	   %{?disable_systemd:--with-unitdir=no} \
 	   %{?disable_spank:--disable-spank} \
 	   %{?disable_testplugins:--disable-testplugins} \
-	   %{?disable_bpf:--disable-bpf} \
-	   %{?enable_psmom:--enable-psmom}
+	   %{?disable_bpf:--disable-bpf}
 make %{?_smp_mflags}
 
 %install
@@ -435,31 +420,6 @@ fi
 %defattr(-,root,root,-)
 %{_bindir}/psmstart
 %{_bindir}/pssh
-
-%if 0%{?enable_psmom}
-%files psmom
-%defattr(-,root,root,-)
-%doc plugins/psmom/doc/psmom-prologue-example
-%doc plugins/psmom/doc/psmom-epilogue-example
-%doc plugins/psmom/doc/psmom-timeout-example
-%doc plugins/psmom/ChangeLog-History
-%doc plugins/psmom/LICENSE.OpenPBS
-%doc plugins/psmom/README
-%if !0%{?disable_pam}
-%{_pamdir}/pam_psmom.so
-%endif
-%config(noreplace) /etc/pam.d/psmom
-%{_plugindir}/psmom.so
-%config(noreplace) %{_plugindir}/psmom.conf
-%dir %{_spooldir}
-%dir %{_spooldir}/jobs
-%dir %{_spooldir}/nodefiles
-%attr(1777,root,root) %{_spooldir}/temp
-%attr(1777,root,root) %{_spooldir}/undelivered
-%attr(750,root,root) %{_spooldir}/account
-%attr(750,root,root) %{_spooldir}/backup
-%attr(751,root,root) %{_spooldir}/scripts
-%endif
 
 %files psslurm
 %defattr(-,root,root,-)
