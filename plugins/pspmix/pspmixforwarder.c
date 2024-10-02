@@ -1053,59 +1053,25 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 	size_t len;
 	KVP_t entry;
-	char *wdir = getStringML(data, &len);
-	if (len) {
-	    entry.key = ustrdup("wdir");
-	    entry.value = wdir;
-	    vectorAdd(&infos, &entry);
-	} else {
-	    ufree(wdir);
-	}
 
-	char *host = getStringML(data, &len);
-	if (len) {
-	    entry.key = ustrdup("hosts");
-	    entry.value = host; /* Comma-delimited list */
-	    vectorAdd(&infos, &entry);
-	} else {
-	    ufree(host);
-	}
+#define GET_STRING_INFO(name) \
+    do { \
+	char *name = getStringML(data, &len); \
+	if (len) { \
+	    entry.key = ustrdup(#name); \
+	    entry.value = name; \
+	    vectorAdd(&infos, &entry); \
+	} else { \
+	    ufree(name); \
+	} \
+    } while(false)
 
-	char *hostfile = getStringML(data, &len);
-	if (len) {
-	    entry.key = ustrdup("hostfile");
-	    entry.value = hostfile;
-	    vectorAdd(&infos, &entry);
-	} else {
-	    ufree(hostfile);
-	}
-
-	char *nodetypes = getStringML(data, &len);
-	if (len) {
-	    entry.key = ustrdup("nodetypes");
-	    entry.value = nodetypes;
-	    vectorAdd(&infos, &entry);
-	} else {
-	    ufree(nodetypes);
-	}
-
-	char *mpiexecopts = getStringML(data, &len);
-	if (len) {
-	    entry.key = ustrdup("mpiexecopts");
-	    entry.value = mpiexecopts;
-	    vectorAdd(&infos, &entry);
-	} else {
-	    ufree(mpiexecopts);
-	}
-
-	char *srunopts = getStringML(data, &len);
-	if (len) {
-	    entry.key = ustrdup("srunopts");
-	    entry.value = srunopts;
-	    vectorAdd(&infos, &entry);
-	} else {
-	    ufree(srunopts);
-	}
+	GET_STRING_INFO(wdir);
+	GET_STRING_INFO(hosts); /* Comma-delimited list */
+	GET_STRING_INFO(hostfile);
+	GET_STRING_INFO(nodetypes);
+	GET_STRING_INFO(mpiexecopts);
+	GET_STRING_INFO(srunopts);
 
 	spawn->infov = infos.data;
 	spawn->infoc = infos.len;
