@@ -101,12 +101,13 @@ typedef struct {
 } Opt_Cache_Entry_t;
 
 static Opt_Cache_Entry_t *optCacheFind(Spank_Plugin_t *plugin,
-				       struct spank_option *spOpt)
+				       const char *optName)
 {
     list_t *o;
     list_for_each(o, &OptCacheList) {
 	Opt_Cache_Entry_t *optCache = list_entry(o, Opt_Cache_Entry_t, next);
-	if (optCache->plugin != plugin || optCache->spOpt != spOpt) continue;
+	if (optCache->plugin != plugin ||
+	    strcmp(optCache->spOpt->name, optName)) continue;
 	return optCache;
     }
 
@@ -116,15 +117,18 @@ static Opt_Cache_Entry_t *optCacheFind(Spank_Plugin_t *plugin,
 static void optCacheSave(Spank_Plugin_t *plugin, struct spank_option *spOpt,
 			 const char *value)
 {
-    fdbg(PSSLURM_LOG_SPANK, "plugin %s option %s=%s\n", plugin->name,
-	 spOpt->name, value);
-
-    Opt_Cache_Entry_t *optCache = optCacheFind(plugin, spOpt);
+    Opt_Cache_Entry_t *optCache = optCacheFind(plugin, spOpt->name);
     if (optCache) {
+	fdbg(PSSLURM_LOG_SPANK, "update plugin %s option %s=%s\n", plugin->name,
+	     spOpt->name, value);
+
 	ufree(optCache->value);
 	optCache->value = ustrdup(value);
 	return;
     }
+
+    fdbg(PSSLURM_LOG_SPANK, "add plugin %s option %s=%s\n", plugin->name,
+	 spOpt->name, value);
 
     optCache = umalloc(sizeof(*optCache));
     optCache->plugin = plugin;
@@ -1394,16 +1398,17 @@ int psSpankOptGet(spank_t spank, struct spank_option *opt, char **retval)
 	    return ESPANK_NOT_AVAIL;
     }
 
-    Opt_Cache_Entry_t *optCache = optCacheFind(spank->plugin, opt);
-    if (optCache) {
-	*retval = optCache->value;
-	fdbg(PSSLURM_LOG_SPANK, "get option %s val %s\n", opt->name,
-	     optCache->value);
-	return ESPANK_SUCCESS;
+    Opt_Cache_Entry_t *optCache = optCacheFind(spank->plugin, opt->name);
+    if (!optCache) {
+	flog("SPANK plugin %s option %s not found\n", spank->plugin->name,
+	     opt->name);
+	return ESPANK_ERROR;
     }
 
-    flog("SPANK option %s not found\n", opt->name);
-    return ESPANK_ERROR;
+    *retval = optCache->value;
+    fdbg(PSSLURM_LOG_SPANK, "get option %s val %s\n", opt->name,
+	 optCache->value);
+    return ESPANK_SUCCESS;
 }
 
 /**
