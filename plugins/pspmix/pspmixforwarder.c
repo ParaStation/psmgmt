@@ -1072,6 +1072,7 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	GET_STRING_INFO(nodetypes);
 	GET_STRING_INFO(mpiexecopts);
 	GET_STRING_INFO(srunopts);
+	GET_STRING_INFO(srunconstraint);
 
 	spawn->infov = infos.data;
 	spawn->infoc = infos.len;

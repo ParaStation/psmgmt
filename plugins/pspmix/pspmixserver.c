@@ -1019,11 +1019,12 @@ typedef struct {
     char *nodetypes;
     char *mpiexecopts;
     char *srunopts;
+    char *srunconstraint;
 } SpawnInfo_t;
 
 static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 {
-    SpawnInfo_t si = { NULL, NULL, NULL, NULL, false, NULL, NULL, NULL };
+    SpawnInfo_t si = { NULL, NULL, NULL, NULL, false, NULL, NULL, NULL, NULL };
 
     /* handle command directives */
     /* Host environments are required to support the following attributes when
@@ -1223,6 +1224,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	sapps[a].nodetypes = si_app.nodetypes;
 	sapps[a].mpiexecopts = si_app.mpiexecopts;
 	sapps[a].srunopts = si_app.srunopts;
+	sapps[a].srunconstraint = si_app.srunconstraint;
     }
 
     /* handle additional options */
@@ -1260,6 +1262,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 	sapps[a].nodetypes = NULL;
 	sapps[a].mpiexecopts = NULL;
 	sapps[a].srunopts = NULL;
+	sapps[a].srunconstraint = NULL;
     }
 
     if (!ret) {

@@ -684,6 +684,7 @@ bool pspmix_comm_sendClientSpawn(PStask_ID_t dest, uint16_t spawnID,
 	addStringToMsg(apps[a].nodetypes, &msg);
 	addStringToMsg(apps[a].mpiexecopts, &msg);
 	addStringToMsg(apps[a].srunopts, &msg);
+	addStringToMsg(apps[a].srunconstraint, &msg);
     }
 
     int ret = sendFragMsg(&msg);

@@ -154,6 +154,9 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 	    } else if (!strcmp(info->key, "host")) {
 		strvAdd(argV, "-w");          // --nodelist=
 		strvAdd(argV, info->value);
+	    } else if (!strcmp(info->key, "srunconstraint")) {
+		strvAdd(argV, "-C");          // --constraint=
+		strvAdd(argV, info->value);
 	    } else if (!strcmp(info->key, "parricide")) {
 		if (!strcmp(info->value, "disabled")) {
 		    task->noParricide = true;
