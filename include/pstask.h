@@ -289,11 +289,6 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task);
 int PStask_decodeTask(char *buffer, PStask_t *task, bool withWdir);
 
 /**
- * @brief Compatibility version of @ref PStask_decodeTask()
- */
-int PStask_decodeTask_old(char *buffer, PStask_t *task, bool withWdir);
-
-/**
  * @brief Send task structure
  *
  * Send task structure @a task via the serialization layer utilizing
@@ -311,11 +306,6 @@ int PStask_decodeTask_old(char *buffer, PStask_t *task, bool withWdir);
  * @return On success true is returned; or false in case of error
  */
 bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg);
-
-/**
- * @brief Compatibility version of @ref PStask_addToMsg()
- */
-bool PStask_addToMsg_old(PStask_t *task, PS_SendDB_t *msg);
 
 /**
  * @brief Add extra information to task
