@@ -42,9 +42,9 @@ typedef enum {
     PSP_CONN_ERR_VERSION = 1,     /**< Protocol version mismatch */
     PSP_CONN_ERR_NOSPACE,         /**< No space to create task struct */
     PSP_CONN_ERR_UIDLIMIT,        /**< Node is limited to different user */
+    PSP_CONN_ERR_GIDLIMIT,        /**< Node is limited to different group */
     PSP_CONN_ERR_PROCLIMIT,       /**< Number of processes exceeded */
     PSP_CONN_ERR_STATENOCONNECT,  /**< No connections accepted */
-    PSP_CONN_ERR_GIDLIMIT,        /**< Node is limited to different group */
 } PSP_ConnectError_t;
 
 /** Messages used for setting and getting option values */
@@ -59,11 +59,11 @@ typedef enum {
     PSP_OP_UNKNOWN,               /**< Unknown option */
     PSP_OP_HWSTATUS = 0x0001,     /**< Hardware status */
     PSP_OP_PROTOCOLVERSION,       /**< Node's PSProtocol version */
-    PSP_OP_PROCLIMIT = 0x0003,    /**< Maximum number of processes */
+    PSP_OP_PROCLIMIT,             /**< Maximum number of processes */
     PSP_OP_OBSOLETE,              /**< Number of obsolete tasks */
-    PSP_OP_PSIDDEBUG = 0x0005,    /**< psid's debug level */
+    PSP_OP_PSIDDEBUG,             /**< psid's debug level */
     PSP_OP_PSIDSELECTTIME,        /**< Time (sec) in psid's select() */
-    PSP_OP_MASTER = 0x0008,       /**< current master of the cluster */
+    PSP_OP_MASTER,                /**< current master of the cluster */
     PSP_OP_DAEMONPROTOVERSION,    /**< Node's PSDaemonProtocol version */
     PSP_OP_PLUGINAPIVERSION,      /**< Node's version of the plugin API */
     PSP_OP_NODELISTHASH,          /**< Hash of nodenames known to a node */
@@ -92,14 +92,14 @@ typedef enum {
     PSP_OP_MCASTDEBUG = 0x0028,   /**< MCast's debug level */
     PSP_OP_RDPSTATISTICS,         /**< Status of RDP statistics */
 
-    PSP_OP_FREEONSUSP = 0x0038,   /**< Free suspended job's resources? */
-    PSP_OP_NODESSORT = 0x003a,    /**< Sorting strategy for nodes */
+    PSP_OP_FREEONSUSP = 0x0030,   /**< Free suspended job's resources? */
+    PSP_OP_NODESSORT,             /**< Sorting strategy for nodes */
     PSP_OP_OVERBOOK,              /**< (Dis-)Allow overbooking this node */
     PSP_OP_STARTER,               /**< (Dis-)Allow starting from this node */
     PSP_OP_RUNJOBS,               /**< (Dis-)Allow running on this node */
     PSP_OP_EXCLUSIVE,             /**< (Dis-)Allow assign node exclusively */
 
-    PSP_OP_PINPROCS = 0x0048,     /**< Process-pinning is used on this node */
+    PSP_OP_PINPROCS = 0x0040,     /**< Process-pinning is used on this node */
     PSP_OP_BINDMEM,               /**< Memory-binding is used on this node */
     PSP_OP_CLR_CPUMAP,            /**< clear CPU-map */
     PSP_OP_APP_CPUMAP,            /**< append an element to CPU-map */
@@ -162,12 +162,11 @@ typedef enum {
     PSP_INFO_NROFNODES,           /**< Number of cluster nodes */
     PSP_INFO_INSTDIR,             /**< ParaStation installation directory */
 
-    PSP_INFO_HOST = 0x0004,       /**< ParaStation ID from IP */
+    PSP_INFO_HOST,                /**< ParaStation ID from IP */
     PSP_INFO_NODE,                /**< IP from ParaStation ID */
-    PSP_INFO_LIST_END = 0x0009,   /**< end of list info replies */
 
-    PSP_INFO_LIST_HOSTSTATUS,     /**< Complete status of all cluster nodes */
     PSP_INFO_RDPSTATUS,           /**< Status of the RDP */
+    PSP_INFO_RDPCONNSTATUS,       /**< Info on RDP connections */
     PSP_INFO_MCASTSTATUS,         /**< Status of the MCast */
 
     PSP_INFO_COUNTHEADER,         /**< Header for communication counters */
@@ -184,27 +183,29 @@ typedef enum {
     PSP_INFO_PARENTTID,           /**< Parent's task ID */
     PSP_INFO_LOGGERTID,           /**< Logger's task ID */
 
+    PSP_INFO_LIST_HOSTSTATUS,     /**< Complete status of all cluster nodes */
+    PSP_INFO_LIST_MEMORY,         /**< List of total/used memory values */
     PSP_INFO_LIST_VIRTCPUS,       /**< List of virtual CPU numbers */
     PSP_INFO_LIST_PHYSCPUS,       /**< List of physical CPU numbers */
     PSP_INFO_LIST_HWSTATUS,       /**< List of hardware statuses */
     PSP_INFO_LIST_LOAD,           /**< List of load average values */
     PSP_INFO_LIST_ALLJOBS,        /**< List of job numbers (all jobs) */
     PSP_INFO_LIST_NORMJOBS,       /**< List of job numbers (normal jobs) */
-    PSP_INFO_LIST_ALLOCJOBS = 0x1f,/**< List of allocated job slots (per node)*/
+    PSP_INFO_LIST_ALLOCJOBS,      /**< List of allocated job slots (per node)*/
     PSP_INFO_LIST_EXCLUSIVE,      /**< List of flags of exclusive allocation */
+    PSP_INFO_LIST_PARTITION,      /**< Task's list of allocated slots */
+    PSP_INFO_LIST_RESNODES,       /**< Get a reservation's node-list */
+    PSP_INFO_LIST_END,            /**< end of list info replies */
 
     PSP_INFO_CMDLINE,             /**< Task's command line (if available) */
     PSP_INFO_RPMREV,              /**< Daemon's RPM revision */
 
-    PSP_INFO_QUEUE_SEP,           /**< Queue separator (end of info item) */
     PSP_INFO_QUEUE_ALLTASK,       /**< Queue of tasks (all tasks) */
     PSP_INFO_QUEUE_NORMTASK,      /**< Queue of tasks (normal tasks tasks) */
     PSP_INFO_QUEUE_PARTITION,     /**< Queue of partitions */
-
-    PSP_INFO_LIST_PARTITION,      /**< Task's list of allocated slots */
-    PSP_INFO_LIST_MEMORY,         /**< List of total/used memory values */
-
     PSP_INFO_QUEUE_PLUGINS,       /**< Queue of plugins */
+    PSP_INFO_QUEUE_ENVS,          /**< Queue of environment entries */
+    PSP_INFO_QUEUE_SEP,           /**< Queue separator (end of info item) */
 
     PSP_INFO_STARTTIME,           /**< Node's start-time (sec since the epoch)*/
 
@@ -212,9 +213,6 @@ typedef enum {
     PSP_INFO_NODEUPSCRIPT,        /**< Node's script called upon new partner */
     PSP_INFO_NODEDOWNSCRIPT,      /**< Node's script called upon lost partner */
 
-    PSP_INFO_QUEUE_ENVS,          /**< Queue of environment entries */
-    PSP_INFO_RDPCONNSTATUS,       /**< Info on RDP connections */
-    PSP_INFO_LIST_RESNODES = 0x0032, /**< Get a reservation's node-list */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks */
@@ -225,7 +223,7 @@ typedef enum {
 					      spawned process */
 
 /** Accounting messages */
-#define PSP_CD_ACCOUNT           0x0025  /**< Accounting message */
+#define PSP_CD_ACCOUNT           0x0030  /**< Accounting message */
 
 /** Kind of event within #PSP_CD_ACCOUNT message */
 typedef enum {
@@ -284,11 +282,11 @@ typedef enum {
 #define PSP_CD_PARTITIONRES      0x0062  /**< Reply partitions bind */
 #define PSP_CD_GETNODES          0x0063  /**< Request nodes from a partition */
 #define PSP_CD_NODESRES          0x0064  /**< Get nodes from a partition */
-#define PSP_CD_GETRESERVATION    0x0066  /**< Request reservation of slots */
-#define PSP_CD_RESERVATIONRES    0x0067  /**< Reservation result */
-#define PSP_CD_GETSLOTS          0x0068  /**< Request slots from reservation */
-#define PSP_CD_SLOTSRES          0x0069  /**< Slots got from a reservation */
-#define PSP_CD_FINRESERVATION    0x006A  /**< End of reservation requests */
+#define PSP_CD_GETRESERVATION    0x0065  /**< Request reservation of slots */
+#define PSP_CD_RESERVATIONRES    0x0066  /**< Reservation result */
+#define PSP_CD_GETSLOTS          0x0067  /**< Request slots from reservation */
+#define PSP_CD_SLOTSRES          0x0068  /**< Slots got from a reservation */
+#define PSP_CD_FINRESERVATION    0x0069  /**< End of reservation requests */
 
 /** Flow-control to loggers and forwarders */
 #define PSP_CD_SENDSTOP          0x0070  /**< Stop sending further packets */

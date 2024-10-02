@@ -13,13 +13,13 @@
 #define __PSPLUGIN_PROTOCOL
 
 /** Various message types used by plugins */
-#define PSP_PLUG_ACCOUNT	    0x0201  /**< psaccount message */
-#define PSP_PLUG_PELOGUE	    0x0202  /**< pelogue message */
-#define PSP_PLUG_PSSLURM	    0x0203  /**< psslurm message */
-#define PSP_PLUG_PSEXEC		    0x0204  /**< psexec message */
-#define PSP_PLUG_PSPMIX		    0x0205  /**< pspmix message */
-#define PSP_PLUG_PSGW		    0x0206  /**< psgw message */
-#define PSP_PLUG_NODEINFO	    0x0207  /**< nodeinfo message */
-#define PSP_PLUG_RRCOMM             0x0208  /**< rank routed comm message */
+#define PSP_PLUG_ACCOUNT	    0x0200  /**< psaccount message */
+#define PSP_PLUG_PELOGUE	    0x0201  /**< pelogue message */
+#define PSP_PLUG_PSSLURM	    0x0202  /**< psslurm message */
+#define PSP_PLUG_PSEXEC		    0x0203  /**< psexec message */
+#define PSP_PLUG_PSPMIX		    0x0204  /**< pspmix message */
+#define PSP_PLUG_PSGW		    0x0205  /**< psgw message */
+#define PSP_PLUG_NODEINFO	    0x0206  /**< nodeinfo message */
+#define PSP_PLUG_RRCOMM		    0x0207  /**< rank routed comm message */
 
 #endif  /* __PSPLUGIN_PROTOCOL */
