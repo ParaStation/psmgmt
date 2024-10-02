@@ -373,13 +373,10 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     PStask_ID_t sessionID, jobID;
     getTaskId(rData, &sessionID);
     getTaskId(rData, &jobID);
-
-    uint32_t rankOffset = 0;
-    PStask_ID_t partHolderTID = 0;
-    if (PSIDnodes_getDmnProtoV(PSC_getID(msg->header.sender)) >= 416) {
-	getUint32(rData, &rankOffset);
-	getTaskId(rData, &partHolderTID);
-    }
+    uint32_t rankOffset;
+    getUint32(rData, &rankOffset);
+    PStask_ID_t partHolderTID;
+    getTaskId(rData, &partHolderTID);
 
     /* create reservation info */
     PSresinfo_t *res = getResinfo();

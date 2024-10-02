@@ -1741,11 +1741,7 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
 	    .sender = sender,
 	    .len = 0 } };
 
-    if (PSIDnodes_getDmnProtoV(PSC_getID(dest)) < 414) {
-	/* keep compatibility with older daemons */
-	PSP_putMsgBuf(&msg, "nBytes", &nBytes, sizeof(nBytes));
-	PSP_putMsgBuf(&msg, "CPUset", task->CPUset, nBytes);
-    } else if (combine) {
+    if (combine) {
 	PendCRR_t *crr = findPendCRR(dest, task->resID);
 	if (!crr) {
 	    crr = newPendCRR();
@@ -2156,12 +2152,8 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getUint32(rData, &num);
 
     PStask_t *task = PStask_new();
+    rData->unpackPtr += PStask_decodeTask(rData->unpackPtr, task, false);
 
-    if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) < 345) {
-	rData->unpackPtr += PStask_decodeTask_old(rData->unpackPtr, task, false);
-    } else {
-	rData->unpackPtr += PStask_decodeTask(rData->unpackPtr, task, false);
-    }
     task->spawnertid = msg->header.sender;
     task->workingdir = getStringM(rData);
     char **argvP = NULL;
@@ -2206,16 +2198,8 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* service tasks will not be pinned (i.e. pinned to all HW threads) */
     if (isServiceTask(task->group)) PSCPU_setAll(task->CPUset);
 
-    bool useLOC = PSIDnodes_getDmnProtoV(PSC_getID(task->loggertid)) < 415;
-
-    PendingRes_t *pRes = NULL;
-    PSresinfo_t *resI = NULL;
-    if (useLOC) {
-	pRes = findPendingRes(msg->header.sender, task->rank);
-    } else {
-	resI = PSID_findResInfo(task->loggertid, task->spawnertid, task->resID);
-    }
-
+    PSresinfo_t *resI = PSID_findResInfo(task->loggertid,
+					 task->spawnertid, task->resID);
     for (uint32_t r = 0; r < num; r++) {
 	PStask_t *clone = PStask_clone(task);
 
@@ -2234,12 +2218,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	envDestroy(extraEnv);
 
 	if (!isServiceTask(task->group)) {
-	    if (useLOC) {
-		answer.error = fillFromSPAWNLOC(clone, pRes);
-	    } else {
-		answer.error = PSIDspawn_fillTaskFromResInfo(clone, resI);
-	    }
-
+	    answer.error = PSIDspawn_fillTaskFromResInfo(clone, resI);
 	    if  (answer.error) {
 		sendMsg(&answer);
 		PStask_delete(clone);
@@ -2273,13 +2252,6 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* reset psserial's byteorder */
     setByteOrder(byteOrder);
 
-    /* cleanup res if any */
-    if (pRes) {
-	free(pRes->CPUsets);
-	list_del(&pRes->next);
-	free(pRes);
-    }
-
     PStask_delete(task);
 
     return;
@@ -2302,9 +2274,6 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
  * determine if the spawn is allowed. If all tests pass, the message
  * is forwarded to the target-node where the processes to spawn are
  * created.
- *
- * Additional information on the resources to be used for the spawn
- * will be forwarded to the destination node via @ref send_SPAWNLOC()
  *
  * The actual handling of the spawn request once all fragments are
  * received is done within @ref handleSpawnReq().
@@ -2381,18 +2350,14 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
 	/* for the time being still invalidate the spawnNodes */
 	/* On the long run there will be no spawnNodes */
-	if (!isServiceTask(group)
-	    && PSIDnodes_getDmnProtoV(PSC_getID(ptask->loggertid)) >= 415
-	    && PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest)) >= 415) {
-	    if (ptask->spawnNodes) {
-		if (rank + num - 1 >= ptask->spawnNum) {
-		    PSID_flog("ranks %d-%d out of range\n", rank, rank + num -1);
-		    num = ptask->spawnNum - rank;
-		}
-		for (uint32_t r = 0; r < num; r++) {
-		    /* Invalidate this entry */
-		    PSCPU_clrAll(ptask->spawnNodes[rank+r].CPUset);
-		}
+	if (!isServiceTask(group) && ptask->spawnNodes) {
+	    if (rank + num - 1 >= ptask->spawnNum) {
+		PSID_flog("ranks %d-%d out of range\n", rank, rank + num -1);
+		num = ptask->spawnNum - rank;
+	    }
+	    for (uint32_t r = 0; r < num; r++) {
+		/* Invalidate this entry */
+		PSCPU_clrAll(ptask->spawnNodes[rank+r].CPUset);
 	    }
 	}
     }
@@ -2421,46 +2386,6 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	PSID_flog("won't relay %s", PSC_printTID(msg->header.sender));
 	PSID_log("->%s\n", PSC_printTID(msg->header.dest));
 	return false;
-    }
-
-    /* Check if we have to and can send a LOC-message */
-    if (fragNum == 0 && !isServiceTask(group)
-	&& (PSIDnodes_getDmnProtoV(PSC_getID(ptask->loggertid)) < 415
-	    || PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest)) < 415)) {
-	/* Old protocol */
-	PSpart_slot_t *spawnNodes = ptask->spawnNodes;
-	if (!spawnNodes || rank + num - 1 >= ptask->spawnNum) {
-	    PSID_flog("ranks %d-%d out of range\n", rank, rank + num -1);
-	    answer.error = EADDRNOTAVAIL;
-	} else {
-	    bool notAvail = false;
-	    for (uint32_t r = 0; r < num; r++) {
-		notAvail = notAvail
-		    || !PSCPU_any(spawnNodes[rank+r].CPUset, PSCPU_MAX);
-	    }
-	    if (notAvail) {
-		PSID_flog("nodes exhausted\n");
-		answer.error = EADDRINUSE;
-	    }
-	}
-
-	if (answer.error) {
-	    for (uint32_t r = 0; r < num; r++) {
-		answer.request = rank + r;
-		sendMsg(&answer);
-	    }
-	    return true;
-	}
-
-	if (!send_SPAWNLOC(num, rank, msg->header.sender,
-			   msg->header.dest, ptask)) {
-	    answer.error = EHOSTDOWN;
-	    for (uint32_t r = 0; r < num; r++) {
-		answer.request = rank + r;
-		sendMsg(&answer);
-	    }
-	    return true;
-	}
     }
 
     PSID_fdbg(PSID_LOG_SPAWN, "forward to node %d\n",

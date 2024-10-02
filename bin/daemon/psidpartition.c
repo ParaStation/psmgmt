@@ -488,12 +488,6 @@ int send_TASKDEAD(PStask_ID_t dest, PStask_ID_t tid)
 	.dest = dest,
 	.len = sizeof(msg) };
 
-    if (PSC_getPID(dest) && PSIDnodes_getDmnProtoV(PSC_getID(dest)) < 416) {
-	PSID_flog("%s does not support sister partitions\n", PSC_printTID(dest));
-	errno = EBADRQC;
-	return -1;
-    }
-
     return sendMsg(&msg);
 }
 
@@ -2828,9 +2822,6 @@ static bool prepareDestinations(PS_SendDB_t *msg, PStask_t *task,
 	PSnodes_ID_t node = delegate->partition[i].node;
 	if (sendCount[node]) continue;                   // don't send twice
 	sendCount[node] = 1;
-	if (msg->headType == PSP_DD_JOBCOMPLETE
-	    && PSIDnodes_getDmnProtoV(node) < 417) continue;
-
 	setFragDest(msg, PSC_getTID(node, 0));
 	PSID_fdbg(PSID_LOG_PART, "to node %d\n", node);
     }
@@ -2843,9 +2834,6 @@ static bool prepareDestinations(PS_SendDB_t *msg, PStask_t *task,
 	    PSnodes_ID_t node = sister->slots[s].node;
 	    if (sendCount[node]) continue;               // don't send twice
 	    sendCount[node] = 1;
-
-	    if (msg->headType == PSP_DD_JOBCOMPLETE
-		&& PSIDnodes_getDmnProtoV(node) < 417) continue;
 	    setFragDest(msg, PSC_getTID(node, 0));
 	    PSID_fdbg(PSID_LOG_PART, "to node %d\n", node);
 	}
@@ -3049,7 +3037,7 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
     PS_SendDB_t msg;
     for (uint32_t s = 0; s < res->nSlots; s++) {
 	PSnodes_ID_t node = res->slots[s].node;
-	if (!sendCount[node] || PSIDnodes_getDmnProtoV(node) < 415) continue;
+	if (!sendCount[node]) continue;
 
 	initFragBuffer(&msg, PSP_DD_RESSLOTS, -1);
 	setFragDest(&msg, PSC_getTID(node, 0));
@@ -3239,11 +3227,6 @@ static bool send_RESCLEANUP(PStask_t *task, PSpart_request_t *sister)
 	if (sendCount[node]) continue;          // filtered or don't send twice
 	sendCount[node] = 1;
 
-	if (PSIDnodes_getDmnProtoV(node) < 416) {
-	    PSID_flog("unsupported on node %hu\n", node);
-	    continue;
-	}
-
 	PSID_fdbg(PSID_LOG_PART, "to %hu\n", node);
 
 	msg.dest = PSC_getTID(node, 0);
@@ -3307,42 +3290,14 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
     PSCPU_inject(dynRes.slot.CPUset, setBuf, nBytes);
 
     uint16_t numSlots = 1;
-    if (PSP_tryGetMsgBuf(msg, &used, "numSlots", &numSlots, sizeof(numSlots))) {
-	/* if numSlots is present, there shall be a reservation ID, too */
-	PSP_getMsgBuf(msg, &used, "resID", &dynRes.rid, sizeof(dynRes.rid));
-    }
+    PSP_getMsgBuf(msg, &used, "numSlots", &numSlots, sizeof(numSlots));
+    PSP_getMsgBuf(msg, &used, "resID", &dynRes.rid, sizeof(dynRes.rid));
 
     PSID_fdbg(PSID_LOG_PART, "target %s", PSC_printTID(target));
     PSID_dbg(PSID_LOG_PART, " from %s with %d slots for res %#x\n",
 	     PSC_printTID(msg->header.sender), numSlots, dynRes.rid);
 
-    /* first try to get pointer to the reservation via rid */
-    PSrsrvtn_t *thisRes =
-	dynRes.rid ? findRes(&task->reservations, dynRes.rid) : NULL;
-    if (!thisRes) {
-	/* try to identify the affected reservation by received slots*/
-	/* this was required for PSIDnodes_getDmnProtoV() prior to 414 */
-	PSID_fdbg(PSID_LOG_PART, "identify by slots:");
-	list_t *r;
-	list_for_each(r, &task->reservations) {
-	    PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
-
-	    for (uint32_t s = 0; s < res->nextSlot; s++) {
-		if (res->slots[s].node != dynRes.slot.node
-		    || !PSCPU_overlap(res->slots[s].CPUset, dynRes.slot.CPUset,
-				      8*nBytes))
-		    continue;
-
-		PSID_dbg(PSID_LOG_PART, " slot in reservation %#x", res->rid);
-		dynRes.rid = res->rid;
-		thisRes = res;
-		break;
-	    }
-	    if (thisRes) break;
-	}
-	PSID_dbg(PSID_LOG_PART, "%s found\n", thisRes ? "" : " not");
-    }
-
+    PSrsrvtn_t *thisRes = findRes(&task->reservations, dynRes.rid);
     if (thisRes && thisRes->options & PART_OPT_DUMMY && thisRes->requester) {
 	/* reservation is a placeholder => forward to real reservation */
 	PSID_fdbg(PSID_LOG_PART, "forward to %s\n",
@@ -4368,8 +4323,6 @@ static void handleFinReservation(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData
     }
 
     /* will send message up the tree towards the logger if expected there */
-    if (PSIDnodes_getDmnProtoV(PSC_getID(task->ptid)) < 417) return;
-
     char **envP = NULL;
     getStringArrayM(rData, &envP, NULL);
     env_t env = envNew(envP);
@@ -4484,10 +4437,8 @@ static bool msg_RESFINALIZED(DDTypedBufferMsg_t *msg)
 	PSID_fdbg(PSID_LOG_PART, "forward to parent %s\n",
 		  PSC_printTID(task->ptid));
 	msg->header.dest = task->ptid;
-	if (PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest)) >= 417) {
-	    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-		PSID_fwarn(errno, "sendMsg()");
-	    }
+	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_fwarn(errno, "sendMsg()");
 	}
     } else {
 	recvFragMsg(msg, handleResFinalized);
@@ -4959,40 +4910,34 @@ void PSIDpart_cleanupSlots(PStask_t *task)
 	PSP_putMsgBuf(&relMsg, "nBytes", &nBytes, sizeof(nBytes));
 
 	uint16_t numSlots = 1;
-	if (PSIDnodes_getDmnProtoV(PSC_getID(relMsg.header.dest)) < 414) {
-	    /* in former times just one slot was expected */
-	    PSP_putMsgBuf(&relMsg, "CPUset", rankSets[0], nBytes);
-	} else {
-	    /* modern partners expect multiple (combined) slots */
-	    /* We don't have a reservation ID here, but collect slots anyhow */
-	    for (uint16_t s=1; s < NUM_CPUSETS; s++) PSCPU_clrAll(rankSets[s]);
+	/* We don't have a reservation ID here, but collect slots anyhow */
+	for (uint16_t s=1; s < NUM_CPUSETS; s++) PSCPU_clrAll(rankSets[s]);
 
-	    while (r+1 < task->spawnNodesSize
-		   && task->spawnNodes[r+1].node == rankNode) {
-		r++;
-		if (!PSCPU_any(task->spawnNodes[r].CPUset, nBytes*8)) continue;
-		numSlots++;
-		/* check if we can use the same CPUset */
-		uint16_t s = 0;
-		while (s < NUM_CPUSETS
-		       && PSCPU_overlap(task->spawnNodes[r].CPUset,
-					rankSets[s], 8 * nBytes)) s++;
-		if (s == NUM_CPUSETS) {
-		    /* break to send message now and re-iterate */
-		    r--;
-		    break;
-		}
-		PSCPU_addCPUs(rankSets[s], task->spawnNodes[r].CPUset);
+	while (r+1 < task->spawnNodesSize
+	       && task->spawnNodes[r+1].node == rankNode) {
+	    r++;
+	    if (!PSCPU_any(task->spawnNodes[r].CPUset, nBytes*8)) continue;
+	    numSlots++;
+	    /* check if we can use the same CPUset */
+	    uint16_t s = 0;
+	    while (s < NUM_CPUSETS
+		   && PSCPU_overlap(task->spawnNodes[r].CPUset,
+				    rankSets[s], 8 * nBytes)) s++;
+	    if (s == NUM_CPUSETS) {
+		/* break to send message now and re-iterate */
+		r--;
+		break;
 	    }
-	    PSP_putMsgBuf(&relMsg, "CPUset", rankSets[0], nBytes);
-	    PSP_putMsgBuf(&relMsg, "numSlots", &numSlots, sizeof(numSlots));
-	    PSrsrvtn_ID_t resID = 0;  // unknown
-	    PSP_putMsgBuf(&relMsg, "resID", &resID, sizeof(resID));
-	    /* add all further (combined) slots if any */
-	    for (uint16_t s = 1; s < NUM_CPUSETS; s++) {
-		if (!PSCPU_any(rankSets[s], nBytes * 8)) break;
-		PSP_putMsgBuf(&relMsg, "CPUset", rankSets[s], nBytes);
-	    }
+	    PSCPU_addCPUs(rankSets[s], task->spawnNodes[r].CPUset);
+	}
+	PSP_putMsgBuf(&relMsg, "CPUset", rankSets[0], nBytes);
+	PSP_putMsgBuf(&relMsg, "numSlots", &numSlots, sizeof(numSlots));
+	PSrsrvtn_ID_t resID = 0;  // unknown
+	PSP_putMsgBuf(&relMsg, "resID", &resID, sizeof(resID));
+	/* add all further (combined) slots if any */
+	for (uint16_t s = 1; s < NUM_CPUSETS; s++) {
+	    if (!PSCPU_any(rankSets[s], nBytes * 8)) break;
+	    PSP_putMsgBuf(&relMsg, "CPUset", rankSets[s], nBytes);
 	}
 
 	PSID_fdbg(PSID_LOG_PART, "%s: with CPUs %s in %d slots from %d"
@@ -5148,11 +5093,6 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
 	    .dest = dest,
 	    .len = 0, },
 	.buf = { '\0' }};
-
-    if (PSC_getPID(dest) && PSIDnodes_getDmnProtoV(PSC_getID(dest)) < 416) {
-	PSID_flog("%s does not support sister partitions\n", PSC_printTID(dest));
-	return;
-    }
 
     PSP_putMsgBuf(&msg, "options", &task->options, sizeof(task->options));
     PSP_putMsgBuf(&msg, "partitionSize", &task->partitionSize,

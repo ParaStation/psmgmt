@@ -46,14 +46,6 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     msg.opt[(int) msg.count].option = PSP_OP_HWSTATUS;
     msg.opt[(int) msg.count].value = PSIDnodes_getHWStatus(PSC_getMyID());
     msg.count++;
-    if (PSIDnodes_getProtoV(destnode) < 344) {
-	msg.opt[(int) msg.count].option = PSP_OP_PROTOCOLVERSION;
-	msg.opt[(int) msg.count].value = PSProtocolVersion;
-	msg.count++;
-	msg.opt[(int) msg.count].option = PSP_OP_DAEMONPROTOVERSION;
-	msg.opt[(int) msg.count].value = PSDaemonProtocolVersion;
-	msg.count++;
-    }
     msg.opt[(int) msg.count].option = PSP_OP_PROCLIMIT;
     msg.opt[(int) msg.count].value = PSIDnodes_getProcs(PSC_getMyID());
     msg.count++;
