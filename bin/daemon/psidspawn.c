@@ -1845,80 +1845,6 @@ static inline PendingRes_t *findPendingRes(PStask_ID_t sender, int32_t rank)
     return NULL;
 }
 
-/**
- * @brief Handle a PSP_DD_SPAWNLOC message
- *
- * Handle the message @a msg of type PSP_DD_SPAWNLOC. This type of
- * message are emitted before forwarding the first fragment of a
- * PSP_CD_SPAWNREQUEST message in order to inform the destination node
- * about the resources to use for the specific spawns. The
- * corresponding information is stored in a corresponding structure of
- * type PendingRes_t.
- *
- * The resource information for a PSP_CD_SPAWNREQUEST message might be
- * split across several messages of type PSP_DD_SPAWNLOC depending
- * on the number of CPUs on the receiving node and the number of
- * processes to start. Thus, the information contained in a specific
- * message might be appended to structure holding information of
- * previous messages.
- *
- * @param msg Pointer to message to handle
- *
- * @return Always return true
- */
-static bool msg_SPAWNLOC(DDBufferMsg_t *msg)
-{
-    uint32_t num;
-    int32_t rank;
-    uint16_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
-    size_t used = 0;
-
-    PSP_getMsgBuf(msg, &used, "num", &num, sizeof(num));
-    PSP_getMsgBuf(msg, &used, "rank", &rank, sizeof(rank));
-    PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
-
-    PSID_fdbg(PSID_LOG_SPAWN, "got %d from %s for rank %d width %d\n", num,
-	      PSC_printTID(msg->header.sender), rank, nBytes);
-
-    if (nBytes > myBytes) {
-	PSID_flog("from %s: expecting %d CPUs\n",
-		  PSC_printTID(msg->header.sender), nBytes*8);
-    }
-
-    PendingRes_t *newRes = findPendingRes(msg->header.sender, rank);
-    if (!newRes) {
-	newRes = malloc(sizeof(*newRes));
-	if (!newRes) {
-	    PSID_fwarn(errno, "malloc() newRes");
-	    return true;
-	}
-	newRes->sender = msg->header.sender;
-	newRes->rank = rank;
-	newRes->num = num;
-	newRes->CPUsets = malloc(num * sizeof(*newRes->CPUsets));
-	if (!newRes->CPUsets) {
-	    PSID_fwarn(errno, "malloc() CPUsets");
-	    free(newRes);
-	    return true;
-	}
-	list_add_tail(&newRes->next, &pendingResources);
-    }
-
-    PSCPU_set_t setBuf;
-    while (PSP_tryGetMsgBuf(msg, &used, "CPUset", setBuf, nBytes)) {
-	int32_t off = rank - newRes->rank;
-	if (off >= (int32_t)newRes->num) {
-	    PSID_flog("rank %d out of range (%d)\n", rank,
-		      newRes->rank + newRes->num -1);
-	    break;
-	}
-	PSCPU_clrAll(newRes->CPUsets[off]);
-	PSCPU_inject(newRes->CPUsets[off], setBuf, nBytes);
-	rank++;
-    }
-    return true;
-}
-
 static inline bool isServiceTask(PStask_group_t group)
 {
     return (group == TG_SERVICE || group == TG_SERVICE_SIG
@@ -2967,7 +2893,6 @@ void PSIDspawn_init(void)
     PSID_registerMsg(PSP_DD_CHILDDEAD, (handlerFunc_t) msg_CHILDDEAD);
     PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) msg_CHILDBORN);
     PSID_registerMsg(PSP_DD_CHILDACK, PSIDclient_frwd);
-    PSID_registerMsg(PSP_DD_SPAWNLOC, msg_SPAWNLOC);
 
     PSID_registerDropper(PSP_CD_SPAWNREQUEST, (handlerFunc_t)drop_SPAWNREQUEST);
 

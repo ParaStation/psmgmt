@@ -3372,120 +3372,13 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 }
 
 /**
- * @brief Handle a PSP_CD_GETRANKNODE/PSP_DD_GETRANKNODE message
- *
- * Handle the message @a msg of type PSP_CD_GETRANKNODE or
- * PSP_DD_GETRANKNODE.
- *
- * This kind of message is used by clients in order to actually get
- * the node of the process which shall act as a distinct rank within
- * the job from the pool of nodes stored within the partition
- * requested from the master node.
- *
- * @param msg Pointer to message to handle
- *
- * @return Always return true
- */
-static bool msg_GETRANKNODE(DDBufferMsg_t *msg)
-{
-    PStask_ID_t target = PSC_getPID(msg->header.dest) ?
-	msg->header.dest : msg->header.sender;
-    PStask_t *task = PStasklist_find(&managedTasks, target);
-    int32_t rank;
-    unsigned int tpp = 1;
-    size_t used = 0;
-
-    if (!task) {
-	PSID_flog("task %s not found\n", PSC_printTID(target));
-	goto error;
-    }
-
-    if (task->ptid && (!task->totalThreads || !task->partThrds)) {
-	PSID_fdbg(PSID_LOG_PART, "forward to parent %s\n",
-		  PSC_printTID(task->ptid));
-	msg->header.type = PSP_DD_GETRANKNODE;
-	msg->header.dest = task->ptid;
-	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_fwarn(errno, "sendMsg()");
-	    goto error;
-	}
-	return true;
-    }
-
-    if (!task->totalThreads || !task->partThrds) {
-	PSID_flog("create partition first\n");
-	goto error;
-    }
-
-    if (task->usedThreads < 0) {
-	PSID_flog("partition's creation not yet finished\n");
-	goto error;
-    }
-
-    PSP_getMsgBuf(msg, &used, "rank", &rank, sizeof(rank));
-
-    if (PSP_tryGetMsgBuf(msg, &used, "tpp", &tpp, sizeof(tpp))) {
-	PSID_fdbg(PSID_LOG_PART, "got tpp %d\n", tpp);
-    }
-
-    PSID_fdbg(PSID_LOG_PART, "rank %d\n", rank);
-
-    if (rank >=0 && (unsigned)rank * tpp < task->totalThreads) {
-	DDBufferMsg_t answer = {
-	    .header = {
-		.type = PSP_DD_NODESRES,
-		.dest = msg->header.sender,
-		.sender = PSC_getMyTID(),
-		.len = 0 },
-	    .buf = { 0 } };
-
-	PSP_putMsgBuf(&answer, "rank", &rank, sizeof(rank));
-
-	PSpart_HWThread_t *thread = task->partThrds + rank * tpp;
-	PSpart_slot_t slot = { .node = thread[0].node };
-	PSCPU_clrAll(slot.CPUset);
-	for (uint32_t t = 0; t < tpp; t++) {
-	    if (thread[t].node != slot.node) {
-		PSID_flog("not %d consecutive HW-threads on the same"
-			 " node for rank %d\n", tpp, rank);
-		for (uint32_t tt = 0; tt < t; tt++) thread[tt].timesUsed--;
-		goto error;
-	    }
-	    PSCPU_setCPU(slot.CPUset, thread[t].id);
-	    thread[t].timesUsed++;
-	}
-
-	int16_t rqstd = 1;
-	PSP_putMsgBuf(&answer, "requested", &rqstd, sizeof(rqstd));
-
-	sendSlots(&slot, 1, &answer);
-
-	return true;
-    }
-
-error:
-    ;
-    DDTypedMsg_t answer = {
-	.header = {
-	    .type = PSP_CD_NODESRES,
-	    .dest = msg->header.sender,
-	    .sender = PSC_getMyTID(),
-	    .len = sizeof(answer) },
-	.type = -1 };
-    sendMsg(&answer);
-
-    return true;
-}
-
-/**
  * @brief Handle a PSP_DD_NODESRES message
  *
  * Handle the message @a msg of type PSP_DD_NODESRES.
  *
- * This kind of message is used as an answer to a PSP_CD_GETNODES or
- * PSP_CD_GETRANKNODE message. The daemon of the requesting client
- * will store the answer in the @ref spawnNodes member of the client's
- * task structure.
+ * This kind of message is used as an answer to a PSP_CD_GETNODES
+ * message. The daemon of the requesting client will store the answer
+ * in the @ref spawnNodes member of the client's task structure.
  *
  * This is needed for transparent process-pinning.
  *
@@ -5888,8 +5781,6 @@ void initPartition(void)
     PSID_registerMsg(PSP_CD_GETNODES, msg_GETNODES);
     PSID_registerMsg(PSP_DD_GETNODES, msg_GETNODES);
     PSID_registerMsg(PSP_DD_CHILDRESREL, msg_CHILDRESREL);
-    PSID_registerMsg(PSP_CD_GETRANKNODE, msg_GETRANKNODE);
-    PSID_registerMsg(PSP_DD_GETRANKNODE, msg_GETRANKNODE);
     PSID_registerMsg(PSP_DD_NODESRES, msg_NODESRES);
     PSID_registerMsg(PSP_CD_NODESRES, frwdMsg);
     PSID_registerMsg(PSP_DD_GETTASKS, msg_GETTASKS);

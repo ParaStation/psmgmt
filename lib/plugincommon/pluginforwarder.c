@@ -196,7 +196,6 @@ static int handleMthrSock(int fd, void *info)
 
     switch (msg.header.type) {
     case PSP_CC_ERROR:
-    case PSP_PF_ERROR: // @todo required?
 	return 0;                  /* ignore */
     }
 

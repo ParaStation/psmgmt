@@ -31,7 +31,6 @@
 /** First messages used for setting up connections between daemons */
 #define PSP_DD_DAEMONCONNECT       0x0100  /**< Request to connect daemon */
 #define PSP_DD_DAEMONESTABLISHED   0x0101  /**< Connection request accepted */
-#define PSP_DD_DAEMONREFUSED       0x0102  /**< Connection request denied */
 #define PSP_DD_DAEMONSHUTDOWN      0x0103  /**< Daemon goes down */
 
 /** Message implementing flow control between daemons */
@@ -46,14 +45,10 @@
 #define PSP_DD_CHILDRESREL         0x0113  /**< Release a child's resources */
 
 /** Messages used to propagate kinship */
-#define PSP_DD_NEWCHILD            0x0118  /**< @todo obsolete */
-#define PSP_DD_NEWPARENT           0x0119  /**< @todo obsolete */
 #define PSP_DD_NEWANCESTOR         0x011A  /**< Tell node about released
-					      parent to inherit children
-					       (obsoletes PSP_OP_NEWPARENT) */
+					      parent to inherit children */
 #define PSP_DD_ADOPTCHILDSET       0x011B  /**< Tell task about a set of
-					      grandchildren to be inherited
-					      (obsoletes PSP_OP_NEWCHILD) */
+					      grandchildren to be inherited */
 #define PSP_DD_ADOPTFAILED         0x011D  /**< Tell children about a failed
 					      adoption */
 #define PSP_DD_INHERITDONE         0x011C  /**< Tell task about a finished
@@ -74,9 +69,6 @@
 #define PSP_DD_TASKDEAD            0x0129  /**< Complete task finished */
 #define PSP_DD_TASKSUSPEND         0x012A  /**< Task got SIGTSTP */
 #define PSP_DD_TASKRESUME          0x012B  /**< Task got SIGCONT */
-#define PSP_DD_GETRANKNODE         0x012C  /**< Forwarded GETRANKNODE msg */
-#define PSP_DD_PROVIDETASKRP       0x012D  /**< @todo obsolete */
-#define PSP_DD_PROVIDEPARTRP       0x012E  /**< @todo obsolete */
 
 /** Messages used to find master */
 #define PSP_DD_LOAD                0x0130  /**< Load message to master */
@@ -88,14 +80,12 @@
 #define PSP_DD_NODESRES            0x0138  /**< Get nodes from a partition */
 #define PSP_DD_REGISTERPART        0x0139  /**< Register partition at master */
 #define PSP_DD_REGISTERPARTSL      0x013A  /**< Part. registration slot-list */
-#define PSP_DD_REGISTERPARTRP      0x013B  /**< Part. registration ports */
 #define PSP_DD_GETRESERVATION      0x013C  /**< Forwarded GETRESERVATION msg */
 #define PSP_DD_GETSLOTS            0x013D  /**< Forwarded GETSLOTS msg */
 #define PSP_DD_SLOTSRES            0x013E  /**< Results of GETSLOTS msg */
 #define PSP_DD_RESERVATIONRES      0x013F  /**< Answer dummy GETRESERVATION */
 
 /** Messages for resource passing during spawn and finish */
-#define PSP_DD_SPAWNLOC            0x0140  /**< Resources for spawn */
 #define PSP_DD_RESCREATED          0x0141  /**< Reservation created with info */
 #define PSP_DD_RESRELEASED         0x0142  /**< Reservation released */
 #define PSP_DD_RESSLOTS            0x0143  /**< Node's reservation slots */

@@ -45,11 +45,7 @@ typedef enum {
     PSP_CONN_ERR_PROCLIMIT,       /**< Number of processes exceeded */
     PSP_CONN_ERR_STATENOCONNECT,  /**< No connections accepted */
     PSP_CONN_ERR_GIDLIMIT,        /**< Node is limited to different group */
-    PSP_CONN_ERR_LICEND,          /**< Daemon's license is expired */
 } PSP_ConnectError_t;
-
-/* We will keep this message type for compatibility with older executables */
-// #define PSP_CD_OLDVERSION          0x0004
 
 /** Messages used for setting and getting option values */
 #define PSP_CD_SETOPTION         0x0008  /**< Set one or more options */
@@ -227,20 +223,6 @@ typedef enum {
 #define PSP_CD_SPAWNFAILED       0x0022  /**< Reply on failed spawn */
 #define PSP_CD_SPAWNFINISH       0x0023  /**< Reply after successful end of
 					      spawned process */
-#define PSP_CD_SPAWNREQ          0x0024  /**< Request to spawn a process @obsolete */
-
-/** Kind of content within #PSP_CD_SPAWNREQ message @obsolete */
-typedef enum {
-    PSP_SPAWN_TASK = 0x0000,      /**< Content is task (and workdir) */
-    PSP_SPAWN_ARG,                /**< Content is argument-vector */
-    PSP_SPAWN_ENV,                /**< Content is chunk of environment */
-    PSP_SPAWN_END,                /**< Content is last chunk of environment */
-    PSP_SPAWN_LOC,                /**< Content is location to pin to */
-    PSP_SPAWN_ENVCNTD,            /**< Content is continued single env-var */
-    PSP_SPAWN_WDIRCNTD,           /**< Content is continued workdir */
-    PSP_SPAWN_ARGCNTD,            /**< Content is continued argument-vector */
-    PSP_SPAWN_ENV_CLONE,          /**< No content, trigger clone from sibling */
-} PSP_Spawn_t;
 
 /** Accounting messages */
 #define PSP_CD_ACCOUNT           0x0025  /**< Accounting message */
@@ -302,7 +284,6 @@ typedef enum {
 #define PSP_CD_PARTITIONRES      0x0062  /**< Reply partitions bind */
 #define PSP_CD_GETNODES          0x0063  /**< Request nodes from a partition */
 #define PSP_CD_NODESRES          0x0064  /**< Get nodes from a partition */
-#define PSP_CD_GETRANKNODE       0x0065  /**< Req node of rank from partition */
 #define PSP_CD_GETRESERVATION    0x0066  /**< Request reservation of slots */
 #define PSP_CD_RESERVATIONRES    0x0067  /**< Reservation result */
 #define PSP_CD_GETSLOTS          0x0068  /**< Request slots from reservation */
@@ -317,7 +298,6 @@ typedef enum {
 #define PSP_CC_MSG               0x0080  /**< Message between clients */
 #define PSP_CC_ERROR             0x0081  /**< Error in client communication */
 #define PSP_PF_MSG               0x0082  /**< Message to/from pluginforwarder */
-#define PSP_PF_ERROR             0x0083  /**< Error to/from pluginforwarder */
 
 /** Error messages */
 #define PSP_CD_UNKNOWN           0x00FE  /**< Message reporting unknown types

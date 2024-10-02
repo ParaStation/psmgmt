@@ -28,7 +28,6 @@ typedef struct {
 static msgString_t daemonMessages[] = {
     { PSP_DD_DAEMONCONNECT    , "PSP_DD_DAEMONCONNECT"    },
     { PSP_DD_DAEMONESTABLISHED, "PSP_DD_DAEMONESTABLISHED"},
-    { PSP_DD_DAEMONREFUSED    , "PSP_DD_DAEMONREFUSED"    },
     { PSP_DD_DAEMONSHUTDOWN   , "PSP_DD_DAEMONSHUTDOWN"   },
 
     { PSP_DD_SENDSTOP         , "PSP_DD_SENDSTOP"         },
@@ -40,8 +39,6 @@ static msgString_t daemonMessages[] = {
     { PSP_DD_CHILDACK         , "PSP_DD_CHILDACK"         },
     { PSP_DD_CHILDRESREL      , "PSP_DD_CHILDRESREL"      },
 
-    { PSP_DD_NEWCHILD         , "PSP_DD_NEWCHILD(obsolete)"         },
-    { PSP_DD_NEWPARENT        , "PSP_DD_NEWPARENT(obsolete)"        },
     { PSP_DD_NEWANCESTOR      , "PSP_DD_NEWANCESTOR"      },
     { PSP_DD_ADOPTCHILDSET    , "PSP_DD_ADOPTCHILDSET"    },
     { PSP_DD_ADOPTFAILED      , "PSP_DD_ADOPTFAILED"      },
@@ -60,9 +57,6 @@ static msgString_t daemonMessages[] = {
     { PSP_DD_TASKDEAD         , "PSP_DD_TASKDEAD"         },
     { PSP_DD_TASKSUSPEND      , "PSP_DD_TASKSUSPEND"      },
     { PSP_DD_TASKRESUME       , "PSP_DD_TASKRESUME"       },
-    { PSP_DD_GETRANKNODE      , "PSP_DD_GETRANKNODE"      },
-    { PSP_DD_PROVIDETASKRP    , "PSP_DD_PROVIDETASKRP(obsolete)"    },
-    { PSP_DD_PROVIDEPARTRP    , "PSP_DD_PROVIDEPARTRP(obsolete)"    },
 
     { PSP_DD_LOAD             , "PSP_DD_LOAD"             },
     { PSP_DD_ACTIVE_NODES     , "PSP_DD_ACTIVE_NODES"     },
@@ -72,13 +66,11 @@ static msgString_t daemonMessages[] = {
     { PSP_DD_NODESRES         , "PSP_DD_GETNODESRES"      },
     { PSP_DD_REGISTERPART     , "PSP_DD_REGISTERPART"     },
     { PSP_DD_REGISTERPARTSL   , "PSP_DD_REGISTERPARTSL"   },
-    { PSP_DD_REGISTERPARTRP   , "PSP_DD_REGISTERPARTRP"   },
     { PSP_DD_GETRESERVATION   , "PSP_DD_GETRESERVATION"   },
     { PSP_DD_GETSLOTS         , "PSP_DD_GETSLOTS"         },
     { PSP_DD_SLOTSRES         , "PSP_DD_SLOTSRES"         },
     { PSP_DD_RESERVATIONRES   , "PSP_DD_RESERVATIONRES"   },
 
-    { PSP_DD_SPAWNLOC         , "PSP_DD_SPAWNLOC"         },
     { PSP_DD_RESCREATED       , "PSP_DD_RESCREATED"       },
     { PSP_DD_RESRELEASED      , "PSP_DD_RESRELEASED"      },
     { PSP_DD_RESSLOTS         , "PSP_DD_RESSLOTS"         },
@@ -90,7 +82,6 @@ static msgString_t daemonMessages[] = {
 };
 
 static msgString_t pluginMessages[] = {
-    { PSP_PLUG_PSMOM          , "PSP_PLUG_PSMOM"          },
     { PSP_PLUG_ACCOUNT        , "PSP_PLUG_ACCOUNT"        },
     { PSP_PLUG_PELOGUE        , "PSP_PLUG_PELOGUE"        },
     { PSP_PLUG_PSSLURM        , "PSP_PLUG_PSSLURM"        },

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -171,8 +171,6 @@ void PSIDspawn_cleanupDelayedTasks(PSIDspawn_filter_t filter, void *info);
  * and PSP_DD_RESSLOTS messages before. If @a res is NULL or still
  * incomplete, the DELAY_RESINFO bit is set in the task's delayReasons
  * member in order to flag to caller to delay the task creation.
- *
- * This mechanism is obsoletes the usage of PSP_DD_SPAWNLOC messages.
  *
  * @param task Task structure to be filled with a CPU set
  *

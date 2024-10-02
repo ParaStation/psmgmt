@@ -233,9 +233,6 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	    PSI_log(-1,
 		    "%s: Daemon does not allow new connections\n", __func__);
 	    break;
-	case PSP_CONN_ERR_LICEND :
-	    PSI_log(-1 , "%s: Daemon's license is expired\n", __func__);
-	    break;
 	default:
 	    PSI_log(-1,"%s: Daemon refused connection with unknown error %d\n",
 		    __func__, type);

@@ -39,7 +39,6 @@ static struct {
     { PSP_CD_SPAWNSUCCESS     , "PSP_CD_SPAWNSUCCESS"     },
     { PSP_CD_SPAWNFAILED      , "PSP_CD_SPAWNFAILED"      },
     { PSP_CD_SPAWNFINISH      , "PSP_CD_SPAWNFINISH"      },
-    { PSP_CD_SPAWNREQ         , "PSP_CD_SPAWNREQ"         },
     { PSP_CD_ACCOUNT          , "PSP_CD_ACCOUNT"          },
 
     { PSP_CD_NOTIFYDEAD       , "PSP_CD_NOTIFYDEAD"       },
@@ -65,7 +64,6 @@ static struct {
     { PSP_CD_PARTITIONRES     , "PSP_CD_PARTITIONRES"     },
     { PSP_CD_GETNODES         , "PSP_CD_GETNODES"         },
     { PSP_CD_NODESRES         , "PSP_CD_NODESRES"         },
-    { PSP_CD_GETRANKNODE      , "PSP_CD_GETRANKNODE"      },
     { PSP_CD_GETRESERVATION   , "PSP_CD_GETRESERVATION"   },
     { PSP_CD_RESERVATIONRES   , "PSP_CD_RESERVATIONRES"   },
     { PSP_CD_GETSLOTS         , "PSP_CD_GETSLOTS"         },
@@ -79,7 +77,6 @@ static struct {
     { PSP_CC_ERROR            , "PSP_CC_ERROR"            },
 
     { PSP_PF_MSG              , "PSP_PF_MSG"              },
-    { PSP_PF_ERROR            , "PSP_PF_ERROR"            },
 
     { PSP_CD_UNKNOWN          , "PSP_CD_UNKNOWN"          },
     { PSP_CD_ERROR            , "PSP_CD_ERROR"            },
