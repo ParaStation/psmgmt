@@ -652,23 +652,11 @@ void initSpankOptByStep(Step_t *step)
 
 void __SpankInitOpt(spank_t spank, const char *func, const int line)
 {
-    Step_t *step = spank->step;
-    Job_t *job = spank->job;
-    Alloc_t *alloc = spank->alloc;
-
-    if (!step && !job && !alloc) {
-	flog("invalid allocation/job/step from %s:%i\n", func, line);
-	return;
-    }
-
     /* parse SPANK options included in allocation/job/step environment */
-    env_t env = alloc ? alloc->env : NULL;
-    env = job ? job->spankenv : env;
-    env = step ? step->spankenv : env;
-    initSpankOptByEnv(env);
+    initSpankOptByEnv(spank->spankEnv);
 
     /* parse SPANK options transferred by launch-step RPC */
-    initSpankOptByStep(step);
+    initSpankOptByStep(spank->step);
 
     /* execute callbacks */
     list_t *o;

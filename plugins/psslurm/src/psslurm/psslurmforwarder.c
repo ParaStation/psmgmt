@@ -493,7 +493,8 @@ int handleForwarderInitPriv(void *data)
 	.step = fwStep,
 	.hook = SPANK_TASK_POST_FORK,
 	.envSet = NULL,
-	.envUnset = NULL
+	.envUnset = NULL,
+	.spankEnv = fwStep ? fwStep->spankenv : NULL
     };
     SpankInitOpt(&spank);
     SpankCallHook(&spank);
@@ -604,7 +605,8 @@ int handleExecClient(void *data)
 	.step = fwStep,
 	.hook = SPANK_TASK_INIT_PRIVILEGED,
 	.envSet = NULL,
-	.envUnset = NULL
+	.envUnset = NULL,
+	.spankEnv = fwStep ? fwStep->spankenv : NULL
     };
     SpankInitOpt(&spank);
     SpankCallHook(&spank);
@@ -1201,7 +1203,8 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	.step = step,
 	.hook = SPANK_INIT,
 	.envSet = fwCMD_setEnv,
-	.envUnset = fwCMD_unsetEnv
+	.envUnset = fwCMD_unsetEnv,
+	.spankEnv = step ? step->spankenv : NULL
     };
     SpankCallHook(&spank);
 
@@ -1492,7 +1495,8 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 	.step = NULL,
 	.hook = SPANK_INIT,
 	.envSet = NULL,
-	.envUnset = NULL
+	.envUnset = NULL,
+	.spankEnv = job ? job->spankenv : NULL
     };
     SpankCallHook(&spank);
 
@@ -1790,7 +1794,8 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 	.step = step,
 	.hook = SPANK_INIT,
 	.envSet = fwCMD_setEnv,
-	.envUnset = fwCMD_unsetEnv
+	.envUnset = fwCMD_unsetEnv,
+	.spankEnv = step ? step->spankenv : NULL
     };
     SpankCallHook(&spank);
 

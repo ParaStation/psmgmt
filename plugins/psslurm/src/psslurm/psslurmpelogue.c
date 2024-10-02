@@ -473,7 +473,8 @@ int handlePEloguePrepare(void *data)
 	.step = NULL,
 	.hook = SPANK_JOB_PROLOG,
 	.envSet = NULL,
-	.envUnset = NULL
+	.envUnset = NULL,
+	.spankEnv = pedata->env
     };
 
     if (pedata->type != PELOGUE_PROLOGUE) spank.hook = SPANK_JOB_EPILOG;
