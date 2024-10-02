@@ -158,7 +158,7 @@ const ConfDef_t confDef[] =
 	    "directly" },
     { "PELOGUE_ENV_FILTER", 0,
 	"list",
-	"SLURM_*,_PSSLURM_*",
+	"SLURM_*,_PSSLURM_*,SPANK_*",
 	"Positive filter which will allow forwarding of selected "
 	"environment variables to prologue/epilogue." },
     { "PELOGUE_LOG_OE", 1,
