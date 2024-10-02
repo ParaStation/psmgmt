@@ -91,9 +91,9 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
     }
 
     for (int i = 0; i < req->infoc; i++) {
-        KVP_t *info = &(req->infov[i]);
+	KVP_t *info = &(req->infov[i]);
 
-        /* "srunopts" info field is extremely dangerous and only meant for
+	/* "srunopts" info field is extremely dangerous and only meant for
 	 * easier testing purposes during development. It is officially
 	 * undocumented and can be removed at any time in the future.
 	 * Every option that is found useful using this mechanism should
@@ -104,7 +104,7 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 	    /* simply split at blanks */
 	    char *srunopts = strdup(info->value);
 	    char *ptr = strtok(srunopts, " ");
-	    while(ptr) {
+	    while (ptr) {
 		strvAdd(argV, ptr);
 		ptr = strtok(NULL, " ");
 	    }
@@ -190,7 +190,7 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 	if (srunopts) {
 	    /* simply split at blanks */
 	    char *ptr = strtok(srunopts, " ");
-	    while(ptr) {
+	    while (ptr) {
 		strvAdd(argV, ptr);
 		ptr = strtok(NULL, " ");
 	    }

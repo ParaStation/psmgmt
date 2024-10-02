@@ -254,7 +254,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    strvAdd(args, this->value);
 	}
 
-        /* "mpiexecopts" info field is extremely dangerous and only meant for
+	/* "mpiexecopts" info field is extremely dangerous and only meant for
 	 * easier testing purposes during development. It is officially
 	 * undocumented and can be removed at any time in the future.
 	 * Every option that is found useful using this mechanism should
@@ -265,7 +265,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	    /* simply split at blanks */
 	    char *mpiexecopts = ustrdup(this->value);
 	    char *ptr = strtok(mpiexecopts, " ");
-	    while(ptr) {
+	    while (ptr) {
 		strvAdd(args, ptr);
 		ptr = strtok(NULL, " ");
 	    }
@@ -318,7 +318,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 		} else if (!strcmp(info->value, "enabled")) {
 		    noParricide = false;
 		}
-            /* "mpiexecopts" info field is extremely dangerous (see above) */
+	    /* "mpiexecopts" info field is extremely dangerous (see above) */
 	    } else if (!strcmp(info->key, "mpiexecopts")) {
 		flog("WARNING: Undocumented feature 'mpiexecopts' used"
 		     " (app %d): '%s'\n", r, info->value);
@@ -342,7 +342,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	if (mpiexecopts) {
 	    /* simply split at blanks */
 	    char *ptr = strtok(mpiexecopts, " ");
-	    while(ptr) {
+	    while (ptr) {
 		strvAdd(args, ptr);
 		ptr = strtok(NULL, " ");
 	    }
