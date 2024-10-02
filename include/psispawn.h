@@ -117,8 +117,6 @@ void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info);
  * use PSIDHOOK_FRWRD_SETUP and PSIDHOOK_FRWRD_EXIT to call @ref
  * initSerial(..., sendDaemonMsg) and finalizeSerial() respectively.
  *
- * On the long run this function shall obsolete PSI_sendSpawnMsg().
- *
  * @param task Task structure describing the tasks to be spawned
  *
  * @param dstnodes Destination nodes of the spawn requests

@@ -26,9 +26,9 @@
  * - -1 denotes the local node. Especially in @ref PSC_getTID -1 is
  *   replaced by the actual local node ID.
  *
- * - -2 Marks a task ID to refer to an obsolete task, i.e. a task
- *    structure not stored in the list @ref managedTasks but in @ref
- *    obsoleteTasks
+ * - -2 Marks a task ID to refer to an obsolete (local) task, i.e. a
+ *    task structure not stored in the list @ref managedTasks but in
+ *    @ref obsoleteTasks
  */
 typedef int32_t PSnodes_ID_t;
 
