@@ -371,15 +371,22 @@ static int setFilePermissions(Job_t *job)
     return 0;
 }
 
+static void reOpenSyslog(char *name)
+{
+    int32_t oldMask = logger_getMask(psslurmlogger);
+    closelog();
+    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+    initLogger(name, NULL);
+    maskLogger(oldMask);
+}
+
 static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 {
     Job_t *job = fwdata->userData;
-    char buf[128];
 
-    /* reopen syslog */
-    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+    char buf[128];
     snprintf(buf, sizeof(buf), "psslurm-job:%u", job->jobid);
-    initLogger(buf, NULL);
+    reOpenSyslog(buf);
 
     setFilePermissions(job);
 
@@ -451,9 +458,9 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     /* execve() failed */
     fprintf(stderr, "%s: execve(%s): %s\n", __func__, job->argv[0],
 	    strerror(err));
-    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+
     snprintf(buf, sizeof(buf), "psslurm-job:%u", job->jobid);
-    initLogger(buf, NULL);
+    reOpenSyslog(buf);
     fwarn(err, "execve(%s)", job->argv[0]);
     exit(err);
 }
@@ -1060,15 +1067,12 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
 static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
 {
     Step_t *step = fwdata->userData;
-    char buf[128];
     pmi_type_t pmi_type;
-    int32_t oldMask = logger_getMask(psslurmlogger);
 
     /* reopen syslog */
-    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+    char buf[128];
     snprintf(buf, sizeof(buf), "psslurm-%s", Step_strID(step));
-    initLogger(buf, NULL);
-    maskLogger(oldMask);
+    reOpenSyslog(buf);
 
     /* setup standard I/O and PTY */
     setupStepIO(fwdata, step);
@@ -1137,9 +1141,8 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
 
     /* execve() failed */
     fprintf(stderr, "%s: execve %s: %s\n", __func__, argvP[0], strerror(err));
-    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     snprintf(buf, sizeof(buf), "psslurm-%s", Step_strID(step));
-    initLogger(buf, NULL);
+    reOpenSyslog(buf);
     fwarn(err, "execve(%s)", argvP[0]);
     exit(err);
 }
@@ -1913,9 +1916,8 @@ static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
 
     /* execve() failed */
     fprintf(stderr, "%s: execve(%s): %s\n", __func__, buf, strerror(err));
-    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     snprintf(buf, sizeof(buf), "psslurm-epifin:%u", alloc->id);
-    initLogger(buf, NULL);
+    reOpenSyslog(buf);
     fwarn(err, "execve(%s)", script);
     exit(err);
 }
