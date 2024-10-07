@@ -953,6 +953,21 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     PMIX_PROC_DESTRUCT(&myproc);
 }
 
+/* Macro to put info key value pair from msg into vector */
+#define GET_STRING_INFO(name, infos) \
+    do { \
+	size_t len; \
+	char *name = getStringML(data, &len); \
+	if (len) { \
+	    KVP_t entry; \
+	    entry.key = ustrdup(#name); \
+	    entry.value = name; \
+	    vectorAdd(infos, &entry); \
+	} else { \
+	    ufree(name); \
+	} \
+    } while(false)
+
 /**
  * @brief Handle messages of type PSPMIX_CLIENT_SPAWN
  *
@@ -994,34 +1009,9 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     vector_t infos;
     vectorInit(&infos, 1, 1, KVP_t);
 
-    size_t len;
-    KVP_t entry;
-    char *nodetypes = getStringML(data, &len);
-    if (len) {
-	entry.key = ustrdup("nodetypes");
-	entry.value = nodetypes;
-	vectorAdd(&infos, &entry);
-    } else {
-	ufree(nodetypes);
-    }
-
-    char *mpiexecopts = getStringML(data, &len);
-    if (len) {
-	entry.key = ustrdup("mpiexecopts");
-	entry.value = mpiexecopts;
-	vectorAdd(&infos, &entry);
-    } else {
-	ufree(mpiexecopts);
-    }
-
-    char *srunopts = getStringML(data, &len);
-    if (len) {
-	entry.key = ustrdup("srunopts");
-	entry.value = srunopts;
-	vectorAdd(&infos, &entry);
-    } else {
-	ufree(srunopts);
-    }
+    GET_STRING_INFO(nodetypes, &infos);
+    GET_STRING_INFO(mpiexecopts, &infos);
+    GET_STRING_INFO(srunopts, &infos);
 
     /* get number of apps and initialize request accordingly */
     uint16_t napps;
@@ -1051,28 +1041,13 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	vector_t infos;
 	vectorInit(&infos, 3, 3, KVP_t);
 
-	size_t len;
-	KVP_t entry;
-
-#define GET_STRING_INFO(name) \
-    do { \
-	char *name = getStringML(data, &len); \
-	if (len) { \
-	    entry.key = ustrdup(#name); \
-	    entry.value = name; \
-	    vectorAdd(&infos, &entry); \
-	} else { \
-	    ufree(name); \
-	} \
-    } while(false)
-
-	GET_STRING_INFO(wdir);
-	GET_STRING_INFO(hosts); /* Comma-delimited list */
-	GET_STRING_INFO(hostfile);
-	GET_STRING_INFO(nodetypes);
-	GET_STRING_INFO(mpiexecopts);
-	GET_STRING_INFO(srunopts);
-	GET_STRING_INFO(srunconstraint);
+	GET_STRING_INFO(wdir, &infos);
+	GET_STRING_INFO(hosts, &infos);
+	GET_STRING_INFO(hostfile, &infos);
+	GET_STRING_INFO(nodetypes, &infos);
+	GET_STRING_INFO(mpiexecopts, &infos);
+	GET_STRING_INFO(srunopts, &infos);
+	GET_STRING_INFO(srunconstraint, &infos);
 
 	spawn->infov = infos.data;
 	spawn->infoc = infos.len;
