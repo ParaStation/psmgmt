@@ -1098,6 +1098,11 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	    si.srunopts = this->value.data.string;
 	    continue;
 	}
+
+	if (PMIX_CHECK_KEY(this, "pspmix.srunconstraint")) {
+	    si.srunconstraint = this->value.data.string;
+	    continue;
+	}
 	/*
 	 * @todo
 	 *
