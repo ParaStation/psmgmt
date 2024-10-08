@@ -16,10 +16,9 @@
 
 logger_t psslurmlogger;
 
-void initLogger(char *name, FILE *logfile)
+void initLogger(const char *tag, FILE *logfile)
 {
-    psslurmlogger = logger_new(name, logfile);
-    initPluginLogger(NULL, logfile);
+    psslurmlogger = logger_new(tag, logfile);
 }
 
 void maskLogger(int32_t mask)

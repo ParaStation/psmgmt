@@ -27,7 +27,7 @@ extern logger_t psslurmlogger;
 #define fdbg(...) logger_funcprint(psslurmlogger, __func__, __VA_ARGS__)
 #define fwarn(...) logger_funcwarn(psslurmlogger, __func__, -1, __VA_ARGS__)
 
-void initLogger(char *name, FILE *logfile);
+void initLogger(const char *tag, FILE *logfile);
 void maskLogger(int32_t mask);
 void finalizeLogger(void);
 
