@@ -67,9 +67,9 @@ typedef enum {
  * @brief Initialize logging facility
  *
  * Initialize the logging facility @ref pluginlogger using the tag @a
- * name to log into @a logfile. Use syslog() if @a logfile is NULL.
+ * tag to log into @a logfile. Use syslog() if @a logfile is NULL.
  *
- * @param name Tag to be used for all output
+ * @param tag Tag to be used for all output
  *
  * @param logfile File to use for logging. If NULL, syslog() will be
  * used.
@@ -80,7 +80,7 @@ typedef enum {
  *
  * @see logger_new()
  */
-void initPluginLogger(char *name, FILE *logfile);
+void initPluginLogger(const char *tag, FILE *logfile);
 
 /**
  * @brief Check on initialization

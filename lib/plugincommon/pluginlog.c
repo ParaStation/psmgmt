@@ -12,9 +12,9 @@
 
 logger_t pluginlogger;
 
-void initPluginLogger(char *name, FILE *logfile)
+void initPluginLogger(const char *tag, FILE *logfile)
 {
-    pluginlogger = logger_new(name ? name : "plcom", logfile);
+    pluginlogger = logger_new(tag ? tag : "plcom", logfile);
 }
 
 bool isPluginLoggerInitialized(void)
