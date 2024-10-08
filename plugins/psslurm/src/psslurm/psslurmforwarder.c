@@ -371,22 +371,13 @@ static int setFilePermissions(Job_t *job)
     return 0;
 }
 
-static void reOpenSyslog(char *name)
-{
-    int32_t oldMask = logger_getMask(psslurmlogger);
-    closelog();
-    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
-    initLogger(name, NULL);
-    maskLogger(oldMask);
-}
-
 static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 {
     Job_t *job = fwdata->userData;
 
     char buf[128];
     snprintf(buf, sizeof(buf), "psslurm-job:%u", job->jobid);
-    reOpenSyslog(buf);
+    reOpenSyslog(buf, psslurmlogger);
 
     setFilePermissions(job);
 
@@ -460,7 +451,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 	    strerror(err));
 
     snprintf(buf, sizeof(buf), "psslurm-job:%u", job->jobid);
-    reOpenSyslog(buf);
+    reOpenSyslog(buf, psslurmlogger);
     fwarn(err, "execve(%s)", job->argv[0]);
     exit(err);
 }
@@ -1072,7 +1063,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     /* reopen syslog */
     char buf[128];
     snprintf(buf, sizeof(buf), "psslurm-%s", Step_strID(step));
-    reOpenSyslog(buf);
+    reOpenSyslog(buf, psslurmlogger);
 
     /* setup standard I/O and PTY */
     setupStepIO(fwdata, step);
@@ -1142,7 +1133,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     /* execve() failed */
     fprintf(stderr, "%s: execve %s: %s\n", __func__, argvP[0], strerror(err));
     snprintf(buf, sizeof(buf), "psslurm-%s", Step_strID(step));
-    reOpenSyslog(buf);
+    reOpenSyslog(buf, psslurmlogger);
     fwarn(err, "execve(%s)", argvP[0]);
     exit(err);
 }
@@ -1917,7 +1908,7 @@ static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
     /* execve() failed */
     fprintf(stderr, "%s: execve(%s): %s\n", __func__, buf, strerror(err));
     snprintf(buf, sizeof(buf), "psslurm-epifin:%u", alloc->id);
-    reOpenSyslog(buf);
+    reOpenSyslog(buf, psslurmlogger);
     fwarn(err, "execve(%s)", script);
     exit(err);
 }

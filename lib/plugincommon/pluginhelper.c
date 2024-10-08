@@ -29,6 +29,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <syslog.h>
 
 #include "pscio.h"
 #include "pscommon.h"
@@ -453,5 +454,32 @@ bool writeFile(const char *name, const char *dir, const void *data, size_t len)
     }
 
     fclose(fp);
+    return true;
+}
+
+bool reOpenSyslog(char *name, logger_t logger)
+{
+    if (PSC_isDaemon()) return false;
+
+    /* save logger masks and cleanup */
+    int32_t oldMask = logger_getMask(logger);
+    logger_finalize(logger);
+
+    int32_t oldPluginMask = getPluginLoggerMask();
+    bool usePluginLogger = isPluginLoggerInitialized();
+    if (usePluginLogger) finalizePluginLogger();
+
+    closelog();
+
+    /* now re-open log facilities */
+    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+    logger_new(name, NULL);
+    logger_setMask(logger, oldMask);
+
+    if (usePluginLogger) {
+	initPluginLogger(name, NULL);
+	maskPluginLogger(oldPluginMask);
+    }
+
     return true;
 }

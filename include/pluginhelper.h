@@ -15,6 +15,7 @@
 #include <stddef.h>
 #include <sys/types.h>
 
+#include "logging.h"
 #include "psnodes.h"
 
 /**
@@ -278,5 +279,26 @@ char *mmapFile(const char *filename, size_t *size);
  * @return Returns true on success otherwise false is returned
  */
 bool writeFile(const char *name, const char *dir, const void *data, size_t len);
+
+/**
+ * @brief Re-open connection to syslog
+ *
+ * This function is intended to be used by children of the psid (e.g.
+ * forwarders) to regain the ability to log messages. It should *not* be called
+ * from the ParaStaion daemon.
+ *
+ * As a first step all previous used resources of given @a logger are freed
+ * and leftover connections are closed. After this the connection to syslog
+ * is re-opened and the logger is reinitialized. The old logger mask will be
+ * preserved. The same steps will be done for the pluginlogger if it was
+ * initialized before.
+ *
+ * @param name prefix which will be prepended to all output
+ *
+ * @param logger logger to reinitialize
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool reOpenSyslog(char *name, logger_t logger);
 
 #endif  /* __PS_PLUGIN_LIB_HELPER */
