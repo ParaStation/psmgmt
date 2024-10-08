@@ -284,21 +284,26 @@ bool writeFile(const char *name, const char *dir, const void *data, size_t len);
  * @brief Re-open connection to syslog
  *
  * This function is intended to be used by children of the psid (e.g.
- * forwarders) to regain the ability to log messages. It should *not* be called
- * from the ParaStaion daemon.
+ * forwarders) to regain the ability to log messages. It *must not* be
+ * called from the ParaStaion daemon.
  *
- * As a first step all previous used resources of given @a logger are freed
- * and leftover connections are closed. After this the connection to syslog
- * is re-opened and the logger is reinitialized. The old logger mask will be
- * preserved. The same steps will be done for the pluginlogger if it was
- * initialized before.
+ * As a first step all resources used by the given logger @a logger
+ * are freed and leftover connections are closed. After this the
+ * connection to syslog is re-opened and the logger is reinitialized
+ * using the tag @a tag. The old logger mask will be preserved.
  *
- * @param name prefix which will be prepended to all output
+ * As a side effect the logging facility utilized by libplugincommon
+ * (aka the pluginlogger) will be re-initialized if it was initialized
+ * before. Further logging of libplugincommon will also be tagged with
+ * the string provided in @a tag.
  *
- * @param logger logger to reinitialize
+ * @param tag Tag to be prepend to all output of @a logger (and the
+ * pluginlogger)
  *
- * @return Returns true on success otherwise false is returned
+ * @param logger Logger to reinitialize
+ *
+ * @return Returns true on success; otherwise false is returned
  */
-bool reOpenSyslog(char *name, logger_t logger);
+bool reOpenSyslog(const char *tag, logger_t *logger);
 
 #endif  /* __PS_PLUGIN_LIB_HELPER */
