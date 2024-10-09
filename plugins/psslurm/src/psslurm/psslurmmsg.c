@@ -165,6 +165,18 @@ const char *msgType2String(int type)
     return buf;
 }
 
+const char *strRemoteAddr(Slurm_Msg_t *sMsg)
+{
+    static char addr[64];
+    snprintf(addr, sizeof(addr), "%u.%u.%u.%u:%u",
+	     (sMsg->head.addr.ip & 0x000000ff),
+	     (sMsg->head.addr.ip & 0x0000ff00) >> 8,
+	     (sMsg->head.addr.ip & 0x00ff0000) >> 16,
+	     (sMsg->head.addr.ip & 0xff000000) >> 24,
+	     sMsg->head.addr.port);
+    return addr;
+}
+
 void initSlurmMsg(Slurm_Msg_t *sMsg)
 {
     memset(sMsg, 0, sizeof(Slurm_Msg_t));

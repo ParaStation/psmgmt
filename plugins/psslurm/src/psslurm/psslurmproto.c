@@ -2523,14 +2523,9 @@ void processSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw, Connection_CB_t *cb,
 	return;
     }
 
-    mdbg(PSSLURM_LOG_PROTO, "%s: msg(%i): %s, version %u addr %u.%u.%u.%u"
-	    " port %u\n", __func__, sMsg->head.type,
-	    msgType2String(sMsg->head.type), sMsg->head.version,
-	    (sMsg->head.addr.ip & 0x000000ff),
-	    (sMsg->head.addr.ip & 0x0000ff00) >> 8,
-	    (sMsg->head.addr.ip & 0x00ff0000) >> 16,
-	    (sMsg->head.addr.ip & 0xff000000) >> 24,
-	    sMsg->head.addr.port);
+    fdbg(PSSLURM_LOG_PROTO, "msg(%i): %s, version %u from %s\n",
+	    sMsg->head.type, msgType2String(sMsg->head.type),
+	    sMsg->head.version, strRemoteAddr(sMsg));
 
     /* verify protocol version */
     if (!testSlurmVersion(sMsg->head.version, sMsg->head.type)) {
@@ -2546,9 +2541,10 @@ void processSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw, Connection_CB_t *cb,
 
     /* verify munge authentication */
     if (!extractSlurmAuth(sMsg)) {
-	flog("extracting slurm auth for msg(%i): %s, version %u failed,"
+	flog("extracting slurm auth for msg(%i): %s, version %u from %s failed,"
 	     " message dropped\n", sMsg->head.type,
-	     msgType2String(sMsg->head.type), sMsg->head.version);
+	     msgType2String(sMsg->head.type), sMsg->head.version,
+	     strRemoteAddr(sMsg));
 	sendSlurmRC(sMsg, ESLURM_AUTH_CRED_INVALID);
 	return;
     }

@@ -112,6 +112,16 @@ typedef struct {
 const char *msgType2String(int type);
 
 /**
+ * @brief Convert the remote address of a Slurm message
+ * to string representation
+ *
+ * @param sMsg The message to convert
+ *
+ * @return Returns the result
+ */
+const char *strRemoteAddr(Slurm_Msg_t *sMsg);
+
+/**
  * @brief Initialize a Slurm message
  *
  * @param msg The message to initialize
