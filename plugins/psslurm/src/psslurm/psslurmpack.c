@@ -1048,11 +1048,10 @@ bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
     }
 
 #if defined (DEBUG_MSG_HEADER)
-    Slurm_Addr_t *addr = &head->addr;
     flog("version %u flags %u index %u type %u bodyLen %u forward %u"
 	 " treeWidth %u returnList %u, addrFam %u from %s\n",
 	 head->version, head->flags, head->index, head->type, head->bodyLen,
-	 head->forward, head->fwTreeWidth, head->returnList, addr->family,
+	 head->forward, head->fwTreeWidth, head->returnList, head->addr.family,
 	 strRemoteAddr(sMsg));
 
     if (head->forward) {
