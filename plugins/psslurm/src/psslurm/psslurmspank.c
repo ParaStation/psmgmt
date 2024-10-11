@@ -618,8 +618,8 @@ static void initSpankOptByEnv(env_t env)
 
 	/* remove SPANK option prefix */
 	char *optEnv = ptr + len;
-	if (!optEnv) {
-	    flog("erro: empty option environment string %s\n", ptr);
+	if (!*optEnv) {
+	    flog("error: empty option environment string %s\n", ptr);
 	    continue;
 	}
 
@@ -642,13 +642,16 @@ static void initSpankOptByEnv(env_t env)
 
 	    /* extract option value */
 	    char *value = optName + strlen(opt->name) + 1;
-	    if (value) {
-		fdbg(PSSLURM_LOG_SPANK, "set option %s=%s for plugin %s \n",
-		     opt->name, value, plugin->name);
-		optCacheSave(plugin, opt, value);
-		found = true;
-		break;
+	    if (!*value) {
+		flog("error: parsing failed, empty value for %s\n", optEnv);
+		continue;
 	    }
+
+	    fdbg(PSSLURM_LOG_SPANK, "set option %s=%s for plugin %s \n",
+		 opt->name, value, plugin->name);
+	    optCacheSave(plugin, opt, value);
+	    found = true;
+	    break;
 	}
 	if (!found) {
 	    fdbg(PSSLURM_LOG_SPANK, "error: could not match option %s\n", *e);
