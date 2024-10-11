@@ -322,6 +322,18 @@ static char *getSpankEnvName(const char *name)
     return dup;
 }
 
+/**
+ * @brief Test if a given name is part of an SPANK environment string
+ *
+ * @param regName Registered option name
+ *
+ * @param envName Variable in SPANK environment encoding
+ *
+ * @param sep Separator of name and next variable in environment string
+ *
+ * @return Returns true if the converted @a regName is part of the environment
+ * string and separated by @sep. Otherwise false is returned.
+ */
 static bool testSpankEnvName(const char *regName, const char *envName,
 			     const char sep)
 {
