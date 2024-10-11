@@ -647,6 +647,7 @@ static void initSpankOptByEnv(env_t env)
 		     opt->name, value, plugin->name);
 		optCacheSave(plugin, opt, value);
 		found = true;
+		break;
 	    }
 	}
 	if (!found) {
