@@ -355,7 +355,7 @@ static bool testSpankEnvName(const char *regName, const char *envName,
  *
  * @param name The name of the plugin to find
  *
- * @return Returns the found plugin on success otherwise false is returned
+ * @return Returns the found plugin on success otherwise NULL is returned
  */
 static Spank_Plugin_t *findPlugin(const char *name)
 {
