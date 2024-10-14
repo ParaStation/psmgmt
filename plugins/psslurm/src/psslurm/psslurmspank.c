@@ -666,7 +666,9 @@ static void initSpankOptByEnv(env_t env)
  */
 void initSpankOptByStep(Step_t *step)
 {
-    for (uint32_t i=0; step && i < step->spankOptCount; i++) {
+    if (!step) return;
+
+    for (uint32_t i=0; i < step->spankOptCount; i++) {
 	Spank_Opt_t stepOpt = step->spankOpt[i];
 
 	if (stepOpt.type != OPT_TYPE_SPANK) continue;
