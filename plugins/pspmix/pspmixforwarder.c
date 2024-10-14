@@ -55,7 +55,6 @@
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "pluginspawn.h"
-#include "pluginvector.h"
 
 #include "pspmixconfig.h"
 #include "pspmixcommon.h"
@@ -956,23 +955,8 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     PMIX_PROC_DESTRUCT(&myproc);
 }
 
-/* Macro to put info key value pair from msg into vector */
-#define GET_STRING_INFO(name, infos) \
-    do { \
-	size_t len; \
-	char *name = getStringML(data, &len); \
-	if (len) { \
-	    KVP_t entry; \
-	    entry.key = ustrdup(#name); \
-	    entry.value = name; \
-	    vectorAdd(infos, &entry); \
-	} else { \
-	    ufree(name); \
-	} \
-    } while(false)
-
-/* Macro to put info key value pair from msg into vector */
-#define GET_STRING_INFO2(name, infos)		\
+/* Macro to put info key value pair from msg into environment */
+#define GET_STRING_INFO(name, infos)		\
     do {					\
 	size_t len;				\
 	char *name = getStringML(data, &len);	\
@@ -1020,9 +1004,9 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* get additional job level info */
     env_t infos = envNew(NULL);
 
-    GET_STRING_INFO2(nodetypes, infos);
-    GET_STRING_INFO2(mpiexecopts, infos);
-    GET_STRING_INFO2(srunopts, infos);
+    GET_STRING_INFO(nodetypes, infos);
+    GET_STRING_INFO(mpiexecopts, infos);
+    GET_STRING_INFO(srunopts, infos);
 
     /* get number of apps and initialize request accordingly */
     uint16_t napps;
@@ -1050,13 +1034,13 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	/* get and fill additional info */
 	spawn->infos = envNew(NULL);
 
-	GET_STRING_INFO2(wdir, spawn->infos);
-	GET_STRING_INFO2(hosts, spawn->infos);
-	GET_STRING_INFO2(hostfile, spawn->infos);
-	GET_STRING_INFO2(nodetypes, spawn->infos);
-	GET_STRING_INFO2(mpiexecopts, spawn->infos);
-	GET_STRING_INFO2(srunopts, spawn->infos);
-	GET_STRING_INFO2(srunconstraint, spawn->infos);
+	GET_STRING_INFO(wdir, spawn->infos);
+	GET_STRING_INFO(hosts, spawn->infos);
+	GET_STRING_INFO(hostfile, spawn->infos);
+	GET_STRING_INFO(nodetypes, spawn->infos);
+	GET_STRING_INFO(mpiexecopts, spawn->infos);
+	GET_STRING_INFO(srunopts, spawn->infos);
+	GET_STRING_INFO(srunconstraint, spawn->infos);
     }
 
     pdbg(PSPMIX_LOG_COMM, "received %s with napps %hu.\n",
