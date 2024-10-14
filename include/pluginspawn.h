@@ -18,12 +18,6 @@
 #include "psstrv.h"
 #include "pstask.h"
 
-/** Simple key-value pair */
-typedef struct {
-    char *key;
-    char *value;
-} KVP_t;
-
 /** Structure holding all information on a single spawn */
 typedef struct {
     int np;         /**< number of processes */
