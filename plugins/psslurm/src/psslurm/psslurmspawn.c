@@ -35,32 +35,6 @@ void initSpawnFacility(Step_t *jobstep)
     step = jobstep;
 }
 
-/**
- * @brief Prepare preput keys and values to pass by environment.
- *
- * Generates an array of strings representing the preput key-value-pairs in the
- * format "__PMI_<KEY>=<VALUE>" and one variable "__PMI_preput_num=<COUNT>"
- *
- * @param preputc  Number of key value pairs.
- *
- * @param preputv  Array of key value pairs.
- *
- * @param env      Plugin environment struct to extend.
- */
-static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, env_t env)
-{
-    snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", preputc);
-    envAdd(env, buffer);
-
-    for (int i = 0; i < preputc; i++) {
-	snprintf(buffer, sizeof(buffer), "__PMI_preput_key_%i", i);
-	envSet(env, buffer, preputv[i].key);
-
-	snprintf(buffer, sizeof(buffer), "__PMI_preput_val_%i", i);
-	envSet(env, buffer, preputv[i].value);
-    }
-}
-
 static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 {
     const char *srun = getConfValueC(Config, "SRUN_BINARY");

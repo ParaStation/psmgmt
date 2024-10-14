@@ -1644,64 +1644,6 @@ kvp_error:
 }
 
 /**
- * @brief Extract key-value pairs from PMI spawn request
- *
- * @param msg Buffer containing the PMI spawn message
- *
- * @param name Identifier for the key-value pairs to extract
- *
- * @param kvpc Where to store the number key-value pairs
- *
- * @param kvpv Where to store the array of key-value pairs
- *
- * @return Returns true on success, false on error
- */
-static bool getSpawnKVPs(char *msg, char *name, int *kvpc, KVP_t **kvpv)
-{
-    char numKVP[50];
-    int count, i;
-
-    snprintf(buffer, sizeof(buffer), "%s_num", name);
-    if (!getpmiv(buffer, msg, numKVP, sizeof(numKVP))) {
-	mlog("%s(r%i): missing %s count\n", __func__, rank, name);
-	return false;
-    }
-    *kvpc = atoi(numKVP);
-
-    if (!*kvpc) return true;
-
-    *kvpv = umalloc(*kvpc * sizeof(KVP_t));
-
-    for (i = 0; i < *kvpc; i++) {
-	char nextkey[PMI_KEYLEN_MAX], nextvalue[PMI_VALLEN_MAX];
-	snprintf(buffer, sizeof(buffer), "%s_key_%i", name, i);
-	if (!getpmiv(buffer, msg, nextkey, sizeof(nextkey))) {
-	    mlog("%s(r%i): invalid %s key %s\n", __func__, rank, name, buffer);
-	    goto kvp_error;
-	}
-
-	snprintf(buffer, sizeof(buffer), "%s_val_%i", name, i);
-	if (!getpmiv(buffer, msg, nextvalue, sizeof(nextvalue))) {
-	    mlog("%s(r%i): invalid %s val %s\n", __func__, rank, name, buffer);
-	    goto kvp_error;
-	}
-
-	(*kvpv)[i].key = ustrdup(nextkey);
-	(*kvpv)[i].value = ustrdup(nextvalue);
-    }
-    return true;
-
-kvp_error:
-    count = i;
-    for (i = 0; i < count; i++) {
-	ufree((*kvpv)[i].key);
-	ufree((*kvpv)[i].value);
-    }
-    ufree(*kvpv);
-    return false;
-}
-
-/**
  * @brief Parse spawn request messages
  *
  * @param msg Buffer containing the PMI spawn request message
@@ -1947,36 +1889,6 @@ static int getSoftArgList(char *soft, int **softList)
     return ecount;
 }
 */
-
-/**
- * @brief Prepare preput keys and values to pass by environment
- *
- * Generates an array of strings representing the preput key-value-pairs in the
- * format "__PMI_<KEY>=<VALUE>" and one variable "__PMI_preput_num=<COUNT>"
- *
- * @param preputc Number of key value pairs
- *
- * @param preputv Array of key value pairs
- *
- * @param envv Where to store the pointer to the array of definitions
- *
- * @return No return value
- */
-static void addPreputToEnv(int preputc, KVP_t *preputv, env_t env)
-{
-    snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", preputc);
-    envAdd(env, buffer);
-
-    for (int i = 0; i < preputc; i++) {
-	snprintf(buffer, sizeof(buffer), "__PMI_preput_key_%i", i);
-	char *tmpStr = PSC_concat(buffer, "=",  preputv[i].key);
-	envPut(env, tmpStr);
-
-	snprintf(buffer, sizeof(buffer), "__PMI_preput_val_%i", i);
-	tmpStr = PSC_concat(buffer, "=",  preputv[i].value);
-	envPut(env, tmpStr);
-    }
-}
 
 /**
  *  fills the passed task structure to spawn processes using mpiexec
