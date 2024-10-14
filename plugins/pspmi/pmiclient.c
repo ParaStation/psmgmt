@@ -1529,6 +1529,66 @@ static strv_t getSpawnArgs(char *msg)
 }
 
 /**
+ * @brief Extract key-value pairs from PMI spawn into an environment
+ *
+ * Extract key-value pairs from the PMI spawn message @a msg and store
+ * them into the to be created environment @a env in the format
+ * required by the preput environment later on. For each preput key-value
+ * pair two environment variables in the format
+ * "__PMI_preput_key_<i>=<KEY>" and "__PMI_preput_val_<i>=<VALUE>" are
+ * created. An additional variable "__PMI_preput_num=<COUNT>" will
+ * provide the number of variable pairs.
+ *
+ * In case of error or if no pairs are found, no environment will be
+ * created.
+ *
+ * @param msg PMI spawn message holding all information
+ *
+ * @param env Pointer to the environment to be created
+ *
+ * @return Return true on success and false on error; in the latter
+ * case no environment will be created
+ */
+static bool getSpawnPreputEnv(char *msg, env_t *env)
+{
+    char numKVP[50];
+    snprintf(buffer, sizeof(buffer), "preput_num");
+    if (!getpmiv(buffer, msg, numKVP, sizeof(numKVP))) {
+	flog("r%i: missing preput count\n", rank);
+	return false;
+    }
+    int numPairs = atoi(numKVP);
+    if (!numPairs) return true;
+
+    *env = envNew(NULL);
+    envSet(*env, "__PMI_preput_num", numKVP);
+    for (int i = 0; i < numPairs; i++) {
+	char key[PMI_KEYLEN_MAX], value[PMI_VALLEN_MAX];
+	snprintf(buffer, sizeof(buffer), "preput_key_%i", i);
+	if (!getpmiv(buffer, msg, key, sizeof(key))) {
+	    flog("r%i: invalid preput key %s\n", rank, buffer);
+	    goto kvp_error;
+	}
+	snprintf(buffer, sizeof(buffer), "__PMI_preput_key_%i", i);
+	envSet(*env, buffer, key);
+
+	snprintf(buffer, sizeof(buffer), "preput_val_%i", i);
+	if (!getpmiv(buffer, msg, value, sizeof(value))) {
+	    flog("r%i: invalid preput val %s\n", rank, buffer);
+	    goto kvp_error;
+	}
+	snprintf(buffer, sizeof(buffer), "__PMI_preput_val_%i", i);
+	envSet(*env, buffer, value);
+    }
+    return true;
+
+kvp_error:
+    envDestroy(*env);
+    *env = NULL;
+    return false;
+}
+
+/**
  * @brief Extract key-value pairs from PMI spawn request
  *
  * @param msg Buffer containing the PMI spawn message
