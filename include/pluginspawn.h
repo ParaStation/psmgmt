@@ -40,8 +40,7 @@ typedef struct {
 typedef struct {
     int num;               /**< number of single spawns */
     SingleSpawn_t *spawns; /**< array of single spawns */
-    int infoc;             /**< number of info values */
-    KVP_t *infov;          /**< array of info key-value-pairs */
+    env_t infos;           /**< environment hosting info key-value pairs */
     void *data;            /**< custom data pointer */
 } SpawnRequest_t;
 

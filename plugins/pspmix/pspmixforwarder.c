@@ -246,31 +246,29 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     /* set PMIx mode */
     strvAdd(args, "--pmix");
 
-    for (int i = 0; i < req->infoc; i++) {
-	KVP_t *this = req->infov+i;
+    char *info = envGet(req->infos, "nodetypes");
+    if (info) {
+	strvAdd(args, "--gnodetype");
+	strvAdd(args, info);
+    }
 
-	if (!strcmp(this->key, "nodetypes")) {
-	    strvAdd(args, "--gnodetype");
-	    strvAdd(args, this->value);
+    /* "mpiexecopts" info field is extremely dangerous and only meant for
+     * easier testing purposes during development. It is officially
+     * undocumented and can be removed at any time in the future.
+     * Every option that is found useful using this mechanism should
+     * get it's own info key for in production use. */
+    info = envGet(req->infos, "mpiexecopts");
+    if (info) {
+	flog("WARNING: Undocumented feature 'mpiexecopts' used (job): '%s'\n",
+	     info);
+	/* simply split at blanks */
+	char *mpiexecopts = ustrdup(info);
+	char *ptr = strtok(mpiexecopts, " ");
+	while (ptr) {
+	    strvAdd(args, ptr);
+	    ptr = strtok(NULL, " ");
 	}
-
-	/* "mpiexecopts" info field is extremely dangerous and only meant for
-	 * easier testing purposes during development. It is officially
-	 * undocumented and can be removed at any time in the future.
-	 * Every option that is found useful using this mechanism should
-	 * get it's own info key for in production use. */
-	if (strcmp(this->key, "mpiexecopts") == 0) {
-	    flog("WARNING: Undocumented feature 'mpiexecopts' used (job):"
-		 " '%s'\n", this->value);
-	    /* simply split at blanks */
-	    char *mpiexecopts = ustrdup(this->value);
-	    char *ptr = strtok(mpiexecopts, " ");
-	    while (ptr) {
-		strvAdd(args, ptr);
-		ptr = strtok(NULL, " ");
-	    }
-	    ufree(mpiexecopts);
-	}
+	ufree(mpiexecopts);
     }
 
     size_t jobsize = 0;
@@ -1020,12 +1018,11 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint32(data, &srdata->opts);
 
     /* get additional job level info */
-    vector_t infos;
-    vectorInit(&infos, 1, 1, KVP_t);
+    env_t infos = envNew(NULL);
 
-    GET_STRING_INFO(nodetypes, &infos);
-    GET_STRING_INFO(mpiexecopts, &infos);
-    GET_STRING_INFO(srunopts, &infos);
+    GET_STRING_INFO2(nodetypes, infos);
+    GET_STRING_INFO2(mpiexecopts, infos);
+    GET_STRING_INFO2(srunopts, infos);
 
     /* get number of apps and initialize request accordingly */
     uint16_t napps;
@@ -1033,8 +1030,7 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     srdata->req = initSpawnRequest(napps);
 
     /* fill additional job level info into request */
-    srdata->req->infov = infos.data;
-    srdata->req->infoc = infos.len;
+    srdata->req->infos = infos;
 
     for (size_t a = 0; a < napps; a++) {
 	SingleSpawn_t *spawn = srdata->req->spawns + a;
