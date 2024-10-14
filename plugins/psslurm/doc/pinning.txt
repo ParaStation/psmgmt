@@ -113,5 +113,3 @@ The process is pinned to as many hardware threads as it requires, round robin ov
 That means:
 - if a process needs less threads than the node has free cores, it is pinned to one hardware thread of as many cores as needed.
 - the first hardware thread of each core is filled first, before the second hardware thread of any core is used
-
-

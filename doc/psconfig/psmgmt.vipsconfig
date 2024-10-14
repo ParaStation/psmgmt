@@ -203,4 +203,3 @@ Psid.NodeId = "1"
 # Inherited keys:
 # Psid. = ptr(["class:psid"])
 # Psid.LoadPlugins = ["pspmi", "psaccount", "psslurm"]
-

@@ -47,4 +47,3 @@ With: sockets, coresPerSocket, threadsPerCore, tasks, threadsPerTask are any nat
 Example: plugins/psslurm/tests/test_psslurmpin pinning 2 8 2  8 4  threads "" "block:cyclic" 0
 
 NOTE: pinning is currently not supported any more, in favour of psslurmgetbind
-
