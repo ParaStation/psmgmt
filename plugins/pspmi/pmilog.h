@@ -22,6 +22,10 @@ extern FILE *pmilogfile;
 #define mlog(...) logger_print(pmilogger, -1, __VA_ARGS__)
 #define mwarn(...) logger_warn(pmilogger, -1, __VA_ARGS__)
 #define mdbg(...) logger_print(pmilogger, __VA_ARGS__)
+
+#define flog(...) logger_funcprint(pmilogger, __func__, -1, __VA_ARGS__)
+#define fdbg(...) logger_funcprint(pmilogger, __func__, __VA_ARGS__)
+
 #define elog(...) PSIDfwd_printMsgf(STDERR, __VA_ARGS__)
 
 /** Various types of logging levels for more verbose logging */
