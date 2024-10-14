@@ -1737,9 +1737,7 @@ static bool parseSpawnReq(char *msg, SingleSpawn_t *spawn)
     if (!getSpawnPreputEnv(msg, &spawn->preputs)) goto parse_error;
 
     /* extract info keys and values */
-    if (!getSpawnKVPs(msg, "info", &spawn->infoc, &spawn->infov)) {
-	goto parse_error;
-    }
+    if (!getSpawnEnv(msg, "info", &spawn->infos)) goto parse_error;
 
     setPMIDelim(NULL);
     return true;
@@ -2061,48 +2059,52 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	 *		+ 0:8:2,7 means 0,2,4,6,7,8
 	 *		+ 0:2 means 0,1,2
 	 */
-	for (int j = 0; j < spawn->infoc; j++) {
-	    KVP_t *info = &(spawn->infov[j]);
+	char *info = envGet(spawn->infos, "wdir");
+	if (info) {
+	    strvAdd(args, "-d");
+	    strvAdd(args, info);
+	}
 
-	    if (!strcmp(info->key, "wdir")) {
-		strvAdd(args, "-d");
-		strvAdd(args, info->value);
-	    }
-	    if (!strcmp(info->key, "tpp")) {
-		size_t len = strlen(info->value) + 7;
-		tmpStr = umalloc(len);
-		snprintf(tmpStr, len, "--tpp=%s", info->value);
-		strvLink(args, tmpStr);
-	    }
-	    if (!strcmp(info->key, "nodetype") || !strcmp(info->key, "arch")) {
-		size_t len = strlen(info->value) + 12;
-		tmpStr = umalloc(len);
-		snprintf(tmpStr, len, "--nodetype=%s", info->value);
-		strvLink(args, tmpStr);
-	    }
-	    if (!strcmp(info->key, "path")) {
-		strvAdd(args, "-p");
-		strvAdd(args, info->value);
-	    }
+	info = envGet(spawn->infos, "tpp");
+	if (info) {
+	    size_t len = strlen(info) + 7;
+	    tmpStr = umalloc(len);
+	    snprintf(tmpStr, len, "--tpp=%s", info);
+	    strvLink(args, tmpStr);
+	}
 
-	    /* TODO soft spawn
-	    if (!strcmp(info->key, "soft")) {
-		char *soft;
-		int *count, *sList;
+	info = envGet(spawn->infos, "nodetype");
+	if (!info) info = envGet(spawn->infos, "arch");
+	if (info) {
+	    size_t len = strlen(info) + 12;
+	    tmpStr = umalloc(len);
+	    snprintf(tmpStr, len, "--nodetype=%s", info);
+	    strvLink(args, tmpStr);
+	}
 
-		soft = info->value;
-		sList = getSoftArgList(soft, &count);
+	info = envGet(spawn->infos, "path");
+	if (info) {
+	    strvAdd(args, "-p");
+	    strvAdd(args, info);
+	}
 
-		ufree(soft);
-	    }
-	    */
+	/* TODO soft spawn
+	info = envGet(spawn->infos, "soft");
+	if (!strcmp(info->key, "soft")) {
+	    char *soft = ustrdup(info);
+	    int *count;
+	    int *sList = getSoftArgList(soft, &count);
 
-	    if (!strcmp(info->key, "parricide")) {
-		if (!strcmp(info->value, "disabled")) {
-		    noParricide = true;
-		} else if (!strcmp(info->value, "enabled")) {
-		    noParricide = false;
-		}
+	    ufree(soft);
+	}
+	*/
+
+	info = envGet(spawn->infos, "parricide");
+	if (info) {
+	    if (!strcmp(info, "disabled")) {
+		noParricide = true;
+	    } else if (!strcmp(info, "enabled")) {
+		noParricide = false;
 	    }
 	}
 

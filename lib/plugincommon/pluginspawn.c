@@ -58,13 +58,10 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req)
 	    return NULL;
 	}
 
-	if (old->infov) {
-	    new->infoc = old->infoc;
-	    new->infov = umalloc(new->infoc * sizeof(*new->infov));
-	    for (int j = 0; j < old->infoc; j++) {
-		new->infov[j].key = ustrdup(old->infov[j].key);
-		new->infov[j].value = ustrdup(old->infov[j].value);
-	    }
+	new->infos = envClone(old->infos, NULL);
+	if (!envInitialized(new->infos) && envInitialized(old->infos)) {
+	    freeSpawnRequest(ret);
+	    return NULL;
 	}
     }
 
@@ -86,13 +83,7 @@ void freeSpawnRequest(SpawnRequest_t *req)
 	strvDestroy(req->spawns[i].argV);
 	envDestroy(req->spawns[i].env);
 	envDestroy(req->spawns[i].preputs);
-	if (req->spawns[i].infov) {
-	    for (int j = 0; j < req->spawns[i].infoc; j++) {
-		ufree(req->spawns[i].infov[j].key);
-		ufree(req->spawns[i].infov[j].value);
-	    }
-	    ufree(req->spawns[i].infov);
-	}
+	envDestroy(req->spawns[i].infos);
     }
 
     ufree(req->spawns);

@@ -303,29 +303,34 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 	 *               death.
 	 */
 	char * mpiexecopts = NULL;
-	for (int i = 0; i < spawn->infoc; i++) {
-	    KVP_t *info = &(spawn->infov[i]);
 
-	    if (!strcmp(info->key, "wdir")) {
-		strvAdd(args, "-d");
-		strvAdd(args, info->value);
-	    } else if (!strcmp(info->key, "nodetypes")) {
-		strvAdd(args, "--nodetype");
-		strvAdd(args, info->value);
-	    } else if (!strcmp(info->key, "parricide")) {
-		if (!strcmp(info->value, "disabled")) {
-		    noParricide = true;
-		} else if (!strcmp(info->value, "enabled")) {
-		    noParricide = false;
-		}
-	    /* "mpiexecopts" info field is extremely dangerous (see above) */
-	    } else if (!strcmp(info->key, "mpiexecopts")) {
-		flog("WARNING: Undocumented feature 'mpiexecopts' used"
-		     " (app %d): '%s'\n", r, info->value);
-		mpiexecopts = ustrdup(info->value);
-	    } else {
-		plog("info key '%s' not supported\n", info->key);
+	char *info = envGet(spawn->infos, "wdir");
+	if (info) {
+	    strvAdd(args, "-d");
+	    strvAdd(args, info);
+	}
+
+	info = envGet(spawn->infos, "nodetypes");
+	if (info) {
+	    strvAdd(args, "--nodetype");
+	    strvAdd(args, info);
+	}
+
+	info = envGet(spawn->infos, "parricide");
+	if (info) {
+	    if (!strcmp(info, "disabled")) {
+		noParricide = true;
+	    } else if (!strcmp(info, "enabled")) {
+		noParricide = false;
 	    }
+	}
+
+	/* "mpiexecopts" info field is extremely dangerous (see above) */
+	info = envGet(spawn->infos, "mpiexecopts");
+	if (info) {
+	    flog("WARNING: Undocumented feature 'mpiexecopts' used (app %d):"
+		 " '%s'\n", r, info);
+	    mpiexecopts = ustrdup(info);
 	}
 
 	/* add user defined environment */
@@ -968,6 +973,15 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	} \
     } while(false)
 
+/* Macro to put info key value pair from msg into vector */
+#define GET_STRING_INFO2(name, infos)		\
+    do {					\
+	size_t len;				\
+	char *name = getStringML(data, &len);	\
+	if (len) envSet(infos, #name, name);	\
+	ufree(name);				\
+    } while(false)
+
 /**
  * @brief Handle messages of type PSPMIX_CLIENT_SPAWN
  *
@@ -1038,19 +1052,15 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	spawn->env = envNew(env);
 
 	/* get and fill additional info */
-	vector_t infos;
-	vectorInit(&infos, 3, 3, KVP_t);
+	spawn->infos = envNew(NULL);
 
-	GET_STRING_INFO(wdir, &infos);
-	GET_STRING_INFO(hosts, &infos);
-	GET_STRING_INFO(hostfile, &infos);
-	GET_STRING_INFO(nodetypes, &infos);
-	GET_STRING_INFO(mpiexecopts, &infos);
-	GET_STRING_INFO(srunopts, &infos);
-	GET_STRING_INFO(srunconstraint, &infos);
-
-	spawn->infov = infos.data;
-	spawn->infoc = infos.len;
+	GET_STRING_INFO2(wdir, spawn->infos);
+	GET_STRING_INFO2(hosts, spawn->infos);
+	GET_STRING_INFO2(hostfile, spawn->infos);
+	GET_STRING_INFO2(nodetypes, spawn->infos);
+	GET_STRING_INFO2(mpiexecopts, spawn->infos);
+	GET_STRING_INFO2(srunopts, spawn->infos);
+	GET_STRING_INFO2(srunconstraint, spawn->infos);
     }
 
     pdbg(PSPMIX_LOG_COMM, "received %s with napps %hu.\n",

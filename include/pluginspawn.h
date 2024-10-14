@@ -30,8 +30,7 @@ typedef struct {
     strv_t argV;    /**< argument vector to spawn */
     env_t env;      /**< environment variables (only PMIx) */
     env_t preputs;  /**< preput key-value-pairs in the final format (only PMI)*/
-    int infoc;      /**< number of info values */
-    KVP_t *infov;   /**< array of info key-value-pairs */
+    env_t infos;    /**< environment hosting info key-value pairs */
 } SingleSpawn_t;
 
 /**

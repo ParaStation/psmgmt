@@ -143,32 +143,36 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
 	 *
 	 */
 	char *srunopts = NULL;
-	for (int i = 0; i < spawn->infoc; i++) {
-	    KVP_t *info = &(spawn->infov[i]);
 
-	    if (!strcmp(info->key, "wdir")) {
-		if (!s) {
-		    strvAdd(argV, "-D");          // --chdir=
-		    strvAdd(argV, info->value);
-		}
-	    } else if (!strcmp(info->key, "host")) {
-		strvAdd(argV, "-w");          // --nodelist=
-		strvAdd(argV, info->value);
-	    } else if (!strcmp(info->key, "srunconstraint")) {
-		strvAdd(argV, "-C");          // --constraint=
-		strvAdd(argV, info->value);
-	    } else if (!strcmp(info->key, "parricide")) {
-		if (!strcmp(info->value, "disabled")) {
-		    task->noParricide = true;
-		}
-	    /* "srunopts" info field is extremely dangerous (see above) */
-	    } else if (!strcmp(info->key, "srunopts")) {
-		flog("WARNING: Undocumented feature 'srunopts' used (app %d):"
-		     " '%s'\n", s, info->value);
-		srunopts = strdup(info->value);
-	    } else {
-		flog("info key '%s' not supported\n", info->key);
-	    }
+	char *info = envGet(spawn->infos, "wdir");
+	if (!s && info) {
+	    strvAdd(argV, "-D");          // --chdir=
+	    strvAdd(argV, info);
+	}
+
+	info = envGet(spawn->infos, "host");
+	if (info) {
+	    strvAdd(argV, "-w");          // --nodelist=
+	    strvAdd(argV, info);
+	}
+
+	info = envGet(spawn->infos, "srunconstraint");
+	if (info) {
+	    strvAdd(argV, "-C");          // --constraint=
+	    strvAdd(argV, info);
+	}
+
+	info = envGet(spawn->infos, "parricide");
+	if (info && !strcmp(info, "disabled")) {
+	    task->noParricide = true;
+	}
+
+	/* "srunopts" info field is extremely dangerous (see above) */
+	info = envGet(spawn->infos, "srunopts");
+	if (info) {
+	    flog("WARNING: Undocumented feature 'srunopts' used (app %d):"
+		 " '%s'\n", s, info);
+	    srunopts = strdup(info);
 	}
 
 	char *envArg = strdup("--export=ALL");
