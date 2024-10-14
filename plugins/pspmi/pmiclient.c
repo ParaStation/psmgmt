@@ -1590,6 +1590,60 @@ kvp_error:
 }
 
 /**
+ * @brief Extract key-value pairs from PMI spawn into an environment
+ *
+ * Extract key-value pairs from the PMI spawn message @a msg and store
+ * them into the to be created environment @a env in the format
+ * "<KEY>=<VALUE>".
+ *
+ * In case of error or if no pairs are found, no environment will be
+ * created.
+ *
+ * @param msg PMI spawn message holding all information
+ *
+ * @param name Type of pairs to search for
+ *
+ * @param env Pointer to the environment to be created
+ *
+ * @return Return true on success and false on error; in the latter
+ * case no environment will be created
+ */
+static bool getSpawnEnv(char *msg, char *name, env_t *env)
+{
+    char numKVP[50];
+    snprintf(buffer, sizeof(buffer), "%s_num", name);
+    if (!getpmiv(buffer, msg, numKVP, sizeof(numKVP))) {
+	flog("r%i: missing %s count\n", rank, name);
+	return false;
+    }
+    int numPairs = atoi(numKVP);
+    if (!numPairs) return true;
+
+    *env = envNew(NULL);
+    for (int i = 0; i < numPairs; i++) {
+	char key[PMI_KEYLEN_MAX], value[PMI_VALLEN_MAX];
+	snprintf(buffer, sizeof(buffer), "%s_key_%i", name, i);
+	if (!getpmiv(buffer, msg, key, sizeof(key))) {
+	    flog("r%i: invalid %s key %s\n", rank, name, buffer);
+	    goto kvp_error;
+	}
+	snprintf(buffer, sizeof(buffer), "%s_val_%i", name, i);
+	if (!getpmiv(buffer, msg, value, sizeof(value))) {
+	    flog("r%i: invalid %s val %s\n", rank, name, buffer);
+	    goto kvp_error;
+	}
+
+	envSet(*env, key, value);
+    }
+    return true;
+
+kvp_error:
+    envDestroy(*env);
+    *env = NULL;
+    return false;
+}
+
+/**
  * @brief Extract key-value pairs from PMI spawn request
  *
  * @param msg Buffer containing the PMI spawn message
