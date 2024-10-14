@@ -1529,7 +1529,8 @@ static strv_t getSpawnArgs(char *msg)
 }
 
 /**
- * @brief Extract key-value pairs from PMI spawn into an environment
+ * @brief Extract preput key-value pairs from PMI spawn into an
+ * environment
  *
  * Extract key-value pairs from the PMI spawn message @a msg and store
  * them into the to be created environment @a env in the format
@@ -1679,9 +1680,7 @@ static bool parseSpawnReq(char *msg, SingleSpawn_t *spawn)
     if (!spawn->argV) goto parse_error;
 
     /* extract preput keys and values */
-    if (!getSpawnKVPs(msg, "preput", &spawn->preputc, &spawn->preputv)) {
-	goto parse_error;
-    }
+    if (!getSpawnPreputEnv(msg, &spawn->preputs)) goto parse_error;
 
     /* extract info keys and values */
     if (!getSpawnKVPs(msg, "info", &spawn->infoc, &spawn->infov)) {
@@ -1951,7 +1950,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
      * Only the values of the first single spawn are used. */
     SingleSpawn_t *spawn = &(req->spawns[0]);
 
-    addPreputToEnv(spawn->preputc, spawn->preputv, task->env);
+    envMerge(task->env, spawn->preputs, NULL); // @todo envAppend()??
 
     /* build arguments:
      * mpiexec -u <UNIVERSE_SIZE> -np <NP> -d <WDIR> -p <PATH> \

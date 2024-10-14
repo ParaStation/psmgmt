@@ -260,7 +260,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
      *
      * Only the values of the first single spawn are used. */
     SingleSpawn_t *spawn = &(req->spawns[0]);
-    addSpawnPreputToEnv(spawn->preputc, spawn->preputv, task->env);
+    envMerge(task->env, spawn->preputs, NULL);
 
     size_t jobSize = fillWithSrun(req, task);
 
