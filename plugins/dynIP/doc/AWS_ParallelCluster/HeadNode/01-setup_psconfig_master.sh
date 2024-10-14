@@ -23,6 +23,7 @@ do
 done
 
 # create network objects
+# shellcheck disable=SC2043
 for network in "cluster"
 do
 	obj="network:$network"
@@ -34,7 +35,7 @@ done
 # fill cluster network
 {
 	obj="network:cluster"
-	$pconfig set "$obj"
+	$psconfig set "$obj"
 }
 
 # create master host object
@@ -70,14 +71,15 @@ done
 
 # expand node lists
 typeset -a nodelist
-for list in ${nodelists[@]}
+for list in "${nodelists[@]}"
 do
+	# shellcheck disable=SC2207
 	nodelist+=( $(nodeset --expand "$list") )
 done
 
 # create node objects
 id=1 # id 0 is the master
-for node in ${nodelist[@]}
+for node in "${nodelist[@]}"
 do
 	obj="host:$node"
 	$psconfig create "$obj"
