@@ -6,6 +6,37 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.63:
+===============
+Bugfixes:
+ - Actually use psslurm start time to fake node boot time (#260)
+ - Ensure jobscript stdout cannot be used directly by SPANK hooks
+ - Prevent leading comma in nodelist string
+Enhancements:
+ - Initialize SPANK options from environment  (JMS/S0/#35)
+ - Log remote address for dropped messages due to munge failures
+ - Adapt PSIDHOOK_SHUTDOWN according to (#245)
+ - Make pluginforwarder's sleep after failed fork flexible (#246)
+ - Let slurm_spank_log() log to child's stderr instead of syslog (#243)
+ - Let slurm_error() log to users stderr in addition to syslog (#248)
+ - Allow to change SPANK log level using SlurmdDebug option
+ - pspmix: Add spawn infos "pspmix.srunconstraint", "pspmix.nodetype"
+ - pspmix: Add spawn infos "pspmix.mpiexecopts" and "pspmix.srunopts"
+ - pspmix: Always create server and session tmpdirs
+ - Use PSCio_setFDCloExec() to close psidforwarder's file descriptors on exec()
+ - Inform user if pspelogue is missing in prologue
+ - Fix memory leaks
+Additional changes:
+ - Introduce reOpenSyslog() to plugincommon
+ - Introduce PSCio_setFDCloExec()
+ - Utilize get/addTaskId and get/addNodeId where appropriate
+ - pspmix: Consequently use v4.2 style info lists
+ - pspmix: Unify output in pspmixserver.c
+ - Utilize PMIx_Info_string() in pspmix dmodex request callback
+ - Evict all code parts only for PMIX_VERSION_MAJOR < 4
+ - Bump plugin API to 144
+
+
 Version 5.1.62-2:
 =================
 Bugfixes:

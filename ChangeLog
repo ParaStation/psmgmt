@@ -1,3 +1,468 @@
+Version 5.1.63:
+===============
+------------------------------------------------------------------------
+53767e8fb | Norbert Eicker | Tue, 15 Oct 2024 12:32:37 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+8936a75e5 | Michael Rauh | Mon, 14 Oct 2024 12:46:32 +0200
+
+Test more explicit if a valid step is given
+------------------------------------------------------------------------
+358c6df37 | Michael Rauh | Fri, 11 Oct 2024 16:02:16 +0200
+
+Correct sanity checks
+------------------------------------------------------------------------
+94931d2e8 | Michael Rauh | Fri, 11 Oct 2024 15:41:06 +0200
+
+Break loop if option is found
+------------------------------------------------------------------------
+04aa41fbf | Michael Rauh | Fri, 11 Oct 2024 15:23:33 +0200
+
+Correct documentation
+------------------------------------------------------------------------
+24dfede1d | Michael Rauh | Fri, 11 Oct 2024 15:21:25 +0200
+
+Add documentation
+------------------------------------------------------------------------
+e2fc8ca87 | Norbert Eicker | Tue, 8 Oct 2024 15:16:18 +0200
+
+Rework reOpenSyslog()
+
+ - ensure reopened psslurmlogger is actualy used afterwards
+------------------------------------------------------------------------
+f1edcc6a2 | Norbert Eicker | Tue, 8 Oct 2024 15:43:25 +0200
+
+Minor rework of psslurm's initLogger()
+
+ - do not unnecessarily initialize the pluginlogger
+------------------------------------------------------------------------
+fa788b368 | Norbert Eicker | Tue, 8 Oct 2024 15:38:47 +0200
+
+Minor rework of initPluginLogger()
+------------------------------------------------------------------------
+c759035cb | Michael Rauh | Tue, 8 Oct 2024 12:04:24 +0200
+
+Clarify used of double NULL in pspelogue
+------------------------------------------------------------------------
+b88f86bbc | Michael Rauh | Tue, 8 Oct 2024 11:48:55 +0200
+
+Improve reOpenSyslog() and move it to plugincommon so it can be used
+by other plugins
+
+ - cleanup used resources properly
+ - re-initialze pluginlog facility
+------------------------------------------------------------------------
+1028d835b | Michael Rauh | Fri, 4 Oct 2024 12:25:37 +0200
+
+Introduce reOpenSyslog() to ensure debug masks are setup correct
+in psslurm forwarders
+------------------------------------------------------------------------
+f6ab0309b | Michael Rauh | Wed, 2 Oct 2024 16:40:26 +0200
+
+Update documentation
+------------------------------------------------------------------------
+5d7f8b2c0 | Michael Rauh | Wed, 2 Oct 2024 16:25:28 +0200
+
+Use option name to identify an option in the cache
+------------------------------------------------------------------------
+2f8afa472 | Michael Rauh | Wed, 2 Oct 2024 14:38:34 +0200
+
+Add variable to select which spank environment to use in spank_t
+------------------------------------------------------------------------
+570ffb6b2 | Michael Rauh | Wed, 2 Oct 2024 14:37:01 +0200
+
+Change default PELOGUE_ENV_FILTER to let SPANK prefixed variables pass
+------------------------------------------------------------------------
+0226526e1 | Michael Rauh | Wed, 2 Oct 2024 13:37:23 +0200
+
+Let pspelogue forward SPANK prefixed variables and extract
+SPANK options from them
+------------------------------------------------------------------------
+f9dc10e97 | Michael Rauh | Tue, 1 Oct 2024 15:51:42 +0200
+
+Add SPANK option cache
+------------------------------------------------------------------------
+6d31fd2ae | Michael Rauh | Wed, 11 Sep 2024 12:08:57 +0200
+
+Initialize SPANK options from environment (#35)
+
+ - SPANK options were only update for steps from the launch RPC
+ - this change adds options which are hidden in the job environment
+------------------------------------------------------------------------
+278aadc5a | Michael Rauh | Thu, 10 Oct 2024 12:32:03 +0200
+
+Bugfix: actually use psslurm start time to fake node boot time (#260)
+------------------------------------------------------------------------
+e3d9cd69a | Norbert Eicker | Wed, 9 Oct 2024 16:32:56 +0200
+
+Spare one variable
+------------------------------------------------------------------------
+ff73e94c9 | Michael Rauh | Wed, 9 Oct 2024 11:16:25 +0200
+
+Log remote address for dropped messages due to munge failures
+------------------------------------------------------------------------
+752151254 | Norbert Eicker | Mon, 30 Sep 2024 14:50:59 +0200
+
+Fix some warnings emitted by GCC 14 static analyzer
+------------------------------------------------------------------------
+ed177bd92 | Stephan Krempel | Thu, 9 Nov 2023 16:24:45 +0100
+
+Inform user if pspelogue is missing in prologue
+
+This is a service for admins doing initial setup. It is assumed
+that they are running a test job and it is easier to see the
+error in the job output than to search for it in the syslog of
+a random node.
+------------------------------------------------------------------------
+f71644476 | Norbert Eicker | Tue, 24 Sep 2024 21:05:42 +0200
+
+Rework PSC_warn()
+------------------------------------------------------------------------
+5307fbd02 | Norbert Eicker | Tue, 24 Sep 2024 21:04:50 +0200
+
+Introduce PSC_fwarn()
+------------------------------------------------------------------------
+7610223e6 | Norbert Eicker | Tue, 24 Sep 2024 20:38:30 +0200
+
+Rework PSC_log()
+------------------------------------------------------------------------
+cbd9f4f40 | Norbert Eicker | Tue, 24 Sep 2024 20:32:34 +0200
+
+Introduce PSC_dbg()
+------------------------------------------------------------------------
+b91c1289b | Norbert Eicker | Tue, 24 Sep 2024 20:27:20 +0200
+
+Introduce PSC_fdbg()
+------------------------------------------------------------------------
+a64f6c43d | Norbert Eicker | Tue, 24 Sep 2024 19:57:01 +0200
+
+Introduce PSC_flog()
+------------------------------------------------------------------------
+4c2b2fd5f | Norbert Eicker | Thu, 15 Aug 2024 10:49:15 +0200
+
+Replace vector_t by strbuf_t and flog()/mlog()
+------------------------------------------------------------------------
+f853304d3 | Norbert Eicker | Thu, 15 Aug 2024 10:17:10 +0200
+
+Bugfix: Prevent leading comma in nodelist string
+------------------------------------------------------------------------
+993b1395f | Norbert Eicker | Thu, 15 Aug 2024 10:06:05 +0200
+
+Utilize PMIx_Info_string() in dmodex request callback
+------------------------------------------------------------------------
+1da1d76cc | Norbert Eicker | Thu, 15 Aug 2024 10:00:56 +0200
+
+Refine debug logs
+------------------------------------------------------------------------
+2964c57f3 | Norbert Eicker | Thu, 15 Aug 2024 09:53:15 +0200
+
+Introduce pspmix_service_nodeFromProc()
+------------------------------------------------------------------------
+9433b31c8 | Stephan Krempel | Mon, 7 Oct 2024 13:15:57 +0200
+
+pspmix: Rework GET_STRING_INFO
+------------------------------------------------------------------------
+21ce74313 | Stephan Krempel | Mon, 7 Oct 2024 13:05:08 +0200
+
+pspmix: Actually fill spawn hint sruncontraint
+------------------------------------------------------------------------
+3d35672a1 | Stephan Krempel | Wed, 2 Oct 2024 17:49:31 +0200
+
+pspmix: Add spawn info "pspmix.srunconstraint"
+------------------------------------------------------------------------
+55ca896fd | Stephan Krempel | Wed, 2 Oct 2024 17:48:19 +0200
+
+pspmix: Streamlining
+------------------------------------------------------------------------
+db13493e8 | Norbert Eicker | Wed, 2 Oct 2024 14:25:02 +0200
+
+Whitespace fixes
+------------------------------------------------------------------------
+cbac04022 | Stephan Krempel | Tue, 1 Oct 2024 20:33:16 +0200
+
+pspmix: Prevent corrupted strings
+------------------------------------------------------------------------
+0f0ec17f5 | Stephan Krempel | Tue, 1 Oct 2024 12:00:38 +0200
+
+pspmix: Add "mpiexecopts" and "srunopts" on app level
+------------------------------------------------------------------------
+53881dbd6 | Stephan Krempel | Mon, 30 Sep 2024 15:35:40 +0200
+
+pspmix: Add undocumented developer spawn info "mpiexecopts"
+------------------------------------------------------------------------
+131472190 | Stephan Krempel | Tue, 24 Sep 2024 23:08:11 +0200
+
+pspmix: Add undocumented developer spawn info "srunopts"
+------------------------------------------------------------------------
+a2541af90 | Stephan Krempel | Tue, 1 Oct 2024 16:23:58 +0200
+
+pspmix: Fix memory leak
+------------------------------------------------------------------------
+6cb13a517 | Stephan Krempel | Tue, 1 Oct 2024 12:34:10 +0200
+
+pspmix: Fix memory leak
+------------------------------------------------------------------------
+80eb352d0 | Norbert Eicker | Mon, 30 Sep 2024 15:44:57 +0200
+
+Utilize PMIx_Info_string() while fetching spawn info
+------------------------------------------------------------------------
+ba4125144 | Stephan Krempel | Tue, 24 Sep 2024 22:50:48 +0200
+
+pspmix: Support spawn hint nodetypes at job level
+------------------------------------------------------------------------
+f71334eab | Stephan Krempel | Tue, 24 Sep 2024 22:29:12 +0200
+
+pspmix: Support spawn hint nodetypes at app level
+------------------------------------------------------------------------
+dce64ac6e | Stephan Krempel | Tue, 24 Sep 2024 22:21:03 +0200
+
+Use calloc instead of malloc and memset
+------------------------------------------------------------------------
+3f01794ce | Stephan Krempel | Tue, 24 Sep 2024 22:12:14 +0200
+
+pspmix: Retreive nodetype info for spawn
+------------------------------------------------------------------------
+a93243652 | Stephan Krempel | Tue, 24 Sep 2024 14:03:24 +0200
+
+pspmix: Add job level info to SpawnRequest_t
+------------------------------------------------------------------------
+bc6becc6c | Stephan Krempel | Tue, 24 Sep 2024 22:21:31 +0200
+
+pspmix: Streamlining
+------------------------------------------------------------------------
+a205a1e50 | Stephan Krempel | Tue, 24 Sep 2024 22:16:56 +0200
+
+pspmix: Fix memory allocation
+------------------------------------------------------------------------
+58b084636 | Norbert Eicker | Mon, 23 Sep 2024 20:32:11 +0200
+
+Adapt (obsolete) psmom to new PSIDHOOK_SHUTDOWN
+------------------------------------------------------------------------
+8bad58e80 | Norbert Eicker | Mon, 23 Sep 2024 20:29:48 +0200
+
+Adapt PSIDHOOK_SHUTDOWN according to #245
+
+ - call the hook in each phase telling consumers the current one
+ - bump plugin API to 144
+------------------------------------------------------------------------
+38a9ac4b5 | Norbert Eicker | Tue, 24 Sep 2024 13:34:37 +0200
+
+Streamlining
+------------------------------------------------------------------------
+99bbaec4b | Norbert Eicker | Tue, 24 Sep 2024 11:46:17 +0200
+
+Prefer sscanf() over atoi() for reading task IDs
+
+ - This allows for better tracking of precision
+------------------------------------------------------------------------
+4d8549d10 | Norbert Eicker | Tue, 24 Sep 2024 11:20:26 +0200
+
+Introduce add/getKVSInt64()
+------------------------------------------------------------------------
+1abb85da8 | Norbert Eicker | Tue, 24 Sep 2024 11:16:06 +0200
+
+Utilize get/addTaskId where appropriate
+------------------------------------------------------------------------
+bb4fc926a | Norbert Eicker | Tue, 24 Sep 2024 11:13:42 +0200
+
+Utilize get/addNodeId where appropriate
+------------------------------------------------------------------------
+6715e6fc9 | Norbert Eicker | Tue, 24 Sep 2024 11:05:37 +0200
+
+Enhance debug logs
+------------------------------------------------------------------------
+01cd4ceca | Norbert Eicker | Tue, 24 Sep 2024 14:56:14 +0200
+
+pspmix: Fix access previleges for session tempdir
+------------------------------------------------------------------------
+f936d9d2e | Norbert Eicker | Tue, 24 Sep 2024 14:51:26 +0200
+
+Fix debug syslog
+------------------------------------------------------------------------
+5d60db846 | Stephan Krempel | Tue, 24 Sep 2024 11:56:58 +0200
+
+pspmix: Fix access previleges for server tempdir
+------------------------------------------------------------------------
+264aa9047 | Stephan Krempel | Tue, 24 Sep 2024 11:53:47 +0200
+
+pspmix: Add comment on system tmpdir
+------------------------------------------------------------------------
+c693c221a | Stephan Krempel | Mon, 19 Aug 2024 13:15:08 +0200
+
+pspmix: Always create server and session tmpdirs
+
+Thus, we move closer to OpenPMIx's behaviour:
+https://github.com/openpmix/openpmix/issues/3349
+------------------------------------------------------------------------
+e5a7c4415 | Michael Rauh | Thu, 19 Sep 2024 16:07:06 +0200
+
+Make scan-build happy
+------------------------------------------------------------------------
+84bf8d44b | Michael Rauh | Thu, 19 Sep 2024 16:04:36 +0200
+
+Update documentation comment
+------------------------------------------------------------------------
+5ae8e1327 | Michael Rauh | Wed, 21 Aug 2024 17:36:14 +0200
+
+Let prefix be first argument of psSpankPrint()
+------------------------------------------------------------------------
+1ec34ff30 | Michael Rauh | Wed, 21 Aug 2024 17:30:44 +0200
+
+Improve error message
+------------------------------------------------------------------------
+bfbf52b08 | Michael Rauh | Wed, 21 Aug 2024 15:54:10 +0200
+
+Allow to change SPANK log level using SlurmdDebug option
+------------------------------------------------------------------------
+02e09b17c | Michael Rauh | Tue, 20 Aug 2024 16:20:49 +0200
+
+Make more use of mset()
+------------------------------------------------------------------------
+799e6c480 | Michael Rauh | Tue, 20 Aug 2024 13:57:46 +0200
+
+Remove unnecessary colon in fwarn()
+------------------------------------------------------------------------
+7c9abf13f | Norbert Eicker | Tue, 6 Aug 2024 17:35:56 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+edfee2788 | Michael Rauh | Tue, 6 Aug 2024 14:43:09 +0200
+
+Add slurm_error() output to spank_test plugin
+------------------------------------------------------------------------
+81d021a2f | Michael Rauh | Tue, 6 Aug 2024 14:33:54 +0200
+
+Simplify psSpankPrint()
+------------------------------------------------------------------------
+bd3bddb1e | Michael Rauh | Tue, 6 Aug 2024 14:12:22 +0200
+
+Replace getBufFromFormat() with vasprintf()
+------------------------------------------------------------------------
+a8493ef84 | Michael Rauh | Tue, 6 Aug 2024 14:02:36 +0200
+
+Let slurm_error() log to users stderr in addition to syslog (#248)
+------------------------------------------------------------------------
+a872dc2b2 | Michael Rauh | Tue, 6 Aug 2024 13:45:44 +0200
+
+Add prefix parameter to psSpankPrint()
+------------------------------------------------------------------------
+957f7ddf9 | Michael Rauh | Tue, 6 Aug 2024 14:48:27 +0200
+
+Remove needless colon in logger messages
+------------------------------------------------------------------------
+e8064eedb | Michael Rauh | Tue, 6 Aug 2024 12:17:18 +0200
+
+Ensure jobscript stdout cannot be used directly by SPANK hooks
+------------------------------------------------------------------------
+fd95bb279 | Michael Rauh | Mon, 5 Aug 2024 14:40:30 +0200
+
+Use PSCio_setFDCloExec() to close psidforwarder file descriptors on exec()
+------------------------------------------------------------------------
+3067c780f | Michael Rauh | Mon, 5 Aug 2024 14:01:49 +0200
+
+Introduce PSCio_setFDCloExec() to switch a file descriptors
+close-on-exec mode
+------------------------------------------------------------------------
+d51c10011 | Norbert Eicker | Wed, 18 Sep 2024 17:53:13 +0200
+
+Merge branch '5.1.62' again
+------------------------------------------------------------------------
+2684db42a | Stephan Krempel | Fri, 16 Aug 2024 11:01:21 +0200
+
+Merge remote-tracking branch 'psbuild/master'
+------------------------------------------------------------------------
+387c77678 | Norbert Eicker | Wed, 14 Aug 2024 15:13:43 +0200
+
+Merge branch '5.1.62'
+------------------------------------------------------------------------
+80947fbd0 | Thomas Moschny | Wed, 14 Aug 2024 10:27:12 +0000
+
+Merge branch 'set_QA_RPATHS' into 'master'
+
+Set QA_RPATH for rpmbuild to avoid check-rpaths warnings
+
+See merge request parastation/psbuild!3
+------------------------------------------------------------------------
+1de670eb0 | Norbert Eicker | Wed, 7 Aug 2024 23:19:49 +0200
+
+More use of flog/fdbg in PSPMIX_LOG_CALL logging
+------------------------------------------------------------------------
+d3bf13d92 | Norbert Eicker | Wed, 7 Aug 2024 23:18:26 +0200
+
+Minor fixes/improvements in pspmix debug logs
+------------------------------------------------------------------------
+901332cb5 | Norbert Eicker | Wed, 7 Aug 2024 23:16:14 +0200
+
+Evict useless brackets from PSPMIX_LOG_CALL logs
+------------------------------------------------------------------------
+92d531453 | Stephan Krempel | Wed, 7 Aug 2024 13:24:43 +0200
+
+pspmix: Unify output in pspmixserver.c
+
+* consequently use flog and fdbg
+* do not capitalize first word of messages
+* unify format used in PSPMIX_LOG_CALL output
+------------------------------------------------------------------------
+2f5bccfe2 | Stephan Krempel | Wed, 7 Aug 2024 13:02:04 +0200
+
+pspmix: Remove ulog()/udbg()
+
+Printinig the UID everywhere is not necessary since syslog
+prints the thread group id which means all output from any
+of the threads of one user server is tagged with the same PID.
+
+So printing the UID once the userserver is initialized
+should be sufficient.
+------------------------------------------------------------------------
+e21edaf3f | Stephan Krempel | Tue, 6 Aug 2024 15:58:26 +0200
+
+pspmix: Consequently use v4.2 style info lists
+
+Make use of the PMIx_Info_list_* API introduced in the
+PMIx standard with v4.2 provisionally and with v5.0 finally.
+------------------------------------------------------------------------
+d587ba7cb | Norbert Eicker | Fri, 2 Aug 2024 15:36:34 +0200
+
+Evict all code parts only for PMIX_VERSION_MAJOR < 4
+------------------------------------------------------------------------
+65ff71944 | Michael Rauh | Mon, 5 Aug 2024 10:28:57 +0200
+
+Let slurm_spank_log() log to child's stderr instead of syslog (#243)
+------------------------------------------------------------------------
+f58bbf503 | Michael Rauh | Fri, 2 Aug 2024 15:23:56 +0200
+
+Introduce and use flog() in SPANK API
+------------------------------------------------------------------------
+274a5942a | Michael Rauh | Tue, 23 Jul 2024 13:34:20 +0200
+
+Use slurm_spank_log() in spank_test plugin
+------------------------------------------------------------------------
+945458784 | Norbert Eicker | Fri, 2 Aug 2024 16:11:51 +0200
+
+Make pluginforwarder's sleep after failed fork flexible (#246)
+------------------------------------------------------------------------
+263ff7df7 | Norbert Eicker | Fri, 2 Aug 2024 15:43:36 +0200
+
+Evict unnecessary definition only __attributes__
+------------------------------------------------------------------------
+002bbccfd | Norbert Eicker | Thu, 1 Aug 2024 15:07:47 +0200
+
+Remove superfluous __attributes__
+------------------------------------------------------------------------
+d37a82779 | Norbert Eicker | Thu, 1 Aug 2024 15:05:15 +0200
+
+Unify coding style
+------------------------------------------------------------------------
+278e7f4c2 | Stephan Krempel | Thu, 6 Jun 2024 18:04:45 +0200
+
+Set QA_RPATH for rpmbuild to avoid check-rpaths warnings
+
+This is mainly relevant for Fedora which has check-rpaths
+enabled by default.
+------------------------------------------------------------------------
+
+
 Version 5.1.62-2:
 =================
 ------------------------------------------------------------------------
