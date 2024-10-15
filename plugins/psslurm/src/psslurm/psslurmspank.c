@@ -25,6 +25,7 @@
 
 #include "pscommon.h"
 #include "psenv.h"
+#include "pslog.h"
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "psidforwarder.h"

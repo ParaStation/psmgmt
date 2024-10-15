@@ -24,7 +24,6 @@
 #include <unistd.h>
 
 #include <pmix_server.h>
-#include <pmix_version.h>
 #include <pmix.h>
 
 #include <hwloc.h>

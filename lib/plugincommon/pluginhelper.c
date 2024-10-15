@@ -10,7 +10,6 @@
  */
 #include "pluginhelper.h"
 
-#include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -19,6 +18,8 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pwd.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/prctl.h>

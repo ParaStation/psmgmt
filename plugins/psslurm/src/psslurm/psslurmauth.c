@@ -23,10 +23,9 @@
 #include "KangarooTwelve.h"
 
 #include "psslurm.h"
+#include "psslurmconfig.h"
 #include "psslurmlog.h"
 #include "psslurmpack.h"
-#include "psslurmproto.h"
-#include "psslurmconfig.h"
 
 /** munge plugin identification */
 #define MUNGE_PLUGIN_ID 101

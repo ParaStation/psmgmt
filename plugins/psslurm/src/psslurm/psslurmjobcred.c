@@ -13,10 +13,8 @@
 #include <ctype.h>
 #include <string.h>
 
-#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pscomplist.h"
-#include "psmungehandles.h"
 
 #include "psslurmlog.h"
 #include "psslurmpack.h"

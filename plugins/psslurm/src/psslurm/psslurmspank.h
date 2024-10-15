@@ -18,6 +18,7 @@
 #include <slurm/spank.h>
 
 #include "list.h"
+#include "psenv.h"
 #include "psstrv.h"
 #include "pstask.h"
 
@@ -74,7 +75,7 @@ struct spank_handle {
 				of mother psid */
     SPANK_envUnset_t *envUnset; /**< function which unsets step environment
 				     of mother psid */
-    env_t spankEnv;	      /** environment to use */
+    env_t spankEnv;	     /** environment to use */
 };
 
 /** flag to mark if a spank plugin taints the main psid process */
