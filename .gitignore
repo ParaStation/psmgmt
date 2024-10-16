@@ -9,3 +9,5 @@
 build*/*
 dist/pscollect-*
 plugins/psslurm/regtest/tests/*/output-*
+.pre-commit-config.yaml
+pyproject.toml
