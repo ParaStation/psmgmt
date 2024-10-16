@@ -93,7 +93,6 @@ bin/logger/psiloggermerge.c \
 bin/logger/psiloggermerge.h \
 bin/mlisten.c \
 bin/psaccounter.c \
-bin/psmstart.c \
 bin/pspelogue.c \
 bin/pssh.c \
 bin/startup/Makefile.am \
@@ -773,7 +772,6 @@ scripts/ltmain.sh \
 scripts/memtest.py \
 scripts/missing \
 scripts/mpiexec.gdb \
-scripts/mpirun_java \
 scripts/ps_acc.in \
 scripts/psaccview.in \
 scripts/pscompress.py \

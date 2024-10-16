@@ -100,8 +100,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-bin_PROGRAMS = mlisten$(EXEEXT) psmstart$(EXEEXT) test_pse$(EXEEXT) \
-	pssh$(EXEEXT)
+bin_PROGRAMS = mlisten$(EXEEXT) test_pse$(EXEEXT) pssh$(EXEEXT)
 pkglibexec_PROGRAMS = psaccounter$(EXEEXT) pspelogue$(EXEEXT)
 noinst_PROGRAMS = testacct$(EXEEXT)
 subdir = bin
@@ -129,9 +128,6 @@ am__v_lt_1 =
 psaccounter_SOURCES = psaccounter.c
 psaccounter_OBJECTS = psaccounter-psaccounter.$(OBJEXT)
 psaccounter_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-psmstart_SOURCES = psmstart.c
-psmstart_OBJECTS = psmstart.$(OBJEXT)
-psmstart_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 pspelogue_SOURCES = pspelogue.c
 pspelogue_OBJECTS = pspelogue-pspelogue.$(OBJEXT)
 pspelogue_DEPENDENCIES = $(libpsi) $(am__DEPENDENCIES_1) \
@@ -164,7 +160,7 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/mlisten.Po \
-	./$(DEPDIR)/psaccounter-psaccounter.Po ./$(DEPDIR)/psmstart.Po \
+	./$(DEPDIR)/psaccounter-psaccounter.Po \
 	./$(DEPDIR)/pspelogue-pspelogue.Po ./$(DEPDIR)/pssh.Po \
 	./$(DEPDIR)/test_pse.Po ./$(DEPDIR)/testacct.Po
 am__mv = mv -f
@@ -186,10 +182,10 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = mlisten.c psaccounter.c psmstart.c pspelogue.c pssh.c \
-	test_pse.c testacct.c
-DIST_SOURCES = mlisten.c psaccounter.c psmstart.c pspelogue.c pssh.c \
-	test_pse.c testacct.c
+SOURCES = mlisten.c psaccounter.c pspelogue.c pssh.c test_pse.c \
+	testacct.c
+DIST_SOURCES = mlisten.c psaccounter.c pspelogue.c pssh.c test_pse.c \
+	testacct.c
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
 	ctags-recursive dvi-recursive html-recursive info-recursive \
 	install-data-recursive install-dvi-recursive \
@@ -443,7 +439,7 @@ scriptsdir = $(prefix)/scripts
 # ParaStation
 #
 # Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -454,7 +450,6 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libpse = $(top_builddir)/lib/pse/libpse.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 mlisten_LDADD = $(POPT_LIBS) $(libpscommon)
-psmstart_LDADD = $(libpse) $(POPT_LIBS)
 test_pse_LDADD = $(libpse) $(POPT_LIBS)
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
@@ -614,10 +609,6 @@ psaccounter$(EXEEXT): $(psaccounter_OBJECTS) $(psaccounter_DEPENDENCIES) $(EXTRA
 	@rm -f psaccounter$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(psaccounter_OBJECTS) $(psaccounter_LDADD) $(LIBS)
 
-psmstart$(EXEEXT): $(psmstart_OBJECTS) $(psmstart_DEPENDENCIES) $(EXTRA_psmstart_DEPENDENCIES) 
-	@rm -f psmstart$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(psmstart_OBJECTS) $(psmstart_LDADD) $(LIBS)
-
 pspelogue$(EXEEXT): $(pspelogue_OBJECTS) $(pspelogue_DEPENDENCIES) $(EXTRA_pspelogue_DEPENDENCIES) 
 	@rm -f pspelogue$(EXEEXT)
 	$(AM_V_CCLD)$(pspelogue_LINK) $(pspelogue_OBJECTS) $(pspelogue_LDADD) $(LIBS)
@@ -642,7 +633,6 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mlisten.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccounter-psaccounter.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmstart.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspelogue-pspelogue.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pssh.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_pse.Po@am__quote@ # am--include-marker
@@ -914,7 +904,6 @@ clean-am: clean-binPROGRAMS clean-generic clean-libtool \
 distclean: distclean-recursive
 		-rm -f ./$(DEPDIR)/mlisten.Po
 	-rm -f ./$(DEPDIR)/psaccounter-psaccounter.Po
-	-rm -f ./$(DEPDIR)/psmstart.Po
 	-rm -f ./$(DEPDIR)/pspelogue-pspelogue.Po
 	-rm -f ./$(DEPDIR)/pssh.Po
 	-rm -f ./$(DEPDIR)/test_pse.Po
@@ -967,7 +956,6 @@ installcheck-am:
 maintainer-clean: maintainer-clean-recursive
 		-rm -f ./$(DEPDIR)/mlisten.Po
 	-rm -f ./$(DEPDIR)/psaccounter-psaccounter.Po
-	-rm -f ./$(DEPDIR)/psmstart.Po
 	-rm -f ./$(DEPDIR)/pspelogue-pspelogue.Po
 	-rm -f ./$(DEPDIR)/pssh.Po
 	-rm -f ./$(DEPDIR)/test_pse.Po

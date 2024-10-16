@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,7 +12,7 @@ include $(top_srcdir)/common.am
 
 SUBDIRS = admin daemon logger startup
 
-bin_PROGRAMS = mlisten psmstart test_pse pssh
+bin_PROGRAMS = mlisten test_pse pssh
 pkglibexec_PROGRAMS = psaccounter pspelogue
 noinst_PROGRAMS = testacct
 
@@ -21,8 +21,6 @@ libpse = $(top_builddir)/lib/pse/libpse.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 
 mlisten_LDADD = $(POPT_LIBS) $(libpscommon)
-
-psmstart_LDADD = $(libpse) $(POPT_LIBS)
 
 test_pse_LDADD = $(libpse) $(POPT_LIBS)
 
