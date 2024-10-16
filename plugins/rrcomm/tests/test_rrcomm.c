@@ -85,7 +85,7 @@ int main(void)
 	return 0;
     }
 
-    printf("Connected at %s on fd %d, my rank is %d of %d\n", uBuf.nodename, 
+    printf("Connected at %s on fd %d, my rank is %d of %d\n", uBuf.nodename,
 	   fd, rank, num);
 
     /* setup data to send */

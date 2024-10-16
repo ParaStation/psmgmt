@@ -34,19 +34,19 @@ else
 		printf "%s\n" "${Sensors[@]}" >"$SensorsFile"
 fi
 
-[[ -z "${Sensors[0]}" ]] && 
+[[ -z "${Sensors[0]}" ]] &&
 	exit 1
 
 [[ -f $SDRcacheFile ]] ||
 	ipmitool sdr dump "$SDRcacheFile" >/dev/null
 
 # start with 0 energy at current time
-[[ -f "$EnergyFile" ]] || 
+[[ -f "$EnergyFile" ]] ||
 	printf "%s\n%(%s)T\n" "0" "-1" >"$EnergyFile"
 
 set -o pipefail
-power=$(pstimeout $TIMEOUT ipmitool -S "$SDRcacheFile" sensor reading "${Sensors[@]}" | 
-	awk 'BEGIN {power=0}; {power+=$NF}; END {printf ("%d", power+0.5)}') || 
+power=$(pstimeout $TIMEOUT ipmitool -S "$SDRcacheFile" sensor reading "${Sensors[@]}" |
+	awk 'BEGIN {power=0}; {power+=$NF}; END {printf ("%d", power+0.5)}') ||
 	exit 1
 
 # integrate

@@ -9,7 +9,7 @@ def routeConnectionS(sizePartA, sizePartB, numGwd, numeralNodeA, numeralNodeB):
 
   return None, numeralGw
 
-# Route function (extended interface): Make decision based on names of nodes to 
+# Route function (extended interface): Make decision based on names of nodes to
 # take topology into account
 # def routeConnectionX(nodeListPartA, nodeListPartB, gwList, nodeA, nodeB):
 #	return Exception("Not implemented"), gwList[0]

@@ -619,7 +619,7 @@ sub calcTimeRange {
     $date[5] += 1900;
     $tbegin = sprintf("%04d%02d%02d",$date[5],$date[4],$date[3]);
     $tend = sprintf("%04d%02d%02d",$date[5],$date[4],$date[3]);
-    
+
     if ($conf{'crit'}{'timespan'}) {
 	my $timespan = $conf{'crit'}{'timespan'};
 	$tbegin = $tend if $timespan eq "today";

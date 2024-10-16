@@ -123,7 +123,7 @@ int main(int argc, const char *argv[])
      */
     mreq.imr_multiaddr.s_addr = htonl(INADDR_UNSPEC_GROUP | mcastGroup);
     if (net == NULL) {
-	mreq.imr_interface.s_addr = INADDR_ANY; 
+	mreq.imr_interface.s_addr = INADDR_ANY;
     } else {
 	if (! inet_aton(net, &mreq.imr_interface)) {
 	    fprintf(stderr, "What means network '%s' ?\n", net);
