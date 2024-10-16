@@ -430,10 +430,7 @@ static bool handlePSMsg(DDTypedBufferMsg_t *msg)
 
 /** Message types used between psaccount plugins */
 typedef enum {
-    PSP_ACCOUNT_FORWARD_START = 0x00000, /**< @obsolete */
-    PSP_ACCOUNT_FORWARD_END,             /**< @obsolete */
-    PSP_ACCOUNT_DATA_UPDATE,             /**< @obsolete */
-    PSP_ACCOUNT_ENABLE_UPDATE,
+    PSP_ACCOUNT_ENABLE_UPDATE = 0x0001,
     PSP_ACCOUNT_DISABLE_UPDATE,
     PSP_ACCOUNT_AGG_DATA_UPDATE,
     PSP_ACCOUNT_AGG_DATA_FINISH,
@@ -735,12 +732,6 @@ static bool handleInterAccount(DDTypedBufferMsg_t *msg)
 	break;
     case PSP_ACCOUNT_AGG_DATA_DROP:
 	handleAggDataDrop(msg);
-	break;
-    /* obsolete, to be removed */
-    case PSP_ACCOUNT_FORWARD_START:
-    case PSP_ACCOUNT_DATA_UPDATE:
-    case PSP_ACCOUNT_FORWARD_END:
-	flog("got obsolete msg %i\n", msg->type);
 	break;
     default:
 	flog("unknown msg type %i received form %s\n", msg->type,
