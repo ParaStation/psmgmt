@@ -368,21 +368,4 @@ int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv);
 #define PSIDhook_call(hook, arg) __PSIDhook_call(hook, arg, false)
 #define PSIDhook_callPriv(hook, arg) __PSIDhook_call(hook, arg, true)
 
-/**
- * @brief Init hooks
- *
- * Initialize the hook framework. This allocates the structures used
- * to manage the functions registered to the various hooks available.
- *
- * The hook framework is also initialized implicitly on the first
- * call of PSIDhook_add(). Thus, calling this function explicitly is
- * not required.
- *
- * @deprecated Not required any longer.
- *
- * @return No return value.
- */
- __attribute__ ((deprecated))
-void initHooks(void);
-
 #endif  /* __PSIDHOOK_H */

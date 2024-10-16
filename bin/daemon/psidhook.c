@@ -254,8 +254,3 @@ int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv)
 
     return ret;
 }
-
-void initHooks(void)
-{
-    if (!hookTabInitialized) initHookTable(__func__);
-}
