@@ -781,7 +781,6 @@ void PSIADM_ProcStat(int count, bool full, bool *nl)
 				 sizeof(*taskInfo), true) > 0) {
 	    if (taskInfo[numTasks].group==TG_FORWARDER && !full) continue;
 	    if (taskInfo[numTasks].group==TG_SPAWNER && !full) continue;
-	    if (taskInfo[numTasks].group==TG_GMSPAWNER && !full) continue;
 	    if (taskInfo[numTasks].group==TG_PSCSPAWNER && !full) continue;
 	    if (taskInfo[numTasks].group==TG_MONITOR && !full) continue;
 	    if (taskInfo[numTasks].group==TG_SERVICE && !full) continue;
@@ -816,7 +815,6 @@ void PSIADM_ProcStat(int count, bool full, bool *nl)
 		   taskInfo[task].group==TG_LOGGER ? "(L)" :
 		   taskInfo[task].group==TG_FORWARDER ? "(F)" :
 		   taskInfo[task].group==TG_SPAWNER ? "(S)" :
-		   taskInfo[task].group==TG_GMSPAWNER ? "(S)" :
 		   taskInfo[task].group==TG_PSCSPAWNER ? "(S)" :
 		   taskInfo[task].group==TG_MONITOR ? "(M)" :
 		   taskInfo[task].group==TG_ADMINTASK ? "(*)" :

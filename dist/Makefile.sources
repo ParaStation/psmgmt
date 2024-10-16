@@ -776,8 +776,6 @@ scripts/mpiexec.gdb \
 scripts/mpirun_java \
 scripts/parastation_tru64 \
 scripts/ps_acc.in \
-scripts/ps_gm.in \
-scripts/ps_gmcounters \
 scripts/psaccview.in \
 scripts/pscompress.py \
 scripts/psexpand.py \

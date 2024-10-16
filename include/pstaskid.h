@@ -29,8 +29,6 @@ typedef enum {
     TG_FORWARDER,   /**< special task, psid's forwarder to control clients */
     TG_SPAWNER,     /**< special task, the spawner (helper to spawn p4 jobs)
 		       @deprecated due to ditched p4 support */
-    TG_GMSPAWNER,   /**< special task, the gmspawner (helper to spawn GM)
-		       @deprecated due to ditched MyriNet support */
     TG_MONITOR,     /**< special task that monitors the daemon. Don't kill
 		       @deprecated */
     TG_PSCSPAWNER,  /**< special task, the pscspawner (helper to spawn PSC)

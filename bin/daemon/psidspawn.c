@@ -2706,7 +2706,6 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 
 	switch (task->group) {
 	case TG_SPAWNER:
-	case TG_GMSPAWNER:
 	    /* Do not send a DD message to a client */
 	    msg->header.type = PSP_CD_SPAWNFINISH;
 	    sendMsg(msg);

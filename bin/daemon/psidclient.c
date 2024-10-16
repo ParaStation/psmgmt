@@ -876,15 +876,6 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	    Selector_remove(fd);
 	}
 	task->fd = fd;
-
-	/* This is needed for gmspawner */
-	if (msg->group == TG_GMSPAWNER) {
-	    task->group = msg->group;
-
-	    /* Fix the info about the spawner task */
-	    decTaskCount(true);
-	    incTaskCount(false);
-	}
     } else {
 	char tasktxt[128];
 	task = PStask_new();

@@ -20,7 +20,7 @@ AllowOverbooking = "no"
 AllowUserCpuMap = "no"
 AllowedGroups = ["any"]
 AllowedUsers = ["any"]
-AvailableHardwareTypes = ["booster", "cluster", "ethernet", "p4sock", "gateway", "gm", "accounter", "mvapi", "openib", "ipath"]
+AvailableHardwareTypes = ["booster", "cluster", "ethernet", "p4sock", "gateway", "accounter", "mvapi", "openib", "ipath"]
 BindGpus = "yes"
 BindMemory = "yes"
 BindNics = "yes"
@@ -83,7 +83,7 @@ ResourceLimits. = ptr(["class:resourcelimits"])
 # AllowUserCpuMap = "no"
 # AllowedGroups = ["any"]
 # AllowedUsers = ["any"]
-# AvailableHardwareTypes = ["booster", "cluster", "ethernet", "p4sock", "gateway", "gm", "accounter", "mvapi", "openib", "ipath "]
+# AvailableHardwareTypes = ["booster", "cluster", "ethernet", "p4sock", "gateway", "accounter", "mvapi", "openib", "ipath "]
 # BindGpus = "yes"
 # BindMemory = "yes"
 # BindNics = "yes"
@@ -165,18 +165,6 @@ HeaderScript = "config/ps_ethernet statusheader"
 StartScript = "config/ps_ethernet start"
 StatusScript = "config/ps_ethernet status"
 StopScript = "config/ps_ethernet stop"
-# Inherited keys:
-
-; psidhwtype object
-; one such object has to exist for each entry in any [Psid.HardwareTypes] list
-;
-[+psidhwtype:gm]
-.parents = ["class:psidhwtype"]
-Environment = ["GM_INSTALLDIR", "/opt/gm"]
-HeaderScript = "config/ps_gm statusheader"
-StartScript = "config/ps_gm start"
-StatusScript = "config/ps_gm status"
-StopScript = "config/ps_gm stop"
 # Inherited keys:
 
 ; psidhwtype object

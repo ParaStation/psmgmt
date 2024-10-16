@@ -256,7 +256,7 @@ static struct poptOption poptPlacementOptions[] = {
 static struct poptOption poptCommunicationOptions[] = {
     { "discom", 'c', POPT_ARG_STRING,
       &discom, 0, "disable a communication architecture: {SHM,TCP,P4SOCK,"
-      "GM,MVAPI,OPENIB,DAPL}", "arch"},
+      "MVAPI,OPENIB,DAPL}", "arch"},
     { "network", 't', POPT_ARG_STRING,
       &network, 0, "set a space separated list of networks enabled", "networks"},
     { "schedyield", 'y', POPT_ARG_NONE,

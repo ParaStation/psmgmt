@@ -61,10 +61,6 @@ static void setupPSCOMEnv(Conf_t *conf)
 		unsetenv("PSP_SHAREDMEM");
 		setPSIEnv("PSP_SHM", "0");
 		if (verbose) printf("PSP_SHM=0\n");
-	    } else if (!strcmp(tok,"GM") || !strcmp(tok,"gm")) {
-		unsetenv("PSP_GM");
-		setPSIEnv("PSP_GM", "0");
-		if (verbose) printf("PSP_GM=0\n");
 	    } else if (!strcmp(tok,"MVAPI") || !strcmp(tok,"mvapi")) {
 		unsetenv("PSP_MVAPI");
 		setPSIEnv("PSP_MVAPI", "0");

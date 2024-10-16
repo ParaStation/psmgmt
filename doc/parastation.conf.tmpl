@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2003-2004 ParTec AG, Karlsruhe
 # Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -51,18 +51,6 @@ Hardware p4sock {
 	stopscript  "config/ps_p4sock stop"
 	headerscript "config/ps_p4sock statusheader"
 	statusscript "config/ps_p4sock status"
-}
-
-#
-# ParaStation / GM driver
-#
-Hardware gm {
-	GM_INSTALLDIR /opt/gm
-
-	startscript "config/ps_gm start"
-	stopscript  "config/ps_gm stop"
-	headerscript "config/ps_gm statusheader"
-	statusscript "config/ps_gm status"
 }
 
 #

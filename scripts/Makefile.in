@@ -380,15 +380,15 @@ gdbinit_d_DATA = psmgmt.gdb
 @HAVE_SYSTEMD_FALSE@init_d_SCRIPTS = init.d/parastation
 @HAVE_SYSTEMD_FALSE@nobase_sysconf_DATA = xinetd.d/psidstarter
 config_DATA = mpiexec.gdb
-config_SCRIPTS = ps_gm ps_acc
-scripts_SCRIPTS = ps_gmcounters single_node_config
+config_SCRIPTS = ps_acc
+scripts_SCRIPTS = single_node_config
 noinst_SCRIPTS = psid2cmustatus memtest.py
 pkglibexec_SCRIPTS = pscompress.py psexpand.py
 
 # for simplicity, put all dist files here, so no dist_ primaries above
 EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py lsf	\
 	memtest.py mpiexec.gdb mpirun_java parastation_tru64		\
-	ps_acc.in ps_gm.in ps_gmcounters psaccview.in			\
+	ps_acc.in psaccview.in			\
 	psid2cmustatus.in psmgmt.csh.in psmgmt.sh.in			\
 	systemd/munge.conf systemd/psid.service.in			\
 	systemd/psidstarter.socket systemd/psidstarter@.service		\
@@ -396,7 +396,7 @@ EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py lsf	\
 
 
 # clean up generated files
-CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_gm ps_acc		\
+CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_acc			\
 	init.d/parastation xinetd.d/psidstarter systemd/psid.service	\
 	psid2cmustatus single_node_config
 

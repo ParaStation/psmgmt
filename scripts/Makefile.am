@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,9 +34,9 @@ endif
 
 config_DATA = mpiexec.gdb
 
-config_SCRIPTS = ps_gm ps_acc
+config_SCRIPTS = ps_acc
 
-scripts_SCRIPTS = ps_gmcounters single_node_config
+scripts_SCRIPTS = single_node_config
 
 noinst_SCRIPTS = psid2cmustatus memtest.py
 
@@ -45,13 +45,13 @@ pkglibexec_SCRIPTS = pscompress.py psexpand.py
 # for simplicity, put all dist files here, so no dist_ primaries above
 EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py lsf	\
 	memtest.py mpiexec.gdb mpirun_java parastation_tru64		\
-	ps_acc.in ps_gm.in ps_gmcounters psaccview.in			\
+	ps_acc.in psaccview.in			\
 	psid2cmustatus.in psmgmt.csh.in psmgmt.sh.in			\
 	systemd/munge.conf systemd/psid.service.in			\
 	systemd/psidstarter.socket systemd/psidstarter@.service		\
 	vcversion xinetd.d/psidstarter.in single_node_config.in
 
 # clean up generated files
-CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_gm ps_acc		\
+CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_acc			\
 	init.d/parastation xinetd.d/psidstarter systemd/psid.service	\
 	psid2cmustatus single_node_config

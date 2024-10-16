@@ -470,7 +470,6 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    if ((PSP_Info_t) inmsg->type == PSP_INFO_QUEUE_NORMTASK && (
 		    task->group == TG_FORWARDER
 		    || task->group == TG_SPAWNER
-		    || task->group == TG_GMSPAWNER
 		    || task->group == TG_PSCSPAWNER
 		    || task->group == TG_MONITOR
 		    || task->group == TG_SERVICE
