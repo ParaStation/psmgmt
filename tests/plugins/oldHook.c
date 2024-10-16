@@ -2,13 +2,13 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdbool.h>
+ #include <stdbool.h>
 #include <stdio.h>
 
 #include "plugin.h"
@@ -27,13 +27,7 @@ int doRandomDrop(void *amsg)
     return 1;
 }
 
-int doDSock(void *asock)
-{
-    // do nothing
-    return 1;
-}
-
-int doCInfo(void *amsg)
+int doObsolete(void *asock)
 {
     // do nothing
     return 1;
@@ -51,14 +45,13 @@ int initialize(FILE *logfile)
 	pluginlog("'PSIDHOOK_RANDOM_DROP' registration failed\n");
 	failed = true;
     }
-    if (!PSIDhook_add(PSIDHOOK_FRWRD_DSOCK, doDSock)) {
-	pluginlog("'PSIDHOOK_FRWRD_DSOCK' registration failed\n");
-	failed = true;
-    }
-    if (!PSIDhook_add(PSIDHOOK_FRWRD_CINFO, doCInfo)) {
-	pluginlog("'PSIDHOOK_FRWRD_CINFO' registration failed\n");
-	failed = true;
-    }
+
+    /* to check for obsolete hooks adapt accordingly */
+    /* for the time being no hooks are marked obsolete */
+    /* if (!PSIDhook_add(PSIDHOOK_OBSOLETE, doObsolete)) { */
+    /* 	pluginlog("'PSIDHOOK_OBSOLETE' registration failed\n"); */
+    /* 	failed = true; */
+    /* } */
 
     pluginlog("(%i)%s started\n", version, failed ? "" : " successfully");
 
@@ -69,12 +62,6 @@ void cleanup(void)
 {
     if (!PSIDhook_del(PSIDHOOK_RANDOM_DROP, doRandomDrop)) {
 	pluginlog("unregister 'PSIDHOOK_RANDOM_DROP' failed\n");
-    }
-    if (!PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, doDSock)) {
-	pluginlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
-    }
-    if (!PSIDhook_del(PSIDHOOK_FRWRD_CINFO, doCInfo)) {
-	pluginlog("unregister 'PSIDHOOK_FRWRD_CINFO' failed\n");
     }
 
     pluginlog("...Bye.\n");
