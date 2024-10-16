@@ -469,7 +469,6 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    if (task->deleted) continue;
 	    if ((PSP_Info_t) inmsg->type == PSP_INFO_QUEUE_NORMTASK && (
 		    task->group == TG_FORWARDER
-		    || task->group == TG_MONITOR
 		    || task->group == TG_SERVICE
 		    || task->group == TG_SERVICE_SIG )) continue;
 	    taskinfo->tid = task->tid;

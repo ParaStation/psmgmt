@@ -338,9 +338,8 @@ int PSI_initClient(PStask_group_t taskGroup)
      * contact the local PSI daemon
      */
     if (!connectDaemon(taskGroup, !getenv("__PSI_DONT_START_DAEMON"))) {
-	if (taskGroup!=TG_RESET) {
-	    PSI_log( (taskGroup == TG_MONITOR) ? PSI_LOG_VERB : -1,
-		     "%s: cannot contact local daemon\n", __func__);
+	if (taskGroup != TG_RESET) {
+	    PSI_log(-1, "%s: cannot contact local daemon\n", __func__);
 	}
 	return 0;
     }

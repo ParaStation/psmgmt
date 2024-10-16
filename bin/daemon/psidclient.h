@@ -224,8 +224,7 @@ void PSIDclient_delete(int fd);
  * Get the number of managed clients. If the flag @a admTasks is
  * set, the number of administrative clients (i.e. clients with
  * task-group TG_ADMIN or TG_FORWARDER is returned. Otherwise the
- * number of non-administrative clients is determined. The task-group
- * TG_MONITOR is always ignored.
+ * number of non-administrative clients is determined.
  *
  * @param admTasks Flag which type of clients to count
  *
@@ -237,8 +236,7 @@ int PSIDclient_getNum(bool admTasks);
 /**
  * @brief Kill all clients
  *
- * Send signal @a sig to all managed client. Members of the task-group
- * TG_MONITOR will never receive this signal. Members of the
+ * Send signal @a sig to all managed client. Members of the
  * task-groups TG_ADMIN, TG_FORWARDER, and TG_PLUGINFW will only
  * receive this signal if the flag @a killAdmTasks is set.
  *

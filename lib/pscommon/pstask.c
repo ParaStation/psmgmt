@@ -167,8 +167,6 @@ const char* PStask_printGrp(PStask_group_t tg)
 	return "TG_FORWARDER";
     case TG_ACCOUNT:
 	return "TG_ACCOUNT";
-    case TG_MONITOR:
-	return "TG_MONITOR";
     case TG_ADMINTASK:
 	return "TG_ADMINTASK";
     case TG_SERVICE:

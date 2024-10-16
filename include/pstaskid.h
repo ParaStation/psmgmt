@@ -27,8 +27,6 @@ typedef enum {
     TG_RESET,       /**< normal task */
     TG_LOGGER,      /**< special task, the logger */
     TG_FORWARDER,   /**< special task, psid's forwarder to control clients */
-    TG_MONITOR,     /**< special task that monitors the daemon. Don't kill
-		       @deprecated */
     TG_ADMINTASK,   /**< admin-task, i.e. unaccounted task */
     TG_SERVICE,     /**< service task, e.g. used by mpiexec to spawn procs */
     TG_ACCOUNT,     /**< accounter, will receive and log accounting info */

@@ -673,7 +673,7 @@ int PSIDclient_getNum(bool admTasks)
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 
-	if (task->deleted || task->group == TG_MONITOR) continue;
+	if (task->deleted) continue;
 	if (task->group==TG_ADMIN || task->group==TG_FORWARDER) {
 	    if (admTasks) cnt++;
 	} else {
@@ -696,7 +696,6 @@ int PSIDclient_killAll(int sig, bool killAdmTasks)
 	pid_t pid = PSC_getPID(task->tid);
 
 	if (task->deleted) continue;
-	if (task->group==TG_MONITOR) continue;
 	if ((task->group==TG_ADMIN || task->group==TG_FORWARDER
 	     || task->group==TG_PLUGINFW) && !killAdmTasks) continue;
 
