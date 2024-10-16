@@ -49,13 +49,7 @@ static void setupPSCOMEnv(Conf_t *conf)
 
 	tok = strtok_r(tmp, delimiters, &toksave);
 	while (tok != NULL) {
-	    if (!strcmp(tok,"P4SOCK") || !strcmp(tok,"p4sock") ||
-		    !strcmp(tok,"P4S") || !strcmp(tok,"p4s")) {
-		unsetenv("PSP_P4S");
-		unsetenv("PSP_P4SOCK");
-		setPSIEnv("PSP_P4S", "0");
-		if (verbose) printf("PSP_P4S=0\n");
-	    } else if (!strcmp(tok,"SHM") || !strcmp(tok,"shm") ||
+	    if (!strcmp(tok,"SHM") || !strcmp(tok,"shm") ||
 		    !strcmp(tok,"SHAREDMEM") || !strcmp(tok,"sharedmem")) {
 		unsetenv("PSP_SHM");
 		unsetenv("PSP_SHAREDMEM");

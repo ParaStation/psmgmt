@@ -386,7 +386,6 @@ typedef struct {
     DDMsg_t header;        /**< header of the message */
     PStask_group_t group;  /**< process group of the task */
     uint32_t version;      /**< Protocol version spoken by the PS library */
-    PStask_ID_t ppid;      /**< PID of the parent process (for TG_SPAWNER) */
 #ifndef SO_PEERCRED
     pid_t pid;             /**< process id; not used with UNIX sockets */
     uid_t uid;             /**< user id; not used with UNIX sockets */

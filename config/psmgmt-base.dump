@@ -58,17 +58,6 @@ psconfig -q -D -- set 'psidhwtype:ethernet' 'StartScript' 'config/ps_ethernet st
 psconfig -q -D -- set 'psidhwtype:ethernet' 'StatusScript' 'config/ps_ethernet status'
 psconfig -q -D -- set 'psidhwtype:ethernet' 'StopScript' 'config/ps_ethernet stop'
 #
-# Object "psidhwtype:p4sock"
-#
-psconfig -q -- create 'psidhwtype:p4sock'
-psconfig -q -- setParents 'psidhwtype:p4sock' 'class:psidhwtype'
-psconfig -q -D -- set 'psidhwtype:p4sock' '.comment' ' psidhwtype object
- one such object has to exist for each entry in any [Psid.HardwareTypes] list'
-psconfig -q -D -- set 'psidhwtype:p4sock' 'HeaderScript' 'config/ps_p4sock statusheader'
-psconfig -q -D -- set 'psidhwtype:p4sock' 'StartScript' 'config/ps_p4sock start'
-psconfig -q -D -- set 'psidhwtype:p4sock' 'StatusScript' 'config/ps_p4sock status'
-psconfig -q -D -- set 'psidhwtype:p4sock' 'StopScript' 'config/ps_p4sock stop'
-#
 # Unlock database
 #
 eval $($(which --skip-alias --skip-function psconfig) unlock)

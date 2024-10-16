@@ -1463,7 +1463,7 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
     }
 
     if (!PSIDnodes_isStarter(PSC_getMyID()) && task->group != TG_ADMINTASK
-	&& (ptask->group == TG_SPAWNER || ptask->group == TG_LOGGER)) {
+	&& ptask->group == TG_LOGGER) {
 	/* starting not allowed */
 	PSID_flog("spawning not allowed\n");
 	return EACCES;
@@ -2694,32 +2694,15 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
 	    PSID_fdbg(PSID_LOG_TASK, "PSIDtask_cleanup()\n");
 	    PSIDtask_cleanup(task);
-	    return true;
-	}
-
-	/* Release a TG_SPAWNER if child died in a fine way */
-	if (WIFEXITED(msg->error) && !WIFSIGNALED(msg->error)) {
-	    if (task->group == TG_SPAWNER) task->released = true;
-	}
-
-	switch (task->group) {
-	case TG_SPAWNER:
-	    /* Do not send a DD message to a client */
-	    msg->header.type = PSP_CD_SPAWNFINISH;
-	    sendMsg(msg);
-	    break;
-	case TG_SERVICE_SIG:
+	} else if (task->group == TG_SERVICE_SIG) {
 	    /* service task requested signal */
 	    if (!WIFEXITED(msg->error) || WIFSIGNALED(msg->error)
 		|| PSID_emptySigList(&task->childList)) {
 		PSID_sendSignal(task->tid, task->uid, msg->request, -1,
 				false /* pervasive */, false /* answer */);
 	    }
-	    break;
-	default:
-	    /* Do nothing */
-	    break;
 	}
+
 	return true;
     }
 

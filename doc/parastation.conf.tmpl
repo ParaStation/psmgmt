@@ -42,18 +42,6 @@ Hardware ethernet {
 }
 
 #
-# ParaStation 4 base driver
-#
-Hardware p4sock {
-	# IP-ranges for the TCP-Bypass
-	# PS_TCP      "192.168.1.2-192.168.1.32 192.168.202.55"
-	startscript "config/ps_p4sock start"
-	stopscript  "config/ps_p4sock stop"
-	headerscript "config/ps_p4sock statusheader"
-	statusscript "config/ps_p4sock status"
-}
-
-#
 # ParaStaton / pseudo hardware type to start the accounting daemon
 #
 
@@ -90,7 +78,7 @@ Hardware ipath {
 # You can configure single HW with lines like:
 # HWType openib
 #
-HWType	{ ethernet p4sock }
+HWType	{ ethernet }
 
 #
 # This script is called during startup of the ParaStation
@@ -284,7 +272,7 @@ Nodes {
 	node-6		6 processes 8
 	node-7		7 processes any
 # Start the accounting daemon on node 8
-	node-8		8 HWtype { ethernet p4sock accounter }
+	node-8		8 HWtype { ethernet accounter }
 }
 
 #

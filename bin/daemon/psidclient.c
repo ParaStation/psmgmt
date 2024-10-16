@@ -605,28 +605,6 @@ void PSIDclient_delete(int fd)
 	task->released = true;
     }
 
-    /* Unregister TG_SPAWNER from parent process */
-    if (task->group == TG_SPAWNER) {
-
-	/* Find correct parent and remove dead spawner from list of children */
-	PStask_t *parent = PStasklist_find(&managedTasks, task->ptid);
-	if (!parent || !PSID_removeSignal(&parent->childList, task->tid, -1)) {
-	    /* Maybe the parent's task was obsoleted */
-	    parent = PStasklist_find(&obsoleteTasks, task->ptid);
-	    /* Still not the right parent? */
-	    if (parent
-		&&  !PSID_removeSignal(&parent->childList, task->tid, -1)) {
-		parent = NULL;
-	    }
-	}
-
-	if (parent && parent->removeIt
-	    && PSID_emptySigList(&parent->childList)) {
-	    PSID_fdbg(PSID_LOG_TASK, "PSIDtask_cleanup(parent)\n");
-	    PSIDtask_cleanup(parent);
-	}
-    }
-
     /* Unregister TG_ACCOUNT */
     if (task->group == TG_ACCOUNT) {
 	DDOptionMsg_t acctmsg = {
@@ -809,7 +787,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
      * this might happen due to an exec() call.
      */
     PStask_t *task = PStasklist_find(&managedTasks, tid);
-    if (!task && msg->group != TG_SPAWNER) {
+    if (!task) {
 	PStask_ID_t pgtid = PSC_getTID(-1, getpgid(pid));
 
 	task = PStasklist_find(&managedTasks, pgtid);
@@ -877,7 +855,6 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	}
 	task->fd = fd;
     } else {
-	char tasktxt[128];
 	task = PStask_new();
 	task->tid = tid;
 	task->fd = fd;
@@ -891,38 +868,11 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	    task->group = msg->group;
 	}
 
-	/* TG_SPAWNER have to get a special handling */
-	if (task->group == TG_SPAWNER) {
-	    PStask_t *parent;
-	    PStask_ID_t ptid;
-
-	    ptid = PSC_getTID(-1, msg->ppid);
-
-	    parent = PStasklist_find(&managedTasks, ptid);
-
-	    if (parent) {
-		/* register the child */
-		PSID_setSignal(&parent->childList, task->tid, -1);
-
-		task->ptid = ptid;
-
-		switch (task->group) {
-		case TG_SPAWNER:
-		    task->loggertid = parent->loggertid;
-		    break;
-		default:
-		    PSID_flog("group %s not handled\n",
-			      PStask_printGrp(msg->group));
-		}
-	    } else {
-		/* no parent !? kill the task */
-		PSID_sendSignal(task->tid, task->uid, PSC_getMyTID(), -1,
-				false /* pervasive */, false /* answer */);
-	    }
+	if (PSID_getDebugMask() & PSID_LOG_CLIENT) {
+	    char tasktxt[128];
+	    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+	    PSID_flog("request from %s\n", tasktxt);
 	}
-
-	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_fdbg(PSID_LOG_CLIENT, "request from %s\n", tasktxt);
 
 	PStasklist_enqueue(&managedTasks, task);
 

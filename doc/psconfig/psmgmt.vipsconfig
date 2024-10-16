@@ -20,7 +20,7 @@ AllowOverbooking = "no"
 AllowUserCpuMap = "no"
 AllowedGroups = ["any"]
 AllowedUsers = ["any"]
-AvailableHardwareTypes = ["booster", "cluster", "ethernet", "p4sock", "gateway", "accounter", "mvapi", "openib", "ipath"]
+AvailableHardwareTypes = ["booster", "cluster", "ethernet", "gateway", "accounter", "mvapi", "openib", "ipath"]
 BindGpus = "yes"
 BindMemory = "yes"
 BindNics = "yes"
@@ -29,7 +29,7 @@ CpuMap = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "1
 DeadLimit = "5"
 EnableRdpStatistics = "no"
 FreeOnSuspend = "no"
-HardwareTypes = ["ethernet", "p4sock"]
+HardwareTypes = ["ethernet"]
 InstallDirectory = "/opt/parastation"
 IsStarter = "yes"
 KillDelay = "10"
@@ -83,7 +83,7 @@ ResourceLimits. = ptr(["class:resourcelimits"])
 # AllowUserCpuMap = "no"
 # AllowedGroups = ["any"]
 # AllowedUsers = ["any"]
-# AvailableHardwareTypes = ["booster", "cluster", "ethernet", "p4sock", "gateway", "accounter", "mvapi", "openib", "ipath "]
+# AvailableHardwareTypes = ["booster", "cluster", "ethernet", "gateway", "accounter", "mvapi", "openib", "ipath "]
 # BindGpus = "yes"
 # BindMemory = "yes"
 # BindNics = "yes"
@@ -92,7 +92,7 @@ ResourceLimits. = ptr(["class:resourcelimits"])
 # DeadLimit = "5"
 # EnableRdpStatistics = "no"
 # FreeOnSuspend = "no"
-# HardwareTypes = ["ethernet", "p4sock"]
+# HardwareTypes = ["ethernet"]
 # InstallDirectory = "/opt/parastation"
 # IsStarter = "yes"
 # KillDelay = "10"
@@ -165,17 +165,6 @@ HeaderScript = "config/ps_ethernet statusheader"
 StartScript = "config/ps_ethernet start"
 StatusScript = "config/ps_ethernet status"
 StopScript = "config/ps_ethernet stop"
-# Inherited keys:
-
-; psidhwtype object
-; one such object has to exist for each entry in any [Psid.HardwareTypes] list
-;
-[+psidhwtype:p4sock]
-.parents = ["class:psidhwtype"]
-HeaderScript = "config/ps_p4sock statusheader"
-StartScript = "config/ps_p4sock start"
-StatusScript = "config/ps_p4sock status"
-StopScript = "config/ps_p4sock stop"
 # Inherited keys:
 
 ; host object of the master node

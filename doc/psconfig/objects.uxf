@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<diagram program="umlet" version="14.3.0">
+<diagram program="umlet" version="15.1">
   <zoom_level>10</zoom_level>
   <element>
     <id>UMLClass</id>
@@ -13,7 +13,7 @@
 --
 InstallDirectory = "/opt/parastation"
 AvailableHardwareTypes = [...]
-HardwareTypes = ["ethernet", "p4sock"]
+HardwareTypes = ["ethernet"]
 AllowedUsers = ["any"]
 AllowedGroups = ["any"]
 AdminUsers = ["root"]
@@ -229,17 +229,6 @@ NodeDownScript = "scripts/psidNodeDown"
     <additional_attributes/>
   </element>
   <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>750</x>
-      <y>60</y>
-      <w>120</w>
-      <h>330</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>100.0;310.0;10.0;10.0</additional_attributes>
-  </element>
-  <element>
     <id>UMLClass</id>
     <coordinates>
       <x>1000</x>
@@ -294,22 +283,6 @@ NoFile = "1"</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;60.0</additional_attributes>
   </element>
   <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>850</x>
-      <y>270</y>
-      <w>420</w>
-      <h>190</h>
-    </coordinates>
-    <panel_attributes>psidhwtype:p4sock
---
-StartScript = "config/ps_p4sock start"
-StopScript = "config/ps_p4sock stop"
-HeaderScript = "config/ps_p4sock statusheader"
-StatusScript = "config/ps_p4sock status"</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
     <id>Relation</id>
     <coordinates>
       <x>1260</x>
@@ -319,17 +292,6 @@ StatusScript = "config/ps_p4sock status"</panel_attributes>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
     <additional_attributes>50.0;10.0;10.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>1260</x>
-      <y>190</y>
-      <w>120</w>
-      <h>160</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
-    <additional_attributes>100.0;10.0;10.0;140.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>

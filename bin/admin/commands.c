@@ -780,7 +780,6 @@ void PSIADM_ProcStat(int count, bool full, bool *nl)
 	while (PSI_infoQueueNext(what, &taskInfo[numTasks],
 				 sizeof(*taskInfo), true) > 0) {
 	    if (taskInfo[numTasks].group==TG_FORWARDER && !full) continue;
-	    if (taskInfo[numTasks].group==TG_SPAWNER && !full) continue;
 	    if (taskInfo[numTasks].group==TG_MONITOR && !full) continue;
 	    if (taskInfo[numTasks].group==TG_SERVICE && !full) continue;
 	    if (taskInfo[numTasks].group==TG_SERVICE_SIG && !full) continue;
@@ -813,7 +812,6 @@ void PSIADM_ProcStat(int count, bool full, bool *nl)
 		   taskInfo[task].group==TG_ADMIN ? "(A)" :
 		   taskInfo[task].group==TG_LOGGER ? "(L)" :
 		   taskInfo[task].group==TG_FORWARDER ? "(F)" :
-		   taskInfo[task].group==TG_SPAWNER ? "(S)" :
 		   taskInfo[task].group==TG_MONITOR ? "(M)" :
 		   taskInfo[task].group==TG_ADMINTASK ? "(*)" :
 		   taskInfo[task].group==TG_KVS ? "(K)" :
