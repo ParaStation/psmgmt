@@ -774,7 +774,6 @@ scripts/memtest.py \
 scripts/missing \
 scripts/mpiexec.gdb \
 scripts/mpirun_java \
-scripts/parastation_tru64 \
 scripts/ps_acc.in \
 scripts/psaccview.in \
 scripts/pscompress.py \

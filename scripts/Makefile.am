@@ -44,8 +44,7 @@ pkglibexec_SCRIPTS = pscompress.py psexpand.py
 
 # for simplicity, put all dist files here, so no dist_ primaries above
 EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py lsf	\
-	memtest.py mpiexec.gdb mpirun_java parastation_tru64		\
-	ps_acc.in psaccview.in			\
+	memtest.py mpiexec.gdb mpirun_java ps_acc.in psaccview.in	\
 	psid2cmustatus.in psmgmt.csh.in psmgmt.sh.in			\
 	systemd/munge.conf systemd/psid.service.in			\
 	systemd/psidstarter.socket systemd/psidstarter@.service		\
