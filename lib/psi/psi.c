@@ -160,9 +160,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
     msg.header.dest = 0;
     msg.header.len = sizeof(msg);
     msg.version = PSProtocolVersion;
-    if (taskGroup == TG_SPAWNER || taskGroup == TG_PSCSPAWNER) {
-	msg.ppid = getpgrp();
-    }
+    if (taskGroup == TG_SPAWNER) msg.ppid = getpgrp();
 #ifndef SO_PEERCRED
     msg.pid = getpid();
     msg.uid = getuid();

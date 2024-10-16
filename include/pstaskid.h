@@ -31,8 +31,6 @@ typedef enum {
 		       @deprecated due to ditched p4 support */
     TG_MONITOR,     /**< special task that monitors the daemon. Don't kill
 		       @deprecated */
-    TG_PSCSPAWNER,  /**< special task, the pscspawner (helper to spawn PSC)
-		       @deprecated due to ditched PathScale support */
     TG_ADMINTASK,   /**< admin-task, i.e. unaccounted task */
     TG_SERVICE,     /**< service task, e.g. used by mpiexec to spawn procs */
     TG_ACCOUNT,     /**< accounter, will receive and log accounting info */

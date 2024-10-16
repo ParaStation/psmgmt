@@ -1463,8 +1463,7 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
     }
 
     if (!PSIDnodes_isStarter(PSC_getMyID()) && task->group != TG_ADMINTASK
-	&& (ptask->group == TG_SPAWNER || ptask->group == TG_PSCSPAWNER
-	    || ptask->group == TG_LOGGER)) {
+	&& (ptask->group == TG_SPAWNER || ptask->group == TG_LOGGER)) {
 	/* starting not allowed */
 	PSID_flog("spawning not allowed\n");
 	return EACCES;
@@ -2698,10 +2697,9 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    return true;
 	}
 
-	/* Release a TG_(PSC)SPAWNER if child died in a fine way */
+	/* Release a TG_SPAWNER if child died in a fine way */
 	if (WIFEXITED(msg->error) && !WIFSIGNALED(msg->error)) {
-	    if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER)
-		task->released = true;
+	    if (task->group == TG_SPAWNER) task->released = true;
 	}
 
 	switch (task->group) {

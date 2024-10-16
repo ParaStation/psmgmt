@@ -605,8 +605,8 @@ void PSIDclient_delete(int fd)
 	task->released = true;
     }
 
-    /* Unregister TG_(PSC)SPAWNER from parent process */
-    if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER) {
+    /* Unregister TG_SPAWNER from parent process */
+    if (task->group == TG_SPAWNER) {
 
 	/* Find correct parent and remove dead spawner from list of children */
 	PStask_t *parent = PStasklist_find(&managedTasks, task->ptid);
@@ -809,7 +809,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
      * this might happen due to an exec() call.
      */
     PStask_t *task = PStasklist_find(&managedTasks, tid);
-    if (!task && msg->group != TG_SPAWNER && msg->group != TG_PSCSPAWNER) {
+    if (!task && msg->group != TG_SPAWNER) {
 	PStask_ID_t pgtid = PSC_getTID(-1, getpgid(pid));
 
 	task = PStasklist_find(&managedTasks, pgtid);
@@ -891,8 +891,8 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	    task->group = msg->group;
 	}
 
-	/* TG_(PSC)SPAWNER have to get a special handling */
-	if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER) {
+	/* TG_SPAWNER have to get a special handling */
+	if (task->group == TG_SPAWNER) {
 	    PStask_t *parent;
 	    PStask_ID_t ptid;
 
@@ -909,9 +909,6 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 		switch (task->group) {
 		case TG_SPAWNER:
 		    task->loggertid = parent->loggertid;
-		    break;
-		case TG_PSCSPAWNER:
-		    task->loggertid = tid;
 		    break;
 		default:
 		    PSID_flog("group %s not handled\n",
