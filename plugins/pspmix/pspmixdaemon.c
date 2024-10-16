@@ -369,7 +369,6 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
     case PSPMIX_FENCE_DATA:
 	if (PSC_getPID(msg->header.dest)) break; // destination already fixed
 	__attribute__((fallthrough));
-    case PSPMIX_FENCE_IN:
     case PSPMIX_MODEX_DATA_REQ:
     case PSPMIX_SPAWN_INFO:
     case PSPMIX_TERM_CLIENTS:

@@ -27,10 +27,6 @@ const char *pspmix_getMsgTypeString(PSP_PSPMIX_t type)
 	    return "PSPMIX_REGISTER_CLIENT";
 	case PSPMIX_CLIENT_PMIX_ENV:
 	    return "PSPMIX_CLIENT_PMIX_ENV";
-	case PSPMIX_FENCE_IN:
-	    return "PSPMIX_FENCE_IN";
-	case PSPMIX_FENCE_OUT:
-	    return "PSPMIX_FENCE_OUT";
 	case PSPMIX_MODEX_DATA_REQ:
 	    return "PSPMIX_MODEX_DATA_REQ";
 	case PSPMIX_MODEX_DATA_RES:

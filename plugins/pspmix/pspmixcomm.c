@@ -331,25 +331,6 @@ static void handleTermClients(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
- * @brief Handle obsolete PSPMIX_FENCE_IN/PSPMIX_FENCE_OUT message
- *
- * This obsolete message was sent by an outdated PMIx server of the same user
- *
- * @param msg Last fragment of the message to handle
- *
- * @param data Defragmented data received
- */
-static void handleFenceObsolete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
-{
-    uint64_t fenceID;
-    getUint64(data, &fenceID);
-
-    flog("UNEXPECTED: type %s from %s for fence 0x%016lX\n",
-	 pspmix_getMsgTypeString(msg->type),
-	 PSC_printTID(msg->header.sender), fenceID);
-}
-
-/**
  * @brief Handle PSPMIX_FENCE_DATA message
  *
  * Message sent by another PMIx server of the same user for fence tree
@@ -493,10 +474,6 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 	recvFragMsg(msg, handleSpawnInfo);
 	break;
     /* message types comming from another PMIx server of the same user */
-    case PSPMIX_FENCE_IN:
-    case PSPMIX_FENCE_OUT:
-	recvFragMsg(msg, handleFenceObsolete);
-	break;
     case PSPMIX_FENCE_DATA:
 	recvFragMsg(msg, handleFenceData);
 	break;
