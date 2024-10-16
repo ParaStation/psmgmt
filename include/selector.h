@@ -327,53 +327,6 @@ int Selector_isActive(int fd);
 int Selector_getNum(void);
 
 /**
- * @brief select() replacement that handles registered file descriptors
- *
- * This is deprecated functionality just kept for backward
- * compatibility. Instead @ref Swait() shall be used. This requires
- * all file descriptors to be handled by the selector
- * facility. Nevertheless, this is encouraged due to significantly
- * improved efficiency in the context of epoll(7).
- *
- * Waits for a number of file descriptors to change status. If the status
- * of a registered file descriptor is affected, the corresponding
- * @ref selectHandler() is called.
- *
- * In fact the implementation is based internally on the more recent
- * epoll(7) I/O event notification facility but keeps select() semantics
- * for compatibility reasons.
- *
- * It is recommended to avoid this mechanism and to use the more
- * appropriate @ref Swait() instead.
- *
- * @param nfds The highest-numbered descriptor in the three sets, plus 1
- *
- * @param readfds Set of descriptors to be watched for data available to read
- *
- * @param writefds Set of descriptors to be watched for becoming able
- * to write to
- *
- * @param exceptfds Set of descriptors to be watched for exceptions
- *
- * @param timeout The upper bound on the amount of time elapsed before
- * Sselect() returns; it may be zero causing Sselect() to return
- * immediately; fi @a timeout is NULL, Sselect() can block indefinitely
- *
- * @deprecated Use @ref Swait() instead!
- *
- * @return On success, the number of descriptors contained in the
- * descriptor-sets, which may be zero if the @a timeout expires before
- * anything interesting happens. On error, -1 is returned, and @ref
- * errno is set appropriately; the file descriptor sets and @a timeout
- * become undefined, so do not rely on their contents after an error.
- *
- * @see select(2)
- */
-__attribute__((deprecated))
-int Sselect(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
-	    struct timeval* timeout);
-
-/**
  * @brief Simplified epoll_wait() replacement
  *
  * Simplified epoll_wait() replacement that handles registered

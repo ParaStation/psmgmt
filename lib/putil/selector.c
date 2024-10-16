@@ -23,7 +23,7 @@
 #include "psitems.h"
 #include "timer.h"
 
-/** Flag to let Sselect() start over, i.e. return 0 and all fds cleared */
+/** Flag to let Swait() start over, i.e. return 0 and all fds cleared */
 static bool startOver = false;
 
 typedef enum {
@@ -43,8 +43,6 @@ typedef struct {
     void *readInfo;                /**< Extra info passed to readHandler */
     void *writeInfo;               /**< Extra info passed to writeHandler */
     int fd;                        /**< The corresponding file-descriptor */
-    bool reqRead;                  /**< Flag used within Sselect() */
-    bool reqWrite;                 /**< Flag used within Sselect() */
     bool disabled;                 /**< Flag to disable fd temporarily */
     bool deleted;                  /**< Flag used for asynchronous delete */
 } Selector_t;
@@ -96,8 +94,6 @@ static Selector_t * getSelector(void)
 	.readInfo = NULL,
 	.writeInfo = NULL,
 	.fd = -1,
-	.reqRead = false,
-	.reqWrite = false,
 	.disabled = false,
 	.deleted = false,
     };
@@ -141,8 +137,6 @@ static bool relocSel(void *item)
     repl->readInfo = orig->readInfo;
     repl->writeInfo = orig->writeInfo;
     repl->fd = orig->fd;
-    repl->reqRead = orig->reqRead;
-    repl->reqWrite = orig->reqWrite;
     repl->disabled = orig->disabled;
     repl->deleted = orig->deleted;
 
@@ -623,267 +617,6 @@ void Selector_startOver(void)
 }
 
 #define NUM_EVENTS 20
-
-int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
-	    struct timeval *timeout)
-{
-    int retval, eno = 0, num = 0;
-    struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 };
-    list_t *s, *tmp;
-
-    if (timeout) {
-	gettimeofday(&start, NULL);                   /* get starttime */
-	timeradd(&start, timeout, &end);              /* add given timeout */
-    }
-
-    list_for_each_safe(s, tmp, &selectorList) {
-	Selector_t *selector = list_entry(s, Selector_t, next);
-	if (selector->deleted) doRemove(selector);
-    }
-
-    if (readfds) {
-	for (int fd = 0; fd < n; fd++) {
-	    Selector_t *selector = findSelector(fd);
-	    if (selector) selector->reqRead = false;
-
-	    if (!FD_ISSET(fd, readfds)) continue;
-
-	    if (!selector) {
-		Selector_register(fd, NULL, NULL);
-		selector = findSelector(fd);
-	    }
-	    if (!selector) {
-		logger_exit(logger, ENOMEM, "%s: Register(read)", __func__);
-	    }
-
-	    selector->reqRead = true;
-	}
-	FD_ZERO(readfds);
-   }
-
-    if (writefds) {
-	for (int fd = 0; fd < n; fd++) {
-	    Selector_t *selector = findSelector(fd);
-	    if (selector) selector->reqWrite = false;
-
-	    if (!FD_ISSET(fd, writefds)) continue;
-
-	    if (!selector) {
-		Selector_awaitWrite(fd, NULL, NULL);
-		selector = findSelector(fd);
-	    }
-	    if (!selector) {
-		logger_exit(logger, ENOMEM, "%s: Register(write)", __func__);
-	    }
-	    selector->reqWrite = true;
-	}
-	FD_ZERO(writefds);
-   }
-
-    if (exceptfds) {
-	logger_print(logger, -1, "%s: exceptfds not supported\n", __func__);
-    }
-
-    do {
-	int tmout;
-	struct epoll_event events[NUM_EVENTS];
-
-	list_for_each_safe(s, tmp, &selectorList) {
-	    Selector_t *selector = list_entry(s, Selector_t, next);
-	    if (selector->deleted) doRemove(selector);
-	}
-
-	if (timeout) {
-	    struct timeval delta;
-	    gettimeofday(&start, NULL);               /* get NEW starttime */
-	    timersub(&end, &start, &delta);
-	    if (delta.tv_sec < 0) timerclear(&delta);
-	    tmout = delta.tv_sec * 1000 + delta.tv_usec / 1000 + 1;
-	}
-
-	Timer_handleSignals();                     /* Handle pending timers */
-	retval = epoll_wait(epollFD, events, NUM_EVENTS, (timeout)? tmout : -1);
-	if (retval == -1) {
-	    eno = errno;
-	    logger_warn(logger, (eno == EINTR) ? SELECTOR_LOG_VERB : -1,
-			eno, "%s: epoll_wait()", __func__);
-	    if (eno == EINTR && timeout) {
-		/* Interrupted syscall, just start again */
-		eno = 0;
-		continue;
-	    } else {
-		break;
-	    }
-	}
-
-	for (int ev = 0; ev < retval; ev++) {
-	    Selector_t *selector = findSelector(events[ev].data.fd);
-
-	    if (!selector) {
-		logger_print(logger, -1, "%s: no selector for %d\n", __func__,
-			     events[ev].data.fd);
-		continue;
-	    }
-	    if (selector->fd != (events[ev].data.fd)) {
-		logger_print(logger, -1, "%s: fd mismatch: %d/%d\n", __func__,
-			     selector->fd, events[ev].data.fd);
-		continue;
-	    }
-	    if (selector->deleted) continue;
-	    if (selector->reqRead && !readfds) {
-		logger_print(logger, -1, "%s: requested w/out readfds: %d?!\n",
-			     __func__, selector->fd);
-		continue;
-	    }
-	    if (selector->reqWrite && !writefds) {
-		logger_print(logger, -1, "%s: requested w/out writefds: %d?!\n",
-			     __func__, selector->fd);
-		continue;
-	    }
-	    if (events[ev].events & EPOLLIN) {
-		if (selector->readHandler) {
-		    if (selector->disabled && selector->reqRead) {
-			FD_SET(selector->fd, readfds);
-			num++;
-		    } else if (!selector->disabled) {
-			int ret = selector->readHandler(selector->fd,
-							selector->readInfo);
-			switch (ret) {
-			case -1:
-			    retval = -1;
-			    break;
-			case 0:
-			    // do nothing
-			    break;
-			case 1:
-			    if (selector->reqRead) {
-				FD_SET(selector->fd, readfds);
-				num++;
-			    }
-			    break;
-			default:
-			    logger_print(logger, -1, "%s: readHandler for"
-					 " fd=%d returns %d\n", __func__,
-					 selector->fd, ret);
-			}
-		    }
-		} else if (selector->reqRead) {
-		    FD_SET(selector->fd, readfds);
-		    num++;
-		} else {
-		    logger_print(logger, -1, "%s: %d neither registered nor"
-				 " requested for read\n", __func__,
-				 selector->fd);
-		}
-	    }
-	    if (events[ev].events & EPOLLOUT) {
-		if (selector->writeHandler) {
-		    int ret = selector->writeHandler(selector->fd,
-						     selector->writeInfo);
-		    switch (ret) {
-		    case -1:
-			retval = -1;
-			break;
-		    case 0:
-			if (selector->reqWrite) {
-			    FD_SET(selector->fd, writefds);
-			    num++;
-			}
-			break;
-		    case 1:
-			// do nothing
-			break;
-		    default:
-			logger_print(logger, -1, "%s: writeHandler for"
-				     " fd=%d returns %d\n", __func__,
-				     selector->fd, ret);
-		    }
-		} else if (selector->reqWrite) {
-		    FD_SET(selector->fd, writefds);
-		    num++;
-		} else if (!selector->deleted) {
-		    logger_print(logger, -1, "%s: %d neither registered nor"
-				 " requested for write\n", __func__,
-				 selector->fd);
-		}
-	    }
-	    if (events[ev].events & EPOLLPRI) {
-		logger_print(logger, -1, "%s: got EPOLLPRI for %d\n", __func__,
-			     selector->fd);
-	    }
-	    if (events[ev].events & EPOLLERR && !selector->deleted) {
-		/* maybe RDP's extended reliable error message pending */
-		if (!(events[ev].events & EPOLLIN) && selector->readHandler) {
-		    selector->readHandler(selector->fd, selector->readInfo);
-		} else if (!selector->readHandler) {
-		    logger_print(logger, -1,
-				 "%s: EPOLLERR on %d / %#x w/out handler\n",
-				 __func__, selector->fd, events[ev].events);
-		    selector->writeHandler = NULL; /* force remove */
-		    Selector_remove(selector->fd);
-		}
-	    }
-	    if (events[ev].events & EPOLLHUP && !(events[ev].events & EPOLLIN)
-		&& !selector->deleted && !selector->disabled) {
-		if (selector->readHandler) {
-		    selector->readHandler(selector->fd, selector->readInfo);
-		} else if (readfds && selector->reqRead) {
-		    FD_SET(selector->fd, readfds);
-		} else if (writefds && selector->reqWrite) {
-		    FD_SET(selector->fd, writefds);
-		}
-		if (!selector->deleted) {
-		    logger_print(logger,
-				 selector->readHandler ? -1 : SELECTOR_LOG_VERB,
-				 "%s: EPOLLHUP on %d / %#x\n", __func__,
-				 selector->fd, events[ev].events);
-		    if (selector->readHandler) {
-			Selector_remove(selector->fd);
-		    } else {
-			Selector_vacateWrite(selector->fd);
-		    }
-		}
-	    }
-	}
-
-	if (retval < 0) break;
-
-	gettimeofday(&start, NULL);  /* get NEW starttime */
-
-    } while (!startOver && (!timeout || timercmp(&start, &end, <)));
-
-    if (readfds || writefds) {
-	list_for_each_safe(s, tmp, &selectorList) {
-	    Selector_t *selector = list_entry(s, Selector_t, next);
-	    if (!selector->deleted) {
-		if (selector->reqRead) {
-		    selector->reqRead = false;
-		    if (!selector->readHandler) Selector_remove(selector->fd);
-		}
-		if (selector->reqWrite) {
-		    selector->reqWrite = false;
-		    if (!selector->writeHandler)
-			Selector_vacateWrite(selector->fd);
-		}
-	    }
-	    if (selector->deleted) doRemove(selector);
-	}
-    }
-
-    if (startOver) {
-	/* Hard start-over triggered */
-	startOver = false;
-	if (readfds)   FD_ZERO(readfds);
-	if (writefds)  FD_ZERO(writefds);
-	if (exceptfds) FD_ZERO(exceptfds);
-	return 0;
-    }
-
-    /* restore errno */
-    errno = eno;
-
-    return (retval < 0) ? retval : num;
-}
 
 int Swait(int timeout)
 {
