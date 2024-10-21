@@ -441,7 +441,8 @@ PStask_t* PStask_clone(PStask_t* task)
     }
 
     if (!strvSize(task->argV)) {
-	PSC_flog("empty argV\n");
+	PSC_flog("empty argV (%s initialized)\n",
+		 strvInitialized(task->argV) ? "but" : "not");
 	eno = EINVAL;
 	goto error;
     }
@@ -568,8 +569,8 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task)
     if (strlen(txt)+1 == size) return;
     snprintf(txt+strlen(txt), size-strlen(txt), " ");
     if (strlen(txt)+1 == size) return;
-    snprintf(txt+strlen(txt), size-strlen(txt), "dir=\"%s\" argv=\"",
-	     (task->workingdir) ? task->workingdir : "");
+    snprintf(txt+strlen(txt), size-strlen(txt), "dir=\"%s\" argV=%p argV=\"",
+	     (task->workingdir) ? task->workingdir : "", task->argV);
     if (strlen(txt)+1 == size) return;
     snprintfStrV(txt+strlen(txt), size-strlen(txt), strvGetArray(task->argV));
     if (strlen(txt)+1 == size) return;

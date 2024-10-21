@@ -1245,7 +1245,7 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	char tasktxt[4096];
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_flog("task=%s\n", tasktxt);
+	PSID_flog("task %p: %s\n", task, tasktxt);
     }
 
     /* create a socketpair for communication between daemon and forwarder */
@@ -2231,7 +2231,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	    char tasktxt[4096];
 	    PStask_snprintf(tasktxt, sizeof(tasktxt), clone);
-	    PSID_flog("Spawning %s\n", tasktxt);
+	    PSID_flog("spawning %p: %s\n", clone, tasktxt);
 	}
 
 	if (clone->delayReasons) {
@@ -2546,9 +2546,9 @@ void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info)
 	    .request = task->rank};
 
 	if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
-	    char tasktxt[256];
+	    char tasktxt[4096];
 	    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	    PSID_flog("spawning %s\n", tasktxt);
+	    PSID_flog("spawning %p: %s\n", task, tasktxt);
 	}
 
 	PStasklist_dequeue(task);
@@ -2807,6 +2807,10 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
     child = PStask_clone(forwarder);
     if (!child) {
 	PSID_fwarn(errno, "PStask_clone()");
+
+	char tasktxt[4096];
+	PStask_snprintf(tasktxt, sizeof(tasktxt), forwarder);
+	PSID_flog("forwarder %p: %s\n", forwarder, tasktxt);
 
 	/* Tell forwarder to kill child */
 	msg->header.type = PSP_DD_CHILDDEAD;
@@ -3123,7 +3127,7 @@ int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	char tasktxt[4096];
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_flog("spawning %s\n", tasktxt);
+	PSID_flog("spawning %p: %s\n", task, tasktxt);
     }
 
     /* now try to start the task */
