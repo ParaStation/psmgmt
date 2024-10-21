@@ -478,15 +478,6 @@ static void restoreLimits(void)
     }
 }
 
-// @todo extra check for jwt:#20747
-static void __checkFD(int fd, const char *func, const int line)
-{
-    int ret = fcntl(fd, F_GETFD);
-    if (ret < 0) PSID_fwarn(errno, "(%d) at %s@%d", fd, func, line);
-}
-
-#define checkFD(fd) __checkFD(fd, __func__, __LINE__)
-
 /**
  * @brief Actually start the client process.
  *
@@ -531,8 +522,6 @@ static void execClient(PStask_t *task)
     snprintf(nodeIDStr, sizeof(nodeIDStr), "%hd", PSC_getMyID());
     setenv("PSP_SMP_NODE_ID", nodeIDStr, 1);
 
-    checkFD(task->fd); // @todo extra check for jwt:#20747
-
     /* change the gid; exit() on failure */
     if (setgid(task->gid) < 0) {
 	int eno = errno;
@@ -545,12 +534,8 @@ static void execClient(PStask_t *task)
 	exit(1);
     }
 
-    checkFD(task->fd); // @todo extra check for jwt:#20747
-
     /* remove psid's group memberships */
     setgroups(0, NULL);
-
-    checkFD(task->fd); // @todo extra check for jwt:#20747
 
     /* try to set supplementary groups if requested; failure is ignored */
     if (PSIDnodes_supplGrps(PSC_getMyID())) {
@@ -561,8 +546,6 @@ static void execClient(PStask_t *task)
 	}
 	free(name);
     }
-
-    checkFD(task->fd); // @todo extra check for jwt:#20747
 
     /* change the uid; exit() on failure */
     if (setuid(task->uid) < 0) {
@@ -576,17 +559,11 @@ static void execClient(PStask_t *task)
 	exit(1);
     }
 
-    checkFD(task->fd); // @todo extra check for jwt:#20747
-
     /* re-enable capability to create coredumps */
     prctl(PR_SET_DUMPABLE, 1);
 
-    checkFD(task->fd); // @todo extra check for jwt:#20747
-
     /* restore various resource limits */
     restoreLimits();
-
-    checkFD(task->fd); // @todo extra check for jwt:#20747
 
     /* restore umask settings */
     char *envStr = getenv("__PSI_UMASK");
@@ -608,8 +585,6 @@ static void execClient(PStask_t *task)
 	exit(1);
     }
 
-    checkFD(task->fd); // @todo extra check for jwt:#20747
-
     /* setup alarm */
     alarmFD = task->fd;
     PSC_setSigHandler(SIGALRM, alarmHandler);
@@ -621,8 +596,6 @@ static void execClient(PStask_t *task)
     }
     alarm(timeout);
 
-    checkFD(task->fd); // @todo extra check for jwt:#20747
-
     if (!changeToWorkDir(task)) {
 	int eno = errno;
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
@@ -632,8 +605,6 @@ static void execClient(PStask_t *task)
 	}
 	exit(1);
     }
-
-    checkFD(task->fd); // @todo extra check for jwt:#20747
 
     char *executable = testExecutable(task);
     if (!executable) {
@@ -647,16 +618,10 @@ static void execClient(PStask_t *task)
     }
     alarm(0);
 
-    checkFD(task->fd); // @todo extra check for jwt:#20747
-
     /* reset handling of SIGALRM */
     PSC_setSigHandler(SIGALRM, SIG_DFL);
 
-    checkFD(task->fd); // @todo extra check for jwt:#20747
-
     PSIDpin_doClamps(task);
-
-    checkFD(task->fd); // @todo extra check for jwt:#20747
 
     /* Signal forwarder we're ready for execve() */
     int forwErr = 0;
@@ -872,8 +837,6 @@ static void execForwarder(PStask_t *task)
 	goto error;
     }
 
-    checkFD(controlfds[1]); // @todo extra check for jwt:#20747
-
     if (task->aretty & (1<<STDIN_FILENO)
 	&& task->aretty & (1<<STDOUT_FILENO)
 	&& task->aretty & (1<<STDERR_FILENO)) task->interactive = true;
@@ -892,20 +855,14 @@ static void execForwarder(PStask_t *task)
 	if ((eno = openChannel(task, stdinfds, STDIN_FILENO))) goto error;
     }
 
-    checkFD(controlfds[1]); // @todo extra check for jwt:#20747
-
     /* Ensure processes use correct loginuid */
     PSID_adjustLoginUID(task->uid);
-
-    checkFD(controlfds[1]); // @todo extra check for jwt:#20747
 
     /* init the process manager sockets */
     if (PSIDhook_call(PSIDHOOK_EXEC_FORWARDER, task) == -1) {
 	eno = EINVAL;
 	goto error;
     }
-
-    checkFD(controlfds[1]); // @todo extra check for jwt:#20747
 
     /* Jail all my children */
     pid_t pid = getpid();
@@ -914,8 +871,6 @@ static void execForwarder(PStask_t *task)
 	eno = EINVAL;
 	goto error;
     }
-
-    checkFD(controlfds[1]); // @todo extra check for jwt:#20747
 
     /* fork the client */
     if (!(pid = fork())) {
@@ -927,13 +882,9 @@ static void execForwarder(PStask_t *task)
 	task->fd = controlfds[1];
 	close(controlfds[0]);
 
-	checkFD(task->fd); // @todo extra check for jwt:#20747
-
 	/* Reset connection to syslog */
 	closelog();
 	openlog("psid_client", LOG_PID|LOG_CONS, PSID_config->logDest);
-
-	checkFD(task->fd); // @todo extra check for jwt:#20747
 
 	/*
 	 * Create a new process group. This is needed since the daemon
@@ -941,8 +892,6 @@ static void execForwarder(PStask_t *task)
 	 * also kill the forwarder by sending a signal to the client.
 	 */
 	if (setsid() < 0) PSID_fwarn(errno, "setsid()");
-
-	checkFD(task->fd); // @todo extra check for jwt:#20747
 
 	/* close the master ttys / sockets */
 	if (task->interactive) {
@@ -983,8 +932,6 @@ static void execForwarder(PStask_t *task)
 	    }
 	}
 
-	checkFD(task->fd); // @todo extra check for jwt:#20747
-
 	/* redirect stdin/stdout/stderr */
 	if (dup2(task->stderr_fd, STDERR_FILENO) < 0) {
 	    eno = errno;
@@ -993,8 +940,6 @@ static void execForwarder(PStask_t *task)
 	    }
 	    PSID_exit(eno, "%s: dup2(stderr)", __func__);
 	}
-
-	checkFD(task->fd); // @todo extra check for jwt:#20747
 
 	/* From now on, all logging is done via the forwarder thru stderr */
 
@@ -1015,8 +960,6 @@ static void execForwarder(PStask_t *task)
 	    PSID_exit(eno, "%s: dup2(stdout)", __func__);
 	}
 
-	checkFD(task->fd); // @todo extra check for jwt:#20747
-
 	/* close the now useless slave ttys / sockets */
 	close(task->stderr_fd);
 	if (!task->interactive) {
@@ -1024,12 +967,8 @@ static void execForwarder(PStask_t *task)
 	    close(task->stdout_fd);
 	}
 
-	checkFD(task->fd); // @todo extra check for jwt:#20747
-
 	/* counterpart to PSIDHOOK_EXEC_FORWARDER */
 	PSIDhook_call(PSIDHOOK_EXEC_CLIENT, task);
-
-	checkFD(task->fd); // @todo extra check for jwt:#20747
 
 	/* try to start the client */
 	unsetenv("SSS_NSS_USE_MEMCACHE");
