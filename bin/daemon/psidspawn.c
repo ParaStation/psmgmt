@@ -1750,12 +1750,6 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
 }
 
 /**
- * List of tasks waiting to get spawned, i.e. waiting for last
- * environment packets to come in.
- */
-static LIST_HEAD(spawnTasks);
-
-/**
  * List of tasks delayed to get spawned. They shall be started later
  * via @ref PSIDspawn_startDelayedTasks().
  */
@@ -2230,7 +2224,6 @@ void PSIDspawn_cleanupDelayedTasks(PSIDspawn_filter_t filter, void *info)
     list_t *t;
     list_for_each(t, &delayedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
-
 	if (task->deleted) continue;
 	if (filter && !filter(task, info)) continue;
 
@@ -2240,14 +2233,9 @@ void PSIDspawn_cleanupDelayedTasks(PSIDspawn_filter_t filter, void *info)
 
 void PSIDspawn_cleanupByNode(PSnodes_ID_t node)
 {
-    list_t *t;
-
     PSID_fdbg(PSID_LOG_SPAWN, "node %d\n", node);
 
-    list_for_each(t, &spawnTasks) {
-	PStask_t *task = list_entry(t, PStask_t, next);
-	if (PSC_getID(task->tid) == node) task->deleted = true;
-    }
+    list_t *t;
     list_for_each(t, &delayedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (PSC_getID(task->tid) == node) task->deleted = true;
@@ -2259,10 +2247,6 @@ void PSIDspawn_cleanupBySpawner(PStask_ID_t tid)
     PSID_fdbg(PSID_LOG_SPAWN, "%s\n", PSC_printTID(tid));
 
     list_t *t;
-    list_for_each(t, &spawnTasks) {
-	PStask_t *task = list_entry(t, PStask_t, next);
-	if (task->tid == tid) task->deleted = true;
-    }
     list_for_each(t, &delayedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (task->deleted) continue;
@@ -2297,18 +2281,9 @@ void PSIDspawn_cleanupBySpawner(PStask_ID_t tid)
  */
 static void cleanupSpawnTasks(void)
 {
-    list_t *t, *tmp;
-
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
-    list_for_each_safe(t, tmp, &spawnTasks) {
-	PStask_t *task = list_entry(t, PStask_t, next);
-
-	if (task->deleted) {
-	    PStasklist_dequeue(task);
-	    PStask_delete(task);
-	}
-    }
+    list_t *t, *tmp;
     list_for_each_safe(t, tmp, &delayedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 
