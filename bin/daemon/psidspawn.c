@@ -1749,34 +1749,6 @@ static void sendCHILDRESREL(PStask_t *task, PStask_ID_t sender, bool combine)
     if (sendMsg(&msg) < 0) PSID_fwarn(errno, "sendMsg(%s)", PSC_printTID(dest));
 }
 
-/**
- * List of tasks delayed to get spawned. They shall be started later
- * via @ref PSIDspawn_startDelayedTasks().
- */
-static LIST_HEAD(delayedTasks);
-
-static LIST_HEAD(pendingResources);
-
-typedef struct {
-    list_t next;          /**< used to put into pendingResources */
-    PStask_ID_t sender;   /**< initiator of the spawn */
-    int32_t rank;         /**< first rank */
-    uint32_t num;         /**< number of entries */
-    PSCPU_set_t *CPUsets; /**< CPU set buffers for addressed ranks */
-} PendingRes_t;
-
-static inline PendingRes_t *findPendingRes(PStask_ID_t sender, int32_t rank)
-{
-    list_t *r;
-    list_for_each(r, &pendingResources) {
-	PendingRes_t *res = list_entry(r, PendingRes_t, next);
-	if (res->sender == sender && res->rank <= rank
-	    && rank - res->rank < (int32_t)res->num) return res;
-    }
-
-    return NULL;
-}
-
 static inline bool isServiceTask(PStask_group_t group)
 {
     return (group == TG_SERVICE || group == TG_SERVICE_SIG
@@ -2173,6 +2145,12 @@ static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     }
     return true;
 }
+
+/**
+ * List of tasks delayed to get spawned. They shall be started later
+ * via @ref PSIDspawn_startDelayedTasks().
+ */
+static LIST_HEAD(delayedTasks);
 
 void PSIDspawn_delayTask(PStask_t *task)
 {
