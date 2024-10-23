@@ -270,23 +270,23 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task);
 /**
  * @brief Decode a task structure
  *
- * Decode a task structure encoded by PStask_encodeTask() and stored
- * within @a buffer and write it to the task structure @a task is
- * pointing to. @a withWdir flags if also a string describing the
- * working directory of the task shall be fetched from @a buffer and
- * added to the task structure @a task. This string is expected to be
- * located right after the encoded task structure within @a buffer.
+ * Decode a task structure sent via @ref PStask_addToMsg() and
+ * received as a data blob of size @a len provided in @a data. The
+ * decoded data is written to the task structure @a task is pointing
+ * to.
  *
- * @param buffer The buffer the encoded task structure is stored in
+ * Before adding any data to @a task the structure will be cleaned
+ * up. Thus, any information contained will get lost.
  *
- * @param task The task structure to write to
+ * @param data Data blob holding the encoded task structure
  *
- * @param withWDir Flag to also fetch the working directory from buffer
+ * @param len Size of @a data
  *
- * @return The number of characters within @a buffer used in order to
- * decode the task structure
+ * @param task Task structure to write to
+ *
+ * @return On success return true or false on error
  */
-int PStask_decodeTask(char *buffer, PStask_t *task, bool withWdir);
+bool PStask_decodeTask(void *data, size_t len, PStask_t *task);
 
 /**
  * @brief Send task structure

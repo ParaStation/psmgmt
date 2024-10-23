@@ -573,7 +573,7 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task)
     snprintf(txt+strlen(txt), size-strlen(txt), "\"");
 }
 
-static char someStr[256];
+static char taskStr[256];
 
 /* helper struct to compress the relvant parts of PStask_t to be sent */
 static struct {
@@ -593,8 +593,8 @@ static struct {
 
 bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg)
 {
-    snprintfStruct(someStr, sizeof(someStr), task);
-    PSC_fdbg(PSC_LOG_TASK, "msg %p task %s\n", msg, someStr);
+    snprintfStruct(taskStr, sizeof(taskStr), task);
+    PSC_fdbg(PSC_LOG_TASK, "msg %p task %s\n", msg, taskStr);
 
     tmpTask.tid = task->tid;
     tmpTask.ptid = task->ptid;
@@ -609,7 +609,7 @@ bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg)
     tmpTask.loggertid = task->loggertid;
     tmpTask.noParricide = task->noParricide;
 
-    if (!addMemToMsg(&tmpTask, sizeof(tmpTask), msg)) return false;
+    if (!addDataToMsg(&tmpTask, sizeof(tmpTask), msg)) return false;
 
     char *wDir = task->workingdir ? task->workingdir : "";
     if (!addStringToMsg(wDir, msg)) return false;
@@ -617,23 +617,27 @@ bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg)
     return true;
 }
 
-int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
+bool PStask_decodeTask(void *data, size_t len, PStask_t *task)
 {
     if (!task) {
 	PSC_flog("no task\n");
-	return 0;
+	return false;
+    }
+
+    if (!data || len != sizeof(tmpTask)) {
+	PSC_flog("insufficient data\n");
+	return false;
     }
 
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
-	snprintfStruct(someStr, sizeof(someStr), task);
-	PSC_fdbg(PSC_LOG_TASK, "buffer %p task %s\n", buffer, someStr);
+	snprintfStruct(taskStr, sizeof(taskStr), task);
+	PSC_fdbg(PSC_LOG_TASK, "data %p task %s\n", data, taskStr);
     }
 
     reinitTask(task);
 
     /* unpack buffer */
-    int msglen = sizeof(tmpTask);
-    memcpy(&tmpTask, buffer, sizeof(tmpTask));
+    memcpy(&tmpTask, data, sizeof(tmpTask));
 
     task->tid = tmpTask.tid;
     task->ptid = tmpTask.ptid;
@@ -648,20 +652,12 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
     task->loggertid = tmpTask.loggertid;
     task->noParricide = tmpTask.noParricide;
 
-    if (withWDir) {
-	int len = strlen(&buffer[msglen]);
-
-	if (len) task->workingdir = strdup(&buffer[msglen]);
-	msglen += len+1;
-    }
-
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
-	snprintfStruct(someStr, sizeof(someStr), task);
-	PSC_dbg(PSC_LOG_TASK, " received task = (%s)\n", someStr);
-	PSC_fdbg(PSC_LOG_TASK, "return %d\n", msglen);
+	snprintfStruct(taskStr, sizeof(taskStr), task);
+	PSC_dbg(PSC_LOG_TASK, " received task = (%s)\n", taskStr);
     }
 
-    return msglen;
+    return true;
 }
 
 PSrsrvtn_ID_t PStask_getNextResID(PStask_t *task)

@@ -1833,8 +1833,13 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     uint32_t num;
     getUint32(rData, &num);
 
+    /* task describing the client(s) to spawn */
     PStask_t *task = PStask_new();
-    rData->unpackPtr += PStask_decodeTask(rData->unpackPtr, task, false);
+    /* standard task blob */
+    size_t len;
+    void *blob = getDataM(rData, &len);
+    bool res = PStask_decodeTask(blob, len, task);
+    free(blob);
 
     task->spawnertid = msg->header.sender;
     task->workingdir = getStringM(rData);
@@ -1999,8 +2004,12 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	/* fetch info from message */
 	getUint32(&data, &num);
 	PStask_t *task = PStask_new();
-	/* messages from local senders always conform to newest protocol */
-	data.unpackPtr += PStask_decodeTask(data.unpackPtr, task, false);
+
+	/* standard task blob */
+	size_t len;
+	void *blob = getDataM(&data, &len);
+	bool decodeRes = PStask_decodeTask(blob, len, task);
+	free(blob);
 
 	/* reset psserial's byteorder */
 	setByteOrder(byteOrder);
@@ -2008,7 +2017,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	/* Check if everything is okay */
 	answer.error = checkRequest(msg->header.sender, task);
 
-	/* Store some info from task for latter use */
+	/* Store some info from task for later use */
 	group = task->group;
 	rank = task->rank;
 
@@ -2129,8 +2138,12 @@ static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     uint32_t num;
     getUint32(&data, &num);
     PStask_t *task = PStask_new();
-    /* protocol version can be ignored here since rank is packed before argc */
-    data.unpackPtr += PStask_decodeTask(data.unpackPtr, task, false);
+
+    /* standard task blob */
+    size_t len;
+    void *blob = getDataM(&data, &len);
+    bool decodeRes = PStask_decodeTask(blob, len, task);
+    free(blob);
 
     /* reset psserial's byteorder */
     setByteOrder(byteOrder);
