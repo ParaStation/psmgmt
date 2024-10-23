@@ -2038,7 +2038,7 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     bool ret = false;
     char *prologue = getConfValueC(SlurmConfig, "Prolog");
     /* force slurmctld prologue for now */
-    if (true || !prologue || prologue[0] == '\0') {
+    if (!prologue || prologue[0] == '\0' || true) {
 	/* no slurmd prologue configured,
 	 * pspelogue should have added an allocation */
 	if (!alloc) {
