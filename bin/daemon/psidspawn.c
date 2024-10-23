@@ -2171,6 +2171,20 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getStringArrayM(rData, &envP, NULL);
     task->env = envNew(envP);
 
+    if (rData->unpackErr) {
+	PSID_flog("unpacking failed: %s\n", serialStrErr(rData->unpackErr));
+	answer.error = EBADMSG;
+	/* send one answer per rank */
+	for (uint32_t r = 0; r < num; r++) {
+	    answer.request = task->rank + r;
+	    sendMsg(&answer);
+	}
+	PStask_delete(task);
+	/* cleanup psserial's byteorder */
+	setByteOrder(byteOrder);
+	return;
+    }
+
     /* Call hook once per PSP_CD_SPAWNREQUEST meaning once per node.
      * Pay attention that the task provided is only a prototype, containing
      * all information shared between all tasks of the spawn but not containing
