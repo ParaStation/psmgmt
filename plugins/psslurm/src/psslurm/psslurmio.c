@@ -702,8 +702,12 @@ int IO_redirectRank(Step_t *step, int rank)
     }
 
     if (step->taskFlags & LAUNCH_PTY && rank >0) {
-	close(STDIN_FILENO);
 	int fd = open("/dev/null", O_RDONLY);
+	if (fd == -1) {
+	    fwarn(errno, "open(/dev/null) failed");
+	    return 0;
+	}
+	close(STDIN_FILENO);
 	dup2(fd, STDIN_FILENO);
     }
 

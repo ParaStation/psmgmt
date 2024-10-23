@@ -1362,7 +1362,7 @@ void closeSlurmdSocket(void)
 int openSlurmdSocket(int port)
 {
     int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (!sock) {
+    if (sock == -1) {
 	fwarn(errno, "socket() failed for port %i", port);
 	return -1;
     }

@@ -104,8 +104,12 @@ void execPElogueScript(Forwarder_Data_t *fwData, int rerun)
     case 1:
 	if (!child->fwStdOE) {
 	    /* redirect stdout and stderr */
-	    dup2(open("/dev/null", 0), STDOUT_FILENO);
-	    dup2(open("/dev/null", 0), STDERR_FILENO);
+	    int fd = open("/dev/null", 0);
+	    if (fd >= 0) {
+		dup2(fd, STDOUT_FILENO);
+		dup2(fd, STDERR_FILENO);
+		close(fd);
+	    }
 	}
 
 	execPElogue(child, fName, root);

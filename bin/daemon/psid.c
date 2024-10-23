@@ -614,6 +614,10 @@ int main(int argc, const char *argv[])
      * Take care if stdout/stderr is used for logging
      */
     int dummy_fd = open("/dev/null", O_WRONLY , 0);
+    if (dummy_fd < 0) {
+	PSID_warn(errno, -1, "open(/dev/null)");
+	return 0;
+    }
     dup2(dummy_fd, STDIN_FILENO);
     if (logfile != stdout) dup2(dummy_fd, STDOUT_FILENO);
     if (logfile != stderr) dup2(dummy_fd, STDERR_FILENO);
