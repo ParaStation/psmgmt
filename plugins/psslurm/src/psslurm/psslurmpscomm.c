@@ -1457,15 +1457,12 @@ static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* write data */
     FILE *fp = fopen(buf, "a+");
     if (!fp) {
-	mlog("%s: open file '%s' failed\n", __func__, buf);
+	fwarn(errno, "fopen(%s)", buf);
 	return;
     }
 
-    while (fprintf(fp, "%s", msgData) != (int)strlen(msgData)) {
-	if (errno == EINTR) continue;
-	flog("writing pelogue log for allocation %u failed : %s\n",
-	     allocID, strerror(errno));
-	break;
+    if (fprintf(fp, "%s", msgData) != (int)strlen(msgData)) {
+	flog("drop pelogue log for allocation %u: '%s'\n", allocID, msgData);
     }
     fclose(fp);
     ufree(msgData);
