@@ -1838,8 +1838,22 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* standard task blob */
     size_t len;
     void *blob = getDataM(rData, &len);
-    bool res = PStask_decodeTask(blob, len, task);
+    bool decodeRes = PStask_decodeTask(blob, len, task);
     free(blob);
+    if (!decodeRes) {
+	PStask_delete(task);
+	PSID_flog("unable to decode task from %s\n",
+		  PSC_printTID(msg->header.sender));
+	/* cleanup psserial's byteorder */
+	setByteOrder(byteOrder);
+
+	/* send at least a single answer */
+	answer.error = EBADMSG;
+	answer.request = 0; // we don't know the rank!
+	sendMsg(&answer);
+
+	return;
+    }
 
     task->spawnertid = msg->header.sender;
     task->workingdir = getStringM(rData);
@@ -2014,6 +2028,17 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	/* reset psserial's byteorder */
 	setByteOrder(byteOrder);
 
+	if (!decodeRes) {
+	    PStask_delete(task);
+	    PSID_flog("broken task from %s?!\n", PSC_printTID(msg->header.sender));
+	    /* send at least a single answer */
+	    answer.error = EBADMSG;
+	    answer.request = 0; // we don't know the rank!
+	    sendMsg(&answer);
+
+	    return true;
+	}
+
 	/* Check if everything is okay */
 	answer.error = checkRequest(msg->header.sender, task);
 
@@ -2151,6 +2176,11 @@ static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     int rank = task->rank;
 
     PStask_delete(task);
+
+    if (!decodeRes) {
+	PSID_flog("failed for msg from %s\n", PSC_printTID(msg->header.sender));
+	return true;
+    }
 
     for (uint32_t i = 0; i < num; i++) {
 	errMsg.request = rank + i;
