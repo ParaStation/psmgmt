@@ -249,8 +249,6 @@ bool PSID_emptySigList(list_t *sigList)
 static int doEnqueue(list_t *list, PStask_t *task, PStask_t *other,
 		     const char *func)
 {
-    PStask_t *old;
-
     if (!task) {
 	PSID_flog("no task\n");
 	return -1;
@@ -262,7 +260,7 @@ static int doEnqueue(list_t *list, PStask_t *task, PStask_t *other,
 			PSC_printTID(other->tid), other);
     PSID_dbg(PSID_LOG_TASK, ")\n");
 
-    old = PStasklist_find(list, task->tid);
+    PStask_t *old = PStasklist_find(list, task->tid);
     if (old) {
 	char taskStr[128];
 	PStask_snprintf(taskStr, sizeof(taskStr), old);

@@ -539,9 +539,9 @@ int main(int argc, const char *argv[])
     }
 
     if (logdest) {
-	if (strcasecmp(logdest, "stderr")==0) {
+	if (!strcasecmp(logdest, "stderr")) {
 	    logfile = stderr;
-	} else if (strcasecmp(logdest, "stdout")==0) {
+	} else if (!strcasecmp(logdest, "stdout")) {
 	    logfile = stdout;
 	} else {
 	    logfile = fopen(logdest, "a+");
@@ -554,9 +554,7 @@ int main(int argc, const char *argv[])
 	}
     }
 
-    if (!logfile) {
-	openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
-    }
+    if (!logfile) openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     PSID_initLogs(logfile);
 
     printWelcome();

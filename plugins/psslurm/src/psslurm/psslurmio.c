@@ -684,28 +684,26 @@ void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
 
 int IO_redirectRank(Step_t *step, int rank)
 {
-    int fd;
-
     /* redirect stdin */
     if (step->stdInOpt == IO_RANK_FILE) {
 	char *ptr = IO_replaceStepSymbols(step, rank, step->stdIn);
 	char *inFile = addCwd(step->cwd, ptr);
 
-	fd = open(inFile, O_RDONLY);
+	int fd = open(inFile, O_RDONLY);
 	if (fd == -1) {
-	    mwarn(errno, "%s: open stdin '%s' failed", __func__, inFile);
+	    fwarn(errno, "open(%s) failed", inFile);
 	    return 0;
 	}
 	close(STDIN_FILENO);
 	if (dup2(fd, STDIN_FILENO) == -1) {
-	    mwarn(errno, "%s: stdin dup2(%u) failed", __func__, fd);
+	    fwarn(errno, "dup2(%u) failed", fd);
 	    return 0;
 	}
     }
 
     if (step->taskFlags & LAUNCH_PTY && rank >0) {
 	close(STDIN_FILENO);
-	fd = open("/dev/null", O_RDONLY);
+	int fd = open("/dev/null", O_RDONLY);
 	dup2(fd, STDIN_FILENO);
     }
 

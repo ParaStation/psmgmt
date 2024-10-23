@@ -1361,27 +1361,26 @@ void closeSlurmdSocket(void)
 
 int openSlurmdSocket(int port)
 {
-    struct sockaddr_in saClient;
-    int res, sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    int opt = 1;
-
+    int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (!sock) {
-	mwarn(errno, "%s: socket failed for port %i", __func__, port);
+	fwarn(errno, "socket() failed for port %i", port);
 	return -1;
     }
 
+    int opt = 1;
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0 ) {
 	mwarn(errno, "%s: setsockopt(%i, port %i)", __func__, sock, port);
     }
 
     /* set up the sockaddr structure */
+    struct sockaddr_in saClient;
     saClient.sin_family = AF_INET;
     saClient.sin_addr.s_addr = INADDR_ANY;
     saClient.sin_port = htons(port);
     bzero(&(saClient.sin_zero), 8);
 
     /* bind the socket */
-    res = bind(sock, (struct sockaddr *)&saClient, sizeof(saClient));
+    int res = bind(sock, (struct sockaddr *)&saClient, sizeof(saClient));
     if (res == -1) {
 	mwarn(errno, "%s: bind(%i, port %i)", __func__, sock, port);
 	return -1;
