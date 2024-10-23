@@ -2831,6 +2831,7 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
     }
 
     strvDestroy(forwarder->argV);
+    forwarder->argV = NULL; // prevent use of re-initialized argV
 
     child->tid = msg->request;
     child->fd = -1;

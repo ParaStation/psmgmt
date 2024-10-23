@@ -78,6 +78,7 @@ bool initEnvFilter(void)
 void freeEnvFilter(void)
 {
     strvDestroy(envFilterData);
+    envFilterData = NULL;
 }
 
 bool envFilterFunc(const char *envStr)
