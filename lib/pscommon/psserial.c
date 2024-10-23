@@ -1067,6 +1067,7 @@ bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
     for (uint32_t i = 0; i < *len; i++) {
 	if (!getFromBuf(data, (char *)*val + i*size, type, size, caller, line)) {
 	    free(*val);
+	    *val = NULL;
 	    return false;
 	}
     }
@@ -1165,6 +1166,7 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
 	if (data->unpackErr) {
 	    for (uint32_t j = 0; j < i; j++) free((*array)[j]);
 	    free(*array);
+	    *array = NULL;
 	    return false;
 	}
     }
