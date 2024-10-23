@@ -361,7 +361,11 @@ int main(int argc, const char **argv)
 
     if (!quiet) printf("PSIadmin: Goodbye\n");
 
-    if (!progfile) saveHistoryFile();
+    if (progfile) {
+	fclose(cmdStream);
+    } else {
+	saveHistoryFile();
+    }
 
     parserRelease();
 

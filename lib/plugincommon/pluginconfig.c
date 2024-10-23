@@ -197,7 +197,6 @@ bool getConfigAvoidDoubleEntry(Config_t conf)
 int parseConfigFileExt(char *filename, Config_t conf, bool keepObjects,
 		       configLineHandler_t handleImmediate, const void *info)
 {
-    FILE *fp;
     char *linebuf = NULL;
     size_t len = 0;
     ssize_t read;
@@ -206,7 +205,8 @@ int parseConfigFileExt(char *filename, Config_t conf, bool keepObjects,
     if (!checkConfig(conf)) return -1;
     if (!keepObjects) cleanAllObjs(conf);
 
-    if (!(fp = fopen(filename, "r"))) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
 	char *cwd = getcwd(NULL, 0);
 
 	pluginflog("error opening config cwd:%s file:%s\n", cwd, filename);
@@ -238,6 +238,7 @@ int parseConfigFileExt(char *filename, Config_t conf, bool keepObjects,
 	    case -1:
 		pluginflog("failed to handle '%s'\n", line);
 		free(line);
+		fclose(fp);
 		return -1;
 	    default:
 		pluginflog("handleImmediate() returns %d\n", ret);
