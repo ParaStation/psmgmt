@@ -25,16 +25,16 @@
 #define DEFAULT_POLL_TIME 30
 
 /** interconnect monitor script */
-static Collect_Script_t *iScript = NULL;
+static Collect_Script_t *iScript;
 
 /** interconnect state data */
 static psAccountIC_t icData, icBase;
 
 /** script poll interval in seconds */
-static int pollTime = 0;
+static int pollTime;
 
 /** additional script environment */
-static env_t scriptEnv = NULL;
+static env_t scriptEnv;
 
 static void parseInterconn(char *data)
 {

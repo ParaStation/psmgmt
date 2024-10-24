@@ -25,16 +25,16 @@
 #define DEFAULT_POLL_TIME 30
 
 /** filesystem monitor script */
-static Collect_Script_t *fsScript = NULL;
+static Collect_Script_t *fsScript;
 
 /** filesystem state data */
 static psAccountFS_t fsData, fsBase;
 
 /** script poll interval in seconds */
-static int pollTime = 0;
+static int pollTime;
 
 /** additional script environment */
-static env_t scriptEnv = NULL;
+static env_t scriptEnv;
 
 static void parseFilesys(char *data)
 {

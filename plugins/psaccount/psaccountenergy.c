@@ -29,19 +29,19 @@
 #define DEFAULT_POLL_TIME 30
 
 /** power unit multiplier */
-static float powerMult = 0;
+static float powerMult = 0.0;
 
 /** energy state data */
 static psAccountEnergy_t eData;
 
 /** energy monitor script */
-static Collect_Script_t *eScript = NULL;
+static Collect_Script_t *eScript;
 
 /** script poll interval in seconds */
-static int pollTime = 0;
+static int pollTime;
 
 /** additional script environment */
-static env_t scriptEnv = NULL;
+static env_t scriptEnv;
 
 static uint64_t readEnergyFile(char *path)
 {
