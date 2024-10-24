@@ -124,6 +124,7 @@ void FS_stopScript(void)
 void FS_cleanup(void)
 {
     envDestroy(scriptEnv);
+    scriptEnv = NULL;
 }
 
 bool FS_setPoll(uint32_t poll)

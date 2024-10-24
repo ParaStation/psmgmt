@@ -18,6 +18,7 @@ static env_t PSenv;
 void clearPSIEnv(void)
 {
     envDestroy(PSenv);
+    PSenv = NULL;
 }
 
 bool setPSIEnv(const char *name, const char *val)

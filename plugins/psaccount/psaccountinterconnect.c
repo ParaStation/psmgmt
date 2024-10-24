@@ -126,6 +126,7 @@ void IC_stopScript(void)
 void IC_cleanup(void)
 {
     envDestroy(scriptEnv);
+    scriptEnv = NULL;
 }
 
 bool IC_setPoll(uint32_t poll)

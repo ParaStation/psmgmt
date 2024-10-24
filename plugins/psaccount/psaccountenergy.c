@@ -189,6 +189,7 @@ void Energy_stopScript(void)
 void Energy_cleanup(void)
 {
     envDestroy(scriptEnv);
+    scriptEnv = NULL;
 }
 
 bool Energy_update(void)
