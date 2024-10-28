@@ -390,9 +390,9 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
  * memory is activated. In this case the total memory of the node is
  * used as limit.
  *
- * @param cred The job credential holding memory information
+ * @param cred Job credential holding memory information
  *
- * @param credID credentail ID for this jobs/step
+ * @param credID Credentail ID for this jobs/step
  */
 static void setJailMemEnv(JobCred_t *cred, uint32_t credID)
 {
@@ -458,7 +458,7 @@ static bool devEnvVisitor(GRes_Dev_t *dev, uint32_t id, void *info)
  *
  * @param credType GRes credential type to use
  *
- * @param credID credentail ID for this jobs/step
+ * @param credID Credentail ID for this jobs/step
  */
 static void setJailDevEnv(list_t *gresList, GRes_Cred_type_t credType,
 			  uint32_t credID)
