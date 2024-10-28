@@ -600,6 +600,15 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
+    JobCred_t *cred = step->cred;
+    step->credID = getLocalID(cred->jobNodes, cred->jobNumHosts);
+    if (step->credID == NO_VAL) {
+	flog("credentail node ID %i for %s in %s num nodes %i not found\n",
+	     PSC_getMyID(), Step_strID(step), cred->jobHostlist,
+	     cred->jobNumHosts);
+	return ESLURMD_INVALID_JOB_CREDENTIAL;
+    }
+
     /* set memory limits from credential */
     setStepMemLimits(step);
 

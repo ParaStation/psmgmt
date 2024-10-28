@@ -190,7 +190,7 @@ static int termStepJail(void *info)
     setJailEnv(step->env, step->username,
 	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
-	       &step->gresList, GRES_CRED_STEP, step->cred, step->localNodeId);
+	       &step->gresList, GRES_CRED_STEP, step->cred, step->credID);
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &step->fwdata->cPid);
 }
 
@@ -578,7 +578,7 @@ int handleHookExecFW(void *data)
 		   &(fwStep->nodeinfos[fwStep->localNodeId].stepHWthreads),
 		   &(fwStep->nodeinfos[fwStep->localNodeId].jobHWthreads),
 		   &fwStep->gresList, GRES_CRED_STEP, fwStep->cred,
-		   fwStep->localNodeId);
+		   fwStep->credID);
     }
 
     return 0;
@@ -1187,7 +1187,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     setJailEnv(step->env, step->username,
 	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
-	       &step->gresList, GRES_CRED_STEP, step->cred, step->localNodeId);
+	       &step->gresList, GRES_CRED_STEP, step->cred, step->credID);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -1777,7 +1777,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     setJailEnv(step->env, step->username,
 	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
-	       &step->gresList, GRES_CRED_STEP, step->cred, step->localNodeId);
+	       &step->gresList, GRES_CRED_STEP, step->cred, step->credID);
 
 #ifdef HAVE_SPANK
 

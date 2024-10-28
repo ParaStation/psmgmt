@@ -81,12 +81,12 @@ bool envFilterFunc(const char *envStr);
  * @param gresList	GRes to limit devices
  * @param credType	GRes credential type
  * @param cred		job credential holding memory constrains
- * @param localNodeId   local node ID
+ * @param localNodeId   credentail ID
  */
 void setJailEnv(const env_t env, const char *user, const PSCPU_set_t *stepcpus,
 		const PSCPU_set_t *jobcpus, list_t *gresList,
 		GRes_Cred_type_t credType, JobCred_t *cred,
-		uint32_t localNodeId);
+		uint32_t credID);
 /**
  * @brief Initialize global jail environment
  *

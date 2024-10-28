@@ -858,6 +858,9 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* job hostlist */
     cred->jobHostlist = getStringM(data);
 
+    fdbg(PSSLURM_LOG_GRES, "job hosts %s step hosts %s\n", cred->jobHostlist,
+	 cred->stepHL);
+
     if (msgVer > SLURM_22_05_PROTO_VERSION) {
 	cred->jobLicenses = getStringM(data);
     }

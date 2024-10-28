@@ -161,6 +161,7 @@ typedef struct {
     bool timeout;		/**< set to true if step ran into a timeout */
     uint8_t ioCon;		/**< track srun I/O connection state */
     uint32_t localNodeId;	/**< local node ID for this step */
+    uint32_t credID;		/**< step credential ID */
     time_t startTime;           /**< time the step started */
     Forwarder_Data_t *fwdata;   /**< parameters of running job forwarder */
     PSpart_slot_t *slots;       /**< CPUs to use (length is np) */

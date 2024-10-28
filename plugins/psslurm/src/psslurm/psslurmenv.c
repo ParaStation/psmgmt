@@ -392,9 +392,9 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
  *
  * @param cred The job credential holding memory information
  *
- * @param localNodeId Local node ID for this jobs/step
+ * @param credID credentail ID for this jobs/step
  */
-static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
+static void setJailMemEnv(JobCred_t *cred, uint32_t credID)
 {
     /* total node memory in Byte */
     uint64_t nodeMem = getNodeMem()*1024*1024;
@@ -403,7 +403,7 @@ static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
     if (cred->jobMemAllocSize) {
 	uint32_t i = 0, idx = 0;
 	while (i < cred->jobMemAllocSize
-	       && idx + cred->jobMemAllocRepCount[i] <= localNodeId)
+	       && idx + cred->jobMemAllocRepCount[i] <= credID)
 	    idx += cred->jobMemAllocRepCount[i++];
 	if (i < cred->jobMemAllocSize) {
 	    uint64_t ramSpace = cred->jobMemAlloc[i]*1024*1024;
@@ -415,7 +415,7 @@ static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
     if (cred->stepMemAllocSize) {
 	uint32_t i = 0, idx = 0;
 	while (i < cred->stepMemAllocSize
-	       && idx + cred->stepMemAllocRepCount[i] <= localNodeId)
+	       && idx + cred->stepMemAllocRepCount[i] <= credID)
 	    idx += cred->stepMemAllocRepCount[i++];
 	if (i < cred->stepMemAllocSize) {
 	    uint64_t ramSpace = cred->stepMemAlloc[i]*1024*1024;
@@ -458,27 +458,26 @@ static bool devEnvVisitor(GRes_Dev_t *dev, uint32_t id, void *info)
  *
  * @param credType GRes credential type to use
  *
- * @param localNodeId Local node ID for this jobs/step
+ * @param credID credentail ID for this jobs/step
  */
 static void setJailDevEnv(list_t *gresList, GRes_Cred_type_t credType,
-			  uint32_t localNodeId)
+			  uint32_t credID)
 {
     list_t *g;
     list_for_each(g, gresList) {
 	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
 	if (gres->credType != credType) continue;
 
-	fdbg(PSSLURM_LOG_JAIL, "test bitAlloc of gres %i name %s type %s\n",
-	     gres->hash, GRes_getNamebyHash(gres->hash),
-	     GRes_strType(gres->credType));
+	fdbg(PSSLURM_LOG_JAIL, "test bitAlloc of gres %i name %s type %s "
+	     "credID %u\n", gres->hash, GRes_getNamebyHash(gres->hash),
+	     GRes_strType(gres->credType), credID);
 
 	PSCPU_set_t set;
 	PSCPU_clrAll(set);
 
-	if (gres->bitAlloc && gres->bitAlloc[localNodeId]
-	    && !hexBitstr2Set(gres->bitAlloc[localNodeId], set)) {
-	    flog("unable to get gres node allocation for nodeId %u\n",
-		 localNodeId);
+	if (gres->bitAlloc && gres->bitAlloc[credID]
+	    && !hexBitstr2Set(gres->bitAlloc[credID], set)) {
+	    flog("unable to get gres node allocation for credId %u\n", credID);
 	    return;
 	}
 
@@ -519,7 +518,7 @@ static bool denyAllDevs(Gres_Conf_t *conf, void *info)
 void setJailEnv(const env_t env, const char *user, const PSCPU_set_t *stepcpus,
 		const PSCPU_set_t *jobcpus, list_t *gresList,
 		GRes_Cred_type_t credType, JobCred_t *cred,
-		uint32_t localNodeId)
+		uint32_t credID)
 {
     static bool isInit = false;
     if (isInit || PSC_isDaemon()) {
@@ -546,10 +545,10 @@ void setJailEnv(const env_t env, const char *user, const PSCPU_set_t *stepcpus,
     const char *c = getConfValueC(SlurmCgroupConfig, "ConstrainDevices");
     if (c && !strcasecmp(c, "yes") && gresList) {
 	traverseGresConf(&denyAllDevs, NULL);
-	setJailDevEnv(gresList, credType, localNodeId);
+	setJailDevEnv(gresList, credType, credID);
     }
 
-    if (cred) setJailMemEnv(cred, localNodeId);
+    if (cred) setJailMemEnv(cred, credID);
 
     isInit = true;
 }
