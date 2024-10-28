@@ -6,6 +6,21 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.63-1:
+=================
+Bugfixes:
+ - Prevent reuse of destroyed strv_t (jwt:#33382)
+ - step credentail ID must be calculated from job host-list (jwt:#33461)
+ - Prevent reuse of destroyed env_t
+ - Don't skip fast forwarded index while cgroup memory limits
+ - scan-build fix: fprintf() does not set errno
+Enhancements:
+ - Catch broken PSP_CD_SPAWNREQUEST messages
+ - Ensure psserial does not leak stale pointers
+ - scan-build fix: don't leak FILE resources
+ - Prevent various false positive scan-build complains on
+
+
 Version 5.1.63:
 ===============
 Bugfixes:

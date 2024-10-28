@@ -1,3 +1,73 @@
+Version 5.1.63-1:
+=================
+------------------------------------------------------------------------
+7005ec514 | Norbert Eicker | Mon, 28 Oct 2024 17:31:46 +0100
+
+Ensure PStask_clone() succeeded during spawn
+------------------------------------------------------------------------
+2dad61fcc | Norbert Eicker | Thu, 24 Oct 2024 08:28:10 +0200
+
+Prevent reuse of destroyed env_t
+------------------------------------------------------------------------
+b3c2de87b | Norbert Eicker | Thu, 24 Oct 2024 08:27:08 +0200
+
+Drop unnecessary initialization of global variables
+------------------------------------------------------------------------
+50a74f132 | Norbert Eicker | Wed, 23 Oct 2024 15:46:01 +0200
+
+Catch broken PSP_CD_SPAWNREQUEST messages
+------------------------------------------------------------------------
+c7b2eed87 | Norbert Eicker | Wed, 23 Oct 2024 15:32:52 +0200
+
+Bugfix: Prevent reuse of destroyed strv_t (jwt:#33382)
+------------------------------------------------------------------------
+cd450fe4a | Norbert Eicker | Wed, 23 Oct 2024 15:14:02 +0200
+
+scan-build fix: prevent warnings on unused values
+------------------------------------------------------------------------
+ae63e0f59 | Norbert Eicker | Wed, 23 Oct 2024 14:59:16 +0200
+
+scan-build fix: prevent false positive
+------------------------------------------------------------------------
+eb1c97eed | Norbert Eicker | Wed, 23 Oct 2024 12:10:25 +0200
+
+Bugfix: Ensure psserial does not leak stale pointers
+------------------------------------------------------------------------
+ae644ad2f | Norbert Eicker | Wed, 23 Oct 2024 11:01:10 +0200
+
+scan-build fix: ensure correct parameters
+------------------------------------------------------------------------
+ffd460bf7 | Norbert Eicker | Wed, 23 Oct 2024 10:59:17 +0200
+
+Streamlining
+------------------------------------------------------------------------
+da7486ff5 | Norbert Eicker | Wed, 23 Oct 2024 10:37:37 +0200
+
+scan-build fix: don't leak FILE resources
+------------------------------------------------------------------------
+ae169af17 | Norbert Eicker | Wed, 23 Oct 2024 10:35:00 +0200
+
+scan-build fix: fprintf() does not set errno
+------------------------------------------------------------------------
+8f54d187a | Norbert Eicker | Mon, 21 Oct 2024 18:44:02 +0200
+
+Extra debug to dig down jwt:#33382
+------------------------------------------------------------------------
+7bd4af5df | Michael Rauh | Mon, 28 Oct 2024 17:51:55 +0100
+
+Don't skip fast forwarded index while cgroup memory limits
+------------------------------------------------------------------------
+e14536451 | Norbert Eicker | Mon, 28 Oct 2024 17:24:08 +0100
+
+Enhance docu comments
+------------------------------------------------------------------------
+80caf1758 | Michael Rauh | Mon, 28 Oct 2024 16:16:21 +0100
+
+Bugfix: step credentail ID must be calculated from job host-list
+instead of step host-list (jwt:#33461)
+------------------------------------------------------------------------
+
+
 Version 5.1.63:
 ===============
 ------------------------------------------------------------------------
