@@ -2218,8 +2218,14 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     for (uint32_t r = 0; r < num; r++) {
 	PStask_t *clone = PStask_clone(task);
-	clone->rank += r;
-	answer.request = clone->rank;
+
+	answer.request = task->rank + r;
+	if (!clone) {
+	    answer.error = ENOMEM;
+	    sendMsg(&answer);
+	    continue;
+	}
+	clone->rank = answer.request;
 
 	char **extraEnvP;
 	getStringArrayM(rData, &extraEnvP, NULL);
