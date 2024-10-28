@@ -403,7 +403,7 @@ static void setJailMemEnv(JobCred_t *cred, uint32_t credID)
     if (cred->jobMemAllocSize) {
 	uint32_t i = 0, idx = 0;
 	while (i < cred->jobMemAllocSize
-	       && idx + cred->jobMemAllocRepCount[i] <= credID)
+	       && idx + cred->jobMemAllocRepCount[i] < credID)
 	    idx += cred->jobMemAllocRepCount[i++];
 	if (i < cred->jobMemAllocSize) {
 	    uint64_t ramSpace = cred->jobMemAlloc[i]*1024*1024;
@@ -415,7 +415,7 @@ static void setJailMemEnv(JobCred_t *cred, uint32_t credID)
     if (cred->stepMemAllocSize) {
 	uint32_t i = 0, idx = 0;
 	while (i < cred->stepMemAllocSize
-	       && idx + cred->stepMemAllocRepCount[i] <= credID)
+	       && idx + cred->stepMemAllocRepCount[i] < credID)
 	    idx += cred->stepMemAllocRepCount[i++];
 	if (i < cred->stepMemAllocSize) {
 	    uint64_t ramSpace = cred->stepMemAlloc[i]*1024*1024;
