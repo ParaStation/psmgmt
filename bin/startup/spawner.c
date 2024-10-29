@@ -607,8 +607,7 @@ static int spawnSingleExecutable(Executable_t *exec, bool verbose)
 
     /* spawn client processes */
     int ret = PSI_spawnRsrvtn(exec->np, exec->resID, exec->wdir,
-			      strvSize(exec->argV), strvGetArray(exec->argV),
-			      true, exec->env, errors);
+			      exec->argV, true, exec->env, errors);
 
     /* Analyze result, if necessary */
     if (ret < 0) {

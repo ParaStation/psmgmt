@@ -21,6 +21,7 @@
 
 #include "psenv.h"
 #include "psnodes.h"
+#include "psstrv.h"
 #include "pstask.h"
 #include "psreservation.h"
 
@@ -157,14 +158,11 @@ int PSI_sendSpawnReq(PStask_t *task, PSnodes_ID_t *dstnodes, uint32_t max);
  * prepended. If @a wDir is NULL, the content of the PWD environment
  * variable is taken.
  *
- * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks
- *
- * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the tasks
+ * @param argV Argument vector passed to the resulting execve() call
+ * in order to finally spawn the tasks
  *
  * @param strictArgv Flag to disable pseudo-intelligent determination
- * of the executable. If set, argv[0] will be passed to the final
+ * of the executable. If set, argV[0] will be passed to the final
  * exec() call as is.
  *
  * @param env Additional environment for the spawned tasks
@@ -178,8 +176,7 @@ int PSI_sendSpawnReq(PStask_t *task, PSnodes_ID_t *dstnodes, uint32_t max);
  * @see PSI_createPartition() PSI_getRervation(), PSI_getSlots()
  */
 int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
-		    int argc, char **argv, bool strictArgv, env_t env,
-		    int *errors);
+		    strv_t argV, bool strictArgv, env_t env, int *errors);
 
 /**
  * @brief Spawn admin task within the cluster.

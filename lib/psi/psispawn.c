@@ -534,8 +534,7 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
 }
 
 int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
-		    int argc, char **argv, bool strictArgv, env_t env,
-		    int *errors)
+		    strv_t argV, bool strictArgv, env_t env, int *errors)
 {
     PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, count, resID);
     if (!errors) {
@@ -545,8 +544,8 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 
     if (count <= 0) return 0;
 
-    PStask_t *task = createSpawnTask(wDir, TG_ANY, resID, argc, argv,
-				     strictArgv, env);
+    PStask_t *task = createSpawnTask(wDir, TG_ANY, resID, strvSize(argV),
+				     strvGetArray(argV), strictArgv, env);
     if (!task) {
 	PSI_log(-1, "%s: unable to create helper task\n", __func__);
 	return -1;
