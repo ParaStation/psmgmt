@@ -139,9 +139,9 @@ bool strvAdd(strv_t strv, const char *str);
  *
  * Append the string @a str itself to the string vector @a strv.
  *
- * @attention The pointer @a str to the string pointer is stored
- * directly, i.e. the "ownership" of @a str is transferred to @a
- * strv. If this is not intended consider to use of @ref strvAdd.
+ * @attention The pointer @a str to the string is stored directly,
+ * i.e. the "ownership" of @a str is transferred to @a strv. If this
+ * is not intended, consider to use of @ref strvAdd.
  *
  * @param strv String vector to be extended
  *

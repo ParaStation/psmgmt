@@ -194,14 +194,14 @@ static env_t createPMEnv(Conf_t *conf)
 
 	    snprintf(key, sizeof(key), "PMIX_APP_ARGV_%d", i);
 	    size_t len = 1;
-	    for (int j = 0; j < exec->argc; j++) {
-		len += strlen(exec->argv[j]) + 1;
-	    }
+	    for (char **a = strvGetArray(exec->argV); a && *a; a++)
+		len += strlen(*a) + 1;
+
 	    char *argvStr = umalloc(len);
 	    char *ptr = argvStr;
-	    for (int j = 0; j < exec->argc; j++) {
-		ptr += sprintf(ptr, "%s ", exec->argv[j]);
-	    }
+	    for (char **a = strvGetArray(exec->argV); a && *a; a++)
+		ptr += sprintf(ptr, "%s ", *a);
+
 	    *(ptr-1)='\0';
 	    envSet(env, key, argvStr);
 	    free(argvStr);
@@ -606,8 +606,9 @@ static int spawnSingleExecutable(Executable_t *exec, bool verbose)
     memset(errors, 0, sizeof(int) * exec->np);
 
     /* spawn client processes */
-    int ret = PSI_spawnRsrvtn(exec->np, exec->resID, exec->wdir, exec->argc,
-			      exec->argv, true, exec->env, errors);
+    int ret = PSI_spawnRsrvtn(exec->np, exec->resID, exec->wdir,
+			      strvSize(exec->argV), strvGetArray(exec->argV),
+			      true, exec->env, errors);
 
     /* Analyze result, if necessary */
     if (ret < 0) {
@@ -615,7 +616,7 @@ static int spawnSingleExecutable(Executable_t *exec, bool verbose)
 	    if (!verbose && !errors[i]) continue;
 
 	    fprintf(stderr, "Could%s spawn '%s' process %d",
-		    errors[i] ? " not" : "", exec->argv[0], i);
+		    errors[i] ? " not" : "", strvGet(exec->argV, 0), i);
 	    if (errors[i]) fprintf(stderr, ": %s", strerror(errors[i]));
 	    fprintf(stderr, "\n");
 	}
@@ -833,24 +834,20 @@ static int startProcs(Conf_t *conf)
  */
 static void setupGDB(Conf_t *conf)
 {
-    int  i;
-    for (i = 0; i < conf->execCount; i++) {
-	Executable_t *exec = &conf->exec[i];
-	int newArgc = 0, j;
-	char **newArgv = umalloc((exec->argc + 5 + 1) * sizeof(*newArgv));
+    for (int i = 0; i < conf->execCount; i++) {
+	Executable_t *e = &conf->exec[i];
 
-	newArgv[newArgc++] = strdup(GDB_COMMAND_EXE);
-	newArgv[newArgc++] = strdup(GDB_COMMAND_SILENT);
-	newArgv[newArgc++] = strdup(GDB_COMMAND_OPT);
-	newArgv[newArgc++] = strdup(GDB_COMMAND_FILE);
-	if (!conf->gdb_noargs) newArgv[newArgc++] = strdup(GDB_COMMAND_ARGS);
+	strv_t nArgV = strvNew(NULL);
+	strvAdd(nArgV, GDB_COMMAND_EXE);
+	strvAdd(nArgV, GDB_COMMAND_SILENT);
+	strvAdd(nArgV, GDB_COMMAND_OPT);
+	strvAdd(nArgV, GDB_COMMAND_FILE);
+	if (!conf->gdb_noargs) strvAdd(nArgV, GDB_COMMAND_ARGS);
 
-	for (j=0; j < exec->argc; j++) newArgv[newArgc++] = exec->argv[j];
-	newArgv[newArgc] = NULL;
-
-	free(exec->argv);
-	exec->argv = newArgv;
-	exec->argc = newArgc;
+	/* append executables argument vector */
+	for (char **a = strvGetArray(e->argV); a && *a; a++) strvLink(nArgV, *a);
+	strvSteal(e->argV);
+	e->argV = nArgV;
     }
 }
 
@@ -867,30 +864,24 @@ static void setupGDB(Conf_t *conf)
  */
 static void setupVALGRIND(Conf_t *conf)
 {
-    int  i;
-    for (i = 0; i < conf->execCount; i++) {
-	Executable_t *exec = &conf->exec[i];
-	int newArgc = 0, j;
-	char **newArgv = umalloc((exec->argc + 3 + 1) * sizeof(*newArgv));
+    for (int i = 0; i < conf->execCount; i++) {
+	Executable_t *e = &conf->exec[i];
 
-	newArgv[newArgc++] = strdup(VALGRIND_COMMAND_EXE);
-	newArgv[newArgc++] = strdup(VALGRIND_COMMAND_SILENT);
+	strv_t nArgV = strvNew(NULL);
+	strvAdd(nArgV, VALGRIND_COMMAND_EXE);
+	strvAdd(nArgV, VALGRIND_COMMAND_SILENT);
 	if (conf->callgrind) {
 	    /* Use Callgrind Tool */
-	    newArgv[newArgc++] = strdup(VALGRIND_COMMAND_CALLGRIND);
-	} else {
-	     /* Memcheck Tool / leak-check=full? */
-	    if (conf->memcheck) {
-		newArgv[newArgc++] = strdup(VALGRIND_COMMAND_MEMCHECK);
-	    }
+	    strvAdd(nArgV, VALGRIND_COMMAND_CALLGRIND);
+	} else if (conf->memcheck) {
+	    /* Memcheck Tool / leak-check=full? */
+	    strvAdd(nArgV, VALGRIND_COMMAND_MEMCHECK);
 	}
 
-	for (j=0; j < exec->argc; j++) newArgv[newArgc++] = exec->argv[j];
-	newArgv[newArgc] = NULL;
-
-	free(exec->argv);
-	exec->argv = newArgv;
-	exec->argc = newArgc;
+	/* append executables argument vector */
+	for (char **a = strvGetArray(e->argV); a && *a; a++) strvLink(nArgV, *a);
+	strvSteal(e->argV);
+	e->argV = nArgV;
     }
 }
 
@@ -907,25 +898,12 @@ static void setupVALGRIND(Conf_t *conf)
  */
 static void setupCompat(Conf_t *conf)
 {
-    Executable_t *exec = &conf->exec[0];
-    int newArgc = 0, i;
     char cnp[10];
-    char **newArgv = umalloc((exec->argc + 2 + 1) * sizeof(*newArgv));
-
     snprintf(cnp, sizeof(cnp), "%d", conf->np);
+    strvAdd(conf->exec[0].argV, "-np");
+    strvAdd(conf->exec[0].argV, cnp);
 
-    for (i = 0; i < exec->argc; i++) {
-	newArgv[newArgc++] = exec->argv[i];
-    }
-
-    newArgv[newArgc++] = strdup("-np");
-    newArgv[newArgc++] = strdup(cnp);
-    newArgv[newArgc] = NULL;
-
-    free(exec->argv);
-    exec->argv = newArgv;
-    exec->argc = newArgc;
-    exec->np = 1;
+    conf->exec[0].np = 1;
 }
 
 int main(int argc, const char *argv[], char** envp)

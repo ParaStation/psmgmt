@@ -20,6 +20,7 @@
 
 #include "psenv.h"
 #include "psreservation.h"
+#include "psstrv.h"
 
 /** Information on executables to start */
 typedef struct {
@@ -28,8 +29,7 @@ typedef struct {
     int ppn;            /**< number of processes per node */
     int tpp;            /**< number of HW-threads used by a single process */
     PSrsrvtn_ID_t resID;/**< ID of the reservation holding resources */
-    int argc;           /**< number of arguments in argv */
-    char **argv;        /**< executable's argument vector */
+    strv_t argV;        /**< executable's argument vector */
     char *wdir;         /**< executable's working directory */
     char *psetname;     /**< pset name given at CL */
     env_t env;          /**< executable's environment set at CL */

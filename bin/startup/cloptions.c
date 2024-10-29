@@ -750,16 +750,16 @@ static uint32_t getNodeType(char *hwStr)
  * @ref gnodetype, @ref ppn, @ref gppn, @ref ttp, @ref gttp, @ref
  * envttp, @ref wdir, and @ref gwdir.
  *
- * @param conf Command-line options configration used to store the
+ * @param conf Command-line options configuration used to store the
  * executable information in
  *
  * @param argc Number of arguments in @a argv
  *
- * @param argv Argument vector describing the executable to store
+ * @param argv NULL terminated argument vector of the executable to store
  *
  * @return No return value
  */
-static void saveNextExecutable(Conf_t *conf, int argc, const char **argv)
+static void saveNextExecutable(Conf_t *conf, unsigned argc, const char **argv)
 {
     char *hwTypeStr, msgStr[128];
 
@@ -827,21 +827,12 @@ static void saveNextExecutable(Conf_t *conf, int argc, const char **argv)
     } else {
 	exec->wdir = NULL;
     }
-    exec->argc = argc;
-    exec->argv = malloc((argc + 1) * sizeof(*exec->argv));
-    if (!exec->argv) {
-	snprintf(msgStr, sizeof(msgStr), "%s: malloc(): %m", __func__);
+    exec->argV = strvNew(NULL);
+    for (const char **a = argv; a && *a; a++) strvAdd(exec->argV, *a);
+    if (strvSize(exec->argV) != argc) {
+	snprintf(msgStr, sizeof(msgStr), "%s: broken argV\n", __func__);
 	errExit(msgStr);
     }
-    for (int i = 0; i < argc; i++) {
-	exec->argv[i] = strdup(argv[i]);
-	if (!exec->argv[i]) {
-	    snprintf(msgStr, sizeof(msgStr), "%s: strdup(%s): %m", __func__,
-		     argv[i]);
-	    errExit(msgStr);
-	}
-    }
-    exec->argv[argc] = NULL;
 
     exec->env = env;
     env = envNew(NULL);
@@ -949,7 +940,7 @@ static void checkConsistency(Conf_t *conf)
 	errExit(msgStr);
     }
 
-    if (!conf->execCount || !conf->exec[0].argc) {
+    if (!conf->execCount || !strvSize(conf->exec[0].argV)) {
 	errExit("No <command> specified");
     }
 
@@ -1111,9 +1102,6 @@ static void setupConf(Conf_t *conf)
 Conf_t * parseCmdOptions(int argc, const char *argv[])
 {
     #define OTHER_OPTIONS_STR "[OPTION...] <command> [cmd_options]"
-    const char *nextArg, **leftArgv;
-    const char **dup_argv;
-    int leftArgc, dup_argc, rc = 0;
     Conf_t *conf = calloc(1, sizeof(*conf));
 
     /** Set TPP from environment -- if any -- before any command-line parsing */
@@ -1127,90 +1115,96 @@ Conf_t * parseCmdOptions(int argc, const char *argv[])
     conf->maxTPP = 1;
     env = envNew(NULL);
 
-    /* create context for parsing */
-    poptDupArgv(argc, argv, &dup_argc, &dup_argv);
-
-    optCon = poptGetContext(NULL, dup_argc, dup_argv,
+    /* create context for parsing based on a duplicate argument vector */
+    const char **dupArgv;
+    int dupArgc;
+    poptDupArgv(argc, argv, &dupArgc, &dupArgv);
+    optCon = poptGetContext(NULL, dupArgc, dupArgv,
 			    optionsTable, POPT_CONTEXT_POSIXMEHARDER);
     poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
 
-PARSE_MPIEXEC_OPT:
-    /* parse mpiexec options */
-    while ((rc = poptGetNextOpt(optCon)) >= 0) {
-	const char *av[] = { "--envval", NULL };
-	const char *gav[] = { "--genvval", NULL };
+    int rc = 0;
+    while (true) {
+	/* parse mpiexec options */
+	while ((rc = poptGetNextOpt(optCon)) >= 0) {
+	    const char *av[] = { "--envval", NULL };
+	    const char *gav[] = { "--genvval", NULL };
 
-	/* handle special env option */
-	switch (rc) {
-	case 'e':
-	    poptStuffArgs(optCon, av);
-	    break;
-	case 'v':
-	    envSet(env, envopt, envval);
-	    break;
-	case 'E':
-	    poptStuffArgs(optCon, gav);
-	    break;
-	case 'V':
-	    setPSIEnv(genvopt, genvval);
-	    break;
-	case 'l':
-	    if (accenvlist) {
-		char *tmp = PSC_concat(accenvlist, ",", envlist);
-		free(accenvlist);
-		accenvlist = tmp;
-	    } else {
-		accenvlist = strdup(envlist);
+	    /* handle special env option */
+	    switch (rc) {
+	    case 'e':
+		poptStuffArgs(optCon, av);
+		break;
+	    case 'v':
+		envSet(env, envopt, envval);
+		break;
+	    case 'E':
+		poptStuffArgs(optCon, gav);
+		break;
+	    case 'V':
+		setPSIEnv(genvopt, genvval);
+		break;
+	    case 'l':
+		if (accenvlist) {
+		    char *tmp = PSC_concat(accenvlist, ",", envlist);
+		    free(accenvlist);
+		    accenvlist = tmp;
+		} else {
+		    accenvlist = strdup(envlist);
+		}
+		break;
+	    case 'L':
+		if (accgenvlist) {
+		    char *tmp = PSC_concat(accgenvlist, ",", genvlist);
+		    free(accgenvlist);
+		    accgenvlist = tmp;
+		} else {
+		    accgenvlist = strdup(genvlist);
+		}
+		break;
 	    }
-	    break;
-	case 'L':
-	    if (accgenvlist) {
-		char *tmp = PSC_concat(accgenvlist, ",", genvlist);
-		free(accgenvlist);
-		accgenvlist = tmp;
-	    } else {
-		accgenvlist = strdup(genvlist);
-	    }
-	    break;
 	}
-    }
 
-    leftArgv = poptGetArgs(optCon);
-    leftArgc = 0;
-
-    /* parse leftover arguments */
-    while (leftArgv && (nextArg = leftArgv[leftArgc])) {
-	leftArgc++;
-
-	if (!strcmp(nextArg, ":")) {
-
-	    /* save current executable and arguments */
-	    saveNextExecutable(conf, leftArgc-1, leftArgv);
-
-	    /* create new context with leftover args */
-	    dup_argc = 0;
-	    dup_argv[dup_argc++] = strdup("mpiexec");
-
-	    while ((nextArg = leftArgv[leftArgc])) {
-		dup_argv[dup_argc++] = strdup(nextArg);
-		leftArgc++;
-	    }
-
+	if (rc < -1) {
 	    poptFreeContext(optCon);
-	    optCon = poptGetContext(NULL, dup_argc, dup_argv, optionsTable,
-				    POPT_CONTEXT_POSIXMEHARDER);
-	    poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
-
-	    /* continue parsing of sub mpiexec options */
-	    goto PARSE_MPIEXEC_OPT;
+	    break;
 	}
+
+	/* handle leftover arguments */
+	const char **remArgs = poptGetArgs(optCon);
+
+	/* fast-forward to next colon or end */
+	int arg = 0;
+	while (remArgs && remArgs[arg] && *remArgs[arg] != ':') arg++;
+	if (!arg) {
+	    poptFreeContext(optCon);
+	    break;
+	}
+
+	/* save current executable and arguments */
+	remArgs[arg] = NULL; // drop the colon to make remArgs NULL terminated
+	saveNextExecutable(conf, arg, remArgs);
+
+	/* create new context from trailing arguments if any */
+	dupArgc = 0;
+	dupArgv[dupArgc++] = "mpiexec";
+
+	arg++; // start behind colon position
+	while (remArgs[arg]) dupArgv[dupArgc++] = remArgs[arg++];
+	dupArgv[dupArgc] = NULL; // make dupArgv NULL terminated again
+
+	poptFreeContext(optCon);
+
+	if (dupArgc == 1) break; // only mpiexec left
+	optCon = poptGetContext(NULL, dupArgc, dupArgv, optionsTable,
+				POPT_CONTEXT_POSIXMEHARDER);
+	poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
     }
 
-    if (leftArgv) saveNextExecutable(conf, leftArgc, leftArgv);
     envDestroy(env);
+    free(dupArgv);
 
     /* restore original context for further usage messages */
-    poptFreeContext(optCon);
     optCon = poptGetContext(NULL, argc, argv, optionsTable,
 			    POPT_CONTEXT_POSIXMEHARDER);
     poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
@@ -1257,11 +1251,7 @@ void releaseConf(Conf_t *conf)
 	for (int e = 0; e < conf->execCount; e++) {
 	    envDestroy(conf->exec[e].env);
 	    free(conf->exec[e].envList);
-	    if (!conf->exec[e].argv) continue;
-	    for (int i = 0; i < conf->exec[e].argc; i++) {
-		free(conf->exec[e].argv[i]);
-	    }
-	    free(conf->exec[e].argv);
+	    strvDestroy(conf->exec[e].argV);
 	}
     }
     free(conf->exec);
