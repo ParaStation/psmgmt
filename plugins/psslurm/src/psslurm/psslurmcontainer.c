@@ -439,9 +439,11 @@ void Container_jobInit(Job_t *job)
     char *jsPath = replaceSymbols(JSON_JOBSCRIPT, ct);
     jsonPutString(ct->configObj, NULL, jsPath);
     ufree(jsPath);
-    for (uint32_t i = 0; i < job->argc; i++) {
-	fdbg(PSSLURM_LOG_CONTAIN, "arg(%i) %s\n", i, job->argv[i]);
-	jsonPutString(ct->configObj, NULL, job->argv[i]);
+
+    int cnt = 0;
+    for (char **a = strvGetArray(job->argV); a && *a; a++, cnt++) {
+	fdbg(PSSLURM_LOG_CONTAIN, "arg(%i) %s\n", cnt, *a);
+	jsonPutString(ct->configObj, NULL, *a);
     }
 
     /* merge current job environment with container environment */

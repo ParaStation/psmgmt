@@ -949,8 +949,8 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 		*pInt = strvSize(spank->step->argV);
 		*pChar3 = strvGetArray(spank->step->argV);
 	    } else if (spank->job) {
-		*pInt = spank->job->argc;
-		*pChar3 = spank->job->argv;
+		*pInt = strvSize(spank->job->argV);
+		*pChar3 = strvGetArray(spank->job->argV);
 	    } else {
 		*pInt = 0;
 		*pChar3 = NULL;

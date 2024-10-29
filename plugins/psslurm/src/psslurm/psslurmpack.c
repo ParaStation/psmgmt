@@ -3234,9 +3234,9 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     job->stdOut = getStringM(data);
     /* argv/argc */
     getUint32(data, &count);
-    getStringArrayM(data, &job->argv, &job->argc);
-    if (count != job->argc) {
-	flog("mismatching argc %u : %u\n", count, job->argc);
+    getArgV(data, job->argV);
+    if (count != strvSize(job->argV)) {
+	flog("mismatching argc %u : %u\n", count, strvSize(job->argV));
 	return false;
     }
     /* spank environment */

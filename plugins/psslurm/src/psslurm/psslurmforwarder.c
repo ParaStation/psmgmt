@@ -443,16 +443,16 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 
     /* do exec */
     closelog();
-    execve(job->jobscript, job->argv, envGetArray(job->env));
+    execve(job->jobscript, strvGetArray(job->argV), envGetArray(job->env));
     int err = errno;
 
     /* execve() failed */
-    fprintf(stderr, "%s: execve(%s): %s\n", __func__, job->argv[0],
+    fprintf(stderr, "%s: execve(%s): %s\n", __func__, strvGet(job->argV, 0),
 	    strerror(err));
 
     snprintf(buf, sizeof(buf), "psslurm-job:%u", job->jobid);
     reOpenSyslog(buf, &psslurmlogger);
-    fwarn(err, "execve(%s)", job->argv[0]);
+    fwarn(err, "execve(%s)", strvGet(job->argV, 0));
     exit(err);
 }
 

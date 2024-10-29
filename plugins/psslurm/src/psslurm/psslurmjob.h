@@ -19,6 +19,7 @@
 #include "pscommon.h"
 #include "pscpu.h"
 #include "psenv.h"
+#include "psstrv.h"
 
 #include "pluginforwarder.h"
 #include "psaccounttypes.h"
@@ -41,8 +42,7 @@ typedef struct {
     char *partition;	    /**< Slurm partition of the job */
     JobCred_t *cred;	    /**< job/step credentials */
     list_t gresList;	    /**< list of generic resources */
-    char **argv;	    /**< program arguments (NULL terminated) */
-    uint32_t argc;	    /**< number of arguments */
+    strv_t argV;	    /**< program arguments */
     env_t env;		    /**< environment variables */
     env_t spankenv;	    /**< spank environment variables */
     uint32_t nrOfNodes;	    /**< number of nodes */

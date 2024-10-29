@@ -106,13 +106,11 @@ bool Job_delete(Job_t *job)
     ufree(job->qos);
     ufree(job->resName);
 
-    for (unsigned int i=0; i<job->argc; i++) strShred(job->argv[i]);
-    ufree(job->argv);
-
     clearTasks(&job->tasks);
     freeJobCred(job->cred);
     clearFwMsgQueue(&job->fwMsgQueue);
 
+    strvDestroy(job->argV);
     envShred(job->env);
     envShred(job->spankenv);
 
