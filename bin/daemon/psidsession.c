@@ -566,9 +566,7 @@ static void handleJobComplete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	return;
     }
 
-    char **envP = NULL;
-    getStringArrayM(rData, &envP, NULL);
-    job->extraData = envNew(envP);
+    getEnv(rData, job->extraData);
 
     PSID_fdbg(PSID_LOG_PART, "register session %s", PSC_printTID(sessionID));
     PSID_dbg(PSID_LOG_PART, " job %s\n", PSC_printTID(jobID));

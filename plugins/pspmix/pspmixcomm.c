@@ -103,9 +103,7 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	job->size += getResSize(resInfo);
     }
 
-    char **envP = NULL;
-    getStringArrayM(data, &envP, NULL);
-    job->env = envNew(envP);
+    getEnv(data, job->env);
 
     if (mset(PSPMIX_LOG_COMM)) {
 	flog("type %s loggertid %s", pspmix_getMsgTypeString(msg->type),

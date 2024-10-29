@@ -204,9 +204,7 @@ static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     script->initiator = msg->header.sender;
 
     /* env */
-    char **envP = NULL;
-    getStringArrayM(data, &envP, NULL);
-    script->env = envNew(envP);
+    getEnv(data, script->env);
 
     if (!execScript(script, callbackScript)) {
 	char output[] = "";

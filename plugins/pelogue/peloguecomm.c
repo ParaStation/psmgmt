@@ -301,9 +301,8 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     uint32_t nrOfNodes;
     getInt32Array(rData, &nodes, &nrOfNodes);
     /* environment */
-    char **envP = NULL;
-    getStringArrayM(rData, &envP, NULL);
-    env_t env = envNew(envP);
+    env_t env;
+    getEnv(rData, env);
     /* fwPrologueOE */
     uint16_t fwPrologueOE = false;
     getUint16(rData, &fwPrologueOE);
@@ -394,9 +393,7 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* get environment */
     envDestroy(child->env);
-    char **envP = NULL;
-    getStringArrayM(rData, &envP, NULL);
-    child->env = envNew(envP);
+    getEnv(rData, child->env);
 
     getBool(rData, &child->fwStdOE);
 

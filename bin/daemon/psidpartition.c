@@ -3771,9 +3771,8 @@ static void handleFinReservation(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData
     }
 
     /* will send message up the tree towards the logger if expected there */
-    char **envP = NULL;
-    getStringArrayM(rData, &envP, NULL);
-    env_t env = envNew(envP);
+    env_t env;
+    getEnv(rData, env);
 
     char TIDstr[32];
     snprintf(TIDstr, sizeof(TIDstr), "%ld", msg->header.sender);
@@ -3832,9 +3831,8 @@ static void handleResFinalized(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     PStask_ID_t jobID;
     getTaskId(rData, &jobID);
-    char **envP = NULL;
-    getStringArrayM(rData, &envP, NULL);
-    env_t extraData = envNew(envP);
+    env_t extraData;
+    getEnv(rData, extraData);
 
     /* prepare node filter */
     static ssize_t filterSize = 0;

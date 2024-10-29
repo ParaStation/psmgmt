@@ -763,9 +763,8 @@ static bool jobsetupFailed = false;
  */
 static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char **envP = NULL;
-    getStringArrayM(data, &envP, NULL);
-    env_t env = envNew(envP);
+    env_t env;
+    getEnv(data, env);
 
     rdbg(PSPMIX_LOG_COMM, "Setting environment:\n");
     int cnt = 0;
@@ -1019,17 +1018,13 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     for (size_t a = 0; a < napps; a++) {
 	SingleSpawn_t *spawn = srdata->req->spawns + a;
 
-	char **argvP = NULL;
-	getStringArrayM(data, &argvP, NULL);
-	spawn->argV = strvNew(argvP);
+	getArgV(data, spawn->argV);
 
 	/* read and fill np (maxprocs) */
 	getInt32(data, &spawn->np);
 
 	/* read and fill environment */
-	char **env;
-	getStringArrayM(data, &env, NULL);
-	spawn->env = envNew(env);
+	getEnv(data, spawn->env);
 
 	/* get and fill additional info */
 	spawn->infos = envNew(NULL);

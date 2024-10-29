@@ -1854,12 +1854,8 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     task->spawnertid = msg->header.sender;
     task->workingdir = getStringM(rData);
-    char **argvP = NULL;
-    getStringArrayM(rData, &argvP, NULL);
-    task->argV = strvNew(argvP);
-    char **envP = NULL;
-    getStringArrayM(rData, &envP, NULL);
-    task->env = envNew(envP);
+    getArgV(rData, task->argV);
+    getEnv(rData, task->env);
 
     if (rData->unpackErr) {
 	PSID_flog("unpacking failed: %s\n", serialStrErr(rData->unpackErr));
@@ -1909,9 +1905,8 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	}
 	clone->rank = answer.request;
 
-	char **extraEnvP;
-	getStringArrayM(rData, &extraEnvP, NULL);
-	env_t extraEnv = envNew(extraEnvP);
+	env_t extraEnv;
+	getEnv(rData, extraEnv);
 	envAppend(clone->env, extraEnv, NULL);
 	envDestroy(extraEnv);
 
