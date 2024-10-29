@@ -765,6 +765,10 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
 #define getStringArrayM(data, array, len)			\
     __getStringArrayM(data, array, len, __func__, __LINE__)
 
+#define getArgV(data, argV) { char **argvP = NULL;		\
+    __getStringArrayM(data, &argvP, NULL, __func__, __LINE__);	\
+    argV = strvNew(argvP); };
+
 #define getEnv(data, env) { char **envP = NULL;			\
     __getStringArrayM(data, &envP, NULL, __func__, __LINE__);   \
     env = envNew(envP); };
