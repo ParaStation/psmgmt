@@ -532,10 +532,8 @@ static void freeSlurmJobDetails(Slurm_Job_Details_t *jd)
     ufree(jd->envHash);
     ufree(jd->scriptHash);
 
+    strvDestroy(jd->argV);
     envShred(jd->suppEnv);
-
-    for (uint32_t i=0; i<jd->argc; i++) ufree(jd->argv[i]);
-    ufree(jd->argv);
 
     list_t *g, *tmp;
     list_for_each_safe(g, tmp, &jd->depList) {

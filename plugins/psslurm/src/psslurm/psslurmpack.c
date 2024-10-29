@@ -1757,8 +1757,8 @@ static bool unpackJobDetails(Slurm_Msg_t *sMsg, Slurm_Job_Details_t *dt)
 	return false;
     }
 
-    /* argv / argc */
-    getStringArrayM(data, &dt->argv, &dt->argc);
+    /* argument vector */
+    getArgV(data, dt->argV);
     /* supplemental environment */
     getEnv(data, dt->suppEnv);
 

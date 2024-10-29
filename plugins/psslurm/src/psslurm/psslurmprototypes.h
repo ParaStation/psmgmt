@@ -17,6 +17,7 @@
 #include "list.h"
 #include "pscommon.h"
 #include "psenv.h"
+#include "psstrv.h"
 
 #include "psaccounttypes.h"
 
@@ -519,8 +520,7 @@ typedef struct {
     char *submitLine;
     char *workDir;
     Slurm_Multicore_data_t multiCore;
-    char **argv;
-    uint32_t argc;
+    strv_t argV;
     env_t suppEnv;
     Slurm_Cron_Entry_t cronEntry;
     char *envHash;
