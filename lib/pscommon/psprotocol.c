@@ -212,11 +212,11 @@ static bool doPutMsgBuf(DDBufferMsg_t *msg, const char *callName,
     }
 
     /* msg->header.len might be 0 on first call */
-    if (!msg->header.len) msg->header.len = sizeof(msg->header);
-    off = msg->header.len - sizeof(msg->header);
+    if (!msg->header.len) msg->header.len = DDBufferMsgOffset;
+    off = msg->header.len - DDBufferMsgOffset;
     if (typed && !off) {
 	/* First item to add: adapt len and offset for type member */
-	size_t t_off = offsetof(DDTypedBufferMsg_t, buf) - sizeof(msg->header);
+	size_t t_off = DDTypedBufMsgOffset - DDBufferMsgOffset;
 	off += t_off;
 	msg->header.len += t_off;
     }
@@ -279,9 +279,9 @@ static bool doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
     }
 
     size_t u = *used;
-    if (typed) u += offsetof(DDTypedBufferMsg_t, buf) - sizeof(msg->header);
+    if (typed) u += DDTypedBufMsgOffset - DDBufferMsgOffset;
 
-    ssize_t totAvail = msg->header.len - sizeof(msg->header);
+    ssize_t totAvail = msg->header.len - DDBufferMsgOffset;
     if ((ssize_t)(size + u) > totAvail) {
 	PSC_dbg(try ? PSC_LOG_VERB : -1,
 		"%s: insufficient data for '%s' in %s()\n", callName, dataName,

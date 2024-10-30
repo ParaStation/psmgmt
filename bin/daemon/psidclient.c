@@ -515,7 +515,7 @@ static void sendAcctLost(PStask_ID_t forwarder, PStask_t *client)
 	    .type = PSP_CD_ACCOUNT,
 	    .sender = forwarder,
 	    .dest = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = PSP_ACCOUNT_LOST };
 
     /* partition holder identifies job uniquely (logger's TID as fallback) */
@@ -654,7 +654,7 @@ void PSIDclient_delete(int fd)
 		.type = PSP_CD_ACCOUNT,
 		.sender = task->tid,
 		.dest = PSC_getMyTID(),
-		.len = offsetof(DDTypedBufferMsg_t, buf) },
+		.len = 0 },
 	    .type = (task->numChild > 0) ? PSP_ACCOUNT_END:PSP_ACCOUNT_DELETE};
 
 	/* logger's TID identifies a task uniquely */
@@ -958,7 +958,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	.header = { .type = PSP_CD_CLIENTESTABLISHED,
 		    .sender = PSC_getMyTID(),
 		    .dest = tid,
-		    .len = offsetof(DDTypedBufferMsg_t, buf) },
+		    .len = DDTypedBufMsgOffset },
 	.type = PSP_CONN_ERR_NONE,
 	.buf = { 0 } };
 
@@ -1094,7 +1094,7 @@ static bool drop_CC_MSG(DDBufferMsg_t *msg)
 	    .type = PSP_CC_ERROR,
 	    .dest = msg->header.sender,
 	    .sender = msg->header.dest,
-	    .len = 0 }, };
+	    .len = 0 } };
     /* include the PSLog header (plus some bytes) */
     PSP_putMsgBuf(&errmsg, "pslogHeader", msg->buf, PSLog_headerSize);
 

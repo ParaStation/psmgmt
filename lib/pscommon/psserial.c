@@ -572,7 +572,7 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 		fragMsgDup.type = fragMsg.type;
 		memcpy(fragMsgDup.buf, fragMsg.buf, 3 /* type + num */);
 		memcpy(fragMsgDup.buf + 3, fragMsg.buf + 4 + buf->extraSize,
-		       fragMsg.header.len - offsetof(DDTypedBufferMsg_t, buf)
+		       fragMsg.header.len - DDTypedBufMsgOffset
 		       - buf->extraSize - 4);
 		fragMsgDup.header.len -= buf->extraSize + 1;
 		dupOK = true;
@@ -673,7 +673,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     PS_DataBuffer_t *recvBuf, myRecvBuf;
     if (fragType == FRAGMENT_END && fragNum == 0) {
 	/* Shortcut: message consists of just one fragment */
-	uint32_t s = msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used;
+	uint32_t s = msg->header.len - DDTypedBufMsgOffset - used;
 
 	myRecvBuf.buf = msg->buf + used;
 	myRecvBuf.size = myRecvBuf.used = s;
@@ -720,7 +720,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	}
 
 	/* copy payload */
-	size_t toCopy = msg->header.len-offsetof(DDTypedBufferMsg_t, buf)-used;
+	size_t toCopy = msg->header.len - DDTypedBufMsgOffset - used;
 	if (recvBuf->used + toCopy > recvBuf->size) {
 	    /* grow buffer, if necessary */
 	    recvBuf->size *= 2;
@@ -1186,7 +1186,7 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 
     size_t dataLeft = dataLen;
     while (dataLeft > 0) {
-	size_t off = fragMsg.header.len - offsetof(DDTypedBufferMsg_t, buf);
+	size_t off = fragMsg.header.len - DDTypedBufMsgOffset;
 	size_t chunkLeft = BufTypedMsgSize - off;
 
 	/* fill message buffer */

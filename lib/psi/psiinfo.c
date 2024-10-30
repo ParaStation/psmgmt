@@ -114,7 +114,7 @@ recv_retry:
 	case PSP_INFO_NODEDOWNSCRIPT:
 	case PSP_INFO_LIST_RESNODES:
 	{
-	    size_t s = msg.header.len - sizeof(msg.header) - sizeof(msg.type);
+	    size_t s = msg.header.len - DDTypedBufMsgOffset;
 	    if (!buf) {
 		PSI_log(PSI_LOG_INFO, "%s: No buffer provided\n", __func__);
 		*size = 0;
@@ -176,7 +176,7 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = DDTypedBufMsgOffset },
 	.type = what };
     size_t size = sizeof(*val);
 
@@ -224,7 +224,7 @@ int PSI_infoInt64(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = DDTypedBufMsgOffset },
 	.type = what };
     size_t size = sizeof(*val);
 
@@ -238,7 +238,7 @@ int PSI_infoInt64(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	return -1;
     }
 
-    if (PSI_sendMsg(&msg)<0) {
+    if (PSI_sendMsg(&msg) < 0) {
 	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
 		 PSP_printInfo(what));
 	return -1;
@@ -257,7 +257,7 @@ int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = DDTypedBufMsgOffset },
 	.type = what };
     size_t size = sizeof(*val);
 
@@ -299,7 +299,7 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = DDTypedBufMsgOffset },
 	.type = what };
 
     switch (what) {
@@ -371,7 +371,7 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = DDTypedBufMsgOffset },
 	.type = what };
     size_t size = sizeof(*tid);
 
@@ -387,7 +387,7 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	return -1;
     }
 
-    if (PSI_sendMsg(&msg)<0) {
+    if (PSI_sendMsg(&msg) < 0) {
 	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
 		 PSP_printInfo(what));
 	return -1;
@@ -406,7 +406,7 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = DDTypedBufMsgOffset },
 	.type = what };
     size_t size = sizeof(*nid);
 
@@ -459,7 +459,7 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = DDTypedBufMsgOffset },
 	.type = what };
     PSP_Info_t type;
     size_t recvd = 0;
@@ -530,7 +530,7 @@ int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param)
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = DDTypedBufMsgOffset },
 	.type = what };
 
     switch (what) {

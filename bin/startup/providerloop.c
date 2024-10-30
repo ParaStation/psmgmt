@@ -351,7 +351,7 @@ static void sendKvsMsg(PStask_ID_t tid, char *msgBuf, size_t len)
     msg.version = 2;
     msg.type = KVS;
     msg.sender = -1;
-    msg.header.len = (sizeof(msg) - sizeof(msg.buf)) + len;
+    msg.header.len = PSLog_headerSize + len;
 
     if (len > sizeof(msg.buf)) {
 	mlog("%s: payload too large\n", __func__);

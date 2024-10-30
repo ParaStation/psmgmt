@@ -218,11 +218,13 @@ ssize_t sendMsg(void *amsg)
 	}
 
 	if (eno == EWOULDBLOCK && PSIDFlwCntrl_applicable(msg)) {
-	    DDTypedMsg_t stopmsg = { .header = { .type = PSP_DD_SENDSTOP,
-						 .sender = msg->dest,
-						 .dest = msg->sender,
-						 .len = sizeof(DDTypedMsg_t) },
-				     .type = !isRDP };
+	    DDTypedMsg_t stopmsg = {
+		.header = {
+		    .type = PSP_DD_SENDSTOP,
+		    .sender = msg->dest,
+		    .dest = msg->sender,
+		    .len = sizeof(stopmsg) },
+		.type = !isRDP };
 	    PSID_fdbg(PSID_LOG_FLWCNTRL, "SENDSTOP for %s triggered by %s"
 		      " (is%s RDP)\n", PSC_printTID(stopmsg.header.dest),
 		      PSDaemonP_printMsg(msg->type), !isRDP ? " not" : "");
@@ -337,7 +339,7 @@ bool PSID_handleMsg(DDBufferMsg_t *msg)
 		.type = PSP_CD_UNKNOWN,
 		.dest = msg->header.sender,
 		.sender = PSC_getMyTID(),
-		.len = sizeof(errMsg.header) },
+		.len = 0 },
 	    .buf = { '\0' }};
 	PSP_putMsgBuf(&errMsg, "dest", &msg->header.dest,
 		      sizeof(msg->header.dest));

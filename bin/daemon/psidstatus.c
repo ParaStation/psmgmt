@@ -286,7 +286,7 @@ static void sendRDPPing(void)
 	    .type = PSP_DD_LOAD,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(getMasterID(), 0),
-	    .len = sizeof(msg.header) },
+	    .len = 0 },
 	.buf = {'\0'} };
     PSID_Load_t load = getLoad();
     PSID_Mem_t mem = getMem();
@@ -737,7 +737,7 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
 	    .type = PSP_DD_DAEMONCONNECT,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(id, 0),
-	    .len = offsetof(DDBufferMsg_t, buf) },
+	    .len = 0 },
 	.buf = {'\0'} };
 
     PSID_fdbg(PSID_LOG_STATUS, "to %d\n", id);
@@ -817,7 +817,7 @@ static bool msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 	.type = PSP_DD_DAEMONESTABLISHED,
 	.sender = PSC_getMyTID(),
 	.dest = PSC_getTID(id, 0),
-	.len = sizeof(msg->header) };
+	.len = 0 };
 
     int32_t tmp = PSIDnodes_getNumCores(PSC_getMyID());
     PSP_putMsgBuf(msg, "numCores", &tmp, sizeof(tmp));
@@ -964,7 +964,7 @@ int send_MASTERIS(PSnodes_ID_t dest)
 	    .type = PSP_DD_MASTER_IS,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(dest, 0),
-	    .len = sizeof(msg.header) },
+	    .len = 0 },
 	.buf = {'\0'} };
     PSnodes_ID_t master = getMasterID();
     PSP_putMsgBuf(&msg, "master", &master, sizeof(master));
@@ -1032,9 +1032,8 @@ static int send_ACTIVENODES(PSnodes_ID_t dest)
 	    .type = PSP_DD_ACTIVE_NODES,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(dest, 0),
-	    .len = sizeof(msg.header) },
+	    .len = 0 },
 	.buf = {'\0'} };
-    const size_t emptyLen = sizeof(msg.header);
     int total = 0;
 
     if (dest == PSC_getMyID()) return 0;
@@ -1048,12 +1047,12 @@ static int send_ACTIVENODES(PSnodes_ID_t dest)
 	    } else {
 		total += ret;
 	    }
-	    msg.header.len = emptyLen;
+	    msg.header.len = 0;
 	    PSP_putMsgBuf(&msg, "node", &n, sizeof(n));
 	}
     }
 
-    if (msg.header.len > emptyLen) {
+    if (msg.header.len) {
 	int ret = sendMsg(&msg);
 	if (ret < 0) {
 	    return ret;
@@ -1121,7 +1120,7 @@ static int send_DEADNODE(PSnodes_ID_t deadnode)
 	    .type = PSP_DD_DEAD_NODE,
 	    .sender = PSC_getMyTID(),
 	    .dest = 0,
-	    .len = sizeof(msg.header) },
+	    .len = 0 },
 	.buf = {'\0'} };
 
     PSP_putMsgBuf(&msg, "deadnode", &deadnode, sizeof(deadnode));

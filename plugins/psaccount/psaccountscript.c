@@ -127,8 +127,7 @@ static bool handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     if (msg->header.type != PSP_PF_MSG) return false;
 
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf,
-		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf));
+    initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
 
     switch (msg->type) {
     case PLGN_STDOUT:
@@ -302,8 +301,7 @@ static bool handleMthrMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     if (msg->header.type != PSP_PF_MSG) return false;
 
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf,
-		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf));
+    initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
 
     switch ((PSACCOUNT_Fw_Cmds_t)msg->type) {
     case CMD_SET_POLL_TIME:

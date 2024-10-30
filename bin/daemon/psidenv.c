@@ -43,7 +43,7 @@ static void sendSingleEnv(PStask_ID_t dest, char *key)
 	    .type = PSP_CD_INFORESPONSE,
 	    .sender = PSC_getMyTID(),
 	    .dest = dest,
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	    .len = DDTypedBufMsgOffset },
 	.type = PSP_INFO_QUEUE_ENVS,
 	.buf = {0}};
     size_t strLen, bufLen = sizeof(msg.buf);

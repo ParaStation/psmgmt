@@ -871,13 +871,13 @@ static void getCounterCB(int result, bool tmdOut, int iofd, void *info)
 	.header = { .type = PSP_CD_INFORESPONSE,
 	    .sender = PSC_getMyTID(),
 	    .dest = dest,
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	    .len = DDTypedBufMsgOffset },
 	.type = type,
 	.buf = { 0 } };
 
     int num, eno = 0;
     if (iofd == -1) {
-	PSID_flog("%s\n", msg.buf);
+	PSID_flog("%s's iofd not connected\n", hwName);
 	num = snprintf(msg.buf, sizeof(msg.buf), "<not connected>");
     } else {
 	num = PSCio_recvBuf(iofd, msg.buf, sizeof(msg.buf));
@@ -914,7 +914,7 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 	    .type = PSP_CD_INFORESPONSE,
 	    .sender = PSC_getMyTID(),
 	    .dest = inmsg->header.sender,
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	    .len = DDTypedBufMsgOffset },
 	.type = inmsg->type,
 	.buf = { 0 } };
 

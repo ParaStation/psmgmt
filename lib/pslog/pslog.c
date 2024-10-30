@@ -47,7 +47,7 @@ ssize_t PSLog_write(PStask_ID_t dest, PSLog_msg_t type, char *buf, size_t cnt)
 	    .type = PSP_CC_MSG,
 	    .sender = PSC_getTID(-1, getpid()),
 	    .dest = dest,
-	    .len = offsetof(PSLog_Msg_t, buf) },
+	    .len = PSLog_headerSize },
 	.version = version,
 	.type = type,
 	.sender = id };
@@ -66,7 +66,7 @@ ssize_t PSLog_write(PStask_ID_t dest, PSLog_msg_t type, char *buf, size_t cnt)
 	size_t n = (rem > sizeof(msg.buf)) ? sizeof(msg.buf) : rem;
 
 	if (n) memcpy(msg.buf, buf, n);
-	msg.header.len = offsetof(PSLog_Msg_t, buf) + n;
+	msg.header.len = PSLog_headerSize + n;
 
 	ssize_t ret = PSCio_sendF(daemonsock, &msg, msg.header.len);
 	if (ret < 0) return ret;

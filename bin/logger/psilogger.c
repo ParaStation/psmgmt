@@ -889,7 +889,8 @@ static void sendAcctData(void)
     if (IDstr) {
 	char *tailPtr = IDstr;
 	size_t len = strlen(IDstr);
-	size_t bufferFree = sizeof(msg) - msg.header.len - 1;
+	size_t bufferFree = DDTypedBufMsgOffset + sizeof(msg.buf)
+	    - msg.header.len - 1;
 	if (len > bufferFree) {
 	    char dots[] = "...";
 	    PSP_putTypedMsgBuf(&msg, "dots", dots, strlen(dots));

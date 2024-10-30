@@ -164,8 +164,7 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     }
 
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf,
-		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf));
+    initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
 
     switch ((PSSLURM_Fw_Cmds_t)msg->type) {
     case CMD_PRINT_CHILD_MSG:
@@ -214,8 +213,7 @@ bool fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     if (msg->header.type != PSP_PF_MSG) return false;
 
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf,
-		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf));
+    initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
 
     switch ((PSSLURM_Fw_Cmds_t)msg->type) {
     case CMD_PRINT_CHILD_MSG:
@@ -455,8 +453,7 @@ bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	}
     } else if (msg->header.type == PSP_PLUG_PSSLURM) {
 	PS_DataBuffer_t data;
-	initPSDataBuffer(&data, msg->buf,
-			 msg->header.len - offsetof(DDTypedBufferMsg_t, buf));
+	initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
 
 	switch ((PSSLURM_Fw_Cmds_t)msg->type) {
 	case CMD_BROKE_IO_CON:
@@ -809,7 +806,7 @@ void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank)
     uint32_t nRank = htonl(senderRank);
     PSP_putTypedMsgBuf(&msg, "rank", &nRank, sizeof(nRank));
     /* Add data chunk including its length mimicking addData */
-    size_t msgLen = lmsg->header.len - offsetof(PSLog_Msg_t, buf);
+    size_t msgLen = lmsg->header.len - PSLog_headerSize;
     uint32_t len = htonl(msgLen);
     PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
     PSP_putTypedMsgBuf(&msg, "data", lmsg->buf, msgLen);

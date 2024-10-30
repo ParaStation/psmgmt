@@ -93,7 +93,7 @@ void signalPElogue(Job_t *job, char *signal, char *reason)
 	    .type = PSP_PLUG_PSMOM,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = PSP_PSMOM_PELOGUE_SIGNAL };
     int32_t *finishPtr, i;
 
@@ -108,9 +108,7 @@ void signalPElogue(Job_t *job, char *signal, char *reason)
     PSP_putTypedMsgBuf(&msg, "signal", signal, PSP_strLen(signal));
 
     /* add space for finish flag */
-    finishPtr = (int32_t *)(msg.buf + (msg.header.len
-				       - offsetof(DDTypedBufferMsg_t, buf)));
-
+    finishPtr = (int32_t *)(msg.buf + (msg.header.len - DDTypedBufMsgOffset));
     PSP_putTypedMsgBuf(&msg, "<wild-card>", NULL, sizeof(int32_t));
 
     /* Add string including its length mimicking addString */
@@ -431,8 +429,7 @@ void handlePELogueSignal(DDTypedBufferMsg_t *msg)
     Child_t *child;
 
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf,
-		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf));
+    initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
 
     /* get jobid */
     getString(&data, jobid, sizeof(jobid));

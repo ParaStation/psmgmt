@@ -511,24 +511,23 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
 
 int PSI_notifydead(PStask_ID_t tid, int sig)
 {
-    DDSignalMsg_t msg;
-    int ret;
-
     PSI_log(PSI_LOG_VERB, "%s(%s, %d)\n", __func__, PSC_printTID(tid), sig);
 
-    msg.header.type = PSP_CD_NOTIFYDEAD;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = tid;
-    msg.header.len = sizeof(msg);
-    msg.signal = sig;
+    DDSignalMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_NOTIFYDEAD,
+	    .sender = PSC_getMyTID(),
+	    .dest = tid,
+	    .len = sizeof(msg) },
+	.signal = sig };
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
 
-    ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
-    if (ret<0) {
+    int ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
+    if (ret < 0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     } else if (!ret) {
@@ -550,17 +549,18 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
 
 int PSI_release(PStask_ID_t tid)
 {
-    DDSignalMsg_t msg;
     int ret;
 
     PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PSC_printTID(tid));
 
-    msg.header.type = PSP_CD_RELEASE;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = tid;
-    msg.header.len = sizeof(msg);
-    msg.signal = -1;
-    msg.answer = 1;
+    DDSignalMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_RELEASE,
+	    .sender = PSC_getMyTID(),
+	    .dest = tid,
+	    .len = sizeof(msg) },
+	.signal = -1,
+	.answer = 1 };
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
@@ -617,17 +617,17 @@ restart:
 
 PStask_ID_t PSI_whodied(int sig)
 {
-    DDSignalMsg_t msg;
-
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, sig);
 
-    msg.header.type = PSP_CD_WHODIED;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = 0;
-    msg.header.len = sizeof(msg);
-    msg.signal = sig;
+    DDSignalMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_WHODIED,
+	    .sender = PSC_getMyTID(),
+	    .dest = 0,
+	    .len = sizeof(msg) },
+	.signal = sig };
 
-    if (PSI_sendMsg(&msg)<0) {
+    if (PSI_sendMsg(&msg) < 0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
@@ -642,16 +642,15 @@ PStask_ID_t PSI_whodied(int sig)
 
 int PSI_sendFinish(PStask_ID_t parenttid)
 {
-    DDMsg_t msg;
-
     PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PSC_printTID(parenttid));
 
-    msg.type = PSP_CD_SPAWNFINISH;
-    msg.sender = PSC_getMyTID();
-    msg.dest = parenttid;
-    msg.len = sizeof(msg);
+    DDMsg_t msg = {
+	.type = PSP_CD_SPAWNFINISH,
+	.sender = PSC_getMyTID(),
+	.dest = parenttid,
+	.len = sizeof(msg) };
 
-    if (PSI_sendMsg(&msg)<0) {
+    if (PSI_sendMsg(&msg) < 0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }

@@ -644,7 +644,7 @@ static void sendPMIFail(void)
 	    .type = PSP_CC_MSG,
 	    .sender = PSC_getMyTID(),
 	    .dest = parent,
-	    .len = offsetof(PSLog_Msg_t, buf) },
+	    .len = PSLog_headerSize },
 	.version = 2,
 	.type = KVS,
 	.sender = -1 };

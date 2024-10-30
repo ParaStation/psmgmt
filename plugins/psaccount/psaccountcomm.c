@@ -247,7 +247,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     if (child->type == ACC_CHILD_JOBSCRIPT) return; /* drop message */
 
     /* Now add further information to the message */
-    msg->header.len = offsetof(DDTypedBufferMsg_t, buf) + used;
+    msg->header.len = DDTypedBufMsgOffset + used;
 
     uint32_t one = 1;
     PSP_putTypedMsgBuf(msg, "extended info", &one, sizeof(one));
@@ -756,7 +756,7 @@ int switchAccounting(PStask_ID_t clientTID, bool enable)
 	    .type = PSP_PLUG_ACCOUNT,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(PSC_getMyID(), 0),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = enable ? PSP_ACCOUNT_ENABLE_UPDATE : PSP_ACCOUNT_DISABLE_UPDATE,
 	.buf = {'\0'} };
 

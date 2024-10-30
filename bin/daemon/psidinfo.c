@@ -103,7 +103,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    .type = PSP_CD_INFORESPONSE,
 	    .sender = PSC_getMyTID(),
 	    .dest = inmsg->header.sender,
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	    .len = offsetof(DDTypedBufferMsg_t, type) + sizeof(msg.type) },
 	.type = inmsg->type,
 	.buf = { 0 } };
     int err=0;
@@ -425,8 +425,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    msg.header.type = inmsg->header.type;
 	    msg.header.sender = inmsg->header.sender;
 	    msg.header.dest = task->ptid;
-	    memcpy(msg.buf, inmsg->buf, inmsg->header.len
-		   - sizeof(inmsg->header) - sizeof(inmsg->type));
+	    memcpy(msg.buf, inmsg->buf, inmsg->header.len - DDTypedBufMsgOffset);
 	    msg.header.len = inmsg->header.len;
 	    msg_INFOREQUEST(&msg);
 	    return true;

@@ -150,7 +150,7 @@ static char partString[256];
 
 bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request)
 {
-    size_t off = msg->header.len - sizeof(msg->header);
+    size_t off = msg->header.len - DDBufferMsgOffset;
 
     if (!request) {
 	PSC_flog("no request\n");

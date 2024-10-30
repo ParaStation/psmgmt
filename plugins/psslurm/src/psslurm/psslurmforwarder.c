@@ -765,7 +765,7 @@ int handleLastChildGone(void *data)
 		.type = PSP_CC_MSG,
 		.sender = PSC_getTID(-1,0),
 		.dest = task->forwarder->tid,
-		.len = offsetof(PSLog_Msg_t, buf) },
+		.len = PSLog_headerSize },
 	    .version = 2,
 	.type = SERV_EXT,
 	.sender = -1 };

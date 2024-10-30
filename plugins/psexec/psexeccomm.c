@@ -255,7 +255,7 @@ static void dropExecMsg(DDTypedBufferMsg_t *msg)
 
     PS_DataBuffer_t data;
     initPSDataBuffer(&data, msg->buf + used,
-		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used);
+		     msg->header.len - DDTypedBufMsgOffset - used);
 
     /* uID */
     uint16_t uID;

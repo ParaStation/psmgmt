@@ -1383,7 +1383,7 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
 
     while (off < num && PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	uint16_t chunk = (num-off > NODES_CHUNK) ? NODES_CHUNK : num-off;
-	msg->header.len = sizeof(msg->header);
+	msg->header.len = 0; // to be adjusted in first PSP_put*()
 
 	PSP_putMsgBuf(msg, "chunk", &chunk, sizeof(chunk));
 	PSP_putMsgBuf(msg, "nodes", nodes+off, chunk*sizeof(*nodes));
@@ -1454,7 +1454,7 @@ static int sendSlots(PSpart_slot_t *slots, uint32_t num, DDBufferMsg_t *msg)
 	return -1;
     }
 
-    size_t bufOffset = msg->header.len - offsetof(DDBufferMsg_t, buf);
+    size_t bufOffset = msg->header.len - DDBufferMsgOffset;
     size_t itemSize = sizeof(PSnodes_ID_t) + nBytes;
     uint32_t slotsChunk = (BufMsgSize - bufOffset - 4) / itemSize;
 
@@ -1462,7 +1462,7 @@ static int sendSlots(PSpart_slot_t *slots, uint32_t num, DDBufferMsg_t *msg)
     while (offset < num && PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	PSpart_slot_t *mySlots = slots+offset;
 	uint16_t chunk = (num - offset > slotsChunk) ? slotsChunk : num - offset;
-	msg->header.len = sizeof(msg->header) + bufOffset;
+	msg->header.len = DDBufferMsgOffset + bufOffset;
 
 	PSP_putMsgBuf(msg, "chunk", &chunk, sizeof(chunk));
 	PSP_putMsgBuf(msg, "nBytes", &nBytes, sizeof(nBytes));
@@ -1508,7 +1508,7 @@ static bool sendPartition(PSpart_request_t *req)
 	    .type = PSP_DD_PROVIDEPART,
 	    .dest = req->tid,
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header) },
+	    .len = 0 }, // to be adjusted in first PSP_put*()
 	.buf = { '\0' }};
 
     PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(req->tid));
@@ -1522,7 +1522,7 @@ static bool sendPartition(PSpart_request_t *req)
     }
 
     msg.header.type = PSP_DD_PROVIDEPARTSL;
-    msg.header.len = sizeof(msg.header);
+    msg.header.len = DDBufferMsgOffset;
     if (sendSlots(req->slots, req->size, &msg) < 0) {
 	PSID_fwarn(errno, "sendSlots()");
 	return false;
@@ -1682,7 +1682,7 @@ static void sendAcctQueueMsg(PStask_t *task)
 	    .type = PSP_CD_ACCOUNT,
 	    .dest = PSC_getMyTID(),
 	    .sender = task->tid,
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = PSP_ACCOUNT_QUEUE };
 
     PSP_putTypedMsgBuf(&msg, "TID", &task->tid, sizeof(task->tid));
@@ -1780,7 +1780,7 @@ static bool msg_CREATEPART(DDBufferMsg_t *inmsg)
     /* Re-use inmsg to send answer */
     inmsg->header.type = PSP_DD_GETPART;
     inmsg->header.dest = PSC_getTID(getMasterID(), 0);
-    inmsg->header.len = sizeof(inmsg->header);
+    inmsg->header.len = DDBufferMsgOffset;
     PSpart_encodeReq(inmsg, task->request);
 
     if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
@@ -2717,7 +2717,7 @@ static bool msg_GETNODES(DDBufferMsg_t *inmsg)
 		.type = PSP_DD_NODESRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
-		.len = offsetof(DDBufferMsg_t, buf) },
+		.len = 0 }, // to be adjusted in first PSP_put*()
 	    .buf = { 0 } };
 	PSpart_slot_t slots[NODES_CHUNK];
 	int16_t shortNum = num;
@@ -3481,7 +3481,7 @@ static bool msg_GETRANKNODE(DDBufferMsg_t *msg)
 		.type = PSP_DD_NODESRES,
 		.dest = msg->header.sender,
 		.sender = PSC_getMyTID(),
-		.len = offsetof(DDBufferMsg_t, buf) },
+		.len = 0 },
 	    .buf = { 0 } };
 
 	PSP_putMsgBuf(&answer, "rank", &rank, sizeof(rank));
@@ -3596,10 +3596,10 @@ static bool msg_NODESRES(DDBufferMsg_t *msg)
 	/* Morph msg to CD_NODESRES message */
 	if (task->spawnNum >= nextRank+rqstd) {
 	    PSpart_slot_t *msgSlots = task->spawnNodes + nextRank;
-	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)(msg->buf+sizeof(int32_t));
+	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)(msg->buf + sizeof(int32_t));
 
 	    msg->header.type = PSP_CD_NODESRES;
-	    msg->header.len = sizeof(msg->header) + sizeof(int32_t);
+	    msg->header.len = DDBufferMsgOffset + sizeof(int32_t);
 
 	    for (int32_t n = 0; n < rqstd; n++) nodeBuf[n] = msgSlots[n].node;
 	    msg->header.len += rqstd * sizeof(*nodeBuf);
@@ -4038,7 +4038,7 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 	.header = {
 	    .type = PSP_CD_RESERVATIONRES,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDBufferMsg_t, buf) },
+	    .len = 0 },
 	.buf = { 0 } };
 
     PStask_t *task = PStasklist_find(&managedTasks, tid);
@@ -4757,7 +4757,7 @@ static bool msg_GETSLOTS(DDBufferMsg_t *inmsg)
 	    .type = PSP_DD_SLOTSRES,
 	    .dest = inmsg->header.sender,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDBufferMsg_t, buf) },
+	    .len = 0 }, // to be adjusted in first PSP_put*()
 	.buf = { 0 } };
     int32_t rank, eno = 0;
 
@@ -4914,7 +4914,7 @@ static bool msg_SLOTSRES(DDBufferMsg_t *msg)
 
 	msg->header.type = PSP_CD_SLOTSRES;
 	/* Keep the rank */
-	msg->header.len = sizeof(msg->header) + sizeof(int32_t);
+	msg->header.len = DDBufferMsgOffset + sizeof(uint32_t);
 
 	for (int16_t n = 0; n < requested; n++)
 	    PSP_putMsgBuf(msg, "CPUset", &msgSlots[n].node,
@@ -4940,7 +4940,7 @@ void PSIDpart_cleanupSlots(PStask_t *task)
 	    .type = PSP_DD_CHILDRESREL,
 	    .dest = task->loggertid,
 	    .sender = 0,
-	    .len = offsetof(DDBufferMsg_t, buf) },
+	    .len = 0 },
 	.buf = {0} };
 
     for (uint32_t r = 0; r < task->spawnNodesSize; r++) {
@@ -5121,7 +5121,7 @@ static void sendRequests(void)
 		    .type = PSP_DD_GETPART,
 		    .sender = task->tid,
 		    .dest = PSC_getTID(getMasterID(), 0),
-		    .len = sizeof(msg.header) },
+		    .len = DDBufferMsgOffset },
 		.buf = { '\0' }};
 
 	    if (!PSpart_encodeReq(&msg, task->request)) {
@@ -5173,7 +5173,7 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
 
     msg.header.type = (type == PSP_DD_PROVIDETASK) ?
 	PSP_DD_PROVIDETASKSL : PSP_DD_REGISTERPARTSL;
-    msg.header.len = sizeof(msg.header);
+    msg.header.len = DDBufferMsgOffset;
 
     if (sendSlots(task->partition, task->partitionSize, &msg) < 0) {
 	PSID_fwarn(errno, "sendSlots()");
@@ -5613,7 +5613,7 @@ static bool sendReqSlots(DDTypedBufferMsg_t *msg, PSpart_request_t *req)
     }
 
     /* Reset message setup */
-    msg->header.len = sizeof(msg->header) + sizeof(msg->type);
+    msg->header.len = offsetof(DDTypedBufferMsg_t, type) + sizeof(msg->type);
     msg->type = PSP_INFO_QUEUE_SEP;
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_fwarn(errno, "sendMsg()");
@@ -5645,7 +5645,7 @@ static bool sendReqSlots(DDTypedBufferMsg_t *msg, PSpart_request_t *req)
 	    PSID_fwarn(errno, "sendMsg()");
 	    return false;
 	}
-	msg->header.len = sizeof(msg->header) + sizeof(msg->type);
+	msg->header.len = 0; // to be adjusted in first PSP_put*()
     }
 
     return true;
@@ -5676,7 +5676,7 @@ static void sendReqList(PStask_ID_t dest, list_t *queue, PSpart_list_t opt)
 	    .type = PSP_CD_INFORESPONSE,
 	    .sender = PSC_getMyTID(),
 	    .dest = dest,
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	    .len = 0 },
 	.type = PSP_INFO_QUEUE_PARTITION,
 	.buf = {0}};
     list_t *r;
@@ -5686,7 +5686,7 @@ static void sendReqList(PStask_ID_t dest, list_t *queue, PSpart_list_t opt)
 	int tmp;
 
 	msg.type = PSP_INFO_QUEUE_PARTITION;
-	msg.header.len = sizeof(msg.header) + sizeof(msg.type);
+	msg.header.len = 0; // to be adjusted in first PSP_put*()
 
 	PSP_putTypedMsgBuf(&msg, "TID", &req->tid, sizeof(req->tid));
 	PSP_putTypedMsgBuf(&msg, "opt", &opt, sizeof(opt));
@@ -5708,7 +5708,7 @@ static void sendReqList(PStask_ID_t dest, list_t *queue, PSpart_list_t opt)
 	if ((opt & PART_LIST_NODES) && !sendReqSlots(&msg, req)) goto error;
 
 	msg.type = PSP_INFO_QUEUE_SEP;
-	msg.header.len = sizeof(msg.header) + sizeof(msg.type);
+	msg.header.len = offsetof(DDTypedBufferMsg_t, type) + sizeof(msg.type);
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	    PSID_fwarn(errno, "sendMsg()");
 	    return;
@@ -5719,7 +5719,7 @@ static void sendReqList(PStask_ID_t dest, list_t *queue, PSpart_list_t opt)
 
  error:
     msg.type = PSP_INFO_QUEUE_SEP;
-    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
+    msg.header.len = offsetof(DDTypedBufferMsg_t, type) + sizeof(msg.type);
     sendMsg(&msg);
 }
 
@@ -5872,8 +5872,6 @@ void PSIDpart_register(PStask_t *task, PSpart_HWThread_t *threads, uint32_t num)
 void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
 			   DDTypedBufferMsg_t *msg)
 {
-    const size_t emptyLen = sizeof(msg->header) + sizeof(msg->type);
-
     if (!task) {
 	PSID_flog("no task\n");
 	return;
@@ -5897,16 +5895,14 @@ void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
 	if (!PSP_tryPutTypedMsgBuf(msg, "slot", &res->slots[s].node,
 				   sizeof(PSnodes_ID_t))) {
 	    sendMsg(msg);
-	    msg->header.len = emptyLen;
+	    msg->header.len = 0; // to be adjusted in first PSP_put*()
 	    PSP_putTypedMsgBuf(msg, "slot", &res->slots[s].node,
 			       sizeof(PSnodes_ID_t));
 	}
     }
 
-    if (msg->header.len > emptyLen) {
-	sendMsg(msg);
-	msg->header.len = emptyLen;
-    }
+    if (msg->header.len) sendMsg(msg);
+    msg->header.len = offsetof(DDTypedBufferMsg_t, type) + sizeof(msg->type);
 }
 
 /**

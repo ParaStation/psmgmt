@@ -377,6 +377,9 @@ typedef struct {
     char buf[BufMsgSize];  /**< message buffer */
 } DDBufferMsg_t;
 
+/** Offset of @a buf within DDBufferMsg_t message */
+#define DDBufferMsgOffset offsetof(DDBufferMsg_t, buf)
+
 /** Buffer size of typed message */
 #define BufTypedMsgSize (BufMsgSize-sizeof(int32_t))
 
@@ -389,6 +392,9 @@ typedef struct {
     int32_t type;          /**< message (sub-)type */
     char buf[BufTypedMsgSize]; /**< message buffer */
 } DDTypedBufferMsg_t;
+
+/** Offset of @a buf within DDTypedBufferMsg_t message */
+#define DDTypedBufMsgOffset offsetof(DDTypedBufferMsg_t, buf)
 
 /** Simple error message */
 typedef struct {

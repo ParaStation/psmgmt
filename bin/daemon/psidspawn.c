@@ -2340,7 +2340,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     if (localSender && fragNum == 0) {
 	PS_DataBuffer_t data;
 	initPSDataBuffer(&data, msg->buf + used,
-			 msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used);
+			 msg->header.len - DDTypedBufMsgOffset - used);
 
 	/* ensure we use the same byteorder as libpsi */
 	bool byteOrder = setByteOrder(true);
@@ -2513,7 +2513,7 @@ static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     /* Extract num and rank from message to drop */
     PS_DataBuffer_t data;
     initPSDataBuffer(&data, msg->buf + used,
-		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used);
+		     msg->header.len - DDTypedBufMsgOffset - used);
 
     /* ensure we use the same byteorder as libpsi */
     bool byteOrder = setByteOrder(true);

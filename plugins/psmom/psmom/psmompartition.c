@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -51,7 +51,7 @@ bool handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 		.type = msg->header.type,
 		.dest = msg->header.dest,
 		.sender = msg->header.sender,
-		.len = offsetof(DDTypedBufferMsg_t, buf) },
+		.len = DDTypedBufMsgOffset },
 	    .type = PSP_SPAWN_ENV };
 
 	Job_t *job;

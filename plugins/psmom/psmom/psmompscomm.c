@@ -169,8 +169,7 @@ static bool dropPSMsg(DDTypedBufferMsg_t *msg)
 	 pspMsgType2Str(msg->type), msg->type, hname, nodeId);
 
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf,
-		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf));
+    initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
 
     switch (msg->type) {
     case PSP_PSMOM_PROLOGUE_START:

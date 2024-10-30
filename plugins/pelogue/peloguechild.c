@@ -257,8 +257,7 @@ static void handlePeIO(Forwarder_Data_t *fwdata, PElogue_OEtype_t type,
 
     /* read message */
     PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf,
-		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf));
+    initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
     oeData.msg = getStringM(&data);
 
     /* hook to forward STDOUT/STDERR to psslurm */

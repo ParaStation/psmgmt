@@ -215,7 +215,7 @@ static void sendSignal(pid_t dest, int signal)
  */
 static void handleSignalMsg(DDBufferMsg_t *msg)
 {
-    size_t used = offsetof(PSLog_Msg_t, buf) - offsetof(DDBufferMsg_t, buf);
+    size_t used = PSLog_headerSize - DDBufferMsgOffset;
 
     /* Get destination */
     pid_t pid;
@@ -383,15 +383,14 @@ static bool connectLogger(PStask_ID_t tid)
 	}
 
 	if (lmsg->header.type == PSP_CC_MSG && lmsg->type == INITIALIZE) {
-	    if (msg.header.len < PSLog_headerSize + (int) sizeof(int)) {
+	    if (msg.header.len < PSLog_headerSize + (int) sizeof(uint32_t)) {
 		PSID_flog("(%s, rank %i): message too short (%d)\n",
 			  PSC_printTID(tid), childTask->rank, msg.header.len);
 		break;
 	    }
 
 	    if (msg.header.sender == tid) {
-		size_t used =
-		    offsetof(PSLog_Msg_t, buf) - offsetof(DDBufferMsg_t, buf);
+		size_t used = PSLog_headerSize - DDBufferMsgOffset;
 
 		/* Get verbosity */
 		uint32_t verb;
@@ -944,7 +943,7 @@ static void sendAcctData(struct rusage *rusage, int32_t status)
 	    .type = PSP_CD_ACCOUNT,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(-1, 0),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = PSP_ACCOUNT_END };
 
     /* partition holder identifies job uniquely (logger's TID as fallback) */
@@ -1148,7 +1147,7 @@ static void sendSpawnFailed(PStask_t *task, int eno)
     errMsg->request = task->rank;
     errMsg->error = eno;
 
-    size_t bufUsed = msg.header.len - sizeof(msg.header);
+    size_t bufUsed = msg.header.len - DDBufferMsgOffset;
     char *ptr = msg.buf + bufUsed;
     size_t bufAvail = sizeof(msg.buf) - bufUsed;
 

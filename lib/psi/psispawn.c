@@ -158,14 +158,14 @@ static int handleAnswer(DDBufferMsg_t *msg, AnswerBucket_t *bucket)
 
 	if (errMsg->header.len > sizeof(*errMsg)) {
 	    /* trailing note in message */
-	    size_t bufUsed = sizeof(*errMsg) - offsetof(DDBufferMsg_t, buf);
+	    size_t bufUsed = sizeof(*errMsg) - DDBufferMsgOffset;
 	    char *note = msg->buf + bufUsed;
 
 	    /* Ensure to only use valid buffer data as string */
-	    if (msg->header.len == sizeof(*msg)) {
+	    if (msg->header.len == DDBufferMsgOffset + sizeof(msg->buf)) {
 		msg->buf[sizeof(msg->buf) - 1] = '\0';
 	    } else {
-		msg->buf[msg->header.len - offsetof(DDBufferMsg_t, buf)] = '\0';
+		msg->buf[msg->header.len - DDBufferMsgOffset] = '\0';
 	    }
 
 	    if (note[strlen(note)-1] == '\n') note[strlen(note)-1] = '\0';

@@ -482,7 +482,7 @@ static bool msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     msg->header.type = PSP_CD_NOTIFYDEADRES;
     msg->header.dest = registrarTid;
     msg->header.sender = tid;
-    /* Do not set msg->header.len! Length of DDSignalMsg_t has changed */
+    /* Do not set msg->header.len! Length of DDSignalMsg_t has changed @todo */
 
     if (!tid) {
 	/* Try to set signal send from relatives */
@@ -623,7 +623,7 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	    .type = PSP_DD_ADOPTCHILDSET,
 	    .dest = msg->request,
 	    .sender = msg->header.dest,
-	    .len = offsetof(DDBufferMsg_t, buf) },
+	    .len = DDBufferMsgOffset },
 	.buf = { 0 } };
     size_t emptyLen = answer.header.len;
     bool grandParentOK = PSIDnodes_isUp(PSC_getID(msg->request));
@@ -1289,7 +1289,7 @@ static bool msg_RELEASE(DDSignalMsg_t *msg)
 	msg->header.type = PSP_CD_RELEASERES;
 	msg->header.sender = tid;
 	msg->header.dest = registrarTid;
-	/* Do not set msg->header.len! Length of DDSignalMsg_t has changed */
+	/* Do not set msg->header.len! Length of DDSignalMsg_t has changed @todo */
 
 	if (!task) {
 	    /* Task not found, maybe was connected and released itself before */

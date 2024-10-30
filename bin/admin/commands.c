@@ -286,7 +286,7 @@ void PSIADM_AddNode(bool *nl)
 	    .type = PSP_CD_DAEMONSTART,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(-1, 0),
-	    .len = sizeof(msg.header) },
+	    .len = 0 },
 	.buf = { 0 } };
 
     if (geteuid()) {
@@ -303,7 +303,7 @@ void PSIADM_AddNode(bool *nl)
 	if (!hostStatus.list[node]) {
 	    if (first) first = false; else usleep(paramStartDelay * 1000);
 	    printf("starting node %s\n", nodeString(node));
-	    msg.header.len = sizeof(msg.header);
+	    msg.header.len = 0;
 	    PSP_putMsgBuf(&msg, "node ID", &node, sizeof(node));
 	    sendDmnMsg(&msg);
 	}
@@ -354,7 +354,7 @@ void PSIADM_HWStart(int32_t hw, bool *nl)
 	    .type = PSP_CD_HWSTART,
 	    .sender = PSC_getMyTID(),
 	    .dest = 0,
-	    .len = sizeof(msg.header) } };
+	    .len = 0 } };
     int hwnum, err;
 
     if (geteuid()) {
@@ -388,7 +388,7 @@ void PSIADM_HWStop(int32_t hw, bool *nl)
 	    .type = PSP_CD_HWSTOP,
 	    .sender = PSC_getMyTID(),
 	    .dest = 0,
-	    .len = sizeof(msg.header) } };
+	    .len = 0 } };
     int hwnum, err;
 
     if (geteuid()) {
@@ -1693,9 +1693,8 @@ void PSIADM_Reset(int reset_hw, bool *nl)
 	    .type = PSP_CD_DAEMONRESET,
 	    .sender = PSC_getMyTID(),
 	    .dest = 0,
-	    .len = sizeof(msg.header) + sizeof(int32_t) },
+	    .len = 0 },
 	.buf = { 0 } };
-    int32_t *action = (int32_t *)msg.buf;
     bool send_local = false;
 
     if (geteuid()) {
@@ -1703,13 +1702,14 @@ void PSIADM_Reset(int reset_hw, bool *nl)
 	return;
     }
 
-    *action = 0;
+    if (! getHostStatus()) return;
+
+    int32_t action = 0;
     if (reset_hw) {
-	*action |= PSP_RESET_HW;
+	action |= PSP_RESET_HW;
 	doRestart = true;
     }
-
-    if (! getHostStatus()) return;
+    PSP_putMsgBuf(&msg, "action", &action, sizeof(action));
 
     for (PSnodes_ID_t node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
@@ -1809,7 +1809,7 @@ void PSIADM_Plugin(bool *nl, char *name, PSP_Plugin_t action)
 	    .type = PSP_CD_PLUGIN,
 	    .sender = PSC_getMyTID(),
 	    .dest = 0,
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	    .len = 0 },
 	.buf = { 0 } };
     DDTypedMsg_t answer;
 
@@ -1902,11 +1902,10 @@ void PSIADM_PluginKey(bool *nl, char *name, char *key, char *value,
 	    .type = PSP_CD_PLUGIN,
 	    .sender = PSC_getMyTID(),
 	    .dest = 0,
-	    .len = sizeof(msg.header) + sizeof(msg.type) } };
+	    .len = 0 },
+	.type = action };
     int width = PSC_getWidth();
     bool separator = false;
-
-    msg.type = action;
 
     if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name))) return;
     if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key))) return;
@@ -1953,18 +1952,16 @@ void PSIADM_Environment(bool *nl, char *key, char *value, PSP_Env_t action)
 	    .type = PSP_CD_ENV,
 	    .sender = PSC_getMyTID(),
 	    .dest = 0,
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	    .len = 0 },
+	.type = action,
 	.buf = { 0 } };
-    DDTypedMsg_t answer;
 
-    msg.type = action;
     switch (action) {
     case PSP_ENV_SET:
 	if (!putEnv(&msg, key, value)) return;
 	break;
     case PSP_ENV_UNSET:
-	if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key)))
-	    return;
+	if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key))) return;
 	break;
     default:
 	printf("Unknown action %d\n", action);
@@ -1979,15 +1976,17 @@ void PSIADM_Environment(bool *nl, char *key, char *value, PSP_Env_t action)
 	if (hostStatus.list[node]) {
 	    msg.header.dest = PSC_getTID(node, 0);
 	    sendDmnMsg(&msg);
+
+	    DDTypedMsg_t answer;
 	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 		printf("%ssetting '%s' on node %s failed\n",
-		       action ? "Uns" : "S", key, nodeString(node));
+		       action ? "un" : "", key, nodeString(node));
 	    }
 	    if (answer.type == -1) {
-		printf("Cannot %sset '%s' on node %s\n",
+		printf("cannot %sset '%s' on node %s\n",
 		       action ? "un" : "", key, nodeString(node));
 	    } else if (answer.type) {
-		printf("Cannot %sset '%s' on node %s: %s\n",
+		printf("cannot %sset '%s' on node %s: %s\n",
 		       action ? "un" : "", key, nodeString(node),
 		       strerror(answer.type));
 	    }

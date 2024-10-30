@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -296,7 +296,7 @@ static bool sendPartitionReq(PStask_t *task, PSGW_Req_t *req, int numNodes)
 	    .type = PSP_DD_GETPART,
 	    .dest = PSC_getTID(getMasterID(), 0),
 	    .sender = task->tid,
-	    .len = offsetof(DDBufferMsg_t, buf) },
+	    .len = DDBufferMsgOffset },
 	.buf = { 0 } };
 
     PSpart_encodeReq(&msg, task->request);

@@ -668,7 +668,7 @@ static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
 	int chunk = (nodelist->size-offset > NODES_CHUNK) ?
 	    NODES_CHUNK : nodelist->size-offset;
 	char *ptr = msg->buf;
-	msg->header.len = sizeof(msg->header);
+	msg->header.len = DDBufferMsgOffset;
 
 	*(int16_t*)ptr = chunk;
 	ptr += sizeof(int16_t);
@@ -940,7 +940,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	    .type = PSP_CD_CREATEPART,
 	    .dest = PSC_getTID(-1, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDBufferMsg_t, buf) } };
+	    .len = DDBufferMsgOffset } };
     PSpart_request_t *request = PSpart_newReq();
     nodelist_t *nodelist = NULL;
     uint32_t hwEnv;
@@ -1076,7 +1076,7 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
 	    .type = PSP_CD_GETNODES,
 	    .dest = PSC_getTID(-1, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDBufferMsg_t, buf) } };
+	    .len = 0 } };
     char *ptr = msg.buf;
     int ret = -1;
 
@@ -1146,7 +1146,7 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 	    .type = PSP_CD_GETRESERVATION,
 	    .dest = PSC_getTID(-1, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDBufferMsg_t, buf) } };
+	    .len = 0 } };
     PSrsrvtn_ID_t rid = 0;
     size_t used = 0;
 

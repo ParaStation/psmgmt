@@ -724,17 +724,16 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t numDest,
 	.header = {
 	    .type = PSP_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = PSP_JOB_EXIT,
 	.buf = {'\0'} };
     PStask_ID_t myID = PSC_getMyID();
-    uint32_t n;
 
     PSP_putTypedMsgBuf(&msg, "jobID", &jobid, sizeof(jobid));
     PSP_putTypedMsgBuf(&msg, "stepID", &stepid, sizeof(stepid));
 
     /* send the messages */
-    for (n = 0; n < numDest; n++) {
+    for (uint32_t n = 0; n < numDest; n++) {
 	if (nodes[n] == myID) continue;
 
 	msg.header.dest = PSC_getTID(nodes[n], 0);
@@ -751,7 +750,7 @@ void send_PS_EpilogueStateReq(Alloc_t *alloc)
 	.header = {
 	    .type = PSP_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = PSP_EPILOGUE_STATE_REQ,
 	.buf = {'\0'} };
 
@@ -776,7 +775,7 @@ void send_PS_PElogueRes(Alloc_t *alloc, int16_t res, int16_t type)
 	    .type = PSP_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(alloc->nodes[0], 0),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = PSP_PELOGUE_RES,
 	.buf = {'\0'} };
 
@@ -834,7 +833,7 @@ static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id,
 	    .type = PSP_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
 	    .dest = dest,
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = PSP_EPILOGUE_STATE_RES,
 	.buf = {'\0'} };
 
@@ -1658,7 +1657,7 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
 
     PS_DataBuffer_t data;
     initPSDataBuffer(&data, msg->buf + used,
-		     msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used);
+		     msg->header.len - DDTypedBufMsgOffset - used);
 
     Slurm_Msg_t sMsg;
     initSlurmMsg(&sMsg);
@@ -1850,7 +1849,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 
 static bool handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 {
-    int msgLen = msg->header.len - offsetof(PSLog_Msg_t, buf);
+    int msgLen = msg->header.len - PSLog_headerSize;
 
     mdbg(PSSLURM_LOG_IO, "%s: src %s ", __func__,
 	 PSC_printTID(msg->header.sender));
@@ -2726,7 +2725,7 @@ void stopStepFollower(Step_t *step)
 	.header = {
 	    .type = PSP_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = PSP_STOP_STEP_FW,
 	.buf = {'\0'} };
 
