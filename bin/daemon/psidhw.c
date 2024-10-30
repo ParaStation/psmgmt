@@ -959,9 +959,10 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 	char *name = Attr_name(hw);
 	if (!name) name = "<unknown>";
 	PSID_flog("no %s hardware available\n", name);
-	snprintf(msg.buf, sizeof(msg.buf), "%s: no %s hardware available",
+	snprintf(msg.buf, sizeof(msg.buf), "%s: no %s hardware available\n",
 		 __func__, name);
     }
+    msg.header.len += strlen(msg.buf) + 1;
 
     sendMsg(&msg);
 }
