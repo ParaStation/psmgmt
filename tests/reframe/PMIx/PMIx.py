@@ -66,8 +66,7 @@ class putGet(SimplePMIxTest):
 
     @sanity_function
     def validate_output(self):
-        prefix = r"\[pspmix_0x[\dabcdef]{8}\[\d+:\d+\]:\d+\]"
-
+        prefix = r"\[pspmix_0x[\dabcdef]{12}\[\d+:\d+\]:\d+\]"
         return sn.all(
             [
                 # error out should be empty
