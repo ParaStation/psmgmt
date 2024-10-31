@@ -42,6 +42,8 @@
 
 extern char **environ;
 
+#define IS_SET(s) (s && (s)[0])
+
 #define GPU_VARIABLE_MAXLEN 20
 static char * gpu_variables[] = {
     "CUDA_VISIBLE_DEVICES", /* Nvidia GPUs */
@@ -1205,8 +1207,8 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 
     setSlurmConfEnvVar(NULL);
 
-    if (step->tresBind) setenv("SLURMD_TRES_BIND", step->tresBind, 1);
-    if (step->tresFreq) setenv("SLURMD_TRES_FREQ", step->tresFreq, 1);
+    if (IS_SET(step->tresBind)) setenv("SLURMD_TRES_BIND", step->tresBind, 1);
+    if (IS_SET(step->tresFreq)) setenv("SLURMD_TRES_FREQ", step->tresFreq, 1);
 
     setenv("SLURMD_NODENAME", getConfValueC(Config, "SLURM_HOSTNAME"), 1);
     char tmp[128];
@@ -1473,8 +1475,12 @@ void setJobEnv(Job_t *job)
 	envUnset(job->env, "SLURM_UMASK");
     }
 
-    if (job->tresBind) envSet(job->env, "SLURMD_TRES_BIND", job->tresBind);
-    if (job->tresFreq) envSet(job->env, "SLURMD_TRES_FREQ", job->tresFreq);
+    if (IS_SET(job->tresBind)) {
+	envSet(job->env, "SLURMD_TRES_BIND", job->tresBind);
+    }
+    if (IS_SET(job->tresFreq)) {
+	envSet(job->env, "SLURMD_TRES_FREQ", job->tresFreq);
+    }
 
     envEvict(job->env, spankVarFilter, NULL);
 
