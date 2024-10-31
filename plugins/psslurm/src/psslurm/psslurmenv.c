@@ -1112,6 +1112,9 @@ static void setOrdinaryRankEnv(uint32_t rank, Step_t *step)
 	/* set GRes environment */
 	setGresEnv(myLocalId, step);
     }
+
+    char *val = envGet(step->env, "SLURM_UMASK");
+    if (IS_SET(val)) setenv(val, "SLURM_UMASK", 1);
 }
 
 void setSlurmConfEnvVar(env_t env)
