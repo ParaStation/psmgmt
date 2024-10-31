@@ -740,6 +740,19 @@ void initJobEnv(Job_t *job)
     envSet(job->env, "SLURM_JOB_CPUS_PER_NODE", cpus);
     ufree(cpus);
 
+    /* number of process might not always be set and has to be calculated */
+    if (!job->np) {
+	char *numTasksPerNode = envGet(job->env, "SLURM_NTASKS_PER_NODE");
+	if (numTasksPerNode) job->np = atoi(numTasksPerNode) * job->nrOfNodes;
+    }
+
+    /* SLURM_NTASKS and SLURM_NPROCS has to be set by psslurm */
+    if (job->np) {
+	snprintf(tmp, sizeof(tmp), "%u", job->np);
+	envSet(job->env, "SLURM_NTASKS", tmp);
+	envSet(job->env, "SLURM_NPROCS", tmp);
+    }
+
     /* set SLURM_TASKS_PER_NODE for intel mpi */
     uint16_t *tasksPerNode = calcTasksPerNode(job);
     if (tasksPerNode) {
