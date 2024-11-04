@@ -6,6 +6,12 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.63-2:
+=================
+Bugfixes:
+ - Let psslurm set SLURM_NTASKS and SLURM_NPROCS (jwt:#33462)
+
+
 Version 5.1.63-1:
 =================
 Bugfixes:
