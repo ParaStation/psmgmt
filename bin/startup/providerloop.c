@@ -29,7 +29,8 @@
 #include "pslog.h"
 
 /* PSLog buffer size - PMIHEADER */
-#define PMIUPDATE_PAYLOAD (1048 - 7)
+#define PMIUPDATE_PAYLOAD (1048 - sizeof(uint8_t) - sizeof(uint32_t)	\
+			   - sizeof(uint16_t))
 
 /* Ring buffer to keep track of KVS update messages */
 #define KVS_UPDATE_FIELDS 100
@@ -107,9 +108,6 @@ static PStask_ID_t loggertid = -1;
 
 /** Flag to be set if kill signals should not be forwarded to parents */
 static char noParricide = false;
-
-/** Generic message buffer */
-static char buffer[1024];
 
 /** Number of received kvs_put messages */
 static int putCount = 0;
@@ -437,12 +435,14 @@ static void sendKvsUpdateToClients(bool finish)
 	     " ent:%zi putCount:%i\n", __func__, PSKVScmdToString(pmiCmd),
 	     strlen(kvsmsg), finish, ent, putCount);
 
+	PSLog_Msg_t msg;   // abused just to get a buffer of according size
+	char *bufPtr = msg.buf;
 	size_t bufLen = 0;
-	char *bufPtr = buffer;
+
 	setKVSCmd(&bufPtr, &bufLen, pmiCmd);
 	addKVSInt32(&bufPtr, &bufLen, &nextUpdateField);
 	addKVSString(&bufPtr, &bufLen, kvsmsg);
-	sendMsgToKvsSucc(buffer, bufLen);
+	sendMsgToKvsSucc(msg.buf, bufLen);
 
 	kvsUpdateTrack[nextUpdateField]++;
 	if (pmiCmd == UPDATE_CACHE_FINISH) {
@@ -529,10 +529,6 @@ PUT_ERROR:
  */
 static void handleKVS_Daisy_Barrier_In(PSLog_Msg_t *msg, char *ptr)
 {
-    char *bufPtr = buffer;
-    size_t bufLen = 0;
-    int32_t barrierCount = 0, globalPutCount = 0;
-
     PMI_Clients_t *client = findClient(msg, true);
     testMsg(__func__, client, msg);
 
@@ -545,9 +541,9 @@ static void handleKVS_Daisy_Barrier_In(PSLog_Msg_t *msg, char *ptr)
 	     client->pmiRank, PSC_printTID(msg->header.sender));
 	terminateJob(__func__);
     }
-    barrierCount = getKVSInt32(&ptr);
-    globalPutCount = getKVSInt32(&ptr);
 
+    int32_t barrierCount = getKVSInt32(&ptr);
+    int32_t globalPutCount = getKVSInt32(&ptr);
     if (barrierCount != maxClients) {
 	mlog("%s: not all clients in the barrier\n", __func__);
 	terminateJob(__func__);
@@ -573,6 +569,10 @@ static void handleKVS_Daisy_Barrier_In(PSLog_Msg_t *msg, char *ptr)
 	sendKvsUpdateToClients(true);
     } else {
 	/* send all Clients barrier_out */
+	char buffer[sizeof(uint8_t)];
+	char *bufPtr = buffer;
+	size_t bufLen = 0;
+
 	setKVSCmd(&bufPtr, &bufLen, DAISY_BARRIER_OUT);
 	sendMsgToKvsSucc(buffer, bufLen);
     }
@@ -639,6 +639,7 @@ static void handleKVS_Update_Cache_Finish(PSLog_Msg_t *msg, char *ptr)
  */
 static void sendDaisyReady(PStask_ID_t tid, PStask_ID_t succ)
 {
+    char buffer[sizeof(uint8_t) + sizeof(uint32_t)];
     char *bufPtr = buffer;
     size_t bufLen = 0;
 
