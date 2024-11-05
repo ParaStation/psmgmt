@@ -126,7 +126,7 @@ int getNextServiceRank(void)
 
 int main(int argc, const char *argv[], char** envp)
 {
-    char tmp[PATH_MAX], *envPtr;
+    char tmp[PATH_MAX];
     bool distStart = getenv("__MPIEXEC_DIST_START");
 
     setlinebuf(stdout);
@@ -166,12 +166,8 @@ int main(int argc, const char *argv[], char** envp)
 
     /* put the argument vector together */
     const char *origArgv0 = argv[0];
-    envPtr = getenv("__PSI_MPIEXEC_SPAWNER");
-    if (envPtr) {
-	argv[0] = envPtr;
-    } else {
-	argv[0] = PKGLIBEXECDIR "/spawner";
-    }
+    char *envPtr = getenv("__PSI_MPIEXEC_SPAWNER");
+    argv[0] = envPtr ? envPtr : PKGLIBEXECDIR "/spawner";
 
     /* Identify the rank of the spawner service to start */
     int sRank = getNextServiceRank();
