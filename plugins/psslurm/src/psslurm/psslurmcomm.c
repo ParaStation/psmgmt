@@ -1464,25 +1464,25 @@ static int handleSrunPTYMsg(int sock, void *data)
  */
 static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 {
-    char *ptr = buf;
-    size_t c = bufLen;
     PS_Tasks_t *task = findTaskByJobRank(&step->tasks, rank);
-    PSLog_Msg_t msg = {
-	.header = {
-	    .type = PSP_CC_MSG,
-	    .dest = task ? task->forwarderTID : -1,
-	    .sender = PSC_getMyTID(),
-	    .len = PSLog_headerSize },
-       .version = 2,
-       .type = STDIN,
-       .sender = -1};
-
     if (!task) {
 	flog("task for rank %u of %s local ID %i not found\n", rank,
 	     Step_strID(step), step->localNodeId);
 	return -1;
     }
 
+    PSLog_Msg_t msg = {
+	.header = {
+	    .type = PSP_CC_MSG,
+	    .dest = task->forwarderTID,
+	    .sender = PSC_getMyTID(),
+	    .len = PSLog_headerSize },
+       .version = 2,
+       .type = STDIN,
+       .sender = -1};
+
+    char *ptr = buf;
+    size_t c = bufLen;
     do {
 	int n = (c > sizeof(msg.buf)) ? sizeof(msg.buf) : c;
 	if (n) memcpy(msg.buf, ptr, n);

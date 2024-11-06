@@ -477,16 +477,16 @@ bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 
 void fwCMD_stepTimeout(Forwarder_Data_t *fwdata)
 {
+    /* might happen that forwarder is already gone */
+    if (!fwdata) return;
+
     DDTypedMsg_t msg = {
 	.header = {
 	    .type = PSP_PF_MSG,
-	    .dest = fwdata ? fwdata->tid : -1,
+	    .dest = fwdata->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg) },
 	.type = CMD_STEP_TIMEOUT };
-
-    /* might happen that forwarder is already gone */
-    if (!fwdata) return;
 
     sendMsg(&msg);
 }
@@ -590,16 +590,17 @@ void fwCMD_brokeIOcon(Step_t *step)
 
 void fwCMD_enableSrunIO(Step_t *step)
 {
+    /* might happen that forwarder is already gone */
+    if (!step->fwdata) return;
+
     DDTypedMsg_t msg = {
 	.header = {
 	    .type = PSP_PF_MSG,
-	    .dest = step->fwdata ? step->fwdata->tid : -1,
+	    .dest = step->fwdata->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg) },
 	.type = CMD_ENABLE_SRUN_IO };
 
-    /* might happen that forwarder is already gone */
-    if (!step->fwdata) return;
     fdbg(PSSLURM_LOG_IO, "to %s\n", PSC_printTID(step->fwdata->tid));
     sendMsg(&msg);
 }
@@ -704,16 +705,16 @@ int fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 void fwCMD_reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
 			 uint16_t ioPort, uint16_t ctlPort, char *sig)
 {
+    /* might happen that forwarder is already gone */
+    if (!fwdata) return;
+
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_PF_MSG,
-	    .dest = fwdata ? fwdata->tid : -1,
+	    .dest = fwdata->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = 0 },
 	.type = CMD_REATTACH_TASKS };
-
-    /* might happen that forwarder is already gone */
-    if (!fwdata) return;
 
     uint32_t nAddr = htonl(addr);
     PSP_putTypedMsgBuf(&msg, "addr", &nAddr, sizeof(nAddr));
@@ -731,16 +732,16 @@ void fwCMD_reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
 
 void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg, int32_t rank)
 {
+    /* might happen that forwarder is already gone */
+    if (!fwdata) return;
+
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_PF_MSG,
-	    .dest = fwdata ? fwdata->tid : -1,
+	    .dest = fwdata->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
 	.type = CMD_FW_FINALIZE };
-
-    /* might happen that forwarder is already gone */
-    if (!fwdata) return;
 
     /* Shall be okay since PSLog_Msg_t always fits DDTypedBufferMsg_t buf */
     uint32_t nRank = htonl(rank);
@@ -757,16 +758,16 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg, int32_t rank)
 
 void fwCMD_taskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
 {
+    /* might happen that forwarder is already gone */
+    if (!fwdata) return;
+
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_PF_MSG,
-	    .dest = fwdata ? fwdata->tid : -1,
+	    .dest = fwdata->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = 0 },
 	.type = CMD_INFO_TASKS };
-
-    /* might happen that forwarder is already gone */
-    if (!fwdata) return;
 
     /* Add data including its length mimicking addData */
     uint32_t len = htonl(sizeof(*task));
@@ -778,16 +779,16 @@ void fwCMD_taskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
 
 void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank)
 {
+    /* might happen if forwarder is already gone */
+    if (!step->fwdata) return;
+
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_PF_MSG,
-	    .dest = step->fwdata ? step->fwdata->tid : -1,
+	    .dest = step->fwdata->tid,
 	    .sender = lmsg->header.sender,
 	    .len = 0 },
 	.type = CMD_PRINT_CHILD_MSG };
-
-    /* might happen if forwarder is already gone */
-    if (!step->fwdata) return;
 
     /* connection to srun broke */
     if (step->ioCon == IO_CON_BROKE) return;

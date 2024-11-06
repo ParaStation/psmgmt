@@ -163,15 +163,15 @@ static const char *msg2Str(PSP_PSSLURM_t type)
 
 static void grantPartRequest(PStask_t *task)
 {
+    if (!task || !task->request) return;
+
     DDTypedMsg_t msg = {
 	.header = {
 	    .type = PSP_CD_PARTITIONRES,
-	    .dest = task ? task->tid : 0,
+	    .dest = task->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg) },
 	.type = 0 };
-
-    if (!task || !task->request) return;
 
     /* generate slots from hw threads and register partition to master psid */
     PSIDpart_register(task, task->partThrds, task->totalThreads);
