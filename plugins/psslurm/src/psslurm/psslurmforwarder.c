@@ -1183,7 +1183,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     int serviceRank = step->spawned ? getNextServiceRank(fwdata) : 0;
 
-    initSerial(0, sendMsg);
+    initSerial(0, (Send_Msg_Func_t *)sendMsgToMother);
     setJailEnv(step->env, step->username,
 	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
@@ -1769,7 +1769,7 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
 
 static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 {
-    initSerial(0, sendMsg);
+    initSerial(0, (Send_Msg_Func_t *)sendMsgToMother);
 
     Step_t *step = fwdata->userData;
     Step_deleteAll(step);
