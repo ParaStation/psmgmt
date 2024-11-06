@@ -1622,13 +1622,11 @@ static int clearMemPendCRR(void *info)
  *   the message if no further requests are expected for this
  *   combination
  *
- * - If no pending message was found and the partition holder is
- *   capable to receive combined requests (i.e. its
- *   PSDaemonProtocolVersion is at least 414), identify the maximum
- *   number of expected requests for the combination of partition
- *   holder and the reservation used by @a task (i.e. number of tasks
- *   in managedTasks for this combination) and created a pending
- *   message if necessary; otherwise send the message immediately
+ * - If no pending message was found, identify the maximum number of
+ *   expected requests for the combination of partition holder and the
+ *   reservation used by @a task (i.e. number of tasks in managedTasks
+ *   for this combination) and created a pending message if necessary;
+ *   otherwise send the message immediately
  *
  * - From time to time (i.e. in the loop-action) send all pending
  *   messages via @ref sendAllPendCRR()

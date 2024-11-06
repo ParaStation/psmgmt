@@ -942,15 +942,10 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	PSIDclient_setEstablished(fd, handleClientMsg, NULL);
 	task->protocolVersion = msg->version;
 
-	if (task->protocolVersion < 344) {
-	    outmsg.type = PSC_getMyID();
-	} else {
-	    bool mixedProto = PSID_mixedProto();
-	    PSP_putTypedMsgBuf(&outmsg, "mixedProto", &mixedProto,
-			       sizeof(mixedProto));
-	    PSnodes_ID_t myID = PSC_getMyID();
-	    PSP_putTypedMsgBuf(&outmsg, "myID", &myID, sizeof(myID));
-	}
+	bool mixed = PSID_mixedProto();
+	PSP_putTypedMsgBuf(&outmsg, "mixedProto", &mixed, sizeof(mixed));
+	PSnodes_ID_t myID = PSC_getMyID();
+	PSP_putTypedMsgBuf(&outmsg, "myID", &myID, sizeof(myID));
 
 	sendMsg(&outmsg);
 

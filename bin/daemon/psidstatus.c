@@ -804,10 +804,8 @@ static bool msg_DAEMONCONNECT(DDBufferMsg_t *msg)
     int32_t pCPUs, vCPUs, proto, dmnProto;
     PSP_getMsgBuf(msg, &used, "numCores", &pCPUs, sizeof(pCPUs));
     PSP_getMsgBuf(msg, &used, "numThrds", &vCPUs, sizeof(vCPUs));
-    if (!PSP_tryGetMsgBuf(msg, &used, "proto", &proto, sizeof(proto)))
-	proto = 343;
-    if (!PSP_tryGetMsgBuf(msg, &used, "dmnProto", &dmnProto, sizeof(dmnProto)))
-	dmnProto = 413;
+    PSP_getMsgBuf(msg, &used, "proto", &proto, sizeof(proto));
+    PSP_getMsgBuf(msg, &used, "dmnProto", &dmnProto, sizeof(dmnProto));
 
     /* id is out of range -> nothing left to do */
     if (!declareNodeAlive(id, pCPUs, vCPUs, proto, dmnProto)) return true;
@@ -899,10 +897,8 @@ static bool msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
 	PSID_flog("truncated message from node %d\n", id);
 	return true;
     }
-    if (!PSP_tryGetMsgBuf(msg, &used, "proto", &proto, sizeof(proto)))
-	proto = 343;
-    if (!PSP_tryGetMsgBuf(msg, &used, "dmnProto", &dmnProto, sizeof(dmnProto)))
-	dmnProto = 413;
+    PSP_getMsgBuf(msg, &used, "proto", &proto, sizeof(proto));
+    PSP_getMsgBuf(msg, &used, "dmnProto", &dmnProto, sizeof(dmnProto));
 
     /* id is out of range -> nothing left to do */
     if (!declareNodeAlive(id, pCPUs, vCPUs, proto, dmnProto)) return true;

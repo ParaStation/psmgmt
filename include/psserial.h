@@ -186,9 +186,6 @@ typedef enum {
  *     <extra (extraSize bytes)>
  *     <payload fragment>
  *
- * If the destination's protocol version is < 344, <extraSize> and
- * <extra> will be omitted for backward compatibility.
- *
  * @param buffer Buffer to handle
  *
  * @param headType Type of the messages used to send the fragments

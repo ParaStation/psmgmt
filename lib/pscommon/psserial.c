@@ -542,11 +542,6 @@ char *serialStrErr(serial_Err_Types_t err)
  */
 static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 {
-    bool ret = true;
-    PStask_ID_t localDest = -1;
-    DDTypedBufferMsg_t fragMsgDup;
-    bool dupOK = false;
-
     if (!buf->numDest) {
 	PSC_flog("empty nodelist at %s@%d\n", caller, line);
 	return false;
@@ -557,6 +552,8 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 	return false;
     }
 
+    bool ret = true;
+    PStask_ID_t localDest = -1;
     for (PSnodes_ID_t i = 0; i < buf->numDest; i++) {
 	if (PSC_getID(destTIDs[i]) == PSC_getMyID()) {
 	    /* local messages might overwrite the shared send message buffer,
@@ -564,29 +561,12 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 	    localDest = destTIDs[i];
 	    continue;
 	}
-	DDTypedBufferMsg_t *msg;
-	int protoVer = getProtoV(PSC_getID(destTIDs[i]));
-	if (protoVer > 0 /* is valid */ && protoVer < 344) {
-	    if (!dupOK) {
-		fragMsgDup.header = fragMsg.header;
-		fragMsgDup.type = fragMsg.type;
-		memcpy(fragMsgDup.buf, fragMsg.buf, 3 /* type + num */);
-		memcpy(fragMsgDup.buf + 3, fragMsg.buf + 4 + buf->extraSize,
-		       fragMsg.header.len - DDTypedBufMsgOffset
-		       - buf->extraSize - 4);
-		fragMsgDup.header.len -= buf->extraSize + 1;
-		dupOK = true;
-	    }
-	    msg = &fragMsgDup;
-	} else {
-	    msg = &fragMsg;
-	}
-	msg->header.dest = destTIDs[i];
+
+	fragMsg.header.dest = destTIDs[i];
 	PSC_fdbg(PSC_LOG_COMM, "send fragment %d to %s len %u\n",
-		buf->fragNum, PSC_printTID(destTIDs[i]), msg->header.len);
+		 buf->fragNum, PSC_printTID(destTIDs[i]), fragMsg.header.len);
 
-	int res = sendPSMsg(msg);
-
+	int res = sendPSMsg(&fragMsg);
 	if (res == -1 && errno != EWOULDBLOCK) {
 	    ret = false;
 	    PSC_fwarn(errno, "at %s@%d: send(fragment %u, dest %s)",
@@ -630,14 +610,13 @@ bool fetchFragHeader(DDTypedBufferMsg_t *msg, size_t *used, uint8_t *fragType,
 
     if (extraSize) *extraSize = 0;
     if (extra) *extra = NULL;
-    if (getProtoV(PSC_getID(msg->header.sender)) > 343) {
-	/* handle extra data */
-	uint8_t eS;
-	PSP_getTypedMsgBuf(msg, used, "extraSize", &eS, sizeof(eS));
-	if (extraSize) *extraSize = eS;
-	if (extra && eS) *extra = msg->buf + *used;
-	*used += eS;
-    }
+
+    /* handle extra data */
+    uint8_t eS;
+    PSP_getTypedMsgBuf(msg, used, "extraSize", &eS, sizeof(eS));
+    if (extraSize) *extraSize = eS;
+    if (extra && eS) *extra = msg->buf + *used;
+    *used += eS;
 
     return true;
 }
