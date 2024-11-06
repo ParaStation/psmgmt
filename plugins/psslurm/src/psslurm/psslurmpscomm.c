@@ -561,7 +561,7 @@ void send_PS_JobLaunch(Job_t *job)
     PS_SendDB_t data;
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_JOB_LAUNCH);
 
-    PStask_ID_t myID = PSC_getMyID();
+    PSnodes_ID_t myID = PSC_getMyID();
     for (uint32_t n = 0; n < job->nrOfNodes; n++) {
 	if (job->nodes[n] == myID) continue;
 	setFragDest(&data, PSC_getTID(job->nodes[n], 0));
@@ -584,10 +584,10 @@ void send_PS_AllocState(Alloc_t *alloc)
     PS_SendDB_t data;
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_ALLOC_STATE);
 
-    PStask_ID_t myID = PSC_getMyID();
-    for (uint32_t i = 0; i < alloc->nrOfNodes; i++) {
-	if (alloc->nodes[i] == myID) continue;
-	setFragDest(&data, PSC_getTID(alloc->nodes[i], 0));
+    PSnodes_ID_t myID = PSC_getMyID();
+    for (uint32_t n = 0; n < alloc->nrOfNodes; n++) {
+	if (alloc->nodes[n] == myID) continue;
+	setFragDest(&data, PSC_getTID(alloc->nodes[n], 0));
     }
     if (!getNumFragDest(&data)) return;
 
@@ -1467,7 +1467,6 @@ static void handle_AllocTerm(DDTypedBufferMsg_t *msg)
 static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 {
     char sender[48], dest[48];
-
     snprintf(sender, sizeof(sender), "%s", PSC_printTID(msg->header.sender));
     snprintf(dest, sizeof(dest), "%s", PSC_printTID(msg->header.dest));
 
@@ -2549,7 +2548,7 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
     PS_SendDB_t data;
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PACK_EXIT);
 
-    PStask_ID_t myID = PSC_getMyID();
+    PSnodes_ID_t myID = PSC_getMyID();
     list_t *c;
     list_for_each(c, &step->jobCompInfos) {
 	JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
@@ -2570,10 +2569,8 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
 
 static void addSlotsToMsg(PSpart_slot_t *slots, uint32_t len, PS_SendDB_t *data)
 {
-
     /* Determine maximum number of CPUs */
     uint16_t maxCPUs = 0;
-
     for (size_t s = 0; s < len; s++) {
 	unsigned short cpus = PSIDnodes_getNumThrds(slots[s].node);
 	if (cpus > maxCPUs) maxCPUs = cpus;
