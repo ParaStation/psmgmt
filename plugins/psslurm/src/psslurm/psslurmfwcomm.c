@@ -451,7 +451,7 @@ bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	    flog("unhandled Log-type %s\n", PSLog_printMsgType(lmsg->type));
 	    return false;
 	}
-    } else if (msg->header.type == PSP_PLUG_PSSLURM) {
+    } else if (msg->header.type == PSP_PF_MSG) {
 	PS_DataBuffer_t data;
 	initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
 
@@ -500,7 +500,7 @@ void fwCMD_setEnv(Step_t *step, const char *var, const char *val)
 
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_PLUG_PSSLURM,
+	    .type = PSP_PF_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
@@ -530,7 +530,7 @@ void fwCMD_initComplete(Step_t *step, int32_t serviceRank)
 
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_PLUG_PSSLURM,
+	    .type = PSP_PF_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
@@ -554,7 +554,7 @@ void fwCMD_unsetEnv(Step_t *step, const char *var)
 
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_PLUG_PSSLURM,
+	    .type = PSP_PF_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },

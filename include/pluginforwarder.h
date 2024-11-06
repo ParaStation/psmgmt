@@ -64,7 +64,8 @@ typedef struct __fwData__ {
     int stdOut[2];         /**< stdOut provided to forwarder's child */
     int stdErr[2];         /**< stdErr provided to forwarder's child */
     bool hideFWctrlMsg;	   /**< hide internal forwarder control messages
-			    * from handleMthrMsg() hook. Defaults to true. */
+			    * from handleMthrMsg() and handleFwMsg() hooks.
+			    * Defaults to true. */
     bool hideCCError;	   /**< hide PSP_CC_ERROR messages from handleMthrMsg()
 			    * hook. Defaults to true. */
     bool fwChildOE;	   /**< Automatically forward stdout/stderr from the
