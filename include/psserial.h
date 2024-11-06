@@ -99,14 +99,39 @@ void initPSDataBuffer(PS_DataBuffer_t *buffer, char *mem, size_t memSize);
 /**
  * @brief Prototype for @ref __recvFragMsg()'s callback
  *
+ * This callback will be used if called via the @ref recvFragMsg() or
+ * @ref tryRecvFragMsg() define.
+ *
  * @param msg Message header (including the type) of the last
- * fragment. The buffer of this last fragment is invalidated and part
- * of @a data
+ * fragment; @warning the buffer of this last fragment is invalidated
+ * and part of @a data
  *
  * @param data Data buffer presenting payload assembled from all fragments
  */
-typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
-				  PS_DataBuffer_t *data);
+typedef void SerialRecvCB_t(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data);
+
+/**
+ * @brief Prototype for @ref __recvFragMsg()'s callback
+ *
+ * This callback will be used if called via the @ref recvFragMsgInfo()
+ * define.
+ *
+ * It is pretty similar to the one used via @ref recvFragMsg()
+ * (i.e. SerialRecvCB_t) besides the fact that a pointer to additional
+ * information might be passed to this callback in @ref
+ * recvFragMsgInfo().
+ *
+ * @param msg Message header (including the type) of the last
+ * fragment; @warning the buffer of this last fragment is invalidated
+ * and part of @a data
+ *
+ * @param data Data buffer presenting payload assembled from all fragments
+ *
+ * @param info Pointer to additional information passed from the last
+ * argument of recvFragMsgInfo()
+ */
+typedef void SerialRecvInfoCB_t(DDTypedBufferMsg_t *msg,
+				PS_DataBuffer_t *data, void *info);
 
 /**
  * @brief Initialize buffer handling of the Psserial facility
@@ -306,15 +331,25 @@ bool fetchFragHeader(DDTypedBufferMsg_t *msg, size_t *used, uint8_t *fragType,
  *
  * Add the fragment contained in the message @a msg to the overall
  * message to receive stored in a separate message buffer. Upon
- * complete receive of the message, i.e. after the last fragment
- * arrived, the callback @a func will be called with @a msg as the
- * first parameter and the message buffer used to collect all
- * fragments as the second argument. If the @a verbose flag is false,
- * unexpected fragments will not be reported in the syslog.
+ * completion, i.e. after the last fragment arrived, the callback @a cb
+ * will be called if given. As first parameter @a msg is passed and
+ * the message buffer used to collect all fragments as the second
+ * argument. If @a cb is NULL and @a infoCB is given, this will be
+ * called with @a msg as the first parameter, the message buffer used
+ * to collect all fragments as the second argument, and @a info as the
+ * last argument.
+ *
+ * If the @a verbose flag is false, unexpected fragments will not be
+ * reported in the syslog.
  *
  * @param msg Message to handle
  *
- * @param func Callback function to be called upon message completion
+ * @param cb Callback function to be called upon message completion
+ *
+ * @param infoCB Optional callback to be called upon message
+ * completion if @a cb is NULL
+ *
+ * @param info Pointer to additional information to be passed ot @a infoCB
  *
  * @param verbose Flag verbosity
  *
@@ -324,14 +359,18 @@ bool fetchFragHeader(DDTypedBufferMsg_t *msg, size_t *used, uint8_t *fragType,
  *
  * @return On success true is returned or false in case of an error
  */
-bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
-		   bool verbose, const char *caller, const int line);
+bool __recvFragMsg(DDTypedBufferMsg_t *msg, SerialRecvCB_t *cb,
+		   SerialRecvInfoCB_t *infoCB, void *info, bool verbose,
+		   const char *caller, const int line);
 
-#define recvFragMsg(msg, func) __recvFragMsg(msg, func, true,		\
-					     __func__, __LINE__)
+#define recvFragMsg(msg, cb)						\
+    __recvFragMsg(msg, cb, NULL, NULL, true, __func__, __LINE__)
 
-#define tryRecvFragMsg(msg, func) __recvFragMsg(msg, func, false,	\
-						__func__, __LINE__)
+#define tryRecvFragMsg(msg, cb)						\
+    __recvFragMsg(msg, cb, NULL, NULL, false, __func__, __LINE__)
+
+#define recvFragMsgInfo(msg, cb, info)					\
+    __recvFragMsg(msg, NULL, cb, info, true, __func__, __LINE__)
 
 /**
  * @brief Send fragmented message

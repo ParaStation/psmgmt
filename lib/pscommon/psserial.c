@@ -621,15 +621,16 @@ bool fetchFragHeader(DDTypedBufferMsg_t *msg, size_t *used, uint8_t *fragType,
     return true;
 }
 
-bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
-		   bool verbose, const char *caller, const int line)
+bool __recvFragMsg(DDTypedBufferMsg_t *msg, SerialRecvCB_t *cb,
+		   SerialRecvInfoCB_t *infoCB, void *info, bool verbose,
+		   const char *caller, const int line)
 {
     if (!msg) {
 	PSC_flog("invalid msg at %s@%d\n", caller, line);
 	return false;
     }
 
-    if (!func) {
+    if (!cb && !infoCB) {
 	PSC_flog("no callback at %s@%d\n", caller, line);
 	return false;
     }
@@ -732,7 +733,11 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	msg->buf[0] = '\0';
 	recvBuf->unpackPtr = recvBuf->buf;
 	recvBuf->unpackErr = 0;
-	func(msg, recvBuf);
+	if (cb) {
+	    cb(msg, recvBuf);
+	} else if (infoCB) {
+	    infoCB(msg, recvBuf, info);
+	}
 
 	/* cleanup data if necessary */
 	if (fragNum) putRecvBuf(list_entry(recvBuf, recvBuf_t, dBuf));
