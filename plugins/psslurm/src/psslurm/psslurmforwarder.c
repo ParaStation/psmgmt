@@ -89,16 +89,16 @@
 #define MPIEXEC_BINARY BINDIR "/mpiexec"
 
 /** Allocation structure of the forwarder */
-Alloc_t *fwAlloc = NULL;
+static Alloc_t *fwAlloc;
 
 /** Job structure of the forwarder */
-Job_t *fwJob = NULL;
+static Job_t *fwJob;
 
 /** Step structure of the forwarder */
-Step_t *fwStep = NULL;
+static Step_t *fwStep;
 
 /** Task structure of the forwarder */
-PStask_t *fwTask = NULL;
+static PStask_t *fwTask;
 
 static int termJobJail(void *info)
 {
