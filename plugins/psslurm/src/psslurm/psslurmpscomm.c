@@ -2205,11 +2205,11 @@ static bool handleUnknownMsg(DDBufferMsg_t *msg)
 
     if (type == PSP_PLUG_PSSLURM) {
 	/* psslurm message */
-	mlog("%s: delivery of psslurm message type %i to %s failed\n",
-	     __func__, type, PSC_printTID(dest));
+	flog("delivery of psslurm message type %i to %s failed\n",
+	     type, PSC_printTID(dest));
 
-	mlog("%s: please make sure the plugin 'psslurm' is loaded on"
-		" node %i\n", __func__, PSC_getID(msg->header.sender));
+	flog("ensure the plugin 'psslurm' is loaded on node %i\n",
+	     PSC_getID(msg->header.sender));
 	return true; // message is fully handled
     }
 
@@ -2237,28 +2237,23 @@ void finalizePScomm(bool verbose)
 
     /* unregister different hooks */
     if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
-	if (verbose) mlog("%s: failed to unregister PSIDHOOK_NODE_DOWN\n",
-			  __func__);
+	if (verbose) flog("failed to unregister PSIDHOOK_NODE_DOWN\n");
     }
 
     if (!PSIDhook_del(PSIDHOOK_CREATEPART, handleCreatePart)) {
-	if (verbose) mlog("%s: failed to unregister PSIDHOOK_CREATEPART\n",
-			  __func__);
+	if (verbose) flog("failed to unregister PSIDHOOK_CREATEPART\n");
     }
 
     if (!PSIDhook_del(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
-	if (verbose) mlog("%s: failed to unregister PSIDHOOK_CREATEPARTNL\n",
-			  __func__);
+	if (verbose) flog("failed to unregister PSIDHOOK_CREATEPARTNL\n");
     }
 
     if (!PSIDhook_del(PSIDHOOK_GETRESERVATION, handleGetReservation)) {
-	if (verbose) mlog("%s: failed to unregister PSIDHOOK_GETRESERVATION\n",
-			  __func__);
+	if (verbose) flog("failed to unregister PSIDHOOK_GETRESERVATION\n");
     }
 
     if (!PSIDhook_del(PSIDHOOK_RECV_SPAWNREQ, handleRecvSpawnReq)) {
-	if (verbose) mlog("%s: failed to unregister PSIDHOOK_RECV_SPAWNREQ\n",
-			  __func__);
+	if (verbose) flog("failed to unregister PSIDHOOK_RECV_SPAWNREQ\n");
     }
 
     /* unregister from various messages types */
@@ -2515,32 +2510,32 @@ bool initPScomm(void)
     PSID_registerDropper(PSP_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
 
     if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
-	mlog("%s: cannot register PSIDHOOK_NODE_DOWN\n", __func__);
+	flog("cannot register PSIDHOOK_NODE_DOWN\n");
 	return false;
     }
 
     if (!PSIDhook_add(PSIDHOOK_CREATEPART, handleCreatePart)) {
-	mlog("%s: cannot register PSIDHOOK_CREATEPART\n", __func__);
+	flog("cannot register PSIDHOOK_CREATEPART\n");
 	return false;
     }
 
     if (!PSIDhook_add(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
-	mlog("%s: cannot register PSIDHOOK_CREATEPARTNL\n", __func__);
+	flog("cannot register PSIDHOOK_CREATEPARTNL\n");
 	return false;
     }
 
     if (!PSIDhook_add(PSIDHOOK_GETRESERVATION, handleGetReservation)) {
-	mlog("%s: cannot register PSIDHOOK_GETRESERVATION\n", __func__);
+	flog("cannot register PSIDHOOK_GETRESERVATION\n");
 	return false;
     }
 
     if (!PSIDhook_add(PSIDHOOK_RECV_SPAWNREQ, handleRecvSpawnReq)) {
-	mlog("%s: cannot register PSIDHOOK_RECV_SPAWNREQ\n", __func__);
+	flog("cannot register PSIDHOOK_RECV_SPAWNREQ\n");
 	return false;
     }
 
     if (!initHostLT()) {
-	mlog("%s: resolving Slurm hosts failed\n", __func__);
+	flog("resolving Slurm hosts failed\n");
 	return false;
     }
 
