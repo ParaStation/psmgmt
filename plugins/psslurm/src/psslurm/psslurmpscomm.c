@@ -1403,12 +1403,10 @@ static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(msgData);
 }
 
-static void handle_AllocTerm(DDTypedBufferMsg_t *msg)
+static void handleAllocTerm(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     uint32_t allocID;
-    size_t used = 0;
-
-    PSP_getTypedMsgBuf(msg, &used, "allocID", &allocID, sizeof(allocID));
+    getUint32(data, &allocID);
 
     flog("allocation %i from %s\n", allocID, PSC_printTID(msg->header.sender));
 
@@ -1487,7 +1485,7 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	recvFragMsg(msg, handleStopStepFW);
 	break;
     case PSP_ALLOC_TERM:
-	handle_AllocTerm(msg);
+	recvFragMsg(msg, handleAllocTerm);
 	break;
     default:
 	flog("unknown msg type: %i [%s -> %s]\n", msg->type, sender, dest);
@@ -2680,32 +2678,16 @@ void sendPElogueOE(Alloc_t *alloc, PElogue_OEdata_t *oeData)
 
 void send_PS_AllocTerm(Alloc_t *alloc)
 {
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PLUG_PSSLURM,
-	    .sender = PSC_getMyTID(),
-	    .len = 0 },
-	.type = PSP_ALLOC_TERM,
-	.buf = {'\0'} };
-
-    PSP_putTypedMsgBuf(&msg, "allocID", &alloc->id, sizeof(alloc->id));
-
-    /* send the messages */
-    PStask_ID_t myID = PSC_getMyTID();
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_ALLOC_TERM);
     for (uint32_t n = 0; n < alloc->nrOfNodes; n++) {
-	msg.header.dest = PSC_getTID(alloc->nodes[n], 0);
-
-	if (msg.header.dest == myID) continue;
-	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
-	}
+	setFragDest(&data, PSC_getTID(alloc->nodes[n], 0));
     }
+    if (!getNumFragDest(&data)) return;
 
-    /* send message to myself */
-    msg.header.dest = myID;
-    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
-    }
+    addUint32ToMsg(alloc->id, &data);
+
+    sendFragMsg(&data);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/
