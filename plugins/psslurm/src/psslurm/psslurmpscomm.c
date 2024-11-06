@@ -724,25 +724,18 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t numDest,
 
 void send_PS_EpilogueStateReq(Alloc_t *alloc)
 {
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PLUG_PSSLURM,
-	    .sender = PSC_getMyTID(),
-	    .len = 0 },
-	.type = PSP_EPILOGUE_STATE_REQ,
-	.buf = {'\0'} };
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_EPILOGUE_STATE_REQ);
 
-    /* add id */
-    PSP_putTypedMsgBuf(&msg, "ID", &alloc->id, sizeof(alloc->id));
-
-    for (uint32_t n=0; n<alloc->nrOfNodes; n++) {
-	if (!alloc->epilogRes[n]) {
-	    msg.header.dest = PSC_getTID(alloc->nodes[n], 0);
-	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
-	    }
-	}
+    for (uint32_t n = 0; n < alloc->nrOfNodes; n++) {
+	if (alloc->epilogRes[n]) continue;
+	setFragDest(&data, PSC_getTID(alloc->nodes[n], 0));
     }
+    if (!getNumFragDest(&data)) return;
+
+    addUint32ToMsg(alloc->id, &data);
+
+    sendFragMsg(&data);
 }
 
 void send_PS_PElogueRes(Alloc_t *alloc, int16_t res, int16_t type)
@@ -904,20 +897,20 @@ static void handle_EpilogueStateRes(DDTypedBufferMsg_t *msg)
 /**
  * @brief Handle a local epilogue state request
  *
- * @param msg The message to handle
+ * @param msg The fragmented message header
+ *
+ * @param data The request to handle
  */
-static void handle_EpilogueStateReq(DDTypedBufferMsg_t *msg)
+static void handleEpilogueStateReq(DDTypedBufferMsg_t *msg,
+				   PS_DataBuffer_t *data)
 {
+    uint16_t res = 0;
+
     uint32_t id;
-    uint16_t res;
-    size_t used = 0;
-
-    PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
-
+    getUint32(data, &id);
     Alloc_t *alloc = Alloc_find(id);
     if (!alloc) {
-	flog("allocation with ID %u not found\n", id);
-	res = 0;
+	flog("no allocation with ID %u\n", id);
     } else {
 	res = alloc->state;
 	if (alloc->state != A_EPILOGUE &&
@@ -1500,7 +1493,7 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	handle_PElogueRes(msg);
 	break;
     case PSP_EPILOGUE_STATE_REQ:
-	handle_EpilogueStateReq(msg);
+	recvFragMsg(msg, handleEpilogueStateReq);
 	break;
     case PSP_EPILOGUE_STATE_RES:
 	handle_EpilogueStateRes(msg);
