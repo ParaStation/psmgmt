@@ -740,27 +740,20 @@ void send_PS_EpilogueStateReq(Alloc_t *alloc)
 
 void send_PS_PElogueRes(Alloc_t *alloc, int16_t res, int16_t type)
 {
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PLUG_PSSLURM,
-	    .sender = PSC_getMyTID(),
-	    .dest = PSC_getTID(alloc->nodes[0], 0),
-	    .len = 0 },
-	.type = PSP_PELOGUE_RES,
-	.buf = {'\0'} };
-
+    PStask_ID_t dest = PSC_getTID(alloc->nodes[0], 0);
     fdbg(PSSLURM_LOG_PELOG, "type %s result: %i dest:%s\n",
 	 type == PELOGUE_PROLOGUE ? "prologue" : "epilogue",
-	 res, PSC_printTID(msg.header.dest));
+	 res, PSC_printTID(dest));
 
-    PSP_putTypedMsgBuf(&msg, "ID", &alloc->id, sizeof(alloc->id));
-    PSP_putTypedMsgBuf(&msg, "res", &res, sizeof(res));
-    PSP_putTypedMsgBuf(&msg, "type", &type, sizeof(type));
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PELOGUE_RES);
+    setFragDest(&data, dest);
 
-    /* send the messages */
-    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
-    }
+    addUint32ToMsg(alloc->id, &data);
+    addInt16ToMsg(res, &data);
+    addInt16ToMsg(type, &data);
+
+    sendFragMsg(&data);
 }
 
 static void handleJobExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -946,18 +939,18 @@ static bool startWaitingJobs(Job_t *job, const void *info)
 /**
  * @brief Handle a non-parallel prologue/epilogue result
  *
- * @param msg The message to handle
+ * @param msg The fragmented message header
+ *
+ * @param data The request to handle
  */
-static void handle_PElogueRes(DDTypedBufferMsg_t *msg)
+static void handlePElogueRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    size_t used = 0;
-
     uint32_t id;
-    PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
-    uint16_t res;
-    PSP_getTypedMsgBuf(msg, &used, "res", &res, sizeof(res));
-    uint16_t type;
-    PSP_getTypedMsgBuf(msg, &used, "type", &type, sizeof(type));
+    getUint32(data, &id);
+
+    uint16_t res, type;
+    getUint16(data, &res);
+    getUint16(data, &type);
 
     char *sType = (type == PELOGUE_PROLOGUE) ? "prologue" : "epilogue";
 
@@ -972,7 +965,6 @@ static void handle_PElogueRes(DDTypedBufferMsg_t *msg)
 
     PSnodes_ID_t sender = PSC_getID(msg->header.sender);
     int localID = getSlurmNodeID(sender, alloc->nodes, alloc->nrOfNodes);
-
     if (localID < 0) {
 	flog("sender node %i in allocation %u not found\n", sender, alloc->id);
 	return;
@@ -1490,7 +1482,7 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	recvFragMsg(msg, handlePackExit);
 	break;
     case PSP_PELOGUE_RES:
-	handle_PElogueRes(msg);
+	recvFragMsg(msg, handlePElogueRes);
 	break;
     case PSP_EPILOGUE_STATE_REQ:
 	recvFragMsg(msg, handleEpilogueStateReq);
