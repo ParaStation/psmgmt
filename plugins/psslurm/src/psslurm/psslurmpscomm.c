@@ -2659,20 +2659,18 @@ void deleteCachedMsg(uint32_t jobid, uint32_t stepid)
 void handleCachedMsg(Step_t *step)
 {
     list_t *s, *tmp;
-
     list_for_each_safe(s, tmp, &msgCache) {
 	Msg_Cache_t *cache = list_entry(s, Msg_Cache_t, next);
-	if ((cache->jobid == step->jobid && cache->stepid == step->stepid) ||
-	    (step->packJobid != NO_VAL && step->packJobid == cache->jobid &&
-	     step->stepid == cache->stepid)) {
-	    switch (cache->msgType) {
-		case PSP_PACK_INFO:
-		    handlePackInfo(&cache->msg, cache->data);
-		    break;
-		default:
-		    mlog("%s: unhandled cached message type %s",
-			 __func__,  msg2Str(cache->msgType));
-	    }
+	if (cache->stepid != step->stepid) continue;
+	if ((step->packJobid == NO_VAL || step->packJobid != cache->jobid)
+	    && (cache->jobid != step->jobid)) continue;
+
+	switch (cache->msgType) {
+	case PSP_PACK_INFO:
+	    handlePackInfo(&cache->msg, cache->data);
+	    break;
+	default:
+	    flog("unhandled message type %s", msg2Str(cache->msgType));
 	}
     }
     deleteCachedMsg(step->jobid, step->stepid);
