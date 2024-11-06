@@ -807,15 +807,15 @@ static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id, uint16_t res
  * step follower to ensure the forwarder will shutdown after
  * mpiexec has exited. This is needed for heterogeneous steps.
  *
- * @param msg The message to handle
+ * @param msg The fragmented message header
+ *
+ * @param data The request to handle
  */
-static void handleStopStepFW(DDTypedBufferMsg_t *msg)
+static void handleStopStepFW(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    size_t used = 0;
     uint32_t stepid, jobid;
-
-    PSP_getTypedMsgBuf(msg, &used, "jobid", &jobid, sizeof(jobid));
-    PSP_getTypedMsgBuf(msg, &used, "stepid", &stepid, sizeof(stepid));
+    getUint32(data, &jobid);
+    getUint32(data, &stepid);
 
     /* cleanup delayed spawn messages which arrived after a terminate
      * RPC from slurmctld was proccessed for the step */
@@ -1484,7 +1484,7 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	recvFragMsg(msg, handlePElogueOEMsg);
 	break;
     case PSP_STOP_STEP_FW:
-	handleStopStepFW(msg);
+	recvFragMsg(msg, handleStopStepFW);
 	break;
     case PSP_ALLOC_TERM:
 	handle_AllocTerm(msg);
@@ -2637,37 +2637,31 @@ void handleCachedMsg(Step_t *step)
 
 void stopStepFollower(Step_t *step)
 {
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PLUG_PSSLURM,
-	    .sender = PSC_getMyTID(),
-	    .len = 0 },
-	.type = PSP_STOP_STEP_FW,
-	.buf = {'\0'} };
-
     if (!step) {
 	flog("no step provided\n");
 	return;
     }
 
-    PSP_putTypedMsgBuf(&msg, "jobid", &step->jobid, sizeof(step->jobid));
-    PSP_putTypedMsgBuf(&msg, "stepid", &step->stepid, sizeof(step->stepid));
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_STOP_STEP_FW);
 
-    /* send the messages */
+    /* determine destinations */
     PSnodes_ID_t *nodes = step->nodes;
     uint32_t nrOfNodes = step->nrOfNodes;
     if (step->packNrOfNodes != NO_VAL) {
 	nodes = step->packNodes;
 	nrOfNodes = step->packNrOfNodes;
     }
-
-    for (uint32_t i=0; i<nrOfNodes; i++) {
-	msg.header.dest = PSC_getTID(nodes[i], 0);
-	if (msg.header.dest == msg.header.sender) continue;
-	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
-	}
+    PSnodes_ID_t myID = PSC_getMyID();
+    for (uint32_t n = 0; n < nrOfNodes; n++) {
+	if (nodes[n] == myID) continue;
+	setFragDest(&data, PSC_getTID(nodes[n], 0));
     }
+
+    addUint32ToMsg(step->jobid, &data);
+    addUint32ToMsg(step->stepid, &data);
+
+    sendFragMsg(&data);
 }
 
 void sendPElogueOE(Alloc_t *alloc, PElogue_OEdata_t *oeData)
