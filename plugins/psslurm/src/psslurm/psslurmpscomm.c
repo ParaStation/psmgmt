@@ -786,27 +786,18 @@ static void handleJobExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
 }
 
-static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id,
-				     uint16_t res)
+static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id, uint16_t res)
 {
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PLUG_PSSLURM,
-	    .sender = PSC_getMyTID(),
-	    .dest = dest,
-	    .len = 0 },
-	.type = PSP_EPILOGUE_STATE_RES,
-	.buf = {'\0'} };
-
     flog("alloc ID %u\n", id);
 
-    /* add id */
-    PSP_putTypedMsgBuf(&msg, "ID", &id, sizeof(id));
-    PSP_putTypedMsgBuf(&msg, "res", &res, sizeof(res));
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_EPILOGUE_STATE_RES);
+    setFragDest(&data, dest);
 
-    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
-    }
+    addUint32ToMsg(id, &data);
+    addUint16ToMsg(res, &data);
+
+    sendFragMsg(&data);
 }
 
 /**
@@ -846,17 +837,15 @@ static void handleStopStepFW(DDTypedBufferMsg_t *msg)
 /**
  * @brief Handle a local epilogue state response
  *
- * @param msg The message to handle
+ * @param msg The fragmented message header
+ *
+ * @param data The request to handle
  */
-static void handle_EpilogueStateRes(DDTypedBufferMsg_t *msg)
+static void handleEpilogueStateRes(DDTypedBufferMsg_t *msg,
+				   PS_DataBuffer_t *data)
 {
     uint32_t id;
-    uint16_t res;
-    size_t used = 0;
-
-    PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
-    PSP_getTypedMsgBuf(msg, &used, "res", &res, sizeof(res));
-
+    getUint32(data, &id);
     Alloc_t *alloc = Alloc_find(id);
     if (!alloc) {
 	flog("allocation with ID %u not found\n", id);
@@ -865,13 +854,14 @@ static void handle_EpilogueStateRes(DDTypedBufferMsg_t *msg)
 
     PSnodes_ID_t sender = PSC_getID(msg->header.sender);
     int localID = getSlurmNodeID(sender, alloc->nodes, alloc->nrOfNodes);
-
     if (localID < 0) {
 	flog("sender node %i in allocation %u not found\n",
 		sender, alloc->id);
 	return;
     }
 
+    uint16_t res;
+    getUint16(data, &res);
     switch (res) {
     case 0:
 	/* allocation already gone */
@@ -1488,7 +1478,7 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	recvFragMsg(msg, handleEpilogueStateReq);
 	break;
     case PSP_EPILOGUE_STATE_RES:
-	handle_EpilogueStateRes(msg);
+	recvFragMsg(msg, handleEpilogueStateRes);
 	break;
     case PSP_PELOGUE_OE:
 	recvFragMsg(msg, handlePElogueOEMsg);
