@@ -559,12 +559,10 @@ static int handleRecvSpawnReq(void *taskPtr)
 void send_PS_JobLaunch(Job_t *job)
 {
     PS_SendDB_t data;
-    PStask_ID_t myID = PSC_getMyID();
-
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_JOB_LAUNCH);
 
-    uint32_t n;
-    for (n = 0; n < job->nrOfNodes; n++) {
+    PStask_ID_t myID = PSC_getMyID();
+    for (uint32_t n = 0; n < job->nrOfNodes; n++) {
 	if (job->nodes[n] == myID) continue;
 	setFragDest(&data, PSC_getTID(job->nodes[n], 0));
     }
@@ -584,11 +582,10 @@ void send_PS_JobLaunch(Job_t *job)
 void send_PS_AllocState(Alloc_t *alloc)
 {
     PS_SendDB_t data;
-    PStask_ID_t myID = PSC_getMyID();
-    uint32_t i;
-
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_ALLOC_STATE);
-    for (i=0; i<alloc->nrOfNodes; i++) {
+
+    PStask_ID_t myID = PSC_getMyID();
+    for (uint32_t i = 0; i < alloc->nrOfNodes; i++) {
 	if (alloc->nodes[i] == myID) continue;
 	setFragDest(&data, PSC_getTID(alloc->nodes[i], 0));
     }
@@ -1300,13 +1297,9 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
 {
     PS_SendDB_t msg;
-
-    /* send the message to other nodes */
     initFragBuffer(&msg, PSP_PLUG_PSSLURM, PSP_FORWARD_SMSG);
-    for (uint32_t i=0; i<nrOfNodes; i++) {
-	if (!setFragDest(&msg, PSC_getTID(nodes[i], 0))) {
-	    return -1;
-	}
+    for (uint32_t n = 0; n < nrOfNodes; n++) {
+	if (!setFragDest(&msg, PSC_getTID(nodes[n], 0))) return -1;
     }
 
     /* add forward information */
@@ -1336,9 +1329,6 @@ int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
 int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
 {
     PS_SendDB_t msg;
-    int ret;
-
-    /* add forward information */
     initFragBuffer(&msg, PSP_PLUG_PSSLURM, PSP_FORWARD_SMSG_RES);
     setFragDest(&msg, sMsg->source);
 
@@ -1348,7 +1338,7 @@ int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
     /* msg payload */
     addMemToMsg(sMsg->reply.buf, sMsg->reply.bufUsed, &msg);
 
-    ret = sendFragMsg(&msg);
+    int ret = sendFragMsg(&msg);
 
     mdbg(PSSLURM_LOG_FWD, "%s: type '%s' source %s socket %i recvTime %zu\n",
 	 __func__, msgType2String(sMsg->head.type), PSC_printTID(sMsg->source),
@@ -2624,7 +2614,6 @@ static void addSlotsToMsg(PSpart_slot_t *slots, uint32_t len, PS_SendDB_t *data)
 int send_PS_PackInfo(Step_t *step)
 {
     PS_SendDB_t data;
-
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PACK_INFO);
     setFragDest(&data, PSC_getTID(step->packNodes[0], 0));
 
@@ -2727,7 +2716,6 @@ void stopStepFollower(Step_t *step)
 void sendPElogueOE(Alloc_t *alloc, PElogue_OEdata_t *oeData)
 {
     PS_SendDB_t data;
-
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PELOGUE_OE);
     setFragDest(&data, PSC_getTID(alloc->nodes[0], 0));
 
