@@ -128,35 +128,35 @@ static const char *msg2Str(PSP_PSSLURM_t type)
     static char buf[64];
 
     switch(type) {
-	case PSP_JOB_EXIT:
-	    return "PSP_JOB_EXIT";
-	case PSP_JOB_LAUNCH:
-	    return "PSP_JOB_LAUNCH";
-	case PSP_FORWARD_SMSG:
-	    return "PSP_FORWARD_SMSG";
-	case PSP_FORWARD_SMSG_RES:
-	    return "PSP_FORWARD_SMSG_RES";
-	case PSP_ALLOC_STATE:
-	    return "PSP_ALLOC_STATE";
-	case PSP_PACK_INFO:
-	    return "PSP_PACK_INFO";
-	case PSP_EPILOGUE_STATE_REQ:
-	    return "PSP_EPILOGUE_STATE_REQ";
-	case PSP_EPILOGUE_STATE_RES:
-	    return "PSP_EPILOGUE_STATE_RES";
-	case PSP_PACK_EXIT:
-	    return "PSP_PACK_EXIT";
-	case PSP_PELOGUE_OE:
-	    return "PSP_PELOGUE_OE";
-	case PSP_STOP_STEP_FW:
-	    return "PSP_STOP_STEP_FW";
-	case PSP_PELOGUE_RES:
-	    return "PSP_PELOGUE_RES";
-	case PSP_ALLOC_TERM:
-	    return "PSP_ALLOC_TERM";
-	default:
-	    snprintf(buf, sizeof(buf), "%i <Unknown>", type);
-	    return buf;
+    case PSP_JOB_EXIT:
+	return "PSP_JOB_EXIT";
+    case PSP_JOB_LAUNCH:
+	return "PSP_JOB_LAUNCH";
+    case PSP_FORWARD_SMSG:
+	return "PSP_FORWARD_SMSG";
+    case PSP_FORWARD_SMSG_RES:
+	return "PSP_FORWARD_SMSG_RES";
+    case PSP_ALLOC_STATE:
+	return "PSP_ALLOC_STATE";
+    case PSP_PACK_INFO:
+	return "PSP_PACK_INFO";
+    case PSP_EPILOGUE_STATE_REQ:
+	return "PSP_EPILOGUE_STATE_REQ";
+    case PSP_EPILOGUE_STATE_RES:
+	return "PSP_EPILOGUE_STATE_RES";
+    case PSP_PACK_EXIT:
+	return "PSP_PACK_EXIT";
+    case PSP_PELOGUE_OE:
+	return "PSP_PELOGUE_OE";
+    case PSP_STOP_STEP_FW:
+	return "PSP_STOP_STEP_FW";
+    case PSP_PELOGUE_RES:
+	return "PSP_PELOGUE_RES";
+    case PSP_ALLOC_TERM:
+	return "PSP_ALLOC_TERM";
+    default:
+	snprintf(buf, sizeof(buf), "%i <Unknown>", type);
+	return buf;
     }
     return NULL;
 }
@@ -182,7 +182,7 @@ static void grantPartRequest(PStask_t *task)
 
     /* Send result to requester */
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sendMsg(%s) failed",__func__,PSC_printTID(task->tid));
+	fwarn(errno, "sendMsg(%s) failed", PSC_printTID(task->tid));
     }
 }
 
@@ -202,7 +202,7 @@ static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
     }
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sendMsg(%s) failed", __func__, PSC_printTID(dest));
+	fwarn(errno, "sendMsg(%s) failed", PSC_printTID(dest));
     }
 }
 
@@ -264,7 +264,7 @@ static int handleCreatePart(void *msg)
 
     /* generate hardware threads array */
     if (!genThreadsArray(&task->partThrds, &task->totalThreads, step)) {
-	mwarn(errno, "%s: Could not generate threads array", __func__);
+	fwarn(errno, "unable to generate threads array");
 	goto error;
     }
 
@@ -450,7 +450,7 @@ static int handleGetReservation(void *res)
     r->nSlots = nSlots;
     r->slots = malloc(r->nSlots * sizeof(PSpart_slot_t));
     if (!r->slots) {
-	mwarn(errno, "%s(%s)", __func__, PSC_printTID(task->tid));
+	fwarn(errno, "%s", PSC_printTID(task->tid));
 	return 1;
     }
     memcpy(r->slots, slots, r->nSlots * sizeof(PSpart_slot_t));
@@ -570,18 +570,14 @@ void send_PS_JobLaunch(Job_t *job)
     }
     if (!getNumFragDest(&data)) return;
 
-    /* add jobid */
     addUint32ToMsg(job->jobid, &data);
 
-    /* uid/gid */
     addUint32ToMsg(job->uid, &data);
     addUint32ToMsg(job->gid, &data);
     addStringToMsg(job->username, &data);
 
-    /* node list */
     addStringToMsg(job->slurmHosts, &data);
 
-    /* send the messages */
     sendFragMsg(&data);
 }
 
@@ -598,13 +594,9 @@ void send_PS_AllocState(Alloc_t *alloc)
     }
     if (!getNumFragDest(&data)) return;
 
-    /* add jobid */
     addUint32ToMsg(alloc->id, &data);
-
-    /* add state */
     addUint16ToMsg(alloc->state, &data);
 
-    /* send the messages */
     sendFragMsg(&data);
 }
 
@@ -735,8 +727,7 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t numDest,
 
 	msg.header.dest = PSC_getTID(nodes[n], 0);
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    mwarn(errno, "%s: sendMsg(%s)", __func__,
-		  PSC_printTID(msg.header.dest));
+	    fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
 	}
     }
 }
@@ -758,8 +749,7 @@ void send_PS_EpilogueStateReq(Alloc_t *alloc)
 	if (!alloc->epilogRes[n]) {
 	    msg.header.dest = PSC_getTID(alloc->nodes[n], 0);
 	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		mwarn(errno, "%s: sendMsg(%s)", __func__,
-		      PSC_printTID(msg.header.dest));
+		fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
 	    }
 	}
     }
@@ -786,8 +776,7 @@ void send_PS_PElogueRes(Alloc_t *alloc, int16_t res, int16_t type)
 
     /* send the messages */
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sendMsg(%s)", __func__,
-	      PSC_printTID(msg.header.dest));
+	fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
     }
 }
 
@@ -841,8 +830,7 @@ static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id,
     PSP_putTypedMsgBuf(&msg, "res", &res, sizeof(res));
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sendMsg(%s)", __func__,
-	      PSC_printTID(msg.header.dest));
+	fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
     }
 }
 
@@ -910,15 +898,15 @@ static void handle_EpilogueStateRes(DDTypedBufferMsg_t *msg)
     }
 
     switch (res) {
-	case 0:
-	    /* allocation already gone */
-	case A_EPILOGUE_FINISH:
-	case A_EXIT:
-	    if (alloc->epilogRes[localID] == false) {
-		alloc->epilogRes[localID] = true;
-		alloc->epilogCnt++;
-	    }
-	    break;
+    case 0:
+	/* allocation already gone */
+    case A_EPILOGUE_FINISH:
+    case A_EXIT:
+	if (alloc->epilogRes[localID] == false) {
+	    alloc->epilogRes[localID] = true;
+	    alloc->epilogCnt++;
+	}
+	break;
     }
 
     finalizeEpilogue(alloc);
@@ -1342,7 +1330,6 @@ int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
     uint32_t len = sMsg->data->used - (sMsg->data->unpackPtr - sMsg->data->buf);
     addMemToMsg(sMsg->data->unpackPtr, len, &msg);
 
-    /* send the message(s) */
     return sendFragMsg(&msg);
 }
 
@@ -1355,11 +1342,8 @@ int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
     initFragBuffer(&msg, PSP_PLUG_PSSLURM, PSP_FORWARD_SMSG_RES);
     setFragDest(&msg, sMsg->source);
 
-    /* socket */
     addInt16ToMsg(sMsg->sock, &msg);
-    /* receive time */
     addTimeToMsg(sMsg->recvTime, &msg);
-    /* message type */
     addUint16ToMsg(sMsg->head.type, &msg);
     /* msg payload */
     addMemToMsg(sMsg->reply.buf, sMsg->reply.bufUsed, &msg);
@@ -1437,11 +1421,9 @@ static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     struct stat st;
     if (stat(buf, &st) == -1) {
-	if (mkdir(buf, S_IRWXU) == -1) {
-	    if (errno != EEXIST) {
-		mwarn(errno, "mkdir(%s)", buf);
-		return;
-	    }
+	if (mkdir(buf, S_IRWXU) == -1 && errno != EEXIST) {
+	    fwarn(errno, "mkdir(%s)", buf);
+	    return;
 	}
     }
 
@@ -1512,48 +1494,47 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	 msg2Str(msg->type), msg->type, sender, dest);
 
     switch (msg->type) {
-	case PSP_JOB_EXIT:
-	    handle_JobExit(msg);
-	    break;
-	case PSP_JOB_LAUNCH:
-	    recvFragMsg(msg, handle_JobLaunch);
-	    break;
-	case PSP_FORWARD_SMSG:
-	    recvFragMsg(msg, handleFWslurmMsg);
-	    break;
-	case PSP_FORWARD_SMSG_RES:
-	    recvFragMsg(msg, handleFWslurmMsgRes);
-	    break;
-	case PSP_ALLOC_STATE:
-	    recvFragMsg(msg, handleAllocState);
-	    break;
-	case PSP_PACK_INFO:
-	    recvFragMsg(msg, handlePackInfo);
-	    break;
-	case PSP_PACK_EXIT:
-	    recvFragMsg(msg, handlePackExit);
-	    break;
-	case PSP_PELOGUE_RES:
-	    handle_PElogueRes(msg);
-	    break;
-	case PSP_EPILOGUE_STATE_REQ:
-	    handle_EpilogueStateReq(msg);
-	    break;
-	case PSP_EPILOGUE_STATE_RES:
-	    handle_EpilogueStateRes(msg);
-	    break;
-	case PSP_PELOGUE_OE:
-	    recvFragMsg(msg, handlePElogueOEMsg);
-	    break;
-	case PSP_STOP_STEP_FW:
-	    handleStopStepFW(msg);
-	    break;
-	case PSP_ALLOC_TERM:
-	    handle_AllocTerm(msg);
-	    break;
-	default:
-	    flog("received unknown msg type: %i [%s -> %s]\n", msg->type,
-		 sender, dest);
+    case PSP_JOB_EXIT:
+	handle_JobExit(msg);
+	break;
+    case PSP_JOB_LAUNCH:
+	recvFragMsg(msg, handle_JobLaunch);
+	break;
+    case PSP_FORWARD_SMSG:
+	recvFragMsg(msg, handleFWslurmMsg);
+	break;
+    case PSP_FORWARD_SMSG_RES:
+	recvFragMsg(msg, handleFWslurmMsgRes);
+	break;
+    case PSP_ALLOC_STATE:
+	recvFragMsg(msg, handleAllocState);
+	break;
+    case PSP_PACK_INFO:
+	recvFragMsg(msg, handlePackInfo);
+	break;
+    case PSP_PACK_EXIT:
+	recvFragMsg(msg, handlePackExit);
+	break;
+    case PSP_PELOGUE_RES:
+	handle_PElogueRes(msg);
+	break;
+    case PSP_EPILOGUE_STATE_REQ:
+	handle_EpilogueStateReq(msg);
+	break;
+    case PSP_EPILOGUE_STATE_RES:
+	handle_EpilogueStateRes(msg);
+	break;
+    case PSP_PELOGUE_OE:
+	recvFragMsg(msg, handlePElogueOEMsg);
+	break;
+    case PSP_STOP_STEP_FW:
+	handleStopStepFW(msg);
+	break;
+    case PSP_ALLOC_TERM:
+	handle_AllocTerm(msg);
+	break;
+    default:
+	flog("unknown msg type: %i [%s -> %s]\n", msg->type, sender, dest);
     }
     return true;
 }
@@ -2148,19 +2129,19 @@ static bool handleCCMsg(PSLog_Msg_t *msg)
 	 PSC_printTID(msg->header.sender), PSLog_printMsgType(msg->type));
 
     switch (msg->type) {
-	case STDOUT:
-	case STDERR:
-	    return handleCC_IO_Msg(msg);
-	case INITIALIZE:
-	    handleCC_INIT_Msg(msg);
-	    break;
-	case STDIN:
-	    return handleCC_STDIN_Msg(msg);
-	case FINALIZE:
-	    return handleCC_Finalize_Msg(msg);
-	default:
-	    /* let original handler take care of the msg */
-	    break;
+    case STDOUT:
+    case STDERR:
+	return handleCC_IO_Msg(msg);
+    case INITIALIZE:
+	handleCC_INIT_Msg(msg);
+	break;
+    case STDIN:
+	return handleCC_STDIN_Msg(msg);
+    case FINALIZE:
+	return handleCC_Finalize_Msg(msg);
+    default:
+	/* let original handler take care of the msg */
+	break;
     }
 
     return false; // call the old handler if any
@@ -2495,7 +2476,7 @@ static bool initHostLT(void)
     /* create hash table to search for hostnames */
     size_t hsize = numHostLT + (int)ceil((numHostLT/100.0)*30);
     if (!hcreate_r(hsize, &HostHash)) {
-	mwarn(errno, "%s: hcreate(%zu)", __func__, hsize);
+	fwarn(errno, "hcreate(%zu)", hsize);
 	goto ERROR;
     }
     ENTRY e, *f;
@@ -2503,7 +2484,7 @@ static bool initHostLT(void)
 	e.key = HostLT[z].hostname;
 	e.data = &HostLT[z].nodeID;
 	if (!hsearch_r(e, ENTER, &f, &HostHash)) {
-	    mwarn(errno, "%s: hsearch(%s, ENTER)", __func__,HostLT[z].hostname);
+	    fwarn(errno, "hsearch(%s, ENTER)", HostLT[z].hostname);
 	    hdestroy_r(&HostHash);
 	    goto ERROR;
 	}
@@ -2593,9 +2574,7 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
 
     /* pack jobid */
     addUint32ToMsg(step->packJobid != NO_VAL ? step->packJobid : step->jobid, &data);
-    /* stepid */
     addUint32ToMsg(step->stepid, &data);
-    /* exit status */
     addInt32ToMsg(exitStatus, &data);
 
     fdbg(PSSLURM_LOG_PACK, "%s pack jobid %u exit %i\n", Step_strID(step),
@@ -2677,7 +2656,6 @@ int send_PS_PackInfo(Step_t *step)
 void deleteCachedMsg(uint32_t jobid, uint32_t stepid)
 {
     list_t *s, *tmp;
-
     list_for_each_safe(s, tmp, &msgCache) {
 	Msg_Cache_t *cache = list_entry(s, Msg_Cache_t, next);
 	if (cache->jobid == jobid && cache->stepid == stepid) {
@@ -2741,8 +2719,7 @@ void stopStepFollower(Step_t *step)
 	msg.header.dest = PSC_getTID(nodes[i], 0);
 	if (msg.header.dest == msg.header.sender) continue;
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    mwarn(errno, "%s: sendMsg(%s)", __func__,
-		  PSC_printTID(msg.header.dest));
+	    fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
 	}
     }
 }
@@ -2754,13 +2731,9 @@ void sendPElogueOE(Alloc_t *alloc, PElogue_OEdata_t *oeData)
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PELOGUE_OE);
     setFragDest(&data, PSC_getTID(alloc->nodes[0], 0));
 
-    /* allocation ID */
     addUint32ToMsg(alloc->id, &data);
-    /* pelogue type */
     addInt8ToMsg(oeData->child->type, &data);
-    /* output type */
     addInt8ToMsg(oeData->type, &data);
-    /* message */
     addStringToMsg(oeData->msg, &data);
 
     sendFragMsg(&data);
@@ -2785,16 +2758,14 @@ void send_PS_AllocTerm(Alloc_t *alloc)
 
 	if (msg.header.dest == myID) continue;
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    mwarn(errno, "%s: sendMsg(%s)", __func__,
-		  PSC_printTID(msg.header.dest));
+	    fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
 	}
     }
 
     /* send message to myself */
     msg.header.dest = myID;
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sendMsg(%s)", __func__,
-		PSC_printTID(msg.header.dest));
+	fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
     }
 }
 
