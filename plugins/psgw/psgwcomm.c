@@ -95,7 +95,7 @@ static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 bool handlePSGWmsg(DDTypedBufferMsg_t *msg)
 {
-    char sender[32], dest[32];
+    char sender[48], dest[48];
 
     snprintf(sender, sizeof(sender), "%s", PSC_printTID(msg->header.sender));
     snprintf(dest, sizeof(dest), "%s", PSC_printTID(msg->header.dest));

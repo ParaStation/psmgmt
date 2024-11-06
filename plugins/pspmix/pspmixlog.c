@@ -67,7 +67,7 @@ const char *pspmix_jobStr(PspmixJob_t *job)
 
 const char *pspmix_jobIDsStr(PStask_ID_t sessID, PStask_ID_t jobID)
 {
-    static char str[64];
+    static char str[128];
     int n = snprintf(str, sizeof(str), "session %s", PSC_printTID(sessID));
     snprintf(str+n, sizeof(str) - n, " job %s", PSC_printTID(jobID));
 
