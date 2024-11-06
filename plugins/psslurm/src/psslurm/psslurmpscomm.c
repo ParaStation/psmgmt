@@ -706,27 +706,20 @@ void requeueBatchJob(Job_t *job, PSnodes_ID_t dest)
 void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t numDest,
 		     PSnodes_ID_t *nodes)
 {
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PLUG_PSSLURM,
-	    .sender = PSC_getMyTID(),
-	    .len = 0 },
-	.type = PSP_JOB_EXIT,
-	.buf = {'\0'} };
-    PStask_ID_t myID = PSC_getMyID();
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_JOB_EXIT);
 
-    PSP_putTypedMsgBuf(&msg, "jobID", &jobid, sizeof(jobid));
-    PSP_putTypedMsgBuf(&msg, "stepID", &stepid, sizeof(stepid));
-
-    /* send the messages */
+    PSnodes_ID_t myID = PSC_getMyID();
     for (uint32_t n = 0; n < numDest; n++) {
 	if (nodes[n] == myID) continue;
-
-	msg.header.dest = PSC_getTID(nodes[n], 0);
-	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    fwarn(errno, "sendMsg(%s)", PSC_printTID(msg.header.dest));
-	}
+	setFragDest(&data, PSC_getTID(nodes[n], 0));
     }
+    if (!getNumFragDest(&data)) return;
+
+    addUint32ToMsg(jobid, &data);
+    addUint32ToMsg(stepid, &data);
+
+    sendFragMsg(&data);
 }
 
 void send_PS_EpilogueStateReq(Alloc_t *alloc)
@@ -777,13 +770,12 @@ void send_PS_PElogueRes(Alloc_t *alloc, int16_t res, int16_t type)
     }
 }
 
-static void handle_JobExit(DDTypedBufferMsg_t *msg)
+static void handleJobExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
+    /* get jobid/stepid */
     uint32_t jobid, stepid;
-    size_t used = 0;
-
-    PSP_getTypedMsgBuf(msg, &used, "jobID", &jobid, sizeof(jobid));
-    PSP_getTypedMsgBuf(msg, &used, "stepID", &stepid, sizeof(stepid));
+    getUint32(data, &jobid);
+    getUint32(data, &stepid);
 
     Step_t s = {
 	.jobid = jobid,
@@ -1048,7 +1040,7 @@ static void handle_PElogueRes(DDTypedBufferMsg_t *msg)
  *
  * @param data The request to handle
  */
-static void handle_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleJobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     /* get jobid */
     uint32_t jobid;
@@ -1484,10 +1476,10 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 
     switch (msg->type) {
     case PSP_JOB_EXIT:
-	handle_JobExit(msg);
+	recvFragMsg(msg, handleJobExit);
 	break;
     case PSP_JOB_LAUNCH:
-	recvFragMsg(msg, handle_JobLaunch);
+	recvFragMsg(msg, handleJobLaunch);
 	break;
     case PSP_FORWARD_SMSG:
 	recvFragMsg(msg, handleFWslurmMsg);
