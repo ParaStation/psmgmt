@@ -98,13 +98,12 @@ typedef struct {
 static LIST_HEAD(msgCache);
 
 typedef enum {
-    PSP_JOB_EXIT = 18,      /**< inform sister nodes a job is finished */
+    PSP_JOB_EXIT = 1,       /**< inform sister nodes a job is finished */
     PSP_JOB_LAUNCH,	    /**< inform sister nodes about a new job */
-    PSP_FORWARD_SMSG = 22,  /**< forward a Slurm message */
+    PSP_FORWARD_SMSG,       /**< forward a Slurm message */
     PSP_FORWARD_SMSG_RES,   /**< result of forwarding a Slurm message */
-    PSP_ALLOC_STATE =26,    /**< allocation state change */
+    PSP_ALLOC_STATE,        /**< allocation state change */
     PSP_PACK_INFO,	    /**< send pack information to mother superior */
-    PSP_EPILOGUE_RES = 29,  /**< defunct, tbr */
     PSP_EPILOGUE_STATE_REQ, /**< request delayed epilogue status */
     PSP_EPILOGUE_STATE_RES, /**< response to epilogue status request */
     PSP_PACK_EXIT,	    /**< forward exit status to all pack follower */
@@ -141,8 +140,6 @@ static const char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_ALLOC_STATE";
 	case PSP_PACK_INFO:
 	    return "PSP_PACK_INFO";
-	case PSP_EPILOGUE_RES:
-	    return "PSP_EPILOGUE_RES";
 	case PSP_EPILOGUE_STATE_REQ:
 	    return "PSP_EPILOGUE_STATE_REQ";
 	case PSP_EPILOGUE_STATE_RES:
@@ -1554,10 +1551,6 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_ALLOC_TERM:
 	    handle_AllocTerm(msg);
 	    break;
-	case PSP_EPILOGUE_RES:
-	    flog("received defunct msg type: %i [%s -> %s]\n", msg->type,
-		 sender, dest);
-	    break;
 	default:
 	    flog("received unknown msg type: %i [%s -> %s]\n", msg->type,
 		 sender, dest);
@@ -1741,7 +1734,6 @@ static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
     case PSP_JOB_LAUNCH:
     case PSP_JOB_EXIT:
     case PSP_ALLOC_STATE:
-    case PSP_EPILOGUE_RES:
     case PSP_EPILOGUE_STATE_RES:
     case PSP_PACK_INFO:
     case PSP_PACK_EXIT:
