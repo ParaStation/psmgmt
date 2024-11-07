@@ -136,20 +136,22 @@ static void handleSattachTasks(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
     ufree(sig);
 }
 
-static void handlePrintStepMsg(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
+static void handlePrintStepMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+			       void *info)
 {
-    uint8_t type;
-    uint32_t rank;
-    size_t msglen;
+    Forwarder_Data_t *fwdata = info;
 
     /* read message */
+    uint8_t type;
     getUint8(data, &type);
+    uint32_t rank;
     getUint32(data, &rank);
-    char *msg = getDataM(data, &msglen);
+    size_t msglen;
+    char *IOmsg = getDataM(data, &msglen);
 
-    IO_printStepMsg(fwdata, msg, msglen, rank, type);
+    IO_printStepMsg(fwdata, IOmsg, msglen, rank, type);
 
-    ufree(msg);
+    ufree(IOmsg);
 }
 
 bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
@@ -168,7 +170,7 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 
     switch ((PSSLURM_Fw_Cmds_t)msg->type) {
     case CMD_PRINT_CHILD_MSG:
-	handlePrintStepMsg(fwdata, &data);
+	recvFragMsgInfo(msg, handlePrintStepMsg, fwdata);
 	break;
     case CMD_ENABLE_SRUN_IO:
 	handleEnableSrunIO(fwdata);
@@ -194,30 +196,29 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     return true;
 }
 
-static void handlePrintJobMsg(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
+static void handlePrintJobMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+			      void *info)
 {
-    uint8_t type;
-    size_t msglen;
+    Forwarder_Data_t *fwdata = info;
 
     /* read message */
+    uint8_t type;
     getUint8(data, &type);
-    char *msg = getDataM(data, &msglen);
+    size_t msglen;
+    char *IOmsg = getDataM(data, &msglen);
 
-    IO_printJobMsg(fwdata, msg, msglen, type);
+    IO_printJobMsg(fwdata, IOmsg, msglen, type);
 
-    ufree(msg);
+    ufree(IOmsg);
 }
 
 bool fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     if (msg->header.type != PSP_PF_MSG) return false;
 
-    PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
-
     switch ((PSSLURM_Fw_Cmds_t)msg->type) {
     case CMD_PRINT_CHILD_MSG:
-	handlePrintJobMsg(fwdata, &data);
+	recvFragMsgInfo(msg, handlePrintJobMsg, fwdata);
 	break;
     default:
 	flog("unexpected msg, type %d from TID %s (%s) jobid %s\n", msg->type,
@@ -659,45 +660,25 @@ int fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 	return 1;
     }
 
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PF_MSG,
-	    .dest = fwdata->tid,
-	    .sender = PSC_getMyTID(),
-	    .len = 0, },
-	.type = CMD_PRINT_CHILD_MSG };
-    size_t left = msgLen;
-    size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t) - sizeof(uint32_t);
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PF_MSG, CMD_PRINT_CHILD_MSG);
+    setFragDest(&data, fwdata->tid);
+
+    addUint8ToMsg(type, &data);
 
     if (step) {
-	/* reserved for additional rank */
-	chunkSize -= sizeof(uint32_t);
-
 	/* connection to srun broke */
-	if (step->ioCon == IO_CON_BROKE) return -1;
-
 	if (step->ioCon == IO_CON_ERROR) {
 	    flog("I/O connection for %s is broken\n", Step_strID(step));
 	    step->ioCon = IO_CON_BROKE;
 	}
+	if (step->ioCon == IO_CON_BROKE) return -1;
+
+	addUint32ToMsg(rank, &data);
     }
+    addDataToMsg(plMsg, msgLen, &data);
 
-    do {
-	uint32_t chunk = left > chunkSize ? chunkSize : left;
-	uint32_t len = htonl(chunk);
-	msg.header.len = 0;
-	PSP_putTypedMsgBuf(&msg, "type", &type, sizeof(type));
-	if (step) {
-	    uint32_t nRank = htonl(rank);
-	    PSP_putTypedMsgBuf(&msg, "rank", &nRank, sizeof(nRank));
-	}
-	/* Add data chunk including its length mimicking addData */
-	PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
-	PSP_putTypedMsgBuf(&msg, "data", plMsg + msgLen - left, chunk);
-
-	sendMsg(&msg);
-	left -= chunk;
-    } while (left);
+    sendFragMsg(&data);
 
     return 0;
 }
@@ -782,35 +763,25 @@ void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank)
     /* might happen if forwarder is already gone */
     if (!step->fwdata) return;
 
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PF_MSG,
-	    .dest = step->fwdata->tid,
-	    .sender = lmsg->header.sender,
-	    .len = 0 },
-	.type = CMD_PRINT_CHILD_MSG };
-
     /* connection to srun broke */
-    if (step->ioCon == IO_CON_BROKE) return;
-
     if (step->ioCon == IO_CON_ERROR) {
 	flog("I/O connection for %s is broken\n", Step_strID(step));
 	step->ioCon = IO_CON_BROKE;
     }
+    if (step->ioCon == IO_CON_BROKE) return;
+
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PF_MSG, CMD_PRINT_CHILD_MSG);
+    setFragDest(&data, step->fwdata->tid);
+
+    addUint8ToMsg(lmsg->type, &data);
 
     /* if msg from service rank, let it seem like it comes from first task */
     if (senderRank < 0) senderRank = step->globalTaskIds[step->localNodeId][0];
+    addUint32ToMsg(senderRank, &data);
 
-    /* no chunks required since sizeof(lmsg->buf) << msg.buf */
-    uint8_t type = lmsg->type;
-    PSP_putTypedMsgBuf(&msg, "type", &type, sizeof(type));
-    uint32_t nRank = htonl(senderRank);
-    PSP_putTypedMsgBuf(&msg, "rank", &nRank, sizeof(nRank));
-    /* Add data chunk including its length mimicking addData */
     size_t msgLen = lmsg->header.len - PSLog_headerSize;
-    uint32_t len = htonl(msgLen);
-    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
-    PSP_putTypedMsgBuf(&msg, "data", lmsg->buf, msgLen);
+    addDataToMsg(lmsg->buf, msgLen, &data);
 
-    sendMsg(&msg);
+    sendFragMsg(&data);
 }
