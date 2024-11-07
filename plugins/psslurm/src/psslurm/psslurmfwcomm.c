@@ -10,7 +10,6 @@
  */
 #include "psslurmfwcomm.h"
 
-#include <arpa/inet.h>
 #include <errno.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -23,7 +22,6 @@
 #include "psenv.h"
 #include "pslog.h"
 #include "pspartition.h"
-#include "pspluginprotocol.h"
 #include "psserial.h"
 #include "psstrv.h"
 
@@ -237,13 +235,12 @@ bool fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     return true;
 }
 
-static void handleBrokeIOcon(DDTypedBufferMsg_t *msg)
+static void handleBrokeIOcon(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    size_t used = 0;
     uint32_t jobID;
-    PSP_getTypedMsgBuf(msg, &used, "jobID", &jobID, sizeof(jobID));
+    getUint32(data, &jobID);
     uint32_t stepID;
-    PSP_getTypedMsgBuf(msg, &used, "stepID", &stepID, sizeof(stepID));
+    getUint32(data, &stepID);
 
     /* step might already be deleted */
     Step_t *step = Step_findByStepId(jobID, stepID);
@@ -252,7 +249,7 @@ static void handleBrokeIOcon(DDTypedBufferMsg_t *msg)
     if (step->ioCon == IO_CON_NORM) step->ioCon = IO_CON_ERROR;
 }
 
-static void changeEnv(int cmd, PS_DataBuffer_t *data)
+static void changeEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     uint32_t jobid;
     getUint32(data, &jobid);
@@ -268,7 +265,7 @@ static void changeEnv(int cmd, PS_DataBuffer_t *data)
 
     char *var = getStringM(data);
 
-    if (cmd == CMD_SETENV) {
+    if ((PSSLURM_Fw_Cmds_t)msg->type == CMD_SETENV) {
 	char *val = getStringM(data);
 	fdbg(PSSLURM_LOG_SPANK, "setenv %s:%s for %s\n", var, val,
 	     Step_strID(step));
@@ -279,7 +276,6 @@ static void changeEnv(int cmd, PS_DataBuffer_t *data)
 	fdbg(PSSLURM_LOG_SPANK, "unsetenv %s for %s\n", var, Step_strID(step));
 	envUnset(step->env, var);
     }
-
     ufree(var);
 }
 
@@ -427,7 +423,7 @@ static void startSpawner(Step_t *step, int32_t serviceRank)
 }
 
 
-static void handleInitComplete(PS_DataBuffer_t *data)
+static void handleInitComplete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     uint32_t jobid;
     getUint32(data, &jobid);
@@ -461,19 +457,16 @@ bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	    return false;
 	}
     } else if (msg->header.type == PSP_PF_MSG) {
-	PS_DataBuffer_t data;
-	initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
-
 	switch ((PSSLURM_Fw_Cmds_t)msg->type) {
 	case CMD_BROKE_IO_CON:
-	    handleBrokeIOcon(msg);
+	    recvFragMsg(msg, handleBrokeIOcon);
 	    break;
 	case CMD_SETENV:
 	case CMD_UNSETENV:
-	    changeEnv((PSSLURM_Fw_Cmds_t)msg->type, &data);
+	    recvFragMsg(msg, changeEnv);
 	    break;
 	case CMD_INIT_COMPLETE:
-	    handleInitComplete(&data);
+	    recvFragMsg(msg, handleInitComplete);
 	    break;
 	default:
 	    fdbg(PSSLURM_LOG_IO_VERB, "unhandled type %d\n", msg->type);
@@ -503,27 +496,16 @@ void fwCMD_setEnv(Step_t *step, const char *var, const char *val)
 	return;
     }
 
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PF_MSG,
-	    .dest = PSC_getTID(-1,0),
-	    .sender = PSC_getMyTID(),
-	    .len = 0, },
-	.type = CMD_SETENV };
-    uint32_t myJobID = htonl(step->jobid);
-    PSP_putTypedMsgBuf(&msg, "jobID", &myJobID, sizeof(myJobID));
-    uint32_t myStepID = htonl(step->stepid);
-    PSP_putTypedMsgBuf(&msg, "stepID", &myStepID, sizeof(myStepID));
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PF_MSG, CMD_SETENV);
+    setFragDest(&data, PSC_getTID(-1,0));
 
-    uint32_t len = htonl(PSP_strLen(var));
-    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
-    PSP_putTypedMsgBuf(&msg, "var", var, PSP_strLen(var));
+    addUint32ToMsg(step->jobid, &data);
+    addUint32ToMsg(step->stepid, &data);
+    addStringToMsg(var, &data);
+    addStringToMsg(val, &data);
 
-    len = htonl(PSP_strLen(val));
-    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
-    PSP_putTypedMsgBuf(&msg, "val", val, PSP_strLen(val));
-
-    sendMsgToMother(&msg);
+    sendFragMsg(&data);
 }
 
 void fwCMD_initComplete(Step_t *step, int32_t serviceRank)
@@ -533,21 +515,15 @@ void fwCMD_initComplete(Step_t *step, int32_t serviceRank)
 	return;
     }
 
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PF_MSG,
-	    .dest = PSC_getTID(-1,0),
-	    .sender = PSC_getMyTID(),
-	    .len = 0, },
-	.type = CMD_INIT_COMPLETE };
-    uint32_t myJobID = htonl(step->jobid);
-    PSP_putTypedMsgBuf(&msg, "jobID", &myJobID, sizeof(myJobID));
-    uint32_t myStepID = htonl(step->stepid);
-    PSP_putTypedMsgBuf(&msg, "stepID", &myStepID, sizeof(myStepID));
-    int32_t mySrvcRnk = htonl(serviceRank);
-    PSP_putTypedMsgBuf(&msg, "serviceRank", &mySrvcRnk, sizeof(mySrvcRnk));
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PF_MSG, CMD_INIT_COMPLETE);
+    setFragDest(&data, PSC_getTID(-1,0));
 
-    sendMsgToMother(&msg);
+    addUint32ToMsg(step->jobid, &data);
+    addUint32ToMsg(step->stepid, &data);
+    addInt32ToMsg(serviceRank, &data);
+
+    sendFragMsg(&data);
 }
 
 void fwCMD_unsetEnv(Step_t *step, const char *var)
@@ -557,40 +533,27 @@ void fwCMD_unsetEnv(Step_t *step, const char *var)
 	return;
     }
 
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PF_MSG,
-	    .dest = PSC_getTID(-1,0),
-	    .sender = PSC_getMyTID(),
-	    .len = 0, },
-	.type = CMD_UNSETENV };
-    uint32_t myJobID = htonl(step->jobid);
-    PSP_putTypedMsgBuf(&msg, "jobID", &myJobID, sizeof(myJobID));
-    uint32_t myStepID = htonl(step->stepid);
-    PSP_putTypedMsgBuf(&msg, "stepID", &myStepID, sizeof(myStepID));
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PF_MSG, CMD_UNSETENV);
+    setFragDest(&data, PSC_getTID(-1,0));
 
-    uint32_t len = htonl(PSP_strLen(var));
-    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
-    PSP_putTypedMsgBuf(&msg, "var", var, PSP_strLen(var));
+    addUint32ToMsg(step->jobid, &data);
+    addUint32ToMsg(step->stepid, &data);
+    addStringToMsg(var, &data);
 
-    sendMsgToMother(&msg);
+    sendFragMsg(&data);
 }
 
 void fwCMD_brokeIOcon(Step_t *step)
 {
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PF_MSG,
-	    .dest = PSC_getTID(-1,0),
-	    .sender = PSC_getMyTID(),
-	    .len = 0, },
-	.type = CMD_BROKE_IO_CON };
-    uint32_t myJobID = step->jobid;
-    PSP_putTypedMsgBuf(&msg, "jobID", &myJobID, sizeof(myJobID));
-    uint32_t myStepID = step->stepid;
-    PSP_putTypedMsgBuf(&msg, "stepID", &myStepID, sizeof(myStepID));
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PF_MSG, CMD_BROKE_IO_CON);
+    setFragDest(&data, PSC_getTID(-1,0));
 
-    sendMsgToMother(&msg);
+    addUint32ToMsg(step->jobid, &data);
+    addUint32ToMsg(step->stepid, &data);
+
+    sendFragMsg(&data);
 }
 
 void fwCMD_enableSrunIO(Step_t *step)
