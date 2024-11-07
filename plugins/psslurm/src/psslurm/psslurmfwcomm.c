@@ -68,8 +68,10 @@ static void handleStepTimeout(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
     step->timeout = true;
 }
 
-static void handleInfoTasks(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
+static void handleInfoTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+			    void *info)
 {
+    Forwarder_Data_t *fwdata = info;
     Step_t *step = fwdata->userData;
 
     PS_Tasks_t *task = getDataM(data, NULL);
@@ -184,7 +186,7 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	handleSattachTasks(fwdata, &data);
 	break;
     case CMD_INFO_TASKS:
-	handleInfoTasks(fwdata, &data);
+	recvFragMsgInfo(msg, handleInfoTasks, fwdata);
 	break;
     case CMD_STEP_TIMEOUT:
 	recvFragMsgInfo(msg, handleStepTimeout, fwdata);
@@ -740,20 +742,13 @@ void fwCMD_taskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
     /* might happen that forwarder is already gone */
     if (!fwdata) return;
 
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PF_MSG,
-	    .dest = fwdata->tid,
-	    .sender = PSC_getMyTID(),
-	    .len = 0 },
-	.type = CMD_INFO_TASKS };
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PF_MSG, CMD_INFO_TASKS);
+    setFragDest(&data, fwdata->tid);
 
-    /* Add data including its length mimicking addData */
-    uint32_t len = htonl(sizeof(*task));
-    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
-    PSP_putTypedMsgBuf(&msg, "task", task, sizeof(*task));
+    addDataToMsg(task, sizeof(*task), &data);
 
-    sendMsg(&msg);
+    sendFragMsg(&data);
 }
 
 void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank)
