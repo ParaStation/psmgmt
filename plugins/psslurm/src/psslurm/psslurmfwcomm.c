@@ -89,13 +89,16 @@ static void handleInfoTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
     }
 }
 
-static void handleFWfinalize(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
+static void handleFWfinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+			     void *info)
 {
+    Forwarder_Data_t *fwdata = info;
     Step_t *step = fwdata->userData;
+
     uint32_t grank;
     getUint32(data, &grank);
-    PSLog_Msg_t *msg = getDataM(data, NULL);
-    PStask_ID_t sender = msg->header.sender;
+    PSLog_Msg_t *logMsg = getDataM(data, NULL);
+    PStask_ID_t sender = logMsg->header.sender;
 
     fdbg(PSSLURM_LOG_IO, "from %s\n", PSC_printTID(sender));
 
@@ -109,12 +112,12 @@ static void handleFWfinalize(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
     if (!task) {
 	flog("no task for forwarder %s\n", PSC_printTID(sender));
     } else {
-	task->exitCode = *(int *) msg->buf;
+	task->exitCode = *(int *)logMsg->buf;
     }
 
     /* let main psslurm forward FINALIZE to logger */
-    sendMsgToMother((DDTypedBufferMsg_t *)msg);
-    ufree(msg);
+    sendMsgToMother((DDTypedBufferMsg_t *)logMsg);
+    ufree(logMsg);
 }
 
 static void handleEnableSrunIO(Forwarder_Data_t *fwdata)
@@ -180,7 +183,7 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	handleEnableSrunIO(fwdata);
 	break;
     case CMD_FW_FINALIZE:
-	handleFWfinalize(fwdata, &data);
+	recvFragMsgInfo(msg, handleFWfinalize, fwdata);
 	break;
     case CMD_REATTACH_TASKS:
 	handleSattachTasks(fwdata, &data);
@@ -716,25 +719,17 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg, int32_t rank)
     /* might happen that forwarder is already gone */
     if (!fwdata) return;
 
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PF_MSG,
-	    .dest = fwdata->tid,
-	    .sender = PSC_getMyTID(),
-	    .len = 0, },
-	.type = CMD_FW_FINALIZE };
+    if (fwdata->tid == -1) flog("unknown destination for %s\n",
+				PSC_printTID(plMsg->header.sender));
 
-    /* Shall be okay since PSLog_Msg_t always fits DDTypedBufferMsg_t buf */
-    uint32_t nRank = htonl(rank);
-    PSP_putTypedMsgBuf(&msg, "rank", &nRank, sizeof(nRank));
-    /* Add data including its length mimicking addData */
-    uint32_t len = htonl(plMsg->header.len);
-    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
-    PSP_putTypedMsgBuf(&msg, "plMsg", plMsg, plMsg->header.len);
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PF_MSG, CMD_FW_FINALIZE);
+    setFragDest(&data, fwdata->tid);
 
-    if (msg.header.dest == -1) flog("unknown destination for %s\n",
-				    PSC_printTID(plMsg->header.sender));
-    sendMsg(&msg);
+    addUint32ToMsg(rank, &data);
+    addDataToMsg(plMsg, plMsg->header.len, &data);
+
+    sendFragMsg(&data);
 }
 
 void fwCMD_taskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
