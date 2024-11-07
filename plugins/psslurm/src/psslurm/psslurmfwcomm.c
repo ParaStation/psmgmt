@@ -59,8 +59,10 @@ typedef enum {
     CMD_INIT_COMPLETE,
 } PSSLURM_Fw_Cmds_t;
 
-static void handleStepTimeout(Forwarder_Data_t *fwdata)
+static void handleStepTimeout(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+			      void *info)
 {
+    Forwarder_Data_t *fwdata = info;
     Step_t *step = fwdata->userData;
 
     step->timeout = true;
@@ -185,7 +187,7 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	handleInfoTasks(fwdata, &data);
 	break;
     case CMD_STEP_TIMEOUT:
-	handleStepTimeout(fwdata);
+	recvFragMsgInfo(msg, handleStepTimeout, fwdata);
 	break;
     default:
 	flog("unexpected msg, type %d from TID %s (%s) jobid %s\n", msg->type,
@@ -481,15 +483,11 @@ void fwCMD_stepTimeout(Forwarder_Data_t *fwdata)
     /* might happen that forwarder is already gone */
     if (!fwdata) return;
 
-    DDTypedMsg_t msg = {
-	.header = {
-	    .type = PSP_PF_MSG,
-	    .dest = fwdata->tid,
-	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) },
-	.type = CMD_STEP_TIMEOUT };
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PF_MSG, CMD_STEP_TIMEOUT);
+    setFragDest(&data, fwdata->tid);
 
-    sendMsg(&msg);
+    sendFragMsg(&data);
 }
 
 void fwCMD_setEnv(Step_t *step, const char *var, const char *val)
