@@ -120,8 +120,10 @@ static void handleFWfinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
     ufree(logMsg);
 }
 
-static void handleEnableSrunIO(Forwarder_Data_t *fwdata)
+static void handleEnableSrunIO(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+			       void *info)
 {
+    Forwarder_Data_t *fwdata = info;
     Step_t *step = fwdata->userData;
 
     srunEnableIO(step);
@@ -180,7 +182,7 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	recvFragMsgInfo(msg, handlePrintStepMsg, fwdata);
 	break;
     case CMD_ENABLE_SRUN_IO:
-	handleEnableSrunIO(fwdata);
+	recvFragMsgInfo(msg, handleEnableSrunIO, fwdata);
 	break;
     case CMD_FW_FINALIZE:
 	recvFragMsgInfo(msg, handleFWfinalize, fwdata);
@@ -597,16 +599,13 @@ void fwCMD_enableSrunIO(Step_t *step)
     /* might happen that forwarder is already gone */
     if (!step->fwdata) return;
 
-    DDTypedMsg_t msg = {
-	.header = {
-	    .type = PSP_PF_MSG,
-	    .dest = step->fwdata->tid,
-	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) },
-	.type = CMD_ENABLE_SRUN_IO };
-
     fdbg(PSSLURM_LOG_IO, "to %s\n", PSC_printTID(step->fwdata->tid));
-    sendMsg(&msg);
+
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PF_MSG, CMD_ENABLE_SRUN_IO);
+    setFragDest(&data, step->fwdata->tid);
+
+    sendFragMsg(&data);
 }
 
 void clearFwMsgQueue(list_t *queue)
