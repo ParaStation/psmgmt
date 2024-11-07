@@ -129,13 +129,15 @@ static void handleEnableSrunIO(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
     srunEnableIO(step);
 }
 
-static void handleSattachTasks(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
+static void handleSattachTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+			       void *info)
 {
+    Forwarder_Data_t *fwdata = info;
     Step_t *step = fwdata->userData;
-    uint16_t ioPort, ctlPort;
-    uint32_t ioAddr;
 
+    uint32_t ioAddr;
     getUint32(data, &ioAddr);
+    uint16_t ioPort, ctlPort;
     getUint16(data, &ioPort);
     getUint16(data, &ctlPort);
     char *sig = getStringM(data);
@@ -174,9 +176,6 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	return false;  // unexpected: error log created in caller
     }
 
-    PS_DataBuffer_t data;
-    initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
-
     switch ((PSSLURM_Fw_Cmds_t)msg->type) {
     case CMD_PRINT_CHILD_MSG:
 	recvFragMsgInfo(msg, handlePrintStepMsg, fwdata);
@@ -188,7 +187,7 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	recvFragMsgInfo(msg, handleFWfinalize, fwdata);
 	break;
     case CMD_REATTACH_TASKS:
-	handleSattachTasks(fwdata, &data);
+	recvFragMsgInfo(msg, handleSattachTasks, fwdata);
 	break;
     case CMD_INFO_TASKS:
 	recvFragMsgInfo(msg, handleInfoTasks, fwdata);
@@ -691,26 +690,16 @@ void fwCMD_reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
     /* might happen that forwarder is already gone */
     if (!fwdata) return;
 
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PF_MSG,
-	    .dest = fwdata->tid,
-	    .sender = PSC_getMyTID(),
-	    .len = 0 },
-	.type = CMD_REATTACH_TASKS };
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PF_MSG, CMD_REATTACH_TASKS);
+    setFragDest(&data, fwdata->tid);
 
-    uint32_t nAddr = htonl(addr);
-    PSP_putTypedMsgBuf(&msg, "addr", &nAddr, sizeof(nAddr));
-    uint16_t nioPort = htons(ioPort);
-    PSP_putTypedMsgBuf(&msg, "ioPort", &nioPort, sizeof(nioPort));
-    uint16_t nctlPort = htons(ctlPort);
-    PSP_putTypedMsgBuf(&msg, "ctlPort", &nctlPort, sizeof(nctlPort));
-    /* Add string including its length mimicking addString */
-    uint32_t len = htonl(PSP_strLen(sig));
-    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
-    PSP_putTypedMsgBuf(&msg, "sigStr", sig, PSP_strLen(sig));
+    addUint32ToMsg(addr, &data);
+    addUint16ToMsg(ioPort, &data);
+    addUint16ToMsg(ctlPort, &data);
+    addStringToMsg(sig, &data);
 
-    sendMsg(&msg);
+    sendFragMsg(&data);
 }
 
 void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg, int32_t rank)
