@@ -45,10 +45,10 @@
  * @param taskGroup The kind of task trying to initialize the PSI
  * stuff. This is used to register to the local daemon.
  *
- * @return If a connection to the local daemon could be established, 1
- * is returned, or 0 otherwise.
+ * @return If a connection to the local daemon could be established,
+ * true is returned, or false otherwise.
  */
-int PSI_initClient(PStask_group_t taskGroup);
+bool PSI_initClient(PStask_group_t taskGroup);
 
 /**
  * @brief Exit PSI

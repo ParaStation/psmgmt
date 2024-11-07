@@ -304,13 +304,11 @@ void PSI_propList(char *listStr)
     free(envList);
 }
 
-int PSI_initClient(PStask_group_t taskGroup)
+bool PSI_initClient(PStask_group_t taskGroup)
 {
-    char* envStr;
-
     if (! PSI_logInitialized()) PSI_initLog(stderr);
 
-    envStr = getenv("PSI_DEBUGMASK");
+    char* envStr = getenv("PSI_DEBUGMASK");
     if (!envStr) envStr = getenv("PSI_DEBUGLEVEL"); /* Backward compat. */
     if (envStr) {
 	char *end;
@@ -331,7 +329,7 @@ int PSI_initClient(PStask_group_t taskGroup)
 
     if (daemonSock != -1) {
 	/* Already connected */
-	return 1;
+	return true;
     }
 
     /*
@@ -341,10 +339,10 @@ int PSI_initClient(PStask_group_t taskGroup)
 	if (taskGroup != TG_RESET) {
 	    PSI_log(-1, "%s: cannot contact local daemon\n", __func__);
 	}
-	return 0;
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 /** Cache of protocol version numbers used by @ref PSI_protocolVersion() */
