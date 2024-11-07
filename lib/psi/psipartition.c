@@ -1232,11 +1232,6 @@ recv_retry:
 
 bool PSI_finReservation(env_t env)
 {
-    if (!initSerial(0, PSI_sendMsg)) {
-	PSI_log(-1, "%s: initSerial() failed\n", __func__);
-	return false;
-    }
-
     PSI_log(PSI_LOG_PART, "%s()\n", __func__);
 
     PS_SendDB_t msg;

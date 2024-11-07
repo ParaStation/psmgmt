@@ -453,11 +453,6 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
 	return -1;
     }
 
-    if (!initSerial(0, PSI_sendMsg)) {
-	PSI_log(-1, "%s: initSerial() failed\n", __func__);
-	return -1;
-    }
-
     AnswerBucket_t *thisBucket = bucket;
     if (!thisBucket) {
 	thisBucket = &myBucket;

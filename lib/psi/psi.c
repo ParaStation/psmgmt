@@ -31,6 +31,7 @@
 
 #include "pscio.h"
 #include "pscommon.h"
+#include "psserial.h"
 
 #include "psilog.h"
 #include "pstask.h"
@@ -341,6 +342,11 @@ bool PSI_initClient(PStask_group_t taskGroup)
 	return false;
     }
 
+    if (!initSerial(0, PSI_sendMsg)) {
+	PSI_flog("initSerial() failed\n");
+	return false;
+    }
+
     return true;
 }
 
@@ -360,6 +366,7 @@ int PSI_exitClient(void)
     daemonSock = -1;
 
     free(protoCache);
+    finalizeSerial();
 
     PSI_finalizeLog();
 
