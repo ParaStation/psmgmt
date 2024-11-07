@@ -314,8 +314,7 @@ bool PSI_initClient(PStask_group_t taskGroup)
 	char *end;
 	int debugmask = strtol(envStr, &end, 0);
 	if (*end) {
-	    PSI_log(-1, "%s: Found trailing string '%s' in debug-mask %x\n",
-		    __func__, end, debugmask);
+	    PSI_flog("trailing string '%s' in debug-mask %x\n", end, debugmask);
 	}
 
 	/* Propagate to client */
@@ -337,7 +336,7 @@ bool PSI_initClient(PStask_group_t taskGroup)
      */
     if (!connectDaemon(taskGroup, !getenv("__PSI_DONT_START_DAEMON"))) {
 	if (taskGroup != TG_RESET) {
-	    PSI_log(-1, "%s: cannot contact local daemon\n", __func__);
+	    PSI_flog("cannot contact local daemon\n");
 	}
 	return false;
     }

@@ -1246,7 +1246,7 @@ bool PSI_finReservation(env_t env)
     addStringArrayToMsg(envGetArray(env), &msg);
 
     if (sendFragMsg(&msg) == -1) {
-	PSI_log(-1, "%s: sending failed\n", __func__);
+	PSI_flog("sending failed\n");
 	return false;
     }
 

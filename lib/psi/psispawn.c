@@ -438,18 +438,18 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
 	.errors = errors };
 
     if (!task) {
-	PSI_log(-1, "%s: no task\n", __func__);
+	PSI_flog("no task\n");
 	return -1;
     }
 
     if ((task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
 	|| task->group == TG_KVS) && count != 1) {
-	PSI_log(-1, "%s: spawn %d SERVICE tasks not allowed\n", __func__, count);
+	PSI_flog("spawn %d SERVICE tasks not allowed\n", count);
 	return -1;
     }
 
     if ((!bucket || !bucket->errors) && !errors) {
-	PSI_log(-1, "%s: unable to report errors\n", __func__);
+	PSI_flog("unable to report errors\n");
 	return -1;
     }
 
@@ -504,7 +504,7 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
 		ret++;
 		break;
 	    default:
-		PSI_log(-1, "%s: handleAnswer() returns %d\n", __func__, r);
+		PSI_flog("handleAnswer() returns %d\n", r);
 	    }
 	}
     }/* for all new tasks */
@@ -531,7 +531,7 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
 	    ret++;
 	    break;
 	default:
-	    PSI_log(-1, "%s: handleAnswer() returns %d\n", __func__, r);
+	    PSI_flog("handleAnswer() returns %d\n", r);
 	}
     }
 
