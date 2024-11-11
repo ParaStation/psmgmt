@@ -28,8 +28,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <sys/select.h>
-#include <sys/time.h>
 
 /**
  * @brief (Re-)Initialize the Selector module

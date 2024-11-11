@@ -11,12 +11,12 @@
  */
 #include "selector.h"
 
-#include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <syslog.h>
 #include <sys/epoll.h>
-#include <sys/select.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 #include "list.h"
 #include "logging.h"

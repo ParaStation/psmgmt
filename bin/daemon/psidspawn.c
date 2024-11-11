@@ -41,7 +41,6 @@
 #include "pscpu.h"
 #include "psdaemonprotocol.h"
 #include "psenv.h"
-#include "pspartition.h"
 #include "psprotocolenv.h"
 #include "psreservation.h"
 #include "psserial.h"
