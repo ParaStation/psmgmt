@@ -3,13 +3,11 @@
 # ParaStation
 #
 # Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
-#
-# Author:	Jens Hauke <hauke@par-tec.com>
-# 		Thomas Moschny <moschny@par-tec.com>
 #
 
 function error() {
@@ -32,7 +30,7 @@ Get a version string from the last tag of the version control.
 
   file: use file $prjroot/VERSION with content "\${PKG_NAME}-\${VERSION}"
 
-  git: last "git tag" matching the pattern ?*-?*
+  git: last "git tag" without matching any specific pattern
 
   svn: Expect to be in a "trunk/${PKG_NAME}" folder and searching for a tag created by:
        svn copy \${SVN_ROOT}/tags/\${PKG_NAME}/\${PKG_NAME}-\${VERSION} \${SVN_ROOT}/tags/\${PKG_NAME}/latest
@@ -133,11 +131,11 @@ case "$arg_vc" in
     git)
 	vecho "Tag from git"
 	# retry git-describe without --dirty on error. (pre git-1.6.6 has no --dirty)
-	version="$(git describe --tags $arg_dirty --always --match "?*-?*" 2>/dev/null ||\
-		   git describe --tags --always --match "?*-?*")"
+	version="$(git describe --tags $arg_dirty --always 2>/dev/null ||\
+		   git describe --tags --always)"
 	version_prefix="${version/\/*}"
 	version="${version#*\/}" # Remove prefix e.g. "sf/"
-	if ! git describe --tags --exact-match --always --match "?*-?*" >/dev/null 2>&1; then
+	if ! git describe --tags --exact-match --always >/dev/null 2>&1; then
 	    # Append the branchname, if not exactly on a tag and branch != master
 	    branch="$(git symbolic-ref HEAD)"
 	    branch="${branch/*\/}"
@@ -243,6 +241,6 @@ esac
 if [ "$arg_isrelease" != "1" ];then
     :
 else
-    regexp='^([0-9]+\.){1,2}[0-9]+-[0-9]+(rc[0-9]+)?$' # see FAQ E14
+    regexp='^([0-9]+\.){1,2}[[a-z0-9]+-[0-9]+(rc[0-9]+)?$' # see FAQ E14
     [[ "$version-$release" =~ $regexp ]]
 fi
