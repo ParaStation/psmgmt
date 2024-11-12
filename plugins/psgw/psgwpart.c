@@ -22,6 +22,7 @@
 #include "pscpu.h"
 #include "psdaemonprotocol.h"
 #include "pspartition.h"
+#include "psserial.h"
 #include "timer.h"
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
@@ -271,8 +272,6 @@ static bool sendPartitionReq(PStask_t *task, PSGW_Req_t *req, int numNodes)
     task->request->tid = task->tid;
     task->request->num = 0;
     task->request->nodes = NULL;
-    task->request->numGot = 0;
-
     task->request->size = numNodes;
     task->request->hwType = 0;
 
@@ -291,18 +290,20 @@ static bool sendPartitionReq(PStask_t *task, PSGW_Req_t *req, int numNodes)
 
     if (!knowMaster()) return true; /* Automatic pull in initPartHandler() */
 
-    DDBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_DD_GETPART,
-	    .dest = PSC_getTID(getMasterID(), 0),
-	    .sender = task->tid,
-	    .len = DDBufferMsgOffset },
-	.buf = { 0 } };
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_DD_CREATEPART, 0);
+    setFragDest(&msg, PSC_getTID(getMasterID(), 0));
 
-    PSpart_encodeReq(&msg, task->request);
+    addTaskIdToMsg(task->request->tid, &msg);
+    if (!PSpart_addToMsg(task->request, &msg)) {
+	flog("PSpart_addToMsg() failed\n");
+	goto ERROR;
+    }
+    /* add task->request->nodes stub */
+    addDataToMsg(NULL, 0, &msg);
 
-    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sendMsg()", __func__);
+    if (sendFragMsg(&msg) == -1) {
+	flog("sendFragMsg() failed\n");
 	goto ERROR;
     }
 

@@ -57,8 +57,7 @@
 					      adoption */
 
 /** Messages between daemon and master */
-#define PSP_DD_GETPART             0x0120  /**< Get partition from master */
-#define PSP_DD_GETPARTNL           0x0121  /**< Partition request node-list */
+#define PSP_DD_CREATEPART          0x0120  /**< Create partition at master */
 #define PSP_DD_PROVIDEPART         0x0122  /**< Reply partition bound */
 #define PSP_DD_PROVIDEPARTSL       0x0123  /**< Partition reply slot-list */
 #define PSP_DD_GETNODES            0x0124  /**< Forwarded GETNODES message */

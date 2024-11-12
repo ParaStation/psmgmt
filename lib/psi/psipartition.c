@@ -620,66 +620,17 @@ static nodelist_t *getNodelist(void)
     return nodelist;
 
  error:
+    PSI_flog("failed from %s '%s': Please check your environment\n",
+	     nodeStr ? ENV_NODE_NODES :
+	     hostStr ? ENV_NODE_HOSTS :
+	     hostfileStr ? ENV_NODE_HOSTFILE : ENV_NODE_PEFILE,
+	     nodeStr ? nodeStr : hostStr ? hostStr :
+	     hostfileStr ? hostfileStr : pefileStr);
+
     free(nodelist->nodes);
     nodelist->nodes = NULL;
 
-    nodelist->size = -1;
-    PSI_flog("failed from %s '%s': Please check your environment\n",
-	    nodeStr ? ENV_NODE_NODES :
-	    hostStr ? ENV_NODE_HOSTS :
-	    hostfileStr ? ENV_NODE_HOSTFILE : ENV_NODE_PEFILE,
-	    nodeStr ? nodeStr : hostStr ? hostStr :
-	    hostfileStr ? hostfileStr : pefileStr);
     return nodelist;
-}
-
-/**
- * @brief Send a nodelist.
- *
- * Send a @a nodelist to the local daemon using the message buffer @a
- * msg.
- *
- * In order to send the nodelist, it is split into chunks of @ref
- * NODES_CHUNK entries. Each chunk is copied into the message and send
- * separately to the local daemon.
- *
- * This function is typically called from within @ref
- * PSI_createPartition().
- *
- * @param nodelist The nodelist to be send.
- *
- * @param msg The message buffer used to send the nodelist to the
- * daemon.
- *
- * @return If something went wrong, -1 is returned and errno is set
- * appropriately. Otherwise 0 is returned.
- *
- * @see errno(3)
- */
-static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
-{
-    int offset = 0;
-
-    msg->header.type = PSP_CD_CREATEPARTNL;
-    while (offset < nodelist->used) {
-	int chunk = (nodelist->size-offset > NODES_CHUNK) ?
-	    NODES_CHUNK : nodelist->used-offset;
-	char *ptr = msg->buf;
-	msg->header.len = DDBufferMsgOffset;
-
-	*(int16_t*)ptr = chunk;
-	ptr += sizeof(int16_t);
-	msg->header.len += sizeof(int16_t);
-
-	memcpy(ptr, nodelist->nodes+offset, chunk * sizeof(*nodelist->nodes));
-	msg->header.len += chunk * sizeof(*nodelist->nodes);
-	offset += chunk;
-	if (PSI_sendMsg(msg)<0) {
-	    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
-	    return -1;
-	}
-    }
-    return 0;
 }
 
 /**
@@ -932,13 +883,6 @@ int PSI_resolveHWList(char **hwList, uint32_t *hwType)
 
 int PSI_createPartition(uint32_t size, uint32_t hwType)
 {
-    DDBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_CD_CREATEPART,
-	    .dest = PSC_getTID(-1, 0),
-	    .sender = PSC_getMyTID(),
-	    .len = DDBufferMsgOffset } };
-
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
     if (!size) {
@@ -988,21 +932,19 @@ int PSI_createPartition(uint32_t size, uint32_t hwType)
 	goto end;
     }
 
-    if (!PSpart_encodeReq(&msg, request)) {
-	PSI_log(-1, "%s: PSpart_encodeReq\n", __func__);
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_CD_REQUESTPART, 0);
+    setFragDest(&msg, PSC_getTID(-1, 0));
+
+    if (!PSpart_addToMsg(request, &msg)) {
+	PSI_flog("PSpart_addToMsg() failed\n");
 	goto end;
     }
 
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+    if (nl) addDataToMsg(nl->nodes, nl->used * sizeof(*nl->nodes), &msg);
+    if (sendFragMsg(&msg) == -1) {
+	PSI_flog("sendFragMsg() failed\n");
 	goto end;
-    }
-
-    if (nl) {
-	ret = sendNodelist(nl, &msg);
-	if (ret) goto end;
-	/* reset ret */
-	ret = -1;
     }
 
     if (request->options & PART_OPT_WAIT) {
@@ -1013,16 +955,15 @@ int PSI_createPartition(uint32_t size, uint32_t hwType)
     }
     PSC_setSigHandler(SIGALRM, alarmHandlerPart);
 recv_retry:
+    ;
     DDBufferMsg_t answer;
     if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	goto end;
     }
-    alarm(0);
-    PSC_setSigHandler(SIGALRM, SIG_DFL);
-
     switch (answer.header.type) {
     case PSP_CD_PARTITIONRES:
+	alarm(0);
 	if (((DDTypedMsg_t *)&answer)->type) {
 	    PSI_warn(-1, ((DDTypedMsg_t *)&answer)->type, "%s", __func__);
 	    if (batchPartition) analyzeError(request, nl);
@@ -1053,6 +994,9 @@ recv_retry:
     ret = request->size;
 
 end:
+    alarm(0);
+    PSC_setSigHandler(SIGALRM, SIG_DFL);
+
     freeNodelist(nl);
     if (request) PSpart_delReq(request);
 

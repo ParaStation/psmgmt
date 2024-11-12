@@ -277,8 +277,7 @@ typedef enum {
 } PSP_Env_t;
 
 /** Creation and handling of partitions */
-#define PSP_CD_CREATEPART        0x0060  /**< Bind a partition to a job */
-#define PSP_CD_CREATEPARTNL      0x0061  /**< Partition request nodelist */
+#define PSP_CD_REQUESTPART       0x0060  /**< Request partition for session */
 #define PSP_CD_PARTITIONRES      0x0062  /**< Reply partitions bind */
 #define PSP_CD_GETNODES          0x0063  /**< Request nodes from a partition */
 #define PSP_CD_NODESRES          0x0064  /**< Get nodes from a partition */
@@ -315,8 +314,7 @@ typedef enum {
 #define PSP_RESET_HW              0x0001
 
 /**
- * Chunk-size for PSP_CD_GETNODES, PSP_CD_CREATEPARTNL and
- * PSP_DD_GETPARTNL messages
+ * Chunk-size for PSP_CD_GETNODES messages
  */
 #define NODES_CHUNK 256
 

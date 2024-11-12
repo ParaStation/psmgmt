@@ -59,8 +59,7 @@ static struct {
     { PSP_CD_ENV              , "PSP_CD_ENV"              },
     { PSP_CD_ENVRES           , "PSP_CD_ENVRES"           },
 
-    { PSP_CD_CREATEPART       , "PSP_CD_CREATEPART"       },
-    { PSP_CD_CREATEPARTNL     , "PSP_CD_CREATEPARTNL"     },
+    { PSP_CD_REQUESTPART      , "PSP_CD_REQUESTPART"      },
     { PSP_CD_PARTITIONRES     , "PSP_CD_PARTITIONRES"     },
     { PSP_CD_GETNODES         , "PSP_CD_GETNODES"         },
     { PSP_CD_NODESRES         , "PSP_CD_NODESRES"         },

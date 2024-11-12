@@ -186,24 +186,45 @@ static void grantPartRequest(PStask_t *task)
     }
 }
 
-static void rejectPartRequest(PStask_ID_t dest, int eno, PStask_t *task)
+/**
+ * @brief Send rejection PSP_CD_PARTITIONRES message
+ *
+ * Send a message of type PSP_CD_PARTITIONRES to the task @a task. @a
+ * eno will be sent as the reason for rejection and shall be an
+ * according error number.
+ *
+ * Furthermore, the request associated to the task @a task which is
+ * assumed to be the initiator of the partition request will be
+ * cleaned up.
+ *
+ * @param task Message's destination task
+ *
+ * @param eno Error number serving as reason for rejection
+ *
+ * @return Always return 0 (might be passed to caller in @ref
+ * handleRequestPart())
+ */
+static int rejectPartRequest(PStask_t *task, int eno)
 {
+    if (!task) return 0;
+
     DDTypedMsg_t msg = {
 	.header = {
 	    .type = PSP_CD_PARTITIONRES,
-	    .dest = dest,
+	    .dest = task->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg) },
 	.type = eno };
+    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	fwarn(errno, "sendMsg(%s) failed", PSC_printTID(task->tid));
+    }
 
-    if (task && task->request) {
+    if (task->request) {
 	PSpart_delReq(task->request);
 	task->request = NULL;
     }
 
-    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	fwarn(errno, "sendMsg(%s) failed", PSC_printTID(dest));
-    }
+    return 0;
 }
 
 static void logSlots(const char* prefix,
@@ -219,53 +240,46 @@ static void logSlots(const char* prefix,
 }
 
 /**
- * @brief Handle a create partition message
+ * @brief Handle request to create a partition
  *
- * @param msg Message to handle
+ * @param tsk Pointer to task holding the request
  *
- * @return Returns 0 if the request is finally handled
- *   and 1 if it should be further handled by the caller.
+ * @return Returns 0 if the request is finally handled and 1 if
+ * further handling by the caller is required.
  */
-static int handleCreatePart(void *msg)
+static int handleRequestPart(void *tsk)
 {
-    DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
-    int enforceBatch = getConfValueI(Config, "ENFORCE_BATCH_START");
-
     /* everyone is allowed to start, nothing to do for us here */
+    int enforceBatch = getConfValueI(Config, "ENFORCE_BATCH_START");
     if (!enforceBatch) return 1;
 
-    /* find task */
-    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
+    /* "find" task */
+    PStask_t *task = tsk;
     if (!task) {
-	flog("task for msg from %s not found\n",
-	     PSC_printTID(inmsg->header.sender));
-	errno = EACCES;
-	goto error;
+	flog("no task to handle\n");
+	return 1;
     }
 
     /* find step */
-    Step_t *step = Step_findByPsslurmChild(PSC_getPID(inmsg->header.sender));
+    Step_t *step = Step_findByPsslurmChild(PSC_getPID(task->request->tid));
     if (!step) {
 	/* admin user can always pass */
 	if (isPSAdminUser(task->uid, task->gid)) return 1;
 
-	flog("step for sender %s not found\n",
-	     PSC_printTID(inmsg->header.sender));
-
-	errno = EACCES;
-	goto error;
+	flog("no step for requestor %s\n", PSC_printTID(task->request->tid));
+	return rejectPartRequest(task, EACCES);
     }
 
     if (!step->slots) {
 	flog("invalid slots in %s\n", Step_strID(step));
-	errno = EACCES;
-	goto error;
+	return rejectPartRequest(task, EACCES);
     }
 
     /* generate hardware threads array */
     if (!genThreadsArray(&task->partThrds, &task->totalThreads, step)) {
-	fwarn(errno, "unable to generate threads array");
-	goto error;
+	int eno = errno;
+	fwarn(eno, "unable to generate threads array");
+	return rejectPartRequest(task, eno);
     }
 
     logHWthreads(__func__, task->partThrds, task->totalThreads);
@@ -295,61 +309,9 @@ static int handleCreatePart(void *msg)
 	    (task->options & PART_OPT_WAIT) ? 1 : 0,
 	    (task->options & PART_OPT_EXACT) ? 1 : 0);
 
-    if (!task->request->num) grantPartRequest(task);
+    grantPartRequest(task);
 
-    return 0;
-
-error:
-    rejectPartRequest(inmsg->header.sender, errno, task);
-
-    return 0;
-}
-
-/**
- * @brief Handle a create partition nodelist message
- *
- * @param msg The message to handle.
- *
- * @return Returns 0 if the request is finally handled
- *   and 1 if it should be further handled by the caller.
- */
-static int handleCreatePartNL(void *msg)
-{
-    DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
-    int enforceBatch = getConfValueI(Config, "ENFORCE_BATCH_START");
-
-    /* everyone is allowed to start, nothing to do for us here */
-    if (!enforceBatch) return 1;
-
-    /* find task */
-    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
-    if (!task) {
-	mlog("%s: task for msg from %s not found\n", __func__,
-	     PSC_printTID(inmsg->header.sender));
-	errno = EACCES;
-	goto error;
-    }
-
-    /* find step */
-    if (!Step_findByPsslurmChild(PSC_getPID(inmsg->header.sender))) {
-	/* admin users can start mpiexec direct */
-	if (isPSAdminUser(task->uid, task->gid)) return 1;
-	errno = EACCES;
-	goto error;
-    }
-
-    /* at least take notice of the number of nodes in this chunk */
-    task->request->numGot += *(int16_t *)inmsg->buf;
-
-    /* request complete -> activate the partition */
-    if (task->request->numGot == task->request->num) grantPartRequest(task);
-
-    /* message fully handled */
-    return 0;
-
-error:
-    rejectPartRequest(inmsg->header.sender, errno, task);
-
+    /* request fully handled */
     return 0;
 }
 
@@ -2204,12 +2166,8 @@ void finalizePScomm(bool verbose)
 	if (verbose) flog("failed to unregister PSIDHOOK_NODE_DOWN\n");
     }
 
-    if (!PSIDhook_del(PSIDHOOK_CREATEPART, handleCreatePart)) {
-	if (verbose) flog("failed to unregister PSIDHOOK_CREATEPART\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
-	if (verbose) flog("failed to unregister PSIDHOOK_CREATEPARTNL\n");
+    if (!PSIDhook_del(PSIDHOOK_REQUESTPART, handleRequestPart)) {
+	if (verbose) flog("failed to unregister PSIDHOOK_REQUESTPART\n");
     }
 
     if (!PSIDhook_del(PSIDHOOK_GETRESERVATION, handleGetReservation)) {
@@ -2478,13 +2436,8 @@ bool initPScomm(void)
 	return false;
     }
 
-    if (!PSIDhook_add(PSIDHOOK_CREATEPART, handleCreatePart)) {
-	flog("cannot register PSIDHOOK_CREATEPART\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
-	flog("cannot register PSIDHOOK_CREATEPARTNL\n");
+    if (!PSIDhook_add(PSIDHOOK_REQUESTPART, handleRequestPart)) {
+	flog("cannot register PSIDHOOK_REQUESTPART\n");
 	return false;
     }
 

@@ -97,7 +97,7 @@ typedef enum {
  * is also used to store active partitions at the master daemon.
  *
  * Members marked with C are (un)packed by
- * PSpart_encodeReq()/PSpart_decodeReq()
+ * PSpart_addToMsg()/PSpart_decodeReq()
  */
 typedef struct {
     list_t next;                   /**< used to put into some request-lists. */
@@ -112,7 +112,6 @@ typedef struct {
     /*C*/ uint32_t num;            /**< Number of elements in @ref nodes */
     /*C*/ uint16_t tpp;            /**< Threads per process requested */
     /*C*/ time_t start;            /**< starttime in PSP_INFO_QUEUE_PARTITION */
-    int numGot;                    /**< Number of nodes currently received */
     unsigned int sizeGot;          /**< Number of slots currently received */
     unsigned int sizeExpected;     /**< Number of slots expected */
     PSnodes_ID_t *nodes;           /**< List of partition candidates */

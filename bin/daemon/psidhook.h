@@ -46,22 +46,13 @@ typedef int PSIDhook_func_t(void *);
 typedef enum {
     PSIDHOOK_NODE_UP,         /**< Node appeared, arg is PSnodes_ID_t ID */
     PSIDHOOK_NODE_DOWN,       /**< Node disappeared, arg is PSnodes_ID_t ID */
-    PSIDHOOK_CREATEPART,      /**< Handle a partition request, arg is
-				pointer to DDBufferMsg_t holding the
-				original message received from the
-				client. If return code is 0, a message
-				was sent from within the hook and
-				nothing else is done. Otherwise
-				further measure might be taken
-				afterwards. */
-    PSIDHOOK_CREATEPARTNL,      /**< Handle a partition nodelist request,
-				arg is pointer to DDBufferMsg_t holding
-				the original message received from the
-				client. If return code is 0, a message
-				was sent from within the hook and
-				nothing else is done. Otherwise
-				further measure might be taken
-				afterwards. */
+    PSIDHOOK_REQUESTPART,     /**< Handle a partition request, arg is
+				pointer to the task that posted the request.
+				The actual request is in task's request
+				member. If return code is 0, an answer must
+				be sent from within the hook and nothing
+				else is done. Otherwise further measure might
+				be taken afterwards. */
     PSIDHOOK_GETRESERVATION,  /**< Handle a get reservation request, arg is
 				pointer to PSrsrvtn_t holding the reservation
 				request (and will hold the reservation on

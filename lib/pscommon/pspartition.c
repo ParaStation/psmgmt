@@ -46,7 +46,6 @@ void PSpart_initReq(PSpart_request_t* request)
     request->priority = 0;
     request->num = -1;
     request->tpp = 1;
-    request->numGot = -1;
     request->sizeGot = 0;
     request->sizeExpected = 0;
     request->nodes = NULL;

@@ -45,8 +45,7 @@ static msgString_t daemonMessages[] = {
     { PSP_DD_INHERITDONE      , "PSP_DD_INHERITDONE"      },
     { PSP_DD_INHERITFAILED    , "PSP_DD_INHERITFAILED"    },
 
-    { PSP_DD_GETPART          , "PSP_DD_GETPART"          },
-    { PSP_DD_GETPARTNL        , "PSP_DD_GETPARTNL"        },
+    { PSP_DD_CREATEPART       , "PSP_DD_CREATEPART"       },
     { PSP_DD_PROVIDEPART      , "PSP_DD_PROVIDEPART"      },
     { PSP_DD_PROVIDEPARTSL    , "PSP_DD_PROVIDEPARTSL"    },
     { PSP_DD_GETNODES         , "PSP_DD_GETNODES"         },
