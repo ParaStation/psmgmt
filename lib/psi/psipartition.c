@@ -278,7 +278,7 @@ static bool addNode(PSnodes_ID_t node, nodelist_t *nl)
 	nl->nodes = realloc(nl->nodes, nl->maxsize * sizeof(*nl->nodes));
 	if (!nl->nodes) {
 	    free(old);
-	    PSI_log(-1, "%s: no memory\n", __func__);
+	    PSI_flog("no memory\n");
 	    return false;
 	}
     }
@@ -318,7 +318,7 @@ static int nodelistFromRange(char *range, nodelist_t *nodelist)
     long first = strtol(start, &end, 0), last;
     if (*end != '\0') return 0;
     if (!PSC_validNode(first)) {
-	PSI_log(-1, "%s: node %ld out of range\n", __func__, first);
+	PSI_flog("node %ld out of range\n", first);
 	return 0;
     }
 
@@ -326,7 +326,7 @@ static int nodelistFromRange(char *range, nodelist_t *nodelist)
 	last = strtol(range, &end, 0);
 	if (*end != '\0') return 0;
 	if (!PSC_validNode(last)) {
-	    PSI_log(-1, "%s: node %ld out of range\n", __func__, last);
+	    PSI_flog("node %ld out of range\n", last);
 	    return 0;
 	}
     } else {
@@ -600,7 +600,7 @@ static nodelist_t *getNodelist(void)
 
     nodelist_t *nodelist = malloc(sizeof(nodelist_t));
     if (!nodelist) {
-	PSI_log(-1, "%s: no memory\n", __func__);
+	PSI_flog("no memory\n");
 	return NULL;
     }
     *nodelist = (nodelist_t) {
@@ -624,8 +624,8 @@ static nodelist_t *getNodelist(void)
     nodelist->nodes = NULL;
 
     nodelist->size = -1;
-    PSI_log(-1, "%s: failed from %s '%s': Please check your environment\n",
-	    __func__, nodeStr ? ENV_NODE_NODES :
+    PSI_flog("failed from %s '%s': Please check your environment\n",
+	    nodeStr ? ENV_NODE_NODES :
 	    hostStr ? ENV_NODE_HOSTS :
 	    hostfileStr ? ENV_NODE_HOSTFILE : ENV_NODE_PEFILE,
 	    nodeStr ? nodeStr : hostStr ? hostStr :
@@ -814,25 +814,25 @@ static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
     if (!request || !nodelist || !nodelist->nodes) return;
 
     if (nodelist->size < (int) (request->size * request->tpp)) {
-	PSI_log(-1, "%d nodes requested but only %d in nodelist\n",
-		request->size * request->tpp, nodelist->size);
+	PSI_flog("only %d in nodelist of %d requested\n", nodelist->size,
+		 request->size * request->tpp);
 	goto end;
     }
 
     if (!getFullList(&nStat, PSP_INFO_LIST_HOSTSTATUS, sizeof(*nStat))) {
-	PSI_log(-1, "%s: Unable to retrieve node-states\n", __func__);
+	PSI_flog("cannot retrieve node-states\n");
 	goto end;
     }
     if (!getFullList(&hwStat, PSP_INFO_LIST_HWSTATUS, sizeof(*hwStat))) {
-	PSI_log(-1, "%s: Unable to retrieve hardware-states\n", __func__);
+	PSI_flog("cannot retrieve hardware-states\n");
 	goto end;
     }
     if (!getFullList(&allocJobs, PSP_INFO_LIST_ALLOCJOBS, sizeof(*allocJobs))) {
-	PSI_log(-1, "%s: Unable to retrieve allocated jobs\n", __func__);
+	PSI_flog("cannot retrieve allocated jobs\n");
 	goto end;
     }
     if (!(numThreads = calloc(PSC_getNrOfNodes(), sizeof(*numThreads)))) {
-	PSI_log(-1, "%s: Unable to get memory for thread counting\n", __func__);
+	PSI_flog("cannot get memory for thread counting\n");
 	goto end;
     }
 
@@ -865,8 +865,8 @@ static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
 
 	    /* Test for correct tpp */
 	    if (numThreads[node] && (numThreads[node] % request->tpp)) {
-		PSI_log(-1, "num threads %d on node %d does not match"
-			" tpp %d\n", numThreads[node], node, request->tpp);
+		PSI_flog("num threads %d on node %d does not match tpp %d\n",
+			 numThreads[node], node, request->tpp);
 		numThreads[node] = 0; /* Only report once */
 	    }
 	}
@@ -940,7 +940,6 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	    .len = DDBufferMsgOffset } };
     PSpart_request_t *request = PSpart_newReq();
     nodelist_t *nodelist = NULL;
-    uint32_t hwEnv;
     int ret = -1;
 
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
@@ -979,18 +978,17 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 
     if (request->options & PART_OPT_FULL_LIST) {
 	if (!nodelist) {
-	    PSI_log(-1, "%s: full partition requires explicit resources\n",
-		    __func__);
+	    PSI_flog("full partition requires explicit resources\n");
 	    goto end;
 	}
 	request->size = nodelist->size; // we want all nodes in nodelist
 	request->tpp = 1;               // ignore tpp; we get full nodes anyhow
     }
 
-    hwEnv = getHWEnv();
+    uint32_t hwEnv = getHWEnv();
     if (hwEnv && !(request->hwType = (hwType ? hwType:0xffffffffU) & hwEnv)) {
-	PSI_log(-1, "%s: no intersection between hwType (%#x)"
-		" and environment (%#x)\n", __func__, hwType, hwEnv);
+	PSI_flog("no intersection between hwType (%#x) and environment (%#x)\n",
+		 hwType, hwEnv);
 	goto end;
     }
 
@@ -1044,8 +1042,7 @@ recv_retry:
 	goto end;
 	break;
     default:
-	PSI_log(-1, "%s: received unexpected msgtype '%s'\n",
-		__func__, PSP_printMsg(msg.header.type));
+	PSI_flog("unexpected msgtype '%s'\n", PSP_printMsg(msg.header.type));
 	goto end;
     }
 
