@@ -17,6 +17,7 @@
 
 #include "list.h"
 #include "pscommon.h"
+#include "psserial.h"
 
 PSpart_request_t* PSpart_newReq(void)
 {
@@ -214,4 +215,71 @@ size_t PSpart_decodeReqOld(char* buffer, PSpart_request_t* request)
     PSC_dbg(PSC_LOG_PART, " received request = (%s)\n", partString);
 
     return length;
+}
+
+bool PSpart_addToMsg(PSpart_request_t* request, PS_SendDB_t *msg)
+{
+    if (!request) {
+	PSC_flog("no request\n");
+	return false;
+    }
+
+    if (PSC_getDebugMask() & PSC_LOG_PART) {
+	PSpart_snprintf(partString, sizeof(partString), request);
+	PSC_flog("msg %p request %s\n", msg, partString);
+    }
+
+    tmpRequest.size = request->size;
+    tmpRequest.hwType = request->hwType;
+    tmpRequest.uid = request->uid;
+    tmpRequest.gid = request->gid;
+    tmpRequest.sort = request->sort;
+    tmpRequest.options = request->options;
+    tmpRequest.priority = request->priority;
+    tmpRequest.num = request->num;
+    tmpRequest.tpp = request->tpp;
+    tmpRequest.start = request->start;
+
+    if (!addDataToMsg(&tmpRequest, sizeof(tmpRequest), msg)) return false;
+
+    return true;
+}
+
+
+bool PSpart_decodeReq(void *data, size_t len, PSpart_request_t *req)
+{
+    if (!req) {
+	PSC_flog("no request\n");
+	return false;
+    }
+
+    if (!data || len != sizeof(tmpRequest)) {
+	PSC_flog("insufficient data\n");
+	return false;
+    }
+
+    PSC_fdbg(PSC_LOG_PART, "buffer %p request %p", data, req);
+
+    PSpart_reinitReq(req);
+
+    /* unpack buffer */
+    memcpy(&tmpRequest, data, sizeof(tmpRequest));
+
+    req->size = tmpRequest.size;
+    req->hwType = tmpRequest.hwType;
+    req->uid = tmpRequest.uid;
+    req->gid = tmpRequest.gid;
+    req->sort = tmpRequest.sort;
+    req->options = tmpRequest.options;
+    req->priority = tmpRequest.priority;
+    req->num = tmpRequest.num;
+    req->tpp = tmpRequest.tpp;
+    req->start = tmpRequest.start;
+
+    if (PSC_getDebugMask() & PSC_LOG_PART) {
+	PSpart_snprintf(partString, sizeof(partString), req);
+	PSC_log(" received request = (%s)\n", partString);
+    }
+
+    return true;
 }

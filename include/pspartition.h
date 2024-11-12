@@ -25,6 +25,7 @@
 #include "pscpu.h"
 #include "psnodes.h"
 #include "psprotocol.h"
+#include "pssenddb_t.h"
 #include "pstaskid.h"
 
 /**
@@ -228,6 +229,46 @@ bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request);
  * decode the partition request structure.
  */
 size_t PSpart_decodeReqOld(char *buffer, PSpart_request_t *request);
+
+/**
+ * @brief Send partition request structure
+ *
+ * Send partition request structure @a req via the serialization layer
+ * utilizing the data buffer @a msg. Only the core members of @a req
+ * will be sent. Further information like the nodelist has to be
+ * handled explicitly outside this function.
+ *
+ * @a msg has to be setup before in order to provide the message type,
+ * the destination address, etc.
+ *
+ * @param req Partition request structure to be sent
+ *
+ * @param msg Data buffer used for sending
+ *
+ * @return On success true is returned; or false in case of error
+ */
+bool PSpart_addToMsg(PSpart_request_t *req, PS_SendDB_t *msg);
+
+/**
+ * @brief Decode partition request structure
+ *
+ * Decode a partition request structure sent via @ref PStpart_addToMsg()
+ * and received as a data blob of size @a len provided in @a data. The
+ * decoded data is written to the partition request structure @a req
+ * is pointing to.
+ *
+ * Before adding any data to @a req the structure will be cleaned
+ * up. Thus, any information contained will get lost.
+ *
+ * @param data Data blob holding the encoded partition request structure
+ *
+ * @param len Size of @a data
+ *
+ * @param req Partition request structure to write to
+ *
+ * @return On success return true is returned or false on error
+ */
+bool PSpart_decodeReq(void *data, size_t len, PSpart_request_t *req);
 
 /**
  * @brief Print a partition request in a string.
