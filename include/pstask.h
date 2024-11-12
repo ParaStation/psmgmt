@@ -299,9 +299,9 @@ bool PStask_decodeTask(void *data, size_t len, PStask_t *task);
  * @a msg has to be setup before in order to provide the message type,
  * the destination address, etc.
  *
- * @param msg Data buffer used for sending
- *
  * @param task Task structure to be sent
+ *
+ * @param msg Data buffer used for sending
  *
  * @return On success true is returned; or false in case of error
  */

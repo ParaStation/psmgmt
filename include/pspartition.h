@@ -22,10 +22,10 @@
 
 #include "list_t.h"
 
-#include "psnodes.h"
-#include "pstaskid.h"
 #include "pscpu.h"
+#include "psnodes.h"
 #include "psprotocol.h"
+#include "pstaskid.h"
 
 /**
  * Stores information of the partition's resource slots. This is
@@ -108,7 +108,7 @@ typedef struct {
     /*C*/ PSpart_sort_t sort;      /**< Sort mode for sorting candidates */
     /*C*/ PSpart_option_t options; /**< Options steering partition creation */
     /*C*/ uint32_t priority;       /**< Priority of the parallel task */
-    /*C*/ int32_t num;             /**< Number of nodes within request */
+    /*C*/ uint32_t num;            /**< Number of elements in @ref nodes */
     /*C*/ uint16_t tpp;            /**< Threads per process requested */
     /*C*/ time_t start;            /**< starttime in PSP_INFO_QUEUE_PARTITION */
     int numGot;                    /**< Number of nodes currently received */
@@ -227,7 +227,7 @@ bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request);
  * @return The number of chars within @a buffer used in order to
  * decode the partition request structure.
  */
-size_t PSpart_decodeReq(char *buffer, PSpart_request_t *request);
+size_t PSpart_decodeReqOld(char *buffer, PSpart_request_t *request);
 
 /**
  * @brief Print a partition request in a string.

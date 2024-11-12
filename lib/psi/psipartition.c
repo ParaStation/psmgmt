@@ -334,8 +334,8 @@ static int nodelistFromRange(char *range, nodelist_t *nodelist)
     }
 
     /* Now put the range into the nodelist */
-    for (long i = first; i <= last; i++) {
-	if (!addNode(i, nodelist)) return 0;
+    for (PSnodes_ID_t n = first; n <= last; n++) {
+	if (!addNode(n, nodelist)) return 0;
     }
 
     return last - first + 1;
@@ -383,10 +383,7 @@ static int nodelistFromNodeStr(char *nodeStr, nodelist_t *nodelist)
  */
 static int nodelistFromHost(char *host, nodelist_t *nodelist)
 {
-    PSnodes_ID_t node;
-
-    node = PSI_resolveNodeID(host);
-
+    PSnodes_ID_t node = PSI_resolveNodeID(host);
     if (node < 0) return 0;
 
     return addNode(node, nodelist);

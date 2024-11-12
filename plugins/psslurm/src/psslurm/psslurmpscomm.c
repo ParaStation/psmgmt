@@ -186,7 +186,7 @@ static void grantPartRequest(PStask_t *task)
     }
 }
 
-static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
+static void rejectPartRequest(PStask_ID_t dest, int eno, PStask_t *task)
 {
     DDTypedMsg_t msg = {
 	.header = {
@@ -194,7 +194,7 @@ static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
 	    .dest = dest,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg) },
-	.type = errno };
+	.type = eno };
 
     if (task && task->request) {
 	PSpart_delReq(task->request);
@@ -300,7 +300,7 @@ static int handleCreatePart(void *msg)
     return 0;
 
 error:
-    rejectPartRequest(inmsg->header.sender, task);
+    rejectPartRequest(inmsg->header.sender, errno, task);
 
     return 0;
 }
@@ -348,7 +348,7 @@ static int handleCreatePartNL(void *msg)
     return 0;
 
 error:
-    rejectPartRequest(inmsg->header.sender, task);
+    rejectPartRequest(inmsg->header.sender, errno, task);
 
     return 0;
 }

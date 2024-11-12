@@ -1144,7 +1144,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	flags = *(PSpart_list_t *)(buf+len);
 	len += sizeof(PSpart_list_t);
 
-	len += PSpart_decodeReq(buf + len, req);
+	len += PSpart_decodeReqOld(buf + len, req);
 	if (len != recvd) {
 	    printf("Wrong number of bytes received (used %ld vs. rcvd %ld)!\n",
 		   (long)len, (long)recvd);
@@ -1208,7 +1208,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 		if (nBytes > myBytes) {
 		    printf("warning: slots might be truncated");
 		}
-		for (int n = 0; n < req->num; n++) {
+		for (uint32_t n = 0; n < req->num; n++) {
 		    slots[n].node = *(PSnodes_ID_t *)ptr;
 		    ptr += sizeof(PSnodes_ID_t);
 

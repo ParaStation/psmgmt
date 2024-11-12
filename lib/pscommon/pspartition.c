@@ -15,8 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pscommon.h"
 #include "list.h"
+#include "pscommon.h"
 
 PSpart_request_t* PSpart_newReq(void)
 {
@@ -114,9 +114,9 @@ void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
 
     if (request->nodes) {
 	/* raw request (no partition yet) */
-	for (int i = 0; i < request->numGot; i++) {
+	for (uint32_t n = 0; n < request->num; n++) {
 	    snprintf(txt+strlen(txt), size-strlen(txt),
-		     "%s%d", i ? " " : "",request->nodes[i]);
+		     "%s%d", n ? " " : "",request->nodes[n]);
 	    if (strlen(txt)+1 == size) return;
 	}
     } else if (request->slots) {
@@ -141,7 +141,7 @@ static struct {
     PSpart_sort_t sort;
     PSpart_option_t options;
     uint32_t priority;
-    int32_t num;
+    uint32_t num;
     uint16_t tpp;
     int64_t start;
 } tmpRequest;
@@ -183,7 +183,7 @@ bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request)
     return true;
 }
 
-size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request)
+size_t PSpart_decodeReqOld(char* buffer, PSpart_request_t* request)
 {
     size_t length =  sizeof(tmpRequest);
 

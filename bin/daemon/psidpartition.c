@@ -975,7 +975,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
     memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
 
     bool canOverbook = false;
-    for (int n = 0 ; n < request->num; n++) {
+    for (uint32_t n = 0 ; n < request->num; n++) {
 	PSnodes_ID_t node = request->nodes[n];
 
 	if (!PSC_validNode(node)) {
@@ -1708,41 +1708,41 @@ static void sendAcctQueueMsg(PStask_t *task)
  */
 static bool msg_CREATEPART(DDBufferMsg_t *inmsg)
 {
-    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
-
+    int eno = 0;
     if (!PSIDnodes_isStarter(PSC_getMyID())) {
 	PSID_flog("node is not starter\n");
-	errno = EACCES;
+	eno = EACCES;
 	goto error;
     }
 
+    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
     if (!task || task->ptid) {
 	PSID_flog("task %s not root process\n",
 		  PSC_printTID(inmsg->header.sender));
-	errno = EACCES;
+	eno = EACCES;
 	goto error;
     }
     if (task->request) {
 	PSID_flog("pending request on task %s\n",
 		  PSC_printTID(inmsg->header.sender));
-	errno = EACCES;
+	eno = EACCES;
 	goto error;
     }
 
     /* Add UID/GID/starttime to request */
     task->request = PSpart_newReq();
     if (!task->request) {
-	errno = ENOMEM;
-	PSID_fwarn(errno, "PSpart_newReq()");
+	eno = ENOMEM;
+	PSID_fwarn(eno, "PSpart_newReq()");
 	goto error;
     }
-    PSpart_decodeReq(inmsg->buf, task->request);
+    PSpart_decodeReqOld(inmsg->buf, task->request);
     task->request->uid = task->uid;
     task->request->gid = task->gid;
     task->request->start = task->started.tv_sec;
     if (task->request->tpp < 1) {
 	PSID_flog("invalid TPP %d\n", task->request->tpp);
-	errno = EINVAL;
+	eno = EINVAL;
 	goto cleanup;
     }
     task->request->tid = task->tid;
@@ -1751,8 +1751,8 @@ static bool msg_CREATEPART(DDBufferMsg_t *inmsg)
 	task->request->nodes =
 	    malloc(task->request->num * sizeof(*task->request->nodes));
 	if (!task->request->nodes) {
-	    errno = ENOMEM;
-	    PSID_fwarn(errno, "malloc() nodes");
+	    eno = EBADMSG;
+	    PSID_fwarn(eno, "malloc() nodes");
 	    goto cleanup;
 	}
     }
@@ -1761,7 +1761,7 @@ static bool msg_CREATEPART(DDBufferMsg_t *inmsg)
     /* Create accounting message */
     sendAcctQueueMsg(task);
 
-    /* This hook is used by plugins like the psmom to overwrite the
+    /* This hook is used by plugins like the psslurm to overwrite the
      * node-list. If the plugin has sent an message by itself, it will
      * return 0. If the incoming message has to be handled further, it
      * will return 1. If no plugin is registered, the return code will
@@ -1791,14 +1791,14 @@ cleanup:
 
 error:
     ;
-    DDTypedMsg_t msg = {
+    DDTypedMsg_t answer = {
 	.header = {
 	    .type = PSP_CD_PARTITIONRES,
 	    .dest = inmsg->header.sender,
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) },
-	.type = errno};
-    sendMsg(&msg);
+	    .len = sizeof(answer) },
+	.type = eno};
+    sendMsg(&answer);
 
     return true;
 }
@@ -1841,7 +1841,7 @@ static bool msg_GETPART(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    PSpart_decodeReq(inmsg->buf, req);
+    PSpart_decodeReqOld(inmsg->buf, req);
     req->tid = inmsg->header.sender;
 
     /* Set the default sorting strategy if necessary */
@@ -1879,6 +1879,7 @@ static bool msg_GETPART(DDBufferMsg_t *inmsg)
 	    .len = sizeof(msg) },
 	.type = errno};
     sendMsg(&msg);
+
     return true;
 }
 
