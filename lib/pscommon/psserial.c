@@ -1230,13 +1230,13 @@ static bool addData(PS_SendDB_t *buffer, const void *data, const size_t dataLen,
     return true;
 }
 
-bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
+bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *buffer,
 	      PS_DataType_t type, const char *caller, const int line)
 {
     bool hasLen = (type == PSDATA_STRING || type == PSDATA_DATA);
 
-    if (!data) {
-	PSC_flog("invalid data at %s@%d\n", caller, line);
+    if (!buffer) {
+	PSC_flog("invalid buffer at %s@%d\n", caller, line);
 	return false;
     }
 
@@ -1253,57 +1253,57 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
     /* add data type */
     if (typeInfo) {
 	uint8_t dType = type;
-	if (!addData(data, &dType, sizeof(dType), caller, line)) return false;
+	if (!addData(buffer, &dType, sizeof(dType), caller, line)) return false;
     }
 
     /* add data length if required */
     if (hasLen) {
 	uint32_t len = byteOrder ? htonl(size) : size;
-	if (!addData(data, &len, sizeof(len), caller, line)) return false;
+	if (!addData(buffer, &len, sizeof(len), caller, line)) return false;
     }
 
     /* add data */
     if (byteOrder && !hasLen && type != PSDATA_MEM) {
 	switch (size) {
 	case 1:
-	    if (!addData(data, val, size, caller, line)) return false;
+	    if (!addData(buffer, val, size, caller, line)) return false;
 	    break;
 	case 2:
 	{
 	    uint16_t u16 = htons(*(uint16_t*)val);
-	    if (!addData(data, &u16, sizeof(u16), caller, line)) return false;
+	    if (!addData(buffer, &u16, sizeof(u16), caller, line)) return false;
 	    break;
 	}
 	case 4:
 	{
 	    uint32_t u32 = htonl(*(uint32_t*)val);
-	    if (!addData(data, &u32, sizeof(u32), caller, line)) return false;
+	    if (!addData(buffer, &u32, sizeof(u32), caller, line)) return false;
 	    break;
 	}
 	case 8:
 	{
 	    uint64_t u64 = HTON64(*(uint64_t*)val);
-	    if (!addData(data, &u64, sizeof(u64), caller, line)) return false;
+	    if (!addData(buffer, &u64, sizeof(u64), caller, line)) return false;
 	    break;
 	}
 	default:
-	    if (!addData(data, val, size, caller, line)) return false;
+	    if (!addData(buffer, val, size, caller, line)) return false;
 	    PSC_flog("unknown conversion for size %d at %s@%d\n",
 		     size, caller, line);
 	}
     } else {
-	if (!addData(data, val, size, caller, line)) return false;
+	if (!addData(buffer, val, size, caller, line)) return false;
     }
 
     return true;
 }
 
-bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
+bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *buffer,
 		   PS_DataType_t type, size_t size,
 		   const char *caller, const int line)
 {
-    if (!data) {
-	PSC_flog("invalid data at %s@%d\n", caller, line);
+    if (!buffer) {
+	PSC_flog("invalid buffer at %s@%d\n", caller, line);
 	return false;
     }
     if (!val) {
@@ -1311,22 +1311,22 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
 	return false;
     }
 
-    if (!addToBuf(&num, sizeof(num), data, PSDATA_UINT32, caller, line))
+    if (!addToBuf(&num, sizeof(num), buffer, PSDATA_UINT32, caller, line))
 	return false;
 
     const char *valPtr = val;
     for (uint32_t i = 0; i < num; i++) {
-	addToBuf(valPtr + i*size, size, data, type, caller, line);
+	addToBuf(valPtr + i*size, size, buffer, type, caller, line);
     }
 
     return true;
 }
 
-bool __addStringArrayToBuf(char **array, PS_SendDB_t *data,
+bool __addStringArrayToBuf(char **array, PS_SendDB_t *buffer,
 			   const char *caller, const int line)
 {
-    if (!data) {
-	PSC_flog("invalid data at %s@%d\n", caller, line);
+    if (!buffer) {
+	PSC_flog("invalid buffer at %s@%d\n", caller, line);
 	return false;
     }
     char *empty = NULL;
@@ -1334,11 +1334,11 @@ bool __addStringArrayToBuf(char **array, PS_SendDB_t *data,
 
     uint32_t num = 0;
     while (array[num]) num++;
-    if (!addToBuf(&num, sizeof(num), data, PSDATA_UINT32, caller, line))
+    if (!addToBuf(&num, sizeof(num), buffer, PSDATA_UINT32, caller, line))
 	return false;
 
     for (uint32_t i = 0; i < num; i++) {
-	if (!addToBuf(array[i], PSP_strLen(array[i]), data, PSDATA_STRING,
+	if (!addToBuf(array[i], PSP_strLen(array[i]), buffer, PSDATA_STRING,
 		      caller, line)) return false;
     }
 

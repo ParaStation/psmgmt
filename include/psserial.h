@@ -776,7 +776,7 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
  * @brief Add element to buffer
  *
  * Add an element of @a size bytes located at @a val to the data
- * buffer @a data. If the global type-info flag is set, the
+ * buffer @a buffer. If the global type-info flag is set, the
  * element will be annotated to be of type @a type.
  *
  * If the data is of type PSDATA_STRING or PSDATA_DATA, it will be
@@ -791,7 +791,7 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
  *
  * @param size Number of bytes of the element to add
  *
- * @param data Data buffer to save data to
+ * @param buffer Data buffer to save element to
  *
  * @param type Type of the element to add
  *
@@ -801,82 +801,82 @@ bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
  *
  * @return On success true is returned or false in case of an error.
  */
-bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
+bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *buffer,
 	      PS_DataType_t type, const char *caller, const int line);
 
-#define addInt8ToMsg(val, data) { int8_t _x = val;		\
-	addToBuf(&_x, sizeof(_x), data, PSDATA_INT8,		\
+#define addInt8ToMsg(val, msg) { int8_t _x = val;		\
+	addToBuf(&_x, sizeof(_x), msg, PSDATA_INT8,		\
 		 __func__, __LINE__); }
 
-#define addInt16ToMsg(val, data) { int16_t _x = val;		\
-	addToBuf(&_x, sizeof(_x), data, PSDATA_INT16,		\
+#define addInt16ToMsg(val, msg) { int16_t _x = val;		\
+	addToBuf(&_x, sizeof(_x), msg, PSDATA_INT16,		\
 		 __func__, __LINE__); }
 
-#define addInt32ToMsg(val, data) { int32_t _x = val;		\
-	addToBuf(&_x, sizeof(_x), data, PSDATA_INT32,		\
+#define addInt32ToMsg(val, msg) { int32_t _x = val;		\
+	addToBuf(&_x, sizeof(_x), msg, PSDATA_INT32,		\
 		 __func__, __LINE__); }
 
-#define addInt64ToMsg(val, data) { int64_t _x = val;		\
-	addToBuf(&_x, sizeof(_x), data, PSDATA_INT64,		\
+#define addInt64ToMsg(val, msg) { int64_t _x = val;		\
+	addToBuf(&_x, sizeof(_x), msg, PSDATA_INT64,		\
 		 __func__, __LINE__); }
 
-#define addUint8ToMsg(val, data) { uint8_t _x = val;		\
-	addToBuf(&_x, sizeof(_x), data, PSDATA_UINT8,		\
+#define addUint8ToMsg(val, msg) { uint8_t _x = val;		\
+	addToBuf(&_x, sizeof(_x), msg, PSDATA_UINT8,		\
 		 __func__, __LINE__); }
 
-#define addUint16ToMsg(val, data) { uint16_t _x = val;		\
-	addToBuf(&_x, sizeof(_x), data, PSDATA_UINT16,		\
+#define addUint16ToMsg(val, msg) { uint16_t _x = val;		\
+	addToBuf(&_x, sizeof(_x), msg, PSDATA_UINT16,		\
 		 __func__, __LINE__); }
 
-#define addUint32ToMsg(val, data) { uint32_t _x = val;		\
-	addToBuf(&_x, sizeof(_x), data, PSDATA_UINT32,		\
+#define addUint32ToMsg(val, msg) { uint32_t _x = val;		\
+	addToBuf(&_x, sizeof(_x), msg, PSDATA_UINT32,		\
 		 __func__, __LINE__); }
 
-#define addUint64ToMsg(val, data) { uint64_t _x = val;		\
-	addToBuf(&_x, sizeof(_x), data, PSDATA_UINT64,		\
+#define addUint64ToMsg(val, msg) { uint64_t _x = val;		\
+	addToBuf(&_x, sizeof(_x), msg, PSDATA_UINT64,		\
 		 __func__, __LINE__); }
 
-#define addDoubleToMsg(val, data) { double _x = val;		\
-	addToBuf(&_x, sizeof(_x), data, PSDATA_DOUBLE,		\
+#define addDoubleToMsg(val, msg) { double _x = val;		\
+	addToBuf(&_x, sizeof(_x), msg, PSDATA_DOUBLE,		\
 		 __func__, __LINE__); }
 
-#define addBoolToMsg(val, data) { uint8_t _x = val;		\
-	addToBuf(&_x, sizeof(uint8_t), data, PSDATA_UINT8,	\
+#define addBoolToMsg(val, msg) { uint8_t _x = val;		\
+	addToBuf(&_x, sizeof(uint8_t), msg, PSDATA_UINT8,	\
 		 __func__, __LINE__); }
 
-#define addTimeToMsg(val, data) { time_t _x = val;		\
-	addToBuf(&_x, sizeof(_x), data, PSDATA_TIME,		\
+#define addTimeToMsg(val, msg) { time_t _x = val;		\
+	addToBuf(&_x, sizeof(_x), msg, PSDATA_TIME,		\
 		 __func__, __LINE__); }
 
-#define addPidToMsg(val, data) { pid_t _x = val;		\
-	addToBuf(&_x, sizeof(_x), data, PSDATA_PID,		\
+#define addPidToMsg(val, msg) { pid_t _x = val;			\
+	addToBuf(&_x, sizeof(_x), msg, PSDATA_PID,		\
 		 __func__, __LINE__); }
 
-#define addTaskIdToMsg(val, data) addInt64ToMsg(val, data)
+#define addTaskIdToMsg(val, msg) addInt64ToMsg(val, msg)
 
-#define addNodeIdToMsg(val, data) addInt32ToMsg(val, data)
+#define addNodeIdToMsg(val, msg) addInt32ToMsg(val, msg)
 
-#define addResIdToMsg(val, data) addInt32ToMsg(val, data)
+#define addResIdToMsg(val, msg) addInt32ToMsg(val, msg)
 
-#define addMemToMsg(mem, len, data)				\
-    addToBuf(mem, len, data, PSDATA_MEM, __func__, __LINE__)
+#define addMemToMsg(mem, len, msg)				\
+    addToBuf(mem, len, msg, PSDATA_MEM, __func__, __LINE__)
 
-#define addDataToMsg(buf, len, data)				\
-    addToBuf(buf, len, data, PSDATA_DATA, __func__, __LINE__)
+#define addDataToMsg(buf, len, msg)				\
+    addToBuf(buf, len, msg, PSDATA_DATA, __func__, __LINE__)
 
-#define addStringToMsg(string, data)				\
-    addToBuf(string, PSP_strLen(string), data, PSDATA_STRING,	\
+#define addStringToMsg(string, msg)				\
+    addToBuf(string, PSP_strLen(string), msg, PSDATA_STRING,	\
 		   __func__, __LINE__)
 
 /**
  * @brief Add array of elements to buffer
  *
  * Add an array of @a num individual elements of @a size bytes located
- * at @a val to the data buffer @a data. If the global type-info flag
+ * at @a val to the data buffer @a buffer. If the global type-info flag
  * is set, each element will be annotated to be of type @a type.
  *
- * The overall data will be annotated by a leading element describing
- * the number of elements provided via @a num.
+ * The overall data will be annotated by a leading element holding the
+ * number of elements as provided via @a num.
  *
  * If the global @ref byteOrder flag is true, each element will be
  * shuffled into network byte-order.
@@ -885,7 +885,7 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
  *
  * @param num Number of elements to add
  *
- * @param data Data buffer to save data to
+ * @param buffer Data buffer to save the array to
  *
  * @param type Type of the elements to add
  *
@@ -897,39 +897,39 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
  *
  * @return On success true is returned or false in case of an error.
  */
-bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
+bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *buffer,
 		   PS_DataType_t type, size_t size,
 		   const char *caller, const int line);
 
-#define addUint16ArrayToMsg(val, num, data) { uint16_t *_x = val;	\
-	addArrayToBuf(_x, num, data, PSDATA_UINT16, sizeof(*_x),	\
+#define addUint16ArrayToMsg(val, num, msg) { uint16_t *_x = val;	\
+	addArrayToBuf(_x, num, msg, PSDATA_UINT16, sizeof(*_x),		\
 		      __func__, __LINE__); }
 
-#define addUint32ArrayToMsg(val, num, data) { uint32_t *_x = val;	\
-	addArrayToBuf(_x, num, data, PSDATA_UINT32, sizeof(*_x),	\
+#define addUint32ArrayToMsg(val, num, msg) { uint32_t *_x = val;	\
+	addArrayToBuf(_x, num, msg, PSDATA_UINT32, sizeof(*_x),		\
 		      __func__, __LINE__); }
 
-#define addUint64ArrayToMsg(val, num, data) { uint64_t *_x = val;	\
-	addArrayToBuf(_x, num, data, PSDATA_UINT64, sizeof(*_x),	\
+#define addUint64ArrayToMsg(val, num, msg) { uint64_t *_x = val;	\
+	addArrayToBuf(_x, num, msg, PSDATA_UINT64, sizeof(*_x),		\
 		      __func__, __LINE__); }
 
-#define addInt16ArrayToMsg(val, num, data) { int16_t *_x = val;		\
-	addArrayToBuf(_x, num, data, PSDATA_INT16, sizeof(*_x),		\
+#define addInt16ArrayToMsg(val, num, msg) { int16_t *_x = val;		\
+	addArrayToBuf(_x, num, msg, PSDATA_INT16, sizeof(*_x),		\
 		      __func__, __LINE__); }
 
-#define addInt32ArrayToMsg(val, num, data) { int32_t *_x = val;		\
-	addArrayToBuf(_x, num, data, PSDATA_INT32, sizeof(*_x),		\
+#define addInt32ArrayToMsg(val, num, msg) { int32_t *_x = val;		\
+	addArrayToBuf(_x, num, msg, PSDATA_INT32, sizeof(*_x),		\
 		      __func__, __LINE__); }
 
-#define addInt64ArrayToMsg(val, num, data) { int64_t *_x = val;		\
-	addArrayToBuf(_x, num, data, PSDATA_INT64, sizeof(*_x),		\
+#define addInt64ArrayToMsg(val, num, msg) { int64_t *_x = val;		\
+	addArrayToBuf(_x, num, msg, PSDATA_INT64, sizeof(*_x),		\
 		      __func__, __LINE__); }
 
 /**
  * @brief Add array of strings to buffer
  *
  * Add an array of strings stored in the NULL terminated @a array to
- * the data buffer @a data.
+ * the data buffer @a buffer.
  *
  * If the global type-info flag is set, each element will be annotated
  * to be of type PSDATA_STRING. Generally, each element will be
@@ -946,7 +946,7 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
  *
  * @param array Address of the array of strings to add
  *
- * @param data Data buffer to save data to
+ * @param buffer Data buffer to save the string array to
  *
  * @param caller Function name of the calling function
  *
@@ -954,10 +954,10 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
  *
  * @return On success true is returned or false in case of an error.
 */
-bool __addStringArrayToBuf(char **array, PS_SendDB_t *data,
+bool __addStringArrayToBuf(char **array, PS_SendDB_t *buffer,
 			   const char *caller, const int line);
 
-#define addStringArrayToMsg(array, data)			\
-    __addStringArrayToBuf(array, data, __func__, __LINE__)
+#define addStringArrayToMsg(array, msg)			\
+    __addStringArrayToBuf(array, msg, __func__, __LINE__)
 
 #endif  /* __PSSERIAL_H */
