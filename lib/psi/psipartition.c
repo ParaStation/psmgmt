@@ -249,8 +249,8 @@ static PSpart_option_t getPartitionOptions(void)
 
 /** Structure to hold a nodelist */
 typedef struct {
-    int size;             /**< Actual number of valid entries within nodes[] */
-    int maxsize;          /**< Maximum number of entries within nodes[] */
+    uint32_t used;        /**< Actual number of valid entries within nodes[] */
+    uint32_t size;        /**< Maximum number of entries within nodes[] */
     PSnodes_ID_t *nodes;  /**< ParaStation IDs of the requested nodes. */
 } nodelist_t;
 
@@ -272,10 +272,10 @@ static bool addNode(PSnodes_ID_t node, nodelist_t *nl)
 {
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
-    if (nl->size == nl->maxsize) {
+    if (nl->used == nl->size) {
 	void *old = nl->nodes;
-	nl->maxsize += 128;
-	nl->nodes = realloc(nl->nodes, nl->maxsize * sizeof(*nl->nodes));
+	nl->size += 128;
+	nl->nodes = realloc(nl->nodes, nl->size * sizeof(*nl->nodes));
 	if (!nl->nodes) {
 	    free(old);
 	    PSI_flog("no memory\n");
@@ -283,8 +283,7 @@ static bool addNode(PSnodes_ID_t node, nodelist_t *nl)
 	}
     }
 
-    nl->nodes[nl->size] = node;
-    nl->size++;
+    nl->nodes[nl->used++] = node;
 
     return true;
 }
@@ -362,7 +361,7 @@ static int nodelistFromNodeStr(char *nodeStr, nodelist_t *nodelist)
 	if (!nodelistFromRange(range, nodelist)) return 0;
 	range = strtok_r(NULL, ",", &work);
     }
-    return nodelist->size;
+    return nodelist->used;
 }
 
 /**
@@ -583,7 +582,8 @@ ERROR:
  *
  * @return On success, the created nodelist is returned. Otherwise
  * NULL is returned. The latter case is also valid, if none of the
- * expected environment variables is set.
+ * expected environment variables is set. To indicate an error,
+ * nodelist != NULL with nodelist->nodes == NULL is returned.
  */
 static nodelist_t *getNodelist(void)
 {
@@ -604,8 +604,8 @@ static nodelist_t *getNodelist(void)
 	return NULL;
     }
     *nodelist = (nodelist_t) {
+	.used = 0,
 	.size = 0,
-	.maxsize = 0,
 	.nodes = NULL };
 
     if (nodeStr) {
@@ -661,9 +661,9 @@ static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
     int offset = 0;
 
     msg->header.type = PSP_CD_CREATEPARTNL;
-    while (offset < nodelist->size) {
+    while (offset < nodelist->used) {
 	int chunk = (nodelist->size-offset > NODES_CHUNK) ?
-	    NODES_CHUNK : nodelist->size-offset;
+	    NODES_CHUNK : nodelist->used-offset;
 	char *ptr = msg->buf;
 	msg->header.len = DDBufferMsgOffset;
 
@@ -813,8 +813,8 @@ static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
 
     if (!request || !nodelist || !nodelist->nodes) return;
 
-    if (nodelist->size < (int) (request->size * request->tpp)) {
-	PSI_flog("only %d in nodelist of %d requested\n", nodelist->size,
+    if (nodelist->used < request->size * request->tpp) {
+	PSI_flog("only %d in nodelist of %d requested\n", nodelist->used,
 		 request->size * request->tpp);
 	goto end;
     }
@@ -836,7 +836,7 @@ static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
 	goto end;
     }
 
-    for (int n = 0; n < nodelist->size; n++) {
+    for (uint32_t n = 0; n < nodelist->used; n++) {
 	PSnodes_ID_t node = nodelist->nodes[n];
 
 	/* Test for down nodes */
@@ -860,7 +860,7 @@ static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
 
     /* More analysis in case of tpp */
     if (request->tpp > 1) {
-	for (int n = 0; n < nodelist->size; n++) {
+	for (uint32_t n = 0; n < nodelist->used; n++) {
 	    PSnodes_ID_t node = nodelist->nodes[n];
 
 	    /* Test for correct tpp */
@@ -930,7 +930,7 @@ int PSI_resolveHWList(char **hwList, uint32_t *hwType)
     return ret;
 }
 
-int PSI_createPartition(unsigned int size, uint32_t hwType)
+int PSI_createPartition(uint32_t size, uint32_t hwType)
 {
     DDBufferMsg_t msg = {
 	.header = {
@@ -938,28 +938,30 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	    .dest = PSC_getTID(-1, 0),
 	    .sender = PSC_getMyTID(),
 	    .len = DDBufferMsgOffset } };
-    PSpart_request_t *request = PSpart_newReq();
-    nodelist_t *nodelist = NULL;
-    int ret = -1;
 
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
-    if (!request) {
-	PSI_log(-1, "%s: No memory for request\n", __func__);
-	goto end;
+    if (!size) {
+	PSI_flog("size %d too small\n", size);
+	return -1;
     }
 
-    if (!size) {
-	PSI_log(-1, "%s: size %d too small\n", __func__, size);
-	goto end;
+    PSpart_request_t *request = PSpart_newReq();
+    if (!request) {
+	PSI_flog("no memory for request\n");
+	return -1;
     }
+
+    int ret = -1;
+    nodelist_t *nl = getNodelist();
+    if (nl && !nl->nodes) goto end;
 
     request->size = size;
     request->hwType = hwType;
     request->sort = getSortMode();
     request->options = getPartitionOptions();
     request->priority = 0; /* Not used */
-    request->num = 0;
+    request->num = nl ? nl->used : 0;
 
     if (request->sort == PART_SORT_UNKNOWN) goto end;
 
@@ -970,19 +972,13 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	    __func__, request->size, request->tpp, request->hwType,
 	    request->sort, request->options, request->priority);
 
-    nodelist = getNodelist();
-    if (nodelist) {
-	if (nodelist->size < 0) goto end;
-	request->num = nodelist->size;
-    }
-
     if (request->options & PART_OPT_FULL_LIST) {
-	if (!nodelist) {
+	if (!nl) {
 	    PSI_flog("full partition requires explicit resources\n");
 	    goto end;
 	}
-	request->size = nodelist->size; // we want all nodes in nodelist
-	request->tpp = 1;               // ignore tpp; we get full nodes anyhow
+	request->size = nl->used;   // we want all nodes in nodelist
+	request->tpp = 1;           // ignore tpp; we get full nodes anyhow
     }
 
     uint32_t hwEnv = getHWEnv();
@@ -1002,8 +998,8 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	goto end;
     }
 
-    if (nodelist) {
-	ret = sendNodelist(nodelist, &msg);
+    if (nl) {
+	ret = sendNodelist(nl, &msg);
 	if (ret) goto end;
 	/* reset ret */
 	ret = -1;
@@ -1017,18 +1013,19 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     }
     PSC_setSigHandler(SIGALRM, alarmHandlerPart);
 recv_retry:
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
+    DDBufferMsg_t answer;
+    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	goto end;
     }
     alarm(0);
     PSC_setSigHandler(SIGALRM, SIG_DFL);
 
-    switch (msg.header.type) {
+    switch (answer.header.type) {
     case PSP_CD_PARTITIONRES:
-	if (((DDTypedMsg_t *)&msg)->type) {
-	    PSI_warn(-1, ((DDTypedMsg_t *)&msg)->type, "%s", __func__);
-	    if (batchPartition) analyzeError(request, nodelist);
+	if (((DDTypedMsg_t *)&answer)->type) {
+	    PSI_warn(-1, ((DDTypedMsg_t *)&answer)->type, "%s", __func__);
+	    if (batchPartition) analyzeError(request, nl);
 	    goto end;
 	}
 	break;
@@ -1037,12 +1034,12 @@ recv_retry:
 	goto recv_retry;
 	break;
     case PSP_CD_ERROR:
-	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
-		 __func__, PSP_printMsg(((DDErrorMsg_t *)&msg)->request));
+	PSI_warn(-1, ((DDErrorMsg_t*)&answer)->error, "%s: error in command %s",
+		 __func__, PSP_printMsg(((DDErrorMsg_t *)&answer)->request));
 	goto end;
 	break;
     default:
-	PSI_flog("unexpected msgtype '%s'\n", PSP_printMsg(msg.header.type));
+	PSI_flog("unexpected msgtype '%s'\n", PSP_printMsg(answer.header.type));
 	goto end;
     }
 
@@ -1056,7 +1053,7 @@ recv_retry:
     ret = request->size;
 
 end:
-    if (nodelist) freeNodelist(nodelist);
+    freeNodelist(nl);
     if (request) PSpart_delReq(request);
 
     return ret;
