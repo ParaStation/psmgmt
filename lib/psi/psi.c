@@ -40,8 +40,6 @@
 
 static bool mixedProto = false;
 
-#define RUN_DIR LOCALSTATEDIR "/run"
-
 static int daemonSock = -1;
 
 /**
@@ -137,20 +135,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	usleep(100000);
 	daemonSock = daemonSocket(PSmasterSocketName);
     }
-
-    if (daemonSock==-1) {
-	/* See, if daemon listens on the old socket */
-	PSI_log(-1, "%s: try on old socket\n", __func__);
-	daemonSock = daemonSocket("\0\0");
-    }
-
-    if (daemonSock==-1) {
-	/* See, if daemon listens on the old socket */
-	PSI_log(-1, "%s: try on even older socket\n", __func__);
-	daemonSock = daemonSocket(RUN_DIR "/parastation.sock");
-    }
-
-    if (daemonSock==-1) {
+    if (daemonSock == -1) {
 	PSI_warn(-1, errno, "%s: failed finally", __func__);
 	return false;
     }
