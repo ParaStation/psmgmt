@@ -1731,7 +1731,7 @@ static void handleRequestPart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     sendAcctQueueMsg(task);
 
     /* This hook is used by plugins like the psslurm to overwrite the
-     * node-list. If the plugin has sent an message by itself, it will
+     * node-list. If the plugin has sent a message by itself, it will
      * return 0. If the incoming message has to be handled further, it
      * will return 1. If no plugin is registered, the return code will
      * be PSIDHOOK_NOFUNC and, thus, the message will be handled here.
@@ -1853,7 +1853,7 @@ error:
  *
  * Depending on the actual request the master tries to immediately
  * allocate a partition or enqueues the request to the queue of
- * pending requests. The message might contain a nodelist that was
+ * pending requests. The message might contain a node-list that was
  * provided by the client.
  *
  * If a partition could be allocated successfully, the actual
@@ -1963,7 +1963,7 @@ static bool msg_CREATEPART(DDTypedBufferMsg_t *inmsg)
  * Append the slots within the message @a msg to the slot-list contained
  * in the partition request @a request.
  *
- * @a smg has a buffer containing the a list of slots stored as
+ * @a msg has a buffer containing the a list of slots stored as
  * PSpart_slot_t data preceded by the number of slots within this
  * chunk. The size of the chunk, i.e. the number of slots, is stored
  * as a int16_t at the beginning of the buffer.
@@ -1971,16 +1971,6 @@ static bool msg_CREATEPART(DDTypedBufferMsg_t *inmsg)
  * Each slot contains a node ID and a CPU-set part. The latter is
  * expected to have a fixed size throughout the message. In recent
  * versions of the protocol another int16_t entry will hold this size.
- *
- * If sender's daemon is older than PSPdaemonVersion 408 the slot's
- * CPU-set part will have a fixed size of 32 entries.
- *
- * If sender's daemon is older than PSPdaemonVersion 401 the slots
- * will use an outdated data layout.
- *
- * If the sender of @a insmg is older than PSPversion 334 the list
- * contained will be a node-list instead of a slot-list, i.e. the
- * CPU-set part is omitted.
  *
  * This function is a helper in order to handle data received within
  * PSP_DD_PROVIDEPARTSL, PSP_DD_PROVIDETASKSL or PSP_DD_REGISTERPARTSL
@@ -2030,7 +2020,7 @@ static bool appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
  * provide actually allocated partitions to the requesting client's
  * local daemon process. This message will be followed by one or more
  * PSP_DD_PROVIDEPARTSL messages containing the partitions actual
- * slotlist.
+ * slot-list.
  *
  * The client's local daemon will store the partition to the
  * corresponding task structure and wait for following
