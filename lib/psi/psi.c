@@ -160,7 +160,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
     int ret = PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer));
     if (ret <= 0) {
 	if (!ret) {
-	    PSI_log(-1, "%s: unexpected message length 0\n", __func__);
+	    PSI_flog("unexpected message length 0\n");
 	} else {
 	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	}
@@ -175,7 +175,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	switch (type) {
 	case PSP_CONN_ERR_NONE:
 	    if (taskGroup != TG_RESET) {
-		PSI_log(-1, "%s: Daemon refused connection\n", __func__);
+		PSI_flog("Daemon refused connection\n");
 	    }
 	    break;
 	case PSP_CONN_ERR_VERSION :
@@ -183,28 +183,25 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	    uint32_t protoV;
 	    PSP_getTypedMsgBuf(&answer, &used, "protoV", &protoV,
 			       sizeof(protoV));
-	    PSI_log(-1, "%s: Daemon (%u) does not support library version (%u)."
-		    " Pleases relink program\n", __func__, protoV,
-		    PSProtocolVersion);
+	    PSI_flog("Daemon (%u) does not support library version (%u)."
+		    " Pleases relink program\n", protoV, PSProtocolVersion);
 	    break;
 	}
 	case PSP_CONN_ERR_NOSPACE:
-	    PSI_log(-1, "%s: Daemon has no space available\n", __func__);
+	    PSI_flog("Daemon has no space available\n");
 	    break;
 	case PSP_CONN_ERR_UIDLIMIT :
-	    PSI_log(-1, "%s: Node is reserved for different user\n", __func__);
+	    PSI_flog("Node is reserved for different user\n");
 	    break;
 	case PSP_CONN_ERR_GIDLIMIT :
-	    PSI_log(-1, "%s: Node is reserved for different group\n",
-		    __func__);
+	    PSI_flog("Node is reserved for different group\n");
 	    break;
 	case PSP_CONN_ERR_PROCLIMIT :
 	{
 	    int32_t maxProcs;
 	    PSP_getTypedMsgBuf(&answer, &used, "maxProcs", &maxProcs,
 			       sizeof(maxProcs));
-	    PSI_log(-1, "%s: Node limited to %d processes\n", __func__,
-		    maxProcs);
+	    PSI_flog("Node limited to %d processes\n", maxProcs);
 	    break;
 	}
 	case PSP_CONN_ERR_STATENOCONNECT:
@@ -213,12 +210,10 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 		sleep(1);
 		goto RETRY_CONNECT;
 	    }
-	    PSI_log(-1,
-		    "%s: Daemon does not allow new connections\n", __func__);
+	    PSI_flog("Daemon does not allow new connections\n");
 	    break;
 	default:
-	    PSI_log(-1,"%s: Daemon refused connection with unknown error %d\n",
-		    __func__, type);
+	    PSI_flog("Daemon refused connection with unknown error %d\n", type);
 	    break;
 	}
 	break;
@@ -231,24 +226,23 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 
 	int nrOfNodes;
 	if (PSI_infoInt(-1, PSP_INFO_NROFNODES, NULL, &nrOfNodes, false)) {
-	    PSI_log(-1, "%s:  Cannot determine # of nodes\n", __func__);
+	    PSI_flog("Cannot determine # of nodes\n");
 	    break;
 	} else PSC_setNrOfNodes(nrOfNodes);
 
 	char instdir[PATH_MAX];
 	if (PSI_infoString(-1, PSP_INFO_INSTDIR, NULL,
 			   instdir, sizeof(instdir), false)) {
-	    PSI_log(-1, "%s:  Cannot determine instdir\n", __func__);
+	    PSI_flog("Cannot determine instdir\n");
 	    break;
 	} else if (strcmp(instdir, PSC_lookupInstalldir(instdir))) {
-	    PSI_log(-1, "%s: Installation directory '%s' not correct\n",
-		    __func__, instdir);
+	    PSI_flog("Installation directory '%s' not correct\n", instdir);
 	    break;
 	}
 
 	return true;
     default :
-	PSI_log(-1, "%s: unexpected return code %d (%s)\n", __func__,
+	PSI_flog("unexpected return code %d (%s)\n",
 		answer.header.type, PSP_printMsg(answer.header.type));
 	break;
     }
@@ -322,7 +316,7 @@ bool PSI_initClient(PStask_group_t taskGroup)
      */
     if (!connectDaemon(taskGroup, !getenv("__PSI_DONT_START_DAEMON"))) {
 	if (taskGroup != TG_RESET) {
-	    PSI_flog("cannot contact local daemon\n");
+	    PSI_flog("cannot establish connection to local daemon\n");
 	}
 	return false;
     }
@@ -390,7 +384,7 @@ int PSI_protocolVersion(PSnodes_ID_t id)
 	PSP_Optval_t optVal;
 
 	if (PSI_infoOption(id, 1, &optType, &optVal, false) == -1) {
-	    PSI_log(-1, "%s: error getting info\n", __func__);
+	    PSI_flog("error getting info\n");
 	    return -1;
 	}
 
@@ -399,10 +393,10 @@ int PSI_protocolVersion(PSnodes_ID_t id)
 	    protoCache[id] = optVal;
 	    break;
 	case PSP_OP_UNKNOWN:
-	    PSI_log(-1, "%s: PSP_OP_PROTOCOLVERSION unknown\n", __func__);
+	    PSI_flog("PSP_OP_PROTOCOLVERSION unknown\n");
 	    return -1;
 	default:
-	    PSI_log(-1, "%s: got option type %d\n", __func__, optType);
+	    PSI_flog("got option type %d\n", optType);
 	    return -1;
 	}
     }
@@ -415,7 +409,7 @@ ssize_t PSI_sendMsg(void *amsg)
     DDMsg_t *msg = (DDMsg_t *)amsg;
 
     if (!msg) {
-	PSI_log(-1, "%s: no message\n", __func__);
+	PSI_flog("no message\n");
 	errno = ENOMSG;
 	return -1;
     }
@@ -424,7 +418,7 @@ ssize_t PSI_sendMsg(void *amsg)
 	    PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
 
     if (daemonSock == -1) {
-	PSI_log(-1, "%s: Not connected to ParaStation daemon\n", __func__);
+	PSI_flog("Not connected to ParaStation daemon\n");
 	errno = ENOTCONN;
 	return -1;
     }
@@ -475,8 +469,7 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
 	int eno = errno ? errno : ENOTCONN;
 	PSI_warn(-1, eno, "%s: Lost connection to ParaStation daemon",__func__);
 	if (eno == ENOTCONN) {
-	    PSI_log(-1, "%s: Possible version mismatch between"
-		    " daemon and library\n", __func__);
+	    PSI_flog("Possible version mismatch between daemon and library\n");
 	}
 	close(daemonSock);
 	daemonSock = -1;
@@ -513,16 +506,16 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     } else if (!ret) {
-	PSI_log(-1, "%s: PSI_recvMsg() returned 0\n", __func__);
+	PSI_flog("PSI_recvMsg() returned 0\n");
 	return -1;
     }
 
     if (msg.header.type != PSP_CD_NOTIFYDEADRES) {
-	PSI_log(-1, "%s: wrong message type %d (%s)\n",
-		__func__, msg.header.type, PSP_printMsg(msg.header.type));
+	PSI_flog("wrong message type %d (%s)\n",
+		 msg.header.type, PSP_printMsg(msg.header.type));
 	return -1;
     } else if (msg.param) {
-	PSI_log(-1, "%s: error = %d\n", __func__, msg.param);
+	PSI_flog("error = %d\n", msg.param);
 	return -1;
     }
 
@@ -555,13 +548,13 @@ restart:
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     } else if (!ret) {
-	PSI_log(-1, "%s: PSI_recvMsg() returned 0\n", __func__);
+	PSI_flog("PSI_recvMsg() returned 0\n");
 	return -1;
     }
 
     if (ret != msg.header.len) {
-	PSI_log(-1, "%s: PSI_recvMsg() got just %d/%d bytes (%ld expected)\n",
-		__func__, ret, msg.header.len, (long)sizeof(msg));
+	PSI_flog("PSI_recvMsg() got just %d/%d bytes (%ld expected)\n",
+		 ret, msg.header.len, (long)sizeof(msg));
     }
 
     ret = 0;
@@ -577,8 +570,8 @@ restart:
 	}
 	break;
     case PSP_CD_WHODIED:
-	PSI_log(-1, "%s: got signal %d from %s\n", __func__, msg.signal,
-		PSC_printTID(msg.header.sender));
+	PSI_flog("got signal %d from %s\n", msg.signal,
+		 PSC_printTID(msg.header.sender));
 	goto restart;
 	break;
     case PSP_CC_ERROR:
@@ -589,8 +582,8 @@ restart:
 	goto restart;
 	break;
     default:
-	PSI_log(-1, "%s: wrong message type %d (%s)\n",
-		__func__, msg.header.type, PSP_printMsg(msg.header.type));
+	PSI_flog("wrong message type %d (%s)\n",
+		 msg.header.type, PSP_printMsg(msg.header.type));
 	ret = -1;
     }
 
@@ -657,7 +650,7 @@ int PSI_recvFinish(int outstanding)
 	case PSP_CD_SPAWNFINISH:
 	    break;
 	default:
-	    PSI_log(-1, "%s: UNKNOWN answer\n", __func__);
+	    PSI_flog("UNKNOWN answer\n");
 	    error = 1;
 	    break;
 	}
