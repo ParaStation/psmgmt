@@ -1,3 +1,258 @@
+Version 6.0.beta1:
+==================
+------------------------------------------------------------------------
+81fd0ee34 | Norbert Eicker | Mon, 11 Nov 2024 09:43:51 +0100
+
+Adapt to psmgmt 6 series of releases
+------------------------------------------------------------------------
+da9c468da | Norbert Eicker | Mon, 11 Nov 2024 11:01:55 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+789e1d888 | Stephan Krempel | Thu, 7 Nov 2024 13:31:50 +0100
+
+Add NVIDIA GH100 [GH200 120GB / 480GB] to GPUDevices
+------------------------------------------------------------------------
+4bd439676 | Norbert Eicker | Thu, 7 Nov 2024 09:50:16 +0100
+
+Handle psslurm's comm to Stepforwarder through psserial
+------------------------------------------------------------------------
+05df59ffa | Norbert Eicker | Thu, 7 Nov 2024 09:05:33 +0100
+
+Handle psslurm's CMD_REATTACH_TASKS through psserial
+------------------------------------------------------------------------
+57532185a | Norbert Eicker | Thu, 7 Nov 2024 09:03:37 +0100
+
+Handle psslurm's CMD_ENABLE_SRUN_IO through psserial
+------------------------------------------------------------------------
+fefccca30 | Norbert Eicker | Thu, 7 Nov 2024 09:00:47 +0100
+
+Handle psslurm's CMD_FW_FINALIZE through psserial
+------------------------------------------------------------------------
+89d5cf71d | Norbert Eicker | Thu, 7 Nov 2024 08:51:27 +0100
+
+Handle psslurm's CMD_INFO_TASKS through psserial
+------------------------------------------------------------------------
+f587b1296 | Norbert Eicker | Thu, 7 Nov 2024 08:48:50 +0100
+
+Handle psslurm's CMD_STEP_TIMEOUT through psserial
+------------------------------------------------------------------------
+528849b30 | Norbert Eicker | Thu, 7 Nov 2024 08:26:41 +0100
+
+Handle psslurm's CMD_PRINT_CHILD_MSG through psserial
+------------------------------------------------------------------------
+df76262ba | Norbert Eicker | Wed, 6 Nov 2024 22:04:22 +0100
+
+Introduce recvFragMsgInfo()
+------------------------------------------------------------------------
+1e54aa26e | Norbert Eicker | Wed, 6 Nov 2024 21:09:21 +0100
+
+Hide some variables
+------------------------------------------------------------------------
+e60f6eac4 | Norbert Eicker | Wed, 6 Nov 2024 20:50:42 +0100
+
+Bugfix: Ensure stepforwarder's serialization actually sends
+------------------------------------------------------------------------
+51b2709d3 | Norbert Eicker | Wed, 6 Nov 2024 19:46:24 +0100
+
+Bugfix: Ensure CMD_BROKE_IO_CON is acutally handled
+
+ - Use PSP_PF_MSG instead of PSP_PLUG_PSSLURM for communication between
+   plugin and step/job forwarder
+------------------------------------------------------------------------
+0086fe66a | Norbert Eicker | Wed, 6 Nov 2024 19:26:08 +0100
+
+Streamlining
+------------------------------------------------------------------------
+d0a36cb8b | Norbert Eicker | Wed, 6 Nov 2024 19:21:46 +0100
+
+Handle psslurm's PSP_ALLOC_TERM through psserial
+------------------------------------------------------------------------
+6ceb81fdd | Norbert Eicker | Wed, 6 Nov 2024 19:17:50 +0100
+
+Handle psslurm's PSP_STOP_STEP_FW through psserial
+------------------------------------------------------------------------
+53375708a | Norbert Eicker | Wed, 6 Nov 2024 19:13:03 +0100
+
+Handle psslurm's PSP_EPILOGUE_STATE_RES through psserial
+------------------------------------------------------------------------
+be8516d32 | Norbert Eicker | Wed, 6 Nov 2024 19:09:59 +0100
+
+Handle psslurm's PSP_PELOGUE_RES through psserial
+------------------------------------------------------------------------
+7d5aefaba | Norbert Eicker | Wed, 6 Nov 2024 19:06:17 +0100
+
+Handle psslurm's PSP_EPILOGUE_STATE_REQ through psserial
+------------------------------------------------------------------------
+0f0c3d5a9 | Norbert Eicker | Wed, 6 Nov 2024 19:02:20 +0100
+
+Handle psslurm's PSP_JOB_EXIT through psserial
+------------------------------------------------------------------------
+538378019 | Norbert Eicker | Wed, 6 Nov 2024 18:55:45 +0100
+
+Use correct type for local node ID
+------------------------------------------------------------------------
+77a46ae20 | Norbert Eicker | Wed, 6 Nov 2024 15:57:59 +0100
+
+More use of flog() in psslurmpscomm.c
+------------------------------------------------------------------------
+f024773a2 | Norbert Eicker | Wed, 6 Nov 2024 15:48:14 +0100
+
+Simplify loop logic
+------------------------------------------------------------------------
+e8096edd0 | Norbert Eicker | Wed, 6 Nov 2024 14:56:40 +0100
+
+Unify setup of fragmentation buffers
+------------------------------------------------------------------------
+ed2891613 | Norbert Eicker | Wed, 6 Nov 2024 14:49:36 +0100
+
+Streamlining
+
+ - more use of fwarn() and whitespace fixes
+------------------------------------------------------------------------
+e21cb90ce | Norbert Eicker | Wed, 6 Nov 2024 14:39:25 +0100
+
+Drop more backward compatibility
+------------------------------------------------------------------------
+dd070cc6d | Norbert Eicker | Wed, 6 Nov 2024 14:03:28 +0100
+
+Drop obsolete message types local to psslurm plugin
+------------------------------------------------------------------------
+cdb15c5f8 | Norbert Eicker | Wed, 6 Nov 2024 13:55:59 +0100
+
+Ensure temp strings are large enough for PStaskID_t
+------------------------------------------------------------------------
+c10ba96da | Norbert Eicker | Wed, 23 Oct 2024 22:03:13 +0200
+
+Catch and try to handle PStask_decodeTask() failure
+------------------------------------------------------------------------
+6a5344f93 | Norbert Eicker | Wed, 23 Oct 2024 22:00:21 +0200
+
+Send core part of tasks as PSDATA_DATA
+
+ - This requires the rework of PStask_decodeTask()
+ - This shall be more future proof in case of protocol changes
+------------------------------------------------------------------------
+02041f413 | Norbert Eicker | Tue, 22 Oct 2024 22:18:21 +0200
+
+Omit mechanisms to handle pending resource messages
+------------------------------------------------------------------------
+253909a56 | Norbert Eicker | Tue, 22 Oct 2024 22:12:13 +0200
+
+Get rid of now obsolete spawnTasks lists
+------------------------------------------------------------------------
+2ba45860f | Norbert Eicker | Mon, 21 Oct 2024 12:06:48 +0200
+
+Evict extra debug used to dig down #159/jwt:#20747
+------------------------------------------------------------------------
+b782b4824 | Norbert Eicker | Wed, 16 Oct 2024 16:33:06 +0200
+
+Drop obsolete message types local to pspmix plugin
+------------------------------------------------------------------------
+85cfd887a | Norbert Eicker | Wed, 16 Oct 2024 16:25:57 +0200
+
+Drop obsolete message types local to psaccount plugin
+------------------------------------------------------------------------
+c2fe2331f | Norbert Eicker | Wed, 16 Oct 2024 16:21:40 +0200
+
+Drop all definitions of obsolete PSIDHOOK_s
+------------------------------------------------------------------------
+77b5f01df | Norbert Eicker | Wed, 16 Oct 2024 16:20:17 +0200
+
+psmom sources no longer required to build RPM
+------------------------------------------------------------------------
+9134fc2d0 | Norbert Eicker | Wed, 16 Oct 2024 16:03:53 +0200
+
+Drop ancient mpirun_java
+
+ - Since mpirun_java was the last user, drop psmstart, too
+------------------------------------------------------------------------
+6112c42e4 | Norbert Eicker | Wed, 16 Oct 2024 15:53:52 +0200
+
+Drop deprecated Sselect()
+------------------------------------------------------------------------
+b9df3280d | Norbert Eicker | Wed, 16 Oct 2024 15:50:06 +0200
+
+Drop deprecated initHooks()
+------------------------------------------------------------------------
+7a56ab121 | Norbert Eicker | Wed, 16 Oct 2024 15:46:43 +0200
+
+Drop deprecated task-group TG_MONITOR
+------------------------------------------------------------------------
+647be499f | Norbert Eicker | Wed, 16 Oct 2024 15:38:35 +0200
+
+Drop remnants of p4sock support, especially TG_SPAWNER
+------------------------------------------------------------------------
+70e319094 | Norbert Eicker | Wed, 16 Oct 2024 14:46:51 +0200
+
+Drop remnants of PathScale (PSC) support
+------------------------------------------------------------------------
+10cea71ad | Norbert Eicker | Wed, 16 Oct 2024 14:17:28 +0200
+
+Startup script for Tru64 Unix no longer needed
+------------------------------------------------------------------------
+47fa663f6 | Norbert Eicker | Wed, 16 Oct 2024 14:16:27 +0200
+
+Drop remnants of Myrinet (GM) support
+------------------------------------------------------------------------
+c1558468e | Norbert Eicker | Wed, 2 Oct 2024 13:49:37 +0200
+
+Adapt documentation of message types
+------------------------------------------------------------------------
+7a9ae9976 | Norbert Eicker | Wed, 2 Oct 2024 13:49:02 +0200
+
+Take the chance to reorder and renumber message types
+------------------------------------------------------------------------
+e7dccebdf | Norbert Eicker | Wed, 2 Oct 2024 12:19:22 +0200
+
+Drop obsolete message types and their handlers
+------------------------------------------------------------------------
+17f9dbcaf | Norbert Eicker | Wed, 2 Oct 2024 12:10:25 +0200
+
+Cleanup / update docu comments
+------------------------------------------------------------------------
+71def0327 | Norbert Eicker | Wed, 2 Oct 2024 12:09:23 +0200
+
+Remove obsoleted functions
+------------------------------------------------------------------------
+0380fc973 | Norbert Eicker | Wed, 2 Oct 2024 10:07:51 +0200
+
+Drop support for all old (now incompatible) protocols
+------------------------------------------------------------------------
+8b8972bc0 | Norbert Eicker | Wed, 2 Oct 2024 09:46:55 +0200
+
+Drop ability to build psmom
+
+ - Message types utilized by psmom will be removed soon
+------------------------------------------------------------------------
+2928cb806 | Stephan Krempel | Wed, 30 Oct 2024 01:02:10 +0100
+
+ReFrame: Adjust to new TID output length
+------------------------------------------------------------------------
+cb3744829 | Norbert Eicker | Wed, 30 Oct 2024 23:32:11 +0100
+
+More consistent setup/calculation of message length
+------------------------------------------------------------------------
+ef1ebae5b | Norbert Eicker | Wed, 30 Oct 2024 23:08:51 +0100
+
+Bugfix: Ensure sendMsg() includes error message
+------------------------------------------------------------------------
+770457e29 | Norbert Eicker | Wed, 2 Oct 2024 09:51:20 +0200
+
+Bump protocol versions due to incompatible changes
+------------------------------------------------------------------------
+404f31b77 | Norbert Eicker | Tue, 24 Sep 2024 13:53:25 +0200
+
+Adapt PSID_checkMaxPID() to 31 bit PIDs
+------------------------------------------------------------------------
+99084f707 | Norbert Eicker | Tue, 24 Sep 2024 13:49:25 +0200
+
+Make PSnodes_ID_t 32 bit and PStask_ID_t 64 bit
+
+ - This will lift the limit on PIDs to 31 bits
+------------------------------------------------------------------------
+
+
 Version 5.1.63-3:
 =================
 ------------------------------------------------------------------------

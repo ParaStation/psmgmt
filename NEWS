@@ -6,6 +6,29 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.0.beta1:
+==================
+Bugfixes:
+ - More consistent setup/calculation of message length
+ - Ensure CMD_BROKE_IO_CON is acutally handled
+ - Ensure sendMsg() includes error message in PSID_sendCounter()
+ - Ensure stepforwarder's serialization actually sends
+ - Use correct type for local node ID
+Enhancements:
+ - Make PStask_ID_t 64 bit wide to lift the limit on PIDs to 31 bits
+ - Bump protocol versions due to incompatible changes
+ - Handle all psslurm specific PSP messages through serialization layer
+ - Add NVIDIA GH100 [GH200 120GB / 480GB] to GPUDevices to psconfig defaults
+ - Evict extra debug used to dig down #159/jwt:#20747
+Additional changes:
+ - Cleanup all kind of backward compatibility, message types, hooks, obsolete
+   functions, etc.
+ - Drop various ancient helper programs
+ - Send core part of tasks as PSDATA_DATA
+ - Introduce recvFragMsgInfo()
+ - Drop ability to build psmom
+
+
 Version 5.1.63-3:
 =================
 Bugfixes:
