@@ -220,23 +220,23 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
     case PSP_CD_CLIENTESTABLISHED:
 	PSP_getTypedMsgBuf(&answer, &used, "mixedProto", &mixedProto,
 			   sizeof(mixedProto));
+
 	PSnodes_ID_t myID;
 	PSP_getTypedMsgBuf(&answer, &used, "myID", &myID, sizeof(myID));
 	PSC_setMyID(myID);
 
-	int nrOfNodes;
-	if (PSI_infoInt(-1, PSP_INFO_NROFNODES, NULL, &nrOfNodes, false)) {
-	    PSI_flog("Cannot determine # of nodes\n");
-	    break;
-	} else PSC_setNrOfNodes(nrOfNodes);
+	PSnodes_ID_t nNodes;
+	PSP_getTypedMsgBuf(&answer, &used, "nrOfNodes", &nNodes, sizeof(nNodes));
+	PSC_setNrOfNodes(nNodes);
 
-	char instdir[PATH_MAX];
-	if (PSI_infoString(-1, PSP_INFO_INSTDIR, NULL,
-			   instdir, sizeof(instdir), false)) {
-	    PSI_flog("Cannot determine instdir\n");
-	    break;
-	} else if (strcmp(instdir, PSC_lookupInstalldir(instdir))) {
-	    PSI_flog("Installation directory '%s' not correct\n", instdir);
+	uint16_t dirLen;
+	PSP_getTypedMsgBuf(&answer, &used, "dirLen", &dirLen, sizeof(dirLen));
+	char instDir[PATH_MAX];
+	PSP_getTypedMsgBuf(&answer, &used, "instDir", instDir, dirLen);
+	instDir[dirLen] = '\0';
+
+	if (strcmp(instDir, PSC_lookupInstalldir(instDir))) {
+	    PSI_flog("Installation directory '%s' not correct\n", instDir);
 	    break;
 	}
 
@@ -248,7 +248,6 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
     }
 
     close(daemonSock);
-
     daemonSock = -1;
 
     return false;

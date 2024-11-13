@@ -900,7 +900,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	.buf = { 0 } };
 
     /* Connection refused answer message */
-    if (msg->version < 324 || msg->version > PSProtocolVersion) {
+    if (msg->version < 346 || msg->version > PSProtocolVersion) {
 	outmsg.type = PSP_CONN_ERR_VERSION;
 	uint32_t protoV = PSProtocolVersion;
 	PSP_putTypedMsgBuf(&outmsg, "protoV", &protoV, sizeof(protoV));
@@ -946,6 +946,12 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	PSP_putTypedMsgBuf(&outmsg, "mixedProto", &mixed, sizeof(mixed));
 	PSnodes_ID_t myID = PSC_getMyID();
 	PSP_putTypedMsgBuf(&outmsg, "myID", &myID, sizeof(myID));
+	PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
+	PSP_putTypedMsgBuf(&outmsg, "nrOfNodes", &nrOfNodes, sizeof(nrOfNodes));
+	char *instDir = PSC_lookupInstalldir(NULL);
+	uint16_t dirLen = strlen(instDir);
+	PSP_putTypedMsgBuf(&outmsg, "dirLen", &dirLen, sizeof(dirLen));
+	PSP_putTypedMsgBuf(&outmsg, "instDir", instDir, dirLen);
 
 	sendMsg(&outmsg);
 

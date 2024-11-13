@@ -302,7 +302,7 @@ int main(int argc, const char **argv)
     if (no_start) setenv("__PSI_DONT_START_DAEMON", "", 1);
 
     if (!PSI_initClient(TG_ADMIN)) {
-	PSIadm_log("cannot contact my own daemon\n");
+	PSIadm_log("cannot connect to my own daemon\n");
 	PSIadm_finalizeLogs();
 	exit(-1);
     }

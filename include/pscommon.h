@@ -37,7 +37,7 @@ extern logger_t PSC_logger;
  *
  * Determines the number of nodes which build the cluster.
  *
- * @return The number of nodes is returned, or -1, if the cluster is
+ * @return The number of nodes is returned, or -1 if the cluster is
  * not already initialized.
  */
 PSnodes_ID_t PSC_getNrOfNodes(void);
