@@ -109,10 +109,6 @@ static int daemonSocket(char *sName)
  */
 static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 {
-    DDInitMsg_t msg;
-    DDTypedBufferMsg_t answer;
-    size_t used = 0;
-
     int retryCount = 0;
 
     PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PStask_printGrp(taskGroup));
@@ -141,25 +137,28 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
     }
 
     /* local connect */
-    msg.header.type = PSP_CD_CLIENTCONNECT;
-    msg.header.sender = getpid();
-    msg.header.dest = 0;
-    msg.header.len = sizeof(msg);
-    msg.version = PSProtocolVersion;
+    DDInitMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_CLIENTCONNECT,
+	    .sender = getpid(),
+	    .dest = 0,
+	    .len = sizeof(msg) },
+	.version = PSProtocolVersion,
 #ifndef SO_PEERCRED
-    msg.pid = getpid();
-    msg.uid = getuid();
-    msg.gid = getgid();
+	.pid = getpid(),
+	.uid = getuid(),
+	.gid = getgid(),
 #endif
-    msg.group = taskGroup;
+	.group = taskGroup };
 
-    if (PSI_sendMsg(&msg)<0) {
+    if (PSI_sendMsg(&msg) == -1) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return false;
     }
 
+    DDTypedBufferMsg_t answer;
     int ret = PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer));
-    if (ret<=0) {
+    if (ret <= 0) {
 	if (!ret) {
 	    PSI_log(-1, "%s: unexpected message length 0\n", __func__);
 	} else {
@@ -169,6 +168,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	return false;
     }
 
+    size_t used = 0;
     PSP_ConnectError_t type = answer.type;
     switch (answer.header.type) {
     case PSP_CD_CLIENTREFUSED:
