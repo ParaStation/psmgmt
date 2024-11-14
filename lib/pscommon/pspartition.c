@@ -46,8 +46,6 @@ void PSpart_initReq(PSpart_request_t* request)
     request->priority = 0;
     request->num = -1;
     request->tpp = 1;
-    request->sizeGot = 0;
-    request->sizeExpected = 0;
     request->nodes = NULL;
     request->slots = NULL;
     request->deleted = false;
@@ -121,11 +119,10 @@ void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
 	}
     } else if (request->slots) {
 	/* processed request */
-	for (unsigned int u = 0; u < request->sizeGot; u++) {
-	    snprintf(txt+strlen(txt), size-strlen(txt),
-		     "%s%d/%s", u ? " " : "",
-		     request->slots[u].node,
-		     PSCPU_print(request->slots[u].CPUset));
+	for (uint32_t s = 0; s < request->size; s++) {
+	    snprintf(txt+strlen(txt), size-strlen(txt), "%s%d/%s", s ? " " : "",
+		     request->slots[s].node,
+		     PSCPU_print(request->slots[s].CPUset));
 	    if (strlen(txt)+1 == size) return;
 	}
     }

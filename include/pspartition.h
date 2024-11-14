@@ -112,8 +112,6 @@ typedef struct {
     /*C*/ uint32_t num;            /**< Number of elements in @ref nodes */
     /*C*/ uint16_t tpp;            /**< Threads per process requested */
     /*C*/ time_t start;            /**< starttime in PSP_INFO_QUEUE_PARTITION */
-    unsigned int sizeGot;          /**< Number of slots currently received */
-    uint32_t sizeExpected;         /**< Number of slots expected */
     PSnodes_ID_t *nodes;           /**< List of partition candidates */
     PSpart_slot_t *slots;          /**< Partition (list of slots) associated */
     bool deleted;                  /**< Flag to mark request for deletion */

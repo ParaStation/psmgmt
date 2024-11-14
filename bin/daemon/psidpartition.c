@@ -534,7 +534,6 @@ static bool msg_TASKDEAD(DDMsg_t *msg)
 	    list_t *s;
 	    list_for_each(s, &destTask->sisterParts) {
 		PSpart_request_t *sis = list_entry(s, PSpart_request_t, next);
-		if (sis->sizeGot != sis->size) continue; // still incomplete
 		if (sis->tid == msg->dest) PSID_flog("send to myself (%s)?!\n",
 						     PSC_printTID(msg->dest));
 		send_TASKDEAD(sis->tid, msg->sender);
@@ -2678,7 +2677,6 @@ static bool prepareDestinations(PS_SendDB_t *msg, PStask_t *task,
     list_t *p;
     list_for_each(p, &task->sisterParts) {
 	PSpart_request_t *sister = list_entry(p, PSpart_request_t, next);
-	if (sister->sizeGot != sister->size) continue;   // still incomplete
 	for (uint32_t s = 0; s < sister->size; s++) {
 	    PSnodes_ID_t node = sister->slots[s].node;
 	    if (sendCount[node]) continue;               // don't send twice
@@ -2984,7 +2982,6 @@ static bool send_RESRELEASED(PStask_t *task, PSrsrvtn_t *res)
     list_t *p;
     list_for_each(p, &task->sisterParts) {
 	PSpart_request_t *sister = list_entry(p, PSpart_request_t, next);
-	if (sister->sizeGot != sister->size) continue;   // still incomplete
 	for (uint32_t s = 0; s < sister->size; s++) {
 	    PSnodes_ID_t node = sister->slots[s].node;
 	    if (sendCount[node]) continue;               // don't send twice
@@ -3056,7 +3053,6 @@ static bool send_RESCLEANUP(PStask_t *task, PSpart_request_t *sister)
     list_t *s;
     list_for_each(s, &task->sisterParts) {
 	PSpart_request_t *sis = list_entry(s, PSpart_request_t, next);
-	if (sis->sizeGot != sis->size) continue;   // still incomplete
 	for (uint32_t s = 0; s < sis->size; s++) {
 	    PSnodes_ID_t node = sis->slots[s].node;
 	    sendCount[node] = 1;
@@ -5141,7 +5137,6 @@ static void send_further_RESCREATED(PSpart_request_t *req, PStask_t *task)
 	    PSID_flog("duplicate sister %s\n", PSC_printTID(sister->tid));
 	    continue;
 	}
-	if (sister->sizeGot != sister->size) continue;     // still incomplete
 	for (uint32_t s = 0; s < sister->size; s++) {
 	    PSnodes_ID_t node = sister->slots[s].node;
 	    filter[node] = 1;
@@ -5182,26 +5177,24 @@ static void handleSisterPart(PSpart_request_t *req, PStask_t *task)
     PSID_fdbg(PSID_LOG_PART, "add %s size %d", PSC_printTID(req->tid), req->size);
     PSID_dbg(PSID_LOG_PART, " to %s\n", PSC_printTID(task->tid));
 
-    /* PStask_t stub containing all members used by sendSinglePart() */
-    PStask_t newSister = {
-	.tid = req->tid,
-	.options = req->options,
-	.partitionSize = req->size,
-	.uid = req->uid,
-	.gid = req->gid,
-	.suspended = req->suspended,
-	.started = (struct timeval) { .tv_sec = req->start, .tv_usec = 0 },
-	.partition = req->slots, };
-
     if (task->tid == task->loggertid) {
 	/* tell new sister about my partition */
 	sendSinglePart(req->tid, PSP_DD_REGISTERPART, task);
 
+	/* PStask_t stub containing all members used by sendSinglePart() */
+	PStask_t newSister = {
+	    .tid = req->tid,
+	    .options = req->options,
+	    .partitionSize = req->size,
+	    .uid = req->uid,
+	    .gid = req->gid,
+	    .suspended = req->suspended,
+	    .started = (struct timeval) { .tv_sec = req->start, .tv_usec = 0 },
+	    .partition = req->slots, };
+
 	list_t *s;
 	list_for_each(s, &task->sisterParts) {
 	    PSpart_request_t *sis = list_entry(s, PSpart_request_t, next);
-	    if (sis->sizeGot != sis->size) continue;    // still incomplete
-
 	    /* tell other sister about the new sister */
 	    if (sis->tid == task->tid) PSID_flog("send to myself (%s)?!\n",
 						 PSC_printTID(sis->tid));
