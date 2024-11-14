@@ -58,14 +58,14 @@
 
 /** Messages between daemon and master */
 #define PSP_DD_CREATEPART          0x0120  /**< Create partition at master */
-#define PSP_DD_PROVIDEPART         0x0122  /**< Reply partition bound */
-#define PSP_DD_GETNODES            0x0124  /**< Forwarded GETNODES message */
-#define PSP_DD_GETTASKS            0x0125  /**< Get tasks from slaves */
-#define PSP_DD_PROVIDETASK         0x0126  /**< Reply tasks */
-#define PSP_DD_CANCELPART          0x0128  /**< Cancel partition request */
-#define PSP_DD_TASKDEAD            0x0129  /**< Complete task finished */
-#define PSP_DD_TASKSUSPEND         0x012A  /**< Task got SIGTSTP */
-#define PSP_DD_TASKRESUME          0x012B  /**< Task got SIGCONT */
+#define PSP_DD_PROVIDEPART         0x0121  /**< Reply newly created partition */
+#define PSP_DD_REGISTERPART        0x0122  /**< Register partition at master */
+#define PSP_DD_CANCELPART          0x0123  /**< Cancel partition request */
+#define PSP_DD_GETTASKS            0x0124  /**< Get tasks from slaves */
+#define PSP_DD_PROVIDETASK         0x0125  /**< Reply tasks */
+#define PSP_DD_TASKDEAD            0x0126  /**< Complete task finished */
+#define PSP_DD_TASKSUSPEND         0x0127  /**< Task got SIGTSTP */
+#define PSP_DD_TASKRESUME          0x0128  /**< Task got SIGCONT */
 
 /** Messages used to find master */
 #define PSP_DD_LOAD                0x0130  /**< Load message to master */
@@ -74,12 +74,12 @@
 #define PSP_DD_MASTER_IS           0x0133  /**< Info about correct master */
 
 /** Messages for resource allocation */
-#define PSP_DD_NODESRES            0x0138  /**< Get nodes from a partition */
-#define PSP_DD_REGISTERPART        0x0139  /**< Register partition at master */
-#define PSP_DD_GETRESERVATION      0x013B  /**< Forwarded GETRESERVATION msg */
-#define PSP_DD_GETSLOTS            0x013C  /**< Forwarded GETSLOTS msg */
-#define PSP_DD_SLOTSRES            0x013D  /**< Results of GETSLOTS msg */
-#define PSP_DD_RESERVATIONRES      0x013E  /**< Answer dummy GETRESERVATION */
+#define PSP_DD_GETRESERVATION      0x0138  /**< Forwarded GETRESERVATION msg */
+#define PSP_DD_RESERVATIONRES      0x0139  /**< Answer dummy GETRESERVATION */
+#define PSP_DD_GETSLOTS            0x013A  /**< Forwarded GETSLOTS msg */
+#define PSP_DD_SLOTSRES            0x013B  /**< Results of GETSLOTS msg */
+#define PSP_DD_GETNODES            0x013C  /**< Forwarded GETNODES message */
+#define PSP_DD_NODESRES            0x013D  /**< Get nodes from a partition */
 
 /** Messages for resource passing during spawn and finish */
 #define PSP_DD_RESCREATED          0x0140  /**< Reservation created with info */

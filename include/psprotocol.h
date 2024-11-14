@@ -278,14 +278,14 @@ typedef enum {
 
 /** Creation and handling of partitions */
 #define PSP_CD_REQUESTPART       0x0060  /**< Request partition for session */
-#define PSP_CD_PARTITIONRES      0x0062  /**< Reply partitions bind */
-#define PSP_CD_GETNODES          0x0063  /**< Request nodes from a partition */
-#define PSP_CD_NODESRES          0x0064  /**< Get nodes from a partition */
-#define PSP_CD_GETRESERVATION    0x0065  /**< Request reservation of slots */
-#define PSP_CD_RESERVATIONRES    0x0066  /**< Reservation result */
-#define PSP_CD_GETSLOTS          0x0067  /**< Request slots from reservation */
-#define PSP_CD_SLOTSRES          0x0068  /**< Slots got from a reservation */
-#define PSP_CD_FINRESERVATION    0x0069  /**< End of reservation requests */
+#define PSP_CD_PARTITIONRES      0x0061  /**< Reply partitions bind */
+#define PSP_CD_GETRESERVATION    0x0062  /**< Request reservation of slots */
+#define PSP_CD_RESERVATIONRES    0x0063  /**< Reservation result */
+#define PSP_CD_GETSLOTS          0x0064  /**< Request slots from reservation */
+#define PSP_CD_SLOTSRES          0x0065  /**< Slots got from a reservation */
+#define PSP_CD_FINRESERVATION    0x0066  /**< End of reservation requests */
+#define PSP_CD_GETNODES          0x0067  /**< Request nodes from a partition */
+#define PSP_CD_NODESRES          0x0068  /**< Get nodes from a partition */
 
 /** Flow-control to loggers and forwarders */
 #define PSP_CD_SENDSTOP          0x0070  /**< Stop sending further packets */
