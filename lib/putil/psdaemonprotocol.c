@@ -47,7 +47,6 @@ static msgString_t daemonMessages[] = {
 
     { PSP_DD_CREATEPART       , "PSP_DD_CREATEPART"       },
     { PSP_DD_PROVIDEPART      , "PSP_DD_PROVIDEPART"      },
-    { PSP_DD_PROVIDEPARTSL    , "PSP_DD_PROVIDEPARTSL"    },
     { PSP_DD_GETNODES         , "PSP_DD_GETNODES"         },
     { PSP_DD_GETTASKS         , "PSP_DD_GETTASKS"         },
     { PSP_DD_PROVIDETASK      , "PSP_DD_PROVIDETASK"      },

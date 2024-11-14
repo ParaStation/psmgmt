@@ -2252,7 +2252,7 @@ cleanupAndAnswer:
 	task->request = NULL;
     }
 
-    //if (PSIDhook_call(PSIDHOOK_RECEIVEPART, task) == 0) return;
+    if (PSIDhook_call(PSIDHOOK_RECEIVEPART, task) == 0) return;
 
     if (eno) send_TASKDEAD(PSC_getTID(getMasterID(), 0), msg->header.dest);
 

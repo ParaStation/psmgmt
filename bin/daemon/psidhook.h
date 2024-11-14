@@ -56,6 +56,11 @@ typedef enum {
 				be sent from within the hook and nothing
 				else is done. Otherwise further measure might
 				be taken afterwards. */
+    PSIDHOOK_RECEIVEPART,     /**< Partition received, arg is pointer to the
+				receiving task. The actual partition is already
+				stored in task's members. If return code is 0,
+				an answer must be sent from within the hook
+				since no further actions are taken afterwards.*/
     PSIDHOOK_GETRESERVATION,  /**< Handle a get reservation request, arg is
 				pointer to PSrsrvtn_t holding the reservation
 				request (and will hold the reservation on

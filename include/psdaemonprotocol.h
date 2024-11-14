@@ -59,7 +59,6 @@
 /** Messages between daemon and master */
 #define PSP_DD_CREATEPART          0x0120  /**< Create partition at master */
 #define PSP_DD_PROVIDEPART         0x0122  /**< Reply partition bound */
-#define PSP_DD_PROVIDEPARTSL       0x0123  /**< Partition reply slot-list */
 #define PSP_DD_GETNODES            0x0124  /**< Forwarded GETNODES message */
 #define PSP_DD_GETTASKS            0x0125  /**< Get tasks from slaves */
 #define PSP_DD_PROVIDETASK         0x0126  /**< Reply tasks */

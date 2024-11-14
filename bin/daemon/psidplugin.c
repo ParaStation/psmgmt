@@ -175,8 +175,10 @@ static LIST_HEAD(pluginList);
  * 143: new hooks PSIDHOOK_PRIV_FRWRD_CLNT_RES, PSIDHOOK_PRIV_FRWRD_INIT
  *
  * 144: reworked hook PSIDHOOK_SHUTDOWN to tell the current phase
+ *
+ * 145: new PSIDHOOK_RECEIVEPART
  */
-static int pluginAPIVersion = 144;
+static int pluginAPIVersion = 145;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

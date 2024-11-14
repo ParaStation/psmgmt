@@ -42,7 +42,7 @@ static bool isInit = false;
 /** psid plugin requirements */
 char name[] = "psgw";
 int version = 2;
-int requiredAPI = 122;
+int requiredAPI = 145;
 plugin_dep_t dependencies[] = {
     { .name = "pelogue", .version = 7 },
     { .name = "psexec", .version = 2 },
@@ -273,13 +273,16 @@ int initialize(FILE *logfile)
 
     if (!PSIDhook_add(PSIDHOOK_PELOGUE_OE, handlePelogueOE)) {
 	mlog("register 'PSIDHOOK_PELOGUE_OE' failed\n");
-	return false;
+	return 1;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_RECEIVEPART, handleReceivePart)) {
+	mlog("register 'PSIDHOOK_RECEIVEPART' failed\n");
+	return 1;
     }
 
     /* register to psgw PSP_PLUG_PSGW message */
     PSID_registerMsg(PSP_PLUG_PSGW, (handlerFunc_t)handlePSGWmsg);
-
-    regPartMsg();
 
     isInit = true;
 
@@ -303,10 +306,12 @@ void cleanup(void)
 	mlog("unregister 'PSIDHOOK_PELOGUE_OE' failed\n");
     }
 
+    if (!PSIDhook_del(PSIDHOOK_RECEIVEPART, handleReceivePart)) {
+	mlog("unregister 'PSIDHOOK_RECEIVEPART' failed\n");
+    }
+
     /* unregister psgw message */
     PSID_clearMsg(PSP_PLUG_PSGW, (handlerFunc_t)handlePSGWmsg);
-
-    clrPartMsg();
 
     Request_clear();
 

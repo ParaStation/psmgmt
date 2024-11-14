@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,13 +32,19 @@
 bool requestGWnodes(PSGW_Req_t *req, int numNodes);
 
 /**
- * @brief Register PSP_DD_PROVIDEPART and PSP_DD_PROVIDEPARTSL handlers
+ * @brief Receive a partition
+ *
+ * The master daemon provided a requested partition that was attached
+ * to the requesting task. psid called PSIDHOOK_RECEIVEPART to allow
+ * psgw to take further actions and to suppress the sending of answer
+ * messages to the assumed initiator.
+ *
+ * @param data Pointer to the task structure assumed to have initiate
+ * to partition request
+ *
+ * @return Return 0 if the partition was requested by psgw in order to
+ * suppress further actions in the daemon or 1 otherwise
  */
-void regPartMsg(void);
-
-/**
- * @brief Clear PSP_DD_PROVIDEPART and PSP_DD_PROVIDEPARTSL handlers
- */
-void clrPartMsg(void);
+int handleReceivePart(void *data);
 
 #endif
