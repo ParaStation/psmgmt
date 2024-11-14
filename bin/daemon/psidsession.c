@@ -813,9 +813,10 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	}
 	res->localSlots[s].rank = rank;
 
+	char cpuBuf[nBytes];
+	getMem(rData, cpuBuf, nBytes);
 	PSCPU_clrAll(res->localSlots[s].CPUset);
-	PSCPU_inject(res->localSlots[s].CPUset, rData->unpackPtr, nBytes);
-	rData->unpackPtr += nBytes;
+	PSCPU_inject(res->localSlots[s].CPUset, cpuBuf, nBytes);
 
 	PSID_fdbg(PSID_LOG_SPAWN, "add cpuset %s for job rank %d to res %#x\n",
 		  PSCPU_print_part(res->localSlots[s].CPUset, nBytes),

@@ -580,17 +580,14 @@ bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
 	getFromBuf(data, &_x, PSDATA_UINT8, sizeof(uint8_t),	    \
 		   __func__, __LINE__);	*_y = _x; }
 
-#define getTaskId(data, val) { int64_t *_x = val;		    \
-	getFromBuf(data, _x, PSDATA_INT64, sizeof(int64_t),	    \
-		   __func__, __LINE__); }
+#define getTaskId(data, val) getInt64(data, val)
 
-#define getNodeId(data, val) { int32_t *_x = val;		    \
-	getFromBuf(data, _x, PSDATA_INT32, sizeof(int32_t),	    \
-		   __func__, __LINE__); }
+#define getNodeId(data, val) getInt32(data, val)
 
-#define getResId(data, val) { int32_t *_x = val;		    \
-	getFromBuf(data, _x, PSDATA_INT32, sizeof(int32_t),	    \
-		   __func__, __LINE__); }
+#define getResId(data, val)  getInt32(data, val)
+
+#define getMem(data, buf, buflen)					\
+    getFromBuf(data, buf, PSDATA_MEM, buflen, __func__, __LINE__)
 
 /**
  * @brief Fetch data from buffer

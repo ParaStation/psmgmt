@@ -201,7 +201,7 @@ static inline bool getLoads(void)
 static sizedList_t memList = { .actSize = 0, .list = NULL };
 
 /** Simple wrapper for retrieval of memory info */
-static inline bool getMem(void)
+static inline bool getMemList(void)
 {
     return getFullList(&memList, PSP_INFO_LIST_MEMORY, 2 * sizeof(uint64_t));
 }
@@ -876,7 +876,7 @@ void PSIADM_MemStat(bool *nl)
     uint64_t *memory;
 
     if (! getHostStatus()) return;
-    if (! getMem()) return;
+    if (! getMemList()) return;
     memory = (uint64_t *)memList.list;
 
     printf("Node\t\t\tMemory\n");

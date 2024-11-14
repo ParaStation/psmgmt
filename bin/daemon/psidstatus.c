@@ -82,7 +82,7 @@ static PSID_Load_t getLoad(void)
  *
  * @return A @ref PSID_Mem_t structure containing the load info.
  */
-static PSID_Mem_t getMem(void)
+static PSID_Mem_t getMemInfo(void)
 {
     PSID_Mem_t mem = {-1, -1};
     struct sysinfo s_info;
@@ -289,7 +289,7 @@ static void sendRDPPing(void)
 	    .len = 0 },
 	.buf = {'\0'} };
     PSID_Load_t load = getLoad();
-    PSID_Mem_t mem = getMem();
+    PSID_Mem_t mem = getMemInfo();
 
     PSID_fdbg(PSID_LOG_STATUS, "to %d\n", getMasterID());
 
@@ -400,7 +400,7 @@ PSID_Mem_t getMemoryInfo(PSnodes_ID_t node)
 	memory = (PSID_Mem_t) { -1, -1 };
     } else {
 	if (node == PSC_getMyID()) {
-	    memory = getMem();
+	    memory = getMemInfo();
 	} else if (PSC_getMyID() != getMasterID()
 		   || !PSC_validNode(node) || !clientStat) {
 	    memory = (PSID_Mem_t) { -1, -1 };

@@ -1005,7 +1005,7 @@ bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
     if (!verifyTypeInfo(data, type, caller, line)) return false;
 
     memcpy(val, data->unpackPtr, size);
-    if (byteOrder) {
+    if (byteOrder && type != PSDATA_MEM) {
 	switch (size) {
 	case 1:
 	    break;
