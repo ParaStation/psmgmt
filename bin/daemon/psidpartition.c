@@ -493,7 +493,7 @@ static bool drop_TASKDEAD(DDBufferMsg_t *msg)
 static bool send_RESCLEANUP(PStask_t *task, PSpart_request_t *sister);
 
 /**
- * @brief Handle a PSP_DD_TASKDEAD message
+ * @brief Handle PSP_DD_TASKDEAD message
  *
  * Handle the message @a msg of type PSP_DD_TASKDEAD.
  *
@@ -1410,7 +1410,7 @@ static int sendSlots(PSpart_slot_t *slots, uint32_t num, DDBufferMsg_t *msg)
  * @brief Send array of slots
  *
  * Send the array of slots @a slots containing @a num entries via the
- * serialization layer utilizing the data buffer @a msg.
+ * fragmentation layer utilizing the data buffer @a msg.
  *
  * @a msg has to be setup before in order to provide the message type,
  * the destination address, etc.
@@ -1673,9 +1673,9 @@ static void sendAcctQueueMsg(PStask_t *task)
  * containing meta-information of the last fragment received.
  *
  * With this kind of message a client will request for a partition of
- * nodes. Besides forwarding this kind of message to the master daemon
- * as a PSP_DD_CREATEPART message it will be stored locally in order
- * to allow for re-sending in case the master changes.
+ * nodes. Besides forwarding this message to the master daemon as a
+ * PSP_DD_CREATEPART message it will be stored locally in order to
+ * allow for re-sending in case the master daemon changes.
  *
  * Forwarding this request to the master daemon might be suppressed
  * depending on the return value of the call to PSIDHOOK_REQUESTPART
@@ -1812,7 +1812,7 @@ error:
  *
  * Handle the message @a inmsg of type PSP_CD_REQUESTPART.
  *
- * Handled via the serialization layer it might consist of multiple
+ * Handled via the fragmentation layer it might consist of multiple
  * fragments. The full message is finally handled by @ref
  * handleRequestPart().
  *
@@ -1966,7 +1966,7 @@ error:
  * original PSP_CD_REQUESTPART message of the client sent to its local
  * daemon.
  *
- * Handled via the serialization layer it might consist of multiple
+ * Handled via the fragmentation layer it might consist of multiple
  * fragments. The full message is finally handled by @ref
  * handleCreatePart().
 
@@ -2096,9 +2096,10 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 /**
  * @brief Receive partition
  *
- * This kind of message is sent by the master daemon in order to
- * provide actually allocated partitions to the requesting client's
- * local daemon process.
+ * Finally handle the collected fragments of type
+ * PSP_DD_PROVIDEPART. This kind of message is sent by the master
+ * daemon in order to provide actually allocated partitions to the
+ * requesting client's local daemon process.
  *
  * The client's local daemon will store the partition to the
  * corresponding task structure.
@@ -2108,9 +2109,11 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
  * case a PSP_CD_PARTITIONRES message reporting this error to the
  * requesting client is generated.
  *
- * @param msg Pointer to message to handle
+ * @param msg Message header (including the type) of the last fragment
  *
- * @return Always return true
+ * @param data Data buffer presenting the actual PSP_DD_PROVIDEPART
+ *
+ * @return No return value
  */
 static void handleProvidePart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
@@ -2189,17 +2192,16 @@ cleanupAndAnswer:
     sendMsg(&answer);
 }
 
-
 /**
  * @brief Handle a PSP_DD_PROVIDEPART message
  *
  * Handle the message @a msg of type PSP_DD_PROVIDEPART.
  *
- * This kind of messages is sent by the master daemon in order to
+ * This kind of message is sent by the master daemon in order to
  * provide actually allocated partitions to the requesting client's
  * local daemon process.
  *
- * Handled via the serialization layer it might consist of multiple
+ * Handled via the fragmentation layer it might consist of multiple
  * fragments. The full message is finally handled by @ref
  * handleProvidePart().
  *
@@ -4093,12 +4095,12 @@ static void handleFinReservation(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData
  * Handle the message @a msg of type PSP_CD_FINRESERVATION.
  *
  * This will trigger the reservation mechanism to finally distribute
- * the associated job information. Since the serialization layer is
+ * the associated job information. Since the fragmentation layer is
  * utilized, depending on the number of key-value pairs passed the
  * messages might be split into multiple fragments.
  *
  * This function will collect these fragments into a single message
- * using the serialization layer.
+ * using the fragmentation layer.
  *
  * The actual handling of the payload once all fragments are received
  * is done within @ref handleFinReservation().
@@ -5294,7 +5296,7 @@ static bool msg_REGISTERPART(DDTypedBufferMsg_t *msg)
 }
 
 /**
- * @brief Send slots-part of a request.
+ * @brief Send slots-part of a request
  *
  * Send the slots-part of the request @a req using the message @a msg
  * of type @ref DDTypedBufferMsg_t. This function assumes that the
