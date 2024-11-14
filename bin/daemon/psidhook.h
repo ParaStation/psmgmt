@@ -46,6 +46,9 @@ typedef int PSIDhook_func_t(void *);
 typedef enum {
     PSIDHOOK_NODE_UP,         /**< Node appeared, arg is PSnodes_ID_t ID */
     PSIDHOOK_NODE_DOWN,       /**< Node disappeared, arg is PSnodes_ID_t ID */
+    PSIDHOOK_SHUTDOWN,        /**< Daemon got signaled to shutdown and a
+				specific phase is reached. Arg points to an
+				int holding the current phase. */
     PSIDHOOK_REQUESTPART,     /**< Handle a partition request, arg is
 				pointer to the task that posted the request.
 				The actual request is in task's request
@@ -61,17 +64,10 @@ typedef enum {
 				will suppress creating a reservation. Any other
 				return value will trigger to fall back to
 				standard creation of reservations. */
-    PSIDHOOK_SHUTDOWN,        /**< Daemon got signaled to shutdown and a
-				specific phase is reached. Arg points to an
-				int holding the current phase. */
     PSIDHOOK_MASTER_FINJOB,   /**< A job has finished and the master will
 				free the corresponding request. The arg
 				is a pointer to PSpart_request_t holding
 				the request to free. */
-    PSIDHOOK_MASTER_RECPART,  /**< Recovery reserved ports on the new master
-				from existing partitions. The arg is a pointer
-				to PSpart_request_t holding the corresponding
-				request. */
     PSIDHOOK_MASTER_EXITPART, /**< The local node is discharged from the
 				burden of acting as a master, so all relevant
 				resources should be freed. No argument. */
@@ -104,23 +100,30 @@ typedef enum {
 				@ref PSIDspawn_startDelayedTasks() or
 				@ref PSIDspawn_cleanupDelayedTasks().
 			       */
+    PSIDHOOK_SPAWN_TASK,      /**< Right before doing the fork() to create the
+				forwarder of a child to spawn. This guarantees
+				that all information regarding the child is
+				available.
+				Arg is a pointer to the child's task structure.
+				If the hook's return value is < 0, the spawn
+				is canceled and a fail response is sent. */
     PSIDHOOK_EXEC_FORWARDER,  /**< Right before forking the forwarder's child.
 				Arg is a pointer to the child's task structure.
 				The hook might be used to prepare the child's
 				and forwarder's environment. Return -1 if
 				preparation failed and the child will
 				be terminated. */
-    PSIDHOOK_EXEC_CLIENT,     /**< Right before exec()ing the child, arg is a
-				pointer to the child's task structure. This
-				hook might be used to prepare the child's env */
+    PSIDHOOK_FRWRD_SETUP,     /**< Early in forwarder's init() function,
+				arg is a pointer to the child's task structure;
+				shall be used to register additional message
+				types that might already be received during
+				logger connection, etc. */
     PSIDHOOK_FRWRD_INIT,      /**< In forwarder's init() function, arg is a
 				pointer to the child's task structure; this is
 				called right before entering forwarder's loop
 				when the forwarder is fully setup */
-    PSIDHOOK_FRWRD_EXIT,      /**< Tell attached plugins that the forwarder
-				is going to exit. arg might be a pointer to the
-				task ID of the child process but is NULL most
-				of the time (in the meantime always). */
+    PSIDHOOK_PRIV_FRWRD_INIT, /**< PSIDHOOK_FRWRD_INIT executed with root
+				privileges */
     PSIDHOOK_FRWRD_CLNT_RLS,  /**< Ask attached plugins if the client is
 				released. The client is described by the task
 				structure passed in arg. The plugin is expected
@@ -128,9 +131,29 @@ typedef enum {
 				If IDLE or RELEASED is returned, a message of
 				type PSP_CD_RELEASE will be sent according to
 				some heuristics. */
+    PSIDHOOK_FRWRD_CLNT_RES,  /**< Tell attached plugins about client's exit
+				status in the arg. */
+    PSIDHOOK_PRIV_FRWRD_CLNT_RES,/**< PSIDHOOK_FRWRD_CLNT_RES executed with
+				root privileges */
+    PSIDHOOK_FRWRD_EXIT,      /**< Tell attached plugins that the forwarder
+				is going to exit. arg might be a pointer to the
+				task ID of the child process but is NULL most
+				of the time (in the meantime always). */
+    PSIDHOOK_EXEC_CLIENT,     /**< Right before exec()ing the child, arg is a
+				pointer to the child's task structure. This
+				hook might be used to prepare the child's env */
+    PSIDHOOK_EXEC_CLIENT_PREP,/**< Before testing child's executable, arg is
+				a pointer to the child's task structure.
+				Utilized by Spank in psslurm to change the
+				child's namespace */
     PSIDHOOK_EXEC_CLIENT_USER,/**< Right before exec()ing the child, arg is a
 				pointer to the child's task structure. This
 				hook might be used to prepare the child's env */
+    PSIDHOOK_EXEC_CLIENT_EXEC,/**< Before exec()ing the child after all
+				preparation and other hooks are done. arg is
+				a pointer to the child's task structure. This
+				hook might be used to execute the child in
+				a container. */
     PSIDHOOK_XTND_PART_DYNAMIC,/** Dynamically extend a partition. The handler
 				of this hook is expected to call the function
 				PSIDpart_extendRes() either in a synchronous or
@@ -145,19 +168,15 @@ typedef enum {
 				Arg is a pointer of type PSrsrvtn_dynRes_t which
 				contains the reservation id and the actual slot
 				to be released. */
-    PSIDHOOK_PELOGUE_START,   /** Right before exec()ing the child to start a
-				prologue/epilogue script. Used by batch-system
-				plugins to get information about allocations.
-				Arg is pointer to PElogueChild_t */
     PSIDHOOK_PELOGUE_PREPARE, /** Prepare argument vector and environment of a
 				prologue/epilogue script. Used by batch-system
 				plugins in order to provide the script the
 				expected arguments and environment. Arg is
 				pointer to PElogueChild_t */
-    PSIDHOOK_PELOGUE_FINISH,  /** The result of a prologue/epilogue run
-				executed by the pelogue plugin can be inspected.
-				Used by the psslurm plugin. Arg is pointer to
-				PElogueChild_t */
+    PSIDHOOK_PELOGUE_START,   /** Right before exec()ing the child to start a
+				prologue/epilogue script. Used by batch-system
+				plugins to get information about allocations.
+				Arg is pointer to PElogueChild_t */
     PSIDHOOK_PELOGUE_RES,     /**< Hook for requesting additional resources, arg
 				is a pointer to PElogueResource_t. Used by the
 				psgw plugin */
@@ -165,6 +184,10 @@ typedef enum {
 				and epilogue script are provided. Used by
 				psslurm to collect job errors. Arg is pointer to
 				PElogue_OEdata_t */
+    PSIDHOOK_PELOGUE_FINISH,  /** The result of a prologue/epilogue run
+				executed by the pelogue plugin can be inspected.
+				Used by the psslurm plugin. Arg is pointer to
+				PElogueChild_t */
     PSIDHOOK_PELOGUE_GLOBAL,  /**< The result of a global prologue/epilogue run
 				executed by the pelogue plugin can be inspected.
 				Used by the psslurm plugin. Arg is pointer to
@@ -174,9 +197,6 @@ typedef enum {
 				prologue is complete. Used by psslurm to
 				cleanup allocation information. Arg is pointer
 				to message which got dropped. */
-    PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to PID.
-				Return -1 if jailing failed and the child
-				will be terminated. */
     PSIDHOOK_CLEARMEM,        /**< Release memory after forking before handling
 				other tasks, e.g. becoming a forwarder.
 				arg points to aggressive flag of type bool */
@@ -184,12 +204,15 @@ typedef enum {
 				sendMsg(), arg points to the message to be
 				inspected. If the message shall	be dropped,
 				return 0, otherwise return 1 */
+    PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to PID.
+				Return -1 if jailing failed and the child
+				will be terminated. */
+    PSIDHOOK_JAIL_TERM,	      /**< Terminate all jailed children of a cgroup,
+				arg points to PID identifying the cgroup */
     PSIDHOOK_PSSLURM_FINALLOC,/**< An allocation has finished and will be
 				deleted by psslurm. The arg is a pointer to
 				Alloc_t holding the allocation to free. Used by
 				the psgw plugin. */
-    PSIDHOOK_FRWRD_CLNT_RES,  /**< Tell attached plugins about client's exit
-				status in the arg. */
     PSIDHOOK_PSSLURM_JOB_FWINIT,/**< In psslurm job forwarder's init()
 				function. Arg is job owner's username.
 				Called by pamservice plugin */
@@ -204,24 +227,6 @@ typedef enum {
 				information is updated. Shall trigger
 				distribution of option updates. Arg is
 				type of info to be updated. */
-    PSIDHOOK_JAIL_TERM,	      /**< Terminate all jailed children of a cgroup,
-				arg points to PID identifying the cgroup */
-    PSIDHOOK_EXEC_CLIENT_PREP,/**< Before testing child's executable, arg is
-				a pointer to the child's task structure.
-				Utilized by Spank in psslurm to change the
-				child's namespace */
-    PSIDHOOK_SPAWN_TASK,      /**< Right before doing the fork() to create the
-				forwarder of a child to spawn. This guarantees
-				that all information regarding the child is
-				available.
-				Arg is a pointer to the child's task structure.
-				If the hook's return value is < 0, the spawn
-				is canceled and a fail response is sent. */
-    PSIDHOOK_FRWRD_SETUP,     /**< Early in forwarder's init() function,
-				arg is a pointer to the child's task structure;
-				shall be used to register additional message
-				types that might already be received during
-				logger connection, etc. */
     PSIDHOOK_NODE_UNKNOWN,    /**< Node IP is unknown, arg is PSnodes_ID_t ID;
 				this shall update the node's IP address to a
 				valid one in order to allow to grow the number
@@ -235,11 +240,6 @@ typedef enum {
     PSIDHOOK_LAST_RESRELEASED,/**< Reservation was released, i.e. all resource
 				usage was canceled by PSP_DD_CHILDRESREL
 				messages; arg points to the reservation */
-    PSIDHOOK_EXEC_CLIENT_EXEC,/**< Before exec()ing the child after all
-				preparation and other hooks are done. arg is
-				a pointer to the child's task structure. This
-				hook might be used to execute the child in
-				a container. */
     PSIDHOOK_JOBCOMPLETE,     /**< All information belonging to a specific job
 				on remote nodes only were received and the job
 				might be registered. arg points to the PSjob_t
@@ -254,10 +254,6 @@ typedef enum {
 				content of env_t upon return will be distributed
 				alongside the reservations info and provided
 				in PSjob_t's extraData. */
-    PSIDHOOK_PRIV_FRWRD_CLNT_RES,/**< PSIDHOOK_FRWRD_CLNT_RES executed with
-				root privileges */
-    PSIDHOOK_PRIV_FRWRD_INIT, /**< PSIDHOOK_FRWRD_INIT executed with root
-				privileges */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
