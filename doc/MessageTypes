@@ -12,17 +12,17 @@
 
 Structure of IP message:
 struct iphdr {
-        __u8    ihl:4,			1/2
-                version:4;		1/2
-        __u8    tos;			1
-        __be16  tot_len;		2
-        __be16  id;			2
-        __be16  frag_off;		2
-        __u8    ttl;			1
-        __u8    protocol;		1
-        __sum16 check;			2
-        __be32  saddr;			4
-        __be32  daddr;			4
+    __u8    ihl:4,		1/2
+	    version:4;		1/2
+    __u8    tos;		1
+    __be16  tot_len;		2
+    __be16  id;			2
+    __be16  frag_off;		2
+    __u8    ttl;		1
+    __u8    protocol;		1
+    __sum16 check;		2
+    __be32  saddr;		4
+    __be32  daddr;		4
 };
 +payload
 
@@ -31,26 +31,24 @@ Overhead: 20 Byte
 
 Structure of UDP message:
 struct udphdr {
-        __be16  source;			2
-        __be16  dest;			2
-        __be16  len;			2
-        __sum16 check;			2
+    __be16  source;		2
+    __be16  dest;		2
+    __be16  len;		2
+    __sum16 check;		2
 };
 +payload
 
 Overhead: 8 Byte
 
-
 Overhead (TCP): 20 Byte
-
 
 Structure of RDP message:
 typedef struct {
-    short type;           /**< packet type */			2
-    unsigned short len;   /**< message length */		2
-    int seqno;            /**< Sequence number of packet */	4
-    int ackno;            /**< Sequence number of ack */	4
-    int connid;           /**< Connection Identifier */		4
+    int16_t type;         /**< packet type */			2
+    uint16_t len;         /**< message length *not* including header */	2
+    int32_t seqno;        /**< Sequence number of packet */	4
+    int32_t ackno;        /**< Sequence number of ack */	4
+    int32_t connid;       /**< Connection Identifier */		4
 } rdphdr_t;
 + payload
 
@@ -61,8 +59,8 @@ Structure of DDMsg*_t:
 typedef struct {
     int16_t type;          /**< msg type */				2
     int16_t len;           /**< total length of the message */		2
-    PStask_ID_t sender;    /**< sender of the message */		4
-    PStask_ID_t dest;      /**< final destination of the message */	4
+    PStask_ID_t sender;    /**< sender of the message */		8
+    PStask_ID_t dest;      /**< final destination of the message */	8
 } DDMsg_t;
 + payload
 
@@ -71,8 +69,8 @@ Overhead: 20 Byte
 
    Message ID			Type			Size (- header length)
 
-PSP_DD_DAEMONCONNECT		DDBufferMsg_t		8
-PSP_DD_DAEMONESTABLISHED	DDBufferMsg_t		8
+PSP_DD_DAEMONCONNECT		DDBufferMsg_t		16
+PSP_DD_DAEMONESTABLISHED	DDBufferMsg_t		16
 PSP_DD_DAEMONSHUTDOWN		DDMsg_t			0
 
 PSP_DD_SENDSTOP			DDTypedMsg_t		4 (type signals ACK req.)
@@ -80,25 +78,42 @@ PSP_DD_SENDCONT			DDMsg_t			0
 PSP_DD_SENDSTOPACK		DDMsg_t			0
 
 PSP_DD_CHILDDEAD		DDErrorMsg_t		8
-PSP_DD_GETPART			DDBufferMsg_t		32 (same as PSP_CD_CREATEPART)
-PSP_DD_GETPARTNL		DDBufferMsg_t		1026 (same as PSP_CD_CREATEPARTNL)
-PSP_DD_PROVIDEPART		DDBufferMsg_t		8
-PSP_DD_PROVIDEPARTSL		DDBufferMsg_t		2 + 1024 (= 1026)
-PSP_DD_GETNODES			DDBufferMsg_t		4 (same as PSP_CD_GETNODES)
-PSP_DD_GETTASKS			DDMsg_t			0
-PSP_DD_PROVIDETASK		DDBufferMsg_t		9 (or 0)
-PSP_DD_PROVIDETASKSL		DDBufferMsg_t		2 + 1024 (= 1026)
+PSP_DD_CHILDBORN		??DDErrorMsg_t
+PSP_DD_CHILDACK			??DDErrorMsg_t
+PSP_DD_CHILDRESREL		??DDErrorMsg_t
+
+PSP_DD_NEWANCESTOR		??
+PSP_DD_ADOPTCHILDSET		??
+PSP_DD_ADOPTFAILED		??
+PSP_DD_INHERITDONE		??
+PSP_DD_INHERITFAILED		??
+
+PSP_DD_CREATEPART		DDTypedBufferMsg_t	fragmentation layer
+PSP_DD_PROVIDEPART		DDTypedBufferMsg_t	fragmentation layer
+PSP_DD_REGISTERPART		DDTypedBufferMsg_t	fragmentation layer
 PSP_DD_CANCELPART		DDMsg_t			0
+PSP_DD_GETTASKS			DDMsg_t			0
+PSP_DD_PROVIDETASK		DDTypedBufferMsg_t	fragmentation layer
 PSP_DD_TASKDEAD			DDMsg_t			0
 PSP_DD_TASKSUSPEND		DDMsg_t			0
 PSP_DD_TASKRESUME		DDMsg_t			0
 
-PSP_DD_LOAD			DDBufferMsg_t		36 (2*2+3*8+2*4)
-PSP_DD_ACTIVE_NODES		DDBufferMsg_t		NODES_CHUNK*2 (= 514)
-PSP_DD_DEAD_NODE		DDBufferMsg_t		2
-PSP_DD_MASTER_IS		DDBufferMsg_t		2
+PSP_DD_LOAD			DDBufferMsg_t		36 (2*2+3*8+2*4) ??
+PSP_DD_ACTIVE_NODES		DDBufferMsg_t		NODES_CHUNK*2 (= 514) ??
+PSP_DD_DEAD_NODE		DDBufferMsg_t		4
+PSP_DD_MASTER_IS		DDBufferMsg_t		4
 
-PSP_DD_NODESRES			DDBufferMsg_t		4 + 2 + 2 + 1024 (= 1032)
+PSP_DD_GETNODES			DDBufferMsg_t		4 (same as PSP_CD_GETNODES) ??
+PSP_DD_NODESRES			DDBufferMsg_t		4 + 2 + 2 + 1024 (= 1032) ??
+
+PSP_DD_RESCREATED		??
+PSP_DD_RESRELEASED		??
+PSP_DD_RESSLOTS			??
+PSP_DD_RESCLEANUP		??
+PSP_DD_RESFINALIZED		??
+PSP_DD_JOBCOMPLETE		??
+
+
 
 
 PSP_CD_CLIENTCONNECT		DDInitMsg_t		10 (+12 without PEERCRED)
@@ -138,8 +153,7 @@ PSP_CD_HWSTOP			DDBufferMsg_t		4
 PSP_CD_PLUGIN			DDTypedBufferMsg_t	4 + (pluginname string)
 PSP_CD_PLUGINRES		DDTypedMsg_t		4
 
-PSP_CD_CREATEPART		DDBufferMsg_t		32 (from PSpart_encodeReq)
-PSP_CD_CREATEPARTNL		DDBufferMsg_t		2 + NODES_CHUNK*4 (= 1026)
+PSP_CD_REQUESTPART		DDTypeBufferMsg_t	fragmentation layer
 PSP_CD_PARTITIONRES		DDTypedMsg_t		4
 PSP_CD_GETNODES			DDBufferMsg_t		4
 PSP_CD_NODESRES			DDBufferMsg_t		4 + NODES_CHUNK*4 (= 1028)
