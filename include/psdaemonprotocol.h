@@ -62,7 +62,6 @@
 #define PSP_DD_GETNODES            0x0124  /**< Forwarded GETNODES message */
 #define PSP_DD_GETTASKS            0x0125  /**< Get tasks from slaves */
 #define PSP_DD_PROVIDETASK         0x0126  /**< Reply tasks */
-#define PSP_DD_PROVIDETASKSL       0x0127  /**< Task reply slot-list */
 #define PSP_DD_CANCELPART          0x0128  /**< Cancel partition request */
 #define PSP_DD_TASKDEAD            0x0129  /**< Complete task finished */
 #define PSP_DD_TASKSUSPEND         0x012A  /**< Task got SIGTSTP */
@@ -77,7 +76,6 @@
 /** Messages for resource allocation */
 #define PSP_DD_NODESRES            0x0138  /**< Get nodes from a partition */
 #define PSP_DD_REGISTERPART        0x0139  /**< Register partition at master */
-#define PSP_DD_REGISTERPARTSL      0x013A  /**< Part. registration slot-list */
 #define PSP_DD_GETRESERVATION      0x013B  /**< Forwarded GETRESERVATION msg */
 #define PSP_DD_GETSLOTS            0x013C  /**< Forwarded GETSLOTS msg */
 #define PSP_DD_SLOTSRES            0x013D  /**< Results of GETSLOTS msg */

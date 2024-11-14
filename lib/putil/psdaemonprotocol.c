@@ -50,7 +50,6 @@ static msgString_t daemonMessages[] = {
     { PSP_DD_GETNODES         , "PSP_DD_GETNODES"         },
     { PSP_DD_GETTASKS         , "PSP_DD_GETTASKS"         },
     { PSP_DD_PROVIDETASK      , "PSP_DD_PROVIDETASK"      },
-    { PSP_DD_PROVIDETASKSL    , "PSP_DD_PROVIDETASKSL"    },
     { PSP_DD_CANCELPART       , "PSP_DD_CANCELPART"       },
     { PSP_DD_TASKDEAD         , "PSP_DD_TASKDEAD"         },
     { PSP_DD_TASKSUSPEND      , "PSP_DD_TASKSUSPEND"      },
@@ -63,7 +62,6 @@ static msgString_t daemonMessages[] = {
 
     { PSP_DD_NODESRES         , "PSP_DD_GETNODESRES"      },
     { PSP_DD_REGISTERPART     , "PSP_DD_REGISTERPART"     },
-    { PSP_DD_REGISTERPARTSL   , "PSP_DD_REGISTERPARTSL"   },
     { PSP_DD_GETRESERVATION   , "PSP_DD_GETRESERVATION"   },
     { PSP_DD_GETSLOTS         , "PSP_DD_GETSLOTS"         },
     { PSP_DD_SLOTSRES         , "PSP_DD_SLOTSRES"         },
