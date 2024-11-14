@@ -43,9 +43,6 @@ static LIST_HEAD(runReq);
 /** The list of suspended partition request. Only on master nodes. */
 static LIST_HEAD(suspReq);
 
-/** The list of incomplete registration and partition reports. */
-static LIST_HEAD(regisReq);
-
 /**
  * @brief Enqueue partition
  *
@@ -225,7 +222,6 @@ void exitPartHandler(void)
     PSpart_clrQueue(&pendReq);
     PSpart_clrQueue(&runReq);
     PSpart_clrQueue(&suspReq);
-    PSpart_clrQueue(&regisReq);
     cleanupTmpSpace();
     PSIDhook_call(PSIDHOOK_MASTER_EXITPART, NULL);
 }
@@ -411,11 +407,6 @@ void cleanupRequests(PSnodes_ID_t node)
 	if (PSC_getID(req->tid) == node) req->deleted = true;
     }
 
-    list_for_each(r, &regisReq) {
-	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
-	if (PSC_getID(req->tid) == node) req->deleted = true;
-    }
-
     if (nodeStat && nodeStat[node].taskReqPending) {
 	pendingTaskReq -= nodeStat[node].taskReqPending;
 	nodeStat[node].taskReqPending = 0;
@@ -429,9 +420,8 @@ void cleanupRequests(PSnodes_ID_t node)
  *
  * Cleanup the queues used for storing requests.
  *
- * The queues to handle are @ref pendReq for all pending requests,
- * @ref runReq for all running requests, and @ref regisReq for
- * incomplete registrations and partition reports. The whole queues
+ * The queues to handle are @ref pendReq for all pending requests, and
+ * @ref runReq for all running requests. The whole queues
  * will be searched for requests marked for deletion. Whenever such an
  * request is found, it will be dequeued and deleted. If the requests
  * was found within @ref runReq, furthermore the resources allocated
@@ -446,10 +436,9 @@ void cleanupRequests(PSnodes_ID_t node)
  */
 static void cleanupReqQueues(void)
 {
-    list_t *r, *tmp;
-
     PSID_fdbg(PSID_LOG_PART, "\n");
 
+    list_t *r, *tmp;
     list_for_each_safe(r, tmp, &runReq) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
 	if (req->deleted) jobFinished(req);
@@ -460,17 +449,6 @@ static void cleanupReqQueues(void)
 	if (req->deleted) {
 	    if (!deqPart(&pendReq, req)) {
 		PSID_flog("unable to dequeue pending request %s\n",
-			  PSC_printTID(req->tid));
-	    }
-	    PSpart_delReq(req);
-	}
-    }
-
-    list_for_each_safe(r, tmp, &regisReq) {
-	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
-	if (req->deleted) {
-	    if (!deqPart(&regisReq, req)) {
-		PSID_flog("unable to dequeue registration request %s\n",
 			  PSC_printTID(req->tid));
 	    }
 	    PSpart_delReq(req);
