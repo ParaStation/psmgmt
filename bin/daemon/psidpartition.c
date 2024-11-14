@@ -1429,6 +1429,64 @@ static int sendSlots(PSpart_slot_t *slots, uint32_t num, DDBufferMsg_t *msg)
 }
 
 /**
+ * @brief Send array of slots
+ *
+ * Send the array of slots @a slots containing @a num entries via the
+ * serialization layer utilizing the data buffer @a msg.
+ *
+ * @a msg has to be setup before in order to provide the message type,
+ * the destination address, etc.
+ *
+ * @param slots Array of slots to send
+ *
+ * @param num Number of slots within @a slots to send
+ *
+ * @param msg Data buffer used for sending
+ *
+ * @return On success true is returned; or false in case of error
+ */
+static bool addSlotsToMsg(PSpart_slot_t *slots, uint32_t num, PS_SendDB_t *msg)
+{
+    PSID_fdbg(PSID_LOG_PART, "\n");
+
+    if (!slots) {
+	PSID_flog("no slots given\n");
+	return false;
+    }
+
+    /* Determine maximum number of bits to send */
+    uint16_t numBits = 0;
+    for (uint32_t s = 0; s < num; s++) {
+	uint16_t thrds = PSIDnodes_getNumThrds(slots[s].node);
+	if (thrds > numBits) numBits = thrds;
+    }
+    if (!numBits) {
+	PSID_flog("no bits to send?\n");
+	return false;
+    }
+
+    uint16_t nBytes = PSCPU_bytesForCPUs(numBits);
+    if (!nBytes) {
+	PSID_flog("too many hardware threads (%d)\n", numBits);
+	PSID_flog("investigated %u slots:", num);
+	for (uint32_t n = 0; n < num; n++) {
+	    PSID_log(" %d:%s", slots[n].node, PSCPU_print(slots[n].CPUset));
+	}
+	PSID_log("\n");
+	return false;
+    }
+
+    addUint16ToMsg(nBytes, msg);
+    for (uint32_t s = 0; s < num; s++) {
+	char cpuBuf[nBytes];
+	addNodeIdToMsg(slots[s].node, msg);
+	PSCPU_extract(cpuBuf, slots[s].CPUset, nBytes);
+	addMemToMsg(cpuBuf, nBytes, msg);
+    }
+    return true;
+}
+
+/**
  * @brief Send partition.
  *
  * Send the newly created partition conforming to the request @a req
@@ -1444,28 +1502,19 @@ static int sendSlots(PSpart_slot_t *slots, uint32_t num, DDBufferMsg_t *msg)
  */
 static bool sendPartition(PSpart_request_t *req)
 {
-    DDBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_DD_PROVIDEPART,
-	    .dest = req->tid,
-	    .sender = PSC_getMyTID(),
-	    .len = 0 }, // to be adjusted in first PSP_put*()
-	.buf = { '\0' }};
-
     PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(req->tid));
 
-    PSP_putMsgBuf(&msg, "size", &req->size, sizeof(req->size));
-    PSP_putMsgBuf(&msg, "options", &req->options, sizeof(req->options));
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_DD_PROVIDEPART, 0);
+    setFragDest(&msg, req->tid);
 
-    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_fwarn(errno, "sendMsg()");
-	return false;
-    }
+    addUint32ToMsg(req->size, &msg);
+    addInt32ToMsg(req->options, &msg);
 
-    msg.header.type = PSP_DD_PROVIDEPARTSL;
-    msg.header.len = DDBufferMsgOffset;
-    if (sendSlots(req->slots, req->size, &msg) < 0) {
-	PSID_fwarn(errno, "sendSlots()");
+    addSlotsToMsg(req->slots, req->size, &msg);
+
+    if (sendFragMsg(&msg) == -1) {
+	PSID_flog("sendFragMsg() failed\n");
 	return false;
     }
 
@@ -1857,7 +1906,7 @@ error:
  * provided by the client.
  *
  * If a partition could be allocated successfully, the actual
- * partition will be sent to the client's local daemon by
+ * partition will be sent to the client's local daemon by a
  * PSP_DD_PROVIDEPART message. This will finally result in a message
  * of type PSP_CD_PARTITIONRES sent to the requesting client.
  *
@@ -1973,7 +2022,7 @@ static bool msg_CREATEPART(DDTypedBufferMsg_t *inmsg)
  * versions of the protocol another int16_t entry will hold this size.
  *
  * This function is a helper in order to handle data received within
- * PSP_DD_PROVIDEPARTSL, PSP_DD_PROVIDETASKSL or PSP_DD_REGISTERPARTSL
+ * PSP_DD_PROVIDETASKSL or PSP_DD_REGISTERPARTSL
  * messages.
  *
  * @param msg Message with buffer containing slots to add to the slot-list
@@ -2012,89 +2061,50 @@ static bool appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
 }
 
 /**
- * @brief Handle a PSP_DD_PROVIDEPART message
+ * @brief Extract slots from data buffer
  *
- * Handle the message @a msg of type PSP_DD_PROVIDEPART.
+ * Extract slots from the data buffer @a data and store them to the
+ * slot-list contained in the partition request @a request.
  *
- * This kind of messages is used by the master daemon in order to
- * provide actually allocated partitions to the requesting client's
- * local daemon process. This message will be followed by one or more
- * PSP_DD_PROVIDEPARTSL messages containing the partitions actual
- * slot-list.
+ * The data buffer is expected to contain a series of elements
+ * starting with the size of the individual CPU-sets in each slot as
+ * an uint16_t followed by the slots forming the slot-list. In total
+ * @a request->sizeExpected slot elements are read from @a data.
  *
- * The client's local daemon will store the partition to the
- * corresponding task structure and wait for following
- * PSP_DD_PROVIDEPARTSL messages.
+ * Each slot contains a node ID and a CPU-set part. The latter is
+ * expected to have a fixed size throughout the message.
  *
- * Furthermore this message might contain an error message reporting
- * the final failure on the attempt to allocate a partition. In this
- * case a PSP_CD_PARTITIONRES message reporting this error to the
- * requesting client is generated.
+ * This function is a helper in order to handle data received within
+ * PSP_DD_PROVIDEPART, PSP_DD_PROVIDETASK, or PSP_DD_REGISTERPART
+ * messages.
  *
- * @param msg Pointer to message to handle
+ * @param data Data buffer containing slots to add to the slot-list
  *
- * @return Always return true
+ * @param request Partition request holding the slot-list used in
+ * order to store the slots
+ *
+ * @return Return true on success or false on insufficent data, etc.
  */
-static bool msg_PROVIDEPART(DDBufferMsg_t *msg)
+static bool extractSlots(PS_DataBuffer_t *data, PSpart_request_t *request)
 {
-    PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
-    PSpart_request_t *req;
-    PSpart_option_t options;
-    size_t used = 0;
+    PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(request->tid));
 
-    PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(msg->header.dest));
-
-    if (!task) {
-	PSID_flog("task %s not found\n", PSC_printTID(msg->header.dest));
-	errno = EBADMSG;
-	goto error;
+    uint16_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+    getUint16(data, &nBytes);
+    if (nBytes > myBytes) {
+	PSID_flog("%s too many CPUs: %d > %d\n", PSC_printTID(request->tid),
+		  nBytes*8, myBytes*8);
+	return false;
     }
 
-    req = task->request;
-    if (!req) {
-	PSID_flog("no request for task %s\n", PSC_printTID(msg->header.dest));
-	errno = EBADMSG;
-	goto error;
+    for (uint32_t s = 0; s < request->sizeExpected; s++) {
+	getNodeId(data, &request->slots[s].node);
+	char cpuBuf[nBytes];
+	getMem(data, cpuBuf, nBytes);
+	PSCPU_clrAll(request->slots[s].CPUset);
+	PSCPU_inject(request->slots[s].CPUset, cpuBuf, nBytes);
     }
-
-    /* The size of the partition to be received */
-    PSP_getMsgBuf(msg, &used, "sizeExpected", &req->sizeExpected,
-		  sizeof(req->sizeExpected));
-
-    PSP_getMsgBuf(msg, &used, "options", &options, sizeof(options));
-    if (req->options != options) {
-	PSID_flog("options (%d/%d) have changed for %s\n", req->options,
-		  options, PSC_printTID(msg->header.dest));
-	errno = EBADMSG;
-	goto error;
-    }
-
-    req->slots = malloc(req->sizeExpected * sizeof(*req->slots));
-    if (!req->slots) {
-	PSID_flog("no memory\n");
-	errno = ENOMEM;
-	goto error;
-    }
-
-    req->sizeGot = 0;
-    return true;
-error:
-    ;
-    DDTypedMsg_t answer = {
-	.header = {
-	    .type = PSP_CD_PARTITIONRES,
-	    .dest = msg->header.dest,
-	    .sender = PSC_getMyTID(),
-	    .len = sizeof(answer) },
-	.type = errno};
-    if (task && task->request) {
-	PSpart_delReq(task->request);
-	task->request = NULL;
-    }
-    send_TASKDEAD(PSC_getTID(getMasterID(), 0), msg->header.dest);
-    sendMsg(&answer);
-
-    return true;
+    return data->unpackErr == E_PSSERIAL_SUCCESS;
 }
 
 /**
@@ -2160,94 +2170,125 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 }
 
 /**
- * @brief Handle a PSP_DD_PROVIDEPARTSL message
+ * @brief Receive partition
  *
- * Handle the message @a inmsg of type PSP_DD_PROVIDEPARTSL.
+ * This kind of message is sent by the master daemon in order to
+ * provide actually allocated partitions to the requesting client's
+ * local daemon process.
  *
- * Follow up message to a PSP_DD_PROVIDEPART containing the
- * partition's actual slots. These slots will be stored to the
- * requesting client's task structure. Upon successful receive of the
- * partition's last slot a PSP_CD_PARTITIONRES message is send to the
- * requesting client.
+ * The client's local daemon will store the partition to the
+ * corresponding task structure.
  *
- * @param inmsg Pointer to message to handle
+ * Furthermore this message might contain an error message reporting
+ * the final failure on the attempt to allocate a partition. In this
+ * case a PSP_CD_PARTITIONRES message reporting this error to the
+ * requesting client is generated.
+ *
+ * @param msg Pointer to message to handle
  *
  * @return Always return true
  */
-static bool msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
+static void handleProvidePart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(inmsg->header.dest));
+    PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(msg->header.dest));
 
-    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
+    int eno = 0;
+    PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
     if (!task) {
-	PSID_flog("task %s not found\n", PSC_printTID(inmsg->header.dest));
-	errno = EBADMSG;
-	goto error;
+	PSID_flog("task %s not found\n", PSC_printTID(msg->header.dest));
+	eno = EBADMSG;
+	goto cleanupAndAnswer;
     }
 
     PSpart_request_t *req = task->request;
     if (!req) {
-	PSID_flog("no request for task %s\n", PSC_printTID(inmsg->header.dest));
-	errno = EBADMSG;
-	goto error;
+	PSID_flog("no request for task %s\n", PSC_printTID(msg->header.dest));
+	eno = EBADMSG;
+	goto cleanupAndAnswer;
     }
 
+    getUint32(data, &req->sizeExpected);
+    int32_t options;
+    getInt32(data, &options);
+
+    if (req->options != (PSpart_option_t)options) {
+	PSID_flog("options (%#x/%#x) have changed for %s\n", req->options,
+		  options, PSC_printTID(msg->header.dest));
+	eno = EBADMSG;
+	goto cleanupAndAnswer;
+    }
+
+    req->slots = malloc(req->sizeExpected * sizeof(*req->slots));
     if (!req->slots) {
-	PSID_flog("no slots for task %s\n", PSC_printTID(inmsg->header.dest));
-	errno = EBADMSG;
-	goto error;
+	PSID_flog("no memory\n");
+	eno = ENOMEM;
+	goto cleanupAndAnswer;
     }
 
-    if (!appendToSlotlist(inmsg, req)) {
-	PSID_flog("task %s truncated msg\n", PSC_printTID(inmsg->header.dest));
-	errno = EBADMSG;
-	goto error;
+    if (!extractSlots(data, req)) {
+	PSID_flog("failed to extract slots for %s\n", PSC_printTID(req->tid));
+	eno = EBADMSG;
+	goto cleanupAndAnswer;
     }
 
-    if (req->sizeGot == req->sizeExpected) {
-	/* partition complete, now delete the corresponding request */
-	DDTypedMsg_t msg = {
-	    .header = {
-		.type = PSP_CD_PARTITIONRES,
-		.dest = inmsg->header.dest,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg) },
-	    .type = 0};
-	int thrds;
-
-	task->partitionSize = task->request->sizeExpected;
-	task->partition = task->request->slots;
-	task->request->slots = NULL;
-	thrds = getHWThreads(task->partition, task->partitionSize,
+    /* partition complete, now delete the corresponding request */
+    task->partitionSize = task->request->sizeExpected;
+    task->partition = task->request->slots;
+    task->request->slots = NULL;
+    int thrds = getHWThreads(task->partition, task->partitionSize,
 			     &task->partThrds);
-	if (thrds < 0) goto error;
-	task->totalThreads = thrds;
-	task->usedThreads = 0;
-	task->activeChild = 0;
-	task->options = task->request->options;
-
-	PSpart_delReq(task->request);
-	task->request = NULL;
-
-	sendMsg(&msg);
+    if (thrds < 0) {
+	eno = errno;
+	goto cleanupAndAnswer;
     }
-    return true;
- error:
-    ;
-    DDTypedMsg_t msg = {
-	.header = {
-	    .type = PSP_CD_PARTITIONRES,
-	    .dest = inmsg->header.dest,
-	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) },
-	.type = errno};
+    task->totalThreads = thrds;
+    task->usedThreads = 0;
+    task->activeChild = 0;
+    task->options = task->request->options;
+
+cleanupAndAnswer:
     if (task && task->request) {
 	PSpart_delReq(task->request);
 	task->request = NULL;
     }
-    send_TASKDEAD(PSC_getTID(getMasterID(), 0), inmsg->header.dest);
-    sendMsg(&msg);
 
+    //if (PSIDhook_call(PSIDHOOK_RECEIVEPART, task) == 0) return;
+
+    if (eno) send_TASKDEAD(PSC_getTID(getMasterID(), 0), msg->header.dest);
+
+    DDTypedMsg_t answer = {
+	.header = {
+	    .type = PSP_CD_PARTITIONRES,
+	    .dest = msg->header.dest,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(answer) },
+	.type = eno};
+    sendMsg(&answer);
+}
+
+
+/**
+ * @brief Handle a PSP_DD_PROVIDEPART message
+ *
+ * Handle the message @a msg of type PSP_DD_PROVIDEPART.
+ *
+ * This kind of messages is sent by the master daemon in order to
+ * provide actually allocated partitions to the requesting client's
+ * local daemon process.
+ *
+ * Handled via the serialization layer it might consist of multiple
+ * fragments. The full message is finally handled by @ref
+ * handleProvidePart().
+ *
+ * @param msg Pointer to message to handle
+ *
+ * @return Always return true
+ */
+static bool msg_PROVIDEPART(DDTypedBufferMsg_t *msg)
+{
+    PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(msg->header.dest));
+
+    recvFragMsg(msg, handleProvidePart);
     return true;
 }
 
@@ -5659,8 +5700,7 @@ void initPartition(void)
     PSID_registerMsg(PSP_CD_REQUESTPART, (handlerFunc_t) msg_REQUESTPART);
     PSID_registerMsg(PSP_CD_PARTITIONRES, frwdMsg);
     PSID_registerMsg(PSP_DD_CREATEPART, (handlerFunc_t) msg_CREATEPART);
-    PSID_registerMsg(PSP_DD_PROVIDEPART, msg_PROVIDEPART);
-    PSID_registerMsg(PSP_DD_PROVIDEPARTSL, msg_PROVIDEPARTSL);
+    PSID_registerMsg(PSP_DD_PROVIDEPART, (handlerFunc_t) msg_PROVIDEPART);
     PSID_registerMsg(PSP_CD_GETNODES, msg_GETNODES);
     PSID_registerMsg(PSP_DD_GETNODES, msg_GETNODES);
     PSID_registerMsg(PSP_DD_CHILDRESREL, msg_CHILDRESREL);
