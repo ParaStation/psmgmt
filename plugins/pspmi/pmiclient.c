@@ -245,7 +245,7 @@ static void terminateJob(void)
 	    .dest = PSC_getMyTID(),
 	    .len = sizeof(msg) },
 	.signal = -1,
-	.param = getuid(),
+	.param = geteuid(),
 	.pervasive = 1,
 	.answer = 0 };
 
