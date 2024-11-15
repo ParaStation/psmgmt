@@ -689,9 +689,12 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	    PSP_putMsgBuf(&answer, "nullTID", &nTID, sizeof(nTID));
 	}
     } else {
-	answer.header.type = PSP_DD_INHERITFAILED;
-	answer.header.sender = msg->header.dest;
-	answer.header.dest = msg->header.sender;
+	answer = (DDBufferMsg_t) {
+	    .header = {
+		.type = PSP_DD_INHERITFAILED,
+		.sender = msg->header.dest,
+		.dest = msg->header.sender,
+		.len = sizeof(answer.header), }, };
     }
 
     sendMsg(&answer);
