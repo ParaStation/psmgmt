@@ -50,7 +50,7 @@
 static PSID_TaskCount_t localTasks = { .normal = 0, .total = 0 };
 
 /** Total number of nodes connected. Needed for keep-alive pings */
-static int totNodes = 0;
+static int32_t totNodes = 0;
 
 /**
  * @brief Get load information from kernel.
@@ -249,7 +249,7 @@ static void handleMasterTasks(void)
 	}
     }
 
-    /* Re-enable DD_DEADNODE broadcasts */
+    /* Re-enable PSP_DD_DEAD_NODE broadcasts */
     statusBcasts = 0;
 
     if (!round) {

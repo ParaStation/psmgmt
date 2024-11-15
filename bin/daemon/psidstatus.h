@@ -22,9 +22,8 @@
 
 /** Structure keeping info on number of tasks */
 typedef struct {
-    short total;         /**< The total number of tasks */
-    short normal;        /**< Number of "normal" tasks (i.e. without
-			    admin, logger etc.) */
+    int16_t total;   /**< Total number of tasks */
+    int16_t normal;  /**< Number of normal tasks, i.e. w/out admin, logger,...*/
 } PSID_TaskCount_t;
 
 /** Structure keeping load info */
