@@ -2,6 +2,7 @@
 * ParaStation
 *
 * Copyright (C) 2006-2017 ParTec Cluster Competence Center GmbH, Munich
+* Copyright (C) 2024 ParTec AG, Munich
 *
 * This file may be distributed under the terms of the Q Public License
 * as defined in the file LICENSE.QPL included in the packaging of this
@@ -77,16 +78,17 @@ PSP_DD_SENDSTOP			DDTypedMsg_t		4 (type signals ACK req.)
 PSP_DD_SENDCONT			DDMsg_t			0
 PSP_DD_SENDSTOPACK		DDMsg_t			0
 
-PSP_DD_CHILDDEAD		DDErrorMsg_t		8
-PSP_DD_CHILDBORN		??DDErrorMsg_t
-PSP_DD_CHILDACK			??DDErrorMsg_t
-PSP_DD_CHILDRESREL		??DDErrorMsg_t
+PSP_DD_CHILDDEAD		DDErrorMsg_t		12
+PSP_DD_CHILDBORN		DDErrorMsg_t		12
+PSP_DD_CHILDACK			DDErrorMsg_t		12
+PSP_DD_CHILDRESREL		DDBufferMsg_t		filled by PSP_putMsgBuf()
 
-PSP_DD_NEWANCESTOR		??
-PSP_DD_ADOPTCHILDSET		??
-PSP_DD_ADOPTFAILED		??
-PSP_DD_INHERITDONE		??
-PSP_DD_INHERITFAILED		??
+PSP_DD_NEWANCESTOR		DDErrorMsg_t		12
+PSP_DD_ADOPTCHILDSET		DDBufferMsg_t		filled by PSP_putMsgBuf()
+							maybe multiple messages
+PSP_DD_ADOPTFAILED		DDBufferMsg_t		dropped PSP_DD_ADOPTCHILDSET
+PSP_DD_INHERITDONE		DDBufferMSg_t		12 (8+4)
+PSP_DD_INHERITFAILED		DDMsg_t			0
 
 PSP_DD_CREATEPART		DDTypedBufferMsg_t	fragmentation layer
 PSP_DD_PROVIDEPART		DDTypedBufferMsg_t	fragmentation layer
@@ -98,24 +100,31 @@ PSP_DD_TASKDEAD			DDMsg_t			0
 PSP_DD_TASKSUSPEND		DDMsg_t			0
 PSP_DD_TASKRESUME		DDMsg_t			0
 
-PSP_DD_LOAD			DDBufferMsg_t		36 (2*2+3*8+2*4) ??
-PSP_DD_ACTIVE_NODES		DDBufferMsg_t		NODES_CHUNK*2 (= 514) ??
+PSP_DD_LOAD			DDBufferMsg_t		48 (2*2 + 3*8 + 2*8 + 4)
+PSP_DD_ACTIVE_NODES		DDBufferMsg_t		filled by PSP_putMsgBuf()
+							maybe multiple messages
 PSP_DD_DEAD_NODE		DDBufferMsg_t		4
 PSP_DD_MASTER_IS		DDBufferMsg_t		4
 
-PSP_DD_GETNODES			DDBufferMsg_t		4 (same as PSP_CD_GETNODES) ??
-PSP_DD_NODESRES			DDBufferMsg_t		4 + 2 + 2 + 1024 (= 1032) ??
+							maybe multiple messages
 
-PSP_DD_RESCREATED		??
-PSP_DD_RESRELEASED		??
-PSP_DD_RESSLOTS			??
-PSP_DD_RESCLEANUP		??
-PSP_DD_RESFINALIZED		??
-PSP_DD_JOBCOMPLETE		??
+PSP_DD_GETRESERVATION		DDBufferMsg_t		?? (see PSP_CD_GETRESERVATION)
+PSP_DD_RESERVATIONRES		??
+PSP_DD_GETSLOTS			??
+PSP_DD_SLOTSRES			??
+PSP_DD_GETNODES			DDBufferMsg_t		14 (see PSP_CD_GETNODES)
+PSP_DD_NODESRES			DDBufferMsg_t		filled by PSP_putMSgBuf()
+
+PSP_DD_RESCREATED		DDTypedBufferMsg_t	fragmentation layer
+PSP_DD_RESRELEASED		DDBufferMsg_t		20 (4 + 8 + 8)
+PSP_DD_RESSLOTS			DDTypedBufferMsg_t	fragmentation layer
+PSP_DD_RESCLEANUP		DDMsg_t			0
+PSP_DD_RESFINALIZED		DDTypedBufferMsg_t	fragmentation layer
+PSP_DD_JOBCOMPLETE		DDTypedBufferMsg_t	fragmentation layer
 
 
 
-
+??? below
 PSP_CD_CLIENTCONNECT		DDInitMsg_t		10 (+12 without PEERCRED)
 PSP_CD_CLIENTESTABLISHED	DDTypedBufferMsg_t	4
 PSP_CD_CLIENTREFUSED		DDTypedBufferMsg_t	4 + 4
@@ -155,7 +164,7 @@ PSP_CD_PLUGINRES		DDTypedMsg_t		4
 
 PSP_CD_REQUESTPART		DDTypeBufferMsg_t	fragmentation layer
 PSP_CD_PARTITIONRES		DDTypedMsg_t		4
-PSP_CD_GETNODES			DDBufferMsg_t		4
+PSP_CD_GETNODES			DDBufferMsg_t		14 (4 + 4 + 4 + 2)
 PSP_CD_NODESRES			DDBufferMsg_t		4 + NODES_CHUNK*4 (= 1028)
 
 PSP_CD_SENDSTOP			DDMsg_t			0
