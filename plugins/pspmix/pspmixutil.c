@@ -16,6 +16,7 @@
 
 #include "psidsession.h"
 
+#include "pluginforwarder.h"
 #include "pluginmalloc.h"
 
 #include "pspmixlog.h"
