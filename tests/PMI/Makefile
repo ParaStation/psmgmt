@@ -1,6 +1,6 @@
 CFLAGS = -Wall
 
-TARGETS = reproducer pmi_hello
+TARGETS = reproducer pmi_hello abort
 
 all: $(TARGETS)
 
