@@ -6,6 +6,14 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.63-4:
+=================
+Bugfixes:
+ - Ensure PMI_Abort() actually terminates job (#272)
+Enhancements:
+ - Add test for PMI_Abort()
+
+
 Version 5.1.63-3:
 =================
 Bugfixes:
