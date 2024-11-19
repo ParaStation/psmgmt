@@ -1987,12 +1987,13 @@ static bool msg_CREATEPART(DDTypedBufferMsg_t *inmsg)
  * @brief Extract slots from data buffer
  *
  * Extract slots from the data buffer @a data and store them to the
- * slot-list contained in the partition request @a request.
+ * slot-list @a slots. @a slots must provide sufficient space to store
+ * all @a size elements that are read from @a data.
  *
  * The data buffer is expected to contain a series of elements
  * starting with the size of the individual CPU-sets in each slot as
  * an uint16_t followed by the slots forming the slot-list. In total
- * @a request->size slot elements are read from @a data.
+ * @a size slot elements are read from @a data.
  *
  * Each slot contains a node ID and a CPU-set part. The latter is
  * expected to have a fixed size throughout the message.
@@ -2003,29 +2004,30 @@ static bool msg_CREATEPART(DDTypedBufferMsg_t *inmsg)
  *
  * @param data Data buffer containing slots to add to the slot-list
  *
- * @param request Partition request holding the slot-list used in
- * order to store the slots
+ * @param slots Slot-list used to store the slots to
+ *
+ * @param size Number of slots read from @a data and stored to @a slots
  *
  * @return Return true on success or false on insufficent data, etc.
  */
-static bool extractSlots(PS_DataBuffer_t *data, PSpart_request_t *request)
+static bool extractSlots(PS_DataBuffer_t *data, PSpart_slot_t *slots,
+			 uint32_t size)
 {
-    PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(request->tid));
+    PSID_fdbg(PSID_LOG_PART, "store %u to %p\n", size, slots);
 
     uint16_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
     getUint16(data, &nBytes);
     if (nBytes > myBytes) {
-	PSID_flog("%s too many CPUs: %d > %d\n", PSC_printTID(request->tid),
-		  nBytes*8, myBytes*8);
+	PSID_flog("too many CPUs: %d > %d\n", nBytes*8, myBytes*8);
 	return false;
     }
 
-    for (uint32_t s = 0; s < request->size; s++) {
-	getNodeId(data, &request->slots[s].node);
+    for (uint32_t s = 0; s < size; s++) {
+	getNodeId(data, &slots[s].node);
 	char cpuBuf[nBytes];
 	getMem(data, cpuBuf, nBytes);
-	PSCPU_clrAll(request->slots[s].CPUset);
-	PSCPU_inject(request->slots[s].CPUset, cpuBuf, nBytes);
+	PSCPU_clrAll(slots[s].CPUset);
+	PSCPU_inject(slots[s].CPUset, cpuBuf, nBytes);
     }
     return data->unpackErr == E_PSSERIAL_SUCCESS;
 }
@@ -2150,7 +2152,7 @@ static void handleProvidePart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	goto cleanupAndAnswer;
     }
 
-    if (!extractSlots(data, req)) {
+    if (!extractSlots(data, req->slots, req->size)) {
 	PSID_flog("failed to extract slots for %s\n", PSC_printTID(req->tid));
 	eno = EBADMSG;
 	goto cleanupAndAnswer;
@@ -4979,7 +4981,7 @@ PSpart_request_t *extractRequest(PS_DataBuffer_t *data, PStask_ID_t tid)
 	PSpart_delReq(req);
 	return NULL;
     }
-    if (!extractSlots(data, req)) {
+    if (!extractSlots(data, req->slots, req->size)) {
 	PSID_flog("failed to extract slots for %s\n", PSC_printTID(tid));
 	PSpart_delReq(req);
 	return NULL;
