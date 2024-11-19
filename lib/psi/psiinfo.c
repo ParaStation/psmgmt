@@ -73,7 +73,6 @@ recv_retry:
 	case PSP_INFO_QUEUE_SEP:
 	    *size = 0;
 	    break;
-	case PSP_INFO_NROFNODES:
 	case PSP_INFO_INSTDIR:
 	case PSP_INFO_HOST:
 	case PSP_INFO_NODE:
@@ -85,7 +84,6 @@ recv_retry:
 	case PSP_INFO_HWNUM:
 	case PSP_INFO_HWINDEX:
 	case PSP_INFO_HWNAME:
-	case PSP_INFO_RANKID:
 	case PSP_INFO_TASKSIZE:
 	case PSP_INFO_TASKRANK:
 	case PSP_INFO_PARENTTID:
@@ -194,7 +192,6 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	}
 	break;
     case PSP_INFO_TASKSIZE:
-    case PSP_INFO_NROFNODES:
     case PSP_INFO_HWNUM:
     case PSP_INFO_TASKRANK:
 	break;
@@ -411,17 +408,6 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     size_t size = sizeof(*nid);
 
     switch (what) {
-    case PSP_INFO_RANKID:
-	if (param) {
-	    *(int32_t*)msg.buf = *(const int32_t*)param;
-	    msg.header.len += sizeof(int32_t);
-	} else {
-	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
-		    PSP_printInfo(what));
-	    errno = EINVAL;
-	    return -1;
-	}
-	break;
     case PSP_INFO_HOST:
 	if (param) {
 	    *(uint32_t*)msg.buf = *(const uint32_t*)param;

@@ -35,9 +35,6 @@
  *
  * The possible values for @a what are:
  *
- * - PSP_INFO_NROFNODES request the total number of nodes within the
- * ParaStation cluster. No further parameters needed.
- *
  * - PSP_INFO_HWNUM request the total number of hardware types
  * configured within the ParaStation configuration file. No further
  * parameters needed.
@@ -280,11 +277,6 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * to answer the request.
  *
  * The possible values for @a what are:
- *
- * - PSP_INFO_RANKID request the ParaStation ID of the node on which
- * the process with a destinct rank within the actual task will be
- * running on. @a param has to point to a @c int32_t datum holding
- * the requested rank.
  *
  * -PSP_INFO_HOST request the ParaStation ID corresponding to an IP
  * address within the cluster. @a param has to point to the IP address

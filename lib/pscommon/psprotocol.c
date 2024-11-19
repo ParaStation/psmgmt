@@ -115,7 +115,6 @@ static struct {
     char *name;
 } infos[] = {
     { PSP_INFO_UNKNOWN,          "PSP_INFO_UNKNOWN" },
-    { PSP_INFO_NROFNODES,        "PSP_INFO_NROFNODES" },
     { PSP_INFO_INSTDIR,          "PSP_INFO_INSTDIR" },
     { PSP_INFO_HOST,             "PSP_INFO_HOST" },
     { PSP_INFO_NODE,             "PSP_INFO_NODE" },
@@ -133,7 +132,6 @@ static struct {
     { PSP_INFO_HWINDEX,          "PSP_INFO_HWINDEX" },
     { PSP_INFO_HWNAME,           "PSP_INFO_HWNAME" },
 
-    { PSP_INFO_RANKID,           "PSP_INFO_RANKID" },
     { PSP_INFO_TASKSIZE,         "PSP_INFO_TASKSIZE" },
     { PSP_INFO_TASKRANK,         "PSP_INFO_TASKRANK" },
 

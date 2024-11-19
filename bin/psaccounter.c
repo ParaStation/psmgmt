@@ -1650,31 +1650,25 @@ static void getNodeInformation(void)
 {
     PSP_Option_t opt = PSP_OP_DAEMONPROTOVERSION;
     PSP_Optval_t val;
-    int n, rc;
 
     /* get number of nodes */
-    if (PSI_infoInt(-1, PSP_INFO_NROFNODES, NULL, &nrOfNodes, false)) {
-	alog("%s: error getting number of nodes\n", __func__);
-	exit(EXIT_FAILURE);
-    }
+    nrOfNodes = PSC_getNrOfNodes();
 
     accNodes = umalloc(sizeof(Acc_Nodes_t) * nrOfNodes ,__func__);
 
-    for (n=0; n<nrOfNodes; n++) {
-	struct sockaddr_in nodeAddr;
-
+    for (int n = 0; n < nrOfNodes; n++) {
 	/* set node id */
 	accNodes[n].node = n;
 
 	/* get ip-address of node */
-	rc = PSI_infoUInt(-1, PSP_INFO_NODE, &n, &accNodes[n].hostaddr, false);
+	int rc = PSI_infoUInt(-1, PSP_INFO_NODE, &n, &accNodes[n].hostaddr, false);
 	if (rc || accNodes[n].hostaddr == INADDR_ANY) {
 	    alog("%s: getting node info failed, errno:%i\n", __func__, errno);
 	    exit(EXIT_FAILURE);
 	}
 
 	/* get hostname */
-	nodeAddr = (struct sockaddr_in) {
+	struct sockaddr_in nodeAddr = (struct sockaddr_in) {
 	    .sin_family = AF_INET,
 	    .sin_port = 0,
 	    .sin_addr = { .s_addr = accNodes[n].hostaddr } };

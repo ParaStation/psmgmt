@@ -161,10 +161,6 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	msg.buf[sizeof(msg.buf)-1] = '\0';
 	msg.header.len += strlen(msg.buf)+1;
 	break;
-    case PSP_INFO_NROFNODES:
-	*(int *)msg.buf = PSC_getNrOfNodes();
-	msg.header.len += sizeof(int);
-	break;
     case PSP_INFO_HWNUM:
 	*(int *)msg.buf = Attr_num();
 	msg.header.len += sizeof(int);
@@ -184,12 +180,11 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	}
 	break;
     }
-    case PSP_INFO_RANKID:
     case PSP_INFO_TASKSIZE:
     {
 	PStask_ID_t tid = PSC_getPID(inmsg->header.dest) ?
 	    inmsg->header.dest : inmsg->header.sender;
-	PStask_t *task = PStasklist_find(&managedTasks, tid), *dlgt;
+	PStask_t *task = PStasklist_find(&managedTasks, tid);
 	if (!task) {
 	    *(int *)msg.buf = -1;
 	    msg.header.len += sizeof(int);
@@ -202,36 +197,11 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    msg.header.type = inmsg->header.type;
 	    msg.header.dest = task->ptid;
 	    msg.header.sender = inmsg->header.sender;
-	    if (msg.type == PSP_INFO_RANKID) {
-		*(int *)msg.buf = *(int *)inmsg->buf;
-		msg.header.len += sizeof(int);
-	    }
 	    msg_INFOREQUEST(&msg);
 	    return true;
 	}
-	dlgt = task->delegate ? task->delegate : task;
-	if (msg.type == PSP_INFO_RANKID) {
-	    /* @todo this does not work any more !! */
-	    /* @todo rework this for HW-threads and reservations */
-	    int rank = *(int32_t *) inmsg->buf;
-	    if (rank < 0) {
-		*(PSnodes_ID_t *)msg.buf = -1;
-	    } else if (rank >= (int)dlgt->partitionSize) {
-		/* @todo pinning Think about how to use OVERBOOK */
-		if (task->options & PART_OPT_OVERBOOK) {
-		    *(PSnodes_ID_t *)msg.buf =
-			dlgt->partition[rank%dlgt->partitionSize].node;
-		} else {
-		    *(PSnodes_ID_t *)msg.buf = -1;
-		}
-	    } else {
-		*(PSnodes_ID_t *)msg.buf = dlgt->partition[rank].node;
-	    }
-	    msg.header.len += sizeof(PSnodes_ID_t);
-	} else {
-	    *(int *)msg.buf = task->activeChild;
-	    msg.header.len += sizeof(int);
-	}
+	*(int *)msg.buf = task->activeChild;
+	msg.header.len += sizeof(int);
 	break;
     }
     case PSP_INFO_TASKRANK:

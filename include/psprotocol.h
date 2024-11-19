@@ -159,7 +159,6 @@ typedef enum {
 typedef enum {
     PSP_INFO_UNKNOWN = 0x0000,    /**< Unknown info type */
 
-    PSP_INFO_NROFNODES,           /**< Number of cluster nodes */
     PSP_INFO_INSTDIR,             /**< ParaStation installation directory */
 
     PSP_INFO_HOST,                /**< ParaStation ID from IP */
@@ -176,7 +175,6 @@ typedef enum {
     PSP_INFO_HWINDEX,             /**< Internal index from hardware name */
     PSP_INFO_HWNAME,              /**< Name of hardware from internal index */
 
-    PSP_INFO_RANKID,              /**< ParaStation ID from rank */
     PSP_INFO_TASKSIZE,            /**< Actual task's number of processes */
     PSP_INFO_TASKRANK,            /**< Local process' rank within task */
 
