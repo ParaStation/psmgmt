@@ -2068,8 +2068,7 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
     }
 
     PSID_fdbg(PSID_LOG_PART, "slots %d threads %d\n", num, totThreads);
-    PSpart_HWThread_t *HWThreads = malloc(totThreads * sizeof(*HWThreads));
-
+    PSpart_HWThread_t *HWThreads = calloc(totThreads, sizeof(*HWThreads));
     if (!HWThreads) {
 	PSID_flog("no memory\n");
 	errno = ENOMEM;
@@ -2082,12 +2081,10 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
 		HWThreads[t].node = slots[s].node;
 		HWThreads[t].id = cpu;
-		HWThreads[t].timesUsed = 0;
 		t++;
 	    }
 	}
     }
-
     free(*threads);
     *threads = HWThreads;
 
@@ -2238,7 +2235,7 @@ static bool msg_PROVIDEPART(DDTypedBufferMsg_t *msg)
  * @return Return the total number of HW-threads released
  */
 static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
-			  PStask_t *task, const char *caller)
+			       PStask_t *task, const char *caller)
 {
     if (!slot || !task || !task->partThrds || !nSlots) return 0;
 
@@ -2256,20 +2253,18 @@ static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
     for (uint32_t t = 0; t < task->totalThreads && numToRelease; t++) {
 	PSpart_HWThread_t *thrd = &task->partThrds[t];
 	for (uint32_t s = 0; s < nSlots; s++) {
-	    if (slot[s].node == thrd->node
-		&& PSCPU_isSet(slot[s].CPUset, thrd->id)) {
-		if (--(thrd->timesUsed) < 0) {
-		    PSID_flog("adjust timesUsed %d for (%d/%d) by %s\n",
-			      thrd->timesUsed, thrd->node, thrd->id, caller);
-		    totalRelease--;
-		    thrd->timesUsed = 0;
-		}
-		PSCPU_clrCPU(slot[s].CPUset, thrd->id);
-		numToRelease--;
+	    if (slot[s].node != thrd->node) continue;
+	    if (!PSCPU_isSet(slot[s].CPUset, thrd->id)) continue;
+	    if (--(thrd->timesUsed) < 0) {
+		PSID_flog("adjust timesUsed %d for (%d/%d) by %s\n",
+			  thrd->timesUsed, thrd->node, thrd->id, caller);
+		totalRelease--;
+		thrd->timesUsed = 0;
 	    }
+	    PSCPU_clrCPU(slot[s].CPUset, thrd->id);
+	    numToRelease--;
 	}
     }
-
     return (totalRelease - numToRelease);
 }
 
@@ -3199,7 +3194,7 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 	    }
 	}
 
-	PSID_fdbg(PSID_LOG_PART, "allow to re-use %d threads in reservation"
+	PSID_fdbg(PSID_LOG_PART, "allow to re-use %d threads from reservation"
 		  " %#x on node %d. Still %d threads used\n", released,
 		  dynRes.rid, dynRes.slot.node, delegate->usedThreads);
 

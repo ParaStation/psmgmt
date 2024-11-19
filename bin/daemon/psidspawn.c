@@ -2061,8 +2061,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	    return true;
 	}
 
-	/* for the time being still invalidate the spawnNodes */
-	/* On the long run there will be no spawnNodes */
+	/* keep track of resources not yet utilized to spawn tasks */
 	if (!isServiceTask(group) && ptask->spawnNodes) {
 	    if (rank + num - 1 >= ptask->spawnNum) {
 		PSID_flog("ranks %d-%d out of range\n", rank, rank + num -1);
