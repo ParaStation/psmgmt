@@ -5,7 +5,7 @@
 .parents = ["defaults:nodeinfo"]
 # Inherited keys:
 # DebugMask = "0"
-# GPUDevices = ["10de:20b0", "10de:1db6", "10de:1db5", "10de:1db4", "10de:1db1", "10de:102d", "10de:1021", "10de:2342"]
+# GPUDevices = ["10de:20b0", "10de:1db6", "10de:1db5", "10de:1db4", "10de:1db1", "10de:102d", "10de:1021", "10de:2342", "10de:2339"]
 # GPUSort = "PCI"
 # NICDevices = ["15b3:101b", "15b3:1017", "15b3:1013", "15b3:1011", "8086:24f1", "1cad:0011", "1fc1:0010"]
 # NICSort = "PCI"
@@ -21,7 +21,7 @@ PluginConfigs. = ptr(["class:pluginconfigs"])
 [+defaults:nodeinfo]
 .parents = []
 DebugMask = "0"
-GPUDevices = ["10de:20b0", "10de:1db6", "10de:1db5", "10de:1db4", "10de:1db1", "10de:102d", "10de:1021", "10de:2342"]
+GPUDevices = ["10de:20b0", "10de:1db6", "10de:1db5", "10de:1db4", "10de:1db1", "10de:102d", "10de:1021", "10de:2342", "10de:2339"]
 GPUSort = "PCI"
 NICDevices = ["15b3:101b", "15b3:1017", "15b3:1013", "15b3:1011", "8086:24f1", "1cad:0011", "1fc1:0010"]
 NICSort = "PCI"
