@@ -261,28 +261,29 @@ static inline int getFreeCPUs(PSnodes_ID_t node, PSCPU_set_t free, int tpp)
  */
 static void registerReq(PSpart_request_t *req)
 {
-    PSID_fdbg(PSID_LOG_PART, "%s", PSC_printTID(req->tid));
+    PSID_fdbg(PSID_LOG_PART, "%s size %d\n", PSC_printTID(req->tid), req->size);
 
     if (!req->size || !req->slots) return;
 
     if (!nodeStat) {
-	PSID_dbg(PSID_LOG_PART, "\n");
 	PSID_flog("no status array\n");
 	return;
     }
-    PSID_dbg(PSID_LOG_PART, " size %d:", req->size);
     for (unsigned int i = 0; i < req->size; i++) {
 	PSnodes_ID_t node = req->slots[i].node;
 	PSCPU_set_t *CPUset = &req->slots[i].CPUset;
 
-	PSID_dbg(PSID_LOG_PART, " %d/%s", node, PSCPU_print(*CPUset));
+	if (PSID_getDebugMask() & PSID_LOG_PART) {
+	    uint16_t thrds = PSIDnodes_getNumThrds(node);
+	    uint16_t nB = PSCPU_bytesForCPUs(thrds);
+	    PSID_log("\t[%d] %d/%s\n", i, node, PSCPU_print_part(*CPUset, nB));
+	}
 	nodeStat[node].assgndThrds += PSCPU_getCPUs(*CPUset, NULL, PSCPU_MAX);
 	allocCPUs(node, *CPUset);
 	if (req->options & PART_OPT_EXCLUSIVE && PSIDnodes_exclusive(node)) {
 	    nodeStat[node].exclusive = true;
 	}
     }
-    PSID_dbg(PSID_LOG_PART, "\n");
 }
 
 /**
@@ -297,29 +298,29 @@ static void registerReq(PSpart_request_t *req)
  */
 static void unregisterReq(PSpart_request_t *req)
 {
-    PSID_fdbg(PSID_LOG_PART, "%s", PSC_printTID(req->tid));
+    PSID_fdbg(PSID_LOG_PART, "%s size %d\n", PSC_printTID(req->tid), req->size);
 
     if (!req->size || !req->slots) return;
 
     if (!nodeStat) {
-	PSID_dbg(PSID_LOG_PART, "\n");
 	PSID_flog("no status array\n");
 	return;
     }
-    PSID_dbg(PSID_LOG_PART, " size %d:", req->size);
     for (unsigned int i = 0; i < req->size; i++) {
 	PSnodes_ID_t node = req->slots[i].node;
 	PSCPU_set_t *CPUset = &req->slots[i].CPUset;
 
-	PSID_dbg(PSID_LOG_PART, " %d/%s",
-		 node, PSCPU_print(*CPUset));
+	if (PSID_getDebugMask() & PSID_LOG_PART) {
+	    uint16_t thrds = PSIDnodes_getNumThrds(node);
+	    uint16_t nB = PSCPU_bytesForCPUs(thrds);
+	    PSID_log("\t[%d] %d/%s\n", i, node, PSCPU_print_part(*CPUset, nB));
+	}
 	nodeStat[node].assgndThrds -=  PSCPU_getCPUs(*CPUset, NULL, PSCPU_MAX);
 	freeCPUs(node, *CPUset);
 	decTaskCountHint(node);
 	if ((req->options & PART_OPT_EXCLUSIVE)
 	    && !nodeStat[node].assgndThrds) nodeStat[node].exclusive = false;
     }
-    PSID_dbg(PSID_LOG_PART, "\n");
     doHandle = true; /* Trigger handler in next round */
 }
 
@@ -1281,8 +1282,13 @@ static int createPartition(PSpart_request_t *request, sortlist_t *candidates)
 		numSlots = numRequested;
 	    }
 
-	    PSID_fdbg(PSID_LOG_PART, "add processors %s of node %d to slot %zd\n",
-		      PSCPU_print(slots[curSlot].CPUset), cid, curSlot);
+	    if (PSID_getDebugMask() & PSID_LOG_PART) {
+		uint16_t thrds = PSIDnodes_getNumThrds(cid);
+		uint16_t nB = PSCPU_bytesForCPUs(thrds);
+		PSID_flog("add procs %s of node %d to slot %zd\n",
+			  PSCPU_print_part(slots[curSlot].CPUset, nB),
+			  cid, curSlot);
+	    }
 
 	    /* Use node only once */
 	    tmpStat[cid] = (PSCPU_set_t *)-1;
@@ -1424,7 +1430,7 @@ static int sendSlots(PSpart_slot_t *slots, uint32_t num, DDBufferMsg_t *msg)
  */
 static bool addSlotsToMsg(PSpart_slot_t *slots, uint32_t num, PS_SendDB_t *msg)
 {
-    PSID_fdbg(PSID_LOG_PART, "\n");
+    PSID_fdbg(PSID_LOG_PART, "%d slots\n", num);
 
     if (!slots) {
 	PSID_flog("no slots given\n");
@@ -1453,9 +1459,12 @@ static bool addSlotsToMsg(PSpart_slot_t *slots, uint32_t num, PS_SendDB_t *msg)
 	return false;
     }
 
+    bool debug = PSID_getDebugMask() & PSID_LOG_PART;
     addUint16ToMsg(nBytes, msg);
     for (uint32_t s = 0; s < num; s++) {
 	char cpuBuf[nBytes];
+	if (debug) PSID_flog("[%d] %d:%s\n", s, slots[s].node,
+			     PSCPU_print_part(slots[s].CPUset, nBytes));
 	addNodeIdToMsg(slots[s].node, msg);
 	PSCPU_extract(cpuBuf, slots[s].CPUset, nBytes);
 	addMemToMsg(cpuBuf, nBytes, msg);
