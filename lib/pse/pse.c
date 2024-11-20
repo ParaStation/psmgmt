@@ -119,17 +119,6 @@ void PSE_initialize(void)
     }
 }
 
-int PSE_getSize(void)
-{
-    int err, size;
-
-    err = PSI_infoInt(-1, PSP_INFO_TASKSIZE, NULL, &size, false);
-
-    if (err) return -1;
-
-    return size;
-}
-
 int PSE_getRank(void)
 {
     if (worldRank == INT_MIN) {

@@ -84,7 +84,6 @@ recv_retry:
 	case PSP_INFO_HWNUM:
 	case PSP_INFO_HWINDEX:
 	case PSP_INFO_HWNAME:
-	case PSP_INFO_TASKSIZE:
 	case PSP_INFO_TASKRANK:
 	case PSP_INFO_PARENTTID:
 	case PSP_INFO_LOGGERTID:
@@ -191,7 +190,6 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    return -1;
 	}
 	break;
-    case PSP_INFO_TASKSIZE:
     case PSP_INFO_HWNUM:
     case PSP_INFO_TASKRANK:
 	break;

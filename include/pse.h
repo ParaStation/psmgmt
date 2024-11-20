@@ -63,16 +63,6 @@ void PSE_initialize(void);
 int PSE_getPartition(unsigned int num);
 
 /**
- * @brief Get the size of the process group.
- *
- * Get the actual size of the process group.
- *
- * @return On success, the actual size of the process group is
- * returned, or -1, if an error occurred.
- */
-int PSE_getSize(void);
-
-/**
  * @brief Get the rank of the process.
  *
  * Get the rank of the actual process within the process group. The

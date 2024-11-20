@@ -175,9 +175,7 @@ typedef enum {
     PSP_INFO_HWINDEX,             /**< Internal index from hardware name */
     PSP_INFO_HWNAME,              /**< Name of hardware from internal index */
 
-    PSP_INFO_TASKSIZE,            /**< Actual task's number of processes */
     PSP_INFO_TASKRANK,            /**< Local process' rank within task */
-
     PSP_INFO_PARENTTID,           /**< Parent's task ID */
     PSP_INFO_LOGGERTID,           /**< Logger's task ID */
 

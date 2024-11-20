@@ -180,30 +180,6 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	}
 	break;
     }
-    case PSP_INFO_TASKSIZE:
-    {
-	PStask_ID_t tid = PSC_getPID(inmsg->header.dest) ?
-	    inmsg->header.dest : inmsg->header.sender;
-	PStask_t *task = PStasklist_find(&managedTasks, tid);
-	if (!task) {
-	    *(int *)msg.buf = -1;
-	    msg.header.len += sizeof(int);
-	    break;
-	}
-
-	if (task->ptid) {
-	    PSID_dbg(PSID_LOG_INFO, "%s: forward to parent %s\n", funcStr,
-		     PSC_printTID(task->ptid));
-	    msg.header.type = inmsg->header.type;
-	    msg.header.dest = task->ptid;
-	    msg.header.sender = inmsg->header.sender;
-	    msg_INFOREQUEST(&msg);
-	    return true;
-	}
-	*(int *)msg.buf = task->activeChild;
-	msg.header.len += sizeof(int);
-	break;
-    }
     case PSP_INFO_TASKRANK:
     case PSP_INFO_PARENTTID:
     case PSP_INFO_LOGGERTID:

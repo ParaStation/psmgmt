@@ -43,9 +43,6 @@
  * param points to a '\\0' terminated character array containing the
  * name.
  *
- * - PSP_INFO_TASKSIZE request the total number of processes within
- * the actual task. No further parameters needed.
- *
  * - PSP_INFO_TASKRANK request the rank of the local process within
  * the parallel task. The result might be a positiv number or -1,
  * where the latter denotes the process to be the logger process. No

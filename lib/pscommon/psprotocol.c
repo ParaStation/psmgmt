@@ -132,9 +132,7 @@ static struct {
     { PSP_INFO_HWINDEX,          "PSP_INFO_HWINDEX" },
     { PSP_INFO_HWNAME,           "PSP_INFO_HWNAME" },
 
-    { PSP_INFO_TASKSIZE,         "PSP_INFO_TASKSIZE" },
     { PSP_INFO_TASKRANK,         "PSP_INFO_TASKRANK" },
-
     { PSP_INFO_PARENTTID,        "PSP_INFO_PARENTTID" },
     { PSP_INFO_LOGGERTID,        "PSP_INFO_LOGGERTID" },
 
