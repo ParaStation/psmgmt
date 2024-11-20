@@ -400,7 +400,7 @@ typedef struct {
 /** Option message used to set or get various options */
 typedef struct {
     DDMsg_t header;        /**< message header */
-    char count;            /**< no of options in opt[] */
+    uint8_t count;         /**< no of options in opt[] */
     DDOption_t opt[DDOptionMsgMax]; /**< array of option-value pairs */
 } DDOptionMsg_t;
 
