@@ -25,13 +25,10 @@
 #include "psiinfo.h"
 #include "psipartition.h"
 #include "psispawn.h"
-#include "psienv.h"
 #include "psilog.h"
 
 static int myWorldSize = -1;
 static int worldRank = INT_MIN;
-static int masterNode = -1;
-static int masterPort = -1;
 static PStask_ID_t parentTID = -1;
 
 static uint32_t defaultHWType = 0; /* Take any node */
@@ -92,31 +89,6 @@ void PSE_initialize(void)
 
     logger_print(logger, PSE_LOG_VERB, "[%d] My TID is %s\n",
 		 PSE_getRank(), PSC_printTID(PSC_getMyTID()));
-
-    /* Get masterNode/masterPort from environment (if available) */
-    envStr = getenv("__PSI_MASTERNODE");
-    if (!envStr) {
-	if (PSE_getRank()>0) {
-	    exitAll("Could not determine __PSI_MASTERNODE", 10);
-	}
-    } else {
-	masterNode = atoi(envStr);
-
-	/* propagate to children */
-	setPSIEnv("__PSI_MASTERNODE", envStr);
-    }
-
-    envStr = getenv("__PSI_MASTERPORT");
-    if (!envStr) {
-	if (PSE_getRank()>0) {
-	    exitAll("Could not determine __PSI_MASTERPORT", 10);
-	}
-    } else {
-	masterPort = atoi(envStr);
-
-	/* propagate to children */
-	setPSIEnv("__PSI_MASTERPORT", envStr);
-    }
 }
 
 int PSE_getRank(void)
@@ -169,91 +141,6 @@ void PSE_setUID(uid_t uid)
     PSI_setUID(uid);
 }
 
-void PSE_spawnMaster(int argc, char *argv[])
-{
-    /* spawn master process (we are going to be logger) */
-    logger_print(logger, PSE_LOG_VERB, "%s(%s)\n", __func__, argv[0]);
-
-    /* client process? */
-    if (PSE_getRank() != -1) {
-	logger_print(logger, -1,
-		     "%s: Don't call if rank is not -1 (rank=%d)\n",
-		     __func__, PSE_getRank());
-	exitAll("Wrong rank", 10);
-    }
-
-    /* Check for LSF-Parallel */
-    PSI_RemoteArgs(argc, argv, &argc, &argv);
-
-    /* spawn master process */
-    int error;
-    if (PSI_spawn(1, ".", argc, argv, &error) < 0 ) {
-	if (error) {
-	    logger_warn(logger, -1, error,
-			"Could not spawn master process (%s)",argv[0]);
-	}
-	exitAll("Spawn failed", 10);
-    }
-
-    logger_print(logger, PSE_LOG_SPAWN,
-		 "[%d] Spawned master process\n", PSE_getRank());
-
-    if (defaultUID && setuid(defaultUID) < 0) {
-	logger_warn(logger, -1, errno, "%s: setuid() for logger failed",
-		    __func__);
-	exitAll(NULL, 10);
-    }
-
-    /* Switch to psilogger */
-    PSI_execLogger(NULL);
-}
-
-void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
-{
-    /* spawning processes */
-    char envstr[80];
-
-    logger_print(logger, PSE_LOG_VERB, "%s(%d, %d, %d, %s)\n",
-		 __func__, num, node, port, argv[0]);
-
-    /* client process? */
-    if (PSE_getRank() == -1) {
-	logger_print(logger, -1, "%s: Don't call if rank is -1\n", __func__);
-	exitAll("Wrong rank", 10);
-    }
-
-    /* Check for LSF-Parallel */
-    PSI_RemoteArgs(argc, argv, &argc, &argv);
-
-    /* pass masterNode and masterPort to child */
-    masterNode = node;
-    snprintf(envstr, sizeof(envstr), "__PSI_MASTERNODE=%d", masterNode);
-    addPSIEnv(envstr);
-    masterPort = port;
-    snprintf(envstr, sizeof(envstr), "__PSI_MASTERPORT=%d", masterPort);
-    addPSIEnv(envstr);
-
-    myWorldSize = num;
-    int *errors = malloc(sizeof(int) * myWorldSize);
-    if (!errors) {
-	logger_print(logger, -1, "%s: malloc(errors) failed\n", __func__);
-	exitAll("No memory", 10);
-    }
-
-    /* spawn client processes */
-    if (PSI_spawn(myWorldSize, ".", argc, argv, errors) < 0) {
-	for (int i = 0; i < myWorldSize; i++) {
-	    logger_warn(logger, errors[i] ? -1 : PSE_LOG_SPAWN, errors[i],
-			"Could%s spawn '%s' process %d",
-			errors[i] ? " not" : "", argv[0], i+1);
-	}
-	exitAll("Spawn failed", 10);
-    }
-    free(errors);
-
-    logger_print(logger, PSE_LOG_SPAWN, "Spawned all processes\n");
-}
-
 int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
 		   int argc, char *argv[], bool strictArgv)
 {
@@ -285,16 +172,6 @@ int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
     }
 
     return error;
-}
-
-int PSE_getMasterNode(void)
-{
-    return masterNode;
-}
-
-int PSE_getMasterPort(void)
-{
-    return masterPort;
 }
 
 static char msgStr[512];

@@ -23,14 +23,14 @@
 #include "psnodes.h"
 
 /**
- * @brief Initialize PSE.
+ * @brief Initialize PSE
  *
  * Initialize PSE, the ParaStation Programming Environment. You have
  * to call this function before using any other function contained in
  * PSE. Otherwise the behavior of any other PSE function is
  * undetermined.
  *
- * @return No return value.
+ * @return No return value
  * */
 void PSE_initialize(void);
 
@@ -42,9 +42,7 @@ void PSE_initialize(void);
  * the @ref PSE_setHWType() / @ref PSE_setHWList() interface.
  *
  * Any process spawned by a process of the parallel task will reside
- * within the partition bound to this task. Therefore this function
- * has to be called before any of @ref PSE_spawnMaster() or @ref
- * PSE_spawnTasks().
+ * within the partition bound to this task.
  *
  * The meaning of @a num and the return value might depend on the
  * options active while creating the partition. Refer to @ref
@@ -58,62 +56,47 @@ void PSE_initialize(void);
  * return value is discussed at @ref PSI_createPartition().
  *
  * @see PSE_setHWType() PSE_setHWList() PSI_createPartition()
- * PSE_spawnMaster() PSE_spawnTasks()
  */
 int PSE_getPartition(unsigned int num);
 
 /**
  * @brief Get the rank of the process.
  *
- * Get the rank of the actual process within the process group. The
- * rank of a process is positive number smaller than the result of @ref
- * PSE_getSize() \b or \b -1. The rank is unique within the process
- * group.
+ * Get the rank of the local process within the process group.
  *
- * Different from MPI, in PSE the rank may be -1. It is assumed, that
- * the process with rank = -1 calls @ref PSE_spawnMaster() to spawn a
- * process with rank = 0 and become logger. The so spawned process
- * with rank = 0 is the master process in the sense of MPI and can
- * spawn further tasks using @ref PSE_spawnTasks(). Calls to @ref
- * PSE_spawnTasks() from within the process with rank = -1 will fail.
+ * Different from MPI, in PSE the rank might be negative if this is
+ * called from within a service process.
  *
  * The rank will never change during a process's lifetime.
  *
  * @return On success, the actual rank of the process within the group
  * is returned. If PSE is not yet initialized, some error-message is
  * created and exit() is called.
- *
- * @see PSE_getSize(), PSE_spawnMaster(), PSE_spawnTasks()
  * */
 int PSE_getRank(void);
 
 /**
  * @brief Set UID for spawns
  *
- * Set the UID for subsequently spawned processes to @a uid. This will
- * only affect processes spawned via PSI_spawnMaster() or
- * PSE_spawnTasks(). Furthermore the UID of the logger process which
- * will be created from within PSE_spawnMaster() will change to @a
- * uid. Only root (i.e. UID 0) is allowed to change the UID of spawned
+ * Set the user ID for subsequently spawned processes to @a uid. Only
+ * root (i.e. UID 0) is allowed to change the UID of spawned
  * processes.
  *
- * @param uid The UID of the processes to spawn.
+ * @param uid User ID of the processes to spawn
  *
- * @return No return value.
+ * @return No return value
  */
 void PSE_setUID(uid_t uid);
 
 /**
- * @brief Set hardware-type for PSE_getPartition().
+ * @brief Set hardware-type for PSE_getPartition()
  *
  * Set the hardware-type for @ref PSE_getPartition().
  *
  * If @ref PSE_getPartition() is called, the partition is constituted
  * from nodes which support all the hardware-types requested in @a
- * hwType. Subsequent calls to @ref PSE_spawnMaster() and @ref
- * PSE_spawnTasks() will only spawn processes within this
- * partition. For details on the spawning strategy look @ref
- * spawn_strategy "here".
+ * hwType. For details on the spawning strategy refer to @ref
+ * spawn_strategy.
  *
  * If no call to this function or to @ref PSE_setHWList() is made before
  * @ref PSE_getPartition() is called, the default hardware-type 0 is
@@ -124,23 +107,21 @@ void PSE_setUID(uid_t uid);
  * requested via 1<<INFO_request_hwindex() or 0. If @a hwType is 0, any
  * node is taken to spawn tasks on.
  *
- * @return No return value.
+ * @return No return value
  *
  * @see PSE_getPartition() PSE_setHWList()
  * */
 void PSE_setHWType(uint32_t hwType);
 
 /**
- * @brief Set hardware-type for PSE_getPartition().
+ * @brief Set hardware-type for PSE_getPartition()
  *
  * Alternative form to set the hardware-type for @ref PSE_getPartition().
  *
  * If @ref PSE_getPartition() is called, the partition is constituted
  * from nodes which support all the hardware-types requested in @a
- * hwList.  Subsequent calls to @ref PSE_spawnMaster() and @ref
- * PSE_spawnTasks() will only spawn processes within this
- * partition. For details on the spawning strategy look @ref
- * spawn_strategy "here".
+ * hwList. For details on the spawning strategy refer to @ref
+ * spawn_strategy.
  *
  * If no call to this function or to @ref PSE_setHWType() is made
  * before @ref PSE_getPartition() is called, the default hardware-type
@@ -253,10 +234,10 @@ char * PSE_checkAndSetSortEnv(char *sort, char *argPrefix, bool verbose);
 /**
  * @page spawn_strategy Spawning strategy
  *
- * To spawn the master process and subsequent tasks, a node pool is
- * constituted by @ref PSE_spawnMaster(). The nodes within the pool are
- * ordered depending on the requested ordering strategy and propagated
- * to spawned tasks. Any further spawning of tasks will leave the pool
+ * To spawn any process via PSE or PSI, a node pool is constituted by
+ * @ref PSE_getPartition(). The nodes within the pool are ordered
+ * depending on the requested ordering strategy and propagated to
+ * spawned tasks. Any further spawning of tasks will leave the pool
  * and its ordering unchanged.
  *
  * Depending on its rank, a process will reside on a defined node
@@ -335,110 +316,9 @@ char * PSE_checkAndSetSortEnv(char *sort, char *argPrefix, bool verbose);
  * - NONE or anything else: Don't sort the pool.
  * */
 
-/**
- * @brief Spawn the master process.
- *
- * Spawns the master process and become logger. A process with rank =
- * 0 is spawned and the actual process will exec(2) to the
- * psilogger. It will serve the spawned process and all subsequently
- * spawned processes as an I/O daemon.
- *
- * Read more about spawning strategies @ref spawn_strategy "here".
- *
- * If an error occurs, an error message is generated and the process
- * exits.
- *
- * @param argc The size of @a argv. This is usually equal to the argc
- * argument to main() of the actual process.
- *
- * @param argv The argument vector of the task to spawn. This is
- * usually equal to the argv argument to main() of the actual process.
- *
- * @return No return value. Actually, @a PSE_spawnMaster() never
- * returns.
- *
- * @warning Calls to this function from within processes where @ref
- * PSE_getRank() returns a value different from -1 will fail.
- *
- * @see PSE_getRank(), PSE_setHWType(), exec(2)
- * */
-void PSE_spawnMaster(int argc, char *argv[]);
-
 
 /**
- * @brief Spawn one or more tasks.
- *
- * Spawns @a num tasks. @a node and @a port are passed to the spawned
- * tasks. They can be determined there using @ref PSE_getMasterNode()
- * and @ref PSE_getMasterPort(). They may be used there to reconnect
- * to the spawning process.
- *
- * For spawning, the node pool constituted within @ref
- * PSE_spawnMaster() is used. Subsequent calls to @a PSE_spawnTasks()
- * will only spawn within this node pool. For details on the spawning
- * strategy look @ref spawn_strategy "here".
- *
- * If an error occurs, an error message is generated and the process
- * exits.
- *
- * @param num The number of tasks to spawn.
- *
- * @param node The node number to pass to spawned processes. Usually
- * this is the node ID returned by the PSPort library using @ref
- * PSP_GetNodeID().
- *
- * @param port The port number to pass to spawned processes. Usually
- * this is the port number returned by the PSPort library using @ref
- * PSP_GetPortNo().
- *
- * @param argc The size of @a argv. This is usually equal to the argc
- * argument to main() of the actual process.
- *
- * @param argv The argument vector of the task to spawn. This is
- * usually equal to the argv argument to main() of the actual process.
- *
- * @return No return value.
- *
- * @warning Calls to this function from within processes where @ref
- * PSE_getRank() returns -1 will fail.
- *
- * @see PSE_spawnMaster(), PSE_getMasterNode(), PSE_getMasterPort(),
- * PSP_GetNodeID(), PSP_GetPortNo()
- * */
-void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[]);
-
-/**
- * @brief Get the node ID of the master process.
- *
- * Get the ID of the node, where the master process resides. It is
- * passed from the spawning process as the @a node parameter to
- * PSE_spawnTasks() to spawned tasks. This is usually the node ID
- * returned by the PSPort library using @ref PSP_GetNodeID().
- *
- * @return The node ID passed from the parent task as the @a node
- * parameter to @ref PSE_spawnTasks().
- *
- * @see PSE_spawnTasks(), PSP_GetNodeID()
- * */
-int PSE_getMasterNode(void);
-
-/**
- * @brief Get the port number of the master process.
- *
- * Get the port number of the master process. It is passed from the
- * spawning process as the @a port parameter to PSE_spawnTasks() to
- * spawned tasks. This is usually the port number returned by the PSPort
- * library using @ref PSP_GetPortNo().
- *
- * @return The port number passed from the parent task as the @a port
- * parameter to @ref PSE_spawnTasks().
- *
- * @see PSE_spawnTasks(), PSP_GetPortNo()
- * */
-int PSE_getMasterPort(void);
-
-/**
- * @brief Spawn admin process.
+ * @brief Spawn admin process
  *
  * Spawn an admin process as describe in @a argc and @a argv to node
  * @a node. The rank of the spawned process is set as given in @a
@@ -473,28 +353,28 @@ int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
 		   int argc, char *argv[], bool strictArgv);
 
 /**
- * @brief Finish the actual process.
+ * @brief Finish local process
  *
- * Finish the actual process without shutting down all other processes
+ * Finish the local process without shutting down all other processes
  * within the process group.
  *
- * @return No return value.
+ * @return No return value
  *
  * @see PSE_abort()
  * */
 void PSE_finalize(void);
 
 /**
- * @brief Finish the actual process and shut down the whole process group.
+ * @brief Finish local process and shut down the whole process group
  *
- * Finish the actual process and shut down all other processes within
+ * Finish the local process and shut down all other processes within
  * the process group. @a code is returned to the calling process,
  * which is usually the forwarder.
  *
  * @param code The exit code
  *
- * @return No return value. PSE_abort() usually never returns, since
- * exit() is called.
+ * @return No return value; PSE_abort() usually never returns, since
+ * exit() is called
  *
  * @see PSE_finalize(), exit(2)
  * */
