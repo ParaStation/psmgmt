@@ -100,7 +100,8 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 check_PROGRAMS = poll_rrcomm$(EXEEXT) test_rrcomm$(EXEEXT) \
-	cornercases$(EXEEXT) spawn_rrcomm$(EXEEXT)
+	cornercases$(EXEEXT) spawn_rrcomm$(EXEEXT) \
+	spawnPMIx_rrcomm$(EXEEXT)
 TESTS = poll_rrcomm$(EXEEXT) test_rrcomm$(EXEEXT) cornercases$(EXEEXT)
 subdir = plugins/rrcomm/tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -124,6 +125,9 @@ am__v_lt_1 =
 am_poll_rrcomm_OBJECTS = poll_rrcomm.$(OBJEXT)
 poll_rrcomm_OBJECTS = $(am_poll_rrcomm_OBJECTS)
 poll_rrcomm_DEPENDENCIES = $(librrcomm)
+am_spawnPMIx_rrcomm_OBJECTS = spawnPMIx_rrcomm.$(OBJEXT)
+spawnPMIx_rrcomm_OBJECTS = $(am_spawnPMIx_rrcomm_OBJECTS)
+spawnPMIx_rrcomm_DEPENDENCIES = $(librrcomm)
 am_spawn_rrcomm_OBJECTS = spawn_rrcomm.$(OBJEXT)
 spawn_rrcomm_OBJECTS = $(am_spawn_rrcomm_OBJECTS)
 spawn_rrcomm_DEPENDENCIES = $(librrcomm)
@@ -146,8 +150,8 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/cornercases.Po \
-	./$(DEPDIR)/poll_rrcomm.Po ./$(DEPDIR)/spawn_rrcomm.Po \
-	./$(DEPDIR)/test_rrcomm.Po
+	./$(DEPDIR)/poll_rrcomm.Po ./$(DEPDIR)/spawnPMIx_rrcomm.Po \
+	./$(DEPDIR)/spawn_rrcomm.Po ./$(DEPDIR)/test_rrcomm.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -168,9 +172,11 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(cornercases_SOURCES) $(poll_rrcomm_SOURCES) \
-	$(spawn_rrcomm_SOURCES) $(test_rrcomm_SOURCES)
+	$(spawnPMIx_rrcomm_SOURCES) $(spawn_rrcomm_SOURCES) \
+	$(test_rrcomm_SOURCES)
 DIST_SOURCES = $(cornercases_SOURCES) $(poll_rrcomm_SOURCES) \
-	$(spawn_rrcomm_SOURCES) $(test_rrcomm_SOURCES)
+	$(spawnPMIx_rrcomm_SOURCES) $(spawn_rrcomm_SOURCES) \
+	$(test_rrcomm_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -602,6 +608,8 @@ cornercases_SOURCES = cornercases.c
 cornercases_LDADD = $(librrcomm)
 spawn_rrcomm_SOURCES = spawn_rrcomm.c
 spawn_rrcomm_LDADD = $(librrcomm)
+spawnPMIx_rrcomm_SOURCES = spawnPMIx_rrcomm.c
+spawnPMIx_rrcomm_LDADD = $(librrcomm) -lpmix
 all: all-am
 
 .SUFFIXES:
@@ -654,6 +662,10 @@ poll_rrcomm$(EXEEXT): $(poll_rrcomm_OBJECTS) $(poll_rrcomm_DEPENDENCIES) $(EXTRA
 	@rm -f poll_rrcomm$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(poll_rrcomm_OBJECTS) $(poll_rrcomm_LDADD) $(LIBS)
 
+spawnPMIx_rrcomm$(EXEEXT): $(spawnPMIx_rrcomm_OBJECTS) $(spawnPMIx_rrcomm_DEPENDENCIES) $(EXTRA_spawnPMIx_rrcomm_DEPENDENCIES) 
+	@rm -f spawnPMIx_rrcomm$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(spawnPMIx_rrcomm_OBJECTS) $(spawnPMIx_rrcomm_LDADD) $(LIBS)
+
 spawn_rrcomm$(EXEEXT): $(spawn_rrcomm_OBJECTS) $(spawn_rrcomm_DEPENDENCIES) $(EXTRA_spawn_rrcomm_DEPENDENCIES) 
 	@rm -f spawn_rrcomm$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(spawn_rrcomm_OBJECTS) $(spawn_rrcomm_LDADD) $(LIBS)
@@ -670,6 +682,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cornercases.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/poll_rrcomm.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spawnPMIx_rrcomm.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spawn_rrcomm.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_rrcomm.Po@am__quote@ # am--include-marker
 
@@ -1017,6 +1030,7 @@ clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/cornercases.Po
 	-rm -f ./$(DEPDIR)/poll_rrcomm.Po
+	-rm -f ./$(DEPDIR)/spawnPMIx_rrcomm.Po
 	-rm -f ./$(DEPDIR)/spawn_rrcomm.Po
 	-rm -f ./$(DEPDIR)/test_rrcomm.Po
 	-rm -f Makefile
@@ -1066,6 +1080,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/cornercases.Po
 	-rm -f ./$(DEPDIR)/poll_rrcomm.Po
+	-rm -f ./$(DEPDIR)/spawnPMIx_rrcomm.Po
 	-rm -f ./$(DEPDIR)/spawn_rrcomm.Po
 	-rm -f ./$(DEPDIR)/test_rrcomm.Po
 	-rm -f Makefile

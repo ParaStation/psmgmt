@@ -11,7 +11,8 @@ include $(top_srcdir)/common.am
 
 AM_CPPFLAGS += -I$(srcdir)/../include
 
-check_PROGRAMS = poll_rrcomm test_rrcomm cornercases spawn_rrcomm
+check_PROGRAMS = poll_rrcomm test_rrcomm cornercases spawn_rrcomm	\
+	spawnPMIx_rrcomm
 
 TESTS = poll_rrcomm test_rrcomm cornercases
 
@@ -28,3 +29,6 @@ cornercases_LDADD = $(librrcomm)
 
 spawn_rrcomm_SOURCES = spawn_rrcomm.c
 spawn_rrcomm_LDADD = $(librrcomm)
+
+spawnPMIx_rrcomm_SOURCES = spawnPMIx_rrcomm.c
+spawnPMIx_rrcomm_LDADD = $(librrcomm) -lpmix
