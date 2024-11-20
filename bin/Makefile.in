@@ -100,7 +100,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-bin_PROGRAMS = mlisten$(EXEEXT) test_pse$(EXEEXT) pssh$(EXEEXT)
+bin_PROGRAMS = mlisten$(EXEEXT) pssh$(EXEEXT)
 pkglibexec_PROGRAMS = psaccounter$(EXEEXT) pspelogue$(EXEEXT)
 noinst_PROGRAMS = testacct$(EXEEXT)
 subdir = bin
@@ -138,9 +138,6 @@ pspelogue_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 pssh_SOURCES = pssh.c
 pssh_OBJECTS = pssh.$(OBJEXT)
 pssh_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-test_pse_SOURCES = test_pse.c
-test_pse_OBJECTS = test_pse.$(OBJEXT)
-test_pse_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 testacct_SOURCES = testacct.c
 testacct_OBJECTS = testacct.$(OBJEXT)
 testacct_DEPENDENCIES = $(libpsi) $(am__DEPENDENCIES_1)
@@ -162,7 +159,7 @@ am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/mlisten.Po \
 	./$(DEPDIR)/psaccounter-psaccounter.Po \
 	./$(DEPDIR)/pspelogue-pspelogue.Po ./$(DEPDIR)/pssh.Po \
-	./$(DEPDIR)/test_pse.Po ./$(DEPDIR)/testacct.Po
+	./$(DEPDIR)/testacct.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -182,10 +179,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = mlisten.c psaccounter.c pspelogue.c pssh.c test_pse.c \
-	testacct.c
-DIST_SOURCES = mlisten.c psaccounter.c pspelogue.c pssh.c test_pse.c \
-	testacct.c
+SOURCES = mlisten.c psaccounter.c pspelogue.c pssh.c testacct.c
+DIST_SOURCES = mlisten.c psaccounter.c pspelogue.c pssh.c testacct.c
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
 	ctags-recursive dvi-recursive html-recursive info-recursive \
 	install-data-recursive install-dvi-recursive \
@@ -450,7 +445,6 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libpse = $(top_builddir)/lib/pse/libpse.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 mlisten_LDADD = $(POPT_LIBS) $(libpscommon)
-test_pse_LDADD = $(libpse) $(POPT_LIBS)
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
@@ -617,10 +611,6 @@ pssh$(EXEEXT): $(pssh_OBJECTS) $(pssh_DEPENDENCIES) $(EXTRA_pssh_DEPENDENCIES)
 	@rm -f pssh$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(pssh_OBJECTS) $(pssh_LDADD) $(LIBS)
 
-test_pse$(EXEEXT): $(test_pse_OBJECTS) $(test_pse_DEPENDENCIES) $(EXTRA_test_pse_DEPENDENCIES) 
-	@rm -f test_pse$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(test_pse_OBJECTS) $(test_pse_LDADD) $(LIBS)
-
 testacct$(EXEEXT): $(testacct_OBJECTS) $(testacct_DEPENDENCIES) $(EXTRA_testacct_DEPENDENCIES) 
 	@rm -f testacct$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(testacct_OBJECTS) $(testacct_LDADD) $(LIBS)
@@ -635,7 +625,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccounter-psaccounter.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspelogue-pspelogue.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pssh.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_pse.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testacct.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -906,7 +895,6 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/psaccounter-psaccounter.Po
 	-rm -f ./$(DEPDIR)/pspelogue-pspelogue.Po
 	-rm -f ./$(DEPDIR)/pssh.Po
-	-rm -f ./$(DEPDIR)/test_pse.Po
 	-rm -f ./$(DEPDIR)/testacct.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -958,7 +946,6 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/psaccounter-psaccounter.Po
 	-rm -f ./$(DEPDIR)/pspelogue-pspelogue.Po
 	-rm -f ./$(DEPDIR)/pssh.Po
-	-rm -f ./$(DEPDIR)/test_pse.Po
 	-rm -f ./$(DEPDIR)/testacct.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic

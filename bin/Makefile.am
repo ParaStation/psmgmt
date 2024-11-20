@@ -12,7 +12,7 @@ include $(top_srcdir)/common.am
 
 SUBDIRS = admin daemon logger startup
 
-bin_PROGRAMS = mlisten test_pse pssh
+bin_PROGRAMS = mlisten pssh
 pkglibexec_PROGRAMS = psaccounter pspelogue
 noinst_PROGRAMS = testacct
 
@@ -21,8 +21,6 @@ libpse = $(top_builddir)/lib/pse/libpse.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 
 mlisten_LDADD = $(POPT_LIBS) $(libpscommon)
-
-test_pse_LDADD = $(libpse) $(POPT_LIBS)
 
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 

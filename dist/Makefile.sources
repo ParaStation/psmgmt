@@ -106,7 +106,6 @@ bin/startup/mpiexec.c \
 bin/startup/providerloop.c \
 bin/startup/providerloop.h \
 bin/startup/spawner.c \
-bin/test_pse.c \
 bin/testacct.c \
 common.am \
 configure \
