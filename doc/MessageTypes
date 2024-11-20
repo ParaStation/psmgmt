@@ -108,10 +108,10 @@ PSP_DD_MASTER_IS		DDBufferMsg_t		4
 
 							maybe multiple messages
 
-PSP_DD_GETRESERVATION		DDBufferMsg_t		?? (see PSP_CD_GETRESERVATION)
-PSP_DD_RESERVATIONRES		??
-PSP_DD_GETSLOTS			??
-PSP_DD_SLOTSRES			??
+PSP_DD_GETRESERVATION		DDBufferMsg_t		20 (see PSP_CD_GETRESERVATION)
+PSP_DD_RESERVATIONRES		DDBufferMsg_t		12 or 8 (4 + 4 + 4 / 4 + 4)
+PSP_DD_GETSLOTS			DDBufferMsg_t		6 (see PSP_CD_GETSLOTS)
+PSP_DD_SLOTSRES			DDBufferMsg_t		6 or 8 (4 + 2 or 4 + 4)
 PSP_DD_GETNODES			DDBufferMsg_t		14 (see PSP_CD_GETNODES)
 PSP_DD_NODESRES			DDBufferMsg_t		filled by PSP_putMSgBuf()
 
@@ -124,11 +124,11 @@ PSP_DD_JOBCOMPLETE		DDTypedBufferMsg_t	fragmentation layer
 
 
 
-??? below
-PSP_CD_CLIENTCONNECT		DDInitMsg_t		10 (+12 without PEERCRED)
-PSP_CD_CLIENTESTABLISHED	DDTypedBufferMsg_t	4
-PSP_CD_CLIENTREFUSED		DDTypedBufferMsg_t	4 + 4
+PSP_CD_CLIENTCONNECT		DDInitMsg_t		4 + 4 (+ 12 without PEERCRED)
+PSP_CD_CLIENTESTABLISHED	DDTypedBufferMsg_t	9 + x (1+4+4+2 + string)
+PSP_CD_CLIENTREFUSED		DDTypedBufferMsg_t	4 (+ 4 depending on error)
 
+??? below
 PSP_CD_SETOPTION		DDOptionMsg_t		1 + 16*8 (= 129)
 PSP_CD_GETOPTION		DDOptionMsg_t		1 + 16*8 (= 129)
 
@@ -139,7 +139,7 @@ PSP_CD_INFORESPONSE		DDTypedBufferMsg_t	4 + 8 + 32 (from PSpart_encodeReq)
 							4 + (length HW name)
 							4 + 1024 (list chunks)
 
-PSP_CD_SPAWNREQUEST		@todo			@todo
+PSP_CD_SPAWNREQUEST		@todo			fragmentation layer
 PSP_CD_SPAWNSUCCESS		DDErrorMsg_t		8
 PSP_CD_SPAWNFAILED		DDErrorMsg_t		8
 PSP_CD_SPAWNFINISH		DDErrorMsg_t		8
@@ -164,8 +164,13 @@ PSP_CD_PLUGINRES		DDTypedMsg_t		4
 
 PSP_CD_REQUESTPART		DDTypeBufferMsg_t	fragmentation layer
 PSP_CD_PARTITIONRES		DDTypedMsg_t		4
-PSP_CD_GETNODES			DDBufferMsg_t		14 (4 + 4 + 4 + 2)
-PSP_CD_NODESRES			DDBufferMsg_t		4 + NODES_CHUNK*4 (= 1028)
+PSP_CD_GETRESERVATION		DDBufferMsg_t		20 (4 + 4 + 2 + 4 + 4 + 2)
+PSP_CD_RESERVATIONRES		DDBufferMsg_t		8 (4 + 4)
+PSP_CD_GETSLOTS			DDBufferMsg_t		6 (4 + 2)
+PSP_CD_SLOTSRES			DDBufferMsg_t		1028 (4 + NODES_CHUNK*4)
+PSP_CD_FINRESERVATION		DDTypeBufferMsg_t	fragmentation layer
+PSP_CD_GETNODES			?? DDBufferMsg_t		14 (4 + 4 + 4 + 2)
+PSP_CD_NODESRES			?? DDBufferMsg_t		4 + NODES_CHUNK*
 
 PSP_CD_SENDSTOP			DDMsg_t			0
 PSP_CD_SENDCONT			DDMsg_t			0
