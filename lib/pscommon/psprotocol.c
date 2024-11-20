@@ -61,8 +61,6 @@ static struct {
 
     { PSP_CD_REQUESTPART      , "PSP_CD_REQUESTPART"      },
     { PSP_CD_PARTITIONRES     , "PSP_CD_PARTITIONRES"     },
-    { PSP_CD_GETNODES         , "PSP_CD_GETNODES"         },
-    { PSP_CD_NODESRES         , "PSP_CD_NODESRES"         },
     { PSP_CD_GETRESERVATION   , "PSP_CD_GETRESERVATION"   },
     { PSP_CD_RESERVATIONRES   , "PSP_CD_RESERVATIONRES"   },
     { PSP_CD_GETSLOTS         , "PSP_CD_GETSLOTS"         },

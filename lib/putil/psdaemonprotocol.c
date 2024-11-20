@@ -47,7 +47,6 @@ static msgString_t daemonMessages[] = {
 
     { PSP_DD_CREATEPART       , "PSP_DD_CREATEPART"       },
     { PSP_DD_PROVIDEPART      , "PSP_DD_PROVIDEPART"      },
-    { PSP_DD_GETNODES         , "PSP_DD_GETNODES"         },
     { PSP_DD_GETTASKS         , "PSP_DD_GETTASKS"         },
     { PSP_DD_PROVIDETASK      , "PSP_DD_PROVIDETASK"      },
     { PSP_DD_CANCELPART       , "PSP_DD_CANCELPART"       },
@@ -60,7 +59,6 @@ static msgString_t daemonMessages[] = {
     { PSP_DD_DEAD_NODE        , "PSP_DD_DEAD_NODES"       },
     { PSP_DD_MASTER_IS        , "PSP_DD_MASTER_IS"        },
 
-    { PSP_DD_NODESRES         , "PSP_DD_NODESRES"         },
     { PSP_DD_REGISTERPART     , "PSP_DD_REGISTERPART"     },
     { PSP_DD_GETRESERVATION   , "PSP_DD_GETRESERVATION"   },
     { PSP_DD_GETSLOTS         , "PSP_DD_GETSLOTS"         },

@@ -78,8 +78,6 @@
 #define PSP_DD_RESERVATIONRES      0x0139  /**< Answer dummy GETRESERVATION */
 #define PSP_DD_GETSLOTS            0x013A  /**< Forwarded GETSLOTS msg */
 #define PSP_DD_SLOTSRES            0x013B  /**< Results of GETSLOTS msg */
-#define PSP_DD_GETNODES            0x013C  /**< Forwarded GETNODES message */
-#define PSP_DD_NODESRES            0x013D  /**< Get nodes from a partition */
 
 /** Messages for resource passing during spawn and finish */
 #define PSP_DD_RESCREATED          0x0140  /**< Reservation created with info */
