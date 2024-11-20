@@ -17,7 +17,7 @@
 #include <sys/resource.h>
 
 /**
- * A list of resource limits to be forwarded during PSI_spawn() and friends
+ * Resource limits forwarded by PSI_spawn\*() family of functions
  */
 static struct {
     int resource;    /**< resource limit as used by get/setrlimit(2) */

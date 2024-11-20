@@ -619,7 +619,7 @@ static int spawnSingleExecutable(Executable_t *exec, bool verbose)
 	    if (errors[i]) fprintf(stderr, ": %s", strerror(errors[i]));
 	    fprintf(stderr, "\n");
 	}
-	fprintf(stderr, "%s: PSI_spawn() failed.\n", __func__);
+	fprintf(stderr, "%s: PSI_spawnRsrvtn() failed\n", __func__);
     }
     free(errors);
 

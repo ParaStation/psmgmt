@@ -129,51 +129,6 @@ void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info);
 int PSI_sendSpawnReq(PStask_t *task, PSnodes_ID_t *dstnodes, uint32_t max);
 
 /**
- * @brief Spawn one or more tasks within the cluster
- *
- * Spawn @a count tasks described by the @a argc number of arguments
- * within @a argv. The nodes and ranks used will be determined via the
- * PSI_getNodes() function. The present working directory of the
- * spawned tasks will be @a wDir.
- *
- * The tasks will occupy a single hardware-thread and not support
- * multi-threaded applications. No additional constraints like
- * PART_OPT_NODEFIRST or PART_OPT_OVERBOOK or a hardware type are
- * supported.
- *
- * If an error occurred, @a errors will contain an errno describing
- * the error on the position corresponding to the relative rank of the
- * spawned process.
- *
- * Before using this function, PSI_createPartition() must be called
- * from within any process of the parallel task (which is usually the
- * root process).
- *
- * @param count Number of tasks to spawn
- *
- * @param wDir Present working directory of the spawned tasks on
- * startup. This might be an absolute or relative path. If @a wDir is
- * a relative path, the content of the PWD environment variable is
- * prepended. If @a wDir is NULL, the content of the PWD environment
- * variable is taken.
- *
- * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to actually spawn the tasks
- *
- * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the tasks
- *
- * @param errors Error-codes displaying if an error occurred while
- * spawning the corresponding tasks
- *
- * @return On success the number of tasks spawned is returned, or -1
- * if an error occurred; then errors is set appropriately
- *
- * @see PSI_createPartition() PSI_getNodes()
- */
-int PSI_spawn(int count, char *wDir, int argc, char **argv, int *errors);
-
-/**
  * @brief Spawn one or more tasks within the cluster into a reservation
  *
  * Spawn @a count tasks described by the @a argc number of arguments

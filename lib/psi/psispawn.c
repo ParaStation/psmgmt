@@ -533,59 +533,6 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
     return error ? -1 : ret;
 }
 
-int PSI_spawn(int count, char *wDir, int argc, char **argv, int *errors)
-{
-    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, count);
-    if (!errors) {
-	PSI_log(-1, "%s: unable to reports errors\n", __func__);
-	return -1;
-    }
-
-    if (count <= 0) return 0;
-
-    PStask_t *task = createSpawnTask(wDir, TG_ANY, -1 /* resID */,
-				     argc, argv, false, NULL);
-    if (!task) {
-	PSI_log(-1, "%s: unable to create helper task\n", __func__);
-	return -1;
-    }
-
-    PSnodes_ID_t *nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
-    if (!nodes) {
-	*errors = ENOMEM;
-	PStask_delete(task);
-	return -1;
-    }
-
-    int total = 0;
-    while (count > 0) {
-	int chunk = (count > NODES_CHUNK) ? NODES_CHUNK : count;
-	int rank = PSI_getNodes(chunk, 0/*hwType*/, 1/*tpp*/, 0/*options*/, nodes);
-	if (rank < 0) {
-	    errors[total] = ENXIO;
-	    total = -1;
-	    break;
-	}
-
-	PSI_log(PSI_LOG_SPAWN, "%s: spawn to:", __func__);
-	for (int i = 0; i < chunk; i++) PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
-	PSI_log(PSI_LOG_SPAWN, "\n");
-	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
-
-	int ret = doSpawn(chunk, rank, nodes, task, errors + total, NULL, true);
-	if (ret != chunk) {
-	    total = -1;
-	    break;
-	}
-
-	count -= chunk;
-	total += chunk;
-    }
-    free(nodes);
-    PStask_delete(task);
-    return total;
-}
-
 int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 		    int argc, char **argv, bool strictArgv, env_t env,
 		    int *errors)

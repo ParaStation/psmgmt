@@ -164,15 +164,14 @@ void PSI_LL(void);
 void PSI_SGE(void);
 
 /**
- * @brief Resolve hardware-type for PSI_getNodes(),
- * PSI_createPartition(), PSE_setHWType(), etc.
+ * @brief Resolve hardware-type for @ref PSI_createPartition(), @ref
+ * PSE_setHWType(), etc.
  *
  * Resolve the the hardware-types provided within @a hwList and create
  * the corresponding hardware-type @a hwType to be used within
  * e.g. PSE_setHWType() in order to influence creating of partitions
- * via PSE_getPartition(), PSI_getNodes(), or
- * PSI_createPartition(). @a hwType is a bit-field using
- * INFO_request_hwindex() as the index.
+ * via PSE_getPartition() or PSI_createPartition(). @a hwType is a
+ * bit-field using INFO_request_hwindex() as the index.
  *
  * If one ore more of the hardware-types passed to this function are
  * unknown, the default hardware-type is set to the remaining ones
@@ -191,7 +190,7 @@ void PSI_SGE(void);
  * returned. Or 0, if all hardware-types are known. The returned
  * hardware-type @a hwType is set to the known ones in any case.
  *
- * @see PSE_setHWType(), PSI_createPartition(), PSI_getNodes()
+ * @see PSE_setHWType(), PSI_createPartition()
  */
 int PSI_resolveHWList(char **hwList, uint32_t *hwType);
 
@@ -302,41 +301,6 @@ int PSI_resolveHWList(char **hwList, uint32_t *hwType);
  * success; or -1 if an error occurred
  */
 int PSI_createPartition(unsigned int size, uint32_t hwType);
-
-/**
- * @brief Get nodes to spawn processes to.
- *
- * Get @a num nodes supporting the hardware-types @a hwType and
- * providing @a tpp hardware threads under special constraints that
- * might be given in @a options in order to spawn processes to these
- * nodes and store their ParaStation IDs to @a nodes. Nodes may only
- * be requested in chunks of @ref NODES_CHUNK each. If more nodes are
- * requested, an error is returned. Furthermore the rank of the first
- * process to spawn is returned.
- *
- * @param num The number of nodes requested.
- *
- * @param hwType Hardware-types to be supported by the selected
- * nodes. This bit-field shall be prepared using
- * PSI_resolveHWList(). If this is 0, any node will be accepted from
- * the hardware-type point of view.
- *
- * @param tpp Number of threads allowed for these processes. This
- * corresponds to the number of hardware-threads reserved on the
- * specific node.
- *
- * @param options Additional constraints like PART_OPT_NODEFIRST or
- * PART_OPT_OVERBOOK that will be used to get the nodes.
- *
- * @param nodes An array sufficiently large to store the ParaStation
- * IDs of the requested nodes to.
- *
- * @return On success, the rank of the first process to spawn is
- * returned. All following processes will have consecutive ranks. In
- * case of an error -1 is returned.
- */
-int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
-		 PSpart_option_t options, PSnodes_ID_t *nodes);
 
 /**
  * @brief Create reservation
