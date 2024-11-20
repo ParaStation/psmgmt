@@ -39,7 +39,7 @@ int rank = -1;
 
 #define clog(fmt, ...)					\
     {							\
-	printf("(%d/%d/%d) ", rank, wSize, depth);	\
+	printf("(%d/%d(%d)) ", depth, rank, wSize);	\
 	printf(fmt __VA_OPT__(,) __VA_ARGS__);		\
     }
 
