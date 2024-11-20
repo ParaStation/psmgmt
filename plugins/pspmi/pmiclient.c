@@ -2022,6 +2022,7 @@ static bool spawnEnvFilter(const char *envent)
 	    || !strncmp(envent, "PMI_PORT=", 9)
 	    || !strncmp(envent, "PMI_FD=", 7)
 	    || !strncmp(envent, "PMI_KVS_TMP=", 12)
+	    || !strncmp(envent, "__PMI_preput_", 13)
 	    || !strncmp(envent, "OMP_NUM_THREADS=", 16)) {
 	return false;
     }

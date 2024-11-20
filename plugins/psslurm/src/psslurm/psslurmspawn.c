@@ -218,6 +218,7 @@ static bool spawnEnvFilter(const char *envStr)
     first = false;
 
     if (!strncmp(envStr, "SLURM_RLIMIT_", 13)
+	|| !strncmp(envStr, "__PMI_preput_", 13)
 	|| !strncmp(envStr, "SLURM_UMASK=", 12)
 	|| !strncmp(envStr, "PWD=", 4)
 	|| (display && !strncmp(envStr, "DISPLAY=", 8))) return false;
@@ -234,7 +235,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
 
     /* *** build environment *** */
     /* add (filtered) step environment */
-    envAppend(task->env, step->env, spawnEnvFilter);
+    envMerge(task->env, step->env, spawnEnvFilter);
 
     setSlurmConfEnvVar(task->env);
 
