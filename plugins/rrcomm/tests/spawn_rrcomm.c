@@ -57,7 +57,7 @@ static bool checkContent(char *msgBuf, PStask_ID_t xpctdJob, int32_t xpctdRank)
 {
     int32_t cntntRank, cntntWorld;
     PStask_ID_t cntntJob;
-    sscanf(msgBuf, "%d %d %d", &cntntJob, &cntntRank, &cntntWorld);
+    sscanf(msgBuf, "%ld %d %d", &cntntJob, &cntntRank, &cntntWorld);
     if (xpctdJob != cntntJob || xpctdRank != cntntRank || wSize != cntntWorld) {
 	clog("content mismatch got %s/%d/%d",
 	     PSC_printTID(cntntJob), cntntRank, cntntWorld);
@@ -120,7 +120,7 @@ static void testInsideJob(void)
     cdbg("in-job ring test\n");
 
     char sendBuf[128], recvBuf[128];
-    snprintf(sendBuf, sizeof(sendBuf), "%d %d %d", jobID, rank, wSize);
+    snprintf(sendBuf, sizeof(sendBuf), "%ld %d %d", jobID, rank, wSize);
 
     // right with compatibility: RRC_send() -> RRC_recv()
     if (verbose) cdbg("test 1\n");
@@ -219,7 +219,7 @@ static void contactAncestor(PStask_ID_t ancestor)
     int32_t cntndRank = TWISTED_PINGPONG ? (rank + wSize - 2) % wSize : rank;
 
     char buf[128];
-    snprintf(buf, sizeof(buf), "%d %d %d", RRC_getJobID(), rank, wSize);
+    snprintf(buf, sizeof(buf), "%ld %d %d", RRC_getJobID(), rank, wSize);
 
     /* send message of next remote rank */
     RRC_sendX(ancestor, destRank, buf, strlen(buf) + 1);
@@ -272,7 +272,7 @@ int main( int argc, char *argv[] )
     char rootJobStr[64];
     if (parent_comm == MPI_COMM_NULL) {
 	/* root parent */
-	snprintf(rootJobStr, sizeof(rootJobStr), "%d", RRC_getJobID());
+	snprintf(rootJobStr, sizeof(rootJobStr), "%ld", RRC_getJobID());
     } else {
 	if (argc < 4) {
 	    clog("no root/parent job\n");
@@ -289,7 +289,7 @@ int main( int argc, char *argv[] )
 	char newDepth[16];
 	snprintf(newDepth, sizeof(newDepth), "%d", depth - 1);
 	char parentJobStr[64];
-	snprintf(parentJobStr, sizeof(parentJobStr), "%d", RRC_getJobID());
+	snprintf(parentJobStr, sizeof(parentJobStr), "%ld", RRC_getJobID());
 
 	char *cmds[N_EX];
 	for (int i = 0; i < N_EX; i++) cmds[i] = argv[0];
@@ -332,7 +332,7 @@ int main( int argc, char *argv[] )
 
 	// non root job: contact parent job
 	PStask_ID_t parentJobID;
-	sscanf(argv[3], "%d", &parentJobID);
+	sscanf(argv[3], "%ld", &parentJobID);
 	contactAncestor(parentJobID);
     } else {
 	// root job: only wait for message from children
@@ -345,7 +345,7 @@ int main( int argc, char *argv[] )
 	for (int d = 0; d < depth; d++) handleDescendant();
     } else {
 	PStask_ID_t rootJobID;
-	sscanf(argv[2], "%d", &rootJobID);
+	sscanf(argv[2], "%ld", &rootJobID);
 	contactAncestor(rootJobID);
 	MPI_Comm_disconnect(&parent_comm);
     }
