@@ -1999,8 +1999,8 @@ static bool msg_CREATEPART(DDTypedBufferMsg_t *inmsg)
  * expected to have a fixed size throughout the message.
  *
  * This function is a helper in order to handle data received within
- * PSP_DD_PROVIDEPART, PSP_DD_PROVIDETASK, or PSP_DD_REGISTERPART
- * messages.
+ * PSP_DD_PROVIDEPART, PSP_DD_PROVIDETASK, PSP_DD_REGISTERPART, or
+ * PSP_DD_SLOTSRES messages.
  *
  * @param data Data buffer containing slots to add to the slot-list
  *
@@ -4438,20 +4438,17 @@ void PSIDpart_cleanupRes(PStask_t *task)
  */
 static bool msg_GETSLOTS(DDBufferMsg_t *inmsg)
 {
-    DDBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_DD_SLOTSRES,
-	    .dest = inmsg->header.sender,
-	    .sender = PSC_getMyTID(),
-	    .len = 0 }, // to be adjusted in first PSP_put*()
-	.buf = { 0 } };
-    int32_t rank, eno = 0;
-
     PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 	inmsg->header.dest : inmsg->header.sender;
+
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_DD_SLOTSRES, 0);
+    setFragDest(&msg, inmsg->header.sender);
+
+    int32_t eno = 0;
     PStask_t *task = PStasklist_find(&managedTasks, target);
     if (!task) {
-	PSID_flog("task %s not found\n", PSC_printTID(target));
+	PSID_flog("no task %s\n", PSC_printTID(target));
 	eno = EACCES;
 	goto error;
     }
@@ -4500,11 +4497,16 @@ static bool msg_GETSLOTS(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    rank = res->rankOffset + res->firstRank + res->nextSlot;
-    PSP_putMsgBuf(&msg, "rank", &rank, sizeof(rank));
-    PSP_putMsgBuf(&msg, "num", &num, sizeof(num));
+    int32_t rank = res->rankOffset + res->firstRank + res->nextSlot;
+    addInt32ToMsg(rank, &msg);
+    addUint16ToMsg(num, &msg);
 
-    sendSlots(res->slots + res->nextSlot, num, &msg);
+    addSlotsToMsg(res->slots + res->nextSlot, num, &msg);
+
+    if (sendFragMsg(&msg) == -1) {
+	PSID_flog("sendFragMsg() failed\n");
+	return true;
+    }
 
     task->activeChild += num;
     res->nextSlot += num;
@@ -4512,13 +4514,101 @@ static bool msg_GETSLOTS(DDBufferMsg_t *inmsg)
     return true;
 
 error:
-    msg.header.type = PSP_CD_SLOTSRES;
-    rank = -1;
-    PSP_putMsgBuf(&msg, "error", &rank, sizeof(rank));
-    PSP_putMsgBuf(&msg, "eno", &eno, sizeof(eno));
+    addInt32ToMsg(-1, &msg);
+    addInt32ToMsg(eno, &msg);
 
-    sendMsg(&msg);
+    if (sendFragMsg(&msg) == -1) PSID_flog("sendFragMsg() on error failed\n");
     return true;
+}
+
+/**
+ * @brief Handle slots received from reservation
+ *
+ * Finally handle the collected fragments of type PSP_DD_SLOTSRES.
+ * These kind of messages are sent by the daemon handling a
+ * reservation in order to provide actual slots from this
+ * reservation. These slots will allow a client to spawn processes
+ * into them.
+ *
+ * The message will be sent to the requesting client's psid. While the
+ * slots are fully stored in the client's task structure's @ref
+ * spawnNodes element in order to track still unused resources; an
+ * excerpt of the slots (i.e. the node parts) are forwarded to the
+ * client itself as a message of type PSP_CD_SLOTSRES.
+ *
+ * Alternatively this message might contain an error message reporting
+ * some failure while trying to fetch slots from the reservation. In
+ * this case the PSP_CD_SLOTSRES message will report this error to the
+ * requesting client.
+ *
+ * @param msg Message header (including the type) of the last fragment
+ *
+ * @param data Data buffer presenting the actual PSP_DD_SLOTSRES
+ *
+ * @return No return value
+ */
+static void handleSlotsResult(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(msg->header.dest));
+
+    PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
+    if (!task) {
+	PSID_flog("no task %s\n", PSC_printTID(msg->header.dest));
+	return;
+    }
+
+    int32_t rank, eno = 0;
+    getInt32(data, &rank);
+
+    /* already forward rank, even in case of error */
+    DDBufferMsg_t answer = {
+	.header = {
+	    .type = PSP_CD_SLOTSRES,
+	    .dest = msg->header.dest,
+	    .sender = msg->header.sender,
+	    .len = 0, }
+    };
+    PSP_putMsgBuf(&answer, "rank", &rank, sizeof(rank));
+
+    if (rank == -1) {
+	/* getting the slots failed */
+	getInt32(data, &eno);
+	goto error;
+    }
+
+    uint16_t num;
+    getUint16(data, &num);
+
+    /* store assigned slots to track resources not yet consumed by spawn */
+    if (!task->spawnNodes || task->spawnNodesSize < (unsigned) rank + num) {
+	task->spawnNodes = realloc(task->spawnNodes,
+				   (rank + num) * sizeof(*task->spawnNodes));
+	for (int32_t r = task->spawnNodesSize; r < rank + num; r++) {
+	    task->spawnNodes[r].node = -1;
+	    PSCPU_clrAll(task->spawnNodes[r].CPUset);
+	}
+	task->spawnNodesSize = rank + num;
+    }
+    PSpart_slot_t *slots = task->spawnNodes + rank;
+    if (!extractSlots(data, slots, num)) {
+	PSID_flog("failed to extract slots for %s\n",
+		  PSC_printTID(msg->header.dest));
+	eno = EBADMSG;
+	goto error;
+    }
+    task->spawnNum = rank + num;
+
+    /* extract nodes into CD_SLOTSRES message */
+    for (uint16_t n = 0; n < num; n++) {
+	PSP_putMsgBuf(&answer, "node", &slots[n].node, sizeof(slots[n].node));
+    }
+
+    sendMsg(&answer);
+    return;
+
+error:
+    PSP_putMsgBuf(&answer, "eno", &eno, sizeof(eno));
+    sendMsg(&answer);
 }
 
 /**
@@ -4526,17 +4616,22 @@ error:
  *
  * Handle the message @a msg of type PSP_DD_SLOTSRES.
  *
- * This kind of message is used in order to answer a
- * PSP_CD_GETSLOTS/PSP_DD_GETSLOTS message. It contain the actual
- * slots requested that have to be stored by the daemon hosting the
- * requesting process. It will be morphed into a PSP_CD_SLOTSRES
- * message and sent to the requesting process.
+ * This kind of message is sent by the daemon handling a reservation
+ * in order to provide actual slots of the reservation to allow a
+ * client to spawn processes into these slots. The message will be
+ * handled by the requesting client's psid. An excerpt of this message
+ * (i.e. the node parts of the included slots) is sent to this client
+ * itself as a message of type PSP_CD_SLOTSRES.
+ *
+ * Handled via the fragmentation layer it might consist of multiple
+ * fragments. The full message is finally handled by @ref
+ * handleSlotsResult().
  *
  * @param msg Pointer to message to handle
  *
  * @return Always return true
  */
-static bool msg_SLOTSRES(DDBufferMsg_t *msg)
+static bool msg_SLOTSRES(DDTypedBufferMsg_t *msg)
 {
     PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(msg->header.dest));
 
@@ -4548,68 +4643,14 @@ static bool msg_SLOTSRES(DDBufferMsg_t *msg)
 
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
     if (!task) {
-	PSID_flog("task %s not found\n", PSC_printTID(msg->header.dest));
+	size_t used = 0;
+	uint16_t fragNum;
+	fetchFragHeader(msg, &used, NULL, &fragNum, NULL, NULL);
+	if (!fragNum) PSID_flog("no task %s\n", PSC_printTID(msg->header.dest));
 	return true;
     }
 
-    size_t used = 0;
-    uint32_t rank;
-    PSP_getMsgBuf(msg, &used, "rank", &rank, sizeof(rank));
-    int16_t requested, num;
-    PSP_getMsgBuf(msg, &used, "requested", &requested, sizeof(requested));
-    PSP_getMsgBuf(msg, &used, "num", &num, sizeof(num));
-
-    /* Store assigned slots */
-    if (!task->spawnNodes || task->spawnNodesSize < rank + requested) {
-	uint32_t r;
-	task->spawnNodes = realloc(task->spawnNodes, (rank + requested)
-				   * sizeof(*task->spawnNodes));
-	for (r = task->spawnNodesSize; r < rank + requested; r++) {
-	    PSCPU_clrAll(task->spawnNodes[r].CPUset);
-	}
-	task->spawnNodesSize = rank + requested;
-    }
-    if (num == requested) {
-	task->spawnNum = rank;
-    } else {
-	/* slots come in chunks */
-	if (task->spawnNum < rank)
-	    task->spawnNum = rank; /* first chunk */
-    }
-    PSpart_slot_t *slots = task->spawnNodes + task->spawnNum;
-
-    uint16_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
-    PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
-    if (nBytes > myBytes) {
-	PSID_flog("%s too many CPUs: %d > %d\n", PSC_printTID(msg->header.dest),
-		  nBytes*8, myBytes*8);
-    }
-
-    for (int16_t n = 0; n < num; n++) {
-	char cpuBuf[nBytes];
-	PSP_getMsgBuf(msg, &used, "node", &slots[n].node,sizeof(slots[n].node));
-	PSP_getMsgBuf(msg, &used, "CPUset", cpuBuf, nBytes);
-	PSCPU_clrAll(slots[n].CPUset);
-	PSCPU_inject(slots[n].CPUset, cpuBuf, nBytes);
-    }
-    task->spawnNum += num;
-
-    /* Morph msg to CD_SLOTSRES message */
-    if (task->spawnNum >= rank + requested) {
-	PSpart_slot_t *msgSlots = task->spawnNodes + rank;
-
-	msg->header.type = PSP_CD_SLOTSRES;
-	/* Keep the rank */
-	msg->header.len = DDBufferMsgOffset + sizeof(uint32_t);
-
-	for (int16_t n = 0; n < requested; n++)
-	    PSP_putMsgBuf(msg, "CPUset", &msgSlots[n].node,
-			  sizeof(msgSlots[n].node));
-    } else {
-	return true;
-    }
-
-    sendMsg(msg);
+    recvFragMsg(msg, handleSlotsResult);
     return true;
 }
 
@@ -5231,7 +5272,7 @@ static void handleSisterPart(PSpart_request_t *req, PStask_t *task)
  * re-spawning of additional processes.
  *
  * The received partitions will be stored to the destination task's
- * list of sister paritions and will be used for proper ressource
+ * list of sister paritions and will be used for proper resource
  * handling within a session. Major users of psidsession are RRComm
  * and pspmix.
  *
@@ -5674,7 +5715,7 @@ void initPartition(void)
     PSID_registerMsg(PSP_DD_RESERVATIONRES, msg_RESERVATIONRES);
     PSID_registerMsg(PSP_CD_GETSLOTS, msg_GETSLOTS);
     PSID_registerMsg(PSP_DD_GETSLOTS, msg_GETSLOTS);
-    PSID_registerMsg(PSP_DD_SLOTSRES, msg_SLOTSRES);
+    PSID_registerMsg(PSP_DD_SLOTSRES, (handlerFunc_t) msg_SLOTSRES);
     PSID_registerMsg(PSP_CD_SLOTSRES, frwdMsg);
     PSID_registerMsg(PSP_CD_FINRESERVATION, (handlerFunc_t) msg_FINRESERVATION);
     PSID_registerMsg(PSP_DD_RESFINALIZED, (handlerFunc_t) msg_RESFINALIZED);
