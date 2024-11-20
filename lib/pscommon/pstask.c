@@ -257,11 +257,11 @@ static bool initTask(PStask_t* task)
     INIT_LIST_HEAD(&task->resRequests);
     INIT_LIST_HEAD(&task->reservations);
     task->extraJobData = NULL;
-    task->activeChild = 0;
     task->numChild = 0;
-    task->spawnNodes = NULL;
-    task->spawnNodesSize = 0;
-    task->spawnNum = 0;
+    task->activeSlots = 0;
+    task->spawnSlots = NULL;
+    task->spawnSlotsSize = 0;
+    task->spawnSlotsNum = 0;
     task->delegate = NULL;
     task->sigChldCB = NULL;
 
@@ -321,7 +321,7 @@ static void cleanupTask(PStask_t* task)
     free(task->partition);
     free(task->partThrds);
 
-    free(task->spawnNodes);
+    free(task->spawnSlots);
 }
 
 /**
@@ -501,21 +501,21 @@ PStask_t* PStask_clone(PStask_t* task)
 
     /* do not clone reservations */
 
-    clone->activeChild = task->activeChild;
+    clone->activeSlots = task->activeSlots;
     clone->numChild = task->numChild;
-    clone->spawnNodesSize = task->spawnNodesSize;
-    if (clone->spawnNodesSize) {
-	clone->spawnNodes = malloc(task->spawnNodesSize
-				   * sizeof(*task->spawnNodes));
-	if (!clone->spawnNodes) {
+    clone->spawnSlotsSize = task->spawnSlotsSize;
+    if (clone->spawnSlotsSize) {
+	clone->spawnSlots = malloc(task->spawnSlotsSize
+				   * sizeof(*task->spawnSlots));
+	if (!clone->spawnSlots) {
 	    eno = errno;
-	    PSC_fwarn(eno, "malloc(spawnNodes)");
+	    PSC_fwarn(eno, "malloc(spawnSlots)");
 	    goto error;
 	}
-	memcpy(clone->spawnNodes, task->spawnNodes,
-	       clone->spawnNodesSize * sizeof(*task->spawnNodes));
+	memcpy(clone->spawnSlots, task->spawnSlots,
+	       clone->spawnSlotsSize * sizeof(*task->spawnSlots));
     }
-    clone->spawnNum = task->spawnNum;
+    clone->spawnSlotsNum = task->spawnSlotsNum;
     clone->delegate = task->delegate;
     /* Ignore sigChldCB and info */
 

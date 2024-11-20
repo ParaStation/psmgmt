@@ -2167,7 +2167,7 @@ static void handleProvidePart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
     task->totalThreads = thrds;
     task->usedThreads = 0;
-    task->activeChild = 0;
+    task->activeSlots = 0;
     task->options = req->options;
 
 cleanupAndAnswer:
@@ -2575,7 +2575,7 @@ static bool msg_GETNODES(DDBufferMsg_t *inmsg)
 
 	PSP_putMsgBuf(&msg, "numChild", &task->numChild,sizeof(task->numChild));
 	task->numChild += num;
-	task->activeChild += num;
+	task->activeSlots += num;
 
 	PSP_putMsgBuf(&msg, "num", &shortNum, sizeof(shortNum));
 
@@ -3206,7 +3206,7 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 
     if (resDone) PSID_fdbg(PSID_LOG_PART, "reservation %#x done\n", dynRes.rid);
 
-    task->activeChild -= numSlots;
+    task->activeSlots -= numSlots;
 
     handleResRequests(delegate);
 
@@ -3220,7 +3220,7 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
  *
  * This kind of message is used as an answer to a PSP_CD_GETNODES
  * message. The daemon of the requesting client will store the answer
- * in the @ref spawnNodes member of the client's task structure.
+ * in the @ref spawnSlots member of the client's task structure.
  *
  * This is needed for transparent process-pinning.
  *
@@ -3249,22 +3249,22 @@ static bool msg_NODESRES(DDBufferMsg_t *msg)
 	if (!rqstd) rqstd = num;
 
 	/* Store assigned slots */
-	if (!task->spawnNodes || task->spawnNodesSize < nextRank+rqstd) {
-	    task->spawnNodes = realloc(task->spawnNodes, (nextRank+rqstd)
-				       * sizeof(*task->spawnNodes));
-	    for (uint32_t r = task->spawnNodesSize; r < nextRank + rqstd; r++) {
-		PSCPU_clrAll(task->spawnNodes[r].CPUset);
+	if (!task->spawnSlots || task->spawnSlotsSize < nextRank+rqstd) {
+	    task->spawnSlots = realloc(task->spawnSlots, (nextRank+rqstd)
+				       * sizeof(*task->spawnSlots));
+	    for (uint32_t r = task->spawnSlotsSize; r < nextRank + rqstd; r++) {
+		PSCPU_clrAll(task->spawnSlots[r].CPUset);
 	    }
-	    task->spawnNodesSize = nextRank+rqstd;
+	    task->spawnSlotsSize = nextRank+rqstd;
 	}
 	if (num != rqstd) {
 	    /* slots come in chunks */
-	    if (task->spawnNum < nextRank)
-		task->spawnNum = nextRank; /* first chunk */
+	    if (task->spawnSlotsNum < nextRank)
+		task->spawnSlotsNum = nextRank; /* first chunk */
 	} else {
-	    task->spawnNum = nextRank;
+	    task->spawnSlotsNum = nextRank;
 	}
-	PSpart_slot_t *slots = task->spawnNodes + task->spawnNum;
+	PSpart_slot_t *slots = task->spawnSlots + task->spawnSlotsNum;
 
 	uint16_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
 	PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
@@ -3281,11 +3281,11 @@ static bool msg_NODESRES(DDBufferMsg_t *msg)
 	    PSCPU_clrAll(slots[n].CPUset);
 	    PSCPU_inject(slots[n].CPUset, cpuBuf, nBytes);
 	}
-	task->spawnNum += num;
+	task->spawnSlotsNum += num;
 
 	/* Morph msg to CD_NODESRES message */
-	if (task->spawnNum >= nextRank+rqstd) {
-	    PSpart_slot_t *msgSlots = task->spawnNodes + nextRank;
+	if (task->spawnSlotsNum >= nextRank+rqstd) {
+	    PSpart_slot_t *msgSlots = task->spawnSlots + nextRank;
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)(msg->buf + sizeof(int32_t));
 
 	    msg->header.type = PSP_CD_NODESRES;
@@ -4508,7 +4508,7 @@ static bool msg_GETSLOTS(DDBufferMsg_t *inmsg)
 	return true;
     }
 
-    task->activeChild += num;
+    task->activeSlots += num;
     res->nextSlot += num;
 
     return true;
@@ -4532,7 +4532,7 @@ error:
  *
  * The message will be sent to the requesting client's psid. While the
  * slots are fully stored in the client's task structure's @ref
- * spawnNodes element in order to track still unused resources; an
+ * spawnSlots element in order to track still unused resources; an
  * excerpt of the slots (i.e. the node parts) are forwarded to the
  * client itself as a message of type PSP_CD_SLOTSRES.
  *
@@ -4580,23 +4580,23 @@ static void handleSlotsResult(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint16(data, &num);
 
     /* store assigned slots to track resources not yet consumed by spawn */
-    if (!task->spawnNodes || task->spawnNodesSize < (unsigned) rank + num) {
-	task->spawnNodes = realloc(task->spawnNodes,
-				   (rank + num) * sizeof(*task->spawnNodes));
-	for (int32_t r = task->spawnNodesSize; r < rank + num; r++) {
-	    task->spawnNodes[r].node = -1;
-	    PSCPU_clrAll(task->spawnNodes[r].CPUset);
+    if (!task->spawnSlots || task->spawnSlotsSize < (unsigned) rank + num) {
+	task->spawnSlots = realloc(task->spawnSlots,
+				   (rank + num) * sizeof(*task->spawnSlots));
+	for (int32_t r = task->spawnSlotsSize; r < rank + num; r++) {
+	    task->spawnSlots[r].node = -1;
+	    PSCPU_clrAll(task->spawnSlots[r].CPUset);
 	}
-	task->spawnNodesSize = rank + num;
+	task->spawnSlotsSize = rank + num;
     }
-    PSpart_slot_t *slots = task->spawnNodes + rank;
+    PSpart_slot_t *slots = task->spawnSlots + rank;
     if (!extractSlots(data, slots, num)) {
 	PSID_flog("failed to extract slots for %s\n",
 		  PSC_printTID(msg->header.dest));
 	eno = EBADMSG;
 	goto error;
     }
-    task->spawnNum = rank + num;
+    task->spawnSlotsNum = rank + num;
 
     /* extract nodes into CD_SLOTSRES message */
     for (uint16_t n = 0; n < num; n++) {
@@ -4658,7 +4658,7 @@ static bool msg_SLOTSRES(DDTypedBufferMsg_t *msg)
 
 void PSIDpart_cleanupSlots(PStask_t *task)
 {
-    if (!task || !task->spawnNodes) return;
+    if (!task || !task->spawnSlots) return;
 
     PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(task->tid));
 
@@ -4670,12 +4670,12 @@ void PSIDpart_cleanupSlots(PStask_t *task)
 	    .len = 0 },
 	.buf = {0} };
 
-    for (uint32_t r = 0; r < task->spawnNodesSize; r++) {
-	PSnodes_ID_t rankNode = task->spawnNodes[r].node;
+    for (uint32_t r = 0; r < task->spawnSlotsSize; r++) {
+	PSnodes_ID_t rankNode = task->spawnSlots[r].node;
 	uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(rankNode));
 	PSCPU_set_t rankSets[NUM_CPUSETS];
 	PSCPU_clrAll(rankSets[0]);
-	PSCPU_extract(rankSets[0], task->spawnNodes[r].CPUset, nBytes);
+	PSCPU_extract(rankSets[0], task->spawnSlots[r].CPUset, nBytes);
 
 	if (!PSCPU_any(rankSets[0], nBytes * 8)) continue;
 
@@ -4689,22 +4689,22 @@ void PSIDpart_cleanupSlots(PStask_t *task)
 	/* We don't have a reservation ID here, but collect slots anyhow */
 	for (uint16_t s=1; s < NUM_CPUSETS; s++) PSCPU_clrAll(rankSets[s]);
 
-	while (r+1 < task->spawnNodesSize
-	       && task->spawnNodes[r+1].node == rankNode) {
+	while (r+1 < task->spawnSlotsSize
+	       && task->spawnSlots[r+1].node == rankNode) {
 	    r++;
-	    if (!PSCPU_any(task->spawnNodes[r].CPUset, nBytes*8)) continue;
+	    if (!PSCPU_any(task->spawnSlots[r].CPUset, nBytes*8)) continue;
 	    numSlots++;
 	    /* check if we can use the same CPUset */
 	    uint16_t s = 0;
 	    while (s < NUM_CPUSETS
-		   && PSCPU_overlap(task->spawnNodes[r].CPUset,
+		   && PSCPU_overlap(task->spawnSlots[r].CPUset,
 				    rankSets[s], 8 * nBytes)) s++;
 	    if (s == NUM_CPUSETS) {
 		/* break to send message now and re-iterate */
 		r--;
 		break;
 	    }
-	    PSCPU_addCPUs(rankSets[s], task->spawnNodes[r].CPUset);
+	    PSCPU_addCPUs(rankSets[s], task->spawnSlots[r].CPUset);
 	}
 	PSP_putMsgBuf(&relMsg, "CPUset", rankSets[0], nBytes);
 	PSP_putMsgBuf(&relMsg, "numSlots", &numSlots, sizeof(numSlots));
@@ -4725,9 +4725,9 @@ void PSIDpart_cleanupSlots(PStask_t *task)
 		       PSC_printTID(relMsg.header.dest), r);
 	}
     }
-    task->spawnNodesSize = 0;
-    free(task->spawnNodes);
-    task->spawnNodes = NULL;
+    task->spawnSlotsSize = 0;
+    free(task->spawnSlots);
+    task->spawnSlots = NULL;
 }
 
 int PSIDpart_suspSlts(PSpart_slot_t *slot, unsigned int nSlots, PStask_t *task)

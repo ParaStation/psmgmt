@@ -171,11 +171,11 @@ struct __task__ {
     list_t resRequests;            /**< List of reservation requests (FIFO) */
     list_t reservations;           /**< List of active reservations */
     env_t extraJobData;            /**< Extra data distributed with job */
-    int32_t activeChild;           /**< # of active children right now */
     int32_t numChild;              /**< Total # of children spawned over time */
-    PSpart_slot_t *spawnNodes;     /**< Nodes the task can spawn to */
-    uint32_t spawnNodesSize;       /**< Current size of @ref spawnNodes */
-    uint32_t spawnNum;             /**< Amount of content of @ref spawnNodes */
+    int32_t activeSlots;           /**< # of active slots right now */
+    PSpart_slot_t *spawnSlots;     /**< Slots the task can spawn to */
+    uint32_t spawnSlotsSize;       /**< Current size of @ref spawnSlots */
+    uint32_t spawnSlotsNum;        /**< Active content of @ref spawnSlots */
     PStask_t *delegate;            /**< Delegate holding resources */
     PStask_sigChldCB_t *sigChldCB; /**< Callback to be executed on SIGCHLD */
     list_t info;                   /**< List of extra information items */

@@ -309,7 +309,7 @@ static bool setupPartition(Step_t *step) {
     fwTask->partition = NULL;
     fwTask->options |= PART_OPT_EXACT;
     fwTask->usedThreads = 0;
-    fwTask->activeChild = 0;
+    fwTask->activeSlots = 0;
     fwTask->partitionSize = 0;
 
     fdbg(PSSLURM_LOG_PART, "Created partition for task %s: threads %u"

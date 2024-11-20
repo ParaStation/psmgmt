@@ -2062,14 +2062,14 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	}
 
 	/* keep track of resources not yet utilized to spawn tasks */
-	if (!isServiceTask(group) && ptask->spawnNodes) {
-	    if (rank + num - 1 >= ptask->spawnNum) {
+	if (!isServiceTask(group) && ptask->spawnSlots) {
+	    if (rank + num - 1 >= ptask->spawnSlotsNum) {
 		PSID_flog("ranks %d-%d out of range\n", rank, rank + num -1);
-		num = ptask->spawnNum - rank;
+		num = ptask->spawnSlotsNum - rank;
 	    }
 	    for (uint32_t r = 0; r < num; r++) {
 		/* Invalidate this entry */
-		PSCPU_clrAll(ptask->spawnNodes[rank+r].CPUset);
+		PSCPU_clrAll(ptask->spawnSlots[rank+r].CPUset);
 	    }
 	}
     }

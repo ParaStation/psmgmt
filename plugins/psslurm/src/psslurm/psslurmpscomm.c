@@ -297,7 +297,7 @@ static int handleRequestPart(void *tsk)
     task->options = task->request->options;
     task->options |= PART_OPT_EXACT;
     task->usedThreads = 0;
-    task->activeChild = 0;
+    task->activeSlots = 0;
     task->partitionSize = 0;
 
     fdbg(PSSLURM_LOG_PART, "Created partition for task %s: threads %u"
