@@ -6,6 +6,14 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.63-5:
+=================
+Bugfixes:
+ - prevent use after free while growing psid's nodelist
+Enhancements:
+ - Ensure freed list head might not get dereferenced
+
+
 Version 5.1.63-4:
 =================
 Bugfixes:

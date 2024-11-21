@@ -186,11 +186,11 @@ static inline void list_splice(struct list_head *list, struct list_head *head)
  * struct via realloc())
  *
  * @head:	new position of @struct list_head to fix.
- * @old:	old posistion of @struct list_head for reference.
+ * @old:	old position of @struct list_head for reference.
  */
-static inline void list_fix(struct list_head *head, struct list_head *old)
+static inline void list_fix(struct list_head *head, void *old)
 {
-    if (old->next == old) {
+    if (head->next == old) {
 	/* list was empty */
 	INIT_LIST_HEAD(head);
     } else {
