@@ -1,6 +1,6 @@
-How to prepare a new release:
+How to prepare a new (feature) release:
 
-1. Commit all changes.
+1. Commit/merge all changes into the master branch.
 
 2. Update the ChangeLog. Use:
 git log --pretty=format:\
@@ -20,9 +20,53 @@ git tag -a -m "Tagging <new-tag>" <new-tag>
 6. Push the newly tagged commits upstream using:
 git push --follow-tags
 
-Was before:
-git push --tags; git push
 
+====================================================
+
+The procedure is slightly different for a bugfix release:
+
+1. Create a bugfix-branch for the series of bugfix releases if this is
+   the first bugfix release. If the bugfix release is intended to sit
+   on top of the last feature release 6.x.0, the name '6.x' might be a
+   good choice. All further actions are within this branch unless
+   explicitly stated.
+
+2. Commit/merge all changes foreseen for the bugfix release to this branch
+
+3. Update the ChangeLog. Use:
+git log --pretty=format:\
+"%h | %an | %aD%n%n%B"\
+"------------------------------------------------------------------------" \
+`git describe --abbrev=0 --tags`..HEAD > log
+   in order to create the list of changes.
+
+4. Condense ChangeLog's changes into NEWS file.
+
+5. Commit these changes using the message "New version (psmgmt-6.x.y)".
+   Here <y> is the successor of the last release, i.e. 1 for the first
+   bugfix release, etc.
+
+6. Tag the new release using:
+git tag -a -m "Tagging <new-tag>" <new-tag>
+   where <new-tag> is of the form 6.x.y
+
+7. Push the newly tagged commits upstream using:
+git push --follow-tags origin 6.x
+
+8. Merge the bugfix-branch into master and push master to origin
+
+9. Manually trigger the required builds via buildbot.ccc
+   - Select the necessary build (e.g. psmgmt-slurm2405-rockylinux9-aarch64)
+   - Press the "Force build of ..." button
+   - Your name: <your email>
+   - reason: "Release psmgmt-6.x.y"
+   - Branch: master
+   - Revision: 6.x.y
+   - Press the "Start Build" button
+   - Wait for the RPMs to appear on hugo.ccc / start further builds
+
+
+====================================================
 
 
 Just for completeness here's the version used in SVN times:
