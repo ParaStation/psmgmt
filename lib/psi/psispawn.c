@@ -47,17 +47,13 @@ void PSI_setUID(uid_t uid)
 
 void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
 {
-    int new_argc = 0;
-    char **new_argv;
-    char env_name[ sizeof(ENV_NODE_RARG) + 20];
-    int cnt = 0;
-    int i;
-
     PSI_fdbg(PSI_LOG_VERB, "\n");
 
+    int cnt = 0;
     for (;;) {
-	snprintf(env_name, sizeof(env_name), ENV_NODE_RARG, cnt);
-	if (getenv(env_name)) {
+	char env[sizeof(ENV_NODE_RARG) + 20];
+	snprintf(env, sizeof(env), ENV_NODE_RARG, cnt);
+	if (getenv(env)) {
 	    cnt++;
 	} else {
 	    break;
@@ -65,17 +61,18 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
     }
 
     if (cnt) {
-	new_argc=cnt+Argc;
-	new_argv=malloc(sizeof(char*)*(new_argc+1));
+	int new_argc = cnt + Argc;
+	char **new_argv = malloc(sizeof(char*)*(new_argc + 1));
 	new_argv[new_argc]=NULL;
 
-	for (i = 0; i < cnt; i++) {
-	    snprintf(env_name, sizeof(env_name), ENV_NODE_RARG, i);
-	    new_argv[i] = getenv(env_name);
+	for (int i = 0; i < cnt; i++) {
+	    char env[sizeof(ENV_NODE_RARG) + 20];
+	    snprintf(env, sizeof(env), ENV_NODE_RARG, i);
+	    new_argv[i] = getenv(env);
 	    /* Propagate the environment */
-	    setPSIEnv(env_name, new_argv[i]);
+	    setPSIEnv(env, new_argv[i]);
 	}
-	for (i = 0; i < Argc; i++) {
+	for (int i = 0; i < Argc; i++) {
 	    new_argv[i+cnt] = Argv[i];
 	}
 	*RArgc=new_argc;
@@ -474,7 +471,7 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
     for (int i = 0; i < count && !error;) {
 	task->rank = first + i;
 	int sent = PSI_sendSpawnReq(task, &dstNodes[i], count - i);
-	if (sent < 0) return -1;
+	if (sent == -1) return -1;
 
 	i += sent;
 	thisBucket->num += sent;

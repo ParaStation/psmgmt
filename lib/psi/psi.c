@@ -518,8 +518,6 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
 
 int PSI_release(PStask_ID_t tid)
 {
-    int ret;
-
     PSI_fdbg(PSI_LOG_VERB, "%s\n", PSC_printTID(tid));
 
     DDSignalMsg_t msg = {
@@ -535,6 +533,7 @@ int PSI_release(PStask_ID_t tid)
 	return -1;
     }
 
+    int ret;
 restart:
     ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
     if (ret == -1) {
