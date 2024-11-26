@@ -87,7 +87,7 @@ static void checkOtherSettings(char *batchType)
 
 void PSI_PBS(void)
 {
-    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
+    PSI_fdbg(PSI_LOG_VERB, "\n");
 
     char *pbs_hostfile = getenv(ENV_NODE_HOSTFILE_PBS);
     if (pbs_hostfile) {
@@ -109,7 +109,7 @@ void PSI_PBS(void)
 
 void PSI_LL(void)
 {
-    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
+    PSI_fdbg(PSI_LOG_VERB, "\n");
 
     char *ll_hosts = getenv(ENV_NODE_HOSTS_LL);
     if (ll_hosts) {
@@ -132,7 +132,7 @@ void PSI_LL(void)
 
 void PSI_SGE(void)
 {
-    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
+    PSI_fdbg(PSI_LOG_VERB, "\n");
 
     char *sge_pefile = getenv(ENV_NODE_PEFILE_SGE);
     if (sge_pefile) {
@@ -232,7 +232,7 @@ typedef struct {
  */
 static bool addNode(PSnodes_ID_t node, nodelist_t *nl)
 {
-    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
+    PSI_fdbg(PSI_LOG_VERB, "node %d)\n", node);
 
     if (nl->used == nl->size) {
 	void *old = nl->nodes;
@@ -439,7 +439,7 @@ static int nodelistFromHostFile(char *fileName, nodelist_t *nodelist)
 		pos--;
 	    }
 	    if (!strcmp(lastline, line)) {
-		PSI_log(PSI_LOG_PART, "%s: '%s' discarded\n", __func__, line);
+		PSI_fdbg(PSI_LOG_PART, "'%s' discarded\n", line);
 		continue;
 	    } else {
 		strcpy(lastline, line);
@@ -549,7 +549,7 @@ ERROR:
  */
 static nodelist_t *getNodelist(void)
 {
-    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
+    PSI_fdbg(PSI_LOG_VERB, "\n");
 
     if (getenv(ENV_PSID_BATCH)) return NULL;
 
@@ -845,7 +845,7 @@ int PSI_resolveHWList(char **hwList, uint32_t *hwType)
 
 int PSI_createPartition(uint32_t size, uint32_t hwType)
 {
-    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
+    PSI_fdbg(PSI_LOG_VERB, "\n");
 
     if (!size) {
 	PSI_flog("size %d too small\n", size);
@@ -873,10 +873,10 @@ int PSI_createPartition(uint32_t size, uint32_t hwType)
 
     request->tpp = getTPPEnv();
 
-    PSI_log(PSI_LOG_PART,
-	    "%s: size %d tpp %d hwType %#x sort %#x options %#x priority %d\n",
-	    __func__, request->size, request->tpp, request->hwType,
-	    request->sort, request->options, request->priority);
+    PSI_fdbg(PSI_LOG_PART,
+	     "size %d tpp %d hwType %#x sort %#x options %#x priority %d\n",
+	     request->size, request->tpp, request->hwType,
+	     request->sort, request->options, request->priority);
 
     if (request->options & PART_OPT_FULL_LIST) {
 	if (!nl) {
@@ -978,7 +978,7 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
     PSrsrvtn_ID_t rid = 0;
     size_t used = 0;
 
-    PSI_log(PSI_LOG_PART, "%s(min %d max %d", __func__, nMin, nMax);
+    PSI_fdbg(PSI_LOG_PART, "min %d max %d", nMin, nMax);
     if (ppn) PSI_log(PSI_LOG_PART, " ppn %d", ppn);
     if (tpp != 1) PSI_log(PSI_LOG_PART, " tpp %d", tpp);
     if (hwType) PSI_log(PSI_LOG_PART, " hwType %#x", hwType);
@@ -1060,7 +1060,7 @@ recv_retry:
 
 bool PSI_finReservation(env_t env)
 {
-    PSI_log(PSI_LOG_PART, "%s()\n", __func__);
+    PSI_fdbg(PSI_LOG_PART, "\n");
 
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_CD_FINRESERVATION, -1);
@@ -1092,7 +1092,7 @@ int PSI_requestSlots(uint16_t num, PSrsrvtn_ID_t resID)
     PSP_putMsgBuf(&msg, "resID", &resID, sizeof(resID));
     PSP_putMsgBuf(&msg, "num", &num, sizeof(num));
 
-    PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, num, resID);
+    PSI_fdbg(PSI_LOG_VERB, "%d, %#x\n", num, resID);
 
     if (PSI_sendMsg(&msg) < 0) {
 	PSI_fwarn(errno, "PSI_sendMsg");

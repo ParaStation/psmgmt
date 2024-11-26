@@ -113,7 +113,7 @@ recv_retry:
 	{
 	    size_t s = msg.header.len - DDTypedBufMsgOffset;
 	    if (!buf) {
-		PSI_log(PSI_LOG_INFO, "%s: No buffer provided\n", __func__);
+		PSI_fdbg(PSI_LOG_INFO, "No buffer provided\n");
 		*size = 0;
 		break;
 	    }
@@ -128,8 +128,7 @@ recv_retry:
 	    break;
 	}
 	case PSP_INFO_UNKNOWN:
-	    PSI_log(verbose ? -1 : PSI_LOG_INFO,
-		    "%s: daemon does not know info\n", __func__);
+	    PSI_fdbg(verbose ? -1 : PSI_LOG_INFO, "daemon does not know info\n");
 	    *size = 0;
 	    break;
 	default:
@@ -138,8 +137,8 @@ recv_retry:
 	    *size = 0;
 	    ret = PSP_INFO_UNKNOWN;
 	}
-	PSI_log(PSI_LOG_INFO, "%s: got info type '%s' message\n",
-		__func__, PSP_printInfo(msg.type));
+	PSI_fdbg(PSI_LOG_INFO, "got info type '%s' message\n",
+		 PSP_printInfo(msg.type));
 	break;
     }
     case PSP_CD_ERROR:
@@ -625,8 +624,7 @@ recv_retry:
     switch (msg.header.type) {
     case PSP_CD_SETOPTION:
 	if (msg.count > num) {
-	    PSI_log(verbose ? -1 : PSI_LOG_INFO,
-		    "%s: option-buffer too small\n", __func__);
+	    PSI_fdbg(verbose ? -1 : PSI_LOG_INFO, "option-buffer too small\n");
 	    msg.count = num;
 	}
 
@@ -684,8 +682,7 @@ recv_retry:
     switch (msg.header.type) {
     case PSP_CD_SETOPTION:
 	if (msg.count > num) {
-	    PSI_log(verbose ? -1 : PSI_LOG_INFO,
-		    "%s: option-buffer too small\n", __func__);
+	    PSI_fdbg(verbose ? -1 : PSI_LOG_INFO, "option-buffer too small\n");
 	    msg.count = num;
 	}
 

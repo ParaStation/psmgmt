@@ -53,7 +53,7 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
     int cnt = 0;
     int i;
 
-    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
+    PSI_fdbg(PSI_LOG_VERB, "\n");
 
     for (;;) {
 	snprintf(env_name, sizeof(env_name), ENV_NODE_RARG, cnt);
@@ -94,7 +94,7 @@ static void *extraEnvInfo = NULL;
 
 void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info)
 {
-    PSI_log(PSI_LOG_SPAWN, "%s(%p)\n", __func__, func);
+    PSI_fdbg(PSI_LOG_SPAWN, "%p\n", func);
 
     extraEnvFunc = func;
     extraEnvInfo = info;
@@ -207,7 +207,7 @@ int PSI_sendSpawnReq(PStask_t *task, PSnodes_ID_t *dstnodes, uint32_t max)
     uint32_t num = 0;
     while (num < max && dstnodes[num] == dstnodes[0]) num++;
 
-    PSI_log(PSI_LOG_SPAWN, "%s: %d tasks to %d at rank %d\n", __func__, num,
+    PSI_fdbg(PSI_LOG_SPAWN, "%d tasks to %d at rank %d\n", num,
 	    dstnodes[0], task->rank);
 
     addUint32ToMsg(num, &msg);
@@ -536,7 +536,7 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
 int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 		    strv_t argV, bool strictArgv, env_t env, int *errors)
 {
-    PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, count, resID);
+    PSI_fdbg(PSI_LOG_VERB, "%d %#x\n", count, resID);
     if (!errors) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
 	return -1;
@@ -620,10 +620,10 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 	    break;
 	}
 
-	PSI_log(PSI_LOG_SPAWN, "%s: spawn to:", __func__);
+	PSI_fdbg(PSI_LOG_SPAWN, "spawn to:");
 	for (int i = 0; i < chunk; i++) PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
 	PSI_log(PSI_LOG_SPAWN, "\n");
-	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
+	PSI_fdbg(PSI_LOG_SPAWN, "first rank: %d\n", rank);
 
 	int ret = doSpawn(chunk, rank, nodes, task,
 			  NULL, &bucket, chunk == count);
@@ -642,7 +642,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 bool PSI_spawnAdmin(PSnodes_ID_t node, char *wDir, int argc, char **argv,
 		    bool strictArgv, unsigned int rank, int *error)
 {
-    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
+    PSI_fdbg(PSI_LOG_VERB, "node %d\n", node);
     if (!error) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
 	return false;
@@ -664,7 +664,7 @@ bool PSI_spawnAdmin(PSnodes_ID_t node, char *wDir, int argc, char **argv,
 bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
 		      int argc, char **argv, int *error, int rank)
 {
-    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
+    PSI_fdbg(PSI_LOG_VERB, "node %d\n", node);
     if (!error) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
 	return false;
@@ -701,7 +701,7 @@ int PSI_kill(PStask_ID_t tid, short signal, int async)
 	msg.answer = 1 };
     DDErrorMsg_t answer;
 
-    PSI_log(PSI_LOG_VERB, "%s(%s, %d)\n", __func__, PSC_printTID(tid), signal);
+    PSI_fdbg(PSI_LOG_VERB, "%s  %d\n", PSC_printTID(tid), signal);
 
     if (PSI_sendMsg(&msg) == -1) {
 	PSI_fwarn(errno, "PSI_sendMsg");

@@ -57,16 +57,14 @@ static int daemonSock = -1;
  */
 static int daemonSocket(char *sName)
 {
-    int sock;
-    struct sockaddr_un sa;
+    PSI_fdbg(PSI_LOG_VERB, "%s\n", sName);
 
-    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, sName);
-
-    sock = socket(PF_UNIX, SOCK_STREAM, 0);
+    int sock = socket(PF_UNIX, SOCK_STREAM, 0);
     if (sock < 0) {
 	return -1;
     }
 
+    struct sockaddr_un sa;
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
     if (sName[0] == '\0') {
@@ -111,7 +109,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 {
     int retryCount = 0;
 
-    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PStask_printGrp(taskGroup));
+    PSI_fdbg(PSI_LOG_VERB, "%s\n", PStask_printGrp(taskGroup));
 
  RETRY_CONNECT:
 
@@ -303,7 +301,7 @@ bool PSI_initClient(PStask_group_t taskGroup)
 	PSC_setDebugMask(debugmask);
     }
 
-    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PStask_printGrp(taskGroup));
+    PSI_fdbg(PSI_LOG_VERB, "%s\n", PStask_printGrp(taskGroup));
 
     if (daemonSock != -1) {
 	/* Already connected */
@@ -333,7 +331,7 @@ static int *protoCache = NULL;
 
 int PSI_exitClient(void)
 {
-    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
+    PSI_fdbg(PSI_LOG_VERB, "\n");
 
     if (daemonSock == -1) return 1;
 
@@ -404,15 +402,14 @@ int PSI_protocolVersion(PSnodes_ID_t id)
 ssize_t PSI_sendMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *)amsg;
-
     if (!msg) {
 	PSI_flog("no message\n");
 	errno = ENOMSG;
 	return -1;
     }
 
-    PSI_log(PSI_LOG_COMM, "%s: type %s (len=%d) to %s\n", __func__,
-	    PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
+    PSI_fdbg(PSI_LOG_COMM, "type %s (len=%d) to %s\n", PSP_printMsg(msg->type),
+	     msg->len, PSC_printTID(msg->dest));
 
     if (daemonSock == -1) {
 	PSI_flog("Not connected to ParaStation daemon\n");
@@ -474,8 +471,8 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
 	return -1;
     }
 
-    PSI_log(PSI_LOG_COMM, "%s: type %s (len=%d) from %s\n", __func__,
-	    PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->sender));
+    PSI_fdbg(PSI_LOG_COMM, "type %s (len=%d) from %s\n",
+	     PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->sender));
 
     return ret;
 }
@@ -483,7 +480,7 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
 
 int PSI_notifydead(PStask_ID_t tid, int sig)
 {
-    PSI_log(PSI_LOG_VERB, "%s(%s, %d)\n", __func__, PSC_printTID(tid), sig);
+    PSI_fdbg(PSI_LOG_VERB, "TID %s sig %d\n", PSC_printTID(tid), sig);
 
     DDSignalMsg_t msg = {
 	.header = {
@@ -523,7 +520,7 @@ int PSI_release(PStask_ID_t tid)
 {
     int ret;
 
-    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PSC_printTID(tid));
+    PSI_fdbg(PSI_LOG_VERB, "%s\n", PSC_printTID(tid));
 
     DDSignalMsg_t msg = {
 	.header = {
@@ -587,7 +584,7 @@ restart:
 
 PStask_ID_t PSI_whodied(int sig)
 {
-    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, sig);
+    PSI_fdbg(PSI_LOG_VERB, "%d\n", sig);
 
     DDSignalMsg_t msg = {
 	.header = {
@@ -612,7 +609,7 @@ PStask_ID_t PSI_whodied(int sig)
 
 int PSI_sendFinish(PStask_ID_t parenttid)
 {
-    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PSC_printTID(parenttid));
+    PSI_fdbg(PSI_LOG_VERB, "%s\n", PSC_printTID(parenttid));
 
     DDMsg_t msg = {
 	.type = PSP_CD_SPAWNFINISH,
@@ -630,7 +627,7 @@ int PSI_sendFinish(PStask_ID_t parenttid)
 
 int PSI_recvFinish(int outstanding)
 {
-    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, outstanding);
+    PSI_fdbg(PSI_LOG_VERB, "%d\n", outstanding);
 
     int error = 0;
     while (outstanding > 0) {
