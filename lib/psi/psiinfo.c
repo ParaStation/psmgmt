@@ -118,8 +118,8 @@ recv_retry:
 		break;
 	    }
 	    if (*size < s) {
-		PSI_log(-1, "%s: buffer too small (%ld/%ld/%s)\n", __func__,
-			(long)*size, (long)s, PSP_printInfo(msg.type));
+		PSI_flog("buffer too small (%ld/%ld/%s)\n", (long)*size,
+			 (long)s, PSP_printInfo(msg.type));
 		*size = 0;
 		break;
 	    }
@@ -132,8 +132,8 @@ recv_retry:
 	    *size = 0;
 	    break;
 	default:
-	    PSI_log(-1, "%s: received unexpected info type '%s'\n",
-		    __func__, PSP_printInfo(msg.type));
+	    PSI_flog("received unexpected info type %s\n",
+		     PSP_printInfo(msg.type));
 	    *size = 0;
 	    ret = PSP_INFO_UNKNOWN;
 	}
@@ -155,8 +155,8 @@ recv_retry:
 	goto recv_retry;
 	break;
     default:
-	PSI_log(-1, "%s: received unexpected msgtype '%s'\n",
-		__func__, PSP_printMsg(msg.header.type));
+	PSI_flog("received unexpected msgtype '%s'\n",
+		 PSP_printMsg(msg.header.type));
 	*size = 0;
 	ret = PSP_INFO_UNKNOWN;
     }
@@ -183,8 +183,7 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    msg.buf[sizeof(msg.buf)-1] = '\0';
 	    msg.header.len += strlen(msg.buf)+1;
 	} else {
-	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
-		    PSP_printInfo(what));
+	    PSI_flog("%s request needs parameter\n", PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
@@ -193,8 +192,7 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_TASKRANK:
 	break;
     default:
-	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
-		PSP_printInfo(what));
+	PSI_flog("don't know how to handle %s request\n", PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
@@ -225,8 +223,7 @@ int PSI_infoInt64(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_STARTTIME:
 	break;
     default:
-	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
-		PSP_printInfo(what));
+	PSI_flog("don't know how to handle %s request\n", PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
@@ -259,15 +256,13 @@ int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    *(PSnodes_ID_t*)msg.buf = *(const PSnodes_ID_t*)param;
 	    msg.header.len += sizeof(PSnodes_ID_t);
 	} else {
-	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
-		    PSP_printInfo(what));
+	    PSI_flog("%s request needs parameter\n", PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
 	break;
     default:
-	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
-		PSP_printInfo(what));
+	PSI_flog("don't know how to handle %s request\n", PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
@@ -301,8 +296,7 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    *(int32_t*)msg.buf = *(const int32_t*)param;
 	    msg.header.len += sizeof(int32_t);
 	} else {
-	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
-		    PSP_printInfo(what));
+	    PSI_flog("%s request needs parameter\n", PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
@@ -314,8 +308,7 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    *(PSnodes_ID_t*)msg.buf = *(const PSnodes_ID_t*)param;
 	    msg.header.len += sizeof(PSnodes_ID_t);
 	} else {
-	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
-		    PSP_printInfo(what));
+	    PSI_flog("%s request needs parameter\n", PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
@@ -324,8 +317,7 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	if (param) {
 	    msg.header.dest = PSC_getTID(node, *(pid_t*)param);
 	} else {
-	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
-		    PSP_printInfo(what));
+	    PSI_flog("%s request needs parameter\n", PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
@@ -337,8 +329,7 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_NODEDOWNSCRIPT:
 	break;
     default:
-	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
-		PSP_printInfo(what));
+	PSI_flog("don't know how to handle '%s' request\n", PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
@@ -371,8 +362,7 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	if (param) msg.header.dest = *(PStask_ID_t *)param;
 	break;
     default:
-	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
-		PSP_printInfo(what));
+	PSI_flog("don't know how to handle %s request\n", PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
@@ -405,15 +395,13 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    *(uint32_t*)msg.buf = *(const uint32_t*)param;
 	    msg.header.len += sizeof(uint32_t);
 	} else {
-	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
-		    PSP_printInfo(what));
+	    PSI_flog("%s request needs parameter\n", PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
 	break;
     default:
-	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
-		PSP_printInfo(what));
+	PSI_flog("don't know how to handle %s request\n", PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
@@ -461,15 +449,13 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	if (param) {
 	    PSP_putTypedMsgBuf(&msg, "resID", param, sizeof(PSrsrvtn_ID_t));
 	} else {
-	    PSI_log(-1, "%s: %s request needs a parameter\n", __func__,
-		    PSP_printInfo(what));
+	    PSI_flog("%s request needs a parameter\n", PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
 	break;
     default:
-	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
-		PSP_printInfo(what));
+	PSI_flog("don't know how to handle %s request\n", PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
@@ -519,8 +505,7 @@ int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param)
 	    *(uint32_t*)msg.buf = *(const uint32_t*)param;
 	    msg.header.len += sizeof(uint32_t);
 	} else {
-	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
-		    PSP_printInfo(what));
+	    PSI_flog("%s request needs parameter\n", PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
@@ -536,8 +521,7 @@ int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param)
 	msg.header.len += strlen(msg.buf)+1;
 	break;
     default:
-	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
-		PSP_printInfo(what));
+	PSI_flog("don't know how to handle %s request\n", PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
@@ -564,8 +548,7 @@ int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, bool verbose)
     case PSP_INFO_QUEUE_ENVS:
 	break;
     default:
-	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
-		PSP_printInfo(what));
+	PSI_flog("don't know how to handle %s request\n", PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
@@ -594,7 +577,7 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
 		   PSP_Optval_t value[], bool verbose)
 {
     if (num > DDOptionMsgMax) {
-	PSI_log(-1, "%s: too many options\n", __func__);
+	PSI_flog("too many options\n");
 	return -1;
     }
 
@@ -643,8 +626,7 @@ recv_retry:
 		 "%s: error", __func__);
 	break;
     default:
-	PSI_log(-1, "%s: unexpected msgtype '%s'\n",
-		__func__, PSP_printMsg(msg.header.type));
+	PSI_flog("unexpected msgtype '%s'\n", PSP_printMsg(msg.header.type));
     }
 
     return -1;
@@ -701,8 +683,7 @@ recv_retry:
 		 "%s: error", __func__);
 	break;
     default:
-	PSI_log(-1, "%s: unexpected msgtype '%s'\n",
-		__func__, PSP_printMsg(msg.header.type));
+	PSI_flog("unexpected msgtype %s\n", PSP_printMsg(msg.header.type));
     }
 
     return -1;

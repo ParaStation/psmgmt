@@ -180,7 +180,7 @@ static PSpart_sort_t getSortMode(void)
 	return PART_SORT_NONE;
     }
 
-    PSI_log(-1, "%s: Unknown criterium '%s'\n", __func__, env_sort);
+    PSI_flog("Unknown criterium '%s'\n", env_sort);
 
     return PART_SORT_UNKNOWN;
 }
@@ -422,7 +422,7 @@ static int nodelistFromHostFile(char *fileName, nodelist_t *nodelist)
     int unique = !!getenv(ENV_HOSTS_UNIQUE);
 
     if (!file) {
-	PSI_log(-1, "%s: cannot open file <%s>\n", __func__, fileName);
+	PSI_flog("cannot open file <%s>\n", fileName);
 	return 0;
     }
 
@@ -447,7 +447,7 @@ static int nodelistFromHostFile(char *fileName, nodelist_t *nodelist)
 	}
 
 	if (nodelistFromHostStr(line, nodelist) != 1) {
-	    PSI_log(-1, "%s: syntax error at: '%s'\n", __func__, line);
+	    PSI_flog("syntax error at: '%s'\n", line);
 	    fclose(file);
 	    return 0;
 	} else
@@ -486,7 +486,7 @@ static int nodelistFromPEFile(char *fileName, nodelist_t *nodelist)
     int total = 0;
 
     if (!file) {
-	PSI_log(-1, "%s: cannot open file <%s>\n", __func__, fileName);
+	PSI_flog("cannot open file <%s>\n", fileName);
 	return 0;
     }
 
@@ -506,14 +506,13 @@ static int nodelistFromPEFile(char *fileName, nodelist_t *nodelist)
 
 	numStr = strtok_r(NULL, delimiters, &work);
 	if (!numStr || ! *numStr) {
-	    PSI_log(-1, "%s: number of processes missing for host '%s'\n",
-		    __func__, host);
+	    PSI_flog("number of processes missing for host '%s'\n", host);
 	    goto ERROR;
 	}
 	num = strtol(numStr, &end, 0);
 	if (*end) {
-	    PSI_log(-1, "%s: failed to determine number of processes for"
-		    " host '%s' from '%s'\n", __func__, host, numStr);
+	    PSI_flog("cannot determine number of processes for host '%s'"
+		     " from '%s'\n", host, numStr);
 	    goto ERROR;
 	}
 
@@ -630,8 +629,8 @@ static uint32_t getHWEnv(void)
 	if (!err && (idx >= 0) && (idx < ((int)sizeof(hwType) * 8))) {
 	    hwType |= (uint32_t)1 << idx;
 	} else {
-	    PSI_log(-1, "%s: Unknown hardware type '%s'."
-		    " Ignore environment %s\n", __func__, hw, ENV_HW_TYPE);
+	    PSI_flog("Unknown hardware type '%s'. Ignore environment %s\n",
+		     hw, ENV_HW_TYPE);
 	    return 0;
 	}
 	hw = strtok_r(NULL, " \f\n\r\t\v", &work);
@@ -661,14 +660,13 @@ static uint16_t getTPPEnv(void)
     /* @todo Test further environments (are there further OMP_* variables?) */
 
     if (!*env) {
-	PSI_log(-1, "%s: empty PSI_TPP / OMP_NUM_THREADS\n", __func__);
+	PSI_flog("empty PSI_TPP / OMP_NUM_THREADS\n");
 	return 1;
     }
 
     tpp = strtoul(env, &end, 0);
     if (*end) {
-	PSI_log(-1, "%s: Unable to determine threads per process from '%s'\n",
-		__func__, env);
+	PSI_flog("Unable to determine threads per process from '%s'\n", env);
 	return 1;
     }
 
@@ -702,7 +700,7 @@ static bool getFullList(void *list, PSP_Info_t what, size_t itemSize)
 
     if (!*myList) *myList = malloc(listSize);
     if (!*myList) {
-	PSI_log(-1, "%s(%s): out of memory\n", __func__, PSP_printInfo(what));
+	PSI_flog("%s: out of memory\n", PSP_printInfo(what));
 	return false;
     }
 
@@ -710,7 +708,7 @@ static bool getFullList(void *list, PSP_Info_t what, size_t itemSize)
     int hosts = recv/itemSize;
 
     if (hosts != PSC_getNrOfNodes()) {
-	PSI_log(-1, "%s(%s): failed\n", __func__, PSP_printInfo(what));
+	PSI_flog("%s: failed\n", PSP_printInfo(what));
 	return false;
     }
 
@@ -986,7 +984,7 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
     PSI_log(PSI_LOG_PART, ")\n");
 
     if (!tpp) {
-	PSI_log(-1, "%s: Adapt tpp to 1\n", __func__);
+	PSI_flog("Adapt tpp to 1\n");
 	tpp = 1;
     }
 
@@ -1031,7 +1029,7 @@ recv_retry:
 		PSI_fwarn(eno, "got");
 		if (got) *got = eno;
 	    } else {
-		PSI_log(-1, "%s: unknown error\n", __func__);
+		PSI_flog("unknown error\n");
 	    }
 	}
 	break;
@@ -1044,8 +1042,8 @@ recv_retry:
 		  PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
 	break;
     default:
-	PSI_log(-1, "%s: received unexpected msgtype '%s'\n",
-		__func__, PSP_printMsg(msg.header.type));
+	PSI_flog("received unexpected msgtype '%s'\n",
+		 PSP_printMsg(msg.header.type));
     }
 
     if (rid && alarmCalled) {
@@ -1079,7 +1077,7 @@ bool PSI_finReservation(env_t env)
 int PSI_requestSlots(uint16_t num, PSrsrvtn_ID_t resID)
 {
     if (num > NODES_CHUNK) {
-	PSI_log(-1, "%s: too many slots (%d/%d)\n", __func__, num, NODES_CHUNK);
+	PSI_flog("too many slots (%d/%d)\n", num, NODES_CHUNK);
 	return -1;
     }
 
@@ -1105,9 +1103,8 @@ int PSI_requestSlots(uint16_t num, PSrsrvtn_ID_t resID)
 int PSI_extractSlots(DDBufferMsg_t *msg, uint16_t num, PSnodes_ID_t *nodes)
 {
     if (msg->header.type != PSP_CD_SLOTSRES) {
-	PSI_log(-1, "%s: wrong type %s from %s\n", __func__,
-		PSP_printMsg(msg->header.type),
-		PSC_printTID(msg->header.sender));
+	PSI_flog("wrong type %s from %s\n", PSP_printMsg(msg->header.type),
+		 PSC_printTID(msg->header.sender));
 	return -1;
     }
 
@@ -1120,8 +1117,8 @@ int PSI_extractSlots(DDBufferMsg_t *msg, uint16_t num, PSnodes_ID_t *nodes)
 	    PSI_fwarn(eno, "cannot get %d slots from %s",
 		      num, PSC_printTID(msg->header.sender));
 	} else {
-	    PSI_log(-1, "%s: cannot get %d slots from %s\n", __func__,
-		    num, PSC_printTID(msg->header.sender));
+	    PSI_flog("cannot get %d slots from %s\n",
+		     num, PSC_printTID(msg->header.sender));
 	}
     } else {
 	memcpy(nodes, msg->buf + used, num*sizeof(*nodes));

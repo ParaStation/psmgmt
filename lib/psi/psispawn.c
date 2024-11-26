@@ -139,7 +139,7 @@ static int handleAnswer(DDBufferMsg_t *msg, AnswerBucket_t *bucket)
     switch (msg->header.type) {
     case PSP_CD_SPAWNSUCCESS:
 	if (localRank < 0 || localRank >= bucket->num) {
-	    PSI_log(-1, "%s: %s from illegal rank %ld at node %d\n", __func__,
+	    PSI_flog("%s from illegal rank %ld at node %d\n",
 		    PSP_printMsg(errMsg->header.type), errMsg->request,
 		    PSC_getID(errMsg->header.sender));
 	    return -2; /* Ignore answer */
@@ -148,7 +148,7 @@ static int handleAnswer(DDBufferMsg_t *msg, AnswerBucket_t *bucket)
 	return 1;
     case PSP_CD_SPAWNFAILED:
 	if (localRank < 0 || localRank >= bucket->num) {
-	    PSI_log(-1, "%s: %s from illegal rank %ld at node %d\n", __func__,
+	    PSI_flog("%s from illegal rank %ld at node %d\n",
 		    PSP_printMsg(errMsg->header.type), errMsg->request,
 		    PSC_getID(errMsg->header.sender));
 	    return -2; /* Ignore answer */
@@ -171,8 +171,8 @@ static int handleAnswer(DDBufferMsg_t *msg, AnswerBucket_t *bucket)
 	    if (note[strlen(note)-1] == '\n') note[strlen(note)-1] = '\0';
 	    if (note[strlen(note)-1] == '\r') note[strlen(note)-1] = '\0';
 
-	    PSI_log(-1, "%s: spawn to node %d failed: \"%s\"\n",
-		    __func__, PSC_getID(errMsg->header.sender), note);
+	    PSI_flog("spawn to node %d failed: \"%s\"\n",
+		     PSC_getID(errMsg->header.sender), note);
 	} else {
 	    PSI_fwarn(errMsg->error, "spawn to node %d failed",
 		      PSC_getID(errMsg->header.sender));
@@ -181,16 +181,16 @@ static int handleAnswer(DDBufferMsg_t *msg, AnswerBucket_t *bucket)
     case PSP_CD_WHODIED:
 	;
 	DDSignalMsg_t *sigMsg = (DDSignalMsg_t *)msg;
-	PSI_log(-1, "%s: got signal %d from %s\n", __func__, sigMsg->signal,
-		PSC_printTID(sigMsg->header.sender));
+	PSI_flog("got signal %d from %s\n", sigMsg->signal,
+		 PSC_printTID(sigMsg->header.sender));
 	__attribute__((fallthrough));
     case PSP_CD_SENDSTOP:
     case PSP_CD_SENDCONT:
 	return -2; /* Ignore answer */
     default:
-	PSI_log(-1, "%s: unexpected answer %s from %s\n", __func__,
-		PSP_printMsg(msg->header.type),
-		PSC_printTID(msg->header.sender));
+	PSI_flog("unexpected answer %s from %s\n",
+		 PSP_printMsg(msg->header.type),
+		 PSC_printTID(msg->header.sender));
 	return -2; /* Ignore answer */
     }
     return 1;
@@ -223,7 +223,7 @@ int PSI_sendSpawnReq(PStask_t *task, PSnodes_ID_t *dstnodes, uint32_t max)
     }
 
     if (sendFragMsg(&msg) == -1) {
-	PSI_log(-1, "%s: send to %d failed\n", __func__,  dstnodes[0]);
+	PSI_flog("send to %d failed\n", dstnodes[0]);
 	return -1;
     }
 
@@ -277,7 +277,7 @@ static PStask_t * createSpawnTask(char *wDir, PStask_group_t taskGroup,
     /* setup task structure to store information of tasks to be spawned */
     PStask_t *task = PStask_new();
     if (!task) {
-	PSI_log(-1, "%s: cannot create task structure\n", __func__);
+	PSI_flog("cannot create task structure\n");
 	return NULL;
     }
 
@@ -538,7 +538,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 {
     PSI_fdbg(PSI_LOG_VERB, "%d %#x\n", count, resID);
     if (!errors) {
-	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	PSI_flog("unable to reports errors\n");
 	return -1;
     }
 
@@ -547,7 +547,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
     PStask_t *task = createSpawnTask(wDir, TG_ANY, resID, strvSize(argV),
 				     strvGetArray(argV), strictArgv, env);
     if (!task) {
-	PSI_log(-1, "%s: unable to create helper task\n", __func__);
+	PSI_flog("unable to create helper task\n");
 	return -1;
     }
 
@@ -604,7 +604,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 		case 1:   /* spawn success, just continue */
 		    break;
 		default:
-		    PSI_log(-1, "%s: handleAnswer() returns %d\n", __func__, r);
+		    PSI_flog("handleAnswer() returns %d\n", r);
 		}
 	    }
 	}
@@ -614,8 +614,8 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 	    bucket.first = rank;
 	}
 	if (bucket.first + bucket.num != rank) {
-	    PSI_log(-1, "%s: unexpected gap in ranks (%d/%d)\n", __func__,
-		    bucket.first + bucket.num, rank);
+	    PSI_flog("unexpected gap in ranks (%d/%d)\n",
+		     bucket.first + bucket.num, rank);
 	    error = true;
 	    break;
 	}
@@ -644,14 +644,14 @@ bool PSI_spawnAdmin(PSnodes_ID_t node, char *wDir, int argc, char **argv,
 {
     PSI_fdbg(PSI_LOG_VERB, "node %d\n", node);
     if (!error) {
-	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	PSI_flog("unable to reports errors\n");
 	return false;
     }
 
     PStask_t *task = createSpawnTask(wDir, TG_ADMINTASK, -1 /* resID */,
 				     argc, argv, strictArgv, NULL);
     if (!task) {
-	PSI_log(-1, "%s: unable to create helper task\n", __func__);
+	PSI_flog("unable to create helper task\n");
 	return false;
     }
 
@@ -666,18 +666,18 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
 {
     PSI_fdbg(PSI_LOG_VERB, "node %d\n", node);
     if (!error) {
-	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	PSI_flog("unable to reports errors\n");
 	return false;
     }
 
     if (rank >= -1) {
-	PSI_log(-1, "%s: unexpected service rank %d\n", __func__, rank);
+	PSI_flog("unexpected service rank %d\n", rank);
 	return false;
     }
 
     PStask_t *task = createSpawnTask(wDir, taskGroup, -1, argc, argv, false, NULL);
     if (!task) {
-	PSI_log(-1, "%s: unable to create helper task\n", __func__);
+	PSI_flog("unable to create helper task\n");
 	return false;
     }
 
@@ -715,8 +715,7 @@ int PSI_kill(PStask_ID_t tid, short signal, int async)
 	}
 
 	if (answer.request != tid) {
-	    PSI_log(-1, "%s: answer from wrong task (%s/",
-		    __func__, PSC_printTID(answer.request));
+	    PSI_flog("answer from wrong task (%s/", PSC_printTID(answer.request));
 	    PSI_log(-1, "%s)\n", PSC_printTID(tid));
 	    return -2;
 	}
