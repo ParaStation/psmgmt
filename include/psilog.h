@@ -112,9 +112,11 @@ void PSI_setDebugMask(int32_t mask);
  *
  * @see logger_warn()
  */
-#define PSI_warn(...) logger_warn(PSI_logger, __VA_ARGS__)
+#define PSI_warn(...) logger_warn(PSI_logger, -1, __VA_ARGS__)
 
 #define PSI_fwarn(...) logger_funcwarn(PSI_logger, __func__, -1, __VA_ARGS__)
+
+#define PSI_fdwarn(...) logger_funcwarn(PSI_logger, __func__, __VA_ARGS__)
 
 /**
  * Print a warn messages via PSI's logging facility @a PSI_logger and exit

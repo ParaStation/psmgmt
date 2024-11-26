@@ -143,9 +143,9 @@ recv_retry:
     }
     case PSP_CD_ERROR:
     {
-	PSI_warn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
-		 "%s: error in command '%s'",
-		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
+	PSI_fdwarn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
+		   "error in command '%s'",
+		   PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
 	*size = 0;
 	ret = PSP_INFO_UNKNOWN;
 	break;
@@ -622,8 +622,8 @@ recv_retry:
 	goto recv_retry;
 	break;
     case PSP_CD_ERROR:
-	PSI_warn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
-		 "%s: error", __func__);
+	PSI_fdwarn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
+		   "error");
 	break;
     default:
 	PSI_flog("unexpected msgtype '%s'\n", PSP_printMsg(msg.header.type));
@@ -679,8 +679,8 @@ recv_retry:
 	goto recv_retry;
 	break;
     case PSP_CD_ERROR:
-	PSI_warn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
-		 "%s: error", __func__);
+	PSI_fdwarn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
+		   "error");
 	break;
     default:
 	PSI_flog("unexpected msgtype %s\n", PSP_printMsg(msg.header.type));
