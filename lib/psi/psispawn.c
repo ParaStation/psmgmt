@@ -621,8 +621,8 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 	}
 
 	PSI_fdbg(PSI_LOG_SPAWN, "spawn to:");
-	for (int i = 0; i < chunk; i++) PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
-	PSI_log(PSI_LOG_SPAWN, "\n");
+	for (int i = 0; i < chunk; i++) PSI_dbg(PSI_LOG_SPAWN, " %2d", nodes[i]);
+	PSI_dbg(PSI_LOG_SPAWN, "\n");
 	PSI_fdbg(PSI_LOG_SPAWN, "first rank: %d\n", rank);
 
 	int ret = doSpawn(chunk, rank, nodes, task,

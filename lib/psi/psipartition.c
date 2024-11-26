@@ -813,7 +813,7 @@ static void alarmHandlerRes(int sig)
 	char *timeStr = ctime(&now);
 	alarmCalled = true;
 	timeStr[strlen(timeStr)-1] = '\0';
-	PSI_log(alarmCalled ? PSI_LOG_VERB : -1,
+	PSI_dbg(alarmCalled ? PSI_LOG_VERB : -1,
 		"%s -- Waiting for reservation\n", timeStr);
     } else {
 	PSI_log(-1, "Wait for reservation timed out. Exiting...\n");
@@ -977,11 +977,11 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
     size_t used = 0;
 
     PSI_fdbg(PSI_LOG_PART, "min %d max %d", nMin, nMax);
-    if (ppn) PSI_log(PSI_LOG_PART, " ppn %d", ppn);
-    if (tpp != 1) PSI_log(PSI_LOG_PART, " tpp %d", tpp);
-    if (hwType) PSI_log(PSI_LOG_PART, " hwType %#x", hwType);
-    if (options) PSI_log(PSI_LOG_PART, " options %#x", options);
-    PSI_log(PSI_LOG_PART, ")\n");
+    if (ppn) PSI_dbg(PSI_LOG_PART, " ppn %d", ppn);
+    if (tpp != 1) PSI_dbg(PSI_LOG_PART, " tpp %d", tpp);
+    if (hwType) PSI_dbg(PSI_LOG_PART, " hwType %#x", hwType);
+    if (options) PSI_dbg(PSI_LOG_PART, " options %#x", options);
+    PSI_dbg(PSI_LOG_PART, "\n");
 
     if (!tpp) {
 	PSI_flog("Adapt tpp to 1\n");
