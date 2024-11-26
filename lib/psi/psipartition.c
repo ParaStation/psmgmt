@@ -920,14 +920,14 @@ recv_retry:
     ;
     DDBufferMsg_t answer;
     if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
-	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	PSI_fwarn(errno, "PSI_recvMsg");
 	goto end;
     }
     switch (answer.header.type) {
     case PSP_CD_PARTITIONRES:
 	alarm(0);
 	if (((DDTypedMsg_t *)&answer)->type) {
-	    PSI_warn(-1, ((DDTypedMsg_t *)&answer)->type, "%s", __func__);
+	    PSI_fwarn(((DDTypedMsg_t *)&answer)->type, "got");
 	    if (batchPartition) analyzeError(request, nl);
 	    goto end;
 	}
@@ -937,8 +937,8 @@ recv_retry:
 	goto recv_retry;
 	break;
     case PSP_CD_ERROR:
-	PSI_warn(-1, ((DDErrorMsg_t*)&answer)->error, "%s: error in command %s",
-		 __func__, PSP_printMsg(((DDErrorMsg_t *)&answer)->request));
+	PSI_fwarn(((DDErrorMsg_t*)&answer)->error, "error in command %s",
+		  PSP_printMsg(((DDErrorMsg_t *)&answer)->request));
 	goto end;
 	break;
     default:
@@ -998,7 +998,7 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
     PSP_putMsgBuf(&msg, "ppn", &ppn, sizeof(ppn));
 
     if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	PSI_fwarn(errno, "PSI_sendMsg");
 	return 0;
     }
 
@@ -1013,7 +1013,7 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 
 recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
-	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	PSI_fwarn(errno, "PSI_recvMsg");
 	return 0;
     }
     alarm(0);
@@ -1028,7 +1028,7 @@ recv_retry:
 	} else {
 	    int32_t eno;
 	    if (PSP_getMsgBuf(&msg, &used, "eno", &eno, sizeof(eno))){
-		PSI_warn(-1, eno, "%s", __func__);
+		PSI_fwarn(eno, "got");
 		if (got) *got = eno;
 	    } else {
 		PSI_log(-1, "%s: unknown error\n", __func__);
@@ -1040,8 +1040,8 @@ recv_retry:
 	goto recv_retry;
 	break;
     case PSP_CD_ERROR:
-	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
-		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
+	PSI_fwarn(((DDErrorMsg_t*)&msg)->error, "error in command %s",
+		  PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
 	break;
     default:
 	PSI_log(-1, "%s: received unexpected msgtype '%s'\n",
@@ -1095,7 +1095,7 @@ int PSI_requestSlots(uint16_t num, PSrsrvtn_ID_t resID)
     PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, num, resID);
 
     if (PSI_sendMsg(&msg) < 0) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	PSI_fwarn(errno, "PSI_sendMsg");
 	return -1;
     }
 
@@ -1117,8 +1117,8 @@ int PSI_extractSlots(DDBufferMsg_t *msg, uint16_t num, PSnodes_ID_t *nodes)
     if (ret < 0) {
 	int32_t eno;
 	if (PSP_getMsgBuf(msg, &used, "eno", &eno, sizeof(eno))) {
-	    PSI_warn(-1, eno, "%s: cannot get %d slots from %s", __func__,
-		     num, PSC_printTID(msg->header.sender));
+	    PSI_fwarn(eno, "cannot get %d slots from %s",
+		      num, PSC_printTID(msg->header.sender));
 	} else {
 	    PSI_log(-1, "%s: cannot get %d slots from %s\n", __func__,
 		    num, PSC_printTID(msg->header.sender));

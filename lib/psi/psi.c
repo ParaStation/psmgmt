@@ -132,7 +132,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	daemonSock = daemonSocket(PSmasterSocketName);
     }
     if (daemonSock == -1) {
-	PSI_warn(-1, errno, "%s: failed finally", __func__);
+	PSI_fwarn(errno, "failed finally");
 	return false;
     }
 
@@ -152,7 +152,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	.group = taskGroup };
 
     if (PSI_sendMsg(&msg) == -1) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	PSI_fwarn(errno, "PSI_sendMsg");
 	return false;
     }
 
@@ -162,7 +162,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	if (!ret) {
 	    PSI_flog("unexpected message length 0\n");
 	} else {
-	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	    PSI_fwarn(errno, "PSI_recvMsg");
 	}
 
 	return false;
@@ -335,9 +335,7 @@ int PSI_exitClient(void)
 {
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
-    if (daemonSock == -1) {
-	return 1;
-    }
+    if (daemonSock == -1) return 1;
 
     /* close connection to local ParaStation daemon */
     close(daemonSock);
@@ -373,7 +371,7 @@ int PSI_protocolVersion(PSnodes_ID_t id)
 	}
 	protoCache = calloc(numNodes, sizeof(*protoCache));
 	if (!protoCache) {
-	    PSI_warn(-1, errno, "%s: calloc()", __func__);
+	    PSI_fwarn(errno, "calloc()");
 	    return -1;
 	}
     }
@@ -425,7 +423,7 @@ ssize_t PSI_sendMsg(void *amsg)
     ssize_t ret = PSCio_sendF(daemonSock, msg, msg->len);
     if (ret <= 0) {
 	if (!errno) errno = ENOTCONN;
-	PSI_warn(-1, errno, "%s(%s)", __func__, PSP_printMsg(msg->type));
+	PSI_fwarn(errno, "%s", PSP_printMsg(msg->type));
 
 	close(daemonSock);
 	daemonSock = -1;
@@ -466,7 +464,7 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
     ssize_t ret = PSCio_recvMsgSize(daemonSock, (DDBufferMsg_t *)msg, size);
     if (ret <= 0) {
 	int eno = errno ? errno : ENOTCONN;
-	PSI_warn(-1, eno, "%s: Lost connection to ParaStation daemon",__func__);
+	PSI_fwarn(eno, "Lost connection to ParaStation daemon");
 	if (eno == ENOTCONN) {
 	    PSI_flog("Possible version mismatch between daemon and library\n");
 	}
@@ -495,14 +493,14 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
 	    .len = sizeof(msg) },
 	.signal = sig };
 
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "PSI_sendMsg");
 	return -1;
     }
 
     int ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
-    if (ret < 0) {
-	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+    if (ret == -1) {
+	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     } else if (!ret) {
 	PSI_flog("PSI_recvMsg() returned 0\n");
@@ -535,16 +533,15 @@ int PSI_release(PStask_ID_t tid)
 	    .len = sizeof(msg) },
 	.signal = -1,
 	.answer = 1 };
-
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "PSI_sendMsg");
 	return -1;
     }
 
 restart:
     ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
-    if (ret<0) {
-	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+    if (ret == -1) {
+	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     } else if (!ret) {
 	PSI_flog("PSI_recvMsg() returned 0\n");
@@ -562,8 +559,7 @@ restart:
     case PSP_CD_RELEASERES:
 	if (msg.param) {
 	    if (msg.param != ESRCH || tid != PSC_getMyTID())
-		PSI_warn(-1, msg.param, "%s: releasing %s", __func__,
-			 PSC_printTID(tid));
+		PSI_fwarn(msg.param, "releasing %s", PSC_printTID(tid));
 	    errno=msg.param;
 	    ret = -1;
 	}
@@ -601,14 +597,14 @@ PStask_ID_t PSI_whodied(int sig)
 	    .len = sizeof(msg) },
 	.signal = sig };
 
-    if (PSI_sendMsg(&msg) < 0) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "PSI_sendMsg");
 	return -1;
     }
 
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
-	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
-	return(-1);
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+	PSI_fwarn(errno, "PSI_recvMsg");
+	return -1;
     }
 
     return msg.header.sender;
@@ -624,8 +620,8 @@ int PSI_sendFinish(PStask_ID_t parenttid)
 	.dest = parenttid,
 	.len = sizeof(msg) };
 
-    if (PSI_sendMsg(&msg) < 0) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "PSI_sendMsg");
 	return -1;
     }
 
@@ -634,14 +630,13 @@ int PSI_sendFinish(PStask_ID_t parenttid)
 
 int PSI_recvFinish(int outstanding)
 {
-    DDMsg_t msg;
-    int error = 0;
-
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, outstanding);
 
-    while (outstanding>0) {
-	if (PSI_recvMsg(&msg, sizeof(msg))<0) {
-	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+    int error = 0;
+    while (outstanding > 0) {
+	DDMsg_t msg;
+	if (PSI_recvMsg(&msg, sizeof(msg)) == -1) {
+	    PSI_fwarn(errno, "PSI_recvMsg");
 	    error = 1;
 	    break;
 	}
@@ -733,7 +728,7 @@ void PSI_execLogger(const char *command)
      */
     close(daemonSock);
 
-    PSI_warn(-1, errno, "%s: execv(%s)", __func__, argv[0]);
+    PSI_fwarn(errno, "execv(%s)", argv[0]);
     exit(1);
 }
 

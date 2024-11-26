@@ -174,8 +174,8 @@ static int handleAnswer(DDBufferMsg_t *msg, AnswerBucket_t *bucket)
 	    PSI_log(-1, "%s: spawn to node %d failed: \"%s\"\n",
 		    __func__, PSC_getID(errMsg->header.sender), note);
 	} else {
-	    PSI_warn(-1, errMsg->error, "%s: spawn to node %d failed",
-		     __func__, PSC_getID(errMsg->header.sender));
+	    PSI_fwarn(errMsg->error, "spawn to node %d failed",
+		      PSC_getID(errMsg->header.sender));
 	}
 	return 0;
     case PSP_CD_WHODIED:
@@ -310,21 +310,21 @@ static PStask_t * createSpawnTask(char *wDir, PStask_group_t taskGroup,
     task->group = taskGroup;
     if (PSI_infoTaskID(-1, PSP_INFO_LOGGERTID, NULL,
 		       &(task->loggertid), false)) {
-	PSI_warn(-1, errno, "%s: unable to determine logger's TID", __func__);
+	PSI_fwarn(errno, "unable to determine logger's TID");
 	goto cleanup;
     }
     task->resID = resID;
 
     char *myWD = PSC_getwd(wDir);
     if (!myWD) {
-	PSI_warn(-1, errno, "%s: unable to get working directory", __func__);
+	PSI_fwarn(errno, "unable to get working directory");
 	goto cleanup;
     }
     task->workingdir = myWD;
 
     task->argV = strvNew(NULL);
     if (!strvInitialized(task->argV)) {
-	PSI_warn(-1, errno, "%s: unable to store argument vector", __func__);
+	PSI_fwarn(errno, "unable to store argument vector");
 	goto cleanup;
     }
 
@@ -354,8 +354,8 @@ static PStask_t * createSpawnTask(char *wDir, PStask_group_t taskGroup,
     if (stat(argv[0], &statbuf) && !strictArgv) {
 	char myexec[PATH_MAX];
 	ssize_t len = readlink("/proc/self/exe", myexec, sizeof(myexec) - 1);
-	if (len < 0) {
-	    PSI_warn(-1, errno, "%s: readlink", __func__);
+	if (len == -1) {
+	    PSI_fwarn(errno, "readlink");
 	} else {
 	    myexec[len]='\0';
 	}
@@ -482,8 +482,8 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
 
 	while (PSI_availMsg() > 0 && thisBucket->expected) {
 	    DDBufferMsg_t msg;
-	    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
-		PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+		PSI_fwarn(errno, "PSI_recvMsg");
 		return -1;
 	    }
 	    int r = handleAnswer(&msg, thisBucket);
@@ -509,8 +509,8 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
     /* collect expected answers */
     while (thisBucket->expected > 0) {
 	DDBufferMsg_t msg;
-	if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
-	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+	    PSI_fwarn(errno, "PSI_recvMsg");
 	    return -1;
 	}
 	int r = handleAnswer(&msg, thisBucket);
@@ -577,8 +577,8 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 	int rank = -1;
 	while (rank < 0 && !error) {
 	    DDBufferMsg_t msg;
-	    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
-		PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+		PSI_fwarn(errno, "PSI_recvMsg");
 		error = true;
 		break;
 	    }
@@ -703,14 +703,14 @@ int PSI_kill(PStask_ID_t tid, short signal, int async)
 
     PSI_log(PSI_LOG_VERB, "%s(%s, %d)\n", __func__, PSC_printTID(tid), signal);
 
-    if (PSI_sendMsg(&msg) < 0) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "PSI_sendMsg");
 	return -1;
     }
 
     if (!async) {
-	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
-	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) == -1) {
+	    PSI_fwarn(errno, "PSI_recvMsg");
 	    return -1;
 	}
 

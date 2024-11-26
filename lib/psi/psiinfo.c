@@ -58,8 +58,8 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, bool verbose)
     PSP_Info_t ret;
 
 recv_retry:
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
-	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+	PSI_fwarn(errno, "PSI_recvMsg");
 	*size = 0;
 	return PSP_INFO_UNKNOWN;
    }
@@ -200,9 +200,8 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	return -1;
     }
 
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
-		 PSP_printInfo(what));
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "%s: PSI_sendMsg", PSP_printInfo(what));
 	return -1;
     }
 
@@ -233,9 +232,8 @@ int PSI_infoInt64(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	return -1;
     }
 
-    if (PSI_sendMsg(&msg) < 0) {
-	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
-		 PSP_printInfo(what));
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "%s: PSI_sendMsg", PSP_printInfo(what));
 	return -1;
     }
 
@@ -275,9 +273,8 @@ int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	return -1;
     }
 
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
-		 PSP_printInfo(what));
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "%s: PSI_sendMsg", PSP_printInfo(what));
 	return -1;
     }
 
@@ -347,9 +344,8 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	return -1;
     }
 
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
-		 PSP_printInfo(what));
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "%s: PSI_sendMsg", PSP_printInfo(what));
 	return -1;
     }
 
@@ -382,9 +378,8 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	return -1;
     }
 
-    if (PSI_sendMsg(&msg) < 0) {
-	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
-		 PSP_printInfo(what));
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "%s: PSI_sendMsg", PSP_printInfo(what));
 	return -1;
     }
 
@@ -424,9 +419,8 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	return -1;
     }
 
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
-		 PSP_printInfo(what));
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "%s: PSI_sendMsg", PSP_printInfo(what));
 	return -1;
     }
 
@@ -481,9 +475,8 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	return -1;
     }
 
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
-		 PSP_printInfo(what));
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "%s: PSI_sendMsg", PSP_printInfo(what));
 	return -1;
     }
 
@@ -550,9 +543,8 @@ int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param)
 	return -1;
     }
 
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
-		 PSP_printInfo(what));
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "%s: PSI_sendMsg", PSP_printInfo(what));
 	return -1;
     }
 
@@ -619,14 +611,14 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
 	msg.opt[i].option = option[i];
     }
 
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "PSI_sendMsg");
 	return -1;
     }
 
 recv_retry:
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
-	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     }
 
@@ -671,8 +663,8 @@ int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option)
 	.count = 1 };
     msg.opt[0].option = option;
 
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+    if (PSI_sendMsg(&msg) == -1) {
+	PSI_fwarn(errno, "PSI_sendMsg");
 	return -1;
     }
 
@@ -684,8 +676,8 @@ int PSI_infoOptionListNext(DDOption_t opts[], int num, bool verbose)
     DDOptionMsg_t msg;
 
 recv_retry:
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
-	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     }
 
