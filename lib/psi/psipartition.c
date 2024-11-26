@@ -72,7 +72,7 @@ static void checkOtherSettings(char *batchType)
     if (!envStr) envStr = getenv(ENV_NODE_PEFILE);
 
     if (envStr) {
-	PSI_log(-1, "Found batch system of %s flavour."
+	PSI_log("Found batch system of %s flavour."
 		" Ignoring any choices of nodes or hosts.\n",
 		batchType ? batchType : "some");
     }
@@ -752,18 +752,17 @@ static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
 
 	/* Test for down nodes */
 	if (!nStat[node]) {
-	    PSI_log(-1, "node %d is down\n", node);
+	    PSI_log("node %d is down\n", node);
 	    nStat[node] = 1; /* Only report once */
 	}
 	/* Test for overloaded nodes */
 	if (allocJobs[node]) {
-	    PSI_log(-1, "node %d has %d allocated jobs\n", node,
-		    allocJobs[node]);
+	    PSI_log("node %d has %d allocated jobs\n", node, allocJobs[node]);
 	    allocJobs[node] = 0; /* Only report once */
 	}
 	/* Test for nodes with wrong hardware */
 	if (request->hwType && !(hwStat[node] & request->hwType)) {
-	    PSI_log(-1, "node %d does not support requested hardware\n", node);
+	    PSI_log("node %d does not support requested hardware\n", node);
 	    hwStat[node] = (uint32_t) -1; /* Only report once */
 	}
 	numThreads[node]++;
@@ -799,9 +798,9 @@ static void alarmHandlerPart(int sig)
 	char *timeStr = ctime(&now);
 	alarmCalled = true;
 	timeStr[strlen(timeStr)-1] = '\0';
-	PSI_log(-1, "%s -- Waiting for partition\n", timeStr);
+	PSI_log("%s -- Waiting for partition\n", timeStr);
     } else {
-	PSI_log(-1, "Wait for partition timed out. Exiting...\n");
+	PSI_log("Wait for partition timed out. Exiting...\n");
 	exit(1);
     }
 }
@@ -816,7 +815,7 @@ static void alarmHandlerRes(int sig)
 	PSI_dbg(alarmCalled ? PSI_LOG_VERB : -1,
 		"%s -- Waiting for reservation\n", timeStr);
     } else {
-	PSI_log(-1, "Wait for reservation timed out. Exiting...\n");
+	PSI_log("Wait for reservation timed out. Exiting...\n");
 	exit(1);
     }
 }
@@ -948,7 +947,7 @@ recv_retry:
 	time_t now = time(NULL);
 	char *timeStr = ctime(&now);
 	timeStr[strlen(timeStr)-1] = '\0';
-	PSI_log(-1, "%s -- Starting now...\n", timeStr);
+	PSI_log("%s -- Starting now...\n", timeStr);
     }
 
     ret = request->size;
@@ -1050,7 +1049,7 @@ recv_retry:
 	time_t now = time(NULL);
 	char *timeStr = ctime(&now);
 	timeStr[strlen(timeStr)-1] = '\0';
-	PSI_log(-1, "%s -- Starting now...\n", timeStr);
+	PSI_log("%s -- Starting now...\n", timeStr);
     }
 
     return rid;

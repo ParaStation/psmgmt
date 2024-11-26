@@ -97,7 +97,7 @@ void PSI_setDebugMask(int32_t mask);
  *
  * @see logger_print()
  */
-#define PSI_log(...) logger_print(PSI_logger, __VA_ARGS__)
+#define PSI_log(...) logger_print(PSI_logger, -1, __VA_ARGS__)
 
 #define PSI_dbg(...) logger_print(PSI_logger, __VA_ARGS__)
 

@@ -217,7 +217,7 @@ char * PSE_checkAndSetNodeEnv(char *nodelist, char *hostlist, char *hostfile,
 	    }
 	}
 	setenv(ENV_NODE_NODES, nodelist, 1);
-	if (verbose) PSI_log(-1, "%s='%s'\n", ENV_NODE_NODES, nodelist);
+	if (verbose) PSI_log("%s='%s'\n", ENV_NODE_NODES, nodelist);
     } else if (hostlist) {
 	if (hostfile) {
 	    snprintf(msgStr, sizeof(msgStr),
@@ -237,7 +237,7 @@ char * PSE_checkAndSetNodeEnv(char *nodelist, char *hostlist, char *hostfile,
 	    return msgStr;
 	}
 	setenv(ENV_NODE_HOSTS, hostlist, 1);
-	if (verbose) PSI_log(-1, "%s='%s'\n", ENV_NODE_HOSTS, hostlist);
+	if (verbose) PSI_log("%s='%s'\n", ENV_NODE_HOSTS, hostlist);
     } else if (hostfile) {
 	if (pefile) {
 	    snprintf(msgStr, sizeof(msgStr),
@@ -252,7 +252,7 @@ char * PSE_checkAndSetNodeEnv(char *nodelist, char *hostlist, char *hostfile,
 	    return msgStr;
 	}
 	setenv(ENV_NODE_HOSTFILE, hostfile, 1);
-	if (verbose) PSI_log(-1, "%s='%s'\n", ENV_NODE_HOSTFILE, hostfile);
+	if (verbose) PSI_log("%s='%s'\n", ENV_NODE_HOSTFILE, hostfile);
     } else if (pefile) {
 	if (envStr) {
 	    snprintf(msgStr, sizeof(msgStr),
@@ -262,7 +262,7 @@ char * PSE_checkAndSetNodeEnv(char *nodelist, char *hostlist, char *hostfile,
 	    return msgStr;
 	}
 	setenv(ENV_NODE_PEFILE, pefile, 1);
-	if (verbose) PSI_log(-1, "%s='%s'\n", ENV_NODE_PEFILE, pefile);
+	if (verbose) PSI_log("%s='%s'\n", ENV_NODE_PEFILE, pefile);
     }
 
     return NULL;
@@ -292,7 +292,7 @@ char * PSE_checkAndSetSortEnv(char *sort, char *argPrefix, bool verbose)
 	    return msgStr;
 	}
 	setenv(ENV_NODE_SORT, val, 1);
-	if (verbose) PSI_log(-1, "%s set to '%s'\n", ENV_NODE_SORT, val);
+	if (verbose) PSI_log("%s set to '%s'\n", ENV_NODE_SORT, val);
     }
 
     return NULL;

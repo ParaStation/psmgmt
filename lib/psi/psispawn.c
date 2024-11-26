@@ -716,7 +716,7 @@ int PSI_kill(PStask_ID_t tid, short signal, int async)
 
 	if (answer.request != tid) {
 	    PSI_flog("answer from wrong task (%s/", PSC_printTID(answer.request));
-	    PSI_log(-1, "%s)\n", PSC_printTID(tid));
+	    PSI_log("%s)\n", PSC_printTID(tid));
 	    return -2;
 	}
 

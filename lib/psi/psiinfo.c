@@ -735,15 +735,15 @@ PSnodes_ID_t PSI_resolveNodeID(const char *host)
     PSnodes_ID_t nodeID = -1;
     int rc = PSC_traverseHostInfo(host, nodeIdVisitor, &nodeID, NULL);
     if (rc != 0) {
-	PSI_log(-1, "Unknown host '%s': %s\n", host, gai_strerror(rc));
+	PSI_log("Unknown host '%s': %s\n", host, gai_strerror(rc));
 	return -1;
     }
 
     if (nodeID < 0) {
-	PSI_log(-1, "Cannot get PS_ID for host '%s'\n", host);
+	PSI_log("Cannot get PS_ID for host '%s'\n", host);
 	return -1;
     } else if (!PSC_validNode(nodeID)) {
-	PSI_log(-1, "PS_ID %d for node '%s' out of range\n", nodeID, host);
+	PSI_log("PS_ID %d for node '%s' out of range\n", nodeID, host);
 	return -1;
     }
 
