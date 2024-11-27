@@ -290,7 +290,7 @@ int main( int argc, char *argv[] )
     int rc = PMIx_Init(&myproc, NULL, 0);
     if (rc != PMIX_SUCCESS) {
 	clog("PMIx_Init failed: %s\n", PMIx_Error_string(rc));
-	exit(0);
+	exit(-1);
     }
 
     /* setup coordinates */
@@ -301,12 +301,12 @@ int main( int argc, char *argv[] )
     char name[HOST_NAME_MAX+1];
     if (gethostname(name, sizeof(name)) != 0) {
 	clog("gethostname failed: %m\n");
-	PMIx_Abort(-1, __func__, NULL, 0);
+	PMIx_Abort(-1, argv[0], NULL, 0);
     }
 
     if (wSize % N_EX) {
 	cdbg("world size %d not multiple of N_EX %d\n", wSize, N_EX);
-	PMIx_Abort(-1, __func__, NULL, 0);
+	PMIx_Abort(-1, argv[0], NULL, 0);
     }
 
     clog("pid %d on node '%s' pinned to %s\n",
@@ -316,7 +316,7 @@ int main( int argc, char *argv[] )
     clog("RRCOMM_SOCKET_ENV '%s'\n", getenv("__RRCOMM_SOCKET"));
     if (RRC_init() < 0) {
 	clog("RRC_init() failed: %m\n");
-	PMIx_Abort(-1, __func__, NULL, 0);
+	PMIx_Abort(-1, argv[0], NULL, 0);
     }
 
     clog("RRComm version %d, jobID %s\n",
@@ -337,12 +337,12 @@ int main( int argc, char *argv[] )
 	/* some spawned process */
 	if (argc < 4) {
 	    clog("no root/parent job\n");
-	    PMIx_Abort(-1, __func__, NULL, 0);
+	    PMIx_Abort(-1, argv[0], NULL, 0);
 	}
 	snprintf(rootJobStr, sizeof(rootJobStr), "%s", argv[2]);
     } else {
 	clog("PMIx_Get parent id failed: %s\n", PMIx_Error_string(rc));
-	PMIx_Abort(-1, __func__, NULL, 0);
+	PMIx_Abort(-1, argv[0], NULL, 0);
     }
 
     /* in contrast to MPI that does a synchronization in MPI_Init() an
@@ -380,7 +380,7 @@ int main( int argc, char *argv[] )
 	char *cwd = getcwd(wDir, sizeof(wDir));
 	if (!cwd) {
 	    clog("getcwd failed: %m\n");
-	    PMIx_Abort(-1, __func__, NULL, 0);
+	    PMIx_Abort(-1, argv[0], NULL, 0);
 	}
 
 	pmix_info_t *job_info;
@@ -392,7 +392,7 @@ int main( int argc, char *argv[] )
 	rc = PMIx_Spawn(job_info, 1, app, N_EX, nspace);
 	if (rc != PMIX_SUCCESS) {
 	    clog("PMIx_Spawn failed: %s\n", PMIx_Error_string(rc));
-	    PMIx_Abort(-1, __func__, NULL, 0);
+	    PMIx_Abort(-1, argv[0], NULL, 0);
 	}
 	PMIX_APP_FREE(app, N_EX);
 	PMIX_INFO_FREE(job_info, 1);
@@ -430,7 +430,7 @@ int main( int argc, char *argv[] )
     rc = PMIx_Finalize(NULL, 0);
     if (rc != PMIX_SUCCESS) {
 	clog("PMIx_Finalize failed: %s\n", PMIx_Error_string(rc));
-	PMIx_Abort(-1, __func__, NULL, 0);
+	PMIx_Abort(-1, argv[0], NULL, 0);
     }
 
     clog("PMIx_Finalize succeeded\n");

@@ -100,8 +100,8 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 check_PROGRAMS = poll_rrcomm$(EXEEXT) test_rrcomm$(EXEEXT) \
-	cornercases$(EXEEXT) spawn_rrcomm$(EXEEXT) \
-	spawnPMIx_rrcomm$(EXEEXT)
+	cornercases$(EXEEXT) spawnPMIx_rrcomm$(EXEEXT) \
+	spawn_rrcomm$(EXEEXT)
 TESTS = poll_rrcomm$(EXEEXT) test_rrcomm$(EXEEXT) cornercases$(EXEEXT)
 subdir = plugins/rrcomm/tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4

@@ -11,8 +11,8 @@ include $(top_srcdir)/common.am
 
 AM_CPPFLAGS += -I$(srcdir)/../include
 
-check_PROGRAMS = poll_rrcomm test_rrcomm cornercases spawn_rrcomm	\
-	spawnPMIx_rrcomm
+check_PROGRAMS = poll_rrcomm test_rrcomm cornercases spawnPMIx_rrcomm	\
+	spawn_rrcomm
 
 TESTS = poll_rrcomm test_rrcomm cornercases
 
