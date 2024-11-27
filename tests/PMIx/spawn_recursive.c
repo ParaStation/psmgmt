@@ -28,6 +28,10 @@ static FILE *outfile;
     fprintf(outfile, "%d/%d(%d): " format,			\
 	    depth, myproc.rank, wSize __VA_OPT__(,) __VA_ARGS__)
 
+#define abort(status) {					\
+	logerr("abort in %s@%d\n", __func__, __LINE__);	\
+	PMIx_Abort(status, __func__, NULL, 0); }
+
 int main(int argc, char **argv)
 {
     outfile = stdout;
@@ -35,25 +39,30 @@ int main(int argc, char **argv)
     mypid = getpid();
 
     char hostname[HOST_NAME_MAX+1];
-    if (gethostname(hostname, sizeof(hostname))) exit(1);
+    if (gethostname(hostname, sizeof(hostname)) == -1) {
+	logerr("Unable to get hostname: %m\n");
+	exit(-1);
+    }
 
     char wDir[1024];
-    if (!getcwd(wDir, sizeof(wDir))) exit(1);
+    if (!getcwd(wDir, sizeof(wDir))) {
+	logerr("Unable to get current working directory: %m\n");
+	exit(-1);
+    }
 
     /* init */
     int rc = PMIx_Init(&myproc, NULL, 0);
     if (rc != PMIX_SUCCESS) {
 	logerr("PMIx_Init failed: %s\n", PMIx_Error_string(rc));
-	exit(0);
+	exit(-1);
     }
-
     log("%d running in %s on %s in ns %s\n", mypid, wDir, hostname, myproc.nspace);
-
 
     /* maybe log to some outfile */
     char ofName[512];
     sprintf(ofName, "%s-%d.out", myproc.nspace, myproc.rank);
     //outfile = fopen(ofName, "w");
+
     log("PMIx_Init succeeded\n");
 
     pmix_proc_t proc;
@@ -124,8 +133,8 @@ int main(int argc, char **argv)
 	    logerr("PMIx_Get job size for spawner %s/%d failed: %s\n",
 		     proc.nspace, proc.rank, PMIx_Error_string(rc));
 	} else {
-	    log("Spawner's nspace %s size %u\n", parent_proc.nspace,
-		  (uint32_t) val->data.uint32);
+	    log("Spawner's nspace %s size %u\n",
+		parent_proc.nspace, val->data.uint32);
 	    PMIX_VALUE_RELEASE(val);
 	}
     }
@@ -135,20 +144,22 @@ int main(int argc, char **argv)
 	/* Fill app data structure for spawning */
 	pmix_app_t *app;
 	PMIX_APP_CREATE(app, 1);
-	app[0].maxprocs = wSize;
-	if (asprintf(&app[0].cmd, "%s", argv[0]) < 0) return 1;
-	app[0].argv = (char **) malloc(3 * sizeof(char *));
-	if (asprintf(&app[0].argv[0], "%s", argv[0]) < 0) return 1;
-	if (asprintf(&app[0].argv[1], "%d", depth - 1) < 0) return 1;
-	app[0].argv[2] = NULL;
-	app[0].env = NULL;
-	app[0].ninfo = 0;
+	app->maxprocs = wSize;
+	if (asprintf(&app->cmd, "%s", argv[0]) < 0) abort(-1);
+	app->argv = (char **) malloc(3 * sizeof(*app->argv));
+	if (!app->argv) abort(-1);
+	if (asprintf(&app->argv[0], "%s", argv[0]) < 0) abort(-1);
+	if (asprintf(&app->argv[1], "%d", depth - 1) < 0) abort(-1);
+	app->argv[2] = NULL;
+	app->env = NULL;
+	app->ninfo = 0;
 
 	log("Calling PMIx_Spawn\n");
 	char nspace[PMIX_MAX_NSLEN + 1];
 	rc = PMIx_Spawn(NULL, 0, app, 1, nspace);
 	if (rc != PMIX_SUCCESS) {
 	    logerr("PMIx_Spawn failed: %s\n", PMIx_Error_string(rc));
+	    abort(-1);
 	}
 	PMIX_APP_FREE(app, 1);
 
@@ -160,8 +171,7 @@ int main(int argc, char **argv)
 	    logerr("Cannot PMIx_Get size of spawned nspace %s: %s\n", nspace,
 		   PMIx_Error_string(rc));
 	} else {
-	    log("Spawned nspace %s size %u\n", nspace,
-		  (uint32_t) val->data.uint32);
+	    log("Spawned nspace %s size %u\n", nspace, val->data.uint32);
 	    PMIX_VALUE_RELEASE(val);
 	}
 
@@ -179,7 +189,7 @@ int main(int argc, char **argv)
 	rc = PMIx_Fence(proc_sync, 2, fence_info, 2);
 	if (rc != PMIX_SUCCESS) {
 	    logerr("PMIx Fence of parent with spawned processes failed: %s\n",
-		     PMIx_Error_string(rc));
+		   PMIx_Error_string(rc));
 	}
 	PMIX_PROC_FREE(proc_sync, 2);
 	PMIX_INFO_FREE(fence_info, 2);
@@ -198,7 +208,7 @@ int main(int argc, char **argv)
     rc = PMIx_Finalize(NULL, 0);
     if (rc != PMIX_SUCCESS) {
 	logerr("PMIx_Finalize failed: %s\n", PMIx_Error_string(rc));
-	return 1;
+	abort(-1);
     }
     log("PMIx_Finalize succeeded\n");
     if (myproc.rank == 0) sleep(depth);
