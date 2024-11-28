@@ -6,6 +6,52 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  This release breaks all backward compatibility to psmgmt-5 due to  **
+**    major changes in the core protocol for the sake of support of    **
+**     PIDs with up to 31 bit (at the time Linux supports 22 bits)     **
+**                                                                     **
+**                Rolling updates will *not* work and                  **
+**                 might cause major harm to a system!                 **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 6.0.0:
+==============
+See especially remarks in 6.0.beta1 for further changes
+Bugfixes:
+ - Rework PSI_initClient() in view of (#269)
+ - MPI_Comm_spawn() must not be confused by environment
+ - Ensure PSP_DD_INHERITFAILED is actually sent
+Enhancements:
+ - Ensure psmgmt-rrcomm-devel is self-contained (#268)
+ - Describe how to create a bugfix release (#273)
+ - Take the chance to reorganize message types
+ - Take the chance to reorganize hooks
+ - Add NVIDIA GH100 [H100 SXM5 94GB] to GPUDevices
+ - Utilize fragmentation layer for PSP_DD_SLOTSRES
+ - Always initialize fragmentation in libpsi and cleanup on exit
+Additional changes:
+ - Introduce PSIDHOOK_RECEIVEPART and bump plugin API to 145
+ - Remove test_pse program and its supporting functions (#271)
+ - Replace PSP_CD_CREATEPART/NL by fragmented PSP_CD_REQUESTPART
+ - Replace PSP_DD_GETPART/NL by fragmented PSP_DD_CREATEPART
+ - Replace PSIDHOOK_CREATEPART/NL by single PSIDHOOK_REQUESTPART
+ - Replace PSP_DD_PROVIDEPART/SL by fragmented PSP_DD_PROVIDEPART
+ - Replace PSP_DD_PROVIDETASK/SL by fragmented PSP_DD_PROVIDETASK
+ - Replace PSP_DD_REGISTERPART/SL by fragmented PSP_DD_REGISTERPART
+ - Drop obsolete info types PSP_INFO_NROFNODES, PSP_INFO_RANKID, and
+   PSP_INFO_TASKSIZE
+ - Evict obsolete PSP_DD_PROVIDETASKSL and PSP_DD_REGISTERPARTSL types
+ - Evict obsolete PSP_[CD]D_GETNODES / PSP_[CD]D_NODESRES message types
+ - Add further test programs for (PMIx_)Spawn
+ - Adapt spawn_rrcomm to new size of PStask_ID_t
+ - IWYU fixes (unveiled by new version 0.23)
+
+
 Version 5.1.63-5:
 =================
 Bugfixes:

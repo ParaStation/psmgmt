@@ -1,3 +1,257 @@
+Version 6.0.0:
+==============
+------------------------------------------------------------------------
+24cc34fbe | Norbert Eicker | Wed, 27 Nov 2024 16:31:02 +0100
+
+Do not exit with 0 on failure
+------------------------------------------------------------------------
+da7698038 | Norbert Eicker | Wed, 27 Nov 2024 16:27:38 +0100
+
+Consistent exit code and improved error log
+------------------------------------------------------------------------
+f64264b09 | Norbert Eicker | Wed, 20 Nov 2024 22:31:49 +0100
+
+More readable output from spawn_rrcomm
+------------------------------------------------------------------------
+2bd40dcb5 | Norbert Eicker | Wed, 20 Nov 2024 22:29:39 +0100
+
+Add pure PMIx test for RRComm in hierarchical setups
+------------------------------------------------------------------------
+14e09218a | Norbert Eicker | Wed, 20 Nov 2024 17:26:57 +0100
+
+Add test to check for multi-level PMIx_Spawn()
+------------------------------------------------------------------------
+da0001ef3 | Norbert Eicker | Wed, 20 Nov 2024 14:45:26 +0100
+
+Update protocol documentation
+------------------------------------------------------------------------
+53edfd5c8 | Norbert Eicker | Wed, 20 Nov 2024 14:38:01 +0100
+
+Evict PSP_[CD]D_GETNODES / PSP_[CD]D_NODESRES types
+------------------------------------------------------------------------
+249f9d878 | Norbert Eicker | Wed, 20 Nov 2024 14:36:33 +0100
+
+Drop support for PSP_[CD]D_GETNODES PSP_[CD]D_NODESRES
+------------------------------------------------------------------------
+eec27c645 | Norbert Eicker | Wed, 20 Nov 2024 14:26:34 +0100
+
+Omit orphaned functions PSI_getNodes(), PSI_spawn()
+------------------------------------------------------------------------
+a651e2edc | Norbert Eicker | Wed, 20 Nov 2024 14:19:18 +0100
+
+Omit libPSE functions only used by test_pse
+
+ - Omitted functions: PSE_spawnMaster(), PSE_spawnTasks(),
+   PSE_getMasterNode(), PSE_getMasterPort()
+------------------------------------------------------------------------
+1ea89a878 | Norbert Eicker | Wed, 20 Nov 2024 13:54:57 +0100
+
+Remove test_pse program (#271)
+
+ - test_pse tested startup functionality from the early days of MPI
+   fully replaced by mpiexec in the meantime
+------------------------------------------------------------------------
+4073b29b3 | Norbert Eicker | Wed, 20 Nov 2024 22:38:28 +0100
+
+Bugfix: MPI_Comm_spawn must not be confused by environment
+------------------------------------------------------------------------
+f35527f31 | Norbert Eicker | Wed, 20 Nov 2024 04:01:56 +0100
+
+Adapt spawn_rrcomm to new size of PStask_ID_t
+------------------------------------------------------------------------
+8c4ce2cdb | Norbert Eicker | Wed, 20 Nov 2024 03:22:52 +0100
+
+Enhance debug logs in psidpartition
+------------------------------------------------------------------------
+9f8950493 | Norbert Eicker | Wed, 20 Nov 2024 01:53:54 +0100
+
+Some more protocol documentation
+------------------------------------------------------------------------
+4ee3bec69 | Norbert Eicker | Wed, 20 Nov 2024 01:46:20 +0100
+
+Rename some members of PStask_t
+------------------------------------------------------------------------
+f0d39ad07 | Norbert Eicker | Wed, 20 Nov 2024 01:41:54 +0100
+
+Drop obsolete info type PSP_INFO_TASKSIZE
+
+ - Also evict PSE_getSize() which did not work any more for some time
+   anyhow
+------------------------------------------------------------------------
+b8a7ba436 | Norbert Eicker | Wed, 20 Nov 2024 01:25:19 +0100
+
+Utilize fragmentation layer for PSP_DD_SLOTSRES
+------------------------------------------------------------------------
+306d7c7a6 | Norbert Eicker | Wed, 20 Nov 2024 00:15:47 +0100
+
+Streamlining
+------------------------------------------------------------------------
+4d57e0ac2 | Norbert Eicker | Wed, 20 Nov 2024 00:12:49 +0100
+
+Rework extractSlots()
+------------------------------------------------------------------------
+3ff4ae40b | Norbert Eicker | Tue, 19 Nov 2024 20:56:47 +0100
+
+Drop obsolete info types PSP_INFO_NROFNODES and PSP_INFO_RANKID
+
+ - Number of nodes is now transferred during client connection
+------------------------------------------------------------------------
+5333eba7d | Norbert Eicker | Fri, 15 Nov 2024 01:39:57 +0100
+
+More updates on protocol documentation
+------------------------------------------------------------------------
+566121b32 | Norbert Eicker | Fri, 15 Nov 2024 01:38:49 +0100
+
+Fix more size that become part of a message
+------------------------------------------------------------------------
+a4c1bc635 | Norbert Eicker | Fri, 15 Nov 2024 01:37:36 +0100
+
+Bugfix: Ensure PSP_DD_INHERITFAILED is actually sent
+------------------------------------------------------------------------
+3fa42229d | Norbert Eicker | Thu, 14 Nov 2024 21:41:13 +0100
+
+Start updating protocol documentation
+------------------------------------------------------------------------
+3f3e810fb | Norbert Eicker | Thu, 14 Nov 2024 21:18:41 +0100
+
+Take the chance to reorganize message types
+------------------------------------------------------------------------
+074935d3d | Norbert Eicker | Thu, 14 Nov 2024 21:07:00 +0100
+
+Evict PSP_DD_PROVIDETASKSL and PSP_DD_REGISTERPARTSL types
+------------------------------------------------------------------------
+084152e57 | Norbert Eicker | Thu, 14 Nov 2024 21:03:32 +0100
+
+No more incomplete sister partitions
+
+ - PSpart_request_t's sizeGot and sizeExpected became useless
+------------------------------------------------------------------------
+3677ffc0b | Norbert Eicker | Thu, 14 Nov 2024 21:01:23 +0100
+
+Enhance docu comments
+------------------------------------------------------------------------
+122a046eb | Norbert Eicker | Thu, 14 Nov 2024 20:59:49 +0100
+
+psidpartition's regisReq list no longer required
+------------------------------------------------------------------------
+b4b287a09 | Norbert Eicker | Thu, 14 Nov 2024 20:52:05 +0100
+
+Rework messages for partition handling
+
+ - replace PSP_DD_PROVIDETASK/SL by fragmented PSP_DD_PROVIDETASK
+ - replace PSP_DD_REGISTERPART/SL by fragmented PSP_DD_REGISTERPART
+------------------------------------------------------------------------
+6db6cdf79 | Norbert Eicker | Thu, 14 Nov 2024 12:33:11 +0100
+
+Introduce PSIDHOOK_RECEIVEPART
+
+ - bump plugin API to 145
+ - rework psgw to use the hook instead of catching messages
+------------------------------------------------------------------------
+a9da20650 | Norbert Eicker | Thu, 14 Nov 2024 12:25:42 +0100
+
+Replace PSP_DD_PROVIDEPART/SL by fragmented PSP_DD_PROVIDEPART
+
+ - this change will break psgw temporarily
+------------------------------------------------------------------------
+71b720a10 | Norbert Eicker | Thu, 14 Nov 2024 12:19:01 +0100
+
+Reorganize hooks
+------------------------------------------------------------------------
+7193d0b96 | Norbert Eicker | Thu, 14 Nov 2024 11:59:31 +0100
+
+Introduce getMem() in psserial
+
+ - Needs renaming of existing functios to avoid clashes
+------------------------------------------------------------------------
+e9929824f | Norbert Eicker | Wed, 13 Nov 2024 16:42:30 +0100
+
+Rework PSI_initClient() in view of (#269)
+------------------------------------------------------------------------
+504e8d4fc | Norbert Eicker | Wed, 13 Nov 2024 13:54:20 +0100
+
+More use of PSI_flog()
+------------------------------------------------------------------------
+7e8b83b6f | Norbert Eicker | Wed, 13 Nov 2024 13:49:33 +0100
+
+Streamlining
+------------------------------------------------------------------------
+75c7991c5 | Norbert Eicker | Wed, 13 Nov 2024 13:41:26 +0100
+
+Drop more backward compatibility in libpsi
+------------------------------------------------------------------------
+69e396451 | Norbert Eicker | Wed, 13 Nov 2024 11:01:53 +0100
+
+Fix/enhance docu comments
+------------------------------------------------------------------------
+d38a281c3 | Norbert Eicker | Wed, 13 Nov 2024 00:06:28 +0100
+
+Rework messages to request a partition
+
+ - replace PSP_CD_CREATEPART/NL by fragmented PSP_CD_REQUESTPART
+ - replace PSP_DD_GETPART/NL by fragmented PSP_DD_CREATEPART
+ - replace PSIDHOOK_CREATEPART/NL by single PSIDHOOK_REQUESTPART
+------------------------------------------------------------------------
+bcefde66a | Norbert Eicker | Tue, 12 Nov 2024 23:47:50 +0100
+
+Introduce PSpart_addToMsg() and new PSpart_decodeReq()
+------------------------------------------------------------------------
+e5b65bfb4 | Norbert Eicker | Tue, 12 Nov 2024 23:42:15 +0100
+
+Rework nodelist_t
+------------------------------------------------------------------------
+77bf71fd2 | Norbert Eicker | Tue, 12 Nov 2024 20:22:25 +0100
+
+More use of PSI_flog()
+------------------------------------------------------------------------
+26ee8809d | Norbert Eicker | Tue, 12 Nov 2024 20:03:50 +0100
+
+Prepare for rework of core protocol
+------------------------------------------------------------------------
+6e245a335 | Norbert Eicker | Tue, 12 Nov 2024 19:17:22 +0100
+
+Remove soem parameter name ambiguities in psserial
+------------------------------------------------------------------------
+9d281d5ec | Norbert Eicker | Thu, 7 Nov 2024 12:22:01 +0100
+
+Always initialize serialization in libpsi
+
+ - Also cleanup on exit
+------------------------------------------------------------------------
+a416075c0 | Norbert Eicker | Thu, 7 Nov 2024 11:22:17 +0100
+
+Introduce PSI_flog() and make some use of it
+------------------------------------------------------------------------
+039a7c537 | Norbert Eicker | Thu, 7 Nov 2024 11:19:22 +0100
+
+Booleanize PSI_initClient()
+------------------------------------------------------------------------
+bff96803f | Norbert Eicker | Tue, 26 Nov 2024 07:51:32 +0100
+
+Ensure psmgmt-rrcomm-devel is self-contained (#268)
+------------------------------------------------------------------------
+5ea81969a | Norbert Eicker | Mon, 25 Nov 2024 14:31:35 +0100
+
+Describe how to create a bugfix release (#273)
+------------------------------------------------------------------------
+3a8200b3d | Michael Rauh | Thu, 21 Nov 2024 14:25:50 +0100
+
+Merge branch '5.1.63'
+------------------------------------------------------------------------
+ca947195e | Michael Rauh | Tue, 19 Nov 2024 16:23:12 +0100
+
+Add NVIDIA GH100 [H100 SXM5 94GB] to GPUDevices
+------------------------------------------------------------------------
+30598fc84 | Norbert Eicker | Mon, 18 Nov 2024 11:07:13 +0100
+
+Merge branch '5.1.63'
+------------------------------------------------------------------------
+058fdc50c | Norbert Eicker | Sun, 17 Nov 2024 16:40:52 +0100
+
+IWYU fixes (unveiled by new version 0.23)
+------------------------------------------------------------------------
+
+
 Version 5.1.63-5:
 =================
 ------------------------------------------------------------------------
@@ -23,6 +277,7 @@ Bugfix: Ensure PMI_Abort() actually terminates job (#272)
 aff051a8f | Norbert Eicker | Fri, 15 Nov 2024 21:49:25 +0100
 
 Add test for PMI_Abort()
+------------------------------------------------------------------------
 
 
 Version 6.0.beta1:
