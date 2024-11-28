@@ -21,6 +21,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -162,6 +163,8 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
 {
     Collect_Script_t *script = fwdata->userData;
 
+    time_t tStart = time(NULL);
+
     pid_t childPID = fork();
     if (childPID < 0) {
 	fwarn(errno, "fork() %s", fwdata->pTitle);
@@ -196,7 +199,12 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
     }
 
     /* wait for the next cycle */
-    if (script->poll) sleep(script->poll);
+    unsigned int tExec = time(NULL) - tStart;
+    unsigned int tWait = (tExec > script->poll) ? 0 : script->poll - tExec;
+    fdbg(PSACC_LOG_COLLECT, "poll interval %i script run-time %i wait %i\n",
+	 script->poll, tExec, tWait);
+
+    while (tWait) tWait = sleep(tWait);
 
     exit(0);
 }
