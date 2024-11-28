@@ -182,6 +182,7 @@ bool Energy_init(void)
 
 void Energy_stopScript(void)
 {
+    fdbg(PSACC_LOG_ENERGY, "\n");
     if (eScript) Script_finalize(eScript);
     eScript = NULL;
 }
@@ -233,6 +234,7 @@ psAccountEnergy_t *Energy_getData(void)
 
 bool Energy_setPoll(uint32_t poll)
 {
+    fdbg(PSACC_LOG_ENERGY, "%i seconds\n", poll);
     pollTime = poll;
     if (eScript) return Script_setPollTime(eScript, poll);
     return true;
@@ -247,9 +249,11 @@ bool Energy_ctlEnv(psAccountCtl_t action, const char *envStr)
 {
     switch (action) {
 	case PSACCOUNT_SCRIPT_ENV_SET:
+	    fdbg(PSACC_LOG_ENERGY, "set %s\n", envStr);
 	    envAdd(scriptEnv, envStr);
 	    break;
 	case PSACCOUNT_SCRIPT_ENV_UNSET:
+	    fdbg(PSACC_LOG_ENERGY, "unset %s\n", envStr);
 	    envUnset(scriptEnv, envStr);
 	    break;
 	default:

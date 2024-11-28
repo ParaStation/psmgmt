@@ -119,6 +119,7 @@ bool IC_init(void)
 
 void IC_stopScript(void)
 {
+    fdbg(PSACC_LOG_INTERCON, "\n");
     if (iScript) Script_finalize(iScript);
     iScript = NULL;
 }
@@ -131,6 +132,7 @@ void IC_cleanup(void)
 
 bool IC_setPoll(uint32_t poll)
 {
+    fdbg(PSACC_LOG_INTERCON, "%i seconds\n", poll);
     pollTime = poll;
     if (iScript) return Script_setPollTime(iScript, poll);
     return true;
@@ -145,9 +147,11 @@ bool IC_ctlEnv(psAccountCtl_t action, const char *envStr)
 {
     switch (action) {
 	case PSACCOUNT_SCRIPT_ENV_SET:
+	    fdbg(PSACC_LOG_INTERCON, "set %s\n", envStr);
 	    envAdd(scriptEnv, envStr);
 	    break;
 	case PSACCOUNT_SCRIPT_ENV_UNSET:
+	    fdbg(PSACC_LOG_INTERCON, "unset %s\n", envStr);
 	    envUnset(scriptEnv, envStr);
 	    break;
 	default:

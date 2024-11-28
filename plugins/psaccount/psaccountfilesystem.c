@@ -117,6 +117,7 @@ bool FS_init(void)
 
 void FS_stopScript(void)
 {
+    fdbg(PSACC_LOG_FILESYS, "\n");
     if (fsScript) Script_finalize(fsScript);
     fsScript = NULL;
 }
@@ -129,6 +130,7 @@ void FS_cleanup(void)
 
 bool FS_setPoll(uint32_t poll)
 {
+    fdbg(PSACC_LOG_FILESYS, "%i seconds\n", poll);
     pollTime = poll;
     if (fsScript) return Script_setPollTime(fsScript, poll);
     return true;
@@ -143,9 +145,11 @@ bool FS_ctlEnv(psAccountCtl_t action, const char *envStr)
 {
     switch (action) {
 	case PSACCOUNT_SCRIPT_ENV_SET:
+	    fdbg(PSACC_LOG_FILESYS, "set %s\n", envStr);
 	    envAdd(scriptEnv, envStr);
 	    break;
 	case PSACCOUNT_SCRIPT_ENV_UNSET:
+	    fdbg(PSACC_LOG_FILESYS, "unset %s\n", envStr);
 	    envUnset(scriptEnv, envStr);
 	    break;
 	default:
