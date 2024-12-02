@@ -692,9 +692,6 @@ scripts/depcomp \
 scripts/init.d/parastation.in \
 scripts/install-sh \
 scripts/loggerdebug.py \
-scripts/lsf/README \
-scripts/lsf/esub \
-scripts/lsf/psm_lsf_wrapper \
 scripts/ltmain.sh \
 scripts/memtest.py \
 scripts/missing \

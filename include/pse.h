@@ -293,7 +293,7 @@ char * PSE_checkAndSetSortEnv(char *sort, char *argPrefix, bool verbose);
  * used to implement a dynamical partitioning of the cluster. To
  * realize a more evolved distribution strategy, the initialization of
  * the environment variables may be done using an external batch
- * system like LSF, PBSpro, OpenPBS, Torque or GridEngine.
+ * system like PBSpro, OpenPBS, Torque or GridEngine.
  *
  * When the pool is build, it may have to be sorted. The sorting is
  * steered using the environment variable PSI_NODES_SORT. Depending on

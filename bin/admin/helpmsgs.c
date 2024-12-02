@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -398,8 +398,8 @@ static info_t setInfo = {
 	  " PROC, LOAD1, LOAD5, LOAD15, PROC+LOAD or NONE. This only comes"
 	  " into play, if the user does not define a sorting strategy"
 	  " explicitly via PSI_NODES_SORT. Be aware of the fact that using"
-	  " a batch-system like PBS or LSF *will* set the strategy"
-	  " explicitly, namely to NONE." },
+	  " a batch-system like PBS *will* set the strategy explicitly,"
+	  " namely to NONE." },
 	{ .tag = "set adminuser [+|-]{<user>|any}",
 	  .descr = "Grant authorization to start admin-tasks, i.e. task not"
 	  " accounted, to a particular or any user. <user> might be a user"

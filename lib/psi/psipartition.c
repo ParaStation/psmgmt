@@ -79,44 +79,6 @@ static void checkOtherSettings(char *batchType)
 }
 
 /**
- * Name of the environment variable used by LSF in order to keep the
- * filename of the hostfile. This file contains a list of hostnames of
- * the nodes reserved for the batch job.
-*/
-#define ENV_NODE_HOSTFILE_LSF "LSB_DJOB_HOSTFILE"
-
-/**
- * Name of the environment variable used by LSF in order to keep the
- * hostnames of the nodes reserved for the batch job. This is ignored,
- * if @ref ENV_NODE_HOSTFILE_LSF is given as newer versions of LSF do.
-*/
-#define ENV_NODE_HOSTS_LSF "LSB_HOSTS"
-
-void PSI_LSF(void)
-{
-    char *lsf_hosts, *lsf_hostfile;
-
-    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
-
-    lsf_hosts = getenv(ENV_NODE_HOSTS_LSF);
-    lsf_hostfile = getenv(ENV_NODE_HOSTFILE_LSF);
-    if (lsf_hosts || lsf_hostfile) {
-	checkOtherSettings("LSF");
-	setenv(ENV_NODE_SORT, "NONE", 1);
-	unsetenv(ENV_NODE_NODES);
-	if (lsf_hostfile) {
-	    unsetenv(ENV_NODE_HOSTS);
-	    setenv(ENV_NODE_HOSTFILE, lsf_hostfile, 1);
-	} else {
-	    setenv(ENV_NODE_HOSTS, lsf_hosts, 1);
-	    unsetenv(ENV_NODE_HOSTFILE);
-	}
-	unsetenv(ENV_NODE_PEFILE);
-	batchPartition = true;
-    }
-}
-
-/**
  * Name of the environment variable used by OpenPBS, Torque and PBSPro
  * in order to keep the filename of the hostfile. This file contains a
  * list of hostnames of the nodes reserved for the batch job.

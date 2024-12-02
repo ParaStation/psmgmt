@@ -111,20 +111,6 @@
 #define ENV_PART_FULL      "PSI_FULL_PARTITION"
 
 /**
- * @brief Handle LSF environment variables.
- *
- * Handle LSF environment variables. Thus, @a ENV_NODES_HOSTFILE is
- * set to the value of LSB_DJOB_HOSTFILE, if available. Otherwise @a
- * ENV_NODES_HOSTS is set to the value of the LSB_HOSTS environment
- * variable, if available. Furthermore all other environment variables
- * steering the partition are cleared and any sorting of nodes is
- * switched off.
- *
- * @return No return value.
- */
-void PSI_LSF(void);
-
-/**
  * @brief Handle OpenPBS/PBSPro/Torque environment variables.
  *
  * Handle OpenPBS/PBSPro/Torque environment variables. Thus @a

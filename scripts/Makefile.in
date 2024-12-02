@@ -386,7 +386,7 @@ noinst_SCRIPTS = psid2cmustatus memtest.py
 pkglibexec_SCRIPTS = pscompress.py psexpand.py
 
 # for simplicity, put all dist files here, so no dist_ primaries above
-EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py lsf	\
+EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py		\
 	memtest.py mpiexec.gdb mpirun_java ps_acc.in psaccview.in	\
 	psid2cmustatus.in psmgmt.csh.in psmgmt.sh.in			\
 	systemd/munge.conf systemd/psid.service.in			\

@@ -106,8 +106,6 @@ int PSE_getPartition(unsigned int num)
 {
     /* Check for LoadLeveler */
     PSI_LL();
-    /* Check for LSF-Parallel */
-    PSI_LSF();
     /* Check for PBSPro/OpenPBS/Torque */
     PSI_PBS();
     /* Check for SUN/Oracle/Univa GridEngine */
