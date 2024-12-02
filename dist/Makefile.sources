@@ -700,7 +700,6 @@ scripts/ps_acc.in \
 scripts/psaccview.in \
 scripts/pscompress.py \
 scripts/psexpand.py \
-scripts/psid2cmustatus.in \
 scripts/psmgmt.csh.in \
 scripts/psmgmt.gdb \
 scripts/psmgmt.sh.in \

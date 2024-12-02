@@ -38,7 +38,7 @@ config_SCRIPTS = ps_acc
 
 scripts_SCRIPTS = single_node_config
 
-noinst_SCRIPTS = psid2cmustatus memtest.py
+noinst_SCRIPTS = memtest.py
 
 pkglibexec_SCRIPTS = pscompress.py psexpand.py
 
