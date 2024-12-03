@@ -84,18 +84,19 @@ int32_t PSI_getDebugMask(void);
  *
  * @param mask The log-mask to be set.
  *
- * @return No return value.
+ * @return No return value
  *
  * @see PSI_setDebugMask(), logger_setMask()
  */
 void PSI_setDebugMask(int32_t mask);
 
 /**
- * Print a log messages via PSI's logging facility @a PSI_logger
+ * Print log messages via PSI's logging facility @a PSI_logger
  *
- * This is a wrapper to @ref logger_print().
+ * These are wrappers around @ref logger_print() and @ref
+ * logger_funcprint().
  *
- * @see logger_print()
+ * @see logger_print() logger_funcprint()
  */
 #define PSI_log(...) logger_print(PSI_logger, -1, __VA_ARGS__)
 
@@ -106,11 +107,12 @@ void PSI_setDebugMask(int32_t mask);
 #define PSI_fdbg(...) logger_funcprint(PSI_logger, __func__, __VA_ARGS__)
 
 /**
- * Print a warn messages via PSI's logging facility @a PSI_logger
+ * Print warn messages via PSI's logging facility @a PSI_logger
  *
- * This is a wrapper to @ref logger_warn().
+ * Thee are wrappers around @ref logger_warn() and @ref
+ * logger_funcwarn().
  *
- * @see logger_warn()
+ * @see logger_warn() logger_funcwarn()
  */
 #define PSI_warn(...) logger_warn(PSI_logger, -1, __VA_ARGS__)
 
@@ -119,9 +121,9 @@ void PSI_setDebugMask(int32_t mask);
 #define PSI_fdwarn(...) logger_funcwarn(PSI_logger, __func__, __VA_ARGS__)
 
 /**
- * Print a warn messages via PSI's logging facility @a PSI_logger and exit
+ * Print warn messages via PSI's logging facility @a PSI_logger and exit
  *
- * This is a wrapper to @ref logger_exit().
+ * This is a wrapper around @ref logger_exit().
  *
  * @see logger_exit()
  */
