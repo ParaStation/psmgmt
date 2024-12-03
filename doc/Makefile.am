@@ -13,10 +13,6 @@ include $(top_srcdir)/common.am
 
 dist_plugin_DATA = psaccount.conf
 
-if HAVE_SYSTEMD
-  dist_sysctl_DATA = 99-psid.conf
-endif
-
 dist_noinst_DATA = parastation.conf.tmpl README.nodeinfo README.pspam	\
 	README.psgw
 

@@ -366,7 +366,6 @@ fi
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.csh
 %if !0%{?disable_systemd}
-%config(noreplace) %{_sysctldir}/99-psid.conf
 %_unitdir/psid.service
 %_unitdir/psidstarter@.service
 %_unitdir/psidstarter.socket

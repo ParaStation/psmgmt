@@ -118,7 +118,6 @@ dist/.gitignore \
 dist/Makefile \
 dist/Makefile.sources \
 dist/psmgmt.spec.templ \
-doc/99-psid.conf \
 doc/Makefile.am \
 doc/Makefile.in \
 doc/MessageTypes \
