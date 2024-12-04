@@ -11,7 +11,7 @@
 
 AC_PREREQ([2.68])
 
-AC_INIT([ParaStation Management], [5],
+AC_INIT([ParaStation Management], [6],
   [support@par-tec.com], [psmgmt], [http://par-tec.com/])
 AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_AUX_DIR([scripts])
