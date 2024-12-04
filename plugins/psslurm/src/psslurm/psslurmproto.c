@@ -1699,6 +1699,7 @@ static int handleForwardData(Slurm_Msg_t *sMsg)
 static void sendJobKill(Req_Info_t *req, uint16_t signal)
 {
     Req_Job_Kill_t kill = {
+	.sluid = req->sluid,
 	.jobid = req->jobid,
 	.stepid = req->stepid,
 	.stepHetComp = req->stepHetComp,
@@ -2725,7 +2726,10 @@ bool initSlurmdProto(void)
 	pver = autoVer;
     }
 
-    if (!strncmp(pver, "24.05", 5) || !strncmp(pver, "2405", 4)) {
+    if (!strncmp(pver, "24.11", 5) || !strncmp(pver, "2411", 4)) {
+	slurmProto = SLURM_24_11_PROTO_VERSION;
+	slurmProtoStr = ustrdup("24.11");
+    } else if (!strncmp(pver, "24.05", 5) || !strncmp(pver, "2405", 4)) {
 	slurmProto = SLURM_24_05_PROTO_VERSION;
 	slurmProtoStr = ustrdup("24.05");
     } else if (!strncmp(pver, "23.11", 5) || !strncmp(pver, "2311", 4)) {
@@ -2992,6 +2996,7 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
     addSlurmAccData(&slurmAccData);
 
     Req_Step_Comp_t comp = {
+	.sluid = step->sluid,
 	.jobid = step->jobid,
 	.stepid = step->stepid,
 	.stepHetComp = step->stepHetComp,
@@ -3002,6 +3007,7 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = REQUEST_STEP_COMPLETE;
+    req->sluid = step->sluid;
     req->jobid = step->jobid;
     req->stepid = step->stepid;
     req->stepHetComp = step->stepHetComp;
@@ -3066,6 +3072,7 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     }
 
     /* job/stepid */
+    msg.sluid = step->sluid;
     msg.jobid = step->jobid;
     msg.stepid = step->stepid;
     msg.stepHetComp = step->stepHetComp;
@@ -3171,7 +3178,8 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 static void doSendLaunchTasksFailed(Step_t *step, uint32_t nodeID,
 				    uint32_t error)
 {
-    Resp_Launch_Tasks_t resp = { .jobid = step->jobid, .stepid = step->stepid };
+    Resp_Launch_Tasks_t resp = { .sluid = step->sluid, .jobid = step->jobid,
+				 .stepid = step->stepid };
     PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
 
     /* return code */

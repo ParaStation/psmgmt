@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,6 +33,7 @@
 #include "psslurmprototypes.h"
 
 typedef struct {
+    uint64_t sluid;	    /**< unique Slurm ID */
     uint32_t jobid;         /**< unique job identifier */
     uint32_t stepid;        /**< unique step identifier */
     uint32_t stepHetComp;   /**< step het component identifier */
@@ -80,7 +81,8 @@ typedef struct {
 
 typedef struct {
     list_t next;                /**< used to put into some step-lists */
-    /* next 3 elements are expected in this order by unpackStepHead */
+    /* next 4 elements are expected in this order by unpackStepHead */
+    uint64_t sluid;		/**< unique Slurm ID */
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
     uint32_t stepHetComp;	/**< step het component identifier */
@@ -214,6 +216,8 @@ typedef struct {
     uint32_t numCompCPUsPerTask; /**< number of compCPUsPerTask (unused) */
     uint32_t *compCPUsPerTaskReps; /**< repetitions of compCPUsPerTask
 				        (unused) */
+    bool oomKillStep;		/**< kill step if task gets terminated by OOM
+				     (unused) */
 } Step_t;
 
 /**

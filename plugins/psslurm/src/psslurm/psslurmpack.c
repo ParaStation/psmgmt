@@ -37,6 +37,7 @@
 #include "psslurmpscomm.h"
 #include "psslurmstep.h"
 #include "psslurmtasks.h"
+#include "psslurm.h"
 
 #undef DEBUG_MSG_HEADER
 
@@ -183,6 +184,11 @@ static void packStepHead(void *head, PS_SendDB_t *data)
 {
     Slurm_Step_Head_t *stepH = head;
 
+    if (slurmProto > SLURM_24_05_PROTO_VERSION) {
+	/* unique Slurm ID */
+	addUint64ToMsg(stepH->sluid, data);
+    }
+
     addUint32ToMsg(stepH->jobid, data);
     addUint32ToMsg(stepH->stepid, data);
     addUint32ToMsg(stepH->stepHetComp, data);
@@ -222,6 +228,11 @@ static bool __unpackStepHead(PS_DataBuffer_t *data, void *head, uint16_t msgVer,
     if (!head) {
 	flog("invalid head from '%s' at %i\n", caller, line);
 	return false;
+    }
+
+    if (msgVer > SLURM_24_05_PROTO_VERSION) {
+	/* unique Slurm ID */
+	getUint64(data, &stepH->sluid);
     }
 
     getUint32(data, &stepH->jobid);
@@ -906,6 +917,18 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* SELinux context */
     cred->SELinuxContext = getStringM(data);
 
+    if (msgVer > SLURM_24_05_PROTO_VERSION) {
+	/* switch stepinfo */
+	uint32_t len;
+	getUint32(data, &len);
+
+	/* calculate end of switch data */
+	char *switchEnd = data->unpackPtr + len;
+
+	/* skip unsed switch info for now */
+	data->unpackPtr = switchEnd;
+    }
+
     /* munge signature */
     *credEnd = data->unpackPtr;
     cred->sig = getStringM(data);
@@ -1039,6 +1062,10 @@ bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 	if (head->flags & SLURM_PACK_ADDRS) {
 	    head->fwAliasNetCred = getStringM(data);
 	}
+	if (head->version > SLURM_24_05_PROTO_VERSION) {
+	    /* forward tree depth */
+	    getUint16(data, &head->fwTreeDepth);
+	}
     }
     getUint16(data, &head->returnList);
 
@@ -1108,6 +1135,10 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 	/* node alias credential */
 	if (head->flags & SLURM_PACK_ADDRS) {
 	    addStringToMsg(head->fwAliasNetCred, data);
+	}
+	if (head->version > SLURM_24_05_PROTO_VERSION) {
+	    /* tree depth */
+	    addUint16ToMsg(head->fwTreeDepth, data);
 	}
     }
 
@@ -1450,6 +1481,12 @@ static bool unpackJobResources(Slurm_Msg_t *sMsg, Slurm_Job_Resources_t *jr)
 
     /* number of CPUs */
     getUint32(data, &jr->numCPUs);
+
+    if (msgVer > SLURM_24_05_PROTO_VERSION) {
+	/* next step node index */
+	getUint32(data, &jr->nextStepNodeIdx);
+    }
+
     /* node requested */
     getUint32(data, &jr->nodeReq);
     /* nodes */
@@ -2804,7 +2841,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     sMsg->unpData = step;
 
     /* step header */
-    unpackStepHead(data, &step->jobid, msgVer);
+    unpackStepHead(data, &step->sluid, msgVer);
 
     if (!(msgVer > SLURM_23_02_PROTO_VERSION)) {
 	/* remove with support of protocol 23_02 */
@@ -3083,6 +3120,11 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 	/* step manager */
 	step->stepManager = getStringM(data);
 
+	if (msgVer > SLURM_24_05_PROTO_VERSION) {
+	    /* OOM kill step */
+	    getBool(data, &step->oomKillStep);
+	}
+
 	bool more;
 	getBool(data, &more);
 	if (more) {
@@ -3217,8 +3259,11 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* cpusPerNode / cpuCountReps */
     readJobCpuOptions(data, job);
 
-    /* node alias (deprecated in 23.11) */
-    job->nodeAlias = getStringM(data);
+    if (msgVer <= SLURM_24_05_PROTO_VERSION) {
+	/* node alias (deprecated in 23.11) */
+	job->nodeAlias = getStringM(data);
+    }
+
     /* CPU bind string */
     getString(data, buf, sizeof(buf));
     /* hostlist */
@@ -3296,6 +3341,18 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     job->tresBind = getStringM(data);
     job->tresFreq = getStringM(data);
+
+    if (msgVer > SLURM_24_05_PROTO_VERSION) {
+	/* minimum CPU frequency */
+	getUint32(data, &job->cpuFreqMin);
+	/* maximum CPU frequency */
+	getUint32(data, &job->cpuFreqMax);
+	/* governor CPU frequency */
+	getUint32(data, &job->cpuFreqGov);
+	/* OOM kill step */
+	getBool(data, &job->oomKillStep);
+
+    }
 
     if (data->unpackErr) {
 	flog("unpacking message failed: %s\n",
@@ -3912,7 +3969,7 @@ bool __packRespLaunchTasks(PS_SendDB_t *data, Resp_Launch_Tasks_t *ltasks,
 	return false;
     }
 
-    /* jobid/stepid */
+    /* sluid/jobid/stepid */
     packStepHead(ltasks, data);
     /* return code */
     addUint32ToMsg(ltasks->returnCode, data);
@@ -3984,6 +4041,11 @@ bool __packEnergyData(PS_SendDB_t *data, psAccountEnergy_t *eData,
     addUint64ToMsg(eData->energyCur, data);
     /* time of the last energy update */
     addTimeToMsg(eData->lastUpdate, data);
+
+    if (slurmProto > SLURM_24_05_PROTO_VERSION) {
+	/* psslurm start time */
+	addTimeToMsg(start_time, data);
+    }
 
     fdbg(PSSLURM_LOG_DEBUG, "base energy %zu average power %u total energy %zu"
 	 " current power %u\n", eData->energyBase,
@@ -4140,7 +4202,7 @@ bool __packMsgTaskExit(PS_SendDB_t *data, Msg_Task_Exit_t *msg,
     for (uint32_t i=0; i<msg->exitCount; i++) {
 	addUint32ToMsg(msg->taskRanks[i], data);
     }
-    /* job/stepid */
+    /* sluid/job/stepid */
     packStepHead(msg, data);
 
     return true;
@@ -4161,7 +4223,7 @@ bool __packMsgTaskExit(PS_SendDB_t *data, Msg_Task_Exit_t *msg,
  */
 bool packReqStepComplete(PS_SendDB_t *data, Req_Step_Comp_t *req)
 {
-    /* job/stepid */
+    /* sluid/job/stepid */
     packStepHead(req, data);
     /* node range (first, last) */
     addUint32ToMsg(req->firstNode, data);

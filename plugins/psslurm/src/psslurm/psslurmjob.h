@@ -95,6 +95,11 @@ typedef struct {
     bool termAfterFWmsg;    /**< force job termination after sending
 				 messages waiting in @ref fwMsgQueue */
     int exitCode;	    /**< exit code of the job (used for SPANK) */
+    uint32_t cpuFreqMin;    /**< CPU frequency minimal (unused) */
+    uint32_t cpuFreqMax;    /**< CPU frequency maximal (unused) */
+    uint32_t cpuFreqGov;    /**< CPU frequency governor (unused) */
+    bool oomKillStep;	    /**< kill step if task gets terminated by OOM
+				     (unused) */
 } Job_t;
 
 /**

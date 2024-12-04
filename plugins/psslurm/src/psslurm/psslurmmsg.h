@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -48,6 +48,7 @@ typedef struct {
     uint16_t returnList;	/**< number of returned results */
     uint32_t fwTimeout;		/**< forward timeout */
     uint16_t fwTreeWidth;	/**< width of the forwarding tree */
+    uint16_t fwTreeDepth;	/**< depth of the forwwarding tree (unused) */
     char *fwNodeList;		/**< node-list to forward the message to */
     Slurm_Forward_Res_t *fwRes; /**< returned results on a per node basis */
     uint32_t fwResSize;		/**< size of the forward results */
@@ -79,6 +80,7 @@ typedef int Connection_CB_t(Slurm_Msg_t *msg, void *info);
 typedef struct {
     uint16_t type;	    /**< message type of the request */
     uint16_t expRespType;   /**< expected message type of the response */
+    uint64_t sluid;	    /**< unique Slurm identifier */
     uint32_t jobid;	    /**< optional jobid associated with the request */
     uint32_t stepid;	    /**< optional stepid associated with the request */
     uint32_t stepHetComp;   /**< step het component identifier */
