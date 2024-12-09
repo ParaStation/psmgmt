@@ -44,11 +44,11 @@ static char *showConfig(void)
 {
     int maxKeyLen = getMaxKeyLen(confDef);
 
-    strbuf_t buf = strbufNew("\n");
+    strbuf_t buf = strbufNew(NULL);
     for (int i = 0; confDef[i].name; i++) {
 	char *cName = confDef[i].name;
 	char *cVal = getConfValueC(config, cName);
-	snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, cVal);
+	snprintf(line, sizeof(line), "\t%*s = %s\n", maxKeyLen+1, cName, cVal);
 	strbufAdd(buf, line);
     }
 
@@ -59,12 +59,12 @@ static char *showEnergy(void)
 {
     psAccountEnergy_t *e = Energy_getData();
 
-    strbuf_t buf = strbufNew("\n");
+    strbuf_t buf = strbufNew("\t");
     snprintf(line, sizeof(line), "power cur: %u avg: %u min: %u max: %u "
 	     "(watt) \n", e->powerCur, e->powerAvg, e->powerMin, e->powerMax);
     strbufAdd(buf, line);
 
-    snprintf(line, sizeof(line), "energy base: %lu consumed: %lu (joules)\n",
+    snprintf(line, sizeof(line), "\tenergy base: %lu consumed: %lu (joules)\n",
 	     e->energyBase, e->energyCur);
     strbufAdd(buf, line);
 
@@ -74,7 +74,7 @@ static char *showEnergy(void)
 char *show(char *key)
 {
     if (!key) {
-	strbuf_t buf = strbufNew(NULL);
+	strbuf_t buf = strbufNew("\t");
 	strbufAdd(buf, "use key [clients|dclients|jobs|config|energy]\n");
 	return strbufSteal(buf);
     }
@@ -94,7 +94,7 @@ char *show(char *key)
     /* show nodes energy/power consumption */
     if (!strcmp(key, "energy")) return showEnergy();
 
-    strbuf_t buf = strbufNew(NULL);
+    strbuf_t buf = strbufNew("\t");
     strbufAdd(buf, "invalid key, use [clients|dclients|jobs|config|energy]\n");
     return strbufSteal(buf);
 }
@@ -123,23 +123,23 @@ static void ctlScript(strbuf_t buf, monStart_t *startFunc, monStop_t *stopFunc,
     if (!strcmp(cmd, "start")) {
 	bool ret = startFunc();
 	if (ret) {
-	    strbufAdd(buf, "\nStarted '");
+	    strbufAdd(buf, "\tstarted '");
 	    strbufAdd(buf, name);
 	    strbufAdd(buf, "' monitor script\n'");
 	} else {
-	    strbufAdd(buf, "\nStarting '");
+	    strbufAdd(buf, "\tfailed to start '");
 	    strbufAdd(buf, name);
-	    strbufAdd(buf, "' monitor script failed\n'");
+	    strbufAdd(buf, "' monitor script\n'");
 	}
     } else if (!strcmp(cmd, "stop")) {
 	stopFunc();
-	strbufAdd(buf, "\nStopped '");
+	strbufAdd(buf, "\tstopped '");
 	strbufAdd(buf, name);
 	strbufAdd(buf, "' monitor script\n'");
     } else {
-	strbufAdd(buf, "\nInvalid command '");
+	strbufAdd(buf, "\tinvalid command '");
 	strbufAdd(buf, cmd);
-	strbufAdd(buf, "', use start or stop'");
+	strbufAdd(buf, "', use 'start' or 'stop'\n");
     }
 }
 
@@ -166,7 +166,7 @@ static void unsetScriptEnv(strbuf_t buf, monCtlEnv_t *envCtl, char *scriptName,
 
 char *set(char *key, char *val)
 {
-    strbuf_t buf = strbufNew(NULL);
+    strbuf_t buf = strbufNew("\t");
 
     /* search in config for given key */
     const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
@@ -174,22 +174,22 @@ char *set(char *key, char *val)
 	int verRes = verifyConfigEntry(confDef, key, val);
 	if (verRes) {
 	    if (verRes == 1) {
-		strbufAdd(buf, "\nInvalid key '");
+		strbufAdd(buf, "invalid key '");
 		strbufAdd(buf, key);
 		strbufAdd(buf, "' for cmd set : use 'plugin help psaccount' "
-			"for help.\n");
+			"for help\n");
 	    } else if (verRes == 2) {
-		strbufAdd(buf, "\nThe value '");
+		strbufAdd(buf, "the value '");
 		strbufAdd(buf, val);
 		strbufAdd(buf, "' for cmd 'set ");
 		strbufAdd(buf, key);
-		strbufAdd(buf, "' has to be numeric.\n");
+		strbufAdd(buf, "' has to be numeric\n");
 	    }
 	} else {
 	    /* save new config value */
 	    addConfigEntry(config, key, val);
 
-	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, val);
+	    snprintf(line, sizeof(line), "saved '%s = %s'\n", key, val);
 	    strbufAdd(buf, line);
 
 	    if (!strcmp(key, "DEBUG_MASK")) {
@@ -207,20 +207,18 @@ char *set(char *key, char *val)
 	    finalizePluginLogger();
 	    initPluginLogger(NULL, memoryDebug);
 	    maskPluginLogger(PLUGIN_LOG_MALLOC);
-	    strbufAdd(buf, "\nmemory logging to '");
+	    strbufAdd(buf, "memory logging to '");
 	    strbufAdd(buf, val);
 	    strbufAdd(buf, "'\n");
 	} else {
-	    strbufAdd(buf, "\nopening file '");
+	    strbufAdd(buf, "opening file '");
 	    strbufAdd(buf, val);
 	    strbufAdd(buf, "' for writing failed\n");
 	}
     } else if (!strcmp(key, "ctlEnergy")) {
-	ctlScript(buf, &Energy_startScript, &Energy_stopScript,
-		  "energy", val);
+	ctlScript(buf, &Energy_startScript, &Energy_stopScript, "energy", val);
     } else if (!strcmp(key, "ctlFilesystem")) {
-	ctlScript(buf, &FS_startScript, FS_stopScript, "file-system",
-		  val);
+	ctlScript(buf, &FS_startScript, FS_stopScript, "file-system", val);
     } else if (!strcmp(key, "ctlInterconnect")) {
 	ctlScript(buf, &IC_startScript, &IC_stopScript, "interconnect", val);
     } else if (!strncasecmp(key, "EnergyEnv_", 10)) {
@@ -230,9 +228,9 @@ char *set(char *key, char *val)
     } else if (!strncasecmp(key, "ICEnv_", 6)) {
 	setScriptEnv(buf, &IC_ctlEnv, "interconnect", key + 6, val);
     } else {
-	strbufAdd(buf, "\nInvalid key '");
+	strbufAdd(buf, "invalid key '");
 	strbufAdd(buf, key);
-	strbufAdd(buf, "' for cmd set : use 'plugin help psaccount' for help.\n");
+	strbufAdd(buf, "' for cmd set: use 'plugin help psaccount' for help\n");
     }
 
     return strbufSteal(buf);
@@ -240,7 +238,7 @@ char *set(char *key, char *val)
 
 char *unset(char *key)
 {
-    strbuf_t buf = strbufNew(NULL);
+    strbuf_t buf = strbufNew("\t");
 
     /* search in config for given key */
     if (getConfValueC(config, key)) {
@@ -268,9 +266,9 @@ char *unset(char *key)
     } else if (!strncasecmp(key, "ICEnv_", 6)) {
 	unsetScriptEnv(buf, &IC_ctlEnv, "interconnect", key + 6);
     } else {
-	strbufAdd(buf, "\nInvalid key '");
+	strbufAdd(buf, "invalid key '");
 	strbufAdd(buf, key);
-	strbufAdd(buf, "' for cmd unset : use 'plugin help psaccount' for help.\n");
+	strbufAdd(buf, "' for cmd unset: use 'plugin help psaccount' for help.\n");
     }
 
     return strbufSteal(buf);
@@ -284,16 +282,18 @@ char *help(char *key)
     for (int i = 0; confDef[i].name; i++) {
 	char type[10];
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
-	snprintf(line, sizeof(line), "%*s %8s  %s\n", maxKeyLen+2,
+	snprintf(line, sizeof(line), "%*s %8s  %s\n", maxKeyLen+1,
 		 confDef[i].name, type, confDef[i].desc);
 	strbufAdd(buf, line);
     }
-    strbufAdd(buf, "\nuse show [clients|dclients|jobs|config]\n\n");
+    strbufAdd(buf, "\nuse:\n show key [clients|dclients|jobs|config|energy]' to");
+    strbufAdd(buf, " show various info\n");
     strbufAdd(buf, "\nset [ctlEnergy|ctlFilesystem|ctlInterconnect] ");
-    strbufAdd(buf, "[start|stop] to control monitor scripts\n");
-    strbufAdd(buf, "\nset [setEnergyEnv|setIC_Env|setFS_Env] name=val\n");
-    strbufAdd(buf, "set [unsetEnergyEnv|unsetIC_Env|unsetFS_Env] name\n");
-    strbufAdd(buf, "to change environment for monitor scripts\n");
+    strbufAdd(buf, "[start|stop] \n\tto control monitor scripts\n");
+    strbufAdd(buf, "\nset [EnergyEnv_<name>|ICEnv_<name>|FSEnv_<name>] val\n");
+    strbufAdd(buf, "\tto set/change environment for monitor scripts\n");
+    strbufAdd(buf, "\nunset [EnergyEnv_<name>|ICEnv_<name>|FSEnv_<name>]\n");
+    strbufAdd(buf, "\tto remove environment from monitor scripts\n");
 
     return strbufSteal(buf);
 }
