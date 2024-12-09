@@ -245,22 +245,22 @@ uint32_t Energy_getPoll(void)
     return pollTime;
 }
 
-bool Energy_ctlEnv(psAccountCtl_t action, const char *envStr)
+bool Energy_ctlEnv(psAccountCtl_t action, const char *name, const char *val)
 {
     switch (action) {
-	case PSACCOUNT_SCRIPT_ENV_SET:
-	    fdbg(PSACC_LOG_ENERGY, "set %s\n", envStr);
-	    envAdd(scriptEnv, envStr);
-	    break;
-	case PSACCOUNT_SCRIPT_ENV_UNSET:
-	    fdbg(PSACC_LOG_ENERGY, "unset %s\n", envStr);
-	    envUnset(scriptEnv, envStr);
-	    break;
-	default:
-	    flog("invalid action %i\n", action);
-	    return false;
+    case PSACCOUNT_SCRIPT_ENV_SET:
+	fdbg(PSACC_LOG_ENERGY, "set %s=%s\n", name, val);
+	envSet(scriptEnv, name, val);
+	break;
+    case PSACCOUNT_SCRIPT_ENV_UNSET:
+	fdbg(PSACC_LOG_ENERGY, "unset %s\n", name);
+	envUnset(scriptEnv, name);
+	break;
+    default:
+	flog("invalid action %i\n", action);
+	return false;
     }
 
-    if (eScript) return Script_ctlEnv(eScript, action, envStr);
+    if (eScript) return Script_ctlEnv(eScript, action, name, val);
     return true;
 }

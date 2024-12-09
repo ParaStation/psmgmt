@@ -83,14 +83,16 @@ bool Script_test(char *spath, char *title);
  *
  * @param script Collect script to modify
  *
- * @param envStr Environment variable to set/unset
- *
  * @param action Specifies if a variable should be added or removed
+ *
+ * @param name Name of the environment variable to set/unset
+ *
+ * @param val Value to be set; ignored in case of variable unset
  *
  * @return Returns true on success or false otherwise
  */
 bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
-		   const char *envStr);
+		   const char *name, const char *val);
 
 /**
  * @brief Finalize all active collect scripts

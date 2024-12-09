@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -445,11 +445,13 @@ typedef bool(psAccountCtlScript_t)(psAccountCtl_t action, psAccountOpt_t type);
  *
  * @param type The type of script to control
  *
- * @param envStr The new environment variable to set
+ * @param name Name of the environment variable to set or unset
+ *
+ * @param val Value to be set; ignored in case of variable unset
  *
  * @return Returns true on success or false otherwise
  */
 typedef bool (psAccountScriptEnv_t)(psAccountCtl_t action, psAccountOpt_t type,
-				    char *envStr);
+				    char *name, char *val);
 
 #endif  /* __PS_ACCOUNT_TYPES */

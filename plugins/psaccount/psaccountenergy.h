@@ -73,12 +73,14 @@ bool Energy_startScript(void);
 /**
  * @brief Set/unset environment variable for energy script
  *
- * @param envStr Environment variable to set/unset
- *
  * @param action Specifies if a variable should be added or removed
+ *
+ * @param name Name of environment variable to set/unset
+ *
+ * @param val Value to be set; ignored in case of variable unset
  *
  * @return Returns true on success or false otherwise
  */
-bool Energy_ctlEnv(psAccountCtl_t action, const char *envStr);
+bool Energy_ctlEnv(psAccountCtl_t action, const char *name, const char *val);
 
 #endif  /* __PS_ACCOUNT_ENERGY */

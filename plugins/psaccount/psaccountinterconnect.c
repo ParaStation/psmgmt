@@ -143,23 +143,23 @@ uint32_t IC_getPoll(void)
     return pollTime;
 }
 
-bool IC_ctlEnv(psAccountCtl_t action, const char *envStr)
+bool IC_ctlEnv(psAccountCtl_t action, const char *name, const char *val)
 {
     switch (action) {
-	case PSACCOUNT_SCRIPT_ENV_SET:
-	    fdbg(PSACC_LOG_INTERCON, "set %s\n", envStr);
-	    envAdd(scriptEnv, envStr);
-	    break;
-	case PSACCOUNT_SCRIPT_ENV_UNSET:
-	    fdbg(PSACC_LOG_INTERCON, "unset %s\n", envStr);
-	    envUnset(scriptEnv, envStr);
-	    break;
-	default:
-	    flog("invalid action %i\n", action);
-	    return false;
+    case PSACCOUNT_SCRIPT_ENV_SET:
+	fdbg(PSACC_LOG_INTERCON, "set %s=%s\n", name, val);
+	envSet(scriptEnv, name, val);
+	break;
+    case PSACCOUNT_SCRIPT_ENV_UNSET:
+	fdbg(PSACC_LOG_INTERCON, "unset %s\n", name);
+	envUnset(scriptEnv, name);
+	break;
+    default:
+	flog("invalid action %i\n", action);
+	return false;
     }
 
-    if (iScript) return Script_ctlEnv(iScript, action, envStr);
+    if (iScript) return Script_ctlEnv(iScript, action, name, val);
 
     return true;
 }

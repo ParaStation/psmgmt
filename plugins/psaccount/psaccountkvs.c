@@ -144,24 +144,24 @@ static void ctlScript(strbuf_t buf, monStart_t *startFunc, monStop_t *stopFunc,
 }
 
 /** define monitor control environment function */
-typedef bool monCtlEnv_t(psAccountCtl_t, const char *);
+typedef bool monCtlEnv_t(psAccountCtl_t, const char *, const char *);
 
-static void setScriptEnv(strbuf_t buf, monCtlEnv_t *envCtl, char *name,
-			 psAccountCtl_t action, const char *envStr)
+static void setScriptEnv(strbuf_t buf, monCtlEnv_t *envCtl, char *scriptName,
+			 const char *name, const char *val)
 {
-    if (envCtl(action, envStr)) {
-	strbufAdd(buf, "\n");
-	strbufAdd(buf, (action == PSACCOUNT_SCRIPT_ENV_SET ? "Set" : "Unset"));
-	strbufAdd(buf, " environment '");
-	strbufAdd(buf, envStr);
-	strbufAdd(buf, "' for '");
-	strbufAdd(buf, name);
-	strbufAdd(buf, "' monitor script\n'");
-    } else {
-	strbufAdd(buf, "\nFailed to ");
-	(strbufAdd(buf, action == PSACCOUNT_SCRIPT_ENV_SET ? "set" : "unset"));
-	strbufAdd(buf, " environment\n");
+    if (!envCtl(PSACCOUNT_SCRIPT_ENV_SET, name, val)) {
+	strbufAdd(buf, "\tfailed to set environment");
     }
+    strbufAdd(buf, "\n");
+}
+
+static void unsetScriptEnv(strbuf_t buf, monCtlEnv_t *envCtl, char *scriptName,
+			   const char *name)
+{
+    if (!envCtl(PSACCOUNT_SCRIPT_ENV_UNSET, name, NULL)) {
+	strbufAdd(buf, "failed to unset environment");
+    }
+    strbufAdd(buf, "\n");
 }
 
 char *set(char *key, char *val)
@@ -222,26 +222,13 @@ char *set(char *key, char *val)
 	ctlScript(buf, &FS_startScript, FS_stopScript, "file-system",
 		  val);
     } else if (!strcmp(key, "ctlInterconnect")) {
-	ctlScript(buf, &IC_startScript, &IC_stopScript, "interconnect",
-		  val);
-    } else if (!strcmp(key, "setEnergyEnv")) {
-	setScriptEnv(buf, &Energy_ctlEnv, "energy", PSACCOUNT_SCRIPT_ENV_SET,
-		     val);
-    } else if (!strcmp(key, "setFS_Env")) {
-	setScriptEnv(buf, &FS_ctlEnv, "file-system", PSACCOUNT_SCRIPT_ENV_SET,
-		     val);
-    } else if (!strcmp(key, "setIC_Env")) {
-	setScriptEnv(buf, &IC_ctlEnv, "interconnect", PSACCOUNT_SCRIPT_ENV_SET,
-		     val);
-    } else if (!strcmp(key, "unsetEnergyEnv")) {
-	setScriptEnv(buf, &Energy_ctlEnv, "energy", PSACCOUNT_SCRIPT_ENV_UNSET,
-		     val);
-    } else if (!strcmp(key, "unsetFS_Env")) {
-	setScriptEnv(buf, &FS_ctlEnv, "file-system", PSACCOUNT_SCRIPT_ENV_UNSET,
-		     val);
-    } else if (!strcmp(key, "unsetIC_Env")) {
-	setScriptEnv(buf, &IC_ctlEnv, "interconnect",
-		     PSACCOUNT_SCRIPT_ENV_UNSET, val);
+	ctlScript(buf, &IC_startScript, &IC_stopScript, "interconnect", val);
+    } else if (!strncasecmp(key, "EnergyEnv_", 10)) {
+	setScriptEnv(buf, &Energy_ctlEnv, "energy", key + 10, val);
+    } else if (!strncasecmp(key, "FSEnv_", 6)) {
+	setScriptEnv(buf, &FS_ctlEnv, "file-system", key + 6, val);
+    } else if (!strncasecmp(key, "ICEnv_", 6)) {
+	setScriptEnv(buf, &IC_ctlEnv, "interconnect", key + 6, val);
     } else {
 	strbufAdd(buf, "\nInvalid key '");
 	strbufAdd(buf, key);
@@ -273,7 +260,13 @@ char *unset(char *key)
 	    memoryDebug = NULL;
 	    initPluginLogger(NULL, psaccountlogfile);
 	}
-	strbufAdd(buf, "Stopped memory debugging\n");
+	strbufAdd(buf, "memory debugging stopped\n");
+    } else if (!strncasecmp(key, "EnergyEnv_", 10)) {
+	unsetScriptEnv(buf, &Energy_ctlEnv, "energy", key + 10);
+    } else if (!strncasecmp(key, "FSEnv_", 6)) {
+	unsetScriptEnv(buf, &FS_ctlEnv, "file-system", key + 6);
+    } else if (!strncasecmp(key, "ICEnv_", 6)) {
+	unsetScriptEnv(buf, &IC_ctlEnv, "interconnect", key + 6);
     } else {
 	strbufAdd(buf, "\nInvalid key '");
 	strbufAdd(buf, key);

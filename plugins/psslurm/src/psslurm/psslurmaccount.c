@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -243,31 +243,25 @@ void TRes_destroy(TRes_t *tres)
 /**
  * @brief Forward Slurm configuration value to monitor environment
  *
- * @param queryName Name to query configuration option to forward from
+ * @param qName Name to query configuration option to forward from
  * Slurm config
  *
- * @param setName Name to set in the monitor's environment
+ * @param sName Name to set in the monitor's environment
  *
  * @param opt psaccount option to change
  *
  * @return Returns true on success otherwise false is returned
  */
-static bool setAccEnv2(char *queryName, char *setName, psAccountOpt_t opt)
+static bool setAccEnv2(char *qName, char *sName, psAccountOpt_t opt)
 {
-    char *val = getConfValueC(SlurmConfig, queryName);
+    char *val = getConfValueC(SlurmConfig, qName);
     if (val) {
-	char *envStr = PSC_concat(setName, "=", val);
-	if (!envStr) {
-	    flog("PSC_concat() out of memory");
-	    return false;
-	}
-	bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET, opt, envStr);
-	free(envStr);
+	bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET, opt, sName, val);
 	if (!ret) {
-	    if (queryName != setName) {
-		flog("failed to setup %s/%s environment\n", queryName, setName);
+	    if (qName != sName) {
+		flog("failed to setup %s/%s environment\n", qName, sName);
 	    } else {
-		flog("failed to setup %s environment\n", queryName);
+		flog("failed to setup %s environment\n", qName);
 	    }
 	    return false;
 	}

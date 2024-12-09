@@ -206,23 +206,23 @@ bool psAccountCtlScript(psAccountCtl_t action, psAccountOpt_t type)
 }
 
 bool psAccountScriptEnv(psAccountCtl_t action, psAccountOpt_t type,
-			char *envStr)
+			char *name, char *val)
 {
-    if (!envStr) {
-	flog("called with invalid envStr\n");
+    if (!name) {
+	flog("called with invalid name\n");
 	return false;
     }
 
     switch(type) {
-	case PSACCOUNT_OPT_IC:
-	    return IC_ctlEnv(action, envStr);
-	case PSACCOUNT_OPT_ENERGY:
-	    return Energy_ctlEnv(action, envStr);
-	case PSACCOUNT_OPT_FS:
-	    return FS_ctlEnv(action, envStr);
-	default:
-	    flog("invalid action %i or type %i\n", action, type);
-	    return false;
+    case PSACCOUNT_OPT_IC:
+	return IC_ctlEnv(action, name, val);
+    case PSACCOUNT_OPT_ENERGY:
+	return Energy_ctlEnv(action, name, val);
+    case PSACCOUNT_OPT_FS:
+	return FS_ctlEnv(action, name, val);
+    default:
+	flog("invalid action %i or type %i\n", action, type);
+	return false;
     }
 
     return false;

@@ -141,22 +141,22 @@ uint32_t FS_getPoll(void)
     return pollTime;
 }
 
-bool FS_ctlEnv(psAccountCtl_t action, const char *envStr)
+bool FS_ctlEnv(psAccountCtl_t action, const char *name, const char *val)
 {
     switch (action) {
-	case PSACCOUNT_SCRIPT_ENV_SET:
-	    fdbg(PSACC_LOG_FILESYS, "set %s\n", envStr);
-	    envAdd(scriptEnv, envStr);
-	    break;
-	case PSACCOUNT_SCRIPT_ENV_UNSET:
-	    fdbg(PSACC_LOG_FILESYS, "unset %s\n", envStr);
-	    envUnset(scriptEnv, envStr);
-	    break;
-	default:
-	    flog("invalid action %i\n", action);
-	    return false;
+    case PSACCOUNT_SCRIPT_ENV_SET:
+	fdbg(PSACC_LOG_FILESYS, "set %s=%s\n", name, val);
+	envSet(scriptEnv, name, val);
+	break;
+    case PSACCOUNT_SCRIPT_ENV_UNSET:
+	fdbg(PSACC_LOG_FILESYS, "unset %s\n", name);
+	envUnset(scriptEnv, name);
+	break;
+    default:
+	flog("invalid action %i\n", action);
+	return false;
     }
 
-    if (fsScript) return Script_ctlEnv(fsScript, action, envStr);
+    if (fsScript) return Script_ctlEnv(fsScript, action, name, val);
     return true;
 }

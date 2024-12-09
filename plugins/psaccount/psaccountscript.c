@@ -514,15 +514,15 @@ bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)
 }
 
 bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
-		   const char *envStr)
+		   const char *name, const char *val)
 {
     if (!verifyScriptPtr(script) || !script->fwdata) {
 	flog("invalid script or forwarder data\n");
 	return false;
     }
 
-    if (!envStr) {
-	flog("got invalid envStr\n");
+    if (!name) {
+	flog("got invalid name\n");
 	return false;
     }
 
@@ -530,14 +530,14 @@ bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
     switch (action) {
     case PSACCOUNT_SCRIPT_ENV_SET:
 	cmd = CMD_SET_ENV_VAR;
-	if (!strchr(envStr, '=')) {
-	    flog("missing '=' in environment variable to set\n");
+	if (!val) {
+	    flog("missing value for environment variable '%s' to set\n", name);
 	    return false;
 	}
 	break;
     case PSACCOUNT_SCRIPT_ENV_UNSET:
 	cmd = CMD_UNSET_ENV_VAR;
-	if (strchr(envStr, '=')) {
+	if (strchr(name, '=')) {
 	    flog("invalid '=' in environment variable to unset\n");
 	    return false;
 	}
@@ -555,16 +555,23 @@ bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
 	    .len = 0, },
 	.type = cmd };
 
-    size_t envLen = strlen(envStr) + 1;
+    size_t envLen = strlen(name) + 1;
+    if (action == PSACCOUNT_SCRIPT_ENV_SET) envLen += strlen(val) + 1;
     uint32_t len = htonl(envLen);
     if (envLen > sizeof(msg.buf) - sizeof(len)) {
-	flog("environment string '%s' too long\n", envStr);
+	flog("environment string for '%s' too long\n", name);
 	return false;
     }
 
     /* Add string including its length mimicking addData */
     PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
-    PSP_putTypedMsgBuf(&msg, "env string", envStr, envLen);
+    if (action == PSACCOUNT_SCRIPT_ENV_SET) {
+	PSP_putTypedMsgBuf(&msg, "name", name, strlen(name));
+	PSP_putTypedMsgBuf(&msg, "=", "=", 1);
+	PSP_putTypedMsgBuf(&msg, "value", val, strlen(val) + 1);
+    } else {
+	PSP_putTypedMsgBuf(&msg, "name", name, envLen);
+    }
 
     if (sendMsg(&msg) == -1) return false;
 
