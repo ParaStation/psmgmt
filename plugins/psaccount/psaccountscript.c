@@ -26,6 +26,7 @@
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "psserial.h"
+#include "psstrbuf.h"
 #include "selector.h"
 
 #include "pluginconfig.h"
@@ -576,4 +577,28 @@ bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
     if (sendMsg(&msg) == -1) return false;
 
     return true;
+}
+
+char *Script_showEnv(env_t env, const char *name)
+{
+    strbuf_t buf = strbufNew("\t");
+    if (name && strlen(name) > 0) {
+	char *value = envGet(env, name);
+	strbufAdd(buf, "\t");
+	strbufAdd(buf, name);
+	if (value) {
+	    strbufAdd(buf, " = '");
+	    strbufAdd(buf, value);
+	    strbufAdd(buf, "'");
+	} else {
+	    strbufAdd(buf, " is unknown\n");
+	}
+    } else {
+	for (char **e = envGetArray(env); e && *e; e++) {
+	    strbufAdd(buf, *e);
+	    if (*(e+1)) strbufAdd(buf, "\n\t");
+	}
+    }
+    strbufAdd(buf, "\n");
+    return strbufSteal(buf);
 }

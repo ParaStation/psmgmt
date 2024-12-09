@@ -160,3 +160,8 @@ bool FS_ctlEnv(psAccountCtl_t action, const char *name, const char *val)
     if (fsScript) return Script_ctlEnv(fsScript, action, name, val);
     return true;
 }
+
+char *FS_showEnv(const char *name)
+{
+    return Script_showEnv(scriptEnv, name);
+}

@@ -264,3 +264,8 @@ bool Energy_ctlEnv(psAccountCtl_t action, const char *name, const char *val)
     if (eScript) return Script_ctlEnv(eScript, action, name, val);
     return true;
 }
+
+char *Energy_showEnv(const char *name)
+{
+    return Script_showEnv(scriptEnv, name);
+}

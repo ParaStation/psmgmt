@@ -163,3 +163,8 @@ bool IC_ctlEnv(psAccountCtl_t action, const char *name, const char *val)
 
     return true;
 }
+
+char *IC_showEnv(const char *name)
+{
+    return Script_showEnv(scriptEnv, name);
+}

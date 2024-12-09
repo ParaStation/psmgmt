@@ -83,4 +83,19 @@ bool Energy_startScript(void);
  */
 bool Energy_ctlEnv(psAccountCtl_t action, const char *name, const char *val);
 
+/**
+ * @brief Show environment variable(s) for energy script
+ *
+ * Provide a string containing name and value of the environment
+ * variable @a name stored in the energy script's environment or all
+ * environment variables of this environment if @a name is NULL or of
+ * length 0.
+ *
+ * @param name Name of the environment variable to print; all
+ * environment variables are printed if @a name is NULL or of length 0
+ *
+ * @return Return the string describing the requested information
+ */
+char *Energy_showEnv(const char *name);
+
 #endif  /* __PS_ACCOUNT_ENERGY */

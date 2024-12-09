@@ -75,7 +75,8 @@ char *show(char *key)
 {
     if (!key) {
 	strbuf_t buf = strbufNew("\t");
-	strbufAdd(buf, "use key [clients|dclients|jobs|config|energy]\n");
+	strbufAdd(buf, "use: show key [clients|dclients|jobs|config|energy");
+	strbufAdd(buf, "|EnergyEnv[_<name>]|FSEnv[_<name>]|ICEnv[_<name>]]\n");
 	return strbufSteal(buf);
     }
 
@@ -94,8 +95,21 @@ char *show(char *key)
     /* show nodes energy/power consumption */
     if (!strcmp(key, "energy")) return showEnergy();
 
+    if (!strncasecmp(key, "EnergyEnv", 9)) {
+	return Energy_showEnv(key[9] == '_' ? key + 10 : NULL);
+    }
+
+    if (!strncasecmp(key, "FSEnv", 5)) {
+	return FS_showEnv(key[5] == '_' ? key + 6 : NULL);
+    }
+
+    if (!strncasecmp(key, "ICEnv", 5)) {
+	return IC_showEnv(key[5] == '_' ? key + 6 : NULL);
+    }
+
     strbuf_t buf = strbufNew("\t");
-    strbufAdd(buf, "invalid key, use [clients|dclients|jobs|config|energy]\n");
+    strbufAdd(buf, "invalid key, use [clients|dclients|jobs|config|energy");
+    strbufAdd(buf, "|EnergyEnv[_<name>]|FSEnv[_<name>]|ICEnv[_<name>]]\n");
     return strbufSteal(buf);
 }
 
@@ -286,8 +300,9 @@ char *help(char *key)
 		 confDef[i].name, type, confDef[i].desc);
 	strbufAdd(buf, line);
     }
-    strbufAdd(buf, "\nuse:\n show key [clients|dclients|jobs|config|energy]' to");
-    strbufAdd(buf, " show various info\n");
+    strbufAdd(buf, "\nuse:\nshow key [clients|dclients|jobs|config|energy|\n");
+    strbufAdd(buf, "\t  EnergyEnv[_<name>]|FSEnv[_<name>]|ICEnv[_<name>]]\n");
+    strbufAdd(buf, "\tto show various info\n");
     strbufAdd(buf, "\nset [ctlEnergy|ctlFilesystem|ctlInterconnect] ");
     strbufAdd(buf, "[start|stop] \n\tto control monitor scripts\n");
     strbufAdd(buf, "\nset [EnergyEnv_<name>|ICEnv_<name>|FSEnv_<name>] val\n");

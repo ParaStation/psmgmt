@@ -79,4 +79,19 @@ bool IC_startScript(void);
  */
 bool IC_ctlEnv(psAccountCtl_t action, const char *name, const char *val);
 
+/**
+ * @brief Show environment variable(s) for interconnect script
+ *
+ * Provide a string containing name and value of the environment
+ * variable @a name stored in the interconnect script's environment or
+ * all environment variables of this environment if @a name is NULL or
+ * of length 0.
+ *
+ * @param name Name of the environment variable to print; all
+ * environment variables are printed if @a name is NULL or of length 0
+ *
+ * @return Return the string describing the requested information
+ */
+char *IC_showEnv(const char *name);
+
 #endif  /* __PS_ACCOUNT_INTERCONNECT */

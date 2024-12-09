@@ -95,6 +95,22 @@ bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
 		   const char *name, const char *val);
 
 /**
+ * @brief Show environment variable(s) for collect script
+ *
+ * Print the environment variable @a name or all environment variables
+ * of @a env if @a name is NULL or of length 0 to a string buffer and
+ * return the stolen string.
+ *
+ * @param env Environment to investigate
+ *
+ * @param name Name of the environment variable to print; all
+ * environment variables are printed if @a name is NULL or of length 0
+ *
+ * @return Return the string describing the requested information
+ */
+char *Script_showEnv(env_t env, const char *name);
+
+/**
  * @brief Finalize all active collect scripts
  *
  * @return No return value
