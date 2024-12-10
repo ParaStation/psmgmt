@@ -639,14 +639,14 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, SerialRecvCB_t *cb,
     uint8_t fragType = 0;
     uint16_t fragNum = -1;
     if (!fetchFragHeader(msg, &used, &fragType, &fragNum, NULL, NULL)) {
-	PSC_flog("unable to fetch fragment header from %s\n",
-		 PSC_printTID(msg->header.sender));
+	PSC_flog("unable to fetch fragment header from %s at %s@%d\n",
+		 PSC_printTID(msg->header.sender), caller, line);
 	return false;
     }
 
     if (fragType != FRAGMENT_PART && fragType != FRAGMENT_END) {
-	PSC_flog("invalid fragment type %u from %s\n", fragType,
-		 PSC_printTID(msg->header.sender));
+	PSC_flog("invalid fragment type %u from %s at %s@%d\n", fragType,
+		 PSC_printTID(msg->header.sender), caller, line);
 	return false;
     }
 
@@ -730,7 +730,6 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, SerialRecvCB_t *cb,
 	PSC_fdbg(PSC_LOG_COMM, "msg of %zu bytes from %s (%d fragments)\n",
 		 recvBuf->used, PSC_printTID(msg->header.sender), fragNum);
 
-	msg->buf[0] = '\0';
 	recvBuf->unpackPtr = recvBuf->buf;
 	recvBuf->unpackErr = 0;
 	if (cb) {
