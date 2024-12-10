@@ -20,12 +20,13 @@
 #include <sys/time.h>
 #include <time.h>
 
+#include "config_parsing.h"
 #include "list.h"
 #include "plugin.h"
+#include "pscommon.h"
 #include "psprotocol.h"
 #include "pspluginprotocol.h"
-#include "pscommon.h"
-#include "config_parsing.h"
+#include "psserial.h"
 #include "psidutil.h"
 #include "psidcomm.h"
 #include "psidnodes.h"
@@ -1226,7 +1227,7 @@ static void sendStr(DDTypedBufferMsg_t *msg, char *str, const char *caller)
     }
 }
 
-static void sendAvail(PStask_ID_t dest)
+static void sendAvailOld(PStask_ID_t dest)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -1277,10 +1278,59 @@ end:
     sendStr(&msg, "", __func__);
 }
 
-static void sendHelp(PStask_ID_t dest, char *buf)
+static void sendAvail(PStask_ID_t dest)
+{
+    if (PSIDnodes_getProtoV(PSC_getID(dest)) < 347) return sendAvailOld(dest);
+
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_CD_PLUGINRES, PSP_PLUGIN_AVAIL);
+    setFragDest(&msg, dest);
+
+    char *instDir = getenv("PSID_PLUGIN_PATH");
+    if (!instDir) instDir = PSC_lookupInstalldir(NULL);
+    if (!instDir) {
+	PSID_flog("installation directory not found\n");
+	addStringToMsg("installation directory not found\n", &msg);
+	goto end;
+    }
+
+    char dirName[PATH_MAX];
+    snprintf(dirName, sizeof(dirName), "%s/plugins", instDir);
+
+    DIR *dir = opendir(dirName);
+    if (!dir) {
+	int eno = errno;
+	PSID_fwarn(eno, "opendir(%s) failed", dirName);
+	char res[1024];
+	snprintf(res, sizeof(res), "opendir(%.512s) failed: %s\n", dirName,
+		 strerror(eno));
+	addStringToMsg(res, &msg);
+	goto end;
+    }
+
+    rewinddir(dir);
+    struct dirent *dent;
+    while ((dent = readdir(dir))) {
+	char *nameStr = dent->d_name;
+	size_t nameLen = PSP_strLen(nameStr);
+
+	if (nameLen && !strcmp(&nameStr[nameLen - 4], ".so")) {
+	    nameStr[nameLen - 4] = '\0';
+	    addStringToMsg(nameStr, &msg);
+	}
+    }
+    closedir(dir);
+
+end:
+    /* Add stop entry and send*/
+    addStringToMsg("", &msg);
+    if (sendFragMsg(&msg) == -1) PSID_flog("sendFragMsg() failed\n");
+}
+
+static void sendHelpOld(PStask_ID_t dest, char *buf)
 {
     char *pName = buf, *key = pName + PSP_strLen(pName);
-    if (! *key) key = NULL;
+    if (!*key) key = NULL;
 
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -1314,7 +1364,37 @@ static void sendHelp(PStask_ID_t dest, char *buf)
     sendStr(&msg, "", __func__);
 }
 
-static void handleSetKey(PStask_ID_t dest, char *buf)
+static void sendHelp(PStask_ID_t dest, char *buf)
+{
+    if (PSIDnodes_getProtoV(PSC_getID(dest)) < 347) return sendHelpOld(dest, buf);
+
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_CD_PLUGINRES, PSP_PLUGIN_HELP);
+    setFragDest(&msg, dest);
+
+    char *pName = buf;
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
+    if (!plugin) {
+	char res[1024];
+	snprintf(res, sizeof(res), "\tpsid: %s: unknown plugin '%.512s'\n",
+		 __func__, pName);
+	addStringToMsg(res, &msg);
+    } else if (!plugin->help) {
+	char res[1024];
+	snprintf(res, sizeof(res), "\tpsid: %s: no help-method for '%.512s' \n",
+		 __func__, pName);
+	addStringToMsg(res, &msg);
+    } else {
+	char *key = pName + PSP_strLen(pName);
+	char *res = plugin->help(*key ? key : NULL);
+	addStringToMsg(res ? res : "", &msg);
+	free(res);
+    }
+
+    if (sendFragMsg(&msg) == -1) PSID_flog("sendFragMsg() failed\n");
+}
+
+static void handleSetKeyOld(PStask_ID_t dest, char *buf)
 {
     char *pName = buf, *key = pName + PSP_strLen(pName);
     char *val = key + PSP_strLen(key);
@@ -1350,7 +1430,37 @@ static void handleSetKey(PStask_ID_t dest, char *buf)
     sendStr(&msg, "", __func__);
 }
 
-static void handleUnsetKey(PStask_ID_t dest, char *buf)
+static void handleSetKey(PStask_ID_t dest, char *buf)
+{
+    if (PSIDnodes_getProtoV(PSC_getID(dest)) < 347) return handleSetKeyOld(dest, buf);
+
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_CD_PLUGINRES, PSP_PLUGIN_SET);
+    setFragDest(&msg, dest);
+
+    char *pName = buf;
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
+    if (!plugin) {
+	char res[1024];
+	snprintf(res, sizeof(res), "\tpsid: %s: unknown plugin '%.512s'\n",
+		 __func__, pName);
+	addStringToMsg(res, &msg);
+    } else if (!plugin->set) {
+	char res[1024];
+	snprintf(res, sizeof(res), "\tpsid: %s: no set-method for '%.512s' \n",
+		 __func__, pName);
+	addStringToMsg(res, &msg);
+    } else {
+	char *key = pName + PSP_strLen(pName), *val = key + PSP_strLen(key);
+	char *res = plugin->set(key, val);
+	addStringToMsg(res ? res : "", &msg);
+	free(res);
+    }
+
+    if (sendFragMsg(&msg) == -1) PSID_flog("sendFragMsg() failed\n");
+}
+
+static void handleUnsetKeyOld(PStask_ID_t dest, char *buf)
 {
     char *pName = buf, *key = pName + PSP_strLen(pName);
     DDTypedBufferMsg_t msg = {
@@ -1385,10 +1495,40 @@ static void handleUnsetKey(PStask_ID_t dest, char *buf)
     sendStr(&msg, "", __func__);
 }
 
-static void handleShowKey(PStask_ID_t dest, char *buf)
+static void handleUnsetKey(PStask_ID_t dest, char *buf)
+{
+    if (PSIDnodes_getProtoV(PSC_getID(dest)) < 347) return handleUnsetKeyOld(dest, buf);
+
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_CD_PLUGINRES, PSP_PLUGIN_UNSET);
+    setFragDest(&msg, dest);
+
+    char *pName = buf;
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
+    if (!plugin) {
+	char res[1024];
+	snprintf(res, sizeof(res), "\tpsid: %s: unknown plugin '%.512s'\n",
+		 __func__, pName);
+	addStringToMsg(res, &msg);
+    } else if (!plugin->unset) {
+	char res[1024];
+	snprintf(res, sizeof(res), "\tpsid: %s: no unset-method for '%.512s' \n",
+		 __func__, pName);
+	addStringToMsg(res, &msg);
+    } else {
+	char *key = pName + PSP_strLen(pName);
+	char *res = plugin->unset(key);
+	addStringToMsg(res ? res : "", &msg);
+	free(res);
+    }
+
+    if (sendFragMsg(&msg) == -1) PSID_flog("sendFragMsg() failed\n");
+}
+
+static void handleShowKeyOld(PStask_ID_t dest, char *buf)
 {
     char *pName = buf, *key = pName + PSP_strLen(pName);
-    if (! *key) key=NULL;
+    if (!*key) key = NULL;
 
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -1422,6 +1562,36 @@ static void handleShowKey(PStask_ID_t dest, char *buf)
     sendStr(&msg, "", __func__);
 }
 
+static void handleShowKey(PStask_ID_t dest, char *buf)
+{
+    if (PSIDnodes_getProtoV(PSC_getID(dest)) < 347) return handleShowKeyOld(dest, buf);
+
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_CD_PLUGINRES, PSP_PLUGIN_SHOW);
+    setFragDest(&msg, dest);
+
+    char *pName = buf;
+    PSIDplugin_t plugin = PSIDplugin_find(pName);
+    if (!plugin) {
+	char res[1024];
+	snprintf(res, sizeof(res), "\tpsid: %s: unknown plugin '%.512s'\n",
+		 __func__, pName);
+	addStringToMsg(res, &msg);
+    } else if (!plugin->show) {
+	char res[1024];
+	snprintf(res, sizeof(res), "\tpsid: %s: no show-method for '%.512s' \n",
+		 __func__, pName);
+	addStringToMsg(res, &msg);
+    } else {
+	char *key = pName + PSP_strLen(pName);
+	char *res = plugin->show(*key ? key : NULL);
+	addStringToMsg(res ? res : "", &msg);
+	free(res);
+    }
+
+    if (sendFragMsg(&msg) == -1) PSID_flog("sendFragMsg() failed\n");
+}
+
 static void sendLoadTime(PStask_ID_t dest, PSIDplugin_t plugin)
 {
     DDTypedBufferMsg_t msg = {
@@ -1440,7 +1610,7 @@ static void sendLoadTime(PStask_ID_t dest, PSIDplugin_t plugin)
     sendStr(&msg, mBuf, __func__);
 }
 
-static void handleLoadTime(PStask_ID_t dest, char *pName)
+static void handleLoadTimeOld(PStask_ID_t dest, char *pName)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -1476,6 +1646,49 @@ static void handleLoadTime(PStask_ID_t dest, char *pName)
     sendStr(&msg, "", __func__);
 
     return;
+}
+
+static void addLoadTimeToMsg(PSIDplugin_t plugin, PS_SendDB_t *buf)
+{
+    if (!plugin) return;
+
+    char res[128];
+    snprintf(res, sizeof(res), "\t%10s %4d %s", plugin->name, plugin->version,
+	     ctime(&plugin->load.tv_sec));
+    addStringToMsg(res, buf);
+}
+
+static void handleLoadTime(PStask_ID_t dest, char *pName)
+{
+    if (!pName) return;
+
+    if (PSIDnodes_getProtoV(PSC_getID(dest)) < 347) return handleLoadTimeOld(dest, pName);
+
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_CD_PLUGINRES, PSP_PLUGIN_LOADTIME);
+    setFragDest(&msg, dest);
+
+    if (*pName) {
+	PSIDplugin_t plugin = PSIDplugin_find(pName);
+	if (!plugin) {
+	    char res[1024];
+	    snprintf(res, sizeof(res), "\tpsid: %s: plugin '%.512s' not found\n",
+		     __func__, pName);
+	    addStringToMsg(res, &msg);
+	} else {
+	    addLoadTimeToMsg(plugin, &msg);
+	}
+    } else {
+	list_t *p;
+	list_for_each(p, &pluginList) {
+	    PSIDplugin_t plugin = list_entry(p, struct PSIDplugin, next);
+	    addLoadTimeToMsg(plugin, &msg);
+	}
+    }
+
+    /* Add stop entry */
+    addStringToMsg("", &msg);
+    if (sendFragMsg(&msg) == -1) PSID_flog("sendFragMsg() failed\n");
 }
 
 int PSIDplugin_getAPIversion(void)

@@ -30,6 +30,7 @@
 
 #include "pscommon.h"
 #include "pscpu.h"
+#include "psserial.h"
 #include "parser.h"
 #include "timer.h"
 
@@ -1836,8 +1837,8 @@ void PSIADM_Plugin(bool *nl, char *name, PSP_Plugin_t action)
     }
 }
 
-static bool recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
-				 char *nodeStr)
+static bool recvPluginKeyAnswersOld(PStask_ID_t src, PSP_Plugin_t action,
+				    char *nodeStr)
 {
     DDTypedBufferMsg_t answer;
     bool first = true;
@@ -1885,6 +1886,77 @@ static bool recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
     return true;
 }
 
+static void handlePluginKeyAnswr(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    PSP_Plugin_t type = (PSP_Plugin_t)msg->type;
+
+    while (true) {
+	char *outStr = getStringM(data);
+
+	if (!outStr || !strlen(outStr)) {
+	    free(outStr);
+	    return;
+	}
+
+	if (type == PSP_PLUGIN_AVAIL) {
+	    printf("\t%s\n", outStr);
+	} else {
+	    printf("%s", outStr);
+	}
+
+	switch(type) {
+	case PSP_PLUGIN_AVAIL:
+	case PSP_PLUGIN_LOADTIME:
+	    break;
+	default:
+	    return;
+	}
+    }
+}
+
+static bool recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
+				 char *nodeStr, int protoV)
+{
+    if (protoV < 347) return recvPluginKeyAnswersOld(src, action, nodeStr);
+
+    bool first = true;
+
+    uint8_t fragType;
+    do {
+	DDTypedBufferMsg_t answer;
+	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
+	    int eno = errno;
+	    char *errStr = strerror(eno);
+	    printf("\t%s: failed to receive answer from %s: %s\n", __func__,
+		   PSC_printTID(src), errStr ? errStr : "Unknown");
+	    break;
+	}
+
+	if (first) {
+	    printf("%s", nodeStr);
+	    first = false;
+	}
+
+	if (answer.header.sender != src
+	    && PSC_getID(answer.header.sender) != PSC_getMyID()) {
+	    printf("\t%s: wrong partner: %s", __func__,
+		   PSC_printTID(answer.header.sender));
+	    printf(" expected %s\n", PSC_printTID(src));
+	    break;
+	}
+	if ((PSP_Plugin_t)answer.type != action) {
+	    printf("\twrong action: %d but expected %d\n", answer.type, action);
+	    break;
+	}
+
+	recvFragMsg(&answer, handlePluginKeyAnswr);
+
+	size_t used = 0;
+	fetchFragHeader(&answer, &used, &fragType, NULL, NULL, NULL);
+    } while (fragType != FRAGMENT_END);
+
+    return true;
+}
 
 void PSIADM_PluginKey(bool *nl, char *name, char *key, char *value,
 		      PSP_Plugin_t action)
@@ -1916,10 +1988,13 @@ void PSIADM_PluginKey(bool *nl, char *name, char *key, char *value,
 
 	if (hostStatus.list[node]) {
 	    char *nodeStr = nodeString(node);
+	    int protoV = PSI_protocolVersion(node);
+
 	    msg.header.dest = PSC_getTID(node, 0);
 	    sendDmnMsg(&msg);
 
-	    separator = recvPluginKeyAnswers(msg.header.dest, action, nodeStr);
+	    separator = recvPluginKeyAnswers(msg.header.dest, action,
+					     nodeStr, protoV);
 	} else {
 	    printf("%s\tdown\n", nodeString(node));
 	    separator = true;
