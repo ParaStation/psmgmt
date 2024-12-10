@@ -339,6 +339,7 @@ int main(int argc, const char **argv)
 	quiet = true;
     } else {
 	/* Interactive mode */
+	parserPrepInteractive();
 	getHistoryLen();
 	readHistoryFile();
 

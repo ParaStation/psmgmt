@@ -2276,8 +2276,6 @@ static char * paramRangeHelp(void *data)
     return strdup("The default range of nodes to act on");
 }
 
-static keylist_t *parametersList = NULL;
-
 static void setupParameters(void)
 {
     PSPARM_init();
@@ -2292,7 +2290,12 @@ static void setupParameters(void)
 		    PSPARM_boolKeys);
     PSPARM_register("startdelay", &paramStartDelay,
 		    PSPARM_uintSet, PSPARM_intPrint, paramStartDelayHelp, NULL);
+}
 
+static keylist_t *parametersList = NULL;
+
+static void setupParamAutoComplete(void)
+{
     parametersList = PSPARM_getKeylist();
     for (int i = 0; paramList[i].key; i++) paramList[i].next = parametersList;
 }
@@ -2464,6 +2467,11 @@ void parserPrepare(void)
     parser_setDebugMask(0);
     setupDefaultNL();
     setupParameters();
+}
+
+void parserPrepInteractive(void)
+{
+     setupParamAutoComplete();
 }
 
 void parserRelease(void)
