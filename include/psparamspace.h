@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +15,7 @@
 #ifndef __PSPARAMSPACE_H
 #define __PSPARAMSPACE_H
 
+#include <stdbool.h>
 #include <stdio.h>
 
 #include "parser.h"
@@ -27,7 +29,7 @@ typedef char *PSPARM_printFunc_t(void *);
  *
  * Initialize the parameter-space management framework.
  *
- * @return No return value.
+ * @return No return value
  */
 void PSPARM_init(void);
 
@@ -37,7 +39,7 @@ void PSPARM_init(void);
  * Shutdown the parameter-space management framework. This includes
  * removing all parameters from the parameter-space.
  *
- * @return No return value.
+ * @return No return value
  */
 void PSPARM_finalize(void);
 
@@ -77,11 +79,11 @@ void PSPARM_finalize(void);
  * values of this parameter when incorporating linenoise's
  * auto-completion mechanism.
  *
- * @return Upon success, 1 is returned. Or 0 otherwise.
+ * @return Return true on success or false otherwise
  */
-int PSPARM_register(char *name, void *data, PSPARM_setFunc_t setFunc,
-		    PSPARM_printFunc_t printFunc, PSPARM_printFunc_t helpFunc,
-		    keylist_t * keys);
+bool PSPARM_register(char *name, void *data, PSPARM_setFunc_t setFunc,
+		     PSPARM_printFunc_t printFunc, PSPARM_printFunc_t helpFunc,
+		     keylist_t * keys);
 
 /**
  * @brief Remove parameter
@@ -92,9 +94,9 @@ int PSPARM_register(char *name, void *data, PSPARM_setFunc_t setFunc,
  *
  * @param name The name of the parameter to remove
  *
- * @return Upon success, 1 is returned. Or 0 otherwise.
+ * @return Return true on success or false otherwise
  */
-int PSPARM_remove(char *name);
+bool PSPARM_remove(char *name);
 
 /**
  * @brief Get a keylist defined by the parameter-space
@@ -116,7 +118,7 @@ int PSPARM_remove(char *name);
  * in order to be able to do auto-completion of parameter-names.
  *
  * @return Upon success, a pointer to the keylist created is
- * returned. Otherwise NULL is given back.
+ * returned or NULL otherwise
  */
 keylist_t * PSPARM_getKeylist(void);
 
@@ -146,7 +148,7 @@ void PSPARM_freeKeylist(keylist_t *keylist);
  *
  * @param value The value to be set
  *
- * @return No return value.
+ * @return No return value
  */
 void PSPARM_set(char *name, char *value);
 
@@ -165,7 +167,7 @@ void PSPARM_set(char *name, char *value);
  *
  * @param name The name of the parameter of interest
  *
- * @return A pointer to the actual help message or NULL.
+ * @return A pointer to the actual value string or NULL
  */
 char * PSPARM_get(char *name);
 
@@ -185,7 +187,7 @@ char * PSPARM_get(char *name);
  *
  * @param name The name of the parameter to be printed
  *
- * @return No return value.
+ * @return No return value
  */
 void PSPARM_print(FILE *file, char *name);
 
@@ -203,7 +205,7 @@ void PSPARM_print(FILE *file, char *name);
  *
  * @param name The name of the parameter of interest
  *
- * @return A pointer to the actual help message or NULL.
+ * @return A pointer to the actual help message or NULL
  */
 char * PSPARM_getHelp(char *name);
 
@@ -225,7 +227,7 @@ char * PSPARM_getHelp(char *name);
  *
  * @param name The name of the parameter help is requested for
  *
- * @return No return value.
+ * @return No return value
  */
 void PSPARM_printHelp(char *name);
 

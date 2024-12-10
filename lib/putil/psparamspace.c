@@ -43,12 +43,10 @@ PSPARM_printFunc_t *PSPARM_stringPrint;
 
 static char * intSet(void *data, char *value)
 {
-    char *end;
-    long num;
-
     if (!data) return strdup("No place to store");
 
-    num = strtol(value, &end, 0);
+    char *end;
+    long num = strtol(value, &end, 0);
     if (*end != '\0') {
 	char line[80];
 	snprintf(line, sizeof(line), "failed to parse '%s'", value);
@@ -103,9 +101,7 @@ static char * boolSet(void *data, char *value)
 	*(int *)data = 0;
     } else {
 	char *end;
-	long num;
-
-	num = strtol(value, &end, 0);
+	long num = strtol(value, &end, 0);
 	if (*end != '\0') {
 	    char line[80];
 	    snprintf(line, sizeof(line), "failed to parse '%s'", value);
@@ -120,7 +116,6 @@ static char * boolSet(void *data, char *value)
 static char * boolPrint(void *data)
 {
     char *ret = NULL;
-
     if (data) ret = strdup(*(int *)data ? "TRUE" : "FALSE");
 
     return ret;
@@ -128,10 +123,9 @@ static char * boolPrint(void *data)
 
 static char * stringSet(void *data, char *value)
 {
-    char **strp = data;
-
     if (!data) return strdup("No place to store");
 
+    char **strp = data;
     free(*strp);
 
     if (value) *strp = strdup(value);
@@ -143,7 +137,6 @@ static char * stringSet(void *data, char *value)
 static char * stringPrint(void *data)
 {
     char **strp = data;
-
     if (strp && *strp) return strdup(*strp);
 
     return NULL;
@@ -176,10 +169,9 @@ void PSPARM_init(void)
  */
 static param_t * findParam(char *name)
 {
-    list_t *p;
-
     if (!name || ! *name) return NULL;
 
+    list_t *p;
     list_for_each(p, &paramList) {
 	param_t *param = list_entry(p, param_t, next);
 
@@ -208,13 +200,9 @@ static param_t * findParam(char *name)
  */
 static param_t * newParam(char *name)
 {
-    param_t *param;
-    list_t *p;
-
     if (!name || ! *name) return NULL;
 
-    param = findParam(name);
-
+    param_t *param = findParam(name);
     if (param) {
 	PSC_flog("parameter '%s' not unique\n", name);
 	return NULL;
@@ -228,6 +216,7 @@ static param_t * newParam(char *name)
 
     param->name = strdup(name);
 
+    list_t *p;
     list_for_each(p, &paramList) {
 	param_t *pp = list_entry(p, param_t, next);
 
@@ -262,7 +251,6 @@ static void delParam(param_t *param)
 void PSPARM_finalize(void)
 {
     list_t *p, *tmp;
-
     list_for_each_safe(p, tmp, &paramList) {
 	param_t *param = list_entry(p, param_t, next);
 
@@ -271,19 +259,17 @@ void PSPARM_finalize(void)
 }
 
 
-int PSPARM_register(char *name, void *data, PSPARM_setFunc_t setFunc,
-		    PSPARM_printFunc_t printFunc, PSPARM_printFunc_t helpFunc,
-		    keylist_t *keys)
+bool PSPARM_register(char *name, void *data, PSPARM_setFunc_t setFunc,
+		     PSPARM_printFunc_t printFunc, PSPARM_printFunc_t helpFunc,
+		     keylist_t *keys)
 {
-    param_t *param;
-
     if (!name || ! *name) {
 	PSC_flog("no name given\n");
-	return 0;
+	return false;
     }
 
-    param = newParam(name);
-    if (!param) return 0;
+    param_t *param = newParam(name);
+    if (!param) return false;
 
     param->data = data;
     param->set = setFunc;
@@ -291,27 +277,25 @@ int PSPARM_register(char *name, void *data, PSPARM_setFunc_t setFunc,
     param->help = helpFunc;
     param->keys = keys;
 
-    return 1;
+    return true;
 }
 
-int PSPARM_remove(char *name)
+bool PSPARM_remove(char *name)
 {
-    param_t *param;
-
     if (!name || ! *name) {
 	PSC_flog("no name given\n");
-	return 0;
+	return false;
     }
 
-    param = findParam(name);
+    param_t *param = findParam(name);
     if (!param) {
 	PSC_flog("unknown parameter '%s'\n", name);
-	return 0;
+	return false;
     }
 
     delParam(param);
 
-    return 1;
+    return true;
 }
 
 keylist_t PSPARM_boolKeys[] = {
@@ -325,14 +309,12 @@ keylist_t PSPARM_boolKeys[] = {
 
 keylist_t * PSPARM_getKeylist(void)
 {
+    /* count number of entries */
     int idx = 0;
     list_t *p;
-    keylist_t *keyList;
-
-    /* count number of entries */
     list_for_each(p, &paramList) idx++;
 
-    keyList = malloc((idx+1)*sizeof(*keyList));
+    keylist_t *keyList = malloc((idx+1)*sizeof(*keyList));
     if (!keyList) return NULL;
 
     idx = 0;
@@ -368,36 +350,28 @@ void PSPARM_freeKeylist(keylist_t *keylist)
 
 void PSPARM_set(char *name, char *value)
 {
-    param_t *param;
-    char *msg;
-
     if (!name || ! *name) {
 	PSC_flog("no name given\n");
+	return;
     }
 
-    param = findParam(name);
+    param_t *param = findParam(name);
     if (!param) {
 	PSC_flog("unknown parameter '%s'\n", name);
-	return;
-    }
-
-    if (!param->set) {
+    } else if (!param->set) {
 	PSC_flog("no set-method for '%s'\n", name);
-	return;
-    }
-
-    msg = param->set(param->data, value);
-
-    if (msg) {
-	PSC_flog("%s: %s\n", param->name, msg);
-	free(msg);
+    } else {
+	char *msg = param->set(param->data, value);
+	if (msg) {
+	    PSC_flog("%s: %s\n", param->name, msg);
+	    free(msg);
+	}
     }
 }
 
 char * PSPARM_get(char *name)
 {
     char *res = NULL;
-
     if (name && *name) {
 	param_t *param = findParam(name);
 
@@ -423,13 +397,11 @@ char * PSPARM_get(char *name)
  */
 static void printParam(FILE *file, param_t *param)
 {
-    char *res = NULL;
 
     if (!param || !file) return;
 
     fprintf(file, "%10s  ", param->name);
-    if (param->print) res = param->print(param->data);
-
+    char *res = param->print ? param->print(param->data) : NULL;
     if (res) {
 	fprintf(file, "%s\n", res);
 	free(res);
@@ -508,7 +480,7 @@ static void printHelp(const int indent, char *helpStr)
 	char *pos = helpStr;
 	int len = strlen(pos);
 
-	while (len>lwidth) {
+	while (len > lwidth) {
 	    char *end = pos + lwidth - 1;
 	    while (*end != ' ') end--;
 	    printf("%.*s\n", (int)(end-pos), pos);
@@ -534,13 +506,10 @@ static void printHelp(const int indent, char *helpStr)
  */
 static void printParamHelp(param_t *param)
 {
-    char *res = NULL;
-
     if (!param) return;
 
-    if (param->help) res = param->help(param->data);
-
     int indent = printf("%10s  ", param->name);
+    char *res = param->help ? param->help(param->data) : NULL;
     if (res) {
 	printHelp(indent, res);
     } else {
