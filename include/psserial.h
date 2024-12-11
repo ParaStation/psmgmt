@@ -652,6 +652,9 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
 #define getString(data, buf, buflen)					\
     getMemFromBuf(data, buf, buflen, NULL, PSDATA_STRING, __func__, __LINE__)
 
+#define getStringL(data, buf, buflen, len)				\
+    getMemFromBuf(data, buf, buflen, len, PSDATA_STRING, __func__, __LINE__)
+
 /**
  * @brief Fetch data array from buffer
  *
