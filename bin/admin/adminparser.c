@@ -11,9 +11,10 @@
  */
 #include "adminparser.h"
 
+#include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/resource.h>
@@ -21,6 +22,7 @@
 
 #include "pscommon.h"
 #include "pspartition.h"
+#include "psserial.h"
 #include "psi.h"
 #include "psiinfo.h"
 #include "parser.h"
@@ -1887,7 +1889,10 @@ static int pluginError(char *token)
 }
 
 static keylist_t pluginList[] = {
+    {"avail", pluginAvailCmd, NULL},
     {"list", listPluginCommand, NULL},
+    {"loadtime", pluginLoadTmCmd, NULL},
+    /* keys below will get `next` entries to auto-complete plugin names */
     {"load", pluginLoadCmd, NULL},
     {"add", pluginLoadCmd, NULL},
     {"unload", pluginRmCmd, NULL},
@@ -1896,12 +1901,10 @@ static keylist_t pluginList[] = {
     {"rm", pluginRmCmd, NULL},
     {"forceremove", pluginFRmCmd, NULL},
     {"forceunload", pluginFRmCmd, NULL},
-    {"avail", pluginAvailCmd, NULL},
     {"help", pluginHelpCmd, NULL},
     {"show", pluginShowCmd, NULL},
     {"set", pluginSetCmd, NULL},
     {"unset", pluginUnsetCmd, NULL},
-    {"loadtime", pluginLoadTmCmd, NULL},
     {NULL, pluginError, NULL}
 };
 static parser_t pluginParser = {" \t\n", pluginList};
@@ -1913,6 +1916,108 @@ static int pluginCommand(char *token)
     if (!what) listPluginCommand(what);
 
     return parser_parseString(what, &pluginParser);
+}
+
+static keylist_t *pluginNames;
+
+static void handlePluginNames(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    /* first round: count number of plugins */
+    char tmp[128];
+    size_t count = 0, len;
+    while (getStringL(data, tmp, sizeof(tmp), &len) && len > 1) count++;
+    if (!count) return;  // nothing found
+
+    /* rewind the data buffer */
+    data->unpackPtr = data->buf;
+
+    /* second round: actually setup pluginNames */
+    pluginNames = calloc(count + 1, sizeof(*pluginNames));
+    if (!pluginNames) return;
+    for (size_t p = 0; p < count; p++) pluginNames[p].key = getStringM(data);
+}
+
+void setupPluginNames(PStask_ID_t src)
+{
+    DDTypedMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PLUGIN,
+	    .sender = PSC_getMyTID(),
+	    .dest = src,
+	    .len = sizeof(msg) },
+	.type = PSP_PLUGIN_AVAIL };
+
+    ssize_t ret = PSI_sendMsg(&msg);
+    if (ret == -1 && errno == ENOTCONN) {
+	printf("%s: lost connection to local daemon\n", __func__);
+	return;
+    }
+
+    uint8_t fragType;
+    do {
+	DDTypedBufferMsg_t answer;
+	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
+	    int eno = errno;
+	    char *errStr = strerror(eno);
+	    printf("%s: failed to receive answer from %s: %s\n", __func__,
+		   PSC_printTID(src), errStr ? errStr : "Unknown");
+	    return;
+	}
+
+	if (answer.header.sender != src
+	    && PSC_getID(answer.header.sender) != PSC_getMyID()) {
+	    printf("%s: wrong partner: %s", __func__,
+		   PSC_printTID(answer.header.sender));
+	    printf(" expected %s\n", PSC_printTID(src));
+	    return;
+	}
+
+	/* fail silently if node 1 is down */
+	if ((PSP_Plugin_t)answer.type == EHOSTDOWN) return;
+
+	if ((PSP_Plugin_t)answer.type != PSP_PLUGIN_AVAIL) {
+	    printf("%s: wrong action: %d but expected %d\n", __func__,
+		   answer.type, PSP_PLUGIN_AVAIL);
+	    return;
+	}
+
+	recvFragMsg(&answer, handlePluginNames);
+
+	size_t used = 0;
+	fetchFragHeader(&answer, &used, &fragType, NULL, NULL, NULL);
+    } while (fragType != FRAGMENT_END);
+}
+
+/**
+ * @brief Setup autocompletion for plugin names
+ *
+ * Fetch a list of available plugin names from node 1 if available. If
+ * this fails, fall back to the local daemon. The rational behind this
+ * is the assumption that node 1 will be an ordinary compute node and
+ * having more plugins installed than specialized nodes like the login
+ * node or the node hosting the slurmctld.
+ *
+ * @return No return value
+ */
+static void setupPluginAutoComplete(void)
+{
+    if (PSC_getNrOfNodes() > 1 && PSI_protocolVersion(1) >= 347) {
+	setupPluginNames(PSC_getTID(1, 0));
+    }
+    if (!pluginNames) setupPluginNames(PSC_getTID(-1, 0));
+
+    for (int i = 3; pluginList[i].key; i++) pluginList[i].next = pluginNames;
+}
+
+static void cleanupPlugins(void)
+{
+    if (pluginNames) {
+	for (int i = 0; pluginNames[i].key; i++) free(pluginNames[i].key);
+	free(pluginNames);
+	pluginNames = NULL;
+    }
+
+    for (int i = 0; pluginList[i].key; i++) pluginList[i].next = NULL;
 }
 
 
@@ -2472,10 +2577,12 @@ void parserPrepare(void)
 void parserPrepInteractive(void)
 {
      setupParamAutoComplete();
+     setupPluginAutoComplete();
 }
 
 void parserRelease(void)
 {
+    cleanupPlugins();
     cleanupParameters();
     releaseDefaultNL();
     parser_finalize();
