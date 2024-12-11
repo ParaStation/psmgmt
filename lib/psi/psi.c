@@ -378,10 +378,7 @@ int PSI_protocolVersion(PSnodes_ID_t id)
 	PSP_Option_t optType = PSP_OP_PROTOCOLVERSION;
 	PSP_Optval_t optVal;
 
-	if (PSI_infoOption(id, 1, &optType, &optVal, false) == -1) {
-	    PSI_flog("error getting info\n");
-	    return -1;
-	}
+	if (PSI_infoOption(id, 1, &optType, &optVal, false) == -1) return -1;
 
 	switch (optType) {
 	case PSP_OP_PROTOCOLVERSION:
