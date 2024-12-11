@@ -34,6 +34,7 @@
 #include "pspartition.h"
 #include "kvscommon.h"
 #include "psserial.h"
+#include "psstrv.h"
 
 #include "cloptions.h"
 #include "common.h"
