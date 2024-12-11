@@ -1716,15 +1716,7 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
     PSID_fdbg(PSID_LOG_PLUGIN, "(%s, %s)\n",
 	      PSC_printTID(inmsg->header.sender), inmsg->buf);
 
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_CD_PLUGINRES,
-	    .dest = inmsg->header.sender,
-	    .sender = PSC_getMyTID(),
-	    .len = DDTypedBufMsgOffset },
-	.type = 0,
-	.buf[0] = '\0', };
-
+    int res = 0;
     if (!PSID_checkPrivilege(inmsg->header.sender)) {
 	switch (inmsg->type) {
 	case PSP_PLUGIN_AVAIL:
@@ -1735,7 +1727,7 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 	default:
 	    PSID_flog("task %s not allowed to touch plugins\n",
 		      PSC_printTID(inmsg->header.sender));
-	    msg.type = EACCES;
+	    res = EACCES;
 	    goto end;
 	}
     }
@@ -1743,12 +1735,12 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
     PSnodes_ID_t destID = PSC_getID(inmsg->header.dest);
     if (destID != PSC_getMyID()) {
 	if (!PSIDnodes_isUp(destID)) {
-	    msg.type = EHOSTDOWN;
+	    res = EHOSTDOWN;
 	    goto end;
 	}
 	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	    msg.type = errno;
-	    PSID_fwarn(msg.type, "sendMsg()");
+	    res = errno;
+	    PSID_fwarn(res, "sendMsg()");
 	    goto end;
 	}
 	return true; /* destination node will send PLUGINRES message */
@@ -1756,13 +1748,13 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 
     switch (inmsg->type) {
     case PSP_PLUGIN_LOAD:
-	if (!PSIDplugin_load(inmsg->buf, 0, NULL, pluginLogfile)) msg.type = -1;
+	if (!PSIDplugin_load(inmsg->buf, 0, NULL, pluginLogfile)) res = -1;
 	break;
     case PSP_PLUGIN_REMOVE:
-	if (PSIDplugin_finalize(inmsg->buf) < 0) msg.type = ENODEV;
+	if (PSIDplugin_finalize(inmsg->buf) < 0) res = ENODEV;
 	break;
     case PSP_PLUGIN_FORCEREMOVE:
-	if (forceUnloadPlugin(inmsg->buf) < 0) msg.type = ENODEV;
+	if (forceUnloadPlugin(inmsg->buf) < 0) res = ENODEV;
 	break;
     case PSP_PLUGIN_AVAIL:
 	sendAvail(inmsg->header.sender);
@@ -1784,7 +1776,7 @@ static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 	return true;
     default:
 	PSID_flog("unknown message type %d\n", inmsg->type);
-	msg.type = -1; // flag "Unknown action"
+	res = ENOTSUP;
     }
 
 end:
@@ -1794,22 +1786,45 @@ end:
     case PSP_PLUGIN_REMOVE:
     case PSP_PLUGIN_FORCEREMOVE:
 	/* msg.type expected to contain error flag */
+	;
+	DDTypedBufferMsg_t msg = {
+	    .header = {
+		.type = PSP_CD_PLUGINRES,
+		.dest = inmsg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = DDTypedBufMsgOffset },
+	    .type = res,
+	    .buf[0] = '\0', };
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	    PSID_fwarn(errno, "sendMsg()");
 	}
 	break;
     default:
-	/* msg.type expected to contain original type / error in buf */
-	if (msg.type) {
-	    char mBuf[sizeof(msg.buf)];
-	    snprintf(mBuf, sizeof(mBuf), "\tpsid: %.512s\n",
-		     msg.type == -1 ? "Unknown action": strerror(msg.type));
-	    msg.type = inmsg->type;
-	    sendStr(&msg, mBuf, __func__);
+	if (PSIDnodes_getProtoV(PSC_getID(msg.header.dest)) < 347) {
+	    DDTypedBufferMsg_t msg = {
+		.header = {
+		    .type = PSP_CD_PLUGINRES,
+		    .dest = inmsg->header.sender,
+		    .sender = PSC_getMyTID(),
+		    .len = DDTypedBufMsgOffset },
+		.type = inmsg->type,
+		.buf[0] = '\0', };
+	    /* msg.type expected to contain original type / error in buf */
+	    if (res) {
+		char tmp[1024];
+		snprintf(tmp, sizeof(tmp), "\tpsid: %.512s\n", strerror(res));
+		sendStr(&msg, tmp, __func__);
+	    }
+	    sendStr(&msg, "", __func__);
 	} else {
-	    msg.type = inmsg->type;
+	    PS_SendDB_t msg;
+	    initFragBuffer(&msg, PSP_CD_PLUGINRES, PSP_PLUGIN_DROPPED);
+	    setFragDest(&msg, inmsg->header.sender);
+
+	    addInt32ToMsg(res, &msg);
+	    addInt32ToMsg(inmsg->type, &msg);
+	    if (sendFragMsg(&msg) == -1) PSID_flog("sendFragMsg() failed\n");
 	}
-	sendStr(&msg, "", __func__);
     }
     return true;
 }

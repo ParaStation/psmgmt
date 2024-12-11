@@ -1975,7 +1975,7 @@ void setupPluginNames(PStask_ID_t src)
 	}
 
 	/* fail silently if node 1 is down */
-	if ((PSP_Plugin_t)answer.type == EHOSTDOWN) return;
+	if ((PSP_Plugin_t)answer.type == PSP_PLUGIN_DROPPED) return;
 
 	if ((PSP_Plugin_t)answer.type != PSP_PLUGIN_AVAIL) {
 	    printf("%s: wrong action: %d but expected %d\n", __func__,

@@ -1914,6 +1914,24 @@ static void handlePluginKeyAnswr(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
 }
 
+static void handlePluginKeyDrop(DDTypedBufferMsg_t *msg,
+				PS_DataBuffer_t *data, void *info)
+{
+    PSP_Plugin_t expctdAction = *(PSP_Plugin_t *)info;
+
+    int32_t res;
+    getInt32(data, &res);
+
+    int32_t action;
+    getInt32(data, &action);
+
+    printf("\tpsid: %s", strerror(res));
+    if ((PSP_Plugin_t)action != expctdAction) {
+	printf(" for unexpected action (%d vs %d)", action, expctdAction);
+    }
+    printf("\n");
+}
+
 static bool recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
 				 char *nodeStr, int protoV)
 {
@@ -1944,12 +1962,14 @@ static bool recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
 	    printf(" expected %s\n", PSC_printTID(src));
 	    break;
 	}
-	if ((PSP_Plugin_t)answer.type != action) {
+	if ((PSP_Plugin_t)answer.type == PSP_PLUGIN_DROPPED) {
+	    recvFragMsgInfo(&answer, handlePluginKeyDrop, &action);
+	} else if ((PSP_Plugin_t)answer.type != action) {
 	    printf("\twrong action: %d but expected %d\n", answer.type, action);
 	    break;
+	} else {
+	    recvFragMsg(&answer, handlePluginKeyAnswr);
 	}
-
-	recvFragMsg(&answer, handlePluginKeyAnswr);
 
 	size_t used = 0;
 	fetchFragHeader(&answer, &used, &fragType, NULL, NULL, NULL);

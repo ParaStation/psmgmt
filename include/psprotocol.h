@@ -264,6 +264,7 @@ typedef enum {
     PSP_PLUGIN_UNSET,             /**< Modify plugin's internal state */
     PSP_PLUGIN_SHOW,              /**< Report on plugin's internal state */
     PSP_PLUGIN_LOADTIME,          /**< Report plugin's load-time */
+    PSP_PLUGIN_DROPPED = 0x00FF,  /**< Original message dropped */
 } PSP_Plugin_t;
 
 /** Kind of action within #PSP_CD_ENV message */
