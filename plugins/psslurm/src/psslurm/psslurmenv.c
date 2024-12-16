@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -466,10 +466,18 @@ static bool devEnvVisitor(GRes_Dev_t *dev, uint32_t id, void *info)
 static void setJailDevEnv(list_t *gresList, GRes_Cred_type_t credType,
 			  uint32_t credID)
 {
+    fdbg(PSSLURM_LOG_JAIL, "type %s credID %u\n", GRes_strType(credType),
+	 credID);
+
     list_t *g;
     list_for_each(g, gresList) {
 	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
-	if (gres->credType != credType) continue;
+	if (gres->credType != credType) {
+	    fdbg(PSSLURM_LOG_JAIL, "skip bitAlloc of gres %i name %s type %s "
+		 "credID %u\n", gres->hash, GRes_getNamebyHash(gres->hash),
+		 GRes_strType(gres->credType), credID);
+	    continue;
+	}
 
 	fdbg(PSSLURM_LOG_JAIL, "test bitAlloc of gres %i name %s type %s "
 	     "credID %u\n", gres->hash, GRes_getNamebyHash(gres->hash),
