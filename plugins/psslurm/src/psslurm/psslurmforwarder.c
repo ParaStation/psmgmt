@@ -1184,10 +1184,19 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     int serviceRank = step->spawned ? getNextServiceRank(fwdata) : 0;
 
     initSerial(0, sendMsg);
+
+    GRes_Cred_type_t cType = GRES_CRED_STEP;
+    if (step->stepid == SLURM_INTERACTIVE_STEP ||
+	step->taskFlags & LAUNCH_EXT_LAUNCHER) {
+	/* interactive steps should access all allocated
+	 * resources */
+	cType = GRES_CRED_JOB;
+    }
+
     setJailEnv(step->env, step->username,
 	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
-	       &step->gresList, GRES_CRED_STEP, step->cred, step->credID);
+	       &step->gresList, cType, step->cred, step->credID);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -1777,10 +1786,18 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     Step_t *step = fwdata->userData;
     Step_deleteAll(step);
 
+    GRes_Cred_type_t cType = GRES_CRED_STEP;
+    if (step->stepid == SLURM_INTERACTIVE_STEP ||
+	step->taskFlags & LAUNCH_EXT_LAUNCHER) {
+	/* interactive steps should access all allocated
+	 * resources */
+	cType = GRES_CRED_JOB;
+    }
+
     setJailEnv(step->env, step->username,
 	       &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	       &(step->nodeinfos[step->localNodeId].jobHWthreads),
-	       &step->gresList, GRES_CRED_STEP, step->cred, step->credID);
+	       &step->gresList, cType, step->cred, step->credID);
 
 #ifdef HAVE_SPANK
 
