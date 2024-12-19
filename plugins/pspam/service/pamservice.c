@@ -31,7 +31,7 @@ static pam_handle_t *pamh = NULL;
 
 static int retPAM = PAM_SUCCESS;
 
-static void startPAMservice(char *user)
+static bool startPAMservice(char *user)
 {
     const struct pam_conv conversation;
     const char serviceName[] = "psid";
@@ -42,35 +42,38 @@ static void startPAMservice(char *user)
     if (retPAM != PAM_SUCCESS) {
 	flog("starting PAM for %s failed : %s\n", user,
 	     pam_strerror(pamh, retPAM));
-	return;
+	return false;
     }
 
     retPAM = pam_set_item(pamh, PAM_USER, user);
     if (retPAM != PAM_SUCCESS) {
 	flog("setting PAM_USER %s failed : %s\n", user,
 	     pam_strerror(pamh, retPAM));
-	return;
+	return false;
     }
 
     retPAM = pam_set_item(pamh, PAM_RUSER, user);
     if (retPAM != PAM_SUCCESS) {
 	flog("setting PAM_RUSER %s failed : %s\n", user,
 	     pam_strerror(pamh, retPAM));
-	return;
+	return false;
     }
 
     retPAM = pam_setcred(pamh, PAM_ESTABLISH_CRED);
     if (retPAM != PAM_SUCCESS) {
 	flog("setting PAM_ESTABLISH_CRED %s failed : %s\n", user,
 	     pam_strerror(pamh, retPAM));
+	return false;
     }
+
+    return true;
 }
 
-static void startPAMsession(char *user)
+static bool startPAMsession(char *user)
 {
     if (!pamh) {
 	flog("invalid PAM handle for %s\n", user);
-	return;
+	return false;
     }
 
     fdbg(PAMSERVICE_LOG_DEBUG, "start PAM session for %s\n", user);
@@ -79,7 +82,9 @@ static void startPAMsession(char *user)
     if (retPAM != PAM_SUCCESS) {
 	flog("open PAM session for %s failed : %s\n", user,
 	     pam_strerror(pamh, retPAM));
+	return false;
     }
+    return true;
 }
 
 static int finishPAMservice(void *unused)
@@ -118,16 +123,15 @@ static int handleExecForwarder(void *data)
 	return 0;
     }
 
-    startPAMservice(user);
+    bool ret = startPAMservice(user);
     ufree(user);
-    return 0;
+    return ret ? 0 : -1;
 }
 
 static int handlePsslurmFWinit(void *data)
 {
     char *user = data;
-    startPAMservice(user);
-    return 0;
+    return startPAMservice(user) ? 0 : -1;
 }
 
 static int handleExecClient(void *data)
@@ -139,16 +143,15 @@ static int handleExecClient(void *data)
 	return 0;
     }
 
-    startPAMsession(user);
+    bool ret = startPAMsession(user);
     ufree(user);
-    return 0;
+    return ret ? 0 : -1;
 }
 
 static int handlePsslurmJobExec(void *data)
 {
     char *user = data;
-    startPAMsession(user);
-    return 0;
+    return startPAMsession(user) ? 0 : -1;
 }
 
 int initialize(FILE *logfile)
