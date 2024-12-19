@@ -2,15 +2,18 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "pscommon.h"
 #include "plugin.h"
@@ -84,6 +87,15 @@ static bool startPAMsession(char *user)
 	     pam_strerror(pamh, retPAM));
 	return false;
     }
+
+    /* systemd might move the child to its own cgroup, we have to
+     * move it back after the session was started */
+    pid_t pid = getpid();
+    if (PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid) < 0) {
+	flog("PSIDHOOK_JAIL_CHILD for %i failed\n", pid);
+	return false;
+    }
+
     return true;
 }
 
