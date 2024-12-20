@@ -19,6 +19,9 @@ MODULES="cpuset,oom,devices,memory"
 # base directory of the cgroup filesystem
 CGROUP_BASE="/sys/fs/cgroup"
 
+# cgroup v2 controllers to activate
+CGROUP_CONTROLLER="cpuset,memory,cpu"
+
 # path to psnameexpand executable
 EXPAND="$CommandPath/../psmgmt/psexpand.py"
 

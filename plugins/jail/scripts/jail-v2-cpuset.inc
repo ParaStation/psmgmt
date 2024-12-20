@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2023 ParTec AG, Munich
+# Copyright (C) 2023-2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,8 +24,6 @@
 
 function setUserCores()
 {
-    enableController cpuset "$CG_USER"
-
     if [[ ! -s "$CG_USER/cpuset.cpus" ]]; then
 	dlog "empty cpuset.cpus"
 	cgWrite "$JOB_CPUS" "$CG_USER/cpuset.cpus"
@@ -57,7 +55,6 @@ if [[ $CONSTRAIN_CORES == "no" ]]; then
 elif [[ -n $USER_INIT ]]; then
     dlog "constrain cores enabled"
 
-    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
     [[ -n $JOB_CPUS ]] || elog "user_init: no CPU cores for job $JOBID"
 
     getLock
@@ -87,7 +84,6 @@ elif [[ -n $ADD_USER_TO_CGROUP ]]; then
 else
     dlog "constrain cores enabled"
 
-    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
     [[ -n $JOB_CPUS ]] || elog "no CPU cores for job $JOBID"
 
     getLock
@@ -96,8 +92,6 @@ else
     setUserCores
 
     [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $USER"
-
-    enableController cpuset "$CG_JOB"
 
     # job cgroup
     dlog "JOB: $JOBID STEP:$STEPID"
@@ -111,7 +105,6 @@ else
 
     # step cgroup
     [[ -n $STEPID ]] && {
-	enableController cpuset "$CG_STEP"
 
 	cgWrite "$JOB_CPUS" "$CG_STEP/cpuset.cpus"
 	cgWrite "$MEM_NODES" "$CG_STEP/cpuset.mems"

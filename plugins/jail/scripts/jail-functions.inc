@@ -3,7 +3,7 @@
 # ParaStation
 #
 # Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -211,34 +211,45 @@ function initJailEnv {
     fi
 }
 
-function enableController {
+function assertController {
     local CONTROLLER=$1
+    local CTL="$CGROUP_BASE/cgroup.controllers"
+
     [[ -z $CONTROLLER ]] && elog "no controller given"
+    AVAIL=$(cat "$CTL")
+    if [[ ! " $AVAIL " == *" $CONTROLLER "* ]]; then
+	elog "controller $CONTROLLER not available in $CTL"
+    fi
+}
+
+function enableSingleController {
+    local CONTROLLER=$1
+    local DIR=$2
     local SUBCTL="cgroup.subtree_control"
 
-    ENABLED="cat $CGROUP_BASE/$SUBCTL"
-    if [[ ! " $ENABLED " == *" $CONTROLLER "* ]]; then
-	cgWrite "+$CONTROLLER" "$CGROUP_BASE/$SUBCTL"
-	dlog "CGROUP_BASE: cgWrite +$CONTROLLER $CGROUP_BASE/$SUBCTL"
-    fi
+    [[ -z $CONTROLLER ]] && elog "no controller given"
+    [[ -z $DIR ]] && elog "no directory given"
 
-    mdsave "$BASE"
-    ENABLED=$(cat "$BASE/$SUBCTL")
-    if [[ ! " $ENABLED " == *" $CONTROLLER "* ]]; then
-	cgWrite "+$CONTROLLER" "$BASE/$SUBCTL"
-	dlog "BASE: cgWrite +$CONTROLLER $BASE/$SUBCTL"
-    fi
-
-    local DIR=$2
-    mdsave "$DIR"
     ENABLED=$(cat "$DIR/$SUBCTL")
-
     if [[ ! " $ENABLED " == *" $CONTROLLER "* ]]; then
 	cgWrite "+$CONTROLLER" "$DIR/$SUBCTL"
-	dlog "SUB: cgWrite +$CONTROLLER $DIR/$SUBCTL"
+	dlog "enable: cgWrite +$CONTROLLER $DIR/$SUBCTL"
     fi
+}
 
+function enableControllers {
+    local DIR=$1
+    [[ -z $DIR ]] && elog "no directory given"
+
+    getLock
+
+    mdsave "$DIR"
+    for controller in ${CGROUP_CONTROLLER//,/$IFS}; do
+	enableSingleController "$controller" "$DIR"
+    done
     mdsave "$DIR/tasks"
+
+    rmLock
 }
 
 # vim: set filetype=sh ts=8 sw=4 tw=0 sts=4 noet :

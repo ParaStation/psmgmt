@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2024 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,20 +26,7 @@ IS_INIT="false"
 
 function initMem()
 {
-    [[ -n $USER ]] || {
-	elog "no user env variable for job $JOBID"
-    }
-
-    enableController memory "$CG_USER"
-
-
     [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $USER"
-
-    enableController memory "$CG_JOB"
-
-    [[ -n $STEPID ]] && {
-	enableController memory "$CG_STEP"
-    }
 
     dlog "adding child $CHILD to $CG_JOB/tasks/cgroup.procs"
     cgWrite "$CHILD" "$CG_JOB/tasks/cgroup.procs"
@@ -117,9 +104,6 @@ function constrainRam()
 function constrainUser()
 {
     local TYPE=$1
-
-    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
-    enableController memory "$CG_USER"
 
     if [[ $TYPE == "RAM" ]]; then
 	setUserMem "$JOB_RAM_SOFT" "memory.high"

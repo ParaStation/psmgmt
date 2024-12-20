@@ -3,7 +3,7 @@
 # ParaStation
 #
 # Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021-2023 ParTec AG, Munich
+# Copyright (C) 2021-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -43,17 +43,22 @@ if [[ -z $CHILD || $CHILD == 0 ]]; then
     exit 0
 fi
 
+if [[ $SCRIPT == "jail-term" ]]; then
+    getSharedUserLock
+else
+    getExclusiveUserLock
+fi
+
 if [[ $CGROUP_VERSION == "v2" ]]; then
     BASE="$CGROUP_BASE/$PREFIX-$PSID_PID"
     CG_USER="$BASE/user-$USER"
     CG_JOB="$CG_USER/job-$JOBID"
     CG_STEP="$CG_JOB/step-$STEPID"
-fi
 
-if [[ $SCRIPT == "jail-term" ]]; then
-    getSharedUserLock
-else
-    getExclusiveUserLock
+    [[ -n $USER ]] || elog "user env variable not set"
+    [[ -d $CG_USER ]] || enableControllers "$CG_USER"
+    [[ -n $JOBID && ! -d $CG_JOB ]] && enableControllers "$CG_JOB"
+    [[ -n $STEPID && ! -d $CG_STEP ]] && enableControllers "$CG_STEP"
 fi
 
 for modName in ${MODULES//,/$IFS}; do
