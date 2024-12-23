@@ -305,6 +305,7 @@ plugins/jail/helpers/README.bpf \
 plugins/jail/scripts/Makefile.am \
 plugins/jail/scripts/Makefile.in \
 plugins/jail/scripts/jail-config.inc \
+plugins/jail/scripts/jail-finalize.sh \
 plugins/jail/scripts/jail-functions.inc \
 plugins/jail/scripts/jail-init.sh \
 plugins/jail/scripts/jail-main.sh \

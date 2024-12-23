@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021-2024 ParTec AG, Munich
+# Copyright (C) 2021-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -210,6 +210,7 @@ rm -rf %{buildroot}
 make DESTDIR=%{buildroot} install
 touch %{buildroot}/etc/parastation.conf
 find %{buildroot} -type f -name '*.la' -delete
+ln -sf %{_libexecdir}/jail/jail-finalize.sh %{buildroot}%{_plugindir}/jail-finalize.sh
 
 %clean
 rm -rf %{buildroot}
@@ -250,7 +251,6 @@ else
 	mv %{_plugindir}/jail.sh %{_plugindir}/jail.sh.rpmsave
 	ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail.sh
     }
-
     [ -L %{_plugindir}/jail-term.sh -a $(realpath %{_plugindir}/jail-term.sh) = %{_libexecdir}/jail/jail-main.sh ] || {
 	mv %{_plugindir}/jail-term.sh %{_plugindir}/jail-term.sh.rpmsave
 	ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail-term.sh
@@ -317,6 +317,7 @@ fi
 %{_plugindir}/jail.so
 %config(noreplace) %{_plugindir}/jail.conf
 %config(noreplace) %{_libexecdir}/jail/jail-config.inc
+%config(noreplace) %{_libexecdir}/jail/jail-finalize.sh
 %config(noreplace) %{_libexecdir}/jail/jail-functions.inc
 %config(noreplace) %{_libexecdir}/jail/jail-init.sh
 %config(noreplace) %{_libexecdir}/jail/jail-main.sh
@@ -377,6 +378,7 @@ fi
 %ghost %{_plugindir}/jail.sh
 %ghost %{_plugindir}/jail-term.sh
 %ghost %{_plugindir}/jail-init.sh
+%{_plugindir}/jail-finalize.sh
 %attr(770,root,root) %{_localstatedir}/log/psaccounter
 
 %files devel
