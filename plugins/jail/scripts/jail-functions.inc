@@ -259,12 +259,15 @@ function cleanupCgroups {
 	    for user in "$i"/user-*; do
 		for job in "$user"/job-*; do
 		    for step in "$job"/step-*; do
+			kill -9 $(cat $step/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
 			rmdir -p "$step/tasks" 2>/dev/null
 			rmdir -p "$step" 2>/dev/null
 		    done
+		    kill -9 $(cat $job/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
 		    rmdir -p "$job/tasks" 2>/dev/null
 		    rmdir -p "$job" 2>/dev/null
 		done
+		kill -9 $(cat $user/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
 		rmdir -p "$user/tasks" 2>/dev/null
 		rmdir -p "$user" 2>/dev/null
 	    done
