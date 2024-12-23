@@ -44,37 +44,7 @@ if [[ -d $BPF_PSID_MAPS ]]; then
 fi
 
 # cleanup leftover cgroup psid directory
-if [[ $CGROUP_VERSION == "v2" ]]; then
-    dlog "cleanup v2 $CGROUP_BASE"
-    for i in "$CGROUP_BASE"/psid-*/; do
-	for user in "$i"/user-*; do
-	    for job in "$user"/job-*; do
-		for step in "$job"/step-*; do
-		    rmdir -p "$step/tasks" 2>/dev/null
-		    rmdir -p "$step" 2>/dev/null
-		done
-		rmdir -p "$job/tasks" 2>/dev/null
-		rmdir -p "$job" 2>/dev/null
-	    done
-	    rmdir -p "$user/tasks" 2>/dev/null
-	    rmdir -p "$user" 2>/dev/null
-	done
-	rmdir -p "$i" 2>/dev/null
-    done
-else
-    dlog "cleanup v1 $CGROUP_BASE"
-    for modName in ${MODULES//,/$IFS}; do
-	for i in "$CGROUP_BASE/$modName"/psid-*/; do
-	    for job in "$i"/job-*; do
-		for step in "$job"/step-*; do
-		    rmdir -p "$step" 2>/dev/null
-		done
-		rmdir -p "$job" 2>/dev/null
-	    done
-	    rmdir -p "$i" 2>/dev/null
-	done
-    done
-fi
+cleanupCgroups
 
 if [[ $CGROUP_VERSION == "v2" ]]; then
     BASE="$CGROUP_BASE/$PREFIX-$PSID_PID"
