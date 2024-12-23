@@ -48,6 +48,9 @@ static char *termScript = NULL;
 /** Name of the script to initialize jail */
 static char *initScript = NULL;
 
+/** Name of the script to finalize jail */
+static char *finScript = NULL;
+
 static char *checkScript(char *script)
 {
     char *fName;
@@ -178,6 +181,9 @@ int initialize(FILE *logfile)
 	}
     }
 
+    script = getConfValueC(config, "JAIL_FIN_SCRIPT");
+    finScript = checkScript(script);
+
     if (!PSIDhook_add(PSIDHOOK_JAIL_CHILD, jailProcess)) {
 	jlog(-1, "%s: register PSIDHOOK_JAIL_CHILD failed\n", __func__);
 	return 1;
@@ -195,6 +201,10 @@ int initialize(FILE *logfile)
 
 void cleanup(void)
 {
+    if (finScript && execScript(getpid(), finScript) != 0) {
+	jlog(-1, "%s: JAIL_FIN_SCRIPT failed\n", __func__);
+    }
+
     if (!PSIDhook_del(PSIDHOOK_JAIL_CHILD, jailProcess)) {
 	jlog(-1, "removing PSIDHOOK_JAIL_CHILD failed\n");
     }
@@ -206,6 +216,7 @@ void cleanup(void)
     free(jailScript);
     free(termScript);
     free(initScript);
+    free(finScript);
     freeConfig(config);
 
     jlog(-1, "...Bye.\n");
@@ -351,6 +362,14 @@ char *show(char *key)
 	    strbufAdd(buf, "'\n");
 	} else {
 	    strbufAdd(buf, "no init script defined!\n");
+	}
+
+	if (finScript) {
+	    strbufAdd(buf, "finalize script in use: '");
+	    strbufAdd(buf, finScript);
+	    strbufAdd(buf, "'\n");
+	} else {
+	    strbufAdd(buf, "no finalize script defined!\n");
 	}
     } else if ((val = getConfValueC(config, key))) {
 	strbufAdd(buf, "\t");

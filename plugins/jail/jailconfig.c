@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,6 +27,11 @@
 #define DEFAULT_JAIL_INIT_SCRIPT "jail-init.sh"
 #endif
 
+#ifndef DEFAULT_JAIL_FIN_SCRIPT
+#define DEFAULT_JAIL_FIN_SCRIPT "jail-finalize.sh"
+#endif
+
+
 const ConfDef_t confDef[] =
 {
     { "JAIL_SCRIPT", false, "path", DEFAULT_JAIL_SCRIPT,
@@ -35,6 +40,8 @@ const ConfDef_t confDef[] =
       "(Relative or absolute) path to jail terminate script" },
     { "JAIL_INIT_SCRIPT", false, "path", DEFAULT_JAIL_INIT_SCRIPT,
       "(Relative or absolute) path to jail initialize script" },
+    { "JAIL_FIN_SCRIPT", false, "path", DEFAULT_JAIL_FIN_SCRIPT,
+      "(Relative or absolute) path to jail finalize script" },
     { "DEBUG_MASK", true, "mask", "0",
       "Mask to steer debug output" },
     { NULL, false, NULL, NULL, NULL},
