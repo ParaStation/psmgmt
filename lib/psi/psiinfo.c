@@ -56,6 +56,10 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, bool verbose)
 {
     DDTypedBufferMsg_t msg;
     PSP_Info_t ret;
+    if (!size) {
+	PSI_flog("missing size\n");
+	return PSP_INFO_UNKNOWN;
+    }
 
 recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
@@ -581,42 +585,42 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
 	return -1;
     }
 
-    DDOptionMsg_t msg = {
+    DDOptionMsg_t request = {
 	.header = {
 	    .type = PSP_CD_GETOPTION,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) },
+	    .len = sizeof(request) },
 	.count = num };
 
-    for (int i = 0; i < num; i++) {
-	msg.opt[i].option = option[i];
-    }
+    for (int i = 0; i < num; i++) request.opt[i].option = option[i];
 
-    if (PSI_sendMsg(&msg) == -1) {
+    if (PSI_sendMsg(&request) == -1) {
 	PSI_fwarn(errno, "PSI_sendMsg");
 	return -1;
     }
 
+    DDBufferMsg_t msg;
 recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     }
 
+    DDOptionMsg_t *oMsg = (DDOptionMsg_t *)&msg;
     switch (msg.header.type) {
     case PSP_CD_SETOPTION:
-	if (msg.count > num) {
+	if (oMsg->count > num) {
 	    PSI_fdbg(verbose ? -1 : PSI_LOG_INFO, "option-buffer too small\n");
-	    msg.count = num;
+	    oMsg->count = num;
 	}
 
-	for (int i = 0; i < msg.count; i++) {
-	    option[i] = msg.opt[i].option;
-	    value[i] = msg.opt[i].value;
+	for (int i = 0; i < oMsg->count; i++) {
+	    option[i] = oMsg->opt[i].option;
+	    value[i] = oMsg->opt[i].value;
 	}
 
-	return msg.count;
+	return oMsg->count;
     case PSP_CD_SENDSTOP:
     case PSP_CD_SENDCONT:
 	goto recv_retry;
@@ -653,27 +657,27 @@ int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option)
 
 int PSI_infoOptionListNext(DDOption_t opts[], int num)
 {
-    DDOptionMsg_t msg;
-
+    DDBufferMsg_t msg;
 recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     }
 
+    DDOptionMsg_t *oMsg = (DDOptionMsg_t *)&msg;
     switch (msg.header.type) {
     case PSP_CD_SETOPTION:
-	if (msg.count > num) {
+	if (oMsg->count > num) {
 	    PSI_flog("option-buffer too small\n");
-	    msg.count = num;
+	    oMsg->count = num;
 	}
 
-	for (int i = 0; i < msg.count; i++) {
-	    opts[i].option = msg.opt[i].option;
-	    opts[i].value = msg.opt[i].value;
+	for (int i = 0; i < oMsg->count; i++) {
+	    opts[i].option = oMsg->opt[i].option;
+	    opts[i].value = oMsg->opt[i].value;
 	}
 
-	return msg.count;
+	return oMsg->count;
     case PSP_CD_SENDSTOP:
     case PSP_CD_SENDCONT:
 	goto recv_retry;

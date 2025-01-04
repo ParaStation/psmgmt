@@ -1804,7 +1804,6 @@ void PSIADM_Plugin(bool *nl, char *name, PSP_Plugin_t action)
 	    .dest = 0,
 	    .len = 0 },
 	.buf = { 0 } };
-    DDTypedMsg_t answer;
 
     msg.type = action;
 
@@ -1819,6 +1818,7 @@ void PSIADM_Plugin(bool *nl, char *name, PSP_Plugin_t action)
 	if (hostStatus.list[node]) {
 	    msg.header.dest = PSC_getTID(node, 0);
 	    sendDmnMsg(&msg);
+	    DDTypedBufferMsg_t answer;
 	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 		printf("%soading plugin '%s' on node %s failed\n",
 		       action ? "unl" : "l", name, nodeString(node));
@@ -1840,10 +1840,10 @@ void PSIADM_Plugin(bool *nl, char *name, PSP_Plugin_t action)
 static bool recvPluginKeyAnswersOld(PStask_ID_t src, PSP_Plugin_t action,
 				    char *nodeStr)
 {
-    DDTypedBufferMsg_t answer;
     bool first = true;
 
     while (true) {
+	DDTypedBufferMsg_t answer;
 	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 	    int eno = errno;
 	    char *errStr = strerror(eno);

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -354,13 +354,12 @@ static void setTimeout(void)
  */
 static void handleResponse(void)
 {
-    DDTypedBufferMsg_t answer;
-
     if (debug) printf("%s: ...done, waiting for answer ...\n", __func__);
 
     /* recv answer */
     setTimeout();
 
+    DDTypedBufferMsg_t answer;
     if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
 	fprintf(stderr, "%s: PSI_recvMsg() for job %s failed\n",
 		__func__, jobID);

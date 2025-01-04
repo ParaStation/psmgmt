@@ -152,9 +152,8 @@ static void releaseMySelf(const char *func)
     }
 
     while (true) {
-	PSLog_Msg_t answer;
+	DDBufferMsg_t answer;
 	int ret = PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer));
-
 	if (ret <= 0) {
 	    if (!ret) {
 		mlog("%s: unexpected message length 0\n", __func__);
@@ -962,14 +961,9 @@ static void handleCCMsg(PSLog_Msg_t *msg)
  */
 static int handlePSIMessage(int fd, void *data)
 {
-    PSLog_Msg_t msg;
-    DDSignalMsg_t *sigMsg = (DDSignalMsg_t *)&msg;
-    int ret;
-    PMI_Clients_t *client;
-
-    ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
-
-    if (ret<=0) {
+    DDBufferMsg_t msg;
+    int ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
+    if (ret <= 0) {
 	if (!ret) {
 	    mlog("%s: unexpected message length 0\n", __func__);
 	} else {
@@ -978,9 +972,10 @@ static int handlePSIMessage(int fd, void *data)
 	terminateJob(__func__);
     }
 
+    DDSignalMsg_t *sigMsg = (DDSignalMsg_t *)&msg;
     switch (msg.header.type) {
     case PSP_CC_MSG:
-	handleCCMsg(&msg);
+	handleCCMsg((PSLog_Msg_t *)&msg);
 	break;
     case PSP_CD_WHODIED:
 	if (verbose) {
@@ -998,7 +993,8 @@ static int handlePSIMessage(int fd, void *data)
 	    /* logger died, nothing left for me to do here */
 	    exit(0);
 	}
-	if ((client = findClient(&msg, false))) {
+	PMI_Clients_t *client = findClient((PSLog_Msg_t *)&msg, false);
+	if (client) {
 	    if (!(client->flags & PMI_CLIENT_GONE)) {
 		mdbg(KVS_LOG_VERBOSE, "%s: client %s already gone\n",
 		     __func__, PSC_printTID(msg.header.sender));

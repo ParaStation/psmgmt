@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -135,12 +135,12 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
     }
 
     /* local connect */
-    DDInitMsg_t msg = {
+    DDInitMsg_t request = {
 	.header = {
 	    .type = PSP_CD_CLIENTCONNECT,
 	    .sender = getpid(),
 	    .dest = 0,
-	    .len = sizeof(msg) },
+	    .len = sizeof(request) },
 	.version = PSProtocolVersion,
 #ifndef SO_PEERCRED
 	.pid = getpid(),
@@ -149,7 +149,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 #endif
 	.group = taskGroup };
 
-    if (PSI_sendMsg(&msg) == -1) {
+    if (PSI_sendMsg(&request) == -1) {
 	PSI_fwarn(errno, "PSI_sendMsg");
 	return false;
     }
@@ -479,19 +479,20 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
 {
     PSI_fdbg(PSI_LOG_VERB, "TID %s sig %d\n", PSC_printTID(tid), sig);
 
-    DDSignalMsg_t msg = {
+    DDSignalMsg_t request = {
 	.header = {
 	    .type = PSP_CD_NOTIFYDEAD,
 	    .sender = PSC_getMyTID(),
 	    .dest = tid,
-	    .len = sizeof(msg) },
+	    .len = sizeof(request) },
 	.signal = sig };
 
-    if (PSI_sendMsg(&msg) == -1) {
+    if (PSI_sendMsg(&request) == -1) {
 	PSI_fwarn(errno, "PSI_sendMsg");
 	return -1;
     }
 
+    DDBufferMsg_t msg;
     int ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
     if (ret == -1) {
 	PSI_fwarn(errno, "PSI_recvMsg");
@@ -501,12 +502,13 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
 	return -1;
     }
 
+    DDSignalMsg_t *sMsg = (DDSignalMsg_t *)&msg;
     if (msg.header.type != PSP_CD_NOTIFYDEADRES) {
 	PSI_flog("wrong message type %d (%s)\n",
 		 msg.header.type, PSP_printMsg(msg.header.type));
 	return -1;
-    } else if (msg.param) {
-	PSI_flog("error = %d\n", msg.param);
+    } else if (sMsg->param) {
+	PSI_flog("error = %d\n", sMsg->param);
 	return -1;
     }
 
@@ -517,19 +519,22 @@ int PSI_release(PStask_ID_t tid)
 {
     PSI_fdbg(PSI_LOG_VERB, "%s\n", PSC_printTID(tid));
 
-    DDSignalMsg_t msg = {
+    DDSignalMsg_t request = {
 	.header = {
 	    .type = PSP_CD_RELEASE,
 	    .sender = PSC_getMyTID(),
 	    .dest = tid,
-	    .len = sizeof(msg) },
+	    .len = sizeof(request) },
 	.signal = -1,
 	.answer = 1 };
-    if (PSI_sendMsg(&msg) == -1) {
-	PSI_fwarn(errno, "PSI_sendMsg");
+    if (PSI_sendMsg(&request) == -1) {
+	int eno = errno;
+	PSI_fwarn(eno, "PSI_sendMsg");
+	errno = eno;
 	return -1;
     }
 
+    DDBufferMsg_t msg;
     int ret;
 restart:
     ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
@@ -548,17 +553,18 @@ restart:
 
     ret = 0;
 
+    DDSignalMsg_t *sMsg = (DDSignalMsg_t *)&msg;
     switch (msg.header.type) {
     case PSP_CD_RELEASERES:
-	if (msg.param) {
-	    if (msg.param != ESRCH || tid != PSC_getMyTID())
-		PSI_fwarn(msg.param, "releasing %s", PSC_printTID(tid));
-	    errno=msg.param;
+	if (sMsg->param) {
+	    if (sMsg->param != ESRCH || tid != PSC_getMyTID())
+		PSI_fwarn(sMsg->param, "releasing %s", PSC_printTID(tid));
+	    errno = sMsg->param;
 	    ret = -1;
 	}
 	break;
     case PSP_CD_WHODIED:
-	PSI_flog("got signal %d from %s\n", msg.signal,
+	PSI_flog("got signal %d from %s\n", sMsg->signal,
 		 PSC_printTID(msg.header.sender));
 	goto restart;
 	break;
@@ -582,19 +588,20 @@ PStask_ID_t PSI_whodied(int sig)
 {
     PSI_fdbg(PSI_LOG_VERB, "%d\n", sig);
 
-    DDSignalMsg_t msg = {
+    DDSignalMsg_t request = {
 	.header = {
 	    .type = PSP_CD_WHODIED,
 	    .sender = PSC_getMyTID(),
 	    .dest = 0,
-	    .len = sizeof(msg) },
+	    .len = sizeof(request) },
 	.signal = sig };
 
-    if (PSI_sendMsg(&msg) == -1) {
+    if (PSI_sendMsg(&request) == -1) {
 	PSI_fwarn(errno, "PSI_sendMsg");
 	return -1;
     }
 
+    DDBufferMsg_t msg;
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
@@ -637,7 +644,7 @@ int PSI_recvFinish(int outstanding)
 	case PSP_CD_SPAWNFINISH:
 	    break;
 	default:
-	    PSI_flog("UNKNOWN answer\n");
+	    PSI_flog("unexpected message %s\n", PSP_printMsg(msg.type));
 	    error = 1;
 	    break;
 	}
@@ -674,11 +681,9 @@ int PSI_recvFinish(int outstanding)
  */
 static int myexecv( const char *path, char *const argv[])
 {
-    int ret;
-    int cnt;
-
     /* Try 5 times with delay 400ms = 2 sec overall */
-    for (cnt=0; cnt<5; cnt++){
+    int ret;
+    for (int cnt = 0; cnt < 5; cnt++){
 	ret = execv(path, argv);
 	usleep(1000 * 400);
     }

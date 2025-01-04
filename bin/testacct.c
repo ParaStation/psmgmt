@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -287,7 +287,7 @@ static void loop(void)
 	    handleSigMsg((DDErrorMsg_t *)&msg);
 	    break;
 	default:
-	    printf("Unknown message\n");
+	    printf("unexpected message %s\n", PSP_printMsg(msg.header.type));
 	}
     }
 }

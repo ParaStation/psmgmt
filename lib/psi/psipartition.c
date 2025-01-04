@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -855,7 +855,7 @@ int PSI_createPartition(uint32_t size, uint32_t hwType)
 	return -1;
     }
 
-    int ret = -1;
+    int retVal = -1;
     nodelist_t *nl = getNodelist();
     if (nl && !nl->nodes) goto end;
 
@@ -891,17 +891,17 @@ int PSI_createPartition(uint32_t size, uint32_t hwType)
 	goto end;
     }
 
-    PS_SendDB_t msg;
-    initFragBuffer(&msg, PSP_CD_REQUESTPART, 0);
-    setFragDest(&msg, PSC_getTID(-1, 0));
+    PS_SendDB_t reqMsg;
+    initFragBuffer(&reqMsg, PSP_CD_REQUESTPART, 0);
+    setFragDest(&reqMsg, PSC_getTID(-1, 0));
 
-    if (!PSpart_addToMsg(request, &msg)) {
+    if (!PSpart_addToMsg(request, &reqMsg)) {
 	PSI_flog("PSpart_addToMsg() failed\n");
 	goto end;
     }
 
-    if (nl) addDataToMsg(nl->nodes, nl->used * sizeof(*nl->nodes), &msg);
-    if (sendFragMsg(&msg) == -1) {
+    if (nl) addDataToMsg(nl->nodes, nl->used * sizeof(*nl->nodes), &reqMsg);
+    if (sendFragMsg(&reqMsg) == -1) {
 	PSI_flog("sendFragMsg() failed\n");
 	goto end;
     }
@@ -950,7 +950,7 @@ recv_retry:
 	PSI_log("%s -- Starting now...\n", timeStr);
     }
 
-    ret = request->size;
+    retVal = request->size;
 
 end:
     alarm(0);
@@ -959,7 +959,7 @@ end:
     freeNodelist(nl);
     if (request) PSpart_delReq(request);
 
-    return ret;
+    return retVal;
 }
 
 PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
@@ -972,8 +972,6 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 	    .dest = PSC_getTID(-1, 0),
 	    .sender = PSC_getMyTID(),
 	    .len = 0 } };
-    PSrsrvtn_ID_t rid = 0;
-    size_t used = 0;
 
     PSI_fdbg(PSI_LOG_PART, "min %d max %d", nMin, nMax);
     if (ppn) PSI_dbg(PSI_LOG_PART, " ppn %d", ppn);
@@ -994,7 +992,7 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
     PSP_putMsgBuf(&msg, "options", &options, sizeof(options));
     PSP_putMsgBuf(&msg, "ppn", &ppn, sizeof(ppn));
 
-    if (PSI_sendMsg(&msg)<0) {
+    if (PSI_sendMsg(&msg) < 0) {
 	PSI_fwarn(errno, "PSI_sendMsg");
 	return 0;
     }
@@ -1017,6 +1015,8 @@ recv_retry:
     PSC_setSigHandler(SIGALRM, SIG_DFL);
 
     if (got) *got = 0;
+    size_t used = 0;
+    PSrsrvtn_ID_t rid = 0;
     switch (msg.header.type) {
     case PSP_CD_RESERVATIONRES:
 	PSP_getMsgBuf(&msg, &used, "rid", &rid, sizeof(rid));
