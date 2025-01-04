@@ -154,12 +154,8 @@ static void releaseMySelf(const char *func)
     while (true) {
 	DDBufferMsg_t answer;
 	int ret = PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer));
-	if (ret <= 0) {
-	    if (!ret) {
-		mlog("%s: unexpected message length 0\n", __func__);
-	    } else {
-		mwarn(errno, "%s: PSI_recvMsg", __func__);
-	    }
+	if (ret == -1) {
+	    mwarn(errno, "%s: PSI_recvMsg", __func__);
 	    return;
 	}
 
@@ -963,12 +959,8 @@ static int handlePSIMessage(int fd, void *data)
 {
     DDBufferMsg_t msg;
     int ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
-    if (ret <= 0) {
-	if (!ret) {
-	    mlog("%s: unexpected message length 0\n", __func__);
-	} else {
-	    mwarn(errno, "%s: PSI_recvMsg", __func__);
-	}
+    if (ret == -1) {
+	mwarn(errno, "%s: PSI_recvMsg", __func__);
 	terminateJob(__func__);
     }
 

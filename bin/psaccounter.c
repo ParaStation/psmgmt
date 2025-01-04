@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1523,15 +1523,11 @@ static void loop(char *arg_logdir)
 {
     while (1) {
 	DDTypedBufferMsg_t msg;
-
 	int ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
-
-	if (ret < 0 && errno == EINTR) {
-	    continue;
-	}
+	if (ret == -1 && errno == EINTR) continue;
 
 	/* Problem with daemon */
-	if (ret < 0 && errno != EINTR) {
+	if (ret == -1) {
 	    alog("\n%s: daemon died, error:%i errno:%i\n",
 		 __func__, ret, errno);
 	    exit(EXIT_FAILURE);

@@ -156,13 +156,8 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 
     DDTypedBufferMsg_t answer;
     int ret = PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer));
-    if (ret <= 0) {
-	if (!ret) {
-	    PSI_flog("unexpected message length 0\n");
-	} else {
-	    PSI_fwarn(errno, "PSI_recvMsg");
-	}
-
+    if (ret == -1) {
+	PSI_fwarn(errno, "PSI_recvMsg");
 	return false;
     }
 
@@ -555,9 +550,6 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
     if (ret == -1) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
-    } else if (!ret) {
-	PSI_flog("PSI_recvMsg() returned 0\n");
-	return -1;
     }
 
     DDSignalMsg_t *sMsg = (DDSignalMsg_t *)&msg;
@@ -598,9 +590,6 @@ restart:
     ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
     if (ret == -1) {
 	PSI_fwarn(errno, "PSI_recvMsg");
-	return -1;
-    } else if (!ret) {
-	PSI_flog("PSI_recvMsg() returned 0\n");
 	return -1;
     }
 
