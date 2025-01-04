@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -649,16 +649,13 @@ int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option);
  *
  * @param num Actual number of entries within the buffer @a optsbuf
  *
- * @param verbose Flag to be more verbose in the case something went
- * wrong during information retrival
- *
  * @return On success, the number of options received and stored
  * within @a opts is returned. Otherwise -1 is returned and errno is
  * set appropriately.
  *
  * @see errno(3)
  */
-int PSI_infoOptionListNext(DDOption_t opts[], int num, bool verbose);
+int PSI_infoOptionListNext(DDOption_t opts[], int num);
 
 /**
  * @brief Get hardware name.

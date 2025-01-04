@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -651,7 +651,7 @@ int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option)
     return 0;
 }
 
-int PSI_infoOptionListNext(DDOption_t opts[], int num, bool verbose)
+int PSI_infoOptionListNext(DDOption_t opts[], int num)
 {
     DDOptionMsg_t msg;
 
@@ -664,7 +664,7 @@ recv_retry:
     switch (msg.header.type) {
     case PSP_CD_SETOPTION:
 	if (msg.count > num) {
-	    PSI_fdbg(verbose ? -1 : PSI_LOG_INFO, "option-buffer too small\n");
+	    PSI_flog("option-buffer too small\n");
 	    msg.count = num;
 	}
 
@@ -679,7 +679,7 @@ recv_retry:
 	goto recv_retry;
 	break;
     case PSP_CD_ERROR:
-	PSI_fdwarn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
+	PSI_fwarn(((DDErrorMsg_t*)&msg)->error,
 		   "error");
 	break;
     default:

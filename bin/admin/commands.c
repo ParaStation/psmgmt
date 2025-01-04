@@ -1568,7 +1568,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, bool *nl)
 	    continue;
 	}
 	do {
-	    int ret = PSI_infoOptionListNext(options, DDOptionMsgMax, true);
+	    int ret = PSI_infoOptionListNext(options, DDOptionMsgMax);
 	    if (ret == -1) {
 		printf("error getting info");
 		break;
