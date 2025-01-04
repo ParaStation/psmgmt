@@ -26,11 +26,11 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#include "psprotocol.h"
-#include "psprotocolenv.h"
-
+#include "list.h"
 #include "pscio.h"
 #include "pscommon.h"
+#include "psprotocol.h"
+#include "psprotocolenv.h"
 #include "psserial.h"
 
 #include "psilog.h"
@@ -426,6 +426,64 @@ ssize_t PSI_sendMsg(void *amsg)
     }
 
     return ret;
+}
+
+typedef struct {
+    list_t next;
+    int16_t msgType;
+    PSI_handlerFunc_t handler;
+    void *info;
+} PSI_handler_t;
+
+static LIST_HEAD(msgHandlers);
+
+PSI_handler_t *findHandler(int16_t msgType)
+{
+    list_t *h;
+    list_for_each(h, &msgHandlers) {
+	PSI_handler_t *handler = list_entry(h, PSI_handler_t, next);
+	if (handler->msgType == msgType) return handler;
+    }
+    return NULL;
+}
+
+bool PSI_addRecvHandler(int16_t msgType, PSI_handlerFunc_t handler, void *info)
+{
+    if (!handler) return false;
+
+    PSI_handler_t *thisHandler = findHandler(msgType);
+    if (thisHandler) {
+	list_del(&thisHandler->next);
+    } else {
+	thisHandler = calloc(1, sizeof(*thisHandler));
+	if (!thisHandler) {
+	    PSI_fwarn(errno, "calloc()");
+	    return false;
+	}
+    }
+
+    *thisHandler = (PSI_handler_t) {
+	.msgType = msgType,
+	.handler = handler,
+	.info = info, };
+
+    list_add_tail(&thisHandler->next, &msgHandlers);
+
+    return true;
+}
+
+bool PSI_clrRecvHandler(int16_t msgType, PSI_handlerFunc_t handler)
+{
+    PSI_handler_t *thisHandler = findHandler(msgType);
+
+    if (!thisHandler) return false;
+
+    list_del(&thisHandler->next);
+    if (thisHandler->handler != handler) PSI_flog("wrong handler for %s\n",
+						  PSP_printMsg(msgType));
+    free(thisHandler);
+
+    return true;
 }
 
 int PSI_availMsg(void)

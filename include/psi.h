@@ -120,6 +120,77 @@ ssize_t PSI_sendMsg(void *amsg);
 int PSI_availMsg(void);
 
 /**
+ * @brief Handler prototype for PSI messages
+ *
+ * Prototype for handlers of PSI messages to be utilized while calling
+ * @ref PSI_recvMsg(). Handlers for specific message types might be
+ * registered via @ref PSI_addRecvHandler(). If a message of this type
+ * is received in @ref PSI_recvMsg() the corresponding handler will be
+ * called with the message as first argument, the name of the caller
+ * as the second argument and an @a info argumment that was provided
+ * while registering the handler via @ref PSI_addRecvHandler() as the
+ * third argument.
+ *
+ * Depending on the return value of the handler @ref PSI_recvMsg()
+ * will either (in the case of true) continue waiting for appropriate
+ * messages or return to the calling functions indicating no
+ * appropriate message was received by returning -1 and setting errno
+ * to ENOMSG.
+ *
+ * @param msg Message to be handled by the message handler
+ *
+ * @param caller Name of the caller of @ref PSI_recvMsg()
+ *
+ * @param info Pointer to additinal information that was registered
+ * alongside the handler itself
+ *
+ * @return If the handler returns true, @ref PSI_recvMsg() will wait
+ * for further messages; otherwise @ref PSI_recvMsg() will return
+ * immediately indicating no appropriate message was found by setting
+ * @ref errno to ENOMSG
+ */
+typedef bool(*PSI_handlerFunc_t)(DDBufferMsg_t *msg, const char *caller,
+				 void *info);
+
+/**
+ * @brief Register handler for PSI messsages
+ *
+ * Register the message handler function @a handler to handle PSI
+ * messages of type @a msgType within @ref PSI_recvMsg(). For this,
+ * @ref PSI_recvMsg() will call @a handler if a message of type @a
+ * msgType is received. Besides the message itself a pointer to
+ * additional information @a info is passed to the handler.
+ *
+ * @param msgType Message type to get handled
+ *
+ * @param handler Message handler to call upon receive of a message of
+ * type @a msgType
+ *
+ * @param info Pointer to additional information to be passed to @a
+ * handler upon receive of a message of type @a msgType
+ *
+ * @return Return true on success or false in case of error
+*/
+bool PSI_addRecvHandler(int16_t msgType, PSI_handlerFunc_t handler, void *info);
+
+/**
+ * @brief Clear handler for PSI messages
+ *
+ * Stop handling PSI messages of type @a msgType by the message
+ * handler function @a handler. Future messages of this type will be
+ * either ignored or handled as unexpected messsages by @ref
+ * PSI_recvMsg().
+ *
+ * @param msgType Message type to be ignored in the future
+ *
+ * @param handler Message handler to be removed
+ *
+ * @return Return true on success (i.e. on removal of the
+ * correspondign handler) or false in case otherwise
+ */
+bool PSI_clrRecvHandler(int16_t msgType, PSI_handlerFunc_t handler);
+
+/**
  * @brief Receive a message.
  *
  * Receive a message from the local ParaStation daemon and store it to
