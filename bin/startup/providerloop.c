@@ -267,12 +267,12 @@ static void initKVS(void)
 }
 
 /**
- * @brief Find a PMI client from a PSLog message.
+ * @brief Find a PMI client from a PSLog message
  *
- * @param msg The PSLog message to identify the client.
+ * @param msg PSLog message to identify the client
  *
- * @return Returns a pointer to the requested client or terminates
- * the Job on error.
+ * @return Return a pointer to the requested client or terminates
+ * the Job on error
  */
 #define findClient(msg, term) __findClient(msg, term, __func__)
 static PMI_Clients_t *__findClient(PSLog_Msg_t *msg, bool term, const char *func)

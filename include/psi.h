@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -93,7 +93,7 @@ bool PSI_mixedProto(void);
 int PSI_protocolVersion(PSnodes_ID_t id);
 
 /**
- * @brief Send a message.
+ * @brief Send a message
  *
  * Send the message @a amsg to the destination defined therein. This
  * is done by sending it to the local ParaStation daemon. @a amsg is
@@ -107,7 +107,7 @@ int PSI_protocolVersion(PSnodes_ID_t id);
 ssize_t PSI_sendMsg(void *amsg);
 
 /**
- * @brief Test for available message.
+ * @brief Test for available message
  *
  * Test, if a message is available from the local ParaStation
  * daemon. For this, select() is called with a zero timeout on the
@@ -135,7 +135,7 @@ int PSI_availMsg(void);
 int PSI_recvMsg(DDMsg_t *msg, size_t size);
 
 /**
- * @brief Register for notification of foreign processes death.
+ * @brief Register for notification of foreign processes death
  *
  * Register for notification of a foreign processes death. I.e. send
  * me the signal @a sig, as soon as the foreign process with task ID
@@ -150,17 +150,16 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size);
  * registration of the wanted signal to the @a tid of 0L using this
  * function.
  *
- * @param tid The task ID of the process whose death I'm interested
- * in.
+ * @param tid Task ID of the process whose death I'm interested in
  *
- * @param sig The signal that should be send when the process dies.
+ * @param sig Signal to be sent when the process dies
  *
- * @return On success, 0 is returned. Or -1, if an error occurred.
+ * @return On success 0 is returned; or -1 if an error occurred
  */
 int PSI_notifydead(PStask_ID_t tid, int sig);
 
 /**
- * @brief Release a process.
+ * @brief Release a process
  *
  * Release the process with task ID @a tid from sending a signal to me
  * on its death. This might be used to cancel prior PSI_notifydead()
