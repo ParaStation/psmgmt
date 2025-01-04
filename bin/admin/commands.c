@@ -1822,8 +1822,7 @@ void PSIADM_Plugin(bool *nl, char *name, PSP_Plugin_t action)
 	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 		printf("%soading plugin '%s' on node %s failed\n",
 		       action ? "unl" : "l", name, nodeString(node));
-	    }
-	    if (answer.type == -1) {
+	    } else if (answer.type == -1) {
 		printf("cannot %sload plugin '%s' on node %s\n",
 		       action ? "un" : "", name, nodeString(node));
 	    } else if (answer.type) {
@@ -2071,8 +2070,7 @@ void PSIADM_Environment(bool *nl, char *key, char *value, PSP_Env_t action)
 	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 		printf("%ssetting '%s' on node %s failed\n",
 		       action ? "un" : "", key, nodeString(node));
-	    }
-	    if (answer.type == -1) {
+	    } else if (answer.type == -1) {
 		printf("cannot %sset '%s' on node %s\n",
 		       action ? "un" : "", key, nodeString(node));
 	    } else if (answer.type) {
