@@ -1821,13 +1821,13 @@ void PSIADM_Plugin(bool *nl, char *name, PSP_Plugin_t action)
 	    sendDmnMsg(&msg);
 	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 		printf("%soading plugin '%s' on node %s failed\n",
-		       action ? "Unl" : "L", name, nodeString(node));
+		       action ? "unl" : "l", name, nodeString(node));
 	    }
 	    if (answer.type == -1) {
-		printf("Cannot %sload plugin '%s' on node %s\n",
+		printf("cannot %sload plugin '%s' on node %s\n",
 		       action ? "un" : "", name, nodeString(node));
 	    } else if (answer.type) {
-		printf("Cannot %sload plugin '%s' on node %s: %s\n",
+		printf("cannot %sload plugin '%s' on node %s: %s\n",
 		       action ? "un" : "", name, nodeString(node),
 		       strerror(answer.type));
 	    }
