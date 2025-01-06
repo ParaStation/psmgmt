@@ -42,6 +42,28 @@ static bool mixedProto = false;
 
 static int daemonSock = -1;
 
+/** drop message silently (unless PSI_LOG_COMM is set) */
+static bool ignoreMsg(DDBufferMsg_t *msg, const char *caller, void *info)
+{
+    PSI_dbg(PSI_LOG_COMM, "%s: ignore %s message from %s\n", caller,
+	    PSP_printMsg(msg->header.type), PSC_printTID(msg->header.sender));
+    return true;   // continue PSI_recvMsg()
+}
+
+/** pass message to PSI_recvMsg() caller without further ado */
+static bool acceptMsg(DDBufferMsg_t *msg, const char *caller, void *info)
+{
+    return false;  // return from PSI_recvMsg() with errno set to ENOMSG
+}
+
+static bool handle_CD_ERROR(DDBufferMsg_t *msg, const char *caller, void *info)
+{
+    DDErrorMsg_t *eMsg = (DDErrorMsg_t *)msg;
+    PSI_warn(eMsg->error, "%s: error on %s from %s", caller,
+	     PSP_printMsg(eMsg->request), PSC_printTID(eMsg->header.sender));
+    return true;   // continue PSI_recvMsg()
+}
+
 /**
  * @brief Open socket to local daemon.
  *
@@ -153,6 +175,11 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	PSI_fwarn(errno, "PSI_sendMsg");
 	return false;
     }
+
+    /* add some standard message handlers immediately */
+    PSI_addRecvHandler(PSP_CD_SENDSTOP, ignoreMsg, NULL);
+    PSI_addRecvHandler(PSP_CD_SENDCONT, ignoreMsg, NULL);
+    PSI_addRecvHandler(PSP_CD_ERROR, handle_CD_ERROR, NULL);
 
     DDTypedBufferMsg_t msg;
     ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&msg, sizeof(msg),
