@@ -192,8 +192,32 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
     }
 
     size_t used = 0;
+
     PSP_ConnectError_t type = msg.type;
     switch (msg.header.type) {
+    case PSP_CD_CLIENTESTABLISHED:
+	PSP_getTypedMsgBuf(&msg, &used, "mixedProto", &mixedProto,
+			   sizeof(mixedProto));
+
+	PSnodes_ID_t myID;
+	PSP_getTypedMsgBuf(&msg, &used, "myID", &myID, sizeof(myID));
+	PSC_setMyID(myID);
+
+	PSnodes_ID_t nNodes;
+	PSP_getTypedMsgBuf(&msg, &used, "nrOfNodes", &nNodes, sizeof(nNodes));
+	PSC_setNrOfNodes(nNodes);
+
+	uint16_t dirLen;
+	PSP_getTypedMsgBuf(&msg, &used, "dirLen", &dirLen, sizeof(dirLen));
+	char instDir[PATH_MAX];
+	PSP_getTypedMsgBuf(&msg, &used, "instDir", instDir, dirLen);
+	instDir[dirLen] = '\0';
+
+	if (strcmp(instDir, PSC_lookupInstalldir(instDir))) {
+	    PSI_flog("Installation directory '%s' not correct\n", instDir);
+	    break;
+	}
+	return true;
     case PSP_CD_CLIENTREFUSED:
 	switch (type) {
 	case PSP_CONN_ERR_NONE:
@@ -239,30 +263,6 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	    break;
 	}
 	break;
-    case PSP_CD_CLIENTESTABLISHED:
-	PSP_getTypedMsgBuf(&msg, &used, "mixedProto", &mixedProto,
-			   sizeof(mixedProto));
-
-	PSnodes_ID_t myID;
-	PSP_getTypedMsgBuf(&msg, &used, "myID", &myID, sizeof(myID));
-	PSC_setMyID(myID);
-
-	PSnodes_ID_t nNodes;
-	PSP_getTypedMsgBuf(&msg, &used, "nrOfNodes", &nNodes, sizeof(nNodes));
-	PSC_setNrOfNodes(nNodes);
-
-	uint16_t dirLen;
-	PSP_getTypedMsgBuf(&msg, &used, "dirLen", &dirLen, sizeof(dirLen));
-	char instDir[PATH_MAX];
-	PSP_getTypedMsgBuf(&msg, &used, "instDir", instDir, dirLen);
-	instDir[dirLen] = '\0';
-
-	if (strcmp(instDir, PSC_lookupInstalldir(instDir))) {
-	    PSI_flog("Installation directory '%s' not correct\n", instDir);
-	    break;
-	}
-
-	return true;
     default:
 	PSI_flog("unexpected message %s\n", PSP_printMsg(msg.header.type));
     }
