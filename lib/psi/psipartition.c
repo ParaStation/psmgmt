@@ -913,18 +913,22 @@ int PSI_createPartition(uint32_t size, uint32_t hwType)
 	alarm(60);
     }
     PSC_setSigHandler(SIGALRM, alarmHandlerPart);
+
+    DDBufferMsg_t msg;
+    ssize_t ret;
 recv_retry:
-    ;
-    DDBufferMsg_t answer;
-    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
-	PSI_fwarn(errno, "PSI_recvMsg");
+    ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
+    int eno = errno;
+    alarm(0);
+    PSC_setSigHandler(SIGALRM, SIG_DFL);
+    if (ret == -1) {
+	PSI_fwarn(eno, "PSI_recvMsg");
 	goto end;
     }
-    switch (answer.header.type) {
+    switch (msg.header.type) {
     case PSP_CD_PARTITIONRES:
-	alarm(0);
-	if (((DDTypedMsg_t *)&answer)->type) {
-	    PSI_fwarn(((DDTypedMsg_t *)&answer)->type, "got");
+	if (((DDTypedMsg_t *)&msg)->type) {
+	    PSI_fwarn(((DDTypedMsg_t *)&msg)->type, "got");
 	    if (batchPartition) analyzeError(request, nl);
 	    goto end;
 	}
@@ -934,12 +938,12 @@ recv_retry:
 	goto recv_retry;
 	break;
     case PSP_CD_ERROR:
-	PSI_fwarn(((DDErrorMsg_t*)&answer)->error, "error in command %s",
-		  PSP_printMsg(((DDErrorMsg_t *)&answer)->request));
+	PSI_fwarn(((DDErrorMsg_t*)&msg)->error, "error in command %s",
+		  PSP_printMsg(((DDErrorMsg_t *)&msg)->request));
 	goto end;
 	break;
     default:
-	PSI_flog("unexpected msgtype '%s'\n", PSP_printMsg(answer.header.type));
+	PSI_flog("unexpected msgtype '%s'\n", PSP_printMsg(msg.header.type));
 	goto end;
     }
 
@@ -953,9 +957,6 @@ recv_retry:
     retVal = request->size;
 
 end:
-    alarm(0);
-    PSC_setSigHandler(SIGALRM, SIG_DFL);
-
     freeNodelist(nl);
     if (request) PSpart_delReq(request);
 
@@ -1006,15 +1007,18 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 	alarm(60);
     }
 
+    ssize_t ret;
 recv_retry:
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
-	PSI_fwarn(errno, "PSI_recvMsg");
-	return 0;
-    }
+    ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
+    int32_t eno = errno;
     alarm(0);
     PSC_setSigHandler(SIGALRM, SIG_DFL);
 
     if (got) *got = 0;
+    if (ret == -1) {
+	PSI_fwarn(eno, "PSI_recvMsg");
+	return 0;
+    }
     size_t used = 0;
     PSrsrvtn_ID_t rid = 0;
     switch (msg.header.type) {

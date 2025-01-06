@@ -1523,12 +1523,13 @@ static void loop(char *arg_logdir)
 {
     while (1) {
 	DDTypedBufferMsg_t msg;
-	int ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
+	ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&msg, sizeof(msg),
+				  -1, false);
 	if (ret == -1 && errno == EINTR) continue;
 
 	/* Problem with daemon */
 	if (ret == -1) {
-	    alog("\n%s: daemon died, error:%i errno:%i\n",
+	    alog("\n%s: daemon died, error:%zi errno:%i\n",
 		 __func__, ret, errno);
 	    exit(EXIT_FAILURE);
 	}

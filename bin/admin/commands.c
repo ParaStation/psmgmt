@@ -1819,7 +1819,9 @@ void PSIADM_Plugin(bool *nl, char *name, PSP_Plugin_t action)
 	    msg.header.dest = PSC_getTID(node, 0);
 	    sendDmnMsg(&msg);
 	    DDTypedBufferMsg_t answer;
-	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
+	    ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer),
+				      -1, false);
+	    if (ret == -1) {
 		printf("%soading plugin '%s' on node %s failed\n",
 		       action ? "unl" : "l", name, nodeString(node));
 	    } else if (answer.type == -1) {
@@ -1843,7 +1845,9 @@ static bool recvPluginKeyAnswersOld(PStask_ID_t src, PSP_Plugin_t action,
 
     while (true) {
 	DDTypedBufferMsg_t answer;
-	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
+	ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer),
+				  -1, false);
+	if (ret == -1) {
 	    int eno = errno;
 	    char *errStr = strerror(eno);
 	    printf("%s: failed to receive answer from %s: %s\n", __func__,
@@ -1944,7 +1948,9 @@ static bool recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
     uint8_t fragType;
     do {
 	DDTypedBufferMsg_t answer;
-	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
+	ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer),
+				  -1, false);
+	if (ret == -1) {
 	    int eno = errno;
 	    char *errStr = strerror(eno);
 	    printf("\t%s: failed to receive answer from %s: %s\n", __func__,
@@ -2067,7 +2073,9 @@ void PSIADM_Environment(bool *nl, char *key, char *value, PSP_Env_t action)
 	    sendDmnMsg(&msg);
 
 	    DDTypedMsg_t answer;
-	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
+	    ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer),
+				      -1, false);
+	    if (ret == -1) {
 		printf("%ssetting '%s' on node %s failed\n",
 		       action ? "un" : "", key, nodeString(node));
 	    } else if (answer.type == -1) {

@@ -191,19 +191,75 @@ bool PSI_addRecvHandler(int16_t msgType, PSI_handlerFunc_t handler, void *info);
 bool PSI_clrRecvHandler(int16_t msgType, PSI_handlerFunc_t handler);
 
 /**
- * @brief Receive a message.
+ * @brief Receive a message
  *
  * Receive a message from the local ParaStation daemon and store it to
- * @a msg. At most @a size bytes are written to @a msg.
+ * the buffer @a msg. At most @a size bytes are written to @a msg. The
+ * message to receive is expected to be of type @a xpctdType. If the
+ * type of the received message matches or @a xpctdType is -1, the
+ * message is received and stored to @a msg unless the buffer turns
+ * out to be too small which leads to an error. In the case the
+ * message was received successfully the number of bytes received and
+ * stored to @a msg is returned.
  *
- * @param msg Buffer to store the message in.
+ * Otherwise the message might be handled by a handler to was
+ * registered via @ref PSI_addRecvHandler() to the according message
+ * type. Depending on the handler's return value this function will
+ * continue receiving messages (in case the handler returns true) or
+ * return -1 with errno set to ENOMSG (in case the handler returns
+ * false). In the latter case the received message is stored to @a msg
+ * and the number of bytes received can be deduced from @ref
+ * msg->header.len.
  *
- * @param size The maximum length of the message, i.e. the size of @a msg.
+ * If no handler was registered for the received message type the
+ * behavior depends on the flag @a ignUnxpctd. If set to true a
+ * warning will be emitted and this function continues to wait for
+ * further messages. Otherwise it will return the number of bytes
+ * received and the message is stored to @a msg.
  *
- * @return On success, the number of bytes received is returned. On
- * error, -1 is returned, and errno is set appropriately.
+ * Keep in mind that the behavior of @a xpctdType == -1 is different
+ * from @a ignUnxpctd == false: while in the first case any message
+ * that was received is returned immediately in the latter case the
+ * message will first be handled by a registered message handler if
+ * any. Thus, the message might still be hidden by a handler that
+ * returns true.
+ *
+ * @param msg Buffer to store the message to
+ *
+ * @param size Maximum length of the message, i.e. size of @a msg
+ *
+ * @param xpctdType Message type to accept; if -1, any message is
+ * accepted; otherwise first the message is tried to be handled by a
+ * corresponding message handler or the behavior depends on @a
+ * ignUnxpctd
+ *
+ * @param wait Flag to wait for a message; if this is false, @ref
+ * PSI_availMsg() will be used to check the availability; in case no
+ * message is available, -1 is returned and errno set to ENODATA
+ *
+ * @param ignUnxpctd Flag to ignore messages of unexpected type (but
+ * emitting a warning) or to deliver any type of message
+ *
+ * @param caller Name of the calling function that will be passed to
+ * the message handler to call
+ *
+ * @return Returns the number of bytes received on success or -1
+ * otherwise; in the latter case @ref errno is set appropriately;
+ * errno == ENOMSG will flag the case that an according handler
+ * returns false in order to pass the received message to the caller
+ * even though @a xpctdType does not match and ignUnxpctd is true;
+ * errno == ENODATA flags the case that @a wait is false and no
+ * message available
  */
-int PSI_recvMsg(DDMsg_t *msg, size_t size);
+ssize_t __PSI_recvMsg(DDBufferMsg_t *msg, size_t size, int16_t xpctdType,
+		      bool wait, bool ignUnxpctd, const char *caller);
+
+#define PSI_recvMsg(msg, size, xpctdType, ignUnxpctd)		\
+    __PSI_recvMsg(msg, size, xpctdType, true, ignUnxpctd, __func__)
+
+#define PSI_tryRecvMsg(msg, size, xpctdType, ignUnxpctd)		\
+    __PSI_recvMsg(msg, size, xpctdType, false, ignUnxpctd, __func__)
+
 
 /**
  * @brief Register for notification of foreign processes death

@@ -1958,7 +1958,9 @@ void setupPluginNames(PStask_ID_t src)
     uint8_t fragType;
     do {
 	DDTypedBufferMsg_t answer;
-	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
+	ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer),
+				  -1, false);
+	if (ret == -1) {
 	    int eno = errno;
 	    char *errStr = strerror(eno);
 	    printf("%s: failed to receive answer from %s: %s\n", __func__,

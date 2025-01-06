@@ -360,7 +360,8 @@ static void handleResponse(void)
     setTimeout();
 
     DDTypedBufferMsg_t answer;
-    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
+    if (PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer),
+		    -1, false) == -1) {
 	fprintf(stderr, "%s: PSI_recvMsg() for job %s failed\n",
 		__func__, jobID);
 	exit(1);

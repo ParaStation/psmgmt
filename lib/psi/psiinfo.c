@@ -62,7 +62,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, bool verbose)
     }
 
 recv_retry:
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+    if (PSI_recvMsg((DDBufferMsg_t *)&msg, sizeof(msg), -1, false) == -1) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	*size = 0;
 	return PSP_INFO_UNKNOWN;
@@ -601,8 +601,10 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
     }
 
     DDBufferMsg_t msg;
+    ssize_t ret;
 recv_retry:
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+    ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
+    if (ret == -1) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     }
@@ -658,8 +660,10 @@ int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option)
 int PSI_infoOptionListNext(DDOption_t opts[], int num)
 {
     DDBufferMsg_t msg;
+    ssize_t ret;
 recv_retry:
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+    ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
+    if (ret == -1) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     }

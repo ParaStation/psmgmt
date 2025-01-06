@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -479,7 +479,7 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
 
 	while (PSI_availMsg() > 0 && thisBucket->expected) {
 	    DDBufferMsg_t msg;
-	    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+	    if (PSI_recvMsg(&msg, sizeof(msg), -1, false) == -1) { // @todo
 		PSI_fwarn(errno, "PSI_recvMsg");
 		return -1;
 	    }
@@ -506,7 +506,7 @@ static int doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task,
     /* collect expected answers */
     while (thisBucket->expected > 0) {
 	DDBufferMsg_t msg;
-	if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+	if (PSI_recvMsg(&msg, sizeof(msg), -1, false) == -1) {  // @todo
 	    PSI_fwarn(errno, "PSI_recvMsg");
 	    return -1;
 	}
@@ -574,7 +574,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *wDir,
 	int rank = -1;
 	while (rank < 0 && !error) {
 	    DDBufferMsg_t msg;
-	    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+	    if (PSI_recvMsg(&msg, sizeof(msg), -1, false) == -1) { // @todo
 		PSI_fwarn(errno, "PSI_recvMsg");
 		error = true;
 		break;
@@ -706,7 +706,8 @@ int PSI_kill(PStask_ID_t tid, short signal, int async)
     }
 
     if (!async) {
-	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) == -1) {
+	if (PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer), // @todo
+			-1, false) == -1) {
 	    PSI_fwarn(errno, "PSI_recvMsg");
 	    return -1;
 	}

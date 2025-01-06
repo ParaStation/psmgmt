@@ -153,7 +153,7 @@ static void releaseMySelf(const char *func)
 
     while (true) {
 	DDBufferMsg_t answer;
-	int ret = PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer));
+	ssize_t ret = PSI_recvMsg(&answer, sizeof(answer), -1, false);
 	if (ret == -1) {
 	    mwarn(errno, "%s: PSI_recvMsg", __func__);
 	    return;
@@ -958,7 +958,7 @@ static void handleCCMsg(PSLog_Msg_t *msg)
 static int handlePSIMessage(int fd, void *data)
 {
     DDBufferMsg_t msg;
-    int ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
     if (ret == -1) {
 	mwarn(errno, "%s: PSI_recvMsg", __func__);
 	terminateJob(__func__);

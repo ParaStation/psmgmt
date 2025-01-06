@@ -154,16 +154,19 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	return false;
     }
 
-    DDTypedBufferMsg_t answer;
-    int ret = PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer));
-    if (ret == -1) {
-	PSI_fwarn(errno, "PSI_recvMsg");
+    DDTypedBufferMsg_t msg;
+    ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&msg, sizeof(msg),
+			      -1, false);
+    int eno = errno;
+
+    if (ret == -1 && eno != ENOMSG) {
+	PSI_fwarn(eno, "PSI_recvMsg");
 	return false;
     }
 
     size_t used = 0;
-    PSP_ConnectError_t type = answer.type;
-    switch (answer.header.type) {
+    PSP_ConnectError_t type = msg.type;
+    switch (msg.header.type) {
     case PSP_CD_CLIENTREFUSED:
 	switch (type) {
 	case PSP_CONN_ERR_NONE:
@@ -174,8 +177,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	case PSP_CONN_ERR_VERSION :
 	{
 	    uint32_t protoV;
-	    PSP_getTypedMsgBuf(&answer, &used, "protoV", &protoV,
-			       sizeof(protoV));
+	    PSP_getTypedMsgBuf(&msg, &used, "protoV", &protoV, sizeof(protoV));
 	    PSI_flog("Daemon (%u) does not support library version (%u)."
 		    " Pleases relink program\n", protoV, PSProtocolVersion);
 	    break;
@@ -192,7 +194,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	case PSP_CONN_ERR_PROCLIMIT :
 	{
 	    int32_t maxProcs;
-	    PSP_getTypedMsgBuf(&answer, &used, "maxProcs", &maxProcs,
+	    PSP_getTypedMsgBuf(&msg, &used, "maxProcs", &maxProcs,
 			       sizeof(maxProcs));
 	    PSI_flog("Node limited to %d processes\n", maxProcs);
 	    break;
@@ -211,21 +213,21 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	}
 	break;
     case PSP_CD_CLIENTESTABLISHED:
-	PSP_getTypedMsgBuf(&answer, &used, "mixedProto", &mixedProto,
+	PSP_getTypedMsgBuf(&msg, &used, "mixedProto", &mixedProto,
 			   sizeof(mixedProto));
 
 	PSnodes_ID_t myID;
-	PSP_getTypedMsgBuf(&answer, &used, "myID", &myID, sizeof(myID));
+	PSP_getTypedMsgBuf(&msg, &used, "myID", &myID, sizeof(myID));
 	PSC_setMyID(myID);
 
 	PSnodes_ID_t nNodes;
-	PSP_getTypedMsgBuf(&answer, &used, "nrOfNodes", &nNodes, sizeof(nNodes));
+	PSP_getTypedMsgBuf(&msg, &used, "nrOfNodes", &nNodes, sizeof(nNodes));
 	PSC_setNrOfNodes(nNodes);
 
 	uint16_t dirLen;
-	PSP_getTypedMsgBuf(&answer, &used, "dirLen", &dirLen, sizeof(dirLen));
+	PSP_getTypedMsgBuf(&msg, &used, "dirLen", &dirLen, sizeof(dirLen));
 	char instDir[PATH_MAX];
-	PSP_getTypedMsgBuf(&answer, &used, "instDir", instDir, dirLen);
+	PSP_getTypedMsgBuf(&msg, &used, "instDir", instDir, dirLen);
 	instDir[dirLen] = '\0';
 
 	if (strcmp(instDir, PSC_lookupInstalldir(instDir))) {
@@ -234,10 +236,8 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	}
 
 	return true;
-    default :
-	PSI_flog("unexpected return code %d (%s)\n",
-		answer.header.type, PSP_printMsg(answer.header.type));
-	break;
+    default:
+	PSI_flog("unexpected message %s\n", PSP_printMsg(msg.header.type));
     }
 
     close(daemonSock);
@@ -497,7 +497,7 @@ int PSI_availMsg(void)
     return select(daemonSock+1, &rfds, NULL, NULL, &tmout);
 }
 
-int PSI_recvMsg(DDMsg_t *msg, size_t size)
+ssize_t doRecv(DDBufferMsg_t *msg, size_t size, const char *caller)
 {
     if (daemonSock == -1) {
 	errno = ENOTCONN;
@@ -508,12 +508,12 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
 	return -1;
     }
 
-    ssize_t ret = PSCio_recvMsgSize(daemonSock, (DDBufferMsg_t *)msg, size);
+    ssize_t ret = PSCio_recvMsgSize(daemonSock, msg, size);
     if (ret <= 0) {
 	int eno = errno ? errno : ENOTCONN;
-	PSI_fwarn(eno, "Lost connection to ParaStation daemon");
+	PSI_warn(eno, "%s: lost connection to ParaStation daemon", caller);
 	if (eno == ENOTCONN) {
-	    PSI_flog("Possible version mismatch between daemon and library\n");
+	    PSI_log("%s: version mismatch between daemon and library?\n", caller);
 	}
 	close(daemonSock);
 	daemonSock = -1;
@@ -521,12 +521,46 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
 	return -1;
     }
 
-    PSI_fdbg(PSI_LOG_COMM, "type %s (len=%d) from %s\n",
-	     PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->sender));
+    PSI_dbg(PSI_LOG_COMM, "%s: type %s (len=%d) from %s\n", caller,
+	     PSP_printMsg(msg->header.type), msg->header.len,
+	     PSC_printTID(msg->header.sender));
 
     return ret;
 }
 
+ssize_t __PSI_recvMsg(DDBufferMsg_t *msg, size_t size, int16_t xpctdType,
+		      bool wait, bool ignUnxpctd, const char *caller)
+{
+    while (wait || PSI_availMsg() > 0) {
+	ssize_t ret = doRecv(msg, size, __func__);
+	PSI_fdbg(PSI_LOG_COMM, "doRecv() returns %zd\n", ret);
+	if (ret < 0) return ret;
+
+	PSI_fdbg(PSI_LOG_COMM, "  type %s\n", PSP_printMsg(msg->header.type));
+	if (xpctdType == -1 || msg->header.type == xpctdType) return ret;
+
+	PSI_handler_t *hndlr = findHandler(msg->header.type);
+	if (hndlr) {
+	    PSI_fdbg(PSI_LOG_COMM, "   call handler...");
+	    if (hndlr->handler(msg, caller, hndlr->info)) {
+		PSI_fdbg(PSI_LOG_COMM, " cont\n");
+		continue;
+	    } else {
+		PSI_fdbg(PSI_LOG_COMM, " break\n");
+		errno = ENOMSG;
+		return -1;
+	    }
+	}
+
+	if (!ignUnxpctd) return ret;
+
+	PSI_log("%s: unexpected message %s (len=%d) from %s\n", caller,
+		 PSP_printMsg(msg->header.type), msg->header.len,
+		 PSC_printTID(msg->header.sender));
+    }
+    errno = ENODATA;
+    return -1;
+}
 
 int PSI_notifydead(PStask_ID_t tid, int sig)
 {
@@ -546,7 +580,7 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
     }
 
     DDBufferMsg_t msg;
-    int ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
     if (ret == -1) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
@@ -585,17 +619,17 @@ int PSI_release(PStask_ID_t tid)
     }
 
     DDBufferMsg_t msg;
-    int ret;
+    ssize_t ret;
 restart:
-    ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
+    ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
     if (ret == -1) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     }
 
     if (ret != msg.header.len) {
-	PSI_flog("PSI_recvMsg() got just %d/%d bytes (%ld expected)\n",
-		 ret, msg.header.len, (long)sizeof(msg));
+	PSI_flog("PSI_recvMsg() got just %zd/%d bytes (%zd expected)\n",
+		 ret, msg.header.len, sizeof(DDSignalMsg_t));
     }
 
     ret = 0;
@@ -649,7 +683,8 @@ PStask_ID_t PSI_whodied(int sig)
     }
 
     DDBufferMsg_t msg;
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) == -1) {
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
+    if (ret == -1 && errno != ENOMSG) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     }
@@ -681,17 +716,17 @@ int PSI_recvFinish(int outstanding)
 
     int error = 0;
     while (outstanding > 0) {
-	DDMsg_t msg;
-	if (PSI_recvMsg(&msg, sizeof(msg)) == -1) {
+	DDBufferMsg_t msg;
+	if (PSI_recvMsg(&msg, sizeof(msg), -1, false) == -1) {
 	    PSI_fwarn(errno, "PSI_recvMsg");
 	    error = 1;
 	    break;
 	}
-	switch (msg.type) {
+	switch (msg.header.type) {
 	case PSP_CD_SPAWNFINISH:
 	    break;
 	default:
-	    PSI_flog("unexpected message %s\n", PSP_printMsg(msg.type));
+	    PSI_flog("unexpected message %s\n", PSP_printMsg(msg.header.type));
 	    error = 1;
 	    break;
 	}

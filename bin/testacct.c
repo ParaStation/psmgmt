@@ -276,8 +276,7 @@ static void loop(void)
 {
     while (1) {
 	DDTypedBufferMsg_t msg;
-
-	PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
+	PSI_recvMsg((DDBufferMsg_t *)&msg, sizeof(msg), -1, false);
 
 	switch (msg.header.type) {
 	case PSP_CD_ACCOUNT:
