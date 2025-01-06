@@ -915,46 +915,27 @@ int PSI_createPartition(uint32_t size, uint32_t hwType)
     PSC_setSigHandler(SIGALRM, alarmHandlerPart);
 
     DDBufferMsg_t msg;
-    ssize_t ret;
-recv_retry:
-    ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_PARTITIONRES, false);
     int eno = errno;
     alarm(0);
     PSC_setSigHandler(SIGALRM, SIG_DFL);
-    if (ret == -1) {
+
+    if (ret == -1 && eno != ENOMSG) {
 	PSI_fwarn(eno, "PSI_recvMsg");
-	goto end;
-    }
-    switch (msg.header.type) {
-    case PSP_CD_PARTITIONRES:
-	if (((DDTypedMsg_t *)&msg)->type) {
-	    PSI_fwarn(((DDTypedMsg_t *)&msg)->type, "got");
-	    if (batchPartition) analyzeError(request, nl);
-	    goto end;
+    } else if (msg.header.type != PSP_CD_PARTITIONRES) {
+	PSI_flog("unexpected message %s\n", PSP_printMsg(msg.header.type));
+    } else if (((DDTypedMsg_t *)&msg)->type) {
+	PSI_fwarn(((DDTypedMsg_t *)&msg)->type, "got");
+	if (batchPartition) analyzeError(request, nl);
+    } else {
+	if (alarmCalled) {
+	    time_t now = time(NULL);
+	    char *timeStr = ctime(&now);
+	    timeStr[strlen(timeStr)-1] = '\0';
+	    PSI_log("%s -- Starting now...\n", timeStr);
 	}
-	break;
-    case PSP_CD_SENDSTOP:
-    case PSP_CD_SENDCONT:
-	goto recv_retry;
-	break;
-    case PSP_CD_ERROR:
-	PSI_fwarn(((DDErrorMsg_t*)&msg)->error, "error in command %s",
-		  PSP_printMsg(((DDErrorMsg_t *)&msg)->request));
-	goto end;
-	break;
-    default:
-	PSI_flog("unexpected msgtype '%s'\n", PSP_printMsg(msg.header.type));
-	goto end;
+	retVal = request->size;
     }
-
-    if (alarmCalled) {
-	time_t now = time(NULL);
-	char *timeStr = ctime(&now);
-	timeStr[strlen(timeStr)-1] = '\0';
-	PSI_log("%s -- Starting now...\n", timeStr);
-    }
-
-    retVal = request->size;
 
 end:
     freeNodelist(nl);
@@ -1007,46 +988,31 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 	alarm(60);
     }
 
-    ssize_t ret;
-recv_retry:
-    ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_RESERVATIONRES, false);
     int32_t eno = errno;
     alarm(0);
     PSC_setSigHandler(SIGALRM, SIG_DFL);
 
     if (got) *got = 0;
-    if (ret == -1) {
+    if (ret == -1 && eno != ENOMSG) {
 	PSI_fwarn(eno, "PSI_recvMsg");
 	return 0;
     }
+    if (msg.header.type != PSP_CD_RESERVATIONRES) {
+	PSI_flog("unexpected message %s\n", PSP_printMsg(msg.header.type));
+	return 0;
+    }
+
     size_t used = 0;
     PSrsrvtn_ID_t rid = 0;
-    switch (msg.header.type) {
-    case PSP_CD_RESERVATIONRES:
-	PSP_getMsgBuf(&msg, &used, "rid", &rid, sizeof(rid));
-	if (rid && got) {
-	    PSP_getMsgBuf(&msg, &used, "got", got, sizeof(*got));
-	} else {
-	    int32_t eno;
-	    if (PSP_getMsgBuf(&msg, &used, "eno", &eno, sizeof(eno))){
-		PSI_fwarn(eno, "got");
-		if (got) *got = eno;
-	    } else {
-		PSI_flog("unknown error\n");
-	    }
-	}
-	break;
-    case PSP_CD_SENDSTOP:
-    case PSP_CD_SENDCONT:
-	goto recv_retry;
-	break;
-    case PSP_CD_ERROR:
-	PSI_fwarn(((DDErrorMsg_t*)&msg)->error, "error in command %s",
-		  PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
-	break;
-    default:
-	PSI_flog("received unexpected msgtype '%s'\n",
-		 PSP_printMsg(msg.header.type));
+    PSP_getMsgBuf(&msg, &used, "rid", &rid, sizeof(rid));
+    if (rid && got) {
+	PSP_getMsgBuf(&msg, &used, "got", got, sizeof(*got));
+    } else if (PSP_getMsgBuf(&msg, &used, "eno", &eno, sizeof(eno))){
+	PSI_fwarn(eno, "got");
+	if (got) *got = eno;
+    } else {
+	PSI_flog("unknown error\n");
     }
 
     if (rid && alarmCalled) {

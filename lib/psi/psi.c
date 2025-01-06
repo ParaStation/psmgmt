@@ -181,10 +181,13 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
     PSI_addRecvHandler(PSP_CD_SENDCONT, ignoreMsg, NULL);
     PSI_addRecvHandler(PSP_CD_ERROR, handle_CD_ERROR, NULL);
 
+    /* PSP_CD_CLIENTREFUSED shall be handled outside PSI_recvMsg(), too */
+    PSI_addRecvHandler(PSP_CD_CLIENTREFUSED, acceptMsg, NULL);
     DDTypedBufferMsg_t msg;
     ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&msg, sizeof(msg),
-			      -1, false);
+			      PSP_CD_CLIENTESTABLISHED, true);
     int eno = errno;
+    PSI_clrRecvHandler(PSP_CD_CLIENTREFUSED, acceptMsg);
 
     if (ret == -1 && eno != ENOMSG) {
 	PSI_fwarn(eno, "PSI_recvMsg");
@@ -624,6 +627,14 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
     return 0;
 }
 
+static bool handle_CD_WHODIED(DDBufferMsg_t *msg, const char *caller, void *info)
+{
+    DDSignalMsg_t *sMsg = (DDSignalMsg_t *)msg;
+    PSI_log("%s: got signal %d from %s\n", caller, sMsg->signal,
+	    PSC_printTID(sMsg->header.sender));
+    return true;   // continue PSI_recvMsg()
+}
+
 int PSI_release(PStask_ID_t tid)
 {
     PSI_fdbg(PSI_LOG_VERB, "%s\n", PSC_printTID(tid));
@@ -643,51 +654,31 @@ int PSI_release(PStask_ID_t tid)
 	return -1;
     }
 
+    /* PSP_CC_ERROR and PSP_CD_WHODIED need special treatement here */
+    PSI_addRecvHandler(PSP_CC_ERROR, ignoreMsg, NULL);
+    PSI_addRecvHandler(PSP_CD_WHODIED, handle_CD_WHODIED, NULL);
     DDBufferMsg_t msg;
-    ssize_t ret;
-restart:
-    ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
-    if (ret == -1) {
-	PSI_fwarn(errno, "PSI_recvMsg");
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_RELEASERES, true);
+    int eno = errno;
+    PSI_clrRecvHandler(PSP_CC_ERROR, ignoreMsg);
+    PSI_clrRecvHandler(PSP_CD_WHODIED, handle_CD_WHODIED);
+
+    if (ret == -1 && eno != ENOMSG) {
+	PSI_fwarn(eno, "PSI_recvMsg");
+	errno = eno;
+	return -1;
+    }
+    if (msg.header.type != PSP_CD_RELEASERES) return -1;
+
+    DDSignalMsg_t *sMsg = (DDSignalMsg_t *)&msg;
+    if (sMsg->param) {
+	if (sMsg->param != ESRCH || tid != PSC_getMyTID())
+	    PSI_fwarn(sMsg->param, "releasing %s", PSC_printTID(tid));
+	errno = sMsg->param;
 	return -1;
     }
 
-    if (ret != msg.header.len) {
-	PSI_flog("PSI_recvMsg() got just %zd/%d bytes (%zd expected)\n",
-		 ret, msg.header.len, sizeof(DDSignalMsg_t));
-    }
-
-    ret = 0;
-
-    DDSignalMsg_t *sMsg = (DDSignalMsg_t *)&msg;
-    switch (msg.header.type) {
-    case PSP_CD_RELEASERES:
-	if (sMsg->param) {
-	    if (sMsg->param != ESRCH || tid != PSC_getMyTID())
-		PSI_fwarn(sMsg->param, "releasing %s", PSC_printTID(tid));
-	    errno = sMsg->param;
-	    ret = -1;
-	}
-	break;
-    case PSP_CD_WHODIED:
-	PSI_flog("got signal %d from %s\n", sMsg->signal,
-		 PSC_printTID(msg.header.sender));
-	goto restart;
-	break;
-    case PSP_CC_ERROR:
-	goto restart;
-	break;
-    case PSP_CD_SENDSTOP:
-    case PSP_CD_SENDCONT:
-	goto restart;
-	break;
-    default:
-	PSI_flog("wrong message type %d (%s)\n",
-		 msg.header.type, PSP_printMsg(msg.header.type));
-	ret = -1;
-    }
-
-    return ret;
+    return 0;
 }
 
 PStask_ID_t PSI_whodied(int sig)

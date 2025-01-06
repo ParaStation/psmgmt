@@ -54,118 +54,92 @@
  */
 static PSP_Info_t receiveInfo(void *buf, size_t *size, bool verbose)
 {
-    DDTypedBufferMsg_t msg;
-    PSP_Info_t ret;
     if (!size) {
 	PSI_flog("missing size\n");
 	return PSP_INFO_UNKNOWN;
     }
 
-recv_retry:
-    if (PSI_recvMsg((DDBufferMsg_t *)&msg, sizeof(msg), -1, false) == -1) {
+    DDBufferMsg_t msg;
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_INFORESPONSE, true);
+    if (ret == -1 && errno != ENOMSG) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	*size = 0;
 	return PSP_INFO_UNKNOWN;
-   }
-
-    switch (msg.header.type) {
-    case PSP_CD_INFORESPONSE:
-    {
-	ret = msg.type;
-	switch (msg.type) {
-	case PSP_INFO_LIST_END:
-	case PSP_INFO_QUEUE_SEP:
-	    *size = 0;
-	    break;
-	case PSP_INFO_INSTDIR:
-	case PSP_INFO_HOST:
-	case PSP_INFO_NODE:
-	case PSP_INFO_RDPSTATUS:
-	case PSP_INFO_RDPCONNSTATUS:
-	case PSP_INFO_MCASTSTATUS:
-	case PSP_INFO_COUNTHEADER:
-	case PSP_INFO_COUNTSTATUS:
-	case PSP_INFO_HWNUM:
-	case PSP_INFO_HWINDEX:
-	case PSP_INFO_HWNAME:
-	case PSP_INFO_TASKRANK:
-	case PSP_INFO_PARENTTID:
-	case PSP_INFO_LOGGERTID:
-	case PSP_INFO_LIST_HOSTSTATUS:
-	case PSP_INFO_LIST_VIRTCPUS:
-	case PSP_INFO_LIST_PHYSCPUS:
-	case PSP_INFO_LIST_HWSTATUS:
-	case PSP_INFO_LIST_LOAD:
-	case PSP_INFO_LIST_MEMORY:
-	case PSP_INFO_LIST_ALLJOBS:
-	case PSP_INFO_LIST_NORMJOBS:
-	case PSP_INFO_LIST_ALLOCJOBS:
-	case PSP_INFO_LIST_EXCLUSIVE:
-	case PSP_INFO_LIST_PARTITION:
-	case PSP_INFO_CMDLINE:
-	case PSP_INFO_RPMREV:
-	case PSP_INFO_QUEUE_ALLTASK:
-	case PSP_INFO_QUEUE_NORMTASK:
-	case PSP_INFO_QUEUE_PARTITION:
-	case PSP_INFO_QUEUE_PLUGINS:
-	case PSP_INFO_QUEUE_ENVS:
-	case PSP_INFO_STARTTIME:
-	case PSP_INFO_STARTUPSCRIPT:
-	case PSP_INFO_NODEUPSCRIPT:
-	case PSP_INFO_NODEDOWNSCRIPT:
-	case PSP_INFO_LIST_RESNODES:
-	{
-	    size_t s = msg.header.len - DDTypedBufMsgOffset;
-	    if (!buf) {
-		PSI_fdbg(PSI_LOG_INFO, "No buffer provided\n");
-		*size = 0;
-		break;
-	    }
-	    if (*size < s) {
-		PSI_flog("buffer too small (%ld/%ld/%s)\n", (long)*size,
-			 (long)s, PSP_printInfo(msg.type));
-		*size = 0;
-		break;
-	    }
-	    *size = s;
-	    memcpy(buf, msg.buf, *size);
-	    break;
-	}
-	case PSP_INFO_UNKNOWN:
-	    PSI_fdbg(verbose ? -1 : PSI_LOG_INFO, "daemon does not know info\n");
-	    *size = 0;
-	    break;
-	default:
-	    PSI_flog("received unexpected info type %s\n",
-		     PSP_printInfo(msg.type));
-	    *size = 0;
-	    ret = PSP_INFO_UNKNOWN;
-	}
-	PSI_fdbg(PSI_LOG_INFO, "got info type '%s' message\n",
-		 PSP_printInfo(msg.type));
-	break;
-    }
-    case PSP_CD_ERROR:
-    {
-	PSI_fdwarn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
-		   "error in command '%s'",
-		   PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
+    } else if (msg.header.type != PSP_CD_INFORESPONSE) {
 	*size = 0;
-	ret = PSP_INFO_UNKNOWN;
-	break;
+	return PSP_INFO_UNKNOWN;
     }
-    case PSP_CD_SENDSTOP:
-    case PSP_CD_SENDCONT:
-	goto recv_retry;
+
+    DDTypedBufferMsg_t *tMsg = (DDTypedBufferMsg_t *)&msg;
+    PSP_Info_t type = tMsg->type;
+    switch (type) {
+    case PSP_INFO_LIST_END:
+    case PSP_INFO_QUEUE_SEP:
+	*size = 0;
+	break;
+    case PSP_INFO_INSTDIR:
+    case PSP_INFO_HOST:
+    case PSP_INFO_NODE:
+    case PSP_INFO_RDPSTATUS:
+    case PSP_INFO_RDPCONNSTATUS:
+    case PSP_INFO_MCASTSTATUS:
+    case PSP_INFO_COUNTHEADER:
+    case PSP_INFO_COUNTSTATUS:
+    case PSP_INFO_HWNUM:
+    case PSP_INFO_HWINDEX:
+    case PSP_INFO_HWNAME:
+    case PSP_INFO_TASKRANK:
+    case PSP_INFO_PARENTTID:
+    case PSP_INFO_LOGGERTID:
+    case PSP_INFO_LIST_HOSTSTATUS:
+    case PSP_INFO_LIST_VIRTCPUS:
+    case PSP_INFO_LIST_PHYSCPUS:
+    case PSP_INFO_LIST_HWSTATUS:
+    case PSP_INFO_LIST_LOAD:
+    case PSP_INFO_LIST_MEMORY:
+    case PSP_INFO_LIST_ALLJOBS:
+    case PSP_INFO_LIST_NORMJOBS:
+    case PSP_INFO_LIST_ALLOCJOBS:
+    case PSP_INFO_LIST_EXCLUSIVE:
+    case PSP_INFO_LIST_PARTITION:
+    case PSP_INFO_CMDLINE:
+    case PSP_INFO_RPMREV:
+    case PSP_INFO_QUEUE_ALLTASK:
+    case PSP_INFO_QUEUE_NORMTASK:
+    case PSP_INFO_QUEUE_PARTITION:
+    case PSP_INFO_QUEUE_PLUGINS:
+    case PSP_INFO_QUEUE_ENVS:
+    case PSP_INFO_STARTTIME:
+    case PSP_INFO_STARTUPSCRIPT:
+    case PSP_INFO_NODEUPSCRIPT:
+    case PSP_INFO_NODEDOWNSCRIPT:
+    case PSP_INFO_LIST_RESNODES:
+	if (!buf) {
+	    PSI_fdbg(PSI_LOG_INFO, "no buffer provided\n");
+	    break;
+	}
+	size_t s = tMsg->header.len - DDTypedBufMsgOffset;
+	if (*size >= s) {
+	    *size = s;
+	    memcpy(buf, tMsg->buf, *size);
+	} else {
+	    PSI_flog("buffer too small (%ld/%ld/%s)\n", (long)*size,
+		     (long)s, PSP_printInfo(tMsg->type));
+	    *size = 0;
+	}
+	break;
+    case PSP_INFO_UNKNOWN:
+	PSI_fdbg(verbose ? -1 : PSI_LOG_INFO, "daemon does not know info\n");
+	*size = 0;
 	break;
     default:
-	PSI_flog("received unexpected msgtype '%s'\n",
-		 PSP_printMsg(msg.header.type));
+	PSI_flog("unexpected info type %s\n", PSP_printInfo(tMsg->type));
 	*size = 0;
-	ret = PSP_INFO_UNKNOWN;
+	type = PSP_INFO_UNKNOWN;
     }
+    PSI_fdbg(PSI_LOG_INFO, "got info type '%s'\n", PSP_printInfo(type));
 
-    return ret;
+    return type;
 }
 
 int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
