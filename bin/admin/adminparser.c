@@ -1959,7 +1959,7 @@ void setupPluginNames(PStask_ID_t src)
     do {
 	DDTypedBufferMsg_t answer;
 	ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer),
-				  -1, false);
+				  PSP_CD_PLUGINRES, true);
 	if (ret == -1) {
 	    int eno = errno;
 	    char *errStr = strerror(eno);

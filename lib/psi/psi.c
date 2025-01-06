@@ -607,18 +607,16 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
     }
 
     DDBufferMsg_t msg;
-    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
-    if (ret == -1) {
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_NOTIFYDEADRES, true);
+    if (ret == -1 && errno != ENOMSG) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     }
 
+    if (msg.header.type != PSP_CD_NOTIFYDEADRES) return -1;
+
     DDSignalMsg_t *sMsg = (DDSignalMsg_t *)&msg;
-    if (msg.header.type != PSP_CD_NOTIFYDEADRES) {
-	PSI_flog("wrong message type %d (%s)\n",
-		 msg.header.type, PSP_printMsg(msg.header.type));
-	return -1;
-    } else if (sMsg->param) {
+    if (sMsg->param) {
 	PSI_flog("error = %d\n", sMsg->param);
 	return -1;
     }
@@ -710,7 +708,7 @@ PStask_ID_t PSI_whodied(int sig)
     }
 
     DDBufferMsg_t msg;
-    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_WHODIED, true);
     if (ret == -1 && errno != ENOMSG) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;

@@ -1820,7 +1820,7 @@ void PSIADM_Plugin(bool *nl, char *name, PSP_Plugin_t action)
 	    sendDmnMsg(&msg);
 	    DDTypedBufferMsg_t answer;
 	    ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer),
-				      -1, false);
+				      PSP_CD_PLUGINRES, true);
 	    if (ret == -1) {
 		printf("%soading plugin '%s' on node %s failed\n",
 		       action ? "unl" : "l", name, nodeString(node));
@@ -1846,7 +1846,7 @@ static bool recvPluginKeyAnswersOld(PStask_ID_t src, PSP_Plugin_t action,
     while (true) {
 	DDTypedBufferMsg_t answer;
 	ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer),
-				  -1, false);
+				  PSP_CD_PLUGINRES, true);
 	if (ret == -1) {
 	    int eno = errno;
 	    char *errStr = strerror(eno);
@@ -1949,7 +1949,7 @@ static bool recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
     do {
 	DDTypedBufferMsg_t answer;
 	ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer),
-				  -1, false);
+				  PSP_CD_PLUGINRES, true);
 	if (ret == -1) {
 	    int eno = errno;
 	    char *errStr = strerror(eno);
@@ -2074,7 +2074,7 @@ void PSIADM_Environment(bool *nl, char *key, char *value, PSP_Env_t action)
 
 	    DDTypedMsg_t answer;
 	    ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer),
-				      -1, false);
+				      PSP_CD_ENVRES, true);
 	    if (ret == -1) {
 		printf("%ssetting '%s' on node %s failed\n",
 		       action ? "un" : "", key, nodeString(node));

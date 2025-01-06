@@ -601,41 +601,25 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
     }
 
     DDBufferMsg_t msg;
-    ssize_t ret;
-recv_retry:
-    ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
-    if (ret == -1) {
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_SETOPTION, true);
+    if (ret == -1 && errno != ENOMSG) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     }
+    if (msg.header.type != PSP_CD_SETOPTION) return -1;
 
     DDOptionMsg_t *oMsg = (DDOptionMsg_t *)&msg;
-    switch (msg.header.type) {
-    case PSP_CD_SETOPTION:
-	if (oMsg->count > num) {
-	    PSI_fdbg(verbose ? -1 : PSI_LOG_INFO, "option-buffer too small\n");
-	    oMsg->count = num;
-	}
-
-	for (int i = 0; i < oMsg->count; i++) {
-	    option[i] = oMsg->opt[i].option;
-	    value[i] = oMsg->opt[i].value;
-	}
-
-	return oMsg->count;
-    case PSP_CD_SENDSTOP:
-    case PSP_CD_SENDCONT:
-	goto recv_retry;
-	break;
-    case PSP_CD_ERROR:
-	PSI_fdwarn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
-		   "error");
-	break;
-    default:
-	PSI_flog("unexpected msgtype '%s'\n", PSP_printMsg(msg.header.type));
+    if (oMsg->count > num) {
+	PSI_fdbg(verbose ? -1 : PSI_LOG_INFO, "option-buffer too small\n");
+	oMsg->count = num;
     }
 
-    return -1;
+    for (int i = 0; i < oMsg->count; i++) {
+	option[i] = oMsg->opt[i].option;
+	value[i] = oMsg->opt[i].value;
+    }
+
+    return oMsg->count;
 }
 
 int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option)
@@ -660,41 +644,26 @@ int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option)
 int PSI_infoOptionListNext(DDOption_t opts[], int num)
 {
     DDBufferMsg_t msg;
-    ssize_t ret;
-recv_retry:
-    ret = PSI_recvMsg(&msg, sizeof(msg), -1, false);
-    if (ret == -1) {
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_SETOPTION, true);
+    if (ret == -1 && errno != ENOMSG) {
 	PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     }
 
+    if (msg.header.type != PSP_CD_SETOPTION) return -1;
+
     DDOptionMsg_t *oMsg = (DDOptionMsg_t *)&msg;
-    switch (msg.header.type) {
-    case PSP_CD_SETOPTION:
-	if (oMsg->count > num) {
-	    PSI_flog("option-buffer too small\n");
-	    oMsg->count = num;
-	}
-
-	for (int i = 0; i < oMsg->count; i++) {
-	    opts[i].option = oMsg->opt[i].option;
-	    opts[i].value = oMsg->opt[i].value;
-	}
-
-	return oMsg->count;
-    case PSP_CD_SENDSTOP:
-    case PSP_CD_SENDCONT:
-	goto recv_retry;
-	break;
-    case PSP_CD_ERROR:
-	PSI_fwarn(((DDErrorMsg_t*)&msg)->error,
-		   "error");
-	break;
-    default:
-	PSI_flog("unexpected msgtype %s\n", PSP_printMsg(msg.header.type));
+    if (oMsg->count > num) {
+	PSI_flog("option-buffer too small\n");
+	oMsg->count = num;
     }
 
-    return -1;
+    for (int i = 0; i < oMsg->count; i++) {
+	opts[i].option = oMsg->opt[i].option;
+	opts[i].value = oMsg->opt[i].value;
+    }
+
+    return oMsg->count;
 }
 
 char *PSI_printHWType(unsigned int hwType)
