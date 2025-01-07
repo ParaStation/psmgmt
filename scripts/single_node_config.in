@@ -129,7 +129,7 @@ function psconfig_single_node() {
     #
     $PSCONFIG -- create 'psid:compute'
     $PSCONFIG -- setParents 'psid:compute' 'class:psid'
-    $PSCONFIG -D -- setList 'psid:compute' 'LoadPlugins' "$PSID_PLUGINS"
+    $PSCONFIG -D -- setList 'psid:compute' 'LoadPlugins' $PSID_PLUGINS
     #
     # Unlock database
     #
