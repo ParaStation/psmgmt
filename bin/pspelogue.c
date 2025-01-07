@@ -222,6 +222,31 @@ static void initHostTable(void)
     }
 }
 
+/**
+ * @brief Handle a PSP_CD_UNKNOWN response
+ *
+ * @param msg Message to handle
+ */
+static bool handleRespUnknown(DDBufferMsg_t *msg, const char *caller, void *info)
+{
+    size_t used = 0;
+    PStask_ID_t dest;
+    PSP_getMsgBuf(msg, &used, "dest", &dest, sizeof(dest));
+
+    /* original type */
+    int16_t type;
+    PSP_getMsgBuf(msg, &used, "type", &type, sizeof(type));
+
+    fprintf(stderr, "%s: delivery of message with type %i to %s job %s "
+	    "failed\n", __func__, type, PSC_printTID(dest), jobID);
+
+    fprintf(stderr, "%s: ensure the 'pelogue' plugin is loaded on node %i\n",
+	    __func__, PSC_getID(msg->header.sender));
+    exit(1);
+
+    return false;  // would return from PSI_recvMsg() but never reached
+}
+
 static void init(const int argc, const char *argv[])
 {
     const char **dup_argv;
@@ -234,6 +259,9 @@ static void init(const int argc, const char *argv[])
       printf("%s: PSI initClient failed\n", __func__);
       exit(1);
     }
+    PSI_addRecvHandler(PSP_CC_MSG, ignoreMsg, NULL);
+    PSI_addRecvHandler(PSP_CD_UNKNOWN, handleRespUnknown, NULL);
+
 
     if (!initSerial(0, PSI_sendMsg)) {
       printf("%s: initSerial() failed\n", __func__);
@@ -268,30 +296,6 @@ static void timeoutHandler(int sig)
     fprintf(stderr, "%s: timeout(%i) receiving pelogue result for job %s\n",
 	   __func__, pelogueTimeout + recvTimeout + graceTime, jobID);
     exit(1);
-}
-
-/**
- * @brief Handle a PSP_CD_UNKNOWN response
- *
- * @param answer The msg to handle
- */
-void handleRespUnknown(DDBufferMsg_t *answer)
-{
-    size_t used = 0;
-    PStask_ID_t dest;
-    int16_t type;
-
-    /* original dest */
-    PSP_getMsgBuf(answer, &used, "dest", &dest, sizeof(dest));
-
-    /* original type */
-    PSP_getMsgBuf(answer, &used, "type", &type, sizeof(type));
-
-    fprintf(stderr, "%s: delivery of message with type %i to %s job %s "
-	    "failed\n", __func__, type, PSC_printTID(dest), jobID);
-
-    fprintf(stderr, "%s: please make sure the plugin 'pelogue' is loaded on"
-	    " node %i\n", __func__, PSC_getID(answer->header.sender));
 }
 
 /**
@@ -361,50 +365,34 @@ static void handleResponse(void)
     /* recv answer */
     setTimeout();
 
-    DDTypedBufferMsg_t answer;
-    if (PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer),
-		    -1, false) == -1) {
-	fprintf(stderr, "%s: PSI_recvMsg() for job %s failed\n",
-		__func__, jobID);
-	exit(1);
-    }
-
+    DDBufferMsg_t msg;
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_PLUG_PELOGUE, false);
+    int eno = errno;
     alarm(0);
     PSC_setSigHandler(SIGALRM, SIG_DFL);
+    if (ret == -1 && eno != ENOMSG) {
+	fprintf(stderr, "%s: PSI_recvMsg() for job %s failed: %s\n",
+		__func__, jobID, strerror(eno));
+	exit(1);
+    }
 
     gettimeofday(&time_now, NULL);
     timersub(&time_now, &time_start, &time_diff);
 
     /* verify msg */
-    switch (answer.header.type) {
-    case PSP_CC_MSG:
-    case PSP_PLUG_PELOGUE:
-	break;
-    case PSP_CD_UNKNOWN:
-	handleRespUnknown((DDBufferMsg_t *)&answer);
-	exit(1);
-	break;
-    default:
+    DDTypedBufferMsg_t *tMsg = (DDTypedBufferMsg_t *)&msg;
+    if (tMsg->header.type != PSP_PLUG_PELOGUE || tMsg->type != PSP_PELOGUE_RESP) {
 	fprintf(stderr, "%s: received unexpected msg type %hd:%d job %s\n",
-		__func__, answer.header.type, answer.type, jobID);
-	exit(1);
-    }
-
-    switch (answer.type) {
-    case PSP_PELOGUE_RESP:
-	break;
-    default:
-	fprintf(stderr, "%s: received unexpected msg type %hd:%d job %s\n",
-		__func__, answer.header.type, answer.type, jobID);
+		__func__, tMsg->header.type, tMsg->type, jobID);
 	exit(1);
     }
 
     if (debug) printf("%s: received answer at %f diff %f from %s job %s\n",
 		      __func__, time_now.tv_sec + 1e-6 * time_now.tv_usec,
 		      time_diff.tv_sec + 1e-6 * time_diff.tv_usec,
-		      PSC_printTID(answer.header.sender), jobID);
+		      PSC_printTID(msg.header.sender), jobID);
 
-    recvFragMsg(&answer, handlePElogueResp);
+    recvFragMsg(tMsg, handlePElogueResp);
 }
 
 /**
