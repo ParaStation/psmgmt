@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -194,9 +194,37 @@ static bool msg_ENV(DDTypedBufferMsg_t *inmsg)
     return true;
 }
 
+/**
+ * @brief Drop a PSP_CD_ENV message
+ *
+ * Drop the message @a msg of type PSP_CD_ENV.
+ *
+ * Since the requesting process waits for a reaction to its request a
+ * corresponding answer is created.
+ *
+ * @param msg Pointer to the message to drop
+ *
+ * @return Always return true
+ */
+static bool drop_ENV(DDBufferMsg_t *msg)
+{
+    DDTypedMsg_t typmsg = {
+	.header = {
+	    .type = PSP_CD_ENVRES,
+	    .dest = msg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(typmsg) },
+	.type = -1 };
+
+    sendMsg(&typmsg);
+    return true;
+}
+
 void initEnvironment(void)
 {
-    /* Register msg-handlers for environment modifications */
+    /* Register msg-handlers/droppers for environment modifications */
     PSID_registerMsg(PSP_CD_ENV, (handlerFunc_t)msg_ENV);
     PSID_registerMsg(PSP_CD_ENVRES, frwdMsg);
+
+    PSID_registerDropper(PSP_CD_ENV, drop_ENV);
 }
