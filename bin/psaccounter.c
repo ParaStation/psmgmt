@@ -141,7 +141,9 @@ static LIST_HEAD(dJobs);
 static Acc_Nodes_t *accNodes;
 
 #define alog(...) logger_print(alogger, -1, __VA_ARGS__)
+#define flog(...) logger_funcprint(alogger, __func__, -1, __VA_ARGS__)
 #define awarn(...) logger_warn(alogger, -1, errno, __VA_ARGS__)
+#define fwarn(...) logger_funcwarn(alogger, __func__, -1, errno, __VA_ARGS__)
 
 /**
  * @brief Malloc with error handling.
@@ -185,7 +187,7 @@ static bool blockSig(int sig, bool block)
     sigaddset(&set, sig);
 
     if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, &oldset)) {
-	awarn("%s: sigprocmask()", __func__);
+	fwarn("sigprocmask()");
     }
 
     return sigismember(&oldset, sig);
@@ -216,7 +218,6 @@ static void insertdJob(PStask_ID_t Job)
 static bool finddJob(PStask_ID_t Job)
 {
     list_t *j;
-
     list_for_each(j, &dJobs) {
 	Joblist_t *job = list_entry(j, Joblist_t, next);
 	if (job->job == Job) return true;
@@ -391,10 +392,10 @@ static void sig_handler(int sig)
 	break;
     case SIGTERM:
 	/* ignore term signals */
-	if (debug & 0x010) alog("Caught SIGTERM, ignoring\n");
+	if (debug & 0x010) alog("caught SIGTERM, ignoring\n");
 	break;
     case SIGINT:
-	if (debug &0x010) alog("Caught SIGINT, exiting\n");
+	if (debug &0x010) alog("caught SIGINT, exiting\n");
 	exit(EXIT_SUCCESS);
     default:
 	alog("Caught signal %s, ignoring\n", strsignal(sig));
@@ -472,7 +473,7 @@ static Job_t *initNewJob(PStask_ID_t logger)
  *
  * @return Returns pointer to the rest of the message.
  */
-static Job_t *handleComHeader(char **newptr, const char *func, int *rank)
+static Job_t *handleComHeader(char **newptr, const char *caller, int *rank)
 {
     uid_t uid;
     gid_t gid;
@@ -489,13 +490,12 @@ static Job_t *handleComHeader(char **newptr, const char *func, int *rank)
     if ((job = findJob(logger)) == NULL) {
 	job = initNewJob(logger);
 	if (!insertJob(job)) {
-	    alog("%s (%s): error saving job, possible memory problem?\n",
-		 __func__, func);
+	    flog("(from %s) error saving job, memory problem?\n", caller);
 	    exit(EXIT_FAILURE);
 	}
 	if (debug & 0x020) {
-	    alog("%s (%s): got new job, logger: %s from function: %s\n",
-		 __func__, func, PSC_printTID(job->logger), func);
+	    flog("(from %s) got new job, logger %s\n", caller,
+		 PSC_printTID(job->logger));
 	}
     }
 
@@ -518,8 +518,7 @@ static Job_t *handleComHeader(char **newptr, const char *func, int *rank)
 	job->uid = uid;
 	struct passwd *spasswd = getpwuid(job->uid);
 	if (!spasswd) {
-	    alog("%s (%s): getting username failed, invalid user id:%i\n",
-		__func__, func, job->uid);
+	    flog("(from %s) getpwuid(%d) failed\n", caller, job->uid);
 	    snprintf(job->user, maxlen, "%i", job->uid);
 	} else {
 	    strncpy(job->user, spasswd->pw_name, maxlen);
@@ -538,8 +537,7 @@ static Job_t *handleComHeader(char **newptr, const char *func, int *rank)
 	job->gid = gid;
 	struct group *sgroup = getgrgid(job->gid);
 	if (!sgroup) {
-	    alog("%s (%s): getting groupname failed, invalid group id:%i\n",
-		 __func__, func, job->gid);
+	    flog("(from %s) getgrgid(%d) failed\n", caller, job->gid);
 	    snprintf(job->group, maxlen, "%i", job->gid);
 	} else {
 	    strncpy(job->group, sgroup->gr_name, maxlen);
@@ -549,13 +547,13 @@ static Job_t *handleComHeader(char **newptr, const char *func, int *rank)
 
     /* sanity check */
     if (job->uid != uid || job->gid != gid) {
-	alog("%s (%s): data mismatch: job->uid=%i new->uid=%i, job->gid=%i "
-	     "new->gid=%i\n", __func__, func, job->uid, uid, job->gid, gid);
+	flog("(from %s) data mismatch: job->uid=%i new->uid=%i, job->gid=%i "
+	     "new->gid=%i\n", caller, job->uid, uid, job->gid, gid);
     }
 
     if (debug & 0x080) {
-	printf("%s (%s): rank:%i user:%i group:%i logger: %i\n", __func__, func,
-	       *rank, uid, gid, PSC_getPID(job->logger));
+	printf("%s (%s): rank:%i user:%i group:%i logger: %i\n", __func__,
+	       caller, *rank, uid, gid, PSC_getPID(job->logger));
     }
 
     *newptr = ptr;
@@ -588,7 +586,7 @@ static void printAccEndMsg(char *chead, PStask_ID_t key)
     int procs;
 
     if (!job) {
-	alog("%s: couldn`t find job: %s\n", __func__, PSC_printTID(key));
+	flog("couldn`t find job: %s\n", PSC_printTID(key));
 	return;
     }
 
@@ -675,8 +673,7 @@ static void printAccEndMsg(char *chead, PStask_ID_t key)
 
     /* warn if we got different types of messages */
     if (!job->noextendedInfo && !job->extendedInfo) {
-	alog("%s: accountpoll disabled: nodes with different settings in job\n",
-	     __func__);
+	flog("accountpoll disabled: nodes with different settings in job\n");
     }
 
     /* set up session information */
@@ -727,7 +724,7 @@ static void printAccEndMsg(char *chead, PStask_ID_t key)
 	    whour, wmin, wsec, procs);
 
     if (!deleteJob(key)) {
-	alog("%s: error deleting job: %s\n", __func__, PSC_printTID(key));
+	flog("error deleting job %s\n", PSC_printTID(key));
     }
 }
 
@@ -745,7 +742,7 @@ static void timer_handler(int sig)
 
     Job_t *job = findJob(tid);
     if (!job) {
-	alog("%s: couldn't find job: %s\n", __func__, PSC_printTID(tid));
+	flog("couldn't find job %s\n", PSC_printTID(tid));
     } else {
 	time_t atime;
 	struct tm *ptm;
@@ -860,7 +857,7 @@ static void handleAccChildMsg(char *msgptr, PStask_ID_t sender)
     job->procStartCount++;
 
     if (debug & 0x020) {
-	alog("%s child %zi with rank:%i, pid:%i cmd:%s started\n", __func__,
+	flog("child %zi with rank %i, pid %i cmd %s started\n",
 	     job->procStartCount, rank, PSC_getPID(sender), exec_name);
     }
 }
@@ -879,9 +876,8 @@ static void handleAccChildMsg(char *msgptr, PStask_ID_t sender)
 static void handleAccDeleteMsg(char *chead, PStask_ID_t logger)
 {
     Job_t *job = findJob(logger);
-
     if (!job) {
-	alog("%s: couldn`t find job: %s\n", __func__, PSC_printTID(logger));
+	flog("couldn`t find job %s\n", PSC_printTID(logger));
 	return;
     }
 
@@ -892,7 +888,7 @@ static void handleAccDeleteMsg(char *chead, PStask_ID_t logger)
 
     /* delete job structure */
     if (!deleteJob(logger)) {
-	alog("%s: couldn`t delete job: %s\n", __func__, PSC_printTID(logger));
+	flog("couldn`t delete job %s\n", PSC_printTID(logger));
 	return;
     }
 }
@@ -940,15 +936,15 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 	}
 
 	if (debug & 0x020) {
-	    alog("%s: logger exited, %zi of %zi children finished\n", __func__,
+	    flog("logger exited, %zi of %zi children finished\n",
 		 job->countExitMsg, job->procStartCount);
 	}
 
 	if (!job->partitionSize && !job->procStartCount &&
 	    (size_t) job->partitionSize > job->procStartCount &&
 	    debug & 0x010) {
-	    alog("%s: requested partition is bigger then needed: "
-		 "partition_size:%i started_children:%zi\n", __func__,
+	    flog("requested partition is bigger then needed:"
+		 " partition_size %i started_children %zi\n",
 		 job->partitionSize, job->procStartCount);
 	}
 
@@ -972,9 +968,9 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 	    /* insert the job into error waiting queue */
 	    if (!finddJob(job->logger)) {
 		insertdJob(job->logger);
-		if(debug & 0x010) {
-		    alog("%s: waiting for all children to exit, job: %s\n",
-			 __func__, PSC_printTID(job->logger));
+		if (debug & 0x010) {
+		    flog("waiting for all children to exit, job %s\n",
+			 PSC_printTID(job->logger));
 		}
 	    }
 	} else {
@@ -1001,8 +997,8 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 	}
 
 	if (debug & 0x020) {
-	    alog("%s: child %zi with rank:%i forwarderpid:%i finished\n",
-	    __func__, job->countExitMsg + 1, rank, PSC_getPID(sender));
+	    flog("child %zi with rank %i forwarderpid %i finished\n",
+		 job->countExitMsg + 1, rank, PSC_getPID(sender));
 	}
 
 	/* ping logger to check if it is still alive */
@@ -1017,8 +1013,7 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 
 	/* pagesize */
 	if ((pagesize = *(uint64_t *) ptr) < 1) {
-	    alog("%s: invalid pagesize, cannot calc mem usage\n",
-		 __func__);
+	    flog("invalid pagesize, cannot calc mem usage\n");
 	    pagesize = job->invalid_pagesize = 1;
 	}
 	ptr += sizeof(uint64_t);
@@ -1087,8 +1082,7 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 	    1.0e-6 * job->rusage.ru_stime.tv_usec;
 
 	if (cputime < 0) {
-	    alog("%s: received invalid rusage structure from rank:%i\n",
-		 __func__, rank);
+	    flog("received invalid rusage structure from rank %i\n", rank);
 	    job->incomplete = 1;
 	} else {
 	    job->cput += cputime;
@@ -1167,7 +1161,7 @@ static void handleAccSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
     job = findJob(logger);
 
     if (!job) {
-	alog("%s: couldn't find job: %s\n", __func__, PSC_printTID(logger));
+	flog("couldn't find job %s\n", PSC_printTID(logger));
 	return;
     }
 
@@ -1183,7 +1177,7 @@ static void handleAccSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
     ptr += sizeof(uint16_t);
 
     if (nBytes > myBytes) {
-	alog("%s got too many CPUs: %zd > %zd for %s\n", __func__,
+	flog("too many CPUs: %zd > %zd for %s\n",
 	     nBytes*8, myBytes*8, PSC_printTID(logger));
     }
 
@@ -1198,7 +1192,7 @@ static void handleAccSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 	nodeID = *(PSnodes_ID_t *)ptr;
 	ptr += sizeof(PSnodes_ID_t);
 	if (nodeID >= nrOfNodes) {
-	    alog("%s got invalid nodeID:%i nrOfNodes:%i logger: %s\n", __func__,
+	    flog("invalid nodeID %i (nrOfNodes %i) for %s\n",
 		 nodeID, nrOfNodes, PSC_printTID(logger));
 	    return;
 	}
@@ -1247,8 +1241,7 @@ static void handleAccSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 	}
     } else {
 	if (debug & 0x040) {
-	    alog("%s: received %zi from %zi msg\n", __func__,
-		 job->countSlotMsg, job->taskSize);
+	    flog("received %zi from %zi\n", job->countSlotMsg, job->taskSize);
 	}
     }
 }
@@ -1312,7 +1305,7 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
 	     PSC_getPID(rootTID));
 
     if (debug & 0x040) {
-	alog("%s: received new acc msg: type:%s, sender: %s", __func__,
+	flog("received new acc msg: type:%s, sender: %s",
 	     msg->type == PSP_ACCOUNT_QUEUE ? "Queue" :
 	     msg->type == PSP_ACCOUNT_START ? "Start" :
 	     msg->type == PSP_ACCOUNT_SLOTS ? "Slot" :
@@ -1351,7 +1344,7 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
 	// ignore
 	break;
     default:
-	alog("%s: unknown accounting message: type=%d\n", __func__, msg->type);
+	flog("unknown accounting message (type=%d)\n", msg->type);
     }
     fflush(fp);
 }
@@ -1374,8 +1367,8 @@ static void handleSigMsg(DDErrorMsg_t * msg)
 	if (!errstr) {
 	    errstr = "UNKNOWN";
 	}
-	alog("%s: msg from %s:", __func__, PSC_printTID(msg->header.sender));
-	alog("task %s: %s\n", PSC_printTID(msg->request), errstr);
+	flog("msg from %s", PSC_printTID(msg->header.sender));
+	alog(" on task %s: %s\n", PSC_printTID(msg->request), errstr);
     }
     job = findJob(msg->request);
 
@@ -1428,12 +1421,12 @@ static void openAccLogFile(char *arg_logdir)
     tmp = localtime(&t);
     blockSig(SIGALRM, blocked);
     if (!tmp) {
-	alog("%s: localtime failed\n", __func__);
+	flog("localtime failed\n");
 	exit(EXIT_FAILURE);
     }
 
     if (!strftime(filename, sizeof(filename), "%Y%m%d", tmp)) {
-	alog("%s: getting time failed\n", __func__);
+	flog("getting time failed\n");
 	strncpy(filename, "unknown", sizeof(filename));
     }
 
@@ -1460,8 +1453,7 @@ static void openAccLogFile(char *arg_logdir)
 	    strncat(syscmd, oldfilename, sizeof(syscmd) - strlen(syscmd) - 1);
 	    ret = system(syscmd);
 	    if (ret == -1) {
-		alog("%s: error executing postprocessing cmd:%s\n", __func__,
-		     syscmd);
+		flog("error executing postprocessing cmd '%s'\n", syscmd);
 	    }
 	}
     }
@@ -1482,14 +1474,12 @@ static void openAccLogFile(char *arg_logdir)
     if (!fp) {
 	if (arg_logdir) {
 	    if (!strcmp(arg_logdir, "-")) {
-		alog("%s: error writing to stdout\n", __func__);
+		flog("error writing to stdout\n");
 	    } else {
-		alog("%s: error writing to log file: %s/%s\n",
-		     __func__, arg_logdir, filename);
+		flog("error writing to log file: %s/%s\n", arg_logdir, filename);
 	    }
 	} else {
-	    alog("%s: error writing to log file: %s/%s\n",
-		 __func__, DEFAULT_LOG_DIR, filename);
+	    flog("error writing to log file: %s/%s\n", DEFAULT_LOG_DIR, filename);
 	}
 	exit(EXIT_FAILURE);
     }
@@ -1498,12 +1488,10 @@ static void openAccLogFile(char *arg_logdir)
     if (!arg_logdir) {
 	if (!stat(DEFAULT_LOG_DIR, &statbuf)) {
 	    if (!fchown(fileno(fp), -1, statbuf.st_gid)) {
-		if(debug & 0x010) alog("%s: error changing grp on acc_file\n",
-				       __func__);
+		if (debug & 0x010) flog("error changing grp on acc_file\n");
 	    }
 	} else {
-	    alog("%s: error stat on default logdir %s\n", __func__,
-		 DEFAULT_LOG_DIR);
+	    flog("error stat on default logdir %s\n", DEFAULT_LOG_DIR);
 	}
     }
     strncpy(oldfilename, filename, sizeof(oldfilename));
@@ -1527,9 +1515,9 @@ static void loop(char *arg_logdir)
 	if (ret == -1 && errno == EINTR) continue;
 
 	/* Problem with daemon */
-	if (ret == -1) {
-	    alog("\n%s: daemon died, error:%zi errno:%i\n",
-		 __func__, ret, errno);
+	if (ret == -1 && errno != ENOMSG) {
+	    alog("\n");
+	    flog("daemon died, error %zi errno %i\n", ret, errno);
 	    exit(EXIT_FAILURE);
 	}
 
@@ -1544,7 +1532,7 @@ static void loop(char *arg_logdir)
 	    handleSigMsg((DDErrorMsg_t *) & msg);
 	    break;
 	default:
-	    alog("%s: unknown message: %x\n", __func__, msg.header.type);
+	    flog("unknown message: %x\n", msg.header.type);
 	}
 
 	if (logfile) fflush(logfile);
@@ -1656,7 +1644,7 @@ static void getNodeInformation(void)
 	/* get ip-address of node */
 	int rc = PSI_infoUInt(-1, PSP_INFO_NODE, &n, &accNodes[n].hostaddr, false);
 	if (rc || accNodes[n].hostaddr == INADDR_ANY) {
-	    alog("%s: getting node info failed, errno:%i\n", __func__, errno);
+	    fwarn("getting node info failed");
 	    exit(EXIT_FAILURE);
 	}
 
@@ -1671,12 +1659,12 @@ static void getNodeInformation(void)
 	if (rc) {
 	    snprintf(accNodes[n].hostname, sizeof(accNodes[n].hostname),
 		     "%s", inet_ntoa(nodeAddr.sin_addr));
-	    alog("%s: couldn't resolve hostname from ip:%s\n", __func__,
+	    flog("unable to resolve hostname from ip %s\n",
 		 inet_ntoa(nodeAddr.sin_addr));
 	}
 
 	if (debug & 0x100) {
-	    alog("%s: hostname %s ip %s nodeid %i\n", __func__,
+	    flog("hostname %s ip %s nodeid %i",
 		 accNodes[n].hostname, inet_ntoa(nodeAddr.sin_addr), n);
 	}
     }
@@ -1771,7 +1759,7 @@ int main(int argc, char *argv[])
 
     /* init PSI */
     if (!PSI_initClient(TG_ACCOUNT)) {
-	alog("%s: Initialization of PSI failed\n", __func__);
+	alog("failed to initialize PSI\n");
 	exit(EXIT_FAILURE);
     }
 
@@ -1779,7 +1767,7 @@ int main(int argc, char *argv[])
     if (arg_logfile && strcmp(arg_logfile, "-")) {
 	logfile = fopen(arg_logfile, "a+");
 	if (!logfile) {
-	    awarn("%s: fopen(%s)", __func__, arg_logfile);
+	    awarn("fopen(%s)", arg_logfile);
 	    exit(EXIT_FAILURE);
 	}
     }
@@ -1792,7 +1780,7 @@ int main(int argc, char *argv[])
     logger_finalize(alogger);
     alogger = logger_new("PSACC", logfile);
 
-    if (debug) alog("Enabling debug mask: 0x%x\n", debug);
+    if (debug) alog("enabling debug mask: 0x%x\n", debug);
 
     /* init */
     btroot = 0;
