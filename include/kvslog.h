@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,8 +21,11 @@
 extern logger_t kvslogger;
 
 #define mlog(...) logger_print(kvslogger, -1, __VA_ARGS__)
-#define mwarn(...) logger_warn(kvslogger, -1, __VA_ARGS__)
+#define flog(...) logger_funcprint(kvslogger, __func__, -1, __VA_ARGS__)
 #define mdbg(...) logger_print(kvslogger, __VA_ARGS__)
+#define fdbg(...) logger_funcprint(kvslogger, __func__, __VA_ARGS__)
+#define mwarn(...) logger_warn(kvslogger, -1, __VA_ARGS__)
+#define fwarn(...) logger_funcwarn(kvslogger, __func__, -1, __VA_ARGS__)
 
 /** Various types of logging levels for more verbose logging */
 typedef enum {
