@@ -128,58 +128,62 @@ static struct timeval time_now;
 /** Timer to measure the kvs phases */
 static struct timeval time_diff;
 
+static bool handle_CC_ERROR(DDBufferMsg_t *msg, const char *caller, void *info)
+{
+    if (msg->header.sender != loggertid) return true;  // continue PSI_recvMsg()
+    mlog("%s: logger already died\n", caller);
+    return false;  // return from PSI_recvMsg() with errno set to ENOMSG
+}
+
 
 /**
- * @brief Send a release message to the logger.
+ * @brief Send release message to the logger
  *
- * @return No return value.
+ * Send a message of type PSP_CD_RELEASE to the logger and wait for an
+ * answer.
+ *
+ * @param caller Function name of the calling function
+ *
+ * @return No return value
  */
-static void releaseMySelf(const char *func)
+static void releaseMySelf(const char *caller)
 {
     if (Selector_isRegistered(daemonFD)) Selector_remove(daemonFD);
     if (Selector_isRegistered(forwarderFD)) Selector_remove(forwarderFD);
 
-    DDSignalMsg_t msg = {
+    DDSignalMsg_t request = {
 	.header = {
 	    .type = PSP_CD_RELEASE,
 	    .dest = PSC_getMyTID(),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) },
+	    .len = sizeof(request) },
 	.signal = -1,
 	.answer = 1, };
-    if (PSI_sendMsg(&msg) == -1) {
+    if (PSI_sendMsg(&request) == -1) {
 	fwarn(errno, "sending request failed");
 	return;
     }
 
-    while (true) {
-	DDBufferMsg_t answer;
-	ssize_t ret = PSI_recvMsg(&answer, sizeof(answer), -1, false);
-	if (ret == -1) {
-	    mwarn(errno, "%s: PSI_recvMsg", __func__);
-	    return;
-	}
+    PSI_addRecvHandler(PSP_CC_MSG, ignoreMsg, NULL);
+    PSI_addRecvHandler(PSP_CD_WHODIED, ignoreMsg, NULL);
+    PSI_addRecvHandler(PSP_CC_ERROR, handle_CC_ERROR, NULL);
 
-	switch (answer.header.type) {
-	case PSP_CD_RELEASERES:
-	    break;
-	case PSP_CC_ERROR:
-	    if (answer.header.sender != loggertid) continue;
-	    mlog("%s: logger already died\n", __func__);
-	    break;
-	case PSP_CD_WHODIED:
-	case PSP_CC_MSG:
-	    /* ignore late arriving messages */
-	    continue;
-	default:
-	    mlog("%s: wrong message type %d (%s)\n", __func__,
-		 answer.header.type, PSP_printMsg(answer.header.type));
-	}
-	break;
+    DDBufferMsg_t msg;
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_RELEASERES, false);
+    int eno = errno;
+    if (ret == -1 && eno != ENOMSG) {
+	fwarn(eno, "PSI_recvMsg");
+	return;
     }
 
-    if (verbose) printf("(%s:) KVS process %s finished\n", func,
+    if (msg.header.type != PSP_CD_RELEASERES && msg.header.type != PSP_CC_ERROR) {
+	flog("unexpected message %s\n", PSP_printMsg(msg.header.type));
+    }
+
+    if (verbose) printf("(%s:) KVS process %s finished\n", caller,
 			PSC_printTID(PSC_getMyTID()));
+
+    /* no cleanup by PSI_clrRecvHandler() since we exit() afterwards anyhow */
 }
 
 /**
@@ -291,11 +295,11 @@ static PMI_Clients_t *__findClient(PSLog_Msg_t *msg, bool term, const char *func
 /**
  * @brief Test incoming messages
  *
- * Test, if incoming message @a msg is consistent with internal KVS
+ * Test if incoming message @a msg is consistent with internal KVS
  * settings. Tests are consistency of task-ID and rank fitting into
  * @ref clients array.
  *
- * @param fName Name of the calling function
+ * @param caller Name of the calling function
  *
  * @param client The client or NULL; in the latter case try to find it
  *
