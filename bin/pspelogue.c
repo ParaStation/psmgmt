@@ -8,19 +8,21 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <arpa/inet.h>
+#include <errno.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <popt.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <netinet/in.h>
-#include <popt.h>
-#include <signal.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include <netdb.h>
-#include <arpa/inet.h>
 
 #ifndef BUILD_WITHOUT_PSCONFIG
 #include <glib.h>

@@ -18,6 +18,7 @@
 #include <string.h>
 #include <strings.h>
 #include <signal.h>
+#include <sys/types.h>
 #include <time.h>
 #include <errno.h>
 

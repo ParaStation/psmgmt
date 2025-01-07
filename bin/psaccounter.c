@@ -1356,23 +1356,24 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
  *
  * @param msg Pointer to the msg to handle
  *
- * @return No return value.
+ * @return Always return true to keep PSI_recvMsg() active
  */
-static void handleSigMsg(DDErrorMsg_t * msg)
+static bool handle_CD_SIGRES(DDBufferMsg_t *msg, const char *caller, void *info)
 {
+    DDErrorMsg_t *eMsg = (DDErrorMsg_t *)msg;
 
     if (debug & 0x040) {
-	char *errstr = strerror(msg->error);
+	char *errstr = strerror(eMsg->error);
 	if (!errstr) {
 	    errstr = "UNKNOWN";
 	}
-	flog("msg from %s", PSC_printTID(msg->header.sender));
-	alog(" on task %s: %s\n", PSC_printTID(msg->request), errstr);
+	flog("msg from %s", PSC_printTID(eMsg->header.sender));
+	alog(" on task %s: %s\n", PSC_printTID(eMsg->request), errstr);
     }
 
     Job_t *job = findJob(eMsg->request);
     /* check if logger replied */
-    if (msg->error == ESRCH && job) {
+    if (eMsg->error == ESRCH && job) {
 	if (list_empty(&dJobs)) {
 	    struct itimerval timer;
 
@@ -1388,11 +1389,12 @@ static void handleSigMsg(DDErrorMsg_t * msg)
 	    setitimer(ITIMER_REAL, &timer, NULL);
 	}
 
-	if (!finddJob(msg->request)) {
-	    insertdJob(msg->request);
-	    alog("logger died, error:%i\n", msg->error);
+	if (!finddJob(eMsg->request)) {
+	    insertdJob(eMsg->request);
+	    alog("logger died, error: %i\n", eMsg->error);
 	}
     }
+    return true;   // continue PSI_recvMsg()
 }
 
 /**
@@ -1508,9 +1510,8 @@ static void openAccLogFile(char *arg_logdir)
 static void loop(char *arg_logdir)
 {
     while (1) {
-	DDTypedBufferMsg_t msg;
-	ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&msg, sizeof(msg),
-				  -1, false);
+	DDBufferMsg_t msg;
+	ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_ACCOUNT, false);
 	if (ret == -1 && errno == EINTR) continue;
 
 	/* Problem with daemon */
@@ -1525,10 +1526,7 @@ static void loop(char *arg_logdir)
 
 	switch (msg.header.type) {
 	case PSP_CD_ACCOUNT:
-	    handleAcctMsg(&msg);
-	    break;
-	case PSP_CD_SIGRES:
-	    handleSigMsg((DDErrorMsg_t *) & msg);
+	    handleAcctMsg((DDTypedBufferMsg_t *)&msg);
 	    break;
 	default:
 	    flog("unknown message: %x\n", msg.header.type);
@@ -1759,6 +1757,7 @@ int main(int argc, char *argv[])
 	alog("failed to initialize PSI\n");
 	exit(EXIT_FAILURE);
     }
+    PSI_addRecvHandler(PSP_CD_SIGRES, handle_CD_SIGRES, NULL);
 
     /* logging */
     if (arg_logfile && strcmp(arg_logfile, "-")) {
