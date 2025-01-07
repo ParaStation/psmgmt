@@ -726,16 +726,16 @@ int PSI_sendFinish(PStask_ID_t parenttid)
     return 0;
 }
 
-int PSI_recvFinish(int outstanding)
+bool PSI_recvFinish(int outstanding)
 {
     PSI_fdbg(PSI_LOG_VERB, "%d\n", outstanding);
 
-    int error = 0;
+    bool error = false;
     while (outstanding > 0) {
 	DDBufferMsg_t msg;
 	if (PSI_recvMsg(&msg, sizeof(msg), -1, false) == -1) {
 	    PSI_fwarn(errno, "PSI_recvMsg");
-	    error = 1;
+	    error = true;
 	    break;
 	}
 	switch (msg.header.type) {
@@ -743,13 +743,13 @@ int PSI_recvFinish(int outstanding)
 	    break;
 	default:
 	    PSI_flog("unexpected message %s\n", PSP_printMsg(msg.header.type));
-	    error = 1;
+	    error = true;
 	    break;
 	}
 	outstanding--;
     }
 
-    return error;
+    return !error;
 }
 
 /**

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -282,14 +282,14 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
  * Send the signal @a signal to the task marked by @a tid on any node
  * of the cluster.
  *
- * @param tid The unique ID of the task the signal is sent to.
+ * @param tid Unique ID of the task the signal is sent to; if -1, the
+ * signal will be sent to all children of the current task.
  *
- * @param signal The signal to send. If @a tid is -1, the signal will
- * be sent to all child tasks of the current task.
+ * @param signal The signal to send
  *
  * @param async Flag to prevent waiting for a corresponding answer
- * message. The answer message has to be handled explicitly within
- * the calling function.
+ * message; in asynchronous mode answer messages have to be handled
+ * explicitly within the calling function
  *
  * @return On success 0 is returned. If some problem occurred, a value
  * different from 0 is returned. This might be -1 marking problems
@@ -297,6 +297,6 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
  * -2 if an inappropriate answer from the daemon occurred or larger
  * than 0 representing an errno from within the daemons.
  */
-int PSI_kill(PStask_ID_t tid, short signal, int async);
+int PSI_kill(PStask_ID_t tid, short signal, bool async);
 
 #endif /* __PSISPAWN_H */

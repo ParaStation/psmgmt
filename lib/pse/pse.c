@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -310,7 +310,7 @@ void PSE_finalize(void)
 	    exitAll("Finalize error", 10);
 	}
     } else if (PSE_getRank()==0) {
-	if (PSI_recvFinish(myWorldSize)) {
+	if (!PSI_recvFinish(myWorldSize)) {
 	    logger_print(logger, -1,
 			 "Failed to receive SPAWNFINISH from children\n");
 	    exitAll("Finalize error", 10);

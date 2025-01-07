@@ -216,7 +216,7 @@ static void handleAcctMsg(DDTypedBufferMsg_t *msg)
 
     logger = *(PStask_ID_t *)msg->buf;
 
-    ret = PSI_kill(logger, 0, 1); /* ping the sender */
+    ret = PSI_kill(logger, 0, true); /* ping the sender */
     if (ret == -1) printf("PSI_kill(%s, 0): %s\n",
 			  PSC_printTID(logger), strerror(ret));
 

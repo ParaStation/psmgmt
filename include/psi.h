@@ -372,9 +372,9 @@ int PSI_sendFinish(PStask_ID_t parenttid);
  *
  * @param num Number of messages expected to receive
  *
- * @return On success, 0 is returned. Or 1, if an error occured.
+ * @return Return true on success or false if an error occurred
  */
-int PSI_recvFinish(int num);
+bool PSI_recvFinish(int num);
 
 /**
  * @brief Transform to psilogger

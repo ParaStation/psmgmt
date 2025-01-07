@@ -1002,7 +1002,7 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 	}
 
 	/* ping logger to check if it is still alive */
-	PSI_kill(job->logger, 0, 1);
+	PSI_kill(job->logger, 0, true);
 
 	/* pid */
 	ptr += sizeof(pid_t);

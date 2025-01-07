@@ -1770,7 +1770,7 @@ void PSIADM_KillProc(PStask_ID_t tid, int sig)
     } else {
 	char *errstr;
 
-	int ret = PSI_kill(tid, sig, 0);
+	int ret = PSI_kill(tid, sig, false);
 
 	switch (ret) {
 	case -2:

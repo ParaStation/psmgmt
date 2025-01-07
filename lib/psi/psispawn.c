@@ -684,42 +684,43 @@ bool PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
     return ret == 1;
 }
 
-int PSI_kill(PStask_ID_t tid, short signal, int async)
+int PSI_kill(PStask_ID_t tid, short signal, bool async)
 {
-    DDSignalMsg_t msg = {
+    DDSignalMsg_t request = {
 	.header = {
 	    .type = PSP_CD_SIGNAL,
 	    .dest = tid,
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) },
-	msg.signal = signal,
-	msg.param = getuid(),
-	msg.pervasive = 0,
-	msg.answer = 1 };
-    DDErrorMsg_t answer;
+	    .len = sizeof(request) },
+	.signal = signal,
+	.param = getuid(),
+	.pervasive = 0,
+	.answer = 1 };
 
     PSI_fdbg(PSI_LOG_VERB, "%s  %d\n", PSC_printTID(tid), signal);
 
-    if (PSI_sendMsg(&msg) == -1) {
+    if (PSI_sendMsg(&request) == -1) {
 	PSI_fwarn(errno, "PSI_sendMsg");
 	return -1;
     }
 
-    if (!async) {
-	if (PSI_recvMsg((DDBufferMsg_t *)&answer, sizeof(answer), // @todo
-			-1, false) == -1) {
-	    PSI_fwarn(errno, "PSI_recvMsg");
-	    return -1;
-	}
+    if (async) return 0;
 
-	if (answer.request != tid) {
-	    PSI_flog("answer from wrong task (%s/", PSC_printTID(answer.request));
-	    PSI_log("%s)\n", PSC_printTID(tid));
-	    return -2;
-	}
-
-	return answer.error;
+    DDBufferMsg_t msg;
+    ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_SIGRES, true);
+    if (ret == -1 && errno != ENOMSG) {
+	PSI_fwarn(errno, "PSI_recvMsg");
+	return -1;
     }
 
-    return 0;
+    if (msg.header.type != PSP_CD_SIGRES) return -2;
+
+    DDErrorMsg_t *eMsg = (DDErrorMsg_t *)&msg;
+    if (eMsg->request != tid) {
+	PSI_flog("answer from wrong task (%s/", PSC_printTID(eMsg->request));
+	PSI_log("%s)\n", PSC_printTID(tid));
+	return -2;
+    }
+
+    return eMsg->error;
 }
