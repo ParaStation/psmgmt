@@ -95,7 +95,6 @@ typedef struct {
     PSnodes_ID_t node;
     u_int32_t hostaddr;
     char hostname[MAX_HOSTNAME_LEN];
-    int	protoVersion;
 } Acc_Nodes_t;
 
 /* binary tree structur */
@@ -1645,9 +1644,6 @@ static void daemonize(const char *cmd)
  */
 static void getNodeInformation(void)
 {
-    PSP_Option_t opt = PSP_OP_DAEMONPROTOVERSION;
-    PSP_Optval_t val;
-
     /* get number of nodes */
     nrOfNodes = PSC_getNrOfNodes();
 
@@ -1679,28 +1675,9 @@ static void getNodeInformation(void)
 		 inet_ntoa(nodeAddr.sin_addr));
 	}
 
-	/* get daemon protocoll version */
-	if (PSI_infoOption(n, 1, &opt, &val, false) == -1 ) {
-	    if (debug & 0x010) {
-		alog("%s: error getting protocol version for node:%s\n",
-		     __func__, accNodes[n].hostname);
-	    }
-	    accNodes[n].protoVersion = 0;
-	} else {
-	    accNodes[n].protoVersion = val;
-
-	    /* make sure we have at least protocol version 406 */
-	    if (accNodes[n].protoVersion < 406) {
-		alog("%s: need deamon protocol >= 406, please update "
-		     "node:%i\n", __func__, n);
-		exit(EXIT_FAILURE);
-	    }
-	}
-
 	if (debug & 0x100) {
-	    alog("%s: hostname:%s ip:%s nodeid:%i protocol:%i\n", __func__,
-		 accNodes[n].hostname, inet_ntoa(nodeAddr.sin_addr), n,
-		 accNodes[n].protoVersion);
+	    alog("%s: hostname %s ip %s nodeid %i\n", __func__,
+		 accNodes[n].hostname, inet_ntoa(nodeAddr.sin_addr), n);
 	}
     }
 }
