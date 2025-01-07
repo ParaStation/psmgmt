@@ -146,13 +146,13 @@ static Acc_Nodes_t *accNodes;
 #define fwarn(...) logger_funcwarn(alogger, __func__, -1, errno, __VA_ARGS__)
 
 /**
- * @brief Malloc with error handling.
+ * @brief Malloc with error handling
  *
  * Call malloc and handle errors.
  *
- * @param size Size in bytes to allocate.
+ * @param size Size in bytes to allocate
  *
- * @return Returned is a pointer to the allocated memory.
+ * @return Returned is a pointer to the allocated memory
  */
 static void *umalloc(size_t size, const char *func)
 {
@@ -194,12 +194,14 @@ static bool blockSig(int sig, bool block)
 }
 
 /**
-* @brief Insert incomplete Job to Queue.
+* @brief Insert incomplete Job to Queue
 *
 * Insert a job where not all exit messages could be received to
 * incomplete Queue.
 *
-* @return No return value.
+* @param job Job to add
+*
+* @return No return value
 */
 static void insertdJob(PStask_ID_t Job)
 {
@@ -209,11 +211,13 @@ static void insertdJob(PStask_ID_t Job)
 }
 
 /**
-* @brief Find an incomplete Job.
+* @brief Find an incomplete Job
 *
-* Finds an incomplete job in the queue.
+* Find the incomplete job identified by @a Job in the queue.
 *
-* @return No return value.
+* @param job Job to find
+*
+* @return If @a Job is found return true; or false otherwise
 */
 static bool finddJob(PStask_ID_t Job)
 {
@@ -226,12 +230,12 @@ static bool finddJob(PStask_ID_t Job)
 }
 
 /**
-* @brief Get next incomplete Job.
+* @brief Get next incomplete Job
 *
 * Returns the next incomplete Job.
 *
-* @return Returns the task id of the next job,
-* or 0 if there are no more jobs.
+* @return Returns the task id of the next job, or 0 if there are no
+* more jobs
 */
 static PStask_ID_t getNextdJob(void)
 {
@@ -377,7 +381,7 @@ static void dumpJobs(struct t_node *leaf)
 /**
  * @brief Signal Handler
  *
- * @param sig Signal to handle.
+ * @param sig Signal to handle
  */
 static void sig_handler(int sig)
 {
@@ -403,13 +407,13 @@ static void sig_handler(int sig)
 }
 
 /**
- * @brief Print error message and exit.
+ * @brief Print error message and exit
  *
- * @param err Pointer to the error message.
+ * @param err Pointer to the error message
  *
  * @param func Pointer to the function name.
  *
- * @return No return value.
+ * @return No return value
  */
 static void protocolError(char *err, const char *func)
 {
@@ -1350,11 +1354,11 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
 }
 
 /**
- * @brief Handle a PSP_CD_SIGRES message.
+ * @brief Handle a PSP_CD_SIGRES message
  *
  * Handle the message @a msg of type PSP_CD_SIGRES.
  *
- * @param msg Pointer to the msg to handle.
+ * @param msg Pointer to the msg to handle
  *
  * @return No return value.
  */

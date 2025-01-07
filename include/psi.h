@@ -39,7 +39,7 @@
  * might be switched off by setting the __PSI_DONT_START_DAEMON
  * environment variable before calling this function.
  *
- * For all other values of @a taskgroup only one attempt to contact
+ * For all other values of @a taskGroup only one attempt to contact
  * the local daemon is made without trying to start the daemon.
  *
  * @param taskGroup The kind of task trying to initialize the PSI
@@ -127,7 +127,7 @@ int PSI_availMsg(void);
  * registered via @ref PSI_addRecvHandler(). If a message of this type
  * is received in @ref PSI_recvMsg() the corresponding handler will be
  * called with the message as first argument, the name of the caller
- * as the second argument and an @a info argumment that was provided
+ * as the second argument and an @a info argument that was provided
  * while registering the handler via @ref PSI_addRecvHandler() as the
  * third argument.
  *
@@ -141,7 +141,7 @@ int PSI_availMsg(void);
  *
  * @param caller Name of the caller of @ref PSI_recvMsg()
  *
- * @param info Pointer to additinal information that was registered
+ * @param info Pointer to additional information that was registered
  * alongside the handler itself
  *
  * @return If the handler returns true, @ref PSI_recvMsg() will wait
@@ -153,7 +153,7 @@ typedef bool(*PSI_handlerFunc_t)(DDBufferMsg_t *msg, const char *caller,
 				 void *info);
 
 /**
- * @brief Register handler for PSI messsages
+ * @brief Register handler for PSI messages
  *
  * Register the message handler function @a handler to handle PSI
  * messages of type @a msgType within @ref PSI_recvMsg(). For this,
@@ -178,7 +178,7 @@ bool PSI_addRecvHandler(int16_t msgType, PSI_handlerFunc_t handler, void *info);
  *
  * Stop handling PSI messages of type @a msgType by the message
  * handler function @a handler. Future messages of this type will be
- * either ignored or handled as unexpected messsages by @ref
+ * either ignored or handled as unexpected messages by @ref
  * PSI_recvMsg().
  *
  * @param msgType Message type to be ignored in the future
@@ -186,7 +186,7 @@ bool PSI_addRecvHandler(int16_t msgType, PSI_handlerFunc_t handler, void *info);
  * @param handler Message handler to be removed
  *
  * @return Return true on success (i.e. on removal of the
- * correspondign handler) or false in case otherwise
+ * corresponding handler) or false otherwise
  */
 bool PSI_clrRecvHandler(int16_t msgType, PSI_handlerFunc_t handler);
 
@@ -268,7 +268,7 @@ ssize_t __PSI_recvMsg(DDBufferMsg_t *msg, size_t size, int16_t xpctdType,
  * me the signal @a sig, as soon as the foreign process with task ID
  * @a tid dies, expectedly or unexpectedly.
  *
- * A process dies expectedly, if it has called PSI_release() befor
+ * A process dies expectedly, if it has called PSI_release() before
  * terminating its execution.
  *
  * It is not necessary to register child processes since they will
@@ -294,7 +294,7 @@ int PSI_notifydead(PStask_ID_t tid, int sig);
  *
  * The special case where @a tid is PSC_getMyTID() will release the
  * local process from receiving any signal and furthermore from
- * sending a signal to its parent process. Ususally the parent process
+ * sending a signal to its parent process. Usually the parent process
  * will get a special signal if any child will die. A call to this
  * function will suppress this signal and usually keep the parent
  * alive.
@@ -315,7 +315,7 @@ int PSI_release(PStask_ID_t tid);
  * Request which local or foreign process sent the signal @a sig to me
  * recently. This will only work when the signal was send via
  * ParaStation, i.e. if the signal was initiated by the death of the
- * sending process or via an explicite call to PSI_kill() from the
+ * sending process or via an explicit call to PSI_kill() from the
  * sending process.
  *
  * @param sig The signal recently received which sender should be
@@ -344,7 +344,7 @@ PStask_ID_t PSI_whodied(int sig);
 int PSI_sendFinish(PStask_ID_t parenttid);
 
 /**
- * @brief Receive finish messages.
+ * @brief Receive finish messages
  *
  * Receive a total of @a num PSP_CD_SPAWNFINISH messages from various
  * processes, which are usually child processes of the actual process
@@ -354,7 +354,7 @@ int PSI_sendFinish(PStask_ID_t parenttid);
  * successful finalization of child processes as it might needed
  * within e.g. a MPI_Finalize().
  *
- * @param num The number of messages expected to receive.
+ * @param num Number of messages expected to receive
  *
  * @return On success, 0 is returned. Or 1, if an error occured.
  */
@@ -371,7 +371,7 @@ int PSI_recvFinish(int num);
  * @param command Command to execute after by the logger after all
  * clients have closed their connection.
  *
- * @return No return value.
+ * @return No return value
  */
 __attribute__ ((noreturn))
 void PSI_execLogger(const char *command);
@@ -388,7 +388,7 @@ void PSI_execLogger(const char *command);
  * PATH and all variable holding the regular expressions PSP_*,
  * __PSI_* or OMP_*.
  *
- * @return No return value.
+ * @return No return value
  */
 void PSI_propEnv(void);
 
