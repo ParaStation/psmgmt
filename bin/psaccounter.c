@@ -154,12 +154,12 @@ static Acc_Nodes_t *accNodes;
  *
  * @return Returned is a pointer to the allocated memory
  */
-static void *umalloc(size_t size, const char *func)
+static void *umalloc(size_t size, const char *caller)
 {
     void *ptr = malloc(size);
 
     if (!ptr) {
-	awarn("%s: malloc()", func);
+	awarn("%s: malloc()", caller);
 	exit(EXIT_FAILURE);
     }
     return ptr;
@@ -411,13 +411,13 @@ static void sig_handler(int sig)
  *
  * @param err Pointer to the error message
  *
- * @param func Pointer to the function name.
+ * @param caller Pointer to calling function name
  *
  * @return No return value
  */
-static void protocolError(char *err, const char *func)
+static void protocolError(char *err, const char *caller)
 {
-    alog("%s: protocol error:%s\n", func, err);
+    alog("%s: protocol error:%s\n", caller, err);
     exit(EXIT_FAILURE);
 }
 
@@ -479,19 +479,15 @@ static Job_t *initNewJob(PStask_ID_t logger)
  */
 static Job_t *handleComHeader(char **newptr, const char *caller, int *rank)
 {
-    uid_t uid;
-    gid_t gid;
-    PStask_ID_t logger;
-    Job_t *job;
-
     char *ptr = *newptr;
 
     /* Task(logger) Id */
-    logger = *(PStask_ID_t *) ptr;
+    PStask_ID_t logger = *(PStask_ID_t *)ptr;
     ptr += sizeof(PStask_ID_t);
 
     /* find the job */
-    if ((job = findJob(logger)) == NULL) {
+    Job_t *job = findJob(logger);
+    if (!job) {
 	job = initNewJob(logger);
 	if (!insertJob(job)) {
 	    flog("(from %s) error saving job, memory problem?\n", caller);
@@ -512,7 +508,7 @@ static Job_t *handleComHeader(char **newptr, const char *caller, int *rank)
     ptr += sizeof(int32_t);
 
     /* child's uid */
-    uid = *(uid_t *)ptr;
+    uid_t uid = *(uid_t *)ptr;
     ptr += sizeof(uid_t);
 
     /* set uid and username of job */
@@ -531,7 +527,7 @@ static Job_t *handleComHeader(char **newptr, const char *caller, int *rank)
     }
 
     /* child's gid */
-    gid = *(gid_t *)ptr;
+    gid_t gid = *(gid_t *)ptr;
     ptr += sizeof(gid_t);
 
     /* set gid and groupname of job*/
@@ -1364,7 +1360,6 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
  */
 static void handleSigMsg(DDErrorMsg_t * msg)
 {
-    Job_t *job;
 
     if (debug & 0x040) {
 	char *errstr = strerror(msg->error);
@@ -1374,8 +1369,8 @@ static void handleSigMsg(DDErrorMsg_t * msg)
 	flog("msg from %s", PSC_printTID(msg->header.sender));
 	alog(" on task %s: %s\n", PSC_printTID(msg->request), errstr);
     }
-    job = findJob(msg->request);
 
+    Job_t *job = findJob(eMsg->request);
     /* check if logger replied */
     if (msg->error == ESRCH && job) {
 	if (list_empty(&dJobs)) {
@@ -1676,14 +1671,12 @@ static void getNodeInformation(void)
 
 int main(int argc, char *argv[])
 {
-    poptContext optCon;		/* context for parsing command-line options */
-    int rc, version = 0;
+    int version = 0;
     char *arg_logdir = NULL;
     char *arg_logfile = NULL;
     char *arg_coredir = NULL;
     int arg_nodaemon = 0;
     int arg_core = 0;
-    struct rlimit corelimit;
 
     struct poptOption optionsTable[] = {
 	{"extend", 'e', POPT_ARG_NONE,
@@ -1714,10 +1707,9 @@ int main(int argc, char *argv[])
     /* emergency logger during startup */
     alogger = logger_new(NULL, stderr);
 
-    optCon =
+    poptContext optCon =
 	poptGetContext(NULL, argc, (const char **) argv, optionsTable, 0);
-    rc = poptGetNextOpt(optCon);
-
+    int rc = poptGetNextOpt(optCon);
     if (rc < -1) {
 	/* an error occurred during option processing */
 	poptPrintUsage(optCon, stderr, 0);
@@ -1756,8 +1748,9 @@ int main(int argc, char *argv[])
 
     /* core dump */
     if (arg_core) {
-	corelimit.rlim_cur = RLIM_INFINITY;
-	corelimit.rlim_max = RLIM_INFINITY;
+	struct rlimit corelimit = {
+	    .rlim_cur = RLIM_INFINITY,
+	    .rlim_max = RLIM_INFINITY };
 	setrlimit(RLIMIT_CORE, &corelimit);
     }
 
@@ -1776,9 +1769,7 @@ int main(int argc, char *argv[])
 	}
     }
 
-    if (arg_logfile && !strcmp(arg_logfile, "-")) {
-	logfile = stdout;
-    }
+    if (arg_logfile && !strcmp(arg_logfile, "-")) logfile = stdout;
 
     /* re-init logger again (switch to final logfile) */
     logger_finalize(alogger);
