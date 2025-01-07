@@ -43,7 +43,7 @@ static bool mixedProto = false;
 static int daemonSock = -1;
 
 /** drop message silently (unless PSI_LOG_COMM is set) */
-static bool ignoreMsg(DDBufferMsg_t *msg, const char *caller, void *info)
+bool ignoreMsg(DDBufferMsg_t *msg, const char *caller, void *info)
 {
     PSI_dbg(PSI_LOG_COMM, "%s: ignore %s message from %s\n", caller,
 	    PSP_printMsg(msg->header.type), PSC_printTID(msg->header.sender));
@@ -51,7 +51,7 @@ static bool ignoreMsg(DDBufferMsg_t *msg, const char *caller, void *info)
 }
 
 /** pass message to PSI_recvMsg() caller without further ado */
-static bool acceptMsg(DDBufferMsg_t *msg, const char *caller, void *info)
+bool acceptMsg(DDBufferMsg_t *msg, const char *caller, void *info)
 {
     return false;  // return from PSI_recvMsg() with errno set to ENOMSG
 }
@@ -456,7 +456,7 @@ ssize_t PSI_sendMsg(void *amsg)
 typedef struct {
     list_t next;
     int16_t msgType;
-    PSI_handlerFunc_t handler;
+    PSI_handlerFunc_t *handler;
     void *info;
 } PSI_handler_t;
 

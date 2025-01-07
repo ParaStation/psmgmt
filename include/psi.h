@@ -150,8 +150,23 @@ int PSI_availMsg(void);
  * immediately indicating no appropriate message was found by setting
  * @ref errno to ENOMSG
  */
-typedef bool(*PSI_handlerFunc_t)(DDBufferMsg_t *msg, const char *caller,
-				 void *info);
+typedef bool(PSI_handlerFunc_t)(DDBufferMsg_t *msg, const char *caller,
+				void *info);
+
+/**
+ * Generic handler to just drop a message type in @ref PSI_recvMsg()
+ * unless its @a xpctdType parameter is -1. If PSI_LOG_COMM is part of
+ * PSI_logger's mask a warning will be emitted.
+ */
+PSI_handlerFunc_t ignoreMsg;
+
+/**
+ * Generic handler to pass messages of specific types to the caller of
+ * @ref PSI_recvMsg() without further ado. @ref PSI_recvMsg() will
+ * return -1 with errno set to ENOMSG. The received message will be
+ * passed in the buffer @a msg.
+ */
+PSI_handlerFunc_t acceptMsg;
 
 /**
  * @brief Register handler for PSI messages
