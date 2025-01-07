@@ -1524,12 +1524,10 @@ static void loop(char *arg_logdir)
 	/* open log file */
 	openAccLogFile(arg_logdir);
 
-	switch (msg.header.type) {
-	case PSP_CD_ACCOUNT:
+	if (msg.header.type == PSP_CD_ACCOUNT) {
 	    handleAcctMsg((DDTypedBufferMsg_t *)&msg);
-	    break;
-	default:
-	    flog("unknown message: %x\n", msg.header.type);
+	} else {
+	    flog("unknown message %s\n", PSP_printMsg(msg.header.type));
 	}
 
 	if (logfile) fflush(logfile);
