@@ -289,14 +289,6 @@ typedef struct {
     int *errors;   /**< individual error codes for each rank */
 } AnswerBucket_t;
 
-static bool msg_WHODIED(DDBufferMsg_t *msg, const char *caller, void *info)
-{
-    DDSignalMsg_t *sMsg = (DDSignalMsg_t *)msg;
-    PSI_log("%s: got signal %d from %s\n", caller, sMsg->signal,
-	    PSC_printTID(sMsg->header.sender));
-    return true;  // continue PSI_recvMsg()
-}
-
 static bool msg_SPAWNSUCCESS(DDBufferMsg_t *msg, const char *caller, void *info)
 {
     AnswerBucket_t *bucket = info;
@@ -361,7 +353,6 @@ static bool msg_SPAWNFAILED(DDBufferMsg_t *msg, const char *caller, void *info)
 
 void clrRecvHandlers(void)
 {
-    PSI_clrRecvHandler(PSP_CD_WHODIED, msg_WHODIED);
     PSI_clrRecvHandler(PSP_CD_SPAWNSUCCESS, msg_SPAWNSUCCESS);
     PSI_clrRecvHandler(PSP_CD_SPAWNFAILED, msg_SPAWNFAILED);
 }
@@ -455,7 +446,6 @@ static bool doSpawn(int count, int first, PSnodes_ID_t *dstNodes, PStask_t *task
     }
 
     if (!thisBucket->num) {
-	PSI_addRecvHandler(PSP_CD_WHODIED, msg_WHODIED, NULL);
 	PSI_addRecvHandler(PSP_CD_SPAWNSUCCESS, msg_SPAWNSUCCESS, thisBucket);
 	PSI_addRecvHandler(PSP_CD_SPAWNFAILED, msg_SPAWNFAILED, thisBucket);
     }

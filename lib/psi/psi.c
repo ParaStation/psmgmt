@@ -64,6 +64,14 @@ static bool handle_CD_ERROR(DDBufferMsg_t *msg, const char *caller, void *info)
     return true;   // continue PSI_recvMsg()
 }
 
+static bool handle_CD_WHODIED(DDBufferMsg_t *msg, const char *caller, void *info)
+{
+    DDSignalMsg_t *sMsg = (DDSignalMsg_t *)msg;
+    PSI_log("%s: got signal %d from %s\n", caller, sMsg->signal,
+	    PSC_printTID(sMsg->header.sender));
+    return true;   // continue PSI_recvMsg()
+}
+
 /**
  * @brief Open socket to local daemon.
  *
@@ -180,6 +188,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
     PSI_addRecvHandler(PSP_CD_SENDSTOP, ignoreMsg, NULL);
     PSI_addRecvHandler(PSP_CD_SENDCONT, ignoreMsg, NULL);
     PSI_addRecvHandler(PSP_CD_ERROR, handle_CD_ERROR, NULL);
+    PSI_addRecvHandler(PSP_CD_WHODIED, handle_CD_WHODIED, NULL);
 
     /* PSP_CD_CLIENTREFUSED shall be handled outside PSI_recvMsg(), too */
     PSI_addRecvHandler(PSP_CD_CLIENTREFUSED, acceptMsg, NULL);
@@ -351,6 +360,14 @@ bool PSI_initClient(PStask_group_t taskGroup)
     return true;
 }
 
+static void clrAllRecvHandlers(void)
+{
+    PSI_clrRecvHandler(PSP_CD_SENDSTOP, ignoreMsg);
+    PSI_clrRecvHandler(PSP_CD_SENDCONT, ignoreMsg);
+    PSI_clrRecvHandler(PSP_CD_ERROR, handle_CD_ERROR);
+    PSI_clrRecvHandler(PSP_CD_WHODIED, handle_CD_WHODIED);
+}
+
 /** Cache of protocol version numbers used by @ref PSI_protocolVersion() */
 static int *protoCache = NULL;
 
@@ -366,6 +383,8 @@ int PSI_exitClient(void)
 
     free(protoCache);
     finalizeSerial();
+
+    clrAllRecvHandlers();
 
     PSI_finalizeLog();
 
@@ -627,14 +646,6 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
     return 0;
 }
 
-static bool handle_CD_WHODIED(DDBufferMsg_t *msg, const char *caller, void *info)
-{
-    DDSignalMsg_t *sMsg = (DDSignalMsg_t *)msg;
-    PSI_log("%s: got signal %d from %s\n", caller, sMsg->signal,
-	    PSC_printTID(sMsg->header.sender));
-    return true;   // continue PSI_recvMsg()
-}
-
 int PSI_release(PStask_ID_t tid)
 {
     PSI_fdbg(PSI_LOG_VERB, "%s\n", PSC_printTID(tid));
@@ -654,14 +665,12 @@ int PSI_release(PStask_ID_t tid)
 	return -1;
     }
 
-    /* PSP_CC_ERROR and PSP_CD_WHODIED need special treatement here */
+    /* PSP_CC_ERROR needs special treatement here */
     PSI_addRecvHandler(PSP_CC_ERROR, ignoreMsg, NULL);
-    PSI_addRecvHandler(PSP_CD_WHODIED, handle_CD_WHODIED, NULL);
     DDBufferMsg_t msg;
     ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_RELEASERES, true);
     int eno = errno;
     PSI_clrRecvHandler(PSP_CC_ERROR, ignoreMsg);
-    PSI_clrRecvHandler(PSP_CD_WHODIED, handle_CD_WHODIED);
 
     if (ret == -1 && eno != ENOMSG) {
 	PSI_fwarn(eno, "PSI_recvMsg");
