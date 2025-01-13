@@ -2,10 +2,11 @@ Running include-what-you-use sporadically over the sources might be helpful
 
 The easiest way is to utilize iwyu_tool.py after creating a build database
 
-Start with creating the database via bear:
+Start with creating the database via bear assuming <build_path> hosts a
+fully configured build tree, i.e. configure was run:
 pushd <build_path>
 make -sj clean
-bear make -sj
+bear -- make -sj
 popd
 
 This will create 'compile_commands.json' in <build_path>
