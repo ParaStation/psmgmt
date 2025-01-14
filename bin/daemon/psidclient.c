@@ -1066,10 +1066,9 @@ static bool msg_CC_MSG(DDBufferMsg_t *msg)
 	return true;
     }
 
-    /* Forward this message. If this fails, send an error message. */
+    /* Try to forward this message; might be dropped silently in sendMsg() */
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_fdbg(PSID_LOG_CLIENT, "send failed\n");
-	PSID_dropMsg(msg);
     }
     return true;
 }
