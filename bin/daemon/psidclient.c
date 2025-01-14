@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1096,7 +1096,7 @@ static bool drop_CC_MSG(DDBufferMsg_t *msg)
 	    .sender = msg->header.dest,
 	    .len = 0 }, };
     /* include the PSLog header (plus some bytes) */
-    PSP_putMsgBuf(&errmsg, "pslogHeader", msg->buf, PSLog_headerSize);
+    PSP_putMsgBuf(&errmsg, "pslogHeader", msg, PSLog_headerSize);
 
     sendMsg(&errmsg);
     return true;

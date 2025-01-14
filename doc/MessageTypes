@@ -153,6 +153,6 @@ PSP_CD_SENDSTOP			DDMsg_t			0
 PSP_CD_SENDCONT			DDMsg_t			0
 
 PSP_CC_MSG			PSLog_Msg_T		1060 (maximum)
-PSP_CC_ERROR			DDMsg_t			0
+PSP_CC_ERROR			DDBufferMsg_t		PSLog_headerSize (maybe)
 
 PSP_CD_ERROR			DDErrorMsg_t		8
