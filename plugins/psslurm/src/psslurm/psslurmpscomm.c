@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1762,7 +1762,9 @@ static bool handleCC_IO_Msg(PSLog_Msg_t *msg)
 
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
     Step_t *step = PStask_infoGet(task, TASKINFO_STEP);
-    if (!step || step->state == JOB_COMPLETE || step->state == JOB_EXIT) {
+
+    if (!Step_verifyPtr(step) || step->state == JOB_COMPLETE ||
+	step->state == JOB_EXIT) {
 	if (task && isPSAdminUser(task->uid, task->gid)) {
 	    return false; // call the old handler if any
 	}
@@ -1817,7 +1819,8 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 	if (PSC_getID(msg->header.dest) != PSC_getMyID()) return;
 	PStask_t *frwrdr = PStasklist_find(&managedTasks, msg->header.dest);
 	Step_t *step = PStask_infoGet(frwrdr, TASKINFO_STEP);
-	if (step && step->state != JOB_COMPLETE && step->state != JOB_EXIT) {
+	if (Step_verifyPtr(step) && step->state != JOB_COMPLETE &&
+	    step->state != JOB_EXIT) {
 	    PS_Tasks_t *task = findTaskByFwd(&step->tasks, msg->header.dest);
 	    if (task) {
 		if (task->jobRank < 0) return;
@@ -1841,7 +1844,8 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 	if (PSC_getID(msg->header.sender) != PSC_getMyID()) return;
 	PStask_t *frwrdr = PStasklist_find(&managedTasks, msg->header.sender);
 	Step_t *step = PStask_infoGet(frwrdr, TASKINFO_STEP);
-	if (step && step->state != JOB_COMPLETE && step->state != JOB_EXIT) {
+	if (Step_verifyPtr(step) && step->state != JOB_COMPLETE &&
+	    step->state != JOB_EXIT) {
 	    PS_Tasks_t *task = findTaskByFwd(&step->tasks, msg->header.sender);
 	    if (task) verboseCpuPinningOutput(step, task);
 	}
@@ -1862,7 +1866,8 @@ static bool handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
     Step_t *step = PStask_infoGet(task, TASKINFO_STEP);
-    if (!step || step->state == JOB_COMPLETE || step->state == JOB_EXIT) {
+    if (!Step_verifyPtr(step) || step->state == JOB_COMPLETE ||
+	step->state == JOB_EXIT) {
 	if (!task || !isPSAdminUser(task->uid, task->gid)) {
 	    /* no admin task => complain */
 	    mlog("%s: step for stdin msg from logger %s not found\n", __func__,
@@ -1890,7 +1895,8 @@ static bool handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 
     PStask_t *frwrdr = PStasklist_find(&managedTasks, msg->header.sender);
     Step_t *step = PStask_infoGet(frwrdr, TASKINFO_STEP);
-    if (!step || step->state == JOB_COMPLETE || step->state == JOB_EXIT) {
+    if (!Step_verifyPtr(step) || step->state == JOB_COMPLETE ||
+        step->state == JOB_EXIT) {
 	if (!frwrdr || !isPSAdminUser(frwrdr->uid, frwrdr->gid)) {
 	    /* no admin task => complain */
 	    static PStask_ID_t lastDest = -1;
@@ -1965,7 +1971,7 @@ static Step_t * identifyStepByTaskEnv(PStask_t *task,
 
     /* check if step was identified before */
     Step_t *step = PStask_infoGet(task, TASKINFO_STEP);
-    if (!step) {
+    if (!Step_verifyPtr(step)) {
 	step = Step_findByEnv(task->env, jobID, stepID);
 	if (step) {
 	    /* cache for further calls */
