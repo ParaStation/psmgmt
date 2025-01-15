@@ -100,10 +100,12 @@ function psconfig_single_node() {
     #
     # Base database structure
     #
+    # shellcheck source=/dev/null
     source "${DUMPDIR}/psmgmt-base.dump"
     #
     # Defaults objects
     #
+    # shellcheck source=/dev/null
     source "${DUMPDIR}/psmgmt-defaults.dump"
     #
     # Object for this node
