@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2023 ParTec AG, Munich
+# Copyright (C) 2023-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,7 +20,7 @@ OPTS=$(getopt -n single_node_config --options $SHORT_OPTS -- "$@")
 NODE_HOSTNAME=$(hostname -s)
 NODE_IP_ADDRESS=$(hostname -I | cut -d ' ' -f 1)
 VERBOSE=0
-PSID_PLUGINS="psslurm"
+PSID_PLUGINS=("psslurm")
 DUMPDIR="@psconfigdumpsdir@"
 
 # Check if psconfig exists
@@ -73,7 +73,7 @@ function parse_arg() {
                 shift 2
                 ;;
             -p)
-                PSID_PLUGINS="$2"
+                readarray -d ',' -t PSID_PLUGINS <<< "$2"
                 shift 2
                 ;;
             -D)
@@ -87,12 +87,10 @@ function parse_arg() {
         esac
     done
 
-    # replace commas with spaces in plugin list (needed for psconfig)
-    PSID_PLUGINS=$(echo "$PSID_PLUGINS" | tr , ' ')
-
     if [ $VERBOSE -eq 1 ]
     then
-        echo "Configuring single-node psid with hostname=$NODE_HOSTNAME, IP=$NODE_IP_ADDRESS and plugins=$PSID_PLUGINS"
+        echo "Configuring single-node psid with hostname=$NODE_HOSTNAME," \
+             " IP=$NODE_IP_ADDRESS and plugins=$(IFS=, ; echo "${PSID_PLUGINS[*]}")"
     fi
 }
 
@@ -129,7 +127,7 @@ function psconfig_single_node() {
     #
     $PSCONFIG -- create 'psid:compute'
     $PSCONFIG -- setParents 'psid:compute' 'class:psid'
-    $PSCONFIG -D -- setList 'psid:compute' 'LoadPlugins' $PSID_PLUGINS
+    $PSCONFIG -D -- setList 'psid:compute' 'LoadPlugins' "${PSID_PLUGINS[@]}"
     #
     # Unlock database
     #
