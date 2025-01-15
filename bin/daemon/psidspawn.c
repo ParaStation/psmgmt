@@ -3079,6 +3079,9 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 
 	/* Send CHILDDEAD to parent */
 	if (msg->header.dest != PSC_getMyTID()) msg_CHILDDEAD(msg);
+
+	/* ensure task does no longer reference the forwarder */
+	task->forwarder = NULL;
     }
     return true;
 }
