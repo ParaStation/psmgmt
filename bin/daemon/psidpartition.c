@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -5328,7 +5328,7 @@ void PSIDpart_register(PStask_t *task, PSpart_HWThread_t *threads, uint32_t num)
     }
 
     if (knowMaster()) {
-	sendSinglePart(PSC_getTID(getMasterID(), 0), PSP_DD_REGISTERPART, task);
+	sendSinglePart(PSC_getTID(getMasterID(), 0), PSP_DD_PROVIDETASK, task);
 	/* Otherwise we'll have to wait for a PSP_DD_GETTASKS message */
     }
     if (task->loggertid != task->tid) {
