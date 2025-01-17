@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -507,7 +507,7 @@ int main(int argc, const char *argv[])
     /* first of all disable memory cache of sss nss */
     setenv("SSS_NSS_USE_MEMCACHE", "NO", 1);
 
-    int rc, version = 0, debugMask = 0, pipeFD[2] = {-1, -1}, magic = FORKMAGIC;
+    int rc, version = 0, debugMask = 0, foreground = 0, pipeFD[2] = {-1, -1};
     char *logdest = NULL, *configfile = "/etc/parastation.conf";
     FILE *logfile = NULL;
 
@@ -517,9 +517,12 @@ int main(int argc, const char *argv[])
 	{ "configfile", 'f', POPT_ARG_STRING, &configfile, 0,
 	  "use <file> as config-file (default is /etc/parastation.conf)",
 	  "file"},
+	{ "foreground", 'F', POPT_ARG_NONE, &foreground, 0,
+	  "stay in foreground; default if logfile is 'stderr' or 'stdout'",
+	  NULL},
 	{ "logfile", 'l', POPT_ARG_STRING, &logdest, 0,
-	  "use <file> for logging (default is syslog(3))."
-	  " <file> may be 'stderr' or 'stdout'", "file"},
+	  "use <file> for logging (default is syslog(3));"
+	  " <file> might be 'stderr' or 'stdout'", "file"},
 	{ "version", 'v', POPT_ARG_NONE, &version, 0,
 	  "output version information and exit", NULL},
 	POPT_AUTOHELP
@@ -541,8 +544,10 @@ int main(int argc, const char *argv[])
     if (logdest) {
 	if (!strcasecmp(logdest, "stderr")) {
 	    logfile = stderr;
+	    foreground = 1;
 	} else if (!strcasecmp(logdest, "stdout")) {
 	    logfile = stdout;
+	    foreground = 1;
 	} else {
 	    logfile = fopen(logdest, "a+");
 	    if (!logfile) {
@@ -575,7 +580,8 @@ int main(int argc, const char *argv[])
     /* Save some space in order to modify the cmdline later on */
     PSC_saveTitleSpace(PSID_argc, PSID_argv, 1);
 
-    if (logfile != stderr && logfile != stdout) {
+    int magic = FORKMAGIC;
+    if (!foreground) {
 	/* Daemonize only if neither stdout nor stderr is used for logging */
 	if (pipe(pipeFD) < 0) {
 	    PSID_exit(errno, "unable to create pipe");
