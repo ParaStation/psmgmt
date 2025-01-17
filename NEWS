@@ -6,6 +6,16 @@ Copyright (C) 2021-2024 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.63-6:
+=================
+Bugfixes:
+ - Eliminate bogus reference to task's forwarder to avoid
+   de-referencing freed memory
+ - Ensure step pointer from PStask_infoGet() is still valid
+ - Ensure PSP_CC_ERROR gets header as payload and actually peek into it
+ - Avoid double dropping of PSP_CC_MSG and
+
+
 Version 5.1.63-5:
 =================
 Bugfixes:

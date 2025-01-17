@@ -1,3 +1,48 @@
+Version 5.1.63-6:
+=================
+------------------------------------------------------------------------
+b5d162ab8 | Norbert Eicker | Fri, 17 Jan 2025 15:03:16 +0100
+
+Rework signalTasks()
+------------------------------------------------------------------------
+b66852921 | Norbert Eicker | Fri, 17 Jan 2025 13:48:37 +0100
+
+Fix copyright message
+------------------------------------------------------------------------
+7dd2a4c40 | Norbert Eicker | Wed, 15 Jan 2025 23:05:25 +0100
+
+Bugfix: Eliminate bogus reference to task's forwarder
+------------------------------------------------------------------------
+7d0508344 | Norbert Eicker | Wed, 15 Jan 2025 23:05:04 +0100
+
+Enhance debug logs
+------------------------------------------------------------------------
+5793ad7e4 | Norbert Eicker | Wed, 15 Jan 2025 14:46:20 +0100
+
+Bugfix: child->forwarder might point to free() memory
+------------------------------------------------------------------------
+d10089dc6 | Michael Rauh | Wed, 15 Jan 2025 12:38:58 +0100
+
+Ensure step pointer from PStask_infoGet() is still valid
+------------------------------------------------------------------------
+4f856dc73 | Norbert Eicker | Tue, 14 Jan 2025 21:51:01 +0100
+
+Bugfix: avoid double dropping of PSP_CC_MSG
+------------------------------------------------------------------------
+4a14e1583 | Norbert Eicker | Tue, 14 Jan 2025 19:53:27 +0100
+
+Bugfix: Actually peek into PSP_CC_ERROR's payload
+------------------------------------------------------------------------
+0ac064e34 | Norbert Eicker | Tue, 14 Jan 2025 19:47:30 +0100
+
+Bugfix: Ensure PSP_CC_ERROR gets header as payload
+------------------------------------------------------------------------
+899b16270 | Michael Rauh | Tue, 14 Jan 2025 17:18:36 +0100
+
+Don't use already freed memory of a step
+------------------------------------------------------------------------
+
+
 Version 5.1.63-5:
 =================
 ------------------------------------------------------------------------
