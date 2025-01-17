@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -443,9 +443,7 @@ static void releaseLogger(int status)
 	struct timeval timeout = {10, 0};
 	while (timerisset(&timeout)) {
 	    DDBufferMsg_t msg;
-	    PSLog_Msg_t *lmsg = (PSLog_Msg_t *)&msg;
 	    ssize_t ret = recvDaemonMsg(&msg, &timeout);
-
 	    if (ret < 0) {
 		switch (errno) {
 		case EPIPE:
@@ -464,14 +462,17 @@ static void releaseLogger(int status)
 		    continue;
 		}
 	    }
-	    if (lmsg->header.type == PSP_CC_MSG && lmsg->type == EXIT) {
+	    if (msg.header.type == PSP_CC_MSG
+		&& ((PSLog_Msg_t *)&msg)->type == EXIT) {
 		PSID_fdbg(PSID_LOG_SPAWN, "(%d): Released %s\n", status,
 			  PSC_printTID(loggerTID));
 		loggerConn = false;
 		return;
 	    }
-	    if (lmsg->header.type == PSP_CC_ERROR && lmsg->type == FINALIZE
-		&& lmsg->header.sender == loggerTID) {
+	    if (msg.header.type == PSP_CC_ERROR
+		&& msg.header.len >= offsetof(DDBufferMsg_t, buf) + PSLog_headerSize
+		&& ((PSLog_Msg_t *)msg.buf)->type == FINALIZE
+		&& msg.header.sender == loggerTID) {
 		PSID_flog("logger %s already disappeared\n",
 			  PSC_printTID(loggerTID));
 		loggerConn = false;
@@ -798,7 +799,7 @@ static bool msgCC(DDBufferMsg_t *msg)
 static bool msgCC_ERROR(DDBufferMsg_t *msg)
 {
     if (msg->header.sender == loggerTID) {
-	PSLog_Msg_t *logMsg = (PSLog_Msg_t *)msg;
+	PSLog_Msg_t *logMsg = (PSLog_Msg_t *)msg->buf;
 	PSID_flog("logger %s disappeared on '%s'\n", PSC_printTID(loggerTID),
 		  PSLog_printMsgType(logMsg->type));
 	loggerConn = false;

@@ -1368,7 +1368,10 @@ static void handleChildStartStep(Forwarder_Data_t *fwdata, pid_t fw,
 				 pid_t childPid, pid_t childSid)
 {
     Step_t *step = fwdata->userData;
-
+    if (!Step_verifyPtr(step)) {
+	flog("Invalid step pointer %p\n", step);
+	return;
+    }
     psAccountRegisterJob(childPid, NULL);
 
     /* return launch success to waiting srun since mpiexec could be spawned */
