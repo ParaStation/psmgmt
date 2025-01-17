@@ -142,31 +142,28 @@ int killChild(pid_t pid, int signal, uid_t uid)
 int __signalTasks(uint32_t jobid, uint32_t stepid, uid_t uid, list_t *taskList,
 		  int signal, int32_t group, const char *caller, const int line)
 {
-    list_t *t, *tmp;
-    int count = 0;
     Step_t s = {
 	.jobid = jobid,
 	.stepid = stepid };
 
-    list_for_each_safe(t, tmp, taskList) {
+    int count = 0;
+    list_t *t;
+    list_for_each(t, taskList) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	PStask_t *child = PStasklist_find(&managedTasks, task->childTID);
-	if (child) {
-	    if (group > -1 && child->group != (PStask_group_t) group) continue;
-	    if (child->rank < 0 && signal != SIGKILL) continue;
-	    if (child->uid != uid) continue;
-	    if (!child->forwarder) continue;
+	if (!child || child->uid != uid) continue;
+	if (group > -1 && child->group != (PStask_group_t) group) continue;
+	if (child->rank < 0 && signal != SIGKILL) continue;
+	if (!child->forwarder) continue;
 
-	    /* Detour via *frwd since child->forwarder might been free()ed */
-	    PStask_t *frwd = PStasklist_find(&managedTasks, task->forwarderTID);
-	    if (frwd && child->forwarder == frwd) {
-		fdbg(PSSLURM_LOG_PROCESS, "(%s:%i) rank %i/%i kill(%i) "
-		     "signal %i group %i %s\n", caller, line, task->jobRank,
-		     child->rank, PSC_getPID(child->tid), signal, child->group,
-		     Step_strID(&s));
-		PSID_kill(PSC_getPID(child->tid), signal, child->uid);
-		count++;
-	    }
+	/* Detour via *frwd since child->forwarder might been free()ed */
+	PStask_t *frwd = PStasklist_find(&managedTasks, task->forwarderTID);
+	if (frwd && child->forwarder == frwd) {
+	    fdbg(PSSLURM_LOG_PROCESS, "(%s:%i) rank %i/%i kill(%i) signal %i"
+		 " group %i %s\n", caller, line, task->jobRank, child->rank,
+		 PSC_getPID(child->tid), signal, child->group, Step_strID(&s));
+	    PSID_kill(PSC_getPID(child->tid), signal, child->uid);
+	    count++;
 	}
     }
 
