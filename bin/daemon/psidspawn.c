@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2670,9 +2670,8 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 	PSID_fdbg(PSID_LOG_SPAWN, "task %s not found\n",
 		  PSC_printTID(msg->request));
     } else if (!task->forwarder || task->forwarder != forwarder) {
-	PSID_flog("forwarder %s not responsible for" ,
-		  PSC_printTID(msg->header.sender));
-	PSID_log(" %s any more\n", PSC_printTID(msg->request));
+	PSID_flog("forwarder %s", PSC_printTID(msg->header.sender));
+	PSID_log(" irresponsible for %s\n", PSC_printTID(msg->request));
     } else {
 	/** Create and send PSP_DD_CHILDRESREL message */
 	sendCHILDRESREL(task, msg->request, true);
@@ -2694,6 +2693,9 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 
 	/* Send CHILDDEAD to parent */
 	if (msg->header.dest != PSC_getMyTID()) msg_CHILDDEAD(msg);
+
+	/* ensure task does no longer reference the forwarder */
+	task->forwarder = NULL;
     }
     return true;
 }
