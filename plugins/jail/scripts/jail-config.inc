@@ -3,7 +3,7 @@
 # ParaStation
 #
 # Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2024 ParTec AG, Munich
+# Copyright (C) 2022-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -41,7 +41,7 @@ BPF_PSID_MAPS="/sys/fs/bpf/psid"
 DEBUG="0"
 
 # prefix of the cgroup name
-PREFIX="psid"
+PREFIX="slurm"
 
 # maximum retries to send signals to tasks of a cgroup
 MAX_KILL_RETRY="10"
