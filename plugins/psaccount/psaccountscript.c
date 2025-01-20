@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -205,7 +205,15 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
     fdbg(PSACC_LOG_COLLECT, "poll interval %i script run-time %i wait %i\n",
 	 script->poll, tExec, tWait);
 
-    while (tWait) tWait = sleep(tWait);
+    struct timespec tsWait = { tWait, 0 };
+    int ret;
+    do {
+	ret = clock_nanosleep(CLOCK_MONOTONIC, 0, &tsWait, &tsWait);
+	if (ret && ret != EINTR) {
+	    fwarn(ret, "clock_nanosleep(%i) failed", tWait);
+	    break;
+	}
+    } while (ret);
 
     exit(0);
 }
