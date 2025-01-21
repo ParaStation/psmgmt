@@ -50,7 +50,7 @@ else
 fi
 
 if [[ $CGROUP_VERSION == "v2" ]]; then
-    BASE="$CGROUP_BASE/$PREFIX-$PSID_PID"
+    BASE="$CGROUP_BASE/$PREFIX"
     CG_USER="$BASE/user-$USER"
     CG_JOB="$CG_USER/job-$JOBID"
     CG_STEP="$CG_JOB/step-$STEPID"
@@ -72,7 +72,7 @@ for modName in ${MODULES//,/$IFS}; do
 
     if [[ $CGROUP_VERSION == "v1" ]]; then
 	BASE="$CGROUP_BASE/$modName"
-	CG_USER="$BASE/$PREFIX-$PSID_PID-$USER"
+	CG_USER="$BASE/$PREFIX-$USER"
 	CG_JOB="$CG_USER/job-$JOBID"
 	# shellcheck disable=SC2034
 	CG_STEP="$CG_JOB/step-$STEPID"

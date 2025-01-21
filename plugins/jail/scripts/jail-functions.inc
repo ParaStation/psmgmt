@@ -191,9 +191,6 @@ function initJailEnv {
 
     export CONSTRAIN_DEVICES=$__PSJAIL_CONSTRAIN_DEVICES
 
-    PSID_PID=$(cat /run/psid.pid)
-    export PSID_PID
-
     [[ -z $TERM_SIGNAL ]] && export TERM_SIGNAL=15
 
     [[ -z $KILL_SIGNAL ]] && export KILL_SIGNAL=9
@@ -254,37 +251,37 @@ function enableControllers {
 
 function cleanupCgroups {
     if [[ $CGROUP_VERSION == "v2" ]]; then
-	dlog "cleanup v2 $CGROUP_BASE"
-	for i in "$CGROUP_BASE"/psid-*/; do
-	    for user in "$i"/user-*; do
-		for job in "$user"/job-*; do
-		    for step in "$job"/step-*; do
-			kill -9 $(cat $step/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
-			rmdir -p "$step/tasks" 2>/dev/null
-			rmdir -p "$step" 2>/dev/null
-		    done
-		    kill -9 $(cat $job/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
-		    rmdir -p "$job/tasks" 2>/dev/null
-		    rmdir -p "$job" 2>/dev/null
+	CGROUPS="$CGROUP_BASE/$PREFIX"
+	dlog "cleanup v2 $CGROUPS"
+	for user in "$CGROUPS"/user-*; do
+	    for job in "$user"/job-*; do
+		for step in "$job"/step-*; do
+		    kill -9 $(cat $step/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
+		    rmdir -p "$step/tasks" 2>/dev/null
+		    rmdir -p "$step" 2>/dev/null
 		done
-		kill -9 $(cat $user/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
-		rmdir -p "$user/tasks" 2>/dev/null
-		rmdir -p "$user" 2>/dev/null
+		kill -9 $(cat $job/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
+		rmdir -p "$job/tasks" 2>/dev/null
+		rmdir -p "$job" 2>/dev/null
 	    done
-	    rmdir -p "$i" 2>/dev/null
+	    kill -9 $(cat $user/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
+	    rmdir -p "$user/tasks" 2>/dev/null
+	    rmdir -p "$user" 2>/dev/null
 	done
+	rmdir -p "$CGROUPS" 2>/dev/null
+	[ -d "$CGROUPS" ] && { elog "unable to remove $CGROUPS"; }
     else
 	dlog "cleanup v1 $CGROUP_BASE"
 	for modName in ${MODULES//,/$IFS}; do
-	    for i in "$CGROUP_BASE/$modName"/psid-*/; do
-		for job in "$i"/job-*; do
-		    for step in "$job"/step-*; do
-			rmdir -p "$step" 2>/dev/null
-		    done
-		    rmdir -p "$job" 2>/dev/null
+	    NEXT_GROUP="$CGROUP_BASE/$modName/$PREFIX"
+	    for job in "$NEXT_GROUP"/job-*; do
+		for step in "$job"/step-*; do
+		    rmdir -p "$step" 2>/dev/null
 		done
-		rmdir -p "$i" 2>/dev/null
+		rmdir -p "$job" 2>/dev/null
 	    done
+	    rmdir -p "$NEXT_GROUP" 2>/dev/null
+	    [ -d "$NEXT_GROUP" ] && { elog "unable to remove $NEXT_GROUP"; }
 	done
     fi
 }

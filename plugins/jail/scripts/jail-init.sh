@@ -18,7 +18,6 @@
 # the process ID of the main psid as an argument.
 
 # save PID of main psid
-echo "$1" > /run/psid.pid
 SELF=$(realpath "$0")
 CommandPath=${SELF%/*}
 
@@ -47,7 +46,7 @@ fi
 cleanupCgroups
 
 if [[ $CGROUP_VERSION == "v2" ]]; then
-    BASE="$CGROUP_BASE/$PREFIX-$PSID_PID"
+    BASE="$CGROUP_BASE/$PREFIX"
     mdsave "$BASE"
 
     for controller in ${CGROUP_CONTROLLER//,/$IFS}; do
