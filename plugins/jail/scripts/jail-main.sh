@@ -43,11 +43,7 @@ if [[ -z $CHILD || $CHILD == 0 ]]; then
     exit 0
 fi
 
-if [[ $SCRIPT == "jail-term" ]]; then
-    getSharedUserLock
-else
-    getExclusiveUserLock
-fi
+getExclusiveUserLock
 
 BASE="$CGROUP_BASE/$PREFIX"
 CG_USER="$BASE/user-$USER"

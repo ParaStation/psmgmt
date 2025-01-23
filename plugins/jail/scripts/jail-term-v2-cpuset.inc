@@ -3,7 +3,7 @@
 # ParaStation
 #
 # Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -61,7 +61,6 @@ else
 
     [[ -n $USER ]] || elog "no user env variable for job $JOBID"
 
-    getLock
     if [[ -n $STEPID ]]; then
 	dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
 
@@ -82,7 +81,6 @@ else
     else
 	elog "missing JOBID"
     fi
-    rmLock
 fi
 
 # vim: set filetype=sh ts=8 sw=4 tw=0 sts=4 noet :

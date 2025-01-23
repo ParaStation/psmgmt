@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -121,8 +121,6 @@ function constrainSingleUser()
 
 function initUserDevices()
 {
-    getLock
-
     [[ -n $USER ]] || elog "no user env variable for job $JOBID"
     mdsave "$CG_USER"
     loadBPF "$CG_USER/tasks" "USER_$USER"
@@ -136,8 +134,6 @@ function initUserDevices()
 	setDevices "DENY" "-d" "$ID"
     fi
     setDevices "ALLOW" "-a" "$ID"
-
-    rmLock
 }
 
 if [[ $CONSTRAIN_DEVICES == "no" ]]; then
@@ -158,7 +154,6 @@ else
 	    elog "BPF device program $BPF_DEVICE_PROG not found"
 	}
 
-	getLock
 	initDevices
 
 	# set job cgroup access
@@ -194,8 +189,6 @@ else
 		dlog "step $JOBID:$STEPID cgroup id $ID already set"
 	    fi
 	fi
-
-	rmLock
     fi
 fi
 

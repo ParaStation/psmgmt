@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2022-2024 ParTec AG, Munich
+# Copyright (C) 2022-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -131,7 +131,6 @@ if [[ $CONSTRAIN_RAM == "no" ]]; then
     dlog "constrain RAM *disabled*"
 else
     dlog "constrain RAM enabled"
-    getLock
 
     if [[ -n $ADD_USER_TO_CGROUP ]]; then
 	constrainMemSingleUser
@@ -140,15 +139,12 @@ else
     else
 	constrainRam
     fi
-
-    rmLock
 fi
 
 if [[ $CONSTRAIN_SWAP == "no" ]]; then
     dlog "constrain SWAP *disabled*"
 else
     dlog "constrain SWAP enabled"
-    getLock
 
     if [[ -n $ADD_USER_TO_CGROUP ]]; then
 	constrainMemSingleUser
@@ -158,8 +154,6 @@ else
 	setJobMem "$JOB_SWAP" "memory.swap.max"
 	setStepMem "$STEP_SWAP" "memory.swap.max"
     fi
-
-    rmLock
 fi
 
 # vim: set filetype=sh ts=8 sw=4 tw=0 sts=4 noet :

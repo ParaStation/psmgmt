@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -44,7 +44,6 @@ function termMemory()
     [[ $CLEANUP_DONE == "true" ]] && return;
 
     [[ -n $USER ]] || elog "no user env variable for job $JOBID"
-    getLock
 
     if [[ -n $STEPID ]]; then
 	dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
@@ -75,8 +74,6 @@ function termMemory()
     else
 	elog "missing JOBID"
     fi
-
-    rmLock
 
     CLEANUP_DONE="true"
 }

@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2023-2024 ParTec AG, Munich
+# Copyright (C) 2023-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -57,15 +57,10 @@ elif [[ -n $USER_INIT ]]; then
 
     [[ -n $JOB_CPUS ]] || elog "user_init: no CPU cores for job $JOBID"
 
-    getLock
-
     # setup user cgroup
     setUserCores
-
-    rmLock
 elif [[ -n $ADD_USER_TO_CGROUP ]]; then
     dlog "constrain cores enabled"
-    getLock
 
     # ssh login via pspam/pspmix server needs an existing user cgroup
     if [[ -d $CG_USER ]]; then
@@ -80,13 +75,10 @@ elif [[ -n $ADD_USER_TO_CGROUP ]]; then
     else
 	elog "error: user cgroup $CG_USER is missing"
     fi
-    rmLock
 else
     dlog "constrain cores enabled"
 
     [[ -n $JOB_CPUS ]] || elog "no CPU cores for job $JOBID"
-
-    getLock
 
     # setup user cgroup
     setUserCores
@@ -113,7 +105,6 @@ else
 	cgWrite "$CHILD" "$CG_STEP/tasks/cgroup.procs"
 	dlog "step cpuset: $(cat "$CG_STEP/cpuset.cpus")"
     }
-    rmLock
 fi
 
 # vim: set filetype=sh ts=8 sw=4 tw=0 sts=4 noet :

@@ -69,15 +69,6 @@ function rmUserLock {
     flock -u 101
 }
 
-function getLock {
-    exec 100>"/dev/shm/psjail-$modName"
-    flock 100
-}
-
-function rmLock {
-    flock -u 100
-}
-
 function mdsave {
     local DIR=$1
     [[ -d $DIR ]] || {
@@ -237,15 +228,11 @@ function enableControllers {
     local DIR=$1
     [[ -z $DIR ]] && elog "no directory given"
 
-    getLock
-
     mdsave "$DIR"
     for controller in ${CGROUP_CONTROLLER//,/$IFS}; do
 	enableSingleController "$controller" "$DIR"
     done
     mdsave "$DIR/tasks"
-
-    rmLock
 }
 
 function cleanupCgroups {
