@@ -30,6 +30,14 @@ function loadBPF()
     local QUIET=""
     [[ $DEBUG == "0" ]] && QUIET="-q"
 
+    [[ -f $BPF_DEVICE_LOADER ]] || {
+	elog "BPF device loader $BPF_DEVICE_LOADER not found"
+    }
+
+    [[ -f $BPF_DEVICE_PROG ]] || {
+	elog "BPF device program $BPF_DEVICE_PROG not found"
+    }
+
     "$BPF_DEVICE_LOADER" -s -i "$BPF_ID" "$QUIET" 1>/dev/null 2>&1 && {
 	dlog "skip loading for $BPF_PATH with ID $BPF_ID"
 	return
@@ -46,27 +54,50 @@ function loadBPF()
 
 function initDevices()
 {
+    # load BPF
     [[ -n $USER ]] || elog "no user env variable for job $JOBID"
-    mdsave "$CG_USER"
     loadBPF "$CG_USER/tasks" "USER_$USER"
 
     [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $USER"
-    mdsave "$CG_JOB"
     loadBPF "$CG_JOB/tasks" "JOB_$JOBID"
 
     [[ -n $STEPID ]] && {
-	mdsave "$CG_STEP"
 	loadBPF "$CG_STEP/tasks" "STEP_${JOBID}_$STEPID"
     }
 
-    dlog "adding child $CHILD to $CG_JOB/tasks/cgroup.procs"
-    cgWrite "$CHILD" "$CG_JOB/tasks/cgroup.procs"
+    # set job cgroup access
+    ID="JOB_$JOBID"
+    BPF_SET=$("$BPF_DEVICE_LOADER" -s -i "$ID" 2>/dev/null)
 
-    # step cgroup
-    [[ -n $STEPID ]] && {
-	dlog "adding child $CHILD to $CG_STEP/tasks/cgroup.procs"
-	cgWrite "$CHILD" "$CG_STEP/tasks/cgroup.procs"
-    }
+    if [[ ${#BPF_SET} -lt 4 ]]; then
+	setDevices "DENY" "-d" "$ID"
+	setDevices "ALLOW" "-a" "$ID"
+
+	# add allowed devices to user cgroup
+	ID="USER_$USER"
+	BPF_SET=$("$BPF_DEVICE_LOADER" -s -i "$ID" 2>/dev/null)
+
+	if [[ ${#BPF_SET} -lt 4 ]]; then
+	    # only deny devices if user cgroup is empty
+	    setDevices "DENY" "-d" "$ID"
+	fi
+	setDevices "ALLOW" "-a" "$ID"
+    else
+	dlog "job $JOBID cgroup id $ID already set"
+    fi
+
+    # set step cgroup access
+    if [[ -n $STEPID ]]; then
+	ID="STEP_${JOBID}_$STEPID"
+	BPF_SET=$("$BPF_DEVICE_LOADER" -s -i "$ID" 2>/dev/null)
+
+	if [[ ${#BPF_SET} -lt 4 ]]; then
+	    setDevices "DENY" "-d" "$ID"
+	    setDevices "ALLOW" "-a" "$ID"
+	else
+	    dlog "step $JOBID:$STEPID cgroup id $ID already set"
+	fi
+    fi
 }
 
 function setDev()
@@ -121,8 +152,9 @@ function constrainSingleUser()
 
 function initUserDevices()
 {
+    [[ $MODIFY_CGROUPS == 0 ]] && return
+
     [[ -n $USER ]] || elog "no user env variable for job $JOBID"
-    mdsave "$CG_USER"
     loadBPF "$CG_USER/tasks" "USER_$USER"
 
     # add allowed devices to user cgroup
@@ -146,49 +178,17 @@ else
     elif [[ -n $USER_INIT ]]; then
 	initUserDevices
     else
-	[[ -f $BPF_DEVICE_LOADER ]] || {
-	    elog "BPF device loader $BPF_DEVICE_LOADER not found"
+	[[ $MODIFY_CGROUPS == 1 ]] && initDevices
+
+	dlog "adding child $CHILD to $CG_JOB/tasks/cgroup.procs"
+	cgWrite "$CHILD" "$CG_JOB/tasks/cgroup.procs"
+
+	# step cgroup
+	[[ -n $STEPID ]] && {
+	    dlog "adding child $CHILD to $CG_STEP/tasks/cgroup.procs"
+	    cgWrite "$CHILD" "$CG_STEP/tasks/cgroup.procs"
 	}
 
-	[[ -f $BPF_DEVICE_PROG ]] || {
-	    elog "BPF device program $BPF_DEVICE_PROG not found"
-	}
-
-	initDevices
-
-	# set job cgroup access
-	ID="JOB_$JOBID"
-	BPF_SET=$("$BPF_DEVICE_LOADER" -s -i "$ID" 2>/dev/null)
-
-	if [[ ${#BPF_SET} -lt 4 ]]; then
-	    setDevices "DENY" "-d" "$ID"
-	    setDevices "ALLOW" "-a" "$ID"
-
-	    # add allowed devices to user cgroup
-	    ID="USER_$USER"
-	    BPF_SET=$("$BPF_DEVICE_LOADER" -s -i "$ID" 2>/dev/null)
-
-	    if [[ ${#BPF_SET} -lt 4 ]]; then
-		# only deny devices if user cgroup is empty
-		setDevices "DENY" "-d" "$ID"
-	    fi
-	    setDevices "ALLOW" "-a" "$ID"
-	else
-	    dlog "job $JOBID cgroup id $ID already set"
-	fi
-
-	# set step cgroup access
-	if [[ -n $STEPID ]]; then
-	    ID="STEP_${JOBID}_$STEPID"
-	    BPF_SET=$("$BPF_DEVICE_LOADER" -s -i "$ID" 2>/dev/null)
-
-	    if [[ ${#BPF_SET} -lt 4 ]]; then
-		setDevices "DENY" "-d" "$ID"
-		setDevices "ALLOW" "-a" "$ID"
-	    else
-		dlog "step $JOBID:$STEPID cgroup id $ID already set"
-	    fi
-	fi
     fi
 fi
 

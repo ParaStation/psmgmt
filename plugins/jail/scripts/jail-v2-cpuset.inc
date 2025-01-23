@@ -24,6 +24,8 @@
 
 function setUserCores()
 {
+    [[ $MODIFY_CGROUPS == 0 ]] && return
+
     if [[ ! -s "$CG_USER/cpuset.cpus" ]]; then
 	dlog "empty cpuset.cpus"
 	cgWrite "$JOB_CPUS" "$CG_USER/cpuset.cpus"
@@ -88,8 +90,11 @@ else
     # job cgroup
     dlog "JOB: $JOBID STEP:$STEPID"
 
-    cgWrite "$JOB_CPUS" "$CG_JOB/cpuset.cpus"
-    cgWrite "$MEM_NODES" "$CG_JOB/cpuset.mems"
+
+    if [[ $MODIFY_CGROUPS == 1 ]]; then
+	cgWrite "$JOB_CPUS" "$CG_JOB/cpuset.cpus"
+	cgWrite "$MEM_NODES" "$CG_JOB/cpuset.mems"
+    fi
 
     dlog "adding child $CHILD to $CG_JOB/tasks/cgroup.procs"
     cgWrite "$CHILD" "$CG_JOB/tasks/cgroup.procs"
@@ -98,8 +103,10 @@ else
     # step cgroup
     [[ -n $STEPID ]] && {
 
-	cgWrite "$JOB_CPUS" "$CG_STEP/cpuset.cpus"
-	cgWrite "$MEM_NODES" "$CG_STEP/cpuset.mems"
+	if [[ $MODIFY_CGROUPS == 1 ]]; then
+	    cgWrite "$JOB_CPUS" "$CG_STEP/cpuset.cpus"
+	    cgWrite "$MEM_NODES" "$CG_STEP/cpuset.mems"
+	fi
 
 	dlog "adding child $CHILD to $CG_STEP/tasks/cgroup.procs"
 	cgWrite "$CHILD" "$CG_STEP/tasks/cgroup.procs"

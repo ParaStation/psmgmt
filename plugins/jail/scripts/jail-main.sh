@@ -43,12 +43,18 @@ if [[ -z $CHILD || $CHILD == 0 ]]; then
     exit 0
 fi
 
-getExclusiveUserLock
-
 BASE="$CGROUP_BASE/$PREFIX"
 CG_USER="$BASE/user-$USER"
 CG_JOB="$CG_USER/job-$JOBID"
 CG_STEP="$CG_JOB/step-$STEPID"
+
+if [[ $SCRIPT == "jail-term" || ! -d $CG_USER || -n $JOBID && ! -d $CG_JOB
+      || -n $STEPID && ! -d $CG_STEP ]]; then
+    MODIFY_CGROUPS=1
+    getExclusiveUserLock
+else
+    MODIFY_CGROUPS=0
+fi
 
 [[ -n $USER ]] || elog "user env variable not set"
 [[ -d $CG_USER ]] || enableControllers "$CG_USER"
@@ -69,6 +75,6 @@ for modName in ${MODULES//,/$IFS}; do
     source "$MODULE"
 done
 
-rmUserLock
+[[ $MODIFY_CGROUPS == 1 ]] && rmUserLock
 
 exit 0

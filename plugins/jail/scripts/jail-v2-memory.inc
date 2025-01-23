@@ -41,6 +41,8 @@ function initMem()
 
 function setUserMem()
 {
+    [[ $MODIFY_CGROUPS == 0 ]] && return
+
     local LIMIT_VAL=$1
     local LIMIT_NAME=$2
 
@@ -60,6 +62,8 @@ function setUserMem()
 
 function setJobMem()
 {
+    [[ $MODIFY_CGROUPS == 0 ]] && return
+
     local LIMIT_VAL=$1
     local LIMIT_NAME=$2
 
@@ -76,6 +80,8 @@ function setJobMem()
 
 function setStepMem()
 {
+    [[ $MODIFY_CGROUPS == 0 ]] && return
+
     local LIMIT_VAL=$1
     local LIMIT_NAME=$2
 
