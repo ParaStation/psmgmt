@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -362,7 +362,7 @@ const ConfDef_t cgroupDef[] =
 	"upper limit of job's swap+RAM usage in percent of total RAM" },
     { "CgroupPlugin", 0,
 	"string",
-	"autodetect",
+	"cgroup/v2",
 	"version of cgroup subsystem to use" },
     { NULL, 0, NULL, NULL, NULL },
 };
@@ -1424,6 +1424,10 @@ static bool verifyCgroupConf(char *key, char *value, const void *info)
 	if (!strcasecmp(value, "yes")) isJailActive = true;
     } else if (!strcasecmp(key, "CgroupPlugin")) {
 	fdbg(PSSLURM_LOG_JAIL, "cgroup plugin=%s\n", value);
+	if (!strcasecmp(value, "cgroup/v1")) {
+	    flog("error: cgroup v1 is unsupported\n");
+	    return true;
+	}
     } else if (!strcasecmp(key, "CgroupAutomount")) {
 	flog("warning: ignoring unsupported option CgroupAutomount=%s\n",
 	     value);

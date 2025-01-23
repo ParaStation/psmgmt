@@ -583,9 +583,7 @@ void setGlobalJailEnvironment(void)
 
     c = getConfValueC(SlurmCgroupConfig, "CgroupPlugin");
     if (c) {
-	if (!strcmp(c, "cgroup/v1")) {
-	    setenv("__PSJAIL_CGROUP_VERSION", "v1", 1);
-	} else if (!strcmp(c, "cgroup/v2")) {
+	if (!strcmp(c, "cgroup/v2")) {
 	    setenv("__PSJAIL_CGROUP_VERSION", "v2", 1);
 	} else {
 	    setenv("__PSJAIL_CGROUP_VERSION", "autodetect", 1);

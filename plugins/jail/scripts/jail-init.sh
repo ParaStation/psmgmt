@@ -45,19 +45,18 @@ fi
 # cleanup leftover cgroup psid directory
 cleanupCgroups
 
-if [[ $CGROUP_VERSION == "v2" ]]; then
-    BASE="$CGROUP_BASE/$PREFIX"
-    mdsave "$BASE"
+# initialize cgroup controller
+BASE="$CGROUP_BASE/$PREFIX"
+mdsave "$BASE"
 
-    for controller in ${CGROUP_CONTROLLER//,/$IFS}; do
-	assertController "$controller"
+for controller in ${CGROUP_CONTROLLER//,/$IFS}; do
+    assertController "$controller"
 
-	# ensure controller is enabled in main cgroup dir
-	enableSingleController "$controller" "$CGROUP_BASE"
+    # ensure controller is enabled in main cgroup dir
+    enableSingleController "$controller" "$CGROUP_BASE"
 
-	# enable cgroup controller for psid directory
-	enableSingleController "$controller" "$BASE"
-    done
-fi
+    # enable cgroup controller for psid directory
+    enableSingleController "$controller" "$BASE"
+done
 
 exit 0

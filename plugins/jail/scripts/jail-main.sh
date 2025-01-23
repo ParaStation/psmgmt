@@ -49,17 +49,15 @@ else
     getExclusiveUserLock
 fi
 
-if [[ $CGROUP_VERSION == "v2" ]]; then
-    BASE="$CGROUP_BASE/$PREFIX"
-    CG_USER="$BASE/user-$USER"
-    CG_JOB="$CG_USER/job-$JOBID"
-    CG_STEP="$CG_JOB/step-$STEPID"
+BASE="$CGROUP_BASE/$PREFIX"
+CG_USER="$BASE/user-$USER"
+CG_JOB="$CG_USER/job-$JOBID"
+CG_STEP="$CG_JOB/step-$STEPID"
 
-    [[ -n $USER ]] || elog "user env variable not set"
-    [[ -d $CG_USER ]] || enableControllers "$CG_USER"
-    [[ -n $JOBID && ! -d $CG_JOB ]] && enableControllers "$CG_JOB"
-    [[ -n $STEPID && ! -d $CG_STEP ]] && enableControllers "$CG_STEP"
-fi
+[[ -n $USER ]] || elog "user env variable not set"
+[[ -d $CG_USER ]] || enableControllers "$CG_USER"
+[[ -n $JOBID && ! -d $CG_JOB ]] && enableControllers "$CG_JOB"
+[[ -n $STEPID && ! -d $CG_STEP ]] && enableControllers "$CG_STEP"
 
 for modName in ${MODULES//,/$IFS}; do
     MODULE="$CommandPath/$SCRIPT-$CGROUP_VERSION-$modName.inc"
@@ -69,14 +67,6 @@ for modName in ${MODULES//,/$IFS}; do
 	}
 	continue
     }
-
-    if [[ $CGROUP_VERSION == "v1" ]]; then
-	BASE="$CGROUP_BASE/$modName"
-	CG_USER="$BASE/$PREFIX-$USER"
-	CG_JOB="$CG_USER/job-$JOBID"
-	# shellcheck disable=SC2034
-	CG_STEP="$CG_JOB/step-$STEPID"
-    fi
 
     dlog "Calling module $MODULE for child $CHILD"
     # shellcheck source=/dev/null

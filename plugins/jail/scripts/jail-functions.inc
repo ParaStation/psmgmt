@@ -96,8 +96,7 @@ function killTasks {
     }
 
     dlog "killTasks: dir $DIR"
-    local TASKS="$DIR/tasks"
-    [[ $CGROUP_VERSION == "v2" ]] && TASKS="$DIR/tasks/cgroup.procs"
+    local TASKS="$DIR/tasks/cgroup.procs"
 
     local -i count=0
     local PIDS
@@ -124,9 +123,7 @@ function killTasks {
     done
 
     dlog "killTasks: rmdir $DIR"
-    [[ $CGROUP_VERSION == "v2" ]] && {
-	rmdir "$DIR/tasks" 2>/dev/null || dlog "killTasks rmdir $DIR/tasks failed"
-    }
+    rmdir "$DIR/tasks" 2>/dev/null || dlog "killTasks rmdir $DIR/tasks failed"
     rmdir "$DIR" 2>/dev/null || dlog "killTasks: rmdir $DIR failed"
 }
 
@@ -203,8 +200,10 @@ function initJailEnv {
 	if [[ -f $CGROUP_BASE/cgroup.controllers ]]; then
 	    export CGROUP_VERSION="v2"
 	else
-	    export CGROUP_VERSION="v1"
+	    elog "unable to detect cgroup version"
 	fi
+    elif [[ $CGROUP_VERSION == "v1" ]]; then
+	elog "unsupported cgroup version $CGROUP_VERSION"
     fi
 }
 
@@ -250,40 +249,25 @@ function enableControllers {
 }
 
 function cleanupCgroups {
-    if [[ $CGROUP_VERSION == "v2" ]]; then
-	CGROUPS="$CGROUP_BASE/$PREFIX"
-	dlog "cleanup v2 $CGROUPS"
-	for user in "$CGROUPS"/user-*; do
-	    for job in "$user"/job-*; do
-		for step in "$job"/step-*; do
-		    kill -9 $(cat $step/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
-		    rmdir -p "$step/tasks" 2>/dev/null
-		    rmdir -p "$step" 2>/dev/null
-		done
-		kill -9 $(cat $job/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
-		rmdir -p "$job/tasks" 2>/dev/null
-		rmdir -p "$job" 2>/dev/null
+    CGROUPS="$CGROUP_BASE/$PREFIX"
+    dlog "cleanup v2 $CGROUPS"
+    for user in "$CGROUPS"/user-*; do
+	for job in "$user"/job-*; do
+	    for step in "$job"/step-*; do
+		kill -9 $(cat $step/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
+		rmdir -p "$step/tasks" 2>/dev/null
+		rmdir -p "$step" 2>/dev/null
 	    done
-	    kill -9 $(cat $user/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
-	    rmdir -p "$user/tasks" 2>/dev/null
-	    rmdir -p "$user" 2>/dev/null
+	    kill -9 $(cat $job/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
+	    rmdir -p "$job/tasks" 2>/dev/null
+	    rmdir -p "$job" 2>/dev/null
 	done
-	rmdir -p "$CGROUPS" 2>/dev/null
-	[ -d "$CGROUPS" ] && { elog "unable to remove $CGROUPS"; }
-    else
-	dlog "cleanup v1 $CGROUP_BASE"
-	for modName in ${MODULES//,/$IFS}; do
-	    NEXT_GROUP="$CGROUP_BASE/$modName/$PREFIX"
-	    for job in "$NEXT_GROUP"/job-*; do
-		for step in "$job"/step-*; do
-		    rmdir -p "$step" 2>/dev/null
-		done
-		rmdir -p "$job" 2>/dev/null
-	    done
-	    rmdir -p "$NEXT_GROUP" 2>/dev/null
-	    [ -d "$NEXT_GROUP" ] && { elog "unable to remove $NEXT_GROUP"; }
-	done
-    fi
+	kill -9 $(cat $user/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
+	rmdir -p "$user/tasks" 2>/dev/null
+	rmdir -p "$user" 2>/dev/null
+    done
+    rmdir -p "$CGROUPS" 2>/dev/null
+    [ -d "$CGROUPS" ] && { elog "unable to remove $CGROUPS"; }
 }
 
 # vim: set filetype=sh ts=8 sw=4 tw=0 sts=4 noet :
