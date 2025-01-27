@@ -262,7 +262,7 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	flog("Invalid step pointer %p\n", step);
 	return;
     }
-    stopStepFollower(step);
+    if (step->nrOfNodes > 1) stopStepFollower(step);
 
     Alloc_t *alloc = Alloc_find(step->jobid);
     flog("%s in %s finished, exit %i / %i\n", Step_strID(step),
