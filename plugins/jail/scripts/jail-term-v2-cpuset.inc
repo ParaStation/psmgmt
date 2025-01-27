@@ -35,8 +35,8 @@ function cleaupUserCgroup2()
 	    LEFTOVER_STEP_TASKS=$(cat "$i"/step-*/tasks 2>/dev/null)
 	    if [[ -z "$LEFTOVER_JOB_TASKS" && -z "$LEFTOVER_STEP_TASKS" ]]; then
 		dlog "removing leftover job $i"
-		rmdir "$i"/step-* 2>/dev/null
-		rmdir "$i"
+		rmDirLogged "$i"/step-* "$FUNCNAME"
+		rmDirLogged "$i" "$FUNCNAME"
 	    else
 		dlog "adding running job: $i"
 		JOB_CPUS=$(cat "$i/cpuset.cpus")
