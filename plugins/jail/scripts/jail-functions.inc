@@ -88,12 +88,13 @@ function rmDirLogged {
 
 function killTasks {
     local DIR=$1
+    local caller=$(caller 0 | awk '{print $2}')
     [[ -d $DIR ]] || {
-	[[ $CHILD != -1 ]] && dlog "killTasks: no directory $DIR to kill tasks"
+	[[ $CHILD != -1 ]] && dlog "$caller: no directory $DIR to kill tasks"
 	return
     }
 
-    dlog "killTasks: dir $DIR"
+    dlog "$caller: dir $DIR"
     local TASKS="$DIR/tasks/cgroup.procs"
 
     local -i count=0
@@ -104,7 +105,7 @@ function killTasks {
 	if [[ $TERM_DELAY != 0 && $count == 0 ]]; then
 	    for child in $PIDS; do
 		[[ -d /proc/$child ]] || continue
-		dlog "killTasks($count): send signal $TERM_SIGNAL to PID $child"
+		dlog "$caller($count): send signal $TERM_SIGNAL to PID $child"
 		kill -"$TERM_SIGNAL" "$child"
 	    done
 	    sleep "$TERM_DELAY"
@@ -112,7 +113,7 @@ function killTasks {
 	fi
 	for child in $PIDS; do
 	    [[ -d /proc/$child ]] || continue
-	    dlog "killTasks($count): killing PID $child with signal $KILL_SIGNAL"
+	    dlog "$caller($count): killing PID $child with signal $KILL_SIGNAL"
 	    kill "-$KILL_SIGNAL" "$child"
 	done
 
@@ -120,15 +121,16 @@ function killTasks {
 	PIDS=$(cat "$TASKS" 2>/dev/null)
     done
 
-    dlog "killTasks: rmdir $DIR"
+    dlog "$caller: rmdir $DIR"
     rmDirLogged "$DIR/tasks"
     rmDirLogged "$DIR"
 }
 
 function killJob {
     local DIR=$1
+    local caller=$(caller 0 | awk '{print $2}')
     [[ -d $DIR ]] || {
-	[[ $CHILD != -1 ]] && dlog "killJob: no directory $DIR to kill tasks"
+	[[ $CHILD != -1 ]] && dlog "$caller: no directory $DIR to kill tasks"
 	return
     }
 
@@ -137,11 +139,11 @@ function killJob {
     local BASE=$DIR
     for i in "$BASE"/step-*/; do
 	[[ -d $i ]] || break
-	dlog "killJob: killTasks $i"
+	dlog "$caller: killTasks $i"
 	killTasks "$i"
     done
 
-    dlog "killJob: kill tasks of $DIR"
+    dlog "$caller: kill tasks of $DIR"
     killTasks "$DIR"
 }
 
