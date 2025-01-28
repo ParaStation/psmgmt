@@ -54,7 +54,7 @@ for controller in ${CGROUP_CONTROLLER//,/$IFS}; do
     # ensure controller is enabled in main cgroup dir
     enableSingleController "$controller" "$CGROUP_BASE"
 
-    # enable cgroup controller for psid directory
+    # enable cgroup controller for base directory
     enableSingleController "$controller" "$BASE"
 done
 
