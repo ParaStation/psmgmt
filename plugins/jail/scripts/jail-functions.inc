@@ -62,11 +62,6 @@ function getExclusiveUserLock {
     flock -x 101
 }
 
-function getSharedUserLock {
-    exec 101>"/dev/shm/psjail-$USER"
-    flock -s 101
-}
-
 function rmUserLock {
     flock -u 101
 }
