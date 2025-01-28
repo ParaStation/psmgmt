@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,6 +13,9 @@
  */
 #ifndef __PS_PMIX_FORWARDER
 #define __PS_PMIX_FORWARDER
+
+/* only works in psid forwarder processes (#214) */
+#define elog(...) PSIDfwd_printMsgf(STDERR, __VA_ARGS__)
 
 /**
  * @brief Initialize the forwarder module
