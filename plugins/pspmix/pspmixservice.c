@@ -1119,7 +1119,7 @@ failed:
 bool pspmix_service_finalize(void)
 {
     if (!pspmix_server_finalize()) {
-	elog("%s: Failed to finalize pmix server\n", __func__);
+	flog("failed to finalize pmix server\n");
 	return false;
     }
 
@@ -1293,7 +1293,7 @@ void pspmix_service_abort(const char *nsName, PspmixClient_t *client)
 
     flog("(rank %d)\n", client->rank);
 
-    elog("%s: on users request from rank %d\n", __func__, client->rank);
+    /* @todo try to inform user */
 
     /* just terminate the clients, cleaning up namespace will be triggered by
      * @ref PSPMIX_REMOVE_JOB message that is sent to us by the daemon in
