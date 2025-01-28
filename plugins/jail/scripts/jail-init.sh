@@ -17,7 +17,6 @@
 # This script will be called by the jail plugin via system() and get
 # the process ID of the main psid as an argument.
 
-# save PID of main psid
 SELF=$(realpath "$0")
 CommandPath=${SELF%/*}
 
