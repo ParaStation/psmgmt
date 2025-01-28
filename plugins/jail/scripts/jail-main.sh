@@ -70,7 +70,7 @@ for modName in ${MODULES//,/$IFS}; do
 	continue
     }
 
-    dlog "Calling module $MODULE for child $CHILD"
+    dlog "Calling module $MODULE for child $CHILD modify $MODIFY_CGROUPS"
     # shellcheck source=/dev/null
     source "$MODULE"
 done

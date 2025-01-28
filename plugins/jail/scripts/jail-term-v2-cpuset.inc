@@ -33,6 +33,8 @@ function cleaupUserCgroup2()
 	for i in "$BASE"/job-*/; do
 	    LEFTOVER_JOB_TASKS=$(cat "$i/tasks" 2>/dev/null)
 	    LEFTOVER_STEP_TASKS=$(cat "$i"/step-*/tasks 2>/dev/null)
+	    dlog "Leftover job-tasks $LEFTOVER_JOB_TASKS step-tasks $LEFTOVER_STEP_TASKS \
+		  allocs $ALLOC_LIST"
 	    if [[ -z "$LEFTOVER_JOB_TASKS" && -z "$LEFTOVER_STEP_TASKS" ]]; then
 		dlog "removing leftover job $i"
 		rmDirLogged "$i"/step-* "$FUNCNAME"

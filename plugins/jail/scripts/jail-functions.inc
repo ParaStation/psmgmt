@@ -237,6 +237,7 @@ function enableControllers {
     local DIR=$1
     [[ -z $DIR ]] && elog "no directory given"
 
+    dlog "enable controllers in $DIR"
     mdsave "$DIR"
     for controller in ${CGROUP_CONTROLLER//,/$IFS}; do
 	enableSingleController "$controller" "$DIR"
