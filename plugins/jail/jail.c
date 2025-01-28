@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -175,14 +175,24 @@ int initialize(FILE *logfile)
     script = getConfValueC(config, "JAIL_INIT_SCRIPT");
     initScript = checkScript(script);
     if (initScript) {
+	jlog(J_LOG_VERBOSE, "initialize script set to '%s'\n", initScript);
 	if (execScript(getpid(), initScript) != 0) {
 	    jlog(-1, "%s: JAIL_INIT_SCRIPT failed\n", __func__);
 	    return 1;
 	}
+    } else {
+	jlog(-1, "(%i) no initialize script defined\n", version);
     }
 
     script = getConfValueC(config, "JAIL_FIN_SCRIPT");
     finScript = checkScript(script);
+
+    if (!finScript) {
+	jlog(-1, "(%i) no finalize script defined\n", version);
+    } else {
+	jlog(J_LOG_VERBOSE, "finalize script set to '%s'\n", finScript);
+    }
+
 
     if (!PSIDhook_add(PSIDHOOK_JAIL_CHILD, jailProcess)) {
 	jlog(-1, "%s: register PSIDHOOK_JAIL_CHILD failed\n", __func__);
