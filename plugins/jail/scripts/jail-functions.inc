@@ -18,7 +18,8 @@ CGROUP_VERSION=${CGOUP_VERSION-undef}
 CHILD=${CHILD-0}
 
 function mlog {
-    local caller=$(caller 0 | awk '{print $2}')
+    local caller
+    caller=$(caller 0 | awk '{print $2}')
     if [[ $LOG_TO_SYSLOG == 1 ]]; then
 	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$caller: $1"
     else
@@ -28,7 +29,8 @@ function mlog {
 
 function dlog {
     [[ $DEBUG == 1 ]] || return;
-    local caller=$(caller 0 | awk '{print $2}')
+    local caller
+    caller=$(caller 0 | awk '{print $2}')
     if [[ $LOG_TO_SYSLOG == 1 ]]; then
 	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$caller: $1"
     else
@@ -37,7 +39,8 @@ function dlog {
 }
 
 function elog {
-    local caller=$(caller 0 | awk '{print $2}')
+    local caller
+    caller=$(caller 0 | awk '{print $2}')
     if [[ $LOG_TO_SYSLOG == 1 ]]; then
 	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  "$caller: $1"
     else
@@ -47,7 +50,8 @@ function elog {
 }
 
 function cgWrite {
-    local caller=$(caller 0 | awk '{print $2}')
+    local caller
+    caller=$(caller 0 | awk '{print $2}')
     echo 2>/dev/null "$1" > "$2" || {
 	mlog "$caller: write $1 to $2 failed"
     }
@@ -69,7 +73,8 @@ function rmUserLock {
 
 function mdsave {
     local DIR=$1
-    local caller=$(caller 0 | awk '{print $2}')
+    local caller
+    caller=$(caller 0 | awk '{print $2}')
     [[ -d $DIR ]] || {
 	mkdir "$DIR" 2>/dev/null
 	[[ -d $DIR ]] || {
@@ -80,7 +85,8 @@ function mdsave {
 
 function rmDirLogged {
     local DIR=$1
-    local caller=$(caller 0 | awk '{print $2}')
+    local caller
+    caller=$(caller 0 | awk '{print $2}')
     [[ -d $DIR ]] && {
 	rmdir "$DIR" 2>/dev/null || mlog "$caller: rmdir $DIR failed"
     }
@@ -88,7 +94,8 @@ function rmDirLogged {
 
 function killTasks {
     local DIR=$1
-    local caller=$(caller 0 | awk '{print $2}')
+    local caller
+    caller=$(caller 0 | awk '{print $2}')
     [[ -d $DIR ]] || {
 	[[ $CHILD != -1 ]] && dlog "$caller: no directory $DIR to kill tasks"
 	return
@@ -128,7 +135,8 @@ function killTasks {
 
 function killJob {
     local DIR=$1
-    local caller=$(caller 0 | awk '{print $2}')
+    local caller
+    caller=$(caller 0 | awk '{print $2}')
     [[ -d $DIR ]] || {
 	[[ $CHILD != -1 ]] && dlog "$caller: no directory $DIR to kill tasks"
 	return
@@ -149,7 +157,8 @@ function killJob {
 
 function killUser {
     local DIR=$1
-    local caller=$(caller 0 | awk '{print $2}')
+    local caller
+    caller=$(caller 0 | awk '{print $2}')
     [[ -d $DIR ]] || {
 	[[ $CHILD != -1 ]] && dlog "$caller: no directory $DIR to kill tasks"
 	return
@@ -271,15 +280,15 @@ function cleanupCgroups {
     for user in "$CGROUPS"/user-*; do
 	for job in "$user"/job-*; do
 	    for step in "$job"/step-*; do
-		kill -9 $(cat $step/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
+		xargs -r -n1 kill -9 2>/dev/null < "$step/tasks/cgroup.procs"
 		rmdir -p "$step/tasks" 2>/dev/null
 		rmdir -p "$step" 2>/dev/null
 	    done
-	    kill -9 $(cat $job/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
+	    xargs -r -n1 kill -9 2>/dev/null < "$job/tasks/cgroup.procs"
 	    rmdir -p "$job/tasks" 2>/dev/null
 	    rmdir -p "$job" 2>/dev/null
 	done
-	kill -9 $(cat $user/tasks/cgroup.procs 2>/dev/null) 2>/dev/null
+	xargs -r -n1 kill -9 2>/dev/null < "$user/tasks/cgroup.procs"
 	rmdir -p "$user/tasks" 2>/dev/null
 	rmdir -p "$user" 2>/dev/null
     done

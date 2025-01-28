@@ -31,8 +31,8 @@ function cleaupUserCgroup2()
 	local BASE=$CG_USER
 	REMAINING_CPUS=""
 	for i in "$BASE"/job-*/; do
-            jobid=$(echo $i | grep -oE 'job-[0-9]+')
-	    if echo $ALLOC_LIST | grep -q "\b${jobid:4}\b"; then
+            jobid=$(echo "$i" | grep -oE 'job-[0-9]+')
+	    if echo "$ALLOC_LIST" | grep -q "\b${jobid:4}\b"; then
 		dlog "adding running job: $i"
 		JOB_CPUS=$(cat "$i/cpuset.cpus")
 		REMAINING_CPUS="$REMAINING_CPUS,$JOB_CPUS"
