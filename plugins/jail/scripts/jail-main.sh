@@ -28,6 +28,7 @@ CommandName=${0##*/}
 CommandPath=${SELF%/*}
 CHILD=${1}
 SCRIPT=${CommandName%%.*}
+modName="main"
 
 # shellcheck source=/dev/null
 source "$CommandPath"/jail-functions.inc
