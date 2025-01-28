@@ -147,6 +147,26 @@ function killJob {
     killTasks "$DIR"
 }
 
+function killUser {
+    local DIR=$1
+    local caller=$(caller 0 | awk '{print $2}')
+    [[ -d $DIR ]] || {
+	[[ $CHILD != -1 ]] && dlog "$caller: no directory $DIR to kill tasks"
+	return
+    }
+
+    dlog "kill jobs in dir $DIR"
+    local BASE=$DIR
+    for i in "$BASE"/job-*/; do
+	[[ -d $i ]] || break
+	dlog "$caller: killJob $i"
+	killJob "$i"
+    done
+
+    dlog "$caller: kill tasks of $DIR"
+    killTasks "$DIR"
+}
+
 function initJailEnv {
     unset LANGUAGE
     export LANG=C

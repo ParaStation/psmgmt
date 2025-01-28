@@ -24,7 +24,7 @@ function cleaupUserCgroup2()
 	# cleanup user directory
 
 	dlog "no more jobs, kill user cgroup $CG_USER"
-	killTasks "$CG_USER"
+	killUser "$CG_USER"
     else
 	# update remaining cpus for user cgroup
 
