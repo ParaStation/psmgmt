@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -103,7 +103,6 @@ PElogueChild_t *addChild(char *plugin, char *jobid, PElogueType_t type)
 	child->jobid = jobid;
 	child->type = type;
 	child->mainPElogue = -1;
-	child->scriptDir = NULL;
 	child->tmpDir = NULL;
 	child->rootHome = rootHome;
 	child->hostName = hostName;
@@ -373,7 +372,6 @@ bool deleteChild(PElogueChild_t *child)
 
     free(child->plugin);
     free(child->jobid);
-    free(child->scriptDir);
     free(child->tmpDir);
     envDestroy(child->env);
     if (child->fwData) {

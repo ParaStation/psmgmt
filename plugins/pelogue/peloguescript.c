@@ -36,7 +36,7 @@
  * returned. If the file does not match the checked permissions, -2 is
  * returned.
  */
-int checkPELogueFileStats(char *filename, bool root)
+static int checkFileStats(char *filename, bool root)
 {
     struct stat statbuf;
    if (stat(filename, &statbuf) == -1) return -1;
@@ -74,7 +74,7 @@ bool checkDDir(char *dDir, bool root)
 	if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, "..")) continue;
 
 	snprintf(filePath, sizeof(filePath), "%s/%s", dDir, dp->d_name);
-	if (checkPELogueFileStats(filePath, root) != 1) {
+	if (checkFileStats(filePath, root) != 1) {
 	    flog("file '%s' does not have correct permissions\n", filePath);
 	    closedir(ddir);
 	    return false;

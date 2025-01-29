@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2023-2024 ParTec AG, Munich
+ * Copyright (C) 2023-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +14,7 @@
 #include <stdbool.h>
 
 #include "pluginconfig.h"
+#include "peloguetypes.h"
 
 /**
  * @brief Add configuration
@@ -101,5 +102,47 @@ bool delPluginConfig(const char *name);
  * @return No return value
  */
 void clearPluginConfigList(void);
+
+/**
+ * @brief Get .d directory for action
+ *
+ * Get the .d directory for the action @a action from the
+ * configuration @a conf. Those directories are hosting code snippets
+ * to be exectude by pelogue's master script for the correspondign
+ * action.
+ *
+ * @param action Type of action to find .d directory for
+ *
+ * @param conf Configuration to search
+ *
+ * @return Return the absolute path to the .d directory to search or
+ * NULL in case of illegal action; must not be freed
+ */
+char * getDDir(PElogueAction_t action, Config_t conf);
+
+/**
+ * @brief Get plugin's .d directory for action
+ *
+ * Get the .d directory for the action @a action defined by the plugin
+ * @a plugin. This is mainly a wrapper around @ref getDDir().
+ *
+ * @param action Type of action to find .d directory for
+ *
+ * @param plugin Plugin defining the configuration to search
+ *
+ * @return Return the absolute path to the .d directory to search or
+ * NULL in case of illegal action; must not be freed
+ */
+char * getPluginDDir(PElogueAction_t action, char *plugin);
+
+/**
+ * @brief Get path to pelogue's master script
+ *
+ * Get the absolute path to the master script utilized by pelogue to execute
+ * code snippets in the different .d directories
+ *
+ * @return Return the absolute path to pelogue's master script
+ */
+char * getMasterScript(void);
 
 #endif  /* __PELOGUE_CONFIG */

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,38 +10,36 @@
  */
 #include "pelogueforwarder.h"
 
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <limits.h>
 #include <unistd.h>
 
 #include "psenv.h"
 #include "psidhook.h"
 
+#include "pelogueconfig.h"
+#include "peloguelog.h"
 #include "peloguescript.h"
 #include "peloguetypes.h"
 
+
 /**
- * @brief Prepare the environment and execute a PElog script.
+ * @brief Prepare the environment and execute a PElogue script
  *
- * @param prologue If true we start a prologue script, else start an
- *	epilogue script.
+ * @param child PElogue script to execute
  *
- *  @param data Pointer to the data structure the PElog script belongs to.
+ * @param dDir Directory to be passed to the PElogue hosting the code snippets
  *
- *  @param root If true we start the script as root, else we start a user
- *	PElog script.
+ * @param root Flag to execute the PElogue as root instead of some user
+ *
+ * @return No return value
  */
-static void execPElogue(PElogueChild_t *child, char *filename, bool root)
+static void execPElogue(PElogueChild_t *child, char *dDir, bool root)
 {
-
-    child->argv = malloc(2 * sizeof(*(child->argv)));
-
-    /* prepare argv */
-    child->argv[0] = filename;
-    child->argv[1] = NULL;
+    char *argv[] = { getMasterScript(), dDir, NULL };
+    child->argv = argv;
 
     if (root) {
 	setenv("USER", "root", 1);
@@ -68,9 +66,7 @@ static void execPElogue(PElogueChild_t *child, char *filename, bool root)
     }
 
     /* set tmp directory */
-    if (child->tmpDir) {
-	setenv("TMPDIR", child->tmpDir, 1);
-    }
+    if (child->tmpDir) setenv("TMPDIR", child->tmpDir, 1);
 
     /* pshc will fail with malloc check enabled (pgrep) */
     unsetenv("MALLOC_CHECK_");
@@ -79,7 +75,7 @@ static void execPElogue(PElogueChild_t *child, char *filename, bool root)
     PSIDhook_call(PSIDHOOK_PELOGUE_PREPARE, child);
 
     /* start pelogue script */
-    if (child->argv) execvp(child->argv[0], child->argv);
+    execvp(child->argv[0], child->argv);
 }
 
 void execPElogueScript(Forwarder_Data_t *fwData, int rerun)
@@ -89,33 +85,24 @@ void execPElogueScript(Forwarder_Data_t *fwData, int rerun)
 
     for (char **e = envGetArray(child->env); e && *e; e++) putenv(*e);
 
-    char fName[PATH_MAX];
-    snprintf(fName, sizeof(fName), "%s/%s%s", child->scriptDir,
-	     child->type == PELOGUE_PROLOGUE ? "prologue" : "epilogue",
-	     root ? "" : ".user");
-
-    switch (checkPELogueFileStats(fName, root)) {
-    case -1:
-	/* give psslurm a change to executed SPANK hooks */
+    char *dDir = getPluginDDir((PElogueAction_t)child->type, child->plugin);
+    if (!checkDDir(dDir, root)) {
+	flog("dDir '%s' failed check\n", dDir);
+	/* give psslurm a chance to execute SPANK hooks anyhow */
 	PSIDhook_call(PSIDHOOK_PELOGUE_PREPARE, child);
-
-	/* if the prologue file does not exists, everything is fine */
-	exit(0);
-    case 1:
-	if (!child->fwStdOE) {
-	    /* redirect stdout and stderr */
-	    int fd = open("/dev/null", 0);
-	    if (fd >= 0) {
-		dup2(fd, STDOUT_FILENO);
-		dup2(fd, STDERR_FILENO);
-		close(fd);
-	    }
-	}
-
-	execPElogue(child, fName, root);
-	exit(0);
-    default:
-	printf("permisson error for %s as %s\n", fName, root ? "root" : "user");
 	exit(1);
     }
+
+    if (!child->fwStdOE) {
+	/* redirect stdout and stderr */
+	int fd = open("/dev/null", 0);
+	if (fd >= 0) {
+	    dup2(fd, STDOUT_FILENO);
+	    dup2(fd, STDERR_FILENO);
+	    close(fd);
+	}
+    }
+    execPElogue(child, dDir, root);
+
+    exit(1);  // never reached if execvp() in execPElogue() was successful
 }

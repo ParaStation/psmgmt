@@ -2,6 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,7 +32,9 @@ pelogue_la_SOURCES = pelogue.c peloguelog.c peloguelog.h		\
 
 pelogue_la_LIBADD = $(libplugincommon) $(libpscommon)
 
-pelogue_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
+pelogue_la_CPPFLAGS = $(AM_CPPFLAGS)				\
+		-DPKGLIBEXECDIR=\"$(pkglibexecdir)\"		\
+		-DPKGSYSCONFDIR=\"$(sysconfdir)/parastation\"
 
 install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/scripts

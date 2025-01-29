@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,11 +21,18 @@
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
 
-/** Types of pelogues currently handled */
+/** Types of pelogues currently handled; must not be 0 */
 typedef enum {
     PELOGUE_PROLOGUE = 1,  /**< prologue */
     PELOGUE_EPILOGUE,      /**< epilogue */
 } PElogueType_t;
+
+/** Types of actions (prologues, epilogues or epilogue finalizations) */
+typedef enum {
+    PELOGUE_ACTION_PROLOGUE = PELOGUE_PROLOGUE,
+    PELOGUE_ACTION_EPILOGUE = PELOGUE_EPILOGUE,
+    PELOGUE_ACTION_EPILOGUE_FINALIZE
+} PElogueAction_t;
 
 /** All information available on a running pelogue */
 typedef struct {
@@ -34,7 +41,6 @@ typedef struct {
     char *jobid;        /**< batch system's job ID */
     PElogueType_t type; /**< Type of pelogue to run */
     PSnodes_ID_t mainPElogue; /**< Node initiating the pelogue */
-    char *scriptDir;    /**< directory containing all the scripts */
     char *tmpDir;       /**< Name of the pelogue's temp directory if any */
     char *rootHome;     /**< root's HOME; don't free() this!*/
     char *hostName;     /**< local hostname; don't free() this! */
@@ -147,12 +153,9 @@ typedef void(PElogueJobCb_t)(char *jobid, int exit, bool timeout,
  * psPelogueDelPluginConfig(). By convention a plugin shall use its
  * own name for tagging a configuration.
  *
- * While adding the configuration a check for the existence of a
- * parameter DIR_SCRIPTS is made. Furthermore the existence of the
- * referred directory and the scripts 'prologue', 'prologue.parallel',
- * 'epilogue', and 'epilogue.parallel' therein is enforced. Otherwise
- * the operation will not succeed.
- *
+ * The config is checked for issues such as missing or invalid
+ * required values and incorrect access rights of the configured paths
+ * before adding it. For details see @ref checkPluginConfig()
  *
  * @param name Name tag of the configuration to register
  *

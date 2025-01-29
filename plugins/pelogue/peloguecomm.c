@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,8 +38,6 @@
 #include "peloguechild.h"
 #include "pelogueconfig.h"
 #include "peloguelog.h"
-
-#define SPOOL_DIR LOCALSTATEDIR "/spool/parastation"
 
 #define PELOGUE_REQUEST_VERSION 3
 
@@ -166,7 +164,6 @@ static void savePluginConfig(char *plugin, uint32_t timeout, uint32_t grace)
     char graceStr[16];
     snprintf(graceStr, sizeof(graceStr), "%u", grace);
     addConfigEntry(config, "TIMEOUT_PE_GRACE", graceStr);
-    addConfigEntry(config, "DIR_SCRIPTS", SPOOL_DIR "/scripts");
 
     mdbg(PELOGUE_LOG_VERB, "%s: add conf for '%s'\n", __func__, plugin);
     addPluginConfig(plugin, config);
@@ -396,17 +393,6 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getEnv(rData, child->env);
 
     getBool(rData, &child->fwStdOE);
-
-    /* set the script directory */
-    char *scriptDir = getPluginConfValueC(plugin, "DIR_SCRIPTS");
-    if (!scriptDir) {
-	/* root cause may be a missing plugin configuration */
-	mlog("%s: unset script directory for plugin %s job %s\n", __func__,
-	     plugin, jobid);
-	child->exit = -1;
-	goto ERROR;
-    }
-    child->scriptDir = ustrdup(scriptDir);
 
     int ret = PSIDhook_call(PSIDHOOK_PELOGUE_START, child);
 

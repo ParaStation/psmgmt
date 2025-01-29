@@ -11,10 +11,7 @@
 #include "pelogueconfig.h"
 
 #include <stdio.h>
-#include <errno.h>
-#include <limits.h>
 #include <string.h>
-#include <sys/stat.h>
 
 #include "list.h"
 #include "pluginmalloc.h"
@@ -95,60 +92,6 @@ char *__getPluginConfValueC(const char *plugin, char *key, const char *caller,
     return getConfValueC(config, key);
 }
 
-/**
- * @brief Test if all configured scripts are existing.
- *
- * @return Returns true on success or false on error
- */
-static bool validateScripts(char *scriptDir)
-{
-    char filename[PATH_MAX];
-
-    snprintf(filename, sizeof(filename), "%s/prologue", scriptDir);
-    if (checkPELogueFileStats(filename, true /* root */) == -2) {
-	mlog("%s: invalid permissions for %s\n", __func__, filename);
-	return false;
-    }
-    snprintf(filename, sizeof(filename), "%s/prologue.parallel", scriptDir);
-    if (checkPELogueFileStats(filename, true /* root */) == -2) {
-	mlog("%s: invalid permissions for %s\n", __func__, filename);
-	return false;
-    }
-    snprintf(filename, sizeof(filename), "%s/epilogue", scriptDir);
-    if (checkPELogueFileStats(filename, true /* root */) == -2) {
-	mlog("%s: invalid permissions for %s\n", __func__, filename);
-	return false;
-    }
-    snprintf(filename, sizeof(filename), "%s/epilogue.parallel", scriptDir);
-    if (checkPELogueFileStats(filename, true /* root */) == -2) {
-	mlog("%s: invalid permissions for %s\n", __func__, filename);
-	return false;
-    }
-
-    return true;
-}
-
-/**
- * @brief Test existence of directory
- *
- * Test if the directory @a dir exists
- *
- * @param dir Name of the directory to test
- *
- * @return Returns true if the directory exists or false otherwise
- */
-static bool validateDirs(char *dir)
-{
-    struct stat st;
-
-    if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
-	mwarn(errno, "%s: invalid script-directory %s", __func__, dir);
-	return false;
-    }
-
-    return true;
-}
-
 static bool checkPluginConfig(Config_t config)
 {
     char *opt = getConfValueC(config, "TIMEOUT_PROLOGUE");
@@ -169,13 +112,17 @@ static bool checkPluginConfig(Config_t config)
 	return false;
     }
 
-    char *scriptDir = getConfValueC(config, "DIR_SCRIPTS");
-    if (!scriptDir) {
-	mlog("%s: invalid scripts directory\n", __func__);
-	return false;
+    PElogueAction_t actions[] = {PELOGUE_ACTION_EPILOGUE,
+	PELOGUE_ACTION_EPILOGUE_FINALIZE, PELOGUE_ACTION_PROLOGUE, 0};
+    for (size_t i = 0; actions[i]; i++) {
+	char *dDir = getDDir(actions[i], config);
+	if (!checkDDir(dDir, false)) {
+	    // This is not a fatal issue, but worth to be reported
+	}
+	if (!checkDDir(dDir, true)) { return false; }
     }
 
-    return validateDirs(scriptDir) && validateScripts(scriptDir);
+    return true;
 }
 
 static bool addVisitor(char *key, char *value, const void *info)
@@ -234,4 +181,52 @@ void clearPluginConfigList(void)
 	PluginConf_t *pluginConf = list_entry(p, PluginConf_t, next);
 	del(pluginConf);
     }
+}
+
+char *PROLOGUE_DEFAULT_DDIR = PKGSYSCONFDIR "/prologue.d";
+char *EPILOGUE_DEFAULT_DDIR = PKGSYSCONFDIR "/epilogue.d";
+char *EPILOGUE_FINALIZE_DEFAULT_DDIR = PKGSYSCONFDIR "/epilogue.finalize.d";
+
+char *getDDir(PElogueAction_t action, Config_t conf)
+{
+    char *confKey, *defaultValue;
+
+    switch (action) {
+    case PELOGUE_ACTION_PROLOGUE:
+	confKey = "DIR_PROLOGUE";
+	defaultValue = PROLOGUE_DEFAULT_DDIR;
+	break;
+    case PELOGUE_ACTION_EPILOGUE:
+	confKey = "DIR_EPILOGUE";
+	defaultValue = EPILOGUE_DEFAULT_DDIR;
+	break;
+    case PELOGUE_ACTION_EPILOGUE_FINALIZE:
+	confKey = "DIR_EPILOGUE_FINALIZE";
+	defaultValue = EPILOGUE_FINALIZE_DEFAULT_DDIR;
+	break;
+    default:
+	flog("unknown action %d\n", action);
+	return NULL;
+    }
+
+    char *confValue = getConfValueC(conf, confKey);
+    if (confValue) return confValue;
+
+    return defaultValue;
+}
+
+char * getPluginDDir(PElogueAction_t action, char *plugin)
+{
+    Config_t config = getPluginConfig(plugin);
+    if (!config) {
+	flog("no config for plugin '%s'\n", plugin);
+	return NULL;
+    }
+
+    return getDDir(action, config);
+}
+
+char * getMasterScript(void)
+{
+    return PKGLIBEXECDIR "/exec_all";
 }

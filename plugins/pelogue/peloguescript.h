@@ -27,6 +27,4 @@
  */
 bool checkDDir(char *dDir, bool root);
 
-int checkPELogueFileStats(char *filename, bool root);
-
 #endif  /* __PELOGUE_SCRIPT */

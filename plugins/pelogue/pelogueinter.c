@@ -52,12 +52,14 @@ bool psPelogueAddPluginConfig(char *name, Config_t configList)
     }
     addConfigEntry(config, "TIMEOUT_PE_GRACE", val);
 
-    char *scriptDir = getConfValueC(configList, "DIR_SCRIPTS");
-    if (!scriptDir) {
-	mlog("%s: invalid scripts directory\n", __func__);
-	goto ERROR;
-    }
-    addConfigEntry(config, "DIR_SCRIPTS", scriptDir);
+    val = getConfValueC(configList, "DIR_PROLOGUE");
+    if (val) addConfigEntry(config, "DIR_PROLOGUE", val);
+
+    val = getConfValueC(configList, "DIR_EPILOGUE");
+    if (val) addConfigEntry(config, "DIR_EPILOGUE", val);
+
+    val = getConfValueC(configList, "DIR_EPILOGUE_FINALIZE");
+    if (val) addConfigEntry(config, "DIR_EPILOGUE_FINALIZE", val);
 
     return addPluginConfig(name, config);
 
