@@ -953,7 +953,10 @@ int initialize(FILE *logfile)
 
     if (!initEnvFilter()) goto INIT_ERROR;
 
-    psPelogueAddPluginConfig("psslurm", Config);
+    /* we use two configs in pelogue, one for psslurm's pelogues, one for the
+     * prologue triggered by pspelogue from withing the slurmctld prologue */
+    if (!psPelogueAddPluginConfig("psslurm", Config)
+	|| !psPelogueAddPluginConfig("pspelogue", Config)) goto INIT_ERROR;
 
     /* make sure timer facility is ready */
     if (!Timer_isInitialized()) {
@@ -985,6 +988,7 @@ int initialize(FILE *logfile)
 
 INIT_ERROR:
     psPelogueDelPluginConfig("psslurm");
+    psPelogueDelPluginConfig("pspelogue");
     unregisterHooks(false);
     finalizePScomm(false);
     return 1;
@@ -1036,7 +1040,10 @@ void cleanup(void)
     clearSlurmCon();
 
     /* free config in pelogue plugin */
-    if (psPelogueDelPluginConfig) psPelogueDelPluginConfig("psslurm");
+    if (psPelogueDelPluginConfig) {
+	psPelogueDelPluginConfig("psslurm");
+	psPelogueDelPluginConfig("pspelogue");
+    }
 
     /* unregister timer */
     if (cleanupTimerID != -1) Timer_remove(cleanupTimerID);
