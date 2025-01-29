@@ -24,7 +24,6 @@
 #include "peloguescript.h"
 #include "peloguetypes.h"
 
-
 /**
  * @brief Prepare the environment and execute a PElogue script
  *
@@ -32,23 +31,18 @@
  *
  * @param dDir Directory to be passed to the PElogue hosting the code snippets
  *
- * @param root Flag to execute the PElogue as root instead of some user
- *
  * @return No return value
  */
-static void execPElogue(PElogueChild_t *child, char *dDir, bool root)
+static void execPElogue(PElogueChild_t *child, char *dDir)
 {
     char *argv[] = { getMasterScript(), dDir, NULL };
     child->argv = argv;
 
-    if (root) {
-	setenv("USER", "root", 1);
-	setenv("USERNAME", "root", 1);
-	setenv("LOGNAME", "root", 1);
-	setenv("HOME", child->rootHome, 1);
-    } else {
-	/* changes shall be done in PSIDHOOK_PELOGUE_PREPARE */
-    }
+    /* we run as root, thus, setup environmnt accordingly */
+    setenv("USER", "root", 1);
+    setenv("USERNAME", "root", 1);
+    setenv("LOGNAME", "root", 1);
+    setenv("HOME", child->rootHome, 1);
 
     /* set some sane defaults */
     setenv("HOSTNAME", child->hostName, 1);
@@ -81,12 +75,11 @@ static void execPElogue(PElogueChild_t *child, char *dDir, bool root)
 void execPElogueScript(Forwarder_Data_t *fwData, int rerun)
 {
     PElogueChild_t *child = fwData->userData;
-    bool root = rerun == 1;
 
     for (char **e = envGetArray(child->env); e && *e; e++) putenv(*e);
 
     char *dDir = getPluginDDir((PElogueAction_t)child->type, child->plugin);
-    if (!checkDDir(dDir, root)) {
+    if (!checkDDir(dDir, true)) {
 	flog("dDir '%s' failed check\n", dDir);
 	/* give psslurm a chance to execute SPANK hooks anyhow */
 	PSIDhook_call(PSIDHOOK_PELOGUE_PREPARE, child);
@@ -102,7 +95,7 @@ void execPElogueScript(Forwarder_Data_t *fwData, int rerun)
 	    close(fd);
 	}
     }
-    execPElogue(child, dDir, root);
+    execPElogue(child, dDir);
 
     exit(1);  // never reached if execvp() in execPElogue() was successful
 }

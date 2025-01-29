@@ -272,7 +272,7 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
     alloc->state = (type == PELOGUE_PROLOGUE) ? A_PROLOGUE : A_EPILOGUE;
 
     /* use pelogue plugin to start */
-    bool ret = psPelogueStartPE("psslurm", sjobid, type, 1, env);
+    bool ret = psPelogueStartPE("psslurm", sjobid, type, env);
     envDestroy(env);
 
     return ret;

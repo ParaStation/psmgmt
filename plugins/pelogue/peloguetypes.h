@@ -45,7 +45,6 @@ typedef struct {
     char *rootHome;     /**< root's HOME; don't free() this!*/
     char *hostName;     /**< local hostname; don't free() this! */
     int32_t timeout;    /**< pelogue's timeout told to the forwarder */
-    int32_t rounds;     /**< number of rounds for the pelogue (root / user) */
     env_t env;          /**< environment provided to the pelogue */
     uid_t uid;          /**< user ID under which a pelogue is executed */
     gid_t gid;          /**< group ID under which a pelogue is executed */
@@ -220,10 +219,7 @@ typedef bool(psPelogueAddJob_t)(const char *plugin, const char *jobid,
  * Tell all nodes associated to the job identified by its @a jobid and
  * the associated @a plugin to start a pelogue of type @a type. The
  * environment @a env will be used on the target node in order to run
- * the pelogue. The pelogue will be started @a rounds times in order
- * to enable for different types of pelogues (e.g. prologue and
- * prologue.user in PBS type of RMS). To actually start the specific
- * pelogue for a given round PSIDHOOK_PELOGUE_PREPARE shall be used.
+ * the pelogue.
  *
  * In order to trigger the start, according messages will be sent to
  * the pelogue plugins on all nodes associated to the job.
@@ -234,14 +230,12 @@ typedef bool(psPelogueAddJob_t)(const char *plugin, const char *jobid,
  *
  * @param type Type of pelogue to start
  *
- * @param rounds Number of times the pelogue shall be started
- *
  * @param env Environment to use on the target node for the pelogue
  *
  * @return Return true on success or false on error
 */
 typedef bool(psPelogueStartPE_t)(const char *plugin, const char *jobid,
-				 PElogueType_t type, int rounds, env_t env);
+				 PElogueType_t type, env_t env);
 
 /**
  * @brief Signal job's pelogues

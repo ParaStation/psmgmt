@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,10 +19,7 @@
  * Execute a pelogue script under the control of a
  * pluginforwarder. Information on the governing forwarder is
  * contained in @a fwData. Its userData attribute is expected to hold
- * information on the actual pelogue to execute. @a rerun will provide
- * the reiteration number of the specific function call. This allows
- * to run multiple pelogue (e.g. root and user) under the control of a
- * single forwarder one after the other.
+ * information on the actual pelogue to execute.
  *
  * While setting up the environment of the actual pelogue to be
  * executed the hook PSIDHOOK_PELOGUE_PREPARE is called allowing for a
@@ -35,7 +32,7 @@
  * function. Its userData attribute is expected to hold a pointer to
  * the pelogue description.
  *
- * @param rerun Reiteration number of calling this function
+ * @param rerun Reiteration number of calling this function (ignored)
  *
  * @return No return value
  */

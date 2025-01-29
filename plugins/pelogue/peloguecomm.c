@@ -51,7 +51,7 @@ typedef struct {
     uint32_t grace;	    /**< Additional grace to of pelogue */
 } RPC_Info_t;
 
-int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t env)
+int sendPElogueStart(Job_t *job, PElogueType_t type, env_t env)
 {
     PS_SendDB_t data;
     int32_t timeout, msgType;
@@ -78,7 +78,7 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t env)
     addStringToMsg(job->id, &data);
     addInt32ToMsg(job->uid, &data);
     addInt32ToMsg(job->gid, &data);
-    addInt32ToMsg(rounds, &data);
+    addInt32ToMsg(1, &data); // @todo obsolete rounds magic
     addInt32ToMsg(timeout, &data);
 
     job->start_time = time(NULL);
@@ -219,7 +219,7 @@ static int startPElogueReq(Job_t *job, RPC_Info_t *info, env_t env)
 	job->epilogueTrack = job->numNodes;
     }
 
-    ret = sendPElogueStart(job, info->type, 1, env);
+    ret = sendPElogueStart(job, info->type, env);
     if (ret == -1) {
 	mlog("%s: sending pelogue request for %s failed\n", __func__, job->id);
     }
@@ -384,7 +384,9 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     getInt32(rData, (int32_t *)&child->uid);
     getInt32(rData, (int32_t *)&child->gid);
-    getInt32(rData, &child->rounds);
+    /* ignore obsolete rounds parameter */
+    int32_t dummy;
+    getInt32(rData, &dummy);
     getInt32(rData, &child->timeout);
     getTime(rData, &child->startTime);
 

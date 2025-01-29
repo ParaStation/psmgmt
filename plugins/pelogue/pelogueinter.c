@@ -82,7 +82,7 @@ bool psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
 }
 
 bool psPelogueStartPE(const char *plugin, const char *jobid, PElogueType_t type,
-		      int rounds, env_t env)
+		      env_t env)
 {
     Job_t *job = findJobById(plugin, jobid);
     if (!job) {
@@ -97,7 +97,7 @@ bool psPelogueStartPE(const char *plugin, const char *jobid, PElogueType_t type,
 	job->state = JOB_EPILOGUE;
 	job->epilogueTrack = job->numNodes;
     }
-    sendPElogueStart(job, type, rounds, env);
+    sendPElogueStart(job, type, env);
 
     return true;
 }

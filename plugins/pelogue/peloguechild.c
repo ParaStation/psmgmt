@@ -107,7 +107,6 @@ PElogueChild_t *addChild(char *plugin, char *jobid, PElogueType_t type)
 	child->rootHome = rootHome;
 	child->hostName = hostName;
 	child->timeout = 0;
-	child->rounds = 1;
 	child->env = envNew(NULL);
 	child->uid = 0;
 	child->gid = 0;
@@ -306,7 +305,6 @@ void startChild(PElogueChild_t *child)
     child->fwData->graceTime = 3;
     child->fwData->killSession = psAccountSignalSession;
     child->fwData->callback = fwCallback;
-    child->fwData->childRerun = child->rounds;
     child->fwData->childFunc = execPElogueScript;
     child->fwData->timeoutChild = child->timeout;
     child->fwData->handleFwMsg = handlePeFwMsg;

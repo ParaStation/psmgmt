@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,10 +24,7 @@
  * Tell all nodes associated to the job @a job to start a
  * corresponding prologue or epilogue depending on the type @a type.
  * The environment @a env will be used on the target node in order to
- * run the pelogue. The pelogue will be started @a rounds times in
- * order to enable for different types of pelogues (e.g. prologue and
- * prologue.user in PBS type of RMS). To actually start the specific
- * pelogue for a given round PSIDHOOK_PELOGUE_PREPARE shall be used.
+ * run the pelogue.
  *
  * In order to trigger the start according messages will be sent to
  * the pelogue plugins of all involved nodes.
@@ -36,13 +33,11 @@
  *
  * @param type Type of pelogue to start
  *
- * @param rounds Number of times the pelogue shall be started
- *
  * @param env Environment to use on the target node for the pelogue
  *
- * @return Returns 0 on succes and -1 on error.
+ * @return Returns 0 on succes and -1 on error
  */
-int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t env);
+int sendPElogueStart(Job_t *job, PElogueType_t type, env_t env);
 
 /**
  * @brief Signal job's pelogues
