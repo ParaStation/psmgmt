@@ -851,8 +851,8 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binSCRIPTS install-nobase_sysconfDATA \
-	install-pkglibexecSCRIPTS
+install-exec-am: install-binSCRIPTS install-exec-local \
+	install-nobase_sysconfDATA install-pkglibexecSCRIPTS
 
 install-html: install-html-am
 
@@ -904,7 +904,7 @@ uninstall-am: uninstall-binSCRIPTS uninstall-configDATA \
 	distclean-libtool distdir dvi dvi-am html html-am info info-am \
 	install install-am install-binSCRIPTS install-configDATA \
 	install-configSCRIPTS install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am \
+	install-dvi-am install-exec install-exec-am install-exec-local \
 	install-gdbinit_dDATA install-html install-html-am \
 	install-info install-info-am install-init_dSCRIPTS install-man \
 	install-nobase_sysconfDATA install-pdf install-pdf-am \
@@ -926,6 +926,11 @@ uninstall-am: uninstall-binSCRIPTS uninstall-configDATA \
 
 %: %.in
 	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
+
+install-exec-local:
+	$(INSTALL) -d $(DESTDIR)$(sysconfdir)/parastation/prologue.d
+	$(INSTALL) -d $(DESTDIR)$(sysconfdir)/parastation/epilogue.d
+	$(INSTALL) -d $(DESTDIR)$(sysconfdir)/parastation/epilogue.finalize.d
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

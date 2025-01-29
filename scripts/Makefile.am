@@ -53,3 +53,8 @@ EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py		\
 CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_acc			\
 	init.d/parastation xinetd.d/psidstarter systemd/psid.service	\
 	single_node_config
+
+install-exec-local:
+	$(INSTALL) -d $(DESTDIR)$(sysconfdir)/parastation/prologue.d
+	$(INSTALL) -d $(DESTDIR)$(sysconfdir)/parastation/epilogue.d
+	$(INSTALL) -d $(DESTDIR)$(sysconfdir)/parastation/epilogue.finalize.d
