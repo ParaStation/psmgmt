@@ -91,7 +91,7 @@ int requiredAPI =143;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 5 },
     { .name = "psaccount", .version = 30 },
-    { .name = "pelogue", .version = 9 },
+    { .name = "pelogue", .version = 10 },
     { .name = "pspam", .version = 3 },
     { .name = "psexec", .version = 2 },
     { .name = "pspmi", .version = 4 },
@@ -452,6 +452,13 @@ static bool regPElogueHandles(void)
 	flog("loading psPelogueSignalPE() failed\n");
 	return false;
     }
+
+    psPelogueCallPE = dlsym(pluginHandle, "psPelogueCallPE");
+    if (!psPelogueCallPE) {
+	flog("loading psPelogueCallPE() failed\n");
+	return false;
+    }
+
     return true;
 }
 

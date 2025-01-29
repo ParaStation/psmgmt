@@ -1914,23 +1914,19 @@ int handleFwRes(void * data)
 static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
 {
     Alloc_t *alloc = fwdata->userData;
-    char *argv[2];
-    char buf[1024], script[1024];
-    char *dirScripts = getConfValueC(Config, "DIR_SCRIPTS");
 
-    snprintf(script, sizeof(script), "%s/epilogue.finalize", dirScripts);
-
-    argv[0] = script;
-    argv[1] = NULL;
-    execve(argv[0], argv, envGetArray(alloc->env));
-    int err = errno;
+    psPelogueCallPE(PELOGUE_ACTION_EPILOGUE_FINALIZE, Config, alloc->env);
+    int eno = errno;
 
     /* execve() failed */
-    fprintf(stderr, "%s: execve(%s): %s\n", __func__, buf, strerror(err));
+    fprintf(stderr, "%s: psPelogueCallPE(PELOGUE_ACTION_EPILOGUE_FINALIZE): %s\n",
+	    __func__, strerror(eno));
+    openlog("psid", LOG_PID | LOG_CONS, LOG_DAEMON);
+    char buf[1024];
     snprintf(buf, sizeof(buf), "psslurm-epifin:%u", alloc->id);
     reOpenSyslog(buf, &psslurmlogger);
-    fwarn(err, "execve(%s)", script);
-    exit(err);
+    fwarn(eno, "psPelogueCallPE(PELOGUE_ACTION_EPILOGUE_FINALIZE)");
+    exit(eno);
 }
 
 static void epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,7 +19,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -281,18 +280,8 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
 
 static bool epilogueFinScript(Alloc_t *alloc)
 {
-    char buf[1024];
-    char *dirScripts = getConfValueC(Config, "DIR_SCRIPTS");
-
-    snprintf(buf, sizeof(buf), "%s/epilogue.finalize", dirScripts);
-
-    struct stat sbuf;
-    if (stat(buf, &sbuf) == -1) return false;
-
     flog("executing epilogue finalize script for %i\n", alloc->id);
-    if (!execEpilogueFin(alloc)) return false;
-
-    return true;
+    return execEpilogueFin(alloc);
 }
 
 bool finalizeEpilogue(Alloc_t *alloc)
