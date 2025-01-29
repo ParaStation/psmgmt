@@ -684,6 +684,7 @@ scripts/compile \
 scripts/config.guess \
 scripts/config.sub \
 scripts/depcomp \
+scripts/exec_all \
 scripts/init.d/parastation.in \
 scripts/install-sh \
 scripts/loggerdebug.py \

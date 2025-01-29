@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2024 ParTec AG, Munich
+# Copyright (C) 2022-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,7 +17,6 @@ profile_d_DATA = psmgmt.csh psmgmt.sh
 init_ddir = $(sysconfdir)/init.d
 gdbinit_ddir = $(sysconfdir)/gdbinit.d
 gdbinit_d_DATA = psmgmt.gdb
-
 
 if HAVE_SYSTEMD
   unit_DATA = systemd/psid.service
@@ -40,7 +39,7 @@ scripts_SCRIPTS = single_node_config
 
 noinst_SCRIPTS = memtest.py
 
-pkglibexec_SCRIPTS = pscompress.py psexpand.py
+pkglibexec_SCRIPTS = pscompress.py psexpand.py exec_all
 
 # for simplicity, put all dist files here, so no dist_ primaries above
 EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py		\
@@ -48,7 +47,7 @@ EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py		\
 	psmgmt.sh.in systemd/munge.conf systemd/psid.service.in		\
 	systemd/psidstarter.socket systemd/psidstarter@.service		\
 	vcversion xinetd.d/psidstarter.in single_node_config.in		\
-	pscompress.py psexpand.py
+	pscompress.py psexpand.py exec_all
 
 # clean up generated files
 CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_acc			\
