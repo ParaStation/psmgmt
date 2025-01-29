@@ -22,15 +22,9 @@
  * configuration is tagged with @a name for future reference in
  * e.g. @ref getPluginConfValueI() or @ref getPluginConfValueC(). By
  * convention a plugin shall use its own name for tagging a
- * configuration. If a configuration for the plugin already exists it
- * will be updated.
- *
- * While adding the configuration a check for the existence of a
- * parameter DIR_SCRIPTS is made. Furthermore the existence of the
- * referred directory and the scripts 'prologue', 'prologue.parallel',
- * 'epilogue', and 'epilogue.parallel' therein is enforced. Otherwise
- * the operation will not succeed.
- *
+ * configuration. If a configuration for the plugin already exists, it
+ * will be updated, i.e. the content of @a config will be appended to
+ * the existing configuration.
  *
  * @param name Name tag of the configuration to register
  *

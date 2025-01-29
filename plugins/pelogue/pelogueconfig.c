@@ -30,7 +30,23 @@ typedef struct {
 
 static LIST_HEAD(pluginConfList);
 
-static PluginConf_t * doGetPluginConf(const char *name)
+static PluginConf_t * newPluginConf(const char *name)
+{
+    PluginConf_t *pluginConf = ucalloc(sizeof(*pluginConf));
+    if (!pluginConf) return NULL;
+
+    pluginConf->name = ustrdup(name);
+    if (!pluginConf->name || !initConfig(&pluginConf->conf)) {
+	ufree(pluginConf->name);
+	ufree(pluginConf);
+	return NULL;
+    }
+    list_add_tail(&pluginConf->next, &pluginConfList);
+
+    return pluginConf;
+}
+
+static PluginConf_t * findPluginConf(const char *name)
 {
     if (!name) return NULL;
 
@@ -44,26 +60,28 @@ static PluginConf_t * doGetPluginConf(const char *name)
     return NULL;
 }
 
-static Config_t getPluginConfig(const char *plugin, const char *caller,
-				const int line)
+static Config_t __getPluginConfig(const char *plugin, const char *caller,
+				  const int line)
 {
     if (!plugin) {
 	flog("no plugin given, caller %s:%i\n", caller, line);
 	return NULL;
     }
-    PluginConf_t *pluginConfig = doGetPluginConf(plugin);
+
+    PluginConf_t *pluginConfig = findPluginConf(plugin);
     if (!pluginConfig) {
 	flog("no config for plugin %s caller %s:%i\n", plugin, caller, line);
     }
     return pluginConfig ? pluginConfig->conf : NULL;
 }
 
+#define getPluginConfig(plugin) __getPluginConfig(plugin, __func__, __LINE__)
+
 int __getPluginConfValueI(const char *plugin, char *key, const char *caller,
 			  const int line)
 {
-    Config_t config = getPluginConfig(plugin, caller, line);
-
-    if (!key || !config) return -1;
+    Config_t config = __getPluginConfig(plugin, caller, line);
+    if (!config || !key) return -1;
 
     return getConfValueI(config, key);
 }
@@ -71,9 +89,8 @@ int __getPluginConfValueI(const char *plugin, char *key, const char *caller,
 char *__getPluginConfValueC(const char *plugin, char *key, const char *caller,
 			  const int line)
 {
-    Config_t config = getPluginConfig(plugin, caller, line);
-
-    if (!key || !config) return NULL;
+    Config_t config = __getPluginConfig(plugin, caller, line);
+    if (!config || !key) return NULL;
 
     return getConfValueC(config, key);
 }
@@ -161,6 +178,13 @@ static bool checkPluginConfig(Config_t config)
     return validateDirs(scriptDir) && validateScripts(scriptDir);
 }
 
+static bool addVisitor(char *key, char *value, const void *info)
+{
+    Config_t config = (Config_t)info;
+    addConfigEntry(config, key, value);
+    return false;
+}
+
 bool addPluginConfig(const char *name, Config_t config)
 {
     if (!name || !config) return false;
@@ -169,17 +193,17 @@ bool addPluginConfig(const char *name, Config_t config)
 	return false;
     }
 
-    PluginConf_t *pluginConf =  doGetPluginConf(name);
-    if (pluginConf) {
-	/* update existing plugin configuration */
-	freeConfig(pluginConf->conf);
-    } else {
-	/* create new */
-	pluginConf = umalloc(sizeof(*pluginConf));
-	pluginConf->name = ustrdup(name);
-	list_add_tail(&pluginConf->next, &pluginConfList);
+    PluginConf_t *pluginConf = findPluginConf(name);
+    if (!pluginConf) {
+	pluginConf = newPluginConf(name);
+	if (!pluginConf) {
+	    flog("unable to create config for plugin '%s'\n", name);
+	    return false;
+	}
     }
-    pluginConf->conf = config;
+
+    /* append given config to plugin's config */
+    traverseConfig(config, addVisitor, pluginConf->conf);
 
     return true;
 }
@@ -194,7 +218,7 @@ static void del(PluginConf_t *entry)
 
 bool delPluginConfig(const char *name)
 {
-    PluginConf_t *pluginConf = doGetPluginConf(name);
+    PluginConf_t *pluginConf = findPluginConf(name);
     if (pluginConf) {
 	del(pluginConf);
 	return true;
