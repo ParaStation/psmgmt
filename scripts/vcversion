@@ -114,7 +114,7 @@ cd "$arg_prjroot"
 if [ -z "$arg_vc" ]; then
     if [ -e "VERSION" ]; then
 	arg_vc="file"
-    elif [ -d ".git" ]; then
+    elif [ -e ".git" ]; then
 	arg_vc="git"
     elif [ -d ".svn" ]; then
 	arg_vc="svn"
