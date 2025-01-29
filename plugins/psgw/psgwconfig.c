@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,16 +14,19 @@
 
 #include "psgwlog.h"
 
-#define SCRIPT_DIR LOCALSTATEDIR "/spool/parastation/scripts"
 #define PSGWD_BINARY BINDIR "/psgwd"
 #define ROUTE_PLUGIN PSGWLIBDIR "/plugin01.py"
 
 const ConfDef_t confDef[] =
 {
-    { "DIR_SCRIPTS", 0,
+    { "DIR_PROLOGUE", 0,
 	"dir",
-	SCRIPT_DIR,
-	"Directory to search for pelogue scripts" },
+	PKGSYSCONFDIR "/prologue.d",
+	"Directory to search for psgw prologue script snippets" },
+    { "DIR_EPILOGUE", 0,
+	"dir",
+	PKGSYSCONFDIR "/epilogue.d",
+	"Directory to search for psgw epilogue script snippets" },
     { "DIR_ROUTE_SCRIPTS", 0,
 	"dir",
 	PSGWLIBDIR,

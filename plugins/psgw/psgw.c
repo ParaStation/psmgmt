@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -44,7 +44,7 @@ char name[] = "psgw";
 int version = 2;
 int requiredAPI = 145;
 plugin_dep_t dependencies[] = {
-    { .name = "pelogue", .version = 7 },
+    { .name = "pelogue", .version = 10 },
     { .name = "psexec", .version = 2 },
     { .name = "psaccount", .version = 21 },
     { .name = NULL, .version = 0 } };

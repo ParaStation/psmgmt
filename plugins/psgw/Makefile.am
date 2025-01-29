@@ -41,8 +41,8 @@ psgw_la_SOURCES = psgw.c psgwlog.c psgwlog.h psgwres.c psgwres.h \
 		  psgwconfig.c psgwconfig.h psgwkvs.c psgwrequest.c \
 		  psgwrequest.h psgwpart.c psgwpart.h psgwcomm.h psgwcomm.c
 
-psgw_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\" \
-		   -DPLUGINDIR=\"$(plugindir)\" -DBINDIR=\"$(bindir)\" \
-		   -DPSGWLIBDIR=\"$(psgwlibdir)\"
+psgw_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"		\
+		-DPKGSYSCONFDIR=\"$(sysconfdir)/parastation\"		\
+		-DBINDIR=\"$(bindir)\"	-DPSGWLIBDIR=\"$(psgwlibdir)\"
 
 psgw_la_LIBADD = $(libplugincommon) $(libpscommon)
