@@ -16,7 +16,9 @@ sed -e 's%^#SRUN_BINARY.*$%SRUN_BINARY=/opt/slurm/bin/srun%' -i "$PSSLURMCONF"
     echo "PLUGIN_DEBUG_MASK=0x10"
 } >> "$PSSLURMCONF"
 
-cat <<EOF >/var/spool/parastation/scripts/prologue.parallel
+PROLOGUE_SCRIPT=/etc/parastation/prologue.d/AWS_wireguard
+
+cat <<EOF >$PROLOGUE_SCRIPT
 #!/bin/bash
 
 ${0}/02-setup_wireguard.sh update
@@ -24,4 +26,4 @@ ${0}/02-setup_wireguard.sh update
 :
 EOF
 
-chmod +x /var/spool/parastation/scripts/prologue.parallel
+chmod +x $PROLOGUE_SCRIPT
