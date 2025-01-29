@@ -659,6 +659,32 @@ static bool initPluginHandles(void)
     return true;
 }
 
+static char *oldPElogues[] = { "prologue", "prologue.parallel", "epilogue",
+    "epilogue.parallel", "epilogue.finalize", NULL };
+
+static bool assertNoOldPElogues(char *dir)
+{
+    if (!dir) return false;
+    fdbg(PSSLURM_LOG_PELOG, "checking directory '%s'\n", dir);
+
+    for (char **f = oldPElogues; *f; f++) {
+	char *fName = PSC_concat(dir, "/", *f);
+	fdbg(PSSLURM_LOG_PELOG, "checking file '%s'\n", fName);
+	struct stat sbuf;
+	int ret = stat(fName, &sbuf);
+	int eno = errno;
+	free(fName);
+	if (ret == -1 && eno == ENOENT) continue;
+	if (!ret) {
+	    flog("found %s in %s\n", *f, dir);
+	} else {
+	    fwarn(eno, "%s/%s", dir, *f);
+	}
+	return false;
+    }
+    return true;
+}
+
 static void setConfOpt(void)
 {
     /* plugin library debug */
@@ -894,6 +920,18 @@ int initialize(FILE *logfile)
 
     /* Must be called before using INIT_ERROR or handling the configuration */
     if (!initPluginHandles()) return 1;
+
+    /* Refuse to start if there are PElogue scripts (prologue, epilogue, ...)
+     * in /var/spool/parastation/scripts. Users shall be forced to move these
+     * into new `.d` irectories so they cannot miss this change.
+     * Also DIR_SCRIPTS in any *.conf will be rejected automatically
+     */
+    if (!assertNoOldPElogues(SPOOL_DIR "/scripts")) {
+	flog("********************************************************\n");
+	flog("use new /etc/parastation/<peType>.d/ directories instead\n");
+	flog("********************************************************\n");
+	return 1;
+    }
 
     /* init the configurations */
     initSlurmConfig(&SlurmConfig); // allow for early cleanup()
