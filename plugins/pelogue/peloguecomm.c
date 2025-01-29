@@ -403,19 +403,14 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    mlog("%s: PSIDHOOK_PELOGUE_START failed with %i\n", __func__, ret);
 	    child->exit = -3;
 	}
-	goto ERROR;
-    }
-
-    if (getPluginConfValueI(plugin, "DISABLE_PELOGUE") == 1) {
+    } else if (getPluginConfValueI(plugin, "DISABLE_PELOGUE") == 1) {
 	mlog("%s: fixmeeee!!!\n", __func__);
 	child->exit = -42;
-	goto ERROR;
+    } else {
+	startChild(child);
+	return;
     }
 
-    startChild(child);
-    return;
-
-ERROR:
     sendPElogueFinish(child);
     deleteChild(child);
 }
