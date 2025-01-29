@@ -280,5 +280,24 @@ typedef bool(psPelogueSignalPE_t)(const char *plugin, const char *jobid,
  */
 typedef void(psPelogueDeleteJob_t)(const char *plugin, const char *jobid);
 
+/**
+ * @brief Execute local pelogue
+ *
+ * Execute the local pelogue for the action @a action from the
+ * configuration @a conf. For this, the corresponding directory are
+ * hosting code snippets to be exectude by pelogue's master script for
+ * the correspondign action is determined and passed to the master
+ * script via @ref execVE(). If @a env is given, it will be passed as
+ * the last argument to act as the process' environment.
+ *
+ * @param action Type of action to execute
+ *
+ * @param conf Configuration to search
+ *
+ * @param env Environment to utilize
+ *
+ * @return Does not return on success or returns false on error
+ */
+typedef bool(psPelogueCallPE_t)(PElogueAction_t action, Config_t conf, env_t env);
 
 #endif  /* __PELOGUE__TYPES */

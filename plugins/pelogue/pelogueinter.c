@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include "pscommon.h"
 #include "psenv.h"
@@ -120,4 +121,23 @@ void psPelogueDeleteJob(const char *plugin, const char *jobid)
     Job_t *job = findJobById(plugin, jobid);
 
     if (job) deleteJob(job);
+}
+
+bool psPelogueCallPE(PElogueAction_t peAction, Config_t conf, env_t env)
+{
+    char *script = getMasterScript();
+    if (!script) {
+	flog("no masterscript?!\n");
+	return false;
+    }
+    char *ddir = getDDir(peAction, conf);
+    if (!ddir) {
+	flog("no .d directory for action %d\n", peAction);
+	return false;
+    }
+
+    char *argv[3] = { script, ddir, NULL };
+    execve(script, argv, envGetArray(env));
+
+    return false;
 }
