@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,27 +27,27 @@ bool psPelogueAddPluginConfig(char *name, Config_t configList)
 {
     Config_t config = NULL;
     if (!initConfig(&config)) {
-	mlog("%s: failed to create config\n", __func__);
+	flog("failed to create config\n");
 	goto ERROR;
     }
 
     char *val = getConfValueC(configList, "TIMEOUT_PROLOGUE");
     if (!val) {
-	mlog("%s: invalid prologue timeout\n", __func__);
+	flog("invalid prologue timeout\n");
 	goto ERROR;
     }
     addConfigEntry(config, "TIMEOUT_PROLOGUE", val);
 
     val = getConfValueC(configList, "TIMEOUT_EPILOGUE");
     if (!val) {
-	mlog("%s: invalid epilogue timeout\n", __func__);
+	flog("invalid epilogue timeout\n");
 	goto ERROR;
     }
     addConfigEntry(config, "TIMEOUT_EPILOGUE", val);
 
     val = getConfValueC(configList, "TIMEOUT_PE_GRACE");
     if (!val) {
-	mlog("%s: invalid grace timeout\n", __func__);
+	flog("invalid grace timeout\n");
 	goto ERROR;
     }
     addConfigEntry(config, "TIMEOUT_PE_GRACE", val);
@@ -82,11 +82,11 @@ bool psPelogueStartPE(const char *plugin, const char *jobid, PElogueType_t type,
 		      int rounds, env_t env)
 {
     Job_t *job = findJobById(plugin, jobid);
-
     if (!job) {
-	mlog("%s: no job %s for plugin %s\n", __func__, jobid, plugin);
+	flog("no job %s for plugin %s\n", jobid, plugin);
 	return false;
     }
+
     if (type == PELOGUE_PROLOGUE) {
 	job->state = JOB_PROLOGUE;
 	job->prologueTrack = job->numNodes;
@@ -103,11 +103,11 @@ bool psPelogueSignalPE(const char *plugin, const char *jobid, int sig,
 		      char *reason)
 {
     Job_t *job = findJobById(plugin, jobid);
-
     if (!job) {
-	mlog("%s: no job %s for plugin %s\n", __func__, jobid, plugin);
+	flog("no job %s for plugin %s\n", jobid, plugin);
 	return false;
     }
+
     sendPElogueSignal(job, sig, reason);
 
     return true;

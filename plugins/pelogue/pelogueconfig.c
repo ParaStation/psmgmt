@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -48,12 +48,12 @@ static Config_t getPluginConfig(const char *plugin, const char *caller,
 				const int line)
 {
     if (!plugin) {
-	mlog("%s: no plugin given, caller %s:%i\n", __func__, caller, line);
+	flog("no plugin given, caller %s:%i\n", caller, line);
+	return NULL;
     }
     PluginConf_t *pluginConfig = doGetPluginConf(plugin);
     if (!pluginConfig) {
-	mlog("%s: no config for plugin %s caller %s:%i\n", __func__, plugin,
-	     caller, line);
+	flog("no config for plugin %s caller %s:%i\n", plugin, caller, line);
     }
     return pluginConfig ? pluginConfig->conf : NULL;
 }
@@ -136,19 +136,19 @@ static bool checkPluginConfig(Config_t config)
 {
     char *opt = getConfValueC(config, "TIMEOUT_PROLOGUE");
     if (!opt) {
-	mlog("%s: invalid prologue timeout\n", __func__);
+	flog("invalid prologue timeout\n");
 	return false;
     }
 
     opt = getConfValueC(config, "TIMEOUT_EPILOGUE");
     if (!opt) {
-	mlog("%s: invalid epilogue timeout\n", __func__);
+	flog("invalid epilogue timeout\n");
 	return false;
     }
 
     opt = getConfValueC(config, "TIMEOUT_PE_GRACE");
     if (!opt) {
-	mlog("%s: invalid grace timeout\n", __func__);
+	flog("invalid grace timeout\n");
 	return false;
     }
 
@@ -165,7 +165,7 @@ bool addPluginConfig(const char *name, Config_t config)
 {
     if (!name || !config) return false;
     if (!checkPluginConfig(config)) {
-	mlog("%s: plugin '%s' provides invalid config\n", __func__, name);
+	flog("plugin '%s' provides invalid config\n", name);
 	return false;
     }
 

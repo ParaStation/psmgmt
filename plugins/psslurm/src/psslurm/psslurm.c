@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -322,86 +322,86 @@ static bool regPsAccountHandles(void)
     void *pluginHandle = PSIDplugin_getHandle("psaccount");
 
     if (!pluginHandle) {
-	mlog("%s: getting psaccount handle failed\n", __func__);
+	flog("getting psaccount handle failed\n");
 	return false;
     }
 
     psAccountSignalSession = dlsym(pluginHandle, "psAccountSignalSession");
     if (!psAccountSignalSession) {
-	mlog("%s: loading psAccountSignalSession() failed\n", __func__);
+	flog("loading psAccountSignalSession() failed\n");
 	return false;
     }
 
     psAccountRegisterJob = dlsym(pluginHandle, "psAccountRegisterJob");
     if (!psAccountRegisterJob) {
-	mlog("%s: loading psAccountRegisterJob() failed\n", __func__);
+	flog("loading psAccountRegisterJob() failed\n");
 	return false;
     }
 
     psAccountUnregisterJob = dlsym(pluginHandle, "psAccountUnregisterJob");
     if (!psAccountUnregisterJob) {
-	mlog("%s: loading psAccountUnregisterJob() failed\n", __func__);
+	flog("loading psAccountUnregisterJob() failed\n");
 	return false;
     }
 
     psAccountSetGlobalCollect = dlsym(pluginHandle,
 				      "psAccountSetGlobalCollect");
     if (!psAccountSetGlobalCollect) {
-	mlog("%s: loading psAccountSetGlobalCollect() failed\n", __func__);
+	flog("loading psAccountSetGlobalCollect() failed\n");
 	return false;
     }
 
     psAccountGetDataByJob = dlsym(pluginHandle, "psAccountGetDataByJob");
     if (!psAccountGetDataByJob) {
-	mlog("%s: loading psAccountGetDataByJob() failed\n", __func__);
+	flog("loading psAccountGetDataByJob() failed\n");
 	return false;
     }
 
     psAccountGetDataByLogger = dlsym(pluginHandle, "psAccountGetDataByLogger");
     if (!psAccountGetDataByLogger) {
-	mlog("%s: loading psAccountGetDataByLogger() failed\n", __func__);
+	flog("loading psAccountGetDataByLogger() failed\n");
 	return false;
     }
 
     psAccountGetPidsByLogger = dlsym(pluginHandle, "psAccountGetPidsByLogger");
     if (!psAccountGetPidsByLogger) {
-	mlog("%s: loading psAccountGetPidsByLogger() failed\n", __func__);
+	flog("loading psAccountGetPidsByLogger() failed\n");
 	return false;
     }
 
     psAccountDelJob = dlsym(pluginHandle, "psAccountDelJob");
     if (!psAccountDelJob) {
-	mlog("%s: loading psAccountDelJob() failed\n", __func__);
+	flog("loading psAccountDelJob() failed\n");
 	return false;
     }
 
     psAccountGetLocalInfo = dlsym(pluginHandle, "psAccountGetLocalInfo");
     if (!psAccountGetLocalInfo) {
-	mlog("%s: loading psAccountGetLocalInfo() failed\n", __func__);
+	flog("loading psAccountGetLocalInfo() failed\n");
 	return false;
     }
 
     psAccountGetPoll = dlsym(pluginHandle, "psAccountGetPoll");
     if (!psAccountGetPoll) {
-	mlog("%s: loading psAccountGetPoll() failed\n", __func__);
+	flog("loading psAccountGetPoll() failed\n");
 	return false;
     }
 
     psAccountSetPoll = dlsym(pluginHandle, "psAccountSetPoll");
     if (!psAccountSetPoll) {
-	mlog("%s: loading psAccountSetPoll() failed\n", __func__);
+	flog("loading psAccountSetPoll() failed\n");
 	return false;
     }
 
     psAccountCtlScript = dlsym(pluginHandle, "psAccountCtlScript");
     if (!psAccountCtlScript) {
-	mlog("%s: loading psAccountCtlScript() failed\n", __func__);
+	flog("loading psAccountCtlScript() failed\n");
 	return false;
     }
 
     psAccountScriptEnv = dlsym(pluginHandle, "psAccountScriptEnv");
     if (!psAccountScriptEnv) {
-	mlog("%s: loading psAccountScriptEnv() failed\n", __func__);
+	flog("loading psAccountScriptEnv() failed\n");
 	return false;
     }
 
@@ -413,43 +413,43 @@ static bool regPElogueHandles(void)
     void *pluginHandle = PSIDplugin_getHandle("pelogue");
 
     if (!pluginHandle) {
-	mlog("%s: getting pelogue handle failed\n", __func__);
+	flog("getting pelogue handle failed\n");
 	return false;
     }
 
     psPelogueAddPluginConfig = dlsym(pluginHandle, "psPelogueAddPluginConfig");
     if (!psPelogueAddPluginConfig) {
-	mlog("%s: loading psPelogueAddPluginConfig() failed\n", __func__);
+	flog("loading psPelogueAddPluginConfig() failed\n");
 	return false;
     }
 
     psPelogueDelPluginConfig = dlsym(pluginHandle, "psPelogueDelPluginConfig");
     if (!psPelogueDelPluginConfig) {
-	mlog("%s: loading psPelogueDelPluginConfig() failed\n", __func__);
+	flog("loading psPelogueDelPluginConfig() failed\n");
 	return false;
     }
 
     psPelogueAddJob = dlsym(pluginHandle, "psPelogueAddJob");
     if (!psPelogueAddJob) {
-	mlog("%s: loading psPelogueAddJob() failed\n", __func__);
+	flog("loading psPelogueAddJob() failed\n");
 	return false;
     }
 
     psPelogueDeleteJob = dlsym(pluginHandle, "psPelogueDeleteJob");
     if (!psPelogueDeleteJob) {
-	mlog("%s: loading psPelogueDeleteJob() failed\n", __func__);
+	flog("loading psPelogueDeleteJob() failed\n");
 	return false;
     }
 
     psPelogueStartPE = dlsym(pluginHandle, "psPelogueStartPE");
     if (!psPelogueStartPE) {
-	mlog("%s: loading psPelogueStartPE() failed\n", __func__);
+	flog("loading psPelogueStartPE() failed\n");
 	return false;
     }
 
     psPelogueSignalPE = dlsym(pluginHandle, "psPelogueSignalPE");
     if (!psPelogueSignalPE) {
-	mlog("%s: loading psPelogueSignalPE() failed\n", __func__);
+	flog("loading psPelogueSignalPE() failed\n");
 	return false;
     }
     return true;
@@ -461,37 +461,37 @@ static bool regMungeHandles(void)
 
     /* get pelogue function handles */
     if (!pluginHandle) {
-	mlog("%s: getting psmunge handle failed\n", __func__);
+	flog("getting psmunge handle failed\n");
 	return false;
     }
 
     psMungeEncode = dlsym(pluginHandle, "psMungeEncode");
     if (!psMungeEncode) {
-	mlog("%s: loading psMungeEncode() failed\n", __func__);
+	flog("loading psMungeEncode() failed\n");
 	return false;
     }
 
     psMungeEncodeRes = dlsym(pluginHandle, "psMungeEncodeRes");
     if (!psMungeEncodeRes) {
-	mlog("%s: loading psMungeEncodeRes() failed\n", __func__);
+	flog("loading psMungeEncodeRes() failed\n");
 	return false;
     }
 
     psMungeDecode = dlsym(pluginHandle, "psMungeDecode");
     if (!psMungeDecode) {
-	mlog("%s: loading psMungeDecode() failed\n", __func__);
+	flog("loading psMungeDecode() failed\n");
 	return false;
     }
 
     psMungeDecodeBuf = dlsym(pluginHandle, "psMungeDecodeBuf");
     if (!psMungeDecodeBuf) {
-	mlog("%s: loading psMungeDecodeBuf() failed\n", __func__);
+	flog("loading psMungeDecodeBuf() failed\n");
 	return false;
     }
 
     psMungeMeasure = dlsym(pluginHandle, "psMungeMeasure");
     if (!psMungeMeasure) {
-	mlog("%s: loading psMungeMeasure() failed\n", __func__);
+	flog("loading psMungeMeasure() failed\n");
 	return false;
     }
 
@@ -503,25 +503,25 @@ static bool regPsPAMHandles(void)
     void *pluginHandle = PSIDplugin_getHandle("pspam");
 
     if (!pluginHandle) {
-	mlog("%s: getting pspam handle failed\n", __func__);
+	flog("getting pspam handle failed\n");
 	return false;
     }
 
     psPamAddUser = dlsym(pluginHandle, "psPamAddUser");
     if (!psPamAddUser) {
-	mlog("%s: loading psPamAddUser() failed\n", __func__);
+	flog("loading psPamAddUser() failed\n");
 	return false;
     }
 
     psPamDeleteUser = dlsym(pluginHandle, "psPamDeleteUser");
     if (!psPamDeleteUser) {
-	mlog("%s: loading psPamDeleteUser() failed\n", __func__);
+	flog("loading psPamDeleteUser() failed\n");
 	return false;
     }
 
     psPamSetState = dlsym(pluginHandle, "psPamSetState");
     if (!psPamSetState) {
-	mlog("%s: loading psPamSetState() failed\n", __func__);
+	flog("loading psPamSetState() failed\n");
 	return false;
     }
 
@@ -657,28 +657,28 @@ static void setConfOpt(void)
     /* plugin library debug */
     int mask = getConfValueI(Config, "PLUGIN_DEBUG_MASK");
     if (mask) {
-	mlog("%s: set plugin debug mask '0x%x'\n", __func__, mask);
+	flog("set plugin debug mask '0x%x'\n", mask);
 	maskPluginLogger(mask);
     }
 
     /* glib malloc checking */
     int mCheck = getConfValueI(Config, "MALLOC_CHECK");
     if (mCheck) {
-	mlog("%s: enable memory checking\n", __func__);
+	flog("enable memory checking\n");
 	setenv("MALLOC_CHECK_", "2", 1);
     }
 
     /* measure libmunge */
     int measure = getConfValueI(Config, "MEASURE_MUNGE");
     if (measure) {
-	mlog("%s: measure libmunge executing times\n", __func__);
+	flog("measure libmunge executing times\n");
 	psMungeMeasure(true);
     }
 
     /* measure RPC calls */
     measure = getConfValueI(Config, "MEASURE_RPC");
     if (measure) {
-	mlog("%s: measure Slurm RPC calls\n", __func__);
+	flog("measure Slurm RPC calls\n");
 	measureRPC = true;
     }
 }
@@ -881,7 +881,7 @@ int initialize(FILE *logfile)
 
     /* we need to have root privileges */
     if(getuid() != 0) {
-	mlog("%s: psslurm must have root privileges\n", __func__);
+	flog("psslurm must have root privileges\n");
 	return 1;
     }
 
@@ -893,7 +893,7 @@ int initialize(FILE *logfile)
     int confRes = initPSSlurmConfig(PSSLURM_CONFIG_FILE);
     haveBasicConfig = true;
     if (confRes == CONFIG_ERROR) {
-	mlog("%s: init of the configuration failed\n", __func__);
+	flog("init of the configuration failed\n");
 	return 1;
     }
 
