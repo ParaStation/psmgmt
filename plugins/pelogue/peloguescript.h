@@ -16,15 +16,19 @@
 /**
  * @brief Verify .d directory used for pelogue
  *
- * Verify the existence of the directory and correct permissions of it
- * and all pelogue scripts contained.
+ * Verify the existence of the directory @a dDir and correct
+ * permissions of it and all pelogue script snippets contained.
+ *
+ * @a dDir must not be writable by other users than root.
+ *
+ * pelogue script snippets are assumed to be not hidden and their
+ * names end with an ".sh". They must not be writable by other users
+ * than root. Their owner must have the right to read and execute it.
  *
  * @param dDir .d directory to be checked
  *
- * @param root Flag to check only for root's permissions
- *
  * @return Returns true iff all checks were succesfull
  */
-bool checkDDir(char *dDir, bool root);
+bool checkDDir(char *dDir);
 
 #endif  /* __PELOGUE_SCRIPT */

@@ -116,10 +116,7 @@ static bool checkPluginConfig(Config_t config)
 	PELOGUE_ACTION_EPILOGUE_FINALIZE, PELOGUE_ACTION_PROLOGUE, 0};
     for (size_t i = 0; actions[i]; i++) {
 	char *dDir = getDDir(actions[i], config);
-	if (!checkDDir(dDir, false)) {
-	    // This is not a fatal issue, but worth to be reported
-	}
-	if (!checkDDir(dDir, true)) { return false; }
+	if (!checkDDir(dDir)) return false;
     }
 
     return true;
