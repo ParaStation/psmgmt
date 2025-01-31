@@ -26,7 +26,7 @@ function setUserCores()
 {
     [[ $MODIFY_CGROUPS == 0 ]] && return
 
-    OLD_CPUS=$(cat "$CG_USER/cpuset.cpus")
+    OLD_CPUS=$(cat "$CG_USER/cpuset.cpus" 2>/dev/null)
     if [[ -z $OLD_CPUS ]]; then
 	dlog "empty cpuset.cpus"
 	cgWrite "$JOB_CPUS" "$CG_USER/cpuset.cpus"
