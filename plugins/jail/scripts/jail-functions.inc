@@ -282,15 +282,12 @@ function cleanupCgroups {
 	    for step in "$job"/step-*; do
 		xargs -r -n1 kill -9 2>/dev/null < "$step/tasks/cgroup.procs"
 		rmdir -p "$step/tasks" 2>/dev/null
-		rmdir -p "$step" 2>/dev/null
 	    done
 	    xargs -r -n1 kill -9 2>/dev/null < "$job/tasks/cgroup.procs"
 	    rmdir -p "$job/tasks" 2>/dev/null
-	    rmdir -p "$job" 2>/dev/null
 	done
 	xargs -r -n1 kill -9 2>/dev/null < "$user/tasks/cgroup.procs"
 	rmdir -p "$user/tasks" 2>/dev/null
-	rmdir -p "$user" 2>/dev/null
     done
     rmdir -p "$CGROUPS" 2>/dev/null
     [ -d "$CGROUPS" ] && { elog "unable to remove $CGROUPS"; }
