@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,6 +13,7 @@
  * This file contains the implementation of the PMIx server interface
  * The pmix server library is initialized and used only in the PMix server.
  */
+#include <pthread.h>
 #define _GNU_SOURCE
 #include "pspmixserver.h"
 
@@ -79,6 +80,7 @@ typedef struct {
 typedef struct {
     pmix_op_cbfunc_t cbfunc;
     void *cbdata;
+    pmix_status_t status;
 } mycbfunc_t;
 
 /** Setting up callback function object */
@@ -328,19 +330,39 @@ static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
     return PMIX_SUCCESS;
 }
 
+/* main function for callback threads */
+static void * callcb(void *cb)
+{
+    mycbfunc_t *callback = cb;
+
+    fdbg(PSPMIX_LOG_CALL, "status %s cbfunc %p cbdata %p\n",
+	 PMIx_Error_string(callback->status), callback->cbfunc, callback->cbdata);
+
+    callback->cbfunc(callback->status, callback->cbdata);
+
+    DESTROY_CBFUNC(callback);
+
+    return NULL;
+}
+
 void pspmix_server_operationFinished(pmix_status_t status, void* cb)
 {
+    fdbg(PSPMIX_LOG_CALL, "status %s cb %p\n", PMIx_Error_string(status), cb);
     /* check if the server library does provide a callback function */
     if (!cb) return;
 
     mycbfunc_t *callback = cb;
 
-    fdbg(PSPMIX_LOG_CALL, "status %s cbfunc %p cbdata %p\n",
-	 PMIx_Error_string(status), callback->cbfunc, callback->cbdata);
+    callback->status = status;
 
-    callback->cbfunc(status, callback->cbdata);
-
-    DESTROY_CBFUNC(callback);
+    /* create throw away thread to call callback, ownership of the "callback"
+     * object is transfered to that thread and it is responsible to destroy
+     * it at the end. It is not allowed to do any modifications of that object
+     * beside setting the volatile field "ready" to true. */
+    pthread_t cbthread;
+    if (!pthread_create(&cbthread, 0, callcb, callback)) {
+	flog("failed to create callback thread\n");
+    }
 }
 
 /* A local client called PMIx_Abort.
