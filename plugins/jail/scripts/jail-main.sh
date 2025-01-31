@@ -65,6 +65,7 @@ if [[ $SCRIPT == "jail-term" || ! -d $CG_USER || -n $JOBID && ! -d $CG_JOB
     getExclusiveUserLock
 else
     MODIFY_CGROUPS=0
+    getSharedUserLock
 fi
 
 [[ -n $USER ]] || elog "user env variable not set"
@@ -86,6 +87,6 @@ for modName in ${MODULES//,/$IFS}; do
     source "$MODULE"
 done
 
-[[ $MODIFY_CGROUPS == 1 ]] && rmUserLock
+rmUserLock
 
 exit 0
