@@ -18,7 +18,7 @@
 # CHILD and configuration like CGROUP_BASE, CG_USER, CG_JOB,
 # CG_STEP, BASE or SCRIPT set.
 
-function cleaupUserCgroup2()
+function cleanupUserCgroup()
 {
     if [[ $ALLOC_LIST == "$JOBID" ]]; then
 	# cleanup user directory
@@ -74,7 +74,7 @@ else
 	killJob "$CG_JOB"
 
 	if [[ -n $ALLOC_LIST ]]; then
-	    cleaupUserCgroup2
+	    cleanupUserCgroup
 	fi
 
     else
