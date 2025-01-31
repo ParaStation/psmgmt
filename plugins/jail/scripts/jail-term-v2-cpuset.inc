@@ -37,7 +37,8 @@ function cleaupUserCgroup2()
 		JOB_CPUS=$(cat "$i/cpuset.cpus")
 		REMAINING_CPUS="$REMAINING_CPUS,$JOB_CPUS"
 	    else
-		mlog "killing leftover job: $i"
+		# parallel terminating jobs might trigger leftover jobs detection
+		dlog "killing leftover job: $i"
 		killJob "$i"
 	    fi
 	done
