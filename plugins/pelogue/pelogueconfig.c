@@ -212,7 +212,7 @@ char *getDDir(PElogueAction_t action, Config_t conf)
     return defaultValue;
 }
 
-char * getPluginDDir(PElogueAction_t action, char *plugin)
+char * getPluginDDir(const char *plugin, PElogueAction_t action)
 {
     Config_t config = getPluginConfig(plugin);
     if (!config) {

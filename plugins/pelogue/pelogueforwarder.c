@@ -69,7 +69,7 @@ void execPElogueScript(Forwarder_Data_t *fwData, int rerun)
 
     for (char **e = envGetArray(child->env); e && *e; e++) putenv(*e);
 
-    char *dDir = getPluginDDir((PElogueAction_t)child->type, child->plugin);
+    char *dDir = getPluginDDir(child->plugin, (PElogueAction_t)child->type);
     if (!checkDDir(dDir)) {
 	flog("dDir '%s' failed check\n", dDir);
 	/* give psslurm a chance to execute SPANK hooks anyhow */

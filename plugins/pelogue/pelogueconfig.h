@@ -126,14 +126,14 @@ char * getDDir(PElogueAction_t action, Config_t conf);
  * Get the .d directory for the action @a action defined by the plugin
  * @a plugin. This is mainly a wrapper around @ref getDDir().
  *
- * @param action Type of action to find .d directory for
- *
  * @param plugin Plugin defining the configuration to search
+ *
+ * @param action Type of action to find .d directory for
  *
  * @return Return the absolute path to the .d directory to search or
  * NULL in case of illegal action; must not be freed
  */
-char * getPluginDDir(PElogueAction_t action, char *plugin);
+char * getPluginDDir(const char *plugin, PElogueAction_t action);
 
 /**
  * @brief Get path to pelogue's master script
