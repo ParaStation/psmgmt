@@ -132,7 +132,7 @@ bool psPelogueCallPE(PElogueAction_t peAction, Config_t conf, env_t env)
     }
     char *ddir = getDDir(peAction, conf);
     if (!ddir) {
-	flog("no .d directory for action %d\n", peAction);
+	flog("no .d directory for action %s\n", getPEActStr(peAction));
 	return false;
     }
 

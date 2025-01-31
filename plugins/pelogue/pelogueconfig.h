@@ -145,4 +145,15 @@ char * getPluginDDir(PElogueAction_t action, char *plugin);
  */
 char * getMasterScript(void);
 
+/**
+ * @brief Get string describing an action
+ *
+ * Get a string describing the action @a action.
+ *
+ * @param action PElogue action to describe
+ *
+ * @return Static string describing the action
+ */
+char *getPEActStr(PElogueAction_t action);
+
 #endif  /* __PELOGUE_CONFIG */

@@ -227,3 +227,17 @@ char * getMasterScript(void)
 {
     return PKGLIBEXECDIR "/exec_all";
 }
+
+char *getPEActStr(PElogueAction_t action)
+{
+    switch (action) {
+    case PELOGUE_ACTION_PROLOGUE:
+	return "prologue";
+    case PELOGUE_ACTION_EPILOGUE:
+	return "epilogue";
+    case PELOGUE_ACTION_EPILOGUE_FINALIZE:
+	return "epilogue.finalize";
+    }
+
+    return "unknown";
+}

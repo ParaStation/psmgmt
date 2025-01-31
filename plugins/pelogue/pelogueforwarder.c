@@ -48,16 +48,7 @@ static void execPElogue(PElogueChild_t *child, char *dDir)
     setenv("HOSTNAME", child->hostName, 1);
     setenv("LANG", "C", 1);
 
-    switch (child->type) {
-    case PELOGUE_PROLOGUE:
-	setenv("PELOGUE", "prologue", 1);
-	break;
-    case PELOGUE_EPILOGUE:
-	setenv("PELOGUE", "epilogue", 1);
-	break;
-    default:
-	setenv("PELOGUE", "unknown", 1);
-    }
+    setenv("PELOGUE", getPEActStr(child->type), 1);
 
     /* set tmp directory */
     if (child->tmpDir) setenv("TMPDIR", child->tmpDir, 1);
