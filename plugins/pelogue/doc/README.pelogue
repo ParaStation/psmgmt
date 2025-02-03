@@ -37,8 +37,8 @@ scripts that were located in /var/spool/parastation/scripts as
 default. In order enforce this change and to ensure that
 administrators do not maintain obsolete scripts by accident,
 e.g. psslurm will refuse to get loaded whenever a script called
-'prologue', 'epilogue', or 'epilogue.finalize' is found in
-/var/spool/parastation/scripts/.
+'prologue', 'prologue.parallel', 'epilogue', 'epilogue.parallel'
+or 'epilogue.finalize' is found in /var/spool/parastation/scripts/.
 
 Plugins that utilize pelogue typically provide the ability to identify
 the location of their pre- and post-action snippets in their own
