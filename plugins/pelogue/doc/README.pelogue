@@ -14,9 +14,9 @@ helper applications.
 PROBLEM DESCRIPTION
 
 Several plugins of the ParaStation daemon need to provide the ability
-to execute pre- and post-actions of an parallel job. Specific emphasis
+to execute pre- and post-actions of a parallel job. Specific emphasis
 for these actions is put on the flexibility of their configuration by
-the administrators of an site. Thus, it is good practice to implement
+the administrators of a site. Thus, it is good practice to implement
 them as shell scripts to be called before or after the execution of a
 job.
 
@@ -46,7 +46,7 @@ configuration. For this, configuration parameters like "DIR_PROLOGUE",
 "DIR_EPILOGUE", or "DIR_EPILOGUE_FINALIZE" might be defined for each
 plugin (examples are psslurm and psgw). For the time being these
 locations default to /etc/parastation/prologue.d,
-/etc/parastation/epilogue.d and /etc/parastation/epiogue.finalize.d,
+/etc/parastation/epilogue.d and /etc/parastation/epilogue.finalize.d,
 respectively. Those directories might be configured per plugins,
 nevertheless, they might also be shared by different plugins. E.g. all
 plugins might utilize the snippets found in the default locations
