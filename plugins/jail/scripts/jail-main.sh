@@ -49,16 +49,16 @@ CG_USER="$BASE/user-$USER"
 CG_JOB="$CG_USER/job-$JOBID"
 CG_STEP="$CG_JOB/step-$STEPID"
 
-# jail scripts might be called for every forwarder and child process. Therefore
-# MODIFY_CGROUPS will only be set if there is an actual necessity to modify the
-# cgroup tree (e.g. create subdirectories, enable controllers or change limits).
-# If MODIFY_CGROUPS is unset the jail scripts will only add additional PIDs
-# to the cgroup tree. Since the limits for all processes locked inside a cgorup
-# are the same, it is sufficient that the first jailed process will trigger the
-# setup of the cgroup.
+# jail scripts might be called for every forwarder and child process. Therefore,
+# MODIFY_CGROUPS will only be set to 1 if there is the actual necessity to
+# modify the cgroup tree (e.g. create sub-directories, enable controllers, or
+# change limits). If MODIFY_CGROUPS is set to 0, jail scripts will only add
+# additional PIDs to the cgroup tree. Since the limits for all processes locked
+# inside a cgroup are the same, it is sufficient that the first jailed process
+# will trigger the setup of the cgroup.
 #
-# In contrast jail-term scripts will only be called once for every step,
-# job or allocation. Hence MODIFY_CGROUPS will always be set for them.
+# In contrast jail-term scripts will only be called once for every step, job or
+# allocation. Hence MODIFY_CGROUPS will always be set to 1 for them.
 if [[ $SCRIPT == "jail-term" || ! -d $CG_USER || -n $JOBID && ! -d $CG_JOB
       || -n $STEPID && ! -d $CG_STEP ]]; then
     MODIFY_CGROUPS=1
