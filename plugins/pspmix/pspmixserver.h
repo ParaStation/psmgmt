@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -72,7 +72,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
  *
  * This function takes back ownership of @a cb and destroys it.
  *
- * @param status     Return status ob the operation
+ * @param status     Operation's return status
  * @param cb         Callback pointer passed by another pspmix_server_* func
  */
 void pspmix_server_operationFinished(pmix_status_t status, void* cb);
