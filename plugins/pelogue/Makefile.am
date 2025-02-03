@@ -11,6 +11,8 @@
 
 include $(top_srcdir)/common.am
 
+SUBDIRS = doc
+
 psaccount_dir := plugins/psaccount
 
 AM_CFLAGS += -std=gnu99

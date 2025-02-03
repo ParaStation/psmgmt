@@ -330,6 +330,9 @@ plugins/nodeinfo/nodeinfolog.h \
 plugins/nodeinfo/nodeinfotypes.h \
 plugins/pelogue/Makefile.am \
 plugins/pelogue/Makefile.in \
+plugins/pelogue/doc/Makefile.am \
+plugins/pelogue/doc/Makefile.in \
+plugins/pelogue/doc/README.pelogue \
 plugins/pelogue/pelogue.c \
 plugins/pelogue/peloguechild.c \
 plugins/pelogue/peloguechild.h \

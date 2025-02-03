@@ -1,0 +1,81 @@
+psmgmt README.pelogue -- Remarks on setup of pelogue
+
+Copyright (C) 2025 ParTec AG, Munich
+
+Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+INTRODUCTION
+
+The prologue/epilogue (pelogue) plugin provides a framework to execute
+all kinds of pre- and post-actions on behave of other plugins or
+helper applications.
+
+PROBLEM DESCRIPTION
+
+Several plugins of the ParaStation daemon need to provide the ability
+to execute pre- and post-actions of an parallel job. Specific emphasis
+for these actions is put on the flexibility of their configuration by
+the administrators of an site. Thus, it is good practice to implement
+them as shell scripts to be called before or after the execution of a
+job.
+
+Nevertheless, handling monolithic scripts might become cumbersome when
+different orthogonal actions need to be taken on behave of a specific
+plugin. Therefore, the ParaStation pelogue plugin provides the ability
+to execute multiple script snippets located in a directory to be
+specified as a pre- or post-action. In this way a cleaner
+configuration with one snippet per feature might be realized. This
+omits the need to edit scripts e.g. to switch of a specific feature
+temporarily. Instead, the snippet that implements this feature might
+be "switched off" by moving it away or just renaming it.
+
+CONFIGURATION
+
+Starting with psmgmt-6.1 pelogue will no longer execute the monolithic
+scripts that were located in /var/spool/parastation/scripts as
+default. In order enforce this change and to ensure that
+administrators do not maintain obsolete scripts by accident,
+e.g. psslurm will refuse to get loaded whenever a script called
+'prologue', 'epilogue', or 'epilogue.finalize' is found in
+/var/spool/parastation/scripts/.
+
+Plugins that utilize pelogue typically provide the ability to identify
+the location of their pre- and post-action snippets in their own
+configuration. For this, configuration parameters like "DIR_PROLOGUE",
+"DIR_EPILOGUE", or "DIR_EPILOGUE_FINALIZE" might be defined for each
+plugin (examples are psslurm and psgw). For the time being these
+locations default to /etc/parastation/prologue.d,
+/etc/parastation/epilogue.d and /etc/parastation/epiogue.finalize.d,
+respectively. Those directories might be configured per plugins,
+nevertheless, they might also be shared by different plugins. E.g. all
+plugins might utilize the snippets found in the default locations
+under /etc/parastation. This is the default.
+
+The snippets need to follow several rules in order to get considered
+for execution. Each snippet
+ - must not be hidden
+ - has a name of the form <name>.sh
+ - must not be writable by non-root users
+ - must be executable by root
+ - usually shall be owned by root, even if this is not enforced
+
+On the other hand:
+ - snippets not matching the <name>.sh schemes will be ignored
+ - single snippets providing wrong permissions will prevent **all**
+   snippets in this directory from execution
+ - snippets providing wrong permissions might lead to e.g. psslurm
+   refusing to get loaded
+- symbolic links in the directory matching the <name>.sh naming scheme
+   are allowed; nevertheless, the files they are pointing to need to
+   meet the permission requirements
+
+Snippets are executed in lexicographic order. In order to enforce
+execution order it is good practice to utilize a naming scheme of the
+form <NN>-<name>.sh, e.g.:
+ - 00-first.sh
+ - 10-foo.sh
+ - 50-bar.sh
+ - 99-last.sh
+
+Nevertheless, this is neither enforced nor required.

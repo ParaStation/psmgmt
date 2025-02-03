@@ -14510,6 +14510,8 @@ ac_config_files="$ac_config_files plugins/nodeinfo/doc/Makefile"
 
 ac_config_files="$ac_config_files plugins/pelogue/Makefile"
 
+ac_config_files="$ac_config_files plugins/pelogue/doc/Makefile"
+
 ac_config_files="$ac_config_files plugins/psaccount/Makefile"
 
 ac_config_files="$ac_config_files plugins/psaccount/scripts/Makefile"
@@ -15701,6 +15703,7 @@ do
     "plugins/nodeinfo/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/nodeinfo/Makefile" ;;
     "plugins/nodeinfo/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/nodeinfo/doc/Makefile" ;;
     "plugins/pelogue/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pelogue/Makefile" ;;
+    "plugins/pelogue/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pelogue/doc/Makefile" ;;
     "plugins/psaccount/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psaccount/Makefile" ;;
     "plugins/psaccount/scripts/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psaccount/scripts/Makefile" ;;
     "plugins/psexec/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psexec/Makefile" ;;
