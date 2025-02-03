@@ -144,6 +144,7 @@ bool psPelogueCallPE(const char *plugin, PElogueAction_t action, env_t env)
     }
 
     envSet(env, "PELOGUE", getPEActStr(action));
+    envSet(env, "PELOGUE_PLUGIN", plugin);
 
     char *argv[3] = { script, dDir, NULL };
     execve(script, argv, envGetArray(env));
