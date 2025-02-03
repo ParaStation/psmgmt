@@ -1920,14 +1920,23 @@ static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
     int eno = errno;
 
     /* execve() failed */
-    fprintf(stderr, "%s: psPelogueCallPE(PELOGUE_ACTION_EPILOGUE_FINALIZE): %s\n",
-	    __func__, strerror(eno));
+    fprintf(stderr, "%s: psPelogueCallPE(PELOGUE_ACTION_EPILOGUE_FINALIZE)"
+	    " failed", __func__);
+    if (eno) fprintf(stderr, ": %s", strerror(eno));
+    fprintf(stderr, "\n");
+
     openlog("psid", LOG_PID | LOG_CONS, LOG_DAEMON);
     char buf[1024];
-    snprintf(buf, sizeof(buf), "psslurm-epifin:%u", alloc->id);
+    snprintf(buf, sizeof(buf), "psslurm-epifin: %u", alloc->id);
     reOpenSyslog(buf, &psslurmlogger);
-    fwarn(eno, "psPelogueCallPE(PELOGUE_ACTION_EPILOGUE_FINALIZE)");
-    exit(eno);
+    flog("psPelogueCallPE(PELOGUE_ACTION_EPILOGUE_FINALIZE) failed");
+    if (eno) {
+	mwarn(eno, " ");
+    } else {
+	mlog("\n");
+    }
+
+    exit(eno ? eno : -1);
 }
 
 static void epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
