@@ -12,6 +12,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -19,10 +20,11 @@
 #include "psenv.h"
 #include "pluginconfig.h"
 
+#include "peloguecomm.h"
 #include "pelogueconfig.h"
 #include "peloguejob.h"
-#include "peloguecomm.h"
 #include "peloguelog.h"
+#include "peloguescript.h"
 
 bool psPelogueAddPluginConfig(char *name, Config_t configList)
 {
@@ -123,21 +125,28 @@ void psPelogueDeleteJob(const char *plugin, const char *jobid)
     if (job) deleteJob(job);
 }
 
-bool psPelogueCallPE(PElogueAction_t peAction, Config_t conf, env_t env)
+bool psPelogueCallPE(const char *plugin, PElogueAction_t action, env_t env)
 {
     char *script = getMasterScript();
     if (!script) {
 	flog("no masterscript?!\n");
 	return false;
     }
-    char *ddir = getDDir(peAction, conf);
-    if (!ddir) {
-	flog("no .d directory for action %s\n", getPEActStr(peAction));
+    char *dDir = getPluginDDir(plugin, action);
+    if (!dDir) {
+	flog("no .d directory for action %s in %s\n", getPEActStr(action), plugin);
+	return false;
+    }
+    if (!checkDDir(dDir)) {
+	flog(".d directory '%s' for action %s in %s failed check\n", dDir,
+	     getPEActStr(action), plugin);
 	return false;
     }
 
-    char *argv[3] = { script, ddir, NULL };
+    envSet(env, "PELOGUE", getPEActStr(action));
+
+    char *argv[3] = { script, dDir, NULL };
     execve(script, argv, envGetArray(env));
 
-    return false;
+    return false; // will never return if execve() is successful
 }

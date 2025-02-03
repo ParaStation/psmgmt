@@ -59,7 +59,7 @@ typedef struct {
 /** Various states a pelogue might be in */
 typedef enum {
     PELOGUE_PENDING = 1,  /**< pelogue is started, no result yet */
-    PELOGUE_DONE,         /**< pelogue finished succesfully */
+    PELOGUE_DONE,         /**< pelogue finished successfully */
     PELOGUE_FAILED,       /**< pelogue finished but failed */
     PELOGUE_TIMEDOUT,     /**< pelogue did not finish in time */
     PELOGUE_NODEDOWN	  /**< node died while running pelogue */
@@ -278,20 +278,22 @@ typedef void(psPelogueDeleteJob_t)(const char *plugin, const char *jobid);
  * @brief Execute local pelogue
  *
  * Execute the local pelogue for the action @a action from the
- * configuration @a conf. For this, the corresponding directory are
- * hosting code snippets to be exectude by pelogue's master script for
- * the correspondign action is determined and passed to the master
- * script via @ref execVE(). If @a env is given, it will be passed as
- * the last argument to act as the process' environment.
+ * configuration associated to the plugin @a plugin. For this, the
+ * corresponding directory hosting code snippets to be executed by
+ * pelogue's master script for the corresponding action is determined
+ * and passed to the master script via @ref execve(). If @a env is
+ * given, it will be passed as the last argument to act as the
+ * process' environment.
+ *
+ * @param plugin Plugin to utilize
  *
  * @param action Type of action to execute
- *
- * @param conf Configuration to search
  *
  * @param env Environment to utilize
  *
  * @return Does not return on success or returns false on error
  */
-typedef bool(psPelogueCallPE_t)(PElogueAction_t action, Config_t conf, env_t env);
+typedef bool(psPelogueCallPE_t)(const char *plugin, PElogueAction_t action,
+				env_t env);
 
 #endif  /* __PELOGUE__TYPES */

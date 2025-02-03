@@ -1915,7 +1915,8 @@ static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
 {
     Alloc_t *alloc = fwdata->userData;
 
-    psPelogueCallPE(PELOGUE_ACTION_EPILOGUE_FINALIZE, Config, alloc->env);
+    errno = 0;
+    psPelogueCallPE("psslurm", PELOGUE_ACTION_EPILOGUE_FINALIZE, alloc->env);
     int eno = errno;
 
     /* execve() failed */
