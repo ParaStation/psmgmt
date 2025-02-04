@@ -2875,7 +2875,7 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 	     sessionId, univSize, jobSize);
 	if (!spawnparent) mlog("(null)");
 	else mlog("%s:%u", spawnparent->nspace, spawnparent->rank);
-	mlog(" numNodes %d numApps %u tmpdir '%s' nsdir '%s' nodeID %hd\n",
+	mlog(" numNodes %d numApps %u tmpdir '%s' nsdir '%s' nodeID %d\n",
 	     numNodes, numApps, tmpdir, nsdir, nodeID);
     }
 

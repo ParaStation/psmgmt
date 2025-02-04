@@ -501,7 +501,7 @@ void printJob(PspmixJob_t *job)
 	flog("    maxRank: %d\n", rinfo->maxRank);
 	for (size_t i = 0; i < rinfo->nEntries; i++) {
 	    flog("    entry %zu:\n", i);
-	    flog("      node: %hd\n", rinfo->entries[i].node);
+	    flog("      node: %d\n", rinfo->entries[i].node);
 	    flog("      firstRank: %d\n", rinfo->entries[i].firstRank);
 	    flog("      lastRank: %d\n", rinfo->entries[i].lastRank);
 	}
@@ -664,7 +664,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		const char *hostname = PSIDnodes_getHostname(node->id);
 		if (!hostname) hostname = PSIDnodes_getNodename(node->id);
 		if (!hostname) {
-		    flog("no hostname for node %hd", node->id);
+		    flog("no hostname for node %d", node->id);
 		    ufree(node);
 		    goto nscreate_error;
 		}
@@ -765,7 +765,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     if (ns->spawnID) {
 	fdbg(PSPMIX_LOG_SPAWN, "Created namespace '%s' for respawn id %hu as"
-	     " requested by node %hd\n", ns->name, ns->spawnID,
+	     " requested by node %d\n", ns->name, ns->spawnID,
 	     PSC_getID(ns->spawner));
     }
 
@@ -775,7 +775,7 @@ nscreate_error:
     if (ns->spawnID) {
 	if (!pspmix_comm_sendSpawnInfo(PSC_getID(ns->spawner), ns->spawnID,
 				       false, NULL, 0)) {
-	    flog("failed to send failed spawn info for id %hu to node %hd\n",
+	    flog("failed to send failed spawn info for id %hu to node %d\n",
 		 ns->spawnID, PSC_getID(ns->spawner));
 	}
 
@@ -1181,7 +1181,7 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
     /* all local clients are connected */
     /* inform spawner's node user server if this is a respawn */
     fdbg(PSPMIX_LOG_SPAWN, "All local clients connected in namespace '%s'"
-	 " for respawn id %hu as requested by node %hd\n", nsName, spawnID,
+	 " for respawn id %hu as requested by node %d\n", nsName, spawnID,
 	 spawnNode);
 
     if (!(spawnOpts & PSPMIX_SPAWNOPT_INITREQUIRED)) {
@@ -1193,7 +1193,7 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
 	pspmix_service_spawnInfo(spawnID, true, nsName, localClients, spawnNode);
     } else if (!pspmix_comm_sendSpawnInfo(spawnNode, spawnID, true,
 					  nsName, localClients)) {
-	flog("failed to send failed spawn info to node %hd\n", spawnNode);
+	flog("failed to send failed spawn info to node %d\n", spawnNode);
     }
 
     return true;
@@ -1771,10 +1771,10 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
     }
 
     if (mset(PSPMIX_LOG_FENCE)) {
-	flog("this fence has id 0x%016lX and nodelist: %hd", fenceID,
+	flog("this fence has id 0x%016lX and nodelist: %d", fenceID,
 	     *vectorGet(&nodes, 0, PSnodes_ID_t));
 	for (size_t i = 1; i < nodes.len; i++) {
-	    mlog(",%hd", *vectorGet(&nodes, i, PSnodes_ID_t));
+	    mlog(",%d", *vectorGet(&nodes, i, PSnodes_ID_t));
 	}
 	mlog("\n");
     }
@@ -1854,7 +1854,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
     PSnodes_ID_t nodeid = pspmix_service_nodeFromProc(&mdata->proc);
     if (nodeid < 0) return false;
 
-    fdbg(PSPMIX_LOG_MODEX, "rank %d on node %hd\n", mdata->proc.rank, nodeid);
+    fdbg(PSPMIX_LOG_MODEX, "rank %d on node %d\n", mdata->proc.rank, nodeid);
 
     GET_LOCK(modexRequestList);
 
@@ -1862,7 +1862,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 					  mdata->proc.rank,
 					  strvGetArray(mdata->reqKeys),
 					  mdata->timeout)) {
-	flog("send failed for %s:%d to node %hd\n",
+	flog("send failed for %s:%d to node %d\n",
 	     mdata->proc.nspace, mdata->proc.rank, nodeid);
 	RELEASE_LOCK(modexRequestList);
 	return false;
@@ -2185,7 +2185,7 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 
     if (!pspmix_comm_sendSpawnInfo(spawnNode, spawnID, success,
 				   nsName, readyClients)) {
-	flog("failed to send failed spawn info to node %hd\n", spawnNode);
+	flog("failed to send failed spawn info to node %d\n", spawnNode);
     }
 
     if (!success) {
@@ -2201,20 +2201,20 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 			      uint32_t np, PSnodes_ID_t node)
 {
-    fdbg(PSPMIX_LOG_CALL, "spawnID %hu succ %s nsName %s np %u node %hd\n",
+    fdbg(PSPMIX_LOG_CALL, "spawnID %hu succ %s nsName %s np %u node %d\n",
 	 spawnID, succ ? "true" : "false", nsName, np, node);
 
     GET_LOCK(spawnList);
     PspmixSpawn_t *spawn = findSpawn(spawnID);
     if (!spawn) {
 	RELEASE_LOCK(spawnList);
-	flog("UNEXPECTED: spawnID %hu not found (np %u node %hd)\n", spawnID,
+	flog("UNEXPECTED: spawnID %hu not found (np %u node %d)\n", spawnID,
 	     np, node);
 	return;
     }
 
     if (!succ) {
-	flog("node %hd reported failed spawn (id %hu nsName %s np %u)\n", node,
+	flog("node %d reported failed spawn (id %hu nsName %s np %u)\n", node,
 	     spawnID, nsName, np);
 	spawn->state = SPAWN_FAILED;
 	fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);

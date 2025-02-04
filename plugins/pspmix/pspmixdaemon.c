@@ -1307,7 +1307,7 @@ static int hookNodeDown(void *data)
 {
     PSnodes_ID_t *nodeid = data;
 
-    fdbg(PSPMIX_LOG_CALL, "nodeid %hd\n", *nodeid);
+    fdbg(PSPMIX_LOG_CALL, "nodeid %d\n", *nodeid);
 
     /** @todo
      * Is there any action needed here?
