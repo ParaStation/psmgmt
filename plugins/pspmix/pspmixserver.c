@@ -367,11 +367,13 @@ void pspmix_server_operationFinished(pmix_status_t status, void* cb)
     pthread_attr_t attr;
     if ((ret = pthread_attr_init(&attr))) {
 	flog("failed to create attr: %s\n", strerror(ret));
+	DESTROY_CBFUNC(callback);
 	return;
     }
     if ((ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED))) {
 	flog("failed to set detatch state attr: %s\n", strerror(ret));
 	pthread_attr_destroy(&attr);
+	DESTROY_CBFUNC(callback);
 	return;
     }
 
@@ -379,6 +381,7 @@ void pspmix_server_operationFinished(pmix_status_t status, void* cb)
     if ((ret = pthread_create(&cbthread, &attr, callcb, callback))) {
 	flog("failed to create callback thread: %s\n", strerror(ret));
 	pthread_attr_destroy(&attr);
+	DESTROY_CBFUNC(callback);
 	return;
     }
 
