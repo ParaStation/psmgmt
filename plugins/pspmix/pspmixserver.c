@@ -2255,6 +2255,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     if (cbdata.status != PMIX_SUCCESS) {
 	flog("callback from register error handler failed: %s\n",
 	     PMIx_Error_string(cbdata.status));
+	DESTROY_CBDATA(cbdata);
 	return false;
     }
     DESTROY_CBDATA(cbdata);
@@ -2901,6 +2902,7 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 	    &cbdata);
     if (status != PMIX_SUCCESS) {
 	flog("failed to setup application: %s\n", PMIx_Error_string(status));
+	DESTROY_CBDATA(cbdata);
 	return false;
     }
     /* wait until the callback function has filled cbdata */
@@ -2909,11 +2911,14 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
     if (cbdata.status != PMIX_SUCCESS) {
 	flog("callback from setup application failed: %s\n",
 	     PMIx_Error_string(cbdata.status));
+	DESTROY_CBDATA(cbdata);
 	return false;
     }
 
     fdbg(PSPMIX_LOG_VERBOSE, "got %lu info entries from"
 	 " PMIx_server_setup_application()\n", cbdata.ninfo);
+
+    DESTROY_CBDATA(cbdata);
 
     /* TODO save or return the received data? */
 #endif
@@ -2994,10 +2999,10 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
     pmix_data_array_t info = PMIX_DATA_ARRAY_STATIC_INIT;
     INFO_LIST_CONVERT(list, &info);
 
-    mycbdata_t data;
-    INIT_CBDATA(data, 0);
-    data.info = info.array;
-    data.ninfo = info.size;
+    mycbdata_t cbdata;
+    INIT_CBDATA(cbdata, 0);
+    cbdata.info = info.array;
+    cbdata.ninfo = info.size;
 
     /* Not using PMIX_DATA_ARRAY_DESTRUCT(&info) here since cbdata actually
      * steals all allocated data */
@@ -3005,8 +3010,8 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
     /* debugging output of info values */
     if (mset(PSPMIX_LOG_INFOARR)) {
 	flog("PMIx_server_register_nspace info:\n");
-	for (size_t j = 0; j < data.ninfo; j++) {
-	    char * istr = PMIx_Info_string(&data.info[j]);
+	for (size_t j = 0; j < cbdata.ninfo; j++) {
+	    char * istr = PMIx_Info_string(&cbdata.info[j]);
 	    mlog("   %s\n", istr);
 	    free(istr);
 	}
@@ -3014,8 +3019,8 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 
     /* register namespace */
     status = PMIx_server_register_nspace(nspace, mynode ? mynode->procs.len : 0,
-					 data.info, data.ninfo,
-					 registerNamespace_cb, &data);
+					 cbdata.info, cbdata.ninfo,
+					 registerNamespace_cb, &cbdata);
     if (status == PMIX_OPERATION_SUCCEEDED) {
 	goto reg_nspace_success;
     }
@@ -3024,20 +3029,20 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 	flog("PMIx_server_register_nspace() failed\n");
 	goto reg_nspace_error;
     }
-    WAIT_FOR_CBDATA(data);
+    WAIT_FOR_CBDATA(cbdata);
 
-    if (data.status != PMIX_SUCCESS) {
+    if (cbdata.status != PMIX_SUCCESS) {
 	flog("callback from register namespace failed: %s\n",
-		PMIx_Error_string(data.status));
+		PMIx_Error_string(cbdata.status));
 	goto reg_nspace_error;
     }
 
 reg_nspace_success:
-    DESTROY_CBDATA(data);
+    DESTROY_CBDATA(cbdata);
     return true;
 
 reg_nspace_error:
-    DESTROY_CBDATA(data);
+    DESTROY_CBDATA(cbdata);
     return false;
 }
 
@@ -3137,6 +3142,7 @@ bool pspmix_server_setupLocalSupport(const char *nspace)
     if (status != PMIX_SUCCESS) {
 	flog("setting up the local support callback failed: %s\n",
 	     PMIx_Error_string(status));
+	DESTROY_CBDATA(cbdata);
 	return false;
     }
     WAIT_FOR_CBDATA(cbdata);
@@ -3144,6 +3150,7 @@ bool pspmix_server_setupLocalSupport(const char *nspace)
     if (cbdata.status != PMIX_SUCCESS) {
 	flog("callback from setup local support failed: %s\n",
 	     PMIx_Error_string(cbdata.status));
+	DESTROY_CBDATA(cbdata);
 	return false;
     }
     DESTROY_CBDATA(cbdata);
@@ -3187,6 +3194,7 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
     PMIX_PROC_DESTRUCT(&proc);
     if (status != PMIX_SUCCESS) {
 	flog("registering client failed: %s\n", PMIx_Error_string(status));
+	DESTROY_CBDATA(cbdata);
 	return false;
     }
     WAIT_FOR_CBDATA(cbdata);
@@ -3194,6 +3202,7 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
     if (cbdata.status != PMIX_SUCCESS) {
 	flog("callback from register client failed: %s\n",
 	     PMIx_Error_string(cbdata.status));
+	DESTROY_CBDATA(cbdata);
 	return false;
     }
     DESTROY_CBDATA(cbdata);
