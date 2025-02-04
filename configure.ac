@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021-2024 ParTec AG, Munich
+# Copyright (C) 2021-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -204,6 +204,7 @@ AC_CONFIG_FILES(plugins/jail/Makefile)
 AC_CONFIG_FILES(plugins/jail/helpers/Makefile)
 AC_CONFIG_FILES(plugins/jail/scripts/Makefile)
 AC_CONFIG_FILES(plugins/nodeinfo/Makefile)
+AC_CONFIG_FILES(plugins/nodeinfo/doc/Makefile)
 AC_CONFIG_FILES(plugins/pelogue/Makefile)
 AC_CONFIG_FILES(plugins/psaccount/Makefile)
 AC_CONFIG_FILES(plugins/psaccount/scripts/Makefile)
@@ -214,6 +215,7 @@ AC_CONFIG_FILES(plugins/psgw/route/Makefile)
 AC_CONFIG_FILES(plugins/psgw/spank/Makefile)
 AC_CONFIG_FILES(plugins/psmunge/Makefile)
 AC_CONFIG_FILES(plugins/pspam/Makefile)
+AC_CONFIG_FILES(plugins/pspam/doc/Makefile)
 AC_CONFIG_FILES(plugins/pspam/include/Makefile)
 AC_CONFIG_FILES(plugins/pspam/module/Makefile)
 AC_CONFIG_FILES(plugins/pspam/pspam/Makefile)

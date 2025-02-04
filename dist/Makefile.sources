@@ -122,13 +122,8 @@ doc/Makefile.am \
 doc/Makefile.in \
 doc/MessageTypes \
 doc/pam/psid \
-doc/README.nodeinfo \
-doc/README.psgw \
-doc/README.pspam \
 doc/parastation.conf.tmpl \
 doc/psaccount.conf \
-doc/psconfig/nodeinfo.dump \
-doc/psconfig/nodeinfo.vipsconfig \
 doc/psconfig/psmgmt.vipsconfig \
 doc/psconfig/update_defaults_6.0.sh \
 doc/systemd/psid_service_d_nvidia.conf \
@@ -318,6 +313,11 @@ plugins/jail/scripts/jail-v2-memory.inc \
 plugins/jail/scripts/jail-v2-oom.inc \
 plugins/nodeinfo/Makefile.am \
 plugins/nodeinfo/Makefile.in \
+plugins/nodeinfo/doc/Makefile.am \
+plugins/nodeinfo/doc/Makefile.in \
+plugins/nodeinfo/doc/psconfig/nodeinfo.dump \
+plugins/nodeinfo/doc/psconfig/nodeinfo.vipsconfig \
+plugins/nodeinfo/doc/README.nodeinfo \
 plugins/nodeinfo/nodeinfo.c \
 plugins/nodeinfo/nodeinfo.h \
 plugins/nodeinfo/nodeinfoconfig.c \
@@ -406,6 +406,7 @@ plugins/psgw/Makefile.am \
 plugins/psgw/Makefile.in \
 plugins/psgw/doc/Makefile.am \
 plugins/psgw/doc/Makefile.in \
+plugins/psgw/doc/README.psgw \
 plugins/psgw/doc/README.psgw_plugins \
 plugins/psgw/doc/psgw.conf \
 plugins/psgw/doc/psgw_error.example \
@@ -446,6 +447,9 @@ plugins/psmunge/psmungelog.h \
 plugins/psmunge/psmungetypes.h \
 plugins/pspam/Makefile.am \
 plugins/pspam/Makefile.in \
+plugins/pspam/doc/Makefile.am \
+plugins/pspam/doc/Makefile.in \
+plugins/pspam/doc/README.pspam \
 plugins/pspam/include/Makefile.am \
 plugins/pspam/include/Makefile.in \
 plugins/pspam/include/pspamcommon.h \

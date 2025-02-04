@@ -14506,6 +14506,8 @@ ac_config_files="$ac_config_files plugins/jail/scripts/Makefile"
 
 ac_config_files="$ac_config_files plugins/nodeinfo/Makefile"
 
+ac_config_files="$ac_config_files plugins/nodeinfo/doc/Makefile"
+
 ac_config_files="$ac_config_files plugins/pelogue/Makefile"
 
 ac_config_files="$ac_config_files plugins/psaccount/Makefile"
@@ -14525,6 +14527,8 @@ ac_config_files="$ac_config_files plugins/psgw/spank/Makefile"
 ac_config_files="$ac_config_files plugins/psmunge/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspam/Makefile"
+
+ac_config_files="$ac_config_files plugins/pspam/doc/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspam/include/Makefile"
 
@@ -15695,6 +15699,7 @@ do
     "plugins/jail/helpers/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/jail/helpers/Makefile" ;;
     "plugins/jail/scripts/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/jail/scripts/Makefile" ;;
     "plugins/nodeinfo/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/nodeinfo/Makefile" ;;
+    "plugins/nodeinfo/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/nodeinfo/doc/Makefile" ;;
     "plugins/pelogue/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pelogue/Makefile" ;;
     "plugins/psaccount/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psaccount/Makefile" ;;
     "plugins/psaccount/scripts/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psaccount/scripts/Makefile" ;;
@@ -15705,6 +15710,7 @@ do
     "plugins/psgw/spank/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psgw/spank/Makefile" ;;
     "plugins/psmunge/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmunge/Makefile" ;;
     "plugins/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/Makefile" ;;
+    "plugins/pspam/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/doc/Makefile" ;;
     "plugins/pspam/include/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/include/Makefile" ;;
     "plugins/pspam/module/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/module/Makefile" ;;
     "plugins/pspam/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/pspam/Makefile" ;;

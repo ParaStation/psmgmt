@@ -297,8 +297,6 @@ fi
 %doc doc/parastation.conf.tmpl
 %doc doc/psconfig
 %doc doc/systemd
-%doc doc/README.nodeinfo
-%doc doc/README.pspam
 %doc plugins/rrcomm/doc/psconfig
 %doc plugins/rrcomm/doc/README.rrcomm
 %{_bindir}/mlisten
@@ -333,6 +331,8 @@ fi
 %{_libexecdir}/jail/bpf_device_loader
 %endif
 %{_plugindir}/nodeinfo.so
+%doc plugins/nodeinfo/doc/README.nodeinfo
+%doc plugins/nodeinfo/doc/psconfig
 %{_plugindir}/pelogue.so
 %{_plugindir}/psaccount.so
 %config(noreplace) %{_plugindir}/psaccount.conf
@@ -340,13 +340,14 @@ fi
 %{_plugindir}/psexec.so
 %{_plugindir}/psgw.so
 %config(noreplace) %{_plugindir}/psgw.conf
-%doc doc/README.psgw
+%doc plugins/psgw/doc/README.psgw
 %doc plugins/psgw/doc/README.psgw_plugins
 %doc plugins/psgw/doc/psgw_error.example
 %if !0%{?disable_spank}
 %{_libexecdir}/psgw
 %endif
 %{_plugindir}/pspam.so
+%doc plugins/pspam/doc/README.pspam
 %if !0%{?disable_pam}
 %{_pamdir}/pam_pspam.so
 %{_plugindir}/pam_service.so
