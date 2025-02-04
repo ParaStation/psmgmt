@@ -371,7 +371,7 @@ void pspmix_server_operationFinished(pmix_status_t status, void* cb)
 	return;
     }
     if ((ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED))) {
-	fwarn(ret, "failed to set detatch state attr");
+	fwarn(ret, "failed to set detached state attr");
 	pthread_attr_destroy(&attr);
 	DESTROY_CBFUNC(callback);
 	return;
