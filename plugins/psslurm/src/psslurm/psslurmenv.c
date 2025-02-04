@@ -610,8 +610,8 @@ static void setGResJobEnv(list_t *gresList, env_t env)
 	    /* always set informational variable */
 	    envSet(env, "SLURM_JOB_GPUS", strbufStr(strList));
 
-	    /* tell doClamps() which gpus to use */
-	    envSet(env, "__PSID_USE_GPUS", strbufStr(strList));
+	    /* deactivate automatic GPU pinning in PSIDpin_doClamps() */
+	    envSet(env, "__PSID_USE_GPUS", "");
 
 	    /* append some spaces to help step code to detect whether
 	     * the user has changed the variable in his job script */
