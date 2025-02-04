@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -566,8 +566,8 @@ static ssize_t sendMsgToDaemon(DDTypedBufferMsg_t *msg)
     int ret;
     ret = sendMsgToMother(msg);
     if (ret == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s(%s type %d) failed\n", __func__,
-	      PSC_printTID(msg->header.dest), msg->type);
+	fwarn(errno, " (%s type %d) failed", PSC_printTID(msg->header.dest),
+	       msg->type);
     }
     return ret;
 }
