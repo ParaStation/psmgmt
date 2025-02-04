@@ -165,6 +165,8 @@ bool pspmix_service_finalize(void);
  *
  * Notify the client's forwarder about the initialization of the client.
  *
+ * In case of returning true, ownership of @a cb is taken.
+ *
  * @todo This reads the environment and joins the client to the KVS provider.
  *
  * @param nsName Name of the namespace the client belong to
@@ -182,6 +184,8 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
  * @brief Handle finalizing client
  *
  * Notify the client's forwarder about its client's finalization.
+ *
+ * In case of returning true, ownership of @a cb is taken.
  *
  * @todo Leave the KVS and release the child and allow it to exit.
  *
