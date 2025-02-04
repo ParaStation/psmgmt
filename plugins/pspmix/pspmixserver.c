@@ -13,7 +13,6 @@
  * This file contains the implementation of the PMIx server interface
  * The pmix server library is initialized and used only in the PMix server.
  */
-#include <pthread.h>
 #define _GNU_SOURCE
 #include "pspmixserver.h"
 
@@ -23,6 +22,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include <pmix_server.h>
 #include <pmix.h>
