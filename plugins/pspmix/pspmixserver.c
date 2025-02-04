@@ -359,10 +359,26 @@ void pspmix_server_operationFinished(pmix_status_t status, void* cb)
      * object is transfered to that thread and it is responsible to destroy
      * it at the end. It is not allowed to do any modifications of that object
      * beside setting the volatile field "ready" to true. */
-    pthread_t cbthread;
-    if (!pthread_create(&cbthread, 0, callcb, callback)) {
-	flog("failed to create callback thread\n");
+    int ret;
+    pthread_attr_t attr;
+    if ((ret = pthread_attr_init(&attr))) {
+	flog("failed to create attr: %s\n", strerror(ret));
+	return;
     }
+    if ((ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED))) {
+	flog("failed to set detatch state attr: %s\n", strerror(ret));
+	pthread_attr_destroy(&attr);
+	return;
+    }
+
+    pthread_t cbthread;
+    if ((ret = pthread_create(&cbthread, &attr, callcb, callback))) {
+	flog("failed to create callback thread: %s\n", strerror(ret));
+	pthread_attr_destroy(&attr);
+	return;
+    }
+
+    pthread_attr_destroy(&attr);
 }
 
 /* A local client called PMIx_Abort.
