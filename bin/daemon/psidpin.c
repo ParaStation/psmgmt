@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -199,12 +199,14 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 	typename = "GPU";
 	numDevs = PSIDnodes_numGPUs(PSC_getMyID());
 	usable = getenv("__PSID_USE_GPUS");
+	unsetenv("__PSID_USE_GPUS");
 	variables = GPUvariables;
 	break;
     case PSPIN_DEV_TYPE_NIC:
 	typename = "NIC";
 	numDevs = PSIDnodes_numNICs(PSC_getMyID());
 	usable = getenv("__PSID_USE_NICS");
+	unsetenv("__PSID_USE_NICS");
 	variables = NICvariables;
 	break;
     default:
