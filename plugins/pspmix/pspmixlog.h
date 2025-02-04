@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -59,9 +59,13 @@ extern pthread_mutex_t __mlock;
 #if defined __GNUC__ && __GNUC__ < 8
 #define fdbg(mask, format, ...)						\
     mdbg(mask, "%s: " format, __func__, ##__VA_ARGS__)
+#define fwarn(eno, format, ...)					\
+    mwarn(eno, "%s: " format, __func__, ##__VA_ARGS__)
 #else
 #define fdbg(mask, format, ...)						\
     mdbg(mask, "%s: " format, __func__ __VA_OPT__(,) __VA_ARGS__)
+#define fwarn(eno, format, ...)					\
+    mwarn(eno, "%s: " format, __func__ __VA_OPT__(,) __VA_ARGS__)
 #endif
 
 #define flog(...) fdbg(-1, __VA_ARGS__)
