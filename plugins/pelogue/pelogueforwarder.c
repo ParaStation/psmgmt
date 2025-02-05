@@ -48,7 +48,7 @@ static void execPElogue(PElogueChild_t *child, char *dDir)
     setenv("HOSTNAME", child->hostName, 1);
     setenv("LANG", "C", 1);
 
-    setenv("PELOGUE", getPEActStr(child->type), 1);
+    setenv("PELOGUE", getPEActStr((PElogueAction_t)child->type), 1);
     if (child->plugin) setenv("PELOGUE_PLUGIN", child->plugin, 1);
 
     /* set tmp directory */
