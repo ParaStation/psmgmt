@@ -24,6 +24,8 @@ extern logger_t peloguelogger;
 
 #define flog(...) logger_funcprint(peloguelogger, __func__, -1, __VA_ARGS__)
 #define fdbg(...) logger_funcprint(peloguelogger, __func__, __VA_ARGS__)
+#define fwarn(...) logger_funcwarn(peloguelogger, __func__, -1, __VA_ARGS__)
+#define fdwarn(...) logger_funcwarn(peloguelogger, __func__, __VA_ARGS__)
 
 /** Various types of logging levels for more verbose logging */
 typedef enum {

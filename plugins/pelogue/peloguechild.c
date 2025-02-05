@@ -65,7 +65,7 @@ static bool setRootHome(void)
     char *pwBuf = NULL;
     struct passwd *spasswd = PSC_getpwnamBuf("root", &pwBuf);
     if (!spasswd) {
-	mwarn(errno, "%s: getpwnam(root)", __func__);
+	fwarn(errno, "getpwnam(root)");
 	return false;
     }
 
@@ -81,7 +81,7 @@ static bool setHostName(void)
     struct utsname utsBuf;
 
     if (uname(&utsBuf) < 0) {
-	mwarn(errno, "%s: uname()", __func__);
+	fwarn(errno, "uname()");
 	return false;
     }
     hostName = ustrdup(utsBuf.nodename);
@@ -177,11 +177,10 @@ static void manageTempDir(PElogueChild_t *child, bool create)
     if (create) {
 	if (stat(tmpDir, &statbuf) == -1) {
 	    if (mkdir(tmpDir, S_IRWXU) == -1) {
-		mdbg(PELOGUE_LOG_WARN, "%s: mkdir (%s): %s\n", __func__,
-		     tmpDir, strerror(errno));
+		fdwarn(PELOGUE_LOG_WARN, errno, "mkdir(%s)", tmpDir);
 	    } else {
 		if (chown(tmpDir, child->uid, child->gid) == -1) {
-		    mwarn(errno, "%s: chown(%s)", __func__, tmpDir);
+		    fwarn(errno, "chown(%s)", tmpDir);
 		}
 		child->tmpDir = ustrdup(tmpDir);
 	    }
