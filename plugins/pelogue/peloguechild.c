@@ -328,8 +328,8 @@ void startChild(PElogueChild_t *child)
 	return;
     }
 
-    mdbg(PELOGUE_LOG_PROCESS, "%s: %s for job %s:%s started\n", __func__,
-	 ctype, child->plugin, child->jobid);
+    fdbg(PELOGUE_LOG_PROCESS, "%s for job %s:%s started\n", ctype,
+	 child->plugin, child->jobid);
 }
 
 void signalChild(PElogueChild_t *child, int signal, char *reason)

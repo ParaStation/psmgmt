@@ -124,8 +124,8 @@ static void CBprologueResp(char *jobid, int exit, bool timeout,
 
     Job_t *job = findJobById(rpcInfo->requestor, jobid);
     if (job) {
-	mdbg(PELOGUE_LOG_VERB, "%s: finished, sending result for job %s to "
-	     "%s\n", __func__, jobid, PSC_printTID(rpcInfo->sender));
+	fdbg(PELOGUE_LOG_VERB, "finished, sending result for job %s to %s\n",
+	     jobid, PSC_printTID(rpcInfo->sender));
 	sendPrologueResp(jobid, exit, timeout, rpcInfo->sender);
 
 	job->info = NULL;
@@ -143,7 +143,7 @@ static void handlePluginConfigDel(DDTypedBufferMsg_t *msg,
 {
     char *plugin = getStringM(data);
 
-    mdbg(PELOGUE_LOG_VERB, "%s: delete conf for '%s'\n", __func__, plugin);
+    fdbg(PELOGUE_LOG_VERB, "delete conf for '%s'\n", plugin);
     delPluginConfig(plugin);
 
     ufree(plugin);
@@ -165,7 +165,7 @@ static void savePluginConfig(char *plugin, uint32_t timeout, uint32_t grace)
     snprintf(graceStr, sizeof(graceStr), "%u", grace);
     addConfigEntry(config, "TIMEOUT_PE_GRACE", graceStr);
 
-    mdbg(PELOGUE_LOG_VERB, "%s: add conf for '%s'\n", __func__, plugin);
+    fdbg(PELOGUE_LOG_VERB, "add conf for '%s'\n", plugin);
     addPluginConfig(plugin, config);
     freeConfig(config);
 }
@@ -306,7 +306,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     info->requestor = requestor;
     info->res = NULL;
 
-    mdbg(PELOGUE_LOG_VERB, "%s: handle request from %s for job %s\n", __func__,
+    fdbg(PELOGUE_LOG_VERB, "handle request from %s for job %s\n",
 	 PSC_printTID(msg->header.sender), jobid);
 
     /* save plugin configuration *before* adding a job */
@@ -442,19 +442,18 @@ void sendPElogueSignal(Job_t *job, int sig, char *reason)
 
 static void handlePElogueSignal(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
-    int32_t signal;
-    PElogueChild_t *child;
 
     char *plugin = getStringM(rData);
     char *jobid = getStringM(rData);
+    int32_t signal;
     getInt32(rData, &signal);
     char *reason = getStringM(rData);
 
     /* find job */
-    child = findChild(plugin, jobid);
+    PElogueChild_t *child = findChild(plugin, jobid);
     free(plugin);
     if (!child) {
-	mdbg(PELOGUE_LOG_WARN, "%s: No child for job %s\n", __func__,
+	fdbg(PELOGUE_LOG_WARN, "no child for job %s\n",
 	     jobid ? jobid : "<unknown>");
 	free(jobid);
 	free(reason);
@@ -503,8 +502,8 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     free(plugin);
     if (!job) {
 	if (!jobIDInHistory(jobid)) {
-	    mdbg(PELOGUE_LOG_WARN, "%s: ignore %s finish message for job %s\n",
-		 __func__, peType, jobid ? jobid : "<unknown>");
+	    fdbg(PELOGUE_LOG_WARN, "ignore %s finish message for job %s\n",
+		 peType, jobid ? jobid : "<unknown>");
 	}
 	free(jobid);
 	return;
@@ -514,8 +513,8 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getTime(rData, &job_start);
     if (job->start_time != job_start) {
 	/* msg is for previous job, ignore */
-	mdbg(PELOGUE_LOG_WARN, "%s: ignore %s finish from previous job %s\n",
-	     __func__, peType, job->id);
+	fdbg(PELOGUE_LOG_WARN, "ignore %s finish from previous job %s\n",
+	     peType, job->id);
 	return;
     }
 
@@ -526,9 +525,9 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     if (res) {
 	/* suppress error message if we have killed the pelogue by request */
-	mdbg(signalFlag ? PELOGUE_LOG_WARN : -1,
-	     "%s: %s for job %s failed on node %s(%i): exit[%i]\n", __func__,
-	     peType, job->id, getHostnameByNodeId(node), node, res);
+	int mask = signalFlag ? PELOGUE_LOG_WARN : -1;
+	fdbg(mask, "%s for job %s failed on node %s(%i): exit[%i]\n", peType,
+	     job->id, getHostnameByNodeId(node), node, res);
     }
 
     finishJobPElogue(job, res, prologue);
@@ -679,7 +678,7 @@ static bool handlePElogueMsg(DDTypedBufferMsg_t *msg)
     snprintf(cover+strlen(cover), sizeof(cover)-strlen(cover), "%s]",
 	     PSC_printTID(msg->header.dest));
 
-    mdbg(PELOGUE_LOG_COMM, "%s: type: %i %s\n", __func__, msg->type, cover);
+    fdbg(PELOGUE_LOG_COMM, "type: %i %s\n", msg->type, cover);
 
     switch (msg->type) {
     case PSP_PROLOGUE_START:
