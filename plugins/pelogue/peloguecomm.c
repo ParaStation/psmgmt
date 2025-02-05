@@ -65,7 +65,7 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, env_t env)
 	job->state = JOB_EPILOGUE;
 	msgType = PSP_EPILOGUE_START;
     } else {
-	mlog("%s: unknown pelogue type %d\n", __func__, type);
+	flog("unknown pelogue type %d\n", type);
 	return -1;
     }
 
@@ -134,7 +134,7 @@ static void CBprologueResp(char *jobid, int exit, bool timeout,
 	ufree(rpcInfo->requestor);
 	ufree(rpcInfo);
     } else {
-	mlog("%s: job '%s' not found\n", __func__, jobid);
+	flog("job '%s' not found\n", jobid);
     }
 }
 
@@ -153,7 +153,7 @@ static void savePluginConfig(char *plugin, uint32_t timeout, uint32_t grace)
 {
     Config_t config = NULL;
     if (!initConfig(&config)) {
-	mlog("%s: failed to add conf for '%s'\n", __func__, plugin);
+	flog("failed to add conf for '%s'\n", plugin);
 	return;
     }
 
@@ -205,8 +205,8 @@ static int startPElogueReq(Job_t *job, RPC_Info_t *info, env_t env)
 
 	ret = sendFragMsg(&config);
 	if (ret == -1) {
-	    mlog("%s: sending configuration for %s to sister nodes failed\n",
-		 __func__, job->id);
+	    flog("sending configuration for %s to sister nodes failed\n",
+		 job->id);
 	    return ret;
 	}
     }
@@ -222,7 +222,7 @@ static int startPElogueReq(Job_t *job, RPC_Info_t *info, env_t env)
 
     ret = sendPElogueStart(job, info->type, env);
     if (ret == -1) {
-	mlog("%s: sending pelogue request for %s failed\n", __func__, job->id);
+	flog("sending pelogue request for %s failed\n", job->id);
     }
 
     return ret;
@@ -232,24 +232,22 @@ static void handleResourceCB(char *plugin, char *jobid, uint16_t result)
 {
     Job_t *job = findJobById(plugin, jobid);
     if (!job) {
-	mlog("%s: job with id %s from plugin %s not found\n", __func__,
-	     jobid, plugin);
+	flog("job with id %s from plugin %s not found\n", jobid, plugin);
 	return;
     }
 
     RPC_Info_t *info = (RPC_Info_t *) job->info;
     if (!info->res) {
-	mlog("%s: no resources found in job %s\n", __func__, jobid);
+	flog("no resources found in job %s\n", jobid);
 	goto ERROR;
     }
 
     if (!result) {
-	mlog("%s: requesting additional resources for job %s failed\n",
-	     __func__, jobid);
+	flog("requesting additional resources for job %s failed\n", jobid);
 	goto ERROR;
     }
 
-    mlog("%s: plugin %s jobid %s result %u\n", __func__, plugin, jobid, result);
+    flog("plugin %s jobid %s result %u\n", plugin, jobid, result);
 
     if (startPElogueReq(job, info, info->res->env) < 0) goto ERROR;
 
@@ -276,9 +274,8 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     uint16_t version;
     getUint16(rData, &version);
     if (version != PELOGUE_REQUEST_VERSION) {
-	mlog("%s: invalid protocol version %u from %s expect %u\n", __func__,
-	     version, PSC_printTID(msg->header.sender),
-	     PELOGUE_REQUEST_VERSION);
+	flog("invalid protocol version %u from %s expect %u\n", version,
+	     PSC_printTID(msg->header.sender), PELOGUE_REQUEST_VERSION);
 	sendPrologueResp(0, 1, false, msg->header.sender);
 	return;
     }
@@ -320,7 +317,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 			CBprologueResp, info, fwPrologueOE);
     ufree(nodes);
     if (!job) {
-	mlog("%s: failed to add job %s for %s\n", __func__, jobid, requestor);
+	flog("failed to add job %s for %s\n", jobid, requestor);
 	goto ERROR;
     }
 
@@ -345,7 +342,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     ufree(res);
     info->res = NULL;
     if (ret != PSIDHOOK_NOFUNC && ret) {
-	mlog("%s: hook PSIDHOOK_PELOGUE_RES failed\n", __func__);
+	flog("hook PSIDHOOK_PELOGUE_RES failed\n");
 	goto ERROR;
     }
 
@@ -376,7 +373,7 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     PElogueChild_t *child = addChild(plugin, jobid,
 				     prlg ? PELOGUE_PROLOGUE : PELOGUE_EPILOGUE);
     if (!child) {
-	mlog("%s: Failed to create a new child\n", __func__);
+	flog("failed to create a new child\n");
 	free(plugin);
 	free(jobid);
 	return;
@@ -403,11 +400,11 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	if (ret == -2) {
 	    child->exit = 0;
 	} else {
-	    mlog("%s: PSIDHOOK_PELOGUE_START failed with %i\n", __func__, ret);
+	    flog("PSIDHOOK_PELOGUE_START failed with %i\n", ret);
 	    child->exit = -3;
 	}
     } else if (getPluginConfValueI(plugin, "DISABLE_PELOGUE") == 1) {
-	mlog("%s: fixmeeee!!!\n", __func__);
+	flog("fixmeeee!!!\n");
 	child->exit = -42;
     } else {
 	startChild(child);
@@ -539,9 +536,8 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
 static void sendDropResp(DDTypedBufferMsg_t *msg)
 {
-    mlog("%s: failed to send result to pspelogue %i from mother superior %s",
-	 __func__, PSC_getPID(msg->header.dest),
-	 PSC_printTID(msg->header.sender));
+    flog("failed to send result to pspelogue %i from mother superior %s",
+	 PSC_getPID(msg->header.dest), PSC_printTID(msg->header.sender));
 
     msg->header.dest = msg->header.sender;
     msg->header.sender = PSC_getMyTID();
@@ -606,8 +602,7 @@ static void dropMsgAndCancel(DDTypedBufferMsg_t *msg)
 	default:
 	    type = "unknown";
 	}
-	mlog("%s(%s): plugin '%s' job '%s' not found\n", __func__, type,
-	     plugin, jobid);
+	flog("type %s plugin '%s' job '%s' not found\n", type, plugin, jobid);
 	free(plugin);
 	free(jobid);
 	return;
@@ -635,7 +630,7 @@ static bool dropPElogueMsg(DDTypedBufferMsg_t *msg)
 
     PSnodes_ID_t node = PSC_getID(msg->header.dest);
     const char *hname = getHostnameByNodeId(node);
-    mlog("%s: drop msg type %s(%i) fragment %hu to host %s(%i)\n", __func__,
+    flog("drop msg type %s(%i) fragment %hu to host %s(%i)\n",
 	 msg2Str(msg->type), msg->type, fragNum, hname, node);
 
     /* inform other plugins (e.g. psslurm) */
@@ -656,7 +651,7 @@ static bool dropPElogueMsg(DDTypedBufferMsg_t *msg)
 	/* nothing we can do here */
 	break;
     default:
-	mlog("%s: unknown msg type %i\n", __func__, msg->type);
+	flog("unknown msg type %i\n", msg->type);
     }
     return true;
 }
@@ -668,8 +663,8 @@ static bool handlePElogueMsg(DDTypedBufferMsg_t *msg)
     /* only authorized users may send pelogue messages */
     if (!PSID_checkPrivilege(msg->header.sender)) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
-	mlog("%s: access violation: dropping message uid %i type %i "
-	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
+	flog("access violation: dropping message uid %i type %i sender %s\n",
+	     (task ? task->uid : 0), msg->type,
 	     PSC_printTID(msg->header.sender));
 	return true;
     }
@@ -717,7 +712,7 @@ static bool handlePElogueMsg(DDTypedBufferMsg_t *msg)
 	dropPElogueMsg(msg);
 	break;
     default:
-	mlog("%s: unknown type %i %s\n", __func__, msg->type, cover);
+	flog("unknown type %i %s\n", msg->type, cover);
     }
     return true;
 }
@@ -736,11 +731,10 @@ static bool handleUnknownMsg(DDBufferMsg_t *msg)
 
     if (type == PSP_PLUG_PELOGUE) {
 	/* pelogue message */
-	mlog("%s: delivery of pelogue message type %i to %s failed\n",
-		__func__, type, PSC_printTID(dest));
-
-	mlog("%s: make sure the plugin '%s' is loaded on node %i\n", __func__,
-	     name, PSC_getID(msg->header.sender));
+	flog("delivery of pelogue message type %i to %s failed\n",
+	     type, PSC_printTID(dest));
+	flog("make sure the plugin '%s' is loaded on node %i\n", name,
+	     PSC_getID(msg->header.sender));
 	return true;
     }
 

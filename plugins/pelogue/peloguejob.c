@@ -98,22 +98,22 @@ Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
     Job_t *job = findJob(plugin, jobid, true);
 
     if (numNodes > PSC_getNrOfNodes()) {
-	mlog("%s: invalid numNodes '%u'\n", __func__, numNodes);
+	flog("invalid numNodes %u\n", numNodes);
 	return NULL;
     }
 
     if (!plugin || !jobid) {
-	mlog("%s: invalid plugin %s or jobid %s\n", __func__, plugin, jobid);
+	flog("invalid plugin %s or jobid %s\n", plugin, jobid);
 	return NULL;
     }
 
     if (!nodes) {
-	mlog("%s: invalid nodes\n", __func__);
+	flog("invalid nodes\n");
 	return NULL;
     }
 
     if (!cb) {
-	mlog("%s: invalid plugin callback\n", __func__);
+	flog("invalid plugin callback\n");
 	return NULL;
     }
 
@@ -284,7 +284,7 @@ void finishJobPElogue(Job_t *job, int status, bool prologue)
     (*track) -= 1;
 
     if (*track < 0) {
-	mlog("%s: %s tracking error for job %s\n", __func__, peType, job->id);
+	flog("%s tracking error for job %s\n", peType, job->id);
 	return;
     }
 
@@ -344,7 +344,6 @@ void finishJobPElogue(Job_t *job, int status, bool prologue)
 static void handleJobTimeout(int timerId, void *info)
 {
     Job_t *job = info;
-    int i, count = 0;
 
     /* don't call myself again */
     Timer_remove(timerId);
@@ -354,17 +353,17 @@ static void handleJobTimeout(int timerId, void *info)
 
     /* don't break job if it got re-queued */
     if (timerId != job->monitorId) {
-	mlog("%s: timer of old job, skipping it\n", __func__);
+	flog("timer of old job, skipping it\n");
 	return;
     }
     job->monitorId = -1;
 
-    mlog("%s: global %s timeout for job %s, send SIGKILL\n", __func__,
+    flog("global %s timeout for job %s, send SIGKILL\n",
 	 job->state == JOB_PROLOGUE ? "prologue" : "epilogue", job->id);
 
-    mlog("%s: pending nodeID(s): ", __func__);
-
-    for (i=0; i<job->numNodes; i++) {
+    int count = 0;
+    flog("pending nodeID(s): ");
+    for (int i = 0; i < job->numNodes; i++) {
 	PElogueState_t *status = (job->state == JOB_PROLOGUE) ?
 	    &job->nodes[i].prologue : &job->nodes[i].epilogue;
 	if (*status == PELOGUE_PENDING) {
@@ -392,8 +391,7 @@ void startJobMonitor(Job_t *job)
     grace = getPluginConfValueI(job->plugin, "TIMEOUT_PE_GRACE");
 
     if (timeout < 0 || grace < 0) {
-	mlog("%s: invalid pe timeout %i or grace time %i\n", __func__,
-	     timeout, grace);
+	flog("invalid pe timeout %i or grace time %i\n", timeout, grace);
     }
 
     /* timeout monitoring disabled */
@@ -403,7 +401,7 @@ void startJobMonitor(Job_t *job)
 
     job->monitorId = Timer_registerEnhanced(&timer, handleJobTimeout, job);
     if (job->monitorId == -1) {
-	mlog("%s: monitor registration failed for job %s\n", __func__, job->id);
+	flog("monitor registration failed for job %s\n", job->id);
     }
 }
 

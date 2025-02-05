@@ -66,7 +66,7 @@ static void cleanupJobs(void)
     }
 
     if (obitTimeCounter >= obitTime) {
-	mlog("sending SIGKILL to %i remaining jobs\n", numJobs);
+	flog("sending SIGKILL to %i remaining jobs\n", numJobs);
 	signalAllJobs(SIGKILL, "shutdown");
     }
 }
@@ -95,10 +95,10 @@ static bool nodeDownVisitor(Job_t *job, const void *info)
 
 	    if (!hname) hname = getHostnameByNodeId(id);
 
-	    mlog("%s: node %s(%i) running job '%s' jstate '%s' is down\n",
-		 __func__, hname, id, job->id, jobState2String(job->state));
-	    mlog("%s: suppressing further node down error messages "
-		 "for job %s\n", __func__, job->id);
+	    flog("node %s(%i) running job '%s' jstate '%s' is down\n",
+		 hname, id, job->id, jobState2String(job->state));
+	    flog("suppressing further node down error messages for job %s\n",
+		 job->id);
 
 	    /* stop pelogue scripts on all nodes */
 	    char buf[128];
@@ -145,7 +145,7 @@ int initialize(FILE *logfile)
 
     /* we need to have root privileges */
     if (getuid() != 0) {
-	mlog("%s: pelogue must have root privileges\n", __func__);
+	mlog("pelogue must have root privileges\n");
 	return 1;
     }
 
@@ -153,20 +153,19 @@ int initialize(FILE *logfile)
 
     /* get psaccount function handles */
     if (!accHandle) {
-	mlog("%s: getting psaccount handle failed\n", __func__);
+	mlog("getting psaccount handle failed\n");
 	goto INIT_ERROR;
     }
 
     psAccountSignalSession = dlsym(accHandle, "psAccountSignalSession");
     if (!psAccountSignalSession) {
-	mlog("%s: loading function psAccountSignalSession() failed\n",
-		__func__);
+	mlog("loading function psAccountSignalSession() failed\n");
 	goto INIT_ERROR;
     }
 
     /* register needed hooks */
     if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
-	mlog("register 'PSIDHOOK_NODE_DOWN' failed\n");
+	mlog("register PSIDHOOK_NODE_DOWN failed\n");
 	goto INIT_ERROR;
     }
 
@@ -195,7 +194,7 @@ void finalize(void)
     if (remJobs > 0) {
 	struct timeval cleanupTimer = {1,0};
 
-	mlog("sending SIGTERM to %i remaining jobs\n", remJobs);
+	flog("sending SIGTERM to %i remaining jobs\n", remJobs);
 	signalAllJobs(SIGTERM, "shutdown");
 
 	/* re-investigate every second */

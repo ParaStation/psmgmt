@@ -225,7 +225,7 @@ static void fwCallback(int32_t forwStatus, Forwarder_Data_t *fwData)
 	manageTempDir(child, false);
     }
 
-    mlog("%s: local %s exit %i job %s to node %d\n", __func__,
+    flog("local %s exit %i job %s to node %d\n",
 	 child->type == PELOGUE_PROLOGUE ? "prologue" : "epilogue", child->exit,
 	 child->jobid, child->mainPElogue);
 
@@ -234,7 +234,7 @@ static void fwCallback(int32_t forwStatus, Forwarder_Data_t *fwData)
 
     /* cleanup */
     if (!deleteChild(child)) {
-	mlog("%s: deleting child '%s' failed\n", __func__, fwData->jobID);
+	flog("deleting child '%s' failed\n", fwData->jobID);
     }
     /* fwData will be cleaned up within pluginforwarder */
 }
@@ -279,9 +279,8 @@ static bool handlePeFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	handlePeIO(fwdata, PELOGUE_OE_STDERR, msg);
 	break;
     default:
-	mlog("%s: unexpected msg, type %d from TID %s (%s) jobid %s\n",
-	     __func__, msg->type, PSC_printTID(msg->header.sender),
-	     fwdata->pTitle, fwdata->jobID);
+	flog("unexpected msg, type %d from TID %s (%s) jobid %s\n", msg->type,
+	     PSC_printTID(msg->header.sender), fwdata->pTitle, fwdata->jobID);
 	return false;
     }
 
@@ -314,7 +313,7 @@ void startChild(PElogueChild_t *child)
 	     prlg ? "prologue" : "epilogue");
 
     if (!startForwarder(child->fwData)) {
-	mlog("%s: exec %s-script failed\n", __func__, ctype);
+	flog("exec %s-script failed\n", ctype);
 
 	child->exit = -2;
 
@@ -337,7 +336,7 @@ void signalChild(PElogueChild_t *child, int signal, char *reason)
 {
     /* forwarder did not start yet */
     if (!child || !child->fwData) {
-	mlog("%s: no child or forwarder to signal\n", __func__);
+	flog("no child or forwarder to signal\n");
 	return;
     }
 
@@ -349,18 +348,18 @@ void signalChild(PElogueChild_t *child, int signal, char *reason)
     /* send the signal */
     Forwarder_Data_t *fwData = child->fwData;
     if (fwData->cSid > 0) {
-	mlog("%s: signal %i to pelogue '%s' - reason '%s' - sid %i\n", __func__,
-	     signal, child->jobid, reason, fwData->cSid);
+	flog("signal %i to pelogue '%s' - reason '%s' - sid %i\n", signal,
+	     child->jobid, reason, fwData->cSid);
 	fwData->killSession(fwData->cSid, signal);
     } else if (fwData->cPid > 0) {
-	mlog("%s: signal %i to pelogue '%s' - reason '%s' - pid %i\n", __func__,
-	     signal, child->jobid, reason, fwData->cPid);
+	flog("signal %i to pelogue '%s' - reason '%s' - pid %i\n", signal,
+	     child->jobid, reason, fwData->cPid);
 	pskill(fwData->cPid, signal, child->uid);
     } else if ((signal == SIGTERM || signal == SIGKILL) && fwData->tid != -1) {
 	pskill(PSC_getPID(fwData->tid), SIGTERM, child->uid);
     } else {
-	mlog("%s: invalid forwarder data for signal %i to job '%s'\n", __func__,
-	     signal, child->jobid);
+	flog("invalid forwarder data for signal %i to job '%s'\n", signal,
+	     child->jobid);
     }
 }
 
