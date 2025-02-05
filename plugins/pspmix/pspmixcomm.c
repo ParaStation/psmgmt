@@ -282,6 +282,22 @@ static void handleSpawnInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(nspace);
 }
 
+static void handleClientLogResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    fdbg(PSPMIX_LOG_CALL, "\n");
+
+    log_request_handle_t request_handle;
+    bool log_success;
+
+    getUint64(data, &request_handle);
+    getBool(data, &log_success);
+
+    fdbg(PSPMIX_LOG_COMM, "request_handle %" PRIu64 ", log_success %s)\n",
+	 request_handle, log_success ? "True" : "False");
+
+    pspmix_service_handleClientLogResp(request_handle, log_success);
+}
+
 /**
  * @brief Handle PSPMIX_SPAWNER_FAILED message
  *
@@ -471,6 +487,9 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
     case PSPMIX_SPAWN_INFO:
 	recvFragMsg(msg, handleSpawnInfo);
 	break;
+    case PSPMIX_CLIENT_LOG_RES:
+        recvFragMsg(msg, handleClientLogResp);
+        break;
     /* message types comming from another PMIx server of the same user */
     case PSPMIX_FENCE_DATA:
 	recvFragMsg(msg, handleFenceData);
@@ -869,6 +888,33 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t dest /* fw */,
 
     return sendForwarderNotification(dest, PSPMIX_CLIENT_FINALIZE,
 				     nspace, rank);
+}
+
+
+bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, log_request_handle_t request_handle, PspmixLogChannel_t channel, const char *str)
+{
+    fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %s channel %s str %s\n",
+	 PSC_printTID(dest), pspmix_log_channel_names[channel], str);
+
+    PS_SendDB_t msg;
+    pthread_mutex_lock(&send_lock);
+    initFragPspmix(&msg, PSPMIX_CLIENT_LOG_REQ);
+    setFragDest(&msg, dest);
+
+    addTaskIdToMsg(PSC_getMyTID(), &msg);
+
+    addUint64ToMsg(request_handle, &msg);
+    addInt32ToMsg(channel, &msg);
+    addStringToMsg(str, &msg);
+
+    int ret = sendFragMsg(&msg);
+    pthread_mutex_unlock(&send_lock);
+    if (ret < 0) {
+	flog("sending log request to %s failed\n", PSC_printTID(dest));
+	return false;
+    }
+
+    return true;
 }
 
 void pspmix_comm_sendSignal(PStask_ID_t dest, int signal)

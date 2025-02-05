@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -61,6 +61,8 @@
 #include "pspmixlog.h"
 #include "pspmixtypes.h"
 #include "pspmixdaemon.h"
+#include "pspmixservice.h"
+#include "pspmixcomm.h"
 
 /* psid rank of this forwarder and child */
 static int32_t rank = -1;
@@ -1045,6 +1047,72 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     if (!doSpawn(srdata /* transfers ownership */)) plog("spawn failed");
 }
 
+static bool sendClientLogResp(PStask_ID_t dest, log_request_handle_t request_handle, bool log_success)
+{
+    fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %s log_success %s\n",
+	 PSC_printTID(dest), log_success ? "true" : "false");
+
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_CLIENT_LOG_RES);
+    setFragDest(&msg, dest);
+
+    addUint64ToMsg(request_handle, &msg);
+    addBoolToMsg(log_success, &msg);
+
+    int ret = sendFragMsg(&msg);
+    if (ret < 0) {
+	flog("sending log response to %s failed\n", PSC_printTID(dest));
+	return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Handle messages of type PSPMIX_CLIENT_LOG_REQ
+ *
+ * Handle request to log to stdout and stderr. Such a request can be
+ * sent if the child of this forwarder has called PMIx_LOG().
+ *
+ * @param msg  The last fragment of the message to handle
+ * @param data The defragmented data received
+ *
+ * @return No return value
+ */
+static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
+    rdbg(PSPMIX_LOG_CALL, "msg %p data %p\n", msg, data);
+
+    PStask_ID_t request_tid;
+    log_request_handle_t request_handle;
+    PspmixLogChannel_t channel;
+    char *str;
+
+    int channel_i;
+    getTaskId(data, &request_tid);
+    getUint64(data, &request_handle);
+    getInt32(data, &channel_i);
+    channel = channel_i;
+    str = getStringM(data);
+
+    rdbg(PSPMIX_LOG_LOGGING, "Logging to %s '%s'\n",
+	 pspmix_log_channel_names[channel], str);
+
+    int ret = -1; // error
+    switch (channel) {
+    case PSPMIX_LOG_CHANNEL_STDOUT:
+	ret = PSIDfwd_printMsg(STDOUT, str);
+	break;
+    case PSPMIX_LOG_CHANNEL_STDERR:
+	ret = PSIDfwd_printMsg(STDERR, str);
+	break;
+    default:
+	break;
+    }
+    rdbg(PSPMIX_LOG_LOGGING, "Logging completed\n");
+
+    sendClientLogResp(request_tid, request_handle, ret != -1);
+}
+
 /**
  * @brief Handle messages of type PSP_PLUG_PSPMIX
  *
@@ -1075,6 +1143,9 @@ static bool handlePspmixMsg(DDBufferMsg_t *vmsg)
 	break;
     case PSPMIX_CLIENT_SPAWN:
 	recvFragMsg(msg, handleClientSpawn);
+	break;
+    case PSPMIX_CLIENT_LOG_REQ:
+	recvFragMsg(msg, handleClientLogReq);
 	break;
     default:
 	rlog("unexpected message (sender %s type %s)\n",

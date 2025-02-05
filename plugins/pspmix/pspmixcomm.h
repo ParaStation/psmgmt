@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -188,6 +188,18 @@ bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
 bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID,
 					  const char *nspace, uint32_t rank,
 					  PStask_ID_t jobID);
+
+/**
+ * @brief Compose and send a client log request message
+ *
+ * @param dest       task id of the forwarder to send the message to
+ * @param request_handle id of the request
+ * @param channel    channel to be used for logging. must be supported!
+ * @param str        string to be logged
+ *
+ * @return Returns true iff request message was successfully sent
+ */
+bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, log_request_handle_t request_handle, PspmixLogChannel_t channel, const char *str);
 
 /**
  * @brief Send a signal message to a process via the daemon

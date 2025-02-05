@@ -83,6 +83,7 @@ typedef enum {
     PSPMIX_LOG_PSET    = 0x000200, /**< Log pset creation */
     PSPMIX_LOG_SPAWN   = 0x000400, /**< Log (re)spawn stuff */
     PSPMIX_LOG_JOB     = 0x000800, /**< Log job and reservations */
+    PSPMIX_LOG_LOGGING = 0x001000, /**< Log pmix logging attempts */
     PSPMIX_LOG_VERBOSE = 0x100000, /**< Other verbose stuff */
 } PSPMIX_log_types_t;
 

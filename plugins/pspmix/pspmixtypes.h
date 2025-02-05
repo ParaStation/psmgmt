@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -331,6 +331,8 @@ typedef enum {
     PSPMIX_CLIENT_STATUS,      /**< Info from psidfw about success or fail */
     PSPMIX_TERM_CLIENTS,       /**< Tell PMIx server to signal local clients */
     PSPMIX_SPAWNER_FAILED,     /**< Info from the spawner process about fail */
+    PSPMIX_CLIENT_LOG_REQ,     /**< Request to log a message */
+    PSPMIX_CLIENT_LOG_RES      /**< Respond success/failure of a log request */
 } PSP_PSPMIX_t;
 
 /** Options changing behavior of PMIx_Spawn handing */

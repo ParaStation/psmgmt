@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -290,6 +290,7 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	case PSPMIX_CLIENT_INIT_RES:
 	case PSPMIX_CLIENT_FINALIZE_RES:
 	case PSPMIX_CLIENT_SPAWN_RES:
+	case PSPMIX_CLIENT_LOG_RES:
 	case PSPMIX_CLIENT_STATUS:
 	    /* message from forwarder to local pmix server without extra
 	       verify match of user IDs */
