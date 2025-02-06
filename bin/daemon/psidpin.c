@@ -197,6 +197,7 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
     switch(type) {
     case PSPIN_DEV_TYPE_GPU:
 	if (getenv("__PSID_SKIP_PIN_GPUS")) {
+	    /* some other plugin did the GPU pinning already */
 	    unsetenv("__PSID_SKIP_PIN_GPUS");
 	    return;
 	}
@@ -207,6 +208,7 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 	break;
     case PSPIN_DEV_TYPE_NIC:
 	if (getenv("__PSID_SKIP_PIN_NICS")) {
+	    /* some other plugin did the NIC pinning already */
 	    unsetenv("__PSID_SKIP_PIN_NICS");
 	    return;
 	}
