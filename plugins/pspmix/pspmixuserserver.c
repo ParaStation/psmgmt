@@ -15,11 +15,16 @@
 #include "pspmixuserserver.h"
 
 #include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+#include <limits.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include "list.h"
 #include "pscommon.h"
 #include "psidutil.h"
+#include "selector.h"
 
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
@@ -104,7 +109,6 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 
     /* always print UID to have the PID <-> UID mapping in syslog */
     flog("server for UID %d initialized\n", server->uid);
-
     return 0;
 }
 
@@ -232,6 +236,11 @@ void pspmix_userserver_finalize(Forwarder_Data_t *fwdata)
     fdbg(PSPMIX_LOG_CALL, "\n");
 
     pspmix_service_finalize();
+
+    if (!server) {
+	flog("FATAL: no server object\n");
+	return;
+    }
 
     /* remove root of all temporary directories */
     removeDir(server->tmproot, true);
