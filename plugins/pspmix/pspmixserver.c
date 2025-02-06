@@ -2921,11 +2921,11 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 	if (status != PMIX_SUCCESS) {
 	    flog("failed to generate locality string for rank %d: %s\n",
 		 proc->rank, PMIx_Error_string(status));
-	    locstr = strdup("pspmix:generation_error");
+	    locstr = ustrdup("pspmix:generation_error");
 	    if (!locstr) abort(); /* @todo handle somehow more gently? */
 	}
 	INFO_LIST_ADD(list, PMIX_LOCALITY_STRING, locstr, PMIX_STRING);
-	free(locstr);
+	ufree(locstr);
 
 	/* Full path to the subdirectory under PMIX_NSDIR assigned to the
 	 * specified process. */
