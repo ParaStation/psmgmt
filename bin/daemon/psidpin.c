@@ -196,17 +196,23 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
     char **variables = NULL;
     switch(type) {
     case PSPIN_DEV_TYPE_GPU:
+	if (getenv("__PSID_SKIP_PIN_GPUS")) {
+	    unsetenv("__PSID_SKIP_PIN_GPUS");
+	    return;
+	}
 	typename = "GPU";
 	numDevs = PSIDnodes_numGPUs(PSC_getMyID());
 	usable = getenv("__PSID_USE_GPUS");
-	unsetenv("__PSID_USE_GPUS");
 	variables = GPUvariables;
 	break;
     case PSPIN_DEV_TYPE_NIC:
+	if (getenv("__PSID_SKIP_PIN_NICS")) {
+	    unsetenv("__PSID_SKIP_PIN_NICS");
+	    return;
+	}
 	typename = "NIC";
 	numDevs = PSIDnodes_numNICs(PSC_getMyID());
 	usable = getenv("__PSID_USE_NICS");
-	unsetenv("__PSID_USE_NICS");
 	variables = NICvariables;
 	break;
     default:
