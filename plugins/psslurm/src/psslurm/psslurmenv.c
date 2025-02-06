@@ -610,8 +610,13 @@ static void setGResJobEnv(list_t *gresList, env_t env)
 	    /* always set informational variable */
 	    envSet(env, "SLURM_JOB_GPUS", strbufStr(strList));
 
-	    /* deactivate automatic GPU pinning in PSIDpin_doClamps() */
-	    envSet(env, "__PSID_USE_GPUS", "");
+	    /* tell doClamps() which gpus to use
+	     * this is for the case of using pure mpiexec in the job script
+	     * or from the interactive step */
+	    envSet(env, "__PSID_USE_GPUS", strbufStr(strList));
+
+	    /* deactivate automatic GPU pinning in next PSIDpin_doClamps() */
+	    envSet(env, "__PSID_SKIP_PIN_GPUS", "1");
 
 	    /* append some spaces to help step code to detect whether
 	     * the user has changed the variable in his job script */
