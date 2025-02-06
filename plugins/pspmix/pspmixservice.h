@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,11 +23,13 @@
 
 #include <pmix_common.h>
 
+#include "list.h"
 #include "psnodes.h"
 #include "psstrv.h"
 #include "pstask.h"
 
 #include "pspmixserver.h"
+#include "pspmixuserserver.h"
 #include "pspmixtypes.h"
 
 /**
@@ -419,6 +421,54 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
  */
 void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 			      uint32_t np, PSnodes_ID_t node);
+
+typedef uint64_t log_request_handle_t;
+
+typedef uint64_t log_call_handle_t;
+
+/**
+ * @brief Add a new log call
+ *
+ * @return Handle for the created log call
+ */
+log_call_handle_t pspmix_service_addLogCall(void *cb);
+
+void pspmix_service_addLogOnce(log_call_handle_t call_handle);
+
+/**
+ * @brief Add a new Log Request to an existing call
+ *
+ * @param call_handle  Handle of the log call this request belongs to
+ * @param channel  Channel to be logged to
+ * @param str      String to be logged
+ * @param priority Priority of the message if the channel supports that notion (f.ex. pmix.log.syslog)
+ * 
+ * @return Handle for the created log request
+ */
+log_request_handle_t pspmix_service_addLogRequest(log_call_handle_t call_handle,
+						  PspmixLogChannel_t channel,
+						  const char *str,
+						  uint32_t priority);
+
+/**
+ * @brief Execute an existing log call
+ *
+ * Previous to calling this function, you need to call @a
+ * pspmix_service_addLogCall followed by @a pspmix_service_addLogRequest at
+ * least once to add a log request to be performed. If you did not, this is a
+ * no op. After this action no further @a pspmix_service_addLogRequest are
+ * allowed with this @a call_handle
+ *
+ * @param client      requesting client
+ * @param uid         user id of the requester
+ * @param gid         group id of the requester
+ * @param call_handle Handle of the log call to be executed
+ */
+void pspmix_service_executeLogCall(const pmix_proc_t *client, uint32_t uid,
+				   uint32_t gid, log_call_handle_t call_handle);
+
+void pspmix_service_handleClientLogResp(log_request_handle_t request_handle, bool log_success);
+
 #endif  /* __PS_PMIX_SERVICE */
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

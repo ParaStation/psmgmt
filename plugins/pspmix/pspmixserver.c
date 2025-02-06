@@ -1608,6 +1608,17 @@ static void server_tool_connection_cb(pmix_info_t *info, size_t ninfo,
     /* not implemented */
 }
 
+static void dbg_pmix_info_t(const pmix_proc_t *client, char *arr_name,
+			    const pmix_info_t *arr, size_t arr_size) {
+    fdbg(PSPMIX_LOG_LOGGING, "%s:\n", arr_name);
+    for (size_t i = 0; i < arr_size; i++) {
+	char * istr = PMIx_Info_string(arr+i);
+	fdbg(PSPMIX_LOG_LOGGING, "  %s\n", istr);
+	free(istr);
+    }
+    fdbg(PSPMIX_LOG_LOGGING, "\n");
+}
+
 /* Log data on behalf of a client.
  * This function is not intended for output of computational results, but rather
  * for reporting status and error messages. The host must not execute the
@@ -1618,20 +1629,106 @@ static void server_log_cb(const pmix_proc_t *client,
 			  const pmix_info_t directives[], size_t ndirs,
 			  pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "client %s:%d ndata %zd ndirs %zd\n",
-	 client->nspace, client->rank, ndata, ndirs);
+    fdbg(PSPMIX_LOG_CALL, "client %s:%d ndata %zd ndirs %zd\n", client->nspace,
+	 client->rank, ndata, ndirs);
+    dbg_pmix_info_t(client, "data", data, ndata);
+    dbg_pmix_info_t(client, "directives", directives, ndirs);
 
-    flog("%s:%d reports:", client->nspace, client->rank);
+    mycbfunc_t *cb = NULL;
+    if (cbfunc) INIT_CBFUNC(cb, cbfunc, cbdata);
+
+    log_call_handle_t call_handle = pspmix_service_addLogCall(cb);
+    uint32_t uid = UINT32_MAX, gid = UINT32_MAX;
+    int syslog_priority = -1;
     for (size_t i = 0; i < ndata; i++) {
-	char * istr = PMIx_Info_string(data+i);
-	mlog(" '%s'", istr);
-	free(istr);
+	const pmix_info_t *this = data + i;
+	if (PMIX_CHECK_KEY(this, PMIX_USERID)) {
+	    uid = this->value.data.uint32;
+	} else if (PMIX_CHECK_KEY(this, PMIX_GRPID)) {
+	    gid = this->value.data.uint32;
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_ONCE)) {
+	    pspmix_service_addLogOnce(call_handle);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDERR)) {
+	    pspmix_service_addLogRequest(call_handle,
+					 PSPMIX_LOG_CHANNEL_STDERR,
+					 this->value.data.string, 0);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDOUT)) {
+	    pspmix_service_addLogRequest(call_handle,
+					 PSPMIX_LOG_CHANNEL_STDOUT,
+					 this->value.data.string, 0);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG)
+		|| PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)
+		|| PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_SYSLOG)) {
+	    if (syslog_priority < 0) {
+		for (size_t j = i + 1; j < ndata; j++) {
+		    if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG_PRI)) {
+			syslog_priority = data[j].value.data.integer;
+		    }
+		}
+		/* set default ERROR if not found */
+		if (syslog_priority < 0) syslog_priority = 3;
+	    }
+	    if (PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)) {
+		pspmix_service_addLogRequest(call_handle,
+					     PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL,
+					     this->value.data.string,
+					     syslog_priority);
+	    } else {
+		pspmix_service_addLogRequest(call_handle,
+					     PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL,
+					     this->value.data.string,
+					     syslog_priority);
+	    }
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG_PRI)) {
+	    syslog_priority = this->value.data.integer;
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_TIMESTAMP)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_TAG_OUTPUT)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_TIMESTAMP_OUTPUT)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_XML_OUTPUT)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_ONCE)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_MSG)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_KEY)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_VAL)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_AGG)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL_ADDR)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL_SENDER_ADDR)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL_MSG)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL_SERVER)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL_SRVR_PORT)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_DATASTORE)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_JOB_RECORD)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_PROC_TERMINATION)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_PROC_ABNORMAL_TERMINATION)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_JOB_EVENTS)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_COMPLETION)) {
+	    flog("unsupported key '%s'\n", this->key);
+	} else {
+	    flog("unknown key '%s'\n", this->key);
+	}
     }
-    mlog("\n");
 
-    // @todo implement
-
-    flog("NOT IMPLEMENTED\n");
+    pspmix_service_executeLogCall(client, uid, gid, call_handle);
 }
 
 /* Request new allocation or modifications to an existing allocation on behalf
