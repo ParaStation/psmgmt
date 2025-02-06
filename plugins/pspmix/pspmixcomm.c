@@ -16,6 +16,7 @@
 
 #include <errno.h>
 #include <pthread.h>
+#include <inttypes.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -36,7 +37,7 @@
 #include "pspmixtypes.h"
 
 /**
- * Extra to add to header of each message for identify target during
+ * Extra to add to header of each message for identify destination during
  * message forwarding in the psid
  */
 static PspmixMsgExtra_t extra;
@@ -748,13 +749,13 @@ bool pspmix_comm_sendTermClients(PSnodes_ID_t dests[], size_t ndests,
     return true;
 }
 
-bool pspmix_comm_sendFenceData(PStask_ID_t *dest, uint8_t nDest,
+bool pspmix_comm_sendFenceData(PStask_ID_t dests[], uint8_t nDest,
 			       uint64_t fenceID, uint16_t senderRank,
 			       uint16_t nBlobs, char *data, size_t len)
 {
     if (mset(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM)) {
-	flog("0x%016lX to [%s", fenceID, nDest ? PSC_printTID(dest[0]) : "");
-	for (uint8_t d = 1; d < nDest; d++) mlog(",%s", PSC_printTID(dest[d]));
+	flog("0x%016lX to [%s", fenceID, nDest ? PSC_printTID(dests[0]) : "");
+	for (uint8_t d = 1; d < nDest; d++) mlog(",%s", PSC_printTID(dests[d]));
 	mlog("] uid %d nBlobs %u len %zu\n", extra.uid, nBlobs, len);
     }
     if (!nDest) return true;
@@ -762,7 +763,7 @@ bool pspmix_comm_sendFenceData(PStask_ID_t *dest, uint8_t nDest,
     pthread_mutex_lock(&send_lock);
     PS_SendDB_t msg;
     initFragPspmix(&msg, PSPMIX_FENCE_DATA);
-    for (uint8_t d = 0; d < nDest; d++) setFragDest(&msg, dest[d]);
+    for (uint8_t d = 0; d < nDest; d++) setFragDest(&msg, dests[d]);
 
     addUint64ToMsg(fenceID, &msg);
     addUint16ToMsg(senderRank, &msg);
@@ -772,8 +773,8 @@ bool pspmix_comm_sendFenceData(PStask_ID_t *dest, uint8_t nDest,
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
-	flog("0x%016lX to [%s", fenceID, PSC_printTID(dest[0]));
-	for (uint8_t d = 1; d < nDest; d++) mlog(",%s", PSC_printTID(dest[d]));
+	flog("0x%016lX to [%s", fenceID, PSC_printTID(dests[0]));
+	for (uint8_t d = 1; d < nDest; d++) mlog(",%s", PSC_printTID(dests[d]));
 	mlog("] nBlobs %u failed\n", nBlobs);
 	return false;
     }
@@ -781,17 +782,17 @@ bool pspmix_comm_sendFenceData(PStask_ID_t *dest, uint8_t nDest,
     return true;
 }
 
-bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote node */,
+bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t dest /* remote node */,
 				      const char *nspace, uint32_t rank,
 				      char **reqKeys, int32_t timeout)
 {
-    fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "target %d nspace %s rank %d\n",
-	 target, nspace, rank);
+    fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %d nspace %s rank %d\n",
+	 dest, nspace, rank);
 
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
     initFragPspmix(&msg, PSPMIX_MODEX_DATA_REQ);
-    setFragDest(&msg, PSC_getTID(target, 0));
+    setFragDest(&msg, PSC_getTID(dest, 0));
 
     addStringToMsg(nspace, &msg);
     addUint32ToMsg(rank, &msg);
@@ -801,7 +802,7 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote node */,
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
-	flog("target %s nspace %s rank %d failed\n", PSC_printTID(target),
+	flog("dest %s nspace %s rank %d failed\n", PSC_printTID(dest),
 	     nspace, rank);
 	return false;
     }
