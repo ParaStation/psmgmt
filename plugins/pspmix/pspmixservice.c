@@ -102,8 +102,6 @@ typedef struct {
 
 typedef uint64_t log_call_handle_t;
 
-static log_request_handle_t const NULL_REQUEST_HANDLE = 0;
-
 /**
  * PMIx log call (consists of 0..n log requests) */
 typedef struct {
@@ -112,8 +110,6 @@ typedef struct {
     void *cb;
     log_call_handle_t call_handle; /**< strictly monotone ascending id of requests */
     bool log_once;
-    log_request_handle_t first; /**< first request of this call */
-    log_request_handle_t last;	/**< last request of thiss call */
 } PspmixLogCall_t;
 
 /**
@@ -547,8 +543,6 @@ void printJob(PspmixJob_t *job)
 	for (size_t i = 0; i < rinfo->nEntries; i++) {
 	    flog("    entry %zu:\n", i);
 	    flog("      node: %d\n", rinfo->entries[i].node);
-	    flog("      firstRank: %d\n", rinfo->entries[i].firstRank);
-	    flog("      lastRank: %d\n", rinfo->entries[i].lastRank);
 	}
 	flog("    nLocalSlots: %hu\n", rinfo->nLocalSlots);
     }
@@ -2392,8 +2386,6 @@ void pspmix_service_addLogRequest(PspmixLogChannel_t channel, const char *str,
 	currentLogCall->call_handle = next_call_handle++;
 	currentLogCall->cb = NULL;
 	currentLogCall->log_once = false;
-	currentLogCall->first = NULL_REQUEST_HANDLE;
-	currentLogCall->last = NULL_REQUEST_HANDLE;
     }
 
     PspmixLogRequest_t *entry = umalloc(sizeof(*entry));
@@ -2407,10 +2399,6 @@ void pspmix_service_addLogRequest(PspmixLogChannel_t channel, const char *str,
     entry->request_handle = next_request_handle++;
 
     list_add_tail(&entry->next, &currentLogCall->requests);
-
-    if (currentLogCall->first == NULL_REQUEST_HANDLE)
-	currentLogCall->first = entry->request_handle;
-    currentLogCall->last = entry->request_handle;
 }
 
 static PStask_ID_t getFwTID(const pmix_proc_t *caller)
@@ -2460,12 +2448,9 @@ static void tryFinishLogCall(log_call_handle_t call_handle)
 	{
 	    PspmixLogRequest_t *entry
 		= list_entry(pos, PspmixLogRequest_t, next);
-	    if (entry->request_handle > call->last) break;
-	    if (entry->request_handle >= call->first) {
-		if (!entry->finished) {
-		    all_finished = false;
-		    break;
-		}
+	    if (!entry->finished) {
+		all_finished = false;
+		break;
 	    }
 	}
 	if (all_finished) {
@@ -2477,21 +2462,18 @@ static void tryFinishLogCall(log_call_handle_t call_handle)
 	    {
 		PspmixLogRequest_t *entry
 		    = list_entry(pos, PspmixLogRequest_t, next);
-		if (entry->request_handle > call->last) break;
-		if (entry->request_handle >= call->first) {
-		    if (entry->success) {
-			all_failed = false;
-		    } else {
-			all_succeeded = false;
-		    }
-		    if (entry->supported) {
-			all_unsupported = false;
-		    }
-
-		    list_del(pos);
-		    free(entry->str);
-		    free(entry);
+		if (entry->success) {
+		    all_failed = false;
+		} else {
+		    all_succeeded = false;
 		}
+		if (entry->supported) {
+		    all_unsupported = false;
+		}
+
+		list_del(pos);
+		free(entry->str);
+		free(entry);
 	    }
 	    if (all_unsupported) {
 		pspmix_server_operationFinished(PMIX_ERR_NOT_SUPPORTED,
@@ -2534,38 +2516,35 @@ void pspmix_service_log(const pmix_proc_t *client, uint32_t uid, uint32_t gid,
     {
 	PspmixLogRequest_t *entry
 	    = list_entry(pos, PspmixLogRequest_t, next);
-	if (entry->request_handle > currentLogCall->last) break;
-	if (entry->request_handle >= currentLogCall->first) {
-	    fdbg(PSPMIX_LOG_LOGGING,
-		 "Name=%s, Priority=%i String='%s'\n",
-		 pspmix_log_channel_names[entry->channel], entry->priority,
-		 entry->str);
+	fdbg(PSPMIX_LOG_LOGGING,
+	     "Name=%s, Priority=%i String='%s'\n",
+	     pspmix_log_channel_names[entry->channel], entry->priority,
+	     entry->str);
 
-	    switch (entry->channel) {
-	    case PSPMIX_LOG_CHANNEL_STDERR:
-	    case PSPMIX_LOG_CHANNEL_STDOUT:
-		entry->supported = true;
-		if (ignore_requests) {
-		    entry->finished = true;
-		    break;
-		}
-		if (sendClientLogRequest(client, entry)) {
-		    // we assume this logging will succeed
-		    // thus ignore other log requests iff log_once
-		    if (currentLogCall->log_once) ignore_requests = true;
-		}
-		break;
-	    case PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL:
-		/* Not supported due to ambigous choices of gateway nodes
-		in complex job f.ex. malliable jobs */
-	    case PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL:
-		/* Not supported due to 'local' node being bad choice for
-		syslogs. Our logs appear on the MS and we don't want to
-		split these up */
+	switch (entry->channel) {
+	case PSPMIX_LOG_CHANNEL_STDERR:
+	case PSPMIX_LOG_CHANNEL_STDOUT:
+	    entry->supported = true;
+	    if (ignore_requests) {
 		entry->finished = true;
-	    default:
 		break;
 	    }
+	    if (sendClientLogRequest(client, entry)) {
+		// we assume this logging will succeed
+		// thus ignore other log requests iff log_once
+		if (currentLogCall->log_once) ignore_requests = true;
+	    }
+	    break;
+	case PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL:
+	    /* Not supported due to ambigous choices of gateway nodes
+	    in complex job f.ex. malliable jobs */
+	case PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL:
+	    /* Not supported due to 'local' node being bad choice for
+	    syslogs. Our logs appear on the MS and we don't want to
+	    split these up */
+	    entry->finished = true;
+	default:
+	    break;
 	}
     }
 
