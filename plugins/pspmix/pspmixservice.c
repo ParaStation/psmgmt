@@ -2435,65 +2435,63 @@ static bool sendClientLogRequest(const pmix_proc_t *client,
 }
 
 // main thread
-static void tryFinishLogCall(log_call_handle_t call_handle)
+static bool tryFinishLogCall(PspmixLogCall_t * call)
 {
-    fdbg(PSPMIX_LOG_CALL, "call_handle = %" PRIu64 "\n", call_handle);
+    fdbg(PSPMIX_LOG_CALL, "call_handle = %" PRIu64 "\n", call->call_handle);
 
-    GET_LOCK(logCallList);
-    PspmixLogCall_t *call = getLogCall(call_handle);
-    if (call) {
-	bool all_finished = true;
-	list_t *pos, *tmp;
-	list_for_each(pos, &call->requests)
-	{
-	    PspmixLogRequest_t *entry
-		= list_entry(pos, PspmixLogRequest_t, next);
-	    if (!entry->finished) {
-		all_finished = false;
-		break;
-	    }
-	}
-	if (all_finished) {
-	    bool all_succeeded = true;
-	    bool all_failed = true;
-	    bool all_unsupported = true;
+    if (!call) return false;
 
-	    list_for_each_safe(pos, tmp, &call->requests)
-	    {
-		PspmixLogRequest_t *entry
-		    = list_entry(pos, PspmixLogRequest_t, next);
-		if (entry->success) {
-		    all_failed = false;
-		} else {
-		    all_succeeded = false;
-		}
-		if (entry->supported) {
-		    all_unsupported = false;
-		}
-
-		list_del(pos);
-		free(entry->str);
-		free(entry);
-	    }
-	    if (all_unsupported) {
-		pspmix_server_operationFinished(PMIX_ERR_NOT_SUPPORTED,
-						call->cb);
-	    } else if (all_failed) {
-		pspmix_server_operationFinished(PMIX_ERROR, call->cb);
-	    } else if (all_succeeded || call->log_once) {
-		pspmix_server_operationFinished(PMIX_SUCCESS, call->cb);
-	    } else {
-		pspmix_server_operationFinished(PMIX_ERR_PARTIAL_SUCCESS,
-						call->cb);
-	    }
-
-	    list_del(&call->next);
-	    free(call);
-	} else {
-	    fdbg(PSPMIX_LOG_CALL, "Pending log requests\n");
+    bool all_finished = true;
+    list_t *pos, *tmp;
+    list_for_each(pos, &call->requests)
+    {
+	PspmixLogRequest_t *entry
+	    = list_entry(pos, PspmixLogRequest_t, next);
+	if (!entry->finished) {
+	    all_finished = false;
+	    break;
 	}
     }
-    RELEASE_LOCK(logCallList);
+
+    if (!all_finished) {
+	fdbg(PSPMIX_LOG_CALL, "Pending log requests\n");
+	return false;
+    }
+
+    bool all_succeeded = true;
+    bool all_failed = true;
+    bool all_unsupported = true;
+
+    list_for_each_safe(pos, tmp, &call->requests)
+    {
+	PspmixLogRequest_t *entry
+	    = list_entry(pos, PspmixLogRequest_t, next);
+	if (entry->success) {
+	    all_failed = false;
+	} else {
+	    all_succeeded = false;
+	}
+	if (entry->supported) {
+	    all_unsupported = false;
+	}
+
+	list_del(pos);
+	free(entry->str);
+	free(entry);
+    }
+    if (all_unsupported) {
+	pspmix_server_operationFinished(PMIX_ERR_NOT_SUPPORTED,
+					call->cb);
+    } else if (all_failed) {
+	pspmix_server_operationFinished(PMIX_ERROR, call->cb);
+    } else if (all_succeeded || call->log_once) {
+	pspmix_server_operationFinished(PMIX_SUCCESS, call->cb);
+    } else {
+	pspmix_server_operationFinished(PMIX_ERR_PARTIAL_SUCCESS,
+					call->cb);
+    }
+
+    return true;
 }
 
 // library thread
@@ -2548,13 +2546,18 @@ void pspmix_service_log(const pmix_proc_t *client, uint32_t uid, uint32_t gid,
 	}
     }
 
-    /* add currentLogCall to the list */
-    GET_LOCK(logCallList);
-    list_add_tail(&currentLogCall->next, &logCallList);
-    RELEASE_LOCK(logCallList);
+    /* try to finish directly */
+    bool finished = tryFinishLogCall(currentLogCall);
 
-    /* @todo this is stipid, searches the just added call */
-    tryFinishLogCall(currentLogCall->call_handle);
+    if (!finished) {
+	/* add currentLogCall to the list */
+	GET_LOCK(logCallList);
+	list_add_tail(&currentLogCall->next, &logCallList);
+	RELEASE_LOCK(logCallList);
+    } else {
+	ufree(currentLogCall);
+    }
+
 
     /* reset currentLogCall pointer */
     currentLogCall = NULL;
@@ -2569,13 +2572,21 @@ void pspmix_service_handleClientLogResp(log_request_handle_t request_handle,
     fdbg(PSPMIX_LOG_CALL, "\n");
 
     PspmixLogRequest_t *request = getLogRequest(request_handle);
-    if (request) {
-	request->finished = true;
-	request->success = log_success;
-	tryFinishLogCall(request->call_handle);
-    } else {
+    if (!request) {
 	flog("Request handle '%" PRIu64 "' not found", request_handle);
+	return;
     }
+
+    request->finished = true;
+    request->success = log_success;
+
+    GET_LOCK(logCallList);
+    PspmixLogCall_t *call = getLogCall(request->call_handle);
+    if (tryFinishLogCall(call)) {
+	list_del(&call->next);
+	ufree(call);
+    }
+    RELEASE_LOCK(logCallList);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
