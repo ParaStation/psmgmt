@@ -104,7 +104,6 @@ typedef struct {
  * PMIx log call (consists of 0..n log requests) */
 typedef struct {
     list_t next;       /**< list head to put into LogCallList */
-    uint64_t id;       /**< strictly monotone ascending id of requests */
     list_t requests;   /**< list of requests belonging to this call */
     void *cb;          /**< callback information */
     bool log_once;     /**< log once flag */
@@ -2337,18 +2336,6 @@ const char * pspmix_log_channel_names[] = {
     "JOB_RECORD"
 };
 
-static PspmixLogCall_t *findLogCall(uint64_t id)
-{
-    list_t *c;
-    list_for_each(c, &logCallList)
-    {
-	PspmixLogCall_t *call = list_entry(c, PspmixLogCall_t, next);
-	if (call->id == id) { return call; }
-	if (call->id > id) { break; }
-    }
-    return NULL;
-}
-
 static PspmixLogRequest_t *findLogRequest(uint64_t id)
 {
 
@@ -2371,7 +2358,6 @@ static PspmixLogCall_t *currentLogCall = NULL;
 void pspmix_service_addLogRequest(PspmixLogChannel_t channel, const char *str,
 			     uint32_t priority)
 {
-    static uint16_t nextCallID = 1;
     static uint16_t nextRequestID = 1;
 
     if (!currentLogCall) {
@@ -2379,7 +2365,6 @@ void pspmix_service_addLogRequest(PspmixLogChannel_t channel, const char *str,
 	currentLogCall->next.next = NULL;
 	currentLogCall->next.prev = NULL;
 	INIT_LIST_HEAD(&currentLogCall->requests);
-	currentLogCall->id = nextCallID++;
 	currentLogCall->cb = NULL;
 	currentLogCall->log_once = false;
     }
@@ -2433,7 +2418,7 @@ static bool sendClientLogRequest(const pmix_proc_t *client,
 // main thread
 static bool tryFinishLogCall(PspmixLogCall_t *call)
 {
-    fdbg(PSPMIX_LOG_CALL, "callID = %" PRIu64 "\n", call->id);
+    fdbg(PSPMIX_LOG_CALL, "callID = %p\n", call);
 
     if (!call) return false;
 
@@ -2494,7 +2479,7 @@ static bool tryFinishLogCall(PspmixLogCall_t *call)
 void pspmix_service_log(const pmix_proc_t *client, uint32_t uid, uint32_t gid,
 			bool log_once, void *cb)
 {
-    fdbg(PSPMIX_LOG_CALL, "call_handle = %" PRIu64 "\n", currentLogCall->id);
+    fdbg(PSPMIX_LOG_CALL, "call_handle = %p\n", currentLogCall);
 
     currentLogCall->log_once = log_once;
     currentLogCall->cb = cb;
