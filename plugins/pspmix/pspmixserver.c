@@ -1634,12 +1634,9 @@ static void server_log_cb(const pmix_proc_t *client,
     dbg_pmix_info_t(client, "data", data, ndata);
     dbg_pmix_info_t(client, "directives", directives, ndirs);
 
-    mycbfunc_t *cb = NULL;
-    if (cbfunc) INIT_CBFUNC(cb, cbfunc, cbdata);
-
-    log_call_handle_t call_handle = pspmix_service_addLogCall(cb);
     uint32_t uid = UINT32_MAX, gid = UINT32_MAX;
     int syslog_priority = -1;
+    bool log_once = false;
     for (size_t i = 0; i < ndata; i++) {
 	const pmix_info_t *this = data + i;
 	if (PMIX_CHECK_KEY(this, PMIX_USERID)) {
@@ -1647,14 +1644,12 @@ static void server_log_cb(const pmix_proc_t *client,
 	} else if (PMIX_CHECK_KEY(this, PMIX_GRPID)) {
 	    gid = this->value.data.uint32;
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_ONCE)) {
-	    pspmix_service_addLogOnce(call_handle);
+	    log_once = true;
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDERR)) {
-	    pspmix_service_addLogRequest(call_handle,
-					 PSPMIX_LOG_CHANNEL_STDERR,
+	    pspmix_service_addLogRequest(PSPMIX_LOG_CHANNEL_STDERR,
 					 this->value.data.string, 0);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDOUT)) {
-	    pspmix_service_addLogRequest(call_handle,
-					 PSPMIX_LOG_CHANNEL_STDOUT,
+	    pspmix_service_addLogRequest(PSPMIX_LOG_CHANNEL_STDOUT,
 					 this->value.data.string, 0);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG)
 		|| PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)
@@ -1669,13 +1664,11 @@ static void server_log_cb(const pmix_proc_t *client,
 		if (syslog_priority < 0) syslog_priority = 3;
 	    }
 	    if (PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)) {
-		pspmix_service_addLogRequest(call_handle,
-					     PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL,
+		pspmix_service_addLogRequest(PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL,
 					     this->value.data.string,
 					     syslog_priority);
 	    } else {
-		pspmix_service_addLogRequest(call_handle,
-					     PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL,
+		pspmix_service_addLogRequest(PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL,
 					     this->value.data.string,
 					     syslog_priority);
 	    }
@@ -1728,7 +1721,10 @@ static void server_log_cb(const pmix_proc_t *client,
 	}
     }
 
-    pspmix_service_executeLogCall(client, uid, gid, call_handle);
+    mycbfunc_t *cb = NULL;
+    if (cbfunc) INIT_CBFUNC(cb, cbfunc, cbdata);
+
+    pspmix_service_log(client, uid, gid, log_once, cb);
 }
 
 /* Request new allocation or modifications to an existing allocation on behalf

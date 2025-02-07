@@ -424,31 +424,16 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 
 typedef uint64_t log_request_handle_t;
 
-typedef uint64_t log_call_handle_t;
-
-/**
- * @brief Add a new log call
- *
- * @return Handle for the created log call
- */
-log_call_handle_t pspmix_service_addLogCall(void *cb);
-
-void pspmix_service_addLogOnce(log_call_handle_t call_handle);
-
 /**
  * @brief Add a new Log Request to an existing call
  *
- * @param call_handle  Handle of the log call this request belongs to
  * @param channel  Channel to be logged to
  * @param str      String to be logged
- * @param priority Priority of the message if the channel supports that notion (f.ex. pmix.log.syslog)
- * 
- * @return Handle for the created log request
+ * @param priority Priority of the message if the channel supports that notion
+ *		   (f.ex. pmix.log.syslog)
  */
-log_request_handle_t pspmix_service_addLogRequest(log_call_handle_t call_handle,
-						  PspmixLogChannel_t channel,
-						  const char *str,
-						  uint32_t priority);
+void pspmix_service_addLogRequest(PspmixLogChannel_t channel, const char *str,
+			     uint32_t priority);
 
 /**
  * @brief Execute an existing log call
@@ -462,12 +447,14 @@ log_request_handle_t pspmix_service_addLogRequest(log_call_handle_t call_handle,
  * @param client      requesting client
  * @param uid         user id of the requester
  * @param gid         group id of the requester
- * @param call_handle Handle of the log call to be executed
+ * @param log_once    log once flag
+ * @param cb Callback object to pass back to return callback
  */
-void pspmix_service_executeLogCall(const pmix_proc_t *client, uint32_t uid,
-				   uint32_t gid, log_call_handle_t call_handle);
+void pspmix_service_log(const pmix_proc_t *client, uint32_t uid, uint32_t gid,
+			bool log_once, void *cb);
 
-void pspmix_service_handleClientLogResp(log_request_handle_t request_handle, bool log_success);
+void pspmix_service_handleClientLogResp(log_request_handle_t request_handle,
+				        bool log_success);
 
 #endif  /* __PS_PMIX_SERVICE */
 

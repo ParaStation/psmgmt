@@ -17,6 +17,7 @@
 #include <pmix.h>
 #include <inttypes.h>
 
+#include "list.h"
 #include "psattribute.h"
 #include "pscommon.h"
 #include "pscpu.h"
@@ -99,16 +100,17 @@ typedef struct {
     uint32_t opts;             /**< spawn options: PSPMIX_SPAWNOPT_* */
 } PspmixSpawn_t;
 
+typedef uint64_t log_call_handle_t;
+
 static log_request_handle_t const NULL_REQUEST_HANDLE = 0;
-static log_call_handle_t const NULL_CALL_HANDLE = 0;
 
 /**
  * PMIx log call (consists of 0..n log requests) */
 typedef struct {
     list_t next; /**< list head to put into LogCallList */
+    list_t requests; /**< list of requests belonging to this call */
     void *cb;
-    log_call_handle_t
-	call_handle; /**< strictly monotone ascending id of requests */
+    log_call_handle_t call_handle; /**< strictly monotone ascending id of requests */
     bool log_once;
     log_request_handle_t first; /**< first request of this call */
     log_request_handle_t last;	/**< last request of thiss call */
@@ -145,12 +147,9 @@ static LIST_HEAD(modexRequestList);
 /** A list of open spawns initiated by this node (via this PMIx server) */
 static LIST_HEAD(spawnList);
 
-/** A list of open log requests initiated by this node (via this PMIx server) */
-static LIST_HEAD(logRequestList);
 /** A counter of used log request handles (uses same lock as above)*/
 log_request_handle_t next_request_handle = 1;
 
-/** A list of open log requests initiated by this node (via this PMIx server) */
 static LIST_HEAD(logCallList);
 /** A counter of used log call handles (uses same lock as above)*/
 log_call_handle_t next_call_handle = 1;
@@ -168,9 +167,6 @@ static pthread_mutex_t modexRequestList_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* mutex to synchronize access to spawnList */
 static pthread_mutex_t spawnList_lock = PTHREAD_MUTEX_INITIALIZER;
-
-/* mutex to synchronize access to logRequestList */
-static pthread_mutex_t logRequestList_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* mutex to synchronize access to logCallList */
 static pthread_mutex_t logCallList_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -2368,68 +2364,53 @@ PspmixLogCall_t *getLogCall(log_call_handle_t call_handle)
 
 PspmixLogRequest_t *getLogRequest(log_request_handle_t request_handle)
 {
-    list_t *pos;
-    list_for_each(pos, &logRequestList)
-    {
-	PspmixLogRequest_t *entry = list_entry(pos, PspmixLogRequest_t, next);
-	if (entry->request_handle == request_handle) { return entry; }
-	if (entry->request_handle > request_handle) { break; }
+
+    list_t *c;
+    list_for_each(c, &logCallList) {
+	PspmixLogCall_t *call = list_entry(c, PspmixLogCall_t, next);
+	list_t *r;
+	list_for_each(r, &call->requests) {
+	    PspmixLogRequest_t *entry = list_entry(r, PspmixLogRequest_t, next);
+	    if (entry->request_handle == request_handle) { return entry; }
+	    if (entry->request_handle > request_handle) { break; }
+	}
     }
     return NULL;
 }
 
-// library thread
-void pspmix_service_addLogOnce(log_call_handle_t call_handle)
-{
-    PspmixLogCall_t *call = getLogCall(call_handle);
-    if (call) { call->log_once = true; }
-}
+static PspmixLogCall_t *currentLogCall = NULL;
 
 // library thread
-log_call_handle_t pspmix_service_addLogCall(void *cb)
-{
-    PspmixLogCall_t *entry = umalloc(sizeof(*entry));
-    entry->cb = cb;
-    entry->log_once = false;
-    entry->first = NULL_REQUEST_HANDLE;
-    entry->last = NULL_REQUEST_HANDLE;
-    GET_LOCK(logCallList);
-    entry->call_handle = next_call_handle++;
-    list_add_tail(&entry->next, &logCallList);
-    RELEASE_LOCK(logCallList);
-    return entry->call_handle;
-}
-
-// library thread
-log_request_handle_t
-pspmix_service_addLogRequest(log_call_handle_t call_handle,
-			     PspmixLogChannel_t channel, const char *str,
+void pspmix_service_addLogRequest(PspmixLogChannel_t channel, const char *str,
 			     uint32_t priority)
 {
-    log_request_handle_t res = NULL_REQUEST_HANDLE;
-    // GET_LOCK(logCallList); here, good or bad?
-    PspmixLogCall_t *call = getLogCall(call_handle);
-    if (call) {
-	PspmixLogRequest_t *entry = umalloc(sizeof(*entry));
-	entry->call_handle = call_handle;
-	entry->finished = false;
-	entry->supported = false;
-	entry->success = false;
-	entry->channel = channel;
-	entry->str = ustrdup(str);
-	entry->priority = priority;
-	GET_LOCK(logRequestList);
-	entry->request_handle = next_request_handle++;
-	list_add_tail(&entry->next, &logRequestList);
-	RELEASE_LOCK(logRequestList);
-
-	if (call->first == NULL_CALL_HANDLE)
-	    call->first = entry->request_handle;
-	call->last = entry->request_handle;
-
-	res = entry->request_handle;
+    if (!currentLogCall) {
+	currentLogCall = umalloc(sizeof(*currentLogCall));
+	currentLogCall->next.next = NULL;
+	currentLogCall->next.prev = NULL;
+	INIT_LIST_HEAD(&currentLogCall->requests);
+	currentLogCall->call_handle = next_call_handle++;
+	currentLogCall->cb = NULL;
+	currentLogCall->log_once = false;
+	currentLogCall->first = NULL_REQUEST_HANDLE;
+	currentLogCall->last = NULL_REQUEST_HANDLE;
     }
-    return res;
+
+    PspmixLogRequest_t *entry = umalloc(sizeof(*entry));
+    entry->call_handle = currentLogCall->call_handle;
+    entry->finished = false;
+    entry->supported = false;
+    entry->success = false;
+    entry->channel = channel;
+    entry->str = ustrdup(str);
+    entry->priority = priority;
+    entry->request_handle = next_request_handle++;
+
+    list_add_tail(&entry->next, &currentLogCall->requests);
+
+    if (currentLogCall->first == NULL_REQUEST_HANDLE)
+	currentLogCall->first = entry->request_handle;
+    currentLogCall->last = entry->request_handle;
 }
 
 static PStask_ID_t getFwTID(const pmix_proc_t *caller)
@@ -2470,13 +2451,12 @@ static void tryFinishLogCall(log_call_handle_t call_handle)
 {
     fdbg(PSPMIX_LOG_CALL, "call_handle = %" PRIu64 "\n", call_handle);
 
-    PspmixLogCall_t *call = getLogCall(call_handle);
     GET_LOCK(logCallList);
+    PspmixLogCall_t *call = getLogCall(call_handle);
     if (call) {
-	GET_LOCK(logRequestList);
 	bool all_finished = true;
 	list_t *pos, *tmp;
-	list_for_each(pos, &logRequestList)
+	list_for_each(pos, &call->requests)
 	{
 	    PspmixLogRequest_t *entry
 		= list_entry(pos, PspmixLogRequest_t, next);
@@ -2493,7 +2473,7 @@ static void tryFinishLogCall(log_call_handle_t call_handle)
 	    bool all_failed = true;
 	    bool all_unsupported = true;
 
-	    list_for_each_safe(pos, tmp, &logRequestList)
+	    list_for_each_safe(pos, tmp, &call->requests)
 	    {
 		PspmixLogRequest_t *entry
 		    = list_entry(pos, PspmixLogRequest_t, next);
@@ -2530,66 +2510,75 @@ static void tryFinishLogCall(log_call_handle_t call_handle)
 	} else {
 	    fdbg(PSPMIX_LOG_CALL, "Pending log requests\n");
 	}
-	RELEASE_LOCK(logRequestList);
     }
     RELEASE_LOCK(logCallList);
 }
 
 // library thread
-void pspmix_service_executeLogCall(const pmix_proc_t *client, uint32_t uid,
-				   uint32_t gid, log_call_handle_t call_handle)
+void pspmix_service_log(const pmix_proc_t *client, uint32_t uid, uint32_t gid,
+			bool log_once, void *cb)
 {
-    fdbg(PSPMIX_LOG_CALL, "call_handle = %" PRIu64 "\n", call_handle);
+    fdbg(PSPMIX_LOG_CALL, "call_handle = %" PRIu64 "\n",
+	 currentLogCall->call_handle);
 
-    PspmixLogCall_t *call = getLogCall(call_handle);
-    if (call) {
-	fdbg(PSPMIX_LOG_LOGGING,
-	     "Logging request log_once=%s log_requests= [\n",
-	     call->log_once ? "true" : "false");
-	bool ignore_requests = false;
+    currentLogCall->log_once = log_once;
+    currentLogCall->cb = cb;
 
-	list_t *pos;
-	list_for_each(pos, &logRequestList)
-	{
-	    PspmixLogRequest_t *entry
-		= list_entry(pos, PspmixLogRequest_t, next);
-	    if (entry->request_handle > call->last) break;
-	    if (entry->request_handle >= call->first) {
-		fdbg(PSPMIX_LOG_LOGGING,
-		     "Name=%s, Priority=%i String='%s'\n",
-		     pspmix_log_channel_names[entry->channel], entry->priority,
-		     entry->str);
+    fdbg(PSPMIX_LOG_LOGGING,
+	 "Logging request log_once=%s log_requests= [\n",
+	 currentLogCall->log_once ? "true" : "false");
+    bool ignore_requests = false;
 
-		switch (entry->channel) {
-		case PSPMIX_LOG_CHANNEL_STDERR:
-		case PSPMIX_LOG_CHANNEL_STDOUT:
-		    entry->supported = true;
-		    if (ignore_requests) {
-			entry->finished = true;
-			break;
-		    }
-		    if (sendClientLogRequest(client, entry)) {
-			// we assume this logging will succeed
-			// thus ignore other log requests iff log_once
-			if (call->log_once) ignore_requests = true;
-		    }
-		    break;
-		case PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL:
-		    /* Not supported due to ambigous choices of gateway nodes
-		    in complex job f.ex. malliable jobs */
-		case PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL:
-		    /* Not supported due to 'local' node being bad choice for
-		    syslogs. Our logs appear on the MS and we don't want to
-		    split these up */
+    list_t *pos;
+    list_for_each(pos, &currentLogCall->requests)
+    {
+	PspmixLogRequest_t *entry
+	    = list_entry(pos, PspmixLogRequest_t, next);
+	if (entry->request_handle > currentLogCall->last) break;
+	if (entry->request_handle >= currentLogCall->first) {
+	    fdbg(PSPMIX_LOG_LOGGING,
+		 "Name=%s, Priority=%i String='%s'\n",
+		 pspmix_log_channel_names[entry->channel], entry->priority,
+		 entry->str);
+
+	    switch (entry->channel) {
+	    case PSPMIX_LOG_CHANNEL_STDERR:
+	    case PSPMIX_LOG_CHANNEL_STDOUT:
+		entry->supported = true;
+		if (ignore_requests) {
 		    entry->finished = true;
-		default:
 		    break;
 		}
+		if (sendClientLogRequest(client, entry)) {
+		    // we assume this logging will succeed
+		    // thus ignore other log requests iff log_once
+		    if (currentLogCall->log_once) ignore_requests = true;
+		}
+		break;
+	    case PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL:
+		/* Not supported due to ambigous choices of gateway nodes
+		in complex job f.ex. malliable jobs */
+	    case PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL:
+		/* Not supported due to 'local' node being bad choice for
+		syslogs. Our logs appear on the MS and we don't want to
+		split these up */
+		entry->finished = true;
+	    default:
+		break;
 	    }
 	}
-
-	tryFinishLogCall(call_handle);
     }
+
+    /* add currentLogCall to the list */
+    GET_LOCK(logCallList);
+    list_add_tail(&currentLogCall->next, &logCallList);
+    RELEASE_LOCK(logCallList);
+
+    /* @todo this is stipid, searches the just added call */
+    tryFinishLogCall(currentLogCall->call_handle);
+
+    /* reset currentLogCall pointer */
+    currentLogCall = NULL;
 
     fdbg(PSPMIX_LOG_LOGGING, "]\n");
 }
