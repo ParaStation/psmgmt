@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2137,6 +2137,7 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 
     PspmixNamespace_t *ns = findNamespace(nspace);
     if (!ns) {
+	RELEASE_LOCK(namespaceList);
 	flog("UNEXPECTED: namespace '%s' not found (fw %s rank %d spawnID"
 	     " %hu)\n", nspace, PSC_printTID(fwTID), rank, spawnID);
 	return;
@@ -2259,6 +2260,7 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 	/* still waiting for the answer to the spawn request */
 	spawn->state = SPAWN_ALLSUCCESS;
 	fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state ALLSUCCESS\n", spawn->id);
+	RELEASE_LOCK(spawnList);
 	return;
     }
 
