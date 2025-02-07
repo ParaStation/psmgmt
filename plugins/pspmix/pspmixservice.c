@@ -1354,7 +1354,11 @@ void pspmix_service_abort(const char *nsName, PspmixClient_t *client)
 
     flog("(rank %d)\n", client->rank);
 
-    /* @todo try to inform user */
+    /* try to inform user */
+    char buf[64];
+    sprintf(buf, "%s: on users request from rank %d\n", __func__, client->rank);
+    pspmix_comm_sendClientLogReq(client->fwtid, 0 /* prevent response */, 0,
+				 PSPMIX_LC_STDERR, buf, 0, 0);
 
     /* just terminate the clients, cleaning up namespace will be triggered by
      * @ref PSPMIX_REMOVE_JOB message that is sent to us by the daemon in
