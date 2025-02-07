@@ -1047,17 +1047,17 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     if (!doSpawn(srdata /* transfers ownership */)) plog("spawn failed");
 }
 
-static bool sendClientLogResp(PStask_ID_t dest, log_request_handle_t request_handle, bool log_success)
+static bool sendClientLogResp(PStask_ID_t dest, uint64_t id, bool success)
 {
-    fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %s log_success %s\n",
-	 PSC_printTID(dest), log_success ? "true" : "false");
+    fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %s success %s\n",
+	 PSC_printTID(dest), success ? "true" : "false");
 
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_CLIENT_LOG_RES);
     setFragDest(&msg, dest);
 
-    addUint64ToMsg(request_handle, &msg);
-    addBoolToMsg(log_success, &msg);
+    addUint64ToMsg(id, &msg);
+    addBoolToMsg(success, &msg);
 
     int ret = sendFragMsg(&msg);
     if (ret < 0) {
@@ -1082,14 +1082,14 @@ static bool sendClientLogResp(PStask_ID_t dest, log_request_handle_t request_han
 static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
     rdbg(PSPMIX_LOG_CALL, "msg %p data %p\n", msg, data);
 
-    PStask_ID_t request_tid;
-    log_request_handle_t request_handle;
+    PStask_ID_t requester;
+    uint64_t id;
     PspmixLogChannel_t channel;
     char *str;
 
     int channel_i;
-    getTaskId(data, &request_tid);
-    getUint64(data, &request_handle);
+    getTaskId(data, &requester);
+    getUint64(data, &id);
     getInt32(data, &channel_i);
     channel = channel_i;
     str = getStringM(data);
@@ -1110,7 +1110,7 @@ static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
     }
     rdbg(PSPMIX_LOG_LOGGING, "Logging completed\n");
 
-    sendClientLogResp(request_tid, request_handle, ret != -1);
+    sendClientLogResp(requester, id, ret != -1);
 }
 
 /**

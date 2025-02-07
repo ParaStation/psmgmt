@@ -422,8 +422,6 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 			      uint32_t np, PSnodes_ID_t node);
 
-typedef uint64_t log_request_handle_t;
-
 /**
  * @brief Add a new Log Request to an existing call
  *
@@ -453,8 +451,12 @@ void pspmix_service_addLogRequest(PspmixLogChannel_t channel, const char *str,
 void pspmix_service_log(const pmix_proc_t *client, uint32_t uid, uint32_t gid,
 			bool log_once, void *cb);
 
-void pspmix_service_handleClientLogResp(log_request_handle_t request_handle,
-				        bool log_success);
+typedef uint64_t PspmixLogRequestID_t;
+
+/**
+ * @todo
+ */
+void pspmix_service_handleClientLogResp(uint64_t requestID, bool success);
 
 #endif  /* __PS_PMIX_SERVICE */
 

@@ -191,13 +191,15 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t dest, const char *nspace,
  * @brief Compose and send a client log request message
  *
  * @param dest       task id of the forwarder to send the message to
- * @param request_handle id of the request
+ * @param requestID  id of the request
  * @param channel    channel to be used for logging. must be supported!
  * @param str        string to be logged
  *
  * @return Returns true iff request message was successfully sent
  */
-bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, log_request_handle_t request_handle, PspmixLogChannel_t channel, const char *str);
+bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, uint64_t requestID,
+				      PspmixLogChannel_t channel,
+				      const char *str);
 
 /**
  * @brief Send a signal message to a process via the daemon

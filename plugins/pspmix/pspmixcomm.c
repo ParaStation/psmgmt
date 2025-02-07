@@ -287,16 +287,16 @@ static void handleClientLogResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
-    log_request_handle_t request_handle;
-    bool log_success;
+    uint64_t id;
+    bool success;
 
-    getUint64(data, &request_handle);
-    getBool(data, &log_success);
+    getUint64(data, &id);
+    getBool(data, &success);
 
-    fdbg(PSPMIX_LOG_COMM, "request_handle %" PRIu64 ", log_success %s)\n",
-	 request_handle, log_success ? "True" : "False");
+    fdbg(PSPMIX_LOG_COMM, "id %" PRIu64 ", success %s)\n", id,
+	 success ? "True" : "False");
 
-    pspmix_service_handleClientLogResp(request_handle, log_success);
+    pspmix_service_handleClientLogResp(id, success);
 }
 
 /**
@@ -892,7 +892,9 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t dest /* fw */,
 }
 
 
-bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, log_request_handle_t request_handle, PspmixLogChannel_t channel, const char *str)
+bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, uint64_t requestID,
+				      PspmixLogChannel_t channel,
+				      const char *str)
 {
     fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %s channel %s str %s\n",
 	 PSC_printTID(dest), pspmix_log_channel_names[channel], str);
@@ -904,7 +906,7 @@ bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, log_request_handle_t req
 
     addTaskIdToMsg(PSC_getMyTID(), &msg);
 
-    addUint64ToMsg(request_handle, &msg);
+    addUint64ToMsg(requestID, &msg);
     addInt32ToMsg(channel, &msg);
     addStringToMsg(str, &msg);
 
