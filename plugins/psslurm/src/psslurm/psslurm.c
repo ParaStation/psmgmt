@@ -673,8 +673,17 @@ static bool assertNoOldPElogues(char *dir)
 	struct stat sbuf;
 	int ret = stat(fName, &sbuf);
 	int eno = errno;
+	if (ret == -1 && eno == ENOENT) {
+	    /* check for dangling symlink */
+	    ret = lstat(fName, &sbuf);
+	    eno = errno;
+	    free(fName);
+	    if (ret == -1 && eno == ENOENT) continue;
+
+	    flog("dangling symlink %s in %s\n", *f, dir);
+	    return false;
+	}
 	free(fName);
-	if (ret == -1 && eno == ENOENT) continue;
 	if (!ret) {
 	    flog("found %s in %s\n", *f, dir);
 	} else {
