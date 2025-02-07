@@ -10,12 +10,11 @@
  */
 #include "pspmixservice.h"
 
+#include <inttypes.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pmix.h>
-#include <inttypes.h>
 
 #include "list.h"
 #include "psattribute.h"

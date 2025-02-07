@@ -26,7 +26,6 @@
 #include "pluginforwarder.h"
 
 #include "pspmixtypes.h"
-#include "pspmixservice.h"
 
 /**
  * @brief Handle messages from our mother psid

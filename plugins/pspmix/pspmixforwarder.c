@@ -56,13 +56,11 @@
 #include "pluginmalloc.h"
 #include "pluginspawn.h"
 
-#include "pspmixconfig.h"
 #include "pspmixcommon.h"
+#include "pspmixconfig.h"
+#include "pspmixdaemon.h"
 #include "pspmixlog.h"
 #include "pspmixtypes.h"
-#include "pspmixdaemon.h"
-#include "pspmixservice.h"
-#include "pspmixcomm.h"
 
 /* psid rank of this forwarder and child */
 static int32_t rank = -1;

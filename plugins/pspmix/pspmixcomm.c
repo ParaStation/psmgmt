@@ -15,8 +15,8 @@
 #include "pspmixcomm.h"
 
 #include <errno.h>
-#include <pthread.h>
 #include <inttypes.h>
+#include <pthread.h>
 
 #include "list.h"
 #include "pscommon.h"

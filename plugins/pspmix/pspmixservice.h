@@ -23,13 +23,11 @@
 
 #include <pmix_common.h>
 
-#include "list.h"
 #include "psnodes.h"
 #include "psstrv.h"
 #include "pstask.h"
 
 #include "pspmixserver.h"
-#include "pspmixuserserver.h"
 #include "pspmixtypes.h"
 
 /**

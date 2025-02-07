@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,16 +15,11 @@
 #include "pspmixuserserver.h"
 
 #include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
-#include <limits.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 
 #include "list.h"
 #include "pscommon.h"
 #include "psidutil.h"
-#include "selector.h"
 
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
