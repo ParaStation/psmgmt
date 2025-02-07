@@ -100,8 +100,6 @@ typedef struct {
     uint32_t opts;             /**< spawn options: PSPMIX_SPAWNOPT_* */
 } PspmixSpawn_t;
 
-typedef uint64_t log_call_handle_t;
-
 /**
  * PMIx log call (consists of 0..n log requests) */
 typedef struct {
@@ -117,7 +115,7 @@ typedef struct {
 typedef struct {
     list_t next;           /**< list head to put into LogRequestList */
     uint64_t id;           /**< strictly monotone ascending id of requests */
-    uint64_t callID;       /**< id of log call, this requst is part of */
+    PspmixLogCall_t *call; /**< id of log call, this requst is part of */
     bool finished;         /**< True iff request has been handled (f.ex. LOG_RES
 		                received) */
     bool supported;        /**< True iff request is supported by pspmix */
@@ -2388,7 +2386,7 @@ void pspmix_service_addLogRequest(PspmixLogChannel_t channel, const char *str,
 
     PspmixLogRequest_t *entry = umalloc(sizeof(*entry));
     entry->id = nextRequestID++;
-    entry->callID = currentLogCall->id;
+    entry->call = currentLogCall;
     entry->finished = false;
     entry->supported = false;
     entry->success = false;
@@ -2576,7 +2574,7 @@ void pspmix_service_handleClientLogResp(uint64_t requestID, bool success)
     request->success = success;
 
     GET_LOCK(logCallList);
-    PspmixLogCall_t *call = findLogCall(request->callID);
+    PspmixLogCall_t *call = request->call;
     if (tryFinishLogCall(call)) {
 	list_del(&call->next);
 	ufree(call);
