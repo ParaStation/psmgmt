@@ -2432,20 +2432,22 @@ pspmix_service_addLogRequest(log_call_handle_t call_handle,
     return res;
 }
 
-PStask_ID_t getFwTID(const pmix_proc_t *caller)
+static PStask_ID_t getFwTID(const pmix_proc_t *caller)
 {
     GET_LOCK(namespaceList);
     PspmixNamespace_t *ns = findNamespace(caller->nspace);
     if (!ns) {
 	flog("no namespace '%s'\n", caller->nspace);
-	// @todo error handling
+	RELEASE_LOCK(namespaceList);
+	return -1;
     }
 
     PspmixClient_t *client = findClientInList(caller->rank, &ns->clientList);
     if (!client) {
 	flog("no client for rank %d in namespace '%s'\n", caller->rank,
 	     caller->nspace);
-	// @todo error handling
+	RELEASE_LOCK(namespaceList);
+	return -1;
     }
     PStask_ID_t fwtid = client->fwtid;
     RELEASE_LOCK(namespaceList);
@@ -2453,16 +2455,18 @@ PStask_ID_t getFwTID(const pmix_proc_t *caller)
 }
 
 // library thread
-bool sendClientLogRequest(const pmix_proc_t *client,
+static bool sendClientLogRequest(const pmix_proc_t *client,
 			  PspmixLogRequest_t *request)
 {
-    return pspmix_comm_sendClientLogRequest(getFwTID(client),
-					    request->request_handle,
+    PStask_ID_t fwTID = getFwTID(client);
+    if (fwTID < 0) return false;
+
+    return pspmix_comm_sendClientLogRequest(fwTID, request->request_handle,
 					    request->channel, request->str);
 }
 
 // main thread
-void tryFinishLogCall(log_call_handle_t call_handle)
+static void tryFinishLogCall(log_call_handle_t call_handle)
 {
     fdbg(PSPMIX_LOG_CALL, "call_handle = %" PRIu64 "\n", call_handle);
 
@@ -2500,8 +2504,8 @@ void tryFinishLogCall(log_call_handle_t call_handle)
 		    } else {
 			all_succeeded = false;
 		    }
-		    if (entry->supported) { 
-			all_unsupported = false; 
+		    if (entry->supported) {
+			all_unsupported = false;
 		    }
 
 		    list_del(pos);
