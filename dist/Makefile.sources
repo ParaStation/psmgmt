@@ -679,7 +679,10 @@ plugins/rrcomm/plugin/rrcommproto.c \
 plugins/rrcomm/plugin/rrcommproto.h \
 plugins/rrcomm/tests/Makefile.am \
 plugins/rrcomm/tests/Makefile.in \
+plugins/rrcomm/tests/cornercases.c \
 plugins/rrcomm/tests/poll_rrcomm.c \
+plugins/rrcomm/tests/spawnPMIx_rrcomm.c \
+plugins/rrcomm/tests/spawn_rrcomm.c \
 plugins/rrcomm/tests/test_rrcomm.c \
 scripts/Makefile.am \
 scripts/Makefile.in \
