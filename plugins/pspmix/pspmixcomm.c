@@ -15,7 +15,6 @@
 #include "pspmixcomm.h"
 
 #include <errno.h>
-#include <inttypes.h>
 #include <pthread.h>
 
 #include "list.h"
@@ -293,7 +292,7 @@ static void handleClientLogResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint64(data, &id);
     getBool(data, &success);
 
-    fdbg(PSPMIX_LOG_COMM, "id %" PRIu64 ", success %s)\n", id,
+    fdbg(PSPMIX_LOG_COMM, "id %lu, success %s)\n", id,
 	 success ? "True" : "False");
 
     pspmix_service_handleClientLogResp(id, success);
@@ -913,7 +912,8 @@ bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, uint64_t requestID,
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
-	flog("sending log request to %s failed\n", PSC_printTID(dest));
+	flog("dest %s channel %s failed\n", PSC_printTID(dest),
+	     pspmix_log_channel_names[channel]);
 	return false;
     }
 
