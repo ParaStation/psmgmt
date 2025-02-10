@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -30,6 +30,7 @@ typedef enum {
     PLUGIN_LOG_MALLOC	= 0x000020,   /**< Log memory allocation */
     PLUGIN_LOG_FW	= 0x000040,   /**< Verbose forwarder */
     PLUGIN_LOG_JSON	= 0x000080,   /**< json parser */
+    PLUGIN_LOG_SCRIPT   = 0x000100,   /**< script execution */
 } PSPlugin_log_types_t;
 
 #define pluginmset(flag) (logger_getMask(pluginlogger) & (flag))

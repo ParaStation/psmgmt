@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2024 ParTec AG, Munich
+# Copyright (C) 2022-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,3 +24,4 @@ noinst_HEADERS = kvscommon.h kvs.h mcast.h parser.h psilog.h pslog.h	\
 	pluginspawn.h psstrv.h pluginvector.h pspluginprotocol.h	\
 	pssenddb_t.h psattribute.h psbyteorder.h pscio.h		\
 	psconfighelper.h psitems.h pluginjson.h psstrbuf.h
+	pluginscript.h
