@@ -167,6 +167,7 @@ static void savePluginConfig(char *plugin, uint32_t timeout, uint32_t grace)
 
     mdbg(PELOGUE_LOG_VERB, "%s: add conf for '%s'\n", __func__, plugin);
     addPluginConfig(plugin, config);
+    freeConfig(config);
 }
 
 static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,

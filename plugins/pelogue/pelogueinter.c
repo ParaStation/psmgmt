@@ -28,30 +28,31 @@
 
 bool psPelogueAddPluginConfig(char *name, Config_t configList)
 {
+    bool ret = false;
     Config_t config = NULL;
     if (!initConfig(&config)) {
 	flog("failed to create config\n");
-	goto ERROR;
+	goto CLEANUP;
     }
 
     char *val = getConfValueC(configList, "TIMEOUT_PROLOGUE");
     if (!val) {
 	flog("invalid prologue timeout\n");
-	goto ERROR;
+	goto CLEANUP;
     }
     addConfigEntry(config, "TIMEOUT_PROLOGUE", val);
 
     val = getConfValueC(configList, "TIMEOUT_EPILOGUE");
     if (!val) {
 	flog("invalid epilogue timeout\n");
-	goto ERROR;
+	goto CLEANUP;
     }
     addConfigEntry(config, "TIMEOUT_EPILOGUE", val);
 
     val = getConfValueC(configList, "TIMEOUT_PE_GRACE");
     if (!val) {
 	flog("invalid grace timeout\n");
-	goto ERROR;
+	goto CLEANUP;
     }
     addConfigEntry(config, "TIMEOUT_PE_GRACE", val);
 
@@ -64,11 +65,11 @@ bool psPelogueAddPluginConfig(char *name, Config_t configList)
     val = getConfValueC(configList, "DIR_EPILOGUE_FINALIZE");
     if (val) addConfigEntry(config, "DIR_EPILOGUE_FINALIZE", val);
 
-    return addPluginConfig(name, config);
+    ret = addPluginConfig(name, config);
 
-ERROR:
+CLEANUP:
     freeConfig(config);
-    return false;
+    return ret;
 }
 
 bool psPelogueDelPluginConfig(char *name)

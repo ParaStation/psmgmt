@@ -29,7 +29,7 @@
  *
  * @param name Name tag of the configuration to register
  *
- * @param config The configuration to add to the repository
+ * @param config Configuration to add to the repository
  *
  * @return On success true is returned or false in case of error
  */
