@@ -1,3 +1,670 @@
+Version 6.1.0:
+==============
+------------------------------------------------------------------------
+00ec1a188 | Norbert Eicker | Mon, 10 Feb 2025 13:42:39 +0100
+
+Update visible copyrights in psiadmin
+------------------------------------------------------------------------
+978114e9b | Norbert Eicker | Mon, 10 Feb 2025 10:55:28 +0100
+
+Bugfix: Do not leak pelogue config's memory
+------------------------------------------------------------------------
+7350907e0 | Stephan Krempel | Thu, 6 Feb 2025 15:28:13 +0100
+
+Add some comments
+------------------------------------------------------------------------
+95c6461ac | Stephan Krempel | Thu, 6 Feb 2025 11:14:56 +0100
+
+Introduce __PSID_SKIP_PIN_GPUS and __PSID_SKIP_PIN_NICS
+
+To make device pinning work again in pure mpiexec calls made
+in a Slurm job script or interactive step, we need both,
+__PSID_USE_GPUS telling the subsequent mpiexec which devices
+to use and __PSID_SKIP_PIN_GPUS to not override pinning
+already made by psslurm finally.
+------------------------------------------------------------------------
+233ca8607 | Stephan Krempel | Tue, 4 Feb 2025 23:53:16 +0100
+
+Remove `__PSID_USE_*` variable after evaluation.
+
+Those variables are solely to telling the next
+`PSIDpin_doClamps()` call what devices to use for
+automatic pinning. So it is consequent to unset
+them there.
+------------------------------------------------------------------------
+9fc034504 | Stephan Krempel | Tue, 4 Feb 2025 23:52:03 +0100
+
+psslurm: Disable auto GPU pinning in jobs and interactive steps
+
+Fixes #284
+------------------------------------------------------------------------
+2dbc0febd | Norbert Eicker | Fri, 7 Feb 2025 13:52:48 +0100
+
+Complain about dangling symlinks in /var/spool/parastation/scripts
+------------------------------------------------------------------------
+2e8d31aeb | Norbert Eicker | Wed, 5 Feb 2025 17:14:21 +0100
+
+Fix compiler warning on implicit type conversion
+------------------------------------------------------------------------
+88f4e8a16 | Yannik Müller | Mon, 3 Feb 2025 16:54:40 +0000
+
+Added .parallel names in list of obsolete files
+------------------------------------------------------------------------
+af1665758 | Michael Rauh | Mon, 3 Feb 2025 17:17:40 +0100
+
+Fix typos
+------------------------------------------------------------------------
+a48e2561a | Norbert Eicker | Mon, 3 Feb 2025 11:41:18 +0100
+
+Add README.pelogue
+------------------------------------------------------------------------
+1474100c3 | Norbert Eicker | Mon, 3 Feb 2025 10:22:07 +0100
+
+Introduce PELOGUE_PLUGIN variable
+
+ - will be in pelogue's environment to identify calling plugin
+------------------------------------------------------------------------
+504e5e2b8 | Norbert Eicker | Mon, 3 Feb 2025 10:19:05 +0100
+
+Improve error logs on epilogue.finalize failure
+------------------------------------------------------------------------
+d1d7b9cd4 | Norbert Eicker | Mon, 3 Feb 2025 10:16:59 +0100
+
+Rework psPelogueCallPE()
+
+ - now takes the plugin as parameter instead of its config
+------------------------------------------------------------------------
+4d2ae34f6 | Norbert Eicker | Fri, 31 Jan 2025 17:58:03 +0100
+
+Rework getPluginDDir()
+------------------------------------------------------------------------
+54b556efd | Norbert Eicker | Fri, 31 Jan 2025 17:54:58 +0100
+
+Introduce getPEActStr()
+------------------------------------------------------------------------
+b673ec571 | Norbert Eicker | Thu, 30 Jan 2025 17:50:49 +0100
+
+Adapt checkDDir() to new snippet rules (#261)
+
+ - directory must not be writable by non-root
+ - snippets must not be writable by non-root and readable and executable
+   by owner
+ - snippets must not be hidden and be on par with *.sh pattern
+------------------------------------------------------------------------
+eb98d8233 | Norbert Eicker | Thu, 30 Jan 2025 12:54:14 +0100
+
+Restrict exec_all to non-hidden regular files with ".sh" (#261)
+------------------------------------------------------------------------
+3f41bb8f9 | Norbert Eicker | Wed, 29 Jan 2025 23:19:28 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+3d1487fbb | Norbert Eicker | Wed, 29 Jan 2025 23:01:32 +0100
+
+Ensure AWS prologue snippet ends up in the right place
+------------------------------------------------------------------------
+9db6bb832 | Norbert Eicker | Wed, 29 Jan 2025 22:58:42 +0100
+
+Remove rounds magic in execPElogueScript() (#87)
+------------------------------------------------------------------------
+6c8a5e181 | Norbert Eicker | Wed, 29 Jan 2025 22:52:48 +0100
+
+Borrow pspelogue's pelogue config from psslurm
+------------------------------------------------------------------------
+d224556d2 | Norbert Eicker | Wed, 29 Jan 2025 22:47:48 +0100
+
+Ensure no old pelogue scripts remain for psslurm
+------------------------------------------------------------------------
+bab02c636 | Norbert Eicker | Wed, 29 Jan 2025 22:18:40 +0100
+
+Adapt psslurm to new pelogue setup
+------------------------------------------------------------------------
+1edb99181 | Norbert Eicker | Wed, 29 Jan 2025 22:00:20 +0100
+
+Introduce psPelogueCallPE()
+------------------------------------------------------------------------
+70af9ad56 | Norbert Eicker | Wed, 29 Jan 2025 21:28:16 +0100
+
+Adapt psgw to new pelogue setup
+------------------------------------------------------------------------
+ec03f13e9 | Norbert Eicker | Wed, 29 Jan 2025 21:16:45 +0100
+
+Avoid goto
+------------------------------------------------------------------------
+eaa094379 | Norbert Eicker | Wed, 29 Jan 2025 21:10:21 +0100
+
+Use .d directories in pelogue instead of monolithic script (#35)
+
+ - this temporarily breaks psgw and psslurm plugins
+------------------------------------------------------------------------
+af33469bb | Norbert Eicker | Wed, 29 Jan 2025 20:57:15 +0100
+
+Introduce checkDDir() and prepare to hide checkPELogueFileStats()
+------------------------------------------------------------------------
+880a5ed93 | Norbert Eicker | Wed, 29 Jan 2025 15:38:34 +0100
+
+Introduce newPluginConf() and findPluginConf()
+
+ - also do not replace but append to pelogues plugin config
+------------------------------------------------------------------------
+f5c9ed01c | Norbert Eicker | Wed, 29 Jan 2025 15:25:47 +0100
+
+Prepare default directories for pelogue snippets
+------------------------------------------------------------------------
+b31818359 | Norbert Eicker | Wed, 29 Jan 2025 15:13:23 +0100
+
+Introduce exec_all
+------------------------------------------------------------------------
+fd8d24e2d | Norbert Eicker | Wed, 29 Jan 2025 15:06:25 +0100
+
+Introduce flog to pelogue plugin and more use of flog in psslurm
+------------------------------------------------------------------------
+5b3e02eb5 | Stephan Krempel | Tue, 28 Jan 2025 14:59:16 +0100
+
+pspmix: Move elog() to pspmixforwarder.h
+
+PSIDfwd_printMsgf() is only working in psid forwarders
+------------------------------------------------------------------------
+f2e2db465 | Stephan Krempel | Tue, 28 Jan 2025 14:56:48 +0100
+
+pspmix: Do not use non-functional elog() in pspmixservice.c
+
+see #214
+------------------------------------------------------------------------
+ade0c9c46 | Norbert Eicker | Fri, 7 Feb 2025 10:04:29 +0100
+
+Bugfix: evict possible deadlocks
+------------------------------------------------------------------------
+af5ac8f95 | Norbert Eicker | Tue, 4 Feb 2025 15:42:17 +0100
+
+Move plugin specific README and psconfig into plugin dirs
+------------------------------------------------------------------------
+ace1fd9b7 | Norbert Eicker | Tue, 4 Feb 2025 15:47:52 +0100
+
+Fix typo
+------------------------------------------------------------------------
+b32d718ba | Stephan Krempel | Tue, 4 Feb 2025 15:14:14 +0100
+
+pspmix: Use fwarn() in older code
+------------------------------------------------------------------------
+1d3ac7da4 | Stephan Krempel | Tue, 4 Feb 2025 15:10:01 +0100
+
+pspmix: Introduce fwarn()
+------------------------------------------------------------------------
+e9b01f348 | Stephan Krempel | Tue, 4 Feb 2025 13:08:36 +0100
+
+pspmix: Fix some more memory leaks with cbfunc
+------------------------------------------------------------------------
+12dfb729b | Stephan Krempel | Tue, 4 Feb 2025 13:01:40 +0100
+
+pspmix: Fix some memory leaks with cbfunc
+------------------------------------------------------------------------
+7d258c751 | Stephan Krempel | Tue, 4 Feb 2025 12:52:18 +0100
+
+pspmix: Print nodeID with correct new length qualifier
+
+This is an artifact from changing TID length with psmgmt 6.
+------------------------------------------------------------------------
+d7a8c6ed3 | Stephan Krempel | Tue, 4 Feb 2025 12:48:44 +0100
+
+pspmix: Fix some memory leaks with cbdata
+------------------------------------------------------------------------
+cadea520a | Stephan Krempel | Tue, 4 Feb 2025 12:34:14 +0100
+
+pspmix: Create callback thread detached
+------------------------------------------------------------------------
+92804e3f4 | Stephan Krempel | Tue, 4 Feb 2025 11:36:48 +0100
+
+pspmix: Move header include to usual position
+------------------------------------------------------------------------
+bd21bb75a | Norbert Eicker | Mon, 3 Feb 2025 18:54:56 +0100
+
+Fix typo
+------------------------------------------------------------------------
+90a87cb47 | Stephan Krempel | Fri, 31 Jan 2025 15:43:31 +0100
+
+pspmix: Create thread for each callback to the pmix library
+------------------------------------------------------------------------
+dde7d73a5 | Stephan Krempel | Mon, 17 Jul 2023 17:45:32 +0200
+
+pspmix: Slightly rework callback handling
+------------------------------------------------------------------------
+c96501077 | Norbert Eicker | Mon, 3 Feb 2025 20:32:31 +0100
+
+Fix typos
+------------------------------------------------------------------------
+3fa73095a | Michael Rauh | Fri, 31 Jan 2025 16:10:47 +0100
+
+Remove superfluous rmdir
+------------------------------------------------------------------------
+cb81701d7 | Michael Rauh | Fri, 31 Jan 2025 15:56:20 +0100
+
+Enhance function naming
+------------------------------------------------------------------------
+ad4e0ee7a | Michael Rauh | Fri, 31 Jan 2025 15:08:01 +0100
+
+Prevent race condition when writing to cgroups
+------------------------------------------------------------------------
+64a1ec311 | Michael Rauh | Fri, 31 Jan 2025 12:20:31 +0100
+
+Suppress warning message
+------------------------------------------------------------------------
+9161d469d | Michael Rauh | Fri, 31 Jan 2025 10:36:07 +0100
+
+Make cleanup warning a debug message
+------------------------------------------------------------------------
+32a8e4579 | Michael Rauh | Fri, 31 Jan 2025 10:35:26 +0100
+
+Add documentation
+------------------------------------------------------------------------
+dcdf41f9a | Norbert Eicker | Tue, 28 Jan 2025 23:46:32 +0100
+
+Whitespace fix
+------------------------------------------------------------------------
+2f2242c04 | Michael Rauh | Tue, 28 Jan 2025 15:27:42 +0100
+
+Update comment
+------------------------------------------------------------------------
+dc557eccf | Michael Rauh | Tue, 28 Jan 2025 15:25:45 +0100
+
+Remove obsolete function getSharedUserLock()
+------------------------------------------------------------------------
+7fde05114 | Michael Rauh | Tue, 28 Jan 2025 15:14:17 +0100
+
+Remove leftover comment
+------------------------------------------------------------------------
+d481a9138 | Michael Rauh | Tue, 28 Jan 2025 14:29:00 +0100
+
+Fix some shellcheck warnings
+------------------------------------------------------------------------
+302c5f7cd | Michael Rauh | Tue, 28 Jan 2025 13:45:11 +0100
+
+Use allocation list to determine leftover jobs
+------------------------------------------------------------------------
+408961c8a | Michael Rauh | Tue, 28 Jan 2025 12:50:28 +0100
+
+Introduce killUser in jailscript functions
+------------------------------------------------------------------------
+649f9419b | Michael Rauh | Tue, 28 Jan 2025 11:47:40 +0100
+
+Bugfix: fix broken test to verify if user cgroup cpuset is empty
+------------------------------------------------------------------------
+b6fa6e083 | Michael Rauh | Tue, 28 Jan 2025 11:29:08 +0100
+
+Warn if no jail initialize or finalize script is defined
+------------------------------------------------------------------------
+484e5dbf4 | Michael Rauh | Tue, 28 Jan 2025 11:16:28 +0100
+
+Set modName for main jail script
+------------------------------------------------------------------------
+5220c1797 | Michael Rauh | Tue, 28 Jan 2025 10:36:34 +0100
+
+Add more debug logs
+------------------------------------------------------------------------
+6ba3a1337 | Michael Rauh | Mon, 27 Jan 2025 19:00:16 +0100
+
+Log more caller functions in jail scripts
+------------------------------------------------------------------------
+96de32675 | Michael Rauh | Mon, 27 Jan 2025 18:57:59 +0100
+
+Log origin of rmdir call in jail scripts
+------------------------------------------------------------------------
+4c592ed0e | Michael Rauh | Mon, 27 Jan 2025 17:00:08 +0100
+
+Prevent warning message of empty nodelist for stopStepFollower()
+------------------------------------------------------------------------
+41e1b962f | Michael Rauh | Thu, 23 Jan 2025 16:18:53 +0100
+
+Don't repeat setting limits for every task in the same cgroup
+------------------------------------------------------------------------
+c785e5e53 | Michael Rauh | Thu, 23 Jan 2025 15:23:21 +0100
+
+Use user exclusive locks now support for cgroup v1 is gone
+
+ - remove superfluous module locks for cgroup v2 scripts
+------------------------------------------------------------------------
+3d3551367 | Michael Rauh | Thu, 23 Jan 2025 14:14:10 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+7f5362135 | Michael Rauh | Thu, 23 Jan 2025 14:13:10 +0100
+
+Drop support for cgroup v1
+------------------------------------------------------------------------
+bdfcc2069 | Michael Rauh | Tue, 21 Jan 2025 13:54:19 +0100
+
+Prevent startup of jail plugin if cleanup of leftover cgroups fails
+
+ - old cgroups may interfere with the calculation user cgroup limits
+ - cgroups containing (non killable) processes cannot be remove
+ - removes PID of psid in the name of the cgroup base
+------------------------------------------------------------------------
+f01608a46 | Michael Rauh | Mon, 20 Jan 2025 15:33:57 +0100
+
+Change default cgroup prefix slurm to enhance compability with
+third party metrics tools
+------------------------------------------------------------------------
+8588e6853 | Michael Rauh | Wed, 8 Jan 2025 10:52:17 +0100
+
+Add jail-finalize.sh to jail configuration template
+------------------------------------------------------------------------
+8439feae8 | Michael Rauh | Mon, 23 Dec 2024 16:53:35 +0100
+
+Let cgroup cleanup kill leftover tasks
+------------------------------------------------------------------------
+723ab6994 | Michael Rauh | Mon, 23 Dec 2024 15:50:34 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+17ee3d54e | Michael Rauh | Mon, 23 Dec 2024 15:36:01 +0100
+
+Introduce jail-finalize.sh script
+
+ - cleanup leftovers in psid cgroup directory
+------------------------------------------------------------------------
+1530a36c5 | Michael Rauh | Mon, 23 Dec 2024 15:28:12 +0100
+
+Add support for a finalize script to jail plugin
+------------------------------------------------------------------------
+bea80ee99 | Michael Rauh | Mon, 23 Dec 2024 15:16:49 +0100
+
+Move cgroup cleanup code to function cleanupCgroups
+------------------------------------------------------------------------
+9282095c0 | Michael Rauh | Fri, 20 Dec 2024 19:34:20 +0100
+
+Rework cgroup v2 controller activation
+
+ - add additional configuration for needed controller
+ - load and verify controller for main and psid directory at startup
+ - ensure controller will not get loaded multiple times
+ - some minor optimizations
+------------------------------------------------------------------------
+bdd6187a1 | Stephan Krempel | Fri, 24 Jan 2025 16:02:43 +0100
+
+Revert "Fix rpmbuild for RHEL and decendants"
+
+This reverts commit 610f01928d67dfc0f538365983fab2679e506699.
+
+No longer needed after 3d9d4a4883152f727e89b1aae5150c9c10ca373b.
+------------------------------------------------------------------------
+3d9d4a488 | Stephan Krempel | Fri, 24 Jan 2025 16:03:56 +0100
+
+Install bpf_cgroup_device as DATA, not as SCRIPT
+
+This fixed issues with build-id an debug info creation
+that break the byte code in that file.
+------------------------------------------------------------------------
+610f01928 | Norbert Eicker | Tue, 21 Jan 2025 21:05:45 +0100
+
+Fix rpmbuild for RHEL and decendants
+
+ - Prevent --strict-build-id argument for find-debuginfo.sh; this will
+   emit an error on RHEL even though without consequences
+------------------------------------------------------------------------
+68f65118d | Stephan Krempel | Mon, 13 Jan 2025 13:03:04 +0100
+
+Run autoreconf with container version 20250113-1
+------------------------------------------------------------------------
+f89e2ae9d | Michael Rauh | Mon, 20 Jan 2025 14:23:01 +0100
+
+Use clock_nanosleep() for collect script counters
+------------------------------------------------------------------------
+753dd17bd | Norbert Eicker | Mon, 9 Dec 2024 18:45:52 +0100
+
+Introduce show key [Energy|FS|IC}Env[_<name>] output
+------------------------------------------------------------------------
+daef3042e | Norbert Eicker | Mon, 9 Dec 2024 18:44:13 +0100
+
+Enhance psaccount's plugin output formatting
+------------------------------------------------------------------------
+637244a9b | Norbert Eicker | Mon, 9 Dec 2024 18:27:37 +0100
+
+Utilize plugin set/unset to modify accounting environments
+------------------------------------------------------------------------
+8941c3f82 | Michael Rauh | Thu, 28 Nov 2024 16:35:29 +0100
+
+Improve psaccount monitor script debugging
+------------------------------------------------------------------------
+443a98b71 | Michael Rauh | Thu, 28 Nov 2024 16:26:51 +0100
+
+Allow to control the psaccount monitor scripts using psiadmin
+------------------------------------------------------------------------
+480f7b1b0 | Michael Rauh | Thu, 28 Nov 2024 16:24:41 +0100
+
+Bugfix: ensure accurate psaccount monitor scripts poll interval
+------------------------------------------------------------------------
+d33cf0b09 | Michael Rauh | Thu, 19 Dec 2024 11:05:52 +0100
+
+Retake control of the childs cgroup from systemd (jwt:#35540)
+
+ - When starting a sessions the systemd might move the child to its
+   own cgroup
+ - to enforce the correct job limits it needs be move back to the
+   psid's cgroup
+------------------------------------------------------------------------
+b48b1913a | Michael Rauh | Thu, 19 Dec 2024 11:04:17 +0100
+
+Let the start of a job fail if a PAM session cannot be opened
+------------------------------------------------------------------------
+c4ca876dd | Norbert Eicker | Fri, 17 Jan 2025 18:33:09 +0100
+
+Merge branch '6.0'
+------------------------------------------------------------------------
+7c095dd3e | Norbert Eicker | Fri, 17 Jan 2025 10:49:35 +0100
+
+Add -F option to psid to suppress daemonization
+------------------------------------------------------------------------
+7cce8904e | Stephan Krempel | Wed, 15 Jan 2025 12:51:35 +0100
+
+single_node_config: Make shellcheck happy
+------------------------------------------------------------------------
+a2b72affa | Stephan Krempel | Wed, 15 Jan 2025 12:51:00 +0100
+
+single_node_config: Use bash array
+------------------------------------------------------------------------
+e5f1391d3 | Sonja Happ | Tue, 7 Jan 2025 15:35:32 +0100
+
+scripts: Fix loading multiple plugins in single_node_config script
+------------------------------------------------------------------------
+4fc9cd588 | Norbert Eicker | Mon, 13 Jan 2025 10:42:19 +0100
+
+Adapt README.IWYU to recent changes in bear syntax
+------------------------------------------------------------------------
+ffc229569 | Michael Rauh | Mon, 16 Dec 2024 15:36:23 +0100
+
+Bugfix: interactive steps should be able to access all allocated
+resources (#278)
+------------------------------------------------------------------------
+6ff40700b | Norbert Eicker | Wed, 11 Dec 2024 20:48:34 +0100
+
+Dropped PSP_CD_PLUGINRES messages need new handling, too
+------------------------------------------------------------------------
+01a9e6079 | Norbert Eicker | Wed, 11 Dec 2024 02:57:32 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+83145266a | Norbert Eicker | Wed, 11 Dec 2024 02:40:54 +0100
+
+Introduce autocompletion of plugin names in psiadmin
+------------------------------------------------------------------------
+7f8c13ea6 | Norbert Eicker | Wed, 11 Dec 2024 02:38:32 +0100
+
+Introduce getStringL() into psserial
+------------------------------------------------------------------------
+8863f50ad | Norbert Eicker | Wed, 11 Dec 2024 02:11:38 +0100
+
+Fail silently if protocol version cannot be determined
+------------------------------------------------------------------------
+19b7bf74a | Norbert Eicker | Wed, 11 Dec 2024 00:34:41 +0100
+
+Initialize psiadmin's autocomplete only for interactive use
+
+ - also enhance various docu comments
+------------------------------------------------------------------------
+1834fff1d | Norbert Eicker | Wed, 11 Dec 2024 00:23:41 +0100
+
+Utilize fragmentation layer for PSP_CD_PLUGINRES
+
+ - bump PSProtocolVersion to 347
+------------------------------------------------------------------------
+7f62ff5fe | Norbert Eicker | Tue, 10 Dec 2024 23:53:17 +0100
+
+Do not unnecessarily destroy the fragment type
+
+ - in addition enhance some debug messages
+------------------------------------------------------------------------
+6a5e2a44c | Norbert Eicker | Tue, 10 Dec 2024 17:01:32 +0100
+
+Booleanize and streamline psparamspace
+------------------------------------------------------------------------
+eae66ea87 | Norbert Eicker | Tue, 10 Dec 2024 16:55:04 +0100
+
+Add some missing copyright statements
+------------------------------------------------------------------------
+3f3fdbe4d | Norbert Eicker | Thu, 5 Dec 2024 00:08:23 +0100
+
+Ensure all necessary source are in dist archive
+------------------------------------------------------------------------
+b3cdfc7d2 | Norbert Eicker | Wed, 4 Dec 2024 23:39:34 +0100
+
+Push autoconf's version number to 6, too
+------------------------------------------------------------------------
+36ae0296a | Norbert Eicker | Wed, 4 Dec 2024 23:20:29 +0100
+
+Omit remnants of removed scripts from build system
+------------------------------------------------------------------------
+ba1104a8c | Stephan Krempel | Wed, 16 Oct 2024 16:50:28 +0200
+
+Add pre-commit config symlinks to .gitignore
+------------------------------------------------------------------------
+c6dc13019 | Stephan Krempel | Mon, 14 Oct 2024 20:27:18 +0200
+
+AWS support: Fix shellcheck issues
+------------------------------------------------------------------------
+32ea970c3 | Stephan Krempel | Mon, 14 Oct 2024 20:26:00 +0200
+
+Add missing shebang
+------------------------------------------------------------------------
+4d8b4ff0d | Stephan Krempel | Mon, 14 Oct 2024 18:11:06 +0200
+
+Fix end-of-file issues found by pre-commit hook
+------------------------------------------------------------------------
+91f32e10a | Stephan Krempel | Wed, 16 Oct 2024 17:34:57 +0200
+
+Fix trailing whitespace found by pre-commit hook
+------------------------------------------------------------------------
+15356ad4c | Norbert Eicker | Tue, 3 Dec 2024 12:22:52 +0100
+
+Update docu comments
+------------------------------------------------------------------------
+25e167bc8 | Norbert Eicker | Tue, 26 Nov 2024 17:42:00 +0100
+
+Streamlining
+------------------------------------------------------------------------
+10e0162ae | Norbert Eicker | Tue, 26 Nov 2024 17:40:06 +0100
+
+Introduce PSI_fdwarn() and rework PSI_warn()
+------------------------------------------------------------------------
+5c4585274 | Norbert Eicker | Tue, 26 Nov 2024 17:38:37 +0100
+
+Rework PSI_log()
+------------------------------------------------------------------------
+14bec973c | Norbert Eicker | Tue, 26 Nov 2024 17:36:32 +0100
+
+Introduce PSI_dbg()
+------------------------------------------------------------------------
+fdf7717ec | Norbert Eicker | Tue, 26 Nov 2024 17:32:49 +0100
+
+More use of PSI_flog()
+------------------------------------------------------------------------
+d562d41db | Norbert Eicker | Tue, 26 Nov 2024 17:25:35 +0100
+
+Introduce PSI_fdbg()
+------------------------------------------------------------------------
+6e90634e6 | Norbert Eicker | Tue, 26 Nov 2024 17:12:09 +0100
+
+Introduce PSI_fwarn()
+------------------------------------------------------------------------
+ca308f359 | Norbert Eicker | Tue, 3 Dec 2024 15:42:40 +0100
+
+Remove sysctl config 99-psid.conf limiting PIDs to 15 bits
+------------------------------------------------------------------------
+46fbbb5b7 | Norbert Eicker | Mon, 2 Dec 2024 10:06:55 +0100
+
+Omit psid2cmustatus script
+
+ - was used for integration with ancient versions of DEC/Compaq/HPE CMU
+------------------------------------------------------------------------
+f3cd4cdd4 | Norbert Eicker | Mon, 2 Dec 2024 09:59:11 +0100
+
+Omit docu and script for integration with LSF
+
+ - this was describing integration of ancient version of LSF with
+   long-gone versions of psmgmt and psmpi
+------------------------------------------------------------------------
+c1ae37362 | Norbert Eicker | Tue, 29 Oct 2024 23:17:33 +0100
+
+Rework PSI_spawnRsrvtn() to use strv argument vector
+------------------------------------------------------------------------
+ae79fa4f3 | Norbert Eicker | Tue, 29 Oct 2024 23:07:19 +0100
+
+Replace argc/argv by strv_t in startup tools (#264)
+------------------------------------------------------------------------
+b2d426356 | Norbert Eicker | Tue, 29 Oct 2024 21:03:41 +0100
+
+Replace argc/argv by strv_t in psslurm's Job_t (#263)
+------------------------------------------------------------------------
+9eaf3faf6 | Norbert Eicker | Tue, 29 Oct 2024 20:37:34 +0100
+
+More use of getEnv() and getArgV()
+------------------------------------------------------------------------
+9ae217968 | Norbert Eicker | Tue, 29 Oct 2024 20:07:48 +0100
+
+Replace argc/argv by strv_t in Slurm_Job_Details_t (#262)
+------------------------------------------------------------------------
+d135c91ad | Norbert Eicker | Tue, 29 Oct 2024 20:05:40 +0100
+
+Add getArgV() according to getEnv() to psserial
+------------------------------------------------------------------------
+dc7b283ad | Norbert Eicker | Mon, 14 Oct 2024 21:16:53 +0200
+
+Cleanup obsolete KVP_t
+------------------------------------------------------------------------
+5d8589143 | Norbert Eicker | Mon, 14 Oct 2024 21:14:01 +0200
+
+Replace now obsolete GET_STRING_INFO by GET_STRING_INFO2
+------------------------------------------------------------------------
+09b355312 | Norbert Eicker | Mon, 14 Oct 2024 21:10:50 +0200
+
+Replace KVP_T infov by env_t infos in SpawnRequest_t
+------------------------------------------------------------------------
+a4eb228aa | Norbert Eicker | Mon, 14 Oct 2024 20:57:04 +0200
+
+Remove obsolete functions
+
+ - getSpawnKVPs(), addPreputToEnv(), addSpawnPreputToEnv()
+------------------------------------------------------------------------
+a90032b06 | Norbert Eicker | Mon, 14 Oct 2024 20:54:10 +0200
+
+Replace KVP_T infov by env_t infos in SingleSpawn_t
+------------------------------------------------------------------------
+d1e56d113 | Norbert Eicker | Mon, 14 Oct 2024 20:51:11 +0200
+
+Introduce getSpawnEnv()
+------------------------------------------------------------------------
+027ddf533 | Norbert Eicker | Mon, 14 Oct 2024 19:38:19 +0200
+
+Replace KVP_T preputv by env_t preputs in SingleSpawn_t
+------------------------------------------------------------------------
+b78e8742d | Norbert Eicker | Mon, 14 Oct 2024 19:20:44 +0200
+
+Introduce getSpawnPreputEnv()
+------------------------------------------------------------------------
+49840f72e | Norbert Eicker | Mon, 14 Oct 2024 18:50:30 +0200
+
+Introduce flog()/fdbg() to pspmi
+------------------------------------------------------------------------
+
 Version 6.0.1:
 ==============
 ------------------------------------------------------------------------

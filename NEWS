@@ -1,9 +1,70 @@
 psmgmt NEWS -- history of user-visible changes.
 
 Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
-Copyright (C) 2021-2024 ParTec AG, Munich
+Copyright (C) 2021-2025 ParTec AG, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**    This release changes prologue/epilogue scrips from monolithic    **
+**     files to directories of snippets located in /etc/parastation    **
+**   See /opt/parastation/share/doc/psmgmt/README.pelogue for details  **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**       This release drops support for jailing to cgroup v1           **
+**   Enable cgroup v2 by adding "systemd.unified_cgroup_hierarchy=1"   **
+**    to the kernel's command line if required by you distribution     **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 6.1.0:
+==============
+Bugfixes:
+ - Retake control of the childs cgroup from systemd (jwt:#35540)
+ - Disable auto GPU pinning in jobs and interactive steps (#284)
+ - Interactive steps shall access all allocated resources (#278)
+ - Do not use non-functional elog() in pspmixservice.c (#214)
+ - Install bpf_cgroup_device as DATA, not as SCRIPT
+ - Use clock_nanosleep() for collect script counters
+ - Ensure accurate psaccount monitor scripts poll interval
+ - Fix memory leaks with cbfunc and cbdata in pspmix
+ - Evict a few improbable deadlocks
+Enhancements:
+ - Use .d directories in pelogue instead of monolithic script (#35)
+ - Let the start of a job fail if a PAM session cannot be opened
+ - Change default cgroup prefix to "slurm" (compatibility with 3rd party tools)
+ - Prevent startup of jail plugin if cleanup of leftover cgroups fails
+ - Warn if no jail initialize or finalize script is defined
+ - Use allocation list to determine leftover jobs
+ - Allow to control the psaccount monitor scripts using psiadmin
+ - Utilize plugin set/unset to modify accounting environments
+ - Introduce show key [Energy|FS|IC}Env[_<name>] output
+ - Introduce autocompletion of plugin names in psiadmin
+ - Remove sysctl config 99-psid.conf limiting PIDs to 15 bits
+ - Utilize detached threads for callbacks in pspmix
+Additional changes:
+ - Drop support for cgroup v1
+ - Ensure no old pelogue scripts remain in /var/spool/parastation/scripts
+   for psslurm
+ - Remove rounds magic in execPElogueScript() (#87)
+ - Replace argc/argv by strv_t in Slurm_Job_Details_t (#262)
+ - Replace argc/argv by strv_t in psslurm's Job_t (#263)
+ - Replace argc/argv by strv_t in startup tools (#264)
+ - Use fragmentation layer for PSP_CD_PLUGINRES (bump PSProtocolVersion to 347)
+ - Add -F option to psid to suppress daemonization
+ - Introduce __PSID_SKIP_PIN_GPUS and __PSID_SKIP_PIN_NICS
+ - Introduce PELOGUE_PLUGIN variable visible in pelogue script snippets
+ - Update visible copyrights in psiadmin
+ - More cleanup of obsolete tools, documentation, etc.
 
 
 Version 6.0.1:
