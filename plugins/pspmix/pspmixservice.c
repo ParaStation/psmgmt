@@ -2370,8 +2370,6 @@ static PspmixLogRequest_t *findLogRequest(uint64_t id)
     return NULL;
 }
 
-static PspmixLogCall_t *currentLogCall = NULL;
-
 // library thread
 PspmixLogCallHandle_t pspmix_service_addLogRequest(PspmixLogCallHandle_t call,
 						   PspmixLogChannel_t channel,
@@ -2501,9 +2499,10 @@ void pspmix_service_log(PspmixLogCallHandle_t call,
 			const pmix_proc_t *client, uint32_t uid, uint32_t gid,
 			bool log_once, void *cb)
 {
+    PspmixLogCall_t *currentLogCall = call;
+
     fdbg(PSPMIX_LOG_CALL, "call_handle = %p\n", currentLogCall);
 
-    PspmixLogCall_t *currentLogCall = call;
 
     if (!currentLogCall) {
 	pspmix_server_operationFinished(PMIX_ERR_BAD_PARAM, cb);
