@@ -190,6 +190,23 @@ static void cleanupSpawn(PspmixSpawn_t *spawn)
 }
 
 /**
+ * @brief Free memory used by log call object
+ *
+ * @param call  log call object
+ */
+static void cleanupLogCall(PspmixLogCall_t *call)
+{
+    list_t *r, *tmp;
+    list_for_each_safe(r, tmp, &call->requests) {
+	PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
+	list_del(&req->next);
+	ufree(req->str);
+	ufree(req);
+    }
+    ufree(call);
+}
+
+/**
  * @brief Find namespace by name
  *
  * @param name  namespace name
@@ -2422,6 +2439,9 @@ static bool sendClientLogRequest(const pmix_proc_t *client,
 					    request->channel, request->str);
 }
 
+/**
+ * @brief Check status of log call and try to finish it
+ */
 // main thread
 static bool tryFinishLogCall(PspmixLogCall_t *call)
 {
@@ -2449,8 +2469,7 @@ static bool tryFinishLogCall(PspmixLogCall_t *call)
     bool all_failed = true;
     bool all_unsupported = true;
 
-    list_t *tmp;
-    list_for_each_safe(r, tmp, &call->requests)
+    list_for_each(r, &call->requests)
     {
 	PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
 	if (req->success) {
@@ -2461,10 +2480,6 @@ static bool tryFinishLogCall(PspmixLogCall_t *call)
 	if (req->supported) {
 	    all_unsupported = false;
 	}
-
-	list_del(&req->next);
-	free(req->str);
-	free(req);
     }
     if (all_unsupported) {
 	pspmix_server_operationFinished(PMIX_ERR_NOT_SUPPORTED,
@@ -2546,7 +2561,7 @@ void pspmix_service_log(PspmixLogCallHandle_t call,
 	list_add_tail(&currentLogCall->next, &logCallList);
 	RELEASE_LOCK(logCallList);
     } else {
-	ufree(currentLogCall);
+	cleanupLogCall(currentLogCall);
     }
 
     fdbg(PSPMIX_LOG_LOGGING, "]\n");
@@ -2570,9 +2585,11 @@ void pspmix_service_handleClientLogResp(uint64_t requestID, bool success)
     PspmixLogCall_t *call = request->call;
     if (tryFinishLogCall(call)) {
 	list_del(&call->next);
-	ufree(call);
+	RELEASE_LOCK(logCallList);
+	cleanupLogCall(call);
+    } else {
+	RELEASE_LOCK(logCallList);
     }
-    RELEASE_LOCK(logCallList);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
