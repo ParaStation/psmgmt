@@ -2374,17 +2374,17 @@ PspmixLogCallHandle_t pspmix_service_addLogRequest(PspmixLogCallHandle_t call,
 	currentLogCall->log_once = false;
     }
 
-    PspmixLogRequest_t *entry = umalloc(sizeof(*entry));
-    entry->id = nextRequestID++;
-    entry->call = currentLogCall;
-    entry->finished = false;
-    entry->supported = false;
-    entry->success = false;
-    entry->channel = channel;
-    entry->str = ustrdup(str);
-    entry->priority = priority;
+    PspmixLogRequest_t *req = umalloc(sizeof(*req));
+    req->id = nextRequestID++;
+    req->call = currentLogCall;
+    req->finished = false;
+    req->supported = false;
+    req->success = false;
+    req->channel = channel;
+    req->str = ustrdup(str);
+    req->priority = priority;
 
-    list_add_tail(&entry->next, &currentLogCall->requests);
+    list_add_tail(&req->next, &currentLogCall->requests);
 
     return (PspmixLogCallHandle_t)currentLogCall;
 }
@@ -2430,11 +2430,10 @@ static bool tryFinishLogCall(PspmixLogCall_t *call)
     if (!call) return false;
 
     bool all_finished = true;
-    list_t *pos, *tmp;
-    list_for_each(pos, &call->requests)
+    list_t *r;
+    list_for_each(r, &call->requests)
     {
-	PspmixLogRequest_t *entry
-	    = list_entry(pos, PspmixLogRequest_t, next);
+	PspmixLogRequest_t *entry = list_entry(r, PspmixLogRequest_t, next);
 	if (!entry->finished) {
 	    all_finished = false;
 	    break;
@@ -2450,22 +2449,22 @@ static bool tryFinishLogCall(PspmixLogCall_t *call)
     bool all_failed = true;
     bool all_unsupported = true;
 
-    list_for_each_safe(pos, tmp, &call->requests)
+    list_t *tmp;
+    list_for_each_safe(r, tmp, &call->requests)
     {
-	PspmixLogRequest_t *entry
-	    = list_entry(pos, PspmixLogRequest_t, next);
-	if (entry->success) {
+	PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
+	if (req->success) {
 	    all_failed = false;
 	} else {
 	    all_succeeded = false;
 	}
-	if (entry->supported) {
+	if (req->supported) {
 	    all_unsupported = false;
 	}
 
-	list_del(pos);
-	free(entry->str);
-	free(entry);
+	list_del(&req->next);
+	free(req->str);
+	free(req);
     }
     if (all_unsupported) {
 	pspmix_server_operationFinished(PMIX_ERR_NOT_SUPPORTED,
