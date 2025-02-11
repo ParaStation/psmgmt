@@ -1608,8 +1608,9 @@ static void server_tool_connection_cb(pmix_info_t *info, size_t ninfo,
     /* not implemented */
 }
 
-static void printInfoArray(const pmix_proc_t *client, char *arr_name,
-			    const pmix_info_t *arr, size_t arr_size) {
+static void printInfoArray(char *arr_name, const pmix_info_t *arr,
+			   size_t arr_size)
+{
     flog("%s:\n", arr_name);
     for (size_t i = 0; i < arr_size; i++) {
 	char * istr = PMIx_Info_string(arr+i);
@@ -1631,8 +1632,8 @@ static void server_log_cb(const pmix_proc_t *client,
     fdbg(PSPMIX_LOG_CALL, "client %s:%d ndata %zd ndirs %zd\n", client->nspace,
 	 client->rank, ndata, ndirs);
     if (mset(PSPMIX_LOG_LOGGING)) {
-	printInfoArray(client, "data", data, ndata);
-	printInfoArray(client, "directives", directives, ndirs);
+	printInfoArray("data", data, ndata);
+	printInfoArray("directives", directives, ndirs);
     }
 
     uint32_t uid = UINT32_MAX, gid = UINT32_MAX;
