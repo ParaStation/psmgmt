@@ -853,6 +853,14 @@ void PSdbClear(PS_DataBuffer_t data)
     resetBuf(data);
 }
 
+void PSdbRewind(PS_DataBuffer_t data)
+{
+    if (!data) return;
+
+    data->unpackPtr = data->buf;
+    data->unpackErr = 0;
+}
+
 serial_Err_Types_t PSdbGetErrState(PS_DataBuffer_t data)
 {
     if (!data) return E_PSSERIAL_PARAM;

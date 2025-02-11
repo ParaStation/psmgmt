@@ -530,8 +530,7 @@ static int readSlurmMsg(int sock, void *param)
     }
 
     /* all data read successful */
-    dBuf->unpackPtr = dBuf->buf;
-    dBuf->unpackErr = 0;
+    PSdbRewind(dBuf);
     fdbg(PSSLURM_LOG_COMM, "all data read for %u ret %u toread %zu\n",
 	 sock, ret, dBuf->size);
 

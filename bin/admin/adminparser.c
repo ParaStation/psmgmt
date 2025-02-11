@@ -1930,10 +1930,9 @@ static void handlePluginNames(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     while (getStringL(data, tmp, sizeof(tmp), &len) && len > 1) count++;
     if (!count) return;  // nothing found
 
-    /* rewind the data buffer */
-    data->unpackPtr = data->buf;
 
     /* second round: actually setup pluginNames */
+    PSdbRewind(data);
     pluginNames = calloc(count + 1, sizeof(*pluginNames));
     if (!pluginNames) return;
     for (size_t p = 0; p < count; p++) pluginNames[p].key = getStringM(data);

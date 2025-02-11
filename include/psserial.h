@@ -154,6 +154,19 @@ void PSdbClear(PS_DataBuffer_t data);
 PS_DataBuffer_t PSdbDup(PS_DataBuffer_t data);
 
 /**
+ * @brief Rewind data-buffer
+ *
+ * Rewind the data-buffer @a data, i.e. start reading from the very
+ * beginning again. Thus, future calls to @ref getFromBuf() and
+ * friends will provide data from the start of the data-buffer again.
+ *
+ * @param data Data-buffer to rewind
+ *
+ * @return No return value
+ */
+void PSdbRewind(PS_DataBuffer_t data);
+
+/**
  * @brief Get data-buffer's error state
  *
  * Get the error state of the data-buffer @a data. The error state
