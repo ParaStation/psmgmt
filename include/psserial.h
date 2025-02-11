@@ -130,11 +130,28 @@ void PSdbDelete(PS_DataBuffer_t data);
  * data-buffer itself remains usable and might be filled with new
  * buffer data.
  *
- * @param data Data buffer to be free()ed / reset
+ * @param data Data-buffer to be free()ed / reset
  *
  * @return No return value
  */
-void clearPSDataBuffer(PS_DataBuffer_t data);
+void PSdbClear(PS_DataBuffer_t data);
+
+/**
+ * @brief Duplicate data-buffer
+ *
+ * Duplicate the data-buffer @a data and return a pointer to the copy
+ * of this data-buffer. For this, besides the actual buffer also all
+ * administrative information is replicated. The only exception is the
+ * data-buffer's @ref unpackPtr member which is reset in the duplicate
+ * buffer such that reading will restart from the very beginning of
+ * the received data.
+ *
+ * @param data Data-buffer to be duplicated
+ *
+ * @return On success, a pointer to the copy of the data-buffer is
+ * returned; or NULL in case of error
+ */
+PS_DataBuffer_t PSdbDup(PS_DataBuffer_t data);
 
 /**
  * @brief Prototype for @ref __recvFragMsg()'s callback
@@ -483,45 +500,16 @@ bool setTypeInfo(bool flag);
 char *serialStrErr(serial_Err_Types_t err);
 
 /**
- * @brief Free data buffer
- *
- * Free the data buffer @a data. For this the actual data buffer is
- * free()ed and all administrative information is reset.
- *
- * @param data Data buffer to be free()ed / reset
- *
- * @return No return value
- */
-void freeDataBuffer(PS_DataBuffer_t data);
-
-/**
- * @brief Duplicate data buffer
- *
- * Duplicate the data buffer @a data and return a pointer to the copy
- * of this data buffer. For this, besides the actual buffer also all
- * administrative information is replicated. The only exception is the
- * data buffer's @ref unpackPtr member which is reset in the duplicate
- * buffer such that reading will restart from the very beginning of
- * the received data.
- *
- * @param data Data buffer to be duplicated
- *
- * @return On success, a pointer to the copy of the data buffer is
- * returned; or NULL in case of error
- */
-PS_DataBuffer_t dupDataBuffer(PS_DataBuffer_t data);
-
-/**
  * @brief Write to data-buffer
  *
- * Write data from @a mem to the @a buffer. The buffer is
+ * Write data from @a mem to the data-buffer @a buffer. The latter is
  * growing in size as needed.
  *
  * @param mem Pointer holding the data to write
  *
  * @param len Number of bytes to write
  *
- * @param buffer The buffer to write to
+ * @param buffer Data-buffer to write to
  *
  * @param caller Function name of the calling function
  *
@@ -552,7 +540,7 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t buffer,
  * If the global @ref byteOrder flag is true, byte order of the
  * received data will be adapted form network to host byte-order.
  *
- * @param data Data buffer to read from
+ * @param data Data-buffer to read from
  *
  * @param val Data buffer holding the result on return
  *
@@ -657,7 +645,7 @@ bool getFromBuf(PS_DataBuffer_t data, void *val, PS_DataType_t type,
  * If the global @ref byteOrder flag is true, byte order of the
  * received data will be adapted form network to host byte-order.
  *
- * @param data Data buffer to read from
+ * @param data Data-buffer to read from
  *
  * @param dest Buffer holding the result on return
  *
@@ -717,7 +705,7 @@ void *getMemFromBuf(PS_DataBuffer_t data, char *dest, size_t destSize,
  * If the global @ref byteOrder flag is true, byte order of the
  * received data will be adapted form network to host byte-order.
  *
- * @param data Data buffer to read from
+ * @param data Data-buffer to read from
  *
  * @param val Buffer holding the allocated data array on return
  *
@@ -788,7 +776,7 @@ bool getArrayFromBuf(PS_DataBuffer_t data, void **val, uint32_t *len,
  *
  * If @a len is 0 upon return, array will be untouched.
  *
- * @param data Data buffer to read from
+ * @param data Data-buffer to read from
  *
  * @param array Array of pointers addressing the actual strings received
  *

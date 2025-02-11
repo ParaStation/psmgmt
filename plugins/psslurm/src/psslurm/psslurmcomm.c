@@ -162,7 +162,7 @@ static bool resetConnection(int socket)
 
     fdbg(PSSLURM_LOG_COMM, "for socket %i\n", socket);
 
-    freeDataBuffer(&con->data);
+    PSdbClear(&con->data);
     con->readSize = false;
 
     return true;

@@ -1153,7 +1153,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 	cache->stepid = stepid;
 	cache->msgType = PSP_PACK_INFO;
 	memcpy(&cache->msg.header, &msg->header, sizeof(msg->header));
-	cache->data = dupDataBuffer(data);
+	cache->data = PSdbDup(data);
 	list_add_tail(&cache->next, &msgCache);
 
 	Step_t s = { .jobid = packJobid, .stepid = stepid };

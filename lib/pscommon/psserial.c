@@ -847,14 +847,13 @@ static bool growDataBuffer(size_t len, PS_DataBuffer_t data)
     return true;
 }
 
-void freeDataBuffer(PS_DataBuffer_t data)
+void PSdbClear(PS_DataBuffer_t data)
 {
     if (!data) return;
-
     resetBuf(data);
 }
 
-PS_DataBuffer_t dupDataBuffer(PS_DataBuffer_t data)
+PS_DataBuffer_t PSdbDup(PS_DataBuffer_t data)
 {
     PS_DataBuffer_t dup = PSdbNew(NULL, 0);
     if (!dup) {
