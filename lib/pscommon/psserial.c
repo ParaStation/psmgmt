@@ -805,27 +805,19 @@ bool setTypeInfo(bool flag)
 }
 
 /**
- * @brief Grow the data buffer if needed.
+ * @brief Grow the data buffer if needed
  *
  * Grow the data buffer @a data such that @a len additional bytes fit
  * into the buffer. Buffers will grow by multiples of @ref
  * BufTypedMsgSize and never grow beyond @ref UINT32_MAX.
  *
- * @a caller and @a line are in order to create debug messages if
- * required.
- *
  * @param len Number of additional bytes needed
  *
  * @param data Pointer to the data buffer to grow
  *
- * @param caller Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return Return true on success and false on error
  */
-static bool growDataBuffer(size_t len, PS_DataBuffer_t data,
-			   const char *caller, const int line)
+static bool growDataBuffer(size_t len, PS_DataBuffer_t data)
 {
     if (!data->buf) resetBuf(data);
 
@@ -839,7 +831,7 @@ static bool growDataBuffer(size_t len, PS_DataBuffer_t data,
 
     char *tmp = realloc(data->buf, newLen);
     if (!tmp) {
-	PSC_flog("allocation of %zd failed at %s@%d\n", newLen,	caller, line);
+	PSC_fwarn(errno, "realloc(%p, %zd)", data->buf, newLen);
 	return false;
     }
     data->buf = tmp;
@@ -890,7 +882,7 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t buffer,
 	return false;
     }
 
-    if (!growDataBuffer(len, buffer, caller, line)) {
+    if (!growDataBuffer(len, buffer)) {
 	PSC_flog("cannot grow buffer at %s@%d\n", caller, line);
 	return false;
     }
