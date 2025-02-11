@@ -763,7 +763,7 @@ static bool jobsetupFailed = false;
  *
  * @see waitForClientEnv()
  */
-static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     env_t env;
     getEnv(data, env);
@@ -798,7 +798,7 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @see waitForClientEnv()
  */
-static void handleEarlyMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleEarlyMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     if (msg->header.type != PSP_PLUG_PSPMIX) {
 	rlog("Dropping unexpected message of type %d/%d from %s\n", msg->type,
@@ -897,7 +897,7 @@ static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
  *
  * @return No return value
  */
-static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     rdbg(PSPMIX_LOG_CALL, "msg %p data %p\n", msg, data);
 
@@ -929,7 +929,7 @@ static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @return No return value
  */
-static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     rdbg(PSPMIX_LOG_CALL, "msg %p data %p\n", msg, data);
 
@@ -985,7 +985,7 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @see tryPMIxSpawn()
  */
-static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     rdbg(PSPMIX_LOG_CALL, "msg %p data %p\n", msg, data);
 
@@ -1080,7 +1080,7 @@ static bool sendClientLogResp(PStask_ID_t dest,
  *
  * @return No return value
  */
-static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
+static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data) {
     rdbg(PSPMIX_LOG_CALL, "msg %p data %p\n", msg, data);
 
     uint16_t callID;

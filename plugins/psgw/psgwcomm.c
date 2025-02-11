@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -60,7 +60,7 @@ int handlePelogueOE(void *pedata)
     return 0;
 }
 
-static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     int8_t PElogueType, msgType;
 

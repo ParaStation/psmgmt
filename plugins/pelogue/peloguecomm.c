@@ -138,8 +138,7 @@ static void CBprologueResp(char *jobid, int exit, bool timeout,
     }
 }
 
-static void handlePluginConfigDel(DDTypedBufferMsg_t *msg,
-				  PS_DataBuffer_t *data)
+static void handlePluginConfigDel(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     char *plugin = getStringM(data);
 
@@ -170,8 +169,7 @@ static void savePluginConfig(char *plugin, uint32_t timeout, uint32_t grace)
     freeConfig(config);
 }
 
-static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
-				  PS_DataBuffer_t *data)
+static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint32_t timeout, grace;
 
@@ -268,7 +266,7 @@ ERROR:
     ufree(info);
 }
 
-static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 {
     /* verify protocol version */
     uint16_t version;
@@ -365,7 +363,7 @@ ERROR:
     envDestroy(env);
 }
 
-static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 {
     bool prlg = msg->type == PSP_PROLOGUE_START;
     char *plugin = getStringM(rData);
@@ -440,7 +438,7 @@ void sendPElogueSignal(Job_t *job, int sig, char *reason)
     sendFragMsg(&data);
 }
 
-static void handlePElogueSignal(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handlePElogueSignal(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 {
 
     char *plugin = getStringM(rData);
@@ -483,7 +481,7 @@ void sendPElogueFinish(PElogueChild_t *child)
     sendFragMsg(&data);
 }
 
-static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 {
     PSnodes_ID_t node = PSC_getID(msg->header.sender);
     char peType[32];
@@ -580,7 +578,7 @@ static void dropMsgAndCancel(DDTypedBufferMsg_t *msg)
     /* ignore follow up messages */
     if (fragNum) return;
 
-    PS_DataBuffer_t data;
+    struct PS_DataBuffer data;    // @todo
     initPSDataBuffer(&data, msg->buf + used,
 		     msg->header.len - DDTypedBufMsgOffset - used);
 

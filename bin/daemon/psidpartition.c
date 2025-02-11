@@ -1605,7 +1605,7 @@ static void sendAcctQueueMsg(PStask_t *task)
  *
  * @return No return value
  */
-static void handleRequestPart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleRequestPart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     int eno = 0;
     if (!PSIDnodes_isStarter(PSC_getMyID())) {
@@ -1812,7 +1812,7 @@ error:
  *
  * @return No return value
  */
-static void handleCreatePart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleCreatePart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
@@ -1929,7 +1929,7 @@ static bool msg_CREATEPART(DDTypedBufferMsg_t *inmsg)
  *
  * @return Return true on success or false on insufficent data, etc.
  */
-static bool extractSlots(PS_DataBuffer_t *data, PSpart_slot_t *slots,
+static bool extractSlots(PS_DataBuffer_t data, PSpart_slot_t *slots,
 			 uint32_t size)
 {
     PSID_fdbg(PSID_LOG_PART, "store %u to %p\n", size, slots);
@@ -2032,7 +2032,7 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
  *
  * @return No return value
  */
-static void handleProvidePart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleProvidePart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(msg->header.dest));
 
@@ -3762,7 +3762,7 @@ error:
  *
  * @return No return value
  */
-static void handleFinReservation(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handleFinReservation(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
     if (!task) {
@@ -3821,7 +3821,7 @@ static bool msg_FINRESERVATION(DDTypedBufferMsg_t *msg)
     return true;
 }
 
-static void handleResFinalized(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handleResFinalized(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
     if (!task) {
@@ -4258,7 +4258,7 @@ error:
  *
  * @return No return value
  */
-static void handleSlotsResult(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleSlotsResult(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     PSID_fdbg(PSID_LOG_PART, "%s\n", PSC_printTID(msg->header.dest));
 
@@ -4689,7 +4689,7 @@ static bool msg_GETTASKS(DDBufferMsg_t *inmsg)
  *
  * @return Return the filled request or NULL on failure
  */
-PSpart_request_t *extractRequest(PS_DataBuffer_t *data, PStask_ID_t tid)
+PSpart_request_t *extractRequest(PS_DataBuffer_t data, PStask_ID_t tid)
 {
     PSpart_request_t *req = PSpart_newReq();
     if (!req) {
@@ -4782,7 +4782,7 @@ static void handleMasterPart(PSpart_request_t *req, PStask_ID_t sender)
  *
  * @return No return value
  */
-static void handleProvideTask(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleProvideTask(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
@@ -4993,7 +4993,7 @@ static void handleSisterPart(PSpart_request_t *req, PStask_t *task)
  *
  * @return No return value
  */
-static void handleRegisterPart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleRegisterPart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     PStask_t *destTask = PStasklist_find(&managedTasks, msg->header.dest);
     if (!destTask) {

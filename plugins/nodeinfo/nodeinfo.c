@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -54,7 +54,7 @@ static void addCPUMapData(PS_SendDB_t *data)
     }
 }
 
-bool handleCPUMapData(PS_DataBuffer_t *rData, PSnodes_ID_t sender)
+bool handleCPUMapData(PS_DataBuffer_t rData, PSnodes_ID_t sender)
 {
     uint16_t numThrds;
     getUint16(rData, &numThrds);
@@ -89,7 +89,7 @@ static void addSetsData(PSP_NodeInfo_t type, PSCPU_set_t *sets,
     }
 }
 
-static bool handleSetData(PS_DataBuffer_t *rData, PSnodes_ID_t sender,
+static bool handleSetData(PS_DataBuffer_t rData, PSnodes_ID_t sender,
 			  int setSetSize(PSnodes_ID_t, short),
 			  int setSets(PSnodes_ID_t, PSCPU_set_t *))
 {
@@ -147,7 +147,7 @@ static void addDistanceData(PS_SendDB_t *data)
     addUint32ArrayToMsg(distances, numNUMA * numNUMA, data);
 }
 
-bool handleDistanceData(PS_DataBuffer_t *rData, PSnodes_ID_t sender)
+bool handleDistanceData(PS_DataBuffer_t rData, PSnodes_ID_t sender)
 {
     uint16_t numNUMA = PSIDnodes_numNUMADoms(sender);
 
@@ -173,7 +173,7 @@ static void addCPUData(PS_SendDB_t *data)
     addInt16ToMsg(numThrds, data);
 }
 
-bool handleCPUData(PS_DataBuffer_t *rData, PSnodes_ID_t sender)
+bool handleCPUData(PS_DataBuffer_t rData, PSnodes_ID_t sender)
 {
     uint16_t numCores, numThrds;
     getUint16(rData, &numCores);
@@ -238,7 +238,7 @@ static void broadcastMapData(void)
     sendFragMsg(&data);
 }
 
-static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 {
     PSnodes_ID_t sender = PSC_getID(msg->header.sender);
     PSP_NodeInfo_t type = 0; // ensure higher bytes are all 0

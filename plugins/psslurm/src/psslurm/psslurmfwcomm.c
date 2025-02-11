@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -57,7 +57,7 @@ typedef enum {
     CMD_INIT_COMPLETE,
 } PSSLURM_Fw_Cmds_t;
 
-static void handleStepTimeout(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+static void handleStepTimeout(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data,
 			      void *info)
 {
     Forwarder_Data_t *fwdata = info;
@@ -66,7 +66,7 @@ static void handleStepTimeout(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
     step->timeout = true;
 }
 
-static void handleInfoTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+static void handleInfoTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data,
 			    void *info)
 {
     Forwarder_Data_t *fwdata = info;
@@ -87,7 +87,7 @@ static void handleInfoTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
     }
 }
 
-static void handleFWfinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+static void handleFWfinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data,
 			     void *info)
 {
     Forwarder_Data_t *fwdata = info;
@@ -118,7 +118,7 @@ static void handleFWfinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
     ufree(logMsg);
 }
 
-static void handleEnableSrunIO(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+static void handleEnableSrunIO(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data,
 			       void *info)
 {
     Forwarder_Data_t *fwdata = info;
@@ -127,7 +127,7 @@ static void handleEnableSrunIO(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
     srunEnableIO(step);
 }
 
-static void handleSattachTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+static void handleSattachTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data,
 			       void *info)
 {
     Forwarder_Data_t *fwdata = info;
@@ -145,7 +145,7 @@ static void handleSattachTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
     ufree(sig);
 }
 
-static void handlePrintStepMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+static void handlePrintStepMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data,
 			       void *info)
 {
     Forwarder_Data_t *fwdata = info;
@@ -202,7 +202,7 @@ bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     return true;
 }
 
-static void handlePrintJobMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data,
+static void handlePrintJobMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data,
 			      void *info)
 {
     Forwarder_Data_t *fwdata = info;
@@ -235,7 +235,7 @@ bool fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     return true;
 }
 
-static void handleBrokeIOcon(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleBrokeIOcon(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint32_t jobID;
     getUint32(data, &jobID);
@@ -249,7 +249,7 @@ static void handleBrokeIOcon(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     if (step->ioCon == IO_CON_NORM) step->ioCon = IO_CON_ERROR;
 }
 
-static void changeEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void changeEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint32_t jobid;
     getUint32(data, &jobid);
@@ -423,7 +423,7 @@ static void startSpawner(Step_t *step, int32_t serviceRank)
 }
 
 
-static void handleInitComplete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleInitComplete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint32_t jobid;
     getUint32(data, &jobid);

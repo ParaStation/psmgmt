@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -178,7 +178,7 @@ static void callbackScript(int exit, bool tmdOut, int iofd, void *info)
     deleteScript(script);
 }
 
-static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     /* verify protocol version */
     uint16_t version;
@@ -213,7 +213,7 @@ static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
 }
 
-static void handleExecScriptRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleExecScriptRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint16_t uID;
     int32_t res;
@@ -251,7 +251,7 @@ static void dropExecMsg(DDTypedBufferMsg_t *msg)
     /* ignore follow up messages */
     if (fragNum) return;
 
-    PS_DataBuffer_t data;
+    struct PS_DataBuffer data;  // @todo
     initPSDataBuffer(&data, msg->buf + used,
 		     msg->header.len - DDTypedBufMsgOffset - used);
 

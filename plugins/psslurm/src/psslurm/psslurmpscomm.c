@@ -78,7 +78,7 @@ typedef struct {
     uint32_t jobid;		/**< jobid of the step */
     uint32_t stepid;		/**< stepid of the step */
     DDTypedBufferMsg_t msg;	/**< used to save the msg header */
-    PS_DataBuffer_t *data;	/**< msg payload */
+    PS_DataBuffer_t data;	/**< msg payload */
 } Msg_Cache_t;
 
 /** Lookup table for hostnames and node IDs */
@@ -718,7 +718,7 @@ void send_PS_PElogueRes(Alloc_t *alloc, int16_t res, int16_t type)
     sendFragMsg(&data);
 }
 
-static void handleJobExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleJobExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     /* get jobid/stepid */
     uint32_t jobid, stepid;
@@ -773,7 +773,7 @@ static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id, uint16_t res
  *
  * @param data The request to handle
  */
-static void handleStopStepFW(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleStopStepFW(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint32_t stepid, jobid;
     getUint32(data, &jobid);
@@ -803,8 +803,7 @@ static void handleStopStepFW(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @param data The request to handle
  */
-static void handleEpilogueStateRes(DDTypedBufferMsg_t *msg,
-				   PS_DataBuffer_t *data)
+static void handleEpilogueStateRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint32_t id;
     getUint32(data, &id);
@@ -846,8 +845,7 @@ static void handleEpilogueStateRes(DDTypedBufferMsg_t *msg,
  *
  * @param data The request to handle
  */
-static void handleEpilogueStateReq(DDTypedBufferMsg_t *msg,
-				   PS_DataBuffer_t *data)
+static void handleEpilogueStateReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint16_t res = 0;
 
@@ -895,7 +893,7 @@ static bool startWaitingJobs(Job_t *job, const void *info)
  *
  * @param data The request to handle
  */
-static void handlePElogueRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handlePElogueRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint32_t id;
     getUint32(data, &id);
@@ -977,7 +975,7 @@ static void handlePElogueRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @param data The request to handle
  */
-static void handleJobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleJobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     /* get jobid */
     uint32_t jobid;
@@ -1017,7 +1015,7 @@ static void handleJobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	 job->username, job->nrOfNodes, PSC_printTID(msg->header.sender));
 }
 
-static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     /* get jobid */
     uint32_t jobid;
@@ -1039,7 +1037,7 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	 PSC_printTID(msg->header.sender));
 }
 
-static bool getSlotsFromMsg(PS_DataBuffer_t *data, PSpart_slot_t **slots,
+static bool getSlotsFromMsg(PS_DataBuffer_t data, PSpart_slot_t **slots,
 			    uint32_t *len)
 {
     getUint32(data, len);
@@ -1091,7 +1089,7 @@ static bool getSlotsFromMsg(PS_DataBuffer_t *data, PSpart_slot_t **slots,
  *
  * @param data The actual message data to handle
  */
-static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint32_t packJobid, stepid;
 
@@ -1129,7 +1127,7 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @param data The actual message data to handle
  */
-static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint32_t packJobid, stepid, len;
 
@@ -1271,7 +1269,7 @@ int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
     return ret;
 }
 
-static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     Slurm_Msg_t sMsg;
 
@@ -1294,7 +1292,7 @@ static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     processSlurmMsg(&sMsg, NULL, handleSlurmdMsg, NULL);
 }
 
-static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     Slurm_Msg_t sMsg;
     int16_t socket;
@@ -1316,7 +1314,7 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     handleFrwrdMsgReply(&sMsg, SLURM_SUCCESS);
 }
 
-static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint32_t allocID;
     int8_t PElogueType, msgType;
@@ -1360,7 +1358,7 @@ static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(msgData);
 }
 
-static void handleAllocTerm(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleAllocTerm(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     uint32_t allocID;
     getUint32(data, &allocID);
@@ -1540,7 +1538,7 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     /* ignore follow up messages */
     if (fragNum) return;
 
-    PS_DataBuffer_t data;
+    struct PS_DataBuffer data;   // @todo
     initPSDataBuffer(&data, msg->buf + used,
 		     msg->header.len - DDTypedBufMsgOffset - used);
 

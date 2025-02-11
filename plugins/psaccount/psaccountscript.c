@@ -128,7 +128,7 @@ static bool handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 
     if (msg->header.type != PSP_PF_MSG) return false;
 
-    PS_DataBuffer_t data;
+    struct PS_DataBuffer data;   // @todo
     initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
 
     switch (msg->type) {
@@ -270,7 +270,7 @@ bool Script_test(char *spath, char *title)
  *
  * @param data Holding the new poll time
  */
-static void handleSetPollTime(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
+static void handleSetPollTime(Forwarder_Data_t *fwdata, PS_DataBuffer_t data)
 {
     Collect_Script_t *script = fwdata->userData;
     getUint32(data, &script->poll);
@@ -285,7 +285,7 @@ static void handleSetPollTime(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data)
  *
  * @param action Actual action to execute
  */
-static void handleCtlEnvVar(Forwarder_Data_t *fwdata, PS_DataBuffer_t *data,
+static void handleCtlEnvVar(Forwarder_Data_t *fwdata, PS_DataBuffer_t data,
 			    PSACCOUNT_Fw_Cmds_t action)
 {
     Collect_Script_t *script = fwdata->userData;
@@ -317,7 +317,7 @@ static bool handleMthrMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     if (msg->header.type != PSP_PF_MSG) return false;
 
-    PS_DataBuffer_t data;
+    struct PS_DataBuffer data;  // @todo
     initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
 
     switch ((PSACCOUNT_Fw_Cmds_t)msg->type) {

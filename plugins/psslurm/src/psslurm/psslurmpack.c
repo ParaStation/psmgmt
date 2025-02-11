@@ -59,7 +59,7 @@
  *
  * @return Returns the result or NULL on error.
  */
-static char *__getBitString(PS_DataBuffer_t *data, const char *func,
+static char *__getBitString(PS_DataBuffer_t data, const char *func,
 			    const int line)
 {
     uint32_t len;
@@ -96,7 +96,7 @@ static char *__getBitString(PS_DataBuffer_t *data, const char *func,
  *
  * @return Returns true on success otherwise false is returned
  */
-static bool __getSlurmAddr(PS_DataBuffer_t *data, Slurm_Addr_t *addr,
+static bool __getSlurmAddr(PS_DataBuffer_t data, Slurm_Addr_t *addr,
 			   uint16_t msgVer, const char *caller, const int line)
 {
     if (!data) {
@@ -215,7 +215,7 @@ static void packStepHead(void *head, PS_SendDB_t *data)
  * @return On success true is returned or false in case of an
  * error. If reading was not successful, @a sMsg might be not updated.
  */
-static bool __unpackStepHead(PS_DataBuffer_t *data, void *head, uint16_t msgVer,
+static bool __unpackStepHead(PS_DataBuffer_t data, void *head, uint16_t msgVer,
 			     const char *caller, const int line)
 {
     Slurm_Step_Head_t *stepH = head;
@@ -283,7 +283,7 @@ bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
 	return false;
     }
 
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     Slurm_Auth_t *auth = umalloc(sizeof(*auth));
 
     getUint32(data, &auth->pluginID);
@@ -313,7 +313,7 @@ bool __unpackMungeCred(Slurm_Msg_t *sMsg, Slurm_Auth_t *auth,
 	return false;
     }
 
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     auth->cred = getStringM(data);
 
     if (data->unpackErr) {
@@ -336,7 +336,7 @@ bool __unpackMungeCred(Slurm_Msg_t *sMsg, Slurm_Auth_t *auth,
  * @return Returns the unpacked step credential on success otherwise
  * NULL is returned
  */
-static Gres_Cred_t *unpackGresStepPart(PS_DataBuffer_t *data, uint16_t index,
+static Gres_Cred_t *unpackGresStepPart(PS_DataBuffer_t data, uint16_t index,
 				       uint16_t msgVer)
 {
     Gres_Cred_t *gres = getGresCred();
@@ -463,7 +463,7 @@ static Gres_Cred_t *unpackGresStepPart(PS_DataBuffer_t *data, uint16_t index,
  *
  * @return Returns true on success otherwise false is returned
  */
-static bool unpackGresStep(PS_DataBuffer_t *data, list_t *gresList,
+static bool unpackGresStep(PS_DataBuffer_t data, list_t *gresList,
 			   uint16_t msgVer)
 {
     /* extract gres step data */
@@ -499,7 +499,7 @@ static bool unpackGresStep(PS_DataBuffer_t *data, list_t *gresList,
  * @return Returns the unpacked job credential on success othwerwise
  * NULL is returned
  */
-static Gres_Cred_t *unpackGresJobPart(PS_DataBuffer_t *data, uint16_t index,
+static Gres_Cred_t *unpackGresJobPart(PS_DataBuffer_t data, uint16_t index,
 				      uint16_t msgVer)
 {
     Gres_Cred_t *gres = getGresCred();
@@ -666,7 +666,7 @@ static Gres_Cred_t *unpackGresJobPart(PS_DataBuffer_t *data, uint16_t index,
  *
  * @return Returns true on success otherwise false is returned
  */
-static bool unpackGresJob(PS_DataBuffer_t *data, list_t *gresList,
+static bool unpackGresJob(PS_DataBuffer_t data, list_t *gresList,
 			  uint16_t msgVer)
 {
     /* extract gres job data */
@@ -715,7 +715,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     }
 
     JobCred_t *cred = ucalloc(sizeof(*cred));
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     /* unpack jobid/stepid */
@@ -959,7 +959,7 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
 	return false;
     }
 
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     /* init cred */
@@ -1036,7 +1036,7 @@ bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 	return false;
     }
 
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     Slurm_Msg_Header_t *head = &sMsg->head;
 
     /* Slurm protocol version */
@@ -1192,7 +1192,7 @@ bool __packSlurmIOMsg(PS_SendDB_t *data, IO_Slurm_Header_t *ioh, char *body,
     return true;
 }
 
-bool __unpackSlurmIOHeader(PS_DataBuffer_t *data, IO_Slurm_Header_t **iohPtr,
+bool __unpackSlurmIOHeader(PS_DataBuffer_t data, IO_Slurm_Header_t **iohPtr,
 			   const char *caller, const int line)
 {
     if (!data) {
@@ -1235,7 +1235,7 @@ bool __unpackSlurmIOHeader(PS_DataBuffer_t *data, IO_Slurm_Header_t **iohPtr,
  *
  * @param gresList A list to receive the unpacked data
  */
-static bool unpackGresJobAlloc(PS_DataBuffer_t *data, list_t *gresList)
+static bool unpackGresJobAlloc(PS_DataBuffer_t data, list_t *gresList)
 {
     uint16_t count;
     getUint16(data, &count);
@@ -1311,7 +1311,7 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     Req_Terminate_Job_t *req = ucalloc(sizeof(*req));
 
     uint16_t msgVer = sMsg->head.version;
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     sMsg->unpData = req;
 
     INIT_LIST_HEAD(&req->gresJobList);
@@ -1392,7 +1392,7 @@ static bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
     Req_Signal_Tasks_t *req = ucalloc(sizeof(*req));
     sMsg->unpData = req;
 
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     /* unpack jobid/stepid */
@@ -1411,7 +1411,7 @@ static bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
     return true;
 }
 
-static void unpackStepTaskIds(PS_DataBuffer_t *data, Step_t *step)
+static void unpackStepTaskIds(PS_DataBuffer_t data, Step_t *step)
 {
     step->tasksToLaunch = umalloc(step->nrOfNodes * sizeof(uint16_t));
     step->globalTaskIds = umalloc(step->nrOfNodes * sizeof(uint32_t *));
@@ -1435,7 +1435,7 @@ static void unpackStepTaskIds(PS_DataBuffer_t *data, Step_t *step)
     }
 }
 
-static bool unpackStepAddr(PS_DataBuffer_t *data, Step_t *step, uint16_t msgVer)
+static bool unpackStepAddr(PS_DataBuffer_t data, Step_t *step, uint16_t msgVer)
 {
     /* srun ports */
     getUint16(data, &step->numSrunPorts);
@@ -1462,7 +1462,7 @@ static bool unpackStepAddr(PS_DataBuffer_t *data, Step_t *step, uint16_t msgVer)
 static bool unpackJobResources(Slurm_Msg_t *sMsg, Slurm_Job_Resources_t *jr)
 {
 
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     if (!(msgVer > SLURM_23_11_PROTO_VERSION)) {
@@ -1543,7 +1543,7 @@ static bool unpackJobResources(Slurm_Msg_t *sMsg, Slurm_Job_Resources_t *jr)
 
 static bool unpackDepList(Slurm_Msg_t *sMsg, list_t *depList)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     if (msgVer < SLURM_23_02_PROTO_VERSION) {
@@ -1588,7 +1588,7 @@ static bool unpackDepList(Slurm_Msg_t *sMsg, list_t *depList)
 static bool unpackMultiCoreData(Slurm_Msg_t *sMsg,
 				Slurm_Multicore_data_t *mc)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     if (msgVer < SLURM_23_02_PROTO_VERSION) {
@@ -1634,7 +1634,7 @@ static bool unpackMultiCoreData(Slurm_Msg_t *sMsg,
 
 static bool unpackCronEntry(Slurm_Msg_t *sMsg, Slurm_Cron_Entry_t *ce)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     if (msgVer < SLURM_23_02_PROTO_VERSION) {
@@ -1675,7 +1675,7 @@ static bool unpackCronEntry(Slurm_Msg_t *sMsg, Slurm_Cron_Entry_t *ce)
 
 static bool unpackJobDetails(Slurm_Msg_t *sMsg, Slurm_Job_Details_t *dt)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     if (!(msgVer > SLURM_23_11_PROTO_VERSION)) {
@@ -1821,7 +1821,7 @@ static bool unpackJobDetails(Slurm_Msg_t *sMsg, Slurm_Job_Details_t *dt)
 
 static bool unpackStepLayout(Slurm_Msg_t *sMsg, Slurm_Step_Layout_t *sl)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     if (msgVer < SLURM_23_11_PROTO_VERSION) {
@@ -1876,7 +1876,7 @@ static bool unpackStepLayout(Slurm_Msg_t *sMsg, Slurm_Step_Layout_t *sl)
 
 static bool unpackJobAcctData(Slurm_Msg_t *sMsg, Slurm_Job_Acct_t *sa)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     if (!(msgVer > SLURM_23_02_PROTO_VERSION)) {
@@ -1961,7 +1961,7 @@ static bool unpackJobAcctData(Slurm_Msg_t *sMsg, Slurm_Job_Acct_t *sa)
  *
  * @return Returns true on success otherwise false is returned
  */
-static bool validateJobinfoPluginID(PS_DataBuffer_t *data)
+static bool validateJobinfoPluginID(PS_DataBuffer_t data)
 {
     uint32_t pluginID;
     getUint32(data, &pluginID);
@@ -1983,7 +1983,7 @@ static bool validateJobinfoPluginID(PS_DataBuffer_t *data)
 
 static bool unpackStepState(Slurm_Msg_t *sMsg, list_t *stateList)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     if (msgVer < SLURM_23_11_PROTO_VERSION) {
@@ -2147,7 +2147,7 @@ static bool unpackStepState(Slurm_Msg_t *sMsg, list_t *stateList)
 
 static bool unpackJobFedDetails(Slurm_Msg_t *sMsg, Slurm_Job_Fed_Details_t *fd)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     if (!(msgVer > SLURM_23_02_PROTO_VERSION)) {
@@ -2182,7 +2182,7 @@ static bool unpackJobFedDetails(Slurm_Msg_t *sMsg, Slurm_Job_Fed_Details_t *fd)
 
 static bool unpackIdentity(Slurm_Msg_t *sMsg, Slurm_Identity_t *id)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
 
     /* user ID */
     getUint32(data, &id->uid);
@@ -2217,7 +2217,7 @@ static bool unpackIdentity(Slurm_Msg_t *sMsg, Slurm_Identity_t *id)
 
 static bool unpackJobRecord(Slurm_Msg_t *sMsg, Slurm_Job_Record_t *jr)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     if (!(msgVer > SLURM_23_11_PROTO_VERSION)) {
@@ -2564,7 +2564,7 @@ static bool unpackJobRecord(Slurm_Msg_t *sMsg, Slurm_Job_Record_t *jr)
 
 static bool unpackNodeStates(Slurm_Msg_t *sMsg, list_t *stateList)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     /* number of records (before protocol version check!) */
@@ -2636,7 +2636,7 @@ static bool unpackNodeStates(Slurm_Msg_t *sMsg, list_t *stateList)
 
 static bool unpackPartRecord(Slurm_Msg_t *sMsg, Slurm_Part_Record_t *pr)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     if (!(msgVer > SLURM_23_11_PROTO_VERSION)) {
@@ -2704,7 +2704,7 @@ static bool unpackPartRecord(Slurm_Msg_t *sMsg, Slurm_Part_Record_t *pr)
 
 static bool unpackNodeRecords(Slurm_Msg_t *sMsg, list_t *nrList)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
     if (!(msgVer > SLURM_23_11_PROTO_VERSION)) {
@@ -2830,7 +2830,7 @@ static bool unpackNodeRecords(Slurm_Msg_t *sMsg, list_t *nrList)
  */
 static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version, debug;
     uint32_t tmp;
 
@@ -3153,7 +3153,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     return true;
 }
 
-static void readJobCpuOptions(PS_DataBuffer_t *data, Job_t *job)
+static void readJobCpuOptions(PS_DataBuffer_t data, Job_t *job)
 {
     /* cpu group count */
     getUint32(data, &job->cpuGroupCount);
@@ -3195,7 +3195,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 {
     uint32_t jobid, tmp, count;
     char buf[1024];
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
 
     /* jobid */
     getUint32(data, &jobid);
@@ -3784,7 +3784,7 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
  */
 static bool unpackReqFileBcast(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     BCast_t *bcast = BCast_add();
     uint16_t msgVer = sMsg->head.version;
     sMsg->unpData = bcast;
@@ -3841,7 +3841,7 @@ static bool unpackReqFileBcast(Slurm_Msg_t *sMsg)
 }
 
 bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
-		    PS_DataBuffer_t *body, Slurm_Auth_t *auth,
+		    PS_DataBuffer_t body, Slurm_Auth_t *auth,
 		    const char *caller, const int line)
 {
     uint32_t lastBufLen = 0, msgStart;
@@ -4066,7 +4066,7 @@ bool __packEnergyData(PS_SendDB_t *data, psAccountEnergy_t *eData,
  */
 static bool unpackExtRespNodeReg(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     Ext_Resp_Node_Reg_t *resp = ucalloc(sizeof(*resp));
     sMsg->unpData = resp;
 
@@ -4104,7 +4104,7 @@ static bool unpackExtRespNodeReg(Slurm_Msg_t *sMsg)
  */
 static bool unpackReqSuspendInt(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     Req_Suspend_Int_t *req = umalloc(sizeof(*req));
     sMsg->unpData = req;
     uint16_t msgVer = sMsg->head.version;
@@ -4139,7 +4139,7 @@ static bool unpackReqSuspendInt(Slurm_Msg_t *sMsg)
  */
 static bool unpackConfigMsg(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
     Config_Msg_t *req = ucalloc(sizeof(*req));
     sMsg->unpData = req;
@@ -4270,7 +4270,7 @@ bool __packSlurmPIDs(PS_SendDB_t *data, Slurm_PIDs_t *pids,
  */
 static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
     Req_Reattach_Tasks_t *req = ucalloc(sizeof(*req));
     sMsg->unpData = req;
@@ -4344,7 +4344,7 @@ static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
  */
 static bool unpackReqJobNotify(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
     Req_Job_Notify_t *req = ucalloc(sizeof(*req));
     sMsg->unpData = req;
@@ -4377,7 +4377,7 @@ static bool unpackReqJobNotify(Slurm_Msg_t *sMsg)
 static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
 {
     Req_Launch_Prolog_t *req = ucalloc(sizeof(*req));
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
     sMsg->unpData = req;
 
@@ -4484,7 +4484,7 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
 static bool unpackReqJobID(Slurm_Msg_t *sMsg)
 {
     Req_Job_ID_t *req = ucalloc(sizeof(*req));
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     sMsg->unpData = req;
 
     /* pid */
@@ -4513,7 +4513,7 @@ static bool unpackReqJobID(Slurm_Msg_t *sMsg)
 static bool unpackRebootNodes(Slurm_Msg_t *sMsg)
 {
     Req_Reboot_Nodes_t *req = ucalloc(sizeof(*req));
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     sMsg->unpData = req;
 
     /* features */

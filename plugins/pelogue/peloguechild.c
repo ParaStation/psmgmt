@@ -253,7 +253,7 @@ static void handlePeIO(Forwarder_Data_t *fwdata, PElogue_OEtype_t type,
     };
 
     /* read message */
-    PS_DataBuffer_t data;
+    struct PS_DataBuffer data;   // @todo
     initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
     oeData.msg = getStringM(&data);
 

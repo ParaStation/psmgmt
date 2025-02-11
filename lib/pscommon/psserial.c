@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -82,7 +82,7 @@ static inline void *umalloc(size_t size)
     return malloc(size < MIN_MALLOC_SIZE ? MIN_MALLOC_SIZE : size);
 }
 
-void initPSDataBuffer(PS_DataBuffer_t *data, char *mem, size_t memSize)
+void initPSDataBuffer(PS_DataBuffer_t data, char *mem, size_t memSize)
 {
     memset(data, 0, sizeof(*data));
     data->buf = data->unpackPtr = mem;
@@ -99,7 +99,7 @@ void initPSDataBuffer(PS_DataBuffer_t *data, char *mem, size_t memSize)
  *
  * @return No return value
  */
-static void resetBuf(PS_DataBuffer_t *b)
+static void resetBuf(PS_DataBuffer_t b)
 {
     free(b->buf);
     memset(b, 0, sizeof(*b));
@@ -108,7 +108,7 @@ static void resetBuf(PS_DataBuffer_t *b)
 typedef struct {
     list_t next;          /**< used to put into reservation-lists */
     PStask_ID_t tid;      /**< task ID of the message sender */
-    PS_DataBuffer_t dBuf; /**< data buffer to collect message fragments in */
+    struct PS_DataBuffer dBuf; /**< data buffer to collect message fragments in */
 } recvBuf_t;
 
 /** data structure to handle a pool of receive buffers (of type recvBuf_t) */
@@ -169,7 +169,7 @@ static void putRecvBuf(recvBuf_t *recvBuf)
  * @return If a receive buffer was foud a pointer to its data buffer
  * is returned. Or NULL in case of error, i.e. no buffer was found.
  */
-static PS_DataBuffer_t *findRecvBuf(PStask_ID_t tid)
+static PS_DataBuffer_t findRecvBuf(PStask_ID_t tid)
 {
     list_t *r;
     list_for_each(r, &activeRecvBufs) {
@@ -650,7 +650,8 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, SerialRecvCB_t *cb,
 	return false;
     }
 
-    PS_DataBuffer_t *recvBuf, myRecvBuf;
+    struct PS_DataBuffer myRecvBuf;
+    PS_DataBuffer_t recvBuf;
     if (fragType == FRAGMENT_END && fragNum == 0) {
 	/* Shortcut: message consists of just one fragment */
 	uint32_t s = msg->header.len - DDTypedBufMsgOffset - used;
@@ -823,7 +824,7 @@ bool setTypeInfo(bool flag)
  *
  * @return Return true on success and false on error
  */
-static bool growDataBuffer(size_t len, PS_DataBuffer_t *data,
+static bool growDataBuffer(size_t len, PS_DataBuffer_t data,
 			   const char *caller, const int line)
 {
     if (!data->buf) resetBuf(data);
@@ -847,16 +848,16 @@ static bool growDataBuffer(size_t len, PS_DataBuffer_t *data,
     return true;
 }
 
-void freeDataBuffer(PS_DataBuffer_t *data)
+void freeDataBuffer(PS_DataBuffer_t data)
 {
     if (!data) return;
 
     resetBuf(data);
 }
 
-PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data)
+PS_DataBuffer_t dupDataBuffer(PS_DataBuffer_t data)
 {
-    PS_DataBuffer_t *dup = umalloc(sizeof(*dup));
+    PS_DataBuffer_t dup = umalloc(sizeof(*dup));
     if (!dup) {
 	data->unpackErr = E_PSSERIAL_MEM;
 	PSC_flog("%s\n", serialStrErr(data->unpackErr));
@@ -881,7 +882,7 @@ PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data)
     return dup;
 }
 
-bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
+bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t buffer,
 		       const char *caller, const int line)
 {
     if (!buffer) {
@@ -927,7 +928,7 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
  * type-checking is switched of, i.e. @ref typeInfo is false, true is
  * returned.
  */
-static bool verifyTypeInfo(PS_DataBuffer_t *data, PS_DataType_t expectedType,
+static bool verifyTypeInfo(PS_DataBuffer_t data, PS_DataType_t expectedType,
 			   const char *caller, const int line)
 {
     if (!typeInfo) return true;
@@ -964,7 +965,7 @@ static bool verifyTypeInfo(PS_DataBuffer_t *data, PS_DataType_t expectedType,
  * @return Returns true if it is safe to continue unpacking data from the
  * buffer or false otherwise
  */
-static inline bool verifyDataBuf(PS_DataBuffer_t *data, size_t size,
+static inline bool verifyDataBuf(PS_DataBuffer_t data, size_t size,
 				 bool addTypeInfo, const char *caller,
 				 const int line)
 {
@@ -985,7 +986,7 @@ static inline bool verifyDataBuf(PS_DataBuffer_t *data, size_t size,
     return true;
 }
 
-bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
+bool getFromBuf(PS_DataBuffer_t data, void *val, PS_DataType_t type,
 		size_t size, const char *caller, const int line)
 {
     if (!data || !data->unpackPtr) {
@@ -1029,7 +1030,7 @@ bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
     return true;
 }
 
-bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
+bool getArrayFromBuf(PS_DataBuffer_t data, void **val, uint32_t *len,
 		     PS_DataType_t type, size_t size,
 		     const char *caller, const int line)
 {
@@ -1058,7 +1059,7 @@ bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
     return true;
 }
 
-void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
+void *getMemFromBuf(PS_DataBuffer_t data, char *dest, size_t destSize,
 		    size_t *len, PS_DataType_t type, const char *caller,
 		    const int line)
 {
@@ -1117,7 +1118,7 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
     return dest;
 }
 
-bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
+bool __getStringArrayM(PS_DataBuffer_t data, char ***array, uint32_t *len,
 			const char *caller, const int line)
 {
     if (!array) {

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -43,7 +43,7 @@ typedef struct {
 				    (including myself) */
     uint32_t nodesCount;	/** size of the nodes array */
     uint32_t numRes;		/** number of forwarded message results */
-    PS_DataBuffer_t body;	/** message body holding local result */
+    struct PS_DataBuffer body;	/** message body holding local result */  // @todo
     Slurm_Msg_Header_t head;	/** header with saved results for
 				    each forwarded node */
 } Msg_Forward_t;
@@ -51,7 +51,7 @@ typedef struct {
 /** structure holding connection management data */
 typedef struct {
     list_t next;	    /**< used to put into connection-list */
-    PS_DataBuffer_t data;   /**< buffer for received message parts */
+    struct PS_DataBuffer data;   /**< buffer for received message parts */ // @todo
     Connection_CB_t *cb;    /**< function to handle received messages */
     void *info;		    /**< additional info passed to callback */
     int sock;		    /**< socket of the connection */

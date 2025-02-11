@@ -41,8 +41,8 @@
 #define MAX_LINE_BUF_LENGTH 1024*1024
 
 typedef struct {
-    PS_DataBuffer_t out;
-    PS_DataBuffer_t err;
+    struct PS_DataBuffer out;  // @todo
+    struct PS_DataBuffer err;  // @todo
 } IO_Msg_Buf_t;
 
 typedef struct {
@@ -260,7 +260,7 @@ static void writeLabelIOmsg(Forwarder_Data_t *fwdata, char *msg,
 }
 
 static void handleBufferedMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t len,
-			      PS_DataBuffer_t *buffer, uint32_t grank,
+			      PS_DataBuffer_t buffer, uint32_t grank,
 			      uint8_t type, uint32_t lrank)
 {
     char *nl = len ? memrchr(msg, '\n', len) : NULL;

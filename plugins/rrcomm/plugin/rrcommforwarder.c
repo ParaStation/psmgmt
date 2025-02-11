@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -313,7 +313,7 @@ static bool storeData(char *buf, size_t len, int offset)
  */
 static bool sendErrorMsg(PSIDmsgbuf_t *blob)
 {
-    PS_DataBuffer_t data;
+    struct PS_DataBuffer data;  // @todo
     initPSDataBuffer(&data, blob->msg, blob->size);
 
     if (blob->size < 1) return false;
@@ -566,7 +566,7 @@ static int closeClientSock(void)
  *
  * @return No return value
  */
-static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 {
     RRComm_hdr_t *hdr;
     size_t used = 0, hdrSize;

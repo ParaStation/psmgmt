@@ -444,7 +444,7 @@ static bool getSockInfo(int socket, Slurm_Addr_t *slurmAddr)
 static int readSlurmMsg(int sock, void *param)
 {
     Connection_t *con = param;
-    PS_DataBuffer_t *dBuf = &con->data;
+    PS_DataBuffer_t dBuf = &con->data;
     int ret;
     bool error = false;
 
@@ -840,7 +840,7 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
     }
 
     /* inspect return code */
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint32_t rc;
     getUint32(data, &rc);
 
@@ -1129,7 +1129,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     /* non blocking write */
     PSCio_setFDblock(sock, false);
 
-    PS_DataBuffer_t payload = { .buf = NULL };
+    struct PS_DataBuffer payload = { .buf = NULL }; // @todo
     memToDataBuffer(body->buf, body->bufUsed, &payload);
 
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
@@ -1527,7 +1527,7 @@ int handleSrunIOMsg(int sock, void *stepPtr)
 	goto ERROR;
     }
 
-    PS_DataBuffer_t data;
+    struct PS_DataBuffer data;  // @todo
     initPSDataBuffer(&data, buffer, rcvd);
 
     if (!unpackSlurmIOHeader(&data, &ioh)) {
@@ -1655,7 +1655,7 @@ static int handleSrunMsg(Slurm_Msg_t *sMsg, void *info)
     }
 
     /* inspect return code */
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint32_t rc;
     getUint32(data, &rc);
 
@@ -1947,7 +1947,7 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
 	    if (fw->nodes[i] != nodeID) continue;
 
 	    Slurm_Msg_t sMsg;
-	    PS_DataBuffer_t data = { .buf = NULL };
+	    struct PS_DataBuffer data = { .buf = NULL }; // @todo
 
 	    initSlurmMsg(&sMsg);
 	    sMsg.source = PSC_getTID(nodeID, 0);

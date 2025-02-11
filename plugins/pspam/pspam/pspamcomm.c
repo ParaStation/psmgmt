@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -47,7 +47,7 @@ static int jailChild(void *info)
     return PSIDhook_call(PSIDHOOK_JAIL_CHILD, &session->pid);
 }
 
-static PSPAMResult_t handleOpenRequest(PS_DataBuffer_t *data)
+static PSPAMResult_t handleOpenRequest(PS_DataBuffer_t data)
 {
     char user[USERNAME_LEN], rhost[HOSTNAME_LEN];
     pid_t pid, sid;
@@ -114,7 +114,7 @@ static PSPAMResult_t handleOpenRequest(PS_DataBuffer_t *data)
     return res;
 }
 
-static void handleCloseRequest(PS_DataBuffer_t *data)
+static void handleCloseRequest(PS_DataBuffer_t data)
 {
     char user[USERNAME_LEN];
     pid_t pid;
@@ -151,7 +151,7 @@ static int handlePamRequest(int sock, void *empty)
 	goto CLEANUP;
     }
 
-    PS_DataBuffer_t data;
+    struct PS_DataBuffer data;   // @todo
     initPSDataBuffer(&data, buf, msgLen);
 
     /* get command */

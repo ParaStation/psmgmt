@@ -26,7 +26,7 @@ typedef struct {
     uint32_t error;		/**< possible forward error */
     uint16_t type;		/**< message type of returned message */
     PSnodes_ID_t node;		/**< node which returned the result */
-    PS_DataBuffer_t body;	/**< message payload */
+    struct PS_DataBuffer body;	/**< message payload */ // @todo
 } Slurm_Forward_Res_t;
 
 /** holding Slurm address (currently only IPv4) */
@@ -61,7 +61,7 @@ typedef struct {
     Slurm_Msg_Header_t head;	/**< Slurm message header */
     int sock;			/**< socket the message was red from */
     PStask_ID_t source;		/**< root TID of the forwarding tree or -1 */
-    PS_DataBuffer_t *data;	/**< buffer holding the received (packed)
+    PS_DataBuffer_t data;	/**< buffer holding the received (packed)
 				     message */
     PS_SendDB_t reply;		/**< send data buffer used to save a response */
     void *unpData;		/**< holding the unpacked message payload */
@@ -92,7 +92,7 @@ typedef struct {
     list_t next;		/**< the list element */
     Slurm_Auth_t *auth;		/**< Slurm authentication */
     Slurm_Msg_Header_t head;	/**< Slurm message head */
-    PS_DataBuffer_t body;	/**< Slurm message body */
+    struct PS_DataBuffer body;	/**< Slurm message body */ // @todo
     size_t offset;		/**< bytes already written */
     int sock;			/**< the connected socket */
     int sendRetry;		/**< actual retries to send the message */

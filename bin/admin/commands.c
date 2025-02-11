@@ -1889,7 +1889,7 @@ static bool recvPluginKeyAnswersOld(PStask_ID_t src, PSP_Plugin_t action,
     return true;
 }
 
-static void handlePluginKeyAnswr(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handlePluginKeyAnswr(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     PSP_Plugin_t type = (PSP_Plugin_t)msg->type;
     bool first = true;
@@ -1921,7 +1921,7 @@ static void handlePluginKeyAnswr(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 static void handlePluginKeyDrop(DDTypedBufferMsg_t *msg,
-				PS_DataBuffer_t *data, void *info)
+				PS_DataBuffer_t data, void *info)
 {
     PSP_Plugin_t expctdAction = *(PSP_Plugin_t *)info;
 

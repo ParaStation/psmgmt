@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -560,7 +560,7 @@ static void sendAggDataDrop(PStask_ID_t dest, PStask_ID_t rootTID)
     sendMsg(&msg);
 }
 
-static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     AccountDataExt_t aggData;
 
@@ -681,7 +681,7 @@ static void sendAggDataFinish(PStask_ID_t rootTID)
     sendFragMsg(&data);
 }
 
-static void handleAggDataFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleAggDataFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     PStask_ID_t rootTID;
 

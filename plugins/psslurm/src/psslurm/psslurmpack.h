@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -238,7 +238,7 @@ bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
  * @return On success true is returned or false in case of an
  * error. If reading was not successful, @a ptr might be not updated.
  */
-bool __unpackSlurmIOHeader(PS_DataBuffer_t *data, IO_Slurm_Header_t **iohPtr,
+bool __unpackSlurmIOHeader(PS_DataBuffer_t data, IO_Slurm_Header_t **iohPtr,
 			   const char *caller, const int line);
 
 #define unpackSlurmIOHeader(data, iohPtr) \
@@ -312,7 +312,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
  * error. If writing was not successful, @a data might be not updated.
  */
 bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
-		    PS_DataBuffer_t *body, Slurm_Auth_t *auth,
+		    PS_DataBuffer_t body, Slurm_Auth_t *auth,
 		    const char *caller, const int line);
 
 #define packSlurmMsg(data, head, body, auth) \

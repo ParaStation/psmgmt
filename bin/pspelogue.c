@@ -308,7 +308,7 @@ static void timeoutHandler(int sig)
 /**
  * @brief Handle a pelogue response message
  */
-static void handlePElogueResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handlePElogueResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     int32_t exit_status;
     uint8_t timeout;

@@ -1812,7 +1812,7 @@ int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res)
  *
  * @return No return value
  */
-static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 {
     DDErrorMsg_t answer = {
 	.header = {
@@ -2000,7 +2000,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
     /* First fragment, take a peek if it is from my node */
     if (localSender && fragNum == 0) {
-	PS_DataBuffer_t data;
+	struct PS_DataBuffer data; // @todo
 	initPSDataBuffer(&data, msg->buf + used,
 			 msg->header.len - DDTypedBufMsgOffset - used);
 
@@ -2143,7 +2143,7 @@ static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     if (fragNum) return true;
 
     /* Extract num and rank from message to drop */
-    PS_DataBuffer_t data;
+    struct PS_DataBuffer data;  // @todo
     initPSDataBuffer(&data, msg->buf + used,
 		     msg->header.len - DDTypedBufMsgOffset - used);
 

@@ -797,7 +797,7 @@ int handlePelogueDrop(void *droppedMsg)
     /* ignore follow up messages */
     if (fragNum) return 0;
 
-    PS_DataBuffer_t data;
+    struct PS_DataBuffer data;  // @todo
     initPSDataBuffer(&data, msg->buf + used,
 		     msg->header.len - DDTypedBufMsgOffset - used);
 

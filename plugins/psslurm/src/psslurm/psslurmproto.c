@@ -1732,7 +1732,7 @@ static void sendJobKill(Req_Info_t *req, uint16_t signal)
 static int handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
 {
     Req_Info_t *req = info;
-    PS_DataBuffer_t *data = sMsg->data;
+    PS_DataBuffer_t data = sMsg->data;
     uint32_t rc;
     getUint32(data, &rc);
 

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -365,7 +365,7 @@ static inline void checkSession(PSsession_t *session, const char *caller)
  *
  * @return No return value
  */
-static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 {
     /* get reservation, session and job id */
     int32_t resID;
@@ -540,7 +540,7 @@ static bool msg_RESCREATED(DDTypedBufferMsg_t *msg)
  *
  * @return No return value
  */
-static void handleJobComplete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handleJobComplete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 {
     PStask_ID_t sessionID, jobID;
     getTaskId(rData, &sessionID);
@@ -761,7 +761,7 @@ static bool startFilter(PStask_t *task, void *info)
  *
  * @return No return value
  */
-static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 {
     /* get logger task id, spawner task id, and reservation */
     PStask_ID_t sessionID, jobID;

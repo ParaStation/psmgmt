@@ -1922,7 +1922,7 @@ static int pluginCommand(char *token)
 
 static keylist_t *pluginNames;
 
-static void handlePluginNames(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handlePluginNames(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     /* first round: count number of plugins */
     char tmp[128];

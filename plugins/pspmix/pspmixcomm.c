@@ -54,7 +54,7 @@ static PspmixMsgExtra_t extra;
  *
  * @param data Defragmented data received
  */
-static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -124,7 +124,7 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @param data Defragmented data received
  */
-static void handleRemoveJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleRemoveJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -186,8 +186,7 @@ static void handleRegisterClient(DDTypedBufferMsg_t *msg)
  *
  * @param data Defragmented data received
  */
-static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
-				   PS_DataBuffer_t *data)
+static void handleClientNotifyResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -223,7 +222,7 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
  *
  * @param data Defragmented data received
  */
-static void handleClientSpawnResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleClientSpawnResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -238,7 +237,7 @@ static void handleClientSpawnResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data
     pspmix_service_spawnRes(spawnID, result);
 }
 
-static void handleClientStatus(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleClientStatus(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -262,7 +261,7 @@ static void handleClientStatus(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(nspace);
 }
 
-static void handleSpawnInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleSpawnInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -283,7 +282,7 @@ static void handleSpawnInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(nspace);
 }
 
-static void handleClientLogResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleClientLogResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -311,7 +310,7 @@ static void handleClientLogResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @param data Defragmented data received
  */
-static void handleSpawnerFailed(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleSpawnerFailed(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -333,7 +332,7 @@ static void handleSpawnerFailed(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @param data Defragmented data received
  */
-static void handleTermClients(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleTermClients(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -357,7 +356,7 @@ static void handleTermClients(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @param data Defragmented data received
  */
-static void handleFenceData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleFenceData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -387,7 +386,7 @@ static void handleFenceData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @param data Defragmented data received
  */
-static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -422,7 +421,7 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @param data Defragmented data received
  */
-static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 

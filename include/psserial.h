@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -65,14 +65,17 @@ typedef enum {
 } serial_Err_Types_t;
 
 /** Growing data-buffer to assemble message from fragments and unpack content */
-typedef struct {
+struct PS_DataBuffer {
     char *buf;           /**< Actual data-buffer */
     size_t size;         /**< Current size of @ref buf */
     size_t used;         /**< Used bytes of @ref buf */
     uint16_t nextFrag;   /**< Next fragment number to expect */
     char *unpackPtr;	 /**< Tracking top of unpacked bytes in @ref buf */
     int8_t unpackErr;	 /**< Error code if unpacking of content failed */
-} PS_DataBuffer_t;
+};
+
+/** Data buffer context to be created via @ref getPSDataBuffer() */
+typedef struct PS_DataBuffer * PS_DataBuffer_t;
 
 /** Prototype of custom sender functions used by @ref initSerial() */
 typedef ssize_t Send_Msg_Func_t(void *);
@@ -94,7 +97,7 @@ typedef ssize_t Send_Msg_Func_t(void *);
  *
  * @return No return value
  */
-void initPSDataBuffer(PS_DataBuffer_t *buffer, char *mem, size_t memSize);
+void initPSDataBuffer(PS_DataBuffer_t buffer, char *mem, size_t memSize);
 
 /**
  * @brief Prototype for @ref __recvFragMsg()'s callback
@@ -108,7 +111,7 @@ void initPSDataBuffer(PS_DataBuffer_t *buffer, char *mem, size_t memSize);
  *
  * @param data Data buffer presenting payload assembled from all fragments
  */
-typedef void SerialRecvCB_t(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data);
+typedef void SerialRecvCB_t(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data);
 
 /**
  * @brief Prototype for @ref __recvFragMsg()'s callback
@@ -131,7 +134,7 @@ typedef void SerialRecvCB_t(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data);
  * argument of recvFragMsgInfo()
  */
 typedef void SerialRecvInfoCB_t(DDTypedBufferMsg_t *msg,
-				PS_DataBuffer_t *data, void *info);
+				PS_DataBuffer_t data, void *info);
 
 /**
  * @brief Initialize buffer handling of the Psserial facility
@@ -452,7 +455,7 @@ char *serialStrErr(serial_Err_Types_t err);
  *
  * @return No return value
  */
-void freeDataBuffer(PS_DataBuffer_t *data);
+void freeDataBuffer(PS_DataBuffer_t data);
 
 /**
  * @brief Duplicate data buffer
@@ -469,7 +472,7 @@ void freeDataBuffer(PS_DataBuffer_t *data);
  * @return On success, a pointer to the copy of the data buffer is
  * returned; or NULL in case of error
  */
-PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data);
+PS_DataBuffer_t dupDataBuffer(PS_DataBuffer_t data);
 
 /**
  * @brief Write to data buffer
@@ -489,7 +492,7 @@ PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data);
  *
  * @param Returns true on success and false on error
  */
-bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
+bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t buffer,
 		       const char *caller, const int line);
 
 #define memToDataBuffer(mem, size, buffer) \
@@ -529,7 +532,7 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
  * data will not be updated; instead its unpackErr member will be
  * set.
  */
-bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
+bool getFromBuf(PS_DataBuffer_t data, void *val, PS_DataType_t type,
 		size_t size, const char *caller, const int line);
 
 #define getInt8(data, val) { int8_t *_x = val;			    \
@@ -636,7 +639,7 @@ bool getFromBuf(PS_DataBuffer_t *data, void *val, PS_DataType_t type,
  * successful, the unpackPtr member of @a data might not be updated;
  * instead its unpackErr member will be set.
  */
-void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
+void *getMemFromBuf(PS_DataBuffer_t data, char *dest, size_t destSize,
 		    size_t *len, PS_DataType_t type, const char *caller,
 		    const int line);
 
@@ -696,7 +699,7 @@ void *getMemFromBuf(PS_DataBuffer_t *data, char *dest, size_t destSize,
  * If reading was not successful, the unpackPtr member of @a data
  * might not be updated; instead its unpackErr member will be set.
  */
-bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
+bool getArrayFromBuf(PS_DataBuffer_t data, void **val, uint32_t *len,
 		     PS_DataType_t type, size_t size, const char *caller,
 		     const int line);
 
@@ -762,7 +765,7 @@ bool getArrayFromBuf(PS_DataBuffer_t *data, void **val, uint32_t *len,
  * If reading was not successful, the unpackPtr member of @a data
  * might not be updated; instead its unpackErr member will be set.
  */
-bool __getStringArrayM(PS_DataBuffer_t *data, char ***array, uint32_t *len,
+bool __getStringArrayM(PS_DataBuffer_t data, char ***array, uint32_t *len,
 			const char *caller, const int line);
 
 #define getStringArrayM(data, array, len)			\
