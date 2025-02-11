@@ -2356,10 +2356,14 @@ static PspmixLogRequest_t *findLogRequest(uint64_t id)
 static PspmixLogCall_t *currentLogCall = NULL;
 
 // library thread
-void pspmix_service_addLogRequest(PspmixLogChannel_t channel, const char *str,
-			     uint32_t priority)
+PspmixLogCallHandle_t pspmix_service_addLogRequest(PspmixLogCallHandle_t call,
+						   PspmixLogChannel_t channel,
+						   const char *str,
+						   uint32_t priority)
 {
     static uint16_t nextRequestID = 1;
+
+    PspmixLogCall_t *currentLogCall = call;
 
     if (!currentLogCall) {
 	currentLogCall = umalloc(sizeof(*currentLogCall));
@@ -2381,6 +2385,8 @@ void pspmix_service_addLogRequest(PspmixLogChannel_t channel, const char *str,
     entry->priority = priority;
 
     list_add_tail(&entry->next, &currentLogCall->requests);
+
+    return (PspmixLogCallHandle_t)currentLogCall;
 }
 
 static PStask_ID_t getFwTID(const pmix_proc_t *caller)
@@ -2477,16 +2483,23 @@ static bool tryFinishLogCall(PspmixLogCall_t *call)
 }
 
 // library thread
-void pspmix_service_log(const pmix_proc_t *client, uint32_t uid, uint32_t gid,
+void pspmix_service_log(PspmixLogCallHandle_t call,
+			const pmix_proc_t *client, uint32_t uid, uint32_t gid,
 			bool log_once, void *cb)
 {
     fdbg(PSPMIX_LOG_CALL, "call_handle = %p\n", currentLogCall);
 
+    PspmixLogCall_t *currentLogCall = call;
+
+    if (!currentLogCall) {
+	pspmix_server_operationFinished(PMIX_ERR_BAD_PARAM, cb);
+	return;
+    }
+
     currentLogCall->log_once = log_once;
     currentLogCall->cb = cb;
 
-    fdbg(PSPMIX_LOG_LOGGING,
-	 "Logging request log_once=%s log_requests= [\n",
+    fdbg(PSPMIX_LOG_LOGGING, "Logging request log_once=%s log_requests= [\n",
 	 currentLogCall->log_once ? "true" : "false");
     bool ignore_requests = false;
 
@@ -2495,8 +2508,7 @@ void pspmix_service_log(const pmix_proc_t *client, uint32_t uid, uint32_t gid,
     {
 	PspmixLogRequest_t *req
 	    = list_entry(r, PspmixLogRequest_t, next);
-	fdbg(PSPMIX_LOG_LOGGING,
-	     "Name=%s, Priority=%i String='%s'\n",
+	fdbg(PSPMIX_LOG_LOGGING, "Name=%s, Priority=%i String='%s'\n",
 	     pspmix_log_channel_names[req->channel], req->priority, req->str);
 
 	switch (req->channel) {
@@ -2537,10 +2549,6 @@ void pspmix_service_log(const pmix_proc_t *client, uint32_t uid, uint32_t gid,
     } else {
 	ufree(currentLogCall);
     }
-
-
-    /* reset currentLogCall pointer */
-    currentLogCall = NULL;
 
     fdbg(PSPMIX_LOG_LOGGING, "]\n");
 }

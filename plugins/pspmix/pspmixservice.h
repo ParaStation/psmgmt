@@ -420,17 +420,24 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 			      uint32_t np, PSnodes_ID_t node);
 
+/** Opaque handle for PspmixLogCall_t */
+typedef void* PspmixLogCallHandle_t;
+
 /**
  * @brief Add a new Log Request to an existing call
  *
+ * @param call     call handle (pass NULL to create new call)
  * @param channel  Channel to be logged to
  * @param str      String to be logged
  * @param priority Priority of the message if the channel supports that notion
  *		   (f.ex. pmix.log.syslog)
+ *
+ * @return Handle of the call
  */
-void pspmix_service_addLogRequest(PspmixLogChannel_t channel, const char *str,
-			     uint32_t priority);
-
+PspmixLogCallHandle_t pspmix_service_addLogRequest(PspmixLogCallHandle_t call,
+						   PspmixLogChannel_t channel,
+						   const char *str,
+						   uint32_t priority);
 /**
  * @brief Execute an existing log call
  *
@@ -440,16 +447,16 @@ void pspmix_service_addLogRequest(PspmixLogChannel_t channel, const char *str,
  * no op. After this action no further @a pspmix_service_addLogRequest are
  * allowed with this @a call_handle
  *
+ * @param call        call handle
  * @param client      requesting client
  * @param uid         user id of the requester
  * @param gid         group id of the requester
  * @param log_once    log once flag
  * @param cb Callback object to pass back to return callback
  */
-void pspmix_service_log(const pmix_proc_t *client, uint32_t uid, uint32_t gid,
+void pspmix_service_log(PspmixLogCallHandle_t call,
+			const pmix_proc_t *client, uint32_t uid, uint32_t gid,
 			bool log_once, void *cb);
-
-typedef uint64_t PspmixLogRequestID_t;
 
 /**
  * @todo
