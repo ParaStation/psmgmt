@@ -251,13 +251,13 @@ static void dropExecMsg(DDTypedBufferMsg_t *msg)
     /* ignore follow up messages */
     if (fragNum) return;
 
-    struct PS_DataBuffer data;  // @todo
-    initPSDataBuffer(&data, msg->buf + used,
-		     msg->header.len - DDTypedBufMsgOffset - used);
+    PS_DataBuffer_t data = PSdbNew(msg->buf + used,
+				   msg->header.len - DDTypedBufMsgOffset - used);
 
     /* uID */
     uint16_t uID;
-    getUint16(&data, &uID);
+    getUint16(data, &uID);
+    PSdbDelete(data);
 
     /* return result to callback */
     Script_t *script = findScriptByuID(uID);

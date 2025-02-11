@@ -133,7 +133,6 @@ Connection_t *findConnectionByStep(Step_t *step)
 static Connection_t *findConnectionEx(int socket, time_t recvTime)
 {
     list_t *c;
-
     list_for_each(c, &connectionList) {
 	Connection_t *con = list_entry(c, Connection_t, next);
 	if (con->sock == socket && con->recvTime == recvTime) return con;
@@ -163,8 +162,7 @@ static bool resetConnection(int socket)
 
     fdbg(PSSLURM_LOG_COMM, "for socket %i\n", socket);
 
-    ufree(con->data.buf);
-    initPSDataBuffer(&con->data, NULL, 0);
+    freeDataBuffer(&con->data);
     con->readSize = false;
 
     return true;
@@ -1527,10 +1525,10 @@ int handleSrunIOMsg(int sock, void *stepPtr)
 	goto ERROR;
     }
 
-    struct PS_DataBuffer data;  // @todo
-    initPSDataBuffer(&data, buffer, rcvd);
-
-    if (!unpackSlurmIOHeader(&data, &ioh)) {
+    PS_DataBuffer_t data = PSdbNew(buffer, rcvd);
+    bool success = unpackSlurmIOHeader(data, &ioh);
+    PSdbDelete(data);
+    if (!success) {
 	flog("unpack Slurm I/O header for %s failed\n", Step_strID(step));
 	goto ERROR;
     }

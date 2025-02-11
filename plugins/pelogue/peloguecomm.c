@@ -578,12 +578,12 @@ static void dropMsgAndCancel(DDTypedBufferMsg_t *msg)
     /* ignore follow up messages */
     if (fragNum) return;
 
-    struct PS_DataBuffer data;    // @todo
-    initPSDataBuffer(&data, msg->buf + used,
-		     msg->header.len - DDTypedBufMsgOffset - used);
+    PS_DataBuffer_t data = PSdbNew(msg->buf + used,
+				   msg->header.len - DDTypedBufMsgOffset - used);
 
-    char *plugin = getStringM(&data);
-    char *jobid = getStringM(&data);
+    char *plugin = getStringM(data);
+    char *jobid = getStringM(data);
+    PSdbDelete(data);
 
     Job_t *job = findJobById(plugin, jobid);
     if (!job) {

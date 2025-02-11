@@ -313,33 +313,35 @@ static bool storeData(char *buf, size_t len, int offset)
  */
 static bool sendErrorMsg(PSIDmsgbuf_t *blob)
 {
-    struct PS_DataBuffer data;  // @todo
-    initPSDataBuffer(&data, blob->msg, blob->size);
-
     if (blob->size < 1) return false;
+
+    PS_DataBuffer_t data = PSdbNew(blob->msg, blob->size);
     uint8_t type;
-    getUint8(&data, &type);
+    getUint8(data, &type);
     if (type != RRCOMM_DATA) {
 	int32_t destRank;
-	getInt32(&data, &destRank);
+	getInt32(data, &destRank);
 	fdbg(RRCOMM_LOG_ERR, "drop type %d from %d (size %d, off %d)\n", type,
 	     destRank, blob->size, blob->offset);
+	PSdbDelete(data);
 	return false;
     }
 
     bool byteOrder = setByteOrder(false); // libRRC does not use byteorder
     uint32_t len;
-    getUint32(&data, &len);
+    getUint32(data, &len);
 
     /* reconstruct original fragment's extra header */
     RRComm_hdr_t msgHdr = clntHdr;
     msgHdr.dest = clntHdr.sender;
-    getInt32(&data, &msgHdr.sender);
+    getInt32(data, &msgHdr.sender);
     msgHdr.destJob = clntHdr.spawnerTID;
     msgHdr.spawnerTID = clntHdr.spawnerTID; // assume the message was job local
     // unless we know better
-    if (clntVer > 1 || !clntVer) getTaskId(&data, &msgHdr.spawnerTID);
+    if (clntVer > 1 || !clntVer) getTaskId(data, &msgHdr.spawnerTID);
+
     setByteOrder(byteOrder);
+    PSdbDelete(data);
 
     /* send RRCOMM_ERROR to sender */
     DDTypedBufferMsg_t answer = {

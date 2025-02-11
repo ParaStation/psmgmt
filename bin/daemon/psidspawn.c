@@ -2000,22 +2000,23 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
     /* First fragment, take a peek if it is from my node */
     if (localSender && fragNum == 0) {
-	struct PS_DataBuffer data; // @todo
-	initPSDataBuffer(&data, msg->buf + used,
-			 msg->header.len - DDTypedBufMsgOffset - used);
+	PS_DataBuffer_t data =
+	    PSdbNew(msg->buf + used,
+		    msg->header.len - DDTypedBufMsgOffset - used);
 
 	/* ensure we use the same byteorder as libpsi */
 	bool byteOrder = setByteOrder(true);
 
 	/* fetch info from message */
-	getUint32(&data, &num);
+	getUint32(data, &num);
 	PStask_t *task = PStask_new();
 
 	/* standard task blob */
 	size_t len;
-	void *blob = getDataM(&data, &len);
+	void *blob = getDataM(data, &len);
 	bool decodeRes = PStask_decodeTask(blob, len, task);
 	free(blob);
+	PSdbDelete(data);
 
 	/* reset psserial's byteorder */
 	setByteOrder(byteOrder);
@@ -2143,23 +2144,23 @@ static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     if (fragNum) return true;
 
     /* Extract num and rank from message to drop */
-    struct PS_DataBuffer data;  // @todo
-    initPSDataBuffer(&data, msg->buf + used,
-		     msg->header.len - DDTypedBufMsgOffset - used);
+    PS_DataBuffer_t data = PSdbNew(msg->buf + used,
+				   msg->header.len - DDTypedBufMsgOffset - used);
 
     /* ensure we use the same byteorder as libpsi */
     bool byteOrder = setByteOrder(true);
 
     /* fetch info from message */
     uint32_t num;
-    getUint32(&data, &num);
+    getUint32(data, &num);
     PStask_t *task = PStask_new();
 
     /* standard task blob */
     size_t len;
-    void *blob = getDataM(&data, &len);
+    void *blob = getDataM(data, &len);
     bool decodeRes = PStask_decodeTask(blob, len, task);
     free(blob);
+    PSdbDelete(data);
 
     /* reset psserial's byteorder */
     setByteOrder(byteOrder);

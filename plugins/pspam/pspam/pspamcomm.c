@@ -151,24 +151,24 @@ static int handlePamRequest(int sock, void *empty)
 	goto CLEANUP;
     }
 
-    struct PS_DataBuffer data;   // @todo
-    initPSDataBuffer(&data, buf, msgLen);
+    PS_DataBuffer_t data = PSdbNew(buf, msgLen);
 
     /* get command */
     PSPAMCmd_t cmd;
-    getInt32(&data, (int32_t *) &cmd);
+    getInt32(data, (int32_t *) &cmd);
 
     PSPAMResult_t res;
     switch (cmd) {
     case PSPAM_CMD_SESS_OPEN:
-	res = handleOpenRequest(&data);
+	res = handleOpenRequest(data);
 	PSCio_sendP(sock, &res, sizeof(res));
 	break;
     case PSPAM_CMD_SESS_CLOSE:
-	handleCloseRequest(&data);
+	handleCloseRequest(data);
 	/* no answer here */
 	break;
     }
+    PSdbDelete(data);
 
 CLEANUP:
     if (Selector_isRegistered(sock)) Selector_remove(sock);

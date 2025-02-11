@@ -82,11 +82,18 @@ static inline void *umalloc(size_t size)
     return malloc(size < MIN_MALLOC_SIZE ? MIN_MALLOC_SIZE : size);
 }
 
-void initPSDataBuffer(PS_DataBuffer_t data, char *mem, size_t memSize)
+PS_DataBuffer_t PSdbNew(char *buffer, size_t bufSize)
 {
-    memset(data, 0, sizeof(*data));
-    data->buf = data->unpackPtr = mem;
-    data->size = data->used = memSize;
+    PS_DataBuffer_t data = calloc(1, sizeof(*data));
+    data->buf = data->unpackPtr = buffer;
+    data->size = data->used = bufSize;
+
+    return data;
+}
+
+void PSdbDelete(PS_DataBuffer_t data)
+{
+    free(data);
 }
 
 /**
@@ -849,26 +856,28 @@ void freeDataBuffer(PS_DataBuffer_t data)
 
 PS_DataBuffer_t dupDataBuffer(PS_DataBuffer_t data)
 {
-    PS_DataBuffer_t dup = umalloc(sizeof(*dup));
+    PS_DataBuffer_t dup = PSdbNew(NULL, 0);
     if (!dup) {
 	data->unpackErr = E_PSSERIAL_MEM;
 	PSC_flog("%s\n", serialStrErr(data->unpackErr));
 	return NULL;
     }
 
+    if (!data->size) return dup;
+
     dup->buf = umalloc(data->size);
     if (!dup->buf) {
 	data->unpackErr = E_PSSERIAL_MEM;
 	PSC_flog("buf: %s\n", serialStrErr(data->unpackErr));
-	free(dup);
+	PSdbDelete(dup);
 	return NULL;
     }
 
     memcpy(dup->buf, data->buf, data->size);
     dup->size = data->size;
     dup->used = data->used;
-    dup->unpackErr = data->unpackErr;
-    /* start reading from top of buffer for duplicate */
+    /* start clean reading from top of buffer for duplicate */
+    dup->unpackErr = 0;
     dup->unpackPtr = dup->buf;
 
     return dup;

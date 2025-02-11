@@ -128,26 +128,28 @@ static bool handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 
     if (msg->header.type != PSP_PF_MSG) return false;
 
-    struct PS_DataBuffer data;   // @todo
-    initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
+    PS_DataBuffer_t data = PSdbNew(msg->buf,
+				   msg->header.len - DDTypedBufMsgOffset);
 
+    bool ret = true;
     switch (msg->type) {
     case PLGN_STDOUT:
-	; char *io = getStringM(&data);
+	; char *io = getStringM(data);
 	script->func(io);
 	ufree(io);
 	break;
     case PLGN_STDERR:
-	io = getStringM(&data);
+	io = getStringM(data);
 	flog("error from %s script: %s\n", fwdata->pTitle, io ? io : "<null>");
 	ufree(io);
 	break;
     default:
 	flog("unhandled msg type %d\n", msg->type);
-	return false;
+	ret = false;
     }
 
-    return true;
+    PSdbDelete(data);
+    return ret;
 }
 
 /**
@@ -317,24 +319,26 @@ static bool handleMthrMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     if (msg->header.type != PSP_PF_MSG) return false;
 
-    struct PS_DataBuffer data;  // @todo
-    initPSDataBuffer(&data, msg->buf, msg->header.len - DDTypedBufMsgOffset);
+    PS_DataBuffer_t data = PSdbNew(msg->buf,
+				   msg->header.len - DDTypedBufMsgOffset);
 
+    bool ret = true;
     switch ((PSACCOUNT_Fw_Cmds_t)msg->type) {
     case CMD_SET_POLL_TIME:
-	handleSetPollTime(fwdata, &data);
+	handleSetPollTime(fwdata, data);
 	break;
     case CMD_SET_ENV_VAR:
     case CMD_UNSET_ENV_VAR:
-	handleCtlEnvVar(fwdata, &data, msg->type);
+	handleCtlEnvVar(fwdata, data, msg->type);
 	break;
     default:
 	flog("unexpected msg, type %d from TID %s (%s)\n", msg->type,
 	     PSC_printTID(msg->header.sender), fwdata->pTitle);
-	return false;
+	ret = false;
     }
 
-    return true;
+    PSdbDelete(data);
+    return ret;
 }
 
 static int killSession(pid_t session, int sig)

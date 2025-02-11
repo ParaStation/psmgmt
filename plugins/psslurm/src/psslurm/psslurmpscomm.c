@@ -1538,9 +1538,8 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     /* ignore follow up messages */
     if (fragNum) return;
 
-    struct PS_DataBuffer data;   // @todo
-    initPSDataBuffer(&data, msg->buf + used,
-		     msg->header.len - DDTypedBufMsgOffset - used);
+    PS_DataBuffer_t data = PSdbNew(msg->buf + used,
+				   msg->header.len - DDTypedBufMsgOffset - used);
 
     Slurm_Msg_t sMsg;
     initSlurmMsg(&sMsg);
@@ -1549,10 +1548,11 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
 
     /* socket */
     int16_t socket;
-    getInt16(&data, &socket);
+    getInt16(data, &socket);
     sMsg.sock = socket;
     /* receive time */
-    getTime(&data, &sMsg.recvTime);
+    getTime(data, &sMsg.recvTime);
+    PSdbDelete(data);
 
     handleFrwrdMsgReply(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
 }

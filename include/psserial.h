@@ -74,30 +74,67 @@ struct PS_DataBuffer {
     int8_t unpackErr;	 /**< Error code if unpacking of content failed */
 };
 
-/** Data buffer context to be created via @ref getPSDataBuffer() */
+/** Growing data-buffer context to be created via @ref PSdbNew() */
 typedef struct PS_DataBuffer * PS_DataBuffer_t;
 
 /** Prototype of custom sender functions used by @ref initSerial() */
 typedef ssize_t Send_Msg_Func_t(void *);
 
 /**
- * @brief Initialize data-buffer
+ * @brief Get new initialized data-buffer
  *
- * Initialize the data-buffer @a buffer and set its internal buffer to
- * @a mem. @a memSize must denote the actual amount of data within @a
- * mem. This function aims to setup a data-buffer on the fly that
- * might be used to unpack the content of @a mem via @ref getFromBuf()
- * and friends.
+ * Create a new data-buffer and set its internal buffer according to
+ * @a buffer. @a bufSize must denote the actual amount of data within
+ * @a buffer unless @a buffer is NULL.
  *
- * @param buffer Data buffer to initialize
+ * This function aims to setup a data-buffer on the fly that might be
+ * used to unpack the content of @a buffer via @ref getFromBuf() and
+ * friends.
  *
- * @param mem Actual memory used for the buffer
+ * Data-buffers created by this function must be cleaned up via @ref
+ * PSdbDelete() in order to not leak the data-buffer's memory.
  *
- * @param memSize Size of @ref mem
+ * @param buffer Actual content used for the data-buffer's buffer
+ *
+ * @param bufSize Size of @a buffer
+ *
+ * @return On success a properly initialized data-buffer is returned
+ * or NULL in case of error
+ */
+PS_DataBuffer_t PSdbNew(char *buffer, size_t bufSize);
+
+/**
+ * @brief Delete data-buffer
+ *
+ * Delete the data-buffer @a data and free() all memory allocated for
+ * administrative data. However, the data-buffer's buffer will not be
+ * touched!
+ *
+ * The rational behind this design is the fact that the data-buffer is
+ * expected to be constructed via @ref PSdbNew(). Thus, the buffer
+ * will be handled outside and might point to an addresss not at an
+ * allocated boundary or even to memory outside of the dynamic
+ * handling and e.g. is located on the stack.
+ *
+ * @param data Data-buffer to be deleted
  *
  * @return No return value
  */
-void initPSDataBuffer(PS_DataBuffer_t buffer, char *mem, size_t memSize);
+void PSdbDelete(PS_DataBuffer_t data);
+
+/**
+ * @brief Clear data-buffer
+ *
+ * Clear the data-buffer @a data. For this the actual buffer is
+ * free()ed and all administrative information is reset. The
+ * data-buffer itself remains usable and might be filled with new
+ * buffer data.
+ *
+ * @param data Data buffer to be free()ed / reset
+ *
+ * @return No return value
+ */
+void clearPSDataBuffer(PS_DataBuffer_t data);
 
 /**
  * @brief Prototype for @ref __recvFragMsg()'s callback
@@ -109,7 +146,7 @@ void initPSDataBuffer(PS_DataBuffer_t buffer, char *mem, size_t memSize);
  * fragment; @warning the buffer of this last fragment is invalidated
  * and part of @a data
  *
- * @param data Data buffer presenting payload assembled from all fragments
+ * @param data Data-buffer presenting payload assembled from all fragments
  */
 typedef void SerialRecvCB_t(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data);
 
@@ -128,7 +165,7 @@ typedef void SerialRecvCB_t(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data);
  * fragment; @warning the buffer of this last fragment is invalidated
  * and part of @a data
  *
- * @param data Data buffer presenting payload assembled from all fragments
+ * @param data Data-buffer presenting payload assembled from all fragments
  *
  * @param info Pointer to additional information passed from the last
  * argument of recvFragMsgInfo()
@@ -475,7 +512,7 @@ void freeDataBuffer(PS_DataBuffer_t data);
 PS_DataBuffer_t dupDataBuffer(PS_DataBuffer_t data);
 
 /**
- * @brief Write to data buffer
+ * @brief Write to data-buffer
  *
  * Write data from @a mem to the @a buffer. The buffer is
  * growing in size as needed.

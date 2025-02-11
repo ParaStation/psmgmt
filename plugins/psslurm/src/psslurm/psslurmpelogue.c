@@ -797,14 +797,14 @@ int handlePelogueDrop(void *droppedMsg)
     /* ignore follow up messages */
     if (fragNum) return 0;
 
-    struct PS_DataBuffer data;  // @todo
-    initPSDataBuffer(&data, msg->buf + used,
-		     msg->header.len - DDTypedBufMsgOffset - used);
+    PS_DataBuffer_t data = PSdbNew(msg->buf + used,
+				   msg->header.len - DDTypedBufMsgOffset - used);
 
     /* jobid */
-    char *sJobid = getStringM(&data);
+    char *sJobid = getStringM(data);
     uint32_t jobid = atoi(sJobid);
     ufree(sJobid);
+    PSdbDelete(data);
 
     Alloc_t *alloc = Alloc_find(jobid);
     if (alloc) {
