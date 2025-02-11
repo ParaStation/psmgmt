@@ -534,6 +534,8 @@ void printJob(PspmixJob_t *job)
 	for (size_t i = 0; i < rinfo->nEntries; i++) {
 	    flog("    entry %zu:\n", i);
 	    flog("      node: %d\n", rinfo->entries[i].node);
+	    flog("      firstRank: %d\n", rinfo->entries[i].firstRank);
+	    flog("      lastRank: %d\n", rinfo->entries[i].lastRank);
 	}
 	flog("    nLocalSlots: %hu\n", rinfo->nLocalSlots);
     }
