@@ -1948,7 +1948,7 @@ static bool extractSlots(PS_DataBuffer_t data, PSpart_slot_t *slots,
 	PSCPU_clrAll(slots[s].CPUset);
 	PSCPU_inject(slots[s].CPUset, cpuBuf, nBytes);
     }
-    return data->unpackErr == E_PSSERIAL_SUCCESS;
+    return PSdbGetErrState(data) == E_PSSERIAL_SUCCESS;
 }
 
 /**

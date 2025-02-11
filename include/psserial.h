@@ -61,7 +61,7 @@ typedef enum {
     E_PSSERIAL_TYPE,	    /**< data type mismatch */
     E_PSSERIAL_BUFSIZE,	    /**< provided buffer to small */
     E_PSSERIAL_MEM,	    /**< out of memory */
-    E_PSSERIAL_CONV	    /**< unknown conversion size */
+    E_PSSERIAL_CONV,	    /**< unknown conversion size */
 } serial_Err_Types_t;
 
 /** Growing data-buffer to assemble message from fragments and unpack content */
@@ -152,6 +152,21 @@ void PSdbClear(PS_DataBuffer_t data);
  * returned; or NULL in case of error
  */
 PS_DataBuffer_t PSdbDup(PS_DataBuffer_t data);
+
+/**
+ * @brief Get data-buffer's error state
+ *
+ * Get the error state of the data-buffer @a data. The error state
+ * indicates if all calls to @ref getFromBuf() and friends were
+ * successful. In case at least one call failed, the result will
+ * indicate the failure of the first unsuccessful call.
+ *
+ * @param data Data-buffer to investigate
+ *
+ * @retrun Return the error state of the data-buffer @a data; if @a
+ * data is NULL, E_PSSERIAL_PARAM will be returned
+ */
+serial_Err_Types_t PSdbGetErrState(PS_DataBuffer_t data);
 
 /**
  * @brief Prototype for @ref __recvFragMsg()'s callback

@@ -853,6 +853,12 @@ void PSdbClear(PS_DataBuffer_t data)
     resetBuf(data);
 }
 
+serial_Err_Types_t PSdbGetErrState(PS_DataBuffer_t data)
+{
+    if (!data) return E_PSSERIAL_PARAM;
+    return data->unpackErr;
+}
+
 PS_DataBuffer_t PSdbDup(PS_DataBuffer_t data)
 {
     PS_DataBuffer_t dup = PSdbNew(NULL, 0);

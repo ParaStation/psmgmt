@@ -1857,8 +1857,9 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
     getArgV(rData, task->argV);
     getEnv(rData, task->env);
 
-    if (rData->unpackErr) {
-	PSID_flog("unpacking failed: %s\n", serialStrErr(rData->unpackErr));
+    serial_Err_Types_t errState = PSdbGetErrState(rData);
+    if (errState != E_PSSERIAL_SUCCESS) {
+	PSID_flog("unpacking failed: %s\n", serialStrErr(errState));
 	answer.error = EBADMSG;
 	/* send one answer per rank */
 	for (uint32_t r = 0; r < num; r++) {

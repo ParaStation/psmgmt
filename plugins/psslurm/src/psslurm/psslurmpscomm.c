@@ -1074,7 +1074,7 @@ static bool getSlotsFromMsg(PS_DataBuffer_t data, PSpart_slot_t **slots,
 	fdbg(PSSLURM_LOG_PACK, "slot %zu node %hd cpuset %s\n", s,
 	     (*slots)[s].node, PSCPU_print_part((*slots)[s].CPUset, CPUbytes));
     }
-    return true;
+    return PSdbGetErrState(data) == E_PSSERIAL_SUCCESS;
 }
 
 /**
