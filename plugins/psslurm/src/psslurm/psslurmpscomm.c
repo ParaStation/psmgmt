@@ -1060,8 +1060,10 @@ static bool getSlotsFromMsg(PS_DataBuffer_t data, PSpart_slot_t **slots,
     for (size_t s = 0; s < *len; s++) {
 	getNodeId(data, &((*slots)[s].node));
 
+	char cpuBuf[CPUbytes];
+	getMem(data, cpuBuf, CPUbytes);
 	PSCPU_clrAll((*slots)[s].CPUset);
-	PSCPU_inject((*slots)[s].CPUset, data->unpackPtr, CPUbytes);
+	PSCPU_inject((*slots)[s].CPUset, cpuBuf, CPUbytes);
 
 	if (!PSCPU_any((*slots)[s].CPUset, CPUbytes * 8)) {
 	    flog("invalid message: empty slot found\n");
@@ -1070,7 +1072,6 @@ static bool getSlotsFromMsg(PS_DataBuffer_t data, PSpart_slot_t **slots,
 	    return false;
 	}
 
-	data->unpackPtr += CPUbytes;
 	fdbg(PSSLURM_LOG_PACK, "slot %zu node %hd cpuset %s\n", s,
 	     (*slots)[s].node, PSCPU_print_part((*slots)[s].CPUset, CPUbytes));
     }

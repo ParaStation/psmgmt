@@ -82,8 +82,7 @@ static char *__getBitString(PS_DataBuffer_t data, const char *func,
     if (!len) return NULL;
 
     char *bitStr = umalloc(len);
-    memcpy(bitStr, data->unpackPtr, len);
-    data->unpackPtr += len;
+    getMem(data, bitStr, len);
 
     return bitStr;
 }
