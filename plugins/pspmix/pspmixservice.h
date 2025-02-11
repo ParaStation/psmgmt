@@ -443,9 +443,11 @@ PspmixLogCallHandle_t pspmix_service_addLogRequest(PspmixLogCallHandle_t call,
  *
  * Previous to calling this function, you need to call @a
  * pspmix_service_addLogCall followed by @a pspmix_service_addLogRequest at
- * least once to add a log request to be performed. If you did not, this is a
- * no op. After this action no further @a pspmix_service_addLogRequest are
- * allowed with this @a call_handle
+ * least once to add a log request to be performed. If you did not, this will
+ * call @a cb with PMIX_ERR_BAD_PARAM.
+ *
+ * ATTENTION: @a call becomes invalid when passed to this function. Afterwards,
+ * no further @a pspmix_service_addLogRequest are allowed with the same @a call.
  *
  * @param call        call handle
  * @param client      requesting client
