@@ -893,6 +893,11 @@ char * PSdbGetBuf(PS_DataBuffer_t data)
     return data ? data->buf : NULL;
 }
 
+char * PSdbGetRemData(PS_DataBuffer_t data)
+{
+    return data && data->buf ? data->unpackPtr : NULL;
+}
+
 serial_Err_Types_t PSdbGetErrState(PS_DataBuffer_t data)
 {
     if (!data) return E_PSSERIAL_PARAM;

@@ -227,7 +227,7 @@ static bool __unpackStepHead(PS_DataBuffer_t data, void *head, uint16_t msgVer,
 {
     Slurm_Step_Head_t *stepH = head;
 
-    if (!data || !data->unpackPtr) {
+    if (!data || !PSdbGetRemData(data)) {
 	flog("invalid data from '%s' at %i\n", caller, line);
 	return false;
     }
@@ -917,7 +917,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     }
 
     /* munge signature */
-    *credEnd = data->unpackPtr;
+    *credEnd = PSdbGetRemData(data);
     cred->sig = getStringM(data);
 
     returnFalseOnError(data, goto ERROR);
@@ -1000,7 +1000,7 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     cred->hostlist = getStringM(data);
 
     /* credential end */
-    cred->end = data->unpackPtr;
+    cred->end = PSdbGetRemData(data);
     /* signature */
     cred->sig = getStringML(data, &cred->sigLen);
 

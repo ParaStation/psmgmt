@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -234,7 +234,7 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
     } else if (credHash[0] == HASH_PLUGIN_K12) {
 	/* calculate k12 hash from message payload */
 	unsigned char plHash[32] = {0};
-	if (KangarooTwelve((unsigned char *) sMsg->data->unpackPtr,
+	if (KangarooTwelve((unsigned char *) PSdbGetRemData(sMsg->data),
 			   sMsg->head.bodyLen, plHash, sizeof(plHash),
 			   (unsigned char *) &msgType, sizeof(msgType))) {
 	    flog("k12 hash calculation failed\n");

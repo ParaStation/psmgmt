@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -61,7 +61,7 @@ void BCast_delete(BCast_t *bcast)
 
 bool BCast_extractCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 {
-    char *credStart = sMsg->data->unpackPtr, *sigBuf = NULL;
+    char *credStart = PSdbGetRemData(sMsg->data), *sigBuf = NULL;
     BCast_Cred_t cred;
     int eno;
 

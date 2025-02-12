@@ -1243,8 +1243,7 @@ int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
     }
 
     /* add message body */
-    uint32_t len = PSdbGetAvail(sMsg->data);
-    addMemToMsg(sMsg->data->unpackPtr, len, &msg);
+    addMemToMsg(PSdbGetRemData(sMsg->data), PSdbGetAvail(sMsg->data), &msg);
 
     return sendFragMsg(&msg);
 }
@@ -1308,7 +1307,7 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     getUint16(data, &sMsg.head.type);
     /* save payload in data buffer */
     sMsg.reply.bufUsed = PSdbGetAvail(data);
-    sMsg.reply.buf = data->unpackPtr;
+    sMsg.reply.buf = PSdbGetRemData(data);
 
     handleFrwrdMsgReply(&sMsg, SLURM_SUCCESS);
 }

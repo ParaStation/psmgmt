@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,7 +64,7 @@ void freeJobCred(JobCred_t *cred)
 
 JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg)
 {
-    char *credStart = sMsg->data->unpackPtr, *credEnd, *sigBuf = NULL;
+    char *credStart = PSdbGetRemData(sMsg->data), *credEnd, *sigBuf = NULL;
     JobCred_t *cred = NULL;
 
     if (!unpackJobCred(sMsg, &cred, gresList, &credEnd)) {

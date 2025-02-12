@@ -248,7 +248,8 @@ bool PSdbGrow(PS_DataBuffer_t data, size_t newSize);
  *
  * @param data Data-buffer to access
  *
- * @return Return a pointer to the data-buffer's buffer
+ * @return Return a pointer to the data-buffer's buffer or NULL in
+ * case of error
  */
 char * PSdbGetBuf(PS_DataBuffer_t data);
 
@@ -268,6 +269,24 @@ char * PSdbGetBuf(PS_DataBuffer_t data);
  * @return No return value
  */
 void PSdbClearBuf(PS_DataBuffer_t data);
+
+/**
+ * @brief Get data-buffer's left over data
+ *
+ * Get the remaining data in the data-buffer @a data, i.e. the data
+ * actually available for reading. The amount of data still available
+ * can be determined via @ref PSdbGetAvail().
+ *
+ * There might be more data in @a data that was already read. This
+ * data can be accessed via PSdbGetBuf() or by rewinding the
+ * data-buffer by calling PSdbRewind().
+ *
+ * @param data Data-buffer to access
+ *
+ * @return Return a pointer to the data-buffer's remaining data or
+ * NULL in case of error
+ */
+char * PSdbGetRemData(PS_DataBuffer_t data);
 
 /**
  * @brief Read data-buffer from socket
