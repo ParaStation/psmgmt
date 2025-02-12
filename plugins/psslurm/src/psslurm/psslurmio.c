@@ -281,7 +281,7 @@ static void handleBufferedMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t len,
 	    writeLabelIOmsg(fwdata, msg, nlLen, grank, type, lrank);
 	}
 
-	if (len - nlLen > 0) {
+	if (len > nlLen) {
 	    /* save data after newline to buffer */
 	    memToDataBuffer(msg + nlLen, len - nlLen, buffer);
 	}
@@ -337,15 +337,12 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     grank -= step->packTaskOffset;
 
     /* track I/O channels */
-    if (!msgLen) {
-	if (type == STDOUT && step->outChannels) {
-	    if (!step->outChannels[lrank]) return;
-	    step->outChannels[lrank] = 0;
-	}
-	if (type == STDERR && step->errChannels) {
-	    if (!step->errChannels[lrank]) return;
-	    step->errChannels[lrank] = 0;
-	}
+    if (type == STDOUT && step->outChannels) {
+	if (!step->outChannels[lrank]) return;
+	if (!msgLen) step->outChannels[lrank] = false; // prevent further output
+    } else if (type == STDERR && step->errChannels) {
+	if (!step->errChannels[lrank]) return;
+	if (!msgLen) step->errChannels[lrank] = false; // prevent further output
     }
 
     /* handle unbuffered I/O */
@@ -384,10 +381,10 @@ void IO_finalize(Forwarder_Data_t *fwdata)
 	uint32_t grank = step->globalTaskIds[myNodeID][i] +
 			 step->packTaskOffset;
 
-	if (step->outChannels && step->outChannels[i] != 0) {
+	if (step->outChannels && step->outChannels[i]) {
 	    IO_closeChannel(fwdata, grank, STDOUT);
 	}
-	if (step->errChannels && step->errChannels[i] != 0) {
+	if (step->errChannels && step->errChannels[i]) {
 	    IO_closeChannel(fwdata, grank, STDERR);
 	}
     }

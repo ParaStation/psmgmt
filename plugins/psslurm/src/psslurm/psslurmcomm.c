@@ -1767,10 +1767,10 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
     /* stdout obj count */
     if (step->stdOutOpt == IO_SRUN || step->stdOutOpt == IO_SRUN_RANK ||
 	step->taskFlags & LAUNCH_PTY) {
-	step->outChannels =
-		umalloc(sizeof(int32_t) * step->globalTaskIdsLen[nodeID]);
+	step->outChannels = malloc(sizeof(*step->outChannels)
+				   * step->globalTaskIdsLen[nodeID]);
 	for (uint32_t i = 0; i < step->globalTaskIdsLen[nodeID]; i++) {
-	    step->outChannels[i] = 1;
+	    step->outChannels[i] = true;
 	}
 	addUint32ToMsg(step->globalTaskIdsLen[nodeID], &data);
     } else {
@@ -1784,10 +1784,10 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 	/* stderr uses stdout in pty mode */
 	addUint32ToMsg(0, &data);
     } else {
-	step->errChannels =
-		umalloc(sizeof(int32_t) * step->globalTaskIdsLen[nodeID]);
+	step->errChannels = malloc(sizeof(*step->errChannels)
+				   * step->globalTaskIdsLen[nodeID]);
 	for (uint32_t i = 0; i < step->globalTaskIdsLen[nodeID]; i++) {
-	    step->errChannels[i] = 1;
+	    step->errChannels[i] = true;
 	}
 	addUint32ToMsg(step->globalTaskIdsLen[nodeID], &data);
     }

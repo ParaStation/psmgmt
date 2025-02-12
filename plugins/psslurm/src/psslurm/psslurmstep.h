@@ -147,8 +147,8 @@ typedef struct {
     int32_t stdOutRank;		/**< redirect stdout to this rank */
     int32_t stdErrRank;		/**< redirect stderr to this rank */
     int32_t stdInRank;		/**< redirect stdin to this rank */
-    int32_t *outChannels;	/**< output channels for local ranks */
-    int32_t *errChannels;	/**< error channels for local ranks */
+    bool *outChannels;          /**< output channels for local ranks */
+    bool *errChannels;          /**< error channels for local ranks */
     int32_t *outFDs;		/**< output file descriptors */
     int32_t *errFDs;		/**< error file descriptors */
     Slurm_Msg_t srunIOMsg;      /**< socket for I/O messages to srun */
@@ -212,10 +212,9 @@ typedef struct {
 				     error code in termAfterFWmsg is forwarded
 				     to srun */
     uint16_t *compCPUsPerTask; /**< Compressed CPUs per task on a per
-				    node basis (unused) */
+				     node basis (unused) */
     uint32_t numCompCPUsPerTask; /**< number of compCPUsPerTask (unused) */
-    uint32_t *compCPUsPerTaskReps; /**< repetitions of compCPUsPerTask
-				        (unused) */
+    uint32_t *compCPUsPerTaskReps; /**< repetitions of compCPUsPerTask (unused) */
     bool oomKillStep;		/**< kill step if task gets terminated by OOM
 				     (unused) */
 } Step_t;
