@@ -83,6 +83,17 @@ static inline void *umalloc(size_t size)
     return malloc(size < MIN_MALLOC_SIZE ? MIN_MALLOC_SIZE : size);
 }
 
+/** Structure holding a growing data-buffer to assemble message from
+ * fragments and unpack content */
+struct PS_DataBuffer {
+    char *buf;           /**< Actual data-buffer */
+    size_t size;         /**< Current size of @ref buf */
+    size_t used;         /**< Used bytes of @ref buf */
+    uint16_t nextFrag;   /**< Next fragment number to expect */
+    char *unpackPtr;     /**< Tracking top of unpacked bytes in @ref buf */
+    int8_t unpackErr;    /**< Error code if unpacking of content failed */
+};
+
 PS_DataBuffer_t PSdbNew(char *buffer, size_t bufSize)
 {
     PS_DataBuffer_t data = calloc(1, sizeof(*data));

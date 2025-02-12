@@ -64,16 +64,6 @@ typedef enum {
     E_PSSERIAL_CONV,	    /**< unknown conversion size */
 } serial_Err_Types_t;
 
-/** Growing data-buffer to assemble message from fragments and unpack content */
-struct PS_DataBuffer {
-    char *buf;           /**< Actual data-buffer */
-    size_t size;         /**< Current size of @ref buf */
-    size_t used;         /**< Used bytes of @ref buf */
-    uint16_t nextFrag;   /**< Next fragment number to expect */
-    char *unpackPtr;	 /**< Tracking top of unpacked bytes in @ref buf */
-    int8_t unpackErr;	 /**< Error code if unpacking of content failed */
-};
-
 /** Growing data-buffer context to be created via @ref PSdbNew() */
 typedef struct PS_DataBuffer * PS_DataBuffer_t;
 
