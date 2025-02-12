@@ -329,7 +329,7 @@ static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 		fwRes->node = srcNode;
 		if (sMsg->reply.bufUsed) {
 		    if (!memToDataBuffer(sMsg->reply.buf, sMsg->reply.bufUsed,
-					 &fwRes->body)) {
+					 fwRes->body)) {
 			flog("saving error failed, caller %s@%i\n", func, line);
 		    }
 		}

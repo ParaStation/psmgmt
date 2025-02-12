@@ -2447,8 +2447,7 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 	fw->head.fwRes[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
 	fw->head.fwRes[i].type = RESPONSE_FORWARD_FAILED;
 	fw->head.fwRes[i].node = -1;
-	fw->head.fwRes[i].body.buf = NULL;
-	fw->head.fwRes[i].body.used = 0;
+	fw->head.fwRes[i].body = PSdbNew(NULL, 0);
     }
 
     bool verbose = mset(PSSLURM_LOG_FWD);

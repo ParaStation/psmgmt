@@ -216,14 +216,7 @@ void dupSlurmMsgHead(Slurm_Msg_Header_t *dupHead, Slurm_Msg_Header_t *head)
 	       head->fwResSize * sizeof(Slurm_Forward_Res_t));
 
 	for (uint32_t i=0; i<head->fwResSize; i++) {
-	    if (head->fwRes[i].body.size) {
-		dupHead->fwRes[i].body.buf = umalloc(head->fwRes[i].body.size);
-		memcpy(dupHead->fwRes[i].body.buf, head->fwRes[i].body.buf,
-		       head->fwRes[i].body.used);
-	    } else {
-		memset(&dupHead->fwRes[i].body, 0,
-		       sizeof(dupHead->fwRes[i].body));
-	    }
+	    dupHead->fwRes[i].body = PSdbDup(head->fwRes[i].body);
 	}
     }
 }
@@ -261,11 +254,9 @@ void initSlurmMsgHead(Slurm_Msg_Header_t *head)
 
 void freeSlurmMsgHead(Slurm_Msg_Header_t *head)
 {
-    uint32_t i;
-
     if (head->fwRes) {
-	for (i=0; i<head->fwResSize; i++) {
-	    ufree(head->fwRes[i].body.buf);
+	for (uint32_t i = 0; i < head->fwResSize; i++) {
+	    PSdbDestroy(head->fwRes[i].body);
 	}
     }
 
@@ -299,7 +290,7 @@ void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf)
 
     freeSlurmMsgHead(&msgBuf->head);
     freeSlurmAuth(msgBuf->auth);
-    ufree(msgBuf->body.buf);
+    PSdbDestroy(msgBuf->body);
     list_del(&msgBuf->next);
     ufree(msgBuf);
 }
@@ -319,6 +310,7 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     msgBuf->conRetry = 0;
     msgBuf->maxConRetry = getConfValueI(Config, "RECONNECT_MAX_RETRIES");
     msgBuf->authTime = (auth) ? time(NULL) : 0;
+    msgBuf->auth = (auth) ? dupSlurmAuth(auth) : NULL;
     msgBuf->req = req;
 
     /* dup msg head */
@@ -330,13 +322,9 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     }
 
     /* save data buffer */
-    msgBuf->body.buf = NULL;
-    memToDataBuffer(body->buf, body->bufUsed, &msgBuf->body);
+    msgBuf->body = PSdbNew(NULL, 0);
+    memToDataBuffer(body->buf, body->bufUsed, msgBuf->body);
 
-    /* dup auth */
-    msgBuf->auth = (auth) ? dupSlurmAuth(auth) : NULL;
-
-    /* save to list */
     list_add_tail(&msgBuf->next, &msgBufList);
 
     return msgBuf;
@@ -374,8 +362,8 @@ int resendSlurmMsg(int sock, void *msg)
     Slurm_Msg_Buf_t *savMsg = msg;
 
     if (!savMsg->auth) {
-	savMsg->auth = getSlurmAuth(&savMsg->head, PSdbGetBuf(&savMsg->body),
-				    PSdbGetUsed(&savMsg->body));
+	savMsg->auth = getSlurmAuth(&savMsg->head, PSdbGetBuf(savMsg->body),
+				    PSdbGetUsed(savMsg->body));
 	if (!savMsg->auth) {
 	    flog("getting a slurm authentication token failed\n");
 	    goto CLEANUP;
@@ -383,7 +371,7 @@ int resendSlurmMsg(int sock, void *msg)
 	savMsg->authTime = time(NULL);
     }
 
-    packSlurmMsg(&data, &savMsg->head, &savMsg->body, savMsg->auth);
+    packSlurmMsg(&data, &savMsg->head, savMsg->body, savMsg->auth);
 
     size_t written;
     int ret = sendDataBuffer(sock, &data, savMsg->offset, &written);

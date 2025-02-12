@@ -1126,8 +1126,8 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 	addStringToMsg(hn, data);
 
 	/* message body */
-	if (PSdbGetUsed(&head->fwRes[i].body)) {
-	    addDBToMsg(&head->fwRes[i].body, data);
+	if (PSdbGetUsed(head->fwRes[i].body)) {
+	    addDBToMsg(head->fwRes[i].body, data);
 	}
     }
 
