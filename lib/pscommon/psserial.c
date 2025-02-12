@@ -724,7 +724,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, SerialRecvCB_t *cb,
 	if (recvBuf->used + toCopy > recvBuf->size) {
 	    /* grow buffer, if necessary */
 	    recvBuf->size *= 2;
-	    char * tmp = realloc(recvBuf->buf, recvBuf->size);
+	    char *tmp = realloc(recvBuf->buf, recvBuf->size);
 	    if (!tmp) {
 		PSC_flog("realloc(%p, %zd) failed at %s@%d\n",
 			 recvBuf->buf, recvBuf->size, caller, line);
@@ -826,13 +826,13 @@ bool setTypeInfo(bool flag)
 /**
  * @brief Grow the data buffer if needed
  *
- * Grow the data buffer @a data such that @a len additional bytes fit
- * into the buffer. Buffers will grow by multiples of @ref
- * BufTypedMsgSize and never grow beyond @ref UINT32_MAX.
+ * Grow the data-buffer @a data such that @a len additional bytes fit
+ * into the buffer. @a data will grow by multiples of @ref BufMsgSize
+ * and its size will never beyond @ref UINT32_MAX.
  *
  * @param len Number of additional bytes needed
  *
- * @param data Pointer to the data buffer to grow
+ * @param data Data-buffer to grow
  *
  * @return Return true on success and false on error
  */
@@ -842,19 +842,21 @@ static bool growDataBuffer(size_t len, PS_DataBuffer_t data)
 
     size_t newLen;
     if (len) {
-	newLen = ((data->used + len - 1) / BufTypedMsgSize + 1)*BufTypedMsgSize;
+	newLen = ((data->used + len - 1) / BufMsgSize + 1) * BufMsgSize;
     } else {
-	newLen = data->size ? data->size: BufTypedMsgSize;
+	newLen = data->size ? data->size : BufMsgSize;
     }
     if (newLen > UINT32_MAX) return false;
 
-    char *tmp = realloc(data->buf, newLen);
-    if (!tmp) {
-	PSC_fwarn(errno, "realloc(%p, %zd)", data->buf, newLen);
-	return false;
+    if (newLen > data->size) {
+	char *tmp = realloc(data->buf, newLen);
+	if (!tmp) {
+	    PSC_fwarn(errno, "realloc(%p, %zd)", data->buf, newLen);
+	    return false;
+	}
+	data->buf = tmp;
+	data->size = newLen;
     }
-    data->buf = tmp;
-    data->size = newLen;
 
     return true;
 }
@@ -931,6 +933,13 @@ void PSdbClearBuf(PS_DataBuffer_t data)
 
     data->used = 0;
     PSdbRewind(data);
+}
+
+bool PSdbGrow(PS_DataBuffer_t data, size_t newSize)
+{
+    if (!data) return false;
+    if (data->size >= newSize) return true;
+    return growDataBuffer(newSize - data->used, data);
 }
 
 bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t buffer,

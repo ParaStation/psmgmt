@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -336,7 +336,7 @@ typedef struct {
  * Buffer size (and thus maximum message size). 1456 is derived
  * from 1500 (MTU) - 20 (IP header) - 8 (UDP header) - 16 (RDP header)
  */
-#define BufMsgSize (1456-sizeof(DDMsg_t))
+#define BufMsgSize (1456 - sizeof(DDMsg_t))
 
 /**
  * Untyped buffer message. This is the largest message
@@ -352,7 +352,7 @@ typedef struct {
 #define DDBufferMsgOffset offsetof(DDBufferMsg_t, buf)
 
 /** Buffer size of typed message */
-#define BufTypedMsgSize (BufMsgSize-sizeof(int32_t))
+#define BufTypedMsgSize (BufMsgSize - sizeof(int32_t))
 
 /**
  * Typed buffer message. Pretty much the same as #DDBufferMsg_t but

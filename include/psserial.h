@@ -228,6 +228,20 @@ size_t PSdbGetUsed(PS_DataBuffer_t data);
 size_t PSdbGetAvail(PS_DataBuffer_t data);
 
 /**
+ * @brief Grow data-buffer
+ *
+ * Grow the data-buffer @a data to at least @a newSize bytes. If the
+ * data-buffer's current size exceeds @a newSize, nothing will happen.
+ *
+ * @param data Data-buffer to grow
+ *
+ * @param newSize New minimum size of the data-buffer @a data
+ *
+ * @return Return true on success of false on error
+ */
+bool PSdbGrow(PS_DataBuffer_t data, size_t newSize);
+
+/**
  * @brief Access data-buffer's buffer
  *
  * Provide access to the actual buffer of the data-buffer @a data.

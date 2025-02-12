@@ -162,7 +162,7 @@ static bool resetConnection(int socket)
 
     fdbg(PSSLURM_LOG_COMM, "for socket %i\n", socket);
 
-    PSdbClear(&con->data);
+    PSdbClearBuf(&con->data);
     con->readSize = false;
 
     return true;
@@ -442,7 +442,6 @@ static int readSlurmMsg(int sock, void *param)
 {
     Connection_t *con = param;
     PS_DataBuffer_t dBuf = &con->data;
-    int ret;
     bool error = false;
 
     if (!param) {
@@ -457,13 +456,11 @@ static int readSlurmMsg(int sock, void *param)
 	resetConnection(sock);
     }
 
+    int ret;
     /* try to read the message size */
     if (!con->readSize) {
-	if (!PSdbGetSize(dBuf)) {
-	    dBuf->size = sizeof(uint32_t);
-	    dBuf->buf = umalloc(dBuf->size);
-	    dBuf->used = 0;
-	}
+	PSdbGrow(dBuf, sizeof(uint32_t));
+	PSdbClearBuf(dBuf);
 
 	ret = PSCio_recvBufPProg(sock, dBuf->buf, dBuf->size, &dBuf->used);
 	int eno = errno;
@@ -489,7 +486,9 @@ static int readSlurmMsg(int sock, void *param)
 	}
 
 	/* all data read successful */
-	uint32_t msglen = ntohl(*(uint32_t *) dBuf->buf);
+	PSdbRewind(dBuf);
+	uint32_t msglen;
+	getUint32(dBuf, &msglen);
 	fdbg(PSSLURM_LOG_COMM, "msg size read for %u ret %u msglen %u\n",
 	     sock, ret, msglen);
 
@@ -499,9 +498,8 @@ static int readSlurmMsg(int sock, void *param)
 	    goto CALLBACK;
 	}
 
-	dBuf->size = msglen;
-	dBuf->buf = urealloc(dBuf->buf, dBuf->size);
-	dBuf->used = 0;   /* drop the length read so far */
+	PSdbGrow(dBuf, msglen);
+	PSdbClearBuf(dBuf);
 	con->readSize = true;
     }
 
