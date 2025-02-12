@@ -179,7 +179,7 @@ const char *strRemoteAddr(Slurm_Msg_t *sMsg)
 
 void initSlurmMsg(Slurm_Msg_t *sMsg)
 {
-    memset(sMsg, 0, sizeof(Slurm_Msg_t));
+    memset(sMsg, 0, sizeof(*sMsg));
     sMsg->sock = -1;
     sMsg->source = -1;
     initSlurmMsgHead(&sMsg->head);
@@ -252,7 +252,7 @@ void releaseSlurmMsg(Slurm_Msg_t *sMsg)
 
 void initSlurmMsgHead(Slurm_Msg_Header_t *head)
 {
-    memset(head, 0, sizeof(Slurm_Msg_Header_t));
+    memset(head, 0, sizeof(*head));
     head->version = slurmProto;
     head->flags |= SLURM_GLOBAL_AUTH_KEY;
     head->fwTreeWidth = 1;
