@@ -147,6 +147,10 @@ static Connection_t *findConnectionEx(int socket, time_t recvTime)
  * Free used memory and reset management data of the connection
  * associated to the socket @a socket.
  *
+ * The connection might already hold data to be forwarded as an answer
+ * in fw.body or fw.head. Thus, the connection's message forwarding
+ * structure must not be touched here.
+ *
  * Since connection validity is tracked via @ref connectionList, the
  * socket is used as an identifier to lookup the connection instead of
  * the connection itself.
@@ -162,7 +166,7 @@ static bool resetConnection(int socket)
 
     fdbg(PSSLURM_LOG_COMM, "for socket %i\n", socket);
 
-    PSdbClearBuf(&con->data);
+    PSdbClearBuf(con->data);
     con->readSize = false;
 
     return true;
@@ -206,6 +210,8 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
 	con->sock = socket;
 	con->cb = cb;
 	con->info = info;
+	con->data = PSdbNew(NULL, 0);
+	con->fw.body = PSdbNew(NULL, 0);
 	gettimeofday(&con->openTime, NULL);
 	initSlurmMsgHead(&con->fw.head);
 
@@ -252,8 +258,8 @@ void closeSlurmCon(int socket)
 	list_del(&con->next);
 	freeSlurmMsgHead(&con->fw.head);
 	if (con->fw.nodesCount) ufree(con->fw.nodes);
-	ufree(con->fw.body.buf);
-	ufree(con->data.buf);
+	PSdbDestroy(con->fw.body);
+	PSdbDestroy(con->data);
 	ufree(con->info);
 	ufree(con);
     }
@@ -286,8 +292,9 @@ void clearSlurmCon(void)
  * @param func Function name of the calling function
  *
  * @param line Line number where this function is called
- * @return Returns false if the processing should be stopped
- * otherwise true is returned even if errors occurred.
+ *
+ * @return Returns false if the processing should be stopped;
+ * otherwise true is returned even if errors occurred
  */
 static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 			      uint32_t error, const char *func, const int line)
@@ -298,7 +305,7 @@ static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 	/* save local processed message */
 	fw->head.type = sMsg->head.type;
 	fw->head.uid = sMsg->head.uid;
-	if (!memToDataBuffer(sMsg->reply.buf, sMsg->reply.bufUsed, &fw->body)) {
+	if (!memToDataBuffer(sMsg->reply.buf, sMsg->reply.bufUsed, fw->body)) {
 	    flog("error saving local result, caller %s@%i\n", func, line);
 	    return true;
 	}
@@ -362,10 +369,10 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
     /* save the new result for a single node */
     if (!saveFrwrdMsgReply(sMsg, fw, error, func, line)) return;
 
-    mdbg(PSSLURM_LOG_FWD, "%s(%s@%i): type %s forward %u resCount %u "
-	    "source %s sock %i recvTime %zu\n", __func__, func, line,
-	    msgType2String(sMsg->head.type), fw->head.forward, fw->numRes,
-	    PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime);
+    fdbg(PSSLURM_LOG_FWD, "caller %s@%i type %s forward %u resCount %u "
+	 "source %s sock %i recvTime %zu\n", func, line,
+	 msgType2String(sMsg->head.type), fw->head.forward, fw->numRes,
+	 PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime);
 
     /* test if all nodes replied and therefore the forward is complete */
     if (fw->numRes == fw->nodesCount + 1) {
@@ -376,7 +383,7 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	/* disable forwarding for the answer message */
 	fw->head.forward = 0;
 
-	if (!PSdbGetBuf(&fw->body) || !PSdbGetUsed(&fw->body)) {
+	if (!PSdbGetBuf(fw->body) || !PSdbGetUsed(fw->body)) {
 	    flog("invalid data, drop msg from caller %s@%i\n", func, line);
 	    closeSlurmCon(con->sock);
 	    return;
@@ -385,8 +392,8 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	/* Answer the original RPC request from Slurm. This reply will hold
 	 * results from all the nodes the RPC was forwarded to. */
 	PS_SendDB_t msg = {
-	    .buf = PSdbGetBuf(&fw->body),
-	    .bufUsed = PSdbGetUsed(&fw->body),
+	    .buf = PSdbGetBuf(fw->body),
+	    .bufUsed = PSdbGetUsed(fw->body),
 	    .useFrag = false, };
 	sendSlurmMsgEx(con->sock, &fw->head, &msg, NULL);
 	closeSlurmCon(con->sock);
@@ -441,7 +448,7 @@ static bool getSockInfo(int socket, Slurm_Addr_t *slurmAddr)
 static int readSlurmMsg(int sock, void *param)
 {
     Connection_t *con = param;
-    PS_DataBuffer_t dBuf = &con->data;
+    PS_DataBuffer_t dBuf = con->data;
     bool error = false;
 
     if (!param) {
@@ -1124,11 +1131,11 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     /* non blocking write */
     PSCio_setFDblock(sock, false);
 
-    struct PS_DataBuffer payload = { .buf = NULL }; // @todo
-    memToDataBuffer(body->buf, body->bufUsed, &payload);
+    PS_DataBuffer_t payload = PSdbNew(NULL, 0);
+    memToDataBuffer(body->buf, body->bufUsed, payload);
 
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
-    packSlurmMsg(&data, head, &payload, auth);
+    packSlurmMsg(&data, head, payload, auth);
 
     size_t written = 0;
     int ret = __sendDataBuffer(sock, &data, 0, &written, caller, line);
@@ -1145,7 +1152,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     }
 
     freeSlurmAuth(auth);
-    ufree(payload.buf);
+    PSdbDestroy(payload);
 
     return ret;
 }
@@ -1942,14 +1949,12 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
 	    if (fw->nodes[i] != nodeID) continue;
 
 	    Slurm_Msg_t sMsg;
-	    struct PS_DataBuffer data = { .buf = NULL }; // @todo
-
 	    initSlurmMsg(&sMsg);
 	    sMsg.source = PSC_getTID(nodeID, 0);
 	    sMsg.head.type = RESPONSE_FORWARD_FAILED;
 	    sMsg.sock = con->sock;
 	    sMsg.recvTime = con->recvTime;
-	    sMsg.data = &data;
+	    // sMsg.data not used in handleFrwrdMsgReply() and descendants
 
 	    handleFrwrdMsgReply(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
 	    flog("message error for node %i saved\n", nodeID);

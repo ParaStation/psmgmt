@@ -43,7 +43,7 @@ typedef struct {
 				    (including myself) */
     uint32_t nodesCount;	/** size of the nodes array */
     uint32_t numRes;		/** number of forwarded message results */
-    struct PS_DataBuffer body;	/** message body holding local result */  // @todo
+    PS_DataBuffer_t body;	/** message body holding local result */
     Slurm_Msg_Header_t head;	/** header with saved results for
 				    each forwarded node */
 } Msg_Forward_t;
@@ -51,7 +51,7 @@ typedef struct {
 /** structure holding connection management data */
 typedef struct {
     list_t next;	    /**< used to put into connection-list */
-    struct PS_DataBuffer data;   /**< buffer for received message parts */ // @todo
+    PS_DataBuffer_t data;   /**< buffer for received message parts */
     Connection_CB_t *cb;    /**< function to handle received messages */
     void *info;		    /**< additional info passed to callback */
     int sock;		    /**< socket of the connection */
