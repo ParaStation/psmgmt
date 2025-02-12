@@ -450,15 +450,14 @@ PspmixLogCallHandle_t pspmix_service_addLogRequest(PspmixLogCallHandle_t call,
  * no further @a pspmix_service_addLogRequest are allowed with the same @a call.
  *
  * @param call        call handle
- * @param client      requesting client
+ * @param caller      requesting client
  * @param uid         user id of the requester
  * @param gid         group id of the requester
  * @param log_once    log once flag
  * @param cb Callback object to pass back to return callback
  */
-void pspmix_service_log(PspmixLogCallHandle_t call,
-			const pmix_proc_t *client, uint32_t uid, uint32_t gid,
-			bool log_once, void *cb);
+void pspmix_service_log(PspmixLogCallHandle_t call, const pmix_proc_t *caller,
+			uint32_t uid, uint32_t gid, bool log_once, void *cb);
 
 /**
  * @todo

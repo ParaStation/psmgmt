@@ -102,10 +102,11 @@ typedef struct {
 /**
  * PMIx log call (consists of 0..n log requests) */
 typedef struct {
-    list_t next;       /**< list head to put into LogCallList */
-    list_t requests;   /**< list of requests belonging to this call */
-    void *cb;          /**< callback information */
-    bool log_once;     /**< log once flag */
+    list_t next;             /**< list head to put into LogCallList */
+    pmix_proc_t caller;      /**< client that issued the PMIx_Log() call */
+    list_t requests;         /**< list of requests belonging to this call */
+    void *cb;                /**< callback information */
+    bool log_once;           /**< log once flag */
 } PspmixLogCall_t;
 
 /**
@@ -849,7 +850,7 @@ nscreate_error:
 }
 
 /* main thread:
-	if called by handleTermClients()
+	if called by handleTermClients() in pspmixcomm.c
    library thread:
 	if called by pspmix_service_abort() */
 bool pspmix_service_terminateClients(const char *nsName, bool remote)
@@ -863,8 +864,20 @@ bool pspmix_service_terminateClients(const char *nsName, bool remote)
 	return false;
     }
 
+    /* handle and cleanup pending log calls */
+    GET_LOCK(logCallList);
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &logCallList) {
+	PspmixLogCall_t *call = list_entry(c, PspmixLogCall_t, next);
+	if (!strcmp(call->caller.nspace, nsName)) {
+	    pspmix_server_operationFinished(PMIX_ERR_JOB_ABORTED, call->cb);
+	    list_del(&call->next);
+	    cleanupLogCall(call);
+	}
+    }
+    RELEASE_LOCK(logCallList);
+
     /* signal all local clients */
-    list_t *c;
     list_for_each(c, &ns->clientList) {
 	PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
 	if (client->tid) pspmix_comm_sendSignal(client->tid, -1);
@@ -2495,9 +2508,8 @@ static bool tryFinishLogCall(PspmixLogCall_t *call)
 }
 
 // library thread
-void pspmix_service_log(PspmixLogCallHandle_t call,
-			const pmix_proc_t *client, uint32_t uid, uint32_t gid,
-			bool log_once, void *cb)
+void pspmix_service_log(PspmixLogCallHandle_t call, const pmix_proc_t *caller,
+			uint32_t uid, uint32_t gid, bool log_once, void *cb)
 {
     PspmixLogCall_t *currentLogCall = call;
 
@@ -2509,6 +2521,7 @@ void pspmix_service_log(PspmixLogCallHandle_t call,
 	return;
     }
 
+    PMIX_PROC_LOAD(&currentLogCall->caller, caller->nspace, caller->rank);
     currentLogCall->log_once = log_once;
     currentLogCall->cb = cb;
 
@@ -2532,7 +2545,7 @@ void pspmix_service_log(PspmixLogCallHandle_t call,
 		req->finished = true;
 		break;
 	    }
-	    if (sendClientLogRequest(client, req)) {
+	    if (sendClientLogRequest(caller, req)) {
 		// we assume this logging will succeed
 		// thus ignore other log requests iff log_once
 		if (currentLogCall->log_once) ignore_requests = true;
