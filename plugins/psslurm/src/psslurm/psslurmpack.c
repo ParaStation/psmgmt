@@ -1129,9 +1129,8 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 	addStringToMsg(hn, data);
 
 	/* message body */
-	if (head->fwRes[i].body.used) {
-	    addMemToMsg(head->fwRes[i].body.buf,
-			head->fwRes[i].body.used, data);
+	if (PSdbGetUsed(&head->fwRes[i].body)) {
+	    addDBToMsg(&head->fwRes[i].body, data);
 	}
     }
 
@@ -3770,7 +3769,7 @@ bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     }
 
     /* add the message body */
-    addMemToMsg(body->buf, body->used, data);
+    addDBToMsg(body, data);
     fdbg(PSSLURM_LOG_COMM, "added slurm msg body (%i)\n", data->bufUsed);
 
     if (mset(PSSLURM_LOG_IO_VERB)) {

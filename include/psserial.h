@@ -1164,7 +1164,35 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *buffer,
 bool __addStringArrayToBuf(char **array, PS_SendDB_t *buffer,
 			   const char *caller, const int line);
 
-#define addStringArrayToMsg(array, msg)			\
+#define addStringArrayToMsg(array, msg)				\
     __addStringArrayToBuf(array, msg, __func__, __LINE__)
+
+
+/**
+ * @brief Add data-buffer to send buffer
+ *
+ * Add the content of the data-buffer @a data to the send buffer @a
+ * buffer. Both, content and size of the data to add will be taken
+ * from @a data.
+ *
+ * The data-buffer might be empty which will leave the send buffer
+ * untouched. The data will be added to the send buffer as a single
+ * blob. If the type-info flag is set, it will be annotaded to be of
+ * type PSDATA_MEM.
+ *
+ * @param data Data-buffer to add
+ *
+ * @param buffer Send buffer to save the data to
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of failure
+*/
+bool __addDBToBuf(PS_DataBuffer_t data, PS_SendDB_t *buffer,
+		  const char *caller, const int line);
+
+#define addDBToMsg(data, msg) __addDBToBuf(data, msg, __func__, __LINE__)
 
 #endif  /* __PSSERIAL_H */

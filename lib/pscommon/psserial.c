@@ -1423,3 +1423,23 @@ bool __addStringArrayToBuf(char **array, PS_SendDB_t *buffer,
 
     return true;
 }
+
+bool __addDBToBuf(PS_DataBuffer_t data, PS_SendDB_t *buffer,
+		  const char *caller, const int line)
+{
+    if (!buffer) {
+	PSC_flog("invalid buffer at %s@%d\n", caller, line);
+	return false;
+    }
+    if (!data || (!data->buf && data->used)) {
+	PSC_flog("invalid data-buffer at %s@%d\n", caller, line);
+	return false;
+    }
+    if (!sendBuf) {
+	PSC_flog("call initSerial() before %s@%d\n", caller, line);
+	return false;
+    }
+    if (!data->used) return true;
+
+    return addToBuf(data->buf, data->used, buffer, PSDATA_MEM, __func__, __LINE__);
+}
