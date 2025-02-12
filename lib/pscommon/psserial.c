@@ -112,6 +112,18 @@ static void resetBuf(PS_DataBuffer_t b)
     memset(b, 0, sizeof(*b));
 }
 
+void PSdbClear(PS_DataBuffer_t data)
+{
+    if (!data) return;
+    resetBuf(data);
+}
+
+void PSdbDestroy(PS_DataBuffer_t data)
+{
+    PSdbClear(data);
+    PSdbDelete(data);
+}
+
 typedef struct {
     list_t next;          /**< used to put into reservation-lists */
     PStask_ID_t tid;      /**< task ID of the message sender */
@@ -845,12 +857,6 @@ static bool growDataBuffer(size_t len, PS_DataBuffer_t data)
     data->size = newLen;
 
     return true;
-}
-
-void PSdbClear(PS_DataBuffer_t data)
-{
-    if (!data) return;
-    resetBuf(data);
 }
 
 void PSdbRewind(PS_DataBuffer_t data)

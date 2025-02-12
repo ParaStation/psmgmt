@@ -2556,8 +2556,7 @@ void deleteCachedMsg(uint32_t jobid, uint32_t stepid)
     list_for_each_safe(s, tmp, &msgCache) {
 	Msg_Cache_t *cache = list_entry(s, Msg_Cache_t, next);
 	if (cache->jobid == jobid && cache->stepid == stepid) {
-	    ufree(cache->data->buf);
-	    ufree(cache->data);
+	    PSdbDestroy(cache->data);
 	    list_del(&cache->next);
 	    ufree(cache);
 	}

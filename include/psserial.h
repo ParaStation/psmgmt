@@ -137,6 +137,21 @@ void PSdbDelete(PS_DataBuffer_t data);
 void PSdbClear(PS_DataBuffer_t data);
 
 /**
+ * @brief Destroy data-buffer
+ *
+ * Destroy the data-buffer @a data and free() all memory allocated for
+ * administrative and buffer data.
+ *
+ * Effectively this is like calling @ref PSdbClear() and @ref
+ * PSdbDelete() with @a data as the argument.
+ *
+ * @param data Data-buffer to be destroyed
+ *
+ * @return No return value
+ */
+void PSdbDestroy(PS_DataBuffer_t data);
+
+/**
  * @brief Duplicate data-buffer
  *
  * Duplicate the data-buffer @a data and return a pointer to the copy

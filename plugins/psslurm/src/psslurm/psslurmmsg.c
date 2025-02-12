@@ -244,10 +244,7 @@ void releaseSlurmMsg(Slurm_Msg_t *sMsg)
 {
     if (!sMsg) return;
 
-    if (sMsg->data) {
-	ufree(sMsg->data->buf);
-	ufree(sMsg->data);
-    }
+    PSdbDestroy(sMsg->data);
     ufree(sMsg->head.fwNodeList);
 
     ufree(sMsg);

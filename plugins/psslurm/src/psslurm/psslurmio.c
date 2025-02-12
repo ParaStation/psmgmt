@@ -40,10 +40,10 @@
 
 #define MAX_LINE_BUF_LENGTH 1024*1024
 
-typedef struct {
-    struct PS_DataBuffer out;  // @todo
-    struct PS_DataBuffer err;  // @todo
-} IO_Msg_Buf_t;
+static struct {
+    PS_DataBuffer_t out;
+    PS_DataBuffer_t err;
+} *lineBuf;
 
 typedef struct {
     uint32_t grank;
@@ -321,8 +321,6 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
 		       const int line)
 {
     Step_t *step = fwdata->userData;
-    static IO_Msg_Buf_t *lineBuf;
-    static bool initBuf = false;
 
     /* get local rank from global rank */
     uint32_t lrank = getLocalRankID(grank, step);
@@ -354,19 +352,19 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     }
 
     /* handle buffered I/O */
-    if (!initBuf) {
-	lineBuf = umalloc(sizeof(IO_Msg_Buf_t)
-			  * step->globalTaskIdsLen[step->localNodeId]);
-	for (uint32_t i=0; i < step->globalTaskIdsLen[step->localNodeId]; i++) {
-	    lineBuf[i].out.buf = lineBuf[i].err.buf = NULL;
-	    lineBuf[i].out.used = lineBuf[i].err.used = 0;
+    if (!lineBuf) {
+	// first call
+	uint32_t localRanks = step->globalTaskIdsLen[step->localNodeId];
+
+	lineBuf = umalloc(sizeof(*lineBuf) * localRanks);
+	for (uint32_t r = 0; r < localRanks; r++) {
+	    lineBuf[r].out = PSdbNew(NULL, 0);
+	    lineBuf[r].err = PSdbNew(NULL, 0);
 	}
-	initBuf = true;
     }
 
     handleBufferedMsg(fwdata, msg, msgLen,
-		      (type == STDOUT) ?
-		      &lineBuf[lrank].out : &lineBuf[lrank].err,
+		      (type == STDOUT) ? lineBuf[lrank].out : lineBuf[lrank].err,
 		      grank, type, lrank);
 }
 
@@ -376,7 +374,8 @@ void IO_finalize(Forwarder_Data_t *fwdata)
     uint32_t myNodeID = step->localNodeId;
 
     /* make sure to close all leftover I/O channels */
-    for (uint32_t i = 0; i < step->globalTaskIdsLen[myNodeID]; i++) {
+    uint32_t localRanks = step->globalTaskIdsLen[myNodeID];
+    for (uint32_t i = 0; i < localRanks; i++) {
 	/* use global rank */
 	uint32_t grank = step->globalTaskIds[myNodeID][i] +
 			 step->packTaskOffset;
@@ -405,6 +404,16 @@ void IO_finalize(Forwarder_Data_t *fwdata)
 
     /* ensure to wait for all answers from srun */
     while (findConnectionByStep(step)) Swait(1);
+
+    if (lineBuf) {
+	for (uint32_t r = 0; r < localRanks; r++) {
+	    PSdbDestroy(lineBuf[r].out);
+	    PSdbDestroy(lineBuf[r].err);
+	}
+	ufree(lineBuf);
+	lineBuf = NULL;
+    }
+
 }
 
 void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
