@@ -228,6 +228,34 @@ size_t PSdbGetUsed(PS_DataBuffer_t data);
 size_t PSdbGetAvail(PS_DataBuffer_t data);
 
 /**
+ * @brief Access data-buffer's buffer
+ *
+ * Provide access to the actual buffer of the data-buffer @a data.
+ *
+ * @param data Data-buffer to access
+ *
+ * @return Return a pointer to the data-buffer's buffer
+ */
+char * PSdbGetBuf(PS_DataBuffer_t data);
+
+/**
+ * @brief Reset data-buffer's buffer
+ *
+ * Reset the buffer of the data-buffer @a data. This will not change
+ * the memory allocated to the buffer but rewind the data-buffer and
+ * marking all content as invalid. The data-buffer @a data remains
+ * usable and might be filled with new buffer data.
+ *
+ * In contrast to @ref PSdbClear() this will not @ref free() the
+ * data-buffer's buffer.
+ *
+ * @param data Data-buffer to be cleared / reset
+ *
+ * @return No return value
+ */
+void PSdbClearBuf(PS_DataBuffer_t data);
+
+/**
  * @brief Get data-buffer's error state
  *
  * Get the error state of the data-buffer @a data. The error state

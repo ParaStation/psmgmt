@@ -321,8 +321,7 @@ static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 		fwRes->type = sMsg->head.type;
 		fwRes->node = srcNode;
 		if (sMsg->reply.bufUsed) {
-		    if (!memToDataBuffer(sMsg->reply.buf,
-					 sMsg->reply.bufUsed,
+		    if (!memToDataBuffer(sMsg->reply.buf, sMsg->reply.bufUsed,
 					 &fwRes->body)) {
 			flog("saving error failed, caller %s@%i\n", func, line);
 		    }
@@ -370,8 +369,6 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 
     /* test if all nodes replied and therefore the forward is complete */
     if (fw->numRes == fw->nodesCount + 1) {
-	PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
-
 	/* all answers collected */
 	fdbg(PSSLURM_LOG_FWD, "forward %s complete, sending answer\n",
 	     msgType2String(sMsg->head.type));
@@ -379,7 +376,7 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	/* disable forwarding for the answer message */
 	fw->head.forward = 0;
 
-	if (!fw->body.buf || !fw->body.used) {
+	if (!PSdbGetBuf(&fw->body) || !PSdbGetUsed(&fw->body)) {
 	    flog("invalid data, drop msg from caller %s@%i\n", func, line);
 	    closeSlurmCon(con->sock);
 	    return;
@@ -387,8 +384,10 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 
 	/* Answer the original RPC request from Slurm. This reply will hold
 	 * results from all the nodes the RPC was forwarded to. */
-	msg.buf = fw->body.buf;
-	msg.bufUsed = fw->body.used;
+	PS_SendDB_t msg = {
+	    .buf = PSdbGetBuf(&fw->body),
+	    .bufUsed = PSdbGetUsed(&fw->body),
+	    .useFrag = false, };
 	sendSlurmMsgEx(con->sock, &fw->head, &msg, NULL);
 	closeSlurmCon(con->sock);
     }

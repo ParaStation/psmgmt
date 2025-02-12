@@ -371,56 +371,52 @@ bool needMsgResend(uint16_t type)
 int resendSlurmMsg(int sock, void *msg)
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
-    Slurm_Msg_Buf_t *savedMsg = msg;
-    int ret;
-    size_t written;
+    Slurm_Msg_Buf_t *savMsg = msg;
 
-    if (!savedMsg->auth) {
-	savedMsg->auth = getSlurmAuth(&savedMsg->head, savedMsg->body.buf,
-				      savedMsg->body.used);
-	if (!savedMsg->auth) {
+    if (!savMsg->auth) {
+	savMsg->auth = getSlurmAuth(&savMsg->head, PSdbGetBuf(&savMsg->body),
+				    PSdbGetUsed(&savMsg->body));
+	if (!savMsg->auth) {
 	    flog("getting a slurm authentication token failed\n");
 	    goto CLEANUP;
 	}
-	savedMsg->authTime = time(NULL);
+	savMsg->authTime = time(NULL);
     }
 
-    packSlurmMsg(&data, &savedMsg->head, &savedMsg->body, savedMsg->auth);
+    packSlurmMsg(&data, &savMsg->head, &savMsg->body, savMsg->auth);
 
-    ret = sendDataBuffer(sock, &data, savedMsg->offset, &written);
+    size_t written;
+    int ret = sendDataBuffer(sock, &data, savMsg->offset, &written);
     int eno = errno;
 
-    savedMsg->sendRetry++;
-    savedMsg->offset += written;
+    savMsg->sendRetry++;
+    savMsg->offset += written;
 
     fdbg(PSSLURM_LOG_COMM | PSSLURM_LOG_PROTO,
 	 "type %s ret %i retry %u written %zu\n",
-	 msgType2String(savedMsg->head.type), ret, savedMsg->sendRetry, written);
+	 msgType2String(savMsg->head.type), ret, savMsg->sendRetry, written);
 
     if (ret == -1) {
 	/* default authTime is 300 (= default TTL of munge cred) */
-	if (time(NULL) - savedMsg->authTime >
-	    getConfValueI(Config, "RESEND_TIMEOUT")) {
-	    flog("resend timeout reached, dropping message %s\n",
-		 msgType2String(savedMsg->head.type));
+	if (time(NULL) - savMsg->authTime
+	    > getConfValueI(Config, "RESEND_TIMEOUT")) {
+	    flog("timeout, drop %s\n", msgType2String(savMsg->head.type));
 	    goto CLEANUP;
 	}
 
 	if (!written) {
 	    if (eno == EAGAIN || eno == EINTR) return 0;
-	    fwarn(eno, "error writing message %s",
-		  msgType2String(savedMsg->head.type));
+	    fwarn(eno, "error on %s", msgType2String(savMsg->head.type));
 	    goto CLEANUP;
 	}
 	return 0;
     } else {
 	/* all data has been written */
-	flog("success re-sending message %s\n",
-	     msgType2String(savedMsg->head.type));
+	flog("success on %s\n", msgType2String(savMsg->head.type));
     }
 
 CLEANUP:
-    deleteMsgBuf(savedMsg);
+    deleteMsgBuf(savMsg);
 
     return 0;
 }

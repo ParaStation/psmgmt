@@ -273,9 +273,9 @@ static void handleBufferedMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t len,
 	    memToDataBuffer(msg, nlLen, buffer);
 
 	    /* write data saved in the buffer */
-	    writeLabelIOmsg(fwdata, buffer->buf, buffer->used, grank,
-			    type, lrank);
-	    buffer->used = 0;
+	    writeLabelIOmsg(fwdata, PSdbGetBuf(buffer), PSdbGetUsed(buffer),
+			    grank, type, lrank);
+	    PSdbClearBuf(buffer);
 	} else {
 	    /* write data including newline */
 	    writeLabelIOmsg(fwdata, msg, nlLen, grank, type, lrank);

@@ -885,6 +885,11 @@ size_t PSdbGetAvail(PS_DataBuffer_t data)
     return data->buf + data->used - data->unpackPtr;
 }
 
+char * PSdbGetBuf(PS_DataBuffer_t data)
+{
+    return data ? data->buf : NULL;
+}
+
 serial_Err_Types_t PSdbGetErrState(PS_DataBuffer_t data)
 {
     if (!data) return E_PSSERIAL_PARAM;
@@ -918,6 +923,14 @@ PS_DataBuffer_t PSdbDup(PS_DataBuffer_t data)
     dup->unpackPtr = dup->buf;
 
     return dup;
+}
+
+void PSdbClearBuf(PS_DataBuffer_t data)
+{
+    if (!data) return;
+
+    data->used = 0;
+    PSdbRewind(data);
 }
 
 bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t buffer,

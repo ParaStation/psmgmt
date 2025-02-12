@@ -576,6 +576,7 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
     updateAddrCache(hdr->spawnerTID, hdr->sender, msg->header.sender);
 
     uint32_t rDataSize = PSdbGetUsed(rData);
+    char * rDataBuf = PSdbGetBuf(rData);
     fdbg(RRCOMM_LOG_FRWRD, "%s:%d", PSC_printTID(hdr->spawnerTID), hdr->sender);
     mdbg(RRCOMM_LOG_FRWRD, " -> %s:%d / size %d\n",
 	 PSC_printTID(hdr->destJob), hdr->dest, rDataSize);
@@ -608,12 +609,12 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
     }
 
     /* send actual data -- no data sent if rData->used == 0 */
-    if (sendToClient(rData->buf, rDataSize) < 0) {
+    if (sendToClient(rDataBuf, rDataSize) < 0) {
 	dropHelper(msg, sendDaemonMsg);
     } else if (getRRCommLoggerMask() & RRCOMM_LOG_VERBOSE) {
 	fdbg(RRCOMM_LOG_VERBOSE, "Data is");
 	for (size_t i = 0; i < MIN(rDataSize, 20); i++)
-	    mdbg(RRCOMM_LOG_VERBOSE, " %d", rData->buf[i]);
+	    mdbg(RRCOMM_LOG_VERBOSE, " %d", rDataBuf[i]);
 	mdbg(RRCOMM_LOG_VERBOSE, "... total %d\n", rDataSize);
     }
 }
