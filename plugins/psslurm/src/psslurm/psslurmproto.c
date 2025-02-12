@@ -2428,8 +2428,7 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     /* convert nodelist to PS nodes */
     if (!convHLtoPSnodes(fw->head.fwNodeList, getNodeIDbySlurmHost,
 			 &nodes, &nrOfNodes)) {
-	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
-	     fw->head.fwNodeList);
+	flog("resolving PS nodeIDs from %s failed\n", fw->head.fwNodeList);
 	return false;
     }
 
@@ -2456,9 +2455,9 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     if (verbose) {
 	gettimeofday(&time_start, NULL);
 
-	mlog("%s: forward type %s count %u nodelist %s timeout %u "
-	     "at %.4f\n", __func__, msgType2String(sMsg->head.type),
-	     sMsg->head.forward, fw->head.fwNodeList, fw->head.fwTimeout,
+	flog("forward type %s count %u nodelist %s timeout %u at %.4f\n",
+	     msgType2String(sMsg->head.type), sMsg->head.forward,
+	     fw->head.fwNodeList, fw->head.fwTimeout,
 	     time_start.tv_sec + 1e-6 * time_start.tv_usec);
     }
 
@@ -2468,7 +2467,7 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     if (verbose) {
 	gettimeofday(&time_now, NULL);
 	timersub(&time_now, &time_start, &time_diff);
-	mlog("%s: forward type %s of size %u took %.4f seconds\n", __func__,
+	flog("forward type %s of size %u took %.4f seconds\n",
 	     msgType2String(sMsg->head.type), ret,
 	     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
 

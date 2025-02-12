@@ -1315,10 +1315,10 @@ static int acceptSlurmClient(int socket, void *data)
 #ifndef __clang_analyzer__
     struct sockaddr_in SAddr;
     socklen_t clientlen = sizeof(SAddr);
-    int newSock = accept(socket, (struct sockaddr *)&SAddr, &clientlen);
 
+    int newSock = accept(socket, (struct sockaddr *)&SAddr, &clientlen);
     if (newSock == -1) {
-	mwarn(errno, "%s: error accepting new tcp connection", __func__);
+	fwarn(errno, "error accepting new tcp connection");
 	return 0;
     }
 

@@ -366,8 +366,7 @@ bool needMsgResend(uint16_t type)
 	    return false;
     }
 
-    mlog("%s: warning: undefined msg type %s (%u)\n",
-	 __func__, msgType2String(type), type);
+    flog("warning: undefined msg type %s (%u)\n", msgType2String(type), type);
 
     return false;
 }
@@ -397,30 +396,29 @@ int resendSlurmMsg(int sock, void *msg)
     savedMsg->sendRetry++;
     savedMsg->offset += written;
 
-    mdbg(PSSLURM_LOG_COMM | PSSLURM_LOG_PROTO,
-	 "%s: type %s ret %i retry %u written %zu\n",
-	 __func__, msgType2String(savedMsg->head.type), ret,
-	 savedMsg->sendRetry, written);
+    fdbg(PSSLURM_LOG_COMM | PSSLURM_LOG_PROTO,
+	 "type %s ret %i retry %u written %zu\n",
+	 msgType2String(savedMsg->head.type), ret, savedMsg->sendRetry, written);
 
     if (ret == -1) {
 	/* default authTime is 300 (= default TTL of munge cred) */
 	if (time(NULL) - savedMsg->authTime >
 	    getConfValueI(Config, "RESEND_TIMEOUT")) {
-	    mlog("%s: resend timeout reached, dropping message %s\n", __func__,
+	    flog("resend timeout reached, dropping message %s\n",
 		 msgType2String(savedMsg->head.type));
 	    goto CLEANUP;
 	}
 
 	if (!written) {
 	    if (eno == EAGAIN || eno == EINTR) return 0;
-	    mwarn(eno, "%s: error writing message %s: ",
-		 __func__, msgType2String(savedMsg->head.type));
+	    fwarn(eno, "error writing message %s",
+		  msgType2String(savedMsg->head.type));
 	    goto CLEANUP;
 	}
 	return 0;
     } else {
 	/* all data has been written */
-	flog("%s: success re-sending message %s\n", __func__,
+	flog("success re-sending message %s\n",
 	     msgType2String(savedMsg->head.type));
     }
 
@@ -449,9 +447,8 @@ static void handleReconTimeout(int timerId, void *data)
 	    }
 
 	    if (++savedMsg->conRetry >= savedMsg->maxConRetry) {
-		mlog("%s: maximal %i reconnect attempts reached, dropping msg "
-		     "'%s'\n", __func__, savedMsg->conRetry,
-		     msgType2String(savedMsg->head.type));
+		flog("max reconnect attempts (%i) reached, dropping msg %s\n",
+		     savedMsg->conRetry, msgType2String(savedMsg->head.type));
 
 		/* drop the saved msg and free request only here if the
 		 * connection could not be opened */
@@ -482,9 +479,7 @@ int setReconTimer(Slurm_Msg_Buf_t *savedMsg)
     savedMsg->timerID = Timer_registerEnhanced(&timeout,
 					       handleReconTimeout, savedMsg);
 
-    if (savedMsg->timerID == -1) {
-	mlog("%s: setting resend timer failed\n", __func__);
-    }
+    if (savedMsg->timerID == -1) flog("setting resend timer failed\n");
 
     return savedMsg->timerID;
 }
