@@ -395,7 +395,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 	+ sizeof(res->entries->firstRank) + sizeof(res->entries->lastRank);
 
     /* calculate number of entries */
-    res->nEntries = (rData->buf + rData->used - rData->unpackPtr) / entrysize;
+    res->nEntries = PSdbGetAvail(rData) / entrysize;
 
     res->entries = calloc(res->nEntries, sizeof(*res->entries));
     if (!res->entries) {

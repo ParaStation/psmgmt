@@ -264,11 +264,11 @@ static void handleBufferedMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t len,
 			      uint8_t type, uint32_t lrank)
 {
     char *nl = len ? memrchr(msg, '\n', len) : NULL;
-    if (nl || !len || buffer->used + len > MAX_LINE_BUF_LENGTH) {
+    if (nl || !len || PSdbGetUsed(buffer) + len > MAX_LINE_BUF_LENGTH) {
 	/* messages with newline or empty */
 	uint32_t nlLen = nl ? nl - msg + 1 : len;
 
-	if (buffer->used) {
+	if (PSdbGetUsed(buffer)) {
 	    /* add new data to msg buffer so it can be written in one piece */
 	    memToDataBuffer(msg, nlLen, buffer);
 

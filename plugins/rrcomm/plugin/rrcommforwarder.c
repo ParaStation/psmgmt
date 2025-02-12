@@ -575,9 +575,10 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
     fetchFragHeader(msg, &used, NULL, NULL, (void **)&hdr, &hdrSize);
     updateAddrCache(hdr->spawnerTID, hdr->sender, msg->header.sender);
 
+    uint32_t rDataSize = PSdbGetUsed(rData);
     fdbg(RRCOMM_LOG_FRWRD, "%s:%d", PSC_printTID(hdr->spawnerTID), hdr->sender);
-    mdbg(RRCOMM_LOG_FRWRD, " -> %s:%d / size %zd\n",
-	 PSC_printTID(hdr->destJob), hdr->dest, rData->used);
+    mdbg(RRCOMM_LOG_FRWRD, " -> %s:%d / size %d\n",
+	 PSC_printTID(hdr->destJob), hdr->dest, rDataSize);
 
     if (clntSock == -1 && startupTimer == -1) {
 	/* pile up data blobs for some time during startup before dropping */
@@ -596,7 +597,7 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     bool byteOrder = setByteOrder(false); // libRRC does not use byteorder
     addUint8ToMsg(RRCOMM_DATA, &data);
-    addUint32ToMsg(rData->used, &data);
+    addUint32ToMsg(rDataSize, &data);
     addInt32ToMsg(hdr->sender, &data);
     // Assume client will support protocol version 2 */
     if (clntVer > 1 || !clntVer) addTaskIdToMsg(hdr->spawnerTID, &data);
@@ -607,13 +608,13 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
     }
 
     /* send actual data -- no data sent if rData->used == 0 */
-    if (sendToClient(rData->buf, rData->used) < 0) {
+    if (sendToClient(rData->buf, rDataSize) < 0) {
 	dropHelper(msg, sendDaemonMsg);
     } else if (getRRCommLoggerMask() & RRCOMM_LOG_VERBOSE) {
 	fdbg(RRCOMM_LOG_VERBOSE, "Data is");
-	for (size_t i = 0; i < MIN(rData->used, 20); i++)
+	for (size_t i = 0; i < MIN(rDataSize, 20); i++)
 	    mdbg(RRCOMM_LOG_VERBOSE, " %d", rData->buf[i]);
-	mdbg(RRCOMM_LOG_VERBOSE, "... total %zd\n", rData->used);
+	mdbg(RRCOMM_LOG_VERBOSE, "... total %d\n", rDataSize);
     }
 }
 

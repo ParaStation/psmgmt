@@ -452,14 +452,15 @@ static int readSlurmMsg(int sock, void *param)
 	return 0;
     }
 
-    if (dBuf->size && dBuf->size == dBuf->used) {
+    size_t size = PSdbGetSize(dBuf);
+    if (size && PSdbGetUsed(dBuf) == size) {
 	flog("data buffer for sock %i already in use, resetting\n", sock);
 	resetConnection(sock);
     }
 
     /* try to read the message size */
     if (!con->readSize) {
-	if (!dBuf->size) {
+	if (!PSdbGetSize(dBuf)) {
 	    dBuf->size = sizeof(uint32_t);
 	    dBuf->buf = umalloc(dBuf->size);
 	    dBuf->used = 0;
@@ -472,12 +473,12 @@ static int readSlurmMsg(int sock, void *param)
 	    if (eno == EAGAIN || eno == EINTR) {
 		/* not all data arrived yet, lets try again later */
 		fdbg(PSSLURM_LOG_COMM, "we try later for sock %u read %zu\n",
-		     sock, dBuf->used);
+		     sock, PSdbGetUsed(dBuf));
 		return 0;
 	    }
 	    /* read error */
-	    mwarn(eno, "%s: PSCio_recvBufPProg(%d, toRead %zd, size %zd)",
-		  __func__, sock, dBuf->size, dBuf->used);
+	    fwarn(eno, "PSdbRecvPProg(%d, toRead %zd) got %zd", sock,
+		  PSdbGetSize(dBuf), PSdbGetUsed(dBuf));
 	    error = true;
 	    goto CALLBACK;
 	} else if (!ret) {
@@ -513,12 +514,12 @@ static int readSlurmMsg(int sock, void *param)
 	if (eno == EAGAIN || eno == EINTR) {
 	    /* not all data arrived yet, lets try again later */
 	    fdbg(PSSLURM_LOG_COMM, "we try later for sock %u read %zu\n",
-		 sock, dBuf->used);
+		 sock, PSdbGetUsed(dBuf));
 	    return 0;
 	}
 	/* read error */
-	mwarn(eno, "%s: PSCio_recvBufPProg(%d, toRead %zd, size %zd)",
-	      __func__, sock, dBuf->size, dBuf->used);
+	fwarn(eno, "PSdbRecvPProg(%d, toRead %zd) got %zd)", sock,
+	      PSdbGetSize(dBuf), PSdbGetUsed(dBuf));
 	error = true;
 	goto CALLBACK;
 
@@ -532,7 +533,7 @@ static int readSlurmMsg(int sock, void *param)
     /* all data read successful */
     PSdbRewind(dBuf);
     fdbg(PSSLURM_LOG_COMM, "all data read for %u ret %u toread %zu\n",
-	 sock, ret, dBuf->size);
+	 sock, ret, PSdbGetSize(dBuf));
 
 CALLBACK:
 

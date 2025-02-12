@@ -167,6 +167,52 @@ PS_DataBuffer_t PSdbDup(PS_DataBuffer_t data);
 void PSdbRewind(PS_DataBuffer_t data);
 
 /**
+ * @brief Get current size of data-buffer
+ *
+ * Get the current size of the data-buffer @a data, i.e. the allocated
+ * space for the buffer itself. The buffer might not be fully
+ * filled. The actual amount of data in the buffer might be determined
+ * via @ref PSdbGetUsed().
+ *
+ * @param data Data-buffer to investigate
+ *
+ * @return Return the allocated size of the data-buffer's buffer
+ */
+size_t PSdbGetSize(PS_DataBuffer_t data);
+
+/**
+ * @brief Get total amount of data in data-buffer
+ *
+ * Get the total amount of data in the data-buffer @a data, i.e. the
+ * data actually present in the buffer itself. Not all data might be
+ * available any more, since it was already read.
+ *
+ * The amount of data still available for reading can be determined
+ * via @ref PSdbGetAvail(). All data can be made available again by
+ * calling PSdbRewind().
+ *
+ * @param data Data-buffer to investigate
+ *
+ * @return Return the total amount of data in data-buffer
+ */
+size_t PSdbGetUsed(PS_DataBuffer_t data);
+
+/**
+ * @brief Get remaining amount of data in data-buffer
+ *
+ * Get the remaining amount of data in the data-buffer @a data,
+ * i.e. the data actually available for reading. There might be more
+ * data in @a data that was already read. This data can be made
+ * available again by calling PSdbRewind().
+ *
+ * @param data Data-buffer to investigate
+ *
+ * @return Return the remaining amount of data in data-buffer still
+ * available for reading
+ */
+size_t PSdbGetAvail(PS_DataBuffer_t data);
+
+/**
  * @brief Get data-buffer's error state
  *
  * Get the error state of the data-buffer @a data. The error state

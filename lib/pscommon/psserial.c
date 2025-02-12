@@ -861,6 +861,24 @@ void PSdbRewind(PS_DataBuffer_t data)
     data->unpackErr = 0;
 }
 
+size_t PSdbGetSize(PS_DataBuffer_t data)
+{
+    if (!data) return 0;
+    return data->size;
+}
+
+size_t PSdbGetUsed(PS_DataBuffer_t data)
+{
+    if (!data) return 0;
+    return data->used;
+}
+
+size_t PSdbGetAvail(PS_DataBuffer_t data)
+{
+    if (!data) return 0;
+    return data->buf + data->used - data->unpackPtr;
+}
+
 serial_Err_Types_t PSdbGetErrState(PS_DataBuffer_t data)
 {
     if (!data) return E_PSSERIAL_PARAM;
@@ -990,7 +1008,7 @@ static inline bool verifyDataBuf(PS_DataBuffer_t data, size_t size,
     }
 
     size_t toread = (addTypeInfo && typeInfo) ? sizeof(uint8_t) + size : size;
-    size_t avail = data->used - (data->unpackPtr - data->buf);
+    size_t avail = PSdbGetAvail(data);
     if (toread > avail) {
 	data->unpackErr = E_PSSERIAL_INSUF;
 	PSC_flog("%zu < %zu at %s@%d: %s\n", avail, toread, caller, line,

@@ -3745,11 +3745,11 @@ bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     addUint32ToMsg(0, data);
 
     /* add message header */
-    head->bodyLen = body->used;
+    head->bodyLen = PSdbGetUsed(body);
     __packSlurmHeader(data, head, caller, line);
 
     fdbg(PSSLURM_LOG_COMM, "slurm header len %i body len %zi RPC %s\n",
-	 data->bufUsed, body->used, msgType2String(head->type));
+	 data->bufUsed, PSdbGetUsed(body), msgType2String(head->type));
 
     if (mset(PSSLURM_LOG_IO_VERB)) {
 	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
