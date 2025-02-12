@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "list.h"
+#include "pscio.h"
 #include "pscommon.h"
 #include "psitems.h"
 
@@ -933,6 +934,19 @@ void PSdbClearBuf(PS_DataBuffer_t data)
 
     data->used = 0;
     PSdbRewind(data);
+}
+
+int PSdbRecvPProg(int sock, size_t toRecv, PS_DataBuffer_t data)
+{
+    if (sock < 0 || !data || !data->buf) {
+	errno = EINVAL;
+	return -1;
+    }
+    if (toRecv > data->size) {
+	errno = ENOBUFS;
+	return -1;
+    }
+    return PSCio_recvBufPProg(sock, data->buf, toRecv, &data->used);
 }
 
 bool PSdbGrow(PS_DataBuffer_t data, size_t newSize)

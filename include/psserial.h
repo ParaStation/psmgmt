@@ -270,6 +270,33 @@ char * PSdbGetBuf(PS_DataBuffer_t data);
 void PSdbClearBuf(PS_DataBuffer_t data);
 
 /**
+ * @brief Read data-buffer from socket
+ *
+ * Read @a toRecv bytes from the socket @a sock utilizing @ref
+ * PSCio_recvBufPProg() and fill the data into the buffer of the
+ * data-buffer @a data.
+ *
+ * @a data is expected to provide sufficient space in its
+ * buffer. Pre-existing data will be evicted and replaced by the newly
+ * received data. Upon successful return the data-buffer is setup
+ * appropriately, i.e. @ref PSdbGetUsed() will return @a
+ * toRecv. Nevertheless, @a data might still have to be rewound via
+ * @ref PSdbRewind().
+ *
+ * @param sock Socket to receive from
+ *
+ * @param toRecv Number of bytes to receive
+ *
+ * @param data Data-buffer to store received data to
+ *
+ * @return Returns the number of bytes received, 0 if the file
+ * descriptor closed or -1 on error; in the latter cases the number of
+ * bytes received and stored to @a buffer anyhow is reported in @a
+ * rcvd; furthermore errno is set appropriately in case of error
+ */
+int PSdbRecvPProg(int sock, size_t toRecv, PS_DataBuffer_t data);
+
+/**
  * @brief Get data-buffer's error state
  *
  * Get the error state of the data-buffer @a data. The error state

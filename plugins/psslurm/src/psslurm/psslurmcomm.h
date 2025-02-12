@@ -57,7 +57,7 @@ typedef struct {
     int sock;		    /**< socket of the connection */
     time_t recvTime;	    /**< time first complete message was received */
     struct timeval openTime;/**< time the connection was opened */
-    bool readSize;	    /**< true if the message size was read */
+    uint32_t readSize;	    /**< size of message to read; 0 = still unknown */
     Msg_Forward_t fw;	    /**< message forwarding structure */
     Step_t *step;	    /**< set if connection is associated to a step */
     bool authByInMsg;       /**< connection validation by incoming message */

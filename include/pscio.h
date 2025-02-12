@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -164,7 +164,13 @@ static inline ssize_t _PSCio_send(int fd, void *buffer, size_t toSend,
  * @return Returns the number of bytes received, 0 if the file
  * descriptor closed or -1 on error; in the latter cases the number of
  * bytes received and stored to @a buffer anyhow is reported in @a
- * rcvd
+ * rcvd; furthermore @ref errno is set appropriately in case of error
+ *
+ * Besides the values for @ref errno inherited from @ref recv()
+ * ENODATA might be generated in case of an incomplete @a pedantic
+ * receive; in this case the caller shall call this function again
+ * once additional data becomes available at @a fd in order to
+ * complete the receive
  */
 ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
 			  const char *func, bool pedantic, bool indefinite,

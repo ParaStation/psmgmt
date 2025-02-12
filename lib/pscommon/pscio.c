@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -96,7 +96,10 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
 	if (!pedantic && !indefinite) return ret;
     }
 
-    if (*rcvd < toRecv) return -1;
+    if (*rcvd < toRecv) {
+	errno = ENODATA;
+	return -1;
+    }
 
     return *rcvd;
 }

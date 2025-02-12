@@ -167,7 +167,7 @@ static bool resetConnection(int socket)
     fdbg(PSSLURM_LOG_COMM, "for socket %i\n", socket);
 
     PSdbClearBuf(con->data);
-    con->readSize = false;
+    con->readSize = 0;
 
     return true;
 }
@@ -466,14 +466,13 @@ static int readSlurmMsg(int sock, void *param)
     int ret;
     /* try to read the message size */
     if (!con->readSize) {
-	PSdbGrow(dBuf, sizeof(uint32_t));
+	PSdbGrow(dBuf, sizeof(con->readSize));
 	PSdbClearBuf(dBuf);
 
-	ret = PSCio_recvBufPProg(sock, dBuf->buf, dBuf->size, &dBuf->used);
-	int eno = errno;
-
+	ret = PSdbRecvPProg(sock, sizeof(con->readSize), dBuf);
 	if (ret < 0) {
-	    if (eno == EAGAIN || eno == EINTR) {
+	    int eno = errno;
+	    if (eno == ENODATA) {
 		/* not all data arrived yet, lets try again later */
 		fdbg(PSSLURM_LOG_COMM, "we try later for sock %u read %zu\n",
 		     sock, PSdbGetUsed(dBuf));
@@ -481,7 +480,7 @@ static int readSlurmMsg(int sock, void *param)
 	    }
 	    /* read error */
 	    fwarn(eno, "PSdbRecvPProg(%d, toRead %zd) got %zd", sock,
-		  PSdbGetSize(dBuf), PSdbGetUsed(dBuf));
+		  sizeof(con->readSize), PSdbGetUsed(dBuf));
 	    error = true;
 	    goto CALLBACK;
 	} else if (!ret) {
@@ -494,36 +493,37 @@ static int readSlurmMsg(int sock, void *param)
 
 	/* all data read successful */
 	PSdbRewind(dBuf);
-	uint32_t msglen;
-	getUint32(dBuf, &msglen);
+	getUint32(dBuf, &con->readSize);
 	fdbg(PSSLURM_LOG_COMM, "msg size read for %u ret %u msglen %u\n",
-	     sock, ret, msglen);
+	     sock, ret, con->readSize);
 
-	if (msglen > MAX_MSG_SIZE) {
-	    flog("msg too big %u (max %u)\n", msglen, MAX_MSG_SIZE);
+	if (con->readSize > MAX_MSG_SIZE) {
+	    flog("msg too big %u (max %u)\n", con->readSize, MAX_MSG_SIZE);
+	    error = true;
+	    goto CALLBACK;
+	} else if (!con->readSize) {
+	    flog("zero-length message not supported\n");
 	    error = true;
 	    goto CALLBACK;
 	}
 
-	PSdbGrow(dBuf, msglen);
+	PSdbGrow(dBuf, con->readSize);
 	PSdbClearBuf(dBuf);
-	con->readSize = true;
     }
 
     /* try to read the actual payload (missing data) */
-    ret = PSCio_recvBufPProg(sock, dBuf->buf, dBuf->size, &dBuf->used);
-    int eno = errno;
-
+    ret = PSdbRecvPProg(sock, con->readSize, dBuf);
     if (ret < 0) {
-	if (eno == EAGAIN || eno == EINTR) {
+	int eno = errno;
+	if (eno == ENODATA) {
 	    /* not all data arrived yet, lets try again later */
 	    fdbg(PSSLURM_LOG_COMM, "we try later for sock %u read %zu\n",
 		 sock, PSdbGetUsed(dBuf));
 	    return 0;
 	}
 	/* read error */
-	fwarn(eno, "PSdbRecvPProg(%d, toRead %zd) got %zd)", sock,
-	      PSdbGetSize(dBuf), PSdbGetUsed(dBuf));
+	fwarn(eno, "PSdbRecvPProg(%d, toRead %u) got %zd)", sock,
+	      con->readSize, PSdbGetUsed(dBuf));
 	error = true;
 	goto CALLBACK;
 
@@ -534,7 +534,7 @@ static int readSlurmMsg(int sock, void *param)
 	goto CALLBACK;
     }
 
-    /* all data read successful */
+    /* all data read successfully */
     PSdbRewind(dBuf);
     fdbg(PSSLURM_LOG_COMM, "all data read for %u ret %u toread %zu\n",
 	 sock, ret, PSdbGetSize(dBuf));
