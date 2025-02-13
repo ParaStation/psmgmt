@@ -157,9 +157,9 @@ void PSdbDestroy(PS_DataBuffer_t data);
  * Duplicate the data-buffer @a data and return a pointer to the copy
  * of this data-buffer. For this, besides the actual buffer also all
  * administrative information is replicated. The only exception is the
- * data-buffer's @ref unpackPtr member which is reset in the duplicate
- * buffer such that reading will restart from the very beginning of
- * the received data.
+ * data-buffer's internal read pointer which is reset in the duplicate
+ * buffer such that reading will start from the very beginning of the
+ * received data.
  *
  * @param data Data-buffer to be duplicated
  *
@@ -334,11 +334,13 @@ serial_Err_Types_t PSdbGetErrState(PS_DataBuffer_t data);
  * @brief Prototype for @ref __recvFragMsg()'s callback
  *
  * This callback will be used if called via the @ref recvFragMsg() or
- * @ref tryRecvFragMsg() define.
+ * @ref tryRecvFragMsg() defines.
  *
- * @param msg Message header (including the type) of the last
- * fragment; @warning the buffer of this last fragment is invalidated
- * and part of @a data
+ * Once the last fragment was passed to @ref __recvFragMsg(), it will
+ * expose the mentioned last fragment and the accumulated buffer to
+ * this callback.
+ *
+ * @param msg Message header (including the type) of the last fragment
  *
  * @param data Data-buffer presenting payload assembled from all fragments
  */
@@ -350,14 +352,12 @@ typedef void SerialRecvCB_t(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data);
  * This callback will be used if called via the @ref recvFragMsgInfo()
  * define.
  *
- * It is pretty similar to the one used via @ref recvFragMsg()
- * (i.e. SerialRecvCB_t) besides the fact that a pointer to additional
- * information might be passed to this callback in @ref
- * recvFragMsgInfo().
+ * It is pretty similar to the one used via @ref recvFragMsg() or @ref
+ * tryRecvFragMsg() (i.e. SerialRecvCB_t) besides the fact that a
+ * pointer to additional information will be passed to this callback
+ * in @ref recvFragMsgInfo().
  *
- * @param msg Message header (including the type) of the last
- * fragment; @warning the buffer of this last fragment is invalidated
- * and part of @a data
+ * @param msg Message header (including the type) of the last fragment
  *
  * @param data Data-buffer presenting payload assembled from all fragments
  *
@@ -375,11 +375,11 @@ typedef void SerialRecvInfoCB_t(DDTypedBufferMsg_t *msg,
  * send-buffer. This function shall be called before using any buffer
  * handling of Psserial.
  *
- * @param bufSize Size of the internal buffers. If this is 0, the
- * default size of 256 kB is used.
+ * @param bufSize Size of the internal buffers; if this is 0, the
+ * default size of 128 kB is used
  *
- * @return If the buffer handling of Psserial is successfully
- * initialized, true is returned. Otherwise false is returned.
+ * @return Return true if the buffer handling of Psserial is successfully
+ * initialized or false in case of failure
  */
 bool initSerialBuf(size_t bufSize);
 
@@ -394,13 +394,13 @@ bool initSerialBuf(size_t bufSize);
  * A good choice for @a func is the ParaStation daemon's @ref
  * sendMsg() function.
  *
- * @param bufSize Size of the internal buffers. If this is 0, the
- * default size of 256 kB is used.
+ * @param bufSize Size of the internal buffers; if this is 0, the
+ * default size of 128 kB is used
  *
  * @param func Sending function to use
  *
- * @return If Psserial is successfully initialized, true is
- * returned. Otherwise false is returned.
+ * @return Return true upon Psserial's successful initialization or
+ * false in case of error
  */
 bool initSerial(size_t bufSize, Send_Msg_Func_t *func);
 
@@ -445,7 +445,7 @@ typedef enum {
  *     <extra (extraSize bytes)>
  *     <payload fragment>
  *
- * @param buffer Buffer to handle
+ * @param buffer Send buffer to handle
  *
  * @param headType Type of the messages used to send the fragments
  *
@@ -473,7 +473,7 @@ void initFragBufferExtra(PS_SendDB_t *buffer, int16_t headType, int32_t msgType,
  * right after the call to @ref initFragBuffer() or @ref
  * initFragBufferExtra().
  *
- * @param buffer The send buffer to use
+ * @param buffer Send buffer to use
  *
  * @param tid Destination task ID to add
  *
@@ -512,7 +512,7 @@ bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t tid);
  * Get the number of destinations registered to @a buffer via @ref
  * setFragDest() or @ref setFragDestUniq().
  *
- * @param buffer Buffer to investigate
+ * @param buffer Send buffer to investigate
  *
  * @return Number of destinations registered to @a buffer or -1 if @a
  * buffer is invalid
@@ -554,8 +554,8 @@ static inline int32_t getNumFragDest(PS_SendDB_t *buffer)
  *
  * @param extraSize Size of fragment's extra header (if any)
  *
- * @return If information was fetched, return true; or false in case
- * of an error
+ * @return Return true if information was fetched or false in case of
+ * failure
  */
 bool fetchFragHeader(DDTypedBufferMsg_t *msg, size_t *used, uint8_t *fragType,
 		     uint16_t *fragNum, void **extra, size_t *extraSize);
@@ -591,7 +591,7 @@ bool fetchFragHeader(DDTypedBufferMsg_t *msg, size_t *used, uint8_t *fragType,
  *
  * @param line Line number where this function is called
  *
- * @return On success true is returned or false in case of an error
+ * @return Return true on success true or false in case of failure
  */
 bool __recvFragMsg(DDTypedBufferMsg_t *msg, SerialRecvCB_t *cb,
 		   SerialRecvInfoCB_t *infoCB, void *info, bool verbose,
@@ -623,15 +623,15 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, SerialRecvCB_t *cb,
  * overall message on the receiving side as required by @ref
  * __recvFragMsg()
  *
- * @param buffer Buffer to send
+ * @param buffer Send buffer to send
  *
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
  *
- * @return The total number of payload bytes sent is returned. Or -1
- * in case of sending one fragment failed. In the latter case the
- * amount of data received on the other side is undefined.
+ * @return Return the total number of payload bytes sent or -1 in case
+ * of sending one fragment failed; in the latter case the amount of
+ * data received on the other side is undefined
  */
 int __sendFragMsg(PS_SendDB_t *buffer, const char *caller, const int line);
 
@@ -672,7 +672,7 @@ bool setTypeInfo(bool flag);
  *
  * @param err The error code to convert
  *
- * @return Returns the requested error messages.
+ * @return Returns the requested string representation
  */
 char *serialStrErr(serial_Err_Types_t err);
 
@@ -709,10 +709,10 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t buffer,
  * set. @a data is expected to provide sufficient data and @a val
  * expected to have enough space to store the data read.
  *
- * If fetching was successful, the unpackPtr member of @a data will be
- * updated to point behind the last data read, i.e. prepared to fetch
- * the next data. Otherwise an error code is saved to the unpackErr
- * member of @a data.
+ * If fetching was successful, the internal read pointer of @a data
+ * will be updated to point behind the last data read, i.e. prepared
+ * to fetch the next data. Otherwise @a data's error state will be
+ * updated.
  *
  * If the global @ref byteOrder flag is true, byte order of the
  * received data will be adapted form network to host byte-order.
@@ -729,10 +729,9 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t buffer,
  *
  * @param line Line number where this function is called
  *
- * @return On success true is returned or false in case of an
- * error. If fetching was not successful, the unpackPtr member of @a
- * data will not be updated; instead its unpackErr member will be
- * set.
+ * @return On success true is returned or false in case of an error;
+ * if fetching was not successful, the internal read pointer of @a
+ * data will not be updated; instead its error state will be set
  */
 bool getFromBuf(PS_DataBuffer_t data, void *val, PS_DataType_t type,
 		size_t size, const char *caller, const int line);
@@ -814,10 +813,10 @@ bool getFromBuf(PS_DataBuffer_t data, void *val, PS_DataType_t type,
  * caller has to ensure that this buffer is released if it is no
  * longer needed.
  *
- * If fetching was successful, the unpackPtr member of @a data will be
- * updated to point behind the last data read, i.e. prepared to read
- * the next data. Otherwise an error code is saved in the unpackErr
- * member of @a data.
+ * If fetching was successful, the internal read pointer of @a data
+ * will be updated to point behind the last data read, i.e. prepared
+ * to fetch the next data. Otherwise @a data's error state will be
+ * updated.
  *
  * If the global @ref byteOrder flag is true, byte order of the
  * received data will be adapted form network to host byte-order.
@@ -837,9 +836,9 @@ bool getFromBuf(PS_DataBuffer_t data, void *val, PS_DataType_t type,
  * @param line Line number where this function is called
  *
  * @return On success @a dest or the newly allocated buffer is
- * returned; in case of error NULL is returned. If reading was not
- * successful, the unpackPtr member of @a data might not be updated;
- * instead its unpackErr member will be set.
+ * returned or NULL in case of failure; if fetching was not successful,
+ * the internal read pointer of @a data might not be updated; instead
+ * its error state will be set
  */
 void *getMemFromBuf(PS_DataBuffer_t data, char *dest, size_t destSize,
 		    size_t *len, PS_DataType_t type, const char *caller,
@@ -874,10 +873,10 @@ void *getMemFromBuf(PS_DataBuffer_t data, char *dest, size_t destSize,
  * @a data is expected to provide data in the form of a leading length
  * item followed by the corresponding number of data items.
  *
- * If fetching was successful, the unpackPtr member of @a data will be
- * updated to point behind the last data read, i.e. prepared to read
- * the next data. Otherwise an error code is saved in the unpackErr
- * member of @a data.
+ * If fetching was successful, the internal read pointer of @a data
+ * will be updated to point behind the last data read, i.e. prepared
+ * to fetch the next data. Otherwise @a data's error state will be
+ * updated.
  *
  * If the global @ref byteOrder flag is true, byte order of the
  * received data will be adapted form network to host byte-order.
@@ -886,8 +885,8 @@ void *getMemFromBuf(PS_DataBuffer_t data, char *dest, size_t destSize,
  *
  * @param val Buffer holding the allocated data array on return
  *
- * @param len Number of elements read from @a data into the data array;
- *	      might be NULL
+ * @param len Number of elements read from @a data into the data
+ * array; might be NULL
  *
  * @param type Data type to be expected for the elements to read
  *
@@ -897,9 +896,9 @@ void *getMemFromBuf(PS_DataBuffer_t data, char *dest, size_t destSize,
  *
  * @param line Line number where this function is called
  *
- * @return On success true is returned or false in case of an error.
- * If reading was not successful, the unpackPtr member of @a data
- * might not be updated; instead its unpackErr member will be set.
+ * @return On success true is returned or false in case of an failure;
+ * if fetching was not successful, the internal read pointer of @a data
+ * might not be updated; instead its error state will be set
  */
 bool getArrayFromBuf(PS_DataBuffer_t data, void **val, uint32_t *len,
 		     PS_DataType_t type, size_t size, const char *caller,
@@ -946,10 +945,10 @@ bool getArrayFromBuf(PS_DataBuffer_t data, void **val, uint32_t *len,
  * number of string items. Each string item consists of an individual
  * length item and the actual string.
  *
- * If fetching was successful, the unpackPtr member of @a data will be
- * updated to point behind the last data read, i.e. prepared to read
- * the next data. Otherwise an error code is saved in the unpackErr
- * member of @a data.
+ * If fetching was successful, the internal read pointer of @a data
+ * will be updated to point behind the last data read, i.e. prepared
+ * to fetch the next data. Otherwise @a data's error state will be
+ * updated.
  *
  * If @a len is 0 upon return, array will be untouched.
  *
@@ -963,9 +962,9 @@ bool getArrayFromBuf(PS_DataBuffer_t data, void **val, uint32_t *len,
  *
  * @param line Line number where this function is called
  *
- * @return On success true is returned or false in case of an error.
- * If reading was not successful, the unpackPtr member of @a data
- * might not be updated; instead its unpackErr member will be set.
+ * @return On success true is returned or false in case of an failure;
+ * if fetching was not successful, the internal read pointer of @a data
+ * might not be updated; instead its error state will be set
  */
 bool __getStringArrayM(PS_DataBuffer_t data, char ***array, uint32_t *len,
 			const char *caller, const int line);
@@ -982,9 +981,9 @@ bool __getStringArrayM(PS_DataBuffer_t data, char ***array, uint32_t *len,
     env = envNew(envP); };
 
 /**
- * @brief Add element to buffer
+ * @brief Add element to send buffer
  *
- * Add an element of @a size bytes located at @a val to the data
+ * Add an element of @a size bytes located at @a val to the send
  * buffer @a buffer. If the global type-info flag is set, the
  * element will be annotated to be of type @a type.
  *
@@ -995,12 +994,11 @@ bool __getStringArrayM(PS_DataBuffer_t data, char ***array, uint32_t *len,
  * shuffled into network byte-order unless it is of type
  * PSDATA_STRING, PSDATA_DATA or PSDATA_MEM.
  *
- *
  * @param val Address of the element to add
  *
  * @param size Number of bytes of the element to add
  *
- * @param buffer Data buffer to save element to
+ * @param buffer Send buffer to save element to
  *
  * @param type Type of the element to add
  *
@@ -1008,7 +1006,7 @@ bool __getStringArrayM(PS_DataBuffer_t data, char ***array, uint32_t *len,
  *
  * @param line Line number where this function is called
  *
- * @return On success true is returned or false in case of an error.
+ * @return On success true is returned or false in case of failure
  */
 bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *buffer,
 	      PS_DataType_t type, const char *caller, const int line);
@@ -1078,10 +1076,10 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *buffer,
 		   __func__, __LINE__)
 
 /**
- * @brief Add array of elements to buffer
+ * @brief Add array of elements to send buffer
  *
  * Add an array of @a num individual elements of @a size bytes located
- * at @a val to the data buffer @a buffer. If the global type-info flag
+ * at @a val to the send buffer @a buffer. If the global type-info flag
  * is set, each element will be annotated to be of type @a type.
  *
  * The overall data will be annotated by a leading element holding the
@@ -1094,7 +1092,7 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *buffer,
  *
  * @param num Number of elements to add
  *
- * @param buffer Data buffer to save the array to
+ * @param buffer Send buffer to save the array to
  *
  * @param type Type of the elements to add
  *
@@ -1104,7 +1102,7 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *buffer,
  *
  * @param line Line number where this function is called
  *
- * @return On success true is returned or false in case of an error.
+ * @return On success true is returned or false in case of failure
  */
 bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *buffer,
 		   PS_DataType_t type, size_t size,
@@ -1135,10 +1133,10 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *buffer,
 		      __func__, __LINE__); }
 
 /**
- * @brief Add array of strings to buffer
+ * @brief Add array of strings to send buffer
  *
  * Add an array of strings stored in the NULL terminated @a array to
- * the data buffer @a buffer.
+ * the send buffer @a buffer.
  *
  * If the global type-info flag is set, each element will be annotated
  * to be of type PSDATA_STRING. Generally, each element will be
@@ -1147,7 +1145,7 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *buffer,
  * elements in the array.
  *
  * The data format is suitable for the array of strings to be read
- * from the buffer with @ref getStringArrayM().
+ * from the destination buffer with @ref getStringArrayM().
  *
  * If @a array is NULL, the behavior is identical to the case where an
  * empty array, i.e. an array consisting just of the terminating NULL
@@ -1155,13 +1153,13 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *buffer,
  *
  * @param array Address of the array of strings to add
  *
- * @param buffer Data buffer to save the string array to
+ * @param buffer Send buffer to save the string array to
  *
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
  *
- * @return On success true is returned or false in case of an error.
+ * @return On success true is returned or false in case of failure
 */
 bool __addStringArrayToBuf(char **array, PS_SendDB_t *buffer,
 			   const char *caller, const int line);
