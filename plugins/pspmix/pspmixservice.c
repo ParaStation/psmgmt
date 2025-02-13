@@ -104,6 +104,8 @@ typedef struct {
 typedef struct {
     list_t next;             /**< list head to put into LogCallList */
     pmix_proc_t caller;      /**< client that issued the PMIx_Log() call */
+    uint32_t user_id;
+    uint32_t group_id;
     list_t requests;         /**< list of requests belonging to this call */
     void *cb;                /**< callback information */
     bool log_once;           /**< log once flag */
@@ -2383,6 +2385,37 @@ static PspmixLogRequest_t *findLogRequest(uint64_t id)
     return NULL;
 }
 
+PspmixLogCallHandle_t newLogCall(){
+    PspmixLogCall_t *call = umalloc(sizeof(*call));
+    call->next.next = NULL;
+    call->next.prev = NULL;
+    INIT_LIST_HEAD(&call->requests);
+    call->cb = NULL;
+    call->log_once = false;
+    return call;
+}
+
+PspmixLogCallHandle_t pspmix_service_setUID(PspmixLogCallHandle_t call, uint32_t user_id){
+    PspmixLogCall_t *currentLogCall = call ? call : newLogCall();
+
+    currentLogCall->user_id = user_id;
+    return currentLogCall;
+}
+
+PspmixLogCallHandle_t pspmix_service_setGID(PspmixLogCallHandle_t call, uint32_t group_id){
+    PspmixLogCall_t *currentLogCall = call ? call : newLogCall();
+
+    currentLogCall->group_id = group_id;
+    return currentLogCall;
+}
+
+PspmixLogCallHandle_t pspmix_service_setLogOnce(PspmixLogCallHandle_t call){
+    PspmixLogCall_t *currentLogCall = call ? call : newLogCall();
+
+    currentLogCall->log_once = true;
+    return currentLogCall;
+}
+
 // library thread
 PspmixLogCallHandle_t pspmix_service_addLogRequest(PspmixLogCallHandle_t call,
 						   PspmixLogChannel_t channel,
@@ -2391,16 +2424,7 @@ PspmixLogCallHandle_t pspmix_service_addLogRequest(PspmixLogCallHandle_t call,
 {
     static uint16_t nextRequestID = 1;
 
-    PspmixLogCall_t *currentLogCall = call;
-
-    if (!currentLogCall) {
-	currentLogCall = umalloc(sizeof(*currentLogCall));
-	currentLogCall->next.next = NULL;
-	currentLogCall->next.prev = NULL;
-	INIT_LIST_HEAD(&currentLogCall->requests);
-	currentLogCall->cb = NULL;
-	currentLogCall->log_once = false;
-    }
+    PspmixLogCall_t *currentLogCall = call==NULL ? newLogCall() : call;
 
     PspmixLogRequest_t *req = umalloc(sizeof(*req));
     req->id = nextRequestID++;
@@ -2509,7 +2533,7 @@ static bool tryFinishLogCall(PspmixLogCall_t *call)
 
 // library thread
 void pspmix_service_log(PspmixLogCallHandle_t call, const pmix_proc_t *caller,
-			uint32_t uid, uint32_t gid, bool log_once, void *cb)
+			void *cb)
 {
     PspmixLogCall_t *currentLogCall = call;
 
@@ -2522,7 +2546,6 @@ void pspmix_service_log(PspmixLogCallHandle_t call, const pmix_proc_t *caller,
     }
 
     PMIX_PROC_LOAD(&currentLogCall->caller, caller->nspace, caller->rank);
-    currentLogCall->log_once = log_once;
     currentLogCall->cb = cb;
 
     fdbg(PSPMIX_LOG_LOGGING, "Logging request log_once=%s log_requests= [\n",

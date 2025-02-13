@@ -1644,11 +1644,11 @@ static void server_log_cb(const pmix_proc_t *client,
     for (size_t i = 0; i < ndata; i++) {
 	const pmix_info_t *this = data + i;
 	if (PMIX_CHECK_KEY(this, PMIX_USERID)) {
-	    uid = this->value.data.uint32;
+            call = pspmix_service_setUID(call, this->value.data.uint32);
 	} else if (PMIX_CHECK_KEY(this, PMIX_GRPID)) {
-	    gid = this->value.data.uint32;
+	    call = pspmix_service_setGID(call, this->value.data.uint32);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_ONCE)) {
-	    log_once = true;
+            call = pspmix_service_setLogOnce(call);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDERR)) {
 	    call = pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_STDERR,
 					 this->value.data.string, 0);
@@ -1676,59 +1676,15 @@ static void server_log_cb(const pmix_proc_t *client,
 		    call, PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL,
 		    this->value.data.string, syslog_priority);
 	    }
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG_PRI)) {
-	    syslog_priority = this->value.data.integer;
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_TIMESTAMP)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_TAG_OUTPUT)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_TIMESTAMP_OUTPUT)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_XML_OUTPUT)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_ONCE)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_MSG)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_KEY)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_VAL)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_AGG)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL_ADDR)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL_SENDER_ADDR)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL_MSG)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL_SERVER)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL_SRVR_PORT)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_DATASTORE)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_JOB_RECORD)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_PROC_TERMINATION)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_PROC_ABNORMAL_TERMINATION)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_JOB_EVENTS)) {
-	    flog("unsupported key '%s'\n", this->key);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_COMPLETION)) {
-	    flog("unsupported key '%s'\n", this->key);
 	} else {
-	    flog("unknown key '%s'\n", this->key);
+	    flog("ignoring unknown or unsupported key '%s'\n", this->key);
 	}
     }
 
     mycbfunc_t *cb = NULL;
     if (cbfunc) INIT_CBFUNC(cb, cbfunc, cbdata);
 
-    pspmix_service_log(call, client, uid, gid, log_once, cb);
+    pspmix_service_log(call, client, cb);
 }
 
 /* Request new allocation or modifications to an existing allocation on behalf

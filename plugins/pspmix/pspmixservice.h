@@ -424,6 +424,35 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 typedef void* PspmixLogCallHandle_t;
 
 /**
+ * @brief Set the value of log_once to true
+ *
+ * @param call     call handle (pass NULL to create new call)
+ * @param user_id  Effective user ID of the connecting process.
+ *
+ * @return Handle of the call
+ */
+PspmixLogCallHandle_t pspmix_service_setUID(PspmixLogCallHandle_t call, uint32_t user_id);
+
+/**
+ * @brief Set the value of log_once to true
+ *
+ * @param call     call handle (pass NULL to create new call)
+ * @param group_id Effective group ID of the connecting process.
+ *
+ * @return Handle of the call
+ */
+PspmixLogCallHandle_t pspmix_service_setGID(PspmixLogCallHandle_t call, uint32_t group_id);
+
+/**
+ * @brief Set the value of log_once to true
+ *
+ * @param call     call handle (pass NULL to create new call)
+ *
+ * @return Handle of the call
+ */
+PspmixLogCallHandle_t pspmix_service_setLogOnce(PspmixLogCallHandle_t call);
+
+/**
  * @brief Add a new Log Request to an existing call
  *
  * @param call     call handle (pass NULL to create new call)
