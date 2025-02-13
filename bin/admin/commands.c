@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1889,14 +1889,17 @@ static bool recvPluginKeyAnswersOld(PStask_ID_t src, PSP_Plugin_t action,
 static void handlePluginKeyAnswr(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     PSP_Plugin_t type = (PSP_Plugin_t)msg->type;
+    bool first = true;
 
     while (true) {
 	char *outStr = getStringM(data);
 
 	if (!outStr || !strlen(outStr)) {
 	    free(outStr);
+	    if (first) printf("\n");
 	    return;
 	}
+	first = false;
 
 	if (type == PSP_PLUGIN_AVAIL) {
 	    printf("\t%s\n", outStr);
