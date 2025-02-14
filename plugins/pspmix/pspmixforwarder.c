@@ -1045,7 +1045,8 @@ static void handleClientSpawn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     if (!doSpawn(srdata /* transfers ownership */)) plog("spawn failed");
 }
 
-static bool sendClientLogResp(PStask_ID_t dest, uint64_t id, bool success)
+static bool sendClientLogResp(PStask_ID_t dest,
+			      uint16_t callID, uint16_t reqID, bool success)
 {
     fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %s success %s\n",
 	 PSC_printTID(dest), success ? "true" : "false");
@@ -1054,11 +1055,11 @@ static bool sendClientLogResp(PStask_ID_t dest, uint64_t id, bool success)
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_CLIENT_LOG_RES);
     setFragDest(&msg, dest);
 
-    addUint64ToMsg(id, &msg);
+    addUint16ToMsg(callID, &msg);
+    addUint16ToMsg(reqID, &msg);
     addBoolToMsg(success, &msg);
 
-    int ret = sendFragMsg(&msg);
-    if (ret < 0) {
+    if (sendFragMsg(&msg) < 0) {
 	flog("sending log response to %s failed\n", PSC_printTID(dest));
 	return false;
     }
@@ -1080,17 +1081,17 @@ static bool sendClientLogResp(PStask_ID_t dest, uint64_t id, bool success)
 static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
     rdbg(PSPMIX_LOG_CALL, "msg %p data %p\n", msg, data);
 
-    PStask_ID_t requester;
-    uint64_t id;
-    PspmixLogChannel_t channel;
-    char *str;
+    uint16_t callID;
+    getUint16(data, &callID);
 
-    int channel_i;
-    getTaskId(data, &requester);
-    getUint64(data, &id);
+    uint16_t reqID;
+    getUint16(data, &reqID);
+
+    int32_t channel_i;
     getInt32(data, &channel_i);
-    channel = channel_i;
-    str = getStringM(data);
+    PspmixLogChannel_t channel = channel_i;
+
+    char *str = getStringM(data);
 
     rdbg(PSPMIX_LOG_LOGGING, "Logging to %s '%s'\n",
 	 pspmix_log_channel_names[channel], str);
@@ -1108,7 +1109,7 @@ static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
     }
     rdbg(PSPMIX_LOG_LOGGING, "Logging completed\n");
 
-    sendClientLogResp(requester, id, ret != -1);
+    sendClientLogResp(msg->header.sender, callID, reqID, ret != -1);
 }
 
 /**

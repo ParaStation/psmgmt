@@ -1636,31 +1636,25 @@ static void server_log_cb(const pmix_proc_t *client,
 	printInfoArray("directives", directives, ndirs);
     }
 
-    PspmixLogCallHandle_t call = NULL;
+    PspmixLogCall_t call = pspmix_service_newLogCall();
 
-    uint32_t uid = UINT32_MAX, gid = UINT32_MAX;
     int syslog_priority = -1;
-    bool log_once = false;
     for (size_t i = 0; i < ndata; i++) {
 	const pmix_info_t *this = data + i;
-	if (PMIX_CHECK_KEY(this, PMIX_USERID)) {
-            call = pspmix_service_setUID(call, this->value.data.uint32);
-	} else if (PMIX_CHECK_KEY(this, PMIX_GRPID)) {
-	    call = pspmix_service_setGID(call, this->value.data.uint32);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_ONCE)) {
-            call = pspmix_service_setLogOnce(call);
+	if (PMIX_CHECK_KEY(this, PMIX_LOG_ONCE)) {
+	    pspmix_service_setLogOnce(call);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDERR)) {
-	    call = pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_STDERR,
+	    pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_STDERR,
 					 this->value.data.string, 0);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDOUT)) {
-	    call = pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_STDOUT,
+	    pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_STDOUT,
 					 this->value.data.string, 0);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG)
 		|| PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)
 		|| PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_SYSLOG)) {
 	    if (syslog_priority < 0) {
 		for (size_t j = i + 1; j < ndata; j++) {
-		    if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG_PRI)) {
+		    if (PMIX_CHECK_KEY(data + j, PMIX_LOG_SYSLOG_PRI)) {
 			syslog_priority = data[j].value.data.integer;
 		    }
 		}
@@ -1668,11 +1662,11 @@ static void server_log_cb(const pmix_proc_t *client,
 		if (syslog_priority < 0) syslog_priority = 3;
 	    }
 	    if (PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)) {
-		call = pspmix_service_addLogRequest(
+		pspmix_service_addLogRequest(
 		    call, PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL,
 		    this->value.data.string, syslog_priority);
 	    } else {
-		call = pspmix_service_addLogRequest(
+		pspmix_service_addLogRequest(
 		    call, PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL,
 		    this->value.data.string, syslog_priority);
 	    }

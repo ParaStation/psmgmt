@@ -286,16 +286,18 @@ static void handleClientLogResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
-    uint64_t id;
-    bool success;
+    uint16_t callID;
+    getUint16(data, &callID);
+    uint16_t reqID;
+    getUint16(data, &reqID);
 
-    getUint64(data, &id);
+    bool success;
     getBool(data, &success);
 
-    fdbg(PSPMIX_LOG_COMM, "id %lu, success %s)\n", id,
+    fdbg(PSPMIX_LOG_COMM, "id %hu/%hu, success %s)\n", callID, reqID,
 	 success ? "True" : "False");
 
-    pspmix_service_handleClientLogResp(id, success);
+    pspmix_service_handleClientLogResp(callID, reqID, success);
 }
 
 /**
@@ -488,8 +490,8 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 	recvFragMsg(msg, handleSpawnInfo);
 	break;
     case PSPMIX_CLIENT_LOG_RES:
-        recvFragMsg(msg, handleClientLogResp);
-        break;
+	recvFragMsg(msg, handleClientLogResp);
+	break;
     /* message types comming from another PMIx server of the same user */
     case PSPMIX_FENCE_DATA:
 	recvFragMsg(msg, handleFenceData);
@@ -891,8 +893,8 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t dest /* fw */,
 }
 
 
-bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, uint64_t requestID,
-				      PspmixLogChannel_t channel,
+bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, uint16_t callID,
+				      uint16_t reqID, PspmixLogChannel_t channel,
 				      const char *str)
 {
     fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %s channel %s str %s\n",
@@ -903,9 +905,8 @@ bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, uint64_t requestID,
     initFragPspmix(&msg, PSPMIX_CLIENT_LOG_REQ);
     setFragDest(&msg, dest);
 
-    addTaskIdToMsg(PSC_getMyTID(), &msg);
-
-    addUint64ToMsg(requestID, &msg);
+    addUint16ToMsg(callID, &msg);
+    addUint16ToMsg(reqID, &msg);
     addInt32ToMsg(channel, &msg);
     addStringToMsg(str, &msg);
 

@@ -99,32 +99,29 @@ typedef struct {
     uint32_t opts;             /**< spawn options: PSPMIX_SPAWNOPT_* */
 } PspmixSpawn_t;
 
-/**
- * PMIx log call (consists of 0..n log requests) */
-typedef struct {
-    list_t next;             /**< list head to put into LogCallList */
-    pmix_proc_t caller;      /**< client that issued the PMIx_Log() call */
-    uint32_t user_id;
-    uint32_t group_id;
-    list_t requests;         /**< list of requests belonging to this call */
-    void *cb;                /**< callback information */
-    bool log_once;           /**< log once flag */
-} PspmixLogCall_t;
+/** Structure holding an actual log call */
+struct PspmixLogCall {
+    list_t next;          /**< list head to put into LogCallList */
+    list_t requests;      /**< list of requests belonging to this call */
+    uint16_t id;          /**< unique ID of call */
+    uint16_t nextReqID;   /**< strictly monotone ascending id of requests */
+    pmix_proc_t caller;   /**< client that issued the PMIx_Log() call */
+    bool log_once;        /**< log once flag */
+    void *cb;             /**< callback information */
+};
 
-/**
- * PMIx log request */
+/** log request to be addded */
 typedef struct {
-    list_t next;           /**< list head to put into LogRequestList */
-    uint64_t id;           /**< strictly monotone ascending id of requests */
-    PspmixLogCall_t *call; /**< id of log call, this requst is part of */
-    bool finished;         /**< True iff request has been handled (f.ex. LOG_RES
-		                received) */
-    bool supported;        /**< True iff request is supported by pspmix */
-    bool success;          /**< True iff request handling was succesful */
-    PspmixLogChannel_t channel; /**< Channel to be logged to */
-    char *str;	            /**< String to be logged */
+    list_t next;           /**< list head to put into PspmixLogCall_t.requests */
+    uint16_t id;           /**< uniqued ID of request in the call */
+    PspmixLogCall_t call;  /**< backpointer to log call hosting this request */
+    bool finished;         /**< Flag request as handled (e.g. LOG_RES received) */
+    //bool supported;        /**< Flag request as supported by pspmix */
+    bool success;          /**< Flag request as handled succesfully */
+    PspmixLogChannel_t channel; /**< Channel to log to */
+    char *str;             /**< String to be logged */
     int priority;          /**< priority of the message if the channel supports
-			        that notion (f.ex. pmix.log.syslog) */
+			      that notion (e.g. pmix.log.syslog) */
 } PspmixLogRequest_t;
 
 /****** global variable needed to be lock protected ******/
@@ -197,8 +194,9 @@ static void cleanupSpawn(PspmixSpawn_t *spawn)
  *
  * @param call  log call object
  */
-static void cleanupLogCall(PspmixLogCall_t *call)
+static void cleanupLogCall(PspmixLogCall_t call)
 {
+    if (!call) return;
     list_t *r, *tmp;
     list_for_each_safe(r, tmp, &call->requests) {
 	PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
@@ -206,6 +204,7 @@ static void cleanupLogCall(PspmixLogCall_t *call)
 	ufree(req->str);
 	ufree(req);
     }
+    PMIX_PROC_DESTRUCT(&call->caller);
     ufree(call);
 }
 
@@ -526,7 +525,7 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
  *
  * @returns rank offset
  */
-static uint16_t getNodeRankOffset()
+static uint16_t getNodeRankOffset(void)
 {
     uint16_t offset = 0;
 
@@ -870,8 +869,8 @@ bool pspmix_service_terminateClients(const char *nsName, bool remote)
     GET_LOCK(logCallList);
     list_t *c, *tmp;
     list_for_each_safe(c, tmp, &logCallList) {
-	PspmixLogCall_t *call = list_entry(c, PspmixLogCall_t, next);
-	if (!strcmp(call->caller.nspace, nsName)) {
+	PspmixLogCall_t call = list_entry(c, struct PspmixLogCall, next);
+	if (PMIX_CHECK_NSPACE(call->caller.nspace, nsName)) {
 	    pspmix_server_operationFinished(PMIX_ERR_JOB_ABORTED, call->cb);
 	    list_del(&call->next);
 	    cleanupLogCall(call);
@@ -2369,76 +2368,59 @@ const char * pspmix_log_channel_names[] = {
     "JOB_RECORD"
 };
 
-static PspmixLogRequest_t *findLogRequest(uint64_t id)
+static PspmixLogRequest_t *findLogRequest(uint16_t callID, uint16_t reqID)
 {
-
     list_t *c;
     list_for_each(c, &logCallList) {
-	PspmixLogCall_t *call = list_entry(c, PspmixLogCall_t, next);
-	list_t *r;
-	list_for_each(r, &call->requests) {
-	    PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
-	    if (req->id == id) { return req; }
-	    if (req->id > id) { break; }
+	PspmixLogCall_t call = list_entry(c, struct PspmixLogCall, next);
+	if (call->id == callID) {
+	    list_t *r;
+	    list_for_each(r, &call->requests) {
+		PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
+		if (req->id == reqID)  return req;
+	    }
+	    break;
 	}
     }
     return NULL;
 }
 
-PspmixLogCallHandle_t newLogCall(){
-    PspmixLogCall_t *call = umalloc(sizeof(*call));
-    call->next.next = NULL;
-    call->next.prev = NULL;
+PspmixLogCall_t pspmix_service_newLogCall(void)
+{
+    static uint16_t nextCallID = 1;
+
+    PspmixLogCall_t call = umalloc(sizeof(*call));
+    INIT_LIST_HEAD(&call->next);
     INIT_LIST_HEAD(&call->requests);
-    call->cb = NULL;
+    call->id = nextCallID++;
+    call->nextReqID = 1;
     call->log_once = false;
+    call->cb = NULL;
     return call;
 }
 
-PspmixLogCallHandle_t pspmix_service_setUID(PspmixLogCallHandle_t call, uint32_t user_id){
-    PspmixLogCall_t *currentLogCall = call ? call : newLogCall();
-
-    currentLogCall->user_id = user_id;
-    return currentLogCall;
-}
-
-PspmixLogCallHandle_t pspmix_service_setGID(PspmixLogCallHandle_t call, uint32_t group_id){
-    PspmixLogCall_t *currentLogCall = call ? call : newLogCall();
-
-    currentLogCall->group_id = group_id;
-    return currentLogCall;
-}
-
-PspmixLogCallHandle_t pspmix_service_setLogOnce(PspmixLogCallHandle_t call){
-    PspmixLogCall_t *currentLogCall = call ? call : newLogCall();
-
-    currentLogCall->log_once = true;
-    return currentLogCall;
+void pspmix_service_setLogOnce(PspmixLogCall_t call)
+{
+    if (call) call->log_once = true;
 }
 
 // library thread
-PspmixLogCallHandle_t pspmix_service_addLogRequest(PspmixLogCallHandle_t call,
-						   PspmixLogChannel_t channel,
-						   const char *str,
-						   uint32_t priority)
+void pspmix_service_addLogRequest(PspmixLogCall_t call,
+				  PspmixLogChannel_t channel,
+				  const char *str, uint32_t priority)
 {
-    static uint16_t nextRequestID = 1;
-
-    PspmixLogCall_t *currentLogCall = call==NULL ? newLogCall() : call;
+    if (!call) return;
 
     PspmixLogRequest_t *req = umalloc(sizeof(*req));
-    req->id = nextRequestID++;
-    req->call = currentLogCall;
+    req->id = call->nextReqID++;
+    req->call = call;
     req->finished = false;
-    req->supported = false;
     req->success = false;
     req->channel = channel;
     req->str = ustrdup(str);
     req->priority = priority;
 
-    list_add_tail(&req->next, &currentLogCall->requests);
-
-    return (PspmixLogCallHandle_t)currentLogCall;
+    list_add_tail(&req->next, &call->requests);
 }
 
 static PStask_ID_t getFwTID(const pmix_proc_t *caller)
@@ -2465,20 +2447,21 @@ static PStask_ID_t getFwTID(const pmix_proc_t *caller)
 
 // library thread
 static bool sendClientLogRequest(const pmix_proc_t *client,
-			  PspmixLogRequest_t *request)
+				 PspmixLogRequest_t *request)
 {
     PStask_ID_t fwTID = getFwTID(client);
     if (fwTID < 0) return false;
 
-    return pspmix_comm_sendClientLogRequest(fwTID, request->id,
-					    request->channel, request->str);
+    return pspmix_comm_sendClientLogRequest(fwTID, request->call->id,
+					    request->id, request->channel,
+					    request->str);
 }
 
 /**
  * @brief Check status of log call and try to finish it
  */
 // main thread
-static bool tryFinishLogCall(PspmixLogCall_t *call)
+static bool tryFinishLogCall(PspmixLogCall_t call)
 {
     fdbg(PSPMIX_LOG_CALL, "callID = %p\n", call);
 
@@ -2486,8 +2469,7 @@ static bool tryFinishLogCall(PspmixLogCall_t *call)
 
     bool all_finished = true;
     list_t *r;
-    list_for_each(r, &call->requests)
-    {
+    list_for_each(r, &call->requests) {
 	PspmixLogRequest_t *entry = list_entry(r, PspmixLogRequest_t, next);
 	if (!entry->finished) {
 	    all_finished = false;
@@ -2502,8 +2484,6 @@ static bool tryFinishLogCall(PspmixLogCall_t *call)
 
     bool all_succeeded = true;
     bool all_failed = true;
-    bool all_unsupported = true;
-
     list_for_each(r, &call->requests)
     {
 	PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
@@ -2512,58 +2492,46 @@ static bool tryFinishLogCall(PspmixLogCall_t *call)
 	} else {
 	    all_succeeded = false;
 	}
-	if (req->supported) {
-	    all_unsupported = false;
-	}
     }
-    if (all_unsupported) {
-	pspmix_server_operationFinished(PMIX_ERR_NOT_SUPPORTED,
-					call->cb);
-    } else if (all_failed) {
+
+    if (all_failed) {
 	pspmix_server_operationFinished(PMIX_ERROR, call->cb);
     } else if (all_succeeded || call->log_once) {
 	pspmix_server_operationFinished(PMIX_SUCCESS, call->cb);
     } else {
-	pspmix_server_operationFinished(PMIX_ERR_PARTIAL_SUCCESS,
-					call->cb);
+	pspmix_server_operationFinished(PMIX_ERR_PARTIAL_SUCCESS, call->cb);
     }
 
     return true;
 }
 
 // library thread
-void pspmix_service_log(PspmixLogCallHandle_t call, const pmix_proc_t *caller,
+void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
 			void *cb)
 {
-    PspmixLogCall_t *currentLogCall = call;
+    fdbg(PSPMIX_LOG_CALL, "call_handle = %p\n", call);
 
-    fdbg(PSPMIX_LOG_CALL, "call_handle = %p\n", currentLogCall);
-
-
-    if (!currentLogCall) {
+    if (!call) {
 	pspmix_server_operationFinished(PMIX_ERR_BAD_PARAM, cb);
 	return;
     }
 
-    PMIX_PROC_LOAD(&currentLogCall->caller, caller->nspace, caller->rank);
-    currentLogCall->cb = cb;
+    PMIX_PROC_LOAD(&call->caller, caller->nspace, caller->rank);
+    call->cb = cb;
 
     fdbg(PSPMIX_LOG_LOGGING, "Logging request log_once=%s log_requests= [\n",
-	 currentLogCall->log_once ? "true" : "false");
+	 call->log_once ? "true" : "false");
     bool ignore_requests = false;
 
     list_t *r;
-    list_for_each(r, &currentLogCall->requests)
-    {
-	PspmixLogRequest_t *req
-	    = list_entry(r, PspmixLogRequest_t, next);
+    list_for_each(r, &call->requests) {
+	PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
 	fdbg(PSPMIX_LOG_LOGGING, "Name=%s, Priority=%i String='%s'\n",
 	     pspmix_log_channel_names[req->channel], req->priority, req->str);
 
 	switch (req->channel) {
 	case PSPMIX_LOG_CHANNEL_STDERR:
 	case PSPMIX_LOG_CHANNEL_STDOUT:
-	    req->supported = true;
 	    if (ignore_requests) {
 		req->finished = true;
 		break;
@@ -2571,7 +2539,7 @@ void pspmix_service_log(PspmixLogCallHandle_t call, const pmix_proc_t *caller,
 	    if (sendClientLogRequest(caller, req)) {
 		// we assume this logging will succeed
 		// thus ignore other log requests iff log_once
-		if (currentLogCall->log_once) ignore_requests = true;
+		if (call->log_once) ignore_requests = true;
 	    }
 	    break;
 	case PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL:
@@ -2587,29 +2555,37 @@ void pspmix_service_log(PspmixLogCallHandle_t call, const pmix_proc_t *caller,
 	}
     }
 
-    /* try to finish directly */
-    bool finished = tryFinishLogCall(currentLogCall);
+    fdbg(PSPMIX_LOG_LOGGING, "]\n");
 
-    if (!finished) {
+    /* after the loop the get create log message */
+    if (list_empty(&call->requests)) {
+	pspmix_server_operationFinished(PMIX_ERR_NOT_SUPPORTED, cb);
+	cleanupLogCall(call);
+	return;
+    }
+
+    /* try to finish directly */
+    if (!tryFinishLogCall(call)) {
 	/* add currentLogCall to the list */
 	GET_LOCK(logCallList);
-	list_add_tail(&currentLogCall->next, &logCallList);
+	list_add_tail(&call->next, &logCallList);
 	RELEASE_LOCK(logCallList);
     } else {
-	cleanupLogCall(currentLogCall);
+	cleanupLogCall(call);
     }
 
     fdbg(PSPMIX_LOG_LOGGING, "]\n");
 }
 
 // main thread
-void pspmix_service_handleClientLogResp(uint64_t requestID, bool success)
+void pspmix_service_handleClientLogResp(uint16_t callID, uint16_t reqID,
+					bool success)
 {
-    fdbg(PSPMIX_LOG_CALL, "\n");
+    fdbg(PSPMIX_LOG_CALL, "id %hu/%hu succ %d\n", callID, reqID, success);
 
-    PspmixLogRequest_t *request = findLogRequest(requestID);
+    PspmixLogRequest_t *request = findLogRequest(callID, reqID);
     if (!request) {
-	flog("Request handle '%" PRIu64 "' not found", requestID);
+	flog("Request handle %hu/%hu not found", callID, reqID);
 	return;
     }
 
@@ -2617,7 +2593,7 @@ void pspmix_service_handleClientLogResp(uint64_t requestID, bool success)
     request->success = success;
 
     GET_LOCK(logCallList);
-    PspmixLogCall_t *call = request->call;
+    PspmixLogCall_t call = request->call;
     if (tryFinishLogCall(call)) {
 	list_del(&call->next);
 	RELEASE_LOCK(logCallList);

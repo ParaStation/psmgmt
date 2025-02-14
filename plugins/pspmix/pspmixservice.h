@@ -420,78 +420,65 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 			      uint32_t np, PSnodes_ID_t node);
 
-/** Opaque handle for PspmixLogCall_t */
-typedef void* PspmixLogCallHandle_t;
+
+/** Log call context (to be created via @ref pspmix_service_newLogCall()) */
+typedef struct PspmixLogCall * PspmixLogCall_t;
 
 /**
- * @brief Set the value of log_once to true
+ * @brief create a new log call context
  *
- * @param call     call handle (pass NULL to create new call)
- * @param user_id  Effective user ID of the connecting process.
- *
- * @return Handle of the call
+ * @return Handle to new log call context or NULL
  */
-PspmixLogCallHandle_t pspmix_service_setUID(PspmixLogCallHandle_t call, uint32_t user_id);
+PspmixLogCall_t pspmix_service_newLogCall(void);
 
 /**
- * @brief Set the value of log_once to true
+ * @brief Mark call to be log_once
  *
- * @param call     call handle (pass NULL to create new call)
- * @param group_id Effective group ID of the connecting process.
+ * @param call Call handle to modify
  *
- * @return Handle of the call
+ * @return No return value
  */
-PspmixLogCallHandle_t pspmix_service_setGID(PspmixLogCallHandle_t call, uint32_t group_id);
-
-/**
- * @brief Set the value of log_once to true
- *
- * @param call     call handle (pass NULL to create new call)
- *
- * @return Handle of the call
- */
-PspmixLogCallHandle_t pspmix_service_setLogOnce(PspmixLogCallHandle_t call);
+void pspmix_service_setLogOnce(PspmixLogCall_t call);
 
 /**
  * @brief Add a new Log Request to an existing call
  *
- * @param call     call handle (pass NULL to create new call)
- * @param channel  Channel to be logged to
- * @param str      String to be logged
- * @param priority Priority of the message if the channel supports that notion
- *		   (f.ex. pmix.log.syslog)
+ * @param call Call handle to modify
+ * @param channel Channel to be logged to
+ * @param str String to be logged
+ * @param priority Priority of the message if the channel supports
+ * that notion (f.ex. pmix.log.syslog)
  *
- * @return Handle of the call
+ * @return No return value
  */
-PspmixLogCallHandle_t pspmix_service_addLogRequest(PspmixLogCallHandle_t call,
-						   PspmixLogChannel_t channel,
-						   const char *str,
-						   uint32_t priority);
+void pspmix_service_addLogRequest(PspmixLogCall_t call,
+				  PspmixLogChannel_t channel,
+				  const char *str, uint32_t priority);
+
 /**
  * @brief Execute an existing log call
  *
- * Previous to calling this function, you need to call @a
- * pspmix_service_addLogCall followed by @a pspmix_service_addLogRequest at
- * least once to add a log request to be performed. If you did not, this will
- * call @a cb with PMIX_ERR_BAD_PARAM.
+ * The call handle @a call has to be created via @ref
+ * pspmix_service_newLogCall() and at least one log request has to be
+ * added via @ref pspmix_service_addLogRequest(). Otherwise the
+ * callback @a cb will be called with PMIX_ERR_BAD_PARAM.
  *
- * ATTENTION: @a call becomes invalid when passed to this function. Afterwards,
- * no further @a pspmix_service_addLogRequest are allowed with the same @a call.
+ * ATTENTION: This function invalidates @a call. I.e, afterwards, no
+ * further calls to @ref pspmix_service_addLogRequest() are allowed
+ * for this @a call.
  *
- * @param call        call handle
- * @param caller      requesting client
- * @param uid         user id of the requester
- * @param gid         group id of the requester
- * @param log_once    log once flag
+ * @param call Call handle
+ * @param caller Requesting client // @todo needed?
  * @param cb Callback object to pass back to return callback
  */
-void pspmix_service_log(PspmixLogCallHandle_t call, const pmix_proc_t *caller,
-			uint32_t uid, uint32_t gid, bool log_once, void *cb);
+void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
+			void *cb);
 
 /**
  * @todo
  */
-void pspmix_service_handleClientLogResp(uint64_t requestID, bool success);
+void pspmix_service_handleClientLogResp(uint16_t callID, uint16_t reqID,
+					bool success);
 
 #endif  /* __PS_PMIX_SERVICE */
 
