@@ -2453,7 +2453,7 @@ static bool sendClientLogRequest(const pmix_proc_t *client,
 
     return pspmix_comm_sendClientLogRequest(fwTID, request->call->id,
 					    request->id, request->channel,
-					    request->str);
+					    request->str, request->priority);
 }
 
 /**
@@ -2531,6 +2531,7 @@ void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
 	switch (req->channel) {
 	case PSPMIX_LOG_CHANNEL_STDERR:
 	case PSPMIX_LOG_CHANNEL_STDOUT:
+	case PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL:    
 	    if (ignore_requests) {
 		req->finished = true;
 		break;
@@ -2544,10 +2545,6 @@ void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
 	case PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL:
 	    /* Not supported due to ambigous choices of gateway nodes
 	    in complex job f.ex. malliable jobs */
-	case PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL:
-	    /* Not supported due to 'local' node being bad choice for
-	    syslogs. Our logs appear on the MS and we don't want to
-	    split these up */
 	    req->finished = true;
 	default:
 	    break;

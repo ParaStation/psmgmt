@@ -194,12 +194,13 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t dest, const char *nspace,
  * @param reqID ID of the request itself
  * @param channel channel to be used for logging. must be supported!
  * @param str string to be logged
+ * @param priority priority, if the channel is syslog, otherwise ignored
  *
  * @return Returns true iff request message was successfully sent
  */
 bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, uint16_t callID,
 				      uint16_t reqID, PspmixLogChannel_t channel,
-				      const char *str);
+				      const char *str, int priority);
 
 /**
  * @brief Send a signal message to a process via the daemon

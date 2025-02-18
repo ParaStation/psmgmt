@@ -36,6 +36,7 @@
 #include <sys/types.h>
 #include <pmix.h>
 #include <pmix_common.h>
+#include <syslog.h>
 
 #include "list.h"
 #include "pscio.h"
@@ -1103,6 +1104,12 @@ static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
 	break;
     case PSPMIX_LOG_CHANNEL_STDERR:
 	ret = PSIDfwd_printMsg(STDERR, str);
+	break;
+    case PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL:
+	int32_t priority;
+	getInt32(data, &priority);
+	syslog(priority, "%s\n", str);
+	ret = 0;
 	break;
     default:
 	break;
