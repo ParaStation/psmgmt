@@ -795,6 +795,7 @@ void cleanup(void)
     clearSlurmdProto();
     clearMsgBuf();
     BCast_clearList();
+    Alloc_clearList();
     freeConfig(Config);
     freeConfig(SlurmConfig);
     freeEnvFilter();
