@@ -314,6 +314,10 @@ const ConfDef_t confDef[] =
 	"bool",
 	"0",
 	"Enable PAM sessions for user processes" },
+    { "ALLOC_CLEANUP_TIMEOUT", 1,
+	"int",
+	"600",
+	"Timeout to cleanup stale allocations in state A_PROLOGUE_FINISH" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

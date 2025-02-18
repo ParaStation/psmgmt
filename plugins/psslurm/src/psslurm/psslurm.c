@@ -583,7 +583,9 @@ static bool checkForCleanup(Alloc_t *alloc, const void *info)
 static void cleanupStaleAllocs(void)
 {
     time_t bound = time(0);
-    bound -= 600;
+    int timeout = getConfValueI(Config, "ALLOC_CLEANUP_TIMEOUT");
+    if (timeout <= 0) return;
+    bound -= timeout;
     Alloc_traverse(checkForCleanup, &bound);
 }
 
