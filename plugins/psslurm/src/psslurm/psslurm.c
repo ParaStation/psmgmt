@@ -132,6 +132,10 @@ static void cleanupJobs(void)
 /** Flag hook de/registration */
 static bool hooksRegistered = false;
 
+#define relHook(hookName, hookFunc)			\
+    if (!PSIDhook_del(hookName, hookFunc) && verbose)	\
+	mlog("unregister '" #hookName "' failed\n");
+
 /**
  * @brief Unregister all hooks
  *
@@ -142,268 +146,92 @@ static void unregisterHooks(bool verbose)
 {
     if (!hooksRegistered) return;
 
-    if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT, handleExecClient)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT_USER, handleExecClientUser)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT_USER' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, handleHookExecFW)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_FORWARDER' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT_PREP, handleExecClientPrep)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT_PREP' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT_EXEC, handleExecClientExec)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT_EXEC' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_FRWRD_INIT, handleForwarderInit)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_INIT' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_PRIV_FRWRD_INIT, handleForwarderInitPriv)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_PRIV_FRWRD_INIT' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, handleForwarderClientStatus)){
-	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLNT_RLS' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RES, handleFwRes)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLNT_RES' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_PRIV_FRWRD_CLNT_RES, handleFwResPriv)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_PRIV_FRWRD_CLNT_RES' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_LAST_CHILD_GONE, handleLastChildGone)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_LAST_CHILD_GONE' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_LAST_RESRELEASED, handleResReleased)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_LAST_RESRELEASED' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_PELOGUE_START, handleLocalPElogueStart)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_START' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_FINISH' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_PELOGUE_PREPARE, handlePEloguePrepare)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_PREPARE' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_PELOGUE_OE, handlePelogueOE)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_OE' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_PELOGUE_GLOBAL, handlePelogueGlobal)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_GLOBAL' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_PELOGUE_DROP, handlePelogueDrop)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_DROP' failed\n");
-    }
+    relHook(PSIDHOOK_EXEC_CLIENT, handleExecClient);
+    relHook(PSIDHOOK_EXEC_CLIENT_USER, handleExecClientUser);
+    relHook(PSIDHOOK_EXEC_FORWARDER, handleHookExecFW);
+    relHook(PSIDHOOK_EXEC_CLIENT_PREP, handleExecClientPrep);
+    relHook(PSIDHOOK_EXEC_CLIENT_EXEC, handleExecClientExec);
+    relHook(PSIDHOOK_FRWRD_INIT, handleForwarderInit);
+    relHook(PSIDHOOK_PRIV_FRWRD_INIT, handleForwarderInitPriv);
+    relHook(PSIDHOOK_FRWRD_CLNT_RLS, handleForwarderClientStatus);
+    relHook(PSIDHOOK_FRWRD_CLNT_RES, handleFwRes);
+    relHook(PSIDHOOK_PRIV_FRWRD_CLNT_RES, handleFwResPriv);
+    relHook(PSIDHOOK_LAST_CHILD_GONE, handleLastChildGone);
+    relHook(PSIDHOOK_LAST_RESRELEASED, handleResReleased);
+    relHook(PSIDHOOK_PELOGUE_START, handleLocalPElogueStart);
+    relHook(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish);
+    relHook(PSIDHOOK_PELOGUE_PREPARE, handlePEloguePrepare);
+    relHook(PSIDHOOK_PELOGUE_OE, handlePelogueOE);
+    relHook(PSIDHOOK_PELOGUE_GLOBAL, handlePelogueGlobal);
+    relHook(PSIDHOOK_PELOGUE_DROP, handlePelogueDrop);
 
     hooksRegistered = false;
 }
 
+#define addHook(hookName, hookFunc)			\
+    if (!PSIDhook_add(hookName, hookFunc)) {		\
+	mlog("register '" #hookName "' failed\n");	\
+	return false;					\
+    }
+
 /**
-* @brief Register various hooks
-*/
+ * @brief Register various hooks
+ */
 static bool registerHooks(void)
 {
-    if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT, handleExecClient)) {
-	mlog("register 'PSIDHOOK_EXEC_CLIENT' failed\n");
-	return false;
-    }
+    addHook(PSIDHOOK_EXEC_CLIENT, handleExecClient);
 
     hooksRegistered = true;
 
-    if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT_USER, handleExecClientUser)) {
-	mlog("register 'PSIDHOOK_EXEC_CLIENT_USER' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, handleHookExecFW)) {
-	mlog("register 'PSIDHOOK_EXEC_FORWARDER' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT_PREP, handleExecClientPrep)) {
-	mlog("register 'PSIDHOOK_EXEC_CLIENT_PREP' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT_EXEC, handleExecClientExec)) {
-	mlog("register 'PSIDHOOK_EXEC_CLIENT_EXEC' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_FRWRD_INIT, handleForwarderInit)) {
-	mlog("register 'PSIDHOOK_FRWRD_INIT' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_PRIV_FRWRD_INIT, handleForwarderInitPriv)) {
-	mlog("register 'PSIDHOOK_PRIV_FRWRD_INIT' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, handleForwarderClientStatus)){
-	mlog("register 'PSIDHOOK_FRWRD_CLNT_RLS' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RES, handleFwRes)) {
-	mlog("register 'PSIDHOOK_FRWRD_CLNT_RES' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_PRIV_FRWRD_CLNT_RES, handleFwResPriv)) {
-	mlog("register 'PSIDHOOK_PRIV_FRWRD_CLNT_RES' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_LAST_CHILD_GONE, handleLastChildGone)) {
-	mlog("register 'PSIDHOOK_LAST_CHILD_GONE' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_LAST_RESRELEASED, handleResReleased)) {
-	mlog("register 'PSIDHOOK_LAST_RESRELEASED' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_PELOGUE_START, handleLocalPElogueStart)) {
-	mlog("register 'PSIDHOOK_PELOGUE_START' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish)) {
-	mlog("register 'PSIDHOOK_PELOGUE_FINISH' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_PELOGUE_PREPARE, handlePEloguePrepare)) {
-	mlog("register 'PSIDHOOK_PELOGUE_PREPARE' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_PELOGUE_OE, handlePelogueOE)) {
-	mlog("register 'PSIDHOOK_PELOGUE_OE' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_PELOGUE_GLOBAL, handlePelogueGlobal)) {
-	mlog("register 'PSIDHOOK_PELOGUE_GLOBAL' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_PELOGUE_DROP, handlePelogueDrop)) {
-	mlog("register 'PSIDHOOK_PELOGUE_DROP' failed\n");
-	return false;
-    }
+    addHook(PSIDHOOK_EXEC_CLIENT_USER, handleExecClientUser);
+    addHook(PSIDHOOK_EXEC_FORWARDER, handleHookExecFW);
+    addHook(PSIDHOOK_EXEC_CLIENT_PREP, handleExecClientPrep);
+    addHook(PSIDHOOK_EXEC_CLIENT_EXEC, handleExecClientExec);
+    addHook(PSIDHOOK_FRWRD_INIT, handleForwarderInit);
+    addHook(PSIDHOOK_PRIV_FRWRD_INIT, handleForwarderInitPriv);
+    addHook(PSIDHOOK_FRWRD_CLNT_RLS, handleForwarderClientStatus);
+    addHook(PSIDHOOK_FRWRD_CLNT_RES, handleFwRes);
+    addHook(PSIDHOOK_PRIV_FRWRD_CLNT_RES, handleFwResPriv);
+    addHook(PSIDHOOK_LAST_CHILD_GONE, handleLastChildGone);
+    addHook(PSIDHOOK_LAST_RESRELEASED, handleResReleased);
+    addHook(PSIDHOOK_PELOGUE_START, handleLocalPElogueStart);
+    addHook(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish);
+    addHook(PSIDHOOK_PELOGUE_PREPARE, handlePEloguePrepare);
+    addHook(PSIDHOOK_PELOGUE_OE, handlePelogueOE);
+    addHook(PSIDHOOK_PELOGUE_GLOBAL, handlePelogueGlobal);
+    addHook(PSIDHOOK_PELOGUE_DROP, handlePelogueDrop);
 
     return true;
 }
 
+#define loadHandle(pluginHandle, handleName)			\
+    handleName = dlsym(pluginHandle, #handleName);		\
+    if (!handleName) {						\
+	flog("loading " #handleName "() failed\n");		\
+	return false;						\
+    }
+
 static bool regPsAccountHandles(void)
 {
     void *pluginHandle = PSIDplugin_getHandle("psaccount");
-
     if (!pluginHandle) {
 	flog("getting psaccount handle failed\n");
 	return false;
     }
 
-    psAccountSignalSession = dlsym(pluginHandle, "psAccountSignalSession");
-    if (!psAccountSignalSession) {
-	flog("loading psAccountSignalSession() failed\n");
-	return false;
-    }
-
-    psAccountRegisterJob = dlsym(pluginHandle, "psAccountRegisterJob");
-    if (!psAccountRegisterJob) {
-	flog("loading psAccountRegisterJob() failed\n");
-	return false;
-    }
-
-    psAccountUnregisterJob = dlsym(pluginHandle, "psAccountUnregisterJob");
-    if (!psAccountUnregisterJob) {
-	flog("loading psAccountUnregisterJob() failed\n");
-	return false;
-    }
-
-    psAccountSetGlobalCollect = dlsym(pluginHandle,
-				      "psAccountSetGlobalCollect");
-    if (!psAccountSetGlobalCollect) {
-	flog("loading psAccountSetGlobalCollect() failed\n");
-	return false;
-    }
-
-    psAccountGetDataByJob = dlsym(pluginHandle, "psAccountGetDataByJob");
-    if (!psAccountGetDataByJob) {
-	flog("loading psAccountGetDataByJob() failed\n");
-	return false;
-    }
-
-    psAccountGetDataByLogger = dlsym(pluginHandle, "psAccountGetDataByLogger");
-    if (!psAccountGetDataByLogger) {
-	flog("loading psAccountGetDataByLogger() failed\n");
-	return false;
-    }
-
-    psAccountGetPidsByLogger = dlsym(pluginHandle, "psAccountGetPidsByLogger");
-    if (!psAccountGetPidsByLogger) {
-	flog("loading psAccountGetPidsByLogger() failed\n");
-	return false;
-    }
-
-    psAccountDelJob = dlsym(pluginHandle, "psAccountDelJob");
-    if (!psAccountDelJob) {
-	flog("loading psAccountDelJob() failed\n");
-	return false;
-    }
-
-    psAccountGetLocalInfo = dlsym(pluginHandle, "psAccountGetLocalInfo");
-    if (!psAccountGetLocalInfo) {
-	flog("loading psAccountGetLocalInfo() failed\n");
-	return false;
-    }
-
-    psAccountGetPoll = dlsym(pluginHandle, "psAccountGetPoll");
-    if (!psAccountGetPoll) {
-	flog("loading psAccountGetPoll() failed\n");
-	return false;
-    }
-
-    psAccountSetPoll = dlsym(pluginHandle, "psAccountSetPoll");
-    if (!psAccountSetPoll) {
-	flog("loading psAccountSetPoll() failed\n");
-	return false;
-    }
-
-    psAccountCtlScript = dlsym(pluginHandle, "psAccountCtlScript");
-    if (!psAccountCtlScript) {
-	flog("loading psAccountCtlScript() failed\n");
-	return false;
-    }
-
-    psAccountScriptEnv = dlsym(pluginHandle, "psAccountScriptEnv");
-    if (!psAccountScriptEnv) {
-	flog("loading psAccountScriptEnv() failed\n");
-	return false;
-    }
+    loadHandle(pluginHandle, psAccountSignalSession);
+    loadHandle(pluginHandle, psAccountRegisterJob);
+    loadHandle(pluginHandle, psAccountUnregisterJob);
+    loadHandle(pluginHandle, psAccountSetGlobalCollect);
+    loadHandle(pluginHandle, psAccountGetDataByJob);
+    loadHandle(pluginHandle, psAccountGetDataByLogger);
+    loadHandle(pluginHandle, psAccountGetPidsByLogger);
+    loadHandle(pluginHandle, psAccountDelJob);
+    loadHandle(pluginHandle, psAccountGetLocalInfo);
+    loadHandle(pluginHandle, psAccountGetPoll);
+    loadHandle(pluginHandle, psAccountSetPoll);
+    loadHandle(pluginHandle, psAccountCtlScript);
+    loadHandle(pluginHandle, psAccountScriptEnv);
 
     return true;
 }
@@ -411,53 +239,18 @@ static bool regPsAccountHandles(void)
 static bool regPElogueHandles(void)
 {
     void *pluginHandle = PSIDplugin_getHandle("pelogue");
-
     if (!pluginHandle) {
 	flog("getting pelogue handle failed\n");
 	return false;
     }
 
-    psPelogueAddPluginConfig = dlsym(pluginHandle, "psPelogueAddPluginConfig");
-    if (!psPelogueAddPluginConfig) {
-	flog("loading psPelogueAddPluginConfig() failed\n");
-	return false;
-    }
-
-    psPelogueDelPluginConfig = dlsym(pluginHandle, "psPelogueDelPluginConfig");
-    if (!psPelogueDelPluginConfig) {
-	flog("loading psPelogueDelPluginConfig() failed\n");
-	return false;
-    }
-
-    psPelogueAddJob = dlsym(pluginHandle, "psPelogueAddJob");
-    if (!psPelogueAddJob) {
-	flog("loading psPelogueAddJob() failed\n");
-	return false;
-    }
-
-    psPelogueDeleteJob = dlsym(pluginHandle, "psPelogueDeleteJob");
-    if (!psPelogueDeleteJob) {
-	flog("loading psPelogueDeleteJob() failed\n");
-	return false;
-    }
-
-    psPelogueStartPE = dlsym(pluginHandle, "psPelogueStartPE");
-    if (!psPelogueStartPE) {
-	flog("loading psPelogueStartPE() failed\n");
-	return false;
-    }
-
-    psPelogueSignalPE = dlsym(pluginHandle, "psPelogueSignalPE");
-    if (!psPelogueSignalPE) {
-	flog("loading psPelogueSignalPE() failed\n");
-	return false;
-    }
-
-    psPelogueCallPE = dlsym(pluginHandle, "psPelogueCallPE");
-    if (!psPelogueCallPE) {
-	flog("loading psPelogueCallPE() failed\n");
-	return false;
-    }
+    loadHandle(pluginHandle, psPelogueAddPluginConfig);
+    loadHandle(pluginHandle, psPelogueDelPluginConfig);
+    loadHandle(pluginHandle, psPelogueAddJob);
+    loadHandle(pluginHandle, psPelogueDeleteJob);
+    loadHandle(pluginHandle, psPelogueStartPE);
+    loadHandle(pluginHandle, psPelogueSignalPE);
+    loadHandle(pluginHandle, psPelogueCallPE);
 
     return true;
 }
@@ -465,42 +258,16 @@ static bool regPElogueHandles(void)
 static bool regMungeHandles(void)
 {
     void *pluginHandle = PSIDplugin_getHandle("psmunge");
-
-    /* get pelogue function handles */
     if (!pluginHandle) {
 	flog("getting psmunge handle failed\n");
 	return false;
     }
 
-    psMungeEncode = dlsym(pluginHandle, "psMungeEncode");
-    if (!psMungeEncode) {
-	flog("loading psMungeEncode() failed\n");
-	return false;
-    }
-
-    psMungeEncodeRes = dlsym(pluginHandle, "psMungeEncodeRes");
-    if (!psMungeEncodeRes) {
-	flog("loading psMungeEncodeRes() failed\n");
-	return false;
-    }
-
-    psMungeDecode = dlsym(pluginHandle, "psMungeDecode");
-    if (!psMungeDecode) {
-	flog("loading psMungeDecode() failed\n");
-	return false;
-    }
-
-    psMungeDecodeBuf = dlsym(pluginHandle, "psMungeDecodeBuf");
-    if (!psMungeDecodeBuf) {
-	flog("loading psMungeDecodeBuf() failed\n");
-	return false;
-    }
-
-    psMungeMeasure = dlsym(pluginHandle, "psMungeMeasure");
-    if (!psMungeMeasure) {
-	flog("loading psMungeMeasure() failed\n");
-	return false;
-    }
+    loadHandle(pluginHandle, psMungeEncode);
+    loadHandle(pluginHandle, psMungeEncodeRes);
+    loadHandle(pluginHandle, psMungeDecode);
+    loadHandle(pluginHandle, psMungeDecodeBuf);
+    loadHandle(pluginHandle, psMungeMeasure);
 
     return true;
 }
@@ -514,23 +281,9 @@ static bool regPsPAMHandles(void)
 	return false;
     }
 
-    psPamAddUser = dlsym(pluginHandle, "psPamAddUser");
-    if (!psPamAddUser) {
-	flog("loading psPamAddUser() failed\n");
-	return false;
-    }
-
-    psPamDeleteUser = dlsym(pluginHandle, "psPamDeleteUser");
-    if (!psPamDeleteUser) {
-	flog("loading psPamDeleteUser() failed\n");
-	return false;
-    }
-
-    psPamSetState = dlsym(pluginHandle, "psPamSetState");
-    if (!psPamSetState) {
-	flog("loading psPamSetState() failed\n");
-	return false;
-    }
+    loadHandle(pluginHandle, psPamAddUser);
+    loadHandle(pluginHandle, psPamDeleteUser);
+    loadHandle(pluginHandle, psPamSetState);
 
     return true;
 }
@@ -538,29 +291,14 @@ static bool regPsPAMHandles(void)
 static bool regPsExecHandles(void)
 {
     void *pluginHandle = PSIDplugin_getHandle("psexec");
-
     if (!pluginHandle) {
 	flog("getting psexec handle failed\n");
 	return false;
     }
 
-    psExecStartScript = dlsym(pluginHandle, "psExecStartScript");
-    if (!psExecStartScript) {
-	flog("loading psExecStartScript() failed\n");
-	return false;
-    }
-
-    psExecSendScriptStart = dlsym(pluginHandle, "psExecSendScriptStart");
-    if (!psExecSendScriptStart) {
-	flog("loading psExecSendScriptStart() failed\n");
-	return false;
-    }
-
-    psExecStartLocalScript = dlsym(pluginHandle, "psExecStartLocalScript");
-    if (!psExecStartLocalScript) {
-	flog("loading psExecStartLocalScript() failed\n");
-	return false;
-    }
+    loadHandle(pluginHandle, psExecStartScript);
+    loadHandle(pluginHandle, psExecSendScriptStart);
+    loadHandle(pluginHandle, psExecStartLocalScript);
 
     return true;
 }
@@ -568,25 +306,13 @@ static bool regPsExecHandles(void)
 static bool regPsPMIHandles(void)
 {
     void *pluginHandle = PSIDplugin_getHandle("pspmi");
-
     if (!pluginHandle) {
 	flog("getting pspmi handle failed\n");
 	return false;
     }
 
-    psPmiSetFillSpawnTaskFunction =
-	dlsym(pluginHandle, "psPmiSetFillSpawnTaskFunction");
-    if (!psPmiSetFillSpawnTaskFunction) {
-	flog("loading psPmiSetFillSpawnTaskFunction() failed\n");
-	return false;
-    }
-
-    psPmiResetFillSpawnTaskFunction =
-	dlsym(pluginHandle, "psPmiResetFillSpawnTaskFunction");
-    if (!psPmiResetFillSpawnTaskFunction) {
-	flog("loading psPmiResetFillSpawnTaskFunction() failed\n");
-	return false;
-    }
+    loadHandle(pluginHandle, psPmiSetFillSpawnTaskFunction);
+    loadHandle(pluginHandle, psPmiResetFillSpawnTaskFunction);
 
     return true;
 }
@@ -594,25 +320,13 @@ static bool regPsPMIHandles(void)
 static bool regPsPMIxHandles(void)
 {
     void *pluginHandle = PSIDplugin_getHandle("pspmix");
-
     if (!pluginHandle) {
 	flog("getting pspmix handle failed\n");
 	return false;
     }
 
-    psPmixSetFillSpawnTaskFunction =
-	dlsym(pluginHandle, "psPmixSetFillSpawnTaskFunction");
-    if (!psPmixSetFillSpawnTaskFunction) {
-	flog("loading psPmixSetFillSpawnTaskFunction() failed\n");
-	return false;
-    }
-
-    psPmixResetFillSpawnTaskFunction =
-	dlsym(pluginHandle, "psPmixResetFillSpawnTaskFunction");
-    if (!psPmixResetFillSpawnTaskFunction) {
-	flog("loading psPmixResetFillSpawnTaskFunction() failed\n");
-	return false;
-    }
+    loadHandle(pluginHandle, psPmixSetFillSpawnTaskFunction);
+    loadHandle(pluginHandle, psPmixResetFillSpawnTaskFunction);
 
     return true;
 }
