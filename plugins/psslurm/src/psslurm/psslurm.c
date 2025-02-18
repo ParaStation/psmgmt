@@ -568,7 +568,7 @@ INIT_ERROR:
     return false;
 }
 
-bool finalizeInit(void)
+bool accomplishInit(void)
 {
     /* initialize pinning defaults */
     if (!initPinning()) return false;
@@ -704,8 +704,8 @@ int initialize(FILE *logfile)
     }
 
     /* all further initialisation which requires Slurm configuration files *has*
-     * to be done in finalizeInit() */
-    if (!finalizeInit()) goto INIT_ERROR;
+     * to be done in accomplishInit() */
+    if (!accomplishInit()) goto INIT_ERROR;
 
     return 0;
 
