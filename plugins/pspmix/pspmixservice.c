@@ -10,7 +10,6 @@
  */
 #include "pspmixservice.h"
 
-#include <inttypes.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
