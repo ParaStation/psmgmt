@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -112,7 +112,7 @@ void Alloc_clearList(void)
     list_t *a, *tmp;
     list_for_each_safe(a, tmp, &AllocList) {
 	Alloc_t *alloc = list_entry(a, Alloc_t, next);
-	Alloc_delete(alloc->id);
+	Alloc_delete(alloc);
     }
 }
 
@@ -233,16 +233,15 @@ static void cbTermJailAlloc(int exit, bool tmdOut, int iofd, void *info)
     }
 }
 
-bool Alloc_delete(uint32_t id)
+bool Alloc_delete(Alloc_t *alloc)
 {
-    /* free corresponding resources */
-    Job_t *job = Job_findById(id);
-    Job_destroy(job);
-    Step_destroyByJobid(id);
-    BCast_clearByJobid(id);
-
-    Alloc_t *alloc = Alloc_find(id);
     if (!alloc) return false;
+
+    /* free associated resources */
+    Job_t *job = Job_findById(alloc->id);
+    Job_destroy(job);
+    Step_destroyByJobid(alloc->id);
+    BCast_clearByJobid(alloc->id);
 
     /* terminate cgroup */
     PSID_execFunc(termJail, NULL, cbTermJailAlloc, NULL, alloc);

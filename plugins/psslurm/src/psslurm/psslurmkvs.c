@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -696,7 +696,8 @@ char *set(char *key, char *value)
 #endif
     } else if (!strcmp(key, "DEL_ALLOC")) {
 	int id = atoi(value);
-	if (Alloc_delete(id)) {
+	Alloc_t *alloc = Alloc_find(id);
+	if (alloc && Alloc_delete(alloc)) {
 	    snprintf(line, sizeof(line), "\ndeleted allocation %i\n", id);
 	} else {
 	    snprintf(line, sizeof(line), "\nfailed to delete allocation %i\n",

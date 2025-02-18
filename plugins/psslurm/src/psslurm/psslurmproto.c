@@ -2099,8 +2099,7 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     if (!alloc->firstKillReq) alloc->firstKillReq = time(NULL);
     if (time(NULL) - alloc->firstKillReq > grace + 10) {
 	/* grace time is over, use SIGKILL from now on */
-	mlog("%s: sending SIGKILL to fowarders of allocation %u\n", __func__,
-		alloc->id);
+	flog("sending SIGKILL to fowarders of allocation %u\n", alloc->id);
 	Job_killForwarder(alloc->id);
 	signal = SIGKILL;
     }
@@ -2110,64 +2109,64 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	flog("force termination of allocation %u in state %s requests %i\n",
 	     alloc->id, Alloc_strState(alloc->state), alloc->terminate);
 	uint32_t allocID = alloc->id;
-	Alloc_delete(alloc->id);
+	Alloc_delete(alloc);
 	sendEpilogueComplete(allocID, SLURM_SUCCESS);
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
 	return;
     }
 
     switch (alloc->state) {
-	case A_RUNNING:
-	    if ((pcount = Alloc_signal(alloc->id, signal, sMsg->head.uid)) > 0) {
-		sendSlurmRC(sMsg, SLURM_SUCCESS);
-		flog("waiting for %i processes to complete, alloc %u (%i/%i)\n",
-		     pcount, alloc->id, alloc->terminate, maxTermReq);
-		return;
+    case A_RUNNING:
+	if ((pcount = Alloc_signal(alloc->id, signal, sMsg->head.uid)) > 0) {
+	    sendSlurmRC(sMsg, SLURM_SUCCESS);
+	    flog("waiting for %i processes to complete, alloc %u (%i/%i)\n",
+		 pcount, alloc->id, alloc->terminate, maxTermReq);
+	    return;
+	}
+	break;
+    case A_EPILOGUE:
+	sendSlurmRC(sMsg, SLURM_SUCCESS);
+	flog("waiting for epilogue to finish, alloc %u (%i/%i)\n",
+	     alloc->id, alloc->terminate, maxTermReq);
+	return;
+    case A_EPILOGUE_FINISH:
+    case A_EXIT:
+	if (!Alloc_isLeader(alloc)) {
+	    /* epilogue already executed, we are done */
+	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
+	    Alloc_delete(alloc);
+	} else {
+	    /* mother superior will wait for other nodes */
+	    if (!finalizeEpilogue(alloc)) {
+		flog("waiting for %u sister node(s) to complete epilogue "
+		     "(%i/%i)\n", alloc->nrOfNodes - alloc->epilogCnt,
+		     alloc->terminate, maxTermReq);
+		send_PS_EpilogueStateReq(alloc);
 	    }
-	    break;
-	case A_EPILOGUE:
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    flog("waiting for epilogue to finish, alloc %u (%i/%i)\n",
-		 alloc->id, alloc->terminate, maxTermReq);
-	    return;
-	case A_EPILOGUE_FINISH:
-	case A_EXIT:
-	    if (!Alloc_isLeader(alloc)) {
-		/* epilogue already executed, we are done */
-		sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
-		Alloc_delete(alloc->id);
-	    } else {
-		/* mother superior will wait for other nodes */
-		if (!finalizeEpilogue(alloc)) {
-		    flog("waiting for %u sister node(s) to complete epilogue "
-			 "(%i/%i)\n", alloc->nrOfNodes - alloc->epilogCnt,
-			 alloc->terminate, maxTermReq);
-		    send_PS_EpilogueStateReq(alloc);
-		}
-		sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    }
-	    return;
-	case A_PROLOGUE:
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    /* wait for running prologue to finish */
-	    flog("waiting for prologue to finish, alloc %u (%i/%i)\n",
-		 alloc->id, alloc->terminate, maxTermReq);
-	    return;
-	case A_PROLOGUE_FINISH:
-	case A_INIT:
-	    /* local epilogue can start now */
-	    break;
-	default:
-	    flog("invalid allocation state %u\n", alloc->state);
-	    Alloc_delete(alloc->id);
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    return;
+	}
+	return;
+    case A_PROLOGUE:
+	sendSlurmRC(sMsg, SLURM_SUCCESS);
+	/* wait for running prologue to finish */
+	flog("waiting for prologue to finish, alloc %u (%i/%i)\n",
+	     alloc->id, alloc->terminate, maxTermReq);
+	return;
+    case A_PROLOGUE_FINISH:
+    case A_INIT:
+	/* local epilogue can start now */
+	break;
+    default:
+	flog("invalid allocation state %u\n", alloc->state);
+	Alloc_delete(alloc);
+	sendSlurmRC(sMsg, SLURM_SUCCESS);
+	return;
     }
 
     /* job/steps already finished, start epilogue now */
     sendSlurmRC(sMsg, SLURM_SUCCESS);
-    mlog("%s: starting epilogue for allocation %u state %s\n", __func__,
-	 alloc->id, Alloc_strState(alloc->state));
+    flog("starting epilogue for allocation %u state %s\n", alloc->id,
+	 Alloc_strState(alloc->state));
     startPElogue(alloc, PELOGUE_EPILOGUE);
 }
 
@@ -2191,7 +2190,6 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
     }
 
     Job_t *job = Job_findById(jobid);
-
     if (job) {
 	if (!job->mother) {
 	    Job_signalTasks(job, SIGKILL, sMsg->head.uid);
@@ -2206,7 +2204,13 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 	    send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
 		    alloc->nrOfNodes, alloc->nodes);
 	}
-	Alloc_delete(jobid);
+	if (alloc) {
+	    Alloc_delete(alloc);
+	} else {
+	    /* just in case there are trailing steps or bcasts @todo required? */
+	    Step_destroyByJobid(jobid);
+	    BCast_clearByJobid(jobid);
+	}
     }
 }
 

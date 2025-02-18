@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -141,11 +141,11 @@ Alloc_t *Alloc_findByPackID(uint32_t id);
  *
  * Delete an allocation and its corresponding job and steps.
  *
- * @param id unique allocation identifier
+ * @param alloc Allocation to delete
  *
  * @return Returns true on success or false on error
  */
-bool Alloc_delete(uint32_t id);
+bool Alloc_delete(Alloc_t *alloc);
 
 /**
  * @brief Delete all remaining allocations

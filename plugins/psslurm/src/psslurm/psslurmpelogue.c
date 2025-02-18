@@ -166,7 +166,7 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 	send_PS_PElogueRes(alloc, resList[0].epilogue, PELOGUE_EPILOGUE);
 	/* delete allocation if required */
 	uint32_t allocID = alloc->id;
-	if (alloc->terminate) Alloc_delete(alloc->id);
+	if (alloc->terminate) Alloc_delete(alloc);
 	/* inform slurmctld */
 	sendEpilogueComplete(allocID, SLURM_SUCCESS);
     } else {
@@ -193,15 +193,14 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 static void cbPElogue(char *sID, int exitStatus, bool timeout,
 		      PElogueResList_t *resList, void *info)
 {
-    Alloc_t *alloc;
     uint32_t id;
-
     if ((sscanf(sID, "%u", &id)) != 1) {
 	flog("invalid allocation id '%s'\n", sID);
 	goto CLEANUP;
     }
 
-    if (!(alloc = Alloc_find(id))) {
+    Alloc_t *alloc = Alloc_find(id);
+    if (!alloc) {
 	flog("allocation with ID %u not found\n", id);
 	goto CLEANUP;
     }
@@ -213,7 +212,7 @@ static void cbPElogue(char *sID, int exitStatus, bool timeout,
 	flog("shutdown in progress, deleting allocation %u\n", alloc->id);
 	alloc->state = A_EXIT;
 	send_PS_AllocState(alloc);
-	Alloc_delete(alloc->id);
+	Alloc_delete(alloc);
 	goto CLEANUP;
     }
 
@@ -287,13 +286,13 @@ static bool epilogueFinScript(Alloc_t *alloc)
 bool finalizeEpilogue(Alloc_t *alloc)
 {
     if (alloc->nrOfNodes == alloc->epilogCnt) {
-	mlog("%s: epilogue for allocation %u on %u "
-	     "node(s) finished\n", __func__, alloc->id, alloc->epilogCnt);
+	flog("epilogue for allocation %u on %u node(s) finished\n",
+	     alloc->id, alloc->epilogCnt);
 
 	if (!epilogueFinScript(alloc)) {
 	    if (alloc->terminate) {
 		uint32_t allocID = alloc->id;
-		Alloc_delete(alloc->id);
+		Alloc_delete(alloc);
 		sendEpilogueComplete(allocID, SLURM_SUCCESS);
 		return true;
 	    }
@@ -388,7 +387,7 @@ int handleLocalPElogueStart(void *data)
 	    if (old) {
 		fdbg(PSSLURM_LOG_PELOG, "removing old allocation %u\n", packID);
 		alloc->state = old->state;
-		Alloc_delete(old->id);
+		Alloc_delete(old);
 	    }
 	    ret = -2;
 	} else {

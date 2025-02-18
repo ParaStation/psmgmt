@@ -170,7 +170,7 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     if (pluginShutdown) {
 	/* shutdown in progress, hence we skip the epilogue */
 	uint32_t allocID = alloc->id;
-	Alloc_delete(alloc->id);
+	Alloc_delete(alloc);
 	sendEpilogueComplete(allocID, SLURM_SUCCESS);
     } else if (alloc->terminate) {
 	/* run epilogue now */
@@ -1948,7 +1948,7 @@ static void epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
 
     if (alloc->terminate) {
 	uint32_t allocID = alloc->id;
-	Alloc_delete(alloc->id);
+	Alloc_delete(alloc);
 	sendEpilogueComplete(allocID, SLURM_SUCCESS);
     }
 }

@@ -1381,7 +1381,7 @@ static void handleAllocTerm(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	Alloc_signal(alloc->id, SIGKILL, 0);
     }
 
-    Alloc_delete(alloc->id);
+    Alloc_delete(alloc);
 }
 
 /**
