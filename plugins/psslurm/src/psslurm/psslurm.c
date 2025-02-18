@@ -33,6 +33,7 @@
 
 #include "psidhook.h"
 #include "psidplugin.h"
+#include "psidutil.h"
 
 #include "peloguehandles.h"
 #include "psaccounthandles.h"
@@ -568,6 +569,24 @@ INIT_ERROR:
     return false;
 }
 
+static bool checkForCleanup(Alloc_t *alloc, const void *info)
+{
+    time_t bound = *(time_t *)info;
+
+    if (alloc->state == A_PROLOGUE_FINISH && alloc->startTime < bound) {
+	flog("cleanup stale allocation %d\n", alloc->id);
+	Alloc_delete(alloc);
+    }
+    return false; // continue loop;
+}
+
+static void cleanupStaleAllocs(void)
+{
+    time_t bound = time(0);
+    bound -= 600;
+    Alloc_traverse(checkForCleanup, &bound);
+}
+
 bool accomplishInit(void)
 {
     /* initialize pinning defaults */
@@ -608,6 +627,8 @@ bool accomplishInit(void)
 	    return false;
 	}
     }
+
+    PSID_registerLoopAct(cleanupStaleAllocs);
 
     isInit = true;
 
@@ -722,6 +743,8 @@ void finalize(void)
     pluginShutdown = true;
 
     bool stopHC = stopHealthCheck(SIGTERM);
+
+    PSID_unregisterLoopAct(cleanupStaleAllocs);
 
     int jcount = Job_count() + Alloc_count();
     if (jcount || !stopHC) {
