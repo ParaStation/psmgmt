@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -69,9 +69,11 @@ int handleLocalPElogueFinish(void *data);
 int handlePEloguePrepare(void *data);
 
 /**
- * @brief Start a task prologue in PSIDHOOK_EXEC_CLIENT_USER
+ * @brief Start a task prologue or epilogue
  *
- * This function is called right before starting the users
+ * A task prologue is started in PSIDHOOK_EXEC_CLIENT_USER
+ *
+ * For a task prologue this function is called right before starting the users
  * executable. Thus, the task prologue is executed directly without
  * the use of an additional pluginforwarder.
  *
@@ -79,18 +81,10 @@ int handlePEloguePrepare(void *data);
  * TaskProlog option is executed. Then a task prologue defined via
  * srun's --task-prolog option is started.
  *
- * @param step The step to start a task prologue for
  *
- * @param task The PS task structure
+ * A task epilogue is stared in PSIDHOOK_FRWRD_CLNT_RLS
  *
- * @return No return value
- */
-void startTaskPrologue(Step_t *step, PStask_t *task);
-
-/**
- * @brief Start a task epilogue in PSIDHOOK_FRWRD_CLNT_RLS
- *
- * This function is called right after the users executable
+ * For a epilogue this function is called right after the users executable
  * exited. Thus, the task epilogue is executed directly without the use
  * of a pluginforwarder.
  *
@@ -98,13 +92,16 @@ void startTaskPrologue(Step_t *step, PStask_t *task);
  * TaskEpilog option is executed. Then a task epilogue defined via
  * srun's --task-epilog option is started.
  *
- * @param step The step to start a task epilogue for
+ *
+ * @param step The step to start a task prologue/epilogue for
  *
  * @param task The PS task structure
  *
+ * @param type Specifies to execute a task prologue or epilogue
+ *
  * @return No return value
  */
-void startTaskEpilogue(Step_t *step, PStask_t *task);
+void startTaskPElogue(Step_t *step, PStask_t *task, PElogueType_t type);
 
 /**
  * @brief Finalize an epilogue on the allocation leader node

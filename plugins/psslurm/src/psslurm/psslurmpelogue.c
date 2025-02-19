@@ -35,6 +35,7 @@
 #include "psidsignal.h"
 #include "psprotocol.h"
 #include "psserial.h"
+#include "pluginscript.h"
 
 #include "peloguehandles.h"
 #include "pspamhandles.h"
@@ -54,6 +55,14 @@
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
 #endif
+
+/** Holding some information needed for task PElogue */
+typedef struct {
+    Step_t *step;	/**< Step of the task PElogue */
+    PStask_t *task;	/**< psid task structure */
+    char *taskPElogue;	/**< script to execute */
+    bool prologue;	/**< true for task prologue otherwise epilogue */
+} Task_Info_t;
 
 /**
  * @brief Handle a failed prologue
@@ -531,221 +540,137 @@ int handleLocalPElogueFinish(void *data)
     return 0;
 }
 
-static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
+/**
+ * @brief Initialize a task prologue/epilogue environment
+ *
+ * @param info Holding a Task_Info structure
+ */
+static void initTaskPEenv(void *info)
 {
-    char buffer[PATH_MAX];
+    Task_Info_t *ti = info;
 
-    /* handle relative paths */
-    if (taskPrologue[0] != '/') {
-	snprintf(buffer, sizeof(buffer), "%s/%s", step->cwd, taskPrologue);
-	taskPrologue = buffer;
-    }
+    /* This is the child */
+    setDefaultRlimits();
+    setStepEnv(ti->step);
+    setRankEnv(ti->task->jobRank, ti->step);
 
-    int pipe_fd[2];
-    if (pipe(pipe_fd) < 0) {
-	fwarn(errno, "pipe()");
-	return -1;
-    }
-
-    pid_t child = fork();
-    if (child < 0) {
-	fwarn(errno, "fork()");
-	return -1;
-    }
-
-    if (child == 0) {
-	/* This is the child */
-	close(pipe_fd[0]);
-	dup2(pipe_fd[1], 1);
-	close(pipe_fd[1]);
-	close(0);
-	close(2);
-
-	if (getuid() != step->uid &&
-	    !switchUser(step->username, step->uid, step->gid)) {
-	    flog("switch user %s failed\n", step->username);
-	    exit(1);
-	}
-
-	if (access(taskPrologue, R_OK | X_OK) < 0) {
-	    fwarn(errno, "access(%s)", taskPrologue);
-	    exit(1);
-	}
-
+    if (ti->prologue) {
 	/* Set SLURM_TASK_PID variable in environment */
 	char envstr[32];
-	sprintf(envstr, "%d", PSC_getPID(task->tid));
+	sprintf(envstr, "%d", PSC_getPID(ti->task->tid));
 	setenv("SLURM_TASK_PID", envstr, 1);
-
-	flog("starting task prologue '%s' for rank %u (global %u) of job %u\n",
-	     taskPrologue, task->jobRank, task->rank, step->jobid);
-
-	/* Execute task prologue */
-	char *child_argv[2];
-	child_argv[0] = taskPrologue;
-	child_argv[1] = NULL;
-	execvp(child_argv[0], child_argv);
-	fwarn(errno, "execvp(%s) failed for rank %d (global %d) of job %d",
-	      taskPrologue, task->jobRank, task->rank, step->jobid);
-	return -1;
     }
 
-    /* This is the parent */
-    close(pipe_fd[1]);
-
-    FILE *output = fdopen(pipe_fd[0], "r");
-    if (!output) {
-	fwarn(errno, "fdopen()");
-	return -1;
-    }
-
-    while (fgets(buffer, sizeof(buffer), output) != NULL) {
-	char *saveptr;
-	size_t last = strlen(buffer)-1;
-	if (buffer[last] == '\n') buffer[last] = '\0';
-
-	char *key = strtok_r(buffer, " ", &saveptr);
-	if (!key) continue;
-
-	if (!strcmp(key, "export")) {
-	    fdbg(PSSLURM_LOG_PELOG, "setting '%s' for rank %d (global %d)"
-		 " of job %d\n", saveptr, task->jobRank, task->rank, step->jobid);
-
-	    char *env = ustrdup(saveptr);
-	    if (putenv(env) != 0) {
-		fwarn(errno, "failed to set '%s' prologue environment", env);
-		ufree(env);
-	    }
-	} else if (!strcmp(key, "print")) {
-	    fdbg(PSSLURM_LOG_PELOG, "printing '%s'\n", saveptr);
-	    fprintf(stderr, "%s\n", saveptr);
-	} else if (!strcmp(key, "unset")) {
-	    fdbg(PSSLURM_LOG_PELOG, "unset '%s'\n", saveptr);
-	    unsetenv(saveptr);
-	}
-    }
-
-    fclose(output);
-    close(pipe_fd[0]);
-    close(pipe_fd[1]);
-
-    while (1) {
-	int status;
-	if(waitpid(child, &status, 0) < 0) {
-	    if (errno == EINTR)	continue;
-	    pskill(-child, SIGKILL, task->uid);
-	    return status;
-	}
-	return 0;
-    }
+    flog("starting task %s '%s' for rank %u (global %u) of job %u\n",
+	 ti->prologue ? "prologue" : "epilogue", ti->taskPElogue,
+	 ti->task->jobRank, ti->task->rank, ti->step->jobid);
 }
 
-void startTaskPrologue(Step_t *step, PStask_t *task)
+/**
+ * @brief Handle output of a task prologue
+ *
+ * The function is called for every output line of the task prologue
+ * script. The line is check for defined commands which may change
+ * the environment of the compute processes.
+ *
+ * @param output Output line to handle
+ *
+ * @param info Holding a Task_Info structure
+ *
+ * @return Always returns 0
+ */
+static int handleTaskPrologueOut(char *output, void *info)
 {
-    /* exec task prologue from slurm.conf */
-    char *script = getConfValueC(SlurmConfig, "TaskProlog");
-    if (script && script[0] != '\0') execTaskPrologue(step, task, script);
+    Task_Info_t *ti = info;
 
-    /* exec task prologue from srun option --task-prolog */
-    script = step->taskProlog;
-    if (script && script[0] != '\0') execTaskPrologue(step, task, script);
-}
+    if (!strncmp(output, "export ", 7)) {
+	char *val = output + 7;
+	fdbg(PSSLURM_LOG_PELOG, "setting '%s' for rank %d (global %d)"
+	     " of job %d\n", val, ti->task->jobRank, ti->task->rank,
+	     ti->step->jobid);
 
-static int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
-{
-    char buffer[PATH_MAX];
-
-    /* handle relative paths */
-    if (taskEpilogue[0] != '/') {
-	snprintf(buffer, sizeof(buffer), "%s/%s", step->cwd, taskEpilogue);
-	taskEpilogue = buffer;
-    }
-
-    pid_t childpid = fork();
-    if (childpid < 0) {
-	fwarn(errno, "fork()");
-	return 0;
-    }
-
-    if (!childpid) {
-	/* This is the child */
-
-	if (getuid() != step->uid) {
-	    /* reclaim permissions before switching user */
-	    if (geteuid() && !PSC_switchEffectiveUser(NULL, 0, 0)) {
-		flog("no permission to change user %s\n", step->username);
-		exit(1);
-	    }
-
-	    setDefaultRlimits();
-
-	    if (!switchUser(step->username, step->uid, step->gid)) {
-		flog("switch user %s failed\n", step->username);
-		exit(1);
-	    }
+	char *env = ustrdup(val);
+	if (putenv(env) != 0) {
+	    fwarn(errno, "failed to set '%s' prologue environment", env);
+	    ufree(env);
 	}
-
-	setStepEnv(step);
-
-	errno = 0;
-	if (access(taskEpilogue, R_OK | X_OK) < 0) {
-	    fwarn(errno, "access(%s)", taskEpilogue);
-	    exit(-1);
-	}
-
-	setRankEnv(task->jobRank, step);
-
-	if (chdir(step->cwd) != 0) {
-	    fwarn(errno, "chdir(%s)", step->cwd);
-	}
-
-	char *argv[2];
-	argv[0] = taskEpilogue;
-	argv[1] = NULL;
-
-	/* execute task epilogue */
-	flog("starting task epilogue '%s' for rank %u (global %u) of job %u\n",
-	     taskEpilogue, task->jobRank, task->rank, step->jobid);
-
-	execvp(argv[0], argv);
-	fwarn(errno, "execvp(%s) failed for rank %u (global %u) of job %u",
-	      taskEpilogue, task->jobRank, task->rank, step->jobid);
-	exit(-1);
-    }
-
-    /* This is the parent */
-    time_t t = time(NULL);
-    int grace = getConfValueI(SlurmConfig, "KillWait");
-
-    while(1) {
-	if ((time(NULL) - t) > 5) pskill(-childpid, SIGTERM, task->uid);
-	if ((time(NULL) - t) > (5 + grace)) {
-	    pskill(-childpid, SIGKILL, task->uid);
-	}
-	usleep(100000);
-	int status;
-	if(waitpid(childpid, &status, WNOHANG) < 0) {
-	    if (errno == EINTR) continue;
-	    pskill(-childpid, SIGKILL, task->uid);
-	    break;
-	}
+    } else if (!strncmp(output, "print ", 6)) {
+	char *val = output + 6;
+	fdbg(PSSLURM_LOG_PELOG, "printing '%s'\n", val);
+	fprintf(stderr, "%s\n", val);
+    } else if (!strncmp(output, "unset ", 6)) {
+	char *val = output + 6;
+	fdbg(PSSLURM_LOG_PELOG, "unset '%s'\n", val);
+	unsetenv(val);
     }
 
     return 0;
 }
 
-void startTaskEpilogue(Step_t *step, PStask_t *task)
+/**
+ * @brief Execute a task prologue or epilogue
+ *
+ * @param step The step to start a task prologue/epilogue for
+ *
+ * @param task The PS task structure
+ *
+ * @param taskScript Path to the script to execute
+ *
+ * @param prologue If true a prologue is executed otherwise an
+ * epilogue
+ */
+static void execTaskPElogue(Step_t *step, PStask_t *task, char *taskScript,
+		           bool prologue)
 {
-    /* exec task epilogue from slurm.conf */
-    char *script = getConfValueC(SlurmConfig, "TaskEpilog");
-    if (script && script[0] != '\0') {
-	execTaskEpilogue(step, task, script);
+    char buffer[PATH_MAX];
+
+    if (taskScript[0] != '/') {
+	snprintf(buffer, sizeof(buffer), "%s/%s", step->cwd, taskScript);
+	taskScript = buffer;
     }
 
-    /* exec task epilogue from srun option --task-epilog */
-    script = step->taskEpilog;
+    Script_Data_t *script = ScriptData_new(taskScript);
+    script->reclaimPriv = !prologue;
+    script->username = ustrdup(step->username);
+    script->uid = step->uid;
+    script->gid = step->gid;
+    script->cwd = ustrdup(step->cwd);
+    script->grace = getConfValueI(SlurmConfig, "KillWait");
+    script->prepPriv = initTaskPEenv;
+    script->cbOutput = prologue ? handleTaskPrologueOut : NULL;
+    script->runtime = prologue ? 0 : 5;
+
+    Task_Info_t taskInfo = {
+	.step = step,
+	.task = task,
+	.taskPElogue = taskScript,
+	.prologue = prologue
+    };
+    script->info = &taskInfo;
+
+    int ret = Script_exec(script);
+    if (ret) {
+	flog("task-%s return status %i\n", (prologue ? "prolog" : "epilog"),
+	     ret);
+    }
+    Script_destroy(script);
+}
+
+void startTaskPElogue(Step_t *step, PStask_t *task, PElogueType_t type)
+{
+    bool prologue = (type == PELOGUE_PROLOGUE);
+
+    /* exec task prologue/epilogue from slurm.conf */
+    char *script = prologue ? getConfValueC(SlurmConfig, "TaskProlog") :
+			getConfValueC(SlurmConfig, "TaskEpilog");
     if (script && script[0] != '\0') {
-	execTaskEpilogue(step, task, script);
+	execTaskPElogue(step, task, script, prologue);
+    }
+
+    /* exec task pelogue from srun option --task-prolog or --task-epilogue */
+    script = prologue ? step->taskProlog : step->taskEpilog;
+    if (script && script[0] != '\0') {
+	execTaskPElogue(step, task, script, prologue);
     }
 }
 

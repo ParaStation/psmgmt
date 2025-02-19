@@ -596,7 +596,7 @@ int handleForwarderClientStatus(void * data)
 	return IDLE;
     }
 
-    startTaskEpilogue(fwStep, task);
+    startTaskPElogue(fwStep, task, PELOGUE_EPILOGUE);
 
     return IDLE;
 }
@@ -785,7 +785,7 @@ int handleExecClientUser(void *data)
 	}
     }
 
-    if (fwStep) startTaskPrologue(fwStep, task);
+    if (fwStep) startTaskPElogue(fwStep, task, PELOGUE_PROLOGUE);
 
     return 0;
 }
