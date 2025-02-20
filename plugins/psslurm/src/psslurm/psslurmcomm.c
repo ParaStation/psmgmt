@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -789,6 +789,8 @@ const char *slurmRC2String(int rc)
 	    return "SLURMCTLD_COMMUNICATIONS_RECEIVE_ERROR";
 	case SLURMCTLD_COMMUNICATIONS_SHUTDOWN_ERROR:
 	    return "SLURMCTLD_COMMUNICATIONS_SHUTDOWN_ERROR";
+	case ESLURM_CONFIGLESS_DISABLED:
+	    return "ESLURM_CONFIGLESS_DISABLED";
     }
 
     static char buf[64];

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -3427,9 +3427,14 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 	case RESPONSE_SLURM_RC:
 	    /* return code */
 	    getUint32(sMsg->data, &rc);
-	    flog("configuration request error: reply %s rc %s sock %i\n",
-		 msgType2String(sMsg->head.type), slurmRC2String(rc),
-		 sMsg->sock);
+	    if (rc == ESLURM_CONFIGLESS_DISABLED) {
+		flog("error: configless is disabled in slurm.conf "
+		     "(set SlurmctldParameters = enable_configless)\n");
+	    } else {
+		flog("configuration request error: reply %s rc %s sock %i\n",
+		     msgType2String(sMsg->head.type), slurmRC2String(rc),
+		     sMsg->sock);
+	    }
 	    return 0;
 	case RESPONSE_CONFIG:
 	    break;
