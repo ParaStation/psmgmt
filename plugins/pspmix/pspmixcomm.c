@@ -910,7 +910,7 @@ bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, uint16_t callID,
     addInt32ToMsg(channel, &msg);
     addStringToMsg(str, &msg);
     if (channel == PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL
-	| channel == PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL) {
+	|| channel == PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL) {
 	addInt32ToMsg(priority, &msg);
     }
 
