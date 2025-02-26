@@ -1983,10 +1983,16 @@ void setupPluginNames(PStask_ID_t src)
 	    return;
 	}
 
-	recvFragMsg(&answer, handlePluginNames);
+	if (!recvFragMsg(&answer, handlePluginNames)) {
+	    printf("%s: receiving message fragment failed\n", __func__);
+	    return;
+	}
 
 	size_t used = 0;
-	fetchFragHeader(&answer, &used, &fragType, NULL, NULL, NULL);
+	if (!fetchFragHeader(&answer, &used, &fragType, NULL, NULL, NULL)) {
+	    printf("%s: fetching fragment header failed\n", __func__);
+	    return;
+	}
     } while (fragType != FRAGMENT_END);
 }
 
