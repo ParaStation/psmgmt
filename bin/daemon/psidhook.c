@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -230,6 +230,7 @@ int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv)
 	    if (priv) {
 		if (!PSC_switchEffectiveUser("root", 0, 0)) {
 		    PSID_flog("switch effective user to root failed\n");
+		    free(euser);
 		    return -1;
 		}
 		switched = true;
@@ -243,8 +244,9 @@ int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv)
     if (switched && !PSC_switchEffectiveUser(euser, euid, egid)) {
 	PSID_flog("switch effective user to user '%s' euid %u failed\n",
 		  euser, euid);
-	return -1;
+	ret = -1;
     }
 
+    free(euser);
     return ret;
 }
