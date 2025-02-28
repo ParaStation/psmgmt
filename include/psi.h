@@ -355,7 +355,7 @@ PStask_ID_t PSI_whodied(int sig);
  *
  * @param parenttid The task ID of the process sending to.
  *
- * @return On success, 0 is returned. Or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1, if an error occurred.
  */
 int PSI_sendFinish(PStask_ID_t parenttid);
 
