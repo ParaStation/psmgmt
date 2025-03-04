@@ -198,10 +198,8 @@ bool PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func)
     return true;
 }
 
-int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv)
+int __PSIDhook_call(PSIDhook_t hook, void *arg, bool privileged)
 {
-    int ret = PSIDHOOK_NOFUNC;
-
     if (!hookTabInitialized) return 0;
 
     if (!checkHook(hook)) {
@@ -209,17 +207,18 @@ int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv)
 	return -1;
     }
 
+    int ret = PSIDHOOK_NOFUNC;
+    if (list_empty(&hookTab[hook].list)) return ret;
+
     uid_t euid = -1;
     gid_t egid = -1;
     char *euser = NULL;
 
-    if (priv) {
+    if (privileged) {
 	/* save effective user */
 	euid = geteuid();
 	egid = geteuid();
-	if (PSIDnodes_supplGrps(PSC_getMyID())) {
-	    euser = PSC_userFromUID(euid);
-	}
+	if (PSIDnodes_supplGrps(PSC_getMyID())) euser = PSC_userFromUID(euid);
     }
 
     bool switched = false;
@@ -227,23 +226,23 @@ int __PSIDhook_call(PSIDhook_t hook, void *arg, bool priv)
     list_for_each_safe(h, tmp, &hookTab[hook].list) {
 	hook_ref_t *ref = list_entry(h, hook_ref_t, next);
 	if (ref->func) {
-	    if (priv) {
+	    if (privileged && !switched) {
 		if (!PSC_switchEffectiveUser("root", 0, 0)) {
 		    PSID_flog("switch effective user to root failed\n");
-		    free(euser);
-		    return -1;
+		    ret = -1;
+		    break;
 		}
 		switched = true;
 	    }
-	    int fret = ref->func(arg);
 
+	    int fret = ref->func(arg);
 	    if (fret < ret) ret = fret;
 	}
     }
 
     if (switched && !PSC_switchEffectiveUser(euser, euid, egid)) {
-	PSID_flog("switch effective user to user '%s' euid %u failed\n",
-		  euser, euid);
+	PSID_flog("switch effective user to user '%s' euid %u egid %u failed\n",
+		  euser ? euser : "<none>", euid, egid);
 	ret = -1;
     }
 
