@@ -1,9 +1,17 @@
 psmgmt NEWS -- history of user-visible changes.
 
 Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
-Copyright (C) 2021-2024 ParTec AG, Munich
+Copyright (C) 2021-2025 ParTec AG, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+Version 5.1.63-7:
+=================
+This version backports some fixes from psmgmt-6
+Bugfixes:
+ - Interactive steps should be able to access all allocated resources (#278)
+ - Disable auto GPU pinning in psslurm's jobs and interactive steps (#284)
 
 
 Version 5.1.63-6:

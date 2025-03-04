@@ -1,3 +1,42 @@
+Version 5.1.63-7:
+=================
+------------------------------------------------------------------------
+36bea6635 | Michael Rauh | Mon, 16 Dec 2024 15:36:23 +0100
+
+Bugfix: interactive steps should be able to access all allocated
+resources (#278)
+------------------------------------------------------------------------
+dd898d247 | Stephan Krempel | Thu, 6 Feb 2025 15:28:13 +0100
+
+Add some comments
+------------------------------------------------------------------------
+862292fa6 | Stephan Krempel | Thu, 6 Feb 2025 11:14:56 +0100
+
+Introduce __PSID_SKIP_PIN_GPUS and __PSID_SKIP_PIN_NICS
+
+To make device pinning work again in pure mpiexec calls made
+in a Slurm job script or interactive step, we need both,
+__PSID_USE_GPUS telling the subsequent mpiexec which devices
+to use and __PSID_SKIP_PIN_GPUS to not override pinning
+already made by psslurm finally.
+------------------------------------------------------------------------
+2f9e79397 | Stephan Krempel | Tue, 4 Feb 2025 23:53:16 +0100
+
+Remove `__PSID_USE_*` variable after evaluation.
+
+Those variables are solely to telling the next
+`PSIDpin_doClamps()` call what devices to use for
+automatic pinning. So it is consequent to unset
+them there.
+------------------------------------------------------------------------
+67170730e | Stephan Krempel | Tue, 4 Feb 2025 23:52:03 +0100
+
+psslurm: Disable auto GPU pinning in jobs and interactive steps
+
+Fixes #284
+------------------------------------------------------------------------
+
+
 Version 5.1.63-6:
 =================
 ------------------------------------------------------------------------
