@@ -1785,8 +1785,7 @@ end:
     case PSP_PLUGIN_LOAD:
     case PSP_PLUGIN_REMOVE:
     case PSP_PLUGIN_FORCEREMOVE:
-	/* msg.type expected to contain error flag */
-	;
+    {	/* msg.type expected to contain error flag */
 	DDTypedBufferMsg_t msg = {
 	    .header = {
 		.type = PSP_CD_PLUGINRES,
@@ -1799,6 +1798,7 @@ end:
 	    PSID_fwarn(errno, "sendMsg()");
 	}
 	break;
+    }
     default:
 	if (PSIDnodes_getProtoV(PSC_getID(inmsg->header.sender)) < 347) {
 	    DDTypedBufferMsg_t msg = {
