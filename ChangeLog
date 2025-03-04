@@ -1,3 +1,24 @@
+Version 6.1.1:
+==============
+------------------------------------------------------------------------
+3c8a14f01 | Norbert Eicker | Tue, 4 Mar 2025 10:21:35 +0100
+
+Make switch more robust
+------------------------------------------------------------------------
+34b2f476e | Michael Rauh | Wed, 26 Feb 2025 13:58:02 +0100
+
+Break loop if unpacking of fragmented plugin-name messages fails
+------------------------------------------------------------------------
+9a5119047 | Michael Rauh | Wed, 26 Feb 2025 13:50:33 +0100
+
+Bugfix: use protocol version of sender for plugin response message
+
+ - prevents psidadmin from waiting forever for additional
+   message segments
+ - fixes issue (#294)
+------------------------------------------------------------------------
+
+
 Version 6.1.0:
 ==============
 ------------------------------------------------------------------------
