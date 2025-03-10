@@ -6,6 +6,12 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.1.1:
+==============
+Bugfixes:
+ - prevent psidadmin from waiting forever for message segments (#294)
+
+
 *************************************************************************
 *************************************************************************
 **                                                                     **

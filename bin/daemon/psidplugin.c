@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1785,8 +1785,7 @@ end:
     case PSP_PLUGIN_LOAD:
     case PSP_PLUGIN_REMOVE:
     case PSP_PLUGIN_FORCEREMOVE:
-	/* msg.type expected to contain error flag */
-	;
+    {	/* msg.type expected to contain error flag */
 	DDTypedBufferMsg_t msg = {
 	    .header = {
 		.type = PSP_CD_PLUGINRES,
@@ -1799,8 +1798,9 @@ end:
 	    PSID_fwarn(errno, "sendMsg()");
 	}
 	break;
+    }
     default:
-	if (PSIDnodes_getProtoV(PSC_getID(msg.header.dest)) < 347) {
+	if (PSIDnodes_getProtoV(PSC_getID(inmsg->header.sender)) < 347) {
 	    DDTypedBufferMsg_t msg = {
 		.header = {
 		    .type = PSP_CD_PLUGINRES,
