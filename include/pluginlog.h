@@ -32,6 +32,8 @@ typedef enum {
     PLUGIN_LOG_JSON	= 0x000080,   /**< json parser */
 } PSPlugin_log_types_t;
 
+#define pluginmset(flag) (logger_getMask(pluginlogger) & (flag))
+
 /**
  * Print a log messages via the logging facility @ref pluginlogger.
  *
