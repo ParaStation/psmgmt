@@ -119,7 +119,7 @@ libplugincommon_la_DEPENDENCIES =
 am_libplugincommon_la_OBJECTS = pluginconfig.lo pluginforwarder.lo \
 	pluginhelper.lo pluginlog.lo pluginmalloc.lo \
 	pluginpartition.lo pluginpsconfig.lo pluginpty.lo \
-	pluginspawn.lo pluginvector.lo pluginjson.lo
+	pluginspawn.lo pluginvector.lo pluginjson.lo pluginscript.lo
 libplugincommon_la_OBJECTS = $(am_libplugincommon_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -145,7 +145,8 @@ am__depfiles_remade = ./$(DEPDIR)/pluginconfig.Plo \
 	./$(DEPDIR)/pluginjson.Plo ./$(DEPDIR)/pluginlog.Plo \
 	./$(DEPDIR)/pluginmalloc.Plo ./$(DEPDIR)/pluginpartition.Plo \
 	./$(DEPDIR)/pluginpsconfig.Plo ./$(DEPDIR)/pluginpty.Plo \
-	./$(DEPDIR)/pluginspawn.Plo ./$(DEPDIR)/pluginvector.Plo
+	./$(DEPDIR)/pluginscript.Plo ./$(DEPDIR)/pluginspawn.Plo \
+	./$(DEPDIR)/pluginvector.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -346,7 +347,7 @@ unitdir = @unitdir@
 # ParaStation
 #
 # Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2023-2024 ParTec AG, Munich
+# Copyright (C) 2023-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -394,7 +395,7 @@ noinst_LTLIBRARIES = libplugincommon.la
 libplugincommon_la_SOURCES = pluginconfig.c pluginforwarder.c		\
 	pluginhelper.c pluginlog.c pluginmalloc.c pluginpartition.c	\
 	pluginpsconfig.c pluginpty.c pluginspawn.c pluginvector.c	\
-	pluginjson.c
+	pluginjson.c pluginscript.c
 
 @JSON_C_ENABLED_TRUE@libplugincommon_la_LIBADD = -ljson-c
 all: all-am
@@ -459,6 +460,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpartition.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpsconfig.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpty.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginscript.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginspawn.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginvector.Plo@am__quote@ # am--include-marker
 
@@ -631,6 +633,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/pluginpartition.Plo
 	-rm -f ./$(DEPDIR)/pluginpsconfig.Plo
 	-rm -f ./$(DEPDIR)/pluginpty.Plo
+	-rm -f ./$(DEPDIR)/pluginscript.Plo
 	-rm -f ./$(DEPDIR)/pluginspawn.Plo
 	-rm -f ./$(DEPDIR)/pluginvector.Plo
 	-rm -f Makefile
@@ -687,6 +690,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/pluginpartition.Plo
 	-rm -f ./$(DEPDIR)/pluginpsconfig.Plo
 	-rm -f ./$(DEPDIR)/pluginpty.Plo
+	-rm -f ./$(DEPDIR)/pluginscript.Plo
 	-rm -f ./$(DEPDIR)/pluginspawn.Plo
 	-rm -f ./$(DEPDIR)/pluginvector.Plo
 	-rm -f Makefile
