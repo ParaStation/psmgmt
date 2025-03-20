@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -239,6 +239,9 @@ void Timer_setDebugMask(int32_t mask)
     logger_setMask(logger, mask);
 }
 
+/** Cache the latest searched timer */
+static Timer_t *timerCache;
+
 void Timer_init(FILE* logfile)
 {
     logger = logger_new("Timer", logfile);
@@ -272,6 +275,8 @@ void Timer_init(FILE* logfile)
 	list_del(&timer->next);
 	free(timer);
     }
+    /* ensure the cache gets invalidated, too */
+    timerCache = NULL;
 
     struct timeval timeout = { .tv_sec = 0, .tv_usec = 0 };
     rescaleActPeriods(&timeout);
@@ -362,9 +367,6 @@ int Timer_registerEnhanced(struct timeval* timeout,
     return Timer_doRegister(timeout, handler, true, info);
 }
 
-/** Cache the latest searched timer */
-static Timer_t *timerCache = NULL;
-
 /**
  * @brief Find timer
  *
@@ -402,7 +404,7 @@ int Timer_remove(int id)
 	return -1;
     }
 
-    if (timer == timerCache) timerCache = NULL;
+    timerCache = NULL;
     timer->deleted = true;
 
     if (!inTimerHandling) return deleteTimer(timer);

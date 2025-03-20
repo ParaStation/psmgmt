@@ -6,6 +6,13 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.1.2:
+==============
+Bugfixes:
+ - Prevent memory corruption in psidforwarder if rrcomm is used (#295)
+ - Fix memory leak in __PSIDhook_call()
+
+
 Version 6.1.1:
 ==============
 Bugfixes:
