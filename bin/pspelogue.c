@@ -194,7 +194,12 @@ static PSnodes_ID_t psconfigResHost(const char *host)
     gchar* string = psconfig_get(config, tmp, "Psid.NodeId",
 		    PSCONFIG_FLAG_INHERIT | PSCONFIG_FLAG_FOLLOW, &err);
     if (!string) {
-	fprintf(stderr, "%s", err->message);
+	if (err->code == PSCONFIG_ERROR_OBJNOTEXIST) {
+	    fprintf(stderr, "local host object '%s' not found in psconfig as"
+		    " user %d", tmp, getuid());
+	} else {
+	    fprintf(stderr, "%s", err->message);
+	}
 	exit(1);
     }
     return atoi(string);
