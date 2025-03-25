@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -30,14 +30,20 @@ char * PSCfgHelp_getObject(PSConfig* db, guint flags,
     if (!nodename) {
 	/* cut hostname and try again */
 	char *pos = strchr(obj, '.');
-	if (!pos) return NULL;
-
-	*pos = '\0';
-	logger_print(logger, key, "%s: cut hostname to '%s'\n", __func__, obj);
-	nodename = psconfig_get(db, obj, "NodeName", flags, NULL);
+	if (pos) {
+	    *pos = '\0';
+	    logger_print(logger, key, "%s: cut hostname to '%s'\n", __func__, obj);
+	    nodename = psconfig_get(db, obj, "NodeName", flags, NULL);
+	}
     }
+    if (!nodename) {
+	logger_print(logger, key, "%s: no object '%s' with key 'NodeName'\n",
+		     __func__, obj);
+	return NULL;
+    }
+
     g_free(nodename);
-    return nodename ? obj : NULL;
+    return obj;
 }
 
 #endif /* BUILD_WITHOUT_PSCONFIG */
