@@ -58,4 +58,9 @@ LOG_FILE="/tmp/jail.log"
 # minimal valid memory limit
 MIN_VALID_MEMORY_LIMIT=100
 
+
+# read file with user's config values if available
+USERCONFIGFILE=@sysconfdir@/parastation/jail-scripts.conf
+[[ -r "$USERCONFIGFILE" ]] && source "$USERCONFIGFILE"
+
 # vim: set filetype=sh ts=8 sw=4 tw=0 sts=4 noet :

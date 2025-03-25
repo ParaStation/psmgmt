@@ -14504,6 +14504,8 @@ ac_config_files="$ac_config_files plugins/jail/helpers/Makefile"
 
 ac_config_files="$ac_config_files plugins/jail/scripts/Makefile"
 
+ac_config_files="$ac_config_files plugins/jail/scripts/jail-config.inc"
+
 ac_config_files="$ac_config_files plugins/nodeinfo/Makefile"
 
 ac_config_files="$ac_config_files plugins/nodeinfo/doc/Makefile"
@@ -15700,6 +15702,7 @@ do
     "plugins/jail/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/jail/Makefile" ;;
     "plugins/jail/helpers/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/jail/helpers/Makefile" ;;
     "plugins/jail/scripts/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/jail/scripts/Makefile" ;;
+    "plugins/jail/scripts/jail-config.inc") CONFIG_FILES="$CONFIG_FILES plugins/jail/scripts/jail-config.inc" ;;
     "plugins/nodeinfo/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/nodeinfo/Makefile" ;;
     "plugins/nodeinfo/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/nodeinfo/doc/Makefile" ;;
     "plugins/pelogue/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pelogue/Makefile" ;;
