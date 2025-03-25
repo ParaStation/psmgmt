@@ -22,7 +22,7 @@
 /**
  * @brief Start a local prologue or epilogue for an allocation
  *
- * @param alloc The allocation to start the pelogue for
+ * @param alloc Allocation to start the pelogue for
  *
  * @param type If true a prologue is started otherwise
  * an epilogue is started
@@ -37,7 +37,7 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type);
  * Save various information from the slurmctld prologue environment and
  * add an allocation.
  *
- * @param data Pointer to the PElogueChild structure
+ * @param data Pointer to PElogueChild structure
  *
  * @return Returns 0 on success or -1 otherwise
  */
@@ -51,7 +51,7 @@ int handleLocalPElogueStart(void *data);
  * access to the local node, start step I/O forwarders and set the node
  * offline in case of an error.
  *
- * @param data Pointer to the PElogueChild structure
+ * @param data Pointer to PElogueChild structure
  *
  * @return Always returns 0
  */
@@ -73,29 +73,30 @@ int handlePEloguePrepare(void *data);
  *
  * A task prologue is started in PSIDHOOK_EXEC_CLIENT_USER
  *
- * For a task prologue this function is called right before starting the users
- * executable. Thus, the task prologue is executed directly without
- * the use of an additional pluginforwarder.
+ * For a task prologue this function is called right before starting
+ * the user's executable. The task prologues are executed in the same
+ * process that will execv() the client executable without the use of
+ * an additional pluginforwarder.
  *
- * First a task prologue defined in slurm.conf utilizing the
- * TaskProlog option is executed. Then a task prologue defined via
- * srun's --task-prolog option is started.
- *
- *
- * A task epilogue is stared in PSIDHOOK_FRWRD_CLNT_RLS
- *
- * For a epilogue this function is called right after the users executable
- * exited. Thus, the task epilogue is executed directly without the use
- * of a pluginforwarder.
- *
- * First a task epilogue defined in slurm.conf utilizing the
- * TaskEpilog option is executed. Then a task epilogue defined via
- * srun's --task-epilog option is started.
+ * First a task prologue that might be defined in slurm.conf utilizing
+ * the TaskProlog option is executed. Then a task prologue defined via
+ * srun's --task-prolog option that is part of @a step is started.
  *
  *
- * @param step The step to start a task prologue/epilogue for
+ * A task epilogue is started in PSIDHOOK_FRWRD_CLNT_RLS
  *
- * @param task The PS task structure
+ * For a epilogue this function is called right after the user's
+ * executable exited. The task epilogues are executed directly in the
+ * psidforwarder process without the use of a pluginforwarder.
+ *
+ * First a task epilogue that might be defined in slurm.conf utilizing
+ * the TaskEpilog option is executed. Then a task epilogue defined via
+ * srun's --task-epilog option that is part of @a step is started.
+ *
+ *
+ * @param step Step to start a task prologue/epilogue for
+ *
+ * @param task PS task structure
  *
  * @param type Specifies to execute a task prologue or epilogue
  *
@@ -109,10 +110,10 @@ void startTaskPElogue(Step_t *step, PStask_t *task, PElogueType_t type);
  * If all sister nodes send the result of their epilogue
  * to mother superior the allocation will be freed.
  *
- * @param alloc The allocation of the epilogue
+ * @param alloc Allocation the epilogue was called for
  *
- * @return Returns true if the epilogue is finished
- * or false otherwise.
+ * @return Returns true if the epilogue is finished or false
+ * otherwise.
  */
 bool finalizeEpilogue(Alloc_t *alloc);
 
@@ -130,8 +131,7 @@ int handlePelogueOE(void *data);
 /**
  * @brief Handle hook PSIDHOOK_PELOGUE_GLOBAL
  *
- * Used to set nodes offline if the global slurmctld
- * prologue failed.
+ * Used to set nodes offline if the global slurmctld prologue failed.
  *
  * @param data PElogue_Global_Res_t structure
  *
