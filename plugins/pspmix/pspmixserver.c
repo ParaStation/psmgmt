@@ -1650,8 +1650,8 @@ static void server_log_cb(const pmix_proc_t *client,
 	    pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_STDOUT,
 					 this->value.data.string, 0);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG)
-		|| PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)
-		|| PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_SYSLOG)) {
+		   || PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)
+		   || PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_SYSLOG)) {
 	    if (syslog_priority < 0) {
 		for (size_t j = i + 1; j < ndata; j++) {
 		    if (PMIX_CHECK_KEY(data + j, PMIX_LOG_SYSLOG_PRI)) {
@@ -1670,20 +1670,22 @@ static void server_log_cb(const pmix_proc_t *client,
 		    call, PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL,
 		    this->value.data.string, syslog_priority);
 	    } else {
-		pspmix_service_addLogRequest(
-		    call, PSPMIX_LOG_CHANNEL_SYSLOG,
-		    this->value.data.string, syslog_priority);
+		pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_SYSLOG,
+					     this->value.data.string,
+					     syslog_priority);
 	    }
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL)) {
-            pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_EMAIL, NULL, 0); 
-        } else if (PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_DATASTORE)) { 
-            pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_DATASTORE_GLOBAL, NULL, 0); 
-        } else if (PMIX_CHECK_KEY(this, PMIX_LOG_JOB_RECORD)) { 
-            pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_JOB_RECORD, NULL, 0);  // Check standard for more
-        } else {
+	    pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_EMAIL, NULL,
+					 0);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_DATASTORE)) {
+	    pspmix_service_addLogRequest(
+		call, PSPMIX_LOG_CHANNEL_DATASTORE_GLOBAL, NULL, 0);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_JOB_RECORD)) {
+	    pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_JOB_RECORD,
+					 NULL, 0); // Check standard for more
+	} else {
 	    flog("ignoring unknown or unsupported key '%s'\n", this->key);
 	}
-
     }
 
     mycbfunc_t *cb = NULL;
