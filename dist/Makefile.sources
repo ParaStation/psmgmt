@@ -699,6 +699,7 @@ scripts/Makefile.in \
 scripts/compile \
 scripts/config.guess \
 scripts/config.sub \
+scripts/cpufreq.py \
 scripts/depcomp \
 scripts/exec_all \
 scripts/init.d/parastation.in \
