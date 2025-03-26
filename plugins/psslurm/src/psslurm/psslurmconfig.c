@@ -322,6 +322,10 @@ const ConfDef_t confDef[] =
 	"mode",
 	"0644",
 	"File access mode of job stdout/stderr files" },
+    { "CPU_SCALING_DIR", 0,
+	"path",
+	NULL,
+	"Optional path to CPU scaling paramters in /sys-filesystem" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

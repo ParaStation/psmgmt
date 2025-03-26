@@ -17,6 +17,7 @@
 
 #include "psstrbuf.h"
 #include "pluginmalloc.h"
+#include "plugincpufreq.h"
 #include "psidsignal.h"
 
 #include "psslurmauth.h"

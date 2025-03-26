@@ -317,4 +317,18 @@ enum select_plugin_type {
         SELECT_CONS_TRES    = 109,
 };
 
+/* CPU frequency */
+#define CPU_FREQ_RANGE_FLAG             0x80000000
+#define CPU_FREQ_LOW                    0x80000001
+#define CPU_FREQ_MEDIUM                 0x80000002
+#define CPU_FREQ_HIGH                   0x80000003
+#define CPU_FREQ_HIGHM1                 0x80000004
+#define CPU_FREQ_CONSERVATIVE           0x88000000
+#define CPU_FREQ_ONDEMAND               0x84000000
+#define CPU_FREQ_PERFORMANCE            0x82000000
+#define CPU_FREQ_POWERSAVE              0x81000000
+#define CPU_FREQ_USERSPACE              0x80800000
+#define CPU_FREQ_SCHEDUTIL              0x80400000
+#define CPU_FREQ_GOV_MASK               0x8ff00000
+
 #endif

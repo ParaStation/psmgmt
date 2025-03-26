@@ -50,6 +50,7 @@
 #include "pluginmalloc.h"
 #include "pluginpartition.h"
 #include "pluginpty.h"
+#include "plugincpufreq.h"
 #include "psidcomm.h"
 #include "psidhook.h"
 #include "psidscripts.h"
@@ -1230,6 +1231,63 @@ static int getNextServiceRank(Forwarder_Data_t *fwData)
     return rank;
 }
 
+/**
+ * @brief Map Slurm governor
+ *
+ * @param slurmGov Slurm governor to map
+ *
+ * Returns the governor on success otherwise 0 is returned
+ */
+static CPUfreq_governors_t mapSlurmGov(uint32_t slurmGov)
+{
+    if (slurmGov == NO_VAL || !(slurmGov & CPU_FREQ_GOV_MASK)) return 0;
+
+    switch (slurmGov) {
+	case CPU_FREQ_CONSERVATIVE:
+	    return GOV_CONSERVATIVE;
+	case CPU_FREQ_ONDEMAND:
+	    return GOV_ONDEMAND;
+	case CPU_FREQ_PERFORMANCE:
+	    return GOV_PERFORMANCE;
+	case CPU_FREQ_POWERSAVE:
+	    return GOV_POWERSAVE;
+	case CPU_FREQ_USERSPACE:
+	    return GOV_USERSPACE;
+	case CPU_FREQ_SCHEDUTIL:
+	    return GOV_SCHEDUTIL;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Change CPU scaling parameters for CPUs of given step
+ *
+ * @param step Step to change scaling parameters for
+ */
+static void setStepCPUfreq(Step_t *step)
+{
+    if (!CPUfreq_isInitialized()) return;
+
+    PSCPU_set_t *stepSet = &step->nodeinfos[step->localNodeId].stepHWthreads;
+    uint16_t setSize = step->nodeinfos[step->localNodeId].threadCount;
+
+    CPUfreq_governors_t gov = mapSlurmGov(step->cpuFreqGov);
+    if (gov && !CPUfreq_setGov(*stepSet, setSize, gov)) {
+	flog("set governor %s failed\n", CPUfreq_gov2Str(gov));
+    }
+
+    if (step->cpuFreqMin != NO_VAL &&
+	!CPUfreq_setMinFreq(*stepSet, setSize, step->cpuFreqMin)) {
+	flog("set minimum CPU frequency %i failed\n", step->cpuFreqMin);
+    }
+
+    if (step->cpuFreqMax != NO_VAL &&
+	!CPUfreq_setMaxFreq(*stepSet, setSize, step->cpuFreqMax)) {
+	flog("set maximum CPU frequency %i failed\n", step->cpuFreqMax);
+    }
+}
+
 static int stepForwarderInit(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
@@ -1257,6 +1315,9 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     /* since this might call the jail hook, execute *after* setJailEnv() */
     if (pamserviceStartService) pamserviceStartService(step->username);
+
+    /* set CPU frequency/governor for allocated CPUs of step */
+    setStepCPUfreq(step);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -1406,12 +1467,23 @@ static int stepForwarderLoop(Forwarder_Data_t *fwdata)
 
 static int stepFinalize(Forwarder_Data_t *fwdata)
 {
+    Step_t *step = fwdata->userData;
+
+    /* reset CPU frequency/governor */
+    if (CPUfreq_isInitialized()) {
+	PSCPU_set_t *stepSet = &step->nodeinfos[step->localNodeId].stepHWthreads;
+	uint16_t setSize = step->nodeinfos[step->localNodeId].threadCount;
+
+	if (step->cpuFreqMin != NO_VAL) CPUfreq_resetMinFreq(*stepSet, setSize);
+	if (step->cpuFreqMax != NO_VAL) CPUfreq_resetMaxFreq(*stepSet, setSize);
+	if (step->cpuFreqGov != NO_VAL) CPUfreq_resetGov(*stepSet, setSize);
+    }
+
     if (pamserviceStopService) pamserviceStopService();
 
     IO_finalize(fwdata);
 
 #ifdef HAVE_SPANK
-    Step_t *step = fwdata->userData;
     struct spank_handle spank = {
 	.task = NULL,
 	.alloc = Alloc_find(step->jobid),
@@ -1900,6 +1972,9 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 
     /* since this might call the jail hook, execute *after* setJailEnv() */
     if (pamserviceStartService) pamserviceStartService(step->username);
+
+    /* set CPU frequency/governor for allocated CPUs of step */
+    setStepCPUfreq(step);
 
 #ifdef HAVE_SPANK
 

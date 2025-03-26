@@ -67,6 +67,8 @@
 #include "psslurmstep.h"
 #include "psslurmaccount.h"
 
+#include "plugincpufreq.h"
+
 #define PSSLURM_CONFIG_FILE  PLUGINDIR "/psslurm.conf"
 #define MEMORY_DEBUG 0
 
@@ -763,6 +765,12 @@ int initialize(FILE *logfile)
 	Timer_init(NULL);
     }
 
+    if (!CPUfreq_init(getConfValueC(Config, "CPU_SCALING_DIR"))) {
+	/* CPU frequency scaling is hardware dependent and might
+	 * not be available at all */
+	mlog("warning: initializing CPU scaling facility failed\n");
+    }
+
     if (confRes == CONFIG_SERVER) {
 	char *confCache = getConfValueC(Config, "SLURM_CONF_CACHE");
 	if (needConfUpdate(confCache)) {
@@ -789,6 +797,7 @@ INIT_ERROR:
     psPelogueDelPluginConfig("pspelogue");
     unregisterHooks(false);
     finalizePScomm(false);
+    CPUfreq_finalize();
     return 1;
 }
 
@@ -867,7 +876,11 @@ void cleanup(void)
 	}
     }
 
+    /* reset all CPU scaling parameters */
+    if (CPUfreq_isInitialized()) CPUfreq_resetAll();
+
     /* free all malloced memory */
+    CPUfreq_finalize();
     Job_destroyAll();
     Step_destroyAll();
     clearGresConf();

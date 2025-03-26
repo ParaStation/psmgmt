@@ -101,9 +101,9 @@ typedef struct {
     task_dist_states_t taskDist;/**< task distribution (e.g. cyclic) */
     uint16_t nodeCPUs;          /**< node CPUs (unused) */
     uint32_t profile;           /**< profile (unused) see srun --profile */
-    uint32_t cpuFreqMin;        /**< CPU frequency minimal (unused) */
-    uint32_t cpuFreqMax;        /**< CPU frequency maximal (unused) */
-    uint32_t cpuFreqGov;        /**< CPU frequency governor (unused) */
+    uint32_t cpuFreqMin;        /**< CPU frequency minimal (srun --cpu-freq)*/
+    uint32_t cpuFreqMax;        /**< CPU frequency maximal (srun --cpu-freq) */
+    uint32_t cpuFreqGov;        /**< CPU frequency governor (srun --cpu-freq) */
     uint16_t jobCoreSpec;	/**< count of specialized cores */
     uint16_t *tasksToLaunch;	/**< number of tasks to launch (per node) */
     uint32_t **globalTaskIds;	/**< step global Slurm task IDs (per node) */
