@@ -1665,14 +1665,25 @@ static void server_log_cb(const pmix_proc_t *client,
 		pspmix_service_addLogRequest(
 		    call, PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL,
 		    this->value.data.string, syslog_priority);
-	    } else {
+	    } else if (PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_SYSLOG)) {
 		pspmix_service_addLogRequest(
 		    call, PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL,
 		    this->value.data.string, syslog_priority);
+	    } else {
+		pspmix_service_addLogRequest(
+		    call, PSPMIX_LOG_CHANNEL_SYSLOG,
+		    this->value.data.string, syslog_priority);
 	    }
-	} else {
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL)) {
+            pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_EMAIL, NULL, 0); 
+        } else if (PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_DATASTORE)) { 
+            pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_DATASTORE_GLOBAL, NULL, 0); 
+        } else if (PMIX_CHECK_KEY(this, PMIX_LOG_JOB_RECORD)) { 
+            pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_JOB_RECORD, NULL, 0);  // Check standard for more
+        } else {
 	    flog("ignoring unknown or unsupported key '%s'\n", this->key);
 	}
+
     }
 
     mycbfunc_t *cb = NULL;
@@ -2122,8 +2133,8 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     INFO_LIST_ADD(list, PMIX_SERVER_SESSION_SUPPORT, &tmpbool, PMIX_BOOL);
 
     /* Server is acting as a gateway for PMIx requests that cannot be serviced
-     * on backend nodes (e.g., logging to email). */
-    tmpbool = false;
+     * on backend nodes (e.g., logging to email, recording syslogs). */
+    tmpbool = true;
     INFO_LIST_ADD(list, PMIX_SERVER_GATEWAY, &tmpbool, PMIX_BOOL);
 
     /* Server is supporting system scheduler and desires access to appropriate

@@ -352,6 +352,8 @@ typedef enum {
     PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL,    /**< Log data to syslog (of machine
 					  * designated as gateway),  also see
 					  * PMIX_LOG_GLOBAL_SYSLOG */
+    PSPMIX_LOG_CHANNEL_SYSLOG,           /**< Log data to syslog (defaults to
+                                         * global iff available, local otherwise */
     PSPMIX_LOG_CHANNEL_EMAIL,            /**< see PMIX_LOG_EMAIL */
     PSPMIX_LOG_CHANNEL_DATASTORE_GLOBAL, /**< see PMIX_LOG_GLOBAL_DATASTORE */
     PSPMIX_LOG_CHANNEL_JOB_RECORD        /**< see PMIX_LOG_JOB_RECORD */
