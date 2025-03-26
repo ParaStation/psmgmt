@@ -119,7 +119,8 @@ libplugincommon_la_DEPENDENCIES =
 am_libplugincommon_la_OBJECTS = pluginconfig.lo pluginforwarder.lo \
 	pluginhelper.lo pluginlog.lo pluginmalloc.lo \
 	pluginpartition.lo pluginpsconfig.lo pluginpty.lo \
-	pluginspawn.lo pluginvector.lo pluginjson.lo pluginscript.lo
+	pluginspawn.lo pluginvector.lo pluginjson.lo plugincpufreq.lo \
+	pluginscript.lo
 libplugincommon_la_OBJECTS = $(am_libplugincommon_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -141,12 +142,12 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/pluginconfig.Plo \
-	./$(DEPDIR)/pluginforwarder.Plo ./$(DEPDIR)/pluginhelper.Plo \
-	./$(DEPDIR)/pluginjson.Plo ./$(DEPDIR)/pluginlog.Plo \
-	./$(DEPDIR)/pluginmalloc.Plo ./$(DEPDIR)/pluginpartition.Plo \
-	./$(DEPDIR)/pluginpsconfig.Plo ./$(DEPDIR)/pluginpty.Plo \
-	./$(DEPDIR)/pluginscript.Plo ./$(DEPDIR)/pluginspawn.Plo \
-	./$(DEPDIR)/pluginvector.Plo
+	./$(DEPDIR)/plugincpufreq.Plo ./$(DEPDIR)/pluginforwarder.Plo \
+	./$(DEPDIR)/pluginhelper.Plo ./$(DEPDIR)/pluginjson.Plo \
+	./$(DEPDIR)/pluginlog.Plo ./$(DEPDIR)/pluginmalloc.Plo \
+	./$(DEPDIR)/pluginpartition.Plo ./$(DEPDIR)/pluginpsconfig.Plo \
+	./$(DEPDIR)/pluginpty.Plo ./$(DEPDIR)/pluginscript.Plo \
+	./$(DEPDIR)/pluginspawn.Plo ./$(DEPDIR)/pluginvector.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -395,7 +396,7 @@ noinst_LTLIBRARIES = libplugincommon.la
 libplugincommon_la_SOURCES = pluginconfig.c pluginforwarder.c		\
 	pluginhelper.c pluginlog.c pluginmalloc.c pluginpartition.c	\
 	pluginpsconfig.c pluginpty.c pluginspawn.c pluginvector.c	\
-	pluginjson.c pluginscript.c
+	pluginjson.c plugincpufreq.c pluginscript.c
 
 @JSON_C_ENABLED_TRUE@libplugincommon_la_LIBADD = -ljson-c
 all: all-am
@@ -452,6 +453,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginconfig.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugincpufreq.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginforwarder.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginhelper.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginjson.Plo@am__quote@ # am--include-marker
@@ -625,6 +627,7 @@ clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
 
 distclean: distclean-am
 	-rm -f ./$(DEPDIR)/pluginconfig.Plo
+	-rm -f ./$(DEPDIR)/plugincpufreq.Plo
 	-rm -f ./$(DEPDIR)/pluginforwarder.Plo
 	-rm -f ./$(DEPDIR)/pluginhelper.Plo
 	-rm -f ./$(DEPDIR)/pluginjson.Plo
@@ -682,6 +685,7 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/pluginconfig.Plo
+	-rm -f ./$(DEPDIR)/plugincpufreq.Plo
 	-rm -f ./$(DEPDIR)/pluginforwarder.Plo
 	-rm -f ./$(DEPDIR)/pluginhelper.Plo
 	-rm -f ./$(DEPDIR)/pluginjson.Plo
@@ -737,6 +741,8 @@ pluginpsconfig.lo: AM_CFLAGS += $(glib2_CFLAGS)
 
 pluginforwarder.lo: CPPFLAGS = $(AM_CPPFLAGS) \
 			-DLOCALSTATEDIR=\"$(localstatedir)\"
+
+plugincpufreq.lo: CPPFLAGS = $(AM_CPPFLAGS) -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

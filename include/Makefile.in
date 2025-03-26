@@ -387,11 +387,12 @@ include_HEADERS = pse.h psprotocol.h psnodes.h pstask.h pspartition.h	\
 noinst_HEADERS = kvscommon.h kvs.h mcast.h parser.h psilog.h pslog.h	\
 	pspartition.h rdp.h psipartition.h psparamspace.h		\
 	psprotocolenv.h psserial.h kvslog.h linenoise.h			\
-	pluginconfig.h pluginforwarder.h pluginhelper.h pluginlog.h	\
-	pluginmalloc.h pluginpartition.h pluginpsconfig.h pluginpty.h	\
-	pluginspawn.h psstrv.h pluginvector.h pspluginprotocol.h	\
-	pssenddb_t.h psattribute.h psbyteorder.h pscio.h		\
-	psconfighelper.h psitems.h pluginjson.h psstrbuf.h
+	pluginconfig.h pluginforwarder.h plugincpufreq.h pluginhelper.h	\
+	pluginlog.h pluginmalloc.h pluginpartition.h pluginpsconfig.h 	\
+	pluginpty.h pluginspawn.h psstrv.h pluginvector.h 		\
+	pspluginprotocol.h pssenddb_t.h psattribute.h psbyteorder.h 	\
+	pscio.h psconfighelper.h psitems.h pluginjson.h psstrbuf.h 	\
+	pluginscript.h
 
 all: all-am
 
@@ -662,7 +663,6 @@ uninstall-am: uninstall-includeHEADERS
 
 %: %.in
 	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
-	pluginscript.h
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
