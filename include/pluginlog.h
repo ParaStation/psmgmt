@@ -31,6 +31,7 @@ typedef enum {
     PLUGIN_LOG_FW	= 0x000040,   /**< Verbose forwarder */
     PLUGIN_LOG_JSON	= 0x000080,   /**< json parser */
     PLUGIN_LOG_SCRIPT   = 0x000100,   /**< script execution */
+    PLUGIN_LOG_FREQ     = 0x000200,   /**< CPU frequency */
 } PSPlugin_log_types_t;
 
 #define pluginmset(flag) (logger_getMask(pluginlogger) & (flag))
