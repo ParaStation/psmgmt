@@ -1115,7 +1115,6 @@ static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
     default:
 	break;
     }
-    rdbg(PSPMIX_LOG_LOGGING, "Logging completed\n");
 
     sendClientLogResp(msg->header.sender, callID, reqID, ret != -1);
 }

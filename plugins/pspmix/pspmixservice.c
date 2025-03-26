@@ -197,7 +197,11 @@ static void cleanupSpawn(PspmixSpawn_t *spawn)
  */
 static void cleanupLogCall(PspmixLogCall_t call)
 {
-    if (!call) return;
+    if(!call) {
+        flog("Warning: call is null pointer");
+	return;
+    }
+
     list_t *r, *tmp;
     list_for_each_safe(r, tmp, &call->requests) {
 	PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
@@ -2468,8 +2472,10 @@ static bool sendClientLogRequest(const pmix_proc_t *client,
 // main thread
 static bool tryFinishLogCall(PspmixLogCall_t call)
 {
+    fdbg(PSPMIX_LOG_CALL, "call %p\n", call);
+
     if (!call) {
-        flog("call was null pointer", call);
+        flog("Warning: call is null pointer");
         return false;
     }
     if(!call->allowFinishing) {
@@ -2480,6 +2486,9 @@ static bool tryFinishLogCall(PspmixLogCall_t call)
         fdbg(PSPMIX_LOG_LOGGING, "Log call %u: %u out of %u requests complete\n", call->id, call->numReqResponded, call->numReqAdded);
         return false;
     }
+
+    fdbg(PSPMIX_LOG_LOGGING, "Log call %u: is complete\n", call->id);
+
     list_t *r;
 
     bool all_succeeded = true;
@@ -2488,6 +2497,7 @@ static bool tryFinishLogCall(PspmixLogCall_t call)
     list_for_each(r, &call->requests)
     {
 	PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
+        fdbg(PSPMIX_LOG_LOGGING, "  Log request %u/%u: %s\n", call->id, req->id, req->supported ? (req->success ? "success" : "failure") : "unsupported");
 	if (req->success) {
 	    all_failed = false;
 	} else {
@@ -2521,12 +2531,13 @@ bool local_server_is_gateway() {
 void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
 			void *cb)
 {
-    fdbg(PSPMIX_LOG_CALL, "call_handle = %p\n", call);
-
+    fdbg(PSPMIX_LOG_CALL, "call->%p\n", call);
     if (!call) {
 	pspmix_server_operationFinished(PMIX_ERR_BAD_PARAM, cb);
 	return;
     }
+    fdbg(PSPMIX_LOG_LOGGING, "Log call %u: log_once=%s\n",
+         call->id, call->log_once ? "true" : "false");
 
     PMIX_PROC_LOAD(&call->caller, caller->nspace, caller->rank);
     call->cb = cb;
@@ -2544,6 +2555,14 @@ void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
     bool ignore_additional_requests = false;
     list_t *r;
     list_for_each(r, &call->requests) {
+	PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);   
+	fdbg(PSPMIX_LOG_LOGGING, "  Log request %u/%u: Name=%s Priority=%i String='%s'\n",
+	     call->id, 
+             req->id, 
+             pspmix_log_channel_names[req->channel], 
+             req->priority, 
+             req->str);
+
         if(req->channel == PSPMIX_LOG_CHANNEL_SYSLOG) {
             // defaults to GLOBAL iff, local server is gateway
             // which intern is implemented through LOCAL
