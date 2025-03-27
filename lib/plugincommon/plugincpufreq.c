@@ -11,10 +11,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
-#include "psidnodes.h"
+#include "pscpu.h"
+#include "psstrv.h"
+#include "psidhw.h"
+
 #include "pluginlog.h"
 #include "pluginmalloc.h"
 #include "pluginscript.h"

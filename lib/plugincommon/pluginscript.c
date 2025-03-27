@@ -9,24 +9,28 @@
  */
 #include "pluginscript.h"
 
-#include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
-#include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
 #include <sys/wait.h>
 #include <time.h>
-#include <syslog.h>
+#include <unistd.h>
 #include <limits.h>
+
+#include "pscommon.h"
+#include "psstrbuf.h"
+#include "selector.h"
+#include "timer.h"
+
+#include "psidsignal.h"
+#include "psidutil.h"
 
 #include "pluginlog.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
-
-#include "psidsignal.h"
-#include "psidutil.h"
-#include "timer.h"
-#include "pscio.h"
-#include "psstrbuf.h"
 
 Script_Data_t *ScriptData_new(char *sPath)
 {

@@ -10,6 +10,7 @@
 #ifndef __PLUGIN_LIB_SCRIPT
 #define __PLUGIN_LIB_SCRIPT
 
+#include <stdbool.h>
 #include <sys/types.h>
 
 #include "psenv.h"

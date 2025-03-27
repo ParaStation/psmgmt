@@ -37,6 +37,7 @@
 #include "list.h"
 #include "pscommon.h"
 #include "pscio.h"
+#include "pscpu.h"
 #include "psdaemonprotocol.h"
 #include "psenv.h"
 #include "pslog.h"

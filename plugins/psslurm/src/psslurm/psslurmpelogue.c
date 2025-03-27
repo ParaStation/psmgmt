@@ -13,16 +13,12 @@
 
 #include <errno.h>
 #include <fenv.h>
-#include <signal.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <time.h>
-#include <unistd.h>
 #include <limits.h>
 
 #include "pscommon.h"
@@ -30,9 +26,7 @@
 #include "psenv.h"
 
 #include "pluginconfig.h"
-#include "pluginhelper.h"
 #include "pluginmalloc.h"
-#include "psidsignal.h"
 #include "psprotocol.h"
 #include "psserial.h"
 #include "pluginscript.h"
