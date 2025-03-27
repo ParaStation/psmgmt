@@ -48,13 +48,14 @@ bool CPUfreq_isInitialized(void);
 /**
  * @brief Initialize the CPU frequency facility
  *
- * Collect various information about the CPU scaling capabilities including
+ * Collect various information about the systems scaling capabilities including
  * current, available and default governors and frequencies. The data is
  * collected by calls to the CPU frequency script which normally uses the
- * sys-filesystem as source of information.
+ * sys-filesystem as source of information. It operates on single hardware
+ * threads also known as logical processors.
  *
- * @param cpuSysPath Path in the sys-filesystem which holds CPU frequency
- * configuration or NULL to use the default
+ * @param cpuSysPath Path in the sys-filesystem which holds hardware threads
+ * frequency configuration or NULL to use the default
  *
  * @return Returns true on success otherwise false is returned
  */
@@ -66,39 +67,52 @@ bool CPUfreq_init(const char *cpuSysPath);
 void CPUfreq_finalize(void);
 
 /**
- * @brief Reset the given CPUs to their default governor
+ * @brief Reset the given hardware threads to their default governor
  *
  * The default is set by @ref CPUfreq_init() from the current
  * governor.
+ *
+ * @param set Set of hardware threads to operate on
+ *
+ * @param setSize Size of @a set
  *
  * @return Returns true on success otherwise false is returned
  */
 bool CPUfreq_resetGov(PSCPU_set_t set, uint16_t setSize);
 
 /**
- * @brief Reset the given CPUs to their default minimum frequency
+ * @brief Reset the given hardware threads to their default minimum frequency
  *
  * The default is set by @ref CPUfreq_init() from the current
  * minimum frequency.
+ *
+ * @param set Set of hardware threads to operate on
+ *
+ * @param setSize Size of @a set
  *
  * @return Returns true on success otherwise false is returned
  */
 bool CPUfreq_resetMinFreq(PSCPU_set_t set, uint16_t setSize);
 
 /**
- * @brief Reset the given CPUs to their default maximum frequency
+ * @brief Reset the given hardware threads to their default maximum frequency
  *
  * The default is set by @ref CPUfreq_init() from the current
  * maximum frequency.
+ *
+ * @param set Set of hardware threads to operate on
+ *
+ * @param setSize Size of @a set
  *
  * @return Returns true on success otherwise false is returned
  */
 bool CPUfreq_resetMaxFreq(PSCPU_set_t set, uint16_t setSize);
 
 /**
- * @brief Reset governor, minimum and maximum CPU frequency
+ * @brief Reset governor, minimum and maximum frequency for given
+ * hardware threads
  *
- * Reset all scaling parameters for all CPUs. The default values
+ * Reset all scaling parameters for all hardware threads. The default values
  * were set by @ref CPUfreq_init().
  *
  * @return Returns true on success otherwise false is returned
@@ -106,11 +120,11 @@ bool CPUfreq_resetMaxFreq(PSCPU_set_t set, uint16_t setSize);
 bool CPUfreq_resetAll(void);
 
 /**
- * @brief Set CPU governor for selected CPUs
+ * @brief Set governor for selected hardware threads
  *
- * @param set Set of all CPUs to change
+ * @param set Set of hardware threads to operate on
  *
- * @param setSize Size of the CPU set
+ * @param setSize Size of @a set
  *
  * @return Returns true on success otherwise false is returned
  */
@@ -118,11 +132,11 @@ bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
 		    CPUfreq_governors_t newGov);
 
 /**
- * @brief Set CPU frequency for selected CPUs
+ * @brief Set frequency for selected hardware threads
  *
- * @param set Set of all CPUs to change
+ * @param set Set of hardware threads to operate on
  *
- * @param setSize Size of the CPU set
+ * @param setSize Size of @a set
  *
  * @param newFreq New frequency to set
  *
