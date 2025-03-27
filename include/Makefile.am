@@ -19,9 +19,9 @@ include_HEADERS = pse.h psprotocol.h psnodes.h pstask.h pspartition.h	\
 noinst_HEADERS = kvscommon.h kvs.h mcast.h parser.h psilog.h pslog.h	\
 	pspartition.h rdp.h psipartition.h psparamspace.h		\
 	psprotocolenv.h psserial.h kvslog.h linenoise.h			\
-	pluginconfig.h pluginforwarder.h plugincpufreq.h pluginhelper.h	\
-	pluginlog.h pluginmalloc.h pluginpartition.h pluginpsconfig.h 	\
-	pluginpty.h pluginspawn.h psstrv.h pluginvector.h 		\
-	pspluginprotocol.h pssenddb_t.h psattribute.h psbyteorder.h 	\
-	pscio.h psconfighelper.h psitems.h pluginjson.h psstrbuf.h 	\
+	pluginconfig.h plugincpufreq.h pluginforwarder.h pluginhelper.h	\
+	pluginlog.h pluginmalloc.h pluginpartition.h pluginpsconfig.h	\
+	pluginpty.h pluginspawn.h psstrv.h pluginvector.h		\
+	pspluginprotocol.h pssenddb_t.h psattribute.h psbyteorder.h	\
+	pscio.h psconfighelper.h psitems.h pluginjson.h psstrbuf.h	\
 	pluginscript.h

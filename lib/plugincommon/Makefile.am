@@ -15,10 +15,10 @@ AM_LDFLAGS += $(glib2_LDFLAGS)
 
 noinst_LTLIBRARIES = libplugincommon.la
 
-libplugincommon_la_SOURCES = pluginconfig.c pluginforwarder.c		\
-	pluginhelper.c pluginlog.c pluginmalloc.c pluginpartition.c	\
-	pluginpsconfig.c pluginpty.c pluginspawn.c pluginvector.c	\
-	pluginjson.c plugincpufreq.c pluginscript.c
+libplugincommon_la_SOURCES = pluginconfig.c plugincpufreq.c		\
+	pluginforwarder.c pluginhelper.c pluginjson.c pluginlog.c	\
+	pluginmalloc.c pluginpartition.c pluginpsconfig.c pluginpty.c	\
+	pluginscript.c pluginspawn.c pluginvector.c
 
 pluginpsconfig.lo: AM_CFLAGS += $(glib2_CFLAGS)
 

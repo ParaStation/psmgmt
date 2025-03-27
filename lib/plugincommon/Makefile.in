@@ -116,11 +116,10 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libplugincommon_la_DEPENDENCIES =
-am_libplugincommon_la_OBJECTS = pluginconfig.lo pluginforwarder.lo \
-	pluginhelper.lo pluginlog.lo pluginmalloc.lo \
-	pluginpartition.lo pluginpsconfig.lo pluginpty.lo \
-	pluginspawn.lo pluginvector.lo pluginjson.lo plugincpufreq.lo \
-	pluginscript.lo
+am_libplugincommon_la_OBJECTS = pluginconfig.lo plugincpufreq.lo \
+	pluginforwarder.lo pluginhelper.lo pluginjson.lo pluginlog.lo \
+	pluginmalloc.lo pluginpartition.lo pluginpsconfig.lo \
+	pluginpty.lo pluginscript.lo pluginspawn.lo pluginvector.lo
 libplugincommon_la_OBJECTS = $(am_libplugincommon_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -393,10 +392,10 @@ configdir = $(prefix)/config
 # dito
 scriptsdir = $(prefix)/scripts
 noinst_LTLIBRARIES = libplugincommon.la
-libplugincommon_la_SOURCES = pluginconfig.c pluginforwarder.c		\
-	pluginhelper.c pluginlog.c pluginmalloc.c pluginpartition.c	\
-	pluginpsconfig.c pluginpty.c pluginspawn.c pluginvector.c	\
-	pluginjson.c plugincpufreq.c pluginscript.c
+libplugincommon_la_SOURCES = pluginconfig.c plugincpufreq.c		\
+	pluginforwarder.c pluginhelper.c pluginjson.c pluginlog.c	\
+	pluginmalloc.c pluginpartition.c pluginpsconfig.c pluginpty.c	\
+	pluginscript.c pluginspawn.c pluginvector.c
 
 @JSON_C_ENABLED_TRUE@libplugincommon_la_LIBADD = -ljson-c
 all: all-am
