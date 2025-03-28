@@ -1682,7 +1682,7 @@ static void server_log_cb(const pmix_proc_t *client,
 		call, PSPMIX_LOG_CHANNEL_DATASTORE_GLOBAL, NULL, 0);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_JOB_RECORD)) {
 	    pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_JOB_RECORD,
-					 NULL, 0); // Check standard for more
+					 NULL, 0);
 	} else {
 	    flog("ignoring unknown or unsupported key '%s'\n", this->key);
 	}

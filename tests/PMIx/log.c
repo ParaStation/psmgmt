@@ -38,7 +38,7 @@ bool test_pmix_log_channels(char *test_name, char **channels, size_t nchannels,
     for(size_t ch = 0; ch < nchannels; ch++) {
 	PMIX_INFO_LOAD(&data[ch], channels[ch], str, PMIX_STRING);
     }
-    if(log_once) {
+    if (log_once) {
 	bool true_value = true;
 	PMIX_INFO_LOAD(&data[ndata-1], PMIX_LOG_ONCE, &true_value, PMIX_BOOL);
     }
