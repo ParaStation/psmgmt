@@ -67,22 +67,22 @@ typedef struct {
 static Command_Map_t Command_Map[];
 
 /** all CPUs including cached frequency values */
-static CPUfreq_CPUs_t *cpus = NULL;
+static CPUfreq_CPUs_t *cpus;
 
 /** CPU frequency path in /sys */
-static char *sysPath = NULL;
+static char *sysPath;
 
 /** number of CPUs which support frequency scaling */
-static int numCPUs = 0;
+static int numCPUs;
 
 /** set to common default governor (if any)  */
 static CPUfreq_governors_t defaultGov = GOV_UNDEFINED;
 
 /** set to common default minimum frequency (if any)  */
-static uint32_t defaultMinFreq = 0;
+static uint32_t defaultMinFreq;
 
 /** set to common default maximum frequency (if any)  */
-static uint32_t defaultMaxFreq = 0;
+static uint32_t defaultMaxFreq;
 
 /** flag to indicate if all CPUs have the same available frequencies */
 static bool equalAvailFreq = true;
