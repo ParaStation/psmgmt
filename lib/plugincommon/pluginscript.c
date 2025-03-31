@@ -183,8 +183,6 @@ static void execChild(Script_Data_t *script)
 	pluginwarn(errno, "chdir(%s)", script->cwd);
     }
 
-    if (script->prepUser) script->prepUser(script->info);
-
     if (access(strvGet(script->argV, 0), R_OK | X_OK) < 0) {
 	pluginwarn(errno, "access(%s)", strvGet(script->argV, 0));
 	exit(1);

@@ -33,8 +33,6 @@ typedef struct {
 			    /**< callback for each output line of the script */
     void (*prepPriv)(void *info);
 			    /**< prepare script environment before user switch */
-    void (*prepUser)(void *info);
-			    /**< prepare script environment after user switch */
 } Script_Data_t;
 
 /**
