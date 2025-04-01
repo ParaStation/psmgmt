@@ -15,18 +15,6 @@
 
 #include <pscpu.h>
 
-/** used as an index for Command_Map */
-typedef enum {
-    CMD_LIST_CPUS = 0,
-    CMD_GET_AVAIL_GOV,
-    CMD_GET_AVAIL_FREQ,
-    CMD_GET_FREQ,
-    CMD_GET_CUR_GOV,
-    CMD_SET_MIN_FREQ,
-    CMD_SET_MAX_FREQ,
-    CMD_SET_GOV,
-} Script_CMDs_t;
-
 /** list of supported CPU governors */
 typedef enum {
     GOV_UNDEFINED	= 0x00,
@@ -132,7 +120,7 @@ bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
 		    CPUfreq_governors_t newGov);
 
 /**
- * @brief Set frequency for selected hardware threads
+ * @brief Set minimum frequency for selected hardware threads
  *
  * @param set Set of hardware threads to operate on
  *
@@ -140,18 +128,22 @@ bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
  *
  * @param newFreq New frequency to set
  *
- * @param cmd Command to execute to change the desired frequency
+ * @return Returns true on success otherwise false is returned
+ */
+bool CPUfreq_setMinFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq);
+
+/**
+ * @brief Set maximum frequency for selected hardware threads
+ *
+ * @param set Set of hardware threads to operate on
+ *
+ * @param setSize Size of @a set
+ *
+ * @param newFreq New frequency to set
  *
  * @return Returns true on success otherwise false is returned
  */
-bool CPUfreq_setFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
-		     Script_CMDs_t cmd);
-
-#define CPUfreq_setMinFreq(set, setSize, newFreq) \
-    CPUfreq_setFreq(set, setSize, newFreq, CMD_SET_MIN_FREQ)
-
-#define CPUfreq_setMaxFreq(set, setSize, newFreq) \
-    CPUfreq_setFreq(set, setSize, newFreq, CMD_SET_MAX_FREQ)
+bool CPUfreq_setMaxFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq);
 
 /**
  * @brief Convert a governor name to its binary representation

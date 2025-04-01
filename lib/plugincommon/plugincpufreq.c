@@ -47,6 +47,18 @@ typedef struct {
     uint32_t curMaxFreq;	    /* current maximum frequency */
 } CPUfreq_CPUs_t;
 
+/** used as an index for Command_Map */
+typedef enum {
+    CMD_LIST_CPUS = 0,
+    CMD_GET_AVAIL_GOV,
+    CMD_GET_AVAIL_FREQ,
+    CMD_GET_FREQ,
+    CMD_GET_CUR_GOV,
+    CMD_SET_MIN_FREQ,
+    CMD_SET_MAX_FREQ,
+    CMD_SET_GOV,
+} Script_CMDs_t;
+
 /** list of supported CPU frequency ranges */
 typedef enum {
     FREQ_RANGE_FLAG     = 0x80000000,
@@ -672,8 +684,8 @@ static bool doSetFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
     return ret;
 }
 
-bool CPUfreq_setFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
-		     Script_CMDs_t cmd)
+static bool CPUfreq_setFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
+			    Script_CMDs_t cmd)
 {
     if (!CPUfreq_isInitialized()) return false;
     if (setSize > numCPUs) setSize = numCPUs;
@@ -748,6 +760,16 @@ bool CPUfreq_setFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
     }
 
     return true;
+}
+
+bool CPUfreq_setMinFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq)
+{
+    return CPUfreq_setFreq(set, setSize, newFreq, CMD_SET_MIN_FREQ);
+}
+
+bool CPUfreq_setMaxFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq)
+{
+    return CPUfreq_setFreq(set, setSize, newFreq, CMD_SET_MAX_FREQ);
 }
 
 bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
