@@ -34,6 +34,7 @@
 #include "pspmixuserserver.h"
 #include "pspmixservice.h"
 #include "pspmixtypes.h"
+#include "pspmixutil.h"
 
 /**
  * Extra to add to header of each message for identify destination during
@@ -893,12 +894,12 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t dest /* fw */,
 }
 
 
-bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, uint16_t callID,
-				      uint16_t reqID, PspmixLogChannel_t channel,
-				      const char *str, int priority)
+bool pspmix_comm_sendClientLogReq(PStask_ID_t dest, uint16_t callID,
+				  uint16_t reqID, PspmixLogChannel_t channel,
+				  const char *str, int priority)
 {
     fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %s channel %s str %s\n",
-	 PSC_printTID(dest), pspmix_log_channel_names[channel], str);
+	 PSC_printTID(dest), pspmix_getChannelName(channel), str);
 
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
@@ -909,16 +910,13 @@ bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, uint16_t callID,
     addUint16ToMsg(reqID, &msg);
     addInt32ToMsg(channel, &msg);
     addStringToMsg(str, &msg);
-    if (channel == PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL
-	|| channel == PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL) {
-	addInt32ToMsg(priority, &msg);
-    }
+    if (channel == PSPMIX_LOG_SYSLOG) addInt32ToMsg(priority, &msg);
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
 	flog("dest %s channel %s failed\n", PSC_printTID(dest),
-	     pspmix_log_channel_names[channel]);
+	     pspmix_getChannelName(channel));
 	return false;
     }
 

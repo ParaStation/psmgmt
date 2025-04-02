@@ -338,29 +338,16 @@ typedef enum {
 /** Options changing behavior of PMIx_Spawn handing */
 #define PSPMIX_SPAWNOPT_INITREQUIRED  0x00000001
 
-/** Representation of a "log channel" from pmix_common.h */
+/** Condensed representation of a "log channel" from pmix_common.h */
 typedef enum {
-    PSPMIX_LOG_CHANNEL_STDOUT = 0,       /**< Log data to stdout (of machine
-					  * where srun was started), also see
-					  * PMIX_LOG_STDOUT */
-    PSPMIX_LOG_CHANNEL_STDERR,           /**< Log data to stderr (of machine
-					  * where srun was started), also see
-					  * PMIX_LOG_STDERR */
-    PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL,     /**< Log data to syslog (of machine
-					  * where srun was started), also see
-					  * PMIX_LOG_LOCAL_SYSLOG */
-    PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL,    /**< Log data to syslog (of machine
-					  * designated as gateway),  also see
-					  * PMIX_LOG_GLOBAL_SYSLOG */
-    PSPMIX_LOG_CHANNEL_SYSLOG,           /**< Log data to syslog (defaults to
-                                         * global iff available, local otherwise */
-    PSPMIX_LOG_CHANNEL_EMAIL,            /**< see PMIX_LOG_EMAIL */
-    PSPMIX_LOG_CHANNEL_DATASTORE_GLOBAL, /**< see PMIX_LOG_GLOBAL_DATASTORE */
-    PSPMIX_LOG_CHANNEL_JOB_RECORD        /**< see PMIX_LOG_JOB_RECORD */
+    PSPMIX_LOG_STDOUT = 1,  /**< Log to job's stdout (see PMIX_LOG_STDOUT) */
+    PSPMIX_LOG_STDERR,      /**< Log to job's stderr (see PMIX_LOG_STDERR) */
+    PSPMIX_LOG_SYSLOG,      /**< Log to local syslog (see PMIX_LOG_LOCAL_SYSLOG,
+			     * PMIX_LOG_GLOBAL_SYSLOG, and PMIX_LOG_SYSLOG) */
+    PSPMIX_LOG_UNSUPPORTED, /**< pseudo channel as placeholder for unsupported
+			     * channels PMIX_LOG_EMAIL, PMIX_LOG_JOB_RECORD,
+			     * and PMIX_LOG_GLOBAL_DATASTORE */
 } PspmixLogChannel_t;
-
-/** String representations of log channels, indices match PspmixLogChannel_t */
-extern const char * pspmix_log_channel_names[];
 
 #endif  /* __PS_PMIX_TYPES */
 

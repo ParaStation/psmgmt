@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -129,4 +129,26 @@ void __pspmix_deleteServer(PspmixServer_t *server, bool warn,
 
     if (server->fwdata) server->fwdata->userData = NULL;
     free(server);
+}
+
+static struct {
+    PspmixLogChannel_t id;
+    const char *name;
+} channelNames[] = {
+    { PSPMIX_LOG_STDOUT, "STDOUT" },
+    { PSPMIX_LOG_STDERR, "STDERR" },
+    { PSPMIX_LOG_SYSLOG, "SYSLOG" },
+    { PSPMIX_LOG_UNSUPPORTED, "UNSUPPORTED" },
+    { 0, NULL },
+};
+
+const char * pspmix_getChannelName(PspmixLogChannel_t channel)
+{
+    for (int n = 0; channelNames[n].name; n++) {
+	if (channelNames[n].id == channel) return channelNames[n].name;
+    }
+
+    static char txt[32];
+    snprintf(txt, sizeof(txt), "channel 0x%x UNKNOWN", channel);
+    return txt;
 }

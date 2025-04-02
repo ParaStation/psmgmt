@@ -62,6 +62,7 @@
 #include "pspmixdaemon.h"
 #include "pspmixlog.h"
 #include "pspmixtypes.h"
+#include "pspmixutil.h"
 
 /* psid rank of this forwarder and child */
 static int32_t rank = -1;
@@ -1095,17 +1096,17 @@ static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
     char *str = getStringM(data);
 
     rdbg(PSPMIX_LOG_LOGGING, "Logging to %s '%s'\n",
-	 pspmix_log_channel_names[channel], str);
+	 pspmix_getChannelName(channel), str);
 
     int ret = -1; // error
     switch (channel) {
-    case PSPMIX_LOG_CHANNEL_STDOUT:
+    case PSPMIX_LOG_STDOUT:
 	ret = PSIDfwd_printMsg(STDOUT, str);
 	break;
-    case PSPMIX_LOG_CHANNEL_STDERR:
+    case PSPMIX_LOG_STDERR:
 	ret = PSIDfwd_printMsg(STDERR, str);
 	break;
-    case PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL: 
+    case PSPMIX_LOG_SYSLOG:
     {
 	int32_t priority;
 	getInt32(data, &priority);

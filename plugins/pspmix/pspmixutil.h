@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -65,5 +65,14 @@ void __pspmix_deleteServer(PspmixServer_t *server, bool warn,
 
 #define pspmix_deleteServer(server, warn) \
 	__pspmix_deleteServer(server, warn, __func__, __LINE__)
+
+/**
+ * Provide string representations of log channel
+ *
+ * @param channel Log channel to represent
+ *
+ * @return String representation of the log channel
+ */
+const char * pspmix_getChannelName(PspmixLogChannel_t channel);
 
 #endif

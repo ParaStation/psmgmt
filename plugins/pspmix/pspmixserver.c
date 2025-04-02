@@ -1644,10 +1644,10 @@ static void server_log_cb(const pmix_proc_t *client,
 	if (PMIX_CHECK_KEY(this, PMIX_LOG_ONCE)) {
 	    pspmix_service_setLogOnce(call);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDERR)) {
-	    pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_STDERR,
+	    pspmix_service_addLogRequest(call, PSPMIX_LOG_STDERR,
 					 this->value.data.string, 0);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDOUT)) {
-	    pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_STDOUT,
+	    pspmix_service_addLogRequest(call, PSPMIX_LOG_STDOUT,
 					 this->value.data.string, 0);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG)
 		   || PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)
@@ -1661,28 +1661,15 @@ static void server_log_cb(const pmix_proc_t *client,
 		/* set default ERROR if not found */
 		if (syslog_priority < 0) syslog_priority = 3;
 	    }
-	    if (PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)) {
-		pspmix_service_addLogRequest(
-		    call, PSPMIX_LOG_CHANNEL_SYSLOG_LOCAL,
-		    this->value.data.string, syslog_priority);
-	    } else if (PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_SYSLOG)) {
-		pspmix_service_addLogRequest(
-		    call, PSPMIX_LOG_CHANNEL_SYSLOG_GLOBAL,
-		    this->value.data.string, syslog_priority);
-	    } else {
-		pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_SYSLOG,
-					     this->value.data.string,
-					     syslog_priority);
-	    }
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL)) {
-	    pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_EMAIL, NULL,
-					 0);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_DATASTORE)) {
-	    pspmix_service_addLogRequest(
-		call, PSPMIX_LOG_CHANNEL_DATASTORE_GLOBAL, NULL, 0);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_JOB_RECORD)) {
-	    pspmix_service_addLogRequest(call, PSPMIX_LOG_CHANNEL_JOB_RECORD,
-					 NULL, 0);
+	    pspmix_service_addLogRequest(call, PSPMIX_LOG_SYSLOG,
+					 this->value.data.string,
+					 syslog_priority);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL)
+		   || PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_DATASTORE)
+		   || PMIX_CHECK_KEY(this, PMIX_LOG_JOB_RECORD)) {
+	    pspmix_service_addLogRequest(call, PSPMIX_LOG_UNSUPPORTED, NULL, 0);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG_PRI)) {
+	    // was handled by PMIX_LOG_SYSLOG[_*] before
 	} else {
 	    flog("ignoring unknown or unsupported key '%s'\n", this->key);
 	}

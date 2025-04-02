@@ -198,9 +198,9 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t dest, const char *nspace,
  *
  * @return Returns true iff request message was successfully sent
  */
-bool pspmix_comm_sendClientLogRequest(PStask_ID_t dest, uint16_t callID,
-				      uint16_t reqID, PspmixLogChannel_t channel,
-				      const char *str, int priority);
+bool pspmix_comm_sendClientLogReq(PStask_ID_t dest, uint16_t callID,
+				  uint16_t reqID, PspmixLogChannel_t channel,
+				  const char *str, int priority);
 
 /**
  * @brief Send a signal message to a process via the daemon
