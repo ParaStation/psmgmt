@@ -32,7 +32,11 @@ bool test_pmix_log(char *test_name, pmix_info_t *data, size_t ndata,
 bool test_pmix_log_channels(char *test_name, char **channels, size_t nchannels,
 			    bool log_once, pmix_status_t expected_result)
 {
-    const char* str = "Test log";
+    static int callNum = 1;
+    char str[128];
+    snprintf(str, sizeof(str), "----- Test log #%d: %s%s\n", callNum++,
+	     log_once ? "one of " : "", test_name);
+
     size_t ndata = log_once ? nchannels+1 : nchannels;
     pmix_info_t data[ndata];
     for(size_t ch = 0; ch < nchannels; ch++) {
@@ -101,7 +105,7 @@ int main(void)
     {
 	char *channels[] = { PMIX_LOG_SYSLOG };
 	err += test_pmix_log_channels("[SYSLOG]", channels, 1, false,
-				      PMIX_SUCCESS); 
+				      PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_EMAIL };
