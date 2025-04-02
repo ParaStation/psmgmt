@@ -1104,7 +1104,7 @@ static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
 	ret = PSIDfwd_printMsg(STDOUT, str);
 	break;
     case PSPMIX_LOG_STDERR:
-	ret = PSIDfwd_printMsg(STDERR, str);
+	ret = (getenv("__PMIX_BREAK_STDERR")) ? -1 : PSIDfwd_printMsg(STDERR, str);
 	break;
     case PSPMIX_LOG_SYSLOG:
     {
