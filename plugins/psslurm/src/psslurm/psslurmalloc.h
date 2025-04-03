@@ -42,7 +42,6 @@ typedef struct {
     bool *epilogRes;	    /**< track epilogue results per node */
     uint32_t epilogCnt;     /**< number of nodes finished epilogue */
     bool nodeFail;	    /**< flag to save node failure */
-    bool verified;	    /**< set to true if the allocation is verified */
     JobCred_t *cred;	    /**< job credentials */
     list_t *gresList;	    /**< list of allocated generic resources */
     PSCPU_set_t hwthreads;  /**< hwthreads for the allocation on current node */
@@ -209,21 +208,6 @@ const char *Alloc_strState(AllocState_t state);
  * false
  */
 bool Alloc_isLeader(Alloc_t *alloc);
-
-/**
- * @brief Verify an allocation
- *
- * Ensure an allocation was not cancelled by slurmctld if no jobs or steps
- * are started within a grace period. The mother superior will send a
- * REQUEST_JOB_INFO_SINGLE RPC to slurmctld requesting the status of the
- * allocation. If the allocation was removed by slurmctld the mother superior
- * will send a message to all participating nodes that the allocation should
- * be removed.
- *
- * @param grace If set to false all allocations will be verified immediately
- * regardless of there age
- */
-void Alloc_verify(bool grace);
 
 /**
  * @brief Initialize the user cgroup for the allocation

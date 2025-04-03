@@ -1011,10 +1011,7 @@ static void handleJobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
 
     Alloc_t *alloc = Alloc_find(jobid);
-    if (alloc) {
-	alloc->verified = true;
-	alloc->state = A_RUNNING;
-    }
+    if (alloc) alloc->state = A_RUNNING;
 
     mlog("%s: jobid %u user '%s' nodes %u from %s\n", __func__, jobid,
 	 job->username, job->nrOfNodes, PSC_printTID(msg->header.sender));

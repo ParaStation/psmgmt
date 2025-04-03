@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -291,18 +291,6 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info);
 bool initSlurmdProto(void);
 
 void clearSlurmdProto(void);
-
-/**
- * @brief Request job information from slurmctld
- *
- * @param jobid The job ID to request information for
- *
- * @param cb Callback function to handle the result or NULL
- *
- * @return Returns the number of bytes written, -1 on error or -2 if
- * the message was stored and will be send out later
- */
-int requestJobInfo(uint32_t jobid, Connection_CB_t *cb);
 
 /**
  * @brief Get the local ID of current node

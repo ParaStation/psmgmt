@@ -406,67 +406,6 @@ static bool testSlurmVersion(uint32_t pVer, uint32_t cmd)
     return true;
 }
 
-/**
- * @brief Handle a job info response from slurmctld
- *
- * @param msg The response message to handle
- *
- * @param info Additional info
- *
- * @return Always return 0
- */
-static int handleJobInfoResp(Slurm_Msg_t *sMsg, void *info)
-{
-    Req_Info_t *req = info;
-
-    if (!unpackSlurmMsg(sMsg)) {
-	flog("unpacking message %s (%u) for jobid %u failed\n",
-	     msgType2String(sMsg->head.type), sMsg->head.version, req->jobid);
-	return 0;
-    }
-
-    Resp_Job_Info_t *resp = sMsg->unpData;
-    if (!resp) {
-	flog("invalid response data\n");
-	return 0;
-    }
-
-    flog("received %u jobs, update %zu\n", resp->numSlices, resp->lastUpdate);
-
-    for (uint32_t i = 0; i < resp->numSlices; i++) {
-	Job_Info_Slice_t *slice = &(resp->slices)[i];
-
-	if (req->jobid != slice->jobid) {
-	    flog("warning: got non requested job %u, requested job %u\n",
-		 slice->jobid, req->jobid);
-	}
-
-	flog("jobid %u userid %u state %x state_reason %u exit code %u\n",
-	     slice->jobid, slice->userID, slice->jobState & JOB_STATE_BASE,
-	     slice->stateReason, slice->exitCode);
-    }
-
-    freeUnpackMsgData(sMsg);
-
-    return 0;
-}
-
-int requestJobInfo(uint32_t jobid, Connection_CB_t *cb)
-{
-    Req_Job_Info_Single_t jobInfo = { .jobid = jobid, .flags = 0 };
-
-    jobInfo.flags |= JOB_SHOW_ALL;
-    jobInfo.flags |= JOB_SHOW_DETAIL;
-
-    Req_Info_t *req = ucalloc(sizeof(*req));
-    req->type = REQUEST_JOB_INFO_SINGLE;
-    req->jobid = jobid;
-    req->cb = cb ? cb : &handleJobInfoResp;
-
-    flog("job %u\n", jobid);
-    return sendSlurmctldReq(req, &jobInfo);
-}
-
 uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
 {
     PSnodes_ID_t myID = PSC_getMyID();
@@ -653,7 +592,6 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	fwCMD_printMsg(NULL, step, buf, strlen(buf), STDERR, -1);
 	step->termAfterFWmsg = ESLURMD_INVALID_JOB_CREDENTIAL;
     } else {
-	alloc->verified = true;
 	/* ensure a proper cleanup is executed on termination */
 	alloc->state = A_RUNNING;
     }
@@ -1884,8 +1822,6 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
     alloc->gresList = req->gresList;
     req->gresList = NULL;
 
-    alloc->verified = true;
-
     /* mark allocation as running or it might get deleted
      * by @ref cleanupStaleAllocs() */
     alloc->state = A_RUNNING;
@@ -2058,7 +1994,6 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 		 Alloc_strState(alloc->state));
 	    return ESLURMD_INVALID_JOB_CREDENTIAL;
 	}
-	alloc->verified = true;
 
 	/* pspelogue already ran parallel prologue, start job */
 	alloc->state = A_RUNNING;
@@ -2067,7 +2002,6 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	     Job_strState(job->state));
     } else {
 	/* slurmd prologue is configured */
-	alloc->verified = true;
 	if (alloc && alloc->state == A_PROLOGUE_FINISH) {
 	    /* pspelogue already executed the prologue */
 	    alloc->state = A_RUNNING;
@@ -2577,7 +2511,6 @@ static int handleNodeRegStat(Slurm_Msg_t *sMsg)
 {
     sendPing(sMsg);
     sendNodeRegStatus(false);
-    Alloc_verify(true);
     return SLURM_NO_RC;
 }
 

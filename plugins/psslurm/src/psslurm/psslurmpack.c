@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -4477,218 +4477,6 @@ static bool unpackRebootNodes(Slurm_Msg_t *sMsg)
     return true;
 }
 
-/**
- * @brief Unpack a job info response
- *
- * Unpack a job info response from the provided message pointer.
- * The memory is allocated using umalloc(). The caller is responsible
- * to free the memory using ufree().
- *
- * @param sMsg The message to unpack
- *
- * @return On success true is returned or false in case of an
- * error. If reading was not successful, @a sMsg might be not updated.
- */
-static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
-{
-    Resp_Job_Info_t *resp = ucalloc(sizeof(*resp));
-    PS_DataBuffer_t *data = sMsg->data;
-    uint16_t msgVer = sMsg->head.version;
-    sMsg->unpData = resp;
-
-    /* number of job slices */
-    getUint32(data, &resp->numSlices);
-    /* last update */
-    getTime(data, &resp->lastUpdate);
-
-    /* last backfill time */
-    getTime(data, &resp->lastBackfill);
-
-    /* only parse the first job description for now */
-    resp->numSlices = 1;
-
-    resp->slices = ucalloc(sizeof(*(resp->slices)) * resp->numSlices);
-
-    for (uint32_t i=0; i<resp->numSlices; i++) {
-	Job_Info_Slice_t *slice = &(resp->slices)[i];
-
-	/* array job ID */
-	getUint32(data, &slice->arrayJobID);
-	/* array task ID */
-	getUint32(data, &slice->arrayTaskID);
-	/* array task string */
-	slice->arrayTaskStr = getStringM(data);
-	/* array maximal tasks */
-	getUint32(data, &slice->arrayMaxTasks);
-	/* association ID for job */
-	getUint32(data, &slice->assocID);
-
-	/* job container, will be overwritten later,
-	 * unclear why this was introduced */
-	char *tmp = getStringM(data);
-	ufree(tmp);
-
-	/* container ID */
-	if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	    slice->containerID = getStringM(data);
-	}
-
-	/* delay boot */
-	getUint32(data, &slice->delayBoot);
-
-	/* failed node */
-	if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	    slice->failedNode = getStringM(data);
-	}
-
-	/* job ID */
-	getUint32(data, &slice->jobid);
-	/* user ID */
-	getUint32(data, &slice->userID);
-	/* group ID */
-	getUint32(data, &slice->groupID);
-	/* het job ID */
-	getUint32(data, &slice->hetJobID);
-	/* het job ID set */
-	slice->hetJobIDset = getStringM(data);
-	/* het job offset */
-	getUint32(data, &slice->hetJobOffset);
-	/* profile */
-	getUint32(data, &slice->profile);
-	/* job state */
-	getUint32(data, &slice->jobState);
-	/* batch flag */
-	getUint16(data, &slice->batchFlag);
-
-	/* state reason */
-	if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	    getUint32(data, &slice->stateReason);
-	} else {
-	    getUint16(data, (uint16_t *) &slice->stateReason);
-	}
-
-	/* power flags */
-	getUint8(data, &slice->powerFlags);
-	/* reboot */
-	getUint8(data, &slice->reboot);
-	/* restart count */
-	getUint16(data, &slice->restartCount);
-	/* show flags */
-	getUint16(data, &slice->showFlags);
-	/* deadline */
-	getTime(data, &slice->deadline);
-	/* alloc sid */
-	getUint32(data, &slice->allocSID);
-	/* time limit */
-	getUint32(data, &slice->timeLimit);
-	/* time min */
-	getUint32(data, &slice->timeMin);
-	/* nice */
-	getUint32(data, &slice->nice);
-
-	/* submit time */
-	getTime(data, &slice->submitTime);
-	/* eligible time */
-	getTime(data, &slice->eligibleTime);
-	/* accrue time */
-	getTime(data, &slice->accrueTime);
-	/* start time */
-	getTime(data, &slice->startTime);
-	/* end time */
-	getTime(data, &slice->endTime);
-	/* suspend time */
-	getTime(data, &slice->suspendTime);
-	/* time prior last suspend */
-	getTime(data, &slice->preSusTime);
-	/* resize time */
-	getTime(data, &slice->resizeTime);
-	/* last time schedule was evaluated */
-	getTime(data, &slice->lastSchedEval);
-	/* preempt time */
-	getTime(data, &slice->preemptTime);
-
-	/* priority */
-	getUint32(data, &slice->priority);
-
-	if (msgVer > SLURM_23_11_PROTO_VERSION) {
-	    /* priority array */
-	    getUint32Array(data, &slice->prioArray, &slice->numPrioArray);
-	    /* priority array parts */
-	    slice->prioArrayParts = getStringM(data);
-	}
-
-	/* billable tres */
-	getDouble(data, &slice->billableTres);
-	/* cluster */
-	slice->cluster = getStringM(data);
-	/* nodes */
-	slice->nodes = getStringM(data);
-	/* sched nodes */
-	slice->schedNodes = getStringM(data);
-	/* partition */
-	slice->partition = getStringM(data);
-	/* account */
-	slice->account = getStringM(data);
-	/* admin comment */
-	slice->adminComment = getStringM(data);
-	/* site factor */
-	getUint32(data, &slice->siteFactor);
-	/* network */
-	slice->network = getStringM(data);
-	/* comment */
-	slice->comment = getStringM(data);
-
-	/* extra */
-	if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	    slice->extra = getStringM(data);
-	}
-
-	/* container */
-	slice->container = getStringM(data);
-
-	/* batch features */
-	slice->batchFeat = getStringM(data);
-	/* batch host */
-	slice->batchHost = getStringM(data);
-	/* burst buffer */
-	slice->burstBuffer = getStringM(data);
-	/* burst buffer state */
-	slice->burstBufferState = getStringM(data);
-	/* system comment */
-	slice->systemComment = getStringM(data);
-	/* qos */
-	slice->qos = getStringM(data);
-	/* preemptable time */
-	getTime(data, &slice->preemptableTime);
-	/* licenses */
-	slice->licenses = getStringM(data);
-	/* stateDesc */
-	slice->stateDesc = getStringM(data);
-	/* reserved name */
-	slice->resvName = getStringM(data);
-
-	if (msgVer > SLURM_23_11_PROTO_VERSION) {
-	    /* reserved ports */
-	    slice->resvPorts = getStringM(data);
-	}
-
-	/* mcs label */
-	slice->mcsLabel = getStringM(data);
-
-	/* exit code */
-	getUint32(data, &slice->exitCode);
-	/* derived exit code */
-	getUint32(data, &slice->derivedExitCode);
-    }
-
-    if (data->unpackErr) {
-	flog("unpacking message failed: %s\n", serialStrErr(data->unpackErr));
-	return false;
-    }
-
-    return true;
-}
-
 bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
 {
     if (!sMsg) {
@@ -4742,9 +4530,6 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
 	break;
     case RESPONSE_NODE_REGISTRATION:
 	ret = unpackExtRespNodeReg(sMsg);
-	break;
-    case RESPONSE_JOB_INFO:
-	ret = unpackRespJobInfo(sMsg);
 	break;
     case REQUEST_REBOOT_NODES:
 	ret = unpackRebootNodes(sMsg);
@@ -4803,29 +4588,6 @@ static bool packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req)
 
     /* prolog return code */
     addUint32ToMsg(req->rc, data);
-
-    return true;
-}
-
-/**
- * @brief Pack a job info single request
- *
- * Pack request job info single and add it to the provided data
- * buffer.
- *
- * @param data Data buffer to save data to
- *
- * @param req The data to pack
- *
- * @return On success true is returned or false in case of an
- * error. If writing was not successful, @a data might be not updated.
- */
-static bool packReqJobInfoSingle(PS_SendDB_t *data, Req_Job_Info_Single_t *req)
-{
-    /* jobid */
-    addUint32ToMsg(req->jobid, data);
-    /* job flags */
-    addUint16ToMsg(req->flags, data);
 
     return true;
 }
@@ -5001,9 +4763,6 @@ bool packSlurmReq(Req_Info_t *reqInfo, PS_SendDB_t *msg, void *reqData,
 	case  MESSAGE_NODE_REGISTRATION_STATUS:
 	    reqInfo->expRespType = RESPONSE_NODE_REGISTRATION;
 	    return packRespNodeRegStatus(msg, reqData);
-	case REQUEST_JOB_INFO_SINGLE:
-	    reqInfo->expRespType = RESPONSE_JOB_INFO;
-	    return packReqJobInfoSingle(msg, reqData);
 	case REQUEST_COMPLETE_PROLOG:
 	    return packReqPrologComplete(msg, reqData);
 	case REQUEST_JOB_REQUEUE:
