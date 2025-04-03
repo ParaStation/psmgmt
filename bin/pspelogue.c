@@ -196,9 +196,11 @@ static PSnodes_ID_t psconfigResHost(const char *host)
     if (!string) {
 	if (err->code == PSCONFIG_ERROR_OBJNOTEXIST) {
 	    fprintf(stderr, "local host object '%s' not found in psconfig as"
-		    " user %d", tmp, getuid());
+		    " user %d\n", tmp, getuid());
+	    fprintf(stderr, "this might be a permission issue\n");
+
 	} else {
-	    fprintf(stderr, "%s", err->message);
+	    fprintf(stderr, "%s\n", err->message);
 	}
 	exit(1);
     }
