@@ -1886,6 +1886,10 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
 
     alloc->verified = true;
 
+    /* mark allocation as running or it might get deleted
+     * by @ref cleanupStaleAllocs() */
+    alloc->state = A_RUNNING;
+
     /* set mask of hardware threads to use */
     nodeinfo_t *nodeinfo = getNodeinfo(PSC_getMyID(), alloc->cred, alloc->id);
     if (!nodeinfo) {
@@ -2048,7 +2052,8 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	}
 
 	/* sanity check allocation state */
-	if (alloc->state != A_PROLOGUE_FINISH) {
+	if (alloc->state != A_PROLOGUE_FINISH &&
+	    alloc->state != A_RUNNING) {
 	    flog("allocation %u in invalid state %s\n", alloc->id,
 		 Alloc_strState(alloc->state));
 	    return ESLURMD_INVALID_JOB_CREDENTIAL;
