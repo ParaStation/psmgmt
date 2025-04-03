@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "list.h"
 #include "psattribute.h"
@@ -105,6 +106,8 @@ struct PspmixLogCall {
     list_t requests;    /**< list of requests belonging to this call */
     uint16_t id;        /**< unique ID of call */
     bool logOnce;       /**< flag if PMIX_LOG_ONCE was given */
+    int prio;           /**< log priority (only affects PSPMIX_LOG_SYSLOG) */
+    time_t time;        /**< output's time stamp */
     uint16_t numAdd;    /**< number of requests in the call */
     uint16_t numFin;    /**< number of request fully handled */
     pmix_proc_t caller; /**< client that issued the PMIx_Log() call */
@@ -2384,6 +2387,8 @@ PspmixLogCall_t pspmix_service_newLogCall(void)
     call->numAdd = 0;
     call->numFin = 0;
     call->logOnce = false;
+    call->prio = LOG_ERR;
+    call->time = 0;
     call->cb = NULL;
     return call;
 }
@@ -2392,6 +2397,17 @@ void pspmix_service_setLogOnce(PspmixLogCall_t call)
 {
     if (call) call->logOnce = true;
 }
+
+void pspmix_service_setSyslogPrio(PspmixLogCall_t call, int prio)
+{
+    if (call && prio >= LOG_EMERG && prio <= LOG_DEBUG) call->prio = prio;
+}
+
+void pspmix_service_setTimeStamp(PspmixLogCall_t call, time_t timeStamp)
+{
+    if (call) call->time = timeStamp;
+}
+
 
 // library thread
 void pspmix_service_addLogRequest(PspmixLogCall_t call,
@@ -2502,8 +2518,9 @@ void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
     }
 
     fdbg(PSPMIX_LOG_CALL, "call %u\n", call->id);
-    fdbg(PSPMIX_LOG_LOGGING, "call %u: logOnce=%s\n", call->id,
-	 call->logOnce ? "true" : "false");
+    fdbg(PSPMIX_LOG_LOGGING, "call %u: logOnce %s prio %d time %s", call->id,
+	 call->logOnce ? "true" : "false", call->prio,
+	 call->time ? ctime(&call->time) : "<none>");
 
     PMIX_PROC_LOAD(&call->caller, caller->nspace, caller->rank);
     call->cb = cb;

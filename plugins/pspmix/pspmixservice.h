@@ -441,6 +441,28 @@ PspmixLogCall_t pspmix_service_newLogCall(void);
 void pspmix_service_setLogOnce(PspmixLogCall_t call);
 
 /**
+ * @brief Set call's syslog priority
+ *
+ * @param call Call handle to modify
+ *
+ * @param prio Syslog priority to apply
+ *
+ * @return No return value
+ */
+void pspmix_service_setSyslogPrio(PspmixLogCall_t call, int prio);
+
+/**
+ * @brief Set call's timestamp
+ *
+ * @param call Call handle to modify
+ *
+ * @param timeStamp Time stamp to report
+ *
+ * @return No return value
+ */
+void pspmix_service_setTimeStamp(PspmixLogCall_t call, time_t timeStamp);
+
+/**
  * @brief Add a new Log Request to an existing call
  *
  * @param call Call handle to modify
