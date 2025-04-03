@@ -2454,7 +2454,8 @@ static bool sendClientLogReq(const pmix_proc_t *client, PspmixLogRequest_t *req)
     if (fwTID < 0) return false;
 
     return pspmix_comm_sendClientLogReq(fwTID, req->call->id, req->id,
-					req->channel, req->str, req->call->prio);
+					req->channel, req->str,
+					req->call->prio, req->call->time);
 }
 
 /**

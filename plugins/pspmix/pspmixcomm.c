@@ -896,7 +896,7 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t dest /* fw */,
 
 bool pspmix_comm_sendClientLogReq(PStask_ID_t dest, uint16_t callID,
 				  uint16_t reqID, PspmixLogChannel_t channel,
-				  const char *str, int priority)
+				  const char *str, int prio, time_t stamp)
 {
     fdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "dest %s channel %s str %s\n",
 	 PSC_printTID(dest), pspmix_getChannelName(channel), str);
@@ -909,8 +909,9 @@ bool pspmix_comm_sendClientLogReq(PStask_ID_t dest, uint16_t callID,
     addUint16ToMsg(callID, &msg);
     addUint16ToMsg(reqID, &msg);
     addInt32ToMsg(channel, &msg);
+    if (channel == PSPMIX_LOG_SYSLOG) addInt32ToMsg(prio, &msg);
+    addTimeToMsg(stamp, &msg);
     addStringToMsg(str, &msg);
-    if (channel == PSPMIX_LOG_SYSLOG) addInt32ToMsg(priority, &msg);
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);

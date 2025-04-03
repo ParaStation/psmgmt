@@ -1093,28 +1093,47 @@ static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
     getInt32(data, &channel_i);
     PspmixLogChannel_t channel = channel_i;
 
+    int32_t priority = LOG_ERR;
+    if (channel == PSPMIX_LOG_SYSLOG) getInt32(data, &priority);
+
+    time_t time;
+    getTime(data, &time);
+    char timeStr[32] = { '\0' };
+    if (time) {
+	ctime_r(&time, timeStr);
+	// evict trailing newline if any
+	size_t len = strlen(timeStr);
+	if (len && timeStr[len-1] == '\n') timeStr[len-1] = '\0';
+    }
+
     char *str = getStringM(data);
 
-    rdbg(PSPMIX_LOG_LOGGING, "Logging to %s '%s'\n",
-	 pspmix_getChannelName(channel), str);
+    rdbg(PSPMIX_LOG_LOGGING, "Logging to %s '%s%s%s'\n",
+	 pspmix_getChannelName(channel), timeStr, time ? ": " : "", str);
 
-    int ret = -1; // error
+    int ret = 0;
     switch (channel) {
     case PSPMIX_LOG_STDOUT:
-	ret = PSIDfwd_printMsg(STDOUT, str);
+	if (time) {
+	    ret = PSIDfwd_printMsg(STDOUT, timeStr);
+	    if (ret != -1) ret = PSIDfwd_printMsg(STDOUT, ": ");
+	}
+	if (ret != -1) ret = PSIDfwd_printMsg(STDOUT, str);
 	break;
     case PSPMIX_LOG_STDERR:
-	ret = (getenv("__PMIX_BREAK_STDERR")) ? -1 : PSIDfwd_printMsg(STDERR, str);
+	ret = (getenv("__PMIX_BREAK_STDERR")) ? -1 : 0;
+	if (time) {
+	    if (ret != -1) ret = PSIDfwd_printMsg(STDERR, timeStr);
+	    if (ret != -1) ret = PSIDfwd_printMsg(STDERR, ": ");
+	}
+	if (ret != -1) ret = PSIDfwd_printMsg(STDERR, str);
 	break;
     case PSPMIX_LOG_SYSLOG:
-    {
-	int32_t priority;
-	getInt32(data, &priority);
-	syslog(priority, "%s\n", str);
+	syslog(priority, "%s%s%s\n", timeStr, time ? ": " : "", str);
 	ret = 0;
 	break;
-    }
     default:
+	ret = -1; // unsupported channel
 	break;
     }
 
