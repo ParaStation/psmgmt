@@ -123,8 +123,6 @@ typedef struct {
     bool success;          /**< Flag request as handled succesfully */
     PspmixLogChannel_t channel; /**< Channel to log to */
     char *str;             /**< String to be logged */
-    int priority;          /**< priority of the message if the channel supports
-			      that notion (e.g. pmix.log.syslog) */
 } PspmixLogRequest_t;
 
 /****** global variable needed to be lock protected ******/
@@ -2411,8 +2409,7 @@ void pspmix_service_setTimeStamp(PspmixLogCall_t call, time_t timeStamp)
 
 // library thread
 void pspmix_service_addLogRequest(PspmixLogCall_t call,
-				  PspmixLogChannel_t channel,
-				  const char *str, uint32_t priority)
+				  PspmixLogChannel_t channel, const char *str)
 {
     if (!call) return;
 
@@ -2423,7 +2420,6 @@ void pspmix_service_addLogRequest(PspmixLogCall_t call,
     req->success = false;
     req->channel = channel;
     req->str = ustrdup(str ? str : "'null'");
-    req->priority = priority;
     if (channel == PSPMIX_LOG_UNSUPPORTED) call->numFin++;
 
     list_add_tail(&req->next, &call->requests);
@@ -2458,7 +2454,7 @@ static bool sendClientLogReq(const pmix_proc_t *client, PspmixLogRequest_t *req)
     if (fwTID < 0) return false;
 
     return pspmix_comm_sendClientLogReq(fwTID, req->call->id, req->id,
-					req->channel, req->str, req->priority);
+					req->channel, req->str, req->call->prio);
 }
 
 /**
@@ -2537,9 +2533,8 @@ void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
     list_t *r;
     list_for_each(r, &call->requests) {
 	PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
-	fdbg(PSPMIX_LOG_LOGGING, " request %u/%u (%s) priority %i '%s'\n",
-	     call->id, req->id, pspmix_getChannelName(req->channel),
-	     req->priority, req->str);
+	fdbg(PSPMIX_LOG_LOGGING, " request %u/%u (%s) '%s'\n", call->id,
+	     req->id, pspmix_getChannelName(req->channel), req->str);
 
 	switch (req->channel) {
 	case PSPMIX_LOG_SYSLOG:
@@ -2593,9 +2588,8 @@ void pspmix_service_handleClientLogResp(uint16_t callID, uint16_t reqID,
 	list_for_each(r, &call->requests) {
 	    PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
 	    if (req->done) continue;
-	    fdbg(PSPMIX_LOG_LOGGING, " request %u/%u (%s): priority=%i '%s'\n",
-		 call->id, req->id, pspmix_getChannelName(req->channel),
-		 req->priority, req->str);
+	    fdbg(PSPMIX_LOG_LOGGING, " request %u/%u (%s): '%s'\n", call->id,
+		 req->id, pspmix_getChannelName(req->channel), req->str);
 	    switch (req->channel) {
 	    case PSPMIX_LOG_SYSLOG:
 	    case PSPMIX_LOG_STDERR:

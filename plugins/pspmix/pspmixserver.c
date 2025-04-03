@@ -1638,38 +1638,42 @@ static void server_log_cb(const pmix_proc_t *client,
 
     PspmixLogCall_t call = pspmix_service_newLogCall();
 
-    int syslog_priority = -1;
+    for (size_t i = 0; i < ndirs; i++) {
+	const pmix_info_t *this = directives + i;
+	if (PMIX_CHECK_KEY(this, PMIX_LOG_ONCE)) {
+	    if (PMIX_INFO_TRUE(this)) pspmix_service_setLogOnce(call);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG_PRI)) {
+	    pspmix_service_setSyslogPrio(call, this->value.data.integer);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_TIMESTAMP)) {
+	    pspmix_service_setTimeStamp(call, this->value.data.time);
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SOURCE)) {
+	    // ignore silently
+	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_GENERATE_TIMESTAMP)) {
+	    // OpenPMIx has generated the PMIX_LOG_TIMESTAMP => ignore silently
+	} else {
+	    flog("ignoring unsupported directive '%s'\n", this->key);
+	}
+    }
+
     for (size_t i = 0; i < ndata; i++) {
 	const pmix_info_t *this = data + i;
 	if (PMIX_CHECK_KEY(this, PMIX_LOG_ONCE)) {
 	    pspmix_service_setLogOnce(call);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDERR)) {
 	    pspmix_service_addLogRequest(call, PSPMIX_LOG_STDERR,
-					 this->value.data.string, 0);
+					 this->value.data.string);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDOUT)) {
 	    pspmix_service_addLogRequest(call, PSPMIX_LOG_STDOUT,
-					 this->value.data.string, 0);
+					 this->value.data.string);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG)
 		   || PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)
 		   || PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_SYSLOG)) {
-	    if (syslog_priority < 0) {
-		for (size_t j = i + 1; j < ndata; j++) {
-		    if (PMIX_CHECK_KEY(data + j, PMIX_LOG_SYSLOG_PRI)) {
-			syslog_priority = data[j].value.data.integer;
-		    }
-		}
-		/* set default ERROR if not found */
-		if (syslog_priority < 0) syslog_priority = 3;
-	    }
 	    pspmix_service_addLogRequest(call, PSPMIX_LOG_SYSLOG,
-					 this->value.data.string,
-					 syslog_priority);
+					 this->value.data.string);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL)
 		   || PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_DATASTORE)
 		   || PMIX_CHECK_KEY(this, PMIX_LOG_JOB_RECORD)) {
-	    pspmix_service_addLogRequest(call, PSPMIX_LOG_UNSUPPORTED, NULL, 0);
-	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG_PRI)) {
-	    // was handled by PMIX_LOG_SYSLOG[_*] before
+	    pspmix_service_addLogRequest(call, PSPMIX_LOG_UNSUPPORTED, NULL);
 	} else {
 	    flog("ignoring unknown or unsupported key '%s'\n", this->key);
 	}

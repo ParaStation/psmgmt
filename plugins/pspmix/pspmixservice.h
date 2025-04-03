@@ -468,14 +468,11 @@ void pspmix_service_setTimeStamp(PspmixLogCall_t call, time_t timeStamp);
  * @param call Call handle to modify
  * @param channel Channel to be logged to
  * @param str String to be logged
- * @param priority Priority of the message if the channel supports
- * that notion (f.ex. pmix.log.syslog)
  *
  * @return No return value
  */
 void pspmix_service_addLogRequest(PspmixLogCall_t call,
-				  PspmixLogChannel_t channel,
-				  const char *str, uint32_t priority);
+				  PspmixLogChannel_t channel, const char *str);
 
 /**
  * @brief Execute an existing log call
