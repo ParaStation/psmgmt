@@ -10,13 +10,13 @@
 	printf("[%u]: " #name " is %d\n", proc.rank, val->data.uint32);       \
     }
 
-bool doTest(char *test_name, pmix_info_t *data, size_t ndata,
-	    pmix_status_t xpctdRes)
+bool doTest(int callNum, char *test_name, pmix_info_t *data, size_t nData,
+	    pmix_info_t *directives, size_t nDir, pmix_status_t xpctdRes)
 {
-    fprintf(stdout, "PMIx_Log(%s, ...)\n", test_name);
-    fprintf(stderr, "PMIx_Log(%s, ...)\n", test_name);
-    pmix_status_t rc = PMIx_Log(data, ndata, NULL, 0);
-    printf("%s [Expected: %s]", PMIx_Error_string(rc),
+    fprintf(stdout, "#%d PMIx_Log(%s, ...)\n", callNum, test_name);
+    fprintf(stderr, "#%d PMIx_Log(%s, ...)\n", callNum, test_name);
+    pmix_status_t rc = PMIx_Log(data, nData, directives, nDir);
+    printf("#%d, %s [Expected: %s]", callNum, PMIx_Error_string(rc),
 	   PMIx_Error_string(xpctdRes));
 
     printf(" ... %s\n", rc == xpctdRes ? "success" : "failed");
@@ -24,25 +24,34 @@ bool doTest(char *test_name, pmix_info_t *data, size_t ndata,
     return rc != xpctdRes;
 }
 
-bool test_pmix_logs(char *test_name, char **channels, size_t nchannels,
-		    bool log_once, pmix_status_t xpctdRes)
+bool test_pmix_logs(char *test_name, char **chan, size_t nChan, bool logOnce,
+		    bool genTime, time_t time, pmix_status_t xpctdRes)
 {
-    static int callNum = 1;
+    static int callNum = 0;
     char str[128];
-    snprintf(str, sizeof(str), "----- Test log #%d: %s%s\n", callNum++,
-	     log_once ? "one of " : "", test_name);
+    snprintf(str, sizeof(str), "----- Test log #%d: %s%s\n", ++callNum,
+	     logOnce ? "one of " : "", test_name);
 
-    size_t ndata = log_once ? nchannels+1 : nchannels;
-    pmix_info_t data[ndata];
-    for(size_t ch = 0; ch < nchannels; ch++) {
-	PMIX_INFO_LOAD(&data[ch], channels[ch], str, PMIX_STRING);
+    pmix_info_t data[nChan];
+    for (size_t ch = 0; ch < nChan; ch++) {
+	PMIX_INFO_LOAD(&data[ch], chan[ch], str, PMIX_STRING);
     }
-    if (log_once) {
-	bool true_value = true;
-	PMIX_INFO_LOAD(&data[ndata-1], PMIX_LOG_ONCE, &true_value, PMIX_BOOL);
+    pmix_info_t directives[5];
+    size_t nDir = 0;
+    if (logOnce) {
+	bool trueVal = true;
+	PMIX_INFO_LOAD(&directives[nDir++], PMIX_LOG_ONCE, &trueVal, PMIX_BOOL);
+    }
+    if (genTime) {
+	bool trueVal = true;
+	PMIX_INFO_LOAD(&directives[nDir++], PMIX_LOG_GENERATE_TIMESTAMP,
+		       &trueVal, PMIX_BOOL);
+    }
+    if (time) {
+	PMIX_INFO_LOAD(&directives[nDir++], PMIX_LOG_TIMESTAMP, &time, PMIX_TIME);
     }
 
-    return doTest(test_name, data, ndata, xpctdRes);
+    return doTest(callNum, test_name, data, nChan, directives, nDir,  xpctdRes);
 }
 
 
@@ -72,108 +81,121 @@ int main(void)
     GET_INFO(PMIX_APPNUM);
 
     int err = 0;
-    // Empty request
+    // Empty request (#1)
     {
 	char *channels[] = { };
-	err += test_pmix_logs("[]", channels, 0, false, PMIX_ERR_BAD_PARAM);
+	err += test_pmix_logs("[]", channels, 0, false, false, 0,
+			      PMIX_ERR_BAD_PARAM);
     }
-    // Single request
+    // Single request (#2)
     {
 	char *channels[] = { PMIX_LOG_STDOUT };
-	err += test_pmix_logs("[STDOUT]", channels, 1, false, PMIX_SUCCESS);
+	err += test_pmix_logs("[STDOUT]", channels, 1, false, false, 0,
+			      PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_STDERR };
-	err += test_pmix_logs("[STDERR]", channels, 1, false,
+	err += test_pmix_logs("[STDERR]", channels, 1, false, false, 0,
 			      expectStderrFail ? PMIX_ERROR : PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_LOCAL_SYSLOG };
-	err += test_pmix_logs("[LOCAL_SYSLOG]", channels, 1, false,
+	err += test_pmix_logs("[LOCAL_SYSLOG]", channels, 1, false, false, 0,
 			      PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_GLOBAL_SYSLOG };
-	err += test_pmix_logs("[GLOBAL_SYSLOG]", channels, 1, false,
+	err += test_pmix_logs("[GLOBAL_SYSLOG]", channels, 1, false, false, 0,
 			      PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_SYSLOG };
-	err += test_pmix_logs("[SYSLOG]", channels, 1, false, PMIX_SUCCESS);
+	err += test_pmix_logs("[SYSLOG]", channels, 1, false, false, 0,
+			      PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_EMAIL };
-	err += test_pmix_logs("[EMAIL]", channels, 1, false,
+	err += test_pmix_logs("[EMAIL]", channels, 1, false, false, 0,
 			      PMIX_ERR_NOT_SUPPORTED);
     }
-    // Multiple requests
+    // Multiple requests (#8)
     {
 	char *channels[] = { PMIX_LOG_STDOUT, PMIX_LOG_STDERR };
-	err += test_pmix_logs("[STDOUT, STDERR]", channels, 2, false,
+	err += test_pmix_logs("[STDOUT, STDERR]", channels, 2, false, false, 0,
 			      expectStderrFail ?
 			      PMIX_ERR_PARTIAL_SUCCESS : PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_STDOUT, PMIX_LOG_SYSLOG };
-	err += test_pmix_logs("[STDOUT, SYSLOG]", channels, 2, false,
+	err += test_pmix_logs("[STDOUT, SYSLOG]", channels, 2, false, false, 0,
 			      PMIX_SUCCESS);
     }
     {
+	char *channels[] = { PMIX_LOG_STDOUT, PMIX_LOG_SYSLOG };
+	err += test_pmix_logs("[STDOUT, SYSLOG] at now", channels, 2, false,
+			      true, 0, PMIX_SUCCESS);
+    }
+    {
+	char *channels[] = { PMIX_LOG_STDOUT, PMIX_LOG_SYSLOG };
+	err += test_pmix_logs("[STDOUT, SYSLOG] at time", channels, 2, false,
+			      false, 1743681275, PMIX_SUCCESS);
+    }
+    {
 	char *channels[] = { PMIX_LOG_STDERR, PMIX_LOG_SYSLOG };
-	err += test_pmix_logs("[STDERR, SYSLOG]", channels, 2, false,
+	err += test_pmix_logs("[STDERR, SYSLOG]", channels, 2, false, false, 0,
 			      expectStderrFail ?
 			      PMIX_ERR_PARTIAL_SUCCESS : PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_STDOUT, PMIX_LOG_EMAIL };
-	err += test_pmix_logs("[STDOUT, EMAIL]", channels, 2, false,
+	err += test_pmix_logs("[STDOUT, EMAIL]", channels, 2, false, false, 0,
 			      PMIX_ERR_PARTIAL_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_EMAIL, PMIX_LOG_GLOBAL_DATASTORE };
 	err += test_pmix_logs("[EMAIL, GLOBAL_DATASTORE]", channels, 2,
-			      false, PMIX_ERR_NOT_SUPPORTED);
+			      false, false, 0, PMIX_ERR_NOT_SUPPORTED);
     }
-    // Multiple request with log once
+    // Multiple request with log once (#15)
     {
 	char *channels[] = { PMIX_LOG_STDOUT, PMIX_LOG_STDERR };
-	err += test_pmix_logs("[STDOUT, STDERR]", channels, 2, true,
+	err += test_pmix_logs("[STDOUT, STDERR]", channels, 2, true, false, 0,
 			      PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_STDOUT, PMIX_LOG_EMAIL };
-	err += test_pmix_logs("[STDOUT, EMAIL]", channels, 2, true,
+	err += test_pmix_logs("[STDOUT, EMAIL]", channels, 2, true, false, 0,
 			      PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_EMAIL, PMIX_LOG_STDOUT };
-	err += test_pmix_logs("[EMAIL, STDOUT]", channels, 2, true,
+	err += test_pmix_logs("[EMAIL, STDOUT]", channels, 2, true, false, 0,
 			      PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_EMAIL, PMIX_LOG_GLOBAL_DATASTORE };
 	err += test_pmix_logs("[EMAIL, GLOBAL_DATASTORE]", channels, 2,
-			      true, PMIX_ERR_NOT_SUPPORTED);
+			      true, false, 0, PMIX_ERR_NOT_SUPPORTED);
     }
     {
 	char *channels[] = { PMIX_LOG_STDOUT, PMIX_LOG_SYSLOG };
-	err += test_pmix_logs("[STDOUT, SYSLOG]", channels, 2, true,
+	err += test_pmix_logs("[STDOUT, SYSLOG]", channels, 2, true, false, 0,
 			      PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_STDERR, PMIX_LOG_SYSLOG };
-	err += test_pmix_logs("[STDERR, SYSLOG]", channels, 2, true,
+	err += test_pmix_logs("[STDERR, SYSLOG]", channels, 2, true, false, 0,
 			      PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_LOCAL_SYSLOG, PMIX_LOG_GLOBAL_SYSLOG };
-	err += test_pmix_logs("[LOCAL_SYSLOG, GLOBAL_SYSLOG]", channels, 2, true,
-			      PMIX_SUCCESS);
+	err += test_pmix_logs("[LOCAL_SYSLOG, GLOBAL_SYSLOG]", channels, 2,
+			      true, false, 0, PMIX_SUCCESS);
     }
     {
 	char *channels[] = { PMIX_LOG_LOCAL_SYSLOG };
 	err += test_pmix_logs("[LOCAL_SYSLOG] log_once=true", channels, 1, true,
-			      PMIX_SUCCESS);
+			      false, 0, PMIX_SUCCESS);
     }
 
     if (PMIX_SUCCESS != (rc = PMIx_Finalize(NULL, 0))) {
