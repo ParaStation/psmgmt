@@ -69,6 +69,7 @@ Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t env,
     }
     alloc->localNodeId = getLocalID(alloc->nodes, alloc->nrOfNodes);
     alloc->epilogRes = ucalloc(sizeof(bool) * alloc->nrOfNodes);
+    INIT_LIST_HEAD(&alloc->gresList);
 
     /* initialize environment */
     alloc->env = envInitialized(env) ? envClone(env, envFilterFunc) : envNew(NULL);
@@ -162,7 +163,7 @@ static int initJail(void *info)
     setenv("__PSJAIL_USER_INIT", "1", 1);
 
     setJailEnv(alloc->env, alloc->username, NULL, &(alloc->hwthreads),
-	       alloc->gresList, GRES_CRED_JOB, alloc->cred, alloc->localNodeId);
+	       &alloc->gresList, GRES_CRED_JOB, alloc->cred, alloc->localNodeId);
 
     return PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
 }
@@ -205,7 +206,7 @@ static int termJail(void *info)
     strbufDestroy(allocList);
 
     setJailEnv(alloc->env, alloc->username, NULL, &(alloc->hwthreads),
-	       alloc->gresList, GRES_CRED_JOB, alloc->cred, alloc->localNodeId);
+	       &alloc->gresList, GRES_CRED_JOB, alloc->cred, alloc->localNodeId);
 
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &pid);
 }
@@ -264,8 +265,7 @@ bool Alloc_delete(Alloc_t *alloc)
     envShred(alloc->env);
 
     freeJobCred(alloc->cred);
-    freeGresJobAlloc(alloc->gresList);
-    ufree(alloc->gresList);
+    freeGresJobAlloc(&alloc->gresList);
 
     list_del(&alloc->next);
     ufree(alloc);

@@ -1819,8 +1819,8 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
     /* move job credential and GRes to allocation */
     alloc->cred = req->cred;
     req->cred = NULL;
-    alloc->gresList = req->gresList;
-    req->gresList = NULL;
+    list_splice(&req->gresList, &alloc->gresList);
+    INIT_LIST_HEAD(&req->gresList);
 
     /* mark allocation as running or it might get deleted
      * by @ref cleanupStaleAllocs() */

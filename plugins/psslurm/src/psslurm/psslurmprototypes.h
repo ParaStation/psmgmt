@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2023-2024 ParTec AG, Munich
+ * Copyright (C) 2023-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -877,7 +877,7 @@ typedef struct {
     char *userName;		/**< username (removed in 23.11) */
     JobCred_t *cred;		/**< job credentials */
     char *stepManager;		/**< step manager */
-    list_t *gresList;		/**< list of allocated generic resources */
+    list_t gresList;		/**< list of allocated generic resources */
     Slurm_Job_Record_t jobRec;  /**< Slurm job record */
     list_t nodeRecords;		/**< list of Slurm node records */
     Slurm_Part_Record_t partRec;/**< Slurm partition record */

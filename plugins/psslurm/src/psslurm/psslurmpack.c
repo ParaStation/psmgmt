@@ -4322,15 +4322,14 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     uint16_t msgVer = sMsg->head.version;
     sMsg->unpData = req;
 
-    req->gresList = ucalloc(sizeof(*req->gresList));
-    INIT_LIST_HEAD(req->gresList);
+    INIT_LIST_HEAD(&req->gresList);
     INIT_LIST_HEAD(&req->nodeRecords);
     INIT_LIST_HEAD(&req->jobRec.details.depList);
     INIT_LIST_HEAD(&req->jobRec.stateList);
     INIT_LIST_HEAD(&req->jobRec.gresJobReq);
     INIT_LIST_HEAD(&req->jobRec.gresJobAlloc);
 
-    if (!unpackGresJobAlloc(data, req->gresList)) {
+    if (!unpackGresJobAlloc(data, &req->gresList)) {
 	flog("unpacking gres job allocation info failed\n");
 	return false;
     }
@@ -4365,7 +4364,7 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     getEnv(data, req->spankEnv);
 
     /* job credential */
-    req->cred = extractJobCred(req->gresList, sMsg);
+    req->cred = extractJobCred(&req->gresList, sMsg);
     if (!req->cred) {
 	flog("unpacking job credential failed\n");
 	return false;

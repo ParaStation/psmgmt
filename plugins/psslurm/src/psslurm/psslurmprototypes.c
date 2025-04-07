@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2023-2024 ParTec AG, Munich
+ * Copyright (C) 2023-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -87,8 +87,7 @@ static inline void freeReqLaunchProlog(Slurm_Msg_t *sMsg)
     envDestroy(req->spankEnv);
     ufree(req->userName);
     freeJobCred(req->cred);
-    freeGresJobAlloc(req->gresList);
-    ufree(req->gresList);
+    freeGresJobAlloc(&req->gresList);
     ufree(req->stepManager);
 
     freeSlurmJobRecord(&req->jobRec);

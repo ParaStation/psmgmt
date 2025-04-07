@@ -43,7 +43,7 @@ typedef struct {
     uint32_t epilogCnt;     /**< number of nodes finished epilogue */
     bool nodeFail;	    /**< flag to save node failure */
     JobCred_t *cred;	    /**< job credentials */
-    list_t *gresList;	    /**< list of allocated generic resources */
+    list_t gresList;	    /**< list of allocated generic resources */
     PSCPU_set_t hwthreads;  /**< hwthreads for the allocation on current node */
 } Alloc_t;
 
