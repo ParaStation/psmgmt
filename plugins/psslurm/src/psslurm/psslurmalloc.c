@@ -42,9 +42,6 @@
 #include "psslurmpscomm.h"
 #include "psslurmstep.h"
 
-/* timespan in seconds until an allocation is verified */
-#define ALLOC_VERIFY_TIME 300
-
 /** List of all allocations */
 static LIST_HEAD(AllocList);
 
