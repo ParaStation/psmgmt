@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -495,6 +495,7 @@ static int getAppendFlags(uint8_t appendMode)
  *
  * %A     Job array's master job allocation number
  * %a     Job array ID (index) number
+ * %b     Job array ID modulo 10
  * %J     jobid.stepid of the running job. (e.g. "128.0")
  * %j     jobid of the running job
  * %s     stepid of the running job
@@ -562,6 +563,10 @@ static char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 	    break;
 	case 'a':
 	    snprintf(tmp, sizeof(tmp), symLen, arrayTaskId);
+	    strbufAdd(buf, tmp);
+	    break;
+	case 'b':
+	    snprintf(tmp, sizeof(tmp), symLen, arrayTaskId % 10);
 	    strbufAdd(buf, tmp);
 	    break;
 	case 'J':
