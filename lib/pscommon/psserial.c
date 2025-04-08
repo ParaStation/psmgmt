@@ -862,6 +862,26 @@ static bool growDataBuffer(size_t len, PS_DataBuffer_t data)
     return true;
 }
 
+bool PSdbSkip(PS_DataBuffer_t data, size_t num)
+{
+    if (!data) return false;
+
+    if (data->unpackErr) {
+	PSC_fdbg(PSC_LOG_VERB, "previous unpack error: %s\n",
+		 serialStrErr(data->unpackErr));
+	return false;
+    }
+
+    size_t avail = PSdbGetAvail(data);
+    if (num > avail) {
+	data->unpackErr = E_PSSERIAL_INSUF;
+	PSC_flog("%zu < %zu: %s\n", avail, num, serialStrErr(data->unpackErr));
+	return false;
+    }
+    data->unpackPtr += num;
+    return true;
+}
+
 void PSdbRewind(PS_DataBuffer_t data)
 {
     if (!data) return;

@@ -909,11 +909,8 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 	uint32_t len;
 	getUint32(data, &len);
 
-	/* calculate end of switch data */
-	char *switchEnd = data->unpackPtr + len;
-
-	/* skip unsed switch info for now */
-	data->unpackPtr = switchEnd;
+	/* skip switch data for the time being */
+	PSdbSkip(data, len);
     }
 
     /* munge signature */

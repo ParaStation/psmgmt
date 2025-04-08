@@ -182,6 +182,25 @@ PS_DataBuffer_t PSdbDup(PS_DataBuffer_t data);
 void PSdbRewind(PS_DataBuffer_t data);
 
 /**
+ * @brief Skip data in data-buffer
+ *
+ * Skip @a num bytes in the data-buffer @a data. Thus, future calls to
+ * @ref getFromBuf() and friends will provide data from a position in
+ * the buffer that is @a num bytes ahead.
+ *
+ * This operation might fail if the call tries to skip beyond the
+ * actual content of the data-buffer. In this case false is returned
+ * and the data-buffer's error state is updated accordingly.
+ *
+ * @param data Data-buffer to manipulate
+ *
+ * @param num Number of bytes to skip
+ *
+ * @return Return true on success or false on error
+ */
+bool PSdbSkip(PS_DataBuffer_t data, size_t num);
+
+/**
  * @brief Get current size of data-buffer
  *
  * Get the current size of the data-buffer @a data, i.e. the allocated
