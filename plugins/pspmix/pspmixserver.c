@@ -1668,6 +1668,10 @@ static void server_log_cb(const pmix_proc_t *client,
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG)
 		   || PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)
 		   || PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_SYSLOG)) {
+	    /* since all pspmix host servers act as gateway servers,
+	     * there is no difference between LOCAL_SYSLOG and
+	     * GLOBAL_SYSLOG. SYSLOG itself is a proxy to try
+	     * GLOBAL_SYSLOG and LOCAL_SYSLOG in this order */
 	    pspmix_service_addLogRequest(call, PSPMIX_LOG_SYSLOG,
 					 this->value.data.string);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL)
