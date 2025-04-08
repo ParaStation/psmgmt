@@ -2355,6 +2355,7 @@ cleanup:
     cleanupSpawn(spawn);
 }
 
+// main thread
 static PspmixLogRequest_t *findLogRequest(uint16_t callID, uint16_t reqID)
 {
     list_t *c;
@@ -2579,8 +2580,8 @@ void pspmix_service_log(PspmixLogCall_t call, void *cb)
 	return;
     }
 
-    fdbg(PSPMIX_LOG_CALL, "call %u\n", call->id);
-    fdbg(PSPMIX_LOG_LOGGING, "call %u: logOnce %s prio %d time %s", call->id,
+    fdbg(PSPMIX_LOG_CALL | PSPMIX_LOG_LOGGING,
+	 "call %u: logOnce %s prio %d time %s\n", call->id,
 	 call->logOnce ? "true" : "false", call->prio,
 	 call->time ? ctime(&call->time) : "<none>");
 
@@ -2608,7 +2609,7 @@ void pspmix_service_handleClientLogResp(uint16_t callID, uint16_t reqID,
 
     PspmixLogRequest_t *request = findLogRequest(callID, reqID);
     if (!request) {
-	flog("Request handle %hu/%hu not found", callID, reqID);
+	flog("Request handle %hu/%hu not found\n", callID, reqID);
 	return;
     }
 
