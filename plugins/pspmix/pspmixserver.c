@@ -1660,10 +1660,10 @@ static void server_log_cb(const pmix_proc_t *client,
 	if (PMIX_CHECK_KEY(this, PMIX_LOG_ONCE)) {
 	    pspmix_service_setLogOnce(call);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDERR)) {
-	    pspmix_service_addLogRequest(call, PSPMIX_LOG_STDERR,
+	    pspmix_service_addLogRequest(call, PSPMIX_LC_STDERR,
 					 this->value.data.string);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_STDOUT)) {
-	    pspmix_service_addLogRequest(call, PSPMIX_LOG_STDOUT,
+	    pspmix_service_addLogRequest(call, PSPMIX_LC_STDOUT,
 					 this->value.data.string);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_SYSLOG)
 		   || PMIX_CHECK_KEY(this, PMIX_LOG_LOCAL_SYSLOG)
@@ -1672,12 +1672,12 @@ static void server_log_cb(const pmix_proc_t *client,
 	     * there is no difference between LOCAL_SYSLOG and
 	     * GLOBAL_SYSLOG. SYSLOG itself is a proxy to try
 	     * GLOBAL_SYSLOG and LOCAL_SYSLOG in this order */
-	    pspmix_service_addLogRequest(call, PSPMIX_LOG_SYSLOG,
+	    pspmix_service_addLogRequest(call, PSPMIX_LC_SYSLOG,
 					 this->value.data.string);
 	} else if (PMIX_CHECK_KEY(this, PMIX_LOG_EMAIL)
 		   || PMIX_CHECK_KEY(this, PMIX_LOG_GLOBAL_DATASTORE)
 		   || PMIX_CHECK_KEY(this, PMIX_LOG_JOB_RECORD)) {
-	    pspmix_service_addLogRequest(call, PSPMIX_LOG_UNSUPPORTED, NULL);
+	    pspmix_service_addLogRequest(call, PSPMIX_LC_UNSUPPORTED, NULL);
 	} else {
 	    flog("ignoring unknown or unsupported key '%s'\n", this->key);
 	}

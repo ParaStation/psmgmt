@@ -2416,11 +2416,11 @@ void pspmix_service_addLogRequest(PspmixLogCall_t call,
     PspmixLogRequest_t *req = umalloc(sizeof(*req));
     req->id = call->numAdd++;
     req->call = call;
-    req->done = (channel == PSPMIX_LOG_UNSUPPORTED) ? true: false;
+    req->done = (channel == PSPMIX_LC_UNSUPPORTED) ? true: false;
     req->success = false;
     req->channel = channel;
     req->str = ustrdup(str ? str : "'null'");
-    if (channel == PSPMIX_LOG_UNSUPPORTED) call->numFin++;
+    if (channel == PSPMIX_LC_UNSUPPORTED) call->numFin++;
 
     list_add_tail(&req->next, &call->requests);
 }
@@ -2483,7 +2483,7 @@ static bool tryFinishLogCall(PspmixLogCall_t call)
 	     pspmix_getChannelName(req->channel),
 	     req->success ? "success" : "failure");
 	if (req->success) all_failed = false; else all_succeeded = false;
-	if (req->channel != PSPMIX_LOG_UNSUPPORTED) all_unsupported = false;
+	if (req->channel != PSPMIX_LC_UNSUPPORTED) all_unsupported = false;
     }
 
     if (all_failed) {
@@ -2503,6 +2503,58 @@ static bool tryFinishLogCall(PspmixLogCall_t call)
 
     return true;
 }
+/* main thread: if called from pspmix_service_handleClientLogResp()
+   library thread: if called from pspmix_service_log() */
+/**
+ * @brief Send (further) log requests from a log call
+ *
+ * Send log requests from the log call @a call to the corresponding
+ * psidforwarder. If @a call is marked by PMIX_LOG_ONCE and only a
+ * single call is actually sent, false is returned. In this case the
+ * call must not be finished immediately but the caller has to wait
+ * for a corresponding answer from the psidforwarder.
+ *
+ * @param call Log call containing log requests to be sent
+ *
+ * @param callerFunc Name of the calling function used for debug
+ * logging purposes
+ *
+ * @return Return true if requests from @a call were sent and it might
+ * be finished; otherwise false is returned
+ */
+static bool __doSendLogReq(PspmixLogCall_t call, const char *callerFunc)
+{
+    list_t *r;
+    list_for_each(r, &call->requests) {
+	PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
+	if (req->done) continue;
+
+	mdbg(PSPMIX_LOG_LOGGING, "%s:  request %u/%u (%s) '%s'\n", callerFunc,
+	     call->id, req->id, pspmix_getChannelName(req->channel), req->str);
+
+	switch (req->channel) {
+	case PSPMIX_LC_SYSLOG:
+	case PSPMIX_LC_STDERR:
+	case PSPMIX_LC_STDOUT:
+	    if (!sendClientLogReq(&call->caller, req)) {
+		// send failed, thus, no answer to expect
+		req->success = false;
+		req->done = true;
+		call->numFin++;
+	    } else if (call->logOnce) {
+		// wait for an answer before handling further requests if any
+		return false;
+	    }
+	    break;
+	default:
+	    /* unsupported */
+	    break;
+	}
+    }
+
+    return true;
+}
+#define doSendLogReq(call) __doSendLogReq(call, __func__)
 
 // library thread
 void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
@@ -2531,33 +2583,7 @@ void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
     GET_LOCK(logCallList);
     list_add_tail(&call->next, &logCallList);
 
-    list_t *r;
-    list_for_each(r, &call->requests) {
-	PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
-	fdbg(PSPMIX_LOG_LOGGING, " request %u/%u (%s) '%s'\n", call->id,
-	     req->id, pspmix_getChannelName(req->channel), req->str);
-
-	switch (req->channel) {
-	case PSPMIX_LOG_SYSLOG:
-	case PSPMIX_LOG_STDERR:
-	case PSPMIX_LOG_STDOUT:
-	    if (!sendClientLogReq(&call->caller, req)) {
-		// send failed, thus, no answer to expect
-		req->success = false;
-		req->done = true;
-		call->numFin++;
-	    } else if (call->logOnce) {
-		// wait for an answer before handling further requests if any
-		RELEASE_LOCK(logCallList);
-		return;
-	    }
-	    break;
-	default:
-	    /* unsupported */
-	    break;
-	}
-    }
-    tryFinishLogCall(call);
+    if (doSendLogReq(call)) tryFinishLogCall(call);
 
     RELEASE_LOCK(logCallList);
 }
@@ -2583,36 +2609,11 @@ void pspmix_service_handleClientLogResp(uint16_t callID, uint16_t reqID,
     // Thus only one thread can finish the log call
     GET_LOCK(logCallList);
     call->numFin++;
-    if (call->logOnce && !success) {
-	// send to next channel if any
-	list_t *r;
-	list_for_each(r, &call->requests) {
-	    PspmixLogRequest_t *req = list_entry(r, PspmixLogRequest_t, next);
-	    if (req->done) continue;
-	    fdbg(PSPMIX_LOG_LOGGING, " request %u/%u (%s): '%s'\n", call->id,
-		 req->id, pspmix_getChannelName(req->channel), req->str);
-	    switch (req->channel) {
-	    case PSPMIX_LOG_SYSLOG:
-	    case PSPMIX_LOG_STDERR:
-	    case PSPMIX_LOG_STDOUT:
-		if (!sendClientLogReq(&call->caller, req)) {
-		    // send failed, thus, no answer to expect, check next req
-		    req->success = false;
-		    req->done = true;
-		    call->numFin++;
-		} else {
-		    // wait for an answer again
-		    RELEASE_LOCK(logCallList);
-		    return;
-		}
-		break;
-	    default:
-		/* Not supported */
-		break;
-	    }
-	}
-    }
-    tryFinishLogCall(call);
+
+    // send to next channel if any
+    bool tryFinish = true;
+    if (!success && call->logOnce) tryFinish = doSendLogReq(call);
+    if (tryFinish) tryFinishLogCall(call);
 
     RELEASE_LOCK(logCallList);
 }

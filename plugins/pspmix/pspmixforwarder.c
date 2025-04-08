@@ -1094,7 +1094,7 @@ static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
     PspmixLogChannel_t channel = channel_i;
 
     int32_t priority = LOG_ERR;
-    if (channel == PSPMIX_LOG_SYSLOG) getInt32(data, &priority);
+    if (channel == PSPMIX_LC_SYSLOG) getInt32(data, &priority);
 
     time_t time;
     getTime(data, &time);
@@ -1113,14 +1113,14 @@ static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
 
     int ret = 0;
     switch (channel) {
-    case PSPMIX_LOG_STDOUT:
+    case PSPMIX_LC_STDOUT:
 	if (time) {
 	    ret = PSIDfwd_printMsg(STDOUT, timeStr);
 	    if (ret != -1) ret = PSIDfwd_printMsg(STDOUT, ": ");
 	}
 	if (ret != -1) ret = PSIDfwd_printMsg(STDOUT, str);
 	break;
-    case PSPMIX_LOG_STDERR:
+    case PSPMIX_LC_STDERR:
 	ret = (getenv("__PMIX_BREAK_STDERR")) ? -1 : 0;
 	if (time) {
 	    if (ret != -1) ret = PSIDfwd_printMsg(STDERR, timeStr);
@@ -1128,7 +1128,7 @@ static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
 	}
 	if (ret != -1) ret = PSIDfwd_printMsg(STDERR, str);
 	break;
-    case PSPMIX_LOG_SYSLOG:
+    case PSPMIX_LC_SYSLOG:
 	syslog(priority, "%s%s%s\n", timeStr, time ? ": " : "", str);
 	ret = 0;
 	break;

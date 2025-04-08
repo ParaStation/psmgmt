@@ -135,10 +135,10 @@ static struct {
     PspmixLogChannel_t id;
     const char *name;
 } channelNames[] = {
-    { PSPMIX_LOG_STDOUT, "STDOUT" },
-    { PSPMIX_LOG_STDERR, "STDERR" },
-    { PSPMIX_LOG_SYSLOG, "SYSLOG" },
-    { PSPMIX_LOG_UNSUPPORTED, "UNSUPPORTED" },
+    { PSPMIX_LC_STDOUT, "STDOUT" },
+    { PSPMIX_LC_STDERR, "STDERR" },
+    { PSPMIX_LC_SYSLOG, "SYSLOG" },
+    { PSPMIX_LC_UNSUPPORTED, "UNSUPPORTED" },
     { 0, NULL },
 };
 

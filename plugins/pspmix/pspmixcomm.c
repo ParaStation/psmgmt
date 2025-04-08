@@ -909,7 +909,7 @@ bool pspmix_comm_sendClientLogReq(PStask_ID_t dest, uint16_t callID,
     addUint16ToMsg(callID, &msg);
     addUint16ToMsg(reqID, &msg);
     addInt32ToMsg(channel, &msg);
-    if (channel == PSPMIX_LOG_SYSLOG) addInt32ToMsg(prio, &msg);
+    if (channel == PSPMIX_LC_SYSLOG) addInt32ToMsg(prio, &msg);
     addTimeToMsg(stamp, &msg);
     addStringToMsg(str, &msg);
 

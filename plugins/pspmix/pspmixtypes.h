@@ -340,13 +340,13 @@ typedef enum {
 
 /** Condensed representation of a "log channel" from pmix_common.h */
 typedef enum {
-    PSPMIX_LOG_STDOUT = 1,  /**< Log to job's stdout (see PMIX_LOG_STDOUT) */
-    PSPMIX_LOG_STDERR,      /**< Log to job's stderr (see PMIX_LOG_STDERR) */
-    PSPMIX_LOG_SYSLOG,      /**< Log to local syslog (see PMIX_LOG_LOCAL_SYSLOG,
-			     * PMIX_LOG_GLOBAL_SYSLOG, and PMIX_LOG_SYSLOG) */
-    PSPMIX_LOG_UNSUPPORTED, /**< pseudo channel as placeholder for unsupported
-			     * channels PMIX_LOG_EMAIL, PMIX_LOG_JOB_RECORD,
-			     * and PMIX_LOG_GLOBAL_DATASTORE */
+    PSPMIX_LC_STDOUT = 1,  /**< Log to job's stdout (see PMIX_LOG_STDOUT) */
+    PSPMIX_LC_STDERR,      /**< Log to job's stderr (see PMIX_LOG_STDERR) */
+    PSPMIX_LC_SYSLOG,      /**< Log to local syslog (see PMIX_LOG_LOCAL_SYSLOG,
+			    * PMIX_LOG_GLOBAL_SYSLOG, and PMIX_LOG_SYSLOG) */
+    PSPMIX_LC_UNSUPPORTED, /**< pseudo channel as placeholder for unsupported
+			    * channels PMIX_LOG_EMAIL, PMIX_LOG_JOB_RECORD,
+			    * and PMIX_LOG_GLOBAL_DATASTORE */
 } PspmixLogChannel_t;
 
 #endif  /* __PS_PMIX_TYPES */
