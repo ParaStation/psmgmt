@@ -850,10 +850,8 @@ nscreate_error:
     return false;
 }
 
-/* main thread:
-	if called by handleTermClients() in pspmixcomm.c
-   library thread:
-	if called by pspmix_service_abort() */
+// main thread: if called by handleTermClients() in pspmixcomm.c
+// library thread: if called by pspmix_service_abort()
 bool pspmix_service_terminateClients(const char *nsName, bool remote)
 {
     GET_LOCK(namespaceList);
@@ -2393,16 +2391,19 @@ PspmixLogCall_t pspmix_service_newLogCall(const pmix_proc_t *caller)
     return call;
 }
 
+// library thread
 void pspmix_service_setLogOnce(PspmixLogCall_t call)
 {
     if (call) call->logOnce = true;
 }
 
+// library thread
 void pspmix_service_setSyslogPrio(PspmixLogCall_t call, int prio)
 {
     if (call && prio >= LOG_EMERG && prio <= LOG_DEBUG) call->prio = prio;
 }
 
+// library thread
 void pspmix_service_setTimeStamp(PspmixLogCall_t call, time_t timeStamp)
 {
     if (call) call->time = timeStamp;
@@ -2427,6 +2428,8 @@ void pspmix_service_addLogRequest(PspmixLogCall_t call,
     list_add_tail(&req->next, &call->requests);
 }
 
+// main thread: if called originally from pspmix_service_handleClientLogResp()
+// library thread: if called originally from pspmix_service_log()
 static PStask_ID_t getFwTID(const pmix_proc_t *caller)
 {
     GET_LOCK(namespaceList);
@@ -2449,7 +2452,12 @@ static PStask_ID_t getFwTID(const pmix_proc_t *caller)
     return fwtid;
 }
 
-// library thread
+// main thread: if called originally from pspmix_service_handleClientLogResp()
+// library thread: if called originally from pspmix_service_log()
+/** @brief Send log request to client's forwarder
+ *
+ * @return Return true on success or false otherwise
+ */
 static bool sendClientLogReq(const pmix_proc_t *client, PspmixLogRequest_t *req)
 {
     PStask_ID_t fwTID = getFwTID(client);
@@ -2460,10 +2468,13 @@ static bool sendClientLogReq(const pmix_proc_t *client, PspmixLogRequest_t *req)
 					req->call->prio, req->call->time);
 }
 
+// main thread
 /**
  * @brief Check status of log call and try to finish it
+ *
+ * @return Return true if call was finished and destroyed or false
+ * otherwise
  */
-// main thread
 static bool tryFinishLogCall(PspmixLogCall_t call)
 {
     if (call->numAdd != call->numFin && !call->logOnce) {
@@ -2505,8 +2516,9 @@ static bool tryFinishLogCall(PspmixLogCall_t call)
 
     return true;
 }
-/* main thread: if called from pspmix_service_handleClientLogResp()
-   library thread: if called from pspmix_service_log() */
+
+// main thread: if called from pspmix_service_handleClientLogResp()
+// library thread: if called from pspmix_service_log()
 /**
  * @brief Send (further) log requests from a log call
  *

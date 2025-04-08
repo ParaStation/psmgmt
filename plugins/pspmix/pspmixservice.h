@@ -425,14 +425,17 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 typedef struct PspmixLogCall * PspmixLogCall_t;
 
 /**
- * @brief create a new log call context
+ * @brief create a new log call context for the PMIx client @a caller
+ *
+ * @param caller PMIx client initiating the call to PMIx_Log
  *
  * @return Handle to new log call context or NULL
  */
 PspmixLogCall_t pspmix_service_newLogCall(const pmix_proc_t *caller);
 
 /**
- * @brief Mark call to be log_once
+ * @brief Mark call to be log_once, i.e. try all log requests one
+ * after the other until one succeeds
  *
  * @param call Call handle to modify
  *
@@ -486,14 +489,25 @@ void pspmix_service_addLogRequest(PspmixLogCall_t call,
  * further calls to @ref pspmix_service_addLogRequest() are allowed
  * for this @a call.
  *
- * @param call Call handle
- * @param caller Requesting client // @todo needed?
+ * @param call Call to handle
+ *
  * @param cb Callback object to pass back to return callback
  */
 void pspmix_service_log(PspmixLogCall_t call, void *cb);
 
 /**
- * @todo
+ * @brief Handle log response received from client's forwarder
+ *
+ * Handle the response to the log request identified by its ID @a
+ * reqID that belongs to the log call with the ID @a callID. It was
+ * received from the client's psidforwarder that was supposed to
+ * handle this request and that flags its outcome in @a success.
+ *
+ * @param callID ID of the call hosting the request
+ *
+ * @param reqID ID of the actual request within the call
+ *
+ * @param success Flag of the request's success
  */
 void pspmix_service_handleClientLogResp(uint16_t callID, uint16_t reqID,
 					bool success);
