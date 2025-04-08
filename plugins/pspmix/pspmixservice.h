@@ -429,7 +429,7 @@ typedef struct PspmixLogCall * PspmixLogCall_t;
  *
  * @return Handle to new log call context or NULL
  */
-PspmixLogCall_t pspmix_service_newLogCall(void);
+PspmixLogCall_t pspmix_service_newLogCall(const pmix_proc_t *caller);
 
 /**
  * @brief Mark call to be log_once
@@ -490,8 +490,7 @@ void pspmix_service_addLogRequest(PspmixLogCall_t call,
  * @param caller Requesting client // @todo needed?
  * @param cb Callback object to pass back to return callback
  */
-void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
-			void *cb);
+void pspmix_service_log(PspmixLogCall_t call, void *cb);
 
 /**
  * @todo

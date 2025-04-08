@@ -2374,7 +2374,8 @@ static PspmixLogRequest_t *findLogRequest(uint16_t callID, uint16_t reqID)
     return NULL;
 }
 
-PspmixLogCall_t pspmix_service_newLogCall(void)
+// library thread
+PspmixLogCall_t pspmix_service_newLogCall(const pmix_proc_t *caller)
 {
     static uint16_t nextCallID = 1;
 
@@ -2382,11 +2383,12 @@ PspmixLogCall_t pspmix_service_newLogCall(void)
     INIT_LIST_HEAD(&call->next);
     INIT_LIST_HEAD(&call->requests);
     call->id = nextCallID++;
-    call->numAdd = 0;
-    call->numFin = 0;
     call->logOnce = false;
     call->prio = LOG_ERR;
     call->time = 0;
+    call->numAdd = 0;
+    call->numFin = 0;
+    PMIX_PROC_LOAD(&call->caller, caller->nspace, caller->rank);
     call->cb = NULL;
     return call;
 }
@@ -2557,8 +2559,7 @@ static bool __doSendLogReq(PspmixLogCall_t call, const char *callerFunc)
 #define doSendLogReq(call) __doSendLogReq(call, __func__)
 
 // library thread
-void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
-			void *cb)
+void pspmix_service_log(PspmixLogCall_t call, void *cb)
 {
     if (!call) {
 	flog("no call\n");
@@ -2571,7 +2572,6 @@ void pspmix_service_log(PspmixLogCall_t call, const pmix_proc_t *caller,
 	 call->logOnce ? "true" : "false", call->prio,
 	 call->time ? ctime(&call->time) : "<none>");
 
-    PMIX_PROC_LOAD(&call->caller, caller->nspace, caller->rank);
     call->cb = cb;
     if (list_empty(&call->requests)) {
 	pspmix_server_operationFinished(PMIX_ERR_BAD_PARAM, cb);

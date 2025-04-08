@@ -1636,7 +1636,7 @@ static void server_log_cb(const pmix_proc_t *client,
 	printInfoArray("directives", directives, ndirs);
     }
 
-    PspmixLogCall_t call = pspmix_service_newLogCall();
+    PspmixLogCall_t call = pspmix_service_newLogCall(client);
 
     for (size_t i = 0; i < ndirs; i++) {
 	const pmix_info_t *this = directives + i;
@@ -1686,7 +1686,7 @@ static void server_log_cb(const pmix_proc_t *client,
     mycbfunc_t *cb = NULL;
     if (cbfunc) INIT_CBFUNC(cb, cbfunc, cbdata);
 
-    pspmix_service_log(call, client, cb);
+    pspmix_service_log(call, cb);
 }
 
 /* Request new allocation or modifications to an existing allocation on behalf
