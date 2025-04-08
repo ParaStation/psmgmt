@@ -1101,9 +1101,6 @@ bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 		       const char *caller, const int line)
 {
-    uint32_t i;
-    const char *hn;
-
     if (!data) {
 	flog("invalid data pointer from '%s' at %i\n", caller, line);
 	return false;
@@ -1144,7 +1141,7 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 
     /* flag to enable return list */
     addUint16ToMsg(head->returnList, data);
-    for (i=0; i<head->returnList; i++) {
+    for (uint32_t i = 0; i < head->returnList; i++) {
 	/* error */
 	addUint32ToMsg(head->fwRes[i].error, data);
 
@@ -1152,7 +1149,7 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 	addUint16ToMsg(head->fwRes[i].type, data);
 
 	/* node-name */
-	hn = getSlurmHostbyNodeID(head->fwRes[i].node);
+	const char *hn = getSlurmHostbyNodeID(head->fwRes[i].node);
 	addStringToMsg(hn, data);
 
 	/* message body */
