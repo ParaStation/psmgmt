@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -187,6 +187,7 @@ static void delSpankPlug(Spank_Plugin_t *sp)
 	sp->handle = NULL;
     }
     optCacheClear(sp);
+    ufree(sp->opt);
     ufree(sp->path);
     strvDestroy(sp->argV);
 
@@ -1394,8 +1395,7 @@ void psSpankPrint(char *prefix, char *buf)
 
 int psSpankOptRegister(spank_t spank, struct spank_option *opt)
 {
-    if (spank->hook == SPANK_SLURMD_INIT) return ESPANK_SUCCESS;
-    if (spank->hook != SPANK_INIT) {
+    if (spank->hook != SPANK_INIT && spank->hook != SPANK_SLURMD_INIT) {
 	fdbg(PSSLURM_LOG_SPANK, "invalid call in hook %s from %s\n",
 	     Spank_Hook_Table[spank->hook].strName, spank->plugin->name);
 	return ESPANK_BAD_ARG;
