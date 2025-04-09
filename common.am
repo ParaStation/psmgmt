@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2024 ParTec AG, Munich
+# Copyright (C) 2022-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,6 +33,8 @@ do_subst = sed \
 
 %: %.in
 	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
+
+confdir = $(sysconfdir)/parastation
 
 pamconfdir = $(sysconfdir)/pam.d
 
