@@ -1137,7 +1137,7 @@ static void handleClientLogReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data) {
 	break;
     }
 
-    sendClientLogResp(msg->header.sender, callID, reqID, ret != -1);
+    if (callID) sendClientLogResp(msg->header.sender, callID, reqID, ret != -1);
 }
 
 /**

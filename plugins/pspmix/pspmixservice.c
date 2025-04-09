@@ -2381,6 +2381,7 @@ static PspmixLogRequest_t *findLogRequest(uint16_t callID, uint16_t reqID)
 PspmixLogCall_t pspmix_service_newLogCall(const pmix_proc_t *caller)
 {
     static uint16_t nextCallID = 1;
+    if (!nextCallID) nextCallID++; // prevent call->id == 0 after overrun
 
     PspmixLogCall_t call = umalloc(sizeof(*call));
     INIT_LIST_HEAD(&call->next);
