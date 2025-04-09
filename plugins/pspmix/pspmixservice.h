@@ -222,11 +222,14 @@ void pspmix_service_handleClientIFResp(bool success, const char *nspace,
  *
  * @param nsName Name of the namespace the client belongs to
  *
+ * @param msg Message passed via PMIx_Log() if any
+ *
  * @param client Client object registered before
  *
  * @return No return value
  */
-void pspmix_service_abort(const char *nsName, PspmixClient_t *client);
+void pspmix_service_abort(const char *nsName, const char *msg,
+			  PspmixClient_t *client);
 
 /**
  * @brief Handle fence operation requested from the local helper library

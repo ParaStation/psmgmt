@@ -421,7 +421,7 @@ static pmix_status_t server_abort_cb(const pmix_proc_t *proc,
 	return PMIX_ERR_PARAM_VALUE_NOT_SUPPORTED;
     }
 
-    pspmix_service_abort(proc->nspace, clientObject);
+    pspmix_service_abort(proc->nspace, msg, clientObject);
 
     return PMIX_OPERATION_SUCCEEDED;
 }

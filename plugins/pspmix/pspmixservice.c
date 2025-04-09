@@ -1346,7 +1346,8 @@ void pspmix_service_handleClientIFResp(bool success, const char *nspace,
 }
 
 /* library thread */
-void pspmix_service_abort(const char *nsName, PspmixClient_t *client)
+void pspmix_service_abort(const char *nsName, const char *msg,
+			  PspmixClient_t *client)
 {
     /* since we never free client objects before deregistering the
        according namespace from the server library, the clientObject
@@ -1355,8 +1356,12 @@ void pspmix_service_abort(const char *nsName, PspmixClient_t *client)
     flog("(rank %d)\n", client->rank);
 
     /* try to inform user */
-    char buf[64];
-    sprintf(buf, "%s: on users request from rank %d\n", __func__, client->rank);
+    size_t bufLen = 128, msgLen = 0;
+    if (msg) msgLen += strlen(msg);
+    char buf[bufLen];
+    sprintf(buf, "%s: on users request from rank %d%s%s%s", __func__,
+	    client->rank, msgLen ? ": " : "", msg ? msg : "",
+	    msgLen && msg[msgLen-1] == '\n' ? "" : "\n");
     pspmix_comm_sendClientLogReq(client->fwtid, 0 /* prevent response */, 0,
 				 PSPMIX_LC_STDERR, buf, 0, 0);
 
