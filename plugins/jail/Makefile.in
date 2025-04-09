@@ -455,7 +455,7 @@ scriptsdir = $(prefix)/scripts
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-SUBDIRS = scripts helpers
+SUBDIRS = scripts helpers config
 plugin_LTLIBRARIES = jail.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la

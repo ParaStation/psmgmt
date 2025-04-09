@@ -373,6 +373,7 @@ fi
 %ghost %{_plugindir}/jail-term.sh
 %ghost %{_plugindir}/jail-init.sh
 %{_plugindir}/jail-finalize.sh
+%config(noreplace) /etc/parastation/jail-scripts.conf
 %attr(770,root,root) %{_localstatedir}/log/psaccounter
 
 %files devel

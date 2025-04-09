@@ -292,6 +292,9 @@ plugins/jail/jailhandles.h \
 plugins/jail/jaillog.c \
 plugins/jail/jaillog.h \
 plugins/jail/jailtypes.h \
+plugins/jail/config/Makefile.am \
+plugins/jail/config/Makefile.in \
+plugins/jail/config/jail-scripts.conf \
 plugins/jail/helpers/Makefile.am \
 plugins/jail/helpers/Makefile.in \
 plugins/jail/helpers/bpf_cgroup_device \
