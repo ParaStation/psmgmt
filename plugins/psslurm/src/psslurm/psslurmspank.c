@@ -168,9 +168,9 @@ static void optCacheClear(Spank_Plugin_t *plugin)
     list_for_each(o, &OptCacheList) {
 	Opt_Cache_Entry_t *optCache = list_entry(o, Opt_Cache_Entry_t, next);
 	if (optCache->plugin != plugin) continue;
-	ufree(optCache->value);
 
 	list_del(&optCache->next);
+	ufree(optCache->value);
 	ufree(optCache);
     }
 }
@@ -182,16 +182,24 @@ void SpankSavePlugin(Spank_Plugin_t *def)
 
 static void delSpankPlug(Spank_Plugin_t *sp)
 {
+    list_del(&sp->next);
+
     if (sp->handle) {
 	dlclose(sp->handle);
 	sp->handle = NULL;
     }
     optCacheClear(sp);
+
+    for (uint32_t i = 0; i < sp->optCount; i++) {
+	ufree(sp->opt[i].name);
+	ufree(sp->opt[i].arginfo);
+	ufree(sp->opt[i].usage);
+    }
     ufree(sp->opt);
+
     ufree(sp->path);
     strvDestroy(sp->argV);
 
-    list_del(&sp->next);
     ufree(sp);
 }
 
