@@ -123,7 +123,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 DIST_COMMON = $(srcdir)/Makefile.am $(dist_jaillib_SCRIPTS) \
 	$(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES = jail-config.inc
+CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -151,8 +151,8 @@ am__uninstall_files_from_dir = { \
   || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
        $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
   }
-am__installdirs = "$(DESTDIR)$(jaillibdir)"
-SCRIPTS = $(dist_jaillib_SCRIPTS)
+am__installdirs = "$(DESTDIR)$(jaillibdir)" "$(DESTDIR)$(jaillibdir)"
+SCRIPTS = $(dist_jaillib_SCRIPTS) $(jaillib_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -173,8 +173,7 @@ am__can_run_installinfo = \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
-am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/jail-config.inc.in \
-	$(top_srcdir)/common.am
+am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
@@ -361,13 +360,19 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-dist_jaillib_SCRIPTS = jail-config.inc jail-functions.inc jail-main.sh 	\
-		       jail-v2-cpuset.inc jail-v2-devices.inc		\
-		       jail-v2-memory.inc jail-v2-oom.inc		\
-		       jail-term-v2-cpuset.inc jail-term-v2-devices.inc \
-		       jail-term-v2-memory.inc jail-init.sh		\
+dist_jaillib_SCRIPTS = jail-functions.inc jail-main.sh		\
+		       jail-v2-cpuset.inc jail-v2-devices.inc	\
+		       jail-v2-memory.inc jail-v2-oom.inc	\
+		       jail-term-v2-cpuset.inc			\
+		       jail-term-v2-devices.inc			\
+		       jail-term-v2-memory.inc jail-init.sh	\
 		       jail-finalize.sh
 
+jaillib_SCRIPTS = jail-config.inc
+EXTRA_DIST = jail-config.inc.in
+
+# clean up generated files
+CLEANFILES = jail-config.inc
 all: all-am
 
 .SUFFIXES:
@@ -401,8 +406,6 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-jail-config.inc: $(top_builddir)/config.status $(srcdir)/jail-config.inc.in
-	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-dist_jaillibSCRIPTS: $(dist_jaillib_SCRIPTS)
 	@$(NORMAL_INSTALL)
 	@list='$(dist_jaillib_SCRIPTS)'; test -n "$(jaillibdir)" || list=; \
@@ -435,6 +438,41 @@ install-dist_jaillibSCRIPTS: $(dist_jaillib_SCRIPTS)
 uninstall-dist_jaillibSCRIPTS:
 	@$(NORMAL_UNINSTALL)
 	@list='$(dist_jaillib_SCRIPTS)'; test -n "$(jaillibdir)" || exit 0; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	       sed -e 's,.*/,,;$(transform)'`; \
+	dir='$(DESTDIR)$(jaillibdir)'; $(am__uninstall_files_from_dir)
+install-jaillibSCRIPTS: $(jaillib_SCRIPTS)
+	@$(NORMAL_INSTALL)
+	@list='$(jaillib_SCRIPTS)'; test -n "$(jaillibdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(jaillibdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(jaillibdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n' \
+	    -e 'h;s|.*|.|' \
+	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
+	      if (++n[d] == $(am__install_max)) { \
+		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
+	    else { print "f", d "/" $$4, $$1 } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	     test -z "$$files" || { \
+	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(jaillibdir)$$dir'"; \
+	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(jaillibdir)$$dir" || exit $$?; \
+	     } \
+	; done
+
+uninstall-jaillibSCRIPTS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(jaillib_SCRIPTS)'; test -n "$(jaillibdir)" || exit 0; \
 	files=`for p in $$list; do echo "$$p"; done | \
 	       sed -e 's,.*/,,;$(transform)'`; \
 	dir='$(DESTDIR)$(jaillibdir)'; $(am__uninstall_files_from_dir)
@@ -487,7 +525,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(SCRIPTS)
 installdirs:
-	for dir in "$(DESTDIR)$(jaillibdir)"; do \
+	for dir in "$(DESTDIR)$(jaillibdir)" "$(DESTDIR)$(jaillibdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -512,6 +550,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-$(am__rm_f) $(CLEANFILES)
 
 distclean-generic:
 	-$(am__rm_f) $(CONFIG_CLEAN_FILES)
@@ -540,7 +579,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-dist_jaillibSCRIPTS
+install-data-am: install-dist_jaillibSCRIPTS install-jaillibSCRIPTS
 
 install-dvi: install-dvi-am
 
@@ -584,7 +623,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-dist_jaillibSCRIPTS
+uninstall-am: uninstall-dist_jaillibSCRIPTS uninstall-jaillibSCRIPTS
 
 .MAKE: install-am install-strip
 
@@ -594,12 +633,13 @@ uninstall-am: uninstall-dist_jaillibSCRIPTS
 	install install-am install-data install-data-am \
 	install-dist_jaillibSCRIPTS install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
-	uninstall-am uninstall-dist_jaillibSCRIPTS
+	install-info install-info-am install-jaillibSCRIPTS \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+	ps ps-am tags-am uninstall uninstall-am \
+	uninstall-dist_jaillibSCRIPTS uninstall-jaillibSCRIPTS
 
 .PRECIOUS: Makefile
 
