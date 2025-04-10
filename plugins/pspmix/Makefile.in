@@ -390,6 +390,7 @@ subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);
 do_subst = sed \
 	-e 's,[@]bindir[@],$(bindir),g' \
+	-e 's,[@]confdir[@],$(confdir),g' \
 	-e 's,[@]configdir[@],$(configdir),g' \
 	-e 's,[@]docdir[@],$(docdir),g' \
 	-e 's,[@]includedir[@],$(includedir),g' \
