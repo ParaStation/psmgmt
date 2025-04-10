@@ -663,19 +663,17 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     return ret;
 }
 
-static int doSignalTasks(Req_Signal_Tasks_t *req)
+static bool doSignalTasks(Req_Signal_Tasks_t *req)
 {
     if (req->flags & KILL_FULL_JOB) {
 	/* send signal to complete job including all steps */
-	mlog("%s: sending all processes of job %u signal %u\n", __func__,
+	flog("sending all processes of job %u signal %u\n",
 	     req->jobid, req->signal);
 	Job_signalJS(req->jobid, req->signal, req->uid);
 	Step_signalByJobid(req->jobid, req->signal, req->uid);
     } else if (req->flags & KILL_STEPS_ONLY) {
 	/* send signal to all steps excluding the jobscript */
-	Step_t s = { .jobid = req->jobid, .stepid = req->stepid };
-	flog("send %s (stepHetComp %u) signal %u\n", Step_strID(&s),
-	     req->stepHetComp, req->signal);
+	flog("send all steps of job %u signal %u\n", req->jobid, req->signal);
 	Step_signalByJobid(req->jobid, req->signal, req->uid);
     } else {
 	if (req->stepid == SLURM_BATCH_SCRIPT) {
@@ -687,14 +685,16 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
 	    flog("send %s (stepHetComp %u) signal %u\n", Step_strID(&s),
 		 req->stepHetComp, req->signal);
 	    Step_t *step = Step_findByStepId(req->jobid, req->stepid);
-	    if (step) return Step_signal(step, req->signal, req->uid);
+	    if (step && Step_signal(step, req->signal, req->uid) != -1) {
+		return true;
+	    }
 	}
 
 	/* we only return an error if we signal a specific jobscript/step */
-	return 0;
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 /**
@@ -703,8 +703,13 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
 static void sendDelayedKill(int timerId, void *data)
 {
     Timer_remove(timerId);
-
     Req_Signal_Tasks_t *req = data;
+
+    Step_t s = {
+	.jobid = req->jobid,
+	.stepid = req->stepid };
+    flog("SIGKILL to %s uid %u\n", Step_strID(&s), req->uid);
+
     req->signal = SIGKILL;
     doSignalTasks(req);
 
