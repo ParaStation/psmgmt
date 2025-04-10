@@ -737,7 +737,9 @@ static void doSendTermKill(Req_Signal_Tasks_t *req)
  *
  * Request to send a signal to selected tasks. Depending on the options
  * decoded in the flags the signal will be send to all tasks of a job/step
- * or to a single jobscript.
+ * or to a single jobscript. If the sender of the request has the correct
+ * permissions is verified in the functions acutally sending the signal
+ * (e.g. @ref Step_signal()).
  *
  * @param sMsg The message holding the request
  */
@@ -748,6 +750,12 @@ static int handleSignalTasks(Slurm_Msg_t *sMsg)
 	flog("unpacking request signal tasks failed\n");
 	return ESLURM_INVALID_JOB_ID;
     }
+
+    Step_t s = {
+	.jobid = req->jobid,
+	.stepid = req->stepid };
+    flog("%s uid %i signal %i flags %i from %s\n", Step_strID(&s), req->uid,
+	 req->signal, req->flags, strRemoteAddr(sMsg));
 
     req->uid = sMsg->head.uid;
 
@@ -2268,8 +2276,9 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
     /* check permissions */
     if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
-    flog("%s Slurm-state %u uid %u type %s\n", Step_strID(&s),
-	 req->jobstate, sMsg->head.uid, msgType2String(sMsg->head.type));
+    flog("%s Slurm-state %u uid %u type %s from %s\n", Step_strID(&s),
+	 req->jobstate, sMsg->head.uid, msgType2String(sMsg->head.type),
+	 strRemoteAddr(sMsg));
 
     /* restore account freq */
     psAccountSetPoll(PSACCOUNT_OPT_MAIN, Acc_getPoll());
