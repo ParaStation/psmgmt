@@ -1,3 +1,550 @@
+Version 6.2.0:
+==============
+------------------------------------------------------------------------
+5734888de | Norbert Eicker | Thu, 10 Apr 2025 17:59:49 +0200
+
+Use confdir everywhere
+
+ - /etc/parastation/jail-scripts.conf is not user related, thus, rename
+   the temporary variable
+------------------------------------------------------------------------
+cdcae0414 | Norbert Eicker | Thu, 10 Apr 2025 17:58:42 +0200
+
+File substitution shall be done at build time
+------------------------------------------------------------------------
+62f1d9729 | Norbert Eicker | Thu, 10 Apr 2025 17:55:15 +0200
+
+Enable @confdir@ replacement and update build system
+------------------------------------------------------------------------
+032cb02ff | Stephan Krempel | Thu, 10 Apr 2025 01:09:04 +0200
+
+Use sysconfdir instead of /etc
+------------------------------------------------------------------------
+15ce20b2a | Stephan Krempel | Wed, 9 Apr 2025 13:00:10 +0200
+
+Install jail-scripts.conf to $(sysconfdir)/parastation
+------------------------------------------------------------------------
+4b05930ea | Stephan Krempel | Wed, 9 Apr 2025 12:58:35 +0200
+
+Build system: Add /etc/parastation as `confdir`
+------------------------------------------------------------------------
+7708ded2b | Stephan Krempel | Tue, 25 Mar 2025 10:49:41 +0100
+
+jail: Support SYSCONFDIR/jail-scripts.conf
+
+Closes #298
+------------------------------------------------------------------------
+a6cbf3d12 | Michael Rauh | Thu, 10 Apr 2025 13:18:54 +0200
+
+Minor improvements of doSignalTasks()
+------------------------------------------------------------------------
+d0e6dd1d8 | Michael Rauh | Thu, 10 Apr 2025 11:40:16 +0200
+
+Enhancement: log more information where a request to signal a job or
+step comes from
+------------------------------------------------------------------------
+0402be298 | Michael Rauh | Thu, 10 Apr 2025 10:32:38 +0200
+
+Improve unload mechanism of SPANK plugins
+------------------------------------------------------------------------
+db345451a | Michael Rauh | Wed, 9 Apr 2025 17:24:14 +0200
+
+Allow SPANK plugins to call spank_option_register() in slurmd context
+------------------------------------------------------------------------
+69a68dd03 | Norbert Eicker | Wed, 9 Apr 2025 16:21:11 +0200
+
+Pass msg from PMIx_Abort() to user, too
+------------------------------------------------------------------------
+51d48be70 | Norbert Eicker | Wed, 9 Apr 2025 13:12:02 +0200
+
+Allow to suppress response on log request
+------------------------------------------------------------------------
+ff595a3b3 | Stephan Krempel | Fri, 7 Feb 2025 16:32:38 +0100
+
+pspmix: Try to inform user about PMIx_Abort() call.
+------------------------------------------------------------------------
+1cb454403 | Norbert Eicker | Tue, 8 Apr 2025 17:20:25 +0200
+
+Improve debug log messages
+------------------------------------------------------------------------
+ffff3f7cb | Norbert Eicker | Tue, 8 Apr 2025 17:09:36 +0200
+
+Enhance docu comments
+------------------------------------------------------------------------
+3d17db19a | Norbert Eicker | Tue, 8 Apr 2025 17:09:06 +0200
+
+Rework PspmixLogCall_t's interface
+------------------------------------------------------------------------
+cc08b7f9e | Norbert Eicker | Tue, 8 Apr 2025 16:15:10 +0200
+
+Do not spoil PSPMIX_log_types_t's namespace with PspmixLogChannel_t
+
+ - in addition avoid code duplication in pspmixservice
+------------------------------------------------------------------------
+afc482470 | Norbert Eicker | Tue, 8 Apr 2025 11:44:22 +0200
+
+Explain PMIx_Log design decision in comment
+------------------------------------------------------------------------
+4f7c48446 | Norbert Eicker | Tue, 8 Apr 2025 11:28:56 +0200
+
+Add PSPMIX_LOG_LOGGING mask to pspmix.conf comment
+------------------------------------------------------------------------
+30e15bb4a | Norbert Eicker | Thu, 3 Apr 2025 18:53:49 +0200
+
+Add priority test to log test program
+------------------------------------------------------------------------
+551ee272b | Norbert Eicker | Thu, 3 Apr 2025 18:25:28 +0200
+
+Adapt log test program to use of directives
+
+ - add some more tests for PMIX_LOG_GENERATE_TIMESTAMP and
+   PMIX_LOG_TIMESTAMP
+ - improve output
+------------------------------------------------------------------------
+8228adb81 | Norbert Eicker | Thu, 3 Apr 2025 18:23:23 +0200
+
+Pass priority and timestamp to forwarder and handle appropriately
+------------------------------------------------------------------------
+f28d8ff8d | Norbert Eicker | Thu, 3 Apr 2025 18:19:33 +0200
+
+Fetch certain information from PMIx_Log()'s directives
+------------------------------------------------------------------------
+1ba98d2d5 | Norbert Eicker | Thu, 3 Apr 2025 18:13:07 +0200
+
+Make syslog priority and time stamp global call features
+------------------------------------------------------------------------
+69a4b0903 | Norbert Eicker | Thu, 3 Apr 2025 08:42:31 +0200
+
+Let PMIx log test take __PMIX_BREAK_STDERR into account
+------------------------------------------------------------------------
+4d6160a85 | Norbert Eicker | Wed, 2 Apr 2025 20:59:05 +0200
+
+Introduce magic environment to test PMIX_LOG_ONCE
+------------------------------------------------------------------------
+03e3214ae | Norbert Eicker | Wed, 2 Apr 2025 20:54:09 +0200
+
+Yet another major PMIx_Log rework
+
+ - shorten function names, enum types, etc
+ - simplify call/request content and thus creation and handling
+ - implement PMIX_LOG_ONCE correctly
+ - fix lock handling of logCallList
+------------------------------------------------------------------------
+2da259c37 | Norbert Eicker | Wed, 2 Apr 2025 20:50:41 +0200
+
+Add more multi request tests
+------------------------------------------------------------------------
+1f0402f69 | Norbert Eicker | Wed, 2 Apr 2025 20:49:55 +0200
+
+Make log test text more speaking
+------------------------------------------------------------------------
+9c1e07f24 | Yannik Mueller | Fri, 28 Mar 2025 13:26:20 +0100
+
+(re-)moved curly braces
+dropped null checks where it is safe to assume non null arguments
+removed unclear comment
+------------------------------------------------------------------------
+96c5d4703 | Stephan Krempel | Wed, 26 Mar 2025 23:49:26 +0100
+
+(Auto-)reformat
+------------------------------------------------------------------------
+8e4eb2af0 | Yannik Mueller | Wed, 26 Mar 2025 15:43:42 +0100
+
+Improve (debug-)logging and comments
+------------------------------------------------------------------------
+8d6a3f537 | Yannik Mueller | Wed, 26 Mar 2025 15:34:46 +0100
+
+Implement unsupported detection
+Fixed synchronzation issues
+implemented global syslog
+
+Set PMIX_SERVER_GATEWAY to true
+------------------------------------------------------------------------
+96adfc82f | Yannik Mueller | Wed, 26 Feb 2025 15:24:54 +0100
+
+Updated log test with UNSUPPORTED and empty cases
+------------------------------------------------------------------------
+559f14689 | Yannik Mueller | Wed, 26 Feb 2025 13:17:57 +0100
+
+Fix case label cannot be bound to declaration
+------------------------------------------------------------------------
+1e48e8bf7 | Yannik Mueller | Fri, 21 Feb 2025 14:59:48 +0100
+
+Fix and operator instead of bitwise and
+------------------------------------------------------------------------
+87c82c64d | Yannik Mueller | Thu, 20 Feb 2025 21:58:51 +0100
+
+Updated Log Test to reflect current expected results
+------------------------------------------------------------------------
+ecf9c67ce | Yannik Mueller | Tue, 18 Feb 2025 13:42:09 +0100
+
+Added support for syslog local
+------------------------------------------------------------------------
+b4f0988d1 | Yannik Mueller | Tue, 18 Feb 2025 07:14:45 +0100
+
+Remove unused include
+------------------------------------------------------------------------
+c6c5775cb | Norbert Eicker | Fri, 14 Feb 2025 18:57:05 +0100
+
+Rework PspmixLogCall_t
+------------------------------------------------------------------------
+80f7f8f65 | Yannik Mueller | Thu, 13 Feb 2025 20:12:34 +0100
+
+Added log_once, uid and gid to LogCall
+------------------------------------------------------------------------
+b7cca732b | Stephan Krempel | Wed, 12 Feb 2025 13:06:38 +0100
+
+pspmix: Cleanup log calls on job abort
+------------------------------------------------------------------------
+de72ecb73 | Stephan Krempel | Tue, 11 Feb 2025 16:17:02 +0100
+
+pspmix: Remove obolete global variable
+------------------------------------------------------------------------
+205b9e1b0 | Stephan Krempel | Tue, 11 Feb 2025 16:11:43 +0100
+
+pspmix: Encapsulate PspmixLogCall_t cleanup
+------------------------------------------------------------------------
+f3ed45f9b | Stephan Krempel | Tue, 11 Feb 2025 15:55:40 +0100
+
+pspmix: Unify variable naming
+------------------------------------------------------------------------
+1a2bbb327 | Stephan Krempel | Tue, 11 Feb 2025 15:50:03 +0100
+
+pspmix: Adjust function documentation
+------------------------------------------------------------------------
+d6c1f1f5e | Stephan Krempel | Tue, 11 Feb 2025 15:32:56 +0100
+
+pspmix: Make PMIx_Log() handling thread-safe again
+------------------------------------------------------------------------
+1f54d955f | Stephan Krempel | Tue, 11 Feb 2025 14:35:28 +0100
+
+pspmix: Restore printouts removed accidentally
+------------------------------------------------------------------------
+51dd7d614 | Yannik Mueller | Tue, 11 Feb 2025 14:32:42 +0100
+
+Remove unused client parameter
+------------------------------------------------------------------------
+4e31f131f | Yannik Mueller | Mon, 10 Feb 2025 15:33:03 +0100
+
+Minor improvements to logging text and format
+------------------------------------------------------------------------
+7ab4161f8 | Norbert Eicker | Fri, 7 Feb 2025 09:02:10 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+987b71726 | Stephan Krempel | Fri, 7 Feb 2025 03:11:21 +0100
+
+pspmix: Rename function to match naming convention
+------------------------------------------------------------------------
+85f90aaf1 | Stephan Krempel | Fri, 7 Feb 2025 03:06:49 +0100
+
+pspmix: Get rid of superfluous log call id
+------------------------------------------------------------------------
+1d7ecbf04 | Stephan Krempel | Fri, 7 Feb 2025 02:55:50 +0100
+
+pspmix: Use direct reference to log call in log request
+------------------------------------------------------------------------
+dc180de22 | Stephan Krempel | Fri, 7 Feb 2025 02:29:14 +0100
+
+pspmix: Adjust new to existing code
+------------------------------------------------------------------------
+5a5a9dc97 | Stephan Krempel | Fri, 7 Feb 2025 02:04:28 +0100
+
+Streamlining
+------------------------------------------------------------------------
+7da4c5a4b | Stephan Krempel | Fri, 7 Feb 2025 01:50:46 +0100
+
+pspmix: Get rid of now superfluous first/last entries
+------------------------------------------------------------------------
+11c595632 | Stephan Krempel | Fri, 7 Feb 2025 01:43:25 +0100
+
+pspmix: Manage log requests inside the log calls
+
+This commit assumes, that there is only one library thread calling
+host server functions, so especially at no time multiple calles to
+server_log_cb() will run concurrently.
+
+Unsure if the PMIx standard guaranties that, propably not.
+------------------------------------------------------------------------
+76d402ef7 | Stephan Krempel | Fri, 7 Feb 2025 01:41:46 +0100
+
+pspmix: Add some missing error handling and minor fixes
+------------------------------------------------------------------------
+0fe8a3e33 | Yannik Mueller | Thu, 6 Feb 2025 14:35:39 +0100
+
+Check for existing server
+------------------------------------------------------------------------
+6db178c8e | Yannik Mueller | Thu, 6 Feb 2025 14:35:10 +0100
+
+Using ustrdup an ufee instead of strdup and free
+------------------------------------------------------------------------
+9a0371ba1 | Yannik Mueller | Thu, 6 Feb 2025 14:31:30 +0100
+
+Renaming of targetTID to destand adjusting documentation
+------------------------------------------------------------------------
+7213f1c87 | Yannik Mueller | Thu, 6 Feb 2025 14:24:40 +0100
+
+Implement server_log_cb logic, translating key value pairs into log requests and log calls
+------------------------------------------------------------------------
+49b87fb3f | Yannik Mueller | Wed, 5 Feb 2025 14:30:35 +0100
+
+Added PSPMIX_CLIENT_LOG_REQ, PSPMIX_CLIENT_LOG_RES and handlers
+------------------------------------------------------------------------
+b8ff7fab6 | Yannik Mueller | Wed, 5 Feb 2025 13:42:46 +0100
+
+Added multiple combinations of logging channels to log test
+Enhanced printout for failed tests
+------------------------------------------------------------------------
+a470dbdda | Norbert Eicker | Tue, 8 Apr 2025 09:10:02 +0200
+
+Refine and add more references to Slurm_Step_Head_t
+------------------------------------------------------------------------
+9d8317b1c | Norbert Eicker | Tue, 8 Apr 2025 09:09:23 +0200
+
+Minor streamlining
+------------------------------------------------------------------------
+c34a59faa | Michael Rauh | Mon, 7 Apr 2025 14:05:35 +0200
+
+Add support for file pattern %b (array task ID modulo 10)
+------------------------------------------------------------------------
+7eb650908 | Michael Rauh | Wed, 4 Dec 2024 15:16:09 +0100
+
+Add support for Slurm 24.11 protocol
+------------------------------------------------------------------------
+80d2ec513 | Norbert Eicker | Mon, 7 Apr 2025 19:21:53 +0200
+
+Avoid extra malloc for a single list
+------------------------------------------------------------------------
+db8bdb1bc | Norbert Eicker | Mon, 7 Apr 2025 18:47:01 +0200
+
+Cleanup obsolete define of ALLOC_VERIFY_TIME
+------------------------------------------------------------------------
+72232d83b | Michael Rauh | Thu, 3 Apr 2025 14:45:07 +0200
+
+Remove obsolete allocation verification
+------------------------------------------------------------------------
+041be6706 | Michael Rauh | Thu, 3 Apr 2025 14:38:26 +0200
+
+Ensure allocations with successful prologue execution will not
+be removed by new cleanup feature
+------------------------------------------------------------------------
+66f14ee50 | Norbert Eicker | Thu, 3 Apr 2025 09:03:36 +0200
+
+Add hint towards permission issues
+------------------------------------------------------------------------
+882f53ea6 | Norbert Eicker | Tue, 25 Mar 2025 13:46:21 +0100
+
+Enhance error message if psconfig db is broken
+------------------------------------------------------------------------
+4d7c6843b | Stephan Krempel | Sat, 22 Mar 2025 06:34:31 +0100
+
+pspelogue: Print more helpful error message
+
+Closes #275
+------------------------------------------------------------------------
+c429a5fee | Norbert Eicker | Tue, 25 Mar 2025 18:08:18 +0100
+
+Add more logmask bits to psslurm.conf
+------------------------------------------------------------------------
+36de46bc8 | Norbert Eicker | Tue, 25 Mar 2025 16:16:48 +0100
+
+Include more logtypes in pspmix.conf comment
+
+ - Add PSPMIX_LOG_PSET, PSPMIX_LOG_SPAWN, PSPMIX_LOG_JOB
+------------------------------------------------------------------------
+43132f105 | Norbert Eicker | Thu, 20 Mar 2025 15:04:10 +0100
+
+Merge branch '6.1' again
+------------------------------------------------------------------------
+91e50c553 | Norbert Eicker | Mon, 10 Mar 2025 21:38:53 +0100
+
+Merge branch '6.1'
+------------------------------------------------------------------------
+cc9c11082 | Michael Rauh | Fri, 28 Feb 2025 12:30:06 +0100
+
+Fix typo
+------------------------------------------------------------------------
+b58cc0f09 | Norbert Eicker | Mon, 13 Jan 2025 10:29:30 +0100
+
+Handle PSP_CD_WHODIED in PSI_recvMsg() unconditionally
+------------------------------------------------------------------------
+eaae67421 | Norbert Eicker | Wed, 8 Jan 2025 01:02:28 +0100
+
+Handle spawn answers in PSI_recvMSg() and its handlers
+------------------------------------------------------------------------
+7ac1726a1 | Norbert Eicker | Wed, 8 Jan 2025 00:53:26 +0100
+
+Booleanize PSI_kill() and PSI_recvFinish()
+------------------------------------------------------------------------
+555ad5ed8 | Norbert Eicker | Tue, 7 Jan 2025 22:17:24 +0100
+
+Simplify psaccounter's loop code
+------------------------------------------------------------------------
+f946cc151 | Norbert Eicker | Tue, 7 Jan 2025 22:15:59 +0100
+
+Add dropper for PSP_CD_ENV
+
+ - ensure PSI_recvMsg(..., PSP_CD_ENVRES, true) will always get a message
+------------------------------------------------------------------------
+953f7075a | Norbert Eicker | Tue, 7 Jan 2025 21:18:22 +0100
+
+Push providerloop's work into PSI_recvMSg() and its handlers
+------------------------------------------------------------------------
+778023192 | Norbert Eicker | Tue, 7 Jan 2025 21:16:05 +0100
+
+Rework providerloop's terminateJob()
+------------------------------------------------------------------------
+104df4619 | Norbert Eicker | Tue, 7 Jan 2025 21:13:33 +0100
+
+Introduce flog()/fdbg()/fwarn() to providerloop
+------------------------------------------------------------------------
+2656fef8d | Norbert Eicker | Tue, 7 Jan 2025 20:02:29 +0100
+
+Push pspelogue work into PSI_recvMSg() and its handlers
+------------------------------------------------------------------------
+db9bb1f45 | Norbert Eicker | Tue, 7 Jan 2025 19:52:08 +0100
+
+Make ignoreMsg() and acceptMsg() public
+------------------------------------------------------------------------
+06f08bc7a | Norbert Eicker | Tue, 7 Jan 2025 19:50:24 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+765cc3614 | Norbert Eicker | Tue, 7 Jan 2025 11:47:54 +0100
+
+Streamlining
+------------------------------------------------------------------------
+32b752c40 | Norbert Eicker | Tue, 7 Jan 2025 11:45:51 +0100
+
+Rework docu comments
+------------------------------------------------------------------------
+db8e9910d | Norbert Eicker | Tue, 7 Jan 2025 09:38:38 +0100
+
+Introduce flog()/fwarn()
+------------------------------------------------------------------------
+34a8fc358 | Norbert Eicker | Tue, 7 Jan 2025 09:27:03 +0100
+
+Since version 6 the protocol is for sure sufficient
+------------------------------------------------------------------------
+3b3a5c535 | Norbert Eicker | Mon, 6 Jan 2025 19:49:56 +0100
+
+Push more work into PSI_recvMSg() and its handlers
+------------------------------------------------------------------------
+751f8b116 | Norbert Eicker | Mon, 6 Jan 2025 19:31:17 +0100
+
+Reorder switch cases
+------------------------------------------------------------------------
+83a4ca713 | Norbert Eicker | Mon, 6 Jan 2025 19:28:39 +0100
+
+Start pushing work into PSI_recvMSg() and its handlers
+------------------------------------------------------------------------
+4b298c2a6 | Norbert Eicker | Mon, 6 Jan 2025 19:20:45 +0100
+
+Add a first set of default messsage handlers
+------------------------------------------------------------------------
+50b9740e4 | Norbert Eicker | Mon, 6 Jan 2025 19:07:35 +0100
+
+Rework PSI_recvMsg() but keep old behavior
+
+ - Old behavior can be attained by (...,-1, false) parameters
+------------------------------------------------------------------------
+de10030ef | Norbert Eicker | Sat, 4 Jan 2025 04:06:46 +0100
+
+Bugfix: ignore invalid answer messages
+------------------------------------------------------------------------
+32f449a6b | Norbert Eicker | Sat, 4 Jan 2025 03:55:35 +0100
+
+PSI_recvMsg() will never return 0
+------------------------------------------------------------------------
+add367d60 | Norbert Eicker | Sat, 4 Jan 2025 03:14:46 +0100
+
+Add functionality to (un-)register msg-handler in libpsi
+------------------------------------------------------------------------
+501c40cfd | Norbert Eicker | Sat, 4 Jan 2025 02:49:01 +0100
+
+Streamlining
+------------------------------------------------------------------------
+e019ef2df | Norbert Eicker | Sat, 4 Jan 2025 01:45:36 +0100
+
+Minor rework of docu comments
+------------------------------------------------------------------------
+4340e62e0 | Norbert Eicker | Sat, 4 Jan 2025 01:34:54 +0100
+
+Minor rework of psiadmin output
+------------------------------------------------------------------------
+1abe258a2 | Norbert Eicker | Sat, 4 Jan 2025 01:30:43 +0100
+
+Drop verbose argument from PSI_infoOptionListNext()
+------------------------------------------------------------------------
+b1ba2b96e | Norbert Eicker | Tue, 18 Feb 2025 19:55:19 +0100
+
+Beautify psslurm.conf with Copyright notice
+------------------------------------------------------------------------
+d813a4b86 | Norbert Eicker | Tue, 18 Feb 2025 19:51:12 +0100
+
+Make timeout configurable via ALLOC_CLEANUP_TIMEOUT
+------------------------------------------------------------------------
+bcf2e9a96 | Norbert Eicker | Tue, 18 Feb 2025 19:49:26 +0100
+
+Cleanup stale allocations
+
+ - allocation assumed to be stale after more than 10 minutes
+   in state A_PROLOGUE_FINISH
+------------------------------------------------------------------------
+4445f0320 | Norbert Eicker | Tue, 18 Feb 2025 19:47:37 +0100
+
+Rename psslurm's finalizeInit() to accomplishInit()
+------------------------------------------------------------------------
+aea3daf17 | Norbert Eicker | Tue, 18 Feb 2025 17:22:28 +0100
+
+Ensure all allocations get cleaned on unload
+------------------------------------------------------------------------
+e95433b85 | Norbert Eicker | Tue, 18 Feb 2025 17:22:11 +0100
+
+Condense boilerplate code
+------------------------------------------------------------------------
+cceac93b8 | Norbert Eicker | Tue, 18 Feb 2025 16:31:01 +0100
+
+Rework Alloc_delete()
+------------------------------------------------------------------------
+2d9316499 | Norbert Eicker | Wed, 5 Feb 2025 17:11:41 +0100
+
+Introduce fwarn() and fdwarn() in pelogue
+------------------------------------------------------------------------
+2b425a5d6 | Norbert Eicker | Wed, 5 Feb 2025 17:09:18 +0100
+
+Introduce fdbg() in pelogue
+------------------------------------------------------------------------
+68c334c2a | Norbert Eicker | Wed, 5 Feb 2025 16:55:50 +0100
+
+More use of flog() in pelogue
+------------------------------------------------------------------------
+b78466110 | Norbert Eicker | Thu, 20 Feb 2025 11:57:29 +0100
+
+Whitespace fixes
+------------------------------------------------------------------------
+9d37fe7a8 | Michael Rauh | Thu, 20 Feb 2025 11:34:11 +0100
+
+Give hint if configless modes is disabled in Slurm but not psslurm
+------------------------------------------------------------------------
+836d755c9 | Michael Rauh | Thu, 20 Feb 2025 11:33:35 +0100
+
+Update Slurm error codes
+------------------------------------------------------------------------
+4e2e501ab | Norbert Eicker | Fri, 14 Feb 2025 20:56:22 +0100
+
+Fix problem with newline added by bash here string
+------------------------------------------------------------------------
+8e9eb7fab | Norbert Eicker | Thu, 13 Feb 2025 10:56:36 +0100
+
+Fix output formating of psiadmin's plugin directive
+------------------------------------------------------------------------
+b29ab18e7 | Norbert Eicker | Mon, 10 Feb 2025 16:31:41 +0100
+
+Add some RRComm tests to RPM-sources missed so far
+------------------------------------------------------------------------
+
+
 Version 6.1.2:
 ==============
 ------------------------------------------------------------------------

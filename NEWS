@@ -6,6 +6,30 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.2.0:
+==============
+Bugfixes:
+ - Cleanup dangling psslurm allocations to prevent syslog spoiling (#291)
+ - Enhance libpsi's message handling to avoid protocol clutter
+ - Fix memory leaks during unloading SPANK plugins
+Enhancements:
+ - Move jail scripts' configuration to /etc/parastation (#298)
+ - Enhance pspelogue's error messages (#275)
+ - Add support for Slurm 24.11 protocol
+ - Add support for %b in Slurm's filename pattern
+ - Allow SPANK plugins to call spank_option_register() in slurmd context
+ - Give hint if configless modes is disabled in Slurm but not psslurm
+ - Log more information to identify signal source in psslurm
+ - Implement PMIx_Log()
+ - Present information passed to PMIx_Abort() to the user
+ - Add ALLOC_CLEANUP_TIMEOUT to psslurm.conf to steer allocation cleanup
+ - Fix output formating of psiadmin's plugin directive
+Additional changes:
+ - Add more logmask bits to psslurm.conf and pspmix.conf
+ - More cleanup of backward compatibility obsoleted by version 6
+ - Refactor pelogue logging
+
+
 Version 6.1.2:
 ==============
 Bugfixes:
