@@ -3,6 +3,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+ * Various tests of PMIx_Log() functionality
+ *
+ * For testing you might want to set the __PMIX_BREAK_STDERR
+ * environment variable to break writing to the client's stderr in
+ * psidforwarder. I.e. use:
+ * 'env __PMIX_BREAK_STDERR=1 srun --mpi=pspmix -n 1 log`
+ * to start this program
+ */
+
 #define GET_INFO(name)                                                        \
     if (PMIX_SUCCESS != (rc = PMIx_Get(&scope, name, NULL, 0, &val))) {       \
 	printf("Get " #name " failed: %s\n", PMIx_Error_string(rc));          \
