@@ -1732,9 +1732,8 @@ static void sendJobKill(Req_Info_t *req, uint16_t signal)
 static int handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
 {
     Req_Info_t *req = info;
-    PS_DataBuffer_t data = sMsg->data;
     uint32_t rc;
-    getUint32(data, &rc);
+    getUint32(sMsg->data, &rc);
 
     if (rc == ESLURM_DISABLED || rc == ESLURM_BATCH_ONLY) {
 	flog("cancel job %u\n", req->jobid);

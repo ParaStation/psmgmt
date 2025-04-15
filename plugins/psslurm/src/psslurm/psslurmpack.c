@@ -286,13 +286,11 @@ bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
 	return false;
     }
 
-    PS_DataBuffer_t data = sMsg->data;
     Slurm_Auth_t *auth = umalloc(sizeof(*auth));
-
-    getUint32(data, &auth->pluginID);
+    getUint32(sMsg->data, &auth->pluginID);
     auth->cred = NULL;
 
-    returnFalseOnError(data, ufree(auth));
+    returnFalseOnError(sMsg->data, ufree(auth));
 
     *authPtr = auth;
     return true;
@@ -311,10 +309,9 @@ bool __unpackMungeCred(Slurm_Msg_t *sMsg, Slurm_Auth_t *auth,
 	return false;
     }
 
-    PS_DataBuffer_t data = sMsg->data;
-    auth->cred = getStringM(data);
+    auth->cred = getStringM(sMsg->data);
 
-    returnFalseOnError(data, );
+    returnFalseOnError(sMsg->data, );
     return true;
 }
 

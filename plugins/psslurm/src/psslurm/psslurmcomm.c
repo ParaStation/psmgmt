@@ -842,10 +842,8 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
     }
 
     /* inspect return code */
-    PS_DataBuffer_t data = sMsg->data;
     uint32_t rc;
-    getUint32(data, &rc);
-
+    getUint32(sMsg->data, &rc);
     if (rc != SLURM_SUCCESS) {
 	flog("error: response %s rc %s sock %i",
 	     msgType2String(sMsg->head.type), slurmRC2String(rc), sMsg->sock);
@@ -1657,10 +1655,8 @@ static int handleSrunMsg(Slurm_Msg_t *sMsg, void *info)
     }
 
     /* inspect return code */
-    PS_DataBuffer_t data = sMsg->data;
     uint32_t rc;
-    getUint32(data, &rc);
-
+    getUint32(sMsg->data, &rc);
     if (rc != SLURM_SUCCESS) {
 	flog("error: srun response %s rc %s sock %i for request %s %s\n",
 	     msgType2String(sMsg->head.type), slurmRC2String(rc), sMsg->sock,
