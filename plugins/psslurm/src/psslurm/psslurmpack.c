@@ -698,9 +698,9 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 	return false;
     }
 
-    JobCred_t *cred = ucalloc(sizeof(*cred));
     PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
+    JobCred_t *cred = ucalloc(sizeof(*cred));
 
     /* unpack jobid/stepid */
     unpackStepHead(data, cred, msgVer);
@@ -1268,10 +1268,9 @@ static bool unpackGresJobAlloc(PS_DataBuffer_t data, list_t *gresList)
  */
 static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
 {
-    Req_Terminate_Job_t *req = ucalloc(sizeof(*req));
-
-    uint16_t msgVer = sMsg->head.version;
     PS_DataBuffer_t data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
+    Req_Terminate_Job_t *req = ucalloc(sizeof(*req));
     sMsg->unpData = req;
 
     INIT_LIST_HEAD(&req->gresJobList);
@@ -1345,11 +1344,10 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
  */
 static bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
 {
-    Req_Signal_Tasks_t *req = ucalloc(sizeof(*req));
-    sMsg->unpData = req;
-
     PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
+    Req_Signal_Tasks_t *req = ucalloc(sizeof(*req));
+    sMsg->unpData = req;
 
     /* unpack jobid/stepid */
     unpackStepHead(data, req, msgVer);
@@ -1407,7 +1405,6 @@ static bool unpackStepAddr(PS_DataBuffer_t data, Step_t *step, uint16_t msgVer)
 
 static bool unpackJobResources(Slurm_Msg_t *sMsg, Slurm_Job_Resources_t *jr)
 {
-
     PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
@@ -2726,10 +2723,9 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version, debug;
-    uint32_t tmp;
-
     Step_t *step = Step_add();
     sMsg->unpData = step;
+    uint32_t tmp;
 
     /* step header */
     unpackStepHead(data, &step->sluid, msgVer);
@@ -3086,6 +3082,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     uint32_t jobid, tmp, count;
     char buf[1024];
     PS_DataBuffer_t data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
 
     /* jobid */
     getUint32(data, &jobid);
@@ -3095,8 +3092,6 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* pack jobid */
     getUint32(data, &job->packJobid);
-
-    uint16_t msgVer = sMsg->head.version;
 
     if (!(msgVer > SLURM_23_02_PROTO_VERSION)) {
 	/* remove with support of protocol 23_02 */
@@ -3670,8 +3665,8 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
 static bool unpackReqFileBcast(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t data = sMsg->data;
-    BCast_t *bcast = BCast_add();
     uint16_t msgVer = sMsg->head.version;
+    BCast_t *bcast = BCast_add();
     sMsg->unpData = bcast;
 
     /* block number */
@@ -3982,9 +3977,9 @@ static bool unpackExtRespNodeReg(Slurm_Msg_t *sMsg)
 static bool unpackReqSuspendInt(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t data = sMsg->data;
+    uint16_t msgVer = sMsg->head.version;
     Req_Suspend_Int_t *req = umalloc(sizeof(*req));
     sMsg->unpData = req;
-    uint16_t msgVer = sMsg->head.version;
 
     if (!(msgVer > SLURM_23_02_PROTO_VERSION)) {
 	getUint8(data, &req->indefSus);
@@ -4237,9 +4232,9 @@ static bool unpackReqJobNotify(Slurm_Msg_t *sMsg)
  */
 static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
 {
-    Req_Launch_Prolog_t *req = ucalloc(sizeof(*req));
     PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
+    Req_Launch_Prolog_t *req = ucalloc(sizeof(*req));
     sMsg->unpData = req;
 
     INIT_LIST_HEAD(&req->gresList);
@@ -4340,8 +4335,8 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
  */
 static bool unpackReqJobID(Slurm_Msg_t *sMsg)
 {
-    Req_Job_ID_t *req = ucalloc(sizeof(*req));
     PS_DataBuffer_t data = sMsg->data;
+    Req_Job_ID_t *req = ucalloc(sizeof(*req));
     sMsg->unpData = req;
 
     /* pid */
@@ -4365,8 +4360,8 @@ static bool unpackReqJobID(Slurm_Msg_t *sMsg)
  */
 static bool unpackRebootNodes(Slurm_Msg_t *sMsg)
 {
-    Req_Reboot_Nodes_t *req = ucalloc(sizeof(*req));
     PS_DataBuffer_t data = sMsg->data;
+    Req_Reboot_Nodes_t *req = ucalloc(sizeof(*req));
     sMsg->unpData = req;
 
     /* features */
