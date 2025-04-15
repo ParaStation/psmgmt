@@ -2965,11 +2965,8 @@ int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
 
     int ret = __sendSlurmReply(sMsg, RESPONSE_SLURM_RC, func, line);
 
-    if (!sMsg->head.forward) freeSlurmMsg(sMsg);
-
-    if (ret < 1) {
-	mlog("%s: sending rc %u for %s:%u failed\n", __func__, rc, func, line);
-    }
+    if (!sMsg->head.forward) clearSlurmMsg(sMsg);
+    if (ret < 1) flog("sending rc %u for %s:%u failed\n", rc, func, line);
 
     return ret;
 }

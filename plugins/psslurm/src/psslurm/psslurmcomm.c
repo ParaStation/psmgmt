@@ -1844,7 +1844,7 @@ int srunSendIO(uint16_t type, uint16_t grank, Step_t *step, char *buf,
 	    case EPIPE:
 	    case EBADF:
 		fwCMD_brokeIOcon(step);
-		freeSlurmMsg(&step->srunIOMsg);
+		clearSlurmMsg(&step->srunIOMsg);
 		break;
 	}
     }
@@ -1907,15 +1907,9 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
 
 void closeAllStepConnections(Step_t *step)
 {
-    if (!step->srunIOMsg.head.forward) {
-	freeSlurmMsg(&step->srunIOMsg);
-    }
-    if (!step->srunControlMsg.head.forward) {
-	freeSlurmMsg(&step->srunControlMsg);
-    }
-    if (!step->srunPTYMsg.head.forward) {
-	freeSlurmMsg(&step->srunPTYMsg);
-    }
+    if (!step->srunIOMsg.head.forward) clearSlurmMsg(&step->srunIOMsg);
+    if (!step->srunControlMsg.head.forward) clearSlurmMsg(&step->srunControlMsg);
+    if (!step->srunPTYMsg.head.forward) clearSlurmMsg(&step->srunPTYMsg);
 
     /* close all remaining srun connections */
     list_t *c, *tmp;

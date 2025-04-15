@@ -50,7 +50,7 @@ void BCast_delete(BCast_t *bcast)
     if (!bcast) return;
 
     list_del(&bcast->next);
-    freeSlurmMsg(&bcast->msg);
+    clearSlurmMsg(&bcast->msg);
     ufree(bcast->username);
     ufree(bcast->fileName);
     ufree(bcast->exeFileName);

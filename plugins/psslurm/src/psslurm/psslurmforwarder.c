@@ -275,7 +275,7 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     Step_signal(step, SIGKILL, 0);
     if (step->fwdata->cPid > 0) killChild(step->fwdata->cPid, SIGKILL, step->uid);
 
-    freeSlurmMsg(&step->srunIOMsg);
+    clearSlurmMsg(&step->srunIOMsg);
 
     if (step->state == JOB_PRESTART) {
 	/* spawn failed */

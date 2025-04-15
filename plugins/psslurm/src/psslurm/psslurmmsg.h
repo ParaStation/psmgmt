@@ -126,19 +126,19 @@ const char *strRemoteAddr(Slurm_Msg_t *sMsg);
 /**
  * @brief Initialize a Slurm message
  *
- * @param msg The message to initialize
+ * @param msg Message to initialize
  */
 void initSlurmMsg(Slurm_Msg_t *msg);
 
 /**
- * @brief Free a Slurm message
+ * @brief Clear a Slurm message
  *
  * Close the associated connection, free used memory
  * and reset tracking information.
  *
- * @param sMsg The message to free
+ * @param sMsg Message to clear
  */
-void freeSlurmMsg(Slurm_Msg_t *sMsg);
+void clearSlurmMsg(Slurm_Msg_t *sMsg);
 
 /**
  * @brief Duplicate a Slurm message header

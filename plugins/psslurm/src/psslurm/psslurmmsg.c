@@ -185,15 +185,10 @@ void initSlurmMsg(Slurm_Msg_t *sMsg)
     initSlurmMsgHead(&sMsg->head);
 }
 
-void freeSlurmMsg(Slurm_Msg_t *sMsg)
+void clearSlurmMsg(Slurm_Msg_t *sMsg)
 {
-    if (sMsg->source == -1) {
-	/* local connection */
-	if (sMsg->sock != -1) {
-	    closeSlurmCon(sMsg->sock);
-	    sMsg->sock = -1;
-	}
-    }
+    /* close connection if local */
+    if (sMsg->source == -1 && sMsg->sock != -1) closeSlurmCon(sMsg->sock);
 
     initSlurmMsg(sMsg);
 }
