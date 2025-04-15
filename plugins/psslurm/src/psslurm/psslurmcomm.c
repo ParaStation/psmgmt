@@ -1925,16 +1925,15 @@ void closeAllStepConnections(Step_t *step)
     list_t *c, *tmp;
     list_for_each_safe(c, tmp, &connectionList) {
 	Connection_t *con = list_entry(c, Connection_t, next);
-	if (con->step == step) {
-	    struct timeval time_now, time_diff;
+	if (con->step != step) continue;
 
-	    gettimeofday(&time_now, NULL);
-	    timersub(&time_now, &con->openTime, &time_diff);
-	    flog("warning: closing lingering %s connection "
-		 "with socket %i opened %.4f seconds\n", Step_strID(step),
-		 con->sock, time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
-	    closeSlurmCon(con->sock);
-	}
+	struct timeval time_now, time_diff;
+	gettimeofday(&time_now, NULL);
+	timersub(&time_now, &con->openTime, &time_diff);
+	flog("warning: closing lingering %s connection with socket %i"
+	     " open for %.4f seconds\n", Step_strID(step), con->sock,
+	     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	closeSlurmCon(con->sock);
     }
 }
 

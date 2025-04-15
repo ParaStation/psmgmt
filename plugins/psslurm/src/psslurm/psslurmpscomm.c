@@ -1272,7 +1272,6 @@ int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
 static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     Slurm_Msg_t sMsg;
-
     initSlurmMsg(&sMsg);
     sMsg.data = data;
     sMsg.source = msg->header.sender;

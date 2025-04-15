@@ -3386,23 +3386,23 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     if (info) action = *(int *)info;
 
     switch (sMsg->head.type) {
-	case RESPONSE_SLURM_RC:
-	    /* return code */
-	    getUint32(sMsg->data, &rc);
-	    if (rc == ESLURM_CONFIGLESS_DISABLED) {
-		flog("error: configless is disabled in slurm.conf "
-		     "(set SlurmctldParameters = enable_configless)\n");
-	    } else {
-		flog("configuration request error: reply %s rc %s sock %i\n",
-		     msgType2String(sMsg->head.type), slurmRC2String(rc),
-		     sMsg->sock);
-	    }
-	    return 0;
-	case RESPONSE_CONFIG:
-	    break;
-	default:
-	    flog("unexpected message type %i\n", sMsg->head.type);
-	    return 0;
+    case RESPONSE_SLURM_RC:
+	/* return code */
+	getUint32(sMsg->data, &rc);
+	if (rc == ESLURM_CONFIGLESS_DISABLED) {
+	    flog("error: configless is disabled in slurm.conf "
+		 "(set SlurmctldParameters = enable_configless)\n");
+	} else {
+	    flog("configuration request error: reply %s rc %s sock %i\n",
+		 msgType2String(sMsg->head.type), slurmRC2String(rc),
+		 sMsg->sock);
+	}
+	return 0;
+    case RESPONSE_CONFIG:
+	break;
+    default:
+	flog("unexpected message type %i\n", sMsg->head.type);
+	return 0;
     }
 
     /* unpack config response */
