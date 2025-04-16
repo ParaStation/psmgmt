@@ -215,18 +215,6 @@ ln -sf %{_libexecdir}/jail/jail-finalize.sh %{buildroot}%{_plugindir}/jail-final
 %clean
 rm -rf %{buildroot}
 
-%pre
-if [ $1 -gt 1 ] ; then  # Thats an update
-    if [ -x /opt/parastation/config/PSM_INSTALL ]; then
-	# Upgrade from old version, call the OLD uninstall script.
-	/opt/parastation/config/PSM_INSTALL -U
-	if [ -f /opt/parastation/config/parastation.conf ]; then
-	    cp -a /opt/parastation/config/parastation.conf /etc
-	fi
-    fi
-fi
-exit 0
-
 %post
 if [ $1 -eq 1 ] ; then
     # first install
