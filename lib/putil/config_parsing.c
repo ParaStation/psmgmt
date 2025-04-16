@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -230,7 +230,26 @@ static bool getNumber(char *key, int *val)
     return ret;
 }
 
-static bool doForList(char *key, bool (*action)(char *))
+/**
+ * @brief Apply action to psconfig list
+ *
+ * Apply the action @a action to each element in the list identified
+ * by @a key. Empty lists might be flagged by @a emptyOK to not result
+ * in an error.
+ *
+ * If @a action returns false for a single element of the list,
+ * applying @a action to further elements of the list is stopped
+ * immediately and an error is reported to the caller.
+ *
+ * @param key Key identifying the list to handle
+ *
+ * @param action Action to be applied to the list's elements
+ *
+ * @param emptyOK Flag suppressing errors on empty lists
+ *
+ * @return Return true on success or false on error
+ */
+static bool doForList(char *key, bool (*action)(char *), bool emptyOK)
 {
     GError *err = NULL;
     GPtrArray *list = psconfig_getList(psconfig, psconfigobj, key,
@@ -238,8 +257,13 @@ static bool doForList(char *key, bool (*action)(char *))
     CHECK_PSCONFIG_ERROR_AND_RETURN(list, key, err, false);
 
     if (!list->len) {
-	parser_comment(-1, "PSConfig: '%s(%s)' does not exist or is empty"
-		       " list\n", psconfigobj, key);
+	if (emptyOK) {
+	    parser_comment(-1, "PSConfig: '%s(%s)' is empty which might not be"
+			   " okay\n", psconfigobj, key);
+	    return true;
+	}
+	parser_comment(-1, "PSConfig: '%s(%s)' does not exist or is empty\n",
+		       psconfigobj, key);
 	return false;
     }
 
@@ -867,7 +891,7 @@ static bool getSingleUser(char *user)
 
 static bool getUsers(char *key)
 {
-    return doForList(key, getSingleUser);
+    return doForList(key, getSingleUser, false);
 }
 
 static bool getSingleGroup(char *group)
@@ -896,7 +920,7 @@ static bool getSingleGroup(char *group)
 
 static bool getGroups(char *key)
 {
-    return doForList(key, getSingleGroup);
+    return doForList(key, getSingleGroup, false);
 }
 
 static bool getSingleAdminUser(char *user)
@@ -925,7 +949,7 @@ static bool getSingleAdminUser(char *user)
 
 static bool getAdminUsers(char *key)
 {
-    return doForList(key, getSingleAdminUser);
+    return doForList(key, getSingleAdminUser, false);
 }
 
 static bool getSingleAdminGroup(char *group)
@@ -954,7 +978,7 @@ static bool getSingleAdminGroup(char *group)
 
 static bool getAdminGroups(char *key)
 {
-    return doForList(key, getSingleAdminGroup);
+    return doForList(key, getSingleAdminGroup, false);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1149,7 +1173,7 @@ static bool getCPUmap(char *key)
     nodeconf.cpumap_size = 0;
 
     parser_comment(PARSER_LOG_NODE, " CPUMap {");
-    bool ret = doForList(key, getCPUmapEnt);
+    bool ret = doForList(key, getCPUmapEnt, false);
     parser_comment(PARSER_LOG_NODE, " }\n");
 
     return ret;
@@ -1672,7 +1696,7 @@ static bool getHardware(char *name)
 
 static bool getHardwareList(char *key)
 {
-    return doForList(key, getHardware);
+    return doForList(key, getHardware, true);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1693,7 +1717,7 @@ static bool getPluginEnt(char *token)
 
 static bool getPlugins(char *key)
 {
-    return doForList(key, getPluginEnt);
+    return doForList(key, getPluginEnt, true);
 }
 
 /* ---------------------------------------------------------------------- */
