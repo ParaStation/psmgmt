@@ -287,22 +287,27 @@ fi
 %doc doc/systemd
 %doc plugins/rrcomm/doc/psconfig
 %doc plugins/rrcomm/doc/README.rrcomm
+%dir %{_bindir}
 %{_bindir}/mlisten
 %{_bindir}/mpiexec
 %{_bindir}/psaccview
 %{_bindir}/psiadmin
 %{_bindir}/test_config
+%dir %{_sbindir}
 %{_sbindir}/psid
 %{_libexecdir}/psmgmt
 %{_configdir}
 %{_scriptsdir}
 %{_psconfigdumpsdir}/*
+%dir %{_libdir}
 %{_libdir}/libpse.so*
 %{_libdir}/libpsi.so*
 %{_sysconfdir}/parastation
+%dir %{_libexecdir}
 %dir %{_plugindir}
 %{_plugindir}/jail.so
 %config(noreplace) %{_plugindir}/jail.conf
+%dir %{_libexecdir}/jail
 %config(noreplace) %{_libexecdir}/jail/jail-config.inc
 %config(noreplace) %{_libexecdir}/jail/jail-finalize.sh
 %config(noreplace) %{_libexecdir}/jail/jail-functions.inc
