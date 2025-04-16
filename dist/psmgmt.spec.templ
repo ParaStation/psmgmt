@@ -208,7 +208,6 @@ make %{?_smp_mflags}
 %install
 rm -rf %{buildroot}
 make DESTDIR=%{buildroot} install
-touch %{buildroot}/etc/parastation.conf
 find %{buildroot} -type f -name '*.la' -delete
 ln -sf %{_libexecdir}/jail/jail-main.sh %{buildroot}%{_plugindir}/jail.sh
 ln -sf %{_libexecdir}/jail/jail-main.sh %{buildroot}%{_plugindir}/jail-term.sh
@@ -338,7 +337,7 @@ fi
 %{_sysconfdir}/init.d/parastation
 %config(noreplace) /etc/xinetd.d/psidstarter
 %endif
-%ghost %config(missingok,noreplace) /etc/parastation.conf
+%ghost %config(missingok,noreplace) %{_sysconfdir}/parastation.conf
 %{_plugindir}/jail.sh
 %{_plugindir}/jail-term.sh
 %{_plugindir}/jail-init.sh
