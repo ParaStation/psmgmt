@@ -44,6 +44,7 @@ static logger_t logger;
 
 /** Abbrev for various log messages */
 #define RDP_log(...) logger_print(logger, __VA_ARGS__)
+#define RDP_dbg(...) logger_print(logger, __VA_ARGS__)
 
 #define RDP_fdbg(...) logger_funcprint(logger, __func__, __VA_ARGS__)
 
@@ -1430,11 +1431,11 @@ static void doACK(rdphdr_t *hdr, int32_t fromnode)
     if (hdr->type == RDP_DATA) {
 	if (RSEQCMP(hdr->seqno, cp->frameExpected) < 0) { /* Duplicated MSG */
 	    sendACK(fromnode); /* (re)send ack to avoid further timeouts */
-	    RDP_log(RDP_LOG_ACKS, "(re)send ACK to %d\n", fromnode);
+	    RDP_dbg(RDP_LOG_ACKS, "(re)send ACK to %d\n", fromnode);
 	}
 	if (RSEQCMP(hdr->seqno, cp->frameExpected) > 0) { /* Missing Data */
 	    sendNACK(fromnode); /* send nack to inform sender */
-	    RDP_log(RDP_LOG_ACKS, "send NACK to %d\n", fromnode);
+	    RDP_dbg(RDP_LOG_ACKS, "send NACK to %d\n", fromnode);
 	}
     }
 
