@@ -43,7 +43,7 @@ static uint32_t nrOfNodes = 0;
 static logger_t logger;
 
 /** Abbreviations for various log messages */
-#define RDP_log(...) logger_print(logger, __VA_ARGS__)
+#define RDP_log(...) logger_print(logger, -1, __VA_ARGS__)
 #define RDP_dbg(...) logger_print(logger, __VA_ARGS__)
 
 #define RDP_flog(...) logger_funcprint(logger, __func__, -1, __VA_ARGS__)
@@ -2361,9 +2361,9 @@ void RDP_printStat(void)
 	len = sizeof(sin);
 	ret = getsockname(rdpsock, (struct sockaddr *)&sin, &len);
 	if (ret) {
-	    RDP_log(-1, " unable to determine port\n");
+	    RDP_log(" unable to determine port\n");
 	} else {
-	    RDP_log(-1, " bound to port %d\n", ntohs(sin.sin_port));
+	    RDP_log(" bound to port %d\n", ntohs(sin.sin_port));
 	}
 
 	len = sizeof(sval);
