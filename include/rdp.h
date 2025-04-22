@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 
 /** Information container for callback of type @ref RDP_PKT_UNDELIVERABLE */
@@ -28,6 +29,14 @@ typedef struct {
     void *buf;        /**< payload of message to cancel */
     size_t buflen;    /**< payload's size */
 } RDPDeadbuf_t;
+
+/** Information container for callback of type @ref RDP_UNKNOWN_SENDER */
+typedef struct {
+    struct sockaddr *sin; /**< pointer to sender's sockaddr_in struct */
+    socklen_t slen;       /**< sin's size; usually sizeof(struct sockaddr_in) */
+    void *buf;            /**< payload of message to receive */
+    size_t buflen;        /**< payload's size */
+} RDPUnknown_t;
 
 /** Types of RDP callbacks */
 typedef enum {
@@ -52,8 +61,8 @@ typedef enum {
 				  * is reachable again */
     RDP_UNKNOWN_SENDER = 0x5,    /**< Received message from an unknown
 				  * sender IP; the second argument
-				  * points to the sender's sockaddr_in
-				  * struct */
+				  * points to a structure of type @ref
+				  * RDPUnknown_t */
 } RDP_CB_type_t;
 
 /** States a RDP connection can take */

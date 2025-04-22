@@ -29,7 +29,7 @@
 /** psid plugin requirements */
 char name[] = "dynIP";
 int version = 1;
-int requiredAPI = 139;
+int requiredAPI = 147;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
 /** Description of dynIP's configuration parameters */
@@ -142,9 +142,17 @@ static bool senderVisitor(struct sockaddr_in *saddr, void *info)
  *
  * @return Always returns 0
  */
-static int resolveUnknownSender(void *senderAddr)
+static int resolveUnknownSender(void *data)
 {
-    senderData_t senderData = { .senderIP = senderAddr };
+    RDPUnknown_t *senderInfo = data;
+    if (senderInfo->slen != sizeof(struct sockaddr_in)) {
+	flog("unexpected sockaddr length %d\n", senderInfo->slen);
+	return 0;
+    }
+
+    senderData_t senderData = {
+	.senderIP = (struct sockaddr_in *) senderInfo->sin,
+    };
     bool match = false;
 
     for (PSnodes_ID_t n = 0; n < PSIDnodes_getNum() && !match; n++) {

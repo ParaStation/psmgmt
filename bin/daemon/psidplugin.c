@@ -181,8 +181,10 @@ static LIST_HEAD(pluginList);
  * 145: new PSIDHOOK_RECEIVEPART
  *
  * 146: new hooks PSIDHOOK_PLUGIN_LOADED, PSIDHOOK_PLUGIN_FINALIZED
+ *
+ * 147: reworked hook PSIDHOOK_SENDER_UNKNOWN to provide more hints
  */
-static int pluginAPIVersion = 146;
+static int pluginAPIVersion = 147;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

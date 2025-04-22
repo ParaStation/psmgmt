@@ -237,8 +237,7 @@ typedef enum {
 				valid one in order to allow to grow the number
 				of available nodes dynamically. */
     PSIDHOOK_SENDER_UNKNOWN,  /**< Sender's IP is unknown to RDP, arg
-				 point's to sender's struct
-				 sockaddr_in */
+				 points to RDP_Unknown_t structure */
     PSIDHOOK_LAST_CHILD_GONE, /**< Task's last child has released itself,
 				i.e. there are no further children of this
 				task; arg points to the task */

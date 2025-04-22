@@ -13,6 +13,7 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
@@ -719,11 +720,8 @@ static ssize_t MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	default:
 	    RDP_fwarn(eno, "recvfrom()");
 	}
-    }
-    if (ret < (int)sizeof(rdphdr_t)) {
-	if (ret >= 0) {
-	    RDP_flog("incomplete RDP message received\n");
-	}
+    } else if (ret < (ssize_t)sizeof(rdphdr_t)) {
+	RDP_flog("incomplete RDP message received\n");
     } else {
 	/* message on the wire not in host-byteorder */
 	rdphdr_t *msg = buf;
@@ -1711,7 +1709,13 @@ static int handleRDP(int fd, void *info)
     int32_t fromnode = lookupIPTable(sin.sin_addr);
     if (fromnode < 0 && msg.header.type == RDP_SYN && RDPCallback) {
 	/* Sender IP might be dynamic: allow daemon to detect and fix this */
-	RDPCallback(RDP_UNKNOWN_SENDER, &sin);
+	RDPUnknown_t senderInfo = {
+	    .sin = (struct sockaddr *)&sin,
+	    .slen = slen,
+	    .buf = &msg.data,
+	    .buflen = ret - offsetof(Lmsg_t, data),
+	};
+	RDPCallback(RDP_UNKNOWN_SENDER, &senderInfo);
 	fromnode = lookupIPTable(sin.sin_addr);
     }
 
