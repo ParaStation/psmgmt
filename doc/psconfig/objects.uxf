@@ -81,11 +81,11 @@ Core = "unlimited"</panel_attributes>
     </coordinates>
     <panel_attributes>psidhwtype:ethernet
 --
-StartScript = "config/ps_ethernet start"
-StopScript = "config/ps_ethernet stop"
+StartScript = "&lt;path_to_script&gt; start"
+StopScript = "&lt;path_to_script&gt; stop"
 # SetupScript = ""
-HeaderScript = "config/ps_ethernet statusheader"
-StatusScript = "config/ps_ethernet status"
+HeaderScript = "&lt;path_to_script&gt; statusheader"
+StatusScript = "&lt;path_to_script&gt; status"
 # Environment = ["A", "a", "B", "b"]</panel_attributes>
     <additional_attributes/>
   </element>

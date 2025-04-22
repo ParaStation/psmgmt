@@ -146,7 +146,7 @@ Psid. = ptr(["class:psid"])
 .parents = []
 
 ; psidhwtype object
-; one such object has to exist for each entry in any [Psid.HardwareTypes] list
+; one such object might exist for each entry in any [Psid.HardwareTypes] list
 ;
 [+psidhwtype:accounter]
 .parents = ["class:psidhwtype"]
@@ -154,17 +154,6 @@ HeaderScript = "config/ps_acc statusheader"
 StartScript = "config/ps_acc start"
 StatusScript = "config/ps_acc status"
 StopScript = "config/ps_acc stop"
-# Inherited keys:
-
-; psidhwtype object
-; one such object has to exist for each entry in any [Psid.HardwareTypes] list
-;
-[+psidhwtype:ethernet]
-.parents = ["class:psidhwtype"]
-HeaderScript = "config/ps_ethernet statusheader"
-StartScript = "config/ps_ethernet start"
-StatusScript = "config/ps_ethernet status"
-StopScript = "config/ps_ethernet stop"
 # Inherited keys:
 
 ; host object of the master node

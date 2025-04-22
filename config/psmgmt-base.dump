@@ -47,17 +47,6 @@ psconfig -q -D -- set 'class:resourcelimits' '.comment' ' resources class object
  referenced in "class:psid" object
  adapt system wide resource limits here'
 #
-# Object "psidhwtype:ethernet"
-#
-psconfig -q -- create 'psidhwtype:ethernet'
-psconfig -q -- setParents 'psidhwtype:ethernet' 'class:psidhwtype'
-psconfig -q -D -- set 'psidhwtype:ethernet' '.comment' ' psidhwtype object
- one such object has to exist for each entry in any [Psid.HardwareTypes] list'
-psconfig -q -D -- set 'psidhwtype:ethernet' 'HeaderScript' 'config/ps_ethernet statusheader'
-psconfig -q -D -- set 'psidhwtype:ethernet' 'StartScript' 'config/ps_ethernet start'
-psconfig -q -D -- set 'psidhwtype:ethernet' 'StatusScript' 'config/ps_ethernet status'
-psconfig -q -D -- set 'psidhwtype:ethernet' 'StopScript' 'config/ps_ethernet stop'
-#
 # Unlock database
 #
 eval $($(which --skip-alias --skip-function psconfig) unlock)
