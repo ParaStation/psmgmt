@@ -52,6 +52,7 @@ static logger_t logger;
 /** Abbreviations for errno-warnings */
 #define RDP_warn(...) logger_warn(logger, __VA_ARGS__)
 #define RDP_fwarn(...) logger_funcwarn(logger, __func__, -1, __VA_ARGS__)
+#define RDP_fdwarn(...) logger_funcwarn(logger, __func__, __VA_ARGS__)
 
 /** Abbreviations for fatal log messages */
 #define RDP_exit(...) logger_exit(logger, __VA_ARGS__)
@@ -684,7 +685,7 @@ static ssize_t MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
 	case ENOENT:
-	    RDP_warn(RDP_LOG_CONN, eno, "%s: handle this", __func__);
+	    RDP_fdwarn(RDP_LOG_CONN, eno, "handle this");
 	    /* Handle extended error */
 	    ret = handleErr(eno);
 	    if (ret < 0) {
@@ -803,8 +804,8 @@ static ssize_t MYsendto(int sock, void *buf, size_t len, int flags,
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
 	case ENOENT:
-	    RDP_warn(RDP_LOG_CONN, eno, "%s: to %s (%d), handle this", __func__,
-		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
+	    RDP_fdwarn(RDP_LOG_CONN, eno, "to %s (%d), handle this",
+		       inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
 	    /* Handle extended error */
 	    ret = handleErr(eno);
 	    if (ret < 0) {
