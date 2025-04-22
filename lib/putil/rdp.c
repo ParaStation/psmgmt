@@ -49,10 +49,11 @@ static logger_t logger;
 #define RDP_flog(...) logger_funcprint(logger, __func__, -1, __VA_ARGS__)
 #define RDP_fdbg(...) logger_funcprint(logger, __func__, __VA_ARGS__)
 
-/** Abbrev for errno-warnings. This is a wrapper to @ref logger_warn() */
+/** Abbreviations for errno-warnings */
 #define RDP_warn(...) logger_warn(logger, __VA_ARGS__)
+#define RDP_fwarn(...) logger_funcwarn(logger, __func__, -1, __VA_ARGS__)
 
-/** Abbrev for fatal log messages. This is a wrapper to @ref logger_exit() */
+/** Abbreviations for fatal log messages */
 #define RDP_exit(...) logger_exit(logger, __VA_ARGS__)
 
 /**
@@ -687,7 +688,7 @@ static ssize_t MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	    /* Handle extended error */
 	    ret = handleErr(eno);
 	    if (ret < 0) {
-		RDP_warn(-1, eno, "%s", __func__);
+		RDP_fwarn(eno, "handleErr()");
 		return ret;
 	    }
 	    /* Another packet pending ? */
@@ -705,7 +706,7 @@ static ssize_t MYrecvfrom(int sock, void *buf, size_t len, int flags,
 			continue;
 		    }
 		    eno = errno;
-		    RDP_warn(-1, eno, "%s: select", __func__);
+		    RDP_fwarn(eno, "select");
 		    errno = eno;
 		    return ret;
 		}
@@ -715,7 +716,7 @@ static ssize_t MYrecvfrom(int sock, void *buf, size_t len, int flags,
 
 	    return 0;
 	default:
-	    RDP_warn(-1, eno, "%s", __func__);
+	    RDP_fwarn(eno, "recvfrom()");
 	}
     }
     if (ret < (int)sizeof(rdphdr_t)) {
@@ -807,8 +808,8 @@ static ssize_t MYsendto(int sock, void *buf, size_t len, int flags,
 	    /* Handle extended error */
 	    ret = handleErr(eno);
 	    if (ret < 0) {
-		RDP_warn(-1, eno, "%s: to %s (%d)", __func__,
-			 inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
+		RDP_fwarn(eno, "to %s (%d)",
+			  inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
 		return ret;
 	    }
 	    if (conntable[node].state == CLOSED) {
@@ -824,8 +825,8 @@ static ssize_t MYsendto(int sock, void *buf, size_t len, int flags,
 	    goto restart;
 	    break;
 	default:
-	    RDP_warn(-1, eno, "%s to %s(%d)", __func__,
-		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
+	    RDP_fwarn(eno, "to %s(%d)",
+		      inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
 	    errno = eno;
 	}
     }
@@ -1555,7 +1556,7 @@ static ssize_t handleErr(int eno)
     if (recvmsg(rdpsock, &errmsg, MSG_ERRQUEUE) == -1) {
 	int leno = errno;
 	if (errno == EAGAIN) return 0;
-	RDP_warn(-1, errno, "%s: recvmsg", __func__);
+	RDP_fwarn(errno, "recvmsg()");
 	errno = leno;
 	return -1;
     }
@@ -1636,8 +1637,8 @@ static ssize_t handleErr(int eno)
 	closeConnection(node, true /* callback */, false /* silent */);
 	break;
     default:
-	RDP_warn(-1, eno, "%s: UNKNOWN errno %d to %s(%d) port %d\n", __func__,
-		 eno, inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
+	RDP_fwarn(eno, "UNKNOWN errno %d to %s(%d) port %d\n", eno,
+		  inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
     }
 
     return 0;
@@ -1686,7 +1687,7 @@ static int handleRDP(int fd, void *info)
     ssize_t ret = MYrecvfrom(fd, &msg, sizeof(msg), MSG_PEEK,
 			     (struct sockaddr *)&sin, &slen);
     if (ret < 0) {
-	RDP_warn(-1, errno, "%s: MYrecvfrom(MSG_PEEK)", __func__);
+	RDP_fwarn(errno, "MYrecvfrom(MSG_PEEK)");
 	return ret;
     } else if (!ret) return ret;
 
@@ -1757,7 +1758,7 @@ static int handleRDP(int fd, void *info)
 	ret = MYrecvfrom(fd, &msg, sizeof(msg), 0,
 			 (struct sockaddr *) &sin, &slen);
 	if (ret < 0) {
-	    RDP_warn(-1, errno, "%s/CCTRL: MYrecvfrom", __func__);
+	    RDP_fwarn(errno, "CCTRL: MYrecvfrom()");
 	} else if (!ret) {
 	    RDP_flog("CCTRL: MYrecvfrom() returns 0\n");
 	} else {
@@ -1776,7 +1777,7 @@ static int handleRDP(int fd, void *info)
 			 (struct sockaddr *) &sin, &slen);
 
 	if (ret < 0) {
-	    RDP_warn(-1, errno, "%s/CDTA: MYrecvfrom", __func__);
+	    RDP_fwarn(errno, "CDTA: MYrecvfrom()");
 	    return ret;
 	} else if (!ret) {
 	    RDP_flog("CDTA: MYrecvfrom() returns 0\n");
@@ -2094,7 +2095,7 @@ ssize_t Rsendto(int32_t node, void *buf, size_t len)
     }
 
     if (!mp->msg.small) {
-	RDP_warn(-1, errno, "%s", __func__);
+	RDP_fwarn(errno, "malloc()");
 	Timer_block(timerID, blocked);
 	return -1;
     }
@@ -2180,7 +2181,7 @@ ssize_t Rsendto(int32_t node, void *buf, size_t len)
 	    errno = 0;
 	    retval = len;
 	} else {
-	    RDP_warn(-1, errno, "%s",  __func__);
+	    RDP_fwarn(errno, " ");
 	    return retval;
 	}
     }
@@ -2368,14 +2369,14 @@ void RDP_printStat(void)
 
 	len = sizeof(sval);
 	if (getsockopt(rdpsock, SOL_SOCKET, SO_RCVBUF, &sval, &len)) {
-	    RDP_warn(-1, errno, "%s: getsockopt(SO_RCVBUF)", __func__);
+	    RDP_fwarn(errno, "getsockopt(SO_RCVBUF)");
 	} else {
 	    RDP_flog("SO_RCVBUF is %d\n", sval);
 	}
 
 	len = sizeof(sval);
 	if (getsockopt(rdpsock, SOL_SOCKET, SO_SNDBUF, &sval, &len)) {
-	    RDP_warn(-1, errno, "%s: getsockopt(SO_SNDBUF)", __func__);
+	    RDP_fwarn(errno, "getsockopt(SO_SNDBUF)");
 	} else {
 	    RDP_flog("SO_SNDBUF is %d\n", sval);
 	}
