@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2023-2024 ParTec AG, Munich
+ * Copyright (C) 2023-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -91,7 +91,7 @@ static bool nodeVisitor(struct sockaddr_in *saddr, void *info)
  *
  * @return Always returns 0
  */
-int resolveUnknownNode(void *id)
+static int resolveUnknownNode(void *id)
 {
     PSnodes_ID_t nodeID = *(PSnodes_ID_t *)id;
     const char *host = PSIDnodes_getHostname(nodeID);
@@ -142,7 +142,7 @@ static bool senderVisitor(struct sockaddr_in *saddr, void *info)
  *
  * @return Always returns 0
  */
-int resolveUnknownSender(void *senderAddr)
+static int resolveUnknownSender(void *senderAddr)
 {
     senderData_t senderData = { .senderIP = senderAddr };
     bool match = false;
