@@ -42,10 +42,11 @@ static uint32_t nrOfNodes = 0;
 /** The logger we use inside RDP */
 static logger_t logger;
 
-/** Abbrev for various log messages */
+/** Abbreviations for various log messages */
 #define RDP_log(...) logger_print(logger, __VA_ARGS__)
 #define RDP_dbg(...) logger_print(logger, __VA_ARGS__)
 
+#define RDP_flog(...) logger_funcprint(logger, __func__, -1, __VA_ARGS__)
 #define RDP_fdbg(...) logger_funcprint(logger, __func__, __VA_ARGS__)
 
 /** Abbrev for errno-warnings. This is a wrapper to @ref logger_warn() */
@@ -228,8 +229,7 @@ static void initIPTable(void)
 static void addToIPTable(struct in_addr addr, int32_t node)
 {
     if ((ntohl(addr.s_addr) >> 24) == IN_LOOPBACKNET) {
-	RDP_log(-1, "%s: address <%s> within loopback range\n",
-		__func__, inet_ntoa(addr));
+	RDP_flog("address <%s> within loopback range\n", inet_ntoa(addr));
 	exit(1);
     }
 
@@ -397,7 +397,7 @@ static Smsg_t *getSMsg(void)
 {
     Smsg_t *mp = SMsgFreeList;
     if (!mp) {
-	RDP_log(-1, "%s: no more elements in SMsgFreeList\n", __func__);
+	RDP_flog("no more elements in SMsgFreeList\n");
 	errno = ENOMEM;
     } else {
 	SMsgFreeList = SMsgFreeList->next;
@@ -495,7 +495,7 @@ static void initMsgList(uint32_t nodes)
 static msgbuf_t *getMsg(void)
 {
     if (list_empty(&MsgFreeList)) {
-	RDP_log(-1, "%s: no more elements in MsgFreeList\n", __func__);
+	RDP_flog("no more elements in MsgFreeList\n");
     } else {
 	msgbuf_t *mp;
 	/* get list's first element */
@@ -720,7 +720,7 @@ static ssize_t MYrecvfrom(int sock, void *buf, size_t len, int flags,
     }
     if (ret < (int)sizeof(rdphdr_t)) {
 	if (ret >= 0) {
-	    RDP_log(-1, "%s: incomplete RDP message received\n", __func__);
+	    RDP_flog("incomplete RDP message received\n");
 	}
     } else {
 	/* message on the wire not in host-byteorder */
@@ -775,7 +775,7 @@ static ssize_t MYsendto(int sock, void *buf, size_t len, int flags,
     socklen_t tolen = sizeof(struct sockaddr);
 
     if (((struct sockaddr_in *)to)->sin_addr.s_addr == INADDR_ANY) {
-	RDP_log(-1, "%s: don't send to INADDR_ANY\n", __func__);
+	RDP_flog("do not send to INADDR_ANY\n");
 	errno = EINVAL;
 	return -1;
     }
@@ -1084,10 +1084,9 @@ static void resendMsgs(int32_t node)
     timeradd(&tv, &RESEND_TIMEOUT, &conntable[node].tmout);
 
     if (conntable[node].retrans > RDPMaxRetransCount) {
-	RDP_log((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1,
-		"%s: Retransmission count exceeds limit"
-		" [seqno=%x], closing connection to %d\n",
-		__func__, conntable[node].ackExpected, node);
+	RDP_fdbg((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1,
+		 "retransmission count exceeds limit [seqno=%x], closing"
+		 " connection to %d\n", conntable[node].ackExpected, node);
 	closeConnection(node, true /* callback */, false /* silent */);
 	return;
     }
@@ -1098,7 +1097,7 @@ static void resendMsgs(int32_t node)
 
     switch (conntable[node].state) {
     case CLOSED:
-	RDP_log(-1, "%s: CLOSED connection\n", __func__);
+	RDP_flog("CLOSED connection\n");
 	break;
     case SYN_SENT:
 	RDP_fdbg(RDP_LOG_CNTR, "send SYN again\n");
@@ -1131,8 +1130,7 @@ static void resendMsgs(int32_t node)
 	break;
     }
     default:
-	RDP_log(-1, "%s: unknown state %d for %d\n",
-		__func__, conntable[node].state, node);
+	RDP_flog("unknown state %d for %d\n", conntable[node].state, node);
     }
 }
 
@@ -1229,10 +1227,8 @@ static void updateState(rdphdr_t *hdr, int32_t node)
 	    cp->frameExpected = hdr->seqno;
 	    if (hdr->connid != cp->ConnID_in) { /* NEW CONNECTION */
 		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-		RDP_log(-1,
-			"%s: state(%d) new conn in SYN_RECVD on %s, FE=%x\n",
-			__func__, node, RDPMsgString(hdr->type),
-			cp->frameExpected);
+		RDP_flog("state(%d) new conn in SYN_RECVD on %s, FE=%x\n",
+			 node, RDPMsgString(hdr->type),	cp->frameExpected);
 	    } else {
 		RDP_fdbg(RDP_LOG_CNTR,
 			 "state(%d): stay in SYN_RECVD on %s, FE=%x\n", node,
@@ -1250,10 +1246,8 @@ static void updateState(rdphdr_t *hdr, int32_t node)
 	case RDP_ACK:
 	case RDP_DATA:
 	    cp->state = ACTIVE;
-	    RDP_log(logLevel,
-		    "%s: state(%d): SYN_RECVD -> ACTIVE on %s, FE=%x\n",
-		    __func__, node, RDPMsgString(hdr->type),
-		    cp->frameExpected);
+	    RDP_fdbg(logLevel, "state(%d): SYN_RECVD -> ACTIVE on %s, FE=%x\n",
+		     node, RDPMsgString(hdr->type), cp->frameExpected);
 	    if (cp->msgPending) {
 		resendMsgs(node);
 		cp->frameToSend += cp->msgPending;
@@ -1267,9 +1261,8 @@ static void updateState(rdphdr_t *hdr, int32_t node)
 	    break;
 	default:
 	    cp->state = SYN_SENT;
-	    RDP_log(-1, "%s: state(%d): SYN_RECVD -> SYN_SENT on %s, FE=%x\n",
-		    __func__, node, RDPMsgString(hdr->type),
-		    cp->frameExpected);
+	    RDP_flog("state(%d): SYN_RECVD -> SYN_SENT on %s, FE=%x\n", node,
+		     RDPMsgString(hdr->type), cp->frameExpected);
 	    sendSYN(node);
 	    break;
 	}
@@ -1283,10 +1276,9 @@ static void updateState(rdphdr_t *hdr, int32_t node)
 		closeConnection(node, true /* callback */, false /* silent */);
 		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno;
-		RDP_log(-1, "%s: state(%d): ACTIVE -> SYN_RECVD (%x vs %x)"
-			" on %s, FE=%x, seqno=%x\n", __func__, node,
-			hdr->connid, cp->ConnID_in, RDPMsgString(hdr->type),
-			oldFE, cp->frameExpected);
+		RDP_flog("state(%d): ACTIVE -> SYN_RECVD (%x vs %x) on %s,"
+			 " FE=%x, seqno=%x\n", node, hdr->connid, cp->ConnID_in,
+			 RDPMsgString(hdr->type), oldFE, cp->frameExpected);
 		cp->ConnID_in = hdr->connid;
 		sendSYNACK(node);
 		break;
@@ -1294,18 +1286,16 @@ static void updateState(rdphdr_t *hdr, int32_t node)
 		closeConnection(node, true /* callback */, false /* silent */);
 		cp->state = SYN_SENT;
 		cp->frameExpected = hdr->seqno;
-		RDP_log(-1, "%s: state(%d): ACTIVE -> SYN_SENT (%x vs %x)"
-			" on %s, FE=%x, seqno=%x\n", __func__, node,
-			hdr->connid, cp->ConnID_in, RDPMsgString(hdr->type),
-			oldFE, cp->frameExpected);
+		RDP_flog("state(%d): ACTIVE -> SYN_SENT (%x vs %x) on %s, FE=%x,"
+			 " seqno=%x\n", node, hdr->connid, cp->ConnID_in,
+			 RDPMsgString(hdr->type), oldFE, cp->frameExpected);
 		cp->ConnID_in = hdr->connid;
 		sendSYN(node);
 		break;
 	    default:
-		RDP_log(-1, "%s: state(%d): ACTIVE -> CLOSED (%x vs %x)"
-			" on %s, FE=%x, seqno=%x\n", __func__, node,
-			hdr->connid, cp->ConnID_in, RDPMsgString(hdr->type),
-			oldFE, cp->frameExpected);
+		RDP_flog("state(%d): ACTIVE -> CLOSED (%x vs %x) on %s, FE=%x,"
+			 " seqno=%x\n", node, hdr->connid, cp->ConnID_in,
+			 RDPMsgString(hdr->type), oldFE, cp->frameExpected);
 		closeConnection(node, true /* callback */, false /* silent */);
 		break;
 	    }
@@ -1315,10 +1305,8 @@ static void updateState(rdphdr_t *hdr, int32_t node)
 		closeConnection(node, true /* callback */, false /* silent */);
 		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno;
-		RDP_log(-1,
-			"%s: state(%d): ACTIVE -> SYN_RECVD on %s, FE=%x\n",
-			__func__, node, RDPMsgString(hdr->type),
-			cp->frameExpected);
+		RDP_flog("state(%d): ACTIVE -> SYN_RECVD on %s, FE=%x\n", node,
+			 RDPMsgString(hdr->type), cp->frameExpected);
 		sendSYNACK(node);
 		break;
 	    default:
@@ -1330,7 +1318,7 @@ static void updateState(rdphdr_t *hdr, int32_t node)
 	}
 	break;
     default:
-	RDP_log(-1, "%s: invalid state for %d\n", __func__, node);
+	RDP_flog("invalid state for %d\n", node);
 	break;
     }
 }
@@ -1422,8 +1410,8 @@ static void doACK(rdphdr_t *hdr, int32_t fromnode)
 	     fromnode, hdr->type, hdr->seqno, cp->ackExpected, hdr->ackno);
 
     if (hdr->connid != cp->ConnID_in) { /* New Connection */
-	RDP_log(-1, "unable to process ACK for new conn to %d (%x vs %x)\n",
-		fromnode, hdr->connid, cp->ConnID_in);
+	RDP_flog("cannot handle new conn to %d (%x vs %x)\n", fromnode,
+		 hdr->connid, cp->ConnID_in);
 	updateState(hdr, fromnode);
 	return;
     }
@@ -1460,9 +1448,8 @@ static void doACK(rdphdr_t *hdr, int32_t fromnode)
 	if (RSEQCMP((int)seqno, hdr->ackno) <= 0) {
 	    /* ACK this buffer */
 	    if ((int)seqno != cp->ackExpected) {
-		RDP_log(-1, "%s: strange things happen: msg.seqno = %x,"
-			" AE=%x from %d\n", __func__, seqno, cp->ackExpected,
-			fromnode);
+		RDP_flog("strange things happen: msg.seqno = %x, AE=%x"
+			 " from %d\n", seqno, cp->ackExpected, fromnode);
 	    }
 	    /* release msg frame */
 	    RDP_fdbg(RDP_LOG_ACKS, "release buffer seqno=%x to %d\n",
@@ -1529,7 +1516,7 @@ static void handleControlPacket(rdphdr_t *hdr, int32_t node)
 	updateState(hdr, node);
 	break;
     default:
-	RDP_log(-1, "%s: delete unknown msg", __func__);
+	RDP_flog("delete unknown msg");
 	break;
     }
 }
@@ -1574,12 +1561,12 @@ static ssize_t handleErr(int eno)
     }
 
     if (! (errmsg.msg_flags & MSG_ERRQUEUE)) {
-	RDP_log(-1, "%s: MSG_ERRQUEUE requested but not returned\n", __func__);
+	RDP_flog("MSG_ERRQUEUE requested but not returned\n");
 	return -1;
     }
 
     if (errmsg.msg_flags & MSG_CTRUNC) {
-	RDP_log(-1, "%s: cmsg truncated\n", __func__);
+	RDP_flog("cmsg truncated\n");
 	return -1;
     }
 
@@ -1599,7 +1586,7 @@ static ssize_t handleErr(int eno)
 
     struct cmsghdr *cmsg = CMSG_FIRSTHDR(&errmsg);
     if (!cmsg) {
-	RDP_log(-1, "%s: cmsg is NULL\n", __func__);
+	RDP_flog("cmsg is NULL\n");
 	return -1;
     }
 
@@ -1609,13 +1596,13 @@ static ssize_t handleErr(int eno)
 	     cmsg->cmsg_type, IP_RECVERR);
 
     if (! cmsg->cmsg_len) {
-	RDP_log(-1, "%s: cmsg->cmsg_len = 0, local error?\n", __func__);
+	RDP_flog("cmsg->cmsg_len = 0, local error?\n");
 	return -1;
     }
 
     struct sock_extended_err *extErr = (struct sock_extended_err *)CMSG_DATA(cmsg);
     if (!extErr) {
-	RDP_log(-1, "%s: extErr is NULL\n", __func__);
+	RDP_flog("extErr is NULL\n");
 	return -1;
     }
 
@@ -1627,8 +1614,7 @@ static ssize_t handleErr(int eno)
 
     int32_t node = lookupIPTable(sin.sin_addr);
     if (node < 0) {
-	RDP_log(-1, "%s: unable to resolve %s\n", __func__,
-		inet_ntoa(sin.sin_addr));
+	RDP_flog("unable to resolve %s\n", inet_ntoa(sin.sin_addr));
 	errno = ELNRNG;
 	return -1;
     }
@@ -1712,7 +1698,7 @@ static int handleRDP(int fd, void *info)
 			   (struct sockaddr *) &sin, &slen) < 0) {
 		RDP_exit(errno, "%s/PKTLOSS: MYrecvfrom", __func__);
 	    } else if (!ret) {
-		RDP_log(-1, "%s/PKTLOSS: MYrecvfrom() returns 0\n", __func__);
+		RDP_flog("PKTLOSS: MYrecvfrom() returns 0\n");
 	    }
 
 	    /* Throw it away */
@@ -1728,15 +1714,14 @@ static int handleRDP(int fd, void *info)
     }
 
     if (fromnode < 0) {
-	RDP_log(-1, "%s: unable to resolve %s\n", __func__,
-		inet_ntoa(sin.sin_addr));
+	RDP_flog("unable to resolve %s\n", inet_ntoa(sin.sin_addr));
 
 	/* Actually get the msg */
 	if (MYrecvfrom(fd, &msg, sizeof(msg), 0,
 		       (struct sockaddr *) &sin, &slen) < 0) {
 	    RDP_exit(errno, "%s/ELNRNG: MYrecvfrom", __func__);
 	} else if (!ret) {
-	    RDP_log(-1, "%s/ELNRNG: MYrecvfrom() returns 0\n", __func__);
+	    RDP_flog("ELNRNG: MYrecvfrom() returns 0\n");
 	}
 
 	errno = ELNRNG;
@@ -1754,7 +1739,7 @@ static int handleRDP(int fd, void *info)
 			   (struct sockaddr *) &sin, &slen) < 0) {
 		RDP_exit(errno, "%s/CLOSED: MYrecvfrom", __func__);
 	    } else if (!ret) {
-		RDP_log(-1, "%s/CLOSED: MYrecvfrom() returns 0\n", __func__);
+		RDP_flog("CLOSED: MYrecvfrom() returns 0\n");
 	    }
 
 	    /* Throw it away */
@@ -1774,7 +1759,7 @@ static int handleRDP(int fd, void *info)
 	if (ret < 0) {
 	    RDP_warn(-1, errno, "%s/CCTRL: MYrecvfrom", __func__);
 	} else if (!ret) {
-	    RDP_log(-1, "%s/CCTRL: MYrecvfrom() returns 0\n", __func__);
+	    RDP_flog("CCTRL: MYrecvfrom() returns 0\n");
 	} else {
 	    /* process it */
 	    handleControlPacket(&msg.header, fromnode);
@@ -1794,7 +1779,7 @@ static int handleRDP(int fd, void *info)
 	    RDP_warn(-1, errno, "%s/CDTA: MYrecvfrom", __func__);
 	    return ret;
 	} else if (!ret) {
-	    RDP_log(-1, "%s/CDTA: MYrecvfrom() returns 0\n", __func__);
+	    RDP_flog("CDTA: MYrecvfrom() returns 0\n");
 	} else {
 	    RDP_fdbg(RDP_LOG_DROP, "check DATA from %d (SEQ %x/FE %x)\n",
 		     fromnode, msg.header.seqno,
@@ -1891,7 +1876,7 @@ bool RDP_updateNode(int32_t node, in_addr_t addr)
 {
     if (node < 0 || node >= (int)nrOfNodes) {
 	/* illegal node number */
-	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
+	RDP_flog("illegal node number %d\n", node);
 	return false;
     }
 
@@ -1961,7 +1946,7 @@ void setTmOutRDP(int timeout)
     }
     timerID = Timer_register(&RDPTimeout, handleTimeoutRDP);
     if (timerID < 0) {
-	RDP_log(-1, "%s: Failed to (re-)register RDP timer\n",__func__);
+	RDP_flog("Failed to (re-)register RDP timer\n");
 	exit(1);
     }
 }
@@ -2044,7 +2029,7 @@ ssize_t Rsendto(int32_t node, void *buf, size_t len)
 {
     if (node < 0 || node >= (int)nrOfNodes) {
 	/* illegal node number */
-	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
+	RDP_flog("illegal node number %d\n", node);
 	errno = EHOSTUNREACH;
 	return -1;
     }
@@ -2065,8 +2050,7 @@ ssize_t Rsendto(int32_t node, void *buf, size_t len)
     }
     if (len > RDP_MAX_DATA_SIZE) {
 	/* msg too large */
-	RDP_log(-1, "%s: len=%zd > RDP_MAX_DATA_SIZE=%zd\n",
-		__func__, len, RDP_MAX_DATA_SIZE);
+	RDP_flog("len=%zd > RDP_MAX_DATA_SIZE=%zd\n", len, RDP_MAX_DATA_SIZE);
 	errno = EMSGSIZE;
 	return -1;
     }
@@ -2097,7 +2081,7 @@ ssize_t Rsendto(int32_t node, void *buf, size_t len)
     /* setup msg buffer */
     msgbuf_t *mp = getMsg();
     if (!mp) {
-	RDP_log(-1, "%s: Unable to get msg buffer\n", __func__);
+	RDP_flog("Unable to get msg buffer\n");
 	Timer_block(timerID, blocked);
 	errno = EAGAIN;
 	return -1;
@@ -2184,8 +2168,7 @@ ssize_t Rsendto(int32_t node, void *buf, size_t len)
 			  len + sizeof(rdphdr_t), 0, node, false);
 	break;
     default:
-	RDP_log(-1, "%s: unknown state %d for %d\n",
-		__func__, conntable[node].state, node);
+	RDP_flog("unknown state %d for %d\n", conntable[node].state, node);
     }
 
     /* Restore blocked timer */
@@ -2209,19 +2192,19 @@ ssize_t Rrecvfrom(int32_t *node, void *msg, size_t len)
 {
     if (!node || !msg) {
 	/* we definitely need a pointer */
-	RDP_log(-1, "%s: got NULL pointer\n", __func__);
+	RDP_flog("got NULL pointer\n");
 	errno = EINVAL;
 	return -1;
     }
     if (((*node < -1) || (*node >= (int)nrOfNodes))) {
 	/* illegal node number */
-	RDP_log(-1, "%s: illegal node number %d\n", __func__, *node);
+	RDP_flog("illegal node number %d\n", *node);
 	errno = EINVAL;
 	return -1;
     }
     if ((*node != -1) && (conntable[*node].state != ACTIVE)) {
 	/* connection not established */
-	RDP_log(-1, "%s: node %d NOT ACTIVE\n", __func__, *node);
+	RDP_flog("node %d NOT ACTIVE\n", *node);
 	errno = EAGAIN;
 	return -1;
     }
@@ -2240,21 +2223,19 @@ ssize_t Rrecvfrom(int32_t *node, void *msg, size_t len)
 	}
 	RDP_exit(errno, "%s: MYrecvfrom", __func__);
     } else if (!retval) {
-	RDP_log(-1,  "%s: MYrecvfrom() returns 0\n", __func__);
+	RDP_flog("MYrecvfrom() returns 0\n");
 	return 0;
     }
 
     int32_t fromnode = lookupIPTable(sin.sin_addr);
     if (fromnode < 0) {
-	RDP_log(-1, "%s: unable to resolve %s\n", __func__,
-		inet_ntoa(sin.sin_addr));
+	RDP_flog("unable to resolve %s\n", inet_ntoa(sin.sin_addr));
 	errno = ELNRNG;
 	return -1;
     }
 
     if (msgbuf.header.type != RDP_DATA) {
-	RDP_log(-1, "%s: not RDP_DATA [%d] from %d\n",
-		__func__, fromnode, msgbuf.header.type);
+	RDP_flog("not RDP_DATA [%d] from %d\n", fromnode, msgbuf.header.type);
 	handleControlPacket(&msgbuf.header, fromnode);
 	*node = -1;
 	errno = EAGAIN;
@@ -2278,8 +2259,8 @@ ssize_t Rrecvfrom(int32_t *node, void *msg, size_t len)
     case ACTIVE:
 	break;
     default:
-	RDP_log(-1, "%s: unknown state %d for %d\n",
-		__func__, conntable[fromnode].state, fromnode);
+	RDP_flog("unknown state %d for %d\n",
+		 conntable[fromnode].state, fromnode);
     }
 
     doACK(&msgbuf.header, fromnode);
@@ -2304,9 +2285,8 @@ ssize_t Rrecvfrom(int32_t *node, void *msg, size_t len)
 	*node = fromnode;
     } else {
 	/* WrongSeqNo Received */
-	RDP_log(-1, "%s: wrong sequence from %d (SEQ %x/FE %x)\n", __func__,
-		fromnode, msgbuf.header.seqno,
-		conntable[fromnode].frameExpected);
+	RDP_flog("wrong sequence from %d (SEQ %x/FE %x)\n", fromnode,
+		 msgbuf.header.seqno, conntable[fromnode].frameExpected);
 	*node = -1;
 	errno = EAGAIN;
 	return -1;
@@ -2370,13 +2350,13 @@ int RDP_blockTimer(bool block)
 void RDP_printStat(void)
 {
     if (rdpsock == -1) {
-	RDP_log(-1, "%s: rdpSock not connected\n", __func__);
+	RDP_flog("rdpSock not connected\n");
     } else {
 	struct sockaddr_in sin;
 	socklen_t len;
 	int sval, ret;
 
-	RDP_log(-1, "%s: rdpSock is %d", __func__, rdpsock);
+	RDP_flog("rdpSock is %d", rdpsock);
 
 	len = sizeof(sin);
 	ret = getsockname(rdpsock, (struct sockaddr *)&sin, &len);
@@ -2390,14 +2370,14 @@ void RDP_printStat(void)
 	if (getsockopt(rdpsock, SOL_SOCKET, SO_RCVBUF, &sval, &len)) {
 	    RDP_warn(-1, errno, "%s: getsockopt(SO_RCVBUF)", __func__);
 	} else {
-	    RDP_log(-1, "%s: SO_RCVBUF is %d\n", __func__, sval);
+	    RDP_flog("SO_RCVBUF is %d\n", sval);
 	}
 
 	len = sizeof(sval);
 	if (getsockopt(rdpsock, SOL_SOCKET, SO_SNDBUF, &sval, &len)) {
 	    RDP_warn(-1, errno, "%s: getsockopt(SO_SNDBUF)", __func__);
 	} else {
-	    RDP_log(-1, "%s: SO_SNDBUF is %d\n", __func__, sval);
+	    RDP_flog("SO_SNDBUF is %d\n", sval);
 	}
     }
 }
@@ -2405,7 +2385,7 @@ void RDP_printStat(void)
 RDPState_t RDP_getState(int32_t node)
 {
     if (node < 0 || node >= (int)nrOfNodes) {
-	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
+	RDP_flog("illegal node number %d\n", node);
 	return -1;
     }
 
@@ -2415,7 +2395,7 @@ RDPState_t RDP_getState(int32_t node)
 int RDP_getNumPend(int32_t node)
 {
     if (node < 0 || node >= (int)nrOfNodes) {
-	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
+	RDP_flog("illegal node number %d\n", node);
 	return -1;
     }
 
