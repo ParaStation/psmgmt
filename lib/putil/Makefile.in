@@ -364,7 +364,9 @@ do_subst = sed \
 	-e 's,[@]configdir[@],$(configdir),g' \
 	-e 's,[@]docdir[@],$(docdir),g' \
 	-e 's,[@]includedir[@],$(includedir),g' \
+	-e 's,[@]jaillibdir[@],$(jaillibdir),g' \
 	-e 's,[@]libdir[@],$(libdir),g' \
+	-e 's,[@]localstatedir[@],$(localstatedir),g' \
 	-e 's,[@]mandir[@],$(mandir),g' \
 	-e 's,[@]prefix[@],$(prefix),g' \
 	-e 's,[@]pkgdatadir[@],$(pkgdatadir),g' \
@@ -372,7 +374,6 @@ do_subst = sed \
 	-e 's,[@]sbindir[@],$(sbindir),g' \
 	-e 's,[@]scriptsdir[@],$(scriptsdir),g' \
 	-e 's,[@]sysconfdir[@],$(sysconfdir),g' \
-	-e 's,[@]localstatedir[@],$(localstatedir),g' \
 	-e 's,[@]psconfigdumpsdir[@],$(psconfigdumpsdir),g'
 
 confdir = $(sysconfdir)/parastation
