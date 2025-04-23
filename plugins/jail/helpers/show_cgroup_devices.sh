@@ -10,7 +10,7 @@ fi
 
 PID=$1
 if [[ -z $PID ]]; then
-    echo "missing PID to show BPF constrains";
+    echo "missing PID to show BPF constraints";
     echo "usage: $0 PID"; exit 1;
 fi
 
