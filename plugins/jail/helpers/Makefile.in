@@ -36,6 +36,7 @@
 #
 
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -122,12 +123,14 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(am__dist_jaillib_DATA_DIST) \
-	$(dist_noinst_DATA) $(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(dist_jaillib_SCRIPTS) \
+	$(am__dist_jaillib_DATA_DIST) $(dist_noinst_DATA) \
+	$(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(jaillibdir)" "$(DESTDIR)$(jaillibdir)"
+am__installdirs = "$(DESTDIR)$(jaillibdir)" "$(DESTDIR)$(jaillibdir)" \
+	"$(DESTDIR)$(jaillibdir)"
 PROGRAMS = $(jaillib_PROGRAMS)
 am__bpf_device_loader_SOURCES_DIST = load_bpf.c
 @BPF_ENABLED_TRUE@am_bpf_device_loader_OBJECTS = load_bpf.$(OBJEXT)
@@ -137,6 +140,33 @@ AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__uninstall_files_from_dir = { \
+  { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
+  || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
+       $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
+  }
+SCRIPTS = $(dist_jaillib_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -180,32 +210,6 @@ am__can_run_installinfo = \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
 am__dist_jaillib_DATA_DIST = bpf_cgroup_device
-am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
-am__vpath_adj = case $$p in \
-    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
-    *) f=$$p;; \
-  esac;
-am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
-am__install_max = 40
-am__nobase_strip_setup = \
-  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
-am__nobase_strip = \
-  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
-am__nobase_list = $(am__nobase_strip_setup); \
-  for p in $$list; do echo "$$p $$p"; done | \
-  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
-  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
-    if (++n[$$2] == $(am__install_max)) \
-      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
-    END { for (dir in files) print dir, files[dir] }'
-am__base_list = \
-  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
-  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__uninstall_files_from_dir = { \
-  { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
-  || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
-       $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
-  }
 DATA = $(dist_jaillib_DATA) $(dist_noinst_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
@@ -413,6 +417,7 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
+dist_jaillib_SCRIPTS = show_cgroup_devices.sh
 dist_noinst_DATA = README.bpf
 @BPF_ENABLED_TRUE@dist_jaillib_DATA = bpf_cgroup_device
 @BPF_ENABLED_TRUE@bpf_device_loader_SOURCES = load_bpf.c
@@ -499,6 +504,41 @@ clean-jaillibPROGRAMS:
 bpf_device_loader$(EXEEXT): $(bpf_device_loader_OBJECTS) $(bpf_device_loader_DEPENDENCIES) $(EXTRA_bpf_device_loader_DEPENDENCIES) 
 	@rm -f bpf_device_loader$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(bpf_device_loader_OBJECTS) $(bpf_device_loader_LDADD) $(LIBS)
+install-dist_jaillibSCRIPTS: $(dist_jaillib_SCRIPTS)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_jaillib_SCRIPTS)'; test -n "$(jaillibdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(jaillibdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(jaillibdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n' \
+	    -e 'h;s|.*|.|' \
+	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
+	      if (++n[d] == $(am__install_max)) { \
+		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
+	    else { print "f", d "/" $$4, $$1 } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	     test -z "$$files" || { \
+	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(jaillibdir)$$dir'"; \
+	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(jaillibdir)$$dir" || exit $$?; \
+	     } \
+	; done
+
+uninstall-dist_jaillibSCRIPTS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_jaillib_SCRIPTS)'; test -n "$(jaillibdir)" || exit 0; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	       sed -e 's,.*/,,;$(transform)'`; \
+	dir='$(DESTDIR)$(jaillibdir)'; $(am__uninstall_files_from_dir)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -651,9 +691,9 @@ distdir-am: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS) $(DATA)
+all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(jaillibdir)" "$(DESTDIR)$(jaillibdir)"; do \
+	for dir in "$(DESTDIR)$(jaillibdir)" "$(DESTDIR)$(jaillibdir)" "$(DESTDIR)$(jaillibdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -709,7 +749,8 @@ info: info-am
 
 info-am:
 
-install-data-am: install-dist_jaillibDATA install-jaillibPROGRAMS
+install-data-am: install-dist_jaillibDATA install-dist_jaillibSCRIPTS \
+	install-jaillibPROGRAMS
 
 install-dvi: install-dvi-am
 
@@ -755,7 +796,8 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-dist_jaillibDATA uninstall-jaillibPROGRAMS
+uninstall-am: uninstall-dist_jaillibDATA uninstall-dist_jaillibSCRIPTS \
+	uninstall-jaillibPROGRAMS
 
 .MAKE: install-am install-strip
 
@@ -765,15 +807,16 @@ uninstall-am: uninstall-dist_jaillibDATA uninstall-jaillibPROGRAMS
 	distclean-generic distclean-libtool distclean-tags distdir dvi \
 	dvi-am html html-am info info-am install install-am \
 	install-data install-data-am install-dist_jaillibDATA \
-	install-dvi install-dvi-am install-exec install-exec-am \
-	install-html install-html-am install-info install-info-am \
-	install-jaillibPROGRAMS install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-dist_jaillibDATA \
-	uninstall-jaillibPROGRAMS
+	install-dist_jaillibSCRIPTS install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-jaillibPROGRAMS \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-dist_jaillibDATA \
+	uninstall-dist_jaillibSCRIPTS uninstall-jaillibPROGRAMS
 
 .PRECIOUS: Makefile
 
