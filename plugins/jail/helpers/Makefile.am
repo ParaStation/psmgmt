@@ -10,6 +10,8 @@
 
 include $(top_srcdir)/common.am
 
+dist_jaillib_SCRIPTS = show_cgroup_devices.sh
+
 dist_noinst_DATA = README.bpf
 
 if BPF_ENABLED
