@@ -283,19 +283,7 @@ fi
 %dir %{_plugindir}
 %{_plugindir}/jail.so
 %config(noreplace) %{_plugindir}/jail.conf
-%dir %{_libexecdir}/jail
-%config(noreplace) %{_libexecdir}/jail/jail-config.inc
-%config(noreplace) %{_libexecdir}/jail/jail-finalize.sh
-%config(noreplace) %{_libexecdir}/jail/jail-functions.inc
-%config(noreplace) %{_libexecdir}/jail/jail-init.sh
-%config(noreplace) %{_libexecdir}/jail/jail-main.sh
-%config(noreplace) %{_libexecdir}/jail/jail-term-v2-cpuset.inc
-%config(noreplace) %{_libexecdir}/jail/jail-term-v2-devices.inc
-%config(noreplace) %{_libexecdir}/jail/jail-term-v2-memory.inc
-%config(noreplace) %{_libexecdir}/jail/jail-v2-cpuset.inc
-%config(noreplace) %{_libexecdir}/jail/jail-v2-devices.inc
-%config(noreplace) %{_libexecdir}/jail/jail-v2-memory.inc
-%config(noreplace) %{_libexecdir}/jail/jail-v2-oom.inc
+%{_libexecdir}/jail
 %if !0%{?disable_bpf}
 %{_libexecdir}/jail/bpf_cgroup_device
 %{_libexecdir}/jail/bpf_device_loader
