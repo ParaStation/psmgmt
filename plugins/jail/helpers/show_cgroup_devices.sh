@@ -10,8 +10,8 @@ fi
 
 PID=$1
 if [[ -z $PID ]]; then
-        echo "missing PID to show BPF constrains";
-	echo "usage: $0 PID"; exit 1;
+    echo "missing PID to show BPF constrains";
+    echo "usage: $0 PID"; exit 1;
 fi
 
 if ! ps -p "$PID" > /dev/null 2>&1; then
@@ -60,27 +60,27 @@ function print_access() {
 }
 
 if [[ -n $USERNAME ]]; then
-        echo "user $USERNAME devices:"
+    echo "user $USERNAME devices:"
 
-        while IFS= read -r line; do
-           print_access "$line"
-        done < <("$LOADER" -i "USER_${USERNAME}" -s)
+    while IFS= read -r line; do
+	print_access "$line"
+    done < <("$LOADER" -i "USER_${USERNAME}" -s)
 fi
 
 if [[ -n $JOBID ]]; then
-        echo ""
-        echo "job $JOBID devices:"
+    echo ""
+    echo "job $JOBID devices:"
 
-        while IFS= read -r line; do
-           print_access "$line"
-        done < <("$LOADER" -i "JOB_${JOBID}" -s)
+    while IFS= read -r line; do
+	print_access "$line"
+    done < <("$LOADER" -i "JOB_${JOBID}" -s)
 fi
 
 if [[ -n $STEPID && -n $JOBID ]]; then
-        echo ""
-        echo "step $JOBID:$STEPID devices:"
+    echo ""
+    echo "step $JOBID:$STEPID devices:"
 
-        while IFS= read -r line; do
-           print_access "$line"
-        done < <("$LOADER" -i "STEP_${JOBID}_${STEPID}" -s)
+    while IFS= read -r line; do
+	print_access "$line"
+    done < <("$LOADER" -i "STEP_${JOBID}_${STEPID}" -s)
 fi
