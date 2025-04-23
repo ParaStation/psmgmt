@@ -285,7 +285,7 @@ plugins/dynIP/doc/Makefile.in \
 plugins/jail/Makefile.am \
 plugins/jail/Makefile.in \
 plugins/jail/jail.c \
-plugins/jail/jail.conf \
+plugins/jail/jail.conf.in \
 plugins/jail/jailconfig.c \
 plugins/jail/jailconfig.h \
 plugins/jail/jailhandles.h \

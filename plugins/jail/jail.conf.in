@@ -1,0 +1,39 @@
+#
+#                ParaStation
+#
+#  Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+#  Copyright (C) 2021-2025 ParTec AG, Munich
+#
+#  Configuration file for ParaStation jail plugin
+#
+
+# Debug mask (default: 0x000000)
+#
+#   0x00001:	Be verbose
+#
+# DEBUG_MASK = 0
+
+# Script to execute for process' cgroup jailing
+#
+# Absolute path or a path relative to @jaillibdir@
+#
+# JAIL_SCRIPT = jail.sh
+
+# Script to execute for removing terminating process from cgroup jail
+#
+# Absolute path or a path relative to @jaillibdir@
+#
+# JAIL_TERM_SCRIPT = jail-term.sh
+
+# Script executed once during jail plugin's initialization
+#
+# Absolute path or a path relative to @jaillibdir@
+#
+# JAIL_INIT_SCRIPT = jail-init.sh
+
+# Script executed once when jail plugin is terminated. Used mainly to
+# cleanup leftover cgroups and BPF files.
+#
+# Absolute path or a path relative to @jaillibdir@
+#
+# JAIL_FIN_SCRIPT = jail-finalize.sh

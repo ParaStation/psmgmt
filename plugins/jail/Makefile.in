@@ -111,8 +111,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(dist_plugin_DATA) \
-	$(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
@@ -204,7 +203,7 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-DATA = $(dist_plugin_DATA)
+DATA = $(plugin_DATA)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 am__recursive_targets = \
@@ -468,7 +467,11 @@ jail_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 	-DJAILLIBDIR=\"$(jaillibdir)\"
 
 jail_la_LIBADD = $(libplugincommon) $(libpscommon)
-dist_plugin_DATA = jail.conf
+plugin_DATA = jail.conf
+EXTRA_DIST = jail.conf.in
+
+# clean up generated files
+CLEANFILES = jail.conf
 all: all-recursive
 
 .SUFFIXES:
@@ -606,9 +609,9 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
-install-dist_pluginDATA: $(dist_plugin_DATA)
+install-pluginDATA: $(plugin_DATA)
 	@$(NORMAL_INSTALL)
-	@list='$(dist_plugin_DATA)'; test -n "$(plugindir)" || list=; \
+	@list='$(plugin_DATA)'; test -n "$(plugindir)" || list=; \
 	if test -n "$$list"; then \
 	  echo " $(MKDIR_P) '$(DESTDIR)$(plugindir)'"; \
 	  $(MKDIR_P) "$(DESTDIR)$(plugindir)" || exit 1; \
@@ -622,9 +625,9 @@ install-dist_pluginDATA: $(dist_plugin_DATA)
 	  $(INSTALL_DATA) $$files "$(DESTDIR)$(plugindir)" || exit $$?; \
 	done
 
-uninstall-dist_pluginDATA:
+uninstall-pluginDATA:
 	@$(NORMAL_UNINSTALL)
-	@list='$(dist_plugin_DATA)'; test -n "$(plugindir)" || list=; \
+	@list='$(plugin_DATA)'; test -n "$(plugindir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(plugindir)'; $(am__uninstall_files_from_dir)
 
@@ -814,6 +817,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-$(am__rm_f) $(CLEANFILES)
 
 distclean-generic:
 	-$(am__rm_f) $(CONFIG_CLEAN_FILES)
@@ -847,7 +851,7 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-dist_pluginDATA install-pluginLTLIBRARIES
+install-data-am: install-pluginDATA install-pluginLTLIBRARIES
 
 install-dvi: install-dvi-recursive
 
@@ -895,7 +899,7 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-dist_pluginDATA uninstall-pluginLTLIBRARIES
+uninstall-am: uninstall-pluginDATA uninstall-pluginLTLIBRARIES
 
 .MAKE: $(am__recursive_targets) install-am install-strip
 
@@ -904,17 +908,16 @@ uninstall-am: uninstall-dist_pluginDATA uninstall-pluginLTLIBRARIES
 	clean-pluginLTLIBRARIES cscopelist-am ctags ctags-am distclean \
 	distclean-compile distclean-generic distclean-libtool \
 	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am \
-	install-dist_pluginDATA install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-pluginLTLIBRARIES install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs installdirs-am maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-dist_pluginDATA \
-	uninstall-pluginLTLIBRARIES
+	install install-am install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-pluginDATA \
+	install-pluginLTLIBRARIES install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-pluginDATA uninstall-pluginLTLIBRARIES
 
 .PRECIOUS: Makefile
 

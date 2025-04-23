@@ -27,4 +27,9 @@ jail_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 	-DJAILLIBDIR=\"$(jaillibdir)\"
 jail_la_LIBADD = $(libplugincommon) $(libpscommon)
 
-dist_plugin_DATA = jail.conf
+plugin_DATA = jail.conf
+
+EXTRA_DIST = jail.conf.in
+
+# clean up generated files
+CLEANFILES = jail.conf
