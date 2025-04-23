@@ -279,7 +279,7 @@ fi
 %dir %{_libdir}
 %{_libdir}/libpse.so*
 %{_libdir}/libpsi.so*
-%{_sysconfdir}/parastation
+%dir %{_sysconfdir}/parastation
 %dir %{_libexecdir}
 %dir %{_plugindir}
 %{_plugindir}/jail.so
@@ -289,6 +289,9 @@ fi
 %doc plugins/nodeinfo/doc/README.nodeinfo
 %doc plugins/nodeinfo/doc/psconfig
 %{_plugindir}/pelogue.so
+%dir %{_sysconfdir}/parastation/epilogue.d
+%dir %{_sysconfdir}/parastation/epilogue.finalize.d
+%dir %{_sysconfdir}/parastation/prologue.d
 %doc plugins/pelogue/doc/README.pelogue
 %{_plugindir}/psaccount.so
 %config(noreplace) %{_plugindir}/psaccount.conf
