@@ -209,10 +209,6 @@ make %{?_smp_mflags}
 rm -rf %{buildroot}
 make DESTDIR=%{buildroot} install
 find %{buildroot} -type f -name '*.la' -delete
-ln -sf %{_libexecdir}/jail/jail-main.sh %{buildroot}%{_plugindir}/jail.sh
-ln -sf %{_libexecdir}/jail/jail-main.sh %{buildroot}%{_plugindir}/jail-term.sh
-ln -sf %{_libexecdir}/jail/jail-init.sh %{buildroot}%{_plugindir}/jail-init.sh
-ln -sf %{_libexecdir}/jail/jail-finalize.sh %{buildroot}%{_plugindir}/jail-finalize.sh
 
 %clean
 rm -rf %{buildroot}
@@ -251,6 +247,11 @@ fi
 %if !0%{?disable_systemd}
     systemctl daemon-reload >/dev/null 2>&1 || :
 %endif
+# cleanup dangling symlinks if any (@todo remove sometimes after version 6.4)
+[ -L %{_plugindir}/jail.sh ] && rm -f %{_plugindir}/jail.sh
+[ -L %{_plugindir}/jail-term.sh ] && rm -f %{_plugindir}/jail-term.sh
+[ -L %{_plugindir}/jail-init.sh ] && rm -f %{_plugindir}/jail-init.sh
+[ -L %{_plugindir}/jail-finalize.sh ] && rm -f %{_plugindir}/jail-finalize.sh
 
 %files
 %defattr(-,root,root)
@@ -284,10 +285,6 @@ fi
 %{_plugindir}/jail.so
 %config(noreplace) %{_plugindir}/jail.conf
 %{_libexecdir}/jail
-%if !0%{?disable_bpf}
-%{_libexecdir}/jail/bpf_cgroup_device
-%{_libexecdir}/jail/bpf_device_loader
-%endif
 %{_plugindir}/nodeinfo.so
 %doc plugins/nodeinfo/doc/README.nodeinfo
 %doc plugins/nodeinfo/doc/psconfig
@@ -326,10 +323,6 @@ fi
 %config(noreplace) /etc/xinetd.d/psidstarter
 %endif
 %ghost %config(missingok,noreplace) %{_sysconfdir}/parastation.conf
-%{_plugindir}/jail.sh
-%{_plugindir}/jail-term.sh
-%{_plugindir}/jail-init.sh
-%{_plugindir}/jail-finalize.sh
 %config(noreplace) %{_sysconfdir}/parastation/jail-scripts.conf
 %attr(770,root,root) %{_localstatedir}/log/psaccounter
 
