@@ -58,7 +58,7 @@ static char *checkScript(char *script)
     if (script[0] == '/') {
 	fName = strdup(script);
     } else {
-	fName = PSC_concat(PLUGINDIR, "/", script);
+	fName = PSC_concat(JAILLIBDIR, "/", script);
     }
 
     struct stat sb;

@@ -24,3 +24,11 @@ EXTRA_DIST = jail-config.inc.in
 
 # clean up generated files
 CLEANFILES = jail-config.inc
+
+install-data-hook:
+	$(LN_S) -d jail-main.sh $(DESTDIR)$(jaillibdir)/jail.sh
+	$(LN_S) -d jail-main.sh $(DESTDIR)$(jaillibdir)/jail-term.sh
+
+uninstall-local:
+	$(RM) $(DESTDIR)$(jaillibdir)/jail.sh
+	$(RM) $(DESTDIR)$(jaillibdir)/jail-term.sh

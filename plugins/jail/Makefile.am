@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,7 +23,8 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 jail_la_SOURCES = jail.c jailconfig.c jailconfig.h jaillog.c	\
 	jaillog.h jailtypes.h jailhandles.h
 
-jail_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
+jail_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
+	-DJAILLIBDIR=\"$(jaillibdir)\"
 jail_la_LIBADD = $(libplugincommon) $(libpscommon)
 
 dist_plugin_DATA = jail.conf
