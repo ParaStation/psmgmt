@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include "pscommon.h"
+#include "pscpu.h"
 #include "psstrbuf.h"
 #include "psstrv.h"
 #include "psipartition.h"
@@ -973,6 +974,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 
     uint32_t stepNId = step->localNodeId;
     uint32_t ltnum = step->globalTaskIdsLen[stepNId];
+    char tmpbuf[20]; /* max uin64_t */
 
     /* if there is only one local rank, bind all assigned GPUs to it */
     if (ltnum == 1) {
@@ -991,11 +993,31 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	int16_t gpu = getRankGpuPinning(localRankId, step, stepNId, &assGPUs);
 	if (gpu < 0) return; /* error message already printed */
 
-	char tmp[10];
-	snprintf(tmp, sizeof(tmp), "%hd", gpu);
+	snprintf(tmpbuf, sizeof(tmpbuf), "%hd", gpu);
 
 	/* always set our own variable */
-	setenv("PSSLURM_BIND_GPUS", tmp, 1);
+	setenv("PSSLURM_BIND_GPUS", tmpbuf, 1);
+    }
+
+    char *gpulibVar;
+    char *c = getConfValueC(SlurmCgroupConfig, "ConstrainDevices");
+    if (c && !strcasecmp(c, "yes")) {
+	/* cgroups enabled, only SLURM_STEP_GPUS are visible, adjust IDs as
+	 * done at least by libcuda (@todo check with AMD) */
+
+	strbuf_t cgroupsList = strbufNew("");
+	if (!cgroupsList) abort();
+	for (uint64_t gpu = 0; gpu < gres->totalGres; gpu++) {
+	    snprintf(tmpbuf, sizeof(tmpbuf), "%zd", gpu);
+	    if (strbufLen(cgroupsList) > 1) strbufAdd(cgroupsList, ",");
+	    strbufAdd(cgroupsList, tmpbuf);
+	}
+	/* hack to cleanly use ufree() from pluginmalloc.h
+	 * @todo do better?!? */
+	gpulibVar = ustrdup(strbufStr(cgroupsList));
+	strbufDestroy(cgroupsList);
+    } else {
+	gpulibVar = ustrdup(getenv("PSSLURM_BIND_GPUS"));
     }
 
     char *prefix = "__AUTO_";
@@ -1008,17 +1030,14 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    /* variable is not set at all
 	     * or it had been set automatically and not changed in the meantime,
 	     * so set it */
-	    gpuVar = getenv("PSSLURM_BIND_GPUS");
-	    if (!gpuVar) {
-		flog("expected PSSLURM_BIND_GPUS not found\n");
-		return;
-	    }
-	    setenv(gpu_variables[i], gpuVar, 1);
+	    setenv(gpu_variables[i], gpulibVar, 1);
 	}
 
 	/* automation detection is no longer needed */
 	unsetenv(name);
     }
+
+    ufree(gpulibVar);
 }
 
 static void setGresEnv(uint32_t localRankId, Step_t *step)
