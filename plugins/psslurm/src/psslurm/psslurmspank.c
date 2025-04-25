@@ -275,7 +275,7 @@ bool SpankIsInitialized(void)
     return globalSym ? true : false;
 }
 
-static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
+static int doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
 {
     struct timeval time_start, time_now, time_diff;
 
@@ -283,7 +283,7 @@ static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
     if (!hSym) {
 	fdbg(PSSLURM_LOG_SPANK, "no symbol %s in plugin %s\n", hook,
 	     plugin->name);
-	return;
+	return SLURM_SUCCESS;
     }
 
     fdbg(PSSLURM_LOG_SPANK, "calling hook %s for %s\n", hook, plugin->name);
@@ -314,6 +314,8 @@ static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
 	flog("warning: hook %s from spank plugin %s returned %i\n", hook,
 	     plugin->name, res);
     }
+
+    return res;
 }
 
 /**
@@ -726,22 +728,22 @@ void __SpankInitOpt(spank_t spank, const char *func, const int line)
     }
 }
 
-void __SpankCallHook(spank_t spank, const char *func, const int line)
+int __SpankCallHook(spank_t spank, const char *func, const int line)
 {
     if (!globalSym) {
 	flog("global spank symbols are unavailable\n");
-	return;
+	return SLURM_ERROR;
     }
 
     if (spank->hook >= SPANK_END) {
 	flog("invalid hook %i from %s:%i\n", spank->hook, func, line);
-	return;
+	return SLURM_ERROR;
     }
 
     char *strHook = Spank_Hook_Table[spank->hook].strName;
     if (!strHook) {
 	flog("hook %i from caller %s:%i not found\n", spank->hook, func, line);
-	return;
+	return SLURM_ERROR;
     }
 
     fdbg(PSSLURM_LOG_SPANK, "hooking %s for %s:%i\n", strHook, func, line);
@@ -753,8 +755,13 @@ void __SpankCallHook(spank_t spank, const char *func, const int line)
 	    flog("no handle for plugin %s (%s)\n", plugin->name, plugin->path);
 	    continue;
 	}
-	doCallHook(plugin, spank, strHook);
+	int ret = doCallHook(plugin, spank, strHook);
+	/* only required SPANK plugins return error codes and stop further
+	 * execution */
+	if (ret && !plugin->optional) return ret;
     }
+
+    return SLURM_SUCCESS;
 }
 
 static bool testMagic(spank_t spank, const char *func)

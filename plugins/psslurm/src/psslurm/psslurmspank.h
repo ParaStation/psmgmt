@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -164,8 +164,11 @@ void SpankFinalize(void);
  * @brief Call a Spank hook in all registered Spank plugins
  *
  * @param spank Pointer to the spank handle
+ *
+ * @return Returns SLURM_SUCCESS on succes otherwise the return code
+ * of the failed required SPANK plugin is returned
  */
-void __SpankCallHook(spank_t spank, const char *func, const int line);
+int __SpankCallHook(spank_t spank, const char *func, const int line);
 #define SpankCallHook(spank) __SpankCallHook(spank, __func__, __LINE__)
 
 /**

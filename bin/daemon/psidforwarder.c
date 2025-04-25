@@ -1402,7 +1402,9 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
     PSIDhook_call(PSIDHOOK_FRWRD_INIT, task);
 
     /* PSIDHOOK_FRWRD_INIT executed with root privileges */
-    PSIDhook_callPriv(PSIDHOOK_PRIV_FRWRD_INIT, task);
+    if (PSIDhook_callPriv(PSIDHOOK_PRIV_FRWRD_INIT, task) < 0) {
+	sendSignal(PSC_getPID(childTask->tid), SIGKILL);
+    }
 
     /* Loop forever. We exit on SIGCHLD and all selectors removed */
     /* Do not count daemon connection! */

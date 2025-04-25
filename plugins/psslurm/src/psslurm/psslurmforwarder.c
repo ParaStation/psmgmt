@@ -54,6 +54,7 @@
 #include "psidhook.h"
 #include "psidscripts.h"
 #include "psidtask.h"
+#include "psidforwarder.h"
 
 #include "pamservice_handles.h"
 #include "peloguehandles.h"
@@ -127,36 +128,6 @@ static void cbTermJail(int exit, bool tmdOut, int iofd, void *info)
     }
 }
 
-/**
- * @brief Consolidate pluginforwarder exit status of
- * various hooks
- *
- * @param fw Structure of the pluginforwarder holding exit codes
- *
- * @return Returns the first non zero exit status of a hook or
- * 0 on success
- */
-static int32_t getFWExitCode(Forwarder_Data_t *fw)
-{
-    if (!fw->codeRcvd) return 0;
-
-    if (fw->rcHookFWInit) {
-	return fw->rcHookFWInit;
-    } else if (fw->rcHookJailChild) {
-	return fw->rcHookJailChild;
-    } else if (fw->rcCmdSwitchUser) {
-	return fw->rcCmdSwitchUser;
-    } else if (fw->rcHookFWInitUser) {
-	return fw->rcHookFWInitUser;
-    } else if (fw->rcHookFWLoop) {
-	return fw->rcHookFWLoop;
-    } else if (fw->rcHookFWFinalize) {
-	return fw->rcHookFWFinalize;
-    }
-
-    return 0;
-}
-
 static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
@@ -182,7 +153,7 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,Job_strState(job->state));
 
     /* get exit status of child */
-    int32_t fwExitCode = getFWExitCode(fw);
+    int32_t fwExitCode = (fw->rcHook != RC_HOOK_NONE) ? fw->rcHook : 0;
     int eStatus = fwExitCode ? fwExitCode : fw->chldExitStatus;
 
     /* job aborted due to node failure */
@@ -257,6 +228,9 @@ static void stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 	if (eStatus == -1) {
 	    eStatus = WIFSIGNALED(fw->chldExitStatus) ?
 			WTERMSIG(fw->chldExitStatus) : fw->chldExitStatus;
+
+	    int32_t fwExitCode = (fw->rcHook != RC_HOOK_NONE) ? fw->rcHook : 0;
+	    if (fwExitCode) eStatus = fwExitCode;
 	}
 
 	/* step aborted due to node failure */
@@ -314,17 +288,10 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	/* spawn failed */
 	uint32_t rc = (uint32_t) SLURM_ERROR;
 
-	if (fw->rcType == RC_HOOK_FW_INIT) {
-	    switch (fw->rcHook) {
-	    case -ESCRIPT_CHDIR_FAILED:
-		rc = ESCRIPT_CHDIR_FAILED;
-		break;
-	    case -ESLURMD_EXECVE_FAILED:
-		rc = ESLURMD_EXECVE_FAILED;
-		break;
-	    }
-	}
+	/* pluginforwarder hooks might set an return code */
+	rc = (fw->rcHook != RC_HOOK_NONE) ? (uint32_t) fw->rcHook : rc;
 
+	/* return code might be set before pluginforwarder even started */
 	if (rc == (uint32_t) SLURM_ERROR && step->termAfterFWmsg != NO_VAL) {
 	    rc = step->termAfterFWmsg;
 	}
@@ -339,8 +306,11 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	/* send step exit to slurmctld */
 	int eStatus = step->exitCode;
 	if (eStatus == -1) {
+	    /* use child or pluginforwarder exit status */
 	    eStatus = WIFSIGNALED(fw->chldExitStatus) ?
 			WTERMSIG(fw->chldExitStatus) : fw->chldExitStatus;
+
+	    eStatus = (fw->rcHook != RC_HOOK_NONE) ? fw->rcHook : eStatus;
 	}
 
 	/* step aborted due to node failure */
@@ -416,6 +386,9 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 
     if (pamserviceOpenSession) pamserviceOpenSession(job->username);
 
+    /* redirect output */
+    IO_redirectJob(fwdata, job);
+
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
 	.task = NULL,
@@ -426,7 +399,15 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 	.envSet = NULL,
 	.envUnset = NULL
     };
-    SpankCallHook(&spank);
+
+    if (SpankCallHook(&spank) < 0) {
+	flog("SPANK_TASK_INIT_PRIVILEGED failed, terminating job %u\n",
+	     job->jobid);
+
+	fprintf(stderr, "SPANK hook task_init_privileged failed, "
+		"terminating job %u\n", job->jobid);
+	exit(1);
+    }
 #endif
 
     /* set RLimits from configuration */
@@ -446,12 +427,15 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 	exit(1);
     }
 
-    /* redirect output */
-    IO_redirectJob(fwdata, job);
-
 #ifdef HAVE_SPANK
     spank.hook = SPANK_TASK_INIT;
-    SpankCallHook(&spank);
+    if (SpankCallHook(&spank) < 0) {
+	flog("SPANK_TASK_INIT failed, terminating job %u\n", job->jobid);
+
+	fprintf(stderr, "SPANK hook task_init failed, terminating job %u\n",
+		job->jobid);
+	exit(1);
+    }
 #endif
 
     /* setup batch specific environment */
@@ -509,6 +493,22 @@ static void initFwPtr(PStask_t *task)
     fwTask = task;
 }
 
+#if defined __GNUC__ && __GNUC__ < 8
+#define uprintf(format, ...) do {					\
+	if (PSIDfwd_inForwarder())					\
+	    PSIDfwd_printMsgf(STDERR, format, ##__VA_ARGS__);		\
+	else								\
+	    fprintf(stderr, format, ##__VA_ARGS__);			\
+    } while(0)
+#else
+#define uprintf(format, ...) do {					\
+	if (PSIDfwd_inForwarder())					\
+	    PSIDfwd_printMsgf(STDERR, format __VA_OPT__(,) __VA_ARGS__); \
+	else								\
+	    fprintf(stderr, format __VA_OPT__(,) __VA_ARGS__);		\
+    } while(0)
+#endif
+
 int handleForwarderInitPriv(void *data)
 {
     PStask_t *task = data;
@@ -528,7 +528,17 @@ int handleForwarderInitPriv(void *data)
 	.spankEnv = fwStep ? fwStep->spankenv : NULL
     };
     SpankInitOpt(&spank);
-    SpankCallHook(&spank);
+
+    if (SpankCallHook(&spank) < 0) {
+	flog("SPANK_TASK_POST_FORK failed, terminating %s\n",
+	     Step_strID(fwStep));
+
+	uprintf("SPANK hook task_post_fork failed, terminating %s\n",
+		Step_strID(fwStep));
+
+	return -1;
+    }
+
 #endif
 
     return 0;
@@ -640,7 +650,15 @@ int handleExecClient(void *data)
 	.spankEnv = fwStep ? fwStep->spankenv : NULL
     };
     SpankInitOpt(&spank);
-    SpankCallHook(&spank);
+
+    if (SpankCallHook(&spank) < 0) {
+	flog("SPANK_TASK_INIT_PRIVILEGED failed, terminating %s\n",
+	     Step_strID(fwStep));
+
+	fprintf(stderr, "SPANK hook task_init_privileged failed, "
+		"terminating %s\n", Step_strID(fwStep));
+	exit(1);
+    }
 #endif
 
     return 0;
@@ -695,7 +713,14 @@ int handleExecClientPrep(void *data)
 	.envSet = NULL,
 	.envUnset = NULL
     };
-    SpankCallHook(&spank);
+
+    if (SpankCallHook(&spank) < 0) {
+	flog("SPANK_TASK_INIT failed, terminating %s\n", Step_strID(fwStep));
+
+	fprintf(stderr, "SPANK hook task_init failed, terminating %s\n",
+		Step_strID(fwStep));
+	exit(1);
+    }
 #endif
 
     return 0;
@@ -1265,7 +1290,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	fwarn(errno, "chdir(%s) for uid %u gid %u",
 	      step->cwd, step->uid, step->gid);
 	if (slurmProto < SLURM_23_02_PROTO_VERSION) {
-	    return - ESCRIPT_CHDIR_FAILED;
+	    return ESCRIPT_CHDIR_FAILED;
 	}
 
 	char buf[512];
@@ -1275,7 +1300,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
 	if (chdir("/tmp") == -1) {
 	    fwarn(errno, "chdir(/tmp) for uid %u gid %u", step->uid, step->gid);
-	    return - ESLURMD_EXECVE_FAILED;
+	    return ESLURMD_EXECVE_FAILED;
 	}
 
 	ufree(step->cwd);
@@ -1290,7 +1315,15 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
 #ifdef HAVE_SPANK
     spank.hook = SPANK_USER_INIT;
-    SpankCallHook(&spank);
+    if (SpankCallHook(&spank) < 0) {
+	flog("SPANK_USER_INIT failed, terminating %s\n", Step_strID(step));
+
+	char buf[512];
+	snprintf(buf, sizeof(buf), "SPANK hook user_init failed, "
+		 "terminating %s\n", Step_strID(step));
+	queueFwMsg(&step->fwMsgQueue, buf, strlen(buf), STDERR, 0);
+	step->termAfterFWmsg = ESLURM_INVALID_NODE_STATE;
+    }
 #endif
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
@@ -1369,7 +1402,7 @@ static int stepForwarderLoop(Forwarder_Data_t *fwdata)
     if (step->termAfterFWmsg != NO_VAL) {
 	flog("terminating forwarder for %s after sending user message\n",
 	     Step_strID(step));
-	return 1;
+	return step->termAfterFWmsg;
     }
 
     return 0;
@@ -1527,6 +1560,10 @@ static int handleJobLoop(Forwarder_Data_t *fwdata)
 
     if (SpankCallHook(&spank) < 0) {
 	flog("SPANK_TASK_POST_FORK failed, terminating job %u\n", job->jobid);
+
+	char *eMsg = "SPANK hook task_post_fork failed, terminating job\n";
+	IO_printJobMsg(fwdata, eMsg, strlen(eMsg), STDERR);
+
 	/* terminate possible started child */
 	kill(-fwdata->cPid, SIGKILL);
 	return 1;
@@ -1568,7 +1605,13 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
     }
 
     spank.hook = SPANK_USER_INIT;
-    SpankCallHook(&spank);
+    if (SpankCallHook(&spank) < 0) {
+	flog("SPANK_USER_INIT failed, terminating job %u\n", job->jobid);
+
+	char *eMsg = "SPANK hook user_init failed, terminating job\n";
+	queueFwMsg(&job->fwMsgQueue, eMsg, strlen(eMsg), STDERR, 0);
+	job->termAfterFWmsg = true;
+    }
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");
@@ -1589,7 +1632,12 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     IO_initJobFilenames(fwdata);
 
-    return IO_openJobPipes(fwdata);
+    if (!IO_openJobPipes(fwdata)) {
+	flog("unable to open job I/O pipes\n");
+	return 1;
+    }
+
+    return 0;
 }
 
 static int jobForwarderFin(Forwarder_Data_t *fwdata)
@@ -1881,7 +1929,15 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     }
 
     spank.hook = SPANK_USER_INIT;
-    SpankCallHook(&spank);
+    if (SpankCallHook(&spank) < 0) {
+	flog("SPANK_USER_INIT failed, terminating %s\n", Step_strID(step));
+
+	char buf[512];
+	snprintf(buf, sizeof(buf), "SPANK hook user_init failed, "
+		 "terminating %s\n", Step_strID(step));
+	queueFwMsg(&step->fwMsgQueue, buf, strlen(buf), STDERR, 0);
+	step->termAfterFWmsg = 1;
+    }
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");

@@ -606,7 +606,10 @@ bool initSlurmOpt(void)
 	.envSet = NULL,
 	.envUnset = NULL
     };
-    SpankCallHook(&spank);
+    if (SpankCallHook(&spank) < 0) {
+	flog("hook SPANK_INIT failed\n");
+	goto INIT_ERROR;
+    }
 #endif
 
     /* initialize Slurm communication */
@@ -822,7 +825,9 @@ void finalize(void)
 	.envUnset = NULL
     };
 
-    if (SpankIsInitialized()) SpankCallHook(&spank);
+    if (SpankIsInitialized() && SpankCallHook(&spank) < 0) {
+	flog("SPANK_SLURMD_EXIT failed\n");
+    }
 #endif
 
     closeSlurmdSocket();

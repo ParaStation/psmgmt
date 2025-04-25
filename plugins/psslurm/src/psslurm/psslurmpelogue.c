@@ -469,7 +469,15 @@ int handlePEloguePrepare(void *data)
     if (pedata->type != PELOGUE_PROLOGUE) spank.hook = SPANK_JOB_EPILOG;
 
     SpankInitOpt(&spank);
-    SpankCallHook(&spank);
+    if (SpankCallHook(&spank) < 0) {
+	char *strHook = (pedata->type == PELOGUE_PROLOGUE ?
+			  "SPANK_JOB_PROLOG" : "SPANK_JOB_EPILOG");
+	flog("%s failed, draining my node\n", strHook);
+	char *host = getConfValueC(Config, "SLURM_HOSTNAME");
+	char reason[64];
+	snprintf(reason, sizeof(reason), "psslurm: %s failed", strHook);
+	sendDrainNode(host, reason);
+    }
 #endif
 
     return 0;

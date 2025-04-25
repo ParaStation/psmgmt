@@ -128,7 +128,7 @@ typedef enum {
 				called right before entering forwarder's loop
 				when the forwarder is fully setup */
     PSIDHOOK_PRIV_FRWRD_INIT, /**< PSIDHOOK_FRWRD_INIT executed with root
-				privileges */
+				privileges, terminates child if return < 0 */
     PSIDHOOK_FRWRD_CLNT_RLS,  /**< Ask attached plugins if the client is
 				released. The client is described by the task
 				structure passed in arg. The plugin is expected
