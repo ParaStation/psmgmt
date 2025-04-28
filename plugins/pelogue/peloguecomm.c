@@ -96,7 +96,7 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, env_t env)
     return 0;
 }
 
-static int sendPrologueResp(char *jobid, int exit, bool timeout,
+static int sendPrologueResp(char *jobid, int exit, bool timeout, int eno,
 			    PStask_ID_t dest)
 {
     PS_SendDB_t data;
@@ -106,6 +106,7 @@ static int sendPrologueResp(char *jobid, int exit, bool timeout,
     addStringToMsg(jobid, &data);
     addInt32ToMsg(exit, &data);
     addUint8ToMsg(timeout, &data);
+    addInt32ToMsg(eno, &data);
 
     /* send response */
     return sendFragMsg(&data);
@@ -122,7 +123,7 @@ static void CBprologueResp(char *jobid, int exit, bool timeout,
     if (job) {
 	fdbg(PELOGUE_LOG_VERB, "finished, sending result for job %s to %s\n",
 	     jobid, PSC_printTID(rpcInfo->sender));
-	sendPrologueResp(jobid, exit, timeout, rpcInfo->sender);
+	sendPrologueResp(jobid, exit, timeout, 0, rpcInfo->sender);
 
 	job->info = NULL;
 	deleteJob(job);
@@ -249,7 +250,7 @@ static void handleResourceCB(char *plugin, char *jobid, uint16_t result)
     return;
 
 ERROR:
-    sendPrologueResp(jobid, 1, false, info->sender);
+    sendPrologueResp(jobid, 1, false, 0, info->sender);
     if (info->res) {
 	envDestroy(info->res->env);
 	ufree(info->res->plugin);
@@ -268,7 +269,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
     if (version != PELOGUE_REQUEST_VERSION) {
 	flog("invalid protocol version %u from %s expect %u\n", version,
 	     PSC_printTID(msg->header.sender), PELOGUE_REQUEST_VERSION);
-	sendPrologueResp(0, 1, false, msg->header.sender);
+	sendPrologueResp(NULL, 1, false, EPROTONOSUPPORT, msg->header.sender);
 	return;
     }
     /* fetch info from message */
@@ -346,7 +347,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 
 ERROR:
     /* send error message */
-    sendPrologueResp(jobid, 1, false, msg->header.sender);
+    sendPrologueResp(jobid, 1, false, 0, msg->header.sender);
 
     deleteJob(job);
     ufree(info->requestor);
