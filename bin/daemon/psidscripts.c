@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -197,11 +197,12 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	/* Create a new process group for easier cleanup */
 	setpgid(0, 0);
 
-	/* close all fds except control channel and connecting socket */
+	/* close all fds except control channel, connecting socket,
+	 * and stdin/stdout/stderr (to be reoccupied later) */
 	/* Start with connection to syslog */
 	closelog();
 	int maxFD = sysconf(_SC_OPEN_MAX);
-	for (int fd = 0; fd < maxFD; fd++) {
+	for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) {
 	    if (fd != controlfds[1] && fd != iofds[1]) close(fd);
 	}
 	/* Reopen the syslog and rename the tag */

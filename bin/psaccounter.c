@@ -1551,8 +1551,6 @@ static void printVersion(void)
  */
 static void daemonize(const char *cmd)
 {
-    unsigned int i;
-    int fd0, fd1, fd2;
     /* Clear umask */
     umask(0);
 
@@ -1589,30 +1587,23 @@ static void daemonize(const char *cmd)
     }
 
     /* Close all open file descriptors */
-    struct rlimit rl;
-    if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
-	fwarn("cannot get file limit");
-	exit(EXIT_FAILURE);
-    }
-    if (rl.rlim_max == RLIM_INFINITY) {
-	rl.rlim_max = 1024;
-    }
-    for (i=0; i < rl.rlim_max; i++) {
-	close(i);
-    }
+    int maxFD = sysconf(_SC_OPEN_MAX);
+    for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) close(fd);
 
-    /* Attach file descriptors 0, 1, 2 to /dev/null */
-    fd0 = open("/dev/null", O_RDWR);
-    fd1 = dup(0);
-    fd2 = dup(0);
-
-    /* Init log file */
+    /* prepare syslog */
     openlog(cmd, LOG_PID | LOG_CONS, LOG_DAEMON);
-    if (fd0 != 0 || fd1 != 1 || fd2 != 2) {
-	syslog(LOG_ERR, "%s: unexpected file descriptors %d %d %d\n",
-		__func__, fd0, fd1, fd2);
+
+    /* Attach stdin/stdout/stderr to /dev/null */
+    int dummyFD = open("/dev/null", O_RDWR);
+    if (dummyFD < 0) {
+	syslog(LOG_ERR, "open(/dev/null): %s\n", strerror(errno));
 	exit(EXIT_FAILURE);
     }
+    dup2(dummyFD, STDIN_FILENO);
+    dup2(dummyFD, STDOUT_FILENO);
+    dup2(dummyFD, STDERR_FILENO);
+    close(dummyFD);
+
     /* Let PSI and PSC log via syslog. Call it before PSI_initClient() */
     PSI_initLog(NULL);
 }
