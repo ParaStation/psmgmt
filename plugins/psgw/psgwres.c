@@ -176,7 +176,6 @@ void writeErrorFile(PSGW_Req_t *req, char *msg, char *file, bool header)
 
     /* write may block in parallel filesystem, execute in separate process */
     pid_t childPID = fork();
-
     if (!childPID) {
 	/* switch to user */
 	if (!switchUser(req->username, req->uid, req->gid)) {
@@ -210,9 +209,7 @@ void writeErrorFile(PSGW_Req_t *req, char *msg, char *file, bool header)
 	exit(0);
     }
 
-    if (childPID < 0) {
-	mwarn(errno, "%s: fork() failed: ", __func__);
-    }
+    if (childPID < 0) mwarn(errno, "%s: fork() failed: ", __func__);
 }
 
 void __cancelReq(PSGW_Req_t *req, char *reason, const char *func)

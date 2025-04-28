@@ -1552,15 +1552,13 @@ static void printVersion(void)
 static void daemonize(const char *cmd)
 {
     unsigned int i;
-    int pid, fd0, fd1, fd2;
-    struct sigaction sa;
-    struct rlimit rl;
-
+    int fd0, fd1, fd2;
     /* Clear umask */
     umask(0);
 
     /* Become a session leader to lose TTY */
-    if ((pid = fork()) < 0) {
+    int pid = fork();
+    if (pid < 0) {
 	fwarn("unable to fork server process 1");
 	exit(EXIT_FAILURE);
     } else if (pid != 0) { /* parent */
@@ -1569,9 +1567,10 @@ static void daemonize(const char *cmd)
     setsid();
 
     /* Ensure future opens won´t allocate controlling TTYs */
-    sa.sa_handler = SIG_IGN;
+    struct sigaction sa = {
+	.sa_handler = SIG_IGN,
+	.sa_flags = 0, };
     sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
     if (sigaction(SIGHUP, &sa, NULL) < 0) {
 	fwarn("can´t ignore SIGHUP");
 	exit(EXIT_FAILURE);
@@ -1590,6 +1589,7 @@ static void daemonize(const char *cmd)
     }
 
     /* Close all open file descriptors */
+    struct rlimit rl;
     if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
 	fwarn("cannot get file limit");
 	exit(EXIT_FAILURE);
