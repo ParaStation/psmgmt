@@ -10,6 +10,7 @@
  */
 #include "peloguecomm.h"
 
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -17,7 +18,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
-#include <errno.h>
 
 #include "pscommon.h"
 #include "pspluginprotocol.h"
@@ -100,15 +100,11 @@ static int sendPrologueResp(char *jobid, int exit, bool timeout,
 			    PStask_ID_t dest)
 {
     PS_SendDB_t data;
-
     initFragBuffer(&data, PSP_PLUG_PELOGUE, PSP_PELOGUE_RESP);
     setFragDest(&data, dest);
 
-    /* jobid */
     addStringToMsg(jobid, &data);
-    /* exit status */
     addInt32ToMsg(exit, &data);
-    /* timeout */
     addUint8ToMsg(timeout, &data);
 
     /* send response */
@@ -185,13 +181,11 @@ static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
 static int startPElogueReq(Job_t *job, RPC_Info_t *info, env_t env)
 {
-    PS_SendDB_t config;
-    PSnodes_ID_t myID = PSC_getMyID();
-    int ret;
-
     if (job->numNodes > 1) {
 	/* send config to all my sisters nodes */
+	PS_SendDB_t config;
 	initFragBuffer(&config, PSP_PLUG_PELOGUE, PSP_PLUGIN_CONFIG_ADD);
+	PSnodes_ID_t myID = PSC_getMyID();
 	for (PSnodes_ID_t n = 0; n < job->numNodes; n++) {
 	    if (job->nodes[n].id == myID) continue;
 	    setFragDest(&config, PSC_getTID(job->nodes[n].id, 0));
@@ -201,7 +195,7 @@ static int startPElogueReq(Job_t *job, RPC_Info_t *info, env_t env)
 	addUint32ToMsg(info->timeout, &config);
 	addUint32ToMsg(info->grace, &config);
 
-	ret = sendFragMsg(&config);
+	int ret = sendFragMsg(&config);
 	if (ret == -1) {
 	    flog("sending configuration for %s to sister nodes failed\n",
 		 job->id);
@@ -218,7 +212,7 @@ static int startPElogueReq(Job_t *job, RPC_Info_t *info, env_t env)
 	job->epilogueTrack = job->numNodes;
     }
 
-    ret = sendPElogueStart(job, info->type, env);
+    int ret = sendPElogueStart(job, info->type, env);
     if (ret == -1) {
 	flog("sending pelogue request for %s failed\n", job->id);
     }
@@ -344,9 +338,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 	goto ERROR;
     }
 
-    if (startPElogueReq(job, info, env) < 0) {
-	goto ERROR;
-    }
+    if (startPElogueReq(job, info, env) < 0) goto ERROR;
 
     ufree(jobid);
     envDestroy(env);

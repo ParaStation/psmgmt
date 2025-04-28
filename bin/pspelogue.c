@@ -310,14 +310,12 @@ static void timeoutHandler(int sig)
  */
 static void handlePElogueResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
-    int32_t exit_status;
-    uint8_t timeout;
-
     /* jobid */
     char *handledID = getStringM(data);
-    /* exit status */
+
+    int32_t exit_status;
     getInt32(data, &exit_status);
-    /* timeout */
+    uint8_t timeout;
     getUint8(data, &timeout);
 
     if (debug) printf("%s: answer is jobid %s exit %i timeout %u\n", __func__,
