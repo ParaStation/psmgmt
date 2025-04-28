@@ -653,9 +653,11 @@ static bool handlePElogueMsg(DDTypedBufferMsg_t *msg)
     /* only authorized users may send pelogue messages */
     if (!PSID_checkPrivilege(msg->header.sender)) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
-	flog("access violation: dropping message uid %i type %i sender %s\n",
+	flog("access violation: message uid %i type %i sender %s\n",
 	     (task ? task->uid : 0), msg->type,
 	     PSC_printTID(msg->header.sender));
+	sendPrologueResp(NULL, 1, false, EACCES, msg->header.sender);
+
 	return true;
     }
 

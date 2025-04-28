@@ -317,9 +317,17 @@ static void handlePElogueResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     getInt32(data, &exit_status);
     uint8_t timeout;
     getUint8(data, &timeout);
+    int32_t eno = -1;
+    getInt32(data, &eno);
 
-    if (debug) printf("%s: answer is jobid %s exit %i timeout %u\n", __func__,
-		      handledID, exit_status, timeout);
+    if (debug) printf("%s: answer is jobid %s exit %i timeout %u errno %d\n",
+		      __func__, handledID, exit_status, timeout, eno);
+
+    if (eno > 0) {
+	fprintf(stderr, "%s: pelogue for %s failed: %s\n", __func__, jobID,
+		strerror(eno));
+	exit(1);
+    }
 
     if (strcmp(handledID, jobID)) {
 	fprintf(stderr, "%s: answer for invalid jobid %s, expected %s\n",
