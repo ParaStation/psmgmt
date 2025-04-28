@@ -1561,7 +1561,7 @@ static void daemonize(const char *cmd)
 
     /* Become a session leader to lose TTY */
     if ((pid = fork()) < 0) {
-	awarn("%s: unable to fork server process 1", __func__);
+	fwarn("unable to fork server process 1");
 	exit(EXIT_FAILURE);
     } else if (pid != 0) { /* parent */
 	exit(EXIT_SUCCESS);
@@ -1573,11 +1573,11 @@ static void daemonize(const char *cmd)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     if (sigaction(SIGHUP, &sa, NULL) < 0) {
-	awarn("%s: can´t ignore SIGHUP", __func__);
+	fwarn("can´t ignore SIGHUP");
 	exit(EXIT_FAILURE);
     }
     if ((pid = fork()) < 0) {
-	awarn("%s: unable to fork server process 2", __func__);
+	fwarn("unable to fork server process 2");
 	exit(EXIT_FAILURE);
     } else if (pid != 0) { /* parent */
 	exit(EXIT_SUCCESS);
@@ -1585,13 +1585,13 @@ static void daemonize(const char *cmd)
 
     /* Change working dir to /tmp */
     if (chdir("/tmp") < 0) {
-	awarn("%s: unable to change directory to /tmp", __func__);
+	fwarn("unable to change directory to /tmp");
 	exit(EXIT_FAILURE);
     }
 
     /* Close all open file descriptors */
     if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
-	awarn("%s: can´t get file limit", __func__);
+	fwarn("cannot get file limit");
 	exit(EXIT_FAILURE);
     }
     if (rl.rlim_max == RLIM_INFINITY) {
@@ -1731,11 +1731,11 @@ int main(int argc, char *argv[])
     /* set core dir */
     if (arg_coredir) {
 	if (chdir(arg_coredir) < 0) {
-	    awarn("%s: chdir(%s)", __func__, arg_coredir);
+	    fwarn("chdir(%s)", arg_coredir);
 	    exit(EXIT_FAILURE);
 	}
     } else if (chdir("/tmp") < 0) {
-	awarn("%s: chdir(/tmp)", __func__);
+	fwarn("chdir(/tmp)");
 	exit(EXIT_FAILURE);
     }
 
@@ -1761,7 +1761,7 @@ int main(int argc, char *argv[])
     if (arg_logfile && strcmp(arg_logfile, "-")) {
 	logfile = fopen(arg_logfile, "a+");
 	if (!logfile) {
-	    awarn("fopen(%s)", arg_logfile);
+	    fwarn("fopen(%s)", arg_logfile);
 	    exit(EXIT_FAILURE);
 	}
     }
