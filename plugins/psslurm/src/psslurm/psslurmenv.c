@@ -974,7 +974,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 
     uint32_t stepNId = step->localNodeId;
     uint32_t ltnum = step->globalTaskIdsLen[stepNId];
-    char tmpbuf[20]; /* max uin64_t */
+    char tmpbuf[21]; /* max uin64_t */
 
     /* if there is only one local rank, bind all assigned GPUs to it */
     if (ltnum == 1) {
@@ -1009,7 +1009,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	if (!cgroupsList) abort();
 	for (uint64_t gpu = 0; gpu < gres->totalGres; gpu++) {
 	    snprintf(tmpbuf, sizeof(tmpbuf), "%zd", gpu);
-	    if (strbufLen(cgroupsList) > 1) strbufAdd(cgroupsList, ",");
+	    if (gpu) strbufAdd(cgroupsList, ",");
 	    strbufAdd(cgroupsList, tmpbuf);
 	}
 	/* hack to cleanly use ufree() from pluginmalloc.h
