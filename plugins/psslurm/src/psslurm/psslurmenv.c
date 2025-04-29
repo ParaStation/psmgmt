@@ -976,7 +976,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 
     /* if there is only one local rank, bind all assigned GPUs to it */
     if (ltnum == 1) {
-	flog("Only one task on this node, bind all assigned GPUs to it.\n");
+	flog("step has only one local task, bind all assigned GPUs to it\n");
 	/* always set our own variable */
 	char *value = getenv("SLURM_STEP_GPUS");
 	setenv("PSSLURM_BIND_GPUS", value ? value : "", 1);
