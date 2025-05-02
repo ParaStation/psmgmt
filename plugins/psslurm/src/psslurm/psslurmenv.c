@@ -1006,7 +1006,10 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	 * done at least by libcuda (@todo check with AMD) */
 
 	strbuf_t cgroupsList = strbufNew("");
-	if (!cgroupsList) abort();
+	if (!cgroupsList) {
+	    flog("Unable to allocate memory");
+	    abort();
+	}
 	for (uint64_t gpu = 0; gpu < gres->totalGres; gpu++) {
 	    snprintf(tmpbuf, sizeof(tmpbuf), "%zd", gpu);
 	    if (gpu) strbufAdd(cgroupsList, ",");
