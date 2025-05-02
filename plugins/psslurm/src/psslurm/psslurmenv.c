@@ -1012,12 +1012,9 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    if (gpu) strbufAdd(cgroupsList, ",");
 	    strbufAdd(cgroupsList, tmpbuf);
 	}
-	/* hack to cleanly use ufree() from pluginmalloc.h
-	 * @todo do better?!? */
-	gpulibVar = ustrdup(strbufStr(cgroupsList));
-	strbufDestroy(cgroupsList);
+	gpulibVar = strbufSteal(cgroupsList);
     } else {
-	gpulibVar = ustrdup(getenv("PSSLURM_BIND_GPUS"));
+	gpulibVar = strdup(getenv("PSSLURM_BIND_GPUS"));
     }
 
     char *prefix = "__AUTO_";
@@ -1037,7 +1034,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	unsetenv(name);
     }
 
-    ufree(gpulibVar);
+    free(gpulibVar);
 }
 
 static void setGresEnv(uint32_t localRankId, Step_t *step)
