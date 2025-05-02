@@ -975,13 +975,14 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
     uint32_t stepNId = step->localNodeId;
     uint32_t ltnum = step->globalTaskIdsLen[stepNId];
     char tmpbuf[21]; /* max uin64_t */
+    char *bindgpus;
 
     /* if there is only one local rank, bind all assigned GPUs to it */
     if (ltnum == 1) {
 	flog("step has only one local task, bind all assigned GPUs to it\n");
 	/* always set our own variable */
 	char *value = getenv("SLURM_STEP_GPUS");
-	setenv("PSSLURM_BIND_GPUS", value ? value : "", 1);
+	bindgpus = value ? value : "";
     } else {
 	/* get assigned GPUs from GRES info */
 	PSCPU_set_t assGPUs;
@@ -994,10 +995,11 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	if (gpu < 0) return; /* error message already printed */
 
 	snprintf(tmpbuf, sizeof(tmpbuf), "%hd", gpu);
-
-	/* always set our own variable */
-	setenv("PSSLURM_BIND_GPUS", tmpbuf, 1);
+	bindgpus = tmpbuf;
     }
+
+    /* always set our own variable */
+    setenv("PSSLURM_BIND_GPUS", bindgpus, 1);
 
     char *gpulibVar;
     char *c = getConfValueC(SlurmCgroupConfig, "ConstrainDevices");
