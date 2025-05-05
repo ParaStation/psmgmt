@@ -1019,7 +1019,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	}
 	gpulibVar = strbufSteal(cgroupsList);
     } else {
-	gpulibVar = strdup(getenv("PSSLURM_BIND_GPUS"));
+	gpulibVar = strdup(bindgpus);
     }
 
     char *prefix = "__AUTO_";
