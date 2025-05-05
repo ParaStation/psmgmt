@@ -17,8 +17,7 @@
 # This script will be called by the jail plugin via system() and get
 # the process ID of the main psid as an argument.
 
-SELF=$(realpath "$0")
-CommandPath=${SELF%/*}
+CommandPath=$(dirname "$0")
 
 export modName="init"
 export __PSJAIL_CGROUP_VERSION="autodetect"

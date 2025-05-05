@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2024 ParTec AG, Munich
+# Copyright (C) 2024-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,8 +17,7 @@
 # This script will be called by the jail plugin via system() and get
 # the process ID of the main psid as an argument.
 
-SELF=$(realpath "$0")
-CommandPath=${SELF%/*}
+CommandPath=$(dirname "$0")
 
 export modName="finalize"
 export __PSJAIL_CGROUP_VERSION="autodetect"

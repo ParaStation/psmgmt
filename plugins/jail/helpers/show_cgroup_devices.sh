@@ -1,7 +1,6 @@
 #!/bin/bash
 
-SELF=$(realpath "$0")
-CommandPath=${SELF%/*}
+CommandPath=$(dirname "$0")
 
 LOADER="$CommandPath/bpf_device_loader"
 if [[ ! -x $LOADER ]]; then

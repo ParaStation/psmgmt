@@ -23,9 +23,8 @@
 
 MODULES=${MODULES-undef}
 
-SELF=$(realpath "$0")
-CommandName=${0##*/}
-CommandPath=${SELF%/*}
+CommandName=$(basename "$0")
+CommandPath=$(dirname "$0")
 CHILD=${1}
 SCRIPT=${CommandName%%.*}
 modName="main"
