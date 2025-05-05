@@ -126,7 +126,7 @@ void PSIDpin_doClamps(PStask_t *task);
  *
  * @return True if device sets are found and @a closeDevs is set, else false
  */
-bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
+bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t devs,
 			  uint16_t closeDevs[], size_t *closeCnt,
 			  uint16_t localDevs[], size_t *localCnt,
 			  PSIDpin_devType_t type);

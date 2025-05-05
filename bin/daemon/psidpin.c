@@ -241,7 +241,7 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 
     uint16_t devlist[numDevs], closelist[numDevs];
     size_t devcount, closecount;
-    if (!PSIDpin_getCloseDevs(PSC_getMyID(), cpuSet, &devSet,
+    if (!PSIDpin_getCloseDevs(PSC_getMyID(), cpuSet, devSet,
 			      devlist, &devcount, closelist, &closecount,
 			      type)) return;
 
@@ -599,7 +599,7 @@ void PSIDpin_doClamps(PStask_t *task)
     }
 }
 
-bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
+bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t devs,
 			  uint16_t closeDevs[], size_t *closeCnt,
 			  uint16_t localDevs[], size_t *localCnt,
 			  PSIDpin_devType_t type)
@@ -627,7 +627,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
 	return false;
     }
 
-    if (!PSCPU_any(*devs, numDevs)) {
+    if (!PSCPU_any(devs, numDevs)) {
 	PSID_fdbg(PSID_LOG_SPAWN, "no %ss provided for id %d\n", typename, id);
 	return false;
     }
@@ -677,7 +677,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
 	/* extract into ascending list of unique entries */
 	*localCnt = 0;
 	for (uint16_t dev = 0; dev < numDevs; dev++) {
-	    if (!PSCPU_isSet(*devs, dev)) continue;
+	    if (!PSCPU_isSet(devs, dev)) continue;
 	    for (uint16_t dom = 0; dom < numNUMA; dom++) {
 		if (!used[dom] || !PSCPU_isSet(devsets[dom], dev)) continue;
 		localDevs[(*localCnt)++] = dev;
@@ -712,7 +712,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
 
     for (uint16_t dev = 0; dev < numDevs; dev++) {
 	dists[dev] = UINT32_MAX;
-	if (!PSCPU_isSet(*devs, dev)) continue; // ignored device
+	if (!PSCPU_isSet(devs, dev)) continue; // ignored device
 	for (uint16_t dom = 0; dom < numNUMA; dom++) {
 	    if (!PSCPU_isSet(devsets[dom], dev)) continue; // device not in here
 	    for (uint16_t r = 0; r < numNUMA; r++) {
@@ -736,7 +736,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	PSID_flog("(%d): Minimum %s distances:", id, typename);
 	for (uint16_t dev = 0; dev < numDevs; dev++) {
-	    if (!PSCPU_isSet(*devs, dev)) continue;
+	    if (!PSCPU_isSet(devs, dev)) continue;
 	    PSID_log(" %hu=%u", dev, dists[dev]);
 	}
 	PSID_log("\n");

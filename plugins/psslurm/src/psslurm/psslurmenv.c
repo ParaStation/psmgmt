@@ -991,7 +991,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    return;
 	}
 
-	int16_t gpu = getRankGpuPinning(localRankId, step, stepNId, &assGPUs);
+	int16_t gpu = getRankGpuPinning(localRankId, step, stepNId, assGPUs);
 	if (gpu < 0) return; /* error message already printed */
 
 	snprintf(tmpbuf, sizeof(tmpbuf), "%hd", gpu);
