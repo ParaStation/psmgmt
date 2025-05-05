@@ -188,7 +188,7 @@ logger_t *psslurmlogger = NULL;
 #endif
 logger_t *pluginlogger = NULL;
 
-void logger_print(logger_t* logger, int32_t key, const char* format, ...)
+void logger_print(logger_t logger, int32_t key, const char* format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -196,7 +196,7 @@ void logger_print(logger_t* logger, int32_t key, const char* format, ...)
     va_end(ap);
 }
 
-void logger_funcprint(logger_t* logger, const char *func, int32_t key,
+void logger_funcprint(logger_t logger, const char *func, int32_t key,
 		      const char* format, ...)
 {
     static char fmtStr[1024];
