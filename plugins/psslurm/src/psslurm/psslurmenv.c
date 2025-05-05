@@ -263,18 +263,18 @@ static char *getCompactThreadList(const PSCPU_set_t threads)
     return strbufSteal(buf);
 }
 
-static void setThreadsBitmapsEnv(const PSCPU_set_t *stepcpus,
-				 const PSCPU_set_t *jobcpus)
+static void setThreadsBitmapsEnv(const PSCPU_set_t stepcpus,
+				 const PSCPU_set_t jobcpus)
 {
     if (stepcpus) {
-	char *threadListStr = getCompactThreadList(*stepcpus);
+	char *threadListStr = getCompactThreadList(stepcpus);
 	setenv("__PSJAIL_STEP_CPUS", threadListStr, 1);
 	fdbg(PSSLURM_LOG_JAIL, "step cpus: %s\n",threadListStr);
 	free(threadListStr);
     }
 
     if (jobcpus) {
-	char *threadListStr = getCompactThreadList(*jobcpus);
+	char *threadListStr = getCompactThreadList(jobcpus);
 	setenv("__PSJAIL_JOB_CPUS", threadListStr, 1);
 	fdbg(PSSLURM_LOG_JAIL, "job cpus: %s\n", threadListStr);
 	free(threadListStr);
@@ -527,8 +527,8 @@ static bool denyAllDevs(Gres_Conf_t *conf, void *info)
     return false;
 }
 
-void setJailEnv(const env_t env, const char *user, const PSCPU_set_t *stepcpus,
-		const PSCPU_set_t *jobcpus, list_t *gresList,
+void setJailEnv(const env_t env, const char *user, const PSCPU_set_t stepcpus,
+		const PSCPU_set_t jobcpus, list_t *gresList,
 		GRes_Cred_type_t credType, JobCred_t *cred,
 		uint32_t credID)
 {

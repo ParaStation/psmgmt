@@ -626,26 +626,26 @@ static void parseSocketMask(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 }
 
 /* map a whole CPU set */
-void mapCPUset(const PSCPU_set_t unmapped, PSCPU_set_t *mapped, int num,
-		 PSnodes_ID_t nodeid)
+static void mapCPUset(const PSCPU_set_t unmapped, PSCPU_set_t mapped, int num,
+		      PSnodes_ID_t nodeid)
 {
-    PSCPU_clrAll(*mapped);
+    PSCPU_clrAll(mapped);
     for (uint16_t cpu = 0; cpu < num; cpu++) {
 	if (!PSCPU_isSet(unmapped, cpu)) continue;
-	PSCPU_setCPU(*mapped, PSIDnodes_mapCPU(nodeid, cpu));
+	PSCPU_setCPU(mapped, PSIDnodes_mapCPU(nodeid, cpu));
     }
 }
 
 /* check if CPU mask (from --cpu-bind=mask_{cpu|ldom}) fits all other parameters
  * remember that CPUset is unmapped */
-bool checkCpuMask(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
-		  const pininfo_t *pininfo)
+static bool checkCpuMask(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
+			 const pininfo_t *pininfo)
 {
     /* check against threadsPerTask */
     if (PSCPU_getCPUs(CPUset, NULL, nodeinfo->threadCount)
 	    < pininfo->threadsPerTask) {
 	PSCPU_set_t orig;
-	mapCPUset(CPUset, &orig, nodeinfo->threadCount, nodeinfo->id);
+	mapCPUset(CPUset, orig, nodeinfo->threadCount, nodeinfo->id);
 	ulog(pininfo, "CPU mask '%s' does not fit %d CPUs per task, ",
 	     PSCPU_print_part(orig, PSCPU_bytesForCPUs(nodeinfo->threadCount)),
 	     pininfo->threadsPerTask);
@@ -657,7 +657,7 @@ bool checkCpuMask(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 	if (!PSCPU_isSet(CPUset, cpu)) continue;
 	if (!PSCPU_isSet(nodeinfo->stepHWthreads, getCore(cpu, nodeinfo))) {
 	    PSCPU_set_t orig;
-	    mapCPUset(CPUset, &orig, nodeinfo->threadCount, nodeinfo->id);
+	    mapCPUset(CPUset, orig, nodeinfo->threadCount, nodeinfo->id);
 	    ulog(pininfo, "CPU mask '%s' does not fit CPUs assigned to step, ",
 		 PSCPU_print_part(orig,
 				  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
