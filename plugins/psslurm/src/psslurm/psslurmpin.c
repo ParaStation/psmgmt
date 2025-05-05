@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -839,7 +839,7 @@ static void getRankBinding(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 		&& PSCPU_isSet(nodeinfo->stepHWthreads, u)) {
 		PSCPU_setCPU(CPUset,
 			     localCpuCount + (*thread * nodeinfo->coreCount));
-		fdbg(PSSLURM_LOG_PART, "(bind_rank) node %hd task %u global_cpu"
+		fdbg(PSSLURM_LOG_PART, "(bind_rank) node %d task %u global_cpu"
 		     " %u local_cpu %d last_cpu %d\n", nodeinfo->id, lTID, u,
 		     localCpuCount + (*thread * nodeinfo->coreCount), *lastCpu);
 		*lastCpu = localCpuCount;
