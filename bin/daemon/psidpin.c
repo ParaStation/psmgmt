@@ -754,10 +754,17 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t devs,
     return true;
 }
 
-bool PSIDpin_checkAutoVar(char *name, char *value, char *renewVal)
+char *PSIDpin_getAutoName(char *name)
 {
     char *autoName;
     asprintf(&autoName, "__AUTO_%s", name);
+
+    return autoName;
+}
+
+bool PSIDpin_checkAutoVar(char *name, char *value, char *renewVal)
+{
+    char *autoName = PSIDpin_getAutoName(name);
     char *autoVar = getenv(autoName);
 
     /* automation detection is no longer needed */

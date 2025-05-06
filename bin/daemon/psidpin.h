@@ -185,4 +185,22 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t devs,
  */
 bool PSIDpin_checkAutoVar(char *name, char *value, char *renewVal);
 
+/**
+ * @brief Get name of an equivalent auto variable
+ *
+ * Get a string holding the auto variable equivalent to the variable
+ * named by @a name.
+ *
+ * The string is allocated and must be free()ed by the caller once it
+ * is no longer needed.
+ *
+ * @param name Name of the original variable to be secured by an
+ * equivalent auto variable
+ *
+ * @return Provides a pointer to an allocated piece of memory holding
+ * the name of the equivalent auto variable; must be free()ed by the
+ * caller once it is not needed any more
+ */
+char *PSIDpin_getAutoName(char *name);
+
 #endif /* __PSIDPIN_H */

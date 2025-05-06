@@ -624,15 +624,14 @@ static void setGResJobEnv(list_t *gresList, env_t env)
 	     * the user has changed the variable in his job script */
 	    strbufAdd(strList, "     ");
 
-	    char *prefix = "__AUTO_";
-	    char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
 	    for (size_t i = 0; gpu_variables[i]; i++) {
 		/* set variable if not already set by the user */
 		if (envGet(env, gpu_variables[i])) continue;
-		snprintf(name, sizeof(name), "%s%s", prefix, gpu_variables[i]);
+		char *autoName = PSIDpin_getAutoName(gpu_variables[i]);
 
 		envSet(env, gpu_variables[i], strbufStr(strList));
-		envSet(env, name, strbufStr(strList));
+		envSet(env, autoName, strbufStr(strList));
+		free(autoName);
 	    }
 	    strbufDestroy(strList);
 	} else {
