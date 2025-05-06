@@ -26,6 +26,16 @@
 #include "psidhw.h"
 #include "psidutil.h"
 
+char *PSIDpin_GPUvars[] = {
+    "CUDA_VISIBLE_DEVICES", /* Nvidia GPUs */
+    "GPU_DEVICE_ORDINAL",   /* AMD GPUs */
+    NULL
+};
+
+char *PSIDpin_NICvars[] = {
+    "UCX_NET_DEVICES",      /* UCX */
+    NULL
+};
 
 #ifdef CPU_ZERO
 
@@ -180,16 +190,6 @@ static void pinToCPUs(cpu_set_t *physSet)
 static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 		       char * mapFunc(short id))
 {
-    char *GPUvariables[] = {
-	"CUDA_VISIBLE_DEVICES", /* Nvidia GPUs */
-	"GPU_DEVICE_ORDINAL",   /* AMD GPUs */
-	NULL
-    };
-    char *NICvariables[] = {
-	"UCX_NET_DEVICES", /* UCX */
-	NULL
-    };
-
     char *typename;
     uint16_t numDevs = 0;
     char *usable = NULL;
@@ -204,7 +204,7 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 	typename = "GPU";
 	numDevs = PSIDnodes_numGPUs(PSC_getMyID());
 	usable = getenv("__PSID_USE_GPUS");
-	variables = GPUvariables;
+	variables = PSIDpin_GPUvars;
 	break;
     case PSPIN_DEV_TYPE_NIC:
 	if (getenv("__PSID_SKIP_PIN_NICS")) {
@@ -215,7 +215,7 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 	typename = "NIC";
 	numDevs = PSIDnodes_numNICs(PSC_getMyID());
 	usable = getenv("__PSID_USE_NICS");
-	variables = NICvariables;
+	variables = PSIDpin_NICvars;
 	break;
     default:
 	PSID_flog("unknown type %d\n", type);

@@ -46,13 +46,6 @@ extern char **environ;
 
 #define IS_SET(s) (s && (s)[0])
 
-#define GPU_VARIABLE_MAXLEN 20
-static char * gpu_variables[] = {
-    "CUDA_VISIBLE_DEVICES", /* Nvidia GPUs */
-    "GPU_DEVICE_ORDINAL",   /* AMD GPUs */
-    NULL
-};
-
 static strv_t envFilterData;
 
 bool initEnvFilter(void)
@@ -624,12 +617,12 @@ static void setGResJobEnv(list_t *gresList, env_t env)
 	     * the user has changed the variable in his job script */
 	    strbufAdd(strList, "     ");
 
-	    for (size_t i = 0; gpu_variables[i]; i++) {
+	    for (size_t i = 0; PSIDpin_GPUvars[i]; i++) {
 		/* set variable if not already set by the user */
-		if (envGet(env, gpu_variables[i])) continue;
-		char *autoName = PSIDpin_getAutoName(gpu_variables[i]);
+		if (envGet(env, PSIDpin_GPUvars[i])) continue;
 
-		envSet(env, gpu_variables[i], strbufStr(strList));
+		envSet(env, PSIDpin_GPUvars[i], strbufStr(strList));
+		char *autoName = PSIDpin_getAutoName(PSIDpin_GPUvars[i]);
 		envSet(env, autoName, strbufStr(strList));
 		free(autoName);
 	    }
@@ -939,11 +932,12 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	unsetenv("SLURM_STEP_GPUS");
 	unsetenv("PSSLURM_BIND_GPUS");
 
-	for (size_t i = 0; gpu_variables[i]; i++) {
-	    char *gpuVar = getenv(gpu_variables[i]);
-	    if (gpuVar && PSIDpin_checkAutoVar(gpu_variables[i], gpuVar, NULL)) {
+	for (size_t i = 0; PSIDpin_GPUvars[i]; i++) {
+	    char *gpuVar = getenv(PSIDpin_GPUvars[i]);
+	    if (gpuVar
+		&& PSIDpin_checkAutoVar(PSIDpin_GPUvars[i], gpuVar, NULL)) {
 		/* variable not changed by the user */
-		unsetenv(gpu_variables[i]);
+		unsetenv(PSIDpin_GPUvars[i]);
 	    }
 	}
 
@@ -1015,12 +1009,12 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	gpulibVar = strdup(bindgpus);
     }
 
-    for (size_t i = 0; gpu_variables[i]; i++) {
-	char *gpuVar = getenv(gpu_variables[i]);
-	if (!gpuVar || PSIDpin_checkAutoVar(gpu_variables[i], gpuVar, NULL)) {
-	    /* variable not set at all or set automatically and not
+    for (size_t i = 0; PSIDpin_GPUvars[i]; i++) {
+	char *gpuVar = getenv(PSIDpin_GPUvars[i]);
+	if (!gpuVar || PSIDpin_checkAutoVar(PSIDpin_GPUvars[i], gpuVar, NULL)) {
+	    /* variable not set at all or set automatically and
 	     * unchanged in the meantime => set it */
-	    setenv(gpu_variables[i], gpulibVar, 1);
+	    setenv(PSIDpin_GPUvars[i], gpulibVar, 1);
 	}
     }
 

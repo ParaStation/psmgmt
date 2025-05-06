@@ -30,6 +30,18 @@ typedef enum {
 } PSIDpin_devType_t;
 
 /**
+ * NULL terminated array of GPU related environment variables to be
+ * secured by auto variables (@see PSIDpin_checkAutoVar())
+ */
+extern char *PSIDpin_GPUvars[];
+
+/**
+ * NULL terminated array of NIC related environment variables to be
+ * secured by auto variables (@see PSIDpin_checkAutoVar())
+ */
+extern char *NICvariables[];
+
+/**
  * @brief Map CPUs
  *
  * Map the logical CPUs of the CPU-set @a set to physical HW-threads
