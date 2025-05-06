@@ -268,20 +268,14 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 
     PSID_fdbg(PSID_LOG_SPAWN, "setup to use %ss '%s'\n", typename, val);
 
-    char *prefix = "__AUTO_";
-    char name[1024];
     for (size_t i = 0; variables[i]; i++) {
-	snprintf(name, sizeof(name), "%s%s", prefix, variables[i]);
 	char *gpuVar = getenv(variables[i]);
-	char *nameVar = getenv(name);
-	if (!gpuVar || (nameVar && !strcmp(nameVar, gpuVar))) {
-	    /* variable is not set at all
-	     * or it had been set automatically and not changed in the meantime,
-	     * so set it and add/renew the auto set detection variable */
+	if (!gpuVar || PSIDpin_checkAutoVar(variables[i], gpuVar, val)) {
+	    /* variable not set at all or set automatically and not
+	     * unchanged in the meantime => set it */
 	    setenv(variables[i], val, 1);
-	    setenv(name, val, 1);
 	} else {
-	    PSID_fdbg(PSID_LOG_SPAWN, "keep already set '%s'\n", variables[i]);
+	    PSID_fdbg(PSID_LOG_SPAWN, "keep '%s=%s'\n", variables[i], gpuVar);
 	}
 
     }
@@ -758,4 +752,21 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t devs,
     }
 
     return true;
+}
+
+bool PSIDpin_checkAutoVar(char *name, char *value, char *renewVal)
+{
+    char *autoName;
+    asprintf(&autoName, "__AUTO_%s", name);
+    char *autoVar = getenv(autoName);
+
+    /* automation detection is no longer needed */
+    unsetenv(autoName);
+
+    bool ret = autoVar && !strcmp(autoVar, value);
+
+    if (ret && renewVal) setenv(autoName, renewVal, 1);
+    free(autoName);
+
+    return ret;
 }

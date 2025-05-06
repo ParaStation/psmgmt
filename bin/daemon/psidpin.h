@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -130,5 +130,59 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t devs,
 			  uint16_t closeDevs[], size_t *closeCnt,
 			  uint16_t localDevs[], size_t *localCnt,
 			  PSIDpin_devType_t type);
+
+/**
+ * @brief Compare environment variable to its auto variable equivalent
+ *
+ * Check if the environment variable named by @a name is identical to
+ * its auto variable equivalent, i.e. if its @a value is still unchanged.
+ *
+ * As a side effect this will unset the auto variable unless @a
+ * renewVal provides an alternative value. The auto variable will be
+ * set to this new value unless the variable named by @a name was
+ * changed.
+ *
+ * This function assumes that @a value is the actual value of the
+ * environment variable @a name and that the caller as double checked
+ * that @a name is set, i.e. that @a value is different from NULL.
+ *
+ * The auto variable mechanism is used to detect changes made by the
+ * user to variables that might be set automatically. It aims to set
+ * them automatically if the user does not set them, but never
+ * override user's settings. The challenge is to distinguish between
+ * the following cases:
+ *
+ * 1. user does not set the variable anywhere
+ * 2. user has set the variable in the job environment
+ * 3. user has not set the variable in the job environment, but changes it
+ *    inside of the job script for the step environment
+ *
+ * To manage that, everytime such a variable it set, some (hopefully
+ * harmless) spaces are appended to the actual value and at the same
+ * time an auto variable (variable of the same name but with a magic
+ * prefix, i.e. `__AUTO_`) is set.
+ *
+ * Thus, later on changes can be detected:
+ * - if the user changed that variable (assuming that even if set to
+ *   the same value, the trailing spaces would not be used) and it can
+ *   be left untouched or
+ * - if it is still the same as automatically set and thus override or
+ *   unset it.
+ *
+ * @param name Environment variable name to compare to its auto
+ * variable equivalent
+ *
+ * @param value Current value of @a name; the caller must ensure that
+ * this is different from NULL
+ *
+ * @param renewVal Value to be stored to the auto variable
+ *
+ * @return Iff the auto variable equivalent is set and its value is
+ * identical to @a value, true is returned as this indicates that the
+ * variable @a name is unchanged from the outside; otherwise false is
+ * returned; in any case the auto variable will be unset since no
+ * longer needed
+ */
+bool PSIDpin_checkAutoVar(char *name, char *value, char *renewVal);
 
 #endif /* __PSIDPIN_H */
