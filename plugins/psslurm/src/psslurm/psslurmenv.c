@@ -929,6 +929,57 @@ static void setPsslurmEnv(env_t alloc_env, env_t dest_env)
     }
 }
 
+/*
+ * Check if @a var is not set at all or has been set automatically.
+ *
+ * Unset the auto variable.
+ *
+ * The autovar mechanism is used to detect changes by the user of variables
+ * that might be set automatically. The point is to set them automatically if
+ * the user does not set them, but never override user's settings. The challenge
+ * is to distiguish between the following cases:
+ *
+ * 1. user does not set the variable anywhere
+ * 2. user has set the variable in the job environment
+ * 3. user has not set the variable in the job environment, but changes it
+ *    inside of the job script for the step environment
+ *
+ * To manage that, everytime psslurm sets such a variable, it appends some
+ * (hopefully harmless) spaces to the actual value and does set an autovar
+ * (variable of the same name but with a `__AUTO_` prefixed) to the same value.
+ *
+ * Thus it can later be detected, whether the user changed that variable
+ * (assuming that even if set to the same value, the trailing spaces would not
+ * be used) or if it is still the same as automatically set and thus override or
+ * unset it or let it untouched respectively.
+ *
+ * So this function checks if the variable is set and returns true if not.
+ *
+ * If var is set, the autovar is checked and true is returned iff it has the
+ * same value as var, indicating that the user did not change it.
+ *
+ * In any case the autovar will be unset since no longer needed.
+ */
+static bool checkAutoVar(char *var)
+{
+    char *prefix = "__AUTO_";
+    char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
+    snprintf(name, sizeof(name), "%s%s", prefix, var);
+    char *gpuVar = getenv(var);
+    char *nameVar = getenv(name);
+
+    /* automation detection is no longer needed */
+    unsetenv(name);
+
+    if (!gpuVar) return true;
+
+    /* if __AUTO_<var> does not exist or is the same as <var> this means that
+     * we set it that way automatically and nobody changed it in between */
+    if (nameVar && !strcmp(nameVar, gpuVar)) return true;
+
+    return false;
+}
+
 static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 {
     Gres_Cred_t *gres;
@@ -939,19 +990,11 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	unsetenv("SLURM_STEP_GPUS");
 	unsetenv("PSSLURM_BIND_GPUS");
 
-	char *prefix = "__AUTO_";
-	char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
 	for (size_t i = 0; gpu_variables[i]; i++) {
-	    snprintf(name, sizeof(name), "%s%s", prefix, gpu_variables[i]);
-	    char *gpuVar = getenv(gpu_variables[i]);
-	    char *nameVar = getenv(name);
-	    if (gpuVar && nameVar && !strcmp(nameVar, gpuVar)) {
+	    if (checkAutoVar(gpu_variables[i])) {
 		/* variable not changed by the user */
 		unsetenv(gpu_variables[i]);
 	    }
-
-	    /* automation detection is no longer needed */
-	    unsetenv(name);
 	}
 
 	/* prevent doClamps() from doing automatic GPU pinning */
@@ -1022,21 +1065,13 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	gpulibVar = strdup(bindgpus);
     }
 
-    char *prefix = "__AUTO_";
-    char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
     for (size_t i = 0; gpu_variables[i]; i++) {
-	snprintf(name, sizeof(name), "%s%s", prefix, gpu_variables[i]);
-	char *gpuVar = getenv(gpu_variables[i]);
-	char *nameVar = getenv(name);
-	if (!gpuVar || (nameVar && !strcmp(nameVar, gpuVar))) {
+	if (checkAutoVar(gpu_variables[i])) {
 	    /* variable is not set at all
 	     * or it had been set automatically and not changed in the meantime,
 	     * so set it */
 	    setenv(gpu_variables[i], gpulibVar, 1);
 	}
-
-	/* automation detection is no longer needed */
-	unsetenv(name);
     }
 
     free(gpulibVar);
