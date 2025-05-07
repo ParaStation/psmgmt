@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -83,8 +83,8 @@ bool envFilterFunc(const char *envStr);
  * @param cred		Job credential holding memory constrains
  * @param credID        Credentail ID
  */
-void setJailEnv(const env_t env, const char *user, const PSCPU_set_t *stepcpus,
-		const PSCPU_set_t *jobcpus, list_t *gresList,
+void setJailEnv(const env_t env, const char *user, const PSCPU_set_t stepcpus,
+		const PSCPU_set_t jobcpus, list_t *gresList,
 		GRes_Cred_type_t credType, JobCred_t *cred,
 		uint32_t credID);
 /**

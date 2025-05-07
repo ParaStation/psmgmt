@@ -99,7 +99,7 @@ bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
  * @return ID of a GPUs if successful, -1 in error.
  */
 int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
-			  uint32_t stepNodeId, PSCPU_set_t *assGPUs);
+			  uint32_t stepNodeId, PSCPU_set_t assGPUs);
 
 /**
  * @doctodo

@@ -6,6 +6,12 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.2.1:
+==============
+Bugfixes:
+ - Fix setting CUDA_VISIBLE_DEVICES with ConstrainDevices set (#310)
+
+
 Version 6.2.0:
 ==============
 Bugfixes:

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -106,13 +106,13 @@ static void node_iter_cleanup(node_iterator *iter)
     iter->initialized = false;
 }
 
-static void coreMapToHWthreads(PSCPU_set_t *hwthreads, const bool *coreMap,
+static void coreMapToHWthreads(PSCPU_set_t hwthreads, const bool *coreMap,
 			       uint32_t coreCount, uint16_t threadsPerCore)
 {
     for (uint16_t core = 0; core < coreCount; core++) {
 	if (coreMap[core]) {
 	    for (size_t thread = 0; thread < threadsPerCore; thread++) {
-		PSCPU_setCPU(*hwthreads, coreCount * thread + core);
+		PSCPU_setCPU(hwthreads, coreCount * thread + core);
 	    }
 	}
     }
@@ -174,11 +174,11 @@ static nodeinfo_t *node_iter_next(node_iterator *iter)
 
     /* set hardware threads to use according to core map */
     PSCPU_clrAll(iter->info.stepHWthreads);
-    coreMapToHWthreads(&(iter->info.stepHWthreads),
-	    iter->stepCoreMap + iter->coreMapIndex, coreCount, threadsPerCore);
+    coreMapToHWthreads(iter->info.stepHWthreads,
+		       iter->stepCoreMap + iter->coreMapIndex, coreCount, threadsPerCore);
 
     PSCPU_clrAll(iter->info.jobHWthreads);
-    coreMapToHWthreads(&(iter->info.jobHWthreads),
+    coreMapToHWthreads(iter->info.jobHWthreads,
 		       iter->jobCoreMap + iter->coreMapIndex,
 		       coreCount, threadsPerCore);
 

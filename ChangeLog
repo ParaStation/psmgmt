@@ -1,3 +1,54 @@
+Version 6.2.1:
+==============
+------------------------------------------------------------------------
+4d90dcda4 | Norbert Eicker | Mon, 5 May 2025 19:23:25 +0200
+
+More unnecessary dereferencing of PSCPU_set_t
+
+ - hide some more functions (mapCPUset(), checkCpuMask())
+------------------------------------------------------------------------
+759abfdd2 | Stephan Krempel | Mon, 5 May 2025 15:57:07 +0200
+
+psslurm: Use variable directly
+------------------------------------------------------------------------
+2e64fde65 | Stephan Krempel | Mon, 5 May 2025 15:46:17 +0200
+
+Adjust test to updated interface
+------------------------------------------------------------------------
+ae56a98e3 | Stephan Krempel | Mon, 5 May 2025 15:45:43 +0200
+
+Fix format string
+------------------------------------------------------------------------
+ed8dff4e2 | Stephan Krempel | Mon, 5 May 2025 15:43:51 +0200
+
+Avoid unnecessary dereferencing with PSCPU_set_t
+------------------------------------------------------------------------
+43cbe403e | Stephan Krempel | Fri, 2 May 2025 14:10:38 +0200
+
+psslurm: Make clear that variable is always set
+------------------------------------------------------------------------
+d68ecf688 | Stephan Krempel | Fri, 2 May 2025 14:00:54 +0200
+
+Print message on malloc fail
+------------------------------------------------------------------------
+6fef005b5 | Stephan Krempel | Fri, 2 May 2025 13:46:59 +0200
+
+Use strbufSteal()
+------------------------------------------------------------------------
+5c3249de0 | Stephan Krempel | Tue, 29 Apr 2025 14:49:28 +0200
+
+Small fix and optimisation
+------------------------------------------------------------------------
+1e2338949 | Stephan Krempel | Thu, 24 Apr 2025 13:12:39 +0200
+
+psslurm: Fix setting CUDA_VISIBLE_DEVICES with ConstainDevices set
+------------------------------------------------------------------------
+4629b131b | Stephan Krempel | Tue, 29 Apr 2025 02:46:46 +0200
+
+psslurm: Enhance info output on GPU pinning
+------------------------------------------------------------------------
+
+
 Version 6.2.0:
 ==============
 ------------------------------------------------------------------------

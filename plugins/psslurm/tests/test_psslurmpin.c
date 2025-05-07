@@ -188,7 +188,7 @@ logger_t *psslurmlogger = NULL;
 #endif
 logger_t *pluginlogger = NULL;
 
-void logger_print(logger_t* logger, int32_t key, const char* format, ...)
+void logger_print(logger_t logger, int32_t key, const char* format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -196,7 +196,7 @@ void logger_print(logger_t* logger, int32_t key, const char* format, ...)
     va_end(ap);
 }
 
-void logger_funcprint(logger_t* logger, const char *func, int32_t key,
+void logger_funcprint(logger_t logger, const char *func, int32_t key,
 		      const char* format, ...)
 {
     static char fmtStr[1024];
@@ -301,7 +301,7 @@ short PSIDnodes_numGPUs(PSnodes_ID_t id) {
     return 0;
 }
 
-bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *GPUs,
+bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t GPUs,
 			  uint16_t closeGPUs[], size_t *closeCnt,
 			  uint16_t localGPUs[], size_t *localCnt,
 			  PSIDpin_devType_t type) {

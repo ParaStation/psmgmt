@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include "pscommon.h"
+#include "pscpu.h"
 #include "psstrbuf.h"
 #include "psstrv.h"
 #include "psipartition.h"
@@ -262,18 +263,18 @@ static char *getCompactThreadList(const PSCPU_set_t threads)
     return strbufSteal(buf);
 }
 
-static void setThreadsBitmapsEnv(const PSCPU_set_t *stepcpus,
-				 const PSCPU_set_t *jobcpus)
+static void setThreadsBitmapsEnv(const PSCPU_set_t stepcpus,
+				 const PSCPU_set_t jobcpus)
 {
     if (stepcpus) {
-	char *threadListStr = getCompactThreadList(*stepcpus);
+	char *threadListStr = getCompactThreadList(stepcpus);
 	setenv("__PSJAIL_STEP_CPUS", threadListStr, 1);
 	fdbg(PSSLURM_LOG_JAIL, "step cpus: %s\n",threadListStr);
 	free(threadListStr);
     }
 
     if (jobcpus) {
-	char *threadListStr = getCompactThreadList(*jobcpus);
+	char *threadListStr = getCompactThreadList(jobcpus);
 	setenv("__PSJAIL_JOB_CPUS", threadListStr, 1);
 	fdbg(PSSLURM_LOG_JAIL, "job cpus: %s\n", threadListStr);
 	free(threadListStr);
@@ -526,8 +527,8 @@ static bool denyAllDevs(Gres_Conf_t *conf, void *info)
     return false;
 }
 
-void setJailEnv(const env_t env, const char *user, const PSCPU_set_t *stepcpus,
-		const PSCPU_set_t *jobcpus, list_t *gresList,
+void setJailEnv(const env_t env, const char *user, const PSCPU_set_t stepcpus,
+		const PSCPU_set_t jobcpus, list_t *gresList,
 		GRes_Cred_type_t credType, JobCred_t *cred,
 		uint32_t credID)
 {
@@ -973,13 +974,15 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 
     uint32_t stepNId = step->localNodeId;
     uint32_t ltnum = step->globalTaskIdsLen[stepNId];
+    char tmpbuf[21]; /* max uin64_t */
+    char *bindgpus;
 
     /* if there is only one local rank, bind all assigned GPUs to it */
     if (ltnum == 1) {
-	flog("Only one task on this node, bind all assigned GPUs to it.\n");
+	flog("step has only one local task, bind all assigned GPUs to it\n");
 	/* always set our own variable */
 	char *value = getenv("SLURM_STEP_GPUS");
-	setenv("PSSLURM_BIND_GPUS", value ? value : "", 1);
+	bindgpus = value ? value : "";
     } else {
 	/* get assigned GPUs from GRES info */
 	PSCPU_set_t assGPUs;
@@ -988,14 +991,35 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    return;
 	}
 
-	int16_t gpu = getRankGpuPinning(localRankId, step, stepNId, &assGPUs);
+	int16_t gpu = getRankGpuPinning(localRankId, step, stepNId, assGPUs);
 	if (gpu < 0) return; /* error message already printed */
 
-	char tmp[10];
-	snprintf(tmp, sizeof(tmp), "%hd", gpu);
+	snprintf(tmpbuf, sizeof(tmpbuf), "%hd", gpu);
+	bindgpus = tmpbuf;
+    }
 
-	/* always set our own variable */
-	setenv("PSSLURM_BIND_GPUS", tmp, 1);
+    /* always set our own variable */
+    setenv("PSSLURM_BIND_GPUS", bindgpus, 1);
+
+    char *gpulibVar;
+    char *c = getConfValueC(SlurmCgroupConfig, "ConstrainDevices");
+    if (c && !strcasecmp(c, "yes")) {
+	/* cgroups enabled, only SLURM_STEP_GPUS are visible, adjust IDs as
+	 * done at least by libcuda (@todo check with AMD) */
+
+	strbuf_t cgroupsList = strbufNew("");
+	if (!cgroupsList) {
+	    flog("Unable to allocate memory");
+	    abort();
+	}
+	for (uint64_t gpu = 0; gpu < gres->totalGres; gpu++) {
+	    snprintf(tmpbuf, sizeof(tmpbuf), "%zd", gpu);
+	    if (gpu) strbufAdd(cgroupsList, ",");
+	    strbufAdd(cgroupsList, tmpbuf);
+	}
+	gpulibVar = strbufSteal(cgroupsList);
+    } else {
+	gpulibVar = strdup(bindgpus);
     }
 
     char *prefix = "__AUTO_";
@@ -1008,17 +1032,14 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    /* variable is not set at all
 	     * or it had been set automatically and not changed in the meantime,
 	     * so set it */
-	    gpuVar = getenv("PSSLURM_BIND_GPUS");
-	    if (!gpuVar) {
-		flog("expected PSSLURM_BIND_GPUS not found\n");
-		return;
-	    }
-	    setenv(gpu_variables[i], gpuVar, 1);
+	    setenv(gpu_variables[i], gpulibVar, 1);
 	}
 
 	/* automation detection is no longer needed */
 	unsetenv(name);
     }
+
+    free(gpulibVar);
 }
 
 static void setGresEnv(uint32_t localRankId, Step_t *step)
