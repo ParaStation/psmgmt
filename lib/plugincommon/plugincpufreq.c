@@ -624,14 +624,14 @@ static bool execCPUFreqScriptEx(Script_CMDs_t cmd, strv_t addArgV)
     script->runtime = 30;
     script->cbOutput = Command_Map[cmd].fp;
     script->info = &cmd;
-    script->callback = Command_Map[cmd].cb;
+    script->cbResult = Command_Map[cmd].cb;
     strvAdd(script->argV, "--cpu-sys-path");
     strvAdd(script->argV, sysPath);
     strvAdd(script->argV, Command_Map[cmd].arg);
     strvAppend(script->argV, addArgV);
 
     int ret = Script_exec(script);
-    if (!script->callback) Script_destroy(script);
+    if (!script->cbResult) Script_destroy(script);
 
     return ret;
 }

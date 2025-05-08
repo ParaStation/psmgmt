@@ -140,7 +140,7 @@ static void execChild(Script_Data_t *script)
     /* Create a new process group for easier cleanup */
     setpgid(0, 0);
 
-    if (!script->callback) {
+    if (!script->cbResult) {
 	/* close all FDs except I/O socket */
 	int iofds = script->iofds[1];
 	int maxFD = sysconf(_SC_OPEN_MAX);
@@ -297,7 +297,7 @@ static void fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
 
     plugindbg(PLUGIN_LOG_SCRIPT, "script exited with %i\n", exit_status);
-    if (script->callback) script->callback(exit_status, script->info);
+    if (script->cbResult) script->cbResult(exit_status, script->info);
 
     /* ensure we don't double free */
     script->fwdata = NULL;

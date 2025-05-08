@@ -18,6 +18,36 @@
 #include "psenv.h"
 #include "psstrv.h"
 
+/**
+ * @bfrief Callback holding the result of the script executing. This
+ * is only used if the script is started by @ref Script_exec() inside
+ * the main daemon. Then the script will be executed under a pluginforwarder.
+ * This prevents the script from blocking the main psid.
+ *
+ * @param exit_status Exit status of the script
+ *
+ * @param info Pointer to the info field of the script
+ */
+typedef void Script_cbResult_t(int32_t, void *);
+
+/**
+ * @bfrief Callback which is invoked for every output line the script produces.
+ * Lines without a terminating newline will be cached.
+ *
+ * @param line Output line from stdout/stderr of the script
+ *
+ * @param info Pointer to the info field of the script
+ */
+typedef void Script_cbOutput_t(char *, void *);
+
+/**
+ * @bfrief Callback to prepare the script environment before privileges are
+ * dropped.
+ *
+ * @param info Pointer to the info field of the script
+ */
+typedef void Script_cbPrepPriv_t(void *);
+
 /** Structure defining all parameter's of a script */
 typedef struct {
     char *username;	    /**< optional username for the script */
@@ -32,12 +62,11 @@ typedef struct {
     void *info;		    /**< additional info pass to callbacks */
     int iofds[2];	    /**< I/O channel between parent and script */
     char *outBuf;
-    Forwarder_Data_t *fwdata;
-    void (*callback)(int32_t status, void *info);
-    void (*cbOutput)(char *output, void *info);
-			    /**< callback for each output line of the script */
-    void (*prepPriv)(void *info);
-			    /**< prepare script environment before user switch */
+    Forwarder_Data_t *fwdata;	    /**< pluginforwarder data used if start in
+				      main psid */
+    Script_cbResult_t *cbResult;    /**< see @Script_cbResult_t */
+    Script_cbOutput_t *cbOutput;    /**< see @ref Script_cbOutput_t */
+    Script_cbPrepPriv_t *prepPriv;  /**< see @ref Script_cbPrepPriv_t */
 } Script_Data_t;
 
 /**
