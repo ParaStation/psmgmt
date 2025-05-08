@@ -42,6 +42,7 @@
 #include "pspmixlog.h"
 #include "pspmixservice.h"
 #include "pspmixtypes.h"
+#include "pspmixutil.h"
 
 /* PMIx' return code change on the move to version 4 of the standard */
 #define __PSPMIX_NOT_IMPLEMENTED PMIX_ERR_NOT_SUPPORTED
@@ -285,8 +286,8 @@ static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
 						 pmix_op_cbfunc_t cbfunc,
 						 void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "proc %s:%d clientObject %p cbfunc %p cbdata %p\n",
-	 proc->nspace, proc->rank, clientObject, cbfunc, cbdata);
+    fdbg(PSPMIX_LOG_CALL, "proc %s clientObject %p cbfunc %p cbdata %p\n",
+	 pmixProcStr(proc), clientObject, cbfunc, cbdata);
 
     mycbfunc_t *cb = NULL;
     if (cbfunc) INIT_CBFUNC(cb, cbfunc, cbdata);
@@ -319,8 +320,8 @@ static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
 static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 	void* clientObject, pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "proc %s:%d clientObject %p cbfunc %p cbdata %p\n",
-	 proc->nspace, proc->rank, clientObject, cbfunc, cbdata);
+    fdbg(PSPMIX_LOG_CALL, "proc %s clientObject %p cbfunc %p cbdata %p\n",
+	 pmixProcStr(proc), clientObject, cbfunc, cbdata);
 
     mycbfunc_t *cb = NULL;
     if (cbfunc) INIT_CBFUNC(cb, cbfunc, cbdata);
@@ -402,18 +403,18 @@ static pmix_status_t server_abort_cb(const pmix_proc_t *proc,
 	void *clientObject, int status, const char msg[], pmix_proc_t procs[],
 	size_t nprocs, pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "proc %s:%d clientObject %p status %d nprocs %zd"
-	 " cbdata %p\n", proc->nspace, proc->rank, clientObject,
-	 status, nprocs, cbdata);
+    fdbg(PSPMIX_LOG_CALL, "proc %s clientObject %p status %d nprocs %zd"
+	 " cbdata %p\n", pmixProcStr(proc), clientObject, status, nprocs,
+	 cbdata);
 
-    flog("abort request by %s:%d for ", proc->nspace, proc->rank);
+    flog("abort request by %s for ", pmixProcStr(proc));
     if (!procs || (nprocs == 1
 		   && PMIX_CHECK_NSPACE(procs[0].nspace, proc->nspace)
 		   && procs[0].rank == PMIX_RANK_WILDCARD)) {
 	mlog("the whole namespace\n");
     } else {
 	for (size_t i = 0; i < nprocs; i++) {
-	    mlog(" %s%s:%d", i ? "," : "", proc[i].nspace, proc[i].rank);
+	    mlog(" %s%s", i ? "," : "", pmixProcStr(&proc[i]));
 	}
 	mlog(" (not supported)\n");
 
@@ -632,9 +633,8 @@ void pspmix_server_returnModexData(pmix_status_t status, modexdata_t *mdata)
 {
     assert(mdata != NULL);
 
-    fdbg(PSPMIX_LOG_CALL, "status %s rank %u namespace %s ndata %lu\n",
-	 PMIx_Error_string(status), mdata->proc.rank,
-	 mdata->proc.nspace, mdata->ndata);
+    fdbg(PSPMIX_LOG_CALL, "status %s proc %s ndata %lu\n",
+	 PMIx_Error_string(status), pmixProcStr(&mdata->proc), mdata->ndata);
 
     /* Call the callback provided by the server in server_dmodex_req_cb().
      * As the data is "owned" by the host server, provide a secondary callback
@@ -662,7 +662,7 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 					  pmix_modex_cbfunc_t cbfunc,
 					  void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "proc %s:%u\n", proc->nspace, proc->rank);
+    fdbg(PSPMIX_LOG_CALL, "proc %s\n", pmixProcStr(proc));
 
     strv_t reqKeys = strvNew(NULL);
     int timeout = 0;
@@ -721,8 +721,8 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
     mdata->timeout = timeout;
 
     if (!pspmix_service_sendModexDataRequest(mdata)) {
-	flog("pspmix_service_sendModexDataRequest(%s:%u) failed\n",
-	     proc->nspace, proc->rank);
+	flog("pspmix_service_sendModexDataRequest(%s) failed\n",
+	     pmixProcStr(proc));
 	PMIX_PROC_DESTRUCT(&mdata->proc);
 	strvDestroy(reqKeys);
 	ufree(mdata);
@@ -743,15 +743,14 @@ static void requestModexData_cb(pmix_status_t status, char *data, size_t ndata,
 {
     modexdata_t *mdata = cbdata;
 
-    fdbg(PSPMIX_LOG_CALL, "ndata %zu proc %s:%u\n",
-	 ndata, mdata->proc.nspace, mdata->proc.rank);
+    fdbg(PSPMIX_LOG_CALL, "ndata %zu proc %s\n", ndata, pmixProcStr(&mdata->proc));
 
     mdata->data = data;
     mdata->ndata = ndata;
 
     if (status != PMIX_SUCCESS) {
-	flog("modex data request for %s:%u failed: %s\n",
-	     mdata->proc.nspace, mdata->proc.rank, PMIx_Error_string(status));
+	flog("modex data request for %s failed: %s\n",
+	     pmixProcStr(&mdata->proc), PMIx_Error_string(status));
     }
 
     pspmix_service_sendModexDataResponse(status, mdata);
@@ -792,8 +791,8 @@ static bool checkKeyAvailability(pmix_proc_t *proc, strv_t reqKeys)
 		return false;
 	    case PMIX_ERR_BAD_PARAM:
 	    case PMIX_ERR_EXISTS_OUTSIDE_SCOPE:
-		flog("PMIx_get(proc %s:%d key %s) failed: %s\n", proc->nspace,
-		     proc->rank, *key, PMIx_Error_string(status));
+		flog("PMIx_get(proc %s key %s) failed: %s\n", pmixProcStr(proc),
+		     *key, PMIx_Error_string(status));
 		PMIX_DATA_ARRAY_DESTRUCT(&info);
 		return false;
 	}
@@ -860,7 +859,7 @@ static void reqModexTimeoutHandler(int timerID, void *info)
  */
 bool pspmix_server_requestModexData(modexdata_t *mdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "proc %s:%u\n", mdata->proc.nspace, mdata->proc.rank);
+    fdbg(PSPMIX_LOG_CALL, "proc %s\n", pmixProcStr(&mdata->proc));
 
     /* store time processing of the request has started */
     mdata->reqtime = time(NULL);
@@ -1211,7 +1210,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
     }
 
     if (mset(PSPMIX_LOG_CALL)) {
-	flog("proc %s:%d\n", proc->nspace, proc->rank);
+	flog("proc %s\n", pmixProcStr(proc));
 
 	for (size_t i = 0; i < napps; i++) {
 	    flog("cmd='%s' argv='", apps[i].cmd);
@@ -1556,7 +1555,7 @@ static pmix_status_t server_query_cb(pmix_proc_t *proc,
 				     pmix_query_t *queries, size_t nqueries,
 				     pmix_info_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "proc %s:%u\n", proc->nspace, proc->rank);
+    fdbg(PSPMIX_LOG_CALL, "proc %s\n", pmixProcStr(proc));
 
     // @todo implement
 
@@ -1629,8 +1628,8 @@ static void server_log_cb(const pmix_proc_t *client,
 			  const pmix_info_t directives[], size_t ndirs,
 			  pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "client %s:%d ndata %zd ndirs %zd\n", client->nspace,
-	 client->rank, ndata, ndirs);
+    fdbg(PSPMIX_LOG_CALL, "client %s ndata %zd ndirs %zd\n", pmixProcStr(client),
+	 ndata, ndirs);
     if (mset(PSPMIX_LOG_LOGGING)) {
 	printInfoArray("data", data, ndata);
 	printInfoArray("directives", directives, ndirs);
@@ -1880,7 +1879,7 @@ static pmix_status_t server_grp_cb(pmix_group_operation_t op, char grp[],
 
     flog("procs:");
     for (size_t i = 0; i < nprocs; i++) {
-	mlog(" %s:%d", procs[i].nspace, procs[i].rank);
+	mlog(" %s", pmixProcStr(&procs[i]));
     }
     mlog("\n");
 
@@ -1972,8 +1971,8 @@ static void errhandler(size_t evhdlr_registration_id, pmix_status_t status,
 		       pmix_info_t results[], size_t nresults,
 		       pmix_event_notification_cbfunc_fn_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "status %d proc %s:%u ninfo %lu nresults %lu\n",
-	 status, source->nspace, source->rank, ninfo, nresults);
+    fdbg(PSPMIX_LOG_CALL, "status %d proc %s ninfo %lu nresults %lu\n",
+	 status, pmixProcStr(source), ninfo, nresults);
 }
 
 static bool fillServerSessionArray(pmix_data_array_t *sessionInfo,
@@ -2935,8 +2934,7 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 	flog("srv_nspace '%s' srv_rank %d nspace '%s' sessionId %u univSize %u"
 	     " jobSize %u spawnparent ", srv_nspace, srv_rank, nspace,
 	     sessionId, univSize, jobSize);
-	if (!spawnparent) mlog("(null)");
-	else mlog("%s:%u", spawnparent->nspace, spawnparent->rank);
+	mlog ("%s", spawnparent ? pmixProcStr(spawnparent) : "(null)");
 	mlog(" numNodes %d numApps %u tmpdir '%s' nsdir '%s' nodeID %d\n",
 	     numNodes, numApps, tmpdir, nsdir, nodeID);
     }

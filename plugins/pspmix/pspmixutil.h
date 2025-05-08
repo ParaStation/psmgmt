@@ -75,4 +75,20 @@ void __pspmix_deleteServer(PspmixServer_t *server, bool warn,
  */
 const char * pspmix_getChannelName(PspmixLogChannel_t channel);
 
+/**
+ * Provide string representation of pmix_proc_t
+ *
+ * @param proc PMIx process to represent
+ *
+ * @return String representation of the PMIx process
+ */
+static inline char * pmixProcStr(const pmix_proc_t *proc)
+{
+    static char pStr[PMIX_MAX_NSLEN + 12];
+    sprintf(pStr, "%s:%u", proc->nspace, proc->rank);
+
+    return pStr;
+}
+
+
 #endif

@@ -198,8 +198,8 @@ static bool doSpawn(SpawnReqData_t *srdata)
     plog("trying to spawn job with %d apps\n", srdata->req->num);
 
     pdbg(PSPMIX_LOG_SPAWN, "Requesting service rank for spawn %s:%d triggered"
-	 " by nspace %s rank %u\n", PSC_printTID(srdata->pmixServer),
-	 srdata->spawnID, srdata->pnspace, srdata->prank);
+	 " by %s:%u\n", PSC_printTID(srdata->pmixServer), srdata->spawnID,
+	 srdata->pnspace, srdata->prank);
 
     /* get next service rank from logger */
     if (PSLog_write(childTask->loggertid, SERV_RNK, NULL, 0) < 0) {
@@ -861,24 +861,23 @@ static bool waitForClientEnv(int daemonfd, struct timeval timeout)
 }
 
 static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
-				 const char *nspace, pmix_rank_t pmixrank)
+				 pmix_proc_t *proc)
 {
-    rdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "targetTID %s type %s nspace %s"
-	 " rank %u\n", PSC_printTID(targetTID), pspmix_getMsgTypeString(type),
-	 nspace, rank);
+    rdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "targetTID %s type %s proc %s\n",
+	 PSC_printTID(targetTID), pspmix_getMsgTypeString(type),
+	 pmixProcStr(proc));
 
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, type);
     setFragDest(&msg, targetTID);
 
     addUint8ToMsg(1, &msg);
-    addStringToMsg(nspace, &msg);
-    addUint32ToMsg(pmixrank, &msg);
+    addStringToMsg(proc->nspace, &msg);
+    addUint32ToMsg(proc->rank, &msg);
 
     if (sendFragMsg(&msg) < 0) {
-	plog("Sending %s (nspace %s rank %u) to %s failed\n",
-	     pspmix_getMsgTypeString(type), nspace, pmixrank,
-	     PSC_printTID(targetTID));
+	plog("Sending %s (%s) to %s failed\n", pspmix_getMsgTypeString(type),
+	     pmixProcStr(proc), PSC_printTID(targetTID));
 	return false;
     }
     return true;
@@ -906,14 +905,13 @@ static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     getString(data, myproc.nspace, sizeof(myproc.nspace));
     getUint32(data, &myproc.rank);
 
-    rdbg(PSPMIX_LOG_COMM, "Handling client initialized message for %s:%d\n",
-	 myproc.nspace, myproc.rank);
+    rdbg(PSPMIX_LOG_COMM, "Handling client initialized message for %s\n",
+	 pmixProcStr(&myproc));
 
     pmixStatus = CONNECTED;
 
     /* send response */
-    sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_INIT_RES,
-			 myproc.nspace, myproc.rank);
+    sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_INIT_RES, &myproc);
 }
 
 /**
@@ -939,20 +937,19 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     getString(data, proc.nspace, sizeof(proc.nspace));
     getUint32(data, &proc.rank);
 
-    pdbg(PSPMIX_LOG_COMM, "received %s from namespace %s rank %d\n",
-	 pspmix_getMsgTypeString(msg->type), proc.nspace, proc.rank);
+    pdbg(PSPMIX_LOG_COMM, "received %s from %s\n",
+	 pspmix_getMsgTypeString(msg->type), pmixProcStr(&proc));
 
     if (strcmp(proc.nspace, myproc.nspace) || proc.rank != myproc.rank) {
-	plog("proc info does not match (%s:%d != %s:%d)\n", proc.nspace,
-	     proc.rank, myproc.nspace, myproc.rank);
+	plog("proc info does not match (%s", pmixProcStr(&proc));
+	mlog(" != %s)\n", pmixProcStr(&myproc));
 	return;
     }
 
     pmixStatus = RELEASED;
 
     /* send response */
-    sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES,
-			 proc.nspace, proc.rank);
+    sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES, &proc);
     PMIX_PROC_DESTRUCT(&proc);
     PMIX_PROC_DESTRUCT(&myproc);
 }

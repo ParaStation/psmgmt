@@ -497,9 +497,9 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
     ns->spawnOpts = res;
 
     char *loc = PSC_getID(ns->spawner) == PSC_getMyID() ? "local" : "remote";
-    fdbg(PSPMIX_LOG_SPAWN, "%s spawn id %hu initiated by %s (nspace %s"
-	 " rank %u opts 0x%08x)\n", loc, ns->spawnID, PSC_printTID(ns->spawner),
-	 ns->parent.nspace, ns->parent.rank, ns->spawnOpts);
+    fdbg(PSPMIX_LOG_SPAWN, "%s spawn id %hu initiated by %s (parent %s"
+	 " opts 0x%08x)\n", loc, ns->spawnID, PSC_printTID(ns->spawner),
+	 pmixProcStr(&ns->parent), ns->spawnOpts);
 
     return true;
 }
@@ -994,7 +994,7 @@ static PSnodes_ID_t getNodeFromRank(PspmixNamespace_t *ns, int32_t rank)
 
 PSnodes_ID_t pspmix_service_nodeFromProc(const pmix_proc_t *proc)
 {
-    fdbg(PSPMIX_LOG_CALL, "proc %s:%d\n", proc->nspace, proc->rank);
+    fdbg(PSPMIX_LOG_CALL, "proc %s\n", pmixProcStr(proc));
 
     GET_LOCK(namespaceList);
 
@@ -1009,8 +1009,7 @@ PSnodes_ID_t pspmix_service_nodeFromProc(const pmix_proc_t *proc)
     RELEASE_LOCK(namespaceList);
 
     if (nodeID < 0) {
-	flog("UNEXPECTED: getNodeFromRank(%s, %d) failed\n", ns->name,
-	     proc->rank);
+	flog("UNEXPECTED: getNodeFromRank(%s) failed\n", pmixProcStr(proc));
     }
 
     return nodeID;
@@ -1215,7 +1214,7 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
     ns->clientsConnected++;
 
     /* log clients */
-    fdbg(PSPMIX_LOG_CLIENTS, "(nspace %s rank %d\n", ns->name, client->rank);
+    fdbg(PSPMIX_LOG_CLIENTS, "client %s:%u\n", ns->name, client->rank);
     if (ns->clientsConnected >= ns->localClients) {
 	flog("nspace %s: All %u local clients connected\n", ns->name,
 	     ns->localClients);
@@ -1288,7 +1287,7 @@ bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
     ns->clientsConnected--;
 
     /* log clients */
-    fdbg(PSPMIX_LOG_CLIENTS, "(nspace %s rank %d\n", ns->name, client->rank);
+    fdbg(PSPMIX_LOG_CLIENTS, "client %s:%u\n", ns->name, client->rank);
     if (ns->clientsConnected == 0) {
 	flog("nspace %s: All %u local clients finalized\n", ns->name,
 	     ns->localClients);
@@ -1763,8 +1762,7 @@ static bool extractNodes(const pmix_proc_t procs[], size_t nprocs,
 
 	PSnodes_ID_t nodeid = getNodeFromRank(ns, procs[p].rank);
 	if (nodeid < 0) {
-	    flog("no node for rank %d in namespace '%s'\n",
-		 procs[p].rank, procs[p].nspace);
+	    flog("no node for %s\n", pmixProcStr(&procs[p]));
 	    vectorDestroy(nodes);
 	    RELEASE_LOCK(namespaceList);
 	    return false;
@@ -1931,8 +1929,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 					  mdata->proc.rank,
 					  strvGetArray(mdata->reqKeys),
 					  mdata->timeout)) {
-	flog("send failed for %s:%d to node %d\n",
-	     mdata->proc.nspace, mdata->proc.rank, nodeid);
+	flog("send failed for %s to node %d\n", pmixProcStr(&mdata->proc), nodeid);
 	RELEASE_LOCK(modexRequestList);
 	return false;
     }
@@ -1960,8 +1957,8 @@ bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
 
     /* hands over ownership of mdata */
     if (!pspmix_server_requestModexData(mdata)) {
-	flog("pspmix_server_requestModexData() failed for %s:%d\n", nspace,
-	     rank);
+	flog("pspmix_server_requestModexData() failed for %s\n",
+	     pmixProcStr(&mdata->proc));
 	PMIX_PROC_DESTRUCT(&mdata->proc);
 	ufree(mdata);
 	return false;
@@ -2042,8 +2039,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 			  PspmixSpawnApp_t *apps, spawndata_t *sdata,
 			  uint32_t opts, PspmixSpawnHints_t *hints)
 {
-    fdbg(PSPMIX_LOG_CALL, "%s:%d napps %hu\n", caller->nspace,
-	 caller->rank, napps);
+    fdbg(PSPMIX_LOG_CALL, "%s napps %hu\n", pmixProcStr(caller), napps);
 
     /* ID that is uniq local to this user server */
     static uint16_t spawnID = 0;
@@ -2081,8 +2077,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 
     PspmixClient_t *client = findClientInList(caller->rank, &ns->clientList);
     if (!client) {
-	flog("client rank %d not found in namespace '%s'\n", caller->rank,
-	     caller->nspace);
+	flog("caller %s not found\n", pmixProcStr(caller));
 	RELEASE_LOCK(namespaceList);
 	ufree(spawn);
 	return false;
@@ -2098,8 +2093,8 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 				     spawn->apps, spawn->caller.nspace,
 				     spawn->caller.rank, spawn->opts,
 				     hints)) {
-	flog("sending spawn req to forwarder failed (namespace %s rank %d)\n",
-	     spawn->caller.nspace, spawn->caller.rank);
+	flog("sending spawn req to forwarder failed (%s)\n",
+	     pmixProcStr(&spawn->caller));
 	ufree(spawn);
 	return false;
     }
@@ -2452,8 +2447,7 @@ static PStask_ID_t getFwTID(const pmix_proc_t *caller)
 
     PspmixClient_t *client = findClientInList(caller->rank, &ns->clientList);
     if (!client) {
-	flog("no client for rank %d in namespace '%s'\n", caller->rank,
-	     caller->nspace);
+	flog("no client for %s\n", pmixProcStr(caller));
 	RELEASE_LOCK(namespaceList);
 	return -1;
     }
