@@ -96,9 +96,9 @@ void Script_destroy(Script_Data_t *script)
  *
  * @param script Script to handle
  *
- * @return Returns 0 on success otherwise an error code is returned
+ * @return Returns true on success otherwise false is returned
  */
-static int handleScriptOutput(Script_Data_t *script)
+static bool handleScriptOutput(Script_Data_t *script)
 {
     int fd = script->iofds[0];
 
@@ -106,10 +106,9 @@ static int handleScriptOutput(Script_Data_t *script)
     if (!output) {
 	pluginfdbg(errno, "fdopen(%i)", fd);
 	close(fd);
-	return -1;
+	return false;
     }
 
-    int ret = 0;
     char buf[LINE_MAX];
     while (fgets(buf, sizeof(buf), output) != NULL) {
 	pluginfdbg(PLUGIN_LOG_SCRIPT, "script '%s' returned '%s'\n",
@@ -122,7 +121,7 @@ static int handleScriptOutput(Script_Data_t *script)
     }
 
     fclose(output);
-    return ret;
+    return true;
 }
 
 /**
@@ -362,11 +361,10 @@ int Script_exec(Script_Data_t *script)
 	close(script->iofds[1]);
 
 	/* parse child output */
-	int cbRes = handleScriptOutput(script);
-	if (cbRes) {
+	if (!handleScriptOutput(script)) {
 	    pskill(-pid, SIGKILL, script->uid);
 	    script->childPid = -1;
-	    return cbRes;
+	    return status;
 	}
     }
 
