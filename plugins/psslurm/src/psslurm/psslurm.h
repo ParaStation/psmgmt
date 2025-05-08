@@ -14,6 +14,14 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
+#define INIT_COMPLETE 0x03
+
+/** list of initialization flags */
+typedef enum {
+    INIT_CPU_FREQ	= 0x0001,
+    INIT_CONFIG_REQ	= 0x0002,
+} Init_Flags_t;
+
 /** psslurm version number */
 extern int version;
 
@@ -32,6 +40,9 @@ extern bool isInit;
 /** FPE execption mask found when plugin is loaded; to be reset upon
  * fork()ing processes */
 extern int oldExceptions;
+
+/** used to track the initialisation process */
+extern Init_Flags_t initFlags;
 
 /**
  * @brief Accomplish the initialisation of psslurm

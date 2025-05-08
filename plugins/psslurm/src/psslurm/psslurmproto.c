@@ -3427,10 +3427,14 @@ static void handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 	if (!parseSlurmConfigFiles()) {
 	    flog("fatal: failed to parse configuration\n");
 	    PSIDplugin_finalize("psslurm");
-	} else if (!accomplishInit()) {
-	    /* finalize psslurm's startup failed */
-	    flog("startup of psslurm failed\n");
-	    PSIDplugin_finalize("psslurm");
+	} else {
+	    initFlags |= INIT_CONFIG_REQ;
+
+	    if (initFlags == INIT_COMPLETE && !accomplishInit()) {
+		/* finalize psslurm's startup failed */
+		flog("startup of psslurm failed\n");
+		PSIDplugin_finalize("psslurm");
+	    }
 	}
 	break;
     case CONF_ACT_RELOAD:
