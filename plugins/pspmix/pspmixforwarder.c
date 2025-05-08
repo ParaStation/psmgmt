@@ -871,7 +871,6 @@ static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, type);
     setFragDest(&msg, targetTID);
 
-    addUint8ToMsg(1, &msg);
     addStringToMsg(proc->nspace, &msg);
     addUint32ToMsg(proc->rank, &msg);
 

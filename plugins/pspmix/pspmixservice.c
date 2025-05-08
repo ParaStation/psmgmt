@@ -1304,8 +1304,8 @@ bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
 }
 
 /* main thread */
-void pspmix_service_handleClientIFResp(bool success, const char *nspace,
-				       pmix_rank_t rank, PStask_ID_t fwtid)
+void pspmix_service_handleClientIFResp(const char *nspace, pmix_rank_t rank,
+				       PStask_ID_t fwtid)
 {
     GET_LOCK(namespaceList);
 
@@ -1339,7 +1339,7 @@ void pspmix_service_handleClientIFResp(bool success, const char *nspace,
 
     RELEASE_LOCK(namespaceList);
 
-    pspmix_server_operationFinished(success ? PMIX_SUCCESS : PMIX_ERROR, cb);
+    pspmix_server_operationFinished(PMIX_SUCCESS, cb);
 
     // @todo do we need to save client state in client?
 }

@@ -208,13 +208,12 @@ bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
  * Triggers calling the callback function to report the result of the client
  * finalization to the PMIx server library.
  *
- * @param success  Result reported by the forwarder
  * @param nspace   namespace of the client
  * @param rank     namespace rank of the client
  * @param fwtid    TID of the client's forwarder
  */
-void pspmix_service_handleClientIFResp(bool success, const char *nspace,
-				       pmix_rank_t rank, PStask_ID_t fwtid);
+void pspmix_service_handleClientIFResp(const char *nspace, pmix_rank_t rank,
+				       PStask_ID_t fwtid);
 
 /**
  * @brief Handle aborting client

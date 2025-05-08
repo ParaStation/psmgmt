@@ -190,22 +190,18 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
-    uint8_t success;
-    getUint8(data, &success);
-
     char *nspace = getStringM(data);
     uint32_t rank;
     getUint32(data, &rank);
 
-    fdbg(PSPMIX_LOG_COMM, "type %s from %s (success %s namespace %s rank %d)\n",
+    fdbg(PSPMIX_LOG_COMM, "type %s from %s (%s:%u)\n",
 	 pspmix_getMsgTypeString(msg->type), PSC_printTID(msg->header.sender),
-	 success ? "true" : "false", nspace, rank);
+	 nspace, rank);
 
     switch(msg->type) {
     case PSPMIX_CLIENT_INIT_RES:
     case PSPMIX_CLIENT_FINALIZE_RES:
-	pspmix_service_handleClientIFResp(success, nspace, rank,
-					  msg->header.sender);
+	pspmix_service_handleClientIFResp(nspace, rank, msg->header.sender);
 	break;
     default:
 	flog("unexpected message type %s\n", pspmix_getMsgTypeString(msg->type));
