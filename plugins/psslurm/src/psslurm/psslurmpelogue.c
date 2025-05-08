@@ -573,7 +573,7 @@ static void initTaskPEenv(void *info)
  *
  * @return Always returns 0
  */
-static int handleTaskPrologueOut(char *output, void *info)
+static void handleTaskPrologueOut(char *output, void *info)
 {
     Task_Info_t *ti = info;
 
@@ -597,8 +597,6 @@ static int handleTaskPrologueOut(char *output, void *info)
 	fdbg(PSSLURM_LOG_PELOG, "unset '%s'\n", val);
 	unsetenv(val);
     }
-
-    return 0;
 }
 
 /**
