@@ -27,6 +27,12 @@ typedef enum {
 } CPUfreq_governors_t;
 
 /**
+ * @bfrief Callback used by @ref CPUfreq_init() to indicate the
+ * result of the initialization process.
+ */
+typedef void CPUfreq_initCB_t(bool);
+
+/**
  * @brief Test if the CPU frequency facility was successfully initialized
  *
  * @return Returns true on success otherwise false is returned
@@ -45,9 +51,9 @@ bool CPUfreq_isInitialized(void);
  * @param cpuSysPath Path in the sys-filesystem which holds hardware threads
  * frequency configuration or NULL to use the default
  *
- * @return Returns true on success otherwise false is returned
+ * @param cb Callback which returns the result of the initialization process
  */
-bool CPUfreq_init(const char *cpuSysPath);
+void CPUfreq_init(const char *cpuSysPath, CPUfreq_initCB_t *cb);
 
 /**
  * @brief Finalize the CPU frequency facility

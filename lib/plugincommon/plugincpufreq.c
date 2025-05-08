@@ -72,7 +72,8 @@ typedef enum {
 typedef struct {
     char *name;
     char *arg;
-    int (*fp)(char *output, void *info);
+    void (*fp)(char *output, void *info);
+    void (*cb)(int32_t status, void *info);
 } Command_Map_t;
 
 /** forward declaration */
@@ -99,6 +100,27 @@ static uint32_t defaultMaxFreq;
 /** flag to indicate if all CPUs have the same available frequencies */
 static bool equalAvailFreq = true;
 
+/** sum of all initialization flags */
+#define INIT_COMPLETE 0x1F
+
+/** list of initialization flags */
+typedef enum {
+    INIT_LIST_CPUS	= 0x0001,
+    INIT_GET_AVAIL_GOV	= 0x0002,
+    INIT_GET_CUR_GOV	= 0x0004,
+    INIT_GET_FREQ	= 0x0008,
+    INIT_GET_AVAIL_FREQ	= 0x0010,
+} Init_Flags_t;
+
+/** used to track information gather scripts */
+static Init_Flags_t initFlags;
+
+/** indicate failure while initialization */
+static bool initFailure;
+
+/** callback to return result of the initialization */
+static CPUfreq_initCB_t *initCB;
+
 /** governor string map */
 static const struct {
     CPUfreq_governors_t gov;
@@ -116,7 +138,16 @@ static const struct {
 
 bool CPUfreq_isInitialized(void)
 {
-    return (sysPath && cpus);
+    return (sysPath && cpus && !initFailure);
+}
+
+/**
+ * @brief Cleanup on failure and return result via callback
+ */
+static void retInitResult()
+{
+    if (initFailure) CPUfreq_finalize();
+    initCB(!initFailure);
 }
 
 char *CPUfreq_gov2Str(CPUfreq_governors_t gov)
@@ -148,27 +179,25 @@ CPUfreq_governors_t CPUfreq_str2Gov(char *govName)
  * @param output Script output holding CPU information
  *
  * @param info Script command which was executed
- *
- * @return Returns 0 on success otherwise -1 is returned
  */
-static int cmdListCPUs(char *output, void *info)
+static void cmdListCPUs(char *output, void *info)
 {
     int scriptCPUs;
     if (sscanf(output, "%i:", &scriptCPUs) != 1) {
 	pluginflog("unknown number of CPUs : %s\n", output);
-	return -1;
+	initFailure = true;
+	return;
     }
 
     numCPUs = PSIDhw_getHWthreads();
     if (numCPUs != scriptCPUs) {
 	pluginflog("mismatch number of CPUs, psid %i script %i\n", numCPUs,
 		   scriptCPUs);
-	return -1;
+	initFailure = true;
+	return;
     }
 
     cpus = ucalloc(sizeof(*cpus) * numCPUs);
-
-    return 0;
 }
 
 /**
@@ -180,21 +209,23 @@ static int cmdListCPUs(char *output, void *info)
  * @param output Script output holding frequency information
  *
  * @param info Script command which was executed
- *
- * @return Returns 0 on success otherwise -1 is returned
  */
-static int cmdGetAvailFreq(char *output, void *info)
+static void cmdGetAvailFreq(char *output, void *info)
 {
+    if (!CPUfreq_isInitialized()) return;
+
     unsigned int idx;
     if (sscanf(output, " cpu %u avail_freq", &idx) != 1) {
 	pluginflog("no CPU frequencies in %s\n", output);
-	return -1;
+	initFailure = true;
+	return;
     }
 
     char *end = strstr(output, "avail_freq ");
     if (!end) {
 	pluginflog("invalid frequencies: %s\n", output);
-	return -1;
+	initFailure = true;
+	return;
     }
     end += 11;
 
@@ -206,7 +237,8 @@ static int cmdGetAvailFreq(char *output, void *info)
     while (next) {
 	if (numFreq == MAX_FREQ) {
 	    pluginflog("maximum %i supported frequencies exceeded\n", MAX_FREQ);
-	    return -1;
+	    initFailure = true;
+	    return;
 	}
 	long freq = atol(next);
 	if (!freq) {
@@ -217,8 +249,6 @@ static int cmdGetAvailFreq(char *output, void *info)
 	next = strtok_r(NULL, delimiters, &toksave);
     }
     cpus[idx].numAvailFreq = numFreq;
-
-    return 0;
 }
 
 /**
@@ -227,21 +257,23 @@ static int cmdGetAvailFreq(char *output, void *info)
  * @param output Script output holding governor information
  *
  * @param info Script command which was executed
- *
- * @return Returns 0 on success otherwise -1 is returned
  */
-static int cmdGetGovernors(char *output, void *info)
+static void cmdGetGovernors(char *output, void *info)
 {
+    if (!CPUfreq_isInitialized()) return;
+
     unsigned int cpu;
     if (sscanf(output, " cpu %u avail_gov", &cpu) != 1) {
 	pluginflog("no cpu detected in %s\n", output);
-	return -1;
+	initFailure = true;
+	return;
     }
 
     char *end = strstr(output, "avail_gov ");
     if (!end) {
 	pluginflog("invalid governors: %s\n", output);
-	return -1;
+	initFailure = true;
+	return;
     }
     end += 10;
 
@@ -253,8 +285,6 @@ static int cmdGetGovernors(char *output, void *info)
 	cpus[cpu].availGov |= CPUfreq_str2Gov(next);
 	next = strtok_r(NULL, delimiters, &toksave);
     }
-
-    return 0;
 }
 
 /**
@@ -263,25 +293,24 @@ static int cmdGetGovernors(char *output, void *info)
  * @param output Script output holding frequency information
  *
  * @param info Script command which was executed
- *
- * @return Returns 0 on success otherwise -1 is returned
  */
-static int cmdGetFreq(char *output, void *info)
+static void cmdGetFreq(char *output, void *info)
 {
+    if (!CPUfreq_isInitialized()) return;
+
     int idx, availMinFreq, availMaxFreq, curMinFreq, curMaxFreq;
     if (sscanf(output, "cpu %i avail_min_freq %i avail_max_freq %i "
 	       "cur_min_freq %i cur_max_freq %i", &idx, &availMinFreq,
 	       &availMaxFreq, &curMinFreq, &curMaxFreq) != 5) {
 	pluginflog("failed to parse CPU frequencies %s\n", output);
-	return -1;
+	initFailure = true;
+	return;
     }
 
     cpus[idx].availMinFreq = availMinFreq;
     cpus[idx].availMaxFreq = availMaxFreq;
     cpus[idx].curMinFreq = cpus[idx].defMinFreq = curMinFreq;
     cpus[idx].curMaxFreq = cpus[idx].defMaxFreq = curMaxFreq;
-
-    return 0;
 }
 
 /**
@@ -290,27 +319,27 @@ static int cmdGetFreq(char *output, void *info)
  * @param output Script output holding governor information
  *
  * @param info Script command which was executed
- *
- * @return Returns 0 on success otherwise -1 is returned
  */
-static int cmdGetCurGov(char *output, void *info)
+static void cmdGetCurGov(char *output, void *info)
 {
+    if (!CPUfreq_isInitialized()) return;
+
     int idx;
     if (sscanf(output, " cpu %i cur_gov", &idx) != 1) {
 	pluginflog("get CPU failed: %s\n", output);
-	return -1;
+	initFailure = true;
+	return;
     }
 
     char *end = strstr(output, "cur_gov ");
     if (!end) {
 	pluginflog("invalid governor: %s\n", output);
-	return -1;
+	initFailure = true;
+	return;
     }
     end += 8;
 
     cpus[idx].curGov = cpus[idx].defGov = CPUfreq_str2Gov(end);
-
-    return 0;
 }
 
 /**
@@ -319,62 +348,119 @@ static int cmdGetCurGov(char *output, void *info)
  * @param output Script output to log
  *
  * @param info Script command which was executed
- *
- * @return Always returns 0
  */
-static int cmdPrintOutput(char *output, void *info)
+static void cmdPrintOutput(char *output, void *info)
 {
     Script_CMDs_t *cmd = info;
     pluginflog("%s: %s\n", Command_Map[*cmd].name, output);
-    return 0;
 }
-
-/* map containing description, argument and function for a command */
-static Command_Map_t Command_Map[] = {
-    { "LIST_CPUS",	"--list-cpus",		cmdListCPUs	    },
-    { "GET_AVAIL_GOV",	"--get-avail-gov",	cmdGetGovernors	    },
-    { "GET_AVAIL_FREQ",	"--get-avail-freq",	cmdGetAvailFreq	    },
-    { "GET_FREQ",	"--get-freq",		cmdGetFreq	    },
-    { "GET_CUR_GOV",	"--get-cur-gov",	cmdGetCurGov	    },
-    { "SET_MIN_FREQ",	"--set-min-freq",	cmdPrintOutput	    },
-    { "SET_MAX_FREQ",	"--set-max-freq",	cmdPrintOutput	    },
-    { "SET_GOV",	"--set-gov"	,	cmdPrintOutput	    },
-};
-
-static ssize_t cmdSize = sizeof(Command_Map) / sizeof(Command_Map[0]);
 
 /**
- * @brief Execute the CPU frequency script doing all the modifications
+ * @brief Test if initialization has completed
  *
- * @param cmd Command passed to the script to execute the change
+ * Test if all initialization scripts finished gathering CPU information
+ * and invoke callback.
  *
- * @param addArgV Additional script arguments appended at the end
- *
- * @return Returns true on success otherwise false is returned
  */
-static bool execCPUFreqScriptEx(Script_CMDs_t cmd, strv_t addArgV)
+static void testInitComplete(void)
 {
-    if (cmd < 0 || cmd >= cmdSize) {
-	pluginflog("invalid command %i\n", cmd);
-	return false;
+    if (initFlags != INIT_COMPLETE) {
+	plugindbg(PLUGIN_LOG_FREQ, "gathering progress: %i\n", initFlags);
+	return;
     }
 
-    Script_Data_t *script = ScriptData_new(FREQ_SCRIPT);
-    script->runtime = 30;
-    script->cbOutput = Command_Map[cmd].fp;
-    script->info = &cmd;
-    strvAdd(script->argV, "--cpu-sys-path");
-    strvAdd(script->argV, sysPath);
-    strvAdd(script->argV, Command_Map[cmd].arg);
-    strvAppend(script->argV, addArgV);
+    if (pluginmset(PLUGIN_LOG_FREQ)) {
+	for (int i = 0; i < numCPUs; i++) {
+	    pluginlog("cpu=%i avail gov %i avail fmin %i avail fmax %i"
+		      " def gov %s def fmin %i def fmax %i # avail freq %i \n",
+		      i, cpus[i].availGov, cpus[i].availMinFreq,
+		      cpus[i].availMaxFreq, CPUfreq_gov2Str(cpus[i].defGov),
+		      cpus[i].defMinFreq, cpus[i].defMaxFreq,
+		      cpus[i].numAvailFreq);
+	}
+    }
 
-    int ret = Script_exec(script);
-    Script_destroy(script);
+    if (!numCPUs || initFailure) {
+	pluginlog("CPUfreq initialization failed\n");
+    } else {
+	pluginflog("%i CPUs", numCPUs);
+	if (defaultGov != GOV_UNDEFINED) {
+	    pluginlog(" def-governor '%s'", CPUfreq_gov2Str(defaultGov));
+	}
+	if (defaultMinFreq) {
+	    pluginlog(" def-minFreq '%u'", defaultMinFreq);
+	}
+	if (defaultMaxFreq) {
+	    pluginlog(" def-maxFreq '%u'", defaultMaxFreq);
+	}
+	if (equalAvailFreq) {
+	    pluginlog(", equal frequencies");
+	}
+	pluginlog("\n");
 
-    return ret;
+	if (!defaultMinFreq || !defaultMaxFreq || !equalAvailFreq) {
+	    pluginlog("warning: different CPU scaling settings can lead"
+		       " to slower job launch times\n");
+	}
+    }
+
+    retInitResult();
 }
 
+/* forward declaration */
+static bool execCPUFreqScriptEx(Script_CMDs_t cmd, strv_t addArgV);
+
 #define execCPUFreqScript(cmd) execCPUFreqScriptEx(cmd, NULL)
+
+/**
+ * @brief Callback for CMD_LIST_CPUS
+ *
+ * This initializes the main CPU data structures and
+ * therefore has to be completed before any further data
+ * gathering.
+ */
+static void cbListCPUs(int32_t status, void *info)
+{
+    initFlags |= INIT_LIST_CPUS;
+
+    if (status) {
+	goto ERROR;
+    }
+
+    if (execCPUFreqScript(CMD_GET_AVAIL_GOV)) {
+	pluginflog("unable to determine governors\n");
+	goto ERROR;
+    }
+
+    if (execCPUFreqScript(CMD_GET_CUR_GOV)) {
+	pluginflog("unable to determine current governor\n");
+	goto ERROR;
+    }
+
+    if (execCPUFreqScript(CMD_GET_FREQ)) {
+	pluginflog("unable to determine CPU frequencies\n");
+	goto ERROR;
+    }
+
+    /* read (optional) list all of CPU frequencies */
+    execCPUFreqScript(CMD_GET_AVAIL_FREQ);
+
+    return;
+
+ERROR:
+    initFailure = true;
+    retInitResult();
+}
+
+/**
+ * @brief Callback for CMD_GET_AVAIL_GOV
+ */
+static void cbGetAvailGov(int32_t status, void *info)
+{
+    initFlags |= INIT_GET_AVAIL_GOV;
+    if (status) initFailure = true;
+    testInitComplete();
+}
 
 /**
  * @brief qsort compare function
@@ -408,12 +494,156 @@ static void calcAvailCPUfreq()
     }
 }
 
-bool CPUfreq_init(const char *cpuSysPath)
+/**
+ * @brief Callback for CMD_GET_AVAIL_FREQ
+ */
+static void cbGetAvailFreq(int32_t status, void *info)
 {
+    initFlags |= INIT_GET_AVAIL_FREQ;
+
+    /* not all systems define available frequencies, this is no error */
+    if (status) {
+	calcAvailCPUfreq();
+	return;
+    }
+
+    /* sort red frequencies */
+    for (int i = 0; i < numCPUs; i++) {
+	qsort(cpus[i].availFreq, cpus[i].numAvailFreq,
+	      sizeof(cpus[i].availFreq[0]), compareFreq);
+    }
+    /* test if all CPUs have the same available frequencies */
+    for (int c = 1; c < numCPUs; c++) {
+	if (cpus[c].numAvailFreq != cpus[0].numAvailFreq) {
+	    equalAvailFreq = false;
+	    break;
+	}
+	for (uint32_t i = 0; i < cpus[0].numAvailFreq; i++) {
+	    if (cpus[0].availFreq[i] != cpus[c].availFreq[i]) {
+		equalAvailFreq = false;
+		break;
+	    }
+	}
+    }
+
+    testInitComplete();
+}
+
+/**
+ * @brief Callback for CMD_GET_FREQ
+ */
+static void cbGetFreq(int32_t status, void *info)
+{
+    initFlags |= INIT_GET_FREQ;
+    if (status) initFailure = true;
+
+    /* test if all CPUs have the same frequencies */
+    for (int i = 0; i < numCPUs; i++) {
+	if (!defaultMinFreq) {
+	    defaultMinFreq = cpus[i].defMinFreq;
+	    continue;
+	}
+	if (defaultMinFreq != cpus[i].defMinFreq) {
+	    defaultMinFreq = 0;
+	    break;
+	}
+    }
+    for (int i = 0; i < numCPUs; i++) {
+	if (!defaultMaxFreq) {
+	    defaultMaxFreq = cpus[i].defMaxFreq;
+	    continue;
+	}
+	if (defaultMaxFreq != cpus[i].defMaxFreq) {
+	    defaultMaxFreq = 0;
+	    break;
+	}
+    }
+
+    testInitComplete();
+}
+
+/**
+ * @brief Callback for CMD_GET_CUR_GOV
+ */
+static void cbGetCurGov(int32_t status, void *info)
+{
+    initFlags |= INIT_GET_CUR_GOV;
+    if (status) initFailure = true;
+
+    /* test if all CPUs have the same default governor */
+    for (int i = 0; i < numCPUs; i++) {
+	if (defaultGov == GOV_UNDEFINED) {
+	    defaultGov = cpus[i].defGov;
+	    continue;
+	}
+	if (defaultGov != cpus[i].defGov) {
+	    defaultGov = GOV_UNDEFINED;
+	    break;
+	}
+    }
+
+    testInitComplete();
+}
+
+/* map containing description, argument and function for a command */
+static Command_Map_t Command_Map[] = {
+    { "LIST_CPUS",	"--list-cpus", cmdListCPUs,
+      cbListCPUs },
+    { "GET_AVAIL_GOV",	"--get-avail-gov",  cmdGetGovernors,
+      cbGetAvailGov },
+    { "GET_AVAIL_FREQ",	"--get-avail-freq", cmdGetAvailFreq,
+      cbGetAvailFreq },
+    { "GET_FREQ",	"--get-freq",	    cmdGetFreq,
+      cbGetFreq },
+    { "GET_CUR_GOV",	"--get-cur-gov",    cmdGetCurGov,
+      cbGetCurGov },
+    { "SET_MIN_FREQ",	"--set-min-freq",   cmdPrintOutput, NULL },
+    { "SET_MAX_FREQ",	"--set-max-freq",   cmdPrintOutput, NULL },
+    { "SET_GOV",	"--set-gov"	,   cmdPrintOutput, NULL },
+};
+
+static ssize_t cmdSize = sizeof(Command_Map) / sizeof(Command_Map[0]);
+
+/**
+ * @brief Execute the CPU frequency script doing all the modifications
+ *
+ * @param cmd Command passed to the script to execute the change
+ *
+ * @param addArgV Additional script arguments appended at the end
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+static bool execCPUFreqScriptEx(Script_CMDs_t cmd, strv_t addArgV)
+{
+    if (cmd < 0 || cmd >= cmdSize) {
+	pluginflog("invalid command %i\n", cmd);
+	return false;
+    }
+
+    Script_Data_t *script = ScriptData_new(FREQ_SCRIPT);
+    script->runtime = 30;
+    script->cbOutput = Command_Map[cmd].fp;
+    script->info = &cmd;
+    script->callback = Command_Map[cmd].cb;
+    strvAdd(script->argV, "--cpu-sys-path");
+    strvAdd(script->argV, sysPath);
+    strvAdd(script->argV, Command_Map[cmd].arg);
+    strvAppend(script->argV, addArgV);
+
+    int ret = Script_exec(script);
+    if (!script->callback) Script_destroy(script);
+
+    return ret;
+}
+
+void CPUfreq_init(const char *cpuSysPath, CPUfreq_initCB_t *cb)
+{
+    initCB = cb;
+
     sysPath = cpuSysPath ? ustrdup(cpuSysPath) : ustrdup(DEFAULT_SYS_PATH);
     if (!sysPath) {
 	pluginflog("out of memory\n");
-	return false;
+	goto ERROR;
     }
 
     struct stat sb;
@@ -422,121 +652,18 @@ bool CPUfreq_init(const char *cpuSysPath)
 	goto ERROR;
     }
 
+    /* get basic CPU list and spawn additional gather scripts in
+     * callback */
     if (execCPUFreqScript(CMD_LIST_CPUS)) {
 	pluginflog("unable to initialize CPUs\n");
 	goto ERROR;
     }
 
-    if (execCPUFreqScript(CMD_GET_AVAIL_GOV)) {
-	pluginflog("unable to determine governors\n");
-	goto ERROR;
-    }
-
-    if (execCPUFreqScript(CMD_GET_CUR_GOV)) {
-	pluginflog("unable to determine current governor\n");
-	goto ERROR;
-    } else {
-	/* test if all CPUs have the same default governor */
-	for (int i = 0; i < numCPUs; i++) {
-	    if (defaultGov == GOV_UNDEFINED) {
-		defaultGov = cpus[i].defGov;
-		continue;
-	    }
-	    if (defaultGov != cpus[i].defGov) {
-		defaultGov = GOV_UNDEFINED;
-		break;
-	    }
-	}
-    }
-
-    if (execCPUFreqScript(CMD_GET_FREQ)) {
-	pluginflog("unable to determine CPU frequencies\n");
-	goto ERROR;
-    } else {
-	/* test if all CPUs have the same frequencies */
-	for (int i = 0; i < numCPUs; i++) {
-	    if (!defaultMinFreq) {
-		defaultMinFreq = cpus[i].defMinFreq;
-		continue;
-	    }
-	    if (defaultMinFreq != cpus[i].defMinFreq) {
-		defaultMinFreq = 0;
-		break;
-	    }
-	}
-	for (int i = 0; i < numCPUs; i++) {
-	    if (!defaultMaxFreq) {
-		defaultMaxFreq = cpus[i].defMaxFreq;
-		continue;
-	    }
-	    if (defaultMaxFreq != cpus[i].defMaxFreq) {
-		defaultMaxFreq = 0;
-		break;
-	    }
-	}
-    }
-
-    /* read (optional) list all of CPU frequencies */
-    if (execCPUFreqScript(CMD_GET_AVAIL_FREQ)) {
-	/* not all systems define available frequencies, this is no error */
-	calcAvailCPUfreq();
-    } else {
-	/* sort red frequencies */
-	for (int i = 0; i < numCPUs; i++) {
-	    qsort(cpus[i].availFreq, cpus[i].numAvailFreq,
-		  sizeof(cpus[i].availFreq[0]), compareFreq);
-	}
-	/* test if all CPUs have the same available frequencies */
-	for (int c = 1; c < numCPUs; c++) {
-	    if (cpus[c].numAvailFreq != cpus[0].numAvailFreq) {
-		equalAvailFreq = false;
-		break;
-	    }
-	    for (uint32_t i = 0; i < cpus[0].numAvailFreq; i++) {
-		if (cpus[0].availFreq[i] != cpus[c].availFreq[i]) {
-		    equalAvailFreq = false;
-		    break;
-		}
-	    }
-	}
-    }
-
-    pluginflog("%i CPUs", numCPUs);
-    if (defaultGov != GOV_UNDEFINED) {
-	pluginlog(" def-governor '%s'", CPUfreq_gov2Str(defaultGov));
-    }
-    if (defaultMinFreq) {
-	pluginlog(" def-minFreq '%u'", defaultMinFreq);
-    }
-    if (defaultMaxFreq) {
-	pluginlog(" def-maxFreq '%u'", defaultMaxFreq);
-    }
-    if (equalAvailFreq) {
-	pluginlog(", equal frequencies");
-    }
-    pluginlog("\n");
-
-    if (!defaultMinFreq || !defaultMaxFreq || !equalAvailFreq) {
-	pluginlog("warning: different CPU scaling settings can lead"
-		   " to slower job launch times\n");
-    }
-
-    if (pluginmset(PLUGIN_LOG_FREQ)) {
-	for (int i = 0; i < numCPUs; i++) {
-	    pluginlog("cpu=%i avail gov %i avail fmin %i avail fmax %i"
-		      " def gov %s def fmin %i def fmax %i # avail freq %i \n",
-		      i, cpus[i].availGov, cpus[i].availMinFreq,
-		      cpus[i].availMaxFreq, CPUfreq_gov2Str(cpus[i].defGov),
-		      cpus[i].defMinFreq, cpus[i].defMaxFreq,
-		      cpus[i].numAvailFreq);
-	}
-    }
-
-    return true;
+    return;
 
 ERROR:
-    CPUfreq_finalize();
-    return false;
+    initFailure = true;
+    retInitResult();
 }
 
 void CPUfreq_finalize(void)
