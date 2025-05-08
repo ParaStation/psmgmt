@@ -24,6 +24,7 @@
 #include "psstrbuf.h"
 #include "selector.h"
 #include "timer.h"
+#include "psserial.h"
 
 #include "psidsignal.h"
 #include "psidutil.h"
@@ -75,6 +76,11 @@ void Script_destroy(Script_Data_t *script)
 	}
     }
 
+    if (script->fwdata) {
+	script->fwdata->userData = NULL;
+	shutdownForwarder(script->fwdata);
+    }
+
     ufree(script->username);
     ufree(script->cwd);
     strvDestroy(script->argV);
@@ -86,9 +92,7 @@ void Script_destroy(Script_Data_t *script)
  * @brief Handle script output
  *
  * Handles the output of a script and invokes an user-defined callback
- * for each line of output. If the callback returns a number smaller than
- * zero further parsing will be stopped and the error code is returned.
- * The iofds file descriptor will be closed in any case.
+ * for each line of output.
  *
  * @param script Script to handle
  *
@@ -114,8 +118,7 @@ static int handleScriptOutput(Script_Data_t *script)
 	size_t last = strlen(buf)-1;
 	if (buf[last] == '\n') buf[last] = '\0';
 
-	ret = script->cbOutput(buf, script->info);
-	if (ret < 0) break;
+	script->cbOutput(buf, script->info);
     }
 
     fclose(output);
@@ -138,18 +141,20 @@ static void execChild(Script_Data_t *script)
     /* Create a new process group for easier cleanup */
     setpgid(0, 0);
 
-    /* close all FDs except I/O socket */
-    int iofds = script->iofds[1];
-    int maxFD = sysconf(_SC_OPEN_MAX);
-    for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) {
-	if (script->cbOutput && fd != iofds) close(fd);
-    }
+    if (!script->callback) {
+	/* close all FDs except I/O socket */
+	int iofds = script->iofds[1];
+	int maxFD = sysconf(_SC_OPEN_MAX);
+	for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) {
+	    if (script->cbOutput && fd != iofds) close(fd);
+	}
 
-    /* redirect output to parent */
-    if (script->cbOutput) {
-	dup2(iofds, STDOUT_FILENO);
-	dup2(iofds, STDERR_FILENO);
-	close(iofds);
+	/* redirect output to parent */
+	if (script->cbOutput) {
+	    dup2(iofds, STDOUT_FILENO);
+	    dup2(iofds, STDERR_FILENO);
+	    close(iofds);
+	}
     }
 
     /* Get rid of now useless selectors */
@@ -176,7 +181,6 @@ static void execChild(Script_Data_t *script)
 	    pluginflog("switch user %s failed\n", script->username);
 	    exit(1);
 	}
-
     }
 
     if (script->cwd && chdir(script->cwd) != 0) {
@@ -207,9 +211,120 @@ static void execChild(Script_Data_t *script)
     exit(1);
 }
 
+static void execFwChild(Forwarder_Data_t *fwdata, int rerun)
+{
+    Script_Data_t *script = fwdata->userData;
+
+    if (script) execChild(script);
+}
+
+static int killSession(pid_t pid, int signal)
+{
+    return kill(-pid, signal);
+}
+
 static void alarmHandler(int sig)
 {
     plugindbg(PLUGIN_LOG_SCRIPT, "runtime limit reached\n");
+}
+
+static bool handleFwMsg(DDTypedBufferMsg_t *ddMsg, Forwarder_Data_t *fwdata)
+{
+    if (ddMsg->header.type != PSP_PF_MSG) return false;
+
+    Script_Data_t *script = fwdata->userData;
+    if (!script || !script->cbOutput) return true;
+
+    switch (ddMsg->type) {
+    case PLGN_STDOUT:
+    case PLGN_STDERR:
+	{
+	    /* read message */
+	    PS_DataBuffer_t data = PSdbNew(ddMsg->buf,
+					   ddMsg->header.len - DDTypedBufMsgOffset);
+	    char *msg = getStringM(data);
+	    PSdbDelete(data);
+
+	    pluginfdbg(PLUGIN_LOG_SCRIPT, "script '%s' %s returned '%s'\n",
+		       strvGet(script->argV, 0),
+		       (ddMsg->type == PLGN_STDOUT ? "stdout" : "stderr"), msg);
+
+	    /* prefix saved character from previous call */
+	    if (script->outBuf) {
+		char *old = msg;
+		msg = PSC_concat(script->outBuf, msg);
+		ufree(old);
+		script->outBuf = NULL;
+	    }
+
+	    /* invoke callback for complete lines */
+	    char *ptr = msg;
+	    char *next = strchr(ptr, '\n');
+	    while (ptr && next) {
+		next[0] = '\0';
+
+		script->cbOutput(ptr, script->info);
+
+		ptr = next + 1;
+		next = strchr(ptr, '\n');
+	    }
+
+	    /* save leftover character without newline */
+	    if (ptr && ptr[0] != '\0') script->outBuf = ustrdup(ptr);
+
+	    ufree(msg);
+	}
+
+	break;
+    default:
+	pluginflog("unexpected msg, type %d from TID %s (%s)\n",
+		   ddMsg->type, PSC_printTID(ddMsg->header.sender),
+		   fwdata->pTitle);
+	return false;
+    }
+
+    return true;
+}
+
+static void fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
+{
+    Script_Data_t *script = fw->userData;
+    if (!script) return;
+
+    /* handle dangling script output */
+    if (script->outBuf) {
+	if (script->cbOutput) script->cbOutput(script->outBuf, script->info);
+	free(script->outBuf);
+    }
+
+    plugindbg(PLUGIN_LOG_SCRIPT, "script exited with %i\n", exit_status);
+    if (script->callback) script->callback(exit_status, script->info);
+
+    /* ensure we don't double free */
+    script->fwdata = NULL;
+}
+
+static int spawnScriptForwarder(Script_Data_t *script)
+{
+    Forwarder_Data_t *fwdata = ForwarderData_new();
+    fwdata->pTitle = ustrdup("plugin-script");
+    fwdata->userData = script;
+    fwdata->graceTime = script->grace;
+    fwdata->killSession = &killSession;
+    fwdata->callback = fwCallback;
+    fwdata->childFunc = execFwChild;
+    fwdata->handleFwMsg = handleFwMsg;
+    if (script->cbOutput) fwdata->fwChildOE = true;
+
+    if (!startForwarder(fwdata)) {
+	pluginflog("starting script forwarder failed\n");
+	ForwarderData_delete(fwdata);
+	return -1;
+    }
+
+    script->fwdata = fwdata;
+
+    return 0;
 }
 
 int Script_exec(Script_Data_t *script)
@@ -221,6 +336,10 @@ int Script_exec(Script_Data_t *script)
 	return status;
     }
 
+    /* execute script under plugin forwarder */
+    if (PSC_isDaemon()) return spawnScriptForwarder(script);
+
+    /* execute script directly outside the main psid */
     if (script->cbOutput && pipe(script->iofds) < 0) {
 	pluginwarn(errno, "pipe()");
 	return status;

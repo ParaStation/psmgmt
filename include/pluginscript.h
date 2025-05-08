@@ -13,6 +13,8 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
+#include "pluginforwarder.h"
+
 #include "psenv.h"
 #include "psstrv.h"
 
@@ -29,7 +31,10 @@ typedef struct {
     pid_t childPid;	    /**< PID of the running child */
     void *info;		    /**< additional info pass to callbacks */
     int iofds[2];	    /**< I/O channel between parent and script */
-    int (*cbOutput)(char *output, void *info);
+    char *outBuf;
+    Forwarder_Data_t *fwdata;
+    void (*callback)(int32_t status, void *info);
+    void (*cbOutput)(char *output, void *info);
 			    /**< callback for each output line of the script */
     void (*prepPriv)(void *info);
 			    /**< prepare script environment before user switch */
