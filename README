@@ -27,9 +27,9 @@ The procedure is slightly different for a bugfix release:
 
 1. Create a bugfix-branch for the series of bugfix releases if this is
    the first bugfix release. If the bugfix release is intended to sit
-   on top of the last feature release 6.x.0, the name '6.x' might be a
-   good choice. All further actions are within this branch unless
-   explicitly stated.
+   on top of the last feature release 6.x.0, the name shall be '6.x'
+   to satisfy the buildbot. Otherwise builds must be triggered manually.
+   All further actions are within this branch unless explicitly stated.
 
 2. Commit/merge all changes foreseen for the bugfix release to this branch
 
@@ -55,15 +55,10 @@ git push --follow-tags origin 6.x
 
 8. Merge the bugfix-branch into master and push master to origin
 
-9. Manually trigger the required builds via buildbot.ccc
-   - Select the necessary build (e.g. psmgmt-slurm2405-rockylinux9-aarch64)
-   - Press the "Force build of ..." button
-   - Your name: <your email>
-   - reason: "Release psmgmt-6.x.y"
-   - Branch: master
-   - Revision: 6.x.y
-   - Press the "Start Build" button
-   - Wait for the RPMs to appear on hugo.ccc / start further builds
+With the most recent changes the buildbot will build all configured
+release version automagically (as with normal releases) and let them
+end up in the same repositories on hugo.ccc. Thus, no manual
+intervention required.
 
 
 ====================================================
