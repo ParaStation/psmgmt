@@ -19,7 +19,7 @@
 #include "psstrv.h"
 
 /**
- * @bfrief Callback holding the result of the script executing. This
+ * @brief Callback holding the result of the script executing. This
  * is only used if the script is started by @ref Script_exec() inside
  * the main daemon. Then the script will be executed under a pluginforwarder.
  * This prevents the script from blocking the main psid.
@@ -31,7 +31,7 @@
 typedef void Script_cbResult_t(int32_t, void *);
 
 /**
- * @bfrief Callback which is invoked for every output line the script produces.
+ * @brief Callback which is invoked for every output line the script produces.
  * Lines without a terminating newline will be cached.
  *
  * @param line Output line from stdout/stderr of the script
@@ -41,7 +41,7 @@ typedef void Script_cbResult_t(int32_t, void *);
 typedef void Script_cbOutput_t(char *, void *);
 
 /**
- * @bfrief Callback to prepare the script environment before privileges are
+ * @brief Callback to prepare the script environment before privileges are
  * dropped.
  *
  * @param info Pointer to the info field of the script

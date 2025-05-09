@@ -27,7 +27,7 @@ typedef enum {
 } CPUfreq_governors_t;
 
 /**
- * @bfrief Callback used by @ref CPUfreq_init() to indicate the
+ * @brief Callback used by @ref CPUfreq_init() to indicate the
  * result of the initialization process.
  */
 typedef void CPUfreq_initCB_t(bool);
