@@ -248,7 +248,7 @@ static bool handleFwMsg(DDTypedBufferMsg_t *ddMsg, Forwarder_Data_t *fwdata)
 		       strvGet(script->argV, 0),
 		       (ddMsg->type == PLGN_STDOUT ? "stdout" : "stderr"), msg);
 
-	    /* prefix saved character from previous call */
+	    /* concatenate with remnants of previous call */
 	    if (script->outBuf) {
 		char *old = msg;
 		msg = PSC_concat(script->outBuf, msg);
@@ -335,7 +335,7 @@ int Script_exec(Script_Data_t *script)
 	return status;
     }
 
-    /* execute script under plugin forwarder */
+    /* execute script from within a plugin forwarder if called in main psid */
     if (PSC_isDaemon()) return spawnScriptForwarder(script);
 
     /* execute script directly outside the main psid */

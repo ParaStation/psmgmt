@@ -19,32 +19,36 @@
 #include "psstrv.h"
 
 /**
- * @brief Callback holding the result of the script executing. This
- * is only used if the script is started by @ref Script_exec() inside
- * the main daemon. Then the script will be executed under a pluginforwarder.
+ * @brief Callback reporting the result of an executed script. This is
+ * only called if the script is started by @ref Script_exec() from
+ * right inside the main daemon. In this case the script will be
+ * executed from within a pluginforwarder and this callback will be
+ * triggered once the pluginforwarder has reported the script's exit
+ * status.
+ *
  * This prevents the script from blocking the main psid.
  *
- * @param exit_status Exit status of the script
+ * @param exitStatus Scripts exit status of the script
  *
- * @param info Pointer to the info field of the script
+ * @param info Pointer to script's info field
  */
-typedef void Script_cbResult_t(int32_t, void *);
+typedef void Script_cbResult_t(int32_t exitStatus, void *info);
 
 /**
- * @brief Callback which is invoked for every output line the script produces.
- * Lines without a terminating newline will be cached.
+ * @brief Callback which is invoked for every output line the script
+ * produces. Lines without a terminating newline will be cached.
  *
- * @param line Output line from stdout/stderr of the script
+ * @param line Output line from script's stdout/stderr
  *
- * @param info Pointer to the info field of the script
+ * @param info Pointer to script's info field
  */
-typedef void Script_cbOutput_t(char *, void *);
+typedef void Script_cbOutput_t(char *line, void *info);
 
 /**
- * @brief Callback to prepare the script environment before privileges are
- * dropped.
+ * @brief Callback to prepare the script's environment before
+ * privileges are dropped.
  *
- * @param info Pointer to the info field of the script
+ * @param info Pointer to script's info field
  */
 typedef void Script_cbPrepPriv_t(void *);
 
@@ -62,9 +66,9 @@ typedef struct {
     void *info;		    /**< additional info pass to callbacks */
     int iofds[2];	    /**< I/O channel between parent and script */
     char *outBuf;
-    Forwarder_Data_t *fwdata;	    /**< pluginforwarder data used if start in
+    Forwarder_Data_t *fwdata;	    /**< pluginforwarder data used if started in
 				      main psid */
-    Script_cbResult_t *cbResult;    /**< see @Script_cbResult_t */
+    Script_cbResult_t *cbResult;    /**< see @ref Script_cbResult_t */
     Script_cbOutput_t *cbOutput;    /**< see @ref Script_cbOutput_t */
     Script_cbPrepPriv_t *prepPriv;  /**< see @ref Script_cbPrepPriv_t */
 } Script_Data_t;
