@@ -602,9 +602,9 @@ static void sendFin(void)
 static int handleChildOE(int fd, void *info)
 {
     Forwarder_Data_t *fw = info;
-    static char buf[1024];
 
     /* read from child */
+    char buf[1024];
     ssize_t size = PSCio_recvBuf(fd, buf, sizeof(buf)-1);
     if (size <= 0) {
 	Selector_remove(fd);
