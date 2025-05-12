@@ -237,44 +237,43 @@ static bool handleFwMsg(DDTypedBufferMsg_t *ddMsg, Forwarder_Data_t *fwdata)
     switch (ddMsg->type) {
     case PLGN_STDOUT:
     case PLGN_STDERR:
-	{
-	    /* read message */
-	    PS_DataBuffer_t data = PSdbNew(ddMsg->buf,
-					   ddMsg->header.len - DDTypedBufMsgOffset);
-	    char *msg = getStringM(data);
-	    PSdbDelete(data);
+    {
+	/* read message */
+	PS_DataBuffer_t data = PSdbNew(ddMsg->buf,
+				       ddMsg->header.len - DDTypedBufMsgOffset);
+	char *msg = getStringM(data);
+	PSdbDelete(data);
 
-	    pluginfdbg(PLUGIN_LOG_SCRIPT, "script '%s' %s returned '%s'\n",
-		       strvGet(script->argV, 0),
-		       (ddMsg->type == PLGN_STDOUT ? "stdout" : "stderr"), msg);
+	pluginfdbg(PLUGIN_LOG_SCRIPT, "script '%s' %s returned '%s'\n",
+		   strvGet(script->argV, 0),
+		   (ddMsg->type == PLGN_STDOUT ? "stdout" : "stderr"), msg);
 
-	    /* concatenate with remnants of previous call */
-	    if (script->outBuf) {
-		char *old = msg;
-		msg = PSC_concat(script->outBuf, msg);
-		ufree(old);
-		script->outBuf = NULL;
-	    }
-
-	    /* invoke callback for complete lines */
-	    char *ptr = msg;
-	    char *next = strchr(ptr, '\n');
-	    while (ptr && next) {
-		next[0] = '\0';
-
-		script->cbOutput(ptr, script->info);
-
-		ptr = next + 1;
-		next = strchr(ptr, '\n');
-	    }
-
-	    /* save leftover character without newline */
-	    if (ptr && ptr[0] != '\0') script->outBuf = ustrdup(ptr);
-
-	    ufree(msg);
+	/* concatenate with remnants of previous call */
+	if (script->outBuf) {
+	    char *old = msg;
+	    msg = PSC_concat(script->outBuf, msg);
+	    ufree(old);
+	    script->outBuf = NULL;
 	}
 
+	/* invoke callback for complete lines */
+	char *ptr = msg;
+	char *next = strchr(ptr, '\n');
+	while (ptr && next) {
+	    next[0] = '\0';
+
+	    script->cbOutput(ptr, script->info);
+
+	    ptr = next + 1;
+	    next = strchr(ptr, '\n');
+	}
+
+	/* save leftover character without newline */
+	if (ptr && ptr[0] != '\0') script->outBuf = ustrdup(ptr);
+
+	ufree(msg);
 	break;
+    }
     default:
 	pluginflog("unexpected msg, type %d from TID %s (%s)\n",
 		   ddMsg->type, PSC_printTID(ddMsg->header.sender),
@@ -372,7 +371,7 @@ int Script_exec(Script_Data_t *script)
     time_t startTime = time(NULL);
     void *oldAlarm = NULL;
     if (script->runtime) {
-        oldAlarm = PSC_setSigHandler(SIGALRM, alarmHandler);
+	oldAlarm = PSC_setSigHandler(SIGALRM, alarmHandler);
 	blocked = PSID_blockSig(SIGALRM, false);
 	alarm(script->runtime);
     }
