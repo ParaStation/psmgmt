@@ -67,9 +67,9 @@ void Script_destroy(Script_Data_t *script)
 
     if (script->childPid != -1) {
 	pluginflog("SIGKILL child %i\n", script->childPid);
-	while(1) {
+	while (1) {
 	    pskill(-script->childPid, SIGKILL, script->uid);
-	    if(waitpid(script->childPid, NULL, 0) < 0) {
+	    if (waitpid(script->childPid, NULL, 0) < 0) {
 		if (errno == EINTR) continue;
 		break;
 	    }
@@ -401,7 +401,7 @@ int Script_exec(Script_Data_t *script)
     if (script->runtime) {
 	alarm(0);
 	if (blocked) PSID_blockSig(SIGALRM, blocked);
-        PSC_setSigHandler(SIGALRM, oldAlarm);
+	PSC_setSigHandler(SIGALRM, oldAlarm);
     }
 
     return status;

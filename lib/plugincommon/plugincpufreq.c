@@ -62,7 +62,7 @@ typedef enum {
 /** list of supported CPU frequency ranges */
 typedef enum {
     FREQ_RANGE_FLAG     = 0x80000000,
-    FREQ_RANGE_LOW 	= 0x80000001,
+    FREQ_RANGE_LOW	= 0x80000001,
     FREQ_RANGE_MEDIUM   = 0x80000002,
     FREQ_RANGE_HIGH     = 0x80000003,
     FREQ_RANGE_SEC_HIGH = 0x80000004,
@@ -587,19 +587,14 @@ static void cbGetCurGov(int32_t status, void *info)
 
 /* map containing description, argument and function for a command */
 static Command_Map_t Command_Map[] = {
-    { "LIST_CPUS",	"--list-cpus", cmdListCPUs,
-      cbListCPUs },
-    { "GET_AVAIL_GOV",	"--get-avail-gov",  cmdGetGovernors,
-      cbGetAvailGov },
-    { "GET_AVAIL_FREQ",	"--get-avail-freq", cmdGetAvailFreq,
-      cbGetAvailFreq },
-    { "GET_FREQ",	"--get-freq",	    cmdGetFreq,
-      cbGetFreq },
-    { "GET_CUR_GOV",	"--get-cur-gov",    cmdGetCurGov,
-      cbGetCurGov },
-    { "SET_MIN_FREQ",	"--set-min-freq",   cmdPrintOutput, NULL },
-    { "SET_MAX_FREQ",	"--set-max-freq",   cmdPrintOutput, NULL },
-    { "SET_GOV",	"--set-gov"	,   cmdPrintOutput, NULL },
+    { "LIST_CPUS",	"--list-cpus",      cmdListCPUs,     cbListCPUs },
+    { "GET_AVAIL_GOV",	"--get-avail-gov",  cmdGetGovernors, cbGetAvailGov },
+    { "GET_AVAIL_FREQ",	"--get-avail-freq", cmdGetAvailFreq, cbGetAvailFreq },
+    { "GET_FREQ",	"--get-freq",	    cmdGetFreq,      cbGetFreq },
+    { "GET_CUR_GOV",	"--get-cur-gov",    cmdGetCurGov,    cbGetCurGov },
+    { "SET_MIN_FREQ",	"--set-min-freq",   cmdPrintOutput,  NULL },
+    { "SET_MAX_FREQ",	"--set-max-freq",   cmdPrintOutput,  NULL },
+    { "SET_GOV",	"--set-gov",        cmdPrintOutput,  NULL },
 };
 
 static ssize_t cmdSize = sizeof(Command_Map) / sizeof(Command_Map[0]);

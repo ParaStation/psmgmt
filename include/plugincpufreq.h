@@ -169,7 +169,7 @@ CPUfreq_governors_t CPUfreq_str2Gov(char *govName);
  *
  * @param gov Governor to convert
  *
- * Returns the name of the governor on success or "unkonwn"
+ * Returns the name of the governor on success or "unknown"
  * on error
  */
 char *CPUfreq_gov2Str(CPUfreq_governors_t gov);
