@@ -198,6 +198,7 @@ typedef struct {
 				     (list of PspmixClient_t objects) */
     uint32_t localClients;      /**< number of local clients */
     uint32_t clientsConnected;  /**< number of local clients connected */
+    uint32_t clientsFinalized;  /**< number of local clients finalized */
 } PspmixNamespace_t;
 
 

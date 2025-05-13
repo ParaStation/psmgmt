@@ -1288,11 +1288,14 @@ bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
     }
     client->notifiedFwCb = cb;
 
-    ns->clientsConnected--;
+    ns->clientsFinalized++;
 
     /* log clients */
     fdbg(PSPMIX_LOG_CLIENTS, "client %s:%u\n", ns->name, client->rank);
-    if (ns->clientsConnected == 0) {
+    if (ns->clientsFinalized == ns->clientsConnected) {
+	flog("nspace %s: No more local clients connected\n", ns->name);
+    }
+    if (ns->clientsFinalized == ns->localClients) {
 	flog("nspace %s: All %u local clients finalized\n", ns->name,
 	     ns->localClients);
     }
