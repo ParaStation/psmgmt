@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -56,7 +56,6 @@ Forwarder_Data_t *ForwarderData_new(void)
 	fw->loggerTid = -1;
 	fw->rank = -1;
 	fw->exitRcvd = false;
-	fw->codeRcvd = false;
 	fw->stdIn[0] = -1;
 	fw->stdIn[1] = -1;
 	fw->stdOut[0] = -1;
@@ -534,7 +533,22 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
     sendMsgToMother(&msg);
 }
 
-static void sendCodeInfo(int32_t ecode)
+/**
+ * @brief Send exit code for a fw operation
+ *
+ * During its lifetime the pluginforwarder executes different operations. This
+ * includes various hooks and function calls. These can be executed at
+ * initialization before a potential child is started or later after the child
+ * is already gone. If a operation fails this function can be used to send the
+ * exit code @a ecode hinting at the problem from the pluginforwarder to the
+ * main psid.  To identify the failed operation a @a type is included
+ * in the message. See @ref FW_RC_Types_t for possible operation types.
+ *
+ * @param ecode Exit code of the operation
+ *
+ * @param type Type of the operation which failed
+ */
+static void sendCodeInfo(int32_t ecode, FW_RC_Types_t type)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -544,6 +558,7 @@ static void sendCodeInfo(int32_t ecode)
 	    .len = 0, },
 	.type = PLGN_EXITCODE };
     PSP_putTypedMsgBuf(&msg, "exit code", &ecode, sizeof(ecode));
+    PSP_putTypedMsgBuf(&msg, "return type", &type, sizeof(type));
 
     sendMsgToMother(&msg);
 }
@@ -654,21 +669,27 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	int ret = fw->hookFWInit(fw);
 	if (ret < 0) {
 	    pluginflog("hookFWInit failed with %d\n", ret);
+	    sendCodeInfo(ret, RC_HOOK_FW_INIT);
 	    return ret;
 	}
     }
 
     /* jail myself and all my children */
     pid_t pid = getpid();
-    if (fw->jailChild && PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid) < 0) {
-	pluginflog("hook PSIDHOOK_JAIL_CHILD failed\n");
-	return -1;
+    if (fw->jailChild) {
+	int ret = PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
+	if (ret < 0) {
+	    pluginflog("hook PSIDHOOK_JAIL_CHILD failed\n");
+	    sendCodeInfo(ret, RC_HOOK_JAIL_CHILD);
+	    return -1;
+	}
     }
 
     /* optional switch user */
     if (fw->uID != getuid() || fw->gID != getgid()) {
 	if (!switchUser(fw->userName, fw->uID, fw->gID)) {
 	    pluginflog("switchUser() failed\n");
+	    sendCodeInfo(-1, RC_CMD_SWITCH_USER);
 	    return -1;
 	}
     }
@@ -678,6 +699,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	int ret = fw->hookFWInitUser(fw);
 	if (ret < 0) {
 	    pluginflog("hookFWInitUser failed with %d\n", ret);
+	    sendCodeInfo(-1, RC_HOOK_FW_INIT_USER);
 	    return ret;
 	}
     }
@@ -706,7 +728,6 @@ static void execPluginForwarder(PStask_t *task)
     int ret = execFWhooks(fwData);
     if (ret < 0) {
 	pluginflog("forwarder hooks failed\n");
-	sendCodeInfo(ret);
 	exit(-1);
     }
 
@@ -848,11 +869,14 @@ static void handleChildStart(Forwarder_Data_t *fw, DDTypedBufferMsg_t *msg)
 static void handleChildCode(Forwarder_Data_t *fw, DDTypedBufferMsg_t *msg)
 {
     size_t used = 0;
-    PSP_getTypedMsgBuf(msg, &used, "exit code", &fw->hookExitCode,
-		       sizeof(fw->hookExitCode));
-    fw->codeRcvd = true;
 
-    pluginfdbg(PLUGIN_LOG_FW, "ecode %i\n", fw->hookExitCode);
+    PSP_getTypedMsgBuf(msg, &used, "exit code", &fw->rcHook,
+		       sizeof(fw->rcHook));
+
+    PSP_getTypedMsgBuf(msg, &used, "return type", &fw->rcType,
+		       sizeof(fw->rcType));
+
+    pluginfdbg(PLUGIN_LOG_FW, "ecode %i type %i\n", fw->rcHook, fw->rcType);
 }
 
 static void handleChildExit(Forwarder_Data_t *fw, DDTypedBufferMsg_t *msg)

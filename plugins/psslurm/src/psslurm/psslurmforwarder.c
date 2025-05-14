@@ -151,7 +151,7 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,Job_strState(job->state));
 
     /* get exit status of child */
-    int eStatus = fw->exitRcvd ? fw->chldExitStatus : fw->hookExitCode;
+    int eStatus = fw->chldExitStatus;
 
     /* job aborted due to node failure */
     if (alloc && alloc->nodeFail) eStatus = 9;
@@ -282,8 +282,8 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	/* spawn failed */
 	uint32_t rc = (uint32_t) SLURM_ERROR;
 
-	if (fw->codeRcvd) {
-	    switch (fw->hookExitCode) {
+	if (fw->rcType == RC_HOOK_FW_INIT) {
+	    switch (fw->rcHook) {
 	    case -ESCRIPT_CHDIR_FAILED:
 		rc = ESCRIPT_CHDIR_FAILED;
 		break;

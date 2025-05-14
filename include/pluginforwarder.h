@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,6 +22,17 @@
 typedef struct __fwData__ Forwarder_Data_t;
 
 #define FW_CHILD_INFINITE -1
+
+/** Types of return codes from various forwarder operations */
+typedef enum {
+    RC_HOOK_NONE = 0,
+    RC_HOOK_FW_INIT,
+    RC_HOOK_JAIL_CHILD,
+    RC_CMD_SWITCH_USER,
+    RC_HOOK_FW_INIT_USER,
+    RC_HOOK_FW_LOOP,
+    RC_HOOK_FW_FINALIZE,
+} FW_RC_Types_t;
 
 /** Structure defining all parameter's of a forwarder */
 typedef struct __fwData__ {
@@ -58,8 +69,10 @@ typedef struct __fwData__ {
     bool exitRcvd;         /**< Flag chldExitStatus as valid */
     int32_t chldExitStatus;/**< Child's exit status (only available in cb
 			    * and hookFinalize in fw) */
-    bool codeRcvd;         /**< Flag hookExitCode as valid */
-    int32_t hookExitCode;  /**< Child's hook exit code (only available in cb) */
+    int32_t rcHook;	    /**< return code of hooks
+				(only available in cb) */
+    FW_RC_Types_t rcType; /**< type of return code from forwarder hook
+				(only available in cb) */
     int stdIn[2];          /**< stdIn provided to forwarder's child */
     int stdOut[2];         /**< stdOut provided to forwarder's child */
     int stdErr[2];         /**< stdErr provided to forwarder's child */
