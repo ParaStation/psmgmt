@@ -127,10 +127,41 @@ static void cbTermJail(int exit, bool tmdOut, int iofd, void *info)
     }
 }
 
+/**
+ * @brief Consolidate pluginforwarder exit status of
+ * various hooks
+ *
+ * @param fw Structure of the pluginforwarder holding exit codes
+ *
+ * @return Returns the first non zero exit status of a hook or
+ * 0 on success
+ */
+static int32_t getFWExitCode(Forwarder_Data_t *fw)
+{
+    if (!fw->codeRcvd) return 0;
+
+    if (fw->rcHookFWInit) {
+	return fw->rcHookFWInit;
+    } else if (fw->rcHookJailChild) {
+	return fw->rcHookJailChild;
+    } else if (fw->rcCmdSwitchUser) {
+	return fw->rcCmdSwitchUser;
+    } else if (fw->rcHookFWInitUser) {
+	return fw->rcHookFWInitUser;
+    } else if (fw->rcHookFWLoop) {
+	return fw->rcHookFWLoop;
+    } else if (fw->rcHookFWFinalize) {
+	return fw->rcHookFWFinalize;
+    }
+
+    return 0;
+}
+
 static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
     Alloc_t *alloc = Alloc_find(job->jobid);
+
 
     flog("job '%u' finished, exit %i / %i\n", job->jobid, exit_status,
 	 fw->chldExitStatus);
@@ -151,7 +182,8 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,Job_strState(job->state));
 
     /* get exit status of child */
-    int eStatus = fw->chldExitStatus;
+    int32_t fwExitCode = getFWExitCode(fw);
+    int eStatus = fwExitCode ? fwExitCode : fw->chldExitStatus;
 
     /* job aborted due to node failure */
     if (alloc && alloc->nodeFail) eStatus = 9;
@@ -1225,7 +1257,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
 	flog("switching effective user to '%s' failed\n", step->username);
-	exit(1);
+	return 1;
     }
 
     /* check if we can change working directory */
@@ -1263,7 +1295,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");
-	exit(1);
+	return 1;
     }
 
     /* open stderr/stdout/stdin fds */
@@ -1272,7 +1304,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	if (openpty(&fwdata->stdOut[1], &fwdata->stdOut[0],
 		    NULL, NULL, NULL) == -1) {
 	    fwarn(errno, "openpty()");
-	    return -1;
+	    return 1;
 	}
     }
 
@@ -1286,10 +1318,10 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	fwdata->childRerun = 1;
     }
 
-    return 1;
+    return 0;
 }
 
-static void stepForwarderLoop(Forwarder_Data_t *fwdata)
+static int stepForwarderLoop(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
 
@@ -1297,19 +1329,19 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
 
     if (!step->IOPort) {
 	flog("no I/O ports available\n");
-	return;
+	return 1;
     }
 
     if (srunOpenIOConnection(step, step->cred->sig) == -1) {
 	flog("open srun I/O connection failed\n");
-	return;
+	return 1;
     }
 
     if (step->taskFlags & LAUNCH_PTY) {
 	/* open additional PTY connection to srun */
 	if (srunOpenPTYConnection(step) < 0) {
 	    flog("open srun pty connection failed\n");
-	    return;
+	    return 1;
 	}
 
 	Selector_register(fwdata->stdOut[1], handleUserOE, fwdata);
@@ -1337,11 +1369,13 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
     if (step->termAfterFWmsg != NO_VAL) {
 	flog("terminating forwarder for %s after sending user message\n",
 	     Step_strID(step));
-	exit(1);
+	return 1;
     }
+
+    return 0;
 }
 
-static void stepFinalize(Forwarder_Data_t *fwdata)
+static int stepFinalize(Forwarder_Data_t *fwdata)
 {
     if (pamserviceStopService) pamserviceStopService();
 
@@ -1364,6 +1398,8 @@ static void stepFinalize(Forwarder_Data_t *fwdata)
 
     SpankCallHook(&spank);
 #endif
+
+    return 0;
 }
 
 static void handleChildStartJob(Forwarder_Data_t *fwdata, pid_t fw,
@@ -1449,13 +1485,13 @@ bool execStepLeader(Step_t *step)
     return true;
 }
 
-void handleJobLoop(Forwarder_Data_t *fwdata)
+static int handleJobLoop(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
 
     if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
 	flog("switching effective user to '%s' failed\n", job->username);
-	exit(1);
+	return 1;
     }
 
     IO_openJobIOfiles(fwdata);
@@ -1470,12 +1506,12 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
     if (job->termAfterFWmsg) {
 	flog("terminating forwarder for job %u after sending user message\n",
 	     job->jobid);
-	exit(1);
+	return 1;
     }
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");
-	exit(1);
+	return 1;
     }
 
 #ifdef HAVE_SPANK
@@ -1488,9 +1524,16 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
 	.envSet = NULL,
 	.envUnset = NULL
     };
-    SpankCallHook(&spank);
+
+    if (SpankCallHook(&spank) < 0) {
+	flog("SPANK_TASK_POST_FORK failed, terminating job %u\n", job->jobid);
+	/* terminate possible started child */
+	kill(-fwdata->cPid, SIGKILL);
+	return 1;
+    }
 #endif
 
+    return 0;
 }
 
 static int jobForwarderInit(Forwarder_Data_t *fwdata)
@@ -1521,7 +1564,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
 	flog("switching effective user to '%s' failed\n", job->username);
-	exit(1);
+	return 1;
     }
 
     spank.hook = SPANK_USER_INIT;
@@ -1529,7 +1572,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");
-	exit(1);
+	return 1;
     }
 
 #endif
@@ -1549,7 +1592,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
     return IO_openJobPipes(fwdata);
 }
 
-static void jobForwarderFin(Forwarder_Data_t *fwdata)
+static int jobForwarderFin(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
     job->exitCode = fwdata->chldExitStatus;
@@ -1574,6 +1617,8 @@ static void jobForwarderFin(Forwarder_Data_t *fwdata)
 
     /* stop and destroy container */
     if (job->ct) Container_stop(job->ct);
+
+    return 0;
 }
 
 bool execBatchJob(Job_t *job)
@@ -1744,7 +1789,7 @@ bool execBCast(BCast_t *bcast)
     return true;
 }
 
-static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
+static int stepFollowerFWloop(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
@@ -1753,17 +1798,17 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
 
     if (!step->IOPort) {
 	flog("no I/O Ports\n");
-	return;
+	return 1;
     }
 
     if (srunOpenIOConnection(step, step->cred->sig) == -1) {
 	flog("open srun I/O connection failed\n");
-	return;
+	return 1;
     }
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
 	flog("switching effective user to '%s' failed\n", step->username);
-	exit(1);
+	return 1;
     }
 
     IO_redirectStep(fwdata, step);
@@ -1778,13 +1823,14 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
     if (step->termAfterFWmsg != NO_VAL) {
 	flog("terminating forwarder for %s after sending user message\n",
 	     Step_strID(step));
-	exit(1);
+	return 1;
     }
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");
-	exit(1);
+	return 1;
     }
+    return 0;
 }
 
 static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
@@ -1831,7 +1877,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
 	flog("switching effective user to '%s' failed\n", step->username);
-	exit(1);
+	return 1;
     }
 
     spank.hook = SPANK_USER_INIT;
@@ -1839,7 +1885,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");
-	exit(1);
+	return 1;
     }
 
 #endif
@@ -1847,7 +1893,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     /* inform the mother psid */
     fwCMD_initComplete(step, 0);
 
-    return 1;
+    return 0;
 }
 
 bool execStepFollower(Step_t *step)

@@ -667,7 +667,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
     /* initialize as root */
     if (fw->hookFWInit) {
 	int ret = fw->hookFWInit(fw);
-	if (ret < 0) {
+	if (ret) {
 	    pluginflog("hookFWInit failed with %d\n", ret);
 	    sendCodeInfo(ret, RC_HOOK_FW_INIT);
 	    return ret;
@@ -697,7 +697,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
     /* more initialization, now that we might act as user */
     if (fw->hookFWInitUser) {
 	int ret = fw->hookFWInitUser(fw);
-	if (ret < 0) {
+	if (ret) {
 	    pluginflog("hookFWInitUser failed with %d\n", ret);
 	    sendCodeInfo(-1, RC_HOOK_FW_INIT_USER);
 	    return ret;
@@ -726,7 +726,7 @@ static void execPluginForwarder(PStask_t *task)
     }
 
     int ret = execFWhooks(fwData);
-    if (ret < 0) {
+    if (ret) {
 	pluginflog("forwarder hooks failed\n");
 	exit(-1);
     }
@@ -787,7 +787,15 @@ static void execPluginForwarder(PStask_t *task)
 	}
 
 	if (fwData->fwChildOE) monitorOEpipes(fwData);
-	if (fwData->hookLoop) fwData->hookLoop(fwData);
+	if (fwData->hookLoop) {
+	    ret = fwData->hookLoop(fwData);
+	    if (ret) {
+		pluginflog("forwarder hook loop failed %i\n", ret);
+		sendCodeInfo(ret, RC_HOOK_FW_LOOP);
+		exit(-1);
+	    }
+	}
+
 	forwarderLoop(fwData);
 
 	struct rusage rusage;
@@ -820,7 +828,14 @@ static void execPluginForwarder(PStask_t *task)
     /* make sure handling all data, after child is gone + wait for FinACK */
     Swait(1);
 
-    if (fwData->hookFinalize) fwData->hookFinalize(fwData);
+    if (fwData->hookFinalize) {
+	int ret = fwData->hookFinalize(fwData);
+	if (ret) {
+	    pluginflog("forwarder hook finalize failed %i\n", ret);
+	    sendCodeInfo(ret, RC_HOOK_FW_FINALIZE);
+	    exit(-1);
+	}
+    }
 
     /* cleanup */
     forwarderExit(fwData);

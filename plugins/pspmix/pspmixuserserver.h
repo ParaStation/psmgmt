@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -53,14 +53,14 @@ bool pspmix_userserver_removeJob(PStask_ID_t spawnertid);
  *
  * @param fwdata  the forwarders user data containing the server struct (unused)
  */
-void pspmix_userserver_prepareLoop(Forwarder_Data_t *fwdata);
+int pspmix_userserver_prepareLoop(Forwarder_Data_t *fwdata);
 
 /**
  * @brief Function called to finalize the plugin forwarder
  *
  * @param fwdata  the forwarders user data containing the server struct (unused)
  */
-void pspmix_userserver_finalize(Forwarder_Data_t *fwdata);
+int pspmix_userserver_finalize(Forwarder_Data_t *fwdata);
 
 #endif  /* __PS_PMIX_USERSERVER */
 

@@ -100,11 +100,11 @@ typedef struct __fwData__ {
     int (*hookFWInitUser)(Forwarder_Data_t *);
 			   /**< Called after jail hook and possible switch of
 			    * user context -- even without change of user */
-    void (*hookLoop)(Forwarder_Data_t *);
+    int (*hookLoop)(Forwarder_Data_t *);
 			   /**< Called within forwarder before entering loop */
     void (*hookChild)(Forwarder_Data_t *, pid_t, pid_t, pid_t);
 			   /**< Called within mother when child is ready */
-    void (*hookFinalize)(Forwarder_Data_t *);
+    int (*hookFinalize)(Forwarder_Data_t *);
 			   /**< Called within forwarder upon finalization */
     bool (*handleMthrMsg)(DDTypedBufferMsg_t *, Forwarder_Data_t *);
 			   /**< Additional mother-msgs handled by forwarder */

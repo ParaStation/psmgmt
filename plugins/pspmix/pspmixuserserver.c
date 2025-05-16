@@ -219,14 +219,15 @@ bool pspmix_userserver_removeJob(PStask_ID_t jobID)
     return true;
 }
 
-void pspmix_userserver_prepareLoop(Forwarder_Data_t *fwdata)
+int pspmix_userserver_prepareLoop(Forwarder_Data_t *fwdata)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
     if (!server) flog("FATAL: no server object\n");
+    return 0;
 }
 
-void pspmix_userserver_finalize(Forwarder_Data_t *fwdata)
+int pspmix_userserver_finalize(Forwarder_Data_t *fwdata)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -234,7 +235,7 @@ void pspmix_userserver_finalize(Forwarder_Data_t *fwdata)
 
     if (!server) {
 	flog("FATAL: no server object\n");
-	return;
+	return 1;
     }
 
     /* remove root of all temporary directories */
@@ -243,6 +244,8 @@ void pspmix_userserver_finalize(Forwarder_Data_t *fwdata)
     flog("server for UID %d finalized\n", server->uid);
 
     server = NULL;
+
+    return 0;
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
