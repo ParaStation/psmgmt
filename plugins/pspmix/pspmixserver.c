@@ -122,8 +122,9 @@ typedef struct {
 } while (0);
 
 /** Setting up data for callback routines */
-#define DESTROY_CBFUNC(d) do {  \
-    ufree(d);                   \
+#define DESTROY_CBFUNC(d) do {           \
+    pthread_mutex_destroy(&(d)->lock);   \
+    ufree(d);                            \
 } while (0)
 
 /** Wrapper for PMIx_Info_list_add() with error checking */
@@ -379,7 +380,8 @@ static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
     }
 
     if (!pspmix_service_clientFinalized(proc->nspace, clientObject, cb)) {
-	DESTROY_CBFUNC(cbfunc);
+	if (cbfunc) UNLOCK_CBFUNC_OR_RETURN(cb, PMIX_ERROR);
+	DESTROY_CBFUNC(cb);
 	return PMIX_ERROR;
     }
 
@@ -401,7 +403,7 @@ static void * callcb(void *cb)
 
     callback->cbfunc(callback->status, callback->cbdata);
 
-    pthread_mutex_unlock(&callback->lock);
+    UNLOCK_CBFUNC_OR_RETURN(callback, NULL);
     DESTROY_CBFUNC(callback);
 
     return NULL;
@@ -410,6 +412,7 @@ static void * callcb(void *cb)
 void pspmix_server_operationFinished(pmix_status_t status, void* cb)
 {
     fdbg(PSPMIX_LOG_CALL, "status %s cb %p\n", PMIx_Error_string(status), cb);
+
     /* check if the server library does provide a callback function */
     if (!cb) return;
 
@@ -425,25 +428,31 @@ void pspmix_server_operationFinished(pmix_status_t status, void* cb)
     pthread_attr_t attr;
     if ((ret = pthread_attr_init(&attr))) {
 	fwarn(ret, "failed to create attr");
-	DESTROY_CBFUNC(callback);
-	return;
+	goto failed;
     }
     if ((ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED))) {
 	fwarn(ret, "failed to set detached state attr");
 	pthread_attr_destroy(&attr);
-	DESTROY_CBFUNC(callback);
-	return;
+	goto failed;
     }
 
     pthread_t cbthread;
     if ((ret = pthread_create(&cbthread, &attr, callcb, callback))) {
 	fwarn(ret, "failed to create callback thread");
 	pthread_attr_destroy(&attr);
-	DESTROY_CBFUNC(callback);
-	return;
+	goto failed;
     }
 
     pthread_attr_destroy(&attr);
+
+    return;
+
+failed:
+    /* do not destroy mutex before upcall handler unlocked */
+    LOCK_CBFUNC_OR_RETURN(callback, /* no return value */);
+    UNLOCK_CBFUNC_OR_RETURN(callback, /* no return value */);
+    DESTROY_CBFUNC(callback);
+    return;
 }
 
 /* A local client called PMIx_Abort.
