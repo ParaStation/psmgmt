@@ -196,6 +196,7 @@ void freeSlurmMsg(Slurm_Msg_t *sMsg)
     }
 
     if (sMsg->unpData) freeUnpackMsgData(sMsg);
+    freeSlurmMsgHead(&sMsg->head);
 
     initSlurmMsg(sMsg);
 }
@@ -250,7 +251,7 @@ void releaseSlurmMsg(Slurm_Msg_t *sMsg)
 	ufree(sMsg->data->buf);
 	ufree(sMsg->data);
     }
-    ufree(sMsg->head.fwNodeList);
+    freeSlurmMsgHead(&sMsg->head);
 
     ufree(sMsg);
 }
