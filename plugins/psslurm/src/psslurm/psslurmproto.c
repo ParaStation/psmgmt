@@ -2922,7 +2922,7 @@ void sendNodeRegStatus(bool startup)
     sendSlurmctldReq(req, &stat);
 
     /* free data */
-    ufree(stat.jobInfo);
+    ufree(stat.infos);
     ufree(stat.dynamicConf);
     ufree(stat.dynamicFeat);
     /* currently unused */

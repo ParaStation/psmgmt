@@ -95,8 +95,8 @@ typedef struct {
     uint32_t config;		/**< configuration hash or NO_VAL */
     uint32_t cpuload;		/**< current CPU load */
     uint64_t freemem;		/**< current free memory */
-    uint32_t jobInfoCount;	/**< count of following job infos */
-    Slurm_Step_Head_t *jobInfo; /**< info about known job and steps */
+    uint32_t infoCount;	        /**< count of following job infos */
+    Slurm_Step_Head_t *infos;   /**< info about known job and steps */
     int protoVersion;		/**< protocol version */
     char verStr[64];		/**< version string */
     psAccountEnergy_t eData;	/**< energy accounting data */
