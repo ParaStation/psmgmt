@@ -18,7 +18,6 @@
 #include "pscomplist.h"
 #include "psstrbuf.h"
 
-#include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 
@@ -30,15 +29,11 @@
 
 #include "slurmcommon.h"
 #include "psslurmbcast.h"
-#include "psslurmconfig.h"
 #include "psslurmenv.h"
 #include "psslurmgres.h"
 #include "psslurmjob.h"
 #include "psslurmlog.h"
-#include "psslurmmsg.h"
-#include "psslurmpack.h"
 #include "psslurmproto.h"
-#include "psslurmprototypes.h"
 #include "psslurmpscomm.h"
 #include "psslurmstep.h"
 

@@ -30,6 +30,7 @@
 #include "psslurmlog.h"
 #include "psslurmpack.h"
 #include "psslurmproto.h"
+#include "psslurmprototypes.h"
 
 /* list which holds all buffered messages */
 static LIST_HEAD(msgBufList);
