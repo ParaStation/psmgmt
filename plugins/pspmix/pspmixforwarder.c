@@ -37,6 +37,7 @@
 #include <pmix.h>
 #include <pmix_common.h>
 #include <syslog.h>
+#include <time.h>
 
 #include "list.h"
 #include "pscio.h"

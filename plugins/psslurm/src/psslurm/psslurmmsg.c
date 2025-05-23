@@ -30,6 +30,7 @@
 #include "psslurmlog.h"
 #include "psslurmpack.h"
 #include "psslurmproto.h"
+#include "psslurmprototypes.h"
 
 /* list which holds all buffered messages */
 static LIST_HEAD(msgBufList);
@@ -190,6 +191,9 @@ void clearSlurmMsg(Slurm_Msg_t *sMsg)
     /* close connection if local */
     if (sMsg->source == -1 && sMsg->sock != -1) closeSlurmCon(sMsg->sock);
 
+    if (sMsg->unpData) freeUnpackMsgData(sMsg);
+    freeSlurmMsgHead(&sMsg->head);
+
     initSlurmMsg(sMsg);
 }
 
@@ -233,7 +237,7 @@ void releaseSlurmMsg(Slurm_Msg_t *sMsg)
     if (!sMsg) return;
 
     PSdbDestroy(sMsg->data);
-    ufree(sMsg->head.fwNodeList);
+    freeSlurmMsgHead(&sMsg->head);
 
     ufree(sMsg);
 }

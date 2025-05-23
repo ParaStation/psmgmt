@@ -6,6 +6,13 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.2.2:
+==============
+Bugfixes:
+ - sluid must be packed in Slurm 24.11 MESSAGE_NODE_REGISTRATION_STATUS (#324)
+ - Do not leak unpacked message data (jwt:#39409)
+
+
 Version 6.2.1:
 ==============
 Bugfixes:

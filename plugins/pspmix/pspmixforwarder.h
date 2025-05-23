@@ -14,6 +14,9 @@
 #ifndef __PS_PMIX_FORWARDER
 #define __PS_PMIX_FORWARDER
 
+#include "pslog.h"
+#include "psidforwarder.h"
+
 /* only works in psid forwarder processes (#214) */
 #define elog(...) PSIDfwd_printMsgf(STDERR, __VA_ARGS__)
 

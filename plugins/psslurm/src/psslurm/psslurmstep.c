@@ -557,22 +557,21 @@ int Step_killFWbyJobid(uint32_t jobid)
 
 void Step_getInfos(Resp_Node_Reg_Status_t *stat)
 {
-    uint32_t max = Step_count() + stat->jobInfoCount;
-
-    stat->jobids = urealloc(stat->jobids, sizeof(*stat->jobids) * max);
-    stat->stepids = urealloc(stat->stepids, sizeof(*stat->stepids) * max);
-    stat->stepHetComp = urealloc(stat->stepHetComp,
-				 sizeof(*stat->stepHetComp) * max);
+    uint32_t max = stat->infoCount + Step_count();
+    stat->infos = urealloc(stat->infos, sizeof(*stat->infos) * max);
 
     list_t *s;
     list_for_each(s, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (stat->jobInfoCount == max) break;
+	if (stat->infoCount == max) break;
 	/* report all known jobs, even in state complete/exit */
-	stat->jobids[stat->jobInfoCount] = step->jobid;
-	stat->stepids[stat->jobInfoCount] = step->stepid;
-	stat->stepHetComp[stat->jobInfoCount] = step->stepHetComp;
-	stat->jobInfoCount++;
+	Slurm_Step_Head_t *head = &(stat->infos)[stat->infoCount];
+	head->sluid = step->sluid;
+	head->jobid = step->jobid;
+	head->stepid = step->stepid;
+	head->stepHetComp = step->stepHetComp;
+
+	stat->infoCount++;
 	fdbg(PSSLURM_LOG_DEBUG, "add %s\n", Step_strID(step));
     }
 }

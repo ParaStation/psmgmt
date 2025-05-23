@@ -2886,7 +2886,7 @@ void sendNodeRegStatus(bool startup)
 	 stat.cpus, stat.boards, stat.sockets, stat.coresPerSocket,
 	 stat.threadsPerCore, stat.realMem, stat.tmpDisk);
 
-    /* job and step infos (count, array (jobid/stepid/stepHetComp) */
+    /* job and step infos (count, array (sluid/jobid/stepid/stepHetComp) */
     Job_getInfos(&stat);
     Step_getInfos(&stat);
 
@@ -2919,9 +2919,7 @@ void sendNodeRegStatus(bool startup)
     sendSlurmctldReq(req, &stat);
 
     /* free data */
-    ufree(stat.jobids);
-    ufree(stat.stepids);
-    ufree(stat.stepHetComp);
+    ufree(stat.infos);
     ufree(stat.dynamicConf);
     ufree(stat.dynamicFeat);
     /* currently unused */
