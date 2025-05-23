@@ -3737,9 +3737,8 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     /* job infos */
     addUint32ToMsg(stat->jobInfoCount, data);
     for (uint32_t i=0; i<stat->jobInfoCount; i++) {
-	addUint32ToMsg(stat->jobids[i], data);
-	addUint32ToMsg(stat->stepids[i], data);
-	addUint32ToMsg(stat->stepHetComp[i], data);
+	Slurm_Step_Head_t *stepH = &(stat->jobInfo)[i];
+	packStepHead(stepH, data);
     }
 
     /* flags */

@@ -25,6 +25,13 @@
 #include "psslurmmsg.h"
 #include "psslurmaccount.h"
 
+typedef struct {
+    uint64_t sluid;	    /**< unique Slurm ID */
+    uint32_t jobid;         /**< unique job identifier */
+    uint32_t stepid;        /**< unique step identifier */
+    uint32_t stepHetComp;   /**< step het component identifier */
+} Slurm_Step_Head_t;
+
 /** Holding information for RPC REQUEST_TERMINATE_JOB */
 typedef struct {
     /* first 4 elements must match Slurm_Step_Head_t for unpackStepHead() */
@@ -89,9 +96,7 @@ typedef struct {
     uint32_t cpuload;		/**< current CPU load */
     uint64_t freemem;		/**< current free memory */
     uint32_t jobInfoCount;	/**< count of following job infos */
-    uint32_t *jobids;		/**< running job IDs */
-    uint32_t *stepids;		/**< running step IDs */
-    uint32_t *stepHetComp;	/**< step het component identifier */
+    Slurm_Step_Head_t *jobInfo; /**< info about known job and steps */
     int protoVersion;		/**< protocol version */
     char verStr[64];		/**< version string */
     psAccountEnergy_t eData;	/**< energy accounting data */

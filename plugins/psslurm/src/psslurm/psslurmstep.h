@@ -33,13 +33,6 @@
 #include "psslurmprototypes.h"
 
 typedef struct {
-    uint64_t sluid;	    /**< unique Slurm ID */
-    uint32_t jobid;         /**< unique job identifier */
-    uint32_t stepid;        /**< unique step identifier */
-    uint32_t stepHetComp;   /**< step het component identifier */
-} Slurm_Step_Head_t;
-
-typedef struct {
     list_t next;
     strv_t argV;		    /**< program arguments */
     uint32_t np;		    /**< number of processes */

@@ -308,21 +308,20 @@ int Job_count(void)
 
 void Job_getInfos(Resp_Node_Reg_Status_t *stat)
 {
-    uint32_t max = Job_count() + stat->jobInfoCount;
-
-    stat->jobids = urealloc(stat->jobids, sizeof(*stat->jobids) * max);
-    stat->stepids = urealloc(stat->stepids, sizeof(*stat->stepids) * max);
-    stat->stepHetComp = urealloc(stat->stepHetComp,
-				 sizeof(*stat->stepHetComp) * max);
+    uint32_t max = stat->jobInfoCount + Job_count();
+    stat->jobInfo = urealloc(stat->jobInfo, sizeof(*stat->jobInfo) * max);
 
     list_t *j;
     list_for_each(j, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 	if (stat->jobInfoCount == max) break;
 	/* report all known jobs, even in state complete/exit */
-	stat->jobids[stat->jobInfoCount] = job->jobid;
-	stat->stepids[stat->jobInfoCount] = SLURM_BATCH_SCRIPT;
-	stat->stepHetComp[stat->jobInfoCount] = NO_VAL;
+	Slurm_Step_Head_t *head = &(stat->jobInfo)[stat->jobInfoCount];
+	head->sluid = NO_VAL64;
+	head->jobid = job->jobid;
+	head->stepid = SLURM_BATCH_SCRIPT;
+	head->stepHetComp = NO_VAL;
+
 	stat->jobInfoCount++;
 	fdbg(PSSLURM_LOG_DEBUG, "add job %u\n", job->jobid);
     }
