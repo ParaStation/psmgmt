@@ -280,12 +280,13 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
 static bool epilogueFinScript(Alloc_t *alloc)
 {
     flog("executing epilogue finalize script for %i\n", alloc->id);
+    alloc->epilogFin = true;
     return execEpilogueFin(alloc);
 }
 
 bool finalizeEpilogue(Alloc_t *alloc)
 {
-    if (alloc->nrOfNodes == alloc->epilogCnt) {
+    if (!alloc->epilogFin && alloc->nrOfNodes == alloc->epilogCnt) {
 	flog("epilogue for allocation %u on %u node(s) finished\n",
 	     alloc->id, alloc->epilogCnt);
 

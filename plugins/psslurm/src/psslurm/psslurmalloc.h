@@ -45,6 +45,7 @@ typedef struct {
     JobCred_t *cred;	    /**< job credentials */
     list_t gresList;	    /**< list of allocated generic resources */
     PSCPU_set_t hwthreads;  /**< hwthreads for the allocation on current node */
+    bool epilogFin;	    /**< true if epilogue finalize script started */
 } Alloc_t;
 
 typedef enum {
