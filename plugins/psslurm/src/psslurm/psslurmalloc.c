@@ -328,3 +328,14 @@ bool Alloc_isLeader(Alloc_t *alloc)
     if (alloc->nodes[0] == PSC_getMyID()) return true;
     return false;
 }
+
+bool Alloc_verifyPtr(Alloc_t *allocPtr)
+{
+    if (!allocPtr) return false;
+    list_t *s;
+    list_for_each(s, &AllocList) {
+	Alloc_t *alloc = list_entry(s, Alloc_t, next);
+	if (alloc == allocPtr) return true;
+    }
+    return false;
+}

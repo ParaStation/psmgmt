@@ -218,4 +218,14 @@ bool Alloc_isLeader(Alloc_t *alloc);
  **/
 int Alloc_initJail(Alloc_t *alloc);
 
+/**
+ * @brief Verify a allocation pointer
+ *
+ * @param allocPtr The pointer to verify
+ *
+ * @return Returns true if the pointer is valid otherwise
+ * false
+ */
+bool Alloc_verifyPtr(Alloc_t *allocPtr);
+
 #endif  /* __PS_PSSLURM_ALLOC */
