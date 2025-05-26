@@ -1942,6 +1942,10 @@ static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
 static void epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
 {
     Alloc_t *alloc = fwdata->userData;
+    if (!Alloc_verifyPtr(alloc)) {
+	flog("Invalid allocation pointer %p\n", alloc);
+	return;
+    }
 
     fdbg(PSSLURM_LOG_PELOG, "exit_status: %i fw-chldExitStatus %i\n",
 	 exit_status, fwdata->chldExitStatus);
