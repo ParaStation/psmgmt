@@ -1,3 +1,29 @@
+Version 6.2.3:
+==============
+------------------------------------------------------------------------
+80316a0d6 | Michael Rauh | Mon, 26 May 2025 15:41:11 +0200
+
+Ensure epilogue finalize script is only started once for an allocation
+------------------------------------------------------------------------
+663fb71e3 | Michael Rauh | Mon, 26 May 2025 15:20:20 +0200
+
+Ensure allocation is still valid in callback of epilogue finalize
+pluginforwarder (jwt:#39496)
+------------------------------------------------------------------------
+c166011de | Michael Rauh | Mon, 26 May 2025 15:16:06 +0200
+
+Introduce Alloc_verifyPtr()
+------------------------------------------------------------------------
+ef3aed9a8 | Norbert Eicker | Wed, 28 May 2025 14:59:20 +0200
+
+Keep Slurm_Msg_t's type untouched for proper cleanup (jwt:#39409)
+------------------------------------------------------------------------
+2068a7078 | Norbert Eicker | Wed, 28 May 2025 14:59:01 +0200
+
+Minor streamlining
+------------------------------------------------------------------------
+
+
 Version 6.2.2:
 ==============
 ------------------------------------------------------------------------
