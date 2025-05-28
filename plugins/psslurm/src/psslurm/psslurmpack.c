@@ -3489,7 +3489,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     return true;
 }
 
-bool packGresConf(Gres_Conf_t *gres, void *info)
+static bool packGresConf(Gres_Conf_t *gres, void *info)
 {
     PS_SendDB_t *msg = info;
 
@@ -3513,7 +3513,7 @@ bool packGresConf(Gres_Conf_t *gres, void *info)
     return false;
 }
 
-void addGresData(PS_SendDB_t *msg, int version)
+static void addGresData(PS_SendDB_t *msg, uint16_t version)
 {
     size_t startGresData;
     uint32_t len;
