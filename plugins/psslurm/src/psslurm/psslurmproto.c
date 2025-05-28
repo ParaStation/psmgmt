@@ -2935,6 +2935,7 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
     int ret = 1;
 
     /* save the new message type */
+    uint16_t origType = sMsg->head.type;
     sMsg->head.type = type;
 
     if (sMsg->source == -1) {
@@ -2951,6 +2952,8 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
 	 * send result back upward the tree */
 	ret = send_PS_ForwardRes(sMsg);
     }
+    /* restore original message type to e.g. properly cleanup the unpData */
+    sMsg->head.type = origType;
 
     return ret;
 }
