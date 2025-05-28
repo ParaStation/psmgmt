@@ -1287,17 +1287,15 @@ static int handleJobId(Slurm_Msg_t *sMsg)
     }
 
     Step_t *step = Step_findByPsidTask(req->pid);
-    if (step) {
-	PS_SendDB_t *msg = &sMsg->reply;
+    if (!step) return ESLURM_INVALID_JOB_ID;
 
-	addUint32ToMsg(step->jobid, msg);
-	addUint32ToMsg(SLURM_SUCCESS, msg);
+    PS_SendDB_t *msg = &sMsg->reply;
 
-	sendSlurmReply(sMsg, RESPONSE_JOB_ID);
-	return SLURM_NO_RC;
-    }
+    addUint32ToMsg(step->jobid, msg);
+    addUint32ToMsg(SLURM_SUCCESS, msg);
 
-    return ESLURM_INVALID_JOB_ID;
+    sendSlurmReply(sMsg, RESPONSE_JOB_ID);
+    return SLURM_NO_RC;
 }
 
 static int handleFileBCast(Slurm_Msg_t *sMsg)
@@ -2969,7 +2967,7 @@ int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
     if (!sMsg->head.forward) freeSlurmMsg(sMsg);
 
     if (ret < 1) {
-	mlog("%s: sending rc %u for %s:%u failed\n", __func__, rc, func, line);
+	flog("sending rc %u for %s:%u failed\n", rc, func, line);
     }
 
     return ret;
