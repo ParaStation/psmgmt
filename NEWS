@@ -6,6 +6,16 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.2.3:
+==============
+Bugfixes:
+ - Check validity of allocation in epilogue finalize callback (jwt:#39496)
+ - Ensure epilogue finalize script is started only once per allocation
+ - Keep Slurm_Msg_t's type untouched for proper cleanup (jwt:#39409)
+Enhancements:
+ - Introduce Alloc_verifyPtr()
+
+
 Version 6.2.2:
 ==============
 Bugfixes:
