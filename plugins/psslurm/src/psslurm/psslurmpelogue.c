@@ -570,8 +570,6 @@ static void initTaskPEenv(void *info)
  * @param output Output line to handle
  *
  * @param info Holding a Task_Info structure
- *
- * @return Always returns 0
  */
 static void handleTaskPrologueOut(char *output, void *info)
 {
