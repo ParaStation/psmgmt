@@ -259,7 +259,7 @@ static bool handleFwMsg(DDTypedBufferMsg_t *ddMsg, Forwarder_Data_t *fwdata)
 	/* invoke callback for complete lines */
 	char *ptr = msg;
 	char *next = strchr(ptr, '\n');
-	while (ptr && next) {
+	while (*ptr && next) {
 	    next[0] = '\0';
 
 	    script->cbOutput(ptr, script->info);
@@ -269,7 +269,7 @@ static bool handleFwMsg(DDTypedBufferMsg_t *ddMsg, Forwarder_Data_t *fwdata)
 	}
 
 	/* save leftover character without newline */
-	if (ptr && ptr[0] != '\0') script->outBuf = ustrdup(ptr);
+	if (ptr && *ptr) script->outBuf = ustrdup(ptr);
 
 	ufree(msg);
 	break;

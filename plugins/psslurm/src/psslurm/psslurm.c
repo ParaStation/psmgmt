@@ -709,7 +709,7 @@ static void CPUfreqInitCB(bool result)
     if (initFlags == INIT_COMPLETE && !accomplishInit()) {
 	/* finalize psslurm's startup failed */
 	flog("startup of psslurm failed\n");
-	PSIDplugin_finalize("psslurm");
+	PSIDplugin_finalize(name);
     }
 }
 

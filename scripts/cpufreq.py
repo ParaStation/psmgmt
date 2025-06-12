@@ -64,7 +64,8 @@ def get_cpu_freq(cpu_sys_path, index):
             f"{cur_max_freq}"
         )
 
-
+""" Depending on the hardware this optional information
+    might not be available. """
 def get_avail_cpu_freq(cpu_sys_path, index):
     for i in index:
         filename = f"{cpu_sys_path}/cpu{i}/cpufreq/scaling_available_frequencies"

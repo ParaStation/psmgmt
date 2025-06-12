@@ -101,7 +101,8 @@ static uint32_t defaultMaxFreq;
 static bool equalAvailFreq = true;
 
 /** sum of all initialization flags */
-#define INIT_COMPLETE 0x1F
+#define INIT_COMPLETE ( INIT_LIST_CPUS | INIT_GET_AVAIL_GOV | INIT_GET_CUR_GOV \
+			| INIT_GET_FREQ	| INIT_GET_AVAIL_FREQ )
 
 /** list of initialization flags */
 typedef enum {
