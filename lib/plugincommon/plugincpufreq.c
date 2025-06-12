@@ -215,9 +215,14 @@ static void cmdGetAvailFreq(char *output, void *info)
 {
     if (!CPUfreq_isInitialized()) return;
 
-    unsigned int idx;
-    if (sscanf(output, " cpu %u avail_freq", &idx) != 1) {
+    int idx;
+    if (sscanf(output, " cpu %i avail_freq", &idx) != 1) {
 	pluginflog("no CPU frequencies in %s\n", output);
+	initFailure = true;
+	return;
+    }
+    if (idx < 0 || idx >= numCPUs) {
+	pluginflog("invalid index %u\n", idx);
 	initFailure = true;
 	return;
     }
@@ -263,9 +268,15 @@ static void cmdGetGovernors(char *output, void *info)
 {
     if (!CPUfreq_isInitialized()) return;
 
-    unsigned int cpu;
-    if (sscanf(output, " cpu %u avail_gov", &cpu) != 1) {
+    int cpu;
+    if (sscanf(output, " cpu %i avail_gov", &cpu) != 1) {
 	pluginflog("no cpu detected in %s\n", output);
+	initFailure = true;
+	return;
+    }
+
+    if (cpu < 0 || cpu >= numCPUs) {
+	pluginflog("invalid index %u\n", cpu);
 	initFailure = true;
 	return;
     }
@@ -308,6 +319,12 @@ static void cmdGetFreq(char *output, void *info)
 	return;
     }
 
+    if (idx < 0 || idx >= numCPUs) {
+	pluginflog("invalid index %u\n", idx);
+	initFailure = true;
+	return;
+    }
+
     cpus[idx].availMinFreq = availMinFreq;
     cpus[idx].availMaxFreq = availMaxFreq;
     cpus[idx].curMinFreq = cpus[idx].defMinFreq = curMinFreq;
@@ -328,6 +345,12 @@ static void cmdGetCurGov(char *output, void *info)
     int idx;
     if (sscanf(output, " cpu %i cur_gov", &idx) != 1) {
 	pluginflog("get CPU failed: %s\n", output);
+	initFailure = true;
+	return;
+    }
+
+    if (idx < 0 || idx >= numCPUs) {
+	pluginflog("invalid index %u\n", idx);
 	initFailure = true;
 	return;
     }
