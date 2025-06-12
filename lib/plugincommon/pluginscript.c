@@ -308,7 +308,7 @@ static int spawnScriptForwarder(Script_Data_t *script)
     fwdata->pTitle = ustrdup("plugin-script");
     fwdata->userData = script;
     fwdata->graceTime = script->grace;
-    fwdata->killSession = &killSession;
+    fwdata->killSession = killSession;
     fwdata->callback = fwCallback;
     fwdata->childFunc = execFwChild;
     fwdata->handleFwMsg = handleFwMsg;
