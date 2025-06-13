@@ -275,11 +275,6 @@ static bool handleFwMsg(DDTypedBufferMsg_t *ddMsg, Forwarder_Data_t *fwdata)
 	ufree(msg);
 	break;
     }
-    default:
-	pluginflog("unexpected msg, type %d from TID %s (%s)\n",
-		   ddMsg->type, PSC_printTID(ddMsg->header.sender),
-		   fwdata->pTitle);
-	return false;
     }
 
     return true;
