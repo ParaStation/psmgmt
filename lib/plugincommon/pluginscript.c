@@ -304,6 +304,11 @@ static void fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
 static int spawnScriptForwarder(Script_Data_t *script)
 {
+    if (!script->cbResult) {
+	pluginflog("error: cbResult callback is mandatory in main psid\n");
+	return -1;
+    }
+
     Forwarder_Data_t *fwdata = ForwarderData_new();
     fwdata->pTitle = ustrdup("plugin-script");
     fwdata->userData = script;
