@@ -395,7 +395,7 @@ static void testInitComplete(void)
 
     if (pluginmset(PLUGIN_LOG_FREQ)) {
 	for (int i = 0; i < numCPUs; i++) {
-	    pluginlog("cpu=%i avail gov %i avail fmin %i avail fmax %i"
+	    pluginlog("cpu=%i avail gov 0x%x avail fmin %i avail fmax %i"
 		      " def gov %s def fmin %i def fmax %i # avail freq %i \n",
 		      i, cpus[i].availGov, cpus[i].availMinFreq,
 		      cpus[i].availMaxFreq, CPUfreq_gov2Str(cpus[i].defGov),
