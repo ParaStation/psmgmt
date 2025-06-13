@@ -229,7 +229,8 @@ static void alarmHandler(int sig)
 
 static bool handleFwMsg(DDTypedBufferMsg_t *ddMsg, Forwarder_Data_t *fwdata)
 {
-    if (ddMsg->header.type != PSP_PF_MSG) return false;
+    if (ddMsg->header.type != PSP_PF_MSG
+	|| ddMsg->type > PLGN_TYPE_LAST) return false;
 
     Script_Data_t *script = fwdata->userData;
     if (!script || !script->cbOutput) return true;
