@@ -179,7 +179,7 @@ CPUfreq_governors_t CPUfreq_str2Gov(char *govName)
  *
  * @param output Script output holding CPU information
  *
- * @param info Script command which was executed
+ * @param info Script command name which was executed
  */
 static void cmdListCPUs(char *output, void *info)
 {
@@ -209,7 +209,7 @@ static void cmdListCPUs(char *output, void *info)
  *
  * @param output Script output holding frequency information
  *
- * @param info Script command which was executed
+ * @param info Script command name which was executed
  */
 static void cmdGetAvailFreq(char *output, void *info)
 {
@@ -262,7 +262,7 @@ static void cmdGetAvailFreq(char *output, void *info)
  *
  * @param output Script output holding governor information
  *
- * @param info Script command which was executed
+ * @param info Script command name which was executed
  */
 static void cmdGetGovernors(char *output, void *info)
 {
@@ -304,7 +304,7 @@ static void cmdGetGovernors(char *output, void *info)
  *
  * @param output Script output holding frequency information
  *
- * @param info Script command which was executed
+ * @param info Script command name which was executed
  */
 static void cmdGetFreq(char *output, void *info)
 {
@@ -336,7 +336,7 @@ static void cmdGetFreq(char *output, void *info)
  *
  * @param output Script output holding governor information
  *
- * @param info Script command which was executed
+ * @param info Script command name which was executed
  */
 static void cmdGetCurGov(char *output, void *info)
 {
@@ -371,12 +371,12 @@ static void cmdGetCurGov(char *output, void *info)
  *
  * @param output Script output to log
  *
- * @param info Script command which was executed
+ * @param info Script command name which was executed
  */
 static void cmdPrintOutput(char *output, void *info)
 {
-    Script_CMDs_t *cmd = info;
-    pluginflog("%s: %s\n", Command_Map[*cmd].name, output);
+    char *name = info;
+    pluginflog("%s: %s\n", name, output);
 }
 
 /**
@@ -642,7 +642,7 @@ static bool execCPUFreqScriptEx(Script_CMDs_t cmd, strv_t addArgV)
     Script_Data_t *script = ScriptData_new(FREQ_SCRIPT);
     script->runtime = 30;
     script->cbOutput = Command_Map[cmd].fp;
-    script->info = &cmd;
+    script->info = Command_Map[cmd].name;
     script->cbResult = Command_Map[cmd].cb;
     strvAdd(script->argV, "--cpu-sys-path");
     strvAdd(script->argV, sysPath);
