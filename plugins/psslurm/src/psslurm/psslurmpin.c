@@ -33,6 +33,7 @@
 #include "pslog.h"
 #include "pspartition.h"
 #include "pscommon.h"
+#include "psstrbuf.h"
 
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
@@ -1718,8 +1719,8 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
  *    using PSIDfwd_printMsgf(STDERR,...) for output to the user's stderr
  * This differentiation is encapsulated in the macro uprintf().
  */
-int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
-			  uint32_t stepNodeId, PSCPU_set_t assGPUs)
+bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
+		       PSCPU_set_t assGPUs, PSCPU_set_t *rankGPUs)
 {
     bool verbose = false;
     char *map_gpu = NULL;
@@ -1731,10 +1732,10 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	&& !parseGpuBindString(gpu_bind, &verbose, &map_gpu, &mask_gpu,
 	    &gpus_per_task)) {
 	flog("no or invalid gpu_bind string\n");
-	return -1;
+	return false;
     }
 
-    uint16_t rankgpu; /* function return value */
+    PSCPU_clrAll(*rankGPUs);
 
     /* number of local tasks */
     uint32_t ltnum = step->globalTaskIdsLen[stepNodeId];
@@ -1758,7 +1759,7 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	    }
 	}
 
-	rankgpu = maparray[localRankId % count];
+	PSCPU_setCPU(*rankGPUs, maparray[localRankId % count]);
 	ufree(maparray);
     } else if (mask_gpu) {
 	//TODO we need to support more than one GPU per task to support this
@@ -1771,7 +1772,8 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	uprintf("Only one (or all) GPU per task is supported\n");
 	return -1;
     } else {
-	uint16_t gpus[ltnum];
+	PSCPU_set_t gpus[ltnum];
+	for (size_t i = 0; i < ltnum; i++) PSCPU_clrAll(gpus[i]);
 
 	uint32_t used[PSIDnodes_numGPUs(step->nodes[stepNodeId])];
 	memset(used, 0, sizeof(used));
@@ -1794,16 +1796,19 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	    uint16_t lstUsedGPU = getMinimumIndex(used, closeList, closeCnt);
 	    fdbg(PSSLURM_LOG_PART, "Select least used of closest GPU for"
 		 " local task %u: %hu\n", lTID, lstUsedGPU);
-	    gpus[lTID] = lstUsedGPU;
-	    used[gpus[lTID]]++;
+	    PSCPU_setCPU(gpus[lTID], lstUsedGPU);
+	    used[lstUsedGPU]++;
 	}
 
-	rankgpu = gpus[localRankId];
+	PSCPU_copy(*rankGPUs, gpus[localRankId]);
     }
 
     if (verbose) {
 	/* verbose GPU binding output */
-	unsigned int procGpuMask = 1 << rankgpu;
+	unsigned int procGpuMask = 0;
+	for (size_t i = 0; i < 8*sizeof(procGpuMask); i++) {
+	    if (PSCPU_isSet(*rankGPUs, i)) procGpuMask |= 1 << i;
+	}
 	unsigned int taskGpuMask = 0;
 	for (size_t i = 0; i < 8*sizeof(taskGpuMask); i++) {
 	    if (PSCPU_isSet(assGPUs, i)) taskGpuMask |= 1 << i;
@@ -1811,15 +1816,25 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 
 	char *globalGpuList = "N/A";
 
-	char localGpuList[10];
-	snprintf(localGpuList, sizeof(localGpuList), "%hu", rankgpu);
+	/* @todo does local_inx mean that? */
+	strbuf_t buf = strbufNew(NULL);
+	for (size_t i = 0; i < PSCPU_MAX; i++) {
+	    if (!PSCPU_isSet(*rankGPUs, i)) continue;
+
+	    char tmpstr[11];
+	    snprintf(tmpstr, sizeof(tmpstr), "%s%zd", strbufLen(buf) ? "," : "",
+		     i);
+	    strbufAdd(buf, tmpstr);
+	}
+	char *localGpuList = strbufSteal(buf);
 
 	uprintf("gpu-bind: usable_gres=0x%X; bit_alloc=0x%X; local_inx=%d;"
 		" global_list=%s; local_list=%s\n", procGpuMask, taskGpuMask, 0,
 		globalGpuList, localGpuList);
+	free(localGpuList);
     }
 
-    return rankgpu;
+    return true;
 }
 
 /* Print core map to srun's stderr */

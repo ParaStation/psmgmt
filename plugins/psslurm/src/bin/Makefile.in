@@ -135,6 +135,7 @@ psslurmgetbind_DEPENDENCIES = $(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslu
 	$(top_builddir)/lib/pscommon/.libs/pscpu.o \
 	$(top_builddir)/lib/plugincommon/.libs/pluginconfig.o \
 	$(top_builddir)/lib/pscommon/.libs/psenv.o \
+	$(top_builddir)/lib/pscommon/.libs/psstrbuf.o \
 	$(top_builddir)/lib/pscommon/.libs/pscommon.o
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -427,6 +428,7 @@ psslurmgetbind_LDADD = \
 	$(top_builddir)/lib/pscommon/.libs/pscpu.o\
 	$(top_builddir)/lib/plugincommon/.libs/pluginconfig.o\
 	$(top_builddir)/lib/pscommon/.libs/psenv.o \
+	$(top_builddir)/lib/pscommon/.libs/psstrbuf.o \
 	$(top_builddir)/lib/pscommon/.libs/pscommon.o
 
 all: all-am

@@ -85,7 +85,9 @@ bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 /**
  * @brief Calculate the GPU pinning for the local rank.
  *
- * The number returned is the ID of the GPU to be bound to rank @a localRankId.
+ * When returning true, @a rankGPUs has all bits set at the ID's position
+ * of the GPUs to be bound to rank @a localRankId.
+ *
  * Only GPUs in @a assGPUs will be used.
  *
  * @param localRankId      The local rank ID of the rank to get the GPU for
@@ -96,10 +98,12 @@ bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
  *
  * @param assGPUs          GPUs to be used
  *
- * @return ID of a GPUs if successful, -1 in error.
+ * @param rankGPUs         mask to be filled
+ *
+ * @return true on success, false on error.
  */
-int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
-			  uint32_t stepNodeId, PSCPU_set_t assGPUs);
+bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
+		       PSCPU_set_t assGPUs, PSCPU_set_t *rankGPUs);
 
 /**
  * @doctodo

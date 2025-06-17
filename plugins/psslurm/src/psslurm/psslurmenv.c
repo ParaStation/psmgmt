@@ -935,7 +935,6 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 
     uint32_t stepNId = step->localNodeId;
     uint32_t ltnum = step->globalTaskIdsLen[stepNId];
-    char tmpbuf[21]; /* max uin64_t */
     char *bindgpus;
 
     /* if there is only one local rank, bind all assigned GPUs to it */
@@ -952,11 +951,23 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    return;
 	}
 
-	int16_t gpu = getRankGpuPinning(localRankId, step, stepNId, assGPUs);
-	if (gpu < 0) return; /* error message already printed */
+	PSCPU_set_t rankGPUs;
+	if (!getRankGpuPinning(localRankId, step, stepNId, assGPUs,
+			       &rankGPUs)) {
+	    return; /* error message already printed */
+	}
 
-	snprintf(tmpbuf, sizeof(tmpbuf), "%hd", gpu);
-	bindgpus = tmpbuf;
+	strbuf_t buf = strbufNew(NULL);
+	for (uint64_t gpu = 0; gpu < PSCPU_MAX; gpu++) {
+	    if (!PSCPU_isSet(rankGPUs, gpu)) continue;
+
+	    char tmpbuf[21]; /* max uint64_t */
+	    snprintf(tmpbuf, sizeof(tmpbuf), "%zd", gpu);
+	    if (gpu) strbufAdd(buf, ",");
+	    strbufAdd(buf, tmpbuf);
+	}
+
+	bindgpus = strbufSteal(buf);
     }
 
     /* always set our own variable */
@@ -974,13 +985,15 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    abort();
 	}
 	for (uint64_t gpu = 0; gpu < gres->totalGres; gpu++) {
+	    char tmpbuf[21]; /* max uint64_t */
 	    snprintf(tmpbuf, sizeof(tmpbuf), "%zd", gpu);
 	    if (gpu) strbufAdd(cgroupsList, ",");
 	    strbufAdd(cgroupsList, tmpbuf);
 	}
 	gpulibVar = strbufSteal(cgroupsList);
+	free(bindgpus);
     } else {
-	gpulibVar = strdup(bindgpus);
+	gpulibVar = bindgpus;
     }
 
     for (size_t i = 0; PSIDpin_GPUvars[i]; i++) {

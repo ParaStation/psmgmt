@@ -55,4 +55,5 @@ psslurmgetbind_LDADD=\
 	$(top_builddir)/lib/pscommon/.libs/pscpu.o\
 	$(top_builddir)/lib/plugincommon/.libs/pluginconfig.o\
 	$(top_builddir)/lib/pscommon/.libs/psenv.o \
+	$(top_builddir)/lib/pscommon/.libs/psstrbuf.o \
 	$(top_builddir)/lib/pscommon/.libs/pscommon.o
