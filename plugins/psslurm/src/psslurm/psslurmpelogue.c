@@ -535,11 +535,13 @@ int handleLocalPElogueFinish(void *data)
 }
 
 /**
- * @brief Initialize a task prologue/epilogue environment
+ * @brief Initialize a task prologue/epilogue script
+ *
+ * Setup environment and Slurm rlimits.
  *
  * @param info Holding a Task_Info structure
  */
-static void initTaskPEenv(void *info)
+static void preparePEscript(void *info)
 {
     Task_Info_t *ti = info;
 
@@ -626,7 +628,7 @@ static void execTaskPElogue(Step_t *step, PStask_t *task, char *taskScript,
     script->gid = step->gid;
     script->cwd = ustrdup(step->cwd);
     script->grace = getConfValueI(SlurmConfig, "KillWait");
-    script->prepPriv = initTaskPEenv;
+    script->prepPriv = preparePEscript;
     script->cbOutput = prologue ? handleTaskPrologueOut : NULL;
     script->runtime = prologue ? 0 : 5;
 
