@@ -75,9 +75,7 @@ typedef struct {
 /**
  * @brief Create new script structure
  *
- * Allocate and initialize a new script structure. The username and current
- * working directory (cwd) of script structure will be freed using
- * @ref ufree().
+ * Allocate and initialize a new script structure.
  *
  * @param sPath Absolute path to the script
  *
@@ -88,7 +86,9 @@ Script_Data_t *ScriptData_new(char *sPath);
 /**
  * @brief Destroy a script structure
  *
- * Terminate a leftover script and free all used resources
+ * Terminate a leftover script and free all used resources.  The username and
+ * current working directory (cwd) of script structure will be freed using
+ * @ref ufree().
  *
  * @param script Script structure to destroy
  */
@@ -96,6 +96,15 @@ void Script_destroy(Script_Data_t *script);
 
 /**
  * @brief Execute a script
+ *
+ * Execute a script with given argument vector @ref argV. The script can be
+ * executed under a different user by specifying @ref username, @ref uid and
+ * @ref gid. If the change is requested by a non root user,
+ * PSC_switchEffectiveUser() will try to reclaim privileges beforehand. The
+ * working directory might be changed by setting @ref cwd. The ownership of cwd
+ * and username is transferred to the pluginscript facility and are supposed to
+ * be allocated using @a malloc(). A maximal @ref runtime and @ref grace
+ * period can limit the time the script might execute.
  *
  * @param script Script to execute
  *
