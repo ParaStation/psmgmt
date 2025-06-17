@@ -622,7 +622,6 @@ static void execTaskPElogue(Step_t *step, PStask_t *task, char *taskScript,
     }
 
     Script_Data_t *script = ScriptData_new(taskScript);
-    script->reclaimPriv = !prologue;
     script->username = ustrdup(step->username);
     script->uid = step->uid;
     script->gid = step->gid;

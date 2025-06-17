@@ -163,20 +163,20 @@ static void execChild(Script_Data_t *script)
 
     reOpenSyslog("psid-plugin-script", &pluginlogger);
 
-    if (getuid() != script->uid) {
+    if (getuid() != script->uid || geteuid() != script->uid
+	|| script->prepPriv) {
 	/* reclaim root privileges */
-	if (script->reclaimPriv) {
-	    if (geteuid() && !PSC_switchEffectiveUser(NULL, 0, 0)) {
-		pluginflog("user %i has no permission to reclaim privileges \n",
-			   getuid());
-		exit(1);
-	    }
+	if (geteuid() && !PSC_switchEffectiveUser(NULL, 0, 0)) {
+	    pluginflog("user %i has no permission to reclaim privileges \n",
+		       getuid());
+	    exit(1);
 	}
 
 	if (script->prepPriv) script->prepPriv(script->info);
 
 	/* switch user */
-	if (!switchUser(script->username, script->uid, script->gid)) {
+	if (getuid() != script->uid
+	    && !switchUser(script->username, script->uid, script->gid)) {
 	    pluginflog("switch user %s failed\n", script->username);
 	    exit(1);
 	}

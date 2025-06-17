@@ -59,7 +59,6 @@ typedef struct {
     gid_t gid;		    /**< optional group ID of the script */
     strv_t argV;	    /**< argument vector */
     char *cwd;		    /**< script working directory */
-    bool reclaimPriv;	    /**< reclaim root privileges before execution */
     int grace;		    /**< grace time when script is killed */
     int runtime;	    /**< runtime limit in seconds */
     pid_t childPid;	    /**< PID of the running child */
