@@ -578,7 +578,7 @@ static void setGResJobEnv(list_t *gresList, env_t env)
 	    /* always set informational variable */
 	    envSet(env, "SLURM_JOB_GPUS", strbufStr(strList));
 
-	    /* tell doClamps() which gpus to use
+	    /* tell PSIDpin_doClamps() which gpus to use
 	     * this is for the case of using pure mpiexec in the job script
 	     * or from the interactive step */
 	    envSet(env, "__PSID_USE_GPUS", strbufStr(strList));
@@ -927,7 +927,8 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
     /* always set informational variable */
     setenv("SLURM_STEP_GPUS", strbufStr(strList), 1);
 
-    /* tell doClamps() which gpus to use to correctly set PSID_CLOSE_GPUS */
+    /* tell PSIDpin_doClamps() which gpus to use to correctly set
+     * PSID_CLOSE_GPUS and PSID_LOCAL_GPUS */
     setenv("__PSID_USE_GPUS", strbufStr(strList), 1);
 
     strbufDestroy(strList);

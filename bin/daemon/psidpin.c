@@ -143,6 +143,29 @@ static void pinToCPUs(cpu_set_t *physSet)
 }
 
 /**
+ * @brief Set dev bind variables
+ *
+ * Set @a vairables to @a val if it is still unset or was set
+ * automatically (checked by @a PSIDpin_checkAutoVar()).
+ *
+ * @param variables  environment variables to set
+ * @param val        new value
+ */
+static void doBindToDevs(char **variables, char *val)
+{
+    for (size_t i = 0; variables[i]; i++) {
+	char *gpuVar = getenv(variables[i]);
+	if (!gpuVar || PSIDpin_checkAutoVar(variables[i], gpuVar, val)) {
+	    /* variable not set at all or set automatically and
+	     * unchanged in the meantime => set it */
+	    setenv(variables[i], val, 1);
+	} else {
+	    PSID_fdbg(PSID_LOG_SPAWN, "keep '%s=%s'\n", variables[i], gpuVar);
+	}
+
+    }
+}
+/**
  * @brief Bind process to devices by setting environment variable
  *
  * The environment variables named below are set to a comma separated
@@ -194,12 +217,13 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
     uint16_t numDevs = 0;
     char *usable = NULL;
     char **variables = NULL;
+    bool skip = false;
     switch(type) {
     case PSPIN_DEV_TYPE_GPU:
 	if (getenv("__PSID_SKIP_PIN_GPUS")) {
 	    /* some other plugin did the GPU pinning already */
 	    unsetenv("__PSID_SKIP_PIN_GPUS");
-	    return;
+	    skip = true;
 	}
 	typename = "GPU";
 	numDevs = PSIDnodes_numGPUs(PSC_getMyID());
@@ -210,7 +234,7 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 	if (getenv("__PSID_SKIP_PIN_NICS")) {
 	    /* some other plugin did the NIC pinning already */
 	    unsetenv("__PSID_SKIP_PIN_NICS");
-	    return;
+	    skip = true;
 	}
 	typename = "NIC";
 	numDevs = PSIDnodes_numNICs(PSC_getMyID());
@@ -266,18 +290,12 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
     }
     val[len ? len-1 : len] = '\0';
 
-    PSID_fdbg(PSID_LOG_SPAWN, "setup to use %ss '%s'\n", typename, val);
-
-    for (size_t i = 0; variables[i]; i++) {
-	char *gpuVar = getenv(variables[i]);
-	if (!gpuVar || PSIDpin_checkAutoVar(variables[i], gpuVar, val)) {
-	    /* variable not set at all or set automatically and not
-	     * changed in the meantime => set it */
-	    setenv(variables[i], val, 1);
-	} else {
-	    PSID_fdbg(PSID_LOG_SPAWN, "keep '%s=%s'\n", variables[i], gpuVar);
-	}
-
+    if (skip) {
+	PSID_fdbg(PSID_LOG_SPAWN, "skip actual %s pinning '%s'\n", typename,
+		  val);
+    } else {
+	PSID_fdbg(PSID_LOG_SPAWN, "setup to use %ss '%s'\n", typename, val);
+	doBindToDevs(variables, val);
     }
 
     /* always set PSID version */
