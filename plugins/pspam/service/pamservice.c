@@ -8,10 +8,13 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <errno.h>
+#include <pty.h>
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -33,8 +36,10 @@ plugin_dep_t dependencies[] = {
 
 static pam_handle_t *pamh = NULL;
 
+/** pty filedescriptors only used outside the main psid */
+static int ptyFDs[2] = {-1, -1};
 
-static bool startPAMservice(char *user)
+static bool startPAMservice(char *user, char *ptyName)
 {
     const struct pam_conv conversation;
     const char serviceName[] = "psid";
@@ -57,6 +62,23 @@ static bool startPAMservice(char *user)
     if (ret != PAM_SUCCESS) {
 	flog("failed to set PAM_RUSER %s: %s\n", user, pam_strerror(pamh, ret));
 	return false;
+    }
+
+    ret = pam_set_item(pamh, PAM_RHOST, "localhost");
+    if (ret != PAM_SUCCESS) {
+	flog("failed to set PAM_RHOST: %s\n", pam_strerror(pamh, ret));
+	return false;
+    }
+
+    if (ptyName) {
+	ret = pam_set_item(pamh, PAM_TTY, ptyName);
+	if (ret != PAM_SUCCESS) {
+	    flog("failed to set PAM_TTY %s: %s\n", ptyName,
+		 pam_strerror(pamh, ret));
+	    return false;
+	}
+	fdbg(PAMSERVICE_LOG_DEBUG, "set PAM_TTY to %s for user %s\n",
+	     ptyName, user);
     }
 
     ret = pam_setcred(pamh, PAM_ESTABLISH_CRED);
@@ -89,6 +111,7 @@ bool pamserviceOpenSession(char *user)
     /* systemd might move the child to its own cgroup, we have to
      * move it back after the session was started */
     pid_t pid = getpid();
+    if (!getenv("USER")) setenv("USER", user, 1);
     if (PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid) < 0) {
 	flog("PSIDHOOK_JAIL_CHILD for %i failed\n", pid);
 	return false;
@@ -123,6 +146,9 @@ bool pamserviceStopService(void)
 	flog("ending PAM failed: %s\n", pam_strerror(pamh, ret));
     }
 
+    if (ptyFDs[0] >= 0) close(ptyFDs[0]);
+    if (ptyFDs[1] >= 0) close(ptyFDs[1]);
+
     return true;
 }
 
@@ -141,7 +167,7 @@ static int handleExecForwarder(void *data)
 	return 0;
     }
 
-    bool ret = startPAMservice(user);
+    bool ret = startPAMservice(user, NULL);
     ufree(user);
     return ret ? 0 : -1;
 }
@@ -150,9 +176,21 @@ pamserviceStartService_t pamserviceStartService;
 
 bool pamserviceStartService(char *user)
 {
-    return startPAMservice(user);
-}
+    if (openpty(&ptyFDs[0], &ptyFDs[1], NULL, NULL, NULL)) {
+	fwarn(errno, "openpty()");
+	return false;
+    }
+    char *ptyName = ttyname(ptyFDs[1]);
+    if (!ptyName) {
+	fwarn(errno, "ttyname(%d)", ptyFDs[1]);
+	return false;
+    }
 
+    /* PAM service and sessions have to be started in the forwarder */
+    if (!startPAMservice(user, ptyName)) return false;
+
+    return pamserviceOpenSession(user);
+}
 
 static int handleExecClient(void *data)
 {
