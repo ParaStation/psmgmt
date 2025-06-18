@@ -1066,6 +1066,8 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     snprintf(buf, sizeof(buf), "psslurm-%s", Step_strID(step));
     reOpenSyslog(buf, &psslurmlogger);
 
+    if (pamserviceOpenSession) pamserviceOpenSession(step->username);
+
     /* setup standard I/O and PTY */
     setupStepIO(fwdata, step);
 
@@ -1198,6 +1200,9 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	       step->nodeinfos[step->localNodeId].stepHWthreads,
 	       step->nodeinfos[step->localNodeId].jobHWthreads,
 	       &step->gresList, cType, step->cred, step->credID);
+
+    /* since this might call the jail hook, execute *after* setJailEnv() */
+    if (pamserviceStartService) pamserviceStartService(step->username);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -1338,6 +1343,8 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
 
 static void stepFinalize(Forwarder_Data_t *fwdata)
 {
+    if (pamserviceStopService) pamserviceStopService();
+
     IO_finalize(fwdata);
 
 #ifdef HAVE_SPANK
@@ -1799,6 +1806,9 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 	       step->nodeinfos[step->localNodeId].stepHWthreads,
 	       step->nodeinfos[step->localNodeId].jobHWthreads,
 	       &step->gresList, cType, step->cred, step->credID);
+
+    /* since this might call the jail hook, execute *after* setJailEnv() */
+    if (pamserviceStartService) pamserviceStartService(step->username);
 
 #ifdef HAVE_SPANK
 
