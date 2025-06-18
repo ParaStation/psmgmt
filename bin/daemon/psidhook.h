@@ -259,6 +259,10 @@ typedef enum {
 				content of env_t upon return will be distributed
 				alongside the reservations info and provided
 				in PSjob_t's extraData. */
+    PSIDHOOK_PLUGIN_LOADED,   /**< A plugin was loaded, initialized and is
+				ready for use; arg points to plugin's name */
+    PSIDHOOK_PLUGIN_FINALIZE, /**< A plugin will be finalized and shall no
+				longer be used; arg points to plugin's name */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

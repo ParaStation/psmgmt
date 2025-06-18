@@ -29,6 +29,7 @@
 #include "psserial.h"
 #include "psidutil.h"
 #include "psidcomm.h"
+#include "psidhook.h"
 #include "psidnodes.h"
 
 typedef int initFunc_t(FILE *logfile);
@@ -178,8 +179,10 @@ static LIST_HEAD(pluginList);
  * 144: reworked hook PSIDHOOK_SHUTDOWN to tell the current phase
  *
  * 145: new PSIDHOOK_RECEIVEPART
+ *
+ * 146: new hooks PSIDHOOK_PLUGIN_LOADED, PSIDHOOK_PLUGIN_FINALIZED
  */
-static int pluginAPIVersion = 145;
+static int pluginAPIVersion = 146;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
@@ -571,6 +574,8 @@ static int finalizePlugin(PSIDplugin_t plugin)
 
     plugin->finalized = true;
 
+    PSIDhook_call(PSIDHOOK_PLUGIN_FINALIZE, plugin->name);
+
     if (!plugin->finalize) return unloadPlugin(plugin);
 
     plugin->finalize();
@@ -880,6 +885,7 @@ PSIDplugin_t PSIDplugin_load(char *pName, int minVer,
 	return NULL;
     }
 
+    PSIDhook_call(PSIDHOOK_PLUGIN_LOADED, plugin->name);
 
     return plugin;
 }
