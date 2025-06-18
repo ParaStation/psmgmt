@@ -187,6 +187,7 @@ static void execChild(Script_Data_t *script)
 
     if (script->cwd && chdir(script->cwd) != 0) {
 	pluginwarn(errno, "chdir(%s)", script->cwd);
+	exit(1);
     }
 
     if (access(strvGet(script->argV, 0), R_OK | X_OK) < 0) {
