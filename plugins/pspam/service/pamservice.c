@@ -179,69 +179,39 @@ static int handlePsslurmJobExec(void *data)
     return pamserviceOpenSession(user) ? 0 : -1;
 }
 
+#define addHook(hookName, hookFunc)			\
+    if (!PSIDhook_add(hookName, hookFunc)) {		\
+	mlog("register '" #hookName "' failed\n");      \
+	return 1;                                       \
+    }
+
 int initialize(FILE *logfile)
 {
     initLogger(name, logfile);
 
-    if (!PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, handleExecForwarder)) {
-	mlog("register 'PSIDHOOK_EXEC_FORWARDER' failed\n");
-	return 1;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT, handleExecClient)) {
-	mlog("register 'PSIDHOOK_EXEC_CLIENT' failed\n");
-	return 1;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_FRWRD_EXIT, finishPAMservice)) {
-	mlog("register 'PSIDHOOK_FRWRD_EXIT' failed\n");
-	return 1;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_PSSLURM_JOB_FWINIT, handlePsslurmFWinit)) {
-	mlog("register 'PSIDHOOK_PSSLURM_JOB_FWINIT' failed\n");
-	return 1;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_PSSLURM_JOB_EXEC, handlePsslurmJobExec)) {
-	mlog("register 'PSIDHOOK_PSSLURM_JOB_EXEC' failed\n");
-	return 1;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_PSSLURM_JOB_FWFIN, finishPAMservice)) {
-	mlog("register 'PSIDHOOK_PSSLURM_JOB_FWFIN' failed\n");
-	return 1;
-    }
+    addHook(PSIDHOOK_EXEC_FORWARDER, handleExecForwarder);
+    addHook(PSIDHOOK_EXEC_CLIENT, handleExecClient);
+    addHook(PSIDHOOK_FRWRD_EXIT, finishPAMservice);
+    addHook(PSIDHOOK_PSSLURM_JOB_FWINIT, handlePsslurmFWinit);
+    addHook(PSIDHOOK_PSSLURM_JOB_EXEC, handlePsslurmJobExec);
+    addHook(PSIDHOOK_PSSLURM_JOB_FWFIN, finishPAMservice);
 
     mlog("(%i) successfully started\n", version);
     return 0;
 }
 
+#define relHook(hookName, hookFunc)                    \
+    if (!PSIDhook_del(hookName, hookFunc))             \
+	mlog("unregister '" #hookName "' failed\n");
+
 void cleanup(void)
 {
-    if (!PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, handleExecForwarder)) {
-	mlog("unregister 'PSIDHOOK_EXEC_FORWARDER' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT, handleExecClient)) {
-	mlog("unregister 'PSIDHOOK_EXEC_CLIENT' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_FRWRD_EXIT, finishPAMservice)) {
-	mlog("unregister 'PSIDHOOK_FRWRD_EXIT' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_PSSLURM_JOB_FWINIT, handlePsslurmFWinit)) {
-	mlog("unregister 'PSIDHOOK_PSSLURM_JOB_FWINIT' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_PSSLURM_JOB_EXEC, handlePsslurmJobExec)) {
-	mlog("unregister 'PSIDHOOK_PSSLURM_JOB_EXEC' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_PSSLURM_JOB_FWFIN, finishPAMservice)) {
-	mlog("unregister 'PSIDHOOK_PSSLURM_JOB_FWFIN' failed\n");
-    }
+    relHook(PSIDHOOK_EXEC_FORWARDER, handleExecForwarder);
+    relHook(PSIDHOOK_EXEC_CLIENT, handleExecClient);
+    relHook(PSIDHOOK_FRWRD_EXIT, finishPAMservice);
+    relHook(PSIDHOOK_PSSLURM_JOB_FWINIT, handlePsslurmFWinit);
+    relHook(PSIDHOOK_PSSLURM_JOB_EXEC, handlePsslurmJobExec);
+    relHook(PSIDHOOK_PSSLURM_JOB_FWFIN, finishPAMservice);
 
     mlog("...Bye.\n");
 
