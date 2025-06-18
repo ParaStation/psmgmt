@@ -8,10 +8,10 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdbool.h>
-#include <stdio.h>
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -21,6 +21,7 @@
 
 #include "psidhook.h"
 
+#include "pamservice_types.h"
 #include "pamservice_log.h"
 
 /** psid plugin requirements */
@@ -32,7 +33,6 @@ plugin_dep_t dependencies[] = {
 
 static pam_handle_t *pamh = NULL;
 
-static int retPAM = PAM_SUCCESS;
 
 static bool startPAMservice(char *user)
 {
@@ -41,38 +41,37 @@ static bool startPAMservice(char *user)
 
     fdbg(PAMSERVICE_LOG_DEBUG, "start PAM service for %s\n", user);
 
-    retPAM = pam_start(serviceName, user, &conversation, &pamh);
-    if (retPAM != PAM_SUCCESS) {
-	flog("starting PAM for %s failed : %s\n", user,
-	     pam_strerror(pamh, retPAM));
+    int ret = pam_start(serviceName, user, &conversation, &pamh);
+    if (ret != PAM_SUCCESS) {
+	flog("failed to start PAM for %s: %s\n", user, pam_strerror(pamh, ret));
 	return false;
     }
 
-    retPAM = pam_set_item(pamh, PAM_USER, user);
-    if (retPAM != PAM_SUCCESS) {
-	flog("setting PAM_USER %s failed : %s\n", user,
-	     pam_strerror(pamh, retPAM));
+    ret = pam_set_item(pamh, PAM_USER, user);
+    if (ret != PAM_SUCCESS) {
+	flog("failed to set PAM_USER %s: %s\n", user, pam_strerror(pamh, ret));
 	return false;
     }
 
-    retPAM = pam_set_item(pamh, PAM_RUSER, user);
-    if (retPAM != PAM_SUCCESS) {
-	flog("setting PAM_RUSER %s failed : %s\n", user,
-	     pam_strerror(pamh, retPAM));
+    ret = pam_set_item(pamh, PAM_RUSER, user);
+    if (ret != PAM_SUCCESS) {
+	flog("failed to set PAM_RUSER %s: %s\n", user, pam_strerror(pamh, ret));
 	return false;
     }
 
-    retPAM = pam_setcred(pamh, PAM_ESTABLISH_CRED);
-    if (retPAM != PAM_SUCCESS) {
-	flog("setting PAM_ESTABLISH_CRED %s failed : %s\n", user,
-	     pam_strerror(pamh, retPAM));
+    ret = pam_setcred(pamh, PAM_ESTABLISH_CRED);
+    if (ret != PAM_SUCCESS) {
+	flog("failed to set PAM_ESTABLISH_CRED %s: %s\n", user,
+	     pam_strerror(pamh, ret));
 	return false;
     }
 
     return true;
 }
 
-static bool startPAMsession(char *user)
+pamserviceOpenSession_t pamserviceOpenSession;
+
+bool pamserviceOpenSession(char *user)
 {
     if (!pamh) {
 	flog("invalid PAM handle for %s\n", user);
@@ -81,10 +80,9 @@ static bool startPAMsession(char *user)
 
     fdbg(PAMSERVICE_LOG_DEBUG, "start PAM session for %s\n", user);
 
-    retPAM = pam_open_session(pamh, PAM_SILENT);
-    if (retPAM != PAM_SUCCESS) {
-	flog("open PAM session for %s failed : %s\n", user,
-	     pam_strerror(pamh, retPAM));
+    int ret = pam_open_session(pamh, PAM_SILENT);
+    if (ret != PAM_SUCCESS) {
+	flog("no PAM session for %s: %s\n", user, pam_strerror(pamh, ret));
 	return false;
     }
 
@@ -99,30 +97,38 @@ static bool startPAMsession(char *user)
     return true;
 }
 
-static int finishPAMservice(void *unused)
+pamserviceStopService_t pamserviceStopService;
+
+bool pamserviceStopService(void)
 {
     if (!pamh) {
 	flog("invalid PAM handle\n");
-	return 0;
+	return false;
     }
 
     fdbg(PAMSERVICE_LOG_DEBUG, "stop PAM service\n");
 
-    retPAM = pam_close_session(pamh, 0);
-    if (retPAM != PAM_SUCCESS) {
-	flog("closing PAM session failed : %s\n", pam_strerror(pamh, retPAM));
-    }
-
-    retPAM = pam_setcred(pamh, PAM_DELETE_CRED);
-    if (retPAM != PAM_SUCCESS) {
-	flog("removing PAM credentials failed : %s\n",
-	     pam_strerror(pamh, retPAM));
-    }
-
-    int ret = pam_end(pamh, retPAM);
+    int ret = pam_close_session(pamh, 0);
     if (ret != PAM_SUCCESS) {
-	flog("ending PAM failed : %s\n", pam_strerror(pamh, ret));
+	flog("closing PAM session failed: %s\n", pam_strerror(pamh, ret));
     }
+
+    ret = pam_setcred(pamh, PAM_DELETE_CRED);
+    if (ret != PAM_SUCCESS) {
+	flog("removing PAM credentials failed: %s\n", pam_strerror(pamh, ret));
+    }
+
+    ret = pam_end(pamh, ret);
+    if (ret != PAM_SUCCESS) {
+	flog("ending PAM failed: %s\n", pam_strerror(pamh, ret));
+    }
+
+    return true;
+}
+
+static int finishPAMservice(void *unused)
+{
+    pamserviceStopService();
     return 0;
 }
 
@@ -140,10 +146,17 @@ static int handleExecForwarder(void *data)
     return ret ? 0 : -1;
 }
 
+pamserviceStartService_t pamserviceStartService;
+
+bool pamserviceStartService(char *user)
+{
+    return startPAMservice(user);
+}
+
 static int handlePsslurmFWinit(void *data)
 {
     char *user = data;
-    return startPAMservice(user) ? 0 : -1;
+    return pamserviceStartService(user) ? 0 : -1;
 }
 
 static int handleExecClient(void *data)
@@ -155,7 +168,7 @@ static int handleExecClient(void *data)
 	return 0;
     }
 
-    bool ret = startPAMsession(user);
+    bool ret = pamserviceOpenSession(user);
     ufree(user);
     return ret ? 0 : -1;
 }
@@ -163,7 +176,7 @@ static int handleExecClient(void *data)
 static int handlePsslurmJobExec(void *data)
 {
     char *user = data;
-    return startPAMsession(user) ? 0 : -1;
+    return pamserviceOpenSession(user) ? 0 : -1;
 }
 
 int initialize(FILE *logfile)
