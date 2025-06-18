@@ -612,7 +612,7 @@ static void handleTaskPrologueOut(char *output, void *info)
  * epilogue
  */
 static void execTaskPElogue(Step_t *step, PStask_t *task, char *taskScript,
-		           bool prologue)
+			    bool prologue)
 {
     char buffer[PATH_MAX];
 

@@ -364,10 +364,10 @@ int Script_exec(Script_Data_t *script)
     pid_t pid = fork();
     if (pid < 0) {
 	pluginwarn(errno, "fork()");
-        if (script->cbOutput) {
-            close(iofds[0]);
-            close(iofds[1]);
-        }
+	if (script->cbOutput) {
+	    close(iofds[0]);
+	    close(iofds[1]);
+	}
 	return status;
     }
 
