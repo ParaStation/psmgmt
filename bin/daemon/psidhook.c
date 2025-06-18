@@ -22,7 +22,10 @@
 
 /** List of hooks obsoleted in the meantime; trying to add a function
  * to one of these hooks will fail. */
-PSIDhook_t obsoleteHooks[] = { 0 /* end of array */ };
+PSIDhook_t obsoleteHooks[] = { PSIDHOOK_PSSLURM_JOB_FWINIT,
+			       PSIDHOOK_PSSLURM_JOB_FWFIN,
+			       PSIDHOOK_PSSLURM_JOB_EXEC,
+			       0 /* end of array */ };
 
 /** Structure used to create actual function lists */
 typedef struct {

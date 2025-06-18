@@ -55,6 +55,7 @@
 #include "psidscripts.h"
 #include "psidtask.h"
 
+#include "pamservice_handles.h"
 #include "peloguehandles.h"
 #include "psaccounthandles.h"
 #include "pspmihandles.h"
@@ -381,7 +382,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 
     setFilePermissions(job);
 
-    PSIDhook_call(PSIDHOOK_PSSLURM_JOB_EXEC, job->username);
+    if (pamserviceOpenSession) pamserviceOpenSession(job->username);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -1491,7 +1492,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
     Job_deleteAll(job);
     Step_deleteAll(NULL);
 
-    PSIDhook_call(PSIDHOOK_PSSLURM_JOB_FWINIT, job->username);
+    if (pamserviceStartService) pamserviceStartService(job->username);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -1546,7 +1547,7 @@ static void jobForwarderFin(Forwarder_Data_t *fwdata)
     Job_t *job = fwdata->userData;
     job->exitCode = fwdata->chldExitStatus;
 
-    PSIDhook_call(PSIDHOOK_PSSLURM_JOB_FWFIN, job->username);
+    if (pamserviceStopService) pamserviceStopService();
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {

@@ -220,14 +220,14 @@ typedef enum {
 				the psgw plugin. */
     PSIDHOOK_PSSLURM_JOB_FWINIT,/**< In psslurm job forwarder's init()
 				function. Arg is job owner's username.
-				Called by pamservice plugin */
+				Called by pamservice plugin. (obsolete) */
     PSIDHOOK_PSSLURM_JOB_FWFIN,/**< In psslurm job forwarder's finalize()
 				function. Arg is job owner's username.
-				Called by pamservice plugin */
+				Called by pamservice plugin. (obsolete) */
     PSIDHOOK_PSSLURM_JOB_EXEC,/**< In the psslurm job forwarder as root before
 				switching to job owner and executing the
 				jobscript. Arg is job owner's username.
-				Called by pamservice plugin */
+				Called by pamservice plugin. (obsolete) */
     PSIDHOOK_DIST_INFO,       /**< Called in msg_SETOPTION when
 				information is updated. Shall trigger
 				distribution of option updates. Arg is

@@ -153,11 +153,6 @@ bool pamserviceStartService(char *user)
     return startPAMservice(user);
 }
 
-static int handlePsslurmFWinit(void *data)
-{
-    char *user = data;
-    return pamserviceStartService(user) ? 0 : -1;
-}
 
 static int handleExecClient(void *data)
 {
@@ -173,12 +168,6 @@ static int handleExecClient(void *data)
     return ret ? 0 : -1;
 }
 
-static int handlePsslurmJobExec(void *data)
-{
-    char *user = data;
-    return pamserviceOpenSession(user) ? 0 : -1;
-}
-
 #define addHook(hookName, hookFunc)			\
     if (!PSIDhook_add(hookName, hookFunc)) {		\
 	mlog("register '" #hookName "' failed\n");      \
@@ -192,9 +181,6 @@ int initialize(FILE *logfile)
     addHook(PSIDHOOK_EXEC_FORWARDER, handleExecForwarder);
     addHook(PSIDHOOK_EXEC_CLIENT, handleExecClient);
     addHook(PSIDHOOK_FRWRD_EXIT, finishPAMservice);
-    addHook(PSIDHOOK_PSSLURM_JOB_FWINIT, handlePsslurmFWinit);
-    addHook(PSIDHOOK_PSSLURM_JOB_EXEC, handlePsslurmJobExec);
-    addHook(PSIDHOOK_PSSLURM_JOB_FWFIN, finishPAMservice);
 
     mlog("(%i) successfully started\n", version);
     return 0;
@@ -209,9 +195,6 @@ void cleanup(void)
     relHook(PSIDHOOK_EXEC_FORWARDER, handleExecForwarder);
     relHook(PSIDHOOK_EXEC_CLIENT, handleExecClient);
     relHook(PSIDHOOK_FRWRD_EXIT, finishPAMservice);
-    relHook(PSIDHOOK_PSSLURM_JOB_FWINIT, handlePsslurmFWinit);
-    relHook(PSIDHOOK_PSSLURM_JOB_EXEC, handlePsslurmJobExec);
-    relHook(PSIDHOOK_PSSLURM_JOB_FWFIN, finishPAMservice);
 
     mlog("...Bye.\n");
 
