@@ -16,6 +16,7 @@ psaccount_dir := plugins/psaccount
 pelogue_dir   := plugins/pelogue
 psmunge_dir   := plugins/psmunge
 pspam_dir     := plugins/pspam/pspam
+pamservice_dir:= plugins/pspam/service
 psexec_dir    := plugins/psexec
 pspmi_dir     := plugins/pspmi
 pspmix_dir    := plugins/pspmix
@@ -30,6 +31,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 	       -I$(top_srcdir)/$(pelogue_dir) \
 	       -I$(top_srcdir)/$(psmunge_dir) \
 	       -I$(top_srcdir)/$(pspam_dir) \
+	       -I$(top_srcdir)/$(pamservice_dir) \
 	       -I$(top_srcdir)/$(psexec_dir) \
 	       -I$(top_srcdir)/$(pspmi_dir) \
 	       -I$(top_srcdir)/$(pspmix_dir) \

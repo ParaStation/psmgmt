@@ -36,6 +36,7 @@
 #include "psidutil.h"
 
 #include "jailhandles.h"
+#include "pamservice_handles.h"
 #include "peloguehandles.h"
 #include "psaccounthandles.h"
 #include "psexechandles.h"
@@ -88,7 +89,7 @@ int oldExceptions = -1;
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 118;
-int requiredAPI =143;
+int requiredAPI =146;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 5 },
     { .name = "psaccount", .version = 30 },
@@ -130,6 +131,25 @@ static void cleanupJobs(void)
     }
 }
 
+static bool regPAMServiceHandles(bool verbose);
+static void dropPAMServiceHandles(void);
+
+static int handlePluginLoaded(void *data)
+{
+    char *name = data;
+    if (name && !strcmp(name, "pam_service")) regPAMServiceHandles(true);
+
+    return 0;
+}
+
+static int handlePluginFinalize(void *data)
+{
+    char *name = data;
+    if (name && !strcmp(name, "pam_service")) dropPAMServiceHandles();
+
+    return 0;
+}
+
 /** Flag hook de/registration */
 static bool hooksRegistered = false;
 
@@ -165,6 +185,8 @@ static void unregisterHooks(bool verbose)
     relHook(PSIDHOOK_PELOGUE_OE, handlePelogueOE);
     relHook(PSIDHOOK_PELOGUE_GLOBAL, handlePelogueGlobal);
     relHook(PSIDHOOK_PELOGUE_DROP, handlePelogueDrop);
+    relHook(PSIDHOOK_PLUGIN_LOADED, handlePluginLoaded);
+    relHook(PSIDHOOK_PLUGIN_FINALIZE, handlePluginFinalize);
 
     hooksRegistered = false;
 }
@@ -201,6 +223,8 @@ static bool registerHooks(void)
     addHook(PSIDHOOK_PELOGUE_OE, handlePelogueOE);
     addHook(PSIDHOOK_PELOGUE_GLOBAL, handlePelogueGlobal);
     addHook(PSIDHOOK_PELOGUE_DROP, handlePelogueDrop);
+    addHook(PSIDHOOK_PLUGIN_LOADED, handlePluginLoaded);
+    addHook(PSIDHOOK_PLUGIN_FINALIZE, handlePluginFinalize);
 
     return true;
 }
@@ -345,6 +369,28 @@ static bool regJailHandles(void)
     return true;
 }
 
+static bool regPAMServiceHandles(bool verbose)
+{
+    void *pluginHandle = PSIDplugin_getHandle("pam_service");
+    if (!pluginHandle) {
+	if (verbose) flog("getting pam_service handle failed\n");
+	return false;
+    }
+
+    loadHandle(pluginHandle, pamserviceStartService);
+    loadHandle(pluginHandle, pamserviceOpenSession);
+    loadHandle(pluginHandle, pamserviceStopService);
+
+    return true;
+}
+
+static void dropPAMServiceHandles(void)
+{
+    pamserviceStartService = NULL;
+    pamserviceOpenSession = NULL;
+    pamserviceStopService = NULL;
+}
+
 static bool initPluginHandles(void)
 {
     /* get psaccount function handles */
@@ -370,6 +416,9 @@ static bool initPluginHandles(void)
 
     /* get jail function handles */
     if (!regJailHandles()) return false;
+
+    /* get pam_service function handles; this might fail since it is optional */
+    regPAMServiceHandles(false);
 
     return true;
 }
