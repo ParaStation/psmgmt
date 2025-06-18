@@ -1591,28 +1591,34 @@ static char * getGpuBindString(char *tres_bind)
 /**
  * @brief Get the index of the minimum value in a subset of an array
  *
- * Get the index of the minimum of the array of values @a val under
- * the constraint to take only the @a num indeces given by @a subset
- * into account.
+ * Get the index of the minimum value in array @a values under
+ * the constraint to take only the indeces set in @a idcs into account with
+ * a maximal index of @a max.
  *
- * @param array Array of values
+ * @param values Array of values
  *
- * @param subset Valid indices of @a array to be taken into account
+ * @param idxs Valid indices of @a array to be taken into account
  *
- * @param num Length of @a subset
+ * @param max Maximum index to check
  *
  * @return Index contained in subset with minimum value in array or -1
  * on error
  */
-static ssize_t getMinimumIndex(uint32_t *val, uint16_t *subset, size_t num)
+static ssize_t getMinimumIndex(uint32_t *values, PSCPU_set_t idcs, uint16_t max)
 {
-    if (!val || !subset || !num) return -1;
-    size_t ret = subset[0];
-    uint32_t minVal = val[subset[0]];
-    for (size_t i = 1; i < num; i++) {
-	if (val[subset[i]] < minVal) {
-	    ret = subset[i];
-	    minVal = val[subset[i]];
+    if (!values) return -1;
+    if (!PSCPU_any(idcs, max)) return -1;
+    /* find first index */
+    uint16_t first = 0;
+    while (!PSCPU_isSet(idcs, first)) first++;
+    uint32_t minVal = values[first];
+    ssize_t ret = first;
+    for (uint16_t i = first+1; i <= max; i++) {
+	if (!PSCPU_isSet(idcs, i)) continue;
+	if (values[i] < minVal) {
+	    /* found new minimum */
+	    ret = i;
+	    minVal = values[i];
 	}
     }
     return ret;
@@ -1653,6 +1659,8 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
     *map_gpu = NULL;
     *mask_gpu = NULL;
     *gpus_per_task = 0;
+
+    fdbg(PSSLURM_LOG_PART, "gpu_bind: '%s'\n", gpu_bind);
 
     if (!strncasecmp(gpu_bind, "verbose", 7)) {
 	*verbose = true;
@@ -1766,23 +1774,33 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	flog("gpu_bind type \"mask_gpu\" is not supported by psslurm\n");
 	uprintf("gpu_bind type \"mask_gpu\" is not supported\n");
 	return -1;
-    } else if (gpus_per_task > 1) {
-	//@todo we need to support more than one GPU per task to support this
-	flog("unsupported number of gpus_per_task: %d\n", gpus_per_task);
-	uprintf("Only one (or all) GPU per task is supported\n");
-	return -1;
     } else {
+	/* one GPU set for each local task */
 	PSCPU_set_t gpus[ltnum];
 	for (size_t i = 0; i < ltnum; i++) PSCPU_clrAll(gpus[i]);
 
-	uint32_t used[PSIDnodes_numGPUs(step->nodes[stepNodeId])];
+	size_t numNodeGPUs = PSIDnodes_numGPUs(step->nodes[stepNodeId]);
+
+	if (PSCPU_MAX < numNodeGPUs) {
+	    flog("ERROR: only %u GPUs per node supported (%zu found)\n",
+		 PSCPU_MAX, numNodeGPUs);
+	    return false;
+	}
+
+	/* array to track to how many tasks each GPU assigned to the step
+	 * is pinned */
+	uint32_t used[numNodeGPUs];
 	memset(used, 0, sizeof(used));
 
+	/* find GPU(s) for each local task */
 	for (uint32_t lTID = 0; lTID < ltnum; lTID++) {
 	    uint32_t tid = step->globalTaskIds[stepNodeId][lTID];
 
+	    /* list of close GPUs with maximum all GPUs of the node */
 	    uint16_t closeList[PSIDnodes_numGPUs(step->nodes[stepNodeId])];
 	    size_t closeCnt = 0;
+
+	    /* get the list of close GPUs filled */
 	    cpu_set_t *physSet = PSIDpin_mapCPUs(step->nodes[stepNodeId],
 						 step->slots[tid].CPUset);
 	    if (!PSIDpin_getCloseDevs(step->nodes[stepNodeId], physSet,
@@ -1792,14 +1810,53 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 		return -1;
 	    }
 
-	    /* find least used assigned close GPU */
-	    uint16_t lstUsedGPU = getMinimumIndex(used, closeList, closeCnt);
-	    fdbg(PSSLURM_LOG_PART, "Select least used of closest GPU for"
-		 " local task %u: %hu\n", lTID, lstUsedGPU);
-	    PSCPU_setCPU(gpus[lTID], lstUsedGPU);
-	    used[lstUsedGPU]++;
+	    /* create set of GPUs to use containing the closest assigned GPUs */
+	    /* @todo maybe change PSIDpin_getCloseDevs() to directly use
+	     * bit masks (PSCPU_set_t) */
+	    PSCPU_set_t useGPUs;
+	    PSCPU_clrAll(useGPUs);
+	    for (size_t i = 0; i < closeCnt; i++) {
+		PSCPU_setCPU(useGPUs, closeList[i]);
+	    }
+
+	    /* we rely on gpus_per_task no being larger than the number of
+	     * GPUs assigned to the step @todo double-check */
+
+	    for (int i = gpus_per_task > 1 ? gpus_per_task : 1; i > 0; i--) {
+
+		char *mode = "closest";
+
+		/* are there close GPUs left? */
+		if (!PSCPU_any(useGPUs, numNodeGPUs)) {
+		    if (lTID == localRankId) {
+			uprintf("Warning: Not enough closest GPUs to fullfil"
+			    " --gpus-per-task request. Using arbitrary GPUs."
+			     " GPU pinning will propably be suboptimal.\n");
+		    }
+		    mode = "any";
+
+		    /* now choose from all assigned GPUs */
+		    PSCPU_copy(useGPUs, assGPUs);
+		    for (size_t i = 0; i < closeCnt; i++) {
+			PSCPU_clrCPU(useGPUs, closeList[i]);
+		    }
+		}
+
+		/* find least used assigned GPU */
+		uint16_t lstUsedGPU = getMinimumIndex(used, useGPUs,
+						      numNodeGPUs);
+		fdbg(PSSLURM_LOG_PART, "Select least used of %s GPU for"
+		     " local task %u: %hu\n", mode, lTID, lstUsedGPU);
+
+		/* remove from GPUs to use, set as pinned to this task and
+		 * increase the usage counter */
+		PSCPU_clrCPU(useGPUs, lstUsedGPU);
+		PSCPU_setCPU(gpus[lTID], lstUsedGPU);
+		used[lstUsedGPU]++;
+	    }
 	}
 
+	/* copy the pinned GPUs for this rank */
 	PSCPU_copy(*rankGPUs, gpus[localRankId]);
     }
 
