@@ -33,6 +33,12 @@
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 
+/** time script was started */
+static time_t startTime;
+
+/** script currenlty executed */
+static Script_Data_t *execScript;
+
 Script_Data_t *ScriptData_new(char *sPath)
 {
     if (!sPath || sPath[0] == '\0') {
@@ -221,7 +227,19 @@ static int killSession(pid_t pid, int signal)
 
 static void alarmHandler(int sig)
 {
-    plugindbg(PLUGIN_LOG_SCRIPT, "runtime limit reached\n");
+    if (execScript && execScript->runtime) {
+	if ((time(NULL) - startTime) >= execScript->runtime) {
+	    plugindbg(PLUGIN_LOG_SCRIPT, "runtime limit reached: SIGTERM\n");
+	    pskill(-(execScript->childPid), SIGTERM, execScript->uid);
+	    alarm(execScript->grace);
+	}
+	if ((time(NULL) - startTime)
+	    >= (execScript->runtime + execScript->grace)) {
+	    plugindbg(PLUGIN_LOG_SCRIPT, "runtime limit reached: SIGKILL\n");
+	    pskill(-(execScript->childPid), SIGKILL, execScript->uid);
+	    alarm(0);
+	}
+    }
 }
 
 static bool handleFwMsg(DDTypedBufferMsg_t *ddMsg, Forwarder_Data_t *fwdata)
@@ -362,6 +380,17 @@ int Script_exec(Script_Data_t *script)
     /* This is the parent */
     script->childPid = pid;
     PSID_blockSig(SIGTERM, blocked);
+    execScript = script;
+
+    /* wait for child to finalize */
+    void *oldAlarm = NULL;
+    if (script->runtime) {
+	startTime = time(NULL);
+	oldAlarm = PSC_setSigHandler(SIGALRM, alarmHandler);
+	blocked = PSID_blockSig(SIGALRM, false);
+	alarm(script->runtime);
+    }
+
     if (script->cbOutput) {
 	close(iofds[1]);
 	script->iofd = iofds[0];
@@ -374,31 +403,9 @@ int Script_exec(Script_Data_t *script)
 	}
     }
 
-    /* wait for child to finalize */
-    time_t startTime = time(NULL);
-    void *oldAlarm = NULL;
-    if (script->runtime) {
-	oldAlarm = PSC_setSigHandler(SIGALRM, alarmHandler);
-	blocked = PSID_blockSig(SIGALRM, false);
-	alarm(script->runtime);
-    }
-
     while (1) {
 	if (waitpid(pid, &status, 0) < 0) {
-	    if (errno == EINTR) {
-		if (script->runtime) {
-		    if ((time(NULL) - startTime) >= script->runtime) {
-			pskill(-pid, SIGTERM, script->uid);
-			alarm(script->grace);
-		    }
-		    if ((time(NULL) - startTime) >=
-			    (script->runtime + script->grace)) {
-			pskill(-pid, SIGKILL, script->uid);
-			break;
-		    }
-		}
-		continue;
-	    }
+	    if (errno == EINTR) continue;
 	    pskill(-pid, SIGKILL, script->uid);
 	    break;
 	}
