@@ -272,7 +272,7 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 	char *gpuVar = getenv(variables[i]);
 	if (!gpuVar || PSIDpin_checkAutoVar(variables[i], gpuVar, val)) {
 	    /* variable not set at all or set automatically and not
-	     * unchanged in the meantime => set it */
+	     * changed in the meantime => set it */
 	    setenv(variables[i], val, 1);
 	} else {
 	    PSID_fdbg(PSID_LOG_SPAWN, "keep '%s=%s'\n", variables[i], gpuVar);
