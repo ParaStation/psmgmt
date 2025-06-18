@@ -282,6 +282,9 @@ static void fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
     Script_Data_t *script = fw->userData;
     if (!script) return;
 
+    /* ensure we don't double free */
+    script->fwdata = NULL;
+
     /* handle dangling script output */
     if (script->outBuf) {
 	if (script->cbOutput) script->cbOutput(script->outBuf, script->info);
@@ -289,10 +292,7 @@ static void fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
 
     plugindbg(PLUGIN_LOG_SCRIPT, "script exited with %i\n", exit_status);
-    if (script->cbResult) script->cbResult(exit_status, script->info);
-
-    /* ensure we don't double free */
-    script->fwdata = NULL;
+    if (script->cbResult) script->cbResult(exit_status, script);
 }
 
 static int spawnScriptForwarder(Script_Data_t *script)

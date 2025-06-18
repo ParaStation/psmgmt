@@ -18,6 +18,9 @@
 #include "psenv.h"
 #include "psstrv.h"
 
+/* forward declaration */
+typedef struct __scriptData__ Script_Data_t;
+
 /**
  * @brief Callback reporting the result of an executed script. This is
  * only called if the script is started by @ref Script_exec() from
@@ -30,9 +33,9 @@
  *
  * @param exitStatus Scripts exit status of the script
  *
- * @param info Pointer to script's info field
+ * @param script Script structure of finalized script
  */
-typedef void Script_cbResult_t(int32_t exitStatus, void *info);
+typedef void Script_cbResult_t(int32_t exitStatus, Script_Data_t *script);
 
 /**
  * @brief Callback which is invoked for every output line the script
@@ -53,7 +56,8 @@ typedef void Script_cbOutput_t(char *line, void *info);
 typedef void Script_cbPrepPriv_t(void *);
 
 /** Structure defining all parameter's of a script */
-typedef struct {
+
+typedef struct __scriptData__ {
     char *username;	    /**< optional username for the script */
     uid_t uid;		    /**< optional user ID of the script */
     gid_t gid;		    /**< optional group ID of the script */

@@ -73,7 +73,7 @@ typedef struct {
     char *name;
     char *arg;
     void (*fp)(char *output, void *info);
-    void (*cb)(int32_t status, void *info);
+    void (*cb)(int32_t status, Script_Data_t *script);
 } Command_Map_t;
 
 /** forward declaration */
@@ -443,7 +443,7 @@ static bool execCPUFreqScriptEx(Script_CMDs_t cmd, strv_t addArgV);
  * therefore has to be completed before any further data
  * gathering.
  */
-static void cbListCPUs(int32_t status, void *info)
+static void cbListCPUs(int32_t status, Script_Data_t *script)
 {
     initFlags |= INIT_LIST_CPUS;
 
@@ -468,22 +468,25 @@ static void cbListCPUs(int32_t status, void *info)
 
     /* read (optional) list all of CPU frequencies */
     execCPUFreqScript(CMD_GET_AVAIL_FREQ);
+    Script_destroy(script);
 
     return;
 
 ERROR:
     initFailure = true;
     retInitResult();
+    Script_destroy(script);
 }
 
 /**
  * @brief Callback for CMD_GET_AVAIL_GOV
  */
-static void cbGetAvailGov(int32_t status, void *info)
+static void cbGetAvailGov(int32_t status, Script_Data_t *script)
 {
     initFlags |= INIT_GET_AVAIL_GOV;
     if (status) initFailure = true;
     testInitComplete();
+    Script_destroy(script);
 }
 
 /**
@@ -521,7 +524,7 @@ static void calcAvailCPUfreq()
 /**
  * @brief Callback for CMD_GET_AVAIL_FREQ
  */
-static void cbGetAvailFreq(int32_t status, void *info)
+static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 {
     initFlags |= INIT_GET_AVAIL_FREQ;
 
@@ -551,12 +554,13 @@ static void cbGetAvailFreq(int32_t status, void *info)
     }
 
     testInitComplete();
+    Script_destroy(script);
 }
 
 /**
  * @brief Callback for CMD_GET_FREQ
  */
-static void cbGetFreq(int32_t status, void *info)
+static void cbGetFreq(int32_t status, Script_Data_t *script)
 {
     initFlags |= INIT_GET_FREQ;
     if (status) initFailure = true;
@@ -584,12 +588,13 @@ static void cbGetFreq(int32_t status, void *info)
     }
 
     testInitComplete();
+    Script_destroy(script);
 }
 
 /**
  * @brief Callback for CMD_GET_CUR_GOV
  */
-static void cbGetCurGov(int32_t status, void *info)
+static void cbGetCurGov(int32_t status, Script_Data_t *script)
 {
     initFlags |= INIT_GET_CUR_GOV;
     if (status) initFailure = true;
@@ -607,6 +612,7 @@ static void cbGetCurGov(int32_t status, void *info)
     }
 
     testInitComplete();
+    Script_destroy(script);
 }
 
 /* map containing description, argument and function for a command */
