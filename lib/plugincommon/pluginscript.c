@@ -343,11 +343,9 @@ static int spawnScriptForwarder(Script_Data_t *script)
 
 int Script_exec(Script_Data_t *script)
 {
-    int status = -1;
-
     if (!script) {
 	pluginflog("invalid script given\n");
-	return status;
+	return -1;
     }
 
     /* execute script from within a plugin forwarder if called in main psid */
@@ -357,7 +355,7 @@ int Script_exec(Script_Data_t *script)
     int iofds[2];
     if (script->cbOutput && pipe(iofds) < 0) {
 	pluginwarn(errno, "pipe()");
-	return status;
+	return -1;
     }
 
     bool blocked = PSID_blockSig(SIGTERM, true);
@@ -368,7 +366,7 @@ int Script_exec(Script_Data_t *script)
 	    close(iofds[0]);
 	    close(iofds[1]);
 	}
-	return status;
+	return -1;
     }
 
     /* execute child */
@@ -399,10 +397,11 @@ int Script_exec(Script_Data_t *script)
 	if (!handleScriptOutput(script)) {
 	    pskill(-pid, SIGKILL, script->uid);
 	    script->childPid = -1;
-	    return status;
+	    return -1;
 	}
     }
 
+    int status = -1;
     while (1) {
 	if (waitpid(pid, &status, 0) < 0) {
 	    if (errno == EINTR) continue;
