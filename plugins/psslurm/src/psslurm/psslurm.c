@@ -35,6 +35,7 @@
 #include "psidplugin.h"
 #include "psidutil.h"
 
+#include "jailhandles.h"
 #include "peloguehandles.h"
 #include "psaccounthandles.h"
 #include "psexechandles.h"
@@ -42,7 +43,6 @@
 #include "pspamhandles.h"
 #include "pspmihandles.h"
 #include "pspmixhandles.h"
-#include "jailhandles.h"
 
 #include "psslurmalloc.h"
 #include "psslurmauth.h"
@@ -335,12 +335,12 @@ static bool regPsPMIxHandles(void)
 static bool regJailHandles(void)
 {
     void *pluginHandle = PSIDplugin_getHandle("jail");
-
-    jailGetScripts = dlsym(pluginHandle, "jailGetScripts");
-    if (!jailGetScripts) {
-	flog("loading jailGetScripts() failed\n");
+    if (!pluginHandle) {
+	flog("getting jail handle failed\n");
 	return false;
     }
+
+    loadHandle(pluginHandle, jailGetScripts);
 
     return true;
 }
