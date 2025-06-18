@@ -63,7 +63,7 @@ typedef struct {
     int runtime;	    /**< runtime limit in seconds */
     pid_t childPid;	    /**< PID of the running child */
     void *info;		    /**< additional info pass to callbacks */
-    int iofds[2];	    /**< I/O channel between parent and script */
+    int iofd;		    /**< I/O channel between parent and script */
     char *outBuf;
     Forwarder_Data_t *fwdata;	    /**< pluginforwarder data used if started in
 				      main psid */

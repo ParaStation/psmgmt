@@ -100,12 +100,10 @@ void Script_destroy(Script_Data_t *script)
  */
 static bool handleScriptOutput(Script_Data_t *script)
 {
-    int fd = script->iofds[0];
-
-    FILE *output = fdopen(fd, "r");
+    FILE *output = fdopen(script->iofd, "r");
     if (!output) {
-	pluginfdbg(errno, "fdopen(%i)", fd);
-	close(fd);
+	pluginfdbg(errno, "fdopen(%i)", script->iofd);
+	close(script->iofd);
 	return false;
     }
 
@@ -142,17 +140,16 @@ static void execChild(Script_Data_t *script)
 
     if (!script->cbResult) {
 	/* close all FDs except I/O socket */
-	int iofds = script->iofds[1];
 	int maxFD = sysconf(_SC_OPEN_MAX);
 	for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) {
-	    if (script->cbOutput && fd != iofds) close(fd);
+	    if (script->cbOutput && fd != script->iofd) close(fd);
 	}
 
 	/* redirect output to parent */
 	if (script->cbOutput) {
-	    dup2(iofds, STDOUT_FILENO);
-	    dup2(iofds, STDERR_FILENO);
-	    close(iofds);
+	    dup2(script->iofd, STDOUT_FILENO);
+	    dup2(script->iofd, STDERR_FILENO);
+	    close(script->iofd);
 	}
     }
 
@@ -339,7 +336,8 @@ int Script_exec(Script_Data_t *script)
     if (PSC_isDaemon()) return spawnScriptForwarder(script);
 
     /* execute script directly outside the main psid */
-    if (script->cbOutput && pipe(script->iofds) < 0) {
+    int iofds[2];
+    if (script->cbOutput && pipe(iofds) < 0) {
 	pluginwarn(errno, "pipe()");
 	return status;
     }
@@ -348,17 +346,25 @@ int Script_exec(Script_Data_t *script)
     pid_t pid = fork();
     if (pid < 0) {
 	pluginwarn(errno, "fork()");
+        if (script->cbOutput) {
+            close(iofds[0]);
+            close(iofds[1]);
+        }
 	return status;
     }
 
     /* execute child */
-    if (!pid) execChild(script);
+    if (!pid) {
+	script->iofd = iofds[1];
+	execChild(script);
+    }
 
     /* This is the parent */
     script->childPid = pid;
     PSID_blockSig(SIGTERM, blocked);
     if (script->cbOutput) {
-	close(script->iofds[1]);
+	close(iofds[1]);
+	script->iofd = iofds[0];
 
 	/* parse child output */
 	if (!handleScriptOutput(script)) {
