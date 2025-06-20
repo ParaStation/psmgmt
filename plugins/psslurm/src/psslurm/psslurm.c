@@ -608,7 +608,7 @@ bool initSlurmOpt(void)
     };
     if (SpankCallHook(&spank) < 0) {
 	flog("hook SPANK_INIT failed\n");
-	goto INIT_ERROR;
+	return false;
     }
 #endif
 
