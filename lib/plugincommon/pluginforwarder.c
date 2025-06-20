@@ -662,7 +662,7 @@ static bool openOEpipes(Forwarder_Data_t *fw)
     return true;
 }
 
-static int execFWhooks(Forwarder_Data_t *fw)
+static bool execFWhooks(Forwarder_Data_t *fw)
 {
     /* initialize as root */
     if (fw->hookFWInit) {
@@ -670,7 +670,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	if (ret) {
 	    pluginflog("hookFWInit failed with %d\n", ret);
 	    sendCodeInfo(RC_HOOK_FW_INIT, ret);
-	    return ret;
+	    return false;
 	}
     }
 
@@ -681,7 +681,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	if (ret < 0) {
 	    pluginflog("hook PSIDHOOK_JAIL_CHILD failed\n");
 	    sendCodeInfo(RC_HOOK_JAIL_CHILD, ret);
-	    return -1;
+	    return false;
 	}
     }
 
@@ -690,7 +690,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	if (!switchUser(fw->userName, fw->uID, fw->gID)) {
 	    pluginflog("switchUser() failed\n");
 	    sendCodeInfo(RC_CMD_SWITCH_USER, -1);
-	    return -1;
+	    return false;
 	}
     }
 
@@ -700,11 +700,11 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	if (ret) {
 	    pluginflog("hookFWInitUser failed with %d\n", ret);
 	    sendCodeInfo(RC_HOOK_FW_INIT_USER, ret);
-	    return ret;
+	    return false;
 	}
     }
 
-    return 0;
+    return true;
 }
 
 static void execPluginForwarder(PStask_t *task)
@@ -725,8 +725,7 @@ static void execPluginForwarder(PStask_t *task)
 	exit(1);
     }
 
-    int ret = execFWhooks(fwData);
-    if (ret) {
+    if (!execFWhooks(fwData)) {
 	pluginflog("forwarder hooks failed\n");
 	exit(-1);
     }
@@ -788,7 +787,7 @@ static void execPluginForwarder(PStask_t *task)
 
 	if (fwData->fwChildOE) monitorOEpipes(fwData);
 	if (fwData->hookLoop) {
-	    ret = fwData->hookLoop(fwData);
+	    int ret = fwData->hookLoop(fwData);
 	    if (ret) {
 		pluginflog("forwarder hook loop failed %i\n", ret);
 		sendCodeInfo(RC_HOOK_FW_LOOP, ret);
