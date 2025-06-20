@@ -100,10 +100,6 @@ static uint32_t defaultMaxFreq;
 /** flag to indicate if all CPUs have the same available frequencies */
 static bool equalAvailFreq = true;
 
-/** sum of all initialization flags */
-#define INIT_COMPLETE ( INIT_LIST_CPUS | INIT_GET_AVAIL_GOV | INIT_GET_CUR_GOV \
-			| INIT_GET_FREQ	| INIT_GET_AVAIL_FREQ )
-
 /** list of initialization flags */
 typedef enum {
     INIT_LIST_CPUS	= 0x0001,
@@ -388,7 +384,7 @@ static void cmdPrintOutput(char *output, void *info)
  */
 static void testInitComplete(void)
 {
-    if (initFlags != INIT_COMPLETE) {
+    if (initFlags) {
 	plugindbg(PLUGIN_LOG_FREQ, "gathering progress: %i\n", initFlags);
 	return;
     }
@@ -445,31 +441,33 @@ static bool execCPUFreqScriptEx(Script_CMDs_t cmd, strv_t addArgV);
  */
 static void cbListCPUs(int32_t status, Script_Data_t *script)
 {
-    initFlags |= INIT_LIST_CPUS;
+    initFlags &= ~INIT_LIST_CPUS;
 
-    if (status) {
-	goto ERROR;
-    }
+    if (status) goto ERROR;
 
     if (execCPUFreqScript(CMD_GET_AVAIL_GOV)) {
 	pluginflog("unable to determine governors\n");
 	goto ERROR;
     }
+    initFlags |= INIT_GET_AVAIL_GOV;
 
     if (execCPUFreqScript(CMD_GET_CUR_GOV)) {
 	pluginflog("unable to determine current governor\n");
 	goto ERROR;
     }
+    initFlags |= INIT_GET_CUR_GOV;
 
     if (execCPUFreqScript(CMD_GET_FREQ)) {
 	pluginflog("unable to determine CPU frequencies\n");
 	goto ERROR;
     }
+    initFlags |= INIT_GET_FREQ;
 
     /* read (optional) list all of CPU frequencies */
     execCPUFreqScript(CMD_GET_AVAIL_FREQ);
-    Script_destroy(script);
+    initFlags |= INIT_GET_AVAIL_FREQ;
 
+    Script_destroy(script);
     return;
 
 ERROR:
@@ -483,7 +481,7 @@ ERROR:
  */
 static void cbGetAvailGov(int32_t status, Script_Data_t *script)
 {
-    initFlags |= INIT_GET_AVAIL_GOV;
+    initFlags &= ~INIT_GET_AVAIL_GOV;
     if (status) initFailure = true;
     testInitComplete();
     Script_destroy(script);
@@ -526,7 +524,7 @@ static void calcAvailCPUfreq()
  */
 static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 {
-    initFlags |= INIT_GET_AVAIL_FREQ;
+    initFlags &= ~INIT_GET_AVAIL_FREQ;
 
     /* not all systems define available frequencies, this is no error */
     if (status) {
@@ -562,7 +560,7 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
  */
 static void cbGetFreq(int32_t status, Script_Data_t *script)
 {
-    initFlags |= INIT_GET_FREQ;
+    initFlags &= ~INIT_GET_FREQ;
     if (status) initFailure = true;
 
     /* test if all CPUs have the same frequencies */
@@ -596,7 +594,7 @@ static void cbGetFreq(int32_t status, Script_Data_t *script)
  */
 static void cbGetCurGov(int32_t status, Script_Data_t *script)
 {
-    initFlags |= INIT_GET_CUR_GOV;
+    initFlags &= ~INIT_GET_CUR_GOV;
     if (status) initFailure = true;
 
     /* test if all CPUs have the same default governor */
@@ -683,6 +681,7 @@ void CPUfreq_init(const char *cpuSysPath, CPUfreq_initCB_t *cb)
 	pluginflog("unable to initialize CPUs\n");
 	goto ERROR;
     }
+    initFlags |= INIT_LIST_CPUS;
 
     return;
 
