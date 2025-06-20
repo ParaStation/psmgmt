@@ -359,7 +359,6 @@ int Script_exec(Script_Data_t *script)
 	return -1;
     }
 
-    bool blocked = PSID_blockSig(SIGTERM, true);
     pid_t pid = fork();
     if (pid < 0) {
 	pluginwarn(errno, "fork()");
@@ -378,15 +377,13 @@ int Script_exec(Script_Data_t *script)
 
     /* This is the parent */
     script->childPid = pid;
-    PSID_blockSig(SIGTERM, blocked);
     execScript = script;
 
     /* wait for child to finalize */
-    void *oldAlarm = NULL;
     if (script->runtime) {
 	startTime = time(NULL);
-	oldAlarm = PSC_setSigHandler(SIGALRM, alarmHandler);
-	blocked = PSID_blockSig(SIGALRM, false);
+	PSC_setSigHandler(SIGALRM, alarmHandler);
+	PSID_blockSig(SIGALRM, false);
 	alarm(script->runtime);
     }
 
@@ -412,11 +409,7 @@ int Script_exec(Script_Data_t *script)
     }
 
     script->childPid = -1;
-    if (script->runtime) {
-	alarm(0);
-	if (blocked) PSID_blockSig(SIGALRM, blocked);
-	PSC_setSigHandler(SIGALRM, oldAlarm);
-    }
+    if (script->runtime) alarm(0);
 
     return status;
 }
