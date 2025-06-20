@@ -22,6 +22,7 @@
 #include "pluginlog.h"
 #include "pluginmalloc.h"
 #include "pluginscript.h"
+#include "pluginhelper.h"
 
 /* path to default CPU frequency script */
 #define FREQ_SCRIPT PKGLIBEXECDIR "/cpufreq.py"
@@ -161,8 +162,7 @@ CPUfreq_governors_t CPUfreq_str2Gov(char *govName)
     if (!govName) return GOV_UNDEFINED;
 
     for (int i = 0; Governors_Map[i].name; i++) {
-	size_t len = strlen(Governors_Map[i].name);
-	if (!strncmp(Governors_Map[i].name, govName, len)) {
+	if (!strcmp(Governors_Map[i].name, trim(govName))) {
 	    return Governors_Map[i].gov;
 	}
     }
