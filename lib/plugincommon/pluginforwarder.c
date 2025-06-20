@@ -544,11 +544,11 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
  * main psid.  To identify the failed operation a @a type is included
  * in the message. See @ref FW_RC_Types_t for possible operation types.
  *
- * @param ecode Exit code of the operation
- *
  * @param type Type of the operation which failed
+ *
+ * @param ecode Exit code of the operation
  */
-static void sendCodeInfo(int32_t ecode, FW_RC_Types_t type)
+static void sendCodeInfo(FW_RC_Types_t type, int32_t ecode)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -669,7 +669,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	int ret = fw->hookFWInit(fw);
 	if (ret) {
 	    pluginflog("hookFWInit failed with %d\n", ret);
-	    sendCodeInfo(ret, RC_HOOK_FW_INIT);
+	    sendCodeInfo(RC_HOOK_FW_INIT, ret);
 	    return ret;
 	}
     }
@@ -680,7 +680,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	int ret = PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
 	if (ret < 0) {
 	    pluginflog("hook PSIDHOOK_JAIL_CHILD failed\n");
-	    sendCodeInfo(ret, RC_HOOK_JAIL_CHILD);
+	    sendCodeInfo(RC_HOOK_JAIL_CHILD, ret);
 	    return -1;
 	}
     }
@@ -689,7 +689,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
     if (fw->uID != getuid() || fw->gID != getgid()) {
 	if (!switchUser(fw->userName, fw->uID, fw->gID)) {
 	    pluginflog("switchUser() failed\n");
-	    sendCodeInfo(-1, RC_CMD_SWITCH_USER);
+	    sendCodeInfo(RC_CMD_SWITCH_USER, -1);
 	    return -1;
 	}
     }
@@ -699,7 +699,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	int ret = fw->hookFWInitUser(fw);
 	if (ret) {
 	    pluginflog("hookFWInitUser failed with %d\n", ret);
-	    sendCodeInfo(-1, RC_HOOK_FW_INIT_USER);
+	    sendCodeInfo(RC_HOOK_FW_INIT_USER, -1);
 	    return ret;
 	}
     }
@@ -791,7 +791,7 @@ static void execPluginForwarder(PStask_t *task)
 	    ret = fwData->hookLoop(fwData);
 	    if (ret) {
 		pluginflog("forwarder hook loop failed %i\n", ret);
-		sendCodeInfo(ret, RC_HOOK_FW_LOOP);
+		sendCodeInfo(RC_HOOK_FW_LOOP, ret);
 		exit(-1);
 	    }
 	}
@@ -832,7 +832,7 @@ static void execPluginForwarder(PStask_t *task)
 	int ret = fwData->hookFinalize(fwData);
 	if (ret) {
 	    pluginflog("forwarder hook finalize failed %i\n", ret);
-	    sendCodeInfo(ret, RC_HOOK_FW_FINALIZE);
+	    sendCodeInfo(RC_HOOK_FW_FINALIZE, ret);
 	    exit(-1);
 	}
     }
