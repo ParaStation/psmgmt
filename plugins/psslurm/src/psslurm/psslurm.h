@@ -14,8 +14,6 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-#define INIT_COMPLETE ( INIT_CPU_FREQ | INIT_CONFIG_REQ )
-
 /** list of initialization flags */
 typedef enum {
     INIT_CPU_FREQ	= 0x0001,

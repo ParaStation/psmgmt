@@ -704,9 +704,9 @@ static void CPUfreqInitCB(bool result)
     flog("initialize CPU frequency facility %s\n",
 	 (result ? "succeeded" : "failed"));
 
-    initFlags |= INIT_CPU_FREQ;
+    initFlags &= ~INIT_CPU_FREQ;
 
-    if (initFlags == INIT_COMPLETE && !accomplishInit()) {
+    if (!initFlags && !accomplishInit()) {
 	/* finalize psslurm's startup failed */
 	flog("startup of psslurm failed\n");
 	PSIDplugin_finalize(name);
@@ -784,10 +784,12 @@ int initialize(FILE *logfile)
     /* CPU frequency scaling is hardware dependent and might
      * not be available at all */
     CPUfreq_init(getConfValueC(Config, "CPU_SCALING_DIR"), &CPUfreqInitCB);
+    initFlags |= INIT_CPU_FREQ;
 
     if (confRes == CONFIG_SERVER) {
 	char *confCache = getConfValueC(Config, "SLURM_CONF_CACHE");
 	if (needConfUpdate(confCache)) {
+	    initFlags |= INIT_CONFIG_REQ;
 	    /* wait for config response from slurmctld */
 	    if (!requestConfig()) goto INIT_ERROR;
 	    return 0;
@@ -799,9 +801,6 @@ int initialize(FILE *logfile)
 	/* parse configuration files */
 	if (!parseSlurmConfigFiles()) goto INIT_ERROR;
     }
-
-    /* configuration is up to date */
-    initFlags |= INIT_CONFIG_REQ;
 
     /* All further initialisation which requires Slurm configuration files *has*
      * to be done in accomplishInit(). It will be called after CPUfreq
