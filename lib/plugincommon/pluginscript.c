@@ -232,9 +232,9 @@ static void alarmHandler(int sig)
 	if ((time(NULL) - startTime) >= execScript->runtime) {
 	    plugindbg(PLUGIN_LOG_SCRIPT, "runtime limit reached: SIGTERM\n");
 	    pskill(-(execScript->childPid), SIGTERM, execScript->uid);
-	    alarm(execScript->grace);
+	    if (execScript->grace) alarm(execScript->grace);
 	}
-	if ((time(NULL) - startTime)
+	if (!execScript->grace || (time(NULL) - startTime)
 	    >= (execScript->runtime + execScript->grace)) {
 	    plugindbg(PLUGIN_LOG_SCRIPT, "runtime limit reached: SIGKILL\n");
 	    pskill(-(execScript->childPid), SIGKILL, execScript->uid);
