@@ -699,7 +699,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	int ret = fw->hookFWInitUser(fw);
 	if (ret) {
 	    pluginflog("hookFWInitUser failed with %d\n", ret);
-	    sendCodeInfo(RC_HOOK_FW_INIT_USER, -1);
+	    sendCodeInfo(RC_HOOK_FW_INIT_USER, ret);
 	    return ret;
 	}
     }
