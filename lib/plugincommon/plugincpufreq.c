@@ -529,6 +529,7 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
     /* not all systems define available frequencies, this is no error */
     if (status) {
 	calcAvailCPUfreq();
+	Script_destroy(script);
 	return;
     }
 
