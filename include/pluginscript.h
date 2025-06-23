@@ -19,7 +19,7 @@
 #include "psstrv.h"
 
 /* forward declaration */
-typedef struct __scriptData__ Script_Data_t;
+typedef struct scriptData Script_Data_t;
 
 /**
  * @brief Callback reporting the result of an executed script. This is
@@ -56,8 +56,7 @@ typedef void Script_cbOutput_t(char *line, void *info);
 typedef void Script_cbPrepPriv_t(void *);
 
 /** Structure defining all parameter's of a script */
-
-typedef struct __scriptData__ {
+struct scriptData {
     char *username;	    /**< optional username for the script */
     uid_t uid;		    /**< optional user ID of the script */
     gid_t gid;		    /**< optional group ID of the script */
@@ -74,7 +73,7 @@ typedef struct __scriptData__ {
     Script_cbResult_t *cbResult;    /**< see @ref Script_cbResult_t */
     Script_cbOutput_t *cbOutput;    /**< see @ref Script_cbOutput_t */
     Script_cbPrepPriv_t *prepPriv;  /**< see @ref Script_cbPrepPriv_t */
-} Script_Data_t;
+};
 
 /**
  * @brief Create new script structure
