@@ -133,7 +133,6 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     Job_t *job = fw->userData;
     Alloc_t *alloc = Alloc_find(job->jobid);
 
-
     flog("job '%u' finished, exit %i / %i\n", job->jobid, exit_status,
 	 fw->chldExitStatus);
     if (!Job_findById(job->jobid)) {

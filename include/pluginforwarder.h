@@ -121,7 +121,7 @@ typedef enum {
     PLGN_START_GRACE,    /**< plgn -> fw Start child's grace period */
     PLGN_SHUTDOWN,       /**< plgn -> fw Shutdown child */
     PLGN_ACCOUNT,        /**< fw -> plgn Resources used by child */
-    PLGN_EXITCODE,       /**< fw -> plgn Child hook exit code */
+    PLGN_EXITCODE,       /**< fw -> plgn Child hook exit code and type */
     PLGN_EXITSTATUS,     /**< fw -> plgn Child exit status */
     PLGN_FIN,            /**< fw -> plgn Forwarder going to finalize */
     PLGN_FIN_ACK,        /**< plgn -> fw ACK finalization */

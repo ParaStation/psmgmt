@@ -536,17 +536,18 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
 /**
  * @brief Send exit code for a fw operation
  *
- * During its lifetime the pluginforwarder executes different operations. This
- * includes various hooks and function calls. These can be executed at
- * initialization before a potential child is started or later after the child
- * is already gone. If a operation fails this function can be used to send the
- * exit code @a ecode hinting at the problem from the pluginforwarder to the
- * main psid.  To identify the failed operation a @a type is included
- * in the message. See @ref FW_RC_Types_t for possible operation types.
+ * During its lifetime the pluginforwarder executes different
+ * operations. This includes various hooks and function calls. Those
+ * might be executed at initialization before a potential child is
+ * started or later after the child is already gone. If an operation
+ * fails, this function can be used to send the exit code @a ecode
+ * hinting at the problem from the pluginforwarder to the main
+ * psid. To identify the failed operation a @a type is included in the
+ * message. See @ref FW_RC_Types_t for possible operation types.
  *
- * @param type Type of the operation which failed
+ * @param type Type of the operation that failed
  *
- * @param ecode Exit code of the operation
+ * @param ecode Operation's exit code to send
  */
 static void sendCodeInfo(FW_RC_Types_t type, int32_t ecode)
 {
