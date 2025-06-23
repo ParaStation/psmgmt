@@ -223,7 +223,11 @@ int pspmix_userserver_prepareLoop(Forwarder_Data_t *fwdata)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
-    if (!server) flog("FATAL: no server object\n");
+    if (!server) {
+	flog("FATAL: no server object\n");
+	return 1;
+    }
+
     return 0;
 }
 
