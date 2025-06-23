@@ -558,8 +558,8 @@ static void sendCodeInfo(FW_RC_Types_t type, int32_t ecode)
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
 	.type = PLGN_EXITCODE };
+    PSP_putTypedMsgBuf(&msg, "code type", &type, sizeof(type));
     PSP_putTypedMsgBuf(&msg, "exit code", &ecode, sizeof(ecode));
-    PSP_putTypedMsgBuf(&msg, "return type", &type, sizeof(type));
 
     sendMsgToMother(&msg);
 }
@@ -885,11 +885,8 @@ static void handleChildCode(Forwarder_Data_t *fw, DDTypedBufferMsg_t *msg)
 {
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, "exit code", &fw->rcHook,
-		       sizeof(fw->rcHook));
-
-    PSP_getTypedMsgBuf(msg, &used, "return type", &fw->rcType,
-		       sizeof(fw->rcType));
+    PSP_getTypedMsgBuf(msg, &used, "type", &fw->rcType, sizeof(fw->rcType));
+    PSP_getTypedMsgBuf(msg, &used, "code", &fw->rcHook, sizeof(fw->rcHook));
 
     pluginfdbg(PLUGIN_LOG_FW, "ecode %i type %i\n", fw->rcHook, fw->rcType);
 }
