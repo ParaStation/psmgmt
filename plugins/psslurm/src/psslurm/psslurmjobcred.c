@@ -15,6 +15,7 @@
 
 #include "pluginmalloc.h"
 #include "pscomplist.h"
+#include "psserial.h"
 
 #include "psslurmlog.h"
 #include "psslurmpack.h"

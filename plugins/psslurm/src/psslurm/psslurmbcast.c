@@ -18,6 +18,7 @@
 #include <time.h>
 
 #include "pscommon.h"
+#include "psserial.h"
 
 #include "pluginconfig.h"
 #include "pluginmalloc.h"

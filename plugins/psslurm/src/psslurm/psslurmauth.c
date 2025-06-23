@@ -19,6 +19,7 @@
 #include "pluginmalloc.h"
 #include "pscommon.h"
 #include "psmungehandles.h"
+#include "psserial.h"
 #include "slurmcommon.h"
 #include "KangarooTwelve.h"
 
