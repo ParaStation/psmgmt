@@ -1746,7 +1746,7 @@ static bool msg_REQUESTPART(DDTypedBufferMsg_t *inmsg)
 {
     size_t used = 0;
     uint16_t fragNum;
-    fetchFragHeader(inmsg, &used, NULL, &fragNum, NULL, NULL);
+    if (!fetchFragHeader(inmsg, &used, NULL, &fragNum, NULL, NULL)) goto error;
 
     /* First fragment, take a peek */
     int eno = 0;

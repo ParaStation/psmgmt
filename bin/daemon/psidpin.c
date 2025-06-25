@@ -757,7 +757,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t devs,
 char *PSIDpin_getAutoName(char *name)
 {
     char *autoName;
-    asprintf(&autoName, "__AUTO_%s", name);
+    if (asprintf(&autoName, "__AUTO_%s", name) == -1) return NULL;
 
     return autoName;
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -891,14 +891,14 @@ static bool msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
 
     PSID_fdbg(PSID_LOG_STATUS, "(%d)\n", id);
 
-    int32_t pCPUs, vCPUs = -1, proto, dmnProto;
-    PSP_getMsgBuf(msg, &used, "numCores", &pCPUs, sizeof(pCPUs));
-    if (!PSP_getMsgBuf(msg, &used, "numThrds", &vCPUs, sizeof(vCPUs))) {
+    int32_t pCPUs, vCPUs, proto, dmnProto;
+    if (!PSP_getMsgBuf(msg, &used, "numCores", &pCPUs, sizeof(pCPUs))
+	|| !PSP_getMsgBuf(msg, &used, "numThrds", &vCPUs, sizeof(vCPUs))
+	|| !PSP_getMsgBuf(msg, &used, "proto", &proto, sizeof(proto))
+	|| !PSP_getMsgBuf(msg, &used, "dmnProto", &dmnProto, sizeof(dmnProto))) {
 	PSID_flog("truncated message from node %d\n", id);
 	return true;
     }
-    PSP_getMsgBuf(msg, &used, "proto", &proto, sizeof(proto));
-    PSP_getMsgBuf(msg, &used, "dmnProto", &dmnProto, sizeof(dmnProto));
 
     /* id is out of range -> nothing left to do */
     if (!declareNodeAlive(id, pCPUs, vCPUs, proto, dmnProto)) return true;
