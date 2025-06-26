@@ -223,7 +223,7 @@ void pspmix_service_handleClientIFResp(bool success, const char *nspace,
  *
  * @param nsName Name of the namespace the client belongs to
  *
- * @param msg Message passed via PMIx_Log() if any
+ * @param msg Message passed via PMIx_Abort() if any
  *
  * @param client Client object registered before
  *
