@@ -6,6 +6,12 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.2.4:
+==============
+Bugfixes:
+ - Ensure buffer is large enough to hold entire msg (jwt:#39826)
+
+
 Version 6.2.3:
 ==============
 Bugfixes:
