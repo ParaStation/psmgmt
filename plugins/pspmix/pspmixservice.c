@@ -1356,9 +1356,8 @@ void pspmix_service_abort(const char *nsName, const char *msg,
     flog("(rank %d)\n", client->rank);
 
     /* try to inform user */
-    size_t bufLen = 128, msgLen = 0;
-    if (msg) msgLen += strlen(msg);
-    char buf[bufLen];
+    size_t msgLen = msg ? strlen(msg) : 0;
+    char buf[128 + msgLen];
     sprintf(buf, "%s: on users request from rank %d%s%s%s", __func__,
 	    client->rank, msgLen ? ": " : "", msg ? msg : "",
 	    msgLen && msg[msgLen-1] == '\n' ? "" : "\n");
