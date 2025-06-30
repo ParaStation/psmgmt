@@ -443,7 +443,10 @@ static void cbListCPUs(int32_t status, Script_Data_t *script)
 {
     initFlags &= ~INIT_LIST_CPUS;
 
-    if (status) goto ERROR;
+    if (status) {
+	pluginflog("unable to list CPUs (status %d)\n", status);
+	goto ERROR;
+    }
 
     if (execCPUFreqScript(CMD_GET_AVAIL_GOV)) {
 	pluginflog("unable to determine governors\n");
@@ -482,7 +485,10 @@ ERROR:
 static void cbGetAvailGov(int32_t status, Script_Data_t *script)
 {
     initFlags &= ~INIT_GET_AVAIL_GOV;
-    if (status) initFailure = true;
+    if (status) {
+	pluginflog("cannot determine governors (status %d)\n", status);
+	initFailure = true;
+    }
     testInitComplete();
     Script_destroy(script);
 }
@@ -562,7 +568,10 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 static void cbGetFreq(int32_t status, Script_Data_t *script)
 {
     initFlags &= ~INIT_GET_FREQ;
-    if (status) initFailure = true;
+    if (status) {
+	pluginflog("cannot determine frequency (status %d)\n", status);
+	initFailure = true;
+    }
 
     /* test if all CPUs have the same frequencies */
     for (int i = 0; i < numCPUs; i++) {
@@ -596,7 +605,10 @@ static void cbGetFreq(int32_t status, Script_Data_t *script)
 static void cbGetCurGov(int32_t status, Script_Data_t *script)
 {
     initFlags &= ~INIT_GET_CUR_GOV;
-    if (status) initFailure = true;
+    if (status) {
+	pluginflog("cannot determine governor (status %d)\n", status);
+	initFailure = true;
+    }
 
     /* test if all CPUs have the same default governor */
     for (int i = 0; i < numCPUs; i++) {
