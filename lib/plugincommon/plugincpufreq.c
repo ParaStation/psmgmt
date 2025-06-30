@@ -213,8 +213,8 @@ static void cmdGetAvailFreq(char *output, void *info)
 
     int idx;
     if (sscanf(output, " cpu %i avail_freq", &idx) != 1) {
-	pluginflog("no CPU frequencies in %s\n", output);
-	initFailure = true;
+	pluginflog("no CPU frequencies in '%s'\n", output);
+	pluginflog("this is okay since they are optional\n");
 	return;
     }
     if (idx < 0 || idx >= numCPUs) {
