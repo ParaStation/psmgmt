@@ -959,7 +959,7 @@ bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
 	    continue;
 	}
 	if (!(newGov & cpus[i].availGov)) {
-	    pluginflog("erro: CPU %i does not support governor %s\n",
+	    pluginflog("error: CPU %i does not support governor %s\n",
 		       i, CPUfreq_gov2Str(newGov));
 	    return false;
 	}
