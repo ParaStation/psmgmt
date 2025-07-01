@@ -28,6 +28,7 @@
 #include "peloguehandles.h"
 
 #include "slurmcommon.h"
+#include "psslurm.h"
 #include "psslurmbcast.h"
 #include "psslurmenv.h"
 #include "psslurmgres.h"
@@ -234,7 +235,9 @@ bool Alloc_delete(Alloc_t *alloc)
     BCast_clearByJobid(alloc->id);
 
     /* terminate cgroup */
-    PSID_execFunc(termJail, NULL, cbTermJailAlloc, NULL, alloc);
+    PSID_execFunc(termJail, NULL,
+		  pluginShutdown ? PSIDscript_dummyCB : cbTermJailAlloc,
+		  NULL, alloc);
 
     PSIDhook_call(PSIDHOOK_PSSLURM_FINALLOC, alloc);
 
