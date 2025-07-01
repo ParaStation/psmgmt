@@ -1268,24 +1268,35 @@ static CPUfreq_governors_t mapSlurmGov(uint32_t slurmGov)
  */
 static void setStepCPUfreq(Step_t *step)
 {
-    if (!CPUfreq_isInitialized()) return;
+    if (!CPUfreq_isInitialized()) {
+	fdbg(PSSLURM_LOG_JOB, "%s: CPUfreq uninitialized\n", Step_strID(step));
+	return;
+    }
+
+    fdbg(PSSLURM_LOG_JOB, "%s: %#x\n", Step_strID(step), step->cpuFreqGov);
 
     PSCPU_set_t *stepSet = &step->nodeinfos[step->localNodeId].stepHWthreads;
     uint16_t setSize = step->nodeinfos[step->localNodeId].threadCount;
 
     CPUfreq_governors_t gov = mapSlurmGov(step->cpuFreqGov);
-    if (gov && !CPUfreq_setGov(*stepSet, setSize, gov)) {
-	flog("set governor %s failed\n", CPUfreq_gov2Str(gov));
+    if (!gov && step->cpuFreqGov != NO_VAL) {
+	flog("%s: unable to determine gov from %#x\n", Step_strID(step),
+	     step->cpuFreqGov);
+    } else if (gov && !CPUfreq_setGov(*stepSet, setSize, gov)) {
+	flog("%s: failed to set governor %s\n", Step_strID(step),
+	     CPUfreq_gov2Str(gov));
     }
 
     if (step->cpuFreqMin != NO_VAL &&
 	!CPUfreq_setMinFreq(*stepSet, setSize, step->cpuFreqMin)) {
-	flog("set minimum CPU frequency %i failed\n", step->cpuFreqMin);
+	flog("%s: failed to set minimum CPU frequency %i\n", Step_strID(step),
+	     step->cpuFreqMin);
     }
 
     if (step->cpuFreqMax != NO_VAL &&
 	!CPUfreq_setMaxFreq(*stepSet, setSize, step->cpuFreqMax)) {
-	flog("set maximum CPU frequency %i failed\n", step->cpuFreqMax);
+	flog("%s: failed to set maximum CPU frequency %i\n", Step_strID(step),
+	     step->cpuFreqMax);
     }
 }
 
@@ -1978,7 +1989,6 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     setStepCPUfreq(step);
 
 #ifdef HAVE_SPANK
-
     struct spank_handle spank = {
 	.task = NULL,
 	.alloc = Alloc_find(step->jobid),
