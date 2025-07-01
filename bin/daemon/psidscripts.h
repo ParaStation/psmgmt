@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,31 +24,33 @@
  * @brief Script callback
  *
  * Callback used by @ref PSID_execScript() and @ref PSID_execFunc() to
- * handle the return-value and output of the script or function.
- *
- * The first argument is the returned int value of the executed
- * function or from the @ref system() function executing the script.
- *
- * The second argument flags that executing the script or function ran
- * into a timeout, thus, invalidating the first argument. The output
- * provided via the file-descriptor in the third argument might be
- * incomplete or spoiled by error messages due to the SIGKILL sent to
- * the corresponding process group before calling the callback.
- *
- * The third argument provides the file-descriptor of the stdout and
- * stderr streams of the script or function.
- *
- * The fourth argument points to the optional extra information that
- * can be provided to @ref PSID_execScript() or @ref PSID_execFunc()
- * as the last argument
+ * handle the return-value and output of the script or function. If
+ * such callback is given, the script or function will be executed
+ * asynchronously, i.e. @ref PSID_execScript() or @ref PSID_execFunc()
+ * will not wait for them to finish.
  *
  * The callback is responsible for cleaning the file-descriptor
- * serving stdout/stderr provided as the third argument. Otherwise
- * calling @ref PSID_execScript(), or @ref PSID_execFunc() with a
- * callback repeatedly might eat up the daemon's available
- * file-descriptors.
+ * serving stdout/stderr @a iofd. Otherwise calling @ref
+ * PSID_execScript() or @ref PSID_execFunc() with a callback
+ * repeatedly might eat up the daemon's available file-descriptors.
+ *
+ * @param exit Return value of the executed function or from the @ref
+ * system() function executing the script
+ *
+ * @param tmdOut Flags that executing the script or function ran into
+ * a timeout, thus, invalidating the first argument; the output
+ * provided via @a iofd might be incomplete or spoiled by error
+ * messages due to the SIGKILL sent to the corresponding process group
+ * before calling the callback
+ *
+ * @param iofd File descriptor of the stdout and stderr streams of the
+ * script or function
+ *
+ * @param info Pointer to optional extra information that can be
+ * provided to @ref PSID_execScript() or @ref PSID_execFunc() as the
+ * last argument
  */
-typedef void PSID_scriptCB_t(int, bool, int, void *);
+typedef void PSID_scriptCB_t(int exit, bool tmdOut, int iofd, void *info);
 
 /**
  * @brief Script environment preparation
