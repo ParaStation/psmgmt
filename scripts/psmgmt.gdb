@@ -91,13 +91,13 @@ end
 define print_list
 
   if $argc < 1
-    echo print_list LISTHEAD [TYPE [NUM]]\n
+    echo print_list LISTHEAD [NUM [TYPE]]\n
   else
     set $lp = &$arg0
-    if $argc < 3
+    if $argc < 2
       set $num = 1
     else
-      set $num = $arg2
+      set $num = $arg1
     end
     set $i = $num
 
@@ -111,10 +111,14 @@ define print_list
 
       output $num - $i
       echo \ :\ \ 
-      if $argc < 2
+      if $argc < 3
 	output *((PStask_t *)((char *)($lp)-(unsigned long)(&((PStask_t *)0)->next)))
       else
-	output *(($arg1 *)((char *)($lp)-(unsigned long)(&(($arg1 *)0)->next)))
+	if $argc < 4
+	  output *(($arg2 *)((char *)($lp)-(unsigned long)(&(($arg2 *)0)->next)))
+	else
+	  output *(($arg2 $arg3 *)((char *)($lp)-(unsigned long)(&(($arg2 $arg3 *)0)->next)))
+	end
       end
       echo \n
     end
@@ -122,7 +126,7 @@ define print_list
 end
 
 document print_list
-Syntax: print_list LISTHEAD [TYPE [NUM]]
+Syntax: print_list LISTHEAD [NUM [TYPE]]
 
 Print list defined with the help of the Linux kernel's list.h.
 
@@ -137,13 +141,13 @@ end
 define reverse_print_list
 
   if $argc < 1
-    echo reverse_print_list LISTHEAD [TYPE [NUM]]\n
+    echo reverse_print_list LISTHEAD [NUM [TYPE]]\n
   else
     set $lp = &$arg0
-    if $argc < 3
+    if $argc < 2
       set $num = 1
     else
-      set $num = $arg2
+      set $num = $arg1
     end
     set $i = $num
 
@@ -157,10 +161,14 @@ define reverse_print_list
 
       output $num - $i
       echo \ :\ \ 
-      if $argc < 2
+      if $argc < 3
 	output *((PStask_t *)((char *)($lp)-(unsigned long)(&((PStask_t *)0)->next)))
       else
-	output *(($arg1 *)((char *)($lp)-(unsigned long)(&(($arg1 *)0)->next)))
+	if $argc < 4
+	  output *(($arg2 *)((char *)($lp)-(unsigned long)(&(($arg2 *)0)->next)))
+	else
+	  output *(($arg2 $arg3 *)((char *)($lp)-(unsigned long)(&(($arg2 $arg3 *)0)->next)))
+	end
       end
       echo \n
     end
@@ -168,7 +176,7 @@ define reverse_print_list
 end
 
 document reverse_print_list
-Syntax: reverse_print_list LISTHEAD [TYPE [NUM]]
+Syntax: reverse_print_list LISTHEAD [NUM [TYPE]]
 
 Print list defined with the help of the Linux kernel's list.h.
 
