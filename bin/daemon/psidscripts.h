@@ -53,6 +53,18 @@
 typedef void PSID_scriptCB_t(int exit, bool tmdOut, int iofd, void *info);
 
 /**
+ * @brief Dummy script callback
+ *
+ * Dummy callback to be passed to @ref PSID_execScript() or @ref
+ * PSID_execFunc() in cases when the script or function shall be
+ * executed asynchronously from a plugin but there is no guarantee
+ * that the plugin is still loaded once the function or script has
+ * finished exectution. This callback does nothing besides closing the
+ * file descriptor passed as the third argument.
+ */
+PSID_scriptCB_t PSIDscript_dummyCB;
+
+/**
  * @brief Script environment preparation
  *
  * Function used to prepare the environment @ref PSID_execScript() and

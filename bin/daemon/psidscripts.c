@@ -62,7 +62,7 @@ static LIST_HEAD(cbInfoList);
  *
  * @return No return value
  */
-void tmOutHandler(int timerID, void *info)
+static void tmOutHandler(int timerID, void *info)
 {
     Timer_remove(timerID);
 
@@ -150,6 +150,11 @@ static int cbWrapper(int fd, void *info)
     PSitems_putItem(cbInfoPool, cbInfo);
 
     return 0;
+}
+
+void PSIDscript_dummyCB(int exit, bool tmdOut, int iofd, void *info)
+{
+    if (iofd > 0) close(iofd);
 }
 
 /*
