@@ -31,6 +31,7 @@
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
 #include "pluginhelper.h"
+#include "pluginlog.h"
 #include "pluginmalloc.h"
 
 #include "psidnodes.h"
@@ -746,6 +747,9 @@ char *set(char *key, char *value)
 	    if (!strcmp(key, "DEBUG_MASK")) {
 		int mask = getConfValueI(Config, "DEBUG_MASK");
 		maskLogger(mask);
+	    } else if (!strcmp(key, "PLUGIN_DEBUG_MASK")) {
+		int mask = getConfValueI(Config, "PLUGIN_DEBUG_MASK");
+		maskPluginLogger(mask);
 	    } else if (!strcmp(key, "MEASURE_MUNGE")) {
 		int active = getConfValueI(Config, "MEASURE_MUNGE");
 		psMungeMeasure(active);
