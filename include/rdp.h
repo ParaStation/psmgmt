@@ -155,7 +155,7 @@ bool RDP_updateNode(int32_t node, in_addr_t addr);
  *
  * @return No return value
  */
-void exitRDP(void);
+void RDP_finalize(void);
 
 /**
  * Various message classes for logging. These define the different

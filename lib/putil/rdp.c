@@ -1900,7 +1900,7 @@ bool RDP_updateNode(int32_t node, in_addr_t addr)
     return true;
 }
 
-void exitRDP(void)
+void RDP_finalize(void)
 {
     Selector_remove(rdpsock);      /* unregister selector */
     Timer_remove(timerID);         /* stop interval timer */
