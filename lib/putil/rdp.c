@@ -31,16 +31,16 @@
 #include "timer.h"
 #include "psbyteorder.h"
 
-/** The socket used to send and receive RDP messages. Created in RDP_init(). */
+/** (UDP-)socket used to send and receive RDP messages; created in RDP_init() */
 static int rdpsock = -1;
 
-/** The unique ID of the timer registered by RDP. */
+/** Unique ID of the timer registered by RDP */
 static int timerID = -1;
 
-/** The size of the cluster. Set via RDP_init(). */
-static uint32_t nrOfNodes = 0;
+/** Number of participating nodes; set via RDP_init() */
+static uint32_t nrOfNodes;
 
-/** The logger we use inside RDP */
+/** logger used within RDP */
 static logger_t logger;
 
 /** Abbreviations for various log messages */
@@ -59,15 +59,14 @@ static logger_t logger;
 #define RDP_exit(...) logger_exit(logger, __VA_ARGS__)
 
 /**
- * The callback function. Will be used to send notifications to the
- * calling process. Set via RDP_init().
+ * Callback function used to send notifications to the hosting
+ * process; set via RDP_init()
  */
 static void (*RDPCallback)(RDP_CB_type_t, void*) = NULL;
 
 /**
- * The message dispatcher function. Will be used to actually read and
- * handle valid RDP messages. To be provided by the calling process
- * within RDP_init().
+ * Message dispatcher function used to actually read and handle valid
+ * RDP messages; to be provided by the hosting process via RDP_init()
  */
 static void (*RDPDispatcher)(void) = NULL;
 

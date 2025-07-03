@@ -23,6 +23,12 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+/**
+ * Default RDP-port number, i.e. magic number defined by Joe long time ago;
+ * might be overruled via RDP_init()
+ */
+#define DEFAULT_RDP_PORT 886
+
 /** Information container for callback of type @ref RDP_PKT_UNDELIVERABLE */
 typedef struct {
     int32_t dst;      /**< destination node ID of message to cancel */
@@ -38,46 +44,58 @@ typedef struct {
     size_t buflen;        /**< payload's size */
 } RDPUnknown_t;
 
-/** Types of RDP callbacks */
+/** Types of RDP callbacks passed to @ref RDP_callback_t */
 typedef enum {
-    RDP_NEW_CONNECTION = 0x1,    /**< New connection detected; the
-				  * second argument of RDPCallback()
-				  * will point to an int holding the
-				  * ID of the connecting node */
-    RDP_LOST_CONNECTION = 0x2,   /**< Connection lost; the second
-				  * argument of RDPCallback() will
-				  * point to an int holding the ID of
-				  * the lost node */
-    RDP_PKT_UNDELIVERABLE = 0x3, /**< Cannot deliver packet; the
-				  * second argument points to a
-				  * structure of type @ref RDPDeadbuf
-				  * holding the information about the
-				  * canceled message; typically
+    RDP_NEW_CONNECTION = 0x1,    /**< new connection detected */
+    RDP_LOST_CONNECTION = 0x2,   /**< connection lost */
+    RDP_PKT_UNDELIVERABLE = 0x3, /**< cannot deliver packet; typically
 				  * followed by @ref RDP_LOST_CONNECTION */
-    RDP_CAN_CONTINUE = 0x4,      /**< Free space in window available
-				  * again; the second argument of
-				  * RDPCallback() will point to an int
-				  * holding the ID of the node which
-				  * is reachable again */
-    RDP_UNKNOWN_SENDER = 0x5,    /**< Received message from an unknown
-				  * sender IP; the second argument
-				  * points to a structure of type @ref
-				  * RDPUnknown_t */
+    RDP_CAN_CONTINUE = 0x4,      /**< free space in sending window
+				  * available again */
+    RDP_UNKNOWN_SENDER = 0x5,    /**< message from an unknown sender IP */
 } RDP_CB_type_t;
 
-/** States a RDP connection can take */
-typedef enum {
-    CLOSED=0x1,  /**< connection is down */
-    SYN_SENT,    /**< connection establishing: SYN sent */
-    SYN_RECVD,   /**< connection establishing: SYN received */
-    ACTIVE       /**< connection is up */
-} RDPState_t;
+/**
+ * @brief Dispatcher callback
+ *
+ * This function will be called each time a new RDP message is
+ * available. It is expected to read the actual message from RDP via
+ * @ref Rrecvfrom() and to handle it according to the host's
+ * strategy.
+ *
+ * This function will only be called for verified RDP payload
+ * messages. Neither control messages nor dropped payload messages
+ * will trigger it.
+ */
+typedef void RDP_dispatcher_t(void);
 
 /**
- * The default RDP-port number. Magic number defined by Joe long time ago.
- * Can be overruled via RDP_init().
+ * @brief Exception callback
+ *
+ * This function will be called each time RDP detects an exceptional
+ * situation in order to notify the hosting process. The type of
+ * notification will be indicated in @a type. Depending on this @a
+ * type different types of extra information will be passed in @a
+ * info:
+ *
+ * - RDP_NEW_CONNECTION: @a info points to ID of the connecting node
+ *
+ * - RDP_LOST_CONNECTION: @a info points to ID of the lost node
+ *
+ * - RDP_PKT_UNDELIVERABLE: @a info points to @ref RDPDeadbuf holding
+ *   information on the canceled message; typically there are multiple
+ *   of this callbacks followed by a @ref RDP_LOST_CONNECTION
+ *
+ * - RDP_CAN_CONTINUE: @a info points to the ID of the node eligible
+ *   for further messages
+ *
+ * - RDP_UNKNOWN_SENDER: @a info points to @ref RDPUnknown_t container
+ *
+ * @param type Exception type
+ *
+ * @param info Pointer to extra information depending on @a type
  */
-#define DEFAULT_RDP_PORT 886
+typedef void RDP_callback_t(RDP_CB_type_t type, void *info);
 
 /**
  * @brief Initializes the RDP module
@@ -86,9 +104,9 @@ typedef enum {
  *
  * @param nodes Number of nodes to handle
  *
- * @param addr The source IP address to bind to
+ * @param addr Source IP address to bind to
  *
- * @param portno The UDP port number in host byteorder to use for sending and
+ * @param portno UDP port number in host byteorder to use for sending and
  * receiving packets; if 0, @ref DEFAULT_RDP_PORT is used
  *
  * @param logfile File to use for logging. If NULL, syslog(3) is used
@@ -96,30 +114,20 @@ typedef enum {
  * @param hosts An array of size @a nodes containing the IP-addresses of the
  * participating nodes in network-byteorder
  *
- * @param dispatcher Pointer to a dispatcher function. This function
- * will be called each time a new RDP message is available. The
- * function is expected to read the actual message from RDP via @ref
- * Rrecvfrom(). If NULL, RDP will signal the availability of a new
- * messages to the Selector facility. In this case the calling
- * function of the Selector has to guarantee the proper handling of
- * available RDP messages.
+ * @param dispatcher Pointer to dispatcher function for available
+ * messages
  *
- * @param callback Pointer to a callback-function. This function is
- * called if something exceptional happens. If NULL, no callbacks will
- * be made. The callback function is expected to accept two
- * arguments. The first one of type RDP_CB_type_t marks the type of
- * information passed to the calling process. The second argument
- * points to further information depending on the type of the
- * callback.
+ * @param callback Pointer to a callback-function called if something
+ * exceptional happens to RDP; if NULL, no callbacks will be made
  *
- * @return On success, the file descriptor of the RDP socket is returned.
- * On error, exit() is called within this function.
+ * @return On success, the file descriptor of the RDP socket is
+ * returned; on error, exit() is called within this function
  *
  * @see syslog()
  */
 int RDP_init(int nodes, in_addr_t addr, in_port_t portno, FILE* logfile,
-	     in_addr_t hosts[], void (*dispatcher)(void),
-	     void (*callback)(RDP_CB_type_t, void*));
+	     in_addr_t hosts[], RDP_dispatcher_t dispatcher,
+	     RDP_callback_t callback);
 
 /**
  * @brief Update a remote node's IP(v4) address
@@ -141,11 +149,11 @@ int RDP_init(int nodes, in_addr_t addr, in_port_t portno, FILE* logfile,
 bool RDP_updateNode(int32_t node, in_addr_t addr);
 
 /**
- * @brief Shutdown the RDP module.
+ * @brief Shutdown the RDP module
  *
  * Shutdown the whole RDP machinery.
  *
- * @return No return value.
+ * @return No return value
  */
 void exitRDP(void);
 
@@ -157,7 +165,7 @@ typedef enum {
     RDP_LOG_CONN = 0x0001, /**< Uncritical errors on connection loss */
     RDP_LOG_INIT = 0x0002, /**< Info from initialization (IP, FE, NFTS etc.) */
     RDP_LOG_INTR = 0x0004, /**< Interrupted syscalls */
-    RDP_LOG_DROP = 0x0008, /**< Message dropping and resequencing */
+    RDP_LOG_DROP = 0x0008, /**< Message dropping and re-sequencing */
     RDP_LOG_CNTR = 0x0010, /**< Control messages and state changes */
     RDP_LOG_EXTD = 0x0020, /**< Extended reliable error messages (on linux) */
     RDP_LOG_COMM = 0x0040, /**< Sending and receiving of data (huge! amount) */
@@ -556,6 +564,14 @@ int RDP_blockTimer(bool block);
  */
 void RDP_printStat(void);
 
+/** States an RDP connection can take */
+typedef enum {
+    CLOSED=0x1,  /**< connection is down */
+    SYN_SENT,    /**< connection establishing: SYN sent */
+    SYN_RECVD,   /**< connection establishing: SYN received */
+    ACTIVE       /**< connection is up */
+} RDPState_t;
+
 /**
  * @brief Get connection state
  *
@@ -573,7 +589,7 @@ RDPState_t RDP_getState(int32_t node);
  *
  * Get the number of pending messages on RDP's connection to node with
  * ID @a node during (re-)connect. This value is only meaningful if
- * the connection is not yet establihed, i.e. if @ref RDP_getState()
+ * the connection is not yet established, i.e. if @ref RDP_getState()
  * does *not* return ACTIVE.
  *
  * @param node ID of the node to investigate
