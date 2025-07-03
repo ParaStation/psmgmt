@@ -104,15 +104,16 @@ typedef void RDP_callback_t(RDP_CB_type_t type, void *info);
  *
  * @param nodes Number of nodes to handle
  *
- * @param addr Source IP address to bind to
+ * @param hosts Array of size @a nodes containing the IP-addresses of the
+ * participating nodes in network-byteorder, including the local node
+ *
+ * @param localID ID of the local node; this will be used to identify
+ * the address to bind to locally from within @a hosts
  *
  * @param portno UDP port number in host byteorder to use for sending and
  * receiving packets; if 0, @ref DEFAULT_RDP_PORT is used
  *
  * @param logfile File to use for logging. If NULL, syslog(3) is used
- *
- * @param hosts An array of size @a nodes containing the IP-addresses of the
- * participating nodes in network-byteorder
  *
  * @param dispatcher Pointer to dispatcher function for available
  * messages
@@ -125,9 +126,8 @@ typedef void RDP_callback_t(RDP_CB_type_t type, void *info);
  *
  * @see syslog()
  */
-int RDP_init(int nodes, in_addr_t addr, in_port_t portno, FILE* logfile,
-	     in_addr_t hosts[], RDP_dispatcher_t dispatcher,
-	     RDP_callback_t callback);
+int RDP_init(int nodes, in_addr_t hosts[], int localID, in_port_t portno,
+	     FILE* logfile, RDP_dispatcher_t dispatcher, RDP_callback_t cb);
 
 /**
  * @brief Update a remote node's IP(v4) address

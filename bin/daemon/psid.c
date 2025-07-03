@@ -774,9 +774,8 @@ int main(int argc, const char *argv[])
     }
 
     /* Initialize RDP */
-    int RDPSocket = RDP_init(PSC_getNrOfNodes(),
-			     PSIDnodes_getAddr(PSC_getMyID()),
-			     PSID_config->RDPPort, logfile, hostlist,
+    int RDPSocket = RDP_init(PSC_getNrOfNodes(), hostlist, PSC_getMyID(),
+			     PSID_config->RDPPort, logfile,
 			     PSIDRDP_handleMsg, RDPCallBack);
     if (RDPSocket < 0) PSID_exit(errno, "Error while trying to initialize RDP");
 

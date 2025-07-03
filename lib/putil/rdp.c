@@ -40,6 +40,9 @@ static int timerID = -1;
 /** Number of participating nodes; set via RDP_init() */
 static uint32_t nrOfNodes;
 
+/** Unique RDP ID of the local node */
+static uint32_t rdpID;
+
 /** logger used within RDP */
 static logger_t logger;
 
@@ -62,13 +65,13 @@ static logger_t logger;
  * Callback function used to send notifications to the hosting
  * process; set via RDP_init()
  */
-static void (*RDPCallback)(RDP_CB_type_t, void*) = NULL;
+static RDP_callback_t *RDPCallback;
 
 /**
  * Message dispatcher function used to actually read and handle valid
  * RDP messages; to be provided by the hosting process via RDP_init()
  */
-static void (*RDPDispatcher)(void) = NULL;
+static RDP_dispatcher_t *RDPDispatcher;
 
 /** The possible RDP message types. */
 #define RDP_DATA     0x1  /**< regular data message */
@@ -1840,9 +1843,8 @@ static char *stateStringRDP(RDPState_t state)
 
 /* ---------------------------------------------------------------------- */
 
-int RDP_init(int nodes, in_addr_t addr, in_port_t portno, FILE* logfile,
-	     in_addr_t hosts[], void (*dispatcher)(void),
-	     void (*callback)(RDP_CB_type_t, void*))
+int RDP_init(int nodes, in_addr_t hosts[], int localID, in_port_t portno,
+	     FILE* logfile, RDP_dispatcher_t dispatcher, RDP_callback_t cb)
 {
     logger = logger_new("RDP", logfile);
     if (!logger) {
@@ -1853,10 +1855,14 @@ int RDP_init(int nodes, in_addr_t addr, in_port_t portno, FILE* logfile,
 	}
 	exit(1);
     }
+    if (localID < 0 || localID >= nodes) {
+	RDP_exit(EINVAL, "RDP ID %d (nrOfNodes %d) ", localID, nodes);
+    }
 
     RDPDispatcher = dispatcher;
-    RDPCallback = callback;
+    RDPCallback = cb;
     nrOfNodes = nodes;
+    rdpID = localID;
 
     RDP_fdbg(RDP_LOG_INIT, "%d nodes\n", nrOfNodes);
 
@@ -1868,7 +1874,7 @@ int RDP_init(int nodes, in_addr_t addr, in_port_t portno, FILE* logfile,
 
     if (!Selector_isInitialized()) Selector_init(logfile);
 
-    rdpsock = initSockRDP(addr, htons(portno));
+    rdpsock = initSockRDP(hosts[localID], htons(portno));
     Selector_register(rdpsock, handleRDP, NULL);
 
     if (!Timer_isInitialized()) Timer_init(logfile);
