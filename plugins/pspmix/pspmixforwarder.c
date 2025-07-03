@@ -843,12 +843,10 @@ static bool waitForClientEnv(int daemonfd, struct timeval timeout)
 	if (ret < 0) {
 	    rwarn(errno, "Error receiving environment message");
 	    return false;
-	}
-	else if (ret == 0) {
+	} else if (ret == 0) {
 	    rlog("Timeout while receiving environment message\n");
 	    return false;
-	}
-	else if (ret != msg.header.len) {
+	} else if (ret != msg.header.len) {
 	    rlog("Unknown error receiving environment message: read %ld"
 		 " len %hu\n", ret, msg.header.len);
 	    return false;
