@@ -1746,10 +1746,13 @@ static bool msg_REQUESTPART(DDTypedBufferMsg_t *inmsg)
 {
     size_t used = 0;
     uint16_t fragNum;
-    if (!fetchFragHeader(inmsg, &used, NULL, &fragNum, NULL, NULL)) goto error;
+    int eno = 0;
+    if (!fetchFragHeader(inmsg, &used, NULL, &fragNum, NULL, NULL)) {
+	eno = EBADMSG;
+	goto error;
+    }
 
     /* First fragment, take a peek */
-    int eno = 0;
     if (!fragNum) {
 	if (!PSIDnodes_isStarter(PSC_getMyID())) {
 	    PSID_flog("node is not starter\n");
