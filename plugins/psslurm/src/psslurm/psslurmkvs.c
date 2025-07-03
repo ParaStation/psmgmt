@@ -724,46 +724,34 @@ char *set(char *key, char *value)
 	if (ret) {
 	    switch (ret) {
 	    case 1:
-		strbufAdd(buf, "\nInvalid key '");
+		strbufAdd(buf, "invalid key '");
 		strbufAdd(buf, key);
 		strbufAdd(buf, "' for cmd set : use 'plugin help psslurm'"
-			  " for help.\n");
+			  " for help\n");
 		break;
 	    case 2:
-		strbufAdd(buf, "\nThe key '");
+		strbufAdd(buf, "value '");
+		strbufAdd(buf, value);
+		strbufAdd(buf, "' for cmd 'set ");
 		strbufAdd(buf, key);
-		strbufAdd(buf, "' for cmd set has to be numeric.\n");
-	    }
-	} else if (!strcmp(key, "DEBUG_MASK")) {
-	    int32_t mask;
-
-	    if (sscanf(value, "%i", &mask) != 1) {
-		strbufAdd(buf, "\nInvalid debug mask: NAN\n");
-	    } else {
-		maskLogger(mask);
-	    }
-	} else if (!strcmp(key, "MEASURE_MUNGE")) {
-	    int32_t active;
-
-	    if (sscanf(value, "%i", &active) != 1) {
-		strbufAdd(buf, "\nInvalid flag: NAN\n");
-	    } else {
-		psMungeMeasure(active);
-	    }
-	} else if (!strcmp(key, "MEASURE_RPC")) {
-	    int32_t active;
-
-	    if (sscanf(value, "%i", &active) != 1) {
-		strbufAdd(buf, "\nInvalid flag: NAN\n");
-	    } else {
-		measureRPC = active;
+		strbufAdd(buf, "' has to be numeric\n");
 	    }
 	} else {
 	    /* save new config value */
 	    addConfigEntry(Config, key, value);
 
-	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
+	    snprintf(line, sizeof(line), "saved '%s = %s'\n", key, value);
 	    strbufAdd(buf, line);
+
+	    if (!strcmp(key, "DEBUG_MASK")) {
+		int mask = getConfValueI(Config, "DEBUG_MASK");
+		maskLogger(mask);
+	    } else if (!strcmp(key, "MEASURE_MUNGE")) {
+		int active = getConfValueI(Config, "MEASURE_MUNGE");
+		psMungeMeasure(active);
+	    } else if (!strcmp(key, "MEASURE_RPC")) {
+		measureRPC = getConfValueI(Config, "MEASURE_RPC");
+	    }
 	}
     } else if (!strcmp(key, "CLEAR_CONF_CACHE")) {
 	char *confDir = getConfValueC(Config, "SLURM_CONF_CACHE");
