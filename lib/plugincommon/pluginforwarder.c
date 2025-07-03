@@ -318,6 +318,16 @@ static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
     PSC_setSigHandler(SIGTERM, signalHandler);
     PSC_setSigHandler(SIGPIPE, signalHandler);
 
+    int32_t pluginMask = 0;
+    if (isPluginLoggerInitialized()) {
+	pluginMask = getPluginLoggerMask();
+	finalizePluginLogger();
+    }
+
+    /* Reset connection to syslog */
+    closelog();
+    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+
     /* overwrite proc title */
     if (fw->pTitle) {
 	PSC_setProcTitle(PSID_argc, PSID_argv, fw->pTitle, 0);
@@ -325,10 +335,7 @@ static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
     } else {
 	initPluginLogger("psidfw", NULL);
     }
-
-    /* Reset connection to syslog */
-    closelog();
-    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+    maskPluginLogger(pluginMask);
 
     Selector_register(motherFD, handleMthrSock, fw);
 
