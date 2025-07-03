@@ -839,24 +839,27 @@ static ssize_t MYsendto(int sock, void *buf, size_t len, int flags,
 /**
  * @brief Send a SYN message
  *
- * Send a SYN message to node @a node.
+ * Send a SYN message to node @a dest.
  *
- * @param node The node number the message is send to
+ * @param dest Node number the message is sent to
  *
  * @return No return value
  */
-static void sendSYN(int32_t node)
+static void sendSYN(int32_t dest)
 {
-    rdphdr_t hdr = {
-	.type = RDP_SYN,
-	.len = 0,
-	.seqno = conntable[node].frameToSend,       /* Tell initial seqno */
-	.ackno = 0,                                 /* nothing to ack yet */
-	.connid = conntable[node].ConnID_out,
-    };
-    RDP_fdbg(RDP_LOG_CNTR, "to %d (%s), NFTS=%x\n", node,
-	     inet_ntoa(conntable[node].sin.sin_addr), hdr.seqno);
-    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, true);
+    Lmsg_t msg = {
+	.header = {
+	    .type = RDP_SYN,
+	    .len = sizeof(int32_t),
+	    .seqno = conntable[dest].frameToSend,   /* Tell initial seqno */
+	    .ackno = 0,                             /* nothing to ack yet */
+	    .connid = conntable[dest].ConnID_out,
+	} };
+    *(int32_t *)&msg.data = pshton32(rdpID);
+    RDP_fdbg(RDP_LOG_CNTR, "to %d (%s), NFTS=%x\n", dest,
+	     inet_ntoa(conntable[dest].sin.sin_addr), msg.header.seqno);
+    MYsendto(rdpsock, &msg, offsetof(Lmsg_t, data) + sizeof(int32_t), 0,
+	     dest, true);
 }
 
 /**

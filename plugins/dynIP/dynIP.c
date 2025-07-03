@@ -16,6 +16,7 @@
 #include <string.h>
 #include <sys/socket.h>
 
+#include "psbyteorder.h"
 #include "pscommon.h"
 #include "psidhook.h"
 #include "psidnodes.h"
@@ -132,6 +133,26 @@ static bool senderVisitor(struct sockaddr_in *saddr, void *info)
     return true;
 }
 
+static bool resolveSender(senderData_t *data)
+{
+    in_addr_t nAddr = PSIDnodes_getAddr(data->nodeID);
+    /* skip nodes which have a valid address */
+    if (nAddr != INADDR_NONE && nAddr != INADDR_ANY) {
+	fdbg(DYNIP_LOG_DEBUG, "skip node %i with valid address\n", data->nodeID);
+	return false;
+    }
+
+    bool match = false;
+    const char *host = PSIDnodes_getHostname(data->nodeID);
+    int rc = PSC_traverseHostInfo(host, senderVisitor, data, &match);
+    if (rc) {
+	fdbg(DYNIP_LOG_DEBUG, "getaddrinfo(%s) failed: %s\n", host,
+	     gai_strerror(rc));
+	return false;
+    }
+    return match;
+}
+
 /**
  * @brief Resolve an unknown sender
  *
@@ -153,24 +174,19 @@ static int resolveUnknownSender(void *data)
     senderData_t senderData = {
 	.senderIP = (struct sockaddr_in *) senderInfo->sin,
     };
-    bool match = false;
 
-    for (PSnodes_ID_t n = 0; n < PSIDnodes_getNum() && !match; n++) {
-	in_addr_t nAddr = PSIDnodes_getAddr(n);
-	/* skip nodes which have a valid address */
-	if (nAddr != INADDR_NONE && nAddr != INADDR_ANY) {
-	    fdbg(DYNIP_LOG_DEBUG, "skip node %i with valid address\n", n);
-	    continue;
+    if (senderInfo->buflen >= sizeof(int32_t)) {
+	/* let's try to take benefit from the hint */
+	senderData.nodeID = psntoh32(*(int32_t *)senderInfo->buf);
+	if (resolveSender(&senderData)) {
+	    fdbg(DYNIP_LOG_DEBUG, "resolved from hint\n");
+	    return 0;
 	}
+    }
 
-	const char *host = PSIDnodes_getHostname(n);
+    for (PSnodes_ID_t n = 0; n < PSIDnodes_getNum(); n++) {
 	senderData.nodeID = n;
-	int rc = PSC_traverseHostInfo(host, senderVisitor, &senderData, &match);
-	if (rc) {
-	    fdbg(DYNIP_LOG_DEBUG, "getaddrinfo(%s) failed: %s\n", host,
-		 gai_strerror(rc));
-	    continue;
-	}
+	if (resolveSender(&senderData)) return 0;
     }
 
     return 0;
