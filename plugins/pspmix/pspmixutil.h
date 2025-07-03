@@ -11,6 +11,9 @@
 #define __PS_PMIX_UTIL
 
 #include <stdbool.h>
+#include <stdio.h>
+
+#include <pmix_common.h>
 
 #include "pspmixtypes.h"
 
