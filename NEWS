@@ -6,6 +6,33 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.3.0:
+==============
+Bugfixes:
+ - Prevent segfault due to callback into unloaded psslurm plugin
+ - Fix various warning emitted by rpmbuild on RHEL
+Enhancements:
+ - Allow SPANK hooks to stop job execution (psc:#4)
+ - Let psslurm forwarder link a pty to its PAM session to keep session open
+ - Add psaccount energy monitor script acpi_energymeter_integrate.sh
+ - Respond to ignored PSP_PLUG_PELOGUE message (#312)
+ - Prevent occupation of stdin/out/err after fork (#300)
+ - Allow empty lists for some psconfig keys (#265)
+ - Make one error during PMIx user server startup actually fatal
+ - Add debug script to show BPF contraints for a given PID
+Additional changes:
+ - Introduce PSIDHOOK_PLUGIN_LOADED, PSIDHOOK_PLUGIN_FINALIZE
+   => bump plugin API to 146
+ - Remove update magic for jail symlinks (#280)
+ - Remove obsolete symlinks to jail scripts
+ - Central definition of environment secured by auto variables
+ - Make PS_DataBuffer_t opaque
+ - Introduce pmixProcStr()
+ - Introduce PSIDscript_dummyCB()
+ - Drop support for updates from versions prior to 5.1
+ - Get rid of references to long gone ps_ethernet
+
+
 Version 6.2.4:
 ==============
 Bugfixes:

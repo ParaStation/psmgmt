@@ -1,3 +1,434 @@
+Version 6.3.0:
+==============
+------------------------------------------------------------------------
+b8bdff6aa | Norbert Eicker | Fri, 4 Jul 2025 01:02:30 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+b9a3bdcc1 | Norbert Eicker | Fri, 4 Jul 2025 01:02:11 +0200
+
+Fix bug unveiled by IWYU
+------------------------------------------------------------------------
+123d52177 | Norbert Eicker | Thu, 3 Jul 2025 10:10:06 +0200
+
+Whitespace fixes
+------------------------------------------------------------------------
+cc30f46f7 | Norbert Eicker | Tue, 1 Jul 2025 18:57:12 +0200
+
+Bugfix: Prevent callback into unloaded psslurm plugin
+
+ - During final cleanup of psslurm's allocations jail scripts might be
+   executed asynchronously; thus, it has to be guaranteed that the callback
+   function is still available once it is exectued
+------------------------------------------------------------------------
+f1d4c18ce | Norbert Eicker | Tue, 1 Jul 2025 18:56:42 +0200
+
+Introduce PSIDscript_dummyCB()
+------------------------------------------------------------------------
+aac8ccfb4 | Norbert Eicker | Tue, 1 Jul 2025 18:54:44 +0200
+
+Enhance PSID_scriptCB_t docu comment
+------------------------------------------------------------------------
+e137873d0 | Norbert Eicker | Thu, 8 May 2025 17:53:24 +0200
+
+PSPMIX_CLIENT_{INIT|FINALIZE}_RES always report success
+------------------------------------------------------------------------
+5432269d7 | Norbert Eicker | Thu, 8 May 2025 17:40:17 +0200
+
+Introduce pmixProcStr()
+------------------------------------------------------------------------
+b3bd69ee6 | Norbert Eicker | Wed, 25 Jun 2025 15:44:26 +0200
+
+Fix various warning emitted by rpmbuild on RHEL
+------------------------------------------------------------------------
+ed5878d7f | Norbert Eicker | Thu, 26 Jun 2025 16:34:27 +0200
+
+Merge branch '6.2' yet another time
+------------------------------------------------------------------------
+e43efb65b | Norbert Eicker | Mon, 23 Jun 2025 20:01:32 +0200
+
+Make one error during PMIx user server startup actually fatal
+------------------------------------------------------------------------
+ec8ff928a | Norbert Eicker | Mon, 23 Jun 2025 19:59:12 +0200
+
+Switch oder of items in PLGN_EXITCODE message
+------------------------------------------------------------------------
+de8a51456 | Norbert Eicker | Mon, 23 Jun 2025 19:58:22 +0200
+
+Enhance docu comments
+------------------------------------------------------------------------
+b32c203bc | Michael Rauh | Fri, 20 Jun 2025 17:02:40 +0200
+
+Avoid goto
+------------------------------------------------------------------------
+cca4ab7cf | Michael Rauh | Fri, 20 Jun 2025 16:53:38 +0200
+
+Booleanize execFWhooks()
+------------------------------------------------------------------------
+0530ca66d | Michael Rauh | Fri, 20 Jun 2025 16:49:54 +0200
+
+Send return code of hookFWInitUser instead of -1
+------------------------------------------------------------------------
+df155f2b9 | Michael Rauh | Fri, 20 Jun 2025 16:11:37 +0200
+
+change order of arguments
+------------------------------------------------------------------------
+48f853ac3 | Michael Rauh | Wed, 28 May 2025 10:44:15 +0200
+
+Make some pack functions static
+------------------------------------------------------------------------
+f5239ecfd | Michael Rauh | Fri, 25 Apr 2025 10:28:45 +0200
+
+Allow SPANK hooks to stop job execution (psc:#4)
+------------------------------------------------------------------------
+af6314706 | Michael Rauh | Fri, 16 May 2025 15:44:17 +0200
+
+Allow hookLoop() and hookFinalize() to terminate the pluginforwarder by
+given a return status
+
+ - pluginforwarder hooks now fail when they return a non zero value
+------------------------------------------------------------------------
+217de4870 | Michael Rauh | Wed, 14 May 2025 19:47:57 +0200
+
+Add additional type to sendCodeInfo()
+ - identifies the operation the return code is based on
+------------------------------------------------------------------------
+8b0f849e6 | Norbert Eicker | Mon, 23 Jun 2025 10:31:35 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+f56ddf0aa | Norbert Eicker | Wed, 18 Jun 2025 18:23:55 +0200
+
+Let psslurm forwarder link a pty to its PAM session
+
+ - will keep session open even if processes gets moved to psid cgroup
+------------------------------------------------------------------------
+a9b3bdac5 | Norbert Eicker | Wed, 18 Jun 2025 18:17:14 +0200
+
+Call pam_service's functions also in step forwarder
+------------------------------------------------------------------------
+db56ee003 | Norbert Eicker | Wed, 18 Jun 2025 17:58:50 +0200
+
+Actually utilize pam_service's new function handles
+
+ - This obsoletes PSIDHOOK_PSSLURM_JOB_FWINIT,
+   PSIDHOOK_PSSLURM_JOB_FWFIN, PSIDHOOK_PSSLURM_JOB_EXEC hooks
+ - Also mark them accordingly
+------------------------------------------------------------------------
+ef3f3e399 | Norbert Eicker | Wed, 18 Jun 2025 17:51:36 +0200
+
+Enable psslurm to access pam_service's new handles
+
+ - This utilize PSIDHOOK_PLUGIN_LOADED and PSIDHOOK_PLUGIN_FINALIZE to
+   correctly handle a late loaded or early finalized pam_service plugin
+------------------------------------------------------------------------
+413089f44 | Norbert Eicker | Wed, 18 Jun 2025 17:37:43 +0200
+
+Adapt regJailHandles() to other handling of other plugins
+------------------------------------------------------------------------
+a6b1f870f | Norbert Eicker | Wed, 18 Jun 2025 16:34:38 +0200
+
+Introduce PSIDHOOK_PLUGIN_LOADED, PSIDHOOK_PLUGIN_FINALIZE
+
+ - bump plugin API to 146
+------------------------------------------------------------------------
+35f7ecf2a | Norbert Eicker | Wed, 18 Jun 2025 16:29:22 +0200
+
+Utilize addHook() and relHook() in pam_service
+------------------------------------------------------------------------
+34a55168f | Norbert Eicker | Wed, 18 Jun 2025 16:26:06 +0200
+
+Make pam_service interface accessible
+
+ - Introduce pamserviceStartService, pamserviceOpenSession, and
+   pamserviceStopService and make them accessible via handles
+------------------------------------------------------------------------
+50aed33c4 | Norbert Eicker | Wed, 18 Jun 2025 18:38:14 +0200
+
+Fix typo that distorts the comment
+------------------------------------------------------------------------
+40ce81318 | Norbert Eicker | Tue, 6 May 2025 19:15:22 +0200
+
+Central definition of environment secured by auto variables
+------------------------------------------------------------------------
+5644d7316 | Norbert Eicker | Tue, 6 May 2025 19:10:41 +0200
+
+Introduce PSIDpin_getAutoName()
+------------------------------------------------------------------------
+4a389033a | Norbert Eicker | Tue, 6 May 2025 18:36:09 +0200
+
+Move checkAutoVar() to PSIDpin and make use of it
+------------------------------------------------------------------------
+19c894825 | Stephan Krempel | Tue, 6 May 2025 03:13:44 +0200
+
+psslurm: Try to make autovar concept clearer
+------------------------------------------------------------------------
+fc989edc0 | Norbert Eicker | Wed, 28 May 2025 19:03:48 +0200
+
+Merge branch '6.2' once more
+------------------------------------------------------------------------
+5c84e32af | Michael Rauh | Mon, 26 May 2025 15:41:11 +0200
+
+Ensure epilogue finalize script is only started once for an allocation
+------------------------------------------------------------------------
+91b28df25 | Michael Rauh | Mon, 26 May 2025 15:20:20 +0200
+
+Ensure allocation is still valid in callback of epilogue finalize
+pluginforwarder (jwt:#39496)
+------------------------------------------------------------------------
+a9f4b1a1a | Michael Rauh | Mon, 26 May 2025 15:16:06 +0200
+
+Introduce Alloc_verifyPtr()
+------------------------------------------------------------------------
+50ad9bf6a | Norbert Eicker | Fri, 9 May 2025 10:05:43 +0200
+
+Update README to most recent buildbot enhancements
+------------------------------------------------------------------------
+6b351edc2 | Norbert Eicker | Mon, 28 Apr 2025 12:06:47 +0200
+
+IWYU cleaning
+------------------------------------------------------------------------
+d08b1346d | Norbert Eicker | Mon, 28 Apr 2025 11:58:57 +0200
+
+Prevent occupation of stdin/out/err after fork (#300)
+------------------------------------------------------------------------
+23396208f | Norbert Eicker | Mon, 28 Apr 2025 11:40:53 +0200
+
+Minor streamlining
+------------------------------------------------------------------------
+712d463af | Norbert Eicker | Mon, 28 Apr 2025 11:35:32 +0200
+
+More use of fwarn() in psaccounter
+------------------------------------------------------------------------
+b96657ac1 | Norbert Eicker | Mon, 28 Apr 2025 16:16:03 +0200
+
+Respond to ignored PSP_PLUG_PELOGUE message (#312)
+------------------------------------------------------------------------
+dd814a9da | Norbert Eicker | Mon, 28 Apr 2025 16:15:32 +0200
+
+Add errno to PSP_PELOGUE_RESP message
+------------------------------------------------------------------------
+3594252d1 | Norbert Eicker | Mon, 28 Apr 2025 16:13:11 +0200
+
+Streamlining
+------------------------------------------------------------------------
+019d5a0c1 | Norbert Eicker | Fri, 23 May 2025 16:28:18 +0200
+
+Merge branch '6.2' again
+------------------------------------------------------------------------
+bf0917567 | Norbert Eicker | Wed, 7 May 2025 20:45:28 +0200
+
+Merge branch '6.2'
+------------------------------------------------------------------------
+950e3d7ce | Stephan Krempel | Mon, 5 May 2025 07:17:27 +0200
+
+Use dirname instead of realpath in jail scripts
+------------------------------------------------------------------------
+ade534335 | Norbert Eicker | Wed, 23 Apr 2025 22:54:16 +0200
+
+Fix typo
+------------------------------------------------------------------------
+b07307b83 | Norbert Eicker | Wed, 23 Apr 2025 22:52:41 +0200
+
+Whitespace fixes
+------------------------------------------------------------------------
+ac7e01694 | Michael Rauh | Wed, 23 Apr 2025 10:43:42 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+dc8ffead2 | Michael Rauh | Wed, 23 Apr 2025 10:39:07 +0200
+
+Add debug script which shows BPF contrains for a given PID
+------------------------------------------------------------------------
+aaacd33b1 | Norbert Eicker | Tue, 15 Apr 2025 23:11:38 +0200
+
+Unify structure of psslurm unpack functions
+------------------------------------------------------------------------
+56046c76d | Norbert Eicker | Tue, 15 Apr 2025 22:57:22 +0200
+
+Rename freeSlurmMsg() to clearSlurmMsg() and minor rework
+------------------------------------------------------------------------
+5b3accb3f | Norbert Eicker | Tue, 15 Apr 2025 22:34:45 +0200
+
+Avoid some unnecessary temporary variables
+------------------------------------------------------------------------
+d791b7022 | Norbert Eicker | Tue, 15 Apr 2025 22:31:01 +0200
+
+Whitespace fixes
+------------------------------------------------------------------------
+c55a927e2 | Norbert Eicker | Wed, 12 Feb 2025 23:05:09 +0100
+
+Finally make PS_DataBuffer_t opaque
+------------------------------------------------------------------------
+71c3a27bc | Norbert Eicker | Wed, 12 Feb 2025 23:02:50 +0100
+
+Avoid use of struct PS_DataBuffer in psslurmmsg
+------------------------------------------------------------------------
+e88b25877 | Norbert Eicker | Tue, 8 Apr 2025 19:09:49 +0200
+
+Introduce PSdbSkip()
+------------------------------------------------------------------------
+d48187c2e | Norbert Eicker | Wed, 12 Feb 2025 22:58:32 +0100
+
+Introduce addDBToMsg()
+------------------------------------------------------------------------
+34f525792 | Norbert Eicker | Thu, 13 Feb 2025 09:44:47 +0100
+
+Rework psserial's docu comments
+------------------------------------------------------------------------
+1b430648d | Norbert Eicker | Wed, 12 Feb 2025 22:38:13 +0100
+
+Minor streamlining
+------------------------------------------------------------------------
+b927beaa6 | Norbert Eicker | Wed, 12 Feb 2025 22:35:10 +0100
+
+Introduce PSdbGetRemData()
+------------------------------------------------------------------------
+b1f652c2b | Norbert Eicker | Wed, 12 Feb 2025 22:22:02 +0100
+
+Introduce PSdbRecvPProg() to read Slurm msg
+------------------------------------------------------------------------
+c1b88b556 | Norbert Eicker | Wed, 12 Feb 2025 21:26:17 +0100
+
+Avoid use of struct PS_DataBuffer in psslurmcomm
+------------------------------------------------------------------------
+ef43add9b | Norbert Eicker | Wed, 12 Feb 2025 21:18:59 +0100
+
+Rework growing of PS_DataBuffer_t and add PSdbGrow()
+------------------------------------------------------------------------
+ebab1a1a4 | Norbert Eicker | Wed, 12 Feb 2025 20:26:50 +0100
+
+Introduce PSdbGetBuf() / PSdbClearBuf()
+------------------------------------------------------------------------
+fb4943d76 | Norbert Eicker | Wed, 12 Feb 2025 19:14:42 +0100
+
+Introduce PSdbDestroy() and rework psslurmio lineBuf handling
+
+ - Ensure lineBuf memory gets free()ed in IO_finalize()
+------------------------------------------------------------------------
+96b74bcda | Norbert Eicker | Wed, 12 Feb 2025 10:50:23 +0100
+
+Booleanize Step_t's outChannels and errChannels
+------------------------------------------------------------------------
+2193eaf2e | Norbert Eicker | Wed, 12 Feb 2025 04:46:57 +0100
+
+More use of flog()/fdbg()/fwarn()
+------------------------------------------------------------------------
+10b5ba837 | Norbert Eicker | Wed, 12 Feb 2025 01:39:33 +0100
+
+Introduce PSdbGet[Size|Used|Avail]()
+------------------------------------------------------------------------
+93e3f578c | Norbert Eicker | Wed, 12 Feb 2025 00:49:37 +0100
+
+Prevent direct use of unpackPtr via getMem()
+------------------------------------------------------------------------
+8936a48e9 | Norbert Eicker | Wed, 12 Feb 2025 00:36:59 +0100
+
+Introduce PSdbRewind()
+------------------------------------------------------------------------
+ba93da22c | Norbert Eicker | Wed, 12 Feb 2025 00:28:39 +0100
+
+Introduce PSdbGetErrState()
+------------------------------------------------------------------------
+febadb7cd | Norbert Eicker | Tue, 11 Feb 2025 17:40:30 +0100
+
+Rename functions
+
+ - freeDataBuffer() -> PSdbClear()
+ - dupDataBuffer() -> PSdbDup()
+------------------------------------------------------------------------
+1575785b3 | Norbert Eicker | Tue, 11 Feb 2025 17:28:44 +0100
+
+Replace initPSDataBuffer()
+
+ - Avoid temporary data-buffers located on the stack
+ - Utilize dynamic PSdbNew() / PSdbDelete() instead
+------------------------------------------------------------------------
+d026be297 | Norbert Eicker | Tue, 11 Feb 2025 17:14:56 +0100
+
+Rework growDataBuffer()
+
+ - since it is called once, thus no caller/line required
+ - caller/line is used after failed call anyhow
+------------------------------------------------------------------------
+6666e4dfa | Norbert Eicker | Tue, 11 Feb 2025 15:54:49 +0100
+
+Prepare for opaque PS_DataBuffer_t: change type
+------------------------------------------------------------------------
+f51a80be7 | Norbert Eicker | Wed, 23 Apr 2025 22:13:46 +0200
+
+Omit one warning on duplicate files during rpmbuild
+------------------------------------------------------------------------
+f4883a46e | Norbert Eicker | Wed, 23 Apr 2025 22:01:47 +0200
+
+Generate jail.conf to reflect correct jaillibdir
+------------------------------------------------------------------------
+7230a812e | Norbert Eicker | Wed, 23 Apr 2025 21:50:09 +0200
+
+Prepare build system to substitute @jaillibdir@
+------------------------------------------------------------------------
+b1e5ad93b | Norbert Eicker | Wed, 23 Apr 2025 21:13:54 +0200
+
+Remove obsolete symlinks to jail scripts
+------------------------------------------------------------------------
+59ad341dc | Norbert Eicker | Wed, 23 Apr 2025 21:04:51 +0200
+
+Use jail scripts in libexecdir immediately
+
+ - this requires according symlings there
+------------------------------------------------------------------------
+23b99a808 | Norbert Eicker | Wed, 23 Apr 2025 20:59:58 +0200
+
+Do not mark jail scripts as %config(noreplace)
+------------------------------------------------------------------------
+6f3dd2171 | Norbert Eicker | Tue, 22 Apr 2025 18:27:36 +0200
+
+Also update the PDF version of object.uxf
+------------------------------------------------------------------------
+34939431f | Norbert Eicker | Tue, 22 Apr 2025 17:57:04 +0200
+
+Get rid of references to long gone ps_ethernet
+------------------------------------------------------------------------
+cfa8141d2 | Norbert Eicker | Wed, 16 Apr 2025 15:26:38 +0200
+
+Update parastation.conf location handling
+------------------------------------------------------------------------
+6ded52a5e | Norbert Eicker | Wed, 16 Apr 2025 15:24:58 +0200
+
+Make jail script symlinks first class citizens
+------------------------------------------------------------------------
+994263ea0 | Norbert Eicker | Wed, 16 Apr 2025 15:23:31 +0200
+
+Remove update magic for jail symlinks (#280)
+------------------------------------------------------------------------
+b77093ffb | Norbert Eicker | Wed, 16 Apr 2025 15:20:30 +0200
+
+Add directories to SPEC for cleanup on uninstall
+------------------------------------------------------------------------
+c161f443b | Norbert Eicker | Wed, 16 Apr 2025 09:58:06 +0200
+
+Drop support for updates from versions prior to 5.1
+------------------------------------------------------------------------
+9e6121295 | Norbert Eicker | Fri, 18 Apr 2025 21:33:05 +0200
+
+Whitespace fixes
+------------------------------------------------------------------------
+acd3106cb | Michael Rauh | Thu, 17 Apr 2025 10:57:42 +0200
+
+Add psaccount energy monitor script acpi_energymeter_integrate.sh
+------------------------------------------------------------------------
+8c9b42b2d | Norbert Eicker | Thu, 17 Apr 2025 01:43:32 +0200
+
+Allow empty lists for some psconfig keys (#265)
+
+ - Allowed for Psid.LoadPlugins and Psid.AvailableHardwareTypes
+------------------------------------------------------------------------
+e9221e9a1 | Norbert Eicker | Mon, 14 Apr 2025 17:03:41 +0200
+
+Add some hints to PMIx' log test on how to run
+------------------------------------------------------------------------
+
+
 Version 6.2.4:
 ==============
 ------------------------------------------------------------------------
