@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -191,6 +191,12 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
 	PSID_flog("node not configured\n");
 	PSID_finalizeLogs();
 	exit(1);
+    }
+
+    if (PSID_config->RDPPort > 1023) {
+	PSID_flog("**********************************\n");
+	PSID_flog("* RDP port %5d is unprivileged *\n", PSID_config->RDPPort);
+	PSID_flog("**********************************\n");
     }
 
     PSC_setNrOfNodes(PSIDnodes_getMaxID()+1);
