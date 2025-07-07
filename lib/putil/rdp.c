@@ -1711,6 +1711,23 @@ static int handleRDP(int fd, void *info)
 	}
     }
 
+    in_port_t fromPort = sin.sin_port;
+    if (fromPort != conntable[rdpID].sin.sin_port) {
+	RDP_flog("drop msg from wrong port (%d/%d)\n", ntohs(fromPort),
+		 ntohs(conntable[rdpID].sin.sin_port));
+
+	/* Actually get the msg */
+	if (MYrecvfrom(fd, &msg, sizeof(msg), 0,
+		       (struct sockaddr *) &sin, &slen) < 0) {
+	    RDP_exit(errno, "%s/ECHRNG: MYrecvfrom", __func__);
+	} else if (!ret) {
+	    RDP_flog("ECHRNG: MYrecvfrom() returns 0\n");
+	}
+
+	errno = ECHRNG;
+	return -1;
+    }
+
     int32_t fromnode = lookupIPTable(sin.sin_addr);
     if (fromnode < 0 && msg.header.type == RDP_SYN && RDPCallback) {
 	/* Sender IP might be dynamic: allow daemon to detect and fix this */
