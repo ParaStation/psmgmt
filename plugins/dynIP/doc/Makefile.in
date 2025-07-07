@@ -334,7 +334,7 @@ scriptsdir = $(prefix)/scripts
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-dist_noinst_DATA = AWS_ParallelCluster
+dist_noinst_DATA = AWS_ParallelCluster HowTo.debug
 all: all-am
 
 .SUFFIXES:

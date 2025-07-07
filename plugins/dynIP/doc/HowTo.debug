@@ -1,0 +1,11 @@
+Short HowTo to setup dynamic IPs outside of AWS (especially for testing):
+
+- Enable dynIP plugin to be loaded on all node, i.e. add "dynIP" to
+  the list Psid.LoadPlugins in all nodetype:* classes
+- For the nodes aimed to be dynamic set <networkName>.DevIPAddress to "DYNAMIC"
+- For the same nodes set <networkName>.Hostname to the resolvable hostname
+- Propagate psconfig changes to all node (automatically done by
+  vipsconfig); this might require to enable the psconfig-rsyncd.socket
+  service if not already done
+- Restart all psids
+- Maybe make dynIP more verbose via psiadmin's 'plugin set dynIP DebugMask 0x00010'
