@@ -195,7 +195,9 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
 
     if (PSID_config->RDPPort > 1023) {
 	PSID_flog("**********************************\n");
+	PSID_flog("*    Potential security risk:    *\n");
 	PSID_flog("* RDP port %5d is unprivileged *\n", PSID_config->RDPPort);
+	PSID_flog("*    Do not use in production!   *\n");
 	PSID_flog("**********************************\n");
     }
 
