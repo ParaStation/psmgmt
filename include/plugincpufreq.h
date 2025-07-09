@@ -64,7 +64,8 @@ void CPUfreq_finalize(void);
  * @brief Reset the given hardware threads to their default governor
  *
  * The default is set by @ref CPUfreq_init() from the current
- * governor.
+ * governor for each hardware thread detected. Additionally it may be
+ * changed by @ref CPUfreq_setDefGov().
  *
  * @param set Set of hardware threads to operate on
  *
@@ -124,6 +125,21 @@ bool CPUfreq_resetAll(void);
  */
 bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
 		    CPUfreq_governors_t newGov);
+
+/**
+ * @brief Set default governor for selected hardware threads
+ *
+ * Set the default governor which gets activated by triggering
+ * a reset using @ref CPUfreq_resetGov().
+ *
+ * @param set Set of hardware threads to operate on
+ *
+ * @param setSize Size of @a set
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool CPUfreq_setDefGov(PSCPU_set_t set, uint16_t setSize,
+		       CPUfreq_governors_t defGov);
 
 /**
  * @brief Set minimum frequency for selected hardware threads

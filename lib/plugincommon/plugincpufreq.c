@@ -940,6 +940,35 @@ bool CPUfreq_setMaxFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq)
     return CPUfreq_setFreq(set, setSize, newFreq, CMD_SET_MAX_FREQ);
 }
 
+bool CPUfreq_setDefGov(PSCPU_set_t set, uint16_t setSize,
+		       CPUfreq_governors_t defGov)
+{
+    pluginfdbg(PLUGIN_LOG_FREQ, "on %s to %d\n",
+	       PSCPU_print_part(set, setSize), defGov);
+
+    if (defGov == GOV_UNDEFINED || !CPUfreq_isInitialized()) return false;
+    if (setSize > numCPUs) setSize = numCPUs;
+
+    /* ensure only one governor is given */
+    if ((defGov & (defGov - 1)) != 0) {
+	pluginflog("error: multiple governors are set: %i\n", defGov);
+	return false;
+    }
+
+    for (uint16_t i = 0; i < numCPUs; i++) {
+	if (!PSCPU_isSet(set, i)) continue;
+
+	if (!(defGov & cpus[i].availGov)) {
+	    pluginflog("error: CPU %i does not support governor %s\n",
+		       i, CPUfreq_gov2Str(defGov));
+	    return false;
+	}
+	cpus[i].defGov = defGov;
+    }
+
+    return true;
+}
+
 bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
 		    CPUfreq_governors_t newGov)
 {
