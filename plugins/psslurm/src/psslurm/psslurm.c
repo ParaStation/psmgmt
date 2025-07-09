@@ -704,6 +704,22 @@ static void CPUfreqInitCB(bool result)
     flog("initialize CPU frequency facility %s\n",
 	 (result ? "succeeded" : "failed"));
 
+    if (result) {
+	/* set idle CPU governor for all hardware threads */
+	char *gov = getConfValueC(Config, "CPU_GOV_IDLE");
+	if (gov && *gov && strcmp(gov, "none")) {
+	    PSCPU_set_t set;
+	    PSCPU_setAll(set);
+	    CPUfreq_governors_t idleGov = CPUfreq_str2Gov(gov);
+
+	    if (!CPUfreq_setGov(set, sizeof(set), idleGov)) {
+		flog("setting idle CPU governor to %s failed\n", gov);
+	    } else if (!CPUfreq_setDefGov(set, sizeof(set), idleGov)){
+		flog("setting default CPU governor to %s failed\n", gov);
+	    }
+	}
+    }
+
     initFlags &= ~INIT_CPU_FREQ;
 
     if (!initFlags && !accomplishInit()) {
