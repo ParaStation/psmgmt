@@ -326,6 +326,14 @@ const ConfDef_t confDef[] =
 	"path",
 	NULL,
 	"Optional path to CPU scaling paramters in /sys-filesystem" },
+    { "CPU_GOV_JOB", 0,
+	"string",
+	"performance",
+	"Default CPU governor if a job or step is running" },
+    { "CPU_GOV_IDLE", 0,
+	"string",
+	"powersave",
+	"Default idle CPU scaling governor" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
