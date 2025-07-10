@@ -1273,8 +1273,8 @@ static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     Slurm_Msg_t sMsg;
     initSlurmMsg(&sMsg);
-    sMsg.data = data;
     sMsg.source = msg->header.sender;
+    sMsg.data = data;
 
     /* socket */
     int16_t socket;
@@ -1287,17 +1287,18 @@ static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 	 PSC_printTID(sMsg.source), sMsg.sock, sMsg.recvTime, PSdbGetUsed(data));
 
     processSlurmMsg(&sMsg, NULL, handleSlurmdMsg, NULL);
+    sMsg.data = NULL;        // data still owned by caller (i.e. recvFragMsg())
+    clearSlurmMsg(&sMsg);
 }
 
 static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     Slurm_Msg_t sMsg;
-    int16_t socket;
-
     initSlurmMsg(&sMsg);
     sMsg.source = msg->header.sender;
 
     /* socket */
+    int16_t socket;
     getInt16(data, &socket);
     sMsg.sock = socket;
     /* receive time */
@@ -1309,6 +1310,8 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     sMsg.reply.buf = PSdbGetRemData(data);
 
     handleFrwrdMsgReply(&sMsg, SLURM_SUCCESS);
+    sMsg.reply.buf = NULL;   // data still owned by caller (i.e. recvFragMsg())
+    clearSlurmMsg(&sMsg);
 }
 
 static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
@@ -1552,6 +1555,7 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     PSdbDelete(data);
 
     handleFrwrdMsgReply(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
+    clearSlurmMsg(&sMsg);
 }
 
 /**

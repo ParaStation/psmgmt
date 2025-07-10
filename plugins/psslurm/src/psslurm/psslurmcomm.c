@@ -554,6 +554,8 @@ CALLBACK:
 	getSockInfo(sock, &sMsg.head.addr);
 
 	processSlurmMsg(&sMsg, &con->fw, con->cb, con->info);
+	sMsg.data = NULL;      // con->data (aka dBuf) still owned by con
+	clearSlurmMsg(&sMsg);
     }
     resetConnection(sock);
 
@@ -1946,6 +1948,7 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
 	    // sMsg.data not used in handleFrwrdMsgReply() and descendants
 
 	    handleFrwrdMsgReply(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
+	    clearSlurmMsg(&sMsg);
 	    flog("message error for node %i saved\n", nodeID);
 
 	    /* assuming nodes[] contains each node id only once */
