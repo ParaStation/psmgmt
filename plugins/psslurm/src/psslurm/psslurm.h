@@ -14,6 +14,8 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
+#include <plugincpufreq.h>
+
 /** list of initialization flags */
 typedef enum {
     INIT_CPU_FREQ	= 0x0001,
@@ -41,6 +43,9 @@ extern int oldExceptions;
 
 /** used to track the initialisation process */
 extern Init_Flags_t initFlags;
+
+/** default job governor, may be overwritten by the user */
+extern CPUfreq_governors_t defJobGov;
 
 /**
  * @brief Accomplish the initialisation of psslurm

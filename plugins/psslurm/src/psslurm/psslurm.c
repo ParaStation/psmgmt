@@ -90,6 +90,8 @@ int oldExceptions = -1;
 
 Init_Flags_t initFlags;
 
+CPUfreq_governors_t defJobGov;
+
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 118;
@@ -717,6 +719,18 @@ static void CPUfreqInitCB(bool result)
 	    } else if (!CPUfreq_setDefGov(set, sizeof(set), idleGov)){
 		flog("setting default CPU governor to %s failed\n", gov);
 	    }
+	}
+
+	/* set default job CPU governor */
+	gov = getConfValueC(SlurmConfig, "CpuFreqDef");
+	if (CPUfreq_str2Gov(gov) == GOV_UNDEFINED) {
+	    gov = getConfValueC(Config, "CPU_GOV_JOB");
+	}
+
+	if (gov && *gov && strcmp(gov, "none")) {
+	    PSCPU_set_t set;
+	    PSCPU_setAll(set);
+	    defJobGov = CPUfreq_str2Gov(gov);
 	}
     }
 
