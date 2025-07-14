@@ -853,7 +853,7 @@ static bool addConnInfo(Connection_t *conn, const void *info)
     if (conn->fw.head.fwNodeList) {
 	snprintf(line, sizeof(line), "message %s forward to %s returned %u of "
 		 "%u\n", msgType2String(conn->fw.head.type),
-		 conn->fw.head.fwNodeList, conn->fw.head.returnList,
+		 conn->fw.head.fwNodeList, conn->fw.head.fwResRcvd,
 		 conn->fw.head.fwResSize);
 	strbufAdd(buf, line);
     }

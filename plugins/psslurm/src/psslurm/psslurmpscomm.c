@@ -1233,7 +1233,7 @@ int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
     Slurm_Msg_Header_t dup;
     dupSlurmMsgHead(&dup, &sMsg->head);
     /* ensure further forwarding is disabled! */
-    dup.forward = dup.returnList = 0;
+    dup.forward = dup.fwResRcvd = 0;
 
     int ret = packSlurmHeader(&msg, &dup);
     freeSlurmMsgHead(&dup);

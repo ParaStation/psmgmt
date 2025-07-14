@@ -45,13 +45,13 @@ typedef struct {
     uint32_t bodyLen;		/**< length of the message payload */
     Slurm_Addr_t addr;		/**< senders address */
     uint16_t forward;		/**< message forwarding */
-    uint16_t returnList;	/**< number of returned results */
     uint32_t fwTimeout;		/**< forward timeout */
     uint16_t fwTreeWidth;	/**< width of the forwarding tree */
     uint16_t fwTreeDepth;	/**< depth of the forwwarding tree (unused) */
     char *fwNodeList;		/**< node-list to forward the message to */
     uint16_t fwResSize;		/**< number of expected forward results */
     Slurm_Forward_Res_t *fwRes; /**< received results on a per node basis */
+    uint16_t fwResRcvd;		/**< number of received results */
     char *fwAliasNetCred;	/** node alias credential (unused) */
     uid_t uid;			/**< user ID of the message sender */
     gid_t gid;			/**< group ID of the message sender */

@@ -2434,7 +2434,7 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     fw->nodes = nodes;
     fw->nodesCount = nrOfNodes;
     fw->head.forward = sMsg->head.forward;
-    fw->head.returnList = sMsg->head.returnList;
+    fw->head.fwResRcvd = sMsg->head.fwResRcvd;
     fw->head.fwResSize = sMsg->head.forward;
     fw->head.fwRes =
 	umalloc(fw->head.fwResSize * sizeof(*sMsg->head.fwRes));

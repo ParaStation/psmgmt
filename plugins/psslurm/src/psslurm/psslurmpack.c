@@ -1041,7 +1041,7 @@ bool __unpackSlurmHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 	    getUint16(data, &head->fwTreeDepth);
 	}
     }
-    getUint16(data, &head->returnList);
+    getUint16(data, &head->fwResRcvd);
 
     if (!head->addr.ip) {
 	getSlurmAddr(data, &head->addr, head->version);
@@ -1110,8 +1110,8 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     }
 
     /* flag to enable return list */
-    addUint16ToMsg(head->returnList, data);
-    for (uint32_t i = 0; i < head->returnList; i++) {
+    addUint16ToMsg(head->fwResRcvd, data);
+    for (uint16_t i = 0; i < head->fwResRcvd; i++) {
 	/* error */
 	addUint32ToMsg(head->fwRes[i].error, data);
 

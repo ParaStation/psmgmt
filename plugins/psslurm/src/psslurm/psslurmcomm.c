@@ -333,7 +333,7 @@ static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 			flog("saving error failed, caller %s@%i\n", func, line);
 		    }
 		}
-		fw->head.returnList++;
+		fw->head.fwResRcvd++;
 		saved = true;
 		break;
 	    }
