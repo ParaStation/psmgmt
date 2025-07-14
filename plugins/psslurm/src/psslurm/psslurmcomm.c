@@ -1428,7 +1428,7 @@ static int handleSrunPTYMsg(int sock, void *data)
     uint16_t buffer[2];
     ssize_t ret = PSCio_recvBuf(sock, buffer, sizeof(buffer));
     if (ret <= 0) {
-	if (ret < 0) mwarn(errno, "%s: PSCio_recvBuf()", __func__);
+	if (ret < 0) fwarn(errno, "PSCio_recvBuf()");
 	flog("close pty connection\n");
 	closeSlurmCon(sock);
 	return 0;
@@ -1448,7 +1448,7 @@ static int handleSrunPTYMsg(int sock, void *data)
 	.ws_ypixel = 0, // unused
     };
     if (ioctl(step->fwdata->stdOut[1], TIOCSWINSZ, &ws)) {
-	mwarn(errno, "%s: ioctl(TIOCSWINSZ)", __func__);
+	fwarn(errno, "ioctl(TIOCSWINSZ)");
     }
     return 0;
 }
@@ -1715,10 +1715,10 @@ int srunOpenPTYConnection(Step_t *step)
     }
     flog("pty connection (%i) to %s:%s\n", sock,
 	 inet_ntoa(step->srun.sin_addr), port);
-    step->srunPTYMsg.sock = sock;
+    step->srunPTYMsgSock = sock;
 
-    if (Selector_register(sock, handleSrunPTYMsg, step) == -1) {
-	flog("Selector_register(%i) failed\n", sock);
+    if (Selector_register(step->srunPTYMsgSock, handleSrunPTYMsg, step) == -1) {
+	flog("Selector_register(%i) failed\n", step->srunPTYMsgSock);
 	return -1;
     }
     return sock;
@@ -1905,7 +1905,6 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
 void closeAllStepConnections(Step_t *step)
 {
     if (!step->srunControlMsg.head.forward) clearSlurmMsg(&step->srunControlMsg);
-    if (!step->srunPTYMsg.head.forward) clearSlurmMsg(&step->srunPTYMsg);
 
     /* close all remaining srun connections */
     list_t *c, *tmp;
