@@ -144,7 +144,7 @@ typedef struct {
     bool *errChannels;          /**< error channels for local ranks */
     int32_t *outFDs;		/**< output file descriptors */
     int32_t *errFDs;		/**< error file descriptors */
-    Slurm_Msg_t srunIOMsg;      /**< socket for I/O messages to srun */
+    int32_t srunIOMsgSock;      /**< socket for I/O messages to srun */
     Slurm_Msg_t srunControlMsg; /**< socket for control messages to srun */
     Slurm_Msg_t srunPTYMsg;     /**< socket for PTY message to srun */
     uint8_t appendMode;         /**< truncate(=0) or append(=1) stdout/stderr */

@@ -66,7 +66,7 @@ Step_t *Step_new(void)
     step->env = envNew(NULL);
     step->spankenv = envNew(NULL);
     step->pelogueEnv = envNew(NULL);
-    initSlurmMsg(&step->srunIOMsg);
+    step->srunIOMsgSock = -1;
     initSlurmMsg(&step->srunControlMsg);
     initSlurmMsg(&step->srunPTYMsg);
 

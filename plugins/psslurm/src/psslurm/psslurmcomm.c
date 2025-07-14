@@ -1523,9 +1523,7 @@ int handleSrunIOMsg(int sock, void *stepPtr)
 	if (ret < 0) mwarn(errno, "%s: PSCio_recvBufPProg()", __func__);
 	flog("close srun connection %i for %s (rcvd %zd)\n", sock,
 	     Step_strID(step), rcvd);
-	if (sock == step->srunIOMsg.sock) {
-	    step->srunIOMsg.sock = -1;
-	}
+	if (sock == step->srunIOMsgSock) step->srunIOMsgSock = -1;
 	goto ERROR;
     }
 
@@ -1748,7 +1746,7 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 	flog("addr %s:%s sock %u\n",
 	     inet_ntoa(step->srun.sin_addr), sport, sock);
 
-	step->srunIOMsg.sock = sock;
+	step->srunIOMsgSock = sock;
     } else {
 	sock = tcpConnectU(addr, port);
 	if (sock < 0) {
@@ -1820,9 +1818,8 @@ void srunEnableIO(Step_t *step)
 	}
     }
 
-    if (Selector_register(step->srunIOMsg.sock, handleSrunIOMsg, step) == -1) {
-	flog("Selector_register(%i) srun I/O socket failed\n",
-	     step->srunIOMsg.sock);
+    if (Selector_register(step->srunIOMsgSock, handleSrunIOMsg, step) == -1) {
+	flog("Selector_register(%i) failed\n", step->srunIOMsgSock);
     }
     enabled = true;
 }
@@ -1830,7 +1827,6 @@ void srunEnableIO(Step_t *step)
 int srunSendIO(uint16_t type, uint16_t grank, Step_t *step, char *buf,
 		uint32_t bufLen)
 {
-    int ret, error = 0;
     IO_Slurm_Header_t ioh = {
 	.type = type,
 	.grank = grank,
@@ -1838,16 +1834,15 @@ int srunSendIO(uint16_t type, uint16_t grank, Step_t *step, char *buf,
 	.len = bufLen
     };
 
-    ret = srunSendIOEx(step->srunIOMsg.sock, &ioh, buf, &error);
-
+    int error = 0;
+    int ret = srunSendIOEx(step->srunIOMsgSock, &ioh, buf, &error);
     if (ret < 0) {
 	switch (error) {
-	    case ECONNRESET:
-	    case EPIPE:
-	    case EBADF:
-		fwCMD_brokeIOcon(step);
-		clearSlurmMsg(&step->srunIOMsg);
-		break;
+	case ECONNRESET:
+	case EPIPE:
+	case EBADF:
+	    fwCMD_brokeIOcon(step);
+	    break;
 	}
     }
     errno = error;
@@ -1909,7 +1904,6 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
 
 void closeAllStepConnections(Step_t *step)
 {
-    if (!step->srunIOMsg.head.forward) clearSlurmMsg(&step->srunIOMsg);
     if (!step->srunControlMsg.head.forward) clearSlurmMsg(&step->srunControlMsg);
     if (!step->srunPTYMsg.head.forward) clearSlurmMsg(&step->srunPTYMsg);
 
