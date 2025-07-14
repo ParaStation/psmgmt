@@ -50,8 +50,8 @@ typedef struct {
     uint16_t fwTreeWidth;	/**< width of the forwarding tree */
     uint16_t fwTreeDepth;	/**< depth of the forwwarding tree (unused) */
     char *fwNodeList;		/**< node-list to forward the message to */
-    Slurm_Forward_Res_t *fwRes; /**< returned results on a per node basis */
-    uint32_t fwResSize;		/**< size of the forward results */
+    uint16_t fwResSize;		/**< number of expected forward results */
+    Slurm_Forward_Res_t *fwRes; /**< received results on a per node basis */
     char *fwAliasNetCred;	/** node alias credential (unused) */
     uid_t uid;			/**< user ID of the message sender */
     gid_t gid;			/**< group ID of the message sender */

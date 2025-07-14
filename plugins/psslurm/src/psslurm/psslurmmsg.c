@@ -214,7 +214,7 @@ void dupSlurmMsgHead(Slurm_Msg_Header_t *dupHead, Slurm_Msg_Header_t *head)
 	memcpy(dupHead->fwRes, head->fwRes,
 	       head->fwResSize * sizeof(Slurm_Forward_Res_t));
 
-	for (uint32_t i=0; i<head->fwResSize; i++) {
+	for (uint16_t i = 0; i < head->fwResSize; i++) {
 	    dupHead->fwRes[i].body = PSdbDup(head->fwRes[i].body);
 	}
     }
@@ -254,7 +254,7 @@ void initSlurmMsgHead(Slurm_Msg_Header_t *head)
 void freeSlurmMsgHead(Slurm_Msg_Header_t *head)
 {
     if (head->fwRes) {
-	for (uint32_t i = 0; i < head->fwResSize; i++) {
+	for (uint16_t i = 0; i < head->fwResSize; i++) {
 	    PSdbDestroy(head->fwRes[i].body);
 	}
     }

@@ -312,7 +312,7 @@ static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
     } else {
 	/* save message from other node */
 	bool saved = false;
-	for (uint16_t i = 0; i < fw->head.forward; i++) {
+	for (uint16_t i = 0; i < fw->head.fwResSize; i++) {
 	    Slurm_Forward_Res_t *fwRes = &fw->head.fwRes[i];
 	    /* test for double replies */
 	    if (fwRes->node == srcNode) {

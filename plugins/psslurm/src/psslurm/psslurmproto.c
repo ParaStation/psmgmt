@@ -2437,10 +2437,10 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     fw->head.returnList = sMsg->head.returnList;
     fw->head.fwResSize = sMsg->head.forward;
     fw->head.fwRes =
-	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Res_t));
+	umalloc(fw->head.fwResSize * sizeof(*sMsg->head.fwRes));
     fw->head.uid = sMsg->head.uid;
 
-    for (uint32_t i = 0; i < sMsg->head.forward; i++) {
+    for (uint16_t i = 0; i < fw->head.fwResSize; i++) {
 	fw->head.fwRes[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
 	fw->head.fwRes[i].type = RESPONSE_FORWARD_FAILED;
 	fw->head.fwRes[i].node = -1;
