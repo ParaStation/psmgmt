@@ -20,6 +20,7 @@
 
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
+#include "plugincpufreq.h"
 
 #include "psidhook.h"
 #include "psidscripts.h"
@@ -227,6 +228,11 @@ static void cbTermJailAlloc(int exit, bool tmdOut, int iofd, void *info)
 bool Alloc_delete(Alloc_t *alloc)
 {
     if (!alloc) return false;
+
+    /* set default idle governor for hardware threads of allocation */
+    if (CPUfreq_isInitialized()) {
+	CPUfreq_resetGov(alloc->hwthreads, sizeof(alloc->hwthreads));
+    }
 
     /* free associated resources */
     Job_t *job = Job_findById(alloc->id);

@@ -49,6 +49,7 @@
 #include "pluginforwarder.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
+#include "plugincpufreq.h"
 
 #include "psaccounthandles.h"
 #include "peloguehandles.h"
@@ -1846,6 +1847,11 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
     ufree(nodeinfo);
 
     Alloc_initJail(alloc);
+
+    /* set default job governor for all hardware threads of allocation */
+    if (defJobGov != GOV_UNDEFINED && CPUfreq_isInitialized()) {
+	CPUfreq_setGov(alloc->hwthreads, sizeof(alloc->hwthreads), defJobGov);
+    }
 
     /* currently the use of the slurmd prologue is to gather more information
      * about the allocation and initialize the jail environment.
