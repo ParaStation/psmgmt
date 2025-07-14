@@ -626,6 +626,18 @@ static void cbGetCurGov(int32_t status, Script_Data_t *script)
     Script_destroy(script);
 }
 
+/**
+ * @brief Cleanup script structure
+ */
+static void cbCleanup(int32_t status, Script_Data_t *script)
+{
+    if (status) {
+	char *name = script->info;
+	pluginflog("command %s failed (status %d)\n", name, status);
+    }
+    Script_destroy(script);
+}
+
 /* map containing description, argument and function for a command */
 static Command_Map_t Command_Map[] = {
     { "LIST_CPUS",	"--list-cpus",      cmdListCPUs,     cbListCPUs },
@@ -633,9 +645,9 @@ static Command_Map_t Command_Map[] = {
     { "GET_AVAIL_FREQ",	"--get-avail-freq", cmdGetAvailFreq, cbGetAvailFreq },
     { "GET_FREQ",	"--get-freq",	    cmdGetFreq,      cbGetFreq },
     { "GET_CUR_GOV",	"--get-cur-gov",    cmdGetCurGov,    cbGetCurGov },
-    { "SET_MIN_FREQ",	"--set-min-freq",   cmdPrintOutput,  NULL },
-    { "SET_MAX_FREQ",	"--set-max-freq",   cmdPrintOutput,  NULL },
-    { "SET_GOV",	"--set-gov",        cmdPrintOutput,  NULL },
+    { "SET_MIN_FREQ",	"--set-min-freq",   cmdPrintOutput,  cbCleanup },
+    { "SET_MAX_FREQ",	"--set-max-freq",   cmdPrintOutput,  cbCleanup },
+    { "SET_GOV",	"--set-gov",        cmdPrintOutput,  cbCleanup },
 };
 
 static ssize_t cmdSize = sizeof(Command_Map) / sizeof(Command_Map[0]);
