@@ -1488,7 +1488,11 @@ static int stepFinalize(Forwarder_Data_t *fwdata)
 
 	if (step->cpuFreqMin != NO_VAL) CPUfreq_resetMinFreq(*stepSet, setSize);
 	if (step->cpuFreqMax != NO_VAL) CPUfreq_resetMaxFreq(*stepSet, setSize);
-	if (step->cpuFreqGov != NO_VAL) CPUfreq_resetGov(*stepSet, setSize);
+	if (step->cpuFreqGov != NO_VAL) {
+	    /* restore default job governor for subsequent steps or final work
+	     * of the job-script */
+	    CPUfreq_setGov(*stepSet, setSize, defJobGov);
+	}
     }
 
     if (pamserviceStopService) pamserviceStopService();
