@@ -59,12 +59,16 @@ typedef struct {
 
 typedef struct {
     Slurm_Msg_Header_t head;	/**< Slurm message header */
-    int sock;			/**< socket the message was red from */
-    PStask_ID_t source;		/**< root TID of the forwarding tree or -1 */
+    int sock;			/**< socket the message was read from;
+				 * if @ref source != -1, this is just a hint
+				 * to the connection to utilize */
+    PStask_ID_t source;		/**< sender TID in the forwarding tree or -1 */
     PS_DataBuffer_t data;	/**< buffer holding the received (packed)
 				     message */
-    PS_SendDB_t reply;		/**< send data buffer used to save a response */
-    void *unpData;		/**< holding the unpacked message payload */
+    PS_SendDB_t reply;		/**< send data buffer to construct response;
+				 * actual data will reside in psserial.c:sendBuf
+				 * and **must not be cleaned up** */
+    void *unpData;		/**< unpacked message payload if any */
     time_t recvTime;		/**< time the message was received */
     bool authRequired;		/**< need to verify messages authentification */
 } Slurm_Msg_t;
