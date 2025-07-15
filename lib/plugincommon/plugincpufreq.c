@@ -600,6 +600,29 @@ static void cbGetFreq(int32_t status, Script_Data_t *script)
 }
 
 /**
+ * @brief Test if all CPUs have the same default governor
+ */
+static void saveDefGovernor()
+{
+    defaultGov = GOV_UNDEFINED;
+
+    for (int i = 0; i < numCPUs; i++) {
+	if (defaultGov == GOV_UNDEFINED) {
+	    defaultGov = cpus[i].defGov;
+	    continue;
+	}
+	if (defaultGov != cpus[i].defGov) {
+	    defaultGov = GOV_UNDEFINED;
+	    break;
+	}
+    }
+    if (defaultGov != GOV_UNDEFINED) {
+	plugindbg(PLUGIN_LOG_FREQ, "all CPUs have the same governor %s\n",
+		  CPUfreq_gov2Str(defaultGov));
+    }
+}
+
+/**
  * @brief Callback for CMD_GET_CUR_GOV
  */
 static void cbGetCurGov(int32_t status, Script_Data_t *script)
@@ -611,16 +634,7 @@ static void cbGetCurGov(int32_t status, Script_Data_t *script)
     }
 
     /* test if all CPUs have the same default governor */
-    for (int i = 0; i < numCPUs; i++) {
-	if (defaultGov == GOV_UNDEFINED) {
-	    defaultGov = cpus[i].defGov;
-	    continue;
-	}
-	if (defaultGov != cpus[i].defGov) {
-	    defaultGov = GOV_UNDEFINED;
-	    break;
-	}
-    }
+    saveDefGovernor();
 
     testInitComplete();
     Script_destroy(script);
@@ -976,7 +990,12 @@ bool CPUfreq_setDefGov(PSCPU_set_t set, uint16_t setSize,
 	    return false;
 	}
 	cpus[i].defGov = defGov;
+	plugindbg(PLUGIN_LOG_FREQ, "set default gov %s on cpu%i\n",
+		  CPUfreq_gov2Str(cpus[i].defGov), i);
     }
+
+    /* test if all CPUs have the same default governor */
+    saveDefGovernor();
 
     return true;
 }
@@ -1065,7 +1084,8 @@ bool CPUfreq_resetGov(PSCPU_set_t set, uint16_t setSize)
 
     if (defaultGov != GOV_UNDEFINED) {
 	/* set all selected CPUs to default governor */
-	plugindbg(PLUGIN_LOG_FREQ, "set all CPUs to default governor\n");
+	plugindbg(PLUGIN_LOG_FREQ, "set all CPUs to default governor %s\n",
+		  CPUfreq_gov2Str(defaultGov));
 	return CPUfreq_setGov(setGov, setSize, defaultGov);
     }
 
