@@ -162,6 +162,11 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 	Step_traverse(stepEpilogue, &alloc->id);
     }
 
+    /* set default idle governor for hardware threads of allocation */
+    if (CPUfreq_isInitialized()) {
+	CPUfreq_resetGov(alloc->hwthreads, sizeof(alloc->hwthreads));
+    }
+
     if (!Alloc_isLeader(alloc)) {
 	/* Inform allocation leader the epilogue is finished. The leader
 	 * will wait for all epilogue scripts to complete and offline nodes
