@@ -449,11 +449,10 @@ int srunSendIO(uint16_t type, uint16_t grank, Step_t *step, char *buf,
  *
  * @param buf The buffer to send
  *
- * @param error If an error occurred it will hold the errno
- *
- * @return Returns the number of bytes written or -1 on error
+ * @return Returns the number of bytes written or -1 on error; @ref
+ * errno is set appropriately in case of error
  */
-int srunSendIOEx(int sock, IO_Slurm_Header_t *ioh, char *buf, int *error);
+int srunSendIOEx(int sock, IO_Slurm_Header_t *ioh, char *buf);
 
 /**
  * @brief Send a message to srun

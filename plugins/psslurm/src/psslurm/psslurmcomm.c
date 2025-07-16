@@ -1829,61 +1829,50 @@ int srunSendIO(uint16_t type, uint16_t grank, Step_t *step, char *buf,
 	.len = bufLen
     };
 
-    int error = 0;
-    int ret = srunSendIOEx(step->srunIOMsgSock, &ioh, buf, &error);
+    int ret = srunSendIOEx(step->srunIOMsgSock, &ioh, buf);
     if (ret < 0) {
-	switch (error) {
+	int eno = errno;
+	switch (eno) {
 	case ECONNRESET:
 	case EPIPE:
 	case EBADF:
 	    fwCMD_brokeIOcon(step);
 	    break;
 	}
+	errno = eno;
     }
-    errno = error;
     return ret;
 }
 
-int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
+int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf)
 {
-    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
-    bool once = true;
-    int32_t towrite, written = 0;
-    IO_Slurm_Header_t ioh;
-
     if (sock < 0) return -1;
     if (iohead->len && !buf) {
 	flog("invalid buffer (null)\n");
+	errno = EINVAL;
 	return -1;
     }
 
     if (iohead->len > 0) {
-	fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
-	     "msg '%.*s'\n", iohead->len, buf);
+	fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB, "msg '%.*s'\n", iohead->len, buf);
     }
 
-    towrite = iohead->len;
-    errno = *error = 0;
-    memcpy(&ioh, iohead, sizeof(IO_Slurm_Header_t));
-
-    while (once || towrite > 0) {
+    IO_Slurm_Header_t ioh = *iohead;
+    int32_t towrite = ioh.len, written = 0;
+    do {
 	ioh.len = towrite;
+
 	char *nextPos = buf + written;
 	if (nextPos && towrite > SLURM_IO_MAX_LEN) {
 	    /* find newline in the maximal accepted message length */
 	    char *nl = memrchr(nextPos, '\n', SLURM_IO_MAX_LEN);
-	    ioh.len = nl ? (nl +1) - (nextPos) : SLURM_IO_MAX_LEN;
+	    ioh.len = nl ? (nl + 1) - nextPos : SLURM_IO_MAX_LEN;
 	}
+
+	PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
 	packSlurmIOMsg(&data, &ioh, nextPos);
 	ssize_t ret = PSCio_sendF(sock, data.buf, data.bufUsed);
-
-	data.bufUsed = 0;
-	once = false;
-
-	if (ret < 0) {
-	    *error = errno;
-	    return -1;
-	}
+	if (ret < 0) return -1;
 	if (!ret) continue;
 
 	ret -= SLURM_IO_HEAD_SIZE;
@@ -1892,7 +1881,7 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
 	fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB, "fd %i ret %zi written %i"
 	     " towrite %i type %i grank %i\n", sock, ret, written, towrite,
 	     iohead->type, iohead->grank);
-    }
+    } while (towrite > 0);
 
     return written;
 }

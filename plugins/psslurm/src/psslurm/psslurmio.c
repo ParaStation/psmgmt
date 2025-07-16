@@ -132,25 +132,23 @@ void IO_init(void)
 static void forward2Sattach(char *msg, uint32_t msgLen, uint32_t grank,
 			    uint8_t type)
 {
-    int i, ret, error;
-    IO_Slurm_Header_t ioh;
+    IO_Slurm_Header_t ioh = {
+	.type = (type == STDOUT) ? SLURM_IO_STDOUT : SLURM_IO_STDERR,
+	.grank = grank,
+	.len = msgLen,
+    };
 
-    ioh.type = (type == STDOUT) ?  SLURM_IO_STDOUT : SLURM_IO_STDERR;
-    ioh.grank = grank;
-    ioh.len = msgLen;
-
-    for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
-	if (sattachSockets[i] != -1) {
-	    ret = srunSendIOEx(sattachSockets[i], &ioh, msg, &error);
-	    if (ret <0) {
-		if (Selector_isRegistered(sattachSockets[i])) {
-		    Selector_remove(sattachSockets[i]);
-		}
-		close(sattachSockets[i]);
-		sattachSockets[i] = -1;
-		sattachCtlSock[i] = -1;
-		sattachCon--;
+    for (int i = 0; i < MAX_SATTACH_SOCKETS; i++) {
+	if (sattachSockets[i] == -1) continue;
+	int ret = srunSendIOEx(sattachSockets[i], &ioh, msg);
+	if (ret < 0) {
+	    if (Selector_isRegistered(sattachSockets[i])) {
+		Selector_remove(sattachSockets[i]);
 	    }
+	    close(sattachSockets[i]);
+	    sattachSockets[i] = -1;
+	    sattachCtlSock[i] = -1;
+	    sattachCon--;
 	}
     }
 }
@@ -448,16 +446,15 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
     /* send previous buffered output */
     uint32_t index = ringBufStart;
     for (int i = 0; i < RING_BUFFER_LEN; i++) {
-	int ret, error;
 	RingMsgBuffer_t *rBuf = &ringBuf[index];
 	if (!rBuf->msg) break;
 
-	IO_Slurm_Header_t ioh;
-	ioh.type = rBuf->type;
-	ioh.grank = rBuf->grank;
-	ioh.len = rBuf->msgLen;
-	ret = srunSendIOEx(sattachSockets[sockIndex], &ioh, rBuf->msg, &error);
-
+	IO_Slurm_Header_t ioh = {
+	    .type = rBuf->type,
+	    .grank = rBuf->grank,
+	    .len = rBuf->msgLen,
+	};
+	int ret = srunSendIOEx(sattachSockets[sockIndex], &ioh, rBuf->msg);
 	if (ret < 0) {
 	    flog("sending IO failed\n");
 	    close(sattachSockets[sockIndex]);
