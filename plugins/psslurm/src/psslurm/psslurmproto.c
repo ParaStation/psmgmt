@@ -3206,7 +3206,7 @@ static void doSendLaunchTasksFailed(Step_t *step, uint32_t nodeID,
 
     /* send the message to srun */
 
-    if (srunSendMsg(-1, step, RESPONSE_LAUNCH_TASKS, &body) < 1) {
+    if (srunSendMsg(-1, step, RESPONSE_LAUNCH_TASKS, &body) == -1) {
 	flog("send RESPONSE_LAUNCH_TASKS failed %s\n", Step_strID(step));
     }
 
@@ -3277,7 +3277,7 @@ void sendTaskPids(Step_t *step)
     packRespLaunchTasks(&body, &resp);
 
     /* send the message to srun */
-    if (srunSendMsg(-1, step, RESPONSE_LAUNCH_TASKS, &body) < 1) {
+    if (srunSendMsg(-1, step, RESPONSE_LAUNCH_TASKS, &body) == -1) {
 	flog("send RESPONSE_LAUNCH_TASKS failed %s\n", Step_strID(step));
     }
 
