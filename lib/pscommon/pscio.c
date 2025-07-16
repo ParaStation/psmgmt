@@ -61,7 +61,10 @@ ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
 	if (!pedantic && !indefinite) return ret;
     }
 
-    if (*sent < toSend) return -1;
+    if (*sent < toSend) {
+	errno = EAGAIN;
+	return -1;
+    }
 
     return *sent;
 }

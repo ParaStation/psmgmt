@@ -79,7 +79,8 @@ bool PSCio_setFDblock(int fd, bool block);
  * @param silent Flag to operate silently, i.e. suppress log messages
  *
  * @return Return the number of bytes sent or -1 on error; in the
- * latter cases the number of bytes already sent is reported in @a sent
+ * latter cases the number of bytes already sent is reported in @a sent;
+ * furthermore @ref errno is set appropriately in case of error
  */
 ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
 		       const char *func, bool pedantic, bool indefinite,
