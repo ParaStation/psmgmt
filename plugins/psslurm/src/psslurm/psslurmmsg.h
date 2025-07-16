@@ -59,7 +59,7 @@ typedef struct {
 
 typedef struct {
     Slurm_Msg_Header_t head;	/**< Slurm message header */
-    int sock;			/**< socket the message was read from;
+    int16_t sock;		/**< socket the message was read from;
 				 * if @ref source != -1, this is just a hint
 				 * to the connection to utilize */
     PStask_ID_t source;		/**< sender TID in the forwarding tree or -1 */

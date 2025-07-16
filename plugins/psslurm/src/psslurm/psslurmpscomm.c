@@ -1206,7 +1206,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     uint32_t nTasks =
 	(step->stepid == SLURM_INTERACTIVE_STEP) ?  1 : step->packNtasks;
     if (step->rcvdPackProcs == nTasks) {
-	if (!(execStepLeader(step))) {
+	if (!execStepLeader(step)) {
 	    flog("starting user %s failed\n", Step_strID(step));
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
 	    Step_delete(step);
@@ -1274,9 +1274,7 @@ static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     sMsg.data = data;
 
     /* socket */
-    int16_t socket;
-    getInt16(sMsg.data, &socket);
-    sMsg.sock = socket;
+    getInt16(sMsg.data, &sMsg.sock);
     /* receive time */
     getTime(sMsg.data, &sMsg.recvTime);
 
@@ -1295,9 +1293,7 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     sMsg.source = msg->header.sender;
 
     /* socket */
-    int16_t socket;
-    getInt16(data, &socket);
-    sMsg.sock = socket;
+    getInt16(data, &sMsg.sock);
     /* receive time */
     getTime(data, &sMsg.recvTime);
     /* message type */
@@ -1543,9 +1539,7 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     sMsg.head.type = RESPONSE_FORWARD_FAILED;
 
     /* socket */
-    int16_t socket;
-    getInt16(data, &socket);
-    sMsg.sock = socket;
+    getInt16(data, &sMsg.sock);
     /* receive time */
     getTime(data, &sMsg.recvTime);
     PSdbDelete(data);
