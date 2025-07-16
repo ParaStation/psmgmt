@@ -54,7 +54,7 @@ typedef struct {
     PS_DataBuffer_t data;   /**< buffer for received message parts */
     Connection_CB_t *cb;    /**< function to handle received messages */
     void *info;		    /**< additional info passed to callback */
-    int sock;		    /**< socket of the connection */
+    int sock;		    /**< connection's socket */
     time_t recvTime;	    /**< time first complete message was received */
     struct timeval openTime;/**< time the connection was opened */
     uint32_t readSize;	    /**< size of message to read; 0 = still unknown */

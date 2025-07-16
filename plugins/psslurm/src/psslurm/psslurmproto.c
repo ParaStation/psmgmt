@@ -633,21 +633,25 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 * However for pack jobs the pack leader has to wait for
 	 * the pack follower to send hw threads */
 	if (step->packStepCount == 1) {
-	    if (!execStepLeader(step)) return ESLURMD_FORK_FAILED;
+	    if (!execStepLeader(step)) {
+		/* do not close connection in Step_destroy() */
+		step->srunControlMsg.sock = -1;
+		return ESLURMD_FORK_FAILED;
+	    }
 	} else {
 	    /* Check for cached hw threads */
 	    handleCachedMsg(step);
 	}
+	/* connection is now handled via step->srunControlMsg */
+	sMsg->sock = -1;
     } else {
 	/* sister node (pack follower) */
 
 	/* start I/O forwarder */
 	execStepFollower(step);
 
-	if (sMsg->sock != -1) {
-	    /* say ok to waiting srun */
-	    ret = SLURM_SUCCESS;
-	}
+	/* say ok to waiting srun */
+	if (sMsg->sock != -1) ret = SLURM_SUCCESS;
     }
 
     if (step->packStepCount > 1 && step->nodes[0] == PSC_getMyID()) {

@@ -1449,7 +1449,7 @@ static void handleChildStartStep(Forwarder_Data_t *fwdata, pid_t fw,
     psAccountRegisterJob(childPid, NULL);
 
     /* return launch success to waiting srun since mpiexec could be spawned */
-    flog("launch success for %s to srun sock '%u'\n",
+    flog("launch success for %s to srun sock %u\n",
 	 Step_strID(step), step->srunControlMsg.sock);
     sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
     step->state = JOB_SPAWNED;

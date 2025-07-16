@@ -555,6 +555,7 @@ CALLBACK:
 
 	processSlurmMsg(&sMsg, &con->fw, con->cb, con->info);
 	sMsg.data = NULL;      // con->data (aka dBuf) still owned by con
+	sMsg.sock = -1;        // keep connection for reuse
 	clearSlurmMsg(&sMsg);
     }
     resetConnection(sock);
