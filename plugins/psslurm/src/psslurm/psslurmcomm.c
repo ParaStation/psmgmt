@@ -892,13 +892,12 @@ TCP_RECONNECT:
     /* set up the sockaddr structure */
     ret = getaddrinfo(addr, port, NULL, &result);
     if (ret) {
-	mlog("%s: getaddrinfo(%s:%s) failed : %s\n", __func__,
-	     addr, port, gai_strerror(ret));
+	flog("getaddrinfo(%s:%s) failed: %s\n", addr, port, gai_strerror(ret));
 	return -1;
     }
 
     if (!reConnect) {
-	mdbg(PSSLURM_LOG_COMM, "%s: to %s port:%s\n", __func__, addr, port);
+	fdbg(PSSLURM_LOG_COMM, "to %s:%s\n", addr, port);
     }
 
     for (rp = result; rp; rp = rp->ai_next) {
@@ -906,7 +905,7 @@ TCP_RECONNECT:
 	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (sock < 0) {
 	    err = errno;
-	    mwarn(errno, "%s: socket(addr %s port %s)", __func__, addr, port);
+	    fwarn(errno, "socket(%s:%s)", addr, port);
 	    continue;
 	}
 
@@ -919,8 +918,7 @@ TCP_RECONNECT:
 	    err = errno;
 	    if (errno != EINTR) {
 		connectFailed = true;
-		mwarn(err, "%s: connect(addr %s port %s)", __func__,
-		      addr, port);
+		fwarn(err, "connect(%s:%s)", addr, port);
 		break;
 	    }
 	}
@@ -937,7 +935,7 @@ TCP_RECONNECT:
 	    reConnect++;
 	    goto TCP_RECONNECT;
 	}
-	mwarn(err, "%s: addr %s port %s err %i", __func__, addr, port, err);
+	fwarn(err, "%s:%s err %i", addr, port, err);
 	close(sock);
 	return -1;
     }
@@ -947,10 +945,10 @@ TCP_RECONNECT:
 	socklen_t lenLoc = sizeof(sockLocal), lenRem = sizeof(sockRemote);
 
 	if (getsockname(sock, (struct sockaddr*)&sockLocal, &lenLoc) == -1) {
-	    mwarn(errno, "%s: getsockname(%i)", __func__, sock);
+	    fwarn(errno, "getsockname(%i)", sock);
 	} else if (getpeername(sock, (struct sockaddr*)&sockRemote,
 			       &lenRem) == -1) {
-	    mwarn(errno, "%s: getpeername(%i)", __func__, sock);
+	    fwarn(errno, "getpeername(%i)", sock);
 	} else {
 #ifndef __clang_analyzer__
 	    flog("socket %i connected local %s:%u remote %s:%u\n", sock,
@@ -1520,7 +1518,7 @@ int handleSrunIOMsg(int sock, void *stepPtr)
     size_t rcvd = 0;
     ssize_t ret = PSCio_recvBufPProg(sock, buffer, SLURM_IO_HEAD_SIZE, &rcvd);
     if (ret <= 0) {
-	if (ret < 0) mwarn(errno, "%s: PSCio_recvBufPProg()", __func__);
+	if (ret < 0) fwarn(errno, "PSCio_recvBufPProg()");
 	flog("close srun connection %i for %s (rcvd %zd)\n", sock,
 	     Step_strID(step), rcvd);
 	if (sock == step->srunIOMsgSock) step->srunIOMsgSock = -1;
@@ -1687,7 +1685,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 
     Connection_t *con = registerSlurmSocket(sock, handleSrunMsg, req);
     if (!con) {
-	flog("register Slurm socket %i failed\n", sock);
+	flog("registerSlurmSocket(%i) failed\n", sock);
 	ufree(req);
 	return -1;
     }
@@ -1963,7 +1961,7 @@ static bool resControllerIDs(void)
     char *host = getConfValueC(SlurmConfig, "ControlMachine");
 
     char *name = (addr) ? addr : host;
-    if (!name) mlog("%s: invalid ControlMachine\n", __func__);
+    if (!name) flog("invalid ControlMachine\n");
 
     PSnodes_ID_t slurmCtl = getNodeIDbyHostname(name);
     if (slurmCtl == -1) {

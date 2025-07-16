@@ -227,8 +227,7 @@ static int rejectPartRequest(PStask_t *task, int eno)
     return 0;
 }
 
-static void logSlots(const char* prefix,
-		     PSpart_slot_t *slots, uint32_t numSlots)
+static void logSlots(const char* prefix, PSpart_slot_t *slots, uint32_t numSlots)
 {
     if (!mset(PSSLURM_LOG_PROCESS | PSSLURM_LOG_PART)) return;
 
@@ -585,7 +584,7 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
     Job_t *job = Job_findById(id);
     Alloc_t *alloc = Alloc_find(id);
 
-    mlog("%s: id %u exit %i remote %i\n", __func__, id, exit, remote);
+    flog("id %u exit %i remote %i\n", id, exit, remote);
 
     if (exit) {
 	if (retryExecScript(remote, scriptID) != -1) return 2;
@@ -642,12 +641,11 @@ static int callbackRequeueBatchJob(uint32_t id, int32_t exit,
 				   char *output)
 {
     if (!exit) {
-	mlog("%s: success for job %u\n", __func__, id);
+	flog("success for job %u\n", id);
     } else {
 	if (retryExecScript(remote, scriptID) != -1) return 2;
 
-	mlog("%s: failed for job %u exit %u remote %i\n", __func__,
-		id, exit, remote);
+	flog("failed for job %u exit %u remote %i\n", id, exit, remote);
 
 	/* cancel job */
 	Job_t *job = Job_findById(id);
@@ -983,8 +981,7 @@ static void handleJobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
     Job_t *job = Job_add(jobid);
     job->state = JOB_QUEUED;
-    mdbg(PSSLURM_LOG_JOB, "%s: job %u in %s\n", __func__, job->jobid,
-	 Alloc_strState(job->state));
+    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid, Alloc_strState(job->state));
     job->mother = msg->header.sender;
 
     /* get uid/gid */
@@ -1011,8 +1008,8 @@ static void handleJobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     Alloc_t *alloc = Alloc_find(jobid);
     if (alloc) alloc->state = A_RUNNING;
 
-    mlog("%s: jobid %u user '%s' nodes %u from %s\n", __func__, jobid,
-	 job->username, job->nrOfNodes, PSC_printTID(msg->header.sender));
+    flog("jobid %u user '%s' nodes %u from %s\n", jobid, job->username,
+	 job->nrOfNodes, PSC_printTID(msg->header.sender));
 }
 
 static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
@@ -1262,8 +1259,8 @@ int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
 
     int ret = sendFragMsg(&msg);
 
-    mdbg(PSSLURM_LOG_FWD, "%s: type '%s' source %s socket %i recvTime %zu\n",
-	 __func__, msgType2String(sMsg->head.type), PSC_printTID(sMsg->source),
+    fdbg(PSSLURM_LOG_FWD, "type %s source %s socket %i recvTime %zu\n",
+	 msgType2String(sMsg->head.type), PSC_printTID(sMsg->source),
 	 sMsg->sock, sMsg->recvTime);
 
     return ret;
@@ -1393,14 +1390,13 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
     /* only authorized users may send messages directly to psslurm */
     if (!PSID_checkPrivilege(msg->header.sender)) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
-	mlog("%s: access violation: dropping message uid %i type %i "
-	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
-	     PSC_printTID(msg->header.sender));
+	flog("access violation: dropping message uid %i type %i sender %s\n",
+	     (task ? task->uid : 0), msg->type, PSC_printTID(msg->header.sender));
 	return true;
     }
 
-    mdbg(PSSLURM_LOG_COMM, "%s: new msg type: %s (%i) [%s->%s]\n", __func__,
-	 msg2Str(msg->type), msg->type, sender, dest);
+    fdbg(PSSLURM_LOG_COMM, "new msg type: %s [%s->%s]\n", msg2Str(msg->type),
+	 sender, dest);
 
     switch (msg->type) {
     case PSP_JOB_EXIT:
@@ -1611,8 +1607,8 @@ static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
     nodeId = PSC_getID(msg->header.dest);
     hname = getHostnameByNodeId(nodeId);
 
-    mlog("%s: msg type %s (%i) to host %s (%i) got dropped\n", __func__,
-	 msg2Str(msg->type), msg->type, hname, nodeId);
+    flog("msg type %s (%i) to host %s (%i) got dropped\n", msg2Str(msg->type),
+	 msg->type, hname, nodeId);
 
     switch (msg->type) {
     case PSP_EPILOGUE_STATE_REQ:
@@ -1632,7 +1628,7 @@ static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
 	/* nothing we can do here */
 	break;
     default:
-	mlog("%s: unknown msg type %i\n", __func__, msg->type);
+	flog("unknown msg type %i\n", msg->type);
     }
     return true;
 }
@@ -1711,13 +1707,12 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 		if (step->tasksToLaunch[step->localNodeId] ==
 			step->fwInitCount) {
 
-		    mdbg(PSSLURM_LOG_IO, "%s: enable srunIO\n", __func__);
+		    fdbg(PSSLURM_LOG_IO, "enable srunIO\n");
 		    fwCMD_enableSrunIO(step);
 		    step->state = JOB_RUNNING;
 		}
 	    } else {
-		mlog("%s: task for forwarder %s not found\n", __func__,
-		     PSC_printTID(msg->header.dest));
+		flog("no task for forwarder %s\n", PSC_printTID(msg->header.dest));
 	    }
 	}
     } else if (msg->sender >= 0) {
@@ -1738,9 +1733,8 @@ static bool handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 {
     int msgLen = msg->header.len - PSLog_headerSize;
 
-    mdbg(PSSLURM_LOG_IO, "%s: src %s ", __func__,
-	 PSC_printTID(msg->header.sender));
-    mdbg(PSSLURM_LOG_IO, "dest %s data len %u\n",
+    fdbg(PSSLURM_LOG_IO, "src %s", PSC_printTID(msg->header.sender));
+    mdbg(PSSLURM_LOG_IO, " dest %s data len %u\n",
 	 PSC_printTID(msg->header.dest), msgLen);
 
     /* only handle on node of destination where we might find the step */
@@ -1752,7 +1746,7 @@ static bool handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 	step->state == JOB_EXIT) {
 	if (!task || !isPSAdminUser(task->uid, task->gid)) {
 	    /* no admin task => complain */
-	    mlog("%s: step for stdin msg from logger %s not found\n", __func__,
+	    flog("step for stdin msg from logger %s not found\n",
 		 PSC_printTID(msg->header.sender));
 	}
 	return false; // call the old handler if any
@@ -1778,14 +1772,13 @@ static bool handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     PStask_t *frwrdr = PStasklist_find(&managedTasks, msg->header.sender);
     Step_t *step = PStask_infoGet(frwrdr, TASKINFO_STEP);
     if (!Step_verifyPtr(step) || step->state == JOB_COMPLETE ||
-        step->state == JOB_EXIT) {
+	step->state == JOB_EXIT) {
 	if (!frwrdr || !isPSAdminUser(frwrdr->uid, frwrdr->gid)) {
 	    /* no admin task => complain */
 	    static PStask_ID_t lastDest = -1;
 	    if (msg->header.dest != lastDest) {
-		mlog("%s: step for CC msg with logger %s not found."
-		     " Suppressing further msgs\n", __func__,
-		     PSC_printTID(msg->header.dest));
+		flog("no step for CC msg with logger %s: Suppress further"
+		     " messages\n", PSC_printTID(msg->header.dest));
 		lastDest = msg->header.dest;
 	    }
 	}
@@ -1795,8 +1788,7 @@ static bool handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     /* save exit code */
     PS_Tasks_t *task = findTaskByFwd(&step->tasks, msg->header.sender);
     if (!task) {
-	mlog("%s: task for forwarder %s not found\n", __func__,
-	     PSC_printTID(msg->header.sender));
+	flog("no task for forwarder %s\n", PSC_printTID(msg->header.sender));
 	return false; // call the old handler if any
     }
     task->exitCode = *(int *) msg->buf;
@@ -1890,7 +1882,7 @@ static bool handleSpawnSuccess(DDErrorMsg_t *msg)
     Step_t *step = identifyStepByTaskEnv(dest, NULL, NULL);
     if (!step) {
 	flog("no step for %s", PSC_printTID(msg->header.dest));
-	mlog("from %s\n", PSC_printTID(msg->header.sender));
+	mlog(" from %s\n", PSC_printTID(msg->header.sender));
 	return false;
     }
 
@@ -1924,8 +1916,8 @@ static bool handleSpawnFailed(DDErrorMsg_t *msg)
     PStask_t *frwrdr = PStasklist_find(&managedTasks, msg->header.sender);
     Step_t *step = identifyStepByTaskEnv(frwrdr, NULL, NULL);
     if (!step) {
-	flog("no step for %s\n", PSC_printTID(msg->header.sender));
-	mlog("to %s\n", PSC_printTID(msg->header.dest));
+	flog("no step for %s", PSC_printTID(msg->header.sender));
+	mlog(" to %s\n", PSC_printTID(msg->header.dest));
 	return false;
     }
 
@@ -2223,8 +2215,8 @@ static bool saveHost(char *host, void *info)
 	HostLT[numHostLT].nodeID = getNodeIDbyHostname(host);
     } else {
 	if (addrIdx >= nrOfNodes || addrIdx >= rInfo->nrOfAddrIDs) {
-	    mlog("%s: invalid index %i of %i nodes and %i addresses\n",
-		    __func__, addrIdx, nrOfNodes, rInfo->nrOfAddrIDs);
+	    flog("invalid index %i of %i nodes and %i addresses\n",
+		 addrIdx, nrOfNodes, rInfo->nrOfAddrIDs);
 	    return false;
 	}
 	HostLT[numHostLT].nodeID = rInfo->addrIDs[addrIdx++];
@@ -2232,11 +2224,11 @@ static bool saveHost(char *host, void *info)
 
     /* did we find a valid ParaStation node ID? */
     if (HostLT[numHostLT].nodeID == -1) {
-	mlog("%s: unable to get PS nodeID for %s\n", __func__, host);
+	flog("unable to get PS nodeID for %s\n", host);
 	return false;
     }
-    mdbg(PSSLURM_LOG_DEBUG, "%s: numHostLT %zi nodeID %i hostname %s\n",
-	    __func__, numHostLT, HostLT[numHostLT].nodeID, host);
+    fdbg(PSSLURM_LOG_DEBUG, "numHostLT %zi nodeID %i hostname %s\n", numHostLT,
+	 HostLT[numHostLT].nodeID, host);
     HostLT[numHostLT++].hostname = ustrdup(host);
     rInfo->addrIdx = addrIdx;
 
@@ -2263,7 +2255,7 @@ static bool resolveHostEntry(int confIdx)
     snprintf(tmp, sizeof(tmp), "SLURM_HOST_ENTRY_%i", confIdx);
     char *hostEntry = getConfValueC(Config, tmp);
     if (!hostEntry) {
-	mlog("%s: host entry %s not found\n", __func__, tmp);
+	flog("host entry %s not found\n", tmp);
 	goto FINISH;
     }
 
@@ -2364,18 +2356,18 @@ static bool initHostLT(void)
 
     int numEntry = getConfValueI(Config, "SLURM_HOST_ENTRY_COUNT");
     if (numEntry == -1) {
-	mlog("%s: missing NodeName definition in slurm.conf\n", __func__);
+	flog("missing NodeName definition in slurm.conf\n");
 	goto ERROR;
     }
 
     for (PSnodes_ID_t i = 1; i <= numEntry; i++) {
 	/* find PS nodeIDs and save the result in HostLT */
 	if (!resolveHostEntry(i)) {
-	    mlog("%s: saving host entry %i failed\n", __func__, i);
+	    flog("saving host entry %i failed\n", i);
 	    goto ERROR;
 	}
     }
-    mdbg(-1, "%s: found %zu PS nodes\n", __func__, numHostLT);
+    flog("found %zu PS nodes\n", numHostLT);
 
     /* sort the array for later use of bsearch */
     qsort(HostLT, numHostLT, sizeof(*HostLT), compareNodeIDs);

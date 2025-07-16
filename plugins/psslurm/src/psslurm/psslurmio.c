@@ -304,13 +304,13 @@ void IO_printJobMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     if (type == STDOUT) {
 	/* write to stdout socket */
 	PSCio_sendP(job->stdOutFD, msg, msgLen);
-	mdbg(PSSLURM_LOG_IO_VERB, "%s: write job %u sock %u stdout msg %s\n",
-	     __func__, job->jobid, job->stdOutFD, msg);
+	fdbg(PSSLURM_LOG_IO_VERB, "write job %u sock %u stdout msg %s\n",
+	     job->jobid, job->stdOutFD, msg);
     } else if (type == STDERR) {
 	/* write to stderr socket */
 	PSCio_sendP(job->stdErrFD, msg, msgLen);
-	mdbg(PSSLURM_LOG_IO_VERB, "%s: write job %u sock %u stderr msg %s\n",
-	     __func__, job->jobid, job->stdErrFD, msg);
+	fdbg(PSSLURM_LOG_IO_VERB, "write job %u sock %u stderr msg %s\n",
+	     job->jobid, job->stdErrFD, msg);
     } else {
 	flog("unknown type %u for job %u\n", type, job->jobid);
     }
@@ -421,13 +421,11 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
 {
     int sock = srunOpenIOConnectionEx(step, ioAddr, ioPort, sig);
     if (sock == -1) {
-	mlog("%s: I/O connection to srun %u:%u failed\n", __func__,
-	     ioAddr, ioPort);
+	flog("failed to I/O connect srun\n");
 	return;
     }
 
-    mdbg(PSSLURM_LOG_IO, "%s: opened connection to %u:%u ctlPort %u\n",
-	 __func__, ioAddr, ioPort, ctlPort);
+    fdbg(PSSLURM_LOG_IO, "to %u:%u ctlPort %u\n", ioAddr, ioPort, ctlPort);
 
     int sockIndex = -1;
     for (int i = 0; i < MAX_SATTACH_SOCKETS; i++) {
@@ -442,7 +440,7 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
     }
 
     if (sockIndex < 0) {
-	mlog("%s: no more free sattach sockets available\n", __func__);
+	flog("no more free sattach sockets available\n");
 	close(sock);
 	return;
     }
@@ -461,7 +459,7 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
 	ret = srunSendIOEx(sattachSockets[sockIndex], &ioh, rBuf->msg, &error);
 
 	if (ret < 0) {
-	    mlog("%s: sending IO failed\n", __func__);
+	    flog("sending IO failed\n");
 	    close(sattachSockets[sockIndex]);
 	    sattachSockets[sockIndex] = -1;
 	    sattachCtlSock[sockIndex] = -1;
@@ -669,14 +667,14 @@ void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
 
     /* stdout */
     if (dup2(fwdata->stdOut[1], STDOUT_FILENO) == -1) {
-	mwarn(errno, "%s: dup2(%i)", __func__, fwdata->stdOut[1]);
+	fwarn(errno, "dup2(%i)", fwdata->stdOut[1]);
 	exit(1);
     }
     close(fwdata->stdOut[0]);
 
     /* stderr */
     if (dup2(fwdata->stdErr[1], STDERR_FILENO) == -1) {
-	mwarn(errno, "%s: dup2(%i)", __func__, fwdata->stdErr[1]);
+	fwarn(errno, "dup2(%i)", fwdata->stdErr[1]);
 	exit(1);
     }
     close(fwdata->stdErr[0]);
@@ -684,11 +682,11 @@ void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
     /* stdin */
     int fd = open(job->stdIn, O_RDONLY);
     if (fd == -1) {
-	mwarn(errno, "%s: open stdin '%s' failed", __func__, job->stdIn);
+	fwarn(errno, "open stdin '%s' failed", job->stdIn);
 	exit(1);
     }
     if (dup2(fd, STDIN_FILENO) == -1) {
-	mwarn(errno, "%s: dup2(%i) '%s' failed", __func__, fd, job->stdIn);
+	fwarn(errno, "dup2(%i) '%s' failed", fd, job->stdIn);
 	exit(1);
     }
 }
@@ -791,8 +789,8 @@ int IO_forwardJobData(int sock, void *data)
     ssize_t size = PSCio_recvBuf(sock, buf, sizeof(buf));
     if (size <= 0) {
 	Selector_remove(sock);
-	mdbg(PSSLURM_LOG_IO, "%s: job %u close std[out|err] sock %i\n",
-	     __func__, job->jobid, sock);
+	fdbg(PSSLURM_LOG_IO, "job %u close std[out|err] sock %i\n",
+	     job->jobid, sock);
 	close(sock);
 	return 0;
     }
@@ -800,13 +798,13 @@ int IO_forwardJobData(int sock, void *data)
     if (sock == fwdata->stdOut[0]) {
 	/* write to stdout socket */
 	PSCio_sendP(job->stdOutFD, buf, size);
-	mdbg(PSSLURM_LOG_IO_VERB, "%s: write job %u sock %u stdout msg %s\n",
-	     __func__, job->jobid, sock, buf);
+	fdbg(PSSLURM_LOG_IO_VERB, "write job %u sock %u stdout msg %s\n",
+	     job->jobid, sock, buf);
     } else if (sock == fwdata->stdErr[0]) {
 	/* write to stderr socket */
 	PSCio_sendP(job->stdErrFD, buf, size);
-	mdbg(PSSLURM_LOG_IO_VERB, "%s: write job %u sock %u stderr msg %s\n",
-	     __func__, job->jobid, sock, buf);
+	fdbg(PSSLURM_LOG_IO_VERB, "write job %u sock %u stderr msg %s\n",
+	     job->jobid, sock, buf);
     } else {
 	flog("unknown socket %i for job %u\n", sock, job->jobid);
     }
@@ -898,10 +896,10 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	fwdata->stdOut[0] = -1;
 	fwdata->stdOut[1] = open(outFile, flags, 0666);
 	if (fwdata->stdOut[1] == -1) {
-	    mwarn(errno, "%s: open stdout '%s' failed", __func__, outFile);
+	    fwarn(errno, "open stdout '%s' failed", outFile);
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: opt %u outfile: '%s' fd %i\n", __func__,
-	     step->stdOutOpt, outFile, fwdata->stdOut[1]);
+	fdbg(PSSLURM_LOG_IO, "opt %u outfile: '%s' fd %i\n", step->stdOutOpt,
+	     outFile, fwdata->stdOut[1]);
 
     } else if (step->stdOutOpt == IO_RANK_FILE) {
 	/* open separate files for all ranks */
@@ -914,9 +912,9 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 
 	    step->outFDs[i] = open(outFile, flags, 0666);
 	    if (step->outFDs[i] == -1) {
-		mwarn(errno, "%s: open stdout '%s' failed", __func__, outFile);
+		fwarn(errno, "open stdout '%s' failed", outFile);
 	    }
-	    mdbg(PSSLURM_LOG_IO, "%s: outfile: '%s' fd %i\n", __func__,
+	    fdbg(PSSLURM_LOG_IO, "outfile '%s' fd %i\n",
 		 outFile, fwdata->stdOut[1]);
 	}
     }
@@ -933,11 +931,10 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	} else {
 	    fwdata->stdErr[1] = open(errFile, flags, 0666);
 	    if (fwdata->stdErr[1] == -1) {
-		mwarn(errno, "%s: open stderr '%s' failed", __func__, errFile);
+		fwarn(errno, "open stderr '%s' failed", errFile);
 	    }
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: errfile: '%s' fd %i\n", __func__, errFile,
-	     fwdata->stdErr[1]);
+	fdbg(PSSLURM_LOG_IO, "errfile: '%s' fd %i\n", errFile, fwdata->stdErr[1]);
 
     } else if (step->stdErrOpt == IO_RANK_FILE) {
 	/* open separate files for all ranks */
@@ -950,9 +947,9 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 
 	    step->errFDs[i] = open(errFile, flags, 0666);
 	    if (step->errFDs[i] == -1) {
-		mwarn(errno, "%s: open stderr '%s' failed", __func__, errFile);
+		fwarn(errno, "open stderr '%s' failed", errFile);
 	    }
-	    mdbg(PSSLURM_LOG_IO, "%s: errfile: '%s' fd %i\n", __func__,
+	    fdbg(PSSLURM_LOG_IO, "errfile: '%s' fd %i\n",
 		 errFile, fwdata->stdErr[1]);
 	}
     }
@@ -964,10 +961,9 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	fwdata->stdIn[1] = -1;
 	fwdata->stdIn[0] = open(inFile, O_RDONLY);
 	if (fwdata->stdIn[0] == -1) {
-	    mwarn(errno, "%s: open stdin '%s' failed", __func__, inFile);
+	    fwarn(errno, "open stdin '%s' failed", inFile);
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: infile: '%s' fd %i\n", __func__, inFile,
-	     fwdata->stdIn[0]);
+	fdbg(PSSLURM_LOG_IO, "infile '%s' fd %i\n", inFile, fwdata->stdIn[0]);
     }
 }
 
@@ -1004,8 +1000,8 @@ int handleUserOE(int sock, void *data)
     /* forward data to srun, size of 0 means EOF for stream */
     int32_t ret = srunSendIO(type, 0, step, buf, size);
     if (ret != (size + 10) && !(step->taskFlags & LAUNCH_LABEL_IO)) {
-	mwarn(errno, "%s: sending IO failed: size:%zi ret:%i error: %i",
-	      __func__, (size + 10), ret, errno);
+	fwarn(errno, "sending IO failed: size %zi ret %i error %i",
+	      (size + 10), ret, errno);
     }
 
     return 0;

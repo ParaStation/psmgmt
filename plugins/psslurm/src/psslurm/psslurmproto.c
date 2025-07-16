@@ -1311,7 +1311,7 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
 
     /* unpack credential */
     if (!BCast_extractCred(sMsg, bcast)) {
-	mlog("%s: extracting bcast credential failed\n", __func__);
+	flog("extracting bcast credential failed\n");
 	if (!errno) {
 	    return ESLURM_AUTH_CRED_INVALID;
 	} else {
@@ -1366,8 +1366,8 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
     }
 
     if (bcast->blockNumber == 1) {
-	mlog("%s: jobid %u file '%s' user '%s'\n", __func__, bcast->jobid,
-		bcast->fileName, bcast->username);
+	flog("jobid %u file '%s' user '%s'\n", bcast->jobid,
+	     bcast->fileName, bcast->username);
     }
 
     /* start forwarder to write the file */

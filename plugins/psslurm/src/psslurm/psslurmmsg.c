@@ -161,7 +161,7 @@ const char *msgType2String(int type)
     }
 
     static char buf[64];
-    snprintf(buf, sizeof(buf), "unkown %d", type);
+    snprintf(buf, sizeof(buf), "<unkown %d>", type);
 
     return buf;
 }
@@ -200,7 +200,7 @@ void clearSlurmMsg(Slurm_Msg_t *sMsg)
 void dupSlurmMsgHead(Slurm_Msg_Header_t *dupHead, Slurm_Msg_Header_t *head)
 {
     if (!dupHead || !head) {
-	mlog("%s: invalid dupHead or head\n", __func__);
+	flog("invalid dupHead or head\n");
 	return;
     }
 
