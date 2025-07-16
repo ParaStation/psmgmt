@@ -11,12 +11,12 @@
 #define _GNU_SOURCE
 #include "psslurmcomm.h"
 
-#include <stdio.h>
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <stdio.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/ioctl.h>
@@ -1729,31 +1729,25 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 			   char *sig)
 {
     PSnodes_ID_t nodeID = step->localNodeId;
-    int sock;
 
     /* open I/O connection to srun */
-    if (!addr) {
-	char sport[100];
-	snprintf(sport, sizeof(sport), "%u",
-		    step->IOPort[nodeID % step->numIOPort]);
-
-	sock = tcpConnect(inet_ntoa(step->srun.sin_addr), sport);
-	if (sock < 0) {
-	    flog("connection to srun %s:%s failed\n",
-		 inet_ntoa(step->srun.sin_addr), sport);
-	    return -1;
-	}
-
-	flog("addr %s:%s sock %u\n",
-	     inet_ntoa(step->srun.sin_addr), sport, sock);
-
-	step->srunIOMsgSock = sock;
+    struct in_addr sin_addr;
+    if (addr) {
+	sin_addr.s_addr = addr;
     } else {
-	sock = tcpConnectU(addr, port);
-	if (sock < 0) {
-	    flog("connection to srun %u:%u failed\n", addr, port);
-	    return -1;
-	}
+	sin_addr.s_addr = step->srun.sin_addr.s_addr;
+	port = step->IOPort[nodeID % step->numIOPort];
+    }
+
+    int sock = tcpConnectU(sin_addr.s_addr, port);
+    if (sock < 0) {
+	flog("failed to connect srun %s:%u\n", inet_ntoa(sin_addr), port);
+	return -1;
+    }
+
+    if (!addr) {
+	flog("addr %s:%u sock %u\n", inet_ntoa(sin_addr), port, sock);
+	step->srunIOMsgSock = sock;
     }
 
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
