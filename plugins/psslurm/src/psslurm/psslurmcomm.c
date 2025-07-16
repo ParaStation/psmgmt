@@ -1705,18 +1705,21 @@ int srunOpenPTYConnection(Step_t *step)
 	return -1;
     }
 
-    int sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port);
-    if (sock < 0) {
-	flog("connection to srun %s:%s failed\n",
-	     inet_ntoa(step->srun.sin_addr), port);
+    char addrStr[INET_ADDRSTRLEN];
+    if (!inet_ntop(AF_INET, &step->srun.sin_addr, addrStr, sizeof(addrStr))) {
+	flog("cannot convert srun IP address\n");
 	return -1;
     }
-    flog("pty connection (%i) to %s:%s\n", sock,
-	 inet_ntoa(step->srun.sin_addr), port);
-    step->srunPTYMsgSock = sock;
 
-    if (Selector_register(step->srunPTYMsgSock, handleSrunPTYMsg, step) == -1) {
-	flog("Selector_register(%i) failed\n", step->srunPTYMsgSock);
+    int sock = tcpConnect(addrStr, port);
+    if (sock < 0) {
+	flog("connection to srun %s:%s failed\n", addrStr, port);
+	return -1;
+    }
+    flog("pty connection (%i) to %s:%s\n", sock, addrStr, port);
+
+    if (Selector_register(sock, handleSrunPTYMsg, step) == -1) {
+	flog("Selector_register(%i) failed\n", sock);
 	return -1;
     }
     return sock;

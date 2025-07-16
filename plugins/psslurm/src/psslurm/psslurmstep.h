@@ -145,7 +145,6 @@ typedef struct {
     int32_t *outFDs;		/**< output file descriptors */
     int32_t *errFDs;		/**< error file descriptors */
     int32_t srunIOMsgSock;      /**< socket for I/O messages to srun */
-    int32_t srunPTYMsgSock;     /**< socket for PTY message to srun */
     Slurm_Msg_t srunControlMsg; /**< socket for control messages to srun */
     uint8_t appendMode;         /**< truncate(=0) or append(=1) stdout/stderr */
     uint16_t accType;		/**< type of accounting */

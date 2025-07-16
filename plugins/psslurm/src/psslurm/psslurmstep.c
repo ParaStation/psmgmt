@@ -68,7 +68,6 @@ Step_t *Step_new(void)
     step->pelogueEnv = envNew(NULL);
     step->srunIOMsgSock = -1;
     initSlurmMsg(&step->srunControlMsg);
-    step->srunPTYMsgSock = -1;
 
     INIT_LIST_HEAD(&step->next);
 
