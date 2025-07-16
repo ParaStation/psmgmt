@@ -3109,14 +3109,12 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     } else {
 	/* send to all sattach processes */
 	for (int i = 0; i < MAX_SATTACH_SOCKETS; i++) {
-	    if (ctlPort[i] != -1) {
-		int sock = tcpConnectU(ctlAddr[i], ctlPort[i]);
-		if (sock < 0) {
-		    flog("connection to srun %u:%u failed\n",
-			 ctlAddr[i], ctlPort[i]);
-		} else {
-		    srunSendMsg(sock, step, MESSAGE_TASK_EXIT, &body);
-		}
+	    if (ctlPort[i] == -1) continue;
+	    int sock = tcpConnectU(ctlAddr[i], ctlPort[i]);
+	    if (sock < 0) {
+		flog("failed to connect srun %u:%u\n", ctlAddr[i], ctlPort[i]);
+	    } else {
+		srunSendMsg(sock, step, MESSAGE_TASK_EXIT, &body);
 	    }
 	}
     }
@@ -3463,7 +3461,6 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 
 bool sendConfigReq(const char *server, const int action)
 {
-    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
     char *confServer = ustrdup(server);
     char *confPort = strchr(confServer, ':');
 
@@ -3476,37 +3473,31 @@ bool sendConfigReq(const char *server, const int action)
 
     /* open connection to slurmcltd */
     int sock = tcpConnect(confServer, confPort);
-    if (sock > -1) {
-	fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
-	     "connected to %s socket %i\n", confServer, sock);
-    }
-
+    ufree(confServer);
     if (sock < 0) {
-	flog("open connection to %s:%s failed\n", confServer, confPort);
-	goto ERROR;
+	flog("failed to connect to %s\n", server);
+	return false;
     }
+    fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
+	 "connected to %s socket %i\n", server, sock);
 
     int *confAction = umalloc(sizeof(*confAction));
     *confAction = action;
     if (!registerSlurmSocket(sock, handleSlurmConf, confAction)) {
 	free(confAction);
 	flog("register Slurm socket %i failed\n", sock);
-	goto ERROR;
+	return false;
     }
 
     /* send configuration request message to slurmctld */
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
     addUint32ToMsg(CONFIG_REQUEST_SLURMD, &body);
     if (sendSlurmMsg(sock, REQUEST_CONFIG, &body, RES_UID_ANY) == -1) {
 	flog("sending config request message failed\n");
-	goto ERROR;
+	return false;
     }
 
-    ufree(confServer);
     return true;
-
-ERROR:
-    ufree(confServer);
-    return false;
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

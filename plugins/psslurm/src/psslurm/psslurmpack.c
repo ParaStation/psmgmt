@@ -4455,7 +4455,8 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
     case REQUEST_NETWORK_CALLERID:
     case MESSAGE_COMPOSITE:
     case RESPONSE_MESSAGE_COMPOSITE:
-	return true;
+	ret = true;
+	break;
     default:
 	flog("no unpack function for %s\n", msgType2String(sMsg->head.type));
     }
