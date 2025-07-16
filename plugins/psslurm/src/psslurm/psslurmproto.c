@@ -1305,9 +1305,6 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
 	flog("unpacking file bcast request failed\n");
 	return ESLURM_INVALID_JOB_ID;
     }
-    bcast->msg.sock = sMsg->sock;
-    /* set correct uid for response message */
-    bcast->msg.head.uid = sMsg->head.uid;
 
     /* unpack credential */
     if (!BCast_extractCred(sMsg, bcast)) {
@@ -1370,11 +1367,22 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
 	     bcast->fileName, bcast->username);
     }
 
+    /* set this late to not close connection in BCast_delete() */
+    bcast->msg.sock = sMsg->sock;
+    /* set correct uid for response message */
+    bcast->msg.head.uid = sMsg->head.uid;
+
     /* start forwarder to write the file */
-    if (!execBCast(bcast)) return ESLURMD_FORK_FAILED;
+    if (!execBCast(bcast)) {
+	/* do not close connection in BCast_delete() */
+	bcast->msg.sock = -1;
+	return ESLURMD_FORK_FAILED;
+    }
 
     /* prevent bcast from automatic free */
     sMsg->unpData = NULL;
+    /* connection now owned by bcast->msg */
+    sMsg->sock = -1;
 
     return SLURM_NO_RC;
 }
