@@ -117,21 +117,23 @@ void closeSlurmCon(int socket);
  * Generate a Slurm message header and set the given message type.
  * Assemble the Slurm message starting with the header followed by
  * the munge authentication and finalized with the given message body.
- * The message is send out using the provided socket. If the socket is
- * lesser 0 a new TCP connection to the slurmctld will be opened and used
- * to send the message.
  *
- * @param sock The socket file descriptor
+ * The message is sent out using the provided socket @a sock. If @a
+ * sock is negative, a new TCP connection to the slurmctld will be
+ * opened and used to send the message.
  *
- * @param type The Slurm message type to send
+ * @param sock Socket's file descriptor or -1 to connect to slurmctld
  *
- * @param body The message body to send
+ * @param type Slurm message type to send
  *
- * @param caller Function name of the calling function
+ * @param body Message body to send
  *
- * @param line Line number where this function is called
+ * @param caller Name of the calling function
  *
- * @return Returns the number of bytes written or -1 on error
+ * @param line Line number this function is called from
+ *
+ * @return Returns the number of bytes written, -1 on error, or -2 if
+ * the message was stored and will be sent out later
  */
 int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
 		   uid_t uid, const char *caller, const int line);
@@ -142,26 +144,27 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
 /**
  * @brief Send a Slurm message
  *
- * Assemble the Slurm message starting with the header followed by
- * the munge authentication and finalized with the given message body.
- * The message is send out using the provided socket. If the socket is
- * lesser 0 a new TCP connection to the slurmctld will be opened and used
- * to send the message.
+ * Assemble the Slurm message starting with the header followed by the
+ * munge authentication and finalized with the given message @a body.
  *
- * @param sock The socket file descriptor
+ * The message is sent out using the provided socket @a sock. If @a
+ * sock is negative, a new TCP connection to the slurmctld will be
+ * opened and used to send the message.
  *
- * @param head The message header to send
+ * @param sock Socket's file descriptor or -1 to connect to slurmctld
  *
- * @param body The message body to send
+ * @param head Message header to send
+ *
+ * @param body Message body to send
  *
  * @param req Request associated to this message if any
  *
- * @param caller Function name of the calling function
+ * @param caller Name of the calling function
  *
- * @param line Line number where this function is called
+ * @param line Line number this function is called from
  *
- * @return Returns the number of bytes written, -1 on error or -2 if
- * the message was stored and will be send out later
+ * @return Returns the number of bytes written, -1 on error, or -2 if
+ * the message was stored and will be sent out later
  */
 int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 		     Req_Info_t *req, const char *caller, const int line);
@@ -194,8 +197,8 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
  *
  * @param line Line number where this function is called
  *
- * @return Returns the number of bytes written, -1 on error or -2 if
- * the message was stored and will be send out later
+ * @return Returns the number of bytes written, -1 on error, or -2 if
+ * the message was stored and will be sent out later
  */
 int __sendSlurmctldReq(Req_Info_t *req, void *data,
 		       const char *caller, const int line);
@@ -455,20 +458,23 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *ioh, char *buf, int *error);
 /**
  * @brief Send a message to srun
  *
- * Open a new control connection to srun if the sock argument is
- * smaller than 0 or use the already connected socket otherwise.
- * Send a message with the provided type and message body.
+ * Send a message to srun of the provided message type @a type
+ * containing the data in @a body. The message is sent out using the
+ * provided socket @a sock. If @a sock is negative, a new controll
+ * connection to srun will be opened and used to send the message.
+ *
  * The response from srun will be handled by @ref handleSrunMsg().
  *
- * @param sock The socket file descriptor
+ * @param sock Socket's file descriptor or -1
  *
  * @param step The step to send the message
  *
- * @param type The Slurm message type
+ * @param type Slurm message type
  *
- * @param body The message body to send
+ * @param body Message body to send
  *
- * @return Returns the number of bytes written or -1 on error
+ * @return Returns the number of bytes written, -1 on error, or -2 if
+ * the message was stored and will be sent out later
  */
 int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 		PS_SendDB_t *body);
