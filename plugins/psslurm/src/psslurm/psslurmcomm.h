@@ -251,22 +251,25 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
 /**
  * @brief Handle the result of a forwarded RPC message
  *
- * This function will only be used on the root node of the forwarding tree.
- * If a new Slurm RPC message enables forwarding, handleFrwrdMsgReply() will
- * collect and handle the results of the forward process. The sMsg will hold
- * the information where the RPC was executed and error will hold the result.
- * The forward process is tracked in the connection object from the original
- * RPC request. If all RPC results from the involved nodes were collected the
- * original RPC is answered holding the results from all nodes embedded
- * in the message header.
+ * This function must only be used on the root node of the forwarding
+ * tree. If a new Slurm RPC message enables forwarding, this function
+ * will collect and handle the results of the forward process. @a sMsg
+ * will hold the information where the RPC was executed and any
+ * payload from the answering node is kept in its @ref reply
+ * member. @a error will hold the result. The forward process is
+ * tracked in the connection object of the original RPC request.
+
+ * Once all RPC results from the involved nodes are collected the
+ * original RPC is answered with results of all nodes embedded in the
+ * message header.
  *
- * @param sMsg The forwarded message to save
+ * @param sMsg Forwarded result message to handle
  *
  * @param error Error code to save
  *
- * @param func Function name of the calling function
+ * @param func Name of the calling function
  *
- * @param line Line number where this function is called
+ * @param line Line-number of the function call
  */
 void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 			   const int line);

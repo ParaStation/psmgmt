@@ -2957,8 +2957,7 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
 	    __handleFrwrdMsgReply(sMsg, SLURM_SUCCESS, func, line);
 	}
     } else {
-	/* forwarded message from other psid,
-	 * send result back upward the tree */
+	/* forwarded message from other psid => send result back up the tree */
 	ret = send_PS_ForwardRes(sMsg);
     }
     /* restore original message type to e.g. properly cleanup the unpData */
@@ -3107,7 +3106,7 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
 
 	srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
     } else {
-	/* send to all sattach processes */
+	/* send to all sattached processes */
 	for (int i = 0; i < MAX_SATTACH_SOCKETS; i++) {
 	    if (ctlPort[i] == -1) continue;
 	    int sock = tcpConnectU(ctlAddr[i], ctlPort[i]);

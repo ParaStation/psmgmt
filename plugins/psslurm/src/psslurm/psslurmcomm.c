@@ -202,7 +202,7 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info,
 	return NULL;
     }
 
-    fdbg(PSSLURM_LOG_COMM, "add connection for socket %i\n", socket);
+    fdbg(PSSLURM_LOG_COMM, "socket %i\n", socket);
     Connection_t *con = findConnection(socket);
     if (con) {
 	flog("socket(%i) already has a connection, resetting it\n", socket);
@@ -484,8 +484,7 @@ static int readSlurmMsg(int sock, void *param)
 	    goto CALLBACK;
 	} else if (!ret) {
 	    /* connection reset */
-	    fdbg(PSSLURM_LOG_COMM, "closing connection, empty message len on"
-		 " sock %i\n", sock);
+	    fdbg(PSSLURM_LOG_COMM, "socket %i closed\n", sock);
 	    goto CALLBACK;
 	}
 
@@ -812,12 +811,11 @@ const char *slurmRC2String(int rc)
  *
  * @param info Holding optional information about the original request
  *
- * @return Always returns 0.
+ * @return Always returns 0
  */
 static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
 {
     Req_Info_t *req = info;
-
     /* let the callback handle expected responses */
     if (req && req->cb && sMsg->head.type == req->expRespType) {
 	fdbg(PSSLURM_LOG_COMM, "req %s -> resp %s jobid %u handled by cb\n",
@@ -949,8 +947,8 @@ TCP_RECONNECT:
 	} else {
 #ifndef __clang_analyzer__
 	    flog("socket %i connected local %s:%u remote %s:%u\n", sock,
-		 inet_ntoa(sockRemote.sin_addr), ntohs(sockRemote.sin_port),
-		 inet_ntoa(sockLocal.sin_addr), ntohs(sockLocal.sin_port));
+		 inet_ntoa(sockLocal.sin_addr), ntohs(sockLocal.sin_port),
+		 inet_ntoa(sockRemote.sin_addr), ntohs(sockRemote.sin_port));
 #endif
 	}
     }
@@ -1088,9 +1086,8 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 	return -1;
     }
 
-    fdbg(PSSLURM_LOG_PROTO, "msg(%i): %s, version %u munge uid %i "
-	 "caller %s:%i\n", head->type, msgType2String(head->type),
-	 head->version, head->uid, caller, line);
+    fdbg(PSSLURM_LOG_PROTO, "type %s version %u munge uid %i caller %s:%i\n",
+	 msgType2String(head->type), head->version, head->uid, caller, line);
 
     Connection_t *con = findConnection(sock);
     Slurm_Auth_t *auth = NULL;
@@ -1934,7 +1931,6 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
 	    sMsg.head.type = RESPONSE_FORWARD_FAILED;
 	    sMsg.sock = con->sock;
 	    sMsg.recvTime = con->recvTime;
-	    // sMsg.data not used in handleFrwrdMsgReply() and descendants
 
 	    handleFrwrdMsgReply(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
 	    clearSlurmMsg(&sMsg);
