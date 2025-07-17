@@ -104,13 +104,30 @@ int getCtlHostIndex(PSnodes_ID_t id);
 PSnodes_ID_t getCtlHostID(int index);
 
 /**
- * @brief Close a Slurm connection
+ * @brief Close connection
  *
- * Close a Slurm connection and free used memory.
+ * Close the connection and free all used memory of the connection
+ * associated to the socket @a sock.
  *
- * @param socket The socket for the connection to close
+ * Since connection validity is tracked via @ref connectionList, the
+ * socket is used as an identifier to lookup the connection instead of
+ * the connection itself.
+ *
+ * The flag @a considerAnswer (set to true) prevents connections that
+ * expect answers on a posted request from being closed. A connection
+ * is marked accordingly when created via @ref registerSlurmSocket()
+ * by setting its @ref expectAnswer parameter to true.
+ *
+ * @param sock Socket to identify connection to close
+ *
+ * @param considerAnswer Prevent connections expecting an answer from
+ * being closed if true
+ *
+ * @return Return true on success or false on error
  */
-void closeSlurmCon(int socket);
+void closeSlurmConEx(int sock, bool considerAnswer);
+
+#define closeSlurmCon(sock) closeSlurmConEx(sock, false)
 
 /**
  * @brief Send a Slurm message

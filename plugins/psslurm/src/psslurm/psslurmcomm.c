@@ -233,48 +233,36 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info,
     return con;
 }
 
-/**
- * @brief Close connection
- *
- * Close the connection and free all used memory of the connection
- * associated to the socket @a socket.
- *
- * Since connection validity is tracked via @ref connectionList, the
- * socket is used as an identifier to lookup the connection instead of
- * the connection itself.
- *
- * @param socket Socket idenfitying the connection to close
- *
- * @return Return true on success or false on error
- */
-void closeSlurmCon(int socket)
+void closeSlurmConEx(int sock, bool considerAnswer)
 {
-    Connection_t *con = findConnection(socket);
-    if (!con) fdbg(PSSLURM_LOG_COMM, "(%d)\n", socket);
-    if (socket < 0) return;
+    Connection_t *con = findConnection(sock);
+    if (!con || (considerAnswer && con->xpctAnswer))
+	fdbg(PSSLURM_LOG_COMM, "(%d)\n", sock);
+    if (sock < 0 || (considerAnswer && con->xpctAnswer)) return;
 
     /* close the connection */
-    if (Selector_isRegistered(socket)) Selector_remove(socket);
-    close(socket);
+    if (Selector_isRegistered(sock)) Selector_remove(sock);
+    close(sock);
 
-    /* free memory */
-    if (con) {
-	if (mset(PSSLURM_LOG_COMM)) {
-	    struct timeval time_now, time_diff;
+    if (!con) return;
 
-	    gettimeofday(&time_now, NULL);
-	    timersub(&time_now, &con->openTime, &time_diff);
-	    flog("(%i) was open %.4f seconds\n", socket,
-		 time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
-	}
-	list_del(&con->next);
-	freeSlurmMsgHead(&con->fw.head);
-	if (con->fw.nodesCount) ufree(con->fw.nodes);
-	PSdbDestroy(con->fw.body);
-	PSdbDestroy(con->data);
-	ufree(con->info);
-	ufree(con);
+    if (mset(PSSLURM_LOG_COMM)) {
+	struct timeval time_now, time_diff;
+
+	gettimeofday(&time_now, NULL);
+	timersub(&time_now, &con->openTime, &time_diff);
+	flog("connection %i existed %.4f seconds\n", sock,
+	     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
     }
+
+    /* free all memory */
+    list_del(&con->next);
+    freeSlurmMsgHead(&con->fw.head);
+    if (con->fw.nodesCount) ufree(con->fw.nodes);
+    PSdbDestroy(con->fw.body);
+    PSdbDestroy(con->data);
+    ufree(con->info);
+    ufree(con);
 }
 
 void clearSlurmCon(void)
