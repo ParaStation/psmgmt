@@ -141,6 +141,16 @@ static Connection_t *findConnectionEx(int socket, time_t recvTime)
     return NULL;
 }
 
+static void doResetCon(Connection_t *con)
+{
+    if (!con) return;
+
+    fdbg(PSSLURM_LOG_COMM, "for socket %i\n", con->sock);
+
+    PSdbClearBuf(con->data);
+    con->readSize = 0;
+}
+
 /**
  * @brief Reset a connection structure
  *
@@ -164,11 +174,7 @@ static bool resetConnection(int socket)
     Connection_t *con = findConnection(socket);
     if (!con) return false;
 
-    fdbg(PSSLURM_LOG_COMM, "for socket %i\n", socket);
-
-    PSdbClearBuf(con->data);
-    con->readSize = 0;
-
+    doResetCon(con);
     return true;
 }
 
@@ -196,7 +202,7 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
     Connection_t *con = findConnection(socket);
     if (con) {
 	flog("socket(%i) already has a connection, resetting it\n", socket);
-	resetConnection(socket);
+	doResetCon(con);
 	con->cb = cb;
 	ufree(con->info);
 	con->info = info;
