@@ -449,7 +449,7 @@ static int readSlurmMsg(int sock, void *param)
 {
     Connection_t *con = param;
     PS_DataBuffer_t dBuf = con->data;
-    bool error = false;
+    bool success = false;
 
     if (!param) {
 	flog("invalid connection data buffer\n");
@@ -481,13 +481,11 @@ static int readSlurmMsg(int sock, void *param)
 	    /* read error */
 	    fwarn(eno, "PSdbRecvPProg(%d, toRead %zd) got %zd", sock,
 		  sizeof(con->readSize), PSdbGetUsed(dBuf));
-	    error = true;
 	    goto CALLBACK;
 	} else if (!ret) {
 	    /* connection reset */
 	    fdbg(PSSLURM_LOG_COMM, "closing connection, empty message len on"
 		 " sock %i\n", sock);
-	    error = true;
 	    goto CALLBACK;
 	}
 
@@ -499,11 +497,9 @@ static int readSlurmMsg(int sock, void *param)
 
 	if (con->readSize > MAX_MSG_SIZE) {
 	    flog("msg too big %u (max %u)\n", con->readSize, MAX_MSG_SIZE);
-	    error = true;
 	    goto CALLBACK;
 	} else if (!con->readSize) {
 	    flog("zero-length message not supported\n");
-	    error = true;
 	    goto CALLBACK;
 	}
 
@@ -524,13 +520,11 @@ static int readSlurmMsg(int sock, void *param)
 	/* read error */
 	fwarn(eno, "PSdbRecvPProg(%d, toRead %u) got %zd)", sock,
 	      con->readSize, PSdbGetUsed(dBuf));
-	error = true;
 	goto CALLBACK;
 
     } else if (!ret) {
 	/* connection reset */
 	flog("connection reset on sock %i\n", sock);
-	error = true;
 	goto CALLBACK;
     }
 
@@ -538,10 +532,11 @@ static int readSlurmMsg(int sock, void *param)
     PSdbRewind(dBuf);
     fdbg(PSSLURM_LOG_COMM, "all data read for %u ret %u toread %zu\n",
 	 sock, ret, PSdbGetSize(dBuf));
+    success = true;
 
 CALLBACK:
 
-    if (!error) {
+    if (success) {
 	Slurm_Msg_t sMsg;
 
 	initSlurmMsg(&sMsg);
@@ -560,7 +555,7 @@ CALLBACK:
     }
     resetConnection(sock);
 
-    if (error) {
+    if (!success) {
 	fdbg(ret ? -1 : PSSLURM_LOG_COMM, "closeSlurmCon(%d)\n", sock);
 	closeSlurmCon(sock);
     }
