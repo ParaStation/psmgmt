@@ -227,12 +227,19 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 /**
  * @brief Delete a Slurm message buffer
  *
- * Cleanup leftover assosiated timers and selectors and free
- * used memory.
+ * Cleanup leftover associated timers, write selectors. If no answer
+ * is expected, the connection is removed, too. Furthermore free all
+ * used memory. If no successful delivery of the message buffer @a
+ * msgBuf is noted via @a success, the connection is removed
+ * unconditionally.
  *
- * @param msgBuf The Slurm message to delete
+ * @param msgBuf Slurm message buffer to delete
+ *
+ * @param success Flag the successful delivery of the message to
+ * delete; without success associated connections will be closed
+ * unconditionally
  */
-void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf);
+void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf, bool success);
 
 /**
  * @brief Clear all leftover messages from buffer

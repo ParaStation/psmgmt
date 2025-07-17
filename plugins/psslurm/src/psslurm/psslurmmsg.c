@@ -269,11 +269,11 @@ void clearMsgBuf(void)
     list_t *pos, *tmp;
     list_for_each_safe(pos, tmp, &msgBufList) {
 	Slurm_Msg_Buf_t *msgBuf = list_entry(pos, Slurm_Msg_Buf_t, next);
-	deleteMsgBuf(msgBuf);
+	deleteMsgBuf(msgBuf, false);
     }
 }
 
-void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf)
+void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf, bool success)
 {
     if (!msgBuf) return;
 
@@ -286,6 +286,9 @@ void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf)
     if (msgBuf->timerID != -1) {
 	Timer_remove(msgBuf->timerID);
     }
+
+    /* cleanup connection if no answer is expected or message got lost */
+    if (msgBuf->sock != -1) closeSlurmConEx(msgBuf->sock, success);
 
     freeSlurmMsgHead(&msgBuf->head);
     freeSlurmAuth(msgBuf->auth);
@@ -359,6 +362,7 @@ int resendSlurmMsg(int sock, void *msg)
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     Slurm_Msg_Buf_t *savMsg = msg;
+    bool success = false;
 
     if (!savMsg->auth) {
 	savMsg->auth = getSlurmAuth(&savMsg->head, PSdbGetBuf(savMsg->body),
@@ -399,11 +403,12 @@ int resendSlurmMsg(int sock, void *msg)
 	return 0;
     } else {
 	/* all data has been written */
+	success = true;
 	flog("success on %s\n", msgType2String(savMsg->head.type));
     }
 
 CLEANUP:
-    deleteMsgBuf(savMsg);
+    deleteMsgBuf(savMsg, success);
 
     return 0;
 }
@@ -430,10 +435,11 @@ static void handleReconTimeout(int timerId, void *data)
 		flog("max reconnect attempts (%i) reached, dropping msg %s\n",
 		     savedMsg->conRetry, msgType2String(savedMsg->head.type));
 
-		/* drop the saved msg and free request only here if the
-		 * connection could not be opened */
+		/* drop the saved msg and free request only here if
+		 * the connection could not be opened; otherwise req
+		 * will become part of the connection */
 		ufree(savedMsg->req);
-		deleteMsgBuf(savedMsg);
+		deleteMsgBuf(savedMsg, false);
 	    }
 	    return;
 	}

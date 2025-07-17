@@ -1125,7 +1125,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 		    flog("setting resend timer failed\n");
 		    /* without a connection the request has to be freed */
 		    ufree(req);
-		    deleteMsgBuf(savedMsg);
+		    deleteMsgBuf(savedMsg, false);
 		    return -1;
 		}
 		flog("sending msg %s failed, saved for later resend\n",
