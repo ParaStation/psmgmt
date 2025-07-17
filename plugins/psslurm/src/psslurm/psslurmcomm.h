@@ -518,10 +518,10 @@ void closeAllStepConnections(Step_t *step);
 /**
  * @brief Open a new connection to slurmctld
  *
- * Open a new connection to the slurmctld. If the connection
- * can't be established a new connection attempt to the backup
- * controller is made. On success a selector to the function
- * handleSlurmctldReply() is registered for the connected socket.
+ * Open a new connection to the slurmctld. If the connection can't be
+ * established, a new connection attempt to the backup controller is
+ * made. On success a selector to the function handleSlurmctldReply()
+ * is registered for the connected socket.
  *
  * This is basically a wrapper for @ref openSlurmctldConEx().
  *
@@ -530,24 +530,6 @@ void closeAllStepConnections(Step_t *step);
  * @return Returns the connected socket or -1 on error.
  */
 int openSlurmctldCon(void *info);
-
-/**
- * @brief Open a new connection to slurmctld
- *
- * Open a new connection to the slurmctld. If the connection
- * can't be established a new connection attempt to the backup
- * controller is made. On success a selector to the connection
- * callback @a cb is registered for the connected socket.
- * Additional information is passed to the callback via @a
- * info.
- *
- * @param cb Callback to handle a reply from the slurmctld
- *
- * @param info Additional info passed to the callback
- *
- * @return Returns the connected socket or -1 on error.
- */
-int openSlurmctldConEx(Connection_CB_t *cb, void *info);
 
 /**
  * @brief Register a Slurm socket
