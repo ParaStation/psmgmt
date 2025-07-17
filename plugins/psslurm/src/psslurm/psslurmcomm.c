@@ -189,9 +189,13 @@ static bool resetConnection(int socket)
  * cb. Responsibility on @a info is passed to the connection here only
  * upon success. Otherwise the caller remains responsible.
  *
+ * @param expectAnswer Flag connection to stay open once all data is
+ * sent since it represents a request
+ *
  * @return Returns a pointer to the new connection or NULL on error
  */
-static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
+static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info,
+				   bool expectAnswer)
 {
     if (socket < 0) {
 	flog("got invalid socket %i\n", socket);
@@ -208,6 +212,7 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
 	con->info = info;
 	gettimeofday(&con->openTime, NULL);
 	con->authByInMsg = false;
+	con->xpctAnswer = expectAnswer;
 	return con;
     }
 
@@ -220,6 +225,7 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
 	con->fw.body = PSdbNew(NULL, 0);
 	gettimeofday(&con->openTime, NULL);
 	initSlurmMsgHead(&con->fw.head);
+	con->xpctAnswer = expectAnswer;
 
 	list_add_tail(&con->next, &connectionList);
     }
@@ -574,14 +580,15 @@ CALLBACK:
     return 0;
 }
 
-Connection_t *registerSlurmSocket(int sock, Connection_CB_t *cb, void *info)
+Connection_t *registerSlurmSocket(int sock, Connection_CB_t *cb, void *info,
+				  bool expectAnswer)
 {
     if (sock < 0) {
 	flog("invalid socket %i\n", sock);
 	return NULL;
     }
 
-    Connection_t *con = addConnection(sock, cb, info);
+    Connection_t *con = addConnection(sock, cb, info, expectAnswer);
     if (!con) {
 	flog("failed to add connection for sock %i\n", sock);
 	return NULL;
@@ -1023,7 +1030,7 @@ int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 	return sock;
     }
 
-    if (!registerSlurmSocket(sock, cb, info)) {
+    if (!registerSlurmSocket(sock, cb, info, true)) {
 	flog("register Slurm socket %i failed\n", sock);
 	close(sock);
 	return -1;
@@ -1345,7 +1352,7 @@ static int acceptSlurmClient(int socket, void *data)
 	}
     }
 
-    Connection_t *con = registerSlurmSocket(newSock, handleSlurmdMsg, NULL);
+    Connection_t *con = registerSlurmSocket(newSock, handleSlurmdMsg, NULL, false);
     if (!con) {
 	flog("failed to register socket %i\n", newSock);
     } else {
@@ -1690,7 +1697,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
     req->stepid = step->stepid;
     req->time = time(NULL);
 
-    Connection_t *con = registerSlurmSocket(sock, handleSrunMsg, req);
+    Connection_t *con = registerSlurmSocket(sock, handleSrunMsg, req, true);
     if (!con) {
 	flog("registerSlurmSocket(%i) failed\n", sock);
 	ufree(req);

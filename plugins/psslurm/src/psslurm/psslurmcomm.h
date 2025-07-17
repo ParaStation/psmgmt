@@ -61,6 +61,7 @@ typedef struct {
     Msg_Forward_t fw;	    /**< message forwarding structure */
     Step_t *step;	    /**< set if connection is associated to a step */
     bool authByInMsg;       /**< connection validation by incoming message */
+    bool xpctAnswer;        /**< request on this connection expects answer */
 } Connection_t;
 
 /**
@@ -547,9 +548,13 @@ int openSlurmctldConEx(Connection_CB_t *cb, void *info);
  * the connection only upon success. Otherwise the caller remains
  * responsible.
  *
+ * @param expectAnswer Flag connection to stay open once all data is
+ * sent since it represents a request
+ *
  * @return Returns the associated connection on success or NULL otherwise
  */
-Connection_t *registerSlurmSocket(int sock, Connection_CB_t *cb, void *info);
+Connection_t *registerSlurmSocket(int sock, Connection_CB_t *cb, void *info,
+				  bool expectAnswer);
 
 /**
  * @brief Convert a Slurm return code to string

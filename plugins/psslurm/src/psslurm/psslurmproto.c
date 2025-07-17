@@ -3483,7 +3483,7 @@ bool sendConfigReq(const char *server, const int action)
 
     int *confAction = umalloc(sizeof(*confAction));
     *confAction = action;
-    if (!registerSlurmSocket(sock, handleSlurmConf, confAction)) {
+    if (!registerSlurmSocket(sock, handleSlurmConf, confAction, true)) {
 	free(confAction);
 	flog("register Slurm socket %i failed\n", sock);
 	return false;
