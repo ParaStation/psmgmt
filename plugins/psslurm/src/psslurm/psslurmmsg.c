@@ -16,6 +16,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "pscio.h"
 #include "pluginconfig.h"
@@ -264,22 +265,14 @@ void freeSlurmMsgHead(Slurm_Msg_Header_t *head)
     ufree(head->fwRes);
 }
 
-void clearMsgBuf(void)
-{
-    list_t *pos, *tmp;
-    list_for_each_safe(pos, tmp, &msgBufList) {
-	Slurm_Msg_Buf_t *msgBuf = list_entry(pos, Slurm_Msg_Buf_t, next);
-	deleteMsgBuf(msgBuf, false);
-    }
-}
-
-void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf, bool success)
+void deleteMsgBufEx(Slurm_Msg_Buf_t *msgBuf, bool success, bool keepCon)
 {
     if (!msgBuf) return;
 
-    /* remove a registered socket */
+    /* cleanup write selector and close socket if now unused */
     if (msgBuf->sock != -1 && Selector_isRegistered(msgBuf->sock)) {
 	Selector_vacateWrite(msgBuf->sock);
+	if (!Selector_isRegistered(msgBuf->sock)) close(msgBuf->sock);
     }
 
     /* remove a registered timer */
@@ -288,13 +281,24 @@ void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf, bool success)
     }
 
     /* cleanup connection if no answer is expected or message got lost */
-    if (msgBuf->sock != -1) closeSlurmConEx(msgBuf->sock, success);
+    if (!keepCon && msgBuf->sock != -1)
+	closeSlurmConEx(msgBuf->sock, success, true);
 
+    list_del(&msgBuf->next);
     freeSlurmMsgHead(&msgBuf->head);
     freeSlurmAuth(msgBuf->auth);
     PSdbDestroy(msgBuf->body);
-    list_del(&msgBuf->next);
     ufree(msgBuf);
+}
+
+void clearMsgBufs(int sock)
+{
+    list_t *pos, *tmp;
+    list_for_each_safe(pos, tmp, &msgBufList) {
+	Slurm_Msg_Buf_t *msgBuf = list_entry(pos, Slurm_Msg_Buf_t, next);
+	if (sock != -1 && msgBuf->sock != sock) continue;
+	deleteMsgBufEx(msgBuf, false, sock != -1);
+    }
 }
 
 Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,

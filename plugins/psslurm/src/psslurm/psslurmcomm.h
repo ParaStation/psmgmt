@@ -118,16 +118,22 @@ PSnodes_ID_t getCtlHostID(int index);
  * is marked accordingly when created via @ref registerSlurmSocket()
  * by setting its @ref expectAnswer parameter to true.
  *
+ * The flag @a keepMsgBufs prevents to cleanup message buffers to be
+ * handled via the connection. If this is false, such message buffers
+ * will be cleaned up by calling @ref clearMsgBufs()
+ *
  * @param sock Socket to identify connection to close
  *
  * @param considerAnswer Prevent connections expecting an answer from
  * being closed if true
  *
+ * @param keepMsgBufs Flag to not call @ref clearMsgBufs()
+ *
  * @return Return true on success or false on error
  */
-void closeSlurmConEx(int sock, bool considerAnswer);
+void closeSlurmConEx(int sock, bool considerAnswer, bool keepMsgBufs);
 
-#define closeSlurmCon(sock) closeSlurmConEx(sock, false)
+#define closeSlurmCon(sock) closeSlurmConEx(sock, false, false)
 
 /**
  * @brief Send a Slurm message

@@ -231,20 +231,31 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
  * is expected, the connection is removed, too. Furthermore free all
  * used memory. If no successful delivery of the message buffer @a
  * msgBuf is noted via @a success, the connection is removed
- * unconditionally.
+ * unconditionally, unless the flag @a keepCon is true. This will
+ * prevent any connections from being closed
  *
  * @param msgBuf Slurm message buffer to delete
  *
  * @param success Flag the successful delivery of the message to
  * delete; without success associated connections will be closed
  * unconditionally
+ *
+ * @param keepCon Prevent any removal of connections
  */
-void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf, bool success);
+void deleteMsgBufEx(Slurm_Msg_Buf_t *msgBuf, bool success, bool keepCon);
+
+#define deleteMsgBuf(msgBuf, success) deleteMsgBufEx(msgBuf, success, false)
 
 /**
- * @brief Clear all leftover messages from buffer
+ * @brief Clear all leftover messages buffer from socket
+ *
+ * Clear all leftover messages buffers from the connection identified
+ * by to the socket @a sock. If @a sock is -1, all messages buffers
+ * will be cleared.
+ *
+ * @param sock Socket identifying the message buffers to clear
  */
-void clearMsgBuf(void);
+void clearMsgBufs(int sock);
 
 /**
  * @brief Determine if a Slurm message needs to be resend

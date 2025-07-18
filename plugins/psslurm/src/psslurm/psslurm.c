@@ -872,7 +872,7 @@ void cleanup(void)
     Step_destroyAll();
     clearGresConf();
     clearSlurmdProto();
-    clearMsgBuf();
+    clearMsgBufs(-1);
     BCast_clearList();
     Alloc_clearList();
     freeConfig(Config);

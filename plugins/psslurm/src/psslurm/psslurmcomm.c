@@ -233,16 +233,21 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info,
     return con;
 }
 
-void closeSlurmConEx(int sock, bool considerAnswer)
+void closeSlurmConEx(int sock, bool considerAnswer, bool keepMsgBufs)
 {
     Connection_t *con = findConnection(sock);
     if (!con || (considerAnswer && con->xpctAnswer))
 	fdbg(PSSLURM_LOG_COMM, "(%d)\n", sock);
-    if (sock < 0 || (considerAnswer && con->xpctAnswer)) return;
+    if (sock < 0 || (considerAnswer && con && con->xpctAnswer)) return;
 
-    /* close the connection */
-    if (Selector_isRegistered(sock)) Selector_remove(sock);
-    close(sock);
+    /* cleanup selector and close socket if now unused */
+    if (Selector_isRegistered(sock)) {
+	Selector_remove(sock);
+	if (!Selector_isRegistered(sock)) close(sock);
+    }
+
+    /* clear remnant message buffers */
+    if (!keepMsgBufs) clearMsgBufs(sock);
 
     if (!con) return;
 
