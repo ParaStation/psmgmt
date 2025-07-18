@@ -689,10 +689,8 @@ const char *slurmRC2String(int rc)
  * @param sMsg The reply message to handle
  *
  * @param info Holding optional information about the original request
- *
- * @return Always returns 0
  */
-static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
+static void handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
 {
     Req_Info_t *req = info;
     /* let the callback handle expected responses */
@@ -737,7 +735,6 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
 
 CLEANUP:
     if (sMsg->source == -1) closeSlurmCon(sMsg->sock);
-    return 0;
 }
 
 int tcpConnectU(uint32_t addr, uint16_t port)
@@ -1675,7 +1672,7 @@ int srunOpenControlConnection(Step_t *step)
     return sock;
 }
 
-static int handleSrunReply(Slurm_Msg_t *sMsg, void *info)
+static void handleSrunReply(Slurm_Msg_t *sMsg, void *info)
 {
     Req_Info_t *req = info;
     Step_t step = { .jobid = req->jobid,
@@ -1702,7 +1699,6 @@ static int handleSrunReply(Slurm_Msg_t *sMsg, void *info)
 
 CLEANUP:
     closeSlurmCon(sMsg->sock);
-    return 0;
 }
 
 int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,

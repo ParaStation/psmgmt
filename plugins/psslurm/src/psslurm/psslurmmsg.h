@@ -77,7 +77,7 @@ typedef struct {
 #include "psslurmauth.h"  // IWYU pragma: keep
 
 /** callback function of a connection structure */
-typedef int Connection_CB_t(Slurm_Msg_t *msg, void *info);
+typedef void Connection_CB_t(Slurm_Msg_t *msg, void *info);
 
 /** structure to make information available about the message request
  * when handling a corresponding response */

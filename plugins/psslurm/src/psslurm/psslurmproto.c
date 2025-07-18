@@ -1739,7 +1739,7 @@ static void sendJobKill(Req_Info_t *req, uint16_t signal)
     sendSlurmctldReq(reqInfo, &kill);
 }
 
-static int handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
+static void handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
 {
     Req_Info_t *req = info;
     uint32_t rc;
@@ -1754,7 +1754,6 @@ static int handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
 	     msgType2String(req->type), req->jobid);
     }
 
-    return 0;
 }
 
 void sendJobRequeue(uint32_t jobid)
@@ -2554,7 +2553,7 @@ typedef struct {
 
 static LIST_HEAD(msgList);
 
-int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
+void handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
 {
     struct timeval time_start, time_now, time_diff;
 
@@ -2572,7 +2571,7 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
 
 	if (!msgHandler->handler) {
 	    flog("error: no handler for %s\n", msgType2String(sMsg->head.type));
-	    return 0;
+	    return;
 	}
 
 	/* unpack request */
@@ -2580,7 +2579,7 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
 	    flog("unpacking message %s (%u) failed\n",
 		 msgType2String(sMsg->head.type), sMsg->head.version);
 	    sendSlurmRC(sMsg, SLURM_COMMUNICATIONS_RECEIVE_ERROR);
-	    return 0;
+	    return;
 	}
 
 	/* execute the RPC using the message handler */
@@ -2602,14 +2601,13 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
 		 msgType2String(msgHandler->msgType),
 		 time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
 	}
-	return 0;
+	return;
     }
 
     flog("error: got unregistred RPC %s (%u)\n",
 	 msgType2String(sMsg->head.type), sMsg->head.version);
 
     sendSlurmRC(sMsg, SLURM_ERROR);
-    return 0;
 }
 
 slurmdHandlerFunc_t registerSlurmdMsg(int msgType, slurmdHandlerFunc_t handler)
@@ -2845,10 +2843,9 @@ void clearSlurmdProto(void)
     }
 }
 
-int handleRespNodeRegStatus(Slurm_Msg_t *sMsg, void *info)
+static void handleRespNodeRegStatus(Slurm_Msg_t *sMsg, void *info)
 {
     handleSlurmdMsg(sMsg, info);
-    return 0;
 }
 
 void sendNodeRegStatus(bool startup)
@@ -3386,10 +3383,8 @@ void sendDrainNode(const char *nodeList, const char *reason)
  *
  * @param info The action to be taken if the configuration
  * was successful fetched
- *
- * @return Always returns 0
  */
-static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
+static void handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 {
     uint32_t rc;
     int action = CONF_ACT_NONE;
@@ -3407,23 +3402,23 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 		 msgType2String(sMsg->head.type), slurmRC2String(rc),
 		 sMsg->sock);
 	}
-	return 0;
+	return;
     case RESPONSE_CONFIG:
 	break;
     default:
 	flog("unexpected message type %i\n", sMsg->head.type);
-	return 0;
+	return;
     }
 
     /* unpack config response */
     if (!unpackSlurmMsg(sMsg)) {
 	flog("unpacking config response failed\n");
-	return 0;
+	return;
     }
     Config_Msg_t *config = sMsg->unpData;
     if (!config) {
 	flog("unpacking new configuration failed\n");
-	return 0;
+	return;
     }
 
     flog("successfully unpacked config msg\n");
@@ -3436,7 +3431,7 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 
     if (!ret) {
 	flog("failed to write Slurm configuration files to %s\n", confCache);
-	return 0;
+	return;
     }
 
     /* update configuration file defaults */
@@ -3460,8 +3455,6 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     case CONF_ACT_NONE:
 	break;
     }
-
-    return 0;
 }
 
 bool sendConfigReq(const char *server, const int action)

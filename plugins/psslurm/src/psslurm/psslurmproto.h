@@ -283,10 +283,8 @@ slurmdHandlerFunc_t clearSlurmdMsg(int msgType);
  * @param msg The message to handle
  *
  * @param info Additional info currently unused
- *
- * @return Always return 0
  */
-int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info);
+void handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info);
 
 bool initSlurmdProto(void);
 
