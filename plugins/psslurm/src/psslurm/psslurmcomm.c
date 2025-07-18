@@ -334,7 +334,6 @@ static int readSlurmMsg(int sock, void *param)
 {
     Connection_t *con = param;
     PS_DataBuffer_t dBuf = con->data;
-    bool success = false;
 
     if (!param) {
 	flog("invalid connection data buffer\n");
@@ -366,11 +365,11 @@ static int readSlurmMsg(int sock, void *param)
 	    /* read error */
 	    fwarn(eno, "PSdbRecvPProg(%d, toRead %zd) got %zd", sock,
 		  sizeof(con->readSize), PSdbGetUsed(dBuf));
-	    goto CALLBACK;
+	    goto CLEANUP;
 	} else if (!ret) {
 	    /* connection reset */
 	    fdbg(PSSLURM_LOG_COMM, "socket %i closed\n", sock);
-	    goto CALLBACK;
+	    goto CLEANUP;
 	}
 
 	/* all data read successful */
@@ -381,10 +380,10 @@ static int readSlurmMsg(int sock, void *param)
 
 	if (con->readSize > MAX_MSG_SIZE) {
 	    flog("msg too big %u (max %u)\n", con->readSize, MAX_MSG_SIZE);
-	    goto CALLBACK;
+	    goto CLEANUP;
 	} else if (!con->readSize) {
 	    flog("zero-length message not supported\n");
-	    goto CALLBACK;
+	    goto CLEANUP;
 	}
 
 	PSdbGrow(dBuf, con->readSize);
@@ -404,45 +403,40 @@ static int readSlurmMsg(int sock, void *param)
 	/* read error */
 	fwarn(eno, "PSdbRecvPProg(%d, toRead %u) got %zd)", sock,
 	      con->readSize, PSdbGetUsed(dBuf));
-	goto CALLBACK;
+	goto CLEANUP;
 
     } else if (!ret) {
 	/* connection reset */
 	flog("connection reset on sock %i\n", sock);
-	goto CALLBACK;
+	goto CLEANUP;
     }
 
     /* all data read successfully */
     PSdbRewind(dBuf);
     fdbg(PSSLURM_LOG_COMM, "all data read for %u ret %u toread %zu\n",
 	 sock, ret, PSdbGetSize(dBuf));
-    success = true;
 
-CALLBACK:
+    Slurm_Msg_t sMsg;
+    initSlurmMsg(&sMsg);
+    sMsg.sock = sock;
+    sMsg.data = dBuf;
+    sMsg.recvTime = con->recvTime = time(NULL);
+    sMsg.authRequired = con->authByInMsg;
 
-    if (success) {
-	Slurm_Msg_t sMsg;
+    /* overwrite empty addr informations */
+    getSockInfo(sock, &sMsg.head.addr);
 
-	initSlurmMsg(&sMsg);
-	sMsg.sock = sock;
-	sMsg.data = dBuf;
-	sMsg.recvTime = con->recvTime = time(NULL);
-	sMsg.authRequired = con->authByInMsg;
-
-	/* overwrite empty addr informations */
-	getSockInfo(sock, &sMsg.head.addr);
-
-	processSlurmMsg(&sMsg, &con->fw, con->cb, con->info);
-	sMsg.data = NULL;      // con->data (aka dBuf) still owned by con
-	sMsg.sock = -1;        // keep connection for reuse
-	clearSlurmMsg(&sMsg);
-    }
+    processSlurmMsg(&sMsg, &con->fw, con->cb, con->info);
+    sMsg.data = NULL;      // con->data (aka dBuf) still owned by con
+    sMsg.sock = -1;        // keep connection for reuse
+    clearSlurmMsg(&sMsg);
     resetConnection(sock);
 
-    if (!success) {
-	fdbg(ret ? -1 : PSSLURM_LOG_COMM, "closeSlurmCon(%d)\n", sock);
-	closeSlurmCon(sock);
-    }
+    return 0;
+
+CLEANUP:
+    fdbg(ret ? -1 : PSSLURM_LOG_COMM, "closeSlurmCon(%d)\n", sock);
+    closeSlurmCon(sock);
 
     return 0;
 }
