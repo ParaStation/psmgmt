@@ -2845,6 +2845,12 @@ void clearSlurmdProto(void)
     }
 }
 
+int handleRespNodeRegStatus(Slurm_Msg_t *sMsg, void *info)
+{
+    handleSlurmdMsg(sMsg, info);
+    return 0;
+}
+
 void sendNodeRegStatus(bool startup)
 {
     Resp_Node_Reg_Status_t stat;
@@ -2924,7 +2930,7 @@ void sendNodeRegStatus(bool startup)
     /* send request to slurmctld */
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = MESSAGE_NODE_REGISTRATION_STATUS;
-    req->cb = &handleSlurmdMsg;
+    req->cb = &handleRespNodeRegStatus;
 
     sendSlurmctldReq(req, &stat);
 
