@@ -483,7 +483,7 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *ioh, char *buf);
  * provided socket @a sock. If @a sock is negative, a new controll
  * connection to srun will be opened and used to send the message.
  *
- * The response from srun will be handled by @ref handleSrunMsg().
+ * The response from srun will be handled by @ref handleSrunReply().
  *
  * @param sock Socket's file descriptor or -1
  *

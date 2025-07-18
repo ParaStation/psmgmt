@@ -1648,7 +1648,7 @@ int srunOpenControlConnection(Step_t *step)
     return sock;
 }
 
-static int handleSrunMsg(Slurm_Msg_t *sMsg, void *info)
+static int handleSrunReply(Slurm_Msg_t *sMsg, void *info)
 {
     Req_Info_t *req = info;
     Step_t step = { .jobid = req->jobid,
@@ -1692,7 +1692,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
     req->stepid = step->stepid;
     req->time = time(NULL);
 
-    Connection_t *con = registerSlurmSocket(sock, handleSrunMsg, req, true);
+    Connection_t *con = registerSlurmSocket(sock, handleSrunReply, req, true);
     if (!con) {
 	flog("registerSlurmSocket(%i) failed\n", sock);
 	ufree(req);
