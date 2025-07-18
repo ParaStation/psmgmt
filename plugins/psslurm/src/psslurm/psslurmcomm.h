@@ -160,37 +160,6 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
     __sendSlurmMsg(sock, type, body, uid, __func__, __LINE__)
 
 /**
- * @brief Send a Slurm message
- *
- * Assemble the Slurm message starting with the header followed by the
- * munge authentication and finalized with the given message @a body.
- *
- * The message is sent out using the provided socket @a sock. If @a
- * sock is negative, a new TCP connection to the slurmctld will be
- * opened and used to send the message.
- *
- * @param sock Socket's file descriptor or -1 to connect to slurmctld
- *
- * @param head Message header to send
- *
- * @param body Message body to send
- *
- * @param req Request associated to this message if any
- *
- * @param caller Name of the calling function
- *
- * @param line Line number this function is called from
- *
- * @return Returns the number of bytes written, -1 on error, or -2 if
- * the message was stored and will be sent out later
- */
-int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
-		     Req_Info_t *req, const char *caller, const int line);
-
-#define sendSlurmMsgEx(sock, head, body, req)			\
-    __sendSlurmMsgEx(sock, head, body, req, __func__, __LINE__)
-
-/**
  * @brief Send a RPC request to the slurmctld
  *
  * Sends a request to the slurmctld and let the default
