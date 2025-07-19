@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -301,7 +301,7 @@ static PSPAMResult_t checkPsPamAllowance(const char *uName, const char *rhost)
 {
     int sock = openConnection(pspamSocketName);
     PSPAMResult_t res;
-    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t data = sendDBnoFrag;
 
     if (sock == -1) {
 	elog("connection to local plugin failed: %s", strerror(errno));
@@ -446,7 +446,7 @@ static int checkAllowance(const char *uName, const char *rhost)
 static void informPlugin(const char *uName, const char *rhost)
 {
     int sock = openConnection(pspamSocketName);
-    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t data = sendDBnoFrag;
 
     if (sock == -1) {
 	elog("connection to local plugin failed: %s", strerror(errno));

@@ -1031,7 +1031,7 @@ static int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *bod
     PS_DataBuffer_t payload = PSdbNew(NULL, 0);
     memToDataBuffer(body->buf, body->bufUsed, payload);
 
-    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t data = sendDBnoFrag;
     packSlurmMsg(&data, head, payload, auth);
 
     size_t written = 0;
@@ -1179,19 +1179,19 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 
 	/* Answer the original RPC request from Slurm. This reply will hold
 	 * results from all the nodes the RPC was forwarded to. */
-	PS_SendDB_t msg = {
-	    .buf = PSdbGetBuf(fw->body),
-	    .bufUsed = PSdbGetUsed(fw->body),
-	    .useFrag = false, };
-       sendSlurmMsgEx(con->sock, &fw->head, &msg, NULL);
-       closeSlurmCon(con->sock);
+	PS_SendDB_t msg = sendDBnoFrag;
+	msg.buf = PSdbGetBuf(fw->body);
+	msg.bufUsed = PSdbGetUsed(fw->body);
+
+	sendSlurmMsgEx(con->sock, &fw->head, &msg, NULL);
+	closeSlurmCon(con->sock);
     }
 }
 
 int __sendSlurmctldReq(Req_Info_t *req, void *data,
 		       const char *caller, const int line)
 {
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t msg = sendDBnoFrag;
     if (!packSlurmReq(req, &msg, data, caller, line)) {
 	flog("packing request %s for %s:%i failed\n", msgType2String(req->type),
 	     caller, line);
@@ -1782,7 +1782,7 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 	step->srunIOMsgSock = sock;
     }
 
-    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t data = sendDBnoFrag;
     /* add placeholder for length */
     addUint32ToMsg(0, &data);
     /* Slurm protocol */
@@ -1901,7 +1901,7 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf)
 	    ioh.len = nl ? (nl + 1) - nextPos : SLURM_IO_MAX_LEN;
 	}
 
-	PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
+	PS_SendDB_t data = sendDBnoFrag;
 	packSlurmIOMsg(&data, &ioh, nextPos);
 	ssize_t ret = PSCio_sendF(sock, data.buf, data.bufUsed);
 	if (ret < 0) return -1;

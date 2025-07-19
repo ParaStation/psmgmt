@@ -595,7 +595,7 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
     }
 
     /* pack meta-data into single blob */
-    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t data = sendDBnoFrag;
     bool byteOrder = setByteOrder(false); // libRRC does not use byteorder
     addUint8ToMsg(RRCOMM_DATA, &data);
     addUint32ToMsg(rDataSize, &data);
@@ -629,7 +629,7 @@ static void handleRRCommError(DDTypedBufferMsg_t *msg)
     updateAddrCache(hdr.destJob, hdr.dest, -1);
 
     /* pack data into single blob */
-    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t data = sendDBnoFrag;
     bool byteOrder = setByteOrder(false); // libRRC does not use byteorder
     addUint8ToMsg(RRCOMM_ERROR, &data);
     addInt32ToMsg(hdr.dest, &data);

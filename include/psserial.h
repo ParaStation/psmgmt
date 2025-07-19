@@ -429,6 +429,9 @@ typedef enum {
     FRAGMENT_END  = 0x02,   /* the end of a fragmented message */
 } FragType_t;
 
+/** template to setup a message buffer without fragmentation */
+extern PS_SendDB_t sendDBnoFrag;
+
 /**
  * @brief Initialize a fragmented message buffer
  *

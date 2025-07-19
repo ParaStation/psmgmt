@@ -1626,7 +1626,7 @@ static uint32_t getTmpDisk(void)
 static int handleDaemonStatus(Slurm_Msg_t *sMsg)
 {
     Resp_Daemon_Status_t stat;
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t msg = sendDBnoFrag;
 
     /* start time */
     stat.startTime = start_time;
@@ -3098,7 +3098,7 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     msg.stepid = step->stepid;
     msg.stepHetComp = step->stepHetComp;
 
-    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t body = sendDBnoFrag;
     packMsgTaskExit(&body, &msg);
     ufree(msg.taskRanks);
 
@@ -3199,7 +3199,7 @@ static void doSendLaunchTasksFailed(Step_t *step, uint32_t nodeID,
 {
     Resp_Launch_Tasks_t resp = { .sluid = step->sluid, .jobid = step->jobid,
 				 .stepid = step->stepid };
-    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t body = sendDBnoFrag;
 
     /* return code */
     resp.returnCode = error;
@@ -3239,7 +3239,7 @@ void sendLaunchTasksFailed(Step_t *step, uint32_t nodeID, uint32_t error)
 
 void sendTaskPids(Step_t *step)
 {
-    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t body = sendDBnoFrag;
     uint32_t countPIDs = 0, countLocalPIDs = 0, countGTIDs = 0;
     list_t *t;
     Resp_Launch_Tasks_t resp;
@@ -3488,7 +3488,7 @@ bool sendConfigReq(const char *server, const int action)
     }
 
     /* send configuration request message to slurmctld */
-    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t body = sendDBnoFrag;
     addUint32ToMsg(CONFIG_REQUEST_SLURMD, &body);
     if (sendSlurmMsg(sock, REQUEST_CONFIG, &body, RES_UID_ANY) == -1) {
 	flog("sending config request message failed\n");

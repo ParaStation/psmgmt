@@ -364,7 +364,7 @@ bool needMsgResend(uint16_t type)
 
 int resendSlurmMsg(int sock, void *msg)
 {
-    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t data = sendDBnoFrag;
     Slurm_Msg_Buf_t *savMsg = msg;
     bool success = false;
 

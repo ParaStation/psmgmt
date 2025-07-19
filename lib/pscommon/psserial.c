@@ -489,6 +489,8 @@ void finalizeSerial(void)
     if (relLoopAct) relLoopAct(recvBuf_gc);
 }
 
+PS_SendDB_t sendDBnoFrag = { .bufUsed = 0, .useFrag = false };
+
 void initFragBufferExtra(PS_SendDB_t *buffer, int16_t headType, int32_t msgType,
 			 void *extra, uint8_t extraSize)
 {
