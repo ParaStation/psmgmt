@@ -633,25 +633,16 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 * However for pack jobs the pack leader has to wait for
 	 * the pack follower to send hw threads */
 	if (step->packStepCount == 1) {
-	    if (!execStepLeader(step)) {
-		/* do not close connection in Step_destroy() */
-		step->srunControlMsg.sock = -1;
-		return ESLURMD_FORK_FAILED;
-	    }
+	    if (!execStepLeader(step)) return ESLURMD_FORK_FAILED;
 	} else {
 	    /* Check for cached hw threads */
 	    handleCachedMsg(step);
 	}
-	/* connection is now handled via step->srunControlMsg */
-	sMsg->sock = -1;
     } else {
 	/* sister node (pack follower) */
 
 	/* start I/O forwarder */
-	execStepFollower(step);
-
-	/* say ok to waiting srun */
-	if (sMsg->sock != -1) ret = SLURM_SUCCESS;
+	if (execStepFollower(step)) ret = SLURM_SUCCESS;
     }
 
     if (step->packStepCount > 1 && step->nodes[0] == PSC_getMyID()) {
@@ -1377,16 +1368,10 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
     bcast->msg.head.uid = sMsg->head.uid;
 
     /* start forwarder to write the file */
-    if (!execBCast(bcast)) {
-	/* do not close connection in BCast_delete() */
-	bcast->msg.sock = -1;
-	return ESLURMD_FORK_FAILED;
-    }
+    if (!execBCast(bcast)) return ESLURMD_FORK_FAILED;
 
     /* prevent bcast from automatic free */
     sMsg->unpData = NULL;
-    /* connection now owned by bcast->msg */
-    sMsg->sock = -1;
 
     return SLURM_NO_RC;
 }
@@ -1754,6 +1739,7 @@ static void handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
 	     msgType2String(req->type), req->jobid);
     }
 
+    closeSlurmCon(sMsg->sock);  // always close (connection triggered here)
 }
 
 void sendJobRequeue(uint32_t jobid)
@@ -2846,6 +2832,7 @@ void clearSlurmdProto(void)
 static void handleRespNodeRegStatus(Slurm_Msg_t *sMsg, void *info)
 {
     handleSlurmdMsg(sMsg, info);
+    closeSlurmCon(sMsg->sock);  // always close (connection triggered here)
 }
 
 void sendNodeRegStatus(bool startup)
@@ -2977,10 +2964,7 @@ int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
     addUint32ToMsg(rc, body);
 
     int ret = __sendSlurmReply(sMsg, RESPONSE_SLURM_RC, func, line);
-
-    if (!sMsg->head.forward) clearSlurmMsg(sMsg);
-    if (ret < 1) flog("sending rc %u for %s:%u failed\n", rc, func, line);
-
+    if (ret == -1) flog("sending rc %u for %s:%u failed\n", rc, func, line);
     return ret;
 }
 
@@ -3455,6 +3439,7 @@ static void handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     case CONF_ACT_NONE:
 	break;
     }
+    closeSlurmCon(sMsg->sock);  // always close (connection triggered here)
 }
 
 bool sendConfigReq(const char *server, const int action)
@@ -3492,6 +3477,7 @@ bool sendConfigReq(const char *server, const int action)
     addUint32ToMsg(CONFIG_REQUEST_SLURMD, &body);
     if (sendSlurmMsg(sock, REQUEST_CONFIG, &body, RES_UID_ANY) == -1) {
 	flog("sending config request message failed\n");
+	closeSlurmCon(sock);
 	return false;
     }
 

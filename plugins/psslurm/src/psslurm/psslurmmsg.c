@@ -189,9 +189,6 @@ void initSlurmMsg(Slurm_Msg_t *sMsg)
 
 void clearSlurmMsg(Slurm_Msg_t *sMsg)
 {
-    /* close connection if local */
-    if (sMsg->source == -1 && sMsg->sock != -1) closeSlurmCon(sMsg->sock);
-
     if (sMsg->unpData) freeUnpackMsgData(sMsg);
     freeSlurmMsgHead(&sMsg->head);
 

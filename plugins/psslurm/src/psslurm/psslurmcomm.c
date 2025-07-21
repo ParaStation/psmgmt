@@ -428,7 +428,6 @@ static int readSlurmMsg(int sock, void *param)
 
     processSlurmMsg(&sMsg, &con->fw, con->cb, con->info);
     sMsg.data = NULL;      // con->data (aka dBuf) still owned by con
-    sMsg.sock = -1;        // keep connection for reuse
     clearSlurmMsg(&sMsg);
     resetConnection(sock);
 
@@ -734,7 +733,7 @@ static void handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
     }
 
 CLEANUP:
-    if (sMsg->source == -1) closeSlurmCon(sMsg->sock);
+    closeSlurmCon(sMsg->sock);  // always close (connection triggered here)
 }
 
 int tcpConnectU(uint32_t addr, uint16_t port)
@@ -980,6 +979,7 @@ static int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *bod
     }
 
     /* connect to slurmctld */
+    bool sockCreated = false;
     if (sock < 0) {
 	sock = openSlurmctldCon(req);
 	if (sock < 0) {
@@ -1003,6 +1003,7 @@ static int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *bod
 	    ufree(req);
 	    return -1;
 	}
+	sockCreated = true;
     }
 
     /* non blocking write */
@@ -1025,6 +1026,7 @@ static int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *bod
 	    ret = -2;
 	} else {
 	    flog("sending msg type %s failed\n", msgType2String(head->type));
+	    if (sockCreated) closeSlurmCon(sock);
 	}
     }
 
@@ -1164,7 +1166,6 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	msg.bufUsed = PSdbGetUsed(fw->body);
 
 	sendSlurmMsgEx(con->sock, &fw->head, &msg, NULL);
-	closeSlurmCon(con->sock);
     }
 }
 
@@ -1678,7 +1679,7 @@ static void handleSrunReply(Slurm_Msg_t *sMsg, void *info)
     }
 
 CLEANUP:
-    closeSlurmCon(sMsg->sock);
+    closeSlurmCon(sMsg->sock);  // always close (connection triggered here)
 }
 
 int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
@@ -1706,7 +1707,9 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
     fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB | PSSLURM_LOG_COMM,
 	 "sock %u, len: body.bufUsed %u\n", sock, body->bufUsed);
 
-    return sendSlurmMsg(sock, type, body, step->uid);
+    int ret = sendSlurmMsg(con->sock, type, body, step->uid);
+    if (ret == -1) closeSlurmCon(con->sock);
+    return ret;
 }
 
 int srunOpenPTYConnection(Step_t *step)
@@ -1900,8 +1903,6 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf)
 
 void closeAllStepConnections(Step_t *step)
 {
-    if (!step->srunControlMsg.head.forward) clearSlurmMsg(&step->srunControlMsg);
-
     /* close all remaining srun connections */
     list_t *c, *tmp;
     list_for_each_safe(c, tmp, &connectionList) {

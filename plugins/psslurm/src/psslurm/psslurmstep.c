@@ -344,6 +344,7 @@ bool Step_delete(Step_t *step)
     freeSlurmJobRecord(&step->jobRec);
     freeSlurmNodeRecords(&step->nodeRecords);
     freeSlurmPartRecord(&step->partRec);
+    clearSlurmMsg(&step->srunControlMsg);
 
     if (step->globalTaskIds) {
 	for (uint32_t i = 0; i < step->nrOfNodes; i++) {
