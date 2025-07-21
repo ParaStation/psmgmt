@@ -832,22 +832,7 @@ TCP_RECONNECT:
     return sock;
 }
 
-/**
- * @brief Open a new connection to slurmctld
- *
- * Open a new connection to the slurmctld. If the connection can't be
- * established, a new connection attempt to the backup controller is
- * made. On success a selector to the connection callback @a cb is
- * registered for the connected socket. Additional information is
- * passed to this callback via @a info.
- *
- * @param cb Callback to handle a reply from the slurmctld
- *
- * @param info Additional info passed to the callback
- *
- * @return Returns the connected socket or -1 on error.
- */
-static int openSlurmctldConEx(Connection_CB_t *cb, void *info)
+int openSlurmctldCon(void *info)
 {
     char *port = getConfValueC(SlurmConfig, "SlurmctldPort");
 
@@ -897,18 +882,13 @@ static int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 	return sock;
     }
 
-    if (!registerSlurmSocket(sock, cb, info, true)) {
+    if (!registerSlurmSocket(sock, handleSlurmctldReply, info, true)) {
 	flog("register Slurm socket %i failed\n", sock);
 	close(sock);
 	return -1;
     }
 
     return sock;
-}
-
-int openSlurmctldCon(void *info)
-{
-    return openSlurmctldConEx(handleSlurmctldReply, info);
 }
 
 int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,

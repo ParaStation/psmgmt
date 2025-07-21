@@ -501,8 +501,6 @@ void closeAllStepConnections(Step_t *step);
  * made. On success a selector to the function handleSlurmctldReply()
  * is registered for the connected socket.
  *
- * This is basically a wrapper for @ref openSlurmctldConEx().
- *
  * @param info Additional info passed to the callback
  *
  * @return Returns the connected socket or -1 on error.
