@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2024 ParTec AG, Munich
+ * Copyright (C) 2024-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,10 +19,34 @@
 #include "rrcomm.h"
 #include "pscommon.h"
 
-#define DEBUG 0
+/*
+ * Various tests of RRComm across jobs with re-spawned processes. This
+ * is an MPI version, i.e. it requires MPI for building and running.
+ *
+ * The test works as follows if started with N processes:
+ * - test ring communication within N processes of a generation
+ * - spawn N child processes if next generation was requested
+ * - wait for message from child process of same rank if any
+ * - send message to parent process of same rank if any
+ * - (if not root) send message to root process of same rank
+ * - (if root) wait for message from all descendant processes of same rank
+ *
+ * Thus, all "generations" of processes consists of the same number of
+ * processes (N) as started via srun. The number of generations might be
+ * set on the command line; the default number of generations is 1
+ *
+ * In order to reserve sufficient resources for multilple generations
+ * in Slurm an allocation has to be created, e.g. to get 4 nodes:
+ *
+ *  salloc -N 4
+ *
+ * To start an actual experiment with 5 processes per generation and a
+ * total of 3 generations (root plus 2 descendant generations) use:
+ *
+ *  srun -n 5 --exact ./spawn_rrcomm 2
+ */
 
-#define SLEEP 1
-#define EXTRA_SLEEP 1
+#define DEBUG 0
 
 /* Number of executable the spawned world will be split into */
 #define N_EX 1
@@ -257,6 +281,10 @@ int main( int argc, char *argv[] )
 	 getpid(), name, getenv("__PINNING__"));
     if (depth > 0) cdbg("%d more level(s)\n", depth);
 
+    clog(" PMI_ID is %s\n", getenv("PMI_ID"));
+    clog(" PMI_RANK is %s\n", getenv("PMI_RANK"));
+    clog(" PMIX_NAMESPACE is %s\n", getenv("PMIX_NAMESPACE"));
+    clog(" PMIX_RANK is %s\n", getenv("PMIX_RANK"));
     clog("RRCOMM_SOCKET_ENV '%s'\n", getenv("__RRCOMM_SOCKET"));
     if (RRC_init() < 0) {
 	clog("RRC_init() failed: %m\n");
@@ -321,7 +349,6 @@ int main( int argc, char *argv[] )
 	} else {
 	    MPI_Comm_disconnect(&spawn_comm);
 	}
-	//sleep(depth * SLEEP + EXTRA_SLEEP);
     }
 
     // Test connection between parent and child

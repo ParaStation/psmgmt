@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2024 ParTec AG, Munich
+ * Copyright (C) 2024-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,10 +21,34 @@
 #undef MIN
 #include "pscommon.h"
 
-#define DEBUG 0
+/*
+ * Various tests of RRComm across jobs with re-spawned processes. This
+ * is a standalone PMIx version, i.e. no MPI required
+ *
+ * The test works as follows if started with N processes:
+ * - test ring communication within N processes of a generation
+ * - spawn N child processes if next generation was requested
+ * - wait for message from child process of same rank if any
+ * - send message to parent process of same rank if any
+ * - (if not root) send message to root process of same rank
+ * - (if root) wait for message from all descendant processes of same rank
+ *
+ * Thus, all "generations" of processes consists of the same number of
+ * processes (N) as started via srun. The number of generations might be
+ * set on the command line; the default number of generations is 1
+ *
+ * In order to reserve sufficient resources for multilple generations
+ * in Slurm an allocation has to be created, e.g. to get 4 nodes:
+ *
+ *  salloc -N 4
+ *
+ * To start an actual experiment with 5 processes per generation and a
+ * total of 3 generations (root plus 2 descendant generations) use:
+ *
+ *  srun --mpi=pspmix -n 5 --exact ./spawnPMIx_rrcomm 2
+ */
 
-#define SLEEP 1
-#define EXTRA_SLEEP 1
+#define DEBUG 0
 
 /* Number of executable the spawned world will be split into */
 #define N_EX 1
@@ -319,6 +343,7 @@ int main( int argc, char *argv[] )
 	PMIx_Abort(-1, argv[0], NULL, 0);
     }
 
+    clog("this is rank %d in namespace %s\n", myproc.rank, myproc.nspace);
     clog("RRComm version %d, jobID %s\n",
 	 RRC_getVersion(), PSC_printTID(RRC_getJobID()));
 
