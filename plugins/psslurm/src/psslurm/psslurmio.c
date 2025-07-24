@@ -19,6 +19,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "pscio.h"
 #include "psenv.h"
@@ -29,6 +30,7 @@
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
 #include "pluginmalloc.h"
+#include "pluginhelper.h"
 
 #include "slurmcommon.h"
 #include "psslurmcomm.h"
@@ -843,6 +845,41 @@ void IO_initJobFilenames(Forwarder_Data_t *fwdata)
      }
 }
 
+/**
+ * @brief Open a file while creating all directories for givin path
+ *
+ * @param path Absolute file path to open
+ *
+ * @param flags Flags for open call
+ *
+ * @param mode File access modes
+ *
+ * @param uid User ID of file owner
+ *
+ * @param gid Group ID of file owner
+ *
+ * @return Returns the file descriptor to the opened file or
+ * -1 on error
+ */
+static int openCreate(char *path, int flags, mode_t mode,
+		      uid_t uid, gid_t gid)
+{
+    char *sep = strrchr(path, '/');
+    size_t dirLen = sep ? sep - path : 0;
+    if (!dirLen) return open(path, flags, mode);
+
+    *sep = '\0';
+    bool ret = mkDir(path, 0755, uid, gid);
+    *sep = '/';
+
+    if (!ret) {
+	flog("mkDir(%s) failed\n", path);
+	return -1;
+    }
+
+    return open(path, flags, mode);
+}
+
 void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
@@ -850,7 +887,7 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
 
     /* redirect stdout */
     fdbg(PSSLURM_LOG_IO, "job %u stdout file %s\n", job->jobid, job->stdOut);
-    job->stdOutFD = open(job->stdOut, flags, 0666);
+    job->stdOutFD = openCreate(job->stdOut, flags, 0666, job->uid, job->gid);
     if (job->stdOutFD == -1) {
 	fwarn(errno, "open stdout '%s' failed", job->stdOut);
 	exit(1);
@@ -863,7 +900,7 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     /* redirect stderr */
     if (strlen(job->stdErr)) {
 	fdbg(PSSLURM_LOG_IO, "job %u stderr file %s\n", job->jobid, job->stdErr);
-	job->stdErrFD = open(job->stdErr, flags, 0666);
+	job->stdErrFD = openCreate(job->stdErr, flags, 0666, job->uid, job->gid);
 	if (job->stdErrFD == -1) {
 	    fwarn(errno, "open stderr '%s' failed for job %u",
 		  job->stdErr, job->jobid);
@@ -891,7 +928,8 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 			 IO_replaceStepSymbols(step, 0, step->stdOut));
 
 	fwdata->stdOut[0] = -1;
-	fwdata->stdOut[1] = open(outFile, flags, 0666);
+	fwdata->stdOut[1] = openCreate(outFile, flags, 0666, step->uid,
+				       step->gid);
 	if (fwdata->stdOut[1] == -1) {
 	    fwarn(errno, "open stdout '%s' failed", outFile);
 	}
@@ -907,7 +945,8 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 			     step->globalTaskIds[myNodeID][i],
 			     step->stdOut));
 
-	    step->outFDs[i] = open(outFile, flags, 0666);
+	    step->outFDs[i] = openCreate(outFile, flags, 0666, step->uid,
+					 step->gid);
 	    if (step->outFDs[i] == -1) {
 		fwarn(errno, "open stdout '%s' failed", outFile);
 	    }
@@ -926,7 +965,8 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	if (outFile && !strcmp(outFile, errFile)) {
 	    fwdata->stdErr[1] = fwdata->stdOut[1];
 	} else {
-	    fwdata->stdErr[1] = open(errFile, flags, 0666);
+	    fwdata->stdErr[1] = openCreate(errFile, flags, 0666, step->uid,
+					   step->gid);
 	    if (fwdata->stdErr[1] == -1) {
 		fwarn(errno, "open stderr '%s' failed", errFile);
 	    }
@@ -942,7 +982,8 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 			     step->globalTaskIds[myNodeID][i],
 			     step->stdErr));
 
-	    step->errFDs[i] = open(errFile, flags, 0666);
+	    step->errFDs[i] = openCreate(errFile, flags, 0666, step->uid,
+					 step->gid);
 	    if (step->errFDs[i] == -1) {
 		fwarn(errno, "open stderr '%s' failed", errFile);
 	    }
