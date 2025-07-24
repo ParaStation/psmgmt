@@ -32,6 +32,7 @@
 #include "pspmixcommon.h"
 #include "pspmixconfig.h"
 #include "pspmixlog.h"
+#include "pspmixtypes.h"
 #include "pspmixutil.h"
 
 /** Pending fence message container */
@@ -271,7 +272,7 @@ bool pspmix_service_init(PspmixServer_t *server, char *clusterID)
 
     /* initialize the pmix server */
     if (!pspmix_server_init(server->nspace, server->rank, clusterID,
-			    server->tmproot, NULL)) {
+			    server->tmproot, NULL, &server->errHandlerID)) {
 	flog("failed to initialize pspmix server for UID %d\n", server->uid);
 	return false;
     }
@@ -1176,9 +1177,9 @@ failed:
     return false;
 }
 
-bool pspmix_service_finalize(void)
+bool pspmix_service_finalize(PspmixServer_t *server)
 {
-    if (!pspmix_server_finalize()) {
+    if (!pspmix_server_finalize(server->errHandlerID)) {
 	flog("failed to finalize pmix server\n");
 	return false;
     }

@@ -235,7 +235,7 @@ int pspmix_userserver_finalize(Forwarder_Data_t *fwdata)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
-    pspmix_service_finalize();
+    pspmix_service_finalize(server);
 
     if (!server) {
 	flog("FATAL: no server object\n");

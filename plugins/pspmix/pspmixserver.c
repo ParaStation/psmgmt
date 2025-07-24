@@ -59,6 +59,7 @@ typedef struct {
     volatile bool filled;
     pmix_info_t *info; /* @todo check using pmix_data_array_t */
     size_t ninfo;
+    void *data;  /* arbitrary data pointer to exchange information */
 } mycbdata_t;
 
 /** Setting up data for callback routines */
@@ -2045,13 +2046,16 @@ static void registerErrorHandler_cb (pmix_status_t status,
 
     mycbdata_t *data = cbdata;
 
+    *(size_t *)data->data = errhandler_ref;
+
     data->status = status;
 
     SET_CBDATA_AVAIL(data);
 }
 
 bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
-			const char *srvtmpdir, const char *systmpdir)
+			const char *srvtmpdir, const char *systmpdir,
+			size_t *errHandlerID)
 {
     fdbg(PSPMIX_LOG_CALL, "nspace %s rank %d srvtmpdir %s systmpdir %s\n",
 	 nspace, rank, srvtmpdir, systmpdir);
@@ -2309,6 +2313,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 
     /* register the error handler */
     INIT_CBDATA(cbdata, 0);
+    cbdata.data = errHandlerID;
     PMIx_Register_event_handler(NULL, 0, NULL, 0,
 	    errhandler, registerErrorHandler_cb, &cbdata);
     WAIT_FOR_CBDATA(cbdata);
@@ -3309,7 +3314,7 @@ bool pspmix_server_setupFork(const char *nspace, int rank, char ***childEnv)
     return true;
 }
 
-bool pspmix_server_finalize(void)
+bool pspmix_server_finalize(size_t errHandlerID)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -3321,7 +3326,7 @@ bool pspmix_server_finalize(void)
     }
 
     /* deregister the errhandler */
-    PMIx_Deregister_event_handler(0, NULL, NULL);
+    PMIx_Deregister_event_handler(errHandlerID, NULL, NULL);
 
     status = PMIx_server_finalize();
     if (status != PMIX_SUCCESS) {

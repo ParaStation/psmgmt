@@ -49,7 +49,10 @@ typedef struct {
 				  processes connected to this server, and where
 				  the PMIx server will place its tool rendezvous
 				  point and contact information */
-
+    size_t errHandlerID;     /**< internal reference for the error handler
+			          registered at the PMIx server library by
+				  @a pspmix_server_init() and deregistered by
+				  @a pspmix_server_finalize() */
 } PspmixServer_t;
 
 /**

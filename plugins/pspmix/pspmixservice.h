@@ -155,11 +155,13 @@ void pspmix_service_cleanupNamespace(PspmixNamespace_t *nspace, bool error,
 /**
  * @brief Finalize the PMIx service
  *
+ * @param server  Holds various info about this server instance
+ *
  * @todo This leaves the KVS space.
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_finalize(void);
+bool pspmix_service_finalize(PspmixServer_t *server);
 
 /**
  * @brief Handle connecting client

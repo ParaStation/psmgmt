@@ -46,20 +46,25 @@ typedef struct {
 /**
  * @brief Initialize the pmix server library and register all callbacks
  *
- * @param nspace     Name of the namespace to use for this PMIx server
- * @param rank       Rank of this PMIx server
- * @param clusterid  String name for the cluster
- * @param srvtmpdir  Top-level temporary directory for all client processes
- *                   connected to this server, and where the PMIx server will
- *                   place its tool rendezvous point and contact information
- * @param systmpdir  Temporary directory for this system, and where a PMIx
- *                   server that declares itself to be a system-level server
- *                   will place a tool rendezvous point and contact information
+ * @param nspace       Name of the namespace to use for this PMIx server
+ * @param rank         Rank of this PMIx server
+ * @param clusterid    String name for the cluster
+ * @param srvtmpdir    Top-level temporary directory for all client processes
+ *                     connected to this server, and where the PMIx server will
+ *                     place its tool rendezvous point and contact information
+ * @param systmpdir    Temporary directory for this system, and where a PMIx
+ *                     server that declares itself to be a system-level server
+ *                     will place a tool rendezvous point and contact
+ *                     information
+ * @param errHandlerID Internal reference for the error handler registered at
+ *                     the PMIx server library by this function. To be passed
+ *                     to @a pspmix_server_finalize() for deregistration.
  *
  * @return true on success, false on error
  */
 bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
-			const char *srvtmpdir, const char *systmpdir);
+			const char *srvtmpdir, const char *systmpdir,
+			size_t *errorHandlerID);
 
 /**
  * @brief Initiate calling a callback function of the server library
@@ -256,9 +261,13 @@ void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
 /**
  * @brief Finalize the pmix server library
  *
+ * @param errHandlerID Internal reference for the error handler registered at
+ *                     the PMIx server library by @a pspmix_server_init(). To
+ *                     be used for deregistration by this function.
+ *
  * @return true on success, false on error
  */
-bool pspmix_server_finalize(void);
+bool pspmix_server_finalize(size_t errorHandlerID);
 
 
 #endif  /* __PS_PMIX_SERVER */
