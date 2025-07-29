@@ -148,6 +148,14 @@ static void retInitResult()
     initCB(!initFailure);
 }
 
+static bool checkGov(CPUfreq_governors_t gov)
+{
+    for (int i = 1; Governors_Map[i].name; i++) {
+	if (Governors_Map[i].gov == gov) return true;
+    }
+    return false;
+}
+
 char *CPUfreq_gov2Str(CPUfreq_governors_t gov)
 {
     for (int i = 0; Governors_Map[i].name; i++) {
@@ -968,16 +976,13 @@ bool CPUfreq_setMaxFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq)
 bool CPUfreq_setDefGov(PSCPU_set_t set, uint16_t setSize,
 		       CPUfreq_governors_t defGov)
 {
-    pluginfdbg(PLUGIN_LOG_FREQ, "on %s to %d\n",
-	       PSCPU_print_part(set, setSize), defGov);
-
-    if (defGov == GOV_UNDEFINED || !CPUfreq_isInitialized()) return false;
-
-    /* ensure only one governor is given */
-    if ((defGov & (defGov - 1)) != 0) {
-	pluginflog("error: multiple governors are set: %i\n", defGov);
+    if (!CPUfreq_isInitialized()) return false;
+    if (!checkGov(defGov)) {
+	pluginflog("illegal governor %#x\n", defGov);
 	return false;
     }
+    pluginfdbg(PLUGIN_LOG_FREQ, "on %s to %s\n",
+	       PSCPU_print_part(set, setSize), CPUfreq_gov2Str(defGov));
 
     if (setSize > numCPUs) setSize = numCPUs;
     for (uint16_t i = 0; i < setSize; i++) {
@@ -1001,16 +1006,14 @@ bool CPUfreq_setDefGov(PSCPU_set_t set, uint16_t setSize,
 bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
 		    CPUfreq_governors_t newGov)
 {
-    pluginfdbg(PLUGIN_LOG_FREQ, "on %s to %d\n",
-	       PSCPU_print_part(set, setSize), newGov);
-
     if (!CPUfreq_isInitialized()) return false;
-
-    /* ensure only one governor is given */
-    if ((newGov & (newGov - 1)) != 0) {
-	pluginflog("error: multiple governors are set: %i\n", newGov);
+    if (!checkGov(newGov)) {
+	pluginflog("illegal governor %#x\n", newGov);
 	return false;
     }
+    pluginfdbg(PLUGIN_LOG_FREQ, "on %s to %s\n",
+	       PSCPU_print_part(set, setSize), CPUfreq_gov2Str(newGov));
+
 
     /* remove CPUs which already have correct governor set */
     PSCPU_set_t setGov;
