@@ -1073,8 +1073,8 @@ bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
 
 bool CPUfreq_resetGov(PSCPU_set_t set, uint16_t setSize)
 {
-    pluginfdbg(PLUGIN_LOG_FREQ, "on %s\n", PSCPU_print_part(set, setSize));
     if (!CPUfreq_isInitialized()) return false;
+    pluginfdbg(PLUGIN_LOG_FREQ, "on %s\n", PSCPU_print_part(set, setSize));
 
     PSCPU_set_t setGov;
     PSCPU_copy(setGov, set);
@@ -1113,8 +1113,8 @@ bool CPUfreq_resetGov(PSCPU_set_t set, uint16_t setSize)
 
 bool CPUfreq_resetMinFreq(PSCPU_set_t set, uint16_t setSize)
 {
-    pluginfdbg(PLUGIN_LOG_FREQ, "on %s\n", PSCPU_print_part(set, setSize));
     if (!CPUfreq_isInitialized()) return false;
+    pluginfdbg(PLUGIN_LOG_FREQ, "on %s\n", PSCPU_print_part(set, setSize));
     if (setSize > numCPUs) setSize = numCPUs;
 
     PSCPU_set_t setFreq;
@@ -1152,8 +1152,8 @@ bool CPUfreq_resetMinFreq(PSCPU_set_t set, uint16_t setSize)
 
 bool CPUfreq_resetMaxFreq(PSCPU_set_t set, uint16_t setSize)
 {
-    pluginfdbg(PLUGIN_LOG_FREQ, "on %s\n", PSCPU_print_part(set, setSize));
     if (!CPUfreq_isInitialized()) return false;
+    pluginfdbg(PLUGIN_LOG_FREQ, "on %s\n", PSCPU_print_part(set, setSize));
     if (setSize > numCPUs) setSize = numCPUs;
 
     PSCPU_set_t setFreq;
@@ -1192,8 +1192,8 @@ bool CPUfreq_resetMaxFreq(PSCPU_set_t set, uint16_t setSize)
 
 bool CPUfreq_resetAll(void)
 {
-    pluginfdbg(PLUGIN_LOG_FREQ, "\n");
     if (!CPUfreq_isInitialized()) return false;
+    pluginfdbg(PLUGIN_LOG_FREQ, "\n");
 
     PSCPU_set_t set;
     PSCPU_setAll(set);
