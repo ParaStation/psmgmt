@@ -825,7 +825,8 @@ static bool doSetFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
 			 Script_CMDs_t cmd)
 {
     /* remove CPUs which already have correct frequency set */
-    for (uint16_t i = 0; i < numCPUs; i++) {
+    if (setSize > numCPUs) setSize = numCPUs;
+    for (uint16_t i = 0; i < setSize; i++) {
 	if (!PSCPU_isSet(set, i)) continue;
 	uint32_t curFreq = (cmd == CMD_SET_MIN_FREQ) ?
 			    cpus[i].curMinFreq : cpus[i].curMaxFreq;
@@ -857,7 +858,7 @@ static bool doSetFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
     if (ret) {
 	pluginflog("unable to set maximum CPU frequency to %u\n", newFreq);
     } else {
-	for (uint16_t i = 0; i < numCPUs; i++) {
+	for (uint16_t i = 0; i < setSize; i++) {
 	    if (!PSCPU_isSet(set, i)) continue;
 	    if (cmd == CMD_SET_MIN_FREQ) {
 		plugindbg(-1, "set CPU %i to minimum freq %u\n", i, newFreq);
@@ -971,7 +972,6 @@ bool CPUfreq_setDefGov(PSCPU_set_t set, uint16_t setSize,
 	       PSCPU_print_part(set, setSize), defGov);
 
     if (defGov == GOV_UNDEFINED || !CPUfreq_isInitialized()) return false;
-    if (setSize > numCPUs) setSize = numCPUs;
 
     /* ensure only one governor is given */
     if ((defGov & (defGov - 1)) != 0) {
@@ -979,7 +979,8 @@ bool CPUfreq_setDefGov(PSCPU_set_t set, uint16_t setSize,
 	return false;
     }
 
-    for (uint16_t i = 0; i < numCPUs; i++) {
+    if (setSize > numCPUs) setSize = numCPUs;
+    for (uint16_t i = 0; i < setSize; i++) {
 	if (!PSCPU_isSet(set, i)) continue;
 
 	if (!(defGov & cpus[i].availGov)) {
@@ -1004,7 +1005,6 @@ bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
 	       PSCPU_print_part(set, setSize), newGov);
 
     if (!CPUfreq_isInitialized()) return false;
-    if (setSize > numCPUs) setSize = numCPUs;
 
     /* ensure only one governor is given */
     if ((newGov & (newGov - 1)) != 0) {
@@ -1012,11 +1012,12 @@ bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
 	return false;
     }
 
+    /* remove CPUs which already have correct governor set */
     PSCPU_set_t setGov;
     PSCPU_copy(setGov, set);
 
-    /* remove CPUs which already have correct governor set */
-    for (uint16_t i = 0; i < numCPUs; i++) {
+    if (setSize > numCPUs) setSize = numCPUs;
+    for (uint16_t i = 0; i < setSize; i++) {
 	if (!PSCPU_isSet(setGov, i)) continue;
 	if (cpus[i].curGov == newGov) {
 	    PSCPU_clrCPU(setGov, i);
@@ -1052,7 +1053,7 @@ bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
 
     /* add list of CPUs to change */
     strvAdd(argV, "--cpus");
-    strvAdd(argV, PSCPU_print_part(setGov, numCPUs));
+    strvAdd(argV, PSCPU_print_part(setGov, setSize));
 
     int ret = execCPUFreqScriptEx(CMD_SET_GOV, argV);
     strvDestroy(argV);
@@ -1060,7 +1061,7 @@ bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
     if (ret) {
 	pluginflog("unable to set CPU governor to %s\n", strGov);
     } else {
-	for (uint16_t i = 0; i < numCPUs; i++) {
+	for (uint16_t i = 0; i < setSize; i++) {
 	    if (!PSCPU_isSet(setGov, i)) continue;
 	    plugindbg(PLUGIN_LOG_FREQ, "set CPU %i governor %s\n", i, strGov);
 	    cpus[i].curGov = newGov;
@@ -1074,7 +1075,6 @@ bool CPUfreq_resetGov(PSCPU_set_t set, uint16_t setSize)
 {
     pluginfdbg(PLUGIN_LOG_FREQ, "on %s\n", PSCPU_print_part(set, setSize));
     if (!CPUfreq_isInitialized()) return false;
-    if (setSize > numCPUs) setSize = numCPUs;
 
     PSCPU_set_t setGov;
     PSCPU_copy(setGov, set);
@@ -1087,6 +1087,7 @@ bool CPUfreq_resetGov(PSCPU_set_t set, uint16_t setSize)
     }
 
     /* different default governors, reset single CPUs */
+    if (setSize > numCPUs) setSize = numCPUs;
     for (uint16_t i = 0; i < setSize; i++) {
 	if (!PSCPU_isSet(setGov, i)) continue;
 	PSCPU_set_t nextGov;
