@@ -829,9 +829,7 @@ static bool doSetFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
 	if (!PSCPU_isSet(set, i)) continue;
 	uint32_t curFreq = (cmd == CMD_SET_MIN_FREQ) ?
 			    cpus[i].curMinFreq : cpus[i].curMaxFreq;
-	if (curFreq == newFreq) {
-	    PSCPU_clrCPU(set, i);
-	}
+	if (curFreq == newFreq) PSCPU_clrCPU(set, i);
     }
     if (!PSCPU_any(set, setSize)) {
 	plugindbg(PLUGIN_LOG_FREQ, "all CPUs on requested frequency\n");
@@ -935,11 +933,11 @@ static bool CPUfreq_setFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
 	}
 
 	/* find all CPUs with the same frequency */
-	for (uint16_t x = i + 1; x < setSize; x++) {
-	    if (!PSCPU_isSet(setFreq, x)) continue;
-	    if (nextFreq != mapFreqRange(x, newFreq)) continue;
-	    PSCPU_setCPU(nextSet, x);
-	    PSCPU_clrCPU(setFreq, x);
+	for (uint16_t j = i + 1; j < setSize; j++) {
+	    if (!PSCPU_isSet(setFreq, j)) continue;
+	    if (nextFreq != mapFreqRange(j, newFreq)) continue;
+	    PSCPU_setCPU(nextSet, j);
+	    PSCPU_clrCPU(setFreq, j);
 	}
 
 	plugindbg(PLUGIN_LOG_FREQ, "set CPUs %s to frequency %u\n",
@@ -1096,16 +1094,16 @@ bool CPUfreq_resetGov(PSCPU_set_t set, uint16_t setSize)
 	PSCPU_setCPU(nextGov, i);
 
 	/* find all CPUs with the same governor */
-	for (uint16_t x = i + 1; x < setSize; x++) {
-	    if (!PSCPU_isSet(setGov, x)) continue;
-	    if (cpus[i].defGov != cpus[x].defGov) continue;
-	    PSCPU_setCPU(nextGov, x);
-	    PSCPU_clrCPU(setGov, x);
+	for (uint16_t j = i + 1; j < setSize; j++) {
+	    if (!PSCPU_isSet(setGov, j)) continue;
+	    if (cpus[i].defGov != cpus[j].defGov) continue;
+	    PSCPU_setCPU(nextGov, j);
+	    PSCPU_clrCPU(setGov, j);
 	}
 
 	plugindbg(PLUGIN_LOG_FREQ, "set CPUs %s to governor %s\n",
-		   PSCPU_print_part(nextGov, setSize),
-		    CPUfreq_gov2Str(cpus[i].defGov));
+		  PSCPU_print_part(nextGov, setSize),
+		  CPUfreq_gov2Str(cpus[i].defGov));
 	CPUfreq_setGov(nextGov, setSize, cpus[i].defGov);
     }
 
@@ -1136,11 +1134,11 @@ bool CPUfreq_resetMinFreq(PSCPU_set_t set, uint16_t setSize)
 	PSCPU_setCPU(nextSet, i);
 
 	/* find all CPUs with the same frequency */
-	for (uint16_t x = i + 1; x < setSize; x++) {
-	    if (!PSCPU_isSet(setFreq, x)) continue;
-	    if (cpus[i].defMinFreq != cpus[x].defMinFreq) continue;
-	    PSCPU_setCPU(nextSet, x);
-	    PSCPU_clrCPU(setFreq, x);
+	for (uint16_t j = i + 1; j < setSize; j++) {
+	    if (!PSCPU_isSet(setFreq, j)) continue;
+	    if (cpus[i].defMinFreq != cpus[j].defMinFreq) continue;
+	    PSCPU_setCPU(nextSet, j);
+	    PSCPU_clrCPU(setFreq, j);
 	}
 
 	plugindbg(PLUGIN_LOG_FREQ, "set CPUs %s to defMinFreq %u\n",
@@ -1175,11 +1173,11 @@ bool CPUfreq_resetMaxFreq(PSCPU_set_t set, uint16_t setSize)
 	PSCPU_setCPU(nextSet, i);
 
 	/* find all CPUs with the same frequency */
-	for (uint16_t x = i + 1; x < setSize; x++) {
-	    if (!PSCPU_isSet(setFreq, x)) continue;
-	    if (cpus[i].defMaxFreq != cpus[x].defMaxFreq) continue;
-	    PSCPU_setCPU(nextSet, x);
-	    PSCPU_clrCPU(setFreq, x);
+	for (uint16_t j = i + 1; j < setSize; j++) {
+	    if (!PSCPU_isSet(setFreq, j)) continue;
+	    if (cpus[i].defMaxFreq != cpus[j].defMaxFreq) continue;
+	    PSCPU_setCPU(nextSet, j);
+	    PSCPU_clrCPU(setFreq, j);
 	}
 
 	plugindbg(PLUGIN_LOG_FREQ, "set CPUs %s to defMaxFreq %u\n",
