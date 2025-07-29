@@ -1328,7 +1328,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     /* since this might call the jail hook, execute *after* setJailEnv() */
     if (pamserviceStartService) pamserviceStartService(step->username);
 
-    /* set CPU frequency/governor for allocated CPUs of step */
+    /* set CPU frequency/governor step's hardware threads */
     setStepCPUfreq(step);
 
 #ifdef HAVE_SPANK
@@ -1989,7 +1989,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     /* since this might call the jail hook, execute *after* setJailEnv() */
     if (pamserviceStartService) pamserviceStartService(step->username);
 
-    /* set CPU frequency/governor for allocated CPUs of step */
+    /* set CPU frequency/governor for step's hardware threads */
     setStepCPUfreq(step);
 
 #ifdef HAVE_SPANK

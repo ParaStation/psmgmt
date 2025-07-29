@@ -229,7 +229,7 @@ bool Alloc_delete(Alloc_t *alloc)
 {
     if (!alloc) return false;
 
-    /* set default idle governor for hardware threads of allocation */
+    /* set default idle governor for allocation's hardware threads */
     if (CPUfreq_isInitialized()) {
 	CPUfreq_resetGov(alloc->hwthreads, sizeof(alloc->hwthreads));
     }

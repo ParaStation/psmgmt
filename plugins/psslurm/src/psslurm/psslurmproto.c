@@ -1848,7 +1848,7 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
 
     Alloc_initJail(alloc);
 
-    /* set default job governor for all hardware threads of allocation */
+    /* set default job governor for allocation's hardware threads */
     if (defJobGov != GOV_UNDEFINED && CPUfreq_isInitialized()) {
 	CPUfreq_setGov(alloc->hwthreads, sizeof(alloc->hwthreads), defJobGov);
     }

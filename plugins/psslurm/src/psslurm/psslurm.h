@@ -44,7 +44,7 @@ extern int oldExceptions;
 /** used to track the initialisation process */
 extern Init_Flags_t initFlags;
 
-/** default job governor, may be overwritten by the user */
+/** default job governor; might be overruled per step by the user */
 extern CPUfreq_governors_t defJobGov;
 
 /**

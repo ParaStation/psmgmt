@@ -162,7 +162,7 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 	Step_traverse(stepEpilogue, &alloc->id);
     }
 
-    /* set default idle governor for hardware threads of allocation */
+    /* set default idle governor for allocation's hardware threads */
     if (CPUfreq_isInitialized()) {
 	CPUfreq_resetGov(alloc->hwthreads, sizeof(alloc->hwthreads));
     }
