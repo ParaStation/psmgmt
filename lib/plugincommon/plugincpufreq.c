@@ -602,7 +602,7 @@ static void cbGetFreq(int32_t status, Script_Data_t *script)
 /**
  * @brief Test if all CPUs have the same default governor
  */
-static void saveDefGovernor()
+static void checkUniqueDefGov()
 {
     defaultGov = GOV_UNDEFINED;
 
@@ -634,7 +634,7 @@ static void cbGetCurGov(int32_t status, Script_Data_t *script)
     }
 
     /* test if all CPUs have the same default governor */
-    saveDefGovernor();
+    checkUniqueDefGov();
 
     testInitComplete();
     Script_destroy(script);
@@ -995,8 +995,7 @@ bool CPUfreq_setDefGov(PSCPU_set_t set, uint16_t setSize,
     }
 
     /* test if all CPUs have the same default governor */
-    saveDefGovernor();
-
+    checkUniqueDefGov();
     return true;
 }
 
