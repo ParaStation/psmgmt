@@ -19,7 +19,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <sys/stat.h>
 
 #include "pscio.h"
 #include "psenv.h"
@@ -29,8 +28,8 @@
 #include "selector.h"
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
-#include "pluginmalloc.h"
 #include "pluginhelper.h"
+#include "pluginmalloc.h"
 
 #include "slurmcommon.h"
 #include "psslurmcomm.h"
@@ -846,7 +845,7 @@ void IO_initJobFilenames(Forwarder_Data_t *fwdata)
 }
 
 /**
- * @brief Open a file while creating all directories for givin path
+ * @brief Open a file while creating all directories for given path
  *
  * @param path Absolute file path to open
  *
@@ -861,8 +860,7 @@ void IO_initJobFilenames(Forwarder_Data_t *fwdata)
  * @return Returns the file descriptor to the opened file or
  * -1 on error
  */
-static int openCreate(char *path, int flags, mode_t mode,
-		      uid_t uid, gid_t gid)
+static int openCreate(char *path, int flags, mode_t mode, uid_t uid, gid_t gid)
 {
     char *sep = strrchr(path, '/');
     size_t dirLen = sep ? sep - path : 0;
