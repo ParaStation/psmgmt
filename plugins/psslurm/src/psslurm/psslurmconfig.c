@@ -318,6 +318,10 @@ const ConfDef_t confDef[] =
 	"int",
 	"600",
 	"Timeout to cleanup stale allocations in state A_PROLOGUE_FINISH" },
+    { "JOBFILE_CREATE_MODE", 1,
+	"mode",
+	"0644",
+	"File access mode of job stdout/stderr files" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

@@ -1306,6 +1306,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     /* redirect stdout/stderr/stdin */
     if (!(step->taskFlags & LAUNCH_PTY)) {
+	IO_init();
 	IO_redirectStep(fwdata, step);
 	IO_openStepPipes(fwdata, step);
     }
@@ -1524,6 +1525,7 @@ static int handleJobLoop(Forwarder_Data_t *fwdata)
 	return 1;
     }
 
+    IO_init();
     IO_openJobIOfiles(fwdata);
 
     /* print queued messages if any */

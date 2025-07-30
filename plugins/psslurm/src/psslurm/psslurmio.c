@@ -68,6 +68,9 @@ static uint32_t ringBufLast = 0;
 
 static uint32_t ringBufStart = 0;
 
+/** access mode for job-files */
+static mode_t ioMode;
+
 const char *IO_strType(int type)
 {
     static char buf[128];
@@ -128,6 +131,8 @@ void IO_init(void)
 	ringBuf[i].msg = NULL;
 	ringBuf[i].msgLen = 0;
     }
+
+    ioMode = getConfValueO(Config, "JOBFILE_CREATE_MODE");
 }
 
 static void forward2Sattach(char *msg, uint32_t msgLen, uint32_t grank,
@@ -885,7 +890,7 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
 
     /* redirect stdout */
     fdbg(PSSLURM_LOG_IO, "job %u stdout file %s\n", job->jobid, job->stdOut);
-    job->stdOutFD = openCreate(job->stdOut, flags, 0666, job->uid, job->gid);
+    job->stdOutFD = openCreate(job->stdOut, flags, ioMode, job->uid, job->gid);
     if (job->stdOutFD == -1) {
 	fwarn(errno, "open stdout '%s' failed", job->stdOut);
 	exit(1);
@@ -898,7 +903,8 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     /* redirect stderr */
     if (strlen(job->stdErr)) {
 	fdbg(PSSLURM_LOG_IO, "job %u stderr file %s\n", job->jobid, job->stdErr);
-	job->stdErrFD = openCreate(job->stdErr, flags, 0666, job->uid, job->gid);
+	job->stdErrFD = openCreate(job->stdErr, flags, ioMode, job->uid,
+				   job->gid);
 	if (job->stdErrFD == -1) {
 	    fwarn(errno, "open stderr '%s' failed for job %u",
 		  job->stdErr, job->jobid);
@@ -926,7 +932,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 			 IO_replaceStepSymbols(step, 0, step->stdOut));
 
 	fwdata->stdOut[0] = -1;
-	fwdata->stdOut[1] = openCreate(outFile, flags, 0666, step->uid,
+	fwdata->stdOut[1] = openCreate(outFile, flags, ioMode, step->uid,
 				       step->gid);
 	if (fwdata->stdOut[1] == -1) {
 	    fwarn(errno, "open stdout '%s' failed", outFile);
@@ -943,7 +949,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 			     step->globalTaskIds[myNodeID][i],
 			     step->stdOut));
 
-	    step->outFDs[i] = openCreate(outFile, flags, 0666, step->uid,
+	    step->outFDs[i] = openCreate(outFile, flags, ioMode, step->uid,
 					 step->gid);
 	    if (step->outFDs[i] == -1) {
 		fwarn(errno, "open stdout '%s' failed", outFile);
@@ -963,7 +969,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	if (outFile && !strcmp(outFile, errFile)) {
 	    fwdata->stdErr[1] = fwdata->stdOut[1];
 	} else {
-	    fwdata->stdErr[1] = openCreate(errFile, flags, 0666, step->uid,
+	    fwdata->stdErr[1] = openCreate(errFile, flags, ioMode, step->uid,
 					   step->gid);
 	    if (fwdata->stdErr[1] == -1) {
 		fwarn(errno, "open stderr '%s' failed", errFile);
@@ -980,7 +986,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 			     step->globalTaskIds[myNodeID][i],
 			     step->stdErr));
 
-	    step->errFDs[i] = openCreate(errFile, flags, 0666, step->uid,
+	    step->errFDs[i] = openCreate(errFile, flags, ioMode, step->uid,
 					 step->gid);
 	    if (step->errFDs[i] == -1) {
 		fwarn(errno, "open stderr '%s' failed", errFile);
