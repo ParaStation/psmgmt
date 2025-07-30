@@ -117,15 +117,13 @@ const char *IO_strOpt(int opt)
 
 void IO_init(void)
 {
-    uint16_t i;
-
-    for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
+    for (uint16_t i = 0; i < MAX_SATTACH_SOCKETS; i++) {
 	sattachSockets[i] = -1;
 	sattachCtlSock[i] = -1;
 	sattachAddr[i] = -1;
     }
 
-    for (i=0; i<RING_BUFFER_LEN; i++) {
+    for (uint16_t i = 0; i < RING_BUFFER_LEN; i++) {
 	ringBuf[i].grank = -1;
 	ringBuf[i].type = -1;
 	ringBuf[i].msg = NULL;
