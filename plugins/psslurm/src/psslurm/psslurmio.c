@@ -425,11 +425,11 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
 {
     int sock = srunOpenIOConnectionEx(step, ioAddr, ioPort, sig);
     if (sock == -1) {
-	flog("failed to I/O connect srun\n");
+	flog("failed to I/O connect to srun %#.8x:%u\n", ioAddr, ioPort);
 	return;
     }
 
-    fdbg(PSSLURM_LOG_IO, "to %u:%u ctlPort %u\n", ioAddr, ioPort, ctlPort);
+    fdbg(PSSLURM_LOG_IO, "to %#.8x:%u ctlPort %u\n", ioAddr, ioPort, ctlPort);
 
     int sockIndex = -1;
     for (int i = 0; i < MAX_SATTACH_SOCKETS; i++) {
@@ -937,7 +937,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	if (fwdata->stdOut[1] == -1) {
 	    fwarn(errno, "open stdout '%s' failed", outFile);
 	}
-	fdbg(PSSLURM_LOG_IO, "opt %u outfile: '%s' fd %i\n", step->stdOutOpt,
+	fdbg(PSSLURM_LOG_IO, "opt %u outfile '%s' fd %i\n", step->stdOutOpt,
 	     outFile, fwdata->stdOut[1]);
 
     } else if (step->stdOutOpt == IO_RANK_FILE) {
@@ -975,7 +975,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 		fwarn(errno, "open stderr '%s' failed", errFile);
 	    }
 	}
-	fdbg(PSSLURM_LOG_IO, "errfile: '%s' fd %i\n", errFile, fwdata->stdErr[1]);
+	fdbg(PSSLURM_LOG_IO, "errfile '%s' fd %i\n", errFile, fwdata->stdErr[1]);
 
     } else if (step->stdErrOpt == IO_RANK_FILE) {
 	/* open separate files for all ranks */
@@ -991,8 +991,8 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	    if (step->errFDs[i] == -1) {
 		fwarn(errno, "open stderr '%s' failed", errFile);
 	    }
-	    fdbg(PSSLURM_LOG_IO, "errfile: '%s' fd %i\n",
-		 errFile, fwdata->stdErr[1]);
+	    fdbg(PSSLURM_LOG_IO, "errfile '%s' fd %i\n", errFile,
+		 fwdata->stdErr[1]);
 	}
     }
 
@@ -1042,8 +1042,7 @@ int handleUserOE(int sock, void *data)
     /* forward data to srun, size of 0 means EOF for stream */
     int32_t ret = srunSendIO(type, 0, step, buf, size);
     if (ret != (size + 10) && !(step->taskFlags & LAUNCH_LABEL_IO)) {
-	fwarn(errno, "sending IO failed: size %zi ret %i error %i",
-	      (size + 10), ret, errno);
+	fwarn(errno, "sending IO size %zi ret %i failed", size + 10, ret);
     }
 
     return 0;
