@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -436,6 +436,21 @@ unsigned int getConfValueU(Config_t conf, char *key)
     if (!key || !(valStr = getConfValue(conf, key))) return val;
 
     if ((sscanf(valStr, "%u", &val)) != 1) {
+	pluginflog("option '%s' is not a number\n", key);
+	val = -1;
+    }
+
+    return val;
+}
+
+unsigned int getConfValueO(Config_t conf, char *key)
+{
+    unsigned int val = -1;
+    char *valStr;
+
+    if (!key || !(valStr = getConfValue(conf, key))) return val;
+
+    if ((sscanf(valStr, "%o", &val)) != 1) {
 	pluginflog("option '%s' is not a number\n", key);
 	val = -1;
     }

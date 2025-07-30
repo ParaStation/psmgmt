@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -322,6 +322,24 @@ char *getConfValueC(Config_t conf, char *key);
  * -1 is returned.
  */
 unsigned int getConfValueU(Config_t conf, char *key);
+
+/**
+ * @brief Get value as unsigned integer with octal base
+ *
+ * Get the value of the entry identified by the key @a key from the
+ * configuration @a conf. The value is returned as an unsigned
+ * integer with octal base. If no entry was found or conversion into
+ * an unsigned integer failed -1 is returned.
+ *
+ * @param conf Configuration to be searched
+ *
+ * @param key Key identifying the entry
+ *
+ * @return If a corresponding entry is found and its value can be
+ * converted to an unsigned integer, this value is returned. Otherwise
+ * -1 is returned.
+ */
+unsigned int getConfValueO(Config_t conf, char *key);
 
 /**
  * @brief Get value as integer
