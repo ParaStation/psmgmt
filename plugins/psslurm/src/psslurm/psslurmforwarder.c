@@ -1356,8 +1356,6 @@ static int stepForwarderLoop(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
 
-    IO_init();
-
     if (!step->IOPort) {
 	flog("no I/O ports available\n");
 	return 1;

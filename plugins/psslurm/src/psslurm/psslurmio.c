@@ -71,6 +71,9 @@ static uint32_t ringBufStart = 0;
 /** access mode for job-files */
 static mode_t ioMode;
 
+/** track initialization */
+static bool isInitialized;
+
 const char *IO_strType(int type)
 {
     static char buf[128];
@@ -117,6 +120,8 @@ const char *IO_strOpt(int opt)
 
 void IO_init(void)
 {
+    if (isInitialized) return;
+
     for (uint16_t i = 0; i < MAX_SATTACH_SOCKETS; i++) {
 	sattachSockets[i] = -1;
 	sattachCtlSock[i] = -1;
@@ -131,6 +136,7 @@ void IO_init(void)
     }
 
     ioMode = getConfValueO(Config, "JOBFILE_CREATE_MODE");
+    isInitialized = true;
 }
 
 static void forward2Sattach(char *msg, uint32_t msgLen, uint32_t grank,
@@ -416,6 +422,7 @@ void IO_finalize(Forwarder_Data_t *fwdata)
 	lineBuf = NULL;
     }
 
+    isInitialized = false;
 }
 
 void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
