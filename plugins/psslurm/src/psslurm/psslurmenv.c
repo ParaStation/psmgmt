@@ -317,30 +317,6 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
     snprintf(val, sizeof(val), "%zu", hardRamLimit);
     setenv(name, val, 1);
 
-    /* KMEM constrains */
-    uint64_t kmemLimit = hardRamLimit;
-    /* allowed KMEM in *bytes* */
-    long aKmem = getConfValueL(SlurmCgroupConfig, "AllowedKmemSpace");
-    if (aKmem != -1) kmemLimit = aKmem;
-
-    /* upper KMEM limit in percent */
-    f = getConfValueF(SlurmCgroupConfig, "MaxKmemPercent");
-    if (f >= 0) {
-	uint64_t maxKmem = (f/100.0) * hardRamLimit;
-	if (kmemLimit > maxKmem) kmemLimit = maxKmem;
-    }
-
-    /* lower KMEM limit in MByte */
-    long minKmem = getConfValueL(SlurmCgroupConfig, "MinKmemSpace");
-    if (minKmem != -1) {
-	uint64_t minKmemLimit = minKmem*1024*1024;
-	if (kmemLimit < minKmemLimit) kmemLimit = minKmemLimit;
-    }
-
-    snprintf(name, sizeof(name), "%s%s_KMEM", prefix, scope);
-    snprintf(val, sizeof(val), "%zu", kmemLimit);
-    setenv(name, val, 1);
-
     /* swap constrain */
     uint64_t swapLimit = ram;
     /* allowed swap in percent */
@@ -376,9 +352,9 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
 	setenv(name, val, 1);
     }
 
-    fdbg(PSSLURM_LOG_JAIL, "%s requested ram %zu mem soft: %zu mem hard: %zu "
-	 "kmem %zu swap %zu swappiness %li\n", scope, ram, softRamLimit,
-	 hardRamLimit, kmemLimit, swapLimit, swappiness);
+    fdbg(PSSLURM_LOG_JAIL, "%s requested ram %zu mem soft: %zu mem hard: %zu"
+	 " swap %zu swappiness %li\n", scope, ram, softRamLimit,
+	 hardRamLimit, swapLimit, swappiness);
 }
 
 /**
@@ -566,9 +542,6 @@ void setGlobalJailEnvironment(void)
 
     c = getConfValueC(SlurmCgroupConfig, "ConstrainDevices");
     if (c) setenv("__PSJAIL_CONSTRAIN_DEVICES", c, 1);
-
-    c = getConfValueC(SlurmCgroupConfig, "ConstrainKmemSpace");
-    if (c) setenv("__PSJAIL_CONSTRAIN_KMEM", c, 1);
 
     c = getConfValueC(SlurmCgroupConfig, "ConstrainRAMSpace");
     if (c) setenv("__PSJAIL_CONSTRAIN_RAM", c, 1);

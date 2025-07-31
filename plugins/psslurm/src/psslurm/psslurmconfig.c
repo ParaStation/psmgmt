@@ -332,18 +332,6 @@ const ConfDef_t cgroupDef[] =
 	"string",
 	"no",
 	"flag constrain of job's GRES devices" },
-    { "ConstrainKmemSpace", 0,
-	"string",
-	"no",
-	"flag constrain of job's kernel memory usage" },
-    { "MaxKmemPercent", 1,
-	"float",
-	"100.0",
-	"constrain job's kernel memory usage to this percent of total RAM" },
-    { "MinKmemSpace", 1,
-	"int",
-	"30",
-	"constrain the job's kernel memory usage to at least this amount of MB" },
     { "ConstrainRAMSpace", 0,
 	"string",
 	"no",
@@ -1401,16 +1389,7 @@ static bool verifyOCIConf(char *key, char *value, const void *info)
  */
 static bool verifyCgroupConf(char *key, char *value, const void *info)
 {
-    if (!strcasecmp(key, "AllowedKmemSpace")) {
-	fdbg(PSSLURM_LOG_JAIL, "cgroup AllowedKmemSpace=%s\n", value);
-    } else if (!strcasecmp(key, "ConstrainKmemSpace")) {
-	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainKmemSpace=%s\n", value);
-	if (!strcasecmp(value, "yes")) isJailActive = true;
-    } else if (!strcasecmp(key, "MaxKmemPercent")) {
-	fdbg(PSSLURM_LOG_JAIL, "cgroup MaxKmemPercent=%s\n", value);
-    } else if (!strcasecmp(key, "MinKmemSpace")) {
-	fdbg(PSSLURM_LOG_JAIL, "cgroup MinKmemSpace=%s\n", value);
-    } else if (!strcasecmp(key, "AllowedRAMSpace")) {
+    if (!strcasecmp(key, "AllowedRAMSpace")) {
 	fdbg(PSSLURM_LOG_JAIL, "cgroup AllowedRAMSpace=%s\n", value);
     } else if (!strcasecmp(key, "ConstrainRAMSpace")) {
 	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainRAMSpace=%s\n", value);

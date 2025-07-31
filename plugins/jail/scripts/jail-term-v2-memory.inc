@@ -78,13 +78,6 @@ function termMemory()
     CLEANUP_DONE="true"
 }
 
-if [[ $CONSTRAIN_KMEM == "no" ]]; then
-    dlog "constrain KMEM *disabled*"
-else
-    dlog "constrain KMEM enabled"
-    termMemory
-fi
-
 if [[ $CONSTRAIN_RAM == "no" ]]; then
     dlog "constrain RAM *disabled*"
 else
