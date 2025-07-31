@@ -170,7 +170,7 @@ CPUfreq_governors_t CPUfreq_str2Gov(char *govName)
     if (!govName) return GOV_UNDEFINED;
 
     for (int i = 0; Governors_Map[i].name; i++) {
-	if (!strcmp(Governors_Map[i].name, trim(govName))) {
+	if (!strcasecmp(Governors_Map[i].name, trim(govName))) {
 	    return Governors_Map[i].gov;
 	}
     }
