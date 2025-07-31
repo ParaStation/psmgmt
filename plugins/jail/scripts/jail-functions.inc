@@ -146,7 +146,7 @@ function killJob {
 
     local BASE=$DIR
     for i in "$BASE"/step-*/; do
-	[[ -d $i ]] || break
+	[[ -d $i ]] || continue
 	dlog "$caller: killTasks $i"
 	killTasks "$i"
     done
@@ -167,7 +167,7 @@ function killUser {
     dlog "kill jobs in dir $DIR"
     local BASE=$DIR
     for i in "$BASE"/job-*/; do
-	[[ -d $i ]] || break
+	[[ -d $i ]] || continue
 	dlog "$caller: killJob $i"
 	killJob "$i"
     done

@@ -61,7 +61,7 @@ function termDevices()
 
 	local BASE="$CG_USER"
 	for i in "$BASE"/step-*/; do
-	    [[ -d $i ]] || break
+	    [[ -d $i ]] || continue
 	    dlog "cleanup dev: $i"
 	    cleanupBPF "STEP_${JOBID}_$i"
 	done
