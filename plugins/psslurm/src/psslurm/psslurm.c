@@ -34,6 +34,7 @@
 #include "psidhook.h"
 #include "psidplugin.h"
 #include "psidutil.h"
+#include "psidnodes.h"
 
 #include "jailhandles.h"
 #include "pamservice_handles.h"
@@ -713,10 +714,11 @@ static void CPUfreqInitCB(bool result)
 	    PSCPU_set_t set;
 	    PSCPU_setAll(set);
 	    CPUfreq_governors_t idleGov = CPUfreq_str2Gov(gov);
+	    short numThrds = PSIDnodes_getNumThrds(PSC_getMyID());
 
-	    if (!CPUfreq_setGov(set, sizeof(set), idleGov)) {
+	    if (!CPUfreq_setGov(set, numThrds, idleGov)) {
 		flog("setting idle CPU governor to %s failed\n", gov);
-	    } else if (!CPUfreq_setDefGov(set, sizeof(set), idleGov)){
+	    } else if (!CPUfreq_setDefGov(set, numThrds, idleGov)){
 		flog("setting default CPU governor to %s failed\n", gov);
 	    }
 	}
@@ -728,8 +730,6 @@ static void CPUfreqInitCB(bool result)
 	}
 
 	if (gov && *gov && strcmp(gov, "none")) {
-	    PSCPU_set_t set;
-	    PSCPU_setAll(set);
 	    defJobGov = CPUfreq_str2Gov(gov);
 	}
     }
