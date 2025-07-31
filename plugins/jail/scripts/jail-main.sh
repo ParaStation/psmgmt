@@ -86,6 +86,14 @@ for modName in ${MODULES//,/$IFS}; do
     source "$MODULE"
 done
 
+# cleanup cgroups even if no constraints are enabled via Slurm
+if [[ $SCRIPT == "jail-term" ]]; then
+    [[ -n $STEPID  && -d $CG_STEP ]] && killTasks "$CG_STEP"
+    [[ -d $CG_JOB && -z $STEPID && -n $JOBID ]] && killJob "$CG_JOB"
+    [[ -d $CG_USER && -n $ALLOC_LIST
+	 && $ALLOC_LIST == "$JOBID" ]] && killUser "$CG_USER"
+fi
+
 rmUserLock
 
 exit 0
