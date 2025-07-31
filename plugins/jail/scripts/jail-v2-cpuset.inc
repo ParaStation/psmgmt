@@ -61,7 +61,7 @@ elif [[ -n $USER_INIT ]]; then
 
     # setup user cgroup
     setUserCores
-elif [[ -n $ADD_USER_TO_CGROUP ]]; then
+elif [[ -n $ADD_TO_USER_CGROUP ]]; then
     dlog "constrain cores enabled"
 
     # ssh login via pspam/pspmix server needs an existing user cgroup

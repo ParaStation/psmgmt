@@ -789,7 +789,7 @@ static int initialCleanup(Forwarder_Data_t *fwdata)
 
     /* let pluginfowarder jail the server */
     char *user = PSC_userFromUID(myserver->uid);
-    setenv("__PSJAIL_ADD_USER_TO_CGROUP", user, 1);
+    setenv("__PSJAIL_ADD_TO_USER_CGROUP", user, 1);
     ufree(user);
 
     return 0;

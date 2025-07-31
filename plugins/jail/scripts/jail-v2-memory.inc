@@ -138,7 +138,7 @@ if [[ $CONSTRAIN_RAM == "no" ]]; then
 else
     dlog "constrain RAM enabled"
 
-    if [[ -n $ADD_USER_TO_CGROUP ]]; then
+    if [[ -n $ADD_TO_USER_CGROUP ]]; then
 	constrainMemSingleUser
     elif [[ -n $USER_INIT ]]; then
 	constrainUser "RAM"
@@ -152,7 +152,7 @@ if [[ $CONSTRAIN_SWAP == "no" ]]; then
 else
     dlog "constrain SWAP enabled"
 
-    if [[ -n $ADD_USER_TO_CGROUP ]]; then
+    if [[ -n $ADD_TO_USER_CGROUP ]]; then
 	constrainMemSingleUser
     elif [[ -n $USER_INIT ]]; then
 	constrainUser "SWAP"

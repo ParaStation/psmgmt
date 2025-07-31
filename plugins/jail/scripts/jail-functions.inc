@@ -183,12 +183,12 @@ function initJailEnv {
     export JOBID=$__PSJAIL_JOBID
     export STEPID=$__PSJAIL_STEPID
 
-    export ADD_USER_TO_CGROUP=$__PSJAIL_ADD_USER_TO_CGROUP
+    export ADD_TO_USER_CGROUP=$__PSJAIL_ADD_TO_USER_CGROUP
     export ALLOC_LIST=$__PSJAIL_ALLOC_LIST
     export USER_INIT=$__PSJAIL_USER_INIT
     [[ -n $__PSJAIL_USER ]] && export USER=$__PSJAIL_USER
-    [[ -z $USER && -n $ADD_USER_TO_CGROUP ]] && {
-	export USER=$ADD_USER_TO_CGROUP
+    [[ -z $USER && -n $ADD_TO_USER_CGROUP ]] && {
+	export USER=$ADD_TO_USER_CGROUP
     }
 
     # map core pinning variables

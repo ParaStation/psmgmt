@@ -173,7 +173,7 @@ if [[ $CONSTRAIN_DEVICES == "no" ]]; then
 else
     dlog "constrain devices enabled"
 
-    if [[ -n $ADD_USER_TO_CGROUP ]]; then
+    if [[ -n $ADD_TO_USER_CGROUP ]]; then
 	constrainSingleUser
     elif [[ -n $USER_INIT ]]; then
 	initUserDevices

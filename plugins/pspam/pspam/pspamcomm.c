@@ -43,7 +43,7 @@ static int jailChild(void *info)
 {
     Session_t *session = info;
 
-    setenv("__PSJAIL_ADD_USER_TO_CGROUP", session->user, 1);
+    setenv("__PSJAIL_ADD_TO_USER_CGROUP", session->user, 1);
     return PSIDhook_call(PSIDHOOK_JAIL_CHILD, &session->pid);
 }
 
