@@ -59,7 +59,7 @@ function termDevices()
 	killJob "$CG_JOB"
 	cleanupBPF "JOB_$JOBID"
 
-	local BASE="$CG_USER"
+	local BASE="$CG_JOB"
 	for i in "$BASE"/step-*/; do
 	    [[ -d $i ]] || continue
 	    dlog "cleanup dev: $i"
