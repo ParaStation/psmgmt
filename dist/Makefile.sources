@@ -705,6 +705,7 @@ scripts/config.sub \
 scripts/cpufreq.py \
 scripts/depcomp \
 scripts/exec_all \
+scripts/gpufreq.py \
 scripts/init.d/parastation.in \
 scripts/install-sh \
 scripts/loggerdebug.py \

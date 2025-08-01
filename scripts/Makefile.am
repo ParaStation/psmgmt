@@ -39,7 +39,8 @@ scripts_SCRIPTS = single_node_config
 
 noinst_SCRIPTS = memtest.py
 
-pkglibexec_SCRIPTS = pscompress.py psexpand.py exec_all cpufreq.py
+pkglibexec_SCRIPTS = pscompress.py psexpand.py exec_all cpufreq.py	\
+		     gpufreq.py
 
 # for simplicity, put all dist files here, so no dist_ primaries above
 EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py		\
