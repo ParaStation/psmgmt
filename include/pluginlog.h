@@ -32,6 +32,7 @@ typedef enum {
     PLUGIN_LOG_JSON	= 0x000080,   /**< json parser */
     PLUGIN_LOG_SCRIPT   = 0x000100,   /**< script execution */
     PLUGIN_LOG_FREQ     = 0x000200,   /**< CPU frequency */
+    PLUGIN_LOG_GPU      = 0x000400,   /**< GPU frequency */
 } PSPlugin_log_types_t;
 
 #define pluginmset(flag) (logger_getMask(pluginlogger) & (flag))

@@ -16,9 +16,9 @@ AM_LDFLAGS += $(glib2_LDFLAGS)
 noinst_LTLIBRARIES = libplugincommon.la
 
 libplugincommon_la_SOURCES = pluginconfig.c plugincpufreq.c		\
-	pluginforwarder.c pluginhelper.c pluginjson.c pluginlog.c	\
-	pluginmalloc.c pluginpartition.c pluginpsconfig.c pluginpty.c	\
-	pluginscript.c pluginspawn.c pluginvector.c
+	pluginforwarder.c plugingpufreq.c pluginhelper.c pluginjson.c 	\
+	pluginlog.c pluginmalloc.c pluginpartition.c pluginpsconfig.c 	\
+	pluginpty.c pluginscript.c pluginspawn.c pluginvector.c
 
 pluginpsconfig.lo: AM_CFLAGS += $(glib2_CFLAGS)
 
@@ -26,6 +26,7 @@ pluginforwarder.lo: CPPFLAGS = $(AM_CPPFLAGS) \
 			-DLOCALSTATEDIR=\"$(localstatedir)\"
 
 plugincpufreq.lo: CPPFLAGS = $(AM_CPPFLAGS) -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
+plugingpufreq.lo: CPPFLAGS = $(AM_CPPFLAGS) -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
 
 if JSON_C_ENABLED
 libplugincommon_la_LIBADD = -ljson-c
