@@ -52,6 +52,7 @@
 #include "pluginpartition.h"
 #include "pluginpty.h"
 #include "plugincpufreq.h"
+#include "plugingpufreq.h"
 #include "psidcomm.h"
 #include "psidhook.h"
 #include "psidscripts.h"
@@ -68,6 +69,7 @@
 #include "psslurmcomm.h"
 #include "psslurmconfig.h"
 #include "psslurmcontainer.h"
+#include "psslurmfreq.h"
 #include "psslurmfwcomm.h"
 #include "psslurmio.h"
 #include "psslurmjobcred.h"
@@ -1332,6 +1334,9 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     /* set CPU frequency/governor step's hardware threads */
     setStepCPUfreq(step);
 
+    /* set GPU frequency of allocated GPUs of step */
+    if (GPUfreq_isInitialized()) Freq_adjustStepGPUs(step);
+
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
 	.task = NULL,
@@ -1495,6 +1500,9 @@ static int stepFinalize(Forwarder_Data_t *fwdata)
 	    CPUfreq_setGov(*stepSet, setSize, defJobGov);
 	}
     }
+
+    /* reset GPU frequency */
+    if (GPUfreq_isInitialized()) Freq_resetStep(step);
 
     if (pamserviceStopService) pamserviceStopService();
 
@@ -1712,6 +1720,9 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
     setJailEnv(job->env, job->username, NULL, job->hwthreads, &job->gresList,
 	       GRES_CRED_JOB, job->cred, job->localNodeId);
 
+    /* set GPU frequency of allocated GPUs of job */
+    if (GPUfreq_isInitialized()) Freq_adjustJobGPUs(job);
+
     /* setup I/O channels solely to send an error message, so prevent
      * any execution of child tasks */
     if (job->termAfterFWmsg) {
@@ -1733,6 +1744,9 @@ static int jobForwarderFin(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
     job->exitCode = fwdata->chldExitStatus;
+
+    /* reset GPU frequency */
+    if (GPUfreq_isInitialized()) Freq_resetJob(job);
 
     if (pamserviceStopService) pamserviceStopService();
 
@@ -1995,6 +2009,9 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 
     /* set CPU frequency/governor for step's hardware threads */
     setStepCPUfreq(step);
+
+    /* set GPU frequency of allocated GPUs of step */
+    if (GPUfreq_isInitialized()) Freq_adjustStepGPUs(step);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
