@@ -48,8 +48,9 @@ libk12 = $(top_builddir)/$(psslurm_dir)/k12/libk12.la
 psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmpscomm.c psslurmpscomm.h psslurmconfig.c			\
 	psslurmconfig.h psslurmjob.c psslurmjob.h psslurmforwarder.c	\
-	psslurmforwarder.h psslurmcomm.c psslurmcomm.h psslurmauth.c	\
-	psslurmauth.h psslurmproto.c psslurmproto.h psslurmenv.c	\
+	psslurmforwarder.h psslurmfreq.c psslurmfreq.h psslurmcomm.c 	\
+	psslurmcomm.h psslurmauth.c psslurmauth.h 			\
+	psslurmproto.c psslurmproto.h psslurmenv.c			\
 	psslurmenv.h psslurmlimits.c psslurmlimits.h			\
 	psslurmmultiprog.c psslurmmultiprog.h psslurmgres.c		\
 	psslurmgres.h psslurmpin.c psslurmpin.h psslurmio.c		\

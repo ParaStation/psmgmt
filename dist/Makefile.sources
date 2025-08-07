@@ -602,6 +602,8 @@ plugins/psslurm/src/psslurm/psslurmenv.c \
 plugins/psslurm/src/psslurm/psslurmenv.h \
 plugins/psslurm/src/psslurm/psslurmforwarder.c \
 plugins/psslurm/src/psslurm/psslurmforwarder.h \
+plugins/psslurm/src/psslurm/psslurmfreq.c \
+plugins/psslurm/src/psslurm/psslurmfreq.h \
 plugins/psslurm/src/psslurm/psslurmfwcomm.c \
 plugins/psslurm/src/psslurm/psslurmfwcomm.h \
 plugins/psslurm/src/psslurm/psslurmgres.c \
