@@ -24,6 +24,7 @@
 
 #include "psidhook.h"
 #include "psidscripts.h"
+#include "psidnodes.h"
 
 #include "pspamhandles.h"
 #include "peloguehandles.h"
@@ -231,7 +232,7 @@ bool Alloc_delete(Alloc_t *alloc)
 
     /* set default idle governor for allocation's hardware threads */
     if (CPUfreq_isInitialized()) {
-	CPUfreq_resetGov(alloc->hwthreads, sizeof(alloc->hwthreads));
+	CPUfreq_resetGov(alloc->hwthreads, PSIDnodes_getNumThrds(PSC_getMyID()));
     }
 
     /* free associated resources */

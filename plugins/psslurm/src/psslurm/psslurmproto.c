@@ -44,6 +44,7 @@
 #include "psidspawn.h"
 #include "psidplugin.h"
 #include "psidscripts.h"
+#include "psidnodes.h"
 
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
@@ -1850,7 +1851,8 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
 
     /* set default job governor for allocation's hardware threads */
     if (defJobGov != GOV_UNDEFINED && CPUfreq_isInitialized()) {
-	CPUfreq_setGov(alloc->hwthreads, sizeof(alloc->hwthreads), defJobGov);
+	CPUfreq_setGov(alloc->hwthreads, PSIDnodes_getNumThrds(PSC_getMyID()),
+		       defJobGov);
     }
 
     /* currently the use of the slurmd prologue is to gather more information

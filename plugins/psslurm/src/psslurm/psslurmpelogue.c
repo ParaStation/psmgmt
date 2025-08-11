@@ -30,6 +30,7 @@
 #include "psprotocol.h"
 #include "psserial.h"
 #include "pluginscript.h"
+#include "psidnodes.h"
 
 #include "peloguehandles.h"
 #include "pspamhandles.h"
@@ -164,7 +165,7 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 
     /* set default idle governor for allocation's hardware threads */
     if (CPUfreq_isInitialized()) {
-	CPUfreq_resetGov(alloc->hwthreads, sizeof(alloc->hwthreads));
+	CPUfreq_resetGov(alloc->hwthreads, PSIDnodes_getNumThrds(PSC_getMyID()));
     }
 
     if (!Alloc_isLeader(alloc)) {
