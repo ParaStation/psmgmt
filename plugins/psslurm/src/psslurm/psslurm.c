@@ -714,6 +714,10 @@ static void CPUfreqInitCB(bool result)
 	    PSCPU_set_t set;
 	    PSCPU_setAll(set);
 	    CPUfreq_governors_t idleGov = CPUfreq_str2Gov(gov);
+	    if (idleGov == GOV_UNDEFINED) {
+		flog("invalid idle governor %s\n", gov);
+		return;
+	    }
 	    short numThrds = PSIDnodes_getNumThrds(PSC_getMyID());
 
 	    if (!CPUfreq_setGov(set, numThrds, idleGov)) {
@@ -731,6 +735,10 @@ static void CPUfreqInitCB(bool result)
 
 	if (gov && *gov && strcmp(gov, "none")) {
 	    defJobGov = CPUfreq_str2Gov(gov);
+	    if (defJobGov == GOV_UNDEFINED) {
+		flog("invalid default governor %s\n", gov);
+		return;
+	    }
 	}
     }
 
