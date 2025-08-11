@@ -1047,11 +1047,6 @@ bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
 
     /* add governor string as first additional argument */
     char *strGov = CPUfreq_gov2Str(newGov);
-    if (!strGov) {
-	pluginlog("converting governor %i to string failed\n", newGov);
-	strvDestroy(argV);
-	return false;
-    }
     strvAdd(argV, strGov);
 
     /* add list of CPUs to change */
