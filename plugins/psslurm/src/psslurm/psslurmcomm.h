@@ -455,7 +455,7 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *ioh, char *buf);
  *
  * Send a message to srun of the provided message type @a type
  * containing the data in @a body. The message is sent out using the
- * provided socket @a sock. If @a sock is negative, a new controll
+ * provided socket @a sock. If @a sock is negative, a new control
  * connection to srun will be opened and used to send the message.
  *
  * The response from srun will be handled by @ref handleSrunReply().
