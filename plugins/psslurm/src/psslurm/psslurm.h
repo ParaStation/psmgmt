@@ -20,6 +20,7 @@
 typedef enum {
     INIT_CPU_FREQ	= 0x0001,
     INIT_CONFIG_REQ	= 0x0002,
+    INIT_GPU_FREQ	= 0x0004,
 } Init_Flags_t;
 
 /** psslurm version number */

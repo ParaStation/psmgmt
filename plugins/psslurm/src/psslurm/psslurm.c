@@ -68,8 +68,10 @@
 #endif
 #include "psslurmstep.h"
 #include "psslurmaccount.h"
+#include "psslurmfreq.h"
 
 #include "plugincpufreq.h"
+#include "plugingpufreq.h"
 
 #define PSSLURM_CONFIG_FILE  PLUGINDIR "/psslurm.conf"
 #define MEMORY_DEBUG 0
@@ -703,6 +705,36 @@ bool accomplishInit(void)
 /** Track basic initalization of configurations */
 static bool haveBasicConfig = false;
 
+static void GPUfreqInitCB(bool result)
+{
+    flog("initialize GPU frequency facility %s\n",
+	 (result ? "succeeded" : "failed"));
+
+    if (result) {
+	char *freqDef = getConfValueC(SlurmConfig, "GpuFreqDef");
+	if (freqDef && *freqDef) {
+	    uint32_t graFreq, memFreq;
+	    if (!Freq_gpuStr2Freq(freqDef, &graFreq, &memFreq)) {
+		flog("invalid GpuFreqDef=%s in slurm.conf\n", freqDef);
+	    } else {
+		PSCPU_set_t set;
+		PSCPU_setAll(set);
+		/* set default and current GPU frequencies */
+		GPUfreq_setGraFreq(set, PSCPU_MAX, graFreq);
+		GPUfreq_setMemFreq(set, PSCPU_MAX, memFreq);
+	    }
+	}
+    }
+
+    initFlags &= ~INIT_GPU_FREQ;
+
+    if (!initFlags && !accomplishInit()) {
+	/* finalize psslurm's startup failed */
+	flog("startup of psslurm failed\n");
+	PSIDplugin_finalize(name);
+    }
+}
+
 static void CPUfreqInitCB(bool result)
 {
     flog("initialize CPU frequency facility %s\n",
@@ -826,6 +858,11 @@ int initialize(FILE *logfile)
 		 getConfValueC(Config, "CPU_FREQ_SCRIPT"), &CPUfreqInitCB);
     initFlags |= INIT_CPU_FREQ;
 
+    /* GPU frequency scaling is hardware dependent and might
+     * not be available at all */
+    GPUfreq_init(&GPUfreqInitCB);
+    initFlags |= INIT_GPU_FREQ;
+
     if (confRes == CONFIG_SERVER) {
 	char *confCache = getConfValueC(Config, "SLURM_CONF_CACHE");
 	if (needConfUpdate(confCache)) {
@@ -932,6 +969,7 @@ void cleanup(void)
 
     /* free all malloced memory */
     CPUfreq_finalize();
+    GPUfreq_finalize();
     Job_destroyAll();
     Step_destroyAll();
     clearGresConf();
