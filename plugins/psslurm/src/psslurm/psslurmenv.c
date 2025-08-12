@@ -796,14 +796,7 @@ static char *GTIDsToList(Step_t *step)
     return strbufSteal(buf);
 }
 
-/**
- * @brief Get jobs localNodeId if job exists, get alloc's else
- *
- * The jobNodeId is used in step environments to access GRES credentials.
- *
- * @return job node id
- */
-static uint32_t getJobNodeId(Step_t *step)
+uint32_t getJobNodeId(Step_t *step)
 {
     Alloc_t *alloc = Alloc_find(step->jobid);
     Job_t *job = Job_findById(step->jobid);

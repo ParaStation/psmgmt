@@ -179,4 +179,13 @@ void removeUserVars(env_t env, pmi_type_t pmi_type);
  */
 void setSlurmConfEnvVar(env_t env);
 
+/**
+ * @brief Get jobs localNodeId if job exists, get alloc's else
+ *
+ * The jobNodeId is used in step environments to access GRES credentials.
+ *
+ * @return job node id
+ */
+uint32_t getJobNodeId(Step_t *step);
+
 #endif  /* __PS_SLURM_ENV */
