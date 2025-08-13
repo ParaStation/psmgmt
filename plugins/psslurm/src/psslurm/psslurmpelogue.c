@@ -543,7 +543,7 @@ int handleLocalPElogueFinish(void *data)
 /**
  * @brief Initialize a task prologue/epilogue script
  *
- * Setup environment and Slurm rlimits.
+ * Setup environment and in case of epilogue also Slurm rlimits.
  *
  * @param info Holding a Task_Info structure
  */
@@ -552,7 +552,6 @@ static void preparePEscript(void *info)
     Task_Info_t *ti = info;
 
     /* This is the child */
-    setDefaultRlimits();
     setStepEnv(ti->step);
     setRankEnv(ti->task->jobRank, ti->step);
 
@@ -561,6 +560,8 @@ static void preparePEscript(void *info)
 	char envstr[32];
 	sprintf(envstr, "%d", PSC_getPID(ti->task->tid));
 	setenv("SLURM_TASK_PID", envstr, 1);
+    } else {
+	setDefaultRlimits();
     }
 
     flog("starting task %s '%s' for rank %u (global %u) of job %u\n",
@@ -633,7 +634,8 @@ static void execTaskPElogue(Step_t *step, PStask_t *task, char *taskScript,
     script->gid = step->gid;
     script->cwd = ustrdup(step->cwd);
     script->grace = getConfValueI(SlurmConfig, "KillWait");
-    script->prepPriv = preparePEscript;
+    script->prepPriv = prologue ? NULL : preparePEscript;
+    script->prepEnv = prologue ? preparePEscript : NULL;
     script->cbOutput = prologue ? handleTaskPrologueOut : NULL;
     script->runtime = prologue ? 0 : 5;
 
