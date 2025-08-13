@@ -55,6 +55,14 @@ typedef void Script_cbOutput_t(char *line, void *info);
  */
 typedef void Script_cbPrepPriv_t(void *);
 
+/**
+ * @brief Callback to prepare the script's environment after
+ * privileges are dropped.
+ *
+ * @param info Pointer to script's info field
+ */
+typedef void Script_cbPrepEnv_t(void *);
+
 /** Structure defining all parameter's of a script */
 struct scriptData {
     char *username;	    /**< optional username for the script */
@@ -73,6 +81,7 @@ struct scriptData {
     Script_cbResult_t *cbResult;    /**< see @ref Script_cbResult_t */
     Script_cbOutput_t *cbOutput;    /**< see @ref Script_cbOutput_t */
     Script_cbPrepPriv_t *prepPriv;  /**< see @ref Script_cbPrepPriv_t */
+    Script_cbPrepEnv_t *prepEnv;    /**< see @ref Script_cbPrepEnv_t */
 };
 
 /**
