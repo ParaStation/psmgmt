@@ -1,3 +1,675 @@
+Version 6.4.0:
+==============
+------------------------------------------------------------------------
+3438dbbfd | Norbert Eicker | Thu, 14 Aug 2025 09:59:00 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+71ca44eff | Michael Rauh | Wed, 13 Aug 2025 11:44:34 +0200
+
+Set default rlimits only for task epilogue
+
+ - task prologue hook has correct rlimits set beforehand
+------------------------------------------------------------------------
+cf021e9be | Michael Rauh | Wed, 13 Aug 2025 11:41:37 +0200
+
+Add prepEnv() to pluginscript
+------------------------------------------------------------------------
+796075881 | Michael Rauh | Mon, 11 Aug 2025 20:57:18 +0200
+
+Remove superfluous check
+------------------------------------------------------------------------
+a0109fbdf | Michael Rauh | Mon, 11 Aug 2025 20:53:20 +0200
+
+Set correct number of threads for different CPUfreq calls
+------------------------------------------------------------------------
+630dc0c6f | Michael Rauh | Mon, 11 Aug 2025 20:47:36 +0200
+
+Emit warning if invalid governor setting is detected
+------------------------------------------------------------------------
+d6d83ec4f | Michael Rauh | Thu, 31 Jul 2025 16:56:42 +0200
+
+Set correct number of threads for CPUfreq initialization
+------------------------------------------------------------------------
+4d6c57623 | Michael Rauh | Thu, 31 Jul 2025 16:41:13 +0200
+
+Use case insensitive compare when searching for Slurm governor
+------------------------------------------------------------------------
+532fc4d2c | Norbert Eicker | Wed, 30 Jul 2025 00:50:06 +0200
+
+Introduce checkGov() and enhance debug logs
+------------------------------------------------------------------------
+90ab57526 | Norbert Eicker | Wed, 30 Jul 2025 00:47:17 +0200
+
+Avoid debug logs if CPUfreq is not initialized
+------------------------------------------------------------------------
+051dbe704 | Norbert Eicker | Wed, 30 Jul 2025 00:42:15 +0200
+
+Avoid unnecessary iterations
+------------------------------------------------------------------------
+60a73f66f | Norbert Eicker | Wed, 30 Jul 2025 00:33:59 +0200
+
+Streamlining
+------------------------------------------------------------------------
+da3780326 | Norbert Eicker | Wed, 30 Jul 2025 00:26:11 +0200
+
+Rename saveDefGovernor() to checkUniqueDefGov()
+------------------------------------------------------------------------
+afdfefa6d | Norbert Eicker | Wed, 30 Jul 2025 00:21:17 +0200
+
+Enhance docu comments
+------------------------------------------------------------------------
+adfdf4ee7 | Michael Rauh | Tue, 15 Jul 2025 16:54:12 +0200
+
+Update global default when updating default governor
+------------------------------------------------------------------------
+ebb0ca720 | Michael Rauh | Tue, 15 Jul 2025 16:11:01 +0200
+
+Changed to idle governor if epilogue completes
+------------------------------------------------------------------------
+33adc62fd | Michael Rauh | Mon, 14 Jul 2025 20:22:36 +0200
+
+Add mandatory callbacks for cpufreq set operations
+------------------------------------------------------------------------
+6f56f3503 | Michael Rauh | Mon, 14 Jul 2025 15:39:44 +0200
+
+Restore default job governor after step completion
+------------------------------------------------------------------------
+4e2271d62 | Michael Rauh | Mon, 14 Jul 2025 15:25:02 +0200
+
+psslurm changes the job governor for the lifetime of an allocation
+
+ - after the allocation ends the default idle governor is restored
+------------------------------------------------------------------------
+fe6094e36 | Michael Rauh | Thu, 10 Jul 2025 18:53:54 +0200
+
+Let psslurm set default CPU job governor at startup
+
+ - first attempt to set governor from slurm.conf option "CpuFreqDef"
+ - second attempt from psslurm configuration option "CPU_GOV_JOB"
+------------------------------------------------------------------------
+2a1814b4d | Michael Rauh | Wed, 9 Jul 2025 19:50:18 +0200
+
+Let psslurm set idle CPU governor at startup
+
+ - configuration option CPU_GOV_IDLE
+ - can be disabled by setting option to "none"
+------------------------------------------------------------------------
+ab9768bec | Michael Rauh | Wed, 9 Jul 2025 19:26:34 +0200
+
+Introduce CPUfreq_setDefGov() to allow psslurm to change the default
+CPU scaling governor
+------------------------------------------------------------------------
+3cb3b0cde | Michael Rauh | Wed, 9 Jul 2025 19:24:30 +0200
+
+Introduce psslurm configuration options CPU_GOV_JOB and CPU_GOV_JOB
+------------------------------------------------------------------------
+5035a2cb3 | Norbert Eicker | Tue, 1 Jul 2025 12:22:50 +0200
+
+Add more debug logs
+------------------------------------------------------------------------
+f3494a9a3 | Norbert Eicker | Tue, 1 Jul 2025 10:56:17 +0200
+
+Fix typo in debug log
+------------------------------------------------------------------------
+379f5044f | Norbert Eicker | Mon, 30 Jun 2025 20:23:11 +0200
+
+Determining available frequencies is optional
+------------------------------------------------------------------------
+5e3455ec3 | Norbert Eicker | Mon, 30 Jun 2025 20:01:13 +0200
+
+Enhance logs on fatal errors
+------------------------------------------------------------------------
+fe06f0589 | Norbert Eicker | Mon, 23 Jun 2025 10:49:38 +0200
+
+Fix Script_Data_t typedef
+------------------------------------------------------------------------
+68b9cb8a5 | Michael Rauh | Fri, 20 Jun 2025 15:33:46 +0200
+
+Ensure script alarm handles timeout with no grace time
+------------------------------------------------------------------------
+f0a09386c | Michael Rauh | Fri, 20 Jun 2025 15:27:14 +0200
+
+Don't try to restore old alarm
+------------------------------------------------------------------------
+561e800f4 | Michael Rauh | Fri, 20 Jun 2025 15:21:22 +0200
+
+Fix memory leak
+------------------------------------------------------------------------
+7752691be | Michael Rauh | Fri, 20 Jun 2025 15:18:31 +0200
+
+Improve governor parsing
+------------------------------------------------------------------------
+85497a943 | Michael Rauh | Fri, 20 Jun 2025 13:51:13 +0200
+
+Improve handling of psslurm initialize flags
+------------------------------------------------------------------------
+a0c3a689e | Michael Rauh | Fri, 20 Jun 2025 13:40:12 +0200
+
+Improve handling of cpufreq initialize flags
+------------------------------------------------------------------------
+ad9d03c1a | Norbert Eicker | Wed, 18 Jun 2025 22:33:06 +0200
+
+Asume failing chdir() into script->cwd is critical
+------------------------------------------------------------------------
+be29d9a72 | Norbert Eicker | Wed, 18 Jun 2025 22:32:25 +0200
+
+Streamlining
+------------------------------------------------------------------------
+ab352782e | Norbert Eicker | Wed, 18 Jun 2025 22:31:07 +0200
+
+Whitespace fixes
+------------------------------------------------------------------------
+26e2babfa | Michael Rauh | Wed, 18 Jun 2025 20:04:56 +0200
+
+Ensure a script will get killed after runtime limit is reached
+------------------------------------------------------------------------
+8c4ae6602 | Michael Rauh | Wed, 18 Jun 2025 17:52:45 +0200
+
+Free script data when executed using a pluginforwarder
+
+ - change callback cbResult() argument to complete script structure
+------------------------------------------------------------------------
+5f31a7b3b | Michael Rauh | Wed, 18 Jun 2025 16:33:19 +0200
+
+Only save relevant file-descriptor in script structure
+------------------------------------------------------------------------
+f6e76ca2a | Michael Rauh | Tue, 17 Jun 2025 13:57:12 +0200
+
+Update documentation
+------------------------------------------------------------------------
+6921215e5 | Michael Rauh | Tue, 17 Jun 2025 13:40:37 +0200
+
+Get rid of reclaimPriv in pluginscript and reclaim priviledges
+implizit as needed
+------------------------------------------------------------------------
+f0c929a69 | Michael Rauh | Tue, 17 Jun 2025 13:36:38 +0200
+
+Improve function name
+------------------------------------------------------------------------
+4e0da4b78 | Michael Rauh | Fri, 13 Jun 2025 15:31:52 +0200
+
+Give command name as info argument for cpufreq callbacks
+------------------------------------------------------------------------
+8acf2c7be | Michael Rauh | Fri, 13 Jun 2025 15:18:44 +0200
+
+Improve logging
+------------------------------------------------------------------------
+c7bd2c8ac | Michael Rauh | Fri, 13 Jun 2025 15:12:30 +0200
+
+Remove redundant check
+------------------------------------------------------------------------
+8f6fb3cfc | Michael Rauh | Fri, 13 Jun 2025 15:10:00 +0200
+
+Allow private extension messages to pass script forwarder
+------------------------------------------------------------------------
+cf7be15be | Michael Rauh | Fri, 13 Jun 2025 14:56:49 +0200
+
+Ensure result callback is defined when a script is started in main psid
+------------------------------------------------------------------------
+52219789d | Michael Rauh | Thu, 12 Jun 2025 17:07:28 +0200
+
+Correct function pointer
+------------------------------------------------------------------------
+a62561b57 | Michael Rauh | Thu, 12 Jun 2025 17:06:11 +0200
+
+Verify CPU index red from frequency script is valid
+------------------------------------------------------------------------
+c54a9cd89 | Michael Rauh | Thu, 12 Jun 2025 16:26:28 +0200
+
+Minor code improvements
+------------------------------------------------------------------------
+260e756e4 | Michael Rauh | Thu, 12 Jun 2025 15:55:39 +0200
+
+Update docu
+------------------------------------------------------------------------
+9eddfa609 | Norbert Eicker | Tue, 13 May 2025 22:25:47 +0200
+
+Formatting changes and fix one typo
+------------------------------------------------------------------------
+f7d058685 | Norbert Eicker | Mon, 12 May 2025 17:07:51 +0200
+
+Buffer does not need to be static
+------------------------------------------------------------------------
+c4db3989b | Norbert Eicker | Mon, 12 May 2025 17:07:29 +0200
+
+Whitespace fixes
+------------------------------------------------------------------------
+0c5d50ef3 | Norbert Eicker | Mon, 12 May 2025 17:02:35 +0200
+
+Enhance docu comments
+------------------------------------------------------------------------
+b81fc9c7d | Norbert Eicker | Fri, 9 May 2025 14:12:50 +0200
+
+Fix typos
+------------------------------------------------------------------------
+ba25ab9a0 | Michael Rauh | Thu, 8 May 2025 15:52:10 +0200
+
+Add more documentation for script callbacks
+------------------------------------------------------------------------
+7777b0a41 | Michael Rauh | Thu, 8 May 2025 15:17:06 +0200
+
+Booleanize handleScriptOutput()
+------------------------------------------------------------------------
+477aa959e | Michael Rauh | Thu, 8 May 2025 15:10:42 +0200
+
+Let psslurm wait for CPUfreq initialization
+------------------------------------------------------------------------
+bc6ca13ef | Michael Rauh | Thu, 8 May 2025 15:06:33 +0200
+
+No return value for handleTaskPrologueOut() anymore
+------------------------------------------------------------------------
+09d5fa4f6 | Michael Rauh | Thu, 8 May 2025 15:02:06 +0200
+
+Make gathering of CPU information asynchronous
+
+ - gather scripts will be called in parallel in a pluginforwarder
+ - provide callback to signal the result of the initialization process
+------------------------------------------------------------------------
+184262a13 | Michael Rauh | Thu, 8 May 2025 14:59:42 +0200
+
+Utilize pluginforwarder if a script is started inside the main psid
+------------------------------------------------------------------------
+2e4ae8d49 | Michael Rauh | Tue, 1 Apr 2025 10:21:35 +0200
+
+Make Script_CMDs_t privat
+------------------------------------------------------------------------
+b505615c8 | Michael Rauh | Mon, 31 Mar 2025 20:18:31 +0200
+
+Remove unused prepUser() option of pluginscript
+------------------------------------------------------------------------
+956b9b4d4 | Michael Rauh | Mon, 31 Mar 2025 20:02:24 +0200
+
+Remove unnecessary initializations
+------------------------------------------------------------------------
+8f6abf5bc | Michael Rauh | Thu, 27 Mar 2025 14:14:51 +0100
+
+Improve documentation
+------------------------------------------------------------------------
+c1db94250 | Norbert Eicker | Thu, 27 Mar 2025 08:28:07 +0100
+
+Build system beautification
+------------------------------------------------------------------------
+61b69556a | Norbert Eicker | Thu, 27 Mar 2025 08:17:48 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+24a44b036 | Michael Rauh | Wed, 26 Mar 2025 17:26:06 +0100
+
+Use plugin cpufreq facility in psslurm
+
+ - this adds support for srun '--cpu-freq' option
+ - new psslurm configuration option CPU_SCALING_DIR
+------------------------------------------------------------------------
+fe0201857 | Michael Rauh | Wed, 26 Mar 2025 16:53:21 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+57324796c | Michael Rauh | Wed, 26 Mar 2025 16:51:06 +0100
+
+Introduce plugin cpufreq facility
+
+ - able to read and write CPU scaling parameters
+ - uses python script for easy adoption to different architectures
+------------------------------------------------------------------------
+f0985a7ca | Michael Rauh | Wed, 26 Mar 2025 15:53:03 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+78160764e | Michael Rauh | Wed, 26 Mar 2025 15:51:49 +0100
+
+Add script cpufreq.py to read and modify CPU scaling parameters
+------------------------------------------------------------------------
+ae0acf03f | Norbert Eicker | Tue, 25 Mar 2025 21:42:27 +0100
+
+Minor refinements of docu comments
+------------------------------------------------------------------------
+64d5405f1 | Michael Rauh | Wed, 19 Feb 2025 17:34:47 +0100
+
+Utilize pluginscript to execute the task prologue and epilogue
+------------------------------------------------------------------------
+1fcec2520 | Michael Rauh | Mon, 17 Mar 2025 16:05:45 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+ddfe165a3 | Michael Rauh | Mon, 10 Feb 2025 16:36:42 +0100
+
+Introduce pluginscript
+
+ - blocking execution of a script
+ - allow to pass arguments and reclaim root priviledges
+ - a callback might be invoked for every output line
+------------------------------------------------------------------------
+c7c8da41b | Michael Rauh | Mon, 17 Mar 2025 16:08:32 +0100
+
+Introduce pluginmset()
+------------------------------------------------------------------------
+369b7494e | Michael Rauh | Thu, 31 Jul 2025 14:33:56 +0200
+
+Prevent double initialization of I/O facility
+------------------------------------------------------------------------
+acd7a3370 | Norbert Eicker | Thu, 31 Jul 2025 00:49:26 +0200
+
+Streamlining
+------------------------------------------------------------------------
+dcba8ebdd | Norbert Eicker | Thu, 31 Jul 2025 00:48:51 +0200
+
+More use of flog()/fdbg()/fwarn() in psslurmio
+------------------------------------------------------------------------
+5544ec844 | Michael Rauh | Wed, 30 Jul 2025 11:39:43 +0200
+
+Introduce psslurm option JOBFILE_CREATE_MODE
+
+ - set access mode for stderr and stdout files
+ - default: 0644
+------------------------------------------------------------------------
+2f85d36a9 | Michael Rauh | Wed, 30 Jul 2025 14:52:01 +0200
+
+Add getConfValueO() to get octal base values from configuration strings
+------------------------------------------------------------------------
+c5792fe4a | Norbert Eicker | Tue, 29 Jul 2025 16:48:56 +0200
+
+IWYU fixes, whitespace fix, and one typo
+------------------------------------------------------------------------
+053f00d90 | Michael Rauh | Tue, 29 Jul 2025 11:08:35 +0200
+
+Ensure mkDir() does not operate on an empty path
+------------------------------------------------------------------------
+cd7583013 | Michael Rauh | Thu, 24 Jul 2025 19:34:26 +0200
+
+Create missing parent directories for psslurm I/O redirection (PSC:#13)
+------------------------------------------------------------------------
+a6beaa7a9 | Norbert Eicker | Thu, 31 Jul 2025 18:22:16 +0200
+
+Cleanup cgroups if Slurm does not enforce constraining (#328)
+------------------------------------------------------------------------
+84069dfc9 | Norbert Eicker | Thu, 31 Jul 2025 18:13:22 +0200
+
+Bugfix: steps only live within jobs (cgroup wise)
+------------------------------------------------------------------------
+5670d9430 | Norbert Eicker | Thu, 31 Jul 2025 18:11:54 +0200
+
+Drop constraining kernel memory for Slurm jobs
+
+ - This got obsolete with cgroup v2 and was removed from vanilla Slurm
+   in the meantime
+------------------------------------------------------------------------
+ef6279aa1 | Norbert Eicker | Thu, 31 Jul 2025 18:02:52 +0200
+
+Ignore non-directories but handle further directories
+------------------------------------------------------------------------
+6783b733b | Norbert Eicker | Thu, 31 Jul 2025 17:13:30 +0200
+
+Rename ADD_USER_TO_CGROUP to ADD_TO_USER_CGROUP
+
+ - Shall better reflect the actual functionality
+------------------------------------------------------------------------
+2c55b8803 | Michael Rauh | Mon, 11 Aug 2025 14:20:29 +0200
+
+Fix typo
+------------------------------------------------------------------------
+22b8aad1c | Norbert Eicker | Tue, 22 Jul 2025 15:26:46 +0200
+
+Make dupSlurmMsgHead future proof and dup fwAliasNetCred
+------------------------------------------------------------------------
+037a2fcc4 | Norbert Eicker | Mon, 21 Jul 2025 08:46:09 +0200
+
+Switch to explicit connection handling
+
+ - connections no longer managed implicitly via Slurm messages
+ - drop resetting sMsg.sock to preserve connections
+------------------------------------------------------------------------
+fb741f97b | Norbert Eicker | Mon, 21 Jul 2025 08:22:41 +0200
+
+Evict unused openSlurmctldConEx()
+------------------------------------------------------------------------
+2aaf82743 | Norbert Eicker | Sat, 19 Jul 2025 03:21:33 +0200
+
+Introduce sendDBnoFrag constant
+------------------------------------------------------------------------
+a6cee2c36 | Norbert Eicker | Sat, 19 Jul 2025 01:05:21 +0200
+
+Redefine Connection_CB_t
+------------------------------------------------------------------------
+a8bca50a5 | Norbert Eicker | Sat, 19 Jul 2025 00:52:31 +0200
+
+Rework readSlurmMsg()
+------------------------------------------------------------------------
+75ea14c8e | Norbert Eicker | Sat, 19 Jul 2025 00:40:16 +0200
+
+Introduce explicit handleRespNodeRegStatus()
+------------------------------------------------------------------------
+3f4514402 | Norbert Eicker | Sat, 19 Jul 2025 00:38:33 +0200
+
+Clear remnant message buffers if Slurm connection gets closed
+------------------------------------------------------------------------
+eaf48e38a | Norbert Eicker | Fri, 18 Jul 2025 23:01:05 +0200
+
+Reorganize to make sendSlurmMsgEx() static
+------------------------------------------------------------------------
+52b232f9e | Norbert Eicker | Fri, 18 Jul 2025 11:42:22 +0200
+
+Rename handleSrunMsg() -> handleSrunReply()
+
+ - function will only handle replies to srunSendMsg()
+------------------------------------------------------------------------
+b2f73b8ad | Norbert Eicker | Thu, 17 Jul 2025 17:24:07 +0200
+
+Fix log output, docu comments, etc.
+------------------------------------------------------------------------
+91034dfc6 | Norbert Eicker | Thu, 17 Jul 2025 17:19:41 +0200
+
+Rework deleteMsgBuf()
+
+ - close connection if no answer is expected or message got lost
+------------------------------------------------------------------------
+5da6bd8f8 | Norbert Eicker | Thu, 17 Jul 2025 10:36:44 +0200
+
+Make openSlurmctldConEx() private
+------------------------------------------------------------------------
+6869e280b | Norbert Eicker | Thu, 17 Jul 2025 10:32:04 +0200
+
+Simplify by reverting flag logic
+------------------------------------------------------------------------
+f1f5a34fc | Norbert Eicker | Thu, 17 Jul 2025 10:29:21 +0200
+
+Introduce closeSlurmConEx()
+------------------------------------------------------------------------
+5e57234e8 | Norbert Eicker | Thu, 17 Jul 2025 10:19:12 +0200
+
+registerSlurmSocket() can mark connections to expect an answer
+------------------------------------------------------------------------
+83fa54a21 | Norbert Eicker | Thu, 17 Jul 2025 10:06:47 +0200
+
+Introduce resetConnection() shortcut
+------------------------------------------------------------------------
+6d8625197 | Norbert Eicker | Wed, 16 Jul 2025 22:19:23 +0200
+
+Streamlining
+------------------------------------------------------------------------
+408657d28 | Norbert Eicker | Wed, 16 Jul 2025 21:51:53 +0200
+
+Adjust Slurm_Msg_t.sock to size in protocol
+------------------------------------------------------------------------
+77b34dc41 | Norbert Eicker | Wed, 16 Jul 2025 21:46:43 +0200
+
+Correct connection ownership in handleLaunchTasks()
+------------------------------------------------------------------------
+b352c783e | Norbert Eicker | Wed, 16 Jul 2025 18:54:20 +0200
+
+Correct connection ownership in handleFileBCast()
+------------------------------------------------------------------------
+962d377de | Norbert Eicker | Wed, 16 Jul 2025 18:48:11 +0200
+
+srunSendMsg() notes error only via -1 (-2 hints delayed send)
+------------------------------------------------------------------------
+a7a7791c8 | Norbert Eicker | Wed, 16 Jul 2025 18:35:27 +0200
+
+Rework srunSendIOEx() interface and streamline
+
+ - replace error parameter by utilizing errno
+ - requires adaptation of srunSendIO(), forward2Sattach(), and
+   IO_sattachTasks()
+ - also streamline adapted functions
+------------------------------------------------------------------------
+4268eda32 | Norbert Eicker | Wed, 16 Jul 2025 18:16:57 +0200
+
+Rework and simplify srunOpenIOConnectionEx()
+------------------------------------------------------------------------
+effc2425f | Norbert Eicker | Wed, 16 Jul 2025 18:12:30 +0200
+
+Guarantee to have errno if PSCio_sendFunc() return -1
+------------------------------------------------------------------------
+a2ccb1275 | Norbert Eicker | Wed, 16 Jul 2025 14:19:55 +0200
+
+Actually, step.srunPTYMsgSock is not needed at all
+------------------------------------------------------------------------
+32b3d471b | Norbert Eicker | Wed, 16 Jul 2025 10:03:12 +0200
+
+More use of flog(), fdbg(), fwarn()
+------------------------------------------------------------------------
+523734c5a | Norbert Eicker | Wed, 16 Jul 2025 09:52:54 +0200
+
+Enhance docu comments especially return value
+
+ - Add note on delayed sends in sendSlurmMsg(), sendSlurmMsgEx(),
+   sendSlurmctldReq(), and srunSendMsg()
+------------------------------------------------------------------------
+d90a7e041 | Norbert Eicker | Tue, 15 Jul 2025 10:14:08 +0200
+
+Enhance docu comments
+------------------------------------------------------------------------
+070e3b613 | Norbert Eicker | Mon, 14 Jul 2025 21:13:35 +0200
+
+Only sock of step.srunPTYMsg used => avoid Slurm_Msg_t
+------------------------------------------------------------------------
+b24b88f38 | Norbert Eicker | Mon, 14 Jul 2025 21:04:45 +0200
+
+Rename Slurm_Msg_Header_t returnList to fwResRcvd
+------------------------------------------------------------------------
+55f3f17e1 | Norbert Eicker | Mon, 14 Jul 2025 21:02:09 +0200
+
+Use fwResSize instead of forward, adapt size, etc.
+------------------------------------------------------------------------
+c9f8cc62a | Norbert Eicker | Mon, 14 Jul 2025 20:57:02 +0200
+
+Only sock of step.srunIOMsg used => avoid Slurm_Msg_t
+------------------------------------------------------------------------
+00295101d | Norbert Eicker | Thu, 10 Jul 2025 18:04:45 +0200
+
+Sprinkle some clearSlurmMsg() over the code
+------------------------------------------------------------------------
+a8bef9860 | Norbert Eicker | Tue, 1 Jul 2025 20:10:44 +0200
+
+Allow 'struct foo' as type in [reverse_]print_list
+
+ - This might be necessary for (publicly) incomplete types arranged in
+   lists
+------------------------------------------------------------------------
+1239dd7e2 | Norbert Eicker | Tue, 1 Jul 2025 19:48:38 +0200
+
+Reorder functions in psmgmt.gdb gdbinit scripts
+------------------------------------------------------------------------
+71c0ba695 | Norbert Eicker | Tue, 22 Jul 2025 23:41:14 +0200
+
+Add hints to RRComm's spawn tests on how to run
+------------------------------------------------------------------------
+7edb615e2 | Norbert Eicker | Tue, 8 Jul 2025 22:16:57 +0200
+
+Refresh docu comments describing the Selector facility
+
+ - this reflects the fact that Sselect() was removed from the API some
+   time ago
+------------------------------------------------------------------------
+b447c876e | Norbert Eicker | Tue, 8 Jul 2025 20:00:01 +0200
+
+Enhance warning's drama factor
+------------------------------------------------------------------------
+2d65bbfab | Norbert Eicker | Mon, 7 Jul 2025 10:33:15 +0200
+
+Ignore messages from bad RDP port (#326)
+------------------------------------------------------------------------
+20a93fab1 | Norbert Eicker | Mon, 7 Jul 2025 10:31:07 +0200
+
+Warn about unprivileged RDP port number (#326)
+------------------------------------------------------------------------
+68e57c83f | Norbert Eicker | Thu, 3 Jul 2025 10:05:11 +0200
+
+Propagate pluginlogger's mask into pluginforwarder
+------------------------------------------------------------------------
+c5b6c02cd | Norbert Eicker | Thu, 3 Jul 2025 10:02:54 +0200
+
+Allow on-the-fly change of PLUGIN_DEBUG_MASK in psslurm
+------------------------------------------------------------------------
+2cb4db16e | Norbert Eicker | Thu, 3 Jul 2025 10:01:18 +0200
+
+Simplify psslurm's on-the-fly handling of config changes
+------------------------------------------------------------------------
+cce1e3c11 | Norbert Eicker | Mon, 7 Jul 2025 16:58:49 +0200
+
+Add some hints for dynIP testing in a new HowTo
+------------------------------------------------------------------------
+677619f1f | Norbert Eicker | Thu, 3 Jul 2025 16:34:42 +0200
+
+Add local ID as hint to RDP_SYN message
+
+ - try to take benefit from the hints in dynIP plugin
+------------------------------------------------------------------------
+d431d1663 | Norbert Eicker | Thu, 3 Jul 2025 14:41:34 +0200
+
+Change RDP_init() interface to pass local ID
+------------------------------------------------------------------------
+ddc692db1 | Norbert Eicker | Thu, 3 Jul 2025 14:19:58 +0200
+
+Rename exitRDP() -> RDP_finalize()
+------------------------------------------------------------------------
+97ceca896 | Norbert Eicker | Thu, 3 Jul 2025 14:15:31 +0200
+
+Major rework of RDP docu comments
+
+ - Introduce RDP_dispatcher_t and RDP_callback_t
+------------------------------------------------------------------------
+783adde69 | Norbert Eicker | Tue, 22 Apr 2025 23:50:40 +0200
+
+Rework RDP_UNKNOWN_SENDER / PSIDHOOK_SENDER_UNKNOWN
+
+ - pass hints to IP -> PS ID resolver
+ - bump plugin API to 147
+------------------------------------------------------------------------
+7393e72ab | Norbert Eicker | Tue, 22 Apr 2025 22:57:11 +0200
+
+Rename RDPDeadbuf to RDPDeadbuf_t for consistency
+------------------------------------------------------------------------
+07d2c9c42 | Norbert Eicker | Wed, 23 Apr 2025 01:04:39 +0200
+
+Introduce RDP_fdwarn()
+------------------------------------------------------------------------
+2285a3ee2 | Norbert Eicker | Wed, 23 Apr 2025 01:04:16 +0200
+
+Introduce RDP_fwarn()
+------------------------------------------------------------------------
+809d08c00 | Norbert Eicker | Wed, 23 Apr 2025 00:52:32 +0200
+
+Rework RDP_log()
+------------------------------------------------------------------------
+dace4ad6b | Norbert Eicker | Wed, 23 Apr 2025 00:48:13 +0200
+
+Introduce RDP_flog()
+------------------------------------------------------------------------
+7c9f57bf1 | Norbert Eicker | Wed, 23 Apr 2025 00:16:19 +0200
+
+Introduce RDP_dbg()
+------------------------------------------------------------------------
+9381ff56e | Norbert Eicker | Wed, 23 Apr 2025 00:15:05 +0200
+
+Introduce RDP_fdbg()
+------------------------------------------------------------------------
+7498c4a0d | Norbert Eicker | Tue, 22 Apr 2025 22:58:14 +0200
+
+Do not expose unncessary functions in dynIP
+------------------------------------------------------------------------
+
+
 Version 6.3.0:
 ==============
 ------------------------------------------------------------------------

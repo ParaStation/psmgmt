@@ -6,6 +6,43 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.4.0:
+==============
+Bugfixes:
+ - Create missing parent directories for psslurm I/O redirection (PSC:#13)
+ - Cleanup cgroups if Slurm does not enforce constraining (#328)
+ - Slurm steps only live within jobs (cgroup wise), thus, fix jail script
+ - Ignore non-directories but handle further directories in jail scripts
+Enhancements:
+ - Add support for srun's --cpu-freq options (#85)
+ - new psslurm configuration option CPU_SCALING_DIR
+ - Let psslurm set default CPU job governor at job startup
+   * first attempt to set governor from slurm.conf option "CpuFreqDef"
+   * second attempt from psslurm configuration option "CPU_GOV_JOB"
+ - Let psslurm set idle CPU governor at psslurm startup
+   * from psslurm configuration option CPU_GOV_IDLE
+   * can be disabled by setting option to "none"
+ - Introduce psslurm option JOBFILE_CREATE_MODE (default: 0644)
+ - Switch to explicit connection handling in the context of Slurm messages
+ - Add local ID as hint to RDP_SYN message and take benefit in dynIP plugin
+ - Allow on-the-fly change of PLUGIN_DEBUG_MASK in psslurm
+ - Ignore messages from bad RDP port (#326)
+ - Warn about unprivileged RDP port number (#326)
+Additional changes:
+ - Drop constraining kernel memory for Slurm jobs (obsoleted by cgroup v2)
+ - Rename ADD_USER_TO_CGROUP to ADD_TO_USER_CGROUP in jail scripts
+ - Introduce plugin cpufreq facility to to read/write CPU scaling parameters
+   utilizing a python script for easy adoption to different architectures
+ - Introduce pluginscript for blocking execution of a script with output parsing
+ - Add getConfValueO() to get octal base values from configuration strings
+ - Rework RDP_UNKNOWN_SENDER / PSIDHOOK_SENDER_UNKNOWN
+   => pass hints to IP -> PS ID resolver and bump plugin API to 147
+ - guarantee to have errno set if PSCio_sendFunc() returns -1
+ - Introduce RDP_fdbg(), RDP_dbg(), RDP_flog(), RDP_fwarn, and RDP_fdwarn()
+ - Rename exitRDP() -> RDP_finalize()
+ - Allow 'struct foo' as type in [reverse_]print_list gdb functions
+
+
 Version 6.3.0:
 ==============
 Bugfixes:
