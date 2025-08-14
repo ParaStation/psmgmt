@@ -25,6 +25,7 @@
 #include <unistd.h>
 
 #include "pscommon.h"
+#include "pscpu.h"
 #include "timer.h"
 
 #include "plugin.h"

@@ -26,6 +26,7 @@
 #include "psenv.h"
 
 #include "pluginconfig.h"
+#include "plugincpufreq.h"
 #include "pluginmalloc.h"
 #include "psprotocol.h"
 #include "psserial.h"

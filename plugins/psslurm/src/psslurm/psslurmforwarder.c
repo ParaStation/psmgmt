@@ -73,7 +73,6 @@
 #include "psslurmjobcred.h"
 #include "psslurmlimits.h"
 #include "psslurmlog.h"
-#include "psslurmmsg.h"
 #include "psslurmmultiprog.h"
 #include "psslurmpelogue.h"
 #include "psslurmpin.h"

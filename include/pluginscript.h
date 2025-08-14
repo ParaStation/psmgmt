@@ -10,12 +10,11 @@
 #ifndef __PLUGIN_LIB_SCRIPT
 #define __PLUGIN_LIB_SCRIPT
 
-#include <stdbool.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 #include "pluginforwarder.h"
 
-#include "psenv.h"
 #include "psstrv.h"
 
 /* forward declaration */

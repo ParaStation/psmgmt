@@ -11,6 +11,7 @@
 
 #include <errno.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +22,7 @@
 #include <limits.h>
 
 #include "pscommon.h"
+#include "psprotocol.h"
 #include "psstrbuf.h"
 #include "selector.h"
 #include "timer.h"
