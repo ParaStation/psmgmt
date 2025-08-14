@@ -452,6 +452,7 @@ static void cbListCPUs(int32_t status, Script_Data_t *script)
 {
     initFlags &= ~INIT_LIST_CPUS;
 
+    if (initFailure) goto ERROR;
     if (status) {
 	pluginflog("unable to list CPUs (status %d)\n", status);
 	goto ERROR;
@@ -615,6 +616,7 @@ static void checkUniqueDefGov()
 {
     defaultGov = GOV_UNDEFINED;
 
+    if (!cpus) return;
     for (int i = 0; i < numCPUs; i++) {
 	if (defaultGov == GOV_UNDEFINED) {
 	    defaultGov = cpus[i].defGov;
