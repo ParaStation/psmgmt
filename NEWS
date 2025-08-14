@@ -6,6 +6,12 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.4.1:
+==============
+Bugfixes:
+ - Avoid unncessary plugincpufreq script calls to prevent a segfault
+
+
 Version 6.4.0:
 ==============
 Bugfixes:
