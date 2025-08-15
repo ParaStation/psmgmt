@@ -31,8 +31,6 @@ static int myWorldSize = -1;
 static int worldRank = INT_MIN;
 static PStask_ID_t parentTID = -1;
 
-static uint32_t defaultHWType = 0; /* Take any node */
-
 /** The logger we use inside PSE */
 static logger_t logger;
 
@@ -110,22 +108,7 @@ int PSE_getPartition(unsigned int num)
     PSI_PBS();
     /* Check for SUN/Oracle/Univa GridEngine */
     PSI_SGE();
-    return PSI_createPartition(num, defaultHWType);
-}
-
-void PSE_setHWType(uint32_t hwType)
-{
-    defaultHWType = hwType;
-}
-
-int PSE_setHWList(char **hwList)
-{
-    uint32_t hwType;
-    int ret = PSI_resolveHWList(hwList, &hwType);
-
-    PSE_setHWType(hwType);
-
-    return ret;
+    return PSI_createPartition(num, 0);
 }
 
 static uid_t defaultUID = 0;

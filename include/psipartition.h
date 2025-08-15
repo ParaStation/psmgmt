@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -151,12 +151,12 @@ void PSI_SGE(void);
 
 /**
  * @brief Resolve hardware-type for @ref PSI_createPartition(), @ref
- * PSE_setHWType(), etc.
+ * PSI_createReservation(), etc.
  *
  * Resolve the the hardware-types provided within @a hwList and create
  * the corresponding hardware-type @a hwType to be used within
- * e.g. PSE_setHWType() in order to influence creating of partitions
- * via PSE_getPartition() or PSI_createPartition(). @a hwType is a
+ * e.g. PSI_createPartition() or PSI_getReservation() in order to
+ * influence creating of partitions or reservations. @a hwType is a
  * bit-field using INFO_request_hwindex() as the index.
  *
  * If one ore more of the hardware-types passed to this function are
@@ -176,7 +176,7 @@ void PSI_SGE(void);
  * returned. Or 0, if all hardware-types are known. The returned
  * hardware-type @a hwType is set to the known ones in any case.
  *
- * @see PSE_setHWType(), PSI_createPartition()
+ * @see PSI_createPartition(), PSI_createReservation()
  */
 int PSI_resolveHWList(char **hwList, uint32_t *hwType);
 

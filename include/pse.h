@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,8 +38,8 @@ void PSE_initialize(void);
  * @brief Create a partition
  *
  * Create a partition of size @a num. This is mainly a wrapper around
- * @ref PSI_createPartition(), where the @a hwType used is set via
- * the @ref PSE_setHWType() / @ref PSE_setHWList() interface.
+ * @ref PSI_createPartition() checking for magic environment of
+ * foreign batch systems beforehand.
  *
  * Any process spawned by a process of the parallel task will reside
  * within the partition bound to this task.
@@ -55,7 +55,7 @@ void PSE_initialize(void);
  * returned; or -1 if an error occurred; the actual meaning of the
  * return value is discussed at @ref PSI_createPartition().
  *
- * @see PSE_setHWType() PSE_setHWList() PSI_createPartition()
+ * @see PSI_createPartition()
  */
 int PSE_getPartition(unsigned int num);
 
@@ -87,68 +87,6 @@ int PSE_getRank(void);
  * @return No return value
  */
 void PSE_setUID(uid_t uid);
-
-/**
- * @brief Set hardware-type for PSE_getPartition()
- *
- * Set the hardware-type for @ref PSE_getPartition().
- *
- * If @ref PSE_getPartition() is called, the partition is constituted
- * from nodes which support all the hardware-types requested in @a
- * hwType. For details on the spawning strategy refer to @ref
- * spawn_strategy.
- *
- * If no call to this function or to @ref PSE_setHWList() is made before
- * @ref PSE_getPartition() is called, the default hardware-type 0 is
- * used. This means, any node is accepted.
- *
- * @param hwType The hardware-type nodes have to support to get a
- * process spawned on. @a hwType is a bitwise OR of the hardware-types
- * requested via 1<<INFO_request_hwindex() or 0. If @a hwType is 0, any
- * node is taken to spawn tasks on.
- *
- * @return No return value
- *
- * @see PSE_getPartition() PSE_setHWList()
- * */
-void PSE_setHWType(uint32_t hwType);
-
-/**
- * @brief Set hardware-type for PSE_getPartition()
- *
- * Alternative form to set the hardware-type for @ref PSE_getPartition().
- *
- * If @ref PSE_getPartition() is called, the partition is constituted
- * from nodes which support all the hardware-types requested in @a
- * hwList. For details on the spawning strategy refer to @ref
- * spawn_strategy.
- *
- * If no call to this function or to @ref PSE_setHWType() is made
- * before @ref PSE_getPartition() is called, the default hardware-type
- * 0 is used. This means, any node is accepted.
- *
- * If one ore more of the hardware-types passed to this function are
- * unknown, the default hardware-type is set to the remaining ones
- * anyhow. The occurrence of unknown hardware types is displayed by a
- * return value of -1.
- *
- * This function basically resolves the @a hwList using @ref
- * PSI_resolveHWList() and then set the corresponding hardware-type
- * via @ref PSE_setHWType().
- *
- * @param hwList A NULL terminated list of hardware names nodes have
- * to support to get a process spawned on. These will be resolved
- * using the parastation.conf configuration file, i.e. each hardware
- * name has to be defined there. Afterwards a @a hwType variable is
- * constructed and registered via @ref PSE_setHWType().
- *
- * @return If one or more hardware-types are unknown, -1 is
- * returned. Or 0, if all hardware-types are known. The default
- * hardware-type is set to the known ones in any case.
- *
- * @see PSE_getPartition() PSE_setHWType() PSI_resolveHWList()
- */
-int PSE_setHWList(char **hwList);
 
 /**
  * @brief Check and set arguments and environment on nodes for consistency
@@ -282,9 +220,7 @@ char * PSE_checkAndSetSortEnv(char *sort, char *argPrefix, bool verbose);
  * - If none of the three addressed environment variables is present,
  * take all nodes managed by ParaStation to build the pool.
  *
- * To get into the pool, any node is tested if it is available and if
- * it supports the requested hardware-type set by @ref
- * PSE_setHWType().
+ * To get into the pool, any node is tested if it is available.
  *
  * Be aware of the fact, that setting any of the environment variables
  * is kind of setting a static nodelist. This means, if any of the
