@@ -17,10 +17,6 @@
 #define __PSE_H
 
 #include <stdbool.h>
-#include <stdint.h>
-#include <sys/types.h>
-
-#include "psnodes.h"
 
 /**
  * @brief Initialize PSE

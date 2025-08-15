@@ -11,20 +11,16 @@
  */
 #include "pse.h"
 
+#include <ctype.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <ctype.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <limits.h>
 
 #include "pscommon.h"
 #include "psi.h"
 #include "psiinfo.h"
 #include "psipartition.h"
-#include "psispawn.h"
 #include "psilog.h"
 
 static int myWorldSize = -1;
