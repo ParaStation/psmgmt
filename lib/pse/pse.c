@@ -31,7 +31,6 @@ static PStask_ID_t parentTID = -1;
 static logger_t logger;
 
 typedef enum {
-    PSE_LOG_SPAWN = PSI_LOG_SPAWN,
     PSE_LOG_VERB = PSI_LOG_VERB,
 } PSE_log_key_t;
 
@@ -52,15 +51,13 @@ static void exitAll(char *reason, int code)
 
 void PSE_initialize(void)
 {
-    char *envStr;
-
     logger = logger_new("PSE", stderr);
     if (!logger) {
 	fprintf(stderr, "%s: failed to initialize logger\n", __func__);
 	exit(1);
     }
 
-    envStr = getenv("PSI_DEBUGMASK");
+    char *envStr = getenv("PSI_DEBUGMASK");
     if (!envStr) envStr = getenv("PSI_DEBUGLEVEL"); /* Backward compat. */
     if (envStr) {
 	char *end;
@@ -118,7 +115,6 @@ char * PSE_checkAndSetNodeEnv(char *nodelist, char *hostlist, char *hostfile,
     if (!envStr) envStr = getenv(ENV_NODE_PEFILE);
     /* envStr marks if any of PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set */
     if (nodelist) {
-	size_t len, i;
 	if (hostlist) {
 	    snprintf(msgStr, sizeof(msgStr),
 		     "Don't use %snodes and %shosts simultaneously.",
@@ -142,8 +138,8 @@ char * PSE_checkAndSetNodeEnv(char *nodelist, char *hostlist, char *hostfile,
 	    return msgStr;
 	}
 	envStr = nodelist;
-	len = strlen(envStr);
-	for (i=0; i<len; i++) {
+	size_t len = strlen(envStr);
+	for (size_t i = 0; i < len; i++) {
 	    if (isalpha(envStr[i])) {
 		snprintf(msgStr, sizeof(msgStr),
 			 "%snodes got list of numeric node IDs,"
@@ -237,14 +233,14 @@ void PSE_finalize(void)
 {
     logger_print(logger, PSE_LOG_VERB, "[%d] %s()\n", PSE_getRank(), __func__);
 
-    if (PSE_getRank()>0) {
+    if (PSE_getRank() > 0) {
 	if (PSI_sendFinish(parentTID)) {
 	    logger_print(logger, -1,
 			 "Failed to send SPAWNFINISH to parent %s\n",
 			 PSC_printTID(parentTID));
 	    exitAll("Finalize error", 10);
 	}
-    } else if (PSE_getRank()==0) {
+    } else if (PSE_getRank() == 0) {
 	if (!PSI_recvFinish(myWorldSize)) {
 	    logger_print(logger, -1,
 			 "Failed to receive SPAWNFINISH from children\n");
