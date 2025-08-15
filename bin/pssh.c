@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,17 +39,10 @@ static void printVersion(void)
 
 int main(int argc, const char *argv[])
 {
-    PSnodes_ID_t nodeID;
-    int interactive, node, version, verbose, rusage, rawIO;
-    const char *host, *envlist, *login;
-    char *cmdLine = NULL, hostStr[30];
-
-    int i, rc, hostSet;
-
-    int exec_argc = 2;
-    char *exec_argv[4];
-
-    poptContext optCon;   /* context for parsing command-line options */
+    int node = -1;
+    const char *host = NULL, *envlist = NULL, *login = NULL;
+    int interactive = 0, version = 0, verbose = 0, rusage = 0, rawIO = 0;
+    char *cmdLine = NULL;
 
     struct poptOption optionsTable[] = {
 	{ "node", 'n', POPT_ARG_INT,
@@ -72,7 +65,7 @@ int main(int argc, const char *argv[])
 	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
 
-    optCon = poptGetContext(NULL, argc, (const char **)argv, optionsTable, 0);
+    poptContext optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
     poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
 
     /*
@@ -80,25 +73,18 @@ int main(int argc, const char *argv[])
      *  - first one (still in argv) containing the pssh options
      *  - second one (in cmdLine) containing the app's command and arguments
      */
-    node = -1; interactive = version = verbose = rusage = 0;
-    host = envlist = login = NULL;
+    int rc = poptGetNextOpt(optCon);
 
-    rc = poptGetNextOpt(optCon);
-
-    hostSet=0;
+    bool hostSet = false;
     while (1) {
-	const char *unknownArg=poptGetArg(optCon);
-
-	if (!unknownArg) {
-	    /* No unknownArg left, we are done */
-	    break;
-	}
+	const char *unknownArg = poptGetArg(optCon);
+	if (!unknownArg) break;   // No unknownArg left, we are done
 
 	if (!hostSet) {
 	    /* Maybe the unknownArg is a hostname */
 	    int trail = 0; /* Flag trailing arguments */
 
-	    for (i=1; i<argc; i++) {
+	    for (int i = 1; i < argc; i++) {
 		if (argv[i] == unknownArg) trail = 1;
 		if (host && (!strcmp(argv[i], "--host")
 			     || !strcmp(argv[i], "-h"))) {
@@ -107,57 +93,55 @@ int main(int argc, const char *argv[])
 		    } else {
 			break;
 		    }
-		} else if (node>=0 && (!strcmp(argv[i], "--node")
-				       || !strcmp(argv[i], "-n"))) {
+		} else if (node >= 0 && (!strcmp(argv[i], "--node")
+					 || !strcmp(argv[i], "-n"))) {
 		    if (trail) {
-			node=-1;
+			node = -1;
 		    } else {
 			break;
 		    }
 		}
 	    }
-	    if (node<0 && !host) {
+	    if (node < 0 && !host) {
 		/* Indeed the unknownArg is a hostname */
 		host = unknownArg;
-		hostSet=1;
+		hostSet = true;
 		continue;
 	    }
 	}
 
 	/* Unknown argument is apps name. */
 	/* Create cmdLine from argv and start over */
-	for (i=0; i<=argc; i++) {
+	int i;
+	for (i = 0; i <= argc; i++) {
 	    if (unknownArg == argv[i]) {
-		int j, totLen = 2;
-		for (j=i; j<argc; j++) totLen += strlen(argv[j]) + 1;
+		int totLen = 2;
+		for (int j = i; j < argc; j++) totLen += strlen(argv[j]) + 1;
 		free(cmdLine);
 		cmdLine = malloc(totLen);
 		cmdLine[0] = '\0';
-		for (j=i; j<argc; j++)
+		for (int j = i; j < argc; j++)
 		    snprintf(cmdLine + strlen(cmdLine), totLen-strlen(cmdLine),
 			     "%s ", argv[j]);
-		argv[i]=NULL;
+		argv[i] = NULL;
 		argc = i;
 		break;
 	    }
 	}
-	if (i>argc) {
+	if (i > argc) {
 	    printf("Error: unknownArg '%s' not found !?\n", unknownArg);
 	    exit(1);
-	} else {
-	    /* Start over */
-	    node = -1; version = verbose = rusage = 0;
-	    host = envlist = login = NULL;
-	    hostSet = 0;
-
-	    poptFreeContext(optCon);
-	    optCon = poptGetContext(NULL, argc, (const char **)argv,
-				    optionsTable, 0);
-	    poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
-	    rc = poptGetNextOpt(optCon);
-	    continue;
-
 	}
+
+	/* Start over */
+	node = -1; version = verbose = rusage = 0;
+	host = envlist = login = NULL;
+	hostSet = false;
+
+	poptFreeContext(optCon);
+	optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
+	poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
+	rc = poptGetNextOpt(optCon);
     }
 
     if (rc < -1) {
@@ -174,13 +158,13 @@ int main(int argc, const char *argv[])
 	exit(EXIT_SUCCESS);
     }
 
-    if (node<0 && !host) {
+    if (node < 0 && !host) {
 	poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "Give <node> or <host> for destination.\n");
 	exit(1);
     }
 
-    if (node>=0 && host) {
+    if (node >= 0 && host) {
 	poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "Don't give <node> and <host> concurrently.\n");
 	exit(1);
@@ -194,9 +178,7 @@ int main(int argc, const char *argv[])
 	    printf("\nStart to node '%d'\n", node);
 
 	printf("\nThe 'pssh' command-line is:\n");
-	for (i=0; i<argc; i++) {
-	    printf("%s ", argv[i]);
-	}
+	for (int i = 0; i < argc; i++) printf("%s ", argv[i]);
 	printf("\b\n\n");
 
 	printf("The applications command-line is:\n");
@@ -242,17 +224,14 @@ int main(int argc, const char *argv[])
 	fprintf(stderr, "Wrong rank! Spawned by another process?\n");
 
     if (login) {
-	struct passwd *passwd;
 	uid_t myUid = getuid();
-
-	passwd = getpwnam(login);
-
+	struct passwd *passwd = getpwnam(login);
 	if (!passwd) {
 	    fprintf(stderr, "Unknown user '%s'\n", login);
+	    exit(1);
 	} else if (myUid && passwd->pw_uid != myUid) {
 	    fprintf(stderr, "Can't start '%s' as %s\n",
 		    cmdLine ? cmdLine : "$SHELL", login);
-
 	    exit(1);
 	} else {
 	    PSE_setUID(passwd->pw_uid);
@@ -261,6 +240,8 @@ int main(int argc, const char *argv[])
 	}
     }
 
+    PSnodes_ID_t nodeID;
+    char hostStr[30];
     if (host) {
 	nodeID = PSI_resolveNodeID(host);
 
@@ -283,10 +264,6 @@ int main(int argc, const char *argv[])
     setenv("PSI_NOMSGLOGGERDONE", "", 1);
     setenv("PSI_SSH_COMPAT_HOST", host ? host : hostStr, 1);
 
-    exec_argv[0] = "$SHELL";
-    exec_argv[1] = "-i";
-    exec_argv[2] = NULL;
-
     if (interactive || !cmdLine) {
 	setenv("PSI_LOGGER_RAW_MODE", "", 1);
 	setenv("PSI_SSH_INTERACTIVE", "", 1);
@@ -295,10 +272,11 @@ int main(int argc, const char *argv[])
 	setenv("__PSI_NO_TERM", "", 1);
     }
 
+    int exec_argc = 2;
+    char *exec_argv[] = { "$SHELL", "-i", NULL, NULL };
     if (cmdLine) {
 	exec_argv[1] = "-c";
 	exec_argv[2] = cmdLine;
-	exec_argv[3] = NULL;
 	exec_argc = 3;
     }
 
