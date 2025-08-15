@@ -76,19 +76,6 @@ int PSE_getPartition(unsigned int num);
 int PSE_getRank(void);
 
 /**
- * @brief Set UID for spawns
- *
- * Set the user ID for subsequently spawned processes to @a uid. Only
- * root (i.e. UID 0) is allowed to change the UID of spawned
- * processes.
- *
- * @param uid User ID of the processes to spawn
- *
- * @return No return value
- */
-void PSE_setUID(uid_t uid);
-
-/**
  * @brief Check and set arguments and environment on nodes for consistency
  *
  * Check, if there are inconsistencies between arguments passed to a
@@ -252,42 +239,6 @@ char * PSE_checkAndSetSortEnv(char *sort, char *argPrefix, bool verbose);
  * - NONE or anything else: Don't sort the pool.
  * */
 
-
-/**
- * @brief Spawn admin process
- *
- * Spawn an admin process as describe in @a argc and @a argv to node
- * @a node. The rank of the spawned process is set as given in @a
- * rank. If the local rank is -1, the local process will exec(2) to
- * the psilogger. It will serve the spawned process (and all further
- * processes spawned by it and its descendents) as an I/O daemon.
- *
- * Spawning is done without allocating a partition. Only selected
- * users are allowed to spawn admin processes.
- *
- * If an error occurs, an error message is generated.
- *
- * @param node ID of the node to spawn to.
- *
- * @param rank The rank of the spawned process. This is mainly used
- * within reconnection to the logger.
- *
- * @param argc The size of @a argv.
- *
- * @param argv The argument vector of the task to spawn.
- *
- * @param strictArgv Flag to prevent "smart" replacement of argv[0].
- *
- * @return If the calling process's rank is -1, this function never
- * returns. Either it becomes logger or it exits after creating an
- * error message. Otherwise upon success 0 is returned, or and errno
- * describing the error that occurred.
- *
- * @see PSE_getRank(), exec(2)
- * */
-int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
-		   int argc, char *argv[], bool strictArgv);
-
 /**
  * @brief Finish local process
  *
@@ -295,9 +246,7 @@ int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
  * within the process group.
  *
  * @return No return value
- *
- * @see PSE_abort()
- * */
+ */
 void PSE_finalize(void);
 
 #endif /* __PSE_H */

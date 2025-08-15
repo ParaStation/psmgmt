@@ -111,50 +111,6 @@ int PSE_getPartition(unsigned int num)
     return PSI_createPartition(num, 0);
 }
 
-static uid_t defaultUID = 0;
-
-void PSE_setUID(uid_t uid)
-{
-    if (!getuid()) {
-	defaultUID = uid;
-    }
-
-    PSI_setUID(uid);
-}
-
-int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
-		   int argc, char *argv[], bool strictArgv)
-{
-    logger_print(logger, PSE_LOG_VERB, "%s(%s)\n", __func__, argv[0]);
-
-    /* spawn admin process */
-    int error;
-    if (!PSI_spawnAdmin(node, NULL, argc, argv, strictArgv, rank, &error)
-	&& PSE_getRank() == -1) {
-	if (error) {
-	    logger_warn(logger, -1, error,
-			"Could not spawn admin process (%s)",argv[0]);
-	}
-	exitAll("Spawn failed", 10);
-    }
-
-    logger_print(logger, PSE_LOG_SPAWN,
-		 "[%d] Spawned admin process\n", PSE_getRank());
-
-    if (PSE_getRank() == -1) {
-	if (defaultUID && setuid(defaultUID) < 0) {
-	    logger_warn(logger, -1, errno, "%s: setuid() for logger failed",
-			__func__);
-	    exitAll(NULL, 10);
-	}
-
-	/* Switch to psilogger */
-	PSI_execLogger(NULL);
-    }
-
-    return error;
-}
-
 static char msgStr[512];
 
 char * PSE_checkAndSetNodeEnv(char *nodelist, char *hostlist, char *hostfile,
