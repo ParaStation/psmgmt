@@ -317,13 +317,3 @@ void PSE_finalize(void)
     fflush(stdout);
     fflush(stderr);
 }
-
-/*  Barry Smith suggests that this indicate who is aborting the program.
-    There should probably be a separate argument for whether it is a
-    user requested or internal abort.                                      */
-void PSE_abort(int code)
-{
-    logger_print(logger, -1,
-		 "[%d(%d)] Aborting program\n", worldRank, getpid());
-    exitAll("Abort", code);
-}

@@ -300,20 +300,4 @@ int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
  * */
 void PSE_finalize(void);
 
-/**
- * @brief Finish local process and shut down the whole process group
- *
- * Finish the local process and shut down all other processes within
- * the process group. @a code is returned to the calling process,
- * which is usually the forwarder.
- *
- * @param code The exit code
- *
- * @return No return value; PSE_abort() usually never returns, since
- * exit() is called
- *
- * @see PSE_finalize(), exit(2)
- * */
-void PSE_abort(int code);
-
 #endif /* __PSE_H */
