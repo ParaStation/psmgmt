@@ -26,6 +26,7 @@
 #include "pse.h"
 #include "psi.h"
 #include "psiinfo.h"
+#include "psispawn.h"
 
 /*
  * Print version info
@@ -234,7 +235,7 @@ int main(int argc, const char *argv[])
 		    cmdLine ? cmdLine : "$SHELL", login);
 	    exit(1);
 	} else {
-	    PSE_setUID(passwd->pw_uid);
+	    PSI_setUID(passwd->pw_uid);
 	    if (verbose) printf("Run as user '%s' UID %d\n",
 				passwd->pw_name, passwd->pw_uid);
 	}
@@ -280,7 +281,19 @@ int main(int argc, const char *argv[])
 	exec_argc = 3;
     }
 
-    PSE_spawnAdmin(nodeID, 0, exec_argc, exec_argv, true);
+    if (verbose) printf("spawn '%s to node %d\n", argv[0], nodeID);
+    int error;
+    if (!PSI_spawnAdmin(nodeID, NULL, exec_argc, exec_argv, true, 0, &error)) {
+	if (error) {
+	    fprintf(stderr, "spawn remote process (%s) failed: %s\n", argv[0],
+		    strerror(error));
+	}
+	exit(10);
+    }
+    if (verbose) printf("Spawned remote process\n");
+
+    /* Switch to psilogger */
+    PSI_execLogger(NULL);
 
     /* Never be here ! */
     exit(1);
