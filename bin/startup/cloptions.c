@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1115,15 +1115,12 @@ Conf_t * parseCmdOptions(int argc, const char *argv[])
     conf->maxTPP = 1;
     env = envNew(NULL);
 
-    /* create context for parsing based on a duplicate argument vector */
-    const char **dupArgv;
-    int dupArgc;
-    poptDupArgv(argc, argv, &dupArgc, &dupArgv);
-    optCon = poptGetContext(NULL, dupArgc, dupArgv,
+    optCon = poptGetContext(NULL, argc, argv,
 			    optionsTable, POPT_CONTEXT_POSIXMEHARDER);
     poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
 
     int rc = 0;
+    const char **dupArgv = NULL;
     while (true) {
 	/* parse mpiexec options */
 	while ((rc = poptGetNextOpt(optCon)) >= 0) {
@@ -1172,30 +1169,33 @@ Conf_t * parseCmdOptions(int argc, const char *argv[])
 
 	/* handle leftover arguments */
 	const char **remArgs = poptGetArgs(optCon);
+	int remC = 0;
+	while (remArgs && remArgs[remC]) remC++;
+
+	free(dupArgv);
+	poptDupArgv(remC, remArgs, NULL, &dupArgv);
 
 	/* fast-forward to next colon or end */
 	int arg = 0;
-	while (remArgs && remArgs[arg] && *remArgs[arg] != ':') arg++;
-	if (!arg) {
-	    poptFreeContext(optCon);
-	    break;
-	}
+	while (dupArgv && dupArgv[arg] && strcmp(dupArgv[arg], ":")) arg++;
+	if (!arg) break;
 
 	/* save current executable and arguments */
-	remArgs[arg] = NULL; // drop the colon to make remArgs NULL terminated
-	saveNextExecutable(conf, arg, remArgs);
+	dupArgv[arg] = NULL; // drop the colon to make dupArgv NULL terminated
+	saveNextExecutable(conf, arg, dupArgv);
 
 	/* create new context from trailing arguments if any */
-	dupArgc = 0;
+	if (!remArgs[arg]) break;
+
+	int dupArgc = 0;
 	dupArgv[dupArgc++] = "mpiexec";
 
 	arg++; // start behind colon position
-	while (remArgs[arg]) dupArgv[dupArgc++] = remArgs[arg++];
+	while (dupArgv[arg]) dupArgv[dupArgc++] = dupArgv[arg++];
 	dupArgv[dupArgc] = NULL; // make dupArgv NULL terminated again
 
-	poptFreeContext(optCon);
-
 	if (dupArgc == 1) break; // only mpiexec left
+	poptFreeContext(optCon);
 	optCon = poptGetContext(NULL, dupArgc, dupArgv, optionsTable,
 				POPT_CONTEXT_POSIXMEHARDER);
 	poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
@@ -1205,6 +1205,7 @@ Conf_t * parseCmdOptions(int argc, const char *argv[])
     free(dupArgv);
 
     /* restore original context for further usage messages */
+    poptFreeContext(optCon);
     optCon = poptGetContext(NULL, argc, argv, optionsTable,
 			    POPT_CONTEXT_POSIXMEHARDER);
     poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
