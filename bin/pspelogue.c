@@ -256,10 +256,6 @@ static bool handleRespUnknown(DDBufferMsg_t *msg, const char *caller, void *info
 
 static void init(const int argc, const char *argv[])
 {
-    const char **dup_argv;
-    int rc = 0, dup_argc;
-    static poptContext optCon;
-
     PSC_initLog(stderr);
 
     if (!PSI_initClient(TG_SERVICE)) {
@@ -275,12 +271,10 @@ static void init(const int argc, const char *argv[])
       exit(1);
     }
 
-    /* create context for parsing */
-    poptDupArgv(argc, argv, &dup_argc, &dup_argv);
+    poptContext optCon = poptGetContext(NULL, argc, argv, optionsTable,
+					POPT_CONTEXT_POSIXMEHARDER);
 
-    optCon = poptGetContext(NULL, dup_argc, dup_argv,
-			    optionsTable, POPT_CONTEXT_POSIXMEHARDER);
-
+    int rc;
     while ((rc = poptGetNextOpt(optCon)) >= 0) { };
 
     if (rc < -1) {
@@ -294,6 +288,8 @@ static void init(const int argc, const char *argv[])
 	poptPrintHelp(optCon, stdout, 0);
 	exit(0);
     }
+
+    poptFreeContext(optCon);
 
     if (psidResolve) initHostTable();
 }
