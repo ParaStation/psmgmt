@@ -1172,6 +1172,9 @@ Conf_t * parseCmdOptions(int argc, const char *argv[])
 	int remC = 0;
 	while (remArgs && remArgs[remC]) remC++;
 
+	/* we need to duplicate remArgs here since the array itself
+	 * and the content linked within will get lost in poptFreeContext()
+	 */
 	free(dupArgv);
 	poptDupArgv(remC, remArgs, NULL, &dupArgv);
 
