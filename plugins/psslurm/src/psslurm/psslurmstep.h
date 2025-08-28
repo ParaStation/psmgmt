@@ -179,6 +179,9 @@ typedef struct {
     char *packHostlist;		/**< pack host-list (Slurm compressed) */
     PSnodes_ID_t *packNodes;	/**< all participating nodes in the pack */
     uint32_t numPackInfo;	/**< number of pack infos */
+    uint32_t *numHetStepTasks;	/* number of tasks on each node of
+				   heterogeneous step */
+    uint32_t numHetStepTasksLen;/**< size of numHetStepTasks */
     list_t jobCompInfos;        /**< job infos of job pack (JobCompInfo_t) */
     bool leader;		/**< true if node is pack leader */
     X11_Data_t x11;             /**< (vanilla) X11 support */
@@ -209,6 +212,7 @@ typedef struct {
     uint32_t *compCPUsPerTaskReps; /**< repetitions of compCPUsPerTask (unused) */
     bool oomKillStep;		/**< kill step if task gets terminated by OOM
 				     (unused) */
+    char *allocTlsCert;		/** allocation tls certificate */
 } Step_t;
 
 /**

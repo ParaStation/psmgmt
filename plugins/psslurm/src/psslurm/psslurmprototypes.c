@@ -84,6 +84,7 @@ static inline void freeReqLaunchProlog(Slurm_Msg_t *sMsg)
     ufree(req->x11AllocHost);
     ufree(req->x11MagicCookie);
     ufree(req->x11Target);
+    strShred(req->allocTlsCert);
     envDestroy(req->spankEnv);
     ufree(req->userName);
     freeJobCred(req->cred);
@@ -233,6 +234,7 @@ static inline void freeReqReattachTasks(Slurm_Msg_t *sMsg)
     Req_Reattach_Tasks_t *req = sMsg->unpData;
 
     strShred(req->ioKey);
+    strShred(req->tlsCert);
     ufree(req->ioPorts);
     ufree(req->ctlPorts);
     ufree(req);

@@ -305,6 +305,7 @@ bool Step_delete(Step_t *step)
     strShred(step->x11.magicCookie);
     strShred(step->x11.target);
     strShred(step->containerBundle);
+    strShred(step->allocTlsCert);
     step->uid = step->gid = 0;
 
     ufree(step->srunPorts);
@@ -335,6 +336,7 @@ bool Step_delete(Step_t *step)
     ufree(step->compCPUsPerTask);
     ufree(step->compCPUsPerTaskReps);
     ufree(step->stepManager);
+    ufree(step->numHetStepTasks);
 
     clearTasks(&step->tasks);
     clearTasks(&step->remoteTasks);

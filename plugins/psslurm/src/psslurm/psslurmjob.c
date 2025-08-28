@@ -106,6 +106,7 @@ bool Job_delete(Job_t *job)
     ufree(job->gids);
     ufree(job->tresBind);
     ufree(job->tresFreq);
+    ufree(job->tresPerTask);
     ufree(job->qos);
     ufree(job->resName);
 

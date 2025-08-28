@@ -2739,7 +2739,10 @@ bool initSlurmdProto(void)
 	pver = autoVer;
     }
 
-    if (!strncmp(pver, "24.11", 5) || !strncmp(pver, "2411", 4)) {
+    if (!strncmp(pver, "25.05", 5) || !strncmp(pver, "2505", 4)) {
+	slurmProto = SLURM_25_05_PROTO_VERSION;
+	slurmProtoStr = ustrdup("25.05");
+    } else if (!strncmp(pver, "24.11", 5) || !strncmp(pver, "2411", 4)) {
 	slurmProto = SLURM_24_11_PROTO_VERSION;
 	slurmProtoStr = ustrdup("24.11");
     } else if (!strncmp(pver, "24.05", 5) || !strncmp(pver, "2405", 4)) {
@@ -2887,6 +2890,10 @@ void sendNodeRegStatus(bool startup)
     } else {
 	stat.config = getSlurmConfHash();
     }
+
+    /* specialized memory limit */
+    long specLimit = getConfValueL(Config, "SLURM_MEM_SPEC_LIMIT");
+    if (specLimit != -1) stat.memSpecLimit = specLimit;
 
     fdbg(PSSLURM_LOG_DEBUG, "nodeName '%s' arch '%s' sysname '%s' cpus %hu"
 	 " boards %hu sockets %hu coresPerSocket %hu threadsPerCore %hu"
@@ -3486,7 +3493,12 @@ bool sendConfigReq(const char *server, const int action)
 
     /* send configuration request message to slurmctld */
     PS_SendDB_t body = sendDBnoFrag;
+    /* flags */
     addUint32ToMsg(CONFIG_REQUEST_SLURMD, &body);
+    if (slurmProto > SLURM_24_11_PROTO_VERSION) {
+	/* sackd port */
+	addUint16ToMsg(0, &body);
+    }
     if (sendSlurmMsg(sock, REQUEST_CONFIG, &body, RES_UID_ANY) == -1) {
 	flog("sending config request message failed\n");
 	closeSlurmCon(sock);

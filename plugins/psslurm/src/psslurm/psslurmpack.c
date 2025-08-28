@@ -1198,13 +1198,26 @@ bool __unpackSlurmIOHeader(PS_DataBuffer_t data, IO_Slurm_Header_t **iohPtr,
  * @param data Data buffer holding data to unpack
  *
  * @param gresList A list to receive the unpacked data
+ *
+ * @param msgVer Slurm protocol version
  */
-static bool unpackGresJobAlloc(PS_DataBuffer_t data, list_t *gresList)
+static bool unpackGresJobAlloc(PS_DataBuffer_t data, list_t *gresList,
+			       uint16_t msgVer)
 {
-    uint16_t count;
-    getUint16(data, &count);
+    uint32_t count;
 
-    for (uint16_t i=0; i<count; i++) {
+    if (msgVer > SLURM_24_11_PROTO_VERSION) {
+	getUint32(data, &count);
+	if (count > NO_VAL) return false;
+	if (count == NO_VAL) return true;
+    } else {
+	/* old gres list handling */
+	uint16_t oldCount;
+	getUint16(data, &oldCount);
+	count = oldCount;
+    }
+
+    for (uint32_t i = 0; i < count; i++) {
 	Gres_Job_Alloc_t *gres = ucalloc(sizeof(*gres));
 	INIT_LIST_HEAD(&gres->next);
 
@@ -1290,7 +1303,7 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     getUint32(data, &req->derivedExitCode);
     getUint32(data, &req->exitCode);
 
-    if (!unpackGresJobAlloc(data, &req->gresList)) {
+    if (!unpackGresJobAlloc(data, &req->gresList, msgVer)) {
 	flog("unpacking gres job allocation info failed\n");
 	return false;
     }
@@ -2788,6 +2801,15 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     getUint32(data, &step->packOffset);
     /* pack step count */
     getUint32(data, &step->packStepCount);
+
+    if (msgVer > SLURM_24_11_PROTO_VERSION) {
+	if (step->packOffset < NO_VAL && step->packStepCount > 0) {
+	    /* number of tasks on each node of heterogeneous step */
+	    getUint32Array(data, &step->numHetStepTasks,
+			   &step->numHetStepTasksLen);
+	}
+    }
+
     /* pack task offset */
     getUint32(data, &step->packTaskOffset);
     if (step->packTaskOffset == NO_VAL) step->packTaskOffset = 0;
@@ -2916,6 +2938,11 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 	}
     }
 
+    if (msgVer > SLURM_24_11_PROTO_VERSION) {
+	/* allocation tls certificate */
+	step->allocTlsCert = getStringM(data);
+    }
+
     /* profile (see srun --profile) */
     getUint32(data, &step->profile);
     /* prologue/epilogue */
@@ -2965,8 +2992,11 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 	     step->spankOpt[i].val);
     }
 
-    /* node alias (deprecated in 23.11) */
-    step->nodeAlias = getStringM(data);
+    if (!(msgVer > SLURM_24_11_PROTO_VERSION)) {
+	/* node alias (deprecated in 23.11/removed with 25.05) */
+	step->nodeAlias = getStringM(data);
+    }
+
     /* host list */
     step->slurmHosts = getStringM(data);
 
@@ -3221,8 +3251,15 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* profile (see sbatch --profile) */
     getUint32(data, &job->profile);
 
+    /* trackable resources bind */
     job->tresBind = getStringM(data);
+    /* trackable resources frequency */
     job->tresFreq = getStringM(data);
+
+    if (msgVer > SLURM_24_11_PROTO_VERSION) {
+	/* trackable resources per task */
+	job->tresPerTask = getStringM(data);
+    }
 
     if (msgVer > SLURM_24_05_PROTO_VERSION) {
 	/* minimum CPU frequency */
@@ -3590,6 +3627,12 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     addStringToMsg(stat->arch, data);
     /* CPU spec list */
     addStringToMsg(NULL, data);
+
+    if (slurmProto > SLURM_24_11_PROTO_VERSION) {
+	/* specialized memory limit */
+	addUint64ToMsg(stat->memSpecLimit, data);
+    }
+
     /* OS */
     addStringToMsg(stat->sysname, data);
     /* CPUs */
@@ -4138,6 +4181,11 @@ static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
     Req_Reattach_Tasks_t *req = ucalloc(sizeof(*req));
     sMsg->unpData = req;
 
+    if (msgVer > SLURM_24_11_PROTO_VERSION) {
+	/* tls certificate */
+	req->tlsCert = getStringM(data);
+    }
+
     /* unpack jobid/stepid */
     unpackStepHead(data, req, msgVer);
 
@@ -4243,7 +4291,12 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     INIT_LIST_HEAD(&req->jobRec.gresJobReq);
     INIT_LIST_HEAD(&req->jobRec.gresJobAlloc);
 
-    if (!unpackGresJobAlloc(data, &req->gresList)) {
+    if (msgVer > SLURM_24_11_PROTO_VERSION) {
+	/* allocation tls certificate */
+	req->allocTlsCert = getStringM(data);
+    }
+
+    if (!unpackGresJobAlloc(data, &req->gresList, msgVer)) {
 	flog("unpacking gres job allocation info failed\n");
 	return false;
     }
@@ -4254,8 +4307,12 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     /* uid/gid */
     getUint32(data, &req->uid);
     getUint32(data, &req->gid);
-    /* node alias (deprecated in 23.11) */
-    req->aliasList = getStringM(data);
+
+    if (!(msgVer > SLURM_24_11_PROTO_VERSION)) {
+	/* node alias (deprecated in 23.11/removed with 25.05) */
+	req->aliasList = getStringM(data);
+    }
+
     /* nodes */
     req->nodes = getStringM(data);
 

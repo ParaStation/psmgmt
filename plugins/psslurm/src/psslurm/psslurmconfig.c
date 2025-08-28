@@ -471,6 +471,8 @@ static bool addHostOptions(char *options)
 	    addConfigEntry(Config, "SLURM_BOARDS", next+7);
 	} else if (!strncasecmp(next, "NodeAddr=", 9)) {
 	    /* already set before */
+	} else if (!strncasecmp(next, "MemSpecLimit=", 13)) {
+	    addConfigEntry(Config, "SLURM_MEM_SPEC_LIMIT", next+13);
 	} else {
 	    mlog("%s: unknown node option '%s'\n", __func__, next);
 	    return false;

@@ -106,6 +106,7 @@ typedef struct {
     char *extra;		/**< additional information (unused) */
     char *cloudID;		/**< cloud instance identifier (unused) */
     char *cloudType;		/**< cloud instance type (unused) */
+    uint64_t memSpecLimit;	/**< memory limit for specialization */
 } Resp_Node_Reg_Status_t;
 
 /** Structure holding all infos to pack Slurm accounting data */
@@ -247,6 +248,7 @@ typedef struct {
     uint16_t numIOports;    /**< number of I/O ports */
     uint16_t *ioPorts;	    /**< I/O ports */
     char *ioKey;	    /**< I/O key */
+    char *tlsCert;	    /**< tls certificate */
 } Req_Reattach_Tasks_t;
 
 /** Holding all information for RPC REQUEST_JOB_NOTIFY */
@@ -880,7 +882,7 @@ typedef struct {
     uint32_t hetJobid;		/**< step het component identifier */
     uid_t uid;			/**< unique user identifier */
     gid_t gid;			/**< unique group identifier */
-    char *aliasList;		/**< alias list */
+    char *aliasList;		/**< alias list (removed in 25.05) */
     char *nodes;		/**< node string */
     char *stdErr;		/**< stderr (removed in 23.11) */
     char *stdOut;		/**< stdout (removed in 23.11) */
@@ -899,6 +901,7 @@ typedef struct {
     Slurm_Job_Record_t jobRec;  /**< Slurm job record */
     list_t nodeRecords;		/**< list of Slurm node records */
     Slurm_Part_Record_t partRec;/**< Slurm partition record */
+    char *allocTlsCert;		/**< allocation tls certificate */
 } Req_Launch_Prolog_t;
 
 /**

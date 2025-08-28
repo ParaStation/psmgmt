@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -81,6 +81,7 @@ typedef struct {
     uint32_t packJobid;	    /**< unique pack job identifier */
     char *tresBind;         /**< TRes binding (currently env set only) */
     char *tresFreq;         /**< TRes frequency (currently env set only) */
+    char *tresPerTask;      /**< TRes per task (unused 25.05) */
     uint16_t restartCnt;    /**< job restart count */
     char *account;          /**< account */
     char *qos;              /**< qos */
