@@ -147,7 +147,7 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
 
     *result = iter->next;
 
-    if (++iter->count >= iter->nodeinfo->threadCount) {
+    if (++iter->count >= threadCount) {
 	/* iterated through all threads, next call should be last one */
 	iter->valid = false;
 	return true;
@@ -1941,7 +1941,7 @@ bool setStepSlots(Step_t *step)
 	/* check cpu mapping */
 	for (uint32_t cpu = 0; cpu < nodeinfo->threadCount; cpu++) {
 	    if (PSIDnodes_unmapCPU(nodeinfo->id, cpu) < 0) {
-		flog("CPU %u not included in CPUmap for node %hu\n", cpu,
+		flog("CPU %u not included in CPUmap for node %d\n", cpu,
 		     nodeinfo->id);
 	    }
 	}
