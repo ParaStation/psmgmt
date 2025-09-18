@@ -481,7 +481,7 @@ static void parseCPUmask(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 	    ulog(pininfo, "invalid character '%c' in CPU mask '%s', bind to all"
 		 " CPUs assigned to step: %s\n", *endptr, maskStr,
 		 PSCPU_print_part(nodeinfo->stepHWthreads,
-				  PSCPU_bytesForCPUs(nodeinfo->coreCount)));
+				  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
 	    break;
 	}
@@ -608,7 +608,7 @@ static void parseSocketMask(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 	    ulog(pininfo, "invalid character '%c' in locality domain mask '%s',"
 		 " bind to all CPUs assigned to step: %s\n", *endptr, maskStr,
 		 PSCPU_print_part(nodeinfo->stepHWthreads,
-				  PSCPU_bytesForCPUs(nodeinfo->coreCount)));
+				  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
 	    break;
 	}
@@ -653,9 +653,9 @@ static bool checkCpuMask(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
     }
 
     /* check against step core map */
-    for (uint16_t cpu = 0; cpu < nodeinfo->threadCount; cpu++) {
-	if (!PSCPU_isSet(CPUset, cpu)) continue;
-	if (!PSCPU_isSet(nodeinfo->stepHWthreads, getCore(cpu, nodeinfo))) {
+    for (uint16_t thread = 0; thread < nodeinfo->threadCount; thread++) {
+	if (!PSCPU_isSet(CPUset, thread)) continue;
+	if (!PSCPU_isSet(nodeinfo->stepHWthreads, thread)) {
 	    PSCPU_set_t orig;
 	    mapCPUset(CPUset, orig, nodeinfo->threadCount, nodeinfo->id);
 	    ulog(pininfo, "CPU mask '%s' does not fit CPUs assigned to step, ",
@@ -893,7 +893,7 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
     while (thread_iter_next(&iter, &thread)) {
 
 	/* omit cpus not in core map and thus not to use by this job step */
-	if (!PSCPU_isSet(nodeinfo->stepHWthreads, getCore(thread, nodeinfo))) {
+	if (!PSCPU_isSet(nodeinfo->stepHWthreads, thread)) {
 	    fdbg(PSSLURM_LOG_PART, "thread %u not assigned to step (core %d not"
 		 " in core map)\n", thread, getCore(thread, nodeinfo));
 	    continue;
@@ -963,7 +963,8 @@ static void getThreadsBinding(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 		ulog(pininfo, "no unused hardware threads left, bind to all"
 		     " CPUs assigned to step: %s\n",
 		     PSCPU_print_part(nodeinfo->stepHWthreads,
-				      PSCPU_bytesForCPUs(nodeinfo->threadCount)));
+				      PSCPU_bytesForCPUs(
+						    nodeinfo->threadCount)));
 		return;
 	    }
 
@@ -988,7 +989,7 @@ static void getThreadsBinding(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 	    uint32_t core = getCore(thread, nodeinfo);
 
 	    /* omit cpus not in core map and thus not to use by this job step */
-	    if (!PSCPU_isSet(nodeinfo->stepHWthreads, core)) {
+	    if (!PSCPU_isSet(nodeinfo->stepHWthreads, thread)) {
 		fdbg(PSSLURM_LOG_PART, "thread %u core %u socket %hu"
 		     " not assigned to step (not in core map)\n",
 		     thread, core, getSocketByCore(core, nodeinfo));
@@ -1177,7 +1178,7 @@ static void getSocketRankBinding(PSCPU_set_t CPUset,
 		 pininfo->lastUsedThread);
 
 	    /* omit cpus not to use or already assigned maxuse times */
-	    if (!PSCPU_isSet(nodeinfo->stepHWthreads, core)
+	    if (!PSCPU_isSet(nodeinfo->stepHWthreads, thread)
 		    || pininfo->usedHwThreads[thread] >= pininfo->maxuse) {
 		continue;
 	    }
