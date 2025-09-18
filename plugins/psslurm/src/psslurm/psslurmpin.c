@@ -1243,9 +1243,11 @@ static bool setCPUset(PSCPU_set_t CPUset, uint16_t cpuBindType,
     PSCPU_clrAll(CPUset);
 
     fdbg(PSSLURM_LOG_PART, "socketCount %hu coresPerSocket %hu"
-	 " threadsPerCore %hu coreCount %u threadCount %u\n",
+	 " threadsPerCore %hu coreCount %u threadCount %u stepHWthreads %s\n",
 	 nodeinfo->socketCount, nodeinfo->coresPerSocket,
-	 nodeinfo->threadsPerCore, nodeinfo->coreCount, nodeinfo->threadCount);
+	 nodeinfo->threadsPerCore, nodeinfo->coreCount, nodeinfo->threadCount,
+	 PSCPU_print_part(nodeinfo->stepHWthreads,
+			  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 
     if (!PSCPU_any(nodeinfo->stepHWthreads, nodeinfo->threadCount)) {
 	/* since Slurm 25.05, this seems to happen for steps created with
