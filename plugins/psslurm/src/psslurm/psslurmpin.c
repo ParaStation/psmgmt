@@ -984,6 +984,8 @@ static void getThreadsBinding(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 	     " maxuse %hu\n", nodeinfo->id, local_tid, pininfo->lastUsedThread,
 	     start, pininfo->maxuse);
 
+	size_t usableThreads = 0;
+
 	while (threadsLeft > 0 && thread_iter_next(&iter, &thread)) {
 	    /* on which core is this thread? */
 	    uint32_t core = getCore(thread, nodeinfo);
@@ -995,6 +997,8 @@ static void getThreadsBinding(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 		     thread, core, getSocketByCore(core, nodeinfo));
 		continue;
 	    }
+
+	    usableThreads++;
 
 	    /* omit cpus already assigned */
 	    if (pininfo->usedHwThreads[thread] >= pininfo->maxuse) {
@@ -1041,6 +1045,12 @@ static void getThreadsBinding(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 	if (!pininfo->overcommit) {
 	    ulog(pininfo, "not enough unused hardware threads left, bind to"
 		 " all CPUs assigned to step: %s\n",
+		 PSCPU_print_part(nodeinfo->stepHWthreads,
+				  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
+	    pinToAllThreads(CPUset, nodeinfo);
+	    break;
+	} else if (!usableThreads) {
+	    ulog(pininfo, "no usable hardware threads: %s\n",
 		 PSCPU_print_part(nodeinfo->stepHWthreads,
 				  PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 	    pinToAllThreads(CPUset, nodeinfo);
