@@ -1246,6 +1246,14 @@ static bool setCPUset(PSCPU_set_t CPUset, uint16_t cpuBindType,
 	 nodeinfo->socketCount, nodeinfo->coresPerSocket,
 	 nodeinfo->threadsPerCore, nodeinfo->coreCount, nodeinfo->threadCount);
 
+    if (!PSCPU_any(nodeinfo->stepHWthreads, nodeinfo->threadCount)) {
+	/* since Slurm 25.05, this seems to happen for steps created with
+	 * `--exact` but no resources left */
+	/* @todo perhaps we want to catch that case alread when the spawn
+	 * message is unpacked? */
+	flog("CPU pinning not possible: no threads assigned to step\n");
+    }
+
     if (cpuBindType & CPU_BIND_NONE) {
 	pinToAllThreads(CPUset, nodeinfo);
 	fdbg(PSSLURM_LOG_PART, "(cpu_bind_none)\n");
