@@ -2610,9 +2610,14 @@ void pspmix_service_handleClientLogResp(uint16_t callID, uint16_t reqID,
 {
     fdbg(PSPMIX_LOG_CALL, "id %hu/%hu succ %d\n", callID, reqID, success);
 
+    // Lock before identifying the request to prevent the request and
+    // request->call becoming invalidated in between e.g. via
+    // pspmix_service_abort() in the library thread (see #333)
+    GET_LOCK(logCallList);
     PspmixLogRequest_t *request = findLogRequest(callID, reqID);
     if (!request) {
 	flog("Request handle %hu/%hu not found\n", callID, reqID);
+	RELEASE_LOCK(logCallList);
 	return;
     }
 
@@ -2620,10 +2625,6 @@ void pspmix_service_handleClientLogResp(uint16_t callID, uint16_t reqID,
     request->success = success;
 
     PspmixLogCall_t call = request->call;
-
-    // Lock before increasing numFin
-    // Thus only one thread can finish the log call
-    GET_LOCK(logCallList);
     call->numFin++;
 
     // send to next channel if any
