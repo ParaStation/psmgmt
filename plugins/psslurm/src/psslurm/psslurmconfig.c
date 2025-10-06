@@ -440,10 +440,9 @@ static bool addHostOptions(char *options)
 {
     if (!options) return false;
 
-    char *toksave, *next;
     const char delimiters[] =" \t\n";
-
-    next = strtok_r(options, delimiters, &toksave);
+    char *toksave;
+    char *next = strtok_r(options, delimiters, &toksave);
     while (next) {
 	if (!strncasecmp(next, "Sockets=", 8)) {
 	    addConfigEntry(Config, "SLURM_SOCKETS", next+8);
@@ -474,7 +473,7 @@ static bool addHostOptions(char *options)
 	} else if (!strncasecmp(next, "MemSpecLimit=", 13)) {
 	    addConfigEntry(Config, "SLURM_MEM_SPEC_LIMIT", next+13);
 	} else {
-	    mlog("%s: unknown node option '%s'\n", __func__, next);
+	    flog("unknown node option '%s'\n", next);
 	    return false;
 	}
 	next = strtok_r(NULL, delimiters, &toksave);
@@ -493,11 +492,12 @@ static bool parseGresOptions(char *options)
 {
     if (!options) return false;
 
-    char *toksave, *next, *count = NULL;
-    const char delimiters[] =" \t\n";
+    char *count = NULL;
     Gres_Conf_t *gres = ucalloc(sizeof(*gres));
 
-    next = strtok_r(options, delimiters, &toksave);
+    const char delimiters[] =" \t\n";
+    char *toksave;
+    char *next = strtok_r(options, delimiters, &toksave);
     while (next) {
 	if (!strncasecmp(next, "Name=", 5)) {
 	    gres->name = ustrdup(next+5);

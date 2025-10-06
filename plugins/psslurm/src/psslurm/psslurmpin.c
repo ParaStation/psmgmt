@@ -134,16 +134,11 @@ static void thread_iter_init(thread_iterator *iter,
  */
 static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
 {
-
-    uint16_t coresPerSocket; /* number of cores per socket */
-    uint32_t coreCount;      /* number of cores */
-    uint32_t threadCount;    /* number of hardware threads */
-
     if (!iter->valid) return false;
 
-    coresPerSocket = iter->nodeinfo->coresPerSocket;
-    coreCount = iter->nodeinfo->coreCount;
-    threadCount = iter->nodeinfo->threadCount;
+    uint16_t coresPerSocket = iter->nodeinfo->coresPerSocket; /* # cores/socket */
+    uint32_t coreCount = iter->nodeinfo->coreCount;     /* # cores */
+    uint32_t threadCount = iter->nodeinfo->threadCount; /* # hardware threads */
 
     *result = iter->next;
 
@@ -1962,8 +1957,7 @@ bool setStepSlots(Step_t *step)
 	/* check cpu mapping */
 	for (uint32_t cpu = 0; cpu < nodeinfo->threadCount; cpu++) {
 	    if (PSIDnodes_unmapCPU(nodeinfo->id, cpu) < 0) {
-		flog("CPU %u not included in CPUmap for node %d\n", cpu,
-		     nodeinfo->id);
+		flog("CPU %u not in CPUmap for node %d\n", cpu, nodeinfo->id);
 	    }
 	}
 
