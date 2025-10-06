@@ -602,7 +602,7 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     if (!setStepSlots(step)) {
 	flog("setting hardware threads for %s failed\n", Step_strID(step));
 	char msg[160];
-	snprintf(msg, sizeof(msg), "Fatal error in pinning for %s",
+	snprintf(msg, sizeof(msg), "Fatal error in pinning for %s\n",
 		 Step_strID(step));
 	fwCMD_printMsg(NULL, step, msg, strlen(msg), STDERR, -1);
 	/* exit but not before printing messages to the user */
