@@ -1,3 +1,87 @@
+Version 6.5.0:
+==============
+------------------------------------------------------------------------
+722ecf94f | Norbert Eicker | Mon, 6 Oct 2025 19:06:50 +0200
+
+Streamlining
+------------------------------------------------------------------------
+fd92342f0 | Stephan Krempel | Mon, 6 Oct 2025 18:41:12 +0200
+
+psslurm: Fix missing newline
+------------------------------------------------------------------------
+08ed323e6 | Stephan Krempel | Thu, 18 Sep 2025 13:51:40 +0200
+
+psslurmpin: Prevent infinite loop in case of no usable threads
+------------------------------------------------------------------------
+e416b10e1 | Stephan Krempel | Thu, 18 Sep 2025 13:50:46 +0200
+
+psslurmpin: Add stepHWthreads to debugging output
+------------------------------------------------------------------------
+ae2b30711 | Stephan Krempel | Thu, 18 Sep 2025 13:49:11 +0200
+
+psslurmpin: Consequently use threads to index stepHWthreads
+------------------------------------------------------------------------
+e4010d3ac | Stephan Krempel | Thu, 18 Sep 2025 11:57:42 +0200
+
+psslurm pinning: Catch empty step core map
+------------------------------------------------------------------------
+4715d178d | Stephan Krempel | Thu, 18 Sep 2025 11:55:57 +0200
+
+psslurm: Small cosmetic changes
+------------------------------------------------------------------------
+ddc8a2794 | Michael Rauh | Thu, 28 Aug 2025 15:53:27 +0200
+
+Add support for Slurm 25.05 protocol
+------------------------------------------------------------------------
+55bac1dd6 | Norbert Eicker | Thu, 2 Oct 2025 12:34:54 +0200
+
+Prevent race leading to memory corruption in PMIx server (#333)
+------------------------------------------------------------------------
+49474d1f2 | Norbert Eicker | Wed, 20 Aug 2025 01:14:04 +0200
+
+Explain in a comment why poptDupArgv() is required
+------------------------------------------------------------------------
+14f155ada | Norbert Eicker | Mon, 18 Aug 2025 19:04:17 +0200
+
+Bugfix: adapt to behavior of popt 1.19 and later (#332)
+------------------------------------------------------------------------
+4f3cfa70f | Norbert Eicker | Mon, 18 Aug 2025 19:34:20 +0200
+
+Some fixes around popt usage in pspelogue
+
+ - Creating a copy of argv seems to be unnecessary in pspelogue
+ - Do no leak popt context memory
+------------------------------------------------------------------------
+5bcdf6bc8 | Norbert Eicker | Fri, 15 Aug 2025 14:30:49 +0200
+
+Streamlining
+------------------------------------------------------------------------
+2d3e0fec2 | Norbert Eicker | Fri, 15 Aug 2025 14:29:19 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+f233f0f2b | Norbert Eicker | Fri, 15 Aug 2025 14:15:49 +0200
+
+Drop now unused PSE_setUID() and PSE_spawnAdmin()
+------------------------------------------------------------------------
+16666ca2f | Norbert Eicker | Fri, 15 Aug 2025 14:09:04 +0200
+
+Avoid using PSE_spawnAdmin() in pssh by direct implementation
+------------------------------------------------------------------------
+668c0eb55 | Norbert Eicker | Fri, 15 Aug 2025 13:30:07 +0200
+
+Streamlining pssh.c
+------------------------------------------------------------------------
+2b6b0bfc8 | Norbert Eicker | Fri, 15 Aug 2025 13:18:30 +0200
+
+Drop PSE_abort() since it's unused for a while
+------------------------------------------------------------------------
+d2808823c | Norbert Eicker | Fri, 15 Aug 2025 10:20:09 +0200
+
+Drop PSE_setHWType()/PSE_setHWList() not used any more
+------------------------------------------------------------------------
+
+
 Version 6.4.1:
 ==============
 ------------------------------------------------------------------------

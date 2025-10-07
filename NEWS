@@ -6,6 +6,22 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.5.0:
+==============
+Bugfixes:
+ - Prevent race leading to memory corruption in PMIx server (#333)
+ - psslurm: Catch empty step core map
+ - psslurm: Prevent infinite loop in case of no usable threads
+ - Adapt to behavior of popt 1.19 and later (#332)
+Enhancements:
+ - Add support for Slurm 25.05 protocol
+Additional changes:
+ - Avoid using PSE_spawnAdmin() in pssh by direct implementation
+ - Drop now unused PSE_setUID() and PSE_spawnAdmin()
+ - Drop PSE_abort() since it's unused for a while
+ - Drop PSE_setHWType()/PSE_setHWList() not used any more
+
+
 Version 6.4.1:
 ==============
 Bugfixes:
