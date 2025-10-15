@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2003 ParTec AG, Karlsruhe
 # Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2024 ParTec AG, Munich
+# Copyright (C) 2022-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,7 +24,7 @@ SHELL := /bin/bash
 
 all: tar srpm rpm
 
-VERSION:=$(shell cd $(TOP_SRCDIR) && scripts/vcversion --fmt version)
+VERSION:=$(shell cd $(TOP_SRCDIR) && scripts/vcversion --fmt version $(if $(NODIRTY),--no-dirty,))
 RELEASE:=$(shell cd $(TOP_SRCDIR) && scripts/vcversion --fmt release $(if $(NODIRTY),--no-dirty,))
 DISTNAME=$(PKG_NAME)-$(VERSION)-$(RELEASE)
 RPMBUILDDIR=/var/tmp/$(DISTNAME)-$(USER)
