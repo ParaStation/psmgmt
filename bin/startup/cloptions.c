@@ -1175,8 +1175,9 @@ Conf_t * parseCmdOptions(int argc, const char *argv[])
 	/* we need to duplicate remArgs here since the array itself
 	 * and the content linked within will get lost in poptFreeContext()
 	 */
-	free(dupArgv);
+	const char **oldDup = dupArgv; // keep until remArgs are copied
 	poptDupArgv(remC, remArgs, NULL, &dupArgv);
+	free(oldDup);
 
 	/* fast-forward to next colon or end */
 	int arg = 0;
@@ -1184,11 +1185,12 @@ Conf_t * parseCmdOptions(int argc, const char *argv[])
 	if (!arg) break;
 
 	/* save current executable and arguments */
+	bool moreArgs = dupArgv[arg];
 	dupArgv[arg] = NULL; // drop the colon to make dupArgv NULL terminated
 	saveNextExecutable(conf, arg, dupArgv);
 
 	/* create new context from trailing arguments if any */
-	if (!remArgs[arg]) break;
+	if (!moreArgs) break;
 
 	int dupArgc = 0;
 	dupArgv[dupArgc++] = "mpiexec";
