@@ -6,6 +6,12 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.5.1:
+==============
+Bugfixes:
+ - ensure argument vector to copy is still valid (jwt:#41076)
+
+
 Version 6.5.0:
 ==============
 Bugfixes:
