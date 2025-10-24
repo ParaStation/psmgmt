@@ -334,6 +334,10 @@ const ConfDef_t confDef[] =
 	"string",
 	"powersave",
 	"Default idle CPU scaling governor" },
+    { "CPU_FREQ_SCRIPT", 0,
+	"path",
+	NULL,
+	"Optional path to CPU frequency script" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

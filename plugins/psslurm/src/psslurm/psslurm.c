@@ -822,7 +822,8 @@ int initialize(FILE *logfile)
 
     /* CPU frequency scaling is hardware dependent and might
      * not be available at all */
-    CPUfreq_init(getConfValueC(Config, "CPU_SCALING_DIR"), NULL, &CPUfreqInitCB);
+    CPUfreq_init(getConfValueC(Config, "CPU_SCALING_DIR"),
+		 getConfValueC(Config, "CPU_FREQ_SCRIPT"), &CPUfreqInitCB);
     initFlags |= INIT_CPU_FREQ;
 
     if (confRes == CONFIG_SERVER) {
