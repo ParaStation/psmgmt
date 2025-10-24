@@ -49,9 +49,6 @@ def write_string_to_file(filename, data):
     except UnicodeDecodeError:
         print(f"error: data could not be encoded in UTF-8 for '{filename}'")
         sys.exit(1)
-    except IOError:
-        print(f"error: an I/O error occurred while writing '{filename}'")
-        sys.exit(1)
     except OSError:
         print(f"error: unable to write {data} to '{filename}' invalid argument")
         sys.exit(1)
