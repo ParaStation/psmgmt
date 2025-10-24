@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+#
+#               ParaStation
+#
+# Copyright (C) 2025 ParTec AG, Munich
+"""
+query and modify various CPU frequencies by using /sys file-system
+"""
 
 import os
 import re
@@ -6,6 +13,9 @@ import sys
 from argparse import ArgumentParser
 
 def read_string_from_file(filename):
+    """
+    Read a utf-8 encoded string from a file and trim newline character
+    """
     try:
         with open(filename, encoding="utf-8") as sys_file:
             return sys_file.read().replace("\n", "")
@@ -24,6 +34,9 @@ def read_string_from_file(filename):
 
 
 def write_string_to_file(filename, data):
+    """
+    Write a utf-8 encoded string to file
+    """
     try:
         with open(filename, "w", encoding="utf-8") as sys_file:
             return sys_file.write(data)
@@ -45,6 +58,9 @@ def write_string_to_file(filename, data):
 
 
 def get_cpu_freq(cpu_sys_path, index):
+    """
+    Read various CPU frequencies from given /sys path
+    """
     for i in index:
         filename = f"{cpu_sys_path}/cpu{i}/cpufreq/cpuinfo_min_freq"
         avail_min_freq = read_string_from_file(filename)
@@ -64,9 +80,11 @@ def get_cpu_freq(cpu_sys_path, index):
             f"{cur_max_freq}"
         )
 
-""" Depending on the hardware this optional information
-    might not be available. """
 def get_avail_cpu_freq(cpu_sys_path, index):
+    """
+    Query available CPU frequencies. Depending on the hardware this optional
+    information might not be available.
+    """
     for i in index:
         filename = f"{cpu_sys_path}/cpu{i}/cpufreq/scaling_available_frequencies"
         avail_freq = read_string_from_file(filename)
@@ -75,6 +93,9 @@ def get_avail_cpu_freq(cpu_sys_path, index):
 
 
 def get_gov(cpu_sys_path, index, cur_gov, avail_gov):
+    """
+    query current and available governors for selected CPUs
+    """
     for i in index:
         if cur_gov is not None:
             filename = f"{cpu_sys_path}/cpu{i}/cpufreq/scaling_governor"
@@ -88,12 +109,18 @@ def get_gov(cpu_sys_path, index, cur_gov, avail_gov):
 
 
 def set_gov(cpu_sys_path, index, new_gov):
+    """
+    set governor for selected CPUs
+    """
     for i in index:
         filename = f"{cpu_sys_path}/cpu{i}/cpufreq/scaling_governor"
         write_string_to_file(filename, new_gov[0])
 
 
 def set_freq(cpu_sys_path, index, min_freq, max_freq):
+    """
+    set minimum and maximum scaling frequencies for selected CPUs
+    """
     if min_freq is not None:
         freq = min_freq
         name = "scaling_min_freq"
@@ -107,6 +134,9 @@ def set_freq(cpu_sys_path, index, min_freq, max_freq):
 
 
 def get_all_cpus(cpu_sys_path):
+    """
+    query and parse all available CPUs
+    """
     cpus = []
     reg_ex = re.compile(r"cpu(\d+)")
     for nfile in os.scandir(cpu_sys_path):
@@ -120,6 +150,9 @@ def get_all_cpus(cpu_sys_path):
 
 
 def get_cpus(all_cpus, args):
+    """
+    match detected CPUs with user selected range
+    """
     if args.cpus is None:
         return all_cpus
 
@@ -148,6 +181,9 @@ def get_cpus(all_cpus, args):
 
 
 def parse_args(parser):
+    """
+    parse and handle command line arguments
+    """
     args = parser.parse_args()
 
     if args.cpu_sys_path is not None:
@@ -188,6 +224,9 @@ def parse_args(parser):
 
 
 def main():
+    """
+    main function of CPU frequency script
+    """
     parser = ArgumentParser(
         description="""Change and query CPU frequency and
                                         CPU governor"""
