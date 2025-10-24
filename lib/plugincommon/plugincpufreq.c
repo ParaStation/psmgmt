@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2025 ParTec AG, Munich
+ * Copyright (C) 2025-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,6 +15,7 @@
 #include <strings.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include "pscpu.h"
 #include "psstrv.h"
@@ -26,7 +27,7 @@
 #include "pluginhelper.h"
 
 /* path to default CPU frequency script */
-#define FREQ_SCRIPT PKGLIBEXECDIR "/cpufreq.py"
+#define DEFAULT_FREQ_SCRIPT PKGLIBEXECDIR "/cpufreq.py"
 
 /** default /sys-path holding CPU scaling parameters */
 #define DEFAULT_SYS_PATH "/sys/devices/system/cpu"
@@ -87,6 +88,9 @@ static CPUfreq_CPUs_t *cpus;
 /** CPU frequency path in /sys */
 static char *sysPath;
 
+/** path to CPU frequency script */
+static char *fScriptPath;
+
 /** number of CPUs which support frequency scaling */
 static int numCPUs;
 
@@ -137,7 +141,7 @@ static const struct {
 
 bool CPUfreq_isInitialized(void)
 {
-    return (sysPath && cpus && !initFailure);
+    return (cpus && !initFailure);
 }
 
 /**
@@ -693,13 +697,15 @@ static bool execCPUFreqScriptEx(Script_CMDs_t cmd, strv_t addArgV)
 	return false;
     }
 
-    Script_Data_t *script = ScriptData_new(FREQ_SCRIPT);
+    char *fPath = fScriptPath ? fScriptPath : DEFAULT_FREQ_SCRIPT;
+    Script_Data_t *script = ScriptData_new(fPath);
     script->runtime = 30;
     script->cbOutput = Command_Map[cmd].fp;
     script->info = Command_Map[cmd].name;
     script->cbResult = Command_Map[cmd].cb;
     strvAdd(script->argV, "--cpu-sys-path");
-    strvAdd(script->argV, sysPath);
+    char *sPath = sysPath ? sysPath : DEFAULT_SYS_PATH;
+    strvAdd(script->argV, sPath);
     strvAdd(script->argV, Command_Map[cmd].arg);
     strvAppend(script->argV, addArgV);
 
@@ -709,19 +715,34 @@ static bool execCPUFreqScriptEx(Script_CMDs_t cmd, strv_t addArgV)
     return ret;
 }
 
-void CPUfreq_init(const char *cpuSysPath, CPUfreq_initCB_t *cb)
+void CPUfreq_init(const char *cpuSysPath, const char *freqScript,
+		  CPUfreq_initCB_t *cb)
 {
     initCB = cb;
+    initFailure = false;
 
-    sysPath = cpuSysPath ? ustrdup(cpuSysPath) : ustrdup(DEFAULT_SYS_PATH);
-    if (!sysPath) {
+    const char *sPath = cpuSysPath ? cpuSysPath : DEFAULT_SYS_PATH;
+    struct stat sb;
+    if (stat(sPath, &sb) == -1) {
+	pluginflog("invalid CPU-frequency /sys path %s\n", sPath);
+	goto ERROR;
+    }
+
+    sysPath = cpuSysPath ? ustrdup(cpuSysPath) : NULL;
+    if (cpuSysPath && !sysPath) {
 	pluginflog("out of memory\n");
 	goto ERROR;
     }
 
-    struct stat sb;
-    if (stat(sysPath, &sb) == -1) {
-	pluginflog("invalid CPU-frequency /sys path %s\n", sysPath);
+    const char *fPath = freqScript ? freqScript : DEFAULT_FREQ_SCRIPT;
+    if (access(fPath, R_OK | X_OK) < 0) {
+	pluginflog("invalid CPU-frequency script path %s\n", fPath);
+	goto ERROR;
+    }
+
+    fScriptPath = freqScript ? ustrdup(freqScript) : NULL;
+    if (freqScript && !fScriptPath) {
+	pluginflog("out of memory\n");
 	goto ERROR;
     }
 
@@ -746,6 +767,8 @@ void CPUfreq_finalize(void)
     sysPath = NULL;
     ufree(cpus);
     cpus = NULL;
+    ufree(fScriptPath);
+    fScriptPath = NULL;
 }
 
 /**

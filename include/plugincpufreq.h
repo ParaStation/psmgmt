@@ -51,9 +51,12 @@ bool CPUfreq_isInitialized(void);
  * @param cpuSysPath Path in the sys-filesystem which holds hardware threads
  * frequency configuration or NULL to use the default
  *
+ * @param freqScript Path to frequency script or NULL to use the default
+ *
  * @param cb Callback which returns the result of the initialization process
  */
-void CPUfreq_init(const char *cpuSysPath, CPUfreq_initCB_t *cb);
+void CPUfreq_init(const char *cpuSysPath, const char *freqScript,
+		  CPUfreq_initCB_t *cb);
 
 /**
  * @brief Finalize the CPU frequency facility
