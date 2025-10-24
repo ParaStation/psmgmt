@@ -860,7 +860,7 @@ int initialize(FILE *logfile)
 
     /* GPU frequency scaling is hardware dependent and might
      * not be available at all */
-    GPUfreq_init(&GPUfreqInitCB);
+    GPUfreq_init(NULL, &GPUfreqInitCB);
     initFlags |= INIT_GPU_FREQ;
 
     if (confRes == CONFIG_SERVER) {

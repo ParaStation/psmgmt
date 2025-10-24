@@ -14,6 +14,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include "pscpu.h"
 #include "psstrv.h"
@@ -25,7 +26,7 @@
 #include "pluginhelper.h"
 
 /* path to default GPU frequency script */
-#define FREQ_SCRIPT PKGLIBEXECDIR "/gpufreq.py"
+#define DEFAULT_FREQ_SCRIPT PKGLIBEXECDIR "/gpufreq.py"
 
 /* initial size of available frequency arrays */
 #define START_FREQ_SIZE 256
@@ -548,7 +549,7 @@ static bool execGPUFreqScriptEx(Script_CMDs_t cmd, strv_t addArgV)
     return ret;
 }
 
-void GPUfreq_init(GPUfreq_initCB_t *cb)
+void GPUfreq_init(const char *freqScript, GPUfreq_initCB_t *cb)
 {
     initCB = cb;
     initFailure = false;

@@ -51,9 +51,11 @@ bool GPUfreq_isInitialized(void);
  * collected by calls to the GPU frequency script which normally uses vendor
  * specific command line utilities as source of information.
  *
+ * @param freqScript Path to frequency script or NULL to use the default
+ *
  * @param cb Callback which returns the result of the initialization process
  */
-void GPUfreq_init(GPUfreq_initCB_t *cb);
+void GPUfreq_init(const char *freqScript, GPUfreq_initCB_t *cb);
 
 /**
  * @brief Finalize the GPU frequency facility
