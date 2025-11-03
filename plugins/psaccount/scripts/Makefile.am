@@ -13,4 +13,4 @@ include $(top_srcdir)/common.am
 dist_psacctlib_SCRIPTS = acpi_energymeter_integrate.sh		\
 	ipmi_energymeter_integrate.sh megware_energymeter.sh	\
 	monitor_energy.sh monitor_filesystem.sh			\
-	monitor_interconnect.sh
+	monitor_interconnect.sh simulate_energy_sensor.py
