@@ -178,6 +178,11 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
     if (!childPID) {
 	/* This is the child */
 
+	/* give hint on re-run times */
+	char buf[32];
+	snprintf(buf, sizeof(buf), "%d", rerun);
+	setenv("PSACCOUNT_RERUN", buf, 1);
+
 	/* update script's environment */
 	for (char **e = envGetArray(script->env); e && *e; e++) putenv(*e);
 
