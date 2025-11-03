@@ -28,6 +28,7 @@ import os
 import random
 import socket
 import subprocess  # nosec B404
+import sys
 import time
 
 
@@ -36,12 +37,16 @@ def main():
     main function doing all the work
     """
 
+    if os.environ.get("PSACCOUNT_RERUN") is None:
+        sys.stderr.write("error: missing PSACCOUNT_RERUN environment\n")
+        sys.exit(1)
+
     # state file path in /dev/shm
     hostname = socket.gethostname()
     state_file = os.path.join("/dev/shm", f"energy_sim_{hostname}.json")  # nosec B108
 
     # Load previous state if it exists
-    if os.path.exists(state_file):
+    if os.environ.get("PSACCOUNT_RERUN") != "0" and os.path.exists(state_file):
         with open(state_file, encoding="utf-8") as f:
             state = json.load(f)
         last_time = state["last_time"]
