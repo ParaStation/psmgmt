@@ -489,9 +489,14 @@ void initFragBufferExtra(PS_SendDB_t *buffer, int16_t headType, int32_t msgType,
  *
  * @param tid Destination task ID to add
  *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
  * @return Returns true if the destination was added or false on error
  */
-bool _setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid, const char *func, const int line);
+bool _setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid,
+		  const char *caller, const int line);
 
 #define setFragDest(buf, tid) _setFragDest(buf, tid, __func__, __LINE__)
 
@@ -512,11 +517,18 @@ bool _setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid, const char *func, const 
  *
  * @param tid Destination task ID to add
  *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
  * @return Returns true if the destination was added or false on error
  * or if the destination was found amongst the already registered
  * destinations
  */
-bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t tid);
+bool _setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t tid,
+		      const char *caller, const int line);
+
+#define setFragDestUniq(buf, tid) _setFragDestUniq(buf, tid, __func__, __LINE__)
 
 /**
  * @brief Get number of destinations
