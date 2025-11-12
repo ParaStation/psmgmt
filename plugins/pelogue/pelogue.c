@@ -128,8 +128,6 @@ static int handleNodeDown(void *nodeID)
  */
 static void unregisterHooks(bool verbose)
 {
-    finalizeComm();
-
     /* unregister hooks */
     if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
@@ -149,7 +147,10 @@ int initialize(FILE *logfile)
 	return 1;
     }
 
-    initComm();
+    if (!initComm()) {
+	mlog("failed to initialize communication\n");
+	return 1;
+    }
 
     /* get psaccount function handles */
     if (!accHandle) {
@@ -218,6 +219,7 @@ void cleanup(void)
     clearJobList();
     clearPluginConfigList();
     unregisterHooks(true);
+    finalizeComm();
 
     mlog("...Bye.\n");
     finalizeLogger();

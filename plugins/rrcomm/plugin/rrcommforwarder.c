@@ -669,6 +669,9 @@ static bool handleDaemonMsg(DDTypedBufferMsg_t *msg)
     return true;
 }
 
+/** Track initialization of serialization layer */
+static bool serialInitialized;
+
 /**
  * @brief Function hooked to PSIDHOOK_FRWRD_SETUP
  *
@@ -687,8 +690,8 @@ static int hookFrwrdSetup(void *data)
     /* cleanup environment */
     unsetenv(RRCOMM_SOCKET_ENV);
 
-    /* initialize fragmentation layer */
-    if (!initSerial(0, sendDaemonMsg)) {
+    serialInitialized = initSerial(0, sendDaemonMsg);
+    if (!serialInitialized) {
 	flog("initSerial() failed\n");
 	return -1;
     }
@@ -777,7 +780,7 @@ static int hookFrwrdExit(void *data)
     PSID_clearMsg(PSP_PLUG_RRCOMM, (handlerFunc_t)handleDaemonMsg);
 
     /* finalize fragmentation layer */
-    finalizeSerial();
+    if (serialInitialized) finalizeSerial();
 
     /* flush all pending logs */
     finalizeRRCommLogger();

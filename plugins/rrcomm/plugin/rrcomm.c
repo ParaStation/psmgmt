@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -271,6 +271,9 @@ static void detachRRCommHooks(bool verbose)
     }
 }
 
+/** Track initialization of serialization layer */
+static bool serialInitialized;
+
 int initialize(FILE *logfile)
 {
     /* init logging facility */
@@ -282,7 +285,8 @@ int initialize(FILE *logfile)
     /* Activate configuration values */
     pluginConfig_traverse(RRCommConfig, evalValue, NULL);
 
-    if (!initSerial(0, sendMsg)) {
+    serialInitialized = initSerial(0, sendMsg);
+    if (serialInitialized) {
 	flog("initSerial() failed\n");
 	goto INIT_ERROR;
     }
@@ -313,7 +317,8 @@ void cleanup(void)
     detachRRCommForwarderHooks(true);
     detachRRCommHooks(true);
     removeMsgHandlers(true);
-    finalizeSerial();
+    if (serialInitialized) finalizeSerial();
+    serialInitialized = false;
     finalizeRRCommConfig();
     hookClearMem(NULL);
 

@@ -757,14 +757,17 @@ int switchAccounting(PStask_ID_t clientTID, bool enable)
     return sendDaemonMsg(&msg);
 }
 
+/** Track initialization of serialization layer */
+static bool serialInitialized;
+
 bool initAccComm(void)
 {
-    initSerial(0, sendMsg);
+    serialInitialized = initSerial(0, sendMsg);
 
     PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t)handlePSMsg);
     PSID_registerMsg(PSP_PLUG_ACCOUNT, (handlerFunc_t)handleInterAccount);
 
-    return true;
+    return serialInitialized;
 }
 
 void finalizeAccComm(void)
@@ -772,5 +775,6 @@ void finalizeAccComm(void)
     PSID_clearMsg(PSP_CD_ACCOUNT, (handlerFunc_t)handlePSMsg);
     PSID_clearMsg(PSP_PLUG_ACCOUNT, (handlerFunc_t)handleInterAccount);
 
-    finalizeSerial();
+    if (serialInitialized) finalizeSerial();
+    serialInitialized = false;
 }

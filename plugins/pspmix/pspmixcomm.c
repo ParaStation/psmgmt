@@ -941,6 +941,9 @@ void pspmix_comm_sendSignal(PStask_ID_t dest, int signal)
  *               Initialization function                  *
  **********************************************************/
 
+/** Track initialization of serialization layer */
+static bool serialInitialized;
+
 bool pspmix_comm_init(uid_t uid)
 {
     fdbg(PSPMIX_LOG_CALL, "uid %d\n", uid);
@@ -949,16 +952,17 @@ bool pspmix_comm_init(uid_t uid)
     extra.spawnertid = -1;
 
     /* initialize fragmentation layer */
-    if (!initSerial(0, (Send_Msg_Func_t *)sendMsgToDaemon)) return false;
+    serialInitialized = initSerial(0, (Send_Msg_Func_t *)sendMsgToDaemon);
 
-    return true;
+    return serialInitialized;
 }
 
 void pspmix_comm_finalize()
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
-    finalizeSerial();
+    if (serialInitialized) finalizeSerial();
+    serialInitialized = false;
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

@@ -2140,6 +2140,9 @@ static void freeHostLT(void)
     numHostLT = 0;
 }
 
+/** Track initialization of serialization layer */
+static bool serialInitialized;
+
 void finalizePScomm(bool verbose)
 {
     if (!initialized) return;
@@ -2174,7 +2177,8 @@ void finalizePScomm(bool verbose)
     /* unregister msg drop handler */
     PSID_clearDropper(PSP_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
 
-    finalizeSerial();
+    if (serialInitialized) finalizeSerial();
+    serialInitialized = false;
 
     freeHostLT();
     hdestroy_r(&HostHash);
@@ -2394,7 +2398,7 @@ bool initPScomm(void)
 {
     initialized = true;
 
-    initSerial(0, sendMsg);
+    serialInitialized = initSerial(0, sendMsg);
 
     /* register to psslurm PSP_PLUG_PSSLURM message */
     PSID_registerMsg(PSP_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);

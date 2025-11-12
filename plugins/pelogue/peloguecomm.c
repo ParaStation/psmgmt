@@ -733,14 +733,17 @@ static bool handleUnknownMsg(DDBufferMsg_t *msg)
     return false; // fallback to old handler
 }
 
+/** Track initialization of serialization layer */
+static bool serialInitialized;
+
 bool initComm(void)
 {
-    initSerial(0, sendMsg);
+    serialInitialized = initSerial(0, sendMsg);
     PSID_registerMsg(PSP_PLUG_PELOGUE, (handlerFunc_t)handlePElogueMsg);
     PSID_registerDropper(PSP_PLUG_PELOGUE, (handlerFunc_t)dropPElogueMsg);
     PSID_registerMsg(PSP_CD_UNKNOWN, handleUnknownMsg);
 
-    return true;
+    return serialInitialized;
 }
 
 void finalizeComm(void)
@@ -748,5 +751,6 @@ void finalizeComm(void)
     PSID_clearMsg(PSP_PLUG_PELOGUE, (handlerFunc_t)handlePElogueMsg);
     PSID_clearDropper(PSP_PLUG_PELOGUE, (handlerFunc_t)dropPElogueMsg);
     PSID_clearMsg(PSP_CD_UNKNOWN, handleUnknownMsg);
-    finalizeSerial();
+    if (serialInitialized) finalizeSerial();
+    serialInitialized = false;
 }
