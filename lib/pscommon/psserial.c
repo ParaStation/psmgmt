@@ -432,7 +432,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 {
     PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 
-    if (activeUsers++) return true;
+    if (activeUsers) return activeUsers++;
 
     if (!PSC_logInitialized()) PSC_initLog(stderr);
 
@@ -475,6 +475,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 	return false;
     }
 
+    activeUsers++;
     return true;
 }
 
