@@ -288,28 +288,16 @@ int initialize(FILE *logfile)
     serialInitialized = initSerial(0, sendMsg);
     if (serialInitialized) {
 	flog("initSerial() failed\n");
-	goto INIT_ERROR;
+	return 1;
     }
 
-    if (!registerMsgHandlers()) goto INIT_ERROR;
-
-    if (!attachRRCommHooks()) goto INIT_ERROR;
-
-    if (!attachRRCommForwarderHooks()) goto INIT_ERROR;
+    if (!registerMsgHandlers()
+	|| !attachRRCommHooks()
+	|| !attachRRCommForwarderHooks()) return 1;
 
     mlog("(%i) successfully started\n", version);
 
     return 0;
-
-INIT_ERROR:
-    detachRRCommForwarderHooks(false);
-    detachRRCommHooks(false);
-    removeMsgHandlers(false);
-    finalizeSerial();
-    finalizeRRCommConfig();
-    finalizeRRCommLogger();
-
-    return 1;
 }
 
 void cleanup(void)

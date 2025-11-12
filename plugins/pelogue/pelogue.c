@@ -155,19 +155,19 @@ int initialize(FILE *logfile)
     /* get psaccount function handles */
     if (!accHandle) {
 	mlog("getting psaccount handle failed\n");
-	goto INIT_ERROR;
+	return 1;
     }
 
     psAccountSignalSession = dlsym(accHandle, "psAccountSignalSession");
     if (!psAccountSignalSession) {
 	mlog("loading function psAccountSignalSession() failed\n");
-	goto INIT_ERROR;
+	return 1;
     }
 
     /* register needed hooks */
     if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	mlog("register PSIDHOOK_NODE_DOWN failed\n");
-	goto INIT_ERROR;
+	return 1;
     }
 
     /* make sure timer facility is ready */
@@ -182,10 +182,6 @@ int initialize(FILE *logfile)
 
     mlog("(%i) successfully started\n", version);
     return 0;
-
-INIT_ERROR:
-    unregisterHooks(false);
-    return 1;
 }
 
 void finalize(void)
