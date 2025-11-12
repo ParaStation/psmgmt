@@ -942,12 +942,6 @@ bool PSIDsession_init(void)
 	return false;
     }
 
-    /* init fragmentation layer used for PSP_DD_RESCREATED messages */
-    if (!initSerial(0, sendMsg)) {
-	PSID_flog("initSerial() failed\n");
-	return false;
-    }
-
     PSID_registerMsg(PSP_DD_RESCREATED, (handlerFunc_t) msg_RESCREATED);
     PSID_registerMsg(PSP_DD_RESRELEASED, msg_RESRELEASED);
     PSID_registerMsg(PSP_DD_RESSLOTS, (handlerFunc_t) msg_RESSLOTS);
@@ -984,8 +978,6 @@ void PSIDsession_finalize(void)
     PSID_clearMsg(PSP_DD_RESSLOTS, (handlerFunc_t) msg_RESSLOTS);
     PSID_clearMsg(PSP_DD_RESCLEANUP, msg_RESCLEANUP);
     PSID_clearMsg(PSP_DD_JOBCOMPLETE, (handlerFunc_t) msg_JOBCOMPLETE);
-
-    finalizeSerial();
 
     clearMem(NULL);
 }

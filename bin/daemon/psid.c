@@ -42,6 +42,7 @@
 #include "pscommon.h"
 #include "psdaemonprotocol.h"
 #include "psreservation.h"
+#include "psserial.h"
 #include "pssignal.h"
 
 #include "psidaccount.h"
@@ -737,6 +738,7 @@ int main(int argc, const char *argv[])
     initAccount();
     initInfo();
     initEnvironment();
+    initSerial(0, sendMsg);
     /* Plugins shall be last since they use most of the ones before */
     initPlugins(logfile);
 

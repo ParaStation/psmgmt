@@ -17,6 +17,7 @@
 
 #include "pscommon.h"
 #include "psprotocol.h"
+#include "psserial.h"
 
 #include "mcast.h"
 #include "rdp.h"
@@ -101,6 +102,7 @@ void PSID_shutdown(void)
 	PSID_stopAllHW(); /* must be here due to RDP-broadcasting HW change */
 	send_DAEMONSHUTDOWN(); /* shuts down the RDP connections */
 	PSIDsession_finalize();
+	finalizeSerial();
 	RDP_finalize();
 	PSID_unregisterLoopAct(PSID_shutdown);
 	PSID_shutdownMasterSock(); /* used for locking => ALAP */
