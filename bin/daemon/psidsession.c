@@ -971,3 +971,21 @@ void PSIDsession_printStat(void)
 	      PSitems_getUtilization(resinfoPool),
 	      PSitems_getDynamics(resinfoPool));
 }
+
+void PSIDsession_finalize(void)
+{
+    PSID_fdbg(PSID_LOG_VERB, "\n");
+
+    PSID_unregisterLoopAct(PSIDsession_gc);
+    PSIDhook_del(PSIDHOOK_CLEARMEM, clearMem);
+
+    PSID_clearMsg(PSP_DD_RESCREATED, (handlerFunc_t) msg_RESCREATED);
+    PSID_clearMsg(PSP_DD_RESRELEASED, msg_RESRELEASED);
+    PSID_clearMsg(PSP_DD_RESSLOTS, (handlerFunc_t) msg_RESSLOTS);
+    PSID_clearMsg(PSP_DD_RESCLEANUP, msg_RESCLEANUP);
+    PSID_clearMsg(PSP_DD_JOBCOMPLETE, (handlerFunc_t) msg_JOBCOMPLETE);
+
+    finalizeSerial();
+
+    clearMem(NULL);
+}
