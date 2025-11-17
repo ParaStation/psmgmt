@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2471,10 +2471,13 @@ void psPmiResetFillSpawnTaskFunction(void)
     fillTaskFunction = fillWithMpiexec;
 }
 
+/** Track initialization of serialization layer */
+static bool serialInitialized;
+
 static int setupMsgHandlers(void *data)
 {
     /* initialize fragmentation layer */
-    initSerial(0, sendDaemonMsg);
+    serialInitialized = initSerial(0, sendDaemonMsg);
 
     if (!PSID_registerMsg(PSP_CC_MSG, msgCC))
 	mlog("%s: failed to register PSP_CC_MSG handler\n", __func__);
@@ -2495,7 +2498,8 @@ static int clearMsgHandlers(void *unused)
     PSID_clearMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES);
     PSID_clearMsg(PSP_CC_ERROR, msgCCError);
 
-    finalizeSerial();
+    if (serialInitialized) finalizeSerial();
+    serialInitialized = false;
 
     return 0;
 }

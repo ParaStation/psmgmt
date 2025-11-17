@@ -596,6 +596,7 @@ int main(const int argc, const char *argv[], char *envp[])
     handleResponse();
 
     free(nodes);
+    finalizeSerial();
 
     if (verbose) {
 	printf("parallel pelogue for job %s finished in %.3f seconds on %u "

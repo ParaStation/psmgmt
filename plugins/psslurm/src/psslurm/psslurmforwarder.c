@@ -1299,6 +1299,8 @@ static void setStepCPUfreq(Step_t *step)
     }
 }
 
+static bool stepSerialInitialized;
+
 static int stepForwarderInit(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
@@ -1309,7 +1311,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     int serviceRank = step->spawned ? getNextServiceRank(fwdata) : 0;
 
-    initSerial(0, (Send_Msg_Func_t *)sendMsgToMother);
+    stepSerialInitialized = initSerial(0, (Send_Msg_Func_t *)sendMsgToMother);
 
     GRes_Cred_type_t cType = GRES_CRED_STEP;
     if (step->stepid == SLURM_INTERACTIVE_STEP ||
@@ -1514,6 +1516,9 @@ static int stepFinalize(Forwarder_Data_t *fwdata)
 
     SpankCallHook(&spank);
 #endif
+
+    if (stepSerialInitialized) finalizeSerial();
+    stepSerialInitialized = false;
 
     return 0;
 }
@@ -1967,7 +1972,7 @@ static int stepFollowerFWloop(Forwarder_Data_t *fwdata)
 
 static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 {
-    initSerial(0, (Send_Msg_Func_t *)sendMsgToMother);
+    stepSerialInitialized = initSerial(0, (Send_Msg_Func_t *)sendMsgToMother);
 
     Step_t *step = fwdata->userData;
     Step_deleteAll(step);

@@ -60,7 +60,7 @@ static char *sendBuf = NULL;
 static uint32_t sendBufLen = 0;
 
 /** destination task IDs for fragmented messages */
-static PStask_ID_t *destTIDs = NULL;
+static PStask_ID_t *destTIDs;
 
 /** message to collect and send fragments */
 static DDTypedBufferMsg_t fragMsg;
@@ -432,7 +432,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 {
     PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 
-    if (activeUsers++) return true;
+    if (activeUsers) return activeUsers++;
 
     if (!PSC_logInitialized()) PSC_initLog(stderr);
 
@@ -444,9 +444,11 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
     if (!initSerialBuf(bufSize)) return false;
 
     /* allocated space for destination task IDs */
-    free(destTIDs);
+    if (destTIDs) {
+	PSC_flog("no activeUsers but destTIDs; counting messed up?!\n");
+	free(destTIDs);
+    }
     destTIDs = malloc(sizeof(*destTIDs) * numNodes);
-
     if (!sendBuf || !destTIDs) {
 	PSC_flog("cannot allocate all buffers\n");
 	free(sendBuf);
@@ -473,6 +475,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 	return false;
     }
 
+    activeUsers++;
     return true;
 }
 
@@ -504,18 +507,25 @@ void initFragBufferExtra(PS_SendDB_t *buffer, int16_t headType, int32_t msgType,
     buffer->extraSize = extra ? extraSize : 0;
 }
 
-bool _setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid, const char *func,
-		  const int line)
+bool _setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid,
+		  const char *caller, const int line)
 {
     PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 
+    if (!destTIDs) {
+	PSC_flog("call initSerial() before %s@%d\n", caller, line);
+	return false;
+    }
+
     if (buffer->numDest >= numNodes) {
-	PSC_flog("max destinations (%d) reached at %s:%d\n", numNodes, func, line);
+	PSC_flog("max destinations (%d) reached at %s@%d\n", numNodes,
+		 caller, line);
 	return false;
     }
 
     if (!PSC_validNode(PSC_getID(tid))) {
-	PSC_flog("nodeID %i out of range at %s:%d\n", PSC_getID(tid), func, line);
+	PSC_flog("nodeID %i out of range at %s:%d\n", PSC_getID(tid),
+		 caller, line);
 	return false;
     }
 
@@ -524,13 +534,19 @@ bool _setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid, const char *func,
     return true;
 }
 
-bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t tid)
+bool _setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t tid,
+		     const char *caller, const int line)
 {
+    if (!destTIDs) {
+	PSC_flog("call initSerial() before %s@%d\n", caller, line);
+	return false;
+    }
+
     for (int i = 0; i < buffer->numDest; i++) {
 	if (destTIDs[i] == tid) return false;
     }
 
-    return setFragDest(buffer, tid);
+    return _setFragDest(buffer, tid, caller, line);
 }
 
 char *serialStrErr(serial_Err_Types_t err)

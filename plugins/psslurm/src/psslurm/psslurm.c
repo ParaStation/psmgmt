@@ -848,11 +848,6 @@ int initialize(FILE *logfile)
     return 0;
 
 INIT_ERROR:
-    psPelogueDelPluginConfig("psslurm");
-    psPelogueDelPluginConfig("pspelogue");
-    unregisterHooks(false);
-    finalizePScomm(false);
-    CPUfreq_finalize();
     return 1;
 }
 

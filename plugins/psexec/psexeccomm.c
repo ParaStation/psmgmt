@@ -326,18 +326,23 @@ static bool dropPsExecMsg(DDTypedBufferMsg_t *msg)
     return true;
 }
 
+/** Track initialization of serialization layer */
+static bool serialInitialized;
+
 bool initComm(void)
 {
-    initSerial(0, sendMsg);
+    serialInitialized = initSerial(0, sendMsg);
     PSID_registerMsg(PSP_PLUG_PSEXEC, (handlerFunc_t)handlePsExecMsg);
     PSID_registerDropper(PSP_PLUG_PSEXEC, (handlerFunc_t)dropPsExecMsg);
 
-    return true;
+    return serialInitialized;
 }
 
 void finalizeComm(void)
 {
     PSID_clearMsg(PSP_PLUG_PSEXEC, (handlerFunc_t)handlePsExecMsg);
     PSID_clearDropper(PSP_PLUG_PSEXEC, (handlerFunc_t)dropPsExecMsg);
-    finalizeSerial();
+
+    if (serialInitialized) finalizeSerial();
+    serialInitialized = false;
 }

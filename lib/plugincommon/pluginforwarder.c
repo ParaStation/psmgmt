@@ -446,12 +446,15 @@ static void forwarderLoop(Forwarder_Data_t *fw)
     /* enable signals again */
     PSID_blockSig(SIGALRM, false);
 
+    int timeout = (fw->cPid == -1) ? 1 : -1;
     while (!sigChild) {
-	if (Swait(-1) < 0  &&  errno != EINTR) {
+	if (Swait(timeout) < 0 && errno != EINTR) {
 	    pluginwarn(errno, "%s: Swait()", __func__);
 	    killForwarderChild(fw, SIGKILL, "Swait() error", true);
 	    break;
 	}
+	/* don't wait for non-existing child */
+	if (fw->cPid == -1) break;
     }
 }
 
@@ -806,7 +809,7 @@ static void execPluginForwarder(PStask_t *task)
 	forwarderLoop(fwData);
 
 	struct rusage rusage;
-	if (fwData->childFunc) {
+	if (fwData->childFunc && fwData->cPid > 0) {
 	    int childStatus, res = wait4(fwData->cPid, &childStatus, 0, &rusage);
 	    if (res == -1) {
 		pluginwarn(errno, "%s: wait4(%d)", __func__, fwData->cPid);

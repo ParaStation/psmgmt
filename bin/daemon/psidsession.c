@@ -942,12 +942,6 @@ bool PSIDsession_init(void)
 	return false;
     }
 
-    /* init fragmentation layer used for PSP_DD_RESCREATED messages */
-    if (!initSerial(0, sendMsg)) {
-	PSID_flog("initSerial() failed\n");
-	return false;
-    }
-
     PSID_registerMsg(PSP_DD_RESCREATED, (handlerFunc_t) msg_RESCREATED);
     PSID_registerMsg(PSP_DD_RESRELEASED, msg_RESRELEASED);
     PSID_registerMsg(PSP_DD_RESSLOTS, (handlerFunc_t) msg_RESSLOTS);
@@ -970,4 +964,20 @@ void PSIDsession_printStat(void)
 	      PSitems_getUsed(resinfoPool), PSitems_getAvail(resinfoPool),
 	      PSitems_getUtilization(resinfoPool),
 	      PSitems_getDynamics(resinfoPool));
+}
+
+void PSIDsession_finalize(void)
+{
+    PSID_fdbg(PSID_LOG_VERB, "\n");
+
+    PSID_unregisterLoopAct(PSIDsession_gc);
+    PSIDhook_del(PSIDHOOK_CLEARMEM, clearMem);
+
+    PSID_clearMsg(PSP_DD_RESCREATED, (handlerFunc_t) msg_RESCREATED);
+    PSID_clearMsg(PSP_DD_RESRELEASED, msg_RESRELEASED);
+    PSID_clearMsg(PSP_DD_RESSLOTS, (handlerFunc_t) msg_RESSLOTS);
+    PSID_clearMsg(PSP_DD_RESCLEANUP, msg_RESCLEANUP);
+    PSID_clearMsg(PSP_DD_JOBCOMPLETE, (handlerFunc_t) msg_JOBCOMPLETE);
+
+    clearMem(NULL);
 }

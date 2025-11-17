@@ -17,18 +17,20 @@
 
 #include "pscommon.h"
 #include "psprotocol.h"
+#include "psserial.h"
 
 #include "mcast.h"
 #include "rdp.h"
 
-#include "psidutil.h"
-#include "psidcomm.h"
 #include "psidclient.h"
-#include "psidstatus.h"
+#include "psidcomm.h"
+#include "psidhook.h"
 #include "psidhw.h"
 #include "psidnodes.h"
 #include "psidplugin.h"
-#include "psidhook.h"
+#include "psidsession.h"
+#include "psidstatus.h"
+#include "psidutil.h"
 
 /**
  * The internal status of the ParaStation daemon. This is used for the
@@ -99,6 +101,8 @@ void PSID_shutdown(void)
 	}
 	PSID_stopAllHW(); /* must be here due to RDP-broadcasting HW change */
 	send_DAEMONSHUTDOWN(); /* shuts down the RDP connections */
+	PSIDsession_finalize();
+	finalizeSerial();
 	RDP_finalize();
 	PSID_unregisterLoopAct(PSID_shutdown);
 	PSID_shutdownMasterSock(); /* used for locking => ALAP */

@@ -601,6 +601,9 @@ static void unregisterHooks(bool verbose)
     }
 }
 
+/** Track initialization of serialization layer */
+static bool serialInitialized;
+
 int initialize(FILE *logfile)
 {
     /* init logging facility */
@@ -614,26 +617,26 @@ int initialize(FILE *logfile)
 
     if (!PSIDhook_add(PSIDHOOK_NODE_UP, handleNodeUp)) {
 	mlog("%s: register 'PSIDHOOK_NODE_UP' failed\n", __func__);
-	goto INIT_ERROR;
+	return 1;
     }
     if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	mlog("%s: register 'PSIDHOOK_NODE_DOWN' failed\n", __func__);
-	goto INIT_ERROR;
+	return 1;
     }
     if (!PSIDhook_add(PSIDHOOK_DIST_INFO, handleDistInfo)) {
 	mlog("%s: register 'PSIDHOOK_DIST_INFO' failed\n", __func__);
-	goto INIT_ERROR;
+	return 1;
     }
 
-    if (!initSerial(0, sendMsg)) {
+    serialInitialized = initSerial(0, sendMsg);
+    if (!serialInitialized) {
 	mlog("%s: initSerial() failed\n", __func__);
-	goto INIT_ERROR;
+	return 1;
     }
 
     if (!PSID_registerMsg(PSP_PLUG_NODEINFO, handleNodeInfoMsg)) {
 	mlog("%s: register 'PSP_PLUG_NODEINFO' handler failed\n", __func__);
-	finalizeSerial();
-	goto INIT_ERROR;
+	return 1;
     }
 
     mlog("(%i) successfully started\n", version);
@@ -642,20 +645,14 @@ int initialize(FILE *logfile)
     checkOtherNodes();
 
     return 0;
-
-INIT_ERROR:
-    unregisterHooks(false);
-    finalizeNodeInfoConfig();
-    finalizeNodeInfoLogger();
-
-    return 1;
 }
 
 void cleanup(void)
 {
     PSID_clearMsg(PSP_PLUG_NODEINFO, handleNodeInfoMsg);
     unregisterHooks(true);
-    finalizeSerial();
+    if (serialInitialized) finalizeSerial();
+    serialInitialized = false;
     finalizeNodeInfoConfig();
 
     mlog("...Bye.\n");

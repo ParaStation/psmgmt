@@ -1298,11 +1298,15 @@ static int hookExecForwarder(void *data)
     }
 
     /* initialize fragmentation layer only to receive environment */
-    initSerial(0, NULL);
+    if (!initSerial(0, NULL)) {
+	rlog("Failed to initialize serialization layer\n");
+	return -1;
+    }
 
     /* Send client registration request to the PMIx server */
     if (!sendRegisterClientMsg(childTask)) {
 	rlog("Failed to send register message\n");
+	finalizeSerial();
 	return -1;
     }
 
@@ -1322,6 +1326,9 @@ static int hookExecForwarder(void *data)
     return success ? 0 : -1;
 }
 
+/** Track initialization of serialization layer */
+static bool serialInitialized;
+
 /**
  * @brief Hook function for PSIDHOOK_FRWRD_SETUP
  *
@@ -1340,16 +1347,20 @@ static int hookForwarderSetup(void *data)
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
-	rlog("Unexpected child task\n");
+	rlog("unexpected child task\n");
 	return -1;
     }
 
     /* initialize fragmentation layer */
-    initSerial(0, sendDaemonMsg);
+    serialInitialized = initSerial(0, sendDaemonMsg);
+    if (!serialInitialized) {
+	rlog("failed to initialize serialization layer\n");
+	return -1;
+    }
 
     /* register handler for notification messages from the PMIx server */
     if (!PSID_registerMsg(PSP_PLUG_PSPMIX, handlePspmixMsg)) {
-	rlog("Failed to register message handler\n");
+	rlog("failed to register message handler\n");
 	return -1;
     }
 
@@ -1489,7 +1500,8 @@ static int hookForwarderExit(void *data)
     PSID_clearMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES);
     PSID_clearMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES);
 
-    finalizeSerial();
+    if (serialInitialized) finalizeSerial();
+    serialInitialized = false;
 
     return 0;
 }

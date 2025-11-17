@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -116,8 +116,8 @@ PSresinfo_t* PSID_findResInfo(PStask_ID_t sessionID, PStask_ID_t jobID,
 /**
  * @brief Initialize session stuff
  *
- * Initialize the session framework. This registers the necessary
- * message handlers.
+ * Initialize the session framework. This initializes all internal
+ * structures and registers the necessary message handlers.
  *
  * @return On success true is returned; or false in case of error
  */
@@ -132,5 +132,16 @@ bool PSIDsession_init(void);
  * @return No return value
  */
 void PSIDsession_printStat(void);
+
+/**
+ * @brief Finalize session stuff
+ *
+ * Finalize the session framework. This cleans up message handlers,
+ * internal structures, etc.
+ *
+ * @return No return vaule
+ */
+void PSIDsession_finalize(void);
+
 
 #endif /* __PSIDSESSION_H */

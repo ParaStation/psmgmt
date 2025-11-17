@@ -6,6 +6,14 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.5.2:
+==============
+Bugfixes:
+ - Don't wait for non existing child in pluginforwarder (meluxina:#1983)
+ - Safeguard psserial's destTIDs (#336)
+ - Symmetrize calls to initSerial()/finalizeSerial() (#336)
+
+
 Version 6.5.1:
 ==============
 Bugfixes:

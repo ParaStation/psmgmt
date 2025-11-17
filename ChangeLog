@@ -1,3 +1,49 @@
+Version 6.5.2:
+==============
+------------------------------------------------------------------------
+151d23f3e | Norbert Eicker | Wed, 12 Nov 2025 21:32:14 +0100
+
+Call initSerial() explicitly in main psid
+
+ - Serialization layer is used across psid in the meantime, even outside
+   of plugins; thus, ensure it is initialized in any case
+ - Drop now useless explicit initialization for PSIDsession
+------------------------------------------------------------------------
+903f99298 | Norbert Eicker | Wed, 12 Nov 2025 21:15:16 +0100
+
+Remove pointless comments
+------------------------------------------------------------------------
+925b9a815 | Norbert Eicker | Wed, 12 Nov 2025 21:12:22 +0100
+
+Avoid useless cleanup if plugin's initialize() fails
+
+ - cleanup() is called immediately anyhow
+------------------------------------------------------------------------
+b66765eee | Norbert Eicker | Wed, 12 Nov 2025 21:09:30 +0100
+
+Symmetrize calls to initSerial()/finalizeSerial() (#336)
+------------------------------------------------------------------------
+403826b7d | Norbert Eicker | Wed, 12 Nov 2025 20:18:48 +0100
+
+Ensure psserial's usage counter is only increased on success
+------------------------------------------------------------------------
+19d838a0d | Norbert Eicker | Wed, 12 Nov 2025 16:22:45 +0100
+
+Add PSIDsession_finalize() to symmetrize psserial's use (#336)
+------------------------------------------------------------------------
+0af3e1d7e | Norbert Eicker | Wed, 12 Nov 2025 16:18:36 +0100
+
+Safeguard psserial's destTIDs (#336)
+
+ - this shall prevent segfaults from NULL dereference
+ - also enhance docu comments, streamline, etc.
+------------------------------------------------------------------------
+3fabd45b5 | Michael Rauh | Thu, 6 Nov 2025 16:34:21 +0100
+
+Bugfix: don't wait for non existing child in pluginforwarder (meluxina:#1983)
+------------------------------------------------------------------------
+
+
 Version 6.5.1:
 ==============
 ------------------------------------------------------------------------

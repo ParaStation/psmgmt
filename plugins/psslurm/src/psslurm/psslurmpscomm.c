@@ -2140,6 +2140,9 @@ static void freeHostLT(void)
     numHostLT = 0;
 }
 
+/** Track initialization of serialization layer */
+static bool serialInitialized;
+
 void finalizePScomm(bool verbose)
 {
     if (!initialized) return;
@@ -2174,7 +2177,8 @@ void finalizePScomm(bool verbose)
     /* unregister msg drop handler */
     PSID_clearDropper(PSP_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
 
-    finalizeSerial();
+    if (serialInitialized) finalizeSerial();
+    serialInitialized = false;
 
     freeHostLT();
     hdestroy_r(&HostHash);
@@ -2394,27 +2398,15 @@ bool initPScomm(void)
 {
     initialized = true;
 
-    initSerial(0, sendMsg);
+    serialInitialized = initSerial(0, sendMsg);
 
-    /* register to psslurm PSP_PLUG_PSSLURM message */
     PSID_registerMsg(PSP_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
-
-    /* register to PSP_DD_CHILDBORN message */
     PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) handleChildBornMsg);
-
-    /* register to PSP_CC_MSG message */
     PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
-
-    /* register to PSP_CD_SPAWNFAILED message */
     PSID_registerMsg(PSP_CD_SPAWNFAILED, (handlerFunc_t) handleSpawnFailed);
-
-    /* register to PSP_CD_SPAWNSUCCESS message */
     PSID_registerMsg(PSP_CD_SPAWNSUCCESS, (handlerFunc_t) handleSpawnSuccess);
-
-    /* register to PSP_CD_UNKNOWN message */
     PSID_registerMsg(PSP_CD_UNKNOWN, handleUnknownMsg);
 
-    /* register handler for dropped msgs */
     PSID_registerDropper(PSP_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
 
     if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
