@@ -724,6 +724,7 @@ scripts/psexpand.py \
 scripts/psmgmt.csh.in \
 scripts/psmgmt.gdb \
 scripts/psmgmt.sh.in \
+scripts/simulate_nvidia-smi.py \
 scripts/single_node_config.in \
 scripts/systemd/munge.conf \
 scripts/systemd/psid.service.in \
