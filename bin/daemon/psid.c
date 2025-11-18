@@ -500,6 +500,13 @@ static void printVersion(void)
 
 #define FORKMAGIC 4711
 
+#define tryInit(initFunc)					\
+    if (!initFunc) {						\
+	PSID_log("initializing '" #initFunc "' failed\n");	\
+	PSID_finalizeLogs();					\
+	exit(-1);						\
+    }
+
 int main(int argc, const char *argv[])
 {
     poptContext optCon;   /* context for parsing command-line options */
@@ -720,26 +727,26 @@ int main(int argc, const char *argv[])
     PSID_initStarttime();
 
     /* initialize various modules */
-    PSIDcomm_init(true);  /* Must be first since it enables message
-			   * handlers and droppers */
-    PSIDRDP_init();
-    PSIDclient_init();
-    PSIDstate_init();
-    PSIDoptions_init();
-    PSIDstatus_init();
-    PSIDsignal_init();
-    PSIDtask_init();
-    PSIDspawn_init();
-    PSIDsession_init();
-    PSIDpart_init();
-    PSIDhw_init();
-    PSIDscripts_init();
-    PSIDacct_init();
-    PSIDinfo_init();
-    PSIDenv_init();
-    initSerial(0, sendMsg);
+    tryInit(PSIDcomm_init(true));  /* Must be first since it enables message
+				    * handlers and droppers */
+    tryInit(PSIDRDP_init());
+    tryInit(PSIDclient_init());
+    tryInit(PSIDstate_init());
+    tryInit(PSIDoptions_init());
+    tryInit(PSIDstatus_init());
+    tryInit(PSIDsignal_init());
+    tryInit(PSIDtask_init());
+    tryInit(PSIDspawn_init());
+    tryInit(PSIDsession_init());
+    tryInit(PSIDpart_init());
+    tryInit(PSIDhw_init());
+    tryInit(PSIDscripts_init());
+    tryInit(PSIDacct_init());
+    tryInit(PSIDinfo_init());
+    tryInit(PSIDenv_init());
+    tryInit(initSerial(0, sendMsg));
     /* Plugins shall be last since they use most of the ones before */
-    PSIDplugin_init(logfile);
+    tryInit(PSIDplugin_init(logfile));
 
     /* Now we start all the hardware -- this might include the accounter */
     PSID_dbg(PSID_LOG_HW, "starting up the hardware\n");
