@@ -54,9 +54,9 @@ void PSIDhw_init(void);
  * too. Thus, the corresponding information will be removed from the
  * PSIDnodes facility.
  *
- * @return No return value.
+ * @return Return true on successful re-initialization or false on failure
  */
-void PSIDhw_reInit(void);
+bool PSIDhw_reInit(void);
 
 /**
  * @brief Init all communication hardware

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1060,7 +1060,7 @@ static PCI_ID_t NIC_IDs[] = {
     { 0x1fc1, 0x0010, 0, 0 }, // QLogic IBA6120 InfiniBand HCA (testcluster)
     { 0, 0, 0, 0} };
 
-void PSIDhw_reInit(void)
+bool PSIDhw_reInit(void)
 {
     if (hwlocInitialized) {
 	/* Reset all the basic information */
@@ -1077,9 +1077,8 @@ void PSIDhw_reInit(void)
     /* Determine various HW parameters and feed them into PSIDnodes */
     uint16_t numNUMA = getNUMADoms();
     if (!numNUMA) {
-	PSID_flog("Unable to determine NUMA domains\n");
-	PSID_finalizeLogs();
-	exit(1);
+	PSID_flog("unable to determine NUMA domains\n");
+	return false;
     }
     PSIDnodes_setNumNUMADoms(PSC_getMyID(), numNUMA);
 
@@ -1096,13 +1095,15 @@ void PSIDhw_reInit(void)
 
     PSIDnodes_setNumNICs(PSC_getMyID(), 0);
     PSIDnodes_setNICSets(PSC_getMyID(), NULL);
+
+    return true;
 }
 
 void PSIDhw_init(void)
 {
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
-    PSIDhw_reInit();
+    if (!PSIDhw_reInit()) return;
 
     uint16_t numGPUs = PSIDhw_getNumPCIDevs(GPU_IDs);
     PSIDnodes_setNumGPUs(PSC_getMyID(), numGPUs);
