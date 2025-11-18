@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,7 +10,6 @@
  */
 #include "psidaccount.h"
 
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -231,9 +230,9 @@ int PSID_getNumAcct(void)
     return num;
 }
 
-void initAccount(void)
+bool PSIDacct_init(void)
 {
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
-    PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t) msg_ACCOUNT);
+    return PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t) msg_ACCOUNT);
 }

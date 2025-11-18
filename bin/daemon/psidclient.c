@@ -1058,31 +1058,35 @@ static void clientInit(client_t *client)
     PSIDFlwCntrl_initHash(client->stops);
 }
 
-void PSIDclient_init(void)
+bool PSIDclient_init(void)
 {
-    PSIDFlwCntrl_init();
-    PSIDMsgbuf_init();
+    if (!PSIDFlwCntrl_init()) {
+	PSID_flog("PSIDFlwCntrl_init() failed\n");
+	return false;
+    }
+    if (!PSIDMsgbuf_init()) {
+	PSID_flog("PSIDMsgbuf_init() failed\n");
+	return false;
+    }
 
     if (clients) {
 	PSID_flog("already initialized\n");
-	return;
+	return true;
     }
 
     long numFiles = sysconf(_SC_OPEN_MAX);
     if (numFiles <= 0) {
-	PSID_exit(errno, "%s: sysconf(_SC_OPEN_MAX) returns %ld", __func__,
-		  numFiles);
-	return;
+	PSID_fwarn(errno, "sysconf(_SC_OPEN_MAX) returns %ld", numFiles);
+	return false;
     }
 
     if (PSIDclient_setMax(numFiles) < 0) {
-	PSID_exit(errno, "%s: PSIDclient_setMax()", __func__);
-	return;
+	PSID_fwarn(errno, "PSIDclient_setMax()");
+	return false;
     }
 
-    PSID_registerMsg(PSP_CC_MSG, msg_CC_MSG);
-
-    PSID_registerDropper(PSP_CC_MSG, drop_CC_MSG);
+    return PSID_registerMsg(PSP_CC_MSG, msg_CC_MSG)
+	&& PSID_registerDropper(PSP_CC_MSG, drop_CC_MSG);
 }
 
 int PSIDclient_setMax(int max)

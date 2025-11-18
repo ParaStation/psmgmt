@@ -1099,11 +1099,11 @@ bool PSIDhw_reInit(void)
     return true;
 }
 
-void PSIDhw_init(void)
+bool PSIDhw_init(void)
 {
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
-    if (!PSIDhw_reInit()) return;
+    if (!PSIDhw_reInit()) return false;
 
     uint16_t numGPUs = PSIDhw_getNumPCIDevs(GPU_IDs);
     PSIDnodes_setNumGPUs(PSC_getMyID(), numGPUs);
@@ -1119,6 +1119,6 @@ void PSIDhw_init(void)
 	PSIDnodes_setNICSets(PSC_getMyID(), NICsets);
     }
 
-    PSID_registerMsg(PSP_CD_HWSTART, msg_HWSTART);
-    PSID_registerMsg(PSP_CD_HWSTOP, msg_HWSTOP);
+    return PSID_registerMsg(PSP_CD_HWSTART, msg_HWSTART)
+	&& PSID_registerMsg(PSP_CD_HWSTOP, msg_HWSTOP);
 }

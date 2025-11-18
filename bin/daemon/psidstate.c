@@ -10,7 +10,6 @@
  */
 #include "psidstate.h"
 
-#include <stdbool.h>
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <signal.h>
@@ -260,11 +259,11 @@ static bool msg_DAEMONRESET(DDBufferMsg_t *msg)
     return true;
 }
 
-void initState(void)
+bool PSIDstate_init(void)
 {
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
-    PSID_registerMsg(PSP_CD_DAEMONSTART, msg_DAEMONSTART);
-    PSID_registerMsg(PSP_CD_DAEMONSTOP, (handlerFunc_t) msg_DAEMONSTOP);
-    PSID_registerMsg(PSP_CD_DAEMONRESET, msg_DAEMONRESET);
+    return PSID_registerMsg(PSP_CD_DAEMONSTART, msg_DAEMONSTART)
+	&& PSID_registerMsg(PSP_CD_DAEMONSTOP, (handlerFunc_t) msg_DAEMONSTOP)
+	&& PSID_registerMsg(PSP_CD_DAEMONRESET, msg_DAEMONRESET);
 }

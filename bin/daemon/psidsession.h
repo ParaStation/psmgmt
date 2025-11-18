@@ -119,7 +119,7 @@ PSresinfo_t* PSID_findResInfo(PStask_ID_t sessionID, PStask_ID_t jobID,
  * Initialize the session framework. This initializes all internal
  * structures and registers the necessary message handlers.
  *
- * @return On success true is returned; or false in case of error
+ * @return Return true on successful initialization or false on failure
  */
 bool PSIDsession_init(void);
 

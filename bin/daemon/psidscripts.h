@@ -244,7 +244,7 @@ int PSID_cancelCB(pid_t pid);
  * framework. This includes setting up the pool for callback info
  * blobs and its corresponding helpers.
  *
- * @return On success true is returned; or false in case of error
+ * @return Return true on successful initialization or false on failure
  */
 bool PSIDscripts_init(void);
 

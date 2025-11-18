@@ -5401,41 +5401,42 @@ static int clearMem(void *dummy)
 }
 
 
-void initPartition(void)
+bool PSIDpart_init(void)
 {
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
-    PSrsrvtn_init();
-
-    PSID_registerMsg(PSP_CD_REQUESTPART, (handlerFunc_t) msg_REQUESTPART);
-    PSID_registerMsg(PSP_CD_PARTITIONRES, frwdMsg);
-    PSID_registerMsg(PSP_DD_CREATEPART, (handlerFunc_t) msg_CREATEPART);
-    PSID_registerMsg(PSP_DD_PROVIDEPART, (handlerFunc_t) msg_PROVIDEPART);
-    PSID_registerMsg(PSP_DD_CHILDRESREL, msg_CHILDRESREL);
-    PSID_registerMsg(PSP_DD_GETTASKS, msg_GETTASKS);
-    PSID_registerMsg(PSP_DD_PROVIDETASK, (handlerFunc_t) msg_PROVIDETASK);
-    PSID_registerMsg(PSP_DD_REGISTERPART, (handlerFunc_t) msg_REGISTERPART);
-    PSID_registerMsg(PSP_DD_CANCELPART, msg_CANCELPART);
-    PSID_registerMsg(PSP_DD_TASKDEAD, (handlerFunc_t) msg_TASKDEAD);
-    PSID_registerMsg(PSP_DD_TASKSUSPEND, (handlerFunc_t) msg_TASKSUSPEND);
-    PSID_registerMsg(PSP_DD_TASKRESUME, (handlerFunc_t) msg_TASKRESUME);
-    PSID_registerMsg(PSP_CD_GETRESERVATION, msg_GETRESERVATION);
-    PSID_registerMsg(PSP_DD_GETRESERVATION, msg_GETRESERVATION);
-    PSID_registerMsg(PSP_CD_RESERVATIONRES, frwdMsg);
-    PSID_registerMsg(PSP_DD_RESERVATIONRES, msg_RESERVATIONRES);
-    PSID_registerMsg(PSP_CD_GETSLOTS, msg_GETSLOTS);
-    PSID_registerMsg(PSP_DD_GETSLOTS, msg_GETSLOTS);
-    PSID_registerMsg(PSP_DD_SLOTSRES, (handlerFunc_t) msg_SLOTSRES);
-    PSID_registerMsg(PSP_CD_SLOTSRES, frwdMsg);
-    PSID_registerMsg(PSP_CD_FINRESERVATION, (handlerFunc_t) msg_FINRESERVATION);
-    PSID_registerMsg(PSP_DD_RESFINALIZED, (handlerFunc_t) msg_RESFINALIZED);
-
-    PSID_registerDropper(PSP_DD_TASKDEAD, drop_TASKDEAD);
-
-    PSID_registerLoopAct(handlePartRequests);
-    PSID_registerLoopAct(PSrsrvtn_gc);
-
-    if (!PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem)) {
-	PSID_flog("cannot register to PSIDHOOK_CLEARMEM\n");
+    if (!PSrsrvtn_init()) {
+	PSID_flog("PSrsrvtn_init() failed\n");
+	return false;
     }
+
+    return PSID_registerMsg(PSP_CD_REQUESTPART, (handlerFunc_t) msg_REQUESTPART)
+	&& PSID_registerMsg(PSP_CD_PARTITIONRES, frwdMsg)
+	&& PSID_registerMsg(PSP_DD_CREATEPART, (handlerFunc_t) msg_CREATEPART)
+	&& PSID_registerMsg(PSP_DD_PROVIDEPART, (handlerFunc_t) msg_PROVIDEPART)
+	&& PSID_registerMsg(PSP_DD_CHILDRESREL, msg_CHILDRESREL)
+	&& PSID_registerMsg(PSP_DD_GETTASKS, msg_GETTASKS)
+	&& PSID_registerMsg(PSP_DD_PROVIDETASK, (handlerFunc_t) msg_PROVIDETASK)
+	&& PSID_registerMsg(PSP_DD_REGISTERPART, (handlerFunc_t) msg_REGISTERPART)
+	&& PSID_registerMsg(PSP_DD_CANCELPART, msg_CANCELPART)
+	&& PSID_registerMsg(PSP_DD_TASKDEAD, (handlerFunc_t) msg_TASKDEAD)
+	&& PSID_registerMsg(PSP_DD_TASKSUSPEND, (handlerFunc_t) msg_TASKSUSPEND)
+	&& PSID_registerMsg(PSP_DD_TASKRESUME, (handlerFunc_t) msg_TASKRESUME)
+	&& PSID_registerMsg(PSP_CD_GETRESERVATION, msg_GETRESERVATION)
+	&& PSID_registerMsg(PSP_DD_GETRESERVATION, msg_GETRESERVATION)
+	&& PSID_registerMsg(PSP_CD_RESERVATIONRES, frwdMsg)
+	&& PSID_registerMsg(PSP_DD_RESERVATIONRES, msg_RESERVATIONRES)
+	&& PSID_registerMsg(PSP_CD_GETSLOTS, msg_GETSLOTS)
+	&& PSID_registerMsg(PSP_DD_GETSLOTS, msg_GETSLOTS)
+	&& PSID_registerMsg(PSP_DD_SLOTSRES, (handlerFunc_t) msg_SLOTSRES)
+	&& PSID_registerMsg(PSP_CD_SLOTSRES, frwdMsg)
+	&& PSID_registerMsg(PSP_CD_FINRESERVATION, (handlerFunc_t) msg_FINRESERVATION)
+	&& PSID_registerMsg(PSP_DD_RESFINALIZED, (handlerFunc_t) msg_RESFINALIZED)
+
+	&& PSID_registerDropper(PSP_DD_TASKDEAD, drop_TASKDEAD)
+
+	&& PSID_registerLoopAct(handlePartRequests)
+	&& PSID_registerLoopAct(PSrsrvtn_gc)
+
+	&& PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem);
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -252,8 +252,8 @@ int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
  * Initialize the spawning and forwarding framework. This registers
  * the necessary message handlers.
  *
- * @return No return value.
+ * @return Return true on successful initialization or false on failure
  */
-void PSIDspawn_init(void);
+bool PSIDspawn_init(void);
 
 #endif /* __PSIDSPAWN_H */

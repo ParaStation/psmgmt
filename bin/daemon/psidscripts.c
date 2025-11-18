@@ -451,18 +451,15 @@ bool PSIDscripts_init(void)
 	PSID_flog("needs running Timer\n");
 	return false;
     }
-    if (!PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem)) {
-	PSID_flog("cannot register to PSIDHOOK_CLEARMEM\n");
-	return false;
-    }
+    if (PSitems_isInitialized(cbInfoPool)) return true;
     cbInfoPool = PSitems_new(sizeof(CBInfo_t), "cbInfoPool");
     if (!cbInfoPool) {
 	PSID_flog("cannot get cbInfo items\n");
 	return false;
     }
-    PSID_registerLoopAct(cbInfoPool_gc);
 
-    return true;
+    return PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem)
+	&& PSID_registerLoopAct(cbInfoPool_gc);
 }
 
 void PSIDscripts_printStat(void)

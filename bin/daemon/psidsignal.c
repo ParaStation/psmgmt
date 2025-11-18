@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1555,28 +1555,31 @@ static void signalGC(void)
     RDP_blockTimer(blockedRDP);
 }
 
-void initSignal(void)
+bool PSIDsignal_init(void)
 {
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
-    PSsignal_init();
+    if (!PSsignal_init()) {
+	PSID_flog("PSsignal_init() failed\n");
+	return false;
+    }
 
-    PSID_registerMsg(PSP_CD_NOTIFYDEAD, (handlerFunc_t) msg_NOTIFYDEAD);
-    PSID_registerMsg(PSP_CD_NOTIFYDEADRES, (handlerFunc_t) msg_NOTIFYDEADRES);
-    PSID_registerMsg(PSP_CD_RELEASE, (handlerFunc_t) msg_RELEASE);
-    PSID_registerMsg(PSP_CD_RELEASERES, (handlerFunc_t) msg_RELEASERES);
-    PSID_registerMsg(PSP_CD_SIGNAL, (handlerFunc_t) msg_SIGNAL);
-    PSID_registerMsg(PSP_CD_WHODIED, (handlerFunc_t) msg_WHODIED);
-    PSID_registerMsg(PSP_DD_NEWANCESTOR, (handlerFunc_t) msg_NEWANCESTOR);
-    PSID_registerMsg(PSP_DD_ADOPTCHILDSET, msg_ADOPTCHILDSET);
-    PSID_registerMsg(PSP_DD_ADOPTFAILED, msg_ADOPTFAILED);
-    PSID_registerMsg(PSP_DD_INHERITDONE, msg_INHERITDONE);
-    PSID_registerMsg(PSP_DD_INHERITFAILED, msg_INHERITFAILED);
+    return PSID_registerMsg(PSP_CD_NOTIFYDEAD, (handlerFunc_t) msg_NOTIFYDEAD)
+	&& PSID_registerMsg(PSP_CD_NOTIFYDEADRES, (handlerFunc_t) msg_NOTIFYDEADRES)
+	&& PSID_registerMsg(PSP_CD_RELEASE, (handlerFunc_t) msg_RELEASE)
+	&& PSID_registerMsg(PSP_CD_RELEASERES, (handlerFunc_t) msg_RELEASERES)
+	&& PSID_registerMsg(PSP_CD_SIGNAL, (handlerFunc_t) msg_SIGNAL)
+	&& PSID_registerMsg(PSP_CD_WHODIED, (handlerFunc_t) msg_WHODIED)
+	&& PSID_registerMsg(PSP_DD_NEWANCESTOR, (handlerFunc_t) msg_NEWANCESTOR)
+	&& PSID_registerMsg(PSP_DD_ADOPTCHILDSET, msg_ADOPTCHILDSET)
+	&& PSID_registerMsg(PSP_DD_ADOPTFAILED, msg_ADOPTFAILED)
+	&& PSID_registerMsg(PSP_DD_INHERITDONE, msg_INHERITDONE)
+	&& PSID_registerMsg(PSP_DD_INHERITFAILED, msg_INHERITFAILED)
 
-    PSID_registerDropper(PSP_CD_SIGNAL, drop_SIGNAL);
-    PSID_registerDropper(PSP_CD_NOTIFYDEAD, drop_RELEASE);
-    PSID_registerDropper(PSP_CD_RELEASE, drop_RELEASE);
-    PSID_registerDropper(PSP_DD_ADOPTCHILDSET, drop_ADOPTCHILDSET);
+	&& PSID_registerDropper(PSP_CD_SIGNAL, drop_SIGNAL)
+	&& PSID_registerDropper(PSP_CD_NOTIFYDEAD, drop_RELEASE)
+	&& PSID_registerDropper(PSP_CD_RELEASE, drop_RELEASE)
+	&& PSID_registerDropper(PSP_DD_ADOPTCHILDSET, drop_ADOPTCHILDSET)
 
-    PSID_registerLoopAct(signalGC);
+	&& PSID_registerLoopAct(signalGC);
 }

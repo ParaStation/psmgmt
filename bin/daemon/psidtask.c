@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -494,16 +494,17 @@ static int clearMem(void *arg)
     return 0;
 }
 
-void PSIDtask_init(void)
+bool PSIDtask_init(void)
 {
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
-    PStask_init();
-    PSID_registerLoopAct(PStask_gc);
-
-    if (!PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem)) {
-	PSID_flog("cannot register to PSIDHOOK_CLEARMEM\n");
+    if (!PStask_init()) {
+	PSID_flog("PStask_init() failed\n");
+	return false;
     }
+
+    return PSID_registerLoopAct(PStask_gc)
+	&& PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem);
 }
 
 void PSIDtask_clearMem(void)

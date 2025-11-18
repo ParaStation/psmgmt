@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2023 ParTec AG, Munich
+ * Copyright (C) 2023-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,6 +15,8 @@
 #ifndef __PSIDOPTIONS_H
 #define __PSIDOPTIONS_H
 
+#include <stdbool.h>
+
 #include "psnodes.h"
 
 /**
@@ -23,9 +25,9 @@
  * Initialize the options framework. This registers the necessary
  * message handlers.
  *
- * @return No return value
+ * @return Return true on successful initialization or false on failure
  */
-void initOptions(void);
+bool PSIDoptions_init(void);
 
 /**
  * @brief Send some options.

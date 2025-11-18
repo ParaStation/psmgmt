@@ -14,6 +14,8 @@
 #ifndef __PSIDACCOUNT_H
 #define __PSIDACCOUNT_H
 
+#include <stdbool.h>
+
 #include "pstask.h"
 #include "psnodes.h"
 
@@ -23,9 +25,9 @@
  * Initialize the accounting framework. This registers the necessary
  * message handlers.
  *
- * @return No return value
+ * @return Return true on successful initialization or false on failure
  */
-void initAccount(void);
+bool PSIDacct_init(void);
 
 /**
  * @brief Register accounter

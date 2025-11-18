@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,6 +15,7 @@
 #ifndef __PSIDMSGBUF_H
 #define __PSIDMSGBUF_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -101,9 +102,9 @@ void PSIDMsgbuf_printStat(void);
  * Initialize the pool of messages buffers used to temporarily store
  * messages when the destination is busy.
  *
- * @return No return value
+ * @return Return true on successful initialization or false on failure
  */
-void PSIDMsgbuf_init(void);
+bool PSIDMsgbuf_init(void);
 
 
 #endif /* __PSIDMSGBUF_H */

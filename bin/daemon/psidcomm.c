@@ -359,7 +359,7 @@ bool PSID_handleMsg(DDBufferMsg_t *msg)
     return false;
 }
 
-void PSIDcomm_init(bool registerMsgHandlers)
+bool PSIDcomm_init(bool registerMsgHandlers)
 {
     if (!PSitems_isInitialized(handlerPool)) {
 	handlerPool = PSitems_new(sizeof(msgHandler_t), "msgHandlers");
@@ -368,12 +368,13 @@ void PSIDcomm_init(bool registerMsgHandlers)
     initMsgHash();
 
     if (registerMsgHandlers) {
-	PSID_registerMsg(PSP_CD_ERROR, NULL); /* silently ignore message */
-	PSID_registerMsg(PSP_CD_INFORESPONSE, condSendMsg);
-	PSID_registerMsg(PSP_CD_SIGRES, condSendMsg);
-	PSID_registerMsg(PSP_CC_ERROR, condSendMsg);
-	PSID_registerMsg(PSP_CD_UNKNOWN, condSendMsg);
+	return PSID_registerMsg(PSP_CD_ERROR, NULL)   /* silently ignore */
+	    && PSID_registerMsg(PSP_CD_INFORESPONSE, condSendMsg)
+	    && PSID_registerMsg(PSP_CD_SIGRES, condSendMsg)
+	    && PSID_registerMsg(PSP_CC_ERROR, condSendMsg)
+	    && PSID_registerMsg(PSP_CD_UNKNOWN, condSendMsg);
     }
+    return true;
 }
 
 void PSIDcomm_registerSendMsgFunc(ssize_t sendFunc(void *))

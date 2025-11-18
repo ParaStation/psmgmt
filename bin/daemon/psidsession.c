@@ -935,20 +935,16 @@ bool PSIDsession_init(void)
 	PSID_flog("cannot get session items\n");
 	return false;
     }
-    PSID_registerLoopAct(PSIDsession_gc);
 
-    if (!PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem)) {
-	PSID_flog("cannot register to PSIDHOOK_CLEARMEM\n");
-	return false;
-    }
+    return PSID_registerLoopAct(PSIDsession_gc)
 
-    PSID_registerMsg(PSP_DD_RESCREATED, (handlerFunc_t) msg_RESCREATED);
-    PSID_registerMsg(PSP_DD_RESRELEASED, msg_RESRELEASED);
-    PSID_registerMsg(PSP_DD_RESSLOTS, (handlerFunc_t) msg_RESSLOTS);
-    PSID_registerMsg(PSP_DD_RESCLEANUP, msg_RESCLEANUP);
-    PSID_registerMsg(PSP_DD_JOBCOMPLETE, (handlerFunc_t) msg_JOBCOMPLETE);
+	&& PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem)
 
-    return true;
+	&& PSID_registerMsg(PSP_DD_RESCREATED, (handlerFunc_t) msg_RESCREATED)
+	&& PSID_registerMsg(PSP_DD_RESRELEASED, msg_RESRELEASED)
+	&& PSID_registerMsg(PSP_DD_RESSLOTS, (handlerFunc_t) msg_RESSLOTS)
+	&& PSID_registerMsg(PSP_DD_RESCLEANUP, msg_RESCLEANUP)
+	&& PSID_registerMsg(PSP_DD_JOBCOMPLETE, (handlerFunc_t) msg_JOBCOMPLETE);
 }
 
 void PSIDsession_printStat(void)

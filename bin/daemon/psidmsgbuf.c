@@ -11,7 +11,6 @@
  */
 #include "psidmsgbuf.h"
 
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -129,14 +128,15 @@ void PSIDMsgbuf_printStat(void)
 
 }
 
-void PSIDMsgbuf_init(void)
+bool PSIDMsgbuf_init(void)
 {
-    if (PSitems_isInitialized(smallMsgBufs)) return;
+    if (PSitems_isInitialized(smallMsgBufs)) return true;
     smallMsgBufs = PSitems_new(sizeof(smallMsgBuf_t), "smallMsgBufs");
-
-    PSID_registerLoopAct(PSIDMsgbuf_gc);
-
-    return;
+    if (!smallMsgBufs) {
+	PSID_flog("cannot get smallMsgBufs items\n");
+	return false;
+    }
+     return PSID_registerLoopAct(PSIDMsgbuf_gc);
 }
 
 void PSIDMsgbuf_clearMem(void)

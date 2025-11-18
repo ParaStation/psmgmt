@@ -2792,23 +2792,23 @@ int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
     return err;
 }
 
-void PSIDspawn_init(void)
+bool PSIDspawn_init(void)
 {
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
-    PSID_registerMsg(PSP_CD_SPAWNREQUEST, (handlerFunc_t) msg_SPAWNREQUEST);
-    PSID_registerMsg(PSP_CD_SPAWNSUCCESS, (handlerFunc_t) msg_SPAWNSUCCESS);
-    PSID_registerMsg(PSP_CD_SPAWNFAILED, (handlerFunc_t) msg_SPAWNFAILED);
-    PSID_registerMsg(PSP_CD_SPAWNFINISH, (handlerFunc_t) msg_SPAWNFINISH);
-    PSID_registerMsg(PSP_DD_CHILDDEAD, (handlerFunc_t) msg_CHILDDEAD);
-    PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) msg_CHILDBORN);
-    PSID_registerMsg(PSP_DD_CHILDACK, PSIDclient_frwd);
+    return PSID_registerMsg(PSP_CD_SPAWNREQUEST, (handlerFunc_t) msg_SPAWNREQUEST)
+	&& PSID_registerMsg(PSP_CD_SPAWNSUCCESS, (handlerFunc_t) msg_SPAWNSUCCESS)
+	&& PSID_registerMsg(PSP_CD_SPAWNFAILED, (handlerFunc_t) msg_SPAWNFAILED)
+	&& PSID_registerMsg(PSP_CD_SPAWNFINISH, (handlerFunc_t) msg_SPAWNFINISH)
+	&& PSID_registerMsg(PSP_DD_CHILDDEAD, (handlerFunc_t) msg_CHILDDEAD)
+	&& PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) msg_CHILDBORN)
+	&& PSID_registerMsg(PSP_DD_CHILDACK, PSIDclient_frwd)
 
-    PSID_registerDropper(PSP_CD_SPAWNREQUEST, (handlerFunc_t)drop_SPAWNREQUEST);
+	&& PSID_registerDropper(PSP_CD_SPAWNREQUEST, (handlerFunc_t)drop_SPAWNREQUEST)
 
-    PSID_registerLoopAct(checkObstinateTasks);
-    PSID_registerLoopAct(cleanupSpawnTasks);
-    PSID_registerLoopAct(sendAllPendCRR);
+	&& PSID_registerLoopAct(checkObstinateTasks)
+	&& PSID_registerLoopAct(cleanupSpawnTasks)
+	&& PSID_registerLoopAct(sendAllPendCRR)
 
-    PSIDhook_add(PSIDHOOK_CLEARMEM, clearMemPendCRR);
+	&& PSIDhook_add(PSIDHOOK_CLEARMEM, clearMemPendCRR);
 }

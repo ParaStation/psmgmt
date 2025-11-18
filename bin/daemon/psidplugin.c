@@ -14,7 +14,6 @@
 #include <dlfcn.h>
 #include <errno.h>
 #include <limits.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
@@ -1919,19 +1918,17 @@ static void handlePlugins(void)
 static void handlePluginsGuard(void)
 {}
 
-void initPlugins(FILE *logfile)
+bool PSIDplugin_init(FILE *logfile)
 {
-    /* Register msg-handlers/droppers for plugin load/unload */
-    PSID_registerMsg(PSP_CD_PLUGIN, (handlerFunc_t)msg_PLUGIN);
-    PSID_registerMsg(PSP_CD_PLUGINRES, frwdMsg);
+    if (!(PSID_registerMsg(PSP_CD_PLUGIN, (handlerFunc_t)msg_PLUGIN)
+	  && PSID_registerMsg(PSP_CD_PLUGINRES, frwdMsg)
+	  && PSID_registerDropper(PSP_CD_PLUGIN, drop_PLUGIN)
 
-    PSID_registerDropper(PSP_CD_PLUGIN, drop_PLUGIN);
+	  /* Register dummy handler to suppress syslog for not loaded modules */
+	  && PSID_registerMsg(PSP_PLUG_NODEINFO, NULL)
 
-    /* Register dummy handler to suppress syslog for not loaded modules */
-    PSID_registerMsg(PSP_PLUG_NODEINFO, NULL);
-
-    PSID_registerLoopAct(handlePlugins);
-    PSID_registerLoopAct(handlePluginsGuard);
+	  && PSID_registerLoopAct(handlePlugins)
+	  && PSID_registerLoopAct(handlePluginsGuard))) return false;
 
     /* Handle list of plugins found in the configuration file */
     list_t *p, *tmp;
@@ -1955,4 +1952,6 @@ void initPlugins(FILE *logfile)
 
     /* Store logfile for plugins loaded during runtime, too */
     pluginLogfile = logfile;
+
+    return true;
 }

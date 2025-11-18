@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,7 +11,6 @@
  */
 #include "psidrdp.h"
 
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -43,17 +42,20 @@ static struct {
     unsigned int flags;  /**< Special flags (FLUSH, CLOSE) */
 } *node_bufs;
 
-void initRDPMsgs(void)
+bool PSIDRDP_init(void)
 {
     node_bufs = malloc(sizeof(*node_bufs) * PSC_getNrOfNodes());
-    if (!node_bufs) PSID_exit(errno, "%s", __func__);
+    if (!node_bufs) {
+	PSID_fwarn(errno, "malloc()");
+	return false;
+    }
 
     for (int i = 0; i < PSC_getNrOfNodes(); i++) {
 	INIT_LIST_HEAD(&node_bufs[i].list);
 	node_bufs[i].flags = 0;
     }
 
-    PSIDMsgbuf_init();
+    return PSIDMsgbuf_init();
 }
 
 void clearRDPMsgs(int node)

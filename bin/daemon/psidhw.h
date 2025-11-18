@@ -33,9 +33,9 @@
  * like GPUs and high performance NICs like HCAs or HFIs are
  * determined.
  *
- * @return No return value.
+ * @return Return true on successful initialization or false on failure
  */
-void PSIDhw_init(void);
+bool PSIDhw_init(void);
 
 /**
  * @brief Re-initialize hardware stuff

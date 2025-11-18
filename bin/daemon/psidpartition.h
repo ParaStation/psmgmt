@@ -31,9 +31,9 @@
  * Initialize the partition handling framework. This registers
  * the necessary message handlers.
  *
- * @return No return value.
+ * @return Return true on successful initialization or false on failure
  */
-void initPartition(void);
+bool PSIDpart_init(void);
 
 /**
  * @brief Send a PSP_DD_GETTASKS message

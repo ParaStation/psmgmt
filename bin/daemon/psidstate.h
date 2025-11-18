@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2008-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,15 +15,17 @@
 #ifndef __PSIDSTATE_H
 #define __PSIDSTATE_H
 
+#include <stdbool.h>
+
 /**
  * @brief Initialize daemon status stuff
  *
  * Initialize the daemon status framework. This includes setting up
  * the master socket and registration of some message handler.
  *
- * @return No return value.
+ * @return Return true on successful initialization or false on failure
  */
-void initState(void);
+bool PSIDstate_init(void);
 
 /**
  * The different internal states of the daemon. The current state

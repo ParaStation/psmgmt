@@ -267,21 +267,18 @@ void PSIDFlwCntrl_printStat(void)
 	      PSitems_getUtilization(stopTIDs), PSitems_getDynamics(stopTIDs));
 }
 
-
-void PSIDFlwCntrl_init(void)
+bool PSIDFlwCntrl_init(void)
 {
-    if (PSitems_isInitialized(stopTIDs)) return;
+    if (PSitems_isInitialized(stopTIDs)) return true;
     stopTIDs = PSitems_new(sizeof(stopTID_t), "stopdTIDs");
     if (!stopTIDs) {
 	PSID_flog("cannot get stopTIDs items\n");
-	return;
+	return false;
     }
 
-    PSID_registerMsg(PSP_DD_SENDSTOP, (handlerFunc_t) msg_SENDSTOP);
-    PSID_registerMsg(PSP_DD_SENDCONT, (handlerFunc_t) msg_SENDCONT);
-    PSID_registerMsg(PSP_DD_SENDSTOPACK, (handlerFunc_t) msg_SENDSTOPACK);
+    return PSID_registerMsg(PSP_DD_SENDSTOP, (handlerFunc_t) msg_SENDSTOP)
+	&& PSID_registerMsg(PSP_DD_SENDCONT, (handlerFunc_t) msg_SENDCONT)
+	&& PSID_registerMsg(PSP_DD_SENDSTOPACK, (handlerFunc_t) msg_SENDSTOPACK)
 
-    PSID_registerLoopAct(PSIDFlwCntrl_gc);
-
-    return;
+	&& (PSID_registerLoopAct(PSIDFlwCntrl_gc) != 0);
 }

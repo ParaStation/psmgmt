@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -300,8 +300,8 @@ void PSIDtask_clearMem(void);
  * Initialize the task handling framework. This initializes the
  * necessary data pools and registers needed garbage collectors.
  *
- * @return No return value
+ * @return Return true on successful initialization or false on failure
  */
-void PSIDtask_init(void);
+bool PSIDtask_init(void);
 
 #endif  /* __PSIDTASK_H */

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2023 ParTec AG, Munich
+ * Copyright (C) 2023-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,14 +27,14 @@
 typedef list_t PSIDFlwCntrl_hash_t[FLWCNTRL_HASH_SIZE];
 
 /**
- * @brief Initialize flow-control.
+ * @brief Initialize flow-control functionality
  *
  * Initialize the flow-control module. This has to be called before any
  * function within this module is used.
  *
- * @return No return value.
+ * @return Return true on successful initialization or false on failure
  */
-void PSIDFlwCntrl_init(void);
+bool PSIDFlwCntrl_init(void);
 
 /**
  * @brief Check for applicability of flow-control

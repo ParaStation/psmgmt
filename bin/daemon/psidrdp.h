@@ -15,6 +15,7 @@
 #ifndef __PSIDRDP_H
 #define __PSIDRDP_H
 
+#include <stdbool.h>
 #include <sys/types.h>
 
 #include "psprotocol.h"
@@ -26,9 +27,9 @@
  * messages that could not yet be delivered to their final
  * destination.
  *
- * @return No return value
+ * @return Return true on successful initialization or false on failure
  */
-void initRDPMsgs(void);
+bool PSIDRDP_init(void);
 
 /**
  * @brief Clear RDP message buffers.

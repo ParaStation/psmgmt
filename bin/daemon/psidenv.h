@@ -14,6 +14,8 @@
 #ifndef __PSIDENV_H
 #define __PSIDENV_H
 
+#include <stdbool.h>
+
 #include "pstask.h"
 
 /**
@@ -22,9 +24,9 @@
  * Initialize the environment handling framework. This also registers
  * the necessary message handlers.
  *
- * @return No return value
+ * @return Return true on successful initialization or false on failure
  */
-void initEnvironment(void);
+bool PSIDenv_init(void);
 
 /**
  * @brief Send info on environment

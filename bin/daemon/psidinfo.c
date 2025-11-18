@@ -13,7 +13,6 @@
 
 #include <errno.h>
 #include <netinet/in.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -527,11 +526,10 @@ static bool drop_INFOREQUEST(DDBufferMsg_t *msg)
     return true;
 }
 
-void initInfo(void)
+bool PSIDinfo_init(void)
 {
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
-    PSID_registerMsg(PSP_CD_INFOREQUEST, (handlerFunc_t) msg_INFOREQUEST);
-
-    PSID_registerDropper(PSP_CD_INFOREQUEST, drop_INFOREQUEST);
+    return PSID_registerMsg(PSP_CD_INFOREQUEST, (handlerFunc_t) msg_INFOREQUEST)
+	&& PSID_registerDropper(PSP_CD_INFOREQUEST, drop_INFOREQUEST);
 }

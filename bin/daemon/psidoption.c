@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,7 +11,6 @@
  */
 #include "psidoption.h"
 
-#include <stdbool.h>
 #include <errno.h>
 #include <sys/resource.h>
 
@@ -1030,12 +1029,12 @@ static bool drop_GETOPTION(DDBufferMsg_t *msg)
     return true;
 }
 
-void initOptions(void)
+bool PSIDoptions_init(void)
 {
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
-    PSID_registerMsg(PSP_CD_SETOPTION, (handlerFunc_t) msg_SETOPTION);
-    PSID_registerMsg(PSP_CD_GETOPTION, (handlerFunc_t) msg_GETOPTION);
+    return PSID_registerMsg(PSP_CD_SETOPTION, (handlerFunc_t) msg_SETOPTION)
+	&& PSID_registerMsg(PSP_CD_GETOPTION, (handlerFunc_t) msg_GETOPTION)
 
-    PSID_registerDropper(PSP_CD_GETOPTION, drop_GETOPTION);
+	&& PSID_registerDropper(PSP_CD_GETOPTION, drop_GETOPTION);
 }

@@ -1214,17 +1214,17 @@ static bool msg_LOAD(DDBufferMsg_t *msg)
     return true;
 }
 
-void initStatus(void)
+bool PSIDstatus_init(void)
 {
     PSID_fdbg(PSID_LOG_VERB, "\n");
 
-    PSID_registerMsg(PSP_DD_DAEMONCONNECT, msg_DAEMONCONNECT);
-    PSID_registerMsg(PSP_DD_DAEMONESTABLISHED, msg_DAEMONESTABLISHED);
-    PSID_registerMsg(PSP_DD_DAEMONSHUTDOWN, (handlerFunc_t) msg_DAEMONSHUTDOWN);
-    PSID_registerMsg(PSP_DD_MASTER_IS, msg_MASTERIS);
-    PSID_registerMsg(PSP_DD_ACTIVE_NODES, msg_ACTIVENODES);
-    PSID_registerMsg(PSP_DD_DEAD_NODE, msg_DEADNODE);
-    PSID_registerMsg(PSP_DD_LOAD, msg_LOAD);
+    return PSID_registerMsg(PSP_DD_DAEMONCONNECT, msg_DAEMONCONNECT)
+	&& PSID_registerMsg(PSP_DD_DAEMONESTABLISHED, msg_DAEMONESTABLISHED)
+	&& PSID_registerMsg(PSP_DD_DAEMONSHUTDOWN, (handlerFunc_t) msg_DAEMONSHUTDOWN)
+	&& PSID_registerMsg(PSP_DD_MASTER_IS, msg_MASTERIS)
+	&& PSID_registerMsg(PSP_DD_ACTIVE_NODES, msg_ACTIVENODES)
+	&& PSID_registerMsg(PSP_DD_DEAD_NODE, msg_DEADNODE)
+	&& PSID_registerMsg(PSP_DD_LOAD, msg_LOAD)
 
-    PSID_registerDropper(PSP_DD_DAEMONCONNECT, drop_DAEMONCONNECT);
+	&& PSID_registerDropper(PSP_DD_DAEMONCONNECT, drop_DAEMONCONNECT);
 }

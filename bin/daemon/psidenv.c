@@ -10,7 +10,6 @@
  */
 #include "psidenv.h"
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -220,11 +219,11 @@ static bool drop_ENV(DDBufferMsg_t *msg)
     return true;
 }
 
-void initEnvironment(void)
+bool PSIDenv_init(void)
 {
     /* Register msg-handlers/droppers for environment modifications */
-    PSID_registerMsg(PSP_CD_ENV, (handlerFunc_t)msg_ENV);
-    PSID_registerMsg(PSP_CD_ENVRES, frwdMsg);
+    return PSID_registerMsg(PSP_CD_ENV, (handlerFunc_t)msg_ENV)
+	&& PSID_registerMsg(PSP_CD_ENVRES, frwdMsg)
 
-    PSID_registerDropper(PSP_CD_ENV, drop_ENV);
+	&& PSID_registerDropper(PSP_CD_ENV, drop_ENV);
 }

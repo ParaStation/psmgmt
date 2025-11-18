@@ -722,24 +722,24 @@ int main(int argc, const char *argv[])
     /* initialize various modules */
     PSIDcomm_init(true);  /* Must be first since it enables message
 			   * handlers and droppers */
-    initRDPMsgs();
+    PSIDRDP_init();
     PSIDclient_init();
-    initState();
-    initOptions();
-    initStatus();
-    initSignal();
+    PSIDstate_init();
+    PSIDoptions_init();
+    PSIDstatus_init();
+    PSIDsignal_init();
     PSIDtask_init();
     PSIDspawn_init();
     PSIDsession_init();
-    initPartition();
+    PSIDpart_init();
     PSIDhw_init();
     PSIDscripts_init();
-    initAccount();
-    initInfo();
-    initEnvironment();
+    PSIDacct_init();
+    PSIDinfo_init();
+    PSIDenv_init();
     initSerial(0, sendMsg);
     /* Plugins shall be last since they use most of the ones before */
-    initPlugins(logfile);
+    PSIDplugin_init(logfile);
 
     /* Now we start all the hardware -- this might include the accounter */
     PSID_dbg(PSID_LOG_HW, "starting up the hardware\n");
