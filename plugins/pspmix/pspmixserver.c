@@ -53,6 +53,9 @@ extern char **environ;
 /** Initialisation flag */
 static bool initialized = false;
 
+/** Internal reference for the error handler */
+static size_t errHandlerID = 0;
+
 /** Generic type for callback data */
 typedef struct {
     pmix_status_t status;
@@ -2054,8 +2057,7 @@ static void registerErrorHandler_cb (pmix_status_t status,
 }
 
 bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
-			const char *srvtmpdir, const char *systmpdir,
-			size_t *errHandlerID)
+			const char *srvtmpdir, const char *systmpdir)
 {
     fdbg(PSPMIX_LOG_CALL, "nspace %s rank %d srvtmpdir %s systmpdir %s\n",
 	 nspace, rank, srvtmpdir, systmpdir);
@@ -2313,7 +2315,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 
     /* register the error handler */
     INIT_CBDATA(cbdata, 0);
-    cbdata.data = errHandlerID;
+    cbdata.data = &errHandlerID;
     PMIx_Register_event_handler(NULL, 0, NULL, 0,
 	    errhandler, registerErrorHandler_cb, &cbdata);
     WAIT_FOR_CBDATA(cbdata);
@@ -3314,7 +3316,7 @@ bool pspmix_server_setupFork(const char *nspace, int rank, char ***childEnv)
     return true;
 }
 
-bool pspmix_server_finalize(size_t errHandlerID)
+bool pspmix_server_finalize()
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 

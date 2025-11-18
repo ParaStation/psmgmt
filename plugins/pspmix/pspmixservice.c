@@ -272,7 +272,7 @@ bool pspmix_service_init(PspmixServer_t *server, char *clusterID)
 
     /* initialize the pmix server */
     if (!pspmix_server_init(server->nspace, server->rank, clusterID,
-			    server->tmproot, NULL, &server->errHandlerID)) {
+			    server->tmproot, NULL)) {
 	flog("failed to initialize pspmix server for UID %d\n", server->uid);
 	return false;
     }
@@ -1179,7 +1179,7 @@ failed:
 
 bool pspmix_service_finalize(PspmixServer_t *server)
 {
-    if (!pspmix_server_finalize(server->errHandlerID)) {
+    if (!pspmix_server_finalize()) {
 	flog("failed to finalize pmix server\n");
 	return false;
     }
