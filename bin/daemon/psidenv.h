@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2023 ParTec AG, Munich
+ * Copyright (C) 2023-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,7 +27,7 @@
 void initEnvironment(void);
 
 /**
- * @brief Send info on environment.
+ * @brief Send info on environment
  *
  * Send information on the environment variable @a key and its values
  * currently set in the local daemon. All information about a single

@@ -424,15 +424,14 @@ static int handleSignals(int fd, void *info)
  * Additionally, SIGALRM's handler might be tweaked within the Timer
  * module.
  *
- * @return No return value.
+ * @return No return value
  */
 static void initSigHandlers(void)
 {
-    sigset_t set;
-
     PSID_prepareSigs(handleSignals);
 
     /* Some signals have to be handled separately */
+    sigset_t set;
     sigemptyset(&set);
     sigaddset(&set, SIGCHLD);
     PSID_initSignalFD(&set, handleSIGCHLD);

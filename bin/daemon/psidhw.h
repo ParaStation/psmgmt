@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -59,7 +59,7 @@ void PSIDhw_init(void);
 void PSIDhw_reInit(void);
 
 /**
- * @brief Init all communication hardware.
+ * @brief Init all communication hardware
  *
  * Initialize all the configured communication hardware. Various
  * parameters have to be set before. This is usually done by reading
@@ -70,14 +70,14 @@ void PSIDhw_reInit(void);
  * The actual initialization of the various hardware types defined is
  * done via calls to the internal switchHW() function.
  *
- * @return No return value.
+ * @return No return value
  *
  * @see PSID_readConfigFile()
  */
 void PSID_startAllHW(void);
 
 /**
- * @brief Stop all communication hardware.
+ * @brief Stop all communication hardware
  *
  * Stop and bring down all the configured and initialized
  * communication hardware. Various parameters have to be set
@@ -88,7 +88,7 @@ void PSID_startAllHW(void);
  * The actual stopping of the various hardware types defined is done
  * via calls to the internal switchHW() function.
  *
- * @return No return value.
+ * @return No return value
  *
  * @see PSID_readConfigFile()
  */

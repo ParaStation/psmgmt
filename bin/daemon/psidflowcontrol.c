@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -69,14 +69,12 @@ static void PSIDFlwCntrl_gc(void)
 
 void PSIDFlwCntrl_initHash(PSIDFlwCntrl_hash_t hash)
 {
-    int i;
-    for (i = 0; i < FLWCNTRL_HASH_SIZE; i++) INIT_LIST_HEAD(&hash[i]);
+    for (int i = 0; i < FLWCNTRL_HASH_SIZE; i++) INIT_LIST_HEAD(&hash[i]);
 }
 
 void PSIDFlwCntrl_emptyHash(PSIDFlwCntrl_hash_t hash)
 {
-    int i;
-    for (i = 0; i < FLWCNTRL_HASH_SIZE; i++) {
+    for (int i = 0; i < FLWCNTRL_HASH_SIZE; i++) {
 	if (list_empty(&hash[i])) continue;
 
 	list_t *s, *tmp;

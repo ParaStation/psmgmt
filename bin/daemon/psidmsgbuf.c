@@ -3,12 +3,14 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psidmsgbuf.h"
+
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,8 +20,6 @@
 #include "psitems.h"
 
 #include "psidutil.h"
-
-#include "psidmsgbuf.h"
 
 /** Amount of payload data available within a small msgbuf */
 #define MSGBUF_SMALLSIZE 64

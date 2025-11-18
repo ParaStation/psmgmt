@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,7 +28,7 @@
 void initAccount(void);
 
 /**
- * @brief Register accounter.
+ * @brief Register accounter
  *
  * Register a new accounter task with task ID @a acctr.
  *
@@ -39,7 +39,7 @@ void initAccount(void);
 void PSID_addAcct(PStask_ID_t acctr);
 
 /**
- * @brief Unregister accounter.
+ * @brief Unregister accounter
  *
  * Unregister the accounter task with task ID @a acctr.
  *
@@ -50,7 +50,7 @@ void PSID_addAcct(PStask_ID_t acctr);
 void PSID_remAcct(PStask_ID_t acctr);
 
 /**
- * @brief Cleanup node's accounters.
+ * @brief Cleanup node's accounters
  *
  * Cleanup all accounters located on node @a node from the list of
  * accounters. Typically this function is called whenever a node is
@@ -63,7 +63,7 @@ void PSID_remAcct(PStask_ID_t acctr);
 void PSID_cleanAcctFromNode(PSnodes_ID_t node);
 
 /**
- * @brief Send list of accounters.
+ * @brief Send list of accounters
  *
  * Send an option list of all known accounters to @a dest. Depending
  * on the value of @a all, either all accounters known are sent within
@@ -81,7 +81,7 @@ void PSID_cleanAcctFromNode(PSnodes_ID_t node);
 void send_acct_OPTIONS(PStask_ID_t dest, int all);
 
 /**
- * @brief Get number of accounters.
+ * @brief Get number of accounters
  *
  * Return the number of accounters currently registered to the set of
  * ParaStation daemons.

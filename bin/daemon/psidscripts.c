@@ -44,7 +44,7 @@ typedef struct {
 } CBInfo_t;
 
 /** Pool of callback information blobs (of type CBInfo_t) */
-static PSitems_t cbInfoPool = NULL;
+static PSitems_t cbInfoPool;
 
 /** List of active callback information blobs */
 static LIST_HEAD(cbInfoList);

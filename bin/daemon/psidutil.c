@@ -87,13 +87,11 @@ bool PSID_blockSig(int sig, bool block)
 
 int PSID_initSignalFD(sigset_t *set, Selector_CB_t handler)
 {
-    int sigFD;
-
     if (sigprocmask(SIG_BLOCK, set, NULL) < 0) {
 	PSID_exit(errno, "%s(%p): sigprocmask()", __func__, handler);
     }
 
-    sigFD = signalfd(-1, set, SFD_NONBLOCK | SFD_CLOEXEC);
+    int sigFD = signalfd(-1, set, SFD_NONBLOCK | SFD_CLOEXEC);
     if (sigFD < 0) {
 	PSID_exit(errno, "%s(%p): signalfd()", __func__, handler);
     }

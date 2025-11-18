@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -129,7 +129,7 @@ int send_TASKRESUME(PStask_ID_t tid);
 int send_CANCELPART(PStask_ID_t tid);
 
 /**
- * @brief Initialized partition handler.
+ * @brief Initialized partition handler
  *
  * Initialize the partition handler machinery. This includes allocating
  * memory used to store centralized information on the allocated
@@ -138,7 +138,7 @@ int send_CANCELPART(PStask_ID_t tid);
  * Usually this function is called upon detection that the local
  * daemon has to act as a master within the cluster.
  *
- * @return No return value.
+ * @return No return value
  */
 void initPartHandler(void);
 

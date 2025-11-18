@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,7 +20,7 @@
 #include "psprotocol.h"
 
 /**
- * @brief Initialize RDP message buffers.
+ * @brief Initialize RDP message buffers
  *
  * Initialize some structures used in order to temporarily store RDP
  * messages that could not yet be delivered to their final

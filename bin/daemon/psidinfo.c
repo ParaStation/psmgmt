@@ -3,12 +3,14 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psidinfo.h"
+
 #include <errno.h>
 #include <netinet/in.h>
 #include <stdbool.h>
@@ -39,8 +41,6 @@
 #include "psidstatus.h"
 #include "psidtask.h"
 #include "psidutil.h"
-
-#include "psidinfo.h"
 
 /**
  * @brief Handle a PSP_CD_INFOREQUEST message
