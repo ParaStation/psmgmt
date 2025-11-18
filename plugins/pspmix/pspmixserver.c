@@ -2039,23 +2039,6 @@ static void registerResources_cb(pmix_status_t status, void *cbdata)
     SET_CBDATA_AVAIL(data);
 }
 
-/**
- * To be called by error handler registration function to provide success state
- */
-static void registerErrorHandler_cb (pmix_status_t status,
-				     size_t errhandler_ref, void *cbdata)
-{
-    fdbg(PSPMIX_LOG_CALL, "\n");
-
-    mycbdata_t *data = cbdata;
-
-    *(size_t *)data->data = errhandler_ref;
-
-    data->status = status;
-
-    SET_CBDATA_AVAIL(data);
-}
-
 bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 			const char *srvtmpdir, const char *systmpdir)
 {
@@ -2313,20 +2296,16 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 
     fdbg(PSPMIX_LOG_VERBOSE, "PMIx_server_register_resources() successful\n");
 
-    /* register the error handler */
-    INIT_CBDATA(cbdata, 0);
-    cbdata.data = &errHandlerID;
-    PMIx_Register_event_handler(NULL, 0, NULL, 0,
-	    errhandler, registerErrorHandler_cb, &cbdata);
-    WAIT_FOR_CBDATA(cbdata);
-
-    if (cbdata.status != PMIX_SUCCESS) {
-	flog("callback from register error handler failed: %s\n",
-	     PMIx_Error_string(cbdata.status));
-	DESTROY_CBDATA(cbdata);
+    /* register the error handler
+       called without cbfunc, this is a blocking call and the return
+       value is the handler id or negative as error indicator */
+    status = PMIx_Register_event_handler(NULL, 0, NULL, 0, errhandler, NULL,
+					 NULL);
+    if (status < 0) {
+	flog("register error handler failed\n");
 	return false;
     }
-    DESTROY_CBDATA(cbdata);
+    errHandlerID = status;
 
     initialized = true;
 
