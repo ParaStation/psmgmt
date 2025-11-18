@@ -1977,6 +1977,8 @@ static void errhandler(size_t evhdlr_registration_id, pmix_status_t status,
 {
     fdbg(PSPMIX_LOG_CALL, "status %d proc %s ninfo %lu nresults %lu\n",
 	 status, pmixProcStr(source), ninfo, nresults);
+
+    if (cbfunc) cbfunc(PMIX_EVENT_ACTION_COMPLETE, NULL, 0, NULL, NULL, cbdata);
 }
 
 static bool fillServerSessionArray(pmix_data_array_t *sessionInfo,
