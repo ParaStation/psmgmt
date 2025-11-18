@@ -451,36 +451,34 @@ typedef struct {
     PSID_loopAction_t *action; /**< Actual loop-action to be called */
 } action_t;
 
-int PSID_registerLoopAct(PSID_loopAction_t action)
+bool PSID_registerLoopAct(PSID_loopAction_t action)
 {
     action_t *newAction = malloc(sizeof(*newAction));
-
-    if (!newAction) return -1;
+    if (!newAction) {
+	errno = ENOMEM;
+	return false;
+    }
 
     newAction->action = action;
-
     list_add_tail(&newAction->next, &loopActions);
 
-    return 0;
+    return true;
 }
 
-int PSID_unregisterLoopAct(PSID_loopAction_t action)
+bool PSID_unregisterLoopAct(PSID_loopAction_t action)
 {
     list_t *a;
-
     list_for_each(a, &loopActions) {
 	action_t *curAct = list_entry(a, action_t, next);
+	if (curAct->action != action) continue;
 
-	if (curAct->action == action) {
-	    list_del(&curAct->next);
-	    free(curAct);
-
-	    return 0;
-	}
+	list_del(&curAct->next);
+	free(curAct);
+	return true;
     }
 
     errno = ENOKEY;
-    return -1;
+    return false;
 }
 
 void PSID_handleLoopActions(void)

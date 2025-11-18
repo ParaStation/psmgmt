@@ -347,7 +347,7 @@ static void recvBuf_gc(void)
 }
 
 /** Function to remove registered hooks later on */
-static int (*relLoopAct)(PSID_loopAction_t) = NULL;
+static bool (*relLoopAct)(PSID_loopAction_t);
 
 /**
  * @brief Register loop action if possible
@@ -367,12 +367,12 @@ static void initLoopAction(void)
 {
     /* Determine if PSID_registerLoopAct is available */
     if (!mainHandle) mainHandle = dlopen(NULL, 0);
-    int (*regLoopAct)(PSID_loopAction_t) = dlsym(mainHandle,
-						 "PSID_registerLoopAct");
+    bool (*regLoopAct)(PSID_loopAction_t) = dlsym(mainHandle,
+						  "PSID_registerLoopAct");
     relLoopAct = dlsym(mainHandle, "PSID_unregisterLoopAct");
 
     if (regLoopAct && relLoopAct) {
-	if (regLoopAct(recvBuf_gc) < 0) {
+	if (!regLoopAct(recvBuf_gc)) {
 	    PSC_fwarn(errno, "register loop action");
 	    return;
 	}

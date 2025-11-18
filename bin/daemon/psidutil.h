@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -456,18 +456,18 @@ typedef void PSID_loopAction_t(void);
  * waiting for new messages coming in to be handled. After a period
  * defined by either by the SelectTime parameter in the
  * parastation.conf configuration file, in the Psid section of the
- * psconfig database, or psiadmin's 'set selecttime' directive
- * Swait() returns and allows periodic actions. These type of
- * actions might be registered here.
+ * psconfig database, or psiadmin's 'set selecttime' directive Swait()
+ * returns and allows periodic actions. These type of actions might be
+ * registered here.
  *
  * It is allowed to register multiple, independent actions.
  *
  * @param action Main-loop action to register
  *
- * @return On success, 0 is returned. On error, -1 is returned, and
- * errno is set appropriately.
+ * @return On success true is returned, or false on failure with errno
+ * set appropriately
  */
-int PSID_registerLoopAct(PSID_loopAction_t action);
+bool PSID_registerLoopAct(PSID_loopAction_t action);
 
 /**
  * @brief Un-register main-loop action
@@ -478,16 +478,17 @@ int PSID_registerLoopAct(PSID_loopAction_t action);
  * This function might be called from within the actual main-loop
  * action. Thus, a action is allowed to un-register itself.
  *
- * @warning It is disallowed to un-register any other main-loop action
- * besides the action currently executed from within a main-loop
- * action.
+ * @warning It is forbidden to un-register any other main-loop action
+ * besides the action currently executed; doing so might result in a
+ * corrupted list of action leading to undefined behavior.
  *
  * @param action Main-loop action to un-register
  *
- * @return On success, 0 is returned. On error, -1 is returned, and
- * errno is set appropriately.
+ * @return On success true is returned, or false on failure with errno
+ * set appropriately; this most probably indicates that @a actions was
+ * not registered any more
  */
-int PSID_unregisterLoopAct(PSID_loopAction_t action);
+bool PSID_unregisterLoopAct(PSID_loopAction_t action);
 
 /**
  * @brief Call main-loop action
