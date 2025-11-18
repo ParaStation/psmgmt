@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,7 +11,6 @@
 #include "pssignal.h"
 
 #include <errno.h>
-#include <stdbool.h>
 #include <stddef.h>
 
 #include "list.h"
@@ -21,10 +20,11 @@
 /** data structure to handle a pool of signal structures */
 static PSitems_t sigPool = NULL;
 
-void PSsignal_init(void)
+bool PSsignal_init(void)
 {
-    if (PSitems_isInitialized(sigPool)) return;
+    if (PSitems_isInitialized(sigPool)) return true;
     sigPool = PSitems_new(sizeof(PSsignal_t), "PSsignal");
+    return sigPool;
  }
 
 PSsignal_t *PSsignal_get(void)

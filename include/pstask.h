@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -446,10 +446,10 @@ void PStask_clearMem(void);
  * any function manipulating a task's extra information like @ref
  * PStask_infoAdd(), or @ref PStask_infoRemove().
  *
- * @return No return value
+ * @return Return true on successful initialization or false on failure
  *
  * @see PStask_infoAdd(), PStask_infoRemove()
  */
-void PStask_init(void);
+bool PStask_init(void);
 
 #endif  /* __PSTASK_H */

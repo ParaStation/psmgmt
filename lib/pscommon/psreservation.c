@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -107,8 +107,9 @@ void PSrsrvtn_clearMem(void)
     rsrvtnPool = NULL;
 }
 
-void PSrsrvtn_init(void)
+bool PSrsrvtn_init(void)
 {
-    if (PSitems_isInitialized(rsrvtnPool)) return;
+    if (PSitems_isInitialized(rsrvtnPool)) return true;
     rsrvtnPool = PSitems_new(sizeof(PSrsrvtn_t), "rsrvtnPool");
+    return rsrvtnPool;
 }

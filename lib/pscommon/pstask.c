@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -668,8 +668,9 @@ PSrsrvtn_ID_t PStask_getNextResID(PStask_t *task)
     return task->nextResID;
 }
 
-void PStask_init(void)
+bool PStask_init(void)
 {
-    if (PSitems_isInitialized(infoPool)) return;
+    if (PSitems_isInitialized(infoPool)) return true;
     infoPool = PSitems_new(sizeof(PStask_infoItem_t), "PStask_info");
+    return infoPool;
 }

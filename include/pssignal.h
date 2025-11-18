@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +14,7 @@
 #ifndef __PSSIGNAL_H
 #define __PSSIGNAL_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "list_t.h"
@@ -32,9 +33,9 @@ typedef struct {
  * Initialize to pool of signal structures. Must be called before any
  * other function in this module.
  *
- * @return No return value
+ * @return Return true on successful initialization or false on failure
  */
-void PSsignal_init(void);
+bool PSsignal_init(void);
 
 /**
  * @brief Get signal structure from pool
