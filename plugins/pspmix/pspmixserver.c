@@ -2245,12 +2245,8 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     INFO_LIST_CONVERT(list, &info);
 
     if (mset(PSPMIX_LOG_INFOARR)) {
-	flog("PMIx_server_init info:\n");
-	for (size_t j = 0; j < info.size; j++) {
-	    char * istr = PMIx_Info_string(&((pmix_info_t *)info.array)[j]);
-	    mlog("   %s\n", istr);
-	    free(istr);
-	}
+	printInfoArray("PMIx_server_init_info", (pmix_info_t *)info.array,
+		       info.size, true);
     }
 
     /* initialize server library */
@@ -2276,9 +2272,8 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 		   PMIX_DATA_ARRAY);
 
     if (mset(PSPMIX_LOG_INFOARR)) {
-	flog("PMIx_server_register_resources info:\n");
-	for (size_t j = 0; j < cbdata.ninfo; j++)
-	    mlog("   %s\n", PMIx_Info_string(&cbdata.info[j]));
+	printInfoArray("PMIx_server_register_resources info", cbdata.info,
+		       cbdata.ninfo, false);
     }
 
     status = PMIx_server_register_resources(cbdata.info, cbdata.ninfo,
@@ -3060,12 +3055,8 @@ bool pspmix_server_registerNamespace(char *srv_nspace, pmix_rank_t srv_rank,
 
     /* debugging output of info values */
     if (mset(PSPMIX_LOG_INFOARR)) {
-	flog("PMIx_server_register_nspace info:\n");
-	for (size_t j = 0; j < cbdata.ninfo; j++) {
-	    char * istr = PMIx_Info_string(&cbdata.info[j]);
-	    mlog("   %s\n", istr);
-	    free(istr);
-	}
+	printInfoArray("PMIx_server_register_nspace info", cbdata.info,
+		       cbdata.ninfo, true);
     }
 
     /* register namespace */
