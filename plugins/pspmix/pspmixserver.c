@@ -1612,8 +1612,9 @@ static void server_tool_connection_cb(pmix_info_t *info, size_t ninfo,
 }
 
 static void printInfoArray(char *arr_name, const pmix_info_t *arr,
-			   size_t arr_size)
+			   size_t arr_size, bool printempty)
 {
+    if (printempty && !arr_size) return;
     flog("%s:\n", arr_name);
     for (size_t i = 0; i < arr_size; i++) {
 	char * istr = PMIx_Info_string(arr+i);
@@ -1635,8 +1636,8 @@ static void server_log_cb(const pmix_proc_t *client,
     fdbg(PSPMIX_LOG_CALL, "client %s ndata %zd ndirs %zd\n", pmixProcStr(client),
 	 ndata, ndirs);
     if (mset(PSPMIX_LOG_LOGGING)) {
-	printInfoArray("data", data, ndata);
-	printInfoArray("directives", directives, ndirs);
+	printInfoArray("data", data, ndata, true);
+	printInfoArray("directives", directives, ndirs, true);
     }
 
     PspmixLogCall_t call = pspmix_service_newLogCall(client);
@@ -1968,7 +1969,7 @@ static pmix_server_module_t module = {
     .client_connected2 = server_client_connected2_cb,
 };
 
-/* XXX */
+/* error event handler */
 static void errhandler(size_t evhdlr_registration_id, pmix_status_t status,
 		       const pmix_proc_t *source,
 		       pmix_info_t info[], size_t ninfo,
@@ -1978,6 +1979,8 @@ static void errhandler(size_t evhdlr_registration_id, pmix_status_t status,
     fdbg(PSPMIX_LOG_CALL, "status %d proc %s ninfo %lu nresults %lu\n",
 	 status, pmixProcStr(source), ninfo, nresults);
 
+    flog("%s: %s\n", pmixProcStr(source), PMIx_Error_string(status));
+    printInfoArray("info", info, ninfo, false);
     if (cbfunc) cbfunc(PMIX_EVENT_ACTION_COMPLETE, NULL, 0, NULL, NULL, cbdata);
 }
 
