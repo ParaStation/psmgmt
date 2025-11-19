@@ -286,7 +286,7 @@ int initialize(FILE *logfile)
     pluginConfig_traverse(RRCommConfig, evalValue, NULL);
 
     serialInitialized = initSerial(0, sendMsg);
-    if (serialInitialized) {
+    if (!serialInitialized) {
 	flog("initSerial() failed\n");
 	return 1;
     }
