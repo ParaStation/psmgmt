@@ -119,6 +119,21 @@ typedef struct {
 	} \
     } while(0)
 
+/* Print info array using flog()
+ * In case of an empty array, @a printempty controls if only the array name is
+ * printed or nothing. */
+static void printInfoArray(char *arr_name, const pmix_info_t *arr,
+			   size_t arr_size, bool printempty)
+{
+    if (!arr_size && !printempty) return;
+    flog("%s:\n", arr_name);
+    for (size_t i = 0; i < arr_size; i++) {
+	char * istr = PMIx_Info_string(arr+i);
+	flog("  %s\n", istr);
+	free(istr);
+    }
+}
+
 #if 0
 /* Create a string representation of a typed pmix value */
 static const char * encodeValue(const pmix_value_t *val, pmix_rank_t rank)
@@ -1609,18 +1624,6 @@ static void server_tool_connection_cb(pmix_info_t *info, size_t ninfo,
     flog("NOT IMPLEMENTED\n");
 
     /* not implemented */
-}
-
-static void printInfoArray(char *arr_name, const pmix_info_t *arr,
-			   size_t arr_size, bool printempty)
-{
-    if (printempty && !arr_size) return;
-    flog("%s:\n", arr_name);
-    for (size_t i = 0; i < arr_size; i++) {
-	char * istr = PMIx_Info_string(arr+i);
-	flog("  %s\n", istr);
-	free(istr);
-    }
 }
 
 /* Log data on behalf of a client.
