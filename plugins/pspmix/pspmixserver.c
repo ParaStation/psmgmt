@@ -3288,7 +3288,7 @@ bool pspmix_server_setupFork(const char *nspace, int rank, char ***childEnv)
     return true;
 }
 
-bool pspmix_server_finalize()
+bool pspmix_server_finalize(void)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 

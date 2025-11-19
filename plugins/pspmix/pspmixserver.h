@@ -259,7 +259,7 @@ void pspmix_server_spawnRes(bool success, spawndata_t *sdata,
  *
  * @return true on success, false on error
  */
-bool pspmix_server_finalize();
+bool pspmix_server_finalize(void);
 
 
 #endif  /* __PS_PMIX_SERVER */
