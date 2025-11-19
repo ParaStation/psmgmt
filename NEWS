@@ -6,6 +6,12 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.5.3:
+==============
+Bugfixes:
+ - fix typo preventing init of rrcomm plugin
+
+
 Version 6.5.2:
 ==============
 Bugfixes:
