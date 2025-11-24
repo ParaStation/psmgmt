@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -149,13 +149,13 @@ int initialize(FILE *logfile)
 
     void *nodeInfoHandle = PSIDplugin_getHandle("nodeinfo");
     if (!nodeInfoHandle) {
-	pluginlog("%s: getting nodeinfo handle failed\n", __func__);
+	pluginflog("cannot get nodeinfo handle\n");
 	return 1;
     }
 
     reinitNodeInfo = dlsym(nodeInfoHandle, "reinitNodeInfo");
     if (!reinitNodeInfo) {
-	pluginlog("%s: getting reinitNodeInfo() function failed\n", __func__);
+	pluginflog("cannot access reinitNodeInfo()\n");
 	return 1;
     }
 
@@ -183,7 +183,7 @@ int initialize(FILE *logfile)
 
 void cleanup(void)
 {
-    pluginlog("%s\n", __func__);
+    pluginflog("\n");
 
     if (initialized) resetFakeTopology();
     free(oldHWLOC_XMLFILE);
@@ -192,7 +192,7 @@ void cleanup(void)
     pluginConfig_destroy(config);
     config = NULL;
 
-    pluginlog("%s: Done\n", __func__);
+    pluginflog("Done\n");
 }
 
 char * help(char *key)
