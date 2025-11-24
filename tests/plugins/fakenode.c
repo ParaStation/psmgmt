@@ -69,7 +69,10 @@ static void resetFakeTopology(void)
     } else {
 	unsetenv("HWLOC_XMLFILE");
     }
-    reinitNodeInfo();
+    if (!reinitNodeInfo()) {
+	pluginflog("reinitNodeInfo failed\n");
+	exit(1);
+    }
     PSIDnodes_setPinProcs(PSC_getMyID(), oldPinProcs);
     PSIDnodes_setBindMem(PSC_getMyID(), oldBindMem);
 }
@@ -115,7 +118,10 @@ static char *doEval(const char *key, const pluginConfigVal_t *val,
 
 	setenv("HWLOC_XMLFILE", topoFile, 1);
 	free(topoFile);
-	reinitNodeInfo();
+	if (!reinitNodeInfo()) {
+	    pluginflog("reinitNodeInfo failed\n");
+	    exit(1);
+	}
 	PSIDnodes_setPinProcs(PSC_getMyID(), 0);
 	PSIDnodes_setBindMem(PSC_getMyID(), 0);
 	free(curTopology);
