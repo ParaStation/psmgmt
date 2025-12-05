@@ -125,12 +125,9 @@ bool Job_delete(Job_t *job)
     return true;
 }
 
-Job_t *Job_add(uint32_t jobid)
+Job_t *Job_add(void)
 {
     Job_t *job = ucalloc(sizeof(Job_t));
-
-    Job_t *dup = Job_findById(jobid);
-    if (dup) Job_destroy(dup);
 
     job->stdOutFD = job->stdErrFD = -1;
     INIT_LIST_HEAD(&job->gresList);
@@ -313,11 +310,7 @@ void Job_getInfos(Resp_Node_Reg_Status_t *stat)
 	if (stat->infoCount == max) break;
 	/* report all known jobs, even in state complete/exit */
 	Head_ID_t *head = &(stat->infos)[stat->infoCount];
-	head->sluid = NO_VAL64;
-	head->jobid = job->hID.jobid;
-	head->stepid = SLURM_BATCH_SCRIPT;
-	head->stepHetComp = NO_VAL;
-
+	*head = job->hID;
 	stat->infoCount++;
 	fdbg(PSSLURM_LOG_DEBUG, "add job %u\n", job->hID.jobid);
     }

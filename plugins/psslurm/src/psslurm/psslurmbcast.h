@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,7 +28,8 @@
 typedef struct {
     time_t ctime;	/**< creation time */
     time_t etime;	/**< expire time */
-    Head_ID_t hID;	/**< associated step identifier */
+    Head_ID_t hID;	/**< Slurm head identifier */
+    uint32_t hetJobID;	/**< heterogeneous job identifier */
     uid_t uid;		/**< user id */
     gid_t gid;		/**< group id */
     char *username;	/**< username */
@@ -147,7 +148,7 @@ void BCast_freeCred(BCast_Cred_t *cred);
  *
  * @param exe The executable name to adjust
  *
- * @param hID Head identifier associated step
+ * @param hID Associated step's head identifier
  *
  * @return Returns the adjusted or original executable name on success or
  * NULL on error

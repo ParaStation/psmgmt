@@ -570,7 +570,7 @@ void Step_getInfos(Resp_Node_Reg_Status_t *stat)
 	if (stat->infoCount == max) break;
 	/* report all known jobs, even in state complete/exit */
 	Head_ID_t *head = &(stat->infos)[stat->infoCount];
-	memcpy(head, &(step->hID), sizeof(step->hID));
+	*head = step->hID;
 
 	stat->infoCount++;
 	fdbg(PSSLURM_LOG_DEBUG, "add %s\n", Step_strID(step));

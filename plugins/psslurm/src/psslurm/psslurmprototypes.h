@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2023-2025 ParTec AG, Munich
+ * Copyright (C) 2023-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -60,6 +60,12 @@ typedef struct {
     uint64_t freemem;
 } Resp_Ping_t;
 
+/** Holding information for RPC RESPONSE_JOB_ID */
+typedef struct {
+    Head_ID_t *hID;		/**< Step head identifier */
+    uint32_t result;		/**< RPC result */
+} Resp_Jobid_t;
+
 /** Structure for registering the node to slurmctld */
 typedef struct {
     time_t now;			/**< current time */
@@ -92,6 +98,7 @@ typedef struct {
     char *cloudID;		/**< cloud instance identifier (unused) */
     char *cloudType;		/**< cloud instance type (unused) */
     uint64_t memSpecLimit;	/**< memory limit for specialization */
+    char *parameters;		/**< SlurmdParameters config option */
 } Resp_Node_Reg_Status_t;
 
 /** Structure holding all infos to pack Slurm accounting data */
@@ -158,11 +165,11 @@ typedef struct {
 
 /** Holding data for RPC REQUEST_SUSPEND_INT */
 typedef struct {
-    uint8_t  indefSus;	    /* indefinitely suspended (switch plugin)
-			       (removed in 23.11) */
-    uint16_t jobCoreSpec;   /* number of specialized cores (removed in 23.11) */
-    uint32_t jobid;	    /* unique job identifier */
-    uint16_t op;	    /* operation (suspend or resume) */
+    Head_ID_t hID;	    /**< Step head identifier */
+    uint8_t  indefSus;	    /**< indefinitely suspended (switch plugin)
+			         (removed in 23.11) */
+    uint16_t jobCoreSpec;   /**< number of specialized cores (removed in 23.11) */
+    uint16_t op;	    /**< operation (suspend or resume) */
 } Req_Suspend_Int_t;
 
 /** Data for the REQUEST_UPDATE_NODE message */
@@ -222,19 +229,19 @@ typedef struct {
 
 /** Holding all information for RPC REQUEST_JOB_NOTIFY */
 typedef struct {
-    Head_ID_t hID;		/**< Step head identifier */
+    Head_ID_t hID;	    /**< Step head identifier */
     char *msg;		    /**< the message to send to the job */
 } Req_Job_Notify_t;
 
 /** Holding all information for RPC REQUEST_COMPLETE_PROLOG */
 typedef struct {
-    uint32_t jobid;		/**< unique job identifier */
+    Head_ID_t hID;		/**< Step head identifier */
     uint32_t rc;		/**< prolog return code */
 } Req_Prolog_Comp_t;
 
 /** Holding all information for RPC REQUEST_JOB_REQUEUE */
 typedef struct {
-    uint32_t jobid;		/**< unique job identifier */
+    Head_ID_t hID;		/**< unique head identifier */
     uint32_t flags;		/**< flags including pending, hold, failed */
 } Req_Job_Requeue_t;
 
@@ -256,8 +263,8 @@ typedef struct {
 
 /** Holding all information for RPC REQUEST_COMPLETE_BATCH_SCRIPT */
 typedef struct {
+    Head_ID_t hID;		/**< Slurm head identifier */
     SlurmAccData_t *sAccData;	/**< Slurm account data */
-    uint32_t jobid;		/**< unique job identifier */
     uint32_t exitStatus;	/**< exit code of the job-script */
     uint32_t rc;		/**< return code (drains node when != 0) */
     uint32_t uid;		/**< user ID */
@@ -833,7 +840,6 @@ typedef struct {
 
 /** Holding all information for RPC REQUEST_LAUNCH_PROLOG */
 typedef struct {
-    uint32_t jobid;		/**< unique job identifier */
     uint32_t hetJobid;		/**< step het component identifier */
     uid_t uid;			/**< unique user identifier */
     gid_t gid;			/**< unique group identifier */

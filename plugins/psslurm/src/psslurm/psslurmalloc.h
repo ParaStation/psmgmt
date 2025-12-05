@@ -24,7 +24,7 @@
 
 typedef struct {
     list_t next;            /**< used to put into some allocation-lists */
-    uint32_t id;	    /**< unique allocation identifier */
+    Head_ID_t hID;	    /**< unique Slurm head identifier */
     uint32_t packID;	    /**< unique pack identifier */
     uid_t uid;		    /**< user ID of the allocation owner */
     gid_t gid;		    /**< group of the allocation owner */
@@ -61,7 +61,7 @@ typedef enum {
 /**
  * @brief Add a new allocation
  *
- * @param id unique allocation identifier
+ * @param hID Unique head identifier
  *
  * @param packID unique pack identifier
  *
@@ -78,7 +78,7 @@ typedef enum {
  * @return Returns the newly created allocation or a existing allocation
  * with the given @a id
  */
-Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t env,
+Alloc_t *Alloc_add(Head_ID_t *hID, uint32_t packID, char *slurmHosts, env_t env,
 		   uid_t uid, gid_t gid, char *username);
 
 /**

@@ -529,7 +529,11 @@ void send_PS_JobLaunch(Job_t *job)
     }
     if (!getNumFragDest(&data)) return;
 
-    addUint32ToMsg(job->hID.jobid, &data);
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	packSlurmID(&job->hID, &data);
+    } else {
+	addUint32ToMsg(job->hID.jobid, &data);
+    }
 
     addUint32ToMsg(job->uid, &data);
     addUint32ToMsg(job->gid, &data);
@@ -552,7 +556,7 @@ void send_PS_AllocState(Alloc_t *alloc)
     }
     if (!getNumFragDest(&data)) return;
 
-    addUint32ToMsg(alloc->id, &data);
+    addUint32ToMsg(alloc->hID.jobid, &data);
     addUint16ToMsg(alloc->state, &data);
 
     sendFragMsg(&data);
@@ -604,7 +608,7 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
 	}
     }
 
-    flog("%s alloc %u state %s\n", exit ? "error" : "success", alloc->id,
+    flog("%s alloc %u state %s\n", exit ? "error" : "success", alloc->hID.jobid,
 	 Alloc_strState(alloc->state));
 
     return 0;
@@ -693,7 +697,7 @@ void send_PS_EpilogueStateReq(Alloc_t *alloc)
     }
     if (!getNumFragDest(&data)) return;
 
-    addUint32ToMsg(alloc->id, &data);
+    addUint32ToMsg(alloc->hID.jobid, &data);
 
     sendFragMsg(&data);
 }
@@ -709,7 +713,7 @@ void send_PS_PElogueRes(Alloc_t *alloc, int16_t res, int16_t type)
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PELOGUE_RES);
     setFragDest(&data, dest);
 
-    addUint32ToMsg(alloc->id, &data);
+    addUint32ToMsg(alloc->hID.jobid, &data);
     addInt16ToMsg(res, &data);
     addInt16ToMsg(type, &data);
 
@@ -815,7 +819,7 @@ static void handleEpilogueStateRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data
     int localID = getSlurmNodeID(sender, alloc->nodes, alloc->nrOfNodes);
     if (localID < 0) {
 	flog("sender node %i in allocation %u not found\n",
-		sender, alloc->id);
+		sender, alloc->hID.jobid);
 	return;
     }
 
@@ -877,7 +881,7 @@ static bool startWaitingJobs(Job_t *job, const void *info)
 	    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,
 		 Job_strState(job->state));
 	    if (!ret) {
-		sendJobRequeue(jobid);
+		sendJobRequeue(&job->cred->hID);
 		return true;
 	    }
     }
@@ -914,7 +918,7 @@ static void handlePElogueRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     PSnodes_ID_t sender = PSC_getID(msg->header.sender);
     int localID = getSlurmNodeID(sender, alloc->nodes, alloc->nrOfNodes);
     if (localID < 0) {
-	flog("sender node %i in allocation %u not found\n", sender, alloc->id);
+	flog("sender node %i in allocation %u not found\n", sender, alloc->hID.jobid);
 	return;
     }
     if (res == PELOGUE_PENDING) {
@@ -935,7 +939,7 @@ static void handlePElogueRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 	    snprintf(reason, sizeof(reason),
 		     "psslurm: %s failed with unknown result %i\n", sType, res);
 	}
-	setNodeOffline(alloc->env, alloc->id,
+	setNodeOffline(alloc->env, alloc->hID.jobid,
 		       getSlurmHostbyNodeID(sender), reason);
     } else {
 	fdbg(PSSLURM_LOG_PELOG, "%s success for allocation %u on "
@@ -945,12 +949,12 @@ static void handlePElogueRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     if (type == PELOGUE_PROLOGUE) {
 	    if (alloc->nrOfNodes == ++alloc->prologCnt) {
 		flog("prologue for allocation %u on %u node(s) finished \n",
-		     alloc->id, alloc->nrOfNodes);
+		     alloc->hID.jobid, alloc->nrOfNodes);
 
 		char *prologue = getConfValueC(SlurmConfig, "Prolog");
 		if (prologue && prologue[0] != '\0') {
 		    /* let waiting jobs start */
-		    Job_traverse(startWaitingJobs, &alloc->id);
+		    Job_traverse(startWaitingJobs, &alloc->hID.jobid);
 		}
 	    }
     } else {
@@ -983,6 +987,19 @@ static void handleJobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     job->state = JOB_QUEUED;
     fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid, Alloc_strState(job->state));
     job->mother = msg->header.sender;
+
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	unpackSlurmID(data, &job->hID,slurmProto);
+    } else {
+	getUint32(data, &job->hID.jobid);
+    }
+
+    Job_t *dup = Job_findById(hID.jobid);
+    if (dup) Job_delete(dup);
+
+    job->hID = hID;
+    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,
+	 Alloc_strState(job->state));
 
     /* get uid/gid */
     getUint32(data, &job->uid);
@@ -1366,7 +1383,7 @@ static void handleAllocTerm(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
     if (alloc->state == A_RUNNING || alloc->state == A_EPILOGUE ||
 	alloc->state == A_PROLOGUE) {
-	Alloc_signal(alloc->id, SIGKILL, 0);
+	Alloc_signal(alloc->hID.jobid, SIGKILL, 0);
     }
 
     Alloc_delete(alloc);
@@ -1461,9 +1478,9 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 	if (alloc->nodes[i] != node) continue;
 
 	flog("node %i in allocation %u state %s is down\n",
-	     node, alloc->id, Alloc_strState(alloc->state));
+	     node, alloc->hID.jobid, Alloc_strState(alloc->state));
 
-	Step_t *step = Step_findByJobid(alloc->id);
+	Step_t *step = Step_findByJobid(alloc->hID.jobid);
 	if (!step) step = Step_findByJobid(alloc->packID);
 	if (step && step->leader) {
 	    char buf[512];
@@ -1473,7 +1490,7 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 	}
 
 	if (!alloc->nodeFail) {
-	    Job_t *job = Job_findById(alloc->id);
+	    Job_t *job = Job_findById(alloc->hID.jobid);
 	    if (!job) job = Job_findById(alloc->packID);
 	    if (job && !job->mother) {
 		char buf[512];
@@ -1492,7 +1509,7 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 
 	if (alloc->state == A_RUNNING
 	    || alloc->state == A_PROLOGUE_FINISH) {
-	    Alloc_signal(alloc->id, SIGKILL, 0);
+	    Alloc_signal(alloc->hID.jobid, SIGKILL, 0);
 	}
 
 	alloc->nodeFail = true;
@@ -1571,7 +1588,7 @@ static void handleDroppedEpilogue(DDTypedBufferMsg_t *msg)
 
     if (localID < 0) {
 	flog("dest node %i in allocation %u not found\n",
-		dest, alloc->id);
+		dest, alloc->hID.jobid);
 	return;
     }
 
@@ -1580,8 +1597,8 @@ static void handleDroppedEpilogue(DDTypedBufferMsg_t *msg)
 	alloc->epilogCnt++;
     }
 
-    flog("node %i for epilogue %u unreachable\n", dest, alloc->id);
-    setNodeOffline(alloc->env, alloc->id, getSlurmHostbyNodeID(dest),
+    flog("node %i for epilogue %u unreachable\n", dest, alloc->hID.jobid);
+    setNodeOffline(alloc->env, alloc->hID.jobid, getSlurmHostbyNodeID(dest),
 		   "psslurm: node unreachable for epilogue");
 
     finalizeEpilogue(alloc);
@@ -2600,7 +2617,7 @@ void sendPElogueOE(Alloc_t *alloc, PElogue_OEdata_t *oeData)
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PELOGUE_OE);
     setFragDest(&data, PSC_getTID(alloc->nodes[0], 0));
 
-    addUint32ToMsg(alloc->id, &data);
+    addUint32ToMsg(alloc->hID.jobid, &data);
     addInt8ToMsg(oeData->child->type, &data);
     addInt8ToMsg(oeData->type, &data);
     addStringToMsg(oeData->msg, &data);
@@ -2617,7 +2634,7 @@ void send_PS_AllocTerm(Alloc_t *alloc)
     }
     if (!getNumFragDest(&data)) return;
 
-    addUint32ToMsg(alloc->id, &data);
+    addUint32ToMsg(alloc->hID.jobid, &data);
 
     sendFragMsg(&data);
 }

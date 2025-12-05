@@ -175,12 +175,11 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     if (pluginShutdown) {
 	/* shutdown in progress, hence we skip the epilogue */
-	uint32_t allocID = alloc->id;
 	Alloc_delete(alloc);
-	sendEpilogueComplete(allocID, SLURM_SUCCESS);
+	sendEpilogueComplete(&alloc->hID, SLURM_SUCCESS);
     } else if (alloc->terminate) {
 	/* run epilogue now */
-	flog("starting epilogue for allocation %u\n", alloc->id);
+	flog("starting epilogue for allocation %u\n", alloc->hID.jobid);
 	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,
 	     Job_strState(job->state));
 	startPElogue(alloc, PELOGUE_EPILOGUE);
@@ -1733,7 +1732,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
     if (GPUfreq_isInitialized() && !Freq_adjustJobGPUs(job)) {
 	char buf[512];
 	snprintf(buf, sizeof(buf), "Adjusting GPU frequency for job %u "
-		 "failed\n", job->jobid);
+		 "failed\n", job->hID.jobid);
 	queueFwMsg(&job->fwMsgQueue, buf, strlen(buf), STDERR, 0);
 	if (getConfValueI(Config, "GPU_FREQ_TERM_ON_ERROR")) {
 	    job->termAfterFWmsg = ESLURM_INVALID_NODE_STATE;
@@ -2172,7 +2171,7 @@ static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
 
     openlog("psid", LOG_PID | LOG_CONS, LOG_DAEMON);
     char buf[1024];
-    snprintf(buf, sizeof(buf), "psslurm-epifin: %u", alloc->id);
+    snprintf(buf, sizeof(buf), "psslurm-epifin: %u", alloc->hID.jobid);
     reOpenSyslog(buf, &psslurmlogger);
     flog("psPelogueCallPE(PELOGUE_ACTION_EPILOGUE_FINALIZE) failed");
     if (eno) {
@@ -2196,9 +2195,8 @@ static void epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
 	 exit_status, fwdata->chldExitStatus);
 
     if (alloc->terminate) {
-	uint32_t allocID = alloc->id;
 	Alloc_delete(alloc);
-	sendEpilogueComplete(allocID, SLURM_SUCCESS);
+	sendEpilogueComplete(&alloc->hID, SLURM_SUCCESS);
     }
 }
 
@@ -2208,7 +2206,7 @@ bool execEpilogueFin(Alloc_t *alloc)
     if (grace < 3) grace = 30;
 
     char jobid[100], fname[300];
-    snprintf(jobid, sizeof(jobid), "%u", alloc->id);
+    snprintf(jobid, sizeof(jobid), "%u", alloc->hID.jobid);
     snprintf(fname, sizeof(fname), "psslurm-epifin:%s", jobid);
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
@@ -2222,7 +2220,7 @@ bool execEpilogueFin(Alloc_t *alloc)
 
     if (!startForwarder(fwdata)) {
 	flog("starting epilogue finalize forwarder for alloc '%u' failed\n",
-	     alloc->id);
+	     alloc->hID.jobid);
 	ForwarderData_delete(fwdata);
 	return false;
     }

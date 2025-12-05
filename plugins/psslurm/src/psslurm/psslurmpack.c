@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -187,9 +187,17 @@ static bool __addSlurmAddr(Slurm_Addr_t *addr, PS_SendDB_t *data,
 #define addSlurmAddr(addr, data, msgVer) \
     __addSlurmAddr(addr, data, msgVer, __func__, __LINE__)
 
-static void packStepHead(void *head, PS_SendDB_t *data)
+bool __packSlurmID(Head_ID_t *hID, PS_SendDB_t *data,
+		   const char *caller, const int line)
 {
-    Head_ID_t *stepH = head;
+    if (!data) {
+	flog("invalid data from '%s' at %i\n", caller, line);
+	return false;
+    }
+    if (!hID) {
+	flog("invalid hID from '%s' at %i\n", caller, line);
+	return false;
+    }
 
     if (slurmProto > SLURM_24_05_PROTO_VERSION) {
 	/* unique Slurm ID */
@@ -201,39 +209,16 @@ static void packStepHead(void *head, PS_SendDB_t *data)
     addUint32ToMsg(stepH->stepHetComp, data);
 }
 
-/**
- * @brief Unpack a Slurm step header
- *
- * Unpack a Slurm step header from the provided data buffer @a data
- * into (parts) of the struct addressed by @a head. @a head is
- * expected to point to the beginning of the sequence of jobID,
- * stepID, and stepHetComp elements of the struct to manipulate.
- *
- * @param data Slurm message to unpack
- *
- * @param head Header structure holding the result
- *
- * @param msgVer Slurm protocol version
- *
- * @param caller Function name of the calling function
- *
- * @param line Line number where this function is called
- *
- * @return On success true is returned or false in case of an
- * error. If reading was not successful, @a sMsg might be not updated.
- */
-static bool __unpackStepHead(PS_DataBuffer_t data, void *head, uint16_t msgVer,
-			     const char *caller, const int line)
+bool __unpackSlurmID(PS_DataBuffer_t data, Head_ID_t *hID, uint16_t msgVer,
+		     const char *caller, const int line)
 {
-    Head_ID_t *stepH = head;
-
     if (!data || !PSdbGetRemData(data)) {
 	flog("invalid data from '%s' at %i\n", caller, line);
 	return false;
     }
 
-    if (!head) {
-	flog("invalid head from '%s' at %i\n", caller, line);
+    if (!hID) {
+	flog("invalid id from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -703,7 +688,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     JobCred_t *cred = ucalloc(sizeof(*cred));
 
     /* unpack jobid/stepid */
-    unpackStepHead(data, cred, msgVer);
+    unpackSlurmID(data, &cred->hID, msgVer);
     /* uid */
     getUint32(data, &cred->uid);
     /* gid */
@@ -727,8 +712,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     }
 
     /* GRes job allocations */
-    Step_t s;
-    memcpy(&s.hID, &cred->hID, sizeof(cred->hID));
+    Step_t s = { .hID = cred->hID };
     fdbg(PSSLURM_LOG_GRES, "job data: id %s uid %u gres job\n",
 	 Step_strID(&s), cred->uid);
 
@@ -944,6 +928,11 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     /* init cred */
     memset(cred, 0, sizeof(*cred));
 
+    if (msgVer > SLURM_25_05_PROTO_VERSION) {
+	/* Slurm header */
+	unpackStepHead(data, &cred->hID, msgVer);
+    }
+
     /* identity */
     if (msgVer > SLURM_23_02_PROTO_VERSION) {
 	/* uid */
@@ -973,12 +962,19 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     getTime(data, &cred->ctime);
     /* expiration time */
     getTime(data, &cred->etime);
-    /* jobid */
-    getUint32(data, &cred->hID.jobid);
+
+    if (msgVer <= SLURM_25_05_PROTO_VERSION) {
+	/* jobid */
+	getUint32(data, &cred->hID.jobid);
+    }
+
     /* pack jobid */
-    getUint32(data, &cred->hID.stepHetComp);
-    /* stepid */
-    getUint32(data, &cred->hID.stepid);
+    getUint32(data, &cred->hetJobID);
+
+    if (msgVer <= SLURM_25_05_PROTO_VERSION) {
+	/* stepid */
+	getUint32(data, &cred->hID.stepid);
+    }
 
     if (msgVer <= SLURM_23_02_PROTO_VERSION) {
 	/* uid */
@@ -1310,7 +1306,7 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     }
 
     /* unpack job/step head */
-    unpackStepHead(data, req, msgVer);
+    unpackSlurmID(data, &req->hID, msgVer);
     /* pack jobid */
     getUint32(data, &req->packJobid);
     /* jobstate */
@@ -1364,7 +1360,7 @@ static bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
     sMsg->unpData = req;
 
     /* unpack jobid/stepid */
-    unpackStepHead(data, req, msgVer);
+    unpackSlurmID(data, &req->hID, msgVer);
     /* flags */
     getUint16(data, &req->flags);
     /* signal */
@@ -3115,10 +3111,13 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
 
-    /* jobid */
-    getUint32(data, &jobid);
+    if (msgVer <= SLURM_25_05_PROTO_VERSION) {
+	/* jobid */
+	getUint32(data, &jobid);
+    }
 
-    Job_t *job = Job_add(jobid);
+    /* jobid (head ID) will be set later from credential */
+    Job_t *job = Job_add();
     sMsg->unpData = job;
 
     /* pack jobid */
@@ -3235,7 +3234,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
 
     /* set head identifier from credential */
-    memcpy(&job->hID, &job->cred->hID, sizeof(job->cred->hID));
+    job->hID = job->cred->hID;
 
     if (job->cred->jobMemAllocSize) {
 	job->memLimit = job->cred->jobMemAlloc[0];
@@ -3298,6 +3297,32 @@ bool __packRespPing(PS_SendDB_t *data, Resp_Ping_t *ping,
     addUint32ToMsg(ping->cpuload, data);
     /* free memory */
     addUint64ToMsg(ping->freemem, data);
+
+    return true;
+}
+
+bool __packRespJobid(PS_SendDB_t *data, Resp_Jobid_t *resp,
+		     const char *caller, const int line)
+{
+    if (!data) {
+	flog("invalid data pointer from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    if (!resp || !resp->hID) {
+	flog("invalid response pointer from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    if (slurmProto > SLURM_25_05_PROTO_VERSION) {
+	/* step head */
+	packSlurmID(resp->hID, data);
+    } else {
+	/* jobid */
+	addUint32ToMsg(resp->hID->jobid, data);
+    }
+
+    addUint32ToMsg(SLURM_SUCCESS, data);
 
     return true;
 }
@@ -3639,6 +3664,12 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
 
     /* OS */
     addStringToMsg(stat->sysname, data);
+
+    if (slurmProto > SLURM_25_05_PROTO_VERSION) {
+	/* slurmd parameters */
+	addStringToMsg(stat->parameters, data);
+    }
+
     /* CPUs */
     addUint16ToMsg(stat->cpus, data);
     /* boards */
@@ -3889,7 +3920,7 @@ bool __packRespLaunchTasks(PS_SendDB_t *data, Resp_Launch_Tasks_t *ltasks,
     }
 
     /* sluid/jobid/stepid */
-    packStepHead(ltasks, data);
+    packSlurmID(&ltasks->hID, data);
     /* return code */
     addUint32ToMsg(ltasks->returnCode, data);
     /* node_name */
@@ -4032,7 +4063,14 @@ static bool unpackReqSuspendInt(Slurm_Msg_t *sMsg)
 	getUint16(data, &req->jobCoreSpec);
     }
 
-    getUint32(data, &req->jobid);
+    if (slurmProto > SLURM_25_05_PROTO_VERSION) {
+	/* step head */
+	unpackSlurmID(data, &req->hID, msgVer);
+    } else {
+	/* jobid */
+	getUint32(data, &req->hID.jobid);
+    }
+
     getUint16(data, &req->op);
 
     returnFalseOnError(data, );
@@ -4110,7 +4148,7 @@ bool __packMsgTaskExit(PS_SendDB_t *data, Msg_Task_Exit_t *msg,
 	addUint32ToMsg(msg->taskRanks[i], data);
     }
     /* sluid/job/stepid */
-    packStepHead(msg, data);
+    packSlurmID(&msg->hID, data);
 
     return true;
 }
@@ -4131,7 +4169,7 @@ bool __packMsgTaskExit(PS_SendDB_t *data, Msg_Task_Exit_t *msg,
 bool packReqStepComplete(PS_SendDB_t *data, Req_Step_Comp_t *req)
 {
     /* sluid/job/stepid */
-    packStepHead(req, data);
+    packSlurmID(&req->hID, data);
     /* node range (first, last) */
     addUint32ToMsg(req->firstNode, data);
     addUint32ToMsg(req->lastNode, data);
@@ -4191,7 +4229,7 @@ static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
     }
 
     /* unpack jobid/stepid */
-    unpackStepHead(data, req, msgVer);
+    unpackSlurmID(data, &req->hID, msgVer);
 
     if (msgVer > SLURM_23_02_PROTO_VERSION) {
 	/* I/O key */
@@ -4261,7 +4299,7 @@ static bool unpackReqJobNotify(Slurm_Msg_t *sMsg)
     sMsg->unpData = req;
 
     /* unpack jobid/stepid */
-    unpackStepHead(data, req, msgVer);
+    unpackSlurmID(data, &req->hID, msgVer);
     /* msg */
     req->msg = getStringM(data);
 
@@ -4305,8 +4343,11 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
 	return false;
     }
 
-    /* jobid */
-    getUint32(data, &req->jobid);
+    if (msgVer <= SLURM_25_05_PROTO_VERSION) {
+	/* jobid (unused, taken from job credential) */
+	uint32_t tmp;
+	getUint32(data, &tmp);
+    }
     getUint32(data, &req->hetJobid);
     /* uid/gid */
     getUint32(data, &req->uid);
@@ -4543,8 +4584,13 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
  */
 static bool packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req)
 {
-    /* jobid */
-    addUint32ToMsg(req->jobid, data);
+    if (slurmProto > SLURM_25_05_PROTO_VERSION) {
+	/* step head */
+	packSlurmID(&req->hID, data);
+    } else {
+	/* jobid */
+	addUint32ToMsg(req->hID.jobid, data);
+    }
 
     /* node name */
     addStringToMsg(getConfValueC(Config, "SLURM_HOSTNAME"), data);
@@ -4570,10 +4616,16 @@ static bool packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req)
  */
 bool packReqJobRequeue(PS_SendDB_t *data, Req_Job_Requeue_t *req)
 {
-    /* jobid */
-    addUint32ToMsg(req->jobid, data);
-    /* jobid as string*/
-    addStringToMsg(Job_strID(req->jobid), data);
+    if (slurmProto > SLURM_25_05_PROTO_VERSION) {
+	/* step head */
+	packSlurmID(&req->hID, data);
+    } else {
+	/* jobid */
+	addUint32ToMsg(req->hID.jobid, data);
+    }
+
+    /* optional jobid as string*/
+    addStringToMsg(NULL, data);
     /* flags */
     addUint32ToMsg(req->flags, data);
 
@@ -4596,7 +4648,7 @@ bool packReqJobRequeue(PS_SendDB_t *data, Req_Job_Requeue_t *req)
 static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req)
 {
     /* step header */
-    packStepHead(req, data);
+    packSlurmID(&req->hID, data);
     /* jobid as string*/
     addStringToMsg(Job_strID(req->hID.jobid), data);
     /* sibling */
@@ -4611,8 +4663,14 @@ static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req)
 
 static bool packReqEpilogComplete(PS_SendDB_t *data, Req_Epilog_Complete_t *req)
 {
-    /* jobid */
-    addUint32ToMsg(req->hID.jobid, data);
+    if (slurmProto > SLURM_25_05_PROTO_VERSION) {
+	/* step head */
+	packSlurmID(&req->hID, data);
+    } else {
+	/* jobid */
+	addUint32ToMsg(req->hID.jobid, data);
+    }
+
     /* return code */
     addUint32ToMsg(req->rc, data);
     /* node_name */
@@ -4690,12 +4748,22 @@ bool packReqCompBatchScript(PS_SendDB_t *data, Req_Comp_Batch_Script_t *req)
 {
     /* account data */
     packSlurmAccData(data, req->sAccData);
-    /* jobid */
-    addUint32ToMsg(req->jobid, data);
+
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	/* jobid */
+	addUint32ToMsg(req->hID.jobid, data);
+    }
+
     /* jobscript exit code */
     addUint32ToMsg(req->exitStatus, data);
     /* slurm return code, other than 0 the node goes offline */
     addUint32ToMsg(req->rc, data);
+
+    if (slurmProto > SLURM_25_05_PROTO_VERSION) {
+	/* Slurm head ID */
+	packStepHead(&req->hID, data);
+    }
+
     /* uid of job */
     addUint32ToMsg(req->uid, data);
     /* mother superior hostname */

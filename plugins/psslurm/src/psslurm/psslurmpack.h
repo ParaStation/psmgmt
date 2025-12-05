@@ -268,6 +268,77 @@ bool __packRespPing(PS_SendDB_t *data, Resp_Ping_t *ping,
     __packRespPing(data, ping, __func__, __LINE__)
 
 /**
+ * @brief Pack a Slurm head identifier
+ *
+ * Pack a Slurm head identifier and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param hID The Slurm ID structure to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packSlurmID(Head_ID_t *hID, PS_SendDB_t *data,
+		   const char *caller, const int line);
+
+#define packSlurmID(hID, data) \
+    __packSlurmID(hID, data, __func__, __LINE__)
+
+
+/**
+ * @brief Unpack a Slurm head identifier
+ *
+ * Unpack a Slurm head identifier from the provided data buffer @a data.
+ *
+ * @param data Slurm message to unpack
+ *
+ * @param hID Slurm head structure holding the result
+ *
+ * @param msgVer Slurm protocol version
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+bool __unpackSlurmID(PS_DataBuffer_t data, Head_ID_t *hID, uint16_t msgVer,
+		     const char *caller, const int line);
+
+#define unpackSlurmID(data, hID, msgVer) \
+    __unpackSlurmID(data, hID, msgVer, __func__, __LINE__)
+
+/**
+ * @brief Pack a job identifier response
+ *
+ * Pack a job identifier response and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param ping The ping structure to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packRespJobid(PS_SendDB_t *data, Resp_Jobid_t *resp,
+		     const char *caller, const int line);
+
+#define packRespJobid(data, resp) \
+    __packRespJobid(data, resp, __func__, __LINE__)
+
+/**
  * @brief Pack Slurm account data
  *
  * Pack Slurm account data structure and add it to the provided data

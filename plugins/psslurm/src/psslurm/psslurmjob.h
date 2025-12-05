@@ -126,11 +126,9 @@ void Job_deleteAll(Job_t *preserve);
 /**
  * @brief Add a new job
  *
- * @param jobid The id of the job
- *
  * @return Returns the newly created job
  */
-Job_t *Job_add(uint32_t jobid);
+Job_t *Job_add(void);
 
 /**
  * @brief Verify job information

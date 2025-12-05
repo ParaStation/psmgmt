@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -201,11 +201,11 @@ void sendJobExit(Job_t *job, uint32_t exitStatus);
  *
  * Send a epilogue complete message to the slurmctld.
  *
- * @param jobid The jobid to send the message for
+ * @param hID The Surm head identifier
  *
  * @param rc The return code of the epilogue
  */
-void sendEpilogueComplete(uint32_t jobid, uint32_t rc);
+void sendEpilogueComplete(Head_ID_t *hID, uint32_t rc);
 
 /**
  * @brief Convert a PS node ID to a job local node ID
@@ -337,11 +337,11 @@ bool sendConfigReq(const char *server, const int action);
  * the job gets requeued if possible (steps started
  * without a job will be cancelled).
  *
- * @param jobid The jobid of the prologue completed
+ * @param hID Step head identifier
  *
  * @param rc The return code of the prologue script
  */
-void sendPrologComplete(uint32_t jobid, uint32_t rc);
+void sendPrologComplete(Head_ID_t *hID, uint32_t rc);
 
 /**
  * @brief Send a job requeue request
@@ -349,9 +349,9 @@ void sendPrologComplete(uint32_t jobid, uint32_t rc);
  * Tries to requeue a job. If requeuing fails the job
  * will get cancelled.
  *
- * @param jobid The ID of the job to requeue
+ * @param hID The head ID of the job to requeue
  */
-void sendJobRequeue(uint32_t jobid);
+void sendJobRequeue(Head_ID_t *hID);
 
 /**
  * @brief Execute a Slurm health-check

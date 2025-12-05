@@ -1656,8 +1656,7 @@ int srunOpenControlConnection(Step_t *step)
 static void handleSrunReply(Slurm_Msg_t *sMsg, void *info)
 {
     Req_Info_t *req = info;
-    Step_t step;
-    memcpy(&step.hID, &req->hID, sizeof(req->hID));
+    Step_t step = { .hID = req->hID };
 
     if (sMsg->head.type != RESPONSE_SLURM_RC) {
 	flog("unexpected srun response %s for request %s %s sock %i\n",
@@ -1693,7 +1692,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = type;
     req->time = time(NULL);
-    memcpy(&req->hID, &step->hID, sizeof(step->hID));
+    req->hID = step->hID;
 
     Connection_t *con = registerSlurmSocket(sock, handleSrunReply, req, true);
     if (!con) {

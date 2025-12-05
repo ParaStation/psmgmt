@@ -769,12 +769,13 @@ int handleFinAlloc(void *data)
     Alloc_t *alloc = data;
     char jobid[128];
 
-    snprintf(jobid, sizeof(jobid), "%u", alloc->id);
+    snprintf(jobid, sizeof(jobid), "%u", alloc->hID.jobid);
     PSGW_Req_t *req = Request_find(jobid);
     if (!req) {
 	snprintf(jobid, sizeof(jobid), "%u", alloc->packID);
 	if (!(req = Request_find(jobid))) {
-	    fdbg(PSGW_LOG_DEBUG, "no request for jobid %u found\n", alloc->id);
+	    fdbg(PSGW_LOG_DEBUG, "no request for jobid %u found\n",
+		 alloc->hID.jobid);
 	    return 1;
 	}
     }

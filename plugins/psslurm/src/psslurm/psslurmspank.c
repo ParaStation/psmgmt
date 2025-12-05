@@ -915,7 +915,7 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	    } else if (spank->job) {
 		*pUint32 = spank->job->hID.jobid;
 	    } else if (spank->alloc) {
-		*pUint32 = spank->alloc->id;
+		*pUint32 = spank->alloc->hID.jobid;
 	    } else {
 		*pUint32 = 0;
 		return ESPANK_NOT_AVAIL;

@@ -636,7 +636,7 @@ static bool checkForCleanup(Alloc_t *alloc, const void *info)
     time_t bound = *(time_t *)info;
 
     if (alloc->state == A_PROLOGUE_FINISH && alloc->startTime < bound) {
-	flog("cleanup stale allocation %d\n", alloc->id);
+	flog("cleanup stale allocation %d\n", alloc->hID.jobid);
 	Alloc_delete(alloc);
     }
     return false; // continue loop;

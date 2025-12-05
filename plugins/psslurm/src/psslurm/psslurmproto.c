@@ -679,8 +679,7 @@ static bool doSignalTasks(Req_Signal_Tasks_t *req)
 	    return Job_signalJS(req->hID.jobid, req->signal, req->uid);
 	} else {
 	    /* signal a single step */
-	    Step_t s;
-	    memcpy(&s.hID, &req->hID, sizeof(req->hID));
+	    Step_t s = { .hID = req->hID };
 	    flog("send %s (stepHetComp %u) signal %u\n", Step_strID(&s),
 		 req->hID.stepHetComp, req->signal);
 	    Step_t *step = Step_findByStepId(req->hID.jobid, req->hID.stepid);
@@ -704,8 +703,7 @@ static void sendDelayedKill(int timerId, void *data)
     Timer_remove(timerId);
     Req_Signal_Tasks_t *req = data;
 
-    Step_t s;
-    memcpy(&s.hID, &req->hID, sizeof(req->hID));
+    Step_t s = { .hID = req->hID };
     flog("SIGKILL to %s uid %u\n", Step_strID(&s), req->uid);
 
     req->signal = SIGKILL;
@@ -727,8 +725,8 @@ static void doSendTermKill(Req_Signal_Tasks_t *req)
     req->signal = SIGTERM;
     doSignalTasks(req);
 
-    Req_Signal_Tasks_t *reqDup = umalloc(sizeof(*req));
-    memcpy(reqDup, req, sizeof(*req));
+    Req_Signal_Tasks_t *reqDup = umalloc(sizeof(*reqDup));
+    *reqDup = *req;
 
     int grace = getConfValueI(SlurmConfig, "KillWait");
     struct timeval timeout = {grace, 0};
@@ -754,8 +752,7 @@ static int handleSignalTasks(Slurm_Msg_t *sMsg)
 	return ESLURM_INVALID_JOB_ID;
     }
 
-    Step_t s;
-    memcpy(&s.hID, &req->hID, sizeof(req->hID));
+    Step_t s = { .hID = req->hID };
     flog("%s uid %i signal %i flags %i from %s\n", Step_strID(&s), req->uid,
 	 req->signal, req->flags, strRemoteAddr(sMsg));
 
@@ -848,8 +845,7 @@ static int handleReattachTasks(Slurm_Msg_t *sMsg)
 
     Step_t *step = Step_findByStepId(req->hID.jobid, req->hID.stepid);
     if (!step) {
-	Step_t s;
-	memcpy(&s.hID, &req->hID, sizeof(req->hID));
+	Step_t s = { .hID = req->hID };
 	flog("%s to reattach not found\n", Step_strID(&s));
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_ID);
 	/* check permissions */
@@ -892,12 +888,12 @@ static int handleSuspendInt(Slurm_Msg_t *sMsg)
 
     switch (req->op) {
     case SUSPEND_JOB:
-	flog("suspend job %u\n",req->jobid);
-	Step_signalByJobid(req->jobid, SIGSTOP, sMsg->head.uid);
+	flog("suspend job %u\n",req->hID.jobid);
+	Step_signalByJobid(req->hID.jobid, SIGSTOP, sMsg->head.uid);
 	break;
     case RESUME_JOB:
-	flog("resume job %u\n",req->jobid);
-	Step_signalByJobid(req->jobid, SIGCONT, sMsg->head.uid);
+	flog("resume job %u\n",req->hID.jobid);
+	Step_signalByJobid(req->hID.jobid, SIGCONT, sMsg->head.uid);
 	break;
     default:
 	flog("unknown suspend_int operation %u\n", req->op);
@@ -1270,9 +1266,12 @@ static int handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
 }
 
 /**
- * @brief Find a step by its task (mpiexec) pid
+ * @brief Handle a job identifier request message
  *
  * @param sMsg The request message
+ *
+ * @return Return SLURM_NO_RC on success or ESLURM_INVALID_JOB_ID
+ * on error
  */
 static int handleJobId(Slurm_Msg_t *sMsg)
 {
@@ -1282,13 +1281,14 @@ static int handleJobId(Slurm_Msg_t *sMsg)
 	return ESLURM_INVALID_JOB_ID;
     }
 
+    Resp_Jobid_t resp;
     Step_t *step = Step_findByPsidTask(req->pid);
     if (!step) return ESLURM_INVALID_JOB_ID;
 
     PS_SendDB_t *msg = &sMsg->reply;
 
-    addUint32ToMsg(step->hID.jobid, msg);
-    addUint32ToMsg(SLURM_SUCCESS, msg);
+    resp.hID = &step->hID;
+    packRespJobid(msg, &resp);
 
     sendSlurmReply(sMsg, RESPONSE_JOB_ID);
     return SLURM_NO_RC;
@@ -1460,8 +1460,7 @@ static int handleStepStat(Slurm_Msg_t *sMsg)
 
     Step_t *step = Step_findByStepId(head->jobid, head->stepid);
     if (!step) {
-	Step_t s;
-	memcpy(&s.hID, head, sizeof(*head));
+	Step_t s = { .hID = *head };
 	flog("%s to signal not found\n", Step_strID(&s));
 	return ESLURM_INVALID_JOB_ID;
     }
@@ -1528,8 +1527,7 @@ static int handleStepPids(Slurm_Msg_t *sMsg)
 
     Step_t *step = Step_findByStepId(head->jobid, head->stepid);
     if (!step) {
-	Step_t s;
-	memcpy(&s.hID, head, sizeof(*head));
+	Step_t s = { .hID = *head };
 	flog("%s to signal not found\n", Step_strID(&s));
 	return ESLURM_INVALID_JOB_ID;
     }
@@ -1708,14 +1706,14 @@ static void sendJobKill(Req_Info_t *req, uint16_t signal)
     Req_Job_Kill_t kill = {
 	.signal = signal,
 	.flags = 0,
-	.sibling = NULL
+	.sibling = NULL,
+	.hID = req->hID
     };
-    memcpy(&kill.hID, &req->hID, sizeof(req->hID));
 
     /* send request to slurmctld */
     Req_Info_t *reqInfo = ucalloc(sizeof(*reqInfo));
     reqInfo->type = REQUEST_KILL_JOB;
-    memcpy(&reqInfo->hID, &req->hID, sizeof(req->hID));
+    reqInfo->hID = req->hID;
 
     sendSlurmctldReq(reqInfo, &kill);
 }
@@ -1738,9 +1736,9 @@ static void handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
     closeSlurmCon(sMsg->sock);  // always close (connection triggered here)
 }
 
-void sendJobRequeue(uint32_t jobid)
+void sendJobRequeue(Head_ID_t *hID)
 {
-    Req_Job_Requeue_t requeue = { .jobid = jobid };
+    Req_Job_Requeue_t requeue = { .hID = *hID };
 
     /* cancel or requeue the job on error */
     bool nohold = confHasOpt(SlurmConfig, "SchedulerParameters",
@@ -1751,33 +1749,34 @@ void sendJobRequeue(uint32_t jobid)
 
     /* send request to slurmctld */
     Req_Info_t *req = ucalloc(sizeof(*req));
+    req->hID = *hID;
+
     req->type = REQUEST_JOB_REQUEUE;
-    req->hID.jobid = jobid;
     req->hID.stepid = NO_VAL; /* kill complete job */
     req->cb = &handleRespJobRequeue;
 
-    flog("%u\n", jobid);
+    flog("%u\n", hID->jobid);
 
     sendSlurmctldReq(req, &requeue);
 }
 
-void sendPrologComplete(uint32_t jobid, uint32_t rc)
+void sendPrologComplete(Head_ID_t *hID, uint32_t rc)
 {
-    Req_Prolog_Comp_t data = { .jobid = jobid, .rc = rc };
+    Req_Prolog_Comp_t data = { .rc = rc, .hID = *hID };
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = REQUEST_COMPLETE_PROLOG;
-    req->hID.jobid = jobid;
+    req->hID = *hID;
 
     sendSlurmctldReq(req, &data);
 
-    flog("job %u return code %s\n", jobid, slurmRC2String(rc));
+    flog("job %u return code %s\n", hID->jobid, slurmRC2String(rc));
 
     if (rc != SLURM_SUCCESS) {
-	flog("prologue failed, requeuing job %u\n", jobid);
+	flog("prologue failed, requeuing job %u\n", hID->jobid);
 
 	/* psslurm needs to re-queue the job */
-	sendJobRequeue(jobid);
+	sendJobRequeue(hID);
      }
 }
 
@@ -1794,7 +1793,7 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
 
     fdbg(PSSLURM_LOG_PELOG, "jobid %u het-jobid %u uid %u gid %u alias %s"
 	 " nodes=%s stdErr='%s' stdOut='%s' work-dir=%s user=%s\n",
-	 req->jobid, req->hetJobid, req->uid, req->gid, req->aliasList,
+	 req->cred->hID.jobid, req->hetJobid, req->uid, req->gid, req->aliasList,
 	 req->nodes, req->stdErr, req->stdOut, req->workDir, req->userName);
 
     fdbg(PSSLURM_LOG_DEBUG, "x11 %u allocHost='%s' allocPort %u cookie='%s'"
@@ -1809,18 +1808,19 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
     }
 
     /* add an allocation if slurmctld prologue did not */
-    Alloc_t *alloc = Alloc_find(req->jobid);
+    Alloc_t *alloc = Alloc_find(req->cred->hID.jobid);
     if (!alloc && req->hetJobid != 0 && req->hetJobid != NO_VAL) {
 	alloc = Alloc_findByPackID(req->hetJobid);
     }
     if (!alloc) {
-	alloc = Alloc_add(req->jobid, req->hetJobid, req->nodes, req->spankEnv,
-			 req->uid, req->gid, req->userName);
+	alloc = Alloc_add(&req->cred->hID, req->hetJobid, req->nodes,
+			  req->spankEnv, req->uid, req->gid, req->userName);
     } else {
 	envAppend(alloc->env, req->spankEnv, envFilterFunc);
     }
 
-    /* move job credential and GRes to allocation */
+    /* move job credential, head ID and GRes to allocation */
+    alloc->hID = req->cred->hID;
     alloc->cred = req->cred;
     req->cred = NULL;
     list_splice(&req->gresList, &alloc->gresList);
@@ -1831,11 +1831,11 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
     alloc->state = A_RUNNING;
 
     /* set mask of hardware threads to use */
-    nodeinfo_t *nodeinfo = getNodeinfo(PSC_getMyID(), alloc->cred, alloc->id);
+    nodeinfo_t *nodeinfo = getNodeinfo(PSC_getMyID(), alloc->cred, alloc->hID.jobid);
     if (!nodeinfo) {
 	flog("could not extract nodeinfo from credentials for alloc %u\n",
-	     alloc->id);
-	sendPrologComplete(req->jobid, SLURM_ERROR);
+	     alloc->hID.jobid);
+	sendPrologComplete(&req->cred->hID, SLURM_ERROR);
 	return SLURM_SUCCESS;
     }
     PSCPU_copy(alloc->hwthreads, nodeinfo->jobHWthreads);
@@ -1856,7 +1856,7 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
      * itself.
      */
     /* let the slurmctld know the prologue has finished */
-    sendPrologComplete(req->jobid, SLURM_SUCCESS);
+    sendPrologComplete(&req->cred->hID, SLURM_SUCCESS);
     return SLURM_SUCCESS;
 }
 
@@ -1955,9 +1955,9 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return SLURM_SUCCESS;
     }
 
-    flog("job %u user '%s' np %u nodes '%s' N %u tpp %u script '%s'\n",
-	 job->hID.jobid, job->username, job->np, job->slurmHosts, job->nrOfNodes,
-	 job->tpp, job->jobscript);
+    flog("job %u sluid %zu user '%s' np %u nodes '%s' N %u tpp %u script '%s'\n",
+	 job->hID.jobid, job->hID.sluid, job->username, job->np,
+	 job->slurmHosts, job->nrOfNodes, job->tpp, job->jobscript);
 
     /* sanity check nrOfNodes */
     if (job->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {
@@ -2000,7 +2000,7 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	/* sanity check allocation state */
 	if (alloc->state != A_PROLOGUE_FINISH &&
 	    alloc->state != A_RUNNING) {
-	    flog("allocation %u in invalid state %s\n", alloc->id,
+	    flog("allocation %u in invalid state %s\n", alloc->hID.jobid,
 		 Alloc_strState(alloc->state));
 	    return ESLURMD_INVALID_JOB_CREDENTIAL;
 	}
@@ -2048,35 +2048,34 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     if (!alloc->firstKillReq) alloc->firstKillReq = time(NULL);
     if (time(NULL) - alloc->firstKillReq > grace + 10) {
 	/* grace time is over, use SIGKILL from now on */
-	flog("sending SIGKILL to fowarders of allocation %u\n", alloc->id);
-	Job_killForwarder(alloc->id);
+	flog("sending SIGKILL to fowarders of allocation %u\n", alloc->hID.jobid);
+	Job_killForwarder(alloc->hID.jobid);
 	signal = SIGKILL;
     }
 
     if (maxTermReq > 0 && alloc->terminate++ >= maxTermReq) {
 	/* ensure jobs will not get stuck forever */
 	flog("force termination of allocation %u in state %s requests %i\n",
-	     alloc->id, Alloc_strState(alloc->state), alloc->terminate);
-	uint32_t allocID = alloc->id;
+	     alloc->hID.jobid, Alloc_strState(alloc->state), alloc->terminate);
 	Alloc_delete(alloc);
-	sendEpilogueComplete(allocID, SLURM_SUCCESS);
+	sendEpilogueComplete(&alloc->hID, SLURM_SUCCESS);
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
 	return;
     }
 
     switch (alloc->state) {
     case A_RUNNING:
-	if ((pcount = Alloc_signal(alloc->id, signal, sMsg->head.uid)) > 0) {
+	if ((pcount = Alloc_signal(alloc->hID.jobid, signal, sMsg->head.uid)) > 0) {
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
 	    flog("waiting for %i processes to complete, alloc %u (%i/%i)\n",
-		 pcount, alloc->id, alloc->terminate, maxTermReq);
+		 pcount, alloc->hID.jobid, alloc->terminate, maxTermReq);
 	    return;
 	}
 	break;
     case A_EPILOGUE:
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
 	flog("waiting for epilogue to finish, alloc %u (%i/%i)\n",
-	     alloc->id, alloc->terminate, maxTermReq);
+	     alloc->hID.jobid, alloc->terminate, maxTermReq);
 	return;
     case A_EPILOGUE_FINISH:
     case A_EXIT:
@@ -2099,7 +2098,7 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
 	/* wait for running prologue to finish */
 	flog("waiting for prologue to finish, alloc %u (%i/%i)\n",
-	     alloc->id, alloc->terminate, maxTermReq);
+	     alloc->hID.jobid, alloc->terminate, maxTermReq);
 	return;
     case A_PROLOGUE_FINISH:
     case A_INIT:
@@ -2114,7 +2113,7 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 
     /* job/steps already finished, start epilogue now */
     sendSlurmRC(sMsg, SLURM_SUCCESS);
-    flog("starting epilogue for allocation %u state %s\n", alloc->id,
+    flog("starting epilogue for allocation %u state %s\n", alloc->hID.jobid,
 	 Alloc_strState(alloc->state));
     startPElogue(alloc, PELOGUE_EPILOGUE);
 }
@@ -2149,8 +2148,8 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
     } else {
 	Alloc_t *alloc = Alloc_find(jobid);
 	if (alloc && Alloc_isLeader(alloc)) {
-	    Step_signalByJobid(alloc->id, SIGKILL, sMsg->head.uid);
-	    send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
+	    Step_signalByJobid(alloc->hID.jobid, SIGKILL, sMsg->head.uid);
+	    send_PS_JobExit(alloc->hID.jobid, SLURM_BATCH_SCRIPT,
 		    alloc->nrOfNodes, alloc->nodes);
 	}
 	if (alloc) {
@@ -2246,10 +2245,10 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
     }
 
     if (alloc->state == A_RUNNING || alloc->state == A_PROLOGUE_FINISH) {
-	int pcount = Alloc_signal(alloc->id, SIGTERM, sMsg->head.uid);
+	int pcount = Alloc_signal(alloc->hID.jobid, SIGTERM, sMsg->head.uid);
 	if (pcount > 0) {
 	    flog("waiting for %i processes to complete for allocation %u\n",
-		 pcount, alloc->id);
+		 pcount, alloc->hID.jobid);
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
 	    return;
 	} else {
@@ -2272,8 +2271,7 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
 	return ESLURM_USER_ID_MISSING;
     }
 
-    Step_t s;
-    memcpy(&s.hID, &req->hID, sizeof(req->hID));
+    Step_t s = { .hID = req->hID };
 
     /* check permissions */
     if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
@@ -2301,7 +2299,7 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
 	if (sMsg->head.type == REQUEST_TERMINATE_JOB) {
 	    return ESLURMD_KILL_JOB_ALREADY_COMPLETE;
 	} else {
-	    sendEpilogueComplete(req->hID.jobid, SLURM_SUCCESS);
+	    sendEpilogueComplete(&req->hID, SLURM_SUCCESS);
 	    return SLURM_SUCCESS;
 	}
     }
@@ -2734,24 +2732,24 @@ bool initSlurmdProto(void)
 	pver = autoVer;
     }
 
-    if (!strncmp(pver, "25.05", 5) || !strncmp(pver, "2505", 4)) {
+    if (!strncmp(pver, "25.11", 5) || !strncmp(pver, "2511", 4)) {
+	slurmProto = SLURM_25_11_PROTO_VERSION;
+	slurmProtoStr = "25.11";
+    } else if (!strncmp(pver, "25.05", 5) || !strncmp(pver, "2505", 4)) {
 	slurmProto = SLURM_25_05_PROTO_VERSION;
-	slurmProtoStr = ustrdup("25.05");
+	slurmProtoStr = "25.05";
     } else if (!strncmp(pver, "24.11", 5) || !strncmp(pver, "2411", 4)) {
 	slurmProto = SLURM_24_11_PROTO_VERSION;
-	slurmProtoStr = ustrdup("24.11");
+	slurmProtoStr = "24.11";
     } else if (!strncmp(pver, "24.05", 5) || !strncmp(pver, "2405", 4)) {
 	slurmProto = SLURM_24_05_PROTO_VERSION;
-	slurmProtoStr = ustrdup("24.05");
+	slurmProtoStr = "24.05";
     } else if (!strncmp(pver, "23.11", 5) || !strncmp(pver, "2311", 4)) {
 	slurmProto = SLURM_23_11_PROTO_VERSION;
-	slurmProtoStr = ustrdup("23.11");
+	slurmProtoStr = "23.11";
     } else if (!strncmp(pver, "23.02", 5) || !strncmp(pver, "2302", 4)) {
 	slurmProto = SLURM_23_02_PROTO_VERSION;
-	slurmProtoStr = ustrdup("23.02");
-    } else if (!strncmp(pver, "22.05", 5) || !strncmp(pver, "2205", 4)) {
-	slurmProto = SLURM_22_05_PROTO_VERSION;
-	slurmProtoStr = ustrdup("22.05");
+	slurmProtoStr = "23.02";
     } else {
 	flog("unsupported Slurm protocol version %s\n", pver);
 	return false;
@@ -2818,7 +2816,6 @@ void clearSlurmdProto(void)
 	ufree(msgHandler);
     }
 
-    ufree(slurmProtoStr);
     ufree(slurmVerStr);
     ufree(sstatUIDs);
 
@@ -2885,6 +2882,9 @@ void sendNodeRegStatus(bool startup)
     } else {
 	stat.config = getSlurmConfHash();
     }
+
+    /* SlurmdParameters config option */
+    stat.parameters = getConfValueC(SlurmConfig, "SlurmdParameters");
 
     /* specialized memory limit */
     long specLimit = getConfValueL(Config, "SLURM_MEM_SPEC_LIMIT");
@@ -3014,12 +3014,12 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 	.firstNode = 0,
 	.lastNode = step->nrOfNodes -1,
 	.exitStatus = exitStatus,
-	.sAccData = &slurmAccData };
-    memcpy(&comp.hID, &step->hID, sizeof(step->hID));
+	.sAccData = &slurmAccData,
+	.hID = step->hID };
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = REQUEST_STEP_COMPLETE;
-    memcpy(&req->hID, &step->hID, sizeof(step->hID));
+    req->hID = step->hID;
 
     sendSlurmctldReq(req, &comp);
 }
@@ -3081,7 +3081,7 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     }
 
     /* job/stepid */
-    memcpy(&msg.hID, &step->hID, sizeof(step->hID));
+    msg.hID = step->hID;
 
     PS_SendDB_t body = sendDBnoFrag;
     packMsgTaskExit(&body, &msg);
@@ -3182,8 +3182,7 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 static void doSendLaunchTasksFailed(Step_t *step, uint32_t nodeID,
 				    uint32_t error)
 {
-    Resp_Launch_Tasks_t resp;
-    memcpy(&resp.hID, &step->hID, sizeof(step->hID));
+    Resp_Launch_Tasks_t resp = { .hID = step->hID };
     PS_SendDB_t body = sendDBnoFrag;
 
     /* return code */
@@ -3227,8 +3226,7 @@ void sendTaskPids(Step_t *step)
     PS_SendDB_t body = sendDBnoFrag;
     uint32_t countPIDs = 0, countLocalPIDs = 0, countGTIDs = 0;
     list_t *t;
-    Resp_Launch_Tasks_t resp;
-    memcpy(&resp.hID, &step->hID, sizeof(step->hID));
+    Resp_Launch_Tasks_t resp = { .hID = step->hID };
 
     resp.returnCode = SLURM_SUCCESS;
     resp.nodeName = getConfValueC(Config, "SLURM_HOSTNAME");
@@ -3288,8 +3286,8 @@ void sendJobExit(Job_t *job, uint32_t exitStatus)
     if (job->signaled) exitStatus = 0;
     if (job->timeout) exitStatus = SIGTERM;
 
-    flog("REQUEST_COMPLETE_BATCH_SCRIPT: jobid %u exit %u\n",
-	 job->hID.jobid, exitStatus);
+    flog("REQUEST_COMPLETE_BATCH_SCRIPT: jobid %u sluid %zu exit %u\n",
+	 job->hID.jobid, job->hID.sluid, exitStatus);
 
     /* save account data */
     SlurmAccData_t slurmAccData;
@@ -3311,37 +3309,33 @@ void sendJobExit(Job_t *job, uint32_t exitStatus)
     /* send request */
     Req_Comp_Batch_Script_t comp = {
 	.sAccData = &slurmAccData,
-	.jobid = job->hID->jobid,
 	.exitStatus = exitStatus,
 	.uid = job->uid,
 	.hostname = job->hostname,
 	.rc = 0,
+	.hID = job->hID
     };
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = REQUEST_COMPLETE_BATCH_SCRIPT;
-    memcpy(&comp.hID, &job->hID, sizeof(job->hID));
-
-    Req_Info_t *req = ucalloc(sizeof(*req));
-    req->type = REQUEST_COMPLETE_BATCH_SCRIPT;
-    memcpy(&req->hID, &job->hID, sizeof(job->hID));
+    req->hID = job->hID;
 
     sendSlurmctldReq(req, &comp);
 }
 
-void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
+void sendEpilogueComplete(Head_ID_t *hID, uint32_t rc)
 {
-    fdbg(PSSLURM_LOG_PELOG, "allocation %u to slurmctld\n", jobid);
+    fdbg(PSSLURM_LOG_PELOG, "allocation %u to slurmctld\n", hID->jobid);
 
     Req_Epilog_Complete_t msg = {
-	.hID.jobid = jobid,
 	.rc = rc,
-	.nodeName = getConfValueC(Config, "SLURM_HOSTNAME")
+	.nodeName = getConfValueC(Config, "SLURM_HOSTNAME"),
+	.hID = *hID
     };
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = MESSAGE_EPILOG_COMPLETE;
-    req->hID.jobid = jobid;
+    req->hID = *hID;
 
     sendSlurmctldReq(req, &msg);
 }

@@ -147,7 +147,7 @@ static bool Alloc_addInfo(Alloc_t *alloc, const void *info)
     char start[50];
     strbuf_t buf = (strbuf_t)info;
 
-    snprintf(line, sizeof(line), "- jobid %u -\n", alloc->id);
+    snprintf(line, sizeof(line), "- jobid %u -\n", alloc->hID.jobid);
     strbufAdd(buf, line);
 
     if (alloc->packID != NO_VAL) {

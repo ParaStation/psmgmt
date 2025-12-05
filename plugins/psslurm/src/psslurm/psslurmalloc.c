@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -43,15 +43,15 @@
 /** List of all allocations */
 static LIST_HEAD(AllocList);
 
-Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t env,
+Alloc_t *Alloc_add(Head_ID_t *hID, uint32_t packID, char *slurmHosts, env_t env,
 		   uid_t uid, gid_t gid, char *username)
 {
-    Alloc_t *alloc = Alloc_find(id);
+    Alloc_t *alloc = Alloc_find(hID->jobid);
 
     if (alloc) return alloc;
 
     alloc = ucalloc(sizeof(Alloc_t));
-    alloc->id = id;
+    alloc->hID = *hID;
     alloc->packID = packID;
     alloc->state = A_INIT;
     alloc->uid = uid;
@@ -75,7 +75,7 @@ Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t env,
     list_add_tail(&alloc->next, &AllocList);
 
     /* add user in pspam for SSH access */
-    uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->id;
+    uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->hID.jobid;
     psPamAddUser(alloc->username, Job_strID(ID), PSPAM_STATE_PROLOGUE);
 
     return alloc;
@@ -116,7 +116,7 @@ Alloc_t *Alloc_find(uint32_t id)
     list_t *a;
     list_for_each(a, &AllocList) {
 	Alloc_t *alloc = list_entry(a, Alloc_t, next);
-	if (alloc->id == id) return alloc;
+	if (alloc->hID.jobid == id) return alloc;
     }
     return NULL;
 }
@@ -127,7 +127,9 @@ Alloc_t *Alloc_findByPackID(uint32_t packID)
     list_for_each(a, &AllocList) {
 	Alloc_t *alloc = list_entry(a, Alloc_t, next);
 	if (alloc->packID == packID
-	    || (alloc->packID == NO_VAL && alloc->id == packID)) return alloc;
+	    || (alloc->packID == NO_VAL && alloc->hID.jobid == packID)) {
+	    return alloc;
+	}
     }
     return NULL;
 }
@@ -155,7 +157,7 @@ static int initJail(void *info)
     pid_t pid = -1;
     char buf[64];
 
-    uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->id;
+    uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->hID.jobid;
     snprintf(buf, sizeof(buf), "%u", ID);
     setenv("__PSJAIL_JOBID", buf, 1);
     setenv("__PSJAIL_USER_INIT", "1", 1);
@@ -178,7 +180,7 @@ static int termJail(void *info)
     pid_t pid = -1;
     char tmp[64];
 
-    snprintf(tmp, sizeof(tmp), "%u", alloc->id);
+    snprintf(tmp, sizeof(tmp), "%u", alloc->hID.jobid);
     setenv("__PSJAIL_JOBID", tmp, 1);
 
     /* create list of all allocations belonging to the
@@ -190,13 +192,13 @@ static int termJail(void *info)
 	if (nextAlloc->uid != alloc->uid) continue;
 
 	if (strbufLen(allocList)) strbufAdd(allocList, ",");
-	snprintf(tmp, sizeof(tmp), "%i", nextAlloc->id);
+	snprintf(tmp, sizeof(tmp), "%i", nextAlloc->hID.jobid);
 	strbufAdd(allocList, tmp);
     }
 
     if (!strbufLen(allocList)) {
 	/* list must not be empty, add current allocation to it */
-	snprintf(tmp, sizeof(tmp), "%i", alloc->id);
+	snprintf(tmp, sizeof(tmp), "%i", alloc->hID.jobid);
 	strbufAdd(allocList, tmp);
     }
 
@@ -236,10 +238,10 @@ bool Alloc_delete(Alloc_t *alloc)
     }
 
     /* free associated resources */
-    Job_t *job = Job_findById(alloc->id);
+    Job_t *job = Job_findById(alloc->hID.jobid);
     Job_destroy(job);
-    Step_destroyByJobid(alloc->id);
-    BCast_clearByJobid(alloc->id);
+    Step_destroyByJobid(alloc->hID.jobid);
+    BCast_clearByJobid(alloc->hID.jobid);
 
     /* terminate cgroup */
     PSID_execFunc(termJail, NULL,
@@ -249,15 +251,15 @@ bool Alloc_delete(Alloc_t *alloc)
     PSIDhook_call(PSIDHOOK_PSSLURM_FINALLOC, alloc);
 
     /* free corresponding pelogue job */
-    psPelogueDeleteJob("psslurm", Job_strID(alloc->id));
+    psPelogueDeleteJob("psslurm", Job_strID(alloc->hID.jobid));
 
     /* tell sisters the allocation is revoked */
     if (Alloc_isLeader(alloc)) {
-	send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
+	send_PS_JobExit(alloc->hID.jobid, SLURM_BATCH_SCRIPT,
 		alloc->nrOfNodes, alloc->nodes);
     }
 
-    uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->id;
+    uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->hID.jobid;
     psPamDeleteUser(alloc->username, Job_strID(ID));
 
     ufree(alloc->nodes);
@@ -284,7 +286,7 @@ int Alloc_signalAll(int signal)
     list_t *a, *tmp;
     list_for_each_safe(a, tmp, &AllocList) {
 	Alloc_t *alloc = list_entry(a, Alloc_t, next);
-	count += Step_signalByJobid(alloc->id, signal, 0);
+	count += Step_signalByJobid(alloc->hID.jobid, signal, 0);
     }
 
     return count;

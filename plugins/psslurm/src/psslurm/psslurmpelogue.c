@@ -89,7 +89,7 @@ static void handleFailedPrologue(Alloc_t *alloc, PElogueResList_t *resList)
 		     "psslurm: node down while slurmctld prologue\n");
 	    offline = true;
 	}
-	if (offline) setNodeOffline(alloc->env, alloc->id,
+	if (offline) setNodeOffline(alloc->env, alloc->hID.jobid,
 				    getSlurmHostbyNodeID(resList[i].id), msg);
     }
 
@@ -111,7 +111,7 @@ static void handlePrologueCB(Alloc_t *alloc, int exitStatus, int16_t res)
 {
     /* inform the slurmctld */
     int rc = exitStatus ? SLURM_ERROR : SLURM_SUCCESS;
-    sendPrologComplete(alloc->id, rc);
+    sendPrologComplete(&alloc->hID, rc);
     /* inform the MS to start waiting jobs */
     send_PS_PElogueRes(alloc, res, PELOGUE_PROLOGUE);
 
@@ -124,7 +124,7 @@ static void handlePrologueCB(Alloc_t *alloc, int exitStatus, int16_t res)
     } else if (exitStatus == 0) {
 	/* prologue was successful */
 	alloc->state = A_RUNNING;
-	psPelogueDeleteJob("psslurm", Job_strID(alloc->id));
+	psPelogueDeleteJob("psslurm", Job_strID(alloc->hID.jobid));
     } else {
 	/* start local epilogue */
 	startPElogue(alloc, PELOGUE_EPILOGUE);
@@ -152,7 +152,7 @@ static bool stepEpilogue(Step_t *step, const void *info)
  */
 static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 {
-    Job_t *job = Job_findById(alloc->id);
+    Job_t *job = Job_findById(alloc->hID.jobid);
 
     alloc->state = A_EXIT;
 
@@ -161,7 +161,7 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,
 	     Job_strState(job->state));
     } else {
-	Step_traverse(stepEpilogue, &alloc->id);
+	Step_traverse(stepEpilogue, &alloc->hID.jobid);
     }
 
     /* set default idle governor for allocation's hardware threads */
@@ -175,10 +175,9 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 	 * which are not responding */
 	send_PS_PElogueRes(alloc, resList[0].epilogue, PELOGUE_EPILOGUE);
 	/* delete allocation if required */
-	uint32_t allocID = alloc->id;
 	if (alloc->terminate) Alloc_delete(alloc);
 	/* inform slurmctld */
-	sendEpilogueComplete(allocID, SLURM_SUCCESS);
+	sendEpilogueComplete(&alloc->hID, SLURM_SUCCESS);
     } else {
 	/* Warning: the msg handler function may delete the allocation
 	 * on the leader in finalizeEpilogue(). Don't use the
@@ -219,7 +218,7 @@ static void cbPElogue(char *sID, int exitStatus, bool timeout,
 	 sID, Alloc_strState(alloc->state), exitStatus, timeout);
 
     if (pluginShutdown) {
-	flog("shutdown in progress, deleting allocation %u\n", alloc->id);
+	flog("shutdown in progress, deleting allocation %u\n", alloc->hID.jobid);
 	alloc->state = A_EXIT;
 	send_PS_AllocState(alloc);
 	Alloc_delete(alloc);
@@ -233,7 +232,7 @@ static void cbPElogue(char *sID, int exitStatus, bool timeout,
     } else if (alloc->state == A_EPILOGUE || alloc->state == A_EPILOGUE_FINISH) {
 	handleEpilogueCB(alloc, resList);
     } else {
-	flog("allocation %u in invalid state %u\n", alloc->id, alloc->state);
+	flog("allocation %u in invalid state %u\n", alloc->hID.jobid, alloc->state);
 	goto CLEANUP;
     }
     return;
@@ -244,7 +243,7 @@ CLEANUP:
 
 bool startPElogue(Alloc_t *alloc, PElogueType_t type)
 {
-    char *sjobid = Job_strID(alloc->id);
+    char *sjobid = Job_strID(alloc->hID.jobid);
     char buf[512];
 
     PSnodes_ID_t myNode = PSC_getMyID();
@@ -289,7 +288,7 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
 
 static bool epilogueFinScript(Alloc_t *alloc)
 {
-    flog("executing epilogue finalize script for %i\n", alloc->id);
+    flog("executing epilogue finalize script for %i\n", alloc->hID.jobid);
     alloc->epilogFin = true;
     return execEpilogueFin(alloc);
 }
@@ -298,13 +297,12 @@ bool finalizeEpilogue(Alloc_t *alloc)
 {
     if (!alloc->epilogFin && alloc->nrOfNodes == alloc->epilogCnt) {
 	flog("epilogue for allocation %u on %u node(s) finished\n",
-	     alloc->id, alloc->epilogCnt);
+	     alloc->hID.jobid, alloc->epilogCnt);
 
 	if (!epilogueFinScript(alloc)) {
 	    if (alloc->terminate) {
-		uint32_t allocID = alloc->id;
 		Alloc_delete(alloc);
-		sendEpilogueComplete(allocID, SLURM_SUCCESS);
+		sendEpilogueComplete(&alloc->hID, SLURM_SUCCESS);
 		return true;
 	    }
 	}
@@ -393,7 +391,9 @@ int handleLocalPElogueStart(void *data)
 	    env_t env = old ? old->env : pedata->env;
 	    mdbg(PSSLURM_LOG_PELOG, "%s: no pack hosts, add allocation %u skip "
 		 "prologue\n", __func__, id);
-	    Alloc_t *alloc = Alloc_add(id, packID, slurmHosts, env,
+	    Head_ID_t hID = { .jobid = id, .stepid = NO_VAL,
+			     .sluid = NO_VAL, .stepHetComp = NO_VAL };
+	    Alloc_t *alloc = Alloc_add(&hID, packID, slurmHosts, env,
 				      pedata->uid, pedata->gid, user);
 	    if (old) {
 		fdbg(PSSLURM_LOG_PELOG, "removing old allocation %u\n", packID);
@@ -421,7 +421,9 @@ int handleLocalPElogueStart(void *data)
 	    if (localid != NO_VAL) {
 		mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 		     "allocation %u\n", __func__, id);
-		alloc = Alloc_add(id, packID, slurmHosts, pedata->env,
+		Head_ID_t hID = { .jobid = id, .stepid = NO_VAL,
+				 .sluid = NO_VAL, .stepHetComp = NO_VAL };
+		alloc = Alloc_add(&hID, packID, slurmHosts, pedata->env,
 				 pedata->uid, pedata->gid, user);
 		alloc->state = A_PROLOGUE;
 	    } else {
@@ -429,7 +431,9 @@ int handleLocalPElogueStart(void *data)
 		if (!alloc) {
 		    mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 			 "temporary allocation %u\n", __func__, packID);
-		    alloc = Alloc_add(id, packID, slurmHosts, pedata->env,
+		    Head_ID_t hID = { .jobid = id, .stepid = NO_VAL,
+				     .sluid = NO_VAL, .stepHetComp = NO_VAL };
+		    alloc = Alloc_add(&hID, packID, slurmHosts, pedata->env,
 				     pedata->uid, pedata->gid, user);
 		    alloc->state = A_PROLOGUE;
 		} else {
@@ -441,7 +445,9 @@ int handleLocalPElogueStart(void *data)
     } else {
 	/* prologue for regular (non pack) job */
 	fdbg(PSSLURM_LOG_PELOG, "non pack job, add allocation %u\n", id);
-	Alloc_t *alloc = Alloc_add(id, packID, slurmHosts, pedata->env,
+	Head_ID_t hID = { .jobid = id, .stepid = NO_VAL,
+			 .sluid = NO_VAL, .stepHetComp = NO_VAL };
+	Alloc_t *alloc = Alloc_add(&hID, packID, slurmHosts, pedata->env,
 				  pedata->uid, pedata->gid, user);
 	alloc->state = A_PROLOGUE;
     }
@@ -511,10 +517,10 @@ int handleLocalPElogueFinish(void *data)
 		    A_PROLOGUE_FINISH : A_EPILOGUE_FINISH;
 
     mdbg(PSSLURM_LOG_PELOG, "%s for jobid %u packID %u exit %u\n", __func__,
-	 alloc->id, alloc->packID, pedata->exit);
+	 alloc->hID.jobid, alloc->packID, pedata->exit);
 
     /* allow/revoke SSH access to my node */
-    uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->id;
+    uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->hID.jobid;
     if (!pedata->exit && pedata->type == PELOGUE_PROLOGUE) {
 	psPamAddUser(alloc->username, Job_strID(ID), PSPAM_STATE_JOB);
 	psPamSetState(alloc->username, Job_strID(ID), PSPAM_STATE_JOB);
@@ -534,7 +540,7 @@ int handleLocalPElogueFinish(void *data)
 		 (pedata->type == PELOGUE_PROLOGUE) ? "prologue" : "epilogue",
 		 pedata->exit);
 
-	setNodeOffline(alloc->env, alloc->id,
+	setNodeOffline(alloc->env, alloc->hID.jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
     }
 
