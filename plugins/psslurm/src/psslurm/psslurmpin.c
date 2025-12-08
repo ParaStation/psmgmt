@@ -1878,23 +1878,23 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
     if (verbose) {
 	/* verbose GPU binding output */
 	unsigned int procGpuMask = 0;
-	for (size_t i = 0; i < 8*sizeof(procGpuMask); i++) {
-	    if (PSCPU_isSet(*rankGPUs, i)) procGpuMask |= 1 << i;
+	for (uint16_t gpu = 0; gpu < 8*sizeof(procGpuMask); gpu++) {
+	    if (PSCPU_isSet(*rankGPUs, gpu)) procGpuMask |= 1 << gpu;
 	}
 	unsigned int taskGpuMask = 0;
-	for (size_t i = 0; i < 8*sizeof(taskGpuMask); i++) {
-	    if (PSCPU_isSet(assGPUs, i)) taskGpuMask |= 1 << i;
+	for (uint16_t gpu = 0; gpu < 8*sizeof(taskGpuMask); gpu++) {
+	    if (PSCPU_isSet(assGPUs, gpu)) taskGpuMask |= 1 << gpu;
 	}
 
 	char *globalGpuList = "N/A";
 
 	strbuf_t buf = strbufNew(NULL);
-	for (size_t i = 0; i < PSCPU_MAX; i++) {
-	    if (!PSCPU_isSet(*rankGPUs, i)) continue;
+	for (uint16_t gpu = 0; gpu < PSCPU_MAX; gpu++) {
+	    if (!PSCPU_isSet(*rankGPUs, gpu)) continue;
 
 	    char tmpstr[11];
-	    snprintf(tmpstr, sizeof(tmpstr), "%s%zd", strbufLen(buf) ? "," : "",
-		     i);
+	    snprintf(tmpstr, sizeof(tmpstr), "%hu", gpu);
+	    if (gpu) strbufAdd(buf, ",");
 	    strbufAdd(buf, tmpstr);
 	}
 	char *localGpuList = strbufSteal(buf);
@@ -2184,7 +2184,7 @@ static bool addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
     *threads = tmp;
 
     for (size_t s = 0; s < num; s++) {
-	for (size_t cpu = 0; cpu < PSCPU_MAX; cpu++) {
+	for (uint16_t cpu = 0; cpu < PSCPU_MAX; cpu++) {
 	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
 		(*threads)[t].node = slots[s].node;
 		(*threads)[t].id = cpu;
@@ -3054,10 +3054,10 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	    if (memBindType & MEM_BIND_LOCAL) {
 		/* default usually handled in psid */
 		nodemask = numa_allocate_nodemask();
-		for (size_t i = 0; i < threadCount; i++) {
-		    if (PSCPU_isSet(CPUset, i)) {
+		for (size_t thread = 0; thread < threadCount; thread++) {
+		    if (PSCPU_isSet(CPUset, thread)) {
 			numa_bitmask_setbit(nodemask,
-				getSocketByThread(i, &nodeinfo));
+				getSocketByThread(thread, &nodeinfo));
 		    }
 		}
 	    } else if (memBindType
