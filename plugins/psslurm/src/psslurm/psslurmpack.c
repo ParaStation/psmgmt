@@ -189,7 +189,7 @@ static bool __addSlurmAddr(Slurm_Addr_t *addr, PS_SendDB_t *data,
 
 static void packStepHead(void *head, PS_SendDB_t *data)
 {
-    Slurm_Step_Head_t *stepH = head;
+    Head_ID_t *stepH = head;
 
     if (slurmProto > SLURM_24_05_PROTO_VERSION) {
 	/* unique Slurm ID */
@@ -225,7 +225,7 @@ static void packStepHead(void *head, PS_SendDB_t *data)
 static bool __unpackStepHead(PS_DataBuffer_t data, void *head, uint16_t msgVer,
 			     const char *caller, const int line)
 {
-    Slurm_Step_Head_t *stepH = head;
+    Head_ID_t *stepH = head;
 
     if (!data || !PSdbGetRemData(data)) {
 	flog("invalid data from '%s' at %i\n", caller, line);
@@ -3660,7 +3660,7 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     /* job infos */
     addUint32ToMsg(stat->infoCount, data);
     for (uint32_t i=0; i<stat->infoCount; i++) {
-	Slurm_Step_Head_t *stepH = &(stat->infos)[i];
+	Head_ID_t *stepH = &(stat->infos)[i];
 	packStepHead(stepH, data);
     }
 
@@ -4448,7 +4448,7 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
     switch (sMsg->head.type) {
     case REQUEST_JOB_STEP_STAT:
     case REQUEST_JOB_STEP_PIDS:
-	sMsg->unpData = ucalloc(sizeof(Slurm_Step_Head_t));
+	sMsg->unpData = ucalloc(sizeof(Head_ID_t));
 	ret = unpackStepHead(sMsg->data, sMsg->unpData, sMsg->head.version);
 	break;
     case REQUEST_LAUNCH_PROLOG:

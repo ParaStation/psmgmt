@@ -1453,7 +1453,7 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 
 static int handleStepStat(Slurm_Msg_t *sMsg)
 {
-    Slurm_Step_Head_t *head = sMsg->unpData;
+    Head_ID_t *head = sMsg->unpData;
     if (!head) {
 	flog("unpacking step stat request failed\n");
 	return ESLURM_INVALID_JOB_ID;
@@ -1522,7 +1522,7 @@ static int handleStepStat(Slurm_Msg_t *sMsg)
 
 static int handleStepPids(Slurm_Msg_t *sMsg)
 {
-    Slurm_Step_Head_t *head = sMsg->unpData;
+    Head_ID_t *head = sMsg->unpData;
     if (!head) {
 	flog("unpacking step pids request failed\n");
 	return ESLURM_INVALID_JOB_ID;

@@ -108,7 +108,7 @@ static inline void freeReqLaunchProlog(Slurm_Msg_t *sMsg)
  */
 static inline void freeStepHead(Slurm_Msg_t *sMsg)
 {
-    Slurm_Step_Head_t *head = sMsg->unpData;
+    Head_ID_t *head = sMsg->unpData;
     ufree(head);
 
     sMsg->unpData = NULL;

@@ -317,7 +317,7 @@ void Job_getInfos(Resp_Node_Reg_Status_t *stat)
 	Job_t *job = list_entry(j, Job_t, next);
 	if (stat->infoCount == max) break;
 	/* report all known jobs, even in state complete/exit */
-	Slurm_Step_Head_t *head = &(stat->infos)[stat->infoCount];
+	Head_ID_t *head = &(stat->infos)[stat->infoCount];
 	head->sluid = NO_VAL64;
 	head->jobid = job->jobid;
 	head->stepid = SLURM_BATCH_SCRIPT;

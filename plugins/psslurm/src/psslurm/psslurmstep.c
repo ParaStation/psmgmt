@@ -567,7 +567,7 @@ void Step_getInfos(Resp_Node_Reg_Status_t *stat)
 	Step_t *step = list_entry(s, Step_t, next);
 	if (stat->infoCount == max) break;
 	/* report all known jobs, even in state complete/exit */
-	Slurm_Step_Head_t *head = &(stat->infos)[stat->infoCount];
+	Head_ID_t *head = &(stat->infos)[stat->infoCount];
 	head->sluid = step->sluid;
 	head->jobid = step->jobid;
 	head->stepid = step->stepid;
