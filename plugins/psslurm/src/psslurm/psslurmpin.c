@@ -1888,7 +1888,6 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 
 	char *globalGpuList = "N/A";
 
-	/* @todo does local_inx mean that? */
 	strbuf_t buf = strbufNew(NULL);
 	for (size_t i = 0; i < PSCPU_MAX; i++) {
 	    if (!PSCPU_isSet(*rankGPUs, i)) continue;
@@ -1900,6 +1899,7 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	}
 	char *localGpuList = strbufSteal(buf);
 
+	/* @todo what does local_inx mean? */
 	uprintf("gpu-bind: usable_gres=0x%X; bit_alloc=0x%X; local_inx=%d;"
 		" global_list=%s; local_list=%s\n", procGpuMask, taskGpuMask, 0,
 		globalGpuList, localGpuList);
