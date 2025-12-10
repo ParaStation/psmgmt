@@ -91,13 +91,16 @@ typedef struct {
 
 /** Setting up callback function object */
 #define INIT_CBFUNC(o, f, d) do {  \
+    if (!f) { (o) = NULL; break; } \
     (o) = ucalloc(sizeof(*o));     \
     (o)->cbfunc = (f);             \
     (o)->cbdata = (d);             \
     pthread_mutex_init(&(o)->lock, NULL); \
 } while(0)
 
+/** Lock callback function object */
 #define LOCK_CBFUNC_OR_RETURN(o, r) do {                           \
+    if (!o) break;                                                 \
     int err;                                                       \
     while((err = pthread_mutex_lock(&(o)->lock))) {                \
 	if (err == EAGAIN) {                                       \
@@ -109,7 +112,9 @@ typedef struct {
     }                                                              \
 } while (0);
 
+/** Unlock callback function object */
 #define UNLOCK_CBFUNC_OR_RETURN(o, r) do {                            \
+    if (!o) break;                                                    \
     int err;                                                          \
     while((err = pthread_mutex_unlock(&(o)->lock))) {                 \
 	if (err == EAGAIN) {                                          \
@@ -123,6 +128,7 @@ typedef struct {
 
 /** Setting up data for callback routines */
 #define DESTROY_CBFUNC(d) do {           \
+    if (!d) break;                       \
     pthread_mutex_destroy(&(d)->lock);   \
     ufree(d);                            \
 } while (0)
@@ -336,10 +342,8 @@ static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
 	 pmixProcStr(proc), clientObject, cbfunc, cbdata);
 
     mycbfunc_t *cb = NULL;
-    if (cbfunc) {
-	INIT_CBFUNC(cb, cbfunc, cbdata);
-	LOCK_CBFUNC_OR_RETURN(cb, PMIX_ERROR);
-    }
+    INIT_CBFUNC(cb, cbfunc, cbdata);
+    LOCK_CBFUNC_OR_RETURN(cb, PMIX_ERROR);
 
     if (!pspmix_service_clientConnected(proc->nspace, clientObject, cb)) {
 	DESTROY_CBFUNC(cb);
@@ -347,7 +351,7 @@ static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
     }
 
     /* tell the server library to wait for the callback call */
-    if (cbfunc) UNLOCK_CBFUNC_OR_RETURN(cb, PMIX_ERROR);
+    UNLOCK_CBFUNC_OR_RETURN(cb, PMIX_ERROR);
     return PMIX_SUCCESS;
 }
 
@@ -374,19 +378,17 @@ static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 	 pmixProcStr(proc), clientObject, cbfunc, cbdata);
 
     mycbfunc_t *cb = NULL;
-    if (cbfunc) {
-	INIT_CBFUNC(cb, cbfunc, cbdata);
-	LOCK_CBFUNC_OR_RETURN(cb, PMIX_ERROR);
-    }
+    INIT_CBFUNC(cb, cbfunc, cbdata);
+    LOCK_CBFUNC_OR_RETURN(cb, PMIX_ERROR);
 
     if (!pspmix_service_clientFinalized(proc->nspace, clientObject, cb)) {
-	if (cbfunc) UNLOCK_CBFUNC_OR_RETURN(cb, PMIX_ERROR);
+	UNLOCK_CBFUNC_OR_RETURN(cb, PMIX_ERROR);
 	DESTROY_CBFUNC(cb);
 	return PMIX_ERROR;
     }
 
     /* tell the server library to wait for the callback call */
-    if (cbfunc) UNLOCK_CBFUNC_OR_RETURN(cb, PMIX_ERROR);
+    UNLOCK_CBFUNC_OR_RETURN(cb, PMIX_ERROR);
     return PMIX_SUCCESS;
 }
 
@@ -1737,15 +1739,13 @@ static void server_log_cb(const pmix_proc_t *client,
     }
 
     mycbfunc_t *cb = NULL;
-    if (cbfunc) {
-	INIT_CBFUNC(cb, cbfunc, cbdata);
-	LOCK_CBFUNC_OR_RETURN(cb, /* no return value */);
-    }
+    INIT_CBFUNC(cb, cbfunc, cbdata);
+    LOCK_CBFUNC_OR_RETURN(cb, /* no return value */);
 
     pspmix_service_log(call, cb);
 
     /* callback is now allowed to be called since we return to the lib */
-    if (cbfunc) UNLOCK_CBFUNC_OR_RETURN(cb, /* no return value */);
+    UNLOCK_CBFUNC_OR_RETURN(cb, /* no return value */);
 }
 
 /* Request new allocation or modifications to an existing allocation on behalf
