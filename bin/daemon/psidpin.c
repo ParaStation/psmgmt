@@ -145,10 +145,11 @@ static void pinToCPUs(cpu_set_t *physSet)
 /**
  * @brief Set dev bind variables
  *
- * Set @a vairables to @a val if it is still unset or was set
+ * Set @a variables to @a val if it is still unset or was set
  * automatically (checked by @a PSIDpin_checkAutoVar()).
  *
  * @param variables  environment variables to set
+ *
  * @param val        new value
  */
 static void doBindToDevs(char **variables, char *val)

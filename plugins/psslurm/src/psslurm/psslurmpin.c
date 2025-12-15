@@ -1591,13 +1591,15 @@ static char * getGpuBindString(char *tres_bind)
 /**
  * @brief Get the index of the minimum value in a subset of an array
  *
- * Get the index of the minimum value in array @a values under
- * the constraint to take only the indeces set in @a idcs into account with
- * a maximal index of @a max.
+ * Get the index of the minimum value in array @a values under the
+ * constraint to take only the indices set in @a idcs into
+ * account. Furthermore, only the first @a max bits of @a idcs are
+ * taken into account, i.e. no index larger than @a max of @a values
+ * is investigated.
  *
  * @param values Array of values
  *
- * @param idxs Valid indices of @a array to be taken into account
+ * @param idxs Valid indices of @a values to be taken into account
  *
  * @param max Maximum index to check
  *
@@ -1844,7 +1846,7 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 			PSCPU_copy(useGPUs[lTID], assGPUs);
 			PSCPU_remCPUs(useGPUs[lTID], gpus[lTID]);
 		    } else {
-			/* there are not enough GPUs as all, probably this will
+			/* there are not enough GPUs at all, probably this will
 			 * never happen since the slurmctld should take care on
 			 * that, but catch the case as a safety guard */
 			if (lTID == localRankId) {

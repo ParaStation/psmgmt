@@ -155,7 +155,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t devs,
  * changed.
  *
  * This function assumes that @a value is the actual value of the
- * environment variable @a name and that the caller as double checked
+ * environment variable @a name and that the caller has double checked
  * that @a name is set, i.e. that @a value is different from NULL.
  *
  * The auto variable mechanism is used to detect changes made by the
