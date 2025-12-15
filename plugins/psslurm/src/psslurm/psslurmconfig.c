@@ -1339,6 +1339,39 @@ static bool verifySlurmConf(void)
 }
 
 /**
+ * @brief GresConfVisitor counting all GPUs
+ *
+ * This visitor always returns false to not stop the traversal.
+ **/
+static bool countGPUsVisitor(Gres_Conf_t *gres , void *info)
+{
+    short *gpus = info;
+
+    if (!strcmp(gres->name, "gpu")) *gpus += gres->count;
+
+    return false;
+}
+
+/**
+ * @brief Do various sanity checks for a Slurm GRes configuration
+ *
+ * @return Returns true on success or false on error
+ */
+static bool verifyGresConf(void)
+{
+    short slurmGPUs = 0;
+    traverseGresConf(countGPUsVisitor, &slurmGPUs); /* !!! false on purpose */
+    short numGPUs = PSIDnodes_numGPUs(PSC_getMyID());
+    if(numGPUs < slurmGPUs) {
+	flog("Configured and detected number of GPUs differ (%hd < %hd)\n",
+	     slurmGPUs, numGPUs);
+	return false;
+    }
+
+    return true;
+}
+
+/**
  * @brief Verify Slurm OCI configuration entry
  *
  * @param key Entry key to verify
@@ -1564,6 +1597,8 @@ bool parseSlurmConfigFiles(void)
 	    return false;
 	}
     }
+
+    if (!verifyGresConf()) return false;
 
     /* parse optional Slurm account gather config file */
     confFile = getConfValueC(Config, "SLURM_GATHER_CONF");
