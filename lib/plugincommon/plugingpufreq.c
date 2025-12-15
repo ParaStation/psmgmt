@@ -19,6 +19,8 @@
 #include "pscpu.h"
 #include "psstrv.h"
 #include "psidhw.h"
+#include "psidnodes.h"
+#include "pscommon.h"
 
 #include "pluginlog.h"
 #include "pluginmalloc.h"
@@ -136,7 +138,12 @@ static void cmdListGPUs(char *output, void *info)
 	return;
     }
 
-    /* TODO: compare GPU list to psid/hwloc information? */
+    if (scriptGPUs != PSIDnodes_numGPUs(PSC_getMyID())) {
+	pluginflog("script GPUs %u mismatched hwloc GPUs %u \n", scriptGPUs,
+		PSIDnodes_numGPUs(PSC_getMyID()));
+	initFailure = true;
+	return;
+    }
     numGPUs = scriptGPUs;
 
     gpus = ucalloc(sizeof(*gpus) * numGPUs);
