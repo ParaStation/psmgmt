@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -75,6 +75,19 @@ static bool setGresCount(Gres_Conf_t *gres, char *count)
     return true;
 }
 
+/**
+ * @brief Handle single device file entry from `file` string
+ *
+ * This is meant as visitor function for `traverseComList()`.
+ * It expects @a file to be one device File, detects it's parameters, stores
+ * them im a @a GRes_Dev_t struct, and adds it to the devices list in the
+ * @a Gres_Conf_t struct passed as @a info pointer.
+ *
+ * @param file  Name of a device file
+ * @param info  Pointer to the gres struct
+ *
+ * @returns always true
+ */
 static bool discoverDevices(char *file, void *info)
 {
     struct stat sbuf;
@@ -92,8 +105,8 @@ static bool discoverDevices(char *file, void *info)
 	list_add_tail(&gDev->next, &gres->devices);
 
 	fdbg(PSSLURM_LOG_GRES, "GRes device %s major %u minor %u "
-	     "index %i type %s\n", gDev->path, gDev->major, gDev->minor,
-	     gDev->slurmIdx, gres->type);
+	     "index %i type %s count %lu\n", gDev->path, gDev->major, gDev->minor,
+	     gDev->slurmIdx, gres->type, gres->count);
     }
 
     return true;
