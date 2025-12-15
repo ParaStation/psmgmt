@@ -143,8 +143,8 @@ int __signalTasks(uint32_t jobid, uint32_t stepid, uid_t uid, list_t *taskList,
 		  int signal, int32_t group, const char *caller, const int line)
 {
     Step_t s = {
-	.jobid = jobid,
-	.stepid = stepid };
+	.hID.jobid = jobid,
+	.hID.stepid = stepid };
 
     int count = 0;
     list_t *t;

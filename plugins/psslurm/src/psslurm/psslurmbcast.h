@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2025 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,9 +28,7 @@
 typedef struct {
     time_t ctime;	/**< creation time */
     time_t etime;	/**< expire time */
-    uint32_t jobid;	/**< unique job identifier */
-    uint32_t stepid;    /**< unique step identifier */
-    uint32_t packJobid;	/**< unique pack job identifier */
+    Head_ID_t hID;	/**< associated step identifier */
     uid_t uid;		/**< user id */
     gid_t gid;		/**< group id */
     char *username;	/**< username */
@@ -60,8 +58,7 @@ typedef struct {
     uint16_t modes;		/**< access rights */
     uint32_t blockLen;		/**< length of this part */
     uint32_t uncompLen;		/**< uncompressed length of this data part */
-    uint32_t jobid;		/**< the associated jobid */
-    uint32_t stepid;		/**< the associated stepid */
+    Head_ID_t hID;		/**< associated step identifier */
     uint64_t fileSize;		/**< size of the file */
     time_t atime;		/**< last access time of the file */
     time_t mtime;		/**< last modification time of the file */
@@ -150,13 +147,11 @@ void BCast_freeCred(BCast_Cred_t *cred);
  *
  * @param exe The executable name to adjust
  *
- * @param jobid The job ID of the associated step
- *
- * @param stepid ID of the associated step
+ * @param hID Head identifier associated step
  *
  * @return Returns the adjusted or original executable name on success or
  * NULL on error
  */
-char *BCast_adjustExe(char *exe, uint32_t jobid, uint32_t stepid);
+char *BCast_adjustExe(char *exe, Head_ID_t *hID);
 
 #endif

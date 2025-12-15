@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -79,7 +79,7 @@ static bool addJobInfo(Job_t *job, const void *info)
     struct tm *ts;
     strbuf_t buf = (strbuf_t)info;
 
-    snprintf(line, sizeof(line), "- jobid %u -\n", job->jobid);
+    snprintf(line, sizeof(line), "- jobid %u -\n", job->hID.jobid);
     strbufAdd(buf, line);
 
     snprintf(line, sizeof(line), "user '%s'\n", job->username);

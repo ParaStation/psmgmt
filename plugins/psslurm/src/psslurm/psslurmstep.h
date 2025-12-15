@@ -74,11 +74,7 @@ typedef struct {
 
 typedef struct {
     list_t next;                /**< used to put into some step-lists */
-    /* next 4 elements must match Slurm_Step_Head_t for unpackStepHead() */
-    uint64_t sluid;		/**< unique Slurm ID */
-    uint32_t jobid;		/**< unique job identifier */
-    uint32_t stepid;		/**< unique step identifier */
-    uint32_t stepHetComp;	/**< step het component identifier */
+    Head_ID_t hID;		/**< Step head identifier */
     uint32_t np;		/**< number of processes */
     uint16_t tpp;		/**< HW-threads per process (PSI_TPP) */
     char *username;		/**< username of step owner */

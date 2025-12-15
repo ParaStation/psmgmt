@@ -79,15 +79,19 @@ typedef struct {
 /** callback function of a connection structure */
 typedef void Connection_CB_t(Slurm_Msg_t *msg, void *info);
 
+typedef struct {
+    uint64_t sluid;	    /**< unique Slurm ID */
+    uint32_t jobid;         /**< unique job identifier */
+    uint32_t stepid;        /**< unique step identifier */
+    uint32_t stepHetComp;   /**< step het component identifier */
+} Head_ID_t;
+
 /** structure to make information available about the message request
  * when handling a corresponding response */
 typedef struct {
     uint16_t type;	    /**< message type of the request */
     uint16_t expRespType;   /**< expected message type of the response */
-    uint64_t sluid;	    /**< unique Slurm identifier */
-    uint32_t jobid;	    /**< optional jobid associated with the request */
-    uint32_t stepid;	    /**< optional stepid associated with the request */
-    uint32_t stepHetComp;   /**< step het component identifier */
+    Head_ID_t hID;	    /**< Step head identifier */
     time_t time;	    /**< time the request was sent */
     Connection_CB_t *cb;    /**< callback to handle a reply */
 } Req_Info_t;

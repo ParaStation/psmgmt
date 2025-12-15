@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -135,7 +135,7 @@ static bool stepEpilogue(Step_t *step, const void *info)
 {
     uint32_t jobid = *(uint32_t *) info;
 
-    if (step->jobid == jobid ||
+    if (step->hID.jobid == jobid ||
 	(step->packJobid != NO_VAL && step->packJobid == jobid)) {
 
 	step->state = JOB_EXIT;
@@ -158,7 +158,7 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 
     if (job) {
 	job->state = JOB_EXIT;
-	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
+	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,
 	     Job_strState(job->state));
     } else {
 	Step_traverse(stepEpilogue, &alloc->id);
@@ -328,7 +328,7 @@ static bool startStepFollowerFW(Step_t *step, const void *info)
 
     if (step->leader) return false;
 
-    if (step->jobid == jobid ||
+    if (step->hID.jobid == jobid ||
 	(step->packJobid != NO_VAL && step->packJobid == jobid)) {
 
 	flog("pelogue exit, starting step follower fw, %s\n", Step_strID(step));
@@ -567,7 +567,7 @@ static void preparePEscript(void *info)
 
     flog("starting task %s '%s' for rank %u (global %u) of job %u\n",
 	 ti->prologue ? "prologue" : "epilogue", ti->taskPElogue,
-	 ti->task->jobRank, ti->task->rank, ti->step->jobid);
+	 ti->task->jobRank, ti->task->rank, ti->step->hID.jobid);
 }
 
 /**
@@ -589,7 +589,7 @@ static void handleTaskPrologueOut(char *output, void *info)
 	char *val = output + 7;
 	fdbg(PSSLURM_LOG_PELOG, "setting '%s' for rank %d (global %d)"
 	     " of job %d\n", val, ti->task->jobRank, ti->task->rank,
-	     ti->step->jobid);
+	     ti->step->hID.jobid);
 
 	char *env = ustrdup(val);
 	if (putenv(env) != 0) {

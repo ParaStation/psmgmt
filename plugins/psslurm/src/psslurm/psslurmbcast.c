@@ -100,10 +100,10 @@ bool BCast_extractCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 	    goto ERROR;
 	}
     } else {
-	BCast_t *firstBCast = BCast_find(bcast->jobid, bcast->fileName, 1);
+	BCast_t *firstBCast = BCast_find(bcast->hID.jobid, bcast->fileName, 1);
 	if (!firstBCast) {
 	    flog("no matching bcast for jobid %u fileName '%s' blockNum %u\n",
-		 bcast->jobid, bcast->fileName, bcast->blockNumber);
+		 bcast->hID.jobid, bcast->fileName, bcast->blockNumber);
 	    goto ERROR;
 	}
 
@@ -121,8 +121,7 @@ bool BCast_extractCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
     /* update BCast */
     bcast->sig = cred.sig;
     cred.sig = NULL;
-    bcast->jobid = cred.jobid;
-    bcast->stepid = cred.stepid;
+    memcpy(&bcast->hID, &cred.hID, sizeof(cred.hID));
 
     BCast_freeCred(&cred);
     free(sigBuf);
@@ -141,7 +140,7 @@ void BCast_destroyByJobid(uint32_t jobid)
     list_t *b, *tmp;
     list_for_each_safe(b, tmp, &BCastList) {
 	BCast_t *bcast = list_entry(b, BCast_t, next);
-	if (bcast->jobid == jobid) {
+	if (bcast->hID.jobid == jobid) {
 	    if (bcast->fwdata) {
 		killChild(PSC_getPID(bcast->fwdata->tid), SIGKILL, bcast->uid);
 	    } else {
@@ -156,7 +155,7 @@ void BCast_clearByJobid(uint32_t jobid)
     list_t *b, *tmp;
     list_for_each_safe(b, tmp, &BCastList) {
 	BCast_t *bcast = list_entry(b, BCast_t, next);
-	if (bcast->jobid == jobid) BCast_delete(bcast);
+	if (bcast->hID.jobid == jobid) BCast_delete(bcast);
     }
 }
 
@@ -175,7 +174,7 @@ BCast_t *BCast_find(uint32_t jobid, char *fileName, uint32_t blockNum)
     list_for_each(b, &BCastList) {
 	BCast_t *bcast = list_entry(b, BCast_t, next);
 	if (blockNum > 0 && blockNum != bcast->blockNumber) continue;
-	if (bcast->jobid == jobid &&
+	if (bcast->hID.jobid == jobid &&
 	    !strcmp(bcast->fileName, fileName)) return bcast;
     }
     return NULL;
@@ -196,13 +195,13 @@ void BCast_freeCred(BCast_Cred_t *cred)
     strShred(cred->sig);
 }
 
-char *BCast_adjustExe(char *exe, uint32_t jobid, uint32_t stepid)
+char *BCast_adjustExe(char *exe, Head_ID_t *hID)
 {
     if (!exe) return NULL;
     if (exe[strlen(exe) -1] != '/') return exe;
 
     char strID[128];
-    snprintf(strID, sizeof(strID), "%u.%u", jobid, stepid);
+    snprintf(strID, sizeof(strID), "%u.%u", hID->jobid, hID->stepid);
     char *newExe = PSC_concat(exe, "slurm_bcast_", strID, "_",
 			      getConfValueC(Config, "SLURM_HOSTNAME"));
     if (!newExe) flog("PSC_concat(%s) out of memory\n", exe);

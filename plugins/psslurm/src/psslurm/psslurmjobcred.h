@@ -32,11 +32,7 @@ typedef enum {
 
 /** job credential verified by munge */
 typedef struct {
-    /* first 4 elements are expected here and in this order by unpackStepHead */
-    uint64_t sluid;		/**< unique Slurm ID */
-    uint32_t jobid;             /**< unique job identifier */
-    uint32_t stepid;            /**< unique step identifier */
-    uint32_t stepHetComp;	/**< step het component identifier */
+    Head_ID_t hID;		/**< Step head identifier */
     uid_t uid;                  /**< job user ID */
     gid_t gid;			/**< primary group ID */
     char *username;		/**< username */

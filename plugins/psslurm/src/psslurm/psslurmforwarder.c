@@ -134,12 +134,12 @@ static void cbTermJail(int exit, bool tmdOut, int iofd, void *info)
 static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
-    Alloc_t *alloc = Alloc_find(job->jobid);
+    Alloc_t *alloc = Alloc_find(job->hID.jobid);
 
-    flog("job '%u' finished, exit %i / %i\n", job->jobid, exit_status,
+    flog("job '%u' finished, exit %i / %i\n", job->hID.jobid, exit_status,
 	 fw->chldExitStatus);
-    if (!Job_findById(job->jobid)) {
-	flog("job '%u' not found\n", job->jobid);
+    if (!Job_findById(job->hID.jobid)) {
+	flog("job '%u' not found\n", job->hID.jobid);
 	return;
     }
 
@@ -147,12 +147,12 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     PSID_execFunc(termJobJail, NULL, cbTermJail, NULL, job);
 
     /* make sure all processes are gone */
-    Step_signalByJobid(job->jobid, SIGKILL, 0);
-    signalTasks(job->jobid, NO_VAL, job->uid, &job->tasks, SIGKILL, -1);
-    Job_killForwarder(job->jobid);
+    Step_signalByJobid(job->hID.jobid, SIGKILL, 0);
+    signalTasks(job->hID.jobid, NO_VAL, job->uid, &job->tasks, SIGKILL, -1);
+    Job_killForwarder(job->hID.jobid);
 
     job->state = JOB_COMPLETE;
-    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,Job_strState(job->state));
+    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,Job_strState(job->state));
 
     /* get exit status of child */
     int32_t fwExitCode = (fw->rcHook != RC_HOOK_NONE) ? fw->rcHook : 0;
@@ -161,14 +161,14 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     /* job aborted due to node failure */
     if (alloc && alloc->nodeFail) eStatus = 9;
 
-    flog("job %u finished, exit %i\n", job->jobid, eStatus);
+    flog("job %u finished, exit %i\n", job->hID.jobid, eStatus);
 
     sendJobExit(job, eStatus);
 
     psAccountDelJob(PSC_getTID(-1, fw->cPid));
 
     if (!alloc) {
-	flog("allocation for job %u not found\n", job->jobid);
+	flog("allocation for job %u not found\n", job->hID.jobid);
 	Job_delete(job);
 	return;
     }
@@ -181,7 +181,7 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     } else if (alloc->terminate) {
 	/* run epilogue now */
 	flog("starting epilogue for allocation %u\n", alloc->id);
-	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
+	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,
 	     Job_strState(job->state));
 	startPElogue(alloc, PELOGUE_EPILOGUE);
     }
@@ -236,7 +236,7 @@ static void stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 	}
 
 	/* step aborted due to node failure */
-	Alloc_t *alloc = Alloc_find(step->jobid);
+	Alloc_t *alloc = Alloc_find(step->hID.jobid);
 	if (alloc && alloc->nodeFail) eStatus = 9;
 
 	sendStepExit(step, eStatus);
@@ -251,15 +251,15 @@ static void stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 	 Job_strState(step->state));
 
     /* test if we were waiting only for this step to finish */
-    Alloc_t *alloc = Alloc_find(step->jobid);
-    if (!Job_findById(step->jobid) && alloc && alloc->terminate &&
+    Alloc_t *alloc = Alloc_find(step->hID.jobid);
+    if (!Job_findById(step->hID.jobid) && alloc && alloc->terminate &&
 	(alloc->state == A_RUNNING || alloc->state == A_PROLOGUE_FINISH)) {
 	/* run epilogue now */
 	flog("starting epilogue for %s\n", Step_strID(step));
 	startPElogue(alloc, PELOGUE_EPILOGUE);
     }
 
-    if (step->stepid == SLURM_INTERACTIVE_STEP) Step_destroy(step);
+    if (step->hID.stepid == SLURM_INTERACTIVE_STEP) Step_destroy(step);
 }
 
 static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
@@ -273,7 +273,7 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
     if (step->nrOfNodes > 1) stopStepFollower(step);
 
-    Alloc_t *alloc = Alloc_find(step->jobid);
+    Alloc_t *alloc = Alloc_find(step->hID.jobid);
     flog("%s in %s finished, exit %i / %i\n", Step_strID(step),
 	 Job_strState(step->state), exit_status, fw->chldExitStatus);
 
@@ -332,14 +332,14 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     psAccountDelJob(jobTID);
 
     /* test if we were waiting only for this step to finish */
-    if (!Job_findById(step->jobid) && alloc && alloc->terminate &&
+    if (!Job_findById(step->hID.jobid) && alloc && alloc->terminate &&
 	(alloc->state == A_RUNNING || alloc->state == A_PROLOGUE_FINISH)) {
 	/* run epilogue now */
 	flog("starting epilogue for %s\n", Step_strID(step));
 	startPElogue(alloc, PELOGUE_EPILOGUE);
     }
 
-    if (!alloc || step->stepid == SLURM_INTERACTIVE_STEP) {
+    if (!alloc || step->hID.stepid == SLURM_INTERACTIVE_STEP) {
 	Step_destroy(step);
     } else {
 	step->fwdata = NULL;
@@ -354,7 +354,7 @@ static void bcastCallback(int32_t exit_status, Forwarder_Data_t *fw)
     sendSlurmRC(&bcast->msg, WEXITSTATUS(fw->chldExitStatus));
 
     bcast->fwdata = NULL;
-    if (bcast->flags & BCAST_LAST_BLOCK) BCast_clearByJobid(bcast->jobid);
+    if (bcast->flags & BCAST_LAST_BLOCK) BCast_clearByJobid(bcast->hID.jobid);
 }
 
 static int setFilePermissions(Job_t *job)
@@ -379,7 +379,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     Job_t *job = fwdata->userData;
 
     char buf[128];
-    snprintf(buf, sizeof(buf), "psslurm-job:%u", job->jobid);
+    snprintf(buf, sizeof(buf), "psslurm-job:%u", job->hID.jobid);
     reOpenSyslog(buf, &psslurmlogger);
 
     setFilePermissions(job);
@@ -392,7 +392,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
 	.task = NULL,
-	.alloc = Alloc_find(job->jobid),
+	.alloc = Alloc_find(job->hID.jobid),
 	.job = job,
 	.step = NULL,
 	.hook = SPANK_TASK_INIT_PRIVILEGED,
@@ -402,10 +402,10 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 
     if (SpankCallHook(&spank) < 0) {
 	flog("SPANK_TASK_INIT_PRIVILEGED failed, terminating job %u\n",
-	     job->jobid);
+	     job->hID.jobid);
 
 	fprintf(stderr, "SPANK hook task_init_privileged failed, "
-		"terminating job %u\n", job->jobid);
+		"terminating job %u\n", job->hID.jobid);
 	exit(1);
     }
 #endif
@@ -430,10 +430,10 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 #ifdef HAVE_SPANK
     spank.hook = SPANK_TASK_INIT;
     if (SpankCallHook(&spank) < 0) {
-	flog("SPANK_TASK_INIT failed, terminating job %u\n", job->jobid);
+	flog("SPANK_TASK_INIT failed, terminating job %u\n", job->hID.jobid);
 
 	fprintf(stderr, "SPANK hook task_init failed, terminating job %u\n",
-		job->jobid);
+		job->hID.jobid);
 	exit(1);
     }
 #endif
@@ -467,7 +467,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     fprintf(stderr, "%s: execve(%s): %s\n", __func__, strvGet(job->argV, 0),
 	    strerror(err));
 
-    snprintf(buf, sizeof(buf), "psslurm-job:%u", job->jobid);
+    snprintf(buf, sizeof(buf), "psslurm-job:%u", job->hID.jobid);
     reOpenSyslog(buf, &psslurmlogger);
     fwarn(err, "execve(%s)", strvGet(job->argV, 0));
     exit(err);
@@ -486,7 +486,7 @@ static void initFwPtr(PStask_t *task)
 	fwJob = Job_findById(jobid);
 	fwAlloc = Alloc_find(jobid);
     } else if (!isAdmin) {
-	Step_t s = { .jobid = jobid, .stepid = stepid };
+	Step_t s = { .hID.jobid = jobid, .hID.stepid = stepid };
 	flog("%s not found\n", Step_strID(&s));
     }
 
@@ -687,7 +687,7 @@ int handleExecClientPrep(void *data)
 
 	/* adjust BCast executable name */
 	char *exe = strvGet(task->argV, 0);
-	char *newExe = BCast_adjustExe(exe, fwStep->jobid, fwStep->stepid);
+	char *newExe = BCast_adjustExe(exe, &fwStep->hID);
 	if (!newExe) {
 	    flog("failed to adjust BCast exe %s\n", exe);
 	} else {
@@ -1316,7 +1316,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     stepSerialInitialized = initSerial(0, (Send_Msg_Func_t *)sendMsgToMother);
 
     GRes_Cred_type_t cType = GRES_CRED_STEP;
-    if (step->stepid == SLURM_INTERACTIVE_STEP ||
+    if (step->hID.stepid == SLURM_INTERACTIVE_STEP ||
 	step->taskFlags & LAUNCH_EXT_LAUNCHER) {
 	/* interactive steps should access all allocated
 	 * resources */
@@ -1348,8 +1348,8 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
 	.task = NULL,
-	.alloc = Alloc_find(step->jobid),
-	.job = Job_findById(step->jobid),
+	.alloc = Alloc_find(step->hID.jobid),
+	.job = Job_findById(step->hID.jobid),
 	.step = step,
 	.hook = SPANK_INIT,
 	.envSet = fwCMD_setEnv,
@@ -1519,8 +1519,8 @@ static int stepFinalize(Forwarder_Data_t *fwdata)
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
 	.task = NULL,
-	.alloc = Alloc_find(step->jobid),
-	.job = Job_findById(step->jobid),
+	.alloc = Alloc_find(step->hID.jobid),
+	.job = Job_findById(step->hID.jobid),
 	.step = step,
 	.hook = SPANK_EXIT,
 	.envSet = NULL,
@@ -1572,7 +1572,8 @@ bool execStepLeader(Step_t *step)
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
     char jobStr[32], titleStr[64];
-    snprintf(jobStr, sizeof(jobStr), "%u.%u", step->jobid, step->stepid);
+    snprintf(jobStr, sizeof(jobStr), "%u.%u", step->hID.jobid,
+	     step->hID.stepid);
     snprintf(titleStr, sizeof(titleStr), "psslurm-step:%s", jobStr);
     fwdata->pTitle = ustrdup(titleStr);
     fwdata->jobID = ustrdup(jobStr);
@@ -1611,7 +1612,7 @@ bool execStepLeader(Step_t *step)
 	snprintf(msg, sizeof(msg), "starting forwarder for %s failed\n",
 		 Step_strID(step));
 	flog("%s", msg);
-	setNodeOffline(step->env, step->jobid,
+	setNodeOffline(step->env, step->hID.jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	ForwarderData_delete(fwdata);
 	return false;
@@ -1643,7 +1644,7 @@ static int handleJobLoop(Forwarder_Data_t *fwdata)
 
     if (job->termAfterFWmsg) {
 	flog("terminating forwarder for job %u after sending user message\n",
-	     job->jobid);
+	     job->hID.jobid);
 	return 1;
     }
 
@@ -1655,7 +1656,7 @@ static int handleJobLoop(Forwarder_Data_t *fwdata)
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
 	.task = NULL,
-	.alloc = Alloc_find(job->jobid),
+	.alloc = Alloc_find(job->hID.jobid),
 	.job = job,
 	.step = NULL,
 	.hook = SPANK_TASK_POST_FORK,
@@ -1664,7 +1665,7 @@ static int handleJobLoop(Forwarder_Data_t *fwdata)
     };
 
     if (SpankCallHook(&spank) < 0) {
-	flog("SPANK_TASK_POST_FORK failed, terminating job %u\n", job->jobid);
+	flog("SPANK_TASK_POST_FORK failed, terminating job %u\n", job->hID.jobid);
 
 	char *eMsg = "SPANK hook task_post_fork failed, terminating job\n";
 	IO_printJobMsg(fwdata, eMsg, strlen(eMsg), STDERR);
@@ -1689,7 +1690,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
 	.task = NULL,
-	.alloc = Alloc_find(job->jobid),
+	.alloc = Alloc_find(job->hID.jobid),
 	.job = job,
 	.step = NULL,
 	.hook = SPANK_INIT,
@@ -1711,7 +1712,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     spank.hook = SPANK_USER_INIT;
     if (SpankCallHook(&spank) < 0) {
-	flog("SPANK_USER_INIT failed, terminating job %u\n", job->jobid);
+	flog("SPANK_USER_INIT failed, terminating job %u\n", job->hID.jobid);
 
 	char *eMsg = "SPANK hook user_init failed, terminating job\n";
 	queueFwMsg(&job->fwMsgQueue, eMsg, strlen(eMsg), STDERR, 0);
@@ -1769,7 +1770,7 @@ static int jobForwarderFin(Forwarder_Data_t *fwdata)
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
 	.task = NULL,
-	.alloc = Alloc_find(job->jobid),
+	.alloc = Alloc_find(job->hID.jobid),
 	.job = job,
 	.step = NULL,
 	.hook = SPANK_TASK_EXIT,
@@ -1791,13 +1792,13 @@ static int jobForwarderFin(Forwarder_Data_t *fwdata)
 bool execBatchJob(Job_t *job)
 {
     if (job->state == JOB_RUNNING) {
-	flog("error: job %u has already been started\n", job->jobid);
+	flog("error: job %u has already been started\n", job->hID.jobid);
 	return false;
     }
 
     if (job->mother) {
 	flog("error: job %u has to be executed on the mother superior node %i\n",
-	     job->jobid, PSC_getID(job->mother));
+	     job->hID.jobid, PSC_getID(job->mother));
 	return false;
     }
 
@@ -1805,11 +1806,11 @@ bool execBatchJob(Job_t *job)
     if (grace < 3) grace = 30;
 
     char fname[300];
-    snprintf(fname, sizeof(fname), "psslurm-job:%u", job->jobid);
+    snprintf(fname, sizeof(fname), "psslurm-job:%u", job->hID.jobid);
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
     fwdata->pTitle = ustrdup(fname);
-    fwdata->jobID = ustrdup(Job_strID(job->jobid));
+    fwdata->jobID = ustrdup(Job_strID(job->hID.jobid));
     fwdata->userData = job;
     fwdata->graceTime = grace;
     fwdata->accounted = true;
@@ -1827,16 +1828,16 @@ bool execBatchJob(Job_t *job)
 	char msg[128];
 
 	snprintf(msg, sizeof(msg), "starting forwarder for job '%u' failed\n",
-		 job->jobid);
+		 job->hID.jobid);
 	flog("%s", msg);
-	setNodeOffline(job->env, job->jobid,
+	setNodeOffline(job->env, job->hID.jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	ForwarderData_delete(fwdata);
 	return false;
     }
 
     job->state = JOB_RUNNING;
-    flog("job %u tid %s started\n", job->jobid, PSC_printTID(fwdata->tid));
+    flog("job %u tid %s started\n", job->hID.jobid, PSC_printTID(fwdata->tid));
     job->fwdata = fwdata;
     return true;
 }
@@ -1859,8 +1860,7 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
 	wFlags |= O_APPEND;
     }
 
-    char *destFile = BCast_adjustExe(bcast->fileName, bcast->jobid,
-				     bcast->stepid);
+    char *destFile = BCast_adjustExe(bcast->fileName, &bcast->hID);
     if (!destFile) {
 	flog("adjusting bcast destination file %s failed\n", bcast->fileName);
 	exit(1);
@@ -1923,7 +1923,7 @@ bool execBCast(BCast_t *bcast)
     if (grace < 3) grace = 30;
 
     char jobid[100], fname[300];
-    snprintf(jobid, sizeof(jobid), "%u", bcast->jobid);
+    snprintf(jobid, sizeof(jobid), "%u", bcast->hID.jobid);
     snprintf(fname, sizeof(fname), "psslurm-bcast:%s", jobid);
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
@@ -1944,9 +1944,9 @@ bool execBCast(BCast_t *bcast)
 	char msg[128];
 
 	snprintf(msg, sizeof(msg), "starting forwarder for bcast '%u' failed\n",
-		 bcast->jobid);
+		 bcast->hID.jobid);
 	flog("%s", msg);
-	setNodeOffline(bcast->env, bcast->jobid,
+	setNodeOffline(bcast->env, bcast->hID.jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	ForwarderData_delete(fwdata);
 	return false;
@@ -2008,7 +2008,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     Step_deleteAll(step);
 
     GRes_Cred_type_t cType = GRES_CRED_STEP;
-    if (step->stepid == SLURM_INTERACTIVE_STEP ||
+    if (step->hID.stepid == SLURM_INTERACTIVE_STEP ||
 	step->taskFlags & LAUNCH_EXT_LAUNCHER) {
 	/* interactive steps should access all allocated
 	 * resources */
@@ -2040,8 +2040,8 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
 	.task = NULL,
-	.alloc = Alloc_find(step->jobid),
-	.job = Job_findById(step->jobid),
+	.alloc = Alloc_find(step->hID.jobid),
+	.job = Job_findById(step->hID.jobid),
 	.step = step,
 	.hook = SPANK_INIT,
 	.envSet = fwCMD_setEnv,
@@ -2090,7 +2090,7 @@ bool execStepFollower(Step_t *step)
     if (grace < 3) grace = 30;
 
     char jobid[100], fname[300];
-    snprintf(jobid, sizeof(jobid), "%u.%u", step->jobid, step->stepid);
+    snprintf(jobid, sizeof(jobid), "%u.%u", step->hID.jobid, step->hID.stepid);
     snprintf(fname, sizeof(fname), "psslurm-step:%s", jobid);
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
@@ -2113,7 +2113,7 @@ bool execStepFollower(Step_t *step)
 	snprintf(msg, sizeof(msg), "starting step forwarder for %s failed\n",
 		 Step_strID(step));
 	flog("%s", msg);
-	setNodeOffline(step->env, step->jobid,
+	setNodeOffline(step->env, step->hID.jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	ForwarderData_delete(fwdata);
 	return false;

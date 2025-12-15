@@ -700,8 +700,8 @@ void initJobEnv(Job_t *job)
 
     envSet(job->env, "SLURMD_NODENAME", getConfValueC(Config, "SLURM_HOSTNAME"));
 
-    envSet(job->env, "SLURM_JOBID", Job_strID(job->jobid));
-    envSet(job->env, "SLURM_JOB_ID", Job_strID(job->jobid));
+    envSet(job->env, "SLURM_JOBID", Job_strID(job->hID.jobid));
+    envSet(job->env, "SLURM_JOB_ID", Job_strID(job->hID.jobid));
 
     char tmp[1024];
     snprintf(tmp, sizeof(tmp), "%u", job->nrOfNodes);
@@ -798,8 +798,8 @@ static char *GTIDsToList(Step_t *step)
 
 uint32_t getJobNodeId(Step_t *step)
 {
-    Alloc_t *alloc = Alloc_find(step->jobid);
-    Job_t *job = Job_findById(step->jobid);
+    Alloc_t *alloc = Alloc_find(step->hID.jobid);
+    Job_t *job = Job_findById(step->hID.jobid);
 
     uint32_t jobNodeId = NO_VAL;
     if (job) {
@@ -1246,10 +1246,10 @@ void setRankEnv(int32_t rank, Step_t *step)
 {
     setCommonRankEnv(rank, step);
 
-    Alloc_t *alloc = Alloc_find(step->jobid);
+    Alloc_t *alloc = Alloc_find(step->hID.jobid);
     if (alloc) setPsslurmEnv(alloc->env, NULL);
 
-    if (step->stepid == SLURM_INTERACTIVE_STEP ||
+    if (step->hID.stepid == SLURM_INTERACTIVE_STEP ||
 	step->taskFlags & LAUNCH_EXT_LAUNCHER) {
 	return setInteractiveRankEnv(step);
     } else {
@@ -1277,7 +1277,7 @@ static bool spankVarFilter(const char *envStr, void *info)
 pmi_type_t getPMIType(Step_t *step)
 {
     /* for interactive steps, ignore pmi type and use none */
-    if (step->stepid == SLURM_INTERACTIVE_STEP) {
+    if (step->hID.stepid == SLURM_INTERACTIVE_STEP) {
 	flog("interactive step detected, using PMI type 'none'\n");
 	return PMI_TYPE_NONE;
     }
@@ -1494,6 +1494,6 @@ void setJobEnv(Job_t *job)
     /* set topology environment */
     setTopoEnv(job->env);
 
-    Alloc_t *alloc = Alloc_find(job->jobid);
+    Alloc_t *alloc = Alloc_find(job->hID.jobid);
     if (alloc) setPsslurmEnv(alloc->env, job->env);
 }

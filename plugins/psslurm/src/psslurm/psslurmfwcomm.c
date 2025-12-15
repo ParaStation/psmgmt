@@ -258,7 +258,7 @@ static void changeEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
-	Step_t s = { .jobid = jobid, .stepid = stepid };
+	Step_t s = { .hID.jobid = jobid, .hID.stepid = stepid };
 	flog("warning: %s already gone\n", Step_strID(&s));
 	return;
     }
@@ -434,11 +434,11 @@ static void handleInitComplete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
-	Step_t s = { .jobid = jobid, .stepid = stepid };
+	Step_t s = { .hID.jobid = jobid, .hID.stepid = stepid };
 	flog("warning: %s already gone\n", Step_strID(&s));
 	return;
     }
-    releaseDelayedSpawns(step->jobid, step->stepid);
+    releaseDelayedSpawns(step->hID.jobid, step->hID.stepid);
     if (step->spawned) startSpawner(step, serviceRank);
 }
 
@@ -500,8 +500,8 @@ void fwCMD_setEnv(Step_t *step, const char *var, const char *val)
     initFragBuffer(&data, PSP_PF_MSG, CMD_SETENV);
     setFragDest(&data, PSC_getTID(-1,0));
 
-    addUint32ToMsg(step->jobid, &data);
-    addUint32ToMsg(step->stepid, &data);
+    addUint32ToMsg(step->hID.jobid, &data);
+    addUint32ToMsg(step->hID.stepid, &data);
     addStringToMsg(var, &data);
     addStringToMsg(val, &data);
 
@@ -519,8 +519,8 @@ void fwCMD_initComplete(Step_t *step, int32_t serviceRank)
     initFragBuffer(&data, PSP_PF_MSG, CMD_INIT_COMPLETE);
     setFragDest(&data, PSC_getTID(-1,0));
 
-    addUint32ToMsg(step->jobid, &data);
-    addUint32ToMsg(step->stepid, &data);
+    addUint32ToMsg(step->hID.jobid, &data);
+    addUint32ToMsg(step->hID.stepid, &data);
     addInt32ToMsg(serviceRank, &data);
 
     sendFragMsg(&data);
@@ -537,8 +537,8 @@ void fwCMD_unsetEnv(Step_t *step, const char *var)
     initFragBuffer(&data, PSP_PF_MSG, CMD_UNSETENV);
     setFragDest(&data, PSC_getTID(-1,0));
 
-    addUint32ToMsg(step->jobid, &data);
-    addUint32ToMsg(step->stepid, &data);
+    addUint32ToMsg(step->hID.jobid, &data);
+    addUint32ToMsg(step->hID.stepid, &data);
     addStringToMsg(var, &data);
 
     sendFragMsg(&data);
@@ -550,8 +550,8 @@ void fwCMD_brokeIOcon(Step_t *step)
     initFragBuffer(&data, PSP_PF_MSG, CMD_BROKE_IO_CON);
     setFragDest(&data, PSC_getTID(-1,0));
 
-    addUint32ToMsg(step->jobid, &data);
-    addUint32ToMsg(step->stepid, &data);
+    addUint32ToMsg(step->hID.jobid, &data);
+    addUint32ToMsg(step->hID.stepid, &data);
 
     sendFragMsg(&data);
 }

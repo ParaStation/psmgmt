@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -43,9 +43,9 @@ bool Job_destroy(Job_t *job)
 {
     if (!job) return false;
 
-    BCast_destroyByJobid(job->jobid);
+    BCast_destroyByJobid(job->hID.jobid);
 
-    fdbg(PSSLURM_LOG_JOB, "%u\n", job->jobid);
+    fdbg(PSSLURM_LOG_JOB, "%u\n", job->hID.jobid);
 
     /* cleanup local job */
     if (!job->mother) {
@@ -54,7 +54,7 @@ bool Job_destroy(Job_t *job)
 
 	/* tell sisters the job is finished */
 	if (job->nodes && job->nodes[0] == PSC_getMyID()) {
-	    send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
+	    send_PS_JobExit(job->hID.jobid, SLURM_BATCH_SCRIPT,
 				job->nrOfNodes, job->nodes);
 	}
 
@@ -65,7 +65,7 @@ bool Job_destroy(Job_t *job)
     }
 
     /* ensure to destroy all steps before deleting them */
-    Step_destroyByJobid(job->jobid);
+    Step_destroyByJobid(job->hID.jobid);
 
     return Job_delete(job);
 }
@@ -74,11 +74,11 @@ bool Job_delete(Job_t *job)
 {
     if (!job) return false;
 
-    fdbg(PSSLURM_LOG_JOB, "%u\n", job->jobid);
+    fdbg(PSSLURM_LOG_JOB, "%u\n", job->hID.jobid);
 
     /* cleanup all corresponding resources */
-    Step_deleteByJobid(job->jobid);
-    BCast_clearByJobid(job->jobid);
+    Step_deleteByJobid(job->hID.jobid);
+    BCast_clearByJobid(job->hID.jobid);
     freeGresCred(&job->gresList);
     if (job->ct) Container_destroy(job->ct);
 
@@ -132,7 +132,6 @@ Job_t *Job_add(uint32_t jobid)
     Job_t *dup = Job_findById(jobid);
     if (dup) Job_destroy(dup);
 
-    job->jobid = jobid;
     job->stdOutFD = job->stdErrFD = -1;
     INIT_LIST_HEAD(&job->gresList);
     job->state = JOB_INIT;
@@ -153,17 +152,13 @@ bool Job_verifyData(Job_t *job)
 {
     JobCred_t *cred = job->cred;
     if (!cred) {
-	flog("no cred for job %u\n", job->jobid);
-	return false;
-    }
-    /* job ID */
-    if (job->jobid != cred->jobid) {
-	flog("mismatching jobid %u vs %u\n", job->jobid, cred->jobid);
+	flog("no cred for job %u\n", job->hID.jobid);
 	return false;
     }
     /* step ID */
-    if (SLURM_BATCH_SCRIPT != cred->stepid) {
-	flog("mismatching stepid %u vs %u\n", SLURM_BATCH_SCRIPT, cred->stepid);
+    if (SLURM_BATCH_SCRIPT != cred->hID.stepid) {
+	flog("mismatching stepid %u vs %u\n", SLURM_BATCH_SCRIPT,
+	     cred->hID.stepid);
 	return false;
     }
     /* user ID */
@@ -229,7 +224,7 @@ bool Job_verifyData(Job_t *job)
 	}
     }
 
-    fdbg(PSSLURM_LOG_AUTH, "job %u success\n", job->jobid);
+    fdbg(PSSLURM_LOG_AUTH, "job %u success\n", job->hID.jobid);
     return true;
 }
 
@@ -246,7 +241,7 @@ Job_t *Job_findById(uint32_t jobid)
     list_t *j;
     list_for_each(j, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	if (job->jobid == jobid) return job;
+	if (job->hID.jobid == jobid) return job;
     }
     return NULL;
 }
@@ -289,7 +284,7 @@ int Job_killForwarder(uint32_t jobid)
     list_t *j, *tmp;
     list_for_each_safe(j, tmp, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	if (job->jobid == jobid && job->fwdata) {
+	if (job->hID.jobid == jobid && job->fwdata) {
 	    pskill(PSC_getPID(job->fwdata->tid), SIGKILL, 0);
 	    count++;
 	}
@@ -319,12 +314,12 @@ void Job_getInfos(Resp_Node_Reg_Status_t *stat)
 	/* report all known jobs, even in state complete/exit */
 	Head_ID_t *head = &(stat->infos)[stat->infoCount];
 	head->sluid = NO_VAL64;
-	head->jobid = job->jobid;
+	head->jobid = job->hID.jobid;
 	head->stepid = SLURM_BATCH_SCRIPT;
 	head->stepHetComp = NO_VAL;
 
 	stat->infoCount++;
-	fdbg(PSSLURM_LOG_DEBUG, "add job %u\n", job->jobid);
+	fdbg(PSSLURM_LOG_DEBUG, "add job %u\n", job->hID.jobid);
     }
 }
 
@@ -359,7 +354,7 @@ int Job_signalTasks(Job_t *job, int signal, uid_t reqUID)
 	return -1;
     }
 
-    count = Step_signalByJobid(job->jobid, signal, reqUID);
+    count = Step_signalByJobid(job->hID.jobid, signal, reqUID);
 
     if (!job->fwdata) return count;
 

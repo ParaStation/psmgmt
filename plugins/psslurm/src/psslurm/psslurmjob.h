@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -30,7 +30,7 @@
 
 typedef struct {
     list_t next;            /**< used to put into some job-lists */
-    uint32_t jobid;	    /**< unique job identifier */
+    Head_ID_t hID;	    /**< Slurm head identifier */
     char *username;	    /**< username of job owner */
     uint32_t np;	    /**< number of processes */
     uint16_t tpp;	    /**< HW-threads per process (PSI_TPP) */

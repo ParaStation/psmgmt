@@ -696,7 +696,7 @@ static void handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
     if (req && req->cb && sMsg->head.type == req->expRespType) {
 	fdbg(PSSLURM_LOG_COMM, "req %s -> resp %s jobid %u handled by cb\n",
 	     msgType2String(req->type), msgType2String(sMsg->head.type),
-	     req->jobid);
+	     req->hID.jobid);
 	req->cb(sMsg, info);
 	goto CLEANUP;
     }
@@ -708,7 +708,7 @@ static void handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
 	     msgType2String(sMsg->head.type), sMsg->head.type);
 	if (req) {
 	    mlog(" for request %s jobid %u",
-		 msgType2String(req->type), req->jobid);
+		 msgType2String(req->type), req->hID.jobid);
 	}
 	mlog("\n");
 	goto CLEANUP;
@@ -722,13 +722,13 @@ static void handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
 	     msgType2String(sMsg->head.type), slurmRC2String(rc), sMsg->sock);
 	if (req) {
 	    mlog(" for request %s jobid %u",
-		 msgType2String(req->type), req->jobid);
+		 msgType2String(req->type), req->hID.jobid);
 	}
 	mlog("\n");
     } else {
 	if (req) {
 	    fdbg(PSSLURM_LOG_COMM, "got SLURM_SUCCESS for req %s jobid %u\n",
-		 msgType2String(req->type), req->jobid);
+		 msgType2String(req->type), req->hID.jobid);
 	}
     }
 
@@ -1656,8 +1656,8 @@ int srunOpenControlConnection(Step_t *step)
 static void handleSrunReply(Slurm_Msg_t *sMsg, void *info)
 {
     Req_Info_t *req = info;
-    Step_t step = { .jobid = req->jobid,
-		    .stepid = req->stepid };
+    Step_t step;
+    memcpy(&step.hID, &req->hID, sizeof(req->hID));
 
     if (sMsg->head.type != RESPONSE_SLURM_RC) {
 	flog("unexpected srun response %s for request %s %s sock %i\n",
@@ -1692,9 +1692,8 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = type;
-    req->jobid = step->jobid;
-    req->stepid = step->stepid;
     req->time = time(NULL);
+    memcpy(&req->hID, &step->hID, sizeof(step->hID));
 
     Connection_t *con = registerSlurmSocket(sock, handleSrunReply, req, true);
     if (!con) {

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -911,9 +911,9 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	case S_JOB_ID:
 	    pUint32 = va_arg(ap, uint32_t *);
 	    if (spank->step) {
-		*pUint32 = spank->step->jobid;
+		*pUint32 = spank->step->hID.jobid;
 	    } else if (spank->job) {
-		*pUint32 = spank->job->jobid;
+		*pUint32 = spank->job->hID.jobid;
 	    } else if (spank->alloc) {
 		*pUint32 = spank->alloc->id;
 	    } else {
@@ -924,7 +924,7 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	case S_JOB_STEPID:
 	    pUint32 = va_arg(ap, uint32_t *);
 	    if (spank->step) {
-		*pUint32 = spank->step->stepid;
+		*pUint32 = spank->step->hID.stepid;
 	    } else if (spank->job || spank->alloc) {
 		*pUint32 = SLURM_BATCH_SCRIPT;
 	    } else {

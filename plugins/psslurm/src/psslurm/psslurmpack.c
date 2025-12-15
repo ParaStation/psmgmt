@@ -727,7 +727,8 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     }
 
     /* GRes job allocations */
-    Step_t s = { .jobid = cred->jobid, .stepid = cred->stepid };
+    Step_t s;
+    memcpy(&s.hID, &cred->hID, sizeof(cred->hID));
     fdbg(PSSLURM_LOG_GRES, "job data: id %s uid %u gres job\n",
 	 Step_strID(&s), cred->uid);
 
@@ -973,11 +974,11 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     /* expiration time */
     getTime(data, &cred->etime);
     /* jobid */
-    getUint32(data, &cred->jobid);
+    getUint32(data, &cred->hID.jobid);
     /* pack jobid */
-    getUint32(data, &cred->packJobid);
+    getUint32(data, &cred->hID.stepHetComp);
     /* stepid */
-    getUint32(data, &cred->stepid);
+    getUint32(data, &cred->hID.stepid);
 
     if (msgVer <= SLURM_23_02_PROTO_VERSION) {
 	/* uid */
@@ -2741,7 +2742,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     uint32_t tmp;
 
     /* step header */
-    unpackStepHead(data, &step->sluid, msgVer);
+    unpackStepHead(data, &step->hID, msgVer);
 
     if (!(msgVer > SLURM_23_02_PROTO_VERSION)) {
 	/* remove with support of protocol 23_02 */
@@ -3232,6 +3233,9 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 	job->gid = job->cred->gid;
 	job->username = ustrdup(job->cred->username);
     }
+
+    /* set head identifier from credential */
+    memcpy(&job->hID, &job->cred->hID, sizeof(job->cred->hID));
 
     if (job->cred->jobMemAllocSize) {
 	job->memLimit = job->cred->jobMemAlloc[0];
@@ -4594,7 +4598,7 @@ static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req)
     /* step header */
     packStepHead(req, data);
     /* jobid as string*/
-    addStringToMsg(Job_strID(req->jobid), data);
+    addStringToMsg(Job_strID(req->hID.jobid), data);
     /* sibling */
     addStringToMsg(req->sibling, data);
     /* signal */
@@ -4608,7 +4612,7 @@ static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req)
 static bool packReqEpilogComplete(PS_SendDB_t *data, Req_Epilog_Complete_t *req)
 {
     /* jobid */
-    addUint32ToMsg(req->jobid, data);
+    addUint32ToMsg(req->hID.jobid, data);
     /* return code */
     addUint32ToMsg(req->rc, data);
     /* node_name */

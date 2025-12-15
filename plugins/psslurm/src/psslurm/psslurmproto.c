@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -224,18 +224,18 @@ bool writeJobscript(Job_t *job)
     bool ret = false;
 
     if (!job->jsData) {
-	flog("invalid jobscript data for job %u\n", job->jobid);
+	flog("invalid jobscript data for job %u\n", job->hID.jobid);
 	return ret;
     }
 
     char *jobdir = getConfValueC(Config, "DIR_JOB_FILES");
-    if (!writeFile(Job_strID(job->jobid), jobdir, job->jsData,
+    if (!writeFile(Job_strID(job->hID.jobid), jobdir, job->jsData,
 		   strlen(job->jsData))) {
 	flog("writing jobscript '%s' for job %u failed", job->jobscript,
-	     job->jobid);
+	     job->hID.jobid);
     } else {
 	ret = true;
-	job->jobscript = PSC_concat(jobdir, "/", Job_strID(job->jobid));
+	job->jobscript = PSC_concat(jobdir, "/", Job_strID(job->hID.jobid));
     }
 
     strShred(job->jsData);
@@ -366,7 +366,7 @@ static bool extractStepPackInfos(Step_t *step)
 
     if (step->packNrOfNodes != nrOfNodes) {
 	if ((step->packNrOfNodes == step->nrOfNodes && !step->packNodeOffset) ||
-	    step->stepid == SLURM_INTERACTIVE_STEP) {
+	    step->hID.stepid == SLURM_INTERACTIVE_STEP) {
 	    /* correct invalid pack host-list */
 	    fdbg(PSSLURM_LOG_PACK, "correct pack nodes using %s\n",
 		 step->slurmHosts);
@@ -489,8 +489,8 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* launch step in container */
     if (step->containerBundle && step->containerBundle[0] != '\0') {
-	step->ct = Container_new(step->containerBundle, step->jobid,
-				 step->stepid, step->username, step->uid,
+	step->ct = Container_new(step->containerBundle, step->hID.jobid,
+				 step->hID.stepid, step->username, step->uid,
 				 step->gid);
 	if (!step->ct) {
 	    flog("error: failed to initialize container %s %s\n",
@@ -580,15 +580,15 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 step->username, step->np, step->slurmHosts, step->nrOfNodes, step->tpp,
 	 step->packStepCount, step->leader, strvGet(step->argV, 0),
 	 step->packJobid == NO_VAL ? 0 : step->packJobid,
-	 step->stepHetComp == NO_VAL ? 0 : step->stepHetComp);
+	 step->hID.stepHetComp == NO_VAL ? 0 : step->hID.stepHetComp);
 
     /* ensure an allocation exists for the new step */
-    Alloc_t *alloc = Alloc_find(step->jobid);
+    Alloc_t *alloc = Alloc_find(step->hID.jobid);
     if (!alloc) {
 	char buf[128];
 	snprintf(buf, sizeof(buf), "error: no allocation for jobid %u found\n"
 		 "** ensure slurmctld prologue is setup correctly **\n",
-		 step->jobid);
+		 step->hID.jobid);
 	flog("%s", buf);
 	/* special service for admins missing to call pspelogue in prologue */
 	fwCMD_printMsg(NULL, step, buf, strlen(buf), STDERR, -1);
@@ -665,23 +665,25 @@ static bool doSignalTasks(Req_Signal_Tasks_t *req)
     if (req->flags & KILL_FULL_JOB) {
 	/* send signal to complete job including all steps */
 	flog("sending all processes of job %u signal %u\n",
-	     req->jobid, req->signal);
-	Job_signalJS(req->jobid, req->signal, req->uid);
-	Step_signalByJobid(req->jobid, req->signal, req->uid);
+	     req->hID.jobid, req->signal);
+	Job_signalJS(req->hID.jobid, req->signal, req->uid);
+	Step_signalByJobid(req->hID.jobid, req->signal, req->uid);
     } else if (req->flags & KILL_STEPS_ONLY) {
 	/* send signal to all steps excluding the jobscript */
-	flog("send all steps of job %u signal %u\n", req->jobid, req->signal);
-	Step_signalByJobid(req->jobid, req->signal, req->uid);
+	flog("send all steps of job %u signal %u\n", req->hID.jobid,
+	     req->signal);
+	Step_signalByJobid(req->hID.jobid, req->signal, req->uid);
     } else {
-	if (req->stepid == SLURM_BATCH_SCRIPT) {
+	if (req->hID.stepid == SLURM_BATCH_SCRIPT) {
 	    /* signal jobscript only, not all corresponding steps */
-	    return Job_signalJS(req->jobid, req->signal, req->uid);
+	    return Job_signalJS(req->hID.jobid, req->signal, req->uid);
 	} else {
 	    /* signal a single step */
-	    Step_t s = { .jobid = req->jobid, .stepid = req->stepid };
+	    Step_t s;
+	    memcpy(&s.hID, &req->hID, sizeof(req->hID));
 	    flog("send %s (stepHetComp %u) signal %u\n", Step_strID(&s),
-		 req->stepHetComp, req->signal);
-	    Step_t *step = Step_findByStepId(req->jobid, req->stepid);
+		 req->hID.stepHetComp, req->signal);
+	    Step_t *step = Step_findByStepId(req->hID.jobid, req->hID.stepid);
 	    if (step && Step_signal(step, req->signal, req->uid) != -1) {
 		return true;
 	    }
@@ -702,9 +704,8 @@ static void sendDelayedKill(int timerId, void *data)
     Timer_remove(timerId);
     Req_Signal_Tasks_t *req = data;
 
-    Step_t s = {
-	.jobid = req->jobid,
-	.stepid = req->stepid };
+    Step_t s;
+    memcpy(&s.hID, &req->hID, sizeof(req->hID));
     flog("SIGKILL to %s uid %u\n", Step_strID(&s), req->uid);
 
     req->signal = SIGKILL;
@@ -753,9 +754,8 @@ static int handleSignalTasks(Slurm_Msg_t *sMsg)
 	return ESLURM_INVALID_JOB_ID;
     }
 
-    Step_t s = {
-	.jobid = req->jobid,
-	.stepid = req->stepid };
+    Step_t s;
+    memcpy(&s.hID, &req->hID, sizeof(req->hID));
     flog("%s uid %i signal %i flags %i from %s\n", Step_strID(&s), req->uid,
 	 req->signal, req->flags, strRemoteAddr(sMsg));
 
@@ -846,11 +846,10 @@ static int handleReattachTasks(Slurm_Msg_t *sMsg)
 	return SLURM_NO_RC;
     }
 
-    Step_t *step = Step_findByStepId(req->jobid, req->stepid);
+    Step_t *step = Step_findByStepId(req->hID.jobid, req->hID.stepid);
     if (!step) {
-	Step_t s = {
-	    .jobid = req->jobid,
-	    .stepid = req->stepid };
+	Step_t s;
+	memcpy(&s.hID, &req->hID, sizeof(req->hID));
 	flog("%s to reattach not found\n", Step_strID(&s));
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_ID);
 	/* check permissions */
@@ -1288,7 +1287,7 @@ static int handleJobId(Slurm_Msg_t *sMsg)
 
     PS_SendDB_t *msg = &sMsg->reply;
 
-    addUint32ToMsg(step->jobid, msg);
+    addUint32ToMsg(step->hID.jobid, msg);
     addUint32ToMsg(SLURM_SUCCESS, msg);
 
     sendSlurmReply(sMsg, RESPONSE_JOB_ID);
@@ -1319,11 +1318,11 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
     }
 
     /* assign to job/allocation */
-    Job_t *job = Job_findById(bcast->jobid);
+    Job_t *job = Job_findById(bcast->hID.jobid);
     if (!job) {
-	Alloc_t *alloc = Alloc_find(bcast->jobid);
+	Alloc_t *alloc = Alloc_find(bcast->hID.jobid);
 	if (!alloc) {
-	    flog("allocation %u not found\n", bcast->jobid);
+	    flog("allocation %u not found\n", bcast->hID.jobid);
 	    return ESLURM_INVALID_JOB_ID;
 	}
 	bcast->uid = alloc->uid;
@@ -1331,7 +1330,7 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
 	bcast->env = alloc->env;
 	ufree(bcast->username);
 	bcast->username = ustrdup(alloc->username);
-	Step_t *step = Step_findByJobid(bcast->jobid);
+	Step_t *step = Step_findByJobid(bcast->hID.jobid);
 	if (step) PSCPU_copy(bcast->hwthreads,
 			     step->nodeinfos[step->localNodeId].stepHWthreads);
     } else {
@@ -1350,7 +1349,7 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
 
     fdbg(PSSLURM_LOG_PROTO, "jobid %u blockNum %u lastBlock %u force %u"
 	 " modes %u, user '%s' uid %u gid %u fileName '%s' blockLen %u\n",
-	 bcast->jobid, bcast->blockNumber,
+	 bcast->hID.jobid, bcast->blockNumber,
 	 (bcast->flags & BCAST_LAST_BLOCK) ? 1 : 0,
 	 (bcast->flags & BCAST_FORCE) ? 1 : 0,
 	 bcast->modes, bcast->username, bcast->uid, bcast->gid,
@@ -1360,7 +1359,7 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
     }
 
     if (bcast->blockNumber == 1) {
-	flog("jobid %u file '%s' user '%s'\n", bcast->jobid,
+	flog("jobid %u file '%s' user '%s'\n", bcast->hID.jobid,
 	     bcast->fileName, bcast->username);
     }
 
@@ -1461,9 +1460,8 @@ static int handleStepStat(Slurm_Msg_t *sMsg)
 
     Step_t *step = Step_findByStepId(head->jobid, head->stepid);
     if (!step) {
-	Step_t s = {
-	    .jobid = head->jobid,
-	    .stepid = head->stepid };
+	Step_t s;
+	memcpy(&s.hID, head, sizeof(*head));
 	flog("%s to signal not found\n", Step_strID(&s));
 	return ESLURM_INVALID_JOB_ID;
     }
@@ -1530,9 +1528,8 @@ static int handleStepPids(Slurm_Msg_t *sMsg)
 
     Step_t *step = Step_findByStepId(head->jobid, head->stepid);
     if (!step) {
-	Step_t s = {
-	    .jobid = head->jobid,
-	    .stepid = head->stepid };
+	Step_t s;
+	memcpy(&s.hID, head, sizeof(*head));
 	flog("%s to signal not found\n", Step_strID(&s));
 	return ESLURM_INVALID_JOB_ID;
     }
@@ -1666,23 +1663,23 @@ static int handleJobNotify(Slurm_Msg_t *sMsg)
 	return ESLURM_INVALID_JOB_ID;
     }
 
-    Job_t *job = Job_findById(req->jobid);
-    Step_t *step = Step_findByStepId(req->jobid, req->stepid);
+    Job_t *job = Job_findById(req->hID.jobid);
+    Step_t *step = Step_findByStepId(req->hID.jobid, req->hID.stepid);
 
     if (!job && !step) {
-	flog("job/step %u.%u to notify not found, msg %s\n", req->jobid,
-	     req->stepid, req->msg);
+	flog("job/step %u.%u to notify not found, msg %s\n", req->hID.jobid,
+	     req->hID.stepid, req->msg);
 	return ESLURM_INVALID_JOB_ID;
     }
 
     /* check permissions */
     if (!verifyUserId(sMsg->head.uid, job ? job->uid : step->uid)) {
 	flog("request from invalid user %u for job %u stepid %u\n",
-	     sMsg->head.uid, req->jobid, req->stepid);
+	     sMsg->head.uid, req->hID.jobid, req->hID.stepid);
 	return ESLURM_USER_ID_MISSING;
     }
 
-    flog("notify jobid %u stepid %u msg %s\n", req->jobid, req->stepid,
+    flog("notify jobid %u stepid %u msg %s\n", req->hID.jobid, req->hID.stepid,
 	 req->msg);
     if (job) {
 	fwCMD_printMsg(job, NULL, "psslurm: ", strlen("psslurm: "), STDERR, 0);
@@ -1709,19 +1706,16 @@ static int handleForwardData(Slurm_Msg_t *sMsg)
 static void sendJobKill(Req_Info_t *req, uint16_t signal)
 {
     Req_Job_Kill_t kill = {
-	.sluid = req->sluid,
-	.jobid = req->jobid,
-	.stepid = req->stepid,
-	.stepHetComp = req->stepHetComp,
 	.signal = signal,
 	.flags = 0,
 	.sibling = NULL
     };
+    memcpy(&kill.hID, &req->hID, sizeof(req->hID));
 
     /* send request to slurmctld */
     Req_Info_t *reqInfo = ucalloc(sizeof(*reqInfo));
     reqInfo->type = REQUEST_KILL_JOB;
-    reqInfo->jobid = req->jobid;
+    memcpy(&reqInfo->hID, &req->hID, sizeof(req->hID));
 
     sendSlurmctldReq(reqInfo, &kill);
 }
@@ -1733,12 +1727,12 @@ static void handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
     getUint32(sMsg->data, &rc);
 
     if (rc == ESLURM_DISABLED || rc == ESLURM_BATCH_ONLY) {
-	flog("cancel job %u\n", req->jobid);
+	flog("cancel job %u\n", req->hID.jobid);
 	sendJobKill(req, SIGKILL);
     } else if (rc != SLURM_SUCCESS) {
 	flog("error: response %s rc %s sock %i for request %s jobid %u\n",
 	     msgType2String(sMsg->head.type), slurmRC2String(rc), sMsg->sock,
-	     msgType2String(req->type), req->jobid);
+	     msgType2String(req->type), req->hID.jobid);
     }
 
     closeSlurmCon(sMsg->sock);  // always close (connection triggered here)
@@ -1758,8 +1752,8 @@ void sendJobRequeue(uint32_t jobid)
     /* send request to slurmctld */
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = REQUEST_JOB_REQUEUE;
-    req->jobid = jobid;
-    req->stepid = NO_VAL; /* kill complete job */
+    req->hID.jobid = jobid;
+    req->hID.stepid = NO_VAL; /* kill complete job */
     req->cb = &handleRespJobRequeue;
 
     flog("%u\n", jobid);
@@ -1773,7 +1767,7 @@ void sendPrologComplete(uint32_t jobid, uint32_t rc)
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = REQUEST_COMPLETE_PROLOG;
-    req->jobid = jobid;
+    req->hID.jobid = jobid;
 
     sendSlurmctldReq(req, &data);
 
@@ -1873,7 +1867,7 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
  */
 static void printJobLaunchInfos(Job_t *job)
 {
-    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,Job_strState(job->state));
+    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,Job_strState(job->state));
 
     /* log cpu options */
     if (job->cpusPerNode && job->cpuCountReps) {
@@ -1908,7 +1902,7 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     if (pluginShutdown) return SLURM_ERROR;
 
     if (Auth_isDeniedUID(job->uid)) {
-	flog("denied UID %u to start job %u\n", sMsg->head.uid, job->jobid);
+	flog("denied UID %u to start job %u\n", sMsg->head.uid, job->hID.jobid);
 	return ESLURM_USER_ID_MISSING;
     }
 
@@ -1919,14 +1913,14 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     if (!convHLtoPSnodes(job->slurmHosts, getNodeIDbySlurmHost,
 			 &job->nodes, &job->nrOfNodes)) {
 	flog("resolving PS nodeIDs from %s for job %u failed\n",
-	     job->slurmHosts, job->jobid);
+	     job->slurmHosts, job->hID.jobid);
 	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
     job->localNodeId = getLocalID(job->nodes, job->nrOfNodes);
     if (job->localNodeId == NO_VAL) {
 	flog("could not find my local ID for job %u in %s\n",
-	     job->jobid, job->slurmHosts);
+	     job->hID.jobid, job->slurmHosts);
 	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
@@ -1940,10 +1934,10 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     setAccOpts(job->acctFreq, &job->accType);
 
     /* set mask of hardware threads to use */
-    nodeinfo_t *nodeinfo = getNodeinfo(PSC_getMyID(), job->cred, job->jobid);
+    nodeinfo_t *nodeinfo = getNodeinfo(PSC_getMyID(), job->cred, job->hID.jobid);
     if (!nodeinfo) {
 	flog("could not extract nodeinfo from credentials for job %u\n",
-	     job->jobid);
+	     job->hID.jobid);
 	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
     PSCPU_copy(job->hwthreads, nodeinfo->jobHWthreads);
@@ -1954,7 +1948,7 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* write the jobscript */
     if (!writeJobscript(job)) {
 	/* set myself offline and requeue the job */
-	setNodeOffline(job->env, job->jobid,
+	setNodeOffline(job->env, job->hID.jobid,
 		       getConfValueC(Config, "SLURM_HOSTNAME"),
 			"psslurm: writing jobscript failed");
 	/* need to return success to be able to requeue the job */
@@ -1962,7 +1956,7 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
 
     flog("job %u user '%s' np %u nodes '%s' N %u tpp %u script '%s'\n",
-	 job->jobid, job->username, job->np, job->slurmHosts, job->nrOfNodes,
+	 job->hID.jobid, job->username, job->np, job->slurmHosts, job->nrOfNodes,
 	 job->tpp, job->jobscript);
 
     /* sanity check nrOfNodes */
@@ -1980,17 +1974,17 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* container */
     if (job->containerBundle && job->containerBundle[0] != '\0') {
-	job->ct = Container_new(job->containerBundle, job->jobid,
+	job->ct = Container_new(job->containerBundle, job->hID.jobid,
 				 SLURM_BATCH_SCRIPT, job->username,
 				 job->uid, job->gid);
 	if (!job->ct) {
 	    flog("error: failed to initialize container %s job %u\n",
-		 job->containerBundle, job->jobid);
+		 job->containerBundle, job->hID.jobid);
 	    return ESLURM_CONTAINER_NOT_CONFIGURED;
 	}
     }
 
-    Alloc_t *alloc = Alloc_find(job->jobid);
+    Alloc_t *alloc = Alloc_find(job->hID.jobid);
     bool ret = false;
     char *prologue = getConfValueC(SlurmConfig, "Prolog");
     /* force slurmctld prologue for now */
@@ -1998,7 +1992,7 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	/* no slurmd prologue configured,
 	 * pspelogue should have added an allocation */
 	if (!alloc) {
-	    flog("error: no allocation for job %u found\n", job->jobid);
+	    flog("error: no allocation for job %u found\n", job->hID.jobid);
 	    flog("** ensure slurmctld prologue is setup correctly **\n");
 	    return ESLURMD_INVALID_JOB_CREDENTIAL;
 	}
@@ -2014,7 +2008,7 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	/* pspelogue already ran parallel prologue, start job */
 	alloc->state = A_RUNNING;
 	ret = execBatchJob(job);
-	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
+	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,
 	     Job_strState(job->state));
     } else {
 	/* slurmd prologue is configured */
@@ -2022,7 +2016,7 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	    /* pspelogue already executed the prologue */
 	    alloc->state = A_RUNNING;
 	    ret = execBatchJob(job);
-	    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
+	    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,
 		 Job_strState(job->state));
 	} else {
 	    /* slurmctld will start the "slurmd_prolog"
@@ -2030,7 +2024,7 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	     * job in parallel. psslurm has to wait until the prologue
 	     * is completed before the batch job is started */
 	    ret = true;
-	    flog("job %u is waiting for prologue to complete\n", job->jobid);
+	    flog("job %u is waiting for prologue to complete\n", job->hID.jobid);
 	}
     }
 
@@ -2134,8 +2128,8 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 	Step_t *step = Step_findByStepId(jobid, stepid);
 	if (!step) {
 	    Step_t s = {
-		.jobid = jobid,
-		.stepid = stepid };
+		.hID.jobid = jobid,
+		.hID.stepid = stepid };
 	    flog("%s not found\n", Step_strID(&s));
 	    return;
 	}
@@ -2148,7 +2142,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
     if (job) {
 	if (!job->mother) {
 	    Job_signalTasks(job, SIGKILL, sMsg->head.uid);
-	    send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
+	    send_PS_JobExit(job->hID.jobid, SLURM_BATCH_SCRIPT,
 		    job->nrOfNodes, job->nodes);
 	}
 	Job_delete(job);
@@ -2185,8 +2179,10 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
     const Kill_Info_t *info = killInfo;
     char buf[512];
 
-    if (!step->fwdata || step->jobid != info->jobid) return false;
-    if (info->stepid != NO_VAL && info->stepid != step->stepid) return false;
+    if (!step->fwdata || step->hID.jobid != info->jobid) return false;
+    if (info->stepid != NO_VAL && info->stepid != step->hID.stepid) {
+	return false;
+    }
 
     if (info->timeout) {
 	if (!step->localNodeId) {
@@ -2219,8 +2215,8 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
     /* if we only kill one selected step, we are done */
     if (info->stepid != NO_VAL) {
 	Step_t s = {
-	    .jobid = info->jobid,
-	    .stepid = info->stepid };
+	    .hID.jobid = info->jobid,
+	    .hID.stepid = info->stepid };
 
 	fdbg(PSSLURM_LOG_JOB, "kill request for single step %s\n",
 	     Step_strID(&s));
@@ -2276,9 +2272,8 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
 	return ESLURM_USER_ID_MISSING;
     }
 
-    Step_t s = {
-	.jobid = req->jobid,
-	.stepid = req->stepid };
+    Step_t s;
+    memcpy(&s.hID, &req->hID, sizeof(req->hID));
 
     /* check permissions */
     if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
@@ -2292,28 +2287,28 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
 
     /* remove all unfinished spawn requests */
     PSIDspawn_cleanupBySpawner(PSC_getMyTID());
-    cleanupDelayedSpawns(req->jobid, req->stepid);
+    cleanupDelayedSpawns(req->hID.jobid, req->hID.stepid);
 
     /* find the corresponding allocation */
-    Alloc_t *alloc = Alloc_find(req->jobid);
+    Alloc_t *alloc = Alloc_find(req->hID.jobid);
 
     if (!alloc) {
-	Job_t *job = Job_findById(req->jobid);
+	Job_t *job = Job_findById(req->hID.jobid);
 	Job_destroy(job);
 
-	Step_destroyByJobid(req->jobid);
+	Step_destroyByJobid(req->hID.jobid);
 	flog("allocation %s not found\n", Step_strID(&s));
 	if (sMsg->head.type == REQUEST_TERMINATE_JOB) {
 	    return ESLURMD_KILL_JOB_ALREADY_COMPLETE;
 	} else {
-	    sendEpilogueComplete(req->jobid, SLURM_SUCCESS);
+	    sendEpilogueComplete(req->hID.jobid, SLURM_SUCCESS);
 	    return SLURM_SUCCESS;
 	}
     }
 
     Kill_Info_t info = {
-	.jobid = req->jobid,
-	.stepid = req->stepid,
+	.jobid = req->hID.jobid,
+	.stepid = req->hID.stepid,
 	.uid = sMsg->head.uid };
 
     switch (sMsg->head.type) {
@@ -2326,7 +2321,7 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
 	handleKillReq(sMsg, alloc, &info);
 	break;
     case REQUEST_ABORT_JOB:
-	handleAbortReq(sMsg, req->jobid, req->stepid);
+	handleAbortReq(sMsg, req->hID.jobid, req->hID.stepid);
 	break;
     case REQUEST_TERMINATE_JOB:
 	doTerminateAlloc(sMsg, alloc);
@@ -3016,21 +3011,15 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
     addSlurmAccData(&slurmAccData);
 
     Req_Step_Comp_t comp = {
-	.sluid = step->sluid,
-	.jobid = step->jobid,
-	.stepid = step->stepid,
-	.stepHetComp = step->stepHetComp,
 	.firstNode = 0,
 	.lastNode = step->nrOfNodes -1,
 	.exitStatus = exitStatus,
 	.sAccData = &slurmAccData };
+    memcpy(&comp.hID, &step->hID, sizeof(step->hID));
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = REQUEST_STEP_COMPLETE;
-    req->sluid = step->sluid;
-    req->jobid = step->jobid;
-    req->stepid = step->stepid;
-    req->stepHetComp = step->stepHetComp;
+    memcpy(&req->hID, &step->hID, sizeof(step->hID));
 
     sendSlurmctldReq(req, &comp);
 }
@@ -3092,10 +3081,7 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     }
 
     /* job/stepid */
-    msg.sluid = step->sluid;
-    msg.jobid = step->jobid;
-    msg.stepid = step->stepid;
-    msg.stepHetComp = step->stepHetComp;
+    memcpy(&msg.hID, &step->hID, sizeof(step->hID));
 
     PS_SendDB_t body = sendDBnoFrag;
     packMsgTaskExit(&body, &msg);
@@ -3196,8 +3182,8 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 static void doSendLaunchTasksFailed(Step_t *step, uint32_t nodeID,
 				    uint32_t error)
 {
-    Resp_Launch_Tasks_t resp = { .sluid = step->sluid, .jobid = step->jobid,
-				 .stepid = step->stepid };
+    Resp_Launch_Tasks_t resp;
+    memcpy(&resp.hID, &step->hID, sizeof(step->hID));
     PS_SendDB_t body = sendDBnoFrag;
 
     /* return code */
@@ -3242,10 +3228,8 @@ void sendTaskPids(Step_t *step)
     uint32_t countPIDs = 0, countLocalPIDs = 0, countGTIDs = 0;
     list_t *t;
     Resp_Launch_Tasks_t resp;
+    memcpy(&resp.hID, &step->hID, sizeof(step->hID));
 
-    resp.jobid = step->jobid;
-    resp.stepid = step->stepid;
-    resp.stepHetComp = step->stepHetComp;
     resp.returnCode = SLURM_SUCCESS;
     resp.nodeName = getConfValueC(Config, "SLURM_HOSTNAME");
 
@@ -3305,7 +3289,7 @@ void sendJobExit(Job_t *job, uint32_t exitStatus)
     if (job->timeout) exitStatus = SIGTERM;
 
     flog("REQUEST_COMPLETE_BATCH_SCRIPT: jobid %u exit %u\n",
-	 job->jobid, exitStatus);
+	 job->hID.jobid, exitStatus);
 
     /* save account data */
     SlurmAccData_t slurmAccData;
@@ -3327,7 +3311,7 @@ void sendJobExit(Job_t *job, uint32_t exitStatus)
     /* send request */
     Req_Comp_Batch_Script_t comp = {
 	.sAccData = &slurmAccData,
-	.jobid = job->jobid,
+	.jobid = job->hID->jobid,
 	.exitStatus = exitStatus,
 	.uid = job->uid,
 	.hostname = job->hostname,
@@ -3336,7 +3320,11 @@ void sendJobExit(Job_t *job, uint32_t exitStatus)
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = REQUEST_COMPLETE_BATCH_SCRIPT;
-    req->jobid = job->jobid;
+    memcpy(&comp.hID, &job->hID, sizeof(job->hID));
+
+    Req_Info_t *req = ucalloc(sizeof(*req));
+    req->type = REQUEST_COMPLETE_BATCH_SCRIPT;
+    memcpy(&req->hID, &job->hID, sizeof(job->hID));
 
     sendSlurmctldReq(req, &comp);
 }
@@ -3346,14 +3334,14 @@ void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
     fdbg(PSSLURM_LOG_PELOG, "allocation %u to slurmctld\n", jobid);
 
     Req_Epilog_Complete_t msg = {
-	.jobid = jobid,
+	.hID.jobid = jobid,
 	.rc = rc,
 	.nodeName = getConfValueC(Config, "SLURM_HOSTNAME")
     };
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = MESSAGE_EPILOG_COMPLETE;
-    req->jobid = jobid;
+    req->hID.jobid = jobid;
 
     sendSlurmctldReq(req, &msg);
 }

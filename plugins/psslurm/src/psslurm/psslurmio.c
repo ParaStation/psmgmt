@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -313,14 +313,14 @@ void IO_printJobMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
 	/* write to stdout socket */
 	PSCio_sendP(job->stdOutFD, msg, msgLen);
 	fdbg(PSSLURM_LOG_IO_VERB, "write job %u sock %u stdout msg %s\n",
-	     job->jobid, job->stdOutFD, msg);
+	     job->hID.jobid, job->stdOutFD, msg);
     } else if (type == STDERR) {
 	/* write to stderr socket */
 	PSCio_sendP(job->stdErrFD, msg, msgLen);
 	fdbg(PSSLURM_LOG_IO_VERB, "write job %u sock %u stderr msg %s\n",
-	     job->jobid, job->stdErrFD, msg);
+	     job->hID.jobid, job->stdErrFD, msg);
     } else {
-	flog("unknown type %u for job %u\n", type, job->jobid);
+	flog("unknown type %u for job %u\n", type, job->hID.jobid);
     }
 }
 
@@ -632,7 +632,7 @@ char *IO_replaceStepSymbols(Step_t *step, int rank, char *path)
     uint32_t arrayJobId = 0, arrayTaskId = 0;
 
     char *hostname = getConfValueC(Config, "SLURM_HOSTNAME");
-    Job_t *job = Job_findById(step->jobid);
+    Job_t *job = Job_findById(step->hID.jobid);
     if (job) {
 	arrayJobId = job->arrayJobId;
 	arrayTaskId = job->arrayTaskId;
@@ -640,7 +640,7 @@ char *IO_replaceStepSymbols(Step_t *step, int rank, char *path)
 
     char *jobname = envGet(step->env, "SLURM_JOB_NAME");
 
-    return replaceSymbols(step->jobid, step->stepid, hostname,
+    return replaceSymbols(step->hID.jobid, step->hID.stepid, hostname,
 			  step->localNodeId, step->username, arrayJobId,
 			  arrayTaskId, rank, path, jobname);
 }
@@ -649,7 +649,7 @@ char *IO_replaceJobSymbols(Job_t *job, char *path)
 {
     char *jobname = envGet(job->env, "SLURM_JOB_NAME");
 
-    return replaceSymbols(job->jobid, SLURM_BATCH_SCRIPT, job->hostname,
+    return replaceSymbols(job->hID.jobid, SLURM_BATCH_SCRIPT, job->hostname,
 			  0, job->username, job->arrayJobId, job->arrayTaskId,
 			  0, path, jobname);
 }
@@ -737,19 +737,19 @@ int IO_openJobPipes(Forwarder_Data_t *fwdata)
 
     /* stdout */
     if (pipe(fwdata->stdOut) == -1) {
-	fwarn(errno, "open stdout pipe for job %u failed", job->jobid);
+	fwarn(errno, "open stdout pipe for job %u failed", job->hID.jobid);
 	return 0;
     }
     fdbg(PSSLURM_LOG_IO, "stdout pipe %i:%i for job %u\n", fwdata->stdOut[0],
-	 fwdata->stdOut[1], job->jobid);
+	 fwdata->stdOut[1], job->hID.jobid);
 
     /* stderr */
     if (pipe(fwdata->stdErr) == -1) {
-	fwarn(errno, "create stderr pipe for job %u failed", job->jobid);
+	fwarn(errno, "create stderr pipe for job %u failed", job->hID.jobid);
 	return 0;
     }
     fdbg(PSSLURM_LOG_IO, "stderr pipe %i:%i for job %u\n", fwdata->stdErr[0],
-	 fwdata->stdErr[1], job->jobid);
+	 fwdata->stdErr[1], job->hID.jobid);
 
     return 1;
 }
@@ -798,7 +798,7 @@ int IO_forwardJobData(int sock, void *data)
     if (size <= 0) {
 	Selector_remove(sock);
 	fdbg(PSSLURM_LOG_IO, "job %u close std[out|err] sock %i\n",
-	     job->jobid, sock);
+	     job->hID.jobid, sock);
 	close(sock);
 	return 0;
     }
@@ -807,14 +807,14 @@ int IO_forwardJobData(int sock, void *data)
 	/* write to stdout socket */
 	PSCio_sendP(job->stdOutFD, buf, size);
 	fdbg(PSSLURM_LOG_IO_VERB, "write job %u sock %u stdout msg %s\n",
-	     job->jobid, sock, buf);
+	     job->hID.jobid, sock, buf);
     } else if (sock == fwdata->stdErr[0]) {
 	/* write to stderr socket */
 	PSCio_sendP(job->stdErrFD, buf, size);
 	fdbg(PSSLURM_LOG_IO_VERB, "write job %u sock %u stderr msg %s\n",
-	     job->jobid, sock, buf);
+	     job->hID.jobid, sock, buf);
     } else {
-	flog("unknown socket %i for job %u\n", sock, job->jobid);
+	flog("unknown socket %i for job %u\n", sock, job->hID.jobid);
     }
 
     return 0;
@@ -894,7 +894,7 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     int flags = getAppendFlags(job->appendMode);
 
     /* redirect stdout */
-    fdbg(PSSLURM_LOG_IO, "job %u stdout file %s\n", job->jobid, job->stdOut);
+    fdbg(PSSLURM_LOG_IO, "job %u stdout file %s\n", job->hID.jobid, job->stdOut);
     job->stdOutFD = openCreate(job->stdOut, flags, ioMode, job->uid, job->gid);
     if (job->stdOutFD == -1) {
 	fwarn(errno, "open stdout '%s' failed", job->stdOut);
@@ -907,12 +907,12 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
 
     /* redirect stderr */
     if (strlen(job->stdErr)) {
-	fdbg(PSSLURM_LOG_IO, "job %u stderr file %s\n", job->jobid, job->stdErr);
+	fdbg(PSSLURM_LOG_IO, "job %u stderr file %s\n", job->hID.jobid, job->stdErr);
 	job->stdErrFD = openCreate(job->stdErr, flags, ioMode, job->uid,
 				   job->gid);
 	if (job->stdErrFD == -1) {
 	    fwarn(errno, "open stderr '%s' failed for job %u",
-		  job->stdErr, job->jobid);
+		  job->stdErr, job->hID.jobid);
 	    exit(1);
 	}
     } else {

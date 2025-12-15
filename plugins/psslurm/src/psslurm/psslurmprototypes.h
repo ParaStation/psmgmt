@@ -25,20 +25,9 @@
 #include "psslurmmsg.h"
 #include "psslurmaccount.h"
 
-typedef struct {
-    uint64_t sluid;	    /**< unique Slurm ID */
-    uint32_t jobid;         /**< unique job identifier */
-    uint32_t stepid;        /**< unique step identifier */
-    uint32_t stepHetComp;   /**< step het component identifier */
-} Head_ID_t;
-
 /** Holding information for RPC REQUEST_TERMINATE_JOB */
 typedef struct {
-    /* first 4 elements must match Head_ID_t for unpackStepHead() */
-    uint64_t sluid;		/**< unique Slurm ID */
-    uint32_t jobid;		/**< unique job identifier */
-    uint32_t stepid;		/**< unique step identifier */
-    uint32_t stepHetComp;	/**< step het component identifier */
+    Head_ID_t hID;		/**< Step head identifier */
     uint32_t packJobid;		/**< unique pack job identifier */
     uint32_t jobstate;		/**< state of the job */
     uid_t uid;			/**< user ID of request sender */
@@ -59,11 +48,7 @@ typedef struct {
 
 /** Structure holding a signal tasks request */
 typedef struct {
-    /* first 4 elements must match Head_ID_t for unpackStepHead() */
-    uint64_t sluid;		/**< unique Slurm ID */
-    uint32_t jobid;		/**< unique job identifier */
-    uint32_t stepid;		/**< unique step identifier */
-    uint32_t stepHetComp;	/**< step het component identifier */
+    Head_ID_t hID;		/**< Step head identifier */
     uint16_t signal;		/**< the signal to send */
     uint16_t flags;		/**< various signal options */
     uid_t uid;			/**< user ID of requestor */
@@ -147,11 +132,7 @@ typedef struct {
 
 /** Holding information for RPC RESPONSE_LAUNCH_TASKS */
 typedef struct {
-    /* first 4 elements must match Head_ID_t for packStepHead() */
-    uint64_t sluid;		/**< unique Slurm identifier */
-    uint32_t jobid;		/**< unique job identifier */
-    uint32_t stepid;		/**< unique step identifiert */
-    uint32_t stepHetComp;	/**< step het component identifier */
+    Head_ID_t hID;		/**< Step head identifier */
     const char *nodeName;	/**< hostname */
     uint32_t returnCode;	/**< return code signaling success/failure */
     uint32_t countPIDs;
@@ -205,11 +186,7 @@ typedef struct {
 
 /** Holding all information for RPC MESSAGE_TASK_EXIT */
 typedef struct {
-    /* first 4 elements must match Head_ID_t for packStepHead() */
-    uint64_t sluid;		/**< unique Slurm identifier */
-    uint32_t jobid;		/**< unique job identifier */
-    uint32_t stepid;		/**< unique step identifier */
-    uint32_t stepHetComp;	/**< step het component identifier */
+    Head_ID_t hID;		/**< Step head identifier */
     uint32_t exitStatus;	/**< exit status */
     uint32_t exitCount;		/**< exit count */
     uint32_t *taskRanks;	/**< Slurm process ranks */
@@ -217,11 +194,7 @@ typedef struct {
 
 /** Holding all information for RPC REQUEST_STEP_COMPLETE */
 typedef struct {
-    /* first 4 elements must match Head_ID_t for packStepHead() */
-    uint64_t sluid;		/**< unique Slurm identifier */
-    uint32_t jobid;		/**< unique job identifier */
-    uint32_t stepid;		/**< unique step identifier */
-    uint32_t stepHetComp;	/**< step het component identifier */
+    Head_ID_t hID;		/**< Step head identifier */
     uint32_t firstNode;		/**< first node completed the step */
     uint32_t lastNode;		/**< last node completed the step */
     uint32_t exitStatus;	/**< compound step exit status */
@@ -238,11 +211,7 @@ typedef struct {
 
 /** Holding all information for RPC REQUEST_REATTACH_TASKS */
 typedef struct {
-    /* first 4 elements must match Head_ID_t for unpackStepHead() */
-    uint64_t sluid;	    /**< unique Slurm ID */
-    uint32_t jobid;	    /**< unique job identifier */
-    uint32_t stepid;	    /**< unique step identifier */
-    uint32_t stepHetComp;   /**< step het component identifier */
+    Head_ID_t hID;		/**< Step head identifier */
     uint16_t numCtlPorts;   /**< number of control ports */
     uint16_t *ctlPorts;	    /**< control ports */
     uint16_t numIOports;    /**< number of I/O ports */
@@ -253,11 +222,7 @@ typedef struct {
 
 /** Holding all information for RPC REQUEST_JOB_NOTIFY */
 typedef struct {
-    /* first 4 elements must match Head_ID_t for unpackStepHead() */
-    uint64_t sluid;	    /**< unique Slurm ID */
-    uint32_t jobid;	    /**< unique job identifier */
-    uint32_t stepid;	    /**< unique step identifier */
-    uint32_t stepHetComp;   /**< step het component identifier */
+    Head_ID_t hID;		/**< Step head identifier */
     char *msg;		    /**< the message to send to the job */
 } Req_Job_Notify_t;
 
@@ -275,11 +240,7 @@ typedef struct {
 
 /** Holding all information for RPC REQUEST_KILL_JOB */
 typedef struct {
-    /* first 4 elements must match Head_ID_t for packStepHead() */
-    uint64_t sluid;		/**< unique Slurm identifier */
-    uint32_t jobid;		/**< unique job identifier */
-    uint32_t stepid;		/**< unique step identifier */
-    uint32_t stepHetComp;	/**< step het component identifier */
+    Head_ID_t hID;		/**< Step head identifier */
     char *sJobId;		/**< jobid as string */
     char *sibling;		/**< kill job siblings */
     uint16_t signal;		/**< signal to send */
@@ -288,7 +249,7 @@ typedef struct {
 
 /** Holding all information for RPC MESSAGE_EPILOG_COMPLETE */
 typedef struct {
-    uint32_t jobid;		/**< unique job identifier */
+    Head_ID_t hID;		/**< Step head identifier */
     uint32_t rc;		/**< epilogue return code */
     char *nodeName;		/**< local hostname */
 } Req_Epilog_Complete_t;

@@ -92,13 +92,14 @@ bool Step_verifyData(Step_t *step)
 	return false;
     }
     /* job ID */
-    if (step->jobid != cred->jobid) {
-	flog("mismatching jobid %u vs %u\n", step->jobid, cred->jobid);
+    if (step->hID.jobid != cred->hID.jobid) {
+	flog("mismatching jobid %u vs %u\n", step->hID.jobid, cred->hID.jobid);
 	return false;
     }
     /* step ID */
-    if (step->stepid != cred->stepid) {
-	flog("mismatching stepid %u vs %u\n", step->stepid, cred->stepid);
+    if (step->hID.stepid != cred->hID.stepid) {
+	flog("mismatching stepid %u vs %u\n", step->hID.stepid,
+	     cred->hID.stepid);
 	return false;
     }
     /* user ID */
@@ -182,9 +183,9 @@ Step_t *Step_findByStepId(uint32_t jobid, uint32_t stepid)
     list_t *s;
     list_for_each(s, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (jobid == step->jobid && step->stepid == stepid) return step;
+	if (jobid == step->hID.jobid && step->hID.stepid == stepid) return step;
 	if (step->packJobid != NO_VAL && jobid == step->packJobid &&
-	    stepid == step->stepid) {
+	    stepid == step->hID.stepid) {
 	    return step;
 	}
     }
@@ -196,7 +197,7 @@ Step_t *Step_findByJobid(uint32_t jobid)
     list_t *s;
     list_for_each(s, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (jobid == step->jobid) return step;
+	if (jobid == step->hID.jobid) return step;
     }
     return NULL;
 }
@@ -265,7 +266,7 @@ void Step_destroyByJobid(uint32_t jobid)
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (step->jobid == jobid) Step_destroy(step);
+	if (step->hID.jobid == jobid) Step_destroy(step);
     }
 }
 
@@ -274,7 +275,7 @@ void Step_deleteByJobid(uint32_t jobid)
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (step->jobid == jobid) Step_delete(step);
+	if (step->hID.jobid == jobid) Step_delete(step);
     }
 }
 
@@ -293,7 +294,7 @@ bool Step_delete(Step_t *step)
 
     fdbg(PSSLURM_LOG_JOB, "%s\n", Step_strID(step));
 
-    deleteCachedMsg(step->jobid, step->stepid);
+    deleteCachedMsg(step->hID.jobid, step->hID.stepid);
     if (step->ct) Container_destroy(step->ct);
 
     /* overwrite sensitive data */
@@ -399,10 +400,10 @@ bool Step_destroy(Step_t *step)
 
     /* make sure all connections for the step are closed */
     closeAllStepConnections(step);
-    BCast_clearByJobid(step->jobid);
+    BCast_clearByJobid(step->hID.jobid);
 
     if (step->fwdata) {
-	signalTasks(step->jobid, step->stepid, step->uid, &step->tasks,
+	signalTasks(step->hID.jobid, step->hID.stepid, step->uid, &step->tasks,
 		    SIGKILL, -1);
 	if (step->fwdata->cPid) {
 	    killChild(step->fwdata->cPid, SIGKILL, step->uid);
@@ -446,8 +447,8 @@ int Step_signal(Step_t *step, int signal, uid_t reqUID)
 
     bool fatalSig = signal == SIGTERM || signal == SIGKILL;
     PStask_group_t group = fatalSig ? -1 : TG_ANY;
-    int ret = signalTasks(step->jobid, step->stepid, step->uid, &step->tasks,
-			  signal, group);
+    int ret = signalTasks(step->hID.jobid, step->hID.stepid, step->uid,
+			  &step->tasks, signal, group);
 
     if (fatalSig && step->fwdata) {
 	if (step->leader) {
@@ -465,7 +466,7 @@ void Step_shutdownForwarders(uint32_t jobid)
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (step->jobid == jobid && step->fwdata)
+	if (step->hID.jobid == jobid && step->fwdata)
 	    shutdownForwarder(step->fwdata);
     }
 }
@@ -477,7 +478,7 @@ int Step_signalByJobid(uint32_t jobid, int signal, uid_t reqUID)
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (step->jobid == jobid && step->state != JOB_COMPLETE) {
+	if (step->hID.jobid == jobid && step->state != JOB_COMPLETE) {
 	    ret = Step_signal(step, signal, reqUID);
 	    if (ret != -1) count += ret;
 	}
@@ -499,7 +500,7 @@ bool Step_partOfJob(uint32_t jobid)
     list_t *s;
     list_for_each(s, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (step->jobid == jobid &&
+	if (step->hID.jobid == jobid &&
 	    step->state != JOB_COMPLETE &&
 	    step->state != JOB_EXIT) {
 	    return true;
@@ -521,7 +522,8 @@ char *Step_getActiveList(void)
 	    step->state == JOB_COMPLETE) continue;
 
 	if (strbufLen(buf)) strbufAdd(buf, ", ");
-	snprintf(strStep, sizeof(strStep), "%u.%u", step->jobid, step->stepid);
+	snprintf(strStep, sizeof(strStep), "%u.%u", step->hID.jobid,
+		 step->hID.stepid);
 	strbufAdd(buf, strStep);
     }
 
@@ -548,7 +550,7 @@ int Step_killFWbyJobid(uint32_t jobid)
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
 
-	if (step->jobid == jobid && step->fwdata) {
+	if (step->hID.jobid == jobid && step->fwdata) {
 	    pskill(PSC_getPID(step->fwdata->tid), SIGKILL, 0);
 	    count++;
 	}
@@ -568,10 +570,7 @@ void Step_getInfos(Resp_Node_Reg_Status_t *stat)
 	if (stat->infoCount == max) break;
 	/* report all known jobs, even in state complete/exit */
 	Head_ID_t *head = &(stat->infos)[stat->infoCount];
-	head->sluid = step->sluid;
-	head->jobid = step->jobid;
-	head->stepid = step->stepid;
-	head->stepHetComp = step->stepHetComp;
+	memcpy(head, &(step->hID), sizeof(step->hID));
 
 	stat->infoCount++;
 	fdbg(PSSLURM_LOG_DEBUG, "add %s\n", Step_strID(step));
@@ -587,28 +586,30 @@ const char *Step_strID(const Step_t *step)
 	return buf;
     }
 
-    switch (step->stepid) {
+    switch (step->hID.stepid) {
     case SLURM_INTERACTIVE_STEP:
-	snprintf(buf, sizeof(buf), "interactive step %u", step->jobid);
+	snprintf(buf, sizeof(buf), "interactive step %u", step->hID.jobid);
 	break;
     case SLURM_PENDING_STEP:
-	snprintf(buf, sizeof(buf), "pending step %u", step->jobid);
+	snprintf(buf, sizeof(buf), "pending step %u", step->hID.jobid);
 	break;
     case SLURM_EXTERN_CONT:
-	snprintf(buf, sizeof(buf), "extern step %u", step->jobid);
+	snprintf(buf, sizeof(buf), "extern step %u", step->hID.jobid);
 	break;
     case SLURM_BATCH_SCRIPT:
-	snprintf(buf, sizeof(buf), "batchscript %u", step->jobid);
+	snprintf(buf, sizeof(buf), "batchscript %u", step->hID.jobid);
 	break;
     case NO_VAL:
-	snprintf(buf, sizeof(buf), "job %u", step->jobid);
+	snprintf(buf, sizeof(buf), "job %u", step->hID.jobid);
 	break;
     default:
 	if (step->packJobid != NO_VAL) {
-	    snprintf(buf, sizeof(buf), "step %u+%u.%u (%u)", step->packJobid,
-		     step->packOffset, step->stepid, step->jobid);
+	    snprintf(buf, sizeof(buf), "step %u+%u.%u (%u)",
+		     step->packJobid, step->packOffset, step->hID.stepid,
+		     step->hID.jobid);
 	} else {
-	    snprintf(buf, sizeof(buf), "step %u.%u", step->jobid, step->stepid);
+	    snprintf(buf, sizeof(buf), "step %u.%u", step->hID.jobid,
+		     step->hID.stepid);
 	}
     }
 
