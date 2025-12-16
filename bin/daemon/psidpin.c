@@ -155,17 +155,18 @@ static void pinToCPUs(cpu_set_t *physSet)
 static void doBindToDevs(char **variables, char *val)
 {
     for (size_t i = 0; variables[i]; i++) {
-	char *gpuVar = getenv(variables[i]);
-	if (!gpuVar || PSIDpin_checkAutoVar(variables[i], gpuVar, val)) {
+	char *devVar = getenv(variables[i]);
+	if (!devVar || PSIDpin_checkAutoVar(variables[i], devVar, val)) {
 	    /* variable not set at all or set automatically and
 	     * unchanged in the meantime => set it */
 	    setenv(variables[i], val, 1);
 	} else {
-	    PSID_fdbg(PSID_LOG_SPAWN, "keep '%s=%s'\n", variables[i], gpuVar);
+	    PSID_fdbg(PSID_LOG_SPAWN, "keep '%s=%s'\n", variables[i], devVar);
 	}
 
     }
 }
+
 /**
  * @brief Bind process to devices by setting environment variable
  *
