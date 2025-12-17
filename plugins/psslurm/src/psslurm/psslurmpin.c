@@ -1611,11 +1611,10 @@ static ssize_t getMinimumIndex(uint32_t *values, PSCPU_set_t idcs, uint16_t max)
     if (!values) return -1;
     if (!PSCPU_any(idcs, max)) return -1;
     /* find first index */
-    uint16_t first = 0;
-    while (!PSCPU_isSet(idcs, first)) first++;
-    uint32_t minVal = values[first];
-    ssize_t ret = first;
-    for (uint16_t i = first+1; i <= max; i++) {
+    ssize_t ret = 0;
+    while (!PSCPU_isSet(idcs, ret)) ret++;
+    uint32_t minVal = values[ret];
+    for (uint16_t i = ret + 1; i <= max; i++) {
 	if (!PSCPU_isSet(idcs, i)) continue;
 	if (values[i] < minVal) {
 	    /* found new minimum */
