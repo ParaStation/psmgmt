@@ -1659,7 +1659,7 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
     *verbose = false;
     *map_gpu = NULL;
     *mask_gpu = NULL;
-    *gpus_per_task = 0;
+    *gpus_per_task = 1; /* this is the default if not set */
 
     fdbg(PSSLURM_LOG_PART, "gpu_bind: '%s'\n", gpu_bind);
 
@@ -1707,7 +1707,9 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
     }
     if (!strncasecmp(gpu_bind, "per_task:", 9)) {
 	*gpus_per_task = atoi(gpu_bind + 9);
-	return true;
+	if (*gpus_per_task) return true;
+	flog("invalid gpus_per_task value \"%s\"\n", gpu_bind + 9);
+	return false;
     }
 
     /* @todo can the bind string contain "none" and should we completely
@@ -1802,7 +1804,7 @@ static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
     /* assign GPU(s) round-robin for each local task */
     bool use_closest[ltnum];
     memset(use_closest, true, ltnum * sizeof(bool));
-    for (int i = gpus_per_task > 1 ? gpus_per_task : 1; i > 0; i--) {
+    for (int i = gpus_per_task; i > 0; i--) {
 	for (uint32_t lTID = 0; lTID < ltnum; lTID++) {
 	    /* are there usable GPUs left? */
 	    if (!PSCPU_any(useGPUs[lTID], numNodeGPUs)) {
