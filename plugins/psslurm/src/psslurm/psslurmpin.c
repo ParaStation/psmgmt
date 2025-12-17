@@ -1754,7 +1754,6 @@ static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
     /* number of local tasks */
     uint32_t ltnum = step->globalTaskIdsLen[stepNodeId];
 
-    /* one GPU set for each local task */
     PSCPU_set_t gpus[ltnum];
     for (size_t i = 0; i < ltnum; i++) PSCPU_clrAll(gpus[i]);
 
