@@ -1806,9 +1806,8 @@ static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
     memset(use_closest, true, ltnum * sizeof(bool));
     for (int i = gpus_per_task; i > 0; i--) {
 	for (uint32_t lTID = 0; lTID < ltnum; lTID++) {
-	    /* are there usable GPUs left? */
-	    if (!PSCPU_any(useGPUs[lTID], numNodeGPUs)) {
-		if (use_closest[lTID]) {
+	    /* switch from closest to any? */
+	    if (use_closest[lTID] && !PSCPU_any(useGPUs[lTID], numNodeGPUs)) {
 		    if (lTID == localRankId) {
 			uprintf("Warning: Not enough closest GPUs to"
 				" fullfil --gpus-per-task request, so using"
@@ -1823,16 +1822,19 @@ static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
 		     * already assigned to this task */
 		    PSCPU_copy(useGPUs[lTID], assGPUs);
 		    PSCPU_remCPUs(useGPUs[lTID], gpus[lTID]);
-		} else {
-		    /* there are not enough GPUs at all, probably this will
-		     * never happen since the slurmctld should take care on
-		     * that, but catch the case as a safety guard */
-		    if (lTID == localRankId) {
-			uprintf("Error: Step has not enough GPUs assigned"
-				" to fullfil gpus-per-task = %u.",
-				gpus_per_task);
-			continue;
-		    }
+	    }
+
+	    /* are there usable GPUs left? */
+	    if (!PSCPU_any(useGPUs[lTID], numNodeGPUs)) {
+		/* there are not enough GPUs at all, probably this will
+		 * never happen since the slurmctld should take care on
+		 * that, but catch the case as a safety guard */
+		flog("UNEXPECTED: empty useGPUs[%u]\n", lTID);
+		if (lTID == localRankId) {
+		    uprintf("Error: Step has not enough GPUs assigned"
+			    " to fullfil gpus-per-task = %u.",
+			    gpus_per_task);
+		    continue;
 		}
 	    }
 
