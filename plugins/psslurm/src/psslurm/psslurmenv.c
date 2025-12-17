@@ -958,13 +958,14 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	}
 
 	strbuf_t buf = strbufNew(NULL);
-	for (uint64_t gpu = 0; gpu < PSCPU_MAX; gpu++) {
+	for (uint16_t gpu = 0, comma = 0; gpu < PSCPU_MAX; gpu++) {
 	    if (!PSCPU_isSet(rankGPUs, gpu)) continue;
 
-	    char tmpbuf[21]; /* max uint64_t */
-	    snprintf(tmpbuf, sizeof(tmpbuf), "%zd", gpu);
-	    if (gpu) strbufAdd(buf, ",");
+	    char tmpbuf[6]; /* max uint16_t */
+	    snprintf(tmpbuf, sizeof(tmpbuf), "%hu", gpu);
+	    if (comma) strbufAdd(buf, ",");
 	    strbufAdd(buf, tmpbuf);
+	    comma = 1;
 	}
 
 	bindgpus = strbufSteal(buf);

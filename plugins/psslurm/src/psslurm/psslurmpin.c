@@ -1933,13 +1933,14 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	char *globalGpuList = "N/A";
 
 	strbuf_t buf = strbufNew(NULL);
-	for (uint16_t gpu = 0; gpu < PSCPU_MAX; gpu++) {
+	for (uint16_t gpu = 0, comma = 0; gpu < PSCPU_MAX; gpu++) {
 	    if (!PSCPU_isSet(*rankGPUs, gpu)) continue;
 
-	    char tmpstr[11];
-	    snprintf(tmpstr, sizeof(tmpstr), "%hu", gpu);
-	    if (gpu) strbufAdd(buf, ",");
-	    strbufAdd(buf, tmpstr);
+	    char tmpbuf[6]; /* max uint16_t */
+	    snprintf(tmpbuf, sizeof(tmpbuf), "%hu", gpu);
+	    if (comma) strbufAdd(buf, ",");
+	    strbufAdd(buf, tmpbuf);
+	    comma = 1;
 	}
 	char *localGpuList = strbufSteal(buf);
 
