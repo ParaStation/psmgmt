@@ -1756,7 +1756,7 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	if (!maparray || !count) {
 	    flog("invalid map_gpu string '%s'\n", map_gpu);
 	    uprintf("Invalid GPU map string '%s'\n", map_gpu);
-	    return -1;
+	    return false;
 	}
 	for (size_t i = 0; i < count; i++) {
 	    if (!PSCPU_isSet(assGPUs, maparray[i])) {
@@ -1765,7 +1765,7 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 		uprintf("GPU %ld included in map_gpu '%s' is not assigned to"
 			" job\n", maparray[i], map_gpu);
 		ufree(maparray);
-		return -1;
+		return false;
 	    }
 	}
 
@@ -1811,7 +1811,7 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 				      assGPUs, closeList, &closeCnt,
 				      NULL, NULL, PSPIN_DEV_TYPE_GPU)) {
 		flog("unable to get close GPUs (lTID %d)\n", lTID);
-		return -1;
+		return false;
 	    }
 
 	    /* create set of GPUs to use containing the closest assigned GPUs */
