@@ -2193,7 +2193,7 @@ void logHWthreads(const char* func, PSpart_HWThread_t *threads, uint32_t num)
     if (!mset(PSSLURM_LOG_PART)) return;
 
     for (size_t t = 0; t < num; t++) {
-	flog("%s: thread %zu node %hd id %hd timesUsed %hd\n", func, t,
+	flog("%s: thread %zu node %d id %hd timesUsed %hd\n", func, t,
 	     threads[t].node, threads[t].id, threads[t].timesUsed);
     }
 }
