@@ -1718,6 +1718,145 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
     return false;
 }
 
+/**
+ * @brief Calculate the default GPU pinning for the local rank.
+ *
+ * When returning true, @a rankGPUs has all bits set at the ID's position
+ * of the GPUs to be bound to rank @a localRankId.
+ *
+ * Only GPUs in @a assGPUs will be used.
+ *
+ * Calculates the pinning of all local ranks to be able to distribute the
+ * GPUs in the best way over all ranks and returns the result for rank
+ * @a localRankId in @a rankGPUs.
+ *
+ * The idea is, that each rank does the same calculation and so the results
+ * of all local ranks always match to each other.
+ *
+ *
+ * @param localRankId      The local rank ID of the rank to get the GPU for
+ *
+ * @param step             The step to use
+ *
+ * @param stepNodeId       The step local id of the node to get GPU pinning for
+ *
+ * @param assGPUs          GPUs to be used
+ *
+ * @param rankGPUs         mask to be filled (actual return value)
+ *
+ * @param gpus_per_task   Number of GPUs to assign to each task
+ *
+ * @return true on success, false on error.
+ */
+static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
+				      uint32_t stepNodeId, PSCPU_set_t assGPUs,
+				      PSCPU_set_t *rankGPUs, int gpus_per_task)
+{
+    /* number of local tasks */
+    uint32_t ltnum = step->globalTaskIdsLen[stepNodeId];
+
+    /* one GPU set for each local task */
+    PSCPU_set_t gpus[ltnum];
+    for (size_t i = 0; i < ltnum; i++) PSCPU_clrAll(gpus[i]);
+
+    size_t numNodeGPUs = PSIDnodes_numGPUs(step->nodes[stepNodeId]);
+
+    if (PSCPU_MAX < numNodeGPUs) {
+	flog("ERROR: only %u GPUs per node supported (%zu found)\n",
+	     PSCPU_MAX, numNodeGPUs);
+	return false;
+    }
+
+    /* array to track to how many tasks each GPU assigned to the step
+     * is pinned */
+    uint32_t used[numNodeGPUs];
+    memset(used, 0, sizeof(used));
+
+
+    /* prefill useGPUs with the closest GPUs for each local task */
+    PSCPU_set_t useGPUs[ltnum];
+    for (size_t lTID = 0; lTID < ltnum; lTID++) {
+	uint32_t tid = step->globalTaskIds[stepNodeId][lTID];
+
+	/* list of close GPUs with maximum all GPUs of the node */
+	uint16_t closeList[PSIDnodes_numGPUs(step->nodes[stepNodeId])];
+	size_t closeCnt = 0;
+
+	/* get the list of close GPUs filled */
+	cpu_set_t *physSet = PSIDpin_mapCPUs(step->nodes[stepNodeId],
+					     step->slots[tid].CPUset);
+	if (!PSIDpin_getCloseDevs(step->nodes[stepNodeId], physSet,
+				  assGPUs, closeList, &closeCnt,
+				  NULL, NULL, PSPIN_DEV_TYPE_GPU)) {
+	    flog("unable to get close GPUs (lTID %zu)\n", lTID);
+	    return false;
+	}
+
+	/* create set of GPUs to use containing the closest assigned GPUs */
+	/* @todo maybe change PSIDpin_getCloseDevs() to directly use
+	 * bit masks (PSCPU_set_t) */
+	PSCPU_clrAll(useGPUs[lTID]);
+	for (size_t i = 0; i < closeCnt; i++) {
+	    PSCPU_setCPU(useGPUs[lTID], closeList[i]);
+	}
+    }
+
+    /* assign GPU(s) round-robin for each local task */
+    bool use_closest[ltnum];
+    memset(use_closest, true, ltnum * sizeof(bool));
+    for (int i = gpus_per_task > 1 ? gpus_per_task : 1; i > 0; i--) {
+	for (uint32_t lTID = 0; lTID < ltnum; lTID++) {
+	    /* are there usable GPUs left? */
+	    if (!PSCPU_any(useGPUs[lTID], numNodeGPUs)) {
+		if (use_closest[lTID]) {
+		    if (lTID == localRankId) {
+			uprintf("Warning: Not enough closest GPUs to"
+				" fullfil --gpus-per-task request, so using"
+				" arbitrary GPUs. GPU pinning will propably"
+				" be suboptimal.\n");
+		    }
+
+		    use_closest[lTID] = false;
+
+		    /* until now, for this task only closest GPUs have been
+		     * assigned, now choose from all assigned GPUs but those
+		     * already assigned to this task */
+		    PSCPU_copy(useGPUs[lTID], assGPUs);
+		    PSCPU_remCPUs(useGPUs[lTID], gpus[lTID]);
+		} else {
+		    /* there are not enough GPUs at all, probably this will
+		     * never happen since the slurmctld should take care on
+		     * that, but catch the case as a safety guard */
+		    if (lTID == localRankId) {
+			uprintf("Error: Step has not enough GPUs assigned"
+				" to fullfil gpus-per-task = %u.",
+				gpus_per_task);
+			continue;
+		    }
+		}
+	    }
+
+	    /* find least used assigned GPU */
+	    uint16_t lstUsedGPU = getMinimumIndex(used, useGPUs[lTID],
+						  numNodeGPUs);
+	    fdbg(PSSLURM_LOG_PART, "Select least used of %s GPU for"
+		 " local task %u: %hu\n",
+		 use_closest[lTID] ? "closest" : "any", lTID, lstUsedGPU);
+
+	    /* remove from GPUs to use, set as pinned to this task and
+	     * increase the usage counter */
+	    PSCPU_clrCPU(useGPUs[lTID], lstUsedGPU);
+	    PSCPU_setCPU(gpus[lTID], lstUsedGPU);
+	    used[lstUsedGPU]++;
+	}
+    }
+
+    /* copy the pinned GPUs for this rank */
+    PSCPU_copy(*rankGPUs, gpus[localRankId]);
+
+    return true;
+}
+
 /*
  * Calculate GPU pinning for one rank
  *
@@ -1747,9 +1886,6 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 
     PSCPU_clrAll(*rankGPUs);
 
-    /* number of local tasks */
-    uint32_t ltnum = step->globalTaskIdsLen[stepNodeId];
-
     if (map_gpu) {
 	size_t count;
 	long *maparray = parseMapString(map_gpu, &count, 0);
@@ -1775,106 +1911,10 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	//TODO we need to support more than one GPU per task to support this
 	flog("gpu_bind type \"mask_gpu\" is not supported by psslurm\n");
 	uprintf("gpu_bind type \"mask_gpu\" is not supported\n");
-	return -1;
+	return false;
     } else {
-	/* one GPU set for each local task */
-	PSCPU_set_t gpus[ltnum];
-	for (size_t i = 0; i < ltnum; i++) PSCPU_clrAll(gpus[i]);
-
-	size_t numNodeGPUs = PSIDnodes_numGPUs(step->nodes[stepNodeId]);
-
-	if (PSCPU_MAX < numNodeGPUs) {
-	    flog("ERROR: only %u GPUs per node supported (%zu found)\n",
-		 PSCPU_MAX, numNodeGPUs);
-	    return false;
-	}
-
-	/* array to track to how many tasks each GPU assigned to the step
-	 * is pinned */
-	uint32_t used[numNodeGPUs];
-	memset(used, 0, sizeof(used));
-
-
-	/* prefill useGPUs with the closest GPUs for each local task */
-	PSCPU_set_t useGPUs[ltnum];
-	for (uint32_t lTID = 0; lTID < ltnum; lTID++) {
-	    uint32_t tid = step->globalTaskIds[stepNodeId][lTID];
-
-	    /* list of close GPUs with maximum all GPUs of the node */
-	    uint16_t closeList[PSIDnodes_numGPUs(step->nodes[stepNodeId])];
-	    size_t closeCnt = 0;
-
-	    /* get the list of close GPUs filled */
-	    cpu_set_t *physSet = PSIDpin_mapCPUs(step->nodes[stepNodeId],
-						 step->slots[tid].CPUset);
-	    if (!PSIDpin_getCloseDevs(step->nodes[stepNodeId], physSet,
-				      assGPUs, closeList, &closeCnt,
-				      NULL, NULL, PSPIN_DEV_TYPE_GPU)) {
-		flog("unable to get close GPUs (lTID %d)\n", lTID);
-		return false;
-	    }
-
-	    /* create set of GPUs to use containing the closest assigned GPUs */
-	    /* @todo maybe change PSIDpin_getCloseDevs() to directly use
-	     * bit masks (PSCPU_set_t) */
-	    PSCPU_clrAll(useGPUs[lTID]);
-	    for (size_t i = 0; i < closeCnt; i++) {
-		PSCPU_setCPU(useGPUs[lTID], closeList[i]);
-	    }
-	}
-
-	/* assign GPU(s) round-robin for each local task */
-	bool use_closest[ltnum];
-	memset(use_closest, true, ltnum * sizeof(bool));
-	for (int i = gpus_per_task > 1 ? gpus_per_task : 1; i > 0; i--) {
-	    for (uint32_t lTID = 0; lTID < ltnum; lTID++) {
-		/* are there usable GPUs left? */
-		if (!PSCPU_any(useGPUs[lTID], numNodeGPUs)) {
-		    if (use_closest[lTID]) {
-			if (lTID == localRankId) {
-			    uprintf("Warning: Not enough closest GPUs to"
-				    " fullfil --gpus-per-task request, so using"
-				    " arbitrary GPUs. GPU pinning will propably"
-				    " be suboptimal.\n");
-			}
-
-			use_closest[lTID] = false;
-
-			/* until now, for this task only closest GPUs have been
-			 * assigned, now choose from all assigned GPUs but those
-			 * already assigned to this task */
-			PSCPU_copy(useGPUs[lTID], assGPUs);
-			PSCPU_remCPUs(useGPUs[lTID], gpus[lTID]);
-		    } else {
-			/* there are not enough GPUs at all, probably this will
-			 * never happen since the slurmctld should take care on
-			 * that, but catch the case as a safety guard */
-			if (lTID == localRankId) {
-			    uprintf("Error: Step has not enough GPUs assigned"
-				    " to fullfil gpus-per-task = %u.",
-				    gpus_per_task);
-			    continue;
-			}
-		    }
-		}
-
-		/* find least used assigned GPU */
-		uint16_t lstUsedGPU = getMinimumIndex(used, useGPUs[lTID],
-						      numNodeGPUs);
-		fdbg(PSSLURM_LOG_PART, "Select least used of %s GPU for"
-		     " local task %u: %hu\n",
-		     use_closest[lTID] ? "closest" : "any", lTID, lstUsedGPU);
-
-		/* remove from GPUs to use, set as pinned to this task and
-		 * increase the usage counter */
-		PSCPU_clrCPU(useGPUs[lTID], lstUsedGPU);
-		PSCPU_setCPU(gpus[lTID], lstUsedGPU);
-		used[lstUsedGPU]++;
-	    }
-	}
-
-	/* copy the pinned GPUs for this rank */
-	PSCPU_copy(*rankGPUs, gpus[localRankId]);
+	if (!getDefaultRankGpuPinning(localRankId, step, stepNodeId, assGPUs,
+		rankGPUs, gpus_per_task)) return false;
     }
 
     if (verbose) {
