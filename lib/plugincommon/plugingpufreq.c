@@ -38,12 +38,12 @@
 
 /** holding frequency scaling information for a frequency type */
 typedef struct {
-    uint32_t *availFreq;	/* available frequency list */
-    uint32_t availFreqNum;	/* number of available frequencies */
-    uint32_t availFreqSize;	/* size of available frequencies */
-    uint32_t defFreq;		/* default frequency */
-    uint32_t minFreq;		/* minimum frequency */
-    uint32_t maxFreq;		/* maximum frequency */
+    uint32_t *availFreq;	/**< available frequency list */
+    uint32_t availFreqNum;	/**< used elements of @ref availFreq */
+    uint32_t availFreqSize;	/**< actual size of @ref availFreq */
+    uint32_t defFreq;		/**< default frequency */
+    uint32_t minFreq;		/**< minimum frequency */
+    uint32_t maxFreq;		/**< maximum frequency */
 } Freq_Def_t;
 
 /** holding supported frequency types */
@@ -166,7 +166,7 @@ static void cmdListGPUs(char *output, void *info)
 /**
  * @brief Save additional frequency
  *
- * @param def Frequency array to save result in
+ * @param def Frequency array to save result to
  *
  * @param newFreq New frequency to save
  */
@@ -211,7 +211,7 @@ static bool hasFreq(Freq_Def_t *def, uint32_t freq)
 /**
  * @brief Extract all available GPU frequencies
  *
- * All frequencies are red in MHz and consists of a pair of
+ * All frequencies are read in MHz and consists of a pair of
  * graphics and memory frequency.
  *
  * @param output Script output holding frequency information
@@ -410,7 +410,7 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 	initFailure = true;
     }
 
-    /* sort red frequencies */
+    /* sort read frequencies */
     for (int i = 0; i < numGPUs; i++) {
 	qsort(gpus[i].gra.availFreq, gpus[i].gra.availFreqNum,
 	      sizeof(gpus[i].gra.availFreq[0]), compareFreq);
