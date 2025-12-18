@@ -48,7 +48,8 @@ EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py		\
 	psmgmt.sh.in systemd/munge.conf systemd/psid.service.in		\
 	systemd/psidstarter.socket systemd/psidstarter@.service		\
 	vcversion xinetd.d/psidstarter.in single_node_config.in		\
-	pscompress.py psexpand.py exec_all
+	pscompress.py psexpand.py exec_all cpufreq.py gpufreq.py	\
+	simulate_nvidia-smi.py
 
 # clean up generated files
 CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_acc			\
