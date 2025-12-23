@@ -10,3 +10,5 @@
 include $(top_srcdir)/common.am
 
 pkglibexec_SCRIPTS = simulate_nvidia-smi.py
+
+dist_psacctlib_SCRIPTS = simulate_energy_sensor.py

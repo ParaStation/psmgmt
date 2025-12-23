@@ -110,7 +110,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(dist_psacctlib_SCRIPTS) \
+	$(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
@@ -140,8 +141,9 @@ am__uninstall_files_from_dir = { \
   || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
        $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
   }
-am__installdirs = "$(DESTDIR)$(pkglibexecdir)"
-SCRIPTS = $(pkglibexec_SCRIPTS)
+am__installdirs = "$(DESTDIR)$(psacctlibdir)" \
+	"$(DESTDIR)$(pkglibexecdir)"
+SCRIPTS = $(dist_psacctlib_SCRIPTS) $(pkglibexec_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -361,6 +363,7 @@ scriptsdir = $(prefix)/scripts
 # file.
 #
 pkglibexec_SCRIPTS = simulate_nvidia-smi.py
+dist_psacctlib_SCRIPTS = simulate_energy_sensor.py
 all: all-am
 
 .SUFFIXES:
@@ -394,6 +397,41 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+install-dist_psacctlibSCRIPTS: $(dist_psacctlib_SCRIPTS)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_psacctlib_SCRIPTS)'; test -n "$(psacctlibdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(psacctlibdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(psacctlibdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n' \
+	    -e 'h;s|.*|.|' \
+	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
+	      if (++n[d] == $(am__install_max)) { \
+		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
+	    else { print "f", d "/" $$4, $$1 } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	     test -z "$$files" || { \
+	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(psacctlibdir)$$dir'"; \
+	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(psacctlibdir)$$dir" || exit $$?; \
+	     } \
+	; done
+
+uninstall-dist_psacctlibSCRIPTS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_psacctlib_SCRIPTS)'; test -n "$(psacctlibdir)" || exit 0; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	       sed -e 's,.*/,,;$(transform)'`; \
+	dir='$(DESTDIR)$(psacctlibdir)'; $(am__uninstall_files_from_dir)
 install-pkglibexecSCRIPTS: $(pkglibexec_SCRIPTS)
 	@$(NORMAL_INSTALL)
 	@list='$(pkglibexec_SCRIPTS)'; test -n "$(pkglibexecdir)" || list=; \
@@ -478,7 +516,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(SCRIPTS)
 installdirs:
-	for dir in "$(DESTDIR)$(pkglibexecdir)"; do \
+	for dir in "$(DESTDIR)$(psacctlibdir)" "$(DESTDIR)$(pkglibexecdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -531,7 +569,7 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-dist_psacctlibSCRIPTS
 
 install-dvi: install-dvi-am
 
@@ -575,22 +613,24 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-pkglibexecSCRIPTS
+uninstall-am: uninstall-dist_psacctlibSCRIPTS \
+	uninstall-pkglibexecSCRIPTS
 
 .MAKE: install-am install-strip
 
 .PHONY: all all-am check check-am clean clean-generic clean-libtool \
 	cscopelist-am ctags-am distclean distclean-generic \
 	distclean-libtool distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-pkglibexecSCRIPTS \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
-	uninstall-am uninstall-pkglibexecSCRIPTS
+	install install-am install-data install-data-am \
+	install-dist_psacctlibSCRIPTS install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-pkglibexecSCRIPTS install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+	ps ps-am tags-am uninstall uninstall-am \
+	uninstall-dist_psacctlibSCRIPTS uninstall-pkglibexecSCRIPTS
 
 .PRECIOUS: Makefile
 

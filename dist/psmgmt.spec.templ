@@ -297,6 +297,7 @@ fi
 %{_plugindir}/psaccount.so
 %config(noreplace) %{_plugindir}/psaccount.conf
 %{_libexecdir}/psaccount
+%exclude %{_libexecdir}/psaccount/simulate_energy_sensor.py
 %{_plugindir}/psexec.so
 %{_plugindir}/psgw.so
 %config(noreplace) %{_plugindir}/psgw.conf
@@ -439,4 +440,5 @@ fi
 %{_plugindir}/no_flowcontrol.so
 %{_plugindir}/psBlackHole.so
 %{_libexecdir}/psmgmt/simulate_nvidia-smi.py
+%{_libexecdir}/psaccount/simulate_energy_sensor.py
 %endif
