@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2024 ParTec AG, Munich
+# Copyright (C) 2022-2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,7 +16,7 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = include lib bin plugins doc scripts config
 
 if !BUILD_WITHOUT_TESTPLUGINS
-  SUBDIRS += tests/plugins tests/functional
+  SUBDIRS += tests/plugins tests/functional tests/simulation
 endif
 
 EXTRA_DIST = README tests/psid dist/.gitignore dist/Makefile.sources	\

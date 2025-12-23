@@ -14585,6 +14585,8 @@ ac_config_files="$ac_config_files tests/plugins/Makefile"
 
 ac_config_files="$ac_config_files tests/functional/Makefile"
 
+ac_config_files="$ac_config_files tests/simulation/Makefile"
+
 ac_config_links="$ac_config_links dist/Makefile:dist/Makefile"
 
 ac_config_commands="$ac_config_commands mkdir"
@@ -15739,6 +15741,7 @@ do
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
     "tests/plugins/Makefile") CONFIG_FILES="$CONFIG_FILES tests/plugins/Makefile" ;;
     "tests/functional/Makefile") CONFIG_FILES="$CONFIG_FILES tests/functional/Makefile" ;;
+    "tests/simulation/Makefile") CONFIG_FILES="$CONFIG_FILES tests/simulation/Makefile" ;;
     "dist/Makefile") CONFIG_LINKS="$CONFIG_LINKS dist/Makefile:dist/Makefile" ;;
     "mkdir") CONFIG_COMMANDS="$CONFIG_COMMANDS mkdir" ;;
 

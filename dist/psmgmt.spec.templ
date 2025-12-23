@@ -273,6 +273,7 @@ fi
 %dir %{_sbindir}
 %{_sbindir}/psid
 %{_libexecdir}/psmgmt
+%exclude %{_libexecdir}/psmgmt/simulate_nvidia-smi.py
 %{_configdir}
 %{_scriptsdir}
 %{_psconfigdumpsdir}/*
@@ -437,4 +438,5 @@ fi
 %{_plugindir}/fakenode.so
 %{_plugindir}/no_flowcontrol.so
 %{_plugindir}/psBlackHole.so
+%{_libexecdir}/psmgmt/simulate_nvidia-smi.py
 %endif

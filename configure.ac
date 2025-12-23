@@ -244,6 +244,7 @@ AC_CONFIG_FILES(plugins/rrcomm/tests/Makefile)
 AC_CONFIG_FILES(scripts/Makefile)
 AC_CONFIG_FILES(tests/plugins/Makefile)
 AC_CONFIG_FILES(tests/functional/Makefile)
+AC_CONFIG_FILES(tests/simulation/Makefile)
 AC_CONFIG_LINKS(dist/Makefile:dist/Makefile)
 AC_CONFIG_COMMANDS([mkdir],[$MKDIR_P scripts/init.d scripts/xinetd.d scripts/systemd])
 

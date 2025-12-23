@@ -25,7 +25,6 @@
 # file.
 #
 
-
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -103,7 +102,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-subdir = scripts
+subdir = tests/simulation
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
@@ -141,14 +140,8 @@ am__uninstall_files_from_dir = { \
   || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
        $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
   }
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(configdir)" \
-	"$(DESTDIR)$(init_ddir)" "$(DESTDIR)$(pkglibexecdir)" \
-	"$(DESTDIR)$(scriptsdir)" "$(DESTDIR)$(configdir)" \
-	"$(DESTDIR)$(gdbinit_ddir)" "$(DESTDIR)$(sysconfdir)" \
-	"$(DESTDIR)$(profile_ddir)" "$(DESTDIR)$(systemd_psid_ddir)" \
-	"$(DESTDIR)$(unitdir)"
-SCRIPTS = $(bin_SCRIPTS) $(config_SCRIPTS) $(init_d_SCRIPTS) \
-	$(noinst_SCRIPTS) $(pkglibexec_SCRIPTS) $(scripts_SCRIPTS)
+am__installdirs = "$(DESTDIR)$(pkglibexecdir)"
+SCRIPTS = $(pkglibexec_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -168,12 +161,8 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-DATA = $(config_DATA) $(gdbinit_d_DATA) $(nobase_sysconf_DATA) \
-	$(profile_d_DATA) $(systemd_psid_d_DATA) $(unit_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
-am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am \
-	compile config.guess config.sub depcomp install-sh ltmain.sh \
-	missing
+am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
@@ -365,48 +354,13 @@ scriptsdir = $(prefix)/scripts
 #
 # ParaStation
 #
-# Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2025 ParTec AG, Munich
+# Copyright (C) 2025 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-bin_SCRIPTS = psaccview
-profile_ddir = $(sysconfdir)/profile.d
-profile_d_DATA = psmgmt.csh psmgmt.sh
-init_ddir = $(sysconfdir)/init.d
-gdbinit_ddir = $(sysconfdir)/gdbinit.d
-gdbinit_d_DATA = psmgmt.gdb
-@HAVE_SYSTEMD_TRUE@unit_DATA = systemd/psid.service \
-@HAVE_SYSTEMD_TRUE@	systemd/psidstarter.socket \
-@HAVE_SYSTEMD_TRUE@	systemd/psidstarter@.service
-@HAVE_SYSTEMD_TRUE@systemd_psid_ddir = $(systemdconfdir)/psid.service.d
-@HAVE_SYSTEMD_TRUE@@MUNGE_ENABLED_TRUE@systemd_psid_d_DATA = systemd/munge.conf
-@HAVE_SYSTEMD_FALSE@init_d_SCRIPTS = init.d/parastation
-@HAVE_SYSTEMD_FALSE@nobase_sysconf_DATA = xinetd.d/psidstarter
-config_DATA = mpiexec.gdb
-config_SCRIPTS = ps_acc
-scripts_SCRIPTS = single_node_config
-noinst_SCRIPTS = memtest.py
-pkglibexec_SCRIPTS = pscompress.py psexpand.py exec_all cpufreq.py	\
-		     gpufreq.py
-
-
-# for simplicity, put all dist files here, so no dist_ primaries above
-EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py		\
-	memtest.py mpiexec.gdb ps_acc.in psaccview.in psmgmt.csh.in	\
-	psmgmt.sh.in systemd/munge.conf systemd/psid.service.in		\
-	systemd/psidstarter.socket systemd/psidstarter@.service		\
-	vcversion xinetd.d/psidstarter.in single_node_config.in		\
-	pscompress.py psexpand.py exec_all cpufreq.py gpufreq.py
-
-
-# clean up generated files
-CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_acc			\
-	init.d/parastation xinetd.d/psidstarter systemd/psid.service	\
-	single_node_config
-
+pkglibexec_SCRIPTS = simulate_nvidia-smi.py
 all: all-am
 
 .SUFFIXES:
@@ -419,9 +373,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(top_srcdir
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign scripts/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign tests/simulation/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign scripts/Makefile
+	  $(AUTOMAKE) --foreign tests/simulation/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -440,111 +394,6 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-binSCRIPTS: $(bin_SCRIPTS)
-	@$(NORMAL_INSTALL)
-	@list='$(bin_SCRIPTS)'; test -n "$(bindir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(bindir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(bindir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n' \
-	    -e 'h;s|.*|.|' \
-	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
-	      if (++n[d] == $(am__install_max)) { \
-		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
-	    else { print "f", d "/" $$4, $$1 } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	     test -z "$$files" || { \
-	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(bindir)$$dir'"; \
-	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(bindir)$$dir" || exit $$?; \
-	     } \
-	; done
-
-uninstall-binSCRIPTS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(bin_SCRIPTS)'; test -n "$(bindir)" || exit 0; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	       sed -e 's,.*/,,;$(transform)'`; \
-	dir='$(DESTDIR)$(bindir)'; $(am__uninstall_files_from_dir)
-install-configSCRIPTS: $(config_SCRIPTS)
-	@$(NORMAL_INSTALL)
-	@list='$(config_SCRIPTS)'; test -n "$(configdir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(configdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(configdir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n' \
-	    -e 'h;s|.*|.|' \
-	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
-	      if (++n[d] == $(am__install_max)) { \
-		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
-	    else { print "f", d "/" $$4, $$1 } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	     test -z "$$files" || { \
-	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(configdir)$$dir'"; \
-	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(configdir)$$dir" || exit $$?; \
-	     } \
-	; done
-
-uninstall-configSCRIPTS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(config_SCRIPTS)'; test -n "$(configdir)" || exit 0; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	       sed -e 's,.*/,,;$(transform)'`; \
-	dir='$(DESTDIR)$(configdir)'; $(am__uninstall_files_from_dir)
-install-init_dSCRIPTS: $(init_d_SCRIPTS)
-	@$(NORMAL_INSTALL)
-	@list='$(init_d_SCRIPTS)'; test -n "$(init_ddir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(init_ddir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(init_ddir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n' \
-	    -e 'h;s|.*|.|' \
-	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
-	      if (++n[d] == $(am__install_max)) { \
-		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
-	    else { print "f", d "/" $$4, $$1 } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	     test -z "$$files" || { \
-	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(init_ddir)$$dir'"; \
-	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(init_ddir)$$dir" || exit $$?; \
-	     } \
-	; done
-
-uninstall-init_dSCRIPTS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(init_d_SCRIPTS)'; test -n "$(init_ddir)" || exit 0; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	       sed -e 's,.*/,,;$(transform)'`; \
-	dir='$(DESTDIR)$(init_ddir)'; $(am__uninstall_files_from_dir)
 install-pkglibexecSCRIPTS: $(pkglibexec_SCRIPTS)
 	@$(NORMAL_INSTALL)
 	@list='$(pkglibexec_SCRIPTS)'; test -n "$(pkglibexecdir)" || list=; \
@@ -580,176 +429,12 @@ uninstall-pkglibexecSCRIPTS:
 	files=`for p in $$list; do echo "$$p"; done | \
 	       sed -e 's,.*/,,;$(transform)'`; \
 	dir='$(DESTDIR)$(pkglibexecdir)'; $(am__uninstall_files_from_dir)
-install-scriptsSCRIPTS: $(scripts_SCRIPTS)
-	@$(NORMAL_INSTALL)
-	@list='$(scripts_SCRIPTS)'; test -n "$(scriptsdir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(scriptsdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(scriptsdir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n' \
-	    -e 'h;s|.*|.|' \
-	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
-	      if (++n[d] == $(am__install_max)) { \
-		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
-	    else { print "f", d "/" $$4, $$1 } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	     test -z "$$files" || { \
-	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(scriptsdir)$$dir'"; \
-	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(scriptsdir)$$dir" || exit $$?; \
-	     } \
-	; done
-
-uninstall-scriptsSCRIPTS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(scripts_SCRIPTS)'; test -n "$(scriptsdir)" || exit 0; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	       sed -e 's,.*/,,;$(transform)'`; \
-	dir='$(DESTDIR)$(scriptsdir)'; $(am__uninstall_files_from_dir)
 
 mostlyclean-libtool:
 	-rm -f *.lo
 
 clean-libtool:
 	-rm -rf .libs _libs
-install-configDATA: $(config_DATA)
-	@$(NORMAL_INSTALL)
-	@list='$(config_DATA)'; test -n "$(configdir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(configdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(configdir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(configdir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(configdir)" || exit $$?; \
-	done
-
-uninstall-configDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(config_DATA)'; test -n "$(configdir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(configdir)'; $(am__uninstall_files_from_dir)
-install-gdbinit_dDATA: $(gdbinit_d_DATA)
-	@$(NORMAL_INSTALL)
-	@list='$(gdbinit_d_DATA)'; test -n "$(gdbinit_ddir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(gdbinit_ddir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(gdbinit_ddir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(gdbinit_ddir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(gdbinit_ddir)" || exit $$?; \
-	done
-
-uninstall-gdbinit_dDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(gdbinit_d_DATA)'; test -n "$(gdbinit_ddir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(gdbinit_ddir)'; $(am__uninstall_files_from_dir)
-install-nobase_sysconfDATA: $(nobase_sysconf_DATA)
-	@$(NORMAL_INSTALL)
-	@list='$(nobase_sysconf_DATA)'; test -n "$(sysconfdir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(sysconfdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(sysconfdir)" || exit 1; \
-	fi; \
-	$(am__nobase_list) | while read dir files; do \
-	  xfiles=; for file in $$files; do \
-	    if test -f "$$file"; then xfiles="$$xfiles $$file"; \
-	    else xfiles="$$xfiles $(srcdir)/$$file"; fi; done; \
-	  test -z "$$xfiles" || { \
-	    test "x$$dir" = x. || { \
-	      echo " $(MKDIR_P) '$(DESTDIR)$(sysconfdir)/$$dir'"; \
-	      $(MKDIR_P) "$(DESTDIR)$(sysconfdir)/$$dir"; }; \
-	    echo " $(INSTALL_DATA) $$xfiles '$(DESTDIR)$(sysconfdir)/$$dir'"; \
-	    $(INSTALL_DATA) $$xfiles "$(DESTDIR)$(sysconfdir)/$$dir" || exit $$?; }; \
-	done
-
-uninstall-nobase_sysconfDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(nobase_sysconf_DATA)'; test -n "$(sysconfdir)" || list=; \
-	$(am__nobase_strip_setup); files=`$(am__nobase_strip)`; \
-	dir='$(DESTDIR)$(sysconfdir)'; $(am__uninstall_files_from_dir)
-install-profile_dDATA: $(profile_d_DATA)
-	@$(NORMAL_INSTALL)
-	@list='$(profile_d_DATA)'; test -n "$(profile_ddir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(profile_ddir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(profile_ddir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(profile_ddir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(profile_ddir)" || exit $$?; \
-	done
-
-uninstall-profile_dDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(profile_d_DATA)'; test -n "$(profile_ddir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(profile_ddir)'; $(am__uninstall_files_from_dir)
-install-systemd_psid_dDATA: $(systemd_psid_d_DATA)
-	@$(NORMAL_INSTALL)
-	@list='$(systemd_psid_d_DATA)'; test -n "$(systemd_psid_ddir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(systemd_psid_ddir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(systemd_psid_ddir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(systemd_psid_ddir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(systemd_psid_ddir)" || exit $$?; \
-	done
-
-uninstall-systemd_psid_dDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(systemd_psid_d_DATA)'; test -n "$(systemd_psid_ddir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(systemd_psid_ddir)'; $(am__uninstall_files_from_dir)
-install-unitDATA: $(unit_DATA)
-	@$(NORMAL_INSTALL)
-	@list='$(unit_DATA)'; test -n "$(unitdir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(unitdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(unitdir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(unitdir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(unitdir)" || exit $$?; \
-	done
-
-uninstall-unitDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(unit_DATA)'; test -n "$(unitdir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(unitdir)'; $(am__uninstall_files_from_dir)
 tags TAGS:
 
 ctags CTAGS:
@@ -791,9 +476,9 @@ distdir-am: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(SCRIPTS) $(DATA)
+all-am: Makefile $(SCRIPTS)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(init_ddir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(scriptsdir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(gdbinit_ddir)" "$(DESTDIR)$(sysconfdir)" "$(DESTDIR)$(profile_ddir)" "$(DESTDIR)$(systemd_psid_ddir)" "$(DESTDIR)$(unitdir)"; do \
+	for dir in "$(DESTDIR)$(pkglibexecdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -818,7 +503,6 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
-	-$(am__rm_f) $(CLEANFILES)
 
 distclean-generic:
 	-$(am__rm_f) $(CONFIG_CLEAN_FILES)
@@ -847,17 +531,13 @@ info: info-am
 
 info-am:
 
-install-data-am: install-configDATA install-configSCRIPTS \
-	install-gdbinit_dDATA install-init_dSCRIPTS \
-	install-profile_dDATA install-scriptsSCRIPTS \
-	install-systemd_psid_dDATA install-unitDATA
+install-data-am:
 
 install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binSCRIPTS install-exec-local \
-	install-nobase_sysconfDATA install-pkglibexecSCRIPTS
+install-exec-am: install-pkglibexecSCRIPTS
 
 install-html: install-html-am
 
@@ -895,47 +575,28 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binSCRIPTS uninstall-configDATA \
-	uninstall-configSCRIPTS uninstall-gdbinit_dDATA \
-	uninstall-init_dSCRIPTS uninstall-nobase_sysconfDATA \
-	uninstall-pkglibexecSCRIPTS uninstall-profile_dDATA \
-	uninstall-scriptsSCRIPTS uninstall-systemd_psid_dDATA \
-	uninstall-unitDATA
+uninstall-am: uninstall-pkglibexecSCRIPTS
 
 .MAKE: install-am install-strip
 
 .PHONY: all all-am check check-am clean clean-generic clean-libtool \
 	cscopelist-am ctags-am distclean distclean-generic \
 	distclean-libtool distdir dvi dvi-am html html-am info info-am \
-	install install-am install-binSCRIPTS install-configDATA \
-	install-configSCRIPTS install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-exec-local \
-	install-gdbinit_dDATA install-html install-html-am \
-	install-info install-info-am install-init_dSCRIPTS install-man \
-	install-nobase_sysconfDATA install-pdf install-pdf-am \
-	install-pkglibexecSCRIPTS install-profile_dDATA install-ps \
-	install-ps-am install-scriptsSCRIPTS install-strip \
-	install-systemd_psid_dDATA install-unitDATA installcheck \
+	install install-am install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-pkglibexecSCRIPTS \
+	install-ps install-ps-am install-strip installcheck \
 	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-generic \
 	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
-	uninstall-am uninstall-binSCRIPTS uninstall-configDATA \
-	uninstall-configSCRIPTS uninstall-gdbinit_dDATA \
-	uninstall-init_dSCRIPTS uninstall-nobase_sysconfDATA \
-	uninstall-pkglibexecSCRIPTS uninstall-profile_dDATA \
-	uninstall-scriptsSCRIPTS uninstall-systemd_psid_dDATA \
-	uninstall-unitDATA
+	uninstall-am uninstall-pkglibexecSCRIPTS
 
 .PRECIOUS: Makefile
 
 
 %: %.in
 	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
-
-install-exec-local:
-	$(INSTALL) -d $(DESTDIR)$(sysconfdir)/parastation/prologue.d
-	$(INSTALL) -d $(DESTDIR)$(sysconfdir)/parastation/epilogue.d
-	$(INSTALL) -d $(DESTDIR)$(sysconfdir)/parastation/epilogue.finalize.d
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

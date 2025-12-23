@@ -40,7 +40,7 @@ scripts_SCRIPTS = single_node_config
 noinst_SCRIPTS = memtest.py
 
 pkglibexec_SCRIPTS = pscompress.py psexpand.py exec_all cpufreq.py	\
-		     gpufreq.py simulate_nvidia-smi.py
+		     gpufreq.py
 
 # for simplicity, put all dist files here, so no dist_ primaries above
 EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py		\
@@ -48,8 +48,7 @@ EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py		\
 	psmgmt.sh.in systemd/munge.conf systemd/psid.service.in		\
 	systemd/psidstarter.socket systemd/psidstarter@.service		\
 	vcversion xinetd.d/psidstarter.in single_node_config.in		\
-	pscompress.py psexpand.py exec_all cpufreq.py gpufreq.py	\
-	simulate_nvidia-smi.py
+	pscompress.py psexpand.py exec_all cpufreq.py gpufreq.py
 
 # clean up generated files
 CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_acc			\
