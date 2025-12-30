@@ -267,12 +267,6 @@ typedef struct {
     uint32_t rc;		/**< prolog return code */
 } Req_Prolog_Comp_t;
 
-/** Holding all information for RPC REQUEST_JOB_INFO_SINGLE */
-typedef struct {
-    uint32_t jobid;		/**< unique job identifier */
-    uint16_t flags;		/**< job flags */
-} Req_Job_Info_Single_t;
-
 /** Holding all information for RPC REQUEST_JOB_REQUEUE */
 typedef struct {
     uint32_t jobid;		/**< unique job identifier */
