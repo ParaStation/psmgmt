@@ -1372,9 +1372,6 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     if (step->cwd && chdir(step->cwd) == -1) {
 	fwarn(errno, "chdir(%s) for uid %u gid %u",
 	      step->cwd, step->uid, step->gid);
-	if (slurmProto < SLURM_23_02_PROTO_VERSION) {
-	    return ESCRIPT_CHDIR_FAILED;
-	}
 
 	char buf[512];
 	snprintf(buf, sizeof(buf), "psslurm: chdir(%s) failed: %s, "

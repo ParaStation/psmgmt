@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -960,8 +960,7 @@ static int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *bod
 
     Connection_t *con = findConnection(sock);
     Slurm_Auth_t *auth = NULL;
-    if (slurmProto > SLURM_22_05_PROTO_VERSION &&
-	sock >= 0 && con && con->authByInMsg) {
+    if (sock >= 0 && con && con->authByInMsg) {
 	/* if the connection was verified before, the authentication can
 	 * be skipped for the response */
 	head->flags |= SLURM_NO_AUTH_CRED;

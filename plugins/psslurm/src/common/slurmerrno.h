@@ -253,12 +253,6 @@ typedef enum {
 	ESLURMD_STEP_SUSPENDED,
 	ESLURMD_STEP_NOTSUSPENDED,
 
-	/* slurmd errors in user batch job */
-	/* tbr with support of 22.05 protocol */
-	ESCRIPT_CHDIR_FAILED =				4100,
-	ESCRIPT_OPEN_OUTPUT_FAILED,
-	ESCRIPT_NON_ZERO_RETURN,
-
 	/* socket specific SLURM communications error */
 	SLURM_PROTOCOL_SOCKET_IMPL_ZERO_RECV_LENGTH =	5000,
 	SLURM_PROTOCOL_SOCKET_IMPL_NEGATIVE_RECV_LENGTH,

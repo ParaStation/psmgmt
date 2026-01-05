@@ -752,18 +752,14 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* job constraints */
     cred->jobConstraints = getStringM(data);
 
-    if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	getTime(data, &cred->jobEndTime);
-	cred->jobExtra = getStringM(data);
-	getUint16(data, &cred->jobOversubscribe);
-    }
+    getTime(data, &cred->jobEndTime);
+    cred->jobExtra = getStringM(data);
+    getUint16(data, &cred->jobOversubscribe);
 
     cred->jobPartition = getStringM(data);
     cred->jobReservation = getStringM(data);
     getUint16(data, &cred->jobRestartCount);
-    if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	getTime(data, &cred->jobStartTime);
-    }
+    getTime(data, &cred->jobStartTime);
     cred->jobStderr = getStringM(data);
     cred->jobStdin = getStringM(data);
     cred->jobStdout = getStringM(data);
@@ -841,9 +837,8 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     fdbg(PSSLURM_LOG_GRES, "job hosts %s step hosts %s\n", cred->jobHostlist,
 	 cred->stepHL);
 
-    if (msgVer > SLURM_22_05_PROTO_VERSION) {
-	cred->jobLicenses = getStringM(data);
-    }
+    /* job licenses */
+    cred->jobLicenses = getStringM(data);
 
     /* job memory allocation size */
     getUint32(data, &cred->jobMemAllocSize);
@@ -1317,13 +1312,6 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     getUint32(data, &req->gid);
     /* nodes */
     req->nodes = getStringM(data);
-
-    if (msgVer < SLURM_23_02_PROTO_VERSION) {
-	/* job info */
-	uint32_t tmp;
-	getUint32(data, &tmp);
-    }
-
     /* spank environment */
     getEnv(data, req->spankEnv);
 
@@ -1493,12 +1481,6 @@ static bool unpackJobResources(Slurm_Msg_t *sMsg, Slurm_Job_Resources_t *jr)
 static bool unpackDepList(Slurm_Msg_t *sMsg, list_t *depList)
 {
     PS_DataBuffer_t data = sMsg->data;
-    uint16_t msgVer = sMsg->head.version;
-
-    if (msgVer < SLURM_23_02_PROTO_VERSION) {
-	flog("unsupported protocol version %u for dependency list\n", msgVer);
-	return false;
-    }
 
     /* number of entries */
     uint32_t entries;
@@ -1534,12 +1516,6 @@ static bool unpackMultiCoreData(Slurm_Msg_t *sMsg,
 				Slurm_Multicore_data_t *mc)
 {
     PS_DataBuffer_t data = sMsg->data;
-    uint16_t msgVer = sMsg->head.version;
-
-    if (msgVer < SLURM_23_02_PROTO_VERSION) {
-	flog("unsupported protocol version %u for multicore data\n", msgVer);
-	return false;
-    }
 
     /* verify multicore flag */
     uint8_t flag;
@@ -1576,12 +1552,6 @@ static bool unpackMultiCoreData(Slurm_Msg_t *sMsg,
 static bool unpackCronEntry(Slurm_Msg_t *sMsg, Slurm_Cron_Entry_t *ce)
 {
     PS_DataBuffer_t data = sMsg->data;
-    uint16_t msgVer = sMsg->head.version;
-
-    if (msgVer < SLURM_23_02_PROTO_VERSION) {
-	flog("unsupported protocol version %u for cron entry\n", msgVer);
-	return false;
-    }
 
     uint8_t hasData;
     getUint8(data, &hasData);
@@ -3007,12 +2977,6 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     getUint32(data, &step->cpuFreqMax);
     /* CPU frequency governor (see srun --cpu-freq) */
     getUint32(data, &step->cpuFreqGov);
-
-    if (msgVer < SLURM_23_02_PROTO_VERSION) {
-	/* jobinfo plugin id */
-	getUint32(data, &tmp);
-    }
-
     /* tres bind */
     step->tresBind = getStringM(data);
     /* tres freq */
@@ -3106,7 +3070,7 @@ static void readJobCpuOptions(PS_DataBuffer_t data, Job_t *job)
  */
 static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 {
-    uint32_t jobid, tmp, count;
+    uint32_t jobid, count;
     char buf[1024];
     PS_DataBuffer_t data = sMsg->data;
     uint16_t msgVer = sMsg->head.version;
@@ -3238,11 +3202,6 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     if (job->cred->jobMemAllocSize) {
 	job->memLimit = job->cred->jobMemAlloc[0];
-    }
-
-    if (msgVer < SLURM_23_02_PROTO_VERSION) {
-	/* jobinfo plugin id */
-	getUint32(data, &tmp);
     }
 
     /* account */
