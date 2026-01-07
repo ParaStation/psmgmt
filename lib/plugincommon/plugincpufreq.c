@@ -79,9 +79,6 @@ typedef struct {
     void (*cb)(int32_t status, Script_Data_t *script);
 } Command_Map_t;
 
-/** forward declaration */
-static Command_Map_t Command_Map[];
-
 /** all CPUs including cached frequency values */
 static CPUfreq_CPUs_t *cpus;
 
