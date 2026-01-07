@@ -398,7 +398,7 @@ static void cmdPrintOutput(char *output, void *info)
 static void testInitComplete(void)
 {
     if (initFlags) {
-	plugindbg(PLUGIN_LOG_FREQ, "gathering progress: %i\n", initFlags);
+	plugindbg(PLUGIN_LOG_FREQ, "gathering progress: 0x%x\n", initFlags);
 	return;
     }
 
