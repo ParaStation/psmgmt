@@ -979,13 +979,10 @@ static void handlePElogueRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
  */
 static void handleJobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
-    /* get jobid */
-    uint32_t jobid;
-    getUint32(data, &jobid);
-
     Job_t *job = Job_add();
     job->state = JOB_QUEUED;
-    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid, Alloc_strState(job->state));
+    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,
+	 Alloc_strState(job->state));
     job->mother = msg->header.sender;
 
     if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
@@ -1022,10 +1019,10 @@ static void handleJobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 	     job->hID.jobid, job->slurmHosts);
     }
 
-    Alloc_t *alloc = Alloc_find(jobid);
+    Alloc_t *alloc = Alloc_find(job->hID.jobid);
     if (alloc) alloc->state = A_RUNNING;
 
-    flog("jobid %u user '%s' nodes %u from %s\n", jobid, job->username,
+    flog("jobid %u user '%s' nodes %u from %s\n", job->hID.jobid, job->username,
 	 job->nrOfNodes, PSC_printTID(msg->header.sender));
 }
 
