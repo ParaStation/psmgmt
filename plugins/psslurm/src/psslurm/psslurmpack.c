@@ -226,20 +226,16 @@ bool __unpackSlurmID(PS_DataBuffer_t data, Head_ID_t *hID, uint16_t msgVer,
 
     if (msgVer > SLURM_24_05_PROTO_VERSION) {
 	/* unique Slurm ID */
-	getUint64(data, &stepH->sluid);
+	getUint64(data, &hID->sluid);
     }
 
-    getUint32(data, &stepH->jobid);
-    getUint32(data, &stepH->stepid);
-    getUint32(data, &stepH->stepHetComp);
+    getUint32(data, &hID->jobid);
+    getUint32(data, &hID->stepid);
+    getUint32(data, &hID->stepHetComp);
 
     returnFalseOnError(data, );
     return true;
 }
-
-#define unpackStepHead(data, head, msgVer) \
-    __unpackStepHead(data, head, msgVer, __func__, __LINE__)
-
 
 bool __packSlurmAuth(PS_SendDB_t *data, Slurm_Auth_t *auth,
 		     const char *caller, const int line)
@@ -927,7 +923,7 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
 
     if (msgVer > SLURM_25_05_PROTO_VERSION) {
 	/* Slurm header */
-	unpackStepHead(data, &cred->hID, msgVer);
+	unpackSlurmID(data, &cred->hID, msgVer);
     }
 
     /* identity */
@@ -2710,7 +2706,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     uint32_t tmp;
 
     /* step header */
-    unpackStepHead(data, &step->hID, msgVer);
+    unpackSlurmID(data, &step->hID, msgVer);
 
     if (!(msgVer > SLURM_23_02_PROTO_VERSION)) {
 	/* remove with support of protocol 23_02 */
@@ -4455,7 +4451,7 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
     case REQUEST_JOB_STEP_STAT:
     case REQUEST_JOB_STEP_PIDS:
 	sMsg->unpData = ucalloc(sizeof(Head_ID_t));
-	ret = unpackStepHead(sMsg->data, sMsg->unpData, sMsg->head.version);
+	ret = unpackSlurmID(sMsg->data, sMsg->unpData, sMsg->head.version);
 	break;
     case REQUEST_LAUNCH_PROLOG:
 	ret = unpackReqLaunchProlog(sMsg);
