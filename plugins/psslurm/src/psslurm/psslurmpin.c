@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1808,20 +1808,20 @@ static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
 	for (uint32_t lTID = 0; lTID < ltnum; lTID++) {
 	    /* switch from closest to any? */
 	    if (use_closest[lTID] && !PSCPU_any(useGPUs[lTID], numNodeGPUs)) {
-		    if (lTID == localRankId) {
-			uprintf("Warning: Not enough closest GPUs to"
-				" fullfil --gpus-per-task request, so using"
-				" arbitrary GPUs. GPU pinning will propably"
-				" be suboptimal.\n");
-		    }
+		if (lTID == localRankId) {
+		    uprintf("Warning: Not enough closest GPUs to"
+			    " fullfil --gpus-per-task request, so using"
+			    " arbitrary GPUs. GPU pinning will propably"
+			    " be suboptimal.\n");
+		}
 
-		    use_closest[lTID] = false;
+		use_closest[lTID] = false;
 
-		    /* until now, for this task only closest GPUs have been
-		     * assigned, now choose from all assigned GPUs but those
-		     * already assigned to this task */
-		    PSCPU_copy(useGPUs[lTID], assGPUs);
-		    PSCPU_remCPUs(useGPUs[lTID], gpus[lTID]);
+		/* until now, for this task only closest GPUs have been
+		 * assigned, now choose from all assigned GPUs but those
+		 * already assigned to this task */
+		PSCPU_copy(useGPUs[lTID], assGPUs);
+		PSCPU_remCPUs(useGPUs[lTID], gpus[lTID]);
 	    }
 
 	    /* are there usable GPUs left? */
