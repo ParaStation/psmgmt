@@ -147,7 +147,7 @@ bool CPUfreq_isInitialized(void)
 static void retInitResult()
 {
     if (initFailure) CPUfreq_finalize();
-    initCB(!initFailure);
+    if (initCB) initCB(!initFailure);
 }
 
 static bool checkGov(CPUfreq_governors_t gov)
