@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1362,7 +1362,7 @@ static bool verifyGresConf(void)
     short slurmGPUs = 0;
     traverseGresConf(countGPUsVisitor, &slurmGPUs); /* !!! false on purpose */
     short numGPUs = PSIDnodes_numGPUs(PSC_getMyID());
-    if(numGPUs < slurmGPUs) {
+    if (numGPUs < slurmGPUs) {
 	flog("Configured and detected number of GPUs differ (%hd < %hd)\n",
 	     slurmGPUs, numGPUs);
 	return false;

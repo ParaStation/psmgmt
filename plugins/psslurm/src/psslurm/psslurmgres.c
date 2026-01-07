@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -78,7 +78,7 @@ static bool setGresCount(Gres_Conf_t *gres, char *count)
 /**
  * @brief Handle single device file entry from `file` string
  *
- * This is meant as visitor function for `traverseComList()`.
+ * This is meant as visitor function for `traverseCompList()`.
  * It expects @a file to be one device File, detects it's parameters, stores
  * them im a @a GRes_Dev_t struct, and adds it to the devices list in the
  * @a Gres_Conf_t struct passed as @a info pointer.
