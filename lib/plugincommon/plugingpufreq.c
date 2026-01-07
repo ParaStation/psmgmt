@@ -365,14 +365,14 @@ static void cbListGPUs(int32_t status, Script_Data_t *script)
 	goto ERROR;
     }
 
-    if (execGPUFreqScript(CMD_GET_CUR_FREQ)) {
+    if (!execGPUFreqScript(CMD_GET_CUR_FREQ)) {
 	pluginflog("failed getting current GPU frequencies\n");
 	goto ERROR;
     }
     initFlags |= INIT_GET_FREQ;
 
     /* read list all of GPU frequencies */
-    if (execGPUFreqScript(CMD_GET_AVAIL_FREQ)) {
+    if (!execGPUFreqScript(CMD_GET_AVAIL_FREQ)) {
 	pluginflog("failed getting available GPU frequencies\n");
 	goto ERROR;
     }
@@ -553,7 +553,7 @@ static bool execGPUFreqScriptEx(Script_CMDs_t cmd, strv_t addArgV)
     int ret = Script_exec(script);
     if (!script->cbResult) Script_destroy(script);
 
-    return ret;
+    return !ret;
 }
 
 void GPUfreq_init(const char *freqScript, GPUfreq_initCB_t *cb)
@@ -571,7 +571,7 @@ void GPUfreq_init(const char *freqScript, GPUfreq_initCB_t *cb)
 
     /* get basic GPU list and spawn additional gather scripts in
      * callback */
-    if (execGPUFreqScript(CMD_LIST_GPUS)) {
+    if (!execGPUFreqScript(CMD_LIST_GPUS)) {
 	pluginflog("unable to initialize GPUs\n");
 	goto ERROR;
     }
@@ -705,7 +705,7 @@ static bool doSetFreq(PSCPU_set_t set, uint32_t newFreq, int cmd)
     int ret = execGPUFreqScriptEx(cmd, argV);
     strvDestroy(argV);
 
-    if (ret) {
+    if (!ret) {
 	pluginflog("unable to set new GPU frequencies to %u\n", newFreq);
 	return false;
     }
@@ -909,7 +909,7 @@ bool GPUfreq_resetFreq(PSCPU_set_t set, int freqType)
     int ret = execGPUFreqScriptEx(cmd, argV);
     strvDestroy(argV);
 
-    if (ret) {
+    if (!ret) {
 	pluginflog("unable to reset GPUs %s type %i",
 		   PSCPU_print_part(set, numGPUs), freqType);
     } else {
