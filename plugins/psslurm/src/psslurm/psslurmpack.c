@@ -201,12 +201,14 @@ bool __packSlurmID(Head_ID_t *hID, PS_SendDB_t *data,
 
     if (slurmProto > SLURM_24_05_PROTO_VERSION) {
 	/* unique Slurm ID */
-	addUint64ToMsg(stepH->sluid, data);
+	addUint64ToMsg(hID->sluid, data);
     }
 
-    addUint32ToMsg(stepH->jobid, data);
-    addUint32ToMsg(stepH->stepid, data);
-    addUint32ToMsg(stepH->stepHetComp, data);
+    addUint32ToMsg(hID->jobid, data);
+    addUint32ToMsg(hID->stepid, data);
+    addUint32ToMsg(hID->stepHetComp, data);
+
+    return true;
 }
 
 bool __unpackSlurmID(PS_DataBuffer_t data, Head_ID_t *hID, uint16_t msgVer,
@@ -3655,7 +3657,7 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     addUint32ToMsg(stat->infoCount, data);
     for (uint32_t i=0; i<stat->infoCount; i++) {
 	Head_ID_t *stepH = &(stat->infos)[i];
-	packStepHead(stepH, data);
+	packSlurmID(stepH, data);
     }
 
     /* flags */
@@ -4720,7 +4722,7 @@ bool packReqCompBatchScript(PS_SendDB_t *data, Req_Comp_Batch_Script_t *req)
 
     if (slurmProto > SLURM_25_05_PROTO_VERSION) {
 	/* Slurm head ID */
-	packStepHead(&req->hID, data);
+	packSlurmID(&req->hID, data);
     }
 
     /* uid of job */

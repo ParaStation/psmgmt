@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -289,7 +289,6 @@ bool __packSlurmID(Head_ID_t *hID, PS_SendDB_t *data,
 
 #define packSlurmID(hID, data) \
     __packSlurmID(hID, data, __func__, __LINE__)
-
 
 /**
  * @brief Unpack a Slurm head identifier
