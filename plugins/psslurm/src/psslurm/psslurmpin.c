@@ -1603,15 +1603,15 @@ static char * getGpuBindString(char *tres_bind)
  *
  * @param max Maximum index to check
  *
- * @return Index contained in subset with minimum value in array or -1
+ * @return Index contained in subset with minimum value in array or UINT16_MAX
  * on error
  */
-static ssize_t getMinimumIndex(uint32_t *values, PSCPU_set_t idcs, uint16_t max)
+static uint16_t getMinimumIndex(uint32_t *values, PSCPU_set_t idcs, uint16_t max)
 {
-    if (!values) return -1;
-    if (!PSCPU_any(idcs, max)) return -1;
+    if (!values) return UINT16_MAX;
+    if (!PSCPU_any(idcs, max)) return UINT16_MAX;
     /* find first index */
-    ssize_t ret = 0;
+    uint16_t ret = 0;
     while (!PSCPU_isSet(idcs, ret)) ret++;
     uint32_t minVal = values[ret];
     for (uint16_t i = ret + 1; i <= max; i++) {
@@ -1841,6 +1841,11 @@ static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
 	    /* find least used assigned GPU */
 	    uint16_t lstUsedGPU = getMinimumIndex(used, useGPUs[lTID],
 						  numNodeGPUs);
+	    if (lstUsedGPU == UINT16_MAX) {
+		flog("UNEXPECTED: failed to find minimum in useGPUs[%u]\n",
+		     lTID);
+		continue;
+	    }
 	    fdbg(PSSLURM_LOG_PART, "Select least used of %s GPU for"
 		 " local task %u: %hu\n",
 		 use_closest[lTID] ? "closest" : "any", lTID, lstUsedGPU);
