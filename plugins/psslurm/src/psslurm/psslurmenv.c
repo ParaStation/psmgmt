@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -102,14 +102,13 @@ static char *getCPUsPerNode(Job_t *job)
     strbuf_t buf = strbufNew(NULL);
 
     for (uint32_t i = 0; i < job->cpuGroupCount; i++) {
-	if (i) strbufAdd(buf, ",");
-
 	char tmp[256];
 	if (job->cpuCountReps[i] > 1) {
-	    snprintf(tmp, sizeof(tmp), "%u(x%u)", job->cpusPerNode[i],
-		     job->cpuCountReps[i]);
+	    snprintf(tmp, sizeof(tmp), "%s%u(x%u)", i ? "," : "",
+		     job->cpusPerNode[i], job->cpuCountReps[i]);
 	} else {
-	    snprintf(tmp, sizeof(tmp), "%u", job->cpusPerNode[i]);
+	    snprintf(tmp, sizeof(tmp), "%s%u", i ? "," : "",
+		     job->cpusPerNode[i]);
 	}
 	strbufAdd(buf, tmp);
     }
@@ -164,6 +163,7 @@ static char *getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes)
     strbuf_t buf = strbufNew(NULL);
 
     uint16_t count = 0, current = 0;
+    bool comma = false;
     uint16_t last = tasksPerNode[0]; /* for loop initialization */
     for (uint32_t i = 0; i <= nrOfNodes; i++) {
 	if (i != nrOfNodes) { /* don't do this in the last iteration */
@@ -176,12 +176,13 @@ static char *getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes)
 
 	char tmp[32];
 	if (count == 1) {
-	    snprintf(tmp, sizeof(tmp), "%u,", last);
+	    snprintf(tmp, sizeof(tmp), "%s%u", comma ? "," : "", last);
 	} else {
-	    snprintf(tmp, sizeof(tmp), "%u(x%d),", last, count);
+	    snprintf(tmp, sizeof(tmp), "%s%u(x%d)", comma ? "," : "", last,
+		     count);
 	}
-	if (strbufLen(buf)) strbufAdd(buf, ",");
 	strbufAdd(buf, tmp);
+	comma = true;
 
 	last = current;
 	count = 1;
@@ -212,7 +213,7 @@ static char *getCompactThreadList(const PSCPU_set_t threads)
 
     char tmp[32];
     int last = -1;
-    bool range = false;
+    bool range = false, comma = false;
     for (short m = 0; m < numThreads; m++) {
 	if (!mapped[m]) continue;
 
@@ -224,8 +225,9 @@ static char *getCompactThreadList(const PSCPU_set_t threads)
 
 	if (!range) {
 	    /* if we are not in a range, last is solo or started a range */
-	    snprintf(tmp, sizeof(tmp), "%s%i", strbufLen(buf) ? "," : "", last);
+	    snprintf(tmp, sizeof(tmp), "%s%i", comma ? "," : "", last);
 	    strbufAdd(buf, tmp);
+	    comma = true;
 	}
 
 	/* check if m continues a range */
@@ -250,7 +252,7 @@ static char *getCompactThreadList(const PSCPU_set_t threads)
     if (range) {
 	snprintf(tmp, sizeof(tmp), "-%d", last);
     } else {
-	snprintf(tmp, sizeof(tmp), "%s%i", strbufLen(buf) ? "," : "", last);
+	snprintf(tmp, sizeof(tmp), "%s%i", comma ? "," : "", last);
     }
     strbufAdd(buf, tmp);
 
@@ -786,10 +788,8 @@ static char *GTIDsToList(Step_t *step)
 
     uint32_t offset = step->packTaskOffset != NO_VAL ? step->packTaskOffset : 0;
     for (uint32_t i = 0; i < step->globalTaskIdsLen[step->localNodeId]; i++) {
-	if (i) strbufAdd(buf, ",");
-
 	char tmp[128];
-	snprintf(tmp, sizeof(tmp), "%u",
+	snprintf(tmp, sizeof(tmp), "%s%u", i ? "," : "",
 		 step->globalTaskIds[step->localNodeId][i] + offset);
 	strbufAdd(buf, tmp);
     }
@@ -961,9 +961,8 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	for (uint16_t gpu = 0, comma = 0; gpu < PSCPU_MAX; gpu++) {
 	    if (!PSCPU_isSet(rankGPUs, gpu)) continue;
 
-	    char tmpbuf[6]; /* max uint16_t */
-	    snprintf(tmpbuf, sizeof(tmpbuf), "%hu", gpu);
-	    if (comma) strbufAdd(buf, ",");
+	    char tmpbuf[7]; /* max uint16_t + comma */
+	    snprintf(tmpbuf, sizeof(tmpbuf), "%s%hu", comma ? "," : "", gpu);
 	    strbufAdd(buf, tmpbuf);
 	    comma = 1;
 	}
@@ -986,9 +985,8 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    abort();
 	}
 	for (uint64_t gpu = 0; gpu < gres->totalGres; gpu++) {
-	    char tmpbuf[21]; /* max uint64_t */
-	    snprintf(tmpbuf, sizeof(tmpbuf), "%zd", gpu);
-	    if (gpu) strbufAdd(cgroupsList, ",");
+	    char tmpbuf[22]; /* max uint64_t + comma */
+	    snprintf(tmpbuf, sizeof(tmpbuf), "%s%zd", gpu ? "," : "", gpu);
 	    strbufAdd(cgroupsList, tmpbuf);
 	}
 	gpulibVar = strbufSteal(cgroupsList);
