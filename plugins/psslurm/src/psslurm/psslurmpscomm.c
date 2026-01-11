@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -354,7 +354,7 @@ static int handleGetReservation(void *res)
     /* find step */
     /* first assume task is the logger (child of step forwarder) */
     Step_t *step = Step_findByPsslurmChild(PSC_getPID(task->tid));
-    /* it might be a step forwarder, too  => step is stored there */
+    /* it might be a step forwarder, too => step is stored there */
     if (!step && task->group == TG_PLUGINFW) {
 	Forwarder_Data_t *fw = PStask_infoGet(task, TASKINFO_FORWARDER);
 	if (fw) step = fw->userData;

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -3251,7 +3251,7 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
  * @param r The reservation request to handle.
  *
  * @return On success the number of assigned slots is returned. If
- * handling was not successful right now but the reservation is a
+ * handling was not successful right now but the reservation is
  * able to wait for further resources, 0 or 1 will be returned
  * signaling the ability to handle further requests (1) or not (0). If
  * the request failed finally, -1 is returned.
@@ -3604,7 +3604,7 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	    goto error;
 	}
 
-	/* request dummy reservation for ID and range of ranks  from logger */
+	/* request dummy reservation for ID and range of ranks from logger */
 	DDBufferMsg_t msg = {
 	    .header = {
 		.type = PSP_DD_GETRESERVATION,
