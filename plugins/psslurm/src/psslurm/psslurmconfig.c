@@ -1365,8 +1365,9 @@ static bool verifyGresConf(void)
 {
     short slurmGPUs = 0;
     traverseGresConf(countGPUsVisitor, &slurmGPUs); /* !!! false on purpose */
+    char *disStrictMode = getenv("__DISABLE_GPU_PSSLURM_HW_CHECK");
     short numGPUs = PSIDnodes_numGPUs(PSC_getMyID());
-    if (numGPUs < slurmGPUs) {
+    if (!disStrictMode && numGPUs < slurmGPUs) {
 	flog("Configured and detected number of GPUs differ (%hd < %hd)\n",
 	     slurmGPUs, numGPUs);
 	return false;

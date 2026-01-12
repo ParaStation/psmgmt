@@ -196,8 +196,9 @@ static void cmdListCPUs(char *output, void *info)
 	return;
     }
 
+    char *disStrictMode = getenv("__DISABLE_CPU_FREQ_HW_CHECK");
     numCPUs = PSIDhw_getHWthreads();
-    if (numCPUs != scriptCPUs) {
+    if (!disStrictMode && numCPUs != scriptCPUs) {
 	pluginflog("mismatch number of CPUs, psid %i script %i\n", numCPUs,
 		   scriptCPUs);
 	initFailure = true;
