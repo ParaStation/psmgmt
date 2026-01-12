@@ -411,6 +411,13 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 	initFailure = true;
     }
 
+    /* test init failure from other callbacks too */
+    if (initFailure) {
+	testInitComplete();
+	Script_destroy(script);
+	return;
+    }
+
     /* sort read frequencies */
     for (int i = 0; i < numGPUs; i++) {
 	qsort(gpus[i].gra.availFreq, gpus[i].gra.availFreqNum,
@@ -495,7 +502,7 @@ static void cbGetFreq(int32_t status, Script_Data_t *script)
     }
 
     /* test if all GPUs have the same default frequencies */
-    saveDefFreq();
+    if (!initFailure) saveDefFreq();
 
     testInitComplete();
     Script_destroy(script);
@@ -594,6 +601,7 @@ void GPUfreq_finalize(void)
 
     ufree(gpus);
     gpus = NULL;
+    numGPUs = 0;
 
     ufree(fScriptPath);
     fScriptPath = NULL;
