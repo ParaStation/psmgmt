@@ -683,6 +683,15 @@ static uint32_t mapValidFreq(Freq_Def_t *freq, uint32_t newFreq)
     return 0;
 }
 
+static uint32_t mapFreq(Freq_Def_t *freq, uint32_t newFreq)
+{
+    if (newFreq & GPU_FREQ_FLAG) {
+	return mapFreqRange(freq, newFreq);
+    } else {
+	return mapValidFreq(freq, newFreq);
+    }
+}
+
 /**
  * @brief Call a script to change the frequency of one or more GPUs
  *
@@ -734,56 +743,35 @@ bool GPUfreq_setGraFreq(PSCPU_set_t set, uint16_t setSize, uint32_t graFreq)
 
     pluginfdbg(PLUGIN_LOG_GPU, "new graphics %u frequency\n", graFreq);
 
+    /* all GPUs have common graphics frequencies */
+    if (commonGraFreq) {
+	int16_t first = PSCPU_first(set, setSize);
+	if (first == -1) {
+	    pluginflog("no GPU in set\n");
+	    return false;
+	}
+	uint32_t mapGraFreq = mapFreq(&gpus[first].gra, graFreq);
+	if (!mapGraFreq) {
+	    pluginflog("invalid GPU graphics frequency %u\n", graFreq);
+	    return false;
+	}
+
+	plugindbg(PLUGIN_LOG_GPU, "frequency %u mapped %u for all GPUs\n",
+		  graFreq, mapGraFreq);
+
+	return doSetFreq(set, mapGraFreq, CMD_SET_GRA_FREQ);
+    }
+
+    /* every GPU might have a different range */
     PSCPU_set_t setFreq;
     PSCPU_copy(setFreq, set);
 
-    /* no frequency range */
-    if (!(graFreq & GPU_FREQ_FLAG)) {
-	/* single frequency for all GPUs */
-	int16_t first = PSCPU_first(setFreq, setSize);
-	if (first == -1) {
-	    pluginflog("no GPU in set\n");
-	    return false;
-	}
-
-	/* map user given frequency to GPU supported frequency */
-	uint32_t mapGraFreq = mapValidFreq(&gpus[first].gra, graFreq);
-	if (!mapGraFreq) {
-	    pluginflog("invalid GPU graphics frequency %u\n", graFreq);
-	    return false;
-	}
-
-	plugindbg(PLUGIN_LOG_GPU, "single frequencies %u mapped %u "
-		  "for all GPUs\n", graFreq, mapGraFreq);
-	return doSetFreq(setFreq, mapGraFreq, CMD_SET_GRA_FREQ);
-    }
-
-    /* one frequency range for all GPUs */
-    if (commonGraFreq) {
-	int16_t first = PSCPU_first(setFreq, setSize);
-	if (first == -1) {
-	    pluginflog("no GPU in set\n");
-	    return false;
-	}
-	uint32_t mapGraFreq = mapFreqRange(&gpus[first].gra, graFreq);
-	if (!mapGraFreq) {
-	    pluginflog("invalid GPU graphics frequency %u\n", graFreq);
-	    return false;
-	}
-
-	plugindbg(PLUGIN_LOG_GPU, "frequency range %u mapped %u for all GPUs\n",
-		  graFreq, mapGraFreq);
-
-	return doSetFreq(setFreq, mapGraFreq, CMD_SET_GRA_FREQ);
-    }
-
-    /* every GPU might have a different frequency range */
     for (uint16_t i = 0; i < setSize; i++) {
 	if (!PSCPU_isSet(setFreq, i)) continue;
 	PSCPU_set_t nextSet;
 	PSCPU_clrAll(nextSet);
 	PSCPU_setCPU(nextSet, i);
-	uint32_t nextGraFreq = mapFreqRange(&gpus[i].gra, graFreq);
+	uint32_t nextGraFreq = mapFreq(&gpus[i].gra, graFreq);
 	if (!nextGraFreq) {
 	    pluginflog("invalid GPU frequency %u\n", graFreq);
 	    return false;
@@ -792,7 +780,7 @@ bool GPUfreq_setGraFreq(PSCPU_set_t set, uint16_t setSize, uint32_t graFreq)
 	/* find all GPUs with the same frequency */
 	for (uint16_t x = i + 1; x < setSize; x++) {
 	    if (!PSCPU_isSet(setFreq, x)) continue;
-	    if (nextGraFreq != mapFreqRange(&gpus[x].gra, graFreq)) continue;
+	    if (nextGraFreq != mapFreq(&gpus[x].gra, graFreq)) continue;
 	    PSCPU_setCPU(nextSet, x);
 	    PSCPU_clrCPU(setFreq, x);
 	}
@@ -814,38 +802,14 @@ bool GPUfreq_setMemFreq(PSCPU_set_t set, uint16_t setSize, uint32_t memFreq)
 
     pluginfdbg(PLUGIN_LOG_GPU, "new memory %u frequencies\n", memFreq);
 
-    PSCPU_set_t setFreq;
-    PSCPU_copy(setFreq, set);
-
-    /* no frequency range */
-    if (!(memFreq & GPU_FREQ_FLAG)) {
-	/* single frequency for all GPUs */
-	int16_t first = PSCPU_first(setFreq, setSize);
-	if (first == -1) {
-	    pluginflog("no GPU in set\n");
-	    return false;
-	}
-
-	/* map user given frequency to GPU supported frequency */
-	uint32_t mapMemFreq = mapValidFreq(&gpus[first].mem, memFreq);
-	if (!mapMemFreq) {
-	    pluginflog("invalid GPU memory frequency %u\n", memFreq);
-	    return false;
-	}
-
-	plugindbg(PLUGIN_LOG_GPU, "single frequencies %u mapped %u "
-		  "for all GPUs\n", memFreq, mapMemFreq);
-	return doSetFreq(setFreq, mapMemFreq, CMD_SET_MEM_FREQ);
-    }
-
-    /* one frequency range for all GPUs */
+    /* all GPUs have common memory frequencies */
     if (commonMemFreq) {
-	int16_t first = PSCPU_first(setFreq, setSize);
+	int16_t first = PSCPU_first(set, setSize);
 	if (first == -1) {
 	    pluginflog("no GPU in set\n");
 	    return false;
 	}
-	uint32_t mapMemFreq = mapFreqRange(&gpus[first].mem, memFreq);
+	uint32_t mapMemFreq = mapFreq(&gpus[first].mem, memFreq);
 	if (!mapMemFreq) {
 	    pluginflog("invalid GPU memory frequency %u\n", memFreq);
 	    return false;
@@ -853,16 +817,19 @@ bool GPUfreq_setMemFreq(PSCPU_set_t set, uint16_t setSize, uint32_t memFreq)
 	plugindbg(PLUGIN_LOG_GPU, "frequency range %u mapped %u for all GPUs\n",
 		  memFreq, mapMemFreq);
 
-	return doSetFreq(setFreq, mapMemFreq, CMD_SET_MEM_FREQ);
+	return doSetFreq(set, mapMemFreq, CMD_SET_MEM_FREQ);
     }
 
     /* every GPU might have a different frequency range */
+    PSCPU_set_t setFreq;
+    PSCPU_copy(setFreq, set);
+
     for (uint16_t i = 0; i < setSize; i++) {
 	if (!PSCPU_isSet(setFreq, i)) continue;
 	PSCPU_set_t nextSet;
 	PSCPU_clrAll(nextSet);
 	PSCPU_setCPU(nextSet, i);
-	uint32_t nextMemFreq = mapFreqRange(&gpus[i].mem, memFreq);
+	uint32_t nextMemFreq = mapFreq(&gpus[i].mem, memFreq);
 	if (!nextMemFreq) {
 	    pluginflog("invalid GPU frequency %u\n", memFreq);
 	    return false;
@@ -871,7 +838,7 @@ bool GPUfreq_setMemFreq(PSCPU_set_t set, uint16_t setSize, uint32_t memFreq)
 	/* find all GPUs with the same frequency */
 	for (uint16_t x = i + 1; x < setSize; x++) {
 	    if (!PSCPU_isSet(setFreq, x)) continue;
-	    if (nextMemFreq != mapFreqRange(&gpus[x].mem, memFreq)) continue;
+	    if (nextMemFreq != mapFreq(&gpus[x].mem, memFreq)) continue;
 	    PSCPU_setCPU(nextSet, x);
 	    PSCPU_clrCPU(setFreq, x);
 	}
