@@ -557,7 +557,8 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 	      sizeof(cpus[i].availFreq[0]), compareFreq);
     }
     /* test if all CPUs have the same available frequencies */
-    for (int c = 1; c < numCPUs; c++) {
+    equalAvailFreq = true;
+    for (int c = 1; c < numCPUs && equalAvailFreq; c++) {
 	if (cpus[c].numAvailFreq != cpus[0].numAvailFreq) {
 	    equalAvailFreq = false;
 	    break;

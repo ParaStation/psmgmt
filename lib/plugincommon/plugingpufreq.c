@@ -429,7 +429,7 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 
     /* test if all GPUs have the same available frequencies */
     commonGraFreq = true;
-    for (int c = 1; c < numGPUs; c++) {
+    for (int c = 1; c < numGPUs && commonGraFreq; c++) {
 	/* graphics frequencies */
 	if (gpus[c].gra.availFreqNum != gpus[0].gra.availFreqNum) {
 	    commonGraFreq = false;
@@ -444,7 +444,7 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
     }
 
     commonMemFreq = true;
-    for (int c = 1; c < numGPUs; c++) {
+    for (int c = 1; c < numGPUs && commonMemFreq; c++) {
 	/* memory frequencies */
 	if (gpus[c].mem.availFreqNum != gpus[0].mem.availFreqNum) {
 	    commonMemFreq = false;
