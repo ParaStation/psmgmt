@@ -756,8 +756,8 @@ bool GPUfreq_setGraFreq(PSCPU_set_t set, uint16_t setSize, uint32_t graFreq)
 	    return false;
 	}
 
-	plugindbg(PLUGIN_LOG_GPU, "frequency %u mapped %u for all GPUs\n",
-		  graFreq, mapGraFreq);
+	plugindbg(PLUGIN_LOG_GPU, "frequency %u mapped %u for GPUs %s\n",
+		  graFreq, mapGraFreq, PSCPU_print_part(set, setSize));
 
 	return doSetFreq(set, mapGraFreq, CMD_SET_GRA_FREQ);
     }
@@ -773,7 +773,7 @@ bool GPUfreq_setGraFreq(PSCPU_set_t set, uint16_t setSize, uint32_t graFreq)
 	PSCPU_setCPU(nextSet, i);
 	uint32_t nextGraFreq = mapFreq(&gpus[i].gra, graFreq);
 	if (!nextGraFreq) {
-	    pluginflog("invalid GPU frequency %u\n", graFreq);
+	    pluginflog("invalid frequency %u for GPU %i\n", graFreq, i);
 	    return false;
 	}
 
@@ -814,8 +814,8 @@ bool GPUfreq_setMemFreq(PSCPU_set_t set, uint16_t setSize, uint32_t memFreq)
 	    pluginflog("invalid GPU memory frequency %u\n", memFreq);
 	    return false;
 	}
-	plugindbg(PLUGIN_LOG_GPU, "frequency range %u mapped %u for all GPUs\n",
-		  memFreq, mapMemFreq);
+	plugindbg(PLUGIN_LOG_GPU, "frequency range %u mapped %u for GPUs %s\n",
+		  memFreq, mapMemFreq, PSCPU_print_part(set, setSize));
 
 	return doSetFreq(set, mapMemFreq, CMD_SET_MEM_FREQ);
     }
@@ -831,7 +831,7 @@ bool GPUfreq_setMemFreq(PSCPU_set_t set, uint16_t setSize, uint32_t memFreq)
 	PSCPU_setCPU(nextSet, i);
 	uint32_t nextMemFreq = mapFreq(&gpus[i].mem, memFreq);
 	if (!nextMemFreq) {
-	    pluginflog("invalid GPU frequency %u\n", memFreq);
+	    pluginflog("invalid frequency %u for GPU %i\n", memFreq, i);
 	    return false;
 	}
 
