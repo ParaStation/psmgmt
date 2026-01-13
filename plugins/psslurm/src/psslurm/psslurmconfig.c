@@ -338,6 +338,10 @@ const ConfDef_t confDef[] =
 	"path",
 	NULL,
 	"Optional path to CPU frequency script" },
+    { "GPU_FREQ_TERM_ON_ERROR", 1,
+	"bool",
+	"0",
+	"Terminate job/step if setting requested GPU frequency fails" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

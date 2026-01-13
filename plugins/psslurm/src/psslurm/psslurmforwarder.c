@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1335,7 +1335,15 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     setStepCPUfreq(step);
 
     /* set GPU frequency of allocated GPUs of step */
-    if (GPUfreq_isInitialized()) Freq_adjustStepGPUs(step);
+    if (GPUfreq_isInitialized() && !Freq_adjustStepGPUs(step)) {
+	char buf[512];
+	snprintf(buf, sizeof(buf), "Adjusting GPU frequency for step %s "
+		 "failed\n", Step_strID(step));
+	queueFwMsg(&step->fwMsgQueue, buf, strlen(buf), STDERR, 0);
+	if (getConfValueI(Config, "GPU_FREQ_TERM_ON_ERROR")) {
+	    step->termAfterFWmsg = ESLURM_INVALID_NODE_STATE;
+	}
+    }
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -1721,7 +1729,15 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 	       GRES_CRED_JOB, job->cred, job->localNodeId);
 
     /* set GPU frequency of allocated GPUs of job */
-    if (GPUfreq_isInitialized()) Freq_adjustJobGPUs(job);
+    if (GPUfreq_isInitialized() && !Freq_adjustJobGPUs(job)) {
+	char buf[512];
+	snprintf(buf, sizeof(buf), "Adjusting GPU frequency for job %u "
+		 "failed\n", job->jobid);
+	queueFwMsg(&job->fwMsgQueue, buf, strlen(buf), STDERR, 0);
+	if (getConfValueI(Config, "GPU_FREQ_TERM_ON_ERROR")) {
+	    job->termAfterFWmsg = ESLURM_INVALID_NODE_STATE;
+	}
+    }
 
     /* setup I/O channels solely to send an error message, so prevent
      * any execution of child tasks */
@@ -2011,7 +2027,15 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     setStepCPUfreq(step);
 
     /* set GPU frequency of allocated GPUs of step */
-    if (GPUfreq_isInitialized()) Freq_adjustStepGPUs(step);
+    if (GPUfreq_isInitialized() && !Freq_adjustStepGPUs(step)) {
+	char buf[512];
+	snprintf(buf, sizeof(buf), "Adjusting GPU frequency for step %s "
+		 "failed\n", Step_strID(step));
+	queueFwMsg(&step->fwMsgQueue, buf, strlen(buf), STDERR, 0);
+	if (getConfValueI(Config, "GPU_FREQ_TERM_ON_ERROR")) {
+	    step->termAfterFWmsg = ESLURM_INVALID_NODE_STATE;
+	}
+    }
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
