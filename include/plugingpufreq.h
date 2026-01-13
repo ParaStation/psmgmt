@@ -24,10 +24,10 @@ typedef enum {
     GPU_FREQ_SEC_HIGH = 0x80000004,
 } GPUfreq_range_t;
 
-/** list of supported frequency types */
+/** frequency types as set of flags */
 typedef enum {
-    GPU_FREQ_TYPE_GRA = 1,
-    GPU_FREQ_TYPE_MEM
+    GPU_FREQ_TYPE_GRA = 0x01,
+    GPU_FREQ_TYPE_MEM = 0x02
 } GPUfreq_type_t;
 
 /**
@@ -70,11 +70,11 @@ void GPUfreq_finalize(void);
  *
  * @param set Set of hardware threads to operate on
  *
- * @param freqType Frequency type to reset (graphics or memory)
+ * @param freqType Set of frequency type flags
  *
  * @return Returns true on success otherwise false is returned
  */
-bool GPUfreq_resetFreq(PSCPU_set_t set, int freqType);
+bool GPUfreq_resetFreq(PSCPU_set_t set, GPUfreq_type_t freqType);
 
 /**
  * @brief Set graphics frequency for selected GPUs

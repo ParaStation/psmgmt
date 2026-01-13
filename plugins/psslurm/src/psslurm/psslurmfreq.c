@@ -142,7 +142,7 @@ static bool setGpuFreq(PSCPU_set_t assGPUs, char *freqStr)
 /**
  * @brief Reset GPU frequencies for given GPUs
  *
- * Reset GPU frequencies to Slurm configured values or to
+ * Reset GPU frequencies to Slurm configured values or
  * let graphics driver set default.
  *
  * @param assGPUs Assigned GPUs to operate on
@@ -164,15 +164,7 @@ static bool doResetFreq(PSCPU_set_t *assGPUs)
 	}
     }
 
-    bool res = true;
-    if (!GPUfreq_resetFreq(*assGPUs, GPU_FREQ_TYPE_GRA)) {
-	res = false;
-    }
-    if (!GPUfreq_resetFreq(*assGPUs, GPU_FREQ_TYPE_MEM)) {
-	res = false;
-    }
-
-    return res;
+    return GPUfreq_resetFreq(*assGPUs, GPU_FREQ_TYPE_GRA | GPU_FREQ_TYPE_MEM);
 }
 
 /**

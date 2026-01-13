@@ -853,25 +853,8 @@ bool GPUfreq_setMemFreq(PSCPU_set_t set, uint16_t setSize, uint32_t memFreq)
     return true;
 }
 
-bool GPUfreq_resetFreq(PSCPU_set_t set, int freqType)
+bool doResetFreq(PSCPU_set_t set, GPUfreq_type_t freqType)
 {
-    pluginfdbg(PLUGIN_LOG_GPU, "on %s type %i\n",
-	       PSCPU_print_part(set, numGPUs), freqType);
-    if (!GPUfreq_isInitialized()) return false;
-
-    int cmd = -1;
-    switch (freqType) {
-	case GPU_FREQ_TYPE_GRA:
-	    cmd = CMD_RST_GRA_FREQ;
-	    break;
-	case GPU_FREQ_TYPE_MEM:
-	    cmd = CMD_RST_MEM_FREQ;
-	    break;
-	default:
-	    pluginflog("invalid frequency type %i\n", freqType);
-	    return false;
-    }
-
     strv_t argV = strvNew(NULL);
     if (!argV) {
 	pluginflog("strNew() failed\n");
@@ -882,24 +865,52 @@ bool GPUfreq_resetFreq(PSCPU_set_t set, int freqType)
     strvAdd(argV, "--gpus");
     strvAdd(argV, PSCPU_print_part(set, numGPUs));
 
+    Script_CMDs_t cmd = (freqType == GPU_FREQ_TYPE_GRA) ?
+			CMD_RST_GRA_FREQ : CMD_RST_MEM_FREQ;
     int ret = execGPUFreqScriptEx(cmd, argV);
     strvDestroy(argV);
 
     if (!ret) {
 	pluginflog("unable to reset GPUs %s type %i",
 		   PSCPU_print_part(set, numGPUs), freqType);
-    } else {
-	for (uint16_t i = 0; i < numGPUs; i++) {
-	    if (!PSCPU_isSet(set, i)) continue;
-	    if (freqType == GPU_FREQ_TYPE_GRA) {
-		plugindbg(PLUGIN_LOG_GPU, "reset gra GPU %i to freq %u\n", i,
-			  gpus[i].gra.defFreq);
-	    } else {
-		plugindbg(PLUGIN_LOG_GPU, "reset mem GPU %i to freq %u\n", i,
-			  gpus[i].mem.defFreq);
-	    }
+	return false;
+    }
+
+    for (uint16_t i = 0; i < numGPUs; i++) {
+	if (!PSCPU_isSet(set, i)) continue;
+	if (freqType == GPU_FREQ_TYPE_GRA) {
+	    plugindbg(PLUGIN_LOG_GPU, "reset gra GPU %i to freq %u\n", i,
+		      gpus[i].gra.defFreq);
+	} else {
+	    plugindbg(PLUGIN_LOG_GPU, "reset mem GPU %i to freq %u\n", i,
+		      gpus[i].mem.defFreq);
 	}
     }
 
     return true;
+}
+
+#define GPU_FREQ_TYPES (GPU_FREQ_TYPE_GRA | GPU_FREQ_TYPE_MEM)
+
+bool GPUfreq_resetFreq(PSCPU_set_t set, GPUfreq_type_t freqType)
+{
+    pluginfdbg(PLUGIN_LOG_GPU, "on %s type 0x%x\n",
+	       PSCPU_print_part(set, numGPUs), freqType);
+    if (!GPUfreq_isInitialized()) return false;
+
+    if ((freqType & ~GPU_FREQ_TYPES) || !(freqType & GPU_FREQ_TYPES)) {
+	pluginflog("invalid frequency type 0x%x\n", freqType);
+	return false;
+    }
+
+    int res = true;
+    if (freqType & GPU_FREQ_TYPE_GRA) {
+	if (!doResetFreq(set, GPU_FREQ_TYPE_GRA)) res = false;
+    }
+
+    if (freqType & GPU_FREQ_TYPE_MEM) {
+	if (!doResetFreq(set, GPU_FREQ_TYPE_MEM)) res = false;
+    }
+
+    return res;
 }
