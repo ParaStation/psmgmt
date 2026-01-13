@@ -116,7 +116,7 @@ bool GPUfreq_isInitialized(void)
 /**
  * @brief Cleanup on failure and return result via callback
  */
-static void retInitResult()
+static void retInitResult(void)
 {
     if (initFailure) GPUfreq_finalize();
     if (initCB) initCB(!initFailure);

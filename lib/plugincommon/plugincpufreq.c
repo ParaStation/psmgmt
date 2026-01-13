@@ -144,7 +144,7 @@ bool CPUfreq_isInitialized(void)
 /**
  * @brief Cleanup on failure and return result via callback
  */
-static void retInitResult()
+static void retInitResult(void)
 {
     if (initFailure) CPUfreq_finalize();
     if (initCB) initCB(!initFailure);
