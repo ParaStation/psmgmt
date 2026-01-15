@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -719,9 +719,9 @@ static void GPUfreqInitCB(bool result)
 	    } else {
 		PSCPU_set_t set;
 		PSCPU_setAll(set);
-		/* set default and current GPU frequencies */
-		GPUfreq_setGraFreq(set, PSCPU_MAX, graFreq);
-		GPUfreq_setMemFreq(set, PSCPU_MAX, memFreq);
+		/* set current GPU frequencies */
+		if (graFreq) GPUfreq_setGraFreq(set, PSCPU_MAX, graFreq);
+		if (memFreq) GPUfreq_setMemFreq(set, PSCPU_MAX, memFreq);
 	    }
 	}
     }

@@ -154,8 +154,20 @@ static bool doResetFreq(PSCPU_set_t *assGPUs)
 	    flog("invalid GpuFreqDef=%s in slurm.conf\n", freqDef);
 	} else {
 	    bool res = true;
-	    if (!GPUfreq_setGraFreq(*assGPUs, PSCPU_MAX, graFreq)) res = false;
-	    if (!GPUfreq_setMemFreq(*assGPUs, PSCPU_MAX, memFreq)) res = false;
+	    if (graFreq) {
+		if (!GPUfreq_setGraFreq(*assGPUs, PSCPU_MAX, graFreq)) {
+		    res = false;
+		}
+	    } else {
+		GPUfreq_resetFreq(*assGPUs, GPU_FREQ_TYPE_GRA);
+	    }
+	    if (memFreq) {
+		if (!GPUfreq_setMemFreq(*assGPUs, PSCPU_MAX, memFreq)) {
+		    res = false;
+		}
+	    } else {
+		GPUfreq_resetFreq(*assGPUs, GPU_FREQ_TYPE_MEM);
+	    }
 	    return res;
 	}
     }
