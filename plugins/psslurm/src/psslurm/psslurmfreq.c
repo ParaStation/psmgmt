@@ -53,53 +53,38 @@ static bool convFreqStr(char *freqStr, uint32_t *result)
 	return true;
     }
 
+    flog("invalid frequency string %s\n", freqStr);
     return false;
 }
 
 bool Freq_gpuStr2Freq(char *freqStr, uint32_t *graFreq, uint32_t *memFreq)
 {
-    char *toksave, *next;
-    const char delimiters[] =";";
-    bool ret = true;
     *graFreq = *memFreq = 0;
+    char *toksave;
+    const char delimiters[] =",";
 
     char *dup = ustrdup(freqStr);
-    if (!dup) return false;
-
-    next = strtok_r(dup, delimiters, &toksave);
+    bool res = true;
+    char *next = strtok_r(dup, delimiters, &toksave);
     while (next) {
-	/* skip non gpu entries */
-	if (strncmp(next, "gpu:", 4)) {
-	    next = strtok_r(NULL, delimiters, &toksave);
-	    continue;
+	if (!strncasecmp(next, "memory=", 7)) {
+	    if (!convFreqStr(next + 7, memFreq)) {
+		flog("failed to extract memory frequency\n");
+		res = false;
+		break;
+	    }
+	} else if (!strcasecmp(next, "verbose")) {
+	    /* TODO implement verbose option */
+	} else if (!convFreqStr(next, graFreq)) {
+		flog("failed to extract graphics frequency\n");
+		res = false;
+		break;
 	}
-
-	ret = false;
-	next += 4;
-	if (!*next) break;
-
-	char *sep = strchr(next, ',');
-	if (sep) {
-	    /* graphics frequency */
-	    *sep = '\0';
-	    if (!convFreqStr(next, graFreq)) break;
-
-	    /* memory frequency */
-	    sep++;
-	    if (strncmp(sep, "memory=", 7)) break;
-	    ret = convFreqStr(sep + 7, memFreq);
-	    break;
-	} else if (!strncmp(next, "memory=", 7)) {
-	    ret = convFreqStr(next + 7, memFreq);
-	    break;
-	}
-	ret = convFreqStr(next, graFreq);
-	break;
+	next = strtok_r(NULL, delimiters, &toksave);
     }
 
     ufree(dup);
-    if (!ret) flog("malformed GPU frequency string %s\n", freqStr);
-    return ret;
+    return res;
 }
 
 /**
@@ -115,11 +100,22 @@ static bool setGpuFreq(PSCPU_set_t assGPUs, char *freqStr)
 {
     if (!freqStr) return true;
 
+    char *gpuFreq = strstr(freqStr, "gpu:");
+    if (!gpuFreq) return true;
+
+    char *end = strchr(gpuFreq, ';');
+    if (end) end[0] = '\0';
+
+    char *dup = ustrdup(gpuFreq + 4);
+    if (end) end[0] = ';';
+
     uint32_t graFreq, memFreq;
-    if (!Freq_gpuStr2Freq(freqStr, &graFreq, &memFreq)) {
+    if (!Freq_gpuStr2Freq(dup, &graFreq, &memFreq)) {
 	flog("unable to parse GPU frequency string\n");
+	ufree(dup);
 	return false;
     }
+    ufree(dup);
 
     fdbg(PSSLURM_LOG_FREQ, "GPUs %s graphics %u memory %u\n",
 	 PSCPU_print_part(assGPUs, PSCPU_MAX), graFreq, memFreq);
