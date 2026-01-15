@@ -15,14 +15,14 @@
 
 #include <pscpu.h>
 
-/** list of supported GPU frequency ranges */
+/** list of supported GPU frequency labels */
 typedef enum {
     GPU_FREQ_FLAG     = 0x80000000,
     GPU_FREQ_LOW      = 0x80000001,
     GPU_FREQ_MEDIUM   = 0x80000002,
     GPU_FREQ_HIGH     = 0x80000003,
     GPU_FREQ_SEC_HIGH = 0x80000004,
-} GPUfreq_range_t;
+} GPUfreq_label_t;
 
 /** frequency types as set of flags */
 typedef enum {

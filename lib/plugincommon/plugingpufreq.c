@@ -608,32 +608,32 @@ void GPUfreq_finalize(void)
 }
 
 /**
- * @brief Map frequency range to an actual frequency
+ * @brief Map frequency label to an actual frequency
  *
- * A frequency range must have the GPU_FREQ_FLAG flag set so it can
- * be differentiated from a common GPU frequency. See @ref GPUfreq_range_t
- * for currently supported ranges. With this approach no knowledge about
- * the specific GPU capabilities is needed, since the range is mapped to
+ * A frequency label must have the GPU_FREQ_FLAG flag set so it can
+ * be differentiated from a common GPU frequency. See @ref GPUfreq_label_t
+ * for currently supported labels. With this approach no knowledge about
+ * the specific GPU capabilities is needed, since the label is mapped to
  * frequencies the underlying hardware supports.
  *
  * @param freq Frequency scaling definition
  *
- * @param range Frequency range to map
+ * @param label Frequency label to map
  *
  * @return Returns the mapped frequency on success otherwise
  * 0 is returned
  */
-static uint32_t mapFreqRange(Freq_Def_t *freq, uint32_t range)
+static uint32_t mapFreqLabel(Freq_Def_t *freq, uint32_t label)
 {
-    if (!(range & GPU_FREQ_FLAG)) {
-	pluginflog("error: no range but normal frequency given\n");
+    if (!(label & GPU_FREQ_FLAG)) {
+	pluginflog("error: no label but normal frequency given\n");
 	return 0;
     }
 
     /* calculate node dependent frequency */
     int numFreq = freq->availFreqNum;
 
-    switch (range) {
+    switch (label) {
 	case GPU_FREQ_LOW: /* lowest available frequency */
 	    pluginfdbg(PLUGIN_LOG_GPU, "low frequency\n");
 	    return freq->availFreq[0];
@@ -650,7 +650,7 @@ static uint32_t mapFreqRange(Freq_Def_t *freq, uint32_t range)
 	    pluginfdbg(PLUGIN_LOG_GPU, "high frequency\n");
 	    return freq->availFreq[numFreq-1];
 	default:
-	    pluginflog("unknown frequency range %u\n", range);
+	    pluginflog("unknown frequency label %u\n", label);
     }
 
     return 0;
@@ -686,7 +686,7 @@ static uint32_t mapValidFreq(Freq_Def_t *freq, uint32_t newFreq)
 static uint32_t mapFreq(Freq_Def_t *freq, uint32_t newFreq)
 {
     if (newFreq & GPU_FREQ_FLAG) {
-	return mapFreqRange(freq, newFreq);
+	return mapFreqLabel(freq, newFreq);
     } else {
 	return mapValidFreq(freq, newFreq);
     }
@@ -756,7 +756,7 @@ bool GPUfreq_setGraFreq(PSCPU_set_t set, uint16_t setSize, uint32_t graFreq)
 	    return false;
 	}
 
-	plugindbg(PLUGIN_LOG_GPU, "frequency %u mapped %u for GPUs %s\n",
+	plugindbg(PLUGIN_LOG_GPU, "given frequency %u mapped %u for GPUs %s\n",
 		  graFreq, mapGraFreq, PSCPU_print_part(set, setSize));
 
 	return doSetFreq(set, mapGraFreq, CMD_SET_GRA_FREQ);
@@ -814,7 +814,7 @@ bool GPUfreq_setMemFreq(PSCPU_set_t set, uint16_t setSize, uint32_t memFreq)
 	    pluginflog("invalid GPU memory frequency %u\n", memFreq);
 	    return false;
 	}
-	plugindbg(PLUGIN_LOG_GPU, "frequency range %u mapped %u for GPUs %s\n",
+	plugindbg(PLUGIN_LOG_GPU, "given frequency %u mapped %u for GPUs %s\n",
 		  memFreq, mapMemFreq, PSCPU_print_part(set, setSize));
 
 	return doSetFreq(set, mapMemFreq, CMD_SET_MEM_FREQ);
