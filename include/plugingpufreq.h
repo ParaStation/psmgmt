@@ -83,7 +83,8 @@ bool GPUfreq_resetFreq(PSCPU_set_t set, GPUfreq_type_t freqType);
  *
  * @param setSize Size of @a set
  *
- * @param graFreq New graphics frequency to set
+ * @param graFreq New graphics frequency to set; this might either be
+ * an actual frequency in MHz or a GPUfreq_label_t
  *
  * @return Returns true on success otherwise false is returned
  */
@@ -96,7 +97,8 @@ bool GPUfreq_setGraFreq(PSCPU_set_t set, uint16_t setSize, uint32_t graFreq);
  *
  * @param setSize Size of @a set
  *
- * @param memFreq New memory frequency to set
+ * @param memFreq New memory frequency to set; this might either be
+ * an actual frequency in MHz or a GPUfreq_label_t
  *
  * @return Returns true on success otherwise false is returned
  */

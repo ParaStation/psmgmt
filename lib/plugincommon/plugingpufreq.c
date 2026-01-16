@@ -623,7 +623,7 @@ void GPUfreq_finalize(void)
  * @return Returns the mapped frequency on success otherwise
  * 0 is returned
  */
-static uint32_t mapFreqLabel(Freq_Def_t *freq, uint32_t label)
+static uint32_t mapFreqLabel(Freq_Def_t *freq, GPUfreq_label_t label)
 {
     if (!(label & GPU_FREQ_FLAG)) {
 	pluginflog("error: no label but normal frequency given\n");
@@ -634,23 +634,21 @@ static uint32_t mapFreqLabel(Freq_Def_t *freq, uint32_t label)
     int numFreq = freq->availFreqNum;
 
     switch (label) {
-	case GPU_FREQ_LOW: /* lowest available frequency */
-	    pluginfdbg(PLUGIN_LOG_GPU, "low frequency\n");
-	    return freq->availFreq[0];
-	case GPU_FREQ_MEDIUM: /* middle of available range */
-	    pluginfdbg(PLUGIN_LOG_GPU, "medium frequency\n");
-	    return freq->availFreq[(numFreq - 1) / 2];
-	case GPU_FREQ_SEC_HIGH: /* second highest available frequency */
-	    pluginfdbg(PLUGIN_LOG_GPU, "second high frequency\n");
-	    if (numFreq > 1) {
-		return freq->availFreq[numFreq-2];
-	    }
-	    return freq->availFreq[numFreq-1];
-	case GPU_FREQ_HIGH: /* highest available frequency */
-	    pluginfdbg(PLUGIN_LOG_GPU, "high frequency\n");
-	    return freq->availFreq[numFreq-1];
-	default:
-	    pluginflog("unknown frequency label %u\n", label);
+    case GPU_FREQ_LOW: /* lowest available frequency */
+	pluginfdbg(PLUGIN_LOG_GPU, "low frequency\n");
+	return freq->availFreq[0];
+    case GPU_FREQ_MEDIUM: /* middle of available range */
+	pluginfdbg(PLUGIN_LOG_GPU, "medium frequency\n");
+	return freq->availFreq[(numFreq - 1) / 2];
+    case GPU_FREQ_SEC_HIGH: /* second highest available frequency */
+	pluginfdbg(PLUGIN_LOG_GPU, "second high frequency\n");
+	if (numFreq > 1) return freq->availFreq[numFreq-2];
+	return freq->availFreq[numFreq-1];
+    case GPU_FREQ_HIGH: /* highest available frequency */
+	pluginfdbg(PLUGIN_LOG_GPU, "high frequency\n");
+	return freq->availFreq[numFreq-1];
+    default:
+	pluginflog("unknown frequency label %u\n", label);
     }
 
     return 0;
