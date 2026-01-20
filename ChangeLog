@@ -1,3 +1,390 @@
+Version 6.6.0:
+==============
+------------------------------------------------------------------------
+f45adff80 | Stephan Krempel | Tue, 20 Jan 2026 17:01:30 +0100
+
+psslurm: Fix segfault (#345)
+------------------------------------------------------------------------
+618463f1d | Norbert Eicker | Fri, 16 Jan 2026 01:47:33 +0100
+
+Enhance docu comments and whitespace fixes
+------------------------------------------------------------------------
+521d40f6b | Michael Rauh | Thu, 15 Jan 2026 17:12:13 +0100
+
+Don't try to set GPU frequencies to 0 and ensure a reset on
+partially configured defaults
+------------------------------------------------------------------------
+b4377a672 | Michael Rauh | Thu, 15 Jan 2026 16:39:58 +0100
+
+Improve frequency string parsing
+------------------------------------------------------------------------
+734462123 | Michael Rauh | Thu, 15 Jan 2026 11:09:13 +0100
+
+Improve naming
+------------------------------------------------------------------------
+a12201c11 | Michael Rauh | Tue, 13 Jan 2026 14:54:53 +0100
+
+Let GPUfreq_resetFreq() accpect a bitmask to reset multiple frequency
+types at once
+------------------------------------------------------------------------
+e4d364231 | Michael Rauh | Tue, 13 Jan 2026 11:33:24 +0100
+
+Fix prototype definition
+------------------------------------------------------------------------
+bd82cd757 | Michael Rauh | Tue, 13 Jan 2026 11:15:25 +0100
+
+Improve error logging
+------------------------------------------------------------------------
+879848bd6 | Michael Rauh | Tue, 13 Jan 2026 10:41:42 +0100
+
+Added psslurm option GPU_FREQ_TERM_ON_ERROR
+
+ - allows to terminate a job/step if requested GPU frequencies could not
+   be set
+ - disabled at default
+------------------------------------------------------------------------
+2404dea6f | Michael Rauh | Mon, 12 Jan 2026 15:22:41 +0100
+
+Optimize loop termination
+------------------------------------------------------------------------
+4f595cd01 | Michael Rauh | Mon, 12 Jan 2026 14:57:46 +0100
+
+Ensure correct frequency mapping for heterogenous GPUs
+------------------------------------------------------------------------
+a4d38f3c0 | Michael Rauh | Mon, 12 Jan 2026 12:32:40 +0100
+
+Prevent possible segfault if initialization fails
+------------------------------------------------------------------------
+a31e65f6a | Michael Rauh | Mon, 12 Jan 2026 11:47:59 +0100
+
+Add debug environment variables
+
+ - __DISABLE_GPU_FREQ_HW_CHECK, __DISABLE_CPU_FREQ_HW_CHECK and
+   __DISABLE_GPU_PSSLURM_HW_CHEC
+ - allow to bypass hardware verification checks usefull for simulated
+   environments
+------------------------------------------------------------------------
+0ec61be1f | Michael Rauh | Wed, 7 Jan 2026 18:44:24 +0100
+
+Let return value of execGPUFreqScriptEx() acutally follow its
+documentation
+------------------------------------------------------------------------
+edb8a3392 | Norbert Eicker | Wed, 7 Jan 2026 10:11:26 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+fe7c8cb97 | Michael Rauh | Tue, 23 Dec 2025 16:52:16 +0100
+
+Move simulate_energy_sensor.py to testplugins rpm
+------------------------------------------------------------------------
+c7b63ad32 | Michael Rauh | Tue, 23 Dec 2025 16:09:22 +0100
+
+Move simulate_nvidia-smi.py to testplugins rpm
+------------------------------------------------------------------------
+2f192fb1f | Norbert Eicker | Thu, 18 Dec 2025 13:27:15 +0100
+
+Enhance docu comments
+------------------------------------------------------------------------
+2283f49a6 | Norbert Eicker | Thu, 18 Dec 2025 12:50:55 +0100
+
+Ensure new script are included in tar via make dist
+------------------------------------------------------------------------
+cebb35111 | Michael Rauh | Mon, 15 Dec 2025 13:48:55 +0100
+
+Ensure gpufreq facility and psid detected the same GPUs
+------------------------------------------------------------------------
+3677d6173 | Michael Rauh | Tue, 18 Nov 2025 21:32:09 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+b951cd9be | Michael Rauh | Tue, 18 Nov 2025 21:31:34 +0100
+
+Add nvidia-smi simulate script
+------------------------------------------------------------------------
+66469d2c4 | Michael Rauh | Fri, 24 Oct 2025 16:11:50 +0200
+
+Make path to GPU frequency script changeable
+------------------------------------------------------------------------
+8eb4e173e | Michael Rauh | Tue, 12 Aug 2025 14:50:29 +0200
+
+Let psslurm set GPU frequency at startup
+------------------------------------------------------------------------
+8ee940f78 | Michael Rauh | Thu, 7 Aug 2025 21:43:33 +0200
+
+Let psslurm forwarder adjust GPU frequencies
+------------------------------------------------------------------------
+faae61e69 | Michael Rauh | Thu, 7 Aug 2025 17:32:34 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+d24859b98 | Michael Rauh | Thu, 7 Aug 2025 17:31:33 +0200
+
+Add psslurm frequency facility
+------------------------------------------------------------------------
+c5ad3e544 | Michael Rauh | Tue, 12 Aug 2025 14:34:49 +0200
+
+Make getJobNodeId() public
+------------------------------------------------------------------------
+f9252e2fb | Michael Rauh | Fri, 1 Aug 2025 12:37:04 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+b0fdb4ad9 | Michael Rauh | Fri, 1 Aug 2025 12:35:41 +0200
+
+Add GPU frequency facility
+------------------------------------------------------------------------
+0ae307c36 | Michael Rauh | Fri, 1 Aug 2025 12:34:23 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+80241dbb6 | Michael Rauh | Fri, 1 Aug 2025 12:33:18 +0200
+
+Add gpu frequency script
+------------------------------------------------------------------------
+7f24bc7f3 | Norbert Eicker | Sun, 11 Jan 2026 15:24:30 +0100
+
+Whitespace fixes within comments
+------------------------------------------------------------------------
+7e2de4be9 | Stephan Krempel | Thu, 8 Jan 2026 20:25:48 +0100
+
+psslurm: Add error checking to getMinimumIndex()
+------------------------------------------------------------------------
+79fa5d804 | Stephan Krempel | Thu, 8 Jan 2026 19:50:49 +0100
+
+psslurmenv: Enhance and unify comma separated list generation
+------------------------------------------------------------------------
+571f0df1b | Norbert Eicker | Wed, 7 Jan 2026 23:57:19 +0100
+
+Fix indentation
+------------------------------------------------------------------------
+12db95f51 | Stephan Krempel | Wed, 17 Dec 2025 06:18:56 +0100
+
+psslurm: Fix comma in PSCPU to strbuf convertings
+------------------------------------------------------------------------
+ebbc0badb | Stephan Krempel | Wed, 17 Dec 2025 06:18:27 +0100
+
+psslurm: Fix print format identifier
+------------------------------------------------------------------------
+c6bf7a810 | Stephan Krempel | Wed, 17 Dec 2025 05:35:37 +0100
+
+psslurm: Print safeguard error in case of Slurm bug
+------------------------------------------------------------------------
+d9bfde67c | Stephan Krempel | Wed, 17 Dec 2025 04:54:08 +0100
+
+psslurm: Simplify default handling for gpus_per_task
+------------------------------------------------------------------------
+4a67c51d4 | Stephan Krempel | Wed, 17 Dec 2025 04:53:26 +0100
+
+psslurm: Remove meaningless comment
+------------------------------------------------------------------------
+cca8e56c7 | Stephan Krempel | Wed, 17 Dec 2025 04:27:04 +0100
+
+psslurm: Streamlining
+------------------------------------------------------------------------
+a8f4e800b | Stephan Krempel | Wed, 17 Dec 2025 03:45:43 +0100
+
+psslurm: Put default rank GPU pinning to separate function
+------------------------------------------------------------------------
+5751a0e14 | Stephan Krempel | Wed, 17 Dec 2025 03:13:20 +0100
+
+psslurm: Fix return values
+------------------------------------------------------------------------
+5dff843cb | Stephan Krempel | Tue, 16 Dec 2025 15:22:35 +0100
+
+Pinning: Rename variable to more generic one
+------------------------------------------------------------------------
+e3788c149 | Norbert Eicker | Mon, 15 Dec 2025 19:33:29 +0100
+
+Fix minor typos in docu comments
+------------------------------------------------------------------------
+47ba20b09 | Stephan Krempel | Mon, 8 Dec 2025 16:41:45 +0100
+
+Streamlining
+------------------------------------------------------------------------
+a40a7f1f8 | Stephan Krempel | Mon, 8 Dec 2025 16:36:53 +0100
+
+psslurm: Move todo
+------------------------------------------------------------------------
+f74411fc3 | Stephan Krempel | Wed, 3 Dec 2025 17:30:47 +0100
+
+psslurm: Move to assign GPUs to tasks round robin
+
+Now assign first one GPU to each tasks, then a second
+one and so on, until gpus-per-task is reached.
+------------------------------------------------------------------------
+55edaeb61 | Stephan Krempel | Wed, 18 Jun 2025 12:51:48 +0200
+
+psslurm: Implement gpus-per-task > 1
+------------------------------------------------------------------------
+f7bd6bbac | Stephan Krempel | Tue, 17 Jun 2025 13:29:29 +0200
+
+psslurm: Allow multiple GPUs per rank
+------------------------------------------------------------------------
+c91acc106 | Stephan Krempel | Tue, 17 Jun 2025 13:27:36 +0200
+
+Set informational variables even in skip case
+
+Set PSID_CLOSE_GPUS/NICS and PSID_LOCAL_GPUS/NICS even
+if actuall pinning is skipped by __PSID_SKIP_PIN_GPUS/NICS
+------------------------------------------------------------------------
+7b583835d | Michael Rauh | Wed, 7 Jan 2026 18:36:02 +0100
+
+Ensure callback function pointer is valid
+------------------------------------------------------------------------
+6db8ae8e1 | Michael Rauh | Wed, 7 Jan 2026 18:28:25 +0100
+
+Remove superfluous forward declaration
+------------------------------------------------------------------------
+904c163eb | Michael Rauh | Wed, 7 Jan 2026 18:27:32 +0100
+
+Output bitmap in hex
+------------------------------------------------------------------------
+ee0d001fa | Michael Rauh | Fri, 24 Oct 2025 15:51:16 +0200
+
+Add psslurm configuration option CPU_FREQ_SCRIPT
+
+ - allows to change path to CPU frequency script
+------------------------------------------------------------------------
+b7aacbcd0 | Michael Rauh | Fri, 24 Oct 2025 14:20:29 +0200
+
+Make path to CPU frequency script changeable
+------------------------------------------------------------------------
+c597fb5f5 | Michael Rauh | Fri, 24 Oct 2025 13:54:40 +0200
+
+Remove double exception IOError which is already caught by OSError
+------------------------------------------------------------------------
+771d402f4 | Michael Rauh | Fri, 24 Oct 2025 13:53:42 +0200
+
+Add copyright header and documentation
+------------------------------------------------------------------------
+88223ad11 | Norbert Eicker | Wed, 7 Jan 2026 10:16:48 +0100
+
+Fix typo preventing to find utilizing function
+------------------------------------------------------------------------
+7ad4510a7 | Stephan Krempel | Mon, 15 Dec 2025 13:04:46 +0100
+
+psslurm: Check number of detected GPUs (#317)
+------------------------------------------------------------------------
+d65e26d93 | Stephan Krempel | Mon, 15 Dec 2025 13:04:06 +0100
+
+psslurm: Add comment and debugging output
+------------------------------------------------------------------------
+531c48f3a | Norbert Eicker | Mon, 24 Nov 2025 14:32:54 +0100
+
+exit psid from fakenode plugin if reinitNodeInfo() fails (#338)
+------------------------------------------------------------------------
+5536d458d | Norbert Eicker | Mon, 24 Nov 2025 14:32:12 +0100
+
+More use of pluginflog()
+------------------------------------------------------------------------
+a0e1e7617 | Norbert Eicker | Tue, 18 Nov 2025 17:46:05 +0100
+
+Ensure of psid modules are initialized properly
+------------------------------------------------------------------------
+33d7288f7 | Norbert Eicker | Tue, 18 Nov 2025 17:44:23 +0100
+
+Unify initialization behavior of psid modules
+------------------------------------------------------------------------
+85f732071 | Norbert Eicker | Tue, 18 Nov 2025 17:23:40 +0100
+
+Avoid exit() in PSID_registerMsg/Dropper()
+------------------------------------------------------------------------
+919f25290 | Norbert Eicker | Tue, 18 Nov 2025 16:04:48 +0100
+
+Rework PSIDhw_reInit() to return and not exit()
+------------------------------------------------------------------------
+c3e2155c9 | Norbert Eicker | Tue, 18 Nov 2025 14:40:58 +0100
+
+Minor streamlining
+------------------------------------------------------------------------
+53c972ec6 | Norbert Eicker | Tue, 18 Nov 2025 14:35:27 +0100
+
+Booleanize PSID_[un]registerLoopAct()
+
+ - This unifies the behavior with PSID_registerMsg(), etc.
+------------------------------------------------------------------------
+6051ddd53 | Norbert Eicker | Tue, 18 Nov 2025 14:14:31 +0100
+
+Unify initialization of libpscommon modules
+
+ - each function returns a boolean to flag success
+------------------------------------------------------------------------
+7d1060a34 | Michael Rauh | Mon, 3 Nov 2025 16:09:52 +0100
+
+Reset simulated energy sensor data if energy facility gets restarted
+------------------------------------------------------------------------
+81bca35a9 | Michael Rauh | Mon, 3 Nov 2025 16:02:00 +0100
+
+Set PSACCOUNT_RERUN in psaccount monitor script environment
+
+ - let monitor script determine how often they got restarted
+------------------------------------------------------------------------
+2ff4775fb | Michael Rauh | Mon, 3 Nov 2025 15:09:59 +0100
+
+Add script to simulate a psaccount energy sensor
+
+ - saves state to simulate energy use
+ - changes power consumption depending on node job occupation
+------------------------------------------------------------------------
+acd5e3abb | Norbert Eicker | Wed, 19 Nov 2025 13:59:57 +0100
+
+Merge branch '6.5' again
+------------------------------------------------------------------------
+458a1fc3d | Stephan Krempel | Wed, 19 Nov 2025 10:48:59 +0100
+
+pspmix: Revert accidental change
+------------------------------------------------------------------------
+820db2f97 | Stephan Krempel | Wed, 19 Nov 2025 10:46:41 +0100
+
+pspmix: Move, fix and comment printInfoArray()
+------------------------------------------------------------------------
+0735dab04 | Norbert Eicker | Tue, 18 Nov 2025 22:34:46 +0100
+
+pspmix: Yet another use-case for printInfoArray()
+------------------------------------------------------------------------
+c3c5d5fd6 | Stephan Krempel | Tue, 18 Nov 2025 11:25:30 +0100
+
+pspmix: More using of printInfoArray()
+------------------------------------------------------------------------
+1c9339d6f | Stephan Krempel | Tue, 18 Nov 2025 11:24:33 +0100
+
+pspmix: Print reported error events to syslog
+------------------------------------------------------------------------
+366351824 | Stephan Krempel | Tue, 18 Nov 2025 11:23:31 +0100
+
+pspmix: Call callback in error handler
+
+This is strictly required by the standard
+------------------------------------------------------------------------
+3745c1309 | Stephan Krempel | Tue, 18 Nov 2025 10:38:05 +0100
+
+pspmix: Register error handler in blocking fashion
+------------------------------------------------------------------------
+83e1fc9c7 | Stephan Krempel | Tue, 18 Nov 2025 10:22:55 +0100
+
+pspmix: make errHandlerID internal
+------------------------------------------------------------------------
+61d58d6c7 | Stephan Krempel | Thu, 24 Jul 2025 10:47:33 +0200
+
+pspmix: Pass error handler reference to deregistration
+------------------------------------------------------------------------
+005c0ab35 | Norbert Eicker | Wed, 15 Oct 2025 12:37:48 +0200
+
+Fix corner case in build system
+
+ - Let `make NODIRTY=1 rpm` create an RPM without 'dirty' in the name in
+   the case of building a tagged version with changes
+------------------------------------------------------------------------
+615b860c1 | Norbert Eicker | Mon, 17 Nov 2025 12:12:01 +0100
+
+Merge branch '6.5'
+------------------------------------------------------------------------
+0819d4358 | Norbert Eicker | Wed, 22 Oct 2025 16:06:39 +0200
+
+Refine the description of pelogue snippets (#335)
+------------------------------------------------------------------------
+
+
 Version 6.5.3:
 ==============
 ------------------------------------------------------------------------

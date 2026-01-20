@@ -6,6 +6,32 @@ Copyright (C) 2021-2025 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.6.0:
+==============
+Bugfixes:
+ - psslurm: Fix segfault (#345)
+ - pspmix: Pass error handler reference to deregistration (#331)
+ - psslurm: Fix comma in PSCPU to strbuf conversion
+Enhancements:
+ - psslurm: Check number of detected GPUs (#317)
+ - Refine the description of pelogue snippets (#335)
+ - exit psid from fakenode plugin if reinitNodeInfo() fails (#338)
+ - Add support for Slurm --gpu-freq option
+ - psslurm: Implement gpus-per-task > 1
+ - psslurm: Allow multiple GPUs per rank
+ - Add psslurm option GPU_FREQ_TERM_ON_ERROR
+ - Let psslurm set GPU frequency at startup
+ - Set PSID_CLOSE_GPUS/NICS and PSID_LOCAL_GPUS/NICS even without pinning
+ - Add psslurm configuration option CPU_FREQ_SCRIPT
+ - Ensure of psid modules are initialized properly
+Additional changes:
+ - Add debug environment variables __DISABLE_GPU_FREQ_HW_CHECK,
+   __DISABLE_CPU_FREQ_HW_CHECK and __DISABLE_GPU_PSSLURM_HW_CHECK
+ - simulate_energy_sensor.py and simulate_nvidia-smi.py now in testplugins rpm
+ - Fix corner case in build system while `make NODIRTY=1 rpm`
+ - Set PSACCOUNT_RERUN in psaccount monitor script counting number of restarts
+
+
 Version 6.5.3:
 ==============
 Bugfixes:
