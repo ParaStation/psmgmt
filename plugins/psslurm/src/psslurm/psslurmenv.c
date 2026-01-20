@@ -929,6 +929,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
     uint32_t stepNId = step->localNodeId;
     uint32_t ltnum = step->globalTaskIdsLen[stepNId];
     char *bindgpus;
+    bool freebindgpus = false;
 
     /* if there is only one local rank, bind all assigned GPUs to it */
     if (ltnum == 1) {
@@ -937,13 +938,14 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	char *value = getenv("SLURM_STEP_GPUS");
 	bindgpus = value ? value : "";
     } else {
-	/* get assigned GPUs from GRES info */
+	/* get GPUs assigned to this step from GRES info */
 	PSCPU_set_t assGPUs;
 	if (!hexBitstr2Set(gres->bitAlloc[jobNodeId], assGPUs)) {
 	    flog("failed to get assigned GPUs from bitstring\n");
 	    return;
 	}
 
+	/* create comma separated list of GPUs for this rank */
 	PSCPU_set_t rankGPUs;
 	if (!getRankGpuPinning(localRankId, step, stepNId, assGPUs,
 			       &rankGPUs)) {
@@ -961,12 +963,12 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	}
 
 	bindgpus = strbufSteal(buf);
+	freebindgpus = true;
     }
 
     /* always set our own variable */
     setenv("PSSLURM_BIND_GPUS", bindgpus, 1);
 
-    char *gpulibVar;
     char *c = getConfValueC(SlurmCgroupConfig, "ConstrainDevices");
     if (c && !strcasecmp(c, "yes")) {
 	/* cgroups enabled, only SLURM_STEP_GPUS are visible, adjust IDs as
@@ -982,10 +984,9 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    snprintf(tmpbuf, sizeof(tmpbuf), "%s%zd", gpu ? "," : "", gpu);
 	    strbufAdd(cgroupsList, tmpbuf);
 	}
-	gpulibVar = strbufSteal(cgroupsList);
-	free(bindgpus);
-    } else {
-	gpulibVar = bindgpus;
+	if (freebindgpus) free(bindgpus);
+	bindgpus = strbufSteal(cgroupsList);
+	freebindgpus = true;
     }
 
     for (size_t i = 0; PSIDpin_GPUvars[i]; i++) {
@@ -993,11 +994,10 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	if (!gpuVar || PSIDpin_checkAutoVar(PSIDpin_GPUvars[i], gpuVar, NULL)) {
 	    /* variable not set at all or set automatically and
 	     * unchanged in the meantime => set it */
-	    setenv(PSIDpin_GPUvars[i], gpulibVar, 1);
+	    setenv(PSIDpin_GPUvars[i], bindgpus, 1);
 	}
     }
-
-    free(gpulibVar);
+    if (freebindgpus) free(bindgpus);
 }
 
 static void setGresEnv(uint32_t localRankId, Step_t *step)
