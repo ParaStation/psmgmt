@@ -21,9 +21,9 @@
 
 #include "psaccounttypes.h"
 
+#include "psslurmaccount.h"
 #include "psslurmjobcred.h"
 #include "psslurmmsg.h"
-#include "psslurmaccount.h"
 
 /** Holding information for RPC REQUEST_TERMINATE_JOB */
 typedef struct {
@@ -86,8 +86,8 @@ typedef struct {
     uint32_t config;		/**< configuration hash or NO_VAL */
     uint32_t cpuload;		/**< current CPU load */
     uint64_t freemem;		/**< current free memory */
-    uint32_t infoCount;	        /**< count of following job infos */
-    Head_ID_t *infos;   /**< info about known job and steps */
+    uint32_t infoCount;         /**< count of following job infos */
+    Head_ID_t *infos;           /**< info about known job and steps */
     int protoVersion;		/**< protocol version */
     char verStr[64];		/**< version string */
     psAccountEnergy_t eData;	/**< energy accounting data */
@@ -167,7 +167,7 @@ typedef struct {
 typedef struct {
     Head_ID_t hID;	    /**< Step head identifier */
     uint8_t  indefSus;	    /**< indefinitely suspended (switch plugin)
-			         (removed in 23.11) */
+				 (removed in 23.11) */
     uint16_t jobCoreSpec;   /**< number of specialized cores (removed in 23.11) */
     uint16_t op;	    /**< operation (suspend or resume) */
 } Req_Suspend_Int_t;
@@ -218,7 +218,7 @@ typedef struct {
 
 /** Holding all information for RPC REQUEST_REATTACH_TASKS */
 typedef struct {
-    Head_ID_t hID;		/**< Step head identifier */
+    Head_ID_t hID;	    /**< Step head identifier */
     uint16_t numCtlPorts;   /**< number of control ports */
     uint16_t *ctlPorts;	    /**< control ports */
     uint16_t numIOports;    /**< number of I/O ports */
