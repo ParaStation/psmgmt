@@ -3864,8 +3864,6 @@ bool __packRespDaemonStatus(PS_SendDB_t *data, Resp_Daemon_Status_t *stat,
 bool __packRespLaunchTasks(PS_SendDB_t *data, Resp_Launch_Tasks_t *ltasks,
 			   const char *caller, const int line)
 {
-    uint32_t i;
-
     if (!data) {
 	flog("invalid data pointer from '%s' at %i\n", caller, line);
 	return false;
@@ -3886,12 +3884,12 @@ bool __packRespLaunchTasks(PS_SendDB_t *data, Resp_Launch_Tasks_t *ltasks,
     addUint32ToMsg(ltasks->countPIDs, data);
     /* local pids */
     addUint32ToMsg(ltasks->countLocalPIDs, data);
-    for (i=0; i<ltasks->countLocalPIDs; i++) {
+    for (uint32_t i = 0; i < ltasks->countLocalPIDs; i++) {
 	addUint32ToMsg(ltasks->localPIDs[i], data);
     }
     /* global task IDs */
     addUint32ToMsg(ltasks->countGlobalTIDs, data);
-    for (i=0; i<ltasks->countGlobalTIDs; i++) {
+    for (uint32_t i = 0; i < ltasks->countGlobalTIDs; i++) {
 	addUint32ToMsg(ltasks->globalTIDs[i], data);
     }
 
