@@ -519,9 +519,7 @@ static int getAppendFlags(uint8_t appendMode)
  * %u     User name
  * %x     Job name
  *
- * @param jobid Unique job identifier
- *
- * @param stepid Unique step identifier
+ * @param Unique Slurm identifier
  *
  * @param nodeid Job local node ID
  *
@@ -538,8 +536,8 @@ static int getAppendFlags(uint8_t appendMode)
  * @param Returns a string holding the result or NULL on error. The caller
  * is responsible to free the allocated memory after use.
 */
-static char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
-			    int nodeid, char *username, uint32_t arrayJobId,
+static char *replaceSymbols(Head_ID_t *hID, char *hostname, int nodeid,
+			    char *username, uint32_t arrayJobId,
 			    uint32_t arrayTaskId, int rank, char *path,
 			    char *jobname)
 {
@@ -583,15 +581,19 @@ static char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 	    break;
 	case 'J':
 	    snprintf(symLen2, sizeof(symLen2), "%s.%s", symLen, symLen);
-	    snprintf(tmp, sizeof(tmp), symLen2, jobid, stepid);
+	    snprintf(tmp, sizeof(tmp), symLen2, hID->jobid, hID->stepid);
 	    strbufAdd(buf, tmp);
 	    break;
 	case 'j':
-	    snprintf(tmp, sizeof(tmp), symLen, jobid);
+	    snprintf(tmp, sizeof(tmp), symLen, hID->jobid);
+	    strbufAdd(buf, tmp);
+	    break;
+	case 'S':
+	    snprintf(tmp, sizeof(tmp), symLen, hID->sluid);
 	    strbufAdd(buf, tmp);
 	    break;
 	case 's':
-	    snprintf(tmp, sizeof(tmp), symLen, stepid);
+	    snprintf(tmp, sizeof(tmp), symLen, hID->stepid);
 	    strbufAdd(buf, tmp);
 	    break;
 	case 'N':
@@ -640,18 +642,17 @@ char *IO_replaceStepSymbols(Step_t *step, int rank, char *path)
 
     char *jobname = envGet(step->env, "SLURM_JOB_NAME");
 
-    return replaceSymbols(step->hID.jobid, step->hID.stepid, hostname,
-			  step->localNodeId, step->username, arrayJobId,
-			  arrayTaskId, rank, path, jobname);
+    return replaceSymbols(&step->hID, hostname, step->localNodeId,
+			  step->username, arrayJobId, arrayTaskId, rank,
+			  path, jobname);
 }
 
 char *IO_replaceJobSymbols(Job_t *job, char *path)
 {
     char *jobname = envGet(job->env, "SLURM_JOB_NAME");
 
-    return replaceSymbols(job->hID.jobid, SLURM_BATCH_SCRIPT, job->hostname,
-			  0, job->username, job->arrayJobId, job->arrayTaskId,
-			  0, path, jobname);
+    return replaceSymbols(&job->hID, job->hostname, 0, job->username,
+			  job->arrayJobId, job->arrayTaskId, 0, path, jobname);
 }
 
 static char *addCwd(char *cwd, char *path)
