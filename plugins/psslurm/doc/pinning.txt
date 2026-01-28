@@ -75,11 +75,6 @@ CPU_BIND_NONE
 The process is pinned to all cores.
 
 
-CPU_BIND_TO_BOARDS
-
-We do not support this. The process is pinned to all cores.
-
-
 CPU_BIND_MAP
 CPU_BIND_MASK
 CPU_BIND_LDMAP

@@ -1269,13 +1269,6 @@ static bool setCPUset(PSCPU_set_t CPUset, uint16_t cpuBindType,
 	return true;
     }
 
-    if (cpuBindType & CPU_BIND_TO_BOARDS) {
-	/* removed in Slurm 22.05 */
-	pinToAllThreads(CPUset, nodeinfo);
-	fdbg(PSSLURM_LOG_PART, "(cpu_bind_boards)\n");
-	return true;
-    }
-
     if (cpuBindType & CPU_BIND_MAP && pininfo->threadsPerTask > 1) {
 	ulog(pininfo, "incompatible options: cpu-bind type map_cpu cannot be"
 	     " used with cpus-per-task > 1, aborting step\n");
@@ -1343,9 +1336,9 @@ static bool setCPUset(PSCPU_set_t CPUset, uint16_t cpuBindType,
 static void setCpuBindType(uint16_t *cpuBindType)
 {
     uint16_t anyType = CPU_BIND_TO_THREADS | CPU_BIND_TO_CORES
-	    | CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS | CPU_BIND_TO_BOARDS
-	    | CPU_BIND_NONE | CPU_BIND_RANK | CPU_BIND_MAP | CPU_BIND_MASK
-	    | CPU_BIND_LDRANK | CPU_BIND_LDMAP | CPU_BIND_LDMASK;
+	    | CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS | CPU_BIND_NONE
+	    | CPU_BIND_RANK | CPU_BIND_MAP | CPU_BIND_MASK | CPU_BIND_LDRANK
+	    | CPU_BIND_LDMAP | CPU_BIND_LDMASK;
 
     if (*cpuBindType & anyType) {
 	/* cpu-bind option used by the user */
@@ -2397,8 +2390,6 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task)
 
 	if (step->cpuBindType & CPU_BIND_NONE) {
 	    bind_type = "NONE";
-	} else if (step->cpuBindType & CPU_BIND_TO_BOARDS) {
-	    bind_type = "BOARDS";
 	} else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
 	    bind_type = "SOCKETS";
 	} else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
@@ -2705,8 +2696,6 @@ char *genCPUbindTypeString(uint16_t cpuBindType)
 
     if (cpuBindType & CPU_BIND_NONE) {
 	string = "none";
-    } else if (cpuBindType & CPU_BIND_TO_BOARDS) {
-	string = "boards";
     } else if (cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS)) {
 	string = "sockets";
     } else if (cpuBindType & (CPU_BIND_TO_CORES)) {

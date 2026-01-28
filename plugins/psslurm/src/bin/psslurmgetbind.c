@@ -123,7 +123,6 @@ static unsigned int atoui(char* in) {
  * CPU_BIND_MASK                - pin according to cpuBindString
  * CPU_BIND_LDMAP               - pin according to cpuBindString
  * CPU_BIND_LDMASK              - pin according to cpuBindString
- * CPU_BIND_TO_BOARDS           - not really supported
  * CPU_BIND_TO_SOCKETS          - pin to whole sockets
  * CPU_BIND_TO_LDOMS            - pin to whole sockets
  * CPU_BIND_TO_CORES            - pin to whole cores
@@ -152,8 +151,6 @@ static bool readCpuBindType(char *ptr, uint16_t *cpuBindType,
     } else if (!strncmp(ptr, "mask_ldom:", 10)) {
 	*cpuBindType = CPU_BIND_LDMASK;
 	*cpuBindString = strdup(ptr+10);
-    } else if (!strcmp(ptr, "boards")) {
-	*cpuBindType = CPU_BIND_TO_BOARDS;
     } else if (!strcmp(ptr, "sockets")) {
 	*cpuBindType = CPU_BIND_TO_SOCKETS;
     } else if (!strcmp(ptr, "ldoms")) {
@@ -185,8 +182,6 @@ static const char* cpuBindTypeStr(uint16_t cpuBindType)
 	    return "map_ldom";
 	case CPU_BIND_LDMASK:
 	    return "mask_ldom";
-	case CPU_BIND_TO_BOARDS:
-	    return "boards";
 	case CPU_BIND_TO_SOCKETS:
 	    return "sockets";
 	case CPU_BIND_TO_LDOMS:

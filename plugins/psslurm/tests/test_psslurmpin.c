@@ -23,7 +23,6 @@ Config_t Config = LIST_HEAD_INIT(Config);
  * bitmask cpuBindType:
  * CPU_BIND_ONE_THREAD_PER_CORE - use only one hardware thread per core
  * CPU_BIND_NONE                - no pinning / pin to all threads
- * CPU_BIND_TO_BOARDS           - not really supported
  * CPU_BIND_MAP                 - pin according to cpuBindString
  * CPU_BIND_MASK                - pin according to cpuBindString
  * CPU_BIND_LDMAP               - pin according to cpuBindString
@@ -71,7 +70,6 @@ int pinning(int argc, char *argv[])
     else if (strcmp(argv[7], "mask") == 0) cpuBindType = CPU_BIND_MASK;
     else if (strcmp(argv[7], "ldmap") == 0) cpuBindType = CPU_BIND_LDMAP;
     else if (strcmp(argv[7], "ldmask") == 0) cpuBindType = CPU_BIND_LDMASK;
-    else if (strcmp(argv[7], "boards") == 0) cpuBindType = CPU_BIND_TO_BOARDS;
     else if (strcmp(argv[7], "sockets") == 0) cpuBindType = CPU_BIND_TO_SOCKETS;
     else if (strcmp(argv[7], "ldoms") == 0) cpuBindType = CPU_BIND_TO_LDOMS;
     else if (strcmp(argv[7], "cores") == 0) cpuBindType = CPU_BIND_TO_CORES;

@@ -56,11 +56,11 @@ static size_t fillWithSrun(SpawnRequest_t *req, PStask_t *task)
        actually this removes our default rank binding from the spawned
        processes which is needed, since slurm does none cpu binding by
        default and inherits that to the spawned processes */
-    if (!(step->cpuBindType & ( CPU_BIND_NONE | CPU_BIND_TO_BOARDS
-				| CPU_BIND_MAP | CPU_BIND_MASK | CPU_BIND_LDMAP
-				| CPU_BIND_LDMASK | CPU_BIND_TO_SOCKETS
-				| CPU_BIND_TO_LDOMS | CPU_BIND_LDRANK
-				| CPU_BIND_RANK | CPU_BIND_TO_THREADS ))) {
+    if (!(step->cpuBindType & ( CPU_BIND_NONE | CPU_BIND_MAP | CPU_BIND_MASK
+				| CPU_BIND_LDMAP | CPU_BIND_LDMASK
+				| CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS
+				| CPU_BIND_LDRANK | CPU_BIND_RANK
+				| CPU_BIND_TO_THREADS ))) {
 	strvAdd(argV, "--cpu-bind=none");
     }
 
