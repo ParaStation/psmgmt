@@ -981,14 +981,14 @@ static void handleJobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     Job_t *job = Job_add();
     job->state = JOB_QUEUED;
-    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,
-	 Alloc_strState(job->state));
     job->mother = msg->header.sender;
 
+    Head_ID_t hID;
     if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	unpackSlurmID(data, &job->hID,slurmProto);
+	unpackSlurmID(data, &hID,slurmProto);
     } else {
-	getUint32(data, &job->hID.jobid);
+	memset(&hID, 0, sizeof(hID));
+	getUint32(data, &hID.jobid);
     }
 
     Job_t *dup = Job_findById(hID.jobid);

@@ -3188,6 +3188,10 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return false;
     }
 
+    /* remove duplicates */
+    Job_t *dup = Job_findById(job->cred->hID.jobid);
+    if (dup) Job_destroy(dup);
+
     if (msgVer > SLURM_23_02_PROTO_VERSION) {
 	/* set uid, gid and username from credential */
 	job->uid = job->cred->uid;
