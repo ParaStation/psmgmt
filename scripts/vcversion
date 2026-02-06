@@ -141,7 +141,7 @@ case "$arg_vc" in
 	    # Append the branchname, if not exactly on a tag and branch != master
 	    branch="$(git symbolic-ref HEAD 2>/dev/null)"
 	    branch="${branch/*\/}"
-	    if [ -n "$branch" -a "$branch" != "master" ]; then
+	    if [ -n "$branch" -a "$branch" != "master" -a "$branch" != "main"]; then
 		version="$version-$branch"
 	    fi
 	fi
