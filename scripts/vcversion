@@ -139,9 +139,9 @@ case "$arg_vc" in
 	version="${version#*\/}" # Remove prefix e.g. "sf/"
 	if ! git describe --tags --exact-match --always --match "?*-?*" >/dev/null 2>&1; then
 	    # Append the branchname, if not exactly on a tag and branch != master
-	    branch="$(git symbolic-ref HEAD)"
+	    branch="$(git symbolic-ref HEAD 2>/dev/null)"
 	    branch="${branch/*\/}"
-	    if [ "$branch" != "master" ]; then
+	    if [ -n "$branch" -a "$branch" != "master" ]; then
 		version="$version-$branch"
 	    fi
 	fi
