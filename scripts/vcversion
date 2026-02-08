@@ -2,14 +2,12 @@
 #
 # ParaStation
 #
-# Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+# Copyright 2010-2021, ParTec Cluster CCC GmbH, Munich
+# Copyright 2021-2026, ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
-#
-# Author:	Jens Hauke <hauke@par-tec.com>
-# 		Thomas Moschny <moschny@par-tec.com>
 #
 
 function error() {
@@ -34,12 +32,8 @@ Get a version string from the last tag of the version control.
 
   git: last "git tag" matching the pattern ?*-?*
 
-  svn: Expect to be in a "trunk/${PKG_NAME}" folder and searching for a tag created by:
-       svn copy \${SVN_ROOT}/tags/\${PKG_NAME}/\${PKG_NAME}-\${VERSION} \${SVN_ROOT}/tags/\${PKG_NAME}/latest
-
   --file              force usage of VERSION file
   --git               force usage of git
-  --svn               force usage of svn
   --parentdir         force usage of parent dir name
 
   -r|--prjroot dir    project root (default ".")
@@ -61,26 +55,6 @@ EOF
     exit 0
 }
 
-IFS='' read -r -d '' svn_xslt <<'EOF'
-<?xml version="1.0"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:exslt="http://exslt.org/common" version="1.0" extension-element-prefixes="exslt">
-  <xsl:output omit-xml-declaration="yes" indent="no"/>
-  <xsl:template match="/">
-    <xsl:call-template name="value-of-template">
-      <xsl:with-param name="select" select="/log/logentry/paths/path/@copyfrom-path"/>
-    </xsl:call-template>
-  </xsl:template>
-  <xsl:template name="value-of-template">
-    <xsl:param name="select"/>
-    <xsl:value-of select="$select"/>
-    <xsl:for-each select="exslt:node-set($select)[position()&gt;1]">
-      <xsl:value-of select="'&#10;'"/>
-      <xsl:value-of select="."/>
-    </xsl:for-each>
-  </xsl:template>
-</xsl:stylesheet>
-EOF
-
 arg_prjroot="."
 arg_fmt="all"
 arg_newline=""
@@ -91,7 +65,6 @@ function parse_arg() {
 	case "$1" in
 	    --file)		arg_vc="file";;
 	    --git)		arg_vc="git";;
-	    --svn)		arg_vc="svn";;
 	    --parentdir)	arg_vc="parentdir";;
 	    -r|--prjroot)	arg_prjroot="$2";shift;;
 	    --fmt)		arg_fmt="$2";shift;;
@@ -116,8 +89,6 @@ if [ -z "$arg_vc" ]; then
 	arg_vc="file"
     elif [ -e ".git" ]; then
 	arg_vc="git"
-    elif [ -d ".svn" ]; then
-	arg_vc="svn"
     else
 	arg_vc="parentdir_try"
     fi
@@ -146,62 +117,6 @@ case "$arg_vc" in
 	    fi
 	fi
 	;;
-    svn)
-	vecho "Tag from svn"
-
-	url="$({ LC_ALL=C svn info || echo "URL: ERROR"; } | grep "^URL:" | { read a b; echo $b; })"
-	[ "$url" = "ERROR" ] && error "svn info : failed"
-
-	project="${url#*/trunk/}"	# remove up to trunk
-
-	if [ "$project" != "$url" ]; then
-	    # In "trunk"
-	    tmp="${project}"
-	    project="${project%%/*}"	# remove everything after project name
-
-	    # Find the project root directory needed by svnversion
-	    root="."
-	    while [ "$tmp" != "${tmp%/*}" ]; do
-		tmp="${tmp%/*}"
-		root="$root/.."
-	    done
-	    root="$(cd $root && pwd)"
-	    vecho "root:    $root"
-
-	    tagurl="${url%%/trunk/*}/tags/$project/latest"
-	else
-	    # Not in "trunk". Try tags:
-	    project="${url#*/tags/}"	# remove up to tags
-
-	    if [ "$project" = "$url" ]; then
-		error 'Not a "trunk" or a "tags" svn working copy '"(\"$url\")"
-	    fi
-
-	    tagged=1
-	    project="${project%%/*}"	# remove everything after project name
-	    tagurl="${url%%/tags/*}/tags/$project/latest"
-	fi
-
-	vecho "url:     $url"
-	vecho "tag url: $tagurl"
-
-	tmpfile=$(mktemp) || error "cannot create tmpfile"
-	echo "$svn_xslt" > "$tmpfile"
-	copyfrom=$(LC_ALL=C svn log --verbose --limit 1 --xml "$tagurl" | xsltproc "$tmpfile" -)
-	rm "$tmpfile"
-
-	prefix="/tags/$project/$project-"
-	version="${copyfrom#$prefix}"
-
-	# Assert: prefix ok?
-	if [ "$version" = "${copyfrom}" ]; then
-	    error "Unexpected tag format: \"${copyfrom}\" (expect \"$prefix*\")"
-	fi
-
-	if [ -z "$tagged" ]; then
-	    version="$version-r$(LC_ALL=C svnversion -n $root | tr -c [:alnum:] "_")"
-	fi
-	;;
     parentdir|parentdir_try)
 	vecho "Tag from parent dir name"
 	version="$PWD"
@@ -213,11 +128,11 @@ case "$arg_vc" in
 	version="${version#[a-zA-Z]*-}" # remove optional package name
 	case "${version//[^.-]}-${arg_vc}" in # version need a '.' or '-' inside to be a version.
 	    -parentdir) error "Can not guess a version string from the parent dir name." ;;
-	    -parentdir_try) error "No .git, .svn or VERSION found and can not guess a version string from the parent dir name." ;;
+	    -parentdir_try) error "No .git or VERSION found and can not guess a version string from the parent dir name." ;;
 	esac
        	;;
     *)
-	error "No .git, .svn or VERSION found"
+	error "No .git or VERSION found"
 	;;
 esac
 
