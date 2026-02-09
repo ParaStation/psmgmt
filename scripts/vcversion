@@ -17,18 +17,18 @@ function error() {
 
 
 function vecho() {
-    [ -n "$arg_verbose" ] && echo "$*" >&2
+    [[ -n "${arg_verbose}" ]] && echo "$*" >&2
 }
 
 
 function usage(){
     cat <<EOF
 Usage:
-  $BASH_SOURCE [OPTION]...
+  ${BASH_SOURCE[0]} [OPTION]...
 
 Get a version string from the last tag of the version control.
 
-  file: use file $prjroot/VERSION with content "\${PKG_NAME}-\${VERSION}"
+  file: use file \$prjroot/VERSION with content "\${PKG_NAME}-\${VERSION}"
 
   git: last "git tag" matching the pattern ?*-?*
 
@@ -61,7 +61,7 @@ arg_newline=""
 arg_dirty="--dirty=_dirty"
 
 function parse_arg() {
-    while [ $# -gt 0 ]; do
+    while [[ $# -gt 0 ]]; do
 	case "$1" in
 	    --file)		arg_vc="file";;
 	    --git)		arg_vc="git";;
@@ -82,12 +82,12 @@ function parse_arg() {
 
 parse_arg "$@"
 
-cd "$arg_prjroot"
+cd "${arg_prjroot}" || error "'${arg_prjroot}' no such directory. Abort!"
 
-if [ -z "$arg_vc" ]; then
-    if [ -e "VERSION" ]; then
+if [[ -z "${arg_vc}" ]]; then
+    if [[ -e "VERSION" ]]; then
 	arg_vc="file"
-    elif [ -e ".git" ]; then
+    elif [[ -e ".git" ]]; then
 	arg_vc="git"
     else
 	arg_vc="parentdir_try"
@@ -95,7 +95,7 @@ if [ -z "$arg_vc" ]; then
 fi
 
 
-case "$arg_vc" in
+case "${arg_vc}" in
     file)
 	vecho "Tag from VERSION"
 	version="$(cat VERSION)"
@@ -104,23 +104,22 @@ case "$arg_vc" in
     git)
 	vecho "Tag from git"
 	# retry git-describe without --dirty on error. (pre git-1.6.6 has no --dirty)
-	version="$(git describe --tags $arg_dirty --always --match "?*-?*" 2>/dev/null ||\
+	version="$(git describe --tags ${arg_dirty:+"${arg_dirty}"} --always --match "?*-?*" 2>/dev/null ||\
 		   git describe --tags --always --match "?*-?*")"
-	version_prefix="${version/\/*}"
 	version="${version#*\/}" # Remove prefix e.g. "sf/"
 	if ! git describe --tags --exact-match --always --match "?*-?*" >/dev/null 2>&1; then
 	    # Append the branchname, if not exactly on a tag and branch != master
 	    branch="$(git symbolic-ref HEAD 2>/dev/null)"
 	    branch="${branch/*\/}"
-	    if [ -n "$branch" -a "$branch" != "master" -a "$branch" != "main"]; then
-		version="$version-$branch"
+	    if [[ -n "${branch}" && "${branch}" != "master" && "${branch}" != "main" ]]; then
+		version="${version}-${branch}"
 	    fi
 	fi
 	;;
     parentdir|parentdir_try)
 	vecho "Tag from parent dir name"
-	version="$PWD"
-	if [ -z "$version" ]; then
+	version="${PWD}"
+	if [[ -z "${version}" ]]; then
 	    version="$(pwd)"
 	fi
 	version="${version%/}"
@@ -129,6 +128,7 @@ case "$arg_vc" in
 	case "${version//[^.-]}-${arg_vc}" in # version need a '.' or '-' inside to be a version.
 	    -parentdir) error "Can not guess a version string from the parent dir name." ;;
 	    -parentdir_try) error "No .git or VERSION found and can not guess a version string from the parent dir name." ;;
+	    *) ;; # version string found, continue
 	esac
        	;;
     *)
@@ -138,7 +138,7 @@ esac
 
 release="${version#*-}"
 # If there is no "-" inside version use the default release name "0"
-if [ "$release" == "$version" ]; then release="0"; fi
+if [[ "${release}" == "${version}" ]]; then release="0"; fi
 
 version="${version%%-*}"
 
@@ -148,16 +148,16 @@ version="${version//[^.a-zA-Z0-9]/_}"
 # use only rpm release allowed chars. Replace all others by "_".
 release="${release//[^a-zA-Z0-9]/_}"
 
-case "$arg_fmt" in
-    version)	echo $arg_newline "$version";;
-    release)	echo $arg_newline "$release";;
+case "${arg_fmt}" in
+    version)	echo ${arg_newline:+"${arg_newline}"} "${version}";;
+    release)	echo ${arg_newline:+"${arg_newline}"} "${release}";;
     none)	;;
-    *)		echo $arg_newline "$version-$release";;
+    *)		echo ${arg_newline:+"${arg_newline}"} "${version}-${release}";;
 esac
 
-if [ "$arg_isrelease" != "1" ];then
+if [[ "${arg_isrelease}" != "1" ]]; then
     :
 else
     regexp='^([0-9]+\.){1,2}[0-9]+-[0-9]+(rc[0-9]+)?$' # see FAQ E14
-    [[ "$version-$release" =~ $regexp ]]
+    [[ "${version}-${release}" =~ ${regexp} ]]
 fi
