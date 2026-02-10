@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -898,7 +898,7 @@ static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     rdbg(PSPMIX_LOG_CALL, "msg %p data %p\n", msg, data);
 
-    PMIX_PROC_CONSTRUCT(&myproc);
+    PMIx_Proc_construct(&myproc);
     getString(data, myproc.nspace, sizeof(myproc.nspace));
     getUint32(data, &myproc.rank);
 
@@ -930,7 +930,7 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     rdbg(PSPMIX_LOG_CALL, "msg %p data %p\n", msg, data);
 
     pmix_proc_t proc;
-    PMIX_PROC_CONSTRUCT(&proc);
+    PMIx_Proc_construct(&proc);
     getString(data, proc.nspace, sizeof(proc.nspace));
     getUint32(data, &proc.rank);
 
@@ -947,8 +947,8 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
     /* send response */
     sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES, &proc);
-    PMIX_PROC_DESTRUCT(&proc);
-    PMIX_PROC_DESTRUCT(&myproc);
+    PMIx_Proc_destruct(&proc);
+    PMIx_Proc_destruct(&myproc);
 }
 
 /* Macro to put info key value pair from msg into environment */
@@ -1438,14 +1438,14 @@ static int hookExecClientUser(void *data)
      * see https://github.com/openpmix/openpmix/issues/2707
      * @todo subject to change when dropping support for PMIx < 4.2.1 */
     pmix_proc_t proc;
-    PMIX_PROC_CONSTRUCT(&proc);
+    PMIx_Proc_construct(&proc);
     pmix_status_t status = PMIx_Init(&proc, NULL, 0);
     if (status != PMIX_SUCCESS) {
 	rlog("PMIx_Init() failed: %s\n", PMIx_Error_string(status));
-	PMIX_PROC_DESTRUCT(&proc);
+	PMIx_Proc_destruct(&proc);
 	return -1;
     }
-    PMIX_PROC_DESTRUCT(&proc);
+    PMIx_Proc_destruct(&proc);
     return 0;
 }
 

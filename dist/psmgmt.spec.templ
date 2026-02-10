@@ -54,7 +54,7 @@ BuildRequires:	libnuma-devel
 BuildRequires:	numactl-devel
 %endif
 BuildRequires:	hwloc-devel
-BuildRequires:  pmix-devel
+BuildRequires:  pmix-devel >= 4.2.3
 %if !0%{?disable_systemd}
 BuildRequires:  systemd
 Requires(post): systemd

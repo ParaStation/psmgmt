@@ -207,7 +207,7 @@ static void cleanupLogCall(PspmixLogCall_t call)
 	ufree(req->str);
 	ufree(req);
     }
-    PMIX_PROC_DESTRUCT(&call->caller);
+    PMIx_Proc_destruct(&call->caller);
     ufree(call);
 }
 
@@ -223,7 +223,7 @@ static PspmixNamespace_t* findNamespace(const char *nsname)
     list_t *n;
     list_for_each(n, &namespaceList) {
 	PspmixNamespace_t *ns = list_entry(n, PspmixNamespace_t, next);
-	if (PMIX_CHECK_NSPACE(ns->name, nsname)) return ns;
+	if (PMIx_Check_nspace(ns->name, nsname)) return ns;
     }
     return NULL;
 }
@@ -484,7 +484,7 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
 	flog("invalid __PMIX_SPAWN_PARENT_RANK: '%s'\n", rank);
 	return false;
     }
-    PMIX_PROC_LOAD(&ns->parent, nspace, res);
+    PMIx_Proc_load(&ns->parent, nspace, res);
 
     char *opts = envGet(env, "__PMIX_SPAWN_OPTS");
     if (!opts) {
@@ -871,7 +871,7 @@ bool pspmix_service_terminateClients(const char *nsName, bool remote)
     list_t *c, *tmp;
     list_for_each_safe(c, tmp, &logCallList) {
 	PspmixLogCall_t call = list_entry(c, struct PspmixLogCall, next);
-	if (PMIX_CHECK_NSPACE(call->caller.nspace, nsName)) {
+	if (PMIx_Check_nspace(call->caller.nspace, nsName)) {
 	    pspmix_server_operationFinished(PMIX_ERR_JOB_ABORTED, call->cb);
 	    list_del(&call->next);
 	    cleanupLogCall(call);
@@ -1403,7 +1403,7 @@ static uint64_t getFenceID(const pmix_proc_t procs[], size_t nprocs)
     uint64_t fenceid = UINT64_C(42023);
     const pmix_nspace_t *ns = NULL;
     for (size_t p = 0; p < nprocs; p++) {
-	if (!ns || PMIX_CHECK_NSPACE(*ns, procs[p].nspace)) {
+	if (!ns || PMIx_Check_nspace(*ns, procs[p].nspace)) {
 	    ns = &(procs[p].nspace);
 	    for (int i = 0; i < PMIX_MAX_NSLEN && (*ns)[i]; i++) {
 		fenceid =  UINT64_C(23011) * fenceid + (uint64_t)(*ns)[i];
@@ -1738,7 +1738,7 @@ static bool extractNodes(const pmix_proc_t procs[], size_t nprocs,
 
     PspmixNamespace_t *ns = NULL;
     for (size_t p = 0; p < nprocs; p++) {
-	if (!ns || !PMIX_CHECK_NSPACE(procs[p].nspace, ns->name)) {
+	if (!ns || !PMIx_Check_nspace(procs[p].nspace, ns->name)) {
 	    ns = findNamespace(procs[p].nspace);
 	    if (!ns) {
 		flog("UNEXPECTED: unknown namespaces '%s'\n", procs[p].nspace);
@@ -1952,8 +1952,8 @@ bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
 
     mdata->requester = senderTID;
 
-    PMIX_PROC_CONSTRUCT(&mdata->proc);
-    PMIX_PROC_LOAD(&mdata->proc, nspace, rank);
+    PMIx_Proc_construct(&mdata->proc);
+    PMIx_Proc_load(&mdata->proc, nspace, rank);
 
     mdata->reqKeys = reqKeys;
     mdata->timeout = timeout;
@@ -1962,7 +1962,7 @@ bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
     if (!pspmix_server_requestModexData(mdata)) {
 	flog("pspmix_server_requestModexData() failed for %s\n",
 	     pmixProcStr(&mdata->proc));
-	PMIX_PROC_DESTRUCT(&mdata->proc);
+	PMIx_Proc_destruct(&mdata->proc);
 	ufree(mdata);
 	return false;
     }
@@ -1988,7 +1988,7 @@ void pspmix_service_sendModexDataResponse(pmix_status_t status,
 				      mdata->proc.nspace, mdata->proc.rank,
 				      mdata->data, mdata->ndata);
 
-    PMIX_PROC_DESTRUCT(&mdata->proc);
+    PMIx_Proc_destruct(&mdata->proc);
     strvDestroy(mdata->reqKeys);
     ufree(mdata);
 }
@@ -2007,7 +2007,7 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status,
     list_for_each(s, &modexRequestList) {
 	modexdata_t *cur = list_entry(s, modexdata_t, next);
 	if (cur->proc.rank == rank
-	    && PMIX_CHECK_NSPACE(cur->proc.nspace, nspace)) {
+	    && PMIx_Check_nspace(cur->proc.nspace, nspace)) {
 	    mdata = cur;
 	    list_del(&cur->next);
 	    break;
@@ -2058,7 +2058,7 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
     PspmixSpawn_t *spawn = ucalloc(sizeof(*spawn));
 
     spawn->id = ++spawnID;  /* first ID is 1, 0 means no ID */
-    PMIX_PROC_LOAD(&spawn->caller, caller->nspace, caller->rank);
+    PMIx_Proc_load(&spawn->caller, caller->nspace, caller->rank);
     spawn->napps = napps;
     spawn->apps = apps;
     spawn->state = SPAWN_INITIALIZED;
@@ -2394,7 +2394,7 @@ PspmixLogCall_t pspmix_service_newLogCall(const pmix_proc_t *caller)
     call->time = 0;
     call->numAdd = 0;
     call->numFin = 0;
-    PMIX_PROC_LOAD(&call->caller, caller->nspace, caller->rank);
+    PMIx_Proc_load(&call->caller, caller->nspace, caller->rank);
     call->cb = NULL;
     return call;
 }

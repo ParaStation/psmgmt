@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021-2025 ParTec AG, Munich
+# Copyright (C) 2021-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -139,7 +139,7 @@ AM_CONDITIONAL([BUILD_WITHOUT_PSPMIX], [test "x$enable_pspmix" = xno])
 AM_COND_IF([BUILD_WITHOUT_PSPMIX], [
   AC_MSG_NOTICE([Not building pspmix plugin])
 ], [
-  PKG_CHECK_MODULES([pmix], [pmix >= 3.1.3])
+  PKG_CHECK_MODULES([pmix], [pmix >= 4.2.3])
 ])
 
 AX_CHECK_COMPILE_FLAG([-O3],
