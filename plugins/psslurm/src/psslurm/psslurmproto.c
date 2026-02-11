@@ -1762,6 +1762,11 @@ void sendJobRequeue(Head_ID_t *hID)
 
 void sendPrologComplete(Head_ID_t *hID, uint32_t rc)
 {
+    if (!hID) {
+	flog("invalid head ID\n");
+	return;
+    }
+
     Req_Prolog_Comp_t data = { .rc = rc, .hID = *hID };
 
     Req_Info_t *req = ucalloc(sizeof(*req));
@@ -1835,7 +1840,7 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
     if (!nodeinfo) {
 	flog("could not extract nodeinfo from credentials for alloc %u\n",
 	     alloc->hID.jobid);
-	sendPrologComplete(&req->cred->hID, SLURM_ERROR);
+	sendPrologComplete(&alloc->cred->hID, SLURM_ERROR);
 	return SLURM_SUCCESS;
     }
     PSCPU_copy(alloc->hwthreads, nodeinfo->jobHWthreads);
@@ -1856,7 +1861,7 @@ static int handleLaunchProlog(Slurm_Msg_t *sMsg)
      * itself.
      */
     /* let the slurmctld know the prologue has finished */
-    sendPrologComplete(&req->cred->hID, SLURM_SUCCESS);
+    sendPrologComplete(&alloc->cred->hID, SLURM_SUCCESS);
     return SLURM_SUCCESS;
 }
 
