@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -317,12 +317,14 @@ static void setupCommonEnv(Conf_t *conf, env_t pmEnv)
 	setPSIEnv("PMI_KVS_TMP", getenv("PMI_KVS_TMP"));
 
 	/* setup process mapping needed for MVAPICH */
-	char *mapping = getProcessMap(conf->np);
-	if (mapping) {
-	    setPSIEnv("__PMI_PROCESS_MAPPING", mapping);
-	    free(mapping);
-	} else {
-	    fprintf(stderr, "failed building MVAPICH process mapping\n");
+	if (getenv("PSSTARTUP_ENABLE_MVAPICH_SUPPORT")) {
+	    char *mapping = getProcessMap(conf->np);
+	    if (mapping) {
+		setPSIEnv("__PMI_PROCESS_MAPPING", mapping);
+		free(mapping);
+	    } else {
+		fprintf(stderr, "failed building MVAPICH process mapping\n");
+	    }
 	}
 
 	/* MPI processes should use PMI version 1 as long as we don't have
