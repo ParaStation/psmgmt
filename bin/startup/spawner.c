@@ -486,7 +486,8 @@ static char **setupRankEnv(int psRank, void *info)
 	exit(1);
     }
 
-    if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
+    if ((conf->pmiTCP || conf->pmiSock || conf->PMIx)
+	&& getenv("PSSTARTUP_ENABLE_PSM_SUPPORT")) {
 	/* set additional process placement information for PSM */
 	static char locRank[32], locNum[32];
 	snprintf(locRank, sizeof(locRank), "MPI_LOCALRANKID=%i",
