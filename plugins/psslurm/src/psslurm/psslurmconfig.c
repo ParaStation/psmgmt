@@ -300,7 +300,7 @@ const ConfDef_t confDef[] =
 	"Execute Slurm health-check on psslurm startup" },
     { "DENIED_USERS", 0,
 	"list",
-	"root, nobody",
+	"root, nobody, slurm, munge",
 	"Users listed won't be able to execute jobs/steps" },
     { "SSTAT_USERS", 0,
 	"list",
