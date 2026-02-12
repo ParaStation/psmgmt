@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -91,7 +91,7 @@ typedef struct {
 
 /** Setting up callback function object */
 #define INIT_CBFUNC(o, f, d) do {  \
-    if (!f) { (o) = NULL; break; } \
+    if (!(f)) { (o) = NULL; break; } \
     (o) = ucalloc(sizeof(*o));     \
     (o)->cbfunc = (f);             \
     (o)->cbdata = (d);             \
@@ -100,7 +100,7 @@ typedef struct {
 
 /** Lock callback function object */
 #define LOCK_CBFUNC_OR_RETURN(o, r) do {                           \
-    if (!o) break;                                                 \
+    if (!(o)) break;                                                 \
     int err;                                                       \
     while((err = pthread_mutex_lock(&(o)->lock))) {                \
 	if (err == EAGAIN) {                                       \
@@ -114,7 +114,7 @@ typedef struct {
 
 /** Unlock callback function object */
 #define UNLOCK_CBFUNC_OR_RETURN(o, r) do {                            \
-    if (!o) break;                                                    \
+    if (!(o)) break;                                                    \
     int err;                                                          \
     while((err = pthread_mutex_unlock(&(o)->lock))) {                 \
 	if (err == EAGAIN) {                                          \
@@ -128,7 +128,7 @@ typedef struct {
 
 /** Setting up data for callback routines */
 #define DESTROY_CBFUNC(d) do {           \
-    if (!d) break;                       \
+    if (!(d)) break;                       \
     pthread_mutex_destroy(&(d)->lock);   \
     ufree(d);                            \
 } while (0)
