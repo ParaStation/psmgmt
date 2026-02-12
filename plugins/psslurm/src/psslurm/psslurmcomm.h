@@ -111,7 +111,7 @@ PSnodes_ID_t getCtlHostID(int index);
  * @return Returns true if a slurmctld with give IP is found
  * otherwise false is returned
  */
-bool isControllerIP(uint32_t ip);
+bool isControllerIP(in_addr_t ip);
 
 /**
  * @brief Close connection

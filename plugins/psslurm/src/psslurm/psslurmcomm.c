@@ -1944,10 +1944,10 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
     }
 }
 
-bool isControllerIP(uint32_t ip)
+bool isControllerIP(in_addr_t ip)
 {
     for (int i = 0; i < ctlHostsCount; i++) {
-	uint32_t ctlIP = PSIDnodes_getAddr(ctlHosts[i].id);
+	in_addr_t ctlIP = PSIDnodes_getAddr(ctlHosts[i].id);
 	if (ctlIP != INADDR_ANY && ctlIP == ip) return true;
     }
     return false;
