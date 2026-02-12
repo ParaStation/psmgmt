@@ -171,6 +171,17 @@ static bool checkPrivMsg(Slurm_Msg_t *sMsg)
 	     msgType2String(sMsg->head.type));
 	return false;
     }
+
+    if (!isControllerIP(sMsg->head.addr.ip)) {
+	char addr[INET_ADDRSTRLEN];
+	if (!inet_ntop(AF_INET, &sMsg->head.addr.ip, addr, sizeof(addr))) {
+	    flog("cannot convert IP address\n");
+	    snprintf(addr, sizeof(addr), "unknown");
+	}
+	flog("privileged message %s from unknown slurmcltd %s:%u\n",
+	     msgType2String(sMsg->head.type), addr, sMsg->head.addr.port);
+	return false;
+    }
     return true;
 }
 

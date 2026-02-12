@@ -32,6 +32,7 @@
 #include "psprotocol.h"
 #include "psstrbuf.h"
 #include "selector.h"
+#include "psidnodes.h"
 
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
@@ -1941,6 +1942,15 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
 	    break;
 	}
     }
+}
+
+bool isControllerIP(uint32_t ip)
+{
+    for (int i = 0; i < ctlHostsCount; i++) {
+	uint32_t ctlIP = PSIDnodes_getAddr(ctlHosts[i].id);
+	if (ctlIP != INADDR_ANY && ctlIP == ip) return true;
+    }
+    return false;
 }
 
 /**
