@@ -150,10 +150,10 @@ static LIST_HEAD(logCallList);
 /* mutex to synchronize access to namespaceList */
 static pthread_mutex_t namespaceList_lock = PTHREAD_MUTEX_INITIALIZER;
 
-/* mutex to synchronize access to namespaceList */
+/* mutex to synchronize access to fenceList */
 static pthread_mutex_t fenceList_lock = PTHREAD_MUTEX_INITIALIZER;
 
-/* mutex to synchronize access to namespaceList */
+/* mutex to synchronize access to modexRequestList */
 static pthread_mutex_t modexRequestList_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* mutex to synchronize access to spawnList */
