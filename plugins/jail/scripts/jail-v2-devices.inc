@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2022-2025 ParTec AG, Munich
+# Copyright (C) 2022-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -55,10 +55,10 @@ function loadBPF()
 function initDevices()
 {
     # load BPF
-    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
-    loadBPF "$CG_USER/tasks" "USER_$USER"
+    [[ -n $user ]] || elog "no user env variable for job $JOBID"
+    loadBPF "$CG_USER/tasks" "USER_$user"
 
-    [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $USER"
+    [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $user"
     loadBPF "$CG_JOB/tasks" "JOB_$JOBID"
 
     [[ -n $STEPID ]] && {
@@ -74,7 +74,7 @@ function initDevices()
 	setDevices "ALLOW" "-a" "$ID"
 
 	# add allowed devices to user cgroup
-	ID="USER_$USER"
+	ID="USER_$user"
 	BPF_SET=$("$BPF_DEVICE_LOADER" -s -i "$ID" 2>/dev/null)
 
 	if [[ ${#BPF_SET} -lt 4 ]]; then
@@ -154,11 +154,11 @@ function initUserDevices()
 {
     [[ $MODIFY_CGROUPS == 0 ]] && return
 
-    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
-    loadBPF "$CG_USER/tasks" "USER_$USER"
+    [[ -n $user ]] || elog "no user env variable for job $JOBID"
+    loadBPF "$CG_USER/tasks" "USER_$user"
 
     # add allowed devices to user cgroup
-    ID="USER_$USER"
+    ID="USER_$user"
     BPF_SET=$("$BPF_DEVICE_LOADER" -s -i "$ID" 2>/dev/null)
 
     if [[ ${#BPF_SET} -lt 4 ]]; then

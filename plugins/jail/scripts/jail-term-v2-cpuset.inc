@@ -3,7 +3,7 @@
 # ParaStation
 #
 # Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2025 ParTec AG, Munich
+# Copyright (C) 2022-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -58,7 +58,7 @@ if [[ $CONSTRAIN_CORES == "no" ]]; then
 else
     dlog "constrain cores enabled"
 
-    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
+    [[ -n $user ]] || elog "no user env variable for job $JOBID"
 
     if [[ -n $STEPID ]]; then
 	dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"

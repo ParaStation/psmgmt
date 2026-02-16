@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2022-2025 ParTec AG, Munich
+# Copyright (C) 2022-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,7 +33,7 @@ function rmMemFromUser()
 		mlog "invalid user memory $NEW_MEM for $MEM_NAME"
 		return
 	    }
-	    dlog "$NEW_MEM > $CG_USER/$MEM_NAME User: $USER"
+	    dlog "$NEW_MEM > $CG_USER/$MEM_NAME User: $user"
 	    cgWrite "$NEW_MEM" "$CG_USER/$MEM_NAME"
 	fi
     fi
@@ -43,7 +43,7 @@ function termMemory()
 {
     [[ $CLEANUP_DONE == "true" ]] && return;
 
-    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
+    [[ -n $user ]] || elog "no user env variable for job $JOBID"
 
     if [[ -n $STEPID ]]; then
 	dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"

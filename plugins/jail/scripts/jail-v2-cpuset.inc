@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2023-2025 ParTec AG, Munich
+# Copyright (C) 2023-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -85,7 +85,7 @@ else
     # setup user cgroup
     setUserCores
 
-    [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $USER"
+    [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $user"
 
     # job cgroup
     dlog "JOB: $JOBID STEP:$STEPID"

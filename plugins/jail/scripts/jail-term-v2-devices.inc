@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2023-2025 ParTec AG, Munich
+# Copyright (C) 2023-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -35,13 +35,13 @@ function removeFromUserBPF()
     local QUIET=""
     [[ $DEBUG == 0 ]] && QUIET="-q"
 
-    dlog "$BPF_DEVICE_LOADER -i $BPF_ID $QUIET --remove_allowed USER_$USER"
-    "$BPF_DEVICE_LOADER" -i "$BPF_ID" "$QUIET" --remove_allowed "USER_$USER"
+    dlog "$BPF_DEVICE_LOADER -i $BPF_ID $QUIET --remove_allowed USER_$user"
+    "$BPF_DEVICE_LOADER" -i "$BPF_ID" "$QUIET" --remove_allowed "USER_$user"
 }
 
 function termDevices()
 {
-    [[ -n $USER ]] || elog "no user env variable for job $JOBID"
+    [[ -n $user ]] || elog "no user env variable for job $JOBID"
 
     if [[ -n $STEPID ]]; then
 	dlog "killing step ${JOBID}:$STEPID with signal $KILL_SIGNAL"
@@ -71,7 +71,7 @@ function termDevices()
 	    dlog "no more jobs, kill user cgroup $CG_USER"
 	    killTasks "$CG_USER"
 	    removeFromUserBPF "JOB_$JOBID"
-	    cleanupBPF "USER_$USER"
+	    cleanupBPF "USER_$user"
 	else
 	    dlog "leftover jobs: $ALLOC_LIST"
 	fi

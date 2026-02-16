@@ -3,7 +3,7 @@
 # ParaStation
 #
 # Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2025 ParTec AG, Munich
+# Copyright (C) 2022-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -58,12 +58,12 @@ function cgWrite {
 }
 
 function getSharedUserLock {
-    exec 101>"/dev/shm/psjail-$USER"
+    exec 101>"/dev/shm/psjail-$user"
     flock -s 101
 }
 
 function getExclusiveUserLock {
-    exec 101>"/dev/shm/psjail-$USER"
+    exec 101>"/dev/shm/psjail-$user"
     flock -x 101
 }
 
@@ -186,10 +186,13 @@ function initJailEnv {
     export ADD_TO_USER_CGROUP=$__PSJAIL_ADD_TO_USER_CGROUP
     export ALLOC_LIST=$__PSJAIL_ALLOC_LIST
     export USER_INIT=$__PSJAIL_USER_INIT
-    [[ -n $__PSJAIL_USER ]] && export USER=$__PSJAIL_USER
-    [[ -z $USER && -n $ADD_TO_USER_CGROUP ]] && {
-	export USER=$ADD_TO_USER_CGROUP
-    }
+    if [[ -n $__PSJAIL_USER ]]; then
+	export user=$__PSJAIL_USER
+    elif [[ -n $ADD_TO_USER_CGROUP ]]; then
+	export user=$ADD_TO_USER_CGROUP
+    else
+	export user=$USER
+    fi
 
     # map core pinning variables
     export JOB_CPUS=$__PSJAIL_JOB_CPUS

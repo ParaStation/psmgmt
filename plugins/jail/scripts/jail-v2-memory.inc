@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2022-2025 ParTec AG, Munich
+# Copyright (C) 2022-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,7 +26,7 @@ IS_INIT="false"
 
 function initMem()
 {
-    [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $USER"
+    [[ -n $JOBID ]] || elog "no jobid for pid $CHILD user $user"
 
     dlog "adding child $CHILD to $CG_JOB/tasks/cgroup.procs"
     cgWrite "$CHILD" "$CG_JOB/tasks/cgroup.procs"
@@ -55,7 +55,7 @@ function setUserMem()
 	    LIMIT_VAL=$((LIMIT_VAL + PRE_LIMIT))
 	}
 
-	dlog "$LIMIT_VAL > $CG_USER/$LIMIT_NAME User: $USER"
+	dlog "$LIMIT_VAL > $CG_USER/$LIMIT_NAME User: $user"
 	cgWrite "$LIMIT_VAL" "$CG_USER/$LIMIT_NAME"
     fi
 }
