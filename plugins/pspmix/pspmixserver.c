@@ -66,10 +66,10 @@ typedef struct {
 } mycbdata_t;
 
 /** Setting up data for callback routines */
-#define INIT_CBDATA(d, n) do {		    \
-    memset(&(d), 0, sizeof(d));		    \
-    (d).ninfo = n;			    \
-    if (n) (d).info = PMIx_Info_create(n);   \
+#define INIT_CBDATA(d, n) do {						    \
+    memset(&(d), 0, sizeof(d));						    \
+    (d).ninfo = n;							    \
+    if (n) (d).info = PMIx_Info_create(n);				    \
 } while(0)
 
 /** Waiting for data to be filled by callback function */
@@ -90,47 +90,47 @@ typedef struct {
 } mycbfunc_t;
 
 /** Setting up callback function object */
-#define INIT_CBFUNC(o, f, d) do {  \
-    if (!(f)) { (o) = NULL; break; } \
-    (o) = ucalloc(sizeof(*o));     \
-    (o)->cbfunc = (f);             \
-    (o)->cbdata = (d);             \
-    pthread_mutex_init(&(o)->lock, NULL); \
+#define INIT_CBFUNC(o, f, d) do {					    \
+    if (!(f)) { (o) = NULL; break; }					    \
+    (o) = ucalloc(sizeof(*o));						    \
+    (o)->cbfunc = (f);							    \
+    (o)->cbdata = (d);							    \
+    pthread_mutex_init(&(o)->lock, NULL);				    \
 } while(0)
 
 /** Lock callback function object */
-#define LOCK_CBFUNC_OR_RETURN(o, r) do {                           \
-    if (!(o)) break;                                                 \
-    int err;                                                       \
-    while((err = pthread_mutex_lock(&(o)->lock))) {                \
-	if (err == EAGAIN) {                                       \
-	    flog("Getting callback lock failed, trying again\n");  \
-	    continue;                                              \
-	}                                                          \
-	flog("Getting callback lock failed: %s\n", strerror(err)); \
-	return r;                                                  \
-    }                                                              \
+#define LOCK_CBFUNC_OR_RETURN(o, r) do {				    \
+    if (!(o)) break;							    \
+    int err;								    \
+    while((err = pthread_mutex_lock(&(o)->lock))) {			    \
+	if (err == EAGAIN) {						    \
+	    flog("Getting callback lock failed, trying again\n");	    \
+	    continue;							    \
+	}								    \
+	flog("Getting callback lock failed: %s\n", strerror(err));	    \
+	return r;							    \
+    }									    \
 } while (0);
 
 /** Unlock callback function object */
-#define UNLOCK_CBFUNC_OR_RETURN(o, r) do {                            \
-    if (!(o)) break;                                                    \
-    int err;                                                          \
-    while((err = pthread_mutex_unlock(&(o)->lock))) {                 \
-	if (err == EAGAIN) {                                          \
-	    flog("Releasing callback lock failed, trying again\n");   \
-	    continue;                                                 \
-	}                                                             \
-	flog("Releasing callback lock failed: %s\n", strerror(err));  \
-	return r;                                            \
-    }                                                                 \
+#define UNLOCK_CBFUNC_OR_RETURN(o, r) do {				    \
+    if (!(o)) break;							    \
+    int err;								    \
+    while((err = pthread_mutex_unlock(&(o)->lock))) {			    \
+	if (err == EAGAIN) {						    \
+	    flog("Releasing callback lock failed, trying again\n");	    \
+	    continue;							    \
+	}								    \
+	flog("Releasing callback lock failed: %s\n", strerror(err));	    \
+	return r;							    \
+    }									    \
 } while (0);
 
 /** Setting up data for callback routines */
-#define DESTROY_CBFUNC(d) do {           \
-    if (!(d)) break;                       \
-    pthread_mutex_destroy(&(d)->lock);   \
-    ufree(d);                            \
+#define DESTROY_CBFUNC(d) do {						    \
+    if (!(d)) break;							    \
+    pthread_mutex_destroy(&(d)->lock);					    \
+    ufree(d);								    \
 } while (0)
 
 /** Wrapper for PMIx_Info_list_add() with error checking */
@@ -149,7 +149,7 @@ typedef struct {
 	if (status != PMIX_SUCCESS) {					    \
 	    flog("failed to convert info list: %s\n",			    \
 		 PMIx_Error_string(status));				    \
-	} \
+	}								    \
     } while(0)
 
 /* Print info array using flog()
