@@ -666,8 +666,8 @@ static uint32_t mapFreqLabel(Freq_Def_t *freq, GPUfreq_label_t label)
  */
 static uint32_t mapValidFreq(Freq_Def_t *freq, uint32_t newFreq)
 {
-    if (newFreq < freq->minFreq) return freq->minFreq;
-    if (newFreq > freq->maxFreq) return freq->maxFreq;
+    if (newFreq <= freq->minFreq) return freq->minFreq;
+    if (newFreq >= freq->maxFreq) return freq->maxFreq;
 
     for (uint32_t i = 0; i < freq->availFreqNum; i++) {
 	if (newFreq == freq->availFreq[i]) {
