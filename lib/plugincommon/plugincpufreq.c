@@ -246,7 +246,7 @@ static void cmdGetAvailFreq(char *output, void *info)
     const char delimiters[] =" \t";
     next = strtok_r(end, delimiters, &toksave);
 
-    int numFreq = cpus[idx].numAvailFreq;
+    uint32_t numFreq = cpus[idx].numAvailFreq;
     while (next) {
 	if (numFreq == MAX_FREQ) {
 	    pluginflog("maximum %i supported frequencies exceeded\n", MAX_FREQ);
@@ -788,7 +788,7 @@ static uint32_t mapFreqRange(int16_t idx, uint32_t range)
     }
 
     /* calculate node dependent frequency */
-    int numFreq = cpus[idx].numAvailFreq;
+    uint32_t numFreq = cpus[idx].numAvailFreq;
 
     switch (range) {
 	case FREQ_RANGE_LOW: /* lowest available frequency */
@@ -817,6 +817,14 @@ static uint32_t mapFreqRange(int16_t idx, uint32_t range)
 /**
  * @brief Map given frequency to supported frequencies of a CPU
  *
+ * Depending on the hardware the minimum and maximum frequencies are
+ * not included in available scaling frequencies. Since the minimum and
+ * maximum values reflect the hardware limits and the available
+ * frequencies represent the governors capabilities to select a certain
+ * frequency. For example with Intel turbo mode enabled the highest frequency
+ * a CPU is capable of cannot be selected directly. Values will get
+ * automatically adjusted to values the current governor supports.
+ *
  * @param idx Index in CPU array
  *
  * @param newFreq Frequency to map
@@ -826,16 +834,12 @@ static uint32_t mapFreqRange(int16_t idx, uint32_t range)
  * */
 static uint32_t mapValidFrequencies(int16_t idx, uint32_t newFreq)
 {
-    if (newFreq < cpus[idx].availMinFreq) return cpus[idx].availMinFreq;
-    if (newFreq > cpus[idx].availMaxFreq) return cpus[idx].availMaxFreq;
+    if (newFreq <= cpus[idx].availMinFreq) return cpus[idx].availMinFreq;
+    if (newFreq >= cpus[idx].availMaxFreq) return cpus[idx].availMaxFreq;
 
     for (uint32_t i = 0; i < cpus[idx].numAvailFreq; i++) {
-	if (newFreq == cpus[idx].availFreq[i]) {
-	    return newFreq;
-	}
-	if (newFreq < cpus[idx].availFreq[i]) {
-	    return cpus[idx].availFreq[i];
-	}
+	if (newFreq == cpus[idx].availFreq[i]) return newFreq;
+	if (newFreq < cpus[idx].availFreq[i]) return cpus[idx].availFreq[i];
     }
 
     return 0;
