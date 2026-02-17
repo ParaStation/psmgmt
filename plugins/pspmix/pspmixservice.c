@@ -1320,7 +1320,8 @@ bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
 void pspmix_service_handleClientIFResp(const char *nspace, pmix_rank_t rank,
 				       PStask_ID_t fwtid)
 {
-    fdbg(PSPMIX_LOG_CALL, "nspace %s rank %d fwtid %ld\n", nspace, rank, fwtid);
+    fdbg(PSPMIX_LOG_CALL, "nspace %s rank %d fw %s\n", nspace, rank,
+	 PSC_printTID(fwtid));
 
     GET_LOCK(namespaceList);
 
