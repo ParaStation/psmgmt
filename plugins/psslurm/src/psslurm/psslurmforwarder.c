@@ -418,11 +418,12 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 	cwd = IO_replaceJobSymbols(job, job->cwd);
     }
     if (!switchUser(job->username, job->uid, job->gid)) {
-	flog("switching user failed\n");
+	flog("switching to user %s for job %u failed\n", job->username,
+	     job->hID.jobid);
 	exit(1);
     }
     if (!switchCwd(cwd)) {
-	flog("switching working directory failed\n");
+	flog("switching working directory %s failed\n", cwd);
 	exit(1);
     }
 
@@ -1132,7 +1133,8 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
 
     /* switch user */
     if (!switchUser(step->username, step->uid, step->gid)) {
-	flog("switching user failed\n");
+	flog("switching user to %s for step %s failed\n", step->username,
+	     Step_strID(step));
     }
 
     char *cwd = step->cwd;
@@ -1151,7 +1153,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     }
 
     if (!switchCwd(cwd)) {
-	flog("switching working directory failed\n");
+	flog("switching working directory %s failed\n", cwd);
 	exit(1);
     }
 
