@@ -2,7 +2,7 @@
 #
 #               ParaStation
 #
-# Copyright (C) 2025 ParTec AG, Munich
+# Copyright (C) 2025-2026 ParTec AG, Munich
 """
 query and modify various CPU frequencies by using /sys file-system
 """
@@ -128,6 +128,14 @@ def set_freq(cpu_sys_path, index, min_freq, max_freq):
     for i in index:
         filename = f"{cpu_sys_path}/cpu{i}/cpufreq/{name}"
         write_string_to_file(filename, freq[0])
+
+        # userspace governor needs extra speed adjustment
+        filename = f"{cpu_sys_path}/cpu{i}/cpufreq/scaling_governor"
+        cur_gov = read_string_from_file(filename)
+
+        if cur_gov == "userspace":
+            filename = f"{cpu_sys_path}/cpu{i}/cpufreq/scaling_setspeed"
+            write_string_to_file(filename, freq[0])
 
 
 def get_all_cpus(cpu_sys_path):
