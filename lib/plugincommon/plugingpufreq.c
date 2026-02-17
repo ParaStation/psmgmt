@@ -296,7 +296,7 @@ static void cmdGetFreq(char *output, void *info)
 static void cmdPrintOutput(char *output, void *info)
 {
     char *name = info;
-    pluginflog("%s: %s\n", name, output);
+    pluginfdbg(PLUGIN_LOG_GPU, "%s: %s\n", name, output);
 }
 
 /**
