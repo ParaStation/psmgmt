@@ -203,7 +203,7 @@ char *Job_strState(JobState_t state);
  *
  * Returns the number of jobs
  */
-int Job_count(void);
+size_t Job_count(void);
 
 /**
  * @brief Add all known jobs on the local node to status

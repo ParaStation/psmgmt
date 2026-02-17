@@ -290,9 +290,9 @@ int Job_killForwarder(uint32_t jobid)
     return count;
 }
 
-int Job_count(void)
+size_t Job_count(void)
 {
-    int count=0;
+    size_t count=0;
     list_t *j;
     list_for_each(j, &JobList) count++;
 
@@ -301,7 +301,7 @@ int Job_count(void)
 
 void Job_getInfos(Resp_Node_Reg_Status_t *stat)
 {
-    uint32_t max = stat->infoCount + Job_count();
+    size_t max = stat->infoCount + Job_count();
     stat->infos = urealloc(stat->infos, sizeof(*stat->infos) * max);
 
     list_t *j;

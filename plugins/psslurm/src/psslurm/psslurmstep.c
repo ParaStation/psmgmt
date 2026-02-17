@@ -486,9 +486,9 @@ int Step_signalByJobid(uint32_t jobid, int signal, uid_t reqUID)
     return (ret == -1) ? -1 : count;
 }
 
-int Step_count(void)
+size_t Step_count(void)
 {
-    int count=0;
+    size_t count=0;
     list_t *s;
     list_for_each(s, &StepList) count++;
 
@@ -561,7 +561,7 @@ int Step_killFWbyJobid(uint32_t jobid)
 
 void Step_getInfos(Resp_Node_Reg_Status_t *stat)
 {
-    uint32_t max = stat->infoCount + Step_count();
+    size_t max = stat->infoCount + Step_count();
     stat->infos = urealloc(stat->infos, sizeof(*stat->infos) * max);
 
     list_t *s;
