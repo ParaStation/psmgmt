@@ -460,19 +460,19 @@ static void cbListCPUs(int32_t status, Script_Data_t *script)
 	goto ERROR;
     }
 
-    if (execCPUFreqScript(CMD_GET_AVAIL_GOV)) {
+    if (!execCPUFreqScript(CMD_GET_AVAIL_GOV)) {
 	pluginflog("unable to determine governors\n");
 	goto ERROR;
     }
     initFlags |= INIT_GET_AVAIL_GOV;
 
-    if (execCPUFreqScript(CMD_GET_CUR_GOV)) {
+    if (!execCPUFreqScript(CMD_GET_CUR_GOV)) {
 	pluginflog("unable to determine current governor\n");
 	goto ERROR;
     }
     initFlags |= INIT_GET_CUR_GOV;
 
-    if (execCPUFreqScript(CMD_GET_FREQ)) {
+    if (!execCPUFreqScript(CMD_GET_FREQ)) {
 	pluginflog("unable to determine CPU frequencies\n");
 	goto ERROR;
     }
@@ -711,7 +711,7 @@ static bool execCPUFreqScriptEx(Script_CMDs_t cmd, strv_t addArgV)
     int ret = Script_exec(script);
     if (!script->cbResult) Script_destroy(script);
 
-    return ret;
+    return !ret;
 }
 
 void CPUfreq_init(const char *cpuSysPath, const char *freqScript,
@@ -747,7 +747,7 @@ void CPUfreq_init(const char *cpuSysPath, const char *freqScript,
 
     /* get basic CPU list and spawn additional gather scripts in
      * callback */
-    if (execCPUFreqScript(CMD_LIST_CPUS)) {
+    if (!execCPUFreqScript(CMD_LIST_CPUS)) {
 	pluginflog("unable to initialize CPUs\n");
 	goto ERROR;
     }
@@ -892,7 +892,7 @@ static bool doSetFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
     int ret = execCPUFreqScriptEx(cmd, argV);
     strvDestroy(argV);
 
-    if (ret) {
+    if (!ret) {
 	pluginflog("unable to set maximum CPU frequency to %u\n", newFreq);
     } else {
 	for (uint16_t i = 0; i < setSize; i++) {
@@ -1085,7 +1085,7 @@ bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
     int ret = execCPUFreqScriptEx(CMD_SET_GOV, argV);
     strvDestroy(argV);
 
-    if (ret) {
+    if (!ret) {
 	pluginflog("unable to set CPU governor to %s\n", strGov);
     } else {
 	for (uint16_t i = 0; i < setSize; i++) {
@@ -1095,7 +1095,7 @@ bool CPUfreq_setGov(PSCPU_set_t set, uint16_t setSize,
 	}
     }
 
-    return true;
+    return ret;
 }
 
 bool CPUfreq_resetGov(PSCPU_set_t set, uint16_t setSize)
