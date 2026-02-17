@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -135,15 +135,14 @@ bool *getCPUsetFromCoreBitmap(uint32_t total, const char *bitmap)
 
     size_t len = strlen(bitstr);
 
-    int count = 0;
+    uint32_t count = 0;
 
     /* parse Slurm bit string in LSB first order */
     while (len--) {
 	int cur = (int)bitstr[len];
 
 	if (!isxdigit(cur)) {
-	    mlog("%s: invalid character in core map sting '%c'\n", __func__,
-		    cur);
+	    flog("invalid character in core map sting '%c'\n", cur);
 	    ufree(coreMap);
 	    return NULL;
 	}
@@ -156,6 +155,11 @@ bool *getCPUsetFromCoreBitmap(uint32_t total, const char *bitmap)
 	}
 
 	for (int32_t i = 1; i <= 8; i *= 2) {
+	    if (count >= total) {
+		flog("bitmap %u exceeds total cores %u\n", count, total);
+		ufree(coreMap);
+		return NULL;
+	    }
 	    if (cur & i) coreMap[count] = true;
 	    count++;
 	}
