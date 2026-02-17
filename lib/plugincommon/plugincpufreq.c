@@ -898,10 +898,12 @@ static bool doSetFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
 	for (uint16_t i = 0; i < setSize; i++) {
 	    if (!PSCPU_isSet(set, i)) continue;
 	    if (cmd == CMD_SET_MIN_FREQ) {
-		plugindbg(-1, "set CPU %i to minimum freq %u\n", i, newFreq);
+		plugindbg(PLUGIN_LOG_FREQ, "set CPU %i to minimum freq %u\n", i,
+			  newFreq);
 		cpus[i].curMinFreq = newFreq;
 	    } else {
-		plugindbg(-1, "set CPU %i to maximum freq %u\n", i, newFreq);
+		plugindbg(PLUGIN_LOG_FREQ, "set CPU %i to maximum freq %u\n", i,
+			  newFreq);
 		cpus[i].curMaxFreq = newFreq;
 	    }
 	}
