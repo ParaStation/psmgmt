@@ -19,17 +19,17 @@ def read_string_from_file(filename):
     try:
         with open(filename, encoding="utf-8") as sys_file:
             return sys_file.read().replace("\n", "")
-    except FileNotFoundError:
-        print(f"error: file '{filename}' not found")
+    except FileNotFoundError as e:
+        print(f"error: {e}", file=sys.stderr)
         sys.exit(1)
-    except PermissionError:
-        print(f"error: no permission to read '{filename}'")
+    except PermissionError as e:
+        print(f"error: {e}", file=sys.stderr)
         sys.exit(1)
-    except UnicodeDecodeError:
-        print(f"error: file '{filename}' could not be decoded with UTF-8")
+    except UnicodeDecodeError as e:
+        print(f"error: {e}", file=sys.stderr)
         sys.exit(1)
-    except IOError:
-        print(f"error: an I/O error occurred while reading '{filename}'")
+    except IOError as e:
+        print(f"error: {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -40,17 +40,17 @@ def write_string_to_file(filename, data):
     try:
         with open(filename, "w", encoding="utf-8") as sys_file:
             return sys_file.write(data)
-    except FileNotFoundError:
-        print(f"error: file '{filename}' not found")
+    except FileNotFoundError as e:
+        print(f"error: {e}", file=sys.stderr)
         sys.exit(1)
-    except PermissionError:
-        print(f"error: no permission to write '{filename}'")
+    except PermissionError as e:
+        print(f"error: {e}", file=sys.stderr)
         sys.exit(1)
-    except UnicodeDecodeError:
-        print(f"error: data could not be encoded in UTF-8 for '{filename}'")
+    except UnicodeEncodeError as e:
+        print(f"error: {e}", file=sys.stderr)
         sys.exit(1)
-    except OSError:
-        print(f"error: unable to write {data} to '{filename}' invalid argument")
+    except OSError as e:
+        print(f"error: {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -150,7 +150,7 @@ def get_all_cpus(cpu_sys_path):
             if match is not None:
                 cpus.append(match.group(1))
 
-    cpus.sort()
+    cpus = sorted(cpus, key=int)
     return cpus
 
 
@@ -168,8 +168,9 @@ def get_cpus(all_cpus, args):
             for i in range(len(all_cpus)):
                 if cpu_mask & (1 << i):
                     cpus.append(str(i))
-        except ValueError:
-            print(f"Invalid hex CPU specification: {args.cpus[0]}")
+        except ValueError as e:
+            print(f"Invalid hex value: {args.cpus[0]}: {e}",
+                  file=sys.stderr)
             sys.exit(1)
 
     elif len(args.cpus) == 1 and "," in args.cpus[0]:
@@ -179,7 +180,8 @@ def get_cpus(all_cpus, args):
 
     for i in cpus:
         if i not in all_cpus:
-            print(f"cpu {i} not in range of valid CPUs {0}-{len(all_cpus) - 1}")
+            print(f"error: cpu {i} not in range of valid CPUs {0}-{len(all_cpus) - 1}",
+                  file=sys.stderr)
             sys.exit(1)
 
     return cpus
@@ -200,7 +202,7 @@ def parse_args(parser):
     all_cpus = get_all_cpus(cpu_sys_path)
 
     if not all_cpus:
-        print(f"error: no CPUs found in {cpu_sys_path}")
+        print(f"error: no CPUs found in {cpu_sys_path}", file=sys.stderr)
         sys.exit(1)
 
     if args.list_cpus is not None:
@@ -242,17 +244,17 @@ def main():
     parser.add_argument(
         "--list-cpus", metavar="", nargs="*", help="show avaiable CPUs")
     parser.add_argument(
-        "--set-gov", metavar="<governor>", nargs="+", help="set new governor")
+        "--set-gov", metavar="<governor>", nargs=1, help="set new governor")
     parser.add_argument("--get-cur-gov", nargs="*", help="get current governor")
     parser.add_argument(
         "--get-avail-gov", nargs="*", help="get available governors")
     parser.add_argument(
         "--get-freq", nargs="*", help="get min/max CPU frequencies")
     parser.add_argument(
-        "--set-min-freq", metavar="<frequency>", nargs="+",
+        "--set-min-freq", metavar="<frequency>", nargs=1,
         help="set minimum frequency")
     parser.add_argument(
-        "--set-max-freq", metavar="<frequency>", nargs="+",
+        "--set-max-freq", metavar="<frequency>", nargs=1,
         help="set maximum frequency")
     parser.add_argument(
         "--get-avail-freq", nargs="*", help="get available CPU frequencies")
