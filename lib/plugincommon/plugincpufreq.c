@@ -920,14 +920,14 @@ static bool CPUfreq_setFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
 	/* single frequency for all CPUs */
 	int16_t first = PSCPU_first(setFreq, setSize);
 	if (first == -1) {
-	    pluginflog("no CPU in set\n");
+	    pluginflog("no CPU in set for single frequency\n");
 	    return false;
 	}
 
 	/* map user given frequency to CPU supported frequency */
 	uint32_t mapFreq = mapValidFrequencies(first, newFreq);
 	if (!mapFreq) {
-	    pluginflog("invalid CPU frequency %u\n", newFreq);
+	    pluginflog("invalid single CPU frequency %u\n", newFreq);
 	    return false;
 	}
 
@@ -940,12 +940,12 @@ static bool CPUfreq_setFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
     if (equalAvailFreq) {
 	int16_t first = PSCPU_first(setFreq, setSize);
 	if (first == -1) {
-	    pluginflog("no CPU in set\n");
+	    pluginflog("no CPU in set for frequency range\n");
 	    return false;
 	}
 	uint32_t mapFreq = mapFreqRange(first, newFreq);
 	if (!mapFreq) {
-	    pluginflog("invalid CPU frequency %u\n", newFreq);
+	    pluginflog("invalid CPU frequency range %u\n", newFreq);
 	    return false;
 	}
 	plugindbg(PLUGIN_LOG_FREQ, "frequency range %u mapped %u for all CPUs\n",
@@ -962,7 +962,7 @@ static bool CPUfreq_setFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
 	PSCPU_setCPU(nextSet, i);
 	uint32_t nextFreq = mapFreqRange(i, newFreq);
 	if (!nextFreq) {
-	    pluginflog("invalid CPU frequency %u\n", newFreq);
+	    pluginflog("invalid distinct CPU frequency %u\n", newFreq);
 	    return false;
 	}
 
