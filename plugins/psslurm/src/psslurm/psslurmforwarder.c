@@ -1838,6 +1838,13 @@ bool execBatchJob(Job_t *job)
     return true;
 }
 
+#define exitBCast(fd, fmt, ...) do {	\
+    int eno = errno;			\
+    if (fd >= 0) close(fd);		\
+    fwarn(eno, fmt, ##__VA_ARGS__);	\
+    exit(eno);				\
+} while (0)
+
 static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
 {
     BCast_t *bcast = fwdata->userData;
@@ -1863,43 +1870,31 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
     }
 
     int fd = open(destFile, wFlags, 0700);
-    if (fd == -1) {
-	int eno = errno;
-	fwarn(eno, "open(%s)", destFile);
-	exit(eno);
-    }
+    if (fd == -1) exitBCast(fd, "open(%s)", destFile);
 
     /* write the file */
     if (PSCio_sendF(fd, bcast->block, bcast->blockLen) == -1) {
-	int eno = errno;
-	fwarn(eno, "write(%s)", destFile);
-	exit(eno);
+	exitBCast(fd, "write(%s)", destFile);
     }
 
     /* set permissions */
     if (bcast->flags & BCAST_LAST_BLOCK) {
 	if (fchmod(fd, bcast->modes & 0700) == -1) {
-	    int eno = errno;
-	    fwarn(eno, "chmod(%s)", destFile);
-	    exit(eno);
+	    exitBCast(fd, "chmod(%s)", destFile);
 	}
 	if (fchown(fd, bcast->uid, bcast->gid) == -1) {
-	    int eno = errno;
-	    fwarn(eno, "chown(%s)", destFile);
-	    exit(eno);
+	    exitBCast(fd, "chown(%s)", destFile);
 	}
 	if (bcast->atime) {
 	    times.actime  = bcast->atime;
 	    times.modtime = bcast->mtime;
 	    if (utime(destFile, &times)) {
-		int eno = errno;
-		fwarn(eno, "utime(%s)", destFile);
-		exit(eno);
+		exitBCast(fd, "utime(%s)", destFile);
 	    }
 	}
     }
-    close(fd);
 
+    close(fd);
     exit(0);
 }
 
