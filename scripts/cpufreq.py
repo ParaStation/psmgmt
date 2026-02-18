@@ -18,7 +18,7 @@ def read_string_from_file(filename):
     """
     try:
         with open(filename, encoding="utf-8") as sys_file:
-            return sys_file.read().replace("\n", "")
+            return sys_file.read().rstrip("\n")
     except FileNotFoundError as e:
         print(f"error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -28,7 +28,7 @@ def read_string_from_file(filename):
     except UnicodeDecodeError as e:
         print(f"error: {e}", file=sys.stderr)
         sys.exit(1)
-    except IOError as e:
+    except OSError as e:
         print(f"error: {e}", file=sys.stderr)
         sys.exit(1)
 
@@ -89,26 +89,36 @@ def get_avail_cpu_freq(cpu_sys_path, index):
         print(f" cpu {i} avail_freq {avail_freq}")
 
 
-def get_gov(cpu_sys_path, index, cur_gov, avail_gov):
+def get_gov(cpu_sys_path, index, get_cur, get_avail):
     """
     query current and available governors for selected CPUs
     """
     for i in index:
-        if cur_gov is not None:
+        if get_cur is not None:
             filename = f"{cpu_sys_path}/cpu{i}/cpufreq/scaling_governor"
             cur_gov = read_string_from_file(filename)
             print(f" cpu {i} cur_gov {cur_gov}")
 
-        if avail_gov is not None:
+        if get_avail is not None:
             filename = f"{cpu_sys_path}/cpu{i}/cpufreq/scaling_available_governors"
             avail_gov = read_string_from_file(filename)
             print(f" cpu {i} avail_gov {avail_gov}")
+
+
+def check_root():
+    """
+    check for root privileges
+    """
+    if os.geteuid() != 0:
+        print("error: need root privileges", file=sys.stderr)
+        sys.exit(1)
 
 
 def set_gov(cpu_sys_path, index, new_gov):
     """
     set governor for selected CPUs
     """
+    check_root()
     for i in index:
         filename = f"{cpu_sys_path}/cpu{i}/cpufreq/scaling_governor"
         write_string_to_file(filename, new_gov[0])
@@ -118,6 +128,7 @@ def set_freq(cpu_sys_path, index, min_freq, max_freq):
     """
     set minimum and maximum scaling frequencies for selected CPUs
     """
+    check_root()
     if min_freq is not None:
         freq = min_freq
         name = "scaling_min_freq"
