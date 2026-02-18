@@ -180,17 +180,36 @@ function initJailEnv {
     unset LANGUAGE
     export LANG=C
 
+    export ALLOC_LIST=$__PSJAIL_ALLOC_LIST
     export JOBID=$__PSJAIL_JOBID
     export STEPID=$__PSJAIL_STEPID
 
+    # ADD_TO_USER_CGROUP is used to add the process only to the user cgroup.
+    # This is particularly important for the PMIx server, since it serves multiple
+    # jobs/steps and should only be terminated when the user has no remaining
+    # allocations on the node.
+    #
+    # pspam is used to allow SSH access to the nodes as soon as the prologue has
+    # finished. The SSH process also cannot be tied to a specific allocation.
+    # Like the PMIx server, it should only be terminated when the user has no
+    # allocations left on the node.
+    #
+    # Additionally, no cgroup will be set up. A correctly configured user cgroup
+    # is expected to already exist. Otherwise, the jail process will fail.
     export ADD_TO_USER_CGROUP=$__PSJAIL_ADD_TO_USER_CGROUP
-    export ALLOC_LIST=$__PSJAIL_ALLOC_LIST
+
+    # USER_INIT is used for processes that are expected to be tied at least
+    # to a job or a job/step combination. It will build the cgroup hierarchy
+    # if it does not already exist. It is assumed to have all the information
+    # required for this purpose (e.g. allocated cores).
     export USER_INIT=$__PSJAIL_USER_INIT
+
     if [[ -n $__PSJAIL_USER ]]; then
 	export user=$__PSJAIL_USER
     elif [[ -n $ADD_TO_USER_CGROUP ]]; then
 	export user=$ADD_TO_USER_CGROUP
     else
+	# used by psiforwarder jail hook
 	export user=$USER
     fi
 
