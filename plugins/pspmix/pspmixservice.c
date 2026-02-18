@@ -1104,44 +1104,45 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
     }
     ufree(envp);
 
-    /* add custom environment variables
-     * @todo can we remove this with dropping support for OpenMPI 3.x? */
-    char tmp[20];
-    snprintf(tmp, sizeof(tmp), "%u", jobSize);
-    envSet(env, "OMPI_COMM_WORLD_SIZE", tmp);
-    snprintf(tmp, sizeof(tmp), "%d", client->rank);
-    envSet(env, "OMPI_COMM_WORLD_RANK", tmp);
-    snprintf(tmp, sizeof(tmp), "%u", sessSize);
-    envSet(env, "OMPI_UNIVERSE_SIZE", tmp);
+    if (getenv("PSPMIX_ENABLE_OMPI3_SUPPORT")) {
+	/* add custom environment variables for OpenMPI 3.x */
+	char tmp[20];
+	snprintf(tmp, sizeof(tmp), "%u", jobSize);
+	envSet(env, "OMPI_COMM_WORLD_SIZE", tmp);
+	snprintf(tmp, sizeof(tmp), "%d", client->rank);
+	envSet(env, "OMPI_COMM_WORLD_RANK", tmp);
+	snprintf(tmp, sizeof(tmp), "%u", sessSize);
+	envSet(env, "OMPI_UNIVERSE_SIZE", tmp);
 
-    /* since this function is always running in the main thread and resInfo
-       is not affected by pspmix_service_registerClientAndSendEnv() it is
-       still valid here and we don't need to protect or validate it */
-    bool found = false;
-    int lrank = -1;
-    int lsize = 0;
-    int nrank = -1;
-    for (uint32_t i = 0; i < resInfo->nEntries; i++) {
-	PSresinfoentry_t *cur = &resInfo->entries[i];
-	if (!found) {
-	    nrank = (cur->node == resInfo->entries[0].node) ? 0 : nrank + 1;
+	/* since this function is always running in the main thread and resInfo
+	   is not affected by pspmix_service_registerClientAndSendEnv() it is
+	   still valid here and we don't need to protect or validate it */
+	bool found = false;
+	int lrank = -1;
+	int lsize = 0;
+	int nrank = -1;
+	for (uint32_t i = 0; i < resInfo->nEntries; i++) {
+	    PSresinfoentry_t *cur = &resInfo->entries[i];
+	    if (!found) {
+		nrank = (cur->node == resInfo->entries[0].node) ? 0 : nrank + 1;
+	    }
+	    if (cur->node != nodeId) continue;
+	    if (cur->firstRank <= (int32_t)client->rank
+		&& cur->lastRank >= (int32_t)client->rank) {
+		lrank += found ? 0 : client->rank - cur->firstRank + 1;
+		found = true;
+	    } else {
+		lrank += found ? 0 : cur->lastRank - cur->firstRank + 1;
+	    }
+	    lsize += cur->lastRank - cur->firstRank + 1;
 	}
-	if (cur->node != nodeId) continue;
-	if (cur->firstRank <= (int32_t)client->rank
-	    && cur->lastRank >= (int32_t)client->rank) {
-	    lrank += found ? 0 : client->rank - cur->firstRank + 1;
-	    found = true;
-	} else {
-	    lrank += found ? 0 : cur->lastRank - cur->firstRank + 1;
-	}
-	lsize += cur->lastRank - cur->firstRank + 1;
+	snprintf(tmp, sizeof(tmp), "%d", found ? lrank : -1);
+	envSet(env, "OMPI_COMM_WORLD_LOCAL_RANK", tmp);
+	snprintf(tmp, sizeof(tmp), "%d", lsize);
+	envSet(env, "OMPI_COMM_WORLD_LOCAL_SIZE", tmp);
+	snprintf(tmp, sizeof(tmp), "%d", found ? nrank : -1 );
+	envSet(env, "OMPI_COMM_WORLD_NODE_RANK", tmp);
     }
-    snprintf(tmp, sizeof(tmp), "%d", found ? lrank : -1);
-    envSet(env, "OMPI_COMM_WORLD_LOCAL_RANK", tmp);
-    snprintf(tmp, sizeof(tmp), "%d", lsize);
-    envSet(env, "OMPI_COMM_WORLD_LOCAL_SIZE", tmp);
-    snprintf(tmp, sizeof(tmp), "%d", found ? nrank : -1 );
-    envSet(env, "OMPI_COMM_WORLD_NODE_RANK", tmp);
 
     /* send message */
     bool success = pspmix_comm_sendClientPMIxEnvironment(client->fwtid, env);
