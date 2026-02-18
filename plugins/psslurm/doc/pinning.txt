@@ -28,7 +28,7 @@ This document describes the cpu pinning decisions made by psslurm based on the o
 | Mapping srun options to flags |
 ---------------------------------
 
---cpu_bind=<x> for x in {boards, cores, threads, ldoms, sockets}
+--cpu_bind=<x> for x in {cores, threads, ldoms, sockets}
 
   sets flag CPU_BIND_TO_<X>
 

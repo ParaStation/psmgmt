@@ -133,7 +133,6 @@ void doMemBind(Step_t *step, PStask_t *task);
  *
  * Supported types:
  *  - none
- *  - boards
  *  - sockets
  *  - cores
  *  - threads

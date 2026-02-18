@@ -39,7 +39,7 @@ Usage: test_psslurmpin pinning <sockets> <coresPerSocket> <threadsPerCore>
                        <distribution> <oneThreadPerCore>
 
 With: sockets, coresPerSocket, threadsPerCore, tasks, threadsPerTask are any natural number
-      bindType is one of none, map, mask, ldmap, ldmask, boards, sockets, ldoms, cores, threads, ldrank, rank
+      bindType is one of none, map, mask, ldmap, ldmask, sockets, ldoms, cores, threads, ldrank, rank
       bindString is the string used for map, mask, ldmap, ldmask
       distribution is one of cyclic, block, fcyclic or a collon separated pair of them
       oneThreadPerCore is 1 or 0
