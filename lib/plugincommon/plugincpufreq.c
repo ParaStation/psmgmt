@@ -479,8 +479,7 @@ static void cbListCPUs(int32_t status, Script_Data_t *script)
     initFlags |= INIT_GET_FREQ;
 
     /* read (optional) list all of CPU frequencies */
-    execCPUFreqScript(CMD_GET_AVAIL_FREQ);
-    initFlags |= INIT_GET_AVAIL_FREQ;
+    if (execCPUFreqScript(CMD_GET_AVAIL_FREQ)) initFlags |= INIT_GET_AVAIL_FREQ;
 
     Script_destroy(script);
     return;
