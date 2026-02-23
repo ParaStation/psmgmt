@@ -142,7 +142,7 @@ bool *getCPUsetFromCoreBitmap(uint32_t total, const char *bitmap)
 	int cur = (int)bitstr[len];
 
 	if (!isxdigit(cur)) {
-	    flog("invalid character in core map sting '%c'\n", cur);
+	    flog("invalid character in core map string '%c'\n", cur);
 	    ufree(coreMap);
 	    return NULL;
 	}

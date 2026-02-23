@@ -322,7 +322,7 @@ bool hexBitstr2List(char *bitstr, strbuf_t buf, bool range);
  * @brief Convert a hex bitstring to a comma separated list.
  *
  * The provided bitstring @a bitstr is converted to a comma separated
- * list to be stored in the string buffer @a buf. The sting buffer is
+ * list to be stored in the string buffer @a buf. The string buffer is
  * cleared at start. If the @a range option is set to true, the values
  * are compacted into range syntax. Otherwise every single value will
  * lead to an entry in the list. The convert function @a conv will be

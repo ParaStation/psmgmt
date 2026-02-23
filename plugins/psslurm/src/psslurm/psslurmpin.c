@@ -454,7 +454,7 @@ static void pinToCore(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
  * The unmap here and the map later will negate each other so that at the end
  * we do always have an identity mapping.
  *
- * If the sting is not a valid hex number, each bit in @a CPUset becomes set.
+ * If the string is not a valid hex number, each bit in @a CPUset becomes set.
  */
 static void parseCPUmask(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 			 char *maskStr, const pininfo_t *pininfo)
@@ -582,7 +582,7 @@ error:
  * The unmap here and the map later will negate each other so that at the end
  * we do always have an identity mapping.
  *
- * If the sting is not a valid hex number, each bit in @a CPUset becomes set.
+ * If the string is not a valid hex number, each bit in @a CPUset becomes set.
  */
 static void parseSocketMask(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 			    char *maskStr, const pininfo_t *pininfo)
@@ -2469,7 +2469,7 @@ void verboseMemPinningOutput(Step_t *step, PStask_t *task)
  * Parse the string @a maskStr containing a hex number (with or without
  * leading "0x") and set nodemask accordingly.
  *
- * If the sting is not a valid hex number, each bit in nodemask becomes set.
+ * If the string is not a valid hex number, each bit in nodemask becomes set.
  */
 static void parseNUMAmask(struct bitmask *nodemask, char *maskStr, int32_t rank)
 {
