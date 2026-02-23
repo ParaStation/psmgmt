@@ -62,14 +62,14 @@ typedef enum {
     CMD_SET_GOV,
 } Script_CMDs_t;
 
-/** list of supported CPU frequency ranges */
+/** list of supported CPU frequency labels */
 typedef enum {
-    FREQ_RANGE_FLAG     = 0x80000000,
-    FREQ_RANGE_LOW	= 0x80000001,
-    FREQ_RANGE_MEDIUM   = 0x80000002,
-    FREQ_RANGE_HIGH     = 0x80000003,
-    FREQ_RANGE_SEC_HIGH = 0x80000004,
-} CPUfreq_range_t;
+    CPU_FREQ_FLAG     = 0x80000000,
+    CPU_FREQ_LOW      = 0x80000001,
+    CPU_FREQ_MEDIUM   = 0x80000002,
+    CPU_FREQ_HIGH     = 0x80000003,
+    CPU_FREQ_SEC_HIGH = 0x80000004,
+} CPUfreq_label_t;
 
 /** map commands and arguments */
 typedef struct {
@@ -771,44 +771,50 @@ void CPUfreq_finalize(void)
 }
 
 /**
- * @brief Map frequency range to an actual frequency
+ * @brief Map frequency label to an actual frequency
+ *
+ * A frequency label must have the CPU_FREQ_FLAG flag set so it can
+ * be differentiated from a common CPU frequency. See @ref CPUfreq_label_t
+ * for currently supported labels. With this approach no knowledge about
+ * the specific CPU capabilities is needed, since the label is mapped to
+ * frequencies the underlying hardware supports.
  *
  * @param idx Index in CPU array
  *
- * @param range Frequency range to map
+ * @param label Frequency label to map
  *
  * @return Returns the mapped frequency on success otherwise
  * 0 is returned
  */
-static uint32_t mapFreqRange(int16_t idx, uint32_t range)
+static uint32_t mapFreqLabel(int16_t idx, uint32_t label)
 {
-    if (!(range & FREQ_RANGE_FLAG)) {
-	pluginflog("error: no range but normal frequency given\n");
+    if (!(label & CPU_FREQ_FLAG)) {
+	pluginflog("error: no label but normal frequency given\n");
 	return 0;
     }
 
     /* calculate node dependent frequency */
     uint32_t numFreq = cpus[idx].numAvailFreq;
 
-    switch (range) {
-	case FREQ_RANGE_LOW: /* lowest available frequency */
+    switch (label) {
+	case CPU_FREQ_LOW: /* lowest available frequency */
 	    return cpus[idx].availFreq[0];
-	case FREQ_RANGE_MEDIUM: /* middle of available range */
+	case CPU_FREQ_MEDIUM: /* middle of available label */
 	{
 	    if (numFreq == 1) return cpus[idx].availFreq[0];
 	    int f = (numFreq - 1) / 2;
 
 	    return cpus[idx].availFreq[f];
 	}
-	case FREQ_RANGE_SEC_HIGH: /* second highest available frequency */
+	case CPU_FREQ_SEC_HIGH: /* second highest available frequency */
 	    if (numFreq > 1) {
 		return cpus[idx].availFreq[numFreq-2];
 	    }
 	    return cpus[idx].availFreq[numFreq-1];
-	case FREQ_RANGE_HIGH: /* highest available frequency */
+	case CPU_FREQ_HIGH: /* highest available frequency */
 	    return cpus[idx].availFreq[numFreq-1];
 	default:
-	    pluginflog("unknown frequency range %u\n", range);
+	    pluginflog("unknown frequency label %u\n", label);
     }
 
     return 0;
@@ -921,8 +927,8 @@ static bool CPUfreq_setFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
     PSCPU_set_t setFreq;
     PSCPU_copy(setFreq, set);
 
-    /* no frequency range */
-    if (!(newFreq & FREQ_RANGE_FLAG)) {
+    /* no frequency label */
+    if (!(newFreq & CPU_FREQ_FLAG)) {
 	/* single frequency for all CPUs */
 	int16_t first = PSCPU_first(setFreq, setSize);
 	if (first == -1) {
@@ -942,31 +948,31 @@ static bool CPUfreq_setFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
 	return doSetFreq(setFreq, setSize, mapFreq, cmd);
     }
 
-    /* one frequency range for all CPUs */
+    /* one frequency label for all CPUs */
     if (equalAvailFreq) {
 	int16_t first = PSCPU_first(setFreq, setSize);
 	if (first == -1) {
-	    pluginflog("no CPU in set for frequency range\n");
+	    pluginflog("no CPU in set for frequency label\n");
 	    return false;
 	}
-	uint32_t mapFreq = mapFreqRange(first, newFreq);
+	uint32_t mapFreq = mapFreqLabel(first, newFreq);
 	if (!mapFreq) {
-	    pluginflog("invalid CPU frequency range %u\n", newFreq);
+	    pluginflog("invalid CPU frequency label %u\n", newFreq);
 	    return false;
 	}
-	plugindbg(PLUGIN_LOG_FREQ, "frequency range %u mapped %u for all CPUs\n",
+	plugindbg(PLUGIN_LOG_FREQ, "frequency label %u mapped %u for all CPUs\n",
 		  mapFreq, mapFreq);
 
 	return doSetFreq(setFreq, setSize, mapFreq, cmd);
     }
 
-    /* every CPU might have a different frequency range */
+    /* every CPU might have a different frequency */
     for (uint16_t i = 0; i < setSize; i++) {
 	if (!PSCPU_isSet(setFreq, i)) continue;
 	PSCPU_set_t nextSet;
 	PSCPU_clrAll(nextSet);
 	PSCPU_setCPU(nextSet, i);
-	uint32_t nextFreq = mapFreqRange(i, newFreq);
+	uint32_t nextFreq = mapFreqLabel(i, newFreq);
 	if (!nextFreq) {
 	    pluginflog("invalid distinct CPU frequency %u\n", newFreq);
 	    return false;
@@ -975,7 +981,7 @@ static bool CPUfreq_setFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
 	/* find all CPUs with the same frequency */
 	for (uint16_t j = i + 1; j < setSize; j++) {
 	    if (!PSCPU_isSet(setFreq, j)) continue;
-	    if (nextFreq != mapFreqRange(j, newFreq)) continue;
+	    if (nextFreq != mapFreqLabel(j, newFreq)) continue;
 	    PSCPU_setCPU(nextSet, j);
 	    PSCPU_clrCPU(setFreq, j);
 	}
