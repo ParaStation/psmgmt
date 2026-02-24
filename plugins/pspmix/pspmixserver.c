@@ -341,6 +341,8 @@ static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
     fdbg(PSPMIX_LOG_CALL, "proc %s clientObject %p cbfunc %p cbdata %p\n",
 	 pmixProcStr(proc), clientObject, cbfunc, cbdata);
 
+    if (!clientObject) return PMIX_ERR_BAD_PARAM;
+
     mycbfunc_t *cb = NULL;
     INIT_CBFUNC(cb, cbfunc, cbdata);
     LOCK_CBFUNC_OR_RETURN(cb, PMIX_ERROR);
@@ -376,6 +378,8 @@ static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 {
     fdbg(PSPMIX_LOG_CALL, "proc %s clientObject %p cbfunc %p cbdata %p\n",
 	 pmixProcStr(proc), clientObject, cbfunc, cbdata);
+
+    if (!clientObject) return PMIX_ERR_BAD_PARAM;
 
     mycbfunc_t *cb = NULL;
     INIT_CBFUNC(cb, cbfunc, cbdata);
