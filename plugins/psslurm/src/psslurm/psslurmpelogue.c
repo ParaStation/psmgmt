@@ -13,13 +13,12 @@
 
 #include <errno.h>
 #include <fenv.h>
-#include <stddef.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <limits.h>
 
 #include "pscommon.h"
 #include "pscomplist.h"
@@ -46,6 +45,7 @@
 #include "psslurmjobcred.h"
 #include "psslurmlimits.h"
 #include "psslurmlog.h"
+#include "psslurmmsg.h"
 #include "psslurmproto.h"
 #include "psslurmpscomm.h"
 #ifdef HAVE_SPANK

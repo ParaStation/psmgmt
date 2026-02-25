@@ -12,6 +12,7 @@
 #define __PS_PSSLURM_JOB
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -24,6 +25,7 @@
 #include "pluginforwarder.h"
 #include "psaccounttypes.h"
 #include "psslurmcontainertype.h"
+#include "psslurmmsg.h"
 #include "psslurmprototypes.h"
 
 #include "psslurmjobcred.h"

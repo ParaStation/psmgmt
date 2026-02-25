@@ -11,6 +11,7 @@
 #ifndef __PSSLURM_COMM
 #define __PSSLURM_COMM
 
+#include <netinet/in.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/time.h>

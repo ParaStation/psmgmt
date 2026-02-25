@@ -12,6 +12,7 @@
 #define __PS_SLURM_PACK
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "list.h"
 #include "psserial.h"

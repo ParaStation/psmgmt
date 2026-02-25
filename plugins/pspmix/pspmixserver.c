@@ -16,13 +16,14 @@
 #define _GNU_SOURCE
 #include "pspmixserver.h"
 
+#include <assert.h>
+#include <errno.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <pthread.h>
 
 #include <pmix_server.h>
 #include <pmix.h>

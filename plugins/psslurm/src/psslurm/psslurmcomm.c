@@ -15,14 +15,14 @@
 #include <ctype.h>
 #include <errno.h>
 #include <netdb.h>
-#include <netinet/in.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <termios.h>
 #include <unistd.h>
-#include <stdlib.h>
 
 #include "list.h"
 #include "pscio.h"

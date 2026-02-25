@@ -35,6 +35,7 @@
 #include "psslurmcomm.h"
 #include "psslurmconfig.h"
 #include "psslurmlog.h"
+#include "psslurmmsg.h"
 #include "psslurmproto.h"
 
 #define RING_BUFFER_LEN 1024

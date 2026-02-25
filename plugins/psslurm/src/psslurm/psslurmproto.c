@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <string.h>
 #include <strings.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>
 #include <sys/sysinfo.h>

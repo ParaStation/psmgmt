@@ -10,13 +10,16 @@
 #include "psslurmfreq.h"
 
 #include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 
+#include "pscpu.h"
+#include "pluginconfig.h"
 #include "plugingpufreq.h"
 #include "pluginmalloc.h"
 
 #include "psslurmlog.h"
 #include "psslurmgres.h"
-#include "psslurmenv.h"
 #include "psslurmcomm.h"
 #include "psslurmconfig.h"
 

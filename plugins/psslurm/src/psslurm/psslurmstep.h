@@ -12,6 +12,7 @@
 #define __PS_PSSLURM_STEP
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <netinet/in.h>
 #include <sys/types.h>

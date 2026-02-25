@@ -13,12 +13,12 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <fenv.h>
 #include <grp.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pty.h>
 #include <signal.h>
-#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,9 +30,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <termios.h>
 #include <unistd.h>
 #include <utime.h>
-#include <fenv.h>
 
 #include "list.h"
 #include "pscommon.h"

@@ -12,7 +12,6 @@
 
 #include <arpa/inet.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -28,6 +27,7 @@
 #include "pluginmalloc.h"
 
 #include "slurmcommon.h"
+#include "slurmerrno.h"
 #include "slurmmsg.h"
 #include "psslurmconfig.h"
 #include "psslurmgres.h"

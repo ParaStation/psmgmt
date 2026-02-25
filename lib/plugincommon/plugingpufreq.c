@@ -11,21 +11,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include "pscpu.h"
 #include "psstrv.h"
-#include "psidhw.h"
 #include "psidnodes.h"
 #include "pscommon.h"
 
 #include "pluginlog.h"
 #include "pluginmalloc.h"
 #include "pluginscript.h"
-#include "pluginhelper.h"
 
 /* path to default GPU frequency script */
 #define DEFAULT_FREQ_SCRIPT PKGLIBEXECDIR "/gpufreq.py"
