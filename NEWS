@@ -1,9 +1,36 @@
 psmgmt NEWS -- history of user-visible changes.
 
 Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
-Copyright (C) 2021-2025 ParTec AG, Munich
+Copyright (C) 2021-2026 ParTec AG, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+Version 6.7.0:
+==============
+Bugfixes:
+ - ensure minimum and maximum CPU frequencies can be selected
+ - fix possible segfault in psslurm's bitmap parsing
+ - avoid theoretical overflow in psslurm
+ - check root privileges explicitly in cpufreq.py
+ - let psslurm set speed explicitly for userspace governor
+ - ensure minimum and maximum CPU frequencies can be selected
+ - pspmix: add include needed for OpenPMIx 6.1 support
+Enhancements:
+ - add support for Slurm 25.11 protocol
+ - add support for filename pattern %S to psslurm
+ - pspmix: Ensure callbacks are not called too early
+ - hide noisy nvidia-smi output behind PLUGIN_LOG_GPU debug log
+ - verify source IP of privileged messages against known slurmctld
+Additional changes:
+ - drop support for OpenPMIx <4.2.3 on the server side
+ - drop support for Slurm 22.05 protocol
+ - disallow slurm and munge users to start a slurm job per default
+ - hide special support for PSM and MVAPICH behind env (#349)
+ - disable OpenMPI 3.x support by default and hide it behind env (#349, psc#19)
+ - strictly separate jail scripts from external USER env variable
+ - add documentation for ADD_TO_USER_CGROUP and USER_INIT cgroup variables
+ - psslurm: Remove obsolete CPU_BIND_TO_BOARDS
 
 
 Version 6.6.0:
