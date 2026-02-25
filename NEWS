@@ -14,7 +14,6 @@ Bugfixes:
  - avoid theoretical overflow in psslurm
  - check root privileges explicitly in cpufreq.py
  - let psslurm set speed explicitly for userspace governor
- - ensure minimum and maximum CPU frequencies can be selected
  - pspmix: add include needed for OpenPMIx 6.1 support
 Enhancements:
  - add support for Slurm 25.11 protocol
