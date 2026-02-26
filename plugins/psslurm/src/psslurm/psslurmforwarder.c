@@ -427,6 +427,9 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 	exit(1);
     }
 
+    /* setup batch specific environment */
+    setJobEnv(job);
+
 #ifdef HAVE_SPANK
     spank.hook = SPANK_TASK_INIT;
     if (SpankCallHook(&spank) < 0) {
@@ -437,9 +440,6 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 	exit(1);
     }
 #endif
-
-    /* setup batch specific environment */
-    setJobEnv(job);
 
     /* initialize container */
     if (job->ct) Container_jobInit(job);
