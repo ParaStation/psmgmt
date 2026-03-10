@@ -106,7 +106,7 @@ provides the following functionality:
   Display the current value of <parameter>. For the time being
   <parameter> is allowed to be only DebugMask.
 
-> plugin unset rrcomm <parameter> <node?
+> plugin unset rrcomm <parameter> <node>
 
   Unset the value of <parameter>, i.e. replacing it with the default
   value. For the time being <parameter> is allowed to be only
