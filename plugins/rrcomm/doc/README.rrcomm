@@ -1,6 +1,6 @@
 psmgmt README.rrcomm -- Remarks on setup of RRComm
 
-Copyright (C) 2022 ParTec AG, Munich
+Copyright (C) 2022,2026 ParTec AG, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
@@ -102,16 +102,16 @@ provides the following functionality:
 > plugin show rrcomm <node>
   Display the current value of all configuration parameters
 
-> plugin show nodeinfo key <parameter> <node>
+> plugin show rrcomm key <parameter> <node>
   Display the current value of <parameter>. For the time being
   <parameter> is allowed to be only DebugMask.
 
-> plugin unset node <parameter> <node?
+> plugin unset rrcomm <parameter> <node?
 
   Unset the value of <parameter>, i.e. replacing it with the default
   value. For the time being <parameter> is allowed to be only
   DebugMask.
 
-> plugin set node <parameter> <value> <node>
+> plugin set rrcomm <parameter> <value> <node>
   Set the value of <parameter> to <value>. For the time being
   <parameter> is allowed to be only DebugMask.
