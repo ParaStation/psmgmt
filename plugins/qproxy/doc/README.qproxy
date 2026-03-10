@@ -1,0 +1,76 @@
+psmgmt README.qproxy -- Remarks on setup of QProxy
+
+Copyright (C) 2026 ParTec AG, Munich
+
+Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+INTRODUCTION
+
+This is just a stub
+
+PROBLEM DESCRIPTION
+
+TBD
+
+CONFIGURATION
+
+The qproxy plugin is configured via psconfig. The mechanism is as
+follows:
+
+ * A class:qproxy object contains all parameters of the qproxy plugin
+ * A class:pluginconfigs object hosts pointers to all objects hosting
+   plugin parameters. The pointer to the object hosting the qproxy
+   parameters must be named "QProxy."
+ * In class:psid the pointer "PluginConfigs." refers to the
+   class:pluginconfigs object
+ * For both, class:qproxy and class:pluginconfigs defaults are defined
+   in the defaults:qproxy and defaults:pluginconfigs objects respectively
+ * Standard inheritance is applied to all objects in
+   class:qproxy. E.g. to change to DebugMask for a certain class of
+   hosts it is sufficient to set Psid.PluginConfigs.QProxy.DebugMask
+   to the required value in the corresponding class: object
+
+The actual structure of the configuration expected by the qproxy
+plugin is described in detail in psconfig/qproxy.vipsconfig. As a
+first step it might be cut'n'pasted into the configuration using the
+vipsconfig tool. A better alternative will be to source
+psconfig/qproxy.dump to instantiate all required classes and defaults.
+
+At the time of writing qproxy supports the following configuration
+parameters:
+ * SchedulerURL	URL to reach the PSQSched; will end up in each
+		Step's PSQSCHED_BASEPATH environment variable
+ * DebugMask	Bit-mask (integer) enabling more verbose logging
+
+The standard configuration provided by psconfig/qproxy.dump mentioned
+above defines the following defaults:
+
+SchedulerURL = "http://localhost:8082/api/v1"
+DebugMask = "0"
+
+PSIADMIN INTERFACE
+
+As most plugins qproxy is accessible via psiadmin, too. The interface
+provides the following functionality:
+
+> plugin help qproxy <node>
+  Present a help message including a brief description of the plugin's
+  psconfig parameters
+
+> plugin show qproxy <node>
+  Display the current value of all configuration parameters
+
+> plugin show qproxy key <parameter> <node>
+  Display the current value of <parameter>. For the time being
+  <parameter> is allowed to be DebugMask or SchedulerURL.
+
+> plugin unset qproxy <parameter> <node>
+
+  Unset the value of <parameter>, i.e. replacing it with the default
+  value. For the time being <parameter> is allowed to be DebugMask or
+  SchedulerURL.
+
+> plugin set qproxy <parameter> <value> <node>
+  Set the value of <parameter> to <value>. For the time being
+  <parameter> is allowed to be DebugMask or SchedulerURL.

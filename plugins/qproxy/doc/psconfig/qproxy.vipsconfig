@@ -1,0 +1,26 @@
+[+class:defaults]
+.parents = []
+
+[+class:pluginconfigs]
+.parents = ["defaults:pluginconfigs"]
+QProxy. = ptr(["class:qproxy"])
+# Inherited keys:
+
+[+class:psid]
+PluginConfigs. = ptr(["class:pluginconfigs"])
+
+[+class:qproxy]
+.parents = ["defaults:qproxy"]
+# Inherited keys:
+# SchedulerPath = "http://localhost:8082/api/v1"
+# DebugMask = "0"
+
+[+defaults:pluginconfigs]
+.parents = ["class:defaults"]
+# Inherited keys:
+
+[+defaults:qproxy]
+.parents = ["class:defaults"]
+SchedulerPath = "http://localhost:8082/api/v1"
+DebugMask = "0"
+# Inherited keys:

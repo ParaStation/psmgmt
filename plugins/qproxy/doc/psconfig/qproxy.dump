@@ -1,0 +1,27 @@
+#
+# Object "class:pluginconfigs"
+#
+psconfig -q -- create 'class:pluginconfigs'
+psconfig -q -- setParents 'class:pluginconfigs' 'defaults:pluginconfigs'
+psconfig -q -- setPointerList 'class:pluginconfigs' 'QProxy.' 'class:qproxy'
+#
+# Object "class:psid"
+#
+psconfig -q -- setPointerList 'class:psid' 'PluginConfigs.' 'class:pluginconfigs'
+#
+# Object "class:qproxy"
+#
+psconfig -q -- create 'class:qproxy'
+psconfig -q -- setParents 'class:qproxy' 'defaults:qproxy'
+#
+# Object "defaults:pluginconfigs"
+#
+psconfig -q -- create 'class:pluginconfigs'
+psconfig -q -- setParents 'class:pluginconfigs' 'class:defaults'
+#
+# Object "defaults:qproxy"
+#
+psconfig -q -- create 'defaults:qproxy'
+psconfig -q -- setParents 'defaults:qproxy' 'class:defaults'
+psconfig -q -- set 'defaults:qproxy' 'SchedulerURL' 'http://localhost:8082/api/v1'
+psconfig -q -- set 'defaults:qproxy' 'DebugMask' '0'
