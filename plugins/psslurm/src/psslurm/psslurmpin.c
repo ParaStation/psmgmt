@@ -1652,7 +1652,6 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
     *verbose = false;
     *map_gpu = NULL;
     *mask_gpu = NULL;
-    *gpus_per_task = 1; /* this is the default if not set */
 
     fdbg(PSSLURM_LOG_PART, "gpu_bind: '%s'\n", gpu_bind);
 
@@ -1874,7 +1873,7 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
     bool verbose = false;
     char *map_gpu = NULL;
     char *mask_gpu = NULL;
-    int gpus_per_task = 0;
+    int gpus_per_task = 1; /* this is the default if not set */
 
     char *gpu_bind = getGpuBindString(step->tresBind);
     if (gpu_bind
@@ -1883,6 +1882,9 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	flog("no or invalid gpu_bind string\n");
 	return false;
     }
+
+    /* if gpu_bind is not set (no --gpu-bind or --tres-bind=gpu: used)
+     * then use the defaults (gpus_per_task = 1 and bind type "closest" */
 
     PSCPU_clrAll(*rankGPUs);
 
