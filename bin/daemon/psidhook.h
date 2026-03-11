@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -262,6 +262,10 @@ typedef enum {
 				ready for use; arg points to plugin's name */
     PSIDHOOK_PLUGIN_FINALIZE, /**< A plugin will be finalized and shall no
 				longer be used; arg points to plugin's name */
+    PSIDHOOK_PSSLURM_ENV,     /**< Right before a Slurm Job's batch script or
+				a Slurm Step's mpiexec is executed, give
+				opportunity to tweak the their environment.
+				arg points to the corresponding env_t */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -177,13 +177,15 @@ static LIST_HEAD(pluginList);
  *
  * 144: reworked hook PSIDHOOK_SHUTDOWN to tell the current phase
  *
- * 145: new PSIDHOOK_RECEIVEPART
+ * 145: new hook PSIDHOOK_RECEIVEPART
  *
  * 146: new hooks PSIDHOOK_PLUGIN_LOADED, PSIDHOOK_PLUGIN_FINALIZED
  *
  * 147: reworked hook PSIDHOOK_SENDER_UNKNOWN to provide more hints
+ *
+ * 148: new hook PSIDHOOK_PSSLURM_ENV
  */
-static int pluginAPIVersion = 147;
+static int pluginAPIVersion = 148;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

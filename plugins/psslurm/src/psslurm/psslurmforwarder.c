@@ -430,6 +430,9 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     /* setup batch specific environment */
     setJobEnv(job);
 
+    /* allow last minute tweaks of job environment */
+    PSIDhook_call(PSIDHOOK_PSSLURM_ENV, job->env);
+
 #ifdef HAVE_SPANK
     spank.hook = SPANK_TASK_INIT;
     if (SpankCallHook(&spank) < 0) {
@@ -1181,6 +1184,9 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
 
     /* remove environment variables not evaluated by mpiexec */
     removeUserVars(step->env, pmi_type);
+
+    /* allow last minute tweaks of step environment */
+    PSIDhook_call(PSIDHOOK_PSSLURM_ENV, step->env);
 
     if (mset(PSSLURM_LOG_PROCESS)) {
 	debugMpiexecStart(argvP, envGetArray(step->env));
