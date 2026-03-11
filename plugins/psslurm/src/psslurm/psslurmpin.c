@@ -1736,15 +1736,15 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
  *
  * @param assGPUs          GPUs to be used
  *
- * @param rankGPUs         mask to be filled (actual return value)
- *
  * @param gpus_per_task   Number of GPUs to assign to each task
+ *
+ * @param rankGPUs         mask to be filled (actual return value)
  *
  * @return true on success, false on error.
  */
 static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
 				      uint32_t stepNodeId, PSCPU_set_t assGPUs,
-				      PSCPU_set_t *rankGPUs, int gpus_per_task)
+				      int gpus_per_task, PSCPU_set_t *rankGPUs)
 {
     /* number of local tasks */
     uint32_t ltnum = step->globalTaskIdsLen[stepNodeId];
@@ -1914,7 +1914,7 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	return false;
     } else {
 	if (!getDefaultRankGpuPinning(localRankId, step, stepNodeId, assGPUs,
-		rankGPUs, gpus_per_task)) return false;
+		gpus_per_task, rankGPUs)) return false;
     }
 
     if (verbose) {
