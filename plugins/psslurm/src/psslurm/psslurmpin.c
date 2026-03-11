@@ -1686,7 +1686,7 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 	}
     }
     if (!strncasecmp(gpu_bind, "closest", 7)) {
-	/* this is the default in pslurm, but only with one GPU per task */
+	/* this is the default in psslurm */
 	return true;
     }
     if (!strncasecmp(gpu_bind, "map_gpu:", 8)) {
