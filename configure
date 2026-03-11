@@ -14567,6 +14567,12 @@ ac_config_files="$ac_config_files plugins/psslurm/src/psslurm/Makefile"
 
 ac_config_files="$ac_config_files plugins/psslurm/src/spank/Makefile"
 
+ac_config_files="$ac_config_files plugins/qproxy/Makefile"
+
+ac_config_files="$ac_config_files plugins/qproxy/doc/Makefile"
+
+ac_config_files="$ac_config_files plugins/qproxy/plugin/Makefile"
+
 ac_config_files="$ac_config_files plugins/rrcomm/Makefile"
 
 ac_config_files="$ac_config_files plugins/rrcomm/doc/Makefile"
@@ -15732,6 +15738,9 @@ do
     "plugins/psslurm/src/k12/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/k12/Makefile" ;;
     "plugins/psslurm/src/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/psslurm/Makefile" ;;
     "plugins/psslurm/src/spank/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/spank/Makefile" ;;
+    "plugins/qproxy/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/qproxy/Makefile" ;;
+    "plugins/qproxy/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/qproxy/doc/Makefile" ;;
+    "plugins/qproxy/plugin/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/qproxy/plugin/Makefile" ;;
     "plugins/rrcomm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/Makefile" ;;
     "plugins/rrcomm/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/doc/Makefile" ;;
     "plugins/rrcomm/include/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/include/Makefile" ;;

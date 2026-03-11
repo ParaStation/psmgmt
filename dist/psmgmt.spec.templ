@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021-2025 ParTec AG, Munich
+# Copyright (C) 2021-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -262,6 +262,8 @@ fi
 %doc doc/parastation.conf.tmpl
 %doc doc/psconfig
 %doc doc/systemd
+%doc plugins/qproxy/doc/psconfig
+%doc plugins/qproxy/doc/README.qproxy
 %doc plugins/rrcomm/doc/psconfig
 %doc plugins/rrcomm/doc/README.rrcomm
 %dir %{_bindir}
@@ -315,6 +317,7 @@ fi
 %config(noreplace) /etc/pam.d/psid
 %endif
 %{_plugindir}/pspmi.so
+%{_plugindir}/qproxy.so
 %{_plugindir}/rrcomm.so
 %config(missingok,noreplace) %{_sysconfdir}/gdbinit.d/psmgmt.gdb
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh

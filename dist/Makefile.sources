@@ -667,11 +667,14 @@ plugins/psslurm/src/spank/spank_api.h \
 plugins/psslurm/src/spank/visspank.c \
 plugins/psslurm/src/spank/x11spank.c \
 plugins/qproxy/Makefile.am \
+plugins/qproxy/Makefile.in \
 plugins/qproxy/doc/Makefile.am \
+plugins/qproxy/doc/Makefile.in \
 plugins/qproxy/doc/README.qproxy \
 plugins/qproxy/doc/psconfig/qproxy.dump \
 plugins/qproxy/doc/psconfig/qproxy.vipsconfig \
 plugins/qproxy/plugin/Makefile.am \
+plugins/qproxy/plugin/Makefile.in \
 plugins/qproxy/plugin/qproxy.c \
 plugins/qproxy/plugin/qproxyconfig.c \
 plugins/qproxy/plugin/qproxyconfig.h \
