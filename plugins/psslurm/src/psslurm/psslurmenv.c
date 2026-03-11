@@ -944,12 +944,21 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    flog("failed to get assigned GPUs from bitstring\n");
 	    return;
 	}
+	if (!PSCPU_any(assGPUs, PSCPU_MAX)) {
+	    flog("UNEXPECTED: no assigned GPUs found\n");
+	    return;
+	}
 
 	/* create comma separated list of GPUs for this rank */
 	PSCPU_set_t rankGPUs;
 	if (!getRankGpuPinning(localRankId, step, stepNId, assGPUs,
 			       &rankGPUs)) {
 	    return; /* error message already printed */
+	}
+
+	if (!PSCPU_any(rankGPUs, PSCPU_MAX)) {
+	    flog("UNEXPECTED: no rank GPUs\n");
+	    return;
 	}
 
 	strbuf_t buf = strbufNew(NULL);
