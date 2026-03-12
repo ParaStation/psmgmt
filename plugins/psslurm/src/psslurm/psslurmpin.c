@@ -1649,10 +1649,6 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 			       char **map_gpu, char **mask_gpu,
 			       int *gpus_per_task)
 {
-    *verbose = false;
-    *map_gpu = NULL;
-    *mask_gpu = NULL;
-
     fdbg(PSSLURM_LOG_PART, "gpu_bind: '%s'\n", gpu_bind);
 
     if (!strncasecmp(gpu_bind, "verbose", 7)) {
@@ -1870,11 +1866,13 @@ static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
 bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 		       PSCPU_set_t assGPUs, PSCPU_set_t *rankGPUs)
 {
+    /* set defaults for bind string values */
     bool verbose = false;
     char *map_gpu = NULL;
     char *mask_gpu = NULL;
-    int gpus_per_task = 1; /* this is the default if not set */
+    int gpus_per_task = 1;
 
+    /* get the bind string and parse it if available */
     char *gpu_bind = getGpuBindString(step->tresBind);
     if (gpu_bind
 	&& !parseGpuBindString(gpu_bind, &verbose, &map_gpu, &mask_gpu,
