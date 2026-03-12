@@ -1908,7 +1908,8 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	PSCPU_setCPU(*rankGPUs, maparray[localRankId % count]);
 	ufree(maparray);
     } else if (mask_gpu) {
-	//TODO we need to support more than one GPU per task to support this
+	/* @todo add support
+	 * don't forget to check gpu_mask:0x0,0x1 case */
 	flog("gpu_bind type \"mask_gpu\" is not supported by psslurm\n");
 	uprintf("gpu_bind type \"mask_gpu\" is not supported\n");
 	return false;

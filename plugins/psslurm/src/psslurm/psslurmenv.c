@@ -956,12 +956,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    return; /* error message already printed */
 	}
 
-	if (!PSCPU_any(rankGPUs, PSCPU_MAX)) {
-	    flog("UNEXPECTED: no rank GPUs\n");
-	    return;
-	}
-
-	strbuf_t buf = strbufNew(NULL);
+	strbuf_t buf = strbufNew("");
 	for (uint16_t gpu = 0, comma = 0; gpu < PSCPU_MAX; gpu++) {
 	    if (!PSCPU_isSet(rankGPUs, gpu)) continue;
 
