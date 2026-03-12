@@ -88,6 +88,9 @@ int initialize(FILE *logfile)
 
     if (!attachQProxyHooks()) return 1;
 
+    char *schedURL = pluginConfig_getStr(QProxyConfig, "SchedulerURL");
+    mlog("Scheduler URL is %s\n",
+	 (schedURL && strlen(schedURL)) ? schedURL : "not set");
     mlog("(%i) successfully started\n", version);
 
     return 0;
