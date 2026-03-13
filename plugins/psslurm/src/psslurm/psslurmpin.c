@@ -1649,11 +1649,6 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 			       char **map_gpu, char **mask_gpu,
 			       int *gpus_per_task)
 {
-    *verbose = false;
-    *map_gpu = NULL;
-    *mask_gpu = NULL;
-    *gpus_per_task = 1; /* this is the default if not set */
-
     fdbg(PSSLURM_LOG_PART, "gpu_bind: '%s'\n", gpu_bind);
 
     if (!strncasecmp(gpu_bind, "verbose", 7)) {
@@ -1687,7 +1682,7 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 	}
     }
     if (!strncasecmp(gpu_bind, "closest", 7)) {
-	/* this is the default in pslurm, but only with one GPU per task */
+	/* this is the default in psslurm */
 	return true;
     }
     if (!strncasecmp(gpu_bind, "map_gpu:", 8)) {
@@ -1736,15 +1731,15 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
  *
  * @param assGPUs          GPUs to be used
  *
- * @param rankGPUs         mask to be filled (actual return value)
- *
  * @param gpus_per_task   Number of GPUs to assign to each task
+ *
+ * @param rankGPUs         mask to be filled (actual return value)
  *
  * @return true on success, false on error.
  */
 static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
 				      uint32_t stepNodeId, PSCPU_set_t assGPUs,
-				      PSCPU_set_t *rankGPUs, int gpus_per_task)
+				      int gpus_per_task, PSCPU_set_t *rankGPUs)
 {
     /* number of local tasks */
     uint32_t ltnum = step->globalTaskIdsLen[stepNodeId];
@@ -1871,11 +1866,13 @@ static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
 bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 		       PSCPU_set_t assGPUs, PSCPU_set_t *rankGPUs)
 {
+    /* set defaults for bind string values */
     bool verbose = false;
     char *map_gpu = NULL;
     char *mask_gpu = NULL;
-    int gpus_per_task = 0;
+    int gpus_per_task = 1;
 
+    /* get the bind string and parse it if available */
     char *gpu_bind = getGpuBindString(step->tresBind);
     if (gpu_bind
 	&& !parseGpuBindString(gpu_bind, &verbose, &map_gpu, &mask_gpu,
@@ -1883,6 +1880,9 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	flog("no or invalid gpu_bind string\n");
 	return false;
     }
+
+    /* if gpu_bind is not set (no --gpu-bind or --tres-bind=gpu: used)
+     * then use the defaults (gpus_per_task = 1 and bind type "closest" */
 
     PSCPU_clrAll(*rankGPUs);
 
@@ -1908,13 +1908,14 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	PSCPU_setCPU(*rankGPUs, maparray[localRankId % count]);
 	ufree(maparray);
     } else if (mask_gpu) {
-	//TODO we need to support more than one GPU per task to support this
+	/* @todo add support
+	 * don't forget to check gpu_mask:0x0,0x1 case */
 	flog("gpu_bind type \"mask_gpu\" is not supported by psslurm\n");
 	uprintf("gpu_bind type \"mask_gpu\" is not supported\n");
 	return false;
     } else {
 	if (!getDefaultRankGpuPinning(localRankId, step, stepNodeId, assGPUs,
-		rankGPUs, gpus_per_task)) return false;
+		gpus_per_task, rankGPUs)) return false;
     }
 
     if (verbose) {

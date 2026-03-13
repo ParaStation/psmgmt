@@ -1,3 +1,36 @@
+Version 6.7.1:
+==============
+------------------------------------------------------------------------
+c20a99491 | Stephan Krempel | Thu, 12 Mar 2026 10:49:12 +0100
+
+psslurm: Do not prevent upcoming mask_gpu implementation
+
+It is allowed to exclude rank from getting GPUs assigned
+using e.g. gpu-bind=mask_gpu:0x0,0x1 so with the support
+of mask_gpu, no GPU for a rank becomes an expected case.
+------------------------------------------------------------------------
+489b9f2ae | Stephan Krempel | Thu, 12 Mar 2026 10:48:36 +0100
+
+psslurm: Unify setting gpu-bind defaults
+------------------------------------------------------------------------
+f109749f7 | Stephan Krempel | Wed, 11 Mar 2026 22:28:42 +0100
+
+psslurm: Update comment
+------------------------------------------------------------------------
+b6913a01e | Stephan Krempel | Wed, 11 Mar 2026 22:27:08 +0100
+
+psslurm: Fix gpus_per_task when no gpu-bind given
+------------------------------------------------------------------------
+883e4fae8 | Stephan Krempel | Wed, 11 Mar 2026 22:26:06 +0100
+
+psslurm: Put return value to last position
+------------------------------------------------------------------------
+ed6f674f7 | Stephan Krempel | Wed, 11 Mar 2026 22:24:58 +0100
+
+psslurm: Catch some unexpected states in GPU pinning
+------------------------------------------------------------------------
+
+
 Version 6.7.0:
 ==============
 ------------------------------------------------------------------------

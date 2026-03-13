@@ -6,6 +6,12 @@ Copyright (C) 2021-2026 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.7.1:
+==============
+Bugfixes:
+ - Catch unexpected states in GPU pinning the might lead to segfault (psc#23)
+
+
 Version 6.7.0:
 ==============
 Bugfixes:
