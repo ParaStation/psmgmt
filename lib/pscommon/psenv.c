@@ -139,7 +139,7 @@ static int getIndex(const env_t env, const char *name, size_t nameLen)
     if (!envInitialized(env) || !name) return -1;
 
     size_t len = nameLen ? nameLen : strlen(name);
-    char *eq = strchr(name, '=');
+    const char *eq = strchr(name, '=');
     if (eq && eq < name + len) return -1;
 
     for (uint32_t i = 0; i < env->cnt; i++) {
