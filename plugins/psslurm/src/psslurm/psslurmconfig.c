@@ -480,6 +480,8 @@ static bool addHostOptions(char *options)
 	    /* already set before */
 	} else if (!strncasecmp(next, "MemSpecLimit=", 13)) {
 	    addConfigEntry(Config, "SLURM_MEM_SPEC_LIMIT", next+13);
+	} else if (!strncasecmp(next, "SocketsPerBoard=", 16)) {
+	    addConfigEntry(Config, "SLURM_SOCKETS_PER_BOARD", next+16);
 	} else {
 	    flog("unknown node option '%s'\n", next);
 	    return false;
@@ -1242,7 +1244,9 @@ static bool verifySlurmConf(void)
     char buf[20];
 
     int sockets = getConfValueI(Config, "SLURM_SOCKETS");
-    if (sockets == -1) {
+    int socketsPerBoard = getConfValueI(Config, "SLURM_SOCKETS_PER_BOARD");
+
+    if (sockets == -1 && socketsPerBoard == -1) {
 	if (skipCoreCheck) {
 	    sockets = PSIDnodes_numNUMADoms(PSC_getMyID());
 	    flog("taking sockets from hwloc: ");
@@ -1284,9 +1288,12 @@ static bool verifySlurmConf(void)
 	     getConfValueI(Config, "SLURM_THREADS_PER_CORE"));
     }
 
+    if (socketsPerBoard == -1) socketsPerBoard = sockets;
+    int totSockets = boards * socketsPerBoard;
+
     int slurmCPUs = getConfValueI(Config, "SLURM_CPUS");
     if (cores != -1 && threads != -1) {
-	int calcCPUs = boards * sockets * cores * threads;
+	int calcCPUs = totSockets * cores * threads;
 
 	if (slurmCPUs == -1) {
 	    char CPUs[64];
@@ -1298,21 +1305,21 @@ static bool verifySlurmConf(void)
 	/* verify that the Slurm configuration is consistent */
 	if (calcCPUs != slurmCPUs) {
 	    flog("mismatching SLURM_CPUS %i calculated by "
-		    "sockets/threads/cores %i\n", slurmCPUs, calcCPUs);
+		    "totSockets/threads/cores %i\n", slurmCPUs, calcCPUs);
 	    return false;
 	}
     }
 
-    if (!skipCoreCheck && boards * sockets * cores != PSIDhw_getCores()) {
-	flog("Slurm cores %i mismatching psid cores %i\n",
-	     boards * sockets * cores, PSIDhw_getCores());
+    if (!skipCoreCheck && totSockets * cores != PSIDhw_getCores()) {
+	flog("Slurm cores %i (#sockets %i #cores %i) mismatching psid cores %i\n",
+	     totSockets * cores, totSockets, cores, PSIDhw_getCores());
 	return false;
     }
 
     if (!skipCoreCheck
-	&& boards * sockets * cores * threads != PSIDhw_getHWthreads()) {
+	&& totSockets * cores * threads != PSIDhw_getHWthreads()) {
 	flog("Slurm threads %i mismatching psid threads %i\n",
-	     boards * sockets * cores * threads, PSIDhw_getHWthreads());
+	     totSockets * cores * threads, PSIDhw_getHWthreads());
 	return false;
     }
 
