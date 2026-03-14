@@ -859,10 +859,14 @@ int initialize(FILE *logfile)
 		 getConfValueC(Config, "CPU_FREQ_SCRIPT"), &CPUfreqInitCB);
     initFlags |= INIT_CPU_FREQ;
 
+
     /* GPU frequency scaling is hardware dependent and might
      * not be available at all */
-    GPUfreq_init(NULL, &GPUfreqInitCB);
-    initFlags |= INIT_GPU_FREQ;
+    char *disGPUcheck = getenv("__DISABLE_GPU_FREQ_HW_CHECK");
+    if (disGPUcheck || PSIDnodes_numGPUs(PSC_getMyID()) > 0) {
+	GPUfreq_init(NULL, &GPUfreqInitCB);
+	initFlags |= INIT_GPU_FREQ;
+    }
 
     if (confRes == CONFIG_SERVER) {
 	char *confCache = getConfValueC(Config, "SLURM_CONF_CACHE");
