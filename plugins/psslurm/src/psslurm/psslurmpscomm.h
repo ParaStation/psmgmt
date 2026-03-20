@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,35 +28,30 @@
  * Release delayed spawns buffered for a specific jobstep. This is
  * done once the corresponding step has been created.
  *
- * @param  jobid   JodID
- * @param  stepid  StepID
+ * @param hID Surm head identifier
  */
-void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid);
+void releaseDelayedSpawns(Head_ID_t *hID);
 
 /**
  * Cleanup all delayed spawns for a specific jobstep.
  * This is done as part of the cleanup if a step failed.
  *
- * @param  jobid   JodID
- * @param  stepid  StepID
+ * @param hID Surm head identifier
  */
-void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid);
+void cleanupDelayedSpawns(Head_ID_t *hID);
 
 /**
  * @brief Send a job exit message
  *
  * Inform sister nodes a job or step is finished.
  *
- * @param jobid Unique job identifier
- *
- * @param stepid Unique step identifier
+ * @param hID Surm head identifier
  *
  * @param nrOfNodes The number of nodes in the nodelist
  *
  * @param nodes The nodes to inform
  */
-void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
-		     PSnodes_ID_t *nodes);
+void send_PS_JobExit(Head_ID_t *hID, uint32_t numDest, PSnodes_ID_t *nodes);
 
 /**
  * @brief Send a job launch request
@@ -176,11 +171,9 @@ void requeueBatchJob(Job_t *job, PSnodes_ID_t dest);
 /**
  * @brief Free all unhandled cached messages for a step
  *
- * @param jobid The jobid of the step
- *
- * @param stepid The stepid of the step
+ * @param hID Surm head identifier
  */
-void deleteCachedMsg(uint32_t jobid, uint32_t stepid);
+void deleteCachedMsg(Head_ID_t *hID);
 
 /**
  * @brief Handle all cached messages for a step

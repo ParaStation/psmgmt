@@ -110,8 +110,7 @@ static uint16_t numSstatUIDs = 0;
 Ext_Resp_Node_Reg_t *tresDBconfig = NULL;
 
 typedef struct {
-    uint32_t jobid;
-    uint32_t stepid;
+    Head_ID_t hID;
     bool timeout;
     uid_t uid;
 } Kill_Info_t;
@@ -694,7 +693,7 @@ static bool doSignalTasks(Req_Signal_Tasks_t *req)
 	    Step_t s = { .hID = req->hID };
 	    flog("send %s (stepHetComp %u) signal %u\n", Step_strID(&s),
 		 req->hID.stepHetComp, req->signal);
-	    Step_t *step = Step_findByStepId(req->hID.jobid, req->hID.stepid);
+	    Step_t *step = Step_findByStepId(&req->hID);
 	    if (step && Step_signal(step, req->signal, req->uid) != -1) {
 		return true;
 	    }
@@ -855,7 +854,7 @@ static int handleReattachTasks(Slurm_Msg_t *sMsg)
 	return SLURM_NO_RC;
     }
 
-    Step_t *step = Step_findByStepId(req->hID.jobid, req->hID.stepid);
+    Step_t *step = Step_findByStepId(&req->hID);
     if (!step) {
 	Step_t s = { .hID = req->hID };
 	flog("%s to reattach not found\n", Step_strID(&s));
@@ -1464,15 +1463,15 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 
 static int handleStepStat(Slurm_Msg_t *sMsg)
 {
-    Head_ID_t *head = sMsg->unpData;
-    if (!head) {
+    Head_ID_t *hID = sMsg->unpData;
+    if (!hID) {
 	flog("unpacking step stat request failed\n");
 	return ESLURM_INVALID_JOB_ID;
     }
 
-    Step_t *step = Step_findByStepId(head->jobid, head->stepid);
+    Step_t *step = Step_findByStepId(hID);
     if (!step) {
-	Step_t s = { .hID = *head };
+	Step_t s = { .hID = *hID };
 	flog("%s to signal not found\n", Step_strID(&s));
 	return ESLURM_INVALID_JOB_ID;
     }
@@ -1531,15 +1530,15 @@ static int handleStepStat(Slurm_Msg_t *sMsg)
 
 static int handleStepPids(Slurm_Msg_t *sMsg)
 {
-    Head_ID_t *head = sMsg->unpData;
-    if (!head) {
+    Head_ID_t *hID = sMsg->unpData;
+    if (!hID) {
 	flog("unpacking step pids request failed\n");
 	return ESLURM_INVALID_JOB_ID;
     }
 
-    Step_t *step = Step_findByStepId(head->jobid, head->stepid);
+    Step_t *step = Step_findByStepId(hID);
     if (!step) {
-	Step_t s = { .hID = *head };
+	Step_t s = { .hID = *hID };
 	flog("%s to signal not found\n", Step_strID(&s));
 	return ESLURM_INVALID_JOB_ID;
     }
@@ -1674,7 +1673,7 @@ static int handleJobNotify(Slurm_Msg_t *sMsg)
     }
 
     Job_t *job = Job_findById(req->hID.jobid);
-    Step_t *step = Step_findByStepId(req->hID.jobid, req->hID.stepid);
+    Step_t *step = Step_findByStepId(&req->hID);
 
     if (!job && !step) {
 	flog("job/step %u.%u to notify not found, msg %s\n", req->hID.jobid,
@@ -2135,17 +2134,15 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     startPElogue(alloc, PELOGUE_EPILOGUE);
 }
 
-static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
+static void handleAbortReq(Slurm_Msg_t *sMsg, Head_ID_t *hID)
 {
     /* send success back to slurmctld */
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
-    if (stepid != NO_VAL) {
-	Step_t *step = Step_findByStepId(jobid, stepid);
+    if (hID->stepid != NO_VAL) {
+	Step_t *step = Step_findByStepId(hID);
 	if (!step) {
-	    Step_t s = {
-		.hID.jobid = jobid,
-		.hID.stepid = stepid };
+	    Step_t s = { .hID = *hID };
 	    flog("%s not found\n", Step_strID(&s));
 	    return;
 	}
@@ -2154,27 +2151,25 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 	return;
     }
 
-    Job_t *job = Job_findById(jobid);
+    Job_t *job = Job_findById(hID->jobid);
     if (job) {
 	if (!job->mother) {
 	    Job_signalTasks(job, SIGKILL, sMsg->head.uid);
-	    send_PS_JobExit(job->hID.jobid, SLURM_BATCH_SCRIPT,
-		    job->nrOfNodes, job->nodes);
+	    send_PS_JobExit(&job->hID, job->nrOfNodes, job->nodes);
 	}
 	Job_delete(job);
     } else {
-	Alloc_t *alloc = Alloc_find(jobid);
+	Alloc_t *alloc = Alloc_find(hID->jobid);
 	if (alloc && Alloc_isLeader(alloc)) {
 	    Step_signalByJobid(alloc->hID.jobid, SIGKILL, sMsg->head.uid);
-	    send_PS_JobExit(alloc->hID.jobid, SLURM_BATCH_SCRIPT,
-		    alloc->nrOfNodes, alloc->nodes);
+	    send_PS_JobExit(&alloc->hID, alloc->nrOfNodes, alloc->nodes);
 	}
 	if (alloc) {
 	    Alloc_delete(alloc);
 	} else {
 	    /* just in case there are trailing steps or bcasts @todo required? */
-	    Step_destroyByJobid(jobid);
-	    BCast_clearByJobid(jobid);
+	    Step_destroyByJobid(hID->jobid);
+	    BCast_clearByJobid(hID->jobid);
 	}
     }
 }
@@ -2195,8 +2190,8 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
     const Kill_Info_t *info = killInfo;
     char buf[512];
 
-    if (!step->fwdata || step->hID.jobid != info->jobid) return false;
-    if (info->stepid != NO_VAL && info->stepid != step->hID.stepid) {
+    if (!step->fwdata || step->hID.jobid != info->hID.jobid) return false;
+    if (info->hID.stepid != NO_VAL && info->hID.stepid != step->hID.stepid) {
 	return false;
     }
 
@@ -2217,7 +2212,7 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
     }
 
     /* only signal selected steps */
-    if (info->stepid != NO_VAL) Step_signal(step, SIGTERM, info->uid);
+    if (info->hID.stepid != NO_VAL) Step_signal(step, SIGTERM, info->uid);
 
     return false;
 }
@@ -2229,11 +2224,8 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
     Step_traverse(killSelectedSteps, info);
 
     /* if we only kill one selected step, we are done */
-    if (info->stepid != NO_VAL) {
-	Step_t s = {
-	    .hID.jobid = info->jobid,
-	    .hID.stepid = info->stepid };
-
+    if (info->hID.stepid != NO_VAL) {
+	Step_t s = { .hID = info->hID };
 	fdbg(PSSLURM_LOG_JOB, "kill request for single step %s\n",
 	     Step_strID(&s));
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
@@ -2245,17 +2237,17 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
     if (!alloc->firstKillReq) {
 	alloc->firstKillReq = time(NULL);
 
-	Job_t *job = Job_findById(info->jobid);
+	Job_t *job = Job_findById(info->hID.jobid);
 	if (job) {
 	    char buf[512];
 	    if (info->timeout) {
 		job->timeout = true;
 		snprintf(buf, sizeof(buf), "error: *** job %u CANCELLED DUE "
-			 "TO TIME LIMIT ***\n", info->jobid);
+			 "TO TIME LIMIT ***\n", info->hID.jobid);
 		fwCMD_printMsg(job, NULL, buf, strlen(buf), STDERR, 0);
 	    } else {
 		snprintf(buf, sizeof(buf), "error: *** PREEMPTION for "
-			 "job %u ***\n", info->jobid);
+			 "job %u ***\n", info->hID.jobid);
 		fwCMD_printMsg(job, NULL, buf, strlen(buf), STDERR, 0);
 	    }
 	}
@@ -2302,7 +2294,7 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
 
     /* remove all unfinished spawn requests */
     PSIDspawn_cleanupBySpawner(PSC_getMyTID());
-    cleanupDelayedSpawns(req->hID.jobid, req->hID.stepid);
+    cleanupDelayedSpawns(&req->hID);
 
     /* find the corresponding allocation */
     Alloc_t *alloc = Alloc_find(req->hID.jobid);
@@ -2322,8 +2314,7 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
     }
 
     Kill_Info_t info = {
-	.jobid = req->hID.jobid,
-	.stepid = req->hID.stepid,
+	.hID = req->hID,
 	.uid = sMsg->head.uid };
 
     switch (sMsg->head.type) {
@@ -2336,7 +2327,7 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
 	handleKillReq(sMsg, alloc, &info);
 	break;
     case REQUEST_ABORT_JOB:
-	handleAbortReq(sMsg, req->hID.jobid, req->hID.stepid);
+	handleAbortReq(sMsg, &req->hID);
 	break;
     case REQUEST_TERMINATE_JOB:
 	doTerminateAlloc(sMsg, alloc);

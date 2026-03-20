@@ -481,15 +481,15 @@ static void initFwPtr(PStask_t *task)
     if (fwStep || !task) return;
 
     bool isAdmin = isPSAdminUser(task->uid, task->gid);
-    uint32_t jobid, stepid;
-    Step_t *step = Step_findByEnv(task->env, &jobid, &stepid);
+    Head_ID_t hID;
+    Step_t *step = Step_findByEnv(task->env, &hID);
 
     if (step) {
 	fwStep = step;
-	fwJob = Job_findById(jobid);
-	fwAlloc = Alloc_find(jobid);
+	fwJob = Job_findById(hID.jobid);
+	fwAlloc = Alloc_find(hID.jobid);
     } else if (!isAdmin) {
-	Step_t s = { .hID.jobid = jobid, .hID.stepid = stepid };
+	Step_t s = { .hID = hID };
 	flog("%s not found\n", Step_strID(&s));
     }
 

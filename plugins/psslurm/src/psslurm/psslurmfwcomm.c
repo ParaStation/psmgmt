@@ -42,6 +42,7 @@
 #include "psslurmpin.h"
 #include "psslurmproto.h"
 #include "psslurmpscomm.h"
+#include "psslurmpack.h"
 
 typedef enum {
     CMD_PRINT_CHILD_MSG = PLGN_TYPE_LAST+1,
@@ -236,13 +237,17 @@ bool fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 
 static void handleBrokeIOcon(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
-    uint32_t jobID;
-    getUint32(data, &jobID);
-    uint32_t stepID;
-    getUint32(data, &stepID);
+    Head_ID_t hID;
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	unpackSlurmID(data, &hID, slurmProto);
+    } else {
+	memset(&hID, 0, sizeof(hID));
+	getUint32(data, &hID.jobid);
+	getUint32(data, &hID.stepid);
+    }
 
     /* step might already be deleted */
-    Step_t *step = Step_findByStepId(jobID, stepID);
+    Step_t *step = Step_findByStepId(&hID);
     if (!step) return;
 
     if (step->ioCon == IO_CON_NORM) step->ioCon = IO_CON_ERROR;
@@ -250,14 +255,18 @@ static void handleBrokeIOcon(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
 static void changeEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
-    uint32_t jobid;
-    getUint32(data, &jobid);
-    uint32_t stepid;
-    getUint32(data, &stepid);
+    Head_ID_t hID;
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	unpackSlurmID(data, &hID, slurmProto);
+    } else {
+	memset(&hID, 0, sizeof(hID));
+	getUint32(data, &hID.jobid);
+	getUint32(data, &hID.stepid);
+    }
 
-    Step_t *step = Step_findByStepId(jobid, stepid);
+    Step_t *step = Step_findByStepId(&hID);
     if (!step) {
-	Step_t s = { .hID.jobid = jobid, .hID.stepid = stepid };
+	Step_t s = { .hID = hID };
 	flog("warning: %s already gone\n", Step_strID(&s));
 	return;
     }
@@ -424,20 +433,25 @@ static void startSpawner(Step_t *step, int32_t serviceRank)
 
 static void handleInitComplete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
-    uint32_t jobid;
-    getUint32(data, &jobid);
-    uint32_t stepid;
-    getUint32(data, &stepid);
+    Head_ID_t hID;
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	unpackSlurmID(data, &hID, slurmProto);
+    } else {
+	memset(&hID, 0, sizeof(hID));
+	getUint32(data, &hID.jobid);
+	getUint32(data, &hID.stepid);
+    }
+
     int32_t serviceRank;
     getInt32(data, &serviceRank);
 
-    Step_t *step = Step_findByStepId(jobid, stepid);
+    Step_t *step = Step_findByStepId(&hID);
     if (!step) {
-	Step_t s = { .hID.jobid = jobid, .hID.stepid = stepid };
+	Step_t s = { .hID = hID };
 	flog("warning: %s already gone\n", Step_strID(&s));
 	return;
     }
-    releaseDelayedSpawns(step->hID.jobid, step->hID.stepid);
+    releaseDelayedSpawns(&hID);
     if (step->spawned) startSpawner(step, serviceRank);
 }
 
@@ -499,8 +513,13 @@ void fwCMD_setEnv(Step_t *step, const char *var, const char *val)
     initFragBuffer(&data, PSP_PF_MSG, CMD_SETENV);
     setFragDest(&data, PSC_getTID(-1,0));
 
-    addUint32ToMsg(step->hID.jobid, &data);
-    addUint32ToMsg(step->hID.stepid, &data);
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	packSlurmID(&step->hID, &data);
+    } else {
+	addUint32ToMsg(step->hID.jobid, &data);
+	addUint32ToMsg(step->hID.stepid, &data);
+    }
+
     addStringToMsg(var, &data);
     addStringToMsg(val, &data);
 
@@ -518,8 +537,13 @@ void fwCMD_initComplete(Step_t *step, int32_t serviceRank)
     initFragBuffer(&data, PSP_PF_MSG, CMD_INIT_COMPLETE);
     setFragDest(&data, PSC_getTID(-1,0));
 
-    addUint32ToMsg(step->hID.jobid, &data);
-    addUint32ToMsg(step->hID.stepid, &data);
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	packSlurmID(&step->hID, &data);
+    } else {
+	addUint32ToMsg(step->hID.jobid, &data);
+	addUint32ToMsg(step->hID.stepid, &data);
+    }
+
     addInt32ToMsg(serviceRank, &data);
 
     sendFragMsg(&data);
@@ -536,8 +560,13 @@ void fwCMD_unsetEnv(Step_t *step, const char *var)
     initFragBuffer(&data, PSP_PF_MSG, CMD_UNSETENV);
     setFragDest(&data, PSC_getTID(-1,0));
 
-    addUint32ToMsg(step->hID.jobid, &data);
-    addUint32ToMsg(step->hID.stepid, &data);
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	packSlurmID(&step->hID, &data);
+    } else {
+	addUint32ToMsg(step->hID.jobid, &data);
+	addUint32ToMsg(step->hID.stepid, &data);
+    }
+
     addStringToMsg(var, &data);
 
     sendFragMsg(&data);
@@ -549,8 +578,12 @@ void fwCMD_brokeIOcon(Step_t *step)
     initFragBuffer(&data, PSP_PF_MSG, CMD_BROKE_IO_CON);
     setFragDest(&data, PSC_getTID(-1,0));
 
-    addUint32ToMsg(step->hID.jobid, &data);
-    addUint32ToMsg(step->hID.stepid, &data);
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	packSlurmID(&step->hID, &data);
+    } else {
+	addUint32ToMsg(step->hID.jobid, &data);
+	addUint32ToMsg(step->hID.stepid, &data);
+    }
 
     sendFragMsg(&data);
 }

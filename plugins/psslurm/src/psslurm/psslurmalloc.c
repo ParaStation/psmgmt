@@ -255,8 +255,7 @@ bool Alloc_delete(Alloc_t *alloc)
 
     /* tell sisters the allocation is revoked */
     if (Alloc_isLeader(alloc)) {
-	send_PS_JobExit(alloc->hID.jobid, SLURM_BATCH_SCRIPT,
-		alloc->nrOfNodes, alloc->nodes);
+	send_PS_JobExit(&alloc->hID, alloc->nrOfNodes, alloc->nodes);
     }
 
     uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->hID.jobid;

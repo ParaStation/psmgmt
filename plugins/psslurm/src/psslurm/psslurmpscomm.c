@@ -74,8 +74,7 @@ static bool initialized = false;
 typedef struct {
     list_t next;                /**< used to put into msg-cache-lists */
     int msgType;		/**< psslurm msg type */
-    uint32_t jobid;		/**< jobid of the step */
-    uint32_t stepid;		/**< stepid of the step */
+    Head_ID_t hID;		/**< hID Surm head identifier */
     DDTypedBufferMsg_t msg;	/**< used to save the msg header */
     PS_DataBuffer_t data;	/**< msg payload */
 } Msg_Cache_t;
@@ -501,11 +500,11 @@ static int handleRecvSpawnReq(void *taskPtr)
     /* allow processes spawned by admin users to pass */
     if (isPSAdminUser(spawnee->uid, spawnee->gid)) return 0;
 
-    uint32_t jobid, stepid;
-    Step_t *step = Step_findByEnv(spawnee->env, &jobid, &stepid);
+    Head_ID_t hID;
+    Step_t *step = Step_findByEnv(spawnee->env, &hID);
     if (!step || !step->nodeinfos) {
 	/* if the step has no nodeinfo yet, delay spawning processes */
-	Step_t s = { .hID.jobid = jobid, .hID.stepid = stepid };
+	Step_t s = { .hID = hID };
 	flog("delay spawning for %s due to missing %s%s\n",
 	     PSC_printTID(spawnee->ptid), step ? "nodeinfo in " : "",
 	     Step_strID(&s));
@@ -666,8 +665,7 @@ void requeueBatchJob(Job_t *job, PSnodes_ID_t dest)
     envDestroy(clone);
 }
 
-void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t numDest,
-		     PSnodes_ID_t *nodes)
+void send_PS_JobExit(Head_ID_t *hID, uint32_t numDest, PSnodes_ID_t *nodes)
 {
     PS_SendDB_t data;
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_JOB_EXIT);
@@ -679,8 +677,12 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t numDest,
     }
     if (!getNumFragDest(&data)) return;
 
-    addUint32ToMsg(jobid, &data);
-    addUint32ToMsg(stepid, &data);
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	packSlurmID(hID, &data);
+    } else {
+	addUint32ToMsg(hID->jobid, &data);
+	addUint32ToMsg(hID->stepid, &data);
+    }
 
     sendFragMsg(&data);
 }
@@ -721,32 +723,18 @@ void send_PS_PElogueRes(Alloc_t *alloc, int16_t res, int16_t type)
 
 static void handleJobExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
-    /* get jobid/stepid */
-    uint32_t jobid, stepid;
-    getUint32(data, &jobid);
-    getUint32(data, &stepid);
-
-    Step_t s = {
-	.hID.jobid = jobid,
-	.hID.stepid = stepid };
-    flog("for %s from %s\n", Step_strID(&s), PSC_printTID(msg->header.sender));
-
-    if (stepid == SLURM_BATCH_SCRIPT) {
-	Job_t *job = Job_findById(jobid);
-	if (!job) return;
-	job->state = JOB_EXIT;
-	return;
-    }
-
-    Step_t *step = Step_findByStepId(jobid, stepid);
-    if (!step) {
-	flog("%s not found\n", Step_strID(&s));
-	return;
+    Head_ID_t hID;
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	unpackSlurmID(data, &hID, slurmProto);
     } else {
-	step->state = JOB_EXIT;
-	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
-	     Alloc_strState(step->state));
+	memset(&hID, 0, sizeof(hID));
+	getUint32(data, &hID.jobid);
+	getUint32(data, &hID.stepid);
     }
+
+    Job_t *job = Job_findById(hID.jobid);
+    if (!job) return;
+    job->state = JOB_EXIT;
 }
 
 static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id, uint16_t res)
@@ -776,17 +764,22 @@ static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id, uint16_t res
  */
 static void handleStopStepFW(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
-    uint32_t stepid, jobid;
-    getUint32(data, &jobid);
-    getUint32(data, &stepid);
+    Head_ID_t hID;
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	unpackSlurmID(data, &hID, slurmProto);
+    } else {
+	memset(&hID, 0, sizeof(hID));
+	getUint32(data, &hID.jobid);
+	getUint32(data, &hID.stepid);
+    }
 
     /* cleanup delayed spawn messages which arrived after a terminate
      * RPC from slurmctld was proccessed for the step */
-    cleanupDelayedSpawns(jobid, stepid);
+    cleanupDelayedSpawns(&hID);
 
-    Step_t *step = Step_findByStepId(jobid, stepid);
+    Step_t *step = Step_findByStepId(&hID);
     if (!step) {
-	Step_t s = { .hID.jobid = jobid, .hID.stepid = stepid };
+	Step_t s = { .hID = hID };
 	fdbg(PSSLURM_LOG_DEBUG, "%s not found\n", Step_strID(&s));
 	return;
     }
@@ -1102,24 +1095,33 @@ static bool getSlotsFromMsg(PS_DataBuffer_t data, PSpart_slot_t **slots,
  */
 static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
-    uint32_t packJobid, stepid;
-
     /* packJobid  */
+    uint32_t packJobid;
     getUint32(data, &packJobid);
-    /* stepid */
-    getUint32(data, &stepid);
+
+    Head_ID_t hID;
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	unpackSlurmID(data, &hID, slurmProto);
+    } else {
+	memset(&hID, 0, sizeof(hID));
+	getUint32(data, &hID.jobid);
+	getUint32(data, &hID.stepid);
+    }
+
+    if (packJobid == NO_VAL) packJobid = hID.jobid;
+
     /* exit status */
     int32_t exitStatus;
     getInt32(data, &exitStatus);
 
     fdbg(PSSLURM_LOG_PACK, "packJobid %u stepid %u exitStatus %i\n",
-	 packJobid, stepid, exitStatus);
+	 packJobid, hID.stepid, exitStatus);
 
-    Step_t *step = Step_findByStepId(packJobid, stepid);
+    Step_t *step = Step_findByStepId(&hID);
     if (!step) {
 	Step_t s = {
 	    .hID.jobid = packJobid,
-	    .hID.stepid = stepid };
+	    .hID.stepid = hID.stepid };
 	flog("no %s found to set exitStatus %i\n", Step_strID(&s), exitStatus);
     } else {
 	sendStepExit(step, exitStatus);
@@ -1140,34 +1142,38 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
  */
 static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
-    uint32_t packJobid, stepid, len;
-
     /* packJobid  */
+    uint32_t packJobid;
     getUint32(data, &packJobid);
-    /* stepid */
-    getUint32(data, &stepid);
-    /* packJobid for old protocol versions, tbr */
-    uint32_t unused;
-    getUint32(data, &unused);
 
-    if (!Alloc_findByPackID(packJobid)) {
-	flog("allocation %u not found\n", packJobid);
+    Head_ID_t hID;
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	unpackSlurmID(data, &hID, slurmProto);
+    } else {
+	memset(&hID, 0, sizeof(hID));
+	getUint32(data, &hID.jobid);
+	getUint32(data, &hID.stepid);
+    }
+
+    if (packJobid != NO_VAL) hID.jobid = packJobid;
+
+    if (!Alloc_findByPackID(hID.jobid)) {
+	flog("allocation %u not found\n", hID.jobid);
 	return;
     }
 
-    Step_t *step = Step_findByStepId(packJobid, stepid);
+    Step_t *step = Step_findByStepId(&hID);
     if (!step) {
 	Msg_Cache_t *cache = umalloc(sizeof(*cache));
 
 	/* cache pack info */
-	cache->jobid = packJobid;
-	cache->stepid = stepid;
+	cache->hID = hID;
 	cache->msgType = PSP_PACK_INFO;
 	memcpy(&cache->msg.header, &msg->header, sizeof(msg->header));
 	cache->data = PSdbDup(data);
 	list_add_tail(&cache->next, &msgCache);
 
-	Step_t s = { .hID.jobid = packJobid, .hID.stepid = stepid };
+	Step_t s = { .hID = hID };
 	flog("caching pack info, %s from %s\n", Step_strID(&s),
 	     PSC_printTID(msg->header.sender));
 	return;
@@ -1201,6 +1207,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 	 step->packNtasks, jobcomp->np, jobcomp->tpp, strvSize(jobcomp->argV));
 
     /* slots */
+    uint32_t len;
     if (!getSlotsFromMsg(data, &jobcomp->slots, &len)) {
 	flog("Error getting slots from message, %s\n", Step_strID(step));
 	JobComp_delete(jobcomp);
@@ -1836,14 +1843,11 @@ static bool handleCC_Finalize_Msg(PSLog_Msg_t *msg)
  *
  * @param task Task structure to investigate
  *
- * @param jobID Pointer to store the job ID
- *
- * @param stepID Pointer to store the step ID
+ * @param hID optional Surm head identifier
  *
  * @return Returns the identified step or NULL otherwise
  */
-static Step_t * identifyStepByTaskEnv(PStask_t *task,
-				      uint32_t *jobID, uint32_t *stepID)
+static Step_t *identifyStepByTaskEnv(PStask_t *task, Head_ID_t *hID)
 {
     if (!task) {
 	flog("no task\n");
@@ -1853,19 +1857,20 @@ static Step_t * identifyStepByTaskEnv(PStask_t *task,
     /* check if step was identified before */
     Step_t *step = PStask_infoGet(task, TASKINFO_STEP);
     if (!Step_verifyPtr(step)) {
-	step = Step_findByEnv(task->env, jobID, stepID);
+	Head_ID_t env_hID;
+	step = Step_findByEnv(task->env, &env_hID);
 	if (step) {
 	    /* cache for further calls */
 	    PStask_infoAdd(task, TASKINFO_STEP, step);
-	} else if (stepID && *stepID != SLURM_BATCH_SCRIPT
+	} else if (env_hID.stepid && env_hID.stepid != SLURM_BATCH_SCRIPT
 		   && !isPSAdminUser(task->uid, task->gid)) {
 	    /* admin users may start jobs directly via mpiexec */
 	    flog("insufficient info in task %s\n", PSC_printTID(task->tid));
 	}
     } else {
-	if (jobID) *jobID = step->hID.jobid;
-	if (stepID) *stepID = step->hID.stepid;
+	if (hID) *hID = step->hID;
     }
+
     return step;
 }
 
@@ -1886,7 +1891,7 @@ static bool handleSpawnSuccess(DDErrorMsg_t *msg)
     if (PSC_getID(msg->header.dest) != PSC_getMyID()) return false;
 
     PStask_t *dest = PStasklist_find(&managedTasks, msg->header.dest);
-    Step_t *step = identifyStepByTaskEnv(dest, NULL, NULL);
+    Step_t *step = identifyStepByTaskEnv(dest, NULL);
     if (!step) {
 	flog("no step for %s", PSC_printTID(msg->header.dest));
 	mlog(" from %s\n", PSC_printTID(msg->header.sender));
@@ -1921,7 +1926,7 @@ static bool handleSpawnFailed(DDErrorMsg_t *msg)
     if (PSC_getID(msg->header.sender) != PSC_getMyID()) return false;
 
     PStask_t *frwrdr = PStasklist_find(&managedTasks, msg->header.sender);
-    Step_t *step = identifyStepByTaskEnv(frwrdr, NULL, NULL);
+    Step_t *step = identifyStepByTaskEnv(frwrdr, NULL);
     if (!step) {
 	flog("no step for %s", PSC_printTID(msg->header.sender));
 	mlog(" to %s\n", PSC_printTID(msg->header.dest));
@@ -1964,8 +1969,7 @@ static bool handleSpawnFailed(DDErrorMsg_t *msg)
 }
 
 typedef struct {
-    uint32_t jobid;
-    uint32_t stepid;
+    Head_ID_t hID;
     bool cleanup;        /**< flag to act as a cleanup filter */
 } JobStepInfo_t;
 
@@ -1975,30 +1979,30 @@ static bool filter(PStask_t *task, void *info)
     if (!js) return false;   // this filter requires info
 
     /* get jobid and stepid from received environment */
-    uint32_t jobid, stepid;
-    Step_t *step = Step_findByEnv(task->env, &jobid, &stepid);
+    Head_ID_t hID;
+    Step_t *step = Step_findByEnv(task->env, &hID);
     if (!step && !js->cleanup) {
-	if (jobid == NO_VAL) {
+	if (hID.jobid == NO_VAL) {
 	    flog("no slurm IDs in spawnee environment from %s\n",
 		 PSC_printTID(task->ptid));
 	} else {
-	    Step_t s = { .hID.jobid = jobid, .hID.stepid = stepid };
+	    Step_t s = { .hID = hID };
 	    flog("%s not found from %s\n", Step_strID(&s),
 		 PSC_printTID(task->ptid));
 	}
 	return false;
     }
 
-    if (js->cleanup && !Alloc_find(jobid) && !Alloc_findByPackID(jobid)) {
+    if (js->cleanup && !Alloc_find(hID.jobid) && !Alloc_findByPackID(hID.jobid)) {
 	/* cleanup leftover tasks */
 	flog("cleanup leftover task from %s for job %u with no allocation\n",
-	     PSC_printTID(task->ptid), jobid);
+	     PSC_printTID(task->ptid), hID.jobid);
 	return true;
     }
 
     /* clean all steps if stepid is SLURM_BATCH_SCRIPT */
-    if (js->jobid != jobid ||
-	(js->stepid != stepid && js->stepid != SLURM_BATCH_SCRIPT)) {
+    if (js->hID.jobid != hID.jobid ||
+	(js->hID.stepid != hID.stepid && js->hID.stepid != SLURM_BATCH_SCRIPT)) {
 	return false;
     }
 
@@ -2006,16 +2010,16 @@ static bool filter(PStask_t *task, void *info)
     return true;
 }
 
-void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid) {
+void releaseDelayedSpawns(Head_ID_t *hID)
+{
     JobStepInfo_t jsInfo = {
-	.jobid = jobid,
-	.stepid = stepid,
+	.hID = *hID,
 	.cleanup = false };
 
     /* double check if the step is ready now */
-    if (!Step_findByStepId(jobid, stepid)) {
+    if (!Step_findByStepId(hID)) {
 	/* this is a serious problem and should never happen */
-	Step_t s = { .hID.jobid = jobid, .hID.stepid = stepid };
+	Step_t s = { .hID = *hID };
 	flog("SERIOUS: %s not found\n", Step_strID(&s));
 	return;
     }
@@ -2024,10 +2028,10 @@ void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid) {
 }
 
 /* remove remaining buffered spawn end messages matching jobid and stepid */
-void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid) {
+void cleanupDelayedSpawns(Head_ID_t *hID)
+{
     JobStepInfo_t jsInfo = {
-	.jobid = jobid,
-	.stepid = stepid,
+	.hID = *hID,
 	.cleanup = true };
 
     PSIDspawn_cleanupDelayedTasks(filter, &jsInfo);
@@ -2075,17 +2079,18 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
 	return false; // fallback to old handler
     }
 
-    uint32_t jobID = 0, stepID = 0;
-    Step_t *step = identifyStepByTaskEnv(frwrdr, &jobID, &stepID);
+    Head_ID_t hID;
+    initHeadID(&hID);
+    Step_t *step = identifyStepByTaskEnv(frwrdr, &hID);
 
-    Step_t s = { .hID.jobid = jobID, .hID.stepid = stepID };
+    Step_t s = { .hID = hID };
     fdbg(PSSLURM_LOG_PSCOMM, "from sender %s for %s\n",
 	 PSC_printTID(msg->header.sender), Step_strID(&s));
 
-    if (stepID == SLURM_BATCH_SCRIPT) {
-	Job_t *job = Job_findById(jobID);
+    if (hID.stepid == SLURM_BATCH_SCRIPT) {
+	Job_t *job = Job_findById(hID.jobid);
 	if (!job) {
-	    flog("job %u not found\n", jobID);
+	    flog("job %u not found\n", hID.jobid);
 	    return false; // fallback to old handler
 	}
 	addTask(&job->tasks, frwrdr, msg->request, frwrdr->jobRank, frwrdr->rank);
@@ -2466,9 +2471,15 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
     }
 
     /* pack jobid */
-    addUint32ToMsg(step->packJobid != NO_VAL ?
-		   step->packJobid : step->hID.jobid, &data);
-    addUint32ToMsg(step->hID.stepid, &data);
+    addUint32ToMsg(step->packJobid, &data);
+
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	packSlurmID(&step->hID, &data);
+    } else {
+	addUint32ToMsg(step->hID.jobid, &data);
+	addUint32ToMsg(step->hID.stepid, &data);
+    }
+
     addInt32ToMsg(exitStatus, &data);
 
     fdbg(PSSLURM_LOG_PACK, "%s pack jobid %u exit %i\n", Step_strID(step),
@@ -2520,12 +2531,15 @@ int send_PS_PackInfo(Step_t *step)
     setFragDest(&data, PSC_getTID(step->packNodes[0], 0));
 
     /* pack jobid */
-    addUint32ToMsg(step->packJobid != NO_VAL ?
-		   step->packJobid : step->hID.jobid, &data);
-    /* stepid */
-    addUint32ToMsg(step->hID.stepid, &data);
-    /* add packJobid again to stay compatible with older versions, tbr */
     addUint32ToMsg(step->packJobid, &data);
+
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	packSlurmID(&step->hID, &data);
+    } else {
+	addUint32ToMsg(step->hID.jobid, &data);
+	addUint32ToMsg(step->hID.stepid, &data);
+    }
+
     /* pack task offset */
     addUint32ToMsg(step->packTaskOffset, &data);
     /* np */
@@ -2545,12 +2559,14 @@ int send_PS_PackInfo(Step_t *step)
     return sendFragMsg(&data);
 }
 
-void deleteCachedMsg(uint32_t jobid, uint32_t stepid)
+void deleteCachedMsg(Head_ID_t *hID)
 {
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &msgCache) {
 	Msg_Cache_t *cache = list_entry(s, Msg_Cache_t, next);
-	if (cache->jobid == jobid && cache->stepid == stepid) {
+	if (cache->hID.jobid == hID->jobid &&
+	    cache->hID.stepid == hID->stepid &&
+	    cache->hID.sluid == hID->sluid) {
 	    PSdbDestroy(cache->data);
 	    list_del(&cache->next);
 	    ufree(cache);
@@ -2563,9 +2579,10 @@ void handleCachedMsg(Step_t *step)
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &msgCache) {
 	Msg_Cache_t *cache = list_entry(s, Msg_Cache_t, next);
-	if (cache->stepid != step->hID.stepid) continue;
-	if ((step->packJobid == NO_VAL || step->packJobid != cache->jobid)
-	    && (cache->jobid != step->hID.jobid)) continue;
+	if (cache->hID.stepid != step->hID.stepid) continue;
+	if ((step->packJobid == NO_VAL || step->packJobid != cache->hID.jobid)
+	    && (cache->hID.jobid != step->hID.jobid &&
+		cache->hID.sluid != step->hID.sluid)) continue;
 
 	switch (cache->msgType) {
 	case PSP_PACK_INFO:
@@ -2575,7 +2592,7 @@ void handleCachedMsg(Step_t *step)
 	    flog("unhandled message type %s", msg2Str(cache->msgType));
 	}
     }
-    deleteCachedMsg(step->hID.jobid, step->hID.stepid);
+    deleteCachedMsg(&step->hID);
 }
 
 void stopStepFollower(Step_t *step)
@@ -2601,8 +2618,12 @@ void stopStepFollower(Step_t *step)
 	setFragDest(&data, PSC_getTID(nodes[n], 0));
     }
 
-    addUint32ToMsg(step->hID.jobid, &data);
-    addUint32ToMsg(step->hID.stepid, &data);
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	packSlurmID(&step->hID, &data);
+    } else {
+	addUint32ToMsg(step->hID.jobid, &data);
+	addUint32ToMsg(step->hID.stepid, &data);
+    }
 
     sendFragMsg(&data);
 }

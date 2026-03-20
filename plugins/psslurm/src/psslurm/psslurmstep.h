@@ -343,15 +343,13 @@ void Step_destroyByJobid(uint32_t jobid);
 Step_t *Step_findByJobid(uint32_t jobid);
 
 /**
- * @brief Find a step identified by a jobid and stepid
+ * @brief Find a step identified by a head identifier
  *
- * @param jobid The jobid of the step
- *
- * @param stepid The stepid of the step
+ * @param hID Unique step identifier
  *
  * @return Returns the requested step or NULL on error
  */
-Step_t *Step_findByStepId(uint32_t jobid, uint32_t stepid);
+Step_t *Step_findByStepId(Head_ID_t *hID);
 
 /**
  * @brief Find a step identified by the PID of a psslurm child
@@ -398,9 +396,7 @@ Step_t *Step_findByPsidTask(pid_t pid);
  *
  * @param env Environment to investigate
  *
- * @param jobidOut Provide jobid of the step on return if not NULL
- *
- * @param stepidOut Provide stepid of the step on return if not NULL
+ * @param hID optional Surm head identifier
  *
  * @param caller Function name of the calling function
  *
@@ -409,11 +405,11 @@ Step_t *Step_findByPsidTask(pid_t pid);
  * @return On success a pointer to the step is returned or NULL
  * otherwise
  */
-Step_t *__Step_findByEnv(env_t env, uint32_t *jobidOut, uint32_t *stepidOut,
-			 const char *caller, const int line);
+Step_t *__Step_findByEnv(env_t env, Head_ID_t *hID, const char *caller,
+			 const int line);
 
-#define Step_findByEnv(env, jobidOut, stepidOut) \
-	__Step_findByEnv(env, jobidOut, stepidOut, __func__, __LINE__)
+#define Step_findByEnv(env, hID) \
+	__Step_findByEnv(env, hID, __func__, __LINE__)
 
 /**
  * @brief Get the number of steps

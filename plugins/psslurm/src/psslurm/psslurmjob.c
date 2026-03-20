@@ -54,8 +54,7 @@ bool Job_destroy(Job_t *job)
 
 	/* tell sisters the job is finished */
 	if (job->nodes && job->nodes[0] == PSC_getMyID()) {
-	    send_PS_JobExit(job->hID.jobid, SLURM_BATCH_SCRIPT,
-				job->nrOfNodes, job->nodes);
+	    send_PS_JobExit(&job->hID, job->nrOfNodes, job->nodes);
 	}
 
 	if (job->fwdata) {

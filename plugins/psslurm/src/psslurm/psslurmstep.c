@@ -178,14 +178,15 @@ void Step_addJobCompInfo(Step_t *step, JobCompInfo_t *info)
     list_add_tail(&info->next, &step->jobCompInfos);
 }
 
-Step_t *Step_findByStepId(uint32_t jobid, uint32_t stepid)
+Step_t *Step_findByStepId(Head_ID_t *hID)
 {
     list_t *s;
     list_for_each(s, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (jobid == step->hID.jobid && step->hID.stepid == stepid) return step;
-	if (step->packJobid != NO_VAL && jobid == step->packJobid &&
-	    stepid == step->hID.stepid) {
+	if (hID->jobid == step->hID.jobid && step->hID.stepid == hID->stepid &&
+	    hID->sluid == step->hID.sluid) return step;
+	if (step->packJobid != NO_VAL && hID->jobid == step->packJobid &&
+	    hID->stepid == step->hID.stepid && hID->sluid == step->hID.sluid) {
 	    return step;
 	}
     }
@@ -222,10 +223,11 @@ Step_t *Step_findByPsidTask(pid_t pid)
     return NULL;
 }
 
-Step_t *__Step_findByEnv(env_t env, uint32_t *jobidOut, uint32_t *stepidOut,
-			 const char *caller, const int line)
+Step_t *__Step_findByEnv(env_t env, Head_ID_t *hID, const char *caller,
+			 const int line)
 {
-    uint32_t jobid = NO_VAL, stepid = SLURM_BATCH_SCRIPT;
+    Head_ID_t env_hID = { .jobid = NO_VAL, .stepid = SLURM_BATCH_SCRIPT,
+	.sluid = 0, .stepHetComp = NO_VAL };
 
     if (!envInitialized(env)) {
 	flog("no environment, caller %s:%i\n", caller, line);
@@ -233,13 +235,20 @@ Step_t *__Step_findByEnv(env_t env, uint32_t *jobidOut, uint32_t *stepidOut,
     }
 
     for (char **e = envGetArray(env); e && *e; e++) {
-	if (!strncmp(*e, "SLURM_STEPID=", 13)) sscanf(*e + 13, "%u", &stepid);
-	if (!strncmp(*e, "SLURM_JOBID=", 12)) sscanf(*e + 12, "%u", &jobid);
+	if (!strncmp(*e, "SLURM_STEPID=", 13)) {
+	    sscanf(*e + 13, "%u", &env_hID.stepid);
+	}
+	if (!strncmp(*e, "SLURM_JOBID=", 12)) {
+	    sscanf(*e + 12, "%u", &env_hID.jobid);
+	}
+	if (!strncmp(*e, "SLURM_SLUID=", 12)) {
+	    sscanf(*e + 12, "%zu", &env_hID.sluid);
+	}
     }
-    if (jobidOut) *jobidOut = jobid;
-    if (stepidOut) *stepidOut = stepid;
 
-    return Step_findByStepId(jobid, stepid);
+    if (hID) *hID = env_hID;
+
+    return Step_findByStepId(&env_hID);
 }
 
 void Step_deleteAll(Step_t *preserve)
@@ -294,7 +303,7 @@ bool Step_delete(Step_t *step)
 
     fdbg(PSSLURM_LOG_JOB, "%s\n", Step_strID(step));
 
-    deleteCachedMsg(step->hID.jobid, step->hID.stepid);
+    deleteCachedMsg(&step->hID);
     if (step->ct) Container_destroy(step->ct);
 
     /* overwrite sensitive data */
