@@ -470,3 +470,11 @@ int setReconTimer(Slurm_Msg_Buf_t *savedMsg)
 
     return savedMsg->timerID;
 }
+
+void initHeadID(Head_ID_t *hID)
+{
+    hID->sluid = 0;
+    hID->jobid = NO_VAL;
+    hID->stepid = NO_VAL;
+    hID->stepHetComp = NO_VAL;
+}

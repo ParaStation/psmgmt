@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -299,5 +299,12 @@ int resendSlurmMsg(int sock, void *msg);
  * -1 on error.
  */
 int setReconTimer(Slurm_Msg_Buf_t *savedMsg);
+
+/**
+ * @brief Init Slurm head identifier
+ *
+ * @param head identifier to initialize
+ */
+void initHeadID(Head_ID_t *hID);
 
 #endif /* __PSSLURM_MESSAGE */
