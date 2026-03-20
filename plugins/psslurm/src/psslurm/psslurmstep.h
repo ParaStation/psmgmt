@@ -541,14 +541,22 @@ int Step_killFWbyJobid(uint32_t jobid);
 void Step_getInfos(Resp_Node_Reg_Status_t *stat);
 
 /**
- * @brief Get jobid and stepid as string
+ * @brief Get Slurm head identifier as string
  *
- * @param step The step to convert
+ * @param hID The hID to convert
  *
- * @return Returns a string holding the step ID
+ * @param packJobid pack job identifier
+ *
+ * @param packOffset pack job offset
+ *
+ * @return Returns a string holding the Slurm head
  * infos.
  */
-const char *Step_strID(const Step_t *step);
+const char *Step_strhID(const Head_ID_t *hID, uint32_t packJobid,
+			uint32_t packOffset);
+
+#define Step_strID(step) \
+    Step_strhID(&(step)->hID, (step)->packJobid, (step)->packOffset)
 
 /**
  * @brief Verify a step pointer

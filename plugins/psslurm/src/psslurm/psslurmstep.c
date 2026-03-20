@@ -591,38 +591,38 @@ void Step_getInfos(Resp_Node_Reg_Status_t *stat)
     }
 }
 
-const char *Step_strID(const Step_t *step)
+const char *Step_strhID(const Head_ID_t *hID, uint32_t packJobid,
+			uint32_t packOffset)
 {
     static char buf[128];
 
-    if (!step) {
+    if (!hID) {
 	snprintf(buf, sizeof(buf), "step (NULL)");
 	return buf;
     }
 
-    switch (step->hID.stepid) {
+    switch (hID->stepid) {
     case SLURM_INTERACTIVE_STEP:
-	snprintf(buf, sizeof(buf), "interactive step %u", step->hID.jobid);
+	snprintf(buf, sizeof(buf), "interactive step %u", hID->jobid);
 	break;
     case SLURM_PENDING_STEP:
-	snprintf(buf, sizeof(buf), "pending step %u", step->hID.jobid);
+	snprintf(buf, sizeof(buf), "pending step %u", hID->jobid);
 	break;
     case SLURM_EXTERN_CONT:
-	snprintf(buf, sizeof(buf), "extern step %u", step->hID.jobid);
+	snprintf(buf, sizeof(buf), "extern step %u", hID->jobid);
 	break;
     case SLURM_BATCH_SCRIPT:
-	snprintf(buf, sizeof(buf), "batchscript %u", step->hID.jobid);
+	snprintf(buf, sizeof(buf), "batchscript %u", hID->jobid);
 	break;
     case NO_VAL:
-	snprintf(buf, sizeof(buf), "job %u", step->hID.jobid);
+	snprintf(buf, sizeof(buf), "job %u", hID->jobid);
 	break;
     default:
-	if (step->packJobid != NO_VAL) {
-	    snprintf(buf, sizeof(buf), "step %u+%u.%u (%u)", step->packJobid,
-		     step->packOffset, step->hID.stepid, step->hID.jobid);
+	if (packJobid != NO_VAL) {
+	    snprintf(buf, sizeof(buf), "step %u+%u.%u (%u)", packJobid,
+		     packOffset, hID->stepid, hID->jobid);
 	} else {
-	    snprintf(buf, sizeof(buf), "step %u.%u", step->hID.jobid,
-		     step->hID.stepid);
+	    snprintf(buf, sizeof(buf), "step %u.%u", hID->jobid, hID->stepid);
 	}
     }
 
