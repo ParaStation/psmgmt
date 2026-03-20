@@ -183,10 +183,11 @@ Step_t *Step_findByStepId(Head_ID_t *hID)
     list_t *s;
     list_for_each(s, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (hID->jobid == step->hID.jobid && step->hID.stepid == hID->stepid &&
-	    hID->sluid == step->hID.sluid) return step;
+	if (hID->jobid == step->hID.jobid && step->hID.stepid == hID->stepid) {
+	    return step;
+	}
 	if (step->packJobid != NO_VAL && hID->jobid == step->packJobid &&
-	    hID->stepid == step->hID.stepid && hID->sluid == step->hID.sluid) {
+	    hID->stepid == step->hID.stepid) {
 	    return step;
 	}
     }
@@ -235,16 +236,20 @@ Step_t *__Step_findByEnv(env_t env, Head_ID_t *hID, const char *caller,
     }
 
     for (char **e = envGetArray(env); e && *e; e++) {
-	if (!strncmp(*e, "SLURM_STEPID=", 13)) {
+	if (!strncmp(*e, "SLURM_STEP_ID=", 14)) {
+	    sscanf(*e + 14, "%u", &env_hID.stepid);
+	} else if (!strncmp(*e, "SLURM_STEPID=", 13)) {
 	    sscanf(*e + 13, "%u", &env_hID.stepid);
 	}
-	if (!strncmp(*e, "SLURM_JOBID=", 12)) {
+	if (!strncmp(*e, "SLURM_JOB_ID=", 13)) {
+	    sscanf(*e + 13, "%u", &env_hID.jobid);
+	} else if (!strncmp(*e, "SLURM_JOBID=", 12)) {
 	    sscanf(*e + 12, "%u", &env_hID.jobid);
 	}
-	if (!strncmp(*e, "SLURM_SLUID=", 12)) {
-	    sscanf(*e + 12, "%zu", &env_hID.sluid);
-	}
     }
+
+    Step_t s = { .hID = env_hID };
+    fdbg(PSSLURM_LOG_ENV, "env step %s", Step_strID(&s));
 
     if (hID) *hID = env_hID;
 
