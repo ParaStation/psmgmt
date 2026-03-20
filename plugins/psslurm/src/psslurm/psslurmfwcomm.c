@@ -266,8 +266,7 @@ static void changeEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
     Step_t *step = Step_findByStepId(&hID);
     if (!step) {
-	Step_t s = { .hID = hID };
-	flog("warning: %s already gone\n", Step_strID(&s));
+	flog("warning: %s already gone\n", Step_strhID(&hID, NO_VAL, 0));
 	return;
     }
 
@@ -447,8 +446,7 @@ static void handleInitComplete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
     Step_t *step = Step_findByStepId(&hID);
     if (!step) {
-	Step_t s = { .hID = hID };
-	flog("warning: %s already gone\n", Step_strID(&s));
+	flog("warning: %s already gone\n", Step_strhID(&hID, NO_VAL, 0));
 	return;
     }
     releaseDelayedSpawns(&hID);

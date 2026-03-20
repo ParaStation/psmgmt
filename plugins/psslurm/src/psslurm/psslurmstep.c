@@ -248,8 +248,7 @@ Step_t *__Step_findByEnv(env_t env, Head_ID_t *hID, const char *caller,
 	}
     }
 
-    Step_t s = { .hID = env_hID };
-    fdbg(PSSLURM_LOG_ENV, "env step %s", Step_strID(&s));
+    fdbg(PSSLURM_LOG_ENV, "env step %s", Step_strhID(&env_hID, NO_VAL, 0));
 
     if (hID) *hID = env_hID;
 

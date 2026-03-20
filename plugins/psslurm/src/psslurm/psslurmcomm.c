@@ -1656,12 +1656,11 @@ int srunOpenControlConnection(Step_t *step)
 static void handleSrunReply(Slurm_Msg_t *sMsg, void *info)
 {
     Req_Info_t *req = info;
-    Step_t step = { .hID = req->hID };
 
     if (sMsg->head.type != RESPONSE_SLURM_RC) {
 	flog("unexpected srun response %s for request %s %s sock %i\n",
 	     msgType2String(sMsg->head.type), msgType2String(req->type),
-	     Step_strID(&step), sMsg->sock);
+	     Step_strhID(&req->hID, NO_VAL, 0), sMsg->sock);
 	goto CLEANUP;
     }
 
@@ -1671,10 +1670,11 @@ static void handleSrunReply(Slurm_Msg_t *sMsg, void *info)
     if (rc != SLURM_SUCCESS) {
 	flog("error: srun response %s rc %s sock %i for request %s %s\n",
 	     msgType2String(sMsg->head.type), slurmRC2String(rc), sMsg->sock,
-	     msgType2String(req->type), Step_strID(&step));
+	     msgType2String(req->type), Step_strhID(&req->hID, NO_VAL, 0));
     } else {
 	fdbg(PSSLURM_LOG_COMM, "got SLURM_SUCCESS for srun req %s %s sock %i\n",
-	     msgType2String(req->type), Step_strID(&step), sMsg->sock);
+	     msgType2String(req->type), Step_strhID(&req->hID, NO_VAL, 0),
+	     sMsg->sock);
     }
 
 CLEANUP:

@@ -710,9 +710,8 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     }
 
     /* GRes job allocations */
-    Step_t s = { .hID = cred->hID };
     fdbg(PSSLURM_LOG_GRES, "job data: id %s uid %u gres job\n",
-	 Step_strID(&s), cred->uid);
+	 Step_strhID(&cred->hID, NO_VAL, 0), cred->uid);
 
     if (!unpackGresJob(data, gresList, msgVer)) {
 	flog("unpacking GRes job data failed\n");
@@ -720,8 +719,8 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     }
 
     /* GRes step allocations */
-    fdbg(PSSLURM_LOG_GRES, "%s uid %u gres step\n", Step_strID(&s),
-	 cred->uid);
+    fdbg(PSSLURM_LOG_GRES, "%s uid %u gres step\n",
+	 Step_strhID(&cred->hID, NO_VAL, 0), cred->uid);
     if (!unpackGresStep(data, gresList, msgVer)) {
 	flog("unpacking GRes step data failed\n");
 	goto ERROR;
