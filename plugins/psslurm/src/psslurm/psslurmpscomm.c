@@ -514,6 +514,33 @@ static int handleRecvSpawnReq(void *taskPtr)
     return 0;
 }
 
+/**
+ * @brief Remove helper with SLURM_25_05_PROTO_VERSION
+ */
+static inline void _unpackStepIDs(PS_DataBuffer_t data, Head_ID_t *hID)
+{
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	unpackSlurmID(data, hID, slurmProto);
+    } else {
+	memset(hID, 0, sizeof(*hID));
+	getUint32(data, &hID->jobid);
+	getUint32(data, &hID->stepid);
+    }
+}
+
+/**
+ * @brief Remove helper with SLURM_25_05_PROTO_VERSION
+ */
+static inline void _packStepIDs(Head_ID_t *hID, PS_SendDB_t *data)
+{
+    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
+	packSlurmID(hID, data);
+    } else {
+	addUint32ToMsg(hID->jobid, data);
+	addUint32ToMsg(hID->stepid, data);
+    }
+}
+
 void send_PS_JobLaunch(Job_t *job)
 {
     PS_SendDB_t data;
@@ -676,12 +703,7 @@ void send_PS_JobExit(Head_ID_t *hID, uint32_t numDest, PSnodes_ID_t *nodes)
     }
     if (!getNumFragDest(&data)) return;
 
-    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	packSlurmID(hID, &data);
-    } else {
-	addUint32ToMsg(hID->jobid, &data);
-	addUint32ToMsg(hID->stepid, &data);
-    }
+    _packStepIDs(hID, &data);
 
     sendFragMsg(&data);
 }
@@ -723,13 +745,7 @@ void send_PS_PElogueRes(Alloc_t *alloc, int16_t res, int16_t type)
 static void handleJobExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     Head_ID_t hID;
-    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	unpackSlurmID(data, &hID, slurmProto);
-    } else {
-	memset(&hID, 0, sizeof(hID));
-	getUint32(data, &hID.jobid);
-	getUint32(data, &hID.stepid);
-    }
+    _unpackStepIDs(data, &hID);
 
     Job_t *job = Job_findById(hID.jobid);
     if (!job) return;
@@ -764,13 +780,7 @@ static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id, uint16_t res
 static void handleStopStepFW(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     Head_ID_t hID;
-    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	unpackSlurmID(data, &hID, slurmProto);
-    } else {
-	memset(&hID, 0, sizeof(hID));
-	getUint32(data, &hID.jobid);
-	getUint32(data, &hID.stepid);
-    }
+    _unpackStepIDs(data, &hID);
 
     /* cleanup delayed spawn messages which arrived after a terminate
      * RPC from slurmctld was proccessed for the step */
@@ -1098,13 +1108,7 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     getUint32(data, &packJobid);
 
     Head_ID_t hID;
-    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	unpackSlurmID(data, &hID, slurmProto);
-    } else {
-	memset(&hID, 0, sizeof(hID));
-	getUint32(data, &hID.jobid);
-	getUint32(data, &hID.stepid);
-    }
+    _unpackStepIDs(data, &hID);
 
     if (packJobid == NO_VAL) packJobid = hID.jobid;
 
@@ -1145,13 +1149,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     getUint32(data, &packJobid);
 
     Head_ID_t hID;
-    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	unpackSlurmID(data, &hID, slurmProto);
-    } else {
-	memset(&hID, 0, sizeof(hID));
-	getUint32(data, &hID.jobid);
-	getUint32(data, &hID.stepid);
-    }
+    _unpackStepIDs(data, &hID);
 
     if (packJobid != NO_VAL) hID.jobid = packJobid;
 
@@ -2467,12 +2465,7 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
     /* pack jobid */
     addUint32ToMsg(step->packJobid, &data);
 
-    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	packSlurmID(&step->hID, &data);
-    } else {
-	addUint32ToMsg(step->hID.jobid, &data);
-	addUint32ToMsg(step->hID.stepid, &data);
-    }
+    _packStepIDs(&step->hID, &data);
 
     addInt32ToMsg(exitStatus, &data);
 
@@ -2527,12 +2520,7 @@ int send_PS_PackInfo(Step_t *step)
     /* pack jobid */
     addUint32ToMsg(step->packJobid, &data);
 
-    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	packSlurmID(&step->hID, &data);
-    } else {
-	addUint32ToMsg(step->hID.jobid, &data);
-	addUint32ToMsg(step->hID.stepid, &data);
-    }
+    _packStepIDs(&step->hID, &data);
 
     /* pack task offset */
     addUint32ToMsg(step->packTaskOffset, &data);
@@ -2612,12 +2600,7 @@ void stopStepFollower(Step_t *step)
 	setFragDest(&data, PSC_getTID(nodes[n], 0));
     }
 
-    if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	packSlurmID(&step->hID, &data);
-    } else {
-	addUint32ToMsg(step->hID.jobid, &data);
-	addUint32ToMsg(step->hID.stepid, &data);
-    }
+    _packStepIDs(&step->hID, &data);
 
     sendFragMsg(&data);
 }
