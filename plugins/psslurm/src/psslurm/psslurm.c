@@ -862,7 +862,7 @@ int initialize(FILE *logfile)
 
     /* GPU frequency scaling is hardware dependent and might
      * not be available at all */
-    char *disGPUcheck = getenv("__DISABLE_GPU_FREQ_HW_CHECK");
+    char *disGPUcheck = getenv("__DISABLE_GPU_HW_CHECKS");
     if (disGPUcheck || PSIDnodes_numGPUs(PSC_getMyID()) > 0) {
 	GPUfreq_init(NULL, &GPUfreqInitCB);
 	initFlags |= INIT_GPU_FREQ;

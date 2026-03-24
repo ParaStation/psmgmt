@@ -134,7 +134,7 @@ static void cmdListGPUs(char *output, void *info)
 	return;
     }
 
-    char *disStrictMode = getenv("__DISABLE_GPU_FREQ_HW_CHECK");
+    char *disStrictMode = getenv("__DISABLE_GPU_HW_CHECKS");
     if (!disStrictMode && scriptGPUs != PSIDnodes_numGPUs(PSC_getMyID())) {
 	pluginflog("script GPUs %u mismatched hwloc GPUs %u \n", scriptGPUs,
 		PSIDnodes_numGPUs(PSC_getMyID()));
