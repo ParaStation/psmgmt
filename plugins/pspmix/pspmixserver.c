@@ -2180,9 +2180,9 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     tmpbool = false;
     INFO_LIST_ADD(list, PMIX_SERVER_SESSION_SUPPORT, &tmpbool, PMIX_BOOL);
 
-    /* Server is acting as a gateway for PMIx requests that cannot be serviced
-     * on backend nodes (e.g., logging to email, recording syslogs). */
-    tmpbool = true;
+    /* Server must not act as a gateway for PMIx logging requests. Instead,
+     * all logging shall be passed to the host-server to be handled there. */
+    tmpbool = false;
     INFO_LIST_ADD(list, PMIX_SERVER_GATEWAY, &tmpbool, PMIX_BOOL);
 
     /* Server is supporting system scheduler and desires access to appropriate
