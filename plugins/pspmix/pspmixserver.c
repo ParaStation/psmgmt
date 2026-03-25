@@ -616,7 +616,7 @@ static pmix_status_t server_fencenb_cb(
 	    fdbg(PSPMIX_LOG_FENCE, "found %s info [key '%s' value '%s']\n",
 		 (PMIx_Info_is_required(&info[i])) ? "required" : "optional",
 		 info[i].key,
-		 (PMIx_Info_true(&info[i])) ? "true" : "false");
+		 (PMIx_Info_true(&info[i]) == PMIX_BOOL_TRUE) ? "true" : "false");
 	    continue;
 	}
 
@@ -650,7 +650,7 @@ static pmix_status_t server_fencenb_cb(
 	    fdbg(PSPMIX_LOG_FENCE, "found %s info [key '%s' value '%s']\n",
 		 (PMIx_Info_is_required(&info[i])) ? "required" : "optional",
 		 info[i].key,
-		 (PMIx_Info_true(&info[i])) ? "true" : "false");
+		 (PMIx_Info_true(&info[i]) == PMIX_BOOL_TRUE) ? "true" : "false");
 	    continue;
 	}
 
@@ -1701,7 +1701,9 @@ static void server_log_cb(const pmix_proc_t *client,
     for (size_t i = 0; i < ndirs; i++) {
 	const pmix_info_t *this = directives + i;
 	if (PMIx_Check_key(this->key, PMIX_LOG_ONCE)) {
-	    if (PMIx_Info_true(this)) pspmix_service_setLogOnce(call);
+	    if (PMIx_Info_true(this) == PMIX_BOOL_TRUE) {
+		pspmix_service_setLogOnce(call);
+	    }
 	} else if (PMIx_Check_key(this->key, PMIX_LOG_SYSLOG_PRI)) {
 	    pspmix_service_setSyslogPrio(call, this->value.data.integer);
 	} else if (PMIx_Check_key(this->key, PMIX_LOG_TIMESTAMP)) {
@@ -2398,7 +2400,8 @@ static char * getAllocatedInfoString(pmix_info_t *info)
 	    break;
 	case PMIX_VAL_TYPE_flag:
 	    type = "flag";
-	    ASPRINTF(&value, "'%s'", (PMIx_Info_true(info)) ? "TRUE" : "FALSE");
+	    ASPRINTF(&value, "'%s'",
+		     (PMIx_Info_true(info) == PMIX_BOOL_TRUE) ? "TRUE" : "FALSE");
 	    break;
 	case PMIX_PROC_RANK:
 	    type = "rank";
