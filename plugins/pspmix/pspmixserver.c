@@ -1700,8 +1700,10 @@ static void server_log_cb(const pmix_proc_t *client,
 
     for (size_t i = 0; i < ndirs; i++) {
 	const pmix_info_t *this = directives + i;
+	fdbg(PSPMIX_LOG_LOGGING, "handling directive of type %s\n", this->key);
 	if (PMIx_Check_key(this->key, PMIX_LOG_ONCE)) {
 	    if (PMIx_Info_true(this) == PMIX_BOOL_TRUE) {
+		fdbg(PSPMIX_LOG_LOGGING, "log just once\n");
 		pspmix_service_setLogOnce(call);
 	    }
 	} else if (PMIx_Check_key(this->key, PMIX_LOG_SYSLOG_PRI)) {
