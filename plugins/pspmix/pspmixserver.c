@@ -403,7 +403,8 @@ static void * callcb(void *cb)
     mycbfunc_t *callback = cb;
 
     fdbg(PSPMIX_LOG_CALL, "status %s cbfunc %p cbdata %p\n",
-	 PMIx_Error_string(callback->status), callback->cbfunc, callback->cbdata);
+	 PMIx_Error_string(callback->status), callback->cbfunc,
+	 callback->cbdata);
 
     /* wait until cb is allowed to call */
     LOCK_CBFUNC_OR_RETURN(callback, NULL);
@@ -550,22 +551,23 @@ void pspmix_server_fenceOut(bool success, modexdata_t *mdata)
     }
 }
 
-/* At least one client called either PMIx_Fence or PMIx_Fence_nb. In either case,
- * the host server will be called via a non-blocking function to execute
+/* At least one client called either PMIx_Fence or PMIx_Fence_nb. In either
+ * case, the host server will be called via a non-blocking function to execute
  * the specified operation once all participating local procs have
  * contributed. All processes in the specified array are required to participate
  * in the Fence[_nb] operation. The callback is to be executed once each daemon
- * hosting at least one participant has called the host server's fencenb function.
+ * hosting at least one participant has called the host server's fencenb
+ * function.
  *
  * The provided data is to be collectively shared with all PMIx
  * servers involved in the fence operation, and returned in the modex
  * cbfunc. A _NULL_ data value indicates that the local procs had
  * no data to contribute.
  *
- * The array of info structs is used to pass user-requested options to the server.
- * This can include directives as to the algorithm to be used to execute the
- * fence operation. The directives are optional _unless_ the _mandatory_ flag
- * has been set - in such cases, the host RM is required to return an error
+ * The array of info structs is used to pass user-requested options to the
+ * server. This can include directives as to the algorithm to be used to execute
+ * the fence operation. The directives are optional _unless_ the _mandatory_
+ * flag has been set - in such cases, the host RM is required to return an error
  * if the directive cannot be met. */
 /* pmix_server_fencenb_fn_t  */
 static pmix_status_t server_fencenb_cb(
@@ -616,7 +618,8 @@ static pmix_status_t server_fencenb_cb(
 	    fdbg(PSPMIX_LOG_FENCE, "found %s info [key '%s' value '%s']\n",
 		 (PMIx_Info_is_required(&info[i])) ? "required" : "optional",
 		 info[i].key,
-		 (PMIx_Info_true(&info[i]) == PMIX_BOOL_TRUE) ? "true" : "false");
+		 (PMIx_Info_true(&info[i]) == PMIX_BOOL_TRUE) ?
+		  "true" : "false");
 	    continue;
 	}
 
@@ -650,7 +653,8 @@ static pmix_status_t server_fencenb_cb(
 	    fdbg(PSPMIX_LOG_FENCE, "found %s info [key '%s' value '%s']\n",
 		 (PMIx_Info_is_required(&info[i])) ? "required" : "optional",
 		 info[i].key,
-		 (PMIx_Info_true(&info[i]) == PMIX_BOOL_TRUE) ? "true" : "false");
+		 (PMIx_Info_true(&info[i]) == PMIX_BOOL_TRUE) ?
+		  "true" : "false");
 	    continue;
 	}
 
@@ -816,7 +820,8 @@ static void requestModexData_cb(pmix_status_t status, char *data, size_t ndata,
 {
     modexdata_t *mdata = cbdata;
 
-    fdbg(PSPMIX_LOG_CALL, "ndata %zu proc %s\n", ndata, pmixProcStr(&mdata->proc));
+    fdbg(PSPMIX_LOG_CALL, "ndata %zu proc %s\n", ndata,
+	 pmixProcStr(&mdata->proc));
 
     mdata->data = data;
     mdata->ndata = ndata;
@@ -1411,18 +1416,18 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 
        The PMIx definition of connected solely implies that the host environment
        should treat the failure of any process in the assemblage as a reportable
-       event, taking action on the assemblage as if it were a single application.
-       For example, if the environment defaults (in the absence of any application
-       directives) to terminating an application upon failure of any process in
-       that application, then the environment should terminate all processes in
-       the connected assemblage upon failure of any member.
+       event, taking action on the assemblage as if it were a single
+       application. For example, if the environment defaults (in the absence of
+       any application directives) to terminating an application upon failure of
+       any process in that application, then the environment should terminate
+       all processes in the connected assemblage upon failure of any member.
 
-       The host environment may choose to assign a new namespace to the connected
-       assemblage and/or assign new ranks for its members for its own internal
-       tracking purposes. However, it is not required to communicate such
-       assignments to the participants (e.g., in response to an appropriate call
-       to PMIx_Query_info_nb). The host environment is required to generate a
-       PMIX_ERR_PROC_TERM_WO_SYNC event should any process in the assemblage
+       The host environment may choose to assign a new namespace to the
+       connected assemblage and/or assign new ranks for its members for its own
+       internal tracking purposes. However, it is not required to communicate
+       such assignments to the participants (e.g., in response to an appropriate
+       call to PMIx_Query_info_nb). The host environment is required to generate
+       a PMIX_ERR_PROC_TERM_WO_SYNC event should any process in the assemblage
        terminate or call PMIx_Finalize without first disconnecting from the
        assemblage. If the job including the process is terminated as a result of
        that action, then the host environment is required to also generate the
@@ -1508,8 +1513,10 @@ static pmix_status_t server_connect_cb(const pmix_proc_t procs[], size_t nprocs,
  * procs was not previously connected via a call to the pmix_server_connect_fn_t
  * function. */
 /* pmix_server_disconnect_fn_t */
-static pmix_status_t server_disconnect_cb(const pmix_proc_t procs[], size_t nprocs,
-					  const pmix_info_t info[], size_t ninfo,
+static pmix_status_t server_disconnect_cb(const pmix_proc_t procs[],
+					  size_t nprocs,
+					  const pmix_info_t info[],
+					  size_t ninfo,
 					  pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
@@ -1534,9 +1541,12 @@ static pmix_status_t server_disconnect_cb(const pmix_proc_t procs[], size_t npro
  * in the range between PMIX_EVENT_SYS_BASE and PMIX_EVENT_SYS_OTHER
  * (inclusive). */
 /* pmix_server_register_events_fn_t */
-static pmix_status_t server_register_events_cb(pmix_status_t *codes, size_t ncodes,
-					       const pmix_info_t info[], size_t ninfo,
-					       pmix_op_cbfunc_t cbfunc, void *cbdata)
+static pmix_status_t server_register_events_cb(pmix_status_t *codes,
+					       size_t ncodes,
+					       const pmix_info_t info[],
+					       size_t ninfo,
+					       pmix_op_cbfunc_t cbfunc,
+					       void *cbdata)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -1551,8 +1561,10 @@ static pmix_status_t server_register_events_cb(pmix_status_t *codes, size_t ncod
 /* Deregister to receive notifications for the specified events to which the
  * PMIx server has previously registered. */
 /* pmix_server_deregister_events_fn_t */
-static pmix_status_t server_deregister_events_cb(pmix_status_t *codes, size_t ncodes,
-						 pmix_op_cbfunc_t cbfunc, void *cbdata)
+static pmix_status_t server_deregister_events_cb(pmix_status_t *codes,
+						 size_t ncodes,
+						 pmix_op_cbfunc_t cbfunc,
+						 void *cbdata)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -1585,7 +1597,8 @@ static pmix_status_t server_notify_event_cb(pmix_status_t code,
 					    const pmix_proc_t *source,
 					    pmix_data_range_t range,
 					    pmix_info_t info[], size_t ninfo,
-					    pmix_op_cbfunc_t cbfunc, void *cbdata)
+					    pmix_op_cbfunc_t cbfunc,
+					    void *cbdata)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
 
@@ -1689,8 +1702,8 @@ static void server_log_cb(const pmix_proc_t *client,
 			  const pmix_info_t directives[], size_t ndirs,
 			  pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    fdbg(PSPMIX_LOG_CALL, "client %s ndata %zd ndirs %zd\n", pmixProcStr(client),
-	 ndata, ndirs);
+    fdbg(PSPMIX_LOG_CALL, "client %s ndata %zd ndirs %zd\n",
+	 pmixProcStr(client), ndata, ndirs);
     if (mset(PSPMIX_LOG_LOGGING)) {
 	printInfoArray("data", data, ndata, true);
 	printInfoArray("directives", directives, ndirs, true);
@@ -1901,8 +1914,10 @@ static pmix_status_t server_iof_cb(const pmix_proc_t procs[], size_t nprocs,
  * specified recipients. */
 /* pmix_server_stdin_fn_t */
 static pmix_status_t server_stdin_cb(const pmix_proc_t *source,
-				     const pmix_proc_t targets[], size_t ntargets,
-				     const pmix_info_t directives[], size_t ndirs,
+				     const pmix_proc_t targets[],
+				     size_t ntargets,
+				     const pmix_info_t directives[],
+				     size_t ndirs,
 				     const pmix_byte_object_t *bo,
 				     pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
@@ -1974,7 +1989,8 @@ static pmix_status_t server_grp_cb(pmix_group_operation_t op, char grp[],
 /* pmix_server_fabric_fn_t */
 static pmix_status_t server_fabric_cb(const pmix_proc_t *requestor,
 				      pmix_fabric_operation_t op,
-				      const pmix_info_t directives[], size_t ndirs,
+				      const pmix_info_t directives[],
+				      size_t ndirs,
 				      pmix_info_cbfunc_t cbfunc, void *cbdata)
 {
     fdbg(PSPMIX_LOG_CALL, "\n");
@@ -2403,7 +2419,8 @@ static char * getAllocatedInfoString(pmix_info_t *info)
 	case PMIX_VAL_TYPE_flag:
 	    type = "flag";
 	    ASPRINTF(&value, "'%s'",
-		     (PMIx_Info_true(info) == PMIX_BOOL_TRUE) ? "TRUE" : "FALSE");
+		     (PMIx_Info_true(info) == PMIX_BOOL_TRUE) ?
+		      "TRUE" : "FALSE");
 	    break;
 	case PMIX_PROC_RANK:
 	    type = "rank";
