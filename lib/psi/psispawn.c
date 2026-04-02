@@ -350,7 +350,7 @@ static bool msg_SPAWNFAILED(DDBufferMsg_t *msg, const char *caller, void *info)
     return bucket->expected != 0;  // continue PSI_recvMsg() unless all received
 }
 
-void clrRecvHandlers(void)
+static void clrRecvHandlers(void)
 {
     PSI_clrRecvHandler(PSP_CD_SPAWNSUCCESS, msg_SPAWNSUCCESS);
     PSI_clrRecvHandler(PSP_CD_SPAWNFAILED, msg_SPAWNFAILED);

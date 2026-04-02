@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -481,7 +481,7 @@ typedef struct {
 
 static LIST_HEAD(msgHandlers);
 
-PSI_handler_t *findHandler(int16_t msgType)
+static PSI_handler_t *findHandler(int16_t msgType)
 {
     list_t *h;
     list_for_each(h, &msgHandlers) {
@@ -546,7 +546,7 @@ int PSI_availMsg(void)
     return select(daemonSock+1, &rfds, NULL, NULL, &tmout);
 }
 
-ssize_t doRecv(DDBufferMsg_t *msg, size_t size, const char *caller)
+static ssize_t doRecv(DDBufferMsg_t *msg, size_t size, const char *caller)
 {
     if (daemonSock == -1) {
 	errno = ENOTCONN;
