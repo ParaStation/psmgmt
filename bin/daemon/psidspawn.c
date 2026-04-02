@@ -769,6 +769,7 @@ static void statPID(pid_t pid)
     }
 
     if (getline(&statLine, &len, statFile) < 0) {
+	free(statLine);
 	PSID_fwarn(errno, "PID %d: getline(%s)", pid, fileName);
 	return;
     }
