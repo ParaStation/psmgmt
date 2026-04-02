@@ -592,10 +592,10 @@ ssize_t __PSI_recvMsg(DDBufferMsg_t *msg, size_t size, int16_t xpctdType,
 	if (hndlr) {
 	    PSI_fdbg(PSI_LOG_COMM, "   call handler...");
 	    if (hndlr->handler(msg, caller, hndlr->info)) {
-		PSI_fdbg(PSI_LOG_COMM, " cont\n");
+		PSI_dbg(PSI_LOG_COMM, " cont\n");
 		continue;
 	    } else {
-		PSI_fdbg(PSI_LOG_COMM, " break\n");
+		PSI_dbg(PSI_LOG_COMM, " break\n");
 		errno = ENOMSG;
 		return -1;
 	    }
