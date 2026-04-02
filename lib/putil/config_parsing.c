@@ -36,6 +36,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 #include "psattribute.h"
 #include "pscommon.h"
 #include "psconfighelper.h"
+#include "psenv.h"
 #include "pspartition.h"
 #include "selector.h"
 #include "rdp.h"
@@ -1176,41 +1177,14 @@ static bool getCPUmap(char *key)
 
 /* ---------------------------------------------------------------------- */
 
-/** List type to store environment entries */
-typedef struct {
-    struct list_head next;
-    char *name;
-    char *value;
-} EnvEnt_t;
+/** environment to be estabished locally */
+static env_t localEnv;
 
-/** List to collect environments that might be used locally */
-static LIST_HEAD(envList);
-
-static bool setEnv(char *key, char *val)
+static bool addEnv(char *key, char *val)
 {
-    EnvEnt_t *envent;
-
-    /* store environment */
-    envent = malloc(sizeof(*envent));
-    if (!envent) {
-	parser_comment(-1, "%s: No memory\n", __func__);
-	return false;
-    }
-
-    envent->name = strdup(key);
-    envent->value = strdup(val);
-    if (!envent->name || !envent->value) {
-	parser_comment(-1, "%s: No memory\n", __func__);
-	free(envent->name);
-	free(envent->value);
-	free(envent);
-	return false;
-    }
-
-    list_add_tail(&envent->next, &envList);
-
-    parser_comment(PARSER_LOG_NODE, " env %s='%s'\n", key, val);
-    return true;
+    bool success = envSet(localEnv, key, val);
+    if (success) parser_comment(PARSER_LOG_NODE, " env %s='%s'\n", key, val);
+    return success;
 }
 
 static bool getEnv(char *key)
@@ -1230,7 +1204,7 @@ static bool getEnv(char *key)
 	gchar *var = (gchar*)g_ptr_array_index(env,i);
 	gchar *val = (gchar*)g_ptr_array_index(env,i+1);
 
-	if (!(ret = setEnv(var, val))) break;
+	if (!(ret = addEnv(var, val))) break;
     }
     g_ptr_array_free(env, TRUE);
 
@@ -1240,26 +1214,18 @@ static bool getEnv(char *key)
 /**
  * @brief Store environment
  *
- * Store the current list of environments collected in @ref envList to
- * the actual environment. At the same time, @ref envList is cleared.
+ * Store the current local environment @ref localEnv to the actual
+ * environment. At the same time, @ref localEnv is cleared.
  *
- * @return No return value.
+ * @return No return value
  */
-static void pushAndClearEnv(void)
+static void pushEnv(void)
 {
-    list_t *pos, *tmp;
-    list_for_each_safe(pos, tmp, &envList) {
-	EnvEnt_t *env = list_entry(pos, EnvEnt_t, next);
-	list_del(pos);
-	if (env->name && env->value) {
-	    parser_comment(PARSER_LOG_NODE, "set environment %s to '%s'\n",
-			   env->name, env->value);
-	    setenv(env->name, env->value, 1);
-	}
-	free(env->name);
-	free(env->value);
-	free(env);
+    for (char **e = envGetArray(localEnv); e && *e; e++) {
+	parser_comment(PARSER_LOG_NODE, "set environment '%s'\n", *e);
+	putenv(*e);
     }
+    envSteal(localEnv);
 }
 
 /*----------------------------------------------------------------------*/
@@ -1845,6 +1811,9 @@ static confkeylist_t local_node_configkey_list[] = {
  */
 static bool setupLocalNode(void)
 {
+    // initialization
+    localEnv = envNew(NULL);
+
     // get parameters for local node
     bool fail = false;
     for (int i = 0; local_node_configkey_list[i].key; i++) {
@@ -1939,7 +1908,7 @@ static bool setupLocalNode(void)
     }
 
     // setup environment of the local node
-    pushAndClearEnv();
+    pushEnv();
 
     if (pushGUID(nodeconf.id, PSIDNODES_USER, &nodeUID)) {
 	parser_comment(-1, "pushGUID(%ld, PSIDNODES_USER, %p) failed\n",
@@ -1973,6 +1942,7 @@ static void cleanup(void)
     free(nodeconf.cpumap);
     nodeconf.cpumap = NULL;
     nodeconf.cpumap_maxsize = 0;
+    envDestroy(localEnv);
 
     psconfigobj = NULL;
     psconfig_unref(psconfig);
