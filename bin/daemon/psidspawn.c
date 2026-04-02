@@ -751,23 +751,23 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
  */
 static void statPID(pid_t pid)
 {
-    FILE *statFile;
-    struct stat sbuf;
-    char fileName[128], *statLine = NULL;
-    size_t len;
-
+    char fileName[128];
     snprintf(fileName, sizeof(fileName), "/proc/%i/stat", pid);
+
+    struct stat sbuf;
     if (stat(fileName, &sbuf) == -1) {
 	PSID_fwarn(errno, "PID %d: stat()", pid);
 	return;
     }
 
-    statFile = fopen(fileName,"r");
+    FILE *statFile = fopen(fileName,"r");
     if (!statFile) {
 	PSID_fwarn(errno, "PID %d: fopen(%s)", pid, fileName);
 	return;
     }
 
+    char *statLine = NULL;
+    size_t len;
     if (getline(&statLine, &len, statFile) < 0) {
 	free(statLine);
 	PSID_fwarn(errno, "PID %d: getline(%s)", pid, fileName);
