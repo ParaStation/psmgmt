@@ -769,12 +769,12 @@ static void statPID(pid_t pid)
     char *statLine = NULL;
     size_t len;
     if (getline(&statLine, &len, statFile) < 0) {
-	free(statLine);
 	PSID_fwarn(errno, "PID %d: getline(%s)", pid, fileName);
-	return;
+    } else {
+	PSID_flog("PID %d: %s\n", pid, statLine);
     }
 
-    PSID_flog("PID %d: %s\n", pid, statLine);
+    fclose(statFile);
     free(statLine);
 }
 
