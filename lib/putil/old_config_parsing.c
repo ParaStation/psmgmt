@@ -2175,23 +2175,26 @@ static int getMultiNodes(char *token)
 
     currentID = DEFAULT_ID;
 
-    char *realHost = NULL, *realID = NULL;
-    size_t realHostSize = 0, realIDSize = 0;
+    char *thisHost = NULL, *thisID = NULL;
+    size_t thisHostSize = 0, thisIDSize = 0;
     for (long n = first; n <= last; n += step) {
 	in_addr_t ipaddr;
 	int nodenum;
 
-	ret = handleGenStr(n, hostStr, &realHost, &realHostSize);
-	if (ret) return ret;
-	ipaddr = parser_getHostname(realHost);
-	if (!ipaddr) return -1;
+	ret = handleGenStr(n, hostStr, &thisHost, &thisHostSize);
+	if (ret) break;
+	ipaddr = parser_getHostname(thisHost);
+	if (!ipaddr) {
+	    ret = -1;
+	    break;
+	}
 
-	handleGenStr(n, idStr, &realID, &realIDSize);
-	ret = parser_getNumValue(realID, &nodenum, "node number");
-	if (ret) return ret;
+	handleGenStr(n, idStr, &thisID, &thisIDSize);
+	ret = parser_getNumValue(thisID, &nodenum, "node number");
+	if (ret) break;
 
-	ret = newHost(nodenum, realHost, ipaddr);
-	if (ret) return ret;
+	ret = newHost(nodenum, thisHost, ipaddr);
+	if (ret) break;
 
 	if (PSC_isLocalIP(ipaddr)) {
 	    pushEnv();
@@ -2199,12 +2202,12 @@ static int getMultiNodes(char *token)
 	}
     }
 
-    free(realHost);
-    free(realID);
+    free(thisHost);
+    free(thisID);
 
     envDestroy(localEnv);
 
-    return 0;
+    return ret;
 }
 
 static int endNodeEnv(char *token)
