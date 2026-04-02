@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,6 +26,7 @@
 #include "pscommon.h"
 #include "parser.h"
 #include "psattribute.h"
+#include "psenv.h"
 #include "pspartition.h"
 #include "rdp.h"
 #include "selector.h"
@@ -1581,45 +1582,30 @@ static int getCPUmap(char *token)
 
 /* ---------------------------------------------------------------------- */
 
-/** List type to store environment entries */
-typedef struct {
-    struct list_head next;
-    char *name;
-    char *value;
-} EnvEnt_t;
+/** environments to be estabished globally or locally */
+static env_t localEnv;
 
-/** List to collect environments that might be used locally */
-static LIST_HEAD(envList);
-
-static int envActive = 0;
+static bool envActive;
 
 static int getEnvLine(char *token)
 {
-    char *value;
-    EnvEnt_t *envent;
-
     if (!token) {
 	parser_comment(-1, "syntax error\n");
 	return -1;
     }
 
-    value = parser_getQuotedString();
+    char *value = parser_getQuotedString();
     if (!value) {
 	parser_comment(-1, "no value for %s\n", token);
 	return -1;
     }
 
     /* store environment */
-    envent = malloc(sizeof(*envent));
-    if (!envent) {
-	parser_comment(-1, "%s: No memory\n", __func__);
+    bool success = envSet(localEnv, token, value);
+    if (!success) {
+	parser_comment(-1, "%s: failed on %s='%s'", __func__, token, value);
 	return -1;
     }
-
-    envent->name = strdup(token);
-    envent->value = strdup(value);
-
-    list_add_tail(&envent->next, &envList);
 
     if (currentID == DEFAULT_ID) {
 	parser_comment(PARSER_LOG_RES, "got environment: %s='%s'\n",
@@ -1633,7 +1619,7 @@ static int getEnvLine(char *token)
 
 static int endEnvEnv(char *token)
 {
-    envActive = 0;
+    envActive = false;
     return ENV_END;
 }
 
@@ -1646,7 +1632,7 @@ static parser_t envenv_parser = {" \t\n", envenv_list};
 
 static int getEnvEnv(char *token)
 {
-    envActive = 1;
+    envActive = true;
     return parser_parseOn(parser_getString(), &envenv_parser);
 }
 
@@ -1659,13 +1645,8 @@ static parser_t env_parser = {" \t\n", env_list};
 
 static int getEnv(char *token)
 {
-    int ret;
-
-    ret = parser_parseString(parser_getString(), &env_parser);
-
-    if (ret == ENV_END) {
-	return 0;
-    }
+    int ret = parser_parseString(parser_getString(), &env_parser);
+    if (ret == ENV_END) return 0;
 
     return ret;
 }
@@ -1673,45 +1654,18 @@ static int getEnv(char *token)
 /**
  * @brief Store environment
  *
- * Store the current list of environments collected in @ref envList to
- * the actual environment. At the same time, @ref envList is cleared.
+ * Store the current list of environments collected in @ref globalEnv
+ * and @ref localEnv to the actual environment.
  *
- * @return No return value.
+ * @return No return value
  */
-static void pushAndClearEnv(void)
+static void pushEnv(void)
 {
-    list_t *pos, *tmp;
-    list_for_each_safe(pos, tmp, &envList) {
-	EnvEnt_t *env = list_entry(pos, EnvEnt_t, next);
-	list_del(pos);
-	if (env->name && env->value) {
-	    parser_comment(PARSER_LOG_NODE, "set environment %s to '%s'\n",
-			   env->name, env->value);
-	    setenv(env->name, env->value, 1);
-	}
-	free(env->name);
-	free(env->value);
-	free(env);
+    for (char **e = envGetArray(localEnv); e && *e; e++) {
+	parser_comment(PARSER_LOG_NODE, "set environment '%s'\n", *e);
+	putenv(*e);
     }
-}
-
-/**
- * @brief Clear environment
- *
- * Clear the current list of environments collected in @ref envList.
- *
- * @return No return value.
- */
-static void clearEnv(void)
-{
-    list_t *pos, *tmp;
-    list_for_each_safe(pos, tmp, &envList) {
-	EnvEnt_t *env = list_entry(pos, EnvEnt_t, next);
-	list_del(pos);
-	free(env->name);
-	free(env->value);
-	free(env);
-    }
+    envSteal(localEnv);
 }
 
 /*----------------------------------------------------------------------*/
@@ -2007,6 +1961,7 @@ static int getNodeLine(char *token)
 
     currentID = nodenum;
 
+    localEnv = envNew(NULL);
     ret = parser_parseString(parser_getString(), &nodeline_parser);
     parser_comment(PARSER_LOG_NODE, "\n");
     if (ret) {
@@ -2026,10 +1981,10 @@ static int getNodeLine(char *token)
     free(hostname);
 
     if (PSC_isLocalIP(ipaddr)) {
-	pushAndClearEnv();
+	pushEnv();
 	PSC_setMyID(nodenum);
     } else {
-	clearEnv();
+	envDestroy(localEnv);
     }
 
     return ret;
@@ -2217,6 +2172,7 @@ static int getMultiNodes(char *token)
 
     currentID = GENERATE_ID;
 
+    localEnv = envNew(NULL);
     ret = parser_parseString(parser_getString(), &nodeline_parser);
     parser_comment(PARSER_LOG_NODE, "\n");
     if (ret) return ret;
@@ -2240,7 +2196,7 @@ static int getMultiNodes(char *token)
 	if (ret) return ret;
 
 	if (PSC_isLocalIP(ipaddr)) {
-	    pushAndClearEnv();
+	    pushEnv();
 	    PSC_setMyID(nodenum);
 	}
     }
@@ -2248,7 +2204,7 @@ static int getMultiNodes(char *token)
     free(realHost);
     free(realID);
 
-    clearEnv();
+    envDestroy(localEnv);
 
     return 0;
 }
@@ -2282,11 +2238,11 @@ static parser_t node_parser = {" \t\n", node_list};
 
 static int getNodes(char *token)
 {
-    int ret;
+    /* push global part of the environment */
+    pushEnv();
+    localEnv = envNew(NULL);
 
-    pushAndClearEnv();
-
-    ret = parser_parseString(parser_getString(), &node_parser);
+    int ret = parser_parseString(parser_getString(), &node_parser);
 
     if (ret == ENV_END) {
 	return 0;
@@ -2674,6 +2630,7 @@ config_t *parseOldConfig(FILE* logfile, int logmask, char *configfile)
     setID(&defaultAdmUID, 0);
     setID(&defaultAdmGID, 0);
 
+    localEnv = envNew(NULL);
     ret = parser_parseFile(&config_parser);
 
     if (ret) {
@@ -2683,7 +2640,7 @@ config_t *parseOldConfig(FILE* logfile, int logmask, char *configfile)
 
     fclose(cfd);
 
-    pushAndClearEnv();
+    pushEnv();
 
     /*
      * Sanity Checks
