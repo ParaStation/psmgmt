@@ -2145,23 +2145,19 @@ end:
 
 static int getMultiNodes(char *token)
 {
-    int ret;
-    long n, first, last, step;
-    char *rangeStr, *hostStr, *idStr, *realHost = NULL, *realID = NULL;
-    size_t realHostSize = 0, realIDSize = 0;
-
-    rangeStr = parser_getString();
+    char *rangeStr = parser_getString();
     if (!rangeStr) {
 	parser_comment(-1, "%s: Out of mem\n", __func__);
 	return -1;
     }
 
-    ret = analyzeRange(rangeStr, &first, &last, &step);
+    long first, last, step;
+    int ret = analyzeRange(rangeStr, &first, &last, &step);
     if (ret) return ret;
 
-    hostStr = parser_getString();
+    char *hostStr = parser_getString();
     if (!hostStr) return -1;
-    idStr = parser_getString();
+    char *idStr = parser_getString();
     if (!idStr) return -1;
 
     ret = setupNodeFromDefault();
@@ -2179,7 +2175,9 @@ static int getMultiNodes(char *token)
 
     currentID = DEFAULT_ID;
 
-    for (n=first; n<=last; n+=step) {
+    char *realHost = NULL, *realID = NULL;
+    size_t realHostSize = 0, realIDSize = 0;
+    for (long n = first; n <= last; n += step) {
 	in_addr_t ipaddr;
 	int nodenum;
 
