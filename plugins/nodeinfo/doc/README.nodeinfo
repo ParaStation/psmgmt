@@ -90,12 +90,14 @@ The standard configuration provided by psconfig/nodeinfo.dump
 mentioned above defines the following defaults:
 
 DebugMask = "0"
-GPUDevices = ["10de:20b0", "10de:1db6", "10de:1db4", "10de:1db1", "10de:102d", "10de:1021", "10de:2342", "10de:2339"]
+GPUDevices = ["10de:2342", "10de:2339", "10de:20b0", "10de:1db6", "10de:1db4", "10de:1db1", "10de:102d", "10de:1021"]
 GPUSort = "PCI"
-NICDevices = ["15b3:101b", "15b3:1017", "15b3:1013", "15b3:1011", "8086:24f1", "1cad:0011", "1fc1:0010"]
+NICDevices = ["15b3:1021", "15b3:101b", "15b3:1017", "15b3:1013", "15b3:1011", "8086:24f1", "1cad:0011", "1fc1:0010"]
 NICSort = "BIOS"
 
 The GPU devices identified are:
+  "10de:2342"	NVIDIA GH100 [GH200 120GB / 480GB] (JUPITER-Booster)
+  "10de:2339"	NVIDIA GH100 [H100 SXM5 94GB]
   "10de:20b0"	NVIDIA A100-SXM4 as found on e.g. the JUWELS-Booster
   "10de:1db6"	NVIDIA V100 PCIe 32GB as found on e.g. the DEEP-EST DAM and ESB
   "10de:1db4"	NVIDIA V100 PCIe 16GB as found on e.g. JUSUF
@@ -106,6 +108,7 @@ The GPU devices identified are:
 GPUs are sorted in PCI-bus order as expected by CUDA
 
 The network devices identified are:
+  "15b3:1021"	Mellanox ConnectX-7 (JUPITER-Booster)
   "15b3:101b"	Mellanox ConnectX-6 (JURECA-DC/JUWELS-Booster)
   "15b3:1017"	Mellanox ConnectX-5 (DEEP-EST CM/ESB)
   "15b3:1013"	Mellanox ConnectX-4 (JURECA/JUWELS)
