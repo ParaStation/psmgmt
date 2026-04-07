@@ -1,5 +1,5 @@
 This directory contains different topologies created via:
-lstopo-no-graphics topo.`hostname -s`.xml
+lstopo-no-graphics topo.$(hostname -s).xml
 They might be used to be feed into psid via the HWLOC_XMLFILE
 environment variable for testing.
 
