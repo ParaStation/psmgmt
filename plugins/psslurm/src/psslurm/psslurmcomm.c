@@ -1860,10 +1860,13 @@ int srunSendIO(uint16_t type, uint16_t grank, Step_t *step, char *buf,
 int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf)
 {
     if (sock < 0) return -1;
-    if (iohead->len && !buf) {
-	flog("invalid buffer (null)\n");
-	errno = EINVAL;
-	return -1;
+    if (!buf) {
+	if (iohead->len) {
+	    flog("invalid buffer (null)\n");
+	    errno = EINVAL;
+	    return -1;
+	}
+	return 0;
     }
 
     if (iohead->len > 0) {
