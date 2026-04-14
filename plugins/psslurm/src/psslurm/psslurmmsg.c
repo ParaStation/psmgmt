@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -422,7 +422,7 @@ static void handleReconTimeout(int timerId, void *data)
 	/* try to connect to slurmctld */
 	savedMsg->sock = openSlurmctldCon(savedMsg->req);
 
-	if (savedMsg->sock < 0) {
+	if (savedMsg->sock == -1) {
 	    flog("connection attempt %u of %u to slurmctld to re-send msg %s"
 		 " failed\n", savedMsg->conRetry +1, savedMsg->maxConRetry,
 		 msgType2String(savedMsg->head.type));
