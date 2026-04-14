@@ -920,7 +920,7 @@ static bool doSetFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
 static bool CPUfreq_setFreq(PSCPU_set_t set, uint16_t setSize, uint32_t newFreq,
 			    Script_CMDs_t cmd)
 {
-    if (!CPUfreq_isInitialized()) return false;
+    if (!CPUfreq_isInitialized() || !set) return false;
     if (setSize > numCPUs) setSize = numCPUs;
 
     PSCPU_set_t setFreq;

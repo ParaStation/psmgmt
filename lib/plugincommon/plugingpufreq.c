@@ -732,7 +732,7 @@ static bool doSetFreq(PSCPU_set_t set, uint32_t newFreq, int cmd)
 
 bool GPUfreq_setGraFreq(PSCPU_set_t set, uint16_t setSize, uint32_t graFreq)
 {
-    if (!GPUfreq_isInitialized()) return false;
+    if (!GPUfreq_isInitialized() || !set) return false;
     if (setSize > numGPUs) setSize = numGPUs;
 
     pluginfdbg(PLUGIN_LOG_GPU, "new graphics %u frequency\n", graFreq);
@@ -791,7 +791,7 @@ bool GPUfreq_setGraFreq(PSCPU_set_t set, uint16_t setSize, uint32_t graFreq)
 
 bool GPUfreq_setMemFreq(PSCPU_set_t set, uint16_t setSize, uint32_t memFreq)
 {
-    if (!GPUfreq_isInitialized()) return false;
+    if (!GPUfreq_isInitialized() || !set) return false;
     if (setSize > numGPUs) setSize = numGPUs;
 
     pluginfdbg(PLUGIN_LOG_GPU, "new memory %u frequencies\n", memFreq);
