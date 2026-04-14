@@ -709,8 +709,8 @@ PStask_ID_t PSI_whodied(int sig)
 
     DDBufferMsg_t msg;
     ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_WHODIED, true);
-    if (ret == -1 && errno != ENOMSG) {
-	PSI_fwarn(errno, "PSI_recvMsg");
+    if (ret == -1) {
+	if (errno != ENOMSG) PSI_fwarn(errno, "PSI_recvMsg");
 	return -1;
     }
 
