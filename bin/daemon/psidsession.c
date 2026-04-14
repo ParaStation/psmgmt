@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2025 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -789,7 +789,8 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 
     uint16_t nBytes;
     getUint16(rData, &nBytes);
-    if (nBytes != PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()))) {
+    if (!nBytes
+	|| nBytes != PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()))) {
 	PSID_flog("CPU-set size mismatch %ud\n", nBytes);
 	return;
     }

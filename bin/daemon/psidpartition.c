@@ -2697,6 +2697,8 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 	addInt32ToMsg(res->rid, &msg);         // reservation ID
 
 	uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(node));
+	if (!nBytes) PSID_flog("node %d without threads (res %#x)?!\n", node,
+			       res->rid);
 	addUint16ToMsg(nBytes, &msg);          // size of each packed CPU_set
 
 	addUint16ToMsg(sendCount[node], &msg); // number of slots to expect
@@ -2705,10 +2707,12 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 	    if (res->slots[ss].node != node) continue;
 	    addInt32ToMsg(res->firstRank + ss, &msg);    // rank
 
-	    char cpuBuf[nBytes];
-	    PSCPU_extract(cpuBuf, res->slots[ss].CPUset, nBytes);
-	    addMemToMsg(cpuBuf, nBytes, &msg); // packed CPU_set
-	    sendCount[node]--;
+	    if (nBytes) {
+		char cpuBuf[nBytes];
+		PSCPU_extract(cpuBuf, res->slots[ss].CPUset, nBytes);
+		addMemToMsg(cpuBuf, nBytes, &msg); // packed CPU_set
+		sendCount[node]--;
+	    }
 	}
 	addInt32ToMsg(-1, &msg);               // end of pairs
 
