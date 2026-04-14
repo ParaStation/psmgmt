@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -414,10 +414,11 @@ bool readProcIO(pid_t pid, ProcIO_t *io)
 
     int ret, eno;
     do {
+	errno = 0;
 	ret = fscanf(fd, io_format, &io->diskRead, &io->diskWrite,
 		     &io->readBytes, &io->writeBytes);
 	eno = errno;
-    } while (ret == -1 && eno == EINTR);
+    } while (ret == EOF && eno == EINTR);
     fclose(fd);
     if (ret != 4) {
 	fwarn(eno, "fscanf() returns %d", ret);
@@ -482,12 +483,13 @@ bool readProcStat(pid_t pid, ProcStat_t *pS)
 
     int ret, eno;
     do {
+	errno = 0;
 	ret = fscanf(fd, stat_format, pS->state, &pS->ppid, &pS->pgrp,
 		     &pS->session, &pS->majflt, &pS->cmajflt, &pS->utime,
 		     &pS->stime, &pS->cutime, &pS->cstime, &pS->threads,
 		     &pS->vmem, &pS->mem, &pS->cpu);
 	eno = errno;
-    } while (ret == -1 && eno == EINTR);
+    } while (ret == EOF && eno == EINTR);
     fclose(fd);
     if (ret != 14) {
 	fwarn(eno, "fscanf(%d) returns %d", pid, ret);
@@ -516,9 +518,10 @@ static bool readProcUID(pid_t pid, ProcStat_t *pS)
 
     int ret, eno;
     do {
+	errno = 0;
 	ret = fscanf(fd, "%u", &pS->loginUid);
 	eno = errno;
-    } while (ret == -1 && eno == EINTR);
+    } while (ret == EOF && eno == EINTR);
     fclose(fd);
     if (ret != 1) {
 	fwarn(eno, "fscanf() returns %d", ret);
