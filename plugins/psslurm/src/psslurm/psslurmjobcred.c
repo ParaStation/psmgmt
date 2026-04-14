@@ -154,14 +154,8 @@ bool *getCPUsetFromCoreBitmap(uint32_t total, const char *bitmap)
 	    cur -= 'A' - 10;
 	}
 
-	for (int32_t i = 1; i <= 8; i *= 2) {
-	    if (count >= total) {
-		flog("bitmap %u exceeds total cores %u\n", count, total);
-		ufree(coreMap);
-		return NULL;
-	    }
+	for (int32_t i = 1; i <= 8 && count < total; i *= 2, count++) {
 	    if (cur & i) coreMap[count] = true;
-	    count++;
 	}
     }
 
