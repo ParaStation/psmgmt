@@ -6,6 +6,12 @@ Copyright (C) 2021-2026 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.7.2:
+==============
+Bugfixes:
+ - fix bitmap bound check (introduced in 0261b2e157)
+
+
 Version 6.7.1:
 ==============
 Bugfixes:
