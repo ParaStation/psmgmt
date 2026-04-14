@@ -1453,7 +1453,7 @@ static bool getPartition(PSpart_request_t *request)
 	      Attr_print(request->hwType), request->size);
 
     if (!request->num) {
-	PSnodes_ID_t numNodes = PSC_getNrOfNodes();
+	uint32_t numNodes = PSC_getNrOfNodes();
 	free(request->nodes);  // cleanup "empty" nodes from getDataM()
 	request->nodes = malloc(numNodes * sizeof(*request->nodes));
 	if (!request->nodes) {
@@ -1462,7 +1462,7 @@ static bool getPartition(PSpart_request_t *request)
 	    return false;
 	}
 	request->num = numNodes;
-	for (PSnodes_ID_t n = 0; n < numNodes; n++) request->nodes[n] = n;
+	for (uint32_t n = 0; n < request->num; n++) request->nodes[n] = n;
     }
 
     if (request->options & PART_OPT_FULL_LIST) request->tpp = 1;  // full nodes
