@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -132,8 +132,7 @@ static void doKillChild(pid_t pid, int sig, bool session)
 static void killForwarderChild(Forwarder_Data_t *fw, int sig, char *reason,
 			       bool session)
 {
-    if (!fw) fw = fwData;
-    /* scan-build NullDereference false positive (fwData always != NULL) */
+    if (!fw && !(fw = fwData)) return;
     int grace = fw->graceTime ? fw->graceTime : DEFAULT_GRACE_TIME;
 
     if (fw->cSid < 1 || fw->cPid < 1) return;
