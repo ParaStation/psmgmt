@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2025 ParTec AG, Munich
+ * Copyright (C) 2025-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -358,7 +358,8 @@ int Script_exec(Script_Data_t *script)
 
     /* execute script directly outside the main psid */
     int iofds[2];
-    if (script->cbOutput && pipe(iofds) < 0) {
+    bool handleOutput = script->cbOutput;
+    if (handleOutput && pipe(iofds) < 0) {
 	pluginwarn(errno, "pipe()");
 	return -1;
     }
@@ -366,7 +367,7 @@ int Script_exec(Script_Data_t *script)
     pid_t pid = fork();
     if (pid < 0) {
 	pluginwarn(errno, "fork()");
-	if (script->cbOutput) {
+	if (handleOutput) {
 	    close(iofds[0]);
 	    close(iofds[1]);
 	}
@@ -375,7 +376,7 @@ int Script_exec(Script_Data_t *script)
 
     /* execute child */
     if (!pid) {
-	script->iofd = iofds[1];
+	if (handleOutput) script->iofd = iofds[1];
 	execChild(script);
     }
 
@@ -391,7 +392,7 @@ int Script_exec(Script_Data_t *script)
 	alarm(script->runtime);
     }
 
-    if (script->cbOutput) {
+    if (handleOutput) {
 	close(iofds[1]);
 	script->iofd = iofds[0];
 
