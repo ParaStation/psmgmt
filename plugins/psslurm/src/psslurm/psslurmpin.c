@@ -971,7 +971,7 @@ static void getThreadsBinding(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
 	}
     }
 
-    uint32_t thread, threadsLeft = pininfo->threadsPerTask;
+    uint32_t thread = UINT32_MAX, threadsLeft = pininfo->threadsPerTask;
     while (true) {
 	thread_iterator iter;
 	thread_iter_init(&iter, pininfo->threadIterStrategy, nodeinfo, start);
@@ -1060,7 +1060,7 @@ static void getThreadsBinding(PSCPU_set_t CPUset, const nodeinfo_t *nodeinfo,
     }
 
     /* remember last used thread */
-    pininfo->lastUsedThread = thread;
+    pininfo->lastUsedThread = (thread == UINT32_MAX) ? -1 : (int64_t)thread;
 }
 
 /*
