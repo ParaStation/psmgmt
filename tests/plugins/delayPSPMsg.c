@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -278,6 +278,8 @@ static void deliverMsgs(int timerID, void *info)
 	PSID_handleMsg(msg->msg);
 
 	list_del(&msg->next);
+	// hint to Clang's static analyzer
+	ASSUME(&msg->next != (&delayContainer->messages)->next);
 	delMsgContainer(msg);
     }
 }
