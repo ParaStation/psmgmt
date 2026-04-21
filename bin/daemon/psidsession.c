@@ -9,6 +9,7 @@
  */
 #include "psidsession.h"
 
+#include <errno.h>
 #include <stdlib.h>
 
 #include "pscommon.h"
@@ -798,6 +799,10 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
     uint16_t num;
     getUint16(rData, &num);
     res->localSlots = malloc(num * sizeof(*res->localSlots));
+    if (!res->localSlots) {
+	PSID_fwarn(errno, "malloc() failed for resID %#x", resID);
+	return;
+    }
     res->nLocalSlots = num;
 
     int32_t rank;
