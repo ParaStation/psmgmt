@@ -1365,6 +1365,21 @@ static bool verifySlurmConf(void)
 	return false;
     }
 
+    // psslurm's pinning expects scheduling at core level
+    if (confHasOpt(SlurmConfig, "SelectTypeParameters", "CR_CPU")
+	|| confHasOpt(SlurmConfig, "SelectTypeParameters", "CR_CPU_Memory")) {
+	flog("error: SelectTypeParameters \"CR_CPU*\" unsupported\n");
+	return false;
+    }
+
+    // see #212 (note_51184)
+    if (confHasOpt(SlurmConfig, "SelectTypeParameters", "CR_Socket")
+	|| confHasOpt(SlurmConfig, "SelectTypeParameters",
+		      "CR_Socket_Memory")) {
+	flog("error: SelectTypeParameters \"CR_Socket*\" unsupported\n");
+	return false;
+    }
+
     return true;
 }
 
