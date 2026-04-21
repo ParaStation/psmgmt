@@ -1350,6 +1350,14 @@ static bool verifySlurmConf(void)
 	return false;
     }
 
+    /*** ensure some parameters to be set as required by psslurm ***/
+
+    char *taskpluginparam = getConfValueC(SlurmConfig, "TaskPluginParam");
+    if (!taskpluginparam || strcasecmp(taskpluginparam, "Threads")) {
+	flog("error: psslurm requires TaskPluinParam set to \"Threads\"\n");
+	return false;
+    }
+
     return true;
 }
 
