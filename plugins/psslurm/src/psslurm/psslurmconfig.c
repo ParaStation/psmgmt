@@ -1358,6 +1358,13 @@ static bool verifySlurmConf(void)
 	return false;
     }
 
+    char *selecttype = getConfValueC(SlurmConfig, "SelectType");
+    if (!selecttype || strcasecmp(selecttype, "select/cons_tres")) {
+	flog("error: psslurm requires SelectType set to"
+	     " \"select/cons_tres\"\n");
+	return false;
+    }
+
     return true;
 }
 
