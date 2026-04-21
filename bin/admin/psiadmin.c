@@ -114,6 +114,9 @@ static char *nextline(FILE *inFile, bool silent)
 	    if (getline(&tmp, &len, inFile) < 0) {
 		free(tmp);
 		tmp = NULL;
+	    } else {
+		len = strlen(tmp);
+		if (len && tmp[len - 1] == '\n') tmp[len - 1] = '\0';
 	    }
 	}
 	if (!tmp) break;
