@@ -1380,6 +1380,15 @@ static bool verifySlurmConf(void)
 	return false;
     }
 
+    // see #44 (note_51175)
+    if (confHasOpt(SlurmConfig, "SelectTypeParameters",
+		     "CR_CORE_DEFAULT_DIST_BLOCK")) {
+	flog("error: \"CR_CORE_DEFAULT_DIST_BLOCK\" in SelectTypeParameters"
+	     " is unsupported, use \"DEFAULT_SOCKET_DIST = block\" in"
+	     " psslurm.conf (patched Slurm needed for full function)\n");
+	return false;
+    }
+
     return true;
 }
 
