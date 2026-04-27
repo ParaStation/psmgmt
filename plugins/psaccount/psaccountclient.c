@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -419,19 +419,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 	 IC_recvBytes, IC_sendBytes);
 }
 
-/**
- * @brief Add two data aggregations
- *
- * Create the sum of each data item of the two data aggregations @a
- * srcData and @a destData and store the results into @a destData.
- *
- * @param srcData Data aggregation to be added
- *
- * @param destData Data aggregation acting as the accumulator
- *
- * @return No return value
- */
-static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
+void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
 {
     /* sum up for maxima totals */
     destData->maxThreadsTotal += srcData->maxThreadsTotal;

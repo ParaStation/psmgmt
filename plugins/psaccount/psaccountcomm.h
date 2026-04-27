@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,7 @@
 #include "pstask.h"
 
 #include "psaccounttypes.h"
+#include "psserial.h"
 
 /**
  * @brief Initialize communication layer
@@ -70,5 +71,29 @@ int switchAccounting(PStask_ID_t clientTID, bool enable);
  * @return No return value
  */
 void sendAggData(PStask_ID_t rootTID, AccountDataExt_t *aggData);
+
+/**
+ * @brief Pack AccountDataExt_t into a send buffer
+ *
+ * Serialize all fields of @a aggData into the fragmented send buffer
+ * @a data. The data can be unpack using @ref unpackAggData().
+ *
+ * @param aggData Accounting data to pack
+ *
+ * @param data Destination send buffer
+ */
+void packAggData(AccountDataExt_t *aggData, PS_SendDB_t *data);
+
+/**
+ * @brief Unpack AccountDataExt_t from a receive buffer
+ *
+ * Unpack @a data buffer into @a aggData which was packed before
+ * using @ref packAggData().
+ *
+ * @param data The source receive buffer
+ *
+ * @param aggData The accounting data structure to fill
+ */
+void unpackAggData(PS_DataBuffer_t data, AccountDataExt_t *aggData);
 
 #endif  /* __PS_ACCOUNT_COMM */

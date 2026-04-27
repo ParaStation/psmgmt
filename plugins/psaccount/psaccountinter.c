@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -203,6 +203,21 @@ bool psAccountCtlScript(psAccountCtl_t action, psAccountOpt_t type)
     }
 
     return false;
+}
+
+void psAccountMergeAccData(AccountDataExt_t *src, AccountDataExt_t *dest)
+{
+    addAggData(src, dest);
+}
+
+void psAccountPackAggData(AccountDataExt_t *aggData, PS_SendDB_t *data)
+{
+    packAggData(aggData, data);
+}
+
+void psAccountUnpackAggData(PS_DataBuffer_t data, AccountDataExt_t *aggData)
+{
+    unpackAggData(data, aggData);
 }
 
 bool psAccountScriptEnv(psAccountCtl_t action, psAccountOpt_t type,

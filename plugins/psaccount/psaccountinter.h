@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,5 +36,9 @@ psAccountScriptEnv_t psAccountScriptEnv;
 
 psAccountGetPoll_t psAccountGetPoll;
 psAccountSetPoll_t psAccountSetPoll;
+
+psAccountMergeAccData_t psAccountMergeAccData;
+psAccountPackAggData_t psAccountPackAggData;
+psAccountUnpackAggData_t psAccountUnpackAggData;
 
 #endif  /* __PS_ACCOUNT_INTER */

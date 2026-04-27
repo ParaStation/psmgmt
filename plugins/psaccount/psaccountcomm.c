@@ -445,6 +445,75 @@ static void handleSwitchUpdate(DDTypedBufferMsg_t *msg, bool enable)
     switchClientUpdate(client, enable);
 }
 
+void packAggData(AccountDataExt_t *aggData, PS_SendDB_t *data)
+{
+    addUint64ToMsg(aggData->maxThreadsTotal, data);
+    addUint64ToMsg(aggData->maxVsizeTotal, data);
+    addUint64ToMsg(aggData->maxRssTotal, data);
+    addUint64ToMsg(aggData->maxThreads, data);
+    addUint64ToMsg(aggData->maxVsize, data);
+    addUint64ToMsg(aggData->maxRss, data);
+
+    addUint64ToMsg(aggData->avgThreadsTotal, data);
+    addUint64ToMsg(aggData->avgThreadsCount, data);
+    addUint64ToMsg(aggData->avgVsizeTotal, data);
+    addUint64ToMsg(aggData->avgVsizeCount, data);
+    addUint64ToMsg(aggData->avgRssTotal, data);
+    addUint64ToMsg(aggData->avgRssCount, data);
+
+    addUint64ToMsg(aggData->cutime, data);
+    addUint64ToMsg(aggData->cstime, data);
+    addUint64ToMsg(aggData->minCputime, data);
+    addUint64ToMsg(aggData->pageSize, data);
+    addUint32ToMsg(aggData->numTasks, data);
+
+    addUint64ToMsg(aggData->maxMajflt, data);
+    addUint64ToMsg(aggData->totMajflt, data);
+    addUint64ToMsg(aggData->totCputime, data);
+    addUint64ToMsg(aggData->cpuFreq, data);
+
+    addDoubleToMsg(aggData->maxDiskRead, data);
+    addDoubleToMsg(aggData->totDiskRead, data);
+    addDoubleToMsg(aggData->maxDiskWrite, data);
+    addDoubleToMsg(aggData->totDiskWrite, data);
+
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_VSIZE], data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_RSS], data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_PAGES], data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_CPU], data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_DISKREAD], data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_DISKWRITE], data);
+
+    addTimeToMsg(aggData->rusage.ru_utime.tv_sec, data);
+    addTimeToMsg(aggData->rusage.ru_utime.tv_usec, data);
+    addTimeToMsg(aggData->rusage.ru_stime.tv_sec, data);
+    addTimeToMsg(aggData->rusage.ru_stime.tv_usec, data);
+
+    addUint64ToMsg(aggData->energyTot, data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_ENERGY], data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_ENERGY], data);
+    addUint64ToMsg(aggData->powerAvg, data);
+    addUint64ToMsg(aggData->powerMin, data);
+    addUint64ToMsg(aggData->powerMax, data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_POWER], data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_POWER], data);
+
+    addUint64ToMsg(aggData->IC_recvBytesTot, data);
+    addUint64ToMsg(aggData->IC_recvBytesMin, data);
+    addUint64ToMsg(aggData->IC_recvBytesMax, data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_IC_RECV], data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_IC_RECV], data);
+
+    addUint64ToMsg(aggData->IC_sendBytesTot, data);
+    addUint64ToMsg(aggData->IC_sendBytesMin, data);
+    addUint64ToMsg(aggData->IC_sendBytesMax, data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_IC_SEND], data);
+    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_IC_SEND], data);
+
+    addUint64ToMsg(aggData->FS_writeBytes, data);
+    addUint64ToMsg(aggData->FS_readBytes, data);
+}
+
 void sendAggData(PStask_ID_t rootTID, AccountDataExt_t *aggData)
 {
     PS_SendDB_t data;
@@ -456,71 +525,7 @@ void sendAggData(PStask_ID_t rootTID, AccountDataExt_t *aggData)
     /* add ID of the job's root task */
     addTaskIdToMsg(rootTID, &data);
 
-    addUint64ToMsg(aggData->maxThreadsTotal, &data);
-    addUint64ToMsg(aggData->maxVsizeTotal, &data);
-    addUint64ToMsg(aggData->maxRssTotal, &data);
-    addUint64ToMsg(aggData->maxThreads, &data);
-    addUint64ToMsg(aggData->maxVsize, &data);
-    addUint64ToMsg(aggData->maxRss, &data);
-
-    addUint64ToMsg(aggData->avgThreadsTotal, &data);
-    addUint64ToMsg(aggData->avgThreadsCount, &data);
-    addUint64ToMsg(aggData->avgVsizeTotal, &data);
-    addUint64ToMsg(aggData->avgVsizeCount, &data);
-    addUint64ToMsg(aggData->avgRssTotal, &data);
-    addUint64ToMsg(aggData->avgRssCount, &data);
-
-    addUint64ToMsg(aggData->cutime, &data);
-    addUint64ToMsg(aggData->cstime, &data);
-    addUint64ToMsg(aggData->minCputime, &data);
-    addUint64ToMsg(aggData->pageSize, &data);
-    addUint32ToMsg(aggData->numTasks, &data);
-
-    addUint64ToMsg(aggData->maxMajflt, &data);
-    addUint64ToMsg(aggData->totMajflt, &data);
-    addUint64ToMsg(aggData->totCputime, &data);
-    addUint64ToMsg(aggData->cpuFreq, &data);
-
-    addDoubleToMsg(aggData->maxDiskRead, &data);
-    addDoubleToMsg(aggData->totDiskRead, &data);
-    addDoubleToMsg(aggData->maxDiskWrite, &data);
-    addDoubleToMsg(aggData->totDiskWrite, &data);
-
-    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_VSIZE], &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_RSS], &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_PAGES], &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_CPU], &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_DISKREAD], &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_DISKWRITE], &data);
-
-    addTimeToMsg(aggData->rusage.ru_utime.tv_sec, &data);
-    addTimeToMsg(aggData->rusage.ru_utime.tv_usec, &data);
-    addTimeToMsg(aggData->rusage.ru_stime.tv_sec, &data);
-    addTimeToMsg(aggData->rusage.ru_stime.tv_usec, &data);
-
-    addUint64ToMsg(aggData->energyTot, &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_ENERGY], &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_ENERGY], &data);
-    addUint64ToMsg(aggData->powerAvg, &data);
-    addUint64ToMsg(aggData->powerMin, &data);
-    addUint64ToMsg(aggData->powerMax, &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_POWER], &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_POWER], &data);
-
-    addUint64ToMsg(aggData->IC_recvBytesTot, &data);
-    addUint64ToMsg(aggData->IC_recvBytesMin, &data);
-    addUint64ToMsg(aggData->IC_recvBytesMax, &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_IC_RECV], &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_IC_RECV], &data);
-
-    addUint64ToMsg(aggData->IC_sendBytesTot, &data);
-    addUint64ToMsg(aggData->IC_sendBytesMin, &data);
-    addUint64ToMsg(aggData->IC_sendBytesMax, &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MIN_IC_SEND], &data);
-    addTaskIdToMsg(aggData->taskIds[ACCID_MAX_IC_SEND], &data);
-
-    addUint64ToMsg(aggData->FS_writeBytes, &data);
-    addUint64ToMsg(aggData->FS_readBytes, &data);
+    packAggData(aggData, &data);
 
     sendFragMsg(&data);
 
@@ -559,6 +564,76 @@ static void sendAggDataDrop(PStask_ID_t dest, PStask_ID_t rootTID)
     sendMsg(&msg);
 }
 
+void unpackAggData(PS_DataBuffer_t data, AccountDataExt_t *aggData)
+{
+    getUint64(data, &aggData->maxThreadsTotal);
+    getUint64(data, &aggData->maxVsizeTotal);
+    getUint64(data, &aggData->maxRssTotal);
+    getUint64(data, &aggData->maxThreads);
+    getUint64(data, &aggData->maxVsize);
+    getUint64(data, &aggData->maxRss);
+
+    getUint64(data, &aggData->avgThreadsTotal);
+    getUint64(data, &aggData->avgThreadsCount);
+    getUint64(data, &aggData->avgVsizeTotal);
+    getUint64(data, &aggData->avgVsizeCount);
+    getUint64(data, &aggData->avgRssTotal);
+    getUint64(data, &aggData->avgRssCount);
+
+    getUint64(data, &aggData->cutime);
+    getUint64(data, &aggData->cstime);
+    getUint64(data, &aggData->minCputime);
+    getUint64(data, &aggData->pageSize);
+    getUint32(data, &aggData->numTasks);
+
+    getUint64(data, &aggData->maxMajflt);
+    getUint64(data, &aggData->totMajflt);
+    getUint64(data, &aggData->totCputime);
+    getUint64(data, &aggData->cpuFreq);
+
+    getDouble(data, &aggData->maxDiskRead);
+    getDouble(data, &aggData->totDiskRead);
+    getDouble(data, &aggData->maxDiskWrite);
+    getDouble(data, &aggData->totDiskWrite);
+
+    getTaskId(data, &aggData->taskIds[ACCID_MAX_VSIZE]);
+    getTaskId(data, &aggData->taskIds[ACCID_MAX_RSS]);
+    getTaskId(data, &aggData->taskIds[ACCID_MAX_PAGES]);
+    getTaskId(data, &aggData->taskIds[ACCID_MIN_CPU]);
+    getTaskId(data, &aggData->taskIds[ACCID_MAX_DISKREAD]);
+    getTaskId(data, &aggData->taskIds[ACCID_MAX_DISKWRITE]);
+
+    getTime(data, &aggData->rusage.ru_utime.tv_sec);
+    getTime(data, &aggData->rusage.ru_utime.tv_usec);
+    getTime(data, &aggData->rusage.ru_stime.tv_sec);
+    getTime(data, &aggData->rusage.ru_stime.tv_usec);
+
+    getUint64(data, &aggData->energyTot);
+    getTaskId(data, &aggData->taskIds[ACCID_MIN_ENERGY]);
+    getTaskId(data, &aggData->taskIds[ACCID_MAX_ENERGY]);
+
+    getUint64(data, &aggData->powerAvg);
+    getUint64(data, &aggData->powerMin);
+    getUint64(data, &aggData->powerMax);
+    getTaskId(data, &aggData->taskIds[ACCID_MIN_POWER]);
+    getTaskId(data, &aggData->taskIds[ACCID_MAX_POWER]);
+
+    getUint64(data, &aggData->IC_recvBytesTot);
+    getUint64(data, &aggData->IC_recvBytesMin);
+    getUint64(data, &aggData->IC_recvBytesMax);
+    getTaskId(data, &aggData->taskIds[ACCID_MIN_IC_RECV]);
+    getTaskId(data, &aggData->taskIds[ACCID_MAX_IC_RECV]);
+
+    getUint64(data, &aggData->IC_sendBytesTot);
+    getUint64(data, &aggData->IC_sendBytesMin);
+    getUint64(data, &aggData->IC_sendBytesMax);
+    getTaskId(data, &aggData->taskIds[ACCID_MIN_IC_SEND]);
+    getTaskId(data, &aggData->taskIds[ACCID_MAX_IC_SEND]);
+
+    getUint64(data, &aggData->FS_writeBytes);
+    getUint64(data, &aggData->FS_readBytes);
+}
+
 static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
     AccountDataExt_t aggData;
@@ -574,72 +649,7 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 	return sendAggDataDrop(msg->header.sender, rootTID);
     }
 
-    getUint64(data, &aggData.maxThreadsTotal);
-    getUint64(data, &aggData.maxVsizeTotal);
-    getUint64(data, &aggData.maxRssTotal);
-    getUint64(data, &aggData.maxThreads);
-    getUint64(data, &aggData.maxVsize);
-    getUint64(data, &aggData.maxRss);
-
-    getUint64(data, &aggData.avgThreadsTotal);
-    getUint64(data, &aggData.avgThreadsCount);
-    getUint64(data, &aggData.avgVsizeTotal);
-    getUint64(data, &aggData.avgVsizeCount);
-    getUint64(data, &aggData.avgRssTotal);
-    getUint64(data, &aggData.avgRssCount);
-
-    getUint64(data, &aggData.cutime);
-    getUint64(data, &aggData.cstime);
-    getUint64(data, &aggData.minCputime);
-    getUint64(data, &aggData.pageSize);
-    getUint32(data, &aggData.numTasks);
-
-    getUint64(data, &aggData.maxMajflt);
-    getUint64(data, &aggData.totMajflt);
-    getUint64(data, &aggData.totCputime);
-    getUint64(data, &aggData.cpuFreq);
-
-    getDouble(data, &aggData.maxDiskRead);
-    getDouble(data, &aggData.totDiskRead);
-    getDouble(data, &aggData.maxDiskWrite);
-    getDouble(data, &aggData.totDiskWrite);
-
-    getTaskId(data, &aggData.taskIds[ACCID_MAX_VSIZE]);
-    getTaskId(data, &aggData.taskIds[ACCID_MAX_RSS]);
-    getTaskId(data, &aggData.taskIds[ACCID_MAX_PAGES]);
-    getTaskId(data, &aggData.taskIds[ACCID_MIN_CPU]);
-    getTaskId(data, &aggData.taskIds[ACCID_MAX_DISKREAD]);
-    getTaskId(data, &aggData.taskIds[ACCID_MAX_DISKWRITE]);
-
-    getTime(data, &aggData.rusage.ru_utime.tv_sec);
-    getTime(data, &aggData.rusage.ru_utime.tv_usec);
-    getTime(data, &aggData.rusage.ru_stime.tv_sec);
-    getTime(data, &aggData.rusage.ru_stime.tv_usec);
-
-    getUint64(data, &aggData.energyTot);
-    getTaskId(data, &aggData.taskIds[ACCID_MIN_ENERGY]);
-    getTaskId(data, &aggData.taskIds[ACCID_MAX_ENERGY]);
-
-    getUint64(data, &aggData.powerAvg);
-    getUint64(data, &aggData.powerMin);
-    getUint64(data, &aggData.powerMax);
-    getTaskId(data, &aggData.taskIds[ACCID_MIN_POWER]);
-    getTaskId(data, &aggData.taskIds[ACCID_MAX_POWER]);
-
-    getUint64(data, &aggData.IC_recvBytesTot);
-    getUint64(data, &aggData.IC_recvBytesMin);
-    getUint64(data, &aggData.IC_recvBytesMax);
-    getTaskId(data, &aggData.taskIds[ACCID_MIN_IC_RECV]);
-    getTaskId(data, &aggData.taskIds[ACCID_MAX_IC_RECV]);
-
-    getUint64(data, &aggData.IC_sendBytesTot);
-    getUint64(data, &aggData.IC_sendBytesMin);
-    getUint64(data, &aggData.IC_sendBytesMax);
-    getTaskId(data, &aggData.taskIds[ACCID_MIN_IC_SEND]);
-    getTaskId(data, &aggData.taskIds[ACCID_MAX_IC_SEND]);
-
-    getUint64(data, &aggData.FS_writeBytes);
-    getUint64(data, &aggData.FS_readBytes);
+    unpackAggData(data, &aggData);
 
     setAggData(msg->header.sender, rootTID, &aggData);
 

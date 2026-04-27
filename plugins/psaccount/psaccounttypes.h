@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,7 @@
 #include <sys/types.h>
 
 #include "pstaskid.h"
+#include "psserial.h"
 
 /**
  * Indices for individual task IDs in @ref AccountDataExt_t's @ref
@@ -453,5 +454,38 @@ typedef bool(psAccountCtlScript_t)(psAccountCtl_t action, psAccountOpt_t type);
  */
 typedef bool (psAccountScriptEnv_t)(psAccountCtl_t action, psAccountOpt_t type,
 				    char *name, char *val);
+
+/**
+ * @brief Merge source aggregated data into destination
+ *
+ * Create the sum of each data item of the two data aggregations @a
+ * srcData and @a destData and store the results into @a destData.
+ *
+ * @param srcData Data aggregation to be added
+ *
+ * @param destData Data aggregation acting as the accumulator
+ */
+typedef void (psAccountMergeAccData_t)(AccountDataExt_t *src,
+				       AccountDataExt_t *dest);
+
+/**
+ * @brief Pack AccountDataExt_t into a send buffer
+ *
+ * @param aggData The accounting data to pack
+ *
+ * @param data The destination send buffer
+ */
+typedef void (psAccountPackAggData_t)(AccountDataExt_t *aggData,
+				      PS_SendDB_t *data);
+
+/**
+ * @brief Unpack AccountDataExt_t from a receive buffer
+ *
+ * @param data The source receive buffer
+ *
+ * @param aggData The accounting data structure to fill
+ */
+typedef void (psAccountUnpackAggData_t)(PS_DataBuffer_t data,
+					AccountDataExt_t *aggData);
 
 #endif  /* __PS_ACCOUNT_TYPES */
