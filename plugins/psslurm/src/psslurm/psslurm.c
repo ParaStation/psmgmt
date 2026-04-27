@@ -103,7 +103,7 @@ int version = 118;
 int requiredAPI =146;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 5 },
-    { .name = "psaccount", .version = 30 },
+    { .name = "psaccount", .version = 31 },
     { .name = "pelogue", .version = 10 },
     { .name = "pspam", .version = 3 },
     { .name = "psexec", .version = 2 },
@@ -268,6 +268,9 @@ static bool regPsAccountHandles(void)
     loadHandle(pluginHandle, psAccountSetPoll);
     loadHandle(pluginHandle, psAccountCtlScript);
     loadHandle(pluginHandle, psAccountScriptEnv);
+    loadHandle(pluginHandle, psAccountMergeAccData);
+    loadHandle(pluginHandle, psAccountPackAggData);
+    loadHandle(pluginHandle, psAccountUnpackAggData);
 
     return true;
 }

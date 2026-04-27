@@ -48,6 +48,7 @@
 #include "psidutil.h"
 
 #include "psexechandles.h"
+#include "psaccounthandles.h"
 
 #include "slurmcommon.h"
 #include "slurmerrno.h"
@@ -110,6 +111,8 @@ typedef enum {
     PSP_PELOGUE_RES,	    /**< result of a non-parallel prologue/epilogue */
     PSP_ALLOC_TERM,	    /**< terminate an allocation including all
 				 corresponding jobs and steps */
+    PSP_STEP_ACCT,	    /**< forward step accounting data to the jobscript
+				 node */
 } PSP_PSSLURM_t;
 
 /** hostname lookup table for PS node IDs */
@@ -152,6 +155,8 @@ static const char *msg2Str(PSP_PSSLURM_t type)
 	return "PSP_PELOGUE_RES";
     case PSP_ALLOC_TERM:
 	return "PSP_ALLOC_TERM";
+    case PSP_STEP_ACCT:
+	return "PSP_STEP_ACCT";
     default:
 	snprintf(buf, sizeof(buf), "%i <Unknown>", type);
 	return buf;
@@ -1385,6 +1390,64 @@ static void handleAllocTerm(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     Alloc_delete(alloc);
 }
 
+static void handleStepAcct(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
+{
+    uint32_t jobid;
+    getUint32(data, &jobid);
+
+    Job_t *job = Job_findById(jobid);
+    if (!job) {
+	flog("no job found for jobid %u\n", jobid);
+	return;
+    }
+
+    AccountDataExt_t stepData;
+    memset(&stepData, 0, sizeof(stepData));
+    psAccountUnpackAggData(data, &stepData);
+
+    psAccountMergeAccData(&stepData, &job->stepAcctAccum);
+    fdbg(PSSLURM_LOG_ACC, "merged step acct for jobid %u numTasks %u from %s\n",
+	 jobid, job->stepAcctAccum.numTasks, PSC_printTID(msg->header.sender));
+}
+
+void send_PS_StepAcct(Step_t *step, AccountDataExt_t *accData)
+{
+    Alloc_t *alloc = Alloc_find(step->hID.jobid);
+    if (!alloc) {
+	flog("no allocation for %s\n", Step_strID(step));
+	return;
+    }
+
+    if (PSC_getMyID() == alloc->nodes[0]) {
+	/* jobscript running on local node */
+	Job_t *job = Job_findById(step->hID.jobid);
+	if (!job) {
+	    flog("no job for %s\n", Step_strID(step));
+	    return;
+	}
+	psAccountMergeAccData(accData, &job->stepAcctAccum);
+	fdbg(PSSLURM_LOG_ACC, "merge step acct for %s numTasks %u\n",
+	     Step_strID(step), job->stepAcctAccum.numTasks);
+	return;
+    }
+
+    PStask_ID_t dest = PSC_getTID(alloc->nodes[0], 0);
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_STEP_ACCT);
+    setFragDest(&data, dest);
+
+    addUint32ToMsg(step->hID.jobid, &data);
+    psAccountPackAggData(accData, &data);
+
+    if (sendFragMsg(&data) < 0) {
+	flog("sending PSP_STEP_ACCT for %s to %s failed\n", Step_strID(step),
+	     PSC_printTID(dest));
+    } else {
+	fdbg(PSSLURM_LOG_ACC,"sending PSP_STEP_ACCT for %s to %s\n",
+	     Step_strID(step), PSC_printTID(dest));
+    }
+}
+
 /**
 * @brief Handle a PSP_PLUG_PSSLURM message
 *
@@ -1446,6 +1509,9 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	break;
     case PSP_ALLOC_TERM:
 	recvFragMsg(msg, handleAllocTerm);
+	break;
+    case PSP_STEP_ACCT:
+	recvFragMsg(msg, handleStepAcct);
 	break;
     default:
 	flog("unknown msg type: %i [%s -> %s]\n", msg->type, sender, dest);

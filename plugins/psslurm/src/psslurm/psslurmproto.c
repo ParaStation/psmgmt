@@ -3012,6 +3012,13 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 	.iBase = &step->acctBase };
     addSlurmAccData(&slurmAccData);
 
+    /* forward step accounting to the jobscript node */
+    if (step->leader && step->accType) {
+	send_PS_StepAcct(step, &slurmAccData.psAcct);
+	/* don't forward step accouting data to slurmctld */
+	slurmAccData.type = 0;
+    }
+
     Req_Step_Comp_t comp = {
 	.firstNode = 0,
 	.lastNode = step->nrOfNodes -1,
@@ -3307,6 +3314,17 @@ void sendJobExit(Job_t *job, uint32_t exitStatus)
 	slurmAccData.childPid = job->fwdata->cPid;
     }
     addSlurmAccData(&slurmAccData);
+
+    /* merge step accounting data */
+    if (job->stepAcctAccum.numTasks > 0) {
+	if (slurmAccData.type) {
+	    psAccountMergeAccData(&job->stepAcctAccum, &slurmAccData.psAcct);
+	} else {
+	    /* use step data instead of empty jobscript data */
+	    slurmAccData.psAcct = job->stepAcctAccum;
+	    slurmAccData.type = 1;
+	}
+    }
 
     /* send request */
     Req_Comp_Batch_Script_t comp = {

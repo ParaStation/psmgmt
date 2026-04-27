@@ -262,4 +262,18 @@ void stopStepFollower(Step_t *step);
  */
 void send_PS_AllocTerm(Alloc_t *alloc);
 
+/**
+ * @brief Forward step accounting data to the node of the batch job
+ *
+ * Called by the step leader after sendStepExit() has assembled the fully
+ * aggregated AccountDataExt_t. If the step leader is already
+ * on the batch job node the data is merged directly into the job without
+ * sending a message.
+ *
+ * @param step The completed step
+ *
+ * @param accData Aggregated accounting data for this step
+ */
+void send_PS_StepAcct(Step_t *step, AccountDataExt_t *accData);
+
 #endif
