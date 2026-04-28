@@ -3013,7 +3013,8 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
     addSlurmAccData(&slurmAccData);
 
     /* forward step accounting to the jobscript node */
-    if (step->leader && step->accType) {
+    bool fwStepAcct = getConfValueI(Config, "BATCH_AGG_ACCOUNTING");
+    if (fwStepAcct && step->leader && step->accType) {
 	send_PS_StepAcct(step, &slurmAccData.psAcct);
 	/* don't forward step accouting data to slurmctld */
 	slurmAccData.type = 0;

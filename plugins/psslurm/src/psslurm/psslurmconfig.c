@@ -342,6 +342,10 @@ const ConfDef_t confDef[] =
 	"bool",
 	"0",
 	"Terminate job/step if setting requested GPU frequency fails" },
+    { "BATCH_AGG_ACCOUNTING", 1,
+	"bool",
+	"0",
+	"Aggregate step accouting data in batch job" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
