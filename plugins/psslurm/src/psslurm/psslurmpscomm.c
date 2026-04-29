@@ -520,11 +520,11 @@ static int handleRecvSpawnReq(void *taskPtr)
 static inline void _unpackStepIDs(PS_DataBuffer_t data, Head_ID_t *hID)
 {
     if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	unpackSlurmID(data, hID, slurmProto);
-    } else {
 	initHeadID(hID);
 	getUint32(data, &hID->jobid);
 	getUint32(data, &hID->stepid);
+    } else {
+	unpackSlurmID(data, hID, slurmProto);
     }
 }
 
@@ -534,10 +534,10 @@ static inline void _unpackStepIDs(PS_DataBuffer_t data, Head_ID_t *hID)
 static inline void _packStepIDs(Head_ID_t *hID, PS_SendDB_t *data)
 {
     if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	packSlurmID(hID, data);
-    } else {
 	addUint32ToMsg(hID->jobid, data);
 	addUint32ToMsg(hID->stepid, data);
+    } else {
+	packSlurmID(hID, data);
     }
 }
 

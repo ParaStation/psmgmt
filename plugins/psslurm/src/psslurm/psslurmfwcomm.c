@@ -235,14 +235,17 @@ bool fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     return true;
 }
 
+/**
+ * @brief Remove helper with SLURM_25_05_PROTO_VERSION
+ */
 static inline void _unpackStepIDs(PS_DataBuffer_t data, Head_ID_t *hID)
 {
     if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	unpackSlurmID(data, hID, slurmProto);
-    } else {
 	initHeadID(hID);
 	getUint32(data, &hID->jobid);
 	getUint32(data, &hID->stepid);
+    } else {
+	unpackSlurmID(data, hID, slurmProto);
     }
 }
 
@@ -481,9 +484,6 @@ bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
     return true;
 }
 
-/**
- * @brief Remove helper with SLURM_25_05_PROTO_VERSION
- */
 void fwCMD_stepTimeout(Forwarder_Data_t *fwdata)
 {
     /* might happen that forwarder is already gone */
@@ -502,10 +502,10 @@ void fwCMD_stepTimeout(Forwarder_Data_t *fwdata)
 static inline void _packStepIDs(Step_t *step, PS_SendDB_t *data)
 {
     if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
-	packSlurmID(&step->hID, data);
-    } else {
 	addUint32ToMsg(step->hID.jobid, data);
 	addUint32ToMsg(step->hID.stepid, data);
+    } else {
+	packSlurmID(&step->hID, data);
     }
 }
 
