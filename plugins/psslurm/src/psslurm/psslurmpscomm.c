@@ -1698,6 +1698,10 @@ static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
     case PSP_PACK_INFO:
     case PSP_PACK_EXIT:
     case PSP_ALLOC_TERM:
+    case PSP_STEP_ACCT:
+    case PSP_PELOGUE_OE:
+    case PSP_STOP_STEP_FW:
+    case PSP_PELOGUE_RES:
 	/* nothing we can do here */
 	break;
     default:
