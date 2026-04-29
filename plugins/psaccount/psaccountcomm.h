@@ -75,8 +75,8 @@ void sendAggData(PStask_ID_t rootTID, AccountDataExt_t *aggData);
 /**
  * @brief Pack AccountDataExt_t into a send buffer
  *
- * Serialize all fields of @a aggData into the fragmented send buffer
- * @a data. The data can be unpack using @ref unpackAggData().
+ * Serialize all fields of @a aggData into send buffer @a data.
+ * The data can be unpacked using @ref unpackAggData().
  *
  * @param aggData Accounting data to pack
  *

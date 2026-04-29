@@ -461,9 +461,9 @@ typedef bool (psAccountScriptEnv_t)(psAccountCtl_t action, psAccountOpt_t type,
  * Create the sum of each data item of the two data aggregations @a
  * srcData and @a destData and store the results into @a destData.
  *
- * @param srcData Data aggregation to be added
+ * @param src Data aggregation to be added
  *
- * @param destData Data aggregation acting as the accumulator
+ * @param dest Data aggregation acting as the accumulator
  */
 typedef void (psAccountMergeAccData_t)(AccountDataExt_t *src,
 				       AccountDataExt_t *dest);
