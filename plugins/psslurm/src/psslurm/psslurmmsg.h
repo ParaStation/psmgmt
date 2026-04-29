@@ -303,7 +303,7 @@ int setReconTimer(Slurm_Msg_Buf_t *savedMsg);
 /**
  * @brief Init Slurm head identifier
  *
- * @param head identifier to initialize
+ * @param hID Pointer to head identifier to initialize
  */
 void initHeadID(Head_ID_t *hID);
 
