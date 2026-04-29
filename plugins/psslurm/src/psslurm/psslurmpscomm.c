@@ -522,7 +522,7 @@ static inline void _unpackStepIDs(PS_DataBuffer_t data, Head_ID_t *hID)
     if (slurmProto <= SLURM_25_05_PROTO_VERSION) {
 	unpackSlurmID(data, hID, slurmProto);
     } else {
-	memset(hID, 0, sizeof(*hID));
+	initHeadID(hID);
 	getUint32(data, &hID->jobid);
 	getUint32(data, &hID->stepid);
     }

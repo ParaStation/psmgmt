@@ -391,8 +391,10 @@ int handleLocalPElogueStart(void *data)
 	    env_t env = old ? old->env : pedata->env;
 	    mdbg(PSSLURM_LOG_PELOG, "%s: no pack hosts, add allocation %u skip "
 		 "prologue\n", __func__, id);
-	    Head_ID_t hID = { .jobid = id, .stepid = NO_VAL,
-			     .sluid = 0, .stepHetComp = NO_VAL };
+	    Head_ID_t hID;
+	    initHeadID(&hID);
+	    hID.jobid = id;
+
 	    Alloc_t *alloc = Alloc_add(&hID, packID, slurmHosts, env,
 				      pedata->uid, pedata->gid, user);
 	    if (old) {
@@ -421,8 +423,10 @@ int handleLocalPElogueStart(void *data)
 	    if (localid != NO_VAL) {
 		mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 		     "allocation %u\n", __func__, id);
-		Head_ID_t hID = { .jobid = id, .stepid = NO_VAL,
-				 .sluid = 0, .stepHetComp = NO_VAL };
+		Head_ID_t hID;
+		initHeadID(&hID);
+		hID.jobid = id;
+
 		alloc = Alloc_add(&hID, packID, slurmHosts, pedata->env,
 				 pedata->uid, pedata->gid, user);
 		alloc->state = A_PROLOGUE;
@@ -431,8 +435,10 @@ int handleLocalPElogueStart(void *data)
 		if (!alloc) {
 		    mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 			 "temporary allocation %u\n", __func__, packID);
-		    Head_ID_t hID = { .jobid = id, .stepid = NO_VAL,
-				     .sluid = 0, .stepHetComp = NO_VAL };
+		    Head_ID_t hID;
+		    initHeadID(&hID);
+		    hID.jobid = id;
+
 		    alloc = Alloc_add(&hID, packID, slurmHosts, pedata->env,
 				     pedata->uid, pedata->gid, user);
 		    alloc->state = A_PROLOGUE;
@@ -445,8 +451,10 @@ int handleLocalPElogueStart(void *data)
     } else {
 	/* prologue for regular (non pack) job */
 	fdbg(PSSLURM_LOG_PELOG, "non pack job, add allocation %u\n", id);
-	Head_ID_t hID = { .jobid = id, .stepid = NO_VAL,
-			 .sluid = 0, .stepHetComp = NO_VAL };
+	Head_ID_t hID;
+	initHeadID(&hID);
+	hID.jobid = id;
+
 	Alloc_t *alloc = Alloc_add(&hID, packID, slurmHosts, pedata->env,
 				  pedata->uid, pedata->gid, user);
 	alloc->state = A_PROLOGUE;

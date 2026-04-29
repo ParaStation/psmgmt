@@ -227,8 +227,9 @@ Step_t *Step_findByPsidTask(pid_t pid)
 Step_t *__Step_findByEnv(env_t env, Head_ID_t *hID, const char *caller,
 			 const int line)
 {
-    Head_ID_t env_hID = { .jobid = NO_VAL, .stepid = SLURM_BATCH_SCRIPT,
-	.sluid = 0, .stepHetComp = NO_VAL };
+    Head_ID_t env_hID;
+    initHeadID(&env_hID);
+    env_hID.stepid = SLURM_BATCH_SCRIPT;
 
     if (!envInitialized(env)) {
 	flog("no environment, caller %s:%i\n", caller, line);
