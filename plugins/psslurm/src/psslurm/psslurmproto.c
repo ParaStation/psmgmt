@@ -3300,13 +3300,12 @@ void sendJobExit(Job_t *job, uint32_t exitStatus)
 	 job->hID.jobid, job->hID.sluid, exitStatus);
 
     /* save account data */
-    SlurmAccData_t slurmAccData;
-    memset(&slurmAccData, 0, sizeof(slurmAccData));
-
-    slurmAccData.nodes = job->nodes;
-    slurmAccData.nrOfNodes = job->nrOfNodes;
-    slurmAccData.iBase = &job->acctBase;
-    slurmAccData.localNodeId = job->localNodeId;
+    SlurmAccData_t slurmAccData = {
+	.nodes = job->nodes,
+	.nrOfNodes = job->nrOfNodes,
+	.iBase = &job->acctBase,
+	.localNodeId = job->localNodeId
+    };
 
     if (job->fwdata) {
 	/* add information from forwarder */
