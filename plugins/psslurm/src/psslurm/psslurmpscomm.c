@@ -1110,14 +1110,14 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     Head_ID_t hID;
     _unpackStepIDs(data, &hID);
 
-    if (packJobid == NO_VAL) packJobid = hID.jobid;
+    if (packJobid != NO_VAL) hID.jobid = packJobid;
 
     /* exit status */
     int32_t exitStatus;
     getInt32(data, &exitStatus);
 
     fdbg(PSSLURM_LOG_PACK, "packJobid %u stepid %u exitStatus %i\n",
-	 packJobid, hID.stepid, exitStatus);
+	 hID.jobid, hID.stepid, exitStatus);
 
     Step_t *step = Step_findByStepId(&hID);
     if (!step) {
