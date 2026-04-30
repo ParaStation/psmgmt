@@ -513,14 +513,24 @@ void setJailEnv(const env_t env, const char *user, const PSCPU_set_t stepcpus,
     setThreadsBitmapsEnv(stepcpus, jobcpus);
 
     if (envInitialized(env)) {
-	char *id = envGet(env, "SLURM_JOBID");
+	char *id = envGet(env, "SLURM_JOB_ID");
+	/* obsolete, kept for backwards compatibility */
+	if (!id) id = envGet(env, "SLURM_JOBID");
 	if (id) setenv("__PSJAIL_JOBID", id, 1);
-	id = envGet(env, "SLURM_STEPID");
+
+	id = envGet(env, "SLURM_STEP_ID");
+	/* obsolete, kept for backwards compatibility */
+	if (!id) id = envGet(env, "SLURM_STEPID");
 	if (id) setenv("__PSJAIL_STEPID", id, 1);
     } else {
-	char *id = getenv("SLURM_JOBID");
+	char *id = getenv("SLURM_JOB_ID");
+	/* obsolete, kept for backwards compatibility */
+	if (!id) id = getenv("SLURM_JOBID");
 	if (id) setenv("__PSJAIL_JOBID", id, 1);
-	id = getenv("SLURM_STEPID");
+
+	id = getenv("SLURM_STEP_ID");
+	/* obsolete, kept for backwards compatibility */
+	if (!id) id = getenv("SLURM_STEPID");
 	if (id) setenv("__PSJAIL_STEPID", id, 1);
     }
 
@@ -1346,8 +1356,10 @@ static bool userVarFilter(const char *envStr, void *info)
 	|| !strncmp(envStr, "HOME=", 5)
 	|| !strncmp(envStr, "PWD=", 4)
 	|| !strncmp(envStr, "DISPLAY=", 8)
+	/* obsolete, kept for backwards compatibility */
 	|| !strncmp(envStr, "SLURM_STEPID=", 13)
 	|| !strncmp(envStr, "SLURM_STEP_ID=", 14)
+	/* obsolete, kept for backwards compatibility */
 	|| !strncmp(envStr, "SLURM_JOBID=", 12)
 	|| !strncmp(envStr, "SLURM_JOB_ID=", 13)
 	|| !strncmp(envStr, "__MPIEXEC_DIST_START=", 21)

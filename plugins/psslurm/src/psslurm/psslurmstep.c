@@ -239,12 +239,17 @@ Step_t *__Step_findByEnv(env_t env, Head_ID_t *hID, const char *caller,
     for (char **e = envGetArray(env); e && *e; e++) {
 	if (!strncmp(*e, "SLURM_STEP_ID=", 14)) {
 	    sscanf(*e + 14, "%u", &env_hID.stepid);
-	} else if (!strncmp(*e, "SLURM_STEPID=", 13)) {
+	}
+	/* obsolete and kept for backwards compatibility */
+	if (!strncmp(*e, "SLURM_STEPID=", 13)) {
 	    sscanf(*e + 13, "%u", &env_hID.stepid);
 	}
+
 	if (!strncmp(*e, "SLURM_JOB_ID=", 13)) {
 	    sscanf(*e + 13, "%u", &env_hID.jobid);
-	} else if (!strncmp(*e, "SLURM_JOBID=", 12)) {
+	}
+	/* obsolete and kept for backwards compatibility */
+	if (!strncmp(*e, "SLURM_JOBID=", 12)) {
 	    sscanf(*e + 12, "%u", &env_hID.jobid);
 	}
     }
