@@ -249,7 +249,7 @@ Step_t *__Step_findByEnv(env_t env, Head_ID_t *hID, const char *caller,
 	}
     }
 
-    fdbg(PSSLURM_LOG_ENV, "env step %s", Step_strhID(&env_hID, NO_VAL, 0));
+    fdbg(PSSLURM_LOG_ENV, "env step %s", Step_strhID(&env_hID));
 
     if (hID) *hID = env_hID;
 
@@ -591,8 +591,8 @@ void Step_getInfos(Resp_Node_Reg_Status_t *stat)
     }
 }
 
-const char *Step_strhID(const Head_ID_t *hID, uint32_t packJobid,
-			uint32_t packOffset)
+static const char *strhID(const Head_ID_t *hID, uint32_t packJobid,
+			  uint32_t packOffset)
 {
     static char buf[128];
 
@@ -627,6 +627,16 @@ const char *Step_strhID(const Head_ID_t *hID, uint32_t packJobid,
     }
 
     return buf;
+}
+
+const char *Step_strID(const Step_t *step)
+{
+    return strhID(&step->hID, step->packJobid, step->packOffset);
+}
+
+const char *Step_strhID(const Head_ID_t *hID)
+{
+    return strhID(hID, NO_VAL, 0);
 }
 
 bool Step_verifyPtr(Step_t *stepPtr)

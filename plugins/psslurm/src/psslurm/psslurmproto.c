@@ -691,7 +691,7 @@ static bool doSignalTasks(Req_Signal_Tasks_t *req)
 	} else {
 	    /* signal a single step */
 	    flog("send %s (stepHetComp %u) signal %u\n",
-		 Step_strhID(&req->hID, NO_VAL, 0),
+		 Step_strhID(&req->hID),
 		 req->hID.stepHetComp, req->signal);
 	    Step_t *step = Step_findByStepId(&req->hID);
 	    if (step && Step_signal(step, req->signal, req->uid) != -1) {
@@ -714,7 +714,7 @@ static void sendDelayedKill(int timerId, void *data)
     Timer_remove(timerId);
     Req_Signal_Tasks_t *req = data;
 
-    flog("SIGKILL to %s uid %u\n", Step_strhID(&req->hID, NO_VAL, 0), req->uid);
+    flog("SIGKILL to %s uid %u\n", Step_strhID(&req->hID), req->uid);
 
     req->signal = SIGKILL;
     doSignalTasks(req);
@@ -763,7 +763,7 @@ static int handleSignalTasks(Slurm_Msg_t *sMsg)
     }
 
     flog("%s uid %i signal %i flags %i from %s\n",
-	 Step_strhID(&req->hID, NO_VAL, 0), req->uid,
+	 Step_strhID(&req->hID), req->uid,
 	 req->signal, req->flags, strRemoteAddr(sMsg));
 
     req->uid = sMsg->head.uid;
@@ -855,7 +855,7 @@ static int handleReattachTasks(Slurm_Msg_t *sMsg)
 
     Step_t *step = Step_findByStepId(&req->hID);
     if (!step) {
-	flog("%s to reattach not found\n", Step_strhID(&req->hID, NO_VAL, 0));
+	flog("%s to reattach not found\n", Step_strhID(&req->hID));
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_ID);
 	/* check permissions */
     } else if (!verifyUserId(sMsg->head.uid, step->uid)) {
@@ -1469,7 +1469,7 @@ static int handleStepStat(Slurm_Msg_t *sMsg)
 
     Step_t *step = Step_findByStepId(hID);
     if (!step) {
-	flog("%s to signal not found\n", Step_strhID(hID, NO_VAL, 0));
+	flog("%s to signal not found\n", Step_strhID(hID));
 	return ESLURM_INVALID_JOB_ID;
     }
 
@@ -1535,7 +1535,7 @@ static int handleStepPids(Slurm_Msg_t *sMsg)
 
     Step_t *step = Step_findByStepId(hID);
     if (!step) {
-	flog("%s to signal not found\n", Step_strhID(hID, NO_VAL, 0));
+	flog("%s to signal not found\n", Step_strhID(hID));
 	return ESLURM_INVALID_JOB_ID;
     }
 
@@ -2138,7 +2138,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, Head_ID_t *hID)
     if (hID->stepid != NO_VAL) {
 	Step_t *step = Step_findByStepId(hID);
 	if (!step) {
-	    flog("%s not found\n", Step_strhID(hID, NO_VAL, 0));
+	    flog("%s not found\n", Step_strhID(hID));
 	    return;
 	}
 	Step_signal(step, SIGKILL, sMsg->head.uid);
@@ -2221,7 +2221,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
     /* if we only kill one selected step, we are done */
     if (info->hID.stepid != NO_VAL) {
 	fdbg(PSSLURM_LOG_JOB, "kill request for single step %s\n",
-	     Step_strhID(&info->hID, NO_VAL, 0));
+	     Step_strhID(&info->hID));
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
 	return;
     }
@@ -2278,7 +2278,7 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
     if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
     flog("%s Slurm-state %u uid %u type %s from %s\n",
-	 Step_strhID(&req->hID, NO_VAL, 0), req->jobstate,
+	 Step_strhID(&req->hID), req->jobstate,
 	 sMsg->head.uid, msgType2String(sMsg->head.type),
 	 strRemoteAddr(sMsg));
 
@@ -2297,7 +2297,7 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
 	Job_destroy(job);
 
 	Step_destroyByJobid(req->hID.jobid);
-	flog("allocation %s not found\n", Step_strhID(&req->hID, NO_VAL, 0));
+	flog("allocation %s not found\n", Step_strhID(&req->hID));
 	if (sMsg->head.type == REQUEST_TERMINATE_JOB) {
 	    return ESLURMD_KILL_JOB_ALREADY_COMPLETE;
 	} else {
@@ -2327,7 +2327,7 @@ static int handleTerminateReq(Slurm_Msg_t *sMsg)
 	break;
     default:
 	flog("unknown terminate request for %s\n",
-	     Step_strhID(&req->hID, NO_VAL, 0));
+	     Step_strhID(&req->hID));
 	return ESLURMD_KILL_JOB_ALREADY_COMPLETE;
     }
 

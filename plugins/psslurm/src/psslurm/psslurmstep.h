@@ -545,18 +545,19 @@ void Step_getInfos(Resp_Node_Reg_Status_t *stat);
  *
  * @param hID The hID to convert
  *
- * @param packJobid pack job identifier
- *
- * @param packOffset pack job offset
- *
  * @return Returns a string holding the Slurm head
- * infos.
+ * infos
  */
-const char *Step_strhID(const Head_ID_t *hID, uint32_t packJobid,
-			uint32_t packOffset);
+const char *Step_strhID(const Head_ID_t *hID);
 
-#define Step_strID(step) \
-    Step_strhID(&(step)->hID, (step)->packJobid, (step)->packOffset)
+/**
+ * @brief Get step IDs as string
+ *
+ * @param step The step to convert
+ *
+ * @return Returns a string holding the step infos
+ */
+const char *Step_strID(const Step_t *step);
 
 /**
  * @brief Verify a step pointer

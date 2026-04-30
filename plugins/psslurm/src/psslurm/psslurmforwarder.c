@@ -489,7 +489,7 @@ static void initFwPtr(PStask_t *task)
 	fwJob = Job_findById(hID.jobid);
 	fwAlloc = Alloc_find(hID.jobid);
     } else if (!isAdmin) {
-	flog("%s not found\n", Step_strhID(&hID, NO_VAL, 0));
+	flog("%s not found\n", Step_strhID(&hID));
     }
 
     fwTask = task;

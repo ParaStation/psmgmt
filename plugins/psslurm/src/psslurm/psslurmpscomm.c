@@ -506,7 +506,7 @@ static int handleRecvSpawnReq(void *taskPtr)
 	/* if the step has no nodeinfo yet, delay spawning processes */
 	flog("delay spawning for %s due to missing %s%s\n",
 	     PSC_printTID(spawnee->ptid), step ? "nodeinfo in " : "",
-	     Step_strhID(&hID, NO_VAL, 0));
+	     Step_strhID(&hID));
 
 	spawnee->delayReasons |= DELAY_PSSLURM;
     }
@@ -788,7 +788,7 @@ static void handleStopStepFW(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
     Step_t *step = Step_findByStepId(&hID);
     if (!step) {
-	fdbg(PSSLURM_LOG_DEBUG, "%s not found\n", Step_strhID(&hID, NO_VAL, 0));
+	fdbg(PSSLURM_LOG_DEBUG, "%s not found\n", Step_strhID(&hID));
 	return;
     }
 
@@ -1169,7 +1169,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 	cache->data = PSdbDup(data);
 	list_add_tail(&cache->next, &msgCache);
 
-	flog("caching pack info, %s from %s\n", Step_strhID(&hID, NO_VAL, 0),
+	flog("caching pack info, %s from %s\n", Step_strhID(&hID),
 	     PSC_printTID(msg->header.sender));
 	return;
     }
@@ -1981,7 +1981,7 @@ static bool filter(PStask_t *task, void *info)
 	    flog("no slurm IDs in spawnee environment from %s\n",
 		 PSC_printTID(task->ptid));
 	} else {
-	    flog("%s not found from %s\n", Step_strhID(&hID, NO_VAL, 0),
+	    flog("%s not found from %s\n", Step_strhID(&hID),
 		 PSC_printTID(task->ptid));
 	}
 	return false;
@@ -2013,7 +2013,7 @@ void releaseDelayedSpawns(Head_ID_t *hID)
     /* double check if the step is ready now */
     if (!Step_findByStepId(hID)) {
 	/* this is a serious problem and should never happen */
-	flog("SERIOUS: %s not found\n", Step_strhID(hID, NO_VAL, 0));
+	flog("SERIOUS: %s not found\n", Step_strhID(hID));
 	return;
     }
 
@@ -2077,7 +2077,7 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
     Step_t *step = identifyStepByTaskEnv(frwrdr, &hID);
 
     fdbg(PSSLURM_LOG_PSCOMM, "from sender %s for %s\n",
-	 PSC_printTID(msg->header.sender), Step_strhID(&hID, NO_VAL, 0));
+	 PSC_printTID(msg->header.sender), Step_strhID(&hID));
 
     if (hID.stepid == SLURM_BATCH_SCRIPT) {
 	Job_t *job = Job_findById(hID.jobid);
@@ -2089,7 +2089,7 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
 	PStask_infoAdd(frwrdr, TASKINFO_JOB, job);
     } else {
 	if (!step) {
-	    flog("%s not found\n", Step_strhID(&hID, NO_VAL, 0));
+	    flog("%s not found\n", Step_strhID(&hID));
 	    return false; // fallback to old handler
 	}
 	PS_Tasks_t *task = addTask(&step->tasks, frwrdr, msg->request,
