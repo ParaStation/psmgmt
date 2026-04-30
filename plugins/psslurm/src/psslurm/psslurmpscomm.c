@@ -1392,12 +1392,12 @@ static void handleAllocTerm(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
 static void handleStepAcct(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
-    uint32_t jobid;
-    getUint32(data, &jobid);
+    Head_ID_t hID;
+    unpackSlurmID(data, &hID, slurmProto);
 
-    Job_t *job = Job_findById(jobid);
+    Job_t *job = Job_findById(hID.jobid);
     if (!job) {
-	flog("no job found for jobid %u\n", jobid);
+	flog("no job found for jobid %u\n", hID.jobid);
 	return;
     }
 
@@ -1407,7 +1407,8 @@ static void handleStepAcct(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
     psAccountMergeAccData(&stepData, &job->stepAcctAccum);
     fdbg(PSSLURM_LOG_ACC, "merged step acct for jobid %u numTasks %u from %s\n",
-	 jobid, job->stepAcctAccum.numTasks, PSC_printTID(msg->header.sender));
+	 hID.jobid, job->stepAcctAccum.numTasks,
+	 PSC_printTID(msg->header.sender));
 }
 
 void send_PS_StepAcct(Step_t *step, AccountDataExt_t *accData)
@@ -1436,7 +1437,8 @@ void send_PS_StepAcct(Step_t *step, AccountDataExt_t *accData)
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_STEP_ACCT);
     setFragDest(&data, dest);
 
-    addUint32ToMsg(step->hID.jobid, &data);
+    packSlurmID(&step->hID, &data);
+
     psAccountPackAggData(accData, &data);
 
     if (sendFragMsg(&data) < 0) {
