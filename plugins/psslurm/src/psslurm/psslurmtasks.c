@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -142,9 +142,9 @@ int killChild(pid_t pid, int signal, uid_t uid)
 int __signalTasks(uint32_t jobid, uint32_t stepid, uid_t uid, list_t *taskList,
 		  int signal, int32_t group, const char *caller, const int line)
 {
-    Step_t s = {
-	.hID.jobid = jobid,
-	.hID.stepid = stepid };
+    Head_ID_t hID = {
+	.jobid = jobid,
+	.stepid = stepid };
 
     int count = 0;
     list_t *t;
@@ -161,7 +161,8 @@ int __signalTasks(uint32_t jobid, uint32_t stepid, uid_t uid, list_t *taskList,
 	if (frwd && child->forwarder == frwd) {
 	    fdbg(PSSLURM_LOG_PROCESS, "(%s:%i) rank %i/%i kill(%i) signal %i"
 		 " group %i %s\n", caller, line, task->jobRank, child->rank,
-		 PSC_getPID(child->tid), signal, child->group, Step_strID(&s));
+		 PSC_getPID(child->tid), signal, child->group,
+		 Step_strhID(&hID));
 	    PSID_kill(PSC_getPID(child->tid), signal, child->uid);
 	    count++;
 	}
@@ -169,7 +170,7 @@ int __signalTasks(uint32_t jobid, uint32_t stepid, uid_t uid, list_t *taskList,
 
     if (count) {
 	flog("(%s:%u) killed %i processes with signal %i of %s\n", caller, line,
-	     count, signal, Step_strID(&s));
+	     count, signal, Step_strhID(&hID));
     }
 
     return count;

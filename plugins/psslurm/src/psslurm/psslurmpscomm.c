@@ -1121,10 +1121,8 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
     Step_t *step = Step_findByStepId(&hID);
     if (!step) {
-	Step_t s = {
-	    .hID.jobid = packJobid,
-	    .hID.stepid = hID.stepid };
-	flog("no %s found to set exitStatus %i\n", Step_strID(&s), exitStatus);
+	flog("no %s found to set exitStatus %i\n", Step_strhID(&hID),
+	     exitStatus);
     } else {
 	sendStepExit(step, exitStatus);
     }
