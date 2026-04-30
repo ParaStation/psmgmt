@@ -602,7 +602,7 @@ static const char *strhID(const Head_ID_t *hID, uint32_t packJobid,
     static char buf[128];
 
     if (!hID) {
-	snprintf(buf, sizeof(buf), "step (NULL)");
+	snprintf(buf, sizeof(buf), "hID (NULL)");
 	return buf;
     }
 
