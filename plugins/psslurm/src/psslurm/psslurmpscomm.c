@@ -1850,13 +1850,12 @@ static Step_t *identifyStepByTaskEnv(PStask_t *task, Head_ID_t *hID)
     /* check if step was identified before */
     Step_t *step = PStask_infoGet(task, TASKINFO_STEP);
     if (!Step_verifyPtr(step)) {
-	Head_ID_t env_hID;
-	step = Step_findByEnv(task->env, &env_hID);
+	step = Step_findByEnv(task->env, hID);
 	if (step) {
 	    /* cache for further calls */
 	    PStask_infoAdd(task, TASKINFO_STEP, step);
-	} else if (env_hID.stepid && env_hID.stepid != SLURM_BATCH_SCRIPT
-		   && !isPSAdminUser(task->uid, task->gid)) {
+	} else if (hID && hID->stepid != SLURM_BATCH_SCRIPT
+		&& !isPSAdminUser(task->uid, task->gid)) {
 	    /* admin users may start jobs directly via mpiexec */
 	    flog("insufficient info in task %s\n", PSC_printTID(task->tid));
 	}
