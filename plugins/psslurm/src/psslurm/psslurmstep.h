@@ -543,17 +543,32 @@ void Step_getInfos(Resp_Node_Reg_Status_t *stat);
 /**
  * @brief Get Slurm head identifier as string
  *
- * @param hID The hID to convert
+ * The returned value points to a static character array that contains
+ * the string. This character array is shared with @ref
+ * Step_strID(). Subsequent calls to @ref Step_strhID() or @ref
+ * Step_strID () will change the content of this array. Therefore, the
+ * result is not what you might expect if more than one call of these
+ * functions is made within a single argument-list of printf(3) and
+ * friends.
  *
- * @return Returns a string holding the Slurm head
- * infos
+ * @param hID Head identifier to convert
+ *
+ * @return Returns a string holding the Slurm head infos
  */
 const char *Step_strhID(const Head_ID_t *hID);
 
 /**
- * @brief Get step IDs as string
+ * @Brief Get step IDs as string
  *
- * @param step The step to convert
+ * The returned value points to a static character array that contains
+ * the string. This character array is shared with @ref
+ * Step_strhID(). Subsequent calls to @ref Step_strID() or @ref
+ * Step_strhID () will change the content of this array. Therefore,
+ * the result is not what you might expect if more than one call of
+ * these functions is made within a single argument-list of printf(3)
+ * and friends.
+ *
+ * @param step Step to convert
  *
  * @return Returns a string holding the step infos
  */
