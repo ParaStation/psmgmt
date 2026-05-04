@@ -596,8 +596,8 @@ void Step_getInfos(Resp_Node_Reg_Status_t *stat)
     }
 }
 
-static const char *strhID(const Head_ID_t *hID, uint32_t packJobid,
-			  uint32_t packOffset)
+static inline const char *strhID(const Head_ID_t *hID, uint32_t packJobid,
+				 uint32_t packOffset)
 {
     static char buf[128];
 
