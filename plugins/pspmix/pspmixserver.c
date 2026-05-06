@@ -1186,7 +1186,14 @@ static SpawnInfo_t getSpawnInfo(const pmix_info_t info[], size_t ninfo)
 	}
 
 	if (PMIx_Check_key(this->key, PMIX_SET_SESSION_CWD)) {
-	    /* @todo What is the session cwd? */
+	    /*
+	     * Ignore this for the time being.
+	     *
+	     * Currently Slurm (the only RM we seriously support) does
+	     * not provide the concept of a session directory. Instead
+	     * the CWD is inherited by spawned processes automatically.
+	     * Thus, this can be assumed to be a no-op anyhow.
+	     */
 	    continue;
 	}
 
