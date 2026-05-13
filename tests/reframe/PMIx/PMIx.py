@@ -96,3 +96,40 @@ class putGet(SimplePMIxTest):
             ]
         )
 
+
+@rfm.simple_test
+class abort(SimplePMIxTest):
+    executable = "./abort"
+
+    ntasks = parameter(range(1, 5), type=int, loggable=True)
+    nnodes = parameter(range(1, 3), type=int, loggable=True)
+
+    @sanity_function
+    def validate_output(self):
+        prefix = r"\[pspmix_0x[\dabcdef]{12}\[\d+:\d+\]:\d+\]"
+
+        # Count number of "Running" outputs
+        num = sn.len(
+            sn.findall(
+                rf"^{prefix}: Running$",
+                self.stdout
+            )
+        )
+
+        return sn.all(
+            [
+                # error out should containt abort message
+                sn.assert_found(
+                    r"pspmix_service_abort: on users request from rank 0:"
+                        + " Just aborting!", self.stderr),
+                # no "failed" should be reported
+                sn.assert_not_found(r"failed", self.stdout),
+                # number of "Running" outputs should match number of tasks
+                sn.assert_eq(
+                    num,
+                    self.num_tasks,
+                    f"number of 'Running' outputs: {num} != {self.num_tasks}"
+                ),
+            ]
+        )
+
