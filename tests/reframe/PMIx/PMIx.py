@@ -133,3 +133,20 @@ class abort(SimplePMIxTest):
             ]
         )
 
+
+@rfm.simple_test
+class log(SimplePMIxTest):
+    executable = "./log"
+
+    ntasks = parameter(range(1, 5), type=int, loggable=True)
+    nnodes = parameter(range(1, 3), type=int, loggable=True)
+
+    @sanity_function
+    def validate_output(self):
+
+        return sn.all(
+            [
+                # final result should be "SUCCESS"
+                sn.assert_found(r"^Final Result: SUCCESS$", self.stdout),
+            ]
+        )
