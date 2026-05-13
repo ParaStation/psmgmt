@@ -226,5 +226,7 @@ int main(void)
 	       PMIx_Error_string(rc));
 	return 1;
     }
+
+    printf("Final Result: %s\n", err ? "FAIL" : "SUCCESS");
     return (err);
 }
