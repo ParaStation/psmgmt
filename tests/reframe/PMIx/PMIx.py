@@ -2,9 +2,9 @@ import reframe as rfm
 import reframe.utility.sanity as sn
 
 
-class SimplePMIxTest(rfm.RegressionTest):
+class SimplePMIxTest(rfm.RunOnlyRegressionTest):
     valid_systems = ["*"]
-    valid_prog_environs = ["gnu"]
+    valid_prog_environs = ["+pmix"]
     sourcesdir = "../../PMIx"
     sourcepath = ""
     build_system = "Make"
@@ -23,8 +23,8 @@ class SimplePMIxTest(rfm.RegressionTest):
 class getSizes(SimplePMIxTest):
     executable = "./getSizes"
 
-    ntasks = parameter(range(1, 5))
-    nnodes = parameter(range(1, 3))
+    ntasks = parameter(range(1, 5), type=int, loggable=True)
+    nnodes = parameter(range(1, 3), type=int, loggable=True)
 
     @sanity_function
     def validate_output(self):
@@ -34,7 +34,8 @@ class getSizes(SimplePMIxTest):
         for var in names:
             num[var] = sn.len(
                 sn.findall(
-                    rf"^\[\s?\d+\]: PMIX_{var} is {self.num_tasks}$", self.stdout
+                    rf"^\[\s?\d+\]: PMIX_{var} is {self.num_tasks}$",
+                    self.stdout
                 )
             )
 
@@ -46,7 +47,9 @@ class getSizes(SimplePMIxTest):
                 sn.all(
                     [
                         sn.assert_eq(
-                            num[var], self.num_tasks, f"number of outputs of PMIX_{var}"
+                            num[var],
+                            self.num_tasks,
+                            f"number of outputs of PMIX_{var}"
                         )
                         for var in names
                     ]
@@ -54,15 +57,13 @@ class getSizes(SimplePMIxTest):
             ]
         )
 
-        return 0
-
 
 @rfm.simple_test
 class putGet(SimplePMIxTest):
     executable = "./putGet"
 
-    ntasks = parameter([4, 5, 8])
-    nnodes = parameter([2, 4])
+    ntasks = parameter([4, 5, 8], type=int, loggable=True)
+    nnodes = parameter([2, 4], type=int, loggable=True)
 
     @sanity_function
     def validate_output(self):
@@ -95,4 +96,3 @@ class putGet(SimplePMIxTest):
             ]
         )
 
-        return 0

@@ -4,9 +4,13 @@ Website: https://reframe-hpc.readthedocs.io/
 
 ### Install
 
-Just install the framework using pip:
+Just install the framework in a venv:
 
-$> pip3 install --user reframe-hpc
+$> python -m venv reframe-hpc
+$> source reframe-hpc/bin/activate
+(reframe-hpc) $> python -m pip install --upgrade pip
+(reframe-hpc) $> pip install wheel
+(reframe-hpc) $> pip install reframe-hpc
 
 
 ### Configure
@@ -17,6 +21,7 @@ Find an example for partecvm in config/partecvm.py
 
 Full documentation can be found here:
 https://reframe-hpc.readthedocs.io/en/stable/configure.html
+
 
 ### Run
 
@@ -32,3 +37,9 @@ https://reframe-hpc.readthedocs.io/en/stable/configure.html
 
    $> reframe -c <path_to_psmgmt_sources>/tests/reframe/PMIx/ -r
 
+
+### Options
+
+If you do not have 4 nodes available, you can restrict the parameterization:
+
+   $> reframe -c <path_to_psmgmt_sources>/tests/reframe/PMIx/ -P nnodes=1 -r
