@@ -1386,6 +1386,19 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
     return SLURM_NO_RC;
 }
 
+/**
+ * @brief Add aggregated data to data accumulator
+ *
+ * Add aggregated (local) accounting data from psaccount to the
+ * accounting data accumulator @a slurmAccData. If @a slurmAccData's
+ * type member indicates to not collect accounting data (i.e. if
+ * Slurm's JobAcctGatherType configuration is 'none') @a slurmAccData
+ * is left untouched. Otherwise as a side effect @a
+ * slurmAccData->psAcct content will be reset before any accumulation
+ * is done.
+ *
+ * @return Number of tasks being aggregated
+ */
 static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 {
     AccountDataExt_t *accData = &slurmAccData->psAcct;
@@ -1394,6 +1407,7 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
     if (!slurmAccData->type) return accData->numTasks;
 
     bool res;
+    /* both psAccount functions will initialize accData ! */
     if (slurmAccData->childPid) {
 	res = psAccountGetDataByJob(slurmAccData->childPid, accData);
     } else {
@@ -1446,14 +1460,14 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 
     if (accData->avgVsizeCount > 0 &&
 	accData->avgVsizeCount != accData->numTasks) {
-	mlog("%s: warning: total Vsize is not sum of #tasks values (%lu!=%u)\n",
-		__func__, accData->avgVsizeCount, accData->numTasks);
+	flog("warning: total Vsize is not sum of #tasks values (%lu!=%u)\n",
+	     accData->avgVsizeCount, accData->numTasks);
     }
 
     if (accData->avgRssCount > 0 &&
 	    accData->avgRssCount != accData->numTasks) {
-	mlog("%s: warning: total RSS is not sum of #tasks values (%lu!=%u)\n",
-		__func__, accData->avgRssCount, accData->numTasks);
+	flog("warning: total RSS is not sum of #tasks values (%lu!=%u)\n",
+	     accData->avgRssCount, accData->numTasks);
     }
 
     return accData->numTasks;

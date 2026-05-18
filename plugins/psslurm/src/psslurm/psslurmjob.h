@@ -94,7 +94,7 @@ typedef struct {
     Slurm_Container_t *ct;  /**< container representation */
     psAccountInfo_t acctBase;  /**< account base values (e.g. file-system) */
     AccountDataExt_t stepAcctAccum; /**< accumulated accounting data from
-				         all steps */
+				       all steps */
     list_t fwMsgQueue;	    /**< Queued output/error messages waiting for
 				 delivery after forwarder start */
     bool termAfterFWmsg;    /**< force job termination after sending
