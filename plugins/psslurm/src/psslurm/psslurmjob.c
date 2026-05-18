@@ -138,6 +138,7 @@ Job_t *Job_add(void)
     job->spankenv = envNew(NULL);
     psAccountGetLocalInfo(&job->acctBase);
     job->termAfterFWmsg = false;
+    psAccountInitAggData(&job->stepAcctAccum);
 
     list_add_tail(&job->next, &JobList);
 

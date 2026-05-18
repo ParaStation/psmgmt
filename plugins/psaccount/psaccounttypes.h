@@ -456,6 +456,18 @@ typedef bool (psAccountScriptEnv_t)(psAccountCtl_t action, psAccountOpt_t type,
 				    char *name, char *val);
 
 /**
+ * @brief Initialize aggregation data
+ *
+ * Initialize the structure used for data aggregation @a aggData. This
+ * basically reset the whole content to 0.
+ *
+ * @param aggData Aggregation data structure to initialize
+ *
+ */
+typedef void(psAccountInitAggData_t)(AccountDataExt_t *aggData);
+
+
+/**
  * @brief Merge source aggregated data into destination
  *
  * Create the sum of each data item of the two data aggregations @a

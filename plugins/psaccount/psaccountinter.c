@@ -205,6 +205,11 @@ bool psAccountCtlScript(psAccountCtl_t action, psAccountOpt_t type)
     return false;
 }
 
+void psAccountInitAggData(AccountDataExt_t *aggData)
+{
+    initAggData(aggData);
+}
+
 void psAccountMergeAccData(AccountDataExt_t *src, AccountDataExt_t *dest)
 {
     addAggData(src, dest);

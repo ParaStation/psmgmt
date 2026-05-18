@@ -268,6 +268,7 @@ static bool regPsAccountHandles(void)
     loadHandle(pluginHandle, psAccountSetPoll);
     loadHandle(pluginHandle, psAccountCtlScript);
     loadHandle(pluginHandle, psAccountScriptEnv);
+    loadHandle(pluginHandle, psAccountInitAggData);
     loadHandle(pluginHandle, psAccountMergeAccData);
     loadHandle(pluginHandle, psAccountPackAggData);
     loadHandle(pluginHandle, psAccountUnpackAggData);

@@ -47,6 +47,7 @@ psAccountScriptEnv_t *psAccountScriptEnv;
 psAccountGetPoll_t *psAccountGetPoll;
 psAccountSetPoll_t *psAccountSetPoll;
 
+psAccountInitAggData_t *psAccountInitAggData;
 psAccountMergeAccData_t *psAccountMergeAccData;
 psAccountPackAggData_t *psAccountPackAggData;
 psAccountUnpackAggData_t *psAccountUnpackAggData;
