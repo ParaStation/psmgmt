@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -223,7 +223,7 @@ bool getDataByJob(pid_t js, AccountDataExt_t *accData)
     Client_t *jsClient = findClientByPID(js);
     Job_t *job = findJobByJobscript(js);
 
-    memset(accData, 0, sizeof(*accData));
+    initAggData(accData);
 
     if (!jsClient) {
 	flog("aggregating data for job %i failed\n", js);

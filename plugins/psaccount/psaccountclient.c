@@ -254,6 +254,11 @@ static void updateClntData(Client_t *client)
 
 /************************* Data aggregations *************************/
 
+void initAggData(AccountDataExt_t *aggData)
+{
+    if (aggData) memset(aggData, 0, sizeof(*aggData));
+}
+
 void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 			bool addEnergy)
 {
@@ -735,7 +740,7 @@ Client_t *addClient(PStask_ID_t taskID, PS_Acct_job_types_t type)
     client->startTime = time(NULL);
     client->endTime = 0;
 
-    memset(&client->data, 0, sizeof(client->data));
+    initAggData(&client->data);
     client->data.numTasks = 1;
 
     list_add_tail(&client->next, &clientList);
@@ -835,7 +840,7 @@ void forwardJobData(Job_t *job, bool force)
 
     /* aggregate accounting data on a per root task basis */
     AccountDataExt_t aggData;
-    memset(&aggData, 0, sizeof(AccountDataExt_t));
+    initAggData(&aggData);
     bool addEnergy = true;
     list_t *c;
     list_for_each(c, &clientList) {

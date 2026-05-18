@@ -566,6 +566,8 @@ static void sendAggDataDrop(PStask_ID_t dest, PStask_ID_t rootTID)
 
 void unpackAggData(PS_DataBuffer_t data, AccountDataExt_t *aggData)
 {
+    initAggData(aggData);
+
     getUint64(data, &aggData->maxThreadsTotal);
     getUint64(data, &aggData->maxVsizeTotal);
     getUint64(data, &aggData->maxRssTotal);
@@ -636,8 +638,6 @@ void unpackAggData(PS_DataBuffer_t data, AccountDataExt_t *aggData)
 
 static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 {
-    AccountDataExt_t aggData;
-
     /* get root task's ID */
     PStask_ID_t rootTID;
     getTaskId(data, &rootTID);
@@ -649,6 +649,7 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 	return sendAggDataDrop(msg->header.sender, rootTID);
     }
 
+    AccountDataExt_t aggData;
     unpackAggData(data, &aggData);
 
     setAggData(msg->header.sender, rootTID, &aggData);

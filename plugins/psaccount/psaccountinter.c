@@ -38,10 +38,10 @@ void psAccountGetPidsByLogger(PStask_ID_t rootTID, pid_t **pids, uint32_t *cnt)
     getPidsByRoot(rootTID, pids, cnt);
 }
 
-bool psAccountGetDataByLogger(PStask_ID_t rootTID, AccountDataExt_t *accData)
+bool psAccountGetDataByLogger(PStask_ID_t rootTID, AccountDataExt_t *aggData)
 {
-    memset(accData, 0, sizeof(*accData));
-    return aggregateDataByRoot(rootTID, accData);
+    initAggData(aggData);
+    return aggregateDataByRoot(rootTID, aggData);
 }
 
 bool psAccountGetDataByJob(pid_t jobscript, AccountDataExt_t *accData)

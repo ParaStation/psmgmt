@@ -1402,7 +1402,6 @@ static void handleStepAcct(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     }
 
     AccountDataExt_t stepData;
-    memset(&stepData, 0, sizeof(stepData));
     psAccountUnpackAggData(data, &stepData);
 
     psAccountMergeAccData(&stepData, &job->stepAcctAccum);

@@ -228,6 +228,17 @@ char *listClients(bool detailed);
 /************************* Aggregation *************************/
 
 /**
+ * @brief Initialize aggregation data
+ *
+ * Initialize the structure used for data aggregation @a aggData. This
+ * basically reset the whole content to 0.
+ *
+ * @param aggData Aggregation data structure to initialize
+ *
+ */
+void initAggData(AccountDataExt_t *aggData);
+
+/**
  * @brief Merge source aggregated data into destination
  *
  * Create the sum of each data item of the two data aggregations @a
