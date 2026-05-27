@@ -141,6 +141,15 @@ class log(SimplePMIxTest):
     ntasks = parameter(range(1, 5), type=int, loggable=True)
     nnodes = parameter(range(1, 3), type=int, loggable=True)
 
+    set_break_var = parameter([True, False])
+
+    @run_before('run')
+    def set_srun_env(self):
+        if self.set_break_var:
+            self.job.launcher.options += [
+                '--export=ALL,__PMIX_BREAK_STDERR=1'
+            ]
+
     @sanity_function
     def validate_output(self):
 
