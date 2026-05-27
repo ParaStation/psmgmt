@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -92,7 +92,7 @@ bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info)
 	char *closeBrk = strchr(next, ']');
 
 	if (openBrk && isOpen) {
-	    PSC_flog("error nested brackets found\n");
+	    PSC_flog("nested brackets found in '%s'\n", compList);
 	    goto error;
 	}
 
@@ -100,27 +100,34 @@ bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info)
 	    // whole bracket
 	    char *range = openBrk + 1;
 	    *openBrk = *closeBrk = '\0';
-	    if (!visitItemRange(next, range, visitor, info)) goto error;
+	    if (!visitItemRange(next, range, visitor, info)) {
+		PSC_flog("invalid range in '%s'\n", compList);
+		goto error;
+	    }
 	} else if (openBrk && !closeBrk) {
 	    // start of a new bracket
 	    char *range = openBrk + 1;
 	    *openBrk = '\0';
 	    prefix = next;
-	    if (!visitItemRange(prefix, range, visitor, info)) goto error;
+	    if (!visitItemRange(prefix, range, visitor, info)) {
+		PSC_flog("invalid range in '%s'\n", compList);
+		goto error;
+	    }
 	    isOpen = true;
 	} else if (closeBrk) {
 	    // end of the bracket
 	    if (!isOpen) {
-		PSC_flog("no open bracket found\n");
+		PSC_flog("no open bracket found in '%s'\n", compList);
 		goto error;
 	    }
 	    if (!prefix) {
-		PSC_flog("invalid prefix\n");
+		PSC_flog("invalid prefix for '%s'\n", compList);
 		goto error;
 	    }
 
 	    *closeBrk = '\0';
 	    if (!visitItemRange(prefix, next, visitor, info)) {
+		PSC_flog("invalid range in '%s'\n", compList);
 		goto error;
 	    }
 	    prefix = NULL;
@@ -128,15 +135,19 @@ bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info)
 	} else if (isOpen) {
 	    // inside the bracket
 	    if (!prefix) {
-		PSC_flog("invalid prefix\n");
+		PSC_flog("invalid prefix for '%s'\n", compList);
 		goto error;
 	    }
 	    if (!visitItemRange(prefix, next, visitor, info)) {
+		PSC_flog("invalid range in '%s'\n", compList);
 		goto error;
 	    }
 	} else {
 	    // no bracket at all
-	    if (!visitor(next, info)) goto error;
+	    if (!visitor(next, info)) {
+		PSC_flog("visitor failed for '%s'\n", compList);
+		goto error;
+	    }
 	}
 	next = strtok_r(NULL, delimiters, &saveptr);
     }
