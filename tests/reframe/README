@@ -43,3 +43,8 @@ https://reframe-hpc.readthedocs.io/en/stable/configure.html
 If you do not have 4 nodes available, you can restrict the parameterization:
 
    $> reframe -c <path_to_psmgmt_sources>/tests/reframe/PMIx/ -P nnodes=1 -r
+
+During integration of new tests, it is helpful to only execute single tests
+with very limited parameter set:
+
+   $> reframe -c <path_to_psmgmt_sources>/tests/reframe/PMIx/ -n <test> -P nnodes=1 -P ntasks=1 --save-log-files --run
