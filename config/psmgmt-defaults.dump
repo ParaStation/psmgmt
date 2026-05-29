@@ -9,8 +9,7 @@ psconfig -q -- destroy 'defaults:resourcelimits'
 #
 psconfig -q -- create 'defaults:psid'
 psconfig -q -- setParents 'defaults:psid' 'class:defaults'
-psconfig -q -D -- set 'defaults:psid' '.comment' ' psid defaults object
- not to be changed by the administrator'
+psconfig -q -D -- set 'defaults:psid' '.comment' ' psid defaults object not to be changed by the administrator'
 psconfig -q -D -- setList 'defaults:psid' 'AdminGroups' 'root'
 psconfig -q -D -- setList 'defaults:psid' 'AdminUsers' 'root'
 psconfig -q -D -- set 'defaults:psid' 'AllowExclusive' 'no'
@@ -60,9 +59,7 @@ psconfig -q -D -- set 'defaults:psid' 'UseMCast' 'no'
 #
 psconfig -q -- create 'defaults:resourcelimits'
 psconfig -q -- setParents 'defaults:resourcelimits' 'class:defaults'
-psconfig -q -D -- set 'defaults:resourcelimits' '.comment' ' resources defaults object
- referenced in "defaults:psid" object
- not to be changed by the administrator'
+psconfig -q -D -- set 'defaults:resourcelimits' '.comment' ' resources defaults object referenced in "defaults:psid" object not to be changed by the administrator'
 psconfig -q -D -- set 'defaults:resourcelimits' 'Core' 'unlimited'
 #
 # Unlock database

@@ -19,33 +19,26 @@ psconfig -q -D -- set 'class:host' '.comment' ' host class object'
 #
 psconfig -q -- create 'class:nodetype'
 psconfig -q -- setParents 'class:nodetype' # empty #
-psconfig -q -D -- set 'class:nodetype' '.comment' ' nodetype class object
- ancestor of all nodetype and host objects
- pointer "Psid." makes psid configuration available in each host object'
+psconfig -q -D -- set 'class:nodetype' '.comment' ' nodetype class object ancestor of all nodetype and host objects pointer "Psid." makes psid configuration available in each host object'
 psconfig -q -- setPointerList 'class:nodetype' 'Psid.' 'class:psid'
 #
 # Object "class:psid"
 #
 psconfig -q -- create 'class:psid'
 psconfig -q -- setParents 'class:psid' 'defaults:psid'
-psconfig -q -D -- set 'class:psid' '.comment' ' psid class object
- adapt system wide configuration parameters here'
+psconfig -q -D -- set 'class:psid' '.comment' ' psid class object adapt system wide configuration parameters here'
 #
 # Object "class:psidhwtype"
 #
 psconfig -q -- create 'class:psidhwtype'
 psconfig -q -- setParents 'class:psidhwtype' # empty #
-psconfig -q -D -- set 'class:psidhwtype' '.comment' ' psidhwtype class object
- parent of all psidhwtype objects
- currently only existing by convention'
+psconfig -q -D -- set 'class:psidhwtype' '.comment' ' psidhwtype class object parent of all psidhwtype objects currently only existing by convention'
 #
 # Object "class:resourcelimits"
 #
 psconfig -q -- create 'class:resourcelimits'
 psconfig -q -- setParents 'class:resourcelimits' 'defaults:resourcelimits'
-psconfig -q -D -- set 'class:resourcelimits' '.comment' ' resources class object
- referenced in "class:psid" object
- adapt system wide resource limits here'
+psconfig -q -D -- set 'class:resourcelimits' '.comment' ' resources class object referenced in "class:psid" object adapt system wide resource limits here'
 #
 # Unlock database
 #
