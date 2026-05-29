@@ -1860,13 +1860,10 @@ int srunSendIO(uint16_t type, uint16_t grank, Step_t *step, char *buf,
 int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf)
 {
     if (sock < 0) return -1;
-    if (!buf) {
-	if (iohead->len) {
-	    flog("invalid buffer (null)\n");
-	    errno = EINVAL;
-	    return -1;
-	}
-	return 0;
+    if (iohead->len && !buf) {
+	flog("invalid buffer (null)\n");
+	errno = EINVAL;
+	return -1;
     }
 
     if (iohead->len > 0) {
@@ -1878,11 +1875,14 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf)
     do {
 	ioh.len = towrite;
 
-	char *nextPos = buf + written;
-	if (nextPos && towrite > SLURM_IO_MAX_LEN) {
-	    /* find newline in the maximal accepted message length */
-	    char *nl = memrchr(nextPos, '\n', SLURM_IO_MAX_LEN);
-	    ioh.len = nl ? (nl + 1) - nextPos : SLURM_IO_MAX_LEN;
+	char *nextPos = buf;
+	if (towrite && buf) {
+	    nextPos += written;
+	    if (towrite > SLURM_IO_MAX_LEN) {
+		/* find newline in the maximal accepted message length */
+		char *nl = memrchr(nextPos, '\n', SLURM_IO_MAX_LEN);
+		ioh.len = nl ? (nl + 1) - nextPos : SLURM_IO_MAX_LEN;
+	    }
 	}
 
 	PS_SendDB_t data = sendDBnoFrag;
