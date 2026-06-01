@@ -217,7 +217,7 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
 
 /* on which core is this thread? */
 #define getCore(thread, nodeinfo)					\
-    (nodeinfo)->coreCount ? (uint32_t)((thread) % (nodeinfo)->coreCount) : 0
+    ((nodeinfo)->coreCount ? (uint32_t)((thread) % (nodeinfo)->coreCount) : 0)
 
 /* on which socket is this core? */
 #define getSocketByCore(core, nodeinfo) \
