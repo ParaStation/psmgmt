@@ -1,3 +1,401 @@
+Version 6.8.0:
+==============
+------------------------------------------------------------------------
+b4f56292c | Norbert Eicker | Mon, 1 Jun 2026 15:28:57 +0200
+
+Bugfix: rework bbc6fa428 and protect ternery expression
+------------------------------------------------------------------------
+651b035a5 | Norbert Eicker | Fri, 29 May 2026 16:26:04 +0200
+
+Bugfix: rework e0683f4a2 and actually send zero-length message
+------------------------------------------------------------------------
+aa4e585ee | Sonja Happ | Fri, 29 May 2026 17:20:32 +0200
+
+config: Remove line breaks from psconfig dumps.
+------------------------------------------------------------------------
+202b006fb | Stephan Krempel | Thu, 28 May 2026 02:00:58 +0200
+
+PMIx regression tests: Add parameter example to README
+------------------------------------------------------------------------
+35056dac4 | Stephan Krempel | Thu, 28 May 2026 01:54:53 +0200
+
+PMIx regression tests: Enhance "log" test
+
+Add case with special env breaking strerr.
+------------------------------------------------------------------------
+4d918d3f3 | Stephan Krempel | Wed, 13 May 2026 13:09:35 +0200
+
+PMIx regression tests: Add "log" test to framework
+------------------------------------------------------------------------
+62c86428a | Stephan Krempel | Wed, 13 May 2026 13:08:29 +0200
+
+Adapt PMIx log test for execution by reframe
+------------------------------------------------------------------------
+32e4c5f05 | Stephan Krempel | Wed, 13 May 2026 13:07:15 +0200
+
+PMIx regression tests: Add "abort" test to framework
+------------------------------------------------------------------------
+00dd82135 | Stephan Krempel | Wed, 13 May 2026 13:05:40 +0200
+
+Rework/Update existing PMIx regression test setup
+------------------------------------------------------------------------
+2bc73dc04 | Norbert Eicker | Tue, 7 Apr 2026 21:37:33 +0200
+
+Add some documentation to README.nodeinfo
+------------------------------------------------------------------------
+11bdeb09f | Stephan Krempel | Tue, 7 Apr 2026 15:31:20 +0200
+
+nodeinfo: Add device ID for ConnectX-7
+
+Mellanox Technologies MT2910 Family [ConnectX-7] [15b3:1021]
+------------------------------------------------------------------------
+56fe4d140 | Stephan Krempel | Tue, 7 Apr 2026 15:30:51 +0200
+
+Update ReadMe
+------------------------------------------------------------------------
+0ddba47d6 | Norbert Eicker | Mon, 18 May 2026 19:53:44 +0200
+
+Enhance documentation and logging
+------------------------------------------------------------------------
+561b348bd | Norbert Eicker | Mon, 18 May 2026 19:24:36 +0200
+
+Expose psaccount's psAccountInitAggData for psslurm
+------------------------------------------------------------------------
+2f2408b73 | Norbert Eicker | Mon, 18 May 2026 19:21:34 +0200
+
+Add and utilize initAggData() in psaccount
+------------------------------------------------------------------------
+ab35892b6 | Michael Rauh | Thu, 30 Apr 2026 22:24:59 +0200
+
+Pack Slurm head ID instead of jobid alone
+------------------------------------------------------------------------
+014d5cf1d | Michael Rauh | Thu, 30 Apr 2026 22:16:36 +0200
+
+Simplify structure initialization
+------------------------------------------------------------------------
+15393cb31 | Michael Rauh | Wed, 29 Apr 2026 10:48:41 +0200
+
+Add missing message types to drop handler
+------------------------------------------------------------------------
+da89b490e | Michael Rauh | Wed, 29 Apr 2026 10:39:45 +0200
+
+Improve documentation
+------------------------------------------------------------------------
+2bb27a133 | Michael Rauh | Tue, 28 Apr 2026 10:54:08 +0200
+
+Add psslurm configuration BATCH_AGG_ACCOUNTING
+
+ - enable step accouting data aggregation in batch job
+ - steps will not report any accouting information themself
+------------------------------------------------------------------------
+d4b7f1f30 | Michael Rauh | Mon, 27 Apr 2026 21:22:01 +0200
+
+Step accounting data is accumulated on batch job node (PSC:#16)
+------------------------------------------------------------------------
+8087a0cad | Michael Rauh | Mon, 27 Apr 2026 20:40:12 +0200
+
+Expose internal psaccount function for psslurm
+
+ - psAccountMergeAccData, psAccountPackAggData and psAccountUnpackAggData
+ - bump psaccount plugin API to 31
+------------------------------------------------------------------------
+1a7cbd66d | Norbert Eicker | Wed, 27 May 2026 15:24:29 +0200
+
+Enhance failure log for compressed lists
+------------------------------------------------------------------------
+b48eaf0ec | Norbert Eicker | Wed, 6 May 2026 17:29:32 +0200
+
+Replace a @todo by an explanation why to ignore (#232)
+------------------------------------------------------------------------
+191fec1d0 | Norbert Eicker | Mon, 4 May 2026 18:39:15 +0200
+
+Add warnings on a static array used internally
+------------------------------------------------------------------------
+b00592f19 | Norbert Eicker | Mon, 4 May 2026 18:38:10 +0200
+
+Declare helper function to get inlined
+------------------------------------------------------------------------
+54ca5515d | Michael Rauh | Thu, 30 Apr 2026 22:03:53 +0200
+
+Don't ignore packJobid
+------------------------------------------------------------------------
+0647a3ffa | Michael Rauh | Thu, 30 Apr 2026 21:49:53 +0200
+
+Fix logic bug
+------------------------------------------------------------------------
+d54eafe36 | Michael Rauh | Thu, 30 Apr 2026 21:38:08 +0200
+
+Let __signalTasks() and handlePackExit() use new Step_strhID()
+------------------------------------------------------------------------
+b7b306c39 | Michael Rauh | Thu, 30 Apr 2026 21:18:51 +0200
+
+Fix error message
+------------------------------------------------------------------------
+40eaaf743 | Michael Rauh | Thu, 30 Apr 2026 21:14:14 +0200
+
+mark SLURM_JOBID and SLURM_STEPID obsolete and handle more cases
+------------------------------------------------------------------------
+2a2e284a3 | Michael Rauh | Thu, 30 Apr 2026 20:57:55 +0200
+
+Remove superfluous parameters from Step_strhID()
+------------------------------------------------------------------------
+b7784ecf5 | Michael Rauh | Wed, 29 Apr 2026 15:53:25 +0200
+
+Fix backwards step IDs serialization helpers
+------------------------------------------------------------------------
+5e7d6f297 | Michael Rauh | Wed, 29 Apr 2026 13:47:01 +0200
+
+Fix comment
+------------------------------------------------------------------------
+4b31dc6ba | Michael Rauh | Wed, 29 Apr 2026 10:59:06 +0200
+
+More use of initHeadID()
+------------------------------------------------------------------------
+9e8f77c78 | Michael Rauh | Mon, 23 Mar 2026 14:48:39 +0100
+
+Introduce helper to reduce code duplication
+------------------------------------------------------------------------
+5e5acf87c | Michael Rauh | Fri, 20 Mar 2026 17:48:26 +0100
+
+Use Step_strhID()
+------------------------------------------------------------------------
+f6ed0e705 | Michael Rauh | Fri, 20 Mar 2026 16:56:11 +0100
+
+Introduce Step_strhID() and let Step_str() make use of it
+------------------------------------------------------------------------
+a9b46d36a | Michael Rauh | Fri, 20 Mar 2026 14:41:32 +0100
+
+Use SLURM_JOB_ID and SLURM_STEP_ID in addition to old variable names
+for finding steps by environment
+------------------------------------------------------------------------
+45afcecb3 | Michael Rauh | Fri, 20 Mar 2026 14:35:39 +0100
+
+Use Head_ID_t for Step_findByStepId() (#350)
+
+- *warning*: this change breaks backward compatibility with older
+   psslurm version
+------------------------------------------------------------------------
+aea999763 | Michael Rauh | Fri, 20 Mar 2026 13:53:40 +0100
+
+Introduce initHeadID()
+------------------------------------------------------------------------
+40895e254 | Sonja Happ | Tue, 29 Aug 2023 14:39:23 +0200
+
+PMIx tests: Add test for PMIx_Query_info
+------------------------------------------------------------------------
+b16de2588 | Stephan Krempel | Tue, 21 Apr 2026 17:47:54 +0200
+
+psslurm: Fail to load with CR_CORE_DEFAULT_DIST_BLOCK in SelectTypeParameters
+
+Closes #44
+Contributes to #212
+------------------------------------------------------------------------
+f225ef5aa | Stephan Krempel | Tue, 21 Apr 2026 17:45:33 +0200
+
+psslurm: Fail to load with CR_{CPU|Socket}* in SelectTypeParameters
+
+Contributes to #212
+------------------------------------------------------------------------
+3e63e82b4 | Stephan Krempel | Tue, 21 Apr 2026 17:43:55 +0200
+
+psslurm: Fail to load if SelectType != select/cons_tres
+
+Contributes to #212
+------------------------------------------------------------------------
+c4fa5aee3 | Stephan Krempel | Tue, 21 Apr 2026 17:42:09 +0200
+
+psslurm: Fail to load if TaskPluginParam != Threads
+
+Contributes to #212
+------------------------------------------------------------------------
+32bc70f1e | Norbert Eicker | Tue, 21 Apr 2026 17:15:23 +0200
+
+Catch failing malloc() in handleResSlots()
+------------------------------------------------------------------------
+01780c531 | Norbert Eicker | Tue, 21 Apr 2026 16:58:33 +0200
+
+Bugfix: Cut trailing newline in psiadmin scripts
+------------------------------------------------------------------------
+72b0067cd | Norbert Eicker | Wed, 15 Apr 2026 09:38:11 +0200
+
+Ensure variable is not used uninitialized
+------------------------------------------------------------------------
+8d3d0e14d | Norbert Eicker | Wed, 15 Apr 2026 09:27:35 +0200
+
+more help to static analyzer to get on with lists
+------------------------------------------------------------------------
+6579150b9 | Norbert Eicker | Tue, 14 Apr 2026 20:36:31 +0200
+
+help static analyzer to understand that there's always a CPU set
+------------------------------------------------------------------------
+e0683f4a2 | Norbert Eicker | Tue, 14 Apr 2026 20:15:52 +0200
+
+mark zero-length msg not being sent for static analizer
+------------------------------------------------------------------------
+b2eb44cf4 | Norbert Eicker | Tue, 14 Apr 2026 19:58:50 +0200
+
+Bugfix: ensure EOF detection is not spoiled by trailing errno
+------------------------------------------------------------------------
+4335e6495 | Norbert Eicker | Tue, 14 Apr 2026 14:26:57 +0200
+
+Avoid to return undefined values
+------------------------------------------------------------------------
+966938124 | Norbert Eicker | Tue, 14 Apr 2026 14:26:03 +0200
+
+openSlurmctldCon() never returns < -1
+------------------------------------------------------------------------
+bbc6fa428 | Norbert Eicker | Tue, 14 Apr 2026 13:55:19 +0200
+
+Convince static analyzer that we do not divide by zero
+------------------------------------------------------------------------
+1059d1090 | Norbert Eicker | Tue, 14 Apr 2026 13:53:42 +0200
+
+Convince static analyzer the pluginforwarder's fwData is alway non-NULL
+------------------------------------------------------------------------
+3e53f481b | Norbert Eicker | Tue, 14 Apr 2026 09:57:34 +0200
+
+Catch (impossible) corner-case to silence static analyzer
+------------------------------------------------------------------------
+18383ba01 | Norbert Eicker | Tue, 14 Apr 2026 09:39:19 +0200
+
+Teach static analyzer more code understanding
+------------------------------------------------------------------------
+f4172ab21 | Norbert Eicker | Tue, 14 Apr 2026 09:24:50 +0200
+
+Help static analyzer to understand the logic
+------------------------------------------------------------------------
+e940ae4cb | Norbert Eicker | Thu, 2 Apr 2026 14:57:51 +0200
+
+Ensure file is not leaked after debug unveiled by scan-build
+------------------------------------------------------------------------
+d989ee5bb | Norbert Eicker | Thu, 2 Apr 2026 14:56:43 +0200
+
+Streamlining
+------------------------------------------------------------------------
+259fc9b27 | Norbert Eicker | Thu, 2 Apr 2026 13:44:17 +0200
+
+Fix more potential memory leaks unveiled by scan-build
+------------------------------------------------------------------------
+464c64ae4 | Norbert Eicker | Thu, 2 Apr 2026 13:34:02 +0200
+
+Fix potential memory leak unveiled by scan-build
+------------------------------------------------------------------------
+b706492b5 | Norbert Eicker | Thu, 2 Apr 2026 13:29:04 +0200
+
+Streamlining
+------------------------------------------------------------------------
+265a787d6 | Norbert Eicker | Thu, 2 Apr 2026 13:26:01 +0200
+
+Use env_t to collect the environment from config file
+
+ - replace a hand-crafted list used before
+------------------------------------------------------------------------
+5f57ab5a2 | Norbert Eicker | Thu, 2 Apr 2026 10:59:38 +0200
+
+Use env_t to collect the environment from psconfig
+
+ - replace a hand-crafted list used before
+------------------------------------------------------------------------
+d1f1ee6b6 | Norbert Eicker | Thu, 2 Apr 2026 10:52:51 +0200
+
+Remove unused constants
+------------------------------------------------------------------------
+97ace7035 | Norbert Eicker | Thu, 2 Apr 2026 10:46:24 +0200
+
+Enhance libpsi's debug output
+------------------------------------------------------------------------
+f44edaa4f | Norbert Eicker | Thu, 2 Apr 2026 10:45:52 +0200
+
+Hide internal functions of libpsi
+------------------------------------------------------------------------
+6186e175b | Norbert Eicker | Tue, 14 Apr 2026 18:58:32 +0200
+
+Merge branch '6.7' again
+------------------------------------------------------------------------
+82bb4b198 | Stephan Krempel | Fri, 27 Mar 2026 12:16:54 +0100
+
+pspmix: Fix line lengths
+------------------------------------------------------------------------
+94f91961b | Norbert Eicker | Thu, 26 Mar 2026 00:00:08 +0100
+
+Bugfix: mark PMIx server as PMIX_SERVER_GATEWAY = false
+
+ - This ensures that all logging requests are passed to the host-server
+------------------------------------------------------------------------
+9fdd34165 | Norbert Eicker | Wed, 25 Mar 2026 23:55:06 +0100
+
+Add more debug in pspmix server_log_cb
+------------------------------------------------------------------------
+78372606c | Norbert Eicker | Wed, 25 Mar 2026 23:51:12 +0100
+
+Bugfix: utilize PMIx_Info_true() correctly
+
+ - Behavior of PMIx_Info_true() is different from PMIX_INFO_TRUE macro;
+   this was introduced recently in 2a24dac765
+------------------------------------------------------------------------
+8cdfe438b | Michael Rauh | Tue, 24 Mar 2026 14:45:25 +0100
+
+Unify variable name to disable GPU hardware checks (__DISABLE_GPU_HW_CHECKS)
+------------------------------------------------------------------------
+44e741418 | Michael Rauh | Sat, 14 Mar 2026 14:56:18 +0100
+
+Enhancement: prevent noisy GPU frequency initialization if
+no GPUs were detected via hwloc
+------------------------------------------------------------------------
+1bff998d3 | Michael Rauh | Sat, 14 Mar 2026 14:28:43 +0100
+
+Add support for Slurm configuration SocketsPerBoard
+------------------------------------------------------------------------
+7c605bcd4 | Michael Rauh | Sat, 14 Mar 2026 14:28:07 +0100
+
+Fix compiler warning
+------------------------------------------------------------------------
+77eeff940 | Norbert Eicker | Thu, 12 Mar 2026 12:56:12 +0100
+
+Make qproxy startup more verbose
+------------------------------------------------------------------------
+6d6a1e644 | Norbert Eicker | Wed, 11 Mar 2026 17:11:14 +0100
+
+Integrate qproxy into buildsystem, SPEC file, etc.
+------------------------------------------------------------------------
+cd6ba0182 | Norbert Eicker | Tue, 10 Mar 2026 20:01:19 +0100
+
+Add skeleton for QProxy development
+
+ - Add stubs for plugin and documentation
+------------------------------------------------------------------------
+01f59ea04 | Norbert Eicker | Wed, 11 Mar 2026 13:39:59 +0100
+
+Introduce PSIDHOOK_PSSLURM_ENV
+
+ - bump plugin API to 148
+------------------------------------------------------------------------
+816baf61d | Norbert Eicker | Fri, 13 Mar 2026 12:45:07 +0100
+
+Merge branch '6.7'
+------------------------------------------------------------------------
+1e6dfb898 | Stephan Krempel | Wed, 11 Mar 2026 16:38:11 +0100
+
+psslurm: Fix potential segfault
+------------------------------------------------------------------------
+8080c2a42 | Norbert Eicker | Tue, 10 Mar 2026 20:09:51 +0100
+
+Yet another typo in README.rrcomm
+------------------------------------------------------------------------
+bf5858040 | Norbert Eicker | Tue, 10 Mar 2026 12:58:08 +0100
+
+Fix typos in RRComm README
+------------------------------------------------------------------------
+e646e063b | Michael Rauh | Thu, 26 Feb 2026 15:21:44 +0100
+
+Bugfix: grant SPANK_TASK_INIT access to job environment (#351)
+------------------------------------------------------------------------
+e85d9e2f2 | Norbert Eicker | Wed, 25 Feb 2026 16:23:34 +0100
+
+Clean double entry in NEWS file
+------------------------------------------------------------------------
+
+
 Version 6.7.2:
 ==============
 ------------------------------------------------------------------------

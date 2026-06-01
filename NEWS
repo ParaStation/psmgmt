@@ -6,6 +6,44 @@ Copyright (C) 2021-2026 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**      This release breaks backward compatibility of psslurm.         **
+**                                                                     **
+**    While rolling updates are still possible, jobs must not run      **
+**          across this version of psslurm and older ones.             **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 6.8.0:
+==============
+Bugfixes:
+ - grant SPANK_TASK_INIT access to job environment (#351)
+ - prohibit CR_CORE_DEFAULT_DIST_BLOCK in psslurm's SelectTypeParameters (#44)
+ - more fine-grained checks for psslurm's SelectType[Parameters] etc. (#212)
+ - mark PMIx server as PMIX_SERVER_GATEWAY = false to fix logging in PMIx v6
+ - utilize PMIx_Info_true() correctly
+ - remove line breaks from psconfig dumps
+ - cut trailing newline in psiadmin scripts
+Enhancements:
+ - Step accounting data is accumulated on batch job node (PSC:#16)
+   * add psslurm configuration BATCH_AGG_ACCOUNTING to steer its behavior
+ - use Head_ID_t for Step_findByStepId() (#350)
+ - replace a @todo by an explanation why to ignore (#232)
+ - add support for Slurm configuration SocketsPerBoard
+ - add ConnectX-7 device ID to nodeinfo defaults
+ - first embryonic implementation of qproxy
+Additional changes:
+ - introduce PSIDHOOK_PSSLURM_ENV => bump plugin API to 148
+ - unify variable name to disable GPU hardware checks (__DISABLE_GPU_HW_CHECKS)
+ - add various PMIx tests to reframe framework
+ - replace hand-crafted lists by env_t at different occasions
+ - fix potential memory leaks unveiled by scan-build
+ - fix various warning from scan-build (mostly false positive)
+
+
 Version 6.7.2:
 ==============
 Bugfixes:
