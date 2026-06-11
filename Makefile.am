@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2025 ParTec AG, Munich
+# Copyright (C) 2022-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,7 +24,7 @@ EXTRA_DIST = README tests/psid dist/.gitignore dist/Makefile.sources	\
 	m4/ax_check_preproc_flag.m4
 dist_noinst_DATA = LICENSE.QPL
 
-PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) -n)
+PKG_VER := $(shell $(VCVERSION) -r $(top_srcdir) -n)
 
 # ---- Version ----
 #
