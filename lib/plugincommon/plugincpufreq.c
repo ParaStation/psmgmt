@@ -387,6 +387,20 @@ static void cmdPrintOutput(char *output, void *info)
 }
 
 /**
+ * @brief Test if all CPUs have at least one available frequency
+ */
+static bool testAvailFreq(void)
+{
+    for (int c = 0; c < numCPUs; c++) {
+	if (!cpus[c].numAvailFreq) {
+	    plugindbg(PLUGIN_LOG_FREQ, "CPU %i has no frequencies\n", c);
+	    return false;
+	}
+    }
+    return true;
+}
+
+/**
  * @brief Test if initialization has completed
  *
  * Test if all initialization scripts finished gathering CPU information
@@ -413,6 +427,9 @@ static void testInitComplete(void)
 
     if (!numCPUs || initFailure) {
 	pluginlog("CPUfreq initialization failed\n");
+    } else if (!testAvailFreq()) {
+	pluginlog("CPUs with no useable frequencies detected\n");
+	initFailure = true;
     } else {
 	pluginflog("%i CPUs", numCPUs);
 	if (defaultGov != GOV_UNDEFINED) {
@@ -544,8 +561,9 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
     initFlags &= ~INIT_GET_AVAIL_FREQ;
 
     /* not all systems define available frequencies, this is no error */
-    if (status) {
+    if (status || !testAvailFreq()) {
 	calcAvailCPUfreq();
+	testInitComplete();
 	Script_destroy(script);
 	return;
     }
@@ -794,6 +812,10 @@ static uint32_t mapFreqLabel(int16_t idx, uint32_t label)
 
     /* calculate node dependent frequency */
     uint32_t numFreq = cpus[idx].numAvailFreq;
+    if (!numFreq) {
+	pluginflog("error: no frequencies for CPU %i\n", idx);
+	return 0;
+    }
 
     switch (label) {
 	case CPU_FREQ_LOW: /* lowest available frequency */
