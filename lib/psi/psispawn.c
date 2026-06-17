@@ -12,7 +12,6 @@
 #include "psispawn.h"
 
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
@@ -33,8 +32,6 @@
 #include "psienv.h"
 #include "psipartition.h"
 
-#define ENV_NODE_RARG      "PSI_RARG_PRE_%d"
-
 static uid_t defaultUID = 0;
 
 void PSI_setUID(uid_t uid)
@@ -42,45 +39,6 @@ void PSI_setUID(uid_t uid)
     if (!getuid()) {
 	defaultUID = uid;
     }
-}
-
-void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
-{
-    PSI_fdbg(PSI_LOG_VERB, "\n");
-
-    int cnt = 0;
-    for (;;) {
-	char env[sizeof(ENV_NODE_RARG) + 20];
-	snprintf(env, sizeof(env), ENV_NODE_RARG, cnt);
-	if (getenv(env)) {
-	    cnt++;
-	} else {
-	    break;
-	}
-    }
-
-    if (cnt) {
-	int new_argc = cnt + Argc;
-	char **new_argv = malloc(sizeof(char*)*(new_argc + 1));
-	new_argv[new_argc]=NULL;
-
-	for (int i = 0; i < cnt; i++) {
-	    char env[sizeof(ENV_NODE_RARG) + 20];
-	    snprintf(env, sizeof(env), ENV_NODE_RARG, i);
-	    new_argv[i] = getenv(env);
-	    /* Propagate the environment */
-	    setPSIEnv(env, new_argv[i]);
-	}
-	for (int i = 0; i < Argc; i++) {
-	    new_argv[i+cnt] = Argv[i];
-	}
-	*RArgc=new_argc;
-	*RArgv=new_argv;
-    } else {
-	*RArgc=Argc;
-	*RArgv=Argv;
-    }
-    return;
 }
 
 /** Function called to create per rank environment */

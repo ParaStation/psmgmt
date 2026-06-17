@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,31 +38,6 @@
  * @return No return value.
  */
 void PSI_setUID(uid_t uid);
-
-/**
- * @brief Prepend PSI_RARG_PRE_%d to the argument vector.
- *
- * Prepend the content of the PSI_RARG_PRE_%d environment variables to
- * the argument vector @a Argv and store it to the remote argument
- * vector @a RArgv.
- *
- * If none of the PSI_RARG_PRE_%d environment variables is set, @a
- * Argv is not modified at all and simply stored to @a RArgv. The
- * PSI_RARG_PRE_%d have to have number continuous numbers starting
- * from 0. The first missing number will stop the execution of the
- * variables.
- *
- * @param Argc The size of the original argument vector
- *
- * @param Argv The original argument vector.
- *
- * @param RArgc The size of the resulting remote argument vector.
- *
- * @param RArgv The resulting remote argument vector.
- *
- * @return No return value.
- */
-void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
 
 /**
  * @brief Register per rank environment creator
