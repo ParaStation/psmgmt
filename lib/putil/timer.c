@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -273,6 +273,7 @@ void Timer_init(FILE* logfile)
     list_for_each_safe(t, tmp, &timerList) {
 	Timer_t *timer = list_entry(t, Timer_t, next);
 	list_del(&timer->next);
+	ASSUME(t != timerList.next); // hint to static analyzers
 	free(timer);
     }
     /* ensure the cache gets invalidated, too */

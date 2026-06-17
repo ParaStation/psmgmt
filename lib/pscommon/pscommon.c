@@ -249,7 +249,9 @@ char* PSC_lookupInstalldir(char *hint)
 	free(installdir);
 	installdir = NULL;
 
-	if (stat(name, &fstat)) {
+	if (!name) {
+	    PSC_flog("PSC_concat() failed?!\n");
+	} else if (stat(name, &fstat)) {
 	    PSC_fwarn(errno, "stat(%s)", name);
 	} else if (!S_ISREG(fstat.st_mode)) {
 	    PSC_flog("'%s' not a regular file\n", name);

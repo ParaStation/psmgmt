@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -343,28 +343,34 @@ char *parser_getFilename(char *token, char *prefix, char *extradir)
     } else {
 	absname = malloc(strlen(prefix) + (extradir ? strlen(extradir) : 0)
 			 + strlen(token) + 3);
+	if (absname) {
+	    if (extradir) {
+		strcpy(absname, prefix);
+		strcat(absname, "/");
+		strcat(absname, extradir);
+		strcat(absname, "/");
+		strcat(absname, token);
 
-	if (extradir) {
-	    strcpy(absname, prefix);
-	    strcat(absname, "/");
-	    strcat(absname, extradir);
-	    strcat(absname, "/");
-	    strcat(absname, token);
+		if (stat(absname, &fstat) == 0 && S_ISREG(fstat.st_mode)) {
+		    return absname;
+		}
 
-	    if (stat(absname, &fstat)==0 && S_ISREG(fstat.st_mode)) {
-		return absname;
+		parser_comment(PARSER_LOG_VERB, "%s: file '%s' not found\n",
+			       __func__, absname);
 	    }
 
-	    parser_comment(PARSER_LOG_VERB, "%s: file '%s' not found\n",
-			   __func__, absname);
+	    strcpy(absname, prefix);
+	    strcat(absname, "/");
+	    strcat(absname, token);
 	}
-
-	strcpy(absname, prefix);
-	strcat(absname, "/");
-	strcat(absname, token);
     }
 
-    if (stat(absname, &fstat)==0 && S_ISREG(fstat.st_mode)) {
+    if (!absname) {
+	parser_comment(-1, "%s: cannot allocate memory\n", __func__);
+	return NULL;
+    }
+
+    if (stat(absname, &fstat) == 0 && S_ISREG(fstat.st_mode)) {
 	return absname;
     }
 

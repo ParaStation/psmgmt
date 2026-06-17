@@ -814,10 +814,11 @@ void PSI_execLogger(const char *command)
     } else {
 	argv[0] = PSC_concat(PKGLIBEXECDIR, "/", LOGGER);
     }
-    argv[1] = malloc(10);
-    sprintf(argv[1],"%d", daemonSock);
-    argv[2] = malloc(10);
-    sprintf(argv[2],"%d", PSC_getMyID());
+    char argv_1[10], argv_2[10];
+    sprintf(argv_1,"%d", daemonSock);
+    argv[1] = argv_1;
+    sprintf(argv_2,"%d", PSC_getMyID());
+    argv[2] = argv_2;
     if (command) {
 	argv[3] = strdup(command);
     } else {

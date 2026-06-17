@@ -2093,6 +2093,7 @@ static int handleGenStr(long val, char *in, char **out, size_t *size)
 
     /* Now handle inStr */
     dollar = strchr(inStr, '$');
+    ASSUME(dollar != NULL); // hint to static analyzers; $ in 'in' => $ in inStr
     *dollar = '\0';
     char *start = dollar + 1, *end, *rec;
     if (*start != '{') {
