@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2024 ParTec AG, Munich
+ * Copyright (C) 2024-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -161,16 +161,15 @@ static struct json_object *handleArray(psjson_t psjson, char *next,
     if (array[1] != ']') {
 	if (sscanf(next, "[%u]", &idx) != 1) {
 	    if (!silent) {
-		pluginflog("%s(%s@%d) invalid array definition\n",
-			   __func__, caller, line);
+		pluginflog("(%s@%d) invalid array definition\n", caller, line);
 	    }
 	    return NULL;
 	}
 
 	if (!json_object_is_type(psjson->pos, json_type_array)) {
 	    if (!silent) {
-		pluginlog("%s(%s@%d): %s requested from non array\n",
-			  __func__, caller, line, next);
+		pluginflog("(%s@%d): %s requested from non array\n",
+			   caller, line, next);
 	    }
 	    return NULL;
 	}
@@ -180,16 +179,16 @@ static struct json_object *handleArray(psjson_t psjson, char *next,
     if (!nextObj) {
 	if (!addMissing) {
 	    if (!silent) {
-		pluginlog("%s(%s@%d): error: %s not found\n", __func__,
-			  caller, line, next);
+		pluginflog("(%s@%d): error: %s not found\n",
+			   caller, line, next);
 	    }
 	    return NULL;
 	}
 
 	if (!json_object_is_type(psjson->pos, json_type_array)) {
 	    if (!silent) {
-		pluginlog("%s(%s@%d): cannot add into non array object\n",
-			  __func__, caller, line);
+		pluginflog("(%s@%d): cannot add into non array object\n",
+			   caller, line);
 	    }
 	    return NULL;
 	}
