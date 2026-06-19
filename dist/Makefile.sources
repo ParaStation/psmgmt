@@ -130,6 +130,7 @@ doc/systemd/psid_service_d_nvidia.conf \
 doc/systemd/psidstarter_socket_d_port.conf \
 include/Makefile.am \
 include/Makefile.in \
+include/__assume.h \
 include/config_parsing.h \
 include/kvs.h \
 include/kvscommon.h \
