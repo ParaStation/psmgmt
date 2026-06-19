@@ -13,10 +13,11 @@
 #               Thomas Moschny <moschny@par-tec.com>
 #
 
-TOP_SRCDIR?= ..
+TOP_SRCDIR?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 CONFIGARGS?=
 
 SHELL := /bin/bash
+VCVERSION ?= $(TOP_SRCDIR)/scripts/vcversion
 
 # Makefile.sources have to define $(PKG_NAME) and $(SOURCE_FILES)
 -include $(TOP_SRCDIR)/dist/Makefile.sources
@@ -24,8 +25,8 @@ SHELL := /bin/bash
 
 all: tar srpm rpm
 
-VERSION:=$(shell cd $(TOP_SRCDIR) && scripts/vcversion --fmt version $(if $(NODIRTY),--no-dirty,))
-RELEASE:=$(shell cd $(TOP_SRCDIR) && scripts/vcversion --fmt release $(if $(NODIRTY),--no-dirty,))
+VERSION:=$(shell cd $(TOP_SRCDIR) && $(VCVERSION) --fmt version $(if $(NODIRTY),--no-dirty,))
+RELEASE:=$(shell cd $(TOP_SRCDIR) && $(VCVERSION) --fmt release $(if $(NODIRTY),--no-dirty,))
 DISTNAME=$(PKG_NAME)-$(VERSION)-$(RELEASE)
 RPMBUILDDIR=/var/tmp/$(DISTNAME)-$(USER)
 RPMBUILDLOG=$(PKG_NAME)$(shell echo -n $(CONFIGARGS)|tr -c "[0-9A-Za-z]" "_")-$(VERSION)-$(RELEASE).rpmbuild.log
@@ -85,7 +86,7 @@ rpm: $(RPMBUILDLOG)
 deb: rpm
 # Hack: generate debian packages with alien. Find rpms by scanning the buildlog.
 	grep -E ^Wrote: $(RPMBUILDLOG) | while read x pkg; do			\
-		if $(TOP_SRCDIR)/scripts/vcversion -r $(TOP_SRCDIR) --isrelease; then	\
+		if $(VCVERSION) -r $(TOP_SRCDIR) --isrelease; then	\
 			fakeroot alien -k "$$pkg";				\
 		else								\
 			fakeroot alien "$$pkg";					\
