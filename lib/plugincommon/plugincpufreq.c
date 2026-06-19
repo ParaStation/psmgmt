@@ -393,7 +393,7 @@ static bool testAvailFreq(void)
 {
     for (int c = 0; c < numCPUs; c++) {
 	if (!cpus[c].numAvailFreq) {
-	    plugindbg(PLUGIN_LOG_FREQ, "CPU %i has no frequencies\n", c);
+	    pluginflog("CPU %i has no frequencies\n", c);
 	    return false;
 	}
     }
@@ -535,13 +535,18 @@ static int compareFreq(const void *entry1, const void *entry2)
  * @brief Calculate available CPU frequencies
  *
  * Not all hardware will define valid CPU frequencies. In that case
- * a list of sensible frequencies is calculated.
+ * a list of sensible frequencies is calculated. CPU cores with non zero
+ * values will be skipped. In principal it is possible that hardware
+ * values are only predefined for a subset of cores.
  */
 static void calcAvailCPUfreq()
 {
     plugindbg(PLUGIN_LOG_FREQ, "calculate %i CPU frequencies\n", MAX_FREQ);
 
     for (int c = 0; c < numCPUs; c++) {
+	/* skip CPUs which have hardware defined limits */
+	if (cpus[c].numAvailFreq) continue;
+
 	uint32_t delta = cpus[c].availMaxFreq - cpus[c].availMinFreq;
 	delta /= MAX_FREQ -1;
 
@@ -561,7 +566,7 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
     initFlags &= ~INIT_GET_AVAIL_FREQ;
 
     /* not all systems define available frequencies, this is no error */
-    if (status || !testAvailFreq()) {
+    if (status) {
 	calcAvailCPUfreq();
 	testInitComplete();
 	Script_destroy(script);
@@ -587,6 +592,9 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 	    }
 	}
     }
+
+    /* CPU cores with available frequencies set are skipped */
+    calcAvailCPUfreq();
 
     testInitComplete();
     Script_destroy(script);
