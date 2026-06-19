@@ -289,7 +289,7 @@ bool pspmix_service_init(PspmixServer_t *server, char *clusterID)
  */
 static const char* generateNamespaceName(PStask_ID_t jobID, bool singleton)
 {
-    static char buf[MAX_NSLEN];
+    static char buf[MAX_NSLEN + 1];
 
     snprintf(buf, MAX_NSLEN, "pspmix_%s%s", PSC_printTID(jobID),
 	     singleton ? "_singleton" : "");

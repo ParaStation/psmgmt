@@ -1777,6 +1777,11 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 	step->taskFlags & LAUNCH_PTY) {
 	step->outChannels = malloc(sizeof(*step->outChannels)
 				   * step->globalTaskIdsLen[nodeID]);
+	if (!step->outChannels) {
+	    flog("no memory to track outChannels to srun %s:%u\n",
+		 inet_ntoa(sin_addr), port);
+	    return -1;
+	}
 	for (uint32_t i = 0; i < step->globalTaskIdsLen[nodeID]; i++) {
 	    step->outChannels[i] = true;
 	}
@@ -1794,6 +1799,11 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
     } else {
 	step->errChannels = malloc(sizeof(*step->errChannels)
 				   * step->globalTaskIdsLen[nodeID]);
+	if (!step->errChannels) {
+	    flog("no memory to track errChannels to srun %s:%u\n",
+		 inet_ntoa(sin_addr), port);
+	    return -1;
+	}
 	for (uint32_t i = 0; i < step->globalTaskIdsLen[nodeID]; i++) {
 	    step->errChannels[i] = true;
 	}

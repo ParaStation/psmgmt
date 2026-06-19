@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -687,7 +687,7 @@ int main(int argc, char *argv[])
     }
     if (slurmver) {
 	char *sv = strdup(slurmver);
-	if (strlen(sv) >= 6) sv[5] = '\0'; /* cut release part */
+	if (sv && strlen(sv) >= 6) sv[5] = '\0'; /* cut release part */
 	char *mm = sv;
 	char *yy = strsep(&mm, ".");
 	slurm_version = atol(yy) * 100 + atol(mm);
@@ -1107,8 +1107,10 @@ int numa_available(void) {
 #ifdef HAVE_LIBNUMA
 struct bitmask *numa_allocate_nodemask(void) {
     struct bitmask *b = malloc(sizeof(*b));
-    b->maskp = calloc(1, sizeof(unsigned long));
-    b->size = sizeof(unsigned long) * 8;
+    if (b) {
+	b->maskp = calloc(1, sizeof(unsigned long));
+	b->size = sizeof(unsigned long) * 8;
+    }
     return b;
 }
 

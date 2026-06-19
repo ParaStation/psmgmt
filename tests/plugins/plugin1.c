@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -191,9 +191,11 @@ char * set(char *key, char *val)
 	if (val) kv->val = strdup(val);
     } else {
 	kv = malloc(sizeof(*kv));
-	kv->key = strdup(key);
-	kv->val = strdup(val);
-	list_add_tail(&kv->next, &keyValList);
+	if (kv) {
+	    kv->key = strdup(key);
+	    kv->val = strdup(val);
+	    list_add_tail(&kv->next, &keyValList);
+	}
     }
     if (!kv || !kv->key || !kv->val) return strdup("\tNot enough memory\n");
     if (!strcmp(key, "magic")) return strdup("\tMagic value triggered\n");

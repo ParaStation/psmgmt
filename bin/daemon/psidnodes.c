@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -816,13 +816,13 @@ int PSIDnodes_addGUID(PSnodes_ID_t id,
 		      PSIDnodes_gu_t what, PSIDnodes_guid_t guid)
 {
     PSIDnodes_GUent_t *guent;
-    PSIDnodes_guid_t any;
     list_t *list = get_GUID_list(id, what), *pos, *tmp;
 
     PSID_fdbg(PSID_LOG_NODES, "(%d, %d, %d)\n", id, what, guid.u);
 
     if (!list) return -1;
 
+    PSIDnodes_guid_t any;
     switch (what) {
     case PSIDNODES_USER:
     case PSIDNODES_ADMUSER:
@@ -862,6 +862,10 @@ int PSIDnodes_remGUID(PSnodes_ID_t id,
 		      PSIDnodes_gu_t what, PSIDnodes_guid_t guid)
 {
     list_t *list = get_GUID_list(id, what), *pos, *tmp;
+    if (!list) {
+	PSID_flog("no list for (%d, %d, %d)\n", id, what, guid.u);
+	return -1;
+    }
 
     PSID_fdbg(PSID_LOG_NODES, "(%d, %d, %d)\n", id, what, guid.u);
 
@@ -883,10 +887,14 @@ int PSIDnodes_testGUID(PSnodes_ID_t id,
 		       PSIDnodes_gu_t what, PSIDnodes_guid_t guid)
 {
     list_t *list = get_GUID_list(id, what), *pos;
-    PSIDnodes_guid_t any;
+    if (!list) {
+	PSID_flog("no list for (%d, %d, %d)\n", id, what, guid.u);
+	return 0;
+    }
 
     PSID_fdbg(PSID_LOG_NODES, "(%d, %d, %d)\n", id, what, guid.u);
 
+    PSIDnodes_guid_t any;
     switch (what) {
     case PSIDNODES_USER:
     case PSIDNODES_ADMUSER:
@@ -918,6 +926,11 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what)
 	.count = 0,
 	.opt = {{ .option = 0, .value = 0 }} };
     list_t *list = get_GUID_list(PSC_getMyID(), what), *pos;
+    if (!list) {
+	PSID_flog("no list for %d to %s\n", what, PSC_printTID(dest));
+	return;
+    }
+
     PSP_Option_t option = PSP_OP_UNKNOWN;
 
     PSID_fdbg(PSID_LOG_VERB, "%s ", PSC_printTID(dest));

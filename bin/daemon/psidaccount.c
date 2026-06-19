@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -48,6 +48,11 @@ void PSID_addAcct(PStask_ID_t acctr)
     }
 
     PSID_acct_t *acct = malloc(sizeof(*acct));
+    if (!acct) {
+	PSID_flog("no memory for %s\n", PSC_printTID(acctr));
+	return;
+    }
+
     acct->acct = acctr;
     list_add_tail(&acct->next, &PSID_accounters);
 }

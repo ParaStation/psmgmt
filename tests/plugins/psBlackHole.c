@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -169,6 +169,10 @@ type_t getType(char *val)
 {
     type_t type;
     char *myVal = strdup(val);
+    if (!myVal) {
+	type = (type_t) { .type = -1, .subType = -1, };
+	return type;
+    }
     char *subType = strchr(myVal, '_');
 
     if (subType) {

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -339,7 +339,11 @@ static void setupPSIEnv(Conf_t *conf)
 	} else {
 	    val = strdup(conf->envList);
 	}
-	setenv("PSI_EXPORTS", val, 1);
+	if (val) {
+	    setenv("PSI_EXPORTS", val, 1);
+	} else {
+	    fprintf(stderr, "No memory to setup PSI_EXPORTS\n");
+	}
 	if (verbose) printf("Environment variables to be exported: %s\n", val);
 	free(val);
     }
@@ -389,6 +393,7 @@ static size_t doSetup(Conf_t *conf, char **environ, char *xprts, size_t xprtsLen
 	if (!val) continue;
 	free(key);
 	key = strndup(environ[i], val - environ[i]);
+	if (!key) return 0;       // we ran out of memory?!
 	if ((!strcmp(key, ENV_NODE_NODES) && conf->nList)
 	    || (!strcmp(key, ENV_NODE_HOSTS) && conf->hList)
 	    || (!strcmp(key, ENV_NODE_HOSTFILE) && conf->hFile)) continue;

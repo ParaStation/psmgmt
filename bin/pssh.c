@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -120,6 +120,10 @@ int main(int argc, const char *argv[])
 		for (int j = i; j < argc; j++) totLen += strlen(argv[j]) + 1;
 		free(cmdLine);
 		cmdLine = malloc(totLen);
+		if (!cmdLine) {
+		    fprintf(stderr, "no memory for CL\n");
+		    exit(EXIT_FAILURE);
+		}
 		cmdLine[0] = '\0';
 		for (int j = i; j < argc; j++)
 		    snprintf(cmdLine + strlen(cmdLine), totLen-strlen(cmdLine),
@@ -203,9 +207,13 @@ int main(int argc, const char *argv[])
 	char *envstr = getenv("PSI_EXPORTS");
 	if (envstr) {
 	    val = malloc(strlen(envstr) + strlen(envlist) + 2);
-	    sprintf(val, "%s,%s", envstr, envlist);
+	    if (val) sprintf(val, "%s,%s", envstr, envlist);
 	} else {
 	    val = strdup(envlist);
+	}
+	if (!val) {
+	    fprintf(stderr, "No memory to setup PSI_EXPORTS\n");
+	    exit(EXIT_FAILURE);
 	}
 	setenv("PSI_EXPORTS", val, 1);
 	if (verbose) {

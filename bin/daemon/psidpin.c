@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -722,6 +722,10 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t devs,
 
     /* get distance of each device and minimum distance */
     uint32_t *dists = malloc(numDevs * sizeof(*dists));
+    if (!dists) {
+	PSID_flog("(%d, type=%s): no memory for distances\n", id, typename);
+	return false;
+    }
     uint32_t minDist = UINT32_MAX;
 
     for (uint16_t dev = 0; dev < numDevs; dev++) {
@@ -785,6 +789,7 @@ char *PSIDpin_getAutoName(char *name)
 bool PSIDpin_checkAutoVar(char *name, char *value, char *renewVal)
 {
     char *autoName = PSIDpin_getAutoName(name);
+    if (!autoName) return false;
     char *autoVar = getenv(autoName);
 
     /* automation detection is no longer needed */

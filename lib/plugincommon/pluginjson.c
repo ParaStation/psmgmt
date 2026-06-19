@@ -151,15 +151,19 @@ psjson_t jsonFromFile(const char *path)
 }
 
 #if HAVE_JSON_C_DEVEL
-static struct json_object *handleArray(psjson_t psjson, char *next,
+static struct json_object *handleArray(psjson_t psjson, char *array,
 				       bool addMissing, bool silent,
 				       const char *caller, const int line)
 {
     struct json_object *nextObj = NULL;
     int32_t idx = -1;
-    char *array = strchr(next, '[');
+    if (array[0] != '[') {
+	pluginflog("(%s@%d) array[0] must be '['\n", caller, line);
+	return NULL;
+    }
+
     if (array[1] != ']') {
-	if (sscanf(next, "[%u]", &idx) != 1) {
+	if (sscanf(array, "[%u]", &idx) != 1) {
 	    if (!silent) {
 		pluginflog("(%s@%d) invalid array definition\n", caller, line);
 	    }
@@ -169,7 +173,7 @@ static struct json_object *handleArray(psjson_t psjson, char *next,
 	if (!json_object_is_type(psjson->pos, json_type_array)) {
 	    if (!silent) {
 		pluginflog("(%s@%d): %s requested from non array\n",
-			   caller, line, next);
+			   caller, line, array);
 	    }
 	    return NULL;
 	}
@@ -180,7 +184,7 @@ static struct json_object *handleArray(psjson_t psjson, char *next,
 	if (!addMissing) {
 	    if (!silent) {
 		pluginflog("(%s@%d): error: %s not found\n",
-			   caller, line, next);
+			   caller, line, array);
 	    }
 	    return NULL;
 	}
@@ -235,7 +239,7 @@ bool __jsonWalkPath(psjson_t psjson, const char *path, bool addMissing,
 
 	char *array = strchr(next, '[');
 	if (array) {
-	    nextObj = handleArray(psjson, next, addMissing, silent,
+	    nextObj = handleArray(psjson, array, addMissing, silent,
 				  caller, line);
 	    if (!nextObj) {
 		ufree(dup);

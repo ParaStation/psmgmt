@@ -278,8 +278,8 @@ static void deliverMsgs(int timerID, void *info)
 	PSID_handleMsg(msg->msg);
 
 	list_del(&msg->next);
-	// hint to Clang's static analyzer
-	ASSUME(&msg->next != (&delayContainer->messages)->next);
+	ASSUME(m != delayContainer->messages.next); // hint to static analyzers
+
 	delMsgContainer(msg);
     }
 }
@@ -437,6 +437,7 @@ void finalize(void)
     list_t *d, *tmp;
     list_for_each_safe(d, tmp, &delayContainerList) {
 	DelayContainer_t *delayC = list_entry(d, DelayContainer_t, next);
+	ASSUME(d != delayContainerList.next);	// hint to static analyzers
 	doRemoveDelayHandler(delayC);
     }
 

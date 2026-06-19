@@ -846,6 +846,11 @@ PSIDplugin_t PSIDplugin_load(char *pName, int minVer,
     }
 
     plugin = newPlugin(handle, pName, *plugin_version);
+    if (!plugin) {
+	PSID_flog("no memory for '%s' version %d or above\n", pName, minVer);
+	dlclose(handle);
+	return NULL;
+    }
 
     /* Register plugin before it's possibly unloaded */
     registerPlugin(plugin);

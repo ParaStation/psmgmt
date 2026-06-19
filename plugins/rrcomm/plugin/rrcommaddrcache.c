@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2023-2024 ParTec AG, Munich
+ * Copyright (C) 2023-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -56,13 +56,15 @@ static RRC_cache_t * getCache(PStask_ID_t jobID)
     if (!thisC) {
 	thisC = malloc(sizeof(*thisC));
 
-	*thisC = (RRC_cache_t) {
-	    .jobID = jobID,
-	    .size = 0,
-	    .addrCache = NULL,
-	};
+	if (thisC) {
+	    *thisC = (RRC_cache_t) {
+		.jobID = jobID,
+		.size = 0,
+		.addrCache = NULL,
+	    };
 
-	list_add_tail(&thisC->next, &jobCaches);
+	    list_add_tail(&thisC->next, &jobCaches);
+	}
     }
 
     return thisC;
@@ -71,6 +73,7 @@ static RRC_cache_t * getCache(PStask_ID_t jobID)
 void updateAddrCache(PStask_ID_t jobID, int32_t rank, PStask_ID_t taskID)
 {
     RRC_cache_t *thisC = getCache(jobID);
+    if (!thisC) return;
 
     if (rank >= thisC->size) {
 	size_t newSize = (rank / 256 + 1) * 256;

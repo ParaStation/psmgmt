@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -82,14 +82,19 @@ static int delaySlurmMsg(Slurm_Msg_t *sMsg)
     if (delayTimer == -1) delayTimer = Timer_register(&timeout, releaseMsgs);
 
     if (delayTimer == -1) {
-	nlog("cannot delay message, deliver immediately\n");
+	nlog("cannot delay message (missing timer), deliver immediately\n");
 	if (origHandler) origHandler(sMsg);
     } else {
 	msgContainer_t *mCnt = malloc(sizeof(*mCnt));
-	mCnt->msg = psSlurmDupMsg(sMsg);
-	list_add_tail(&mCnt->next, &msgList);
-	nlog("delay message of type %d by %ld msec\n", MSG_TYPE,
-	     1000 * timeout.tv_sec +  timeout.tv_usec / 1000);
+	if (mCnt) {
+	    mCnt->msg = psSlurmDupMsg(sMsg);
+	    list_add_tail(&mCnt->next, &msgList);
+	    nlog("delay message of type %d by %ld msec\n", MSG_TYPE,
+		 1000 * timeout.tv_sec +  timeout.tv_usec / 1000);
+	} else {
+	    nlog("cannot delay message (no memory), deliver immediately\n");
+	    if (origHandler) origHandler(sMsg);
+	}
     }
     return SLURM_NO_RC;
 }

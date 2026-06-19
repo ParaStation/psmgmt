@@ -25,7 +25,7 @@ static int spank_option_cb(int val, const char *optarg, int remote)
 
     bool ok = false;
     for (int i = 0; _supported[i]; ++i) {
-	if (!strcmp(_supported[i], _start_xserver)) ok = true;
+	if (_start_xserver && !strcmp(_supported[i], _start_xserver)) ok = true;
     }
 
     if (!ok) {

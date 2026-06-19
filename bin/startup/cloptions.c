@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1103,6 +1103,10 @@ Conf_t * parseCmdOptions(int argc, const char *argv[])
 {
     #define OTHER_OPTIONS_STR "[OPTION...] <command> [cmd_options]"
     Conf_t *conf = calloc(1, sizeof(*conf));
+    if (!conf) {
+	fprintf(stderr, "%s: no memory for configuration\n", argv[0]);
+	return NULL;
+    }
 
     /** Set TPP from environment -- if any -- before any command-line parsing */
     char *envStr = getenv("PSI_TPP");

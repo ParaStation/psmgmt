@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2025 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1749,15 +1749,17 @@ int main(int argc, char *argv[])
     PSI_addRecvHandler(PSP_CD_SIGRES, handle_CD_SIGRES, NULL);
 
     /* logging */
-    if (arg_logfile && strcmp(arg_logfile, "-")) {
-	logfile = fopen(arg_logfile, "a+");
-	if (!logfile) {
-	    fwarn("fopen(%s)", arg_logfile);
-	    exit(EXIT_FAILURE);
+    if (arg_logfile) {
+	if (!strcmp(arg_logfile, "-")) {
+	    logfile = stdout;
+	} else {
+	    logfile = fopen(arg_logfile, "a+");
+	    if (!logfile) {
+		fwarn("fopen(%s)", arg_logfile);
+		exit(EXIT_FAILURE);
+	    }
 	}
     }
-
-    if (arg_logfile && !strcmp(arg_logfile, "-")) logfile = stdout;
 
     /* re-init logger again (switch to final logfile) */
     logger_finalize(alogger);

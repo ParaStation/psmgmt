@@ -480,6 +480,8 @@ static void sendKvsUpdateToClients(bool finish)
  */
 static void handleKVS_Put(PSLog_Msg_t *msg, char *ptr)
 {
+    char *kvsStr = NULL;
+
     /* extract key and value */
     char key[PMI_KEYLEN_MAX];
     size_t keyLen = getKVSString(&ptr, key, sizeof(key));
@@ -489,20 +491,21 @@ static void handleKVS_Put(PSLog_Msg_t *msg, char *ptr)
     size_t valLen = getKVSString(&ptr, value, sizeof(value));
     if (valLen < 1) goto PUT_ERROR;
 
-    size_t envStrLen = keyLen + valLen + 2;
-    char *envStr = malloc(envStrLen);
-    sprintf(envStr, "%s=%s", key, value);
+    size_t kvsStrLen = keyLen + valLen + 2;
+    kvsStr = malloc(kvsStrLen);
+    if (!kvsStr) goto PUT_ERROR;
+    sprintf(kvsStr, "%s=%s", key, value);
 
     /* save in global KVS */
     if (!kvs_set(kvsname, key, value)) goto PUT_ERROR;
 
     putCount++;
 
-    /* add envStr to send-cache */
+    /* add kvsStr to send-cache */
     if (nextCacheEntry >= kvsCacheSize) growKvsUpdateCache(0);
-    kvsUpdateCache[nextCacheEntry++] = envStr;
+    kvsUpdateCache[nextCacheEntry++] = kvsStr;
 
-    kvsUpdateLen += envStrLen + 1 /* extra separator in message to send */;
+    kvsUpdateLen += kvsStrLen + 1 /* extra separator in message to send */;
 
     /* check if we can start sending update messages */
     if (clients[0].tid != -1) {

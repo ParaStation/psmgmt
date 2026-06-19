@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -54,11 +54,14 @@ static char *finScript = NULL;
 static char *checkScript(char *script)
 {
     char *fName;
-
     if (script[0] == '/') {
 	fName = strdup(script);
     } else {
 	fName = PSC_concat(JAILLIBDIR, "/", script);
+    }
+    if (!fName) {
+	jlog(-1, "%s: no memory for script name\n", __func__);
+	return NULL;
     }
 
     struct stat sb;
@@ -69,7 +72,7 @@ static char *checkScript(char *script)
     }
 
     if (!S_ISREG(sb.st_mode) || !(sb.st_mode & S_IXUSR)) {
-	jlog(errno, "%s: stat(%s): %s", __func__, fName,
+	jlog(-1, "%s: stat(%s): %s", __func__, fName,
 	     (!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
 	     (sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
 	free(fName);

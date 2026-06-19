@@ -1247,7 +1247,7 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 
     /* set SLURM_TASKS_PER_NODE */
     char *val = getTasksPerNode(step->tasksToLaunch, step->nrOfNodes);
-    setenv("SLURM_TASKS_PER_NODE", val, 1);
+    setenv("SLURM_TASKS_PER_NODE", val ? val : "", 1);
 
     /* set topology environment */
     setTopoEnv(NULL);

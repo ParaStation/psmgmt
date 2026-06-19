@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1051,18 +1051,18 @@ static void printDescr(const char *tag, char *descr)
  */
 static void printTags(taggedInfo_t *tags)
 {
-    unsigned int t, tagwidth = 0;
-    char *tag;
-
     if (!tags) return;
 
-    for (t=0; tags[t].tag; t++)
-	if (strlen(tags[t].tag) > tagwidth) tagwidth = strlen(tags[t].tag);
+    unsigned int tagwidth = 0;
+    for (unsigned int t = 0; tags[t].tag; t++) {
+	size_t tw = strlen(tags[t].tag);
+	if (tw > tagwidth) tagwidth = tw;
+    }
 
-    tag = malloc(tagwidth+4);
-    for (t=0; tags[t].tag; t++) {
-	sprintf(tag, " %*s  ", tagwidth, tags[t].tag);
-	printDescr(tag, tags[t].descr);
+    char *tag = malloc(tagwidth+4);
+    for (unsigned int t = 0; tags[t].tag; t++) {
+	if (tag) sprintf(tag, " %*s  ", tagwidth, tags[t].tag);
+	printDescr(tag ? tag : "\t", tags[t].descr);
     }
     free(tag);
 }

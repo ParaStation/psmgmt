@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2024 ParTec AG, Munich
+ * Copyright (C) 2024-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -594,7 +594,7 @@ bool Container_destroy(Slurm_Container_t *ct)
     char *tmpDir = PSC_concat(ct->rootfs, JSON_TMP);
     char *tmpDirR = replaceSymbols(tmpDir, ct);
     struct stat sbuf;
-    if (!stat(tmpDirR, &sbuf)) removeDir(tmpDirR, true);
+    if (tmpDirR && !stat(tmpDirR, &sbuf)) removeDir(tmpDirR, true);
     ufree(tmpDir);
     ufree(tmpDirR);
 

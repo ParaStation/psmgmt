@@ -821,6 +821,10 @@ static bool saveCtldHost(char *confVal)
 
     /* separate and save host address */
     char *value = strdup(confVal);
+    if (!value) {
+	flog("no memory to dup configuration value '%s'\n", confVal);
+	return false;
+    }
     char *addr = strchr(value, '(');
     if (addr) {
 	/* remove brackets */

@@ -293,7 +293,7 @@ static bool changeToWorkDir(PStask_t *task)
 
     char *pwBuf = NULL;
     struct passwd *passwd = PSC_getpwuidBuf(task->uid, &pwBuf);
-    if (!passwd) {
+    if (!passwd || !passwd->pw_dir) {
 	if (rawIO) {
 	    PSID_log("cannot determine home directory\n");
 	} else {
@@ -309,10 +309,10 @@ static bool changeToWorkDir(PStask_t *task)
     if (!ret) return true;
 
     if (rawIO) {
-	PSID_fwarn(eno, "chdir(%s)", passwd->pw_dir ? passwd->pw_dir : "");
+	PSID_fwarn(eno, "chdir(%s)", passwd->pw_dir);
     } else {
 	fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
-		passwd->pw_dir ? passwd->pw_dir : "", strerror(eno));
+		passwd->pw_dir, strerror(eno));
     }
     errno = eno;
     return false;
@@ -827,7 +827,10 @@ static void execForwarder(PStask_t *task)
     /* setup the environment; done here to pass it to forwarder, too */
     setenv("PWD", task->workingdir, 1);
 
-    for (char **e = envGetArray(task->env); e && *e; e++) putenv(strdup(*e));
+    for (char **e = envGetArray(task->env); e && *e; e++) {
+	char *thisEnv = strdup(*e);
+	if (thisEnv) putenv(thisEnv);
+    }
 
     /* create a socketpair for communication between forwarder and client */
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlfds) < 0) {
@@ -962,6 +965,8 @@ static void execForwarder(PStask_t *task)
 	/* close the now useless slave ttys / sockets */
 	close(task->stderr_fd);
 	if (!task->interactive) {
+	     // hint to static analyzers; fds *are* different if non-interactive
+	    ASSUME(task->stdin_fd != task->stdout_fd);
 	    close(task->stdin_fd);
 	    close(task->stdout_fd);
 	}

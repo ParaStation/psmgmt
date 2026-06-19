@@ -19,6 +19,14 @@
 #include <errno.h>
 #include <string.h>
 
+#include "__assume.h"
+#include "kvscommon.h"
+#include "pscommon.h"
+#include "pslog.h"
+#include "pspartition.h"
+#include "psserial.h"
+#include "psstrv.h"
+
 #include "pse.h"
 #include "psenv.h"
 #include "psi.h"
@@ -27,13 +35,6 @@
 #include "psispawn.h"
 #include "psipartition.h"
 #include "pspluginprotocol.h"
-
-#include "pscommon.h"
-#include "pslog.h"
-#include "pspartition.h"
-#include "kvscommon.h"
-#include "psserial.h"
-#include "psstrv.h"
 
 #include "cloptions.h"
 #include "common.h"
@@ -202,7 +203,9 @@ static env_t createPMEnv(Conf_t *conf)
 	    for (char **a = strvGetArray(exec->argV); a && *a; a++)
 		ptr += sprintf(ptr, "%s ", *a);
 
-	    *(ptr-1)='\0';
+	    // hint to static analyzers; there is always at least one argument
+	    ASSUME(ptr > argvStr);
+	    *(ptr-1) = '\0';
 	    envSet(env, key, argvStr);
 	    free(argvStr);
 
@@ -606,6 +609,8 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 static int spawnSingleExecutable(Executable_t *exec, bool verbose)
 {
     int *errors = umalloc(sizeof(int) * exec->np);
+    // hint to static analyzers; umalloc returns non-NULL if argument > 0
+    ASSUME(errors != 0);
     memset(errors, 0, sizeof(int) * exec->np);
 
     /* spawn client processes */
@@ -922,6 +927,7 @@ int main(int argc, const char *argv[], char** envp)
 
     /* parse command line options */
     conf = parseCmdOptions(argc, argv);
+    if (!conf) exit(EXIT_FAILURE);
 
     /* update sighandler's verbosity */
     setupSighandler(conf->verbose);

@@ -577,7 +577,7 @@ static void clearAllProcSnapshots(void)
 
 void getSessionInfo(int *count, char *buf, size_t size, int *userCount)
 {
-    uid_t users[MAX_USER];
+    uid_t users[MAX_USER] = {-1};
 
     buf[0] = '\0';
     *count = 0;
@@ -587,14 +587,14 @@ void getSessionInfo(int *count, char *buf, size_t size, int *userCount)
     list_for_each(p, &procList) {
 	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	char sessStr[50];
-	int i;
 
 	if (proc->uid == 0 || proc->session == 0) continue;
 	(*count)++;
 	snprintf(sessStr, sizeof(sessStr), "%i ", proc->session);
 	strncat(buf, sessStr, size - strlen(buf));
 
-	for (i=0; i < *userCount; i++) {
+	int i;
+	for (i = 0; i < *userCount; i++) {
 	    if (users[i] == proc->uid) break;
 	}
 	if (i == *userCount) {
@@ -637,6 +637,7 @@ static void collectDescendantData(pid_t pid, ProcSnapshot_t *res)
 	    fdbg(PSACC_LOG_PROC, "pid:%i ppid:%i cutime:%lu cstime:%lu mem:%lu"
 		 " vmem:%lu\n", proc->pid, proc->ppid, proc->cutime,
 		 proc->cstime, proc->mem, proc->vmem);
+	    ASSUME(p != procList.next); // hint to static analyzers
 	    collectDescendantData(proc->pid, res);
 	}
     }

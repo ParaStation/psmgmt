@@ -104,6 +104,13 @@ static char *doEval(const char *key, const pluginConfigVal_t *val,
 	    topoFile = PSC_concat(installDir, "/plugins/hwloc/topo.",
 				  valStr, ".xml", 0L);
 	}
+	if (!topoFile) {
+	    pluginflog("no memory");
+	    strbuf_t buf = strbufNew(NULL);
+	    strbufAdd(buf, "  No memory for topology file\n");
+	    return strbufSteal(buf);
+	}
+
 	struct stat fstat;
 	if (stat(topoFile, &fstat)) {
 	    strbuf_t buf = strbufNew(NULL);

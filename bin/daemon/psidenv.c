@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -144,18 +144,22 @@ static bool msg_ENV(DDTypedBufferMsg_t *inmsg)
 	    case PSP_ENV_SET:
 	    {
 		char *key = inmsg->buf, *val = strchr(key, '=');
-
-		*val = '\0';
-		val++;
-
-		if (!*key) {
-		    ret = EINVAL;
-		    PSID_fwarn(ret, "No key given to set");
+		if (!val) {
+		    PSID_flog("no '=' in message type %d\n", inmsg->type);
+		    ret = EBADMSG;
 		} else {
-		    ret = setenv(key, val, 1);
-		    if (ret) {
-			ret = errno;
-			PSID_fwarn(ret, "setenv(%s)", key);
+		    *val = '\0';
+		    val++;
+
+		    if (!*key) {
+			ret = EINVAL;
+			PSID_fwarn(ret, "No key given to set");
+		    } else {
+			ret = setenv(key, val, 1);
+			if (ret) {
+			    ret = errno;
+			    PSID_fwarn(ret, "setenv(%s)", key);
+			}
 		    }
 		}
 		break;

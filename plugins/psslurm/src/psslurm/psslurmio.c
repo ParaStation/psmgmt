@@ -718,9 +718,7 @@ int IO_redirectRank(Step_t *step, int rank)
 	    fwarn(errno, "dup2(%u) failed", fd);
 	    return 0;
 	}
-    }
-
-    if (step->taskFlags & LAUNCH_PTY && rank >0) {
+    } else if (step->taskFlags & LAUNCH_PTY && rank >0) {
 	int fd = open("/dev/null", O_RDONLY);
 	if (fd == -1) {
 	    fwarn(errno, "open(/dev/null) failed");
