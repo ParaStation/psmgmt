@@ -314,13 +314,15 @@ static void fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	free(script->outBuf);
     }
 
-    /* get child exit status */
-    int32_t eStatus = WIFSIGNALED(fw->chldExitStatus) ?
-		WTERMSIG(fw->chldExitStatus) : fw->chldExitStatus;
-    eStatus = (fw->rcHook != RC_HOOK_NONE) ? fw->rcHook : eStatus;
+    /* forwarder exit status */
+    int32_t eStatus = exit_status;
 
-    /* fw exit status displaces child exit status */
-    eStatus = (exit_status != 0) ? exit_status : eStatus;
+    /* replace with child exit status if forwarder exited successful */
+    if (!eStatus) {
+	eStatus = WIFSIGNALED(fw->chldExitStatus) ?
+		    WTERMSIG(fw->chldExitStatus) : fw->chldExitStatus;
+	eStatus = (fw->rcHook != RC_HOOK_NONE) ? fw->rcHook : eStatus;
+    }
 
     plugindbg(PLUGIN_LOG_SCRIPT, "script exited with %i\n", eStatus);
     if (script->cbResult) script->cbResult(eStatus, script);
