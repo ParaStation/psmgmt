@@ -49,7 +49,7 @@ Get a version string from the last tag of the version control.
 
   --isrelease         test, if version number matches "x.y-r" or "x.y.z-r" with xyzr digits only.
 
-  --suffix            add a custom suffix to the version string instead of the
+  --suffix suffix     add a custom suffix to the version string instead of the
                       branch name (only works with git)
 
   -v|--verbose        verbose
