@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -183,7 +183,7 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata);
  * @brief Forward I/O data for a job
  *
  * Read from pipes connected to stdout and stderr of
- * the job-script. The red data is written to the jobs
+ * the job-script. The read data is written to the jobs
  * stdout and stderr files respectively. This forwarding
  * mechanism allows psslurm to inject additional messages
  * into the message stream.

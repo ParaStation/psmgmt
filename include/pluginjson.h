@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2024 ParTec AG, Munich
+ * Copyright (C) 2024-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -80,7 +80,7 @@ bool __jsonWalkPath(psjson_t psjson, const char *path, bool addMissing,
  *
  * Read a string object from a json context. If an optional @a path is specified
  * the position pointer of json context is changed before the object gets
- * red. If @ref path is NULL the current position is used.
+ * read. If @ref path is NULL the current position is used.
  *
  * @param psjson json context to read from
  *
@@ -101,7 +101,7 @@ const char *__jsonGetString(psjson_t psjson, const char *path,
  *
  * Read a object of specific @a type from a json context.
  * If an optional @a path is specified the position pointer of json context
- * is changed before the object gets red. If @ref path is NULL the
+ * is changed before the object gets read. If @ref path is NULL the
  * current position is used.
  *
  * @param psjson json context to read from

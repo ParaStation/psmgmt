@@ -387,6 +387,20 @@ static void cmdPrintOutput(char *output, void *info)
 }
 
 /**
+ * @brief Test if all CPUs have at least one available frequency
+ */
+static bool testAvailFreq(void)
+{
+    for (int c = 0; c < numCPUs; c++) {
+	if (!cpus[c].numAvailFreq) {
+	    pluginflog("CPU %i has no frequencies\n", c);
+	    return false;
+	}
+    }
+    return true;
+}
+
+/**
  * @brief Test if initialization has completed
  *
  * Test if all initialization scripts finished gathering CPU information
@@ -413,6 +427,9 @@ static void testInitComplete(void)
 
     if (!numCPUs || initFailure) {
 	pluginlog("CPUfreq initialization failed\n");
+    } else if (!testAvailFreq()) {
+	pluginlog("CPUs with no useable frequencies detected\n");
+	initFailure = true;
     } else {
 	pluginflog("%i CPUs", numCPUs);
 	if (defaultGov != GOV_UNDEFINED) {
@@ -518,13 +535,18 @@ static int compareFreq(const void *entry1, const void *entry2)
  * @brief Calculate available CPU frequencies
  *
  * Not all hardware will define valid CPU frequencies. In that case
- * a list of sensible frequencies is calculated.
+ * a list of sensible frequencies is calculated. CPU cores with non zero
+ * values will be skipped. In principal it is possible that hardware
+ * values are only predefined for a subset of cores.
  */
 static void calcAvailCPUfreq()
 {
     plugindbg(PLUGIN_LOG_FREQ, "calculate %i CPU frequencies\n", MAX_FREQ);
 
     for (int c = 0; c < numCPUs; c++) {
+	/* skip CPUs which have hardware defined limits */
+	if (cpus[c].numAvailFreq) continue;
+
 	uint32_t delta = cpus[c].availMaxFreq - cpus[c].availMinFreq;
 	delta /= MAX_FREQ -1;
 
@@ -538,23 +560,22 @@ static void calcAvailCPUfreq()
 
 /**
  * @brief Callback for CMD_GET_AVAIL_FREQ
+ *
+ * Not all systems define available frequencies, this is no error.
  */
 static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 {
     initFlags &= ~INIT_GET_AVAIL_FREQ;
 
-    /* not all systems define available frequencies, this is no error */
-    if (status) {
-	calcAvailCPUfreq();
-	Script_destroy(script);
-	return;
-    }
-
-    /* sort red frequencies */
+    /* sort read frequencies (if any) */
     for (int i = 0; i < numCPUs; i++) {
 	qsort(cpus[i].availFreq, cpus[i].numAvailFreq,
-	      sizeof(cpus[i].availFreq[0]), compareFreq);
+		sizeof(cpus[i].availFreq[0]), compareFreq);
     }
+
+    /* CPU cores with available frequencies set are skipped */
+    calcAvailCPUfreq();
+
     /* test if all CPUs have the same available frequencies */
     equalAvailFreq = true;
     for (int c = 1; c < numCPUs && equalAvailFreq; c++) {
@@ -794,6 +815,10 @@ static uint32_t mapFreqLabel(int16_t idx, uint32_t label)
 
     /* calculate node dependent frequency */
     uint32_t numFreq = cpus[idx].numAvailFreq;
+    if (!numFreq) {
+	pluginflog("error: no frequencies for CPU %i\n", idx);
+	return 0;
+    }
 
     switch (label) {
 	case CPU_FREQ_LOW: /* lowest available frequency */

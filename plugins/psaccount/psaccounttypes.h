@@ -124,16 +124,16 @@ typedef struct {
 /** Node interconnect I/O data */
 typedef struct {
     int16_t port;		/**< port number */
-    uint64_t recvBytes;		/**< number of bytes red */
+    uint64_t recvBytes;		/**< number of bytes read */
     uint64_t sendBytes;		/**< number of bytes written */
-    uint64_t recvPkts;		/**< number of packets red */
+    uint64_t recvPkts;		/**< number of packets read */
     uint64_t sendPkts;		/**< number of packets written */
     time_t lastUpdate;		/**< time stamp of the last update */
 } psAccountIC_t;
 
 /** Node file-system I/O data */
 typedef struct {
-    uint64_t readBytes;		/**< number of bytes red */
+    uint64_t readBytes;		/**< number of bytes read */
     uint64_t writeBytes;	/**< number of bytes written */
     uint64_t numReads;		/**< number of reads */
     uint64_t numWrites;		/**< number of writes */

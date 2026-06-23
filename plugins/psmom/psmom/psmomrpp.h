@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,7 +64,7 @@ int rppPoll(int fd, void *data);
  *
  * @param stream The stream to read from.
  *
- * @param buffer The buffer to write the red data to.
+ * @param buffer The buffer to write the read data to.
  *
  * @param len The length of the buffer.
  *
