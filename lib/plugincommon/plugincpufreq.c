@@ -567,7 +567,7 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 {
     initFlags &= ~INIT_GET_AVAIL_FREQ;
 
-    /* sort red frequencies (if any) */
+    /* sort read frequencies (if any) */
     for (int i = 0; i < numCPUs; i++) {
 	qsort(cpus[i].availFreq, cpus[i].numAvailFreq,
 		sizeof(cpus[i].availFreq[0]), compareFreq);
