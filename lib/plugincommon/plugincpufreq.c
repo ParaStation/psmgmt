@@ -560,24 +560,22 @@ static void calcAvailCPUfreq()
 
 /**
  * @brief Callback for CMD_GET_AVAIL_FREQ
+ *
+ * Not all systems define available frequencies, this is no error.
  */
 static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 {
     initFlags &= ~INIT_GET_AVAIL_FREQ;
 
-    /* not all systems define available frequencies, this is no error */
-    if (status) {
-	calcAvailCPUfreq();
-	testInitComplete();
-	Script_destroy(script);
-	return;
-    }
-
-    /* sort red frequencies */
+    /* sort red frequencies (if any) */
     for (int i = 0; i < numCPUs; i++) {
 	qsort(cpus[i].availFreq, cpus[i].numAvailFreq,
-	      sizeof(cpus[i].availFreq[0]), compareFreq);
+		sizeof(cpus[i].availFreq[0]), compareFreq);
     }
+
+    /* CPU cores with available frequencies set are skipped */
+    calcAvailCPUfreq();
+
     /* test if all CPUs have the same available frequencies */
     equalAvailFreq = true;
     for (int c = 1; c < numCPUs && equalAvailFreq; c++) {
@@ -592,9 +590,6 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 	    }
 	}
     }
-
-    /* CPU cores with available frequencies set are skipped */
-    calcAvailCPUfreq();
 
     testInitComplete();
     Script_destroy(script);
