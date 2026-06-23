@@ -1745,11 +1745,11 @@ static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
     uint32_t ltnum = step->globalTaskIdsLen[stepNodeId];
 
     PSCPU_set_t gpus[ltnum];
-    for (size_t i = 0; i < ltnum; i++) PSCPU_clrAll(gpus[i]);
+    // do not use PSCPU_clrAll to help static analyzer detecting initialization
+    memset(gpus, 0, sizeof(gpus));
 
     size_t numNodeGPUs = PSIDnodes_numGPUs(step->nodes[stepNodeId]);
-
-    if (PSCPU_MAX < numNodeGPUs) {
+    if (numNodeGPUs > PSCPU_MAX) {
 	flog("ERROR: only %u GPUs per node supported (%zu found)\n",
 	     PSCPU_MAX, numNodeGPUs);
 	return false;
