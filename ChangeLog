@@ -1,3 +1,36 @@
+Version 6.8.1:
+==============
+------------------------------------------------------------------------
+6e0b03a4c | Norbert Eicker | Tue, 23 Jun 2026 13:43:54 +0200
+
+Fix typos
+------------------------------------------------------------------------
+71f66002e | Michael Rauh | Tue, 23 Jun 2026 10:42:44 +0200
+
+Fix calculation of equalAvailFreq
+------------------------------------------------------------------------
+2c2562182 | Michael Rauh | Fri, 19 Jun 2026 14:34:56 +0200
+
+Optimize exit status calculation
+------------------------------------------------------------------------
+c2d5e4c7c | Michael Rauh | Fri, 19 Jun 2026 14:19:47 +0200
+
+Ensure to calculate missing available CPU frequenies
+in a mixed setup
+------------------------------------------------------------------------
+d59c23a6a | Michael Rauh | Tue, 16 Jun 2026 12:21:29 +0200
+
+Return child exit status for plugin scripts
+------------------------------------------------------------------------
+1cbf0cff1 | Michael Rauh | Tue, 16 Jun 2026 12:05:36 +0200
+
+Bugfix: ensure every CPU has useable frequencies (#29)
+
+ - this fixes a possible segfault in the psslurmforwarder when
+   '--cpu-freq' is set to 'High'
+------------------------------------------------------------------------
+
+
 Version 6.8.0:
 ==============
 ------------------------------------------------------------------------

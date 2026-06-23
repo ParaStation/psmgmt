@@ -6,6 +6,12 @@ Copyright (C) 2021-2026 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.8.1:
+==============
+Bugfixes:
+ - ensure every CPU has useable frequencies (#29)
+
+
 *************************************************************************
 *************************************************************************
 **                                                                     **
