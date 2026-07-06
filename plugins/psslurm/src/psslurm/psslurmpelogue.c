@@ -174,10 +174,11 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 	 * will wait for all epilogue scripts to complete and offline nodes
 	 * which are not responding */
 	send_PS_PElogueRes(alloc, resList[0].epilogue, PELOGUE_EPILOGUE);
-	/* delete allocation if required */
+	/* important: delete allocation before sending epilogue
+	 * complete RPC (jwt:#23342) */
+	Head_ID_t hID = alloc->hID;
 	if (alloc->terminate) Alloc_delete(alloc);
-	/* inform slurmctld */
-	sendEpilogueComplete(&alloc->hID, SLURM_SUCCESS);
+	sendEpilogueComplete(&hID, SLURM_SUCCESS);
     } else {
 	/* Warning: the msg handler function may delete the allocation
 	 * on the leader in finalizeEpilogue(). Don't use the
@@ -301,8 +302,11 @@ bool finalizeEpilogue(Alloc_t *alloc)
 
 	if (!epilogueFinScript(alloc)) {
 	    if (alloc->terminate) {
+		/* important: delete allocation before sending epilogue
+		 * complete RPC (jwt:#23342) */
+		Head_ID_t hID = alloc->hID;
 		Alloc_delete(alloc);
-		sendEpilogueComplete(&alloc->hID, SLURM_SUCCESS);
+		sendEpilogueComplete(&hID, SLURM_SUCCESS);
 		return true;
 	    }
 	}

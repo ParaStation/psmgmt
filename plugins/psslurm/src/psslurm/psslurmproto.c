@@ -2083,9 +2083,12 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	/* ensure jobs will not get stuck forever */
 	flog("force termination of allocation %u in state %s requests %i\n",
 	     alloc->hID.jobid, Alloc_strState(alloc->state), alloc->terminate);
+
+	/* important: delete allocation before sending epilogue
+	 * complete RPC (jwt:#23342) */
+	Head_ID_t hID = alloc->hID;
 	Alloc_delete(alloc);
-	sendEpilogueComplete(&alloc->hID, SLURM_SUCCESS);
-	sendSlurmRC(sMsg, SLURM_SUCCESS);
+	sendEpilogueComplete(&hID, SLURM_SUCCESS);
 	return;
     }
 
