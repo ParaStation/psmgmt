@@ -24,8 +24,6 @@ EXTRA_DIST = README tests/psid dist/.gitignore dist/Makefile.sources	\
 	m4/ax_check_preproc_flag.m4
 dist_noinst_DATA = LICENSE.QPL
 
-PKG_VER := $(shell $(VCVERSION) -r $(top_srcdir) -n)
-
 # ---- Version ----
 #
 nodist_noinst_DATA = VERSION.psmgmt

@@ -9,9 +9,6 @@
 #
 include $(top_srcdir)/common.am
 
-PKG_VER := $(shell $(VCVERSION) -r $(top_srcdir) --fmt version -n)
-PKG_REL := $(shell $(VCVERSION) -r $(top_srcdir) --fmt release -n)
-
 AM_CPPFLAGS += -DVERSION_psmgmt=\"$(PKG_VER)\"
 AM_CPPFLAGS += -DRELEASE_psmgmt=\"$(PKG_REL)\"
 
