@@ -8,6 +8,8 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <ctype.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -687,10 +689,25 @@ int main(int argc, char *argv[])
     }
     if (slurmver) {
 	char *sv = strdup(slurmver);
-	if (sv && strlen(sv) >= 6) sv[5] = '\0'; /* cut release part */
-	char *mm = sv;
-	char *yy = strsep(&mm, ".");
-	slurm_version = atol(yy) * 100 + atol(mm);
+	if (!sv) {
+	    outline(ERROROUT, "Out of memory while parsing Slurm version");
+	    return -1;
+	}
+	char *endPtr;
+	long year = strtol(sv, &endPtr, 10);
+	if (!isspace(*sv) || *endPtr != '.' || (!year && errno == EINVAL)) {
+	    outline(ERROROUT, "Unexpected Slurm version string '%s'\n", slurmver);
+	    free(sv);
+	    return -1;
+	}
+	char *mm = endPtr + 1;
+	long month = strtol(mm, &endPtr, 10);
+	if ((*endPtr && *endPtr != '.') || (!month && errno == EINVAL)) {
+	    outline(ERROROUT, "Unexpected Slurm version string '%s'\n", slurmver);
+	    free(sv);
+	    return -1;
+	}
+	slurm_version = year * 100 + month;
 	if (slurm_version < 2108) {
 	    outline(ERROROUT, "Not supporting Slurm versions before 21.08");
 	    free(sv);
@@ -701,8 +718,8 @@ int main(int argc, char *argv[])
 				     && slurm_version != 2302))
 	    || (slurm_version >= 2311 && (slurm_version % 100 != 5
 					  && slurm_version % 100 != 11))) {
-	    outline(ERROROUT, "Invalid slurm version '%s.%s' in SLURM_VERSION",
-		    yy, mm);
+	    outline(ERROROUT, "Invalid slurm version '%d.%02d' in SLURM_VERSION %s",
+		    year, month, slurmver);
 	    free(sv);
 	    return -1;
 	}
