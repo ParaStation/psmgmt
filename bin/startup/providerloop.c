@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2025 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <string.h>
+#include <sys/signalfd.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -867,7 +868,7 @@ static void handleKVS_Leave(PSLog_Msg_t *msg)
  *
  * @param data Not used.
  *
- * @return Always returns 0.
+ * @return Always returns 0 (but should never return)
  */
 static int handleFWMessage(int fd, void *data)
 {
@@ -882,7 +883,7 @@ static int handleFWMessage(int fd, void *data)
  *
  * @param msg The received KVS message to handle.
  *
- * @return No return value.
+ * @return No return value
  */
 static void handleKvsMsg(PSLog_Msg_t *msg)
 {
@@ -1006,23 +1007,53 @@ static int handlePSIMessage(int fd, void *data)
 }
 
 /**
- * @brief Handle signals.
+ * @brief Handling of SIGTERM
  *
- * Handle the signal @a sig sent to me. For the time being
- * only SIGTERM is handled.
+ * Process a pending SIGTERM
  *
- * @param sig Signal to handle.
+ * @param fd File-selector providing info on signal
  *
- * @return No return value.
+ * @param info Dummy pointer to extra info (ignored)
+ *
+ * @return Always returns 0 (if at all)
  */
-static void sighandler(int sig)
+static int handleSIGTERM(int fd, void *info)
 {
-    switch(sig) {
-    case SIGTERM:
+    struct signalfd_siginfo sigInfo;
+
+    /* Ignore data available on fd */
+    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
+	fwarn(errno, "read()");
+    } else {
 	terminateJob();
-    default:
-	if (verbose) mlog("Got signal %s\n", strsignal(sig));
     }
+
+    return 0;
+}
+
+int initSignalFD(void)
+{
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGTERM);
+
+    if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
+	fwarn(errno, "sigprocmask()");
+	terminateJob();
+    }
+
+    int sigFD = signalfd(-1, &set, SFD_NONBLOCK | SFD_CLOEXEC);
+    if (sigFD < 0) {
+	fwarn(errno, "signalfd()");
+	terminateJob();
+    }
+
+    if (Selector_register(sigFD, handleSIGTERM, NULL) < 0) {
+	fwarn(errno, "Selector_register()");
+	terminateJob();
+    }
+
+    return sigFD;
 }
 
 /**
@@ -1038,9 +1069,6 @@ static void initKvsProvider(void)
     char tmp[100];
     snprintf(tmp, sizeof(tmp), "kvsprovider[%i]", getpid());
     initKVSLogger(tmp, stderr);
-
-    /* install sig handlers */
-    PSC_setSigHandler(SIGTERM, sighandler);
 
     /* set KVS debug mode */
     char *envstr = getenv("PMI_DEBUG");
@@ -1115,6 +1143,9 @@ static void initKvsProvider(void)
     }
 
     if (!Selector_isInitialized()) Selector_init(NULL);
+
+    /* install sig handler */
+    initSignalFD();
 
     daemonFD = PSI_getDaemonFD();
     if (daemonFD == -1) {
