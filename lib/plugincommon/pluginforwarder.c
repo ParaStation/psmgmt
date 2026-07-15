@@ -769,6 +769,9 @@ static void execPluginForwarder(PStask_t *task)
 	    if (fwData->cPid  < 0) {
 		pluginfwarn(errno, "fork()");
 		if (fwData->childRerun != FW_CHILD_INFINITE) exit(3);
+		/* controlFDs get useless without child */
+		close(controlFDs[0]);
+		close(controlFDs[1]);
 		/* retry forking after short pause */
 		if (fwData->rerunPause > 0) sleep(fwData->rerunPause);
 	    } else if (!fwData->cPid) {
