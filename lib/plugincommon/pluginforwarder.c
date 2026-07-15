@@ -181,7 +181,7 @@ static int handleMthrSock(int fd, void *info)
 	handleLocalShutdown(fw);
 	return 0;
     } else if (ret < 0) {
-	pluginwarn(errno, "%s: PSCio_recvMsg()", __func__);
+	pluginfwarn(errno, "PSCio_recvMsg()");
 	return 0;
     }
 
@@ -250,7 +250,7 @@ static int handleSignalFd(int fd, void *info)
 
     struct signalfd_siginfo sigInfo;
     if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
-	pluginwarn(errno, "%s: read()", __func__);
+	pluginfwarn(errno, "read()");
     }
 
     if (sigInfo.ssi_signo == SIGCHLD && (pid_t)sigInfo.ssi_pid == fw->cPid) {
@@ -348,11 +348,11 @@ static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
     PSID_blockSig(SIGCHLD, true);
     int signalFD = signalfd(-1, &mask, 0);
     if (signalFD == -1) {
-	pluginwarn(errno, "%s: signalfd()", __func__);
+	pluginfwarn(errno, "signalfd()");
 	return false;
     }
     if (Selector_register(signalFD, handleSignalFd, fw)) {
-	pluginwarn(errno, "%s: Selector_register(signalFD)", __func__);
+	pluginfwarn(errno, "Selector_register(signalFD)");
 	return false;
     }
 
@@ -403,14 +403,14 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
 	/* redirect stdout */
 	close(STDOUT_FILENO);
 	if (dup2(fw->stdOut[1], STDOUT_FILENO) == -1) {
-	    pluginwarn(errno, "%s: dup2(%i) failed :", __func__, fw->stdOut[1]);
+	    pluginfwarn(errno, "dup2(%i) failed", fw->stdOut[1]);
 	    exit(1);
 	}
 	close(fw->stdOut[0]);
 	/* redirect stderr */
 	close(STDERR_FILENO);
 	if (dup2(fw->stdErr[1], STDERR_FILENO) == -1) {
-	    pluginwarn(errno, "%s: dup2(%i) failed :", __func__, fw->stdErr[1]);
+	    pluginfwarn(errno, "dup2(%i) failed", fw->stdErr[1]);
 	    exit(1);
 	}
 	close(fw->stdErr[0]);
@@ -448,7 +448,7 @@ static void forwarderLoop(Forwarder_Data_t *fw)
     int timeout = (fw->cPid == -1) ? 1 : -1;
     while (!sigChild) {
 	if (Swait(timeout) < 0 && errno != EINTR) {
-	    pluginwarn(errno, "%s: Swait()", __func__);
+	    pluginfwarn(errno, "Swait()");
 	    killForwarderChild(fw, SIGKILL, "Swait() error", true);
 	    break;
 	}
@@ -661,12 +661,12 @@ static bool openOEpipes(Forwarder_Data_t *fw)
 
     /* stdout */
     if (pipe(fw->stdOut) == -1) {
-	pluginwarn(errno, "%s: pipe(stdout) for job %s", __func__, fw->jobID);
+	pluginfwarn(errno, "pipe(stdout) for job %s", fw->jobID);
 	return false;
     }
     /* stderr */
     if (pipe(fw->stdErr) == -1) {
-	pluginwarn(errno, "%s: pipe(stderr) for job %s", __func__, fw->jobID);
+	pluginfwarn(errno, "pipe(stderr) for job %s", fw->jobID);
 	return false;
     }
     return true;
@@ -757,7 +757,7 @@ static void execPluginForwarder(PStask_t *task)
 	    /* open control fds */
 	    int controlFDs[2];
 	    if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlFDs) < 0) {
-		pluginwarn(errno, "%s: socketpair(controlFDs)", __func__);
+		pluginfwarn(errno, "socketpair(controlFDs)");
 		break;
 	    }
 
@@ -767,7 +767,7 @@ static void execPluginForwarder(PStask_t *task)
 	    /* fork child */
 	    fwData->cPid = fork();
 	    if (fwData->cPid  < 0) {
-		pluginwarn(errno, "%s: fork()", __func__);
+		pluginfwarn(errno, "fork()");
 		if (fwData->childRerun != FW_CHILD_INFINITE) exit(3);
 		/* retry forking after short pause */
 		if (fwData->rerunPause > 0) sleep(fwData->rerunPause);
@@ -811,7 +811,7 @@ static void execPluginForwarder(PStask_t *task)
 	if (fwData->childFunc && fwData->cPid > 0) {
 	    int childStatus, res = wait4(fwData->cPid, &childStatus, 0, &rusage);
 	    if (res == -1) {
-		pluginwarn(errno, "%s: wait4(%d)", __func__, fwData->cPid);
+		pluginfwarn(errno, "wait4(%d)", fwData->cPid);
 		childStatus = 1;
 	    } else if (fwData->accounted) {
 		sendAccInfo(fwData, childStatus, &rusage);

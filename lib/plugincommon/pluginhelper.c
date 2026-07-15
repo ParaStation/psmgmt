@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -50,7 +50,7 @@ bool removeDir(char *directory, bool root)
 
     DIR *dir = opendir(directory);
     if (!dir) {
-	pluginwarn(errno, "%s: opendir(%s):", __func__, directory);
+	pluginfwarn(errno, "opendir(%s):", directory);
 	return false;
     }
 
@@ -84,12 +84,12 @@ static bool doCreateDir(const char *dir, mode_t mode, uid_t uid, gid_t gid)
     if (!stat(dir, &sbuf)) return true;
 
     if (mkdir(dir, mode) == -1) {
-	pluginwarn(errno, "%s: mkdir (%s)", __func__, dir);
+	pluginfwarn(errno, "mkdir (%s)", dir);
 	return false;
     }
 
     if (chown(dir, uid, gid) == -1) {
-	pluginwarn(errno, "%s: chown(%s)", __func__, dir);
+	pluginfwarn(errno, "chown(%s)", dir);
 	return false;
     }
 
@@ -321,7 +321,7 @@ bool switchUser(char *username, uid_t uid, gid_t gid)
     if (!username) {
 	struct passwd *pws = getpwuid(uid); // @todo use PSC_getpwuid()?
 	if (!pws) {
-	    pluginwarn(errno, "%s: getpwuid(%d)", __func__, uid);
+	    pluginfwarn(errno, "getpwuid(%d)", uid);
 	    return false;
 	}
 	username = pws->pw_name;
@@ -329,31 +329,31 @@ bool switchUser(char *username, uid_t uid, gid_t gid)
 
     /* drop current supplementary groups */
     if (setgroups(0, NULL) == -1) {
-	pluginwarn(errno, "%s: setgroups(0)", __func__);
+	pluginfwarn(errno, "setgroups(0)");
 	return false;
     }
 
     /* set supplementary groups */
     if (initgroups(username, gid) < 0) {
-	pluginwarn(errno, "%s: initgroups()", __func__);
+	pluginfwarn(errno, "initgroups()");
 	return false;
     }
 
     /* change the GID */
     if (setgid(gid) < 0) {
-	pluginwarn(errno, "%s: setgid(%i)", __func__, gid);
+	pluginfwarn(errno, "setgid(%i)", gid);
 	return false;
     }
 
     /* change the UID */
     if (setuid(uid) < 0) {
-	pluginwarn(errno, "%s: setuid(%i)", __func__, uid);
+	pluginfwarn(errno, "setuid(%i)", uid);
 	return false;
     }
 
     /* re-enable capability to create core-dumps */
     if (prctl(PR_SET_DUMPABLE, 1) == -1) {
-	pluginwarn(errno, "%s: prctl()", __func__);
+	pluginfwarn(errno, "prctl()");
 	return false;
     }
 
@@ -364,7 +364,7 @@ bool switchCwd(char *cwd)
 {
     /* change to job working directory */
     if (cwd && chdir(cwd) == -1) {
-	pluginwarn(errno, "%s: chdir(%s)", __func__, cwd);
+	pluginfwarn(errno, "chdir(%s)", cwd);
 	return false;
     }
 
@@ -402,13 +402,13 @@ char *mmapFile(const char *filename, size_t *size)
 
     int fd = open(filename, O_RDONLY | O_CLOEXEC);
     if (fd == -1) {
-	pluginwarn(errno, "%s: open(%s)" , __func__, filename);
+	pluginfwarn(errno, "open(%s)", filename);
 	return NULL;
     }
 
     struct stat sbuf;
     if (stat(filename, &sbuf) == -1) {
-	pluginwarn(errno, "%s: stat(%s)" , __func__, filename);
+	pluginfwarn(errno, "stat(%s)", filename);
 	close(fd);
 	return NULL;
     }
@@ -418,7 +418,7 @@ char *mmapFile(const char *filename, size_t *size)
     close(fd);
 
     if (data == MAP_FAILED) {
-	pluginwarn(errno, "%s: mmap(%s)" , __func__, filename);
+	pluginfwarn(errno, "mmap(%s)", filename);
 	return NULL;
     }
 
@@ -443,7 +443,7 @@ bool writeFile(const char *name, const char *dir, const void *data, size_t len)
 
     FILE *fp = fopen(path, "w+");
     if (!fp) {
-	pluginwarn(errno, "%s: fopen(%s)", __func__, path);
+	pluginfwarn(errno, "fopen(%s)", path);
 	return false;
     }
 

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -91,7 +91,7 @@ bool pty_make_controlling_tty(int *ttyfd, const char *tty)
     void *oldCONT = PSC_setSigHandler(SIGCONT, SIG_IGN);
     void *oldHUP = PSC_setSigHandler(SIGHUP, SIG_IGN);
     if (vhangup() < 0) {
-	pluginwarn(errno, "vhangup()");
+	pluginfwarn(errno, "vhangup()");
 	return false;
     }
     PSC_setSigHandler(SIGCONT, oldCONT);

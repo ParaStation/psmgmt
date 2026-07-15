@@ -190,12 +190,12 @@ static void execChild(Script_Data_t *script)
     if (script->prepEnv) script->prepEnv(script->info);
 
     if (script->cwd && chdir(script->cwd) != 0) {
-	pluginwarn(errno, "chdir(%s)", script->cwd);
+	pluginfwarn(errno, "chdir(%s)", script->cwd);
 	exit(1);
     }
 
     if (access(strvGet(script->argV, 0), R_OK | X_OK) < 0) {
-	pluginwarn(errno, "access(%s)", strvGet(script->argV, 0));
+	pluginfwarn(errno, "access(%s)", strvGet(script->argV, 0));
 	exit(1);
     }
 
@@ -214,7 +214,7 @@ static void execChild(Script_Data_t *script)
     execv(argvP[0], argvP);
 
     reOpenSyslog("psid-plugin-script", &pluginlogger);
-    pluginwarn(errno, "execv(%s) failed", argvP[0]);
+    pluginfwarn(errno, "execv(%s) failed", argvP[0]);
     exit(1);
 }
 
@@ -370,13 +370,13 @@ int Script_exec(Script_Data_t *script)
     int iofds[2];
     bool handleOutput = script->cbOutput;
     if (handleOutput && pipe(iofds) < 0) {
-	pluginwarn(errno, "pipe()");
+	pluginfwarn(errno, "pipe()");
 	return -1;
     }
 
     pid_t pid = fork();
     if (pid < 0) {
-	pluginwarn(errno, "fork()");
+	pluginfwarn(errno, "fork()");
 	if (handleOutput) {
 	    close(iofds[0]);
 	    close(iofds[1]);
