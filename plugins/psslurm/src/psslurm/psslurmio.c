@@ -681,18 +681,20 @@ static char *addCwd(char *cwd, char *path)
 void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
 {
     /* stdout */
+    close(fwdata->stdOut[0]);
     if (dup2(fwdata->stdOut[1], STDOUT_FILENO) == -1) {
 	fwarn(errno, "dup2(%i)", fwdata->stdOut[1]);
 	exit(1);
     }
-    close(fwdata->stdOut[0]);
+    close(fwdata->stdOut[1]);
 
     /* stderr */
+    close(fwdata->stdErr[0]);
     if (dup2(fwdata->stdErr[1], STDERR_FILENO) == -1) {
 	fwarn(errno, "dup2(%i)", fwdata->stdErr[1]);
 	exit(1);
     }
-    close(fwdata->stdErr[0]);
+    close(fwdata->stdErr[1]);
 
     /* stdin */
     int fd = open(job->stdIn, O_RDONLY);
@@ -704,6 +706,7 @@ void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
 	fwarn(errno, "dup2(%i) '%s' failed", fd, job->stdIn);
 	exit(1);
     }
+    close(fd);
 }
 
 int IO_redirectRank(Step_t *step, int rank)
@@ -722,6 +725,7 @@ int IO_redirectRank(Step_t *step, int rank)
 	    fwarn(errno, "dup2(%u) failed", fd);
 	    return 0;
 	}
+	close(fd);
     } else if (step->taskFlags & LAUNCH_PTY && rank >0) {
 	int fd = open("/dev/null", O_RDONLY);
 	if (fd == -1) {
@@ -729,6 +733,7 @@ int IO_redirectRank(Step_t *step, int rank)
 	    return 0;
 	}
 	dup2(fd, STDIN_FILENO);
+	close(fd);
     }
 
     return 1;

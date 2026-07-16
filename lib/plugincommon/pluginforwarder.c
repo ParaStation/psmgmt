@@ -404,11 +404,13 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
 	    pluginfwarn(errno, "dup2(%i) failed", fw->stdOut[1]);
 	    exit(1);
 	}
+	close(fw->stdOut[1]);
 	/* redirect stderr */
 	if (dup2(fw->stdErr[1], STDERR_FILENO) == -1) {
 	    pluginfwarn(errno, "dup2(%i) failed", fw->stdErr[1]);
 	    exit(1);
 	}
+	close(fw->stdErr[1]);
     }
 
     /* restore signal handler */

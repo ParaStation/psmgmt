@@ -947,6 +947,7 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	    fwarn(errno, "dup2(%u/stdin)", fwdata->stdOut[0]);
 	    exit(1);
 	}
+	// @todo do we need to close(fwdata->stdOut[0]) here? Or does this do harm?
     } else {
 	if (dup2(fwdata->stdOut[1], STDOUT_FILENO) == -1) {
 	    fwarn(errno, "dup2(%u/stdout)", fwdata->stdOut[0]);
