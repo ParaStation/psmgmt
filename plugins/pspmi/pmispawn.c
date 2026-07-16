@@ -55,7 +55,7 @@ static int setupPMISock(void)
 
     if (sock < 0) {
 	int eno = errno;
-	mwarn(eno, "%s: create PMI socket failed", __func__);
+	fwarn(eno, "create PMI socket failed");
 	errno = eno;
 	return -1;
     }
@@ -69,7 +69,7 @@ static int setupPMISock(void)
     res = bind(sock, (struct sockaddr *)&saClient, sizeof(saClient));
     if (res == -1) {
 	int eno = errno;
-	mwarn(errno, "%s: binding PMIsock failed", __func__);
+	fwarn(eno, "binding PMIsock failed");
 	errno = eno;
 	return -1;
     }
@@ -78,7 +78,7 @@ static int setupPMISock(void)
     res = listen(sock, 5);
     if (res == -1) {
 	int eno = errno;
-	mwarn(eno, "%s: listen on PMIsock failed", __func__);
+	fwarn(eno, "listen on PMIsock failed");
 	errno = eno;
 	return -1;
     }
@@ -104,7 +104,7 @@ static void setPMI_PORT(int PMISock, char *cPMI_PORT, int size )
 
     /* get the PMI port */
     if (getsockname(PMISock,(struct sockaddr*)&addr,&len) == -1) {
-	mwarn(errno, "%s: getsockname(pmisock)", __func__);
+	fwarn(errno, "getsockname(pmisock)");
 	exit(1);
     }
 
@@ -140,8 +140,7 @@ static void preparePMI(void)
 
     /* only one option is allowed */
     if (pmiEnableSockp && pmiEnableTcp) {
-	mwarn(EINVAL,
-		  "%s: only one type of PMI connection allowed", __func__);
+	fwarn(EINVAL, "only one type of PMI connection allowed");
 	pmiType = PMI_FAILED;
 	return;
     }
@@ -156,7 +155,7 @@ static void preparePMI(void)
 
 	forwarderSock = setupPMISock();
 	if (forwarderSock < 0) {
-	    mwarn(errno, "%s: create PMI/TCP socket failed", __func__);
+	    fwarn(errno, "create PMI/TCP socket failed");
 	    pmiType = PMI_FAILED;
 	    return;
 	}
@@ -172,7 +171,7 @@ static void preparePMI(void)
 	char cPMI_FD[50];
 
 	if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
-	    mwarn(errno, "%s: socketpair()", __func__);
+	    fwarn(errno, "socketpair()");
 	    pmiType = PMI_FAILED;
 	    return;
 	}
@@ -190,7 +189,7 @@ static void setupKVSProviderComm(void)
 
     /* setup communication between psidforwarder and KVS provider */
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, kvsProviderFDs) < 0) {
-	mwarn(errno, "%s: socketpair()", __func__);
+	fwarn(errno, "socketpair()");
 	return;
     }
 
@@ -198,7 +197,7 @@ static void setupKVSProviderComm(void)
     setKVSProviderSock(kvsProviderFDs[0]);
 
     /* pass information on the other side to the KVS provider */
-    mlog("%s: kvsprovider socket %i\n", __func__, kvsProviderFDs[1]);
+    flog("kvsprovider socket %i\n", kvsProviderFDs[1]);
     snprintf(env, sizeof(env), "%d", kvsProviderFDs[1]);
     setenv("__PMI_PROVIDER_FD", env, 1);
 }
