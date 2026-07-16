@@ -908,10 +908,6 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
     char *tty_name, *cols = NULL, *rows = NULL;
     struct winsize ws;
 
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
-    close(STDIN_FILENO);
-
     if (step->taskFlags & LAUNCH_PTY) {
 	/* setup PTY */
 	tty_name = ttyname(fwdata->stdOut[0]);

@@ -680,10 +680,6 @@ static char *addCwd(char *cwd, char *path)
 
 void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
 {
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
-    close(STDIN_FILENO);
-
     /* stdout */
     if (dup2(fwdata->stdOut[1], STDOUT_FILENO) == -1) {
 	fwarn(errno, "dup2(%i)", fwdata->stdOut[1]);
@@ -722,7 +718,6 @@ int IO_redirectRank(Step_t *step, int rank)
 	    fwarn(errno, "open(%s) failed", inFile);
 	    return 0;
 	}
-	close(STDIN_FILENO);
 	if (dup2(fd, STDIN_FILENO) == -1) {
 	    fwarn(errno, "dup2(%u) failed", fd);
 	    return 0;
@@ -733,7 +728,6 @@ int IO_redirectRank(Step_t *step, int rank)
 	    fwarn(errno, "open(/dev/null) failed");
 	    return 0;
 	}
-	close(STDIN_FILENO);
 	dup2(fd, STDIN_FILENO);
     }
 
