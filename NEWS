@@ -6,6 +6,15 @@ Copyright (C) 2021-2026 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.8.2:
+==============
+Bugfixes:
+ - close kvsprovider socket (#362)
+ - fix use after free introduce in ddc8a2794
+Enhancements:
+ - use signalfd to handle SIGTERM in kvsprovider
+
+
 Version 6.8.1:
 ==============
 Bugfixes:
