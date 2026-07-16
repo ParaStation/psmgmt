@@ -26,13 +26,17 @@
 #include "pmiclient.h"
 #include "pmilog.h"
 
-/** the socket connecting the PMI client with the forwarder */
-static int forwarderSock = -1;
+/**
+ * socket(pair) connecting the PMI client to its psid forwarder;
+ * 0 is psidforwarder's side, 1 is client's side (if PMI_OVER_UNIX)
+ * 0 might be a TCP socket to listen on in case of PMI_OVER_TCP
+ */
+static int clientFDs[2] = {-1, -1};
 
 /** the type of the PMI connection */
 static PMItype_t pmiType = PMI_DISABLED;
 
-/*
+/**
  * socketpair connecting the KVS provider to its psidforwarder
  * 0 is psidforwarder's side, 1 is KVS provider's side
  */
@@ -103,7 +107,7 @@ static void setPMI_PORT(int PMISock, char *cPMI_PORT, int size )
     socklen_t len = sizeof(addr);
 
     /* get the PMI port */
-    if (getsockname(PMISock,(struct sockaddr*)&addr,&len) == -1) {
+    if (getsockname(PMISock, (struct sockaddr*)&addr, &len) == -1) {
 	fwarn(errno, "getsockname(pmisock)");
 	exit(1);
     }
@@ -153,32 +157,29 @@ static void preparePMI(void)
     if (pmiEnableTcp) {
 	char cPMI_PORT[50];
 
-	forwarderSock = setupPMISock();
-	if (forwarderSock < 0) {
+	clientFDs[0] = setupPMISock();
+	if (clientFDs[0] < 0) {
 	    fwarn(errno, "create PMI/TCP socket failed");
 	    pmiType = PMI_FAILED;
 	    return;
 	}
 	pmiType = PMI_OVER_TCP;
 
-	setPMI_PORT(forwarderSock, cPMI_PORT, sizeof(cPMI_PORT));
+	setPMI_PORT(clientFDs[0], cPMI_PORT, sizeof(cPMI_PORT));
 	setenv("PMI_PORT", cPMI_PORT, 1);
     }
 
     /* create a socketpair for comm. between the PMI client and forwarder */
     if (pmiEnableSockp) {
-	int socketfds[2];
-	char cPMI_FD[50];
-
-	if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
+	if (socketpair(PF_UNIX, SOCK_STREAM, 0, clientFDs) < 0) {
 	    fwarn(errno, "socketpair()");
 	    pmiType = PMI_FAILED;
 	    return;
 	}
-	forwarderSock = socketfds[1];
 	pmiType = PMI_OVER_UNIX;
 
-	snprintf(cPMI_FD, sizeof(cPMI_FD), "%d", socketfds[0]);
+	char cPMI_FD[50];
+	snprintf(cPMI_FD, sizeof(cPMI_FD), "%d", clientFDs[1]);
 	setenv("PMI_FD", cPMI_FD, 1);
     }
 }
@@ -222,7 +223,7 @@ static int handleForwarderSpawn(void *data)
 	preparePMI();
 	if (pmiType == PMI_FAILED) return -1;
 
-	setConnectionInfo(pmiType, forwarderSock);
+	setConnectionInfo(pmiType, clientFDs[0]);
     } else if (task->group == TG_KVS) {
 	setupKVSProviderComm();
     }
@@ -252,9 +253,9 @@ static int handleClientSpawn(void *data)
     if (task->group == TG_ANY) {
 	char *env = getenv("__PMI_preput_num");
 
-	/* close the forwarder socket in the client process */
+	/* close forwarder's side of the socketpair in the client process */
 	if (pmiType == PMI_OVER_UNIX
-	    || pmiType == PMI_OVER_TCP) close(forwarderSock);
+	    || pmiType == PMI_OVER_TCP) close(clientFDs[0]);
 
 	unsetenv("__KVS_PROVIDER_TID");
 	unsetenv("__PMI_PROCESS_MAPPING");
@@ -292,6 +293,9 @@ static int handleForwarderSetup(void *data)
 {
     /* close KVS provider's side of the socketpair in the forwarder */
     if (kvsProviderFDs[1] != -1) close(kvsProviderFDs[1]);
+
+    /* close PMI client's side of the socketpair in the forwarder */
+    if (pmiType == PMI_OVER_UNIX) close(clientFDs[1]);
 
     return 0;
 }
