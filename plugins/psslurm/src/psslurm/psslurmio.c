@@ -721,7 +721,7 @@ bool IO_redirectRank(Step_t *step, int rank)
 	    return false;
 	}
 	if (dup2(fd, STDIN_FILENO) == -1) {
-	    fwarn(errno, "dup2(%u) failed", fd);
+	    fwarn(errno, "dup2(%s, stdin) failed", inFile);
 	    return false;
 	}
 	close(fd);
@@ -731,7 +731,10 @@ bool IO_redirectRank(Step_t *step, int rank)
 	    fwarn(errno, "open(/dev/null) failed");
 	    return false;
 	}
-	dup2(fd, STDIN_FILENO);
+	if (dup2(fd, STDIN_FILENO) == -1) {
+	    fwarn(errno, "dup2(/dev/null, stdin) failed");
+	    return false;
+	}
 	close(fd);
     }
 

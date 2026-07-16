@@ -664,6 +664,7 @@ static bool openOEpipes(Forwarder_Data_t *fw)
     /* stderr */
     if (pipe(fw->stdErr) == -1) {
 	pluginfwarn(errno, "pipe(stderr) for job %s", fw->jobID);
+	// no need to cleanup fw->stdOut file descriptors, we exit() anyhow */
 	return false;
     }
     return true;
