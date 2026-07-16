@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,8 +32,11 @@ static int forwarderSock = -1;
 /** the type of the PMI connection */
 static PMItype_t pmiType = PMI_DISABLED;
 
-/* socket connecting the KVS provider's forwarder to the provider */
-static int kvsProviderSock = -1;
+/*
+ * socketpair connecting the KVS provider to its psidforwarder
+ * 0 is psidforwarder's side, 1 is KVS provider's side
+ */
+static int kvsProviderFDs[2] = {-1, -1};
 
 /**
  * @brief Set up a new PMI TCP socket and start listening for new connections.
@@ -183,22 +186,20 @@ static void preparePMI(void)
 
 static void setupKVSProviderComm(void)
 {
-    int socketfds[2];
     char env[50];
 
     /* setup communication between psidforwarder and KVS provider */
-    if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, kvsProviderFDs) < 0) {
 	mwarn(errno, "%s: socketpair()", __func__);
 	return;
     }
 
-    /* forwarder's side */
-    kvsProviderSock = socketfds[0];
-    /* also pass info into the client module for control there */
-    setKVSProviderSock(kvsProviderSock);
+    /* pass forwarder's side info into the client module for control there */
+    setKVSProviderSock(kvsProviderFDs[0]);
 
     /* pass information on the other side to the KVS provider */
-    snprintf(env, sizeof(env), "%d", socketfds[1]);
+    mlog("%s: kvsprovider socket %i\n", __func__, kvsProviderFDs[1]);
+    snprintf(env, sizeof(env), "%d", kvsProviderFDs[1]);
     setenv("__PMI_PROVIDER_FD", env, 1);
 }
 
@@ -274,9 +275,24 @@ static int handleClientSpawn(void *data)
 	    unsetenv("__PMI_preput_num");
 	}
     } else if (task->group == TG_KVS) {
-	/* close forwarder's side of the socketpair */
-	close(kvsProviderSock);
+	/* close forwarder's side of the socketpair in the KVS provider */
+	close(kvsProviderFDs[0]);
     }
+
+    return 0;
+}
+
+/**
+ * @brief Finalize setup of forwarder after child has been forked
+ *
+ * @param data Holding child's task structure (ignored)
+ *
+ * @return Always returns 0
+ */
+static int handleForwarderSetup(void *data)
+{
+    /* close KVS provider's side of the socketpair in the forwarder */
+    if (kvsProviderFDs[1] != -1) close(kvsProviderFDs[1]);
 
     return 0;
 }
@@ -285,10 +301,12 @@ void initSpawn(void)
 {
     PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, handleForwarderSpawn);
     PSIDhook_add(PSIDHOOK_EXEC_CLIENT, handleClientSpawn);
+    PSIDhook_add(PSIDHOOK_FRWRD_SETUP, handleForwarderSetup);
 }
 
 void finalizeSpawn(void)
 {
     PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, handleForwarderSpawn);
     PSIDhook_del(PSIDHOOK_EXEC_CLIENT, handleClientSpawn);
+    PSIDhook_del(PSIDHOOK_FRWRD_SETUP, handleForwarderSetup);
 }

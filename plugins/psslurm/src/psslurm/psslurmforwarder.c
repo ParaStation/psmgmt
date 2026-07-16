@@ -175,8 +175,11 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     if (pluginShutdown) {
 	/* shutdown in progress, hence we skip the epilogue */
+	Head_ID_t hID = alloc->hID;
+	/* important: delete allocation before sending epilogue
+	 * complete RPC (jwt:#23342) */
 	Alloc_delete(alloc);
-	sendEpilogueComplete(&alloc->hID, SLURM_SUCCESS);
+	sendEpilogueComplete(&hID, SLURM_SUCCESS);
     } else if (alloc->terminate) {
 	/* run epilogue now */
 	flog("starting epilogue for allocation %u\n", alloc->hID.jobid);
@@ -2194,8 +2197,11 @@ static void epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
 	 exit_status, fwdata->chldExitStatus);
 
     if (alloc->terminate) {
+	/* important: delete allocation before sending epilogue
+	 * complete RPC (jwt:#23342) */
+	Head_ID_t hID = alloc->hID;
 	Alloc_delete(alloc);
-	sendEpilogueComplete(&alloc->hID, SLURM_SUCCESS);
+	sendEpilogueComplete(&hID, SLURM_SUCCESS);
     }
 }
 
