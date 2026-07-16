@@ -11,6 +11,7 @@
 #ifndef __PS_SLURM_IO
 #define __PS_SLURM_IO
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -131,8 +132,10 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step);
  * @param step The step of the rank
  *
  * @param rank The rank to redirect
+ *
+ * @return Returns true on success otherwise false is returned
  */
-int IO_redirectRank(Step_t *step, int rank);
+bool IO_redirectRank(Step_t *step, int rank);
 
 /**
  * @brief Close an I/O channel
@@ -161,9 +164,9 @@ void IO_openStepPipes(Forwarder_Data_t *fwdata, Step_t *step);
  *
  * @param fwdata The forwarder structure of the job
  *
- * @return Returns 1 on success otherwise 0 is returned
+ * @return Returns true on success otherwise false is returned
  */
-int IO_openJobPipes(Forwarder_Data_t *fwdata);
+bool IO_openJobPipes(Forwarder_Data_t *fwdata);
 
 /**
  * @brief Replace patterns in I/O files of job

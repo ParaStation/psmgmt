@@ -13,7 +13,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -709,7 +708,7 @@ void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
     close(fd);
 }
 
-int IO_redirectRank(Step_t *step, int rank)
+bool IO_redirectRank(Step_t *step, int rank)
 {
     /* redirect stdin */
     if (step->stdInOpt == IO_RANK_FILE) {
@@ -719,34 +718,34 @@ int IO_redirectRank(Step_t *step, int rank)
 	int fd = open(inFile, O_RDONLY);
 	if (fd == -1) {
 	    fwarn(errno, "open(%s) failed", inFile);
-	    return 0;
+	    return false;
 	}
 	if (dup2(fd, STDIN_FILENO) == -1) {
 	    fwarn(errno, "dup2(%u) failed", fd);
-	    return 0;
+	    return false;
 	}
 	close(fd);
     } else if (step->taskFlags & LAUNCH_PTY && rank >0) {
 	int fd = open("/dev/null", O_RDONLY);
 	if (fd == -1) {
 	    fwarn(errno, "open(/dev/null) failed");
-	    return 0;
+	    return false;
 	}
 	dup2(fd, STDIN_FILENO);
 	close(fd);
     }
 
-    return 1;
+    return true;
 }
 
-int IO_openJobPipes(Forwarder_Data_t *fwdata)
+bool IO_openJobPipes(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
 
     /* stdout */
     if (pipe(fwdata->stdOut) == -1) {
 	fwarn(errno, "open stdout pipe for job %u failed", job->hID.jobid);
-	return 0;
+	return false;
     }
     fdbg(PSSLURM_LOG_IO, "stdout pipe %i:%i for job %u\n", fwdata->stdOut[0],
 	 fwdata->stdOut[1], job->hID.jobid);
@@ -754,12 +753,12 @@ int IO_openJobPipes(Forwarder_Data_t *fwdata)
     /* stderr */
     if (pipe(fwdata->stdErr) == -1) {
 	fwarn(errno, "create stderr pipe for job %u failed", job->hID.jobid);
-	return 0;
+	return false;
     }
     fdbg(PSSLURM_LOG_IO, "stderr pipe %i:%i for job %u\n", fwdata->stdErr[0],
 	 fwdata->stdErr[1], job->hID.jobid);
 
-    return 1;
+    return true;
 }
 
 void IO_openStepPipes(Forwarder_Data_t *fwdata, Step_t *step)
