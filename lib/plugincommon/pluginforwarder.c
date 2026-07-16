@@ -394,8 +394,7 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
     long maxFD = sysconf(_SC_OPEN_MAX);
     for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) {
 	if (fd == fw->stdIn[0] || fd == fw->stdIn[1]
-	    || fd == fw->stdOut[0] || fd == fw->stdOut[1]
-	    || fd == fw->stdErr[0] || fd == fw->stdErr[1] ) continue;
+	    || fd == fw->stdOut[1] || fd == fw->stdErr[1] ) continue;
 	close(fd);
     }
 
@@ -405,13 +404,11 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
 	    pluginfwarn(errno, "dup2(%i) failed", fw->stdOut[1]);
 	    exit(1);
 	}
-	close(fw->stdOut[0]);
 	/* redirect stderr */
 	if (dup2(fw->stdErr[1], STDERR_FILENO) == -1) {
 	    pluginfwarn(errno, "dup2(%i) failed", fw->stdErr[1]);
 	    exit(1);
 	}
-	close(fw->stdErr[0]);
     }
 
     /* restore signal handler */
