@@ -763,6 +763,10 @@ char *set(char *key, char *value)
 		psMungeMeasure(active);
 	    } else if (!strcmp(key, "MEASURE_RPC")) {
 		measureRPC = getConfValueI(Config, "MEASURE_RPC");
+	    } else if (!strcmp(key, "DEFAULT_CPU_BIND_TYPE")
+		    || !strcmp(key, "DEFAULT_SOCKET_DIST")
+		    || !strcmp(key, "DEFAULT_CORE_DIST")) {
+		initPinning();
 	    }
 	}
     } else if (!strcmp(key, "CLEAR_CONF_CACHE")) {

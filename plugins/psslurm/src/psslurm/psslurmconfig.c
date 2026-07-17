@@ -258,17 +258,20 @@ const ConfDef_t confDef[] =
 	"string",
 	"threads",
 	"Default cpu-bind type used for pinning"
-	    " (none|rank|threads|cores|sockets)" },
+	    " (none|rank|threads|cores|sockets)"
+	    " - Don't change during ongoing job startups" },
     { "DEFAULT_SOCKET_DIST", 0,
 	"string",
 	"cyclic",
 	"Default to use as distribution over sockets"
-	    " (cyclic|block|fcyclic)" },
+	    " (cyclic|block|fcyclic)"
+	    " - Don't change during ongoing job startups" },
     { "DEFAULT_CORE_DIST", 0,
 	"string",
 	"inherit",
 	"Default to use as distribution over sockets"
-	    " (inherit|block|cyclic|fcyclic)" },
+	    " (inherit|block|cyclic|fcyclic)"
+	    " - Don't change during ongoing job startups" },
     { "DIRECT_DRAIN", 0,
 	"bool",
 	"0",
