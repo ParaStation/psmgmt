@@ -51,6 +51,7 @@
 static cpu_bind_type_t defaultCPUbindType = 0;
 static task_dist_states_t defaultSocketDist = 0;
 static task_dist_states_t defaultCoreDist = 0;
+static bool spreadGPUsFirst = true;
 
 typedef struct {
     bool compute_bound;
@@ -1500,6 +1501,9 @@ bool initPinning(void)
     fdbg(PSSLURM_LOG_PART, "Using default distribution on cores: '%s'\n",
 	    dist);
 
+    /* return -1 if not set, so true is the default */
+    spreadGPUsFirst = getConfValueI(Config, "SPREAD_GPUS_FIRST");
+
     return true;
 }
 
@@ -1834,6 +1838,29 @@ static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
 		     lTID);
 		continue;
 	    }
+	    if (spreadGPUsFirst && used[lstUsedGPU] && use_closest[lTID]) {
+		/* GPUs should be spread first and there are no more closest
+		 * GPUs left, so first look for others left */
+		if (lTID == localRankId) {
+		    uprintf("Warning: All GPUs closest to local task %u already"
+			    " assigned, so using arbitrary GPUs. GPU pinning"
+			    " will propably be suboptimal.\n", lTID);
+		}
+
+		/* switch from closest to any (see above) */
+		use_closest[lTID] = false;
+		PSCPU_copy(useGPUs[lTID], assGPUs);
+		PSCPU_remCPUs(useGPUs[lTID], gpus[lTID]);
+
+		/* find least used GPU in wider range */
+		lstUsedGPU = getMinimumIndex(used, useGPUs[lTID], numNodeGPUs);
+		if (lstUsedGPU == UINT16_MAX) {
+		    flog("UNEXPECTED: failed to find minimum in useGPUs[%u]\n",
+			 lTID);
+		    continue;
+		}
+	    }
+
 	    fdbg(PSSLURM_LOG_PART, "Select least used of %s GPU for"
 		 " local task %u: %hu\n",
 		 use_closest[lTID] ? "closest" : "any", lTID, lstUsedGPU);

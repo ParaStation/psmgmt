@@ -765,7 +765,8 @@ char *set(char *key, char *value)
 		measureRPC = getConfValueI(Config, "MEASURE_RPC");
 	    } else if (!strcmp(key, "DEFAULT_CPU_BIND_TYPE")
 		    || !strcmp(key, "DEFAULT_SOCKET_DIST")
-		    || !strcmp(key, "DEFAULT_CORE_DIST")) {
+		    || !strcmp(key, "DEFAULT_CORE_DIST")
+		    || !strcmp(key, "SPREAD_GPUS_FIRST")) {
 		initPinning();
 	    }
 	}

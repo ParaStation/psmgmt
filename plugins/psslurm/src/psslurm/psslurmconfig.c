@@ -272,6 +272,11 @@ const ConfDef_t confDef[] =
 	"Default to use as distribution over sockets"
 	    " (inherit|block|cyclic|fcyclic)"
 	    " - Don't change during ongoing job startups" },
+    { "SPREAD_GPUS_FIRST", 1,
+	"bool",
+	"1",
+	"If true spreading GPUs will take precedence over assigning closest"
+	    " - Don't change during ongoing job startups" },
     { "DIRECT_DRAIN", 0,
 	"bool",
 	"0",
