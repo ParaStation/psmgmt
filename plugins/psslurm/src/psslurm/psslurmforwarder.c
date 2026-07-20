@@ -63,7 +63,9 @@
 #include "peloguehandles.h"
 #include "psaccounthandles.h"
 #include "pspmihandles.h"
+#ifdef HAVE_PMIX
 #include "pspmixhandles.h"
+#endif
 
 #include "psslurm.h"
 #include "psslurmcomm.h"
@@ -583,8 +585,10 @@ int handleForwarderInit(void *data)
     /* override spawn task filling function in pspmi */
     psPmiSetFillSpawnTaskFunction(fillSpawnTaskWithSrun);
 
+#ifdef HAVE_PMIX
     /* override spawn task filling function in pspmix */
     psPmixSetFillSpawnTaskFunction(fillSpawnTaskWithSrun);
+#endif
 
     return 0;
 }
@@ -1029,7 +1033,9 @@ strv_t buildStartArgv(Forwarder_Data_t *fwData, pmi_type_t pmiType)
 	    strvAdd(argV, "--pmidisable");
 	    break;
 	case PMI_TYPE_PMIX:
+#ifdef HAVE_PMIX
 	    strvAdd(argV, "--pmix");
+#endif
 	    break;
 	case PMI_TYPE_DEFAULT:
 	default:

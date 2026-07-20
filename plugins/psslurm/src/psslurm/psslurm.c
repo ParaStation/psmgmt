@@ -46,7 +46,9 @@
 #include "psmungehandles.h"
 #include "pspamhandles.h"
 #include "pspmihandles.h"
+#ifdef HAVE_PMIX
 #include "pspmixhandles.h"
+#endif
 
 #include "psslurmalloc.h"
 #include "psslurmauth.h"
@@ -108,7 +110,9 @@ plugin_dep_t dependencies[] = {
     { .name = "pspam", .version = 3 },
     { .name = "psexec", .version = 2 },
     { .name = "pspmi", .version = 4 },
+#ifdef HAVE_PMIX
     { .name = "pspmix", .version = 3 },
+#endif
     { .name = "nodeinfo", .version = 1 },
     { .name = "jail", .version = 3 },
     { .name = NULL, .version = 0 } };
@@ -357,6 +361,7 @@ static bool regPsPMIHandles(void)
     return true;
 }
 
+#ifdef HAVE_PMIX
 static bool regPsPMIxHandles(void)
 {
     void *pluginHandle = PSIDplugin_getHandle("pspmix");
@@ -370,6 +375,7 @@ static bool regPsPMIxHandles(void)
 
     return true;
 }
+#endif
 
 static bool regJailHandles(void)
 {
@@ -426,8 +432,10 @@ static bool initPluginHandles(void)
     /* get pspmi function handles */
     if (!regPsPMIHandles()) return false;
 
+#ifdef HAVE_PMIX
     /* get pspmix function handles */
     if (!regPsPMIxHandles()) return false;
+#endif
 
     /* get jail function handles */
     if (!regJailHandles()) return false;

@@ -1311,7 +1311,9 @@ pmi_type_t getPMIType(Step_t *step)
 
     flog("%s PSSLURM_PMI_TYPE set to '%s'\n", Step_strID(step), pmi);
     if (!strcmp(pmi, "none")) return PMI_TYPE_NONE;
+#ifdef HAVE_PMIX
     if (!strcmp(pmi, "pmix")) return PMI_TYPE_PMIX;
+#endif
 
     /* if PSSLURM_PMI_TYPE is set to anything else, use default */
     return PMI_TYPE_DEFAULT;
@@ -1325,7 +1327,9 @@ void setPMITypeEnv(pmi_type_t pmi_type)
 	    type = "none";
 	    break;
 	case PMI_TYPE_PMIX:
+#ifdef HAVE_PMIX
 	    type = "pmix";
+#endif
 	    break;
 	case PMI_TYPE_DEFAULT:
 	    break;
@@ -1381,7 +1385,6 @@ static bool userVarFilter(const char *envStr, void *info)
 	    || !strncmp(envStr, "__SPAWNER_SERVICE_RANK=", 23)
 	    || !strncmp(envStr, "PSPMIX_ENV_TMOUT=", 17)
 	    || !strncmp(envStr, "__PMIX_", 7))) return false;
-
     return true;
 }
 
