@@ -18,7 +18,7 @@
 # ParaStation
 #
 # Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021-2025 ParTec AG, Munich
+# Copyright (C) 2021-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -113,8 +113,9 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-@SPANK_ENABLED_TRUE@am__append_1 = -I$(top_srcdir)/$(psslurm_dir)/spank
-@SPANK_ENABLED_TRUE@am__append_2 = psslurmspank.h psslurmspank.c
+@BUILD_WITHOUT_PSPMIX_FALSE@am__append_1 = $(pmix_CFLAGS)
+@SPANK_ENABLED_TRUE@am__append_2 = -I$(top_srcdir)/$(psslurm_dir)/spank
+@SPANK_ENABLED_TRUE@am__append_3 = psslurmspank.h psslurmspank.c
 subdir = plugins/psslurm/src/psslurm
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -454,7 +455,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
 	-I$(top_srcdir)/$(pspam_dir) -I$(top_srcdir)/$(pamservice_dir) \
 	-I$(top_srcdir)/$(psexec_dir) -I$(top_srcdir)/$(pspmi_dir) \
 	-I$(top_srcdir)/$(pspmix_dir) -I$(top_srcdir)/$(jail_dir) \
-	$(am__append_1)
+	$(am__append_1) $(am__append_2)
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);
@@ -525,7 +526,7 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h \
 	psslurmnodeinfotype.h psslurmjobcred.c psslurmtopo.c \
 	psslurmtopo.h psslurmprototypes.c psslurmprototypes.h \
 	psslurmcontainer.c psslurmcontainer.h psslurmcontainertype.h \
-	$(am__append_2)
+	$(am__append_3)
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 	-DLOCALSTATEDIR=\"$(localstatedir)\"				\
 	-DPKGSYSCONFDIR=\"$(sysconfdir)/parastation\"			\
