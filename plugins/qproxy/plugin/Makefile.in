@@ -143,8 +143,7 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 qproxy_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
-am_qproxy_la_OBJECTS = qproxy_la-qproxy.lo qproxy_la-qproxyconfig.lo \
-	qproxy_la-qproxylog.lo
+am_qproxy_la_OBJECTS = qproxy.lo qproxyconfig.lo qproxylog.lo
 qproxy_la_OBJECTS = $(am_qproxy_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -165,9 +164,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/qproxy_la-qproxy.Plo \
-	./$(DEPDIR)/qproxy_la-qproxyconfig.Plo \
-	./$(DEPDIR)/qproxy_la-qproxylog.Plo
+am__depfiles_remade = ./$(DEPDIR)/qproxy.Plo \
+	./$(DEPDIR)/qproxyconfig.Plo ./$(DEPDIR)/qproxylog.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -419,7 +417,6 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 qproxy_la_SOURCES = qproxy.c qproxyconfig.c qproxyconfig.h	\
 	qproxylog.c qproxylog.h
 
-qproxy_la_CPPFLAGS = $(AM_CPPFLAGS)
 qproxy_la_LIBADD = $(libplugincommon) $(libpscommon)
 all: all-am
 
@@ -498,9 +495,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qproxy_la-qproxy.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qproxy_la-qproxyconfig.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qproxy_la-qproxylog.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qproxy.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qproxyconfig.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qproxylog.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -531,27 +528,6 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
-
-qproxy_la-qproxy.lo: qproxy.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(qproxy_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT qproxy_la-qproxy.lo -MD -MP -MF $(DEPDIR)/qproxy_la-qproxy.Tpo -c -o qproxy_la-qproxy.lo `test -f 'qproxy.c' || echo '$(srcdir)/'`qproxy.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/qproxy_la-qproxy.Tpo $(DEPDIR)/qproxy_la-qproxy.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='qproxy.c' object='qproxy_la-qproxy.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(qproxy_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o qproxy_la-qproxy.lo `test -f 'qproxy.c' || echo '$(srcdir)/'`qproxy.c
-
-qproxy_la-qproxyconfig.lo: qproxyconfig.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(qproxy_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT qproxy_la-qproxyconfig.lo -MD -MP -MF $(DEPDIR)/qproxy_la-qproxyconfig.Tpo -c -o qproxy_la-qproxyconfig.lo `test -f 'qproxyconfig.c' || echo '$(srcdir)/'`qproxyconfig.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/qproxy_la-qproxyconfig.Tpo $(DEPDIR)/qproxy_la-qproxyconfig.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='qproxyconfig.c' object='qproxy_la-qproxyconfig.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(qproxy_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o qproxy_la-qproxyconfig.lo `test -f 'qproxyconfig.c' || echo '$(srcdir)/'`qproxyconfig.c
-
-qproxy_la-qproxylog.lo: qproxylog.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(qproxy_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT qproxy_la-qproxylog.lo -MD -MP -MF $(DEPDIR)/qproxy_la-qproxylog.Tpo -c -o qproxy_la-qproxylog.lo `test -f 'qproxylog.c' || echo '$(srcdir)/'`qproxylog.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/qproxy_la-qproxylog.Tpo $(DEPDIR)/qproxy_la-qproxylog.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='qproxylog.c' object='qproxy_la-qproxylog.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(qproxy_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o qproxy_la-qproxylog.lo `test -f 'qproxylog.c' || echo '$(srcdir)/'`qproxylog.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -686,9 +662,9 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -f ./$(DEPDIR)/qproxy_la-qproxy.Plo
-	-rm -f ./$(DEPDIR)/qproxy_la-qproxyconfig.Plo
-	-rm -f ./$(DEPDIR)/qproxy_la-qproxylog.Plo
+	-rm -f ./$(DEPDIR)/qproxy.Plo
+	-rm -f ./$(DEPDIR)/qproxyconfig.Plo
+	-rm -f ./$(DEPDIR)/qproxylog.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -734,9 +710,9 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -f ./$(DEPDIR)/qproxy_la-qproxy.Plo
-	-rm -f ./$(DEPDIR)/qproxy_la-qproxyconfig.Plo
-	-rm -f ./$(DEPDIR)/qproxy_la-qproxylog.Plo
+	-rm -f ./$(DEPDIR)/qproxy.Plo
+	-rm -f ./$(DEPDIR)/qproxyconfig.Plo
+	-rm -f ./$(DEPDIR)/qproxylog.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

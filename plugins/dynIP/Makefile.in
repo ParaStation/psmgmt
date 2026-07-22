@@ -143,7 +143,7 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 dynIP_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
-am_dynIP_la_OBJECTS = dynIP_la-dynIP.lo dynIP_la-dynIPlog.lo
+am_dynIP_la_OBJECTS = dynIP.lo dynIPlog.lo
 dynIP_la_OBJECTS = $(am_dynIP_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -164,8 +164,7 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/dynIP_la-dynIP.Plo \
-	./$(DEPDIR)/dynIP_la-dynIPlog.Plo
+am__depfiles_remade = ./$(DEPDIR)/dynIP.Plo ./$(DEPDIR)/dynIPlog.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -447,7 +446,7 @@ scriptsdir = $(prefix)/scripts
 #
 # ParaStation
 #
-# Copyright (C) 2023 ParTec AG, Munich
+# Copyright (C) 2023-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -458,7 +457,6 @@ plugin_LTLIBRARIES = dynIP.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 dynIP_la_SOURCES = dynIP.c dynIPlog.c dynIPlog.h
-dynIP_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 dynIP_la_LIBADD = $(libplugincommon) $(libpscommon)
 all: all-recursive
 
@@ -537,8 +535,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dynIP_la-dynIP.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dynIP_la-dynIPlog.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dynIP.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dynIPlog.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -569,20 +567,6 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
-
-dynIP_la-dynIP.lo: dynIP.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(dynIP_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT dynIP_la-dynIP.lo -MD -MP -MF $(DEPDIR)/dynIP_la-dynIP.Tpo -c -o dynIP_la-dynIP.lo `test -f 'dynIP.c' || echo '$(srcdir)/'`dynIP.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/dynIP_la-dynIP.Tpo $(DEPDIR)/dynIP_la-dynIP.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='dynIP.c' object='dynIP_la-dynIP.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(dynIP_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o dynIP_la-dynIP.lo `test -f 'dynIP.c' || echo '$(srcdir)/'`dynIP.c
-
-dynIP_la-dynIPlog.lo: dynIPlog.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(dynIP_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT dynIP_la-dynIPlog.lo -MD -MP -MF $(DEPDIR)/dynIP_la-dynIPlog.Tpo -c -o dynIP_la-dynIPlog.lo `test -f 'dynIPlog.c' || echo '$(srcdir)/'`dynIPlog.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/dynIP_la-dynIPlog.Tpo $(DEPDIR)/dynIP_la-dynIPlog.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='dynIPlog.c' object='dynIP_la-dynIPlog.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(dynIP_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o dynIP_la-dynIPlog.lo `test -f 'dynIPlog.c' || echo '$(srcdir)/'`dynIPlog.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -790,8 +774,8 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-recursive
-	-rm -f ./$(DEPDIR)/dynIP_la-dynIP.Plo
-	-rm -f ./$(DEPDIR)/dynIP_la-dynIPlog.Plo
+	-rm -f ./$(DEPDIR)/dynIP.Plo
+	-rm -f ./$(DEPDIR)/dynIPlog.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -837,8 +821,8 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-recursive
-	-rm -f ./$(DEPDIR)/dynIP_la-dynIP.Plo
-	-rm -f ./$(DEPDIR)/dynIP_la-dynIPlog.Plo
+	-rm -f ./$(DEPDIR)/dynIP.Plo
+	-rm -f ./$(DEPDIR)/dynIPlog.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

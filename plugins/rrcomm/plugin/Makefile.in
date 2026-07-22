@@ -143,10 +143,8 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 rrcomm_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
-am_rrcomm_la_OBJECTS = rrcomm_la-rrcomm.lo \
-	rrcomm_la-rrcommaddrcache.lo rrcomm_la-rrcommconfig.lo \
-	rrcomm_la-rrcommforwarder.lo rrcomm_la-rrcommlog.lo \
-	rrcomm_la-rrcommproto.lo
+am_rrcomm_la_OBJECTS = rrcomm.lo rrcommaddrcache.lo rrcommconfig.lo \
+	rrcommforwarder.lo rrcommlog.lo rrcommproto.lo
 rrcomm_la_OBJECTS = $(am_rrcomm_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -167,12 +165,10 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/rrcomm_la-rrcomm.Plo \
-	./$(DEPDIR)/rrcomm_la-rrcommaddrcache.Plo \
-	./$(DEPDIR)/rrcomm_la-rrcommconfig.Plo \
-	./$(DEPDIR)/rrcomm_la-rrcommforwarder.Plo \
-	./$(DEPDIR)/rrcomm_la-rrcommlog.Plo \
-	./$(DEPDIR)/rrcomm_la-rrcommproto.Plo
+am__depfiles_remade = ./$(DEPDIR)/rrcomm.Plo \
+	./$(DEPDIR)/rrcommaddrcache.Plo ./$(DEPDIR)/rrcommconfig.Plo \
+	./$(DEPDIR)/rrcommforwarder.Plo ./$(DEPDIR)/rrcommlog.Plo \
+	./$(DEPDIR)/rrcommproto.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -227,7 +223,7 @@ AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 #
 # ParaStation
 #
-# Copyright (C) 2022-2023 ParTec AG, Munich
+# Copyright (C) 2022-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -426,7 +422,6 @@ rrcomm_la_SOURCES = rrcomm.c rrcommaddrcache.c rrcommaddrcache.h	\
 	rrcommforwarder.h rrcommlog.c rrcommlog.h rrcommproto.c		\
 	rrcommproto.h
 
-rrcomm_la_CPPFLAGS = $(AM_CPPFLAGS)
 rrcomm_la_LIBADD = $(libplugincommon) $(libpscommon)
 all: all-am
 
@@ -505,12 +500,12 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcomm.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommaddrcache.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommconfig.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommforwarder.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommlog.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommproto.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcommaddrcache.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcommconfig.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcommforwarder.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcommlog.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcommproto.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -541,48 +536,6 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
-
-rrcomm_la-rrcomm.lo: rrcomm.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rrcomm_la-rrcomm.lo -MD -MP -MF $(DEPDIR)/rrcomm_la-rrcomm.Tpo -c -o rrcomm_la-rrcomm.lo `test -f 'rrcomm.c' || echo '$(srcdir)/'`rrcomm.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/rrcomm_la-rrcomm.Tpo $(DEPDIR)/rrcomm_la-rrcomm.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rrcomm.c' object='rrcomm_la-rrcomm.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rrcomm_la-rrcomm.lo `test -f 'rrcomm.c' || echo '$(srcdir)/'`rrcomm.c
-
-rrcomm_la-rrcommaddrcache.lo: rrcommaddrcache.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rrcomm_la-rrcommaddrcache.lo -MD -MP -MF $(DEPDIR)/rrcomm_la-rrcommaddrcache.Tpo -c -o rrcomm_la-rrcommaddrcache.lo `test -f 'rrcommaddrcache.c' || echo '$(srcdir)/'`rrcommaddrcache.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/rrcomm_la-rrcommaddrcache.Tpo $(DEPDIR)/rrcomm_la-rrcommaddrcache.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rrcommaddrcache.c' object='rrcomm_la-rrcommaddrcache.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rrcomm_la-rrcommaddrcache.lo `test -f 'rrcommaddrcache.c' || echo '$(srcdir)/'`rrcommaddrcache.c
-
-rrcomm_la-rrcommconfig.lo: rrcommconfig.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rrcomm_la-rrcommconfig.lo -MD -MP -MF $(DEPDIR)/rrcomm_la-rrcommconfig.Tpo -c -o rrcomm_la-rrcommconfig.lo `test -f 'rrcommconfig.c' || echo '$(srcdir)/'`rrcommconfig.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/rrcomm_la-rrcommconfig.Tpo $(DEPDIR)/rrcomm_la-rrcommconfig.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rrcommconfig.c' object='rrcomm_la-rrcommconfig.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rrcomm_la-rrcommconfig.lo `test -f 'rrcommconfig.c' || echo '$(srcdir)/'`rrcommconfig.c
-
-rrcomm_la-rrcommforwarder.lo: rrcommforwarder.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rrcomm_la-rrcommforwarder.lo -MD -MP -MF $(DEPDIR)/rrcomm_la-rrcommforwarder.Tpo -c -o rrcomm_la-rrcommforwarder.lo `test -f 'rrcommforwarder.c' || echo '$(srcdir)/'`rrcommforwarder.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/rrcomm_la-rrcommforwarder.Tpo $(DEPDIR)/rrcomm_la-rrcommforwarder.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rrcommforwarder.c' object='rrcomm_la-rrcommforwarder.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rrcomm_la-rrcommforwarder.lo `test -f 'rrcommforwarder.c' || echo '$(srcdir)/'`rrcommforwarder.c
-
-rrcomm_la-rrcommlog.lo: rrcommlog.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rrcomm_la-rrcommlog.lo -MD -MP -MF $(DEPDIR)/rrcomm_la-rrcommlog.Tpo -c -o rrcomm_la-rrcommlog.lo `test -f 'rrcommlog.c' || echo '$(srcdir)/'`rrcommlog.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/rrcomm_la-rrcommlog.Tpo $(DEPDIR)/rrcomm_la-rrcommlog.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rrcommlog.c' object='rrcomm_la-rrcommlog.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rrcomm_la-rrcommlog.lo `test -f 'rrcommlog.c' || echo '$(srcdir)/'`rrcommlog.c
-
-rrcomm_la-rrcommproto.lo: rrcommproto.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rrcomm_la-rrcommproto.lo -MD -MP -MF $(DEPDIR)/rrcomm_la-rrcommproto.Tpo -c -o rrcomm_la-rrcommproto.lo `test -f 'rrcommproto.c' || echo '$(srcdir)/'`rrcommproto.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/rrcomm_la-rrcommproto.Tpo $(DEPDIR)/rrcomm_la-rrcommproto.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rrcommproto.c' object='rrcomm_la-rrcommproto.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rrcomm_la-rrcommproto.lo `test -f 'rrcommproto.c' || echo '$(srcdir)/'`rrcommproto.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -717,12 +670,12 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -f ./$(DEPDIR)/rrcomm_la-rrcomm.Plo
-	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommaddrcache.Plo
-	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommconfig.Plo
-	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommforwarder.Plo
-	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommlog.Plo
-	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommproto.Plo
+	-rm -f ./$(DEPDIR)/rrcomm.Plo
+	-rm -f ./$(DEPDIR)/rrcommaddrcache.Plo
+	-rm -f ./$(DEPDIR)/rrcommconfig.Plo
+	-rm -f ./$(DEPDIR)/rrcommforwarder.Plo
+	-rm -f ./$(DEPDIR)/rrcommlog.Plo
+	-rm -f ./$(DEPDIR)/rrcommproto.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -768,12 +721,12 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -f ./$(DEPDIR)/rrcomm_la-rrcomm.Plo
-	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommaddrcache.Plo
-	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommconfig.Plo
-	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommforwarder.Plo
-	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommlog.Plo
-	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommproto.Plo
+	-rm -f ./$(DEPDIR)/rrcomm.Plo
+	-rm -f ./$(DEPDIR)/rrcommaddrcache.Plo
+	-rm -f ./$(DEPDIR)/rrcommconfig.Plo
+	-rm -f ./$(DEPDIR)/rrcommforwarder.Plo
+	-rm -f ./$(DEPDIR)/rrcommlog.Plo
+	-rm -f ./$(DEPDIR)/rrcommproto.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

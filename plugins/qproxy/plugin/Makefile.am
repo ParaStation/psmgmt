@@ -20,5 +20,4 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 qproxy_la_SOURCES = qproxy.c qproxyconfig.c qproxyconfig.h	\
 	qproxylog.c qproxylog.h
 
-qproxy_la_CPPFLAGS = $(AM_CPPFLAGS)
 qproxy_la_LIBADD = $(libplugincommon) $(libpscommon)
