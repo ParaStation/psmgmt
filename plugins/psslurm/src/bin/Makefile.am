@@ -34,18 +34,12 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 
 bin_PROGRAMS = psslurmgetbind
 
-psslurmgetbind_SOURCES=\
-	psslurmgetbind.c
+psslurmgetbind_SOURCES = psslurmgetbind.c
 
-psslurmgetbind_CPPFLAGS=\
-	$(AM_CPPFLAGS)\
-	-DPLUGINDIR=\"$(plugindir)\"\
-	-DHAVE_NUMA_ALLOCATE_NODEMASK
+psslurmgetbind_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
+					 -DHAVE_NUMA_ALLOCATE_NODEMASK
 
-
-psslurmgetbind_LDFLAGS=\
-	$(AM_LDFLAGS)\
-	-lm
+psslurmgetbind_LDFLAGS= $(AM_LDFLAGS) -lm
 
 psslurmgetbind_LDADD=\
 	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o\

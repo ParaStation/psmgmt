@@ -409,18 +409,11 @@ psmunge_dir := plugins/psmunge
 pspam_dir := plugins/pspam/pspam
 psexec_dir := plugins/psexec
 pspmi_dir := plugins/pspmi
-psslurmgetbind_SOURCES = \
-	psslurmgetbind.c
+psslurmgetbind_SOURCES = psslurmgetbind.c
+psslurmgetbind_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
+					 -DHAVE_NUMA_ALLOCATE_NODEMASK
 
-psslurmgetbind_CPPFLAGS = \
-	$(AM_CPPFLAGS)\
-	-DPLUGINDIR=\"$(plugindir)\"\
-	-DHAVE_NUMA_ALLOCATE_NODEMASK
-
-psslurmgetbind_LDFLAGS = \
-	$(AM_LDFLAGS)\
-	-lm
-
+psslurmgetbind_LDFLAGS = $(AM_LDFLAGS) -lm
 psslurmgetbind_LDADD = \
 	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o\
 	$(top_builddir)/lib/plugincommon/.libs/pluginmalloc.o\
