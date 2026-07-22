@@ -1,3 +1,33 @@
+Version 6.8.3:
+==============
+------------------------------------------------------------------------
+354ebab6d | Michael Rauh | Wed, 22 Jul 2026 14:23:21 +0200
+
+Bugfix: set correct PMIx library path for spawnPMIx_rrcomm test
+------------------------------------------------------------------------
+e0fed433a | Michael Rauh | Tue, 21 Jul 2026 13:58:03 +0200
+
+Bugfix: set correct PMIx library path in psslurm
+------------------------------------------------------------------------
+f84e372a7 | Michael Rauh | Wed, 22 Jul 2026 14:37:44 +0200
+
+Improve wording
+------------------------------------------------------------------------
+da37f7c7a | Michael Rauh | Mon, 20 Jul 2026 18:19:37 +0200
+
+Introduce specfile option "_without_pmix"
+
+ - allow to build rpms without PMIx support
+------------------------------------------------------------------------
+d40b406d8 | Michael Rauh | Mon, 20 Jul 2026 18:17:32 +0200
+
+Bugfix: make --disable-pspmix actually work
+
+ - introduce HAVE_PMIX
+ - remove hardcoded pspmix dependencies in psslurm
+------------------------------------------------------------------------
+
+
 Version 6.8.2:
 ==============
 ------------------------------------------------------------------------

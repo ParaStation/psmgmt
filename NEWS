@@ -6,6 +6,15 @@ Copyright (C) 2021-2026 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.8.3:
+==============
+Bugfixes:
+ - make --disable-pspmix actually work
+ - set correct PMIx library path in psslurm and for spawnPMIx_rrcomm test
+Enhancement
+  - remove hardcoded pspmix dependencies in psslurm
+
+
 Version 6.8.2:
 ==============
 Bugfixes:

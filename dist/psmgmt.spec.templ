@@ -15,6 +15,7 @@
 %{?_without_spank: %global disable_spank 1}
 %{?_without_testplugins: %global disable_testplugins 1}
 %{?_without_bpf: %global disable_bpf 1}
+%{?_without_pmix: %global disable_pspmix 1}
 
 # we do not use rpm changelog
 %global source_date_epoch_from_changelog 0
@@ -54,7 +55,9 @@ BuildRequires:	libnuma-devel
 BuildRequires:	numactl-devel
 %endif
 BuildRequires:	hwloc-devel
+%if !0%{?disable_pspmix}
 BuildRequires:  pmix-devel >= 4.2.3
+%endif
 %if !0%{?disable_systemd}
 BuildRequires:  systemd
 Requires(post): systemd
@@ -121,6 +124,7 @@ The ParaStation Slurm plugin is a complete replacement of the slurmd on
 compute nodes. No other daemon is necessary to integrate compute nodes into
 a Slurm batch system.
 
+%if !0%{?disable_pspmix}
 %package pspmix
 Summary:   The PMIx plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
@@ -130,8 +134,9 @@ Requires:  %{name} = %{version}-%{release}
 Requires: pmix >= %{pmix_version_min}, pmix < %{pmix_version_top}
 
 %description pspmix
-The ParaStation PMIx plugin provides support for PMIx based on the libpmix.
+The ParaStation PMIx plugin provides support for the PMIx standard using OpenPMIx.
 It works standalone or together with psslurm.
+%endif
 
 %package slurmutils
 Summary:   Utilities improving Slurm support (spank, psslurmgetbind, etc.)
@@ -202,7 +207,8 @@ export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
 	   %{?disable_systemd:--with-unitdir=no} \
 	   %{?disable_spank:--disable-spank} \
 	   %{?disable_testplugins:--disable-testplugins} \
-	   %{?disable_bpf:--disable-bpf}
+	   %{?disable_bpf:--disable-bpf} \
+	   %{?disable_pspmix:--disable-pspmix}
 make %{?_smp_mflags}
 
 %install
@@ -395,10 +401,12 @@ fi
 %endif
 %endif
 
+%if !0%{?disable_pspmix}
 %files pspmix
 %defattr(-,root,root,-)
 %{_plugindir}/pspmix.so
 %config(noreplace) %{_plugindir}/pspmix.conf
+%endif
 
 %files slurmutils
 %doc plugins/psslurm/doc/resume_nodes.sh.example

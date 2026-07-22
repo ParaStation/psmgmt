@@ -139,7 +139,7 @@ AM_CONDITIONAL([BUILD_WITHOUT_PSPMIX], [test "x$enable_pspmix" = xno])
 AM_COND_IF([BUILD_WITHOUT_PSPMIX], [
   AC_MSG_NOTICE([Not building pspmix plugin])
 ], [
-  PKG_CHECK_MODULES([pmix], [pmix >= 4.2.3])
+  PKG_CHECK_MODULES([pmix], [pmix >= 4.2.3], AC_DEFINE([HAVE_PMIX]))
 ])
 
 AX_CHECK_COMPILE_FLAG([-O3],

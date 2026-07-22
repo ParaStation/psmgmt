@@ -14087,6 +14087,7 @@ else
         pmix_LIBS=$pkg_cv_pmix_LIBS
         { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 printf "%s\n" "yes" >&6; }
+        printf "%s\n" "#define HAVE_PMIX 1" >>confdefs.h
 
 fi
 

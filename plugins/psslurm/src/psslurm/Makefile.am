@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021-2025 ParTec AG, Munich
+# Copyright (C) 2021-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,6 +36,10 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 	       -I$(top_srcdir)/$(pspmi_dir) \
 	       -I$(top_srcdir)/$(pspmix_dir) \
 	       -I$(top_srcdir)/$(jail_dir)
+if !BUILD_WITHOUT_PSPMIX
+AM_CPPFLAGS += $(pmix_CFLAGS)
+endif
+
 AM_CFLAGS += -fcommon
 
 plugin_LTLIBRARIES = psslurm.la
