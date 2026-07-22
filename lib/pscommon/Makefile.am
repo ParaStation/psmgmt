@@ -22,6 +22,6 @@ libpscommon_la_SOURCES = logging.c pscio.c pscommon.c pscomplist.c	\
 	psreservation.c psserial.c pssignal.c psstrbuf.c psstrv.c	\
 	pstask.c
 
-psserial.lo: CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/bin/daemon
+psserial.lo: AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
 
 libpscommon_la_LIBADD = -ldl

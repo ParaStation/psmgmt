@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2023-2025 ParTec AG, Munich
+# Copyright (C) 2023-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,11 +22,10 @@ libplugincommon_la_SOURCES = pluginconfig.c plugincpufreq.c		\
 
 pluginpsconfig.lo: AM_CFLAGS += $(glib2_CFLAGS)
 
-pluginforwarder.lo: CPPFLAGS = $(AM_CPPFLAGS) \
-			-DLOCALSTATEDIR=\"$(localstatedir)\"
+pluginforwarder.lo: AM_CPPFLAGS += -DLOCALSTATEDIR=\"$(localstatedir)\"
 
-plugincpufreq.lo: CPPFLAGS = $(AM_CPPFLAGS) -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
-plugingpufreq.lo: CPPFLAGS = $(AM_CPPFLAGS) -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
+plugincpufreq.lo: AM_CPPFLAGS += -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
+plugingpufreq.lo: AM_CPPFLAGS += -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
 
 if JSON_C_ENABLED
 libplugincommon_la_LIBADD = -ljson-c
