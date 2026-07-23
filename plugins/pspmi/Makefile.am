@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2023-2024 ParTec AG, Munich
+# Copyright (C) 2023-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -29,7 +29,6 @@ pspmi_la_SOURCES = pmiclient.c pmiclient.h pmiforwarder.c	\
 	pmiforwarder.h pmilog.c pmilog.h pmimain.c pmispawn.c	\
 	pmispawn.h pmikvs.h pmikvs.c pmitypes.h pspmihandles.h
 
-pspmi_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
-	-DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
+pmiclient.lo: AM_CPPFLAGS += -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
 
 pspmi_la_LIBADD = $(libpskvs) $(libpsi) $(libplugincommon)

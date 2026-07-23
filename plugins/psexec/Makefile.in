@@ -18,6 +18,7 @@
 # ParaStation
 #
 # Copyright (C) 2016-2017 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -153,9 +154,8 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 psexec_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
-am_psexec_la_OBJECTS = psexec_la-psexec.lo psexec_la-psexeclog.lo \
-	psexec_la-psexecscripts.lo psexec_la-psexeccomm.lo \
-	psexec_la-psexecinter.lo
+am_psexec_la_OBJECTS = psexec.lo psexeclog.lo psexecscripts.lo \
+	psexeccomm.lo psexecinter.lo
 psexec_la_OBJECTS = $(am_psexec_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -176,11 +176,9 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/psexec_la-psexec.Plo \
-	./$(DEPDIR)/psexec_la-psexeccomm.Plo \
-	./$(DEPDIR)/psexec_la-psexecinter.Plo \
-	./$(DEPDIR)/psexec_la-psexeclog.Plo \
-	./$(DEPDIR)/psexec_la-psexecscripts.Plo
+am__depfiles_remade = ./$(DEPDIR)/psexec.Plo \
+	./$(DEPDIR)/psexeccomm.Plo ./$(DEPDIR)/psexecinter.Plo \
+	./$(DEPDIR)/psexeclog.Plo ./$(DEPDIR)/psexecscripts.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -423,7 +421,6 @@ psexec_la_SOURCES = psexec.c psexeclog.c psexeclog.h psexecscripts.c	\
 	psexecscripts.h psexeccomm.c psexeccomm.h psexecinter.c		\
 	psexecinter.h psexechandles.h psexectypes.h
 
-psexec_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psexec_la_LIBADD = $(libplugincommon) $(libpscommon)
 all: all-am
 
@@ -502,11 +499,11 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psexec_la-psexec.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psexec_la-psexeccomm.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psexec_la-psexecinter.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psexec_la-psexeclog.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psexec_la-psexecscripts.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psexec.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psexeccomm.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psexecinter.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psexeclog.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psexecscripts.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -537,41 +534,6 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
-
-psexec_la-psexec.lo: psexec.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psexec_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psexec_la-psexec.lo -MD -MP -MF $(DEPDIR)/psexec_la-psexec.Tpo -c -o psexec_la-psexec.lo `test -f 'psexec.c' || echo '$(srcdir)/'`psexec.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psexec_la-psexec.Tpo $(DEPDIR)/psexec_la-psexec.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psexec.c' object='psexec_la-psexec.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psexec_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psexec_la-psexec.lo `test -f 'psexec.c' || echo '$(srcdir)/'`psexec.c
-
-psexec_la-psexeclog.lo: psexeclog.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psexec_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psexec_la-psexeclog.lo -MD -MP -MF $(DEPDIR)/psexec_la-psexeclog.Tpo -c -o psexec_la-psexeclog.lo `test -f 'psexeclog.c' || echo '$(srcdir)/'`psexeclog.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psexec_la-psexeclog.Tpo $(DEPDIR)/psexec_la-psexeclog.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psexeclog.c' object='psexec_la-psexeclog.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psexec_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psexec_la-psexeclog.lo `test -f 'psexeclog.c' || echo '$(srcdir)/'`psexeclog.c
-
-psexec_la-psexecscripts.lo: psexecscripts.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psexec_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psexec_la-psexecscripts.lo -MD -MP -MF $(DEPDIR)/psexec_la-psexecscripts.Tpo -c -o psexec_la-psexecscripts.lo `test -f 'psexecscripts.c' || echo '$(srcdir)/'`psexecscripts.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psexec_la-psexecscripts.Tpo $(DEPDIR)/psexec_la-psexecscripts.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psexecscripts.c' object='psexec_la-psexecscripts.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psexec_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psexec_la-psexecscripts.lo `test -f 'psexecscripts.c' || echo '$(srcdir)/'`psexecscripts.c
-
-psexec_la-psexeccomm.lo: psexeccomm.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psexec_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psexec_la-psexeccomm.lo -MD -MP -MF $(DEPDIR)/psexec_la-psexeccomm.Tpo -c -o psexec_la-psexeccomm.lo `test -f 'psexeccomm.c' || echo '$(srcdir)/'`psexeccomm.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psexec_la-psexeccomm.Tpo $(DEPDIR)/psexec_la-psexeccomm.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psexeccomm.c' object='psexec_la-psexeccomm.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psexec_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psexec_la-psexeccomm.lo `test -f 'psexeccomm.c' || echo '$(srcdir)/'`psexeccomm.c
-
-psexec_la-psexecinter.lo: psexecinter.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psexec_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psexec_la-psexecinter.lo -MD -MP -MF $(DEPDIR)/psexec_la-psexecinter.Tpo -c -o psexec_la-psexecinter.lo `test -f 'psexecinter.c' || echo '$(srcdir)/'`psexecinter.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psexec_la-psexecinter.Tpo $(DEPDIR)/psexec_la-psexecinter.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psexecinter.c' object='psexec_la-psexecinter.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psexec_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psexec_la-psexecinter.lo `test -f 'psexecinter.c' || echo '$(srcdir)/'`psexecinter.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -706,11 +668,11 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -f ./$(DEPDIR)/psexec_la-psexec.Plo
-	-rm -f ./$(DEPDIR)/psexec_la-psexeccomm.Plo
-	-rm -f ./$(DEPDIR)/psexec_la-psexecinter.Plo
-	-rm -f ./$(DEPDIR)/psexec_la-psexeclog.Plo
-	-rm -f ./$(DEPDIR)/psexec_la-psexecscripts.Plo
+	-rm -f ./$(DEPDIR)/psexec.Plo
+	-rm -f ./$(DEPDIR)/psexeccomm.Plo
+	-rm -f ./$(DEPDIR)/psexecinter.Plo
+	-rm -f ./$(DEPDIR)/psexeclog.Plo
+	-rm -f ./$(DEPDIR)/psexecscripts.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -756,11 +718,11 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -f ./$(DEPDIR)/psexec_la-psexec.Plo
-	-rm -f ./$(DEPDIR)/psexec_la-psexeccomm.Plo
-	-rm -f ./$(DEPDIR)/psexec_la-psexecinter.Plo
-	-rm -f ./$(DEPDIR)/psexec_la-psexeclog.Plo
-	-rm -f ./$(DEPDIR)/psexec_la-psexecscripts.Plo
+	-rm -f ./$(DEPDIR)/psexec.Plo
+	-rm -f ./$(DEPDIR)/psexeccomm.Plo
+	-rm -f ./$(DEPDIR)/psexecinter.Plo
+	-rm -f ./$(DEPDIR)/psexeclog.Plo
+	-rm -f ./$(DEPDIR)/psexecscripts.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -803,6 +765,8 @@ VCVERSION ?= $(top_srcdir)/scripts/vcversion
 
 %: %.in
 	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
+
+psexeccomm.lo: AM_CPPFLAGS += -DLOCALSTATEDIR=\"$(localstatedir)\"
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

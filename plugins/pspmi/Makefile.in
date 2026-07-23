@@ -143,9 +143,8 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 pspmi_la_DEPENDENCIES = $(libpskvs) $(libpsi) $(libplugincommon)
-am_pspmi_la_OBJECTS = pspmi_la-pmiclient.lo pspmi_la-pmiforwarder.lo \
-	pspmi_la-pmilog.lo pspmi_la-pmimain.lo pspmi_la-pmispawn.lo \
-	pspmi_la-pmikvs.lo
+am_pspmi_la_OBJECTS = pmiclient.lo pmiforwarder.lo pmilog.lo \
+	pmimain.lo pmispawn.lo pmikvs.lo
 pspmi_la_OBJECTS = $(am_pspmi_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -166,12 +165,10 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/pspmi_la-pmiclient.Plo \
-	./$(DEPDIR)/pspmi_la-pmiforwarder.Plo \
-	./$(DEPDIR)/pspmi_la-pmikvs.Plo \
-	./$(DEPDIR)/pspmi_la-pmilog.Plo \
-	./$(DEPDIR)/pspmi_la-pmimain.Plo \
-	./$(DEPDIR)/pspmi_la-pmispawn.Plo
+am__depfiles_remade = ./$(DEPDIR)/pmiclient.Plo \
+	./$(DEPDIR)/pmiforwarder.Plo ./$(DEPDIR)/pmikvs.Plo \
+	./$(DEPDIR)/pmilog.Plo ./$(DEPDIR)/pmimain.Plo \
+	./$(DEPDIR)/pmispawn.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -412,7 +409,7 @@ scriptsdir = $(prefix)/scripts
 # ParaStation
 #
 # Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2023-2024 ParTec AG, Munich
+# Copyright (C) 2023-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -426,9 +423,6 @@ libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 pspmi_la_SOURCES = pmiclient.c pmiclient.h pmiforwarder.c	\
 	pmiforwarder.h pmilog.c pmilog.h pmimain.c pmispawn.c	\
 	pmispawn.h pmikvs.h pmikvs.c pmitypes.h pspmihandles.h
-
-pspmi_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
-	-DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
 
 pspmi_la_LIBADD = $(libpskvs) $(libpsi) $(libplugincommon)
 all: all-am
@@ -508,12 +502,12 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmi_la-pmiclient.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmi_la-pmiforwarder.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmi_la-pmikvs.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmi_la-pmilog.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmi_la-pmimain.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmi_la-pmispawn.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pmiclient.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pmiforwarder.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pmikvs.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pmilog.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pmimain.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pmispawn.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -544,48 +538,6 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
-
-pspmi_la-pmiclient.lo: pmiclient.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pspmi_la-pmiclient.lo -MD -MP -MF $(DEPDIR)/pspmi_la-pmiclient.Tpo -c -o pspmi_la-pmiclient.lo `test -f 'pmiclient.c' || echo '$(srcdir)/'`pmiclient.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspmi_la-pmiclient.Tpo $(DEPDIR)/pspmi_la-pmiclient.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pmiclient.c' object='pspmi_la-pmiclient.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pspmi_la-pmiclient.lo `test -f 'pmiclient.c' || echo '$(srcdir)/'`pmiclient.c
-
-pspmi_la-pmiforwarder.lo: pmiforwarder.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pspmi_la-pmiforwarder.lo -MD -MP -MF $(DEPDIR)/pspmi_la-pmiforwarder.Tpo -c -o pspmi_la-pmiforwarder.lo `test -f 'pmiforwarder.c' || echo '$(srcdir)/'`pmiforwarder.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspmi_la-pmiforwarder.Tpo $(DEPDIR)/pspmi_la-pmiforwarder.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pmiforwarder.c' object='pspmi_la-pmiforwarder.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pspmi_la-pmiforwarder.lo `test -f 'pmiforwarder.c' || echo '$(srcdir)/'`pmiforwarder.c
-
-pspmi_la-pmilog.lo: pmilog.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pspmi_la-pmilog.lo -MD -MP -MF $(DEPDIR)/pspmi_la-pmilog.Tpo -c -o pspmi_la-pmilog.lo `test -f 'pmilog.c' || echo '$(srcdir)/'`pmilog.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspmi_la-pmilog.Tpo $(DEPDIR)/pspmi_la-pmilog.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pmilog.c' object='pspmi_la-pmilog.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pspmi_la-pmilog.lo `test -f 'pmilog.c' || echo '$(srcdir)/'`pmilog.c
-
-pspmi_la-pmimain.lo: pmimain.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pspmi_la-pmimain.lo -MD -MP -MF $(DEPDIR)/pspmi_la-pmimain.Tpo -c -o pspmi_la-pmimain.lo `test -f 'pmimain.c' || echo '$(srcdir)/'`pmimain.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspmi_la-pmimain.Tpo $(DEPDIR)/pspmi_la-pmimain.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pmimain.c' object='pspmi_la-pmimain.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pspmi_la-pmimain.lo `test -f 'pmimain.c' || echo '$(srcdir)/'`pmimain.c
-
-pspmi_la-pmispawn.lo: pmispawn.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pspmi_la-pmispawn.lo -MD -MP -MF $(DEPDIR)/pspmi_la-pmispawn.Tpo -c -o pspmi_la-pmispawn.lo `test -f 'pmispawn.c' || echo '$(srcdir)/'`pmispawn.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspmi_la-pmispawn.Tpo $(DEPDIR)/pspmi_la-pmispawn.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pmispawn.c' object='pspmi_la-pmispawn.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pspmi_la-pmispawn.lo `test -f 'pmispawn.c' || echo '$(srcdir)/'`pmispawn.c
-
-pspmi_la-pmikvs.lo: pmikvs.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pspmi_la-pmikvs.lo -MD -MP -MF $(DEPDIR)/pspmi_la-pmikvs.Tpo -c -o pspmi_la-pmikvs.lo `test -f 'pmikvs.c' || echo '$(srcdir)/'`pmikvs.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspmi_la-pmikvs.Tpo $(DEPDIR)/pspmi_la-pmikvs.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pmikvs.c' object='pspmi_la-pmikvs.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pspmi_la-pmikvs.lo `test -f 'pmikvs.c' || echo '$(srcdir)/'`pmikvs.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -720,12 +672,12 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -f ./$(DEPDIR)/pspmi_la-pmiclient.Plo
-	-rm -f ./$(DEPDIR)/pspmi_la-pmiforwarder.Plo
-	-rm -f ./$(DEPDIR)/pspmi_la-pmikvs.Plo
-	-rm -f ./$(DEPDIR)/pspmi_la-pmilog.Plo
-	-rm -f ./$(DEPDIR)/pspmi_la-pmimain.Plo
-	-rm -f ./$(DEPDIR)/pspmi_la-pmispawn.Plo
+	-rm -f ./$(DEPDIR)/pmiclient.Plo
+	-rm -f ./$(DEPDIR)/pmiforwarder.Plo
+	-rm -f ./$(DEPDIR)/pmikvs.Plo
+	-rm -f ./$(DEPDIR)/pmilog.Plo
+	-rm -f ./$(DEPDIR)/pmimain.Plo
+	-rm -f ./$(DEPDIR)/pmispawn.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -771,12 +723,12 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -f ./$(DEPDIR)/pspmi_la-pmiclient.Plo
-	-rm -f ./$(DEPDIR)/pspmi_la-pmiforwarder.Plo
-	-rm -f ./$(DEPDIR)/pspmi_la-pmikvs.Plo
-	-rm -f ./$(DEPDIR)/pspmi_la-pmilog.Plo
-	-rm -f ./$(DEPDIR)/pspmi_la-pmimain.Plo
-	-rm -f ./$(DEPDIR)/pspmi_la-pmispawn.Plo
+	-rm -f ./$(DEPDIR)/pmiclient.Plo
+	-rm -f ./$(DEPDIR)/pmiforwarder.Plo
+	-rm -f ./$(DEPDIR)/pmikvs.Plo
+	-rm -f ./$(DEPDIR)/pmilog.Plo
+	-rm -f ./$(DEPDIR)/pmimain.Plo
+	-rm -f ./$(DEPDIR)/pmispawn.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -819,6 +771,8 @@ VCVERSION ?= $(top_srcdir)/scripts/vcversion
 
 %: %.in
 	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
+
+pmiclient.lo: AM_CPPFLAGS += -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

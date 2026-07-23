@@ -2,6 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,11 +29,12 @@ psaccount_la_SOURCES = psaccount.c psaccount.h psaccountclient.c	\
 	psaccountlog.h psaccountproc.c psaccountproc.h			\
 	psaccountconfig.c psaccountconfig.h psaccounthistory.h		\
 	psaccounthistory.c psaccounthandles.h psaccounttypes.h		\
-	psaccountenergy.c psaccountenergy.h psaccountscript.c 		\
+	psaccountenergy.c psaccountenergy.h psaccountscript.c		\
 	psaccountscript.h psaccountinterconnect.h			\
 	psaccountinterconnect.c psaccountfilesystem.h			\
 	psaccountfilesystem.c
 
-psaccount_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
-		        -DPSACCTLIBDIR=\"$(psacctlibdir)\"
+psaccount.lo: AM_CPPFLAGS += -DPLUGINDIR=\"$(plugindir)\"
+psaccountconfig.lo: AM_CPPFLAGS += -DPSACCTLIBDIR=\"$(psacctlibdir)\"
+
 psaccount_la_LIBADD = $(libplugincommon) $(libpscommon)

@@ -17,17 +17,6 @@
 #
 # ParaStation
 #
-# Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2025 ParTec AG, Munich
-#
-# This file may be distributed under the terms of the Q Public License
-# as defined in the file LICENSE.QPL included in the packaging of this
-# file.
-#
-
-#
-# ParaStation
-#
 # Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
 # Copyright (C) 2022-2026 ParTec AG, Munich
 #
@@ -155,9 +144,8 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 psgw_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
-am_psgw_la_OBJECTS = psgw_la-psgw.lo psgw_la-psgwlog.lo \
-	psgw_la-psgwres.lo psgw_la-psgwconfig.lo psgw_la-psgwkvs.lo \
-	psgw_la-psgwrequest.lo psgw_la-psgwpart.lo psgw_la-psgwcomm.lo
+am_psgw_la_OBJECTS = psgw.lo psgwlog.lo psgwres.lo psgwconfig.lo \
+	psgwkvs.lo psgwrequest.lo psgwpart.lo psgwcomm.lo
 psgw_la_OBJECTS = $(am_psgw_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -178,14 +166,10 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/psgw_la-psgw.Plo \
-	./$(DEPDIR)/psgw_la-psgwcomm.Plo \
-	./$(DEPDIR)/psgw_la-psgwconfig.Plo \
-	./$(DEPDIR)/psgw_la-psgwkvs.Plo \
-	./$(DEPDIR)/psgw_la-psgwlog.Plo \
-	./$(DEPDIR)/psgw_la-psgwpart.Plo \
-	./$(DEPDIR)/psgw_la-psgwrequest.Plo \
-	./$(DEPDIR)/psgw_la-psgwres.Plo
+am__depfiles_remade = ./$(DEPDIR)/psgw.Plo ./$(DEPDIR)/psgwcomm.Plo \
+	./$(DEPDIR)/psgwconfig.Plo ./$(DEPDIR)/psgwkvs.Plo \
+	./$(DEPDIR)/psgwlog.Plo ./$(DEPDIR)/psgwpart.Plo \
+	./$(DEPDIR)/psgwrequest.Plo ./$(DEPDIR)/psgwres.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -465,6 +449,17 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
+
+#
+# ParaStation
+#
+# Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2025-2026 ParTec AG, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
 SUBDIRS = doc $(am__append_1)
 pelogue_dir := plugins/pelogue
 psexec_dir := plugins/psexec
@@ -477,10 +472,6 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 psgw_la_SOURCES = psgw.c psgwlog.c psgwlog.h psgwres.c psgwres.h \
 		  psgwconfig.c psgwconfig.h psgwkvs.c psgwrequest.c \
 		  psgwrequest.h psgwpart.c psgwpart.h psgwcomm.h psgwcomm.c
-
-psgw_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"		\
-		-DPKGSYSCONFDIR=\"$(sysconfdir)/parastation\"		\
-		-DBINDIR=\"$(bindir)\"	-DPSGWLIBDIR=\"$(psgwlibdir)\"
 
 psgw_la_LIBADD = $(libplugincommon) $(libpscommon)
 all: all-recursive
@@ -560,14 +551,14 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgw.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgwcomm.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgwconfig.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgwkvs.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgwlog.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgwpart.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgwrequest.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgwres.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgwcomm.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgwconfig.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgwkvs.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgwlog.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgwpart.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgwrequest.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgwres.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -598,62 +589,6 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
-
-psgw_la-psgw.lo: psgw.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psgw_la-psgw.lo -MD -MP -MF $(DEPDIR)/psgw_la-psgw.Tpo -c -o psgw_la-psgw.lo `test -f 'psgw.c' || echo '$(srcdir)/'`psgw.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psgw_la-psgw.Tpo $(DEPDIR)/psgw_la-psgw.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psgw.c' object='psgw_la-psgw.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psgw_la-psgw.lo `test -f 'psgw.c' || echo '$(srcdir)/'`psgw.c
-
-psgw_la-psgwlog.lo: psgwlog.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psgw_la-psgwlog.lo -MD -MP -MF $(DEPDIR)/psgw_la-psgwlog.Tpo -c -o psgw_la-psgwlog.lo `test -f 'psgwlog.c' || echo '$(srcdir)/'`psgwlog.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psgw_la-psgwlog.Tpo $(DEPDIR)/psgw_la-psgwlog.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psgwlog.c' object='psgw_la-psgwlog.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psgw_la-psgwlog.lo `test -f 'psgwlog.c' || echo '$(srcdir)/'`psgwlog.c
-
-psgw_la-psgwres.lo: psgwres.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psgw_la-psgwres.lo -MD -MP -MF $(DEPDIR)/psgw_la-psgwres.Tpo -c -o psgw_la-psgwres.lo `test -f 'psgwres.c' || echo '$(srcdir)/'`psgwres.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psgw_la-psgwres.Tpo $(DEPDIR)/psgw_la-psgwres.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psgwres.c' object='psgw_la-psgwres.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psgw_la-psgwres.lo `test -f 'psgwres.c' || echo '$(srcdir)/'`psgwres.c
-
-psgw_la-psgwconfig.lo: psgwconfig.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psgw_la-psgwconfig.lo -MD -MP -MF $(DEPDIR)/psgw_la-psgwconfig.Tpo -c -o psgw_la-psgwconfig.lo `test -f 'psgwconfig.c' || echo '$(srcdir)/'`psgwconfig.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psgw_la-psgwconfig.Tpo $(DEPDIR)/psgw_la-psgwconfig.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psgwconfig.c' object='psgw_la-psgwconfig.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psgw_la-psgwconfig.lo `test -f 'psgwconfig.c' || echo '$(srcdir)/'`psgwconfig.c
-
-psgw_la-psgwkvs.lo: psgwkvs.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psgw_la-psgwkvs.lo -MD -MP -MF $(DEPDIR)/psgw_la-psgwkvs.Tpo -c -o psgw_la-psgwkvs.lo `test -f 'psgwkvs.c' || echo '$(srcdir)/'`psgwkvs.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psgw_la-psgwkvs.Tpo $(DEPDIR)/psgw_la-psgwkvs.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psgwkvs.c' object='psgw_la-psgwkvs.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psgw_la-psgwkvs.lo `test -f 'psgwkvs.c' || echo '$(srcdir)/'`psgwkvs.c
-
-psgw_la-psgwrequest.lo: psgwrequest.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psgw_la-psgwrequest.lo -MD -MP -MF $(DEPDIR)/psgw_la-psgwrequest.Tpo -c -o psgw_la-psgwrequest.lo `test -f 'psgwrequest.c' || echo '$(srcdir)/'`psgwrequest.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psgw_la-psgwrequest.Tpo $(DEPDIR)/psgw_la-psgwrequest.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psgwrequest.c' object='psgw_la-psgwrequest.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psgw_la-psgwrequest.lo `test -f 'psgwrequest.c' || echo '$(srcdir)/'`psgwrequest.c
-
-psgw_la-psgwpart.lo: psgwpart.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psgw_la-psgwpart.lo -MD -MP -MF $(DEPDIR)/psgw_la-psgwpart.Tpo -c -o psgw_la-psgwpart.lo `test -f 'psgwpart.c' || echo '$(srcdir)/'`psgwpart.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psgw_la-psgwpart.Tpo $(DEPDIR)/psgw_la-psgwpart.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psgwpart.c' object='psgw_la-psgwpart.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psgw_la-psgwpart.lo `test -f 'psgwpart.c' || echo '$(srcdir)/'`psgwpart.c
-
-psgw_la-psgwcomm.lo: psgwcomm.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psgw_la-psgwcomm.lo -MD -MP -MF $(DEPDIR)/psgw_la-psgwcomm.Tpo -c -o psgw_la-psgwcomm.lo `test -f 'psgwcomm.c' || echo '$(srcdir)/'`psgwcomm.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psgw_la-psgwcomm.Tpo $(DEPDIR)/psgw_la-psgwcomm.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psgwcomm.c' object='psgw_la-psgwcomm.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psgw_la-psgwcomm.lo `test -f 'psgwcomm.c' || echo '$(srcdir)/'`psgwcomm.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -861,14 +796,14 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-recursive
-	-rm -f ./$(DEPDIR)/psgw_la-psgw.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwcomm.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwconfig.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwkvs.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwlog.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwpart.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwrequest.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwres.Plo
+	-rm -f ./$(DEPDIR)/psgw.Plo
+	-rm -f ./$(DEPDIR)/psgwcomm.Plo
+	-rm -f ./$(DEPDIR)/psgwconfig.Plo
+	-rm -f ./$(DEPDIR)/psgwkvs.Plo
+	-rm -f ./$(DEPDIR)/psgwlog.Plo
+	-rm -f ./$(DEPDIR)/psgwpart.Plo
+	-rm -f ./$(DEPDIR)/psgwrequest.Plo
+	-rm -f ./$(DEPDIR)/psgwres.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -914,14 +849,14 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-recursive
-	-rm -f ./$(DEPDIR)/psgw_la-psgw.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwcomm.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwconfig.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwkvs.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwlog.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwpart.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwrequest.Plo
-	-rm -f ./$(DEPDIR)/psgw_la-psgwres.Plo
+	-rm -f ./$(DEPDIR)/psgw.Plo
+	-rm -f ./$(DEPDIR)/psgwcomm.Plo
+	-rm -f ./$(DEPDIR)/psgwconfig.Plo
+	-rm -f ./$(DEPDIR)/psgwkvs.Plo
+	-rm -f ./$(DEPDIR)/psgwlog.Plo
+	-rm -f ./$(DEPDIR)/psgwpart.Plo
+	-rm -f ./$(DEPDIR)/psgwrequest.Plo
+	-rm -f ./$(DEPDIR)/psgwres.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -965,6 +900,10 @@ VCVERSION ?= $(top_srcdir)/scripts/vcversion
 
 %: %.in
 	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
+
+psgw.lo: AM_CPPFLAGS += -DPLUGINDIR=\"$(plugindir)\"
+psgwconfig.lo: AM_CPPFLAGS += -DPKGSYSCONFDIR=\"$(sysconfdir)/parastation\"  \
+		-DBINDIR=\"$(bindir)\" -DPSGWLIBDIR=\"$(psgwlibdir)\"
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
