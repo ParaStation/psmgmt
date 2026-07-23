@@ -4299,8 +4299,16 @@ static void handleSlotsResult(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 
     /* store assigned slots to track resources not yet consumed by spawn */
     if (!task->spawnSlots || task->spawnSlotsSize < (unsigned) rank + num) {
-	task->spawnSlots = realloc(task->spawnSlots,
-				   (rank + num) * sizeof(*task->spawnSlots));
+	PSpart_slot_t *tmpSlots = realloc(task->spawnSlots,
+		(rank + num) * sizeof(*task->spawnSlots));
+	if (!tmpSlots) {
+	    PSID_fwarn(errno, "realloc() for %s",
+		       PSC_printTID(msg->header.dest));
+	    eno = errno;
+	    goto error;
+	}
+	task->spawnSlots = tmpSlots;
+
 	for (int32_t r = task->spawnSlotsSize; r < rank + num; r++) {
 	    task->spawnSlots[r].node = -1;
 	    PSCPU_clrAll(task->spawnSlots[r].CPUset);

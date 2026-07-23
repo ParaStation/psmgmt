@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -248,6 +248,10 @@ static void insertIPTable(unsigned int ip_addr, int node)
 	ip = &iptable[idx];
 	while (ip->next) ip = ip->next; /* search end */
 	ip->next = malloc(sizeof(ipentry_t));
+	if (!ip->next) {
+	    MCast_log(MCAST_LOG_INIT, "%s: out of memory\n", __func__);
+	    return;
+	}
 	ip = ip->next;
 	ip->next = NULL;
 	ip->ipnr = ip_addr;

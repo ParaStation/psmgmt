@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -97,6 +97,11 @@ struct PS_DataBuffer {
 PS_DataBuffer_t PSdbNew(char *buffer, size_t bufSize)
 {
     PS_DataBuffer_t data = calloc(1, sizeof(*data));
+    if (!data) {
+	PSC_flog("out of memory\n");
+	return NULL;
+    }
+
     data->buf = data->unpackPtr = buffer;
     data->size = data->used = bufSize;
 
