@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022-2024 ParTec AG, Munich
+# Copyright (C) 2022-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,8 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
 AM_CFLAGS += -std=gnu99
 AM_LDFLAGS += -avoid-version -module
 
+AM_CPPFLAGS += $(pmix_CFLAGS)
+
 plugin_LTLIBRARIES = pspmix.la
 
 pspmix_la_SOURCES = pspmixmain.c pspmixtypes.h pspmixlog.c		\
@@ -28,11 +30,9 @@ pspmix_la_SOURCES = pspmixmain.c pspmixtypes.h pspmixlog.c		\
 	pspmixservice.h pspmixserver.c pspmixserver.h pspmixutil.c	\
 	pspmixutil.h pspmixhandles.h
 
-pspmix_la_CPPFLAGS = $(AM_CPPFLAGS) \
-		     -DPKGLIBEXECDIR=\"$(pkglibexecdir)\" \
-		     -DPLUGINDIR=\"$(plugindir)\"
+pspmixforwarder.lo: AM_CPPFLAGS += -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
+pspmixmain.lo: AM_CPPFLAGS += -DPLUGINDIR=\"$(plugindir)\"
 
-pspmix_la_CFLAGS = $(AM_CFLAGS) $(pmix_CFLAGS)
 pspmix_la_LIBADD = $(pmix_LIBS) $(libplugincommon) $(libpscommon) $(libpsi)
 
 dist_plugin_DATA = pspmix.conf
