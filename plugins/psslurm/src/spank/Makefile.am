@@ -23,8 +23,6 @@ slurmlib_LTLIBRARIES = cudaspank.la energyreport.la globresspank.la \
 	perftoolspank.la showglobresspank.la spank_api.la \
 	visspank.la x11spank.la psetspank.la
 
-AM_CPPFLAGS += -DSLURMLIBDIR=\"$(slurmlibdir)\"
-
 spank_api_la_SOURCES = spank_api.c spank_api.h
 
 cudaspank_la_SOURCES = cudaspank.c

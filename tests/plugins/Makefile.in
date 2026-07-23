@@ -18,7 +18,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021-2022 ParTec AG, Munich
+# Copyright (C) 2021-2026 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -217,7 +217,7 @@ psBlackHole_la_SOURCES = psBlackHole.c
 psBlackHole_la_OBJECTS = psBlackHole.lo
 spank_test_la_LIBADD =
 spank_test_la_SOURCES = spank_test.c
-spank_test_la_OBJECTS = spank_test_la-spank_test.lo
+spank_test_la_OBJECTS = spank_test.lo
 @SPANK_ENABLED_TRUE@am_spank_test_la_rpath =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -245,7 +245,7 @@ am__depfiles_remade = ./$(DEPDIR)/delayPSPMsg.Plo \
 	./$(DEPDIR)/plugin6.Plo ./$(DEPDIR)/plugin7.Plo \
 	./$(DEPDIR)/plugin8.Plo ./$(DEPDIR)/plugin9.Plo \
 	./$(DEPDIR)/pluginpsconfig.Plo ./$(DEPDIR)/psBlackHole.Plo \
-	./$(DEPDIR)/spank_test_la-spank_test.Plo
+	./$(DEPDIR)/spank_test.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -511,7 +511,6 @@ fakenode_la_LIBADD = $(libplugincommon) $(libpscommon)
 oldHook_la_LIBADD = $(libplugincommon) $(libpscommon)
 pluginpsconfig_la_LIBADD = $(libplugincommon) $(libpscommon)
 psBlackHole_la_LIBADD = $(libplugincommon) $(libpscommon)
-@SPANK_ENABLED_TRUE@spank_test_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 all: all-am
 
 .SUFFIXES:
@@ -674,7 +673,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugin9.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpsconfig.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psBlackHole.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spank_test_la-spank_test.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spank_test.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -719,13 +718,6 @@ fakenode_la-fakenode.lo: fakenode.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='fakenode.c' object='fakenode_la-fakenode.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakenode_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakenode_la-fakenode.lo `test -f 'fakenode.c' || echo '$(srcdir)/'`fakenode.c
-
-spank_test_la-spank_test.lo: spank_test.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spank_test_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT spank_test_la-spank_test.lo -MD -MP -MF $(DEPDIR)/spank_test_la-spank_test.Tpo -c -o spank_test_la-spank_test.lo `test -f 'spank_test.c' || echo '$(srcdir)/'`spank_test.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spank_test_la-spank_test.Tpo $(DEPDIR)/spank_test_la-spank_test.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='spank_test.c' object='spank_test_la-spank_test.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spank_test_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o spank_test_la-spank_test.lo `test -f 'spank_test.c' || echo '$(srcdir)/'`spank_test.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -879,7 +871,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/plugin9.Plo
 	-rm -f ./$(DEPDIR)/pluginpsconfig.Plo
 	-rm -f ./$(DEPDIR)/psBlackHole.Plo
-	-rm -f ./$(DEPDIR)/spank_test_la-spank_test.Plo
+	-rm -f ./$(DEPDIR)/spank_test.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -944,7 +936,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/plugin9.Plo
 	-rm -f ./$(DEPDIR)/pluginpsconfig.Plo
 	-rm -f ./$(DEPDIR)/psBlackHole.Plo
-	-rm -f ./$(DEPDIR)/spank_test_la-spank_test.Plo
+	-rm -f ./$(DEPDIR)/spank_test.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

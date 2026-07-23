@@ -423,8 +423,7 @@ unitdir = @unitdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
 	-I$(top_srcdir)/bin/daemon \
 	-I$(top_srcdir)/$(psslurm_dir)/common \
-	-I$(top_srcdir)/$(psslurm_dir)/psslurm \
-	-DSLURMLIBDIR=\"$(slurmlibdir)\"
+	-I$(top_srcdir)/$(psslurm_dir)/psslurm
 PKG_VER = $(shell $(VCVERSION) -r $(top_srcdir) --fmt version -n)
 PKG_REL = $(shell $(VCVERSION) -r $(top_srcdir) --fmt release -n)
 subst_verbose = $(subst_verbose_$(V))
