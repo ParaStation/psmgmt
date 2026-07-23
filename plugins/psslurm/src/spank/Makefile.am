@@ -18,10 +18,10 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon		\
 	       -I$(top_srcdir)/$(psslurm_dir)/common	\
 	       -I$(top_srcdir)/$(psslurm_dir)/psslurm
 
-slurmlib_LTLIBRARIES = cudaspank.la energyreport.la globresspank.la \
-	nopshcspank.la noturbospank.la perfparanoidspank.la \
-	perftoolspank.la showglobresspank.la spank_api.la \
-	visspank.la x11spank.la psetspank.la
+slurmlib_LTLIBRARIES = cudaspank.la energyreport.la globresspank.la	\
+	nopshcspank.la noturbospank.la perfparanoidspank.la		\
+	perftoolspank.la showglobresspank.la spank_api.la visspank.la	\
+	x11spank.la psetspank.la
 
 spank_api_la_SOURCES = spank_api.c spank_api.h
 

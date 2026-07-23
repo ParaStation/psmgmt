@@ -463,10 +463,10 @@ configdir = $(prefix)/config
 # dito
 scriptsdir = $(prefix)/scripts
 psslurm_dir := plugins/psslurm/src
-slurmlib_LTLIBRARIES = cudaspank.la energyreport.la globresspank.la \
-	nopshcspank.la noturbospank.la perfparanoidspank.la \
-	perftoolspank.la showglobresspank.la spank_api.la \
-	visspank.la x11spank.la psetspank.la
+slurmlib_LTLIBRARIES = cudaspank.la energyreport.la globresspank.la	\
+	nopshcspank.la noturbospank.la perfparanoidspank.la		\
+	perftoolspank.la showglobresspank.la spank_api.la visspank.la	\
+	x11spank.la psetspank.la
 
 spank_api_la_SOURCES = spank_api.c spank_api.h
 cudaspank_la_SOURCES = cudaspank.c

@@ -21,15 +21,15 @@ pspmi_dir     := plugins/pspmi
 
 AM_CFLAGS += -std=gnu99
 AM_LDFLAGS += -avoid-version -module
-AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
-	       -I$(top_srcdir)/$(psslurm_dir)/common \
-	       -I$(top_srcdir)/$(psslurm_dir)/psslurm \
-	       -I$(top_srcdir)/$(psaccount_dir) \
-	       -I$(top_srcdir)/$(pelogue_dir) \
-	       -I$(top_srcdir)/$(psmunge_dir) \
-	       -I$(top_srcdir)/$(pspam_dir) \
-	       -I$(top_srcdir)/$(psexec_dir) \
-	       -I$(top_srcdir)/$(pspmi_dir)
+AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include	\
+		-I$(top_srcdir)/$(psslurm_dir)/common			\
+		-I$(top_srcdir)/$(psslurm_dir)/psslurm			\
+		-I$(top_srcdir)/$(psaccount_dir)			\
+		-I$(top_srcdir)/$(pelogue_dir)				\
+		-I$(top_srcdir)/$(psmunge_dir)				\
+		-I$(top_srcdir)/$(pspam_dir)				\
+		-I$(top_srcdir)/$(psexec_dir)				\
+		-I$(top_srcdir)/$(pspmi_dir)
 
 
 bin_PROGRAMS = psslurmgetbind
@@ -41,11 +41,11 @@ psslurmgetbind_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 
 psslurmgetbind_LDFLAGS= $(AM_LDFLAGS) -lm
 
-psslurmgetbind_LDADD=\
-	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o\
-	$(top_builddir)/lib/plugincommon/.libs/pluginmalloc.o\
-	$(top_builddir)/lib/pscommon/.libs/pscpu.o\
-	$(top_builddir)/lib/plugincommon/.libs/pluginconfig.o\
-	$(top_builddir)/lib/pscommon/.libs/psenv.o \
-	$(top_builddir)/lib/pscommon/.libs/psstrbuf.o \
+psslurmgetbind_LDADD=							\
+	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o	\
+	$(top_builddir)/lib/plugincommon/.libs/pluginmalloc.o		\
+	$(top_builddir)/lib/pscommon/.libs/pscpu.o			\
+	$(top_builddir)/lib/plugincommon/.libs/pluginconfig.o		\
+	$(top_builddir)/lib/pscommon/.libs/psenv.o			\
+	$(top_builddir)/lib/pscommon/.libs/psstrbuf.o			\
 	$(top_builddir)/lib/pscommon/.libs/pscommon.o
