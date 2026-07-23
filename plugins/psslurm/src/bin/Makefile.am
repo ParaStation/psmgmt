@@ -42,7 +42,7 @@ psslurmgetbind_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 psslurmgetbind_LDFLAGS= $(AM_LDFLAGS) -lm
 
 psslurmgetbind_LDADD=							\
-	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o	\
+	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurmpin.o	\
 	$(top_builddir)/lib/plugincommon/.libs/pluginmalloc.o		\
 	$(top_builddir)/lib/pscommon/.libs/pscpu.o			\
 	$(top_builddir)/lib/plugincommon/.libs/pluginconfig.o		\

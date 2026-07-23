@@ -71,18 +71,18 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmcontainer.h psslurmcontainertype.h
 
 if SPANK_ENABLED
-AM_CPPFLAGS += -I$(top_srcdir)/$(psslurm_dir)/spank
-
 psslurm_la_SOURCES += psslurmspank.h psslurmspank.c
+
+psslurmspank.lo: AM_CPPFLAGS += -I$(top_srcdir)/$(psslurm_dir)/spank	\
+				-DSLURMLIBDIR=\"$(slurmlibdir)\"
 endif
 
-psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
-	-DLOCALSTATEDIR=\"$(localstatedir)\"				\
-	-DPKGSYSCONFDIR=\"$(sysconfdir)/parastation\"			\
-	-DPKGLIBEXECDIR=\"$(pkglibexecdir)\" -DBINDIR=\"$(bindir)\"	\
-	-DSLURMLIBDIR=\"$(slurmlibdir)\"
+AM_CPPFLAGS += -DLOCALSTATEDIR=\"$(localstatedir)\"
 
-
+psslurm.lo: AM_CPPFLAGS += -DPLUGINDIR=\"$(plugindir)\"
+psslurmconfig.lo: AM_CPPFLAGS += -DPKGSYSCONFDIR=\"$(sysconfdir)/parastation\"
+psslurmforwarder.lo: AM_CPPFLAGS += -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"  \
+				-DBINDIR=\"$(bindir)\"
 
 psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) \
 		    $(libpscommon) $(NUMA_LIBS) -lm $(libk12)
