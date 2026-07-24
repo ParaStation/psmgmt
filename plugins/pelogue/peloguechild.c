@@ -254,6 +254,11 @@ static void handlePeIO(Forwarder_Data_t *fwdata, PElogue_OEtype_t type,
     /* read message */
     PS_DataBuffer_t data = PSdbNew(msg->buf,
 				   msg->header.len - DDTypedBufMsgOffset);
+    if (!data) {
+	fwarn(errno, "TID %s (%s) jobid %s", PSC_printTID(msg->header.sender),
+	      fwdata->pTitle, fwdata->jobID);
+	return;
+    }
     oeData.msg = getStringM(data);
     PSdbDelete(data);
 

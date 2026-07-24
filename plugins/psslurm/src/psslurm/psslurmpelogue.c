@@ -749,8 +749,13 @@ int handlePelogueDrop(void *droppedMsg)
     /* ignore follow up messages */
     if (fragNum) return 0;
 
-    PS_DataBuffer_t data = PSdbNew(msg->buf + used,
-				   msg->header.len - DDTypedBufMsgOffset - used);
+    PS_DataBuffer_t data =
+	PSdbNew(msg->buf + used, msg->header.len - DDTypedBufMsgOffset - used);
+
+    if (!data) {
+	fwarn(errno, "PSdbNew");
+	return 0;
+    }
 
     /* jobid */
     char *sJobid = getStringM(data);

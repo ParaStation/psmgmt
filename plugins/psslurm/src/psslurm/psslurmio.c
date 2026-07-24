@@ -369,6 +369,15 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
 	for (uint32_t r = 0; r < localRanks; r++) {
 	    lineBuf[r].out = PSdbNew(NULL, 0);
 	    lineBuf[r].err = PSdbNew(NULL, 0);
+	    if (!lineBuf[r].out || !lineBuf[r].err) {
+		fwarn(errno, "PSdbNew on local rank %u", r);
+		for (uint32_t j = 0; j <= r; j++) {
+		    PSdbDestroy(lineBuf[j].out);
+		    PSdbDestroy(lineBuf[j].err);
+		}
+		ufree(lineBuf);
+		return;
+	    }
 	}
     }
 

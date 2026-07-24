@@ -222,7 +222,8 @@ void freeSlurmMsgHead(Slurm_Msg_Header_t *head);
  *
  * @param written The number of bytes already written
  *
- * @return Returns the buffer holding the saved message
+ * @return Returns the buffer holding the saved message on success
+ * otherwise NULL is returned
  */
 Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 			      Req_Info_t *req, Slurm_Auth_t *auth,

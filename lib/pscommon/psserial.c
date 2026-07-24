@@ -98,12 +98,13 @@ PS_DataBuffer_t PSdbNew(char *buffer, size_t bufSize)
 {
     PS_DataBuffer_t data = calloc(1, sizeof(*data));
     if (!data) {
-	PSC_flog("out of memory\n");
-	return NULL;
+	int eno = errno;
+	PSC_fwarn(errno, "calloc()");
+	errno = eno;
+    } else {
+	data->buf = data->unpackPtr = buffer;
+	data->size = data->used = bufSize;
     }
-
-    data->buf = data->unpackPtr = buffer;
-    data->size = data->used = bufSize;
 
     return data;
 }

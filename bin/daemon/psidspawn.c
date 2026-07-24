@@ -2009,6 +2009,13 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	PS_DataBuffer_t data =
 	    PSdbNew(msg->buf + used,
 		    msg->header.len - DDTypedBufMsgOffset - used);
+	if (!data) {
+	    answer.error = errno;
+	    PSID_fwarn(errno, "PSdbNew on %s", PSC_printTID(msg->header.sender));
+	    answer.request = 0;
+	    sendMsg(&answer);
+	    return true;
+	}
 
 	/* ensure we use the same byteorder as libpsi */
 	bool byteOrder = setByteOrder(true);
@@ -2152,6 +2159,10 @@ static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     /* Extract num and rank from message to drop */
     PS_DataBuffer_t data = PSdbNew(msg->buf + used,
 				   msg->header.len - DDTypedBufMsgOffset - used);
+    if (!data) {
+	PSID_fwarn(errno, "PSdbNew on %s", PSC_printTID(msg->header.sender));
+	return true;
+    }
 
     /* ensure we use the same byteorder as libpsi */
     bool byteOrder = setByteOrder(true);

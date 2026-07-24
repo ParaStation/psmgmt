@@ -224,6 +224,13 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info,
 	con->info = info;
 	con->data = PSdbNew(NULL, 0);
 	con->fw.body = PSdbNew(NULL, 0);
+	if (!con->data || !con->fw.body) {
+	    fwarn(errno, "PSdbNew");
+	    PSdbDestroy(con->data);
+	    PSdbDestroy(con->fw.body);
+	    ufree(con);
+	    return NULL;
+	}
 	gettimeofday(&con->openTime, NULL);
 	initSlurmMsgHead(&con->fw.head);
 	con->xpctAnswer = expectAnswer;
@@ -988,6 +995,11 @@ static int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *bod
 		Slurm_Msg_Buf_t *savedMsg;
 
 		savedMsg = saveSlurmMsg(head, body, req, NULL, -1, 0);
+		if (!savedMsg) {
+		    flog("saveSlurmMsg() failed\n");
+		    ufree(req);
+		    return -1;
+		}
 		if (setReconTimer(savedMsg) == -1) {
 		    flog("setting resend timer failed\n");
 		    /* without a connection the request has to be freed */
@@ -1010,6 +1022,12 @@ static int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *bod
     PSCio_setFDblock(sock, false);
 
     PS_DataBuffer_t payload = PSdbNew(NULL, 0);
+    if (!payload) {
+	fwarn(errno, "PSdbNew(): caller %s:%i", caller, line);
+	freeSlurmAuth(auth);
+	if (sockCreated) closeSlurmCon(sock);
+	return -1;
+    }
     memToDataBuffer(body->buf, body->bufUsed, payload);
 
     PS_SendDB_t data = sendDBnoFrag;
@@ -1022,8 +1040,15 @@ static int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *bod
 	    /* msg was fractionally written, retry later */
 	    Slurm_Msg_Buf_t *savedMsg = saveSlurmMsg(head, body, req, auth,
 						     sock, written);
-	    Selector_awaitWrite(sock, resendSlurmMsg, savedMsg);
-	    ret = -2;
+	    if (!savedMsg) {
+		flog("saveSlurmMsg() failed for type %s\n",
+		     msgType2String(head->type));
+		if (sockCreated) closeSlurmCon(sock);
+		ret = -1;
+	    } else {
+		Selector_awaitWrite(sock, resendSlurmMsg, savedMsg);
+		ret = -2;
+	    }
 	} else {
 	    flog("sending msg type %s failed\n", msgType2String(head->type));
 	    if (sockCreated) closeSlurmCon(sock);
@@ -1540,6 +1565,10 @@ int handleSrunIOMsg(int sock, void *stepPtr)
     }
 
     PS_DataBuffer_t data = PSdbNew(buffer, rcvd);
+    if (!data) {
+	fwarn(errno, "PSdbNew on %s", Step_strID(step));
+	goto ERROR;
+    }
     bool success = unpackSlurmIOHeader(data, &ioh);
     PSdbDelete(data);
     if (!success) {

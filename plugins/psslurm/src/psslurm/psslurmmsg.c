@@ -326,6 +326,13 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 
     /* save data buffer */
     msgBuf->body = PSdbNew(NULL, 0);
+    if (!msgBuf->body) {
+	fwarn(errno, "PSdbNew");
+	if (msgBuf->auth) freeSlurmAuth(msgBuf->auth);
+	freeSlurmMsgHead(&msgBuf->head);
+	ufree(msgBuf);
+	return NULL;
+    }
     memToDataBuffer(body->buf, body->bufUsed, msgBuf->body);
 
     list_add_tail(&msgBuf->next, &msgBufList);

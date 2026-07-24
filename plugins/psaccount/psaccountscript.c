@@ -130,6 +130,10 @@ static bool handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 
     PS_DataBuffer_t data = PSdbNew(msg->buf,
 				   msg->header.len - DDTypedBufMsgOffset);
+    if (!data) {
+	fwarn(errno, "PSdbNew on %s", fwdata->pTitle);
+	return false;
+    }
 
     bool ret = true;
     switch (msg->type) {
@@ -326,6 +330,10 @@ static bool handleMthrMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 
     PS_DataBuffer_t data = PSdbNew(msg->buf,
 				   msg->header.len - DDTypedBufMsgOffset);
+    if (!data) {
+	fwarn(errno, "PSdbNew on %s", fwdata->pTitle);
+	return false;
+    }
 
     bool ret = true;
     switch ((PSACCOUNT_Fw_Cmds_t)msg->type) {

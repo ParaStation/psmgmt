@@ -1610,8 +1610,12 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     /* ignore follow up messages */
     if (fragNum) return;
 
-    PS_DataBuffer_t data = PSdbNew(msg->buf + used,
-				   msg->header.len - DDTypedBufMsgOffset - used);
+    PS_DataBuffer_t data =
+	PSdbNew(msg->buf + used, msg->header.len - DDTypedBufMsgOffset - used);
+    if (!data) {
+	fwarn(errno, "PSdbNew");
+	return;
+    }
 
     Slurm_Msg_t sMsg;
     initSlurmMsg(&sMsg);

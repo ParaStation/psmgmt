@@ -2462,6 +2462,19 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 	fw->head.fwRes[i].type = RESPONSE_FORWARD_FAILED;
 	fw->head.fwRes[i].node = -1;
 	fw->head.fwRes[i].body = PSdbNew(NULL, 0);
+	if (!fw->head.fwRes[i].body) {
+	    fwarn(errno, "PSdbNew on fwRes[%u]", i);
+	    for (uint16_t j = 0; j < i; j++) {
+		PSdbDestroy(fw->head.fwRes[j].body);
+	    }
+	    ufree(fw->head.fwRes);
+	    fw->head.fwRes = NULL;
+	    fw->head.fwResSize = 0;
+	    fw->nodes = NULL;
+	    fw->nodesCount = 0;
+	    ufree(nodes);
+	    return false;
+	}
     }
 
     bool verbose = mset(PSSLURM_LOG_FWD);

@@ -262,6 +262,10 @@ static bool handleFwMsg(DDTypedBufferMsg_t *ddMsg, Forwarder_Data_t *fwdata)
 	/* read message */
 	PS_DataBuffer_t data = PSdbNew(ddMsg->buf,
 				       ddMsg->header.len - DDTypedBufMsgOffset);
+	if (!data) {
+	    pluginfwarn(errno, "PSdbNew on %s", strvGet(script->argV, 0));
+	    return true;
+	}
 	char *msg = getStringM(data);
 	PSdbDelete(data);
 

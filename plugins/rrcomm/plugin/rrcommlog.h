@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,6 +23,7 @@ extern logger_t RRCommLogger;
 
 #define flog(...) logger_funcprint(RRCommLogger, __func__, -1, __VA_ARGS__)
 #define fdbg(...) logger_funcprint(RRCommLogger, __func__, __VA_ARGS__)
+#define fwarn(...) logger_funcwarn(RRCommLogger, __func__, -1, __VA_ARGS__)
 
 typedef enum {
     RRCOMM_LOG_COMM    = 0x00001,   /**< All about routing */

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -89,7 +89,8 @@ typedef ssize_t Send_Msg_Func_t(void *);
  * @param bufSize Size of @a buffer
  *
  * @return On success a properly initialized data-buffer is returned
- * or NULL in case of error
+ * or NULL in case of error; in the latter case @ref errno is set
+ * appropriately
  */
 PS_DataBuffer_t PSdbNew(char *buffer, size_t bufSize);
 

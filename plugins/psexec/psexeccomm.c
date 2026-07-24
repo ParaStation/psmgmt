@@ -10,6 +10,7 @@
  */
 #include "psexeccomm.h"
 
+#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -250,8 +251,14 @@ static void dropExecMsg(DDTypedBufferMsg_t *msg)
     /* ignore follow up messages */
     if (fragNum) return;
 
-    PS_DataBuffer_t data = PSdbNew(msg->buf + used,
-				   msg->header.len - DDTypedBufMsgOffset - used);
+    PS_DataBuffer_t data =
+	PSdbNew(msg->buf + used,
+		msg->header.len - DDTypedBufMsgOffset - used);
+
+    if (!data) {
+	mwarn(errno, "%s: PSdbNew", __func__);
+	return;
+    }
 
     /* uID */
     uint16_t uID;
