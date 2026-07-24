@@ -1226,6 +1226,7 @@ static void pushEnv(void)
 	putenv(*e);
     }
     envSteal(localEnv);
+    localEnv = NULL;
 }
 
 /*----------------------------------------------------------------------*/
@@ -1943,6 +1944,7 @@ static void cleanup(void)
     nodeconf.cpumap = NULL;
     nodeconf.cpumap_maxsize = 0;
     envDestroy(localEnv);
+    localEnv = NULL;
 
     psconfigobj = NULL;
     psconfig_unref(psconfig);

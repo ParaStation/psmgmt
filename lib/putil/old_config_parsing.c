@@ -1666,6 +1666,7 @@ static void pushEnv(void)
 	putenv(*e);
     }
     envSteal(localEnv);
+    localEnv = NULL;
 }
 
 /*----------------------------------------------------------------------*/
@@ -1985,6 +1986,7 @@ static int getNodeLine(char *token)
 	PSC_setMyID(nodenum);
     } else {
 	envDestroy(localEnv);
+	localEnv = NULL;
     }
 
     return ret;
@@ -2207,6 +2209,7 @@ static int getMultiNodes(char *token)
     free(thisID);
 
     envDestroy(localEnv);
+    localEnv = NULL;
 
     return ret;
 }
