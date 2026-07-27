@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -37,19 +37,19 @@ static bool initPluginHandles(void)
 
     /* get psaccount function handles */
     if (!pluginHandle) {
-	mlog("%s: getting psaccount handle failed\n", __func__);
+	flog("getting psaccount handle failed\n");
 	return false;
     }
 
     psAccountSignalSession = dlsym(pluginHandle, "psAccountSignalSession");
     if (!psAccountSignalSession) {
-	mlog("%s: loading function psAccountSignalSession() failed\n",__func__);
+	flog("loading function psAccountSignalSession() failed\n");
 	return false;
     }
 
     psAccountIsDescendant = dlsym(pluginHandle, "psAccountIsDescendant");
     if (!psAccountIsDescendant) {
-	mlog("%s: loading function psAccountIsDescendant() failed\n",__func__);
+	flog("loading function psAccountIsDescendant() failed\n");
 	return false;
     }
 
@@ -63,7 +63,7 @@ int initialize(FILE *logfile)
 
     /* we need to have root privileges */
     if (getuid() != 0) {
-	mlog("%s: pspam must have root privileges\n", __func__);
+	flog("pspam must have root privileges\n");
 	return 1;
     }
 

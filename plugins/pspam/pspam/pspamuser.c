@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -78,7 +78,7 @@ void setState(char *username, char *jobID, PSPAMState_t state)
     User_t *user = findUser(username, jobID);
 
     if (!jobID || !user) {
-	if (jobID) mlog("%s: no entry for %s/%s\n", __func__, username, jobID);
+	if (jobID) flog("no entry for %s/%s\n", username, jobID);
 	return;
     }
 
@@ -90,7 +90,7 @@ void deleteUser(char *username, char *jobID)
     User_t *user = findUser(username, jobID);
 
     if (!jobID || !user) {
-	if (jobID) mdbg(PSPAM_LOG_DEBUG, "%s: no entry for %s/%s\n", __func__,
+	if (jobID) fdbg(PSPAM_LOG_DEBUG, "no entry for %s/%s\n",
 			username, jobID);
 	return;
     }

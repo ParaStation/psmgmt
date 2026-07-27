@@ -19,6 +19,8 @@
 #include "psstrbuf.h"
 #include "psaccounthandles.h"
 
+#include "pspamlog.h"
+
 /* list holding all ssh sessions */
 static LIST_HEAD(sshList);
 

@@ -69,8 +69,8 @@ static PSPAMResult_t handleOpenRequest(PS_DataBuffer_t data)
     /* reset psserial's byteorder */
     setByteOrder(byteOrder);
 
-    mdbg(PSPAM_LOG_DEBUG, "%s: got pam request user: '%s' pid: %i sid: %i"
-	 " rhost: '%s'\n", __func__, user, pid, sid, rhost);
+    fdbg(PSPAM_LOG_DEBUG, "got pam request user: '%s' pid: %i sid: %i"
+	 " rhost: '%s'\n", user, pid, sid, rhost);
 
     uid_t uid = PSC_uidFromString(user);
     gid_t gid = PSC_gidFromString(user);
@@ -90,26 +90,24 @@ static PSPAMResult_t handleOpenRequest(PS_DataBuffer_t data)
 		/* Jail allowed ssh processes */
 		int ret = PSID_execFunc(jailChild, NULL, NULL, NULL, session);
 		if (ret < 0) {
-		    mlog("%s: jail script failed with exit status %i\n",
-			 __func__, ret);
+		    flog("jail script failed with exit status %i\n", ret);
 		    res = PSPAM_RES_JAIL;
 
 		    if (verifySessionPtr(session)) {
 			killSessions(session->user);
 		    } else {
-			mlog("%s: invalid session pointer: ssh process cannot "
-			     "be killed\n", __func__);
+			flog("invalid session pointer: cannot kill ssh process\n");
 		    }
 		}
 	    } else {
-		mlog("%s: saving session for user %s failed\n", __func__, user);
+		flog("saving session for user %s failed\n", user);
 		res = PSPAM_RES_DENY;
 	    }
 	}
     }
 
-    mdbg(PSPAM_LOG_DEBUG, "%s: reply to user '%s' rhost '%s': %i\n", __func__,
-	 user, rhost, res);
+    fdbg(PSPAM_LOG_DEBUG, "reply to user '%s' rhost '%s': %i\n", user,
+	 rhost, res);
 
     return res;
 }
@@ -124,8 +122,7 @@ static void handleCloseRequest(PS_DataBuffer_t data)
     /* get pam username */
     getString(data, user, sizeof(user));
 
-    mdbg(PSPAM_LOG_DEBUG, "%s: got pam close of user: '%s' pid: %i\n", __func__,
-	 user, pid);
+    fdbg(PSPAM_LOG_DEBUG, "got pam close of user: '%s' pid: %i\n", user, pid);
     rmSession(user, pid);
 }
 
@@ -136,18 +133,18 @@ static int handlePamRequest(int sock, void *empty)
     int32_t msgLen;
     ssize_t ret = PSCio_recvBuf(sock, &msgLen, sizeof(msgLen));
     if (ret != sizeof(msgLen)) {
-	if (ret != 0) mlog("%s: reading msgLen failed\n", __func__);
+	if (ret != 0) flog("reading msgLen failed\n");
 	goto CLEANUP;
     }
 
     if (msgLen > BUF_SIZE) {
-	mlog("%s: message too large (%d/%d)\n", __func__, msgLen, BUF_SIZE);
+	flog("message too large (%d/%d)\n", msgLen, BUF_SIZE);
 	goto CLEANUP;
     }
 
     char buf[BUF_SIZE];
     if (PSCio_recvBuf(sock, buf, msgLen) != msgLen) {
-	mlog("%s: reading request failed\n" , __func__);
+	flog("reading request failed\n");
 	goto CLEANUP;
     }
 
@@ -242,12 +239,12 @@ bool initComm(void)
 {
     masterSock = setupPAMSock(pspamSocketName);
     if (masterSock == -1) {
-	mlog("%s: pspam already loaded?\n", __func__);
+	flog("pspam already loaded?\n");
 	return false;
     }
 
     if (Selector_register(masterSock, handleMasterSocket, NULL) == -1) {
-	mlog("%s: Selector_register(%i) failed\n", __func__, masterSock);
+	flog("Selector_register(%i) failed\n", masterSock);
 	return false;
     }
 
