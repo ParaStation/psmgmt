@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2024 ParTec AG, Munich
+ * Copyright (C) 2024-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,7 +32,8 @@ typedef struct strbuf * strbuf_t;
  * @a str String to pre-fill the new string buffer context with
  *
  * @return Handle to the string buffer context if it was successfully
- * created or NULL
+ * created or NULL in case of error; in the latter case errno is set
+ * appropriately
  */
 strbuf_t strbufNew(const char *str);
 
