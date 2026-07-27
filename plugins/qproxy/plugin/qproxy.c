@@ -116,6 +116,7 @@ char *help(char *key)
 
     pluginConfig_helpDesc(QProxyConfig, buf);
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -154,6 +155,6 @@ char *show(char *key)
     } else if (!pluginConfig_showKeyVal(QProxyConfig, key, buf)) {
 	return strdup("\tunknown option\n");
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }

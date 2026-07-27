@@ -681,6 +681,7 @@ static bool doShow(const char *key, int keyLen, const pluginConfigVal_t *val,
 	strbufAdd(buf, keyStr);
 	strbufAdd(buf, " has unknown type\n");
     }
+    if (!strbufValid(buf)) pluginflog("strbuf failed\n");
     return true;
 }
 
@@ -712,6 +713,7 @@ void pluginConfig_helpDesc(pluginConfig_t conf, strbuf_t buf)
 
     if (!checkConfig(conf)) {
 	strbufAdd(buf, "\tNo configuration context provided.\n");
+	if (!strbufValid(buf)) pluginflog("strbuf failed without config\n");
 	return;
     }
 
@@ -728,6 +730,7 @@ void pluginConfig_helpDesc(pluginConfig_t conf, strbuf_t buf)
 	strbufAdd(buf, conf->def[i].desc);
 	strbufAdd(buf, "\n");
     }
+    if (!strbufValid(buf)) pluginflog("strbuf failed\n");
 }
 
 bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,

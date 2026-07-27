@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2025 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -52,7 +52,7 @@ static char *showConfig(void)
 	snprintf(line, sizeof(line), "\t%*s = %s\n", maxKeyLen+1, cName, cVal);
 	strbufAdd(buf, line);
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -69,6 +69,7 @@ static char *showEnergy(void)
 	     e->energyBase, e->energyCur);
     strbufAdd(buf, line);
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -78,6 +79,7 @@ char *show(char *key)
 	strbuf_t buf = strbufNew("\t");
 	strbufAdd(buf, "use: show key [clients|dclients|jobs|config|energy");
 	strbufAdd(buf, "|EnergyEnv[_<name>]|FSEnv[_<name>]|ICEnv[_<name>]]\n");
+	if (!strbufValid(buf)) flog("strbuf failed on no key\n");
 	return strbufSteal(buf);
     }
 
@@ -111,6 +113,7 @@ char *show(char *key)
     strbuf_t buf = strbufNew("\t");
     strbufAdd(buf, "invalid key, use [clients|dclients|jobs|config|energy");
     strbufAdd(buf, "|EnergyEnv[_<name>]|FSEnv[_<name>]|ICEnv[_<name>]]\n");
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -156,6 +159,7 @@ static void ctlScript(strbuf_t buf, monStart_t *startFunc, monStop_t *stopFunc,
 	strbufAdd(buf, cmd);
 	strbufAdd(buf, "', use 'start' or 'stop'\n");
     }
+    if (!strbufValid(buf)) flog("strbuf failed\n");
 }
 
 /** define monitor control environment function */
@@ -168,6 +172,7 @@ static void setScriptEnv(strbuf_t buf, monCtlEnv_t *envCtl, char *scriptName,
 	strbufAdd(buf, "\tfailed to set environment");
     }
     strbufAdd(buf, "\n");
+    if (!strbufValid(buf)) flog("strbuf failed\n");
 }
 
 static void unsetScriptEnv(strbuf_t buf, monCtlEnv_t *envCtl, char *scriptName,
@@ -177,6 +182,7 @@ static void unsetScriptEnv(strbuf_t buf, monCtlEnv_t *envCtl, char *scriptName,
 	strbufAdd(buf, "failed to unset environment");
     }
     strbufAdd(buf, "\n");
+    if (!strbufValid(buf)) flog("strbuf failed\n");
 }
 
 char *set(char *key, char *val)
@@ -247,7 +253,7 @@ char *set(char *key, char *val)
 	strbufAdd(buf, key);
 	strbufAdd(buf, "' for cmd set: use 'plugin help psaccount' for help\n");
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -285,7 +291,7 @@ char *unset(char *key)
 	strbufAdd(buf, key);
 	strbufAdd(buf, "' for cmd unset: use 'plugin help psaccount' for help.\n");
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -311,5 +317,6 @@ char *help(char *key)
     strbufAdd(buf, "\nunset [EnergyEnv_<name>|ICEnv_<name>|FSEnv_<name>]\n");
     strbufAdd(buf, "\tto remove environment from monitor scripts\n");
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }

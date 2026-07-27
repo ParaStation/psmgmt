@@ -635,6 +635,7 @@ static char *replaceSymbols(Head_ID_t *hID, char *hostname, int nodeid,
     strbufAdd(buf, ptr);
     fdbg(PSSLURM_LOG_IO, "orig '%s' result: '%s'\n", path, strbufStr(buf));
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -674,6 +675,7 @@ static char *addCwd(char *cwd, char *path)
     strbufAdd(buf, path);
     ufree(path);
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 

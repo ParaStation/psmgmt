@@ -625,5 +625,6 @@ char *Script_showEnv(env_t env, const char *name)
 	}
     }
     strbufAdd(buf, "\n");
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }

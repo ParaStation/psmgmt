@@ -1228,13 +1228,17 @@ static void addVal2List(strbuf_t buf, int32_t val, bool range, bool fin,
 	    strbufAdd(buf, tmp);
 	}
 	lastVal = rangeVal = -1;
+	if (!strbufValid(buf)) flog("strbuf failed at fin\n");
 	return;
     }
 
     /* call convert func */
     if (conv) {
 	val = conv(val);
-	if (val == -1) return;
+	if (val == -1) {
+	    if (!strbufValid(buf)) flog("strbuf failed at conv\n");
+	    return;
+	}
     }
 
     if (range) {
@@ -1260,6 +1264,7 @@ static void addVal2List(strbuf_t buf, int32_t val, bool range, bool fin,
 	snprintf(tmp, sizeof(tmp), "%i", val);
 	strbufAdd(buf, tmp);
     }
+    if (!strbufValid(buf)) flog("strbuf failed\n");
 }
 
 bool hexBitstr2List(char *bitstr, strbuf_t buf, bool range)
@@ -1302,6 +1307,7 @@ bool hexBitstr2ListEx(char *bitstr, strbuf_t buf, bool range,
     if (range) addVal2List(buf, 0, range, true, conv);
     strbufAdd(buf, "");
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return true;
 }
 

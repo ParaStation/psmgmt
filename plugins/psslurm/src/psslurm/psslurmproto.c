@@ -1112,6 +1112,7 @@ static int handleRebootNodes(Slurm_Msg_t *sMsg)
 		strbufAdd(cmd, " ");
 		strbufAdd(cmd, req->features);
 	    }
+	    if (!strbufValid(cmd)) flog("strbuf failed\n");
 	    char *cmdStr = strbufSteal(cmd);
 	    flog("calling reboot program '%s'\n", cmdStr);
 	    PSID_execScript(cmdStr, NULL, &cbRebootProgram, NULL, cmdStr);

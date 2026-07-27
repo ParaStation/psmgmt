@@ -159,7 +159,7 @@ char *listSessions(void)
 	    strbufAdd(buf, l);
 	}
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 

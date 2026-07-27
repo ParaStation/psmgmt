@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -93,7 +93,7 @@ char *help(char *key)
 		 maxKeyLen+2, confDef[i].name, type, confDef[i].desc);
 	strbufAdd(buf, line);
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -154,7 +154,7 @@ char *show(char *key)
 	strbufAdd(buf, val);
 	strbufAdd(buf, "\n");
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

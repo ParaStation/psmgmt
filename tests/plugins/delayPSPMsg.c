@@ -398,7 +398,7 @@ static char * doEval(const char *key, const pluginConfigVal_t *val,
     } else {
 	pluginflog("unknown key '%s'\n", key);
     }
-
+    if (!strbufValid(buf)) pluginflog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -487,6 +487,8 @@ char * help(char *key)
     strbufAdd(buf, "\n# configuration options #\n\n");
 
     pluginConfig_helpDesc(config, buf);
+
+    if (!strbufValid(buf)) pluginflog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -494,6 +496,7 @@ static void printDelays(strbuf_t buf)
 {
     if (list_empty(&delayContainerList)) {
 	strbufAdd(buf, "\tno messages to be delayed\n\n");
+	if (!strbufValid(buf)) pluginflog("strbuf failed on no delays\n");
 	return;
     }
 
@@ -509,6 +512,7 @@ static void printDelays(strbuf_t buf)
 	strbufAdd(buf, tmpStr);
     }
     strbufAdd(buf, "\n");
+    if (!strbufValid(buf)) pluginflog("strbuf failed\n");
 }
 
 char * show(char *key)
@@ -526,6 +530,7 @@ char * show(char *key)
 	strbufAdd(buf, key);
 	strbufAdd(buf, "' is unknown\n");
     }
+    if (!strbufValid(buf)) pluginflog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -540,6 +545,7 @@ static int16_t resolveMsgType(char *typeStr, strbuf_t buf)
 	    strbufAdd(buf, "\tunknown message type '");
 	    strbufAdd(buf, typeStr);
 	    strbufAdd(buf, "'\n");
+	    if (!strbufValid(buf)) pluginflog("strbuf failed on unknown type\n");
 	    return -1;
 	}
     }
@@ -553,9 +559,10 @@ char * set(char *key, char *val)
     if (thisDef) {
 	if (!pluginConfig_addStr(config, key, val)) {
 	    strbuf_t buf = strbufNew(NULL);
-	    strbufAdd(buf, "  Illegal value '");
+	    strbufAdd(buf, "  illegal value '");
 	    strbufAdd(buf, val);
 	    strbufAdd(buf, "'\n");
+	    if (!strbufValid(buf)) pluginflog("strbuf failed on illegal value\n");
 	    return strbufSteal(buf);
 	}
 	return doEval(key, pluginConfig_get(config, key), NULL);
@@ -588,7 +595,7 @@ char * set(char *key, char *val)
 	strbufAdd(buf, val);
 	strbufAdd(buf, " msec\n");
     }
-
+    if (!strbufValid(buf)) pluginflog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -615,6 +622,6 @@ char * unset(char *key)
 	strbufAdd(buf, PSDaemonP_printMsg(msgType));
 	strbufAdd(buf, "' removed\n");
     }
-
+    if (!strbufValid(buf)) pluginflog("strbuf failed\n");
     return strbufSteal(buf);
 }

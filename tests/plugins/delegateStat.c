@@ -152,6 +152,7 @@ char * show(char *key)
 	     task->pendingReleaseRes);
     strbufAdd(buf, l);
 
+    if (!strbufValid(buf)) pluginflog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -205,6 +206,6 @@ char * set(char *key, char *val)
     } else {
 	strbufAdd(buf, "\nno partition to reset\n");
     }
-
+    if (!strbufValid(buf)) pluginflog("strbuf failed\n");
     return strbufSteal(buf);
 }

@@ -202,7 +202,11 @@ static int termJail(void *info)
 	strbufAdd(allocList, tmp);
     }
 
-    setenv("__PSJAIL_ALLOC_LIST", strbufStr(allocList), 1);
+    if (strbufValid(allocList)) {
+	setenv("__PSJAIL_ALLOC_LIST", strbufStr(allocList), 1);
+    } else {
+	flog("strbuf failed\n");
+    }
     strbufDestroy(allocList);
 
     setJailEnv(alloc->env, alloc->username, NULL, alloc->hwthreads,

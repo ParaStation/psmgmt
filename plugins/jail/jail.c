@@ -253,7 +253,7 @@ char *help(char *key)
 		 maxKeyLen+2, confDef[i].name, type, confDef[i].desc);
 	strbufAdd(buf, line);
     }
-
+    if (!strbufValid(buf)) jlog(-1, "strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -299,7 +299,7 @@ char *set(char *key, char *val)
     } else {
 	strbufAdd(buf, "\nPermission denied\n");
     }
-
+    if (!strbufValid(buf)) jlog(-1, "strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -391,6 +391,6 @@ char *show(char *key)
 	strbufAdd(buf, val);
 	strbufAdd(buf, "\n");
     }
-
+    if (!strbufValid(buf)) jlog(-1, "strbuf failed\n");
     return strbufSteal(buf);
 }

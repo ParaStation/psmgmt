@@ -112,6 +112,7 @@ static char *getCPUsPerNode(Job_t *job)
 	}
 	strbufAdd(buf, tmp);
     }
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -187,6 +188,7 @@ static char *getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes)
 	last = current;
 	count = 1;
     }
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -256,6 +258,7 @@ static char *getCompactThreadList(const PSCPU_set_t threads)
     }
     strbufAdd(buf, tmp);
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -811,6 +814,7 @@ static char *GTIDsToList(Step_t *step)
 		 step->globalTaskIds[step->localNodeId][i] + offset);
 	strbufAdd(buf, tmp);
     }
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -983,7 +987,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    strbufAdd(buf, tmpbuf);
 	    comma = 1;
 	}
-
+	if (!strbufValid(buf)) flog("strbuf failed for GPUsList\n");
 	bindgpus = strbufSteal(buf);
 	freebindgpus = true;
     }
@@ -1007,6 +1011,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	    strbufAdd(cgroupsList, tmpbuf);
 	}
 	if (freebindgpus) free(bindgpus);
+	if (!strbufValid(cgroupsList)) flog("strbuf failed for cgroupsList\n");
 	bindgpus = strbufSteal(cgroupsList);
 	freebindgpus = true;
     }

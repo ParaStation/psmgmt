@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -29,6 +29,7 @@ char *show(char *key)
 		 "\nuse 'plugin %s %s key [users|sessions|debug]'\n",
 		 name, __func__);
 	strbufAdd(buf, l);
+	if (!strbufValid(buf)) flog("strbuf failed\n");
 	return strbufSteal(buf);
     }
 
@@ -47,6 +48,7 @@ char *show(char *key)
 	snprintf(l, sizeof(l), "\ninvalid key %s (users, sessions, debug)\n", key);
 	strbufAdd(buf, l);
     }
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -69,7 +71,7 @@ char *set(char *key, char *val)
 	snprintf(l, sizeof(l), "\ninvalid key %s (debug)\n", key);
 	strbufAdd(buf, l);
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 

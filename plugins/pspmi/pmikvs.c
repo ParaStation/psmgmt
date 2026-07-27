@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -46,6 +46,7 @@ char *set(char *key, char *value)
 	strbufAdd(buf, key ? key : "<empty>");
 	strbufAdd(buf, "' for cmd set : use 'plugin help pspmi' for help.\n");
     }
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -57,6 +58,7 @@ char *show(char *key)
     strbufAdd(buf, key ? key : "<empty>");
     strbufAdd(buf, "' for cmd show : use 'plugin help pspmi'.\n");
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -77,7 +79,7 @@ char *unset(char *key)
 	strbufAdd(buf, key ? key : "<empty>");
 	strbufAdd(buf, "' for cmd unset : use 'plugin help pspmi' for help.\n");
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 

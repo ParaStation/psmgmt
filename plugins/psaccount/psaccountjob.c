@@ -307,7 +307,7 @@ char *listJobs(void)
 
 	strbufAdd(buf, "-\n");
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 

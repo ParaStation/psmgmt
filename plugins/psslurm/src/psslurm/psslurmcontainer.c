@@ -136,6 +136,7 @@ static char *replaceSymbols(const char *line, Slurm_Container_t *ct)
     strbufAdd(buf, ptr);
     fdbg(PSSLURM_LOG_DEBUG, "orig '%s' result: '%s'\n", line, strbufStr(buf));
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 

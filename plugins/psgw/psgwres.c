@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -525,7 +525,7 @@ static void pelogueCB(char *jobid, int exit, bool timeout,
 		    strbufAdd(failNodes, getHostnameByNodeId(result[i].id));
 		}
 	    }
-
+	    if (!strbufValid(failNodes)) flog("strbuf failNodes failed\n");
 	    snprintf(msgBuf, sizeof(msgBuf), "prologue on gateway(s) %s failed,"
 		     " jobid %s exit %i timeout %i\n",
 		     strbufLen(failNodes) ? strbufStr(failNodes) : "unknown",

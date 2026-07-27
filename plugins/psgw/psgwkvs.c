@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -61,6 +61,7 @@ char *set(char *key, char *value)
 	strbufAdd(buf, key);
 	strbufAdd(buf, "' for cmd set : use 'plugin help psgw' for help.\n");
     }
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -79,6 +80,7 @@ char *help(void)
     snprintf(line, sizeof(line), "%12s\tshow current configuration\n", "config");
     strbufAdd(buf, line);
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -97,7 +99,7 @@ static char *showConfig(void)
 	snprintf(line, sizeof(line), "%21s = %s\n", name, val ? val:"<empty>");
 	strbufAdd(buf, line);
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -119,6 +121,7 @@ static char *showVirtualKeys(strbuf_t buf, bool example)
 
     if (example) strbufAdd(buf, "\nExample:\nUse 'plugin show psgw key config'\n");
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -144,7 +147,7 @@ char *show(char *key)
 	strbufAdd(buf, "'\n");
 	return showVirtualKeys(buf, false);
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -157,6 +160,6 @@ char *unset(char *key)
 	strbufAdd(buf, key);
 	strbufAdd(buf, "' for cmd unset : use 'plugin help psgw' for help.\n");
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }

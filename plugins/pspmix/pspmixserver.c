@@ -2543,7 +2543,7 @@ static char* getProcessMapString(list_t *procMap)
 	    strbufAdd(pmap, buf);
 	}
     }
-
+    if (!strbufValid(pmap)) flog("strbuf failed\n");
     return strbufSteal(pmap);
 }
 
@@ -2568,7 +2568,7 @@ static char* getNodeRanksString(PspmixNode_t *node)
 	sprintf(buf, "%u", proc->rank);
 	strbufAdd(ranks, buf);
     }
-
+    if (!strbufValid(ranks)) flog("strbuf failed\n");
     return strbufSteal(ranks);
 }
 
@@ -2615,6 +2615,7 @@ static char * getNodelistString(list_t *procMap)
     }
     strbufAdd(buf, ""); // make sure to never return NULL
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 

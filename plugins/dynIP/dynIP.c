@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2023-2025 ParTec AG, Munich
+ * Copyright (C) 2023-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -271,6 +271,7 @@ char *help(char *key)
     strbufAdd(buf, " configuration options #\n\n");
     pluginConfig_helpDesc(config, buf);
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -309,6 +310,6 @@ char *show(char *key)
 	strbufAdd(buf, key);
 	strbufAdd(buf, "' is unknown\n");
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }

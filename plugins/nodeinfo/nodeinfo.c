@@ -674,6 +674,7 @@ char *help(char *key)
 
     pluginConfig_helpDesc(nodeInfoConfig, buf);
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -731,6 +732,7 @@ static void printSets(PSnodes_ID_t node, char *tag, uint16_t numNUMA,
 
     if (!sets) {
 	strbufAdd(buf, "\t<none>\n");
+	if (!strbufValid(buf)) flog("strbuf failed on no sets\n");
 	return;
     }
 
@@ -739,6 +741,7 @@ static void printSets(PSnodes_ID_t node, char *tag, uint16_t numNUMA,
 		 PSCPU_print_part(sets[dom], PSCPU_bytesForCPUs(setSize)));
 	strbufAdd(buf, line);
     }
+    if (!strbufValid(buf)) flog("strbuf failed\n");
 }
 
 static PSnodes_ID_t getNode(char *key)
@@ -770,6 +773,7 @@ static void showMap(char *key, strbuf_t buf)
 	strbufAdd(buf, line);
     }
     strbufAdd(buf, "\n");
+    if (!strbufValid(buf)) flog("strbuf failed\n");
 }
 
 static void showDistances(char *key, strbuf_t buf)
@@ -787,6 +791,7 @@ static void showDistances(char *key, strbuf_t buf)
     strbufAdd(buf, ":\n");
     if (!distances) {
 	strbufAdd(buf, "\t<none>\n");
+	if (!strbufValid(buf)) flog("strbuf failed on no distances\n");
 	return;
     }
 
@@ -811,6 +816,7 @@ static void showDistances(char *key, strbuf_t buf)
 	strbufAdd(buf, "\n");
     }
     strbufAdd(buf, "\n");
+    if (!strbufValid(buf)) flog("strbuf failed\n");
 }
 
 void printPCIIDs(PCI_ID_t *id, strbuf_t buf)
@@ -827,6 +833,7 @@ void printPCIIDs(PCI_ID_t *id, strbuf_t buf)
 	strbufAdd(buf, devStr);
     }
     strbufAdd(buf, "\n");
+    if (!strbufValid(buf)) flog("strbuf failed\n");
 }
 
 void printNICDevNames(strbuf_t buf)
@@ -847,6 +854,7 @@ void printNICDevNames(strbuf_t buf)
 	strbufAdd(buf, devStr);
 	strbufAdd(buf, "\n");
     }
+    if (!strbufValid(buf)) flog("strbuf failed\n");
 }
 
 char *show(char *key)
@@ -896,6 +904,6 @@ char *show(char *key)
 	strbufAdd(buf, key);
 	strbufAdd(buf, "' is unknown\n");
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }

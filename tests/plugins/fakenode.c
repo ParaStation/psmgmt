@@ -108,6 +108,7 @@ static char *doEval(const char *key, const pluginConfigVal_t *val,
 	    pluginflog("no memory");
 	    strbuf_t buf = strbufNew(NULL);
 	    strbufAdd(buf, "  No memory for topology file\n");
+	    if (!strbufValid(buf)) pluginflog("strbuf failed topofile\n");
 	    return strbufSteal(buf);
 	}
 
@@ -120,6 +121,7 @@ static char *doEval(const char *key, const pluginConfigVal_t *val,
 	    strbufAdd(buf, "' not found\n");
 	    pluginConfig_unset(config, key);
 	    free(topoFile);
+	    if (!strbufValid(buf)) pluginflog("strbuf failed on topology\n");
 	    return strbufSteal(buf);
 	}
 
@@ -140,7 +142,7 @@ static char *doEval(const char *key, const pluginConfigVal_t *val,
 	strbufAdd(buf, "  Unknown key '");
 	strbufAdd(buf, key);
 	strbufAdd(buf, "'\n");
-
+	if (!strbufValid(buf)) pluginflog("strbuf failed\n");
 	return strbufSteal(buf);
     }
     return NULL;
@@ -225,7 +227,7 @@ char * help(char *key)
     strbufAdd(buf, "\n# configuration options #\n\n");
 
     pluginConfig_helpDesc(config, buf);
-
+    if (!strbufValid(buf)) pluginflog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -238,6 +240,7 @@ char *set(char *key, char *value)
 	strbufAdd(buf, "  Unknown key '");
 	strbufAdd(buf, key);
 	strbufAdd(buf, "'\n");
+	if (!strbufValid(buf)) pluginflog("strbuf failed on unknown key\n");
 	return strbufSteal(buf);
     }
 
@@ -246,6 +249,7 @@ char *set(char *key, char *value)
 	strbufAdd(buf, "  Illegal value '");
 	strbufAdd(buf, value);
 	strbufAdd(buf, "'\n");
+	if (!strbufValid(buf)) pluginflog("strbuf failed on illegal value\n");
 	return strbufSteal(buf);
     }
 
@@ -275,6 +279,6 @@ char *show(char *key)
     } else {
 	strbufAdd(buf, "  Current topologie is real\n");
     }
-
+    if (!strbufValid(buf)) pluginflog("strbuf failed\n");
     return strbufSteal(buf);
 }

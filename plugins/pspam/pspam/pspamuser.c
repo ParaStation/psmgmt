@@ -140,6 +140,6 @@ char *listUsers(void)
 	    strbufAdd(buf, l);
 	}
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,6 +31,7 @@ char *show(char *key)
 	strbufAdd(buf, key);
 	strbufAdd(buf, "' for cmd show.\n");
     }
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -61,5 +62,6 @@ char *set(char *key, char *value)
 	strbufAdd(buf, key);
 	strbufAdd(buf, "' for cmd set.\n");
     }
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }

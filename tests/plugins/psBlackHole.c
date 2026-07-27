@@ -146,7 +146,7 @@ char * show(char *key)
 	}
 	strbufAdd(buf, l);
     }
-
+    if (!strbufValid(buf)) nlog("%s: strbuf failed\n", __func__);
     return strbufSteal(buf);
 }
 

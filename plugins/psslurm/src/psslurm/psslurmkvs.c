@@ -111,6 +111,7 @@ static bool addJobInfo(Job_t *job, const void *info)
 
     strbufAdd(buf, "-\n\n");
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return false;
 }
 
@@ -128,7 +129,7 @@ static char *showJobs(void)
 	strbufAdd(buf, "\njobs:\n\n");
 	Job_traverse(addJobInfo, buf);
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -180,6 +181,7 @@ static bool Alloc_addInfo(Alloc_t *alloc, const void *info)
 
     strbufAdd(buf, "-\n\n");
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return false;
 }
 
@@ -224,6 +226,7 @@ static bool addTaskInfo(Step_t *step, const void *info)
 
     strbufAdd(buf, "-\n\n");
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return false;
 }
 
@@ -241,7 +244,7 @@ static char *showTasks(void)
 	strbufAdd(buf, "\ntasks for all steps:\n");
 	Step_traverse(addTaskInfo, buf);
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -274,7 +277,7 @@ static bool addSpankInfo(Spank_Plugin_t *sp, const void *info)
 	}
 	strbufAdd(buf, "\n");
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return false;
 }
 
@@ -294,7 +297,7 @@ static char *showSpank(void)
 #else
     strbufAdd(buf, "\npsmgmt was compiled without spank support\n\n");
 #endif
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -310,6 +313,7 @@ static char *showConfHash(void)
 	     getSlurmConfHash(), getSlurmUpdateTime());
     strbufAdd(buf, line);
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -325,6 +329,7 @@ static char *showHealthCheck(void)
 	     getSlurmHCRuns());
     strbufAdd(buf, line);
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -342,7 +347,7 @@ static char *showAllocations(void)
 	strbufAdd(buf, "\nallocations:\n\n");
 	Alloc_traverse(Alloc_addInfo, buf);
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -379,7 +384,7 @@ static char *resolveIDs(char *hosts)
 	    strbufAdd(buf, line);
 	}
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -409,6 +414,7 @@ static bool addHwthreadsInfo(Step_t *step, const void *info)
 
     if (!step->slots) {
 	strbufAdd(buf, "\nno HW threads\n-\n\n");
+	if (!strbufValid(buf)) flog("strbuf failed while no slots\n");
 	return false;
     }
 
@@ -456,6 +462,7 @@ static bool addHwthreadsInfo(Step_t *step, const void *info)
     }
     strbufAdd(buf, "\n-\n\n");
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return false;
 }
 
@@ -476,7 +483,7 @@ static char *showHWthreads(bool all)
 	strbufAdd(stepInfo.strBuf, "\nHW threads:\n\n");
 	Step_traverse(addHwthreadsInfo, &stepInfo);
     }
-
+    if (!strbufValid(stepInfo.strBuf)) flog("strbuf failed\n");
     return strbufSteal(stepInfo.strBuf);
 }
 
@@ -555,6 +562,7 @@ static bool addStepInfo(Step_t *step, const void *info)
 
     strbufAdd(buf, "-\n\n");
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return false;
 }
 
@@ -575,7 +583,7 @@ static char *showSteps(bool all)
 	strbufAdd(stepInfo.strBuf, "\nsteps:\n\n");
 	Step_traverse(addStepInfo, &stepInfo);
     }
-
+    if (!strbufValid(stepInfo.strBuf)) flog("strbuf failed\n");
     return strbufSteal(stepInfo.strBuf);
 }
 
@@ -596,7 +604,7 @@ static char *showConfig(void)
 		 cName, cVal ? cVal : "<empty>");
 	strbufAdd(buf, line);
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -635,7 +643,7 @@ static char *showVirtualKeys(strbuf_t buf, bool example)
 	strbufAdd(buf, " * Use 'plugin set psslurm CLEAR_CONF_CACHE 1' to"
 		  " clear config cache\n");
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -768,7 +776,7 @@ char *set(char *key, char *value)
 	strbufAdd(buf, key);
 	strbufAdd(buf, "' for cmd set : use 'plugin help psslurm' for help.\n");
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -781,6 +789,7 @@ char *unset(char *key)
     strbufAdd(buf, key);
     strbufAdd(buf, "' for cmd unset : use 'plugin help psslurm' for help.\n");
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -810,6 +819,7 @@ char *help(char *key)
 	strbufAdd(buf, " * Use 'plugin set psslurm SPANK_FIN name' to unload"
 		  " a Spank plugin after executing SLURMD_EXIT hook\n");
 
+	if (!strbufValid(buf)) flog("strbuf failed\n");
 	return strbufSteal(buf);
     }
 
@@ -877,7 +887,7 @@ static bool addConnInfo(Connection_t *conn, const void *info)
 		 inet_ntoa(sockLocal.sin_addr), ntohs(sockLocal.sin_port));
 	strbufAdd(buf, line);
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return false;
 }
 
@@ -892,6 +902,7 @@ static char *showConnections(void)
     strbufAdd(buf, "\nconnections:\n\n");
     Connection_traverse(addConnInfo, buf);
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 
@@ -909,6 +920,7 @@ char *show(char *key)
 	strbufAdd(buf, tmp);
 	strbufAdd(buf, "\n");
 
+	if (!strbufValid(buf)) flog("strbuf failed\n");
 	return strbufSteal(buf);
     }
 
@@ -958,6 +970,7 @@ char *show(char *key)
 	strbufAdd(buf, "\nThe psid is ");
 	if (!tainted) strbufAdd(buf, "not ");
 	strbufAdd(buf, "tainted\n");
+	if (!strbufValid(buf)) flog("strbuf failed on spank\n");
 	return strbufSteal(buf);
     };
 #endif
@@ -966,5 +979,6 @@ char *show(char *key)
     strbufAdd(buf, "\nInvalid key '");
     strbufAdd(buf, key);
     strbufAdd(buf, "'\n");
+    if (!strbufValid(buf)) flog("strbuf failed on invalid key\n");
     return showVirtualKeys(buf, false);
 }

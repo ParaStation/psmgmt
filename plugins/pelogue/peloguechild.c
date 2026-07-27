@@ -429,5 +429,6 @@ char *printChildStatistics(strbuf_t buf)
 	     PEstat.remEpiSucc, PEstat.remEpiFail);
     strbufAdd(buf, line);
 
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }

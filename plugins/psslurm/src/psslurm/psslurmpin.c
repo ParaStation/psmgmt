@@ -1941,6 +1941,7 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	    strbufAdd(buf, tmpbuf);
 	    comma = 1;
 	}
+	if (!strbufValid(buf)) flog("strbuf failed\n");
 	char *localGpuList = strbufSteal(buf);
 
 	/* @todo what does local_inx mean? */

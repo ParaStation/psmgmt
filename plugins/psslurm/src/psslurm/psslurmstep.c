@@ -545,7 +545,7 @@ char *Step_getActiveList(void)
 		 step->hID.stepid);
 	strbufAdd(buf, strStep);
     }
-
+    if (!strbufValid(buf)) flog("strbuf failed\n");
     return strbufSteal(buf);
 }
 

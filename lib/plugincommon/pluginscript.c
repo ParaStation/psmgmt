@@ -206,6 +206,7 @@ static void execChild(Script_Data_t *script)
 	    strbufAdd(argStr, " ");
 	    strbufAdd(argStr, argvP[i]);
 	}
+	if (!strbufValid(argStr)) pluginflog("strbuf failed\n");
 	pluginflog("exec '%s' uid %i\n", strbufStr(argStr), getuid());
 	strbufDestroy(argStr);
     }
