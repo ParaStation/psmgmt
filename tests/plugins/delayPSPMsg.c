@@ -220,14 +220,13 @@ static bool delayHandler(DDBufferMsg_t *msg)
     DelayContainer_t *delayC = findDelayContainer(msg->header.type, 0);
 
     if (!delayC) {
-	pluginlog("%s: no delay for type %d\n", __func__, msg->header.type);
+	pluginflog("no delay for type %d\n", msg->header.type);
 	return false;
     }
 
     msgContainer_t *msgContainer = newMsgContainer(msg);
     if (!msgContainer) {
-	pluginlog("%s: unabled to cache message of type %d\n", __func__,
-		  msg->header.type);
+	pluginflog("unabled to cache message of type %d\n", msg->header.type);
 	return false;
     }
 
@@ -397,7 +396,7 @@ static char * doEval(const char *key, const pluginConfigVal_t *val,
 	strbufAdd(buf, tmp);
 	strbufAdd(buf, "\n");
     } else {
-	pluginlog("%s: unknown key '%s'\n", __func__, key);
+	pluginflog("unknown key '%s'\n", key);
     }
 
     return strbufSteal(buf);
@@ -462,7 +461,7 @@ void cleanup(void)
     pluginConfig_destroy(config);
     config = NULL;
 
-    pluginlog("%s: Done\n", __func__);
+    pluginflog("Done\n");
 }
 
 
