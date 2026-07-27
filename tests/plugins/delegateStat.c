@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,6 +22,7 @@
 #include "psstrbuf.h"
 
 #include "plugin.h"
+#include "pluginlog.h"
 
 #include "psidnodes.h"
 #include "psidtask.h"
@@ -34,6 +35,23 @@ int version = 100;
 
 plugin_dep_t dependencies[] = {
     { NULL, 0 } };
+
+int initialize(FILE *logfile)
+{
+    initPluginLogger(name, logfile);
+
+    pluginlog("(%i) successfully started\n", version);
+
+    return 0;
+}
+
+void cleanup(void)
+{
+    pluginlog("%s\n", __func__);
+
+    pluginflog("Done\n");
+    finalizePluginLogger();
+}
 
 char * help(char *key)
 {
