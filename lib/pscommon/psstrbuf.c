@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2024 ParTec AG, Munich
+ * Copyright (C) 2024-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,6 +17,7 @@
 /** Structure holding a string buffer */
 struct strbuf {
     long magic;
+    bool valid;
     char *string;       /**< NULL terminated string */
     uint32_t len;       /**< Current utilized size of string (incl. \0) */
     uint32_t size;      /**< Current maximum size incl. \0 */
@@ -37,6 +38,7 @@ strbuf_t strbufNew(const char *str)
     if (!strbuf) return NULL;
     memset(strbuf, 0, sizeof(*strbuf));
     strbuf->magic = STRBUF_MAGIC;
+    strbuf->valid = true;
     if (str) strbufAdd(strbuf, str);
 
     return strbuf;
@@ -47,9 +49,14 @@ bool strbufInitialized(const strbuf_t strbuf)
     return (strbuf && strbuf->magic == STRBUF_MAGIC);
 }
 
+bool strbufValid(const strbuf_t strbuf)
+{
+    return strbufInitialized(strbuf) && strbuf->valid;
+}
+
 uint32_t strbufLen(strbuf_t strbuf)
 {
-    return strbufInitialized(strbuf) ? strbuf->len : 0;
+    return strbufValid(strbuf) ? strbuf->len : 0;
 }
 
 uint32_t strbufSize(strbuf_t strbuf)
@@ -70,7 +77,10 @@ bool strbufAddNum(strbuf_t strbuf, const char *str, size_t num)
 	uint32_t newSize = ((strbuf->len + num) / MIN_MALLOC_SIZE + 1) *
 	    MIN_MALLOC_SIZE;
 	char *tmp = realloc(strbuf->string, newSize * sizeof(*tmp));
-	if (!tmp) return false;
+	if (!tmp) {
+	    strbuf->valid = false;
+	    return false;
+	}
 
 	strbuf->size = newSize;
 	strbuf->string = tmp;
@@ -94,6 +104,7 @@ void strbufClear(strbuf_t strbuf)
 	    memset(strbuf->string, 0, strbuf->size);
 #endif
 	}
+	strbuf->valid = true;
 	strbuf->len = 0;
     }
 }
@@ -106,8 +117,8 @@ char *strbufStr(strbuf_t strbuf)
 char *strbufSteal(strbuf_t strbuf)
 {
     if (!strbufInitialized(strbuf)) return NULL;
-    char *string = strbuf->string;
-    strbuf->string = NULL;
+    char *string = strbuf->valid ? strbuf->string : NULL;
+    if (strbuf->valid) strbuf->string = NULL;
     strbufDestroy(strbuf);
 
     return string;

@@ -51,6 +51,20 @@ strbuf_t strbufNew(const char *str);
 bool strbufInitialized(const strbuf_t strbuf);
 
 /**
+ * @brief Check string buffer for failure
+ *
+ * Check if the string buffer represented by @a strbuf is valid,
+ * i.e. initialize and no failure appeared while adding content to it
+ * via @ref strbufAdd() and friends.
+ *
+ * @param strbuf String buffer to investigate
+ *
+ * @return Return true if the string buffer is in proper state; or
+ * false otherwise
+ */
+bool strbufValid(const strbuf_t strbuf);
+
+/**
  * @brief Get string buffer's length
  *
  * Get the actual length, i.e. the length of the representing string
@@ -112,7 +126,8 @@ bool strbufAddNum(strbuf_t strbuf, const char *str, const size_t num);
  *
  * Clear the string buffer @a strbuf. This will omit all content from
  * the representing string and reset its length to 0. The actual
- * memory of the representing string will remain untouched.
+ * memory of the representing string will remain untouched. At the
+ * same time this resets failure tracking.
  *
  * @param strbuf String buffer to clear
  *
@@ -137,6 +152,10 @@ void strbufClear(strbuf_t strbuf);
  * Thus, if it is required to modify the returned string or to rely on
  * the content of it on the long run, it is advised to steal it from
  * @a strbuf utilizing strbufSteal().
+ *
+ * The returned string might be invalid if expansion of @a strbuf
+ * failed during a call to @ref strbufAdd() and friends. Use @ref
+ * strbufValid() to double-check validity.
  *
  * @param strbuf String buffer to get a string handle on
  *
@@ -167,10 +186,16 @@ char *strbufStr(strbuf_t strbuf);
  * char *str = strbufStr(strbuf)
  * strbufSteal(strbuf)
  *
+ * If the stolen string would be invalid since expansion of @a strbuf
+ * failed during a call to @ref strbufAdd() and friends, NULL is
+ * returned. Use @ref strbufValid() to double-check validity
+ * beforehand in order to distinguish from an uninitialized or empty
+ * string buffer.
+ *
  * @param strbuf String buffer to steal the string from
  *
  * @return Pointer to a NULL terminated string or NULL if @a strbuf is
- * still uninitialized or empty
+ * still uninitialized, empty, or invalid
  */
 char *strbufSteal(strbuf_t strbuf);
 
