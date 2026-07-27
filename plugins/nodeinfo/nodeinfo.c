@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -98,7 +98,7 @@ static bool handleSetData(PS_DataBuffer_t rData, PSnodes_ID_t sender,
     if (!PSIDnodes_numNUMADoms(sender)) {
 	PSIDnodes_setNumNUMADoms(sender, numNUMA);
     } else if (PSIDnodes_numNUMADoms(sender) != numNUMA) {
-	mdbg(NODEINFO_LOG_VERBOSE, "%s: mismatch in numNUMA %d/%d\n", __func__,
+	fdbg(NODEINFO_LOG_VERBOSE, "mismatch in numNUMA %d/%d\n",
 	     numNUMA, PSIDnodes_numNUMADoms(sender));
 	PSIDnodes_setNumNUMADoms(sender, numNUMA);
 
@@ -154,7 +154,7 @@ bool handleDistanceData(PS_DataBuffer_t rData, PSnodes_ID_t sender)
     uint32_t *distances, len;
     getUint32Array(rData, &distances, &len);
     if (len != numNUMA * numNUMA) {
-	mlog("%s: mismatch in numNUMA %d/%d\n", __func__, numNUMA*numNUMA, len);
+	flog("mismatch in numNUMA %d/%d\n", numNUMA*numNUMA, len);
 	PSIDnodes_setDistances(sender, NULL);
 	free(distances);
 	return false;
@@ -190,7 +190,7 @@ void sendNodeInfoData(PSnodes_ID_t node)
     PS_SendDB_t data;
 
     if (!PSC_validNode(node)) {
-	mlog("%s: invalid node id %i\n", __func__, node);
+	flog("invalid node id %i\n", node);
 	return;
     }
 
@@ -224,7 +224,7 @@ static void broadcastMapData(void)
 {
     PS_SendDB_t data;
 
-    mdbg(NODEINFO_LOG_VERBOSE,"%s: distribute map informaton\n", __func__);
+    fdbg(NODEINFO_LOG_VERBOSE,"distribute map information\n");
 
     initFragBuffer(&data, PSP_PLUG_NODEINFO, 0);
     for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
@@ -243,12 +243,12 @@ static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
     PSnodes_ID_t sender = PSC_getID(msg->header.sender);
     PSP_NodeInfo_t type = 0; // ensure higher bytes are all 0
 
-    mdbg(NODEINFO_LOG_VERBOSE, "%s: handle update from %s\n", __func__,
+    fdbg(NODEINFO_LOG_VERBOSE, "handle update from %s\n",
 	 PSC_printTID(msg->header.sender));
 
     getUint8(rData, (uint8_t *) &type);
     while (type) {
-	mdbg(NODEINFO_LOG_VERBOSE, "%s: update type %d\n", __func__, type);
+	fdbg(NODEINFO_LOG_VERBOSE, "update type %d\n", type);
 	switch (type) {
 	case PSP_NODEINFO_CPUMAP:
 	    if (!handleCPUMapData(rData, sender)) return;
@@ -275,7 +275,7 @@ static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 	    if (!handleCPUData(rData, sender)) return;
 	    break;
 	default:
-	    mlog("%s: unknown type %d\n", __func__, type);
+	    flog("unknown type %d\n", type);
 	    return;
 	}
 	/* Peek into next type */
@@ -290,7 +290,7 @@ static int handleNodeUp(void *nodeID)
     PSnodes_ID_t id = *(PSnodes_ID_t *)nodeID;
 
     if (!PSC_validNode(id)) {
-	mlog("%s: invalid node id %i\n", __func__, id);
+	flog("invalid node id %i\n", id);
 	return 1;
     }
 
@@ -308,7 +308,7 @@ static int handleNodeDown(void *nodeID)
     PSnodes_ID_t id = *(PSnodes_ID_t *)nodeID;
 
     if (!PSC_validNode(id)) {
-	mlog("%s: invalid node id %i\n", __func__, id);
+	flog("invalid node id %i\n", id);
 	return 1;
     }
 
@@ -337,7 +337,7 @@ static int handleDistInfo(void *infoType)
 	broadcastMapData();
 	break;
     default:
-	mlog("%s: unsupported option type %#04x\n", __func__, type);
+	flog("unsupported option type %#04x\n", type);
     }
 
 
@@ -425,22 +425,22 @@ static bool pairFromStr(char *str, uint16_t *val1, uint16_t *val2)
     /* first element */
     long v1 = strtol(str, &end, 16);
     if (*end) {
-	mlog("%s: illegal value '%s'\n", __func__, str);
+	flog("illegal value '%s'\n", str);
 	return false;
     }
     if (v1 > UINT16_MAX) {
-	mlog("%s: value %s too large\n", __func__, str);
+	flog("value %s too large\n", str);
 	return false;
     }
     /* second element */
     str = end + 1;
     long v2 = strtol(str, &end, 16);
     if (*end) {
-	mlog("%s: illegal value '%s'\n", __func__, str);
+	flog("illegal value '%s'\n", str);
 	return false;
     }
     if (v2 > UINT16_MAX) {
-	mlog("%s: value %s too large\n", __func__, str);
+	flog("value %s too large\n", str);
 	return false;
     }
     /* now that both elements are valid do the assignment */
@@ -467,13 +467,13 @@ static bool IDFromStr(PCI_ID_t *id, char *IDStr)
 {
     char *myStr = strdup(IDStr);
     if (!myStr) {
-	mlog("%s: no memory\n", __func__);
+	flog("no memory\n");
 	return false;
     }
     /* prepare first pair */
     char *colon = strchr(myStr, ':');
     if (!colon) {
-	mlog("%s: wrong format\n", __func__);
+	flog("wrong format\n");
 	goto error;
     }
     *colon = '\0';
@@ -488,7 +488,7 @@ static bool IDFromStr(PCI_ID_t *id, char *IDStr)
 	char *subStr = colon;
 	colon = strchr(subStr, ':');
 	if (!colon) {
-	    mlog("%s: wrong subsystem format\n", __func__);
+	    flog("wrong subsystem format\n");
 	    goto error;
 	}
 	*colon = '\0';
@@ -518,14 +518,14 @@ static void PCIIDsFromLst(PCI_ID_t **PCI_IDs, const pluginConfigVal_t *val)
 	return;
     }
     if (val->type != PLUGINCONFIG_VALUE_LST) {
-	mlog("%s: value not list\n", __func__);
+	flog("value not list\n");
 	return;
     }
 
     size_t len = lstLen(val->val.lst);
     PCI_ID_t *newIDs = realloc(*PCI_IDs, (len + 1) * sizeof(**PCI_IDs));
     if (!newIDs) {
-	mlog("%s: no memory\n", __func__);
+	flog("no memory\n");
 	return;
     }
     size_t id = 0;
@@ -540,14 +540,14 @@ static void PCIIDsFromLst(PCI_ID_t **PCI_IDs, const pluginConfigVal_t *val)
 static bool getOrder(const pluginConfigVal_t *val)
 {
     if (val->type != PLUGINCONFIG_VALUE_STR) {
-	mlog("%s: value not string\n", __func__);
+	flog("value not string\n");
 	return false;
     }
 
     if (!strcasecmp(val->val.str, "PCI")) return true;
     if (!strcasecmp(val->val.str, "BIOS")) return false;
 
-    mlog("%s: Illegal value '%s'\n", __func__, val->val.str);
+    flog("illegal value '%s'\n", val->val.str);
     return false;
 }
 
@@ -571,7 +571,7 @@ static bool evalValue(const char *key, const pluginConfigVal_t *val,
 	NIC_PCIeOrder = val ? getOrder(val) : false;
 	updateNICInfo();
     } else {
-	mlog("%s: unknown key '%s'\n", __func__, key);
+	flog("unknown key '%s'\n", key);
     }
 
     return true;
@@ -588,16 +588,13 @@ static bool evalValue(const char *key, const pluginConfigVal_t *val,
 static void unregisterHooks(bool verbose)
 {
     if (!PSIDhook_del(PSIDHOOK_NODE_UP, handleNodeUp)) {
-	if (verbose) mlog("%s: unregister 'PSIDHOOK_NODE_UP' failed\n",
-			  __func__);
+	if (verbose) flog("unregister 'PSIDHOOK_NODE_UP' failed\n");
     }
     if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
-	if (verbose) mlog("%s: unregister 'PSIDHOOK_NODE_DOWN' failed\n",
-			  __func__);
+	if (verbose) flog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
     }
     if (!PSIDhook_del(PSIDHOOK_DIST_INFO, handleDistInfo)) {
-	if (verbose) mlog("%s: unregister 'PSIDHOOK_DIST_INFO' failed\n",
-			  __func__);
+	if (verbose) flog("unregister 'PSIDHOOK_DIST_INFO' failed\n");
     }
 }
 
@@ -616,26 +613,26 @@ int initialize(FILE *logfile)
     pluginConfig_traverse(nodeInfoConfig, evalValue, NULL);
 
     if (!PSIDhook_add(PSIDHOOK_NODE_UP, handleNodeUp)) {
-	mlog("%s: register 'PSIDHOOK_NODE_UP' failed\n", __func__);
+	flog("register 'PSIDHOOK_NODE_UP' failed\n");
 	return 1;
     }
     if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
-	mlog("%s: register 'PSIDHOOK_NODE_DOWN' failed\n", __func__);
+	flog("register 'PSIDHOOK_NODE_DOWN' failed\n");
 	return 1;
     }
     if (!PSIDhook_add(PSIDHOOK_DIST_INFO, handleDistInfo)) {
-	mlog("%s: register 'PSIDHOOK_DIST_INFO' failed\n", __func__);
+	flog("register 'PSIDHOOK_DIST_INFO' failed\n");
 	return 1;
     }
 
     serialInitialized = initSerial(0, sendMsg);
     if (!serialInitialized) {
-	mlog("%s: initSerial() failed\n", __func__);
+	flog("initSerial() failed\n");
 	return 1;
     }
 
     if (!PSID_registerMsg(PSP_PLUG_NODEINFO, handleNodeInfoMsg)) {
-	mlog("%s: register 'PSP_PLUG_NODEINFO' handler failed\n", __func__);
+	flog("register 'PSP_PLUG_NODEINFO' handler failed\n");
 	return 1;
     }
 
