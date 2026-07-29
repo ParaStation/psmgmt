@@ -166,7 +166,7 @@ static void execChild(Script_Data_t *script)
     /* Get rid of obsolete timers */
     Timer_init(NULL);
 
-    reOpenSyslog("psid-plugin-script", &pluginlogger);
+    reOpenSyslog("psid-plugin-script", NULL);
 
     if (getuid() != script->uid || geteuid() != script->uid
 	|| script->prepPriv) {
@@ -213,7 +213,7 @@ static void execChild(Script_Data_t *script)
     closelog();
     execv(argvP[0], argvP);
 
-    reOpenSyslog("psid-plugin-script", &pluginlogger);
+    reOpenSyslog("psid-plugin-script", NULL);
     pluginfwarn(errno, "execv(%s) failed", argvP[0]);
     exit(1);
 }
