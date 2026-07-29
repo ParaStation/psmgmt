@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -240,7 +240,7 @@ bool switchCwd(char *cwd);
  *
  * @param errMsgLen Size of the error buffer
  *
- * @param errLen The actual lenght of the error message
+ * @param errLen The actual length of the error message
  *
  * @return Returns true on success otherwise false is returned
  */
@@ -260,7 +260,7 @@ bool __getScriptCBdata(int fd, char *errMsg, size_t errMsgLen, size_t *errLen,
  *
  * @param size The size of the mapped memory region
  *
- * @param return On succcess the memory mapped to the given
+ * @param return On success the memory mapped to the given
  * file is returned, otherwise NULL.
  */
 char *mmapFile(const char *filename, size_t *size);
@@ -285,22 +285,25 @@ bool writeFile(const char *name, const char *dir, const void *data, size_t len);
  *
  * This function is intended to be used by children of the psid (e.g.
  * forwarders) to regain the ability to log messages. It *must not* be
- * called from the ParaStaion daemon.
+ * called from the ParaStation daemon.
  *
  * As a first step all resources used by the given logger @a logger
  * are freed and leftover connections are closed. After this the
- * connection to syslog is re-opened and the logger is reinitialized
+ * connection to syslog is re-opened and the logger is re-initialized
  * using the tag @a tag. The old logger mask will be preserved.
  *
  * As a side effect the logging facility utilized by libplugincommon
  * (aka the pluginlogger) will be re-initialized if it was initialized
  * before. Further logging of libplugincommon will also be tagged with
- * the string provided in @a tag.
+ * the string provided in @a tag. Thus, @a logger must not point to
+ * the pluginlogger.
  *
  * @param tag Tag to be prepend to all output of @a logger (and the
  * pluginlogger)
  *
- * @param logger Logger to reinitialize
+ * @param logger Logger to re-initialize; might be NULL to just
+ * re-initialize the pluginlogger, i.e. the logger utilized by
+ * libplugincommon
  *
  * @return Returns true on success; otherwise false is returned
  */

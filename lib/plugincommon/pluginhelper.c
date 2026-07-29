@@ -460,12 +460,14 @@ bool writeFile(const char *name, const char *dir, const void *data, size_t len)
 
 bool reOpenSyslog(const char *tag, logger_t *logger)
 {
-    if (PSC_isDaemon() || !logger) return false;
+    if (PSC_isDaemon() || (logger && *logger == pluginlogger)) return false;
 
-    /* save logger masks and cleanup */
-    int32_t oldMask = logger_getMask(*logger);
-    logger_finalize(*logger);
-
+    /* save mask of and cleanup logger and pluginlogger if required */
+    int32_t oldMask = 0;
+    if (logger) {
+	oldMask = logger_getMask(*logger);
+	logger_finalize(*logger);
+    }
     int32_t oldPluginMask = 0;
     bool usePluginLogger = isPluginLoggerInitialized();
     if (usePluginLogger) {
@@ -477,9 +479,10 @@ bool reOpenSyslog(const char *tag, logger_t *logger)
 
     /* now re-open syslog and re-initialize log facilities */
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
-    *logger = logger_new(tag, NULL);
-    logger_setMask(*logger, oldMask);
-
+    if (logger) {
+	*logger = logger_new(tag, NULL);
+	logger_setMask(*logger, oldMask);
+    }
     if (usePluginLogger) {
 	initPluginLogger(tag, NULL);
 	maskPluginLogger(oldPluginMask);
