@@ -1385,12 +1385,13 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     /* check if we can change working directory */
     if (step->cwd && chdir(step->cwd) == -1) {
-	fwarn(errno, "chdir(%s) for uid %u gid %u",
+	int eno = errno;
+	fwarn(eno, "chdir(%s) for uid %u gid %u",
 	      step->cwd, step->uid, step->gid);
 
 	char buf[512];
 	snprintf(buf, sizeof(buf), "psslurm: chdir(%s) failed: %s, "
-		 "using /tmp\n", step->cwd, strerror(errno));
+		 "using /tmp\n", step->cwd, strerror(eno));
 	queueFwMsg(&step->fwMsgQueue, buf, strlen(buf), STDERR, 0);
 
 	if (chdir("/tmp") == -1) {
