@@ -395,6 +395,11 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
     for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) {
 	if (fd == fw->stdIn[0] || fd == fw->stdIn[1]
 	    || fd == fw->stdOut[1] || fd == fw->stdErr[1] ) continue;
+	/* Close file descriptors if the pluginforwarder opened
+	 * them (see openOEpipes()). Plugins like psslurm might have
+	 * ownership otherwise and are responsible for the cleanup. */
+	if (!fw->fwChildOE
+	    && (fd == fw->stdOut[0] || fd == fw->stdErr[0])) continue;
 	close(fd);
     }
 
