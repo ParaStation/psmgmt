@@ -268,6 +268,8 @@ static void setThreadsBitmapsEnv(const PSCPU_set_t stepcpus,
 	    setenv("__PSJAIL_STEP_CPUS", threadListStr, 1);
 	    fdbg(PSSLURM_LOG_JAIL, "step cpus: %s\n",threadListStr);
 	    free(threadListStr);
+	} else {
+	    flog("failed to get step thread list: %s\n", PSCPU_print(stepcpus));
 	}
     }
 
@@ -277,6 +279,8 @@ static void setThreadsBitmapsEnv(const PSCPU_set_t stepcpus,
 	    setenv("__PSJAIL_JOB_CPUS", threadListStr, 1);
 	    fdbg(PSSLURM_LOG_JAIL, "job cpus: %s\n", threadListStr);
 	    free(threadListStr);
+	} else {
+	    flog("failed to get job thread list: %s\n", PSCPU_print(jobcpus));
 	}
     }
 }
