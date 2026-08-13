@@ -157,7 +157,7 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->hID.jobid,Job_strState(job->state));
 
     /* get exit status of child */
-    int32_t fwExitCode = (fw->rcCode != RC_HOOK_NONE) ? fw->rcCode : 0;
+    int32_t fwExitCode = (fw->rcType != RC_HOOK_NONE) ? fw->rcCode : 0;
     int eStatus = fwExitCode ? fwExitCode : fw->chldExitStatus;
 
     /* job aborted due to node failure */
@@ -235,7 +235,7 @@ static void stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 	    eStatus = WIFSIGNALED(fw->chldExitStatus) ?
 			WTERMSIG(fw->chldExitStatus) : fw->chldExitStatus;
 
-	    int32_t fwExitCode = (fw->rcCode != RC_HOOK_NONE) ? fw->rcCode : 0;
+	    int32_t fwExitCode = (fw->rcType != RC_HOOK_NONE) ? fw->rcCode : 0;
 	    if (fwExitCode) eStatus = fwExitCode;
 	}
 
@@ -293,7 +293,7 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	uint32_t rc = (uint32_t) SLURM_ERROR;
 
 	/* pluginforwarder hooks might set an return code */
-	rc = (fw->rcCode != RC_HOOK_NONE) ? (uint32_t) fw->rcCode : rc;
+	rc = (fw->rcType != RC_HOOK_NONE) ? (uint32_t) fw->rcCode : rc;
 
 	/* return code might be set before pluginforwarder even started */
 	if (rc == (uint32_t) SLURM_ERROR && step->termAfterFWmsg != NO_VAL) {
@@ -314,7 +314,7 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	    eStatus = WIFSIGNALED(fw->chldExitStatus) ?
 			WTERMSIG(fw->chldExitStatus) : fw->chldExitStatus;
 
-	    eStatus = (fw->rcCode != RC_HOOK_NONE) ? fw->rcCode : eStatus;
+	    eStatus = (fw->rcType != RC_HOOK_NONE) ? fw->rcCode : eStatus;
 	}
 
 	/* step aborted due to node failure */
