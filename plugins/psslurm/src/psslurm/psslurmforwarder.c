@@ -1380,7 +1380,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
 	flog("switching effective user to '%s' failed\n", step->username);
-	return 1;
+	return ESLURMD_SET_UID_OR_GID_ERROR;
     }
 
     /* check if we can change working directory */
@@ -1425,7 +1425,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");
-	return 1;
+	return ESLURMD_SET_UID_OR_GID_ERROR;
     }
 
     /* open stderr/stdout/stdin fds */
@@ -1434,7 +1434,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	if (openpty(&fwdata->stdOut[1], &fwdata->stdOut[0],
 		    NULL, NULL, NULL) == -1) {
 	    fwarn(errno, "openpty()");
-	    return 1;
+	    return ESLURMD_IO_ERROR;
 	}
     }
 
@@ -1448,7 +1448,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	fwdata->childRerun = 1;
     }
 
-    return 0;
+    return SLURM_SUCCESS;
 }
 
 static int stepForwarderLoop(Forwarder_Data_t *fwdata)
@@ -1457,19 +1457,19 @@ static int stepForwarderLoop(Forwarder_Data_t *fwdata)
 
     if (!step->IOPort) {
 	flog("no I/O ports available\n");
-	return 1;
+	return ESLURMD_CANNOT_SPAWN_IO_THREAD;
     }
 
     if (srunOpenIOConnection(step, step->cred->sig) == -1) {
 	flog("open srun I/O connection failed\n");
-	return 1;
+	return ESLURMD_CANNOT_SPAWN_IO_THREAD;
     }
 
     if (step->taskFlags & LAUNCH_PTY) {
 	/* open additional PTY connection to srun */
 	if (srunOpenPTYConnection(step) < 0) {
 	    flog("open srun pty connection failed\n");
-	    return 1;
+	    return ESLURMD_IO_ERROR;
 	}
 
 	Selector_register(fwdata->stdOut[1], handleUserOE, fwdata);
@@ -1500,7 +1500,7 @@ static int stepForwarderLoop(Forwarder_Data_t *fwdata)
 	return step->termAfterFWmsg;
     }
 
-    return 0;
+    return SLURM_SUCCESS;
 }
 
 static int stepFinalize(Forwarder_Data_t *fwdata)
@@ -1641,7 +1641,7 @@ static int handleJobLoop(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
 	flog("switching effective user to '%s' failed\n", job->username);
-	return 1;
+	return ESLURMD_SET_UID_OR_GID_ERROR;
     }
 
     IO_init();
@@ -1662,7 +1662,7 @@ static int handleJobLoop(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");
-	return 1;
+	return ESLURMD_SET_UID_OR_GID_ERROR;
     }
 
 #ifdef HAVE_SPANK
@@ -1684,11 +1684,11 @@ static int handleJobLoop(Forwarder_Data_t *fwdata)
 
 	/* terminate possible started child */
 	kill(-fwdata->cPid, SIGKILL);
-	return 1;
+	return ESLURMD_EXECVE_FAILED;
     }
 #endif
 
-    return 0;
+    return SLURM_SUCCESS;
 }
 
 static int jobForwarderInit(Forwarder_Data_t *fwdata)
@@ -1719,7 +1719,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
 	flog("switching effective user to '%s' failed\n", job->username);
-	return 1;
+	return ESLURMD_SET_UID_OR_GID_ERROR;
     }
 
     spank.hook = SPANK_USER_INIT;
@@ -1733,7 +1733,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");
-	return 1;
+	return ESLURMD_SET_UID_OR_GID_ERROR;
     }
 
 #endif
@@ -1763,10 +1763,10 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     if (!IO_openJobPipes(fwdata)) {
 	flog("unable to open job I/O pipes\n");
-	return 1;
+	return ESLURMD_CANNOT_SPAWN_IO_THREAD;
     }
 
-    return 0;
+    return SLURM_SUCCESS;
 }
 
 static int jobForwarderFin(Forwarder_Data_t *fwdata)
@@ -1921,7 +1921,7 @@ static int initBCastFW(Forwarder_Data_t *fwdata)
     setJailEnv(bcast->env, bcast->username, NULL, bcast->hwthreads, NULL,
 	       GRES_CRED_JOB, NULL, 0);
 
-    return 0;
+    return SLURM_SUCCESS;
 }
 
 bool execBCast(BCast_t *bcast)
@@ -1972,17 +1972,17 @@ static int stepFollowerFWloop(Forwarder_Data_t *fwdata)
 
     if (!step->IOPort) {
 	flog("no I/O Ports\n");
-	return 1;
+	return ESLURMD_CANNOT_SPAWN_IO_THREAD;
     }
 
     if (srunOpenIOConnection(step, step->cred->sig) == -1) {
 	flog("open srun I/O connection failed\n");
-	return 1;
+	return ESLURMD_CANNOT_SPAWN_IO_THREAD;
     }
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
 	flog("switching effective user to '%s' failed\n", step->username);
-	return 1;
+	return ESLURMD_SET_UID_OR_GID_ERROR;
     }
 
     IO_redirectStep(fwdata, step);
@@ -2002,9 +2002,9 @@ static int stepFollowerFWloop(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");
-	return 1;
+	return ESLURMD_SET_UID_OR_GID_ERROR;
     }
-    return 0;
+    return SLURM_SUCCESS;
 }
 
 static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
@@ -2064,7 +2064,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {
 	flog("switching effective user to '%s' failed\n", step->username);
-	return 1;
+	return ESLURMD_SET_UID_OR_GID_ERROR;
     }
 
     spank.hook = SPANK_USER_INIT;
@@ -2080,7 +2080,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 
     if (!PSC_switchEffectiveUser("root", 0, 0)) {
 	flog("switching effective user to root failed\n");
-	return 1;
+	return ESLURMD_SET_UID_OR_GID_ERROR;
     }
 
 #endif
@@ -2088,7 +2088,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     /* inform the mother psid */
     fwCMD_initComplete(step, 0);
 
-    return 0;
+    return SLURM_SUCCESS;
 }
 
 bool execStepFollower(Step_t *step)
