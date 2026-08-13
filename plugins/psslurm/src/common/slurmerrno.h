@@ -222,7 +222,7 @@ typedef enum {
 	/* reserved for other plugin specific error codes up to 3999 */
 
 	/* slurmd error codes */
-	ESLRUMD_PIPE_ERROR_ON_TASK_SPAWN =		4000,
+	ESLURMD_PIPE_ERROR_ON_TASK_SPAWN =		4000,
 	ESLURMD_KILL_TASK_FAILED,
 	ESLURMD_KILL_JOB_ALREADY_COMPLETE,
 	ESLURMD_INVALID_ACCT_FREQ,
