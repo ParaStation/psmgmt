@@ -326,7 +326,7 @@ static void fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
     if (!eStatus) {
 	eStatus = WIFSIGNALED(fw->chldExitStatus) ?
 		    WTERMSIG(fw->chldExitStatus) : fw->chldExitStatus;
-	eStatus = (fw->rcHook != RC_HOOK_NONE) ? fw->rcHook : eStatus;
+	eStatus = (fw->rcCode != RC_HOOK_NONE) ? fw->rcCode : eStatus;
     }
 
     plugindbg(PLUGIN_LOG_SCRIPT, "script exited with %i\n", eStatus);

@@ -901,9 +901,9 @@ static void handleChildCode(Forwarder_Data_t *fw, DDTypedBufferMsg_t *msg)
     size_t used = 0;
 
     PSP_getTypedMsgBuf(msg, &used, "type", &fw->rcType, sizeof(fw->rcType));
-    PSP_getTypedMsgBuf(msg, &used, "code", &fw->rcHook, sizeof(fw->rcHook));
+    PSP_getTypedMsgBuf(msg, &used, "code", &fw->rcCode, sizeof(fw->rcCode));
 
-    pluginfdbg(PLUGIN_LOG_FW, "ecode %i type %i\n", fw->rcHook, fw->rcType);
+    pluginfdbg(PLUGIN_LOG_FW, "ecode %i type %i\n", fw->rcCode, fw->rcType);
 }
 
 static void handleChildExit(Forwarder_Data_t *fw, DDTypedBufferMsg_t *msg)
