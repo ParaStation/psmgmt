@@ -91,6 +91,11 @@ bool Step_verifyData(Step_t *step)
 	flog("no credential for %s\n", Step_strID(step));
 	return false;
     }
+    /* LAUNCH_TASKS requires a verified (non-empty) signature */
+    if (!cred->sig || !*cred->sig) {
+	flog("missing job credential signature for %s\n", Step_strID(step));
+	return false;
+    }
     /* job ID */
     if (step->hID.jobid != cred->hID.jobid) {
 	flog("mismatching jobid %u vs %u\n", step->hID.jobid, cred->hID.jobid);

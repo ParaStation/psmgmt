@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -97,9 +97,10 @@ typedef struct {
 /**
  * @brief Extract and verify a job credential
  *
- * Extract and verify a job credential including the embedded
- * GRes credential from the provided message pointer and add it
- * to the list of credentials @a gresList.
+ * Unpack a job credential including the embedded GRes credential
+ * from @a sMsg and add that GRes data to @a gresList. An empty
+ * signature is accepted (controller-originated unsigned body).
+ * A non-empty signature is munge-decoded and byte compared.
  *
  * @param gresList List of GRes credential structures the included
  * GRes credential will be appended to

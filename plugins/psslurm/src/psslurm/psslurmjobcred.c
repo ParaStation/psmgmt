@@ -12,11 +12,15 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <sys/types.h>
 
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pscomplist.h"
+#include "psmungehandles.h"
 #include "psserial.h"
 
+#include "psslurmauth.h"
 #include "psslurmlog.h"
 #include "psslurmpack.h"
 #include "psslurmpscomm.h"
@@ -86,6 +90,50 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg)
     mdbg(PSSLURM_LOG_PART, "\n");
 
     int credLen = credEnd - credStart;
+    if (credLen < 0) {
+	flog("invalid job credential range\n");
+	goto ERROR;
+    }
+
+    /*
+     * slurmctld originated credentials (BATCH_JOB_LAUNCH,
+     * LAUNCH_PROLOG, TERMINATE_JOB) have an empty signature and
+     * skip munge. srun LAUNCH_TASKS carries an encoded signature.
+     */
+    if (cred->sig && *cred->sig) {
+	int sigBufLen;
+	uid_t sigUid;
+	if (!psMungeDecodeBuf(cred->sig, (void **) &sigBuf, &sigBufLen,
+			      &sigUid, NULL)) {
+	    flog("decoding job credential failed\n");
+	    goto ERROR;
+	}
+
+	if (!verifyUserId(sigUid, 0)) {
+	    flog("unauthorized job credential from uid %u\n", sigUid);
+	    goto ERROR;
+	}
+
+	if (credLen != sigBufLen) {
+	    flog("mismatching credential, len %u : %u\n", credLen, sigBufLen);
+	    if (mset(PSSLURM_LOG_AUTH)) {
+		printBinaryData(sigBuf, sigBufLen, "sigBuf");
+		printBinaryData(credStart, credLen, "jobData");
+	    }
+	    goto ERROR;
+	}
+
+	if (memcmp(sigBuf, credStart, sigBufLen) != 0) {
+	    flog("manipulated job credential data\n");
+	    if (mset(PSSLURM_LOG_AUTH)) {
+		printBinaryData(sigBuf, sigBufLen, "sigBuf");
+		printBinaryData(credStart, credLen, "jobData");
+	    }
+	    goto ERROR;
+	}
+	free(sigBuf);
+	sigBuf = NULL;
+    }
 
     /* convert Slurm host-list to PSnodes */
     uint32_t count;
@@ -122,7 +170,7 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg)
 
 ERROR:
     free(sigBuf);
-    ufree(cred);
+    freeJobCred(cred);
     return NULL;
 }
 

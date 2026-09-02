@@ -4225,6 +4225,7 @@ static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
 
 	if (strlen(cred->sig) + 1 < SLURM_IO_KEY_SIZE) {
 	    flog("invalid I/O key size %zu\n", strlen(cred->sig) + 1);
+	    freeJobCred(cred);
 	    return false;
 	}
 
