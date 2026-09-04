@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -41,41 +41,137 @@
 /** time-limit in seconds to warn about a slow name resolver */
 #define RESOLVE_TIME_WARNING 1
 
-bool removeDir(char *directory, bool root)
+/** maximum directory depth @ref removeDir() will descend into */
+#define REMOVEDIR_MAX_DEPTH 128
+
+bool removeDirFd(int dirfd, int depth)
 {
-    if (!directory) {
+    if (dirfd < 0) {
+	pluginflog("invalid dirfd\n");
+	return false;
+    }
+
+    if (depth > REMOVEDIR_MAX_DEPTH) {
+	pluginflog("maximum depth %d exceeded\n", REMOVEDIR_MAX_DEPTH);
+	return false;
+    }
+
+    int walkfd = fcntl(dirfd, F_DUPFD_CLOEXEC, 0);
+    if (walkfd < 0) {
+	pluginwarn(errno, "%s: fcntl(F_DUPFD_CLOEXEC)", __func__);
+	return false;
+    }
+
+    DIR *dir = fdopendir(walkfd);
+    if (!dir) {
+	pluginwarn(errno, "%s: fdopendir()", __func__);
+	close(walkfd);
+	return false;
+    }
+
+    bool ret = true;
+    struct dirent *d;
+    while ((d = readdir(dir))) {
+	if (!strcmp(d->d_name, ".") || !strcmp(d->d_name, "..")) continue;
+
+	struct stat sbuf;
+	if (fstatat(dirfd, d->d_name, &sbuf, AT_SYMLINK_NOFOLLOW) < 0) {
+	    /* skip already gone entries */
+	    if (errno == ENOENT) continue;
+
+	    pluginwarn(errno, "%s: fstatat(%s)", __func__, d->d_name);
+	    ret = false;
+	    continue;
+	}
+
+	if (S_ISDIR(sbuf.st_mode)) {
+	    /* again ensure to not follow symlinks to prevent race conditions */
+	    int flags = O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC;
+	    int subfd = openat(dirfd, d->d_name, flags);
+	    if (subfd < 0) {
+		if (errno == ENOENT) continue;
+		pluginwarn(errno, "%s: openat(%s)", __func__, d->d_name);
+		ret = false;
+		continue;
+	    }
+	    bool empty = removeDirFd(subfd, depth + 1);
+	    close(subfd);
+
+	    if (!empty) {
+		ret = false;
+	    } else if (unlinkat(dirfd, d->d_name, AT_REMOVEDIR) < 0 &&
+		       errno != ENOENT) {
+		pluginwarn(errno, "%s: unlinkat(%s)", __func__, d->d_name);
+		ret = false;
+	    }
+	} else if (unlinkat(dirfd, d->d_name, 0) < 0 && errno != ENOENT) {
+	    pluginwarn(errno, "%s: unlinkat(%s)", __func__, d->d_name);
+	    ret = false;
+	}
+    }
+
+    if (closedir(dir) == -1) { /* closes walkfd on success */
+	close(walkfd);
+    }
+    return ret;
+}
+
+bool emptyDir(char *directory)
+{
+    if (!directory || !*directory) {
 	pluginflog("invalid directory\n");
 	return false;
     }
 
-    DIR *dir = opendir(directory);
-    if (!dir) {
-	pluginwarn(errno, "%s: opendir(%s):", __func__, directory);
+    /* follow a possible symlink */
+    int fd = open(directory, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    if (fd < 0) {
+	if (errno == ENOENT) return true;
+	pluginwarn(errno, "%s: open(%s)", __func__, directory);
 	return false;
     }
 
-    struct dirent *d;
-    while ((d = readdir(dir))) {
-	if ((!strcmp(d->d_name, ".") || !strcmp(d->d_name, ".."))) continue;
-	char buf[PATH_MAX];
-	snprintf(buf, sizeof(buf), "%s/%s", directory, d->d_name);
+    bool ret = removeDirFd(fd, 1);
+    close(fd);
+    return ret;
+}
 
-	struct stat sbuf;
-	stat(buf, &sbuf);
-
-	if (S_ISDIR(sbuf.st_mode)) {
-	    /* remove all directories recursively */
-	    removeDir(buf, true);
-	} else {
-	    remove(buf);
-	}
+bool removeDir(char *directory)
+{
+    if (!directory || !*directory) {
+	pluginflog("invalid directory\n");
+	return false;
     }
 
-    /* delete also the root directory */
-    if (root) remove(directory);
+    int fd = open(directory, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+    if (fd < 0) {
+	int eno = errno;
+	/* nothing to remove */
+	if (eno == ENOENT) return true;
 
-    closedir(dir);
-    return true;
+	if (eno == ELOOP || eno == ENOTDIR) {
+	    struct stat sbuf;
+	    if (lstat(directory, &sbuf) == 0 && S_ISLNK(sbuf.st_mode)) {
+		if (unlink(directory) < 0 && errno != ENOENT) {
+		    pluginwarn(errno, "%s: unlink(%s)", __func__, directory);
+		    return false;
+		}
+		return true;
+	    }
+	}
+	pluginwarn(eno, "%s: open(%s)", __func__, directory);
+	return false;
+    }
+
+    bool ret = removeDirFd(fd, 1);
+    close(fd);
+
+    if (rmdir(directory) < 0 && errno != ENOENT) {
+	pluginwarn(errno, "%s: rmdir(%s)", __func__, directory);
+	ret = false;
+    }
+
+    return ret;
 }
 
 static bool doCreateDir(const char *dir, mode_t mode, uid_t uid, gid_t gid)
