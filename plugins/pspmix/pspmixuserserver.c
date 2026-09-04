@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -212,7 +212,7 @@ bool pspmix_userserver_removeJob(PStask_ID_t jobID)
 
     if (list_empty(&session->jobs)) {
 	/* remove session's tempdir */
-	removeDir(session->tmpdir, true);
+	removeDir(session->tmpdir);
 	pspmix_deleteSession(session, true);
     }
 
@@ -243,7 +243,7 @@ int pspmix_userserver_finalize(Forwarder_Data_t *fwdata)
     }
 
     /* remove root of all temporary directories */
-    removeDir(server->tmproot, true);
+    removeDir(server->tmproot);
 
     flog("server for UID %d finalized\n", server->uid);
 

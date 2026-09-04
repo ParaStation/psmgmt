@@ -186,7 +186,7 @@ static void manageTempDir(PElogueChild_t *child, bool create)
 	}
     } else if (child->tmpDir) {
 	/* delete temp directory in epilogue */
-	removeDir(child->tmpDir, true);
+	removeDir(child->tmpDir);
 	free(child->tmpDir);
 	child->tmpDir = NULL;
     }
