@@ -617,9 +617,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     ns->appsCount = atoi(env);
 
     if (ns->appsCount != job->numRes) {
-	flog("PMIX_JOB_NUM_APPS does not match number of reservations"
-	     " (%zu != %u)\n", ns->appsCount, job->numRes);
-	goto nscreate_error;
+	flog("PMIX_JOB_NUM_APPS=%zu does not match number of reservations;"
+	     " continue with %u apps\n", ns->appsCount, job->numRes);
+	ns->appsCount = job->numRes;
     }
 
     ns->apps = umalloc(ns->appsCount * sizeof(*ns->apps));
