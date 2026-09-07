@@ -107,7 +107,9 @@ typedef struct {
  *
  * @param sMsg The message to unpack
  *
- * @return Returns the extracted job credential or NULL on error
+ * @return Returns the extracted job credential or NULL on error; the
+ * caller is responsible for freeing the memory referenced by this job
+ * credential via @ref freeJobCred()
  */
 JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg);
 
