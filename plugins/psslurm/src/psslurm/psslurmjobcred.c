@@ -89,7 +89,7 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg)
     }
     mdbg(PSSLURM_LOG_PART, "\n");
 
-    int credLen = credEnd - credStart;
+    ssize_t credLen = credEnd - credStart;
     if (credLen < 0) {
 	flog("invalid job credential range\n");
 	goto ERROR;
@@ -115,7 +115,7 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg)
 	}
 
 	if (credLen != sigBufLen) {
-	    flog("mismatching credential, len %u : %u\n", credLen, sigBufLen);
+	    flog("mismatching credential, len %zd : %u\n", credLen, sigBufLen);
 	    if (mset(PSSLURM_LOG_AUTH)) {
 		printBinaryData(sigBuf, sigBufLen, "sigBuf");
 		printBinaryData(credStart, credLen, "jobData");
@@ -150,7 +150,7 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg)
     }
 
     if (mset(PSSLURM_LOG_AUTH)) {
-	flog("cred len %u stepHostlist '%s' jobHostlist '%s' ctime %lu"
+	flog("cred len %zd stepHostlist '%s' jobHostlist '%s' ctime %lu"
 	     " sig '%s' pwGecos '%s' pwDir '%s' pwShell '%s' contrains %s\n",
 	     credLen, cred->stepHL, cred->jobHostlist, cred->ctime, cred->sig,
 	     cred->pwGecos, cred->pwDir, cred->pwShell, cred->jobConstraints);
