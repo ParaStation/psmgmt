@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <string.h>
 #include <strings.h>
+#include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>
@@ -28,7 +29,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
-#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
