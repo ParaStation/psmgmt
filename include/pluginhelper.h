@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,7 +39,8 @@ bool removeDir(char *directory);
  * @brief Empty directory without following symlinks
  *
  * Empty a directory recursively. Descend at most @ref REMOVEDIR_MAX_DEPTH
- * levels. Since each level holds file descriptors the maximum depth is limited.
+ * (currently defined as 128) levels. Since each level holds file descriptors
+ * the maximum depth is limited.
  *
  * @param dirfd directory file descriptor to empty
  *
@@ -53,7 +54,7 @@ bool removeDirFd(int dirfd, int depth);
 /**
  * @brief Empty a directory
  *
- * Empty a direcory that might be a symlink to a real directory.
+ * Empty a directory that might be a symlink to a real directory.
  *
  * @param directory Directory to empty
  *
