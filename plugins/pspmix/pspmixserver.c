@@ -2326,8 +2326,15 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     INFO_LIST_CONVERT(list, &info);
 
     if (mset(PSPMIX_LOG_INFOARR)) {
-	printInfoArray("PMIx_server_init info", (pmix_info_t *)info.array,
-		       info.size, true);
+	// avoid printInfoArray()/PMIx_Info_string() before PMIx_server_init()
+	flog("PMIx_server_init info:\n");
+	pmix_info_t *infoArr = info.array;
+	for (size_t i = 0; i < info.size; i++) {
+	    char *valStr = PMIx_Value_string(&infoArr[i].value);
+	    flog(" %zd '%s' '%s' flags: %#.4x \n", i, infoArr[i].key, valStr,
+		 infoArr[i].flags);
+	    free(valStr);
+	}
     }
 
     /* initialize server library */
