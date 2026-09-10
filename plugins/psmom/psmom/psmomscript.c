@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -678,15 +678,13 @@ static void callbackPElogue(int exitStat, bool tmdOut, int iofd, void *info)
 
 	/* delete temp directory if prologue failed */
 	if (exitStat != 0 && data->tmpDir) {
-	    removeDir(data->tmpDir, true);
+	    removeDir(data->tmpDir);
 	}
     } else {
 	initFragBuffer(&msg, PSP_PLUG_PSMOM, PSP_PSMOM_EPILOGUE_FINISH);
 
 	/* delete temp directory in epilogue */
-	if (data->tmpDir) {
-	    removeDir(data->tmpDir, true);
-	}
+	if (data->tmpDir) removeDir(data->tmpDir);
     }
     setFragDest(&msg, data->mainMom);
 
@@ -899,9 +897,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 	itype = PSMOM_CHILD_EPILOGUE;
 
 	/* delete temp directory in epilogue */
-	if (confTmpDir) {
-	    removeDir(tmpDir, true);
-	}
+	if (confTmpDir) removeDir(tmpDir);
     }
     setFragDest(&ans, msg->header.sender);
 

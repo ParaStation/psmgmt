@@ -6,6 +6,15 @@ Copyright (C) 2021-2026 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.8.4:
+==============
+Bugfixes:
+ - ensure cleanup of container rootfs does not follow user placed symlinks
+Enhancement
+ - harden job credential checks
+ - make all SLURM environment variables accessible in prologue
+
+
 Version 6.8.3:
 ==============
 Bugfixes:

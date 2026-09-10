@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <string.h>
 #include <strings.h>
+#include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>
@@ -28,7 +29,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
-#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -481,6 +481,13 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     if (!step) {
 	flog("unpacking step failed\n");
 	return ESLURMD_INVALID_JOB_CREDENTIAL;
+    }
+
+    /* verify job owner */
+    if (!verifyUserId(sMsg->head.uid, step->uid)) {
+	flog("uid %u is not allowed to launch %s owned by uid %u\n",
+	     sMsg->head.uid, Step_strID(step), step->uid);
+	return ESLURM_USER_ID_MISSING;
     }
 
     if (Auth_isDeniedUID(step->uid)) {
@@ -1352,6 +1359,13 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
 	bcast->username = ustrdup(job->username);
     }
 
+    /* verify job owner */
+    if (!verifyUserId(sMsg->head.uid, bcast->uid)) {
+	flog("uid %u is not allowed to bcast for job %u owned by uid %u\n",
+	     sMsg->head.uid, bcast->hID.jobid, bcast->uid);
+	return ESLURM_USER_ID_MISSING;
+    }
+
     if (Auth_isDeniedUID(bcast->uid)) {
 	flog("denied UID %u to start bcast\n", sMsg->head.uid);
 	return ESLURM_USER_ID_MISSING;
@@ -1927,6 +1941,9 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* don't accept new jobs if a shutdown is in progress */
     if (pluginShutdown) return SLURM_ERROR;
+
+    /* check permissions */
+    if (!checkPrivMsg(sMsg)) return ESLURM_ACCESS_DENIED;
 
     if (Auth_isDeniedUID(job->uid)) {
 	flog("denied UID %u to start job %u\n", sMsg->head.uid, job->hID.jobid);

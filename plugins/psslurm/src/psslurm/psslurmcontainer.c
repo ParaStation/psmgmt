@@ -10,6 +10,7 @@
 #include "psslurmcontainer.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -239,9 +240,13 @@ static bool initRootFS(Slurm_Container_t *ct)
     }
 
     struct stat sbuf;
-    if (stat(ct->rootfs, &sbuf) == -1) {
+    if (lstat(ct->rootfs, &sbuf) == -1) {
 	mwarn(errno, "%s: invalid rootfs directory %s:",
 	      __func__, ct->rootfs);
+	return false;
+    }
+    if (!S_ISDIR(sbuf.st_mode)) {
+	flog("rootfs is not a directory %s\n", ct->rootfs);
 	return false;
     }
 
@@ -580,6 +585,68 @@ void Container_stop(Slurm_Container_t *ct)
     execRuntimeCmd(ct, "RunTimeDelete", true);
 }
 
+static inline int openChildDir(int dirfd, const char *name)
+{
+    return openat(dirfd, name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+}
+
+/**
+ * @brief Remove leftover bind-mounted directory
+ *
+ * Remove leftover bind-mount directory tmp/psslurm/job-%j under ct->rootfs.
+ * Each component is opened with O_NOFOLLOW so a user-planted symlink is
+ * not followed. See @ref JSON_TMP.
+ */
+static void removeRootfsTmp(Slurm_Container_t *ct)
+{
+    int rootfd = open(ct->rootfs, O_RDONLY | O_DIRECTORY | O_NOFOLLOW
+		      | O_CLOEXEC);
+    if (rootfd < 0) {
+	fwarn(errno, "open(%s)", ct->rootfs);
+	return;
+    }
+
+    int tmpfd = openChildDir(rootfd, "tmp");
+    if (tmpfd < 0) {
+	int eno = errno;
+	close(rootfd);
+	if (eno != ENOENT) fwarn(eno, "openat(%s/tmp)", ct->rootfs);
+	return;
+    }
+    close(rootfd);
+
+    int psslurmfd = openChildDir(tmpfd, "psslurm");
+    if (psslurmfd < 0) {
+	int eno = errno;
+	close(tmpfd);
+	if (eno != ENOENT) fwarn(eno, "openat(%s/tmp/psslurm)", ct->rootfs);
+	return;
+    }
+    close(tmpfd);
+
+    char jobdir[32];
+    snprintf(jobdir, sizeof(jobdir), "job-%u", ct->jobid);
+    int jobfd = openChildDir(psslurmfd, jobdir);
+    if (jobfd < 0) {
+	if (errno != ENOENT && errno != ELOOP && errno != ENOTDIR) {
+	    fwarn(errno, "openat(%s/tmp/psslurm/%s)", ct->rootfs, jobdir);
+	} else if (errno == ELOOP || errno == ENOTDIR) {
+	    if (unlinkat(psslurmfd, jobdir, 0) < 0 && errno != ENOENT) {
+		fwarn(errno, "unlinkat(%s)", jobdir);
+	    }
+	}
+	close(psslurmfd);
+	return;
+    }
+
+    removeDirFd(jobfd, 1);
+    close(jobfd);
+    if (unlinkat(psslurmfd, jobdir, AT_REMOVEDIR) < 0 && errno != ENOENT) {
+	fwarn(errno, "unlinkat(%s)", jobdir);
+    }
+    close(psslurmfd);
+}
+
 bool Container_destroy(Slurm_Container_t *ct)
 {
     if (!ct) {
@@ -588,16 +655,11 @@ bool Container_destroy(Slurm_Container_t *ct)
     }
 
     if (!getConfValueU(SlurmOCIConfig, "DisableCleanup")) {
-	if (ct->spoolJobDir) removeDir(ct->spoolJobDir, true);
+	if (ct->spoolJobDir) removeDir(ct->spoolJobDir);
     }
 
-    /* remove leftover bind mounts from container rootfs */
-    char *tmpDir = PSC_concat(ct->rootfs, JSON_TMP);
-    char *tmpDirR = replaceSymbols(tmpDir, ct);
-    struct stat sbuf;
-    if (tmpDirR && !stat(tmpDirR, &sbuf)) removeDir(tmpDirR, true);
-    ufree(tmpDir);
-    ufree(tmpDirR);
+    /* leftover bind mounts under the container rootfs */
+    if (ct->rootfs) removeRootfsTmp(ct);
 
     Container_CMDs_t *cmds = &ct->cmds;
     ufree(cmds->query);

@@ -73,11 +73,11 @@ bool BCast_extractCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
     }
 
     if (bcast->blockNumber == 1) {
+	ssize_t credLen = cred.end - credStart;
+
 	int sigBufLen;
-	int credLen = cred.end - credStart;
 	uid_t sigUid;
 	gid_t sigGid;
-
 	if (!psMungeDecodeBuf(cred.sig, (void **) &sigBuf, &sigBufLen,
 			      &sigUid, &sigGid)) {
 	    flog("decoding creditial failed\n");
@@ -85,7 +85,7 @@ bool BCast_extractCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 	}
 
 	if (credLen != sigBufLen) {
-	    flog("mismatching creditial len %u : %u\n", credLen, sigBufLen);
+	    flog("mismatching creditial len %zd : %d\n", credLen, sigBufLen);
 	    goto ERROR;
 	}
 

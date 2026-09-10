@@ -21,13 +21,46 @@
 /**
  * @brief Remove a directory recursively
  *
- * @param dir Directory to remove
+ * Open @a directory with O_NOFOLLOW. Symbolic links below it are
+ * never followed.  A symlink is unlinked as itself even if it points at a
+ * directory.  This is required when the tree is owned by an unprivileged
+ * user and the caller runs as root.
  *
- * @param root Flag to delete the root directory, too
+ * Paths that may themselves be a symlink (e.g. spool) must use
+ * @ref emptyDir() instead.
  *
- * @return Returns false on error and true on success
+ * @param directory Directory to remove
+ *
+ * @return Returns true on success otherwise false is returned
  */
-bool removeDir(char *directory, bool root);
+bool removeDir(char *directory);
+
+/**
+ * @brief Empty directory without following symlinks
+ *
+ * Empty a directory recursively. Descend at most @ref REMOVEDIR_MAX_DEPTH
+ * (currently defined as 128) levels. Since each level holds file descriptors
+ * the maximum depth is limited.
+ *
+ * @param dirfd directory file descriptor to empty
+ *
+ * @param depth recursion depth of this call
+ *
+ * @return Returns false if any entry could not be removed, otherwise true is
+ * returned on success
+ */
+bool removeDirFd(int dirfd, int depth);
+
+/**
+ * @brief Empty a directory
+ *
+ * Empty a directory that might be a symlink to a real directory.
+ *
+ * @param directory Directory to empty
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool emptyDir(char *directory);
 
 /**
  * @brief Create directories recursively

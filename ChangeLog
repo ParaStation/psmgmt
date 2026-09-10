@@ -1,3 +1,43 @@
+Version 6.8.4:
+==============
+------------------------------------------------------------------------
+4d1e876ba | Michael Rauh | Thu, 10 Sep 2026 12:12:11 +0200
+
+Make all SLURM environment variables accessible in prologue
+------------------------------------------------------------------------
+a5057bd2f | Norbert Eicker | Tue, 8 Sep 2026 18:59:14 +0200
+
+Improve docu comments
+------------------------------------------------------------------------
+305b6a87b | Norbert Eicker | Mon, 7 Sep 2026 19:09:56 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+4500c5c05 | Norbert Eicker | Mon, 7 Sep 2026 19:09:38 +0200
+
+Extend docu comment
+------------------------------------------------------------------------
+f93699d09 | Norbert Eicker | Mon, 7 Sep 2026 19:08:40 +0200
+
+Ensure length variable provides sufficient range
+------------------------------------------------------------------------
+904f5abe4 | Michael Rauh | Fri, 4 Sep 2026 16:43:32 +0200
+
+Bugfix: ensure cleanup of container rootfs does not follow user
+placed symlinks
+------------------------------------------------------------------------
+dbfca87a3 | Michael Rauh | Fri, 4 Sep 2026 16:36:02 +0200
+
+Introduce removeDirFd() and emptyDir()
+
+- rework removeDir() to not follow symlinks blindly
+------------------------------------------------------------------------
+911e03001 | Michael Rauh | Wed, 2 Sep 2026 17:29:03 +0200
+
+Harden job credential checks
+------------------------------------------------------------------------
+
+
 Version 6.8.3:
 ==============
 ------------------------------------------------------------------------
