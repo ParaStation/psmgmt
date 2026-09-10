@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -472,9 +472,7 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
 /* the double NULL at the end of the structure is used as a placeholder
  * by @ref addFilter to implement the --filter command line argument */
 static char *filterData[] = { "SLURM_SPANK_*", "_SLURM_SPANK_OPTION_*",
-    "SLURM_JOBID", "SLURM_JOB_ID", "SLURM_JOB_NODELIST", "SLURM_SUBMIT_DIR",
-    "SLURM_PACK_JOB_ID", "SLURM_PACK_JOB_NODELIST", "_PSSLURM_*",
-    "SPANK__SLURM*", NULL, NULL };
+    "SLURM_*", "_PSSLURM_*", "SPANK__SLURM*", NULL, NULL };
 
 static bool envFilter(const char *envStr)
 {
