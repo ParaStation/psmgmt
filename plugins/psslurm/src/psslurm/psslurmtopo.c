@@ -116,7 +116,7 @@ static void addSwitch(Topology_t *topo, const char *sw)
 
 Topology_t *getTopology(const char *node)
 {
-    Topology_t *topology = ucalloc(sizeof(topology));
+    Topology_t *topology = ucalloc(sizeof(*topology));
 
     addNode(topology, node);
 
