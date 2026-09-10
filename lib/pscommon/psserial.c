@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/param.h>
 
 #include "list.h"
 #include "pscio.h"
@@ -1341,7 +1342,7 @@ static bool addData(PS_SendDB_t *buffer, const void *data, const size_t dataLen,
 	if (!buffer->buf) buffer->bufUsed = 0;
 	/* grow send buffer if needed */
 	if (buffer->bufUsed + dataLen > sendBufLen) {
-	    size_t s = sendBufLen ? sendBufLen * 2 : DEFAULT_BUFFER_SIZE;
+	    size_t s = roundup(buffer->bufUsed + dataLen, DEFAULT_BUFFER_SIZE);
 	    char *tmp = realloc(sendBuf, s);
 	    if (!tmp) {
 		PSC_flog("allocation of %zd failed at %s@%d\n", s, caller, line);
