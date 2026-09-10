@@ -58,13 +58,13 @@ bool removeDirFd(int dirfd, int depth)
 
     int walkfd = fcntl(dirfd, F_DUPFD_CLOEXEC, 0);
     if (walkfd < 0) {
-	pluginwarn(errno, "%s: fcntl(F_DUPFD_CLOEXEC)", __func__);
+	pluginfwarn(errno, "fcntl(F_DUPFD_CLOEXEC)");
 	return false;
     }
 
     DIR *dir = fdopendir(walkfd);
     if (!dir) {
-	pluginwarn(errno, "%s: fdopendir()", __func__);
+	pluginfwarn(errno, "fdopendir()");
 	close(walkfd);
 	return false;
     }
@@ -79,7 +79,7 @@ bool removeDirFd(int dirfd, int depth)
 	    /* skip already gone entries */
 	    if (errno == ENOENT) continue;
 
-	    pluginwarn(errno, "%s: fstatat(%s)", __func__, d->d_name);
+	    pluginfwarn(errno, "fstatat(%s)", d->d_name);
 	    ret = false;
 	    continue;
 	}
@@ -90,7 +90,7 @@ bool removeDirFd(int dirfd, int depth)
 	    int subfd = openat(dirfd, d->d_name, flags);
 	    if (subfd < 0) {
 		if (errno == ENOENT) continue;
-		pluginwarn(errno, "%s: openat(%s)", __func__, d->d_name);
+		pluginfwarn(errno, "openat(%s)", d->d_name);
 		ret = false;
 		continue;
 	    }
@@ -101,11 +101,11 @@ bool removeDirFd(int dirfd, int depth)
 		ret = false;
 	    } else if (unlinkat(dirfd, d->d_name, AT_REMOVEDIR) < 0 &&
 		       errno != ENOENT) {
-		pluginwarn(errno, "%s: unlinkat(%s)", __func__, d->d_name);
+		pluginfwarn(errno, "unlinkat(%s)", d->d_name);
 		ret = false;
 	    }
 	} else if (unlinkat(dirfd, d->d_name, 0) < 0 && errno != ENOENT) {
-	    pluginwarn(errno, "%s: unlinkat(%s)", __func__, d->d_name);
+	    pluginfwarn(errno, "unlinkat(%s)", d->d_name);
 	    ret = false;
 	}
     }
@@ -127,7 +127,7 @@ bool emptyDir(char *directory)
     int fd = open(directory, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
     if (fd < 0) {
 	if (errno == ENOENT) return true;
-	pluginwarn(errno, "%s: open(%s)", __func__, directory);
+	pluginfwarn(errno, "open(%s)", directory);
 	return false;
     }
 
@@ -153,13 +153,13 @@ bool removeDir(char *directory)
 	    struct stat sbuf;
 	    if (lstat(directory, &sbuf) == 0 && S_ISLNK(sbuf.st_mode)) {
 		if (unlink(directory) < 0 && errno != ENOENT) {
-		    pluginwarn(errno, "%s: unlink(%s)", __func__, directory);
+		    pluginfwarn(errno, "unlink(%s)", directory);
 		    return false;
 		}
 		return true;
 	    }
 	}
-	pluginwarn(eno, "%s: open(%s)", __func__, directory);
+	pluginfwarn(eno, "open(%s)", directory);
 	return false;
     }
 
@@ -167,7 +167,7 @@ bool removeDir(char *directory)
     close(fd);
 
     if (rmdir(directory) < 0 && errno != ENOENT) {
-	pluginwarn(errno, "%s: rmdir(%s)", __func__, directory);
+	pluginfwarn(errno, "rmdir(%s)", directory);
 	ret = false;
     }
 
