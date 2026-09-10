@@ -385,7 +385,7 @@ static Gres_Cred_t *unpackGresStepPart(PS_DataBuffer_t data, uint16_t index,
     /* additional bit allocation */
     getUint8(data, &more);
     if (more) {
-	gres->bitAlloc = umalloc(sizeof(char *) * gres->nodeCount);
+	gres->bitAlloc = umalloc(sizeof(*gres->bitAlloc) * gres->nodeCount);
 	for (uint32_t i = 0; i < gres->nodeCount; i++) {
 	    gres->bitAlloc[i] = getBitString(data);
 	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' bit_alloc '%s'\n", __func__,
@@ -540,7 +540,7 @@ static Gres_Cred_t *unpackGresJobPart(PS_DataBuffer_t data, uint16_t index,
     /* bit allocation (GRes allocation per node) */
     getUint8(data, &more);
     if (more) {
-	gres->bitAlloc = umalloc(sizeof(char *) * gres->nodeCount);
+	gres->bitAlloc = umalloc(sizeof(*gres->bitAlloc) * gres->nodeCount);
 	for (uint32_t i=0; i<gres->nodeCount; i++) {
 	    gres->bitAlloc[i] = getBitString(data);
 	    fdbg(PSSLURM_LOG_GRES, "node '%u' bit_alloc '%s'\n", i,
@@ -574,7 +574,7 @@ static Gres_Cred_t *unpackGresJobPart(PS_DataBuffer_t data, uint16_t index,
     /* bit step allocation */
     getUint8(data, &more);
     if (more) {
-	gres->bitStepAlloc = umalloc(sizeof(char *) * gres->nodeCount);
+	gres->bitStepAlloc = umalloc(sizeof(*gres->bitStepAlloc) * gres->nodeCount);
 	for (uint32_t i=0; i<gres->nodeCount; i++) {
 	    gres->bitStepAlloc[i] = getBitString(data);
 	    fdbg(PSSLURM_LOG_GRES, "node '%u' bit_step_alloc '%s'\n",
@@ -585,7 +585,7 @@ static Gres_Cred_t *unpackGresJobPart(PS_DataBuffer_t data, uint16_t index,
     /* count step allocation */
     getUint8(data, &more);
     if (more) {
-	gres->countStepAlloc = umalloc(sizeof(uint64_t) * gres->nodeCount);
+	gres->countStepAlloc = umalloc(sizeof(*gres->countStepAlloc) * gres->nodeCount);
 	for (uint32_t i=0; i<gres->nodeCount; i++) {
 	    getUint64(data, &(gres->countStepAlloc)[i]);
 	    fdbg(PSSLURM_LOG_GRES, "node '%u' gres_cnt_step_alloc '%lu'\n",
@@ -1241,7 +1241,7 @@ static bool unpackGresJobAlloc(PS_DataBuffer_t data, list_t *gresList,
 	/* bit allocation */
 	getUint8(data, &filled);
 	if (filled) {
-	    gres->bitAlloc = umalloc(sizeof(char *) * gres->nodeCount);
+	    gres->bitAlloc = umalloc(sizeof(*gres->bitAlloc) * gres->nodeCount);
 	    for (uint32_t j=0; j<gres->nodeCount; j++) {
 		gres->bitAlloc[j] = getBitString(data);
 		fdbg(PSSLURM_LOG_GRES, "node %u bit_alloc %s\n", j,
@@ -1357,9 +1357,9 @@ static bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
 
 static void unpackStepTaskIds(PS_DataBuffer_t data, Step_t *step)
 {
-    step->tasksToLaunch = umalloc(step->nrOfNodes * sizeof(uint16_t));
-    step->globalTaskIds = umalloc(step->nrOfNodes * sizeof(uint32_t *));
-    step->globalTaskIdsLen = umalloc(step->nrOfNodes * sizeof(uint32_t));
+    step->tasksToLaunch = umalloc(step->nrOfNodes * sizeof(*step->tasksToLaunch));
+    step->globalTaskIds = umalloc(step->nrOfNodes * sizeof(*step->globalTaskIds));
+    step->globalTaskIdsLen = umalloc(step->nrOfNodes * sizeof(*step->globalTaskIdsLen));
 
     for (uint32_t i = 0; i < step->nrOfNodes; i++) {
 	/* num of tasks per node */
@@ -1384,7 +1384,7 @@ static bool unpackStepAddr(PS_DataBuffer_t data, Step_t *step, uint16_t msgVer)
     /* srun ports */
     getUint16(data, &step->numSrunPorts);
     if (step->numSrunPorts > 0) {
-	step->srunPorts = umalloc(step->numSrunPorts * sizeof(uint16_t));
+	step->srunPorts = umalloc(step->numSrunPorts * sizeof(*step->srunPorts));
 	for (uint32_t i = 0; i < step->numSrunPorts; i++) {
 	    getUint16(data, &step->srunPorts[i]);
 	}
@@ -2476,9 +2476,9 @@ static bool unpackNodeStates(Slurm_Msg_t *sMsg, list_t *stateList)
 	getUint16(data, &ns->topoCnt);
 
 	if (ns->topoCnt) {
-	    ns->topoCoreBitmap = umalloc(sizeof(char *) * ns->topoCnt);
-	    ns->topoGresBitmap = umalloc(sizeof(char *) * ns->topoCnt);
-	    ns->topoResCoreBitmap = umalloc(sizeof(char *) * ns->topoCnt);
+	    ns->topoCoreBitmap = umalloc(sizeof(*ns->topoCoreBitmap) * ns->topoCnt);
+	    ns->topoGresBitmap = umalloc(sizeof(*ns->topoGresBitmap) * ns->topoCnt);
+	    ns->topoResCoreBitmap = umalloc(sizeof(*ns->topoResCoreBitmap) * ns->topoCnt);
 
 	    for (uint16_t u=0; u<ns->topoCnt; u++) {
 		/* topology core bitmap */
@@ -2896,7 +2896,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     /* I/O Ports */
     getUint16(data, &step->numIOPort);
     if (step->numIOPort > 0) {
-	step->IOPort = umalloc(sizeof(uint16_t) * step->numIOPort);
+	step->IOPort = umalloc(sizeof(*step->IOPort) * step->numIOPort);
 	for (uint32_t i = 0; i < step->numIOPort; i++) {
 	    getUint16(data, &step->IOPort[i]);
 	}
@@ -4197,7 +4197,7 @@ static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
     /* srun control ports */
     getUint16(data, &req->numCtlPorts);
     if (req->numCtlPorts > 0) {
-	req->ctlPorts = umalloc(req->numCtlPorts * sizeof(uint16_t));
+	req->ctlPorts = umalloc(req->numCtlPorts * sizeof(*req->ctlPorts));
 	for (uint16_t i=0; i<req->numCtlPorts; i++) {
 	    getUint16(data, &req->ctlPorts[i]);
 	}
@@ -4206,7 +4206,7 @@ static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
     /* I/O ports */
     getUint16(data, &req->numIOports);
     if (req->numIOports > 0) {
-	req->ioPorts = umalloc(req->numIOports * sizeof(uint16_t));
+	req->ioPorts = umalloc(req->numIOports * sizeof(*req->ioPorts));
 	for (uint16_t i=0; i<req->numIOports; i++) {
 	    getUint16(data, &req->ioPorts[i]);
 	}

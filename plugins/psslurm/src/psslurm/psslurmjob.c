@@ -126,7 +126,7 @@ bool Job_delete(Job_t *job)
 
 Job_t *Job_add(void)
 {
-    Job_t *job = ucalloc(sizeof(Job_t));
+    Job_t *job = ucalloc(sizeof(*job));
 
     job->stdOutFD = job->stdErrFD = -1;
     INIT_LIST_HEAD(&job->gresList);

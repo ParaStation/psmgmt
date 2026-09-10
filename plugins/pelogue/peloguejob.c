@@ -136,7 +136,7 @@ Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 	job->deleted = false;
 	job->fwStdOE = fwStdOE;
 
-	job->nodes =umalloc(sizeof(*job->nodes) * numNodes);
+	job->nodes = umalloc(sizeof(*job->nodes) * numNodes);
 	if (job->nodes) {
 	    for (int i = 0; i < job->numNodes; i++) {
 		job->nodes[i].id = nodes[i];

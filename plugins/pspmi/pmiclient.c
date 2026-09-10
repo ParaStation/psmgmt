@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1303,9 +1303,7 @@ void ackFinalize(void)
 static void bufferCacheUpdate(char *msg, size_t msgLen,
 			      bool lastUpdate, int updateIndex)
 {
-    Update_Buffer_t *uBuf;
-
-    uBuf = (Update_Buffer_t *) umalloc(sizeof(Update_Buffer_t));
+    Update_Buffer_t *uBuf =  umalloc(sizeof(*uBuf));
     uBuf->msg = umalloc(msgLen);
 
     memcpy(uBuf->msg, msg, msgLen);

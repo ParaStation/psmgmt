@@ -50,7 +50,7 @@ Alloc_t *Alloc_add(Head_ID_t *hID, uint32_t packID, char *slurmHosts, env_t env,
 
     if (alloc) return alloc;
 
-    alloc = ucalloc(sizeof(Alloc_t));
+    alloc = ucalloc(sizeof(*alloc));
     alloc->hID = *hID;
     alloc->packID = packID;
     alloc->state = A_INIT;
@@ -66,7 +66,7 @@ Alloc_t *Alloc_add(Head_ID_t *hID, uint32_t packID, char *slurmHosts, env_t env,
 	flog("converting %s to PS node IDs failed\n", slurmHosts);
     }
     alloc->localNodeId = getLocalID(alloc->nodes, alloc->nrOfNodes);
-    alloc->epilogRes = ucalloc(sizeof(bool) * alloc->nrOfNodes);
+    alloc->epilogRes = ucalloc(sizeof(*alloc->epilogRes) * alloc->nrOfNodes);
     INIT_LIST_HEAD(&alloc->gresList);
 
     /* initialize environment */

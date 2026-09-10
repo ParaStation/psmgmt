@@ -207,7 +207,7 @@ void dupSlurmMsgHead(Slurm_Msg_Header_t *dupHead, Slurm_Msg_Header_t *head)
     if (head->fwNodeList) dupHead->fwNodeList = ustrdup(head->fwNodeList);
     if (head->fwAliasNetCred) dupHead->fwAliasNetCred = ustrdup(head->fwAliasNetCred);
     if (head->fwResSize) {
-	dupHead->fwRes = umalloc(head->fwResSize * sizeof(Slurm_Forward_Res_t));
+	dupHead->fwRes = umalloc(head->fwResSize * sizeof(*dupHead->fwRes));
 
 	memcpy(dupHead->fwRes, head->fwRes,
 	       head->fwResSize * sizeof(Slurm_Forward_Res_t));

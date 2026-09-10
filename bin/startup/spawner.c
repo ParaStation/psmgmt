@@ -608,7 +608,7 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
  */
 static int spawnSingleExecutable(Executable_t *exec, bool verbose)
 {
-    int *errors = umalloc(sizeof(int) * exec->np);
+    int *errors = umalloc(sizeof(*errors) * exec->np);
     // hint to static analyzers; umalloc returns non-NULL if argument > 0
     ASSUME(errors != 0);
     memset(errors, 0, sizeof(int) * exec->np);

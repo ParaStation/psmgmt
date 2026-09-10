@@ -2032,7 +2032,7 @@ bool setStepSlots(Step_t *step)
 
     /* generate slotlist */
     uint32_t slotsSize = step->np;
-    PSpart_slot_t *slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
+    PSpart_slot_t *slots = umalloc(slotsSize * sizeof(*slots));
 
     /* be verbose */
     if (envGet(step->env, "PSSLURM_VERBOSE_PINNING")) {
@@ -2529,21 +2529,12 @@ error:
 static struct bitmask * getMemBindMask(uint32_t localNodeId, uint32_t rank,
 	uint32_t lTID, uint16_t tasksToLaunch, uint16_t memBindType,
 	const char *memBindString) {
-
-    const char delimiters[] = ",";
-    char *next, *saveptr, *ents, *myent, *endptr;
-    char **entarray;
-    unsigned int numents;
-    uint16_t mynode;
-
-    struct bitmask *nodemask;
-
     if (numa_available()==-1) {
 	fprintf(stderr, "NUMA not available:");
 	return NULL;
     }
 
-    nodemask = numa_allocate_nodemask();
+    struct bitmask *nodemask = numa_allocate_nodemask();
     if (!nodemask) {
 	fprintf(stderr, "Allocation of nodemask failed:");
 	return NULL;
@@ -2570,13 +2561,15 @@ static struct bitmask * getMemBindMask(uint32_t localNodeId, uint32_t rank,
 	return nodemask;
     }
 
-    ents = ustrdup(memBindString);
-    entarray = umalloc(tasksToLaunch * sizeof(*entarray));
-    numents = 0;
-    myent = NULL;
+    char *ents = ustrdup(memBindString);
+    char **entarray = umalloc(tasksToLaunch * sizeof(*entarray));
+    unsigned int numents = 0;
+    char *myent = NULL;
     entarray[0] = NULL;
 
-    next = strtok_r(ents, delimiters, &saveptr);
+    const char delimiters[] = ",";
+    char *saveptr;
+    char *next = strtok_r(ents, delimiters, &saveptr);
     while (next && (numents < tasksToLaunch)) {
 	entarray[numents++] = next;
 	if (numents == lTID+1) {
@@ -2602,7 +2595,8 @@ static struct bitmask * getMemBindMask(uint32_t localNodeId, uint32_t rank,
     }
 
     if (memBindType & MEM_BIND_MAP) {
-
+	uint16_t mynode;
+	char *endptr;
 	if (strncmp(myent, "0x", 2) == 0) {
 	    mynode = strtoul (myent+2, &endptr, 16);
 	} else {
@@ -2725,12 +2719,10 @@ char *genCPUbindTypeString(uint16_t cpuBindType)
 /* create the string to be set as SLURM_CPU_BIND */
 char *genCPUbindString(Step_t *step)
 {
-    char *string, *tmp;
-    int len = 0;
-
-    string = (char *) umalloc(sizeof(char) * (25 + strlen(step->cpuBind) + 1));
+    char *string = umalloc(sizeof(*string) * (25 + strlen(step->cpuBind) + 1));
     *string = '\0';
 
+    int len = 0;
     if (step->cpuBindType & CPU_BIND_VERBOSE) {
 	strcpy(string, "verbose");
 	len += 7;
@@ -2742,7 +2734,7 @@ char *genCPUbindString(Step_t *step)
     *(string+len) = ',';
     len++;
 
-    tmp = genCPUbindTypeString(step->cpuBindType);
+    char *tmp = genCPUbindTypeString(step->cpuBindType);
     strcpy(string+len, tmp);
     len += strlen(tmp);
 
@@ -2757,12 +2749,10 @@ char *genCPUbindString(Step_t *step)
 
 char *genMemBindString(Step_t *step)
 {
-    char *string;
-    int len = 0;
-
-    string = (char *) umalloc(sizeof(char) * (25 + strlen(step->memBind) + 1));
+    char *string = umalloc(sizeof(*string) * (25 + strlen(step->memBind) + 1));
     *string = '\0';
 
+    int len = 0;
     if (step->memBindType & MEM_BIND_VERBOSE) {
 	strcpy(string, "verbose");
 	len += 7;

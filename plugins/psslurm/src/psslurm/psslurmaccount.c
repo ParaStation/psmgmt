@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2025 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -49,23 +49,23 @@ TRes_t *TRes_new(void)
 	tres->count = TRES_TOTAL_CNT;
     }
 
-    tres->ids = umalloc(sizeof(uint32_t) * tres->count);
+    tres->ids = umalloc(sizeof(*tres->ids) * tres->count);
 
-    tres->in_max = umalloc(sizeof(uint64_t) * tres->count);
-    tres->in_max_nodeid = umalloc(sizeof(uint64_t) * tres->count);
-    tres->in_max_taskid = umalloc(sizeof(uint64_t) * tres->count);
-    tres->in_min = umalloc(sizeof(uint64_t) * tres->count);
-    tres->in_min_nodeid = umalloc(sizeof(uint64_t) * tres->count);
-    tres->in_min_taskid = umalloc(sizeof(uint64_t) * tres->count);
-    tres->in_tot = umalloc(sizeof(uint64_t) * tres->count);
+    tres->in_max = umalloc(sizeof(*tres->in_max) * tres->count);
+    tres->in_max_nodeid = umalloc(sizeof(*tres->in_max_nodeid) * tres->count);
+    tres->in_max_taskid = umalloc(sizeof(*tres->in_max_taskid) * tres->count);
+    tres->in_min = umalloc(sizeof(*tres->in_min) * tres->count);
+    tres->in_min_nodeid = umalloc(sizeof(*tres->in_min_nodeid) * tres->count);
+    tres->in_min_taskid = umalloc(sizeof(*tres->in_min_taskid) * tres->count);
+    tres->in_tot = umalloc(sizeof(*tres->in_tot) * tres->count);
 
-    tres->out_max = umalloc(sizeof(uint64_t) * tres->count);
-    tres->out_max_nodeid = umalloc(sizeof(uint64_t) * tres->count);
-    tres->out_max_taskid = umalloc(sizeof(uint64_t) * tres->count);
-    tres->out_min = umalloc(sizeof(uint64_t) * tres->count);
-    tres->out_min_nodeid = umalloc(sizeof(uint64_t) * tres->count);
-    tres->out_min_taskid = umalloc(sizeof(uint64_t) * tres->count);
-    tres->out_tot = umalloc(sizeof(uint64_t) * tres->count);
+    tres->out_max = umalloc(sizeof(*tres->out_max) * tres->count);
+    tres->out_max_nodeid = umalloc(sizeof(*tres->out_max_nodeid) * tres->count);
+    tres->out_max_taskid = umalloc(sizeof(*tres->out_max_taskid) * tres->count);
+    tres->out_min = umalloc(sizeof(*tres->out_min) * tres->count);
+    tres->out_min_nodeid = umalloc(sizeof(*tres->out_min_nodeid) * tres->count);
+    tres->out_min_taskid = umalloc(sizeof(*tres->out_min_taskid) * tres->count);
+    tres->out_tot = umalloc(sizeof(*tres->out_tot) * tres->count);
 
     for (uint32_t i=0; i<tres->count; i++) {
 	if (tresDBconfig && tresDBconfig->count>i) {

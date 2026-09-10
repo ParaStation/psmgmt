@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -592,11 +592,9 @@ static char *strndupcat(char *str1, char *str2, size_t len, const char *func)
  */
 static void appendTmpBuffer(int sender, char *newmsg, size_t len, int outfd)
 {
-    bMessages *globalMsg = NULL;
     TempBuffers *tmpBuf = &clientTmpBuf[sender];
     char *tmpLine = tmpBuf->line[outfd];
     char *savebuf = NULL;
-    int hash;
 
     if (outfd > 2) {
 	PSIlog_log(-1, "%s: unsupported outfd %d\n", __func__, outfd);
@@ -625,12 +623,13 @@ static void appendTmpBuffer(int sender, char *newmsg, size_t len, int outfd)
     }
 
     /* insert into tmp msg cache */
-    hash = calcHash(savebuf);
-    if ((globalMsg = isSaved(&msgTmpCache, savebuf, hash))) {
+    int hash = calcHash(savebuf);
+    bMessages *globalMsg = isSaved(&msgTmpCache, savebuf, hash);
+    if (globalMsg) {
 	(globalMsg->counter)++;
 	free(savebuf);
     } else {
-	globalMsg = (bMessages *)umalloc(sizeof(bMessages), __func__);
+	globalMsg = umalloc(sizeof(*globalMsg), __func__);
 	globalMsg->line = savebuf;
 	globalMsg->hash = hash;
 	globalMsg->counter = 1;
@@ -701,11 +700,9 @@ static void delCachedTmpMsg(char *tmpLine)
  */
 static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
 {
-    OutputBuffers *newMsg = NULL;
     OutputBuffers *ClientBuf = &clientOutBuf[sender];
     TempBuffers *tmpBuf = &clientTmpBuf[sender];
     char *tmpLine = tmpBuf->line[outfd];
-    bMessages *globalMsg = NULL;
     char *savep = NULL;
     int hash;
 
@@ -746,14 +743,14 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
     }
 
 
-    if (db)
-	PSIlog_log(-1, "string to global sender:%i outfd:%i savep:' %s'\n",
-		   sender, outfd, savep);
+    if (db) PSIlog_log(-1, "string to global sender:%i outfd:%i savep:'%s'\n",
+		       sender, outfd, savep);
 
     /* check if already in global buffer */
     hash = calcHash(savep);
 
-    if ((globalMsg = isSaved(&messageCache, savep, hash))) {
+    bMessages *globalMsg = isSaved(&messageCache, savep, hash);
+    if (globalMsg) {
 	/* string is already in global msg cache, just save ref to it */
 	(globalMsg->counter)++;
 
@@ -764,7 +761,7 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
 	free(savep);
     } else {
 	/* new message, save it to global msg cache */
-	globalMsg = (bMessages *)umalloc(sizeof(bMessages), __func__);
+	globalMsg = umalloc(sizeof(*globalMsg), __func__);
 	globalMsg->line = savep;
 	globalMsg->hash = hash;
 	globalMsg->counter = 1;
@@ -777,7 +774,7 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
     }
 
     /* setup new client list item */
-    newMsg = (OutputBuffers *)umalloc(sizeof(OutputBuffers), __func__);
+    OutputBuffers *newMsg = umalloc(sizeof(*newMsg), __func__);
     newMsg->time = time(0);
     newMsg->outfd = outfd;
     newMsg->line = globalMsg->line;

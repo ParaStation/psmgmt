@@ -137,14 +137,12 @@ void freeSlurmAuth(Slurm_Auth_t *auth)
 
 Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth)
 {
-    Slurm_Auth_t *dupAuth;
-
     if (!auth) {
 	mlog("%s: invalid authentication pointer\n", __func__);
 	return NULL;
     }
 
-    dupAuth = umalloc(sizeof(*auth));
+    Slurm_Auth_t *dupAuth = umalloc(sizeof(*dupAuth));
     dupAuth->cred = strdup(auth->cred);
     dupAuth->pluginID = auth->pluginID;
 
@@ -173,7 +171,7 @@ Slurm_Auth_t *getSlurmAuth(Slurm_Msg_Header_t *head, char *body,
 	return NULL;
     }
 
-    Slurm_Auth_t *auth = umalloc(sizeof(Slurm_Auth_t));
+    Slurm_Auth_t *auth = umalloc(sizeof(*auth));
     auth->cred = cred;
     auth->pluginID = MUNGE_PLUGIN_ID;
 

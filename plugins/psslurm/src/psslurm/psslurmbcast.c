@@ -37,7 +37,7 @@ static LIST_HEAD(BCastList);
 
 BCast_t *BCast_add(void)
 {
-    BCast_t *bcast = ucalloc(sizeof(BCast_t));
+    BCast_t *bcast = ucalloc(sizeof(*bcast));
 
     initSlurmMsg(&bcast->msg);
 

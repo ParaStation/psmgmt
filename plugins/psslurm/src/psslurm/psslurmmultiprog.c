@@ -396,7 +396,7 @@ static int addExecutableToArgv(strv_t argV, const char *lastExe,
 
 void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata, strv_t argV)
 {
-    Multi_Prog_t *mp = umalloc(step->np * sizeof(Multi_Prog_t));
+    Multi_Prog_t *mp = umalloc(step->np * sizeof(*mp));
     for (uint32_t i = 0; i < step->np; i++) mp[i].exe = mp[i].args = NULL;
 
     /* parse the multi prog conf */

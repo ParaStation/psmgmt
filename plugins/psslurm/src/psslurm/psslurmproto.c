@@ -2649,9 +2649,7 @@ void handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
 
 slurmdHandlerFunc_t registerSlurmdMsg(int msgType, slurmdHandlerFunc_t handler)
 {
-    msgHandler_t *newHandler;
     list_t *h;
-
     list_for_each(h, &msgList) {
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
 
@@ -2663,8 +2661,7 @@ slurmdHandlerFunc_t registerSlurmdMsg(int msgType, slurmdHandlerFunc_t handler)
 	}
     }
 
-    newHandler = umalloc(sizeof(*newHandler));
-
+    msgHandler_t *newHandler = umalloc(sizeof(*newHandler));
     newHandler->msgType = msgType;
     newHandler->handler = handler;
 
@@ -3317,7 +3314,7 @@ void sendTaskPids(Step_t *step)
     resp.countPIDs = countPIDs;
 
     /* local PIDs */
-    resp.localPIDs = umalloc(sizeof(uint32_t) * countPIDs);
+    resp.localPIDs = umalloc(sizeof(*resp.localPIDs) * countPIDs);
 
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
@@ -3328,7 +3325,7 @@ void sendTaskPids(Step_t *step)
     resp.countLocalPIDs = countLocalPIDs;
 
     /* global task IDs */
-    resp.globalTIDs = umalloc(sizeof(uint32_t) * countPIDs);
+    resp.globalTIDs = umalloc(sizeof(*resp.globalTIDs) * countPIDs);
 
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);

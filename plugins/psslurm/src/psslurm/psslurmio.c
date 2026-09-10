@@ -959,7 +959,8 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 
     } else if (step->stdOutOpt == IO_RANK_FILE) {
 	/* open separate files for all ranks */
-	step->outFDs = umalloc(step->globalTaskIdsLen[myNodeID] * sizeof(int));
+	step->outFDs = umalloc(step->globalTaskIdsLen[myNodeID]
+			       * sizeof(*step->outFDs));
 
 	for (uint32_t i = 0; i < step->globalTaskIdsLen[myNodeID]; i++) {
 	    outFile = addCwd(step->cwd, IO_replaceStepSymbols(step,
@@ -996,7 +997,8 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 
     } else if (step->stdErrOpt == IO_RANK_FILE) {
 	/* open separate files for all ranks */
-	step->errFDs = umalloc(step->globalTaskIdsLen[myNodeID] * sizeof(int));
+	step->errFDs = umalloc(step->globalTaskIdsLen[myNodeID]
+			       * sizeof(*step->errFDs));
 
 	for (uint32_t i = 0; i < step->globalTaskIdsLen[myNodeID]; i++) {
 	    errFile = addCwd(step->cwd, IO_replaceStepSymbols(step,

@@ -254,7 +254,7 @@ static struct t_node *insertTNode(PStask_ID_t key, Job_t * job,
 			   struct t_node *leaf)
 {
     if (!leaf) {
-	leaf = umalloc(sizeof(struct t_node), __func__);
+	leaf = umalloc(sizeof(*leaf), __func__);
 	leaf->key = key;
 	leaf->job = job;
 
@@ -430,8 +430,7 @@ static void protocolError(char *err, const char *caller)
  */
 static Job_t *initNewJob(PStask_ID_t logger)
 {
-    Job_t *job;
-    job = umalloc(sizeof(Job_t), __func__);
+    Job_t *job = umalloc(sizeof(*job), __func__);
 
     /* init job structure */
     job->logger = logger;
@@ -1215,9 +1214,8 @@ static void handleAccSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
        if (strlen(job->exec_hosts) + strlen(ctmphost) + 1 >
 	   job->exec_hosts_size) {
 	   char *tmpjob = job->exec_hosts;
-	   job->exec_hosts =
-	       umalloc(job->exec_hosts_size + EXEC_HOST_SIZE, __func__);
 	   job->exec_hosts_size += EXEC_HOST_SIZE;
+	   job->exec_hosts = umalloc(job->exec_hosts_size, __func__);
 	   strncpy(job->exec_hosts, tmpjob, job->exec_hosts_size);
 	   free(tmpjob);
        }
@@ -1621,7 +1619,7 @@ static void getNodeInformation(void)
     /* get number of nodes */
     nrOfNodes = PSC_getNrOfNodes();
 
-    accNodes = umalloc(sizeof(Acc_Nodes_t) * nrOfNodes ,__func__);
+    accNodes = umalloc(sizeof(*accNodes) * nrOfNodes , __func__);
 
     for (int n = 0; n < nrOfNodes; n++) {
 	/* set node id */

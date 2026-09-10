@@ -35,7 +35,7 @@ static LIST_HEAD(StepList);
 
 Step_t *Step_new(void)
 {
-    Step_t *step = ucalloc(sizeof(Step_t));
+    Step_t *step = ucalloc(sizeof(*step));
 
     INIT_LIST_HEAD(&step->gresList);
     INIT_LIST_HEAD(&step->nodeRecords);

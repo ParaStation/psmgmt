@@ -634,7 +634,7 @@ void getPidsByRoot(PStask_ID_t rootTID, pid_t **pids, uint32_t *count)
 
     if (! *count) return;
 
-    *pids = umalloc(sizeof(pid_t) * *count);
+    *pids = umalloc(sizeof(**pids) * *count);
 
     uint32_t index = 0;
     list_for_each(c, &clientList) {
