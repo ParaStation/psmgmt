@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/param.h>
 
 #include "list.h"
 #include "pscio.h"
@@ -1347,7 +1348,7 @@ static bool addData(PS_SendDB_t *buffer, const void *data, const size_t dataLen,
 	if (!buffer->buf) buffer->bufUsed = 0;
 	/* grow send buffer if needed */
 	if (buffer->bufUsed + dataLen > sendBufLen) {
-	    size_t s = sendBufLen ? sendBufLen * 2 : DEFAULT_BUFFER_SIZE;
+	    size_t s = roundup(buffer->bufUsed + dataLen, DEFAULT_BUFFER_SIZE);
 	    char *tmp = realloc(sendBuf, s);
 	    if (!tmp) {
 		PSC_flog("allocation of %zd failed at %s@%d\n", s, caller, line);

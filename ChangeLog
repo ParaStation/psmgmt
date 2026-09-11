@@ -1,3 +1,27 @@
+Version 6.8.5:
+==============
+------------------------------------------------------------------------
+e55ff3a3c | Norbert Eicker | Fri, 11 Sep 2026 10:56:27 +0200
+
+Ensure allocation was successful
+------------------------------------------------------------------------
+f67e94ba7 | Michael Rauh | Thu, 10 Sep 2026 19:42:03 +0200
+
+Bugfix: fix possible memory corruption
+------------------------------------------------------------------------
+0cce12bb2 | Norbert Eicker | Fri, 11 Sep 2026 10:20:34 +0200
+
+Disable temporarily (broken) debug in pspmix_server_init
+------------------------------------------------------------------------
+db8b5403c | Stephan Krempel | Fri, 11 Sep 2026 03:13:25 +0200
+
+pspmix: Fix datatype used for compressed maps
+
+OpenPMIx (5.0.11 at least) does assume the type of PMIX_PROC_MAP and
+PMIX_NODE_MAP to be PMIX_REGEX without checking.
+------------------------------------------------------------------------
+
+
 Version 6.8.4:
 ==============
 ------------------------------------------------------------------------
