@@ -6,6 +6,15 @@ Copyright (C) 2021-2026 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.8.5:
+==============
+Bugfixes:
+ - fix possible memory corruption in psserial
+ - Fix datatype used for compressed maps in pspmix
+Enhancement
+ - disable (broken) debug in pspmix_server_init temporarily
+
+
 Version 6.8.4:
 ==============
 Bugfixes:
