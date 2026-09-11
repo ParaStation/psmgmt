@@ -1,3 +1,7 @@
+Version 6.8.5-1:
+==============
+* No-change rebuild (re-release of version 6.8.5)
+
 Version 6.8.5:
 ==============
 ------------------------------------------------------------------------
@@ -30050,7 +30054,7 @@ Cleanup: use already defined PSIDNAME.
 ------------------------------------------------------------------------
 r9100 | rauh | 2015-02-16 11:07:11 +0100 (Mon, 16 Feb 2015) | 2 lines
 
-Bugfix: the init script should be able to restart the psid after a package update. 
+Bugfix: the init script should be able to restart the psid after a package update.
 
 ------------------------------------------------------------------------
 r9099 | krempel | 2015-02-13 05:14:44 +0100 (Fri, 13 Feb 2015) | 2 lines
@@ -30189,7 +30193,7 @@ Daemon side of PSP_INFO_LIST_RESNODES request.
 r9074 | eicker | 2015-02-06 13:26:23 +0100 (Fri, 06 Feb 2015) | 3 lines
 
 Bugfix: Use correct maxTPP in PSIDpart_getNodes() even if it comes
-    from the last node. 
+    from the last node.
 
 ------------------------------------------------------------------------
 r9073 | eicker | 2015-02-06 13:04:25 +0100 (Fri, 06 Feb 2015) | 4 lines
@@ -30296,7 +30300,7 @@ r9055 | eicker | 2015-01-22 23:44:04 +0100 (Thu, 22 Jan 2015) | 5 lines
 
 Enhancement: Client side of PSI_getReservation(), PSI_getSlots() and
     PSI_spawnRsrvtn()
-Enhancement: New message types PSP_CD_GETRESERVATION, PSP_CD_RESERVATIONRES, 
+Enhancement: New message types PSP_CD_GETRESERVATION, PSP_CD_RESERVATIONRES,
     PSP_CD_GETSLOTS and PSP_CD_SLOTSRES
 
 ------------------------------------------------------------------------
@@ -30451,7 +30455,7 @@ Bugfix: Fix format of some of the forwarder's error-messages.
 ------------------------------------------------------------------------
 r9026 | eicker | 2015-01-05 20:27:58 +0100 (Mon, 05 Jan 2015) | 2 lines
 
-Bugfix: Change r9016 prevents libpsi from correct parsing of node-ranges 
+Bugfix: Change r9016 prevents libpsi from correct parsing of node-ranges
 
 ------------------------------------------------------------------------
 r9025 | eicker | 2014-12-18 22:04:45 +0100 (Thu, 18 Dec 2014) | 3 lines
@@ -31361,7 +31365,7 @@ when OpenMPI is used.
 ------------------------------------------------------------------------
 r8846 | rauh | 2013-07-29 12:35:28 +0200 (Mon, 29 Jul 2013) | 2 lines
 
-Bugfix: fixed possible double free() detected by LLVM's scan-build. 
+Bugfix: fixed possible double free() detected by LLVM's scan-build.
 
 ------------------------------------------------------------------------
 r8845 | rauh | 2013-07-29 12:07:49 +0200 (Mon, 29 Jul 2013) | 4 lines
@@ -31429,7 +31433,7 @@ Bugfix: dereference of null pointer
 ------------------------------------------------------------------------
 r8831 | rauh | 2013-07-18 16:29:13 +0200 (Thu, 18 Jul 2013) | 2 lines
 
-Bugfix: psaccount: free all config objects when the plugin gets unloaded 
+Bugfix: psaccount: free all config objects when the plugin gets unloaded
 
 ------------------------------------------------------------------------
 r8830 | rauh | 2013-07-18 16:19:07 +0200 (Thu, 18 Jul 2013) | 3 lines
