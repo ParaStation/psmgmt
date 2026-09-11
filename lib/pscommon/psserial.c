@@ -98,8 +98,10 @@ struct PS_DataBuffer {
 PS_DataBuffer_t PSdbNew(char *buffer, size_t bufSize)
 {
     PS_DataBuffer_t data = calloc(1, sizeof(*data));
-    data->buf = data->unpackPtr = buffer;
-    data->size = data->used = bufSize;
+    if (data) {
+	data->buf = data->unpackPtr = buffer;
+	data->size = data->used = bufSize;
+    }
 
     return data;
 }
