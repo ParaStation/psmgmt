@@ -3035,6 +3035,22 @@ int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
     return -1;
 }
 
+/**
+ * @brief Average packed CPU frequency for slurmctld
+ *
+ * @param accData Account data to calculate average for
+ *
+ * psaccount sums per task CPU frequency. sstat divides that sum by
+ * number of tasks itself. slurmctld stores the incoming act_cpufreq without
+ * averaging. Account data send the slurmctld need that additional step.
+ */
+static inline void avgAccCpuFreq(AccountDataExt_t *accData)
+{
+    if (accData && accData->numTasks > 1) {
+       accData->cpuFreq /= accData->numTasks;
+    }
+}
+
 void sendStepExit(Step_t *step, uint32_t exitStatus)
 {
     flog("REQUEST_STEP_COMPLETE for %s to slurmctld: exit %u\n",
@@ -3067,6 +3083,9 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 	/* don't forward step accouting data to slurmctld */
 	slurmAccData.type = 0;
     }
+
+    /* only slurmctld/sacct need the average */
+    if (slurmAccData.type) avgAccCpuFreq(&slurmAccData.psAcct);
 
     Req_Step_Comp_t comp = {
 	.firstNode = 0,
@@ -3373,6 +3392,9 @@ void sendJobExit(Job_t *job, uint32_t exitStatus)
 	    slurmAccData.type = 1;
 	}
     }
+
+    /* only slurmctld/sacct need the average */
+    if (slurmAccData.type) avgAccCpuFreq(&slurmAccData.psAcct);
 
     /* send request */
     Req_Comp_Batch_Script_t comp = {
