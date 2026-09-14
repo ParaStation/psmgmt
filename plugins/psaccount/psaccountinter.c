@@ -79,13 +79,23 @@ void psAccountFindDaemonProcs(uid_t uid, bool kill, bool warn)
 
 void psAccountRegisterJob(pid_t jsPid, char *jobid)
 {
-    PStask_ID_t taskID;
-    Client_t *client;
-
-    /* monitor the JS */
-    taskID = PSC_getTID(PSC_getMyID(), jsPid);
-    client = addClient(taskID, ACC_CHILD_JOBSCRIPT);
+    /* add client for job-script */
+    PStask_ID_t taskID = PSC_getTID(PSC_getMyID(), jsPid);
+    Client_t *client = addClient(taskID, ACC_CHILD_JOBSCRIPT);
     client->jobid = ustrdup(jobid);
+
+    /* snapshot node energy/IC bases */
+    Job_t *job = findJobByRoot(taskID);
+    if (!job) job = addJob(taskID);
+    if (!job) {
+	mlog("failed to add job for jobscript %s\n", jobid);
+	return;
+    }
+
+    job->jobscript = jsPid;
+    if (!job->jobid && jobid) job->jobid = ustrdup(jobid);
+    client->job = job;
+    client->root = taskID;
 }
 
 void psAccountDelJob(PStask_ID_t rootTID)
