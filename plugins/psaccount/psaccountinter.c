@@ -51,7 +51,7 @@ bool psAccountGetDataByJob(pid_t jobscript, AccountDataExt_t *accData)
 
 int psAccountSignalSession(pid_t session, int sig)
 {
-    mdbg(PSACC_LOG_SIGNAL, "%s(session %d sig %d)\n", __func__, session, sig);
+    fdbg(PSACC_LOG_SIGNAL, "session %d sig %d\n", session, sig);
     initProcPool(); // Just in case we are called within a forwarder
     return signalSession(session, sig);
 }
@@ -72,8 +72,7 @@ void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize,
 
 void psAccountFindDaemonProcs(uid_t uid, bool kill, bool warn)
 {
-    mdbg(PSACC_LOG_SIGNAL, "%s(uid %d kill %d warn %d)\n", __func__,
-	 uid, kill, warn);
+    fdbg(PSACC_LOG_SIGNAL, " uid %d kill %d warn %d\n",  uid, kill, warn);
     findDaemonProcs(uid, kill, warn);
 }
 
@@ -88,7 +87,7 @@ void psAccountRegisterJob(pid_t jsPid, char *jobid)
     Job_t *job = findJobByRoot(taskID);
     if (!job) job = addJob(taskID);
     if (!job) {
-	mlog("failed to add job for jobscript %s\n", jobid);
+	flog("failed to add job for jobscript %s\n", jobid);
 	return;
     }
 
