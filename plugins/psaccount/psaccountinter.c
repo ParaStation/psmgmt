@@ -104,15 +104,6 @@ void psAccountDelJob(PStask_ID_t rootTID)
     deleteClient(rootTID);
 }
 
-void psAccountUnregisterJob(pid_t jsPid)
-{
-    PStask_ID_t taskID = PSC_getTID(-1, jsPid);
-
-    /* stop accounting of dead jobscript */
-    deleteClient(taskID);
-    deleteJobsByJobscript(jsPid);
-}
-
 void psAccountSetGlobalCollect(bool active)
 {
     globalCollectMode = active;

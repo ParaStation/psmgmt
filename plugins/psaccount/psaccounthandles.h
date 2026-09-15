@@ -26,7 +26,6 @@
 
 psAccountRegisterJob_t *psAccountRegisterJob;
 psAccountDelJob_t *psAccountDelJob;
-psAccountUnregisterJob_t *psAccountUnregisterJob;
 
 psAccountSwitchAccounting_t *psAccountSwitchAccounting;
 psAccountSetGlobalCollect_t *psAccountSetGlobalCollect;

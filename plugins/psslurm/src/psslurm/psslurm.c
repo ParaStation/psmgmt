@@ -261,7 +261,6 @@ static bool regPsAccountHandles(void)
 
     loadHandle(pluginHandle, psAccountSignalSession);
     loadHandle(pluginHandle, psAccountRegisterJob);
-    loadHandle(pluginHandle, psAccountUnregisterJob);
     loadHandle(pluginHandle, psAccountSetGlobalCollect);
     loadHandle(pluginHandle, psAccountGetDataByJob);
     loadHandle(pluginHandle, psAccountGetDataByLogger);

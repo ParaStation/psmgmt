@@ -190,26 +190,6 @@ typedef void(psAccountRegisterJob_t)(pid_t jsPid, char *jobid);
 typedef void(psAccountDelJob_t)(PStask_ID_t rootTID);
 
 /**
- * @brief Deregister batch jobscript
- *
- * Deregister a batch jobscript identified by its process ID @a
- * jsPid. This will eliminate all jobs associated to the given
- * jobscript.
- *
- * Once a job has finished the batch plugin shall deregister the
- * jobscript in order to stop accounting of the associated processes.
- *
- * This one is used by psmom since in Torque multiple jobs might be
- * associated to a jobscript. This is different from SLURM with its
- * concept of jobsteps.
- *
- * @param jsPid Process ID of the jobscript to deregister
- *
- * @return No return value
- */
-typedef void(psAccountUnregisterJob_t)(pid_t jsPid);
-
-/**
  * @brief Switch accounting
  *
  * Switch the active accounting of the client @a clientTID depending
