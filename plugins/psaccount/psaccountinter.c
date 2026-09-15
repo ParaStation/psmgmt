@@ -16,7 +16,6 @@
 #include <sys/types.h>
 
 #include "pscommon.h"
-#include "pluginmalloc.h"
 
 #include "psaccount.h"
 #include "psaccountclient.h"
@@ -76,23 +75,21 @@ void psAccountFindDaemonProcs(uid_t uid, bool kill, bool warn)
     findDaemonProcs(uid, kill, warn);
 }
 
-void psAccountRegisterJob(pid_t jsPid, char *jobid)
+void psAccountRegisterJob(pid_t jsPid)
 {
     /* add client for job-script */
-    PStask_ID_t taskID = PSC_getTID(PSC_getMyID(), jsPid);
+    PStask_ID_t taskID = PSC_getTID(-1, jsPid);
     Client_t *client = addClient(taskID, ACC_CHILD_JOBSCRIPT);
-    client->jobid = ustrdup(jobid);
 
     /* snapshot node energy/IC bases */
     Job_t *job = findJobByRoot(taskID);
     if (!job) job = addJob(taskID);
     if (!job) {
-	flog("failed to add job for jobscript %s\n", jobid);
+	flog("failed to add job for jobscript %s\n", PSC_printTID(taskID));
 	return;
     }
 
     job->jobscript = jsPid;
-    if (!job->jobid && jobid) job->jobid = ustrdup(jobid);
     client->job = job;
     client->root = taskID;
 }

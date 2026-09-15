@@ -370,7 +370,7 @@ static void startSpawner(Step_t *step, int32_t serviceRank)
     Forwarder_Data_t *fwData = step->fwdata;
 
     /* due to lack of real logger register the step forwarder instead */
-    psAccountRegisterJob(PSC_getPID(fwData->tid), NULL);
+    psAccountRegisterJob(PSC_getPID(fwData->tid));
 
     /* No child started under step-forwarder's control. Start it here */
     // - create a partition and tell the logger (and all sister forwarders)

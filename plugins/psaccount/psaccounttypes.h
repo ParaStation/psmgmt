@@ -151,8 +151,7 @@ typedef struct {
  * @brief Register batch jobscript
  *
  * Register a batch jobscript identified by its process ID @a
- * jsPid. Additional information deposited is the string @a jobid
- * which represent the job ID as given within the batch system.
+ * jsPid.
  *
  * This function shall be called by batch-system plugins like psslurm
  * in order to deposit the process ID of the jobscript only known by
@@ -163,11 +162,9 @@ typedef struct {
  *
  * @param jsPid Process ID of the jobscript to register
  *
- * @param jobid The batch system's jobid
- *
  * @return No return value
  */
-typedef void(psAccountRegisterJob_t)(pid_t jsPid, char *jobid);
+typedef void(psAccountRegisterJob_t)(pid_t jsPid);
 
 /**
  * @brief Deregister job

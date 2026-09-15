@@ -1554,7 +1554,7 @@ static int stepFinalize(Forwarder_Data_t *fwdata)
 static void handleChildStartJob(Forwarder_Data_t *fwdata, pid_t fw,
 				pid_t childPid, pid_t childSid)
 {
-    psAccountRegisterJob(childPid, NULL);
+    psAccountRegisterJob(childPid);
 }
 
 static void handleChildStartStep(Forwarder_Data_t *fwdata, pid_t fw,
@@ -1565,7 +1565,7 @@ static void handleChildStartStep(Forwarder_Data_t *fwdata, pid_t fw,
 	flog("Invalid step pointer %p\n", step);
 	return;
     }
-    psAccountRegisterJob(childPid, NULL);
+    psAccountRegisterJob(childPid);
 
     /* return launch success to waiting srun since mpiexec could be spawned */
     flog("launch success for %s to srun sock %u\n",
