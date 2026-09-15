@@ -1,4 +1,0 @@
-#!/bin/bash
-
-echo $PBS_JOBID
-exit 0

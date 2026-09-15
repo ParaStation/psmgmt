@@ -1,8 +1,0 @@
-#!/bin/bash
-#
-#PBS -N chain_fail
-
-sleep 5 
-echo "chain_fail"
-
-exit 1
