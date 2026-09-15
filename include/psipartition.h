@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2025 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -55,7 +55,7 @@
  * Name of the environment variable that disables all handling of
  * nodelists during the creation of partitions. It is intended to be
  * set by batch-system plugins of psid which enforce their partitions
- * anyhow (as e.g. psmom and psslurm)
+ * anyhow (as e.g. psslurm)
  */
 #define ENV_PSID_BATCH     "__PSID_BATCH"
 

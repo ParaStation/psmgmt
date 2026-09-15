@@ -17,9 +17,9 @@
 /*
  * This file contains definitions of function pointer for each of the
  * functions the psaccount plugin exports to foreign plugins like the
- * batch-system plugins psmom and psslurm. In order to initialize
- * those handles used within a foreign module, a corresponding
- * call to @ref dlsym() must be executed there.
+ * batch-system plugins psslurm. In order to initialize those handles
+ * used within a foreign module, a corresponding call to @ref dlsym()
+ * must be executed there.
  */
 
 /* For documentation of the specific funtions refer to psaccounttypes.h */

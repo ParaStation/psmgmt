@@ -75,7 +75,7 @@ Client_t *findClientByPID(pid_t clientPID)
  * @brief Try to find the jobscript for a root task
  *
  * The root process (which is typically a logger (mpiexec) process)
- * must be a child of a jobscript which was started by the psmom. This
+ * must be a child of a jobscript which was started by psslurm. This
  * functions tries to find the correct jobscript for a root task using
  * the /proc filesystem parent-child relations.
  *

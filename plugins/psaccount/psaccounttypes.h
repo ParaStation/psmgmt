@@ -154,12 +154,12 @@ typedef struct {
  * jsPid. Additional information deposited is the string @a jobid
  * which represent the job ID as given within the batch system.
  *
- * This function shall be called by batch-system plugins like psmom or
- * psslurm in order to deposit the process ID of the jobscript only
- * known by these plugins. By this means the psaccount plugin is then
- * able to identify all processes associated to this jobscript. This
- * is required in order to achieve valid accounting information for
- * all processes belonging to the corresponding job.
+ * This function shall be called by batch-system plugins like psslurm
+ * in order to deposit the process ID of the jobscript only known by
+ * these plugins. By this means the psaccount plugin is then able to
+ * identify all processes associated to this jobscript. This is
+ * required in order to achieve valid accounting information for all
+ * processes belonging to the corresponding job.
  *
  * @param jsPid Process ID of the jobscript to register
  *
@@ -236,10 +236,10 @@ typedef int(psAccountSwitchAccounting_t)(PStask_ID_t clientTID, bool enable);
  * Enable the global collection of accounting data depending on the
  * flag @a active.
  *
- * This function shall be called by batch-system plugins like psmom or
- * psslurm in order to enable the global collection of accounting
- * data. This way all psaccount plugins will automatic forward all
- * necessary information to the node executing to job's root task.
+ * This function shall be called by batch-system plugins like psslurm
+ * in order to enable the global collection of accounting data. This
+ * way all psaccount plugins will automatic forward all necessary
+ * information to the node executing to job's root task.
  *
  * @param active Flag if the global collect mode is switched on (true)
  * or off (false)

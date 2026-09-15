@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -235,8 +235,7 @@ void sendRequestLists(PStask_ID_t requester, PSpart_list_t opt);
  *
  * This mechanism shall be used in order to inform the master daemon
  * on partitioning decisions taken by some external resource
- * manager. Thus, it will be called primarily from inside psmom or
- * psslurm.
+ * manager. Thus, it will be called primarily from inside psslurm.
  *
  * @param task Task to register or modify
  *

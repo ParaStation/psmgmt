@@ -109,7 +109,7 @@ void cleanupJobs(void)
     list_for_each_safe(j, tmp, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 
-	/* will be cleaned up by psmom/psslurm */
+	/* will be cleaned up by psslurm */
 	if (job->jobscript) continue;
 
 	if (!job->complete) continue;
