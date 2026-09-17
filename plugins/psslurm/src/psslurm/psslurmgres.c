@@ -162,11 +162,7 @@ Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count)
 
     if (gres->type) gres->flags |= GRES_CONF_HAS_TYPE;
 
-    if (gres->cores) {
-	flog("error: GRES cores feature is unsupported and could lead to "
-	     "performance issues\n");
-	goto GRES_ERROR;
-    }
+    if (gres->cores) flog("GRES cores feature in use\n");
 
     flog("%s hash=%u count=%lu%s%s%s%s%s%s%s%s\n",
 	 gres->name, gres->hash, gres->count,

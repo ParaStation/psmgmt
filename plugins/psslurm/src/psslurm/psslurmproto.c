@@ -483,6 +483,22 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	return ESLURMD_INVALID_JOB_CREDENTIAL;
     }
 
+    /* get tpp if --cpus-per-gpu is used */
+    if (step->numCompCPUsPerTask) {
+	if (step->numCompCPUsPerTask > 1 || step->compCPUsPerTaskReps[0] != 1
+	    || step->tpp) {
+	    flog("UNEXPECTED: tpp = %hu, compCPUsPerTask = (", step->tpp);
+	    for (unsigned int i = 0; i < step->numCompCPUsPerTask; i++) {
+		if (i) flog(",");
+		flog("%hux%hu", step->compCPUsPerTaskReps[i],
+		     step->compCPUsPerTaskReps[i]);
+	    }
+	    flog(")\n");
+	}
+	step->tpp = step->compCPUsPerTask[0];
+	flog("cpus-per-gpu in use, tpp set to %hu\n", step->tpp);
+    }
+
     /* verify job owner */
     if (!verifyUserId(sMsg->head.uid, step->uid)) {
 	flog("uid %u is not allowed to launch %s owned by uid %u\n",
