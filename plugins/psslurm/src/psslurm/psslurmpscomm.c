@@ -1678,15 +1678,8 @@ static void handleDroppedEpilogue(DDTypedBufferMsg_t *msg)
 */
 static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
 {
-    const char *hname;
-    PSnodes_ID_t nodeId;
-
-    /* get hostname for message destination */
-    nodeId = PSC_getID(msg->header.dest);
-    hname = getHostnameByNodeId(nodeId);
-
-    flog("msg type %s (%i) to host %s (%i) got dropped\n", msg2Str(msg->type),
-	 msg->type, hname, nodeId);
+    flog("drop psslurm msg type %s (%i) to %s\n", msg2Str(msg->type),
+	 msg->type, PSC_printTID(msg->header.dest));
 
     switch (msg->type) {
     case PSP_EPILOGUE_STATE_REQ:

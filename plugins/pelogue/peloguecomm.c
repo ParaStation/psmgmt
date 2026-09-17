@@ -622,10 +622,8 @@ static bool dropPElogueMsg(DDTypedBufferMsg_t *msg)
     uint16_t fragNum;
     fetchFragHeader(msg, &used, NULL, &fragNum, NULL, NULL);
 
-    PSnodes_ID_t node = PSC_getID(msg->header.dest);
-    const char *hname = getHostnameByNodeId(node);
-    flog("drop msg type %s(%i) fragment %hu to host %s(%i)\n",
-	 msg2Str(msg->type), msg->type, fragNum, hname, node);
+    flog("drop msg type %s(%i) fragment %hu to %s\n", msg2Str(msg->type),
+	 msg->type, fragNum, PSC_printTID(msg->header.dest));
 
     /* inform other plugins (e.g. psslurm) */
     PSIDhook_call(PSIDHOOK_PELOGUE_DROP, msg);
