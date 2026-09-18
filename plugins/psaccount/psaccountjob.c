@@ -91,15 +91,6 @@ void deleteJob(Job_t *job)
     ufree(job);
 }
 
-void deleteJobsByJobscript(pid_t js)
-{
-    list_t *j, *tmp;
-    list_for_each_safe(j, tmp, &jobList) {
-	Job_t *job = list_entry(j, Job_t, next);
-	if (job->jobscript == js) deleteJob(job);
-    }
-}
-
 void cleanupJobs(void)
 {
     int grace = getConfValueI(config, "TIME_JOB_GRACE");

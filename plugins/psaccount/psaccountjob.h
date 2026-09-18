@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -85,17 +85,6 @@ Job_t *addJob(PStask_ID_t rootTID);
  * @return No return value
  */
 void deleteJob(Job_t *job);
-
-/**
- * @brief Delete all jobs associated to jobscript
- *
- * Delete all jobs associated to the jobscript @a js.
- *
- * @param js Jobscript to search for
- *
- * @param No return value
- */
-void deleteJobsByJobscript(pid_t js);
 
 /**
  * @brief Cleanup completed jobs
