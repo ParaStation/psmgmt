@@ -37,7 +37,6 @@ typedef struct {
     PStask_ID_t root;           /**< root task identifying the job */
     PStask_ID_t taskid;         /**< client's task ID */
     Job_t *job;                 /**< job associated to the client */
-    char *jobid;                /**< job ID associated to the client */
     pid_t pid;                  /**< client's PID */
     uid_t uid;                  /**< client's UID */
     gid_t gid;                  /**< client's GID */

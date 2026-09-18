@@ -160,9 +160,6 @@ static void monitorJobStarted(void)
 		    fdbg(PSACC_LOG_VERBOSE, "found jobscript pid '%i'\n",
 			 js->pid);
 		    job->jobscript = js->pid;
-		    if (!job->jobid && js->jobid)  {
-			job->jobid = ustrdup(js->jobid);
-		    }
 		}
 	    }
 	}

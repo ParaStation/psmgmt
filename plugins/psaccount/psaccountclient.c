@@ -733,7 +733,6 @@ Client_t *addClient(PStask_ID_t taskID, PS_Acct_job_types_t type)
     client->ended = false;
     client->type = type;
     client->job = NULL;
-    client->jobid = NULL;
     client->rank = -1;
     client->uid = 0;
     client->gid = 0;
@@ -752,7 +751,6 @@ static void doDeleteClient(Client_t *client)
 {
     if (!client) return;
 
-    ufree(client->jobid);
     list_del(&client->next);
     ufree(client);
 }
