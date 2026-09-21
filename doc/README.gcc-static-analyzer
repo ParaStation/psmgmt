@@ -1,0 +1,56 @@
+To run gcc with the builtin static analyzer:
+
+make -s CFLAGS="-fanalyzer"
+
+You might want to add "-Wno-analyzer-fd-leak"
+to suppress the false positives emitted by this test. E.g.:
+
+------------------------------------------------------------
+#include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
+
+int main(void)
+{
+    int fd = open("./output.txt", O_CREAT | O_WRONLY | O_TRUNC, 0664);
+    if (fd < 0) return -1;
+
+    if (dup2(fd, STDOUT_FILENO) == -1) {
+	fprintf(stderr, "dup2(%i) failed: %m\n", fd);
+	return -1;
+    }
+
+    printf("some text\n");
+
+    return 0;
+}
+------------------------------------------------------------
+will lead to:
+
+> gcc-16 -fanalyzer reproducer.c
+reproducer.c: In function ‘main’:
+reproducer.c:13:8: warning: leak of file descriptor ‘dup2(fd, 1)’ [CWE-775] [-Wanalyzer-fd-leak]
+   13 |     if (dup2(fd, STDOUT_FILENO) == -1) {
+      |        ^
+  ‘main’: events 1-3
+    8 |     if (fd < 0) {
+      |        ^
+      |        |
+      |        (1) following ‘false’ branch (when ‘fd >= 0’)... ─>─┐
+      |                                                            │
+......
+      |                                                            │
+      |┌───────────────────────────────────────────────────────────┘
+   13 |│    if (dup2(fd, STDOUT_FILENO) == -1) {
+      |│        ~~~~~~~~~~~~~~~~~~~~~~~
+      |│        |
+      |└───────>(2) ...to here
+      |         (3) opened here
+  ‘main’: event 4
+   13 |     if (dup2(fd, STDOUT_FILENO) == -1) {
+      |        ^
+      |        |
+      |        (4) ⚠  ‘dup2(fd, 1)’ leaks here; was opened at (3)
+
+
+See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=127581 for a bug filed against GCC
