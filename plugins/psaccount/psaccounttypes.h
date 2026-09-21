@@ -266,27 +266,6 @@ typedef bool(psAccountGetDataByJob_t)(pid_t jobscript,
 				      AccountDataExt_t *accData);
 
 /**
- * @brief Get information on sessions
- *
- * Fetch information on sessions that are currently active. This
- * includes the number of sessions in @a count, the number of active
- * users in @a userCount. Furthermore, a space separated list of
- * session IDs is written to buf.
- *
- * @param count Will hold the number of active sessions upon return
- *
- * @param buf Buffer to write information to
- *
- * @param bufSize Size of the buffer @a buf
- *
- * @param userCount Will hold the number of active users upon return
- *
- * @return No return value
- */
-typedef void(psAccountGetSessionInfos_t)(int *count, char *buf, size_t bufSize,
-					 int *userCount);
-
-/**
  * @brief Test if PID is a descendant of another PID
  *
  * Check if the process with PID @a child is a descendant of the
@@ -300,18 +279,6 @@ typedef void(psAccountGetSessionInfos_t)(int *count, char *buf, size_t bufSize,
  * otherwise false is returned
  */
 typedef bool(psAccountIsDescendant_t)(pid_t parent, pid_t child);
-
-/**
- * @brief Find account client by PID and return ID of its root task
- *
- * Find an account client by its process ID @a pid and return the ID
- * of the corresponding root task.
- *
- * @param pid PID of the client to search for
- *
- * @return Task ID of the client's root task or -1 on error
- */
-typedef PStask_ID_t(psAccountGetLoggerByClient_t)(pid_t pid);
 
 /**
  * @brief Get PIDs associated to a job
@@ -339,24 +306,6 @@ typedef PStask_ID_t(psAccountGetLoggerByClient_t)(pid_t pid);
  */
 typedef void(psAccountGetPidsByLogger_t)(PStask_ID_t rootTID, pid_t **pids,
 					 uint32_t *cnt);
-
-/**
- * @brief Find all daemon processes of a specific user
- *
- * Find all daemonized processes of the user @a uid. If the flag @a
- * kill is true, the corresponding processes will be killed. If the
- * flag @a warn is true, one message per daemon process found is
- * written to the plugin's logger.
- *
- * @param userId User ID of the daemonized processes to find
- *
- * @param kill Flag termination of daemons found
- *
- * @param warn Flag generation of warnings for each daemon found
- *
- * @return No return value
- */
-typedef void(psAccountFindDaemonProcs_t)(uid_t uid, bool kill, bool warn);
 
 /**
  * @brief Send signal to session

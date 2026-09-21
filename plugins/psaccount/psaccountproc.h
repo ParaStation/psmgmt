@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -157,27 +157,6 @@ ProcSnapshot_t *findProcSnapshot(pid_t pid);
 bool isDescendant(pid_t parent, pid_t child);
 
 /**
- * @brief Provide information on active sessions
- *
- * Provide information on sessions currently active. Upon return @a
- * count will contain the number of active session in the system, @a
- * buf will hold a list of these sessions, and @a userCount provides
- * the number f active users in the system. @a size is used to provide
- * information on the size of @a buf.
- *
- * @param count Number of active sessions in the system upon return
- *
- * @param buf Buffer used to store a list of sessions
- *
- * @param size Size of @ref buf
- *
- * @param userCount Number of active users in the system upon return
- *
- * @return No return value
- */
-void getSessionInfo(int *count, char *buf, size_t size, int *userCount);
-
-/**
  * @brief Send signal to session
  *
  * Send the signal @a sig to all processes being part of the session
@@ -195,24 +174,6 @@ void getSessionInfo(int *count, char *buf, size_t size, int *userCount);
  * @return total number of signals sent
  */
 int signalSession(pid_t session, int sig);
-
-/**
- * @brief Find daemon processes for the specified user
- *
- * Find all processes of the user with ID @a uid being found in a
- * daemonized state. If the @a warn flag is set, a series of messages
- * is sent to the plugin's log. If the @a kill flag is set, each
- * daemonized process found is killed.
- *
- * @param uid User ID of the daemons to find
- *
- * @param kill Flag killing the found daemons
- *
- * @param warn Flag generating a log message for each daemon
- *
- * @return No return value
- */
-void findDaemonProcs(uid_t uid, bool kill, bool warn);
 
 /**
  * @brief Read selected information from /proc/<pid>/stat

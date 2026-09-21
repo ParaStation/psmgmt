@@ -646,45 +646,6 @@ void getPidsByRoot(PStask_ID_t rootTID, pid_t **pids, uint32_t *count)
     }
 }
 
-PStask_ID_t getLoggerByClientPID(pid_t pid)
-{
-    ProcStat_t pS;
-    bool psOK = false;
-    list_t *c;
-
-    if (list_empty(&clientList)) return -1;
-
-    if (readProcStat(pid, &pS)) psOK = true;
-
-    /* try to find the pid in the acc children */
-    list_for_each(c, &clientList) {
-	Client_t *client = list_entry(c, Client_t, next);
-
-	/* try pid */
-	if (client->pid == pid) return client->root;
-
-	if (!psOK) continue;
-
-	/* try sid */
-	if (client->data.session && client->data.session == pS.session) {
-	    return client->root;
-	}
-
-	/* try pgroup */
-	if (client->data.pgroup && client->data.pgroup == pS.pgrp) {
-	    return client->root;
-	}
-    }
-
-    /* try all grand-children now */
-    list_for_each(c, &clientList) {
-	Client_t *client = list_entry(c, Client_t, next);
-	if (isDescendant(client->pid, pid)) return client->root;
-    }
-
-    return -1;
-}
-
 bool aggregateDataByRoot(PStask_ID_t rootTID, AccountDataExt_t *accData)
 {
     bool res = false;

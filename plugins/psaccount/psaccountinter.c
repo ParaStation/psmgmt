@@ -63,18 +63,6 @@ bool psAccountIsDescendant(pid_t parent, pid_t child)
     return isDescendant(parent, child);
 }
 
-void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize,
-			       int *userCount)
-{
-    getSessionInfo(count, buf, bufsize, userCount);
-}
-
-void psAccountFindDaemonProcs(uid_t uid, bool kill, bool warn)
-{
-    fdbg(PSACC_LOG_SIGNAL, " uid %d kill %d warn %d\n",  uid, kill, warn);
-    findDaemonProcs(uid, kill, warn);
-}
-
 void psAccountRegisterJob(pid_t jsPid)
 {
     /* add client for job-script */
@@ -104,11 +92,6 @@ void psAccountDelJob(PStask_ID_t rootTID)
 void psAccountSetGlobalCollect(bool active)
 {
     globalCollectMode = active;
-}
-
-PStask_ID_t psAccountGetLoggerByClient(pid_t pid)
-{
-    return getLoggerByClientPID(pid);
 }
 
 void psAccountGetLocalInfo(psAccountInfo_t *info)

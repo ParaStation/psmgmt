@@ -32,13 +32,10 @@ psAccountSetGlobalCollect_t *psAccountSetGlobalCollect;
 
 psAccountGetDataByLogger_t *psAccountGetDataByLogger;
 psAccountGetDataByJob_t *psAccountGetDataByJob;
-psAccountGetSessionInfos_t *psAccountGetSessionInfos;
 psAccountIsDescendant_t *psAccountIsDescendant;
-psAccountGetLoggerByClient_t *psAccountGetLoggerByClient;
 psAccountGetPidsByLogger_t *psAccountGetPidsByLogger;
 psAccountGetLocalInfo_t *psAccountGetLocalInfo;
 
-psAccountFindDaemonProcs_t *psAccountFindDaemonProcs;
 psAccountSignalSession_t *psAccountSignalSession;
 psAccountCtlScript_t *psAccountCtlScript;
 psAccountScriptEnv_t *psAccountScriptEnv;

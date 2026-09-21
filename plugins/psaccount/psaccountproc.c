@@ -315,29 +315,6 @@ int signalSession(pid_t session, int sig)
     return sendCount;
 }
 
-void findDaemonProcs(uid_t uid, bool kill, bool warn)
-{
-    pid_t mypid = getpid();
-
-    /* we need up2date information */
-    updateProcSnapshot();
-
-    list_t *p;
-    list_for_each(p, &procList) {
-	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
-	if (proc->state == PROC_SIGNALED) continue;
-	if (proc->state == PROC_UNUSED) {
-	    flog("abort due to UNUSED proc snapshot\n");
-	    break;
-	}
-	if (proc->uid == uid && proc->ppid == 1) {
-	    if (warn) mlog("found %sdaemon process: pid %i uid %i\n",
-			   kill ? "and kill " : "", proc->pid, uid);
-	    if (kill) signalChildren(mypid, proc->pid, proc->pgrp, SIGKILL);
-	}
-    }
-}
-
 static bool isDescendantSnap(pid_t parent, pid_t child)
 {
     if (!child) return false;
@@ -571,42 +548,6 @@ static void clearAllProcSnapshots(void)
 	list_del(&proc->next);
 	PSitems_putItem(procPool, proc);
     }
-}
-
-#define MAX_USER 300
-
-void getSessionInfo(int *count, char *buf, size_t size, int *userCount)
-{
-    uid_t users[MAX_USER] = {-1};
-
-    buf[0] = '\0';
-    *count = 0;
-    *userCount = 0;
-
-    list_t *p;
-    list_for_each(p, &procList) {
-	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
-	char sessStr[50];
-
-	if (proc->uid == 0 || proc->session == 0) continue;
-	(*count)++;
-	snprintf(sessStr, sizeof(sessStr), "%i ", proc->session);
-	strncat(buf, sessStr, size - strlen(buf));
-
-	int i;
-	for (i = 0; i < *userCount; i++) {
-	    if (users[i] == proc->uid) break;
-	}
-	if (i == *userCount) {
-	    if (*userCount == MAX_USER-1) {
-		flog("MAX_USER exceeded. Truncating sessions\n");
-		continue;
-	    }
-	    users[(*userCount)++] = proc->uid;
-	}
-    }
-    buf[size-1] = '\0';
-    if (strlen(buf) > 0) buf[strlen(buf) - 1] = '\0';
 }
 
 /**

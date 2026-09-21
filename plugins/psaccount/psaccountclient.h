@@ -134,18 +134,6 @@ Client_t *findJobscriptInClients(Job_t *job);
 void getPidsByRoot(PStask_ID_t rootTID, pid_t **pids, uint32_t *count);
 
 /**
- * @brief Find client by PID and return its logger
- *
- * Find an accounting client by its process ID @a pid and return the
- * process ID of the corresponding logger.
- *
- * @param pid Process ID of the client to search for
- *
- * @return Process ID of the client's logger or -1 on error
- */
-PStask_ID_t getLoggerByClientPID(pid_t pid);
-
-/**
  * @brief Clear all account clients and free the used memory
  *
  * @return No return value
