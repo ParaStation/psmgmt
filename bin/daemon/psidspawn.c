@@ -934,6 +934,11 @@ static void execForwarder(PStask_t *task)
 	    }
 	}
 
+	// hints to static analyzer; otherwise we would not even have fork()ed
+	ASSUME(task->stdin_fd >= 0);
+	ASSUME(task->stdout_fd >= 0);
+	ASSUME(task->stderr_fd >= 0);
+
 	/* redirect stdin/stdout/stderr */
 	if (dup2(task->stderr_fd, STDERR_FILENO) < 0) {
 	    eno = errno;
