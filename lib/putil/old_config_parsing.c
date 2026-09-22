@@ -2184,23 +2184,18 @@ static int getMultiNodes(char *token)
     char *thisHost = NULL, *thisID = NULL;
     size_t thisHostSize = 0, thisIDSize = 0;
     for (long n = first; n <= last; n += step) {
-	in_addr_t ipaddr;
-	int nodenum;
+	if ((ret = handleGenStr(n, hostStr, &thisHost, &thisHostSize))) break;
 
-	ret = handleGenStr(n, hostStr, &thisHost, &thisHostSize);
-	if (ret) break;
-	ipaddr = parser_getHostname(thisHost);
+	in_addr_t ipaddr = parser_getHostname(thisHost);
 	if (!ipaddr) {
 	    ret = -1;
 	    break;
 	}
 
-	handleGenStr(n, idStr, &thisID, &thisIDSize);
-	ret = parser_getNumValue(thisID, &nodenum, "node number");
-	if (ret) break;
-
-	ret = newHost(nodenum, thisHost, ipaddr);
-	if (ret) break;
+	if ((ret = handleGenStr(n, idStr, &thisID, &thisIDSize))) break;
+	int nodenum;
+	if ((ret = parser_getNumValue(thisID, &nodenum, "node number"))) break;
+	if ((ret = newHost(nodenum, thisHost, ipaddr))) break;
 
 	if (PSC_isLocalIP(ipaddr)) {
 	    pushEnv();
