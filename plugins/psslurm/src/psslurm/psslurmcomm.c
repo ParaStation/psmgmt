@@ -842,6 +842,10 @@ TCP_RECONNECT:
 int openSlurmctldCon(void *info)
 {
     char *port = getConfValueC(SlurmConfig, "SlurmctldPort");
+    if (!port) {
+	flog("no SlurmctldPort\n");
+	return -1;
+    }
 
     int first, last;
 
