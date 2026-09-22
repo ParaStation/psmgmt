@@ -358,6 +358,7 @@ bool needMsgResend(uint16_t type)
 	case RESPONSE_JOB_STEP_STAT:
 	case RESPONSE_JOB_STEP_PIDS:
 	case RESPONSE_SLURM_RC:
+	case REQUEST_UPDATE_NODE:
 	    return false;
     }
 
