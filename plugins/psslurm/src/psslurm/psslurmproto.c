@@ -3438,7 +3438,7 @@ void sendDrainNode(const char *nodeList, const char *reason)
     update.weight = NO_VAL;
     update.nodeList = nodeList;
     update.reason = reason;
-    update.reasonUID = getuid();
+    update.resumeAfter = NO_VAL;
     update.nodeState = NODE_STATE_DRAIN;
 
     Req_Info_t *req = ucalloc(sizeof(*req));

@@ -183,12 +183,14 @@ typedef struct {
     const char *nodeList;   /**< nodelist (NodeName in Slurm) */
     uint32_t nodeState;	    /**< new node state */
     const char *reason;	    /**< reason for update */
-    uint32_t reasonUID;	    /**< user ID of request */
+    uint32_t resumeAfter;   /**< resume after seconds (NO_VAL = no change) */
     uint32_t weight;	    /**< new weight */
     char *comment;	    /**< comment (arbitrary string) */
     char *extra;	    /**< extra (arbitrary string) */
-    char *cloudID;	    /**< cloud instance identifier */
-    char *cloudType;	    /**< cloud instance type */
+    char *cloudID;	    /**< cloud instance identifier (instance_id) */
+    char *cloudType;	    /**< cloud instance type (instance_type) */
+    char *certToken;	    /**< certificate token (24.11, unused) */
+    char *topologyStr;	    /**< topology string (25.05, unused) */
 } Req_Update_Node_t;
 
 /** Holding all information for RPC MESSAGE_TASK_EXIT */

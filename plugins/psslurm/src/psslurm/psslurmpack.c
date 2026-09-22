@@ -4653,6 +4653,10 @@ static bool packReqEpilogComplete(PS_SendDB_t *data, Req_Epilog_Complete_t *req)
  */
 bool packReqUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update)
 {
+    if (slurmProto > SLURM_24_05_PROTO_VERSION) {
+	/* certificate token */
+	addStringToMsg(update->certToken, data);
+    }
     /* comment */
     addStringToMsg(update->comment, data);
     /* default cpu bind type */
@@ -4665,6 +4669,12 @@ bool packReqUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update)
     addStringToMsg(update->activeFeat, data);
     /* new generic resources */
     addStringToMsg(update->gres, data);
+    if (slurmProto > SLURM_23_02_PROTO_VERSION) {
+	/* cloud instance identifier */
+	addStringToMsg(update->cloudID, data);
+	/* cloud instance type */
+	addStringToMsg(update->cloudType, data);
+    }
     /* node address */
     addStringToMsg(update->nodeAddr, data);
     /* node hostname */
@@ -4675,17 +4685,14 @@ bool packReqUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update)
     addUint32ToMsg(update->nodeState, data);
     /* reason */
     addStringToMsg(update->reason, data);
-    /* reason user ID */
-    addUint32ToMsg(update->reasonUID, data);
+    /* resume after */
+    addUint32ToMsg(update->resumeAfter, data);
+    if (slurmProto > SLURM_24_11_PROTO_VERSION) {
+	/* topology string */
+	addStringToMsg(update->topologyStr, data);
+    }
     /* new weight */
     addUint32ToMsg(update->weight, data);
-
-    if (slurmProto > SLURM_23_02_PROTO_VERSION) {
-	/* cloud instance identifier */
-	addStringToMsg(update->cloudID, data);
-	/* cloud instance type */
-	addStringToMsg(update->cloudType, data);
-    }
 
     return true;
 }
