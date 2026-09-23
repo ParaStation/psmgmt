@@ -84,6 +84,8 @@ def get_avail_cpu_freq(cpu_sys_path, index):
     """
     for i in index:
         filename = f"{cpu_sys_path}/cpu{i}/cpufreq/scaling_available_frequencies"
+        if not os.path.exists(filename):
+            continue
         avail_freq = read_string_from_file(filename)
 
         print(f" cpu {i} avail_freq {avail_freq}")
