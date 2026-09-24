@@ -835,7 +835,7 @@ static void execPluginForwarder(PStask_t *task)
     sendFin();
 
     /* make sure handling all data, after child is gone + wait for FinACK */
-    Swait(1);
+    Swait(1000);
 
     if (fwData->hookFinalize) {
 	int ret = fwData->hookFinalize(fwData);
