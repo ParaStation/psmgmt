@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -219,6 +219,7 @@ static bool initTask(PStask_t* task)
     PSCPU_clrAll(task->CPUset);
     task->partHolder = -1;
     task->jobRank = -1;
+    task->firstLocal = false;
     task->fd = -1;
     task->workingdir = NULL;
     task->argV = NULL;
@@ -423,6 +424,7 @@ PStask_t* PStask_clone(PStask_t* task)
     memcpy(clone->CPUset, task->CPUset, sizeof(clone->CPUset));
     clone->partHolder = task->partHolder;
     clone->jobRank = task->jobRank;
+    clone->firstLocal = task->firstLocal;
     /* clone->fd = -1; */
 
     clone->workingdir = (task->workingdir) ? strdup(task->workingdir) : NULL;

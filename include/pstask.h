@@ -123,6 +123,8 @@ struct __task__ {
     PSCPU_set_t CPUset;            /**< set of logical CPUs to pin to */
     PStask_ID_t partHolder;        /**< location of resource management */
     int32_t jobRank;               /**< rank w/in job (tasks w/ same spawner */
+    bool firstLocal;               /**< first local task spawned (set
+				      within handleSpawnReq()) */
     short fd;                      /**< connection fd from/to the psid */
     /*C*/ char *workingdir;        /**< working directory */
     /*C*/ strv_t argV;             /**< command line arguments */

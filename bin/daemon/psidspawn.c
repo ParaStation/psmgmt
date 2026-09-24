@@ -1910,6 +1910,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t rData)
 	    continue;
 	}
 	clone->rank = answer.request;
+	clone->firstLocal = !r;
 
 	env_t extraEnv;
 	getEnv(rData, extraEnv);
