@@ -1317,7 +1317,8 @@ static int hookExecForwarder(void *data)
 	char *end;
 	long tmp = strtol(tmoutStr, &end, 0);
 	if (! *end && tmp >= 0) tmout = tmp;
-	rlog("timeout is %d\n", tmout);
+	rdbg(childTask->firstLocal ? -1 : PSPMIX_LOG_CLIENTS,
+	     "timeout is %d\n", tmout);
     }
     struct timeval timeout = { .tv_sec = tmout, .tv_usec = 0 };
     bool success = waitForClientEnv(childTask->fd, timeout);
