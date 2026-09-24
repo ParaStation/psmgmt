@@ -554,7 +554,7 @@ static int compareFreq(const void *entry1, const void *entry2)
  *
  * Not all hardware will define valid CPU frequencies. In that case
  * a list of sensible frequencies is calculated. CPU cores with non zero
- * values will be skipped. In principal it is possible that hardware
+ * values will be skipped. In principle it is possible that hardware
  * values are only predefined for a subset of cores.
  */
 static void calcAvailCPUfreq()
@@ -570,7 +570,7 @@ static void calcAvailCPUfreq()
 	uint32_t delta = cpus[c].availMaxFreq - cpus[c].availMinFreq;
 	delta /= MAX_FREQ -1;
 
-	for (uint32_t i=0; i<(MAX_FREQ - 1); i++) {
+	for (uint32_t i = 0; i < MAX_FREQ - 1; i++) {
 	    cpus[c].availFreq[i] = cpus[c].availMinFreq + (delta * i);
 	}
 	cpus[c].availFreq[MAX_FREQ -1] = cpus[c].availMaxFreq;
@@ -581,10 +581,12 @@ static void calcAvailCPUfreq()
 /**
  * @brief Sort hardware frequency lists and calculate any that are missing
  *
- * Must run only after every frequency probe has finished.
+ * Must run only after every frequency probe (i.e. CMD_GET_AVAIL_FREQ
+ * and CMD_GET_FREQ) has finished.
  */
 static void finalizeAvailFreq(void)
 {
+    /* sort read frequencies (if any) */
     for (int i = 0; i < numCPUs; i++) {
 	qsort(cpus[i].availFreq, cpus[i].numAvailFreq,
 		sizeof(cpus[i].availFreq[0]), compareFreq);
@@ -593,6 +595,7 @@ static void finalizeAvailFreq(void)
     /* CPU cores with available frequencies set are skipped */
     calcAvailCPUfreq();
 
+    /* test if all CPUs have the same available frequencies */
     equalAvailFreq = true;
     for (int c = 1; c < numCPUs && equalAvailFreq; c++) {
 	if (cpus[c].numAvailFreq != cpus[0].numAvailFreq) {
@@ -612,8 +615,8 @@ static void finalizeAvailFreq(void)
  * @brief Callback for CMD_GET_AVAIL_FREQ
  *
  * Not all systems define available frequencies, this is no error.
- * The list is finalized from @ref testInitComplete() once min/max
- * frequencies are known as well.
+ * The list is finalized in @ref finalizeAvailFreq() called from @ref
+ * testInitComplete() once min/max frequencies are known as well.
  */
 static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 {
