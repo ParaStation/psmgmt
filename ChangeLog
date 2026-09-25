@@ -1,5 +1,21 @@
-Version 6.8.5-1:
+Version 6.8.6:
 ==============
+91bee427c | Norbert Eicker | Fri, 25 Sep 2026 01:13:42 +0200
+
+Fix whitespace and typo; enhance comments
+------------------------------------------------------------------------
+1e4ae27aa | Michael Rauh | Wed, 23 Sep 2026 15:43:30 +0200
+
+Bugfix: fix CPU frequency initialization race (jupiter#538)
+------------------------------------------------------------------------
+d073af1c4 | Michael Rauh | Thu, 24 Sep 2026 15:06:40 +0200
+
+Bugfix: allow pluginforwarder finalize more time to complete (#374)
+------------------------------------------------------------------------
+
+
+Version 6.8.5-1:
+================
 * No-change rebuild (re-release of version 6.8.5)
 
 Version 6.8.5:

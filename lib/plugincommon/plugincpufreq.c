@@ -396,9 +396,23 @@ static bool testAvailFreq(void)
 	    pluginflog("CPU %i has no frequencies\n", c);
 	    return false;
 	}
+	bool usable = false;
+	for (uint32_t i = 0; i < cpus[c].numAvailFreq; i++) {
+	    if (cpus[c].availFreq[i]) {
+		usable = true;
+		break;
+	    }
+	}
+	if (!usable) {
+	    pluginflog("CPU %i has no useable frequencies\n", c);
+	    return false;
+	}
     }
     return true;
 }
+
+/* forward declaration */
+static void finalizeAvailFreq(void);
 
 /**
  * @brief Test if initialization has completed
@@ -413,6 +427,10 @@ static void testInitComplete(void)
 	plugindbg(PLUGIN_LOG_FREQ, "gathering progress: 0x%x\n", initFlags);
 	return;
     }
+
+    /* Available frequencies and min/max probes run concurrently. Create a
+     * missing list only after min/max are known */
+    if (!initFailure && cpus) finalizeAvailFreq();
 
     if (pluginmset(PLUGIN_LOG_FREQ)) {
 	for (int i = 0; i < numCPUs; i++) {
@@ -536,7 +554,7 @@ static int compareFreq(const void *entry1, const void *entry2)
  *
  * Not all hardware will define valid CPU frequencies. In that case
  * a list of sensible frequencies is calculated. CPU cores with non zero
- * values will be skipped. In principal it is possible that hardware
+ * values will be skipped. In principle it is possible that hardware
  * values are only predefined for a subset of cores.
  */
 static void calcAvailCPUfreq()
@@ -546,11 +564,13 @@ static void calcAvailCPUfreq()
     for (int c = 0; c < numCPUs; c++) {
 	/* skip CPUs which have hardware defined limits */
 	if (cpus[c].numAvailFreq) continue;
+	/* ensure initialize failure if frequencies are missing */
+	if (!cpus[c].availMaxFreq) continue;
 
 	uint32_t delta = cpus[c].availMaxFreq - cpus[c].availMinFreq;
 	delta /= MAX_FREQ -1;
 
-	for (uint32_t i=0; i<(MAX_FREQ - 1); i++) {
+	for (uint32_t i = 0; i < MAX_FREQ - 1; i++) {
 	    cpus[c].availFreq[i] = cpus[c].availMinFreq + (delta * i);
 	}
 	cpus[c].availFreq[MAX_FREQ -1] = cpus[c].availMaxFreq;
@@ -559,14 +579,13 @@ static void calcAvailCPUfreq()
 }
 
 /**
- * @brief Callback for CMD_GET_AVAIL_FREQ
+ * @brief Sort hardware frequency lists and calculate any that are missing
  *
- * Not all systems define available frequencies, this is no error.
+ * Must run only after every frequency probe (i.e. CMD_GET_AVAIL_FREQ
+ * and CMD_GET_FREQ) has finished.
  */
-static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
+static void finalizeAvailFreq(void)
 {
-    initFlags &= ~INIT_GET_AVAIL_FREQ;
-
     /* sort read frequencies (if any) */
     for (int i = 0; i < numCPUs; i++) {
 	qsort(cpus[i].availFreq, cpus[i].numAvailFreq,
@@ -589,6 +608,23 @@ static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
 		break;
 	    }
 	}
+    }
+}
+
+/**
+ * @brief Callback for CMD_GET_AVAIL_FREQ
+ *
+ * Not all systems define available frequencies, this is no error.
+ * The list is finalized in @ref finalizeAvailFreq() called from @ref
+ * testInitComplete() once min/max frequencies are known as well.
+ */
+static void cbGetAvailFreq(int32_t status, Script_Data_t *script)
+{
+    initFlags &= ~INIT_GET_AVAIL_FREQ;
+
+    if (status) {
+	plugindbg(PLUGIN_LOG_FREQ, "no hardware frequency list (status %d)\n",
+		  status);
     }
 
     testInitComplete();
@@ -867,12 +903,16 @@ static uint32_t mapValidFrequencies(int16_t idx, uint32_t newFreq)
     if (newFreq <= cpus[idx].availMinFreq) return cpus[idx].availMinFreq;
     if (newFreq >= cpus[idx].availMaxFreq) return cpus[idx].availMaxFreq;
 
-    for (uint32_t i = 0; i < cpus[idx].numAvailFreq; i++) {
+    uint32_t n = cpus[idx].numAvailFreq;
+    if (!n) return 0;
+
+    for (uint32_t i = 0; i < n; i++) {
 	if (newFreq == cpus[idx].availFreq[i]) return newFreq;
 	if (newFreq < cpus[idx].availFreq[i]) return cpus[idx].availFreq[i];
     }
 
-    return 0;
+    /* return highest available frequency */
+    return cpus[idx].availFreq[n - 1];
 }
 
 /**
