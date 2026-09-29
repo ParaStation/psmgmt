@@ -104,7 +104,13 @@ else
     [[ -n $STEPID ]] && {
 
 	if [[ $MODIFY_CGROUPS == 1 ]]; then
-	    cgWrite "$JOB_CPUS" "$CG_STEP/cpuset.cpus"
+	    if [[ $ENFORCE_STEP_CORES == 1 ]]; then
+		[[ -n $STEP_CPUS && $STEP_CPUS != "-1" ]] ||
+		    elog "no usable step CPU list for step $STEPID"
+		cgWrite "$STEP_CPUS" "$CG_STEP/cpuset.cpus" || exit 1
+	    else
+		cgWrite "$JOB_CPUS" "$CG_STEP/cpuset.cpus"
+	    fi
 	    cgWrite "$MEM_NODES" "$CG_STEP/cpuset.mems"
 	fi
 

@@ -54,6 +54,7 @@ function cgWrite {
     caller=$(caller 0 | awk '{print $2}')
     echo 2>/dev/null "$1" > "$2" || {
 	mlog "$caller: write $1 to $2 failed"
+	return 1
     }
 }
 
@@ -217,6 +218,7 @@ function initJailEnv {
     export JOB_CPUS=$__PSJAIL_JOB_CPUS
     export STEP_CPUS=$__PSJAIL_STEP_CPUS
     export CONSTRAIN_CORES=$__PSJAIL_CONSTRAIN_CORES
+    export ENFORCE_STEP_CORES=$__PSJAIL_ENFORCE_STEP_CORES
 
     # map various memory pinning variables
     export JOB_RAM_SOFT=$__PSJAIL_JOB_RAM_SOFT
