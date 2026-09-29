@@ -354,6 +354,10 @@ const ConfDef_t confDef[] =
 	"bool",
 	"0",
 	"Aggregate step accouting data in batch job" },
+    { "ENFORCE_STEP_CORE_PINNING", 1,
+	"bool",
+	"0",
+	"Use cgroup to enforce step core pinning" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

@@ -555,6 +555,10 @@ void setJailEnv(const env_t env, const char *user, const PSCPU_set_t stepcpus,
 
     if (cred) setJailMemEnv(cred, credID);
 
+    if (getConfValueI(Config, "ENFORCE_STEP_CORE_PINNING")) {
+	setenv("__PSJAIL_ENFORCE_STEP_CORES", "1", 1);
+    }
+
     isInit = true;
 }
 
