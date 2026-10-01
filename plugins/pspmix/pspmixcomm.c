@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -512,6 +512,45 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
     }
 }
 
+
+/**
+* @brief Handle a PSP_CD_UNKNOWN message
+*
+* @param msg The message to handle
+*/
+static bool handleUnknownMsg(DDBufferMsg_t *msg)
+{
+    size_t used = 0;
+
+    /* original dest */
+    PStask_ID_t dest;
+    PSP_getMsgBuf(msg, &used, "dest", &dest, sizeof(dest));
+
+    /* original type */
+    int16_t type;
+    PSP_getMsgBuf(msg, &used, "type", &type, sizeof(type));
+
+    if (type == PSP_PLUG_PSPMIX) {
+        /* pspmix message */
+        flog("UNEXPECTED: %s reports delivery of pspmix message",
+             PSC_printTID(msg->header.sender));
+	flog(" to %s failed\n", PSC_printTID(dest));
+
+	if (PSC_getPID(msg->header.sender) == 0) {
+	    /* a psid reports */
+	    flog("ensure the plugin 'pspmix' is loaded on node %i\n",
+		    PSC_getID(msg->header.sender));
+	}
+        return true; // message is fully handled
+    }
+
+    flog("UNEXPECTED: received PSP_CD_UNKNOWN message for type %i to %s\n",
+             type, PSC_printTID(dest));
+
+    return false; // fallback to default handler
+}
+
+
 /**
  * @brief Handle incomming messages
  *
@@ -529,6 +568,8 @@ static bool handleMsg(DDTypedBufferMsg_t *msg)
     case PSP_PLUG_PSPMIX:
 	handlePspmixMsg(msg);
 	break;
+    case PSP_CD_UNKNOWN:
+	return handleUnknownMsg((DDBufferMsg_t *)msg);
     default:
 	flog("unexpected msg type: %s (0x%X) [%s",
 	     PSDaemonP_printMsg(msg->header.type), msg->header.type,

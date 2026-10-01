@@ -1,3 +1,15 @@
+Version 6.8.7:
+==============
+4690dbf1a | Stephan Krempel | Thu, 1 Oct 2026 13:56:38 +0200
+
+pspmix: Better handling of unexpected PSP_CD_UNKNOWN
+------------------------------------------------------------------------
+dd189ef79 | Stephan Krempel | Thu, 1 Oct 2026 03:51:52 +0200
+
+pspmix: Start server on unexpected (early) messages
+------------------------------------------------------------------------
+
+
 Version 6.8.6:
 ==============
 91bee427c | Norbert Eicker | Fri, 25 Sep 2026 01:13:42 +0200
