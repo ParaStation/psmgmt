@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -29,6 +29,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <pwd.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -214,11 +215,16 @@ static PspmixMsgExtra_t* getExtra(DDTypedBufferMsg_t *msg)
     return extra;
 }
 
+/* declare to be used in setTargetToPmixServer() */
+static PspmixServer_t* findOrStartServer(uid_t uid, gid_t gid);
+
 /**
  * @brief Set the target of the message to the TID of the right PMIx server.
  *
  * Identify the PMIx server serving the user referenced in @a extra
  * and set its TID as target for @a msg.
+ *
+ * If no such server is running, it is started.
  *
  * @param extra  extra information containing uid
  * @param msg    message fragment to manipulate
@@ -233,8 +239,20 @@ static bool setTargetToPmixServer(PspmixMsgExtra_t *extra,
 
     PspmixServer_t *server = findServer(extra->uid);
     if (!server) {
-	flog("UNEXPECTED: No PMIx server for uid %d found\n", extra->uid);
-	return false;
+	flog("No PMIx server for uid %d found, starting\n", extra->uid);
+
+	/* use default gid of the user for now
+	 * TODO: consider sending gid in extra as well */
+	char *pwBuf = NULL;
+	struct passwd *pwd = PSC_getpwuidBuf(extra->uid, &pwBuf);
+	if (!pwd) {
+	    flog("unable to get gid for uid %d\n", extra->uid);
+	    return false;
+	}
+
+	server = findOrStartServer(extra->uid, pwd->pw_gid);
+	free(pwBuf);
+	if (!server) return false;
     }
 
     if (!server->fwdata) {
