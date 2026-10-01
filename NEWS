@@ -6,6 +6,14 @@ Copyright (C) 2021-2026 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.8.7:
+==============
+Bugfixes:
+ - pspmix: Start server on unexpected (early) messages
+Enhancement
+ - pspmix: Better handling of unexpected PSP_CD_UNKNOWN
+
+
 Version 6.8.6:
 ==============
 Bugfixes:
