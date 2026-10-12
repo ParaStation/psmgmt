@@ -767,7 +767,9 @@ char *set(char *key, char *value)
 		    || !strcmp(key, "DEFAULT_SOCKET_DIST")
 		    || !strcmp(key, "DEFAULT_CORE_DIST")
 		    || !strcmp(key, "SPREAD_GPUS_FIRST")) {
-		initPinning();
+		if (!initPinning()) {
+		    strbufAdd(buf, "initPinning() failed, details in syslog\n");
+		}
 	    }
 	}
     } else if (!strcmp(key, "CLEAR_CONF_CACHE")) {
