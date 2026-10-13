@@ -489,11 +489,11 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	    || step->tpp) {
 	    flog("UNEXPECTED: tpp = %hu, compCPUsPerTask = (", step->tpp);
 	    for (unsigned int i = 0; i < step->numCompCPUsPerTask; i++) {
-		if (i) flog(",");
-		flog("%hux%hu", step->compCPUsPerTaskReps[i],
-		     step->compCPUsPerTaskReps[i]);
+		if (i) mlog(",");
+		mlog("%hux%hu", step->compCPUsPerTaskReps[i],
+		     step->compCPUsPerTask[i]);
 	    }
-	    flog(")\n");
+	    mlog(")\n");
 	}
 	step->tpp = step->compCPUsPerTask[0];
 	flog("cpus-per-gpu in use, tpp set to %hu\n", step->tpp);

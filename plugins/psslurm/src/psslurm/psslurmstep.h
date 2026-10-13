@@ -203,10 +203,11 @@ typedef struct {
 				     messages waiting in @ref fwMsgQueue. Slurm
 				     error code in termAfterFWmsg is forwarded
 				     to srun */
-    uint16_t *compCPUsPerTask; /**< Compressed CPUs per task on a per
-				     node basis (unused) */
-    uint32_t numCompCPUsPerTask; /**< number of compCPUsPerTask (unused) */
-    uint32_t *compCPUsPerTaskReps; /**< repetitions of compCPUsPerTask (unused) */
+    uint16_t *compCPUsPerTask;  /**< Compressed CPUs per task on a per
+				     node basis */
+    uint32_t numCompCPUsPerTask; /**< length of compCPUsPerTask and
+				      compCPUsPerTaskReps */
+    uint32_t *compCPUsPerTaskReps; /**< repetitions of compCPUsPerTask */
     bool oomKillStep;		/**< kill step if task gets terminated by OOM
 				     (unused) */
     char *allocTlsCert;		/** allocation tls certificate */
