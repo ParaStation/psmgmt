@@ -1712,175 +1712,173 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 }
 
 /**
- * @brief Calculate the default GPU pinning for the local rank.
+ * @brief Calculate default GPU assignment for local rank
  *
- * When returning true, @a rankGPUs has all bits set at the ID's position
- * of the GPUs to be bound to rank @a localRankId.
+ * When returning true, those bits in @a rankGPUs are set that mark
+ * IDs of GPUs to get assigned to rank @a localRankId. Only GPUs in @a
+ * stepGPUs will be taken into account.
  *
- * Only GPUs in @a assGPUs will be used.
+ * For this, assignments of all local ranks are calculated in order to
+ * ensure GPUs are distributed in the best way over all local
+ * ranks. Only the result for rank @a localRankId is returned in @a
+ * rankGPUs. It is assumed that for each local rank the same
+ * calculation is conducted in order to ensure that results of all
+ * local ranks match to each other.
  *
- * Calculates the pinning of all local ranks to be able to distribute the
- * GPUs in the best way over all ranks and returns the result for rank
- * @a localRankId in @a rankGPUs.
+ * @param localRankId   Local rank ID of the rank to get the GPUs for
  *
- * The idea is, that each rank does the same calculation and so the results
- * of all local ranks always match to each other.
+ * @param step          The step to use
  *
+ * @param stepNodeId    Step local id to identify the rank's node
  *
- * @param localRankId      The local rank ID of the rank to get the GPU for
+ * @param stepGPUs      GPUs assigned to this step (and taken into account)
  *
- * @param step             The step to use
+ * @param gpus_per_task Number of GPUs to assign to each task
  *
- * @param stepNodeId       The step local id of the node to get GPU pinning for
- *
- * @param assGPUs          GPUs to be used
- *
- * @param gpus_per_task   Number of GPUs to assign to each task
- *
- * @param rankGPUs         mask to be filled (actual return value)
+ * @param rankGPUs      mask to be filled (actual return value)
  *
  * @return true on success, false on error.
  */
-static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
-				      uint32_t stepNodeId, PSCPU_set_t assGPUs,
-				      int gpus_per_task, PSCPU_set_t *rankGPUs)
+static bool getDefaultGpuAssignment(uint32_t localRankId, Step_t *step,
+				    uint32_t stepNodeId, PSCPU_set_t stepGPUs,
+				    int gpus_per_task, PSCPU_set_t *rankGPUs)
 {
     /* number of local tasks */
-    uint32_t ltnum = step->globalTaskIdsLen[stepNodeId];
+    uint32_t numLTasks = step->globalTaskIdsLen[stepNodeId];
 
-    PSCPU_set_t gpus[ltnum];
+    PSCPU_set_t assGPUs[numLTasks];
     // do not use PSCPU_clrAll to help static analyzer detecting initialization
-    memset(gpus, 0, sizeof(gpus));
+    memset(assGPUs, 0, sizeof(assGPUs));
 
-    size_t numNodeGPUs = PSIDnodes_numGPUs(step->nodes[stepNodeId]);
-    if (numNodeGPUs > PSCPU_MAX) {
-	flog("ERROR: only %u GPUs per node supported (%zu found)\n",
-	     PSCPU_MAX, numNodeGPUs);
+    PSnodes_ID_t thisNode = step->nodes[stepNodeId];
+    size_t numGPUs = PSIDnodes_numGPUs(thisNode);
+    if (numGPUs > PSCPU_MAX) {
+	flog("ERROR: only %u GPUs supported (%zu requested)\n",
+	     PSCPU_MAX, numGPUs);
 	return false;
     }
 
-    /* array to track to how many tasks each GPU assigned to the step
-     * is pinned */
-    uint32_t used[numNodeGPUs];
-    memset(used, 0, sizeof(used));
+    /* track number of tasks each GPU is assigned to; indexed by GPU ID */
+    uint32_t assignments[numGPUs];
+    memset(assignments, 0, sizeof(assignments));
 
-
-    /* prefill useGPUs with the closest GPUs for each local task */
-    PSCPU_set_t useGPUs[ltnum];
-    for (size_t lTID = 0; lTID < ltnum; lTID++) {
+    /* prefill availGPUs with closest GPUs for each local task */
+    PSCPU_set_t availGPUs[numLTasks];
+    for (size_t lTID = 0; lTID < numLTasks; lTID++) {
 	uint32_t tid = step->globalTaskIds[stepNodeId][lTID];
 
 	/* list of close GPUs with maximum all GPUs of the node */
-	uint16_t closeList[PSIDnodes_numGPUs(step->nodes[stepNodeId])];
+	uint16_t closeList[numGPUs];
 	size_t closeCnt = 0;
 
-	/* get the list of close GPUs filled */
-	cpu_set_t *physSet = PSIDpin_mapCPUs(step->nodes[stepNodeId],
-					     step->slots[tid].CPUset);
-	if (!PSIDpin_getCloseDevs(step->nodes[stepNodeId], physSet,
-				  assGPUs, closeList, &closeCnt,
-				  NULL, NULL, PSPIN_DEV_TYPE_GPU)) {
+	/* get the list of closest GPUs filled */
+	cpu_set_t *physSet = PSIDpin_mapCPUs(thisNode, step->slots[tid].CPUset);
+	if (!PSIDpin_getCloseDevs(thisNode, physSet, stepGPUs, closeList,
+				  &closeCnt, NULL, NULL, PSPIN_DEV_TYPE_GPU)) {
 	    flog("unable to get close GPUs (lTID %zu)\n", lTID);
 	    return false;
 	}
 
-	/* create set of GPUs to use containing the closest assigned GPUs */
-	/* @todo maybe change PSIDpin_getCloseDevs() to directly use
-	 * bit masks (PSCPU_set_t) */
-	PSCPU_clrAll(useGPUs[lTID]);
+	/* morph list of closest GPUs into bit mask (PSCPU_set_t) */
+	/* @todo maybe change PSIDpin_getCloseDevs() to directly
+	 * provide a bit masks (PSCPU_set_t) */
+	PSCPU_clrAll(availGPUs[lTID]);
 	for (size_t i = 0; i < closeCnt; i++) {
-	    PSCPU_setCPU(useGPUs[lTID], closeList[i]);
+	    PSCPU_setCPU(availGPUs[lTID], closeList[i]);
 	}
     }
 
-    /* assign GPU(s) round-robin for each local task */
-    bool use_closest[ltnum];
-    memset(use_closest, true, ltnum * sizeof(bool));
+    /* track availability of close GPUs */
+    bool use_closest[numLTasks];
+    memset(use_closest, true, sizeof(use_closest));
+
+    /* assign GPUs round-robin to each local task */
     for (int i = gpus_per_task; i > 0; i--) {
-	for (uint32_t lTID = 0; lTID < ltnum; lTID++) {
+	for (uint32_t lTID = 0; lTID < numLTasks; lTID++) {
 	    /* switch from closest to any? */
-	    if (use_closest[lTID] && !PSCPU_any(useGPUs[lTID], numNodeGPUs)) {
+	    if (use_closest[lTID] && !PSCPU_any(availGPUs[lTID], numGPUs)) {
 		if (lTID == localRankId) {
-		    uprintf("Warning: Not enough closest GPUs to"
-			    " fullfil --gpus-per-task request, so using"
-			    " arbitrary GPUs. GPU pinning will propably"
-			    " be suboptimal.\n");
+		    uprintf("Warning: Insufficient closest GPUs to"
+			    " fullfil --gpus-per-task request => using"
+			    " arbitrary GPUs probably leads to suboptimal"
+			    " assignment\n");
 		}
 
 		use_closest[lTID] = false;
 
 		/* until now, for this task only closest GPUs have been
-		 * assigned, now choose from all assigned GPUs but those
-		 * already assigned to this task */
-		PSCPU_copy(useGPUs[lTID], assGPUs);
-		PSCPU_remCPUs(useGPUs[lTID], gpus[lTID]);
+		 * assigned; now choose from all local GPUs assigned to this
+		 * step excluding those already assigned to this task */
+		PSCPU_copy(availGPUs[lTID], stepGPUs);
+		PSCPU_remCPUs(availGPUs[lTID], assGPUs[lTID]);
 	    }
 
-	    /* are there usable GPUs left? */
-	    if (!PSCPU_any(useGPUs[lTID], numNodeGPUs)) {
-		/* there are not enough GPUs at all, probably this will
+	    /* are there available GPUs left? */
+	    if (!PSCPU_any(availGPUs[lTID], numGPUs)) {
+		/* there are not enough GPUs at all; probably this will
 		 * never happen since the slurmctld should take care on
 		 * that, but catch the case as a safety guard */
-		flog("UNEXPECTED: empty useGPUs[%u]\n", lTID);
+		flog("UNEXPECTED: no GPUs left for local rank %u\n", lTID);
 		if (lTID == localRankId) {
-		    uprintf("Error: Step has not enough GPUs assigned"
-			    " to fullfil gpus-per-task = %u.",
-			    gpus_per_task);
+		    uprintf("Error: Insufficient GPUs assigned to step"
+			    " to fullfil gpus-per-task = %u\n", gpus_per_task);
 		    continue;
 		}
 	    }
 
-	    /* find least used assigned GPU */
-	    uint16_t lstUsedGPU = getMinimumIndex(used, useGPUs[lTID],
-						  numNodeGPUs);
-	    if (lstUsedGPU == UINT16_MAX) {
-		flog("UNEXPECTED: failed to find minimum in useGPUs[%u]\n",
-		     lTID);
+	    /* find ID of least assigned GPU available to the step */
+	    uint16_t leastAssGPU = getMinimumIndex(assignments,
+						   availGPUs[lTID], numGPUs);
+	    if (leastAssGPU == UINT16_MAX) {
+		flog("UNEXPECTED: failed to find least assigned close GPU"
+		     " for local rank %u\n", lTID);
 		continue;
 	    }
-	    if (spreadGPUsFirst && used[lstUsedGPU] && use_closest[lTID]) {
+	    if (spreadGPUsFirst && assignments[leastAssGPU] > 0
+		&& use_closest[lTID]) {
 		/* GPUs should be spread first and there are no more closest
-		 * GPUs left, so first look for others left */
+		 * GPUs left => first look for others left */
 		if (lTID == localRankId) {
 		    uprintf("Warning: All GPUs closest to local task %u already"
-			    " assigned, so using arbitrary GPUs. GPU pinning"
-			    " will propably be suboptimal.\n", lTID);
+			    " assigned => using arbitrary GPUs probably leads"
+			    " to suboptimal assignment\n", lTID);
 		}
 
 		/* switch from closest to any (see above) */
 		use_closest[lTID] = false;
-		PSCPU_copy(useGPUs[lTID], assGPUs);
-		PSCPU_remCPUs(useGPUs[lTID], gpus[lTID]);
+		PSCPU_copy(availGPUs[lTID], stepGPUs);
+		PSCPU_remCPUs(availGPUs[lTID], assGPUs[lTID]);
 
-		/* find least used GPU in wider range */
-		lstUsedGPU = getMinimumIndex(used, useGPUs[lTID], numNodeGPUs);
-		if (lstUsedGPU == UINT16_MAX) {
-		    flog("UNEXPECTED: failed to find minimum in useGPUs[%u]\n",
-			 lTID);
+		/* find ID of least assigned GPU in wider range */
+		leastAssGPU = getMinimumIndex(assignments, availGPUs[lTID],
+					     numGPUs);
+		if (leastAssGPU == UINT16_MAX) {
+		    flog("UNEXPECTED: failed to find least assigned GPU for"
+			 " local rank %u\n", lTID);
 		    continue;
 		}
 	    }
 
-	    fdbg(PSSLURM_LOG_PART, "Select least used of %s GPU for"
-		 " local task %u: %hu\n",
-		 use_closest[lTID] ? "closest" : "any", lTID, lstUsedGPU);
+	    fdbg(PSSLURM_LOG_PART, "Select least assigned %sGPU ID %hu for"
+		 " local task %u\n", use_closest[lTID] ? "closest " : "",
+		 leastAssGPU, lTID);
 
-	    /* remove from GPUs to use, set as pinned to this task and
-	     * increase the usage counter */
-	    PSCPU_clrCPU(useGPUs[lTID], lstUsedGPU);
-	    PSCPU_setCPU(gpus[lTID], lstUsedGPU);
-	    used[lstUsedGPU]++;
+	    /* remove from available GPUs, set as pinned to this task and
+	     * increase the counter how often it is already pinned */
+	    PSCPU_clrCPU(availGPUs[lTID], leastAssGPU);
+	    PSCPU_setCPU(assGPUs[lTID], leastAssGPU);
+	    assignments[leastAssGPU]++;
 	}
     }
 
     /* copy the pinned GPUs for this rank */
-    PSCPU_copy(*rankGPUs, gpus[localRankId]);
+    PSCPU_copy(*rankGPUs, assGPUs[localRankId]);
 
     return true;
 }
 
 /*
- * Calculate GPU pinning for one rank
+ * Calculate GPU assignment for local rank
  *
  * This function is called from setRankEnv() in two places:
  * 1. From inside the user process before execve() thus using fprintf() to
@@ -1890,8 +1888,8 @@ static bool getDefaultRankGpuPinning(uint32_t localRankId, Step_t *step,
  *    using PSIDfwd_printMsgf(STDERR,...) for output to the user's stderr
  * This differentiation is encapsulated in the macro uprintf().
  */
-bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
-		       PSCPU_set_t assGPUs, PSCPU_set_t *rankGPUs)
+bool getGpuAssignment(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
+		      PSCPU_set_t stepGPUs, PSCPU_set_t *rankGPUs)
 {
     /* set defaults for bind string values */
     bool verbose = false;
@@ -1922,7 +1920,7 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	    return false;
 	}
 	for (size_t i = 0; i < count; i++) {
-	    if (!PSCPU_isSet(assGPUs, maparray[i])) {
+	    if (!PSCPU_isSet(stepGPUs, maparray[i])) {
 		flog("GPU %ld included in map_gpu '%s' is not assigned to job\n",
 		     maparray[i], map_gpu);
 		uprintf("GPU %ld included in map_gpu '%s' is not assigned to"
@@ -1941,8 +1939,8 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	uprintf("gpu_bind type \"mask_gpu\" is not supported\n");
 	return false;
     } else {
-	if (!getDefaultRankGpuPinning(localRankId, step, stepNodeId, assGPUs,
-		gpus_per_task, rankGPUs)) return false;
+	if (!getDefaultGpuAssignment(localRankId, step, stepNodeId, stepGPUs,
+				     gpus_per_task, rankGPUs)) return false;
     }
 
     if (verbose) {
@@ -1953,7 +1951,7 @@ bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
 	}
 	unsigned int taskGpuMask = 0;
 	for (uint16_t gpu = 0; gpu < 8*sizeof(taskGpuMask); gpu++) {
-	    if (PSCPU_isSet(assGPUs, gpu)) taskGpuMask |= 1 << gpu;
+	    if (PSCPU_isSet(stepGPUs, gpu)) taskGpuMask |= 1 << gpu;
 	}
 
 	char *globalGpuList = "N/A";

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -83,27 +83,27 @@ bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 		     Step_t *step);
 
 /**
- * @brief Calculate the GPU pinning for the local rank.
+ * @brief Calculate GPU assignment for local rank
  *
- * When returning true, @a rankGPUs has all bits set at the ID's position
- * of the GPUs to be bound to rank @a localRankId.
+ * When returning true, those bits in @a rankGPUs are set that mark
+ * IDs of GPUs to get bound to rank @a localRankId.
  *
- * Only GPUs in @a assGPUs will be used.
+ * Only GPUs in @a stepGPUs will be taken into account.
  *
- * @param localRankId      The local rank ID of the rank to get the GPU for
+ * @param localRankId  Local rank ID of the rank to get the GPUs for
  *
- * @param step             The step to use
+ * @param step         The step to use
  *
- * @param stepNodeId       The step local id of the node to get GPU pinning for
+ * @param stepNodeId   Step local id to identify the rank's node
  *
- * @param assGPUs          GPUs to be used
+ * @param stepGPUs     Local GPUs assigned to this step (and taken into account)
  *
- * @param rankGPUs         mask to be filled
+ * @param rankGPUs     mask to be filled (actual return value)
  *
- * @return true on success, false on error.
+ * @return true on success, false on error
  */
-bool getRankGpuPinning(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
-		       PSCPU_set_t assGPUs, PSCPU_set_t *rankGPUs);
+bool getGpuAssignment(uint32_t localRankId, Step_t *step, uint32_t stepNodeId,
+		      PSCPU_set_t stepGPUs, PSCPU_set_t *rankGPUs);
 
 /**
  * @doctodo

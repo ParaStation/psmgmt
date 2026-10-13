@@ -963,18 +963,18 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	/* get GPUs assigned to this step from GRES info */
 	PSCPU_set_t assGPUs;
 	if (!hexBitstr2Set(gres->bitAlloc[jobNodeId], assGPUs)) {
-	    flog("failed to get assigned GPUs from bitstring\n");
+	    flog("failed to get GPUs assigned to step %s from bitstring\n",
+		 Step_strID(step));
 	    return;
 	}
 	if (!PSCPU_any(assGPUs, PSCPU_MAX)) {
-	    flog("UNEXPECTED: no assigned GPUs found\n");
+	    flog("UNEXPECTED: no GPUs assigned to step %s\n", Step_strID(step));
 	    return;
 	}
 
 	/* create comma separated list of GPUs for this rank */
 	PSCPU_set_t rankGPUs;
-	if (!getRankGpuPinning(localRankId, step, stepNId, assGPUs,
-			       &rankGPUs)) {
+	if (!getGpuAssignment(localRankId, step, stepNId, assGPUs, &rankGPUs)) {
 	    return; /* error message already printed */
 	}
 
