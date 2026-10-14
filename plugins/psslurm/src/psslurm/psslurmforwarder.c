@@ -1457,12 +1457,12 @@ static int stepForwarderLoop(Forwarder_Data_t *fwdata)
 
     if (!step->IOPort) {
 	flog("no I/O ports available\n");
-	return ESLURMD_CANNOT_SPAWN_IO_THREAD;
+	return ESLURMD_IO_ERROR;
     }
 
     if (srunOpenIOConnection(step, step->cred->sig) == -1) {
 	flog("open srun I/O connection failed\n");
-	return ESLURMD_CANNOT_SPAWN_IO_THREAD;
+	return ESLURMD_IO_ERROR;
     }
 
     if (step->taskFlags & LAUNCH_PTY) {
@@ -1763,7 +1763,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     if (!IO_openJobPipes(fwdata)) {
 	flog("unable to open job I/O pipes\n");
-	return ESLURMD_CANNOT_SPAWN_IO_THREAD;
+	return ESLURMD_IO_ERROR;
     }
 
     return SLURM_SUCCESS;
@@ -1972,12 +1972,12 @@ static int stepFollowerFWloop(Forwarder_Data_t *fwdata)
 
     if (!step->IOPort) {
 	flog("no I/O Ports\n");
-	return ESLURMD_CANNOT_SPAWN_IO_THREAD;
+	return ESLURMD_IO_ERROR;
     }
 
     if (srunOpenIOConnection(step, step->cred->sig) == -1) {
 	flog("open srun I/O connection failed\n");
-	return ESLURMD_CANNOT_SPAWN_IO_THREAD;
+	return ESLURMD_IO_ERROR;
     }
 
     if (!PSC_switchEffectiveUser(step->username, step->uid, step->gid)) {

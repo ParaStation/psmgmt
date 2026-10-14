@@ -653,7 +653,7 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 * However for pack jobs the pack leader has to wait for
 	 * the pack follower to send hw threads */
 	if (step->packStepCount == 1) {
-	    if (!execStepLeader(step)) return ESLURMD_FORK_FAILED;
+	    if (!execStepLeader(step)) return ESLURMD_EXECVE_FAILED;
 	} else {
 	    /* Check for cached hw threads */
 	    handleCachedMsg(step);
@@ -1393,7 +1393,7 @@ static int handleFileBCast(Slurm_Msg_t *sMsg)
     bcast->msg.head.uid = sMsg->head.uid;
 
     /* start forwarder to write the file */
-    if (!execBCast(bcast)) return ESLURMD_FORK_FAILED;
+    if (!execBCast(bcast)) return ESLURMD_EXECVE_FAILED;
 
     /* prevent bcast from automatic free */
     sMsg->unpData = NULL;

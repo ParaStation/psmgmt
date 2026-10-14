@@ -1226,7 +1226,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     if (step->rcvdPackProcs == nTasks) {
 	if (!execStepLeader(step)) {
 	    flog("starting user %s failed\n", Step_strID(step));
-	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
+	    sendSlurmRC(&step->srunControlMsg, ESLURMD_EXECVE_FAILED);
 	    Step_delete(step);
 	}
     }

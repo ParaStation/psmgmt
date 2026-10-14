@@ -426,7 +426,7 @@ static void startSpawner(Step_t *step, int32_t serviceRank)
     } else {
 	fwarn(ret, "failed to launch spawner for %s", Step_strID(step));
 	PStask_delete(task);
-	sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
+	sendSlurmRC(&step->srunControlMsg, ESLURMD_EXECVE_FAILED);
 	shutdownForwarder(fwData);
     }
 }
