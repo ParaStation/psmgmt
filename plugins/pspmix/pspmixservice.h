@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -213,9 +213,10 @@ bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
  * @param nspace   namespace of the client
  * @param rank     namespace rank of the client
  * @param fwtid    TID of the client's forwarder
+ * @param init     true on initialization, false on finalization
  */
 void pspmix_service_handleClientIFResp(const char *nspace, pmix_rank_t rank,
-				       PStask_ID_t fwtid);
+				       PStask_ID_t fwtid, bool init);
 
 /**
  * @brief Handle aborting client

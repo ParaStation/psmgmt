@@ -883,9 +883,14 @@ bool pspmix_service_terminateClients(const char *nsName, bool remote)
     flog("signal all local clients\n");
     list_for_each(c, &ns->clientList) {
 	PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
-	if (client->tid) pspmix_comm_sendSignal(client->tid, -1);
+	if (client->tid) {
+	    pspmix_comm_sendSignal(client->tid, -1);
+	    client->state = PSPMIX_CLIENT_STATE_TERMINATED;
+	}
 	/* @todo send to the forwarder tid otherwise? */
     }
+
+    ns->clientsInitialized = 0;
 
     if (!remote) {
 	RELEASE_LOCK(namespaceList);
@@ -947,6 +952,23 @@ void pspmix_service_cleanupNamespace(PspmixNamespace_t *ns, bool error,
     list_t *c, *tmp;
     list_for_each_safe(c, tmp, &ns->clientList) {
 	PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
+	switch (client->state) {
+	case PSPMIX_CLIENT_STATE_REGISTERED:
+	    /* this are clients, that never started using PMIx */
+	case PSPMIX_CLIENT_STATE_FINALIZED:
+	case PSPMIX_CLIENT_STATE_TERMINATED:
+	case PSPMIX_CLIENT_STATE_FAILED:
+	    /* each client should be correctly finalized, forcefully terminated,
+	     * or failed here */
+	    break;
+	case PSPMIX_CLIENT_STATE_INITIALIZED:
+	    flog("nspace '%s' rank %d did not call finalize\n", ns->name,
+		 client->rank);
+	    break;
+	default:
+	    flog("UNEXPECTED: nspace '%s' rank %d state %d\n", ns->name,
+		 client->rank, client->state);
+	}
 	list_del(&client->next);
 	ufree(client->notifiedFwCb);
 	ufree(client);
@@ -1086,6 +1108,8 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 	goto failed;
     }
 
+    client->state = PSPMIX_CLIENT_STATE_REGISTERED;
+
     /* get environment from PMIx server */
     char **envp = ucalloc(sizeof(*envp));
     if (!pspmix_server_setupFork(nsname, client->rank, &envp)) {
@@ -1164,7 +1188,8 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 	flog("namespace '%s' no longer valid\n", nsname);
 	RELEASE_LOCK(namespaceList);
 	pspmix_server_deregisterClient(nsname, client->rank);
-	return false;
+	client->state = PSPMIX_CLIENT_STATE_FAILED;
+	return false; /* todo shouldn't that be "goto failed"? */
     }
 
     /* add to namespace's list of clients */
@@ -1178,6 +1203,7 @@ failed:
     /* send message to forwarder to make it fail directly as well so
      * it does not need to wait for the timeout */
     pspmix_comm_sendJobsetupFailed(client->fwtid);
+    client->state = PSPMIX_CLIENT_STATE_FAILED;
     return false;
 }
 
@@ -1197,8 +1223,7 @@ bool pspmix_service_finalize(PspmixServer_t *server)
 bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
 				    void *cb)
 {
-    fdbg(PSPMIX_LOG_CALL, "nspace %s rank %d cb %p\n", nsName, client->rank,
-	 cb);
+    fdbg(PSPMIX_LOG_CALL, "nspace %s rank %d cb %p\n", nsName, client->rank, cb);
 
     GET_LOCK(namespaceList);
 
@@ -1219,13 +1244,17 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
     }
     client->notifiedFwCb = cb;
 
+    client->state = PSPMIX_CLIENT_STATE_CONNECTED;
     ns->clientsConnected++;
 
     /* log clients */
     fdbg(PSPMIX_LOG_CLIENTS, "client %s:%u\n", ns->name, client->rank);
-    if (ns->clientsConnected >= ns->localClients) {
+    if (ns->clientsConnected == ns->localClients) {
 	flog("nspace %s: All %u local clients connected\n", ns->name,
 	     ns->localClients);
+    } else if (ns->clientsConnected > ns->localClients) {
+	flog("UNEXPECTED: nspace %s: Too many local clients connected\n",
+	     ns->name);
     }
 
     /* copy values inside lock */
@@ -1295,16 +1324,13 @@ bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
     }
     client->notifiedFwCb = cb;
 
-    ns->clientsFinalized++;
+    client->state = PSPMIX_CLIENT_STATE_FINALIZING;
+    ns->clientsFinalizing++;
 
     /* log clients */
     fdbg(PSPMIX_LOG_CLIENTS, "client %s:%u\n", ns->name, client->rank);
-    if (ns->clientsFinalized == ns->clientsConnected) {
+    if (ns->clientsFinalizing == ns->clientsConnected) {
 	flog("nspace %s: No more local clients connected\n", ns->name);
-    }
-    if (ns->clientsFinalized == ns->localClients) {
-	flog("nspace %s: All %u local clients finalized\n", ns->name,
-	     ns->localClients);
     }
 
     /* copy values inside lock */
@@ -1319,7 +1345,7 @@ bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
 
 /* main thread */
 void pspmix_service_handleClientIFResp(const char *nspace, pmix_rank_t rank,
-				       PStask_ID_t fwtid)
+				       PStask_ID_t fwtid, bool init)
 {
     fdbg(PSPMIX_LOG_CALL, "nspace %s rank %d fw %s\n", nspace, rank,
 	 PSC_printTID(fwtid));
@@ -1350,6 +1376,36 @@ void pspmix_service_handleClientIFResp(const char *nspace, pmix_rank_t rank,
 	return;
     }
 
+    if (init) {
+	if (client->state == PSPMIX_CLIENT_STATE_CONNECTED) {
+	    /* This is an expected initialization notification */
+	    client->state = PSPMIX_CLIENT_STATE_INITIALIZED;
+	    ns->clientsInitialized++;
+
+	    if (ns->clientsInitialized == ns->localClients) {
+		flog("nspace %s: All %u local clients initialized\n", ns->name,
+		     ns->localClients);
+	    }
+	} else {
+	    flog("UNEXPECTED: nspace %s: client %u in state %d not CONNECTED\n",
+		 ns->name, client->rank, client->state);
+	}
+    } else {
+	if (client->state == PSPMIX_CLIENT_STATE_FINALIZING) {
+	    /* This is a finalization notification */
+	    client->state = PSPMIX_CLIENT_STATE_FINALIZED;
+	    ns->clientsFinalized++;
+
+	    if (ns->clientsFinalized == ns->clientsConnected) {
+		flog("nspace %s: All %u former connected local clients"
+		     " finalized\n", ns->name, ns->clientsConnected);
+	    }
+	} else {
+	    flog("UNEXPECTED: nspace %s: client %u in state %d\n", ns->name,
+		 client->rank, client->state);
+	}
+    }
+
     /* copy reference inside lock */
     void* cb = client->notifiedFwCb;
     client->notifiedFwCb = NULL; /* avoids to be freed elsewhere */
@@ -1357,8 +1413,6 @@ void pspmix_service_handleClientIFResp(const char *nspace, pmix_rank_t rank,
     RELEASE_LOCK(namespaceList);
 
     pspmix_server_operationFinished(PMIX_SUCCESS, cb);
-
-    // @todo do we need to save client state in client?
 }
 
 /* library thread */

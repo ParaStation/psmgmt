@@ -198,9 +198,40 @@ typedef struct {
 				     (list of PspmixClient_t objects) */
     uint32_t localClients;      /**< number of local clients */
     uint32_t clientsConnected;  /**< number of local clients connected */
+    uint32_t clientsInitialized;/**< number of local clients initialized */
+    uint32_t clientsFinalizing; /**< number of local clients finalizing */
     uint32_t clientsFinalized;  /**< number of local clients finalized */
 } PspmixNamespace_t;
 
+
+/**
+ * States of PspmixClient_t
+ *
+ * When a client is created after receiving a PSPMIX_REGISTER_CLIENT message, it
+ * gets the state KNOWN. After successfull registration at the PMIx server
+ * libary, it enters state REGISTERED. After the server library informed about a
+ * client has connected, it's state is CONNECTED. After a client's forwarder
+ * reported the successful initialization by sending a PSPMIX_CLIENT_INIT_RES
+ * message it enters state INITIALIZED. After the server library informed about
+ * a client has finalized, it's state is FINALIZING. After a client's forwarder
+ * reported successful finalization by sending a PSPMIX_CLIENT_FINALIZE_RES
+ * messages it enters FINALIZED state. This is the normal life of a client.
+ *
+ * In addition, there are two excepional states:
+ * After signaling term/kill to the client, it has the state TERMINATED.
+ * After any operation required to enter a normal state failed, the client gets
+ * assigned the state FAILED.
+ */
+typedef enum {
+    PSPMIX_CLIENT_STATE_KNOWN = 0,   /**< initial creation state */
+    PSPMIX_CLIENT_STATE_REGISTERED,  /**< registered by its fw */
+    PSPMIX_CLIENT_STATE_CONNECTED,   /**< called PMIx_Init() */
+    PSPMIX_CLIENT_STATE_INITIALIZED, /**< init success confirmend by its fw */
+    PSPMIX_CLIENT_STATE_FINALIZING,  /**< called PMIx_Finalize() */
+    PSPMIX_CLIENT_STATE_FINALIZED,   /**< finalization confirmed by its fw */
+    PSPMIX_CLIENT_STATE_TERMINATED,  /**< signal for termination sent */
+    PSPMIX_CLIENT_STATE_FAILED       /**< setting status somehow failed */
+} PspmixClientState_t;
 
 /**
  * Information about one client
@@ -224,6 +255,7 @@ typedef struct {
 				    n/a before PSPMIX_SPAWN_SUCCESS msg rcvd */
     void *notifiedFwCb;        /**< callback object for forwarder notification
 				    about init/finalize */
+    PspmixClientState_t state; /**< current initialization state */
 } PspmixClient_t;
 
 #define FIND_IN_LIST_FUNC(name, objtype, keytype, key)			\
