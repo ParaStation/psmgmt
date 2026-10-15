@@ -880,6 +880,7 @@ bool pspmix_service_terminateClients(const char *nsName, bool remote)
     RELEASE_LOCK(logCallList);
 
     /* signal all local clients */
+    flog("signal all local clients\n");
     list_for_each(c, &ns->clientList) {
 	PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
 	if (client->tid) pspmix_comm_sendSignal(client->tid, -1);
