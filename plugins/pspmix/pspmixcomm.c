@@ -337,7 +337,15 @@ static void handleTermClients(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     fdbg(PSPMIX_LOG_COMM, "type %s for namespace %s\n",
 	 pspmix_getMsgTypeString(msg->type), nspace);
 
-    pspmix_service_terminateClients(nspace, false);
+    /* On consecutive messages for the same namespace, as they are very common
+     * since all servers send them all to all, only trigger termination once
+     * to not generate a lot of noise by expected nspace not found messages */
+    static char *lastNspace = NULL;
+    if (!lastNspace || strcmp(nspace, lastNspace)) {
+	pspmix_service_terminateClients(nspace, false);
+	ufree(lastNspace);
+	lastNspace = ustrdup(nspace);
+    }
 
     ufree(nspace);
 }
