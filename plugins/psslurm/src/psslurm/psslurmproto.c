@@ -344,7 +344,7 @@ static void printLaunchTasksInfos(Step_t *step)
     fdbg(PSSLURM_LOG_IO, "stdIn '%s' stdInRank %i stdInOpt %s\n",
 	 step->stdIn, step->stdInRank, IO_strOpt(step->stdInOpt));
 
-    fdbg(PSSLURM_LOG_IO, "bufferedIO '%li' labelIO '%li'\n",
+    fdbg(PSSLURM_LOG_IO, "bufferedIO %li labelIO %li\n",
 	 step->taskFlags & LAUNCH_BUFFERED_IO,
 	 step->taskFlags & LAUNCH_LABEL_IO);
 
@@ -3210,7 +3210,7 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 
     uint32_t taskCount = countRegTasks(&step->tasks);
     if (taskCount != step->globalTaskIdsLen[step->localNodeId]) {
-	mlog("%s: still missing tasks: %u of %u\n", __func__, taskCount,
+	flog("still missing tasks: %u of %u\n", taskCount,
 	    step->globalTaskIdsLen[step->localNodeId]);
     }
 
@@ -3229,8 +3229,8 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 
 	if (exitCode == -100) {
 	    if (count != taskCount) {
-		mlog("%s: failed to find next exit code, count %u"
-		     " taskCount %u\n", __func__, count, taskCount);
+		flog("failed to find next exit code, count %u taskCount %u\n",
+		     count, taskCount);
 	    }
 	    return;
 	}

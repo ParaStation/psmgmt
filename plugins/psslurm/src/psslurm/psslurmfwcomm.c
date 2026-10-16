@@ -419,7 +419,7 @@ static void startSpawner(Step_t *step, int32_t serviceRank)
 
     /* return launch success to waiting srun since spawner could be spawned */
     if (!ret) {
-	flog("launch success for %s to srun sock '%u'\n",
+	flog("launch success for %s to srun sock %u\n",
 	     Step_strID(step), step->srunControlMsg.sock);
 	sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
 	step->state = JOB_SPAWNED;

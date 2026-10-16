@@ -138,10 +138,10 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     Job_t *job = fw->userData;
     Alloc_t *alloc = Alloc_find(job->hID.jobid);
 
-    flog("job '%u' finished, exit %i / %i\n", job->hID.jobid, exit_status,
+    flog("job %u finished, exit %i / %i\n", job->hID.jobid, exit_status,
 	 fw->chldExitStatus);
     if (!Job_findById(job->hID.jobid)) {
-	flog("job '%u' not found\n", job->hID.jobid);
+	flog("job %u not found\n", job->hID.jobid);
 	return;
     }
 
@@ -290,7 +290,7 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     if (step->state == JOB_PRESTART) {
 	/* spawn failed */
-	uint32_t rc = (uint32_t) SLURM_ERROR;
+	uint32_t rc = SLURM_ERROR;
 
 	/* pluginforwarder hooks might set an return code */
 	rc = (fw->rcType != RC_HOOK_NONE) ? (uint32_t) fw->rcCode : rc;
@@ -567,7 +567,7 @@ int handleForwarderInit(void *data)
 
 	    waitpid(child, &status, WUNTRACED);
 	    if (!WIFSTOPPED(status)) {
-		flog("child '%i' not stopped\n", child);
+		flog("child %i not stopped\n", child);
 	    } else {
 		if (killChild(child, SIGSTOP, task->uid) == -1) {
 		    fwarn(errno, "kill(%i)", child);
@@ -1744,8 +1744,8 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
     /* set GPU frequency of allocated GPUs of job */
     if (GPUfreq_isInitialized() && !Freq_adjustJobGPUs(job)) {
 	char buf[512];
-	snprintf(buf, sizeof(buf), "Adjusting GPU frequency for job %u "
-		 "failed\n", job->hID.jobid);
+	snprintf(buf, sizeof(buf), "Adjusting GPU frequency for job %u failed\n",
+		 job->hID.jobid);
 	queueFwMsg(&job->fwMsgQueue, buf, strlen(buf), STDERR, 0);
 	if (getConfValueI(Config, "GPU_FREQ_TERM_ON_ERROR")) {
 	    job->termAfterFWmsg = ESLURM_INVALID_NODE_STATE;
@@ -1839,7 +1839,7 @@ bool execBatchJob(Job_t *job)
     if (!startForwarder(fwdata)) {
 	char msg[128];
 
-	snprintf(msg, sizeof(msg), "starting forwarder for job '%u' failed\n",
+	snprintf(msg, sizeof(msg), "starting forwarder for job %u failed\n",
 		 job->hID.jobid);
 	flog("%s", msg);
 	setNodeOffline(job->env, job->hID.jobid,
@@ -1950,7 +1950,7 @@ bool execBCast(BCast_t *bcast)
     if (!startForwarder(fwdata)) {
 	char msg[128];
 
-	snprintf(msg, sizeof(msg), "starting forwarder for bcast '%u' failed\n",
+	snprintf(msg, sizeof(msg), "starting forwarder for bcast %u failed\n",
 		 bcast->hID.jobid);
 	flog("%s", msg);
 	setNodeOffline(bcast->env, bcast->hID.jobid,
@@ -2230,7 +2230,7 @@ bool execEpilogueFin(Alloc_t *alloc)
     fwdata->childFunc = fwExecEpiFin;
 
     if (!startForwarder(fwdata)) {
-	flog("starting epilogue finalize forwarder for alloc '%u' failed\n",
+	flog("starting epilogue finalize forwarder for alloc %u failed\n",
 	     alloc->hID.jobid);
 	ForwarderData_delete(fwdata);
 	return false;
