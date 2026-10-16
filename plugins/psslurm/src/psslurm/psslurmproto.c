@@ -2080,7 +2080,7 @@ static int handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return SLURM_SUCCESS;
     }
 
-    return ESLURMD_INVALID_JOB_CREDENTIAL;
+    return ESLURMD_EXECVE_FAILED;
 }
 
 static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
@@ -3399,7 +3399,7 @@ void sendJobExit(Job_t *job, uint32_t exitStatus)
 	.exitStatus = exitStatus,
 	.uid = job->uid,
 	.hostname = job->hostname,
-	.rc = 0,
+	.rc = 0, // non-zero rc will drain the node!
 	.hID = job->hID
     };
 

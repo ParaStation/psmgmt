@@ -220,8 +220,13 @@ static void stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
     /* send launch error if local processes failed to start */
     unsigned int taskCount = countRegTasks(&step->tasks);
     if (taskCount != step->globalTaskIdsLen[step->localNodeId]) {
+	/* return code might be set before pluginforwarder even started */
 	uint32_t rc = step->termAfterFWmsg != NO_VAL ?
 		      step->termAfterFWmsg : (uint32_t) SLURM_ERROR;
+
+	/* there might be late return codes from forwarder hooks */
+	rc = (fw->rcType != RC_HOOK_NONE) ? (uint32_t)fw->rcCode : rc;
+
 	sendLaunchTasksFailed(step, step->localNodeId, rc);
     }
 
@@ -302,7 +307,10 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
 	sendSlurmRC(&step->srunControlMsg, rc);
     } else if (step->state == JOB_SPAWNED) {
-	sendLaunchTasksFailed(step, ALL_NODES, ESLURMD_EXECVE_FAILED);
+	/* there might be late return codes from forwarder hooks */
+	int32_t rc =
+	    fw->rcType != RC_HOOK_NONE ? fw->rcCode : ESLURMD_EXECVE_FAILED;
+	sendLaunchTasksFailed(step, ALL_NODES, rc);
     } else {
 	/* send task exit to srun processes */
 	sendTaskExit(step, NULL, NULL);
