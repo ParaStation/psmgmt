@@ -257,7 +257,8 @@ static void saveHistoryFile(void)
 int main(int argc, const char **argv)
 {
     char *copt = NULL, *progfile = NULL;
-    int echo=0, noinit=0, quiet=0, reset=0, no_start=0, start_all=0, version=0;
+    int echo = 0, noinit = 0, quiet = 0, reset = 0, no_start = 0, start_all = 0;
+    int tmout = 0, version = 0;
 
     struct poptOption optionsTable[] = {
 	{ "command", 'c', POPT_ARG_STRING, &copt, 0,
@@ -276,6 +277,9 @@ int main(int argc, const char **argv)
 	  "don't try to start the local daemon, just try to connect", NULL},
 	{ "start-all", 's', POPT_ARG_NONE, &start_all, 0,
 	  "startup all daemons of the cluster, not only the local one", NULL},
+	{ "timeout", 't', POPT_ARG_INT, &tmout, 0,
+	  "timeout connecting the local psid in seconds (default:none)",
+	  "tmout"},
 	{ "version", 'v', POPT_ARG_NONE, &version, -1,
 	  "output version information and exit", NULL},
 	POPT_AUTOHELP
@@ -304,6 +308,11 @@ int main(int argc, const char **argv)
     if (reset) doReset();
 
     if (no_start) setenv("__PSI_DONT_START_DAEMON", "", 1);
+    if (tmout && tmout > 0) {
+	char val[20];
+	snprintf(val, sizeof(val), "%d", tmout);
+	setenv("__PSI_DAEMON_TMOUT", val, 1);
+    }
 
     if (!PSI_initClient(TG_ADMIN)) {
 	PSIadm_log("cannot connect to my own daemon\n");
