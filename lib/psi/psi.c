@@ -546,7 +546,8 @@ int PSI_availMsg(void)
     return select(daemonSock+1, &rfds, NULL, NULL, &tmout);
 }
 
-static ssize_t doRecv(DDBufferMsg_t *msg, size_t size, const char *caller)
+static ssize_t doRecv(DDBufferMsg_t *msg, size_t size, struct timeval *tmout,
+		      const char *caller)
 {
     if (daemonSock == -1) {
 	errno = ENOTCONN;
@@ -557,7 +558,8 @@ static ssize_t doRecv(DDBufferMsg_t *msg, size_t size, const char *caller)
 	return -1;
     }
 
-    ssize_t ret = PSCio_recvMsgSize(daemonSock, msg, size);
+    ssize_t ret = PSCio_recvMsgT(daemonSock, msg, size, tmout);
+    if (tmout && ret < 0 && errno == ETIME) return ret;
     if (ret <= 0) {
 	int eno = errno ? errno : ENOTCONN;
 	PSI_warn(eno, "%s: lost connection to ParaStation daemon", caller);
@@ -578,12 +580,17 @@ static ssize_t doRecv(DDBufferMsg_t *msg, size_t size, const char *caller)
 }
 
 ssize_t __PSI_recvMsg(DDBufferMsg_t *msg, size_t size, int16_t xpctdType,
-		      bool wait, bool ignUnxpctd, const char *caller)
+		      bool wait, bool ignUnxpctd, struct timeval *tmout,
+		      const char *caller)
 {
     while (wait || PSI_availMsg() > 0) {
-	ssize_t ret = doRecv(msg, size, __func__);
+	ssize_t ret = doRecv(msg, size, tmout, __func__);
+	int eno = errno;
 	PSI_fdbg(PSI_LOG_COMM, "doRecv() returns %zd\n", ret);
-	if (ret < 0) return ret;
+	if (ret < 0) {
+	    errno = eno;
+	    return ret;
+	}
 
 	PSI_fdbg(PSI_LOG_COMM, "  type %s\n", PSP_printMsg(msg->header.type));
 	if (xpctdType == -1 || msg->header.type == xpctdType) return ret;

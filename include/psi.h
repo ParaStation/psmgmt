@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -240,6 +240,11 @@ bool PSI_clrRecvHandler(int16_t msgType, PSI_handlerFunc_t handler);
  * any. Thus, the message might still be hidden by a handler that
  * returns true.
  *
+ * If @a tmout is given, it is passed to @ref PSCio_recvMsgT() in
+ * order to wait for a finite time. Once it expires without the
+ * expected message this function will return -1 with errno set to
+ * ETIME.
+ *
  * @param msg Buffer to store the message to
  *
  * @param size Maximum length of the message, i.e. size of @a msg
@@ -256,6 +261,11 @@ bool PSI_clrRecvHandler(int16_t msgType, PSI_handlerFunc_t handler);
  * @param ignUnxpctd Flag to ignore messages of unexpected type (but
  * emitting a warning) or to deliver any type of message
  *
+ * @param tmout Time after which this functions returns regardless
+ * if a message was received. If @a tmout is NULL, this function
+ * might block indefinitely. Upon return this value will get updated
+ * and hold the remnant of the original timeout.
+ *
  * @param caller Name of the calling function that will be passed to
  * the message handler to call
  *
@@ -268,13 +278,17 @@ bool PSI_clrRecvHandler(int16_t msgType, PSI_handlerFunc_t handler);
  * message available
  */
 ssize_t __PSI_recvMsg(DDBufferMsg_t *msg, size_t size, int16_t xpctdType,
-		      bool wait, bool ignUnxpctd, const char *caller);
+		      bool wait, bool ignUnxpctd, struct timeval *tmout,
+		      const char *caller);
 
 #define PSI_recvMsg(msg, size, xpctdType, ignUnxpctd)		\
-    __PSI_recvMsg(msg, size, xpctdType, true, ignUnxpctd, __func__)
+    __PSI_recvMsg(msg, size, xpctdType, true, ignUnxpctd, NULL, __func__)
 
 #define PSI_tryRecvMsg(msg, size, xpctdType, ignUnxpctd)		\
-    __PSI_recvMsg(msg, size, xpctdType, false, ignUnxpctd, __func__)
+    __PSI_recvMsg(msg, size, xpctdType, false, ignUnxpctd, NULL, __func__)
+
+#define PSI_recvMsgT(msg, size, xpctdType, ignUnxpctd, tmout)		\
+    __PSI_recvMsg(msg, size, xpctdType, true, ignUnxpctd, tmout, __func__)
 
 
 /**
