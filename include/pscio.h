@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -290,8 +290,8 @@ ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len,
     PSCio_recvMsgFunc(fd, msg, len, NULL, rcvd)
 
 /** Receive message with timeout */
-#define PSCio_recvMsgT(fd, msg, tmout)				\
-    PSCio_recvMsgFunc(fd, (DDBufferMsg_t *)msg, sizeof(*msg), tmout, NULL)
+#define PSCio_recvMsgT(fd, msg, len, tmout)				\
+    PSCio_recvMsgFunc(fd, (DDBufferMsg_t *)msg, len, tmout, NULL)
 
 /**
  * @brief Switch file-descriptor's close-on-exec mode

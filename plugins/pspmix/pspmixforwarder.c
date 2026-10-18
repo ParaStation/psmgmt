@@ -839,7 +839,7 @@ static bool waitForClientEnv(int daemonfd, struct timeval timeout)
 
     while (!environmentReady && !jobsetupFailed) {
 	DDTypedBufferMsg_t msg;
-	ssize_t ret = PSCio_recvMsgT(daemonfd, &msg, &timeout);
+	ssize_t ret = PSCio_recvMsgT(daemonfd, &msg, sizeof(msg), &timeout);
 	if (ret < 0) {
 	    rwarn(errno, "Error receiving environment message");
 	    return false;

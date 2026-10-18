@@ -266,7 +266,7 @@ static ssize_t recvDaemonMsg(DDBufferMsg_t *msg, struct timeval *timeout)
 
     ssize_t ret;
     while (true) {
-	ret = PSCio_recvMsgT(daemonSock, msg, timeout);
+	ret = PSCio_recvMsgT(daemonSock, msg, sizeof(*msg), timeout);
 
 	if (ret < 0) {
 	    int eno = errno;
