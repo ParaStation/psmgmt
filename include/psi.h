@@ -35,10 +35,17 @@
  * taskGroup. If this is @ref TG_ADMIN which usually denotes a
  * psiadmin(1) process, it will be first tried to contact the
  * daemon. If this fails, the attempt to start the daemon via the
- * (x)inetd(8) and to contact it again will be made for 5 times. If
- * there is finally no contact, an error is returned. This behavior
- * might be switched off by setting the __PSI_DONT_START_DAEMON
- * environment variable before calling this function.
+ * (x)inetd(8) (or the corresponding systemd socket) and to contact it
+ * again will be made for 5 times. If there is finally no contact, an
+ * error is returned. This behavior might be switched off by setting
+ * the __PSI_DONT_START_DAEMON environment variable before calling
+ * this function.
+ *
+ * Connecting the daemon might be secured by defining a timeout to
+ * protect e.g. psidadmin from a hanging daemon. For this, the
+ * environment variable __PSI_DAEMON_TMOUT shall be set to the number
+ * of seconds until connecting the local daemon is considered to be
+ * unsuccessful.
  *
  * For all other values of @a taskGroup only one attempt to contact
  * the local daemon is made without trying to start the daemon.

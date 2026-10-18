@@ -141,6 +141,17 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 
     PSI_fdbg(PSI_LOG_VERB, "%s\n", PStask_printGrp(taskGroup));
 
+    struct timeval *tmout = NULL, tmoutVal;
+    char *tmoutStr = getenv("__PSI_DAEMON_TMOUT");
+    if (tmoutStr && *tmoutStr) {
+	char *end;
+	int val = strtol(tmoutStr, &end, 0);
+	if (!*end) {
+	    tmoutVal = (struct timeval) { .tv_sec = val, .tv_usec = 0 };
+	    tmout = &tmoutVal;
+	}
+    }
+
  RETRY_CONNECT:
 
     if (daemonSock!=-1) {
@@ -193,8 +204,8 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
     /* PSP_CD_CLIENTREFUSED shall be handled outside PSI_recvMsg(), too */
     PSI_addRecvHandler(PSP_CD_CLIENTREFUSED, acceptMsg, NULL);
     DDTypedBufferMsg_t msg;
-    ssize_t ret = PSI_recvMsg((DDBufferMsg_t *)&msg, sizeof(msg),
-			      PSP_CD_CLIENTESTABLISHED, true);
+    ssize_t ret = PSI_recvMsgT((DDBufferMsg_t *)&msg, sizeof(msg),
+			       PSP_CD_CLIENTESTABLISHED, true, tmout);
     int eno = errno;
     PSI_clrRecvHandler(PSP_CD_CLIENTREFUSED, acceptMsg);
 
