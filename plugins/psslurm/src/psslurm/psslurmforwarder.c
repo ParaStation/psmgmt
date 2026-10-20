@@ -362,8 +362,17 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 static void bcastCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     BCast_t *bcast = fw->userData;
+    uint32_t rc;
 
-    sendSlurmRC(&bcast->msg, WEXITSTATUS(fw->chldExitStatus));
+    if (fw->rcType != RC_HOOK_NONE) {
+	rc = (uint32_t) fw->rcCode;
+    } else if (fw->exitRcvd && WIFEXITED(fw->chldExitStatus)) {
+	rc = WEXITSTATUS(fw->chldExitStatus);
+    } else {
+	rc = ESLURMD_EXECVE_FAILED;
+    }
+
+    sendSlurmRC(&bcast->msg, rc);
 
     bcast->fwdata = NULL;
     if (bcast->flags & BCAST_LAST_BLOCK) BCast_clearByJobid(bcast->hID.jobid);
