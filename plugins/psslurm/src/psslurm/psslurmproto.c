@@ -504,7 +504,7 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
      * one needs to use the traditional step->tpp. */
     if (step->numCompCPUsPerTask) {
 	if (step->numCompCPUsPerTask > 1 || step->compCPUsPerTaskReps[0] != 1
-	    || step->tpp) {
+	    || step->tpp != 1) {
 	    /* did not find any case in that Slurm sends this combination
 	     * and thus have no clue what exactly it would mean (see above) */
 	    flog("UNEXPECTED: tpp = %hu, compCPUsPerTask = (", step->tpp);
