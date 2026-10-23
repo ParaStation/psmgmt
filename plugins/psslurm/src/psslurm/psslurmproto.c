@@ -484,6 +484,15 @@ static int handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* get tpp if --cpus-per-gpu is used */
+    if (mset(PSSLURM_LOG_GRES)) {
+	flog("tpp %hu compCPUsPerTask (", step->tpp);
+	for (unsigned int i = 0; i < step->numCompCPUsPerTask; i++) {
+	    if (i) mlog(",");
+	    mlog("%hux%hu", step->compCPUsPerTaskReps[i],
+		 step->compCPUsPerTask[i]);
+	}
+	mlog(")\n");
+    }
     /* == Note on this bit strange construct [SK] ==
      * At least, if I use --cpus-per-gpu=n --gpus-per-task=m then from
      * step->compCPUsPerTask[0] I can always read m*n. In all my tests, the
