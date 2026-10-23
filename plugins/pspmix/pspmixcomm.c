@@ -46,6 +46,11 @@ static PspmixMsgExtra_t extra;
     initFragBufferExtra(msg, PSP_PLUG_PSPMIX, type, &extra, sizeof(extra))
 
 /**
+ * Pointer to the last namespace used in @a handleTermClients()
+ */
+static char *lastNspace = NULL;
+
+/**
  * @brief Handle PSPMIX_ADD_JOB message
  *
  * This message is sent by the local psid.
@@ -340,7 +345,6 @@ static void handleTermClients(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     /* On consecutive messages for the same namespace, as they are very common
      * since all servers send them all to all, only trigger termination once
      * to not generate a lot of noise by expected nspace not found messages */
-    static char *lastNspace = NULL;
     if (!lastNspace || strcmp(nspace, lastNspace)) {
 	pspmix_service_terminateClients(nspace, false);
 	ufree(lastNspace);
@@ -1012,6 +1016,8 @@ void pspmix_comm_finalize()
 
     if (serialInitialized) finalizeSerial();
     serialInitialized = false;
+
+    ufree(lastNspace);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
