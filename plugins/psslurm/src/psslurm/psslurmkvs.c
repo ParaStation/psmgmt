@@ -884,10 +884,10 @@ static bool addConnInfo(Connection_t *conn, const void *info)
     socklen_t lenLoc = sizeof(sockLocal), lenRem = sizeof(sockRemote);
 
     if (getsockname(conn->sock, (struct sockaddr*)&sockLocal, &lenLoc) == -1) {
-	mwarn(errno, "%s: getsockname(%i)", __func__, conn->sock);
+	fwarn(errno, "getsockname(%i)", conn->sock);
     } else if (getpeername(conn->sock, (struct sockaddr*)&sockRemote,
-	       &lenRem) == -1) {
-	mwarn(errno, "%s: getpeername(%i)", __func__, conn->sock);
+			   &lenRem) == -1) {
+	fwarn(errno, "getpeername(%i)", conn->sock);
     } else {
 	snprintf(line, sizeof(line), "connected local %s:%u remote %s:%u\n",
 		 inet_ntoa(sockRemote.sin_addr), ntohs(sockRemote.sin_port),

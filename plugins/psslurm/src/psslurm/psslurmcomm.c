@@ -309,7 +309,7 @@ static bool getSockInfo(int socket, Slurm_Addr_t *slurmAddr)
     socklen_t len = sizeof(sock_addr);
 
     if (getpeername(socket, (struct sockaddr*)&sock_addr, &len) == -1) {
-	mwarn(errno, "%s: getpeername(%i)", __func__, socket);
+	fwarn(errno, "getpeername(%i)", socket);
 	return false;
     }
 
@@ -1420,7 +1420,7 @@ int openSlurmdSocket(int port)
 
     int opt = 1;
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0 ) {
-	mwarn(errno, "%s: setsockopt(%i, port %i)", __func__, sock, port);
+	fwarn(errno, "setsockopt(%i, port %i)", sock, port);
     }
 
     /* set up the sockaddr structure */
@@ -1433,14 +1433,14 @@ int openSlurmdSocket(int port)
     /* bind the socket */
     int res = bind(sock, (struct sockaddr *)&saClient, sizeof(saClient));
     if (res == -1) {
-	mwarn(errno, "%s: bind(%i, port %i)", __func__, sock, port);
+	fwarn(errno, "bind(%i, port %i)", sock, port);
 	return -1;
     }
 
     /* set socket to listen state */
     res = listen(sock, SOMAXCONN);
     if (res == -1) {
-	mwarn(errno, "%s: listen(%i, port %i)", __func__, sock, port);
+	fwarn(errno, "listen(%i, port %i)", sock, port);
 	return -1;
     }
 
@@ -1633,8 +1633,8 @@ int handleSrunIOMsg(int sock, void *stepPtr)
 	    /* Assume body follows header swiftly */
 	    ret = PSCio_recvBufP(sock, buffer, readNow);
 	    if (ret <= 0) {
-		mwarn(ret < 0 ? errno : 0, "%s: read body (size %zd/%zd)",
-		      __func__, readNow, left);
+		fwarn(ret < 0 ? errno : 0, "read body (size %zd/%zd)",
+		      readNow, left);
 		break;
 	    }
 
