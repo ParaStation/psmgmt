@@ -1262,6 +1262,9 @@ static bool verifySlurmConf(void)
 	snprintf(buf, sizeof(buf), "%d", sockets);
 	addConfigEntry(Config, "SLURM_SOCKETS", buf);
 	mlog("%d\n", getConfValueI(Config, "SLURM_SOCKETS"));
+    } else if (sockets == -1) {
+	char *spb = getConfValueC(Config, "SLURM_SOCKETS_PER_BOARD");
+	addConfigEntry(Config, "SLURM_SOCKETS", spb);
     }
 
     int cores = getConfValueI(Config, "SLURM_CORES_PER_SOCKET");
