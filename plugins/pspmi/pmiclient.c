@@ -72,9 +72,6 @@ static LIST_HEAD(uBufferList);
 /** Flag to check if the pmi_init() was called successful */
 static bool initialized = false;
 
-/** Flag to check if initialisation between us and client was ok */
-static bool clientIsInitialized = false;
-
 /** Flag (INIT) registration to the KVS provider -- shall be done only once */
 static bool initToProvider = false;
 
@@ -969,7 +966,6 @@ static int p_Init(char *msg)
 		atoi(pmisubversion));
 	return 1;
     }
-    clientIsInitialized = true;
 
     if (!initToProvider) {
 	if (psAccountSwitchAccounting)
@@ -1282,8 +1278,6 @@ int pmi_init(int pmisocket, PStask_t *childTask)
 void ackFinalize(void)
 {
     PMI_send("cmd=finalize_ack\n");
-    /* prepare for re-connecting client */
-    clientIsInitialized = false;
 }
 
 /**
