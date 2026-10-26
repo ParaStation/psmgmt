@@ -2071,12 +2071,13 @@ static int handleGenStr(long val, char *in, char **out, size_t *size)
 	/* Nothing to replace */
 	size_t len = strlen(in) + 1;
 	if (len > *size) {
+	    char *tmp = realloc(*out, len);
+	    if (!tmp) {
+		parser_comment(-1, "%s: out of mem\n", __func__);
+		return -1;
+	    }
 	    *size = len;
-	    *out = realloc(*out, *size);
-	}
-	if (!*out) {
-	    parser_comment(-1, "%s: Out of mem\n", __func__);
-	    return -1;
+	    *out = tmp;
 	}
 	sprintf(*out, "%s", in);
 
@@ -2129,13 +2130,15 @@ static int handleGenStr(long val, char *in, char **out, size_t *size)
 
     size_t len = snprintf(*out, *size, fmt, inStr, val + off, end);
     if (len >= *size) {
-	*size = len + 80; /* some extra space */
-	*out = realloc(*out, *size);
-	if (!*out) {
-	    parser_comment(-1, "%s: Out of mem\n", __func__);
+	len += 80; /* some extra space */
+	char *tmp = realloc(*out, len);
+	if (!tmp) {
+	    parser_comment(-1, "%s: out of mem\n", __func__);
 	    free(inStr);
 	    return -1;
 	}
+	*size = len;
+	*out = tmp;
 	sprintf(*out, fmt, inStr, val + off, end);
     }
 
