@@ -56,9 +56,7 @@ User_t *findUser(char *username, char *jobID)
     list_for_each(u, &userList) {
 	User_t *user = list_entry(u, User_t, next);
 	if (jobID && strcmp(user->jobID, jobID)) continue;
-#ifndef __clang_analyzer__
 	if (!strcmp(user->name, username)) return user;
-#endif
     }
     return NULL;
 }
@@ -70,6 +68,7 @@ static void doDelete(User_t *user)
     free(user->name);
     free(user->jobID);
     list_del(&user->next);
+    ASSUME(&user->next != userList.next);    // hint to static analyzers
     free(user);
 }
 

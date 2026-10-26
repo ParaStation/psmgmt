@@ -3930,7 +3930,6 @@ static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
     }
     if (!r || r->rid || !(r->options & PART_OPT_DUMMY) ) {
 	PSID_flog("no matching reservation in %s:\n", PSC_printTID(delegate->tid));
-#ifndef __clang_analyzer__
 	list_t *t;
 	list_for_each(t, &delegate->resRequests) {
 	    PSrsrvtn_t *res = list_entry(t, PSrsrvtn_t, next);
@@ -3938,7 +3937,6 @@ static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
 	    PSID_log(" n %d options %#x requester %s %p\n", res->nMax,
 		     res->options, PSC_printTID(res->requester), res);
 	}
-#endif
 	return true;
     }
 

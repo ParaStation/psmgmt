@@ -305,7 +305,7 @@ void clearSlurmCon(void)
  */
 static bool getSockInfo(int socket, Slurm_Addr_t *slurmAddr)
 {
-    struct sockaddr_in sock_addr;
+    struct sockaddr_in sock_addr = { 0 };       // make static analyzers happy
     socklen_t len = sizeof(sock_addr);
 
     if (getpeername(socket, (struct sockaddr*)&sock_addr, &len) == -1) {
@@ -313,10 +313,8 @@ static bool getSockInfo(int socket, Slurm_Addr_t *slurmAddr)
 	return false;
     }
 
-#ifndef __clang_analyzer__
     slurmAddr->ip = sock_addr.sin_addr.s_addr;
     slurmAddr->port = sock_addr.sin_port;
-#endif
 
     return true;
 }
@@ -819,7 +817,8 @@ TCP_RECONNECT:
     }
 
     if (mset(PSSLURM_LOG_COMM)) {
-	struct sockaddr_in sockLocal, sockRemote;
+	// initialize explicitly to make static analyzers happy
+	struct sockaddr_in sockLocal = { 0 }, sockRemote = { 0 };
 	socklen_t lenLoc = sizeof(sockLocal), lenRem = sizeof(sockRemote);
 
 	if (getsockname(sock, (struct sockaddr*)&sockLocal, &lenLoc) == -1) {
@@ -828,11 +827,9 @@ TCP_RECONNECT:
 			       &lenRem) == -1) {
 	    fwarn(errno, "getpeername(%i)", sock);
 	} else {
-#ifndef __clang_analyzer__
 	    flog("socket %i connected local %s:%u remote %s:%u\n", sock,
 		 inet_ntoa(sockLocal.sin_addr), ntohs(sockLocal.sin_port),
 		 inet_ntoa(sockRemote.sin_addr), ntohs(sockRemote.sin_port));
-#endif
 	}
     }
 
@@ -1363,8 +1360,7 @@ bool hexBitstr2Set(char *bitstr, PSCPU_set_t set)
  */
 static int acceptSlurmClient(int socket, void *data)
 {
-#ifndef __clang_analyzer__
-    struct sockaddr_in SAddr;
+    struct sockaddr_in SAddr = { 0 };           // make static analyzers happy
     socklen_t clientlen = sizeof(SAddr);
 
     int newSock = accept(socket, (struct sockaddr *)&SAddr, &clientlen);
@@ -1374,7 +1370,7 @@ static int acceptSlurmClient(int socket, void *data)
     }
 
     if (mset(PSSLURM_LOG_COMM)) {
-	struct sockaddr_in sockLocal;
+	struct sockaddr_in sockLocal = { 0 };   // make static analyzers happy
 	socklen_t len = sizeof(sockLocal);
 
 	flog("from %s:%u socket:%i", inet_ntoa(SAddr.sin_addr),
@@ -1393,7 +1389,7 @@ static int acceptSlurmClient(int socket, void *data)
     } else {
 	con->authByInMsg = true;
     }
-#endif
+
     return 0;
 }
 
