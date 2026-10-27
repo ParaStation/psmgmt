@@ -6,11 +6,17 @@ Copyright (C) 2021-2026 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.8.8:
+==============
+Bugfixes:
+ - ensure psslurm's node registration messages sends a valid socket count
+
+
 Version 6.8.7:
 ==============
 Bugfixes:
  - pspmix: Start server on unexpected (early) messages
-Enhancement
+Enhancements:
  - pspmix: Better handling of unexpected PSP_CD_UNKNOWN
 
 
@@ -31,7 +37,7 @@ Version 6.8.5:
 Bugfixes:
  - fix possible memory corruption in psserial
  - Fix datatype used for compressed maps in pspmix
-Enhancement
+Enhancements:
  - disable (broken) debug in pspmix_server_init temporarily
 
 
@@ -39,7 +45,7 @@ Version 6.8.4:
 ==============
 Bugfixes:
  - ensure cleanup of container rootfs does not follow user placed symlinks
-Enhancement
+Enhancements:
  - harden job credential checks
  - make all SLURM environment variables accessible in prologue
 
@@ -49,7 +55,7 @@ Version 6.8.3:
 Bugfixes:
  - make --disable-pspmix actually work
  - set correct PMIx library path in psslurm and for spawnPMIx_rrcomm test
-Enhancement
+Enhancements:
   - remove hardcoded pspmix dependencies in psslurm
 
 
