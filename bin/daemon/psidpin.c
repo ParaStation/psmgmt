@@ -781,7 +781,10 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t devs,
 char *PSIDpin_getAutoName(char *name)
 {
     char *autoName;
-    if (asprintf(&autoName, "__AUTO_%s", name) == -1) return NULL;
+    if (asprintf(&autoName, "__AUTO_%s", name) == -1) {
+	PSID_fwarn(errno, "asprintf()");
+	return NULL;
+    }
 
     return autoName;
 }
@@ -795,9 +798,16 @@ bool PSIDpin_checkAutoVar(char *name, char *value, char *renewVal)
     /* automation detection is no longer needed */
     unsetenv(autoName);
 
+    if (autoVar) PSID_fdbg(PSID_LOG_SPAWN, "checking %s == '%s'\n", autoName,
+			   value);
+
     bool ret = autoVar && !strcmp(autoVar, value);
 
-    if (ret && renewVal) setenv(autoName, renewVal, 1);
+    if (ret && renewVal) {
+	setenv(autoName, renewVal, 1);
+	PSID_fdbg(PSID_LOG_SPAWN, "setting %s to '%s'\n", autoName,
+		  renewVal);
+    }
     free(autoName);
 
     return ret;
