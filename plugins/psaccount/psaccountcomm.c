@@ -643,9 +643,12 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     getTaskId(data, &rootTID);
 
     if (!findJobByRoot(rootTID)) {
-	flog("update unknown root %s ", PSC_printTID(rootTID));
-	mlog("from %s\n", PSC_printTID(msg->header.sender));
-
+	static PStask_ID_t lastRoot = -1;
+	if (rootTID != lastRoot) {
+	    lastRoot = rootTID;
+	    flog("update unknown root %s ", PSC_printTID(rootTID));
+	    mlog("from %s\n", PSC_printTID(msg->header.sender));
+	}
 	return sendAggDataDrop(msg->header.sender, rootTID);
     }
 
