@@ -948,10 +948,23 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 
     strbufDestroy(strList);
 
+    /* get GPUs assigned to this step from GRES info */
+    PSCPU_set_t assGPUs;
+    if (!hexBitstr2Set(gres->bitAlloc[jobNodeId], assGPUs)) {
+	flog("failed to get GPUs assigned to step %s from bitstring\n",
+	     Step_strID(step));
+	return;
+    }
+    if (!PSCPU_any(assGPUs, PSCPU_MAX)) {
+	flog("UNEXPECTED: no GPUs assigned to step %s\n", Step_strID(step));
+	return;
+    }
+
     uint32_t stepNId = step->localNodeId;
     uint32_t ltnum = step->globalTaskIdsLen[stepNId];
     char *bindgpus;
     bool freebindgpus = false;
+    PSCPU_set_t rankGPUs;
 
     /* if there is only one local rank, bind all assigned GPUs to it */
     if (ltnum == 1) {
@@ -960,20 +973,7 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	char *value = getenv("SLURM_STEP_GPUS");
 	bindgpus = value ? value : "";
     } else {
-	/* get GPUs assigned to this step from GRES info */
-	PSCPU_set_t assGPUs;
-	if (!hexBitstr2Set(gres->bitAlloc[jobNodeId], assGPUs)) {
-	    flog("failed to get GPUs assigned to step %s from bitstring\n",
-		 Step_strID(step));
-	    return;
-	}
-	if (!PSCPU_any(assGPUs, PSCPU_MAX)) {
-	    flog("UNEXPECTED: no GPUs assigned to step %s\n", Step_strID(step));
-	    return;
-	}
-
 	/* create comma separated list of GPUs for this rank */
-	PSCPU_set_t rankGPUs;
 	if (!getGpuAssignment(localRankId, step, stepNId, assGPUs, &rankGPUs)) {
 	    return; /* error message already printed */
 	}
@@ -1000,15 +1000,23 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	/* cgroups enabled, only SLURM_STEP_GPUS are visible, adjust IDs as
 	 * done at least by libcuda (@todo check with AMD) */
 
+	fdbg(PSSLURM_LOG_GRES, "ConstrainDevices enabled\n");
+
 	strbuf_t cgroupsList = strbufNew("");
 	if (!cgroupsList) {
 	    flog("Unable to allocate memory");
 	    abort();
 	}
-	for (uint64_t gpu = 0; gpu < gres->totalGres; gpu++) {
-	    char tmpbuf[22]; /* max uint64_t + comma */
-	    snprintf(tmpbuf, sizeof(tmpbuf), "%s%zd", gpu ? "," : "", gpu);
+	short maxNodeGPUs = PSIDnodes_numGPUs(PSC_getMyID());
+	for (int16_t gpu = 0, lgpu = -1, comma = 0;
+	     gpu < maxNodeGPUs; gpu++) {
+	    if (!PSCPU_isSet(assGPUs, gpu)) continue;
+	    lgpu++; /* enumerate GPUs assigned to the step */
+	    if (ltnum > 1 && !PSCPU_isSet(rankGPUs, gpu)) continue;
+	    char tmpbuf[8]; /* max int16_t + comma */
+	    snprintf(tmpbuf, sizeof(tmpbuf), "%s%hd", comma ? "," : "", lgpu);
 	    strbufAdd(cgroupsList, tmpbuf);
+	    comma = 1;
 	}
 	if (freebindgpus) free(bindgpus);
 	if (!strbufValid(cgroupsList)) flog("strbuf failed for cgroupsList\n");
@@ -1021,6 +1029,8 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 	if (!gpuVar || PSIDpin_checkAutoVar(PSIDpin_GPUvars[i], gpuVar, NULL)) {
 	    /* variable not set at all or set automatically and
 	     * unchanged in the meantime => set it */
+	    fdbg(PSSLURM_LOG_GRES, "setting %s='%s'\n",
+		 PSIDpin_GPUvars[i], bindgpus);
 	    setenv(PSIDpin_GPUvars[i], bindgpus, 1);
 	}
     }
