@@ -195,9 +195,9 @@ static void doBindToDevs(char **variables, char *val)
  * devices listed her into account. If the respective variable is set
  * but empty, no variables will be set.
  *
- * It further respects the environment variables AUTO_CUDA_VISIBLE_DEVICES,
- * AUTO_GPU_DEVICE_ORDINAL, and AUTO_UCX_NET_DEVICES and only overrides the
- * functional variables if the old value matches the corresponding AUTO_*
+ * It further respects the environment variables __AUTO_CUDA_VISIBLE_DEVICES,
+ * __AUTO_GPU_DEVICE_ORDINAL, and __AUTO_UCX_NET_DEVICES and only overrides the
+ * functional variables if the old value matches the corresponding __AUTO_*
  * variable.
  *
  * If @a mapFunc is set, the output of this function is used as the string to
