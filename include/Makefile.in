@@ -391,7 +391,7 @@ noinst_HEADERS = __assume.h kvscommon.h kvs.h mcast.h parser.h		\
 	psparamspace.h psprotocolenv.h psserial.h kvslog.h		\
 	linenoise.h pluginconfig.h plugincpufreq.h pluginforwarder.h	\
 	plugingpufreq.h pluginhelper.h pluginlog.h pluginmalloc.h	\
-	pluginpartition.h pluginpsconfig.h pluginpty.h pluginspawn.h	\
+	pluginpartition.h pluginpsconfig.h pluginspawn.h		\
 	psstrv.h pluginvector.h pspluginprotocol.h pssenddb_t.h		\
 	psattribute.h psbyteorder.h pscio.h psconfighelper.h		\
 	psitems.h pluginjson.h psstrbuf.h pluginscript.h

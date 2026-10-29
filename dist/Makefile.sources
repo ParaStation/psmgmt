@@ -152,7 +152,6 @@ include/pluginlog.h \
 include/pluginmalloc.h \
 include/pluginpartition.h \
 include/pluginpsconfig.h \
-include/pluginpty.h \
 include/pluginscript.h \
 include/pluginspawn.h \
 include/pluginvector.h \
@@ -205,7 +204,6 @@ lib/plugincommon/pluginlog.c \
 lib/plugincommon/pluginmalloc.c \
 lib/plugincommon/pluginpartition.c \
 lib/plugincommon/pluginpsconfig.c \
-lib/plugincommon/pluginpty.c \
 lib/plugincommon/pluginscript.c \
 lib/plugincommon/pluginspawn.c \
 lib/plugincommon/pluginvector.c \
