@@ -569,4 +569,29 @@ void PSID_adjustLoginUID(uid_t uid);
  */
 bool PSID_ptySetOwner(uid_t uid, gid_t gid, const char *tty);
 
+/* Makes the tty the process's controlling tty and sets it to sane modes. */
+/**
+ * @brief Make pseude terminal the controlling terminal
+ *
+ * Makes a pseude terminal the controlling terminal of the local
+ * process group. @a *ttyfd contains the descriptor for the slave side
+ * of a pseudo terminal. Upon success the descriptor of the resulting
+ * controlling terminal will be stored to @a *ttyfd.
+ *
+ * If the slave pseudo terminal is already the controlling terminal of
+ * a different session group, this function will fail, unless the flag
+ * @a steal is set and the caller has the CAP_SYS_ADMIN capability. In
+ * this case the terminal is stolen, and all processes that had it as
+ * controlling terminal lose it.
+ *
+ * @param ttyfd Slave pseudo terminal to become the controlling terminal
+ *
+ * @param steal Flag to allow stealing the pseudo terminal from
+ * existing controlled sessions.
+ *
+ * @return Returns true on success or false otherwise
+ */
+bool PSID_makeControllingTTY(int *ttyfd, bool steal);
+
+
 #endif /* __PSIDUTIL_H */

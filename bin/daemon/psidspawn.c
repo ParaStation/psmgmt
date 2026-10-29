@@ -163,64 +163,6 @@ static int mystat(char *file_name, struct stat *buf)
     return ret; /* return last error */
 }
 
-
-#define _PATH_TTY "/dev/tty"
-
-/* Makes the tty the process's controlling tty and sets it to sane modes. */
-static void pty_make_controlling_tty(int *ttyfd, const char *tty)
-{
-    int fd;
-    void *oldCONT, *oldHUP;
-
-    /* First disconnect from the old controlling tty. */
-    fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
-    if (fd >= 0) {
-	if (ioctl(fd, TIOCNOTTY, NULL) < 0)
-	    PSID_fwarn(errno, "ioctl(TIOCNOTTY)");
-	close(fd);
-    }
-
-    /*
-     * Verify that we are successfully disconnected from the controlling
-     * tty.
-     */
-    fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
-    if (fd >= 0) {
-	PSID_flog("still connected to controlling tty\n");
-	close(fd);
-    }
-
-    /* Make it our controlling tty. */
-#ifdef TIOCSCTTY
-    if (ioctl(*ttyfd, TIOCSCTTY, NULL) < 0)
-	PSID_fwarn(errno, "ioctl(TIOCSCTTY)");
-#else
-#error No TIOCSCTTY
-#endif /* TIOCSCTTY */
-
-    oldCONT = PSC_setSigHandler(SIGCONT, SIG_IGN);
-    oldHUP = PSC_setSigHandler(SIGHUP, SIG_IGN);
-    if (vhangup() < 0) PSID_fwarn(errno, "vhangup()");
-    PSC_setSigHandler(SIGCONT, oldCONT);
-    PSC_setSigHandler(SIGHUP, oldHUP);
-
-    fd = open(tty, O_RDWR);
-    if (fd < 0) {
-	PSID_fwarn(errno, "open(%s)", tty);
-    } else {
-	close(*ttyfd);
-	*ttyfd = fd;
-    }
-    /* Verify that we now have a controlling tty. */
-    fd = open(_PATH_TTY, O_WRONLY);
-    if (fd < 0) {
-	PSID_fwarn(errno, "open(%s)", _PATH_TTY);
-	PSID_flog("unable to set controlling tty: %s\n", _PATH_TTY);
-    } else {
-	close(fd);
-    }
-}
-
 /**
  * @brief Change into working directory
  *
@@ -860,7 +802,7 @@ static void execForwarder(PStask_t *task)
 
 	    /* prepare the pty */
 	    if (!PSID_ptySetOwner(task->uid, task->gid, name)) exit(-1);
-	    pty_make_controlling_tty(&task->stderr_fd, name);
+	    if (!PSID_makeControllingTTY(&task->stderr_fd, false)) exit(-1);
 	    tcsetattr(task->stderr_fd, TCSANOW, &task->termios);
 	    (void) ioctl(task->stderr_fd, TIOCSWINSZ, &task->winsize);
 

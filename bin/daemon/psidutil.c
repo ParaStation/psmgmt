@@ -557,3 +557,63 @@ bool PSID_ptySetOwner(uid_t uid, gid_t gid, const char *tty)
 
     return true;
 }
+
+#define _PATH_TTY "/dev/tty"
+
+bool PSID_makeControllingTTY(int *ttyfd, bool steal)
+{
+    /* first disconnect from old controlling tty */
+    int fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
+    if (fd >= 0) {
+	if (ioctl(fd, TIOCNOTTY, NULL) < 0)
+	    PSID_fwarn(errno, "ioctl(TIOCNOTTY)");
+	close(fd);
+    }
+
+    /*
+     * verify disconnect from controlling tty was successful */
+    fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
+    if (fd >= 0) {
+	PSID_flog("still connected to controlling tty\n");
+	close(fd);
+    }
+
+    /* make it the controlling tty */
+    const char *tty = ttyname(*ttyfd);
+#ifdef TIOCSCTTY
+    if (ioctl(*ttyfd, TIOCSCTTY, steal ? 1 : 0) < 0) {
+	PSID_fwarn(errno, "ioctl(TIOCSCTTY) on %s", tty);
+	return false;
+    }
+#else
+#error No TIOCSCTTY
+#endif /* TIOCSCTTY */
+
+    void *oldCONT = PSC_setSigHandler(SIGCONT, SIG_IGN);
+    void *oldHUP = PSC_setSigHandler(SIGHUP, SIG_IGN);
+    if (vhangup() < 0) {
+	PSID_fwarn(errno, "vhangup()");
+	return false;
+    }
+    PSC_setSigHandler(SIGCONT, oldCONT);
+    PSC_setSigHandler(SIGHUP, oldHUP);
+
+    fd = open(tty, O_RDWR);
+    if (fd < 0) {
+	PSID_fwarn(errno, "open(%s)", tty);
+	return false;
+    } else {
+	close(*ttyfd);
+	*ttyfd = fd;
+    }
+    /* Verify that we now have a controlling tty. */
+    fd = open(_PATH_TTY, O_WRONLY);
+    if (fd < 0) {
+	PSID_fwarn(errno, "open(%s)", _PATH_TTY);
+	PSID_flog("unable to set controlling tty: %s\n", tty);
+	return false;
+    } else {
+	close(fd);
+    }
+    return true;
+}

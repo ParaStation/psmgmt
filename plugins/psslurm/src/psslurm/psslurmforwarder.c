@@ -935,7 +935,7 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	    flog("setting pty owner failed\n");
 	    exit(1);
 	}
-	if (!pty_make_controlling_tty(&fwdata->stdOut[0], tty_name)) {
+	if (!PSID_makeControllingTTY(&fwdata->stdOut[0], true)) {
 	    flog("initialize controlling tty failed\n");
 	    exit(1);
 	}
