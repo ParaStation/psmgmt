@@ -54,10 +54,11 @@
 #include "plugincpufreq.h"
 #include "plugingpufreq.h"
 #include "psidcomm.h"
+#include "psidforwarder.h"
 #include "psidhook.h"
 #include "psidscripts.h"
 #include "psidtask.h"
-#include "psidforwarder.h"
+#include "psidutil.h"
 
 #include "pamservice_handles.h"
 #include "peloguehandles.h"
@@ -930,7 +931,7 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	tty_name = ttyname(fwdata->stdOut[0]);
 	close(fwdata->stdOut[1]);
 
-	if (!pty_setowner(step->uid, step->gid, tty_name)) {
+	if (!PSID_ptySetOwner(step->uid, step->gid, tty_name)) {
 	    flog("setting pty owner failed\n");
 	    exit(1);
 	}

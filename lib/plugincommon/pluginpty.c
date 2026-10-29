@@ -24,40 +24,6 @@
 
 #define _PATH_TTY "/dev/tty"
 
-bool pty_setowner(uid_t uid, gid_t gid, const char *tty)
-{
-    /* Determine the group to make the owner of the tty. */
-    mode_t mode;
-    struct group *grp = getgrnam("tty");
-    if (grp) {
-	gid = grp->gr_gid;
-	mode = S_IRUSR | S_IWUSR | S_IWGRP;
-    } else {
-	mode = S_IRUSR | S_IWUSR | S_IWGRP | S_IWOTH;
-    }
-
-    struct stat st;
-    if (stat(tty, &st)) {
-	pluginflog("stat(%s): %s", tty, strerror(errno));
-	return false;
-    }
-
-    if (st.st_uid != uid || st.st_gid != gid) {
-	if (chown(tty, uid, gid) < 0) {
-	    pluginflog("chown(%s): %s", tty, strerror(errno));
-	    return false;
-	}
-    }
-
-    if ((st.st_mode & (S_IRWXU|S_IRWXG|S_IRWXO)) != mode) {
-	if (chmod(tty, mode) < 0) {
-	    pluginflog("chmod(%s): %s", tty, strerror(errno));
-	    return false;
-	}
-    }
-    return true;
-}
-
 bool pty_make_controlling_tty(int *ttyfd, const char *tty)
 {
     /* first disconnect from the old controlling tty */

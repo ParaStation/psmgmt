@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -542,5 +542,31 @@ void PSID_clearMem(bool aggressive);
  * @return No return value
  */
 void PSID_adjustLoginUID(uid_t uid);
+
+/**
+ * @brief Set pty's ownership
+ *
+ * Make the user with user ID @a uid the owner of the tty named by @a
+ * tty and set its permissions accordingly. If the group "tty" exists
+ * on the system, @a tty's group ownership is set to "tty". Otherwise
+ * it is set to the value provided in @a gid.
+ *
+ * Depending on the existence of the group "tty" the permissions of
+ * the tty are set to rw--w---- ("tty" exists) or rw--w--w-.
+ *
+ * This function warns but succeeds if the filesystem is read-only and
+ * tty's uid matches or it is owned by root and permissions are
+ * appropriate.
+ *
+ * @param uid User ID to ownership is given to
+ *
+ * @param gid Group ID the ownership is given to if the group "tty"
+ * does not exist
+ *
+ * @param tty Name of the tty to handle
+ *
+ * @return Returns true on success or false otherwise
+ */
+bool PSID_ptySetOwner(uid_t uid, gid_t gid, const char *tty);
 
 #endif /* __PSIDUTIL_H */

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,12 +14,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <grp.h>
 #include <syslog.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/stat.h>
-#include <sys/signalfd.h>
+#include <sys/ioctl.h>
 #include <sys/resource.h>
+#include <sys/signalfd.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/un.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -506,4 +510,50 @@ void PSID_adjustLoginUID(uid_t uid)
     }
     fprintf(fd, "%d", uid);
     fclose(fd);
+}
+
+bool PSID_ptySetOwner(uid_t uid, gid_t gid, const char *tty)
+{
+    /* determine the group to make the owner of the tty */
+    mode_t mode;
+    struct group *grp = getgrnam("tty");
+    if (grp) {
+	gid = grp->gr_gid;
+	mode = S_IRUSR | S_IWUSR | S_IWGRP;
+    } else {
+	mode = S_IRUSR | S_IWUSR | S_IWGRP | S_IWOTH;
+    }
+
+    /*
+     * Change owner and mode of the tty as required.
+     * Warn but continue if filesystem is read-only and the uids match or
+     * tty is owned by root.
+     */
+    struct stat st;
+    if (stat(tty, &st)) {
+	PSID_fwarn(errno, "stat(%s)", tty);
+	return false;
+    }
+
+    if (st.st_uid != uid || st.st_gid != gid) {
+	if (chown(tty, uid, gid) < 0) {
+	    int eno = errno;
+	    PSID_fwarn(eno, "chown(%s, %u, %u)", tty, uid, gid);
+	    if (eno != EROFS || (st.st_uid != uid && st.st_uid != 0)) {
+		return false;
+	    }
+	}
+    }
+
+    if ((st.st_mode & (S_IRWXU|S_IRWXG|S_IRWXO)) != mode) {
+	if (chmod(tty, mode) < 0) {
+	    int eno = errno;
+	    PSID_fwarn(eno, "chmod(%s, 0%o)", tty, (u_int)mode);
+	    if (eno != EROFS || (st.st_mode & (S_IRGRP | S_IROTH)) != 0) {
+		return false;
+	    }
+	}
+    }
+
+    return true;
 }

@@ -163,50 +163,6 @@ static int mystat(char *file_name, struct stat *buf)
     return ret; /* return last error */
 }
 
-static void pty_setowner(uid_t uid, gid_t gid, const char *tty)
-{
-    struct group *grp;
-    mode_t mode;
-    struct stat st;
-
-    /* Determine the group to make the owner of the tty. */
-    grp = getgrnam("tty");
-    if (grp) {
-	gid = grp->gr_gid;
-	mode = S_IRUSR | S_IWUSR | S_IWGRP;
-    } else {
-	mode = S_IRUSR | S_IWUSR | S_IWGRP | S_IWOTH;
-    }
-
-    /*
-     * Change owner and mode of the tty as required.
-     * Warn but continue if filesystem is read-only and the uids match/
-     * tty is owned by root.
-     */
-    if (stat(tty, &st)) PSID_exit(errno, "%s: stat(%s)", __func__, tty);
-
-    if (st.st_uid != uid || st.st_gid != gid) {
-	if (chown(tty, uid, gid) < 0) {
-	    if (errno == EROFS && (st.st_uid == uid || st.st_uid == 0)) {
-		PSID_fwarn(errno, "chown(%s, %u, %u)", tty, uid, gid);
-	    } else {
-		PSID_exit(errno, "%s: chown(%s, %u, %u)", __func__,
-			  tty, (u_int)uid, (u_int)gid);
-	    }
-	}
-    }
-
-    if ((st.st_mode & (S_IRWXU|S_IRWXG|S_IRWXO)) != mode) {
-	if (chmod(tty, mode) < 0) {
-	    if (errno == EROFS && (st.st_mode & (S_IRGRP | S_IROTH)) == 0) {
-		PSID_fwarn(errno, "chmod(%s, 0%o)", tty, (u_int)mode);
-	    } else {
-		PSID_exit(errno, "%s: chmod(%s, 0%o)", __func__,
-			  tty, (u_int)mode);
-	    }
-	}
-    }
-}
 
 #define _PATH_TTY "/dev/tty"
 
@@ -903,7 +859,7 @@ static void execForwarder(PStask_t *task)
 	    task->stderr_fd = stderrfds[1];
 
 	    /* prepare the pty */
-	    pty_setowner(task->uid, task->gid, name);
+	    if (!PSID_ptySetOwner(task->uid, task->gid, name)) exit(-1);
 	    pty_make_controlling_tty(&task->stderr_fd, name);
 	    tcsetattr(task->stderr_fd, TCSANOW, &task->termios);
 	    (void) ioctl(task->stderr_fd, TIOCSWINSZ, &task->winsize);
@@ -916,21 +872,21 @@ static void execForwarder(PStask_t *task)
 	    task->stdin_fd = stdinfds[0];
 	    if (task->aretty & (1<<STDIN_FILENO)) {
 		char *name = ttyname(stdinfds[0]);
-		pty_setowner(task->uid, task->gid, name);
+		if (!PSID_ptySetOwner(task->uid, task->gid, name)) exit(-1);
 	    }
 
 	    close(stdoutfds[0]);
 	    task->stdout_fd = stdoutfds[1];
 	    if (task->aretty & (1<<STDOUT_FILENO)) {
 		char *name = ttyname(stdoutfds[1]);
-		pty_setowner(task->uid, task->gid, name);
+		if (!PSID_ptySetOwner(task->uid, task->gid, name)) exit(-1);
 	    }
 
 	    close(stderrfds[0]);
 	    task->stderr_fd = stderrfds[1];
 	    if (task->aretty & (1<<STDERR_FILENO)) {
 		char *name = ttyname(stderrfds[1]);
-		pty_setowner(task->uid, task->gid, name);
+		if (!PSID_ptySetOwner(task->uid, task->gid, name)) exit(-1);
 	    }
 	}
 
