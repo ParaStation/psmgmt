@@ -13,10 +13,10 @@
 
 #include <netinet/in.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <time.h>
 
 #include "list.h"
 #include "pscpu.h"

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,8 +15,8 @@
 #define __PSIDPIN_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <sched.h>
 
 #include "pscpu.h"

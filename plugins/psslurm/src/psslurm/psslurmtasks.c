@@ -20,6 +20,7 @@
 #include "psidtask.h"
 
 #include "psslurmlog.h"
+#include "psslurmmsg.h"
 #include "psslurmstep.h"
 
 PS_Tasks_t *addTask(list_t *list, PStask_t *forwarder, PStask_ID_t childTID,

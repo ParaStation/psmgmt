@@ -39,6 +39,7 @@
 #include "psslurmio.h"
 #include "psslurmjobcred.h"
 #include "psslurmlog.h"
+#include "psslurmmsg.h"
 #include "psslurmpin.h"
 #include "psslurmproto.h"
 #include "psslurmpscomm.h"

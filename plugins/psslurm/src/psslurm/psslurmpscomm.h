@@ -18,6 +18,7 @@
 #include "psnodes.h"
 
 #include "peloguehandles.h"
+#include "psaccounttypes.h"
 
 #include "psslurmalloc.h"
 #include "psslurmjob.h"

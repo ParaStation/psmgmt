@@ -22,6 +22,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "list.h"
