@@ -46,7 +46,7 @@ function termMemory()
     [[ -n $user ]] || elog "no user env variable for job $JOBID"
 
     if [[ -n $STEPID ]]; then
-	dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
+	dlog "killing step $JOBID:$STEPID"
 
 	if [[ -d $CG_STEP ]]; then
 	    killTasks "$CG_STEP"
@@ -55,8 +55,8 @@ function termMemory()
 	fi
 
     elif [[ -n $JOBID ]]; then
-	dlog "killing job $JOBID with signal $KILL_SIGNAL"
-	killJob "$CG_JOB"
+	dlog "killing job $JOBID"
+	killTasks "$CG_JOB"
 
 	if [[ -n $ALLOC_LIST ]]; then
 	    # cleanup user directory

@@ -84,97 +84,114 @@ function mdsave {
     }
 }
 
-function rmDirLogged {
-    local DIR=$1
-    local caller
-    caller=$(caller 0 | awk '{print $2}')
-    [[ -d $DIR ]] && {
-	rmdir "$DIR" 2>/dev/null || mlog "$caller: rmdir $DIR failed"
-    }
+# True when this cgroup or one of its descendants still has a process
+function cgPopulated {
+    local dir=$1
+    local events
+
+    [[ -d $dir ]] || return 1
+    if events=$(cat "$dir/cgroup.events" 2>/dev/null); then
+	[[ $events == *"populated 1"* ]]
+    else
+	[[ -n $(cgPids "$dir") ]]
+    fi
 }
+
+# Space-separated PIDs in this cgroup and its descendants
+function cgPids {
+    local dir=$1
+    local child part pids=""
+
+    if [[ -r $dir/cgroup.procs ]]; then
+	part=$(tr '\n' ' ' < "$dir/cgroup.procs")
+	pids+="$part"
+    fi
+    for child in "$dir"/*/; do
+	child=${child%/}
+	[[ -d $child && ! -L $child ]] || continue
+	part=$(cgPids "$child")
+	[[ -n $part ]] && pids+="$part "
+    done
+    read -r pids <<< "$pids"
+    printf '%s\n' "$pids"
+}
+
+# Send signal to every PID in this cgroup and its descendants
+function cgSignalTree {
+    local dir=$1
+    local sig=$2
+    local pid
+
+    for pid in $(cgPids "$dir"); do
+	[[ -d /proc/$pid ]] || continue
+	dlog "send signal $sig to PID $pid"
+	kill -"$sig" "$pid" 2>/dev/null
+    done
+}
+
+# Kill every process in this cgroup and its descendants via cgroup.kill.
+# Writing cgroup.kill again on every retry catches a task migrated in
+# afterwards.
+function cgFatalKill {
+    local dir=$1
+    local -i try=0
+    local -i limit=${MAX_KILL_RETRY:-10}
+
+    while cgPopulated "$dir"; do
+	(( try > limit )) && return 1
+	if ! echo 1 > "$dir/cgroup.kill" 2>/dev/null; then
+	    mlog "write 1 to $dir/cgroup.kill failed"
+	    return 1
+	fi
+	dlog "cgroup.kill $dir"
+	try+=1
+	sleep 0.1
+    done
+    return 0
+}
+
+# Cgroups whose tasks survived cgFatalKill. jail-term calls
+# killTasks once per term module and from jail-main.sh,
+# so we do not wait for the same survivors again.
+declare -A KILL_GAVE_UP=()
 
 function killTasks {
     local DIR=$1
     local caller
     caller=$(caller 0 | awk '{print $2}')
+
+    # Only touch cgroups below $CGROUP_BASE/$PREFIX.
+    if [[ $(realpath -ms "$DIR") != "$CGROUP_BASE/$PREFIX/"?* ]]; then
+	mlog "refuse to kill tasks in '$DIR'"
+	return 1
+    fi
     [[ -d $DIR ]] || {
 	[[ $CHILD != -1 ]] && dlog "$caller: no directory $DIR to kill tasks"
 	return
     }
 
+    if [[ -n ${KILL_GAVE_UP[$DIR]-} ]]; then
+	dlog "$caller: already gave up on $DIR"
+	return 1
+    fi
+
+    # cgroup.kill and cgPids cover the whole subtree, so this also kills
+    # the steps of a job and the jobs of a user
     dlog "$caller: dir $DIR"
-    local TASKS="$DIR/tasks/cgroup.procs"
+    if [[ ${TERM_DELAY:-0} != 0 ]] && cgPopulated "$DIR"; then
+	cgSignalTree "$DIR" "$TERM_SIGNAL"
+	sleep "$TERM_DELAY"
+    fi
+    if ! cgFatalKill "$DIR"; then
+	KILL_GAVE_UP[$DIR]=1
+	mlog "could not kill remaining processes in $DIR"
+	return 1
+    fi
 
-    local -i count=0
-    local PIDS
-    PIDS=$(cat "$TASKS" 2>/dev/null)
-
-    while [[ -n $PIDS && $count -le $MAX_KILL_RETRY ]]; do
-	if [[ $TERM_DELAY != 0 && $count == 0 ]]; then
-	    for child in $PIDS; do
-		[[ -d /proc/$child ]] || continue
-		dlog "$caller($count): send signal $TERM_SIGNAL to PID $child"
-		kill -"$TERM_SIGNAL" "$child"
-	    done
-	    sleep "$TERM_DELAY"
-	    PIDS=$(cat "$TASKS" 2>/dev/null)
-	fi
-	for child in $PIDS; do
-	    [[ -d /proc/$child ]] || continue
-	    dlog "$caller($count): killing PID $child with signal $KILL_SIGNAL"
-	    kill "-$KILL_SIGNAL" "$child"
-	done
-
-	(( count++ ))
-	PIDS=$(cat "$TASKS" 2>/dev/null)
-    done
-
+    # Remove the tree leaves first, rmdir refuses non-empty cgroups
     dlog "$caller: rmdir $DIR"
-    rmDirLogged "$DIR/tasks"
-    rmDirLogged "$DIR"
-}
-
-function killJob {
-    local DIR=$1
-    local caller
-    caller=$(caller 0 | awk '{print $2}')
-    [[ -d $DIR ]] || {
-	[[ $CHILD != -1 ]] && dlog "$caller: no directory $DIR to kill tasks"
-	return
-    }
-
-    dlog "kill steps in dir $DIR"
-
-    local BASE=$DIR
-    for i in "$BASE"/step-*/; do
-	[[ -d $i ]] || continue
-	dlog "$caller: killTasks $i"
-	killTasks "$i"
-    done
-
-    dlog "$caller: kill tasks of $DIR"
-    killTasks "$DIR"
-}
-
-function killUser {
-    local DIR=$1
-    local caller
-    caller=$(caller 0 | awk '{print $2}')
-    [[ -d $DIR ]] || {
-	[[ $CHILD != -1 ]] && dlog "$caller: no directory $DIR to kill tasks"
-	return
-    }
-
-    dlog "kill jobs in dir $DIR"
-    local BASE=$DIR
-    for i in "$BASE"/job-*/; do
-	[[ -d $i ]] || continue
-	dlog "$caller: killJob $i"
-	killJob "$i"
-    done
-
-    dlog "$caller: kill tasks of $DIR"
-    killTasks "$DIR"
+    find "$DIR" -type d -delete 2>/dev/null
+    [[ ! -d $DIR ]] || mlog "$caller: rmdir $DIR failed"
 }
 
 function initJailEnv {
@@ -239,8 +256,6 @@ function initJailEnv {
 
     [[ -z $TERM_SIGNAL ]] && export TERM_SIGNAL=15
 
-    [[ -z $KILL_SIGNAL ]] && export KILL_SIGNAL=9
-
     [[ -z $MIN_VALID_MEMORY_LIMIT ]] && export MIN_VALID_MEMORY_LIMIT=100
 
     export CGROUP_VERSION=$__PSJAIL_CGROUP_VERSION
@@ -295,22 +310,19 @@ function enableControllers {
 }
 
 function cleanupCgroups {
+    local CGROUPS
+
+    [[ -n $CGROUP_BASE && -n $PREFIX && $PREFIX != */*
+       && $PREFIX != . && $PREFIX != .. ]] || \
+	elog "refuse CGROUP_BASE '$CGROUP_BASE' and PREFIX '$PREFIX'"
     CGROUPS="$CGROUP_BASE/$PREFIX"
+    [[ -d $CGROUPS ]] || return 0
+
     dlog "cleanup v2 $CGROUPS"
-    for user in "$CGROUPS"/user-*; do
-	for job in "$user"/job-*; do
-	    for step in "$job"/step-*; do
-		xargs -r -n1 kill -9 2>/dev/null < "$step/tasks/cgroup.procs"
-		rmdir -p "$step/tasks" 2>/dev/null
-	    done
-	    xargs -r -n1 kill -9 2>/dev/null < "$job/tasks/cgroup.procs"
-	    rmdir -p "$job/tasks" 2>/dev/null
-	done
-	xargs -r -n1 kill -9 2>/dev/null < "$user/tasks/cgroup.procs"
-	rmdir -p "$user/tasks" 2>/dev/null
-    done
-    rmdir -p "$CGROUPS" 2>/dev/null
-    [ -d "$CGROUPS" ] && { elog "unable to remove $CGROUPS"; }
+
+    cgFatalKill "$CGROUPS"
+    find "$CGROUPS" -type d -delete 2>/dev/null
+    [[ -d $CGROUPS ]] && elog "unable to remove $CGROUPS"
 }
 
 # vim: set filetype=sh ts=8 sw=4 tw=0 sts=4 noet :

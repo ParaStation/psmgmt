@@ -44,7 +44,7 @@ function termDevices()
     [[ -n $user ]] || elog "no user env variable for job $JOBID"
 
     if [[ -n $STEPID ]]; then
-	dlog "killing step ${JOBID}:$STEPID with signal $KILL_SIGNAL"
+	dlog "killing step ${JOBID}:$STEPID"
 
 	cleanupBPF "STEP_${JOBID}_$STEPID"
 
@@ -55,8 +55,8 @@ function termDevices()
 	fi
 
     elif [[ -n $JOBID ]]; then
-	dlog "killing job $JOBID with signal $KILL_SIGNAL"
-	killJob "$CG_JOB"
+	dlog "killing job $JOBID"
+	killTasks "$CG_JOB"
 	cleanupBPF "JOB_$JOBID"
 
 	local BASE="$CG_JOB"

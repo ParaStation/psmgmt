@@ -24,7 +24,7 @@ function cleanupUserCgroup()
 	# cleanup user directory
 
 	dlog "no more jobs, kill user cgroup $CG_USER"
-	killUser "$CG_USER"
+	killTasks "$CG_USER"
     else
 	# update remaining cpus for user cgroup
 
@@ -39,7 +39,7 @@ function cleanupUserCgroup()
 	    else
 		# parallel terminating jobs might trigger leftover jobs detection
 		dlog "killing leftover job: $i"
-		killJob "$i"
+		killTasks "$i"
 	    fi
 	done
 
@@ -61,7 +61,7 @@ else
     [[ -n $user ]] || elog "no user env variable for job $JOBID"
 
     if [[ -n $STEPID ]]; then
-	dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
+	dlog "killing step $JOBID:$STEPID"
 
 	if [[ -d $CG_STEP ]]; then
 	    killTasks "$CG_STEP"
@@ -70,8 +70,8 @@ else
 	fi
 
     elif [[ -n $JOBID ]]; then
-	dlog "killing job $JOBID with signal $KILL_SIGNAL"
-	killJob "$CG_JOB"
+	dlog "killing job $JOBID"
+	killTasks "$CG_JOB"
 
 	if [[ -n $ALLOC_LIST ]]; then
 	    cleanupUserCgroup
