@@ -1764,7 +1764,7 @@ static bool getDefaultGpuAssignment(uint32_t localRankId, Step_t *step,
 
     /* prefill availGPUs with closest GPUs for each local task */
     PSCPU_set_t availGPUs[numLTasks];
-    for (size_t lTID = 0; lTID < numLTasks; lTID++) {
+    for (uint32_t lTID = 0; lTID < numLTasks; lTID++) {
 	uint32_t tid = step->globalTaskIds[stepNodeId][lTID];
 
 	/* list of close GPUs with maximum all GPUs of the node */
@@ -1775,7 +1775,7 @@ static bool getDefaultGpuAssignment(uint32_t localRankId, Step_t *step,
 	cpu_set_t *physSet = PSIDpin_mapCPUs(thisNode, step->slots[tid].CPUset);
 	if (!PSIDpin_getCloseDevs(thisNode, physSet, stepGPUs, closeList,
 				  &closeCnt, NULL, NULL, PSPIN_DEV_TYPE_GPU)) {
-	    flog("unable to get close GPUs (lTID %zu)\n", lTID);
+	    flog("unable to get close GPUs (lTID %u)\n", lTID);
 	    return false;
 	}
 
