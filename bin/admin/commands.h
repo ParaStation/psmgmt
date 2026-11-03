@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2023 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -65,17 +65,17 @@ void PSIADM_AddNode(bool *nl);
  * If the local daemon is instructed to shutdown, too, the requesting
  * process will also be killed.
  *
- * If the @a silent flag is 0, a warning is printed for each node
+ * If the @a silent flag is false, a warning is printed for each node
  * marked in @a nl that is already down. Otherwise, such messages will
  * be suppressed.
  *
- * @param silent Suppress messages on nodes already down
+ * @param silent Flag to suppress messages on nodes already down
  *
  * @param nl Array indexed by node ID flagging nodes to take action on
  *
  * @return No return value
  */
-void PSIADM_ShutdownNode(int silent, bool *nl);
+void PSIADM_ShutdownNode(bool silent, bool *nl);
 
 /**
  * @brief Start communication hardware
@@ -270,7 +270,7 @@ void PSIADM_CountStat(int hw, bool *nl);
  * processes, i.e. only processes not including forwarder, spawner or
  * monitor processes, are displayed.
  *
- * @param count The Maximum number of tasks to be displayed
+ * @param count Maximum number of tasks to be displayed
  *
  * @param full Flag to mark if all jobs or only "normal" jobs shall be
  * displayed
@@ -490,10 +490,10 @@ void PSIADM_ShowParamList(PSP_Option_t type, bool *nl);
 /**
  * @brief Reset nodes
  *
- * Reset the nodes marked within the node list @a nl. If @a reset_hw is
- * different from 0, all communication hardware on that nodes is
- * reset, too. Otherwise only all controlled processes are killed and
- * the daemon is reset into a defined state.
+ * Reset the nodes marked within the node list @a nl. If @a reset_hw
+ * is true, all communication hardware controlled by psid on that
+ * nodes is reset, too. Otherwise only all controlled processes are
+ * killed and the daemon is reset into a defined state.
  *
  * @param reset_hw Flag to mark communication hardware to be reset
  *
@@ -501,7 +501,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, bool *nl);
  *
  * @return No return value
  */
-void PSIADM_Reset(int reset_hw, bool *nl);
+void PSIADM_Reset(bool reset_hw, bool *nl);
 
 /**
  * @brief Test network

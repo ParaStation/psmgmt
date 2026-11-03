@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -113,10 +113,10 @@ static int shutdownCommand(char *token)
 {
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
-    int silent = 0;
 
+    bool silent = false;
     if (nl_descr && !strcasecmp(nl_descr, "silent")) {
-	silent = 1;
+	silent = true;
 	nl_descr = parser_getString();
     }
 
@@ -211,7 +211,7 @@ static int restartCommand(char *token)
 	if (!nl) return -1;
     }
 
-    PSIADM_Reset(1, nl);
+    PSIADM_Reset(true, nl);
     return 0;
 }
 
@@ -251,11 +251,11 @@ static int resetCommand(char *token)
 {
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
-    int hw = 0;
 
+    bool hw = false;
     if (nl_descr && !strcasecmp(nl_descr, "hw")) {
 	nl_descr = parser_getString();
-	hw = 1;
+	hw = true;
     }
 
     if (parser_getString()) {
@@ -324,10 +324,10 @@ static int listProcCommand(char *token)
     }
 
     if (!strcasecmp(token, "processes") || !strcasecmp(token, "p")) {
-	PSIADM_ProcStat(cnt, 0, nl);
+	PSIADM_ProcStat(cnt, false, nl);
     } else if (!strcasecmp(token, "aproc")
 	       || !strcasecmp(token, "allprocesses")) {
-	PSIADM_ProcStat(cnt, 1, nl);
+	PSIADM_ProcStat(cnt, true, nl);
     } else goto error;
     return 0;
 
@@ -2438,7 +2438,7 @@ static int versionCommand(char *token)
     printf(" Copyright (C) 1996-2004 ParTec AG, Karlsruhe\n");
     printf(" Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH,"
 	   " Munich\n");
-    printf(" Copyright (C) 2021-2025 ParTec AG, Munich\n");
+    printf(" Copyright (C) 2021-2026 ParTec AG, Munich\n");
     printf("\n");
     printf("PSProtocol: %d\t(with a %sgeneous setup)\n", PSProtocolVersion,
 	   PSI_mixedProto() ? "hetero" : "homo");

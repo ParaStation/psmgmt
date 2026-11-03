@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -311,7 +311,7 @@ void PSIADM_AddNode(bool *nl)
     }
 }
 
-void PSIADM_ShutdownNode(int silent, bool *nl)
+void PSIADM_ShutdownNode(bool silent, bool *nl)
 {
     DDMsg_t msg = {
 	.type = PSP_CD_DAEMONSTOP,
@@ -1679,7 +1679,7 @@ void PSIADM_sighandler(int sig)
     }
 }
 
-void PSIADM_Reset(int reset_hw, bool *nl)
+void PSIADM_Reset(bool reset_hw, bool *nl)
 {
     DDBufferMsg_t msg = {
 	.header = {
