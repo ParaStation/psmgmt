@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -81,6 +81,30 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		.len = sizeof(errmsg) },
 	    .request = inmsg->header.type,
 	    .error = 0};
+
+	switch (inmsg->type) {
+	case PSP_INFO_QUEUE_ALLTASK:
+	case PSP_INFO_QUEUE_NORMTASK:
+	case PSP_INFO_QUEUE_PARTITION:
+	case PSP_INFO_QUEUE_ENVS:
+	    if (!PSID_checkPrivilege(inmsg->header.sender)) {
+		PSID_flog("task %s not allowed to access info\n",
+			  PSC_printTID(inmsg->header.sender));
+
+		/* send EndOfQueue */
+		DDTypedBufferMsg_t msg = {
+		    .header = {
+			.type = PSP_CD_INFORESPONSE,
+			.sender = PSC_getMyTID(),
+			.dest = inmsg->header.sender,
+			.len = offsetof(DDTypedBufferMsg_t, type) + sizeof(msg.type) },
+		    .type = PSP_INFO_QUEUE_SEP,
+		    .buf = { 0 } };
+
+		sendMsg(&msg);
+		return true;
+	    }
+	}
 
 	if (PSIDnodes_isUp(destID)) {
 	    /* transfer to remote daemon */
@@ -440,7 +464,12 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	break;
     }
     case PSP_INFO_QUEUE_PARTITION:
-	if (PSC_getMyID() != getMasterID()) {
+	if (!PSID_checkPrivilege(inmsg->header.sender)) {
+	    PSID_flog("task %s not allowed to access job info\n",
+		      PSC_printTID(inmsg->header.sender));
+	    /* send EndOfQueue */
+	    msg.type = PSP_INFO_QUEUE_SEP;
+	} else if (PSC_getMyID() != getMasterID()) {
 	    /* Handled by master node -> forward */
 	    inmsg->header.dest = PSC_getTID(getMasterID(), 0);
 	    msg_INFOREQUEST(inmsg);
