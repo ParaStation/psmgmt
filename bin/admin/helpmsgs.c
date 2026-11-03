@@ -642,12 +642,12 @@ static info_t listInfo = {
 	  .descr = "Show processes managed by ParaStation on the selected"
 	  " nodes. Only normal processes are displayed, no forwarder, spawner"
 	  " etc. processes. Up to <cnt> processes per node will be displayed."
-	  " The default is to show 10 processes."},
+	  " The default is to show all processes (i.e. <cnt>=-1)."},
 	{ .tag = "list aproc [cnt <cnt>]",
 	  .descr = "Show all processes managed by ParaStation on the selected"
 	  " nodes. This includes all special processes like forwarder, spawner"
 	  " etc. Up to <cnt> processes per node will be displayed. The default"
-	  " is to show 10 processes."},
+	  " is to show all processes (i.e. <cnt>=-1)."},
 	{ .tag = "list environment [key <key>]",
 	  .descr = "Show the environment on the selected nodes. If 'key <key>'"
 	  " is given, only the environment variable <key> and its value is"
