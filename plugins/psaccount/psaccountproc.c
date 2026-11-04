@@ -578,7 +578,7 @@ static void collectDescendantData(pid_t pid, ProcSnapshot_t *res)
 	    fdbg(PSACC_LOG_PROC, "pid:%i ppid:%i cutime:%lu cstime:%lu mem:%lu"
 		 " vmem:%lu\n", proc->pid, proc->ppid, proc->cutime,
 		 proc->cstime, proc->mem, proc->vmem);
-	    ASSUME(p != procList.next); // hint to static analyzers
+	    ASSUME(proc->ppid != proc->pid); // hint to static analyzers
 	    collectDescendantData(proc->pid, res);
 	}
     }
