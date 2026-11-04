@@ -736,10 +736,6 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
 	}
     }
 
-    // hints to static analyzers: fds are valid
-    ASSUME(fds[0] > -1);
-    ASSUME(fds[1] > -1);
-
     return 0;
 }
 
@@ -937,6 +933,11 @@ static void execForwarder(PStask_t *task)
 		pty_setowner(task->uid, task->gid, name);
 	    }
 	}
+
+	// hints to static analyzer; otherwise we would not even have fork()ed
+	ASSUME(task->stdin_fd >= 0);
+	ASSUME(task->stdout_fd >= 0);
+	ASSUME(task->stderr_fd >= 0);
 
 	/* redirect stdin/stdout/stderr */
 	if (dup2(task->stderr_fd, STDERR_FILENO) < 0) {
