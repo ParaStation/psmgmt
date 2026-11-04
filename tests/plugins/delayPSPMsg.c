@@ -436,8 +436,8 @@ void finalize(void)
     list_t *d, *tmp;
     list_for_each_safe(d, tmp, &delayContainerList) {
 	DelayContainer_t *delayC = list_entry(d, DelayContainer_t, next);
-	ASSUME(d != delayContainerList.next);	// hint to static analyzers
 	doRemoveDelayHandler(delayC);
+	ASSUME(d != delayContainerList.next);	// hint to static analyzers
     }
 
     PSIDplugin_unload(name);
