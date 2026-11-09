@@ -1188,8 +1188,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t sessionID,
 	flog("namespace '%s' no longer valid\n", nsname);
 	RELEASE_LOCK(namespaceList);
 	pspmix_server_deregisterClient(nsname, client->rank);
-	client->state = PSPMIX_CLIENT_STATE_FAILED;
-	return false; /* todo shouldn't that be "goto failed"? */
+	goto failed;
     }
 
     /* add to namespace's list of clients */
