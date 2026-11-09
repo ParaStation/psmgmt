@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2025 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -220,7 +220,7 @@ int __PSIDhook_call(PSIDhook_t hook, void *arg, bool privileged)
     if (privileged) {
 	/* save effective user */
 	euid = geteuid();
-	egid = geteuid();
+	egid = getegid();
 	if (PSIDnodes_supplGrps(PSC_getMyID())) euser = PSC_userFromUID(euid);
     }
 
