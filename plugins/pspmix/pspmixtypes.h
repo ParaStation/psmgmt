@@ -217,10 +217,8 @@ typedef struct {
  * reported successful finalization by sending a PSPMIX_CLIENT_FINALIZE_RES
  * messages it enters FINALIZED state. This is the normal life of a client.
  *
- * In addition, there are two excepional states:
+ * In addition, there is an excepional state:
  * After signaling term/kill to the client, it has the state TERMINATED.
- * After any operation required to enter a normal state failed, the client gets
- * assigned the state FAILED.
  */
 typedef enum {
     PSPMIX_CLIENT_STATE_KNOWN = 0,   /**< initial creation state */
@@ -230,7 +228,6 @@ typedef enum {
     PSPMIX_CLIENT_STATE_FINALIZING,  /**< called PMIx_Finalize() */
     PSPMIX_CLIENT_STATE_FINALIZED,   /**< finalization confirmed by its fw */
     PSPMIX_CLIENT_STATE_TERMINATED,  /**< signal for termination sent */
-    PSPMIX_CLIENT_STATE_FAILED       /**< setting status somehow failed */
 } PspmixClientState_t;
 
 /**

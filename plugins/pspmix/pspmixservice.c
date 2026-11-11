@@ -960,9 +960,8 @@ void pspmix_service_cleanupNamespace(PspmixNamespace_t *ns, bool error,
 	    /* these are clients, that never started using PMIx */
 	case PSPMIX_CLIENT_STATE_FINALIZED:
 	case PSPMIX_CLIENT_STATE_TERMINATED:
-	case PSPMIX_CLIENT_STATE_FAILED:
 	    /* each real PMIx client should be correctly finalized,
-	     * forcefully terminated, or failed here */
+	     * or forcefully terminated */
 	    break;
 	case PSPMIX_CLIENT_STATE_INITIALIZED:
 	    flog("nspace '%s' rank %d did not call finalize\n", ns->name,
@@ -1218,7 +1217,8 @@ failed:
     /* send message to forwarder to make it fail directly as well so
      * it does not need to wait for the timeout */
     pspmix_comm_sendJobsetupFailed(client->fwtid);
-    client->state = PSPMIX_CLIENT_STATE_FAILED;
+    /* actually, the client state is no longer valid, but expecting the client
+     * to be cleaned up now anyhow, we refrain to have a separate one */
     return false;
 }
 
