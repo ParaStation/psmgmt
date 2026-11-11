@@ -611,7 +611,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     /* take number from env, better than counting twice */
     char *env = envGet(job->env, "PMIX_JOB_NUM_APPS");
     if (!env) {
-	flog("UNEXPECTED: PMIX_JOB_NUM_APPS missing\n");
+	flog("UNEXPECTED: nspace %s job %s: PMIX_JOB_NUM_APPS missing\n",
+	     ns->name, ns->jobid);
 	goto nscreate_error;
     }
     ns->appsCount = atoi(env);
@@ -966,8 +967,8 @@ void pspmix_service_cleanupNamespace(PspmixNamespace_t *ns, bool error,
 		 client->rank);
 	    break;
 	default:
-	    flog("UNEXPECTED: nspace '%s' rank %d state %d\n", ns->name,
-		 client->rank, client->state);
+	    flog("UNEXPECTED: nspace '%s' rank %d (fw %s) state %d\n", ns->name,
+		 client->rank, PSC_printTID(client->fwtid), client->state);
 	}
 	list_del(&client->next);
 	ufree(client->notifiedFwCb);
@@ -1035,7 +1036,8 @@ PSnodes_ID_t pspmix_service_nodeFromProc(const pmix_proc_t *proc)
     RELEASE_LOCK(namespaceList);
 
     if (nodeID < 0) {
-	flog("UNEXPECTED: getNodeFromRank(%s) failed\n", pmixProcStr(proc));
+	flog("UNEXPECTED: nspace %s: getNodeFromRank(%s) failed\n", ns->name,
+	     pmixProcStr(proc));
     }
 
     return nodeID;
@@ -1237,7 +1239,8 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
     }
 
     if (client->notifiedFwCb) {
-	flog("UNEXPECTED: client->notifiedFwCb set\n");
+	flog("UNEXPECTED: nspace %s rank %d (fw %s): client->notifiedFwCb"
+	     " set\n", nsName, client->rank, PSC_printTID(client->fwtid));
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -1252,8 +1255,9 @@ bool pspmix_service_clientConnected(const char *nsName, PspmixClient_t *client,
 	flog("nspace %s: All %u local clients connected\n", ns->name,
 	     ns->localClients);
     } else if (ns->clientsConnected > ns->localClients) {
-	flog("UNEXPECTED: nspace %s: Too many local clients connected\n",
-	     ns->name);
+	flog("UNEXPECTED: nspace %s: Too many local clients connected after"
+	     " rank %d (fw %s) joined\n", ns->name, client->rank,
+	     PSC_printTID(client->fwtid));
     }
 
     /* copy values inside lock */
@@ -1317,7 +1321,8 @@ bool pspmix_service_clientFinalized(const char *nsName, PspmixClient_t *client,
     PStask_ID_t jobID = ns->job->ID;
 
     if (client->notifiedFwCb) {
-	flog("UNEXPECTED: client->notifiedFwCb set\n");
+	flog("UNEXPECTED: nspace %s rank %d (fw %s): client->notifiedFwCb"
+	     "set\n", nsName, client->rank, PSC_printTID(client->fwtid));
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -1386,8 +1391,9 @@ void pspmix_service_handleClientIFResp(const char *nspace, pmix_rank_t rank,
 		     ns->localClients);
 	    }
 	} else {
-	    flog("UNEXPECTED: nspace %s: client %u in state %d not CONNECTED\n",
-		 ns->name, client->rank, client->state);
+	    flog("UNEXPECTED: nspace %s: client %u (fw %s) in state %d not"
+		 " CONNECTED\n", ns->name, client->rank,
+		 PSC_printTID(client->fwtid), client->state);
 	}
     } else {
 	if (client->state == PSPMIX_CLIENT_STATE_FINALIZING) {
@@ -1400,8 +1406,9 @@ void pspmix_service_handleClientIFResp(const char *nspace, pmix_rank_t rank,
 		     " finalized\n", ns->name, ns->clientsConnected);
 	    }
 	} else {
-	    flog("UNEXPECTED: nspace %s: client %u in state %d\n", ns->name,
-		 client->rank, client->state);
+	    flog("UNEXPECTED: nspace %s: client %u (fw %s) in state %d\n",
+		 ns->name, client->rank, PSC_printTID(client->fwtid),
+		 client->state);
 	}
     }
 
@@ -2361,10 +2368,10 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
 	/* first info for this spawn */
 	spawn->nspace = ustrdup(nsName);
     } else if (!spawn->nspace) {
-	flog("UNEXPECTED: spawn id %hu: namespace not set\n", spawnID);
+	flog("UNEXPECTED: spawnID %hu: namespace not set\n", spawnID);
 	goto failed;
     } else if (strcmp(spawn->nspace, nsName)) {
-	flog("UNEXPECTED: spawn id %hu: different namespaces (%s != %s)\n",
+	flog("UNEXPECTED: spawnID %hu: different namespaces (%s != %s)\n",
 	     spawnID, nsName, spawn->nspace);
 	goto failed;
     }
@@ -2378,7 +2385,7 @@ void pspmix_service_spawnInfo(uint16_t spawnID, bool succ, const char *nsName,
     }
 
     if (spawn->ready > spawn->np) {
-	flog("UNEXPECTED: spawn id %hu: too many processes (%u > %u)\n",
+	flog("UNEXPECTED: spawnID %hu: too many processes (%u > %u)\n",
 	     spawnID, spawn->ready, spawn->np);
 	goto failed;
     }
