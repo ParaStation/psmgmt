@@ -500,7 +500,7 @@ bool getSpawnInfo(PspmixNamespace_t *ns)
     ns->spawnOpts = res;
 
     char *loc = PSC_getID(ns->spawner) == PSC_getMyID() ? "local" : "remote";
-    fdbg(PSPMIX_LOG_SPAWN, "%s spawn id %hu initiated by %s (parent %s"
+    fdbg(PSPMIX_LOG_SPAWN, "%s spawnID %hu initiated by %s (parent %s"
 	 " opts 0x%08x)\n", loc, ns->spawnID, PSC_printTID(ns->spawner),
 	 pmixProcStr(&ns->parent), ns->spawnOpts);
 
@@ -956,6 +956,8 @@ void pspmix_service_cleanupNamespace(PspmixNamespace_t *ns, bool error,
     list_for_each_safe(c, tmp, &ns->clientList) {
 	PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
 	switch (client->state) {
+	case PSPMIX_CLIENT_STATE_REGISTERED:
+	    /* these are clients, that never started using PMIx */
 	case PSPMIX_CLIENT_STATE_FINALIZED:
 	case PSPMIX_CLIENT_STATE_TERMINATED:
 	case PSPMIX_CLIENT_STATE_FAILED:
@@ -2211,7 +2213,7 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
     PspmixSpawn_t *spawn = findSpawn(spawnID);
     if (!spawn) {
 	RELEASE_LOCK(spawnList);
-	flog("UNEXPECTED: spawn id %hu not found (success %s)", spawnID,
+	flog("UNEXPECTED: spawnID %hu not found (success %s)", spawnID,
 	     success ? "true" : "false");
 	return;
     }
@@ -2219,7 +2221,7 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
     if (success) {
 	/* success, update state and wait for ready clients */
 
-	fdbg(PSPMIX_LOG_SPAWN, "forwarder reported success for spawn id %hu\n",
+	fdbg(PSPMIX_LOG_SPAWN, "forwarder reported success for spawnID %hu\n",
 	     spawnID);
 
 	/* fine if all clients already reported to be connected, this means that
@@ -2256,7 +2258,7 @@ void pspmix_service_spawnRes(uint16_t spawnID, bool success)
 	flog("UNEXPECTED: spawn state is %d", spawn->state);
     }
 
-    flog("forwarder reported fail for spawn id %hu\n", spawnID);
+    flog("forwarder reported fail for spawnID %hu\n", spawnID);
 
     spawn->state = SPAWN_FAILED;
     fdbg(PSPMIX_LOG_SPAWN, "respawn %hd: state FAILED\n", spawn->id);
@@ -2332,7 +2334,7 @@ void pspmix_service_spawnSuccess(const char *nspace, uint16_t spawnID,
 	if (readyClients < localClients) return;
 
 	if (readyClients > localClients) {
-	    flog("UNEXPECTED: spawn id %hu: too many processes (%u > %u)\n",
+	    flog("UNEXPECTED: spawnID %hu: too many processes (%u > %u)\n",
 		 spawnID, readyClients, localClients);
 	    success = false;
 	}
