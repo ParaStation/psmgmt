@@ -910,7 +910,15 @@ int PSI_createPartition(uint32_t size, uint32_t hwType)
 	waitForPartition = true;
 	alarm(2);
     } else {
-	alarm(60);
+	uint32_t tmout = 60;
+	char *tmoutStr = getenv("PSI_PARTITION_TMOUT");
+	if (tmoutStr && *tmoutStr) {
+	    char *end;
+	    long tmp = strtol(tmoutStr, &end, 0);
+	    if (! *end && tmp >= 0) tmout = tmp;
+	    PSI_flog("use %d second timeout\n", tmout);
+	}
+	alarm(tmout);
     }
     PSC_setSigHandler(SIGALRM, alarmHandlerPart);
 
@@ -985,7 +993,15 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 	waitForReservation = true;
 	alarm(2);
     } else {
-	alarm(60);
+	uint32_t tmout = 60;
+	char *tmoutStr = getenv("PSI_RESERVATION_TMOUT");
+	if (tmoutStr && *tmoutStr) {
+	    char *end;
+	    long tmp = strtol(tmoutStr, &end, 0);
+	    if (! *end && tmp >= 0) tmout = tmp;
+	    PSI_flog("use %d second timeout\n", tmout);
+	}
+	alarm(tmout);
     }
 
     ssize_t ret = PSI_recvMsg(&msg, sizeof(msg), PSP_CD_RESERVATIONRES, false);
