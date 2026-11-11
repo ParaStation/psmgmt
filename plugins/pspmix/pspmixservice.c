@@ -1051,8 +1051,7 @@ PSnodes_ID_t pspmix_service_nodeFromProc(const pmix_proc_t *proc)
     RELEASE_LOCK(namespaceList);
 
     if (nodeID < 0) {
-	flog("UNEXPECTED: nspace %s: getNodeFromRank(%s) failed\n", ns->name,
-	     pmixProcStr(proc));
+	flog("UNEXPECTED: getNodeFromRank(%s) failed\n", pmixProcStr(proc));
     }
 
     return nodeID;
