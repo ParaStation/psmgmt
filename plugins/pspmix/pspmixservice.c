@@ -950,29 +950,42 @@ void pspmix_service_cleanupNamespace(PspmixNamespace_t *ns, bool error,
     /* client objects can be safely freed now:
        - handleClientIFResp() will not find the namespace any longer
        - the server library will not call callbacks related to the client */
+    int uc = 0;
+    PspmixClientState_t state = PSPMIX_CLIENT_STATE_REGISTERED;
     list_t *c, *tmp;
     list_for_each_safe(c, tmp, &ns->clientList) {
 	PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
 	switch (client->state) {
-	case PSPMIX_CLIENT_STATE_REGISTERED:
-	    /* this are clients, that never started using PMIx */
 	case PSPMIX_CLIENT_STATE_FINALIZED:
 	case PSPMIX_CLIENT_STATE_TERMINATED:
 	case PSPMIX_CLIENT_STATE_FAILED:
-	    /* each client should be correctly finalized, forcefully terminated,
-	     * or failed here */
+	    /* each real PMIx client should be correctly finalized,
+	     * forcefully terminated, or failed here */
 	    break;
 	case PSPMIX_CLIENT_STATE_INITIALIZED:
 	    flog("nspace '%s' rank %d did not call finalize\n", ns->name,
 		 client->rank);
 	    break;
 	default:
-	    flog("UNEXPECTED: nspace '%s' rank %d (fw %s) state %d\n", ns->name,
-		 client->rank, PSC_printTID(client->fwtid), client->state);
+	    if (state != client->state) {
+		if (uc) mlog(" (repeated for %d more clients)\n", uc);
+		flog("UNEXPECTED: nspace '%s' rank %d (fw %s) state %d",
+		     ns->name, client->rank, PSC_printTID(client->fwtid),
+		     client->state);
+		uc = 0;
+		state = client->state;
+	    }
+	    uc++;
 	}
 	list_del(&client->next);
 	ufree(client->notifiedFwCb);
 	ufree(client);
+    }
+
+    /* complete UNEXPECTED messages */
+    if (uc) {
+	if (uc > 1) mlog(" (repeated for %d more clients)", uc - 1);
+	mlog("\n");
     }
 
     for (size_t i = 0; i < ns->appsCount; i++) {
