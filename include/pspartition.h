@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2024 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -249,7 +249,7 @@ bool PSpart_addToMsg(PSpart_request_t *req, PS_SendDB_t *msg);
 /**
  * @brief Decode partition request structure
  *
- * Decode a partition request structure sent via @ref PStpart_addToMsg()
+ * Decode a partition request structure sent via @ref PSpart_addToMsg()
  * and received as a data blob of size @a len provided in @a data. The
  * decoded data is written to the partition request structure @a req
  * is pointing to.
