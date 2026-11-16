@@ -76,7 +76,7 @@ static bool isChild(const char nameList[], const char* name)
     if (!nameList) return false;
 
     compInfo_t cInfo = { .name = name, .res = false };
-    traverseCompList(nameList, compareName, &cInfo);
+    traverseCompList(nameList, compareName, &cInfo, true);
 
     return cInfo.res;
 }

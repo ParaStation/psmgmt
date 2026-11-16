@@ -42,17 +42,23 @@ typedef struct {
  * @param info Additional information to be passed to @a visitor while
  * visiting the items
  *
+ * @param verbose Flag to enable supplementary log message emitted by
+ * this function if @a visitor returns false
+ *
  * @return Returns true on success otherwise false
  */
 static bool visitItemRange(char *prefix, char *range, CL_Visitor_t visitor,
-			   void *info)
+			   void *info, bool verbose)
 {
     char *sep = strchr(range, '-');
     if (!sep) {
 	// single item
 	char tmp[1024];
 	snprintf(tmp, sizeof(tmp), "%s%s", prefix ? prefix : "", range);
-	if (!visitor(tmp, info)) return false;
+	if (!visitor(tmp, info)) {
+	    if (verbose) PSC_flog("visitor failed for '%s'\n", tmp);
+	    return false;
+	}
 	return true;
     }
 
@@ -71,13 +77,17 @@ static bool visitItemRange(char *prefix, char *range, CL_Visitor_t visitor,
     for (unsigned int i = min; i <= max; i++) {
 	char tmp[1024];
 	snprintf(tmp, sizeof(tmp), "%s%0*u", prefix ? prefix : "", pad, i);
-	if (!visitor(tmp, info)) return false;
+	if (!visitor(tmp, info)) {
+	    if (verbose) PSC_flog("visitor failed for '%s'\n", tmp);
+	    return false;
+	}
     }
 
     return true;
 }
 
-bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info)
+bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info,
+		      bool verb)
 {
     const char delimiters[] =", \n";
     bool isOpen = false, ret = false;
@@ -100,19 +110,13 @@ bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info)
 	    // whole bracket
 	    char *range = openBrk + 1;
 	    *openBrk = *closeBrk = '\0';
-	    if (!visitItemRange(next, range, visitor, info)) {
-		PSC_flog("invalid range in '%s'\n", compList);
-		goto error;
-	    }
+	    if (!visitItemRange(next, range, visitor, info, verb)) goto error;
 	} else if (openBrk && !closeBrk) {
 	    // start of a new bracket
 	    char *range = openBrk + 1;
 	    *openBrk = '\0';
 	    prefix = next;
-	    if (!visitItemRange(prefix, range, visitor, info)) {
-		PSC_flog("invalid range in '%s'\n", compList);
-		goto error;
-	    }
+	    if (!visitItemRange(prefix, range, visitor, info, verb)) goto error;
 	    isOpen = true;
 	} else if (closeBrk) {
 	    // end of the bracket
@@ -126,10 +130,7 @@ bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info)
 	    }
 
 	    *closeBrk = '\0';
-	    if (!visitItemRange(prefix, next, visitor, info)) {
-		PSC_flog("invalid range in '%s'\n", compList);
-		goto error;
-	    }
+	    if (!visitItemRange(prefix, next, visitor, info, verb)) goto error;
 	    prefix = NULL;
 	    isOpen = false;
 	} else if (isOpen) {
@@ -138,14 +139,11 @@ bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info)
 		PSC_flog("invalid prefix for '%s'\n", compList);
 		goto error;
 	    }
-	    if (!visitItemRange(prefix, next, visitor, info)) {
-		PSC_flog("invalid range in '%s'\n", compList);
-		goto error;
-	    }
+	    if (!visitItemRange(prefix, next, visitor, info, verb)) goto error;
 	} else {
 	    // no bracket at all
 	    if (!visitor(next, info)) {
-		PSC_flog("visitor failed for '%s'\n", compList);
+		if (verb) PSC_flog("visitor failed for '%s'\n", next);
 		goto error;
 	    }
 	}
@@ -205,7 +203,7 @@ bool convHLtoPSnodes(char *hostlist, ResolveFunc_t resolveNID,
 	return false;
     }
 
-    if (!traverseCompList(hostlist, hostToPSnode, &psNL)) {
+    if (!traverseCompList(hostlist, hostToPSnode, &psNL, true)) {
 	free(psNL.nodes);
 	return false;
     }

@@ -115,7 +115,7 @@ static bool discoverDevices(char *file, void *info)
 static bool parseGresFile(Gres_Conf_t *gres)
 {
     /* discover all devices */
-    if (!traverseCompList(gres->file, discoverDevices, gres)) {
+    if (!traverseCompList(gres->file, discoverDevices, gres, true)) {
 	flog("invalid gres file '%s' for '%s'\n", gres->file, gres->name);
 	return false;
     }

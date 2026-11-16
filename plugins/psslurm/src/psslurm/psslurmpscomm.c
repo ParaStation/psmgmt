@@ -2345,7 +2345,7 @@ static bool resolveHostEntry(int confIdx)
     }
 
     /* resolve PS nodeIDs for every host */
-    if (!traverseCompList(hostEntry, saveHost, &info)) {
+    if (!traverseCompList(hostEntry, saveHost, &info, true)) {
 	flog("resolving nodes in host list %s index %i failed\n",
 	     hostEntry, confIdx);
 	goto FINISH;

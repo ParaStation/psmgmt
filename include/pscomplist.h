@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2023 ParTec AG, Munich
+ * Copyright (C) 2021-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,8 +27,9 @@
  * @ref traverseCompList() in order to be forwarded to each item.
  *
  * If the visitor function returns false, the traversal will be
- * interrupted and @ref traverseCompList() will return to its calling
- * function.
+ * interrupted, @ref traverseCompList() will return to its calling
+ * function, and a supplementary message might be emitted via
+ * pscommon's logging facility.
  */
 typedef bool CL_Visitor_t(char *host, void *info);
 
@@ -38,7 +39,8 @@ typedef bool CL_Visitor_t(char *host, void *info);
  * Traverse all expanded items of a given compressed list @a compList
  * by calling @a visitor for each item. In addition to a pointer to
  * the current item @a info is passed as additional information to the
- * @a visitor.
+ * @a visitor. If @a verb is true, a log-message will be emitted via
+ * pscommon's logging facility once @a visitor returns false.
  *
  * @param compList The compressed list to parse and traverse
  *
@@ -47,11 +49,15 @@ typedef bool CL_Visitor_t(char *host, void *info);
  * @param info Additional information to be passed to @a visitor while
  * visiting the expanded items
  *
+ * @param verb Flag to enable supplementary log message emitted by
+ * this function if @a visitor returns false
+ *
  * @return If the compressed list cannot be parsed or a visitor
  * returns false, traversal will be stopped and false is returned;
  * otherwise true is returned
  */
-bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info);
+bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info,
+		      bool verb);
 
 /**
  * @brief Host resolve function
