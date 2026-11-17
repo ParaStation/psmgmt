@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022-2024 ParTec AG, Munich
+ * Copyright (C) 2022-2026 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -261,8 +261,7 @@ void setRlimitsFromEnv(env_t env, bool psi)
 			softLimit = limit.rlim_max;
 		    }
 		    if (setrlimit(slurmConfLimits[i].limit, &limit) != 0) {
-			mwarn(errno, "%s: setting '%s' to '%lu' failed: ",
-			      __func__, climit, softLimit);
+			fwarn(errno, "setrlimit(%s, %lu)", climit, softLimit);
 		    }
 		    if (psi) {
 			if (softLimit == RLIM_INFINITY) {

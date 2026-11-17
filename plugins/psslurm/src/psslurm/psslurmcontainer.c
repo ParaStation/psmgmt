@@ -241,8 +241,7 @@ static bool initRootFS(Slurm_Container_t *ct)
 
     struct stat sbuf;
     if (lstat(ct->rootfs, &sbuf) == -1) {
-	mwarn(errno, "%s: invalid rootfs directory %s:",
-	      __func__, ct->rootfs);
+	fwarn(errno, "invalid rootfs directory %s", ct->rootfs);
 	return false;
     }
     if (!S_ISDIR(sbuf.st_mode)) {

@@ -52,8 +52,7 @@ static bool setGresCount(Gres_Conf_t *gres, char *count)
 
     long gCount = strtol(count, &end, 10);
     if (!gCount && errno != 0) {
-	mwarn(errno, "%s: invalid count '%s' for '%s'", __func__,
-	      count, gres->name);
+	fwarn(errno, "invalid count '%s' for '%s'", count, gres->name);
 	return false;
     }
     if (gCount == LONG_MIN || gCount == LONG_MAX) {

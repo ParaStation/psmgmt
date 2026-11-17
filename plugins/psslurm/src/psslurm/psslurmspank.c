@@ -398,7 +398,7 @@ static bool findSpankAbsPath(char *relPath, char *absPath, size_t lenPath)
 	DIR *dir = opendir(dirNext);
 
 	if (!dir) {
-	    mwarn(errno, "%s: open directory %s failed :", __func__, dirNext);
+	    fwarn(errno, "opendir(%s)", dirNext);
 	    ufree(dirDup);
 	    return false;
 	}

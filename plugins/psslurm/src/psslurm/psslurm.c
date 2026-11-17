@@ -605,8 +605,7 @@ bool initSlurmOpt(void)
     if (slurmUser) {
 	uid_t uid = PSC_uidFromString(slurmUser);
 	if ((int) uid < 0) {
-	    mwarn(errno, "%s: getting user ID of Slurm user '%s' failed: ",
-		    __func__, slurmUser);
+	    fwarn(errno, "PSC_uidFromString(%s)", slurmUser);
 	    goto INIT_ERROR;
 	}
 	slurmUserID = uid;

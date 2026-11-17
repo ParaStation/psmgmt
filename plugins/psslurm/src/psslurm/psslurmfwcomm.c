@@ -308,7 +308,7 @@ static bool setupPartition(Step_t *step) {
 
     /* generate hardware threads array */
     if (!genThreadsArray(&fwTask->partThrds, &fwTask->totalThreads, step)) {
-	mwarn(errno, "%s: Could not generate threads array", __func__);
+	fwarn(errno, "could not generate threads array");
 	return false;
     }
 

@@ -134,7 +134,7 @@ static void getSysInfo(uint32_t *cpuload, uint64_t *freemem, uint32_t *uptime)
 {
     struct sysinfo info;
     if (sysinfo(&info) < 0) {
-	mwarn(errno, "%s: sysinfo()", __func__);
+	fwarn(errno, "sysinfo()");
 	*cpuload = *freemem = *uptime = 0;
 	return;
     }
@@ -1004,7 +1004,7 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 {
     if (mkdir(confDir, 0755) == -1) {
 	if (errno != EEXIST) {
-	    mwarn(errno, "%s: mkdir(%s) failed: ", __func__, confDir);
+	    fwarn(errno, "mkdir(%s)", confDir);
 	    return false;
 	}
     }
@@ -1040,7 +1040,7 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
     char *runDir = getConfValueC(Config, "SLURM_RUN_DIR");
     if (mkdir(runDir, 0755) == -1) {
 	if (errno != EEXIST) {
-	    mwarn(errno, "%s: mkdir(%s)", __func__, runDir);
+	    fwarn(errno, "mkdir(%s)", runDir);
 	    return false;
 	}
     }
@@ -1050,7 +1050,7 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 
     unlink(destLink);
     if (symlink(confDir, destLink) == -1) {
-	mwarn(errno, "%s: symlink(%s, %s)", __func__, confDir, destLink);
+	fwarn(errno, "symlink(%s, %s)", confDir, destLink);
 	return false;
     }
 
@@ -1246,7 +1246,7 @@ bool runHealthCheck(void)
     if (!script) return true;
 
     if (access(script, R_OK | X_OK) < 0) {
-	mwarn(errno, "%s: invalid health-check script %s", __func__, script);
+	fwarn(errno, "invalid health-check script '%s'", script);
 	return false;
     }
     if (slurmHCpid != -1) {
@@ -1629,13 +1629,13 @@ uint64_t getNodeMem(void)
 {
     long pages = sysconf(_SC_PHYS_PAGES);
     if (pages < 0) {
-	mwarn(errno, "%s: sysconf(_SC_PHYS_PAGES)", __func__);
+	fwarn(errno, "sysconf(_SC_PHYS_PAGES)");
 	return 1;
     }
 
     long pageSize = sysconf(_SC_PAGE_SIZE);
     if (pageSize < 0) {
-	mwarn(errno, "%s: sysconf(_SC_PAGE_SIZE)", __func__);
+	fwarn(errno, "sysconf(_SC_PAGE_SIZE)");
 	return 1;
     }
 
@@ -1650,7 +1650,7 @@ static uint32_t getTmpDisk(void)
 {
     float pageSize = sysconf(_SC_PAGE_SIZE);
     if (pageSize < 0) {
-	mwarn(errno, "%s: getting _SC_PAGE_SIZE failed: ", __func__);
+	fwarn(errno, "sysconf(_SC_PAGE_SIZE)");
 	return 1;
     }
 
@@ -1662,7 +1662,7 @@ static uint32_t getTmpDisk(void)
     if ((statfs(fs, &sbuf)) == -1) {
 	static bool report = true;
 	if (report) {
-	    mwarn(errno, "%s: statfs(%s)", __func__, fs);
+	    fwarn(errno, "statfs(%s)", fs);
 	    report = false;
 	}
 	return 1;
@@ -2754,7 +2754,7 @@ static const char *autoDetectSlurmVer(void)
 
     struct stat sb;
     if (stat(sinfo, &sb) == -1) {
-	mwarn(errno, "%s: stat('%s')", __func__, sinfo);
+	fwarn(errno, "stat(%s)", sinfo);
 	return NULL;
     } else if (!(sb.st_mode & S_IXUSR)) {
 	flog("'%s' not executable\n", sinfo);
@@ -2771,7 +2771,7 @@ static const char *autoDetectSlurmVer(void)
     }
     FILE *fp = popen(sinfoCmd, "r");
     if (!fp) {
-	mwarn(errno, "%s: popen('%s')", __func__, sinfoCmd);
+	fwarn(errno, "popen(%s)", sinfoCmd);
 	return NULL;
     }
 
