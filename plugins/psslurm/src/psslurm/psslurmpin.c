@@ -2225,38 +2225,86 @@ void logHWthreads(const char* func, PSpart_HWThread_t *threads, uint32_t num)
 }
 
 
+/** array to collect slots for partThrds generation */
+static PSCPU_set_t *setArray;
+
+/** number of elements in @ref setArray */
+static PSnodes_ID_t setArrayLen;
+
 /**
- * @brief Add all threads of slots array to threads array
+ * @brief Add slots to preparation array
  *
- * This appends the threads of each slot to the end of the threads array.
+ * Add the HW threads encoded in @a slots to the preparation array
+ * @ref setArray. There are @a num slots expected in @a slots to be
+ * handled.
  *
- * @param threads    IN/OUT array to extend (resized using realloc())
- * @param numThreads OUT Number of entries in threads
- * @param slots      IN  Slots array to use
- * @param num        IN  Number of entries in slots
+ * The aim of the preparation array is to create a node-ordered array
+ * of unique HW threads to be dumped into a task's @ref partThrds
+ * member. This will be used for book keeping of the task's partition
+ * resources while handing them out in reservations.
  *
- * @return true on success and false on error with errno set
+ * @param slots Slots encoding the HW threads to be added
+ *
+ * @param num Number of elements in @a slots
+ *
+ * @return Return true on success or false on error with errno set
  */
-static bool addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
-			      PSpart_slot_t *slots, uint32_t num)
+static bool prepThreadsArray(PSpart_slot_t *slots, uint32_t num)
 {
-    size_t t = *numThreads; /* index variable */
+    if (setArrayLen < PSC_getNrOfNodes()) {
+	flog("insufficient setArray size %d\n", setArrayLen);
+	errno = EOVERFLOW;
+	return false;
+    }
 
     for (size_t s = 0; s < num; s++) {
-	*numThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
+	PSCPU_set_t *thisSet = &setArray[slots[s].node];
+	PSCPU_addCPUs(*thisSet, slots[s].CPUset);
+    }
+
+    return true;
+}
+
+/**
+ * @brief Dump HW threads array from preparation array
+ *
+ * Dump the HW threads in the preparation array @ref setArray into the
+ * properly reallocated array of HW threads @a threads. The total
+ * amount of HW threads upon return of this function is reported in @a
+ * numThreads.
+ *
+ * HW threads in @a threads will be node ordered and unique.
+ *
+ * @param threads Array of HW threads that were collected in @ref setArray
+ *
+ * @param numThreads Number of HW threads collected in @ref setArray
+ *
+ * @return Return true on success or false on error with errno set
+ */
+static bool dumpThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads)
+{
+    *numThreads = 0;
+
+    for (PSnodes_ID_t n = 0; n < setArrayLen; n++) {
+	*numThreads += PSCPU_getCPUs(setArray[n], NULL, PSCPU_MAX);
     }
 
     PSpart_HWThread_t *tmp = realloc(*threads, *numThreads * sizeof(**threads));
     if (!tmp) {
-	errno = ENOMEM;
+	int eno = errno;
+	fwarn(eno, "realloc()");
+	errno = eno;
 	return false;
     }
     *threads = tmp;
 
-    for (size_t s = 0; s < num; s++) {
+    size_t t = 0;
+    for (PSnodes_ID_t n = 0; n < setArrayLen; n++) {
+	if (!PSCPU_any(setArray[n], PSCPU_MAX)) continue;
+
 	for (uint16_t cpu = 0; cpu < PSCPU_MAX; cpu++) {
-	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
-		(*threads)[t].node = slots[s].node;
+	    if (PSCPU_isSet(setArray[n], cpu)) {
+		(*threads)[t].node = n;
 		(*threads)[t].id = cpu;
 		(*threads)[t].timesUsed = 0;
 		t++;
@@ -2266,40 +2314,37 @@ static bool addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
     return true;
 }
 
-/**
- * @brief Generate hardware threads array from slots in step
- *
- * This just concatenates the threads of each slot, so iff there are threads
- * used in multiple slots, they will be multiple times in the resulting array.
- *
- * This function distinguish between single job step and job pack step
- *
- * @param threads    OUT generated array (use ufree() to free)
- * @param numThreads OUT Number of entries in threads
- * @param step       IN  Step to use
- *
- * @return true on success and false on error with errno set
- */
 bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 		     Step_t *step)
 {
-    *numThreads = 0;
-    *threads = NULL;
-
-    if (step->packStepCount == 1) {
-	return addThreadsToArray(threads, numThreads, step->slots, step->np);
-    }
-
-    /* add slots from each sister pack job
-     * since the list is sorted, the threads will be in correct order */
-    list_t *r;
-    list_for_each(r, &step->jobCompInfos) {
-	JobCompInfo_t *cur = list_entry(r, JobCompInfo_t, next);
-	if (!addThreadsToArray(threads, numThreads, cur->slots, cur->np)) {
+    /* ensure setArray can fit all HW threads */
+    PSnodes_ID_t newLen = PSC_getNrOfNodes();
+    if (setArrayLen < newLen) {
+	PSCPU_set_t *tmp = realloc(setArray, sizeof(*setArray) * newLen);
+	if (!tmp) {
+	    int eno = errno;
+	    fwarn(eno, "realloc()");
+	    errno = eno;
 	    return false;
 	}
+	setArrayLen = newLen;
+	setArray = tmp;
     }
-    return true;
+
+    memset(setArray, 0, sizeof(*setArray) * setArrayLen);
+
+    if (step->packStepCount == 1) {
+	if (!prepThreadsArray(step->slots, step->np)) return false;
+    } else {
+	/* add slots from each sister pack job */
+	list_t *r;
+	list_for_each(r, &step->jobCompInfos) {
+	    JobCompInfo_t *cur = list_entry(r, JobCompInfo_t, next);
+	    if (!prepThreadsArray(cur->slots, cur->np)) return false;
+	}
+    }
+
+    return dumpThreadsArray(threads, numThreads);
 }
 
 static char * printCpuMask(pid_t pid)

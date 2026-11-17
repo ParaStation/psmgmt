@@ -66,14 +66,22 @@ bool setStepSlots(Step_t *step);
 void logHWthreads(const char* func, PSpart_HWThread_t *threads, uint32_t num);
 
 /**
- * @brief Generate hardware threads array from slots in step
+ * @brief Generate HW threads array from slots in step
  *
- * This just concatenates the threads of each slot, so iff there are threads
- * used in multiple slots, they will be multiple times in the resulting array.
+ * Generate a HW threads array from all HW threads assigned to the
+ * Step @a step and return it in @a threads. The size of @a threads,
+ * i.e. the number of elements dumped to it, is reported in @a
+ * numThreads.
+ *
+ * This function ensures that HW threads in @a threads are
+ * node-ordered and unique.
  *
  * This function distinguish between single job step and job pack step
  *
- * @param threads    OUT generated array (use ufree() to free)
+ * The memory of @a threads is dynamically allocated and
+ * must be free()ed by the calling function once it became obsolete.
+ *
+ * @param threads    OUT generated array (use free() to free)
  * @param numThreads OUT Number of entries in threads
  * @param step       IN  Step to use
  *
