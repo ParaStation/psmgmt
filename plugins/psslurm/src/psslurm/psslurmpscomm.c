@@ -278,6 +278,8 @@ static int handleRequestPart(void *tsk)
     }
 
     /* generate hardware threads array */
+    free(task->partThrds);
+    task->partThrds = NULL;
     if (!genThreadsArray(&task->partThrds, &task->totalThreads, step)) {
 	int eno = errno;
 	fwarn(eno, "unable to generate threads array");
