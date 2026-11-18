@@ -2138,6 +2138,64 @@ static bool msg_PROVIDEPART(DDTypedBufferMsg_t *msg)
 }
 
 /**
+ * @brief Compute next power of 2
+ *
+ * Compute the next power of 2 larger or equal @a n
+ *
+ * @param n Number to evaluate
+ *
+ * @return Return the next power of 2
+ */
+static uint32_t pow2(uint32_t n)
+{
+    n--;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    n++;
+
+    return n;
+}
+
+/**
+ * @brief Identify first HW-thread located on a given node
+ *
+ * Find first HW-thread in @a thrds located at node @a node and return
+ * its index. The array @a thrds has @a numThreads elements which are
+ * must be ordered by their @ref node member.
+ *
+ * @param thrds array of HW-threads to search
+ *
+ * @param numThreads number of elements in @a thrds
+ *
+ * @param node Node to lookup in @a thrds
+ *
+ * @return Return the index of the first HW-thread to search for or @a
+ * numThreads in case no HW-thread for @a node was found
+*/
+static uint32_t findPartThread(PSpart_HWThread_t thrds[], uint32_t numThreads,
+			       PSnodes_ID_t node)
+{
+    uint32_t t = numThreads / 2;
+    uint32_t interval = pow2(numThreads) / 2;
+
+    do {
+	if (thrds[t].node >= node) {
+	    if (interval <= t) t -= interval;
+	} else {
+	    if (interval < numThreads - t) t += interval;
+	}
+	interval /= 2;
+    } while (interval);
+
+    if (thrds[t].node != node && t < numThreads - 1) t++;
+
+    return thrds[t].node == node ? t : numThreads;
+}
+
+/**
  * @brief Release HW-threads
  *
  * Release the HW-threads presented within the first @a nSlots entries
