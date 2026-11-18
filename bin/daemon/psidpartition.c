@@ -2196,11 +2196,100 @@ static uint32_t findPartThread(PSpart_HWThread_t thrds[], uint32_t numThreads,
 }
 
 /**
+ * @brief Actually release a single slot
+ *
+ * Release a single slot @a slot describing a number of HW-threads
+ * from the HW-thread array @a partThreads containing @a numThrds
+ * elements. @a this must point to the index of the first HW-thread in
+ * @a partThrds referring to the node @a slot is located on.
+ *
+ * @a this will be updated during the course of this function. Upon
+ * return it will point behind the last HW-thread being part of @a
+ * slot. This might be the first HW-thread of the next node or
+ * somewhere in the middle of HW-threads belonging to the node @a slot
+ * is referring to. Thus, @a this has to be updated adequately before
+ * calling this function again.
+ *
+ * @a caller will be used for logging purposes and shall point to the
+ * name of the initiating function.
+ *
+ * @param partThrds Array of HW-threads to release from
+ *
+ * @param numThrds Number of HW-threads in @a partThrds
+ *
+ * @param this Index of the first element in @a partThrds to release from
+ *
+ * @param slot Slot of HW-threads to release
+ *
+ * @param caller Name of the initiating function used for logging
+ *
+ * @return Return the amount of HW-threads actually released
+ */
+static uint32_t doReleaseSlot(PSpart_HWThread_t *partThrds, uint32_t numThrds,
+			      uint32_t *this, PSpart_slot_t *slot,
+			      const char *caller)
+{
+    PSnodes_ID_t node = slot->node;
+    uint32_t slotThrds = PSCPU_getCPUs(slot->CPUset, NULL, PSCPU_MAX);
+
+    PSpart_HWThread_t *thisThrd = &partThrds[*this];
+    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(node));
+    PSID_fdbg(PSID_LOG_PART, "@%s: %u threads at (%d/%d) from slot %d/%s\n",
+	      caller, slotThrds, thisThrd->node, thisThrd->id,
+	      node, PSCPU_print_part(slot->CPUset, nBytes));
+
+    uint32_t numLeft = slotThrds;
+    for (; *this < numThrds && numLeft; (*this)++) {
+	thisThrd = &partThrds[*this];
+	if (thisThrd->node != node) break;
+	if (!PSCPU_isSet(slot->CPUset, thisThrd->id)) continue;
+	if (--(thisThrd->timesUsed) < 0) {
+	    PSID_flog("@%s: adjust timesUsed %d for (%d/%d)\n", caller,
+		      thisThrd->timesUsed, thisThrd->node, thisThrd->id);
+	    slotThrds--;
+	    thisThrd->timesUsed = 0;
+	}
+	PSCPU_clrCPU(slot->CPUset, thisThrd->id);
+	numLeft--;
+    }
+
+    if (PSCPU_any(slot->CPUset, nBytes))
+	PSID_flog("@%s: slot %d/%s not fully gone\n",
+		  caller, node, PSCPU_print_part(slot->CPUset, nBytes));
+
+    return (slotThrds - numLeft);
+}
+
+/**
+ * @brief Dump array of HW-threads for debug
+ *
+ * Dump the array of HW-threads @a threads containing @a numThreads
+ * elements for debugging to the current logging facility.
+ *
+ * The debug mask must contain PSID_LOG_PART in order to dump anything.
+ *
+ * @param threads Array of HW-threads and their usage to dump
+ *
+ * @param numThreads Number of elements to dump
+ *
+ * @return No return value
+ */
+static void printThreadsArray(PSpart_HWThread_t threads[], uint32_t numThreads)
+{
+    if (!(PSID_getDebugMask() & PSID_LOG_PART)) return;
+
+    for (uint32_t t = 0; t < numThreads; t++) {
+	PSID_flog("%4u: node %3d  cpu %hd used %hd\n",
+		  t, threads[t].node, threads[t].id, threads[t].timesUsed);
+    }
+}
+
+/**
  * @brief Release HW-threads
  *
  * Release the HW-threads presented within the first @a nSlots entries
- * of the slot-list @a slots, i.e. mark them as not used any more. The
- * resources are release from the partition associated to the task @a
+ * of the slot array @a slots, i.e. mark them as not used any more. The
+ * resources are released from the partition associated to the task @a
  * task.
  *
  * @param slot The list of slots to be released
@@ -2212,40 +2301,48 @@ static uint32_t findPartThread(PSpart_HWThread_t thrds[], uint32_t numThreads,
  *
  * @param caller Name of the calling function for logging
  *
- * @return Return the total number of HW-threads released
+ * @return Return the total amount of HW-threads actually released
  */
 static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
 			       PStask_t *task, const char *caller)
 {
     if (!slot || !task || !task->partThrds || !nSlots) return 0;
 
-    uint32_t totalRelease = 0;
+    PSpart_HWThread_t *partThrds = task->partThrds;
+    uint32_t numThrds = task->totalThreads;
+
+    printThreadsArray(partThrds, numThrds);
+
+    PSnodes_ID_t node = slot->node;
+    uint32_t this = findPartThread(partThrds, numThrds, node);
+
+    uint32_t lastThis = this, released = 0;
     for (uint32_t s = 0; s < nSlots; s++) {
-	totalRelease += PSCPU_getCPUs(slot[s].CPUset, NULL, PSCPU_MAX);
-    }
+	/* find the next partThrd to handle */
+	node = slot[s].node;
 
-    uint32_t numToRelease = totalRelease;
-    PSnodes_ID_t node = slot[0].node;
-    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(node));
-    PSID_fdbg(PSID_LOG_PART, "@%s: total %d %s from %d\n", caller,
-	      numToRelease, PSCPU_print_part(slot[0].CPUset, nBytes), node);
-
-    for (uint32_t t = 0; t < task->totalThreads && numToRelease; t++) {
-	PSpart_HWThread_t *thrd = &task->partThrds[t];
-	for (uint32_t s = 0; s < nSlots; s++) {
-	    if (slot[s].node != thrd->node) continue;
-	    if (!PSCPU_isSet(slot[s].CPUset, thrd->id)) continue;
-	    if (--(thrd->timesUsed) < 0) {
-		PSID_flog("adjust timesUsed %d for (%d/%d) by %s\n",
-			  thrd->timesUsed, thrd->node, thrd->id, caller);
-		totalRelease--;
-		thrd->timesUsed = 0;
+	/* figure out which position in partThrds to investigate next */
+	if (this == numThrds || partThrds[this].node != node) {
+	    if (partThrds[lastThis].node == node) {
+		/* slot refers to same node as the previous */
+		this = lastThis;
+	    } else {
+		/* neither last nor current this => need to search directly */
+		this = findPartThread(partThrds, numThrds, node);
+		if (this == numThrds) {
+		    PSID_flog("no HW-thread on node %d\n", node);
+		    return 0;
+		}
 	    }
-	    PSCPU_clrCPU(slot[s].CPUset, thrd->id);
-	    numToRelease--;
 	}
+	lastThis = this;
+
+	released += doReleaseSlot(partThrds, numThrds, &this, &slot[s], caller);
     }
-    return (totalRelease - numToRelease);
+
+    printThreadsArray(task->partThrds, task->totalThreads);
+
+    return released;
 }
 
 #define myUseSpaceSize 65536
