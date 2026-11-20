@@ -1657,13 +1657,24 @@ static int handleJobLoop(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
 
-    if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
-	flog("switching effective user to '%s' failed\n", job->username);
-	return ESLURMD_SET_UID_OR_GID_ERROR;
+    /* enable stdout/stderr I/O and close parents write side */
+    Selector_register(fwdata->stdOut[0], IO_forwardJobData, fwdata);
+    if (fwdata->stdOut[1] > -1) {
+	close(fwdata->stdOut[1]);
+	fwdata->stdOut[1] = -1;
     }
 
-    IO_init();
-    IO_openJobIOfiles(fwdata);
+    Selector_register(fwdata->stdErr[0], IO_forwardJobData, fwdata);
+    if (fwdata->stdErr[1] > -1) {
+	close(fwdata->stdErr[1]);
+	fwdata->stdErr[1] = -1;
+    }
+
+    /* close jobscript stdin */
+    if (fwdata->stdIn[0] > -1) {
+	close(fwdata->stdIn[0]);
+	fwdata->stdIn[0] = -1;
+    }
 
     /* print queued messages if any */
     list_t *t;
@@ -1676,11 +1687,6 @@ static int handleJobLoop(Forwarder_Data_t *fwdata)
 	flog("terminating forwarder for job %u after sending user message\n",
 	     job->hID.jobid);
 	return 1;
-    }
-
-    if (!PSC_switchEffectiveUser("root", 0, 0)) {
-	flog("switching effective user to root failed\n");
-	return ESLURMD_SET_UID_OR_GID_ERROR;
     }
 
 #ifdef HAVE_SPANK
@@ -1819,6 +1825,35 @@ static int jobForwarderFin(Forwarder_Data_t *fwdata)
     return 0;
 }
 
+/**
+ * @brief open batch stdout and stderr files as job owner
+ *
+ * Open files before the batch script is forked. A failed open will return
+ * ESLURMD_IO_ERROR and not execute the batch script.
+ *
+ * @param the forwarder executing the job
+ */
+static int jobForwarderInitUser(Forwarder_Data_t *fwdata)
+{
+    Job_t *job = fwdata->userData;
+
+    if (!PSC_switchEffectiveUser(job->username, job->uid, job->gid)) {
+	flog("switching effective user to '%s' failed\n", job->username);
+	return ESLURMD_SET_UID_OR_GID_ERROR;
+    }
+
+    IO_init();
+    int rc = IO_openJobIOfiles(fwdata);
+
+    if (!PSC_switchEffectiveUser("root", 0, 0)) {
+	flog("switching effective user to root failed\n");
+	return ESLURMD_SET_UID_OR_GID_ERROR;
+    }
+
+    if (rc) return ESLURMD_IO_ERROR;
+    return SLURM_SUCCESS;
+}
+
 bool execBatchJob(Job_t *job)
 {
     if (job->state == JOB_RUNNING) {
@@ -1849,6 +1884,7 @@ bool execBatchJob(Job_t *job)
     fwdata->childFunc = fwExecBatchJob;
     fwdata->hookChild = handleChildStartJob;
     fwdata->hookFWInit = jobForwarderInit;
+    fwdata->hookFWInitUser = jobForwarderInitUser;
     fwdata->hookLoop = handleJobLoop;
     fwdata->handleMthrMsg = fwCMD_handleMthrJobMsg;
     fwdata->hookFinalize = jobForwarderFin;

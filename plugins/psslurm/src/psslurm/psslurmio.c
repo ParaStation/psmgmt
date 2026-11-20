@@ -900,7 +900,7 @@ static int openCreate(char *path, int flags, mode_t mode, uid_t uid, gid_t gid)
     return open(path, flags, mode);
 }
 
-void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
+int IO_openJobIOfiles(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
     int flags = getAppendFlags(job->appendMode);
@@ -910,12 +910,8 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     job->stdOutFD = openCreate(job->stdOut, flags, ioMode, job->uid, job->gid);
     if (job->stdOutFD == -1) {
 	fwarn(errno, "open stdout '%s' failed", job->stdOut);
-	exit(1);
+	return -1;
     }
-
-    Selector_register(fwdata->stdOut[0], IO_forwardJobData, fwdata);
-    PSCio_setFDCloExec(fwdata->stdOut[0], true);
-    close(fwdata->stdOut[1]);
 
     /* redirect stderr */
     if (strlen(job->stdErr)) {
@@ -925,15 +921,15 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
 	if (job->stdErrFD == -1) {
 	    fwarn(errno, "open stderr '%s' failed for job %u",
 		  job->stdErr, job->hID.jobid);
-	    exit(1);
+	    close(job->stdOutFD);
+	    job->stdOutFD = -1;
+	    return -1;
 	}
     } else {
 	job->stdErrFD = job->stdOutFD;
     }
 
-    Selector_register(fwdata->stdErr[0], IO_forwardJobData, fwdata);
-    PSCio_setFDCloExec(fwdata->stdErr[0], true);
-    close(fwdata->stdErr[1]);
+    return 0;
 }
 
 void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)

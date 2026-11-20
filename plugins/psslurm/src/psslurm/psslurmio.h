@@ -176,11 +176,13 @@ bool IO_openJobPipes(Forwarder_Data_t *fwdata);
 void IO_initJobFilenames(Forwarder_Data_t *fwdata);
 
 /**
- * @brief Open I/O files for a job
+ * @brief Open I/O files for a batch job
  *
  * @param fwdata The forwarder structure of the job
+ *
+ * @return Returns 0 on success and -1 on error
  */
-void IO_openJobIOfiles(Forwarder_Data_t *fwdata);
+int IO_openJobIOfiles(Forwarder_Data_t *fwdata);
 
 /**
  * @brief Forward I/O data for a job
