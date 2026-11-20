@@ -698,16 +698,11 @@ void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
     close(fwdata->stdErr[1]);
 
     /* stdin */
-    int fd = open(job->stdIn, O_RDONLY);
-    if (fd == -1) {
-	fwarn(errno, "open stdin '%s' failed", job->stdIn);
+    if (dup2(fwdata->stdIn[0], STDIN_FILENO) == -1) {
+	fwarn(errno, "dup2(%i) '%s' failed", fwdata->stdIn[0], job->stdIn);
 	exit(1);
     }
-    if (dup2(fd, STDIN_FILENO) == -1) {
-	fwarn(errno, "dup2(%i) '%s' failed", fd, job->stdIn);
-	exit(1);
-    }
-    close(fd);
+    close(fwdata->stdIn[0]);
 }
 
 bool IO_redirectRank(Step_t *step, int rank)
@@ -905,11 +900,24 @@ int IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     Job_t *job = fwdata->userData;
     int flags = getAppendFlags(job->appendMode);
 
+    /* open stdin as job owner */
+    if (fwdata->childFunc) {
+	fdbg(PSSLURM_LOG_IO, "job %u stdin file %s\n", job->hID.jobid,
+	     job->stdIn);
+	fwdata->stdIn[0] = open(job->stdIn, O_RDONLY);
+	if (fwdata->stdIn[0] == -1) {
+	    fwarn(errno, "open stdin '%s' failed", job->stdIn);
+	    return -1;
+	}
+    }
+
     /* redirect stdout */
     fdbg(PSSLURM_LOG_IO, "job %u stdout file %s\n", job->hID.jobid, job->stdOut);
     job->stdOutFD = openCreate(job->stdOut, flags, ioMode, job->uid, job->gid);
     if (job->stdOutFD == -1) {
 	fwarn(errno, "open stdout '%s' failed", job->stdOut);
+	close(fwdata->stdIn[0]);
+	fwdata->stdIn[0] = -1;
 	return -1;
     }
 
@@ -923,6 +931,8 @@ int IO_openJobIOfiles(Forwarder_Data_t *fwdata)
 		  job->stdErr, job->hID.jobid);
 	    close(job->stdOutFD);
 	    job->stdOutFD = -1;
+	    close(fwdata->stdIn[0]);
+	    fwdata->stdIn[0] = -1;
 	    return -1;
 	}
     } else {
