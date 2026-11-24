@@ -2370,6 +2370,10 @@ static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
 
     PSnodes_ID_t node = slot->node;
     uint32_t this = findPartThread(task, node);
+    if (this == numThrds) {
+	PSID_flog("no HW-thread on initial node %d\n", node);
+	return 0;
+    }
 
     uint32_t lastThis = this, released = 0;
     for (uint32_t s = 0; s < nSlots; s++) {
@@ -2389,6 +2393,9 @@ static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
 		    return 0;
 		}
 	    }
+	} else if (this && partThrds[this-1].node == node) {
+	    /* got stuck in the middle of node's HW-threads => got to first */
+	    this = lastThis;
 	}
 	lastThis = this;
 
