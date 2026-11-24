@@ -1970,11 +1970,13 @@ static bool extractSlots(PS_DataBuffer_t data, PSpart_slot_t *slots,
  *
  * @param threads Array of HW-threads to be created
  *
+ * @param ascNodeOrder Flag reporting if slots are node ordered
+ *
  * @return On success the number of threads contained in @a threads is
  * returned. Otherwise -1 is returned and errno is set appropriately.
  */
 static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
-			PSpart_HWThread_t **threads)
+			PSpart_HWThread_t **threads, bool *ascNodeOrder)
 {
     uint32_t totThreads = 0;
     for (uint32_t s = 0; s < num; s++) {
@@ -1997,8 +1999,12 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 	return -1;
     }
 
+    *ascNodeOrder = true;
     uint32_t t = 0;
+    PSnodes_ID_t prevNode = -1;
     for (uint32_t s = 0; s < num; s++) {
+	if (slots[s].node < prevNode) *ascNodeOrder = false;
+	prevNode = slots[s].node;
 	for (uint32_t cpu = 0; cpu < PSCPU_MAX; cpu++) {
 	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
 		HWThreads[t].node = slots[s].node;
@@ -2082,7 +2088,7 @@ static void handleProvidePart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
     task->partition = req->slots;
     req->slots = NULL;
     int thrds = getHWThreads(task->partition, task->partitionSize,
-			     &task->partThrds);
+			     &task->partThrds, &task->ascPartThrds);
     if (thrds < 0) {
 	eno = errno;
 	goto cleanupAndAnswer;

@@ -252,6 +252,7 @@ static bool initTask(PStask_t* task)
     task->partition = NULL;
     task->partThrds = NULL;
     task->partThrdsSize = 0;
+    task->ascPartThrds = false;
     INIT_LIST_HEAD(&task->sisterParts);
     task->usedThreads = -1;
     task->firstSpawner = -1;

@@ -313,6 +313,7 @@ static bool setupPartition(Step_t *step) {
 	fwarn(errno, "could not generate threads array");
 	return false;
     }
+    fwTask->ascPartThrds = true;
 
     logHWthreads(__func__, fwTask->partThrds, fwTask->partThrdsSize);
 

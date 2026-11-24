@@ -165,6 +165,7 @@ struct __task__ {
     PSpart_slot_t *partition;      /**< Actual partition (array of of slots) */
     PSpart_HWThread_t *partThrds;  /**< HW-threads forming the partition */
     uint32_t partThrdsSize;        /**< Size of @ref partThreads */
+    bool ascPartThrds;             /**< Flag @ref partThrds are node ordered */
     int32_t usedThreads;           /**< Number of HW-threads currently in use */
     list_t sisterParts;            /**< Other partitions in the context of this
 				      job, i.e. with the same loggertid */

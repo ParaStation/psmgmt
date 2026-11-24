@@ -285,6 +285,7 @@ static int handleRequestPart(void *tsk)
 	fwarn(eno, "unable to generate threads array");
 	return rejectPartRequest(task, eno);
     }
+    task->ascPartThrds = true;
 
     logHWthreads(__func__, task->partThrds, task->partThrdsSize);
 
