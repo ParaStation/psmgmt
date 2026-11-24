@@ -2169,8 +2169,9 @@ static uint32_t pow2(uint32_t n)
  * @brief Identify first HW-thread located on a given node
  *
  * Find first HW-thread in @a thrds located at node @a node and return
- * its index. The array @a thrds has @a numThreads elements which are
- * must be ordered by their @ref node member.
+ * its index. The array @a thrds has @a numThreads elements which must
+ * be ordered by their @ref node member, since a binary search is
+ * applied.
  *
  * @param thrds array of HW-threads to search
  *
@@ -2181,7 +2182,7 @@ static uint32_t pow2(uint32_t n)
  * @return Return the index of the first HW-thread to search for or @a
  * numThreads in case no HW-thread for @a node was found
 */
-static uint32_t findPartThread(PSpart_HWThread_t thrds[], uint32_t numThreads,
+static uint32_t treeSrchThread(PSpart_HWThread_t thrds[], uint32_t numThreads,
 			       PSnodes_ID_t node)
 {
     uint32_t t = numThreads / 2;
@@ -2199,6 +2200,55 @@ static uint32_t findPartThread(PSpart_HWThread_t thrds[], uint32_t numThreads,
     if (thrds[t].node != node && t < numThreads - 1) t++;
 
     return thrds[t].node == node ? t : numThreads;
+}
+
+/**
+ * @brief Identify first HW-thread located on a given node
+ *
+ * Find first HW-thread in @a thrds located at node @a node and return
+ * its index. The array @a thrds has @a numThreads elements that might
+ * be stored in arbitrary order. Nevertheless, in contrast to @ref
+ * treeSrchThread() a linear search is applied which leads to a
+ * complexity of O(N) in contrast to O(log(N)) for @ref treeSrchThread().
+ *
+ * @param thrds array of HW-threads to search
+ *
+ * @param numThreads number of elements in @a thrds
+ *
+ * @param node Node to lookup in @a thrds
+ *
+ * @return Return the index of the first HW-thread to search for or @a
+ * numThreads in case no HW-thread for @a node was found
+*/
+static uint32_t linSrchThread(PSpart_HWThread_t thrds[], uint32_t numThreads,
+			      PSnodes_ID_t node)
+{
+    for (uint32_t t = 0; t < numThreads; t++) {
+	if (thrds[t].node == node) return t;
+    }
+
+    return numThreads;
+}
+
+/**
+ * @brief Identify first HW-thread located on a given node
+ *
+ * Find first HW-thread in the @ref partThrds member of @a task
+ * located at node @a node and return its index.
+ *
+ * @param task Task structure holding the @ref partThrds member to search
+ *
+ * @param node Node to lookup in @a thrds
+ *
+ * @return Return the index of the first HW-thread to search for or @a
+ * task->partThrdsSize in case no HW-thread for @a node was found
+*/
+static uint32_t findPartThread(PStask_t *task, PSnodes_ID_t node)
+{
+    if (task->ascPartThrds) return treeSrchThread(task->partThrds,
+						  task->partThrdsSize, node);
+
+    return linSrchThread(task->partThrds, task->partThrdsSize, node);
 }
 
 /**
@@ -2247,7 +2297,6 @@ static uint32_t doReleaseSlot(PSpart_HWThread_t *partThrds, uint32_t numThrds,
     uint32_t numLeft = slotThrds;
     for (; *this < numThrds && numLeft; (*this)++) {
 	thisThrd = &partThrds[*this];
-	if (thisThrd->node != node) break;
 	if (!PSCPU_isSet(slot->CPUset, thisThrd->id)) continue;
 	if (--(thisThrd->timesUsed) < 0) {
 	    PSID_flog("@%s: adjust timesUsed %d for (%d/%d)\n", caller,
@@ -2320,7 +2369,7 @@ static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
     printThreadsArray(partThrds, numThrds);
 
     PSnodes_ID_t node = slot->node;
-    uint32_t this = findPartThread(partThrds, numThrds, node);
+    uint32_t this = findPartThread(task, node);
 
     uint32_t lastThis = this, released = 0;
     for (uint32_t s = 0; s < nSlots; s++) {
@@ -2334,7 +2383,7 @@ static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
 		this = lastThis;
 	    } else {
 		/* neither last nor current this => need to search directly */
-		this = findPartThread(partThrds, numThrds, node);
+		this = findPartThread(task, node);
 		if (this == numThrds) {
 		    PSID_flog("no HW-thread on node %d\n", node);
 		    return 0;
