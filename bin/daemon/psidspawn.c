@@ -1202,7 +1202,7 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
     PSP_putTypedMsgBuf(&msg, "rank", &task->rank, sizeof(task->rank));
     PSP_putTypedMsgBuf(&msg, "uid", &task->uid, sizeof(task->uid));
     PSP_putTypedMsgBuf(&msg, "gid", &task->gid, sizeof(task->gid));
-    int32_t num = task->totalThreads;
+    int32_t num = task->partThrdsSize;
     PSP_putTypedMsgBuf(&msg, "num", &num, sizeof(num));
 
     sendMsg((DDMsg_t *)&msg);

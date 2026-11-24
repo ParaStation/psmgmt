@@ -309,12 +309,12 @@ static bool setupPartition(Step_t *step) {
     /* generate hardware threads array */
     free(fwTask->partThrds);
     fwTask->partThrds = NULL;
-    if (!genThreadsArray(&fwTask->partThrds, &fwTask->totalThreads, step)) {
+    if (!genThreadsArray(&fwTask->partThrds, &fwTask->partThrdsSize, step)) {
 	fwarn(errno, "could not generate threads array");
 	return false;
     }
 
-    logHWthreads(__func__, fwTask->partThrds, fwTask->totalThreads);
+    logHWthreads(__func__, fwTask->partThrds, fwTask->partThrdsSize);
 
     /* further preparations of the task structure */
     ufree(fwTask->partition);
@@ -326,7 +326,7 @@ static bool setupPartition(Step_t *step) {
 
     fdbg(PSSLURM_LOG_PART, "Created partition for task %s: threads %u"
 	 " NODEFIRST %d EXCLUSIVE %d OVERBOOK %d WAIT %d EXACT %d\n",
-	 PSC_printTID(fwTask->tid), fwTask->totalThreads,
+	 PSC_printTID(fwTask->tid), fwTask->partThrdsSize,
 	 (fwTask->options & PART_OPT_NODEFIRST) ? 1 : 0,
 	 (fwTask->options & PART_OPT_EXCLUSIVE) ? 1 : 0,
 	 (fwTask->options & PART_OPT_OVERBOOK) ? 1 : 0,
@@ -335,8 +335,7 @@ static bool setupPartition(Step_t *step) {
 
     /* generate slots in partition from HW threads and register
      * partition to master psid, psilogger and sister steps */
-    PSIDpart_register(fwTask, fwTask->partThrds, fwTask->totalThreads);
-
+    PSIDpart_register(fwTask, fwTask->partThrds, fwTask->partThrdsSize);
     return true;
 }
 

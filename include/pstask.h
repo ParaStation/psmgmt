@@ -163,8 +163,8 @@ struct __task__ {
     PSpart_option_t options;       /**< Options to first create partition */
     uint32_t partitionSize;        /**< Number of slots in partition */
     PSpart_slot_t *partition;      /**< Actual partition (array of of slots) */
-    uint32_t totalThreads;         /**< Size of @ref partThreads */
     PSpart_HWThread_t *partThrds;  /**< HW-threads forming the partition */
+    uint32_t partThrdsSize;        /**< Size of @ref partThreads */
     int32_t usedThreads;           /**< Number of HW-threads currently in use */
     list_t sisterParts;            /**< Other partitions in the context of this
 				      job, i.e. with the same loggertid */

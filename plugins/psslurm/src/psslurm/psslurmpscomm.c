@@ -177,7 +177,7 @@ static void grantPartRequest(PStask_t *task)
 	.type = 0 };
 
     /* generate slots from hw threads and register partition to master psid */
-    PSIDpart_register(task, task->partThrds, task->totalThreads);
+    PSIDpart_register(task, task->partThrds, task->partThrdsSize);
 
     /* Cleanup the actual request not required any longer (see jrt:#5879) */
     PSpart_delReq(task->request);
@@ -280,13 +280,13 @@ static int handleRequestPart(void *tsk)
     /* generate hardware threads array */
     free(task->partThrds);
     task->partThrds = NULL;
-    if (!genThreadsArray(&task->partThrds, &task->totalThreads, step)) {
+    if (!genThreadsArray(&task->partThrds, &task->partThrdsSize, step)) {
 	int eno = errno;
 	fwarn(eno, "unable to generate threads array");
 	return rejectPartRequest(task, eno);
     }
 
-    logHWthreads(__func__, task->partThrds, task->totalThreads);
+    logHWthreads(__func__, task->partThrds, task->partThrdsSize);
 
     /* add step info to logger task */
     if (PStask_infoGet(task, TASKINFO_STEP)) {
@@ -306,7 +306,7 @@ static int handleRequestPart(void *tsk)
 
     fdbg(PSSLURM_LOG_PART, "Created partition for task %s: threads %u"
 	    " NODEFIRST %d EXCLUSIVE %d OVERBOOK %d WAIT %d EXACT %d\n",
-	    PSC_printTID(task->tid), task->totalThreads,
+	    PSC_printTID(task->tid), task->partThrdsSize,
 	    (task->options & PART_OPT_NODEFIRST) ? 1 : 0,
 	    (task->options & PART_OPT_EXCLUSIVE) ? 1 : 0,
 	    (task->options & PART_OPT_OVERBOOK) ? 1 : 0,
@@ -433,14 +433,14 @@ static int handleGetReservation(void *res)
 	/* find first entry in partition threads array matching node */
 	if (r->slots[s].node != thisNode) {
 	    size_t i, t;
-	    for (t = firstThread, i = 0; i < task->totalThreads;
-		 t = (t + 1) % task->totalThreads, i++) {
+	    for (t = firstThread, i = 0; i < task->partThrdsSize;
+		 t = (t + 1) % task->partThrdsSize, i++) {
 		if (task->partThrds[t].node == r->slots[s].node) {
 		    firstThread = t;
 		    break;
 		}
 	    }
-	    if (i == task->totalThreads) {
+	    if (i == task->partThrdsSize) {
 		flog("node not found: node %hu\n", r->slots[s].node);
 		continue;
 	    }
@@ -452,7 +452,7 @@ static int handleGetReservation(void *res)
 
 	    /* find matching entry in partition threads array */
 	    bool found = false;
-	    for (size_t t = firstThread; t < task->totalThreads; t++) {
+	    for (size_t t = firstThread; t < task->partThrdsSize; t++) {
 		PSpart_HWThread_t *thread = &(task->partThrds[t]);
 		if (thread->id == cpu) {
 		    /* increase number of used threads
@@ -477,7 +477,7 @@ static int handleGetReservation(void *res)
 	 " firstRank %d\n", slotsThreads, task->usedThreads, usedThreads,
 	 r->firstRank);
 
-    logHWthreads(__func__, task->partThrds, task->totalThreads);
+    logHWthreads(__func__, task->partThrds, task->partThrdsSize);
 
     return 0;
 }

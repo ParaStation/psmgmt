@@ -443,7 +443,7 @@ static bool addHwthreadsInfo(Step_t *step, const void *info)
 		    PSC_printTID(cTID));
 	    strbufAdd(buf, line);
 
-	    for (uint32_t i = 0; i < task->totalThreads; i++) {
+	    for (uint32_t i = 0; i < task->partThrdsSize; i++) {
 		if (lastNode != task->partThrds[i].node) {
 		    snprintf(line, sizeof(line), "\nnode %i: ",
 			     task->partThrds[i].node);

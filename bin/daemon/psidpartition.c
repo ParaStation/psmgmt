@@ -2087,7 +2087,7 @@ static void handleProvidePart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t data)
 	eno = errno;
 	goto cleanupAndAnswer;
     }
-    task->totalThreads = thrds;
+    task->partThrdsSize = thrds;
     task->usedThreads = 0;
     task->activeSlots = 0;
     task->options = req->options;
@@ -2309,7 +2309,7 @@ static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
     if (!slot || !task || !task->partThrds || !nSlots) return 0;
 
     PSpart_HWThread_t *partThrds = task->partThrds;
-    uint32_t numThrds = task->totalThreads;
+    uint32_t numThrds = task->partThrdsSize;
 
     printThreadsArray(partThrds, numThrds);
 
@@ -2340,7 +2340,7 @@ static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
 	released += doReleaseSlot(partThrds, numThrds, &this, &slot[s], caller);
     }
 
-    printThreadsArray(task->partThrds, task->totalThreads);
+    printThreadsArray(task->partThrds, task->partThrdsSize);
 
     return released;
 }
@@ -2416,8 +2416,8 @@ static uint32_t createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
     }
 
     int16_t *myUse;
-    if (task->totalThreads > myUseSpaceSize) {
-	myUse = malloc(task->totalThreads * sizeof(*myUse));
+    if (task->partThrdsSize > myUseSpaceSize) {
+	myUse = malloc(task->partThrdsSize * sizeof(*myUse));
 	if (!myUse) {
 	    PSID_fwarn(errno, "malloc() myUse");
 	    return 0;
@@ -2430,7 +2430,7 @@ static uint32_t createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
     uint32_t first = 0, got = 0;
     int16_t nextMinUsed = thread[first].timesUsed;
     int nodeTPP = 0, maxTPP = 0;
-    for (uint32_t t = 0; t < task->totalThreads; t++) {
+    for (uint32_t t = 0; t < task->partThrdsSize; t++) {
 	PSnodes_ID_t node = thread[t].node;
 	myUse[t] = thread[t].timesUsed;
 	if (hwType && (PSIDnodes_getHWStatus(node) & hwType) != hwType) continue;
@@ -2460,13 +2460,13 @@ static uint32_t createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
 	goto exit;
     }
 
-    int mod = task->totalThreads + ((overbook || nodeFirst) ? 0 : 1);
+    int mod = task->partThrdsSize + ((overbook || nodeFirst) ? 0 : 1);
     PSID_fdbg(PSID_LOG_PART, "first %d mod %d threads %d minUsed %d maxTPP %d\n",
-	      first, mod, task->totalThreads, minUsed, maxTPP);
+	      first, mod, task->partThrdsSize, minUsed, maxTPP);
 
     uint32_t roundGot = 0, thrdsGot = 0;
     bool fullRound = false;
-    for (uint32_t t = first; t < task->totalThreads && got < np; t = (t+1)%mod) {
+    for (uint32_t t = first; t < task->partThrdsSize && got < np; t = (t+1)%mod) {
 	PSnodes_ID_t node = thread[t].node;
 
 	if (!t) {
@@ -2511,8 +2511,8 @@ static uint32_t createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
 	if (node != slots[got].node) {
 	    /* Next node, restart collection of threads */
 	    int numToRel = PSCPU_getCPUs(slots[got].CPUset, NULL, PSCPU_MAX);
-	    for (uint32_t tt = 1; tt < task->totalThreads && numToRel; tt++) {
-		int ttt = (t - tt + task->totalThreads) % task->totalThreads;
+	    for (uint32_t tt = 1; tt < task->partThrdsSize && numToRel; tt++) {
+		int ttt = (t - tt + task->partThrdsSize) % task->partThrdsSize;
 		if (slots[got].node == thread[ttt].node
 		    && PSCPU_isSet(slots[got].CPUset, thread[ttt].id)) {
 		    PSID_fdbg(PSID_LOG_PART, "Put node %d thread %d again\n",
@@ -2545,14 +2545,14 @@ static uint32_t createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
     }
 
     if (!dryRun && got == np) {
-	for (uint32_t t = 0; t < task->totalThreads; t++) {
+	for (uint32_t t = 0; t < task->partThrdsSize; t++) {
 	    task->usedThreads += myUse[t] - thread[t].timesUsed;
 	    thread[t].timesUsed = myUse[t];
 	}
     }
 
 exit:
-    if (task->totalThreads > myUseSpaceSize) free(myUse);
+    if (task->partThrdsSize > myUseSpaceSize) free(myUse);
 
     return got;
 }
@@ -3073,7 +3073,7 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
     }
 
     PStask_t *delegate = task->delegate ? task->delegate : task;
-    if (!delegate->totalThreads || !delegate->partThrds) {
+    if (!delegate->partThrdsSize || !delegate->partThrds) {
 	PSID_flog("no partition in %s\n", PSC_printTID(target));
 	return true;
     }
@@ -3325,7 +3325,7 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 		  PSID_LOG_PART : -1,
 		  "only %d HW-threads for %d processes found even though %d"
 		  " free expected\n", got*res->tpp, got,
-		  delegate->totalThreads - delegate->usedThreads);
+		  delegate->partThrdsSize - delegate->usedThreads);
 
 	if (res->options & PART_OPT_DYNAMIC) {
 	    /* Get the available resources and request for more outside */
@@ -3342,7 +3342,7 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 
 	    thread = delegate->partThrds;
 
-	    for (uint32_t t = 0; t < delegate->totalThreads; t++) {
+	    for (uint32_t t = 0; t < delegate->partThrdsSize; t++) {
 		PSnodes_ID_t node = thread[t].node;
 		AttrMask_t hwType = res->hwType;
 		if (hwType
@@ -3724,7 +3724,7 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
     }
 
     PStask_t *delegate = task->delegate ? task->delegate : task;
-    if (!delegate->totalThreads || !delegate->partThrds) {
+    if (!delegate->partThrdsSize || !delegate->partThrds) {
 	PSID_flog("create partition first\n");
 	eno = EBADRQC;
 	goto error;
@@ -3858,7 +3858,7 @@ static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	}
     }
 
-    if (delegate->usedThreads + r->nMin * r->tpp <= delegate->totalThreads
+    if (delegate->usedThreads + r->nMin * r->tpp <= delegate->partThrdsSize
 	|| r->options & (PART_OPT_OVERBOOK|PART_OPT_WAIT|PART_OPT_DYNAMIC)) {
 
 	enqRes(&delegate->resRequests, r);
@@ -4151,7 +4151,7 @@ static bool msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
 	     "nMin %d nMax %d ppn %d tpp %d hwType %#x options %#x\n",
 	      r->nMin, r->nMax, r->ppn, r->tpp, r->hwType, r->options);
 
-    if (delegate->usedThreads + got * r->tpp > delegate->totalThreads) {
+    if (delegate->usedThreads + got * r->tpp > delegate->partThrdsSize) {
 	PSID_flog("insufficient threads in %s\n", PSC_printTID(delegate->tid));
 	eno = EBUSY;
 	goto error;
@@ -4626,7 +4626,7 @@ int PSIDpart_suspSlts(PSpart_slot_t *slot, unsigned int nSlots, PStask_t *task)
     PSID_fdbg(PSID_LOG_PART, "total %d %s\n", totalSusp,
 	     PSCPU_print(slot[0].CPUset));
 
-    for (uint32_t t = 0; t < delegate->totalThreads && numLeft; t++) {
+    for (uint32_t t = 0; t < delegate->partThrdsSize && numLeft; t++) {
 	PSpart_HWThread_t *thrd = &delegate->partThrds[t];
 	for (uint32_t s = 0; s < nSlots; s++) {
 	    if (slot[s].node == thrd->node
@@ -4664,7 +4664,7 @@ int PSIDpart_contSlts(PSpart_slot_t *slot, unsigned int nSlots, PStask_t *task)
     PSID_fdbg(PSID_LOG_PART, "total %d %s\n", totalCont,
 	      PSCPU_print(slot[0].CPUset));
 
-    for (uint32_t t = 0; t < delegate->totalThreads && numLeft; t++) {
+    for (uint32_t t = 0; t < delegate->partThrdsSize && numLeft; t++) {
 	PSpart_HWThread_t *thrd = &delegate->partThrds[t];
 	for (uint32_t s = 0; s < nSlots; s++) {
 	    if (slot[s].node == thrd->node

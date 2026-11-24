@@ -104,13 +104,13 @@ char * show(char *key)
 
     /* print partThrds */
     strbufAdd(buf, "\nHW threads\n");
-    if (task->totalThreads > 0 && task->partThrds) {
+    if (task->partThrdsSize > 0 && task->partThrds) {
 	unsigned int t;
 	PSnodes_ID_t lastNode = -1;
 	snprintf(l, sizeof(l), "\t%d of %u threads used:\n", task->usedThreads,
-		 task->totalThreads);
+		 task->partThrdsSize);
 	strbufAdd(buf, l);
-	for (t=0; t<task->totalThreads; t++) {
+	for (t=0; t<task->partThrdsSize; t++) {
 	    PSpart_HWThread_t *hwThrd = &task->partThrds[t];
 	    if (hwThrd->node != lastNode) {
 		lastNode = hwThrd->node;
@@ -186,11 +186,11 @@ char * set(char *key, char *val)
     }
 
     strbuf_t buf = strbufNew(NULL);
-    if (task->totalThreads > 0 && task->partThrds) {
+    if (task->partThrdsSize > 0 && task->partThrds) {
 	snprintf(l, sizeof(l), "\n%d of %u threads used:\n", task->usedThreads,
-		 task->totalThreads);
+		 task->partThrdsSize);
 	strbufAdd(buf, l);
-	for (unsigned int t = 0; t < task->totalThreads; t++) {
+	for (unsigned int t = 0; t < task->partThrdsSize; t++) {
 	    PSpart_HWThread_t *hwThrd = &task->partThrds[t];
 	    if (hwThrd->timesUsed) {
 		snprintf(l, sizeof(l), "\tfree %d thread(s) of %d/%d\n",
@@ -201,7 +201,7 @@ char * set(char *key, char *val)
 	    }
 	}
 	snprintf(l, sizeof(l), "%d of %u threads used\n", task->usedThreads,
-		 task->totalThreads);
+		 task->partThrdsSize);
 	strbufAdd(buf, l);
     } else {
 	strbufAdd(buf, "\nno partition to reset\n");

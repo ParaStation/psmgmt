@@ -250,8 +250,8 @@ static bool initTask(PStask_t* task)
     task->options = 0;
     task->partitionSize = 0;
     task->partition = NULL;
-    task->totalThreads = 0;
     task->partThrds = NULL;
+    task->partThrdsSize = 0;
     INIT_LIST_HEAD(&task->sisterParts);
     task->usedThreads = -1;
     task->firstSpawner = -1;
@@ -484,17 +484,16 @@ PStask_t* PStask_clone(PStask_t* task)
 	memcpy(clone->partition, task->partition,
 	       task->partitionSize * sizeof(*task->partition));
     }
-    clone->totalThreads = task->totalThreads;
-    if (clone->totalThreads) {
-	clone->partThrds = malloc(task->totalThreads
-				  * sizeof(*task->partThrds));
+    clone->partThrdsSize = task->partThrdsSize;
+    if (clone->partThrdsSize) {
+	clone->partThrds = malloc(task->partThrdsSize * sizeof(*task->partThrds));
 	if (!clone->partThrds) {
 	    eno = errno;
 	    PSC_fwarn(eno, "malloc(partThrds)");
 	    goto error;
 	}
 	memcpy(clone->partThrds, task->partThrds,
-	       task->totalThreads * sizeof(*task->partThrds));
+	       task->partThrdsSize * sizeof(*task->partThrds));
     }
     clone->usedThreads = task->usedThreads;
     /* do not inherit firstSpawner */
