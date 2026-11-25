@@ -34,6 +34,15 @@
 bool initPinning(void);
 
 /**
+ * @brief Free all used memory
+ *
+ * Free all memory allocated by the psslurm's pinning facility.
+ *
+ * @return No return value
+ */
+void clearPinning(void);
+
+/**
  * @brief Set the slots list containing the hardware threads to use.
  *
  * This function fills the slots parameter of the @a step as well as the

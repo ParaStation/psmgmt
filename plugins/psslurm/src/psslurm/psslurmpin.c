@@ -2224,12 +2224,18 @@ void logHWthreads(const char* func, PSpart_HWThread_t *threads, uint32_t num)
     }
 }
 
-
 /** array to collect slots for partThrds generation */
 static PSCPU_set_t *setArray;
 
 /** number of elements in @ref setArray */
 static PSnodes_ID_t setArrayLen;
+
+void clearPinning(void)
+{
+    free(setArray);
+    setArray = NULL;
+    setArrayLen = 0;
+}
 
 /**
  * @brief Add slots to preparation array

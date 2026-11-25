@@ -982,7 +982,8 @@ void cleanup(void)
     /* reset all CPU scaling parameters */
     if (CPUfreq_isInitialized()) CPUfreq_resetAll();
 
-    /* free all malloced memory */
+    /* free all allocated memory */
+    clearPinning();
     CPUfreq_finalize();
     GPUfreq_finalize();
     Job_destroyAll();
