@@ -2361,6 +2361,8 @@ static void printThreadsArray(PSpart_HWThread_t threads[], uint32_t numThreads)
 static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
 			       PStask_t *task, const char *caller)
 {
+    PSID_fdbg(PSID_LOG_PART, "@%s: slot %p nSlots %u task %p partThrds %p\n",
+	      caller, slot, nSlots, task, task ? task->partThrds : NULL);
     if (!slot || !task || !task->partThrds || !nSlots) return 0;
 
     PSpart_HWThread_t *partThrds = task->partThrds;
@@ -2401,6 +2403,9 @@ static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
 
 	released += doReleaseSlot(partThrds, numThrds, &this, &slot[s], caller);
     }
+
+    PSID_fdbg(PSID_LOG_PART, "@%s: total %d in %u slots from %d\n", caller,
+	      released, nSlots, slot->node);
 
     printThreadsArray(task->partThrds, task->partThrdsSize);
 
@@ -4318,6 +4323,8 @@ void PSIDpart_cleanupRes(PStask_t *task)
 	send_RESRELEASED(task, res);
 
 	if (res->slots) {
+	    PSID_fdbg(PSID_LOG_PART, "ID %#x nSlots %u nextSlot %u relSlots %u\n",
+		      res->rid, res->nSlots, res->nextSlot, res->relSlots);
 	    released += releaseThreads(res->slots + res->nextSlot,
 				       res->nSlots - res->nextSlot,
 				       delegate, __func__);
