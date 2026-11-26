@@ -498,6 +498,8 @@ static bool addHostOptions(char *options)
 	    addConfigEntry(Config, "SLURM_MEM_SPEC_LIMIT", next+13);
 	} else if (!strncasecmp(next, "SocketsPerBoard=", 16)) {
 	    addConfigEntry(Config, "SLURM_SOCKETS_PER_BOARD", next+16);
+	} else if (!strncasecmp(next, "CoreSpecCount=", 14)) {
+	    addConfigEntry(Config, "SLURM_CORE_SPEC_COUNT", next+14);
 	} else {
 	    flog("unknown node option '%s'\n", next);
 	    return false;
