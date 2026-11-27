@@ -6,6 +6,53 @@ Copyright (C) 2021-2026 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 6.9.0:
+==============
+Bugfixes:
+ - Return correct error code if job stdout/stderr cannot be opened (psc:#36)
+ - fix sacct AveCPUFreq values (psc:#3)
+ - fix wrong/missing fields in REQUEST_UPDATE_NODE (psc:#4)
+ - Relax reservations mismatch to warning (#369)
+ - Do not use PMIx_Info_string before PMIx_server_init (#370)
+ - open batch script stdin only as job owner
+ - restore the correct effect gid after privilege hook execution
+ - psslurm: Fix GPU pinning with ConstainDevices enabled
+ - Look at rcType to determine exit code from hook (#367)
+ - psslurm: Don't resend REQUEST_UPDATE_NODE
+ - Reduce number of file descriptor leaks
+ - Fix several issues unveiled by static analyzers
+Enhancements:
+ - Use cgroup.kill to empty a cgroup (#378)
+ - Only privileged users may access sensitive info (jpt:#551)
+ - improve releaseThreads() by orders of magnitude (#386)
+ - ensure HW threads in partThrds are unique and node ordered (#386)
+ - psslurm: Spread GPUs over tasks first (reversed by SPREAD_GPUS_FIRST = 0)
+ - psslurm: Support srun's --cpus-per-gpu option
+ - psslurm: Accept node parameter CoreSpecCount
+ - psslurm config ENFORCE_STEP_CORE_PINNING to enforce cgroup pinning (psc:#37)
+ - Add daemon connection timeout to psiadmin (#379)
+ - Make timeouts in partition handling configurable
+ - Adapt some return values of psslurmforwarder hooks (#327)
+ - don't flood logs with account errors from late arriving updates messages
+ - pspmix: Avoid potential burst of UNEXPECTED messages
+ - possibly silence traverseCompList() (#389)
+ - Report non-default PSPMIX_ENV_TMOUT only for first local task (#375)
+ - pspmix: Silence repeated namespace not found messages
+ - Ensure that more and better return codes reach srun
+Additional Changes:
+ - Add PCIe IDs of Tenstorrent and NextSilicon devices
+ - pspmix: Enhance client state handling
+ - replace pty_make_controlling_tty() by PSID_makeControllingTTY() (#368)
+ - replace pty_setowner() by PSID_ptySetOwner() (#368)
+ - Fix error in psiadmin's buildin docu
+ - Buildsystem fixes and enhancements
+ - Drop unused PSI_RemoteArgs()
+ - add README on how to use GCC's static analyzer
+ - drop outdated sources for psmom
+ - cleanup the psaccount plugin API and bump its version 32
+ - Allow to reOpenSyslog() for pluginlogger only
+
+
 Version 6.8.8:
 ==============
 Bugfixes:

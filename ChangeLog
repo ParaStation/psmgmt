@@ -1,3 +1,783 @@
+Version 6.9.0:
+==============
+------------------------------------------------------------------------
+c71fc9d0e | Norbert Eicker | Thu, 26 Nov 2026 17:38:12 +0100
+
+ensure to have propper C
+
+ - seems rpmbuild on SUSE is more picky than on RHEL
+------------------------------------------------------------------------
+75b57ae60 | Norbert Eicker | Thu, 26 Nov 2026 12:45:57 +0100
+
+additional debug logs
+------------------------------------------------------------------------
+49f8a17aa | Norbert Eicker | Wed, 25 Nov 2026 17:35:36 +0100
+
+do not leak memory when unloading psslurm plugin
+------------------------------------------------------------------------
+fef696a3b | Norbert Eicker | Tue, 24 Nov 2026 23:38:38 +0100
+
+fix corner-case where slot is cleaned prematurely
+------------------------------------------------------------------------
+05af84253 | Norbert Eicker | Tue, 24 Nov 2026 22:03:37 +0100
+
+enable releaseThreads() for unordered partThrds
+------------------------------------------------------------------------
+7dd194ac1 | Norbert Eicker | Tue, 24 Nov 2026 21:59:11 +0100
+
+Track ascending node order in task->partThrds
+------------------------------------------------------------------------
+c3485919d | Norbert Eicker | Tue, 24 Nov 2026 21:52:23 +0100
+
+Rename task's totalThreads member to partThrdsSize
+------------------------------------------------------------------------
+956b1f0f9 | Norbert Eicker | Wed, 18 Nov 2026 02:00:31 +0100
+
+rework releaseThreads() (#386)
+
+ - assuming N nodes, C CPUS per node, and P processes per node this
+   reduces complexity from O(N*C * N*P) to basically O(N*C * P)
+------------------------------------------------------------------------
+a92526773 | Norbert Eicker | Wed, 18 Nov 2026 01:02:01 +0100
+
+add binary searching findPartThread()
+
+ - this identifies an entry in task->partThrds[N] with O(log(N))
+------------------------------------------------------------------------
+aa392d5cb | Norbert Eicker | Tue, 17 Nov 2026 17:30:31 +0100
+
+ensure HW threads in partThrds are unique and node ordered (#386)
+
+ - having HW threads multiple times adds factors in runtime of
+   releaseThreads()
+------------------------------------------------------------------------
+f5ae6f087 | Norbert Eicker | Tue, 17 Nov 2026 13:33:18 +0100
+
+prevent memory leaks that never happened
+------------------------------------------------------------------------
+0649ffcbb | Norbert Eicker | Tue, 17 Nov 2026 13:31:08 +0100
+
+more use of fwarn()
+------------------------------------------------------------------------
+46ae1f68c | Norbert Eicker | Wed, 11 Nov 2026 20:55:27 +0100
+
+Make timeouts in partition handling configurable
+------------------------------------------------------------------------
+49ec9d8b0 | Norbert Eicker | Thu, 26 Nov 2026 15:44:35 +0100
+
+Add PCIe IDs of Tenstorrent and NextSilicon devices
+------------------------------------------------------------------------
+9c57cd4b9 | Stephan Krempel | Thu, 26 Nov 2026 14:00:54 +0100
+
+psslurm: Accept node parameter CoreSpecCount
+------------------------------------------------------------------------
+4a85eb960 | Michael Rauh | Fri, 20 Nov 2026 16:27:20 +0100
+
+Bugfix: open batch script stdin only as job owner
+------------------------------------------------------------------------
+aef89b3cb | Michael Rauh | Fri, 20 Nov 2026 16:15:20 +0100
+
+Return correct error code if job stdout/stderr cannot be opened (psc:#36)
+------------------------------------------------------------------------
+9833e0a75 | Michael Rauh | Fri, 30 Oct 2026 15:27:04 +0100
+
+Use cgroup.kill to empty a cgroup (#378)
+------------------------------------------------------------------------
+feabbfc70 | Norbert Eicker | Mon, 16 Nov 2026 11:11:27 +0100
+
+fix typo in docu comment
+------------------------------------------------------------------------
+664b5c461 | Norbert Eicker | Mon, 16 Nov 2026 11:10:01 +0100
+
+possibly silence traverseCompList() (#389)
+------------------------------------------------------------------------
+6c25e7538 | Norbert Eicker | Tue, 3 Nov 2026 21:37:15 +0100
+
+Only privileged users may access sensitive info (jpt:#551)
+
+ - disallow ordinary users to access information on environment, jobs or
+   processes on remote nodes; according trials are silently ignored
+------------------------------------------------------------------------
+9eda127d0 | Norbert Eicker | Tue, 3 Nov 2026 21:14:19 +0100
+
+Fix error in psiadmin's buildin docu
+------------------------------------------------------------------------
+4ad3bb8c6 | Norbert Eicker | Tue, 3 Nov 2026 20:53:34 +0100
+
+Booleanization in psiadmin
+------------------------------------------------------------------------
+ca09ee9c0 | Stephan Krempel | Wed, 11 Nov 2026 23:48:42 +0100
+
+pspmix: Remove actually unused client state FAILED
+------------------------------------------------------------------------
+f14b03fce | Stephan Krempel | Wed, 11 Nov 2026 23:26:35 +0100
+
+pspmix: Remove redundant info from UNEXPECTED message
+------------------------------------------------------------------------
+a6485e159 | Norbert Eicker | Wed, 11 Nov 2026 18:17:05 +0100
+
+Make log messages more unified
+------------------------------------------------------------------------
+2ee4fb144 | Stephan Krempel | Wed, 11 Nov 2026 16:19:24 +0100
+
+pspmix: Avoid potential burst of UNEXPECTED messages
+------------------------------------------------------------------------
+eb89b2441 | Stephan Krempel | Wed, 11 Nov 2026 15:04:17 +0100
+
+pspmix: Add more info to UNEXPECTED messages
+------------------------------------------------------------------------
+1733d530d | Stephan Krempel | Mon, 9 Nov 2026 11:59:14 +0100
+
+pspmix: Notify client's forwarder always if register fails
+------------------------------------------------------------------------
+34deadb77 | Stephan Krempel | Fri, 16 Oct 2026 01:23:33 +0200
+
+pspmix: Enhance client state handling
+------------------------------------------------------------------------
+24de70186 | Michael Rauh | Tue, 29 Sep 2026 10:16:24 +0200
+
+Introduce new psslurm configuration ENFORCE_STEP_CORE_PINNING to
+enforce step core pinning via cgroup (psc:#37)
+------------------------------------------------------------------------
+3668f6629 | Michael Rauh | Tue, 29 Sep 2026 09:44:18 +0200
+
+Introduce __PSJAIL_ENFORCE_STEP_CORES to enforce step core pinning
+------------------------------------------------------------------------
+52c17d1c8 | Norbert Eicker | Thu, 29 Oct 2026 18:58:21 +0100
+
+cleanup now unused pluginpty.[ch]
+------------------------------------------------------------------------
+5dfa2a558 | Norbert Eicker | Thu, 29 Oct 2026 18:52:38 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+5a81430db | Norbert Eicker | Thu, 29 Oct 2026 18:35:08 +0100
+
+replace pty_make_controlling_tty() by PSID_makeControllingTTY() (#368)
+------------------------------------------------------------------------
+e413b1597 | Norbert Eicker | Thu, 29 Oct 2026 11:53:10 +0100
+
+replace pty_setowner() by PSID_ptySetOwner() (#368)
+------------------------------------------------------------------------
+b4adaebc8 | Michael Rauh | Mon, 9 Nov 2026 12:36:38 +0100
+
+Bugfix: restore the correct effect gid after priviledge hook execution
+------------------------------------------------------------------------
+a1bc8764c | Norbert Eicker | Wed, 4 Nov 2026 17:21:59 +0100
+
+adapt static analyzer assumption to actual reality
+------------------------------------------------------------------------
+16ca0d86f | Norbert Eicker | Wed, 4 Nov 2026 17:19:10 +0100
+
+revert 9499a8b849baef038 since it didn't work out
+------------------------------------------------------------------------
+5e99c5890 | Norbert Eicker | Wed, 4 Nov 2026 16:28:53 +0100
+
+ensure static analyzer assumptions are not premature
+------------------------------------------------------------------------
+9499a8b84 | Norbert Eicker | Tue, 22 Sep 2026 02:21:46 +0200
+
+Rework hints to scan-build
+------------------------------------------------------------------------
+46ba4df30 | Norbert Eicker | Tue, 22 Sep 2026 02:21:08 +0200
+
+fix unlikely memory leaks unveiled by scan-build
+------------------------------------------------------------------------
+212b83f98 | Norbert Eicker | Mon, 26 Oct 2026 10:56:26 +0100
+
+Avoid suppression of Clang analyzer
+
+ - Instead initialize explicitly, give hints, etc.
+------------------------------------------------------------------------
+03c10dd11 | Norbert Eicker | Mon, 26 Oct 2026 10:44:21 +0100
+
+Fix realloc() handling unveiled by scan-build
+------------------------------------------------------------------------
+4b8acf95e | Norbert Eicker | Mon, 26 Oct 2026 10:38:44 +0100
+
+Drop useless variable
+------------------------------------------------------------------------
+6ae82ebd5 | Norbert Eicker | Mon, 26 Oct 2026 10:37:52 +0100
+
+More use of fwarn()
+------------------------------------------------------------------------
+6c0924302 | Norbert Eicker | Tue, 3 Nov 2026 19:39:59 +0100
+
+fix yet another gcc -fanalyzer warning
+
+ - interestingly gcc assumes lTID < numLTasks in the very first
+   iteration if lTID is size_t but not if it is uint32_t
+------------------------------------------------------------------------
+9beb52edd | Norbert Eicker | Tue, 22 Sep 2026 00:47:39 +0200
+
+add README on how to use GCC's static analyzer
+------------------------------------------------------------------------
+e51a90106 | Norbert Eicker | Tue, 22 Sep 2026 00:39:17 +0200
+
+supress gcc's -fanalyzer warning
+
+ - actually this is a false positive since gcc assumes task->interactive
+   to be true when creating fds (line 847) but to be false when handling
+   them further (line 899); work around it by ASSUMEing valid fds
+------------------------------------------------------------------------
+6ab5fc4e6 | Stephan Krempel | Wed, 28 Oct 2026 18:30:19 +0100
+
+psslurm: Fix GPU pinning with ConstainDevices enabled
+------------------------------------------------------------------------
+9c5cfc7c7 | Stephan Krempel | Wed, 28 Oct 2026 16:52:34 +0100
+
+More debugging output for pinning auto variable handling
+------------------------------------------------------------------------
+f9e8217a3 | Stephan Krempel | Wed, 28 Oct 2026 16:29:36 +0100
+
+Fix description of pinning auto variables
+------------------------------------------------------------------------
+ae1fb160d | Stephan Krempel | Mon, 26 Oct 2026 11:31:10 +0100
+
+psslurm: Adjust condition for UNEXPECTED message again
+------------------------------------------------------------------------
+cfe7e2dc2 | Stephan Krempel | Fri, 23 Oct 2026 13:14:43 +0200
+
+psslurm: Fix condition for UNEXPECTED message
+------------------------------------------------------------------------
+b80e08209 | Stephan Krempel | Fri, 23 Oct 2026 13:13:59 +0200
+
+psslurm: Add debugging output for compCPUsPerTask
+------------------------------------------------------------------------
+e6e89eed0 | Stephan Krempel | Wed, 14 Oct 2026 01:25:09 +0200
+
+psslurm: Add explanatory note to --cpus-per-gpu handling
+------------------------------------------------------------------------
+c1c3327cb | Stephan Krempel | Wed, 14 Oct 2026 01:06:54 +0200
+
+Fix some tired-developer mistakes
+------------------------------------------------------------------------
+3836c80fc | Stephan Krempel | Thu, 17 Sep 2026 14:30:58 +0200
+
+psslurm: Support srun's --cpus-per-gpu option
+
+This in only meaningful, if the close "Cores" are specified
+for each GPU in gres.conf
+------------------------------------------------------------------------
+e6ed8c4bc | Michael Rauh | Wed, 28 Oct 2026 12:19:10 +0100
+
+Enhancement: don't flood logs with account errors from late arriving
+updates messages
+------------------------------------------------------------------------
+b1745c0f8 | Norbert Eicker | Tue, 27 Oct 2026 15:44:11 +0100
+
+Merge branch '6.8' yet another time
+------------------------------------------------------------------------
+db5d8127e | Stephan Krempel | Wed, 14 Oct 2026 00:52:59 +0200
+
+psslurm: More speaking variable names in GPU pinning
+------------------------------------------------------------------------
+380490bee | Stephan Krempel | Mon, 12 Oct 2026 14:14:13 +0200
+
+psslurm: Tell psiadmin user if initPinning() fails
+------------------------------------------------------------------------
+1473b46a9 | Stephan Krempel | Fri, 17 Jul 2026 09:11:55 +0200
+
+psslurm: Spread GPUs over tasks first
+
+The new default becomes to if necessary first use arbitrary GPUs
+instead of using the same multiple times, even if this means not
+to use closest GPUs first. A warning is printed to the user in
+that case.
+
+The parameter SPREAD_GPUS_FIRST = 0 can be set in psslurm.conf
+to go back to the old behavior to always give closest GPUs the
+preference.
+------------------------------------------------------------------------
+3525dd553 | Stephan Krempel | Fri, 17 Jul 2026 09:11:12 +0200
+
+psslurm: Fix live setting of pinning parameters
+------------------------------------------------------------------------
+5e2cd3e44 | Norbert Eicker | Mon, 7 Sep 2026 14:40:33 +0200
+
+Relax reservations mismatch to warning (#369)
+------------------------------------------------------------------------
+aa6456c79 | Stephan Krempel | Fri, 23 Oct 2026 15:14:14 +0200
+
+pspmix: Make variable global for freeing in finalization
+------------------------------------------------------------------------
+82906cf0d | Stephan Krempel | Thu, 15 Oct 2026 23:10:07 +0200
+
+pspmix: Always log signaling all local clients to terminate
+------------------------------------------------------------------------
+f4e2a2823 | Stephan Krempel | Thu, 15 Oct 2026 20:58:56 +0200
+
+pspmix: Silence repeated namespace not found messages
+
+pspmix_service_terminateClients() can spam the log if
+large jobs are to be terminated, since the servers send
+termination requests all to all. Since already the first
+reveived will trigger the local termination, ignore
+consecutive messages for the same namespace in
+handleTermClients().
+------------------------------------------------------------------------
+8756fb6fd | Norbert Eicker | Sun, 18 Oct 2026 21:36:50 +0200
+
+Add daemon connection timeout to psiadmin (#379)
+------------------------------------------------------------------------
+95ba9f2d4 | Norbert Eicker | Sun, 18 Oct 2026 21:35:28 +0200
+
+Add timeout when PSI connects the daemon (__PSI_DAEMON_TMOUT)
+------------------------------------------------------------------------
+a9f8b21e6 | Norbert Eicker | Sun, 18 Oct 2026 21:33:56 +0200
+
+Introduce PSI_recvMsgT()
+
+ - this will receive a PSI message but with timeout
+------------------------------------------------------------------------
+0bf421a8a | Norbert Eicker | Sun, 18 Oct 2026 21:26:45 +0200
+
+Rework PSCio_recvMsgT() to accept a message size
+------------------------------------------------------------------------
+3e196a682 | Michael Rauh | Tue, 20 Oct 2026 14:54:51 +0200
+
+Also use fw->rcType for sBcast callback
+------------------------------------------------------------------------
+8ff244601 | Norbert Eicker | Fri, 16 Oct 2026 02:26:01 +0200
+
+Ensure that more and better return codes reach srun
+------------------------------------------------------------------------
+546597308 | Norbert Eicker | Fri, 16 Oct 2026 02:23:21 +0200
+
+Streamlining
+------------------------------------------------------------------------
+6733e3f7e | Norbert Eicker | Wed, 14 Oct 2026 22:37:00 +0200
+
+Avoid using obsolete Slurm errnos
+------------------------------------------------------------------------
+64ab7deba | Norbert Eicker | Wed, 14 Oct 2026 22:36:01 +0200
+
+Update information about Slurm errnos
+
+ - Handle at least ESLURMD_* errors
+------------------------------------------------------------------------
+19ab8f43f | Norbert Eicker | Thu, 13 Aug 2026 09:14:15 +0200
+
+Adapt some return values of psslurmforwarder hooks (#327)
+------------------------------------------------------------------------
+7f78f6873 | Norbert Eicker | Thu, 13 Aug 2026 09:10:56 +0200
+
+Look at rcType to determine exit code from hook (#367)
+------------------------------------------------------------------------
+9e5338d75 | Norbert Eicker | Thu, 13 Aug 2026 09:08:28 +0200
+
+Rename ForwarderData_t's rcHook to rcCode
+------------------------------------------------------------------------
+90044bb79 | Norbert Eicker | Thu, 13 Aug 2026 09:05:45 +0200
+
+Fix typo
+------------------------------------------------------------------------
+c7832c083 | Norbert Eicker | Thu, 10 Sep 2026 21:15:14 +0200
+
+Bugfix: allocate Topology_t sufficiently large
+------------------------------------------------------------------------
+f4d325f5f | Norbert Eicker | Thu, 10 Sep 2026 21:14:37 +0200
+
+Unify use of u[cm]alloc
+------------------------------------------------------------------------
+81c65fa98 | Norbert Eicker | Mon, 21 Sep 2026 10:53:43 +0200
+
+remove more obsolete functions from psaccount API
+
+ - psAccountGetSessionInfos(), psAccountGetLoggerByClient(),
+   psAccountFindDaemonProcs()
+------------------------------------------------------------------------
+23647747c | Michael Rauh | Fri, 18 Sep 2026 13:50:26 +0200
+
+Remove string jobid from psaccount client
+------------------------------------------------------------------------
+5db766d03 | Michael Rauh | Fri, 18 Sep 2026 13:43:31 +0200
+
+Also drop unused deleteJobsByJobscript()
+------------------------------------------------------------------------
+5ea89f29c | Norbert Eicker | Tue, 15 Sep 2026 15:46:57 +0200
+
+drop jobid argument from psAccountRegisterJob()
+
+ - bump psaccount plugin API to 32
+------------------------------------------------------------------------
+1df9c99d6 | Norbert Eicker | Tue, 15 Sep 2026 15:43:20 +0200
+
+drop psAccountUnregisterJob solely used by psmom
+------------------------------------------------------------------------
+866590538 | Norbert Eicker | Tue, 15 Sep 2026 15:28:19 +0200
+
+drop more references to psmom -- mainly in comments
+------------------------------------------------------------------------
+22f980a8d | Norbert Eicker | Tue, 15 Sep 2026 15:23:10 +0200
+
+drop outdated source for psmom
+------------------------------------------------------------------------
+04e86d487 | Norbert Eicker | Fri, 25 Sep 2026 00:16:56 +0200
+
+Report non-default PSPMIX_ENV_TMOUT only for first local task (#375)
+------------------------------------------------------------------------
+1dfc4f60e | Norbert Eicker | Fri, 25 Sep 2026 00:12:30 +0200
+
+Add firstLocal member flag to PStask_t
+------------------------------------------------------------------------
+9b02e5486 | Michael Rauh | Thu, 1 Oct 2026 15:20:07 +0200
+
+Merge branch '6.8' again
+------------------------------------------------------------------------
+93fe8f320 | Norbert Eicker | Fri, 25 Sep 2026 02:25:28 +0200
+
+Merge branch '6.8' again and again
+------------------------------------------------------------------------
+f311ab99a | Michael Rauh | Tue, 22 Sep 2026 16:56:43 +0200
+
+Don't resend REQUEST_UPDATE_NODE
+------------------------------------------------------------------------
+f1f813970 | Michael Rauh | Tue, 22 Sep 2026 16:35:13 +0200
+
+Verify SlurmctldPort is not empty
+------------------------------------------------------------------------
+aee579fba | Michael Rauh | Tue, 22 Sep 2026 16:16:29 +0200
+
+Bugfix: fix wrong/missing fields in REQUEST_UPDATE_NODE (psc:#4)
+------------------------------------------------------------------------
+f0f0c0ec0 | Norbert Eicker | Thu, 17 Sep 2026 11:17:25 +0200
+
+Simplify log message creation
+------------------------------------------------------------------------
+2823731f6 | Norbert Eicker | Thu, 10 Sep 2026 18:46:09 +0200
+
+More use of pluginfwarn in libplugincommon
+------------------------------------------------------------------------
+1c43c9958 | Norbert Eicker | Tue, 15 Sep 2026 15:08:47 +0200
+
+more use of flog/fdbg in psaccountinter
+------------------------------------------------------------------------
+c97a3d21a | Michael Rauh | Mon, 14 Sep 2026 17:25:26 +0200
+
+Snapshots the node's energy and interconnect counters when jobscript
+is registered
+------------------------------------------------------------------------
+96e002736 | Michael Rauh | Mon, 14 Sep 2026 14:13:55 +0200
+
+Bugfix: fix sacct AveCPUFreq values (psc:#3)
+------------------------------------------------------------------------
+451cce21b | Michael Rauh | Fri, 11 Sep 2026 13:37:07 +0200
+
+Merge branch '6.8' one more time
+------------------------------------------------------------------------
+68a46fcad | Norbert Eicker | Fri, 11 Sep 2026 11:18:52 +0200
+
+Merge branch '6.8' one more time
+------------------------------------------------------------------------
+f67febb2c | Norbert Eicker | Thu, 10 Sep 2026 14:20:42 +0200
+
+Merge branch '6.8' yet another time
+------------------------------------------------------------------------
+c2c31945d | Norbert Eicker | Wed, 9 Sep 2026 16:49:19 +0200
+
+Do not use PMIx_Info_string before PMIx_server_init (#370)
+------------------------------------------------------------------------
+5e8a8ac2c | Norbert Eicker | Mon, 27 Jul 2026 20:09:44 +0200
+
+check strbuf_t for validity and complain
+------------------------------------------------------------------------
+b9caae30e | Norbert Eicker | Mon, 27 Jul 2026 19:56:01 +0200
+
+Introduce pluginlogger in delegateStat
+
+ - this requires initialize() and cleanup() hooks
+------------------------------------------------------------------------
+9cb8f667f | Norbert Eicker | Mon, 27 Jul 2026 19:54:30 +0200
+
+Utilize pluginflog where applicable in delayPSPMsg
+------------------------------------------------------------------------
+96d712cdf | Norbert Eicker | Mon, 27 Jul 2026 19:50:47 +0200
+
+Introduce flog() and fdbg() in pspam plugin
+------------------------------------------------------------------------
+f4e571c3e | Norbert Eicker | Mon, 27 Jul 2026 19:41:31 +0200
+
+Introduce flog() and fdbg() in nodeinfo plugin
+------------------------------------------------------------------------
+6335d2482 | Norbert Eicker | Mon, 27 Jul 2026 19:35:55 +0200
+
+Introduce strbufValid()
+------------------------------------------------------------------------
+273c5342c | Michael Rauh | Mon, 10 Aug 2026 15:56:05 +0200
+
+Bugfix: return correct error when chdir() to the step's cwd fails
+------------------------------------------------------------------------
+c0e2d634d | Michael Rauh | Mon, 10 Aug 2026 14:43:32 +0200
+
+fixup! enhance debug log
+------------------------------------------------------------------------
+eacc2a8dd | Michael Rauh | Mon, 10 Aug 2026 14:42:03 +0200
+
+fixup! close oldfd after dup2() to prevent file descriptor leak
+------------------------------------------------------------------------
+36790a3dd | Michael Rauh | Mon, 10 Aug 2026 14:29:48 +0200
+
+fixup! Close file descriptors as part of the loop
+------------------------------------------------------------------------
+53a857b99 | Norbert Eicker | Thu, 16 Jul 2026 18:05:23 +0200
+
+enhance debug log
+------------------------------------------------------------------------
+a53869fb0 | Norbert Eicker | Thu, 16 Jul 2026 18:03:25 +0200
+
+booleanize IO_redirectRank() and IO_openJobPipes()
+------------------------------------------------------------------------
+fce12a443 | Norbert Eicker | Thu, 16 Jul 2026 17:55:28 +0200
+
+close oldfd after dup2() to prevent file descriptor leak
+------------------------------------------------------------------------
+bfe410796 | Norbert Eicker | Thu, 16 Jul 2026 17:51:45 +0200
+
+Close client's side of PMI_OVER_UNIX conn in psidforwarder
+------------------------------------------------------------------------
+74cf379c8 | Norbert Eicker | Thu, 16 Jul 2026 17:46:45 +0200
+
+Introduce fwarn() in pspmi
+------------------------------------------------------------------------
+e50f89b2f | Norbert Eicker | Thu, 16 Jul 2026 17:41:06 +0200
+
+Close file descriptors as part of the loop
+------------------------------------------------------------------------
+36a20977e | Norbert Eicker | Thu, 16 Jul 2026 17:28:31 +0200
+
+Do not close() stdin/stdout/stderr before dup2()
+------------------------------------------------------------------------
+981f595f9 | Norbert Eicker | Wed, 15 Jul 2026 18:17:27 +0200
+
+Close unused file descriptor to no leak them
+
+ - such file descriptors might harm if shared across processes
+------------------------------------------------------------------------
+c5a12975c | Norbert Eicker | Mon, 10 Aug 2026 09:49:30 +0200
+
+Emit log if generating compact thread list failed
+------------------------------------------------------------------------
+ed68f0d13 | Norbert Eicker | Mon, 27 Jul 2026 14:59:54 +0200
+
+Improve strbufNew() documentation
+------------------------------------------------------------------------
+161a010dc | Michael Rauh | Fri, 24 Jul 2026 18:08:08 +0200
+
+Don't ignore return value of PSdbNew()
+------------------------------------------------------------------------
+c6fc9da64 | Michael Rauh | Fri, 24 Jul 2026 13:56:56 +0200
+
+Bugfix: fix use after free in config parsing unveiled by asan
+------------------------------------------------------------------------
+825bda0a1 | Michael Rauh | Thu, 23 Jul 2026 17:39:12 +0200
+
+Fix possible dereference of NULL pointer
+------------------------------------------------------------------------
+6b051f381 | Michael Rauh | Thu, 23 Jul 2026 17:38:25 +0200
+
+Fix return type
+------------------------------------------------------------------------
+8a7f744d1 | Norbert Eicker | Wed, 29 Jul 2026 12:59:05 +0200
+
+Apply reOpenSyslog() changes to pluginscript's execChild
+------------------------------------------------------------------------
+618c4eccf | Norbert Eicker | Wed, 29 Jul 2026 12:56:31 +0200
+
+Allow to reOpenSyslog() for pluginlogger only
+------------------------------------------------------------------------
+e2d8b8177 | Norbert Eicker | Thu, 23 Jul 2026 03:28:10 +0200
+
+Rework psslurm's CPPFLAGS handling
+------------------------------------------------------------------------
+b55e80c55 | Norbert Eicker | Thu, 23 Jul 2026 03:25:59 +0200
+
+Minor reformatting
+------------------------------------------------------------------------
+19a448a47 | Norbert Eicker | Thu, 23 Jul 2026 03:19:43 +0200
+
+Drop SLURMLIBDIR definition where useless
+------------------------------------------------------------------------
+6150242c6 | Norbert Eicker | Thu, 23 Jul 2026 02:39:12 +0200
+
+Rework pspmix' CPPFLAGS handling
+------------------------------------------------------------------------
+cc08d1851 | Norbert Eicker | Thu, 23 Jul 2026 02:35:41 +0200
+
+Restrict defines to only those CPPFLAGS where required
+------------------------------------------------------------------------
+758ea93d9 | Norbert Eicker | Thu, 23 Jul 2026 01:25:22 +0200
+
+Minor reformatting
+------------------------------------------------------------------------
+8bb3061a0 | Norbert Eicker | Thu, 23 Jul 2026 01:18:38 +0200
+
+Avoid per target CPPFLAGS when all sharing the same
+------------------------------------------------------------------------
+9fb8f41b9 | Norbert Eicker | Thu, 23 Jul 2026 01:12:18 +0200
+
+Avoid useless per-target CFLAGS/CPPFLAGS
+------------------------------------------------------------------------
+da725b9ec | Norbert Eicker | Thu, 23 Jul 2026 01:05:41 +0200
+
+You shall not overwrite user variables in Makefile.am
+------------------------------------------------------------------------
+7a46f067f | Norbert Eicker | Wed, 22 Jul 2026 22:09:32 +0200
+
+Merge branch '6.8' once more
+------------------------------------------------------------------------
+a423f2385 | Stephan Krempel | Fri, 17 Jul 2026 15:47:39 +0200
+
+PMIx tests: Add config to run reframe on psvm clusters
+------------------------------------------------------------------------
+403170f07 | Norbert Eicker | Thu, 9 Jul 2026 11:29:37 +0200
+
+Bugfix: Make PKG_VER and PKG_REL actually working
+------------------------------------------------------------------------
+81fe60a65 | Norbert Eicker | Thu, 9 Jul 2026 11:58:46 +0200
+
+Make version string parsing more rebust in psslurmgetbind
+------------------------------------------------------------------------
+cbd575120 | Norbert Eicker | Tue, 23 Jun 2026 13:04:12 +0200
+
+Fix yet another gcc16 warnings
+------------------------------------------------------------------------
+4e1970216 | Norbert Eicker | Fri, 19 Jun 2026 19:31:07 +0200
+
+Fix more warnings unveiled by gcc 16's static analyzer
+------------------------------------------------------------------------
+0c0d9402b | Norbert Eicker | Fri, 19 Jun 2026 18:52:52 +0200
+
+More or fixed use of pluginflog()
+------------------------------------------------------------------------
+8a46dd3b6 | Norbert Eicker | Fri, 19 Jun 2026 18:47:46 +0200
+
+Add __assume.h to provide ASSUME() outside list.h
+------------------------------------------------------------------------
+ba9783b7b | Norbert Eicker | Wed, 17 Jun 2026 21:39:28 +0200
+
+Fix warnings shown by gcc's static analyzer
+------------------------------------------------------------------------
+84dd81f18 | Norbert Eicker | Wed, 17 Jun 2026 21:35:30 +0200
+
+Drop unused PSI_RemoteArgs()
+------------------------------------------------------------------------
+4e456726e | Norbert Eicker | Wed, 15 Jul 2026 15:37:51 +0200
+
+Introduce pluginfwarn() and use it where applicable
+------------------------------------------------------------------------
+523534048 | Norbert Eicker | Thu, 16 Jul 2026 09:21:50 +0200
+
+Merge branch '6.8' again
+------------------------------------------------------------------------
+c4fcc57c8 | Norbert Eicker | Tue, 23 Jun 2026 15:22:03 +0200
+
+Merge branch '6.8'
+------------------------------------------------------------------------
+cc2ecf44f | Simon Pickartz | Mon, 22 Jun 2026 15:40:09 +0200
+
+scripts/vcversion: Fix usage of the `--suffix` option.
+------------------------------------------------------------------------
+4bace30e7 | Simon Pickartz | Fri, 19 Jun 2026 15:11:27 +0200
+
+Re-run autotools.
+------------------------------------------------------------------------
+205451401 | Simon Pickartz | Thu, 11 Jun 2026 13:54:06 +0200
+
+Make vcversion exchangeable via the environment.
+------------------------------------------------------------------------
+0fdeee41d | Simon Pickartz | Fri, 19 Jun 2026 15:09:55 +0200
+
+Merge remote-tracking branch 'psbuild/master' into switch-to-new-vcversion
+------------------------------------------------------------------------
+20d95b122 | Simon Pickartz | Fri, 19 Jun 2026 13:04:43 +0000
+
+Merge branch 'switch-to-new-vcversion' into 'master'
+
+makefile: Make vcversion exchangeable via the environment.
+
+See merge request parastation/psbuild!12
+------------------------------------------------------------------------
+ca3d1c6cd | Simon Pickartz | Tue, 2 Jun 2026 15:14:42 +0200
+
+makefile: Make vcversion exchangeable via the environment.
+------------------------------------------------------------------------
+6fb405950 | Simon Pickartz | Tue, 3 Mar 2026 07:35:54 +0000
+
+Merge branch 'add-optional-suffix' into 'master'
+
+scripts: Add optional suffix parameter to vcversion.
+
+See merge request parastation/psbuild!9
+------------------------------------------------------------------------
+177d7abc8 | Simon Pickartz | Wed, 29 Sep 2021 09:44:44 +0200
+
+scripts: Add optional suffix parameter to vcversion.
+
+Instead of appending the branch name (for branches other than master),
+the caller may explicitly set a suffix via the `--suffix` argument.
+------------------------------------------------------------------------
+f9a86eaa9 | Thomas Moschny | Mon, 9 Feb 2026 15:26:25 +0100
+
+Merge branch 'fix_shellcheck' into 'master'
+
+Fix shellcheck errors/warnings.
+
+See merge request parastation/psbuild!8
+------------------------------------------------------------------------
+b7be09411 | Thomas Moschny | Mon, 9 Feb 2026 15:26:25 +0100
+
+Fix shellcheck errors/warnings.
+------------------------------------------------------------------------
+69931d6a4 | Thomas Moschny | Sun, 8 Feb 2026 12:58:10 +0100
+
+Merge branch 'remove_svn' into 'master'
+
+Remove Subversion support.
+
+See merge request parastation/psbuild!7
+------------------------------------------------------------------------
+f76b6c334 | Thomas Moschny | Sat, 7 Feb 2026 14:03:37 +0100
+
+Update copyright.
+------------------------------------------------------------------------
+af3fb9e2c | Thomas Moschny | Sat, 7 Feb 2026 14:03:37 +0100
+
+Remove support for .svn.
+------------------------------------------------------------------------
+910dad50d | Thomas Moschny | Sat, 7 Feb 2026 10:31:33 +0100
+
+Merge branch 'nobranch' into 'master'
+
+Ignore branch if no branch can be dedacted.
+
+See merge request parastation/psbuild!6
+------------------------------------------------------------------------
+1f2df3f17 | Thomas Moschny | Fri, 6 Feb 2026 18:29:51 +0100
+
+Also check for branch 'main'.
+------------------------------------------------------------------------
+5dd4c0126 | Thomas Moschny | Fri, 6 Feb 2026 18:19:00 +0100
+
+Ignore branch if no branch can be dedacted.
+------------------------------------------------------------------------
+ce41196ab | Simon Pickartz | Wed, 5 Feb 2025 14:25:23 +0000
+
+Merge branch 'support-git-worktrees' into 'master'
+
+Support git working trees.
+
+See merge request parastation/psbuild!5
+------------------------------------------------------------------------
+789ea64f4 | Simon Pickartz | Wed, 29 Jan 2025 14:35:57 +0100
+
+Support git working trees.
+
+A git working tree is characterized by a `.git` file (as opposed to the
+`.git` directory. Therefore, it sufficient to check for the existence.
+------------------------------------------------------------------------
+
+
 Version 6.8.8:
 ==============
 ------------------------------------------------------------------------
